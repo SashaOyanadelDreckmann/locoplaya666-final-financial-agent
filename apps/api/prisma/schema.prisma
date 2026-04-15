@@ -1,0 +1,66 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  ANALYST
+  ADMIN
+}
+
+model User {
+  id                        String   @id @db.VarChar(128)
+  name                      String   @db.VarChar(200)
+  email                     String   @unique @db.VarChar(320)
+  passwordHash              String   @db.VarChar(200)
+  role                      UserRole @default(USER)
+  injectedProfile           Json?
+  injectedIntake            Json?
+  latestDiagnosticProfileId String?  @db.VarChar(200)
+  latestDiagnosticCompletedAt DateTime?
+  panelState                Json?
+  sheets                    Json?
+  knowledgeBaseScore        Int      @default(0)
+  knowledgeScore            Int      @default(0)
+  knowledgeHistory          Json?
+  knowledgeLastUpdated      DateTime @default(now())
+  memoryBlob                Json?
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+
+  sessions Session[]
+  profiles FinancialProfile[]
+
+  @@index([createdAt])
+  @@index([knowledgeScore])
+}
+
+model Session {
+  tokenHash       String   @id @db.VarChar(128)
+  userId          String   @db.VarChar(128)
+  createdAt       DateTime @default(now())
+  expiresAt       DateTime
+  lastSeenAt      DateTime @default(now())
+  rotatedFromHash String?  @db.VarChar(128)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model FinancialProfile {
+  id        String   @id @db.VarChar(200)
+  userId    String   @db.VarChar(128)
+  payload   Json
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+}

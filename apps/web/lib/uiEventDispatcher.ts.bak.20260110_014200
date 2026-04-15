@@ -1,0 +1,21 @@
+import type { UIEvent } from '@financial-agent/shared';
+export function dispatchUIEvent(event: UIEvent) {
+  switch (event.type) {
+    case 'PANEL_OPEN':
+      // abrir panel lateral
+      break;
+
+    case 'CA
+
+    case 'PLAN_SET':
+      // setear plan de acción
+      break;
+
+    case 'TOAST':
+      // mostrar toast
+      break;
+
+    default:
+      console.warn('Evento UI no manejado', event);
+  }
+}

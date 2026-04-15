@@ -1,0 +1,6 @@
+sessions/
+users/
+memory/
+data/
+.env
+.env.local

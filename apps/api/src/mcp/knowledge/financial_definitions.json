@@ -1,0 +1,7 @@
+{
+  "definitions": [
+    { "term": "CAE", "definition": "Carga Anual Equivalente: medida estandarizada del costo total anual de un crédito." },
+    { "term": "Liquidez", "definition": "Facilidad y costo de convertir un activo en efectivo sin perder valor." },
+    { "term": "Riesgo", "definition": "Variabilidad potencial de resultados; incluye probabilidad de pérdida y magnitud." }
+  ]
+}

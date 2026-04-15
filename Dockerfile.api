@@ -1,0 +1,30 @@
+FROM node:20-bookworm-slim
+
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
+
+RUN npm install -g pnpm@10.26.1
+
+WORKDIR /app
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/api/package.json apps/api/package.json
+COPY apps/api/tsconfig.json apps/api/tsconfig.json
+COPY apps/api/prisma apps/api/prisma
+COPY apps/api/src apps/api/src
+COPY apps/api/assets apps/api/assets
+COPY packages/shared/package.json packages/shared/package.json
+COPY packages/shared/src packages/shared/src
+
+RUN pnpm install --frozen-lockfile
+RUN pnpm --filter @financial-agent/api db:generate
+
+ENV NODE_ENV=production
+ENV PORT=3001
+
+WORKDIR /app/apps/api
+
+EXPOSE 3001
+
+CMD ["sh", "-c", "pnpm db:migrate && pnpm start"]

@@ -1,0 +1,566 @@
+openapi: 3.1.0
+info:
+  title: Financial Agent API
+  version: 1.0.0
+  description: >
+    Standard API contract with unified success/error envelopes.
+servers:
+  - url: http://localhost:3001
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: session
+  schemas:
+    ApiMeta:
+      type: object
+      properties:
+        correlationId:
+          type: string
+    ApiError:
+      type: object
+      required: [type, title, status, detail, instance, code, timestamp]
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
+        code:
+          type: string
+          enum:
+            - BAD_REQUEST
+            - VALIDATION_ERROR
+            - UNAUTHORIZED
+            - FORBIDDEN
+            - NOT_FOUND
+            - CONFLICT
+            - RATE_LIMITED
+            - INTERNAL_ERROR
+        correlationId:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        details:
+          nullable: true
+    AuthUser:
+      type: object
+      required: [id, name, email, role]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum: [USER, ANALYST, ADMIN]
+    AuthPayload:
+      type: object
+      required: [user]
+      properties:
+        user:
+          $ref: '#/components/schemas/AuthUser'
+    ApiAuthSuccess:
+      type: object
+      required: [ok, data]
+      properties:
+        ok:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: '#/components/schemas/AuthPayload'
+        meta:
+          $ref: '#/components/schemas/ApiMeta'
+    GenericSuccess:
+      type: object
+      required: [ok, data]
+      properties:
+        ok:
+          type: boolean
+          enum: [true]
+        data:
+          type: object
+        meta:
+          $ref: '#/components/schemas/ApiMeta'
+paths:
+  /health:
+    get:
+      summary: Service health and DoD coverage
+      responses:
+        '200':
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericSuccess'
+  /auth/register:
+    post:
+      summary: Register user and create session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password]
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  minLength: 8
+      responses:
+        '200':
+          description: Registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiAuthSuccess'
+        '409':
+          description: User already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /auth/login:
+    post:
+      summary: Login and rotate session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Logged in
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiAuthSuccess'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /auth/logout:
+    post:
+      summary: Logout and clear session cookie
+      responses:
+        '200':
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericSuccess'
+  /auth/me:
+    get:
+      summary: Session probe
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Session valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericSuccess'
+        '401':
+          description: No active session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /intake/submit:
+    post:
+      summary: Submit intake and derive intake context
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Intake processed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericSuccess'
+  /conversation/next:
+    post:
+      summary: Continue interview flow and persist progress
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [intake]
+              properties:
+                intake:
+                  type: object
+                answersInCurrentBlock:
+                  type: array
+                  items:
+                    type: string
+                completedBlocks:
+                  type: object
+      responses:
+        '200':
+          description: Next interview state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericSuccess'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /api/agent:
+    post:
+      summary: Run core agent turn
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_message]
+              properties:
+                user_message:
+                  type: string
+                session_id:
+                  type: string
+                context:
+                  type: object
+                ui_state:
+                  type: object
+      responses:
+        '200':
+          description: Agent response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericSuccess'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /api/inject-profile:
+    post:
+      summary: Inject profile payload (dev/admin)
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [profile]
+              properties:
+                profile:
+                  type: object
+      responses:
+        '200':
+          description: Injection result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericSuccess'
+  /api/inject-intake:
+    post:
+      summary: Inject intake payload (dev/admin)
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [intake]
+              properties:
+                intake:
+                  type: object
+      responses:
+        '200':
+          description: Injection result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericSuccess'
+  /api/remove-injected-intake:
+    post:
+      summary: Remove injected intake (dev/admin)
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Removal result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericSuccess'
+  /api/remove-injected-profile:
+    post:
+      summary: Remove injected profile (dev/admin)
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Removal result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericSuccess'
+  /api/session:
+    get:
+      summary: Get authenticated user session view
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Session payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericSuccess'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /api/welcome:
+    get:
+      summary: Get welcome message for current user context
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Welcome content
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericSuccess'
+  /api/sheets:
+    get:
+      summary: Get user sheets
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Sheets payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericSuccess'
+    post:
+      summary: Save user sheets
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [sheets]
+              properties:
+                sheets:
+                  type: array
+                  items:
+                    type: object
+      responses:
+        '200':
+          description: Save result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericSuccess'
+  /api/panel-state:
+    get:
+      summary: Get panel state
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Panel state payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericSuccess'
+    post:
+      summary: Save panel state
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [panelState]
+              properties:
+                panelState:
+                  type: object
+      responses:
+        '200':
+          description: Save result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericSuccess'
+  /api/documents/parse:
+    post:
+      summary: Parse uploaded documents
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [files]
+              properties:
+                files:
+                  type: array
+                  items:
+                    type: object
+                    required: [name, base64]
+                    properties:
+                      name:
+                        type: string
+                      base64:
+                        type: string
+      responses:
+        '200':
+          description: Parsed documents
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericSuccess'
+  /api/pdfs/serve:
+    get:
+      summary: Serve generated PDF/PNG artifacts
+      security:
+        - sessionCookie: []
+      parameters:
+        - in: query
+          name: file
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Binary content
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+            image/png:
+              schema:
+                type: string
+                format: binary
+        '400':
+          description: Invalid file parameter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: File not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /simulations:
+    get:
+      summary: Get simulation index
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Simulation index
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericSuccess'
+  /simulations/{id}/save:
+    post:
+      summary: Mark simulation artifact as saved
+      security:
+        - sessionCookie: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                saved:
+                  type: boolean
+      responses:
+        '200':
+          description: Save mutation result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericSuccess'
+  /diagnosis/latest:
+    get:
+      summary: Load latest diagnostic profile for current user
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Diagnostic profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericSuccess'
+        '404':
+          description: No profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
