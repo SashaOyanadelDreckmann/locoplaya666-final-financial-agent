@@ -7,5 +7,11 @@
 export function getApiBaseUrl(): string {
   const fromEnv = process.env.NEXT_PUBLIC_API_URL;
   const base = (fromEnv ?? '').trim();
-  return base.length > 0 ? base.replace(/\/+$/, '') : 'http://localhost:3001';
+  if (base.length > 0) return base.replace(/\/+$/, '');
+
+  if (process.env.NODE_ENV === 'production') {
+    return 'https://locoplaya666-final-financial-agent-production.up.railway.app';
+  }
+
+  return 'http://localhost:3001';
 }
