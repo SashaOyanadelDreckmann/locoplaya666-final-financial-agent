@@ -1,4 +1,4 @@
-import { getApiBaseUrl } from './apiBase';
+import { getAgentApiBaseUrl } from './apiBase';
 import { parseApiResponse } from './apiEnvelope';
 
 /* ────────────────────────────────────────────── */
@@ -63,7 +63,7 @@ export async function sendToAgent(payload: {
     console.log('[DEV] payload.user_message =', payload.user_message);
   }
 
-  const API_URL = getApiBaseUrl();
+  const API_URL = getAgentApiBaseUrl();
   const timeoutMs = Number(process.env.NEXT_PUBLIC_AGENT_TIMEOUT_MS || 45000);
 
   async function fetchWithTimeout(): Promise<Response> {

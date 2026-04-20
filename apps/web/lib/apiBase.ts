@@ -19,3 +19,21 @@ export function getApiBaseUrl(): string {
 
   return 'http://localhost:3001';
 }
+
+/**
+ * URL base directa del API para requests largos del agente.
+ *
+ * En producción evitamos pasar por el proxy de Next (`/backend`) porque
+ * algunas respuestas extensas pueden cortarse con ECONNRESET en Railway.
+ */
+export function getAgentApiBaseUrl(): string {
+  const fromEnv = process.env.NEXT_PUBLIC_AGENT_API_URL;
+  const base = (fromEnv ?? '').trim();
+  if (base.length > 0) return base.replace(/\/+$/, '');
+
+  if (process.env.NODE_ENV === 'production') {
+    return 'https://locoplaya666-final-financial-agent-production.up.railway.app';
+  }
+
+  return getApiBaseUrl();
+}
