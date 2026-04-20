@@ -5,7 +5,7 @@
  * Generate final response, parse special tags, detect knowledge events
  */
 
-import { completeStructured, completeWithClaude } from '../../../services/llm.service';
+import { complete, completeStructured, completeWithClaude } from '../../../services/llm.service';
 import { CORE_RESPONSE_SYSTEM } from '../system.prompts';
 import { detectKnowledgeEvent } from '../knowledge-detector';
 import { recordKnowledgeEvent, getMilestones, KNOWLEDGE_MILESTONES } from '../../../services/knowledge.service';
@@ -32,6 +32,60 @@ function shouldApplyLatexFormatting(message: string): boolean {
   return hasMathLikeContent;
 }
 
+function compactToolOutputs(input: FormatPhaseInput): string {
+  const outputs = input.execution_result?.tool_outputs ?? [];
+  if (outputs.length === 0) return 'Sin tool_outputs.';
+
+  return outputs
+    .slice(-3)
+    .map((entry, idx) => {
+      const raw =
+        typeof entry?.data === 'string'
+          ? entry.data
+          : JSON.stringify(entry?.data ?? {}, null, 2);
+      const trimmed = String(raw).replace(/\s+/g, ' ').trim().slice(0, 800);
+      return `#${idx + 1} tool=${entry?.tool ?? 'unknown'} output=${trimmed}`;
+    })
+    .join('\n');
+}
+
+async function buildFastValuableMessage(input: FormatPhaseInput): Promise<string> {
+  const toolsUsed = input.execution_result?.tool_calls?.map((tc) => tc.tool).slice(0, 4) ?? [];
+  const citations = input.execution_result?.citations?.slice(0, 5) ?? [];
+  const artifacts = input.execution_result?.artifacts?.slice(0, 2) ?? [];
+  const toolContext = compactToolOutputs(input);
+
+  const prompt = [
+    'Responde en español (Chile), breve y útil.',
+    'Entrega valor real al usuario en formato:',
+    '1) respuesta directa (2-4 líneas),',
+    '2) 2-3 acciones concretas inmediatas,',
+    '3) una advertencia o supuesto importante si aplica.',
+    'No menciones nombres de tools, pipeline interno ni tecnicismos de backend.',
+    '',
+    `Pregunta del usuario: ${input.user_message}`,
+    `Modo: ${input.mode}`,
+    `Herramientas usadas: ${toolsUsed.join(', ') || 'ninguna'}`,
+    `Artefactos: ${artifacts.map((a) => a.title).join(' | ') || 'ninguno'}`,
+    `Fuentes: ${citations.map((c) => c.title || c.source || '').filter(Boolean).join(' | ') || 'ninguna'}`,
+    '',
+    'Evidencia resumida:',
+    toolContext,
+  ].join('\n');
+
+  const raw = await complete(prompt, {
+    systemPrompt:
+      'Eres un asesor financiero senior. Tu prioridad es claridad, utilidad inmediata y precisión.',
+    temperature: 0.2,
+    maxCompletionTokens: 520,
+  });
+
+  const cleaned = stripEmojis(cleanSpecialTags(raw)).trim();
+  return cleaned.length > 0
+    ? cleaned
+    : 'Aquí va una lectura rápida: con la evidencia disponible, conviene confirmar contexto clave y ejecutar 2-3 pasos de control antes de decidir.';
+}
+
 /**
  * Format response from raw LLM output
  */
@@ -42,25 +96,10 @@ export async function runFormatPhase(input: FormatPhaseInput): Promise<FormatPha
 
   try {
     if (fastFormatEnabled) {
-      const toolsUsed = input.execution_result?.tool_calls?.map((tc) => tc.tool).slice(0, 4) ?? [];
-      const artifactsCount = input.execution_result?.artifacts?.length ?? 0;
-      const chartsCount = input.execution_result?.agent_blocks?.filter((b) => b.type === 'chart').length ?? 0;
-      const citationsCount = input.execution_result?.citations?.length ?? 0;
-      const primaryMessage =
-        input.execution_result?.tool_outputs?.length > 0
-          ? 'Listo. Ya procesé tu solicitud con herramientas en tiempo real.'
-          : 'Listo. Ya procesé tu solicitud.';
-
-      const messageParts = [
-        primaryMessage,
-        toolsUsed.length > 0 ? `Tools usadas: ${toolsUsed.join(', ')}.` : '',
-        chartsCount > 0 ? `Gráficos generados: ${chartsCount}.` : '',
-        artifactsCount > 0 ? `Documentos generados: ${artifactsCount}.` : '',
-        citationsCount > 0 ? `Fuentes citadas: ${citationsCount}.` : '',
-      ].filter(Boolean);
+      const message = await buildFastValuableMessage(input);
 
       const formatted_response: FormattedResponse = {
-        message: messageParts.join(' '),
+        message,
         agent_blocks: input.execution_result?.agent_blocks || [],
         artifacts: input.execution_result?.artifacts || [],
         citations: input.execution_result?.citations || [],
