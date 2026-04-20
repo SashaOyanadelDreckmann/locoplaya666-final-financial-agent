@@ -27,12 +27,13 @@ export async function parseApiResponse<T>(res: Response): Promise<T> {
   const raw = await res.json().catch(() => null);
 
   if (!res.ok) {
+    const statusHint = `HTTP ${res.status}${res.statusText ? ` ${res.statusText}` : ''}`;
     if (raw && typeof raw === 'object') {
       const err = raw as ApiErrorPayload;
-      const message = err.detail ?? err.error?.message ?? err.title ?? 'Request failed';
+      const message = err.detail ?? err.error?.message ?? err.title ?? statusHint;
       throw new Error(message);
     }
-    throw new Error('Request failed');
+    throw new Error(statusHint);
   }
 
   if (isApiEnvelope<T>(raw)) {
@@ -43,7 +44,7 @@ export async function parseApiResponse<T>(res: Response): Promise<T> {
       (raw as ApiErrorPayload).detail ??
         (raw as ApiErrorPayload).error?.message ??
         (raw as ApiErrorPayload).title ??
-        'Request failed',
+        `HTTP ${res.status}${res.statusText ? ` ${res.statusText}` : ''}`,
     );
   }
 

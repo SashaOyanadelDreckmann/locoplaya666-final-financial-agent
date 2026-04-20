@@ -113,5 +113,11 @@ export async function sendToAgent(payload: {
     }
   }
 
+  // Railway can briefly return 5xx during deploy/wake-up; retry once.
+  if (res.status >= 500 && res.status <= 599) {
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    res = await fetchWithTimeout();
+  }
+
   return parseApiResponse<any>(res);
 }
