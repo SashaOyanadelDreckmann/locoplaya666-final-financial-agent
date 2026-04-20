@@ -25,6 +25,41 @@ export type StoredReport = {
 export type StoredUploadedDocument = {
   name: string;
   text: string;
+  documentId?: string;
+  summary?: unknown;
+  structuredData?: unknown;
+  indexed?: boolean;
+};
+
+export type StoredDocumentSource = 'USER_UPLOAD' | 'AGENT_GENERATED' | 'SYSTEM';
+export type StoredDocumentKind = 'PDF' | 'EXCEL' | 'CSV' | 'IMAGE' | 'TEXT' | 'REPORT' | 'STATEMENT' | 'OTHER';
+export type StoredDocumentStatus = 'PARSED' | 'INDEXED' | 'FAILED';
+
+export type StoredUserVectorStore = {
+  userId: string;
+  vectorStoreId: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type StoredUserDocument = {
+  id: string;
+  userId: string;
+  name: string;
+  kind: StoredDocumentKind;
+  source: StoredDocumentSource;
+  mimeType?: string;
+  sizeBytes?: number;
+  textPreview?: string;
+  extractedText?: string;
+  summary?: unknown;
+  structuredData?: unknown;
+  openaiFileId?: string;
+  vectorStoreId?: string;
+  status: StoredDocumentStatus;
+  error?: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type StoredPanelState = {

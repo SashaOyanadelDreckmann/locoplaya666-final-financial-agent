@@ -15,6 +15,11 @@ import {
 } from '../services/user.service';
 import { complete, completeWithClaude } from '../services/llm.service';
 import { appendTurnToMemory, buildAgentMemoryContext } from '../services/memory.service';
+import {
+  ingestGeneratedReportDocument,
+  reportSpecToSearchableText,
+  searchUserDocumentContext,
+} from '../services/document-intelligence.service';
 import { asyncHandler } from '../middleware/errorHandler';
 import { requireAuth, requirePermission } from '../middleware/auth';
 import { badRequest, forbidden, unauthorized } from '../http/api.errors';
@@ -125,7 +130,7 @@ async function buildAgenticPremiumPdfSpec(params: {
             kind:
               obj.kind === 'bar' || obj.kind === 'area' || obj.kind === 'line'
                 ? obj.kind
-                : 'line',
+                : ('line' as const),
             labels: labels.slice(0, n),
             values: values.slice(0, n),
           };
@@ -643,6 +648,38 @@ router.post(
       req.logger?.warn({ msg: 'Error loading persistent memory', error: memoryErr });
     }
 
+    try {
+      const userMessage = String(normalizedInput.user_message ?? '');
+      if (userMessage.trim().length > 0) {
+        const documentHits = await searchUserDocumentContext(authedUser.id, userMessage, 6);
+        if (documentHits.length > 0) {
+          const currentContext = ((normalizedInput.context as Record<string, unknown>) ?? {});
+          const uploadedDocuments = Array.isArray(currentContext.uploaded_documents)
+            ? currentContext.uploaded_documents
+            : [];
+          normalizedInput.context = {
+            ...currentContext,
+            document_memory: documentHits,
+            uploaded_documents: [
+              ...uploadedDocuments,
+              ...documentHits.map((hit) => ({
+                name: hit.title,
+                text: hit.text,
+                documentId: hit.documentId,
+                source: hit.source,
+              })),
+            ].slice(-10),
+          };
+        }
+      }
+    } catch (documentErr) {
+      req.logger?.warn({
+        msg: 'Error loading document context',
+        error: documentErr,
+        userId: authedUser.id,
+      });
+    }
+
     const input = ChatAgentInputSchema.parse(normalizedInput);
     const response = await runCoreAgent(input);
 
@@ -672,6 +709,20 @@ router.post(
           history: Array.isArray(input.history) ? input.history : [],
           citations: Array.isArray(response.citations) ? (response.citations as any) : [],
         });
+
+        try {
+          await ingestGeneratedReportDocument({
+            userId: authedUser.id,
+            title: spec.title,
+            text: reportSpecToSearchableText(spec),
+          });
+        } catch (documentErr) {
+          req.logger?.warn({
+            msg: 'Generated report document ingestion failed',
+            error: documentErr,
+            userId: authedUser.id,
+          });
+        }
 
         const nonPdfArtifacts = (response.artifacts ?? []).filter((a) => a?.type !== 'pdf');
         response.artifacts = [fallbackArtifact, ...nonPdfArtifacts];

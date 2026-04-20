@@ -1,5 +1,5 @@
 import type { PrismaClient } from '@prisma/client';
-import type { StoredProfile, StoredSession, StoredUser } from './types';
+import type { StoredProfile, StoredSession, StoredUser, StoredUserDocument, StoredUserVectorStore } from './types';
 
 export type PersistenceMode = 'postgres' | 'memory';
 
@@ -7,6 +7,8 @@ const memoryUsers = new Map<string, StoredUser>();
 const memoryUsersByEmail = new Map<string, string>();
 const memorySessions = new Map<string, StoredSession>();
 const memoryProfiles = new Map<string, StoredProfile>();
+const memoryDocuments = new Map<string, StoredUserDocument>();
+const memoryVectorStores = new Map<string, StoredUserVectorStore>();
 
 let prismaClient: PrismaClient | null = null;
 
@@ -38,4 +40,6 @@ export const memoryStore = {
   usersByEmail: memoryUsersByEmail,
   sessions: memorySessions,
   profiles: memoryProfiles,
+  documents: memoryDocuments,
+  vectorStores: memoryVectorStores,
 };

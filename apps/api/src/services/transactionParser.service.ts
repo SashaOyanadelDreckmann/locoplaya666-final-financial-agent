@@ -128,6 +128,7 @@ export async function parseTransactionFile(
   if (ext === '.pdf') return parsePdfBuffer(buffer, filename);
   if (ext === '.xlsx' || ext === '.xls') return parseExcelBuffer(buffer, filename);
   if (ext === '.csv') return parseCsvBuffer(buffer, filename);
+  if (ext === '.txt' || ext === '.md') return parseCsvBuffer(buffer, filename);
   if (ext in IMAGE_MIME_BY_EXT) return parseImageBuffer(buffer, filename);
   return `[${filename}: formato no soportado (${ext})]`;
 }

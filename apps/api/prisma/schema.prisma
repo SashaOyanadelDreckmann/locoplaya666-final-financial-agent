@@ -13,6 +13,29 @@ enum UserRole {
   ADMIN
 }
 
+enum DocumentSource {
+  USER_UPLOAD
+  AGENT_GENERATED
+  SYSTEM
+}
+
+enum DocumentKind {
+  PDF
+  EXCEL
+  CSV
+  IMAGE
+  TEXT
+  REPORT
+  STATEMENT
+  OTHER
+}
+
+enum DocumentStatus {
+  PARSED
+  INDEXED
+  FAILED
+}
+
 model User {
   id                        String   @id @db.VarChar(128)
   name                      String   @db.VarChar(200)
@@ -35,9 +58,45 @@ model User {
 
   sessions Session[]
   profiles FinancialProfile[]
+  documents UserDocument[]
+  vectorStore UserVectorStore?
 
   @@index([createdAt])
   @@index([knowledgeScore])
+}
+
+model UserVectorStore {
+  userId        String   @id @db.VarChar(128)
+  vectorStoreId String   @db.VarChar(200)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UserDocument {
+  id             String         @id @db.VarChar(128)
+  userId         String         @db.VarChar(128)
+  name           String         @db.VarChar(300)
+  kind           DocumentKind
+  source         DocumentSource @default(USER_UPLOAD)
+  mimeType       String?        @db.VarChar(200)
+  sizeBytes      Int?
+  textPreview    String?
+  extractedText  String?
+  summary        Json?
+  structuredData Json?
+  openaiFileId   String?        @db.VarChar(200)
+  vectorStoreId  String?        @db.VarChar(200)
+  status         DocumentStatus @default(PARSED)
+  error          String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([userId, kind])
 }
 
 model Session {
