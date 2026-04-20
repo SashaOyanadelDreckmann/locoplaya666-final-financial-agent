@@ -8602,3 +8602,118 @@
     text-align: left !important;
   }
 }
+
+/* Final mobile cockpit polish: compact composer + breathable top controls */
+@media (max-width: 767px) {
+  .agent-chat-header {
+    padding: calc(env(safe-area-inset-top) + 5px) 10px 3px !important;
+    border-bottom: none !important;
+  }
+
+  .agent-chat-controls-row {
+    gap: 7px !important;
+    min-height: 34px !important;
+    padding: 5px 8px !important;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .chat-switcher {
+    flex: 1 1 auto !important;
+    height: 34px !important;
+    min-width: 0 !important;
+    padding: 5px 8px !important;
+    gap: 10px !important;
+    border-radius: 999px !important;
+    border: 1px solid rgba(197, 221, 236, 0.12) !important;
+    background: rgba(7, 12, 19, 0.64) !important;
+    overflow: hidden !important;
+  }
+
+  .chat-sheet-tab {
+    width: 10px !important;
+    min-width: 10px !important;
+    height: 10px !important;
+    padding: 0 !important;
+    border-radius: 999px !important;
+    font-size: 0 !important;
+    line-height: 0 !important;
+    background: rgba(198, 219, 232, 0.42) !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    flex: 0 0 10px !important;
+  }
+
+  .chat-sheet-tab.is-active {
+    background: rgba(199, 228, 245, 0.92) !important;
+    box-shadow: 0 0 10px rgba(170, 213, 239, 0.34) !important;
+  }
+
+  .mobile-progress-pill {
+    flex: 0 0 66px !important;
+    min-width: 66px !important;
+    height: 34px !important;
+    padding: 0 9px !important;
+    border-radius: 999px !important;
+    border: 1px solid rgba(197, 221, 236, 0.12) !important;
+    background: rgba(7, 12, 19, 0.64) !important;
+    gap: 7px !important;
+  }
+
+  .mobile-progress-pill-track {
+    min-width: 18px !important;
+  }
+
+  .header-toggle-group {
+    height: 34px !important;
+    align-items: center !important;
+    flex: 0 0 auto !important;
+  }
+
+  .layout-mode-toggle.monochrome-toggle {
+    width: 34px !important;
+    min-width: 34px !important;
+    height: 34px !important;
+    border-radius: 999px !important;
+    padding: 0 !important;
+    font-size: 9px !important;
+    line-height: 1 !important;
+    letter-spacing: 0.02em !important;
+    border: 1px solid rgba(197, 221, 236, 0.12) !important;
+    background: rgba(7, 12, 19, 0.64) !important;
+    box-shadow: none !important;
+  }
+
+  .agent-input {
+    padding: 2px 7px calc(env(safe-area-inset-bottom) + 2px) !important;
+    gap: 3px !important;
+    border-top: 0 !important;
+  }
+
+  .agent-input textarea {
+    min-height: 18px !important;
+    height: 26px !important;
+    max-height: 32px !important;
+    padding: 4px 10px !important;
+    line-height: 1.1 !important;
+    font-size: 15px !important;
+    border: 0 !important;
+    border-bottom: 0 !important;
+    border-radius: 0 !important;
+    resize: none !important;
+  }
+
+  .agent-input .controls {
+    min-height: 21px !important;
+    margin-top: 1px !important;
+    gap: 5px !important;
+  }
+
+  .agent-input .continue-button {
+    min-height: 20px !important;
+    height: 20px !important;
+    padding: 3px 8px !important;
+    font-size: 9px !important;
+  }
+}
