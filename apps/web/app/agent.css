@@ -8125,10 +8125,10 @@
   .agent-chat-header {
     flex: 0 0 auto !important;
     padding: calc(env(safe-area-inset-top) + 8px) 10px 6px !important;
-    background: rgba(5, 8, 16, 0.52) !important;
-    backdrop-filter: blur(12px) saturate(1.05) !important;
-    -webkit-backdrop-filter: blur(12px) saturate(1.05) !important;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border-bottom: none !important;
     z-index: 20 !important;
   }
 
@@ -8156,6 +8156,9 @@
     padding: 2px !important;
     gap: 2px !important;
     overflow: hidden !important;
+    background: rgba(0, 0, 0, 0.42) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
   }
 
   .chat-sheet-tab {
@@ -8168,10 +8171,36 @@
     line-height: 1 !important;
   }
 
-  .mobile-progress-pill,
-  .sheet-context-bar,
-  .header-toggle-group {
+  .sheet-context-bar {
     display: none !important;
+  }
+
+  .mobile-progress-pill {
+    display: inline-flex !important;
+    flex: 0 0 72px !important;
+    height: 24px !important;
+    min-width: 72px !important;
+    padding: 3px 7px !important;
+    border-radius: 999px !important;
+    background: rgba(0, 0, 0, 0.42) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+  }
+
+  .header-toggle-group {
+    display: inline-flex !important;
+    flex: 0 0 auto !important;
+    gap: 4px !important;
+  }
+
+  .layout-mode-toggle {
+    width: 24px !important;
+    height: 24px !important;
+    min-width: 24px !important;
+    font-size: 8px !important;
+    background: rgba(0, 0, 0, 0.42) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
   }
 
   .agent-chat-body {
@@ -8201,9 +8230,9 @@
     flex: 0 0 auto !important;
     padding: 7px 7px calc(env(safe-area-inset-bottom) + 7px) !important;
     gap: 6px !important;
-    background: rgba(5, 8, 16, 0.42) !important;
-    backdrop-filter: blur(12px) saturate(1.05) !important;
-    -webkit-backdrop-filter: blur(12px) saturate(1.05) !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
   }
 
   .agent-input textarea {
@@ -8239,7 +8268,11 @@
     max-height: clamp(104px, 18dvh, 128px) !important;
     min-height: 0 !important;
     overflow: hidden !important;
-    border-top: 1px solid rgba(255, 255, 255, 0.10) !important;
+    background: transparent !important;
+    border-top: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: none !important;
   }
 
   .agent-layout.mobile-panel-expanded .agent-panel {
@@ -8248,12 +8281,13 @@
   }
 
   .mobile-panel-handle {
+    display: none !important;
     padding: 5px 10px !important;
     min-height: 26px !important;
   }
 
   .agent-panel .panel-grid {
-    padding: 7px 8px calc(7px + env(safe-area-inset-bottom)) !important;
+    padding: 4px 8px calc(7px + env(safe-area-inset-bottom)) !important;
     gap: 8px !important;
     align-items: stretch !important;
   }
@@ -8272,5 +8306,22 @@
     height: 100% !important;
     min-height: 0 !important;
     overflow: hidden !important;
+  }
+
+  .agent-panel::before,
+  .agent-panel::after,
+  .agent-input::before,
+  .agent-input::after,
+  .agent-chat-header::before,
+  .agent-chat-header::after {
+    display: none !important;
+    content: none !important;
+  }
+
+  .agent-input textarea,
+  .agent-input .continue-button {
+    background: rgba(0, 0, 0, 0.46) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
   }
 }
