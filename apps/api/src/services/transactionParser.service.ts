@@ -6,7 +6,7 @@ import fs from 'fs';
 import path from 'path';
 import { PDFParse } from 'pdf-parse';
 import * as XLSX from 'xlsx';
-import { getOpenAIClient } from './llm.service';
+import { getOpenAIClient, withCompatibleTemperature } from './llm.service';
 
 const DATA_ROOT = path.join(process.cwd(), 'data', 'transactions');
 const IMAGE_MIME_BY_EXT: Record<string, string> = {
@@ -89,25 +89,31 @@ export async function parseImageBuffer(buffer: Buffer, filename: string): Promis
     const base64 = buffer.toString('base64');
     const imageDataUrl = `data:${mime};base64,${base64}`;
 
-    const response = await client.chat.completions.create({
-      model: process.env.OPENAI_VISION_MODEL || 'gpt-4.1-mini',
-      temperature: 0,
-      max_completion_tokens: 900,
-      messages: [
+    const model = process.env.OPENAI_VISION_MODEL || 'gpt-4.1-mini';
+    const response = await client.chat.completions.create(
+      withCompatibleTemperature(
         {
-          role: 'system',
-          content:
-            'Extrae texto y contexto de documentos financieros en imagen. Devuelve SOLO texto claro en español con: (1) resumen, (2) datos detectados (montos/fechas/tasas), (3) posibles alertas.',
+          model,
+          max_completion_tokens: 900,
+          messages: [
+            {
+              role: 'system',
+              content:
+                'Extrae texto y contexto de documentos financieros en imagen. Devuelve SOLO texto claro en español con: (1) resumen, (2) datos detectados (montos/fechas/tasas), (3) posibles alertas.',
+            },
+            {
+              role: 'user',
+              content: [
+                { type: 'text', text: `Analiza esta imagen financiera llamada "${filename}" y extrae su contenido.` },
+                { type: 'image_url', image_url: { url: imageDataUrl, detail: 'high' } },
+              ] as any,
+            },
+          ],
         },
-        {
-          role: 'user',
-          content: [
-            { type: 'text', text: `Analiza esta imagen financiera llamada "${filename}" y extrae su contenido.` },
-            { type: 'image_url', image_url: { url: imageDataUrl, detail: 'high' } },
-          ] as any,
-        },
-      ],
-    });
+        model,
+        0,
+      ) as any,
+    );
 
     const extracted = response.choices?.[0]?.message?.content?.trim() ?? '';
     if (!extracted) return `[Imagen ${filename}: sin texto o datos extraíbles]`;

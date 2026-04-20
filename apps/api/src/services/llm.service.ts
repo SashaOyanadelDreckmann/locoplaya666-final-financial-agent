@@ -36,6 +36,21 @@ type CompleteOptions = {
   model?: string;
 };
 
+export function supportsCustomTemperature(model: string): boolean {
+  return !/^gpt-5(?:[.\-_]|$)/i.test(model);
+}
+
+export function withCompatibleTemperature<T extends Record<string, unknown>>(
+  params: T,
+  model: string,
+  temperature: number | undefined,
+): T & { temperature?: number } {
+  if (typeof temperature === 'number' && supportsCustomTemperature(model)) {
+    return { ...params, temperature };
+  }
+  return params;
+}
+
 // ✅ Overloads
 export async function complete(input: string, options?: CompleteOptions): Promise<string>;
 export async function complete(input: LLMMessage[], options?: CompleteOptions): Promise<string>;
@@ -69,12 +84,17 @@ export async function complete(
   }
 
   const maxCompletionTokens = Number(process.env.OPENAI_MAX_COMPLETION_TOKENS || 2048);
-  const response = await client.chat.completions.create({
-    model,
-    max_completion_tokens: Number.isFinite(maxCompletionTokens) ? maxCompletionTokens : 2048,
-    temperature,
-    messages,
-  });
+  const response = await client.chat.completions.create(
+    withCompatibleTemperature(
+      {
+        model,
+        max_completion_tokens: Number.isFinite(maxCompletionTokens) ? maxCompletionTokens : 2048,
+        messages,
+      },
+      model,
+      temperature,
+    ) as OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming,
+  );
 
   return response.choices[0]?.message?.content?.trim() ?? '';
 }
@@ -89,18 +109,24 @@ export async function completeStructured<T>(params: {
   const model = params.model ?? process.env.OPENAI_MODEL ?? 'gpt-5.2';
   const structuredMaxTokens = Number(process.env.OPENAI_STRUCTURED_MAX_COMPLETION_TOKENS || 1536);
 
-  const response = await client.chat.completions.create({
-    model,
-    max_completion_tokens: Number.isFinite(structuredMaxTokens) ? structuredMaxTokens : 1536,
-    temperature: params.temperature ?? 0,
-    messages: [
+  const response = await client.chat.completions.create(
+    withCompatibleTemperature(
       {
-        role: 'system',
-        content: `${params.system}\n\nIMPORTANTE: Responde ÚNICAMENTE con JSON válido. Sin texto adicional, sin markdown, sin bloques de código.`,
+        model,
+        max_completion_tokens: Number.isFinite(structuredMaxTokens) ? structuredMaxTokens : 1536,
+        response_format: { type: 'json_object' },
+        messages: [
+          {
+            role: 'system',
+            content: `${params.system}\n\nIMPORTANTE: Responde ÚNICAMENTE con JSON válido. Sin texto adicional, sin markdown, sin bloques de código.`,
+          },
+          { role: 'user', content: params.user },
+        ],
       },
-      { role: 'user', content: params.user },
-    ],
-  });
+      model,
+      params.temperature ?? 0,
+    ) as OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming,
+  );
 
   const raw = response.choices[0]?.message?.content?.trim();
   if (!raw) throw new Error('Respuesta LLM vacía en completeStructured');

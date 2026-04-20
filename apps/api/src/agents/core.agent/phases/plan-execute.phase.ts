@@ -5,7 +5,7 @@
  * Decides which tools to call and executes them in a loop
  */
 
-import { getOpenAIClient } from '../../../services/llm.service';
+import { getOpenAIClient, withCompatibleTemperature } from '../../../services/llm.service';
 import { buildOpenAITools, getOriginalToolName } from '../../../mcp/openai-bridge';
 import { runMCPTool } from '../../../mcp/tools/runMCPTool';
 import { CORE_TOOL_AGENT_SYSTEM } from '../system.prompts';
@@ -61,14 +61,20 @@ export async function runPlanExecutePhase(input: PlanPhaseInput): Promise<PlanPh
       const planMaxTokens = Number(process.env.OPENAI_PLAN_MAX_COMPLETION_TOKENS || 1024);
 
       // Call OpenAI with tool calling
-      const response = await client.chat.completions.create({
-        model: process.env.OPENAI_MODEL || 'gpt-5.2',
-        max_completion_tokens: Number.isFinite(planMaxTokens) ? planMaxTokens : 2048,
-        temperature: 0,
-        tools: openaiTools,
-        tool_choice: 'auto',
-        messages: loopMessages,
-      });
+      const model = process.env.OPENAI_MODEL || 'gpt-5.2';
+      const response = await client.chat.completions.create(
+        withCompatibleTemperature(
+          {
+            model,
+            max_completion_tokens: Number.isFinite(planMaxTokens) ? planMaxTokens : 2048,
+            tools: openaiTools,
+            tool_choice: 'auto',
+            messages: loopMessages,
+          },
+          model,
+          0,
+        ) as any,
+      );
 
       const assistantMessage = response.choices[0]?.message;
       if (!assistantMessage) {
