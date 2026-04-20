@@ -5,6 +5,7 @@ ENV PATH="$PNPM_HOME:$PATH"
 ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 
 RUN npm install -g pnpm@10.26.1
+RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 

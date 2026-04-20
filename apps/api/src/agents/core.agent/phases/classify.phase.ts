@@ -82,9 +82,28 @@ export async function runClassifyPhase(input: ClassifyPhaseInput): Promise<Class
   } catch (err) {
     logger.error({
       msg: '[Classify] Phase failed',
+      error_message: err instanceof Error ? err.message : String(err),
       error: err,
       latency_ms: Date.now() - startClassify,
     });
-    throw err;
+
+    // Safe fallback: keep the agent running in information mode
+    // if the classifier call fails (network/model/JSON parse).
+    const inferredUserModel: InferredUserModel = inferUserModel({
+      userMessage: user_message,
+      history,
+    });
+
+    return {
+      classification: {
+        mode: 'information',
+        intent: 'general inquiry',
+        requires_tools: false,
+        requires_rag: false,
+        confidence: 0.35,
+      },
+      inferred_user_model: inferredUserModel,
+      should_ask_format: false,
+    };
   }
 }
