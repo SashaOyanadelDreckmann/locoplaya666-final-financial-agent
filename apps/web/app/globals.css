@@ -1161,7 +1161,7 @@ button {
   }
 
   .home-content {
-    padding: 100px 0 0;
+    padding: clamp(42px, 11vh, 84px) 0 0;
   }
 
   .home-art {
@@ -1187,17 +1187,17 @@ button {
 
   .home-hero {
     font-size: clamp(44px, 12vw, 64px);
-    margin-bottom: 20px;
+    margin-bottom: 16px;
   }
 
   .home-tagline {
     font-size: 20px;
-    margin-bottom: 16px;
+    margin-bottom: 12px;
   }
 
   .home-body {
     font-size: 14px;
-    margin-bottom: 36px;
+    margin-bottom: clamp(64px, 12vh, 104px);
   }
 
   .home-ctas {
