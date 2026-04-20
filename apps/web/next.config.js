@@ -23,6 +23,14 @@ const nextConfig = {
     }
     return config;
   },
+  async rewrites() {
+    return [
+      {
+        source: '/backend/:path*',
+        destination: 'https://locoplaya666-final-financial-agent-production.up.railway.app/:path*',
+      },
+    ];
+  },
 };
 
 module.exports = nextConfig;

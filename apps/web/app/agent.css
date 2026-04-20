@@ -35,6 +35,109 @@
   transition: grid-template-columns 0.32s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
+/* Railway/mobile production stabilization: keep the chat usable on narrow iOS viewports. */
+@media (max-width: 767px) {
+  .agent-layout {
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+  }
+
+  .agent-chat {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+  }
+
+  .agent-chat-body {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    padding: 8px 8px calc(env(safe-area-inset-bottom) + 8px) !important;
+  }
+
+  .agent-thread {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding-bottom: 10px !important;
+  }
+
+  .agent-input {
+    flex: 0 0 auto !important;
+    padding: 8px 8px calc(env(safe-area-inset-bottom) + 8px) !important;
+    gap: 7px !important;
+    background: rgba(5, 8, 16, 0.42) !important;
+    backdrop-filter: blur(14px) !important;
+    -webkit-backdrop-filter: blur(14px) !important;
+  }
+
+  .agent-input textarea {
+    min-height: 42px !important;
+    max-height: 92px !important;
+    font-size: 16px !important;
+    line-height: 1.35 !important;
+  }
+
+  .agent-input .controls {
+    display: grid !important;
+    grid-template-columns: auto 1fr auto !important;
+    gap: 6px !important;
+    align-items: center !important;
+  }
+
+  .agent-input .controls > div {
+    display: none !important;
+  }
+
+  .agent-input .continue-button {
+    min-height: 30px !important;
+    padding: 6px 8px !important;
+    font-size: 10px !important;
+    white-space: nowrap !important;
+  }
+
+  .agent-panel {
+    flex: 0 0 108px !important;
+    max-height: 108px !important;
+    overflow: hidden !important;
+  }
+
+  .agent-layout.mobile-panel-expanded .agent-panel {
+    flex-basis: 46vh !important;
+    max-height: 46vh !important;
+  }
+
+  .agent-panel .panel-grid {
+    padding: 8px !important;
+    gap: 8px !important;
+  }
+
+  .agent-panel .mob-col,
+  .agent-panel .mob-col-wide,
+  .agent-panel .mob-col-narrow {
+    width: min(72vw, 240px) !important;
+  }
+
+  .agent-panel .panel-card,
+  .agent-panel .panel-feature-card,
+  .agent-panel .interview-flow-card,
+  .agent-panel .recent-library-card,
+  .agent-panel .profile-card {
+    overflow: hidden !important;
+    word-break: normal !important;
+  }
+
+  .agent-panel .panel-value,
+  .agent-panel .panel-text,
+  .agent-panel .panel-feature-copy,
+  .agent-panel .interview-flow-title {
+    overflow-wrap: normal !important;
+    word-break: normal !important;
+    hyphens: none !important;
+  }
+}
+
 /* Stage variations */
 .agent-layout.is-panel-stage-1 {
   grid-template-columns: 1fr 48px 320px;
