@@ -34,7 +34,50 @@ type CompleteOptions = {
   systemPrompt?: string;
   temperature?: number;
   model?: string;
+  maxCompletionTokens?: number;
 };
+
+type LLMBudgetMode = 'balanced' | 'fast' | 'quality';
+
+function getBudgetMode(): LLMBudgetMode {
+  const raw = (process.env.AGENT_LLM_BUDGET_MODE ?? 'balanced').trim().toLowerCase();
+  if (raw === 'fast' || raw === 'quality' || raw === 'balanced') return raw;
+  return 'balanced';
+}
+
+function estimateInputChars(input: string | LLMMessage[]): number {
+  if (typeof input === 'string') return input.length;
+  return input.reduce((acc, msg) => acc + (msg.content?.length ?? 0), 0);
+}
+
+function resolveOpenAIModel(inputChars: number, explicitModel?: string): string {
+  if (explicitModel && explicitModel.trim().length > 0) return explicitModel;
+
+  const primary = (process.env.OPENAI_MODEL ?? 'gpt-5.2').trim();
+  const fast = (process.env.OPENAI_MODEL_FAST ?? primary).trim();
+  const quality = (process.env.OPENAI_MODEL_QUALITY ?? primary).trim();
+  const mode = getBudgetMode();
+
+  if (mode === 'quality') return quality || primary;
+  if (mode === 'fast') return fast || primary;
+
+  // balanced: prompts cortos van a fast model; prompts largos conservan calidad.
+  if (inputChars <= 1400 && fast) return fast;
+  return primary;
+}
+
+function resolveOpenAIMaxTokens(inputChars: number, explicitMax?: number, fallback = 2048): number {
+  if (Number.isFinite(explicitMax) && (explicitMax as number) > 64) {
+    return Math.max(128, Number(explicitMax));
+  }
+  const mode = getBudgetMode();
+  if (mode === 'quality') return fallback;
+  if (mode === 'fast') return Math.min(fallback, 900);
+
+  if (inputChars <= 900) return Math.min(fallback, 900);
+  if (inputChars <= 2200) return Math.min(fallback, 1200);
+  return fallback;
+}
 
 export function supportsCustomTemperature(model: string): boolean {
   return !/^gpt-5(?:[.\-_]|$)/i.test(model);
@@ -59,7 +102,8 @@ export async function complete(
   options?: CompleteOptions
 ): Promise<string> {
   const client = getOpenAIClient();
-  const model = options?.model ?? process.env.OPENAI_MODEL ?? 'gpt-5.2';
+  const inputChars = estimateInputChars(input);
+  const model = resolveOpenAIModel(inputChars, options?.model);
   const envTemp = process.env.OPENAI_TEMPERATURE
     ? Number(process.env.OPENAI_TEMPERATURE)
     : undefined;
@@ -83,12 +127,17 @@ export async function complete(
     }
   }
 
-  const maxCompletionTokens = Number(process.env.OPENAI_MAX_COMPLETION_TOKENS || 2048);
+  const envMaxCompletionTokens = Number(process.env.OPENAI_MAX_COMPLETION_TOKENS || 2048);
+  const maxCompletionTokens = resolveOpenAIMaxTokens(
+    inputChars,
+    options?.maxCompletionTokens,
+    Number.isFinite(envMaxCompletionTokens) ? envMaxCompletionTokens : 2048,
+  );
   const response = await client.chat.completions.create(
     withCompatibleTemperature(
       {
         model,
-        max_completion_tokens: Number.isFinite(maxCompletionTokens) ? maxCompletionTokens : 2048,
+        max_completion_tokens: maxCompletionTokens,
         messages,
       },
       model,
@@ -104,16 +153,23 @@ export async function completeStructured<T>(params: {
   user: string;
   temperature?: number;
   model?: string;
+  maxCompletionTokens?: number;
 }): Promise<T> {
   const client = getOpenAIClient();
-  const model = params.model ?? process.env.OPENAI_MODEL ?? 'gpt-5.2';
-  const structuredMaxTokens = Number(process.env.OPENAI_STRUCTURED_MAX_COMPLETION_TOKENS || 1536);
+  const inputChars = params.system.length + params.user.length;
+  const model = resolveOpenAIModel(inputChars, params.model);
+  const envStructuredMaxTokens = Number(process.env.OPENAI_STRUCTURED_MAX_COMPLETION_TOKENS || 1536);
+  const structuredMaxTokens = resolveOpenAIMaxTokens(
+    inputChars,
+    params.maxCompletionTokens,
+    Number.isFinite(envStructuredMaxTokens) ? envStructuredMaxTokens : 1536,
+  );
 
   const response = await client.chat.completions.create(
     withCompatibleTemperature(
       {
         model,
-        max_completion_tokens: Number.isFinite(structuredMaxTokens) ? structuredMaxTokens : 1536,
+        max_completion_tokens: structuredMaxTokens,
         response_format: { type: 'json_object' },
         messages: [
           {
@@ -142,12 +198,29 @@ export async function completeWithClaude(
   input: string,
   options?: CompleteOptions
 ): Promise<string> {
-  const model = options?.model ?? process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-4-6';
+  const mode = getBudgetMode();
+  const inputChars = input.length;
+  const primaryModel = options?.model ?? process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-4-6';
+  const fastModel = process.env.ANTHROPIC_MODEL_FAST?.trim();
+  const qualityModel = process.env.ANTHROPIC_MODEL_QUALITY?.trim();
+  const model =
+    mode === 'quality'
+      ? qualityModel || primaryModel
+      : mode === 'fast'
+        ? fastModel || primaryModel
+        : inputChars <= 1800
+          ? fastModel || primaryModel
+          : primaryModel;
   const envTemp = process.env.ANTHROPIC_TEMPERATURE
     ? Number(process.env.ANTHROPIC_TEMPERATURE)
     : undefined;
   const temperature = options?.temperature ?? (Number.isFinite(envTemp) ? envTemp : 0.6);
-  const anthropicMaxTokens = Number(process.env.ANTHROPIC_MAX_TOKENS || 2048);
+  const envAnthropicMaxTokens = Number(process.env.ANTHROPIC_MAX_TOKENS || 2048);
+  const anthropicMaxTokens = resolveOpenAIMaxTokens(
+    inputChars,
+    options?.maxCompletionTokens,
+    Number.isFinite(envAnthropicMaxTokens) ? envAnthropicMaxTokens : 2048,
+  );
 
   // Defensive fallback: if env accidentally points to an OpenAI model, avoid Anthropic call.
   if (/^(gpt-|o\d|text-embedding|omni)/i.test(model)) {
@@ -162,7 +235,7 @@ export async function completeWithClaude(
     const client = getAnthropicClient();
     const response = await client.messages.create({
       model,
-      max_tokens: Number.isFinite(anthropicMaxTokens) ? anthropicMaxTokens : 2048,
+      max_tokens: anthropicMaxTokens,
       temperature,
       system: options?.systemPrompt ?? 'Eres un asistente profesional.',
       messages: [{ role: 'user', content: input }],

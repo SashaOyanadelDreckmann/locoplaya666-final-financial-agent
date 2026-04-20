@@ -1561,7 +1561,7 @@ export default function AgentPage() {
         role: (m as any).role,
         content: (m as any).content,
       }))
-      .slice(-12);
+      .slice(-8);
     const recentArtifacts = items
       .filter((it) => it.type === 'artifact')
       .slice(-4)
@@ -2077,7 +2077,7 @@ Documentos: ${JSON.stringify(documentsSummary)}`;
       .map((s) => {
         const msgs = s.items
           .filter((it) => it.type === 'message')
-          .slice(-12)
+          .slice(-8)
           .map((it) => `[${(it as any).role}]: ${((it as any).content ?? '').slice(0, 300)}`)
           .join('\n');
         return `=== Hoja "${s.name}" ===\n${msgs}`;

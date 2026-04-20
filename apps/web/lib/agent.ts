@@ -34,7 +34,7 @@ export async function sendToAgent(payload: {
             typeof h.content === 'string' &&
             h.content.trim().length > 0
         )
-        .slice(-12)
+        .slice(-8)
     : [];
 
   /* user_name garantizado */
