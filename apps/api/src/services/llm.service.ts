@@ -72,10 +72,10 @@ function resolveOpenAIMaxTokens(inputChars: number, explicitMax?: number, fallba
   }
   const mode = getBudgetMode();
   if (mode === 'quality') return fallback;
-  if (mode === 'fast') return Math.min(fallback, 900);
+  if (mode === 'fast') return Math.min(fallback, 700);
 
-  if (inputChars <= 900) return Math.min(fallback, 900);
-  if (inputChars <= 2200) return Math.min(fallback, 1200);
+  if (inputChars <= 900) return Math.min(fallback, 700);
+  if (inputChars <= 2200) return Math.min(fallback, 1000);
   return fallback;
 }
 
@@ -208,7 +208,7 @@ export async function completeWithClaude(
       ? qualityModel || primaryModel
       : mode === 'fast'
         ? fastModel || primaryModel
-        : inputChars <= 1800
+        : inputChars <= 1200
           ? fastModel || primaryModel
           : primaryModel;
   const envTemp = process.env.ANTHROPIC_TEMPERATURE

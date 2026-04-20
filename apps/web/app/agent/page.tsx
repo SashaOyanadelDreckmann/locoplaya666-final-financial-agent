@@ -358,7 +358,7 @@ export default function AgentPage() {
     const userTexts = items
       .filter((it) => it.type === 'message' && it.role === 'user')
       .map((it) => (it as Extract<ChatItem, { type: 'message'; role: 'user' }>).content.toLowerCase())
-      .slice(-8);
+      .slice(-6);
 
     const full = userTexts.join(' ');
     if (/(presupuesto|gasto|ingreso|deuda|balance|flujo)/i.test(full)) return 'Presupuesto y flujo';
@@ -2077,7 +2077,7 @@ Documentos: ${JSON.stringify(documentsSummary)}`;
       .map((s) => {
         const msgs = s.items
           .filter((it) => it.type === 'message')
-          .slice(-8)
+          .slice(-6)
           .map((it) => `[${(it as any).role}]: ${((it as any).content ?? '').slice(0, 300)}`)
           .join('\n');
         return `=== Hoja "${s.name}" ===\n${msgs}`;

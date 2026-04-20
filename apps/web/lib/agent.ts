@@ -34,7 +34,7 @@ export async function sendToAgent(payload: {
             typeof h.content === 'string' &&
             h.content.trim().length > 0
         )
-        .slice(-8)
+        .slice(-6)
     : [];
 
   /* user_name garantizado */
@@ -64,7 +64,9 @@ export async function sendToAgent(payload: {
   }
 
   const AGENT_URL = getAgentRequestUrl('/api/agent');
-  const timeoutMs = Number(process.env.NEXT_PUBLIC_AGENT_TIMEOUT_MS || 45000);
+  const timeoutMs = Number(process.env.NEXT_PUBLIC_AGENT_TIMEOUT_MS || 20000);
+  const retryTimeoutEnabled = process.env.NEXT_PUBLIC_AGENT_RETRY_TIMEOUT === 'true';
+  const retry5xxEnabled = process.env.NEXT_PUBLIC_AGENT_RETRY_5XX === 'true';
 
   async function fetchWithTimeout(): Promise<Response> {
     const controller = new AbortController();
@@ -86,7 +88,7 @@ export async function sendToAgent(payload: {
   try {
     res = await fetchWithTimeout();
   } catch (error: unknown) {
-    if (error instanceof DOMException && error.name === 'AbortError') {
+    if (retryTimeoutEnabled && error instanceof DOMException && error.name === 'AbortError') {
       // Retry once with a larger timeout for slow tool chains.
       try {
         const retryController = new AbortController();
@@ -108,13 +110,12 @@ export async function sendToAgent(payload: {
         }
         throw retryError;
       }
-    } else {
-      throw error;
     }
+    throw error;
   }
 
   // Railway can briefly return 5xx during deploy/wake-up; retry once.
-  if (res.status >= 500 && res.status <= 599) {
+  if (retry5xxEnabled && res.status >= 500 && res.status <= 599) {
     await new Promise((resolve) => setTimeout(resolve, 700));
     res = await fetchWithTimeout();
   }
