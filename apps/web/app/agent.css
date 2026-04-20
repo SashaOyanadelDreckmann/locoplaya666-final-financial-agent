@@ -8228,8 +8228,8 @@
 
   .agent-input {
     flex: 0 0 auto !important;
-    padding: 7px 7px calc(env(safe-area-inset-bottom) + 10px) !important;
-    gap: 6px !important;
+    padding: 3px 7px calc(env(safe-area-inset-bottom) + 2px) !important;
+    gap: 4px !important;
     background: transparent !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
@@ -8248,8 +8248,8 @@
     grid-template-columns: auto 1fr auto !important;
     align-items: center !important;
     gap: 6px !important;
-    min-height: 30px !important;
-    margin-top: 4px !important;
+    min-height: 28px !important;
+    margin-top: 2px !important;
   }
 
   .agent-input .controls > div {
@@ -8268,6 +8268,7 @@
     flex: 0 0 clamp(118px, 20dvh, 150px) !important;
     max-height: clamp(118px, 20dvh, 150px) !important;
     min-height: 0 !important;
+    margin-top: -4px !important;
     overflow: hidden !important;
     background: transparent !important;
     border-top: none !important;
@@ -8288,7 +8289,7 @@
   }
 
   .agent-panel .panel-grid {
-    padding: 4px 8px calc(6px + env(safe-area-inset-bottom)) !important;
+    padding: 0 8px calc(6px + env(safe-area-inset-bottom)) !important;
     gap: 8px !important;
     align-items: stretch !important;
   }
@@ -8319,9 +8320,72 @@
   .agent-panel .interview-flow-meta,
   .agent-panel .news-subtitle,
   .agent-panel .profile-subtitle,
-  .agent-panel .panel-text,
   .agent-panel .panel-stack-list {
     display: none !important;
+  }
+
+  /* En perfil mobile: solo nombre visible. */
+  .agent-panel .profile-card .panel-label,
+  .agent-panel .profile-card .profile-badge,
+  .agent-panel .profile-card .profile-subtitle,
+  .agent-panel .profile-card .profile-meta,
+  .agent-panel .profile-card .profile-intake-strip,
+  .agent-panel .profile-card .profile-inline-action,
+  .agent-panel .profile-card .panel-text {
+    display: none !important;
+  }
+
+  .agent-panel .profile-card .profile-header {
+    align-items: center !important;
+    gap: 8px !important;
+    margin: 0 !important;
+  }
+
+  .agent-panel .profile-card .profile-name {
+    font-size: 0.9rem !important;
+    line-height: 1.2 !important;
+    margin: 0 !important;
+  }
+
+  /* Fix card noticias: mantener imagen + texto visibles y alineados. */
+  .agent-panel .news-card {
+    overflow: hidden !important;
+    padding: 0 !important;
+  }
+
+  .agent-panel .news-card .panel-text {
+    display: flex !important;
+    flex: 1 1 auto !important;
+    min-height: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .agent-panel .news-card .news-link {
+    display: flex !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 118px !important;
+  }
+
+  .agent-panel .news-card .news-image {
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 118px !important;
+    background-position: center !important;
+    background-size: cover !important;
+  }
+
+  .agent-panel .news-card .news-overlay {
+    display: flex !important;
+    justify-content: flex-end !important;
+    min-height: 100% !important;
+    padding: 10px !important;
+  }
+
+  .agent-panel .news-card .news-kicker,
+  .agent-panel .news-card .news-title {
+    display: block !important;
   }
 
   .agent-panel .panel-value,
