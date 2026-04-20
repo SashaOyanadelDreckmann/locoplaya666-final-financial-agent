@@ -37,3 +37,14 @@ export function getAgentApiBaseUrl(): string {
 
   return getApiBaseUrl();
 }
+
+/**
+ * URL de request para llamadas del agente desde frontend.
+ * En browser+prod usamos la ruta interna de Next para preservar sesión/cookies.
+ */
+export function getAgentRequestUrl(path = '/api/agent'): string {
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
+    return path;
+  }
+  return `${getAgentApiBaseUrl()}${path}`;
+}

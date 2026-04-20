@@ -1,4 +1,4 @@
-import { getAgentApiBaseUrl } from './apiBase';
+import { getAgentRequestUrl } from './apiBase';
 import { parseApiResponse } from './apiEnvelope';
 
 /* ────────────────────────────────────────────── */
@@ -63,14 +63,14 @@ export async function sendToAgent(payload: {
     console.log('[DEV] payload.user_message =', payload.user_message);
   }
 
-  const API_URL = getAgentApiBaseUrl();
+  const AGENT_URL = getAgentRequestUrl('/api/agent');
   const timeoutMs = Number(process.env.NEXT_PUBLIC_AGENT_TIMEOUT_MS || 45000);
 
   async function fetchWithTimeout(): Promise<Response> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
     try {
-      return await fetch(`${API_URL}/api/agent`, {
+      return await fetch(AGENT_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -92,7 +92,7 @@ export async function sendToAgent(payload: {
         const retryController = new AbortController();
         const retryTimeoutId = setTimeout(() => retryController.abort(), timeoutMs + 20000);
         try {
-          res = await fetch(`${API_URL}/api/agent`, {
+          res = await fetch(AGENT_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
