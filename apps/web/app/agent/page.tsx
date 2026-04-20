@@ -2516,10 +2516,7 @@ Documentos: ${JSON.stringify(documentsSummary)}`;
     const polishedMarkdown = (() => {
       const normalized = markdownReady
         // Keep valid bold markdown intact for professional rendering.
-        .replace(/\*\*\s+([^*\n][^*\n]*?)\s+\*\*/g, '**$1**')
-        // Remove obvious orphan markers at start/end of lines.
-        .replace(/^\s*\*\*(?=\S)/gm, '')
-        .replace(/\*\*\s*$/gm, '');
+        .replace(/\*\*\s+([^*\n][^*\n]*?)\s+\*\*/g, '**$1**');
 
       // Final safety pass: remove orphan asterisks while preserving valid markdown and LaTeX.
       const mathTokens: Array<{ key: string; value: string }> = [];

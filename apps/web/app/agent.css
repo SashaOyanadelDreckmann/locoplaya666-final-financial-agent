@@ -5391,6 +5391,26 @@
   line-height: 1.26;
 }
 
+.premium-markdown .md-h4,
+.premium-markdown .md-h5,
+.premium-markdown .md-h6 {
+  color: var(--fg, #1a1a1a);
+  margin: 0.55rem 0 0.25rem;
+  line-height: 1.28;
+}
+
+.premium-markdown .md-h4 {
+  font-size: 1.08rem;
+  font-weight: 750;
+}
+
+.premium-markdown .md-h5,
+.premium-markdown .md-h6 {
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: var(--fg-secondary, #666);
+}
+
 /* Paragraphs */
 .premium-markdown .md-paragraph {
   font-size: 1rem;
@@ -5526,6 +5546,40 @@
   color: var(--fg, #333);
   margin-top: 1rem;
   margin-bottom: 0.5rem;
+}
+
+.agent-thread .premium-markdown .md-h1,
+.agent-thread .academic-paper .md-h1 {
+  font-size: clamp(1.65rem, 2vw, 2.15rem);
+  line-height: 1.15;
+  margin: 0.15rem 0 0.85rem;
+}
+
+.agent-thread .premium-markdown .md-h2,
+.agent-thread .academic-paper .md-h2 {
+  font-size: clamp(1.28rem, 1.5vw, 1.55rem);
+  line-height: 1.22;
+  margin: 1.15rem 0 0.6rem;
+}
+
+.agent-thread .premium-markdown .md-h3,
+.agent-thread .academic-paper .md-h3 {
+  font-size: clamp(1.08rem, 1.2vw, 1.28rem);
+  line-height: 1.25;
+  margin: 0.85rem 0 0.45rem;
+}
+
+.agent-thread .premium-markdown .md-h4,
+.agent-thread .premium-markdown .md-h5,
+.agent-thread .premium-markdown .md-h6 {
+  line-height: 1.28;
+  margin: 0.65rem 0 0.3rem;
+}
+
+.agent-thread .premium-markdown .md-bold,
+.agent-thread .academic-paper .md-bold {
+  font-weight: 800;
+  color: #ffffff;
 }
 
 /* Mathematical Formulas (KaTeX) */
@@ -8485,6 +8539,9 @@
   .agent-thread .premium-markdown .md-h1,
   .agent-thread .premium-markdown .md-h2,
   .agent-thread .premium-markdown .md-h3,
+  .agent-thread .premium-markdown .md-h4,
+  .agent-thread .premium-markdown .md-h5,
+  .agent-thread .premium-markdown .md-h6,
   .agent-thread .latex-doc-heading,
   .agent-thread .latex-doc-title,
   .agent-thread .latex-doc-h2,
@@ -8524,6 +8581,15 @@
     line-height: 1.2 !important;
     font-weight: 750 !important;
     margin: 0.45rem 0 0.35rem !important;
+  }
+
+  .agent-thread .premium-markdown .md-h4,
+  .agent-thread .premium-markdown .md-h5,
+  .agent-thread .premium-markdown .md-h6 {
+    font-size: 0.86rem !important;
+    line-height: 1.22 !important;
+    font-weight: 700 !important;
+    margin: 0.4rem 0 0.25rem !important;
   }
 
   .agent-thread .premium-markdown .md-paragraph,
