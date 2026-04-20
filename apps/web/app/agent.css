@@ -8264,8 +8264,8 @@
   }
 
   .agent-panel {
-    flex: 0 0 clamp(104px, 18dvh, 128px) !important;
-    max-height: clamp(104px, 18dvh, 128px) !important;
+    flex: 0 0 clamp(136px, 24dvh, 176px) !important;
+    max-height: clamp(136px, 24dvh, 176px) !important;
     min-height: 0 !important;
     overflow: hidden !important;
     background: transparent !important;
@@ -8295,7 +8295,7 @@
   .agent-panel .mob-col,
   .agent-panel .mob-col-wide,
   .agent-panel .mob-col-narrow {
-    width: min(70vw, 230px) !important;
+    width: min(78vw, 280px) !important;
   }
 
   .agent-panel .panel-card,
@@ -8323,5 +8323,64 @@
     background: rgba(0, 0, 0, 0.46) !important;
     backdrop-filter: blur(8px) !important;
     -webkit-backdrop-filter: blur(8px) !important;
+  }
+
+  .agent-thread .premium-markdown {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .agent-thread .premium-markdown .md-h1,
+  .agent-thread .premium-markdown .md-h2,
+  .agent-thread .premium-markdown .md-h3,
+  .agent-thread .latex-doc-heading,
+  .agent-thread .latex-doc-title,
+  .agent-thread .latex-doc-h2,
+  .agent-thread .latex-doc-h3 {
+    display: block !important;
+    width: 100% !important;
+    white-space: normal !important;
+    word-break: normal !important;
+    overflow-wrap: normal !important;
+    hyphens: none !important;
+    text-align: left !important;
+    letter-spacing: 0.01em !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+  }
+
+  .agent-thread .premium-markdown .md-h1,
+  .agent-thread .latex-doc-title {
+    font-size: 1.15rem !important;
+    line-height: 1.12 !important;
+    font-weight: 800 !important;
+    margin: 0 0 0.65rem !important;
+  }
+
+  .agent-thread .premium-markdown .md-h2,
+  .agent-thread .latex-doc-heading,
+  .agent-thread .latex-doc-h2 {
+    font-size: 1rem !important;
+    line-height: 1.18 !important;
+    font-weight: 800 !important;
+    margin: 0.55rem 0 0.45rem !important;
+  }
+
+  .agent-thread .premium-markdown .md-h3,
+  .agent-thread .latex-doc-h3 {
+    font-size: 0.92rem !important;
+    line-height: 1.2 !important;
+    font-weight: 750 !important;
+    margin: 0.45rem 0 0.35rem !important;
+  }
+
+  .agent-thread .premium-markdown .md-paragraph,
+  .agent-thread .latex-doc-p,
+  .agent-thread > .agent-bubble.assistant .agent-bubble-text {
+    word-break: normal !important;
+    overflow-wrap: break-word !important;
+    hyphens: none !important;
+    line-height: 1.48 !important;
+    text-align: left !important;
   }
 }
