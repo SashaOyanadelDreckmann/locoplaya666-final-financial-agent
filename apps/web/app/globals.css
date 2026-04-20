@@ -644,9 +644,7 @@ button {
   mix-blend-mode: normal;
   pointer-events: none;
   z-index: 0;
-  animation:
-    film-grain-drift-a 0.83s steps(7, jump-none) infinite,
-    film-grain-drift-b 1.37s steps(11, jump-none) infinite reverse;
+  animation: none;
 }
 
 .app-shell > * {
@@ -678,9 +676,7 @@ button {
 
 @media (max-width: 1024px) {
   .app-shell::after {
-    animation:
-      film-grain-drift-a 0.74s steps(7, jump-none) infinite,
-      film-grain-drift-b 1.21s steps(11, jump-none) infinite reverse;
+    animation: none;
     opacity: 0.38;
   }
 }
