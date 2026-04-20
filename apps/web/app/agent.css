@@ -6914,6 +6914,62 @@
     max-width: 100% !important;
   }
 
+  .agent-thread > .agent-bubble.assistant .agent-bubble-text,
+  .agent-thread > .agent-bubble.assistant .markdown-content,
+  .agent-thread > .agent-bubble.assistant .premium-markdown,
+  .agent-thread > .agent-bubble.assistant .academic-paper {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .agent-thread .academic-paper {
+    padding: 0.85rem 0.9rem !important;
+  }
+
+  .agent-thread .academic-paper .md-paragraph,
+  .agent-thread .academic-paper .md-list-item,
+  .agent-thread .academic-paper .md-blockquote p,
+  .agent-thread .premium-markdown .md-paragraph,
+  .agent-thread .premium-markdown .md-list-item {
+    text-align: left !important;
+    text-indent: 0 !important;
+    text-wrap: auto !important;
+    word-spacing: normal !important;
+    letter-spacing: 0 !important;
+    white-space: normal !important;
+    word-break: normal !important;
+    overflow-wrap: anywhere !important;
+    hyphens: none !important;
+  }
+
+  .agent-thread .academic-paper .md-paragraph,
+  .agent-thread .premium-markdown .md-paragraph {
+    font-size: 0.94rem !important;
+    line-height: 1.52 !important;
+    margin: 0.55rem 0 !important;
+  }
+
+  .agent-thread .academic-paper .md-list,
+  .agent-thread .academic-paper .md-list-ordered,
+  .agent-thread .premium-markdown .md-list,
+  .agent-thread .premium-markdown .md-list-ordered {
+    padding-left: 1.1rem !important;
+    margin: 0.45rem 0 !important;
+    gap: 0.35rem !important;
+  }
+
+  .agent-thread .academic-paper .md-list-item,
+  .agent-thread .premium-markdown .md-list-item {
+    padding-left: 0.95rem !important;
+    font-size: 0.94rem !important;
+    line-height: 1.5 !important;
+  }
+
+  .agent-thread .premium-markdown .md-list-item::before {
+    left: 0 !important;
+  }
+
   .agent-questionnaire-block {
     padding: 12px 10px !important;
   }

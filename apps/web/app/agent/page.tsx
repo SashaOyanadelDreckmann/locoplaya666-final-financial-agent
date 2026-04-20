@@ -2599,7 +2599,13 @@ Documentos: ${JSON.stringify(documentsSummary)}`;
     };
 
     const refinedMarkdown = promoteFormulaLikeLines(polishedMarkdown)
-      .replace(/^\s*\*\*(?=\S)/gm, '')
+      .split('\n')
+      .map((line) => {
+        const boldMarkerCount = line.match(/\*\*/g)?.length ?? 0;
+        return boldMarkerCount % 2 === 1 ? line.replace(/\*\*/g, '') : line;
+      })
+      .join('\n')
+      .replace(/(^|[\s([{])\*\*(?=\s|$|[.,;:!?])/g, '$1')
       .replace(/\*\*(?=\s|$)/g, '');
 
     const markdownComponents = {
