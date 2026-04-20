@@ -53,10 +53,14 @@ function validateFetchUrl(fileUrl: string): string {
   return fileUrl;
 }
 
-async function fetchPdfBytes(fileUrl: string) {
+async function fetchPdfBytes(fileUrl: string, cookie: string) {
   const url = validateFetchUrl(fileUrl);
   // redirect:'error' prevents SSRF via open-redirect on allowed origins
-  const res = await fetch(url, { cache: 'no-store', redirect: 'error' });
+  const res = await fetch(url, {
+    cache: 'no-store',
+    redirect: 'error',
+    headers: { cookie },
+  });
   if (!res.ok) throw new Error(`No se pudo descargar PDF (${res.status})`);
   const buf = Buffer.from(await res.arrayBuffer());
   return buf;
@@ -65,6 +69,7 @@ async function fetchPdfBytes(fileUrl: string) {
 export async function POST(req: Request) {
   try {
     const session = await requireBackendSession(req);
+    const cookie = req.headers.get('cookie') ?? '';
 
     const rl = checkRateLimit(`artifacts:${session.userId}`, 20, 60_000);
     if (!rl.ok) {
@@ -93,7 +98,7 @@ export async function POST(req: Request) {
     const outPath = path.join(outDir, `${id}.pdf`);
     await fs.mkdir(outDir, { recursive: true });
 
-    const bytes = await fetchPdfBytes(body.fileUrl);
+    const bytes = await fetchPdfBytes(body.fileUrl, cookie);
     await fs.writeFile(outPath, bytes);
 
     // URL served by the authenticated backend endpoint
