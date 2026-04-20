@@ -681,7 +681,43 @@ router.post(
     }
 
     const input = ChatAgentInputSchema.parse(normalizedInput);
-    const response = await runCoreAgent(input);
+    let response: any;
+    try {
+      response = await runCoreAgent(input);
+    } catch (agentErr) {
+      req.logger?.error({
+        msg: 'Core agent failed; returning conversational fallback',
+        error: agentErr,
+        userId: authedUser.id,
+      });
+
+      response = {
+        message:
+          'Tuve un problema procesando esa respuesta, pero la conversación sigue activa. Intenta reformularlo en una frase más corta o dime qué quieres revisar primero.',
+        mode: 'information',
+        tool_calls: [],
+        agent_blocks: [],
+        artifacts: [],
+        citations: [],
+        suggested_replies: [
+          'Revisemos mi presupuesto',
+          'Hazme una simulación simple',
+          'Genera un resumen de mi perfil',
+        ],
+        compliance: {
+          mode: 'information',
+          no_auto_execution: true,
+          includes_recommendation: false,
+          includes_simulation: false,
+          includes_regulation: false,
+          missing_information: [],
+          disclaimers_shown: [],
+          risk_score: 0,
+          blocked: { is_blocked: false },
+        },
+        state_updates: {},
+      };
+    }
 
     const asksPdf =
       typeof input.user_message === 'string' &&

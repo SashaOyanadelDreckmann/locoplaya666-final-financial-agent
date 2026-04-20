@@ -2956,7 +2956,7 @@ Documentos: ${JSON.stringify(documentsSummary)}`;
             label="Objetivo activo"
             className={`panel-pos-objective panel-flow-gradient glass-card${highlightedSection === 'objective' ? ' is-panel-highlighted' : ''}`}
             data-panel-section="objective"
-            bgImage="/fondo8.png"
+            bgImage="/fondo8.PNG"
             overlayColor="154,148,148"
             overlayOpacity={0.18}
             bgScale={1.2}
@@ -2996,7 +2996,7 @@ Documentos: ${JSON.stringify(documentsSummary)}`;
           <PanelCard
             label="Siguiente desbloqueo"
             className="panel-pos-next panel-flow-gradient glass-card"
-            bgImage="/fondo8.png"
+            bgImage="/fondo8.PNG"
             overlayColor="154,148,148"
             overlayOpacity={0.2}
             bgScale={1.1}
@@ -3017,7 +3017,7 @@ Documentos: ${JSON.stringify(documentsSummary)}`;
             label="Continuidad"
             value={`${engagementScore}% operativa`}
             className="panel-flow-gradient glass-card panel-pos-continuity"
-            bgImage="/fondo8.png"
+            bgImage="/fondo8.PNG"
             overlayColor="154,148,148"
             overlayOpacity={0.2}
             bgScale={1.08}
@@ -3149,7 +3149,7 @@ Documentos: ${JSON.stringify(documentsSummary)}`;
             label="Biblioteca de documentos"
             className={`panel-pos-library panel-flow-gradient${highlightedSection === 'library' ? ' is-panel-highlighted' : ''}`}
             data-panel-section="library"
-            bgImage="/fondo8.png"
+            bgImage="/fondo8.PNG"
             overlayColor="154,148,148"
             overlayOpacity={0.24}
             bgScale={1.08}
