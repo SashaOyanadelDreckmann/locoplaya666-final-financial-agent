@@ -34,7 +34,7 @@ export async function sendToAgent(payload: {
             typeof h.content === 'string' &&
             h.content.trim().length > 0
         )
-        .slice(-6)
+        .slice(-8)
     : [];
 
   /* user_name garantizado */
@@ -64,9 +64,9 @@ export async function sendToAgent(payload: {
   }
 
   const AGENT_URL = getAgentRequestUrl('/api/agent');
-  const timeoutMs = Number(process.env.NEXT_PUBLIC_AGENT_TIMEOUT_MS || 20000);
-  const retryTimeoutEnabled = process.env.NEXT_PUBLIC_AGENT_RETRY_TIMEOUT === 'true';
-  const retry5xxEnabled = process.env.NEXT_PUBLIC_AGENT_RETRY_5XX === 'true';
+  const timeoutMs = Number(process.env.NEXT_PUBLIC_AGENT_TIMEOUT_MS || 35000);
+  const retryTimeoutEnabled = process.env.NEXT_PUBLIC_AGENT_RETRY_TIMEOUT !== 'false';
+  const retry5xxEnabled = process.env.NEXT_PUBLIC_AGENT_RETRY_5XX !== 'false';
 
   async function fetchWithTimeout(): Promise<Response> {
     const controller = new AbortController();
