@@ -2768,7 +2768,9 @@ Documentos: ${JSON.stringify(documentsSummary)}`;
           >
             <div className="latex-doc-head">
               <div className="latex-doc-heading">
-                <span className="latex-doc-kicker">{isFirstAssistantCard ? 'Punto de partida' : 'Informe del agente'}</span>
+                {isFirstAssistantCard ? (
+                  <span className="latex-doc-kicker">Punto de partida</span>
+                ) : null}
                 <span className="latex-doc-title">
                   {isFirstAssistantCard ? 'Lectura inicial del caso' : 'Informe del agente'}
                 </span>
