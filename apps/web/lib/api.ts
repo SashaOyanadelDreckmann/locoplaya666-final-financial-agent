@@ -1,11 +1,18 @@
 import { getApiBaseUrl } from './apiBase';
 import { parseApiResponse } from './apiEnvelope';
+import { getCsrfToken } from './csrf';
+
+function withCsrf(headers: Record<string, string> = {}): Record<string, string> {
+  const token = getCsrfToken();
+  if (!token) return headers;
+  return { ...headers, 'X-CSRF-Token': token };
+}
 
 export async function nextConversationStep(payload: unknown) {
   const API_URL = getApiBaseUrl();
   const res = await fetch(`${API_URL}/conversation/next`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: withCsrf({ 'Content-Type': 'application/json' }),
     credentials: 'include',
     body: JSON.stringify(payload),
   });
@@ -21,13 +28,13 @@ export async function registerUser(payload: {
   const API_URL = getApiBaseUrl();
   const res = await fetch(`${API_URL}/auth/register`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: withCsrf({ 'Content-Type': 'application/json' }),
     credentials: 'include',
     body: JSON.stringify(payload),
   });
 
   return parseApiResponse<{
-    user?: { id: string; name: string; email: string; role: string };
+    user?: { id?: string; name?: string; email?: string; role?: string };
   }>(res);
 }
 
@@ -35,13 +42,13 @@ export async function loginUser(payload: { email: string; password: string }) {
   const API_URL = getApiBaseUrl();
   const res = await fetch(`${API_URL}/auth/login`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: withCsrf({ 'Content-Type': 'application/json' }),
     credentials: 'include',
     body: JSON.stringify(payload),
   });
 
   return parseApiResponse<{
-    user?: { id: string; name: string; email: string; role: string };
+    user?: { id?: string; name?: string; email?: string; role?: string };
   }>(res);
 }
 
@@ -49,6 +56,7 @@ export async function logoutUser() {
   const API_URL = getApiBaseUrl();
   const res = await fetch(`${API_URL}/auth/logout`, {
     method: 'POST',
+    headers: withCsrf(),
     credentials: 'include',
   });
 
@@ -59,7 +67,7 @@ export async function injectProfileToAgent(profile: unknown) {
   const API_URL = getApiBaseUrl();
   const res = await fetch(`${API_URL}/api/inject-profile`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: withCsrf({ 'Content-Type': 'application/json' }),
     credentials: 'include',
     body: JSON.stringify({ profile }),
   });
@@ -71,7 +79,7 @@ export async function injectIntakeToAgent(payload: { intake: unknown; llmSummary
   const API_URL = getApiBaseUrl();
   const res = await fetch(`${API_URL}/api/inject-intake`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: withCsrf({ 'Content-Type': 'application/json' }),
     credentials: 'include',
     body: JSON.stringify(payload),
   });
@@ -83,6 +91,7 @@ export async function removeInjectedIntake() {
   const API_URL = getApiBaseUrl();
   const res = await fetch(`${API_URL}/api/remove-injected-intake`, {
     method: 'POST',
+    headers: withCsrf(),
     credentials: 'include',
   });
 
@@ -103,7 +112,7 @@ export async function parseDocuments(files: Array<{ name: string; base64: string
   const API_URL = getApiBaseUrl();
   const res = await fetch(`${API_URL}/api/documents/parse`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: withCsrf({ 'Content-Type': 'application/json' }),
     credentials: 'include',
     body: JSON.stringify({ files }),
   });
@@ -125,7 +134,7 @@ export async function saveSheets(sheets: unknown[]) {
   const API_URL = getApiBaseUrl();
   const res = await fetch(`${API_URL}/api/sheets`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: withCsrf({ 'Content-Type': 'application/json' }),
     credentials: 'include',
     body: JSON.stringify({ sheets }),
   });
@@ -147,7 +156,7 @@ export async function savePanelState(panelState: Record<string, unknown>) {
   const API_URL = getApiBaseUrl();
   const res = await fetch(`${API_URL}/api/panel-state`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: withCsrf({ 'Content-Type': 'application/json' }),
     credentials: 'include',
     body: JSON.stringify({ panelState }),
   });
@@ -169,6 +178,7 @@ export async function removeInjectedProfile() {
   const API_URL = getApiBaseUrl();
   const res = await fetch(`${API_URL}/api/remove-injected-profile`, {
     method: 'POST',
+    headers: withCsrf(),
     credentials: 'include',
   });
 

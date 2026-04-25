@@ -1,4 +1,9 @@
 /** @type {import('next').NextConfig} */
+const apiOrigin =
+  process.env.NEXT_PUBLIC_API_ORIGIN
+  || process.env.NEXT_PUBLIC_API_URL
+  || 'http://localhost:3001';
+
 const nextConfig = {
   reactStrictMode: true,
   output: 'standalone',
@@ -27,7 +32,7 @@ const nextConfig = {
     return [
       {
         source: '/backend/:path*',
-        destination: 'https://locoplaya666-final-financial-agent-production.up.railway.app/:path*',
+        destination: `${apiOrigin.replace(/\/+$/, '')}/:path*`,
       },
     ];
   },

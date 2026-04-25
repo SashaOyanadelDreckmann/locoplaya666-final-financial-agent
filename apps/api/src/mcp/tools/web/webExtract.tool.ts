@@ -60,15 +60,19 @@ export const webExtractTool: MCPTool = {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-      const fetched = await fetchWithScrapeDo({
-        url,
-        render: Boolean(args.render),
-        output: args.output ?? 'raw',
-        blockResources: true,
-        returnJSON: false,
-      });
-
-      clearTimeout(timeoutId);
+      let fetched;
+      try {
+        fetched = await fetchWithScrapeDo({
+          url,
+          render: Boolean(args.render),
+          output: args.output ?? 'raw',
+          blockResources: true,
+          returnJSON: false,
+          signal: controller.signal,
+        });
+      } finally {
+        clearTimeout(timeoutId);
+      }
 
       // 7. Execute regex with timeout (100ms - prevent regex hangs)
       let hit: string | null = null;

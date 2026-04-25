@@ -19,11 +19,30 @@ export type ApiSuccessPayload<T> = {
   data: T;
 };
 
+export class ApiHttpError extends Error {
+  status: number;
+  code?: string;
+  detail?: string;
+
+  constructor(params: { status: number; message: string; code?: string; detail?: string }) {
+    super(params.message);
+    this.name = 'ApiHttpError';
+    this.status = params.status;
+    this.code = params.code;
+    this.detail = params.detail;
+  }
+}
+
 export function isApiEnvelope<T>(value: unknown): value is ApiSuccessPayload<T> | ApiErrorPayload {
   return Boolean(value && typeof value === 'object' && 'ok' in (value as Record<string, unknown>));
 }
 
 export async function parseApiResponse<T>(res: Response): Promise<T> {
+  const csrfToken = res.headers.get('x-csrf-token');
+  if (csrfToken) {
+    setCsrfToken(csrfToken);
+  }
+
   const raw = await res.json().catch(() => null);
 
   if (!res.ok) {
@@ -31,22 +50,36 @@ export async function parseApiResponse<T>(res: Response): Promise<T> {
     if (raw && typeof raw === 'object') {
       const err = raw as ApiErrorPayload;
       const message = err.detail ?? err.error?.message ?? err.title ?? statusHint;
-      throw new Error(message);
+      throw new ApiHttpError({
+        status: res.status,
+        message,
+        code: err.code ?? err.error?.code,
+        detail: err.detail,
+      });
     }
-    throw new Error(statusHint);
+    throw new ApiHttpError({
+      status: res.status,
+      message: statusHint,
+    });
   }
 
   if (isApiEnvelope<T>(raw)) {
     if ((raw as ApiSuccessPayload<T>).ok === true) {
       return (raw as ApiSuccessPayload<T>).data;
     }
-    throw new Error(
-      (raw as ApiErrorPayload).detail ??
-        (raw as ApiErrorPayload).error?.message ??
-        (raw as ApiErrorPayload).title ??
+    const err = raw as ApiErrorPayload;
+    throw new ApiHttpError({
+      status: res.status,
+      message:
+        err.detail ??
+        err.error?.message ??
+        err.title ??
         `HTTP ${res.status}${res.statusText ? ` ${res.statusText}` : ''}`,
-    );
+      code: err.code ?? err.error?.code,
+      detail: err.detail,
+    });
   }
 
   return raw as T;
 }
+import { setCsrfToken } from './csrf';

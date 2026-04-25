@@ -7,6 +7,7 @@ export type ScrapeDoArgs = {
   output?: 'raw' | 'markdown';
   blockResources?: boolean;
   returnJSON?: boolean;
+  signal?: AbortSignal;
 };
 
 /**
@@ -36,7 +37,7 @@ export async function fetchWithScrapeDo(args: ScrapeDoArgs): Promise<{
 
   const endpoint = `https://api.scrape.do/?${params.toString()}`;
 
-  const res = await fetch(endpoint, { method: 'GET' });
+  const res = await fetch(endpoint, { method: 'GET', signal: args.signal });
   const contentType = res.headers.get('content-type') ?? '';
   const text = await res.text();
 

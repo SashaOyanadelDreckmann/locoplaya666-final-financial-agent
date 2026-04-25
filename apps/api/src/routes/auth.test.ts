@@ -67,7 +67,8 @@ describe('auth + session', () => {
     });
 
     expect(bad.status).toBe(401);
-    expect(bad.body.ok).toBe(false);
-    expect(bad.body.error?.code).toBe('UNAUTHORIZED');
+    expect(bad.headers['content-type']).toContain('application/problem+json');
+    expect(bad.body.code).toBe('UNAUTHORIZED');
+    expect(typeof bad.body.detail).toBe('string');
   });
 });

@@ -1,26 +1,34 @@
-/**
- * plan-execute.phase.test.ts
- *
- * Test suite for PHASE 2-3: Plan + Execute (ReAct Loop)
- * Tests tool sequencing, tool calling, and result accumulation
- */
-
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { runPlanExecutePhase } from './plan-execute.phase';
 import * as testUtils from '../../../test/mocks';
 import type { Classification, InferredUserModel } from '../agent-types';
 
-// Mock dependencies
+const mockCreate = vi.fn();
+const mockRunMCPTool = vi.fn();
+
 vi.mock('../../../services/llm.service', () => ({
-  createMessage: vi.fn(),
+  getOpenAIClient: vi.fn(() => ({
+    chat: {
+      completions: {
+        create: mockCreate,
+      },
+    },
+  })),
+  withCompatibleTemperature: vi.fn((payload: unknown) => payload),
+}));
+
+vi.mock('../../../mcp/openai-bridge', () => ({
+  buildOpenAITools: vi.fn(() => []),
+  getOriginalToolName: vi.fn((name: string) => name),
+}));
+
+vi.mock('../../../mcp/tools/runMCPTool', () => ({
+  runMCPTool: (...args: unknown[]) => mockRunMCPTool(...args),
 }));
 
 vi.mock('../system.prompts', () => ({
-  CORE_PLANNER_SYSTEM: 'Mock planner system',
-  CORE_EXECUTOR_SYSTEM: 'Mock executor system',
+  CORE_TOOL_AGENT_SYSTEM: 'Mock tool agent system',
 }));
-
-import { createMessage } from '../../../services/llm.service';
 
 describe('runPlanExecutePhase', () => {
   let mockClassification: Classification;
@@ -37,13 +45,8 @@ describe('runPlanExecutePhase', () => {
   });
 
   it('should execute ReAct loop successfully', async () => {
-    (createMessage as any).mockResolvedValueOnce({
-      content: [
-        {
-          type: 'text',
-          text: 'I will analyze your investment options.',
-        },
-      ],
+    mockCreate.mockResolvedValueOnce({
+      choices: [{ message: { content: 'Final answer', tool_calls: [] } }],
     });
 
     const result = await runPlanExecutePhase({
@@ -59,25 +62,25 @@ describe('runPlanExecutePhase', () => {
     });
 
     expect(result.execution_result).toBeDefined();
-    expect(result.execution_result.iterations_count).toBeGreaterThanOrEqual(0);
+    expect(result.execution_result.iterations_count).toBeGreaterThanOrEqual(1);
   });
 
-  it('should respect max_iterations limit of 8', async () => {
-    // Mock multiple iterations
-    const mockResponses = Array(10)
-      .fill(null)
-      .map(() => ({
-        content: [
-          {
-            type: 'text',
-            text: 'Processing...',
+  it('should respect max_iterations limit', async () => {
+    const max = Number(process.env.AGENT_MAX_REACT_ITERATIONS || 4);
+    for (let i = 0; i < max + 2; i++) {
+      mockCreate.mockResolvedValueOnce({
+        choices: [{
+          message: {
+            content: '',
+            tool_calls: [{ id: `t-${i}`, function: { name: 'web.search', arguments: '{}' } }],
           },
-        ],
-      }));
-
-    mockResponses.forEach((response) => {
-      (createMessage as any).mockResolvedValueOnce(response);
-    });
+        }],
+      });
+      mockRunMCPTool.mockResolvedValue({
+        tool_call: { status: 'success' },
+        data: { ok: true },
+      });
+    }
 
     const result = await runPlanExecutePhase({
       classification: mockClassification,
@@ -87,19 +90,23 @@ describe('runPlanExecutePhase', () => {
       injected_intake: null,
     });
 
-    expect(result.execution_result.iterations_count).toBeLessThanOrEqual(8);
+    expect(result.execution_result.iterations_count).toBeLessThanOrEqual(max);
   });
 
   it('should include tool calls in execution result', async () => {
-    (createMessage as any).mockResolvedValueOnce({
-      content: [
-        {
-          type: 'tool_use',
-          id: 'tool-1',
-          name: 'market.expected_annual_return',
-          input: { risk_profile: 'balanced' },
-        },
-      ],
+    mockCreate
+      .mockResolvedValueOnce({
+        choices: [{
+          message: {
+            content: '',
+            tool_calls: [{ id: 'tool-1', function: { name: 'web.search', arguments: '{"q":"apv"}' } }],
+          },
+        }],
+      })
+      .mockResolvedValueOnce({ choices: [{ message: { content: 'done', tool_calls: [] } }] });
+    mockRunMCPTool.mockResolvedValue({
+      tool_call: { status: 'success' },
+      data: { ok: true },
     });
 
     const result = await runPlanExecutePhase({
@@ -111,16 +118,23 @@ describe('runPlanExecutePhase', () => {
     });
 
     expect(result.execution_result.tool_calls).toBeInstanceOf(Array);
+    expect(result.execution_result.tool_calls.length).toBeGreaterThan(0);
   });
 
   it('should accumulate react trace with iterations', async () => {
-    (createMessage as any).mockResolvedValueOnce({
-      content: [
-        {
-          type: 'text',
-          text: 'Analyzing your investment profile...',
-        },
-      ],
+    mockCreate
+      .mockResolvedValueOnce({
+        choices: [{
+          message: {
+            content: '',
+            tool_calls: [{ id: 'tool-1', function: { name: 'web.search', arguments: '{"q":"apv"}' } }],
+          },
+        }],
+      })
+      .mockResolvedValueOnce({ choices: [{ message: { content: 'done', tool_calls: [] } }] });
+    mockRunMCPTool.mockResolvedValue({
+      tool_call: { status: 'success' },
+      data: { ok: true },
     });
 
     const result = await runPlanExecutePhase({
@@ -138,13 +152,20 @@ describe('runPlanExecutePhase', () => {
   });
 
   it('should accumulate citations from tool outputs', async () => {
-    (createMessage as any).mockResolvedValueOnce({
-      content: [
-        {
-          type: 'text',
-          text: 'Based on market data, here is my recommendation.',
-        },
-      ],
+    mockCreate
+      .mockResolvedValueOnce({
+        choices: [{
+          message: {
+            content: '',
+            tool_calls: [{ id: 'tool-1', function: { name: 'rag.lookup', arguments: '{"query":"apv"}' } }],
+          },
+        }],
+      })
+      .mockResolvedValueOnce({ choices: [{ message: { content: 'done', tool_calls: [] } }] });
+    mockRunMCPTool.mockResolvedValue({
+      tool_call: { status: 'success' },
+      data: { ok: true },
+      citations: [{ doc_id: 'd1', doc_title: 't1', supporting_span: 's', supports: 'claim', confidence: 0.9 }],
     });
 
     const result = await runPlanExecutePhase({
@@ -158,16 +179,23 @@ describe('runPlanExecutePhase', () => {
     });
 
     expect(result.execution_result.citations).toBeInstanceOf(Array);
+    expect(result.execution_result.citations.length).toBeGreaterThan(0);
   });
 
   it('should accumulate artifacts from tool outputs', async () => {
-    (createMessage as any).mockResolvedValueOnce({
-      content: [
-        {
-          type: 'text',
-          text: 'Here is a chart of your portfolio growth.',
-        },
-      ],
+    mockCreate
+      .mockResolvedValueOnce({
+        choices: [{
+          message: {
+            content: '',
+            tool_calls: [{ id: 'tool-1', function: { name: 'pdf.gen', arguments: '{}' } }],
+          },
+        }],
+      })
+      .mockResolvedValueOnce({ choices: [{ message: { content: 'done', tool_calls: [] } }] });
+    mockRunMCPTool.mockResolvedValue({
+      tool_call: { status: 'success' },
+      data: { artifact: { id: 'a1', type: 'pdf', title: 'Informe', url: '/x.pdf' } },
     });
 
     const result = await runPlanExecutePhase({
@@ -179,30 +207,36 @@ describe('runPlanExecutePhase', () => {
     });
 
     expect(result.execution_result.artifacts).toBeInstanceOf(Array);
+    expect(result.execution_result.artifacts.length).toBeGreaterThan(0);
   });
 
   it('should handle tool errors gracefully', async () => {
-    (createMessage as any).mockRejectedValueOnce(new Error('Tool execution failed'));
+    mockCreate
+      .mockResolvedValueOnce({
+        choices: [{
+          message: {
+            content: '',
+            tool_calls: [{ id: 'tool-1', function: { name: 'web.search', arguments: '{}' } }],
+          },
+        }],
+      })
+      .mockResolvedValueOnce({ choices: [{ message: { content: 'done', tool_calls: [] } }] });
+    mockRunMCPTool.mockRejectedValueOnce(new Error('Tool execution failed'));
 
-    await expect(
-      runPlanExecutePhase({
-        classification: mockClassification,
-        inferred_user_model: mockUserModel,
-        context_summary: {},
-        injected_profile: null,
-        injected_intake: null,
-      }),
-    ).rejects.toThrow();
+    const result = await runPlanExecutePhase({
+      classification: mockClassification,
+      inferred_user_model: mockUserModel,
+      context_summary: {},
+      injected_profile: null,
+      injected_intake: null,
+    });
+
+    expect(result.execution_result.tool_calls[0]?.status).toBe('error');
   });
 
   it('should build different tool sequences for different modes', async () => {
-    (createMessage as any).mockResolvedValueOnce({
-      content: [
-        {
-          type: 'text',
-          text: 'Simulation response',
-        },
-      ],
+    mockCreate.mockResolvedValueOnce({
+      choices: [{ message: { content: 'Simulation response', tool_calls: [] } }],
     });
 
     const simulationClassification = testUtils.createMockClassification({
@@ -222,13 +256,8 @@ describe('runPlanExecutePhase', () => {
   });
 
   it('should skip tool execution when requires_tools=false', async () => {
-    (createMessage as any).mockResolvedValueOnce({
-      content: [
-        {
-          type: 'text',
-          text: 'General information response',
-        },
-      ],
+    mockCreate.mockResolvedValueOnce({
+      choices: [{ message: { content: 'General information response', tool_calls: [] } }],
     });
 
     const noToolsClassification = testUtils.createMockClassification({
@@ -248,16 +277,21 @@ describe('runPlanExecutePhase', () => {
   });
 
   it('should extract chart blocks from tool output', async () => {
-    (createMessage as any).mockResolvedValueOnce({
-      content: [
-        {
-          type: 'text',
-          text: `Here is your investment projection:
-<CHART>
-{"chart_type": "line", "title": "Portfolio Growth", "data": []}
-</CHART>`,
-        },
-      ],
+    mockCreate
+      .mockResolvedValueOnce({
+        choices: [{
+          message: {
+            content: '',
+            tool_calls: [{ id: 'tool-1', function: { name: 'sim.projection', arguments: '{}' } }],
+          },
+        }],
+      })
+      .mockResolvedValueOnce({ choices: [{ message: { content: 'done', tool_calls: [] } }] });
+    mockRunMCPTool.mockResolvedValue({
+      tool_call: { status: 'success' },
+      data: {
+        chart: '<CHART>{"chart_type":"line","title":"Portfolio Growth","data":[]}</CHART>',
+      },
     });
 
     const result = await runPlanExecutePhase({
@@ -272,13 +306,8 @@ describe('runPlanExecutePhase', () => {
   });
 
   it('should include plan objective in output', async () => {
-    (createMessage as any).mockResolvedValueOnce({
-      content: [
-        {
-          type: 'text',
-          text: 'Planning response',
-        },
-      ],
+    mockCreate.mockResolvedValueOnce({
+      choices: [{ message: { content: 'Planning response', tool_calls: [] } }],
     });
 
     const result = await runPlanExecutePhase({

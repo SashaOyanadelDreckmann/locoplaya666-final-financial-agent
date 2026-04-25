@@ -6,9 +6,10 @@ import { sanitizeSearchQuery } from '../input-sanitizer';
 import { createMetricsCollector, recordToolMetrics } from '../telemetry';
 import { wrapError } from '../error';
 
-// __dirname = apps/api/src/mcp/tools/rag/
-// rag_data  = apps/rag_data/
-const RAG_DATA_DIR = path.resolve(__dirname, '../../../../../rag_data');
+const REPO_ROOT = path.resolve(__dirname, '../../../../../../');
+const RAG_DATA_DIR = process.env.RAG_DATA_DIR
+  ? path.resolve(process.env.RAG_DATA_DIR)
+  : path.join(REPO_ROOT, 'rag_data');
 const MCP_DIR = path.resolve(__dirname, '../../');
 
 function collectFiles(root: string): string[] {
@@ -18,7 +19,7 @@ function collectFiles(root: string): string[] {
     const p = path.join(root, entry);
     const stat = fs.statSync(p);
     if (stat.isDirectory()) out.push(...collectFiles(p));
-    else if (/\.(md|json|txt)$/i.test(entry)) out.push(p);
+    else if (/\.(md|json|txt|ts)$/i.test(entry)) out.push(p);
   }
   return out;
 }
@@ -86,7 +87,17 @@ export const ragLookupTool: MCPTool = {
 
     try {
       // 1. Input validation
-      const rawQuery = sanitizeSearchQuery(String(args.query), 'rag.lookup');
+      const rawInput = String(args.query ?? '').trim();
+      if (!rawInput) {
+        throw new Error('Query must not be empty');
+      }
+      let rawQuery: string;
+      try {
+        rawQuery = sanitizeSearchQuery(rawInput, 'rag.lookup');
+      } catch {
+        // Keep rag.lookup usable for very short/generic queries.
+        rawQuery = rawInput;
+      }
       const limit = Math.max(1, Math.min(10, Math.floor(Number(args.limit ?? 5))));
 
       // 2. Split query into meaningful terms (≥3 chars)
@@ -99,12 +110,13 @@ export const ragLookupTool: MCPTool = {
       // 3. Primary corpus: rag_data (all subdirs)
       const primaryFiles = collectFiles(RAG_DATA_DIR);
 
-      // 4. Secondary corpus: legacy mcp knowledge/guides dirs
+      // 4. Secondary corpus: legacy mcp knowledge/guides + local tool docs
       const secondaryFiles = [
         ...collectFiles(path.join(MCP_DIR, 'knowledge')),
         ...collectFiles(path.join(MCP_DIR, 'guides')),
         ...collectFiles(path.join(MCP_DIR, 'contracts')),
         ...collectFiles(path.join(MCP_DIR, 'examples')),
+        ...collectFiles(path.join(MCP_DIR, 'tools', 'finance')),
       ];
 
       const allFiles = [...primaryFiles, ...secondaryFiles];

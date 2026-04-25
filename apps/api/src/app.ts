@@ -74,6 +74,7 @@ export function createApp() {
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization', 'X-Dev-Admin-Token', 'X-CSRF-Token'],
+      exposedHeaders: ['X-CSRF-Token'],
     })
   );
 

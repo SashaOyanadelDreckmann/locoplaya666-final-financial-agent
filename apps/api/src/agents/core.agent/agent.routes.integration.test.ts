@@ -24,8 +24,8 @@ describe('Agent API Routes Integration', () => {
       .set('Content-Type', 'application/json');
 
     expect(res.status).toBe(401);
-    expect(res.body.ok).toBe(false);
-    expect(res.body.error?.code).toBe('UNAUTHORIZED');
+    expect(res.headers['content-type']).toContain('application/problem+json');
+    expect(res.body.code).toBe('UNAUTHORIZED');
   });
 
   it('POST /api/agent without session cookie blocks caller-supplied user_id', async () => {
@@ -39,8 +39,8 @@ describe('Agent API Routes Integration', () => {
       .set('Content-Type', 'application/json');
 
     expect(res.status).toBe(401);
-    expect(res.body.ok).toBe(false);
-    expect(res.body.error?.code).toBe('UNAUTHORIZED');
+    expect(res.headers['content-type']).toContain('application/problem+json');
+    expect(res.body.code).toBe('UNAUTHORIZED');
   });
 
   it('POST /api/agent with missing user_message still returns 401 when unauthenticated', async () => {
@@ -50,21 +50,19 @@ describe('Agent API Routes Integration', () => {
       .set('Content-Type', 'application/json');
 
     expect(res.status).toBe(401);
-    expect(res.body.error?.code).toBe('UNAUTHORIZED');
+    expect(res.body.code).toBe('UNAUTHORIZED');
   });
 
   it('GET /simulations without session cookie returns 401', async () => {
     const res = await request(app).get('/simulations');
     expect(res.status).toBe(401);
-    expect(res.body.ok).toBe(false);
-    expect(res.body.error?.code).toBe('UNAUTHORIZED');
+    expect(res.body.code).toBe('UNAUTHORIZED');
   });
 
   it('GET /api/pdfs/serve without session cookie returns 401', async () => {
     const res = await request(app).get('/api/pdfs/serve?file=test.pdf');
     expect(res.status).toBe(401);
-    expect(res.body.ok).toBe(false);
-    expect(res.body.error?.code).toBe('UNAUTHORIZED');
+    expect(res.body.code).toBe('UNAUTHORIZED');
   });
 
   it('POST /api/documents/parse without session cookie returns 401', async () => {
@@ -74,8 +72,7 @@ describe('Agent API Routes Integration', () => {
       .set('Content-Type', 'application/json');
 
     expect(res.status).toBe(401);
-    expect(res.body.ok).toBe(false);
-    expect(res.body.error?.code).toBe('UNAUTHORIZED');
+    expect(res.body.code).toBe('UNAUTHORIZED');
   });
 
   it('POST /api/agent/batch — placeholder (batch route not yet implemented)', async () => {

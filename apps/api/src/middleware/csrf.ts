@@ -8,30 +8,32 @@
  * 3. Middleware validates token matches session
  */
 
+import { timingSafeEqual, randomBytes } from 'crypto';
 import { Request, Response, NextFunction } from 'express';
-import { randomBytes } from 'crypto';
-import { getSessionCookieName } from '../services/session.service';
 import { forbidden } from '../http/api.errors';
 
 const CSRF_TOKEN_HEADER = 'x-csrf-token';
-const CSRF_SESSION_KEY = '_csrf_token';
+const CSRF_COOKIE_NAME = process.env.CSRF_COOKIE_NAME?.trim() || 'csrf-token';
+const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
-/**
- * Generate a new CSRF token for the session
- */
-export function generateCsrfToken(req: Request): string {
-  const token = randomBytes(32).toString('hex');
-  if (!req.session) req.session = {} as any;
-  (req.session as any)[CSRF_SESSION_KEY] = token;
-  return token;
+function generateCsrfToken(): string {
+  return randomBytes(32).toString('hex');
 }
 
-/**
- * Get CSRF token from session
- */
-export function getCsrfToken(req: Request): string | undefined {
-  if (!req.session) return undefined;
-  return (req.session as any)[CSRF_SESSION_KEY];
+function getCsrfTokenFromCookie(req: Request): string | undefined {
+  const value = req.cookies?.[CSRF_COOKIE_NAME];
+  return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
+
+function hasSessionCookie(req: Request): boolean {
+  const sessionCookieName = process.env.SESSION_COOKIE_NAME?.trim() || 'session';
+  return Boolean(req.cookies?.[sessionCookieName]);
+}
+
+function secureCompare(a: string, b: string): boolean {
+  const aBuf = Buffer.from(a, 'utf8');
+  const bBuf = Buffer.from(b, 'utf8');
+  return aBuf.length === bBuf.length && timingSafeEqual(aBuf, bBuf);
 }
 
 /**
@@ -39,8 +41,15 @@ export function getCsrfToken(req: Request): string | undefined {
  * Call this on ALL authenticated routes to provide token to client
  */
 export function attachCsrfToken(req: Request, res: Response, next: NextFunction) {
-  if (req.method === 'GET' && req.authenticatedUser) {
-    const token = generateCsrfToken(req);
+  // Double-submit cookie pattern: if a session exists, ensure a CSRF cookie exists.
+  if (SAFE_METHODS.has(req.method) && hasSessionCookie(req)) {
+    const token = getCsrfTokenFromCookie(req) ?? generateCsrfToken();
+    res.cookie(CSRF_COOKIE_NAME, token, {
+      httpOnly: false,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      path: '/',
+    });
     res.set(CSRF_TOKEN_HEADER, token);
   }
   next();
@@ -52,22 +61,19 @@ export function attachCsrfToken(req: Request, res: Response, next: NextFunction)
  * Skip for public endpoints that don't require auth
  */
 export function validateCsrfToken(req: Request, res: Response, next: NextFunction) {
-  // Skip validation for GET/HEAD/OPTIONS
-  if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
+  if (SAFE_METHODS.has(req.method)) {
     return next();
   }
 
-  // Skip validation for unauthenticated requests to public endpoints
-  // (they would fail auth middleware anyway)
-  if (!req.authenticatedUser) {
+  // Only enforce CSRF when a session cookie exists (cookie-authenticated flow).
+  if (!hasSessionCookie(req)) {
     return next();
   }
 
-  // CSRF validation for state-changing operations
-  const token = req.get(CSRF_TOKEN_HEADER);
-  const sessionToken = getCsrfToken(req);
+  const token = req.get(CSRF_TOKEN_HEADER)?.trim();
+  const cookieToken = getCsrfTokenFromCookie(req);
 
-  if (!token || !sessionToken || token !== sessionToken) {
+  if (!token || !cookieToken || !secureCompare(token, cookieToken)) {
     return next(forbidden('CSRF token invalid or missing'));
   }
 
