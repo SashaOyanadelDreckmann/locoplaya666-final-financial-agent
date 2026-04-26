@@ -9258,3 +9258,106 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Mobile final harmonization: composer + panel card sizes + compact library */
+@media (max-width: 767px) {
+  /* 1) Composer textarea without dark fill */
+  .agent-input textarea {
+    background: transparent !important;
+    border: 1px solid rgba(188, 214, 233, 0.18) !important;
+    box-shadow: none !important;
+  }
+
+  .agent-input textarea:focus {
+    background: transparent !important;
+    border-color: rgba(165, 205, 231, 0.36) !important;
+    box-shadow: none !important;
+  }
+
+  /* 2) All mobile panel cards same large size (as profile card) */
+  .agent-panel .mob-col,
+  .agent-panel .mob-col-wide,
+  .agent-panel .mob-col-narrow,
+  .agent-panel .mob-col:has(.panel-pos-library) {
+    flex: 0 0 min(92vw, 360px) !important;
+    width: min(92vw, 360px) !important;
+    min-width: min(92vw, 360px) !important;
+    max-width: min(92vw, 360px) !important;
+  }
+
+  .agent-panel .mob-col > *,
+  .agent-panel .panel-card,
+  .agent-panel .profile-card,
+  .agent-panel .panel-feature-card,
+  .agent-panel .interview-flow-card,
+  .agent-panel .recent-library-card {
+    min-height: 176px !important;
+    height: 176px !important;
+  }
+
+  /* 3) CTA button smaller + blur style (not white) */
+  .profile-questionnaire-btn {
+    width: auto !important;
+    min-height: 34px !important;
+    height: 34px !important;
+    padding: 0 14px !important;
+    margin-top: 4px !important;
+    border-radius: 999px !important;
+    border: 1px solid rgba(189, 214, 232, 0.24) !important;
+    background: rgba(18, 30, 44, 0.42) !important;
+    color: rgba(232, 242, 250, 0.95) !important;
+    backdrop-filter: blur(10px) saturate(1.1) !important;
+    -webkit-backdrop-filter: blur(10px) saturate(1.1) !important;
+    font-size: 0.78rem !important;
+    font-weight: 600 !important;
+    align-self: flex-start !important;
+  }
+
+  /* 4) Smaller library pieces so they never crop */
+  .agent-panel .panel-pos-library {
+    min-height: 176px !important;
+    height: 176px !important;
+  }
+
+  .agent-panel .panel-pos-library .reports-grid {
+    max-height: 70px !important;
+    gap: 6px !important;
+  }
+
+  .agent-panel .panel-pos-library .report-group {
+    padding: 5px 6px !important;
+    border-radius: 8px !important;
+  }
+
+  .agent-panel .panel-pos-library .report-group-title,
+  .agent-panel .panel-pos-library .report-group-count {
+    font-size: 0.58rem !important;
+    line-height: 1.05 !important;
+  }
+
+  .agent-panel .recent-library-card {
+    min-height: 176px !important;
+    height: 176px !important;
+  }
+
+  .agent-panel .recent-library-grid {
+    grid-template-columns: repeat(auto-fill, minmax(44px, 44px)) !important;
+    gap: 6px !important;
+  }
+
+  .agent-panel .recent-item {
+    width: 44px !important;
+    min-width: 44px !important;
+    max-width: 44px !important;
+  }
+
+  .agent-panel .recent-item-preview-wrap {
+    width: 44px !important;
+    min-width: 44px !important;
+    max-width: 44px !important;
+  }
+
+  .agent-panel .recent-item-name {
+    font-size: 0.5rem !important;
+  }
+}
