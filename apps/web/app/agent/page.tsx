@@ -113,6 +113,13 @@ type ChatThread = {
   completedAt?: string;
 };
 
+type ChatSpecialization = {
+  title: string;
+  shortTitle: string;
+  accentClass: string;
+  subtitle: string;
+};
+
 const CHAT_GAME_INSTRUCTION =
   'Para aprovechar al maximo este juego: 1) define un objetivo financiero concreto, 2) usa los 3 chats en paralelo para explorar escenarios, 3) pide primero grafico o simulacion y luego informe PDF, 4) guarda documentos clave para compararlos, 5) ajusta riesgo, plazo y aporte en cada iteracion para subir tu nivel de conocimiento.';
 
@@ -554,6 +561,39 @@ export default function AgentPage() {
     };
   }
 
+  function getThreadSpecialization(threadId: string): ChatSpecialization {
+    if (threadId === 'chat-1') {
+      return {
+        title: 'Diagnóstico',
+        shortTitle: 'Diag',
+        accentClass: 'chat-specialization-1',
+        subtitle: 'Lectura base y tensiones',
+      };
+    }
+    if (threadId === 'chat-2') {
+      return {
+        title: 'Estrategia',
+        shortTitle: 'Plan',
+        accentClass: 'chat-specialization-2',
+        subtitle: 'Escenarios y estructura',
+      };
+    }
+    if (threadId === 'chat-3') {
+      return {
+        title: 'Ejecución',
+        shortTitle: 'Move',
+        accentClass: 'chat-specialization-3',
+        subtitle: 'Acciones y seguimiento',
+      };
+    }
+    return {
+      title: 'Síntesis',
+      shortTitle: 'Meta',
+      accentClass: 'chat-specialization-meta',
+      subtitle: 'Integración maestra',
+    };
+  }
+
   const [chatThreads, setChatThreads] = useState<ChatThread[]>([
     makeInitialThread('chat-1', '1', 'Nueva conversación'),
     makeInitialThread('chat-2', '2', 'Nueva conversación'),
@@ -625,6 +665,14 @@ export default function AgentPage() {
 
   const items = activeThread?.items ?? [];
   const input = activeThread?.draft ?? '';
+  const activeThreadThemeClass =
+    activeThread?.id === 'chat-2'
+      ? 'chat-theme-2'
+      : activeThread?.id === 'chat-3'
+      ? 'chat-theme-3'
+      : activeThread?.id === 'meta-sheet'
+      ? 'chat-theme-meta'
+      : 'chat-theme-1';
 
   useEffect(() => {
     let cancelled = false;
@@ -2701,6 +2749,11 @@ export default function AgentPage() {
         if (isMobileViewport && panelGridRef.current && recentLibraryRef.current) {
           panelLoopPausedRef.current = true;
           const gridEl = panelGridRef.current;
+          const panelEl = panelScrollRef.current as HTMLElement | null;
+          if (panelEl) {
+            panelEl.style.flexBasis = '';
+            panelEl.style.removeProperty('--mobile-panel-h');
+          }
           const targetCard = recentLibraryRef.current.closest('.mob-col') as HTMLElement | null;
           if (targetCard) {
             gridEl.scrollTo({ left: Math.max(0, targetCard.offsetLeft - 10), behavior: 'smooth' });
@@ -3825,7 +3878,7 @@ export default function AgentPage() {
 
   return (
     <main
-      className={`agent-layout chat-theme-${activeThread?.label ?? '1'} ${
+      className={`agent-layout ${activeThreadThemeClass} ${
         isRailMorphing ? 'is-mode-12-morphing' : ''
       } ${
         !isMonochrome ? 'is-normal-matte' : ''
@@ -3843,15 +3896,28 @@ export default function AgentPage() {
           <div className="agent-chat-controls-row">
             <div className="chat-switcher" aria-label="Selector de chats">
               {chatThreads.map((thread) => (
+                (() => {
+                  const specialization = getThreadSpecialization(thread.id);
+                  return (
                 <button
                   key={thread.id}
                   type="button"
-                  className={`chat-sheet-tab${thread.id === activeChatId ? ' is-active' : ''}${thread.status === 'context' ? ' is-context' : ''}`}
+                  className={`chat-sheet-tab ${specialization.accentClass}${thread.id === activeChatId ? ' is-active' : ''}${thread.status === 'context' ? ' is-context' : ''}`}
                   onClick={() => setActiveChatId(thread.id)}
                   title={thread.status === 'context' ? `Contexto: ${thread.name}` : `Chat ${thread.label}: ${thread.name}`}
                 >
-                  {thread.status === 'context' ? '◆' : ''}
+                  <span className="chat-sheet-tab-index">{thread.label}</span>
+                  <span className="chat-sheet-tab-copy">
+                    <span className="chat-sheet-tab-title">
+                      {thread.status === 'context' ? 'Síntesis' : specialization.title}
+                    </span>
+                    <span className="chat-sheet-tab-subtitle">
+                      {thread.status === 'context' ? 'Contexto consolidado' : specialization.subtitle}
+                    </span>
+                  </span>
                 </button>
+                  );
+                })()
               ))}
               {/* No manual new-sheet button — sheets are fixed to 3 + optional meta sheet */}
             </div>
