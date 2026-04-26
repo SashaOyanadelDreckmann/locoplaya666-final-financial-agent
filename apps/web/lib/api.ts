@@ -196,5 +196,28 @@ export async function getInterviewRealtimeToken() {
     value: string;
     expires_at?: number;
     session_id?: string;
+    call_id?: string;
+    calls_used?: number;
+    calls_left?: number;
+    max_duration_sec?: number;
+    pause_limit?: number;
   }>(res);
+}
+
+export async function finalizeInterviewVoiceCall(payload: {
+  intake: unknown;
+  transcript: string;
+  endedBy: 'timeout' | 'agent' | 'user';
+  durationSec?: number;
+  callId?: string;
+}) {
+  const API_URL = getApiBaseUrl();
+  const res = await fetch(`${API_URL}/conversation/voice/finalize`, {
+    method: 'POST',
+    headers: withCsrf({ 'Content-Type': 'application/json' }),
+    credentials: 'include',
+    body: JSON.stringify(payload),
+  });
+
+  return parseApiResponse<any>(res);
 }

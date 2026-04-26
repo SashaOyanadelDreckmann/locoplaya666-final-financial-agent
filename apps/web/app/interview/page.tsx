@@ -4,13 +4,17 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-import { QuestionCard } from '@/components/conversation/QuestionCard';
-import { SummaryCard } from '@/components/conversation/SummaryCard';
-
 import { useInterviewStore } from '@/state/interview.store';
 import { useProfileStore } from '@/state/profile.store';
 
-import { getInterviewRealtimeToken, getSessionInfo, nextConversationStep } from '@/lib/api';
+import {
+  finalizeInterviewVoiceCall,
+  getInterviewRealtimeToken,
+  getSessionInfo,
+  nextConversationStep,
+} from '@/lib/api';
+import { ApiHttpError } from '@/lib/apiEnvelope';
+import { toUserFacingError } from '@/lib/userError';
 
 export default function InterviewPage() {
   const router = useRouter();
@@ -42,12 +46,31 @@ export default function InterviewPage() {
   const [voiceAgentTranscript, setVoiceAgentTranscript] = useState('');
   const [voiceUserTranscript, setVoiceUserTranscript] = useState('');
   const [voicePartialTranscript, setVoicePartialTranscript] = useState('');
+  const [voicePaused, setVoicePaused] = useState(false);
+  const [pauseUsed, setPauseUsed] = useState(false);
+  const [callSeconds, setCallSeconds] = useState(0);
+  const [callId, setCallId] = useState<string | null>(null);
+  const [callsLeft, setCallsLeft] = useState<number | null>(null);
+  const [isFinalizingCall, setIsFinalizingCall] = useState(false);
+  const [voiceReport, setVoiceReport] = useState<{
+    executive_report: string;
+    key_findings: string[];
+    stop_reason?: string;
+  } | null>(null);
   const [intakeReady, setIntakeReady] = useState(false);
   const [microphoneReady, setMicrophoneReady] = useState(false);
   const currentQuestion =
     lastResponse?.type === 'question' && typeof lastResponse.question === 'string'
       ? lastResponse.question
       : '';
+
+  function handleUnauthorized(error: unknown) {
+    if (error instanceof ApiHttpError && error.status === 401) {
+      router.replace('/login');
+      return true;
+    }
+    return false;
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -67,7 +90,8 @@ export default function InterviewPage() {
         } else if (!cancelled) {
           router.replace('/intake');
         }
-      } catch {
+      } catch (error) {
+        if (!cancelled && handleUnauthorized(error)) return;
         if (!cancelled) router.replace('/intake');
       } finally {
         if (!cancelled) setIntakeReady(true);
@@ -98,7 +122,11 @@ export default function InterviewPage() {
     nextConversationStep({
       intake,
       completedBlocks,
-    }).then(setResponse);
+    })
+      .then(setResponse)
+      .catch((error) => {
+        if (handleUnauthorized(error)) return;
+      });
   }, [intakeReady, intake, completedBlocks, lastResponse, setResponse]);
 
   // Avance automático
@@ -111,19 +139,15 @@ export default function InterviewPage() {
     nextConversationStep({
       intake,
       completedBlocks: updatedCompleted,
-    }).then((res) => {
-      if (res?.blockId) resetBlock(res.blockId);
-      setResponse(res);
-    });
+    })
+      .then((res) => {
+        if (res?.blockId) resetBlock(res.blockId);
+        setResponse(res);
+      })
+      .catch((error) => {
+        if (handleUnauthorized(error)) return;
+      });
   }, [lastResponse, intake, completedBlocks, resetBlock, setResponse]);
-
-  // 🎯 FIN ENTREVISTA
-  useEffect(() => {
-    if (lastResponse?.type === 'interview_complete') {
-      setProfile(lastResponse.profile);
-      router.push('/diagnosis');
-    }
-  }, [lastResponse, setProfile, router]);
 
   useEffect(() => {
     return () => {
@@ -146,6 +170,28 @@ export default function InterviewPage() {
   }, []);
 
   useEffect(() => {
+    if (!voiceConnected || voicePaused) return;
+    const timer = window.setInterval(() => {
+      setCallSeconds((prev) => {
+        const next = prev + 1;
+        if (next >= 120) {
+          window.clearInterval(timer);
+          void finalizeCallAndGenerateReport('timeout');
+        }
+        return next;
+      });
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [voiceConnected, voicePaused]);
+
+  useEffect(() => {
+    const normalized = voiceAgentTranscript.toUpperCase();
+    if (!voiceConnected) return;
+    if (!normalized.includes('<<CALL_COMPLETE>>')) return;
+    void finalizeCallAndGenerateReport('agent');
+  }, [voiceAgentTranscript, voiceConnected]);
+
+  useEffect(() => {
     if (!voiceConnected || !currentQuestion) return;
     primeVoiceQuestion(currentQuestion);
   }, [voiceConnected, currentQuestion]);
@@ -163,6 +209,9 @@ export default function InterviewPage() {
       : lastResponse.type === 'block_summary'
       ? 'Validando'
       : 'Cerrando';
+  const callTimeLabel = `${Math.floor(callSeconds / 60)
+    .toString()
+    .padStart(2, '0')}:${(callSeconds % 60).toString().padStart(2, '0')}`;
 
   const intakeSnapshot = [
     intake.profession ? String(intake.profession) : null,
@@ -181,6 +230,7 @@ export default function InterviewPage() {
     setVoiceConnecting(false);
     setVoiceListening(false);
     setVoiceSpeaking(false);
+    setVoicePaused(false);
     setMicrophoneReady(false);
     if (dataChannelRef.current && dataChannelRef.current.readyState === 'open') {
       try {
@@ -219,9 +269,11 @@ export default function InterviewPage() {
         instructions: [
           'Eres una entrevistadora financiera premium en una llamada breve.',
           'Habla en español chileno.',
-          'Haz solo una pregunta a la vez.',
+          'Haz solo una pregunta a la vez y profundiza con precisión.',
           'No expliques el sistema ni el contexto técnico.',
-          `Pregunta actual que debes formular con calidez y precisión: ${question}`,
+          'La llamada dura máximo 2 minutos y busca un diagnóstico profundo basado en intake y respuestas del usuario.',
+          'Si ya tienes información suficiente, inicia tu cierre con <<CALL_COMPLETE>> y resume el porqué en 2 frases.',
+          `Pregunta de arranque que debes formular con calidez y precisión: ${question}`,
         ].join(' '),
       },
     });
@@ -229,7 +281,7 @@ export default function InterviewPage() {
       type: 'response.create',
       response: {
         modalities: ['audio', 'text'],
-        instructions: `Formula oralmente esta pregunta y luego escucha en silencio: ${question}`,
+        instructions: `Inicia con esta pregunta y luego continúa entrevistando en profundidad: ${question}`,
       },
     });
   }
@@ -271,7 +323,7 @@ export default function InterviewPage() {
         );
         return;
       }
-      setVoiceError(message);
+      setVoiceError(toUserFacingError(error, 'generic'));
     }
   }
 
@@ -286,11 +338,16 @@ export default function InterviewPage() {
 
     setVoiceError(null);
     setVoiceConnecting(true);
+    setVoiceReport(null);
 
     try {
       const token = await getInterviewRealtimeToken();
       const ephemeralKey = token?.value;
       if (!ephemeralKey) throw new Error('No se recibió un client_secret válido');
+      setCallId(typeof token?.call_id === 'string' ? token.call_id : null);
+      if (typeof token?.calls_left === 'number') setCallsLeft(token.calls_left);
+      setCallSeconds(0);
+      setPauseUsed(false);
 
       const pc = new RTCPeerConnection();
       peerConnectionRef.current = pc;
@@ -380,6 +437,7 @@ export default function InterviewPage() {
       };
       await pc.setRemoteDescription(answer);
     } catch (error) {
+      if (handleUnauthorized(error)) return;
       cleanupVoiceSession();
       setVoiceConnecting(false);
       const message =
@@ -394,12 +452,78 @@ export default function InterviewPage() {
         );
         return;
       }
-      setVoiceError(message);
+      setVoiceError(toUserFacingError(error, 'generic'));
     }
   }
 
   function stopVoiceSession() {
     cleanupVoiceSession();
+  }
+
+  function toggleCallPause() {
+    if (!voiceConnected) return;
+    if (voicePaused) {
+      localStreamRef.current?.getAudioTracks().forEach((track) => {
+        track.enabled = true;
+      });
+      setVoicePaused(false);
+      return;
+    }
+    if (pauseUsed) return;
+    localStreamRef.current?.getAudioTracks().forEach((track) => {
+      track.enabled = false;
+    });
+    setVoicePaused(true);
+    setPauseUsed(true);
+  }
+
+  async function finalizeCallAndGenerateReport(endedBy: 'timeout' | 'agent' | 'user') {
+    if (isFinalizingCall) return;
+    setIsFinalizingCall(true);
+    cleanupVoiceSession();
+    try {
+      const transcript = [
+        voiceAgentTranscript ? `AGENTE:\n${voiceAgentTranscript}` : '',
+        voiceUserTranscript ? `USUARIO:\n${voiceUserTranscript}` : '',
+      ]
+        .filter(Boolean)
+        .join('\n\n')
+        .trim();
+      if (!transcript || transcript.length < 10) {
+        setVoiceError('No hay suficiente transcripción para generar informe ejecutivo.');
+        return;
+      }
+
+      const result = await finalizeInterviewVoiceCall({
+        intake,
+        transcript,
+        endedBy,
+        durationSec: callSeconds,
+        callId: callId ?? undefined,
+      });
+
+      if (result?.profile) {
+        setProfile(result.profile);
+      }
+      if (result?.type === 'interview_complete') {
+        setResponse(result);
+      }
+      const report = result?.voice_report;
+      if (report?.executive_report) {
+        setVoiceReport({
+          executive_report: String(report.executive_report),
+          key_findings: Array.isArray(report.key_findings)
+            ? report.key_findings.map((item: unknown) => String(item))
+            : [],
+          stop_reason: typeof report.stop_reason === 'string' ? report.stop_reason : endedBy,
+        });
+      }
+    } catch (error) {
+      if (handleUnauthorized(error)) return;
+      setVoiceError(toUserFacingError(error, 'generic'));
+    } finally {
+      setIsFinalizingCall(false);
+    }
   }
 
   async function useVoiceTranscriptAsAnswer() {
@@ -408,16 +532,20 @@ export default function InterviewPage() {
 
     addAnswer(blockId, clean);
 
-    const res = await nextConversationStep({
-      intake,
-      blockId,
-      answersInCurrentBlock: [...answersInBlock, clean],
-      completedBlocks,
-    });
+    try {
+      const res = await nextConversationStep({
+        intake,
+        blockId,
+        answersInCurrentBlock: [...answersInBlock, clean],
+        completedBlocks,
+      });
 
-    setVoiceUserTranscript('');
-    setVoicePartialTranscript('');
-    setResponse(res);
+      setVoiceUserTranscript('');
+      setVoicePartialTranscript('');
+      setResponse(res);
+    } catch (error) {
+      if (handleUnauthorized(error)) return;
+    }
   }
 
   return (
@@ -434,7 +562,9 @@ export default function InterviewPage() {
               {voiceConnecting
                 ? 'Conectando'
                 : voiceConnected
-                ? voiceListening
+                ? voicePaused
+                  ? 'Pausada'
+                  : voiceListening
                   ? 'Escuchando'
                   : voiceSpeaking
                   ? 'Hablando'
@@ -470,6 +600,15 @@ export default function InterviewPage() {
                 ? 'Colgar'
                 : 'Iniciar llamada'}
             </button>
+            <button
+              type="button"
+              className="summary-action-btn"
+              onClick={toggleCallPause}
+              disabled={!voiceConnected || (pauseUsed && !voicePaused)}
+              title={pauseUsed ? 'Ya usaste la pausa única de esta llamada' : 'Pausar una vez'}
+            >
+              {voicePaused ? 'Reanudar' : pauseUsed ? 'Pausa usada' : 'Pausar (1 vez)'}
+            </button>
             {(voiceUserTranscript || voicePartialTranscript) && blockId ? (
               <button
                 type="button"
@@ -479,6 +618,26 @@ export default function InterviewPage() {
                 Usar transcripción
               </button>
             ) : null}
+            {voiceConnected ? (
+              <button
+                type="button"
+                className="summary-action-btn summary-action-reject"
+                onClick={() => void finalizeCallAndGenerateReport('user')}
+                disabled={isFinalizingCall}
+              >
+                {isFinalizingCall ? 'Generando informe…' : 'Finalizar y generar informe'}
+              </button>
+            ) : null}
+          </div>
+
+          <div className="voice-call-context">
+            <span className="voice-call-pill">Tiempo {callTimeLabel} / 02:00</span>
+            <span className="voice-call-pill">
+              Pausa: {pauseUsed ? (voicePaused ? 'en uso' : 'usada') : 'disponible'}
+            </span>
+            <span className="voice-call-pill">
+              Llamadas restantes: {callsLeft === null ? '—' : callsLeft}
+            </span>
           </div>
 
           {voiceError ? <p className="voice-call-error">{voiceError}</p> : null}
@@ -497,56 +656,37 @@ export default function InterviewPage() {
           )}
         </section>
 
-        {lastResponse.type === 'question' && blockId && (
-          <QuestionCard
-            question={lastResponse.question}
-            blockId={blockId}
-            onSubmit={async (answer) => {
-              const clean = answer?.trim();
-              if (!clean) return;
-
-              addAnswer(blockId, clean);
-
-              const res = await nextConversationStep({
-                intake,
-                blockId,
-                answersInCurrentBlock: [
-                  ...answersInBlock,
-                  clean,
-                ],
-                completedBlocks,
-              });
-
-              setResponse(res);
-            }}
-          />
-        )}
-
-        {lastResponse.type === 'block_summary' && blockId && (
-          <SummaryCard
-            summary={lastResponse.summary}
-            onAccept={async () => {
-              const res = await nextConversationStep({
-                intake,
-                blockId,
-                completedBlocks,
-                summaryValidation: { accepted: true },
-              });
-              setResponse(res);
-            }}
-            onReject={async (comment) => {
-              const res = await nextConversationStep({
-                intake,
-                blockId,
-                completedBlocks,
-                summaryValidation: {
-                  accepted: false,
-                  comment,
-                },
-              });
-              setResponse(res);
-            }}
-          />
+        {voiceReport && (
+          <section className="voice-call-shell">
+            <div className="voice-call-topbar">
+              <div>
+                <span className="voice-call-label">Informe ejecutivo</span>
+                <h1>Diagnóstico de la llamada</h1>
+              </div>
+            </div>
+            <div className="voice-call-transcript-card">
+              <p>{voiceReport.executive_report}</p>
+            </div>
+            {voiceReport.key_findings.length > 0 && (
+              <div className="voice-call-transcript-card">
+                <span className="voice-call-transcript-label">Hallazgos principales</span>
+                <ul>
+                  {voiceReport.key_findings.map((finding) => (
+                    <li key={finding}>{finding}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            <div className="voice-call-actions">
+              <button
+                type="button"
+                className="summary-action-btn summary-action-accept"
+                onClick={() => router.push('/diagnosis')}
+              >
+                Ir al diagnóstico completo
+              </button>
+            </div>
+          </section>
         )}
       </div>
     </div>

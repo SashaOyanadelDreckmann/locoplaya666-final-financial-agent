@@ -12,6 +12,7 @@ import {
   loadUserSheets,
   loadUserPanelState,
   saveUserPanelState,
+  saveUserMemoryBlob,
 } from '../services/user.service';
 import { complete, completeWithClaude } from '../services/llm.service';
 import {
@@ -429,6 +430,21 @@ router.get(
     const user = req.authenticatedUser;
     if (!user) throw unauthorized('Not authenticated');
     if (!config.OPENAI_API_KEY) throw forbidden('Realtime voice is not configured');
+    const memoryBlob =
+      user.memoryBlob && typeof user.memoryBlob === 'object'
+        ? (user.memoryBlob as Record<string, unknown>)
+        : {};
+    const interviewVoice =
+      memoryBlob.interviewVoice && typeof memoryBlob.interviewVoice === 'object'
+        ? (memoryBlob.interviewVoice as Record<string, unknown>)
+        : {};
+    const callsStarted = Number(interviewVoice.callsStarted ?? 0);
+    if (callsStarted >= 2) {
+      throw forbidden(
+        'Límite alcanzado: la entrevista en llamada se puede iniciar máximo 2 veces por usuario.'
+      );
+    }
+    const callId = `call_${Date.now()}`;
 
     const response = await fetch('https://api.openai.com/v1/realtime/client_secrets', {
       method: 'POST',
@@ -446,7 +462,7 @@ router.get(
             },
           },
           instructions:
-            'Eres una entrevistadora financiera chilena, cálida y precisa. Hablas en español chileno, haces pausas cortas, escuchas con paciencia y mantienes preguntas breves.',
+            'Eres una entrevistadora financiera chilena, cálida y precisa. Hablas en español chileno, haces pausas cortas, escuchas con paciencia y mantienes preguntas breves. Cuando tengas información suficiente, comienza tu cierre final con <<CALL_COMPLETE>> y resume en 2 frases.',
         },
       }),
     });
@@ -475,10 +491,27 @@ router.get(
       );
     }
 
+    await saveUserMemoryBlob(user.id, {
+      ...memoryBlob,
+      interviewVoice: {
+        ...interviewVoice,
+        callsStarted: callsStarted + 1,
+        activeCallId: callId,
+        pauseLimit: 1,
+        maxDurationSec: 120,
+        updatedAt: new Date().toISOString(),
+      },
+    });
+
     return sendSuccess(res, {
       value,
       expires_at: expiresAt,
       session_id: typeof data?.id === 'string' ? data.id : undefined,
+      call_id: callId,
+      calls_used: callsStarted + 1,
+      calls_left: Math.max(0, 2 - (callsStarted + 1)),
+      max_duration_sec: 120,
+      pause_limit: 1,
     });
   }),
 );

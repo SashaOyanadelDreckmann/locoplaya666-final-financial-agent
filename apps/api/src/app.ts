@@ -6,7 +6,7 @@ import helmet from 'helmet';
 
 import { simulationsRouter } from './routes/simulations.routes';
 import diagnosisRouter from './routes/diagnosis';
-import conversationNext from './routes/conversation';
+import conversationNext, { finalizeInterviewVoice } from './routes/conversation';
 import { submitIntake } from './routes/intake';
 import { authRouter } from './routes/auth';
 import agentRouter from './routes/agent';
@@ -105,6 +105,12 @@ export function createApp() {
     requireAuth,
     requirePermission(PERMISSIONS.AGENT_CHAT_SELF),
     conversationNext,
+  );
+  app.post(
+    '/conversation/voice/finalize',
+    requireAuth,
+    requirePermission(PERMISSIONS.AGENT_CHAT_SELF),
+    finalizeInterviewVoice,
   );
 
   // DIAGNOSIS

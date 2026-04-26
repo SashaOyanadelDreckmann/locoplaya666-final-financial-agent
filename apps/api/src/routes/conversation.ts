@@ -12,6 +12,8 @@ import { InterviewBlockEvidence } from '../schemas/profile.schema';
 import { saveProfile } from '../services/storage.service';
 import { appendMemoryTimelineNote } from '../services/memory.service';
 import { recordKnowledgeEvent } from '../services/knowledge.service';
+import { complete } from '../services/llm.service';
+import { loadUserMemoryBlob, saveUserMemoryBlob } from '../services/user.service';
 import { sendSuccess } from '../http/api.responses';
 import { parseBody } from '../http/parse';
 import { unauthorized, badRequest } from '../http/api.errors';
@@ -30,6 +32,14 @@ const ConversationBodySchema = z.object({
     })
     .optional(),
   blockId: z.string().optional(),
+});
+
+const VoiceFinalizeSchema = z.object({
+  intake: z.record(z.unknown()),
+  transcript: z.string().min(10),
+  endedBy: z.enum(['timeout', 'agent', 'user']).default('user'),
+  durationSec: z.number().min(1).max(180).optional(),
+  callId: z.string().optional(),
 });
 
 export type ConversationNextBody = {
@@ -209,7 +219,7 @@ export async function conversationNextCore(
     blockId: currentBlockId,
     intake,
     answersInCurrentBlock,
-    user,
+    user: user as any,
   });
 
   if (nextQuestion) {
@@ -230,7 +240,7 @@ export async function conversationNextCore(
     };
   }
 
-  const summary = await agent.summarizeBlock(currentBlockId, answersInCurrentBlock, user);
+  const summary = await agent.summarizeBlock(currentBlockId, answersInCurrentBlock, user as any);
 
   appendMemoryTimelineNote({
     userId: user.id,
@@ -250,7 +260,7 @@ export async function conversationNextCore(
 }
 
 export default asyncHandler(async function conversationNext(req: Request, res: Response) {
-  const parsed = parseBody(ConversationBodySchema, req.body) as ConversationNextBody;
+  const parsed = parseBody(ConversationBodySchema, req.body) as unknown as ConversationNextBody;
 
   const user = req.authenticatedUser;
   if (!user) {
@@ -264,4 +274,132 @@ export default asyncHandler(async function conversationNext(req: Request, res: R
   });
 
   return sendSuccess(res, response);
+});
+
+export const finalizeInterviewVoice = asyncHandler(async function finalizeInterviewVoice(req: Request, res: Response) {
+  const user = req.authenticatedUser;
+  if (!user) throw unauthorized('No authenticated user');
+  const parsed = parseBody(VoiceFinalizeSchema, req.body);
+
+  const intake = parsed.intake as unknown as IntakeQuestionnaire;
+  const transcript = String(parsed.transcript ?? '').trim();
+  const interviewChatId = `interview:${user.id}`;
+
+  const raw = await complete(
+    [
+      'Devuelve SOLO JSON válido con formato:',
+      '{"executive_report":"string","key_findings":["string","string","string"],"confidence":"high|medium|low","stop_reason":"string","has_enough_information":true|false}',
+      'Reglas:',
+      '- español chileno profesional',
+      '- enfoque diagnóstico profundo',
+      '- hallazgos accionables y concretos',
+      '- sin mencionar sistema ni herramientas',
+      `Motivo término llamada: ${parsed.endedBy}`,
+      `Duración (segundos): ${parsed.durationSec ?? 0}`,
+      `Intake usuario: ${JSON.stringify(intake)}`,
+      `Transcripción completa: ${transcript}`,
+    ].join('\n'),
+    {
+      systemPrompt:
+        'Eres una directora de diagnóstico financiero ejecutivo. Sintetizas llamadas en hallazgos claros, honestos y priorizados.',
+      temperature: 0.25,
+    }
+  );
+
+  const blockMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  const candidate = (blockMatch ? blockMatch[1] : raw).trim();
+  let parsedReport: any = null;
+  try {
+    parsedReport = JSON.parse(candidate);
+  } catch {
+    parsedReport = null;
+  }
+
+  const executiveReport =
+    typeof parsedReport?.executive_report === 'string' && parsedReport.executive_report.trim().length > 0
+      ? parsedReport.executive_report.trim()
+      : 'Entrevista finalizada. Se obtuvo un diagnóstico suficiente para continuar con recomendaciones priorizadas.';
+  const keyFindings = Array.isArray(parsedReport?.key_findings)
+    ? parsedReport.key_findings
+        .map((item: unknown) => String(item ?? '').trim())
+        .filter((item: string) => item.length > 0)
+        .slice(0, 5)
+    : [];
+  const hasEnoughInformation = Boolean(parsedReport?.has_enough_information ?? true);
+
+  const plan = buildInterviewPlan(intake);
+  const syntheticBlocks: Partial<Record<InterviewBlockId, InterviewBlockEvidence>> = Object.fromEntries(
+    plan.blocksToExplore.map((blockId) => [
+      blockId,
+      {
+        blockId,
+        summary: executiveReport.slice(0, 400),
+        signalsDetected: keyFindings,
+        confidence: 'high' as const,
+        userValidated: true,
+      },
+    ])
+  );
+
+  const diagnosticProfile = await runDiagnosticAgent({
+    intake,
+    blocks: syntheticBlocks,
+  });
+  const { profileId } = await saveProfile(user.id, diagnosticProfile);
+  await recordKnowledgeEvent(
+    user.id,
+    'completed_profile',
+    'Voice diagnostic interview completed',
+    { source: 'interview_voice_finalize', profile_id: profileId }
+  );
+
+  const memoryBlob = (await loadUserMemoryBlob(user.id)) ?? {};
+  const interviewVoice =
+    memoryBlob.interviewVoice && typeof memoryBlob.interviewVoice === 'object'
+      ? (memoryBlob.interviewVoice as Record<string, unknown>)
+      : {};
+  await saveUserMemoryBlob(user.id, {
+    ...memoryBlob,
+    interviewVoice: {
+      ...interviewVoice,
+      activeCallId: null,
+      lastFinalizedAt: new Date().toISOString(),
+      lastReport: {
+        executive_report: executiveReport,
+        key_findings: keyFindings,
+        ended_by: parsed.endedBy,
+        duration_sec: parsed.durationSec ?? null,
+      },
+    },
+  });
+
+  appendMemoryTimelineNote({
+    userId: user.id,
+    chatId: interviewChatId,
+    userMessage: transcript.slice(0, 500),
+    agentMessage: executiveReport,
+    mode: 'diagnostic_interview',
+    summary: 'Llamada de entrevista finalizada con informe ejecutivo y hallazgos.',
+    facts: keyFindings.map((finding: string) => ({
+      type: 'decision' as const,
+      key: 'interview_finding',
+      value: finding,
+      confidence: 0.82,
+    })),
+  });
+
+  return sendSuccess(res, {
+    type: 'interview_complete',
+    profile: diagnosticProfile,
+    voice_report: {
+      executive_report: executiveReport,
+      key_findings: keyFindings,
+      has_enough_information: hasEnoughInformation,
+      stop_reason: typeof parsedReport?.stop_reason === 'string' ? parsedReport.stop_reason : parsed.endedBy,
+      confidence:
+        parsedReport?.confidence === 'high' || parsedReport?.confidence === 'medium' || parsedReport?.confidence === 'low'
+          ? parsedReport.confidence
+          : 'high',
+    },
+  });
 });
