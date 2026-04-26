@@ -2953,6 +2953,100 @@
   line-height: 1.5;
 }
 
+.profile-card-compact .profile-header {
+  margin-bottom: 12px;
+}
+
+.profile-questionnaire-btn {
+  width: 100%;
+}
+
+.questionnaire-modal {
+  max-width: 720px;
+}
+
+.questionnaire-dashboard {
+  padding: 0 24px 24px;
+  display: grid;
+  gap: 14px;
+}
+
+.questionnaire-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.questionnaire-kpi {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: rgba(16, 24, 36, 0.45);
+  padding: 10px 12px;
+  display: grid;
+  gap: 6px;
+}
+
+.questionnaire-kpi-label {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-tertiary);
+}
+
+.questionnaire-kpi strong {
+  font-size: 24px;
+  line-height: 1;
+  color: var(--fg);
+}
+
+.questionnaire-response-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.questionnaire-response-item {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: rgba(13, 19, 30, 0.48);
+  padding: 9px 10px;
+  display: grid;
+  gap: 4px;
+}
+
+.questionnaire-response-item span {
+  font-size: 11px;
+  color: var(--fg-tertiary);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.questionnaire-response-item strong {
+  font-size: 13px;
+  color: var(--fg);
+  line-height: 1.35;
+}
+
+.questionnaire-insights {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: rgba(10, 18, 30, 0.52);
+  padding: 11px 12px;
+}
+
+.questionnaire-insights ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 6px;
+}
+
+.questionnaire-insights li {
+  font-size: 13px;
+  color: var(--fg-secondary);
+  line-height: 1.45;
+}
+
 .budget-table-wrap {
   padding: 0 24px 20px;
   overflow-x: auto;
@@ -9150,7 +9244,17 @@
     overflow: hidden !important;
   }
 
-  .agent-panel .panel-pos-library .report-list {
-    display: none !important;
+.agent-panel .panel-pos-library .report-list {
+  display: none !important;
+}
+}
+
+@media (max-width: 767px) {
+  .questionnaire-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .questionnaire-response-grid {
+    grid-template-columns: 1fr;
   }
 }

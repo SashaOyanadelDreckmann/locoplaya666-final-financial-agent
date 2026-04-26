@@ -5,6 +5,8 @@ type ProfileCardProps = {
   intake?: any;
   injected?: boolean;
   actions?: React.ReactNode;
+  compactQuestionnaireCta?: boolean;
+  onOpenQuestionnaire?: () => void;
   [key: string]: unknown;
 };
 
@@ -39,6 +41,8 @@ export default function ProfileCard({
   intake,
   injected,
   actions,
+  compactQuestionnaireCta,
+  onOpenQuestionnaire,
 }: ProfileCardProps) {
   const profileData = profile?.profile ?? profile ?? {};
   const intakeData = intake?.intake ?? intake ?? {};
@@ -90,6 +94,27 @@ export default function ProfileCard({
     .join('') || 'U';
 
   const classes = ['profile-card', className].filter(Boolean).join(' ');
+
+  if (compactQuestionnaireCta) {
+    return (
+      <article className={`${classes} profile-card-compact`}>
+        <span className="profile-badge">{injected ? 'Perfil activo' : 'Perfil'}</span>
+        <div className="profile-header">
+          <div className="profile-avatar" aria-hidden="true">{initials}</div>
+          <div className="profile-identity">
+            <div className="profile-name">{userName ?? 'Usuario'}</div>
+          </div>
+        </div>
+        <button
+          type="button"
+          className="button-primary profile-questionnaire-btn"
+          onClick={onOpenQuestionnaire}
+        >
+          Ver respuestas cuestionario
+        </button>
+      </article>
+    );
+  }
 
   return (
     <article className={classes}>

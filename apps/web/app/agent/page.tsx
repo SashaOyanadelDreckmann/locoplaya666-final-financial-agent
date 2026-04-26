@@ -575,6 +575,7 @@ export default function AgentPage() {
   const [knowledgePopupOpen, setKnowledgePopupOpen] = useState(false);
   const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
   const [isTransactionsModalOpen, setIsTransactionsModalOpen] = useState(false);
+  const [isQuestionnaireModalOpen, setIsQuestionnaireModalOpen] = useState(false);
   const [txWizardStep, setTxWizardStep] = useState<'products' | 'credentials' | 'upload' | 'dashboard' | 'locked'>('products');
   const [savedReports, setSavedReports] = useState<SavedReport[]>([]);
   const [budgetRows, setBudgetRows] = useState<BudgetRow[]>(DEFAULT_BUDGET_ROWS);
@@ -1437,6 +1438,67 @@ export default function AgentPage() {
     () => buildTransactionIntelligence(bankSimulation.parsedDocuments),
     [bankSimulation.parsedDocuments]
   );
+
+  const questionnaireDashboard = useMemo(() => {
+    if (!intakeData) return null;
+    const stress =
+      typeof intakeData.moneyStressLevel === 'number' ? intakeData.moneyStressLevel : null;
+    const understanding =
+      typeof intakeData.selfRatedUnderstanding === 'number'
+        ? intakeData.selfRatedUnderstanding
+        : null;
+    const hasDebt = intakeData.hasDebt === true;
+    const hasSavings = intakeData.hasSavingsOrInvestments === true;
+    const readinessScore = Math.max(
+      0,
+      Math.min(
+        100,
+        Math.round(
+          50 +
+            (understanding !== null ? (understanding - 5) * 8 : 0) +
+            (stress !== null ? (5 - stress) * 5 : 0) +
+            (hasDebt ? -8 : 6) +
+            (hasSavings ? 12 : -4)
+        )
+      )
+    );
+    const responsePairs: Array<{ label: string; value: string }> = [
+      { label: 'Profesión', value: String(intakeData.profession ?? 'No declarado') },
+      { label: 'Situación laboral', value: String(intakeData.employmentStatus ?? 'No declarado') },
+      { label: 'Ingreso mensual', value: String(intakeData.incomeBand ?? 'No declarado') },
+      { label: 'Cobertura de gastos', value: String(intakeData.expensesCoverage ?? 'No declarado') },
+      { label: 'Control de gastos', value: String(intakeData.tracksExpenses ?? 'No declarado') },
+      { label: 'Deuda activa', value: hasDebt ? 'Sí' : 'No' },
+      { label: 'Ahorro / inversión', value: hasSavings ? 'Sí' : 'No' },
+      { label: 'Reacción al riesgo', value: String(intakeData.riskReaction ?? 'No declarado') },
+      {
+        label: 'Comprensión financiera',
+        value: understanding !== null ? `${understanding}/10` : 'No declarado',
+      },
+      { label: 'Estrés financiero', value: stress !== null ? `${stress}/10` : 'No declarado' },
+    ];
+    const insights = [
+      stress !== null && stress >= 7
+        ? 'Prioridad alta: bajar presión de caja y definir un colchón mínimo de liquidez.'
+        : 'Presión manejable: se puede combinar orden financiero con decisiones de crecimiento.',
+      understanding !== null && understanding <= 4
+        ? 'Insight: conviene operar con explicaciones simples y pasos cortos para mantener continuidad.'
+        : 'Insight: hay base para ejecutar recomendaciones más analíticas.',
+      hasDebt
+        ? 'Deuda activa detectada: primero optimizar costo financiero antes de aumentar riesgo.'
+        : 'Sin deuda relevante: mayor espacio para construir estrategia de inversión gradual.',
+      hasSavings
+        ? 'Ya existe ahorro/inversión: palanca para acelerar objetivos con mejor asignación.'
+        : 'Sin ahorro declarado: foco inicial en hábito automático de ahorro y control mensual.',
+    ];
+    return {
+      readinessScore,
+      responsePairs,
+      insights,
+      understanding,
+      stress,
+    };
+  }, [intakeData]);
 
   const reportsByGroup = useMemo(() => {
     const base: Record<ReportGroup, SavedReport[]> = {
@@ -3408,6 +3470,8 @@ export default function AgentPage() {
                 : profile
             }
             injected={Boolean(sessionInfo?.injectedProfile)}
+            compactQuestionnaireCta
+            onOpenQuestionnaire={() => setIsQuestionnaireModalOpen(true)}
             actions={
               sessionInfo?.injectedProfile || sessionInfo?.injectedIntake ? (
                 <>
@@ -4436,6 +4500,66 @@ export default function AgentPage() {
               <button type="button" className="button-primary" onClick={sendBudgetToAgent}>
                 Generar diagnóstico pro
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isQuestionnaireModalOpen && questionnaireDashboard && (
+        <div className="agent-modal-overlay" onClick={() => setIsQuestionnaireModalOpen(false)}>
+          <div className="agent-modal questionnaire-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="agent-modal-header">
+              <h3>Cuestionario y lectura ejecutiva</h3>
+              <button
+                type="button"
+                className="agent-modal-close"
+                onClick={() => setIsQuestionnaireModalOpen(false)}
+              >
+                ✕
+              </button>
+            </div>
+            <p className="agent-modal-intro">
+              Resumen de respuestas del intake con una lectura breve para decisiones tácticas.
+            </p>
+            <div className="questionnaire-dashboard">
+              <div className="questionnaire-kpi-grid">
+                <article className="questionnaire-kpi">
+                  <span className="questionnaire-kpi-label">Readiness</span>
+                  <strong>{questionnaireDashboard.readinessScore}%</strong>
+                </article>
+                <article className="questionnaire-kpi">
+                  <span className="questionnaire-kpi-label">Comprensión</span>
+                  <strong>
+                    {questionnaireDashboard.understanding !== null
+                      ? `${questionnaireDashboard.understanding}/10`
+                      : 'N/D'}
+                  </strong>
+                </article>
+                <article className="questionnaire-kpi">
+                  <span className="questionnaire-kpi-label">Estrés</span>
+                  <strong>
+                    {questionnaireDashboard.stress !== null
+                      ? `${questionnaireDashboard.stress}/10`
+                      : 'N/D'}
+                  </strong>
+                </article>
+              </div>
+              <div className="questionnaire-response-grid">
+                {questionnaireDashboard.responsePairs.map((item) => (
+                  <div key={item.label} className="questionnaire-response-item">
+                    <span>{item.label}</span>
+                    <strong>{item.value}</strong>
+                  </div>
+                ))}
+              </div>
+              <div className="questionnaire-insights">
+                <span className="questionnaire-kpi-label">Insights</span>
+                <ul>
+                  {questionnaireDashboard.insights.map((insight) => (
+                    <li key={insight}>{insight}</li>
+                  ))}
+                </ul>
+              </div>
             </div>
           </div>
         </div>
