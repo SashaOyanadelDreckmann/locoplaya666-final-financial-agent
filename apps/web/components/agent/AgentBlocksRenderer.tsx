@@ -60,11 +60,19 @@ function QuestionnaireBlockView(props: {
   const readyToSubmit = answers.every((a) => (a.required ? a.answer.length > 0 : true));
 
   const buildMessage = () => {
-    const lines = [
-      `Respuestas al formulario: ${questionnaire.title ?? questionnaire.id}`,
-      ...answers.map((a, idx) => `${idx + 1}) ${a.question}: ${a.answer || 'Sin respuesta'}`),
-    ];
-    return lines.join('\n');
+    const compactAnswers = answers.map((a, idx) => {
+      const safeAnswer = (a.answer || 'Sin respuesta').replace(/\s+/g, ' ').trim().slice(0, 120);
+      return `q${idx + 1}=${safeAnswer}`;
+    });
+
+    // Keep this payload compact and deterministic to reduce downstream parser failures.
+    return [
+      'Formulario respondido.',
+      `id=${questionnaire.id}`,
+      `titulo=${(questionnaire.title ?? 'sin_titulo').replace(/\s+/g, ' ').trim().slice(0, 80)}`,
+      `respuestas=${compactAnswers.join('; ')}`,
+      'Siguiente paso: entrega diagnóstico y 3 acciones concretas.',
+    ].join(' ');
   };
 
   const submit = () => {
