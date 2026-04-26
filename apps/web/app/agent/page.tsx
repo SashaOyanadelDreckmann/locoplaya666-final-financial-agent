@@ -3822,7 +3822,7 @@ export default function AgentPage() {
 
   return (
     <main
-      className={`agent-layout ${
+      className={`agent-layout chat-theme-${activeThread?.label ?? '1'} ${
         isRailMorphing ? 'is-mode-12-morphing' : ''
       } ${
         !isMonochrome ? 'is-normal-matte' : ''
@@ -3898,6 +3898,12 @@ export default function AgentPage() {
             </div>
           </div>
           <h1>Financiera mente</h1>
+          {activeThread?.label === '2' && (
+            <p className="chat-identity-subtitle chat-subtitle-2">Planes de acción e inversiones</p>
+          )}
+          {activeThread?.label === '3' && (
+            <p className="chat-identity-subtitle chat-subtitle-3">Conciencia social</p>
+          )}
           <p className="muted">
             Proyecto de tesis en finanzas abiertas. Entorno seguro y privado para analisis financiero.
           </p>

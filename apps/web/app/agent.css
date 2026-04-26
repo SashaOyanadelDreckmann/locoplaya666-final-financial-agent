@@ -9729,3 +9729,155 @@ input[type="radio"]:checked {
 *:focus:not(:focus-visible) {
   outline: none;
 }
+
+/* ================================================================= */
+/* CHAT IDENTITY THEMES — Chat 2: Vino · Chat 3: Amarillo            */
+/* ================================================================= */
+
+/* --- Subtitle base --- */
+.chat-identity-subtitle {
+  margin: 0 0 4px;
+  font-size: 0.78rem;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  transition: color 0.35s ease, font-family 0.1s;
+}
+
+/* ─── CHAT 2: Rojo vino opaco matte ─── */
+
+.chat-subtitle-2 {
+  font-family: 'Playfair Display', Georgia, 'Times New Roman', Times, serif;
+  font-style: italic;
+  color: #8B3048;
+  letter-spacing: 0.02em;
+  font-size: 0.82rem;
+}
+
+.chat-theme-2 {
+  --accent:            #7a2840;
+  --accent-hover:      #943252;
+  --accent-fg:         #f9eaed;
+  --accent-muted:      rgba(122, 40, 64, 0.18);
+  --accent-glow:       rgba(122, 40, 64, 0.32);
+  --border:            rgba(138, 48, 72, 0.22);
+}
+
+.chat-theme-2 .agent-chat-header h1 {
+  color: #c06070;
+}
+
+.chat-theme-2 .mobile-progress-pill {
+  background: rgba(122, 40, 64, 0.22) !important;
+  border-color: rgba(138, 48, 72, 0.35) !important;
+}
+
+.chat-theme-2 .mobile-progress-pill-fill {
+  background: #8B3048 !important;
+}
+
+.chat-theme-2 .chat-sheet-tab.is-active {
+  border-color: #8B3048 !important;
+  color: #c06070 !important;
+}
+
+.chat-theme-2 .chat-sheet-tab.is-active::after {
+  background: #8B3048 !important;
+}
+
+.chat-theme-2 .send-btn,
+.chat-theme-2 .button-primary {
+  background: #7a2840 !important;
+  border-color: #8B3048 !important;
+}
+
+.chat-theme-2 .send-btn:hover,
+.chat-theme-2 .button-primary:hover {
+  background: #943252 !important;
+}
+
+.chat-theme-2 .knowledge-popup-bar-fill {
+  background: linear-gradient(90deg, #7a2840, #a84060) !important;
+}
+
+.chat-theme-2 .agent-input:focus {
+  border-color: rgba(138, 48, 72, 0.55) !important;
+  box-shadow: 0 0 0 3px rgba(122, 40, 64, 0.14) !important;
+}
+
+.chat-theme-2 .agent-panel .panel-card {
+  border-color: rgba(138, 48, 72, 0.18) !important;
+}
+
+.chat-theme-2 .agent-panel .panel-card:hover {
+  box-shadow: 0 0 24px rgba(122, 40, 64, 0.28) !important;
+}
+
+/* ─── CHAT 3: Amarillo opaco matte ─── */
+
+.chat-subtitle-3 {
+  font-family: 'Caveat', 'Segoe Print', 'Comic Sans MS', cursive;
+  font-weight: 600;
+  color: #c4963a;
+  letter-spacing: 0.01em;
+  font-size: 1rem;
+}
+
+.chat-theme-3 {
+  --accent:            #b8880e;
+  --accent-hover:      #d4a020;
+  --accent-fg:         #1a1200;
+  --accent-muted:      rgba(184, 136, 14, 0.16);
+  --accent-glow:       rgba(184, 136, 14, 0.3);
+  --border:            rgba(184, 136, 14, 0.22);
+}
+
+.chat-theme-3 .agent-chat-header h1 {
+  color: #c9a040;
+}
+
+.chat-theme-3 .mobile-progress-pill {
+  background: rgba(184, 136, 14, 0.18) !important;
+  border-color: rgba(184, 136, 14, 0.35) !important;
+}
+
+.chat-theme-3 .mobile-progress-pill-fill {
+  background: #b8880e !important;
+}
+
+.chat-theme-3 .chat-sheet-tab.is-active {
+  border-color: #b8880e !important;
+  color: #c9a040 !important;
+}
+
+.chat-theme-3 .chat-sheet-tab.is-active::after {
+  background: #b8880e !important;
+}
+
+.chat-theme-3 .send-btn,
+.chat-theme-3 .button-primary {
+  background: #9a7208 !important;
+  border-color: #b8880e !important;
+}
+
+.chat-theme-3 .send-btn:hover,
+.chat-theme-3 .button-primary:hover {
+  background: #b8880e !important;
+}
+
+.chat-theme-3 .knowledge-popup-bar-fill {
+  background: linear-gradient(90deg, #9a7208, #c9a040) !important;
+}
+
+.chat-theme-3 .agent-input:focus {
+  border-color: rgba(184, 136, 14, 0.55) !important;
+  box-shadow: 0 0 0 3px rgba(184, 136, 14, 0.14) !important;
+}
+
+.chat-theme-3 .agent-panel .panel-card {
+  border-color: rgba(184, 136, 14, 0.18) !important;
+}
+
+.chat-theme-3 .agent-panel .panel-card:hover {
+  box-shadow: 0 0 24px rgba(184, 136, 14, 0.28) !important;
+}
+
