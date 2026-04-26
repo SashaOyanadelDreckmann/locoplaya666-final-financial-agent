@@ -105,6 +105,9 @@ export default function ProfileCard({
             <div className="profile-name">{userName ?? 'Usuario'}</div>
           </div>
         </div>
+        <div className="panel-text">
+          Perfil base cargado. Revisa respuestas e insights para alinear próximas recomendaciones.
+        </div>
         <button
           type="button"
           className="button-primary profile-questionnaire-btn"

@@ -581,15 +581,6 @@ export default function AgentPage() {
   const [budgetRows, setBudgetRows] = useState<BudgetRow[]>(DEFAULT_BUDGET_ROWS);
   const [bankSimulation, setBankSimulation] = useState<BankSimulation>(DEFAULT_BANK_SIMULATION);
   const [docFlight, setDocFlight] = useState<DocFlight | null>(null);
-  const [isRealtimeOpen, setIsRealtimeOpen] = useState(false);
-  const [realtimeSpeaking, setRealtimeSpeaking] = useState(false);
-  const [realtimeListening, setRealtimeListening] = useState(false);
-  const [realtimeTranscript, setRealtimeTranscript] = useState('');
-  const [realtimeHistory, setRealtimeHistory] = useState<Array<{ role: 'user' | 'agent'; text: string }>>([]);
-  const realtimeRecognitionRef = useRef<any>(null);
-  const [bubblePos, setBubblePos] = useState({ x: 0, y: 0 });
-  const bubblePosInitRef = useRef(false);
-  const bubbleDragRef = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
   const chatUploadInputRef = useRef<HTMLInputElement | null>(null);
   const panelSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -2659,38 +2650,6 @@ export default function AgentPage() {
     } catch {}
   }
 
-  function openRealtimeMode() {
-    if (!bubblePosInitRef.current) {
-      setBubblePos({ x: window.innerWidth - 280, y: window.innerHeight - 120 });
-      bubblePosInitRef.current = true;
-    }
-    setIsRealtimeOpen(true);
-    setRealtimeHistory([]);
-    setRealtimeTranscript('');
-  }
-
-  function onBubbleMouseDown(e: React.MouseEvent<HTMLDivElement>) {
-    // Only drag on the bubble itself, not on buttons inside
-    if ((e.target as HTMLElement).closest('button')) return;
-    e.preventDefault();
-    const orig = { ...bubblePos };
-    bubbleDragRef.current = { startX: e.clientX, startY: e.clientY, origX: orig.x, origY: orig.y };
-
-    const onMove = (ev: MouseEvent) => {
-      if (!bubbleDragRef.current) return;
-      setBubblePos({
-        x: bubbleDragRef.current.origX + (ev.clientX - bubbleDragRef.current.startX),
-        y: bubbleDragRef.current.origY + (ev.clientY - bubbleDragRef.current.startY),
-      });
-    };
-    const onUp = () => {
-      bubbleDragRef.current = null;
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup', onUp);
-    };
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', onUp);
-  }
 
   function handlePanelAction(action: { section?: string; message?: string }) {
     const section = action.section;
@@ -2733,110 +2692,6 @@ export default function AgentPage() {
     }
   }
 
-  function closeRealtimeMode() {
-    setIsRealtimeOpen(false);
-    setRealtimeSpeaking(false);
-    setRealtimeListening(false);
-    if (realtimeRecognitionRef.current) {
-      try { realtimeRecognitionRef.current.stop(); } catch {}
-      realtimeRecognitionRef.current = null;
-    }
-  }
-
-  async function sendRealtimeMessage(text: string) {
-    if (!text.trim()) return;
-    const userText = text.trim();
-    setRealtimeHistory((prev) => [...prev, { role: 'user', text: userText }]);
-    setRealtimeTranscript('');
-    setRealtimeSpeaking(true);
-
-    // Write user message to active chat sheet
-    setItemsForActive((prev) => [
-      ...prev,
-      { type: 'message', role: 'user', content: `🎙 ${userText}` },
-    ]);
-    setChatThreads((prev) =>
-      prev.map((t) => t.id === activeChatId ? { ...t, userMessageCount: t.userMessageCount + 1 } : t)
-    );
-
-    try {
-      const res = (await sendToAgent({
-        user_message: userText,
-        session_id: getSessionId(),
-        history: realtimeHistory.slice(-6).map((h) => ({
-          role: h.role === 'user' ? 'user' : 'assistant',
-          content: h.text,
-        })),
-        context: {},
-        ui_state: { realtime_mode: true },
-        preferences: { response_style: 'concise', language: 'es-CL' },
-      })) as any;
-
-      const agentText = res?.message ?? 'No pude generar una respuesta.';
-      setRealtimeHistory((prev) => [...prev, { role: 'agent', text: agentText }]);
-
-      // Write agent response to active chat sheet
-      setItemsForActive((prev) => [
-        ...prev,
-        { type: 'message', role: 'assistant', content: agentText, mode: 'conversacion' },
-      ]);
-
-      // TTS — voz juvenil y simpática (misma configuración que modo entrevista)
-      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-        const utt = new SpeechSynthesisUtterance(agentText.slice(0, 500));
-        utt.lang = 'es-CL';
-        utt.rate = 1.3;
-        utt.pitch = 1.1;
-        utt.volume = 1;
-        // Prefer Google Neural / Natural / Premium voices — más naturales y juveniles
-        const voices = window.speechSynthesis.getVoices();
-        const preferred =
-          voices.find((v) => v.lang.startsWith('es') && /Google|Natural|Premium|Paulina/i.test(v.name)) ||
-          voices.find((v) => v.lang === 'es-CL') ||
-          voices.find((v) => v.lang.startsWith('es')) ||
-          null;
-        if (preferred) utt.voice = preferred;
-        utt.onend = () => setRealtimeSpeaking(false);
-        window.speechSynthesis.cancel();
-        window.speechSynthesis.speak(utt);
-      } else {
-        setRealtimeSpeaking(false);
-      }
-    } catch {
-      setRealtimeSpeaking(false);
-      setRealtimeHistory((prev) => [...prev, { role: 'agent', text: 'Ocurrió un error. Intenta de nuevo.' }]);
-    }
-  }
-
-  function startRealtimeListen() {
-    haptic(realtimeListening ? [10, 10, 10] : 20); // triple para detener, largo para iniciar
-    if (realtimeListening) {
-      if (realtimeRecognitionRef.current) {
-        try { realtimeRecognitionRef.current.stop(); } catch {}
-      }
-      setRealtimeListening(false);
-      return;
-    }
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) return;
-    const rec = new SpeechRecognition();
-    rec.lang = 'es-CL';
-    rec.interimResults = true;
-    rec.continuous = false;
-    realtimeRecognitionRef.current = rec;
-    rec.onresult = (e: any) => {
-      const transcript = Array.from(e.results)
-        .map((r: any) => r[0].transcript)
-        .join('');
-      setRealtimeTranscript(transcript);
-      if (e.results[e.results.length - 1].isFinal) {
-        sendRealtimeMessage(transcript);
-      }
-    };
-    rec.onend = () => setRealtimeListening(false);
-    rec.start();
-    setRealtimeListening(true);
-  }
 
   function switchChatBySwipe(direction: 'left' | 'right') {
     const ids = chatThreads.map((t) => t.id);
@@ -3460,7 +3315,7 @@ export default function AgentPage() {
       node: (
         <div className="mob-col mob-col-wide">
           <ProfileCard
-            className={`panel-pos-profile glass-card${highlightedSection === 'profile' ? ' is-panel-highlighted' : ''}`}
+            className={`panel-pos-profile glass-card panel-minimal-soft panel-centered-content${highlightedSection === 'profile' ? ' is-panel-highlighted' : ''}`}
             data-panel-section="profile"
             userName={sessionInfo?.name ?? undefined}
             intake={sessionInfo?.injectedIntake}
@@ -3510,16 +3365,13 @@ export default function AgentPage() {
         <div className="mob-col mob-col-wide">
           <PanelCard
             label="Objetivo activo"
-            className={`panel-pos-objective panel-flow-gradient glass-card${highlightedSection === 'objective' ? ' is-panel-highlighted' : ''}`}
+            className={`panel-pos-objective glass-card panel-minimal-soft panel-centered-content${highlightedSection === 'objective' ? ' is-panel-highlighted' : ''}`}
             data-panel-section="objective"
-            bgImage="/fondo8.PNG"
-            overlayColor="154,148,148"
-            overlayOpacity={0.18}
-            bgScale={1.2}
-            bgPosition="center"
           >
-            {agentMetaRef.current.objective ??
-              'Conversa para que el agente defina un objetivo de alto impacto.'}
+            <div className="panel-text">
+              {agentMetaRef.current.objective ??
+                'Aún no hay objetivo fijado. Define una prioridad concreta para que el agente entregue una hoja de ruta accionable.'}
+            </div>
           </PanelCard>
         </div>
       ),
@@ -3551,16 +3403,13 @@ export default function AgentPage() {
         <div className="mob-col">
           <PanelCard
             label="Siguiente desbloqueo"
-            className="panel-pos-next panel-flow-gradient glass-card"
-            bgImage="/fondo8.PNG"
-            overlayColor="154,148,148"
-            overlayOpacity={0.2}
-            bgScale={1.1}
-            bgPosition="40% 40%"
+            className="panel-pos-next glass-card panel-minimal-soft panel-centered-content"
           >
-            {nextMilestone
-              ? `Te faltan ${Math.max(0, nextMilestone.threshold - knowledgeScore)} pts para desbloquear: ${nextMilestone.label}.`
-              : 'Mapa completo. Ya tenemos una lectura avanzada de tu perfil.'}
+            <div className="panel-text">
+              {nextMilestone
+                ? `Te faltan ${Math.max(0, nextMilestone.threshold - knowledgeScore)} pts para desbloquear ${nextMilestone.label}. Recomendación: profundiza en presupuesto y decisiones mensuales.`
+                : 'Mapa completo. Ya existe una lectura avanzada de tu perfil y puedes pasar a ejecución táctica.'}
+            </div>
           </PanelCard>
         </div>
       ),
@@ -3572,13 +3421,9 @@ export default function AgentPage() {
           <PanelCard
             label="Continuidad"
             value={`${engagementScore}% operativa`}
-            className="panel-flow-gradient glass-card panel-pos-continuity"
-            bgImage="/fondo8.PNG"
-            overlayColor="154,148,148"
-            overlayOpacity={0.2}
-            bgScale={1.08}
+            className="glass-card panel-pos-continuity panel-minimal-soft panel-centered-content"
           >
-            <div className="panel-text">{continuityCard.headline}</div>
+            <div className="panel-text panel-text-strong">{continuityCard.headline}</div>
             <div className="panel-stack-list">
               {continuityCard.details.map((detail) => (
                 <span key={detail} className="panel-stack-item">{detail}</span>
@@ -3702,12 +3547,8 @@ export default function AgentPage() {
         <div className="mob-col mob-col-wide">
           <PanelCard
             label="Biblioteca de documentos"
-            className={`panel-pos-library panel-flow-gradient${highlightedSection === 'library' ? ' is-panel-highlighted' : ''}`}
+            className={`panel-pos-library panel-minimal-soft panel-centered-content${highlightedSection === 'library' ? ' is-panel-highlighted' : ''}`}
             data-panel-section="library"
-            bgImage="/fondo8.PNG"
-            overlayColor="154,148,148"
-            overlayOpacity={0.24}
-            bgScale={1.08}
           >
             <div className="reports-grid">
               <div className="report-group">
@@ -4034,115 +3875,52 @@ export default function AgentPage() {
             )}
           </div>
 
-          <div className={`agent-input${isRealtimeOpen ? ' is-realtime' : ''}`}>
-            {isRealtimeOpen ? (
-              <>
-                {/* Modo voz inline — reemplaza el textarea */}
-                <div className="realtime-inline">
-                  <div className="realtime-inline-row">
-                    <div className={`voice-status-dot${realtimeListening ? ' is-listening' : realtimeSpeaking ? ' is-speaking' : ''}`} />
-                    <span className="realtime-inline-status">
-                      {realtimeListening ? 'Escuchando...' : realtimeSpeaking ? 'Respondiendo...' : 'Listo para hablar'}
-                    </span>
-                    <button
-                      type="button"
-                      className={`voice-mic-btn${realtimeListening ? ' is-active' : ''}`}
-                      onClick={startRealtimeListen}
-                      aria-label={realtimeListening ? 'Detener' : 'Hablar'}
-                    >
-                      <div className="voice-mic-ring" />
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        {realtimeListening ? (
-                          <rect x="6" y="6" width="12" height="12" rx="2" />
-                        ) : (
-                          <>
-                            <path d="M12 1a3 3 0 0 1 3 3v8a3 3 0 0 1-6 0V4a3 3 0 0 1 3-3z" />
-                            <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                            <line x1="12" y1="19" x2="12" y2="23" />
-                            <line x1="8" y1="23" x2="16" y2="23" />
-                          </>
-                        )}
-                      </svg>
-                    </button>
-                    <button
-                      type="button"
-                      className="realtime-inline-close"
-                      onClick={closeRealtimeMode}
-                      aria-label="Cerrar modo voz"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                  {/* Waveform */}
-                  <div className={`voice-waveform${realtimeListening ? ' is-listening' : ''}${realtimeSpeaking ? ' is-speaking' : ''}`} aria-hidden="true">
-                    {Array.from({ length: 10 }).map((_, i) => (
-                      <div key={i} className="voice-waveform-bar" />
-                    ))}
-                  </div>
-                  {/* Transcript en vivo */}
-                  {realtimeListening && realtimeTranscript && (
-                    <div className="realtime-inline-transcript">{realtimeTranscript}</div>
-                  )}
-                </div>
-              </>
-            ) : (
-              <>
-                <textarea
-                  placeholder="Escribe tu mensaje..."
-                  value={input}
-                  onChange={(e) => setDraftForActive(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      onSend();
-                    }
-                  }}
-                />
+          <div className="agent-input">
+            <textarea
+              placeholder="Escribe tu mensaje..."
+              value={input}
+              onChange={(e) => setDraftForActive(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  onSend();
+                }
+              }}
+            />
 
-                <div className="controls">
-                  <input
-                    ref={chatUploadInputRef}
-                    type="file"
-                    accept=".pdf,.xls,.xlsx,.csv,image/*"
-                    multiple
-                    style={{ display: 'none' }}
-                    onChange={(e) => {
-                      void onUploadFromChat(e.target.files);
-                      e.currentTarget.value = '';
-                    }}
-                  />
-                  <button
-                    type="button"
-                    className="continue-button"
-                    onClick={() => chatUploadInputRef.current?.click()}
-                    title="Adjuntar imagen, PDF o Excel"
-                  >
-                    Adjuntar archivo
-                  </button>
+            <div className="controls">
+              <input
+                ref={chatUploadInputRef}
+                type="file"
+                accept=".pdf,.xls,.xlsx,.csv,image/*"
+                multiple
+                style={{ display: 'none' }}
+                onChange={(e) => {
+                  void onUploadFromChat(e.target.files);
+                  e.currentTarget.value = '';
+                }}
+              />
+              <button
+                type="button"
+                className="continue-button"
+                onClick={() => chatUploadInputRef.current?.click()}
+                title="Adjuntar imagen, PDF o Excel"
+              >
+                Adjuntar archivo
+              </button>
 
-                  <button
-                    type="button"
-                    className="continue-button realtime-btn"
-                    onClick={openRealtimeMode}
-                    title="Abrir modo conversación en tiempo real"
-                  >
-                    Hablar en tiempo real
-                  </button>
+              <div style={{ flex: 1 }} />
 
-                  <div style={{ flex: 1 }} />
-
-                  <button
-                    type="button"
-                    className="continue-button"
-                    onClick={() => {
-                      void onSend();
-                    }}
-                  >
-                    Enviar
-                  </button>
-                </div>
-              </>
-            )}
+              <button
+                type="button"
+                className="continue-button"
+                onClick={() => {
+                  void onSend();
+                }}
+              >
+                Enviar
+              </button>
+            </div>
           </div>
         </div>
       </section>
