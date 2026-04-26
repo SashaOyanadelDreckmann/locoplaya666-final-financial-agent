@@ -97,6 +97,17 @@ export type SystemMemory = {
 
 const USER_MEMORY_STORE = new Map<string, UserMemory>();
 const SESSION_WORKING_STORE = new Map<string, SessionWorkingMemory>();
+const FACT_TTL_MS: Record<MemoryFactType, number> = {
+  identity: 365 * 24 * 60 * 60 * 1000,
+  goal: 120 * 24 * 60 * 60 * 1000,
+  preference: 180 * 24 * 60 * 60 * 1000,
+  financial_snapshot: 45 * 24 * 60 * 60 * 1000,
+  risk_profile: 180 * 24 * 60 * 60 * 1000,
+  knowledge: 365 * 24 * 60 * 60 * 1000,
+  artifact: 90 * 24 * 60 * 60 * 1000,
+  decision: 30 * 24 * 60 * 60 * 1000,
+  system_note: 14 * 24 * 60 * 60 * 1000,
+};
 
 function sessionStoreKey(userId: string, sessionId: string) {
   return `${userId}::${sessionId}`;
@@ -121,6 +132,33 @@ function defaultSessionWorkingMemory(userId: string, sessionId: string): Session
       hasBudget: false,
     },
   };
+}
+
+function toTimestamp(value: string | undefined): number {
+  if (!value) return 0;
+  const ts = Date.parse(value);
+  return Number.isFinite(ts) ? ts : 0;
+}
+
+function tokenizeForRelevance(text: string): string[] {
+  return String(text ?? '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter((token) => token.length >= 3)
+    .slice(0, 40);
+}
+
+function scoreTextByTokens(text: string, tokens: string[]): number {
+  if (tokens.length === 0) return 0;
+  const hay = String(text ?? '').toLowerCase();
+  let score = 0;
+  for (const token of tokens) {
+    if (hay.includes(token)) score += 1;
+  }
+  return score;
 }
 
 function normalizeList(values: string[], limit = 8): string[] {
@@ -337,6 +375,71 @@ function extractRiskFact(message: string): string | undefined {
   return undefined;
 }
 
+function scoreFactRelevance(fact: MemoryFact, tokens: string[]): number {
+  const tokenScore = scoreTextByTokens(`${fact.key} ${fact.value}`, tokens);
+  const recencyBoost = Math.max(0, 1 - (Date.now() - toTimestamp(fact.updatedAt)) / (60 * 24 * 60 * 60 * 1000));
+  const confidenceBoost = Math.min(1, Math.max(0, fact.confidence));
+  return tokenScore * 1.8 + recencyBoost * 0.8 + confidenceBoost;
+}
+
+function scoreTimelineRelevance(entry: MemoryTimelineEntry, tokens: string[]): number {
+  const tokenScore = scoreTextByTokens(
+    `${entry.user_message} ${entry.agent_message} ${entry.summary} ${entry.mode ?? ''}`,
+    tokens
+  );
+  const recencyBoost = Math.max(0, 1 - (Date.now() - toTimestamp(entry.timestamp)) / (30 * 24 * 60 * 60 * 1000));
+  return tokenScore * 1.6 + recencyBoost * 0.8;
+}
+
+function isFactExpired(fact: MemoryFact): boolean {
+  const ttl = FACT_TTL_MS[fact.type] ?? 90 * 24 * 60 * 60 * 1000;
+  const lastSeen = Math.max(toTimestamp(fact.updatedAt), toTimestamp(fact.last_confirmed_at));
+  if (!lastSeen) return false;
+  return Date.now() - lastSeen > ttl;
+}
+
+function pruneMemoryForEfficiency(memory: UserMemory): UserMemory {
+  const facts = memory.facts
+    .filter((fact) => !isFactExpired(fact))
+    .sort((a, b) => toTimestamp(b.updatedAt) - toTimestamp(a.updatedAt))
+    .slice(0, 200);
+  const timeline = memory.timeline
+    .sort((a, b) => toTimestamp(b.timestamp) - toTimestamp(a.timestamp))
+    .slice(0, 220);
+  return {
+    ...memory,
+    facts,
+    timeline,
+  };
+}
+
+function buildSemanticDigest(memory: UserMemory): Array<{ theme: string; weight: number }> {
+  const buckets: Record<string, number> = {
+    goals: 0,
+    preferences: 0,
+    budget: 0,
+    risk: 0,
+    evidence: 0,
+    decisions: 0,
+  };
+  for (const fact of memory.facts) {
+    if (fact.type === 'goal') buckets.goals += 2;
+    if (fact.type === 'preference') buckets.preferences += 2;
+    if (fact.type === 'financial_snapshot') buckets.budget += 2;
+    if (fact.type === 'risk_profile') buckets.risk += 2;
+    if (fact.type === 'artifact') buckets.evidence += 2;
+    if (fact.type === 'decision') buckets.decisions += 2;
+  }
+  if (memory.learningState.knowledge_score > 0) {
+    buckets.decisions += Math.round(memory.learningState.knowledge_score / 20);
+  }
+  return Object.entries(buckets)
+    .map(([theme, weight]) => ({ theme, weight }))
+    .filter((item) => item.weight > 0)
+    .sort((a, b) => b.weight - a.weight)
+    .slice(0, 6);
+}
+
 function buildProfileSummary(memory: UserMemory): string {
   const facts = memory.facts
     .filter((fact) => ['goal', 'preference', 'risk_profile', 'identity'].includes(fact.type))
@@ -473,10 +576,11 @@ export async function persistUserMemoryToBlob(memory: UserMemory): Promise<void>
 }
 
 export function saveUserMemory(memory: UserMemory): UserMemory {
+  const compacted = pruneMemoryForEfficiency(memory);
   const normalized: UserMemory = {
-    ...memory,
+    ...compacted,
     updatedAt: new Date().toISOString(),
-    profileSummary: buildProfileSummary(memory),
+    profileSummary: buildProfileSummary(compacted),
   };
   USER_MEMORY_STORE.set(memory.userId, normalized);
   return normalized;
@@ -484,7 +588,7 @@ export function saveUserMemory(memory: UserMemory): UserMemory {
 
 export function buildAgentMemoryContext(
   userId: string,
-  options?: { sessionId?: string }
+  options?: { sessionId?: string; query?: string }
 ): {
   user_memory: {
     profile_summary: string;
@@ -493,6 +597,11 @@ export function buildAgentMemoryContext(
     learning_state: UserMemory['learningState'];
     key_facts: MemoryFact[];
     recent_timeline: MemoryTimelineEntry[];
+    optimized_memory: {
+      relevant_facts: MemoryFact[];
+      relevant_timeline: MemoryTimelineEntry[];
+      semantic_digest: Array<{ theme: string; weight: number }>;
+    };
   };
   session_memory?: {
     session_id: string;
@@ -509,6 +618,18 @@ export function buildAgentMemoryContext(
   const userMemory = loadUserMemory(userId);
   const systemMemory = loadSystemMemory();
   const sessionMemory = getSessionWorkingMemory(userId, options?.sessionId);
+  const queryTokens = tokenizeForRelevance(options?.query ?? '');
+  const relevantFacts = userMemory.facts
+    .map((fact) => ({ fact, score: scoreFactRelevance(fact, queryTokens) }))
+    .sort((a, b) => b.score - a.score || toTimestamp(b.fact.updatedAt) - toTimestamp(a.fact.updatedAt))
+    .slice(0, 16)
+    .map((item) => item.fact);
+  const relevantTimeline = userMemory.timeline
+    .map((entry) => ({ entry, score: scoreTimelineRelevance(entry, queryTokens) }))
+    .sort((a, b) => b.score - a.score || toTimestamp(b.entry.timestamp) - toTimestamp(a.entry.timestamp))
+    .slice(0, 8)
+    .map((item) => item.entry);
+  const semanticDigest = buildSemanticDigest(userMemory);
 
   return {
     user_memory: {
@@ -518,6 +639,11 @@ export function buildAgentMemoryContext(
       learning_state: userMemory.learningState,
       key_facts: userMemory.facts.slice(-20),
       recent_timeline: userMemory.timeline.slice(-12),
+      optimized_memory: {
+        relevant_facts: relevantFacts,
+        relevant_timeline: relevantTimeline,
+        semantic_digest: semanticDigest,
+      },
     },
     session_memory: sessionMemory
       ? {
@@ -537,7 +663,7 @@ export function buildAgentMemoryContext(
 
 export async function buildAgentMemoryContextRealtime(
   userId: string,
-  options?: { sessionId?: string }
+  options?: { sessionId?: string; query?: string }
 ) {
   await hydrateUserMemoryFromBlob(userId);
   return buildAgentMemoryContext(userId, options);

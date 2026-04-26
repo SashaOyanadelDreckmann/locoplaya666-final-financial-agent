@@ -640,8 +640,11 @@ router.post(
     try {
       const sessionId =
         typeof normalizedInput.session_id === 'string' ? normalizedInput.session_id : undefined;
+      const query =
+        typeof normalizedInput.user_message === 'string' ? normalizedInput.user_message : '';
       const memoryContext = await buildAgentMemoryContextRealtime(authedUser.id, {
         sessionId,
+        query,
       });
       normalizedInput.context = {
         ...((normalizedInput.context as Record<string, unknown>) ?? {}),
