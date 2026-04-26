@@ -200,6 +200,8 @@ export async function getInterviewRealtimeToken() {
     calls_used?: number;
     calls_left?: number;
     max_duration_sec?: number;
+    total_used_sec?: number;
+    remaining_total_sec?: number;
     pause_limit?: number;
   }>(res);
 }

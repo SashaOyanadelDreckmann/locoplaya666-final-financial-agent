@@ -439,9 +439,11 @@ router.get(
         ? (memoryBlob.interviewVoice as Record<string, unknown>)
         : {};
     const callsStarted = Number(interviewVoice.callsStarted ?? 0);
-    if (callsStarted >= 2) {
+    const totalUsedSec = Number(interviewVoice.totalUsedSec ?? 0);
+    const remainingSec = Math.max(0, 120 - totalUsedSec);
+    if (remainingSec <= 0) {
       throw forbidden(
-        'Límite alcanzado: la entrevista en llamada se puede iniciar máximo 2 veces por usuario.'
+        'Límite alcanzado: la entrevista en llamada permite máximo 2 minutos totales por usuario.'
       );
     }
     const callId = `call_${Date.now()}`;
@@ -498,7 +500,8 @@ router.get(
         callsStarted: callsStarted + 1,
         activeCallId: callId,
         pauseLimit: 1,
-        maxDurationSec: 120,
+        maxDurationSec: remainingSec,
+        totalUsedSec,
         updatedAt: new Date().toISOString(),
       },
     });
@@ -510,7 +513,9 @@ router.get(
       call_id: callId,
       calls_used: callsStarted + 1,
       calls_left: Math.max(0, 2 - (callsStarted + 1)),
-      max_duration_sec: 120,
+      max_duration_sec: remainingSec,
+      total_used_sec: totalUsedSec,
+      remaining_total_sec: remainingSec,
       pause_limit: 1,
     });
   }),

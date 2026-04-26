@@ -38,7 +38,7 @@ const VoiceFinalizeSchema = z.object({
   intake: z.record(z.unknown()),
   transcript: z.string().min(10),
   endedBy: z.enum(['timeout', 'agent', 'user']).default('user'),
-  durationSec: z.number().min(1).max(180).optional(),
+  durationSec: z.number().min(1).max(120).optional(),
   callId: z.string().optional(),
 });
 
@@ -358,17 +358,23 @@ export const finalizeInterviewVoice = asyncHandler(async function finalizeInterv
     memoryBlob.interviewVoice && typeof memoryBlob.interviewVoice === 'object'
       ? (memoryBlob.interviewVoice as Record<string, unknown>)
       : {};
+  const previousTotalUsedSec = Math.max(0, Number(interviewVoice.totalUsedSec ?? 0));
+  const safeDurationSec = Math.max(0, Math.min(120, Number(parsed.durationSec ?? 0)));
+  const updatedTotalUsedSec = Math.min(120, previousTotalUsedSec + safeDurationSec);
+  const remainingTotalSec = Math.max(0, 120 - updatedTotalUsedSec);
   await saveUserMemoryBlob(user.id, {
     ...memoryBlob,
     interviewVoice: {
       ...interviewVoice,
       activeCallId: null,
+      totalUsedSec: updatedTotalUsedSec,
+      maxDurationSec: remainingTotalSec,
       lastFinalizedAt: new Date().toISOString(),
       lastReport: {
         executive_report: executiveReport,
         key_findings: keyFindings,
         ended_by: parsed.endedBy,
-        duration_sec: parsed.durationSec ?? null,
+        duration_sec: safeDurationSec || null,
       },
     },
   });
@@ -400,6 +406,11 @@ export const finalizeInterviewVoice = asyncHandler(async function finalizeInterv
         parsedReport?.confidence === 'high' || parsedReport?.confidence === 'medium' || parsedReport?.confidence === 'low'
           ? parsedReport.confidence
           : 'high',
+    },
+    interview_voice: {
+      total_used_sec: updatedTotalUsedSec,
+      remaining_total_sec: remainingTotalSec,
+      max_duration_sec: remainingTotalSec,
     },
   });
 });

@@ -49,6 +49,8 @@ export default function InterviewPage() {
   const [voicePaused, setVoicePaused] = useState(false);
   const [pauseUsed, setPauseUsed] = useState(false);
   const [callSeconds, setCallSeconds] = useState(0);
+  const [maxCallDurationSec, setMaxCallDurationSec] = useState(120);
+  const [remainingTotalSec, setRemainingTotalSec] = useState<number | null>(null);
   const [callId, setCallId] = useState<string | null>(null);
   const [callsLeft, setCallsLeft] = useState<number | null>(null);
   const [isFinalizingCall, setIsFinalizingCall] = useState(false);
@@ -174,7 +176,7 @@ export default function InterviewPage() {
     const timer = window.setInterval(() => {
       setCallSeconds((prev) => {
         const next = prev + 1;
-        if (next >= 120) {
+        if (next >= maxCallDurationSec) {
           window.clearInterval(timer);
           void finalizeCallAndGenerateReport('timeout');
         }
@@ -182,7 +184,7 @@ export default function InterviewPage() {
       });
     }, 1000);
     return () => window.clearInterval(timer);
-  }, [voiceConnected, voicePaused]);
+  }, [voiceConnected, voicePaused, maxCallDurationSec]);
 
   useEffect(() => {
     const normalized = voiceAgentTranscript.toUpperCase();
@@ -212,6 +214,9 @@ export default function InterviewPage() {
   const callTimeLabel = `${Math.floor(callSeconds / 60)
     .toString()
     .padStart(2, '0')}:${(callSeconds % 60).toString().padStart(2, '0')}`;
+  const maxCallTimeLabel = `${Math.floor(maxCallDurationSec / 60)
+    .toString()
+    .padStart(2, '0')}:${(maxCallDurationSec % 60).toString().padStart(2, '0')}`;
 
   const intakeSnapshot = [
     intake.profession ? String(intake.profession) : null,
@@ -346,6 +351,16 @@ export default function InterviewPage() {
       if (!ephemeralKey) throw new Error('No se recibió un client_secret válido');
       setCallId(typeof token?.call_id === 'string' ? token.call_id : null);
       if (typeof token?.calls_left === 'number') setCallsLeft(token.calls_left);
+      if (typeof token?.max_duration_sec === 'number' && token.max_duration_sec > 0) {
+        setMaxCallDurationSec(Math.max(1, Math.floor(token.max_duration_sec)));
+      } else {
+        setMaxCallDurationSec(120);
+      }
+      if (typeof token?.remaining_total_sec === 'number') {
+        setRemainingTotalSec(Math.max(0, Math.floor(token.remaining_total_sec)));
+      } else {
+        setRemainingTotalSec(null);
+      }
       setCallSeconds(0);
       setPauseUsed(false);
 
@@ -508,6 +523,10 @@ export default function InterviewPage() {
       if (result?.type === 'interview_complete') {
         setResponse(result);
       }
+      const interviewVoice = result?.interview_voice;
+      if (typeof interviewVoice?.remaining_total_sec === 'number') {
+        setRemainingTotalSec(Math.max(0, Math.floor(interviewVoice.remaining_total_sec)));
+      }
       const report = result?.voice_report;
       if (report?.executive_report) {
         setVoiceReport({
@@ -631,12 +650,19 @@ export default function InterviewPage() {
           </div>
 
           <div className="voice-call-context">
-            <span className="voice-call-pill">Tiempo {callTimeLabel} / 02:00</span>
+            <span className="voice-call-pill">Tiempo {callTimeLabel} / {maxCallTimeLabel}</span>
             <span className="voice-call-pill">
               Pausa: {pauseUsed ? (voicePaused ? 'en uso' : 'usada') : 'disponible'}
             </span>
             <span className="voice-call-pill">
-              Llamadas restantes: {callsLeft === null ? '—' : callsLeft}
+              Tiempo total restante: {remainingTotalSec === null
+                ? '—'
+                : `${Math.floor(remainingTotalSec / 60)
+                    .toString()
+                    .padStart(2, '0')}:${(remainingTotalSec % 60).toString().padStart(2, '0')}`}
+            </span>
+            <span className="voice-call-pill">
+              Llamadas iniciadas: {callsLeft === null ? '—' : Math.max(0, 2 - callsLeft)}
             </span>
           </div>
 
