@@ -64,7 +64,22 @@ type BudgetRow = {
   note: string;
 };
 
+type BankProduct = {
+  id: string;
+  label: string;
+  bank: string;
+  username: string;
+  password: string;
+  connected: boolean;
+  randomMode: boolean;
+  uploadedFiles: string[];
+  parsedDocuments: Array<{ name: string; text: string }>;
+};
+
 type BankSimulation = {
+  products: BankProduct[];
+  activeProductId: string | null;
+  lockedMonth: string | null;
   username: string;
   password: string;
   connected: boolean;
@@ -336,6 +351,9 @@ const DEFAULT_BUDGET_ROWS: BudgetRow[] = [
 ];
 
 const DEFAULT_BANK_SIMULATION: BankSimulation = {
+  products: [],
+  activeProductId: null,
+  lockedMonth: null,
   username: '',
   password: '',
   connected: false,
@@ -401,6 +419,10 @@ export default function AgentPage() {
   function randomBankCredential(prefix: 'usr' | 'pwd') {
     const seed = Math.random().toString(36).slice(2, 8);
     return `${prefix}_${seed}`;
+  }
+
+  function monthKeyOf(date = new Date()) {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
   }
 
   function isGenericOnboardingMessage(text: string): boolean {
@@ -483,6 +505,7 @@ export default function AgentPage() {
   const [knowledgePopupOpen, setKnowledgePopupOpen] = useState(false);
   const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
   const [isTransactionsModalOpen, setIsTransactionsModalOpen] = useState(false);
+  const [txWizardStep, setTxWizardStep] = useState<'products' | 'credentials' | 'upload' | 'dashboard' | 'locked'>('products');
   const [savedReports, setSavedReports] = useState<SavedReport[]>([]);
   const [budgetRows, setBudgetRows] = useState<BudgetRow[]>(DEFAULT_BUDGET_ROWS);
   const [bankSimulation, setBankSimulation] = useState<BankSimulation>(DEFAULT_BANK_SIMULATION);
@@ -1251,6 +1274,19 @@ export default function AgentPage() {
     [sessionInfo?.injectedIntake]
   );
 
+  const activeBankProduct = useMemo(
+    () =>
+      bankSimulation.activeProductId
+        ? bankSimulation.products.find((p) => p.id === bankSimulation.activeProductId) ?? null
+        : null,
+    [bankSimulation.activeProductId, bankSimulation.products]
+  );
+
+  const isTransactionsLockedThisMonth = useMemo(
+    () => bankSimulation.lockedMonth === monthKeyOf(),
+    [bankSimulation.lockedMonth]
+  );
+
   const continuityCard = useMemo(() => {
     const incomeRows = budgetRows.filter((row) => row.type === 'income' && row.amount > 0).length;
     const expenseRows = budgetRows.filter((row) => row.type === 'expense' && row.amount > 0).length;
@@ -1454,6 +1490,17 @@ export default function AgentPage() {
           if (panelState.bankSimulation && typeof panelState.bankSimulation === 'object') {
             setBankSimulation((prev) => ({
               ...prev,
+              products: Array.isArray(panelState.bankSimulation.products)
+                ? panelState.bankSimulation.products
+                : prev.products,
+              activeProductId:
+                typeof panelState.bankSimulation.activeProductId === 'string'
+                  ? panelState.bankSimulation.activeProductId
+                  : prev.activeProductId,
+              lockedMonth:
+                typeof panelState.bankSimulation.lockedMonth === 'string'
+                  ? panelState.bankSimulation.lockedMonth
+                  : prev.lockedMonth,
               username:
                 typeof panelState.bankSimulation.username === 'string'
                   ? panelState.bankSimulation.username
@@ -1489,6 +1536,9 @@ export default function AgentPage() {
       savePanelState({
         budgetRows,
         bankSimulation: {
+          products: bankSimulation.products,
+          activeProductId: bankSimulation.activeProductId,
+          lockedMonth: bankSimulation.lockedMonth,
           username: bankSimulation.username,
           connected: bankSimulation.connected,
           randomMode: bankSimulation.randomMode,
@@ -1504,6 +1554,28 @@ export default function AgentPage() {
       if (panelSaveTimerRef.current) clearTimeout(panelSaveTimerRef.current);
     };
   }, [budgetRows, bankSimulation, savedReports, panelStateLoaded]);
+
+  useEffect(() => {
+    // Monthly reset for transaction flow (allows uploading previous month once each new month).
+    if (!bankSimulation.lockedMonth) return;
+    if (bankSimulation.lockedMonth === monthKeyOf()) return;
+    setBankSimulation((prev) => ({
+      ...prev,
+      lockedMonth: null,
+      connected: false,
+      randomMode: false,
+      uploadedFiles: [],
+      parsedDocuments: [],
+      products: prev.products.map((p) => ({
+        ...p,
+        connected: false,
+        randomMode: false,
+        uploadedFiles: [],
+        parsedDocuments: [],
+      })),
+    }));
+    setTxWizardStep('products');
+  }, [bankSimulation.lockedMonth]);
 
   useEffect(() => {
     const prevScore = previousKnowledgeScoreRef.current;
@@ -2038,23 +2110,128 @@ export default function AgentPage() {
     });
   }
 
-  function simulateBankLogin(randomMode = false) {
-    if (randomMode) {
-      setBankSimulation((prev) => ({
+  function openTransactionsPanel() {
+    if (!unlockedPanelBlocks.transactionsUnlocked) return;
+    if (isTransactionsLockedThisMonth) {
+      setTxWizardStep('locked');
+      setIsTransactionsModalOpen(true);
+      return;
+    }
+    if (bankSimulation.products.length === 0) {
+      setTxWizardStep('products');
+      setIsTransactionsModalOpen(true);
+      return;
+    }
+    if (!activeBankProduct) {
+      setTxWizardStep('products');
+      setIsTransactionsModalOpen(true);
+      return;
+    }
+    if (!activeBankProduct.connected) {
+      setTxWizardStep('credentials');
+    } else if (activeBankProduct.parsedDocuments.length === 0) {
+      setTxWizardStep('upload');
+    } else {
+      setTxWizardStep('dashboard');
+    }
+    setIsTransactionsModalOpen(true);
+  }
+
+  function addTransactionProduct() {
+    const id = `prod-${Date.now()}`;
+    const product: BankProduct = {
+      id,
+      label: `Producto ${bankSimulation.products.length + 1}`,
+      bank: '',
+      username: '',
+      password: '',
+      connected: false,
+      randomMode: false,
+      uploadedFiles: [],
+      parsedDocuments: [],
+    };
+    setBankSimulation((prev) => ({
+      ...prev,
+      products: [...prev.products, product],
+      activeProductId: id,
+      username: '',
+      password: '',
+      connected: false,
+      randomMode: false,
+      uploadedFiles: [],
+      parsedDocuments: [],
+    }));
+    setTxWizardStep('credentials');
+  }
+
+  function selectTransactionProduct(productId: string) {
+    const selectedProduct = bankSimulation.products.find((p) => p.id === productId) ?? null;
+    setBankSimulation((prev) => {
+      const product = prev.products.find((p) => p.id === productId);
+      if (!product) return prev;
+      return {
         ...prev,
+        activeProductId: product.id,
+        username: product.username,
+        password: product.password,
+        connected: product.connected,
+        randomMode: product.randomMode,
+        uploadedFiles: product.uploadedFiles,
+        parsedDocuments: product.parsedDocuments,
+        };
+    });
+    if (isTransactionsLockedThisMonth) {
+      setTxWizardStep('locked');
+    } else if (!selectedProduct?.connected) {
+      setTxWizardStep('credentials');
+    } else if ((selectedProduct.parsedDocuments.length ?? 0) === 0) {
+      setTxWizardStep('upload');
+    } else {
+      setTxWizardStep('dashboard');
+    }
+  }
+
+  function updateActiveProduct(updates: Partial<BankProduct>) {
+    setBankSimulation((prev) => {
+      if (!prev.activeProductId) return prev;
+      const products = prev.products.map((p) =>
+        p.id === prev.activeProductId ? { ...p, ...updates } : p
+      );
+      const active = products.find((p) => p.id === prev.activeProductId);
+      if (!active) return prev;
+      return {
+        ...prev,
+        products,
+        username: active.username,
+        password: active.password,
+        connected: active.connected,
+        randomMode: active.randomMode,
+        uploadedFiles: active.uploadedFiles,
+        parsedDocuments: active.parsedDocuments,
+      };
+    });
+  }
+
+  function simulateBankLogin(randomMode = false) {
+    if (!activeBankProduct || isTransactionsLockedThisMonth) return;
+    if (randomMode) {
+      updateActiveProduct({
         username: randomBankCredential('usr'),
         password: randomBankCredential('pwd'),
         randomMode: true,
         connected: true,
-      }));
+      });
+      setTxWizardStep('upload');
       return;
     }
-    setBankSimulation((prev) => ({
-      ...prev,
+    updateActiveProduct({
       connected:
-        prev.username.trim().length > 0 &&
-        prev.password.trim().length > 0,
-    }));
+        activeBankProduct.username.trim().length > 0 &&
+        activeBankProduct.password.trim().length > 0 &&
+        activeBankProduct.bank.trim().length > 0,
+      randomMode: false,
+    });
+    setTxWizardStep('upload');
   }
 
   async function onUploadStatement(files: FileList | null): Promise<Array<{ name: string; text: string }>> {
@@ -2063,6 +2240,7 @@ export default function AgentPage() {
       return [];
     }
     if (!files || files.length === 0) return [];
+    if (!activeBankProduct || isTransactionsLockedThisMonth) return [];
 
     const selectedFiles = Array.from(files);
     const names = selectedFiles.map((f) => f.name);
@@ -2088,7 +2266,10 @@ export default function AgentPage() {
       const parsed = await parseDocuments(encodedFiles);
       const parsedDocs = Array.isArray(parsed?.documents) ? parsed.documents : [];
       setBankSimulation((prev) => {
-        const nextDocs = [...prev.parsedDocuments];
+        if (!prev.activeProductId) return prev;
+        const active = prev.products.find((p) => p.id === prev.activeProductId);
+        if (!active) return prev;
+        const nextDocs = [...active.parsedDocuments];
         for (const doc of parsedDocs) {
           const existingIdx = nextDocs.findIndex((existing) => existing.name === doc.name);
           if (existingIdx >= 0) {
@@ -2098,18 +2279,36 @@ export default function AgentPage() {
           }
         }
 
+        const nextFiles = Array.from(new Set([...active.uploadedFiles, ...names]));
+        const products = prev.products.map((p) =>
+          p.id === active.id
+            ? { ...p, uploadedFiles: nextFiles, parsedDocuments: nextDocs }
+            : p
+        );
+
         return {
           ...prev,
-          uploadedFiles: Array.from(new Set([...prev.uploadedFiles, ...names])),
+          products,
+          uploadedFiles: nextFiles,
           parsedDocuments: nextDocs,
         };
       });
+      setTxWizardStep('dashboard');
       return parsedDocs;
     } catch {
-      setBankSimulation((prev) => ({
-        ...prev,
-        uploadedFiles: Array.from(new Set([...prev.uploadedFiles, ...names])),
-      }));
+      setBankSimulation((prev) => {
+        if (!prev.activeProductId) return prev;
+        const active = prev.products.find((p) => p.id === prev.activeProductId);
+        if (!active) return prev;
+        const nextFiles = Array.from(new Set([...active.uploadedFiles, ...names]));
+        return {
+          ...prev,
+          products: prev.products.map((p) =>
+            p.id === active.id ? { ...p, uploadedFiles: nextFiles } : p
+          ),
+          uploadedFiles: nextFiles,
+        };
+      });
       return [];
     } finally {
       setDocumentsLoading(false);
@@ -2117,32 +2316,53 @@ export default function AgentPage() {
   }
 
   function sendTransactionsToAgent() {
-    if (bankSimulation.parsedDocuments.length === 0) return;
+    if (!activeBankProduct || activeBankProduct.parsedDocuments.length === 0) return;
 
-    const documentsSummary = bankSimulation.parsedDocuments.map((doc) => ({
+    const documentsSummary = activeBankProduct.parsedDocuments.map((doc) => ({
       name: doc.name,
       preview: doc.text.slice(0, 600),
     }));
 
-    const message = `Analiza mis cartolas y movimientos cargados como un motor transaccional premium. 
-Necesito agrupación por comercio/categoría, detección de pagos recurrentes, estimación de gastos fijos vs variables, anomalías, presión de deuda, patrones de flujo mensual y hallazgos accionables.
-Contexto usuario: ${JSON.stringify({
-      intake: intakeData ?? {},
-      intakeContext: intakeContextData ?? {},
-      budget: budgetTotals,
-    })}
-Señales detectadas localmente: ${JSON.stringify({
-      docs: transactionIntel.docs,
-      rows: transactionIntel.rows,
-      totalDetected: transactionIntel.totalDetected,
-      averageDetected: transactionIntel.averageDetected,
-      maxDetected: transactionIntel.maxDetected,
-      topKeywords: transactionIntel.topKeywords,
-    })}
-Documentos: ${JSON.stringify(documentsSummary)}`;
+    const compactTopKeywords = transactionIntel.topKeywords.slice(0, 8).map((k) => ({
+      l: k.label,
+      c: k.count,
+    }));
+    const compactDocs = documentsSummary.slice(0, 6).map((d) => ({
+      n: d.name,
+      p: d.preview.slice(0, 220),
+    }));
+
+    const message = [
+      'Modo transacciones: analisis mensual premium.',
+      `Producto=${activeBankProduct.label} banco=${activeBankProduct.bank}`,
+      `Mes objetivo=${monthKeyOf(new Date(Date.now() - 20 * 24 * 3600 * 1000))}`,
+      `KPIs docs=${transactionIntel.docs} rows=${transactionIntel.rows} total=${Math.round(
+        transactionIntel.totalDetected
+      )} avg=${Math.round(transactionIntel.averageDetected)} max=${Math.round(
+        transactionIntel.maxDetected
+      )}`,
+      `Keywords=${JSON.stringify(compactTopKeywords)}`,
+      `Contexto presupuesto=${JSON.stringify({
+        income: Math.round(budgetTotals.income),
+        expenses: Math.round(budgetTotals.expenses),
+        balance: Math.round(budgetTotals.balance),
+      })}`,
+      `Documentos=${JSON.stringify(compactDocs)}`,
+      'Entrega: dashboard ejecutivo resumido + hallazgos + 3 acciones concretas.',
+    ].join('\n');
 
     setIsTransactionsModalOpen(false);
-    void onSend(message);
+    setBankSimulation((prev) => ({
+      ...prev,
+      lockedMonth: monthKeyOf(),
+    }));
+    setTxWizardStep('locked');
+    void onSend('Configurar transacciones', {
+      agentPayload: message,
+      assistantPendingLabel:
+        'Configurando transacciones con Financiera mente… consolidando cartolas y hallazgos ejecutivos.',
+      hideUserMessage: true,
+    });
   }
 
   function launchDocToLibraryAnimation(
@@ -3255,8 +3475,7 @@ Documentos: ${JSON.stringify(documentsSummary)}`;
             data-panel-section="transactions"
             className={`panel-feature-card panel-pos-transactions ${unlockedPanelBlocks.transactionsUnlocked ? '' : 'is-locked'}${highlightedSection === 'transactions' ? ' is-panel-highlighted' : ''}`}
             onClick={() => {
-              if (!unlockedPanelBlocks.transactionsUnlocked) return;
-              setIsTransactionsModalOpen(true);
+              openTransactionsPanel();
             }}
             title={
               unlockedPanelBlocks.transactionsUnlocked
@@ -4122,16 +4341,20 @@ Documentos: ${JSON.stringify(documentsSummary)}`;
         <div className="agent-modal-overlay" onClick={() => setIsTransactionsModalOpen(false)}>
           <div className="agent-modal transactions-modal" onClick={(e) => e.stopPropagation()}>
             <div className="agent-modal-header">
-              <h3>Transacciones y finanzas abiertas</h3>
+              <h3>Panel de productos transaccionales</h3>
               <button type="button" className="agent-modal-close" onClick={() => setIsTransactionsModalOpen(false)}>
                 ×
               </button>
             </div>
             <p className="agent-modal-intro">
-              Motor transaccional conectado al agente. Carga cartolas, PDFs, Excel o imágenes para detectar patrones, agrupar movimientos y producir un análisis operativo accionable.
+              Flujo mensual ejecutivo para simulación de productos bancarios, lectura de cartolas y análisis inteligente. No ingreses credenciales ni contraseñas reales.
             </p>
 
             <div className="transactions-intelligence">
+              <div className="transactions-stat-card">
+                <span className="transactions-stat-label">Productos</span>
+                <strong>{bankSimulation.products.length}</strong>
+              </div>
               <div className="transactions-stat-card">
                 <span className="transactions-stat-label">Documentos</span>
                 <strong>{transactionIntel.docs}</strong>
@@ -4141,128 +4364,287 @@ Documentos: ${JSON.stringify(documentsSummary)}`;
                 <strong>{transactionIntel.amounts.length}</strong>
               </div>
               <div className="transactions-stat-card">
-                <span className="transactions-stat-label">Promedio detectado</span>
+                <span className="transactions-stat-label">Estado</span>
                 <strong>
-                  {transactionIntel.averageDetected > 0
-                    ? `$${Math.round(transactionIntel.averageDetected).toLocaleString('es-CL')}`
-                    : '—'}
-                </strong>
-              </div>
-              <div className="transactions-stat-card">
-                <span className="transactions-stat-label">Mayor monto</span>
-                <strong>
-                  {transactionIntel.maxDetected > 0
-                    ? `$${Math.round(transactionIntel.maxDetected).toLocaleString('es-CL')}`
-                    : '—'}
+                  {isTransactionsLockedThisMonth
+                    ? 'Ciclo enviado'
+                    : activeBankProduct?.connected
+                    ? 'Conectado'
+                    : 'Pendiente'}
                 </strong>
               </div>
             </div>
 
-            <div className="transactions-summary-card">
-              <span className="transactions-summary-title">Lectura instantánea</span>
-              <p>{transactionIntel.summary}</p>
-              {transactionIntel.topKeywords.length > 0 ? (
-                <div className="transactions-keywords">
-                  {transactionIntel.topKeywords.map((item) => (
-                    <span key={item.label} className="transactions-keyword-pill">
-                      {item.label} · {item.count}
-                    </span>
-                  ))}
+            {txWizardStep === 'products' && (
+              <>
+                <div className="transactions-summary-card">
+                  <span className="transactions-summary-title">Productos</span>
+                  <p>
+                    Agrega uno o más productos para el mes y luego selecciona cuál deseas configurar.
+                  </p>
                 </div>
-              ) : null}
-            </div>
+                <div className="upload-zone">
+                  <div className="upload-files">
+                    {bankSimulation.products.length === 0 && (
+                      <span>No hay productos todavía. Presiona agregar producto.</span>
+                    )}
+                    {bankSimulation.products.map((product) => (
+                      <button
+                        key={product.id}
+                        type="button"
+                        className="upload-file-pill"
+                        onClick={() => selectTransactionProduct(product.id)}
+                      >
+                        {product.label} · {product.bank || 'banco pendiente'} ·{' '}
+                        {product.parsedDocuments.length > 0 ? 'dashboard listo' : 'sin cartola'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="agent-modal-actions">
+                  <button type="button" className="continue-ghost" onClick={addTransactionProduct}>
+                    Agregar producto
+                  </button>
+                  <button
+                    type="button"
+                    className="button-primary"
+                    disabled={!activeBankProduct}
+                    onClick={() => setTxWizardStep('credentials')}
+                  >
+                    Configurar seleccionado
+                  </button>
+                </div>
+              </>
+            )}
 
-            <div className="bank-sim-grid">
-              <label>
-                Usuario demo
-                <input
-                  value={bankSimulation.username}
-                  onChange={(e) =>
-                    setBankSimulation((prev) => ({
-                      ...prev,
-                      username: e.target.value,
-                      connected: false,
-                      randomMode: false,
-                    }))
-                  }
-                />
-              </label>
-              <label>
-                Contrasena demo
-                <input
-                  type="password"
-                  value={bankSimulation.password}
-                  onChange={(e) =>
-                    setBankSimulation((prev) => ({
-                      ...prev,
-                      password: e.target.value,
-                      connected: false,
-                      randomMode: false,
-                    }))
-                  }
-                />
-              </label>
-            </div>
+            {txWizardStep === 'credentials' && activeBankProduct && (
+              <>
+                <div className="transactions-summary-card">
+                  <span className="transactions-summary-title">Paso 1 · Banco y credenciales simuladas</span>
+                  <p>
+                    Simulación de conexión: usa datos ficticios. Nunca ingreses usuario, contraseña o claves reales.
+                  </p>
+                </div>
+                <div className="bank-sim-grid">
+                  <label>
+                    Nombre del producto
+                    <input
+                      value={activeBankProduct.label}
+                      onChange={(e) => updateActiveProduct({ label: e.target.value, connected: false })}
+                    />
+                  </label>
+                  <label>
+                    Banco (simulado)
+                    <select
+                      value={activeBankProduct.bank}
+                      onChange={(e) =>
+                        updateActiveProduct({
+                          bank: e.target.value,
+                          connected: false,
+                          randomMode: false,
+                        })
+                      }
+                    >
+                      <option value="">Selecciona un banco</option>
+                      <option value="Banco de Chile (simulación)">Banco de Chile</option>
+                      <option value="Santander (simulación)">Santander</option>
+                      <option value="BCI (simulación)">BCI</option>
+                      <option value="Scotiabank (simulación)">Scotiabank</option>
+                      <option value="BancoEstado (simulación)">BancoEstado</option>
+                    </select>
+                  </label>
+                  <label>
+                    Usuario demo
+                    <input
+                      value={activeBankProduct.username}
+                      onChange={(e) =>
+                        updateActiveProduct({
+                          username: e.target.value,
+                          connected: false,
+                          randomMode: false,
+                        })
+                      }
+                    />
+                  </label>
+                  <label>
+                    Password demo
+                    <input
+                      type="password"
+                      value={activeBankProduct.password}
+                      onChange={(e) =>
+                        updateActiveProduct({
+                          password: e.target.value,
+                          connected: false,
+                          randomMode: false,
+                        })
+                      }
+                    />
+                  </label>
+                </div>
+                <div className="bank-sim-status">
+                  Estado:{' '}
+                  <strong>
+                    {activeBankProduct.connected
+                      ? `conectado (simulado${activeBankProduct.randomMode ? ' aleatorio' : ''})`
+                      : 'desconectado'}
+                  </strong>
+                </div>
+                <div className="agent-modal-actions">
+                  <button type="button" className="continue-ghost" onClick={() => setTxWizardStep('products')}>
+                    Volver a productos
+                  </button>
+                  <button type="button" className="continue-ghost" onClick={() => simulateBankLogin(true)}>
+                    Credenciales aleatorias
+                  </button>
+                  <button type="button" className="button-primary" onClick={() => simulateBankLogin(false)}>
+                    Continuar a carga
+                  </button>
+                </div>
+              </>
+            )}
 
-            <div className="agent-modal-actions">
-              <button type="button" className="continue-ghost" onClick={() => simulateBankLogin(true)}>
-                Credenciales aleatorias
-              </button>
-              <button type="button" className="button-primary" onClick={() => simulateBankLogin(false)}>
-                Simular login
-              </button>
-              <button
-                type="button"
-                className="button-primary"
-                onClick={sendTransactionsToAgent}
-                disabled={documentsLoading || bankSimulation.parsedDocuments.length === 0}
-              >
-                {documentsLoading
-                  ? 'Procesando cartolas…'
-                  : bankSimulation.parsedDocuments.length > 0
-                  ? 'Analizar con el agente'
-                  : 'Carga cartolas para analizar'}
-              </button>
-            </div>
+            {txWizardStep === 'upload' && activeBankProduct && (
+              <>
+                <div className="transactions-summary-card">
+                  <span className="transactions-summary-title">Paso 2 · Cargar cartola del mes</span>
+                  <p>
+                    Sube cartola o archivo de movimientos. Un agente especializado de bajo costo procesará el mes y
+                    te devolverá dashboard y hallazgos.
+                  </p>
+                </div>
+                <div className="upload-zone">
+                  <label className="upload-label">
+                    Subir cartola o evidencia (imagen/PDF/Excel)
+                    <input
+                      type="file"
+                      accept=".pdf,.xls,.xlsx,.csv,image/*"
+                      multiple
+                      onChange={(e) => onUploadStatement(e.target.files)}
+                    />
+                  </label>
+                  <div className="upload-files">
+                    {documentsLoading && <span>Extrayendo texto y estructura de tus documentos…</span>}
+                    {activeBankProduct.uploadedFiles.length === 0 && <span>Aun no hay cartolas cargadas.</span>}
+                    {activeBankProduct.uploadedFiles.map((name, idx) => (
+                      <span key={`${name}-${idx}`} className="upload-file-pill">
+                        {name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <div className="agent-modal-actions">
+                  <button type="button" className="continue-ghost" onClick={() => setTxWizardStep('credentials')}>
+                    Volver a credenciales
+                  </button>
+                  <button
+                    type="button"
+                    className="button-primary"
+                    disabled={documentsLoading || activeBankProduct.parsedDocuments.length === 0}
+                    onClick={() => setTxWizardStep('dashboard')}
+                  >
+                    Ver dashboard
+                  </button>
+                </div>
+              </>
+            )}
 
-            <div className="bank-sim-status">
-              Estado:{' '}
-              <strong>
-                {bankSimulation.connected
-                  ? `conectado (simulado${bankSimulation.randomMode ? ' aleatorio' : ''})`
-                  : 'desconectado'}
-              </strong>
-            </div>
+            {txWizardStep === 'dashboard' && activeBankProduct && (
+              <>
+                <div className="transactions-summary-card">
+                  <span className="transactions-summary-title">Paso 3 · Dashboard mensual</span>
+                  <p>{transactionIntel.summary}</p>
+                  {transactionIntel.topKeywords.length > 0 ? (
+                    <div className="transactions-keywords">
+                      {transactionIntel.topKeywords.map((item) => (
+                        <span key={item.label} className="transactions-keyword-pill">
+                          {item.label} · {item.count}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+                <div className="transactions-intelligence">
+                  <div className="transactions-stat-card">
+                    <span className="transactions-stat-label">Promedio</span>
+                    <strong>
+                      {transactionIntel.averageDetected > 0
+                        ? `$${Math.round(transactionIntel.averageDetected).toLocaleString('es-CL')}`
+                        : '—'}
+                    </strong>
+                  </div>
+                  <div className="transactions-stat-card">
+                    <span className="transactions-stat-label">Mayor monto</span>
+                    <strong>
+                      {transactionIntel.maxDetected > 0
+                        ? `$${Math.round(transactionIntel.maxDetected).toLocaleString('es-CL')}`
+                        : '—'}
+                    </strong>
+                  </div>
+                  <div className="transactions-stat-card">
+                    <span className="transactions-stat-label">Total detectado</span>
+                    <strong>
+                      {transactionIntel.totalDetected > 0
+                        ? `$${Math.round(transactionIntel.totalDetected).toLocaleString('es-CL')}`
+                        : '—'}
+                    </strong>
+                  </div>
+                  <div className="transactions-stat-card">
+                    <span className="transactions-stat-label">Filas leídas</span>
+                    <strong>{transactionIntel.rows.toLocaleString('es-CL')}</strong>
+                  </div>
+                </div>
+                <div className="agent-modal-actions">
+                  <button type="button" className="continue-ghost" onClick={() => setTxWizardStep('products')}>
+                    Volver a productos
+                  </button>
+                  <button type="button" className="continue-ghost" onClick={() => setTxWizardStep('upload')}>
+                    Cargar más archivos
+                  </button>
+                  <button
+                    type="button"
+                    className="button-primary"
+                    onClick={sendTransactionsToAgent}
+                    disabled={documentsLoading || activeBankProduct.parsedDocuments.length === 0}
+                  >
+                    Enviar a Financiera mente
+                  </button>
+                </div>
+              </>
+            )}
 
-            <div className="upload-zone">
-              <label className="upload-label">
-                Subir cartola o evidencia (imagen/PDF/Excel)
-                <input
-                  type="file"
-                  accept=".pdf,.xls,.xlsx,.csv,image/*"
-                  multiple
-                  onChange={(e) => onUploadStatement(e.target.files)}
-                />
-              </label>
-              <div className="upload-files">
-                {documentsLoading && (
-                  <span>Extrayendo texto y estructura de tus documentos…</span>
-                )}
-                {bankSimulation.uploadedFiles.length === 0 && (
-                  <span>Aun no hay cartolas cargadas.</span>
-                )}
-                {bankSimulation.uploadedFiles.map((name, idx) => (
-                  <span key={`${name}-${idx}`} className="upload-file-pill">
-                    {name}
-                  </span>
-                ))}
+            {txWizardStep === 'locked' && (
+              <>
+                <div className="transactions-summary-card">
+                  <span className="transactions-summary-title">Ciclo mensual enviado</span>
+                  <p>
+                    Este mes ya fue enviado a Financiera mente. Solo puedes volver al panel o ir al chat. El flujo se
+                    reabre automáticamente en el próximo mes para subir cartolas del mes anterior.
+                  </p>
+                </div>
+                <div className="agent-modal-actions">
+                  <button type="button" className="continue-ghost" onClick={() => setIsTransactionsModalOpen(false)}>
+                    Volver atrás
+                  </button>
+                  <button type="button" className="button-primary" onClick={() => setIsTransactionsModalOpen(false)}>
+                    Ir al chat
+                  </button>
+                </div>
+              </>
+            )}
+
+            {!activeBankProduct && txWizardStep !== 'products' && txWizardStep !== 'locked' && (
+              <div className="transactions-summary-card">
+                <span className="transactions-summary-title">Selecciona un producto</span>
+                <p>
+                  Primero agrega o selecciona un producto para continuar con el flujo de simulación y análisis.
+                </p>
+                <div className="agent-modal-actions">
+                  <button type="button" className="button-primary" onClick={() => setTxWizardStep('products')}>
+                    Ir a productos
+                  </button>
+                </div>
               </div>
-              {bankSimulation.parsedDocuments.length > 0 && (
-                <div className="upload-files">
-                  <span>{bankSimulation.parsedDocuments.length} documento(s) listo(s) para análisis contextual.</span>
-                </div>
-              )}
-            </div>
+            )}
           </div>
         </div>
       )}
