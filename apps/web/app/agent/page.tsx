@@ -1422,6 +1422,10 @@ export default function AgentPage() {
         ? `Entrevista estratégica para ${name}`
         : 'Entrevista diagnóstica inicial',
       meta: prompt,
+      detail:
+        stress !== null && understanding !== null
+          ? `Prioridad actual: estrés ${stress}/10 y comprensión ${understanding}/10.`
+          : 'Usa esta capa para transformar contexto disperso en diagnóstico accionable.',
     };
   }, [intakeData, sessionInfo?.name]);
 
@@ -1504,6 +1508,27 @@ export default function AgentPage() {
     }
     return base;
   }, [savedReports]);
+
+  const librarySummary = useMemo(() => {
+    const total =
+      reportsByGroup.plan_action.length +
+      reportsByGroup.simulation.length +
+      reportsByGroup.budget.length +
+      reportsByGroup.diagnosis.length;
+
+    if (total === 0) {
+      return 'Aún no hay documentos guardados. Cuando el agente genere PDFs o informes, aparecerán aquí listos para consulta.';
+    }
+
+    const strongestGroup = [
+      ['plan de acción', reportsByGroup.plan_action.length],
+      ['simulación', reportsByGroup.simulation.length],
+      ['presupuesto', reportsByGroup.budget.length],
+      ['diagnóstico', reportsByGroup.diagnosis.length],
+    ].sort((a, b) => b[1] - a[1])[0];
+
+    return `Hay ${total} documento(s) activos. Mayor densidad actual en ${strongestGroup[0]} con ${strongestGroup[1]} pieza(s).`;
+  }, [reportsByGroup]);
 
   const recentReports = useMemo(
     () =>
@@ -3372,6 +3397,9 @@ export default function AgentPage() {
               {agentMetaRef.current.objective ??
                 'Aún no hay objetivo fijado. Define una prioridad concreta para que el agente entregue una hoja de ruta accionable.'}
             </div>
+            <div className="panel-card-note">
+              El objetivo correcto ordena el tono, el riesgo y la profundidad de las siguientes recomendaciones.
+            </div>
           </PanelCard>
         </div>
       ),
@@ -3410,6 +3438,9 @@ export default function AgentPage() {
                 ? `Te faltan ${Math.max(0, nextMilestone.threshold - knowledgeScore)} pts para desbloquear ${nextMilestone.label}. Recomendación: profundiza en presupuesto y decisiones mensuales.`
                 : 'Mapa completo. Ya existe una lectura avanzada de tu perfil y puedes pasar a ejecución táctica.'}
             </div>
+            <div className="panel-card-note">
+              Cada desbloqueo abre paneles más útiles y le da más contexto operativo al agente.
+            </div>
           </PanelCard>
         </div>
       ),
@@ -3428,6 +3459,9 @@ export default function AgentPage() {
               {continuityCard.details.map((detail) => (
                 <span key={detail} className="panel-stack-item">{detail}</span>
               ))}
+            </div>
+            <div className="panel-card-note">
+              Mientras más módulos vivos tenga esta capa, más ejecutivo y específico será el diagnóstico.
             </div>
           </PanelCard>
         </div>
@@ -3452,6 +3486,7 @@ export default function AgentPage() {
             <span className="interview-flow-label">{interviewCard.badge}</span>
             <span className="interview-flow-title">{interviewCard.title}</span>
             <span className="interview-flow-meta">{interviewCard.meta}</span>
+            <span className="interview-flow-meta interview-flow-submeta">{interviewCard.detail}</span>
           </button>
         </div>
       ),
@@ -3481,6 +3516,9 @@ export default function AgentPage() {
             <span className="panel-feature-copy">
               Diagnostico de analista financiero, editable por chat y manual.
             </span>
+            <span className="panel-feature-copy panel-feature-copy-secondary">
+              Ingreso: ${Math.round(budgetTotals.income).toLocaleString('es-CL')} | Gasto: ${Math.round(budgetTotals.expenses).toLocaleString('es-CL')}
+            </span>
           </button>
         </div>
       ),
@@ -3508,6 +3546,11 @@ export default function AgentPage() {
             </span>
             <span className="panel-feature-copy">
               Cartolas, agrupación, patrones, alertas y lectura operativa de movimientos reales.
+            </span>
+            <span className="panel-feature-copy panel-feature-copy-secondary">
+              {transactionIntel.docs > 0
+                ? `${transactionIntel.docs} cartola(s), ${transactionIntel.rows.toLocaleString('es-CL')} filas leídas y ${transactionIntel.amounts.length} montos detectados.`
+                : 'Aún no hay cartolas procesadas para encontrar patrones ni alertas.'}
             </span>
           </button>
         </div>
@@ -3568,6 +3611,7 @@ export default function AgentPage() {
                 <span className="report-group-count">{reportsByGroup.diagnosis.length}</span>
               </div>
             </div>
+            <div className="panel-card-note panel-card-note-library">{librarySummary}</div>
             <div className="report-list">
               {savedReports.length === 0 && (
                 <span className="report-empty">Guarda PDFs desde el chat para agruparlos aqui.</span>
