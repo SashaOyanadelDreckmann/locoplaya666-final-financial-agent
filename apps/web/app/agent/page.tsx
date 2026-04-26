@@ -3788,6 +3788,9 @@ export default function AgentPage() {
               ))}
               {/* No manual new-sheet button — sheets are fixed to 3 + optional meta sheet */}
             </div>
+            <span className="mobile-brand-inline" aria-hidden="true">
+              Financiera mente
+            </span>
             <button
               type="button"
               className="mobile-progress-pill"

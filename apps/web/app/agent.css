@@ -212,6 +212,10 @@
   margin-bottom: 10px;
 }
 
+.mobile-brand-inline {
+  display: none;
+}
+
 /* Chat tab switcher */
 .chat-switcher {
   display: inline-flex;
@@ -4056,13 +4060,27 @@
     flex-shrink: 0;
   }
 
-  /* Mantener la marca visible en mobile */
+  /* Marca inline en la barra superior móvil */
+  .mobile-brand-inline {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: rgba(238, 244, 249, 0.96);
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 0 6px;
+  }
+
+  /* En móvil ocultamos el título externo para no duplicar */
   .agent-chat-header h1 {
-    display: block !important;
-    font-size: 15px !important;
-    line-height: 1.12 !important;
-    margin: 0 0 2px !important;
-    letter-spacing: -0.024em !important;
+    display: none !important;
   }
   .agent-chat-header p.muted { display: none; }
 
@@ -4107,6 +4125,7 @@
     padding: 3px 14px !important;
     width: 100% !important;
     box-sizing: border-box !important;
+    gap: 8px !important;
   }
 
   /* Thread: fixed height, vertical scroll — shows ~4 messages */
