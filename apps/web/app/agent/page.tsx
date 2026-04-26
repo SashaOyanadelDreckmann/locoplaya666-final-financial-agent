@@ -305,6 +305,76 @@ function buildTransactionIntelligence(
   };
 }
 
+function inferInstitutionFromText(allText: string, bankHint: string): string {
+  const source = `${bankHint}\n${allText}`.toLowerCase();
+  const institutions = [
+    { label: 'Banco de Chile', regex: /\bbanco\s*de\s*chile\b|chile\.cl|edwards/gi },
+    { label: 'BancoEstado', regex: /\bbanco\s*estado\b|\bbancoestado\b/gi },
+    { label: 'Santander', regex: /\bsantander\b/gi },
+    { label: 'BCI', regex: /\bbci\b|credito e inversiones/gi },
+    { label: 'Scotiabank', regex: /\bscotiabank\b|scotia/gi },
+    { label: 'Itaú', regex: /\bita[uú]\b/gi },
+    { label: 'Falabella', regex: /\bfalabella\b|cmr/gi },
+    { label: 'Ripley', regex: /\bripley\b|banco ripley|rpay/gi },
+  ];
+  for (const institution of institutions) {
+    if (institution.regex.test(source)) return institution.label;
+  }
+  return bankHint.trim() || 'Institución no identificada';
+}
+
+function inferProductTypeFromText(allText: string): string {
+  const source = allText.toLowerCase();
+  const productPatterns = [
+    { label: 'Cuenta Corriente', regex: /\bcuenta\s*corriente\b/gi },
+    { label: 'Cuenta Vista', regex: /\bcuenta\s*vista\b|chequera electronica/gi },
+    { label: 'Cuenta RUT', regex: /\bcuenta\s*rut\b/gi },
+    { label: 'Tarjeta de Crédito', regex: /\btarjeta\s*de\s*cr[eé]dito\b|estado de cuenta/gi },
+    { label: 'Línea de Crédito', regex: /\bl[ií]nea\s*de\s*cr[eé]dito\b|avance en efectivo/gi },
+    { label: 'Crédito de Consumo', regex: /\bcr[eé]dito\s*de\s*consumo\b|cuota mensual/gi },
+  ];
+  for (const product of productPatterns) {
+    if (product.regex.test(source)) return product.label;
+  }
+  return 'Producto financiero';
+}
+
+function buildProductCardDescriptor(product: BankProduct): {
+  title: string;
+  description: string;
+  insights: string[];
+} {
+  const allText = product.parsedDocuments.map((doc) => doc.text ?? '').join('\n');
+  const intel = buildTransactionIntelligence(product.parsedDocuments);
+  const institution = inferInstitutionFromText(allText, product.bank);
+  const productType = inferProductTypeFromText(allText);
+
+  const title = `${institution} · ${productType}`;
+  const activityInsight =
+    intel.amounts.length > 0
+      ? `Movimientos detectados: ${intel.amounts.length} con promedio $${Math.round(
+          intel.averageDetected
+        ).toLocaleString('es-CL')}.`
+      : 'Sin movimientos monetarios estructurados detectados todavía.';
+  const categoryInsight =
+    intel.topKeywords.length > 0
+      ? `Patrones: ${intel.topKeywords.map((k) => `${k.label} (${k.count})`).join(', ')}.`
+      : 'Aún no hay categorías suficientes para patrón robusto.';
+  const readinessInsight =
+    product.parsedDocuments.length > 0
+      ? 'Listo para dashboard e insights ejecutivos.'
+      : 'Carga una cartola o imagen para activar análisis.';
+
+  return {
+    title,
+    description:
+      product.parsedDocuments.length > 0
+        ? `${product.parsedDocuments.length} documento(s) analizado(s). ${activityInsight}`
+        : 'Pendiente de cartola para identificar institución, producto y comportamiento mensual.',
+    insights: [categoryInsight, readinessInsight],
+  };
+}
+
 const DEFAULT_BUDGET_ROWS: BudgetRow[] = [
   {
     id: 'income-salary',
@@ -1282,6 +1352,16 @@ export default function AgentPage() {
     [bankSimulation.activeProductId, bankSimulation.products]
   );
 
+  const transactionProductCards = useMemo(
+    () =>
+      bankSimulation.products.map((product) => ({
+        product,
+        descriptor: buildProductCardDescriptor(product),
+        intel: buildTransactionIntelligence(product.parsedDocuments),
+      })),
+    [bankSimulation.products]
+  );
+
   const isTransactionsLockedThisMonth = useMemo(
     () => bankSimulation.lockedMonth === monthKeyOf(),
     [bankSimulation.lockedMonth]
@@ -2117,23 +2197,7 @@ export default function AgentPage() {
       setIsTransactionsModalOpen(true);
       return;
     }
-    if (bankSimulation.products.length === 0) {
-      setTxWizardStep('products');
-      setIsTransactionsModalOpen(true);
-      return;
-    }
-    if (!activeBankProduct) {
-      setTxWizardStep('products');
-      setIsTransactionsModalOpen(true);
-      return;
-    }
-    if (!activeBankProduct.connected) {
-      setTxWizardStep('credentials');
-    } else if (activeBankProduct.parsedDocuments.length === 0) {
-      setTxWizardStep('upload');
-    } else {
-      setTxWizardStep('dashboard');
-    }
+    setTxWizardStep('products');
     setIsTransactionsModalOpen(true);
   }
 
@@ -2212,6 +2276,27 @@ export default function AgentPage() {
     });
   }
 
+  function deleteTransactionProduct(productId: string) {
+    setBankSimulation((prev) => {
+      const products = prev.products.filter((p) => p.id !== productId);
+      const nextActiveId =
+        prev.activeProductId === productId ? products[0]?.id ?? null : prev.activeProductId;
+      const nextActive = nextActiveId ? products.find((p) => p.id === nextActiveId) ?? null : null;
+      return {
+        ...prev,
+        products,
+        activeProductId: nextActiveId,
+        username: nextActive?.username ?? '',
+        password: nextActive?.password ?? '',
+        connected: nextActive?.connected ?? false,
+        randomMode: nextActive?.randomMode ?? false,
+        uploadedFiles: nextActive?.uploadedFiles ?? [],
+        parsedDocuments: nextActive?.parsedDocuments ?? [],
+      };
+    });
+    setTxWizardStep('products');
+  }
+
   function simulateBankLogin(randomMode = false) {
     if (!activeBankProduct || isTransactionsLockedThisMonth) return;
     if (randomMode) {
@@ -2280,9 +2365,31 @@ export default function AgentPage() {
         }
 
         const nextFiles = Array.from(new Set([...active.uploadedFiles, ...names]));
+        const provisionalProduct: BankProduct = {
+          ...active,
+          uploadedFiles: nextFiles,
+          parsedDocuments: nextDocs,
+        };
+        const descriptor = buildProductCardDescriptor(provisionalProduct);
+        const inferredInstitution = inferInstitutionFromText(
+          nextDocs.map((d) => d.text ?? '').join('\n'),
+          active.bank
+        );
+        const inferredType = inferProductTypeFromText(nextDocs.map((d) => d.text ?? '').join('\n'));
+        const generatedLabel =
+          inferredInstitution !== 'Institución no identificada'
+            ? `${inferredInstitution} · ${inferredType}`
+            : active.label;
+
         const products = prev.products.map((p) =>
           p.id === active.id
-            ? { ...p, uploadedFiles: nextFiles, parsedDocuments: nextDocs }
+            ? {
+                ...p,
+                uploadedFiles: nextFiles,
+                parsedDocuments: nextDocs,
+                bank: p.bank.trim() ? p.bank : inferredInstitution,
+                label: generatedLabel || descriptor.title || p.label,
+              }
             : p
         );
 
@@ -4346,74 +4453,115 @@ export default function AgentPage() {
                 ×
               </button>
             </div>
-            <p className="agent-modal-intro">
-              Flujo mensual ejecutivo para simulación de productos bancarios, lectura de cartolas y análisis inteligente. No ingreses credenciales ni contraseñas reales.
-            </p>
+            {txWizardStep !== 'products' && (
+              <p className="agent-modal-intro">
+                Flujo mensual ejecutivo para simulación de productos bancarios, lectura de cartolas y análisis inteligente. No ingreses credenciales ni contraseñas reales.
+              </p>
+            )}
 
-            <div className="transactions-intelligence">
-              <div className="transactions-stat-card">
-                <span className="transactions-stat-label">Productos</span>
-                <strong>{bankSimulation.products.length}</strong>
+            {txWizardStep !== 'products' && (
+              <div className="transactions-intelligence">
+                <div className="transactions-stat-card">
+                  <span className="transactions-stat-label">Productos</span>
+                  <strong>{bankSimulation.products.length}</strong>
+                </div>
+                <div className="transactions-stat-card">
+                  <span className="transactions-stat-label">Documentos</span>
+                  <strong>{transactionIntel.docs}</strong>
+                </div>
+                <div className="transactions-stat-card">
+                  <span className="transactions-stat-label">Montos detectados</span>
+                  <strong>{transactionIntel.amounts.length}</strong>
+                </div>
+                <div className="transactions-stat-card">
+                  <span className="transactions-stat-label">Estado</span>
+                  <strong>
+                    {isTransactionsLockedThisMonth
+                      ? 'Ciclo enviado'
+                      : activeBankProduct?.connected
+                      ? 'Conectado'
+                      : 'Pendiente'}
+                  </strong>
+                </div>
               </div>
-              <div className="transactions-stat-card">
-                <span className="transactions-stat-label">Documentos</span>
-                <strong>{transactionIntel.docs}</strong>
-              </div>
-              <div className="transactions-stat-card">
-                <span className="transactions-stat-label">Montos detectados</span>
-                <strong>{transactionIntel.amounts.length}</strong>
-              </div>
-              <div className="transactions-stat-card">
-                <span className="transactions-stat-label">Estado</span>
-                <strong>
-                  {isTransactionsLockedThisMonth
-                    ? 'Ciclo enviado'
-                    : activeBankProduct?.connected
-                    ? 'Conectado'
-                    : 'Pendiente'}
-                </strong>
-              </div>
-            </div>
+            )}
 
             {txWizardStep === 'products' && (
               <>
-                <div className="transactions-summary-card">
-                  <span className="transactions-summary-title">Productos</span>
-                  <p>
-                    Agrega uno o más productos para el mes y luego selecciona cuál deseas configurar.
-                  </p>
-                </div>
-                <div className="upload-zone">
-                  <div className="upload-files">
-                    {bankSimulation.products.length === 0 && (
-                      <span>No hay productos todavía. Presiona agregar producto.</span>
-                    )}
-                    {bankSimulation.products.map((product) => (
+                <div className="transactions-products-column">
+                  {transactionProductCards.map(({ product, descriptor, intel }) => (
+                    <article
+                      key={product.id}
+                      className={`transactions-product-card${
+                        bankSimulation.activeProductId === product.id ? ' is-active' : ''
+                      }`}
+                    >
                       <button
-                        key={product.id}
                         type="button"
-                        className="upload-file-pill"
+                        className="transactions-product-main"
                         onClick={() => selectTransactionProduct(product.id)}
                       >
-                        {product.label} · {product.bank || 'banco pendiente'} ·{' '}
-                        {product.parsedDocuments.length > 0 ? 'dashboard listo' : 'sin cartola'}
+                        <span className="transactions-product-eyebrow">{product.label}</span>
+                        <strong>{descriptor.title}</strong>
+                        <p>{descriptor.description}</p>
+                        <div className="transactions-keywords">
+                          <span className="transactions-keyword-pill">
+                            {product.connected ? 'Conectado (simulado)' : 'Pendiente conexión'}
+                          </span>
+                          <span className="transactions-keyword-pill">
+                            {intel.docs > 0 ? `${intel.docs} cartola(s)` : 'Sin cartola'}
+                          </span>
+                          <span className="transactions-keyword-pill">
+                            {intel.amounts.length > 0 ? `${intel.amounts.length} movimientos` : 'Sin movimientos'}
+                          </span>
+                        </div>
+                        <div className="transactions-product-insights">
+                          {descriptor.insights.map((insight, idx) => (
+                            <span key={`${product.id}-insight-${idx}`}>{insight}</span>
+                          ))}
+                        </div>
                       </button>
-                    ))}
-                  </div>
-                </div>
-                <div className="agent-modal-actions">
-                  <button type="button" className="continue-ghost" onClick={addTransactionProduct}>
-                    Agregar producto
-                  </button>
+                      <div className="transactions-product-actions">
+                        <button
+                          type="button"
+                          className="continue-ghost"
+                          onClick={() => selectTransactionProduct(product.id)}
+                        >
+                          Abrir producto
+                        </button>
+                        <button
+                          type="button"
+                          className="continue-ghost danger"
+                          onClick={() => deleteTransactionProduct(product.id)}
+                        >
+                          Eliminar
+                        </button>
+                      </div>
+                    </article>
+                  ))}
+
                   <button
                     type="button"
-                    className="button-primary"
-                    disabled={!activeBankProduct}
-                    onClick={() => setTxWizardStep('credentials')}
+                    className="transactions-product-card add-card"
+                    onClick={addTransactionProduct}
                   >
-                    Configurar seleccionado
+                    <span className="transactions-product-eyebrow">Nuevo producto</span>
+                    <strong>Agregar producto</strong>
+                    <p>
+                      Selecciona banco, usa credenciales simuladas y sube cartola en imagen/PDF para análisis
+                      automático.
+                    </p>
                   </button>
                 </div>
+                {transactionProductCards.length === 0 && (
+                  <div className="transactions-summary-card">
+                    <span className="transactions-summary-title">Sin productos</span>
+                    <p>
+                      Empieza agregando un producto. Luego el sistema identificará institución, tipo de producto e
+                      insights desde la cartola.
+                    </p>
+                  </div>
+                )}
               </>
             )}
 

@@ -933,6 +933,106 @@
   font-size: 0.72rem;
 }
 
+.transactions-products-column {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.transactions-product-card {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border-radius: 20px;
+  border: 1px solid rgba(197, 217, 230, 0.16);
+  background:
+    radial-gradient(circle at top right, rgba(119, 171, 206, 0.14), transparent 38%),
+    linear-gradient(180deg, rgba(13, 19, 29, 0.92), rgba(8, 12, 19, 0.92));
+  box-shadow:
+    0 16px 32px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.transactions-product-card.is-active {
+  border-color: rgba(151, 200, 233, 0.56);
+  box-shadow:
+    0 20px 36px rgba(0, 0, 0, 0.25),
+    0 0 0 1px rgba(151, 200, 233, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07);
+}
+
+.transactions-product-card.add-card {
+  cursor: pointer;
+  padding: 16px;
+}
+
+.transactions-product-main {
+  width: 100%;
+  border: none;
+  background: transparent;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+}
+
+.transactions-product-main strong,
+.transactions-product-card.add-card strong {
+  font-size: 1rem;
+  letter-spacing: -0.02em;
+  color: rgba(245, 250, 255, 0.95);
+}
+
+.transactions-product-main p,
+.transactions-product-card.add-card p {
+  margin: 0;
+  color: rgba(218, 229, 237, 0.82);
+  line-height: 1.5;
+  font-size: 0.84rem;
+}
+
+.transactions-product-eyebrow {
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(186, 205, 219, 0.72);
+}
+
+.transactions-product-insights {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.transactions-product-insights span {
+  color: rgba(194, 216, 232, 0.86);
+  font-size: 0.75rem;
+}
+
+.transactions-product-actions {
+  display: flex;
+  gap: 8px;
+  padding: 0 16px 14px;
+}
+
+.transactions-product-actions .continue-ghost {
+  min-height: 38px;
+  padding: 0 12px;
+}
+
+.continue-ghost.danger {
+  border-color: rgba(255, 126, 126, 0.32);
+  color: rgba(255, 179, 179, 0.96);
+}
+
+.continue-ghost.danger:hover {
+  background: rgba(206, 67, 67, 0.16);
+  border-color: rgba(255, 146, 146, 0.54);
+}
+
 .voice-call-shell {
   padding: 18px 20px;
   border-radius: 24px;
@@ -8278,6 +8378,23 @@
   .transactions-keyword-pill {
     font-size: 0.68rem !important;
     padding: 5px 9px !important;
+  }
+
+  .transactions-products-column {
+    gap: 10px !important;
+    padding: 0 16px !important;
+  }
+
+  .transactions-product-main {
+    padding: 14px !important;
+  }
+
+  .transactions-product-actions {
+    padding: 0 14px 12px !important;
+  }
+
+  .transactions-product-card.add-card {
+    padding: 14px !important;
   }
 
   .bank-sim-grid {
