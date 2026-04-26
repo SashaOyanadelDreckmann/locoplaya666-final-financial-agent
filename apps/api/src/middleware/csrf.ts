@@ -42,7 +42,8 @@ function secureCompare(a: string, b: string): boolean {
  */
 export function attachCsrfToken(req: Request, res: Response, next: NextFunction) {
   // Double-submit cookie pattern: if a session exists, ensure a CSRF cookie exists.
-  if (SAFE_METHODS.has(req.method) && hasSessionCookie(req)) {
+  // We attach on every request so flows that start with POST (e.g. login) still receive a token.
+  if (hasSessionCookie(req)) {
     const token = getCsrfTokenFromCookie(req) ?? generateCsrfToken();
     res.cookie(CSRF_COOKIE_NAME, token, {
       httpOnly: false,
