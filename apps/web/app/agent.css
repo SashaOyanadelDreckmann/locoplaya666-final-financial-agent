@@ -8971,3 +8971,160 @@
     font-size: 9px !important;
   }
 }
+
+/* Mobile panel refinements (profile/news/recents/library stability) */
+@media (max-width: 767px) {
+  /* 1) Perfil: mostrar mas info sin desbordes ni solapes */
+  .agent-panel .profile-card {
+    min-height: 132px !important;
+    padding: 10px 11px !important;
+    gap: 6px !important;
+  }
+
+  .agent-panel .profile-card .profile-badge {
+    display: inline-flex !important;
+    align-self: flex-start !important;
+    font-size: 0.54rem !important;
+    padding: 2px 6px !important;
+  }
+
+  .agent-panel .profile-card .profile-subtitle {
+    display: block !important;
+    font-size: 0.64rem !important;
+    line-height: 1.2 !important;
+    opacity: 0.86 !important;
+  }
+
+  .agent-panel .profile-card .panel-text {
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+    font-size: 0.68rem !important;
+    line-height: 1.28 !important;
+    margin-top: 0 !important;
+  }
+
+  .agent-panel .profile-card .profile-intake-strip {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 5px !important;
+    margin-top: 0 !important;
+  }
+
+  .agent-panel .profile-card .profile-intake-pill {
+    font-size: 0.58rem !important;
+    padding: 4px 6px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .agent-panel .profile-card .profile-meta,
+  .agent-panel .profile-card .profile-actions,
+  .agent-panel .profile-card .profile-inline-action {
+    display: none !important;
+  }
+
+  /* 2) Noticias completamente centradas */
+  .agent-panel .news-card .news-overlay {
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    gap: 6px !important;
+    padding: 10px 12px !important;
+  }
+
+  .agent-panel .news-card .news-kicker {
+    margin: 0 auto !important;
+  }
+
+  .agent-panel .news-card .news-title,
+  .agent-panel .news-card .news-subtitle {
+    text-align: center !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+
+  .agent-panel .news-card .news-subtitle {
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+    max-width: 25ch !important;
+  }
+
+  /* 3) Recientes: miniatura pequeña completa */
+  .agent-panel .recent-library-card {
+    min-height: 132px !important;
+    padding: 10px 11px !important;
+  }
+
+  .agent-panel .recent-library-grid {
+    grid-template-columns: repeat(auto-fill, minmax(54px, 54px)) !important;
+    justify-content: start !important;
+    align-items: start !important;
+    gap: 7px !important;
+  }
+
+  .agent-panel .recent-item {
+    width: 54px !important;
+    min-width: 54px !important;
+    max-width: 54px !important;
+    align-items: center !important;
+    gap: 3px !important;
+  }
+
+  .agent-panel .recent-item-preview-wrap {
+    width: 54px !important;
+    min-width: 54px !important;
+    max-width: 54px !important;
+    aspect-ratio: 1 / 1.414 !important;
+    border-radius: 4px !important;
+    overflow: hidden !important;
+  }
+
+  .agent-panel .recent-item-preview {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain !important;
+    object-position: center top !important;
+    background: #fff !important;
+  }
+
+  .agent-panel .recent-item-name {
+    width: 100% !important;
+    font-size: 0.54rem !important;
+    line-height: 1.15 !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  /* 4) Biblioteca: evitar que aparezca "rota" o rompa el carrusel */
+  .agent-panel .mob-col:has(.panel-pos-library) {
+    flex: 0 0 min(78vw, 280px) !important;
+    width: min(78vw, 280px) !important;
+    min-width: min(78vw, 280px) !important;
+    max-width: min(78vw, 280px) !important;
+  }
+
+  .agent-panel .mob-col:has(.panel-pos-library) + .mob-col {
+    margin-left: 0 !important;
+  }
+
+  .agent-panel .panel-pos-library {
+    min-height: 132px !important;
+    overflow: hidden !important;
+  }
+
+  .agent-panel .panel-pos-library .reports-grid {
+    max-height: 88px !important;
+    overflow: hidden !important;
+  }
+
+  .agent-panel .panel-pos-library .report-list {
+    display: none !important;
+  }
+}
