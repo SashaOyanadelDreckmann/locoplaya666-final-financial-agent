@@ -1,5 +1,6 @@
 import { getAgentRequestUrl } from './apiBase';
 import { parseApiResponse } from './apiEnvelope';
+import { getCsrfToken } from './csrf';
 
 /* ────────────────────────────────────────────── */
 /* Envío al agente central (LIMPIO)               */
@@ -64,7 +65,13 @@ export async function sendToAgent(payload: {
   }
 
   const AGENT_URL = getAgentRequestUrl('/api/agent');
-  const timeoutMs = Number(process.env.NEXT_PUBLIC_AGENT_TIMEOUT_MS || 35000);
+  const csrfToken = getCsrfToken();
+  const requestHeaders: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}),
+  };
+  // Default raised to tolerate long tool chains (charts/PDF/report generation) in production-like latency.
+  const timeoutMs = Number(process.env.NEXT_PUBLIC_AGENT_TIMEOUT_MS || 65000);
   const retryTimeoutEnabled = process.env.NEXT_PUBLIC_AGENT_RETRY_TIMEOUT !== 'false';
   const retry5xxEnabled = process.env.NEXT_PUBLIC_AGENT_RETRY_5XX !== 'false';
 
@@ -74,7 +81,7 @@ export async function sendToAgent(payload: {
     try {
       return await fetch(AGENT_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: requestHeaders,
         credentials: 'include',
         body: JSON.stringify(body),
         signal: controller.signal,
@@ -92,11 +99,11 @@ export async function sendToAgent(payload: {
       // Retry once with a larger timeout for slow tool chains.
       try {
         const retryController = new AbortController();
-        const retryTimeoutId = setTimeout(() => retryController.abort(), timeoutMs + 20000);
+        const retryTimeoutId = setTimeout(() => retryController.abort(), timeoutMs + 30000);
         try {
           res = await fetch(AGENT_URL, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: requestHeaders,
             credentials: 'include',
             body: JSON.stringify(body),
             signal: retryController.signal,
