@@ -668,48 +668,8 @@ export default function AgentPage() {
   useEffect(() => {
     const el = panelGridRef.current;
     if (!el || !isMobileViewport) return;
-
-    let resetting = false;
-    const getMetrics = () => {
-      const firstReal = el.querySelector<HTMLElement>('[data-loop-segment="real"][data-loop-origin="0"]');
-      const firstAppend = el.querySelector<HTMLElement>('[data-loop-segment="append"][data-loop-origin="0"]');
-      if (!firstReal || !firstAppend) return null;
-      return {
-        firstRealLeft: firstReal.offsetLeft,
-        firstAppendLeft: firstAppend.offsetLeft,
-        segmentWidth: firstAppend.offsetLeft - firstReal.offsetLeft,
-      };
-    };
-
-    const initialMetrics = getMetrics();
-    if (initialMetrics && Math.abs(el.scrollLeft - initialMetrics.firstRealLeft) > 8) {
-      el.scrollLeft = initialMetrics.firstRealLeft;
-    }
-
-    const onScroll = () => {
-      if (resetting) return;
-      const metrics = getMetrics();
-      if (!metrics || metrics.segmentWidth <= 0) return;
-      if (el.scrollLeft <= metrics.firstRealLeft - 12) {
-        resetting = true;
-        requestAnimationFrame(() => {
-          el.scrollLeft = el.scrollLeft + metrics.segmentWidth;
-          resetting = false;
-        });
-        return;
-      }
-      if (el.scrollLeft >= metrics.firstAppendLeft - 12) {
-        resetting = true;
-        requestAnimationFrame(() => {
-          el.scrollLeft = el.scrollLeft - metrics.segmentWidth;
-          resetting = false;
-        });
-      }
-    };
-
-    el.addEventListener('scroll', onScroll, { passive: true });
-    return () => el.removeEventListener('scroll', onScroll);
-  }, [isMobileViewport]);
+    el.scrollLeft = 0;
+  }, [isMobileViewport, panelStage]);
 
   // Bloquear TODO scroll/bounce/swipe/zoom en la pagina del agente
   useEffect(() => {
@@ -3775,29 +3735,11 @@ export default function AgentPage() {
     },
   ];
 
-  const panelRenderedCards = isMobileViewport
-    ? [
-        ...panelBaseCards.map((card, index) =>
-          React.cloneElement(card.node, {
-            key: `prepend-${card.key}`,
-          })
-        ),
-        ...panelBaseCards.map((card, index) =>
-          React.cloneElement(card.node, {
-            key: `real-${card.key}`,
-          })
-        ),
-        ...panelBaseCards.map((card, index) =>
-          React.cloneElement(card.node, {
-            key: `append-${card.key}`,
-          })
-        ),
-      ]
-    : panelBaseCards.map((card, index) =>
-        React.cloneElement(card.node, {
-          key: `real-${card.key}`,
-        })
-      );
+  const panelRenderedCards = panelBaseCards.map((card) =>
+    React.cloneElement(card.node, {
+      key: `real-${card.key}`,
+    })
+  );
 
   return (
     <main
