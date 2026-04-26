@@ -29,7 +29,6 @@ import { toUserFacingError } from '@/lib/userError';
 import { getApiBaseUrl } from '@/lib/apiBase';
 
 import { AnimatedPanelCard } from '../../components/AnimatedPanelCard';
-import { InfiniteScrollPanel } from '../../components/InfiniteScrollPanel';
 import ProfileCard from '../../components/ProfileCard';
 
 import type {
@@ -4279,18 +4278,7 @@ export default function AgentPage() {
           ref={panelGridRef}
           className="panel-grid"
         >
-          {isMobileViewport ? (
-            <InfiniteScrollPanel
-              autoScrollSpeed={40}
-              pauseOnHover={true}
-              enableAutoScroll={true}
-              className="infinite-scroll-container"
-            >
-              {panelRenderedCards}
-            </InfiniteScrollPanel>
-          ) : (
-            panelRenderedCards
-          )}
+          {panelRenderedCards}
         </div>
       </aside>
 
