@@ -1641,7 +1641,14 @@ export default function AgentPage() {
     }
   }
 
-  async function onSend(messageOverride?: string) {
+  async function onSend(
+    messageOverride?: string,
+    options?: {
+      agentPayload?: string;
+      assistantPendingLabel?: string;
+      hideUserMessage?: boolean;
+    }
+  ) {
     if (!isAuthenticated) {
       router.replace('/login');
       return;
@@ -1651,6 +1658,24 @@ export default function AgentPage() {
     haptic(8); // feedback al enviar mensaje
 
     const userMessage = outgoingText;
+    const agentMessage = String(options?.agentPayload ?? userMessage).trim();
+    const pendingLabel = String(options?.assistantPendingLabel ?? '').trim();
+    const hideUserMessage = options?.hideUserMessage === true;
+
+    const removePendingAssistantMessage = (list: ChatItem[]): ChatItem[] => {
+      if (!pendingLabel) return list;
+      for (let i = list.length - 1; i >= 0; i--) {
+        const item = list[i];
+        if (
+          item.type === 'message' &&
+          item.role === 'assistant' &&
+          String(item.content ?? '').trim() === pendingLabel
+        ) {
+          return [...list.slice(0, i), ...list.slice(i + 1)];
+        }
+      }
+      return list;
+    };
     setDraftForActive('');
     setLoading(true);
 
@@ -1703,20 +1728,28 @@ export default function AgentPage() {
 
     const asksToExplainChart =
       /\b(explica|explicar|interpreta|interpretar|lee|analiza|comenta|desglosa)\b[\s\S]*\b(gr[aá]fic(?:o|os)|chart(?:s)?)\b/i.test(
-        userMessage
+        agentMessage
       ) ||
-      /\b(gr[aá]fic(?:o|os)|chart(?:s)?)\b/i.test(userMessage);
+      /\b(gr[aá]fic(?:o|os)|chart(?:s)?)\b/i.test(agentMessage);
     const enrichedUserMessage =
       asksToExplainChart && recentChartSummaries.length > 0
-        ? `${userMessage}\n\nContexto del último gráfico en chat: ${JSON.stringify(
+        ? `${agentMessage}\n\nContexto del último gráfico en chat: ${JSON.stringify(
             recentChartSummaries.slice(-1)[0]
           )}`
-        : userMessage;
+        : agentMessage;
 
-    setItemsForActive((prev) => [
-      ...prev,
-      { type: 'message', role: 'user', content: userMessage },
-    ]);
+    if (!hideUserMessage) {
+      setItemsForActive((prev) => [
+        ...prev,
+        { type: 'message', role: 'user', content: userMessage },
+      ]);
+    }
+    if (pendingLabel) {
+      setItemsForActive((prev) => [
+        ...prev,
+        { type: 'message', role: 'assistant', content: pendingLabel, mode: 'information' },
+      ]);
+    }
 
     // Increment user message count for sheet cycling
     setChatThreads((prev) =>
@@ -1857,30 +1890,39 @@ export default function AgentPage() {
             })
           : next;
       if (nextFiltered.length === 0) {
-        setItemsForActive((prev) => [
-          ...prev,
-          {
-            type: 'message',
-            role: 'assistant',
-            content: sanitizeMessageText(res.message, '—'),
-            mode: res.mode ?? res.reasoning_mode,
-            objective: res.react?.objective,
-            agent_blocks: res.agent_blocks,
-          },
-        ]);
+        setItemsForActive((prev) => {
+          const base = removePendingAssistantMessage(prev);
+          return [
+            ...base,
+            {
+              type: 'message',
+              role: 'assistant',
+              content: sanitizeMessageText(res.message, '—'),
+              mode: res.mode ?? res.reasoning_mode,
+              objective: res.react?.objective,
+              agent_blocks: res.agent_blocks,
+            },
+          ];
+        });
       } else {
-        setItemsForActive((prev) => [...prev, ...nextFiltered]);
+        setItemsForActive((prev) => {
+          const base = removePendingAssistantMessage(prev);
+          return [...base, ...nextFiltered];
+        });
       }
     } catch (err) {
       const errorText = toUserFacingError(err, 'chat.send');
-      setItemsForActive((prev) => [
-        ...prev,
-        {
-          type: 'message',
-          role: 'assistant',
-          content: errorText,
-        },
-      ]);
+      setItemsForActive((prev) => {
+        const base = removePendingAssistantMessage(prev);
+        return [
+          ...base,
+          {
+            type: 'message',
+            role: 'assistant',
+            content: errorText,
+          },
+        ];
+      });
     } finally {
       setLoading(false);
     }
@@ -1988,7 +2030,12 @@ export default function AgentPage() {
       'Entrega SOLO: 1) diagnostico corto, 2) 3 ajustes priorizados con monto sugerido, 3) una meta de ahorro mensual.',
     ].join('\n');
     setIsBudgetModalOpen(false);
-    void onSend(message);
+    void onSend('Configurar presupuesto', {
+      agentPayload: message,
+      assistantPendingLabel:
+        'Configurando presupuesto con Financiera mente… preparando lectura ejecutiva y recomendaciones.',
+      hideUserMessage: true,
+    });
   }
 
   function simulateBankLogin(randomMode = false) {
