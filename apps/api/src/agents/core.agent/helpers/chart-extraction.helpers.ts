@@ -86,7 +86,7 @@ function chartBlocksFromSeries(series: unknown): ChartBlock[] {
     type: 'chart',
     chart: {
       kind: 'line',
-      title: `Serie: ${yKey.replaceAll('_', ' ')}`,
+      title: `Serie: ${yKey.replace(/_/g, ' ')}`,
       xKey,
       yKey,
       data: series as Array<Record<string, string | number>>,
@@ -401,15 +401,19 @@ export function extractChartBlocksFromToolOutput(
  * Extract suggested replies from <SUGERENCIAS> tag
  */
 export function extractSuggestedReplies(text: string): string[] {
-  const match = text.match(/<SUGERENCIAS>\[([\s\S]*?)\]<\/SUGERENCIAS>/);
-  if (!match) return [];
+  const xmlMatch = text.match(/<SUGERENCIAS>\s*(\[[\s\S]*?\])\s*<\/SUGERENCIAS>/i);
+  const plainMatch = text.match(/(?:^|\n)\s*SUGERENCIAS\s*:\s*(\[[\s\S]*?\])\s*(?:\n|$)/i);
+  const payload = xmlMatch?.[1] ?? plainMatch?.[1];
+  if (!payload) return [];
 
   try {
-    const jsonStr = `[${match[1]}]`;
-    return JSON.parse(jsonStr);
+    const parsed = JSON.parse(payload);
+    return Array.isArray(parsed) ? parsed.map((x) => String(x)).filter(Boolean) : [];
   } catch {
     // Try simpler parsing: split by comma + clean quotes
-    const items = match[1]
+    const items = payload
+      .replace(/^\[/, '')
+      .replace(/\]$/, '')
       .split(',')
       .map((s) => s.trim().replace(/^["']|["']$/g, ''))
       .filter(Boolean);
@@ -443,6 +447,7 @@ export function cleanSpecialTags(text: string): string {
     .replace(/<QUESTIONNAIRE>[\s\S]*?<\/QUESTIONNAIRE>/g, '\n\n')
     .replace(/<SUGERENCIAS>[\s\S]*?<\/SUGERENCIAS>/g, '\n\n')
     .replace(/<PANEL>[\s\S]*?<\/PANEL>/g, '\n\n')
+    .replace(/(?:^|\n)\s*SUGERENCIAS\s*:\s*\[[\s\S]*?\]\s*(?=\n|$)/gi, '\n\n')
     .replace(/<function_calls>[\s\S]*?<\/function_calls>/gi, '\n\n')
     .replace(/<invoke[\s\S]*?<\/invoke>/gi, '\n\n')
     .replace(/<parameter[\s\S]*?<\/parameter>/gi, '\n\n')

@@ -24,6 +24,8 @@ import {
   getWelcomeMessage,
   parseDocuments,
 } from '@/lib/api';
+import { ApiHttpError } from '@/lib/apiEnvelope';
+import { toUserFacingError } from '@/lib/userError';
 import { getApiBaseUrl } from '@/lib/apiBase';
 
 import PanelCard from '../../components/PanelCard';
@@ -172,6 +174,8 @@ function buildInitialAgentSuggestions(intakeLike: unknown): string[] {
 function sanitizeMessageText(value: unknown, fallback = ''): string {
   const raw = typeof value === 'string' ? value : String(value ?? '');
   const cleaned = raw
+    .replace(/(?:^|\n)\s*SUGERENCIAS\s*:\s*\[[\s\S]*?\]\s*(?=\n|$)/gi, '\n')
+    .replace(/<SUGERENCIAS>[\s\S]*?<\/SUGERENCIAS>/gi, '\n')
     .replace(/\bundefined\b/gi, '')
     .replace(/\bnull\b/gi, '')
     .replace(/([a-záéíóúñ])([A-ZÁÉÍÓÚÑ])/g, '$1 $2')
@@ -496,6 +500,8 @@ export default function AgentPage() {
   const panelSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [sessionInfo, setSessionInfo] = useState<any>(null);
+  const [authBootstrapped, setAuthBootstrapped] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [panelStateLoaded, setPanelStateLoaded] = useState(false);
   const [persistentKnowledgeScore, setPersistentKnowledgeScore] = useState<number | null>(null);
   const [documentsLoading, setDocumentsLoading] = useState(false);
@@ -530,6 +536,32 @@ export default function AgentPage() {
 
   const items = activeThread?.items ?? [];
   const input = activeThread?.draft ?? '';
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const bootstrapAuth = async () => {
+      try {
+        const info = await getSessionInfo();
+        if (cancelled) return;
+        setSessionInfo(info);
+        setIsAuthenticated(true);
+      } catch (error) {
+        if (cancelled) return;
+        setIsAuthenticated(false);
+        if (error instanceof ApiHttpError && error.status === 401) {
+          router.replace('/login');
+        }
+      } finally {
+        if (!cancelled) setAuthBootstrapped(true);
+      }
+    };
+
+    void bootstrapAuth();
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
 
   // Mobile panel carousel loop: when reaching the end, jump back to start.
   useEffect(() => {
@@ -719,6 +751,7 @@ export default function AgentPage() {
 
   // Load sheets from API on mount
   useEffect(() => {
+    if (!authBootstrapped || !isAuthenticated) return;
     loadSheets().then((data) => {
       if (data?.sheets && Array.isArray(data.sheets) && data.sheets.length > 0) {
         // Migrate saved sheets to current type
@@ -753,7 +786,7 @@ export default function AgentPage() {
       }
       setSheetsLoaded(true);
     }).catch(() => setSheetsLoaded(true));
-  }, []);
+  }, [authBootstrapped, isAuthenticated]);
 
   // Ensure each thread starts with a personalized welcome as the first assistant message.
   const welcomeInjectedThreadsRef = useRef<Set<string>>(new Set());
@@ -1352,6 +1385,7 @@ export default function AgentPage() {
 
 
   useEffect(() => {
+    if (!authBootstrapped || !isAuthenticated) return;
     let alive = true;
 
     loadPanelState()
@@ -1392,9 +1426,10 @@ export default function AgentPage() {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [authBootstrapped, isAuthenticated]);
 
   useEffect(() => {
+    if (!isAuthenticated) return;
     if (!panelStateLoaded) return;
     if (panelSaveTimerRef.current) clearTimeout(panelSaveTimerRef.current);
 
@@ -1451,6 +1486,7 @@ export default function AgentPage() {
   }, [knowledgeScore, milestones]);
 
   useEffect(() => {
+    if (!authBootstrapped || !isAuthenticated) return;
     let alive = true;
     let timer: ReturnType<typeof setTimeout> | null = null;
     let inFlight = false;
@@ -1477,7 +1513,13 @@ export default function AgentPage() {
       try {
         const info = await getSessionInfo();
         if (alive) setSessionInfo(info);
-      } catch {}
+      } catch (error) {
+        if (error instanceof ApiHttpError && error.status === 401 && alive) {
+          setIsAuthenticated(false);
+          router.replace('/login');
+          return;
+        }
+      }
       finally {
         inFlight = false;
         schedule(20000);
@@ -1490,7 +1532,7 @@ export default function AgentPage() {
       alive = false;
       if (timer) clearTimeout(timer);
     };
-  }, []);
+  }, [authBootstrapped, isAuthenticated, router]);
 
   useEffect(() => {
     if (typeof sessionInfo?.knowledgeScore === 'number') {
@@ -1527,8 +1569,9 @@ export default function AgentPage() {
   }, [panelStateLoaded, sessionInfo?.injectedIntake, budgetRows]);
 
   useEffect(() => {
+    if (!isAuthenticated) return;
     loadProfileIfNeeded().catch(() => {});
-  }, [loadProfileIfNeeded]);
+  }, [isAuthenticated, loadProfileIfNeeded]);
 
   useEffect(() => {
     try {
@@ -1547,6 +1590,10 @@ export default function AgentPage() {
   }
 
   async function onSend(messageOverride?: string) {
+    if (!isAuthenticated) {
+      router.replace('/login');
+      return;
+    }
     const outgoingText = String(messageOverride ?? input ?? '').trim();
     if (!outgoingText || loading) return;
     haptic(8); // feedback al enviar mensaje
@@ -1773,10 +1820,7 @@ export default function AgentPage() {
         setItemsForActive((prev) => [...prev, ...nextFiltered]);
       }
     } catch (err) {
-      const errorText =
-        err instanceof Error && err.message
-          ? `Ocurrio un error: ${err.message}`
-          : 'Ocurrio un error. Intenta nuevamente.';
+      const errorText = toUserFacingError(err, 'chat.send');
       setItemsForActive((prev) => [
         ...prev,
         {
@@ -1902,6 +1946,10 @@ Datos: ${JSON.stringify(budgetSummary)}`;
   }
 
   async function onUploadStatement(files: FileList | null): Promise<Array<{ name: string; text: string }>> {
+    if (!isAuthenticated) {
+      router.replace('/login');
+      return [];
+    }
     if (!files || files.length === 0) return [];
 
     const selectedFiles = Array.from(files);
