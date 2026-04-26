@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import type { ChatAgentInput, ChatAgentResponse } from '../agents/core.agent/chat.types';
 import { listTools } from '../mcp/tools/registry';
 import { getLogger } from '../logger';
+import { loadUserMemoryBlob, saveUserMemoryBlob } from './user.service';
 
 export type MemoryFactType =
   | 'identity'
@@ -66,6 +67,25 @@ export type UserMemory = {
   timeline: MemoryTimelineEntry[];
 };
 
+export type SessionWorkingMemory = {
+  userId: string;
+  sessionId: string;
+  createdAt: string;
+  updatedAt: string;
+  turnCount: number;
+  rollingSummary: string;
+  recentUserIntents: string[];
+  openLoops: string[];
+  recentTools: string[];
+  recentArtifacts: string[];
+  liveSignals: {
+    hasDocuments: boolean;
+    hasTransactions: boolean;
+    hasBudget: boolean;
+    knowledgeScore?: number;
+  };
+};
+
 export type SystemMemory = {
   version: string;
   updatedAt: string;
@@ -76,6 +96,150 @@ export type SystemMemory = {
 };
 
 const USER_MEMORY_STORE = new Map<string, UserMemory>();
+const SESSION_WORKING_STORE = new Map<string, SessionWorkingMemory>();
+
+function sessionStoreKey(userId: string, sessionId: string) {
+  return `${userId}::${sessionId}`;
+}
+
+function defaultSessionWorkingMemory(userId: string, sessionId: string): SessionWorkingMemory {
+  const now = new Date().toISOString();
+  return {
+    userId,
+    sessionId,
+    createdAt: now,
+    updatedAt: now,
+    turnCount: 0,
+    rollingSummary: 'Sin actividad de sesión todavía.',
+    recentUserIntents: [],
+    openLoops: [],
+    recentTools: [],
+    recentArtifacts: [],
+    liveSignals: {
+      hasDocuments: false,
+      hasTransactions: false,
+      hasBudget: false,
+    },
+  };
+}
+
+function normalizeList(values: string[], limit = 8): string[] {
+  const compact = values
+    .map((value) => truncate(value, 120))
+    .filter((value) => value.length > 0);
+  const deduped = Array.from(new Set(compact));
+  return deduped.slice(-limit);
+}
+
+function extractSessionIntent(message: string): string | null {
+  const trimmed = truncate(message, 140);
+  if (!trimmed) return null;
+  if (/\b(presupuesto|gasto|ingreso|balance|flujo)\b/i.test(trimmed)) return 'Optimizar presupuesto';
+  if (/\b(transaccion|cartola|movimiento|banco|cuenta)\b/i.test(trimmed)) return 'Analizar transacciones';
+  if (/\b(pdf|informe|reporte|documento)\b/i.test(trimmed)) return 'Generar reporte';
+  if (/\b(simul|escenario|proyecci[oó]n|rentabilidad)\b/i.test(trimmed)) return 'Simular escenario';
+  if (/\b(deuda|cuota|inter[eé]s)\b/i.test(trimmed)) return 'Gestionar deuda';
+  return trimmed;
+}
+
+function inferOpenLoops(input: ChatAgentInput, response: ChatAgentResponse): string[] {
+  const loops: string[] = [];
+  if (Array.isArray(response.suggested_replies) && response.suggested_replies.length > 0) {
+    loops.push(...response.suggested_replies.slice(0, 3).map((item) => truncate(item, 90)));
+  }
+  const userMessage = String(input.user_message ?? '');
+  if (/\b(revisar|analizar|profundizar|continuar)\b/i.test(userMessage)) {
+    loops.push('Seguimiento solicitado por el usuario');
+  }
+  if (response.mode === 'decision_support') {
+    loops.push('Cerrar decisión con plan accionable');
+  }
+  return normalizeList(loops, 5);
+}
+
+function buildRollingSessionSummary(params: {
+  previous: string;
+  input: ChatAgentInput;
+  response: ChatAgentResponse;
+}): string {
+  const user = truncate(String(params.input.user_message ?? ''), 120);
+  const agent = truncate(String(params.response.message ?? ''), 140);
+  const candidate = `Último avance: Usuario=${user} | Agente=${agent}`;
+  if (!params.previous || params.previous === 'Sin actividad de sesión todavía.') return candidate;
+  return truncate(`${params.previous} || ${candidate}`, 420);
+}
+
+function saveSessionWorkingMemory(memory: SessionWorkingMemory): SessionWorkingMemory {
+  const normalized = {
+    ...memory,
+    updatedAt: new Date().toISOString(),
+    recentUserIntents: normalizeList(memory.recentUserIntents, 8),
+    openLoops: normalizeList(memory.openLoops, 5),
+    recentTools: normalizeList(memory.recentTools, 10),
+    recentArtifacts: normalizeList(memory.recentArtifacts, 10),
+  };
+  SESSION_WORKING_STORE.set(sessionStoreKey(memory.userId, memory.sessionId), normalized);
+  if (SESSION_WORKING_STORE.size > 400) {
+    const oldestKey = SESSION_WORKING_STORE.keys().next().value;
+    if (oldestKey) SESSION_WORKING_STORE.delete(oldestKey);
+  }
+  return normalized;
+}
+
+function updateSessionWorkingMemory(params: {
+  userId: string;
+  input: ChatAgentInput;
+  response: ChatAgentResponse;
+}): SessionWorkingMemory {
+  const sessionId = params.input.session_id ?? `session_${new Date().toISOString().slice(0, 10)}`;
+  const key = sessionStoreKey(params.userId, sessionId);
+  const current = SESSION_WORKING_STORE.get(key) ?? defaultSessionWorkingMemory(params.userId, sessionId);
+  const intent = extractSessionIntent(String(params.input.user_message ?? ''));
+  const tools = (params.response.tool_calls ?? []).map((tool) => tool.tool);
+  const artifacts = (params.response.artifacts ?? []).map((artifact) => artifact.title);
+  const knowledge =
+    typeof params.response.knowledge_score === 'number'
+      ? params.response.knowledge_score
+      : current.liveSignals.knowledgeScore;
+
+  return saveSessionWorkingMemory({
+    ...current,
+    turnCount: current.turnCount + 1,
+    rollingSummary: buildRollingSessionSummary({
+      previous: current.rollingSummary,
+      input: params.input,
+      response: params.response,
+    }),
+    recentUserIntents: normalizeList(
+      [...current.recentUserIntents, ...(intent ? [intent] : [])],
+      8
+    ),
+    openLoops: inferOpenLoops(params.input, params.response),
+    recentTools: normalizeList([...current.recentTools, ...tools], 10),
+    recentArtifacts: normalizeList([...current.recentArtifacts, ...artifacts], 10),
+    liveSignals: {
+      hasDocuments:
+        Boolean((params.input.context as Record<string, unknown> | undefined)?.uploaded_documents) ||
+        current.liveSignals.hasDocuments,
+      hasTransactions:
+        Boolean(
+          (params.input.context as Record<string, unknown> | undefined)?.consolidated_context &&
+            (params.input.context as Record<string, any>).consolidated_context?.transactions
+        ) || current.liveSignals.hasTransactions,
+      hasBudget:
+        Boolean(
+          (params.input.ui_state as Record<string, unknown> | undefined)?.budget_summary ||
+            (params.input.context as Record<string, unknown> | undefined)?.budget_summary
+        ) || current.liveSignals.hasBudget,
+      knowledgeScore: knowledge,
+    },
+  });
+}
+
+function getSessionWorkingMemory(userId: string, sessionId?: string): SessionWorkingMemory | null {
+  if (!sessionId) return null;
+  return SESSION_WORKING_STORE.get(sessionStoreKey(userId, sessionId)) ?? null;
+}
 
 function defaultUserMemory(userId: string): UserMemory {
   const now = new Date().toISOString();
@@ -261,6 +425,53 @@ export function loadUserMemory(userId: string): UserMemory {
   }
 }
 
+export async function hydrateUserMemoryFromBlob(userId: string): Promise<UserMemory> {
+  const cached = USER_MEMORY_STORE.get(userId);
+  if (cached) return cached;
+
+  try {
+    const blob = await loadUserMemoryBlob(userId);
+    if (!blob) return defaultUserMemory(userId);
+    const parsed = blob as Partial<UserMemory>;
+    const hydrated: UserMemory = {
+      ...defaultUserMemory(userId),
+      ...parsed,
+      userId,
+      facts: Array.isArray(parsed.facts) ? (parsed.facts as MemoryFact[]) : [],
+      timeline: Array.isArray(parsed.timeline) ? (parsed.timeline as MemoryTimelineEntry[]) : [],
+      preferences:
+        parsed.preferences && typeof parsed.preferences === 'object'
+          ? (parsed.preferences as UserMemory['preferences'])
+          : {},
+      financialSnapshot:
+        parsed.financialSnapshot && typeof parsed.financialSnapshot === 'object'
+          ? (parsed.financialSnapshot as UserMemory['financialSnapshot'])
+          : {},
+      learningState:
+        parsed.learningState && typeof parsed.learningState === 'object'
+          ? (parsed.learningState as UserMemory['learningState'])
+          : { knowledge_score: 0, milestones: [] },
+    };
+    USER_MEMORY_STORE.set(userId, hydrated);
+    return hydrated;
+  } catch (err) {
+    getLogger().warn({ msg: '[Memory] Failed to hydrate from blob', userId, error: err });
+    return defaultUserMemory(userId);
+  }
+}
+
+export async function persistUserMemoryToBlob(memory: UserMemory): Promise<void> {
+  try {
+    await saveUserMemoryBlob(memory.userId, memory as unknown as Record<string, unknown>);
+  } catch (err) {
+    getLogger().warn({
+      msg: '[Memory] Failed to persist memory blob',
+      userId: memory.userId,
+      error: err,
+    });
+  }
+}
+
 export function saveUserMemory(memory: UserMemory): UserMemory {
   const normalized: UserMemory = {
     ...memory,
@@ -271,7 +482,10 @@ export function saveUserMemory(memory: UserMemory): UserMemory {
   return normalized;
 }
 
-export function buildAgentMemoryContext(userId: string): {
+export function buildAgentMemoryContext(
+  userId: string,
+  options?: { sessionId?: string }
+): {
   user_memory: {
     profile_summary: string;
     preferences: UserMemory['preferences'];
@@ -280,10 +494,21 @@ export function buildAgentMemoryContext(userId: string): {
     key_facts: MemoryFact[];
     recent_timeline: MemoryTimelineEntry[];
   };
+  session_memory?: {
+    session_id: string;
+    rolling_summary: string;
+    recent_intents: string[];
+    open_loops: string[];
+    recent_tools: string[];
+    recent_artifacts: string[];
+    turn_count: number;
+    live_signals: SessionWorkingMemory['liveSignals'];
+  } | null;
   system_memory: SystemMemory;
 } {
   const userMemory = loadUserMemory(userId);
   const systemMemory = loadSystemMemory();
+  const sessionMemory = getSessionWorkingMemory(userId, options?.sessionId);
 
   return {
     user_memory: {
@@ -294,8 +519,28 @@ export function buildAgentMemoryContext(userId: string): {
       key_facts: userMemory.facts.slice(-20),
       recent_timeline: userMemory.timeline.slice(-12),
     },
+    session_memory: sessionMemory
+      ? {
+          session_id: sessionMemory.sessionId,
+          rolling_summary: sessionMemory.rollingSummary,
+          recent_intents: sessionMemory.recentUserIntents,
+          open_loops: sessionMemory.openLoops,
+          recent_tools: sessionMemory.recentTools,
+          recent_artifacts: sessionMemory.recentArtifacts,
+          turn_count: sessionMemory.turnCount,
+          live_signals: sessionMemory.liveSignals,
+        }
+      : null,
     system_memory: systemMemory,
   };
+}
+
+export async function buildAgentMemoryContextRealtime(
+  userId: string,
+  options?: { sessionId?: string }
+) {
+  await hydrateUserMemoryFromBlob(userId);
+  return buildAgentMemoryContext(userId, options);
 }
 
 export function appendTurnToMemory(params: {
@@ -436,11 +681,20 @@ export function appendTurnToMemory(params: {
     });
   }
 
-  if (authenticatedUser?.injectedProfile?.profile?.emotionalPattern) {
+  const injectedProfileRecord =
+    authenticatedUser && typeof authenticatedUser.injectedProfile === 'object'
+      ? (authenticatedUser.injectedProfile as Record<string, unknown>)
+      : null;
+  const profileRecord =
+    injectedProfileRecord && typeof injectedProfileRecord.profile === 'object'
+      ? (injectedProfileRecord.profile as Record<string, unknown>)
+      : null;
+
+  if (typeof profileRecord?.emotionalPattern === 'string' && profileRecord.emotionalPattern.length > 0) {
     upsertFact(memory, {
       type: 'identity',
       key: 'emotional_pattern',
-      value: authenticatedUser.injectedProfile.profile.emotionalPattern,
+      value: profileRecord.emotionalPattern,
       confidence: 0.85,
       source_chat_id: chatId,
     });
@@ -462,6 +716,30 @@ export function appendTurnToMemory(params: {
 
   saveUserMemory(memory);
   return memory;
+}
+
+export async function appendTurnToMemoryRealtime(params: {
+  input: ChatAgentInput;
+  response: ChatAgentResponse;
+  authenticatedUser?: Record<string, unknown> | null;
+}): Promise<{ memory: UserMemory; session_memory: SessionWorkingMemory }> {
+  const userId = params.input.user_id;
+  if (!userId) {
+    return {
+      memory: defaultUserMemory('guest'),
+      session_memory: defaultSessionWorkingMemory('guest', 'session_guest'),
+    };
+  }
+
+  await hydrateUserMemoryFromBlob(userId);
+  const memory = appendTurnToMemory(params);
+  const sessionMemory = updateSessionWorkingMemory({
+    userId,
+    input: params.input,
+    response: params.response,
+  });
+  await persistUserMemoryToBlob(memory);
+  return { memory, session_memory: sessionMemory };
 }
 
 export function appendMemoryTimelineNote(params: {

@@ -78,6 +78,8 @@ export async function runCoreAgent(input: ChatAgentInput): Promise<ChatAgentResp
       intake: ctx.injected_intake,
       budget: ctx.injected_budget,
       persistent_memory: ctx.injected_memory?.persistent || [],
+      session_memory: inputContext.session_memory || null,
+      realtime_memory: inputContext.realtime_memory || null,
       system_memory: ctx.injected_memory?.system || [],
       recent_artifacts: inputContext.recent_artifacts || [],
       recent_chart_summaries: inputContext.recent_chart_summaries || [],
@@ -93,6 +95,7 @@ export async function runCoreAgent(input: ChatAgentInput): Promise<ChatAgentResp
       classification: classifyOutput.classification,
       inferred_user_model: classifyOutput.inferred_user_model,
       context_summary,
+      user_message: input.user_message,
       injected_profile: ctx.injected_profile,
       injected_intake: ctx.injected_intake,
       user_id: input.user_id,
@@ -196,6 +199,7 @@ export async function runCoreAgent(input: ChatAgentInput): Promise<ChatAgentResp
       state_updates: {
         inferred_user_model: classifyOutput.inferred_user_model,
         coherence_validation: ctx.coherence_check,
+        technical_backend_message: ctx.formatted_response.technical_backend_message,
       },
       suggested_replies: ctx.formatted_response.suggested_replies ?? [],
       panel_action: ctx.formatted_response.panel_action ? {

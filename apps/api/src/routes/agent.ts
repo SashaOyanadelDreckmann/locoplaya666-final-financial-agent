@@ -14,7 +14,10 @@ import {
   saveUserPanelState,
 } from '../services/user.service';
 import { complete, completeWithClaude } from '../services/llm.service';
-import { appendTurnToMemory, buildAgentMemoryContext } from '../services/memory.service';
+import {
+  appendTurnToMemoryRealtime,
+  buildAgentMemoryContextRealtime,
+} from '../services/memory.service';
 import {
   ingestGeneratedReportDocument,
   reportSpecToSearchableText,
@@ -26,7 +29,10 @@ import { badRequest, forbidden, unauthorized } from '../http/api.errors';
 import { sendSuccess } from '../http/api.responses';
 import { parseBody } from '../http/parse';
 import { hasPermission, PERMISSIONS, type UserRole } from '../auth/rbac';
-import { generateProfessionalReportPdf } from '../services/reports/professionalPdf.service';
+import {
+  generateProfessionalReportPdf,
+  type ProfessionalPdfInput,
+} from '../services/reports/professionalPdf.service';
 import { getConfig } from '../config';
 
 const router = Router();
@@ -632,10 +638,16 @@ router.post(
     }
 
     try {
-      const memoryContext = buildAgentMemoryContext(authedUser.id);
+      const sessionId =
+        typeof normalizedInput.session_id === 'string' ? normalizedInput.session_id : undefined;
+      const memoryContext = await buildAgentMemoryContextRealtime(authedUser.id, {
+        sessionId,
+      });
       normalizedInput.context = {
         ...((normalizedInput.context as Record<string, unknown>) ?? {}),
         persistent_memory: memoryContext.user_memory,
+        session_memory: memoryContext.session_memory,
+        realtime_memory: memoryContext.session_memory,
         system_memory: memoryContext.system_memory,
       };
 
@@ -643,6 +655,7 @@ router.post(
         ...((normalizedInput.ui_state as Record<string, unknown>) ?? {}),
         memory_profile_summary: memoryContext.user_memory.profile_summary,
         memory_timeline_count: memoryContext.user_memory.recent_timeline.length,
+        memory_session_turn_count: memoryContext.session_memory?.turn_count ?? 0,
       };
     } catch (memoryErr) {
       req.logger?.warn({ msg: 'Error loading persistent memory', error: memoryErr });
@@ -731,13 +744,19 @@ router.post(
           history: Array.isArray(input.history) ? input.history : [],
           citations: Array.isArray(response.citations) ? (response.citations as any) : [],
         });
-        const pdfInput = {
+        const pdfInput: ProfessionalPdfInput = {
           title: spec.title,
           subtitle: spec.subtitle,
           style: 'premium_dark' as const,
           source: 'analysis' as const,
           sections: spec.sections,
-          charts: spec.charts,
+          charts: spec.charts.map((chart) => ({
+            ...chart,
+            kind:
+              chart.kind === 'line' || chart.kind === 'bar' || chart.kind === 'area'
+                ? chart.kind
+                : 'line',
+          })),
           tables: spec.tables,
         };
         const fallbackArtifact = await generateProfessionalReportPdf(pdfInput, authedUser.id, {
@@ -760,7 +779,9 @@ router.post(
           });
         }
 
-        const nonPdfArtifacts = (response.artifacts ?? []).filter((a) => a?.type !== 'pdf');
+        const nonPdfArtifacts = (response.artifacts ?? []).filter(
+          (a: { type?: string }) => a?.type !== 'pdf',
+        );
         response.artifacts = [fallbackArtifact, ...nonPdfArtifacts];
         response.message = `${response.message ?? ''}\n\nGeneré un PDF profesional y ya está listo para abrir/guardar/descargar.`;
       } catch (pdfErr) {
@@ -773,7 +794,7 @@ router.post(
     }
 
     try {
-      appendTurnToMemory({
+      await appendTurnToMemoryRealtime({
         input,
         response,
         authenticatedUser: authedUser,
@@ -803,11 +824,13 @@ router.post(
               if (!item || typeof item !== 'object') return item;
               const itemRecord = item as Record<string, unknown>;
               const label = typeof itemRecord.label === 'string' ? itemRecord.label : undefined;
-              const update = response.budget_updates?.find((entry) => entry.label === label);
+              const update = response.budget_updates?.find(
+                (entry: { label: string }) => entry.label === label,
+              );
               return update ? { ...itemRecord, amount: update.amount } : item;
             }) ?? [];
 
-          const newItems = response.budget_updates?.filter((entry) => {
+          const newItems = response.budget_updates?.filter((entry: { label: string }) => {
             return !activeSheet.items?.some((item) => {
               const label =
                 item &&
