@@ -65,7 +65,9 @@ export async function attachProfileToUser(
   userId: string,
   profile: FinancialDiagnosticProfile | Record<string, unknown>,
 ): Promise<boolean> {
-  const updated = await patchUserRecord(userId, { injectedProfile: profile });
+  const updated = await patchUserRecord(userId, {
+    injectedProfile: profile as FinancialDiagnosticProfile,
+  });
   return Boolean(updated);
 }
 
@@ -78,12 +80,12 @@ export async function attachIntakeToUser(
 }
 
 export async function removeInjectedIntakeFromUser(userId: string): Promise<boolean> {
-  const updated = await patchUserRecord(userId, { injectedIntake: null });
+  const updated = await patchUserRecord(userId, { injectedIntake: null as never });
   return Boolean(updated);
 }
 
 export async function removeInjectedProfileFromUser(userId: string): Promise<boolean> {
-  const updated = await patchUserRecord(userId, { injectedProfile: null });
+  const updated = await patchUserRecord(userId, { injectedProfile: null as never });
   return Boolean(updated);
 }
 

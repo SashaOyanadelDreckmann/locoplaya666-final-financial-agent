@@ -54,6 +54,7 @@ export interface ExecutionResult {
  */
 export interface FormattedResponse {
   message: string;
+  technical_backend_message?: string;
   agent_blocks: AgentBlock[];
   artifacts: Artifact[];
   citations: Citation[];
@@ -154,6 +155,7 @@ export interface PlanPhaseInput {
   classification: Classification;
   inferred_user_model: InferredUserModel;
   context_summary: any;
+  user_message?: string;
   injected_profile: FinancialDiagnosticProfile | null;
   injected_intake: IntakeQuestionnaire | null;
   user_id?: string;

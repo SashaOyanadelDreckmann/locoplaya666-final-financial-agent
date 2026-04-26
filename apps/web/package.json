@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@financial-agent/shared": "workspace:*",
+    "framer-motion": "^11.5.11",
     "isomorphic-dompurify": "^2.3.0",
     "katex": "^0.16.45",
     "next": "^14.2.35",

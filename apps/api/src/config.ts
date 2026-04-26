@@ -24,7 +24,7 @@ const configSchema = z.object({
   OPENAI_API_KEY: z.string().default('test-openai-key'),
   OPENAI_MODEL: z
     .string()
-    .default('gpt-5.2')
+    .default('gpt-5.1-codex')
     .describe('OpenAI model ID for core agent reasoning and tool use'),
   OPENAI_TEMPERATURE: z
     .string()

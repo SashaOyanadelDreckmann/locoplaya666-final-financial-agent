@@ -46,7 +46,7 @@ function toStoredUser(record: Record<string, unknown>): StoredUser {
     injectedIntake: (record.injectedIntake ?? undefined) as StoredUser['injectedIntake'],
     latestDiagnosticProfileId: (record.latestDiagnosticProfileId ?? undefined) as string | undefined,
     latestDiagnosticCompletedAt: record.latestDiagnosticCompletedAt
-      ? new Date(record.latestDiagnosticCompletedAt).toISOString()
+      ? new Date(record.latestDiagnosticCompletedAt as string | number | Date).toISOString()
       : undefined,
     panelState: (record.panelState ?? undefined) as StoredUser['panelState'],
     sheets: (record.sheets ?? undefined) as StoredUser['sheets'],
@@ -54,11 +54,15 @@ function toStoredUser(record: Record<string, unknown>): StoredUser {
     knowledgeScore: Number(record.knowledgeScore ?? 0),
     knowledgeHistory: (record.knowledgeHistory ?? []) as StoredUser['knowledgeHistory'],
     knowledgeLastUpdated: record.knowledgeLastUpdated
-      ? new Date(record.knowledgeLastUpdated).toISOString()
+      ? new Date(record.knowledgeLastUpdated as string | number | Date).toISOString()
       : nowIso(),
     memoryBlob: (record.memoryBlob ?? undefined) as Record<string, unknown> | undefined,
-    createdAt: record.createdAt ? new Date(record.createdAt).toISOString() : nowIso(),
-    updatedAt: record.updatedAt ? new Date(record.updatedAt).toISOString() : nowIso(),
+    createdAt: record.createdAt
+      ? new Date(record.createdAt as string | number | Date).toISOString()
+      : nowIso(),
+    updatedAt: record.updatedAt
+      ? new Date(record.updatedAt as string | number | Date).toISOString()
+      : nowIso(),
   };
 }
 
@@ -85,7 +89,7 @@ export async function createUserRecord(input: CreateUserInput): Promise<StoredUs
       role: candidate.role,
       knowledgeBaseScore: candidate.knowledgeBaseScore,
       knowledgeScore: candidate.knowledgeScore,
-      knowledgeHistory: candidate.knowledgeHistory,
+      knowledgeHistory: candidate.knowledgeHistory as any,
       knowledgeLastUpdated: new Date(candidate.knowledgeLastUpdated),
     },
   }).catch((error: unknown) => {

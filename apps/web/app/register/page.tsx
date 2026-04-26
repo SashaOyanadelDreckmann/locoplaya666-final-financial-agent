@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { registerUser } from '@/lib/api';
+import { toUserFacingError } from '@/lib/userError';
 import { useSessionStore } from '@/state/session.store';
 import { RegisterSchema, type RegisterInput } from '@/lib/validation';
 import { ZodError } from 'zod';
@@ -52,8 +53,7 @@ export default function RegisterPage() {
       setAuthenticated();
       router.push('/intake');
     } catch (e: Error | unknown) {
-      const message = e instanceof Error ? e.message : 'Ocurrió un error al crear la cuenta';
-      setError(message);
+      setError(toUserFacingError(e, 'auth.register'));
     } finally {
       setLoading(false);
     }

@@ -17,7 +17,11 @@ interface BudgetPanelProps {
  * Extraído de agent/page.tsx para mejorar mantenibilidad
  */
 export function BudgetPanel({ budgetRows, onAddRow, onDeleteRow, onUpdateRow }: BudgetPanelProps) {
-  const [newRow, setNewRow] = useState({ category: '', type: 'expense' as const, amount: 0 });
+  const [newRow, setNewRow] = useState<Omit<BudgetRow, 'id'>>({
+    category: '',
+    type: 'expense',
+    amount: 0,
+  });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleAddRow = () => {

@@ -2,9 +2,12 @@
 import './intake.css';
 
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useInterviewStore } from '@/state/interview.store';
 import { submitIntake } from '@/lib/intake';
+import { getSessionInfo } from '@/lib/api';
+import { ApiHttpError } from '@/lib/apiEnvelope';
+import { toUserFacingError } from '@/lib/userError';
 
 import type {
   IntakeQuestionnaire,
@@ -65,7 +68,36 @@ export default function IntakePage() {
   const [form, setForm] = useState<IntakeQuestionnaire>(structuredClone(INITIAL_FORM));
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [bootstrapping, setBootstrapping] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const bootstrap = async () => {
+      try {
+        const session = await getSessionInfo();
+        if (cancelled) return;
+        if (session?.injectedIntake?.intake) {
+          router.replace('/agent');
+          return;
+        }
+      } catch (err) {
+        if (cancelled) return;
+        if (err instanceof ApiHttpError && err.status === 401) {
+          router.replace('/login');
+          return;
+        }
+      } finally {
+        if (!cancelled) setBootstrapping(false);
+      }
+    };
+
+    void bootstrap();
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
 
   const update = <K extends keyof IntakeQuestionnaire>(key: K, value: IntakeQuestionnaire[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
@@ -94,11 +126,13 @@ export default function IntakePage() {
       setIntake(res.intake);
       router.push('/agent');
     } catch (e: any) {
-      setError(e.message ?? 'Error al enviar el formulario');
+      setError(toUserFacingError(e, 'intake.submit'));
     } finally {
       setLoading(false);
     }
   };
+
+  if (bootstrapping) return null;
 
   return (
     <div className="intake-shell">

@@ -15,7 +15,6 @@
  */
 
 import type Anthropic from '@anthropic-ai/sdk';
-import { z } from 'zod';
 import { listTools } from './tools/registry';
 import { bootstrapMCP } from './bootstrap';
 import type { MCPTool } from './tools/types';
@@ -39,11 +38,10 @@ export function getOriginalToolName(sanitized: string): string {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function zodToInputSchema(
-  argsSchema: z.ZodTypeAny,
+  argsSchema: { _def?: unknown },
 ): Anthropic.Tool['input_schema'] {
   try {
-    // Zod v4 expone toJSONSchema() en cada instancia
-    const js = (argsSchema as any).toJSONSchema?.() ?? z.toJSONSchema(argsSchema);
+    const js = (argsSchema as any).toJSONSchema?.();
     return {
       type: 'object',
       properties: (js as any).properties ?? {},

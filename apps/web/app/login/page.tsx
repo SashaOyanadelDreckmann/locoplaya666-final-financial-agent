@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { loginUser } from '@/lib/api';
+import { toUserFacingError } from '@/lib/userError';
 import { useSessionStore } from '@/state/session.store';
 import { LoginSchema, type LoginInput } from '@/lib/validation';
 import { ZodError } from 'zod';
@@ -44,12 +45,11 @@ export default function LoginPage() {
     try {
       setLoading(true);
       setError(null);
-      const res = await loginUser(form);
+      await loginUser(form);
       setAuthenticated();
       router.push('/agent');
     } catch (e: Error | unknown) {
-      const message = e instanceof Error ? e.message : 'Ocurrió un error iniciando sesión';
-      setError(message);
+      setError(toUserFacingError(e, 'auth.login'));
     } finally {
       setLoading(false);
     }

@@ -1,6 +1,7 @@
 {
   "scripts": {
-    "dev": "pnpm --parallel --filter @financial-agent/api --filter @financial-agent/web dev"
+    "dev": "pnpm --parallel --filter @financial-agent/api --filter @financial-agent/web dev",
+    "qa:smoke": "pnpm --filter @financial-agent/api qa:smoke"
   },
   "dependencies": {
     "openai": "^6.15.0",

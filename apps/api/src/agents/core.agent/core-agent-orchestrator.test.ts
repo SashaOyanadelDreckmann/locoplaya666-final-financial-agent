@@ -145,8 +145,8 @@ describe('runCoreAgent - Full E2E Flow', () => {
 
     const response = await runCoreAgent(testUtils.createMockChatAgentInput());
 
-    expect(response.meta.turn_id).toBeTruthy();
-    expect(response.meta.latency_ms).toBeGreaterThanOrEqual(0);
+    expect(response.meta?.turn_id).toBeTruthy();
+    expect(response.meta?.latency_ms ?? 0).toBeGreaterThanOrEqual(0);
   });
 
   it('should pass injected context through all phases', async () => {

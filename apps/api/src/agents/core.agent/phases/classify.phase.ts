@@ -29,7 +29,13 @@ export async function runClassifyPhase(input: ClassifyPhaseInput): Promise<Class
 
   try {
     // Step 1: Call LLM classifier
-    const classificationRaw = await completeStructured({
+    const classificationRaw = await completeStructured<{
+      mode?: unknown;
+      intent?: string;
+      requires_tools?: boolean;
+      requires_rag?: boolean;
+      confidence?: number;
+    }>({
       system: CORE_CLASSIFIER_SYSTEM,
       user: user_message,
       temperature: 0,
@@ -37,16 +43,17 @@ export async function runClassifyPhase(input: ClassifyPhaseInput): Promise<Class
 
     // Step 2: Validate with Zod schema
     const modeSchema = ReasoningModeSchema.safeParse(classificationRaw.mode);
+    let resolvedMode = modeSchema.success ? modeSchema.data : 'information';
     if (!modeSchema.success) {
       logger.warn({
         msg: '[Classify] Invalid mode from LLM, defaulting to information',
         provided: classificationRaw.mode,
       });
-      classificationRaw.mode = 'information';
+      resolvedMode = 'information';
     }
 
     const classification: Classification = {
-      mode: classificationRaw.mode,
+      mode: resolvedMode,
       intent: classificationRaw.intent || 'general inquiry',
       requires_tools: classificationRaw.requires_tools === true,
       requires_rag: classificationRaw.requires_rag === true,
@@ -62,7 +69,7 @@ export async function runClassifyPhase(input: ClassifyPhaseInput): Promise<Class
     // Step 4: Check if should ask for PDF format
     const shouldAskFormat = shouldAskPdfFormat(
       user_message,
-      classificationRaw.requires_tools && /\b(pdf|reporte|informe)\b/i.test(user_message),
+      Boolean(classificationRaw.requires_tools) && /\b(pdf|reporte|informe)\b/i.test(user_message),
       inferredUserModel.preferred_output === 'pdf' ? 'pdf' : undefined
     );
 

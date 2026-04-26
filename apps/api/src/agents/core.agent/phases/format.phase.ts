@@ -21,6 +21,85 @@ import type { FormatPhaseInput, FormatPhaseOutput, FormattedResponse } from '../
 import { getLogger } from '../../../logger';
 import type { QuestionnaireBlock } from '../chat.types';
 
+function isTechnicalBackendMode(): boolean {
+  return process.env.AGENT_BACKEND_TECHNICAL_MODE !== 'false';
+}
+
+function isAnthropicUserTranslatorEnabled(): boolean {
+  return process.env.AGENT_ENABLE_USER_TRANSLATOR !== 'false';
+}
+
+function shouldKeepRichChatMessage(input: FormatPhaseInput): boolean {
+  const hasArtifacts = (input.execution_result?.artifacts?.length ?? 0) > 0;
+  const hasBlocks = (input.execution_result?.agent_blocks?.length ?? 0) > 0;
+  const hasCitations = (input.execution_result?.citations?.length ?? 0) > 0;
+  return hasArtifacts || hasBlocks || hasCitations;
+}
+
+function estimateUserCommunicationLevel(input: FormatPhaseInput): 'beginner' | 'intermediate' | 'advanced' {
+  const intake = (input.injected_intake ?? input.context_summary?.intake ?? {}) as Record<string, unknown>;
+  const selfRated = Number(intake.selfRatedUnderstanding ?? NaN);
+  if (Number.isFinite(selfRated)) {
+    if (selfRated <= 3) return 'beginner';
+    if (selfRated <= 6) return 'intermediate';
+    return 'advanced';
+  }
+  return 'intermediate';
+}
+
+async function buildTechnicalBackendMessage(input: FormatPhaseInput): Promise<string> {
+  const toolsUsed = input.execution_result?.tool_calls?.map((tc) => tc.tool).slice(0, 8) ?? [];
+  const prompt = [
+    'Genera una respuesta técnica de backend para un frontend-agent.',
+    'Estilo: ingeniería de software/arquitectura, preciso, accionable, sin relleno.',
+    'Incluye: diagnóstico, supuestos, cálculos/resultados, riesgos y próximos pasos.',
+    'No hables como asistente generalista.',
+    '',
+    `Modo: ${input.mode}`,
+    `User request: ${input.user_message}`,
+    `Tools: ${toolsUsed.join(', ') || 'none'}`,
+    `Tool outputs: ${compactToolOutputs(input)}`,
+  ].join('\n');
+
+  const technical = await complete(prompt, {
+    systemPrompt:
+      'Eres un backend financial reasoning engine optimizado para gpt-5.1-codex. Respondes como un ingeniero senior.',
+    temperature: 0.1,
+    model: process.env.OPENAI_MODEL || 'gpt-5.1-codex',
+    maxCompletionTokens: 700,
+  });
+
+  return stripEmojis(cleanSpecialTags(technical)).trim();
+}
+
+async function translateTechnicalToUserMessage(params: {
+  technicalMessage: string;
+  input: FormatPhaseInput;
+}): Promise<string> {
+  const level = estimateUserCommunicationLevel(params.input);
+  const model = process.env.AGENT_USER_TRANSLATOR_MODEL || process.env.ANTHROPIC_MODEL;
+  const translated = await completeWithClaude(
+    [
+      'Traduce la siguiente respuesta técnica a lenguaje claro para usuario final chileno.',
+      'Mantén precisión financiera. No inventes datos.',
+      `Nivel objetivo: ${level}.`,
+      'Formato: 1 resumen directo + 2 a 4 pasos concretos.',
+      '',
+      params.technicalMessage,
+    ].join('\n'),
+    {
+      systemPrompt:
+        'Eres un frontend-agent ultra optimizado para explicar finanzas en español chileno de forma clara y accionable.',
+      temperature: 0.3,
+      model,
+      maxCompletionTokens: 650,
+    },
+  );
+
+  const cleaned = stripEmojis(cleanSpecialTags(translated)).trim();
+  return cleaned.length > 0 ? cleaned : params.technicalMessage;
+}
+
 function shouldApplyLatexFormatting(message: string): boolean {
   // Fast-path: avoid expensive formatting for short/plain responses.
   if (!message || message.length < 120) return false;
@@ -67,7 +146,7 @@ async function buildFastValuableMessage(input: FormatPhaseInput): Promise<string
     `Modo: ${input.mode}`,
     `Herramientas usadas: ${toolsUsed.join(', ') || 'ninguna'}`,
     `Artefactos: ${artifacts.map((a) => a.title).join(' | ') || 'ninguno'}`,
-    `Fuentes: ${citations.map((c) => c.title || c.source || '').filter(Boolean).join(' | ') || 'ninguna'}`,
+    `Fuentes: ${citations.map((c) => c.doc_title || c.source || '').filter(Boolean).join(' | ') || 'ninguna'}`,
     '',
     'Evidencia resumida:',
     toolContext,
@@ -96,10 +175,18 @@ export async function runFormatPhase(input: FormatPhaseInput): Promise<FormatPha
 
   try {
     if (fastFormatEnabled) {
-      const message = await buildFastValuableMessage(input);
+      const technicalMessage = isTechnicalBackendMode()
+        ? await buildTechnicalBackendMessage(input)
+        : await buildFastValuableMessage(input);
+      const richChatMode = shouldKeepRichChatMessage(input);
+      const message =
+        isTechnicalBackendMode() && isAnthropicUserTranslatorEnabled() && !richChatMode
+          ? await translateTechnicalToUserMessage({ technicalMessage, input })
+          : technicalMessage;
 
       const formatted_response: FormattedResponse = {
         message,
+        technical_backend_message: technicalMessage,
         agent_blocks: input.execution_result?.agent_blocks || [],
         artifacts: input.execution_result?.artifacts || [],
         citations: input.execution_result?.citations || [],
@@ -166,7 +253,7 @@ export async function runFormatPhase(input: FormatPhaseInput): Promise<FormatPha
     // Auto-process only in non-fast mode due to CPU cost.
     if (shouldApplyLatexFormatting(message)) {
       try {
-        const { formatLatexTool } = await import('../../mcp/tools/latex/formatLatex.tool');
+        const { formatLatexTool } = await import('../../../mcp/tools/latex/formatLatex.tool');
         const formatResult = await formatLatexTool.run({
           content: message,
           mode: 'auto',
@@ -219,9 +306,19 @@ export async function runFormatPhase(input: FormatPhaseInput): Promise<FormatPha
         })
       : null;
 
+    const technicalMessage = isTechnicalBackendMode()
+      ? await buildTechnicalBackendMessage(input)
+      : message;
+    const richChatMode = shouldKeepRichChatMessage(input);
+    const finalMessage =
+      isTechnicalBackendMode() && isAnthropicUserTranslatorEnabled() && !richChatMode
+        ? await translateTechnicalToUserMessage({ technicalMessage, input })
+        : message;
+
     // Build formatted response
     const formatted_response: FormattedResponse = {
-      message,
+      message: finalMessage,
+      technical_backend_message: technicalMessage,
       agent_blocks: [
         ...(input.execution_result?.agent_blocks || []),
         ...responseChartBlocks,
@@ -255,6 +352,7 @@ export async function runFormatPhase(input: FormatPhaseInput): Promise<FormatPha
 
     const formatted_response: FormattedResponse = {
       message: fallbackMessage,
+      technical_backend_message: fallbackMessage,
       agent_blocks: input.execution_result?.agent_blocks || [],
       artifacts: input.execution_result?.artifacts || [],
       citations: input.execution_result?.citations || [],
@@ -355,7 +453,14 @@ export async function detectAndRecordKnowledge(params: {
   const logger = getLogger();
 
   try {
-    const detection = detectKnowledgeEvent(params);
+    const detection = detectKnowledgeEvent({
+      userMessage: params.user_message,
+      agentResponse: params.agent_response,
+      toolsUsed: params.tools_used,
+      mode: params.mode,
+      previousScore: params.previous_score,
+      userProfile: params.user_profile,
+    });
 
     if (detection.detected && params.user_id) {
       const { newScore, points } = await recordKnowledgeEvent(

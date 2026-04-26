@@ -26,7 +26,7 @@ export function toChatItems(res: Record<string, unknown>): ChatItem[] {
   /* ────────────────────────────── */
   /* Texto principal del agente     */
   /* ────────────────────────────── */
-  if (res?.message) {
+  if (typeof res?.message === 'string' && res.message.trim().length > 0) {
     items.push({
       kind: 'text',
       content: res.message,
@@ -36,21 +36,27 @@ export function toChatItems(res: Record<string, unknown>): ChatItem[] {
   /* ────────────────────────────── */
   /* Bloques del agente (UI-rich)   */
   /* ────────────────────────────── */
-  for (const block of res?.agent_blocks ?? []) {
-    items.push({
-      kind: 'block',
-      block,
-    });
+  if (Array.isArray(res?.agent_blocks)) {
+    for (const block of res.agent_blocks) {
+      if (!block || typeof block !== 'object') continue;
+      items.push({
+        kind: 'block',
+        block: block as AgentBlock,
+      });
+    }
   }
 
   /* ────────────────────────────── */
   /* Artifacts (PDFs, gráficos, etc)*/
   /* ────────────────────────────── */
-  for (const artifact of res?.artifacts ?? []) {
-    items.push({
-      kind: 'artifact',
-      artifact,
-    });
+  if (Array.isArray(res?.artifacts)) {
+    for (const artifact of res.artifacts) {
+      if (!artifact || typeof artifact !== 'object') continue;
+      items.push({
+        kind: 'artifact',
+        artifact: artifact as ArtifactLike,
+      });
+    }
   }
 
   return items;

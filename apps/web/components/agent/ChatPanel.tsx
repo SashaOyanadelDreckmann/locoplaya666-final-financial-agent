@@ -1,7 +1,13 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import type { ChatThread, ChatItem } from '@/lib/agent.response.types';
+import type { ChatItem } from '@/lib/agent.response.types';
+
+type ChatThread = {
+  id: string;
+  name: string;
+  items: ChatItem[];
+};
 
 interface ChatPanelProps {
   activeThread: ChatThread | null;
@@ -55,7 +61,7 @@ export function ChatPanel({ activeThread, loading, onAddMessage, onThreadChange 
       <div className="chat-messages">
         {activeThread.items.map((item: ChatItem, idx: number) => (
           <div key={idx} className={`message message-${item.role}`}>
-            <p>{item.content}</p>
+            <p>{item.type === 'message' ? item.content : item.type === 'upload' ? item.files.map((f) => f.name).join(', ') : ''}</p>
           </div>
         ))}
         <div ref={messagesEndRef} />

@@ -9533,3 +9533,199 @@
   79% { transform: translate3d(0, 0, 0) scale(1.02); filter: brightness(1.02); }
   100% { transform: translate3d(0, 0, 0) scale(1.003); filter: brightness(1); }
 }
+
+/* ================================================= */
+/* PREMIUM EFFECTS — INFINITE SCROLL & MORE          */
+/* ================================================= */
+
+/* Infinite scroll panel styling */
+.infinite-scroll-panel {
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent) var(--bg-tertiary);
+}
+
+.infinite-scroll-panel::-webkit-scrollbar {
+  height: 4px;
+}
+
+.infinite-scroll-panel::-webkit-scrollbar-track {
+  background: var(--bg-tertiary);
+  border-radius: 100px;
+}
+
+.infinite-scroll-panel::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 100px;
+  transition: background 0.3s ease;
+}
+
+.infinite-scroll-panel::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-hover);
+}
+
+.infinite-scroll-panel > * {
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  flex-shrink: 0;
+}
+
+/* Enhanced hover effects for panels in scroll */
+.infinite-scroll-panel .panel-card {
+  box-shadow: var(--shadow-md);
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.infinite-scroll-panel .panel-card:hover {
+  box-shadow: 0 0 30px rgba(111, 143, 166, 0.4);
+}
+
+/* Auto-scroll pause indicator */
+.infinite-scroll-panel.is-paused {
+  animation-play-state: paused;
+}
+
+/* Scroll hint overlay (fade effect at edges) */
+.infinite-scroll-panel::before,
+.infinite-scroll-panel::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  height: 100%;
+  width: 20px;
+  pointer-events: none;
+  background: linear-gradient(90deg, var(--bg-secondary) 0%, transparent 100%);
+  z-index: 10;
+}
+
+.infinite-scroll-panel::before {
+  left: 0;
+}
+
+.infinite-scroll-panel::after {
+  right: 0;
+  background: linear-gradient(90deg, transparent 0%, var(--bg-secondary) 100%);
+}
+
+/* Mobile-specific enhancements */
+@media (max-width: 767px) {
+  .infinite-scroll-panel {
+    gap: 6px;
+    padding: 6px;
+  }
+
+  .panel-card {
+    will-change: transform;
+    transform: translateZ(0);
+  }
+
+  .infinite-scroll-panel .panel-card:active {
+    filter: brightness(1.1);
+  }
+
+  /* Reduce motion on mobile for performance */
+  @media (prefers-reduced-motion: no-preference) {
+    .infinite-scroll-panel .panel-card {
+      transition-duration: 0.2s;
+    }
+  }
+}
+
+/* Enhanced chat animations for mobile */
+@media (max-width: 767px) {
+  .chat-bubble {
+    animation-duration: 0.3s;
+    animation-delay: 0s !important;
+  }
+
+  .typing-indicator {
+    height: 20px;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
+
+  .typing-dot {
+    width: 6px;
+    height: 6px;
+  }
+}
+
+/* Centered modal for mobile checkboxes */
+@media (max-width: 767px) {
+  .modal-content {
+    width: calc(100vw - 32px);
+    max-width: 90vw;
+    position: fixed;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+
+  .modal-overlay {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+}
+
+/* Glassmorphism enhancement */
+.glass-effect {
+  backdrop-filter: blur(20px) saturate(1.3);
+  -webkit-backdrop-filter: blur(20px) saturate(1.3);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: linear-gradient(
+    135deg,
+    rgba(136, 167, 188, 0.1) 0%,
+    rgba(136, 167, 188, 0.05) 100%
+  );
+}
+
+.glass-effect:hover {
+  backdrop-filter: blur(30px) saturate(1.5);
+  -webkit-backdrop-filter: blur(30px) saturate(1.5);
+  border-color: rgba(136, 167, 188, 0.4);
+}
+
+/* Blur backdrop effect */
+.blur-backdrop {
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* Smooth scroll behavior */
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 80px;
+}
+
+/* Enhanced form interactions */
+input[type="checkbox"]:hover,
+input[type="radio"]:hover {
+  filter: brightness(1.2);
+}
+
+input[type="checkbox"]:checked,
+input[type="radio"]:checked {
+  animation: bounceIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Smooth focus ring on keyboard navigation */
+*:focus-visible {
+  outline-color: var(--accent);
+  outline-width: 2px;
+  outline-offset: 2px;
+}
+
+/* Disable focus outline for mouse users */
+*:focus:not(:focus-visible) {
+  outline: none;
+}

@@ -61,7 +61,7 @@ export async function runPlanExecutePhase(input: PlanPhaseInput): Promise<PlanPh
       const planMaxTokens = Number(process.env.OPENAI_PLAN_MAX_COMPLETION_TOKENS || 1024);
 
       // Call OpenAI with tool calling
-      const model = process.env.OPENAI_MODEL || 'gpt-5.2';
+      const model = process.env.OPENAI_MODEL || 'gpt-5.1-codex';
       const response = await client.chat.completions.create(
         withCompatibleTemperature(
           {
@@ -159,7 +159,7 @@ export async function runPlanExecutePhase(input: PlanPhaseInput): Promise<PlanPh
           tool_calls.push({
             id: toolUse.id,
             tool: originalName,
-            input: parsedArgs,
+            args: parsedArgs,
             status: 'success',
           });
 
@@ -171,7 +171,6 @@ export async function runPlanExecutePhase(input: PlanPhaseInput): Promise<PlanPh
           loopMessages.push({
             role: 'tool',
             tool_call_id: toolUse.id,
-            name: toolUse.function.name,
             content: JSON.stringify(result),
           });
 
@@ -186,14 +185,13 @@ export async function runPlanExecutePhase(input: PlanPhaseInput): Promise<PlanPh
           tool_calls.push({
             id: toolUse.id,
             tool: originalName,
-            input: parsedArgs,
+            args: parsedArgs,
             status: 'error',
           });
 
           loopMessages.push({
             role: 'tool',
             tool_call_id: toolUse.id,
-            name: toolUse.function.name,
             content: JSON.stringify({ error: String(err) }),
           });
 
@@ -247,7 +245,7 @@ export async function runPlanExecutePhase(input: PlanPhaseInput): Promise<PlanPh
         tool_calls.push({
           id: `${input.turn_id || 'unknown'}:pdf.generate_report:fallback`,
           tool: 'pdf.generate_report',
-          input: fallbackArgs,
+          args: fallbackArgs,
           status:
             toolResult.tool_call?.status === 'success' || !toolResult.tool_call?.status
               ? 'success'

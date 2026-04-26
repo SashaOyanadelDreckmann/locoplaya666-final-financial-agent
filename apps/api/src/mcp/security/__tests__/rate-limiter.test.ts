@@ -239,21 +239,16 @@ describe('ToolRateLimiter', () => {
   });
 
   describe('cleanup', () => {
-    it('removes inactive user entries', (done) => {
+    it('removes inactive user entries', async () => {
       const limiter2 = new ToolRateLimiter(0.0001); // Cleanup every 0.0001 minutes (~6ms)
 
       limiter2.checkRateLimit('inactive-user', 'web.search');
 
       // Wait for cleanup cycle (plus buffer)
-      setTimeout(() => {
-        // After cleanup, old user should be removed
-        // New requests should reset the count
-        const status = limiter2.getStatus('inactive-user', 'web.search');
-        // Depending on timing, could be zero or have been cleaned
-        expect(status).toBeDefined();
-        limiter2.destroy();
-        done();
-      }, 200);
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      const status = limiter2.getStatus('inactive-user', 'web.search');
+      expect(status).toBeDefined();
+      limiter2.destroy();
     });
   });
 

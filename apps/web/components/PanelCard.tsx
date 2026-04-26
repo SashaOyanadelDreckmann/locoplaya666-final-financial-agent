@@ -1,6 +1,7 @@
-import type { CSSProperties, PropsWithChildren } from 'react';
+import type { ComponentPropsWithoutRef, CSSProperties, PropsWithChildren } from 'react';
 
-type PanelCardProps = PropsWithChildren<{
+type PanelCardProps = PropsWithChildren<
+  Omit<ComponentPropsWithoutRef<'article'>, 'children'> & {
   label?: string;
   value?: string;
   className?: string;
@@ -9,7 +10,7 @@ type PanelCardProps = PropsWithChildren<{
   overlayOpacity?: number;
   bgScale?: number;
   bgPosition?: string;
-  [key: string]: unknown;
+  dataMode?: string;
 }>;
 
 export default function PanelCard({
@@ -22,6 +23,7 @@ export default function PanelCard({
   overlayOpacity,
   bgScale,
   bgPosition,
+  dataMode,
   ...rest
 }: PanelCardProps) {
   const classes = ['panel-card', className].filter(Boolean).join(' ');
@@ -36,7 +38,7 @@ export default function PanelCard({
   } as CSSProperties;
 
   return (
-    <article className={classes} style={style} {...rest}>
+    <article className={classes} style={style} data-mode={dataMode} {...rest}>
       {label ? <p className="panel-label">{label}</p> : null}
       {value ? <h4 className="panel-value">{value}</h4> : null}
       {children}

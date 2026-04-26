@@ -4,7 +4,7 @@
 
 import fs from 'fs';
 import path from 'path';
-import { PDFParse } from 'pdf-parse';
+import PDFParse from 'pdf-parse';
 import * as XLSX from 'xlsx';
 import { getOpenAIClient, withCompatibleTemperature } from './llm.service';
 
@@ -27,7 +27,7 @@ export type ParsedTransaction = {
  * Parsea un buffer de PDF y retorna texto plano.
  */
 export async function parsePdfBuffer(buffer: Buffer, filename: string): Promise<string> {
-  let parser: PDFParse | null = null;
+  let parser: any = null;
   try {
     parser = new PDFParse({ data: buffer });
     const result = await parser.getText();

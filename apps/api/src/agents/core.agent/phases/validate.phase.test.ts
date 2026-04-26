@@ -131,7 +131,7 @@ describe('runValidatePhase', () => {
       mode: 'decision_support',
       injected_profile: testUtils.createMockProfile({
         risk_profile: 'conservative',
-      }),
+      } as any),
       injected_intake: null,
       injected_budget: testUtils.createMockBudget(),
     });
@@ -157,7 +157,7 @@ describe('runValidatePhase', () => {
       mode: 'decision_support',
       injected_profile: testUtils.createMockProfile({
         risk_profile: 'conservative',
-      }),
+      } as any),
       injected_intake: null,
       injected_budget: testUtils.createMockBudget(),
     });

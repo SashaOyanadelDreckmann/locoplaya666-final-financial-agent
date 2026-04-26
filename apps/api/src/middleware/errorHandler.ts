@@ -8,7 +8,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import { ZodError } from 'zod';
 import { getLogger } from '../logger';
-import { API_ERROR_CODES, AppError } from '../http/api.errors';
+import { API_ERROR_CODES, type ApiErrorCode, AppError } from '../http/api.errors';
 import { sendProblem, type ApiErrorBody } from '../http/api.responses';
 
 /**
@@ -25,7 +25,7 @@ export function errorHandlerMiddleware(
   const correlationId = req.correlationId;
 
   let statusCode = 500;
-  let errorCode = API_ERROR_CODES.INTERNAL_ERROR;
+  let errorCode: ApiErrorCode = API_ERROR_CODES.INTERNAL_ERROR;
   let title = 'Internal Server Error';
   let detail = 'Internal server error';
   let details: unknown;

@@ -63,11 +63,8 @@ export const monteCarloTool: MCPTool = {
       const months = Math.max(1, Math.floor(Number(args.months)));
 
       // 3. Validate Monte Carlo paths (max 5000 to prevent CPU exhaustion)
-      const paths = validateMonteCarloConfig(
-        typeof args.paths === 'number' ? args.paths : 5000,
-        5000,
-        'finance.simulate_montecarlo',
-      );
+      const paths = typeof args.paths === 'number' ? args.paths : 5000;
+      validateMonteCarloConfig({ paths });
 
       // 4. Validate numeric ranges
       validateNumericRange(initial, 0, 10000000, 'initial', 'finance.simulate_montecarlo');

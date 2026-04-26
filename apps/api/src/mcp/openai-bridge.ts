@@ -4,7 +4,6 @@
  * Convierte el registro MCPTools al formato de function tools de OpenAI.
  */
 
-import { z } from 'zod';
 import { listTools } from './tools/registry';
 import { bootstrapMCP } from './bootstrap';
 import type { MCPTool } from './tools/types';
@@ -19,9 +18,9 @@ export function getOriginalToolName(sanitized: string): string {
   return sanitized.replace(/__/g, '.');
 }
 
-function zodToJsonSchema(argsSchema: z.ZodTypeAny): Record<string, any> {
+function zodToJsonSchema(argsSchema: { _def?: unknown }): Record<string, any> {
   try {
-    const js = (argsSchema as any).toJSONSchema?.() ?? z.toJSONSchema(argsSchema);
+    const js = (argsSchema as any).toJSONSchema?.();
     return {
       type: 'object',
       properties: (js as any).properties ?? {},

@@ -48,7 +48,7 @@ export async function createFinancialProfile(params: {
   return toStoredProfile({
     id: created.id,
     userId: created.userId,
-    payload: created.payload as FinancialDiagnosticProfile,
+    payload: created.payload as unknown as FinancialDiagnosticProfile,
     createdAt: created.createdAt.toISOString(),
   });
 }
@@ -67,7 +67,7 @@ export async function getFinancialProfileById(profileId: string): Promise<Stored
   return toStoredProfile({
     id: record.id,
     userId: record.userId,
-    payload: record.payload as FinancialDiagnosticProfile,
+    payload: record.payload as unknown as FinancialDiagnosticProfile,
     createdAt: record.createdAt.toISOString(),
   });
 }
@@ -91,7 +91,7 @@ export async function listFinancialProfilesByUser(userId: string): Promise<Store
     toStoredProfile({
       id: row.id,
       userId: row.userId,
-      payload: row.payload as FinancialDiagnosticProfile,
+      payload: row.payload as unknown as FinancialDiagnosticProfile,
       createdAt: row.createdAt.toISOString(),
     }),
   );
@@ -115,7 +115,7 @@ export async function listFinancialProfiles(): Promise<StoredProfile[]> {
     toStoredProfile({
       id: row.id,
       userId: row.userId,
-      payload: row.payload as FinancialDiagnosticProfile,
+      payload: row.payload as unknown as FinancialDiagnosticProfile,
       createdAt: row.createdAt.toISOString(),
     }),
   );

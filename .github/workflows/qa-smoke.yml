@@ -1,0 +1,62 @@
+name: QA Smoke
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Start API + Web
+        run: |
+          pnpm dev > /tmp/qa-dev.log 2>&1 &
+          echo $! > /tmp/qa-dev.pid
+
+      - name: Wait for services
+        run: |
+          for i in {1..90}; do
+            if curl -fsS http://localhost:3000 >/dev/null && curl -fsS http://localhost:3001/health >/dev/null; then
+              echo "Services are ready"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Timed out waiting for services"
+          tail -n 200 /tmp/qa-dev.log || true
+          exit 1
+
+      - name: Run smoke suite
+        run: pnpm qa:smoke
+
+      - name: Dump logs on failure
+        if: failure()
+        run: |
+          echo "=== /tmp/qa-dev.log ==="
+          tail -n 400 /tmp/qa-dev.log || true
+
+      - name: Stop dev services
+        if: always()
+        run: |
+          if [ -f /tmp/qa-dev.pid ]; then
+            kill "$(cat /tmp/qa-dev.pid)" || true
+          fi

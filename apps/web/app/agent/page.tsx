@@ -28,7 +28,8 @@ import { ApiHttpError } from '@/lib/apiEnvelope';
 import { toUserFacingError } from '@/lib/userError';
 import { getApiBaseUrl } from '@/lib/apiBase';
 
-import PanelCard from '../../components/PanelCard';
+import { AnimatedPanelCard } from '../../components/AnimatedPanelCard';
+import { InfiniteScrollPanel } from '../../components/InfiniteScrollPanel';
 import ProfileCard from '../../components/ProfileCard';
 
 import type {
@@ -3485,8 +3486,9 @@ export default function AgentPage() {
       key: 'objective',
       node: (
         <div className="mob-col mob-col-wide">
-          <PanelCard
+          <AnimatedPanelCard
             label="Objetivo activo"
+            delay={0.1}
             className={`panel-pos-objective glass-card panel-minimal-soft panel-centered-content${highlightedSection === 'objective' ? ' is-panel-highlighted' : ''}`}
             data-panel-section="objective"
           >
@@ -3497,7 +3499,7 @@ export default function AgentPage() {
             <div className="panel-card-note">
               El objetivo correcto ordena el tono, el riesgo y la profundidad de las siguientes recomendaciones.
             </div>
-          </PanelCard>
+          </AnimatedPanelCard>
         </div>
       ),
     },
@@ -3505,8 +3507,9 @@ export default function AgentPage() {
       key: 'mode',
       node: (
         <div className="mob-col">
-          <PanelCard
+          <AnimatedPanelCard
             label="Modo cognitivo"
+            delay={0.2}
             value={agentMetaRef.current.mode ?? 'En calibracion'}
             className={`panel-pos-mode panel-mode-cognitive${highlightedSection === 'mode' ? ' is-panel-highlighted' : ''}`}
             data-panel-section="mode"
@@ -3518,7 +3521,7 @@ export default function AgentPage() {
             <div className="panel-text">
               Contexto visual activo para lectura estratégica, foco y profundidad analítica.
             </div>
-          </PanelCard>
+          </AnimatedPanelCard>
         </div>
       ),
     },
@@ -3526,8 +3529,9 @@ export default function AgentPage() {
       key: 'next',
       node: (
         <div className="mob-col">
-          <PanelCard
+          <AnimatedPanelCard
             label="Siguiente desbloqueo"
+            delay={0.3}
             className="panel-pos-next glass-card panel-minimal-soft panel-centered-content"
           >
             <div className="panel-text">
@@ -3538,7 +3542,7 @@ export default function AgentPage() {
             <div className="panel-card-note">
               Cada desbloqueo abre paneles más útiles y le da más contexto operativo al agente.
             </div>
-          </PanelCard>
+          </AnimatedPanelCard>
         </div>
       ),
     },
@@ -3546,8 +3550,9 @@ export default function AgentPage() {
       key: 'continuity',
       node: (
         <div className="mob-col">
-          <PanelCard
+          <AnimatedPanelCard
             label="Continuidad"
+            delay={0.4}
             value={`${engagementScore}% operativa`}
             className="glass-card panel-pos-continuity panel-minimal-soft panel-centered-content"
           >
@@ -3560,7 +3565,7 @@ export default function AgentPage() {
             <div className="panel-card-note">
               Mientras más módulos vivos tenga esta capa, más ejecutivo y específico será el diagnóstico.
             </div>
-          </PanelCard>
+          </AnimatedPanelCard>
         </div>
       ),
     },
@@ -3657,7 +3662,8 @@ export default function AgentPage() {
       key: 'news',
       node: (
         <div className="mob-col mob-col-wide">
-          <PanelCard
+          <AnimatedPanelCard
+            delay={0.5}
             className={`news-card panel-pos-news${highlightedSection === 'news' ? ' is-panel-highlighted' : ''}`}
             data-panel-section="news"
           >
@@ -3677,7 +3683,7 @@ export default function AgentPage() {
                 </div>
               </div>
             </a>
-          </PanelCard>
+          </AnimatedPanelCard>
         </div>
       ),
     },
@@ -3685,8 +3691,9 @@ export default function AgentPage() {
       key: 'library',
       node: (
         <div className="mob-col mob-col-wide">
-          <PanelCard
+          <AnimatedPanelCard
             label="Biblioteca de documentos"
+            delay={0.6}
             className={`panel-pos-library panel-minimal-soft panel-centered-content${highlightedSection === 'library' ? ' is-panel-highlighted' : ''}`}
             data-panel-section="library"
           >
@@ -3726,7 +3733,7 @@ export default function AgentPage() {
                 </a>
               ))}
             </div>
-          </PanelCard>
+          </AnimatedPanelCard>
         </div>
       ),
     },
@@ -4272,7 +4279,18 @@ export default function AgentPage() {
           ref={panelGridRef}
           className="panel-grid"
         >
-          {panelRenderedCards}
+          {isMobileViewport ? (
+            <InfiniteScrollPanel
+              autoScrollSpeed={40}
+              pauseOnHover={true}
+              enableAutoScroll={true}
+              className="infinite-scroll-container"
+            >
+              {panelRenderedCards}
+            </InfiniteScrollPanel>
+          ) : (
+            panelRenderedCards
+          )}
         </div>
       </aside>
 
