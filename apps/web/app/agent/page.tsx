@@ -712,9 +712,9 @@ export default function AgentPage() {
       lastTs = ts;
 
       if (!panelLoopPausedRef.current && !mobilePanelExpanded) {
-        panelLoopPhaseRef.current += dt * 0.0014;
-        const pulse = Math.sin(panelLoopPhaseRef.current) * 0.055 + Math.sin(panelLoopPhaseRef.current * 0.47) * 0.03;
-        const pxPerFrame = Math.max(0.12, 0.36 + pulse) * (dt / 16.67);
+        panelLoopPhaseRef.current += dt * 0.0008;
+        const pulse = Math.sin(panelLoopPhaseRef.current) * 0.15 + Math.sin(panelLoopPhaseRef.current * 0.37) * 0.08;
+        const pxPerFrame = Math.max(0.6, 1.1 + pulse) * (dt / 16.67);
         el.scrollLeft += pxPerFrame;
         normalizeLoop();
       }
@@ -3513,8 +3513,9 @@ export default function AgentPage() {
             className={`panel-pos-mode panel-mode-cognitive${highlightedSection === 'mode' ? ' is-panel-highlighted' : ''}`}
             data-panel-section="mode"
             bgImage="/IMG_3611.JPG"
-            overlayOpacity={0.28}
-            bgScale={1}
+            overlayOpacity={0.18}
+            bgScale={0.55}
+            bgPosition="center 30%"
             dataMode={agentMetaRef.current.mode ?? 'calibracion'}
           >
             <div className="panel-text">
@@ -3612,13 +3613,15 @@ export default function AgentPage() {
           >
             <span className="panel-feature-label">Presupuesto</span>
             <span className="panel-feature-status">
-              {unlockedPanelBlocks.budgetUnlocked ? 'Desbloqueado' : 'Bloqueado'}
+              {unlockedPanelBlocks.budgetUnlocked ? '● Activo' : '○ Bloqueado'}
             </span>
             <span className="panel-feature-copy">
-              Diagnostico de analista financiero, editable por chat y manual.
+              Estructura tu flujo mensual con precisión de analista. Ingresos, gastos fijos, variables y ahorro real calculado por IA.
             </span>
             <span className="panel-feature-copy panel-feature-copy-secondary">
-              Ingreso: ${Math.round(budgetTotals.income).toLocaleString('es-CL')} | Gasto: ${Math.round(budgetTotals.expenses).toLocaleString('es-CL')}
+              {unlockedPanelBlocks.budgetUnlocked
+                ? `Ingreso ${Math.round(budgetTotals.income).toLocaleString('es-CL')} · Gasto ${Math.round(budgetTotals.expenses).toLocaleString('es-CL')} · Health ${budgetInsights?.healthScore ?? '—'}/100`
+                : 'Conversa sobre ingresos y gastos para desbloquear el análisis completo.'}
             </span>
           </button>
         </div>
@@ -3643,15 +3646,15 @@ export default function AgentPage() {
           >
             <span className="panel-feature-label">Transacciones</span>
             <span className="panel-feature-status">
-              {unlockedPanelBlocks.transactionsUnlocked ? 'Desbloqueado' : 'Bloqueado'}
+              {unlockedPanelBlocks.transactionsUnlocked ? '● Activo' : '○ Bloqueado'}
             </span>
             <span className="panel-feature-copy">
-              Cartolas, agrupación, patrones, alertas y lectura operativa de movimientos reales.
+              Lectura profunda de cartolas bancarias. Detección de patrones, alertas de gasto y análisis operativo de tus movimientos reales.
             </span>
             <span className="panel-feature-copy panel-feature-copy-secondary">
               {transactionIntel.docs > 0
-                ? `${transactionIntel.docs} cartola(s), ${transactionIntel.rows.toLocaleString('es-CL')} filas leídas y ${transactionIntel.amounts.length} montos detectados.`
-                : 'Aún no hay cartolas procesadas para encontrar patrones ni alertas.'}
+                ? `${transactionIntel.docs} cartola${transactionIntel.docs > 1 ? 's' : ''} · ${transactionIntel.rows.toLocaleString('es-CL')} filas · ${transactionIntel.amounts.length} montos detectados`
+                : 'Sube una cartola bancaria (PDF o Excel) para activar el análisis de movimientos.'}
             </span>
           </button>
         </div>

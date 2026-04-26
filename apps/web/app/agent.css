@@ -9873,3 +9873,199 @@ input[type="radio"]:checked {
   outline: none;
 }
 
+
+/* ================================================================= */
+/* MOBILE DETAIL FIXES — Input layout, popup centering, card content */
+/* ================================================================= */
+
+/* ── 1. Input area: textarea left + buttons stacked right ── */
+@media (max-width: 767px) {
+  .agent-input {
+    display: grid !important;
+    grid-template-columns: 1fr 72px !important;
+    grid-template-rows: auto !important;
+    gap: 6px !important;
+    align-items: stretch !important;
+    padding: 6px 8px calc(env(safe-area-inset-bottom) + 4px) !important;
+  }
+
+  .agent-input textarea {
+    grid-column: 1 / 2 !important;
+    grid-row: 1 / 2 !important;
+    min-height: 68px !important;
+    max-height: 110px !important;
+    resize: none !important;
+    padding: 10px 11px !important;
+    font-size: 15px !important;
+    line-height: 1.4 !important;
+  }
+
+  .agent-input .controls {
+    grid-column: 2 / 3 !important;
+    grid-row: 1 / 2 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 5px !important;
+    align-items: stretch !important;
+    min-height: 0 !important;
+    margin-top: 0 !important;
+  }
+
+  /* Spacer div hidden */
+  .agent-input .controls > div {
+    display: none !important;
+  }
+
+  .agent-input .continue-button {
+    flex: 1 !important;
+    min-height: 0 !important;
+    padding: 0 6px !important;
+    font-size: 10px !important;
+    white-space: nowrap !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 10px !important;
+  }
+}
+
+/* ── 2. Knowledge popup: always centered vertically on mobile ── */
+@media (max-width: 767px) {
+  .mobile-knowledge-sheet {
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    right: auto !important;
+    transform: translate(-50%, -50%) !important;
+    width: calc(100vw - 32px) !important;
+    max-width: 380px !important;
+    max-height: 80dvh !important;
+    overflow-y: auto !important;
+    border-radius: 20px !important;
+    z-index: 1000 !important;
+  }
+
+  .mobile-knowledge-backdrop {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 999 !important;
+  }
+}
+
+/* ── 3. Progress bar: enforce clip at 100% ── */
+.mobile-progress-pill-track {
+  overflow: hidden !important;
+  border-radius: 999px !important;
+}
+
+.mobile-progress-pill-fill {
+  max-width: 100% !important;
+  border-radius: 999px !important;
+}
+
+/* ── 4. Library card: visible even in collapsed panel ── */
+@media (max-width: 767px) {
+  .agent-panel .mob-col:has(.panel-pos-library) {
+    flex: 0 0 min(92vw, 340px) !important;
+    width: min(92vw, 340px) !important;
+    min-width: min(92vw, 340px) !important;
+    max-width: min(92vw, 340px) !important;
+  }
+
+  .agent-panel .panel-pos-library {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+    padding: 10px 12px !important;
+    height: 100% !important;
+    overflow: hidden !important;
+  }
+
+  .agent-panel .panel-pos-library .reports-grid {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 6px !important;
+    margin-bottom: 6px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .agent-panel .panel-pos-library .report-group {
+    flex-direction: column !important;
+    gap: 2px !important;
+  }
+
+  .agent-panel .panel-pos-library .report-list {
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px !important;
+  }
+
+  .agent-panel .panel-pos-library .panel-card-note {
+    display: none !important;
+  }
+}
+
+/* ── 5. Modo cognitivo: show more of the image, less zoom ── */
+@media (max-width: 767px) {
+  .agent-panel .panel-mode-cognitive::before {
+    background-size: 70% auto !important;
+    background-position: center 20% !important;
+    background-repeat: no-repeat !important;
+  }
+}
+
+/* ── 6. Feature cards (Budget, Transactions): elegant compact layout ── */
+@media (max-width: 767px) {
+  .agent-panel .panel-feature-card {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px !important;
+    padding: 10px 12px !important;
+    text-align: left !important;
+  }
+
+  .agent-panel .panel-feature-label {
+    font-size: 9px !important;
+    letter-spacing: 0.12em !important;
+    text-transform: uppercase !important;
+    opacity: 0.6 !important;
+    margin-bottom: 0 !important;
+  }
+
+  .agent-panel .panel-feature-status {
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.02em !important;
+    margin-bottom: 2px !important;
+  }
+
+  .agent-panel .panel-feature-copy {
+    font-size: 10px !important;
+    line-height: 1.4 !important;
+    opacity: 0.82 !important;
+    flex: 1 !important;
+  }
+
+  .agent-panel .panel-feature-copy-secondary {
+    font-size: 9px !important;
+    opacity: 0.55 !important;
+    letter-spacing: 0.01em !important;
+    margin-top: auto !important;
+    padding-top: 4px !important;
+    border-top: 1px solid rgba(255,255,255,0.06) !important;
+    flex: none !important;
+  }
+
+  /* Locked state: slightly dimmer */
+  .agent-panel .panel-feature-card.is-locked {
+    opacity: 0.62 !important;
+  }
+
+  .agent-panel .panel-feature-card.is-locked .panel-feature-status {
+    color: rgba(255,255,255,0.38) !important;
+  }
+}
+
