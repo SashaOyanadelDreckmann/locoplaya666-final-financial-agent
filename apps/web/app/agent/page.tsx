@@ -598,6 +598,10 @@ export default function AgentPage() {
   const recentLibraryRef = useRef<HTMLDivElement | null>(null);
   const panelScrollRef = useRef<HTMLElement | null>(null);
   const panelGridRef = useRef<HTMLDivElement | null>(null);
+  const panelLoopPausedRef = useRef(false);
+  const panelLoopRafRef = useRef<number | null>(null);
+  const panelLoopResumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const panelLoopPhaseRef = useRef(0);
   const [newReportId, setNewReportId] = useState<string | null>(null);
   const [isLandingRecents, setIsLandingRecents] = useState(false);
   const [panelCallout, setPanelCallout] = useState<{ section: string; message: string } | null>(null);
@@ -660,8 +664,88 @@ export default function AgentPage() {
   useEffect(() => {
     const el = panelGridRef.current;
     if (!el || !isMobileViewport) return;
-    el.scrollLeft = 0;
-  }, [isMobileViewport, panelStage]);
+
+    const getMetrics = () => {
+      const firstReal = el.querySelector<HTMLElement>('[data-loop-segment="real"][data-loop-origin="0"]');
+      const firstAppend = el.querySelector<HTMLElement>('[data-loop-segment="append"][data-loop-origin="0"]');
+      if (!firstReal || !firstAppend) return null;
+      return {
+        firstRealLeft: firstReal.offsetLeft,
+        firstAppendLeft: firstAppend.offsetLeft,
+        segmentWidth: firstAppend.offsetLeft - firstReal.offsetLeft,
+      };
+    };
+
+    const resetToRealSegment = () => {
+      const metrics = getMetrics();
+      if (!metrics) return;
+      el.scrollLeft = metrics.firstRealLeft;
+    };
+
+    resetToRealSegment();
+
+    let disposed = false;
+    let lastTs = 0;
+
+    const pauseLoop = (resumeDelay = 2200) => {
+      panelLoopPausedRef.current = true;
+      if (panelLoopResumeTimerRef.current) clearTimeout(panelLoopResumeTimerRef.current);
+      panelLoopResumeTimerRef.current = setTimeout(() => {
+        panelLoopPausedRef.current = false;
+      }, resumeDelay);
+    };
+
+    const normalizeLoop = () => {
+      const metrics = getMetrics();
+      if (!metrics || metrics.segmentWidth <= 0) return;
+      if (el.scrollLeft >= metrics.firstAppendLeft - 4) {
+        el.scrollLeft -= metrics.segmentWidth;
+      } else if (el.scrollLeft <= metrics.firstRealLeft - metrics.segmentWidth + 4) {
+        el.scrollLeft += metrics.segmentWidth;
+      }
+    };
+
+    const tick = (ts: number) => {
+      if (disposed) return;
+      if (!lastTs) lastTs = ts;
+      const dt = Math.min(32, ts - lastTs);
+      lastTs = ts;
+
+      if (!panelLoopPausedRef.current && !mobilePanelExpanded) {
+        panelLoopPhaseRef.current += dt * 0.0014;
+        const pulse = Math.sin(panelLoopPhaseRef.current) * 0.055 + Math.sin(panelLoopPhaseRef.current * 0.47) * 0.03;
+        const pxPerFrame = Math.max(0.12, 0.36 + pulse) * (dt / 16.67);
+        el.scrollLeft += pxPerFrame;
+        normalizeLoop();
+      }
+
+      panelLoopRafRef.current = window.requestAnimationFrame(tick);
+    };
+
+    const onPointerDown = () => pauseLoop(2600);
+    const onTouchStart = () => pauseLoop(2600);
+    const onMouseEnter = () => pauseLoop(1400);
+    const onScroll = () => normalizeLoop();
+
+    el.addEventListener('pointerdown', onPointerDown, { passive: true });
+    el.addEventListener('touchstart', onTouchStart, { passive: true });
+    el.addEventListener('mouseenter', onMouseEnter);
+    el.addEventListener('scroll', onScroll, { passive: true });
+    panelLoopRafRef.current = window.requestAnimationFrame(tick);
+
+    return () => {
+      disposed = true;
+      el.removeEventListener('pointerdown', onPointerDown);
+      el.removeEventListener('touchstart', onTouchStart);
+      el.removeEventListener('mouseenter', onMouseEnter);
+      el.removeEventListener('scroll', onScroll);
+      if (panelLoopRafRef.current) cancelAnimationFrame(panelLoopRafRef.current);
+      if (panelLoopResumeTimerRef.current) clearTimeout(panelLoopResumeTimerRef.current);
+      panelLoopRafRef.current = null;
+      panelLoopResumeTimerRef.current = null;
+      panelLoopPausedRef.current = false;
+    };
+  }, [isMobileViewport, panelStage, mobilePanelExpanded, savedReports.length]);
 
   // Bloquear TODO scroll/bounce/swipe/zoom en la pagina del agente
   useEffect(() => {
@@ -2613,8 +2697,19 @@ export default function AgentPage() {
           window.setTimeout(() => setNewReportId(null), 1800);
         }
 
-        // Scroll the panel to show recents
-        if (panelScrollRef.current && recentLibraryRef.current) {
+        // On mobile the panel is a horizontal premium rail; glide to recents without breaking its height/state.
+        if (isMobileViewport && panelGridRef.current && recentLibraryRef.current) {
+          panelLoopPausedRef.current = true;
+          const gridEl = panelGridRef.current;
+          const targetCard = recentLibraryRef.current.closest('.mob-col') as HTMLElement | null;
+          if (targetCard) {
+            gridEl.scrollTo({ left: Math.max(0, targetCard.offsetLeft - 10), behavior: 'smooth' });
+          }
+          if (panelLoopResumeTimerRef.current) clearTimeout(panelLoopResumeTimerRef.current);
+          panelLoopResumeTimerRef.current = setTimeout(() => {
+            panelLoopPausedRef.current = false;
+          }, 2600);
+        } else if (panelScrollRef.current && recentLibraryRef.current) {
           const panelEl = panelScrollRef.current;
           const cardEl = recentLibraryRef.current;
           const panelRect = panelEl.getBoundingClientRect();
@@ -2623,8 +2718,10 @@ export default function AgentPage() {
           panelEl.scrollTo({ top: scrollTarget, behavior: 'smooth' });
         }
 
-        // Auto-expand mobile panel so user sees the PDF land in recents
-        setMobilePanelExpanded(true);
+        // Desktop can open further; on mobile we keep the cinematic rail stable.
+        if (!isMobileViewport) {
+          setMobilePanelExpanded(true);
+        }
       }, 920);
     }, 80);
   }
@@ -3684,11 +3781,38 @@ export default function AgentPage() {
     },
   ];
 
-  const panelRenderedCards = panelBaseCards.map((card) =>
-    React.cloneElement(card.node, {
-      key: `real-${card.key}`,
-    })
-  );
+  const panelRenderedCards = isMobileViewport
+    ? [
+        ...panelBaseCards.map((card, index) =>
+          React.cloneElement(card.node, {
+            key: `prepend-${card.key}`,
+            'data-loop-segment': 'prepend',
+            'data-loop-origin': String(index),
+            className: `${((card.node.props as { className?: string }).className ?? '')} mobile-loop-card`,
+          })
+        ),
+        ...panelBaseCards.map((card, index) =>
+          React.cloneElement(card.node, {
+            key: `real-${card.key}`,
+            'data-loop-segment': 'real',
+            'data-loop-origin': String(index),
+            className: `${((card.node.props as { className?: string }).className ?? '')} mobile-loop-card`,
+          })
+        ),
+        ...panelBaseCards.map((card, index) =>
+          React.cloneElement(card.node, {
+            key: `append-${card.key}`,
+            'data-loop-segment': 'append',
+            'data-loop-origin': String(index),
+            className: `${((card.node.props as { className?: string }).className ?? '')} mobile-loop-card`,
+          })
+        ),
+      ]
+    : panelBaseCards.map((card) =>
+        React.cloneElement(card.node, {
+          key: `real-${card.key}`,
+        })
+      );
 
   return (
     <main
