@@ -375,6 +375,27 @@
   transition: border-color var(--transition), box-shadow var(--transition);
 }
 
+.chat-delete-btn {
+  flex-shrink: 0;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 145, 145, 0.34);
+  background: rgba(88, 18, 18, 0.2);
+  color: rgba(255, 198, 198, 0.92);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition), color var(--transition);
+}
+
+.chat-delete-btn:hover {
+  background: rgba(128, 28, 28, 0.3);
+  border-color: rgba(255, 167, 167, 0.52);
+  color: rgba(255, 224, 224, 0.98);
+}
+
 .chat-name-input:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-soft);
@@ -4092,6 +4113,11 @@
 
   .chat-id-badge { font-size: 9px; padding: 1px 5px; }
   .chat-name-input { font-size: 11px; padding: 2px 6px; }
+  .chat-delete-btn {
+    height: 22px !important;
+    padding: 0 8px !important;
+    font-size: 9px !important;
+  }
 
   /* Chat switcher tabs compact */
   .chat-sheet-tab {

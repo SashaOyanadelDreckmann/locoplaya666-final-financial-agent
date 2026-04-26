@@ -1022,6 +1022,49 @@ export default function AgentPage() {
     );
   }
 
+  function deleteThreadById(threadId: string) {
+    const target = chatThreads.find((thread) => thread.id === threadId);
+    if (!target) return;
+
+    const confirmText =
+      target.items.length > 0
+        ? `¿Eliminar el chat "${target.name}"? Esta acción limpiará su contenido.`
+        : `¿Eliminar el chat "${target.name}"?`;
+    if (!window.confirm(confirmText)) return;
+
+    const BASE_IDS = ['chat-1', 'chat-2', 'chat-3'] as const;
+    const isBaseThread = BASE_IDS.includes(threadId as (typeof BASE_IDS)[number]);
+
+    setChatThreads((prev) => {
+      if (isBaseThread) {
+        const resetThread = makeInitialThread(target.id, target.label, 'Nueva conversación');
+        return prev.map((thread) => (thread.id === threadId ? resetThread : thread));
+      }
+
+      const filtered = prev.filter((thread) => thread.id !== threadId);
+      if (filtered.length === 0) {
+        return [makeInitialThread('chat-1', '1', 'Nueva conversación')];
+      }
+
+      if (!filtered.some((thread) => thread.status === 'active')) {
+        filtered[0] = { ...filtered[0], status: 'active', completedAt: undefined };
+      }
+      return filtered;
+    });
+
+    setActiveChatId((prevActive) => {
+      if (prevActive !== threadId) return prevActive;
+      if (isBaseThread) return threadId;
+      const candidate =
+        chatThreads.find((thread) => thread.id !== threadId && thread.status === 'active') ??
+        chatThreads.find((thread) => thread.id !== threadId) ??
+        { id: 'chat-1' };
+      return candidate.id;
+    });
+
+    welcomeInjectedThreadsRef.current.delete(threadId);
+  }
+
   useEffect(() => {
     setChatThreads((prev) => {
       let changed = false;
@@ -3846,6 +3889,15 @@ export default function AgentPage() {
               placeholder="Nombre del chat"
               aria-label="Nombre del chat activo"
             />
+            <button
+              type="button"
+              className="chat-delete-btn"
+              onClick={() => deleteThreadById(activeChatId)}
+              title="Eliminar chat activo"
+              aria-label="Eliminar chat activo"
+            >
+              Eliminar
+            </button>
           </div>
         </header>
 
