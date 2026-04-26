@@ -1189,6 +1189,58 @@ export default function AgentPage() {
     return { income, expenses, balance: income - expenses };
   }, [budgetRows]);
 
+  const budgetInsights = useMemo(() => {
+    const nonZeroRows = budgetRows.filter((row) => row.amount > 0);
+    const expenseRows = nonZeroRows.filter((row) => row.type === 'expense');
+    const fixedLike = expenseRows.filter((row) =>
+      /(arriendo|hipoteca|luz|agua|internet|suscrip|colegio|seguro|deuda)/i.test(
+        `${row.category} ${row.note ?? ''}`
+      )
+    );
+    const variableLike = expenseRows.filter((row) => !fixedLike.some((f) => f.id === row.id));
+    const fixedTotal = fixedLike.reduce((sum, row) => sum + row.amount, 0);
+    const variableTotal = variableLike.reduce((sum, row) => sum + row.amount, 0);
+    const savingsRate =
+      budgetTotals.income > 0
+        ? Math.max(0, (budgetTotals.balance / budgetTotals.income) * 100)
+        : 0;
+    const healthScore = Math.max(
+      0,
+      Math.min(
+        100,
+        Math.round(
+          (budgetTotals.balance >= 0 ? 45 : 15) +
+            Math.min(30, savingsRate * 1.2) +
+            Math.min(25, nonZeroRows.length * 2.5)
+        )
+      )
+    );
+
+    const topExpenses = expenseRows
+      .slice()
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 4)
+      .map((row) => ({
+        id: row.id,
+        label: row.category || 'Sin categoria',
+        amount: row.amount,
+        pct:
+          budgetTotals.expenses > 0
+            ? Math.round((row.amount / budgetTotals.expenses) * 100)
+            : 0,
+      }));
+
+    return {
+      nonZeroRows,
+      expenseRows,
+      fixedTotal,
+      variableTotal,
+      savingsRate,
+      healthScore,
+      topExpenses,
+    };
+  }, [budgetRows, budgetTotals.balance, budgetTotals.expenses, budgetTotals.income]);
+
   const intakeData = useMemo(
     () => (sessionInfo?.injectedIntake?.intake ?? null) as Record<string, unknown> | null,
     [sessionInfo?.injectedIntake]
@@ -1907,21 +1959,34 @@ export default function AgentPage() {
   }
 
   function sendBudgetToAgent() {
-    const budgetSummary = budgetRows.map((r) => ({
-      category: r.category,
-      type: r.type,
-      amount: r.amount,
-      note: r.note,
-    }));
-    const message = `Actualiza mi presupuesto con esta tabla y entrégame un diagnóstico financiero profesional por categorías, tensiones de caja y próximos ajustes. 
-Contexto intake: ${JSON.stringify(intakeData ?? {})}
-Resumen operativo: ${JSON.stringify({
-      income: budgetTotals.income,
-      expenses: budgetTotals.expenses,
-      balance: budgetTotals.balance,
-      coachHint,
-    })}
-Datos: ${JSON.stringify(budgetSummary)}`;
+    const budgetSummary = budgetRows
+      .filter((r) => r.amount > 0 || (r.category ?? '').trim().length > 0)
+      .slice(0, 18)
+      .map((r) => ({
+        c: (r.category ?? '').trim().slice(0, 48) || 'sin_categoria',
+        t: r.type === 'income' ? 'I' : 'E',
+        m: Math.round(Number(r.amount) || 0),
+      }));
+    const intakeCompact = (() => {
+      const intake = (intakeData ?? {}) as Record<string, unknown>;
+      return {
+        incomeBand: intake.incomeBand ?? null,
+        hasDebt: intake.hasDebt ?? null,
+        hasSavings: intake.hasSavingsOrInvestments ?? null,
+        riskReaction: intake.riskReaction ?? null,
+      };
+    })();
+    const message = [
+      'Modo presupuesto: analiza y optimiza.',
+      `KPIs ingreso=${Math.round(budgetTotals.income)} gasto=${Math.round(
+        budgetTotals.expenses
+      )} balance=${Math.round(budgetTotals.balance)} ahorro_pct=${Math.round(
+        budgetInsights.savingsRate
+      )} salud=${budgetInsights.healthScore}`,
+      `Contexto intake compacto=${JSON.stringify(intakeCompact)}`,
+      `Filas presupuesto=${JSON.stringify(budgetSummary)}`,
+      'Entrega SOLO: 1) diagnostico corto, 2) 3 ajustes priorizados con monto sugerido, 3) una meta de ahorro mensual.',
+    ].join('\n');
     setIsBudgetModalOpen(false);
     void onSend(message);
   }
@@ -3862,15 +3927,67 @@ Documentos: ${JSON.stringify(documentsSummary)}`;
         <div className="agent-modal-overlay" onClick={() => setIsBudgetModalOpen(false)}>
           <div className="agent-modal budget-modal" onClick={(e) => e.stopPropagation()}>
             <div className="agent-modal-header">
-              <h3>Presupuesto profesional</h3>
+              <h3>Budget Studio</h3>
               <button type="button" className="agent-modal-close" onClick={() => setIsBudgetModalOpen(false)}>
                 ×
               </button>
-          </div>
+            </div>
             <p className="agent-modal-intro">
-              Diagnostico de presupuesto estilo analista financiero.
-              Puedes editar manualmente o pedir al core agent que ajuste categorias y montos.
+              Flujo optimizado para ajustar ingresos/gastos y disparar un diagnóstico corto, accionable y estable.
             </p>
+
+            <div className="budget-kpi-grid">
+              <div className="budget-kpi-card">
+                <span className="budget-kpi-label">Ingreso mensual</span>
+                <strong>${Math.round(budgetTotals.income).toLocaleString('es-CL')}</strong>
+              </div>
+              <div className="budget-kpi-card">
+                <span className="budget-kpi-label">Gasto mensual</span>
+                <strong>${Math.round(budgetTotals.expenses).toLocaleString('es-CL')}</strong>
+              </div>
+              <div className="budget-kpi-card">
+                <span className="budget-kpi-label">Ahorro estimado</span>
+                <strong>{Math.round(budgetInsights.savingsRate)}%</strong>
+              </div>
+              <div className="budget-kpi-card">
+                <span className="budget-kpi-label">Health score</span>
+                <strong>{budgetInsights.healthScore}/100</strong>
+              </div>
+            </div>
+
+            <div className="budget-health">
+              <div className="budget-health-head">
+                <span>Salud financiera actual</span>
+                <span>{budgetInsights.healthScore}/100</span>
+              </div>
+              <div className="budget-health-track">
+                <div
+                  className="budget-health-fill"
+                  style={{ width: `${budgetInsights.healthScore}%` }}
+                />
+              </div>
+              <div className="budget-health-legend">
+                <span>Fijos: ${Math.round(budgetInsights.fixedTotal).toLocaleString('es-CL')}</span>
+                <span>Variables: ${Math.round(budgetInsights.variableTotal).toLocaleString('es-CL')}</span>
+              </div>
+            </div>
+
+            {budgetInsights.topExpenses.length > 0 && (
+              <div className="budget-top-expenses">
+                <span className="budget-top-title">Top gastos</span>
+                {budgetInsights.topExpenses.map((row) => (
+                  <div key={row.id} className="budget-top-row">
+                    <div className="budget-top-meta">
+                      <span>{row.label}</span>
+                      <span>${Math.round(row.amount).toLocaleString('es-CL')}</span>
+                    </div>
+                    <div className="budget-top-track">
+                      <div className="budget-top-fill" style={{ width: `${row.pct}%` }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
 
             <div className="budget-table-wrap">
               <table className="budget-table">
@@ -3932,8 +4049,8 @@ Documentos: ${JSON.stringify(documentsSummary)}`;
             </div>
 
             <div className="budget-summary">
-              <span>Ingresos: ${budgetTotals.income.toLocaleString('es-CL')}</span>
-              <span>Gastos: ${budgetTotals.expenses.toLocaleString('es-CL')}</span>
+              <span>Filas activas: {budgetInsights.nonZeroRows.length}</span>
+              <span>Coach hint: {coachHint}</span>
               <span className={budgetTotals.balance >= 0 ? 'is-positive' : 'is-negative'}>
                 Balance: ${budgetTotals.balance.toLocaleString('es-CL')}
               </span>
@@ -3947,7 +4064,7 @@ Documentos: ${JSON.stringify(documentsSummary)}`;
                 + Gasto
               </button>
               <button type="button" className="button-primary" onClick={sendBudgetToAgent}>
-                Editar via chat core
+                Generar diagnóstico pro
               </button>
             </div>
           </div>
