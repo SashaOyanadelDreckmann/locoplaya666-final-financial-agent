@@ -1,8 +1,14 @@
 /** @type {import('next').NextConfig} */
-const apiOrigin =
-  process.env.NEXT_PUBLIC_API_ORIGIN
-  || process.env.NEXT_PUBLIC_API_URL
-  || 'http://localhost:3001';
+function normalizeOrigin(value) {
+  const raw = (value || '').trim();
+  if (!raw) return 'http://localhost:3001';
+  if (/^https?:\/\//i.test(raw)) return raw.replace(/\/+$/, '');
+  return `https://${raw.replace(/\/+$/, '')}`;
+}
+
+const apiOrigin = normalizeOrigin(
+  process.env.NEXT_PUBLIC_API_ORIGIN || process.env.NEXT_PUBLIC_API_URL
+);
 
 const nextConfig = {
   reactStrictMode: true,
