@@ -10262,3 +10262,581 @@ input[type="radio"]:checked {
     color: rgba(255,255,255,0.38) !important;
   }
 }
+
+/* ================================================================= */
+/* PREMIUM REPORT CHAT SYSTEM — refounded agent experience           */
+/* ================================================================= */
+
+.agent-layout {
+  --chat-accent: #83b7df;
+  --chat-accent-rgb: 131, 183, 223;
+  --chat-accent-strong: #2f6f9d;
+  --report-paper: #f7f4ed;
+  --report-paper-2: #eee8dc;
+  --report-ink: #1d2730;
+  --report-muted: #65717b;
+  --report-hairline: rgba(42, 52, 61, 0.14);
+}
+
+.agent-layout.chat-theme-2 {
+  --chat-accent: #d56a87;
+  --chat-accent-rgb: 213, 106, 135;
+  --chat-accent-strong: #93435c;
+}
+
+.agent-layout.chat-theme-3 {
+  --chat-accent: #d6ad52;
+  --chat-accent-rgb: 214, 173, 82;
+  --chat-accent-strong: #967331;
+}
+
+.agent-chat {
+  background:
+    linear-gradient(180deg, rgba(8, 12, 18, 0.72), rgba(7, 10, 15, 0.92)),
+    radial-gradient(circle at 12% 0%, rgba(var(--chat-accent-rgb), 0.12), transparent 34%) !important;
+}
+
+.agent-chat-header {
+  border-bottom: 1px solid rgba(var(--chat-accent-rgb), 0.16) !important;
+  background:
+    linear-gradient(180deg, rgba(10, 15, 22, 0.88), rgba(9, 13, 19, 0.72)) !important;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.18) !important;
+}
+
+.agent-chat-header h1 {
+  color: rgba(249, 251, 252, 0.96) !important;
+  letter-spacing: 0 !important;
+}
+
+.chat-meta-row {
+  gap: 8px !important;
+}
+
+.chat-id-badge {
+  border: 1px solid rgba(var(--chat-accent-rgb), 0.22) !important;
+  background: rgba(var(--chat-accent-rgb), 0.08) !important;
+  color: rgba(238, 245, 249, 0.86) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.chat-name-input {
+  border-color: rgba(215, 229, 237, 0.12) !important;
+  background: rgba(255, 255, 255, 0.035) !important;
+}
+
+.chat-sheet-tab {
+  min-width: 126px !important;
+  height: 46px !important;
+  border-radius: 12px !important;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.025)) !important;
+  border-color: rgba(210, 226, 237, 0.14) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.055) !important;
+}
+
+.chat-sheet-tab.is-active {
+  border-color: rgba(var(--chat-accent-rgb), 0.48) !important;
+  background:
+    linear-gradient(180deg, rgba(var(--chat-accent-rgb), 0.18), rgba(var(--chat-accent-rgb), 0.07)) !important;
+}
+
+.chat-sheet-tab.is-active .chat-sheet-tab-index {
+  background: rgba(var(--chat-accent-rgb), 0.22) !important;
+  color: #fff !important;
+  box-shadow: 0 0 0 1px rgba(var(--chat-accent-rgb), 0.28);
+}
+
+.chat-sheet-tab-title {
+  letter-spacing: 0 !important;
+}
+
+.agent-thread {
+  padding: 22px 22px 34px !important;
+  gap: 18px !important;
+  background:
+    linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(255,255,255,0.012) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+
+.agent-thread > .agent-bubble.user {
+  border-radius: 18px 18px 6px 18px !important;
+  padding: 12px 15px !important;
+  border: 1px solid rgba(var(--chat-accent-rgb), 0.34) !important;
+  background:
+    linear-gradient(135deg, rgba(var(--chat-accent-rgb), 0.25), rgba(255, 255, 255, 0.07)) !important;
+  color: rgba(248, 251, 253, 0.96) !important;
+  box-shadow:
+    0 12px 28px rgba(0, 0, 0, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18) !important;
+}
+
+.agent-thread > .agent-bubble.assistant {
+  width: min(82%, 880px) !important;
+  max-width: min(82%, 880px) !important;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.agent-thread > .agent-bubble.assistant.latex-doc {
+  overflow: visible !important;
+  border-radius: 0 !important;
+}
+
+.latex-doc {
+  position: relative;
+  width: min(100%, 880px) !important;
+  max-width: min(100%, 880px) !important;
+  border-radius: 18px !important;
+  border: 1px solid rgba(255, 255, 255, 0.42) !important;
+  background:
+    linear-gradient(90deg, rgba(var(--chat-accent-rgb), 0.88) 0 5px, transparent 5px),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.66), rgba(255, 255, 255, 0.24) 36%, rgba(255, 255, 255, 0.1)),
+    linear-gradient(180deg, var(--report-paper), var(--report-paper-2)) !important;
+  color: var(--report-ink) !important;
+  box-shadow:
+    0 28px 68px rgba(0, 0, 0, 0.32),
+    0 3px 0 rgba(255, 255, 255, 0.5) inset,
+    0 0 0 1px rgba(var(--chat-accent-rgb), 0.08) !important;
+}
+
+.latex-doc::before {
+  content: "";
+  position: absolute;
+  inset: 14px 16px auto 22px;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(var(--chat-accent-rgb), 0.5), transparent 70%);
+  pointer-events: none;
+}
+
+.latex-doc::after {
+  content: "FM";
+  position: absolute;
+  right: 18px;
+  bottom: 14px;
+  color: rgba(var(--chat-accent-rgb), 0.13);
+  font-family: ui-serif, Georgia, "Times New Roman", serif;
+  font-size: 3.2rem;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.latex-doc-head {
+  padding: 22px 24px 14px 30px !important;
+  border-bottom: 1px solid var(--report-hairline) !important;
+  background:
+    linear-gradient(180deg, rgba(var(--chat-accent-rgb), 0.085), rgba(255, 255, 255, 0)) !important;
+}
+
+.latex-doc-heading {
+  gap: 5px !important;
+}
+
+.latex-doc-kicker {
+  color: var(--chat-accent-strong) !important;
+  font-size: 0.68rem !important;
+  letter-spacing: 0.14em !important;
+}
+
+.latex-doc-title {
+  color: var(--report-ink) !important;
+  font-family: ui-serif, Georgia, "Times New Roman", serif !important;
+  font-size: clamp(1.2rem, 1.7vw, 1.58rem) !important;
+  font-weight: 680 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+  line-height: 1.12 !important;
+}
+
+.latex-doc-subtitle {
+  display: block !important;
+  max-width: 62ch !important;
+  color: var(--report-muted) !important;
+  font-size: 0.78rem !important;
+  line-height: 1.45 !important;
+}
+
+.latex-doc-mode {
+  align-self: flex-start !important;
+  color: var(--chat-accent-strong) !important;
+  background: rgba(var(--chat-accent-rgb), 0.11) !important;
+  border-color: rgba(var(--chat-accent-rgb), 0.22) !important;
+  border-radius: 999px !important;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+  font-size: 0.62rem !important;
+  letter-spacing: 0.08em !important;
+}
+
+.latex-doc-body {
+  padding: 18px 28px 30px 30px !important;
+  background:
+    linear-gradient(90deg, rgba(43, 54, 65, 0.055) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(43, 54, 65, 0.035) 1px, transparent 1px) !important;
+  background-size: 100% 31px, 100% 31px !important;
+  color: var(--report-ink) !important;
+  font-family: ui-serif, Georgia, "Times New Roman", serif !important;
+  font-size: 1rem !important;
+  line-height: 1.72 !important;
+}
+
+.latex-doc-body .premium-markdown,
+.latex-doc-body .academic-paper,
+.latex-doc-p,
+.latex-doc-list li,
+.agent-thread > .agent-bubble.assistant .agent-bubble-text {
+  color: var(--report-ink) !important;
+}
+
+.latex-doc-h2,
+.agent-thread .premium-markdown .md-h2,
+.agent-thread .academic-paper .md-h2 {
+  margin-top: 1.05rem !important;
+  padding-left: 12px !important;
+  border-left: 3px solid rgba(var(--chat-accent-rgb), 0.78) !important;
+  color: var(--report-ink) !important;
+  font-family: ui-serif, Georgia, "Times New Roman", serif !important;
+  letter-spacing: 0 !important;
+}
+
+.latex-doc-h3,
+.agent-thread .premium-markdown .md-h3,
+.agent-thread .academic-paper .md-h3 {
+  color: var(--chat-accent-strong) !important;
+  letter-spacing: 0 !important;
+}
+
+.latex-doc-list li::marker {
+  color: var(--chat-accent-strong);
+}
+
+.latex-inline-annex {
+  margin: 18px 0 2px !important;
+  padding: 0 !important;
+  border: 1px solid rgba(var(--chat-accent-rgb), 0.2) !important;
+  border-radius: 14px !important;
+  background: rgba(255, 255, 255, 0.42) !important;
+  overflow: hidden;
+}
+
+.latex-inline-annex-head {
+  min-height: 38px;
+  padding: 0 14px !important;
+  border-bottom: 1px solid rgba(var(--chat-accent-rgb), 0.18);
+  background: rgba(var(--chat-accent-rgb), 0.08);
+  color: var(--report-muted) !important;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+  font-size: 0.65rem !important;
+  letter-spacing: 0.1em !important;
+  text-transform: uppercase;
+}
+
+.agent-blocks-renderer {
+  gap: 0 !important;
+}
+
+.agent-block {
+  border: none !important;
+  border-radius: 0 !important;
+  padding: 16px !important;
+  background: transparent !important;
+  border-bottom: 1px solid rgba(42, 52, 61, 0.1) !important;
+}
+
+.agent-block:last-child {
+  border-bottom: none !important;
+}
+
+.agent-block h4,
+.agent-chart-title,
+.agent-table-title {
+  color: var(--report-ink) !important;
+  font-family: ui-serif, Georgia, "Times New Roman", serif !important;
+  font-size: 1rem !important;
+  letter-spacing: 0 !important;
+}
+
+.agent-block > p,
+.agent-chart-subtitle,
+.agent-chart-footnote,
+.agent-table-note {
+  color: var(--report-muted) !important;
+}
+
+.agent-chart-card,
+.agent-table-card {
+  background: rgba(255, 255, 255, 0.36) !important;
+  border: 1px solid rgba(42, 52, 61, 0.1) !important;
+  border-radius: 12px !important;
+  box-shadow: none !important;
+}
+
+.agent-chart-kind {
+  color: var(--chat-accent-strong) !important;
+  background: rgba(var(--chat-accent-rgb), 0.1) !important;
+}
+
+.agent-table th,
+.agent-table td,
+.agent-table-th,
+.agent-table-td {
+  color: var(--report-ink) !important;
+  border-color: rgba(42, 52, 61, 0.12) !important;
+}
+
+.agent-table-th,
+.agent-table th {
+  color: var(--chat-accent-strong) !important;
+  background: rgba(var(--chat-accent-rgb), 0.075) !important;
+}
+
+.citation-stack {
+  padding: 12px !important;
+  gap: 10px !important;
+}
+
+.citation-bubble {
+  max-width: 100% !important;
+  border-radius: 11px !important;
+  border: 1px solid rgba(var(--chat-accent-rgb), 0.22) !important;
+  border-left: 4px solid rgba(var(--chat-accent-rgb), 0.86) !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0.28)) !important;
+  box-shadow: none !important;
+}
+
+.citation-pill {
+  background: rgba(var(--chat-accent-rgb), 0.12) !important;
+  border-color: rgba(var(--chat-accent-rgb), 0.22) !important;
+  color: var(--chat-accent-strong) !important;
+}
+
+.citation-source {
+  color: var(--report-muted) !important;
+}
+
+.citation-link {
+  color: var(--report-ink) !important;
+  font-weight: 650 !important;
+  text-decoration: none !important;
+}
+
+.citation-link:hover {
+  color: var(--chat-accent-strong) !important;
+}
+
+.citation-toggle {
+  margin: 0 12px 12px !important;
+  border-color: rgba(var(--chat-accent-rgb), 0.22) !important;
+  background: rgba(var(--chat-accent-rgb), 0.09) !important;
+  color: var(--chat-accent-strong) !important;
+}
+
+.agent-input {
+  padding: 13px 18px 16px !important;
+  border-top: 1px solid rgba(var(--chat-accent-rgb), 0.14) !important;
+  background:
+    linear-gradient(180deg, rgba(10, 14, 20, 0.72), rgba(8, 11, 17, 0.9)) !important;
+}
+
+.agent-input textarea {
+  min-height: 52px !important;
+  border-radius: 14px !important;
+  border-color: rgba(var(--chat-accent-rgb), 0.18) !important;
+  background: rgba(255, 255, 255, 0.055) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.045);
+}
+
+.agent-input textarea:focus {
+  border-color: rgba(var(--chat-accent-rgb), 0.52) !important;
+  box-shadow: 0 0 0 3px rgba(var(--chat-accent-rgb), 0.13) !important;
+}
+
+.agent-input .continue-button {
+  border-radius: 11px !important;
+  border-color: rgba(var(--chat-accent-rgb), 0.2) !important;
+  background: rgba(255, 255, 255, 0.055) !important;
+}
+
+.agent-input .controls > .continue-button:last-child {
+  background: rgba(var(--chat-accent-rgb), 0.18) !important;
+  border-color: rgba(var(--chat-accent-rgb), 0.34) !important;
+  color: rgba(250, 253, 255, 0.96) !important;
+}
+
+.agent-action-orb {
+  border-radius: 15px !important;
+  border-color: rgba(var(--chat-accent-rgb), 0.36) !important;
+  background:
+    linear-gradient(135deg, rgba(var(--chat-accent-rgb), 0.18), rgba(10, 13, 18, 0.94)) !important;
+}
+
+.agent-action-orb button {
+  border-color: rgba(var(--chat-accent-rgb), 0.42) !important;
+  background: rgba(var(--chat-accent-rgb), 0.18) !important;
+}
+
+@media (max-width: 767px) {
+  .agent-thread {
+    padding: 12px 10px calc(128px + env(safe-area-inset-bottom)) !important;
+    gap: 12px !important;
+  }
+
+  .agent-thread > .agent-bubble.assistant,
+  .agent-thread > .agent-bubble.assistant.latex-doc {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .latex-doc {
+    border-radius: 15px !important;
+  }
+
+  .latex-doc-head {
+    padding: 18px 18px 12px 23px !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+
+  .latex-doc-title {
+    color: #0f1a22 !important;
+    font-size: 1.2rem !important;
+    font-weight: 800 !important;
+  }
+
+  .latex-doc-kicker {
+    color: var(--chat-accent-strong) !important;
+    font-weight: 800 !important;
+  }
+
+  .latex-doc-subtitle {
+    color: #40505b !important;
+    font-weight: 560 !important;
+  }
+
+  .latex-doc-body {
+    padding: 15px 18px 24px 23px !important;
+    font-size: 0.94rem !important;
+    line-height: 1.62 !important;
+  }
+
+  .latex-inline-annex-head {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 2px;
+    padding: 8px 12px !important;
+  }
+
+  .agent-chat-header h1,
+  .agent-chat-header p.muted {
+    display: none !important;
+  }
+
+  .chat-meta-row {
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    padding-bottom: 2px !important;
+    scrollbar-width: none;
+  }
+
+  .chat-meta-row::-webkit-scrollbar {
+    display: none;
+  }
+
+  .chat-id-badge,
+  .chat-name-input,
+  .chat-delete-btn {
+    flex: 0 0 auto !important;
+  }
+
+  .suggested-replies {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    gap: 8px !important;
+    max-height: 48px !important;
+    padding: 4px 8px 6px !important;
+    margin: 0 0 4px !important;
+    scrollbar-width: none;
+  }
+
+  .suggested-replies::-webkit-scrollbar {
+    display: none;
+  }
+
+  .suggestion-chip {
+    flex: 0 0 auto !important;
+    white-space: nowrap !important;
+    max-width: 78vw !important;
+  }
+}
+
+/* Specificity guard: every assistant report must render as a readable premium paper. */
+.agent-thread > .agent-bubble.assistant.latex-doc,
+.agent-thread > .agent-bubble.assistant.latex-doc.is-intro-doc {
+  color: var(--report-ink) !important;
+  border: 1px solid rgba(255, 255, 255, 0.62) !important;
+  border-radius: 18px !important;
+  background:
+    linear-gradient(90deg, rgba(var(--chat-accent-rgb), 0.96) 0 5px, transparent 5px),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0.86) 42%, rgba(245, 240, 230, 0.94)),
+    var(--report-paper) !important;
+  box-shadow:
+    0 30px 72px rgba(0, 0, 0, 0.38),
+    0 0 0 1px rgba(var(--chat-accent-rgb), 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.88) !important;
+}
+
+.agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-head,
+.agent-thread > .agent-bubble.assistant.latex-doc.is-intro-doc .latex-doc-head {
+  padding: 22px 24px 14px 30px !important;
+  border-bottom: 1px solid var(--report-hairline) !important;
+  background:
+    linear-gradient(180deg, rgba(var(--chat-accent-rgb), 0.1), rgba(255, 255, 255, 0)) !important;
+}
+
+.agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-title,
+.agent-thread > .agent-bubble.assistant.latex-doc.is-intro-doc .latex-doc-title {
+  color: var(--report-ink) !important;
+  opacity: 1 !important;
+}
+
+.agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-subtitle,
+.agent-thread > .agent-bubble.assistant.latex-doc.is-intro-doc .latex-doc-subtitle {
+  color: var(--report-muted) !important;
+  opacity: 1 !important;
+}
+
+.agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-body,
+.agent-thread > .agent-bubble.assistant.latex-doc.is-intro-doc .latex-doc-body {
+  padding: 18px 28px 30px 30px !important;
+  color: var(--report-ink) !important;
+  background:
+    linear-gradient(180deg, rgba(43, 54, 65, 0.045) 1px, transparent 1px) !important;
+  background-size: 100% 31px !important;
+}
+
+.agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-body *,
+.agent-thread > .agent-bubble.assistant.latex-doc.is-intro-doc .latex-doc-body * {
+  border-color: rgba(42, 52, 61, 0.12);
+}
+
+.agent-thread > .agent-bubble.assistant.latex-doc .premium-markdown,
+.agent-thread > .agent-bubble.assistant.latex-doc .academic-paper,
+.agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-p {
+  color: var(--report-ink) !important;
+}
+
+.agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-body,
+.agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-body p,
+.agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-body span,
+.agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-body li,
+.agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-body strong,
+.agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-body em,
+.agent-thread > .agent-bubble.assistant.latex-doc .premium-markdown *,
+.agent-thread > .agent-bubble.assistant.latex-doc .academic-paper * {
+  color: var(--report-ink) !important;
+  text-shadow: none !important;
+}

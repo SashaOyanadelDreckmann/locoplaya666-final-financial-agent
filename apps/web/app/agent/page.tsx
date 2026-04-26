@@ -3423,6 +3423,27 @@ export default function AgentPage() {
         const isFirstAssistantCard = !items.slice(0, i).some(
           (entry) => entry.type === 'message' && entry.role === 'assistant'
         );
+        const docMeta =
+          activeThread?.id === 'chat-2'
+            ? {
+                kicker: 'Plan de acción',
+                title: 'Informe estratégico e inversiones',
+                subtitle:
+                  'Simulación, secuencia de decisiones, fechas críticas y resguardos regulatorios.',
+              }
+            : activeThread?.id === 'chat-3'
+            ? {
+                kicker: 'Conciencia social',
+                title: 'Informe de criterio financiero',
+                subtitle:
+                  'Lectura filosófica, responsabilidad social y prudencia normativa aplicada.',
+              }
+            : {
+                kicker: isFirstAssistantCard ? 'Punto de partida' : 'Diagnóstico',
+                title: isFirstAssistantCard ? 'Lectura inicial del caso' : 'Informe diagnóstico financiero',
+                subtitle:
+                  'Síntesis profesional del contexto, evidencia disponible y próximos pasos.',
+              };
         const isScrollable = shouldEnableBubbleScroll(it.content ?? '');
         const blocks = Array.isArray(it.agent_blocks) ? it.agent_blocks : [];
         const questionnaireBlocks = blocks.filter((b) => b.type === 'questionnaire');
@@ -3435,16 +3456,10 @@ export default function AgentPage() {
             <div className="latex-doc-head">
               <div className="latex-doc-heading">
                 {isFirstAssistantCard ? (
-                  <span className="latex-doc-kicker">Punto de partida</span>
+                  <span className="latex-doc-kicker">{docMeta.kicker}</span>
                 ) : null}
-                <span className="latex-doc-title">
-                  {isFirstAssistantCard ? 'Lectura inicial del caso' : 'Informe del agente'}
-                </span>
-                {isFirstAssistantCard ? (
-                  <span className="latex-doc-subtitle">
-                    Un resumen claro para ordenar la conversación y abrir el siguiente paso.
-                  </span>
-                ) : null}
+                <span className="latex-doc-title">{docMeta.title}</span>
+                <span className="latex-doc-subtitle">{docMeta.subtitle}</span>
               </div>
               <span className="latex-doc-mode">
                 {(it.mode ?? agentMetaRef.current.mode ?? 'analysis').toString().replaceAll('_', ' ')}
@@ -3465,8 +3480,8 @@ export default function AgentPage() {
               {technicalBlocks.length > 0 && (
                 <div className="latex-inline-annex">
                   <div className="latex-inline-annex-head">
-                    <span>Anexos tecnicos</span>
-                    <span>interactive</span>
+                    <span>Anexos técnicos</span>
+                    <span>evidencia viva</span>
                   </div>
                   <AgentBlocksRenderer
                     blocks={technicalBlocks}
@@ -3485,8 +3500,8 @@ export default function AgentPage() {
                 return (
                 <div className="latex-inline-annex">
                   <div className="latex-inline-annex-head">
-                    <span>Citas</span>
-                    <span>{externalCitations.length}</span>
+                    <span>Fuentes verificables</span>
+                    <span>{externalCitations.length} referencias</span>
                   </div>
                   <div className="citation-stack">
                     {visibleCitations.map((citation, idx) => (
