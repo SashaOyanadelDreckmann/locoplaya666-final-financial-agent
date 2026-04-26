@@ -20,6 +20,12 @@ import {
   buildAgentMemoryContextRealtime,
 } from '../services/memory.service';
 import {
+  applyLifecycleAfterResponse,
+  buildLifecycleDecision,
+  getLifecycleFromMemory,
+  lifecycleMeta,
+} from '../services/product-lifecycle.service';
+import {
   ingestGeneratedReportDocument,
   reportSpecToSearchableText,
   searchUserDocumentContext,
@@ -560,9 +566,9 @@ Reglas:
 - Máximo 3 oraciones y 70 palabras
 - Debe sentirse humano, sobrio y nada prefabricado
 - Reconoce una lectura concreta de su situación sin repetir el intake literalmente
-- Propón un punto de partida útil
+- Propón como primer paso completar o subir su presupuesto en el panel
 - Cierra con una pregunta corta y natural
-- No menciones panel, herramientas, desbloqueos, informes, capacidades ni sistema
+- No menciones desbloqueos, informes, capacidades ni sistema
 - No uses frases como "puedo hacer 3 cosas contigo", "ya tengo tu contexto cargado", "partamos con una acción simple"
 
 Devuelve solo el mensaje final.`;
@@ -575,12 +581,12 @@ Devuelve solo el mensaje final.`;
       return sendSuccess(res, {
         message:
           message?.trim() ||
-          `${userName}, veo espacio para ordenar mejor tu situación y elegir un primer frente con criterio. Podemos partir por flujo mensual, colchón o decisiones de inversión. ¿Qué quieres destrabar primero?`,
+          `${userName}, veo espacio para ordenar mejor tu situación y elegir un primer frente con criterio. El primer paso es completar tu presupuesto en el panel para leer tu flujo real. ¿Lo armamos ahora?`,
       });
     } catch (err) {
       req.logger?.warn({ msg: 'Welcome message error', error: err });
       return sendSuccess(res, {
-        message: `${userName}, tu perfil financiero está listo. Puedo simular proyecciones, analizar tu presupuesto y generar informes PDF. El panel se desbloquea conforme avanzamos. ¿Por dónde empezamos?`,
+        message: `${userName}, tu perfil financiero está listo. El primer paso es completar tu presupuesto en el panel para ordenar ingresos, gastos y capacidad real de avance. ¿Lo armamos ahora?`,
       });
     }
   }),
@@ -601,6 +607,8 @@ router.get(
         }
       : undefined;
 
+    const lifecycleState = getLifecycleFromMemory(user.memoryBlob);
+
     return sendSuccess(res, {
       id: user.id,
       name: user.name,
@@ -613,6 +621,7 @@ router.get(
       knowledgeBaseScore: user.knowledgeBaseScore ?? 0,
       knowledgeScore: user.knowledgeScore ?? 0,
       knowledgeLastUpdated: user.knowledgeLastUpdated,
+      productLifecycle: lifecycleState,
     });
   }),
 );
@@ -734,7 +743,58 @@ router.post(
       });
     }
 
-    const input = ChatAgentInputSchema.parse(normalizedInput);
+    let input = ChatAgentInputSchema.parse(normalizedInput);
+    const lifecycleDecision = buildLifecycleDecision({
+      input,
+      memoryBlob: authedUser.memoryBlob,
+      hasIntake: Boolean(authedUser.injectedIntake),
+    });
+
+    if (lifecycleDecision.blocked) {
+      return sendSuccess(res, {
+        message:
+          lifecycleDecision.reason ??
+          'Este espacio aun no esta disponible. Terminemos primero el diagnostico base en el Chat 1.',
+        mode: 'information',
+        tool_calls: [],
+        agent_blocks: [],
+        artifacts: [],
+        citations: [],
+        suggested_replies: ['Volver al Chat 1', 'Subir presupuesto', 'Subir cartola'],
+        panel_action: {
+          section: 'budget',
+          message: 'Completa presupuesto y cartolas para desbloquear los chats especializados.',
+        },
+        compliance: {
+          mode: 'information',
+          no_auto_execution: true,
+          includes_recommendation: false,
+          includes_simulation: false,
+          includes_regulation: false,
+          missing_information: [],
+          disclaimers_shown: [],
+          risk_score: 0,
+          blocked: { is_blocked: true, reason: lifecycleDecision.reason },
+        },
+        state_updates: {},
+        meta: lifecycleMeta(lifecycleDecision.state, lifecycleDecision.activeChatId),
+      });
+    }
+
+    input = {
+      ...input,
+      context: {
+        ...(input.context ?? {}),
+        product_lifecycle: lifecycleDecision.state,
+        product_directive: lifecycleDecision.systemDirective,
+      },
+      ui_state: {
+        ...(input.ui_state ?? {}),
+        product_phase: lifecycleDecision.state.phase,
+        product_turn_count: lifecycleDecision.state.chatTurns[lifecycleDecision.activeChatId] ?? 0,
+        product_closing_mode: lifecycleDecision.closingMode,
+      },
+    };
     let response: any;
     try {
       response = await runCoreAgent(input);
@@ -842,6 +902,33 @@ router.post(
       });
     } catch (memoryErr) {
       req.logger?.warn({ msg: 'Error persisting turn memory', error: memoryErr });
+    }
+
+    try {
+      const currentMemory =
+        authedUser.memoryBlob && typeof authedUser.memoryBlob === 'object'
+          ? (authedUser.memoryBlob as Record<string, unknown>)
+          : {};
+      const nextLifecycle = applyLifecycleAfterResponse({
+        state: lifecycleDecision.state,
+        activeChatId: lifecycleDecision.activeChatId,
+        input,
+        response,
+      });
+      await saveUserMemoryBlob(authedUser.id, {
+        ...currentMemory,
+        productLifecycle: nextLifecycle,
+      });
+      response.meta = {
+        ...((response.meta as Record<string, unknown>) ?? {}),
+        ...lifecycleMeta(nextLifecycle, lifecycleDecision.activeChatId),
+      };
+    } catch (lifecycleErr) {
+      req.logger?.warn({ msg: 'Error persisting product lifecycle', error: lifecycleErr });
+      response.meta = {
+        ...((response.meta as Record<string, unknown>) ?? {}),
+        ...lifecycleMeta(lifecycleDecision.state, lifecycleDecision.activeChatId),
+      };
     }
 
     if (response.budget_updates && response.budget_updates.length > 0 && input.user_id) {

@@ -325,9 +325,16 @@ function safeJsonParse(raw: string): Record<string, any> {
  * Build execution prompt for ReAct loop
  */
 function buildExecutionPrompt(input: PlanPhaseInput): string {
+  const productDirective =
+    typeof input.context_summary?.product_directive === 'string'
+      ? input.context_summary.product_directive
+      : '';
   return `
 User intent: ${input.classification.intent}
 Mode: ${input.classification.mode}
+
+Product directive:
+${productDirective || 'No product-specific directive.'}
 
 User context:
 ${JSON.stringify(input.context_summary, null, 2)}

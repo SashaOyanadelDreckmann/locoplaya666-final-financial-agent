@@ -59,7 +59,7 @@ export function createApp() {
     })
   );
 
-  app.use(express.json({ limit: '10mb' }));
+  app.use(express.json({ limit: '2mb' }));
   app.use(cookieParser());
 
   // SECURITY: CSRF token attachment for all authenticated requests

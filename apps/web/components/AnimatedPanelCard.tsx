@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import type { ComponentPropsWithoutRef, CSSProperties, PropsWithChildren } from 'react';
 
 type AnimatedPanelCardProps = PropsWithChildren<
-  Omit<ComponentPropsWithoutRef<'article'>, 'children' | 'onDrag' | 'onDragStart' | 'onDragEnd'> & {
+  Omit<ComponentPropsWithoutRef<typeof motion.article>, 'children' | 'onDrag' | 'onDragStart' | 'onDragEnd'> & {
     label?: string;
     value?: string;
     className?: string;

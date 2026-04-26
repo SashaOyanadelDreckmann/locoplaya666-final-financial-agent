@@ -132,7 +132,7 @@ export function useScrollDirection() {
  * Usage: const animationFrame = useAnimationFrame(callback)
  */
 export function useAnimationFrame(callback: () => void) {
-  const frameRef = useRef<number>();
+  const frameRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
     const animate = () => {

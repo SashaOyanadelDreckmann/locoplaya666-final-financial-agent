@@ -68,6 +68,27 @@ export type AgentResponse = {
     threshold: number;
     feature: string;
   };
+  meta?: {
+    product_lifecycle?: {
+      phase?: string;
+      active_chat_id?: string;
+      unlocked_chats?: string[];
+      closed_chats?: string[];
+      turn_count?: number;
+      turns_remaining?: number;
+      closing_mode?: boolean;
+      reports_count?: number;
+      latest_action_reminder?: {
+        id: string;
+        title: string;
+        proposedDate: string;
+        sourceChatId: string;
+        status: 'proposed' | 'queued';
+        createdAt: string;
+      } | null;
+    };
+    [key: string]: unknown;
+  };
 };
 
 export type ChatItem =

@@ -133,6 +133,10 @@ async function buildFastValuableMessage(input: FormatPhaseInput): Promise<string
   const citations = input.execution_result?.citations?.slice(0, 5) ?? [];
   const artifacts = input.execution_result?.artifacts?.slice(0, 2) ?? [];
   const toolContext = compactToolOutputs(input);
+  const productDirective =
+    typeof input.context_summary?.product_directive === 'string'
+      ? input.context_summary.product_directive
+      : '';
 
   const prompt = [
     'Responde en español (Chile), breve y útil.',
@@ -144,6 +148,7 @@ async function buildFastValuableMessage(input: FormatPhaseInput): Promise<string
     '',
     `Pregunta del usuario: ${input.user_message}`,
     `Modo: ${input.mode}`,
+    `Arquitectura del producto: ${productDirective || 'sin directiva especial'}`,
     `Herramientas usadas: ${toolsUsed.join(', ') || 'ninguna'}`,
     `Artefactos: ${artifacts.map((a) => a.title).join(' | ') || 'ninguno'}`,
     `Fuentes: ${citations.map((c) => c.doc_title || c.source || '').filter(Boolean).join(' | ') || 'ninguna'}`,
@@ -154,7 +159,7 @@ async function buildFastValuableMessage(input: FormatPhaseInput): Promise<string
 
   const raw = await complete(prompt, {
     systemPrompt:
-      'Eres un asesor financiero senior. Tu prioridad es claridad, utilidad inmediata y precisión.',
+      'Eres un asesor financiero senior. Tu prioridad es claridad, utilidad inmediata, precision y coherencia con la arquitectura del producto.',
     temperature: 0.2,
     maxCompletionTokens: 520,
   });
@@ -226,6 +231,11 @@ export async function runFormatPhase(input: FormatPhaseInput): Promise<FormatPha
 
     const formatterInput = [
       `Modo: ${input.mode}`,
+      `Directiva de producto: ${
+        typeof input.context_summary?.product_directive === 'string'
+          ? input.context_summary.product_directive
+          : 'sin directiva especial'
+      }`,
       'Mensaje del usuario:',
       input.user_message,
       '',

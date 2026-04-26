@@ -86,6 +86,8 @@ export async function runCoreAgent(input: ChatAgentInput): Promise<ChatAgentResp
       uploaded_documents: inputContext.uploaded_documents || [],
       uploaded_evidence_files: inputContext.uploaded_evidence_files || [],
       consolidated_context: inputContext.consolidated_context || {},
+      product_lifecycle: inputContext.product_lifecycle || {},
+      product_directive: inputContext.product_directive || '',
     };
 
     // ────────────────────────────────────────────────

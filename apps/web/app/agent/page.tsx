@@ -113,6 +113,21 @@ type ChatThread = {
   completedAt?: string;
 };
 
+type ProductLifecycle = {
+  phase?: string;
+  unlockedChats?: string[];
+  closedChats?: string[];
+  chatTurns?: Record<string, number>;
+  actionReminders?: Array<{
+    id: string;
+    title: string;
+    proposedDate: string;
+    sourceChatId: string;
+    status: 'proposed' | 'queued';
+    createdAt: string;
+  }>;
+};
+
 type ChatSpecialization = {
   title: string;
   shortTitle: string;
@@ -630,6 +645,7 @@ export default function AgentPage() {
   const [panelStateLoaded, setPanelStateLoaded] = useState(false);
   const [persistentKnowledgeScore, setPersistentKnowledgeScore] = useState<number | null>(null);
   const [documentsLoading, setDocumentsLoading] = useState(false);
+  const [productLifecycle, setProductLifecycle] = useState<ProductLifecycle | null>(null);
   const agentMetaRef = useRef<AgentMeta>({});
   const [, forceRender] = useState(0);
   const [chatSlideDir, setChatSlideDir] = useState<'left' | 'right' | null>(null);
@@ -673,6 +689,32 @@ export default function AgentPage() {
       : activeThread?.id === 'meta-sheet'
       ? 'chat-theme-meta'
       : 'chat-theme-1';
+  const unlockedChatIds = productLifecycle?.unlockedChats ?? ['chat-1'];
+  const closedChatIds = productLifecycle?.closedChats ?? [];
+  const activeTurnCount =
+    productLifecycle?.chatTurns?.[activeChatId] ??
+    activeThread?.userMessageCount ??
+    0;
+  const activeTurnsRemaining = Math.max(0, 50 - activeTurnCount);
+  const isActiveChatLocked =
+    !unlockedChatIds.includes(activeChatId) || closedChatIds.includes(activeChatId);
+  const latestActionReminder =
+    productLifecycle?.actionReminders?.find((item) => item.sourceChatId === activeChatId) ??
+    productLifecycle?.actionReminders?.[0] ??
+    null;
+
+  function isThreadLocked(threadId: string) {
+    return !unlockedChatIds.includes(threadId) || closedChatIds.includes(threadId);
+  }
+
+  function phaseLabel(phase?: string) {
+    if (phase === 'budget_needed') return 'Completar presupuesto';
+    if (phase === 'transactions_needed') return 'Subir cartolas';
+    if (phase === 'interview_needed') return 'Entrevista de 4 minutos';
+    if (phase === 'diagnosis_ready') return 'Diagnóstico listo';
+    if (phase === 'advisory_unlocked') return 'Chats especializados activos';
+    return 'Diagnóstico inicial';
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -682,6 +724,7 @@ export default function AgentPage() {
         const info = await getSessionInfo();
         if (cancelled) return;
         setSessionInfo(info);
+        setProductLifecycle((info?.productLifecycle ?? null) as ProductLifecycle | null);
         setIsAuthenticated(true);
       } catch (error) {
         if (cancelled) return;
@@ -1652,12 +1695,12 @@ export default function AgentPage() {
       return 'Aún no hay documentos guardados. Cuando el agente genere PDFs o informes, aparecerán aquí listos para consulta.';
     }
 
-    const strongestGroup = [
+    const strongestGroup = ([
       ['plan de acción', reportsByGroup.plan_action.length],
       ['simulación', reportsByGroup.simulation.length],
       ['presupuesto', reportsByGroup.budget.length],
       ['diagnóstico', reportsByGroup.diagnosis.length],
-    ].sort((a, b) => b[1] - a[1])[0];
+    ] as Array<[string, number]>).sort((a, b) => b[1] - a[1])[0];
 
     return `Hay ${total} documento(s) activos. Mayor densidad actual en ${strongestGroup[0]} con ${strongestGroup[1]} pieza(s).`;
   }, [reportsByGroup]);
@@ -2020,6 +2063,19 @@ export default function AgentPage() {
     }
     const outgoingText = String(messageOverride ?? input ?? '').trim();
     if (!outgoingText || loading) return;
+    if (isActiveChatLocked) {
+      setItemsForActive((prev) => [
+        ...prev,
+        {
+          type: 'message',
+          role: 'assistant',
+          content:
+            'Este chat todavia esta bloqueado. Terminemos primero el flujo base en el Chat 1: presupuesto, cartolas y entrevista breve para construir el diagnostico.',
+          mode: 'information',
+        },
+      ]);
+      return;
+    }
     haptic(8); // feedback al enviar mensaje
 
     const userMessage = outgoingText;
@@ -2183,6 +2239,34 @@ export default function AgentPage() {
       }
       if (res?.milestone_unlocked?.feature) {
         setLevelUpText(`Hito desbloqueado: ${res.milestone_unlocked.feature}`);
+      }
+      if (res?.meta?.product_lifecycle) {
+        const metaLifecycle = res.meta.product_lifecycle;
+        setProductLifecycle((prev) => ({
+          ...(prev ?? {}),
+          phase: typeof metaLifecycle.phase === 'string' ? metaLifecycle.phase : prev?.phase,
+          unlockedChats: Array.isArray(metaLifecycle.unlocked_chats)
+            ? metaLifecycle.unlocked_chats
+            : prev?.unlockedChats,
+          closedChats: Array.isArray(metaLifecycle.closed_chats)
+            ? metaLifecycle.closed_chats
+            : prev?.closedChats,
+          chatTurns: {
+            ...(prev?.chatTurns ?? {}),
+            ...(typeof metaLifecycle.active_chat_id === 'string' &&
+            typeof metaLifecycle.turn_count === 'number'
+              ? { [metaLifecycle.active_chat_id]: metaLifecycle.turn_count }
+              : {}),
+          },
+          actionReminders: metaLifecycle.latest_action_reminder
+            ? [
+                metaLifecycle.latest_action_reminder,
+                ...(prev?.actionReminders ?? []).filter(
+                  (item) => item.id !== metaLifecycle.latest_action_reminder?.id
+                ),
+              ]
+            : prev?.actionReminders,
+        }));
       }
       forceRender((x) => x + 1);
 
@@ -3846,7 +3930,7 @@ export default function AgentPage() {
   const panelRenderedCards = isMobileViewport
     ? [
         ...panelBaseCards.map((card, index) =>
-          React.cloneElement(card.node, {
+          React.cloneElement(card.node as ReactElement<Record<string, unknown>>, {
             key: `prepend-${card.key}`,
             'data-loop-segment': 'prepend',
             'data-loop-origin': String(index),
@@ -3854,7 +3938,7 @@ export default function AgentPage() {
           })
         ),
         ...panelBaseCards.map((card, index) =>
-          React.cloneElement(card.node, {
+          React.cloneElement(card.node as ReactElement<Record<string, unknown>>, {
             key: `real-${card.key}`,
             'data-loop-segment': 'real',
             'data-loop-origin': String(index),
@@ -3862,7 +3946,7 @@ export default function AgentPage() {
           })
         ),
         ...panelBaseCards.map((card, index) =>
-          React.cloneElement(card.node, {
+          React.cloneElement(card.node as ReactElement<Record<string, unknown>>, {
             key: `append-${card.key}`,
             'data-loop-segment': 'append',
             'data-loop-origin': String(index),
@@ -3898,21 +3982,32 @@ export default function AgentPage() {
               {chatThreads.map((thread) => (
                 (() => {
                   const specialization = getThreadSpecialization(thread.id);
+                  const locked = isThreadLocked(thread.id);
                   return (
                 <button
                   key={thread.id}
                   type="button"
-                  className={`chat-sheet-tab ${specialization.accentClass}${thread.id === activeChatId ? ' is-active' : ''}${thread.status === 'context' ? ' is-context' : ''}`}
-                  onClick={() => setActiveChatId(thread.id)}
-                  title={thread.status === 'context' ? `Contexto: ${thread.name}` : `Chat ${thread.label}: ${thread.name}`}
+                  className={`chat-sheet-tab ${specialization.accentClass}${thread.id === activeChatId ? ' is-active' : ''}${thread.status === 'context' ? ' is-context' : ''}${locked ? ' is-locked' : ''}`}
+                  onClick={() => {
+                    if (locked) {
+                      setActiveChatId('chat-1');
+                      setPanelCallout({
+                        section: 'budget',
+                        message: 'Completa presupuesto, cartolas y entrevista para desbloquear este chat.',
+                      });
+                      return;
+                    }
+                    setActiveChatId(thread.id);
+                  }}
+                  title={locked ? 'Bloqueado hasta completar el diagnóstico' : thread.status === 'context' ? `Contexto: ${thread.name}` : `Chat ${thread.label}: ${thread.name}`}
                 >
                   <span className="chat-sheet-tab-index">{thread.label}</span>
                   <span className="chat-sheet-tab-copy">
                     <span className="chat-sheet-tab-title">
-                      {thread.status === 'context' ? 'Síntesis' : specialization.title}
+                      {locked ? 'Bloqueado' : thread.status === 'context' ? 'Síntesis' : specialization.title}
                     </span>
                     <span className="chat-sheet-tab-subtitle">
-                      {thread.status === 'context' ? 'Contexto consolidado' : specialization.subtitle}
+                      {locked ? 'Completa diagnóstico' : thread.status === 'context' ? 'Contexto consolidado' : specialization.subtitle}
                     </span>
                   </span>
                 </button>
@@ -3978,6 +4073,12 @@ export default function AgentPage() {
           </p>
           <div className="chat-meta-row">
             <span className="chat-id-badge">Chat {activeThread?.label}</span>
+            <span className="chat-id-badge" title="Fase del flujo">
+              {phaseLabel(productLifecycle?.phase)}
+            </span>
+            <span className="chat-id-badge" title="Interacciones restantes">
+              {activeTurnsRemaining}/50 restantes
+            </span>
             <input
               value={activeThread?.name ?? ''}
               onChange={(e) => setNameForActive(e.target.value)}
@@ -3995,6 +4096,18 @@ export default function AgentPage() {
               Eliminar
             </button>
           </div>
+          {isActiveChatLocked && (
+            <div className="product-flow-banner" role="status">
+              Este chat se desbloquea después del diagnóstico integrado. Sigue en el Chat 1 con
+              presupuesto, cartolas y entrevista breve.
+            </div>
+          )}
+          {!isActiveChatLocked && activeTurnCount >= 30 && (
+            <div className="product-flow-banner" role="status">
+              Modo cierre activo: quedan {activeTurnsRemaining} interacciones para cerrar con un
+              informe guardable en biblioteca.
+            </div>
+          )}
         </header>
 
         {knowledgePopupOpen && (
@@ -4122,12 +4235,44 @@ export default function AgentPage() {
                 </div>
               </div>
             )}
+            {activeChatId === 'chat-2' && latestActionReminder && (
+              <div className="agent-action-orb" role="status">
+                <div>
+                  <strong>{latestActionReminder.title}</strong>
+                  <span>Fecha sugerida: {latestActionReminder.proposedDate}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setProductLifecycle((prev) => ({
+                      ...(prev ?? {}),
+                      actionReminders: (prev?.actionReminders ?? []).map((item) =>
+                        item.id === latestActionReminder.id ? { ...item, status: 'queued' } : item
+                      ),
+                    }));
+                    setItemsForActive((prev) => [
+                      ...prev,
+                      {
+                        type: 'message',
+                        role: 'assistant',
+                        content:
+                          'Recordatorio activado en cola local. En la siguiente iteración lo conectamos al envío real de correos programados.',
+                        mode: 'information',
+                      },
+                    ]);
+                  }}
+                >
+                  Activar correo
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="agent-input">
             <textarea
-              placeholder="Escribe tu mensaje..."
+              placeholder={isActiveChatLocked ? 'Chat bloqueado hasta completar el diagnóstico' : 'Escribe tu mensaje...'}
               value={input}
+              disabled={isActiveChatLocked}
               onChange={(e) => setDraftForActive(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
@@ -4152,6 +4297,7 @@ export default function AgentPage() {
               <button
                 type="button"
                 className="continue-button"
+                disabled={isActiveChatLocked}
                 onClick={() => chatUploadInputRef.current?.click()}
                 title="Adjuntar imagen, PDF o Excel"
               >
@@ -4163,6 +4309,7 @@ export default function AgentPage() {
               <button
                 type="button"
                 className="continue-button"
+                disabled={isActiveChatLocked}
                 onClick={() => {
                   void onSend();
                 }}

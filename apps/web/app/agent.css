@@ -9599,6 +9599,77 @@
   box-shadow: 0 8px 24px rgba(5, 10, 16, 0.22), inset 0 1px 0 rgba(255,255,255,0.06) !important;
 }
 
+.chat-sheet-tab.is-locked {
+  opacity: 0.58;
+  filter: grayscale(0.35);
+}
+
+.chat-sheet-tab.is-locked .chat-sheet-tab-index::before {
+  content: "";
+  width: 7px;
+  height: 9px;
+  border: 1.5px solid rgba(245, 250, 255, 0.86);
+  border-radius: 2px;
+  box-shadow: 0 -4px 0 -1px rgba(245, 250, 255, 0.86);
+}
+
+.product-flow-banner {
+  margin-top: 10px;
+  padding: 9px 12px;
+  border: 1px solid rgba(183, 209, 224, 0.18);
+  border-radius: 10px;
+  background: rgba(10, 16, 24, 0.56);
+  color: rgba(226, 236, 243, 0.88);
+  font-size: 0.76rem;
+  line-height: 1.35;
+}
+
+.agent-action-orb {
+  position: sticky;
+  bottom: 10px;
+  z-index: 3;
+  width: min(420px, calc(100% - 18px));
+  margin: 8px auto 0;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid rgba(207, 166, 83, 0.34);
+  border-radius: 14px;
+  background: rgba(20, 18, 13, 0.92);
+  box-shadow: 0 14px 38px rgba(0, 0, 0, 0.28);
+}
+
+.agent-action-orb div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.agent-action-orb strong {
+  color: rgba(255, 247, 230, 0.96);
+  font-size: 0.78rem;
+}
+
+.agent-action-orb span {
+  color: rgba(236, 219, 181, 0.78);
+  font-size: 0.68rem;
+}
+
+.agent-action-orb button {
+  flex: 0 0 auto;
+  min-height: 32px;
+  padding: 0 10px;
+  border-radius: 9px;
+  border: 1px solid rgba(232, 193, 112, 0.42);
+  background: rgba(222, 171, 72, 0.16);
+  color: rgba(255, 245, 221, 0.96);
+  font-size: 0.7rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 .chat-specialization-1.is-active {
   background: rgba(56, 96, 140, 0.26) !important;
   border-color: rgba(129, 182, 224, 0.34) !important;
