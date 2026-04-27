@@ -202,17 +202,23 @@ function derivePhase(
   const unlocked = (ui.unlocked_modules ?? {}) as Record<string, unknown>;
   const budgetSummary = (ui.budget_summary ?? {}) as Record<string, unknown>;
   const context = input.context ?? {};
+  const injectedBudget = (context.injected_budget ?? {}) as Record<string, unknown>;
   const hasBudget =
     Number(budgetSummary.income ?? 0) > 0 ||
     Number(budgetSummary.expenses ?? 0) > 0 ||
-    unlocked.budget === true ||
-    /\bpresupuesto|budget\b/i.test(input.user_message);
+    Number(injectedBudget.income ?? 0) > 0 ||
+    Number(injectedBudget.expenses ?? 0) > 0 ||
+    unlocked.budget === true;
   const hasTransactions =
     unlocked.transactions === true ||
-    Array.isArray(context.uploaded_documents) && context.uploaded_documents.length > 0 ||
-    /\b(cartola|transacci[oó]n|movimiento|estado de cuenta)\b/i.test(input.user_message);
+    (Array.isArray(context.uploaded_documents) && context.uploaded_documents.length > 0);
+  const interviewCompleted =
+    unlocked.interview === true ||
+    (context.product_lifecycle &&
+      typeof context.product_lifecycle === 'object' &&
+      (context.product_lifecycle as Record<string, unknown>).interviewCompleted === true);
   const interviewSignal =
-    /\b(entrevista|diagn[oó]stico final|diagnostico final|perfil financiero)\b/i.test(input.user_message) ||
+    interviewCompleted ||
     state.phase === 'diagnosis_ready' ||
     state.phase === 'advisory_unlocked';
 

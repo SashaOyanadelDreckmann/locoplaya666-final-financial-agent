@@ -45,6 +45,90 @@ import { getConfig } from '../config';
 const router = Router();
 const config = getConfig();
 
+function normalizeForSimilarity(text: string) {
+  return String(text || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^\w\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function isTooSimilarMessage(a: string, b: string) {
+  const na = normalizeForSimilarity(a);
+  const nb = normalizeForSimilarity(b);
+  if (!na || !nb) return false;
+  if (na === nb) return true;
+  const aWords = new Set(na.split(' ').filter((w) => w.length > 3));
+  const bWords = new Set(nb.split(' ').filter((w) => w.length > 3));
+  if (aWords.size === 0 || bWords.size === 0) return false;
+  let overlap = 0;
+  for (const w of aWords) {
+    if (bWords.has(w)) overlap += 1;
+  }
+  const ratio = overlap / Math.max(aWords.size, bWords.size);
+  return ratio >= 0.72;
+}
+
+function buildBudgetPanelGuidance() {
+  return [
+    'Para actualizar tu presupuesto en el panel, haz esto en 60 segundos:',
+    '1) Abre el panel lateral y entra a Presupuesto.',
+    '2) Edita o agrega filas de ingresos y gastos con monto mensual.',
+    '3) Guarda y vuelve al chat para que recalculamos tu diagnóstico al instante.',
+    '',
+    'Si quieres, te guío categoría por categoría ahora mismo.',
+  ].join('\n');
+}
+
+function buildResilientFallbackMessage(params: {
+  userMessage: string;
+  phase?: unknown;
+  activeChatId?: unknown;
+}) {
+  const userMessage = String(params.userMessage ?? '').trim();
+  if (/\b(c[oó]mo|como).*\b(actualiz|editar|cambiar|completar).*\b(presupuesto)\b/i.test(userMessage)) {
+    return buildBudgetPanelGuidance();
+  }
+  if (/\b(presupuesto|ingresos|gastos|flujo)\b/i.test(userMessage)) {
+    return [
+      'Vamos directo a algo útil: primero actualizamos tu presupuesto en el panel y luego te doy una lectura ejecutiva de balance, tasa de ahorro y riesgos.',
+      'Si me compartes ingreso mensual, gastos fijos y gastos variables, lo dejamos estructurado ahora.',
+    ].join('\n\n');
+  }
+  if (/\b(cartola|transacci[oó]n|movimientos?|estado de cuenta)\b/i.test(userMessage)) {
+    return [
+      'Perfecto. Sube tu cartola o transacciones del mes en el panel y te devuelvo un informe ejecutivo con patrones de gasto, alertas y próximos pasos.',
+      'En cuanto esté cargada, sigo desde ahí sin repetir contexto.',
+    ].join('\n\n');
+  }
+
+  const phase = String(params.phase ?? '');
+  const activeChatId = String(params.activeChatId ?? 'chat-1');
+  if (activeChatId === 'chat-2') {
+    return [
+      'Tuvimos una intermitencia breve, pero mantenemos el rumbo del plan de accion e inversion.',
+      'Puedo continuar con: simulacion base, definicion de fechas clave o estructura de plan trimestral.',
+    ].join('\n\n');
+  }
+  if (activeChatId === 'chat-3') {
+    return [
+      'Se produjo una intermitencia breve. Retomemos el analisis de conciencia social con foco legal y regulatorio.',
+      'Si te parece, sigo con una postura concreta y aplicable a tus decisiones financieras.',
+    ].join('\n\n');
+  }
+  if (phase === 'budget_needed') return buildBudgetPanelGuidance();
+  if (phase === 'transactions_needed') {
+    return 'Siguiente paso recomendado: sube cartola o transacciones del mes en el panel. Con eso preparo un análisis ejecutivo y pasamos a entrevista breve.';
+  }
+
+  return [
+    'Hubo una intermitencia técnica puntual, pero sigo contigo en el flujo.',
+    'Para avanzar sin perder tiempo, dime cuál de estos pasos quieres ejecutar ahora: presupuesto, cartola o entrevista breve.',
+  ].join('\n\n');
+}
+
 function extractJsonObject(raw: string): Record<string, unknown> | null {
   if (!raw) return null;
   const codeBlockMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/i);
@@ -806,8 +890,11 @@ router.post(
       });
 
       response = {
-        message:
-          'Tuve un problema procesando esa respuesta, pero la conversación sigue activa. Intenta reformularlo en una frase más corta o dime qué quieres revisar primero.',
+        message: buildResilientFallbackMessage({
+          userMessage: String(input.user_message ?? ''),
+          phase: lifecycleDecision.state.phase,
+          activeChatId: lifecycleDecision.activeChatId,
+        }),
         mode: 'information',
         tool_calls: [],
         agent_blocks: [],
@@ -831,6 +918,27 @@ router.post(
         },
         state_updates: {},
       };
+    }
+
+    const recentAssistantMessages = (Array.isArray(input.history) ? input.history : [])
+      .filter((h) => h && typeof h === 'object' && (h as Record<string, unknown>).role === 'assistant')
+      .map((h) => String((h as Record<string, unknown>).content ?? ''))
+      .filter((x) => x.trim().length > 0)
+      .slice(-2);
+    if (
+      typeof response?.message === 'string' &&
+      recentAssistantMessages.some((msg) => isTooSimilarMessage(msg, response.message))
+    ) {
+      response.message = buildResilientFallbackMessage({
+        userMessage: String(input.user_message ?? ''),
+        phase: lifecycleDecision.state.phase,
+        activeChatId: lifecycleDecision.activeChatId,
+      });
+      response.suggested_replies = [
+        'Abrir presupuesto',
+        'Subir cartola',
+        'Continuar con entrevista',
+      ];
     }
 
     const asksPdf =
