@@ -10264,6 +10264,411 @@ input[type="radio"]:checked {
 }
 
 /* ================================================================= */
+/* EXECUTIVE TRANSPARENT OVERRIDE — final visual direction           */
+/* ================================================================= */
+
+.agent-layout,
+.agent-layout * {
+  letter-spacing: 0 !important;
+}
+
+.agent-layout {
+  --executive-font: Arial, Helvetica, sans-serif;
+  --chat-accent: #83b7df;
+  --chat-accent-rgb: 131, 183, 223;
+  --chat-accent-strong: #1f5f91;
+  --report-paper: rgba(255, 255, 255, 0.88);
+  --report-paper-2: rgba(248, 248, 246, 0.82);
+  --report-ink: #05070a;
+  --report-muted: #33414c;
+  --report-hairline: rgba(5, 7, 10, 0.16);
+}
+
+.agent-layout.chat-theme-2 {
+  --chat-accent: #8f263f;
+  --chat-accent-rgb: 143, 38, 63;
+  --chat-accent-strong: #741c32;
+}
+
+.agent-layout.chat-theme-3 {
+  --chat-accent: #b48931;
+  --chat-accent-rgb: 180, 137, 49;
+  --chat-accent-strong: #785716;
+}
+
+.agent-chat,
+.agent-chat-body,
+.agent-thread {
+  background-color: transparent !important;
+}
+
+.agent-chat {
+  background:
+    linear-gradient(180deg, rgba(7, 10, 15, 0.18), rgba(7, 10, 15, 0.12)) !important;
+}
+
+.agent-chat-header {
+  background: rgba(8, 12, 18, 0.26) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+  backdrop-filter: blur(18px) saturate(1.08) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(1.08) !important;
+  box-shadow: none !important;
+}
+
+.agent-chat-controls-row {
+  align-items: flex-start !important;
+}
+
+.chat-brand-strip {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-top: 10px;
+  min-width: 0;
+}
+
+.agent-chat-header .chat-brand-strip h1 {
+  margin: 0 !important;
+  color: rgba(255, 255, 255, 0.96) !important;
+  font-family: Arial, Helvetica, sans-serif !important;
+  font-size: clamp(1.35rem, 2vw, 2rem) !important;
+  font-weight: 800 !important;
+  letter-spacing: 0 !important;
+}
+
+.chat-identity-subtitle {
+  margin: 0 !important;
+  line-height: 1 !important;
+}
+
+.chat-subtitle-2 {
+  color: #8f263f !important;
+  font-family: Georgia, "Times New Roman", Times, serif !important;
+  font-size: clamp(1rem, 1.4vw, 1.38rem) !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.02em !important;
+  text-transform: none !important;
+}
+
+.chat-subtitle-3 {
+  color: #c79a42 !important;
+  font-family: "Marker Felt", "Bradley Hand", "Segoe Print", "Comic Sans MS", cursive !important;
+  font-size: clamp(1.05rem, 1.55vw, 1.55rem) !important;
+  font-weight: 700 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+  transform: rotate(-0.6deg);
+}
+
+.chat-sheet-tab {
+  background: rgba(8, 12, 18, 0.26) !important;
+  border-color: rgba(255, 255, 255, 0.18) !important;
+  backdrop-filter: blur(14px) saturate(1.1) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(1.1) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08) !important;
+}
+
+.chat-sheet-tab.is-active {
+  background: rgba(var(--chat-accent-rgb), 0.18) !important;
+  border-color: rgba(var(--chat-accent-rgb), 0.5) !important;
+}
+
+.chat-id-badge,
+.chat-name-input,
+.chat-delete-btn,
+.layout-mode-toggle {
+  background: rgba(8, 12, 18, 0.28) !important;
+  border-color: rgba(255, 255, 255, 0.16) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+}
+
+.agent-thread {
+  background: transparent !important;
+}
+
+.agent-thread > .agent-bubble.assistant,
+.agent-thread > .agent-bubble.assistant.latex-doc {
+  width: min(84%, 920px) !important;
+  max-width: min(84%, 920px) !important;
+  background: transparent !important;
+}
+
+.agent-thread > .agent-bubble.assistant.latex-doc,
+.agent-thread > .agent-bubble.assistant.latex-doc.is-intro-doc {
+  color: #05070a !important;
+  border: 1px solid rgba(255, 255, 255, 0.72) !important;
+  border-radius: 18px !important;
+  background:
+    linear-gradient(90deg, rgba(var(--chat-accent-rgb), 0.9) 0 5px, transparent 5px),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(250, 250, 248, 0.82)) !important;
+  backdrop-filter: blur(10px) saturate(1.02) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(1.02) !important;
+  box-shadow:
+    0 26px 70px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+  font-family: Arial, Helvetica, sans-serif !important;
+}
+
+.agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-head,
+.agent-thread > .agent-bubble.assistant.latex-doc.is-intro-doc .latex-doc-head {
+  padding: 20px 24px 13px 30px !important;
+  background: rgba(255, 255, 255, 0.16) !important;
+  border-bottom: 1px solid rgba(5, 7, 10, 0.16) !important;
+}
+
+.agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-title,
+.agent-thread > .agent-bubble.assistant.latex-doc.is-intro-doc .latex-doc-title {
+  color: #000 !important;
+  font-family: Arial, Helvetica, sans-serif !important;
+  font-size: clamp(1.22rem, 1.45vw, 1.52rem) !important;
+  font-weight: 800 !important;
+  line-height: 1.12 !important;
+  opacity: 1 !important;
+}
+
+.agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-kicker {
+  color: var(--chat-accent-strong) !important;
+  font-family: Arial, Helvetica, sans-serif !important;
+  font-weight: 800 !important;
+}
+
+.agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-subtitle,
+.agent-thread > .agent-bubble.assistant.latex-doc.is-intro-doc .latex-doc-subtitle {
+  color: #263440 !important;
+  font-family: Arial, Helvetica, sans-serif !important;
+  font-size: 0.82rem !important;
+  font-weight: 500 !important;
+  opacity: 1 !important;
+}
+
+.agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-mode {
+  color: var(--chat-accent-strong) !important;
+  background: rgba(var(--chat-accent-rgb), 0.12) !important;
+  border-color: rgba(var(--chat-accent-rgb), 0.24) !important;
+  font-family: Arial, Helvetica, sans-serif !important;
+}
+
+.agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-body,
+.agent-thread > .agent-bubble.assistant.latex-doc.is-intro-doc .latex-doc-body {
+  padding: 18px 28px 28px 30px !important;
+  color: #05070a !important;
+  background: transparent !important;
+  font-family: Arial, Helvetica, sans-serif !important;
+  font-size: 0.98rem !important;
+  line-height: 1.68 !important;
+}
+
+.agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-body,
+.agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-body *,
+.agent-thread > .agent-bubble.assistant.latex-doc .premium-markdown,
+.agent-thread > .agent-bubble.assistant.latex-doc .premium-markdown *,
+.agent-thread > .agent-bubble.assistant.latex-doc .academic-paper,
+.agent-thread > .agent-bubble.assistant.latex-doc .academic-paper * {
+  color: #05070a !important;
+  font-family: Arial, Helvetica, sans-serif !important;
+  text-shadow: none !important;
+}
+
+.agent-thread > .agent-bubble.assistant.latex-doc .md-h1,
+.agent-thread > .agent-bubble.assistant.latex-doc .md-h2,
+.agent-thread > .agent-bubble.assistant.latex-doc .md-h3,
+.agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-h2,
+.agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-h3 {
+  color: #000 !important;
+  font-family: Arial, Helvetica, sans-serif !important;
+  font-weight: 800 !important;
+}
+
+.agent-thread > .agent-bubble.assistant.latex-doc .md-bold {
+  font-weight: 800 !important;
+}
+
+.latex-inline-annex,
+.agent-chart-card,
+.agent-table-card,
+.citation-bubble {
+  background: rgba(255, 255, 255, 0.48) !important;
+  border-color: rgba(5, 7, 10, 0.14) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+}
+
+.agent-input {
+  background: rgba(8, 12, 18, 0.22) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.12) !important;
+  backdrop-filter: blur(18px) !important;
+  -webkit-backdrop-filter: blur(18px) !important;
+}
+
+.agent-input textarea {
+  background: rgba(8, 12, 18, 0.28) !important;
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  border-radius: 14px !important;
+  color: #fff !important;
+}
+
+.agent-input .continue-button {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  background: rgba(8, 12, 18, 0.3) !important;
+  border-color: rgba(255, 255, 255, 0.18) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+}
+
+.agent-panel {
+  background: rgba(8, 12, 18, 0.18) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  backdrop-filter: blur(18px) saturate(1.08) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(1.08) !important;
+}
+
+.agent-panel .panel-card,
+.agent-panel .profile-card,
+.agent-panel .panel-feature-card,
+.agent-panel .interview-flow-card,
+.agent-panel .recent-library-card {
+  background: rgba(8, 12, 18, 0.34) !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+}
+
+@media (max-width: 767px) {
+  .agent-chat-header {
+    padding: 8px 10px 7px !important;
+  }
+
+  .agent-chat-controls-row {
+    overflow-x: auto !important;
+    scrollbar-width: none;
+  }
+
+  .agent-chat-controls-row::-webkit-scrollbar {
+    display: none;
+  }
+
+  .chat-brand-strip {
+    margin-top: 7px;
+    gap: 7px;
+    flex-wrap: wrap;
+  }
+
+  .agent-chat-header .chat-brand-strip h1 {
+    display: block !important;
+    font-size: 1.16rem !important;
+    line-height: 1.05 !important;
+  }
+
+  .chat-meta-row .chat-name-input,
+  .chat-meta-row .chat-delete-btn {
+    display: none !important;
+  }
+
+  .chat-subtitle-2 {
+    font-size: 1.02rem !important;
+  }
+
+  .chat-subtitle-3 {
+    font-size: 1.08rem !important;
+  }
+
+  .agent-thread {
+    padding: 10px 10px calc(126px + env(safe-area-inset-bottom)) !important;
+    gap: 10px !important;
+  }
+
+  .agent-thread > .agent-bubble.assistant,
+  .agent-thread > .agent-bubble.assistant.latex-doc,
+  .agent-thread > .agent-bubble.assistant.latex-doc.is-intro-doc {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-head,
+  .agent-thread > .agent-bubble.assistant.latex-doc.is-intro-doc .latex-doc-head {
+    padding: 16px 16px 11px 21px !important;
+  }
+
+  .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-title,
+  .agent-thread > .agent-bubble.assistant.latex-doc.is-intro-doc .latex-doc-title {
+    color: #000 !important;
+    font-size: 1.08rem !important;
+  }
+
+  .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-subtitle,
+  .agent-thread > .agent-bubble.assistant.latex-doc.is-intro-doc .latex-doc-subtitle {
+    color: #263440 !important;
+    font-size: 0.78rem !important;
+  }
+
+  .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-body,
+  .agent-thread > .agent-bubble.assistant.latex-doc.is-intro-doc .latex-doc-body {
+    padding: 14px 17px 22px 21px !important;
+    font-size: 0.93rem !important;
+    line-height: 1.56 !important;
+  }
+
+  .suggested-replies {
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    flex-wrap: nowrap !important;
+  }
+
+  .agent-input {
+    grid-template-columns: minmax(0, 1fr) minmax(62px, 72px) !important;
+    gap: 6px !important;
+    padding: 7px 8px calc(env(safe-area-inset-bottom) + 6px) !important;
+    box-sizing: border-box !important;
+  }
+
+  .agent-input textarea {
+    min-width: 0 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .agent-input .controls {
+    min-width: 0 !important;
+    width: 100% !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  .agent-input .continue-button {
+    width: 100% !important;
+    padding: 0 4px !important;
+    font-size: 9px !important;
+  }
+
+  .agent-panel {
+    background: rgba(8, 12, 18, 0.14) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+  }
+
+  .agent-panel .panel-card,
+  .agent-panel .profile-card,
+  .agent-panel .panel-feature-card,
+  .agent-panel .interview-flow-card,
+  .agent-panel .recent-library-card {
+    background: rgba(8, 12, 18, 0.26) !important;
+    border-color: rgba(255, 255, 255, 0.14) !important;
+    border-radius: 18px !important;
+  }
+}
+
+.agent-layout .agent-chat .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-head .latex-doc-title,
+.agent-layout .agent-chat .agent-thread > .agent-bubble.assistant.latex-doc.is-intro-doc .latex-doc-head .latex-doc-title {
+  color: #000 !important;
+  -webkit-text-fill-color: #000 !important;
+}
+
+/* ================================================================= */
 /* PREMIUM REPORT CHAT SYSTEM — refounded agent experience           */
 /* ================================================================= */
 

@@ -219,6 +219,7 @@ function sanitizeMessageText(value: unknown, fallback = ''): string {
     .replace(/([.,;:!?])([^\s])/g, '$1 $2')
     .replace(/([a-záéíóúñ])(\d)/gi, '$1 $2')
     .replace(/(\d)([a-záéíóúñ])/gi, '$1 $2')
+    .replace(/\*\*/g, '')
     .replace(/[ \t]+\n/g, '\n')
     .replace(/\n{3,}/g, '\n\n')
     .replace(/[ \t]{2,}/g, ' ')
@@ -3136,8 +3137,8 @@ export default function AgentPage() {
             // Normalize unicode bullets so markdown parser handles lists consistently.
             next = next.replace(/^\s*[•●◦▪]\s+/u, '- ');
 
-            // Normalize malformed bold markers: ** texto ** -> **texto**
-            next = next.replace(/\*\*\s+([^*][\s\S]*?)\s+\*\*/g, '**$1**');
+            // Normalize malformed bold markers as plain executive text.
+            next = next.replace(/\*\*\s+([^*][\s\S]*?)\s+\*\*/g, '$1');
             // Remove stray single asterisk often emitted after ":" in lists.
             next = next.replace(/:\s*\*\s+(\d)/g, ': $1');
             // Preserve valid bold pairs, remove orphan "**" artifacts without harming formulas.
@@ -3145,7 +3146,7 @@ export default function AgentPage() {
             const boldTokens: Array<{ key: string; value: string }> = [];
             next = next.replace(/\*\*([^*\n]+?)\*\*/g, (_m, content) => {
               const key = `@@BOLD_${boldIndex++}@@`;
-              boldTokens.push({ key, value: `**${content}**` });
+              boldTokens.push({ key, value: content });
               return key;
             });
             let italicIndex = 0;
@@ -3181,8 +3182,8 @@ export default function AgentPage() {
     const markdownReady = normalizeEscapedMarkdown(compactMath);
     const polishedMarkdown = (() => {
       const normalized = markdownReady
-        // Keep valid bold markdown intact for professional rendering.
-        .replace(/\*\*\s+([^*\n][^*\n]*?)\s+\*\*/g, '**$1**');
+        // Executive renderer: bold markers are styling hints, never visible markdown.
+        .replace(/\*\*\s+([^*\n][^*\n]*?)\s+\*\*/g, '$1');
 
       // Final safety pass: remove orphan asterisks while preserving valid markdown and LaTeX.
       const mathTokens: Array<{ key: string; value: string }> = [];
@@ -3197,7 +3198,7 @@ export default function AgentPage() {
       let boldIdx = 0;
       let text = withMathProtected.replace(/\*\*([^*\n]+?)\*\*/g, (_m, content) => {
         const key = `@@B_${boldIdx++}@@`;
-        boldTokens.push({ key, value: `**${content}**` });
+        boldTokens.push({ key, value: content });
         return key;
       });
 
@@ -4076,13 +4077,15 @@ export default function AgentPage() {
               </button>
             </div>
           </div>
-          <h1>Financiera mente</h1>
-          {activeThread?.label === '2' && (
-            <p className="chat-identity-subtitle chat-subtitle-2">Planes de acción e inversiones</p>
-          )}
-          {activeThread?.label === '3' && (
-            <p className="chat-identity-subtitle chat-subtitle-3">Conciencia social</p>
-          )}
+          <div className="chat-brand-strip">
+            <h1>Financieramente</h1>
+            {activeThread?.label === '2' && (
+              <p className="chat-identity-subtitle chat-subtitle-2">plan de acción e inversión</p>
+            )}
+            {activeThread?.label === '3' && (
+              <p className="chat-identity-subtitle chat-subtitle-3">conciencia de clases</p>
+            )}
+          </div>
           <p className="muted">
             Proyecto de tesis en finanzas abiertas. Entorno seguro y privado para analisis financiero.
           </p>
