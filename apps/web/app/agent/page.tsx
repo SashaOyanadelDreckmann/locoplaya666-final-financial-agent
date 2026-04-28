@@ -493,7 +493,14 @@ export default function AgentPage() {
       };
     };
 
+    const hasLoopSegments = () =>
+      Boolean(
+        el.querySelector<HTMLElement>('[data-loop-segment="prepend"]') &&
+        el.querySelector<HTMLElement>('[data-loop-segment="append"]')
+      );
+
     const resetToRealSegment = () => {
+      if (!hasLoopSegments()) return;
       const metrics = getMetrics();
       if (!metrics) return;
       el.scrollLeft = metrics.firstRealLeft;
@@ -541,6 +548,10 @@ export default function AgentPage() {
     };
 
     const normalizeLoop = () => {
+      if (!hasLoopSegments()) {
+        syncFrontCard();
+        return;
+      }
       const metrics = getMetrics();
       if (!metrics || metrics.segmentWidth <= 0) return;
       if (el.scrollLeft >= metrics.firstAppendLeft - 4) {
@@ -557,7 +568,7 @@ export default function AgentPage() {
       const dt = Math.min(32, ts - lastTs);
       lastTs = ts;
 
-      if (!panelLoopPausedRef.current && !mobilePanelExpanded) {
+      if (!panelLoopPausedRef.current && !mobilePanelExpanded && hasLoopSegments()) {
         panelLoopPhaseRef.current += dt * 0.0008;
         const pulse = Math.sin(panelLoopPhaseRef.current) * 0.15 + Math.sin(panelLoopPhaseRef.current * 0.37) * 0.08;
         const pxPerFrame = Math.max(0.6, 1.1 + pulse) * (dt / 16.67);
@@ -2745,38 +2756,14 @@ export default function AgentPage() {
     docVisualOffset,
   });
 
-  const panelRenderedCards = isMobileViewport
-    ? [
-        ...panelBaseCards.map((card, index) =>
-          React.cloneElement(card.node as ReactElement<Record<string, unknown>>, {
-            key: `prepend-${card.key}`,
-            'data-loop-segment': 'prepend',
-            'data-loop-origin': String(index),
-            className: `${((card.node.props as { className?: string }).className ?? '')} mobile-loop-card`,
-          })
-        ),
-        ...panelBaseCards.map((card, index) =>
-          React.cloneElement(card.node as ReactElement<Record<string, unknown>>, {
-            key: `real-${card.key}`,
-            'data-loop-segment': 'real',
-            'data-loop-origin': String(index),
-            className: `${((card.node.props as { className?: string }).className ?? '')} mobile-loop-card`,
-          })
-        ),
-        ...panelBaseCards.map((card, index) =>
-          React.cloneElement(card.node as ReactElement<Record<string, unknown>>, {
-            key: `append-${card.key}`,
-            'data-loop-segment': 'append',
-            'data-loop-origin': String(index),
-            className: `${((card.node.props as { className?: string }).className ?? '')} mobile-loop-card`,
-          })
-        ),
-      ]
-    : panelBaseCards.map((card) =>
-        React.cloneElement(card.node, {
-          key: `real-${card.key}`,
-        })
-      );
+  const panelRenderedCards = panelBaseCards.map((card, index) =>
+    React.cloneElement(card.node as ReactElement<Record<string, unknown>>, {
+      key: `real-${card.key}`,
+      'data-loop-segment': 'real',
+      'data-loop-origin': String(index),
+      className: `${((card.node.props as { className?: string }).className ?? '')}${isMobileViewport ? ' mobile-loop-card' : ''}`,
+    })
+  );
 
   return (
     <main
