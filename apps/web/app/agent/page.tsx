@@ -512,6 +512,34 @@ export default function AgentPage() {
       }, resumeDelay);
     };
 
+    const syncFrontCard = () => {
+      if (mobilePanelExpanded) return;
+      const cards = Array.from(el.children) as HTMLElement[];
+      if (cards.length === 0) return;
+      const viewportCenter = el.scrollLeft + el.clientWidth / 2;
+      let closest: HTMLElement | null = null;
+      let minDistance = Number.POSITIVE_INFINITY;
+      for (const card of cards) {
+        const cardCenter = card.offsetLeft + card.offsetWidth / 2;
+        const distance = Math.abs(cardCenter - viewportCenter);
+        if (distance < minDistance) {
+          minDistance = distance;
+          closest = card;
+        }
+      }
+      for (const card of cards) {
+        card.classList.remove('is-mobile-front', 'is-mobile-left', 'is-mobile-right');
+        if (!closest) continue;
+        if (card === closest) {
+          card.classList.add('is-mobile-front');
+        } else if (card.offsetLeft < closest.offsetLeft) {
+          card.classList.add('is-mobile-left');
+        } else {
+          card.classList.add('is-mobile-right');
+        }
+      }
+    };
+
     const normalizeLoop = () => {
       const metrics = getMetrics();
       if (!metrics || metrics.segmentWidth <= 0) return;
@@ -520,6 +548,7 @@ export default function AgentPage() {
       } else if (el.scrollLeft <= metrics.firstRealLeft - metrics.segmentWidth + 4) {
         el.scrollLeft += metrics.segmentWidth;
       }
+      syncFrontCard();
     };
 
     const tick = (ts: number) => {
@@ -548,6 +577,7 @@ export default function AgentPage() {
     el.addEventListener('touchstart', onTouchStart, { passive: true });
     el.addEventListener('mouseenter', onMouseEnter);
     el.addEventListener('scroll', onScroll, { passive: true });
+    syncFrontCard();
     panelLoopRafRef.current = window.requestAnimationFrame(tick);
 
     return () => {

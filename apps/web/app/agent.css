@@ -5406,23 +5406,24 @@
 }
 
 .agent-question-choice {
-  border: 1px solid rgba(148, 163, 184, 0.35);
-  background: rgba(15, 23, 35, 0.7);
-  color: #e6eef7;
+  border: 1px solid rgba(209, 220, 232, 0.78);
+  background: rgba(255, 255, 255, 0.94);
+  color: #1f2937;
   border-radius: 999px;
   font-size: 11px;
   padding: 6px 10px;
 }
 
 .agent-question-choice.is-selected {
-  border-color: rgba(130, 188, 236, 0.9);
-  background: rgba(74, 132, 170, 0.28);
+  border-color: rgba(156, 188, 219, 0.92);
+  background: rgba(236, 243, 249, 0.98);
+  color: #16202a;
 }
 
 .agent-question-input {
-  border: 1px solid rgba(148, 163, 184, 0.28);
-  background: rgba(10, 14, 20, 0.72);
-  color: #eaf0f8;
+  border: 1px solid rgba(208, 220, 232, 0.72);
+  background: rgba(255, 255, 255, 0.96);
+  color: #16202a;
   border-radius: 8px;
   padding: 8px 10px;
   font-size: 12px;
@@ -5435,9 +5436,9 @@
 }
 
 .agent-questionnaire-submit {
-  border: 1px solid rgba(130, 188, 236, 0.68);
-  background: rgba(57, 110, 143, 0.38);
-  color: #eaf3ff;
+  border: 1px solid rgba(194, 207, 220, 0.82);
+  background: rgba(255, 255, 255, 0.96);
+  color: #1b2733;
   border-radius: 999px;
   padding: 7px 12px;
   font-size: 11px;
@@ -11623,7 +11624,7 @@ input[type="radio"]:checked {
   .chat-switcher {
     display: grid !important;
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-    gap: 10px !important;
+    gap: 6px !important;
     width: 100% !important;
     overflow: visible !important;
     background: transparent !important;
@@ -11635,14 +11636,14 @@ input[type="radio"]:checked {
 
   .chat-switcher .chat-sheet-tab {
     width: 100% !important;
-    height: 48px !important;
+    height: 42px !important;
     min-width: 0 !important;
-    padding: 8px 10px !important;
-    border-radius: 14px !important;
+    padding: 6px 8px !important;
+    border-radius: 12px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: flex-start !important;
-    gap: 10px !important;
+    gap: 8px !important;
     border: 1px solid rgba(190, 220, 245, 0.28) !important;
     background: rgba(14, 23, 35, 0.34) !important;
     backdrop-filter: blur(12px) saturate(1.08) !important;
@@ -11653,9 +11654,9 @@ input[type="radio"]:checked {
   .chat-switcher .chat-sheet-tab-copy,
   .chat-switcher .chat-sheet-tab-title {
     min-width: 0 !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    white-space: nowrap !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    white-space: normal !important;
   }
 
   .chat-switcher .chat-sheet-tab-subtitle {
@@ -11677,7 +11678,8 @@ input[type="radio"]:checked {
   }
 
   .chat-switcher .chat-sheet-tab-title {
-    font-size: 14px !important;
+    font-size: 12px !important;
+    line-height: 1.1 !important;
     font-weight: 650 !important;
     letter-spacing: 0.01em !important;
   }
@@ -11731,8 +11733,12 @@ input[type="radio"]:checked {
   }
 
   .agent-input {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    align-items: end !important;
+    column-gap: 10px !important;
+    row-gap: 0 !important;
     padding: 8px !important;
-    gap: 8px !important;
     background: transparent !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
@@ -11740,20 +11746,25 @@ input[type="radio"]:checked {
   }
 
   .agent-input textarea {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
     min-height: 44px !important;
     max-height: 110px !important;
     font-size: 16px !important;
     line-height: 1.35 !important;
+    margin: 0 !important;
   }
 
   .agent-input .controls {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
     display: flex !important;
-    width: 100% !important;
-    min-width: 0 !important;
-    gap: 10px !important;
+    width: auto !important;
+    min-width: auto !important;
+    gap: 8px !important;
     align-items: center !important;
     justify-content: flex-end !important;
-    margin-top: 8px !important;
+    margin-top: 0 !important;
   }
 
   .agent-input .controls > div {
@@ -11816,7 +11827,7 @@ input[type="radio"]:checked {
     grid-auto-flow: column !important;
     grid-auto-columns: min(82vw, 296px) !important;
     gap: 0 !important;
-    padding: 10px 14px 10px !important;
+    padding: 10px 18px 12px !important;
     overflow-x: auto !important;
     overflow-y: visible !important;
     -webkit-overflow-scrolling: touch !important;
@@ -11827,23 +11838,23 @@ input[type="radio"]:checked {
   .agent-panel .panel-grid > * {
     position: relative !important;
     z-index: 1 !important;
-    margin-right: -14px !important;
+    margin-right: -22px !important;
     transform-origin: center center !important;
-    transform: translateY(3px) scale(0.95) !important;
-    opacity: 0.9 !important;
+    transform: translateY(6px) scale(0.9) !important;
+    opacity: 0.7 !important;
   }
 
-  .agent-panel .panel-grid > *:nth-child(3n + 2) {
-    z-index: 3 !important;
+  .agent-panel .panel-grid > *.is-mobile-front {
+    z-index: 4 !important;
     transform: translateY(0) scale(1.02) !important;
     opacity: 1 !important;
   }
 
-  .agent-panel .panel-grid > *:nth-child(3n + 1),
-  .agent-panel .panel-grid > *:nth-child(3n + 3) {
+  .agent-panel .panel-grid > *.is-mobile-left,
+  .agent-panel .panel-grid > *.is-mobile-right {
     z-index: 2 !important;
-    transform: translateY(4px) scale(0.94) !important;
-    opacity: 0.86 !important;
+    transform: translateY(8px) scale(0.9) !important;
+    opacity: 0.76 !important;
   }
 
   .agent-panel .mob-col,
