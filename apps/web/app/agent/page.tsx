@@ -154,13 +154,6 @@ const DEFAULT_BUDGET_ROWS: BudgetRow[] = [
     note: '',
   },
   {
-    id: 'income-extra',
-    category: 'Ingresos extra',
-    type: 'income',
-    amount: 0,
-    note: '',
-  },
-  {
     id: 'expense-rent',
     category: 'Vivienda / arriendo',
     type: 'expense',
@@ -169,21 +162,7 @@ const DEFAULT_BUDGET_ROWS: BudgetRow[] = [
   },
   {
     id: 'expense-food',
-    category: 'Alimentacion',
-    type: 'expense',
-    amount: 0,
-    note: '',
-  },
-  {
-    id: 'expense-transport',
-    category: 'Transporte',
-    type: 'expense',
-    amount: 0,
-    note: '',
-  },
-  {
-    id: 'expense-debt',
-    category: 'Deuda financiera',
+    category: 'Alimentacion y transporte',
     type: 'expense',
     amount: 0,
     note: '',
@@ -2197,6 +2176,16 @@ export default function AgentPage() {
     ]);
   }
 
+  function upsertBudgetRow(row: BudgetRow) {
+    setBudgetRows((rows) => {
+      const idx = rows.findIndex((item) => item.id === row.id);
+      if (idx >= 0) {
+        return rows.map((item) => (item.id === row.id ? { ...item, ...row } : item));
+      }
+      return [...rows, row];
+    });
+  }
+
   function sendBudgetToAgent() {
     const budgetSummary = budgetRows
       .filter((r) => r.amount > 0 || (r.category ?? '').trim().length > 0)
@@ -2951,6 +2940,7 @@ export default function AgentPage() {
         budgetInsights={budgetInsights}
         budgetRows={budgetRows}
         updateBudgetRow={updateBudgetRow}
+        upsertBudgetRow={upsertBudgetRow}
         coachHint={coachHint}
         addBudgetRow={addBudgetRow}
         sendBudgetToAgent={sendBudgetToAgent}

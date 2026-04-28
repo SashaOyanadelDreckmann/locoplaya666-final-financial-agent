@@ -1,4 +1,4 @@
-import type { ChangeEvent } from 'react';
+import { useMemo, useState, type ChangeEvent } from 'react';
 
 type BudgetRow = {
   id: string;
@@ -25,19 +25,153 @@ export function BudgetModal(props: {
   budgetInsights: BudgetInsights;
   budgetRows: BudgetRow[];
   updateBudgetRow: (id: string, field: keyof BudgetRow, value: string | number) => void;
+  upsertBudgetRow: (row: BudgetRow) => void;
   coachHint: string;
   addBudgetRow: (type: 'income' | 'expense') => void;
   sendBudgetToAgent: () => void;
 }) {
   if (!props.isOpen) return null;
+
+  const [chatAnswers, setChatAnswers] = useState<Array<{ q: string; a: string }>>([]);
+  const [budgetReply, setBudgetReply] = useState('');
+  const [budgetQuestionStep, setBudgetQuestionStep] = useState(0);
+
+  const requiredQuestionFlow = useMemo(
+    () => [
+      { key: 'income-salary', text: '¿Cuál es tu sueldo líquido mensual? (solo número)' },
+      { key: 'expense-rent', text: '¿Cuánto pagas al mes en vivienda/arriendo?' },
+      { key: 'expense-food', text: '¿Cuánto gastas al mes en alimentación + transporte?' },
+      { key: 'expense-debt', text: '¿Pagas deuda mensual fija? (0 si no)' },
+      { key: 'income-extra', text: '¿Tienes otro ingreso mensual recurrente? (0 si no)' },
+    ],
+    []
+  );
+
+  const activeQuestion =
+    requiredQuestionFlow[Math.min(budgetQuestionStep, requiredQuestionFlow.length - 1)]?.text ??
+    '¿Qué quieres ajustar ahora del presupuesto?';
+
+  function parseMoneyInput(raw: string) {
+    const cleaned = raw.replace(/[^\d,.-]/g, '').replace(/\./g, '').replace(',', '.');
+    const parsed = Number(cleaned);
+    return Number.isFinite(parsed) ? Math.max(0, Math.round(parsed)) : 0;
+  }
+
+  function handleBudgetAgentReplySubmit() {
+    const answer = budgetReply.trim();
+    if (!answer) return;
+
+    const isGuidedFlow = budgetQuestionStep < requiredQuestionFlow.length;
+    const questionObj = isGuidedFlow ? requiredQuestionFlow[budgetQuestionStep] : null;
+    const amount = parseMoneyInput(answer);
+
+    if (questionObj) {
+      if (questionObj.key === 'income-salary') {
+        props.upsertBudgetRow({
+          id: 'income-salary',
+          type: 'income',
+          category: 'Sueldo liquido',
+          amount,
+          note: 'Capturado por chat',
+        });
+      } else if (questionObj.key === 'expense-rent') {
+        props.upsertBudgetRow({
+          id: 'expense-rent',
+          type: 'expense',
+          category: 'Vivienda / arriendo',
+          amount,
+          note: 'Capturado por chat',
+        });
+      } else if (questionObj.key === 'expense-food') {
+        props.upsertBudgetRow({
+          id: 'expense-food',
+          type: 'expense',
+          category: 'Alimentacion y transporte',
+          amount,
+          note: 'Capturado por chat',
+        });
+      } else if (questionObj.key === 'expense-debt') {
+        props.upsertBudgetRow({
+          id: 'expense-debt',
+          type: 'expense',
+          category: 'Deuda financiera',
+          amount,
+          note: 'Capturado por chat',
+        });
+      } else if (questionObj.key === 'income-extra') {
+        props.upsertBudgetRow({
+          id: 'income-extra',
+          type: 'income',
+          category: 'Ingresos extra',
+          amount,
+          note: 'Capturado por chat',
+        });
+      }
+    } else {
+      const lower = answer.toLowerCase();
+      if (/(sueldo|ingreso principal)/i.test(lower)) {
+        props.upsertBudgetRow({ id: 'income-salary', type: 'income', category: 'Sueldo liquido', amount, note: 'Actualizado por chat' });
+      } else if (/(extra|freelance|bono|comision)/i.test(lower)) {
+        props.upsertBudgetRow({ id: 'income-extra', type: 'income', category: 'Ingresos extra', amount, note: 'Actualizado por chat' });
+      } else if (/(arriendo|vivienda|hipoteca)/i.test(lower)) {
+        props.upsertBudgetRow({ id: 'expense-rent', type: 'expense', category: 'Vivienda / arriendo', amount, note: 'Actualizado por chat' });
+      } else if (/(comida|alimentacion|supermercado|transporte|bencina)/i.test(lower)) {
+        props.upsertBudgetRow({ id: 'expense-food', type: 'expense', category: 'Alimentacion y transporte', amount, note: 'Actualizado por chat' });
+      } else if (/(deuda|credito|tarjeta|cuota)/i.test(lower)) {
+        props.upsertBudgetRow({ id: 'expense-debt', type: 'expense', category: 'Deuda financiera', amount, note: 'Actualizado por chat' });
+      } else {
+        props.upsertBudgetRow({
+          id: `expense-custom-${Date.now()}`,
+          type: 'expense',
+          category: 'Gasto adicional',
+          amount,
+          note: answer.slice(0, 80),
+        });
+      }
+    }
+
+    setChatAnswers((prev) => [...prev, { q: activeQuestion, a: answer }]);
+    setBudgetReply('');
+    setBudgetQuestionStep((prev) => prev + (isGuidedFlow ? 1 : 0));
+  }
+
   return (
     <div className="agent-modal-overlay" onClick={props.onClose}>
       <div className="agent-modal budget-modal" onClick={(e) => e.stopPropagation()}>
         <div className="agent-modal-header">
-          <h3>Budget Studio</h3>
+          <h3>Budget Pro</h3>
           <button type="button" className="agent-modal-close" onClick={props.onClose}>×</button>
         </div>
-        <p className="agent-modal-intro">Flujo optimizado para ajustar ingresos/gastos y disparar un diagnóstico corto, accionable y estable.</p>
+        <p className="agent-modal-intro">Modo agente local de bajo costo: preguntas breves para construir el presupuesto sin consumir modelo.</p>
+
+        <div className="budget-chat-card">
+          <span className="budget-chat-badge">Chat presupuestario (local)</span>
+          <h4 className="budget-chat-question">{activeQuestion}</h4>
+          <div className="budget-chat-input-row">
+            <input
+              value={budgetReply}
+              onChange={(e) => setBudgetReply(e.target.value)}
+              placeholder="Ej: 850000"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleBudgetAgentReplySubmit();
+              }}
+            />
+            <button type="button" className="button-primary" onClick={handleBudgetAgentReplySubmit}>
+              Responder
+            </button>
+          </div>
+          {chatAnswers.length > 0 && (
+            <div className="budget-chat-log">
+              {chatAnswers.slice(-3).map((item, idx) => (
+                <div key={`${item.q}-${idx}`} className="budget-chat-log-row">
+                  <span>{item.q}</span>
+                  <strong>{item.a}</strong>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         <div className="budget-kpi-grid">
           <div className="budget-kpi-card"><span className="budget-kpi-label">Ingreso mensual</span><strong>${Math.round(props.budgetTotals.income).toLocaleString('es-CL')}</strong></div>
           <div className="budget-kpi-card"><span className="budget-kpi-label">Gasto mensual</span><strong>${Math.round(props.budgetTotals.expenses).toLocaleString('es-CL')}</strong></div>
