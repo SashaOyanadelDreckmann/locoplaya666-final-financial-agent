@@ -7926,7 +7926,7 @@
 }
 
 .agent-layout.is-monochrome {
-  filter: grayscale(1) saturate(0.08) contrast(1.06) brightness(0.96) !important;
+  filter: grayscale(1) !important;
 }
 
 .chat-sheet-tab {

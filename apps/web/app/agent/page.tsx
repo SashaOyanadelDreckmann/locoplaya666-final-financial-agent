@@ -1519,23 +1519,6 @@ export default function AgentPage() {
   }, [isMonochrome]);
 
   useEffect(() => {
-    const monoClass = 'agent-monochrome-bg';
-    const normalClass = 'agent-normal-matte-bg';
-    if (isMonochrome) {
-      document.body.classList.add(monoClass);
-      document.body.classList.remove(normalClass);
-    } else {
-      document.body.classList.remove(monoClass);
-      document.body.classList.add(normalClass);
-    }
-    return () => {
-      document.body.classList.remove(monoClass);
-      document.body.classList.remove(normalClass);
-    };
-  }, [isMonochrome]);
-
-
-  useEffect(() => {
     if (!authBootstrapped || !isAuthenticated) return;
     let alive = true;
 
@@ -2770,8 +2753,6 @@ export default function AgentPage() {
     <main
       className={`agent-layout ${activeThreadThemeClass} ${
         isRailMorphing ? 'is-mode-12-morphing' : ''
-      } ${
-        !isMonochrome ? 'is-normal-matte' : ''
       } ${
         isMonochrome ? 'is-monochrome' : ''
       } ${
