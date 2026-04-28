@@ -497,7 +497,7 @@ export default function AgentPage() {
 
     resetToRealSegment();
 
-    const pauseLoop = (resumeDelay = 5000) => {
+    const pauseLoop = (resumeDelay = 3000) => {
       panelLoopPausedRef.current = true;
       if (panelLoopResumeTimerRef.current) clearTimeout(panelLoopResumeTimerRef.current);
       panelLoopResumeTimerRef.current = setTimeout(() => {
@@ -568,12 +568,12 @@ export default function AgentPage() {
       if (!next) return;
       const targetLeft = Math.max(0, next.offsetLeft - Math.max(0, (el.clientWidth - next.offsetWidth) / 2));
       el.scrollTo({ left: targetLeft, behavior: 'smooth' });
-      window.setTimeout(normalizeLoop, 360);
+      window.setTimeout(normalizeLoop, 650);
     };
 
-    const onPointerDown = () => pauseLoop(5000);
-    const onTouchStart = () => pauseLoop(5000);
-    const onMouseEnter = () => pauseLoop(5000);
+    const onPointerDown = () => pauseLoop(3000);
+    const onTouchStart = () => pauseLoop(3000);
+    const onMouseEnter = () => pauseLoop(3000);
     const onScroll = () => normalizeLoop();
 
     el.addEventListener('pointerdown', onPointerDown, { passive: true });
@@ -582,7 +582,7 @@ export default function AgentPage() {
     el.addEventListener('scroll', onScroll, { passive: true });
     syncFrontCard();
     if (panelLoopAutoTimerRef.current) clearInterval(panelLoopAutoTimerRef.current);
-    panelLoopAutoTimerRef.current = setInterval(advanceToNextCard, 5000);
+    panelLoopAutoTimerRef.current = setInterval(advanceToNextCard, 3000);
 
     return () => {
       el.removeEventListener('pointerdown', onPointerDown);

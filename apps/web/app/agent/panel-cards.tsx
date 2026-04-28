@@ -117,7 +117,7 @@ export function buildPanelBaseCards(props: PanelCardsProps): PanelCard[] {
             data-panel-section="mode"
             bgImage="/IMG_3611.JPG"
             overlayOpacity={0.18}
-            bgScale={0.55}
+            bgScale={1}
             bgPosition="center 30%"
             dataMode={props.agentMetaRef.current.mode ?? 'calibracion'}
           >
