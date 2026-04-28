@@ -11848,3 +11848,237 @@ input[type="radio"]:checked {
     box-shadow: none !important;
   }
 }
+
+/* Canonical mobile layer: keep one predictable layout at the very end. */
+@media (max-width: 820px) {
+  .agent-layout,
+  .agent-layout.is-panel-stage-1,
+  .agent-layout.is-panel-stage-2,
+  .agent-layout.is-panel-stage-small,
+  .agent-layout.is-panel-collapsed {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: minmax(0, 1fr) auto !important;
+    gap: 8px !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    padding-top: max(8px, env(safe-area-inset-top, 0px)) !important;
+    padding-right: max(8px, env(safe-area-inset-right, 0px)) !important;
+    padding-bottom: max(8px, env(safe-area-inset-bottom, 0px)) !important;
+    padding-left: max(8px, env(safe-area-inset-left, 0px)) !important;
+    overflow: hidden !important;
+  }
+
+  .agent-divider-rail {
+    display: none !important;
+  }
+
+  .agent-chat {
+    min-width: 0 !important;
+    min-height: 0 !important;
+    height: 100% !important;
+    border-radius: 18px !important;
+    overflow: hidden !important;
+  }
+
+  .agent-chat-header {
+    padding: 6px 8px 8px !important;
+  }
+
+  .agent-chat-controls-row {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    gap: 8px !important;
+    margin-bottom: 8px !important;
+    align-items: stretch !important;
+  }
+
+  .chat-switcher {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 6px !important;
+    width: 100% !important;
+    overflow: visible !important;
+  }
+
+  .chat-switcher .chat-sheet-tab {
+    width: 100% !important;
+    height: 42px !important;
+    min-width: 0 !important;
+    padding: 8px 10px !important;
+    border-radius: 12px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 8px !important;
+  }
+
+  .chat-switcher .chat-sheet-tab-copy,
+  .chat-switcher .chat-sheet-tab-title,
+  .chat-switcher .chat-sheet-tab-subtitle {
+    min-width: 0 !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  .header-toggle-group {
+    display: inline-flex !important;
+    justify-content: flex-end !important;
+  }
+
+  .mobile-progress-pill {
+    display: none !important;
+  }
+
+  .chat-brand-strip,
+  .agent-chat-header h1,
+  .agent-chat-header .muted {
+    display: none !important;
+  }
+
+  .chat-meta-row {
+    display: flex !important;
+    gap: 6px !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    padding-bottom: 2px !important;
+  }
+
+  .chat-name-input {
+    min-width: 140px !important;
+    max-width: 180px !important;
+  }
+
+  .agent-chat-body {
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .agent-thread {
+    padding: 10px 8px 12px !important;
+    scroll-padding-bottom: 120px !important;
+  }
+
+  .agent-thread > .agent-bubble,
+  .agent-thread > .agent-bubble.user,
+  .agent-thread > .agent-bubble.assistant,
+  .agent-thread > .agent-bubble.assistant.latex-doc {
+    max-width: 100% !important;
+  }
+
+  .agent-input {
+    padding: 8px !important;
+    gap: 8px !important;
+    background: rgba(9, 14, 22, 0.82) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    border-top: 1px solid rgba(190, 220, 245, 0.12) !important;
+  }
+
+  .agent-input textarea {
+    min-height: 44px !important;
+    max-height: 110px !important;
+    font-size: 16px !important;
+    line-height: 1.35 !important;
+  }
+
+  .agent-input .controls {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+    align-items: stretch !important;
+  }
+
+  .agent-input .continue-button {
+    width: 100% !important;
+    min-height: 40px !important;
+    padding: 8px 10px !important;
+    font-size: 12px !important;
+  }
+
+  .agent-panel {
+    display: flex !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    height: auto !important;
+    max-height: none !important;
+    flex: 0 0 auto !important;
+    margin-top: 0 !important;
+    overflow: hidden !important;
+    border-radius: 18px !important;
+    border: 1px solid rgba(190, 220, 245, 0.12) !important;
+    background: rgba(10, 15, 24, 0.72) !important;
+    backdrop-filter: blur(14px) !important;
+    -webkit-backdrop-filter: blur(14px) !important;
+  }
+
+  .mobile-panel-handle {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    min-height: 34px !important;
+    padding: 8px 10px !important;
+    border-bottom: 1px solid rgba(190, 220, 245, 0.1) !important;
+  }
+
+  .mobile-panel-close {
+    display: none !important;
+  }
+
+  .agent-panel .panel-grid {
+    display: grid !important;
+    grid-auto-flow: column !important;
+    grid-auto-columns: min(82vw, 296px) !important;
+    gap: 8px !important;
+    padding: 8px !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  .agent-panel .mob-col,
+  .agent-panel .mob-col-wide,
+  .agent-panel .mob-col-narrow {
+    width: auto !important;
+  }
+
+  .agent-panel .panel-card,
+  .agent-panel .profile-card,
+  .agent-panel .panel-feature-card,
+  .agent-panel .interview-flow-card,
+  .agent-panel .recent-library-card {
+    min-height: 152px !important;
+    height: 152px !important;
+  }
+
+  .agent-layout.mobile-panel-expanded .agent-panel {
+    max-height: min(44dvh, 420px) !important;
+  }
+
+  .agent-layout.mobile-panel-expanded .agent-panel .panel-grid {
+    grid-auto-flow: row !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    grid-auto-columns: auto !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+  }
+
+  .agent-layout.mobile-panel-expanded .panel-pos-profile,
+  .agent-layout.mobile-panel-expanded .panel-pos-objective,
+  .agent-layout.mobile-panel-expanded .panel-pos-interview,
+  .agent-layout.mobile-panel-expanded .panel-pos-library,
+  .agent-layout.mobile-panel-expanded .panel-pos-recent,
+  .agent-layout.mobile-panel-expanded .panel-pos-news {
+    grid-column: 1 / -1 !important;
+  }
+
+  .agent-layout.mobile-panel-expanded .agent-panel .panel-card,
+  .agent-layout.mobile-panel-expanded .agent-panel .profile-card,
+  .agent-layout.mobile-panel-expanded .agent-panel .panel-feature-card,
+  .agent-layout.mobile-panel-expanded .agent-panel .interview-flow-card,
+  .agent-layout.mobile-panel-expanded .agent-panel .recent-library-card {
+    min-height: 160px !important;
+    height: auto !important;
+  }
+}
