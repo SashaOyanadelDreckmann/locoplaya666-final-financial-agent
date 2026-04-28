@@ -11953,8 +11953,8 @@ input[type="radio"]:checked {
   .agent-panel .panel-grid {
     display: grid !important;
     grid-auto-flow: column !important;
-    grid-auto-columns: calc((100% - 44px) / 3) !important;
-    gap: 0 !important;
+    grid-auto-columns: calc((100% - 24px) / 3) !important;
+    gap: 6px !important;
     padding: 10px 12px 14px !important;
     overflow-x: auto !important;
     overflow-y: visible !important;
@@ -11966,10 +11966,10 @@ input[type="radio"]:checked {
   .agent-panel .panel-grid > * {
     position: relative !important;
     z-index: 1 !important;
-    margin-right: -18px !important;
+    margin-right: 0 !important;
     transform-origin: center center !important;
-    transform: translateY(10px) scale(0.82) !important;
-    opacity: 0.62 !important;
+    transform: translateY(6px) scale(0.9) !important;
+    opacity: 0.78 !important;
   }
 
   .agent-panel .panel-grid > *.is-mobile-front {
@@ -11981,16 +11981,16 @@ input[type="radio"]:checked {
   .agent-panel .panel-grid > *.is-mobile-left,
   .agent-panel .panel-grid > *.is-mobile-right {
     z-index: 2 !important;
-    transform: translateY(10px) scale(0.82) !important;
-    opacity: 0.68 !important;
+    transform: translateY(6px) scale(0.9) !important;
+    opacity: 0.84 !important;
   }
 
   .agent-panel .mob-col,
   .agent-panel .mob-col-wide,
   .agent-panel .mob-col-narrow {
-    width: calc((100% - 44px) / 3) !important;
-    min-width: calc((100% - 44px) / 3) !important;
-    max-width: calc((100% - 44px) / 3) !important;
+    width: calc((100% - 24px) / 3) !important;
+    min-width: calc((100% - 24px) / 3) !important;
+    max-width: calc((100% - 24px) / 3) !important;
   }
 
   .agent-panel .mob-col > *,
@@ -12059,6 +12059,14 @@ input[type="radio"]:checked {
     padding: 8px !important;
     align-items: stretch !important;
     perspective: none !important;
+  }
+
+  .agent-layout.mobile-panel-expanded .agent-panel .mob-col,
+  .agent-layout.mobile-panel-expanded .agent-panel .mob-col-wide,
+  .agent-layout.mobile-panel-expanded .agent-panel .mob-col-narrow {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
   }
 
   .agent-layout.mobile-panel-expanded .agent-panel .panel-grid > * {
