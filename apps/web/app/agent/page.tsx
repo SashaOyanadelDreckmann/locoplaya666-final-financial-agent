@@ -2744,40 +2744,14 @@ export default function AgentPage() {
     docVisualOffset,
   });
 
-  const panelRenderedCards = isMobileViewport && !mobilePanelExpanded
-    ? [
-        ...panelBaseCards.map((card, index) =>
-          React.cloneElement(card.node as ReactElement<Record<string, unknown>>, {
-            key: `prepend-${card.key}`,
-            'data-loop-segment': 'prepend',
-            'data-loop-origin': String(index),
-            className: `${((card.node.props as { className?: string }).className ?? '')} mobile-loop-card`,
-          })
-        ),
-        ...panelBaseCards.map((card, index) =>
-          React.cloneElement(card.node as ReactElement<Record<string, unknown>>, {
-            key: `real-${card.key}`,
-            'data-loop-segment': 'real',
-            'data-loop-origin': String(index),
-            className: `${((card.node.props as { className?: string }).className ?? '')} mobile-loop-card`,
-          })
-        ),
-        ...panelBaseCards.map((card, index) =>
-          React.cloneElement(card.node as ReactElement<Record<string, unknown>>, {
-            key: `append-${card.key}`,
-            'data-loop-segment': 'append',
-            'data-loop-origin': String(index),
-            className: `${((card.node.props as { className?: string }).className ?? '')} mobile-loop-card`,
-          })
-        ),
-      ]
-    : panelBaseCards.map((card, index) =>
-        React.cloneElement(card.node as ReactElement<Record<string, unknown>>, {
-          key: `real-${card.key}`,
-          'data-loop-segment': 'real',
-          'data-loop-origin': String(index),
-        })
-      );
+  const panelRenderedCards = panelBaseCards.map((card, index) =>
+    React.cloneElement(card.node as ReactElement<Record<string, unknown>>, {
+      key: `real-${card.key}`,
+      'data-loop-segment': 'real',
+      'data-loop-origin': String(index),
+      className: `${((card.node.props as { className?: string }).className ?? '')}${isMobileViewport && !mobilePanelExpanded ? ' mobile-loop-card' : ''}`,
+    })
+  );
 
   return (
     <main
