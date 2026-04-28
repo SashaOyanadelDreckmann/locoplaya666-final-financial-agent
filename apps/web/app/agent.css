@@ -12052,6 +12052,7 @@ input[type="radio"]:checked {
   .agent-panel.is-mobile-compact .mob-col-wide,
   .agent-panel.is-mobile-compact .mob-col-narrow {
     display: block !important;
+    flex: 0 0 calc((100% - 16px) / 3) !important;
     width: calc((100% - 16px) / 3) !important;
     min-width: calc((100% - 16px) / 3) !important;
     max-width: calc((100% - 16px) / 3) !important;
@@ -12060,12 +12061,37 @@ input[type="radio"]:checked {
   .agent-panel.is-mobile-compact .mob-col > *,
   .agent-panel.is-mobile-compact .mob-col-wide > *,
   .agent-panel.is-mobile-compact .mob-col-narrow > * {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
     width: 100% !important;
     min-width: 100% !important;
     max-width: 100% !important;
   }
 
+  .agent-panel.is-mobile-compact .panel-grid {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    scroll-snap-type: x mandatory !important;
+  }
+
+  .agent-panel.is-mobile-compact .panel-grid > * {
+    flex: 0 0 calc((100% - 16px) / 3) !important;
+    width: calc((100% - 16px) / 3) !important;
+    min-width: calc((100% - 16px) / 3) !important;
+    max-width: calc((100% - 16px) / 3) !important;
+    scroll-snap-align: start !important;
+  }
+
   .agent-panel.is-mobile-compact .recent-library-grid,
+  .agent-panel.is-mobile-compact .recent-item,
+  .agent-panel.is-mobile-compact .recent-item-preview-wrap,
+  .agent-panel.is-mobile-compact .recent-item-name,
   .agent-panel.is-mobile-compact .reports-grid,
   .agent-panel.is-mobile-compact .report-list,
   .agent-panel.is-mobile-compact .panel-text,
