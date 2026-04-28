@@ -34,7 +34,10 @@ export function SidePanels(props: {
         </div>
       </aside>
 
-      <aside className="agent-panel" ref={props.panelScrollRef}>
+      <aside
+        className={`agent-panel ${props.mobilePanelExpanded ? 'is-mobile-expanded' : 'is-mobile-compact'}`}
+        ref={props.panelScrollRef}
+      >
         <div
           ref={props.mobilePanelHandleRef}
           className="mobile-panel-handle"

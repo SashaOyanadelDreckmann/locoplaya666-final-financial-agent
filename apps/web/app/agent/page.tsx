@@ -471,6 +471,10 @@ export default function AgentPage() {
     const el = panelGridRef.current;
     if (!el || !isMobileViewport) return;
 
+    if (!mobilePanelExpanded) {
+      el.scrollTo({ left: 0, behavior: 'auto' });
+    }
+
     const getMetrics = () => {
       const firstReal = el.querySelector<HTMLElement>('[data-loop-segment="real"][data-loop-origin="0"]');
       const firstAppend = el.querySelector<HTMLElement>('[data-loop-segment="append"][data-loop-origin="0"]');

@@ -12047,6 +12047,38 @@ input[type="radio"]:checked {
     display: none !important;
   }
 
+  /* Compact mode contract: enforce card-like mini panels (never inner thumbnail strips). */
+  .agent-panel.is-mobile-compact .mob-col,
+  .agent-panel.is-mobile-compact .mob-col-wide,
+  .agent-panel.is-mobile-compact .mob-col-narrow {
+    display: block !important;
+    width: calc((100% - 16px) / 3) !important;
+    min-width: calc((100% - 16px) / 3) !important;
+    max-width: calc((100% - 16px) / 3) !important;
+  }
+
+  .agent-panel.is-mobile-compact .mob-col > *,
+  .agent-panel.is-mobile-compact .mob-col-wide > *,
+  .agent-panel.is-mobile-compact .mob-col-narrow > * {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .agent-panel.is-mobile-compact .recent-library-grid,
+  .agent-panel.is-mobile-compact .reports-grid,
+  .agent-panel.is-mobile-compact .report-list,
+  .agent-panel.is-mobile-compact .panel-text,
+  .agent-panel.is-mobile-compact .panel-feature-copy,
+  .agent-panel.is-mobile-compact .interview-flow-meta,
+  .agent-panel.is-mobile-compact .profile-subtitle,
+  .agent-panel.is-mobile-compact .panel-card-note,
+  .agent-panel.is-mobile-compact .profile-actions,
+  .agent-panel.is-mobile-compact .profile-inline-action,
+  .agent-panel.is-mobile-compact .profile-intake-strip {
+    display: none !important;
+  }
+
   .agent-layout.mobile-panel-expanded .agent-panel {
     max-height: min(44dvh, 420px) !important;
   }
