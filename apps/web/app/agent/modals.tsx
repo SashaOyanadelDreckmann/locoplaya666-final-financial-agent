@@ -35,6 +35,8 @@ export function BudgetModal(props: {
   const [chatAnswers, setChatAnswers] = useState<Array<{ q: string; a: string }>>([]);
   const [budgetReply, setBudgetReply] = useState('');
   const [budgetQuestionStep, setBudgetQuestionStep] = useState(0);
+  const [assistantQuestion, setAssistantQuestion] = useState<string | null>(null);
+  const [isAskingAI, setIsAskingAI] = useState(false);
 
   const requiredQuestionFlow = useMemo(
     () => [
@@ -48,6 +50,7 @@ export function BudgetModal(props: {
   );
 
   const activeQuestion =
+    assistantQuestion ??
     requiredQuestionFlow[Math.min(budgetQuestionStep, requiredQuestionFlow.length - 1)]?.text ??
     '¿Qué quieres ajustar ahora del presupuesto?';
 
@@ -57,9 +60,9 @@ export function BudgetModal(props: {
     return Number.isFinite(parsed) ? Math.max(0, Math.round(parsed)) : 0;
   }
 
-  function handleBudgetAgentReplySubmit() {
+  async function handleBudgetAgentReplySubmit() {
     const answer = budgetReply.trim();
-    if (!answer) return;
+    if (!answer || isAskingAI) return;
 
     const isGuidedFlow = budgetQuestionStep < requiredQuestionFlow.length;
     const questionObj = isGuidedFlow ? requiredQuestionFlow[budgetQuestionStep] : null;
@@ -133,6 +136,45 @@ export function BudgetModal(props: {
     setChatAnswers((prev) => [...prev, { q: activeQuestion, a: answer }]);
     setBudgetReply('');
     setBudgetQuestionStep((prev) => prev + (isGuidedFlow ? 1 : 0));
+
+    try {
+      setIsAskingAI(true);
+      const res = await fetch('/api/budget-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          question: activeQuestion,
+          answer,
+          budgetRows: props.budgetRows,
+          chatAnswers: chatAnswers.slice(-6),
+        }),
+      });
+      const payload = await res.json();
+      if (payload?.ok) {
+        const upd = payload.update;
+        if (
+          upd &&
+          typeof upd.id === 'string' &&
+          (upd.type === 'income' || upd.type === 'expense') &&
+          typeof upd.category === 'string'
+        ) {
+          props.upsertBudgetRow({
+            id: upd.id === 'expense-custom' ? `expense-custom-${Date.now()}` : upd.id,
+            type: upd.type,
+            category: upd.category,
+            amount: Math.max(0, Math.round(Number(upd.amount) || 0)),
+            note: typeof upd.note === 'string' ? upd.note : 'Actualizado por IA',
+          });
+        }
+        if (typeof payload.next_question === 'string' && payload.next_question.trim()) {
+          setAssistantQuestion(payload.next_question.trim());
+        }
+      }
+    } catch {
+      // fallback silencioso: ya aplicamos lógica local arriba
+    } finally {
+      setIsAskingAI(false);
+    }
   }
 
   return (
@@ -153,11 +195,11 @@ export function BudgetModal(props: {
               onChange={(e) => setBudgetReply(e.target.value)}
               placeholder="Ej: 850000"
               onKeyDown={(e) => {
-                if (e.key === 'Enter') handleBudgetAgentReplySubmit();
+                if (e.key === 'Enter') void handleBudgetAgentReplySubmit();
               }}
             />
-            <button type="button" className="button-primary" onClick={handleBudgetAgentReplySubmit}>
-              Responder
+            <button type="button" className="button-primary" onClick={() => void handleBudgetAgentReplySubmit()} disabled={isAskingAI}>
+              {isAskingAI ? 'Pensando...' : 'Responder'}
             </button>
           </div>
           {chatAnswers.length > 0 && (
