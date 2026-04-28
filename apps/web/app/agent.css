@@ -11903,36 +11903,36 @@ input[type="radio"]:checked {
   .agent-panel .panel-grid {
     display: grid !important;
     grid-auto-flow: column !important;
-    grid-auto-columns: min(82vw, 222px) !important;
+    grid-auto-columns: calc((100% - 16px) / 3) !important;
     gap: 0 !important;
-    padding: 7px 13px 9px !important;
+    padding: 6px 8px 7px !important;
     overflow-x: auto !important;
     overflow-y: visible !important;
     -webkit-overflow-scrolling: touch !important;
     align-items: center !important;
-    perspective: 900px !important;
+    perspective: none !important;
   }
 
   .agent-panel .panel-grid > * {
     position: relative !important;
     z-index: 1 !important;
-    margin-right: -16px !important;
+    margin-right: 8px !important;
     transform-origin: center center !important;
-    transform: translateY(5px) scale(0.88) !important;
-    opacity: 0.7 !important;
+    transform: translateY(0) scale(1) !important;
+    opacity: 0.95 !important;
   }
 
   .agent-panel .panel-grid > *.is-mobile-front {
-    z-index: 4 !important;
-    transform: translateY(0) scale(0.98) !important;
+    z-index: 2 !important;
+    transform: translateY(0) scale(1) !important;
     opacity: 1 !important;
   }
 
   .agent-panel .panel-grid > *.is-mobile-left,
   .agent-panel .panel-grid > *.is-mobile-right {
-    z-index: 2 !important;
-    transform: translateY(6px) scale(0.86) !important;
-    opacity: 0.76 !important;
+    z-index: 1 !important;
+    transform: translateY(0) scale(1) !important;
+    opacity: 0.95 !important;
   }
 
   .agent-panel .mob-col,
@@ -11946,8 +11946,8 @@ input[type="radio"]:checked {
   .agent-panel .panel-feature-card,
   .agent-panel .interview-flow-card,
   .agent-panel .recent-library-card {
-    min-height: 114px !important;
-    height: 114px !important;
+    min-height: 78px !important;
+    height: 78px !important;
   }
 
   .agent-layout.mobile-panel-expanded .agent-panel {
