@@ -11953,44 +11953,46 @@ input[type="radio"]:checked {
   .agent-panel .panel-grid {
     display: grid !important;
     grid-auto-flow: column !important;
-    grid-auto-columns: calc((100% - 24px) / 3) !important;
-    gap: 6px !important;
+    grid-auto-columns: calc((100% - 16px) / 3) !important;
+    gap: 8px !important;
     padding: 10px 12px 14px !important;
     overflow-x: auto !important;
     overflow-y: visible !important;
     -webkit-overflow-scrolling: touch !important;
-    align-items: end !important;
-    perspective: 900px !important;
+    align-items: stretch !important;
+    perspective: none !important;
+    scroll-snap-type: x mandatory !important;
   }
 
   .agent-panel .panel-grid > * {
     position: relative !important;
     z-index: 1 !important;
     margin-right: 0 !important;
-    transform-origin: center center !important;
-    transform: translateY(6px) scale(0.9) !important;
-    opacity: 0.78 !important;
+    transform: none !important;
+    opacity: 1 !important;
+    scroll-snap-align: start !important;
   }
 
   .agent-panel .panel-grid > *.is-mobile-front {
-    z-index: 4 !important;
-    transform: translateY(0) scale(1) !important;
+    z-index: 1 !important;
+    transform: none !important;
     opacity: 1 !important;
   }
 
   .agent-panel .panel-grid > *.is-mobile-left,
   .agent-panel .panel-grid > *.is-mobile-right {
-    z-index: 2 !important;
-    transform: translateY(6px) scale(0.9) !important;
-    opacity: 0.84 !important;
+    z-index: 1 !important;
+    transform: none !important;
+    opacity: 1 !important;
   }
 
   .agent-panel .mob-col,
   .agent-panel .mob-col-wide,
   .agent-panel .mob-col-narrow {
-    width: calc((100% - 24px) / 3) !important;
-    min-width: calc((100% - 24px) / 3) !important;
-    max-width: calc((100% - 24px) / 3) !important;
+    display: block !important;
+    width: calc((100% - 16px) / 3) !important;
+    min-width: calc((100% - 16px) / 3) !important;
+    max-width: calc((100% - 16px) / 3) !important;
   }
 
   .agent-panel .mob-col > *,
@@ -12064,6 +12066,7 @@ input[type="radio"]:checked {
   .agent-layout.mobile-panel-expanded .agent-panel .mob-col,
   .agent-layout.mobile-panel-expanded .agent-panel .mob-col-wide,
   .agent-layout.mobile-panel-expanded .agent-panel .mob-col-narrow {
+    display: block !important;
     width: 100% !important;
     min-width: 100% !important;
     max-width: 100% !important;
