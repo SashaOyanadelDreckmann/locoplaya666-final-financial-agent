@@ -11609,18 +11609,28 @@ input[type="radio"]:checked {
 
   .agent-chat-controls-row {
     display: grid !important;
-    grid-template-columns: minmax(0, 1fr) auto !important;
-    gap: 8px !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 0 !important;
     margin-bottom: 8px !important;
     align-items: stretch !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
   }
 
   .chat-switcher {
     display: grid !important;
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-    gap: 6px !important;
+    gap: 10px !important;
     width: 100% !important;
     overflow: visible !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
   }
 
   .chat-switcher .chat-sheet-tab {
@@ -11633,8 +11643,11 @@ input[type="radio"]:checked {
     align-items: center !important;
     justify-content: flex-start !important;
     gap: 10px !important;
-    border: 1px solid rgba(190, 220, 245, 0.22) !important;
-    background: rgba(11, 18, 29, 0.38) !important;
+    border: 1px solid rgba(190, 220, 245, 0.28) !important;
+    background: rgba(14, 23, 35, 0.34) !important;
+    backdrop-filter: blur(12px) saturate(1.08) !important;
+    -webkit-backdrop-filter: blur(12px) saturate(1.08) !important;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06) !important;
   }
 
   .chat-switcher .chat-sheet-tab-copy,
@@ -11670,15 +11683,12 @@ input[type="radio"]:checked {
   }
 
   .chat-switcher .chat-sheet-tab.is-active {
-    border-color: rgba(166, 204, 238, 0.58) !important;
-    background: rgba(15, 28, 44, 0.56) !important;
-    box-shadow: inset 0 0 0 1px rgba(161, 201, 236, 0.16) !important;
+    border-color: rgba(166, 204, 238, 0.72) !important;
+    background: rgba(19, 33, 49, 0.54) !important;
+    box-shadow: inset 0 0 0 1px rgba(161, 201, 236, 0.24), 0 8px 20px rgba(6, 12, 20, 0.24) !important;
   }
 
-  .header-toggle-group {
-    display: none !important;
-    justify-content: flex-end !important;
-  }
+  .header-toggle-group { display: none !important; }
 
   .mobile-progress-pill {
     display: none !important;
@@ -11737,10 +11747,17 @@ input[type="radio"]:checked {
   }
 
   .agent-input .controls {
-    display: grid !important;
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    gap: 8px !important;
-    align-items: stretch !important;
+    display: flex !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    gap: 10px !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    margin-top: 8px !important;
+  }
+
+  .agent-input .controls > div {
+    display: none !important;
   }
 
   .agent-input .continue-button {
@@ -11756,11 +11773,13 @@ input[type="radio"]:checked {
     min-width: 42px !important;
     max-width: 42px !important;
     padding: 0 !important;
-    justify-self: start !important;
+    flex: 0 0 42px !important;
+    justify-self: auto !important;
   }
 
   .agent-input .composer-send-btn {
-    justify-self: end !important;
+    flex: 0 0 42px !important;
+    justify-self: auto !important;
   }
 
   .agent-panel {
@@ -11796,11 +11815,35 @@ input[type="radio"]:checked {
     display: grid !important;
     grid-auto-flow: column !important;
     grid-auto-columns: min(82vw, 296px) !important;
-    gap: 8px !important;
-    padding: 8px !important;
+    gap: 0 !important;
+    padding: 10px 14px 10px !important;
     overflow-x: auto !important;
-    overflow-y: hidden !important;
+    overflow-y: visible !important;
     -webkit-overflow-scrolling: touch !important;
+    align-items: center !important;
+    perspective: 900px !important;
+  }
+
+  .agent-panel .panel-grid > * {
+    position: relative !important;
+    z-index: 1 !important;
+    margin-right: -14px !important;
+    transform-origin: center center !important;
+    transform: translateY(3px) scale(0.95) !important;
+    opacity: 0.9 !important;
+  }
+
+  .agent-panel .panel-grid > *:nth-child(3n + 2) {
+    z-index: 3 !important;
+    transform: translateY(0) scale(1.02) !important;
+    opacity: 1 !important;
+  }
+
+  .agent-panel .panel-grid > *:nth-child(3n + 1),
+  .agent-panel .panel-grid > *:nth-child(3n + 3) {
+    z-index: 2 !important;
+    transform: translateY(4px) scale(0.94) !important;
+    opacity: 0.86 !important;
   }
 
   .agent-panel .mob-col,
@@ -11828,6 +11871,14 @@ input[type="radio"]:checked {
     grid-auto-columns: auto !important;
     overflow-x: hidden !important;
     overflow-y: auto !important;
+    gap: 8px !important;
+    padding: 8px !important;
+  }
+
+  .agent-layout.mobile-panel-expanded .agent-panel .panel-grid > * {
+    margin-right: 0 !important;
+    transform: none !important;
+    opacity: 1 !important;
   }
 
   .agent-layout.mobile-panel-expanded .panel-pos-profile,
