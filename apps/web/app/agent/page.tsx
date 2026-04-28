@@ -1172,7 +1172,6 @@ export default function AgentPage() {
   );
 
   const completedMilestones = milestones.filter((m) => m.done).length;
-  const nextMilestone = milestones.find((m) => !m.done);
 
   const unlockedPanelBlocks = useMemo(() => {
     const budgetUnlocked =
@@ -1272,11 +1271,6 @@ export default function AgentPage() {
     [sessionInfo?.injectedIntake]
   );
 
-  const intakeContextData = useMemo(
-    () => (sessionInfo?.injectedIntake?.intakeContext ?? null) as Record<string, unknown> | null,
-    [sessionInfo?.injectedIntake]
-  );
-
   const activeBankProduct = useMemo(
     () =>
       bankSimulation.activeProductId
@@ -1299,48 +1293,6 @@ export default function AgentPage() {
     () => bankSimulation.lockedMonth === monthKeyOf(),
     [bankSimulation.lockedMonth]
   );
-
-  const continuityCard = useMemo(() => {
-    const incomeRows = budgetRows.filter((row) => row.type === 'income' && row.amount > 0).length;
-    const expenseRows = budgetRows.filter((row) => row.type === 'expense' && row.amount > 0).length;
-    const docs = bankSimulation.parsedDocuments.length;
-    const activeModules = [
-      sessionInfo?.injectedIntake ? 'intake' : null,
-      profile ? 'perfil' : null,
-      incomeRows + expenseRows > 0 ? 'presupuesto' : null,
-      docs > 0 ? 'transacciones' : null,
-    ].filter(Boolean).length;
-
-    const headline =
-      activeModules >= 4
-        ? 'Motor conectado de punta a punta'
-        : activeModules === 3
-        ? 'Flujo muy bien conectado'
-        : activeModules === 2
-        ? 'Base útil, falta profundidad'
-        : 'Aún hay piezas sueltas';
-
-    const details = [
-      sessionInfo?.injectedIntake
-        ? `Intake activo con foco ${String(intakeContextData?.financialLiteracy ?? 'personalizado')}.`
-        : 'Falta intake para calibrar lenguaje, riesgo y profundidad.',
-      incomeRows + expenseRows > 0
-        ? `Presupuesto vivo con ${incomeRows + expenseRows} filas útiles y balance ${budgetTotals.balance >= 0 ? 'positivo' : 'presionado'}.`
-        : 'Todavía no hay presupuesto suficiente para detectar patrón mensual.',
-      docs > 0
-        ? `${docs} cartola(s) o evidencia(s) listas para lectura transaccional.`
-        : 'Sin cartolas procesadas todavía para análisis fino.',
-    ];
-
-    return { headline, details };
-  }, [
-    bankSimulation.parsedDocuments.length,
-    budgetRows,
-    budgetTotals.balance,
-    intakeContextData,
-    profile,
-    sessionInfo?.injectedIntake,
-  ]);
 
   const interviewCard = useMemo(() => {
     const name = firstNameOf(sessionInfo?.name);
@@ -2725,10 +2677,6 @@ export default function AgentPage() {
     removeInjectedIntake,
     removeInjectedProfile,
     agentMetaRef,
-    nextMilestone,
-    knowledgeScore,
-    continuityCard,
-    engagementScore,
     interviewCard,
     setInterviewIntake,
     router,

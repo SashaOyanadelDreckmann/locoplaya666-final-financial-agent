@@ -14,10 +14,6 @@ type PanelCardsProps = {
   removeInjectedIntake: () => Promise<unknown>;
   removeInjectedProfile: () => Promise<unknown>;
   agentMetaRef: React.MutableRefObject<{ objective?: string; mode?: string }>;
-  nextMilestone: { threshold: number; label: string } | null | undefined;
-  knowledgeScore: number;
-  continuityCard: { headline: string; details: string[] };
-  engagementScore: number;
   interviewCard: { badge: string; title: string; meta: string; detail: string };
   setInterviewIntake: (intake: any) => void;
   router: { push: (path: string) => void };
@@ -127,50 +123,6 @@ export function buildPanelBaseCards(props: PanelCardsProps): PanelCard[] {
           >
             <div className="panel-text">
               Contexto visual activo para lectura estratégica, foco y profundidad analítica.
-            </div>
-          </AnimatedPanelCard>
-        </div>
-      ),
-    },
-    {
-      key: 'next',
-      node: (
-        <div className="mob-col">
-          <AnimatedPanelCard
-            label="Siguiente desbloqueo"
-            delay={0.3}
-            className="panel-pos-next glass-card panel-minimal-soft panel-centered-content"
-          >
-            <div className="panel-text">
-              {props.nextMilestone
-                ? `Te faltan ${Math.max(0, props.nextMilestone.threshold - props.knowledgeScore)} pts para desbloquear ${props.nextMilestone.label}. Recomendación: profundiza en presupuesto y decisiones mensuales.`
-                : 'Mapa completo. Ya existe una lectura avanzada de tu perfil y puedes pasar a ejecución táctica.'}
-            </div>
-            <div className="panel-card-note">
-              Cada desbloqueo abre paneles más útiles y le da más contexto operativo al agente.
-            </div>
-          </AnimatedPanelCard>
-        </div>
-      ),
-    },
-    {
-      key: 'continuity',
-      node: (
-        <div className="mob-col">
-          <AnimatedPanelCard
-            label="Continuidad"
-            delay={0.4}
-            value={`${props.engagementScore}% operativa`}
-            className="glass-card panel-pos-continuity panel-minimal-soft panel-centered-content"
-          >
-            <div className="panel-text panel-text-strong">{props.continuityCard.headline}</div>
-            <div className="panel-stack-list">
-              {props.continuityCard.details.map((detail) => (
-                <span key={detail} className="panel-stack-item">{detail}</span>
-              ))}
-            </div>
-            <div className="panel-card-note">
-              Mientras más módulos vivos tenga esta capa, más ejecutivo y específico será el diagnóstico.
             </div>
           </AnimatedPanelCard>
         </div>
