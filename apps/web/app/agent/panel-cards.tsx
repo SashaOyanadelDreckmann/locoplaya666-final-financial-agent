@@ -129,25 +129,32 @@ export function buildPanelBaseCards(props: PanelCardsProps): PanelCard[] {
       ),
     },
     {
-      key: 'interview',
+      key: 'transactions',
       node: (
-        <div className="mob-col mob-col-wide">
+        <div className="mob-col">
           <button
             type="button"
-            className="interview-flow-card panel-pos-interview glass-card"
-            onClick={() => {
-              const injectedIntake = props.sessionInfo?.injectedIntake?.intake;
-              if (injectedIntake && typeof injectedIntake === 'object') {
-                props.setInterviewIntake(injectedIntake as any);
-              }
-              props.router.push('/interview');
-            }}
-            title="Ir a entrevista y diagnóstico"
+            data-panel-section="transactions"
+            className={`panel-feature-card panel-pos-transactions ${props.unlockedPanelBlocks.transactionsUnlocked ? '' : 'is-locked'}${props.highlightedSection === 'transactions' ? ' is-panel-highlighted' : ''}`}
+            onClick={props.openTransactionsPanel}
+            title={
+              props.unlockedPanelBlocks.transactionsUnlocked
+                ? 'Abrir transacciones y finanzas abiertas'
+                : 'Bloqueado: conversa sobre cartolas y banco'
+            }
           >
-            <span className="interview-flow-label">{props.interviewCard.badge}</span>
-            <span className="interview-flow-title">{props.interviewCard.title}</span>
-            <span className="interview-flow-meta">{props.interviewCard.meta}</span>
-            <span className="interview-flow-meta interview-flow-submeta">{props.interviewCard.detail}</span>
+            <span className="panel-feature-label">Transacciones</span>
+            <span className="panel-feature-status">
+              {props.unlockedPanelBlocks.transactionsUnlocked ? '● Activo' : '○ Bloqueado'}
+            </span>
+            <span className="panel-feature-copy">
+              Lectura profunda de cartolas bancarias. Detección de patrones, alertas de gasto y análisis operativo de tus movimientos reales.
+            </span>
+            <span className="panel-feature-copy panel-feature-copy-secondary">
+              {props.transactionIntel.docs > 0
+                ? `${props.transactionIntel.docs} cartola${props.transactionIntel.docs > 1 ? 's' : ''} · ${props.transactionIntel.rows.toLocaleString('es-CL')} filas · ${props.transactionIntel.amounts.length} montos detectados`
+                : 'Sube una cartola bancaria (PDF o Excel) para activar el análisis de movimientos.'}
+            </span>
           </button>
         </div>
       ),
@@ -187,32 +194,25 @@ export function buildPanelBaseCards(props: PanelCardsProps): PanelCard[] {
       ),
     },
     {
-      key: 'transactions',
+      key: 'interview',
       node: (
-        <div className="mob-col">
+        <div className="mob-col mob-col-wide">
           <button
             type="button"
-            data-panel-section="transactions"
-            className={`panel-feature-card panel-pos-transactions ${props.unlockedPanelBlocks.transactionsUnlocked ? '' : 'is-locked'}${props.highlightedSection === 'transactions' ? ' is-panel-highlighted' : ''}`}
-            onClick={props.openTransactionsPanel}
-            title={
-              props.unlockedPanelBlocks.transactionsUnlocked
-                ? 'Abrir transacciones y finanzas abiertas'
-                : 'Bloqueado: conversa sobre cartolas y banco'
-            }
+            className="interview-flow-card panel-pos-interview glass-card"
+            onClick={() => {
+              const injectedIntake = props.sessionInfo?.injectedIntake?.intake;
+              if (injectedIntake && typeof injectedIntake === 'object') {
+                props.setInterviewIntake(injectedIntake as any);
+              }
+              props.router.push('/interview');
+            }}
+            title="Ir a entrevista y diagnóstico"
           >
-            <span className="panel-feature-label">Transacciones</span>
-            <span className="panel-feature-status">
-              {props.unlockedPanelBlocks.transactionsUnlocked ? '● Activo' : '○ Bloqueado'}
-            </span>
-            <span className="panel-feature-copy">
-              Lectura profunda de cartolas bancarias. Detección de patrones, alertas de gasto y análisis operativo de tus movimientos reales.
-            </span>
-            <span className="panel-feature-copy panel-feature-copy-secondary">
-              {props.transactionIntel.docs > 0
-                ? `${props.transactionIntel.docs} cartola${props.transactionIntel.docs > 1 ? 's' : ''} · ${props.transactionIntel.rows.toLocaleString('es-CL')} filas · ${props.transactionIntel.amounts.length} montos detectados`
-                : 'Sube una cartola bancaria (PDF o Excel) para activar el análisis de movimientos.'}
-            </span>
+            <span className="interview-flow-label">{props.interviewCard.badge}</span>
+            <span className="interview-flow-title">{props.interviewCard.title}</span>
+            <span className="interview-flow-meta">{props.interviewCard.meta}</span>
+            <span className="interview-flow-meta interview-flow-submeta">{props.interviewCard.detail}</span>
           </button>
         </div>
       ),

@@ -471,10 +471,6 @@ export default function AgentPage() {
     const el = panelGridRef.current;
     if (!el || !isMobileViewport) return;
 
-    if (!mobilePanelExpanded) {
-      el.scrollTo({ left: 0, behavior: 'auto' });
-    }
-
     const getMetrics = () => {
       const firstReal = el.querySelector<HTMLElement>('[data-loop-segment="real"][data-loop-origin="0"]');
       const firstAppend = el.querySelector<HTMLElement>('[data-loop-segment="append"][data-loop-origin="0"]');
@@ -501,7 +497,7 @@ export default function AgentPage() {
 
     resetToRealSegment();
 
-    const pauseLoop = (resumeDelay = 300000) => {
+    const pauseLoop = (resumeDelay = 5000) => {
       panelLoopPausedRef.current = true;
       if (panelLoopResumeTimerRef.current) clearTimeout(panelLoopResumeTimerRef.current);
       panelLoopResumeTimerRef.current = setTimeout(() => {
@@ -575,9 +571,9 @@ export default function AgentPage() {
       window.setTimeout(normalizeLoop, 360);
     };
 
-    const onPointerDown = () => pauseLoop(300000);
-    const onTouchStart = () => pauseLoop(300000);
-    const onMouseEnter = () => pauseLoop(300000);
+    const onPointerDown = () => pauseLoop(5000);
+    const onTouchStart = () => pauseLoop(5000);
+    const onMouseEnter = () => pauseLoop(5000);
     const onScroll = () => normalizeLoop();
 
     el.addEventListener('pointerdown', onPointerDown, { passive: true });
@@ -586,7 +582,7 @@ export default function AgentPage() {
     el.addEventListener('scroll', onScroll, { passive: true });
     syncFrontCard();
     if (panelLoopAutoTimerRef.current) clearInterval(panelLoopAutoTimerRef.current);
-    panelLoopAutoTimerRef.current = setInterval(advanceToNextCard, 300000);
+    panelLoopAutoTimerRef.current = setInterval(advanceToNextCard, 5000);
 
     return () => {
       el.removeEventListener('pointerdown', onPointerDown);
@@ -2714,14 +2710,41 @@ export default function AgentPage() {
         })()
       : panelBaseCards;
 
-  const panelRenderedCards = compactPanelCards.map((card, index) =>
-    React.cloneElement(card.node as ReactElement<Record<string, unknown>>, {
-      key: `real-${card.key}`,
-      'data-loop-segment': 'real',
-      'data-loop-origin': String(index),
-      className: `${((card.node.props as { className?: string }).className ?? '')}${isMobileViewport && !mobilePanelExpanded ? ' mobile-loop-card' : ''}`,
-    })
-  );
+  const panelRenderedCards =
+    isMobileViewport && !mobilePanelExpanded
+      ? [
+          ...compactPanelCards.map((card, index) =>
+            React.cloneElement(card.node as ReactElement<Record<string, unknown>>, {
+              key: `prepend-${card.key}-${index}`,
+              'data-loop-segment': 'prepend',
+              'data-loop-origin': String(index),
+              className: `${((card.node.props as { className?: string }).className ?? '')} mobile-loop-card`,
+            })
+          ),
+          ...compactPanelCards.map((card, index) =>
+            React.cloneElement(card.node as ReactElement<Record<string, unknown>>, {
+              key: `real-${card.key}-${index}`,
+              'data-loop-segment': 'real',
+              'data-loop-origin': String(index),
+              className: `${((card.node.props as { className?: string }).className ?? '')} mobile-loop-card`,
+            })
+          ),
+          ...compactPanelCards.map((card, index) =>
+            React.cloneElement(card.node as ReactElement<Record<string, unknown>>, {
+              key: `append-${card.key}-${index}`,
+              'data-loop-segment': 'append',
+              'data-loop-origin': String(index),
+              className: `${((card.node.props as { className?: string }).className ?? '')} mobile-loop-card`,
+            })
+          ),
+        ]
+      : compactPanelCards.map((card, index) =>
+          React.cloneElement(card.node as ReactElement<Record<string, unknown>>, {
+            key: `real-${card.key}-${index}`,
+            'data-loop-segment': 'real',
+            'data-loop-origin': String(index),
+          })
+        );
 
   return (
     <main
