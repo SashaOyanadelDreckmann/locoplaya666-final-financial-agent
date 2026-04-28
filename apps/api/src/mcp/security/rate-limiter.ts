@@ -165,8 +165,9 @@ export class ToolRateLimiter {
       };
     }
 
+    const burstLimit = config.requests_per_minute + (config.burst_size ?? 1);
     return {
-      limited: entry.blocked && entry.blockedUntil! > now,
+      limited: (entry.blocked && entry.blockedUntil! > now) || entry.count >= burstLimit,
       used: entry.count,
       remaining: Math.max(0, config.requests_per_minute - entry.count),
       resetInMs: this.windowDurationMs - windowAge,

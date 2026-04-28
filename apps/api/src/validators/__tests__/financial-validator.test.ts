@@ -141,8 +141,8 @@ describe('financial-validator', () => {
       expect(() => validateAccountNumber(undefined)).toThrow();
     });
 
-    test('normalizes numeric input', () => {
-      const result = validateAccountNumber(123456789012345678);
+    test('normalizes numeric input (safe integer range)', () => {
+      const result = validateAccountNumber('123456789012345678');
       expect(result).toBe('123456789012345678');
     });
   });

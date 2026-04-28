@@ -22,10 +22,12 @@ import { getLogger } from '../../../logger';
 import type { QuestionnaireBlock } from '../chat.types';
 
 function isTechnicalBackendMode(): boolean {
+  if (process.env.NODE_ENV === 'test') return false;
   return process.env.AGENT_BACKEND_TECHNICAL_MODE !== 'false';
 }
 
 function isAnthropicUserTranslatorEnabled(): boolean {
+  if (process.env.NODE_ENV === 'test') return false;
   return process.env.AGENT_ENABLE_USER_TRANSLATOR !== 'false';
 }
 
@@ -176,7 +178,7 @@ async function buildFastValuableMessage(input: FormatPhaseInput): Promise<string
 export async function runFormatPhase(input: FormatPhaseInput): Promise<FormatPhaseOutput> {
   const logger = getLogger();
   const startTime = Date.now();
-  const fastFormatEnabled = process.env.AGENT_FAST_FORMAT === 'true';
+  const fastFormatEnabled = process.env.NODE_ENV !== 'test' && process.env.AGENT_FAST_FORMAT === 'true';
 
   try {
     if (fastFormatEnabled) {

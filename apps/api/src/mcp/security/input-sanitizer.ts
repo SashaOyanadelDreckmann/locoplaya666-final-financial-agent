@@ -10,8 +10,8 @@ import { validationError, securityError } from './error';
  * Identifies dangerous regex patterns before they're compiled
  */
 export function detectReDoSPattern(pattern: string): boolean {
-  // Nested quantifiers: (a+)+, (a|a)*
-  if (/(.*\+\)|\*\)|\?\)|\{\d+,?\}){2,}/.test(pattern)) {
+  // Nested quantified groups: (a+)+, (a*)*, (a?)?, (x+x+)+y
+  if (/\((?:[^()\\]|\\.)*[*+?](?:[^()\\]|\\.)*\)\s*[*+?]/.test(pattern)) {
     return true;
   }
 
@@ -86,7 +86,7 @@ export function sanitizeUrl(urlString: string): string {
   }
 
   // Block localhost and private IPs (SSRF prevention)
-  const hostname = url.hostname.toLowerCase();
+  const hostname = url.hostname.toLowerCase().replace(/^\[|\]$/g, '');
   const blockedPatterns = [
     /^localhost$/,
     /^127\./, // 127.0.0.1
@@ -105,7 +105,7 @@ export function sanitizeUrl(urlString: string): string {
     }
   }
 
-  return url.toString();
+  return urlString;
 }
 
 /**

@@ -199,11 +199,13 @@ export function validateUserInput(
     throw validationError('Input must be text');
   }
 
-  if (text.length === 0) {
+  const trimmed = text.trim();
+
+  if (trimmed.length === 0) {
     throw validationError('Input cannot be empty');
   }
 
-  if (text.length > 2000) {
+  if (trimmed.length > 2000) {
     throw validationError(
       'Input cannot exceed 2000 characters'
     );
@@ -217,7 +219,7 @@ export function validateUserInput(
   ];
 
   for (const pattern of piiPatterns) {
-    if (pattern.test(text)) {
+    if (pattern.test(trimmed)) {
       throw validationError(
         'Input contains sensitive financial information (card numbers, SSN, etc.)'
       );
@@ -232,7 +234,7 @@ export function validateUserInput(
   ];
 
   for (const pattern of sqlPatterns) {
-    if (pattern.test(text)) {
+    if (pattern.test(trimmed)) {
       throw validationError('Input contains suspicious SQL patterns');
     }
   }
@@ -245,16 +247,16 @@ export function validateUserInput(
   for (const pattern of commandPatterns) {
     // Allow some chars but check for obvious injection
     if (
-      text.includes('$(') ||
-      text.includes('`') ||
-      text.includes('&&') ||
-      text.includes('||')
+      trimmed.includes('$(') ||
+      trimmed.includes('`') ||
+      trimmed.includes('&&') ||
+      trimmed.includes('||')
     ) {
       throw validationError('Input contains suspicious command patterns');
     }
   }
 
-  return text.trim();
+  return trimmed;
 }
 
 /**

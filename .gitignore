@@ -23,6 +23,11 @@ data/
 apps/api/data/
 apps/web/public/pdfs/
 storage/
+generated_music/
+apps/web/coverage/
+*.bak
+*.bak.*
+*.tsbuildinfo
 
 # Dumps
 *_snapshot.txt
@@ -33,3 +38,4 @@ recopilar.todo.txt
 /financial-agent/
 
 .claude/worktrees/
+.codex/

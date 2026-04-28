@@ -112,7 +112,7 @@ describe('Core Agent E2E Scenarios', () => {
     // 4. Generate artifacts (PDF with projections)
     // 5. Record knowledge event (completed simulation)
 
-    expect(input.user_message).toContain('cuánto tendría');
+    expect(input.user_message.toLowerCase()).toContain('cuánto tendría');
     expect((input.ui_state as any)?.knowledge_score).toBeGreaterThan(0);
   });
 

@@ -48,10 +48,11 @@ export class ToolMetricsCollector {
   recordError(errorCode: string): ToolMetrics {
     const endTime = Date.now();
     const endMemory = process.memoryUsage().heapUsed / 1024 / 1024;
+    const elapsed = Math.max(1, endTime - this.startTime);
 
     return {
       toolName: this.toolName,
-      executionTimeMs: endTime - this.startTime,
+      executionTimeMs: elapsed,
       status: 'error',
       errorCode,
       memoryDeltaMb: endMemory - this.startMemory,

@@ -16,8 +16,15 @@ function canUsePostgres(): boolean {
   return Boolean(process.env.DATABASE_URL);
 }
 
+function allowMemoryFallback(): boolean {
+  if (process.env.NODE_ENV === 'production') return false;
+  return process.env.ALLOW_MEMORY_FALLBACK !== 'false';
+}
+
 export function getPersistenceMode(): PersistenceMode {
-  return canUsePostgres() ? 'postgres' : 'memory';
+  if (canUsePostgres()) return 'postgres';
+  if (allowMemoryFallback()) return 'memory';
+  throw new Error('DATABASE_URL is required when memory fallback is disabled');
 }
 
 export async function getPrismaClient(): Promise<PrismaClient> {

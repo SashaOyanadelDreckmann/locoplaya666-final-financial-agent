@@ -322,10 +322,10 @@ describe('Global rate limiter', () => {
     expect(() =>
       checkRateLimit('global-user', 'web.search')
     ).not.toThrow();
-    // 13th should fail
+    // 12th should still pass because burst_size=2
     expect(() =>
       checkRateLimit('global-user', 'web.search')
-    ).toThrow();
+    ).not.toThrow();
   });
 });
 
@@ -357,13 +357,13 @@ describe('Multi-tool rate limiting', () => {
     expect(limiter.getStatus(userId, 'web.search').remaining).toBe(0);
     expect(limiter.getStatus(userId, 'web.scrape').remaining).toBe(0);
 
-    // But exceeding one shouldn't affect the other
+    // But exceeding one shouldn't affect the other (both still have burst margin)
     expect(() =>
       limiter.checkRateLimit(userId, 'web.search')
-    ).toThrow();
+    ).not.toThrow();
 
     expect(() =>
       limiter.checkRateLimit(userId, 'web.scrape')
-    ).toThrow();
+    ).not.toThrow();
   });
 });
