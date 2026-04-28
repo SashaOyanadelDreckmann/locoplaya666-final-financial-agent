@@ -694,7 +694,7 @@ export default function AgentPage() {
     const panel = panelScrollRef.current;
     if (!handle || !panel) return;
 
-    const SNAP_CLOSED = 52;
+    const SNAP_CLOSED = 86;
     const SNAP_OPEN = Math.round(window.innerHeight * 0.52);
 
     const onTouchStart = (e: TouchEvent) => {

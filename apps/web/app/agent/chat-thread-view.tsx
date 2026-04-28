@@ -4,6 +4,7 @@ import { CitationBubble } from '@/components/conversation/CitationBubble';
 import { AgentBlocksRenderer } from '@/components/agent/AgentBlocksRenderer';
 import { savePdfArtifact } from '@/lib/artifacts';
 import type { ChatItem } from '@/lib/agent.response.types';
+import { HOME_ASCII_MASCOT } from '../brand';
 import { buildInitialAgentSuggestions, sanitizeMessageText } from './page.utils';
 import { renderLatexDocMessage } from './message-renderer';
 
@@ -14,45 +15,6 @@ type SavedReport = {
   fileUrl: string;
   createdAt: string;
 };
-
-const CHAT_WATERMARK_ASCII = `────────────────────▄▄▄▄
-────────────────▄▄█▀▀──▀▀█▄
-─────────────▄█▀▀─────────▀▀█▄
-────────────▄█▀──▄▄▄▄▄▄──────▀█
-────────────█───█▌────▀▀█▄─────█
-────────────█──▄█────────▀▀▀█──█
-────────────█──█──▀▀▀──▀▀▀▄─▐──█
-────────────█──▌────────────▐──█
-────────────█──▌─▄▀▀▄───────▐──█
-───────────█▀▌█──▄▄▄───▄▀▀▄─▐──█
-───────────▌─▀───█▄█▌─▄▄▄────█─█
-───────────▌──────▀▀──█▄█▌────█
-───────────█───────────▀▀─────▐
-────────────█──────▌──────────█
-────────────██────█──────────█
-─────────────█──▄──█▄█─▄────█
-─────────────█──▌─▄▄▄▄▄─────█
-─────────────█─────▄▄──▄▀─█
-─────────────█▄──────────█
-─────────────█▀█▄▄──▄▄▄▄▄█▄▄▄▄▄
-───────────▄██▄──▀▀▀█─────────█
-──────────██▄─█▄────█─────────█
-───▄▄▄▄███──█▄─█▄───█─────────██▄▄▄
-▄█▀▀────█────█──█▄──█▓▓▓▓▓▓▓▓▓█───▀▀▄
-█──────█─────█───████▓▓▓▓▓▓▓▓▓█────▀█
-█──────█─────█───█████▓▓▓▓▓▓▓█──────█
-█─────█──────█───███▀▀▀▀█▓▓▓█───────█
-█────█───────█───█───▄▄▄▄████───────█
-█────█───────█──▄▀───────────█──▄───█
-█────█───────█─▄▀─────█████▀▀▀─▄█───█
-█────█───────█▄▀────────█─█────█────█
-█────█───────█▀───────███─█────█────█
-█─────█────▄█▀──────────█─█────█────█
-█─────█──▄██▀────────▄▀██─█▄───█────█
-█────▄███▀─█───────▄█─▄█───█▄──█────█
-█─▄██▀──█──█─────▄███─█─────█──█────█
-██▀────▄█───█▄▄▄█████─▀▀▀▀█▀▀──█────█
-█──────█────▄▀──█████─────█────▀█───█`;
 
 function shouldEnableBubbleScroll(content: string) {
   const normalized = (content || '').replace(/\r\n/g, '\n').trim();
@@ -232,7 +194,7 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
               <div className="latex-doc-watermark" aria-hidden>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/fm-logo-watermark.jpg" alt="" className="latex-doc-watermark-logo" />
-                <pre className="latex-doc-watermark-ascii">{CHAT_WATERMARK_ASCII}</pre>
+                <pre className="latex-doc-watermark-ascii">{HOME_ASCII_MASCOT}</pre>
               </div>
             </div>
           </div>

@@ -34,6 +34,16 @@ export function ChatHeader(props: {
   milestones: Milestone[];
   coachHint: string;
 }) {
+  const activeLabel = props.activeThread?.label;
+  const activeHandSubtitle =
+    activeLabel === '2'
+      ? 'plan de accion'
+      : activeLabel === '3'
+      ? 'conciencia social'
+      : activeLabel === '★'
+      ? 'sintesis maestra'
+      : 'lectura base';
+
   return (
     <header className="agent-chat-header">
       <div className="agent-chat-controls-row">
@@ -93,8 +103,20 @@ export function ChatHeader(props: {
         )}
       </div>
       <div className="chat-brand-strip">
-        {props.activeThread?.label === '2' && <p className="chat-identity-subtitle chat-subtitle-2">plan de acción e inversión</p>}
-        {props.activeThread?.label === '3' && <p className="chat-identity-subtitle chat-subtitle-3">conciencia de clases</p>}
+        <h1>FinancieraMente</h1>
+        <p
+          className={`chat-identity-subtitle ${
+            activeLabel === '2'
+              ? 'chat-subtitle-2'
+              : activeLabel === '3'
+              ? 'chat-subtitle-3'
+              : activeLabel === '★'
+              ? 'chat-subtitle-meta'
+              : 'chat-subtitle-1'
+          }`}
+        >
+          {activeHandSubtitle}
+        </p>
       </div>
       <p className="muted">Proyecto de tesis en finanzas abiertas. Entorno seguro y privado para analisis financiero.</p>
       {props.isActiveChatLocked && (
