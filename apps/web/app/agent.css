@@ -11809,6 +11809,10 @@ input[type="radio"]:checked {
     display: none !important;
   }
 
+  .sheet-context-bar {
+    display: none !important;
+  }
+
   /* Mobile readability: force strong contrast in report header text */
   .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-kicker,
   .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-subtitle,
@@ -11948,6 +11952,11 @@ input[type="radio"]:checked {
   .chat-name-input {
     min-width: 140px !important;
     max-width: 180px !important;
+  }
+
+  .chat-delete-btn {
+    min-width: 84px !important;
+    padding: 0 8px !important;
   }
 
   .agent-chat-body {

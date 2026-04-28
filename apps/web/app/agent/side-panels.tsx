@@ -18,7 +18,6 @@ export function SidePanels(props: {
   mobilePanelExpanded: boolean;
   setMobilePanelExpanded: React.Dispatch<React.SetStateAction<boolean>>;
   haptic: (ms?: number) => void;
-  setMobileTab: React.Dispatch<React.SetStateAction<'chat' | 'panel'>>;
   panelCallout: { section: string; message: string } | null;
   setPanelCallout: React.Dispatch<React.SetStateAction<{ section: string; message: string } | null>>;
   panelGridRef: React.RefObject<HTMLDivElement>;
@@ -103,6 +102,13 @@ export function SidePanels(props: {
           ref={props.mobilePanelHandleRef}
           className="mobile-panel-handle"
           onClick={() => { props.haptic(12); props.setMobilePanelExpanded((v) => !v); }}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              props.haptic(12);
+              props.setMobilePanelExpanded((v) => !v);
+            }
+          }}
           role="button"
           tabIndex={0}
           aria-label={props.mobilePanelExpanded ? 'Minimizar panel' : 'Expandir panel'}
@@ -113,7 +119,14 @@ export function SidePanels(props: {
           </svg>
         </div>
         <div className="mobile-panel-close">
-          <button type="button" className="mobile-panel-close-btn" onClick={() => props.setMobileTab('chat')} aria-label="Volver al chat">← Chat</button>
+          <button
+            type="button"
+            className="mobile-panel-close-btn"
+            onClick={() => props.setMobilePanelExpanded(false)}
+            aria-label="Volver al chat"
+          >
+            ← Chat
+          </button>
           <span className="mobile-panel-close-title">Panel</span>
         </div>
 

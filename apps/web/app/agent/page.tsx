@@ -347,7 +347,6 @@ export default function AgentPage() {
   const [loading, setLoading] = useState(false);
   const [micActive, setMicActive] = useState(false);
   const [panelStage, setPanelStage] = useState(3);
-  const [mobileTab, setMobileTab] = useState<'chat' | 'panel'>('chat');
   const [mobilePanelExpanded, setMobilePanelExpanded] = useState(false);
   const [isMobileViewport, setIsMobileViewport] = useState(false);
   const [isMonochrome, setIsMonochrome] = useState(false);
@@ -2879,7 +2878,6 @@ export default function AgentPage() {
         mobilePanelExpanded={mobilePanelExpanded}
         setMobilePanelExpanded={setMobilePanelExpanded}
         haptic={haptic}
-        setMobileTab={setMobileTab}
         panelCallout={panelCallout}
         setPanelCallout={setPanelCallout}
         panelGridRef={panelGridRef}
