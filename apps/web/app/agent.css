@@ -10975,19 +10975,19 @@ input[type="radio"]:checked {
   right: 18px;
   bottom: 12px;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: flex-end;
-  gap: 6px;
+  gap: 8px;
   pointer-events: none;
   user-select: none;
-  opacity: 0.2;
+  opacity: 0.17;
 }
 
 .latex-doc-watermark-logo {
-  width: 58px;
-  height: 58px;
+  width: 46px;
+  height: 46px;
   object-fit: cover;
-  border-radius: 14px;
+  border-radius: 6px;
   filter: grayscale(1) contrast(1.08);
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.34) inset;
 }
@@ -10995,11 +10995,11 @@ input[type="radio"]:checked {
 .latex-doc-watermark-ascii {
   margin: 0;
   font-family: "Menlo", "Consolas", "SFMono-Regular", monospace;
-  font-size: 6px;
+  font-size: 4.2px;
   line-height: 0.9;
   color: rgba(30, 39, 48, 0.55);
   white-space: pre;
-  text-align: right;
+  text-align: left;
   letter-spacing: 0;
 }
 
