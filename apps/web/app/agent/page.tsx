@@ -162,7 +162,7 @@ const DEFAULT_BUDGET_ROWS: BudgetRow[] = [
   },
   {
     id: 'expense-food',
-    category: 'Alimentacion y transporte',
+    category: 'Alimentacion',
     type: 'expense',
     amount: 0,
     note: '',

@@ -32,10 +32,11 @@ export async function POST(req: Request) {
     const client = new OpenAI({ apiKey });
 
     const prompt = [
-      'Eres un micro-agente de presupuesto de muy bajo costo.',
-      'Objetivo: extraer SOLO un dato numérico mensual y mapearlo a una fila de presupuesto.',
+      'Eres un agente de presupuesto preciso y profesional.',
+      'Objetivo: extraer SOLO un dato numérico mensual y mapearlo a una fila de presupuesto, con categorías separadas.',
       'Devuelve JSON estricto con campos:',
-      '{"assistant_text":"string muy breve (<=16 palabras)","next_question":"string breve","update":{"id":"income-salary|income-extra|expense-rent|expense-food|expense-debt|expense-custom","category":"string","type":"income|expense","amount":number,"note":"string breve"}}',
+      '{"assistant_text":"string muy breve (<=16 palabras)","next_question":"string breve","update":{"id":"income-salary|income-extra|expense-rent|expense-food|expense-transport|expense-services|expense-debt|expense-custom","category":"string","type":"income|expense","amount":number,"note":"string breve"}}',
+      'Nunca mezcles categorías en una sola fila.',
       'Si no se entiende, amount=0 y assistant_text pide aclaración.',
       `Pregunta actual: ${question || 'No especificada'}`,
       `Respuesta usuario: ${answer}`,
@@ -79,4 +80,3 @@ export async function POST(req: Request) {
     );
   }
 }
-

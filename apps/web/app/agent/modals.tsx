@@ -42,7 +42,9 @@ export function BudgetModal(props: {
     () => [
       { key: 'income-salary', text: '¿Cuál es tu sueldo líquido mensual? (solo número)' },
       { key: 'expense-rent', text: '¿Cuánto pagas al mes en vivienda/arriendo?' },
-      { key: 'expense-food', text: '¿Cuánto gastas al mes en alimentación + transporte?' },
+      { key: 'expense-food', text: '¿Cuánto gastas al mes en alimentación?' },
+      { key: 'expense-transport', text: '¿Cuánto gastas al mes en transporte?' },
+      { key: 'expense-services', text: '¿Cuánto gastas al mes en servicios (luz, agua, internet)?' },
       { key: 'expense-debt', text: '¿Pagas deuda mensual fija? (0 si no)' },
       { key: 'income-extra', text: '¿Tienes otro ingreso mensual recurrente? (0 si no)' },
     ],
@@ -89,7 +91,23 @@ export function BudgetModal(props: {
         props.upsertBudgetRow({
           id: 'expense-food',
           type: 'expense',
-          category: 'Alimentacion y transporte',
+          category: 'Alimentacion',
+          amount,
+          note: 'Capturado por chat',
+        });
+      } else if (questionObj.key === 'expense-transport') {
+        props.upsertBudgetRow({
+          id: 'expense-transport',
+          type: 'expense',
+          category: 'Transporte',
+          amount,
+          note: 'Capturado por chat',
+        });
+      } else if (questionObj.key === 'expense-services') {
+        props.upsertBudgetRow({
+          id: 'expense-services',
+          type: 'expense',
+          category: 'Servicios básicos',
           amount,
           note: 'Capturado por chat',
         });
@@ -118,8 +136,12 @@ export function BudgetModal(props: {
         props.upsertBudgetRow({ id: 'income-extra', type: 'income', category: 'Ingresos extra', amount, note: 'Actualizado por chat' });
       } else if (/(arriendo|vivienda|hipoteca)/i.test(lower)) {
         props.upsertBudgetRow({ id: 'expense-rent', type: 'expense', category: 'Vivienda / arriendo', amount, note: 'Actualizado por chat' });
-      } else if (/(comida|alimentacion|supermercado|transporte|bencina)/i.test(lower)) {
-        props.upsertBudgetRow({ id: 'expense-food', type: 'expense', category: 'Alimentacion y transporte', amount, note: 'Actualizado por chat' });
+      } else if (/(comida|alimentacion|supermercado)/i.test(lower)) {
+        props.upsertBudgetRow({ id: 'expense-food', type: 'expense', category: 'Alimentacion', amount, note: 'Actualizado por chat' });
+      } else if (/(transporte|bencina|metro|uber|taxi)/i.test(lower)) {
+        props.upsertBudgetRow({ id: 'expense-transport', type: 'expense', category: 'Transporte', amount, note: 'Actualizado por chat' });
+      } else if (/(luz|agua|internet|servicio)/i.test(lower)) {
+        props.upsertBudgetRow({ id: 'expense-services', type: 'expense', category: 'Servicios básicos', amount, note: 'Actualizado por chat' });
       } else if (/(deuda|credito|tarjeta|cuota)/i.test(lower)) {
         props.upsertBudgetRow({ id: 'expense-debt', type: 'expense', category: 'Deuda financiera', amount, note: 'Actualizado por chat' });
       } else {
@@ -184,10 +206,10 @@ export function BudgetModal(props: {
           <h3>Budget Pro</h3>
           <button type="button" className="agent-modal-close" onClick={props.onClose}>×</button>
         </div>
-        <p className="agent-modal-intro">Modo agente local de bajo costo: preguntas breves para construir el presupuesto sin consumir modelo.</p>
+        <p className="agent-modal-intro">Asistente financiero guiado con preguntas breves para construir un presupuesto preciso y accionable.</p>
 
         <div className="budget-chat-card">
-          <span className="budget-chat-badge">Chat presupuestario (local)</span>
+          <span className="budget-chat-badge">Asistente de presupuesto</span>
           <h4 className="budget-chat-question">{activeQuestion}</h4>
           <div className="budget-chat-input-row">
             <input
@@ -412,7 +434,7 @@ export function TransactionsModal(props: {
         )}
         {props.txWizardStep === 'upload' && props.activeBankProduct && (
           <>
-            <div className="transactions-summary-card"><span className="transactions-summary-title">Paso 2 · Cargar cartola del mes</span><p>Sube cartola o archivo de movimientos. Un agente especializado de bajo costo procesará el mes y te devolverá dashboard y hallazgos.</p></div>
+            <div className="transactions-summary-card"><span className="transactions-summary-title">Paso 2 · Cargar cartola del mes</span><p>Sube cartola o archivo de movimientos. Un agente especializado procesará el mes y te devolverá dashboard y hallazgos.</p></div>
             <div className="upload-zone">
               <label className="upload-label">Subir cartola o evidencia (imagen/PDF/Excel)<input type="file" accept=".pdf,.xls,.xlsx,.csv,image/*" multiple onChange={(e: ChangeEvent<HTMLInputElement>) => props.onUploadStatement(e.target.files)} /></label>
               <div className="upload-files">
