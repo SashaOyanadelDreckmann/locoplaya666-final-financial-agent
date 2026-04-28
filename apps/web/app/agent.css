@@ -11391,10 +11391,8 @@ input[type="radio"]:checked {
   align-self: flex-end;
   width: min(88%, 760px);
   max-width: min(88%, 760px);
-  background:
-    linear-gradient(180deg, rgba(10, 18, 24, 0.86), rgba(7, 14, 20, 0.94)),
-    radial-gradient(circle at 10% 0%, rgba(59, 205, 138, 0.18), rgba(0, 0, 0, 0));
-  border: 1px solid rgba(71, 204, 145, 0.34);
+  background: #000000;
+  border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 12px 12px 8px 12px;
   box-shadow:
     0 16px 28px rgba(0, 0, 0, 0.32),
