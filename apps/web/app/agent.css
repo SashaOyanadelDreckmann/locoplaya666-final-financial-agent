@@ -11738,6 +11738,37 @@ input[type="radio"]:checked {
     max-width: 100% !important;
   }
 
+  /* Mobile parity with desktop report palette: never force white text inside assistant report bubbles */
+  .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-title,
+  .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-heading,
+  .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-h2,
+  .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-h3,
+  .agent-thread > .agent-bubble.assistant.latex-doc .md-h1,
+  .agent-thread > .agent-bubble.assistant.latex-doc .md-h2,
+  .agent-thread > .agent-bubble.assistant.latex-doc .md-h3 {
+    color: #0b1117 !important;
+    -webkit-text-fill-color: #0b1117 !important;
+  }
+
+  .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-body,
+  .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-body *,
+  .agent-thread > .agent-bubble.assistant.latex-doc .premium-markdown,
+  .agent-thread > .agent-bubble.assistant.latex-doc .premium-markdown *,
+  .agent-thread > .agent-bubble.assistant.latex-doc .academic-paper,
+  .agent-thread > .agent-bubble.assistant.latex-doc .academic-paper * {
+    color: #141d26 !important;
+    -webkit-text-fill-color: #141d26 !important;
+  }
+
+  .agent-thread > .agent-bubble.assistant .agent-question-choice,
+  .agent-thread > .agent-bubble.assistant .agent-question-choice *,
+  .agent-thread > .agent-bubble.assistant .agent-question-input,
+  .agent-thread > .agent-bubble.assistant .agent-question-input::placeholder,
+  .agent-thread > .agent-bubble.assistant .agent-questionnaire-submit {
+    color: #141d26 !important;
+    -webkit-text-fill-color: #141d26 !important;
+  }
+
   .agent-input {
     display: grid !important;
     grid-template-columns: minmax(0, 1fr) auto !important;
