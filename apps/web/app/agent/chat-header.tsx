@@ -14,7 +14,6 @@ type ChatSpecialization = {
   subtitle: string;
 };
 
-type ProductLifecycle = { phase?: string };
 type Milestone = { id: string; label: string; done: boolean };
 
 export function ChatHeader(props: {
@@ -27,11 +26,6 @@ export function ChatHeader(props: {
   setKnowledgePopupOpen: React.Dispatch<React.SetStateAction<boolean>>;
   knowledgeScore: number;
   activeThread?: ChatThread;
-  phaseLabel: (phase?: string) => string;
-  productLifecycle?: ProductLifecycle;
-  activeTurnsRemaining: number;
-  setNameForActive: (name: string) => void;
-  deleteThreadById: (id: string) => void;
   isActiveChatLocked: boolean;
   activeTurnCount: number;
   knowledgePopupOpen: boolean;
@@ -103,21 +97,6 @@ export function ChatHeader(props: {
         {props.activeThread?.label === '3' && <p className="chat-identity-subtitle chat-subtitle-3">conciencia de clases</p>}
       </div>
       <p className="muted">Proyecto de tesis en finanzas abiertas. Entorno seguro y privado para analisis financiero.</p>
-      <div className="chat-meta-row">
-        <span className="chat-id-badge">Chat {props.activeThread?.label}</span>
-        <span className="chat-id-badge" title="Fase del flujo">{props.phaseLabel(props.productLifecycle?.phase)}</span>
-        <span className="chat-id-badge" title="Interacciones restantes">{props.activeTurnsRemaining}/50 restantes</span>
-        <input
-          value={props.activeThread?.name ?? ''}
-          onChange={(e) => props.setNameForActive(e.target.value)}
-          className="chat-name-input"
-          placeholder="Nombre del chat"
-          aria-label="Nombre del chat activo"
-        />
-        <button type="button" className="chat-delete-btn" onClick={() => props.deleteThreadById(props.activeChatId)} title="Eliminar chat activo" aria-label="Eliminar chat activo">
-          Eliminar
-        </button>
-      </div>
       {props.isActiveChatLocked && (
         <div className="product-flow-banner" role="status">
           Este chat se desbloquea después del diagnóstico integrado. Sigue en el Chat 1 con presupuesto, cartolas y entrevista breve.
@@ -125,7 +104,7 @@ export function ChatHeader(props: {
       )}
       {!props.isActiveChatLocked && props.activeTurnCount >= 30 && (
         <div className="product-flow-banner" role="status">
-          Modo cierre activo: quedan {props.activeTurnsRemaining} interacciones para cerrar con un informe guardable en biblioteca.
+          Modo cierre activo: estás en la fase final para cerrar con un informe guardable en biblioteca.
         </div>
       )}
 

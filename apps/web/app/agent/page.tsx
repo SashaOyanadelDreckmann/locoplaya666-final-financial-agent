@@ -2772,11 +2772,6 @@ export default function AgentPage() {
           setKnowledgePopupOpen={setKnowledgePopupOpen}
           knowledgeScore={knowledgeScore}
           activeThread={activeThread as any}
-          phaseLabel={phaseLabel}
-          productLifecycle={productLifecycle as any}
-          activeTurnsRemaining={activeTurnsRemaining}
-          setNameForActive={setNameForActive}
-          deleteThreadById={deleteThreadById}
           isActiveChatLocked={isActiveChatLocked}
           activeTurnCount={activeTurnCount}
           knowledgePopupOpen={knowledgePopupOpen}
@@ -2835,25 +2830,32 @@ export default function AgentPage() {
               />
               <button
                 type="button"
-                className="continue-button"
+                className="continue-button composer-icon-btn"
                 disabled={isActiveChatLocked}
                 onClick={() => chatUploadInputRef.current?.click()}
                 title="Adjuntar imagen, PDF o Excel"
+                aria-label="Adjuntar archivo"
               >
-                Adjuntar archivo
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M15.5 7.5L9 14a3 3 0 104.24 4.24l7.07-7.07a5 5 0 10-7.07-7.07L5.46 11.9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
               </button>
 
               <div style={{ flex: 1 }} />
 
               <button
                 type="button"
-                className="continue-button"
+                className="continue-button composer-icon-btn composer-send-btn"
                 disabled={isActiveChatLocked}
                 onClick={() => {
                   void onSend();
                 }}
+                aria-label="Enviar mensaje"
               >
-                Enviar
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M5 12h12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+                  <path d="M13 6l6 6-6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
               </button>
             </div>
           </div>

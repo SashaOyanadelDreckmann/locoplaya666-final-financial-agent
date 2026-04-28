@@ -1372,6 +1372,19 @@
   color: var(--fg);
 }
 
+.composer-icon-btn {
+  width: 42px;
+  min-width: 42px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.composer-icon-btn svg {
+  display: block;
+}
+
 .continue-button.active {
   background: var(--error);
   border-color: var(--error);
@@ -11612,27 +11625,58 @@ input[type="radio"]:checked {
 
   .chat-switcher .chat-sheet-tab {
     width: 100% !important;
-    height: 42px !important;
+    height: 48px !important;
     min-width: 0 !important;
     padding: 8px 10px !important;
-    border-radius: 12px !important;
+    border-radius: 14px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: flex-start !important;
-    gap: 8px !important;
+    gap: 10px !important;
+    border: 1px solid rgba(190, 220, 245, 0.22) !important;
+    background: rgba(11, 18, 29, 0.38) !important;
   }
 
   .chat-switcher .chat-sheet-tab-copy,
-  .chat-switcher .chat-sheet-tab-title,
-  .chat-switcher .chat-sheet-tab-subtitle {
+  .chat-switcher .chat-sheet-tab-title {
     min-width: 0 !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
     white-space: nowrap !important;
   }
 
-  .header-toggle-group {
+  .chat-switcher .chat-sheet-tab-subtitle {
+    display: none !important;
+  }
+
+  .chat-switcher .chat-sheet-tab-index {
+    width: 22px !important;
+    height: 22px !important;
+    min-width: 22px !important;
+    border-radius: 999px !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
     display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: rgba(176, 207, 233, 0.2) !important;
+    border: 1px solid rgba(176, 207, 233, 0.32) !important;
+  }
+
+  .chat-switcher .chat-sheet-tab-title {
+    font-size: 14px !important;
+    font-weight: 650 !important;
+    letter-spacing: 0.01em !important;
+  }
+
+  .chat-switcher .chat-sheet-tab.is-active {
+    border-color: rgba(166, 204, 238, 0.58) !important;
+    background: rgba(15, 28, 44, 0.56) !important;
+    box-shadow: inset 0 0 0 1px rgba(161, 201, 236, 0.16) !important;
+  }
+
+  .header-toggle-group {
+    display: none !important;
     justify-content: flex-end !important;
   }
 
@@ -11646,13 +11690,7 @@ input[type="radio"]:checked {
     display: none !important;
   }
 
-  .chat-meta-row {
-    display: flex !important;
-    gap: 6px !important;
-    overflow-x: auto !important;
-    overflow-y: hidden !important;
-    padding-bottom: 2px !important;
-  }
+  .chat-meta-row { display: none !important; }
 
   .chat-name-input {
     min-width: 140px !important;
@@ -11707,9 +11745,22 @@ input[type="radio"]:checked {
 
   .agent-input .continue-button {
     width: 100% !important;
-    min-height: 40px !important;
+    min-height: 42px !important;
     padding: 8px 10px !important;
     font-size: 12px !important;
+    border-radius: 14px !important;
+  }
+
+  .agent-input .composer-icon-btn {
+    width: 42px !important;
+    min-width: 42px !important;
+    max-width: 42px !important;
+    padding: 0 !important;
+    justify-self: start !important;
+  }
+
+  .agent-input .composer-send-btn {
+    justify-self: end !important;
   }
 
   .agent-panel {
