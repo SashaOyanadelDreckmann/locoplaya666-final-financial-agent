@@ -11737,6 +11737,23 @@ input[type="radio"]:checked {
   .mobile-progress-pill {
     display: none !important;
   }
+
+  /* Mobile readability: force strong contrast in report header text */
+  .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-kicker,
+  .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-subtitle,
+  .agent-thread > .agent-bubble.assistant.latex-doc .md-paragraph,
+  .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-p {
+    color: #1d2732 !important;
+    opacity: 1 !important;
+    text-shadow: none !important;
+  }
+
+  /* Header chips readability over image background */
+  .chat-meta-row .chat-id-badge {
+    color: #eaf3ff !important;
+    border-color: rgba(188, 218, 246, 0.5) !important;
+    background: rgba(7, 15, 23, 0.36) !important;
+  }
 }
 
 /* Extra mobile cleanup: remove dark top overlay blocks from previous rules */
