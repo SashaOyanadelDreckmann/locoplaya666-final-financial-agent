@@ -3740,7 +3740,7 @@
   .agent-panel {
     display: flex !important;
     flex-direction: column;
-    flex: 0 0 var(--mobile-panel-h, 92px);
+    flex: 0 0 var(--mobile-panel-h, 69px);
     min-height: 0;
     background: var(--panel-bg);
     border-top: 1px solid var(--border);
