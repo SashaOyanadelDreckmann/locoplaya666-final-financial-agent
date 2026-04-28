@@ -278,7 +278,7 @@ export function buildPanelBaseCards(props: PanelCardsProps): PanelCard[] {
               <div className="news-image">
                 <div className="news-overlay">
                   <span className="news-kicker">Radar de mercado</span>
-                  <span className="news-title">Noticias y contexto Chile</span>
+                  <span className="news-title">Noticias y actualidad</span>
                   <span className="news-subtitle">
                     Señales macro, tasas y conversación financiera para decidir mejor.
                   </span>

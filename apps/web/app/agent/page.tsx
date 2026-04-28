@@ -2748,7 +2748,25 @@ export default function AgentPage() {
     docVisualOffset,
   });
 
-  const panelRenderedCards = panelBaseCards.map((card, index) =>
+  const compactPanelCards =
+    isMobileViewport && !mobilePanelExpanded
+      ? (() => {
+          const profileCard = panelBaseCards.find((card) => card.key === 'profile');
+          const cardsWithProfileAfterLibrary: Array<{ key: string; node: ReactElement }> = [];
+          for (const card of panelBaseCards) {
+            cardsWithProfileAfterLibrary.push(card);
+            if (card.key === 'library' && profileCard) {
+              cardsWithProfileAfterLibrary.push({
+                key: 'profile-return',
+                node: profileCard.node,
+              });
+            }
+          }
+          return cardsWithProfileAfterLibrary;
+        })()
+      : panelBaseCards;
+
+  const panelRenderedCards = compactPanelCards.map((card, index) =>
     React.cloneElement(card.node as ReactElement<Record<string, unknown>>, {
       key: `real-${card.key}`,
       'data-loop-segment': 'real',
