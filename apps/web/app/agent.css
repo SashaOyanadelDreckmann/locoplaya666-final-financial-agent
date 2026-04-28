@@ -11515,6 +11515,8 @@ input[type="radio"]:checked {
   .agent-chat {
     border-radius: 14px !important;
     overflow: hidden !important;
+    background: transparent !important;
+    border-color: rgba(180, 210, 235, 0.2) !important;
   }
 
   .agent-chat-header {
@@ -11527,6 +11529,9 @@ input[type="radio"]:checked {
     padding-bottom: 8px !important;
     padding-left: 10px !important;
     overflow: hidden;
+    background: transparent !important;
+    border-bottom-color: rgba(190, 220, 245, 0.14) !important;
+    box-shadow: none !important;
   }
 
   .chat-switcher,
@@ -11567,6 +11572,7 @@ input[type="radio"]:checked {
     width: 100%;
     max-width: 100%;
     overflow: hidden !important;
+    background: transparent !important;
   }
 
   .agent-thread {
@@ -11579,6 +11585,7 @@ input[type="radio"]:checked {
     padding-bottom: 12px !important;
     padding-left: 8px !important;
     scroll-padding-bottom: 96px !important;
+    background: transparent !important;
   }
 
   .agent-thread > .agent-bubble,
@@ -11598,6 +11605,9 @@ input[type="radio"]:checked {
     padding-left: 8px !important;
     gap: 8px !important;
     overflow: hidden;
+    background: rgba(8, 16, 26, 0.22) !important;
+    backdrop-filter: blur(8px) saturate(1.05) !important;
+    -webkit-backdrop-filter: blur(8px) saturate(1.05) !important;
   }
 
   .agent-input textarea {
@@ -11639,5 +11649,24 @@ input[type="radio"]:checked {
     margin-top: env(safe-area-inset-top, 0px) !important;
     margin-bottom: env(safe-area-inset-bottom, 0px) !important;
     overflow: auto !important;
+  }
+}
+
+/* Extra mobile cleanup: remove dark top overlay blocks from previous rules */
+@media (max-width: 820px) {
+  .agent-chat-header::before,
+  .agent-chat-header::after,
+  .agent-chat-body::before,
+  .agent-chat-body::after {
+    display: none !important;
+    content: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .agent-chat-controls-row,
+  .chat-brand-strip,
+  .chat-meta-row {
+    background: transparent !important;
   }
 }
