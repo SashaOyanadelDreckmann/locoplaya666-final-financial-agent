@@ -11955,7 +11955,7 @@ input[type="radio"]:checked {
   .agent-panel .panel-grid {
     display: grid !important;
     grid-auto-flow: column !important;
-    grid-auto-columns: calc((100% - 12px) / 2.75) !important;
+    grid-auto-columns: calc((100% - 44px) / 3) !important;
     gap: 0 !important;
     padding: 10px 12px 14px !important;
     overflow-x: auto !important;
@@ -11990,7 +11990,17 @@ input[type="radio"]:checked {
   .agent-panel .mob-col,
   .agent-panel .mob-col-wide,
   .agent-panel .mob-col-narrow {
-    width: auto !important;
+    width: calc((100% - 44px) / 3) !important;
+    min-width: calc((100% - 44px) / 3) !important;
+    max-width: calc((100% - 44px) / 3) !important;
+  }
+
+  .agent-panel .mob-col > *,
+  .agent-panel .mob-col-wide > *,
+  .agent-panel .mob-col-narrow > * {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
   }
 
   .agent-panel .panel-card,
