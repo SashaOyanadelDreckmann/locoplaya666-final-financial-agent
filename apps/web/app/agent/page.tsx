@@ -1491,7 +1491,7 @@ export default function AgentPage() {
       return 'Tip: completa tu intake para calibrar lenguaje, riesgo y desbloqueos del panel.';
     }
     if (engagedChatsCount < 3) {
-      return `Tip: activa los 3 chats (actual ${engagedChatsCount}/3) para sumar progreso real.`;
+      return `Tip: activa los 3 chats (actual ${engagedChatsCount}/3) para ampliar el contexto del agente.`;
     }
     if (!unlockedPanelBlocks.budgetUnlocked) {
       return 'Tip: cuentame ingresos y gastos para desbloquear Presupuesto.';
@@ -1500,9 +1500,9 @@ export default function AgentPage() {
       return 'Tip: habla de cartolas, cuentas o banco para desbloquear Transacciones.';
     }
     if (knowledgeScore < 85) {
-      return 'Tip: usa presupuesto, deuda, simulaciones o APV para seguir subiendo tu barra de conocimiento.';
+      return 'Tip: usa presupuesto, deuda, simulaciones o APV para enriquecer el diagnóstico.';
     }
-    return 'Tu barra ya refleja aprendizaje avanzado. Ahora conviene consolidar evidencia y planes accionables.';
+    return 'Ya hay aprendizaje avanzado. Ahora conviene consolidar evidencia y planes accionables.';
   }, [
     knowledgeScore,
     engagedChatsCount,

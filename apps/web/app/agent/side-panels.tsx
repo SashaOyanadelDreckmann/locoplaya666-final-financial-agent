@@ -1,4 +1,4 @@
-import React, { type CSSProperties, type ReactNode } from 'react';
+import React, { type ReactNode } from 'react';
 
 type Milestone = { id: string; label: string; done: boolean };
 
@@ -26,70 +26,7 @@ export function SidePanels(props: {
 }) {
   return (
     <>
-      <aside className="agent-divider-rail" aria-label="Progreso del conocimiento del usuario">
-        <button
-          type="button"
-          className={`knowledge-rail-card ${props.progressPulse ? 'is-level-up' : ''}`}
-          onClick={() => props.setKnowledgePopupOpen((v) => !v)}
-          aria-label={`Conocimiento ${props.knowledgeScore}% — ver hitos`}
-          title="Ver mapa de conocimiento"
-          style={{ '--rail-glow-h': `${props.knowledgeScore}%` } as CSSProperties}
-        >
-          <span className="knowledge-rail-label">Conoc.</span>
-          <div className="knowledge-rail-track-wrap">
-            <div className="knowledge-rail-track">
-              <div className="knowledge-rail-fill" style={{ height: `${props.knowledgeScore}%` }} />
-              {props.milestones.map((m, i) => {
-                const isNext = !m.done && props.milestones.slice(0, i).every((prev) => prev.done);
-                return (
-                  <div
-                    key={m.id}
-                    className={`knowledge-rail-dot${m.done ? ' is-done' : ''}${isNext ? ' is-next' : ''}`}
-                    style={{ bottom: `${(i / Math.max(props.milestones.length - 1, 1)) * 100}%` }}
-                    title={m.label}
-                  />
-                );
-              })}
-            </div>
-          </div>
-          <div className="knowledge-rail-score">
-            <span className="knowledge-rail-value">{props.knowledgeScore}%</span>
-            <span className="knowledge-rail-stage">{props.knowledgeStage}</span>
-          </div>
-          <span className="knowledge-rail-meta">{props.completedMilestones}/{props.milestones.length}</span>
-          <span className="knowledge-rail-cta">hitos</span>
-          {props.levelUpText && <span className="knowledge-level-up" role="status">{props.levelUpText}</span>}
-        </button>
-
-        {props.knowledgePopupOpen && (
-          <>
-            <div className="knowledge-popup-backdrop" onClick={() => props.setKnowledgePopupOpen(false)} />
-            <div className="knowledge-popup" role="dialog" aria-label="Mapa de conocimiento">
-              <div className="knowledge-popup-header">
-                <div className="knowledge-popup-score">
-                  <span className="knowledge-popup-pct">{props.knowledgeScore}%</span>
-                  <span className="knowledge-popup-stage">{props.knowledgeStage}</span>
-                  <div className="knowledge-popup-bar">
-                    <div className="knowledge-popup-bar-fill" style={{ width: `${props.knowledgeScore}%` }} />
-                  </div>
-                </div>
-                <span className="knowledge-popup-meta">{props.completedMilestones}/{props.milestones.length}<br />hitos</span>
-              </div>
-              <p className="panel-inline-hint">{props.coachHint}</p>
-              <div className="knowledge-popup-milestones">
-                {props.milestones.map((milestone) => (
-                  <div key={milestone.id} className={`knowledge-popup-milestone ${milestone.done ? 'is-done' : ''}`}>
-                    <div className="knowledge-popup-check">
-                      <svg className="knowledge-popup-check-icon" viewBox="0 0 10 8"><polyline points="1,4 4,7 9,1" /></svg>
-                    </div>
-                    <span className="knowledge-popup-milestone-text">{milestone.label}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </>
-        )}
-
+      <aside className="agent-divider-rail" aria-label="Estado del usuario">
         <div className="mobile-rail-subtitle">
           <span className="mobile-rail-subtitle-title">{props.sessionInfoName?.split(' ')[0] ?? 'Financieramente'}</span>
           <span className="mobile-rail-subtitle-badge">{props.knowledgeStage}</span>

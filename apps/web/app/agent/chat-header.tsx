@@ -82,18 +82,6 @@ export function ChatHeader(props: {
             );
           })}
         </div>
-        <button
-          type="button"
-          className="mobile-progress-pill"
-          onClick={() => props.setKnowledgePopupOpen((v) => !v)}
-          aria-label={`Conocimiento ${props.knowledgeScore}%`}
-          title="Ver progreso del conocimiento"
-        >
-          <span className="mobile-progress-pill-value">{props.knowledgeScore}%</span>
-          <span className="mobile-progress-pill-track">
-            <span className="mobile-progress-pill-fill" style={{ width: `${props.knowledgeScore}%` }} />
-          </span>
-        </button>
         {props.activeThread && props.activeThread.contextScore > 0 && (
           <div className="sheet-context-bar" title={`Contexto: ${props.activeThread.contextScore}%`}>
             <div className="sheet-context-fill" style={{ width: `${props.activeThread.contextScore}%` }} />
@@ -127,35 +115,6 @@ export function ChatHeader(props: {
       {!props.isActiveChatLocked && props.activeTurnCount >= 30 && (
         <div className="product-flow-banner" role="status">
           Modo cierre activo: estás en la fase final para cerrar con un informe guardable en biblioteca.
-        </div>
-      )}
-
-      {props.knowledgePopupOpen && (
-        <div className="mobile-knowledge-popover" role="dialog" aria-label="Mapa de conocimiento mobile">
-          <div className="knowledge-popup-backdrop mobile-knowledge-backdrop" onClick={() => props.setKnowledgePopupOpen(false)} />
-          <div className="knowledge-popup mobile-knowledge-sheet">
-            <div className="knowledge-popup-header">
-              <div className="knowledge-popup-score">
-                <span className="knowledge-popup-pct">{props.knowledgeScore}%</span>
-                <span className="knowledge-popup-stage">{props.knowledgeStage}</span>
-                <div className="knowledge-popup-bar">
-                  <div className="knowledge-popup-bar-fill" style={{ width: `${props.knowledgeScore}%` }} />
-                </div>
-              </div>
-              <span className="knowledge-popup-meta">{props.completedMilestones}/{props.milestones.length}<br />hitos</span>
-            </div>
-            <p className="panel-inline-hint">{props.coachHint}</p>
-            <div className="knowledge-popup-milestones">
-              {props.milestones.map((milestone) => (
-                <div key={milestone.id} className={`knowledge-popup-milestone ${milestone.done ? 'is-done' : ''}`}>
-                  <div className="knowledge-popup-check">
-                    <svg className="knowledge-popup-check-icon" viewBox="0 0 10 8"><polyline points="1,4 4,7 9,1" /></svg>
-                  </div>
-                  <span className="knowledge-popup-milestone-text">{milestone.label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
       )}
     </header>

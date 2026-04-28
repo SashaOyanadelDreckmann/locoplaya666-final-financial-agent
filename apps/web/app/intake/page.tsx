@@ -57,10 +57,6 @@ const INITIAL_FORM: IntakeQuestionnaire = {
   moneyStressLevel: 5,
 };
 
-const STEP_LABELS = [
-  'Contexto', 'Ingresos', 'Ahorro', 'Productos', 'Perfil'
-];
-
 export default function IntakePage() {
   const router = useRouter();
   const setIntake = useInterviewStore((s) => s.setIntake);
@@ -145,25 +141,6 @@ export default function IntakePage() {
           <div className="intake-logo">Asesor Financiero</div>
           <div className="intake-header-badge">Privado · Seguro</div>
         </header>
-
-        {/* Progress */}
-        <div className="intake-progress-bar">
-          {STEP_LABELS.map((label, i) => (
-            <div
-              key={i}
-              className={`intake-progress-step${i === step ? ' is-current' : ''}${i < step ? ' is-done' : ''}`}
-            >
-              <div className="intake-progress-dot">
-                {i < step ? '✓' : i + 1}
-              </div>
-              <span className="intake-progress-label">{label}</span>
-            </div>
-          ))}
-          <div
-            className="intake-progress-fill"
-            style={{ width: `${(step / (STEP_LABELS.length - 1)) * 100}%` }}
-          />
-        </div>
 
         {/* Step content */}
         <main className="intake-main">
