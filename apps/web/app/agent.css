@@ -11889,23 +11889,30 @@ input[type="radio"]:checked {
 
   .agent-layout.mobile-panel-expanded .agent-panel .panel-grid {
     grid-auto-flow: row !important;
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    grid-template-columns: minmax(0, 1fr) !important;
     grid-auto-columns: auto !important;
     overflow-x: hidden !important;
     overflow-y: auto !important;
     gap: 8px !important;
     padding: 8px !important;
+    align-items: stretch !important;
+    perspective: none !important;
   }
 
   .agent-layout.mobile-panel-expanded .agent-panel .panel-grid > * {
     margin-right: 0 !important;
     transform: none !important;
     opacity: 1 !important;
+    z-index: 1 !important;
   }
 
   .agent-layout.mobile-panel-expanded .panel-pos-profile,
   .agent-layout.mobile-panel-expanded .panel-pos-objective,
+  .agent-layout.mobile-panel-expanded .panel-pos-mode,
+  .agent-layout.mobile-panel-expanded .panel-pos-next,
   .agent-layout.mobile-panel-expanded .panel-pos-interview,
+  .agent-layout.mobile-panel-expanded .panel-pos-budget,
+  .agent-layout.mobile-panel-expanded .panel-pos-transactions,
   .agent-layout.mobile-panel-expanded .panel-pos-library,
   .agent-layout.mobile-panel-expanded .panel-pos-recent,
   .agent-layout.mobile-panel-expanded .panel-pos-news {

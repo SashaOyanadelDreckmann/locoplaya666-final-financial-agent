@@ -381,9 +381,8 @@ export default function AgentPage() {
   const panelScrollRef = useRef<HTMLElement | null>(null);
   const panelGridRef = useRef<HTMLDivElement | null>(null);
   const panelLoopPausedRef = useRef(false);
-  const panelLoopRafRef = useRef<number | null>(null);
+  const panelLoopAutoTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const panelLoopResumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const panelLoopPhaseRef = useRef(0);
   const [newReportId, setNewReportId] = useState<string | null>(null);
   const [isLandingRecents, setIsLandingRecents] = useState(false);
   const [panelCallout, setPanelCallout] = useState<{ section: string; message: string } | null>(null);
@@ -469,7 +468,7 @@ export default function AgentPage() {
     };
   }, [router]);
 
-  // Mobile panel carousel loop: when reaching the end, jump back to start.
+  // Mobile panel carousel loop + idle autoplay (every 5s).
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const syncViewport = () => setIsMobileViewport(window.innerWidth <= 767);
@@ -508,10 +507,7 @@ export default function AgentPage() {
 
     resetToRealSegment();
 
-    let disposed = false;
-    let lastTs = 0;
-
-    const pauseLoop = (resumeDelay = 2200) => {
+    const pauseLoop = (resumeDelay = 5000) => {
       panelLoopPausedRef.current = true;
       if (panelLoopResumeTimerRef.current) clearTimeout(panelLoopResumeTimerRef.current);
       panelLoopResumeTimerRef.current = setTimeout(() => {
@@ -562,26 +558,32 @@ export default function AgentPage() {
       syncFrontCard();
     };
 
-    const tick = (ts: number) => {
-      if (disposed) return;
-      if (!lastTs) lastTs = ts;
-      const dt = Math.min(32, ts - lastTs);
-      lastTs = ts;
-
-      if (!panelLoopPausedRef.current && !mobilePanelExpanded && hasLoopSegments()) {
-        panelLoopPhaseRef.current += dt * 0.0008;
-        const pulse = Math.sin(panelLoopPhaseRef.current) * 0.15 + Math.sin(panelLoopPhaseRef.current * 0.37) * 0.08;
-        const pxPerFrame = Math.max(0.6, 1.1 + pulse) * (dt / 16.67);
-        el.scrollLeft += pxPerFrame;
-        normalizeLoop();
+    const advanceToNextCard = () => {
+      if (panelLoopPausedRef.current || mobilePanelExpanded || !hasLoopSegments()) return;
+      const cards = Array.from(el.children) as HTMLElement[];
+      if (cards.length === 0) return;
+      const viewportCenter = el.scrollLeft + el.clientWidth / 2;
+      let closestIndex = 0;
+      let minDistance = Number.POSITIVE_INFINITY;
+      for (let i = 0; i < cards.length; i += 1) {
+        const card = cards[i];
+        const cardCenter = card.offsetLeft + card.offsetWidth / 2;
+        const distance = Math.abs(cardCenter - viewportCenter);
+        if (distance < minDistance) {
+          minDistance = distance;
+          closestIndex = i;
+        }
       }
-
-      panelLoopRafRef.current = window.requestAnimationFrame(tick);
+      const next = cards[Math.min(closestIndex + 1, cards.length - 1)];
+      if (!next) return;
+      const targetLeft = Math.max(0, next.offsetLeft - Math.max(0, (el.clientWidth - next.offsetWidth) / 2));
+      el.scrollTo({ left: targetLeft, behavior: 'smooth' });
+      window.setTimeout(normalizeLoop, 360);
     };
 
-    const onPointerDown = () => pauseLoop(2600);
-    const onTouchStart = () => pauseLoop(2600);
-    const onMouseEnter = () => pauseLoop(1400);
+    const onPointerDown = () => pauseLoop(5000);
+    const onTouchStart = () => pauseLoop(5000);
+    const onMouseEnter = () => pauseLoop(5000);
     const onScroll = () => normalizeLoop();
 
     el.addEventListener('pointerdown', onPointerDown, { passive: true });
@@ -589,17 +591,17 @@ export default function AgentPage() {
     el.addEventListener('mouseenter', onMouseEnter);
     el.addEventListener('scroll', onScroll, { passive: true });
     syncFrontCard();
-    panelLoopRafRef.current = window.requestAnimationFrame(tick);
+    if (panelLoopAutoTimerRef.current) clearInterval(panelLoopAutoTimerRef.current);
+    panelLoopAutoTimerRef.current = setInterval(advanceToNextCard, 5000);
 
     return () => {
-      disposed = true;
       el.removeEventListener('pointerdown', onPointerDown);
       el.removeEventListener('touchstart', onTouchStart);
       el.removeEventListener('mouseenter', onMouseEnter);
       el.removeEventListener('scroll', onScroll);
-      if (panelLoopRafRef.current) cancelAnimationFrame(panelLoopRafRef.current);
+      if (panelLoopAutoTimerRef.current) clearInterval(panelLoopAutoTimerRef.current);
       if (panelLoopResumeTimerRef.current) clearTimeout(panelLoopResumeTimerRef.current);
-      panelLoopRafRef.current = null;
+      panelLoopAutoTimerRef.current = null;
       panelLoopResumeTimerRef.current = null;
       panelLoopPausedRef.current = false;
     };
@@ -2756,14 +2758,40 @@ export default function AgentPage() {
     docVisualOffset,
   });
 
-  const panelRenderedCards = panelBaseCards.map((card, index) =>
-    React.cloneElement(card.node as ReactElement<Record<string, unknown>>, {
-      key: `real-${card.key}`,
-      'data-loop-segment': 'real',
-      'data-loop-origin': String(index),
-      className: `${((card.node.props as { className?: string }).className ?? '')}${isMobileViewport ? ' mobile-loop-card' : ''}`,
-    })
-  );
+  const panelRenderedCards = isMobileViewport
+    ? [
+        ...panelBaseCards.map((card, index) =>
+          React.cloneElement(card.node as ReactElement<Record<string, unknown>>, {
+            key: `prepend-${card.key}`,
+            'data-loop-segment': 'prepend',
+            'data-loop-origin': String(index),
+            className: `${((card.node.props as { className?: string }).className ?? '')} mobile-loop-card`,
+          })
+        ),
+        ...panelBaseCards.map((card, index) =>
+          React.cloneElement(card.node as ReactElement<Record<string, unknown>>, {
+            key: `real-${card.key}`,
+            'data-loop-segment': 'real',
+            'data-loop-origin': String(index),
+            className: `${((card.node.props as { className?: string }).className ?? '')} mobile-loop-card`,
+          })
+        ),
+        ...panelBaseCards.map((card, index) =>
+          React.cloneElement(card.node as ReactElement<Record<string, unknown>>, {
+            key: `append-${card.key}`,
+            'data-loop-segment': 'append',
+            'data-loop-origin': String(index),
+            className: `${((card.node.props as { className?: string }).className ?? '')} mobile-loop-card`,
+          })
+        ),
+      ]
+    : panelBaseCards.map((card, index) =>
+        React.cloneElement(card.node as ReactElement<Record<string, unknown>>, {
+          key: `real-${card.key}`,
+          'data-loop-segment': 'real',
+          'data-loop-origin': String(index),
+        })
+      );
 
   return (
     <main
