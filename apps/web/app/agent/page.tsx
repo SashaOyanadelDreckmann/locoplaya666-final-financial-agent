@@ -72,8 +72,7 @@ type BankProduct = {
   id: string;
   label: string;
   bank: string;
-  username: string;
-  password: string;
+  simulationAccepted: boolean;
   connected: boolean;
   randomMode: boolean;
   uploadedFiles: string[];
@@ -84,8 +83,6 @@ type BankSimulation = {
   products: BankProduct[];
   activeProductId: string | null;
   lockedMonth: string | null;
-  username: string;
-  password: string;
   connected: boolean;
   randomMode: boolean;
   uploadedFiles: string[];
@@ -173,8 +170,6 @@ const DEFAULT_BANK_SIMULATION: BankSimulation = {
   products: [],
   activeProductId: null,
   lockedMonth: null,
-  username: '',
-  password: '',
   connected: false,
   randomMode: false,
   uploadedFiles: [],
@@ -233,11 +228,6 @@ export default function AgentPage() {
     if (t.includes('presupuesto') || t.includes('budget')) return 'budget';
     if (t.includes('diagnos') || t.includes('perfil')) return 'diagnosis';
     return 'other';
-  }
-
-  function randomBankCredential(prefix: 'usr' | 'pwd') {
-    const seed = Math.random().toString(36).slice(2, 8);
-    return `${prefix}_${seed}`;
   }
 
   function monthKeyOf(date = new Date()) {
@@ -1579,7 +1569,15 @@ export default function AgentPage() {
             setBankSimulation((prev) => ({
               ...prev,
               products: Array.isArray(panelState.bankSimulation.products)
-                ? panelState.bankSimulation.products
+                ? panelState.bankSimulation.products.map((product: unknown) => {
+                    const raw = product as Partial<BankProduct>;
+                    return {
+                      ...(raw as BankProduct),
+                      simulationAccepted: Boolean(raw.simulationAccepted),
+                      connected: Boolean(raw.connected),
+                      randomMode: false,
+                    };
+                  })
                 : prev.products,
               activeProductId:
                 typeof panelState.bankSimulation.activeProductId === 'string'
@@ -1589,10 +1587,6 @@ export default function AgentPage() {
                 typeof panelState.bankSimulation.lockedMonth === 'string'
                   ? panelState.bankSimulation.lockedMonth
                   : prev.lockedMonth,
-              username:
-                typeof panelState.bankSimulation.username === 'string'
-                  ? panelState.bankSimulation.username
-                  : prev.username,
               connected: Boolean(panelState.bankSimulation.connected),
               randomMode: Boolean(panelState.bankSimulation.randomMode),
               uploadedFiles: Array.isArray(panelState.bankSimulation.uploadedFiles)
@@ -1624,10 +1618,12 @@ export default function AgentPage() {
       savePanelState({
         budgetRows,
         bankSimulation: {
-          products: bankSimulation.products,
+          products: bankSimulation.products.map((product) => ({
+            ...product,
+            randomMode: false,
+          })),
           activeProductId: bankSimulation.activeProductId,
           lockedMonth: bankSimulation.lockedMonth,
-          username: bankSimulation.username,
           connected: bankSimulation.connected,
           randomMode: bankSimulation.randomMode,
           uploadedFiles: bankSimulation.uploadedFiles,
@@ -2266,8 +2262,7 @@ export default function AgentPage() {
       id,
       label: `Producto ${bankSimulation.products.length + 1}`,
       bank: '',
-      username: '',
-      password: '',
+      simulationAccepted: false,
       connected: false,
       randomMode: false,
       uploadedFiles: [],
@@ -2277,8 +2272,6 @@ export default function AgentPage() {
       ...prev,
       products: [...prev.products, product],
       activeProductId: id,
-      username: '',
-      password: '',
       connected: false,
       randomMode: false,
       uploadedFiles: [],
@@ -2295,8 +2288,6 @@ export default function AgentPage() {
       return {
         ...prev,
         activeProductId: product.id,
-        username: product.username,
-        password: product.password,
         connected: product.connected,
         randomMode: product.randomMode,
         uploadedFiles: product.uploadedFiles,
@@ -2325,8 +2316,6 @@ export default function AgentPage() {
       return {
         ...prev,
         products,
-        username: active.username,
-        password: active.password,
         connected: active.connected,
         randomMode: active.randomMode,
         uploadedFiles: active.uploadedFiles,
@@ -2345,8 +2334,6 @@ export default function AgentPage() {
         ...prev,
         products,
         activeProductId: nextActiveId,
-        username: nextActive?.username ?? '',
-        password: nextActive?.password ?? '',
         connected: nextActive?.connected ?? false,
         randomMode: nextActive?.randomMode ?? false,
         uploadedFiles: nextActive?.uploadedFiles ?? [],
@@ -2356,23 +2343,14 @@ export default function AgentPage() {
     setTxWizardStep('products');
   }
 
-  function simulateBankLogin(randomMode = false) {
+  function simulateBankLogin() {
     if (!activeBankProduct || isTransactionsLockedThisMonth) return;
-    if (randomMode) {
-      updateActiveProduct({
-        username: randomBankCredential('usr'),
-        password: randomBankCredential('pwd'),
-        randomMode: true,
-        connected: true,
-      });
-      setTxWizardStep('upload');
+    if (!activeBankProduct.simulationAccepted) {
+      window.alert('Debes aceptar que este flujo es de simulación y no ingresar credenciales reales.');
       return;
     }
     updateActiveProduct({
-      connected:
-        activeBankProduct.username.trim().length > 0 &&
-        activeBankProduct.password.trim().length > 0 &&
-        activeBankProduct.bank.trim().length > 0,
+      connected: activeBankProduct.bank.trim().length > 0,
       randomMode: false,
     });
     setTxWizardStep('upload');
@@ -2386,7 +2364,15 @@ export default function AgentPage() {
     if (!files || files.length === 0) return [];
     if (!activeBankProduct || isTransactionsLockedThisMonth) return [];
 
-    const selectedFiles = Array.from(files);
+    const allowedImageExt = new Set(['png', 'jpg', 'jpeg', 'webp', 'gif']);
+    const selectedFiles = Array.from(files).filter((file) => {
+      const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
+      return file.type.startsWith('image/') || allowedImageExt.has(ext);
+    });
+    if (selectedFiles.length === 0) {
+      window.alert('Solo se permiten imágenes de cartola (PNG, JPG, JPEG, WEBP o GIF).');
+      return [];
+    }
     const names = selectedFiles.map((f) => f.name);
     setDocumentsLoading(true);
 

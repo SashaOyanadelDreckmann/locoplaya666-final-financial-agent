@@ -340,7 +340,7 @@ export function QuestionnaireModal(props: {
 
 type TxWizardStep = 'products' | 'credentials' | 'upload' | 'dashboard' | 'locked';
 type BankProduct = {
-  id: string; label: string; bank: string; username: string; password: string; connected: boolean; randomMode: boolean;
+  id: string; label: string; bank: string; simulationAccepted: boolean; connected: boolean; randomMode: boolean;
   uploadedFiles: string[]; parsedDocuments: Array<{ name: string; text: string }>;
 };
 
@@ -359,7 +359,7 @@ export function TransactionsModal(props: {
   deleteTransactionProduct: (id: string) => void;
   addTransactionProduct: () => void;
   updateActiveProduct: (patch: Partial<BankProduct>) => void;
-  simulateBankLogin: (randomMode: boolean) => void;
+  simulateBankLogin: () => void;
   onUploadStatement: (files: FileList | null) => void;
   documentsLoading: boolean;
   sendTransactionsToAgent: () => void;
@@ -413,7 +413,7 @@ export function TransactionsModal(props: {
         )}
         {props.txWizardStep === 'credentials' && props.activeBankProduct && (
           <>
-            <div className="transactions-summary-card"><span className="transactions-summary-title">Paso 1 · Banco y credenciales simuladas</span><p>Simulación de conexión: usa datos ficticios. Nunca ingreses usuario, contraseña o claves reales.</p></div>
+            <div className="transactions-summary-card"><span className="transactions-summary-title">Paso 1 · Banco y declaración de simulación</span><p>Este entorno es solo de simulación. No conecta bancos reales y no debes ingresar usuario, contraseña, token ni claves bancarias.</p></div>
             <div className="bank-sim-grid">
               <label>Nombre del producto<input value={props.activeBankProduct.label} onChange={(e) => props.updateActiveProduct({ label: e.target.value, connected: false })} /></label>
               <label>Banco (simulado)
@@ -421,22 +421,32 @@ export function TransactionsModal(props: {
                   <option value="">Selecciona un banco</option><option value="Banco de Chile (simulación)">Banco de Chile</option><option value="Santander (simulación)">Santander</option><option value="BCI (simulación)">BCI</option><option value="Scotiabank (simulación)">Scotiabank</option><option value="BancoEstado (simulación)">BancoEstado</option>
                 </select>
               </label>
-              <label>Usuario demo<input value={props.activeBankProduct.username} onChange={(e) => props.updateActiveProduct({ username: e.target.value, connected: false, randomMode: false })} /></label>
-              <label>Password demo<input type="password" value={props.activeBankProduct.password} onChange={(e) => props.updateActiveProduct({ password: e.target.value, connected: false, randomMode: false })} /></label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={props.activeBankProduct.simulationAccepted}
+                  onChange={(e) =>
+                    props.updateActiveProduct({
+                      simulationAccepted: e.target.checked,
+                      connected: false,
+                    })
+                  }
+                />
+                {' '}Declaro que entiendo que esto es una simulación y no ingresaré credenciales reales.
+              </label>
             </div>
             <div className="bank-sim-status">Estado: <strong>{props.activeBankProduct.connected ? `conectado (simulado${props.activeBankProduct.randomMode ? ' aleatorio' : ''})` : 'desconectado'}</strong></div>
             <div className="agent-modal-actions">
               <button type="button" className="continue-ghost" onClick={() => props.setTxWizardStep('products')}>Volver a productos</button>
-              <button type="button" className="continue-ghost" onClick={() => props.simulateBankLogin(true)}>Credenciales aleatorias</button>
-              <button type="button" className="button-primary" onClick={() => props.simulateBankLogin(false)}>Continuar a carga</button>
+              <button type="button" className="button-primary" onClick={props.simulateBankLogin}>Continuar a carga</button>
             </div>
           </>
         )}
         {props.txWizardStep === 'upload' && props.activeBankProduct && (
           <>
-            <div className="transactions-summary-card"><span className="transactions-summary-title">Paso 2 · Cargar cartola del mes</span><p>Sube cartola o archivo de movimientos. Un agente especializado procesará el mes y te devolverá dashboard y hallazgos.</p></div>
+            <div className="transactions-summary-card"><span className="transactions-summary-title">Paso 2 · Cargar imagen de cartola del mes</span><p>Sube solo imágenes de cartola (PNG/JPG/JPEG/WEBP/GIF). El sistema analizará visualmente la cartola y te devolverá hallazgos.</p></div>
             <div className="upload-zone">
-              <label className="upload-label">Subir cartola o evidencia (imagen/PDF/Excel)<input type="file" accept=".pdf,.xls,.xlsx,.csv,image/*" multiple onChange={(e: ChangeEvent<HTMLInputElement>) => props.onUploadStatement(e.target.files)} /></label>
+              <label className="upload-label">Subir imagen(es) de cartola<input type="file" accept="image/*,.png,.jpg,.jpeg,.webp,.gif" multiple onChange={(e: ChangeEvent<HTMLInputElement>) => props.onUploadStatement(e.target.files)} /></label>
               <div className="upload-files">
                 {props.documentsLoading && <span>Extrayendo texto y estructura de tus documentos…</span>}
                 {props.activeBankProduct.uploadedFiles.length === 0 && <span>Aun no hay cartolas cargadas.</span>}
