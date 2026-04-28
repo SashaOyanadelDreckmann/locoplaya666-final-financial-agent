@@ -11652,6 +11652,39 @@ input[type="radio"]:checked {
     margin-bottom: env(safe-area-inset-bottom, 0px) !important;
     overflow: auto !important;
   }
+
+  /* Top controls: remove decorative cards/opacity layers and keep only functional controls */
+  .agent-chat-controls-row {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .chat-switcher {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .chat-sheet-tab,
+  .chat-sheet-tab.is-active,
+  .layout-mode-toggle,
+  .monochrome-toggle,
+  .mobile-progress-pill {
+    background: transparent !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .layout-mode-toggle,
+  .monochrome-toggle {
+    border-color: rgba(190, 220, 245, 0.28) !important;
+  }
 }
 
 /* Extra mobile cleanup: remove dark top overlay blocks from previous rules */
