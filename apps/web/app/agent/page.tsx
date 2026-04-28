@@ -2772,8 +2772,6 @@ export default function AgentPage() {
           setKnowledgePopupOpen={setKnowledgePopupOpen}
           knowledgeScore={knowledgeScore}
           activeThread={activeThread as any}
-          isMonochrome={isMonochrome}
-          setIsMonochrome={setIsMonochrome}
           phaseLabel={phaseLabel}
           productLifecycle={productLifecycle as any}
           activeTurnsRemaining={activeTurnsRemaining}

@@ -27,8 +27,6 @@ export function ChatHeader(props: {
   setKnowledgePopupOpen: React.Dispatch<React.SetStateAction<boolean>>;
   knowledgeScore: number;
   activeThread?: ChatThread;
-  isMonochrome: boolean;
-  setIsMonochrome: React.Dispatch<React.SetStateAction<boolean>>;
   phaseLabel: (phase?: string) => string;
   productLifecycle?: ProductLifecycle;
   activeTurnsRemaining: number;
@@ -80,7 +78,6 @@ export function ChatHeader(props: {
             );
           })}
         </div>
-        <span className="mobile-brand-inline" aria-hidden="true">Financiera mente</span>
         <button
           type="button"
           className="mobile-progress-pill"
@@ -100,20 +97,8 @@ export function ChatHeader(props: {
             {props.activeThread.contextScore >= 80 && <span className="sheet-context-badge">Rico</span>}
           </div>
         )}
-        <div className="header-toggle-group">
-          <button
-            type="button"
-            className="layout-mode-toggle monochrome-toggle"
-            onClick={() => props.setIsMonochrome((v) => !v)}
-            title={props.isMonochrome ? 'Desactivar modo blanco y negro' : 'Activar modo blanco y negro'}
-            aria-label={props.isMonochrome ? 'Desactivar modo blanco y negro' : 'Activar modo blanco y negro'}
-          >
-            B/N
-          </button>
-        </div>
       </div>
       <div className="chat-brand-strip">
-        <h1>Financieramente</h1>
         {props.activeThread?.label === '2' && <p className="chat-identity-subtitle chat-subtitle-2">plan de acción e inversión</p>}
         {props.activeThread?.label === '3' && <p className="chat-identity-subtitle chat-subtitle-3">conciencia de clases</p>}
       </div>
