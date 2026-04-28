@@ -2758,7 +2758,7 @@ export default function AgentPage() {
     docVisualOffset,
   });
 
-  const panelRenderedCards = isMobileViewport
+  const panelRenderedCards = isMobileViewport && !mobilePanelExpanded
     ? [
         ...panelBaseCards.map((card, index) =>
           React.cloneElement(card.node as ReactElement<Record<string, unknown>>, {
