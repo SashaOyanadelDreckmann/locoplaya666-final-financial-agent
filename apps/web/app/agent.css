@@ -11524,7 +11524,7 @@ input[type="radio"]:checked {
     z-index: 5;
     width: 100%;
     max-width: 100%;
-    padding-top: max(8px, env(safe-area-inset-top, 0px)) !important;
+    padding-top: max(2px, env(safe-area-inset-top, 0px)) !important;
     padding-right: 10px !important;
     padding-bottom: 8px !important;
     padding-left: 10px !important;
@@ -11684,6 +11684,58 @@ input[type="radio"]:checked {
   .layout-mode-toggle,
   .monochrome-toggle {
     border-color: rgba(190, 220, 245, 0.28) !important;
+  }
+
+  /* Hide large header titles/subtitles in mobile */
+  .chat-brand-strip,
+  .agent-chat-header h1,
+  .agent-chat-header .muted {
+    display: none !important;
+  }
+
+  /* Chat buttons row should use full available width and never clip */
+  .chat-switcher {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 6px !important;
+    align-items: stretch !important;
+    overflow: visible !important;
+  }
+
+  .chat-switcher .chat-sheet-tab {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    height: 44px !important;
+    padding: 8px 10px !important;
+    border-radius: 12px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 8px !important;
+    overflow: hidden !important;
+  }
+
+  .chat-switcher .chat-sheet-tab-copy {
+    min-width: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 2px !important;
+    overflow: hidden !important;
+  }
+
+  .chat-switcher .chat-sheet-tab-title,
+  .chat-switcher .chat-sheet-tab-subtitle {
+    min-width: 0 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  /* Hide extra top controls to prioritize the 3 chat buttons full-width */
+  .header-toggle-group,
+  .mobile-progress-pill {
+    display: none !important;
   }
 }
 
