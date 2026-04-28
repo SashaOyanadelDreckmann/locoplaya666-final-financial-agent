@@ -10901,14 +10901,12 @@ input[type="radio"]:checked {
 }
 
 .latex-doc::after {
-  content: "FM";
+  content: "";
   position: absolute;
   right: 18px;
   bottom: 14px;
-  color: rgba(var(--chat-accent-rgb), 0.13);
-  font-family: ui-serif, Georgia, "Times New Roman", serif;
-  font-size: 3.2rem;
-  line-height: 1;
+  width: 0;
+  height: 0;
   pointer-events: none;
 }
 
@@ -10968,6 +10966,41 @@ input[type="radio"]:checked {
   font-family: ui-serif, Georgia, "Times New Roman", serif !important;
   font-size: 1rem !important;
   line-height: 1.72 !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.latex-doc-watermark {
+  position: absolute;
+  right: 18px;
+  bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  pointer-events: none;
+  user-select: none;
+  opacity: 0.2;
+}
+
+.latex-doc-watermark-logo {
+  width: 58px;
+  height: 58px;
+  object-fit: cover;
+  border-radius: 14px;
+  filter: grayscale(1) contrast(1.08);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.34) inset;
+}
+
+.latex-doc-watermark-ascii {
+  margin: 0;
+  font-family: "Menlo", "Consolas", "SFMono-Regular", monospace;
+  font-size: 6px;
+  line-height: 0.9;
+  color: rgba(30, 39, 48, 0.55);
+  white-space: pre;
+  text-align: right;
+  letter-spacing: 0;
 }
 
 .latex-doc-body .premium-markdown,

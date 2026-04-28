@@ -51,6 +51,8 @@ export default function HomePage() {
       <div className="home-layout">
         {/* Left — content */}
         <section className="home-content">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/fm-logo-watermark.jpg" alt="Financiera Mente" className="home-brand-logo" />
           <div className="home-eyebrow">Proyecto de tesis · Finanzas abiertas</div>
 
           <h1 className="home-hero">

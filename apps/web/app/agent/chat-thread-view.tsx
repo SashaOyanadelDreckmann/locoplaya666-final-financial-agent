@@ -15,6 +15,17 @@ type SavedReport = {
   createdAt: string;
 };
 
+const CHAT_WATERMARK_ASCII = `────────────▄▄▄▄
+────────▄▄█▀▀──▀▀█▄
+──────▄█▀──────────▀█
+──────█──▄▀▀▄──▄▀▀▄─█
+──────█──█▄█▌──█▄█▌─█
+──────█──────▄▄──────█
+──────█────▄████▄────█
+──────█───██▀──▀██───█
+──────█───▀█▄▄▄▄█▀───█
+──────█─────▀▀▀▀─────█`;
+
 function shouldEnableBubbleScroll(content: string) {
   const normalized = (content || '').replace(/\r\n/g, '\n').trim();
   if (!normalized) return false;
@@ -190,6 +201,11 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
                 </div>
                 );
               })()}
+              <div className="latex-doc-watermark" aria-hidden>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/fm-logo-watermark.jpg" alt="" className="latex-doc-watermark-logo" />
+                <pre className="latex-doc-watermark-ascii">{CHAT_WATERMARK_ASCII}</pre>
+              </div>
             </div>
           </div>
         );

@@ -933,6 +933,16 @@ button {
   animation: fadeInUp 0.8s ease-out;
 }
 
+.home-brand-logo {
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  object-fit: cover;
+  margin-bottom: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+}
+
 @keyframes fadeInUp {
   from {
     opacity: 0;
@@ -1180,6 +1190,13 @@ button {
 
   .home-content {
     padding: clamp(18px, 5.5vh, 44px) 0 0;
+  }
+
+  .home-brand-logo {
+    width: 54px;
+    height: 54px;
+    border-radius: 14px;
+    margin-bottom: 12px;
   }
 
   .home-eyebrow {
