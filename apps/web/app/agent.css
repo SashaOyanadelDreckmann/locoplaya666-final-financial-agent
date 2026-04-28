@@ -11612,7 +11612,7 @@ input[type="radio"]:checked {
     display: grid !important;
     grid-template-columns: minmax(0, 1fr) !important;
     gap: 0 !important;
-    margin-bottom: 8px !important;
+    margin-bottom: 6px !important;
     align-items: stretch !important;
     background: transparent !important;
     border: none !important;
@@ -11624,9 +11624,11 @@ input[type="radio"]:checked {
   .chat-switcher {
     display: grid !important;
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-    gap: 6px !important;
+    gap: 4px !important;
     width: 100% !important;
-    overflow: visible !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
     background: transparent !important;
     border: none !important;
     box-shadow: none !important;
@@ -11636,14 +11638,15 @@ input[type="radio"]:checked {
 
   .chat-switcher .chat-sheet-tab {
     width: 100% !important;
-    height: 42px !important;
+    height: 34px !important;
     min-width: 0 !important;
-    padding: 6px 8px !important;
-    border-radius: 12px !important;
+    max-width: 100% !important;
+    padding: 4px 6px !important;
+    border-radius: 10px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: flex-start !important;
-    gap: 8px !important;
+    gap: 6px !important;
     border: 1px solid rgba(190, 220, 245, 0.28) !important;
     background: rgba(14, 23, 35, 0.34) !important;
     backdrop-filter: blur(12px) saturate(1.08) !important;
@@ -11664,11 +11667,11 @@ input[type="radio"]:checked {
   }
 
   .chat-switcher .chat-sheet-tab-index {
-    width: 22px !important;
-    height: 22px !important;
-    min-width: 22px !important;
+    width: 18px !important;
+    height: 18px !important;
+    min-width: 18px !important;
     border-radius: 999px !important;
-    font-size: 11px !important;
+    font-size: 9px !important;
     font-weight: 700 !important;
     display: inline-flex !important;
     align-items: center !important;
@@ -11678,10 +11681,13 @@ input[type="radio"]:checked {
   }
 
   .chat-switcher .chat-sheet-tab-title {
-    font-size: 12px !important;
-    line-height: 1.1 !important;
+    font-size: 10px !important;
+    line-height: 1.05 !important;
     font-weight: 650 !important;
-    letter-spacing: 0.01em !important;
+    letter-spacing: 0 !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
   }
 
   .chat-switcher .chat-sheet-tab.is-active {
@@ -11736,7 +11742,7 @@ input[type="radio"]:checked {
     display: grid !important;
     grid-template-columns: minmax(0, 1fr) auto !important;
     align-items: end !important;
-    column-gap: 10px !important;
+    column-gap: 8px !important;
     row-gap: 0 !important;
     padding: 8px !important;
     background: transparent !important;
@@ -11759,9 +11765,11 @@ input[type="radio"]:checked {
     grid-column: 2 !important;
     grid-row: 1 !important;
     display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
     width: auto !important;
     min-width: auto !important;
-    gap: 8px !important;
+    gap: 6px !important;
     align-items: center !important;
     justify-content: flex-end !important;
     margin-top: 0 !important;
@@ -11772,24 +11780,27 @@ input[type="radio"]:checked {
   }
 
   .agent-input .continue-button {
-    width: 100% !important;
-    min-height: 42px !important;
-    padding: 8px 10px !important;
+    width: 40px !important;
+    min-width: 40px !important;
+    max-width: 40px !important;
+    height: 40px !important;
+    min-height: 40px !important;
+    padding: 0 !important;
     font-size: 12px !important;
-    border-radius: 14px !important;
+    border-radius: 12px !important;
   }
 
   .agent-input .composer-icon-btn {
-    width: 42px !important;
-    min-width: 42px !important;
-    max-width: 42px !important;
+    width: 40px !important;
+    min-width: 40px !important;
+    max-width: 40px !important;
     padding: 0 !important;
-    flex: 0 0 42px !important;
+    flex: 0 0 40px !important;
     justify-self: auto !important;
   }
 
   .agent-input .composer-send-btn {
-    flex: 0 0 42px !important;
+    flex: 0 0 40px !important;
     justify-self: auto !important;
   }
 
