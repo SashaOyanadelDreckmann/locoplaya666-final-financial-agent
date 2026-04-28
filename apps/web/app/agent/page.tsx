@@ -2697,13 +2697,15 @@ export default function AgentPage() {
       ? (() => {
           const profileCard = panelBaseCards.find((card) => card.key === 'profile');
           const cardsWithProfileAfterLibrary: Array<{ key: string; node: ReactElement }> = [];
+          let profileInsertedAfterLibrary = false;
           for (const card of panelBaseCards) {
             cardsWithProfileAfterLibrary.push(card);
-            if (card.key === 'library' && profileCard) {
+            if (card.key === 'library' && profileCard && !profileInsertedAfterLibrary) {
               cardsWithProfileAfterLibrary.push({
                 key: 'profile-return',
                 node: profileCard.node,
               });
+              profileInsertedAfterLibrary = true;
             }
           }
           return cardsWithProfileAfterLibrary;
