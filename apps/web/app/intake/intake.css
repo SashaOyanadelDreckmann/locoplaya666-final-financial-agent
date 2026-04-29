@@ -99,6 +99,43 @@
   text-transform: uppercase;
 }
 
+.intake-progress-panel {
+  padding: 18px 28px 6px;
+  position: relative;
+  z-index: 2;
+}
+
+.intake-progress-panel-top {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.intake-progress-kicker {
+  margin: 0;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(164, 194, 216, 0.74);
+}
+
+.intake-progress-title {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: rgba(240, 240, 245, 0.92);
+  font-weight: 600;
+}
+
+.intake-progress-helper {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: rgba(240, 240, 245, 0.46);
+}
+
 /* Progress bar */
 .intake-progress-bar {
   position: relative;
@@ -109,7 +146,7 @@
   width: 100%;
   max-width: none;
   padding: 18px 28px 8px;
-  margin-bottom: 12px;
+  margin-bottom: 4px;
   z-index: 2;
 }
 
@@ -765,43 +802,6 @@
 }
 
 /* ================================================= */
-/* Progress Indicator                               */
-/* ================================================= */
-
-.intake-progress {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  background: rgba(0, 0, 0, 0.9);
-  padding: 16px 24px;
-  margin-bottom: 32px;
-}
-
-.progress-track {
-  height: 4px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 2px;
-  overflow: hidden;
-  margin-bottom: 12px;
-}
-
-.progress-fill {
-  height: 100%;
-  background: linear-gradient(
-    90deg,
-    rgba(34, 197, 94, 0.8),
-    rgba(34, 197, 94, 1)
-  );
-  transition: width var(--duration-normal) var(--ease-out);
-}
-
-.progress-label {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.6);
-  text-align: center;
-}
-
-/* ================================================= */
 /* Mobile Responsive                                */
 /* ================================================= */
 
@@ -831,6 +831,18 @@
 
   .intake-main {
     padding: 18px 16px 64px;
+  }
+
+  .intake-progress-panel {
+    padding: 14px 16px 6px;
+  }
+
+  .intake-progress-title {
+    font-size: 16px;
+  }
+
+  .intake-progress-helper {
+    font-size: 12px;
   }
 
   .intake-step {

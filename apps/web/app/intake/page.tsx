@@ -22,6 +22,14 @@ import {
   KnowledgeStep,
 } from './steps';
 
+const INTAKE_STEPS = [
+  { key: 'context', label: 'Contexto', title: 'Tu contexto personal', helper: 'Definimos tu punto de partida.' },
+  { key: 'cashflow', label: 'Flujo', title: 'Ingresos y gastos', helper: 'Entendemos cómo se mueve tu dinero mes a mes.' },
+  { key: 'savings', label: 'Base', title: 'Ahorro y deudas', helper: 'Medimos estabilidad y espacio de crecimiento.' },
+  { key: 'products', label: 'Productos', title: 'Mapa financiero', helper: 'Ordenamos tarjetas, créditos e instrumentos.' },
+  { key: 'knowledge', label: 'Perfil', title: 'Conocimiento y riesgo', helper: 'Ajustamos la asesoría a tu perfil real.' },
+] as const;
+
 const EMPTY_PRODUCT: FinancialProductEntry = {
   product: '',
   institution: '',
@@ -129,6 +137,8 @@ export default function IntakePage() {
   };
 
   if (bootstrapping) return null;
+  const progressPct = ((step + 1) / INTAKE_STEPS.length) * 100;
+  const stepMeta = INTAKE_STEPS[step];
 
   return (
     <div className="intake-shell">
@@ -141,6 +151,30 @@ export default function IntakePage() {
           <div className="intake-logo">Asesor Financiero</div>
           <div className="intake-header-badge">Privado · Seguro</div>
         </header>
+
+        <section className="intake-progress-panel" aria-label="Progreso del onboarding">
+          <div className="intake-progress-panel-top">
+            <p className="intake-progress-kicker">
+              Paso {step + 1} de {INTAKE_STEPS.length}
+            </p>
+            <p className="intake-progress-title">{stepMeta.title}</p>
+            <p className="intake-progress-helper">{stepMeta.helper}</p>
+          </div>
+
+          <div className="intake-progress-bar">
+            <span className="intake-progress-fill" style={{ width: `${progressPct}%` }} aria-hidden />
+            {INTAKE_STEPS.map((s, i) => (
+              <div
+                key={s.key}
+                className={`intake-progress-step${step === i ? ' is-current' : ''}${step > i ? ' is-done' : ''}`}
+                aria-current={step === i ? 'step' : undefined}
+              >
+                <div className="intake-progress-dot">{i + 1}</div>
+                <div className="intake-progress-label">{s.label}</div>
+              </div>
+            ))}
+          </div>
+        </section>
 
         {/* Step content */}
         <main className="intake-main">
