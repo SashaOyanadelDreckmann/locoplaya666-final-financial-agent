@@ -86,8 +86,8 @@ export default function DiagnosisPage() {
             </h1>
 
             <p className="text-muted" style={{ marginTop: 12 }}>
-              Informe financiero senior premium construido con intake, presupuesto,
-              transacciones y entrevista. Incluye hallazgos, tensiones, hipótesis e insights accionables.
+              Lectura integrada y descriptiva de tu situación financiera actual.
+              Este documento no contiene recomendaciones ni juicios.
             </p>
           </div>
         </section>
@@ -135,7 +135,7 @@ export default function DiagnosisPage() {
               className="continue-ghost"
               onClick={() => window.print()}
             >
-              Guardar diagnóstico en PDF
+              Guardar como PDF
             </button>
 
             <div style={{ display: 'flex', gap: 12 }}>
