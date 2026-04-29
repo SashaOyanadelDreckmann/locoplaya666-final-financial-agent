@@ -11763,23 +11763,26 @@ input[type="radio"]:checked {
 
   .chat-brand-strip {
     display: flex !important;
-    align-items: baseline !important;
-    justify-content: flex-start !important;
-    gap: 8px !important;
-    margin: 4px 4px 8px !important;
-    padding: 4px 10px 5px !important;
-    min-height: 30px !important;
-    border: 1px solid rgba(194, 216, 231, 0.2) !important;
-    border-radius: 16px !important;
-    background: rgba(132, 155, 172, 0.12) !important;
-    backdrop-filter: blur(10px) !important;
-    -webkit-backdrop-filter: blur(10px) !important;
-    overflow: hidden !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 3px !important;
+    width: 100% !important;
+    margin: 6px 0 8px !important;
+    padding: 0 !important;
+    min-height: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    overflow: visible !important;
   }
 
   .agent-chat-header .chat-brand-strip h1 {
     display: block !important;
     flex: 0 0 auto !important;
+    text-align: center !important;
     font-size: 12px !important;
     line-height: 1 !important;
     color: rgba(242, 247, 250, 0.92) !important;
@@ -11788,10 +11791,27 @@ input[type="radio"]:checked {
 
   .chat-identity-subtitle {
     display: block !important;
+    margin: 0 !important;
+    text-align: center !important;
+    font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", "Times New Roman", serif !important;
     font-size: 11px !important;
-    line-height: 1 !important;
+    font-style: normal !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.01em !important;
+    line-height: 1.2 !important;
     white-space: nowrap !important;
-    transform: rotate(-1deg) !important;
+    color: rgba(222, 229, 235, 0.58) !important;
+    text-shadow: none !important;
+    transform: none !important;
+  }
+
+  .chat-subtitle-1,
+  .chat-subtitle-2,
+  .chat-subtitle-3,
+  .chat-subtitle-meta {
+    font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", "Times New Roman", serif !important;
+    color: rgba(222, 229, 235, 0.58) !important;
+    transform: none !important;
   }
 
   .chat-meta-row { display: none !important; }
