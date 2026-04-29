@@ -10621,6 +10621,28 @@ input[type="radio"]:checked {
   opacity: 1 !important;
 }
 
+/* Hard override: chat section fully transparent (no black overlays) */
+.agent-chat,
+.agent-chat-header,
+.agent-chat-body,
+.agent-chat.active-chat-1 .agent-chat-body,
+.agent-chat.active-chat-2 .agent-chat-body,
+.agent-chat.active-chat-3 .agent-chat-body,
+.agent-thread,
+.agent-input {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+.agent-chat {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.agent-chat-header {
+  border-bottom: none !important;
+}
+
 .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-kicker {
   color: var(--chat-accent-strong) !important;
   font-family: Arial, Helvetica, sans-serif !important;
