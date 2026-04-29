@@ -11,6 +11,7 @@ type PanelCardsProps = {
   sessionInfo: any;
   profile: any;
   setIsQuestionnaireModalOpen: (open: boolean) => void;
+  setIsAccountModalOpen: (open: boolean) => void;
   removeInjectedIntake: () => Promise<unknown>;
   removeInjectedProfile: () => Promise<unknown>;
   agentMetaRef: React.MutableRefObject<{ objective?: string; mode?: string }>;
@@ -52,6 +53,7 @@ export function buildPanelBaseCards(props: PanelCardsProps): PanelCard[] {
             injected={Boolean(props.sessionInfo?.injectedProfile)}
             compactQuestionnaireCta
             onOpenQuestionnaire={() => props.setIsQuestionnaireModalOpen(true)}
+            onCardClick={() => props.setIsAccountModalOpen(true)}
             actions={
               props.sessionInfo?.injectedProfile || props.sessionInfo?.injectedIntake ? (
                 <>

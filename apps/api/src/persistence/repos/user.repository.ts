@@ -203,3 +203,42 @@ export async function patchUserRecord(userId: string, patch: UserPatch): Promise
 
   return updated ? toStoredUser(updated) : null;
 }
+
+export async function deleteUserRecord(userId: string): Promise<boolean> {
+  const mode = getPersistenceMode();
+
+  if (mode === 'memory') {
+    const user = memoryStore.users.get(userId);
+    if (!user) return false;
+
+    memoryStore.users.delete(userId);
+    memoryStore.usersByEmail.delete(user.email);
+    memoryStore.vectorStores.delete(userId);
+
+    for (const [tokenHash, session] of memoryStore.sessions.entries()) {
+      if (session.userId === userId) memoryStore.sessions.delete(tokenHash);
+    }
+
+    for (const [profileId, profile] of memoryStore.profiles.entries()) {
+      if (profile.userId === userId) memoryStore.profiles.delete(profileId);
+    }
+
+    for (const [docId, document] of memoryStore.documents.entries()) {
+      if (document.userId === userId) memoryStore.documents.delete(docId);
+    }
+
+    return true;
+  }
+
+  const prisma = await getPrismaClient();
+  const deleted = await prisma.user
+    .delete({
+      where: { id: userId },
+    })
+    .catch((error: unknown) => {
+      if ((error as { code?: string })?.code === 'P2025') return null;
+      throw error;
+    });
+
+  return Boolean(deleted);
+}

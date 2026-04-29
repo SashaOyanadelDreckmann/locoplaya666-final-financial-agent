@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
-import { createUser, findUserByEmail } from '../services/user.service';
+import { createUser, deleteUserAccount, findUserByEmail } from '../services/user.service';
 import {
   clearSessionCookie,
   createSession,
@@ -93,6 +93,21 @@ authRouter.post('/logout', asyncHandler(async (req, res) => {
 
   clearSessionCookie(res);
   return sendSuccess(res, { loggedOut: true });
+}));
+
+authRouter.delete('/account', asyncHandler(async (req, res) => {
+  const user = await getAuthenticatedUser(req, res);
+  if (!user) {
+    throw unauthorized('UNAUTHORIZED');
+  }
+
+  const deleted = await deleteUserAccount(user.id);
+  if (!deleted) {
+    throw unauthorized('UNAUTHORIZED');
+  }
+
+  clearSessionCookie(res);
+  return sendSuccess(res, { deleted: true });
 }));
 
 /** GET /auth/me — lightweight session check used by Next.js API routes. */

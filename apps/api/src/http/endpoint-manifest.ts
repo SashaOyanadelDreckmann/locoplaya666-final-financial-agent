@@ -11,6 +11,7 @@ export const ENDPOINT_MANIFEST: EndpointDefinition[] = [
   { method: 'POST', path: '/auth/register', hasSchemaValidation: true, hasTests: true, hasDocs: true, hasObservability: true },
   { method: 'POST', path: '/auth/login', hasSchemaValidation: true, hasTests: true, hasDocs: true, hasObservability: true },
   { method: 'POST', path: '/auth/logout', hasSchemaValidation: true, hasTests: true, hasDocs: true, hasObservability: true },
+  { method: 'DELETE', path: '/auth/account', hasSchemaValidation: true, hasTests: false, hasDocs: true, hasObservability: true },
   { method: 'GET', path: '/auth/me', hasSchemaValidation: true, hasTests: true, hasDocs: true, hasObservability: true },
   { method: 'POST', path: '/intake/submit', hasSchemaValidation: true, hasTests: false, hasDocs: true, hasObservability: true },
   { method: 'POST', path: '/conversation/next', hasSchemaValidation: true, hasTests: false, hasDocs: true, hasObservability: true },

@@ -10,6 +10,8 @@ import { useInterviewStore } from '@/state/interview.store';
 import { useProfileStore } from '@/state/profile.store';
 import {
   getSessionInfo,
+  logoutUser,
+  deleteAccount,
   removeInjectedIntake,
   removeInjectedProfile,
   loadSheets,
@@ -347,6 +349,8 @@ export default function AgentPage() {
   const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
   const [isTransactionsModalOpen, setIsTransactionsModalOpen] = useState(false);
   const [isQuestionnaireModalOpen, setIsQuestionnaireModalOpen] = useState(false);
+  const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
+  const [isAccountActionLoading, setIsAccountActionLoading] = useState(false);
   const [txWizardStep, setTxWizardStep] = useState<'products' | 'credentials' | 'upload' | 'dashboard' | 'locked'>('products');
   const [savedReports, setSavedReports] = useState<SavedReport[]>([]);
   const [budgetRows, setBudgetRows] = useState<BudgetRow[]>(DEFAULT_BUDGET_ROWS);
@@ -912,6 +916,50 @@ export default function AgentPage() {
           : thread
       )
     );
+  }
+
+  function clearLocalAgentState() {
+    if (typeof window === 'undefined') return;
+    localStorage.removeItem('agent_session_id');
+    localStorage.removeItem('agent.panel.stage.v3');
+    localStorage.removeItem('agent.panel.collapsed.v1');
+    localStorage.removeItem('agent.ui.monochrome.v1');
+    localStorage.removeItem('agent.prefill_prompt');
+  }
+
+  async function handleLogout() {
+    if (isAccountActionLoading) return;
+    try {
+      setIsAccountActionLoading(true);
+      await logoutUser();
+      clearLocalAgentState();
+      setIsAccountModalOpen(false);
+      router.replace('/login');
+    } catch {
+      window.alert('No se pudo cerrar sesión. Inténtalo nuevamente.');
+    } finally {
+      setIsAccountActionLoading(false);
+    }
+  }
+
+  async function handleDeleteAccount() {
+    if (isAccountActionLoading) return;
+    const confirmHardDelete = window.confirm(
+      '¿Seguro que quieres borrar tu cuenta? Esta acción elimina todos tus datos y no se puede deshacer.'
+    );
+    if (!confirmHardDelete) return;
+
+    try {
+      setIsAccountActionLoading(true);
+      await deleteAccount();
+      clearLocalAgentState();
+      setIsAccountModalOpen(false);
+      router.replace('/register');
+    } catch {
+      window.alert('No se pudo borrar la cuenta. Inténtalo nuevamente.');
+    } finally {
+      setIsAccountActionLoading(false);
+    }
   }
 
   function deleteThreadById(threadId: string) {
@@ -2683,6 +2731,7 @@ export default function AgentPage() {
     sessionInfo,
     profile,
     setIsQuestionnaireModalOpen,
+    setIsAccountModalOpen,
     removeInjectedIntake,
     removeInjectedProfile,
     agentMetaRef,
@@ -2964,6 +3013,38 @@ export default function AgentPage() {
         documentsLoading={documentsLoading}
         sendTransactionsToAgent={sendTransactionsToAgent}
       />
+
+      {isAccountModalOpen && (
+        <div className="agent-modal-overlay" onClick={() => setIsAccountModalOpen(false)}>
+          <div className="agent-modal account-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="agent-modal-header">
+              <h3>Cuenta</h3>
+              <button type="button" className="agent-modal-close" onClick={() => setIsAccountModalOpen(false)}>×</button>
+            </div>
+            <p className="agent-modal-intro">
+              Administra tu sesión o elimina completamente tu cuenta y toda su información.
+            </p>
+            <div className="account-modal-actions">
+              <button
+                type="button"
+                className="continue-button"
+                onClick={() => void handleLogout()}
+                disabled={isAccountActionLoading}
+              >
+                Cerrar sesión
+              </button>
+              <button
+                type="button"
+                className="continue-button danger"
+                onClick={() => void handleDeleteAccount()}
+                disabled={isAccountActionLoading}
+              >
+                Borrar cuenta
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

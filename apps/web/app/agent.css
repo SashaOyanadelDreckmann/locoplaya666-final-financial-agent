@@ -2974,6 +2974,36 @@
   width: 100%;
 }
 
+.profile-card-compact.is-clickable {
+  cursor: pointer;
+}
+
+.profile-card-compact.is-clickable:hover {
+  border-color: rgba(188, 214, 230, 0.26);
+}
+
+.account-modal {
+  max-width: 420px;
+}
+
+.account-modal-actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  padding: 0 24px 24px;
+}
+
+.account-modal-actions .continue-button.danger {
+  border-color: rgba(255, 107, 107, 0.42);
+  color: rgba(255, 198, 198, 0.96);
+  background: rgba(120, 20, 20, 0.22);
+}
+
+.account-modal-actions .continue-button.danger:hover:not(:disabled) {
+  border-color: rgba(255, 130, 130, 0.56);
+  background: rgba(140, 24, 24, 0.32);
+}
+
 .questionnaire-modal {
   max-width: 720px;
 }

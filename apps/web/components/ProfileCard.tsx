@@ -7,6 +7,7 @@ type ProfileCardProps = {
   actions?: React.ReactNode;
   compactQuestionnaireCta?: boolean;
   onOpenQuestionnaire?: () => void;
+  onCardClick?: () => void;
   [key: string]: unknown;
 };
 
@@ -43,6 +44,7 @@ export default function ProfileCard({
   actions,
   compactQuestionnaireCta,
   onOpenQuestionnaire,
+  onCardClick,
 }: ProfileCardProps) {
   const profileData = profile?.profile ?? profile ?? {};
   const intakeData = intake?.intake ?? intake ?? {};
@@ -97,7 +99,20 @@ export default function ProfileCard({
 
   if (compactQuestionnaireCta) {
     return (
-      <article className={`${classes} profile-card-compact`}>
+      <article
+        className={`${classes} profile-card-compact${onCardClick ? ' is-clickable' : ''}`}
+        onClick={onCardClick}
+        onKeyDown={(event) => {
+          if (!onCardClick) return;
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            onCardClick();
+          }
+        }}
+        role={onCardClick ? 'button' : undefined}
+        tabIndex={onCardClick ? 0 : undefined}
+        aria-label={onCardClick ? 'Abrir opciones de cuenta' : undefined}
+      >
         <span className="profile-badge">{injected ? 'Perfil activo' : 'Perfil'}</span>
         <div className="profile-header">
           <div className="profile-avatar" aria-hidden="true">{initials}</div>
@@ -111,7 +126,10 @@ export default function ProfileCard({
         <button
           type="button"
           className="button-primary profile-questionnaire-btn"
-          onClick={onOpenQuestionnaire}
+          onClick={(event) => {
+            event.stopPropagation();
+            onOpenQuestionnaire?.();
+          }}
         >
           Ver respuestas cuestionario
         </button>

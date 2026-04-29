@@ -8,6 +8,7 @@ import type {
 } from '../persistence/types';
 import {
   createUserRecord,
+  deleteUserRecord,
   getUserByEmail,
   getUserById,
   patchUserRecord,
@@ -180,4 +181,8 @@ export async function saveUserMemoryBlob(
 ): Promise<boolean> {
   const updated = await patchUserRecord(userId, { memoryBlob });
   return Boolean(updated);
+}
+
+export async function deleteUserAccount(userId: string): Promise<boolean> {
+  return deleteUserRecord(userId);
 }

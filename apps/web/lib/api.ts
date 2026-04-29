@@ -63,6 +63,17 @@ export async function logoutUser() {
   return parseApiResponse<{ loggedOut: boolean }>(res);
 }
 
+export async function deleteAccount() {
+  const API_URL = getApiBaseUrl();
+  const res = await fetch(`${API_URL}/auth/account`, {
+    method: 'DELETE',
+    headers: withCsrf(),
+    credentials: 'include',
+  });
+
+  return parseApiResponse<{ deleted: boolean }>(res);
+}
+
 export async function injectProfileToAgent(profile: unknown) {
   const API_URL = getApiBaseUrl();
   const res = await fetch(`${API_URL}/api/inject-profile`, {
