@@ -1512,7 +1512,12 @@ export default function AgentPage() {
         const panelState = data?.panelState;
         if (panelState && typeof panelState === 'object') {
           if (Array.isArray(panelState.budgetRows) && panelState.budgetRows.length > 0) {
-            setBudgetRows(panelState.budgetRows);
+            setBudgetRows(
+              panelState.budgetRows.map((row: any) => ({
+                ...row,
+                note: typeof row?.note === 'string' ? row.note : '',
+              }))
+            );
           }
           if (Array.isArray(panelState.savedReports)) {
             setSavedReports(panelState.savedReports);
@@ -1982,7 +1987,9 @@ export default function AgentPage() {
           for (const upd of res.budget_updates!) {
             // Try to find existing row with same label (case-insensitive)
             const existingIdx = updated.findIndex(
-              (r) => r.type === upd.type && r.note.toLowerCase().includes(upd.label.toLowerCase())
+              (r) =>
+                r.type === upd.type &&
+                (r.note ?? '').toLowerCase().includes(upd.label.toLowerCase())
             );
             if (existingIdx >= 0) {
               // Update existing row amount
