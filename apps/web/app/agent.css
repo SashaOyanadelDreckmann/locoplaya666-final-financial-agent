@@ -9251,11 +9251,62 @@
     gap: 5px !important;
   }
 
+.agent-input .continue-button {
+  min-height: 20px !important;
+  height: 20px !important;
+  padding: 3px 8px !important;
+  font-size: 9px !important;
+  }
+}
+
+/* Final desktop transparency lock for the whole chat block */
+@media (min-width: 768px) {
+  .agent-chat,
+  .agent-chat-header,
+  .agent-chat-body,
+  .agent-chat.active-chat-1 .agent-chat-body,
+  .agent-chat.active-chat-2 .agent-chat-body,
+  .agent-chat.active-chat-3 .agent-chat-body,
+  .agent-thread,
+  .agent-input,
+  .agent-input .controls,
+  .chat-switcher {
+    background: transparent !important;
+    background-color: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: none !important;
+  }
+
+  .agent-chat,
+  .agent-chat-header,
+  .agent-input {
+    border-color: transparent !important;
+  }
+
+  .agent-input textarea,
   .agent-input .continue-button {
-    min-height: 20px !important;
-    height: 20px !important;
-    padding: 3px 8px !important;
-    font-size: 9px !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .agent-input textarea {
+    border-color: rgba(214, 225, 234, 0.18) !important;
+  }
+
+  .agent-chat::before,
+  .agent-chat::after,
+  .agent-chat-header::before,
+  .agent-chat-header::after,
+  .agent-chat-body::before,
+  .agent-chat-body::after,
+  .agent-input::before,
+  .agent-input::after {
+    display: none !important;
+    content: none !important;
   }
 }
 
