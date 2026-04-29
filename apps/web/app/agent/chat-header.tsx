@@ -106,7 +106,7 @@ export function ChatHeader(props: {
           {activeHandSubtitle}
         </p>
       </div>
-      <p className="muted">Proyecto de tesis en finanzas abiertas. Entorno seguro y privado para analisis financiero.</p>
+      <p className="muted" />
       {props.isActiveChatLocked && (
         <div className="product-flow-banner" role="status">
           Este chat se desbloquea después del diagnóstico integrado. Sigue en el Chat 1 con presupuesto, cartolas y entrevista breve.

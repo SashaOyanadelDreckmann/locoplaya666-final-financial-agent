@@ -10515,6 +10515,64 @@ input[type="radio"]:checked {
   border-color: rgba(var(--chat-accent-rgb), 0.5) !important;
 }
 
+/* Desktop compact top tabs + centered alignment + no chat/panel gap */
+@media (min-width: 768px) {
+  .agent-layout {
+    grid-template-columns: 1fr 0 280px !important;
+    gap: 0 !important;
+    padding: 10px 10px 10px 12px !important;
+  }
+
+  .agent-divider-rail {
+    display: none !important;
+  }
+
+  .agent-chat-controls-row {
+    justify-content: center !important;
+    margin-bottom: 8px !important;
+  }
+
+  .chat-switcher {
+    margin-inline: auto !important;
+    justify-content: center !important;
+    gap: 4px !important;
+    width: fit-content !important;
+    max-width: 100% !important;
+  }
+
+  .chat-sheet-tab {
+    min-width: 86px !important;
+    height: 30px !important;
+    padding: 3px 8px !important;
+    border-radius: 11px !important;
+    gap: 5px !important;
+  }
+
+  .chat-sheet-tab-index {
+    width: 16px !important;
+    height: 16px !important;
+    flex-basis: 16px !important;
+    font-size: 8px !important;
+  }
+
+  .chat-sheet-tab-title {
+    font-size: 0.58rem !important;
+    letter-spacing: 0.04em !important;
+  }
+
+  .chat-sheet-tab-subtitle {
+    display: none !important;
+  }
+
+  .chat-brand-strip {
+    align-items: center !important;
+  }
+
+  .agent-chat-header .muted {
+    display: none !important;
+  }
+}
+
 .chat-id-badge,
 .chat-name-input,
 .chat-delete-btn,
