@@ -10436,10 +10436,19 @@ input[type="radio"]:checked {
 
 .chat-brand-strip {
   display: flex;
-  align-items: baseline;
-  gap: 12px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
   margin-top: 10px;
   min-width: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .agent-chat-header .chat-brand-strip h1 {
@@ -10449,11 +10458,13 @@ input[type="radio"]:checked {
   font-size: clamp(1.35rem, 2vw, 2rem) !important;
   font-weight: 300 !important;
   letter-spacing: -0.045em !important;
+  text-align: center !important;
 }
 
 .chat-identity-subtitle {
   margin: 0 !important;
-  line-height: 1 !important;
+  line-height: 1.2 !important;
+  text-align: center !important;
 }
 
 .chat-subtitle-2 {
@@ -10476,17 +10487,19 @@ input[type="radio"]:checked {
 }
 
 .chat-subtitle-1 {
-  color: #7aa8c8 !important;
-  font-family: "Marker Felt", "Bradley Hand", "Segoe Print", "Comic Sans MS", cursive !important;
-  font-size: clamp(0.98rem, 1.35vw, 1.2rem) !important;
-  font-weight: 700 !important;
+  color: rgba(222, 229, 235, 0.58) !important;
+  font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", "Times New Roman", serif !important;
+  font-size: clamp(0.95rem, 1.3vw, 1.1rem) !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.01em !important;
 }
 
 .chat-subtitle-meta {
-  color: #8f8aa8 !important;
-  font-family: "Marker Felt", "Bradley Hand", "Segoe Print", "Comic Sans MS", cursive !important;
-  font-size: clamp(0.96rem, 1.3vw, 1.15rem) !important;
-  font-weight: 700 !important;
+  color: rgba(222, 229, 235, 0.58) !important;
+  font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", "Times New Roman", serif !important;
+  font-size: clamp(0.95rem, 1.25vw, 1.1rem) !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.01em !important;
 }
 
 .chat-sheet-tab {
