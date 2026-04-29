@@ -63,9 +63,10 @@ type SavedReport = {
 type BudgetRow = {
   id: string;
   category: string;
+  product: string;
+  institution: string;
   type: 'income' | 'expense';
   amount: number;
-  note: string;
 };
 
 type BankProduct = {
@@ -146,23 +147,26 @@ const DEFAULT_BUDGET_ROWS: BudgetRow[] = [
   {
     id: 'income-salary',
     category: 'Sueldo liquido',
+    product: '',
+    institution: '',
     type: 'income',
     amount: 0,
-    note: '',
   },
   {
     id: 'expense-rent',
     category: 'Vivienda / arriendo',
+    product: '',
+    institution: '',
     type: 'expense',
     amount: 0,
-    note: '',
   },
   {
     id: 'expense-food',
     category: 'Alimentacion',
+    product: '',
+    institution: '',
     type: 'expense',
     amount: 0,
-    note: '',
   },
 ];
 
@@ -275,7 +279,7 @@ export default function AgentPage() {
 
     const incomeHint = incomeBand ? ` Tu tramo de ingresos declarado es ${incomeBand}.` : '';
 
-    return `${firstName}, ${read}${incomeHint} Si quieres, partimos por definir el primer frente: liquidez, presupuesto o decisiones de inversión.`;
+    return `${firstName}, ${read}${incomeHint} Te propongo un flujo ideal para maximizar tu diagnóstico: 1) subir cartolas en Transacciones, 2) construir y afinar presupuesto, 3) cerrar entrevista senior de hasta 5 minutos. Puedes comenzar ahora con el botón "Ir a Transacciones" y yo te acompaño en cada paso.`;
   }
 
   function makeInitialThread(id: string, label: string, name: string): ChatThread {
@@ -1215,7 +1219,7 @@ export default function AgentPage() {
     const expenseRows = nonZeroRows.filter((row) => row.type === 'expense');
     const fixedLike = expenseRows.filter((row) =>
       /(arriendo|hipoteca|luz|agua|internet|suscrip|colegio|seguro|deuda)/i.test(
-        `${row.category} ${row.note ?? ''}`
+        `${row.category} ${row.product ?? ''} ${row.institution ?? ''}`
       )
     );
     const variableLike = expenseRows.filter((row) => !fixedLike.some((f) => f.id === row.id));
@@ -1292,6 +1296,7 @@ export default function AgentPage() {
 
   const interviewCard = useMemo(() => {
     const name = firstNameOf(sessionInfo?.name);
+    const hasFinalDiagnosis = Boolean((profile as any)?.diagnosticNarrative);
     const stress = typeof intakeData?.moneyStressLevel === 'number' ? intakeData.moneyStressLevel : null;
     const understanding =
       typeof intakeData?.selfRatedUnderstanding === 'number' ? intakeData.selfRatedUnderstanding : null;
@@ -1303,17 +1308,22 @@ export default function AgentPage() {
         : 'Conviene una llamada de profundización para pasar de contexto general a decisiones concretas.';
 
     return {
-      badge: intakeData ? 'Llamada guiada' : 'Activación',
-      title: intakeData
-        ? `Entrevista estratégica para ${name}`
-        : 'Entrevista diagnóstica inicial',
+      badge: hasFinalDiagnosis ? 'Diagnóstico completado' : intakeData ? 'Llamada guiada' : 'Activación',
+      title: hasFinalDiagnosis
+        ? `Diagnóstico financiero completo de ${name}`
+        : intakeData
+          ? `Entrevista estratégica para ${name}`
+          : 'Entrevista diagnóstica inicial',
       meta: prompt,
-      detail:
+      detail: hasFinalDiagnosis
+        ? 'La entrevista ya se cerró y esta tarjeta quedó convertida en diagnóstico final.'
+        :
         stress !== null && understanding !== null
           ? `Prioridad actual: estrés ${stress}/10 y comprensión ${understanding}/10.`
           : 'Usa esta capa para transformar contexto disperso en diagnóstico accionable.',
+      isCompleted: hasFinalDiagnosis,
     };
-  }, [intakeData, sessionInfo?.name]);
+  }, [intakeData, sessionInfo?.name, profile]);
 
   const transactionIntel = useMemo(
     () => buildTransactionIntelligence(bankSimulation.parsedDocuments),
@@ -1512,7 +1522,13 @@ export default function AgentPage() {
         const panelState = data?.panelState;
         if (panelState && typeof panelState === 'object') {
           if (Array.isArray(panelState.budgetRows) && panelState.budgetRows.length > 0) {
-            setBudgetRows(panelState.budgetRows);
+            setBudgetRows(
+              panelState.budgetRows.map((row: any) => ({
+                ...row,
+                product: typeof row?.product === 'string' ? row.product : '',
+                institution: typeof row?.institution === 'string' ? row.institution : '',
+              }))
+            );
           }
           if (Array.isArray(panelState.savedReports)) {
             setSavedReports(panelState.savedReports);
@@ -1714,13 +1730,13 @@ export default function AgentPage() {
           return {
             ...row,
             amount: monthlyIncome,
-            note: intake.profession ? `Ingreso declarado por ${intake.profession}` : 'Ingreso declarado en intake',
+            institution: intake.profession ? `Ingreso declarado por ${intake.profession}` : 'Ingreso declarado en intake',
           };
         }
         if (row.id === 'expense-debt' && intake.hasDebt) {
           return {
             ...row,
-            note: 'Deuda declarada en intake',
+            institution: 'Deuda declarada en intake',
           };
         }
         return row;
@@ -1982,7 +1998,9 @@ export default function AgentPage() {
           for (const upd of res.budget_updates!) {
             // Try to find existing row with same label (case-insensitive)
             const existingIdx = updated.findIndex(
-              (r) => r.type === upd.type && r.note.toLowerCase().includes(upd.label.toLowerCase())
+              (r) =>
+                r.type === upd.type &&
+                `${r.category} ${r.product} ${r.institution}`.toLowerCase().includes(upd.label.toLowerCase())
             );
             if (existingIdx >= 0) {
               // Update existing row amount
@@ -1992,9 +2010,10 @@ export default function AgentPage() {
               updated.push({
                 id: `agent-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
                 category: upd.category ?? (upd.type === 'income' ? 'Ingresos' : 'Gastos'),
+                product: upd.label,
+                institution: 'Inferido por agente',
                 type: upd.type,
                 amount: upd.amount,
-                note: upd.label,
               });
             }
           }
@@ -2142,11 +2161,16 @@ export default function AgentPage() {
       {
         id: `${type}-${Date.now()}`,
         category: type === 'income' ? 'Nuevo ingreso' : 'Nuevo gasto',
+        product: '',
+        institution: '',
         type,
         amount: 0,
-        note: '',
       },
     ]);
+  }
+
+  function removeBudgetRow(id: string) {
+    setBudgetRows((rows) => rows.filter((row) => row.id !== id));
   }
 
   function upsertBudgetRow(row: BudgetRow) {
@@ -2316,13 +2340,13 @@ export default function AgentPage() {
     if (!files || files.length === 0) return [];
     if (!activeBankProduct || isTransactionsLockedThisMonth) return [];
 
-    const allowedImageExt = new Set(['png', 'jpg', 'jpeg', 'webp', 'gif']);
+    const allowedExt = new Set(['png', 'jpg', 'jpeg', 'webp', 'gif', 'pdf', 'xls', 'xlsx', 'csv']);
     const selectedFiles = Array.from(files).filter((file) => {
       const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
-      return file.type.startsWith('image/') || allowedImageExt.has(ext);
+      return file.type.startsWith('image/') || file.type === 'application/pdf' || file.type.includes('sheet') || file.type.includes('excel') || file.type === 'text/csv' || allowedExt.has(ext);
     });
     if (selectedFiles.length === 0) {
-      window.alert('Solo se permiten imágenes de cartola (PNG, JPG, JPEG, WEBP o GIF).');
+      window.alert('Solo se permiten cartolas en PDF, Excel, CSV o imágenes (PNG/JPG/WEBP/GIF).');
       return [];
     }
     const names = selectedFiles.map((f) => f.name);
@@ -2842,6 +2866,15 @@ export default function AgentPage() {
               </button>
 
               <div style={{ flex: 1 }} />
+              <button
+                type="button"
+                className="continue-ghost chat-flow-cta"
+                onClick={openTransactionsPanel}
+                disabled={!unlockedPanelBlocks.transactionsUnlocked}
+                title="Ir al panel de transacciones"
+              >
+                Ir a Transacciones
+              </button>
 
               <button
                 type="button"
@@ -2920,6 +2953,7 @@ export default function AgentPage() {
         budgetRows={budgetRows}
         updateBudgetRow={updateBudgetRow}
         upsertBudgetRow={upsertBudgetRow}
+        removeBudgetRow={removeBudgetRow}
         coachHint={coachHint}
         addBudgetRow={addBudgetRow}
         sendBudgetToAgent={sendBudgetToAgent}

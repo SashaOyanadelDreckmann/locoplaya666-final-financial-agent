@@ -35,6 +35,44 @@
   transition: grid-template-columns 0.32s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
+/* Premium flow emphasis: chat-first CTA + final diagnosis state */
+.agent-input .chat-flow-cta {
+  border: 1px solid rgba(129, 205, 255, 0.6);
+  background: linear-gradient(135deg, rgba(30, 110, 170, 0.34), rgba(17, 65, 112, 0.26));
+  color: #eaf7ff;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  box-shadow: 0 8px 24px rgba(40, 137, 211, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.agent-input .chat-flow-cta:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: rgba(167, 226, 255, 0.88);
+  background: linear-gradient(135deg, rgba(39, 132, 203, 0.4), rgba(20, 83, 145, 0.34));
+}
+
+.agent-input .chat-flow-cta:disabled {
+  opacity: 0.45;
+  box-shadow: none;
+}
+
+.interview-flow-card.is-diagnosis-complete {
+  border: 1px solid rgba(110, 230, 185, 0.52);
+  background:
+    radial-gradient(120% 120% at 100% 0%, rgba(96, 243, 190, 0.22), transparent 58%),
+    linear-gradient(165deg, rgba(14, 55, 45, 0.72), rgba(8, 22, 31, 0.88));
+}
+
+.interview-flow-card.is-diagnosis-complete .interview-flow-label {
+  color: rgba(167, 255, 225, 0.95);
+}
+
+.interview-flow-card.is-diagnosis-complete .interview-flow-title::after {
+  content: " ✓";
+  color: rgba(152, 255, 219, 0.96);
+  font-weight: 800;
+}
+
 /* Railway/mobile production stabilization: keep the chat usable on narrow iOS viewports. */
 @media (max-width: 767px) {
   .agent-layout {

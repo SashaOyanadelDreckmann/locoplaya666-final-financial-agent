@@ -49,7 +49,7 @@ export default function InterviewPage() {
   const [voicePaused, setVoicePaused] = useState(false);
   const [pauseUsed, setPauseUsed] = useState(false);
   const [callSeconds, setCallSeconds] = useState(0);
-  const [maxCallDurationSec, setMaxCallDurationSec] = useState(120);
+  const [maxCallDurationSec, setMaxCallDurationSec] = useState(300);
   const [remainingTotalSec, setRemainingTotalSec] = useState<number | null>(null);
   const [callId, setCallId] = useState<string | null>(null);
   const [callsLeft, setCallsLeft] = useState<number | null>(null);
@@ -276,7 +276,7 @@ export default function InterviewPage() {
           'Habla en español chileno.',
           'Haz solo una pregunta a la vez y profundiza con precisión.',
           'No expliques el sistema ni el contexto técnico.',
-          'La llamada dura máximo 2 minutos y busca un diagnóstico profundo basado en intake y respuestas del usuario.',
+          'La llamada dura máximo 5 minutos y busca un diagnóstico profundo basado en intake y respuestas del usuario.',
           'Si ya tienes información suficiente, inicia tu cierre con <<CALL_COMPLETE>> y resume el porqué en 2 frases.',
           `Pregunta de arranque que debes formular con calidez y precisión: ${question}`,
         ].join(' '),

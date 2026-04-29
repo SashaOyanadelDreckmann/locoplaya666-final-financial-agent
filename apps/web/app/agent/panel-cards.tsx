@@ -14,7 +14,7 @@ type PanelCardsProps = {
   removeInjectedIntake: () => Promise<unknown>;
   removeInjectedProfile: () => Promise<unknown>;
   agentMetaRef: React.MutableRefObject<{ objective?: string; mode?: string }>;
-  interviewCard: { badge: string; title: string; meta: string; detail: string };
+  interviewCard: { badge: string; title: string; meta: string; detail: string; isCompleted?: boolean };
   setInterviewIntake: (intake: any) => void;
   router: { push: (path: string) => void };
   unlockedPanelBlocks: { budgetUnlocked: boolean; transactionsUnlocked: boolean };
@@ -148,12 +148,12 @@ export function buildPanelBaseCards(props: PanelCardsProps): PanelCard[] {
               {props.unlockedPanelBlocks.transactionsUnlocked ? '● Activo' : '○ Bloqueado'}
             </span>
             <span className="panel-feature-copy">
-              Lectura profunda de cartolas bancarias. Detección de patrones, alertas de gasto y análisis operativo de tus movimientos reales.
+              Paso 1 del flujo ideal. Sube cartolas y detecta patrones reales de gasto, alertas y fugas de caja con lectura ejecutiva.
             </span>
             <span className="panel-feature-copy panel-feature-copy-secondary">
               {props.transactionIntel.docs > 0
                 ? `${props.transactionIntel.docs} cartola${props.transactionIntel.docs > 1 ? 's' : ''} · ${props.transactionIntel.rows.toLocaleString('es-CL')} filas · ${props.transactionIntel.amounts.length} montos detectados`
-                : 'Sube una cartola bancaria (PDF o Excel) para activar el análisis de movimientos.'}
+                : 'Comienza aquí: sube cartola en PDF, Excel, CSV o imagen para activar el diagnóstico transaccional.'}
             </span>
           </button>
         </div>
@@ -182,12 +182,12 @@ export function buildPanelBaseCards(props: PanelCardsProps): PanelCard[] {
               {props.unlockedPanelBlocks.budgetUnlocked ? '● Activo' : '○ Bloqueado'}
             </span>
             <span className="panel-feature-copy">
-              Estructura tu flujo mensual con precisión de analista. Ingresos, gastos fijos, variables y ahorro real calculado por IA.
+              Paso 2 del flujo ideal. Optimiza tu presupuesto al máximo con detalle por categoría, producto e institución.
             </span>
             <span className="panel-feature-copy panel-feature-copy-secondary">
               {props.unlockedPanelBlocks.budgetUnlocked
-                ? `Ingreso ${Math.round(props.budgetTotals.income).toLocaleString('es-CL')} · Gasto ${Math.round(props.budgetTotals.expenses).toLocaleString('es-CL')} · Health ${props.budgetInsights?.healthScore ?? '—'}/100`
-                : 'Conversa sobre ingresos y gastos para desbloquear el análisis completo.'}
+                ? `Ingreso ${Math.round(props.budgetTotals.income).toLocaleString('es-CL')} · Gasto ${Math.round(props.budgetTotals.expenses).toLocaleString('es-CL')} · Salud ${props.budgetInsights?.healthScore ?? '—'}/100`
+                : 'Desbloquéalo después de transacciones para construir un presupuesto premium y accionable.'}
             </span>
           </button>
         </div>
@@ -199,15 +199,19 @@ export function buildPanelBaseCards(props: PanelCardsProps): PanelCard[] {
         <div className="mob-col mob-col-wide">
           <button
             type="button"
-            className="interview-flow-card panel-pos-interview glass-card"
+            className={`interview-flow-card panel-pos-interview glass-card${props.interviewCard.isCompleted ? ' is-diagnosis-complete' : ''}`}
             onClick={() => {
+              if (props.interviewCard.isCompleted) {
+                props.router.push('/diagnosis');
+                return;
+              }
               const injectedIntake = props.sessionInfo?.injectedIntake?.intake;
               if (injectedIntake && typeof injectedIntake === 'object') {
                 props.setInterviewIntake(injectedIntake as any);
               }
               props.router.push('/interview');
             }}
-            title="Ir a entrevista y diagnóstico"
+            title={props.interviewCard.isCompleted ? 'Ir a diagnóstico financiero' : 'Ir a entrevista y diagnóstico'}
           >
             <span className="interview-flow-label">{props.interviewCard.badge}</span>
             <span className="interview-flow-title">{props.interviewCard.title}</span>

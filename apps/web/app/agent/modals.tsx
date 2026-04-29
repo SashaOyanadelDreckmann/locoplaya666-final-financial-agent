@@ -3,9 +3,10 @@ import { useMemo, useState, type ChangeEvent } from 'react';
 type BudgetRow = {
   id: string;
   category: string;
+  product: string;
+  institution: string;
   type: 'income' | 'expense';
   amount: number;
-  note: string;
 };
 
 type BudgetTopExpense = { id: string; label: string; amount: number; pct: number };
@@ -26,6 +27,7 @@ export function BudgetModal(props: {
   budgetRows: BudgetRow[];
   updateBudgetRow: (id: string, field: keyof BudgetRow, value: string | number) => void;
   upsertBudgetRow: (row: BudgetRow) => void;
+  removeBudgetRow: (id: string) => void;
   coachHint: string;
   addBudgetRow: (type: 'income' | 'expense') => void;
   sendBudgetToAgent: () => void;
@@ -77,7 +79,8 @@ export function BudgetModal(props: {
           type: 'income',
           category: 'Sueldo liquido',
           amount,
-          note: 'Capturado por chat',
+          product: 'Ingreso principal',
+          institution: 'Declarado por usuario',
         });
       } else if (questionObj.key === 'expense-rent') {
         props.upsertBudgetRow({
@@ -85,7 +88,8 @@ export function BudgetModal(props: {
           type: 'expense',
           category: 'Vivienda / arriendo',
           amount,
-          note: 'Capturado por chat',
+          product: 'Vivienda',
+          institution: 'Declarado por usuario',
         });
       } else if (questionObj.key === 'expense-food') {
         props.upsertBudgetRow({
@@ -93,7 +97,8 @@ export function BudgetModal(props: {
           type: 'expense',
           category: 'Alimentacion',
           amount,
-          note: 'Capturado por chat',
+          product: 'Alimentación',
+          institution: 'Declarado por usuario',
         });
       } else if (questionObj.key === 'expense-transport') {
         props.upsertBudgetRow({
@@ -101,7 +106,8 @@ export function BudgetModal(props: {
           type: 'expense',
           category: 'Transporte',
           amount,
-          note: 'Capturado por chat',
+          product: 'Transporte',
+          institution: 'Declarado por usuario',
         });
       } else if (questionObj.key === 'expense-services') {
         props.upsertBudgetRow({
@@ -109,7 +115,8 @@ export function BudgetModal(props: {
           type: 'expense',
           category: 'Servicios básicos',
           amount,
-          note: 'Capturado por chat',
+          product: 'Servicios',
+          institution: 'Declarado por usuario',
         });
       } else if (questionObj.key === 'expense-debt') {
         props.upsertBudgetRow({
@@ -117,7 +124,8 @@ export function BudgetModal(props: {
           type: 'expense',
           category: 'Deuda financiera',
           amount,
-          note: 'Capturado por chat',
+          product: 'Pago deuda',
+          institution: 'Declarado por usuario',
         });
       } else if (questionObj.key === 'income-extra') {
         props.upsertBudgetRow({
@@ -125,32 +133,34 @@ export function BudgetModal(props: {
           type: 'income',
           category: 'Ingresos extra',
           amount,
-          note: 'Capturado por chat',
+          product: 'Ingreso adicional',
+          institution: 'Declarado por usuario',
         });
       }
     } else {
       const lower = answer.toLowerCase();
       if (/(sueldo|ingreso principal)/i.test(lower)) {
-        props.upsertBudgetRow({ id: 'income-salary', type: 'income', category: 'Sueldo liquido', amount, note: 'Actualizado por chat' });
+        props.upsertBudgetRow({ id: 'income-salary', type: 'income', category: 'Sueldo liquido', product: 'Ingreso principal', institution: 'Actualizado por chat', amount });
       } else if (/(extra|freelance|bono|comision)/i.test(lower)) {
-        props.upsertBudgetRow({ id: 'income-extra', type: 'income', category: 'Ingresos extra', amount, note: 'Actualizado por chat' });
+        props.upsertBudgetRow({ id: 'income-extra', type: 'income', category: 'Ingresos extra', product: 'Ingreso extra', institution: 'Actualizado por chat', amount });
       } else if (/(arriendo|vivienda|hipoteca)/i.test(lower)) {
-        props.upsertBudgetRow({ id: 'expense-rent', type: 'expense', category: 'Vivienda / arriendo', amount, note: 'Actualizado por chat' });
+        props.upsertBudgetRow({ id: 'expense-rent', type: 'expense', category: 'Vivienda / arriendo', product: 'Vivienda', institution: 'Actualizado por chat', amount });
       } else if (/(comida|alimentacion|supermercado)/i.test(lower)) {
-        props.upsertBudgetRow({ id: 'expense-food', type: 'expense', category: 'Alimentacion', amount, note: 'Actualizado por chat' });
+        props.upsertBudgetRow({ id: 'expense-food', type: 'expense', category: 'Alimentacion', product: 'Alimentación', institution: 'Actualizado por chat', amount });
       } else if (/(transporte|bencina|metro|uber|taxi)/i.test(lower)) {
-        props.upsertBudgetRow({ id: 'expense-transport', type: 'expense', category: 'Transporte', amount, note: 'Actualizado por chat' });
+        props.upsertBudgetRow({ id: 'expense-transport', type: 'expense', category: 'Transporte', product: 'Transporte', institution: 'Actualizado por chat', amount });
       } else if (/(luz|agua|internet|servicio)/i.test(lower)) {
-        props.upsertBudgetRow({ id: 'expense-services', type: 'expense', category: 'Servicios básicos', amount, note: 'Actualizado por chat' });
+        props.upsertBudgetRow({ id: 'expense-services', type: 'expense', category: 'Servicios básicos', product: 'Servicios básicos', institution: 'Actualizado por chat', amount });
       } else if (/(deuda|credito|tarjeta|cuota)/i.test(lower)) {
-        props.upsertBudgetRow({ id: 'expense-debt', type: 'expense', category: 'Deuda financiera', amount, note: 'Actualizado por chat' });
+        props.upsertBudgetRow({ id: 'expense-debt', type: 'expense', category: 'Deuda financiera', product: 'Deuda', institution: 'Actualizado por chat', amount });
       } else {
         props.upsertBudgetRow({
           id: `expense-custom-${Date.now()}`,
           type: 'expense',
           category: 'Gasto adicional',
+          product: 'Gasto adicional',
+          institution: 'Declarado por usuario',
           amount,
-          note: answer.slice(0, 80),
         });
       }
     }
@@ -185,7 +195,8 @@ export function BudgetModal(props: {
             type: upd.type,
             category: upd.category,
             amount: Math.max(0, Math.round(Number(upd.amount) || 0)),
-            note: typeof upd.note === 'string' ? upd.note : 'Actualizado por IA',
+            product: typeof upd.note === 'string' ? upd.note : 'Actualizado por IA',
+            institution: 'Sugerido por IA',
           });
         }
         if (typeof payload.next_question === 'string' && payload.next_question.trim()) {
@@ -206,10 +217,10 @@ export function BudgetModal(props: {
           <h3>Budget Pro</h3>
           <button type="button" className="agent-modal-close" onClick={props.onClose}>×</button>
         </div>
-        <p className="agent-modal-intro">Asistente financiero guiado con preguntas breves para construir un presupuesto preciso y accionable.</p>
+        <p className="agent-modal-intro">Paso 2 del flujo ideal. Ajustemos un presupuesto de nivel senior con precisión y decisiones accionables.</p>
 
         <div className="budget-chat-card">
-          <span className="budget-chat-badge">Asistente de presupuesto</span>
+          <span className="budget-chat-badge">Asistente premium de presupuesto</span>
           <h4 className="budget-chat-question">{activeQuestion}</h4>
           <div className="budget-chat-input-row">
             <input
@@ -263,18 +274,20 @@ export function BudgetModal(props: {
         )}
         <div className="budget-table-wrap">
           <table className="budget-table">
-            <thead><tr><th>Categoria</th><th>Tipo</th><th>Monto mensual</th><th>Nota</th></tr></thead>
+            <thead><tr><th>Categoria</th><th>Producto</th><th>Institución</th><th>Tipo</th><th>Monto mensual</th><th>Acción</th></tr></thead>
             <tbody>
               {props.budgetRows.map((row) => (
                 <tr key={row.id}>
                   <td><input value={row.category} onChange={(e) => props.updateBudgetRow(row.id, 'category', e.target.value)} /></td>
+                  <td><input value={row.product} onChange={(e) => props.updateBudgetRow(row.id, 'product', e.target.value)} /></td>
+                  <td><input value={row.institution} onChange={(e) => props.updateBudgetRow(row.id, 'institution', e.target.value)} /></td>
                   <td>
                     <select value={row.type} onChange={(e) => props.updateBudgetRow(row.id, 'type', e.target.value as 'income' | 'expense')}>
                       <option value="income">Ingreso</option><option value="expense">Gasto</option>
                     </select>
                   </td>
                   <td><input type="number" value={row.amount} onChange={(e) => props.updateBudgetRow(row.id, 'amount', Number(e.target.value))} /></td>
-                  <td><input value={row.note} onChange={(e) => props.updateBudgetRow(row.id, 'note', e.target.value)} /></td>
+                  <td><button type="button" className="continue-ghost" onClick={() => props.removeBudgetRow(row.id)}>Borrar</button></td>
                 </tr>
               ))}
             </tbody>
@@ -288,7 +301,7 @@ export function BudgetModal(props: {
         <div className="agent-modal-actions">
           <button type="button" className="continue-ghost" onClick={() => props.addBudgetRow('income')}>+ Ingreso</button>
           <button type="button" className="continue-ghost" onClick={() => props.addBudgetRow('expense')}>+ Gasto</button>
-          <button type="button" className="button-primary" onClick={props.sendBudgetToAgent}>Generar diagnóstico pro</button>
+          <button type="button" className="button-primary" onClick={props.sendBudgetToAgent}>Generar optimización premium</button>
         </div>
       </div>
     </div>
@@ -369,10 +382,10 @@ export function TransactionsModal(props: {
     <div className="agent-modal-overlay" onClick={props.onClose}>
       <div className="agent-modal transactions-modal" onClick={(e) => e.stopPropagation()}>
         <div className="agent-modal-header">
-          <h3>Panel de productos transaccionales</h3>
+          <h3>Transacciones premium</h3>
           <button type="button" className="agent-modal-close" onClick={props.onClose}>×</button>
         </div>
-        {props.txWizardStep !== 'products' && <p className="agent-modal-intro">Flujo mensual ejecutivo para simulación de productos bancarios, lectura de cartolas y análisis inteligente. No ingreses credenciales ni contraseñas reales.</p>}
+        {props.txWizardStep !== 'products' && <p className="agent-modal-intro">Paso 1 del flujo ideal. Sube cartolas y consolidemos evidencia financiera real antes de pasar a presupuesto.</p>}
         {props.txWizardStep !== 'products' && (
           <div className="transactions-intelligence">
             <div className="transactions-stat-card"><span className="transactions-stat-label">Productos</span><strong>{props.bankSimulationProductsCount}</strong></div>
@@ -444,9 +457,9 @@ export function TransactionsModal(props: {
         )}
         {props.txWizardStep === 'upload' && props.activeBankProduct && (
           <>
-            <div className="transactions-summary-card"><span className="transactions-summary-title">Paso 2 · Cargar imagen de cartola del mes</span><p>Sube solo imágenes de cartola (PNG/JPG/JPEG/WEBP/GIF). El sistema analizará visualmente la cartola y te devolverá hallazgos.</p></div>
+            <div className="transactions-summary-card"><span className="transactions-summary-title">Paso 2 · Cargar cartola(s) del mes</span><p>Sube cartolas en PDF, Excel, CSV o imagen. El sistema extrae datos y genera hallazgos ejecutivos automáticamente.</p></div>
             <div className="upload-zone">
-              <label className="upload-label">Subir imagen(es) de cartola<input type="file" accept="image/*,.png,.jpg,.jpeg,.webp,.gif" multiple onChange={(e: ChangeEvent<HTMLInputElement>) => props.onUploadStatement(e.target.files)} /></label>
+              <label className="upload-label">Subir cartola(s)<input type="file" accept="image/*,.png,.jpg,.jpeg,.webp,.gif,.pdf,.xls,.xlsx,.csv" multiple onChange={(e: ChangeEvent<HTMLInputElement>) => props.onUploadStatement(e.target.files)} /></label>
               <div className="upload-files">
                 {props.documentsLoading && <span>Extrayendo texto y estructura de tus documentos…</span>}
                 {props.activeBankProduct.uploadedFiles.length === 0 && <span>Aun no hay cartolas cargadas.</span>}
@@ -455,7 +468,7 @@ export function TransactionsModal(props: {
             </div>
             <div className="agent-modal-actions">
               <button type="button" className="continue-ghost" onClick={() => props.setTxWizardStep('credentials')}>Volver a credenciales</button>
-              <button type="button" className="button-primary" disabled={props.documentsLoading || props.activeBankProduct.parsedDocuments.length === 0} onClick={() => props.setTxWizardStep('dashboard')}>Ver dashboard</button>
+              <button type="button" className="button-primary" disabled={props.documentsLoading || props.activeBankProduct.parsedDocuments.length === 0} onClick={() => props.setTxWizardStep('dashboard')}>Ver resumen ejecutivo</button>
             </div>
           </>
         )}
@@ -474,7 +487,7 @@ export function TransactionsModal(props: {
             <div className="agent-modal-actions">
               <button type="button" className="continue-ghost" onClick={() => props.setTxWizardStep('products')}>Volver a productos</button>
               <button type="button" className="continue-ghost" onClick={() => props.setTxWizardStep('upload')}>Cargar más archivos</button>
-              <button type="button" className="button-primary" onClick={props.sendTransactionsToAgent} disabled={props.documentsLoading || props.activeBankProduct.parsedDocuments.length === 0}>Enviar a Financiera mente</button>
+              <button type="button" className="button-primary" onClick={props.sendTransactionsToAgent} disabled={props.documentsLoading || props.activeBankProduct.parsedDocuments.length === 0}>Enviar y pasar a presupuesto</button>
             </div>
           </>
         )}
