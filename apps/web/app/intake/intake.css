@@ -929,3 +929,136 @@
     height: 20px;
   }
 }
+
+/* ================================================= */
+/* Intake Immersive Override                         */
+/* ================================================= */
+
+.intake-shell {
+  padding: 0 !important;
+}
+
+.intake-topbar {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: max(14px, env(safe-area-inset-top)) 26px 8px;
+}
+
+.intake-topbar-back {
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  color: rgba(240, 240, 245, 0.88);
+  font-size: 32px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.intake-topbar-counter {
+  font-size: 36px;
+  letter-spacing: 0.04em;
+  color: rgba(240, 240, 245, 0.34);
+  font-weight: 300;
+}
+
+.intake-main.intake-main-immersive {
+  min-height: 100dvh;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 94px 24px 34px;
+}
+
+.intake-step {
+  width: 100%;
+  max-width: 760px;
+}
+
+.intake-step-tag {
+  color: rgba(219, 182, 81, 0.92) !important;
+  font-size: 13px !important;
+}
+
+.intake-step-title {
+  font-size: clamp(38px, 5.3vw, 66px) !important;
+  font-weight: 400 !important;
+  letter-spacing: -0.03em !important;
+}
+
+.intake-step-subtitle {
+  color: rgba(240, 240, 245, 0.44) !important;
+}
+
+.intake-question-progress {
+  color: rgba(219, 182, 81, 0.78) !important;
+}
+
+.intake-question-label {
+  font-size: 28px !important;
+  font-weight: 420 !important;
+}
+
+.intake-chip {
+  border-radius: 16px !important;
+  font-size: 18px !important;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)),
+    rgba(14, 20, 30, 0.26) !important;
+  backdrop-filter: blur(7px) saturate(1.05) !important;
+  -webkit-backdrop-filter: blur(7px) saturate(1.05) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04) !important;
+}
+
+.intake-input {
+  border-radius: 20px !important;
+  padding: 18px 20px !important;
+  font-size: 48px !important;
+  text-align: center !important;
+  backdrop-filter: blur(8px) saturate(1.05) !important;
+  -webkit-backdrop-filter: blur(8px) saturate(1.05) !important;
+}
+
+.intake-footer {
+  justify-content: flex-start !important;
+}
+
+.intake-next-btn {
+  width: min(520px, 100%) !important;
+  justify-content: center !important;
+  border-radius: 20px !important;
+  font-size: 20px !important;
+}
+
+@media (max-width: 768px) {
+  .intake-main.intake-main-immersive {
+    align-items: flex-end;
+    padding: max(70px, env(safe-area-inset-top)) 18px 24px;
+  }
+
+  .intake-topbar {
+    padding: max(10px, env(safe-area-inset-top)) 18px 8px;
+  }
+
+  .intake-topbar-counter {
+    font-size: 28px;
+  }
+
+  .intake-step-title {
+    font-size: clamp(34px, 10vw, 52px) !important;
+  }
+
+  .intake-question-label {
+    font-size: clamp(28px, 8vw, 44px) !important;
+  }
+
+  .intake-input {
+    font-size: 44px !important;
+    padding: 16px 14px !important;
+  }
+}

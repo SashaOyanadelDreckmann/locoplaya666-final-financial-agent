@@ -137,70 +137,47 @@ export default function IntakePage() {
   };
 
   if (bootstrapping) return null;
-  const progressPct = ((step + 1) / INTAKE_STEPS.length) * 100;
   const stepMeta = INTAKE_STEPS[step];
 
   return (
     <div className="intake-shell">
-      {/* Background orb */}
       <div className="intake-bg-orb" aria-hidden />
 
-      {/* Header */}
-      <div className="intake-content-panel">
-        <header className="intake-header">
-          <div className="intake-logo">Asesor Financiero</div>
-          <div className="intake-header-badge">Privado · Seguro</div>
-        </header>
+      <header className="intake-topbar">
+        <button
+          type="button"
+          className="intake-topbar-back"
+          onClick={() => (step > 0 ? prevStep() : router.back())}
+          aria-label="Volver"
+        >
+          ←
+        </button>
+        <div className="intake-topbar-counter">{step + 1} / {INTAKE_STEPS.length}</div>
+      </header>
 
-        <section className="intake-progress-panel" aria-label="Progreso del onboarding">
-          <div className="intake-progress-panel-top">
-            <p className="intake-progress-kicker">
-              Paso {step + 1} de {INTAKE_STEPS.length}
-            </p>
-            <p className="intake-progress-title">{stepMeta.title}</p>
-            <p className="intake-progress-helper">{stepMeta.helper}</p>
-          </div>
-
-          <div className="intake-progress-bar">
-            <span className="intake-progress-fill" style={{ width: `${progressPct}%` }} aria-hidden />
-            {INTAKE_STEPS.map((s, i) => (
-              <div
-                key={s.key}
-                className={`intake-progress-step${step === i ? ' is-current' : ''}${step > i ? ' is-done' : ''}`}
-                aria-current={step === i ? 'step' : undefined}
-              >
-                <div className="intake-progress-dot">{i + 1}</div>
-                <div className="intake-progress-label">{s.label}</div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Step content */}
-        <main className="intake-main">
-          {step === 0 && <ContextStep form={form} update={update} onNext={nextStep} />}
-          {step === 1 && <CashflowStep form={form} update={update} onNext={nextStep} onBack={prevStep} />}
-          {step === 2 && <SavingsStep form={form} update={update} onNext={nextStep} onBack={prevStep} />}
-          {step === 3 && (
-            <ProductsStep
-              form={form}
-              updateProduct={updateProduct}
-              addProductRow={addProductRow}
-              onNext={nextStep}
-              onBack={prevStep}
-            />
-          )}
-          {step === 4 && (
-            <KnowledgeStep
-              form={form}
-              update={update}
-              onSubmit={onSubmit}
-              loading={loading}
-              onBack={prevStep}
-            />
-          )}
-        </main>
-      </div>
+      <main className="intake-main intake-main-immersive" aria-label={stepMeta.title}>
+        {step === 0 && <ContextStep form={form} update={update} onNext={nextStep} />}
+        {step === 1 && <CashflowStep form={form} update={update} onNext={nextStep} onBack={prevStep} />}
+        {step === 2 && <SavingsStep form={form} update={update} onNext={nextStep} onBack={prevStep} />}
+        {step === 3 && (
+          <ProductsStep
+            form={form}
+            updateProduct={updateProduct}
+            addProductRow={addProductRow}
+            onNext={nextStep}
+            onBack={prevStep}
+          />
+        )}
+        {step === 4 && (
+          <KnowledgeStep
+            form={form}
+            update={update}
+            onSubmit={onSubmit}
+            loading={loading}
+            onBack={prevStep}
+          />
+        )}
+      </main>
 
       {error && (
         <div className="intake-error">
