@@ -1190,6 +1190,8 @@ button {
 
   .home-content {
     padding: clamp(18px, 5.5vh, 44px) 0 0;
+    align-items: center;
+    text-align: center;
   }
 
   .home-brand-logo {
@@ -1201,6 +1203,13 @@ button {
 
   .home-eyebrow {
     margin-bottom: 20px;
+    background: transparent;
+    border: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border-radius: 0;
+    padding: 0;
+    box-shadow: none;
   }
 
   .home-art {
@@ -1227,16 +1236,25 @@ button {
   .home-hero {
     font-size: clamp(44px, 12vw, 64px);
     margin-bottom: 16px;
+    text-align: center;
   }
 
   .home-tagline {
     font-size: 20px;
     margin-bottom: 12px;
+    font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", "Times New Roman", serif;
+    font-weight: 400;
+    font-style: normal;
+    letter-spacing: -0.01em;
+    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.62);
+    text-shadow: none;
   }
 
   .home-body {
     font-size: 14px;
     margin-bottom: clamp(88px, 16vh, 136px);
+    text-align: center;
   }
 
   .home-ctas {

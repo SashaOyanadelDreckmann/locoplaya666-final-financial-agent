@@ -438,6 +438,12 @@ export default function AgentPage() {
       try {
         const info = await getSessionInfo();
         if (cancelled) return;
+        const hasCompletedIntake = Boolean(info?.injectedIntake?.intake);
+        if (!hasCompletedIntake) {
+          setIsAuthenticated(false);
+          router.replace('/intake');
+          return;
+        }
         setSessionInfo(info);
         setProductLifecycle((info?.productLifecycle ?? null) as ProductLifecycle | null);
         setIsAuthenticated(true);

@@ -300,6 +300,20 @@
   gap: 14px;
 }
 
+.intake-question-screen {
+  min-height: 320px;
+  justify-content: center;
+}
+
+.intake-question-progress {
+  margin: -8px 0 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(164, 194, 216, 0.72);
+}
+
 .intake-question-label {
   font-size: 16px;
   font-weight: 600;

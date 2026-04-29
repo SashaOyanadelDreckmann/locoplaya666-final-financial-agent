@@ -1,4 +1,5 @@
 'use client';
+import { useState } from 'react';
 import type {
   IntakeQuestionnaire,
   FinancialProductEntry,
@@ -29,7 +30,10 @@ export function ProductsStep({
   onNext: () => void;
   onBack: () => void;
 }) {
+  const [questionIndex, setQuestionIndex] = useState(0);
   const hasAtLeastOneProduct = form.financialProducts.some((p) => p.product?.trim());
+  const totalQuestions = 2;
+  const isLast = questionIndex === totalQuestions - 1;
 
   const quickAdd = (label: string) => {
     const emptyIdx = form.financialProducts.findIndex((p) => !p.product?.trim());
@@ -46,6 +50,22 @@ export function ProductsStep({
 
   const alreadyAdded = form.financialProducts.map((p) => p.product?.trim()).filter(Boolean);
 
+  const onNextQuestion = () => {
+    if (isLast) {
+      onNext();
+      return;
+    }
+    setQuestionIndex((prev) => Math.min(prev + 1, totalQuestions - 1));
+  };
+
+  const onBackQuestion = () => {
+    if (questionIndex === 0) {
+      onBack();
+      return;
+    }
+    setQuestionIndex((prev) => Math.max(prev - 1, 0));
+  };
+
   return (
     <div className="intake-step animate-intake-in">
       <div className="intake-step-header">
@@ -56,75 +76,83 @@ export function ProductsStep({
           Puedes ser aproximado, no necesitamos cifras exactas todavía.
         </p>
       </div>
+      <p className="intake-question-progress">Pregunta {questionIndex + 1} de {totalQuestions}</p>
 
-      {/* Quick-add chips */}
-      <div className="intake-question-block">
-        <label className="intake-question-label">Agrega rápidamente</label>
-        <div className="intake-chips intake-chips-wrap">
-          {QUICK_PRODUCTS.map((qp) => {
-            const active = alreadyAdded.includes(qp);
-            return (
-              <button
-                key={qp}
-                type="button"
-                className={`intake-chip intake-chip-tag${active ? ' is-selected' : ''}`}
-                onClick={() => !active && quickAdd(qp)}
-                disabled={active}
-              >
-                {active ? '✓ ' : '+ '}{qp}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Product rows */}
-      {form.financialProducts.filter(p => p.product?.trim()).length > 0 && (
-        <div className="intake-question-block">
-          <label className="intake-question-label">Detalla cada producto</label>
-          <div className="intake-products-list">
-            {form.financialProducts.map((p, i) => {
-              if (!p.product?.trim() && i > 0) return null;
+      {questionIndex === 0 && (
+        <div className="intake-question-block intake-question-screen animate-intake-in">
+          <label className="intake-question-label">Agrega rápidamente</label>
+          <div className="intake-chips intake-chips-wrap">
+            {QUICK_PRODUCTS.map((qp) => {
+              const active = alreadyAdded.includes(qp);
               return (
-                <div key={i} className="intake-product-row">
-                  <div className="intake-product-row-header">
-                    <span className="intake-product-tag">{p.product || `Producto ${i + 1}`}</span>
-                  </div>
-                  <div className="intake-product-fields">
-                    {!p.product?.trim() && (
-                      <input
-                        className="intake-input"
-                        list="financial-product-suggestions"
-                        placeholder="Tipo de producto"
-                        value={p.product}
-                        onChange={(e) => updateProduct(i, 'product', e.target.value)}
-                      />
-                    )}
-                    <input
-                      className="intake-input"
-                      list="financial-institution-suggestions"
-                      placeholder="Institución (Ej: BancoEstado, Santander)"
-                      value={p.institution ?? ''}
-                      onChange={(e) => updateProduct(i, 'institution', e.target.value)}
-                    />
-                    <input
-                      className="intake-input"
-                      type="number"
-                      placeholder="Costo mensual aprox. (opcional)"
-                      value={p.monthlyCost ?? ''}
-                      onChange={(e) =>
-                        updateProduct(i, 'monthlyCost', e.target.value ? Number(e.target.value) : undefined)
-                      }
-                    />
-                  </div>
-                </div>
+                <button
+                  key={qp}
+                  type="button"
+                  className={`intake-chip intake-chip-tag${active ? ' is-selected' : ''}`}
+                  onClick={() => !active && quickAdd(qp)}
+                  disabled={active}
+                >
+                  {active ? '✓ ' : '+ '}{qp}
+                </button>
               );
             })}
           </div>
+        </div>
+      )}
 
-          <button className="intake-add-btn" type="button" onClick={addProductRow}>
-            + Agregar otro producto
-          </button>
+      {questionIndex === 1 && (
+        <div className="intake-question-block intake-question-screen animate-intake-in">
+          <label className="intake-question-label">Detalla cada producto</label>
+          {form.financialProducts.filter(p => p.product?.trim()).length > 0 && (
+            <>
+              <div className="intake-products-list">
+                {form.financialProducts.map((p, i) => {
+                  if (!p.product?.trim() && i > 0) return null;
+                  return (
+                    <div key={i} className="intake-product-row">
+                      <div className="intake-product-row-header">
+                        <span className="intake-product-tag">{p.product || `Producto ${i + 1}`}</span>
+                      </div>
+                      <div className="intake-product-fields">
+                        {!p.product?.trim() && (
+                          <input
+                            className="intake-input"
+                            list="financial-product-suggestions"
+                            placeholder="Tipo de producto"
+                            value={p.product}
+                            onChange={(e) => updateProduct(i, 'product', e.target.value)}
+                          />
+                        )}
+                        <input
+                          className="intake-input"
+                          list="financial-institution-suggestions"
+                          placeholder="Institución (Ej: BancoEstado, Santander)"
+                          value={p.institution ?? ''}
+                          onChange={(e) => updateProduct(i, 'institution', e.target.value)}
+                        />
+                        <input
+                          className="intake-input"
+                          type="number"
+                          placeholder="Costo mensual aprox. (opcional)"
+                          value={p.monthlyCost ?? ''}
+                          onChange={(e) =>
+                            updateProduct(i, 'monthlyCost', e.target.value ? Number(e.target.value) : undefined)
+                          }
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <button className="intake-add-btn" type="button" onClick={addProductRow}>
+                + Agregar otro producto
+              </button>
+            </>
+          )}
+          {!hasAtLeastOneProduct && (
+            <p className="intake-question-hint">Puedes continuar sin productos y completarlo más adelante.</p>
+          )}
         </div>
       )}
 
@@ -136,9 +164,9 @@ export function ProductsStep({
       </datalist>
 
       <div className="intake-footer">
-        <button className="intake-back-btn" onClick={onBack}>← Volver</button>
-        <button className="intake-next-btn" onClick={onNext}>
-          {hasAtLeastOneProduct ? 'Continuar' : 'Omitir por ahora'}
+        <button className="intake-back-btn" onClick={onBackQuestion}>← Anterior</button>
+        <button className="intake-next-btn" onClick={onNextQuestion}>
+          {isLast ? (hasAtLeastOneProduct ? 'Continuar al siguiente bloque' : 'Omitir y continuar') : 'Siguiente pregunta'}
           <span className="intake-next-arrow">→</span>
         </button>
       </div>

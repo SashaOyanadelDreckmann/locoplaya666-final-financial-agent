@@ -29,12 +29,30 @@ export function ContextStep({
   onNext: () => void;
 }) {
   const [showExact, setShowExact] = useState(false);
+  const [questionIndex, setQuestionIndex] = useState(0);
 
   const selectedAge = AGE_OPTIONS.find(
     (o) => form.age !== undefined && form.age >= o.range[0] && form.age <= o.range[1]
   );
 
-  const ready = !!form.age && !!form.employmentStatus;
+  const canContinueAge = typeof form.age === 'number' && form.age > 0;
+  const canContinueEmployment = Boolean(form.employmentStatus);
+  const totalQuestions = 3;
+  const isLast = questionIndex === totalQuestions - 1;
+
+  const onNextQuestion = () => {
+    if (isLast) {
+      onNext();
+      return;
+    }
+    setQuestionIndex((prev) => Math.min(prev + 1, totalQuestions - 1));
+  };
+
+  const onPrevQuestion = () => setQuestionIndex((prev) => Math.max(prev - 1, 0));
+  const canAdvance =
+    (questionIndex === 0 && canContinueAge) ||
+    (questionIndex === 1 && canContinueEmployment) ||
+    questionIndex === 2;
 
   return (
     <div className="intake-step animate-intake-in">
@@ -45,89 +63,97 @@ export function ContextStep({
           Necesito entender tu punto de partida para darte asesoría que realmente se ajuste a tu vida.
         </p>
       </div>
+      <p className="intake-question-progress">Pregunta {questionIndex + 1} de {totalQuestions}</p>
 
-      <div className="intake-question-block">
-        <label htmlFor="age-group" className="intake-question-label">¿En qué rango de edad estás?</label>
-        <div className="intake-chips" id="age-group" role="group" aria-labelledby="age-group">
-          {AGE_OPTIONS.map((opt) => (
+      {questionIndex === 0 && (
+        <div className="intake-question-block intake-question-screen animate-intake-in">
+          <label htmlFor="age-group" className="intake-question-label">¿En qué rango de edad estás?</label>
+          <div className="intake-chips" id="age-group" role="group" aria-labelledby="age-group">
+            {AGE_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                className={`intake-chip${selectedAge?.value === opt.value ? ' is-selected' : ''}`}
+                onClick={() => {
+                  update('age', opt.value);
+                  setShowExact(false);
+                }}
+                aria-pressed={selectedAge?.value === opt.value}
+              >
+                {opt.label}
+              </button>
+            ))}
             <button
-              key={opt.value}
               type="button"
-              className={`intake-chip${selectedAge?.value === opt.value ? ' is-selected' : ''}`}
-              onClick={() => {
-                update('age', opt.value);
-                setShowExact(false);
-              }}
-              aria-pressed={selectedAge?.value === opt.value}
+              className={`intake-chip intake-chip-exact${showExact ? ' is-selected' : ''}`}
+              onClick={() => setShowExact(true)}
+              aria-pressed={showExact}
             >
-              {opt.label}
+              Exacta
             </button>
-          ))}
-          <button
-            type="button"
-            className={`intake-chip intake-chip-exact${showExact ? ' is-selected' : ''}`}
-            onClick={() => setShowExact(true)}
-            aria-pressed={showExact}
-          >
-            Exacta
-          </button>
+          </div>
+          {showExact && (
+            <input
+              id="age-exact"
+              className="intake-input"
+              type="number"
+              min={14}
+              max={100}
+              placeholder="Tu edad exacta"
+              aria-label="Tu edad exacta en años"
+              value={form.age ?? ''}
+              onChange={(e) => update('age', Number(e.target.value) || undefined as any)}
+              autoFocus
+            />
+          )}
         </div>
-        {showExact && (
+      )}
+
+      {questionIndex === 1 && (
+        <div className="intake-question-block intake-question-screen animate-intake-in">
+          <label htmlFor="employment-group" className="intake-question-label">¿Cuál es tu situación laboral?</label>
+          <div className="intake-chips intake-chips-grid" id="employment-group" role="group" aria-labelledby="employment-group">
+            {EMPLOYMENT_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                className={`intake-chip intake-chip-wide${form.employmentStatus === opt.value ? ' is-selected' : ''}`}
+                onClick={() => update('employmentStatus', opt.value)}
+                aria-pressed={form.employmentStatus === opt.value}
+                title={opt.sub}
+              >
+                <span className="intake-chip-main">{opt.label}</span>
+                <span className="intake-chip-sub">{opt.sub}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {questionIndex === 2 && (
+        <div className="intake-question-block intake-question-screen animate-intake-in">
+          <label htmlFor="profession" className="intake-question-label">¿A qué te dedicas? <span className="intake-optional">(opcional)</span></label>
           <input
-            id="age-exact"
+            id="profession"
             className="intake-input"
-            type="number"
-            min={14}
-            max={100}
-            placeholder="Tu edad exacta"
-            aria-label="Tu edad exacta en años"
-            value={form.age ?? ''}
-            onChange={(e) => update('age', Number(e.target.value) || undefined as any)}
-            autoFocus
+            placeholder="Ej: Ingeniero comercial, estudiante de medicina, emprendedor"
+            value={form.profession ?? ''}
+            onChange={(e) => update('profession', e.target.value)}
+            aria-label="Tu profesión u ocupación"
           />
-        )}
-      </div>
-
-      <div className="intake-question-block">
-        <label htmlFor="employment-group" className="intake-question-label">¿Cuál es tu situación laboral?</label>
-        <div className="intake-chips intake-chips-grid" id="employment-group" role="group" aria-labelledby="employment-group">
-          {EMPLOYMENT_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              className={`intake-chip intake-chip-wide${form.employmentStatus === opt.value ? ' is-selected' : ''}`}
-              onClick={() => update('employmentStatus', opt.value)}
-              aria-pressed={form.employmentStatus === opt.value}
-              title={opt.sub}
-            >
-              <span className="intake-chip-main">{opt.label}</span>
-              <span className="intake-chip-sub">{opt.sub}</span>
-            </button>
-          ))}
         </div>
-      </div>
-
-      <div className="intake-question-block">
-        <label htmlFor="profession" className="intake-question-label">¿A qué te dedicas? <span className="intake-optional">(opcional)</span></label>
-        <input
-          id="profession"
-          className="intake-input"
-          placeholder="Ej: Ingeniero comercial, estudiante de medicina, emprendedor"
-          value={form.profession ?? ''}
-          onChange={(e) => update('profession', e.target.value)}
-          aria-label="Tu profesión u ocupación"
-        />
-      </div>
+      )}
 
       <div className="intake-footer">
-        {ready && (
+        {questionIndex > 0 && <button className="intake-back-btn" onClick={onPrevQuestion}>← Anterior</button>}
+        {canAdvance && (
           <button
             className="intake-next-btn focus-ring"
-            onClick={onNext}
+            onClick={onNextQuestion}
             type="button"
             aria-label="Continuar al siguiente paso"
           >
-            Continuar
+            {isLast ? 'Continuar al siguiente bloque' : 'Siguiente pregunta'}
             <span className="intake-next-arrow">→</span>
           </button>
         )}

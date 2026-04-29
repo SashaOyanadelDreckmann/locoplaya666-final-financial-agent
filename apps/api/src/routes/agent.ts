@@ -719,6 +719,9 @@ router.post(
     if (!authedUser) {
       throw unauthorized('Authentication required');
     }
+    if (!authedUser.injectedIntake) {
+      throw forbidden('INTAKE_REQUIRED');
+    }
 
     if (process.env.NODE_ENV !== 'production') {
       try {

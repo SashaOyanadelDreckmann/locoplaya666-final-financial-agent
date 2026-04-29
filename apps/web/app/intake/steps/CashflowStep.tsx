@@ -1,4 +1,5 @@
 'use client';
+import { useState } from 'react';
 import type { IntakeQuestionnaire } from '@financial-agent/shared/src/intake/intake-questionnaire.types';
 
 const INCOME_OPTIONS: { value: IntakeQuestionnaire['incomeBand']; label: string; sub: string }[] = [
@@ -36,7 +37,30 @@ export function CashflowStep({
   onNext: () => void;
   onBack: () => void;
 }) {
-  const ready = !!form.incomeBand && !!form.expensesCoverage && !!form.tracksExpenses;
+  const [questionIndex, setQuestionIndex] = useState(0);
+  const totalQuestions = 3;
+  const isLast = questionIndex === totalQuestions - 1;
+
+  const canAdvance =
+    (questionIndex === 0 && Boolean(form.incomeBand)) ||
+    (questionIndex === 1 && Boolean(form.expensesCoverage)) ||
+    (questionIndex === 2 && Boolean(form.tracksExpenses));
+
+  const onNextQuestion = () => {
+    if (isLast) {
+      onNext();
+      return;
+    }
+    setQuestionIndex((prev) => Math.min(prev + 1, totalQuestions - 1));
+  };
+
+  const onBackQuestion = () => {
+    if (questionIndex === 0) {
+      onBack();
+      return;
+    }
+    setQuestionIndex((prev) => Math.max(prev - 1, 0));
+  };
 
   return (
     <div className="intake-step animate-intake-in">
@@ -48,74 +72,81 @@ export function CashflowStep({
           Sin datos reales, los consejos son genéricos. Los tuyos no lo serán.
         </p>
       </div>
+      <p className="intake-question-progress">Pregunta {questionIndex + 1} de {totalQuestions}</p>
 
-      <div className="intake-question-block">
-        <label className="intake-question-label">¿Cuánto ingresas al mes, aproximadamente?</label>
-        <div className="intake-chips intake-chips-grid">
-          {INCOME_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              className={`intake-chip intake-chip-wide${form.incomeBand === opt.value ? ' is-selected' : ''}`}
-              onClick={() => update('incomeBand', opt.value)}
-            >
-              <span className="intake-chip-main">{opt.label}</span>
-              <span className="intake-chip-sub">{opt.sub}</span>
-            </button>
-          ))}
+      {questionIndex === 0 && (
+        <div className="intake-question-block intake-question-screen animate-intake-in">
+          <label className="intake-question-label">¿Cuánto ingresas al mes, aproximadamente?</label>
+          <div className="intake-chips intake-chips-grid">
+            {INCOME_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                className={`intake-chip intake-chip-wide${form.incomeBand === opt.value ? ' is-selected' : ''}`}
+                onClick={() => update('incomeBand', opt.value)}
+              >
+                <span className="intake-chip-main">{opt.label}</span>
+                <span className="intake-chip-sub">{opt.sub}</span>
+              </button>
+            ))}
+          </div>
+          {form.incomeBand && (
+            <input
+              className="intake-input intake-input-sm"
+              type="number"
+              min={0}
+              placeholder="Monto exacto (opcional)"
+              value={form.exactMonthlyIncome ?? ''}
+              onChange={(e) =>
+                update('exactMonthlyIncome', e.target.value ? Number(e.target.value) : undefined as any)
+              }
+            />
+          )}
         </div>
-        {form.incomeBand && (
-          <input
-            className="intake-input intake-input-sm"
-            type="number"
-            min={0}
-            placeholder="Monto exacto (opcional)"
-            value={form.exactMonthlyIncome ?? ''}
-            onChange={(e) =>
-              update('exactMonthlyIncome', e.target.value ? Number(e.target.value) : undefined as any)
-            }
-          />
-        )}
-      </div>
+      )}
 
-      <div className="intake-question-block">
-        <label className="intake-question-label">¿Tus ingresos cubren tus gastos mensuales?</label>
-        <div className="intake-chips">
-          {COVERAGE_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              className={`intake-chip intake-chip-wide${form.expensesCoverage === opt.value ? ' is-selected' : ''}`}
-              onClick={() => update('expensesCoverage', opt.value)}
-            >
-              <span className="intake-chip-main">{opt.label}</span>
-              <span className="intake-chip-sub">{opt.sub}</span>
-            </button>
-          ))}
+      {questionIndex === 1 && (
+        <div className="intake-question-block intake-question-screen animate-intake-in">
+          <label className="intake-question-label">¿Tus ingresos cubren tus gastos mensuales?</label>
+          <div className="intake-chips">
+            {COVERAGE_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                className={`intake-chip intake-chip-wide${form.expensesCoverage === opt.value ? ' is-selected' : ''}`}
+                onClick={() => update('expensesCoverage', opt.value)}
+              >
+                <span className="intake-chip-main">{opt.label}</span>
+                <span className="intake-chip-sub">{opt.sub}</span>
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
-      <div className="intake-question-block">
-        <label className="intake-question-label">¿Registras o monitoreas tus gastos?</label>
-        <div className="intake-chips">
-          {TRACKING_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              className={`intake-chip${form.tracksExpenses === opt.value ? ' is-selected' : ''}`}
-              onClick={() => update('tracksExpenses', opt.value)}
-            >
-              {opt.label}
-            </button>
-          ))}
+      {questionIndex === 2 && (
+        <div className="intake-question-block intake-question-screen animate-intake-in">
+          <label className="intake-question-label">¿Registras o monitoreas tus gastos?</label>
+          <div className="intake-chips">
+            {TRACKING_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                className={`intake-chip${form.tracksExpenses === opt.value ? ' is-selected' : ''}`}
+                onClick={() => update('tracksExpenses', opt.value)}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="intake-footer">
-        <button className="intake-back-btn" onClick={onBack}>← Volver</button>
-        {ready && (
-          <button className="intake-next-btn" onClick={onNext}>
-            Continuar <span className="intake-next-arrow">→</span>
+        <button className="intake-back-btn" onClick={onBackQuestion}>← Anterior</button>
+        {canAdvance && (
+          <button className="intake-next-btn" onClick={onNextQuestion}>
+            {isLast ? 'Continuar al siguiente bloque' : 'Siguiente pregunta'} <span className="intake-next-arrow">→</span>
           </button>
         )}
       </div>

@@ -11689,20 +11689,20 @@ input[type="radio"]:checked {
     position: relative !important;
     z-index: 1 !important;
     width: 100% !important;
-    height: 30px !important;
+    height: 24px !important;
     min-width: 0 !important;
     max-width: 100% !important;
-    padding: 3px 6px !important;
-    border-radius: 9px !important;
+    padding: 2px 5px !important;
+    border-radius: 7px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: flex-start !important;
-    gap: 5px !important;
-    border: 1px solid rgba(210, 171, 85, 0.38) !important;
-    background: rgba(33, 25, 10, 0.24) !important;
-    backdrop-filter: blur(12px) saturate(1.08) !important;
-    -webkit-backdrop-filter: blur(12px) saturate(1.08) !important;
-    box-shadow: inset 0 0 0 1px rgba(255,245,214,0.05), 0 1px 0 rgba(0,0,0,0.18) !important;
+    gap: 4px !important;
+    border: 1px solid rgba(215, 223, 230, 0.24) !important;
+    background: rgba(12, 18, 28, 0.14) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: none !important;
   }
 
   .chat-switcher .chat-sheet-tab-copy,
@@ -11718,37 +11718,37 @@ input[type="radio"]:checked {
   }
 
   .chat-switcher .chat-sheet-tab-index {
-    width: 16px !important;
-    height: 16px !important;
-    min-width: 16px !important;
+    width: 12px !important;
+    height: 12px !important;
+    min-width: 12px !important;
     border-radius: 999px !important;
-    font-size: 8px !important;
-    font-weight: 700 !important;
+    font-size: 7px !important;
+    font-weight: 600 !important;
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
-    background: rgba(216, 185, 108, 0.18) !important;
-    border: 1px solid rgba(216, 185, 108, 0.28) !important;
-    color: rgba(239, 224, 179, 0.92) !important;
+    background: rgba(255, 255, 255, 0.1) !important;
+    border: 1px solid rgba(255, 255, 255, 0.22) !important;
+    color: rgba(243, 246, 248, 0.88) !important;
   }
 
   .chat-switcher .chat-sheet-tab-title {
-    font-size: 8.5px !important;
+    font-size: 7px !important;
     line-height: 1 !important;
-    font-weight: 650 !important;
-    letter-spacing: 0.02em !important;
+    font-weight: 560 !important;
+    letter-spacing: 0.08em !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
     white-space: nowrap !important;
     text-transform: uppercase !important;
-    color: rgba(244, 233, 201, 0.92) !important;
+    color: rgba(236, 241, 245, 0.8) !important;
   }
 
   .chat-switcher .chat-sheet-tab.is-active {
     z-index: 2 !important;
-    border-color: rgba(222, 192, 120, 0.82) !important;
-    background: rgba(57, 40, 14, 0.48) !important;
-    box-shadow: inset 0 0 0 1px rgba(236, 211, 146, 0.24), 0 6px 16px rgba(6, 12, 20, 0.2) !important;
+    border-color: rgba(238, 244, 248, 0.54) !important;
+    background: rgba(255, 255, 255, 0.1) !important;
+    box-shadow: none !important;
   }
 
   .header-toggle-group { display: none !important; }
