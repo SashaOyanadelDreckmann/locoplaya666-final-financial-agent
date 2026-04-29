@@ -10518,13 +10518,8 @@ input[type="radio"]:checked {
 /* Desktop compact top tabs + centered alignment + no chat/panel gap */
 @media (min-width: 768px) {
   .agent-layout {
-    grid-template-columns: 1fr 0 280px !important;
     gap: 0 !important;
     padding: 10px 10px 10px 12px !important;
-  }
-
-  .agent-divider-rail {
-    display: none !important;
   }
 
   .agent-chat-controls-row {
