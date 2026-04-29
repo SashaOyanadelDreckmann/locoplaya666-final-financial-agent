@@ -10643,6 +10643,39 @@ input[type="radio"]:checked {
   border-bottom: none !important;
 }
 
+.agent-chat-body::before,
+.agent-chat-body::after,
+.agent-chat::before,
+.agent-chat::after,
+.agent-input::before,
+.agent-input::after {
+  display: none !important;
+  content: none !important;
+}
+
+.agent-input,
+.agent-input-shell,
+.agent-input-area,
+.agent-input textarea,
+.agent-input .controls,
+.agent-input .continue-button,
+.chat-switcher {
+  background: transparent !important;
+  background-color: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
+}
+
+.agent-input,
+.agent-input-shell,
+.agent-input textarea,
+.agent-input .continue-button,
+.chat-switcher,
+.chat-sheet-tab {
+  border-color: transparent !important;
+}
+
 .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-kicker {
   color: var(--chat-accent-strong) !important;
   font-family: Arial, Helvetica, sans-serif !important;
