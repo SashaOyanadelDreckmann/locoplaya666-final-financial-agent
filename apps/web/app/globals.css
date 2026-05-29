@@ -960,16 +960,53 @@ button {
   letter-spacing: 0.15em;
   text-transform: uppercase;
   color: rgba(255, 255, 255, 0.9);
-  margin-bottom: 32px;
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
-  background: rgba(255, 255, 255, 0.08);
+  margin-bottom: 16px;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+  background: rgba(0, 0, 0, 0.62);
   display: inline-block;
+  padding: 7px 16px;
+  border-radius: 24px;
+  width: fit-content;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.home-hero-accent {
+  color: var(--accent);
+}
+
+.home-feature-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 28px;
+}
+
+.home-feature-tag {
+  display: inline-flex;
+  align-items: center;
   padding: 6px 14px;
   border-radius: 20px;
-  width: fit-content;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.home-feature-tag--blue {
+  background: rgba(111, 143, 166, 0.38);
+  border: 1px solid rgba(111, 143, 166, 0.45);
+}
+
+.home-feature-tag--red {
+  background: rgba(120, 46, 46, 0.72);
+  border: 1px solid rgba(150, 60, 60, 0.45);
+}
+
+.home-feature-tag--gold {
+  background: rgba(164, 143, 79, 0.52);
+  border: 1px solid rgba(183, 166, 106, 0.45);
 }
 
 .home-hero {
@@ -1038,6 +1075,36 @@ button {
 }
 
 .home-cta-primary:active {
+  transform: translateY(-1px);
+}
+
+.home-cta-gold {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 56px;
+  padding: 0 32px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, var(--accent-2) 0%, var(--accent-2-hover) 100%);
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  text-decoration: none;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 12px 32px rgba(164, 143, 79, 0.28);
+  cursor: pointer;
+  border: none;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.home-cta-gold:hover {
+  opacity: 0.95;
+  transform: translateY(-3px);
+  box-shadow: 0 16px 48px rgba(164, 143, 79, 0.38);
+}
+
+.home-cta-gold:active {
   transform: translateY(-1px);
 }
 
@@ -1202,14 +1269,13 @@ button {
   }
 
   .home-eyebrow {
+    margin-bottom: 14px;
+    font-size: 11px;
+  }
+
+  .home-feature-tags {
+    justify-content: center;
     margin-bottom: 20px;
-    background: transparent;
-    border: none;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    border-radius: 0;
-    padding: 0;
-    box-shadow: none;
   }
 
   .home-art {
@@ -1262,6 +1328,7 @@ button {
   }
 
   .home-cta-primary,
+  .home-cta-gold,
   .home-cta-ghost {
     height: 56px;
     font-size: 16px;
