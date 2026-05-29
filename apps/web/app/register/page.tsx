@@ -62,8 +62,11 @@ export default function RegisterPage() {
   return (
     <main className="auth-shell">
       <div className="auth-card">
-        <div className="auth-logo-mark" aria-label="FinancieraMente">Fm</div>
-        <div className="auth-eyebrow">FinancieraMente</div>
+        <div className="auth-logo-mark" aria-label="Financieramente">
+          <span className="fm-logo-f">F</span>
+          <span className="fm-logo-m">m</span>
+        </div>
+        <div className="auth-eyebrow">Financieramente</div>
         <h1 className="auth-title">Crear cuenta</h1>
         <p className="auth-subtitle">Un primer paso breve. Luego, conversamos con calma.</p>
 

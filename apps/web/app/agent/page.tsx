@@ -3367,7 +3367,7 @@ export default function AgentPage() {
     void onSend('Configurar presupuesto', {
       agentPayload: message,
       assistantPendingLabel:
-        'Configurando presupuesto con FinancieraMente… construyendo informe ejecutivo premium con gráficos.',
+        'Configurando presupuesto con Financieramente… construyendo informe ejecutivo premium con gráficos.',
       hideUserMessage: true,
     });
   }

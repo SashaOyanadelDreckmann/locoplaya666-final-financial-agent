@@ -207,10 +207,11 @@ html, body, .bubble-pdf-snapshot {
   text-align: center;
   font-size: 10px;
   line-height: 1;
-  letter-spacing: .14em;
-  text-transform: lowercase;
+  letter-spacing: 0;
+  text-transform: none;
   color: #1a3047;
   font-weight: 600;
+  font-family: "Times New Roman", Times, Georgia, serif;
   z-index: 40;
 }
 
@@ -370,7 +371,7 @@ html, body, .bubble-pdf-snapshot {
 
   return {
     html: `<div class="bubble-pdf-snapshot">
-      <div class="bubble-pdf-running-brand">fiancieramente</div>
+      <div class="bubble-pdf-running-brand">Financieramente</div>
       <header class="bubble-pdf-running-header">
         <div class="bubble-pdf-running-header-copy">
           <p class="bubble-pdf-running-kicker">${escapeHtml(kickerText)}</p>

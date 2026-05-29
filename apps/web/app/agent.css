@@ -12506,9 +12506,9 @@ input[type="radio"]:checked {
 }
 
 .agent-chat-header .chat-brand-strip h1 .chat-brand-mente {
-  font-weight: 100 !important;
-  transition: color 520ms ease, font-weight 520ms ease !important;
-  will-change: color, font-weight;
+  font-weight: 700 !important;
+  transition: none !important;
+  will-change: auto;
 }
 
 .agent-chat-header .chat-brand-strip h1 .chat-brand-mente--bold {
@@ -29032,22 +29032,14 @@ body.agent-route-active .app-shell::before {
   background: rgba(0, 0, 0, 0.74) !important;
 }
 
-@keyframes chatLogoStates {
-  0%, 16.66%   { background: #f4f1e7; color: #111111; }
-  16.67%, 33.33% { background: #111720; color: #ffffff; }
-  33.34%, 50%  { background: #5f7891; color: #071018; }
-  50.01%, 66.66% { background: #7a3f47; color: #ffffff; }
-  66.67%, 83.33% { background: #9f8b55; color: #111111; }
-  83.34%, 100% { background: #111720; color: #ffffff; }
-}
-
 .chat-brand-logo-mark {
-  display: grid;
-  place-items: center;
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: center;
   width: 28px;
   height: 28px;
   flex: 0 0 28px;
-  background: #f4f1e7;
+  background: rgba(245, 245, 242, 0.94);
   color: #111111;
   font-family: "Times New Roman", Times, Georgia, serif;
   font-size: 14px;
@@ -29055,7 +29047,7 @@ body.agent-route-active .app-shell::before {
   letter-spacing: -0.03em;
   line-height: 1;
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.24);
-  animation: chatLogoStates 6s steps(1, end) infinite;
+  animation: homeLogoStates 5s steps(1, end) infinite;
 }
 
 .chat-brand-wordmark {
@@ -29066,11 +29058,14 @@ body.agent-route-active .app-shell::before {
 
 .chat-brand-financiera {
   color: rgba(255, 255, 255, 0.96);
+  font-family: "Times New Roman", Times, Georgia, serif;
 }
 
 .chat-brand-mente {
-  transition: color 520ms ease, font-weight 520ms ease;
-  will-change: color, font-weight;
+  color: rgba(255, 255, 255, 0.96);
+  font-family: "Times New Roman", Times, Georgia, serif;
+  transition: none;
+  will-change: auto;
 }
 
 @media (min-width: 768px) {
@@ -29278,16 +29273,12 @@ body.agent-route-active .app-shell::before {
     z-index: 4 !important;
   }
 
-  .agent-panel.is-mobile-compact .panel-grid {
-    overflow-x: auto !important;
-    overflow-y: visible !important;
-    -webkit-overflow-scrolling: touch !important;
-    touch-action: pan-x !important;
+  .agent-panel {
+    overflow-x: hidden !important;
   }
 
-  .agent-panel.is-mobile-expanded .panel-grid {
+  .agent-panel .panel-grid {
     overflow-x: hidden !important;
-    overflow-y: auto !important;
     touch-action: pan-y !important;
   }
 
@@ -29314,78 +29305,206 @@ body.agent-route-active .app-shell::before {
   }
 }
 
-/* ── Botón de enviar sin contenedor ─────────────────── */
-.composer-send-plain {
-  background: transparent;
-  border: none;
-  padding: 5px 2px;
-  cursor: pointer;
-  color: rgba(255, 255, 255, 0.92);
+/* Transactions redesign: intake-like, minimal chat, 3D product hero */
+.transactions-modal .tx-content-carousel {
+  position: relative;
+  perspective: 1400px;
+}
+
+.transactions-modal .tx-3d-hero-shell {
+  position: sticky;
+  top: 10px;
+  z-index: 3;
   display: flex;
-  align-items: center;
   justify-content: center;
-  flex: 0 0 auto;
-  -webkit-tap-highlight-color: transparent;
-  transition: opacity 0.15s ease;
-  outline: none;
-}
-.composer-send-plain:disabled {
-  opacity: 0.28;
-  cursor: not-allowed;
-}
-.composer-send-plain:not(:disabled):hover {
-  opacity: 0.7;
-}
-.composer-send-plain:not(:disabled):active {
-  opacity: 0.5;
+  pointer-events: none;
+  margin: 6px 0 12px;
 }
 
-/* ── Fondo imagen cubre pantalla completa en mobile ─── */
-@media (max-width: 900px) {
-  body.agent-route-active .app-shell::before {
-    background-image:
-      linear-gradient(180deg, rgba(6, 10, 16, 0.28), rgba(6, 10, 16, 0.38)),
-      url('/fondo4.jpg') !important;
-    background-size: cover !important;
-    background-position: center center !important;
-    background-color: #05090f !important;
-    background-attachment: fixed !important;
-  }
-
-  html.agent-route-active,
-  body.agent-route-active {
-    background-attachment: fixed !important;
-  }
+.transactions-modal .tx-3d-hero {
+  width: min(420px, 92%);
+  min-height: 132px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 24px 50px rgba(0, 0, 0, 0.42);
+  transform-style: preserve-3d;
+  transition: transform 360ms cubic-bezier(.2,.7,.2,1), box-shadow 300ms ease;
+  position: relative;
+  overflow: hidden;
 }
 
-/* ── Panel móvil: cards visibles y margen al final ─── */
-@media (max-width: 767px) {
-  .agent-panel.is-mobile-compact {
-    flex: 0 0 var(--mobile-panel-h, 96px) !important;
-    max-height: var(--mobile-panel-h, 96px) !important;
-    margin: 8px 10px calc(env(safe-area-inset-bottom) + 10px) !important;
-    border-radius: 18px !important;
-    overflow: visible !important;
+.transactions-modal .tx-3d-hero.is-credit {
+  background: linear-gradient(140deg, #0f1f34 0%, #22466d 38%, #0f2743 100%);
+}
+
+.transactions-modal .tx-3d-hero.is-account {
+  background: linear-gradient(140deg, #10231c 0%, #1e5442 38%, #15382d 100%);
+}
+
+.transactions-modal .tx-3d-hero.is-generic {
+  background: linear-gradient(140deg, #2a1f14 0%, #5d4127 38%, #342516 100%);
+}
+
+.transactions-modal .tx-3d-hero-sheen {
+  position: absolute;
+  inset: -80% -30% auto;
+  height: 220%;
+  background: linear-gradient(115deg, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0));
+  transform: translateZ(18px) rotate(-7deg);
+}
+
+.transactions-modal .tx-3d-hero-core {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 5px;
+  padding: 20px 22px;
+  transform: translateZ(26px);
+}
+
+.transactions-modal .tx-3d-hero-eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(230, 238, 248, 0.82);
+}
+
+.transactions-modal .tx-3d-hero-core strong {
+  color: #f8fbff;
+  font-size: clamp(18px, 2.4vw, 22px);
+  line-height: 1.08;
+}
+
+.transactions-modal .tx-3d-hero-core span {
+  color: rgba(233, 241, 252, 0.86);
+  font-size: 13px;
+}
+
+.transactions-modal .tx-3d-hero-chip {
+  position: absolute;
+  right: 20px;
+  bottom: 18px;
+  width: 46px;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0.14));
+  transform: translateZ(20px);
+}
+
+.transactions-modal .tx-chat-minimal-body {
+  max-height: min(78vh, 860px);
+  overflow-y: auto;
+  padding: 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(225, 234, 248, 0.2);
+  background: linear-gradient(180deg, rgba(5, 11, 18, 0.78), rgba(8, 15, 24, 0.9));
+}
+
+.transactions-modal .tx-chat-format-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.transactions-modal .tx-chat-thread {
+  display: grid;
+  gap: 9px;
+  margin-bottom: 10px;
+  max-height: 250px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.transactions-modal .tx-chat-bubble {
+  max-width: 93%;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  padding: 9px 11px;
+}
+
+.transactions-modal .tx-chat-bubble.is-user {
+  justify-self: end;
+  background: rgba(198, 160, 82, 0.16);
+}
+
+.transactions-modal .tx-chat-bubble.is-assistant {
+  justify-self: start;
+  background: rgba(240, 247, 255, 0.06);
+}
+
+.transactions-modal .tx-chat-bubble-role {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(230, 239, 250, 0.68);
+  margin-bottom: 4px;
+}
+
+.transactions-modal .tx-chat-bubble-text {
+  white-space: pre-wrap;
+  color: rgba(243, 248, 255, 0.95);
+  line-height: 1.45;
+}
+
+.transactions-modal .tx-chat-bubble-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.transactions-modal .tx-chat-composer-wrap {
+  margin-top: 10px;
+}
+
+.transactions-modal .tx-chat-composer-wrap .bcc-hero-input {
+  border-radius: 12px;
+  background: rgba(7, 12, 18, 0.96);
+  border: 1px solid rgba(210, 223, 240, 0.2);
+  min-height: 42px;
+}
+
+.transactions-modal .tx-chat-composer-wrap .bcc-hero-send {
+  border-radius: 12px;
+  min-width: 88px;
+}
+
+.transactions-modal .tx-chat-summary-pro {
+  margin-top: 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(203, 220, 244, 0.24);
+  background:
+    radial-gradient(circle at 12% -8%, rgba(255, 255, 255, 0.12), transparent 48%),
+    linear-gradient(180deg, rgba(10, 18, 27, 0.92), rgba(8, 14, 22, 0.96));
+}
+
+.transactions-modal .tx-chat-summary-pro .transactions-summary-title {
+  font-size: 15px;
+  letter-spacing: 0.02em;
+}
+
+.transactions-modal .tx-chat-summary-pro > p {
+  color: rgba(238, 245, 255, 0.94);
+  line-height: 1.62;
+}
+
+.transactions-modal .tx-chat-summary-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+@media (max-width: 920px) {
+  .transactions-modal .tx-3d-hero {
+    width: 100%;
+    min-height: 120px;
   }
 
-  .agent-layout.mobile-panel-expanded .agent-panel.is-mobile-expanded {
-    flex: 0 0 var(--mobile-panel-h, 48vh) !important;
-    max-height: var(--mobile-panel-h, 48vh) !important;
-    overflow: hidden !important;
-  }
-
-  .agent-panel.is-mobile-compact .panel-grid {
-    padding: 8px 10px 8px !important;
-    height: 80px !important;
-    min-height: 80px !important;
-  }
-
-  .agent-panel.is-mobile-compact .panel-card,
-  .agent-panel.is-mobile-compact .profile-card,
-  .agent-panel.is-mobile-compact .panel-feature-card,
-  .agent-panel.is-mobile-compact .interview-flow-card,
-  .agent-panel.is-mobile-compact .recent-library-card {
-    min-height: 80px !important;
-    height: 80px !important;
+  .transactions-modal .tx-chat-minimal-body {
+    max-height: 72vh;
+    padding: 14px;
   }
 }

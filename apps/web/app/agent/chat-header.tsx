@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { formatRemainingInteractions, getChatDisplayTitle, getMaxChatInteractions } from './page.utils';
 
 type ChatThread = {
@@ -40,14 +40,6 @@ export function ChatHeader(props: {
   toggleMonochrome: () => void;
   isMobileViewport: boolean;
 }) {
-  const menteColors = useMemo(
-    () => ['#7A9ABA', '#C04F4F', '#E8BD5C', '#5F88B6'],
-    [],
-  );
-
-  const [menteColorIndex, setMenteColorIndex] = useState(() =>
-    Math.floor(Math.random() * menteColors.length),
-  );
   const [menteBold, setMenteBold] = useState(() => Math.random() > 0.5);
 
   useEffect(() => {
@@ -58,12 +50,11 @@ export function ChatHeader(props: {
     if (prefersReducedMotion) return;
 
     const interval = window.setInterval(() => {
-      setMenteColorIndex((prev) => (prev + 1) % menteColors.length);
       setMenteBold(Math.random() > 0.5);
     }, 2200);
 
     return () => window.clearInterval(interval);
-  }, [menteColors.length]);
+  }, []);
 
   const activeLabel = props.activeThread?.label;
   const activeHandSubtitle =
@@ -140,14 +131,16 @@ export function ChatHeader(props: {
       <div className="chat-brand-strip">
         <h1>
           <span className="chat-brand-title-row">
-            <span className="chat-brand-logo-mark" aria-hidden="true">Fm</span>
+            <span className="chat-brand-logo-mark" aria-hidden="true">
+              <span className="fm-logo-f">F</span>
+              <span className="fm-logo-m">m</span>
+            </span>
             <span className="chat-brand-wordmark">
               <span className="chat-brand-financiera">Financiera</span>
               <span
                 className={`chat-brand-mente${menteBold ? ' chat-brand-mente--bold' : ''}`}
-                style={{ color: menteColors[menteColorIndex] }}
               >
-                Mente
+                mente
               </span>
             </span>
           </span>

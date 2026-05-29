@@ -3,7 +3,7 @@ import './globals.css';
 import './agent.css';
 
 export const metadata = {
-  title: 'Financiera Mente',
+  title: 'Financieramente',
   description: 'Claridad financiera, antes de decidir.',
 };
 

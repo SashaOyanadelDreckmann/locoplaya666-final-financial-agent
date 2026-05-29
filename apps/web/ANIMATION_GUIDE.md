@@ -1,6 +1,6 @@
 # 🎨 Premium Animation & Effects Guide
 
-This guide covers all the special effects, animations, and premium interactions added to the Financiera Mente platform.
+This guide covers all the special effects, animations, and premium interactions added to the Financieramente platform.
 
 ## 📦 New Dependencies
 

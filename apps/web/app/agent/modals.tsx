@@ -733,7 +733,7 @@ export function BudgetModal(props: {
       >
         <div className="bcc-modal-header">
           <div className="bcc-modal-title-wrap">
-            <span className="bcc-modal-eyebrow">FinancieraMente</span>
+            <span className="bcc-modal-eyebrow">Financieramente</span>
             <h3 className="bcc-modal-title">Presupuesto</h3>
           </div>
           <button type="button" className="agent-modal-close" onClick={props.onClose}>×</button>
@@ -872,7 +872,7 @@ export function BudgetModal(props: {
                 {aiError && <p className="bcc-hero-error">{aiError}</p>}
 
                 <div className="budget-quick-actions budget-agent-actions">
-                  <button type="button" className="button-primary" onClick={props.sendBudgetToAgent}>Inyectar a FinancieraMente</button>
+                  <button type="button" className="button-primary" onClick={props.sendBudgetToAgent}>Inyectar a Financieramente</button>
                 </div>
               </div>
             </section>
@@ -950,7 +950,7 @@ export function BudgetModal(props: {
                   })()}
                   <div className="budget-pdf-head">
                     <div>
-                      <span>FinancieraMente</span>
+                      <span>Financieramente</span>
                       <h2>Presupuesto mensual</h2>
                     </div>
                     <strong>{activeStyleLabel}</strong>
@@ -1115,7 +1115,7 @@ export function QuestionnaireModal(props: {
       <div className="agent-modal questionnaire-modal" onClick={(e) => e.stopPropagation()}>
         <div className="bcc-modal-header">
           <div className="bcc-modal-title-wrap">
-            <span className="bcc-modal-eyebrow">FinancieraMente</span>
+            <span className="bcc-modal-eyebrow">Financieramente</span>
             <h3 className="bcc-modal-title">Cuestionario y lectura ejecutiva</h3>
             {userName ? <p className="questionnaire-user-name">{userName}</p> : null}
           </div>
@@ -1502,6 +1502,7 @@ export function TransactionsModal(props: {
   const [showInstitutionCatalog, setShowInstitutionCatalog] = useState(false);
   const [showTemplateCatalog, setShowTemplateCatalog] = useState(false);
   const [showTxCarousel, setShowTxCarousel] = useState(false);
+  const [txSummaryScrollDepth, setTxSummaryScrollDepth] = useState(0);
   const PRODUCT_STACK_PALETTE = ['#3b5068', '#6e2929', '#9e7228', '#364818', '#111111'] as const;
   const PRODUCT_STACK_TEXT_PALETTE = ['#8ea7bf', '#c89191', '#d8b266', '#86a06f', '#111111'] as const;
   const productStackColor = (seed: string) => {
@@ -1511,11 +1512,48 @@ export function TransactionsModal(props: {
   };
   const groupCarouselRef = useRef<HTMLDivElement | null>(null);
   const insightCarouselRef = useRef<HTMLDivElement | null>(null);
+  const txSummaryScrollRef = useRef<HTMLDivElement | null>(null);
   const selectedTemplate = ALL_PRODUCT_TEMPLATES.find((item) => item.label === productTemplate);
   const derivedProductType: BankProduct['productType'] =
     selectedTemplate?.productType ??
     props.activeBankProduct?.productType ??
     'credit_card';
+
+  const txCardLikeTypes: Array<BankProduct['productType']> = [
+    'credit_card',
+    'debit_account',
+    'checking_account',
+    'savings_account',
+  ];
+  const isCardLikeProduct = txCardLikeTypes.includes(derivedProductType);
+  const txVisualStage =
+    props.txWizardStep === 'upload' ? 'evidence' : props.txWizardStep === 'dashboard' ? 'analyst' : 'consent';
+  const txVisualScale =
+    txVisualStage === 'consent' ? 1 : txVisualStage === 'evidence' ? 0.9 : 0.82;
+  const txVisualY =
+    txVisualStage === 'consent'
+      ? 0
+      : txVisualStage === 'evidence'
+        ? -22
+        : Math.round(10 + txSummaryScrollDepth * 72);
+  const txVisualRotateX =
+    txVisualStage === 'consent'
+      ? 14
+      : txVisualStage === 'evidence'
+        ? 10
+        : Math.max(-6, 6 - txSummaryScrollDepth * 26);
+  const txVisualRotateY =
+    txVisualStage === 'consent'
+      ? -10
+      : txVisualStage === 'evidence'
+        ? -4
+        : Math.min(4, -2 + txSummaryScrollDepth * 8);
+  const txVisualTone =
+    derivedProductType === 'credit_card'
+      ? 'is-credit'
+      : derivedProductType === 'debit_account' || derivedProductType === 'checking_account'
+        ? 'is-account'
+        : 'is-generic';
 
   const resolvedBank = quickBank.trim();
   const resolvedProductLabel = productTemplate.trim();
@@ -1766,6 +1804,17 @@ export function TransactionsModal(props: {
     if (!props.isOpen) setShowInjectProductsConfirm(false);
   }, [props.isOpen]);
   useEffect(() => {
+    const el = txSummaryScrollRef.current;
+    if (!el || !props.isOpen) return;
+    const onScroll = () => {
+      const maxScroll = Math.max(1, el.scrollHeight - el.clientHeight);
+      setTxSummaryScrollDepth(Math.min(1, Math.max(0, el.scrollTop / maxScroll)));
+    };
+    onScroll();
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => el.removeEventListener('scroll', onScroll);
+  }, [props.isOpen, summaryText, activeTxCard]);
+  useEffect(() => {
     if (!props.isOpen) return;
     maybeInitAssistant();
   }, [props.isOpen, props.activeBankProduct?.id, props.activeBankProduct?.connected, props.txWizardStep]);
@@ -1923,7 +1972,7 @@ export function TransactionsModal(props: {
       <div className="agent-modal transactions-modal" onClick={(e) => e.stopPropagation()}>
         <div className="bcc-modal-header">
           <div className="bcc-modal-title-wrap">
-            <span className="bcc-modal-eyebrow">FinancieraMente</span>
+            <span className="bcc-modal-eyebrow">Financieramente</span>
             <h3 className="bcc-modal-title">Transacciones</h3>
           </div>
           <button type="button" className="agent-modal-close" onClick={props.onClose}>×</button>
@@ -2153,6 +2202,24 @@ export function TransactionsModal(props: {
                 ) : (
                   <>
                 <div className="tx-content-carousel">
+                  <div className="tx-3d-hero-shell" aria-hidden="true">
+                    <div
+                      className={`tx-3d-hero ${txVisualTone} ${isCardLikeProduct ? 'is-card-like' : 'is-generic-like'}`}
+                      style={{
+                        transform: `translate3d(0, ${txVisualY}px, 0) rotateX(${txVisualRotateX}deg) rotateY(${txVisualRotateY}deg) scale(${txVisualScale})`,
+                      }}
+                    >
+                      <div className="tx-3d-hero-sheen" />
+                      <div className="tx-3d-hero-core">
+                        <span className="tx-3d-hero-eyebrow">
+                          {isCardLikeProduct ? 'Producto financiero' : 'Instrumento financiero'}
+                        </span>
+                        <strong>{resolvedProductLabel || props.activeBankProduct.label || 'Producto activo'}</strong>
+                        <span>{resolvedBank || props.activeBankProduct.bank || 'Institución por definir'}</span>
+                      </div>
+                      <div className="tx-3d-hero-chip" />
+                    </div>
+                  </div>
                   {activeTxCard === 0 && (
                   <section className="tx-content-card is-main-center tx-summary-clean">
                     <div className="pt-stage-header">
@@ -2297,12 +2364,12 @@ export function TransactionsModal(props: {
                       <h4>Asistente de transacciones</h4>
                       <p>Conversa, recibe recomendación de formato y envía archivos o texto desde aquí.</p>
                     </div>
-                    <div className="transactions-summary-card tx-evidence-card tx-evidence-card--premium">
+                    <div ref={txSummaryScrollRef} className="transactions-summary-card tx-evidence-card tx-evidence-card--premium tx-chat-minimal-body">
                       <span className="transactions-summary-title">Asistente del producto</span>
                       <p>{requiredEvidenceText}</p>
                       <p>Puedes subir hasta {props.maxEvidenceFilesPerProduct} archivos por producto. Si ya se analizó, el chat queda para consultas y revisión del resumen.</p>
 
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+                      <div className="tx-chat-format-pills">
                         {([
                           ['photos', 'Fotos'],
                           ['pdf', 'PDF'],
@@ -2328,25 +2395,18 @@ export function TransactionsModal(props: {
                         ))}
                       </div>
 
-                      <div style={{ display: 'grid', gap: 10, maxHeight: 280, overflowY: 'auto', marginBottom: 12, paddingRight: 4 }}>
+                      <div className="tx-chat-thread">
                         {assistantMessages.map((message) => (
                           <div
                             key={message.id}
-                            style={{
-                              alignSelf: message.role === 'user' ? 'end' : 'start',
-                              background: message.role === 'user' ? 'rgba(198,160,82,0.18)' : 'rgba(255,255,255,0.06)',
-                              border: '1px solid rgba(255,255,255,0.12)',
-                              borderRadius: 14,
-                              padding: '10px 12px',
-                              maxWidth: '92%',
-                            }}
+                            className={`tx-chat-bubble ${message.role === 'user' ? 'is-user' : 'is-assistant'}`}
                           >
-                            <div style={{ fontSize: 12, opacity: 0.72, marginBottom: 4 }}>
+                            <div className="tx-chat-bubble-role">
                               {message.role === 'user' ? 'Tú' : 'Asistente'}
                             </div>
-                            <div style={{ whiteSpace: 'pre-wrap' }}>{message.text}</div>
+                            <div className="tx-chat-bubble-text">{message.text}</div>
                             {message.attachments && message.attachments.length > 0 && (
-                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+                              <div className="tx-chat-bubble-attachments">
                                 {message.attachments.map((attachment) => (
                                   <span key={attachment} className="upload-file-pill">{attachment}</span>
                                 ))}
@@ -2397,7 +2457,7 @@ export function TransactionsModal(props: {
                         </div>
                       </div>
 
-                      <div className="bcc-hero-input-wrap" style={{ marginTop: 12 }}>
+                      <div className="bcc-hero-input-wrap tx-chat-composer-wrap">
                         <input
                           className="bcc-hero-input"
                           value={txAssistantInput}
@@ -2456,10 +2516,10 @@ export function TransactionsModal(props: {
                       )}
 
                       {summaryText && (
-                        <div className="transactions-summary-card tx-doc-intel-grid" style={{ marginTop: 14 }}>
+                        <div className="transactions-summary-card tx-doc-intel-grid tx-chat-summary-pro">
                           <span className="transactions-summary-title">Resumen asistente transacciones</span>
                           <p style={{ whiteSpace: 'pre-wrap' }}>{summaryText}</p>
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
+                          <div className="tx-chat-summary-meta">
                             <span className="tx-meta-card-kicker">
                               {summaryGeneratedAt ? `Actualizado ${new Date(summaryGeneratedAt).toLocaleString('es-CL')}` : 'Resumen listo'}
                             </span>

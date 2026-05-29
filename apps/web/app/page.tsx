@@ -21,7 +21,10 @@ export default function HomePage() {
       <div className="home-essence__ambient" aria-hidden />
       <section className="home-essence__content">
         <div className="home-essence__brand-lockup">
-          <span className="home-essence__logo-mark" aria-hidden>Fm</span>
+          <span className="home-essence__logo-mark" aria-hidden>
+            <span className="fm-logo-f">F</span>
+            <span className="fm-logo-m">m</span>
+          </span>
           <h1 className="home-essence__title">
             <span className="home-essence__title-main">financiera</span><span className="home-essence__title-mente">mente</span>
           </h1>
