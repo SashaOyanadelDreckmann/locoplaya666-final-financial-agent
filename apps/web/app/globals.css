@@ -920,15 +920,15 @@ button {
   pointer-events: none;
 }
 
-/* Velo mate + viñeta + grano fino para el acabado premium */
+/* Velo mate opaco + viñeta + grano fino para acabado premium */
 .home-essence::after {
   content: '';
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(100deg, rgba(6, 8, 12, 0.74), rgba(6, 8, 12, 0.5) 52%, rgba(6, 8, 12, 0.66)),
-    radial-gradient(125% 115% at 72% 16%, transparent 38%, rgba(0, 0, 0, 0.58)),
-    radial-gradient(rgba(255, 255, 255, 0.022) 0.8px, transparent 1.1px);
+    linear-gradient(100deg, rgba(6, 8, 12, 0.82), rgba(6, 8, 12, 0.68) 52%, rgba(6, 8, 12, 0.76)),
+    radial-gradient(125% 115% at 72% 16%, transparent 38%, rgba(0, 0, 0, 0.64)),
+    radial-gradient(rgba(255, 255, 255, 0.032) 0.8px, transparent 1.1px);
   background-size: auto, auto, 3px 3px;
   z-index: 0;
   pointer-events: none;
@@ -985,6 +985,9 @@ button {
   display: inline-block;
   font-weight: 400;
   color: var(--home-blue);
+  animation:
+    menteColorCycle 2s steps(1, end) infinite,
+    menteWeightCycle 3s steps(1, end) infinite;
 }
 
 .home-essence__eyebrow {
@@ -1130,6 +1133,20 @@ button {
   50.01%, 66.66% { background: var(--home-red);      color: #f6efe9; }
   66.67%, 83.33% { background: var(--home-gold);     color: #14130c; }
   83.34%, 100%   { background: var(--home-graphite); color: var(--home-paper); }
+}
+
+@keyframes menteColorCycle {
+  0%, 16.66%     { color: var(--home-blue); }
+  16.67%, 33.33% { color: var(--home-red); }
+  33.34%, 50%    { color: var(--home-gold); }
+  50.01%, 66.66% { color: var(--home-paper); }
+  66.67%, 83.33% { color: var(--home-graphite); }
+  83.34%, 100%   { color: var(--home-blue); }
+}
+
+@keyframes menteWeightCycle {
+  0%, 50%   { font-weight: 400; }
+  50.01%, 100% { font-weight: 700; }
 }
 
 @media (max-width: 980px) {
