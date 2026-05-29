@@ -1491,13 +1491,13 @@ button {
   --auth-c4: 139, 26, 43;
   width: 100%;
   max-width: 430px;
-  background: linear-gradient(180deg, rgba(16, 23, 35, 0.84), rgba(10, 15, 24, 0.78));
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: linear-gradient(180deg, rgba(16, 23, 35, 0.52), rgba(10, 15, 24, 0.44));
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 26px;
   padding: 40px 34px;
   backdrop-filter: blur(32px) saturate(1.4);
   -webkit-backdrop-filter: blur(32px) saturate(1.4);
-  box-shadow: 0 34px 84px rgba(0, 0, 0, 0.44), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  box-shadow: 0 28px 74px rgba(0, 0, 0, 0.38);
   position: relative;
   overflow: hidden;
 }
@@ -1505,7 +1505,7 @@ button {
 .auth-card::before {
   content: '';
   position: absolute;
-  inset: -26%;
+  inset: 0;
   border-radius: inherit;
   pointer-events: none;
   background:
@@ -1513,8 +1513,10 @@ button {
     radial-gradient(circle at 86% 16%, rgba(var(--auth-c2), 0.30) 0%, transparent 50%),
     radial-gradient(circle at 24% 84%, rgba(var(--auth-c3), 0.28) 0%, transparent 54%),
     radial-gradient(circle at 84% 84%, rgba(var(--auth-c4), 0.22) 0%, transparent 56%);
-  filter: blur(24px) saturate(1.04);
-  opacity: 0.7;
+  filter: blur(18px) saturate(1.02);
+  opacity: 0.62;
+  transform: scale(1.06);
+  transform-origin: center;
   animation: authCardPulse 12s ease-in-out infinite;
 }
 
@@ -1635,21 +1637,23 @@ button {
   width: 100%;
   height: 52px;
   border-radius: 14px;
-  background: linear-gradient(180deg, rgba(247, 250, 255, 0.97), rgba(217, 229, 247, 0.95));
-  color: #081326;
+  background: rgba(236, 244, 255, 0.08);
+  color: rgba(246, 250, 255, 0.96);
   font-size: 15px;
   font-weight: 700;
   font-family: inherit;
-  border: none;
+  border: 1px solid rgba(209, 223, 243, 0.32);
   cursor: pointer;
-  transition: opacity 0.18s ease, transform 0.18s ease;
+  transition: opacity 0.18s ease, transform 0.18s ease, background 0.18s ease, border-color 0.18s ease;
   letter-spacing: -0.01em;
   margin-bottom: 20px;
 }
 
 .auth-submit:hover {
   transform: translateY(-1px);
-  box-shadow: 0 8px 24px rgba(var(--auth-blue), 0.28);
+  background: rgba(236, 244, 255, 0.14);
+  border-color: rgba(219, 231, 248, 0.52);
+  box-shadow: 0 8px 22px rgba(var(--auth-blue), 0.2);
 }
 
 .auth-submit:disabled {
@@ -1691,33 +1695,40 @@ button {
 }
 
 @keyframes authCardPulse {
-  0%, 24% {
+  0% {
     background:
       radial-gradient(circle at 14% 22%, rgba(var(--auth-c1), 0.38) 0%, transparent 54%),
       radial-gradient(circle at 84% 18%, rgba(var(--auth-c2), 0.24) 0%, transparent 52%),
       radial-gradient(circle at 22% 82%, rgba(var(--auth-c3), 0.20) 0%, transparent 56%),
       radial-gradient(circle at 82% 82%, rgba(var(--auth-c4), 0.14) 0%, transparent 56%);
   }
-  25%, 49% {
+  25% {
     background:
       radial-gradient(circle at 14% 22%, rgba(var(--auth-c1), 0.18) 0%, transparent 54%),
       radial-gradient(circle at 84% 18%, rgba(var(--auth-c2), 0.40) 0%, transparent 52%),
       radial-gradient(circle at 22% 82%, rgba(var(--auth-c3), 0.18) 0%, transparent 56%),
       radial-gradient(circle at 82% 82%, rgba(var(--auth-c4), 0.14) 0%, transparent 56%);
   }
-  50%, 74% {
+  50% {
     background:
       radial-gradient(circle at 14% 22%, rgba(var(--auth-c1), 0.15) 0%, transparent 54%),
       radial-gradient(circle at 84% 18%, rgba(var(--auth-c2), 0.18) 0%, transparent 52%),
       radial-gradient(circle at 22% 82%, rgba(var(--auth-c3), 0.38) 0%, transparent 56%),
       radial-gradient(circle at 82% 82%, rgba(var(--auth-c4), 0.14) 0%, transparent 56%);
   }
-  75%, 100% {
+  75% {
     background:
       radial-gradient(circle at 14% 22%, rgba(var(--auth-c1), 0.15) 0%, transparent 54%),
       radial-gradient(circle at 84% 18%, rgba(var(--auth-c2), 0.18) 0%, transparent 52%),
       radial-gradient(circle at 22% 82%, rgba(var(--auth-c3), 0.18) 0%, transparent 56%),
       radial-gradient(circle at 82% 82%, rgba(var(--auth-c4), 0.34) 0%, transparent 56%);
+  }
+  100% {
+    background:
+      radial-gradient(circle at 14% 22%, rgba(var(--auth-c1), 0.38) 0%, transparent 54%),
+      radial-gradient(circle at 84% 18%, rgba(var(--auth-c2), 0.24) 0%, transparent 52%),
+      radial-gradient(circle at 22% 82%, rgba(var(--auth-c3), 0.20) 0%, transparent 56%),
+      radial-gradient(circle at 82% 82%, rgba(var(--auth-c4), 0.14) 0%, transparent 56%);
   }
 }
 
