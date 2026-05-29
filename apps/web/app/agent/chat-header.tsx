@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { formatRemainingInteractions, getChatDisplayTitle, getMaxChatInteractions } from './page.utils';
 
 type ChatThread = {
@@ -138,7 +138,20 @@ export function ChatHeader(props: {
         )}
       </div>
       <div className="chat-brand-strip">
-        <h1>FinancieraMente</h1>
+        <h1>
+          <span className="chat-brand-title-row">
+            <span className="chat-brand-logo-mark" aria-hidden="true">Fm</span>
+            <span className="chat-brand-wordmark">
+              <span className="chat-brand-financiera">Financiera</span>
+              <span
+                className={`chat-brand-mente${menteBold ? ' chat-brand-mente--bold' : ''}`}
+                style={{ color: menteColors[menteColorIndex] }}
+              >
+                Mente
+              </span>
+            </span>
+          </span>
+        </h1>
         <p
           className={`chat-identity-subtitle ${
             activeLabel === '2'
