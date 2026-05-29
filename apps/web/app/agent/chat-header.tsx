@@ -138,7 +138,12 @@ export function ChatHeader(props: {
         )}
       </div>
       <div className="chat-brand-strip">
-        <h1>FinancieraMente</h1>
+        <h1>
+          Financiera<span
+            className={`chat-brand-mente${menteBold ? ' chat-brand-mente--bold' : ''}`}
+            style={{ color: menteColors[menteColorIndex] } as CSSProperties}
+          >Mente</span>
+        </h1>
         <p
           className={`chat-identity-subtitle ${
             activeLabel === '2'
