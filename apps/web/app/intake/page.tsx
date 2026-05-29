@@ -9,35 +9,21 @@ import { getSessionInfo } from '@/lib/api';
 import { ApiHttpError } from '@/lib/apiEnvelope';
 import { toUserFacingError } from '@/lib/userError';
 
-import type {
-  IntakeQuestionnaire,
-  FinancialProductEntry,
-} from '@financial-agent/shared/src/intake/intake-questionnaire.types';
+import type { IntakeQuestionnaire } from '@financial-agent/shared/src/intake/intake-questionnaire.types';
 
 import {
   ContextStep,
   CashflowStep,
   SavingsStep,
-  ProductsStep,
   KnowledgeStep,
 } from './steps';
 
 const INTAKE_STEPS = [
-  { key: 'context', label: 'Contexto', title: 'Tu contexto personal', helper: 'Definimos tu punto de partida.' },
-  { key: 'cashflow', label: 'Flujo', title: 'Ingresos y gastos', helper: 'Entendemos cómo se mueve tu dinero mes a mes.' },
-  { key: 'savings', label: 'Base', title: 'Ahorro y deudas', helper: 'Medimos estabilidad y espacio de crecimiento.' },
-  { key: 'products', label: 'Productos', title: 'Mapa financiero', helper: 'Ordenamos tarjetas, créditos e instrumentos.' },
-  { key: 'knowledge', label: 'Perfil', title: 'Conocimiento y riesgo', helper: 'Ajustamos la asesoría a tu perfil real.' },
+  { key: 'context',   label: 'Contexto', title: 'Tu contexto personal',      rgb: '44, 111, 172'  },
+  { key: 'cashflow',  label: 'Flujo',    title: 'Ingresos y gastos',          rgb: '89, 176, 196'  },
+  { key: 'savings',   label: 'Base',     title: 'Ahorro y deudas',            rgb: '201, 168, 64'  },
+  { key: 'knowledge', label: 'Perfil',   title: 'Conocimiento y riesgo',      rgb: '139, 26, 43'   },
 ] as const;
-
-const EMPTY_PRODUCT: FinancialProductEntry = {
-  product: '',
-  institution: '',
-  notes: '',
-  acquisitionCost: undefined,
-  monthlyCost: undefined,
-  anualCost: undefined,
-};
 
 const INITIAL_FORM: IntakeQuestionnaire = {
   age: undefined,
@@ -51,7 +37,7 @@ const INITIAL_FORM: IntakeQuestionnaire = {
   savingsBand: undefined,
   exactSavingsAmount: undefined,
   hasDebt: false,
-  financialProducts: [structuredClone(EMPTY_PRODUCT)],
+  financialProducts: [],
   financialKnowledge: {
     interest: false, inflation: false, creditCard: false,
     creditLine: false, loanComponents: false, interestRate: false,
@@ -98,28 +84,13 @@ export default function IntakePage() {
     };
 
     void bootstrap();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [router]);
 
   const update = <K extends keyof IntakeQuestionnaire>(key: K, value: IntakeQuestionnaire[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
 
-  const updateProduct = (index: number, field: keyof FinancialProductEntry, value: any) =>
-    setForm((f) => {
-      const next = [...f.financialProducts];
-      next[index] = { ...next[index], [field]: value };
-      return { ...f, financialProducts: next };
-    });
-
-  const addProductRow = () =>
-    setForm((f) => ({
-      ...f,
-      financialProducts: [...f.financialProducts, structuredClone(EMPTY_PRODUCT)],
-    }));
-
-  const nextStep = () => setStep((s) => Math.min(s + 1, 4));
+  const nextStep = () => setStep((s) => Math.min(s + 1, INTAKE_STEPS.length - 1));
   const prevStep = () => setStep((s) => Math.max(s - 1, 0));
 
   const onSubmit = async () => {
@@ -137,10 +108,12 @@ export default function IntakePage() {
   };
 
   if (bootstrapping) return null;
+
   const stepMeta = INTAKE_STEPS[step];
+  const cssVars = { '--c-step': stepMeta.rgb } as React.CSSProperties;
 
   return (
-    <div className="intake-shell">
+    <div className="intake-shell" style={cssVars}>
       <div className="intake-bg-orb" aria-hidden />
 
       <header className="intake-topbar">
@@ -152,23 +125,29 @@ export default function IntakePage() {
         >
           ←
         </button>
-        <div className="intake-topbar-counter">{step + 1} / {INTAKE_STEPS.length}</div>
+
+        <nav className="intake-stage-bar" aria-label="Progreso del perfil">
+          {INTAKE_STEPS.map((s, i) => (
+            <div
+              key={s.key}
+              className={`intake-stage-seg${i === step ? ' active' : i < step ? ' done' : ''} intake-stage-seg--${s.key}`}
+            >
+              <span className="intake-stage-seg-label">{s.label}</span>
+              <div className="intake-stage-seg-pill" />
+            </div>
+          ))}
+        </nav>
       </header>
 
-      <main className="intake-main intake-main-immersive" aria-label={stepMeta.title}>
+      <main
+        className="intake-main intake-main-immersive"
+        data-step={stepMeta.key}
+        aria-label={stepMeta.title}
+      >
         {step === 0 && <ContextStep form={form} update={update} onNext={nextStep} />}
         {step === 1 && <CashflowStep form={form} update={update} onNext={nextStep} onBack={prevStep} />}
         {step === 2 && <SavingsStep form={form} update={update} onNext={nextStep} onBack={prevStep} />}
         {step === 3 && (
-          <ProductsStep
-            form={form}
-            updateProduct={updateProduct}
-            addProductRow={addProductRow}
-            onNext={nextStep}
-            onBack={prevStep}
-          />
-        )}
-        {step === 4 && (
           <KnowledgeStep
             form={form}
             update={update}
@@ -180,9 +159,7 @@ export default function IntakePage() {
       </main>
 
       {error && (
-        <div className="intake-error">
-          {error}
-        </div>
+        <div className="intake-error">{error}</div>
       )}
     </div>
   );

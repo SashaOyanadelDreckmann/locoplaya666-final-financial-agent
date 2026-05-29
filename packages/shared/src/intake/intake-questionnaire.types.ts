@@ -90,7 +90,7 @@ export interface IntakeQuestionnaire {
 
   hasDebt: boolean;
 
-  financialProducts: FinancialProductEntry[];
+  financialProducts?: FinancialProductEntry[];
 
   financialKnowledge: FinancialKnowledgeChecklist;
 
