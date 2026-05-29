@@ -896,9 +896,10 @@ button {
   padding: clamp(24px, 4vw, 40px) 24px 34px;
   overflow: hidden;
   background: #070b11;
-  --home-blue: #7393ad;
-  --home-red: #844247;
-  --home-gold: #ab9150;
+  --home-blue: #2c6fac;
+  --home-sky: #59b0c4;
+  --home-red: #8b1a2b;
+  --home-gold: #c9a840;
   --home-graphite: #111720;
   --home-paper: #f4f1e7;
 }
@@ -939,8 +940,8 @@ button {
   z-index: 1;
   pointer-events: none;
   filter: blur(18px);
-  opacity: 0.5;
-  background: radial-gradient(ellipse at center, rgba(115, 147, 173, 0.24) 0%, rgba(115, 147, 173, 0.08) 36%, transparent 70%);
+  opacity: 0.56;
+  background: radial-gradient(ellipse at center, rgba(44, 111, 172, 0.28) 0%, rgba(44, 111, 172, 0.1) 36%, transparent 70%);
   animation: homeAmbientCycle 20s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
@@ -1069,6 +1070,7 @@ button {
   line-height: 1;
   border-radius: 22px;
   box-shadow: 0 24px 70px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.72);
+  animation: homeLogoStates 20s steps(1, end) infinite;
 }
 
 .home-essence__title {
@@ -1084,6 +1086,7 @@ button {
     0 1px 0 rgba(255,255,255,0.12),
     0 12px 32px rgba(0,0,0,0.58);
   transform: translateZ(0);
+  animation: homeTitlePulse 5s ease-in-out infinite;
 }
 
 .home-essence__title-main,
@@ -1094,50 +1097,56 @@ button {
 .home-essence__title-mente {
   color: var(--home-blue);
   font-weight: 420;
+  animation: homeWordStates 20s steps(1, end) infinite, menteWeight 5s steps(1, end) infinite;
   text-shadow:
     0 1px 0 rgba(255,255,255,0.08),
     0 12px 28px rgba(0,0,0,0.62);
 }
 
 .home-essence__eyebrow {
-  display: inline-flex;
-  max-width: 100%;
+  display: flex;
+  width: min(100%, 430px);
+  margin: 0 auto;
   padding: 8px 16px;
   border-radius: 999px;
-  background: rgba(244, 241, 231, 0.08);
+  background: rgba(7, 11, 18, 0.78);
   border: 1px solid rgba(255,255,255,0.16);
   color: rgba(255,255,255,0.92);
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.15em;
   text-transform: uppercase;
-  box-shadow: 0 14px 36px rgba(0,0,0,0.24), inset 0 1px 0 rgba(244,241,231,0.08);
+  box-shadow: 0 14px 36px rgba(0,0,0,0.26), inset 0 1px 0 rgba(244,241,231,0.06);
   backdrop-filter: blur(18px);
+  justify-content: center;
+  text-align: center;
 }
 
 .home-essence__tags {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   justify-content: center;
-  gap: 10px;
+  gap: 8px;
+  width: min(100%, 430px);
   margin: 16px auto 24px;
 }
 
 .home-essence__tags span {
-  min-width: 126px;
-  padding: 8px 14px;
+  min-width: 0;
+  flex: 1 1 0;
+  padding: 9px 10px;
   border-radius: 999px;
   color: #fff;
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 700;
   text-align: center;
   border: 1px solid rgba(255,255,255,0.18);
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.18), 0 10px 24px rgba(0,0,0,0.18);
 }
 
-.home-essence__tags span:nth-child(1) { background: rgba(115, 147, 173, 0.76); }
-.home-essence__tags span:nth-child(2) { background: rgba(132, 66, 71, 0.74); }
-.home-essence__tags span:nth-child(3) { background: rgba(171, 145, 80, 0.78); }
+.home-essence__tags span:nth-child(1) { background: rgba(44, 111, 172, 0.82); }
+.home-essence__tags span:nth-child(2) { background: rgba(139, 26, 43, 0.82); }
+.home-essence__tags span:nth-child(3) { background: rgba(201, 168, 64, 0.86); }
 
 .home-essence__tagline {
   margin: 0 0 18px;
@@ -1167,13 +1176,13 @@ button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 48px;
-  border-radius: 14px;
+  min-height: 50px;
+  border-radius: 999px;
   color: #fff;
   text-decoration: none;
   font-size: 14px;
   font-weight: 800;
-  border: 1px solid rgba(255,255,255,0.14);
+  border: 1px solid rgba(255,255,255,0.18);
   transition: transform 0.22s ease, filter 0.22s ease, background 0.22s ease;
 }
 
@@ -1183,13 +1192,13 @@ button {
 }
 
 .home-essence__cta--gold {
-  background: linear-gradient(135deg, rgba(244,241,231,0.96), rgba(181,150,72,0.92));
-  color: #111;
+  background: linear-gradient(135deg, rgba(201, 168, 64, 0.96), rgba(173, 142, 52, 0.94));
+  color: #0c1016;
   box-shadow: 0 18px 44px rgba(0,0,0,0.28);
 }
 
 .home-essence__cta--ghost {
-  background: rgba(12, 18, 28, 0.78);
+  background: rgba(14, 22, 34, 0.82);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
 }
@@ -1230,10 +1239,15 @@ button {
 .home-essence__machine pre {
   margin: 0;
   transform: translateZ(24px);
+  color: #ffffff !important;
+  text-shadow: none !important;
+  filter: none !important;
 }
 
 .typewriter-accent {
-  animation: asciiColorCycle 8s steps(1, end) infinite;
+  animation: none !important;
+  color: #ffffff !important;
+  text-shadow: none !important;
 }
 
 .typewriter-accent--0 { animation-delay: 0s; }
@@ -1251,10 +1265,10 @@ button {
 
 @keyframes homeWordStates {
   0%, 16.66% { color: var(--home-blue); }
-  16.67%, 33.33% { color: var(--home-gold); }
-  33.34%, 50% { color: var(--home-red); }
-  50.01%, 66.66% { color: var(--home-paper); }
-  66.67%, 83.33% { color: #111; text-shadow: 0 0 0 rgba(0,0,0,0); }
+  16.67%, 33.33% { color: var(--home-sky); }
+  33.34%, 50% { color: var(--home-gold); }
+  50.01%, 66.66% { color: var(--home-red); }
+  66.67%, 83.33% { color: var(--home-paper); }
   83.34%, 100% { color: var(--home-blue); }
 }
 
@@ -1292,17 +1306,22 @@ button {
 
 @keyframes homeAmbientCycle {
   0%, 24.99% {
-    background: radial-gradient(ellipse at center, rgba(115, 147, 173, 0.24) 0%, rgba(115, 147, 173, 0.08) 36%, transparent 70%);
+    background: radial-gradient(ellipse at center, rgba(44, 111, 172, 0.28) 0%, rgba(44, 111, 172, 0.1) 36%, transparent 70%);
   }
   25%, 49.99% {
-    background: radial-gradient(ellipse at center, rgba(171, 145, 80, 0.24) 0%, rgba(171, 145, 80, 0.08) 36%, transparent 70%);
+    background: radial-gradient(ellipse at center, rgba(89, 176, 196, 0.28) 0%, rgba(89, 176, 196, 0.1) 36%, transparent 70%);
   }
   50%, 74.99% {
-    background: radial-gradient(ellipse at center, rgba(132, 66, 71, 0.24) 0%, rgba(132, 66, 71, 0.08) 36%, transparent 70%);
+    background: radial-gradient(ellipse at center, rgba(201, 168, 64, 0.28) 0%, rgba(201, 168, 64, 0.1) 36%, transparent 70%);
   }
   75%, 100% {
-    background: radial-gradient(ellipse at center, rgba(126, 136, 148, 0.22) 0%, rgba(126, 136, 148, 0.08) 36%, transparent 70%);
+    background: radial-gradient(ellipse at center, rgba(139, 26, 43, 0.26) 0%, rgba(139, 26, 43, 0.1) 36%, transparent 70%);
   }
+}
+
+@keyframes homeTitlePulse {
+  0%, 100% { transform: translateZ(0) scale(1); letter-spacing: -0.03em; }
+  50% { transform: translateZ(0) scale(1.018); letter-spacing: -0.022em; }
 }
 
 @media (max-width: 980px) {
