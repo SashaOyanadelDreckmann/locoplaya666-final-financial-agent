@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      - claude/homepage-redesign-JFfYi
     paths:
       - "apps/web/**"
       - "packages/shared/**"
