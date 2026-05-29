@@ -1363,10 +1363,11 @@ button {
   }
 
   .home-essence__brand-lockup {
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 10px;
-    margin-bottom: 10px;
+    gap: 12px;
+    margin-bottom: 12px;
   }
 
   .home-essence__logo-mark {
@@ -1376,7 +1377,9 @@ button {
   }
 
   .home-essence__title {
-    font-size: 56px;
+    width: 100%;
+    text-align: center;
+    font-size: 52px;
     line-height: 0.8;
   }
 
