@@ -986,8 +986,8 @@ button {
   font-weight: 400;
   color: var(--home-blue);
   animation:
-    menteColorCycle 2s steps(1, end) infinite,
-    menteWeightCycle 3s steps(1, end) infinite;
+    menteColorCycle 6s steps(1, end) infinite,
+    menteWeightCycle 6s steps(1, end) infinite;
 }
 
 .home-essence__eyebrow {
@@ -1136,16 +1136,13 @@ button {
 }
 
 @keyframes menteColorCycle {
-  0%, 16.66%     { color: var(--home-blue); }
-  16.67%, 33.33% { color: var(--home-red); }
-  33.34%, 50%    { color: var(--home-gold); }
-  50.01%, 66.66% { color: var(--home-paper); }
-  66.67%, 83.33% { color: var(--home-graphite); }
-  83.34%, 100%   { color: var(--home-blue); }
+  0%, 33.33%     { color: var(--home-blue); }
+  33.34%, 66.66% { color: var(--home-red); }
+  66.67%, 100%   { color: var(--home-gold); }
 }
 
 @keyframes menteWeightCycle {
-  0%, 50%   { font-weight: 400; }
+  0%, 50%      { font-weight: 400; }
   50.01%, 100% { font-weight: 700; }
 }
 
