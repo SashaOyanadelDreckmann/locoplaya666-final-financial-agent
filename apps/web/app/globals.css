@@ -1165,6 +1165,9 @@ button {
   }
 
   .home-essence__brand-lockup {
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
     justify-content: center;
     transform-origin: center;
   }
@@ -1189,74 +1192,128 @@ button {
 
 @media (max-width: 560px) {
   .home-essence {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     min-height: 100svh;
-    padding: 56px 22px;
-    gap: 22px;
+    padding: 52px 24px 48px;
+    gap: 0;
+    overflow: hidden;
   }
 
+  /* Art absolutely on the right, overlapping content */
+  .home-essence__art {
+    position: absolute;
+    right: -18px;
+    bottom: 44px;
+    width: 54vw;
+    max-width: 230px;
+    opacity: 0.82;
+    order: unset;
+    z-index: 3;
+    transform: none;
+    mask-image: linear-gradient(180deg, transparent 5%, #000 16%, #000 92%, transparent 100%);
+    -webkit-mask-image: linear-gradient(180deg, transparent 5%, #000 16%, #000 92%, transparent 100%);
+  }
+
+  .home-essence__content {
+    order: unset;
+    max-width: none;
+    width: 100%;
+    text-align: center;
+  }
+
+  /* Brand lockup: logo above, title below */
   .home-essence__brand-lockup {
-    gap: 12px;
-    margin-bottom: 18px;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 20px;
+    transform: none;
   }
 
   .home-essence__logo-mark {
-    width: 50px;
-    border-radius: 15px;
+    width: 70px;
+    font-size: 31px;
+    border-radius: 14px;
   }
 
   .home-essence__title {
-    font-size: clamp(40px, 14vw, 56px);
+    font-size: clamp(42px, 15vw, 62px);
     line-height: 0.88;
+    text-align: center;
   }
 
+  /* Eyebrow as dark pill badge */
   .home-essence__eyebrow {
+    display: inline-flex;
+    justify-content: center;
+    background: rgba(10, 13, 18, 0.72);
+    border: 1px solid rgba(243, 241, 234, 0.2);
+    border-radius: 999px;
+    padding: 9px 20px;
     font-size: 10px;
-    letter-spacing: 0.18em;
-    margin-bottom: 18px;
+    letter-spacing: 0.15em;
+    margin-bottom: 20px;
   }
 
   .home-essence__tags {
     gap: 8px;
-    margin-bottom: 24px;
+    margin-bottom: 22px;
   }
 
   .home-essence__tags span {
-    font-size: 11px;
-    padding: 7px 13px;
+    font-size: 12px;
+    padding: 8px 14px;
+  }
+
+  /* Color-tinted pill backgrounds matching brand colors */
+  .home-essence__tags span:nth-child(1) {
+    background: rgba(147, 170, 189, 0.18);
+    border-color: rgba(147, 170, 189, 0.36);
+    color: #b0c6d8;
+  }
+
+  .home-essence__tags span:nth-child(2) {
+    background: rgba(154, 90, 92, 0.22);
+    border-color: rgba(154, 90, 92, 0.4);
+    color: #c47a7c;
+  }
+
+  .home-essence__tags span:nth-child(3) {
+    background: rgba(185, 162, 106, 0.2);
+    border-color: rgba(185, 162, 106, 0.38);
+    color: #cbb880;
   }
 
   .home-essence__tagline {
-    font-size: 21px;
-    margin-bottom: 14px;
+    font-size: 20px;
+    margin-bottom: 12px;
+    line-height: 1.25;
   }
 
   .home-essence__body {
     font-size: 14px;
     line-height: 1.6;
-    max-width: 340px;
+    max-width: 100%;
     margin-bottom: 28px;
   }
 
   .home-essence__ctas {
     width: 100%;
-    max-width: 320px;
     flex-direction: column;
     gap: 10px;
-    margin-bottom: 24px;
+    margin-bottom: 22px;
+    max-width: none;
   }
 
   .home-essence__cta {
     width: 100%;
-    min-height: 50px;
+    min-height: 52px;
   }
 
   .home-essence__foot {
     font-size: 10px;
-  }
-
-  .home-essence__art {
-    width: min(54vw, 168px);
-    opacity: 0.4;
   }
 }
 
