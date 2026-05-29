@@ -1015,3 +1015,98 @@ button {
   min-height: 44px;
 }
 
+/* Context step hard refresh */
+.intake-step-context {
+  max-width: 920px;
+  gap: 28px;
+  padding: 30px 34px 28px;
+  border-radius: 28px;
+  border: 1px solid rgba(154, 193, 223, 0.28);
+  background:
+    radial-gradient(120% 150% at 10% 0%, rgba(73, 141, 201, 0.22) 0%, rgba(73, 141, 201, 0) 45%),
+    linear-gradient(160deg, rgba(8, 14, 24, 0.95) 0%, rgba(9, 16, 26, 0.9) 55%, rgba(6, 11, 18, 0.95) 100%);
+  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.intake-step-context .intake-step-title {
+  font-size: clamp(44px, 5.8vw, 74px) !important;
+  font-weight: 700 !important;
+  letter-spacing: 0 !important;
+  line-height: 0.98;
+  color: #f6fbff;
+}
+
+.intake-step-context .intake-step-subtitle {
+  font-size: 20px;
+  color: rgba(219, 233, 245, 0.9) !important;
+  max-width: 680px;
+}
+
+.intake-step-context .intake-question-progress {
+  font-size: 12px;
+  color: rgba(123, 189, 243, 0.95) !important;
+}
+
+.intake-step-context .intake-question-label {
+  font-size: clamp(34px, 4.2vw, 50px) !important;
+  color: #f6fbff;
+  font-weight: 700 !important;
+}
+
+.intake-step-context .intake-chip {
+  min-height: 56px;
+  padding: 12px 20px;
+  border-radius: 18px !important;
+  border: 1px solid rgba(181, 209, 233, 0.28);
+  background: rgba(11, 21, 34, 0.66);
+  font-size: 27px !important;
+  font-weight: 600;
+  color: rgba(234, 244, 251, 0.92);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.intake-step-context .intake-chip:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background: rgba(16, 29, 43, 0.88);
+  border-color: rgba(199, 223, 243, 0.48);
+}
+
+.intake-step-context .intake-chip.is-selected {
+  background: linear-gradient(180deg, rgba(89, 164, 228, 0.34), rgba(49, 120, 180, 0.26));
+  border-color: rgba(122, 197, 255, 0.9);
+  color: #ffffff;
+  box-shadow: 0 0 0 2px rgba(94, 172, 232, 0.34);
+}
+
+.intake-step-context .intake-chip-exact {
+  font-size: 22px !important;
+}
+
+.intake-step-context .intake-next-btn {
+  min-height: 66px;
+  border-radius: 999px !important;
+  border: 1px solid rgba(186, 218, 241, 0.42);
+  background: linear-gradient(180deg, rgba(205, 232, 250, 0.34), rgba(145, 196, 232, 0.26));
+  color: #081726;
+  font-size: 27px !important;
+  font-weight: 700;
+}
+
+.intake-step-context .intake-next-btn:hover {
+  transform: translateY(-1px);
+  background: linear-gradient(180deg, rgba(226, 242, 255, 0.44), rgba(168, 212, 244, 0.3));
+}
+
+@media (max-width: 768px) {
+  .intake-step-context {
+    padding: 22px 20px 20px;
+    border-radius: 22px;
+  }
+  .intake-step-context .intake-chip {
+    font-size: 22px !important;
+  }
+  .intake-step-context .intake-next-btn {
+    font-size: 23px !important;
+  }
+}

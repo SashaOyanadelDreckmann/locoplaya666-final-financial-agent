@@ -55,7 +55,7 @@ export function ContextStep({
     questionIndex === 2;
 
   return (
-    <div className="intake-step animate-intake-in">
+    <div className="intake-step intake-step-context animate-intake-in">
       <div className="intake-step-header">
         <span className="intake-step-tag">Contexto personal</span>
         <h2 className="intake-step-title">Cuéntame sobre ti</h2>
