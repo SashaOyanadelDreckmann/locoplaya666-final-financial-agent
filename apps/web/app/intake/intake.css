@@ -420,7 +420,8 @@
 
 .intake-chips-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  /* balanced columns set per-list via --intake-cols so no card is left alone */
+  grid-template-columns: repeat(var(--intake-cols, 3), minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -670,7 +671,14 @@
   height: 52px;
   width: 100%;
   cursor: pointer;
+  touch-action: none; /* allow horizontal drag without scrolling the page */
+  outline: none;
 }
+
+/* children don't intercept the drag — the wrapper handles pointer capture */
+.intake-track-rail,
+.intake-track-fill,
+.intake-track-dot { pointer-events: none; }
 
 .intake-track-rail {
   position: absolute;
@@ -984,7 +992,8 @@
   }
 
   .intake-chips-grid {
-    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    /* on phones keep 2 even columns (our grid lists all have even counts) */
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .intake-step {
@@ -1428,12 +1437,17 @@ button {
 .intake-chips > .intake-chip:nth-child(4n+4),
 .intake-chips-grid > .intake-chip:nth-child(4n+4) { --chip-rgb: var(--c-wine); }
 
-/* Hover → goes near-black, text turns to a matte version of the chip hue */
+/* Hover → near-black with a soft cursor-following glow in the card's matte hue */
 .intake-chip:hover:not(:disabled),
 .intake-step-context .intake-chip:hover:not(:disabled) {
   transform: translateY(-2px) !important;
-  background: rgba(5,7,10,0.94) !important;
-  border-color: color-mix(in srgb, rgb(var(--chip-rgb)) 40%, transparent) !important;
+  background:
+    radial-gradient(160px circle at var(--mx, 50%) var(--my, 50%),
+      color-mix(in srgb, rgb(var(--chip-rgb)) 28%, transparent) 0%,
+      color-mix(in srgb, rgb(var(--chip-rgb)) 10%, transparent) 35%,
+      transparent 72%),
+    rgba(5,7,10,0.94) !important;
+  border-color: color-mix(in srgb, rgb(var(--chip-rgb)) 45%, transparent) !important;
   color: color-mix(in srgb, rgb(var(--chip-rgb)) 60%, #c9d2db) !important;
   box-shadow: none !important;
 }
@@ -1629,6 +1643,18 @@ button {
 .intake-footer .intake-nav-arrow,
 .intake-footer .intake-next-btn,
 .intake-footer .intake-submit-btn { margin-left: auto !important; }
+
+/* Minimalist nav placed right by the question (no bottom "Siguiente" pill) */
+.intake-qnav {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 2px 0 6px;
+}
+.intake-qnav .intake-question-progress { margin: 0 !important; }
+.intake-qnav .intake-nav-arrow { font-size: 22px !important; }
+.intake-qnav-back { opacity: 0.7; }
+.intake-qnav-next .intake-loading { transform: scale(0.8); }
 
 /* KnowledgeStep footer buttons → matte + compact (forward = subtle pill) */
 .intake-back-btn {

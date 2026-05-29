@@ -1,6 +1,8 @@
 'use client';
 import { useState } from 'react';
+import type { CSSProperties } from 'react';
 import type { IntakeQuestionnaire } from '@financial-agent/shared/src/intake/intake-questionnaire.types';
+import { balancedColumns } from './layout';
 
 const AGE_OPTIONS = [
   { value: 18, label: 'Menos de 25', range: [0, 24] },
@@ -106,7 +108,7 @@ export function ContextStep({
       {questionIndex === 1 && (
         <div className="intake-question-block intake-question-screen animate-intake-in">
           <label htmlFor="employment-group" className="intake-question-label">¿Cuál es tu <span className="kw-blue">situación laboral</span>?</label>
-          <div className="intake-chips intake-chips-grid" id="employment-group" role="group" aria-labelledby="employment-group">
+          <div className="intake-chips intake-chips-grid" id="employment-group" role="group" aria-labelledby="employment-group" style={{ '--intake-cols': balancedColumns(EMPLOYMENT_OPTIONS.length) } as CSSProperties}>
             {EMPLOYMENT_OPTIONS.map((opt) => (
               <button
                 key={opt.value}

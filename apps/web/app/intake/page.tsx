@@ -87,6 +87,19 @@ export default function IntakePage() {
     return () => { cancelled = true; };
   }, [router]);
 
+  // Cursor-following glow on answer cards: track pointer position into CSS vars
+  useEffect(() => {
+    const onMove = (e: PointerEvent) => {
+      const chip = (e.target as HTMLElement | null)?.closest<HTMLElement>('.intake-chip');
+      if (!chip) return;
+      const rect = chip.getBoundingClientRect();
+      chip.style.setProperty('--mx', `${e.clientX - rect.left}px`);
+      chip.style.setProperty('--my', `${e.clientY - rect.top}px`);
+    };
+    document.addEventListener('pointermove', onMove, { passive: true });
+    return () => document.removeEventListener('pointermove', onMove);
+  }, []);
+
   const update = <K extends keyof IntakeQuestionnaire>(key: K, value: IntakeQuestionnaire[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
 

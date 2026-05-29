@@ -1,6 +1,8 @@
 'use client';
 import { useState } from 'react';
+import type { CSSProperties } from 'react';
 import type { IntakeQuestionnaire } from '@financial-agent/shared/src/intake/intake-questionnaire.types';
+import { balancedColumns } from './layout';
 
 const INCOME_OPTIONS: { value: IntakeQuestionnaire['incomeBand']; label: string; sub: string }[] = [
   { value: 'no_income', label: 'Sin ingresos', sub: 'Actualmente' },
@@ -53,7 +55,7 @@ export function CashflowStep({
       {questionIndex === 0 && (
         <div className="intake-question-block intake-question-screen animate-intake-in">
           <label className="intake-question-label">¿Cuánto <span className="kw-sky">ingresas</span> al mes, aproximadamente?</label>
-          <div className="intake-chips intake-chips-grid">
+          <div className="intake-chips intake-chips-grid" style={{ '--intake-cols': balancedColumns(INCOME_OPTIONS.length) } as CSSProperties}>
             {INCOME_OPTIONS.map((opt) => (
               <button
                 key={opt.value}
