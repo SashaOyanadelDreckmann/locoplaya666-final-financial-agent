@@ -19,24 +19,21 @@ export default function HomePage() {
     });
   }
 
+  function handleMouseLeave() {
+    setMouse({ x: 0, y: 0 });
+  }
+
   return (
     <main
       ref={shellRef}
       className="home-essence"
       onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
       style={{
         '--mx': mouse.x,
         '--my': mouse.y,
       } as React.CSSProperties}
     >
-      <div className="home-essence__scene" aria-hidden>
-        <div className="home-essence__portal" />
-        <div className="home-essence__line" />
-        <div className="home-essence__depth home-essence__depth--one" />
-        <div className="home-essence__depth home-essence__depth--two" />
-        <div className="home-essence__depth home-essence__depth--three" />
-      </div>
-
       <section className="home-essence__content">
         <div className="home-essence__brand-lockup">
           <span className="home-essence__logo-mark" aria-hidden>Fm</span>
@@ -66,9 +63,8 @@ export default function HomePage() {
       </section>
 
       <aside className="home-essence__art" aria-hidden>
-        <div className="home-essence__scan" />
         <div className="machine-text home-essence__machine">
-          <TypewriterText text={HOME_ASCII_MASCOT} speed={2} colorizeSpecial />
+          <TypewriterText text={HOME_ASCII_MASCOT} speed={2} />
         </div>
       </aside>
     </main>
