@@ -1040,6 +1040,7 @@ button {
   font-family: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
   font-size: clamp(22px, 2.6vw, 34px);
   font-weight: 400;
+  font-style: italic;
   line-height: 1.2;
   letter-spacing: -0.01em;
 }
@@ -1193,24 +1194,8 @@ button {
     flex-direction: column;
     align-items: center;
     min-height: 100svh;
-    padding: 52px 24px 48px;
+    padding: 58px 26px 0;
     gap: 0;
-    overflow: hidden;
-  }
-
-  /* Art absolutely on the right, overlapping content */
-  .home-essence__art {
-    position: absolute;
-    right: -18px;
-    bottom: 44px;
-    width: 54vw;
-    max-width: 230px;
-    opacity: 0.82;
-    order: unset;
-    z-index: 3;
-    transform: none;
-    mask-image: linear-gradient(180deg, transparent 5%, #000 16%, #000 92%, transparent 100%);
-    -webkit-mask-image: linear-gradient(180deg, transparent 5%, #000 16%, #000 92%, transparent 100%);
   }
 
   .home-essence__content {
@@ -1220,37 +1205,41 @@ button {
     text-align: center;
   }
 
-  /* Brand lockup: logo above, title below */
+  /* Brand lockup: logo BESIDE stacked title, matching height */
   .home-essence__brand-lockup {
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
-    gap: 14px;
-    margin-bottom: 20px;
+    gap: 18px;
+    margin-bottom: 26px;
     transform: none;
+    justify-content: center;
   }
 
+  /* Logo height = 2 title lines × line-height (0.88) */
   .home-essence__logo-mark {
-    width: 70px;
-    font-size: 31px;
-    border-radius: 14px;
+    width: calc(1.76 * clamp(40px, 13vw, 56px));
+    border-radius: 18px;
+    font-size: clamp(28px, 7.5vw, 38px);
   }
 
+  /* Title left-aligned so it reads cleanly beside the logo */
   .home-essence__title {
-    font-size: clamp(42px, 15vw, 62px);
+    font-size: clamp(40px, 13vw, 56px);
     line-height: 0.88;
-    text-align: center;
+    text-align: left;
+    margin: 0;
   }
 
-  /* Eyebrow as dark pill badge */
+  /* Eyebrow: refined pill badge */
   .home-essence__eyebrow {
     display: inline-flex;
     justify-content: center;
-    background: rgba(10, 13, 18, 0.72);
-    border: 1px solid rgba(243, 241, 234, 0.2);
+    background: rgba(8, 11, 16, 0.68);
+    border: 1px solid rgba(243, 241, 234, 0.15);
     border-radius: 999px;
-    padding: 9px 20px;
+    padding: 8px 18px;
     font-size: 10px;
-    letter-spacing: 0.15em;
+    letter-spacing: 0.17em;
     margin-bottom: 20px;
   }
 
@@ -1264,53 +1253,77 @@ button {
     padding: 8px 14px;
   }
 
-  /* Color-tinted pill backgrounds matching brand colors */
   .home-essence__tags span:nth-child(1) {
-    background: rgba(147, 170, 189, 0.18);
-    border-color: rgba(147, 170, 189, 0.36);
+    background: rgba(147, 170, 189, 0.16);
+    border-color: rgba(147, 170, 189, 0.32);
     color: #b0c6d8;
   }
 
   .home-essence__tags span:nth-child(2) {
-    background: rgba(154, 90, 92, 0.22);
-    border-color: rgba(154, 90, 92, 0.4);
+    background: rgba(154, 90, 92, 0.18);
+    border-color: rgba(154, 90, 92, 0.36);
     color: #c47a7c;
   }
 
   .home-essence__tags span:nth-child(3) {
-    background: rgba(185, 162, 106, 0.2);
-    border-color: rgba(185, 162, 106, 0.38);
+    background: rgba(185, 162, 106, 0.18);
+    border-color: rgba(185, 162, 106, 0.34);
     color: #cbb880;
   }
 
   .home-essence__tagline {
-    font-size: 20px;
-    margin-bottom: 12px;
-    line-height: 1.25;
+    font-size: clamp(20px, 5.5vw, 26px);
+    margin-bottom: 14px;
+    line-height: 1.28;
   }
 
   .home-essence__body {
-    font-size: 14px;
-    line-height: 1.6;
+    font-size: 15px;
+    line-height: 1.65;
     max-width: 100%;
-    margin-bottom: 28px;
+    margin-bottom: 32px;
   }
 
   .home-essence__ctas {
     width: 100%;
     flex-direction: column;
-    gap: 10px;
-    margin-bottom: 22px;
+    gap: 12px;
+    margin-bottom: 26px;
     max-width: none;
   }
 
   .home-essence__cta {
     width: 100%;
-    min-height: 52px;
+    min-height: 54px;
+    font-size: 16px;
+    border-radius: 16px;
+  }
+
+  /* Ghost border more visible on mobile (no hover state on touch) */
+  .home-essence__cta--ghost {
+    border-color: rgba(243, 241, 234, 0.26);
   }
 
   .home-essence__foot {
-    font-size: 10px;
+    font-size: 11px;
+    margin-bottom: 36px;
+  }
+
+  /* Art at the bottom in normal DOM flow */
+  .home-essence__art {
+    position: static;
+    order: unset;
+    width: min(72vw, 260px);
+    margin: 0 auto;
+    opacity: 0.52;
+    transform: none;
+    z-index: 1;
+    mask-image: linear-gradient(180deg, transparent 0%, #000 12%, #000 62%, transparent 86%);
+    -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 12%, #000 62%, transparent 86%);
+  }
+
+  .home-essence__machine pre {
+    font-size: 6px;
   }
 }
 
