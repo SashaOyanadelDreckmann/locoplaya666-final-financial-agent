@@ -4,14 +4,6 @@ import type { CSSProperties } from 'react';
 import type { IntakeQuestionnaire } from '@financial-agent/shared/src/intake/intake-questionnaire.types';
 import { balancedColumns } from './layout';
 
-const AGE_OPTIONS = [
-  { value: 18, label: 'Menos de 25', range: [0, 24] },
-  { value: 27, label: '25 – 34', range: [25, 34] },
-  { value: 37, label: '35 – 44', range: [35, 44] },
-  { value: 47, label: '45 – 55', range: [45, 55] },
-  { value: 60, label: 'Más de 55', range: [56, 100] },
-];
-
 const EMPLOYMENT_OPTIONS: { value: IntakeQuestionnaire['employmentStatus']; label: string; sub: string }[] = [
   { value: 'employed', label: 'Dependiente', sub: 'Empleado con contrato' },
   { value: 'freelance', label: 'Independiente', sub: 'Freelance o emprendedor' },
@@ -30,12 +22,7 @@ export function ContextStep({
   update: <K extends keyof IntakeQuestionnaire>(key: K, value: IntakeQuestionnaire[K]) => void;
   onNext: () => void;
 }) {
-  const [showExact, setShowExact] = useState(false);
   const [questionIndex, setQuestionIndex] = useState(0);
-
-  const selectedAge = AGE_OPTIONS.find(
-    (o) => form.age !== undefined && form.age >= o.range[0] && form.age <= o.range[1]
-  );
 
   const canContinueAge = typeof form.age === 'number' && form.age > 0;
   const totalQuestions = 3;
@@ -62,46 +49,19 @@ export function ContextStep({
 
       {questionIndex === 0 && (
         <div className="intake-question-block intake-question-screen animate-intake-in">
-          <label htmlFor="age-group" className="intake-question-label">¿En qué <span className="kw-blue">rango de edad</span> estás?</label>
-          <div className="intake-chips" id="age-group" role="group" aria-labelledby="age-group">
-            {AGE_OPTIONS.map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                className={`intake-chip${selectedAge?.value === opt.value ? ' is-selected' : ''}`}
-                onClick={() => {
-                  update('age', opt.value);
-                  setShowExact(false);
-                  setTimeout(() => onNextQuestion(), 120);
-                }}
-                aria-pressed={selectedAge?.value === opt.value}
-              >
-                {opt.label}
-              </button>
-            ))}
-            <button
-              type="button"
-              className={`intake-chip intake-chip-exact${showExact ? ' is-selected' : ''}`}
-              onClick={() => setShowExact(true)}
-              aria-pressed={showExact}
-            >
-              Exacta
-            </button>
-          </div>
-          {showExact && (
-            <input
-              id="age-exact"
-              className="intake-input"
-              type="number"
-              min={14}
-              max={100}
-              placeholder="Tu edad exacta"
-              aria-label="Tu edad exacta en años"
-              value={form.age ?? ''}
-              onChange={(e) => update('age', Number(e.target.value) || undefined as any)}
-              autoFocus
-            />
-          )}
+          <label htmlFor="age-exact" className="intake-question-label">¿Cuál es tu <span className="kw-blue">edad exacta</span>?</label>
+          <input
+            id="age-exact"
+            className="intake-input"
+            type="number"
+            min={14}
+            max={100}
+            placeholder="Escribe tu edad exacta"
+            aria-label="Tu edad exacta en años"
+            value={form.age ?? ''}
+            onChange={(e) => update('age', Number(e.target.value) || undefined as any)}
+            autoFocus
+          />
         </div>
       )}
 
@@ -144,7 +104,7 @@ export function ContextStep({
       )}
 
       <div className="intake-footer">
-        {((questionIndex === 0 && showExact && canContinueAge) || questionIndex === 2) && (
+        {((questionIndex === 0 && canContinueAge) || questionIndex === 2) && (
           <button
             className="intake-nav-arrow focus-ring"
             onClick={onNextQuestion}
