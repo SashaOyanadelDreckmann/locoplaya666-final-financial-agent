@@ -29032,13 +29032,22 @@ body.agent-route-active .app-shell::before {
   background: rgba(0, 0, 0, 0.74) !important;
 }
 
+@keyframes chatLogoStates {
+  0%, 16.66%   { background: #f4f1e7; color: #111111; }
+  16.67%, 33.33% { background: #111720; color: #ffffff; }
+  33.34%, 50%  { background: #5f7891; color: #071018; }
+  50.01%, 66.66% { background: #7a3f47; color: #ffffff; }
+  66.67%, 83.33% { background: #9f8b55; color: #111111; }
+  83.34%, 100% { background: #111720; color: #ffffff; }
+}
+
 .chat-brand-logo-mark {
   display: grid;
   place-items: center;
   width: 28px;
   height: 28px;
   flex: 0 0 28px;
-  background: rgba(245, 245, 242, 0.94);
+  background: #f4f1e7;
   color: #111111;
   font-family: "Times New Roman", Times, Georgia, serif;
   font-size: 14px;
@@ -29046,7 +29055,7 @@ body.agent-route-active .app-shell::before {
   letter-spacing: -0.03em;
   line-height: 1;
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.24);
-  animation: homeLogoStates 5s steps(1, end) infinite;
+  animation: chatLogoStates 6s steps(1, end) infinite;
 }
 
 .chat-brand-wordmark {
@@ -29269,12 +29278,16 @@ body.agent-route-active .app-shell::before {
     z-index: 4 !important;
   }
 
-  .agent-panel {
-    overflow-x: hidden !important;
+  .agent-panel.is-mobile-compact .panel-grid {
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+    -webkit-overflow-scrolling: touch !important;
+    touch-action: pan-x !important;
   }
 
-  .agent-panel .panel-grid {
+  .agent-panel.is-mobile-expanded .panel-grid {
     overflow-x: hidden !important;
+    overflow-y: auto !important;
     touch-action: pan-y !important;
   }
 
@@ -29298,5 +29311,81 @@ body.agent-route-active .app-shell::before {
     right: auto !important;
     bottom: auto !important;
     margin: 8px 8px 0 !important;
+  }
+}
+
+/* ── Botón de enviar sin contenedor ─────────────────── */
+.composer-send-plain {
+  background: transparent;
+  border: none;
+  padding: 5px 2px;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity 0.15s ease;
+  outline: none;
+}
+.composer-send-plain:disabled {
+  opacity: 0.28;
+  cursor: not-allowed;
+}
+.composer-send-plain:not(:disabled):hover {
+  opacity: 0.7;
+}
+.composer-send-plain:not(:disabled):active {
+  opacity: 0.5;
+}
+
+/* ── Fondo imagen cubre pantalla completa en mobile ─── */
+@media (max-width: 900px) {
+  body.agent-route-active .app-shell::before {
+    background-image:
+      linear-gradient(180deg, rgba(6, 10, 16, 0.28), rgba(6, 10, 16, 0.38)),
+      url('/fondo4.jpg') !important;
+    background-size: cover !important;
+    background-position: center center !important;
+    background-color: #05090f !important;
+    background-attachment: fixed !important;
+  }
+
+  html.agent-route-active,
+  body.agent-route-active {
+    background-attachment: fixed !important;
+  }
+}
+
+/* ── Panel móvil: cards visibles y margen al final ─── */
+@media (max-width: 767px) {
+  .agent-panel.is-mobile-compact {
+    flex: 0 0 var(--mobile-panel-h, 96px) !important;
+    max-height: var(--mobile-panel-h, 96px) !important;
+    margin: 8px 10px calc(env(safe-area-inset-bottom) + 10px) !important;
+    border-radius: 18px !important;
+    overflow: visible !important;
+  }
+
+  .agent-layout.mobile-panel-expanded .agent-panel.is-mobile-expanded {
+    flex: 0 0 var(--mobile-panel-h, 48vh) !important;
+    max-height: var(--mobile-panel-h, 48vh) !important;
+    overflow: hidden !important;
+  }
+
+  .agent-panel.is-mobile-compact .panel-grid {
+    padding: 8px 10px 8px !important;
+    height: 80px !important;
+    min-height: 80px !important;
+  }
+
+  .agent-panel.is-mobile-compact .panel-card,
+  .agent-panel.is-mobile-compact .profile-card,
+  .agent-panel.is-mobile-compact .panel-feature-card,
+  .agent-panel.is-mobile-compact .interview-flow-card,
+  .agent-panel.is-mobile-compact .recent-library-card {
+    min-height: 80px !important;
+    height: 80px !important;
   }
 }

@@ -843,7 +843,7 @@ export default function AgentPage() {
   const panelLoopPausedRef = useRef(false);
   const panelLoopAutoTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const panelLoopResumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const disableMobilePanelHorizontalMotion = true;
+  const disableMobilePanelHorizontalMotion = false;
   const [newReportId, setNewReportId] = useState<string | null>(null);
   const [isLandingRecents, setIsLandingRecents] = useState(false);
   const [panelCallout, setPanelCallout] = useState<{ section: string; message: string } | null>(null);
@@ -4460,16 +4460,16 @@ export default function AgentPage() {
 
               <button
                 type="button"
-                className="continue-button composer-icon-btn composer-send-btn"
+                className="composer-send-plain"
                 disabled={isActiveChatLocked}
                 onClick={() => {
                   void onSend(chatComposerRef.current?.value ?? input);
                 }}
                 aria-label="Enviar mensaje"
               >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path d="M5 12h12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
-                  <path d="M13 6l6 6-6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M22 2L11 13" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M22 2L15 22L11 13L2 9L22 2z" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </button>
             </div>
