@@ -135,8 +135,8 @@ export function KnowledgeStep({
     update('financialKnowledge', { ...knowledge, [key]: !knowledge[key] });
   };
 
-  const totalSelected = Object.values(knowledge).filter(Boolean).length;
-  const totalQuestions = 4;
+  const GROUP_COUNT = KNOWLEDGE_GROUPS.length;
+  const totalQuestions = GROUP_COUNT + 3;
   const isLast = questionIndex === totalQuestions - 1;
 
   const onNextQuestion = () => {
@@ -168,33 +168,33 @@ export function KnowledgeStep({
       </div>
       <p className="intake-question-progress">Pregunta {questionIndex + 1} de {totalQuestions}</p>
 
-      {questionIndex === 0 && (
-        <div className="intake-question-block intake-question-screen animate-intake-in">
-          <label className="intake-question-label">
-            ¿Qué <span className="kw-wine">conceptos financieros</span> manejas?
-            {totalSelected > 0 && <span className="intake-badge">{totalSelected} seleccionados</span>}
-          </label>
-          {KNOWLEDGE_GROUPS.map((group) => (
-            <div key={group.title} className="intake-knowledge-group">
-              <div className="intake-knowledge-group-title">{group.title}</div>
-              <div className="intake-chips intake-chips-wrap">
-                {group.keys.map(({ key, label }) => (
-                  <button
-                    key={key}
-                    type="button"
-                    className={`intake-chip intake-chip-sm${knowledge[key] ? ' is-selected' : ''}`}
-                    onClick={() => toggle(key)}
-                  >
-                    {knowledge[key] ? '✓ ' : ''}{label}
-                  </button>
-                ))}
-              </div>
+      {questionIndex < GROUP_COUNT && (() => {
+        const group = KNOWLEDGE_GROUPS[questionIndex];
+        const groupSelected = group.keys.filter(({ key }) => knowledge[key]).length;
+        return (
+          <div className="intake-question-block intake-question-screen animate-intake-in">
+            <label className="intake-question-label">
+              ¿Qué manejas sobre <span className="kw-wine">{group.title.toLowerCase()}</span>?
+              {groupSelected > 0 && <span className="intake-badge">{groupSelected} seleccionados</span>}
+            </label>
+            <p className="intake-question-hint">Marca los que conozcas. Si no manejas ninguno, continúa sin seleccionar.</p>
+            <div className="intake-chips intake-chips-wrap">
+              {group.keys.map(({ key, label }) => (
+                <button
+                  key={key}
+                  type="button"
+                  className={`intake-chip intake-chip-sm${knowledge[key] ? ' is-selected' : ''}`}
+                  onClick={() => toggle(key)}
+                >
+                  {knowledge[key] ? '✓ ' : ''}{label}
+                </button>
+              ))}
             </div>
-          ))}
-        </div>
-      )}
+          </div>
+        );
+      })()}
 
-      {questionIndex === 1 && (
+      {questionIndex === GROUP_COUNT && (
         <div className="intake-question-block intake-question-screen animate-intake-in">
           <label className="intake-question-label">
             Tu inversión <span className="kw-wine">cae 30%</span> en un mes. ¿Qué haces?
@@ -208,7 +208,7 @@ export function KnowledgeStep({
                 onClick={() => {
                   update('riskReaction', opt.value);
                   if (opt.value !== 'never_invest') {
-                    setTimeout(() => setQuestionIndex(2), 120);
+                    setTimeout(() => onNextQuestion(), 120);
                   }
                 }}
               >
@@ -230,7 +230,7 @@ export function KnowledgeStep({
         </div>
       )}
 
-      {questionIndex === 2 && (
+      {questionIndex === GROUP_COUNT + 1 && (
         <div className="intake-question-block intake-question-screen animate-intake-in">
           <label id="understanding-slider" className="intake-question-label-sm">
             ¿Qué tan sólida sientes que es tu <span className="kw-blue">comprensión financiera</span>?
@@ -258,7 +258,7 @@ export function KnowledgeStep({
         </div>
       )}
 
-      {questionIndex === 3 && (
+      {questionIndex === GROUP_COUNT + 2 && (
         <div className="intake-question-block intake-question-screen animate-intake-in">
           <label id="stress-slider" className="intake-question-label-sm">
             ¿Cuánto <span className="kw-wine">estrés</span> te genera tu situación financiera hoy?
