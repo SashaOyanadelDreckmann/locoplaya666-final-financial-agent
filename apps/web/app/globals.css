@@ -1064,7 +1064,7 @@ button {
   line-height: 1;
   border-radius: 0;
   box-shadow: 0 18px 40px rgba(0,0,0,0.28);
-  animation: none;
+  animation: homeLogoStates 5s steps(1, end) infinite;
 }
 
 .home-essence__title {
@@ -1091,7 +1091,7 @@ button {
 .home-essence__title-mente {
   color: #7ea7d0;
   font-weight: 700;
-  animation: none;
+  animation: homeWordStates 5s steps(1, end) infinite, menteWeight 5s steps(1, end) infinite;
   text-shadow:
     0 1px 0 rgba(255,255,255,0.08),
     0 12px 28px rgba(0,0,0,0.62);
@@ -1140,11 +1140,13 @@ button {
   justify-content: center;
   border: 0;
   box-shadow: none;
+  transition: background-color 420ms ease, color 420ms ease;
+  animation: homeTagCycle 5s linear infinite;
 }
 
-.home-essence__tags span:nth-child(1) { background: rgba(103, 140, 173, 0.88); }
-.home-essence__tags span:nth-child(2) { background: rgba(136, 67, 78, 0.88); }
-.home-essence__tags span:nth-child(3) { background: rgba(173, 151, 88, 0.9); }
+.home-essence__tags span:nth-child(1) { animation-delay: 0s; }
+.home-essence__tags span:nth-child(2) { animation-delay: -1.66s; }
+.home-essence__tags span:nth-child(3) { animation-delay: -3.33s; }
 
 .home-essence__tagline {
   margin: 0 0 18px;
@@ -1323,6 +1325,13 @@ button {
 @keyframes homeAmbientFlash {
   0%, 100% { opacity: 0.5; filter: blur(18px); }
   50% { opacity: 0.62; filter: blur(20px); }
+}
+
+@keyframes homeTagCycle {
+  0%, 25% { background: rgba(44, 111, 172, 0.86); color: #fff; }
+  25.01%, 50% { background: rgba(89, 176, 196, 0.86); color: #fff; }
+  50.01%, 75% { background: rgba(201, 168, 64, 0.88); color: #111; }
+  75.01%, 100% { background: rgba(139, 26, 43, 0.86); color: #fff; }
 }
 
 @keyframes homeTitlePulse {
