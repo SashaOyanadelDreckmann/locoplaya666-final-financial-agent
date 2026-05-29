@@ -260,15 +260,6 @@ export function buildInterviewPlan(
   });
 
   decisions.push({
-    blockId: 'products',
-    include: intake.financialProducts.length > 0,
-    reason:
-      intake.financialProducts.length > 0
-        ? 'Tiene productos financieros.'
-        : 'No tiene productos financieros.',
-  });
-
-  decisions.push({
     blockId: 'goals',
     include: true,
     reason: 'Metas siempre relevantes.',

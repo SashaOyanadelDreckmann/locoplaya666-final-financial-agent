@@ -10,15 +10,6 @@ import { parseBody } from '../http/parse';
 import { getAuthenticatedUser } from '../middleware/auth';
 
 // SECURITY: Strict validation schema - no passthrough() to prevent arbitrary field injection
-const FinancialProductEntrySchema = z.object({
-  product: z.string().min(1),
-  institution: z.string().optional(),
-  notes: z.string().optional(),
-  acquisitionCost: z.number().optional(),
-  monthlyCost: z.number().optional(),
-  anualCost: z.number().optional(),
-});
-
 const FinancialKnowledgeChecklistSchema = z.object({
   interest: z.boolean(),
   CAE: z.boolean(),
@@ -69,7 +60,6 @@ const IntakeRequestSchema = z.object({
     .optional(),
   exactSavingsAmount: z.number().optional(),
   hasDebt: z.boolean(),
-  financialProducts: z.array(FinancialProductEntrySchema),
   financialKnowledge: FinancialKnowledgeChecklistSchema,
   riskReaction: z.enum(['sell', 'hold', 'buy_more', 'never_invest', 'other']),
   riskReactionOther: z.string().optional(),

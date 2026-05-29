@@ -67,7 +67,7 @@ export function ContextStep({
 
       {questionIndex === 0 && (
         <div className="intake-question-block intake-question-screen animate-intake-in">
-          <label htmlFor="age-group" className="intake-question-label">¿En qué rango de edad estás?</label>
+          <label htmlFor="age-group" className="intake-question-label">¿En qué <span className="kw-blue">rango de edad</span> estás?</label>
           <div className="intake-chips" id="age-group" role="group" aria-labelledby="age-group">
             {AGE_OPTIONS.map((opt) => (
               <button
@@ -111,7 +111,7 @@ export function ContextStep({
 
       {questionIndex === 1 && (
         <div className="intake-question-block intake-question-screen animate-intake-in">
-          <label htmlFor="employment-group" className="intake-question-label">¿Cuál es tu situación laboral?</label>
+          <label htmlFor="employment-group" className="intake-question-label">¿Cuál es tu <span className="kw-blue">situación laboral</span>?</label>
           <div className="intake-chips intake-chips-grid" id="employment-group" role="group" aria-labelledby="employment-group">
             {EMPLOYMENT_OPTIONS.map((opt) => (
               <button
@@ -132,7 +132,7 @@ export function ContextStep({
 
       {questionIndex === 2 && (
         <div className="intake-question-block intake-question-screen animate-intake-in">
-          <label htmlFor="profession" className="intake-question-label">¿A qué te dedicas? <span className="intake-optional">(opcional)</span></label>
+          <label htmlFor="profession" className="intake-question-label">¿A qué te <span className="kw-blue">dedicas</span>? <span className="intake-optional">(opcional)</span></label>
           <input
             id="profession"
             className="intake-input"

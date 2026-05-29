@@ -44,6 +44,77 @@ const RISK_OPTIONS: { value: IntakeQuestionnaire['riskReaction']; label: string;
   { value: 'never_invest', label: 'No invierto', sub: 'No es para mí' },
 ];
 
+function getKnowledgeLabel(v: number): string {
+  if (v <= 2) return 'En desarrollo';
+  if (v <= 4) return 'Básico';
+  if (v <= 6) return 'Intermedio';
+  if (v <= 8) return 'Avanzado';
+  return 'Experto';
+}
+
+function getStressLabel(v: number): string {
+  if (v <= 2) return 'Sin estrés';
+  if (v <= 4) return 'Algo presente';
+  if (v <= 6) return 'Moderado';
+  if (v <= 8) return 'Significativo';
+  return 'Muy alto';
+}
+
+function getStressFillColor(v: number): string {
+  if (v <= 3) return '89, 176, 196';
+  if (v <= 6) return '201, 168, 64';
+  return '139, 26, 43';
+}
+
+function PremiumSlider({
+  value,
+  onChange,
+  fillColor,
+  label,
+  id,
+}: {
+  value: number;
+  onChange: (v: number) => void;
+  fillColor: string;
+  label: string;
+  id: string;
+}) {
+  const pct = (value / 10) * 100;
+
+  return (
+    <div className="intake-track-slider-wrapper" role="group" aria-labelledby={id}>
+      <div className="intake-track-rail" aria-hidden>
+        <div
+          className="intake-track-fill"
+          style={{
+            width: `${pct}%`,
+            background: `rgba(${fillColor}, 0.85)`,
+            boxShadow: `0 0 10px rgba(${fillColor}, 0.40)`,
+          }}
+        />
+        <div
+          className="intake-track-dot"
+          style={{
+            left: `${pct}%`,
+            boxShadow: `0 0 0 5px rgba(${fillColor}, 0.18), 0 2px 14px rgba(0,0,0,0.40)`,
+          }}
+        />
+      </div>
+      <input
+        type="range"
+        min={0}
+        max={10}
+        step={1}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className="intake-range-overlay"
+        aria-label={label}
+        id={id}
+      />
+    </div>
+  );
+}
+
 export function KnowledgeStep({
   form,
   update,
@@ -100,7 +171,7 @@ export function KnowledgeStep({
       {questionIndex === 0 && (
         <div className="intake-question-block intake-question-screen animate-intake-in">
           <label className="intake-question-label">
-            ¿Qué conceptos financieros manejas?
+            ¿Qué <span className="kw-wine">conceptos financieros</span> manejas?
             {totalSelected > 0 && <span className="intake-badge">{totalSelected} seleccionados</span>}
           </label>
           {KNOWLEDGE_GROUPS.map((group) => (
@@ -125,7 +196,9 @@ export function KnowledgeStep({
 
       {questionIndex === 1 && (
         <div className="intake-question-block intake-question-screen animate-intake-in">
-          <label className="intake-question-label">Tu inversión cae 30% en un mes. ¿Qué haces?</label>
+          <label className="intake-question-label">
+            Tu inversión <span className="kw-wine">cae 30%</span> en un mes. ¿Qué haces?
+          </label>
           <div className="intake-chips intake-chips-grid">
             {RISK_OPTIONS.map((opt) => (
               <button
@@ -153,19 +226,24 @@ export function KnowledgeStep({
       )}
 
       {questionIndex === 2 && (
-        <div className="intake-question-block intake-sliders-block intake-question-screen animate-intake-in">
-          <div className="intake-slider-row">
-            <div className="intake-slider-labels">
-              <label className="intake-question-label-sm">¿Qué tan sólida sientes que es tu comprensión financiera?</label>
-              <span className="intake-slider-value">{form.selfRatedUnderstanding}<span className="intake-slider-max">/10</span></span>
+        <div className="intake-question-block intake-question-screen animate-intake-in">
+          <label id="understanding-slider" className="intake-question-label-sm">
+            ¿Qué tan sólida sientes que es tu <span className="kw-blue">comprensión financiera</span>?
+          </label>
+          <div className="intake-premium-slider-block">
+            <div className="intake-slider-meta">
+              <div className="intake-slider-number-group">
+                <span className="intake-slider-number intake-slider-number--blue">{form.selfRatedUnderstanding}</span>
+                <span className="intake-slider-denom">/10</span>
+              </div>
+              <span className="intake-slider-dynamic-label">{getKnowledgeLabel(form.selfRatedUnderstanding)}</span>
             </div>
-            <input
-              type="range"
-              min={0}
-              max={10}
+            <PremiumSlider
               value={form.selfRatedUnderstanding}
-              onChange={(e) => update('selfRatedUnderstanding', Number(e.target.value))}
-              className="intake-range"
+              onChange={(v) => update('selfRatedUnderstanding', v)}
+              fillColor="44, 111, 172"
+              label="Nivel de comprensión financiera"
+              id="understanding-slider"
             />
             <div className="intake-range-labels">
               <span>Básica</span>
@@ -176,23 +254,39 @@ export function KnowledgeStep({
       )}
 
       {questionIndex === 3 && (
-        <div className="intake-question-block intake-sliders-block intake-question-screen animate-intake-in">
-          <div className="intake-slider-row">
-            <div className="intake-slider-labels">
-              <label className="intake-question-label-sm">¿Cuánto estrés te genera tu situación financiera hoy?</label>
-              <span className="intake-slider-value">{form.moneyStressLevel}<span className="intake-slider-max">/10</span></span>
+        <div className="intake-question-block intake-question-screen animate-intake-in">
+          <label id="stress-slider" className="intake-question-label-sm">
+            ¿Cuánto <span className="kw-wine">estrés</span> te genera tu situación financiera hoy?
+          </label>
+          <div className="intake-premium-slider-block">
+            <div className="intake-slider-meta">
+              <div className="intake-slider-number-group">
+                <span
+                  className="intake-slider-number intake-slider-number--stress"
+                  style={{
+                    color: form.moneyStressLevel <= 3
+                      ? 'rgba(89,176,196,0.90)'
+                      : form.moneyStressLevel <= 6
+                        ? 'rgba(201,168,64,0.90)'
+                        : 'rgba(139,26,43,0.92)',
+                  }}
+                >
+                  {form.moneyStressLevel}
+                </span>
+                <span className="intake-slider-denom">/10</span>
+              </div>
+              <span className="intake-slider-dynamic-label">{getStressLabel(form.moneyStressLevel)}</span>
             </div>
-            <input
-              type="range"
-              min={0}
-              max={10}
+            <PremiumSlider
               value={form.moneyStressLevel}
-              onChange={(e) => update('moneyStressLevel', Number(e.target.value))}
-              className="intake-range intake-range-stress"
+              onChange={(v) => update('moneyStressLevel', v)}
+              fillColor={getStressFillColor(form.moneyStressLevel)}
+              label="Nivel de estrés financiero"
+              id="stress-slider"
             />
             <div className="intake-range-labels">
               <span>Sin estrés</span>
-              <span>Muy estresado</span>
+              <span>Muy alto</span>
             </div>
           </div>
         </div>

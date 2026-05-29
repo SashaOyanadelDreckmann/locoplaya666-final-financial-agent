@@ -27,7 +27,6 @@ describe('knowledge.service', () => {
     const knowledgeService = await import('./knowledge.service');
     await knowledgeService.synchronizeKnowledgeFromIntake(user.id, {
       selfRatedUnderstanding: 3,
-      financialProducts: [],
       financialKnowledge: {},
       hasSavingsOrInvestments: false,
       tracksExpenses: 'no',

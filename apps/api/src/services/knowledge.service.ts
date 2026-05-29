@@ -79,11 +79,6 @@ function estimateBaseKnowledgeScore(intake: IntakeQuestionnaire): number {
 
   score += Math.max(0, Math.min(10, intake.selfRatedUnderstanding ?? 0)) * 6;
 
-  const productsCount = Array.isArray(intake.financialProducts)
-    ? intake.financialProducts.filter((product) => product?.product).length
-    : 0;
-  score += Math.min(productsCount * 3, 15);
-
   if (intake.financialKnowledge) {
     const knownTopics = Object.values(intake.financialKnowledge).filter(Boolean).length;
     score += Math.min(knownTopics * 2, 20);

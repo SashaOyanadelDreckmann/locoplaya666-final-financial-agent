@@ -61,7 +61,7 @@ export function SavingsStep({
 
       {questionIndex === 0 && (
         <div className="intake-question-block intake-question-screen animate-intake-in">
-          <label className="intake-question-label">¿Tienes ahorros o dinero invertido?</label>
+          <label className="intake-question-label">¿Tienes <span className="kw-yellow">ahorros</span> o dinero <span className="kw-yellow">invertido</span>?</label>
           <p className="intake-question-hint">Cuenta bancaria de ahorro, DAP, fondos mutuos, AFP voluntario, etc.</p>
           <div className="intake-chips">
             <button
@@ -114,7 +114,7 @@ export function SavingsStep({
 
       {questionIndex === 1 && (
         <div className="intake-question-block intake-question-screen animate-intake-in">
-          <label className="intake-question-label">¿Tienes deudas o compromisos financieros activos?</label>
+          <label className="intake-question-label">¿Tienes <span className="kw-yellow">deudas</span> o compromisos activos?</label>
           <p className="intake-question-hint">Tarjeta de crédito, crédito de consumo, hipotecario, cuotas, etc.</p>
           <div className="intake-chips">
             <button
@@ -134,7 +134,7 @@ export function SavingsStep({
           </div>
           {form.hasDebt && (
             <p className="intake-debt-note animate-intake-in">
-              En el siguiente paso agregarás el detalle de tus productos financieros.
+              Conocer tu situación de deuda permite elaborar un plan de acción real y específico para ti.
             </p>
           )}
         </div>
