@@ -917,10 +917,10 @@ body.home-lock {
   inset: 0;
   z-index: 0;
   background:
-    linear-gradient(135deg, rgba(5, 8, 9, 0.88), rgba(10, 15, 22, 0.84)),
-    linear-gradient(180deg, rgba(20, 28, 40, 0.4), rgba(8, 12, 18, 0.6)),
+    linear-gradient(135deg, rgba(5, 8, 9, 0.18), rgba(10, 15, 22, 0.16)),
+    linear-gradient(180deg, rgba(20, 28, 40, 0.08), rgba(8, 12, 18, 0.12)),
     url('/images/bg-door.jpg') center center / cover no-repeat;
-  filter: saturate(0.54) contrast(1.12) brightness(0.52) hue-rotate(2deg);
+  filter: saturate(0.88) contrast(1.1) brightness(0.8) hue-rotate(0deg);
   transform: scale(1.03);
   pointer-events: none;
 }
@@ -1108,9 +1108,15 @@ body.home-lock {
   display: block;
 }
 
+.home-essence__title-main {
+  text-transform: lowercase;
+}
+
 .home-essence__title-mente {
   color: #7ea7d0;
   font-weight: 700;
+  font-size: 0.68em;
+  text-transform: lowercase;
   animation: homeWordStates 5s steps(1, end) infinite, menteWeight 5s steps(1, end) infinite;
   text-shadow:
     0 1px 0 rgba(255,255,255,0.08),
