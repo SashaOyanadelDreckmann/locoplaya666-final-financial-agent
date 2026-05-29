@@ -23,8 +23,7 @@ export default function HomePage() {
         <div className="home-essence__brand-lockup">
           <span className="home-essence__logo-mark" aria-hidden>Fm</span>
           <h1 className="home-essence__title">
-            <span className="home-essence__title-main">Financiera</span>
-            <span className="home-essence__title-mente">mente</span>
+            <span className="home-essence__title-main">financiera</span><span className="home-essence__title-mente">mente</span>
           </h1>
         </div>
 
