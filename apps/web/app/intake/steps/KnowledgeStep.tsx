@@ -1,6 +1,8 @@
 'use client';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import type { CSSProperties } from 'react';
 import type { IntakeQuestionnaire } from '@financial-agent/shared/src/intake/intake-questionnaire.types';
+import { balancedColumns } from './layout';
 
 type FinancialKnowledgeKey = keyof IntakeQuestionnaire['financialKnowledge'];
 
@@ -80,9 +82,39 @@ function PremiumSlider({
   id: string;
 }) {
   const pct = (value / 10) * 100;
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  const setFromClientX = (clientX: number) => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
+    onChange(Math.round(ratio * 10));
+  };
 
   return (
-    <div className="intake-track-slider-wrapper" role="group" aria-labelledby={id}>
+    <div
+      ref={wrapRef}
+      className="intake-track-slider-wrapper"
+      role="slider"
+      tabIndex={0}
+      aria-labelledby={id}
+      aria-label={label}
+      aria-valuemin={0}
+      aria-valuemax={10}
+      aria-valuenow={value}
+      onPointerDown={(e) => {
+        e.currentTarget.setPointerCapture(e.pointerId);
+        setFromClientX(e.clientX);
+      }}
+      onPointerMove={(e) => {
+        if (e.buttons === 1) setFromClientX(e.clientX);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'ArrowRight' || e.key === 'ArrowUp') { e.preventDefault(); onChange(Math.min(10, value + 1)); }
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') { e.preventDefault(); onChange(Math.max(0, value - 1)); }
+      }}
+    >
       <div className="intake-track-rail" aria-hidden>
         <div
           className="intake-track-fill"
@@ -100,17 +132,6 @@ function PremiumSlider({
           }}
         />
       </div>
-      <input
-        type="range"
-        min={0}
-        max={10}
-        step={1}
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
-        className="intake-range-overlay"
-        aria-label={label}
-        id={id}
-      />
     </div>
   );
 }
@@ -166,7 +187,32 @@ export function KnowledgeStep({
           No hay respuestas correctas o incorrectas.
         </p>
       </div>
-      <p className="intake-question-progress">Pregunta {questionIndex + 1} de {totalQuestions}</p>
+      <div className="intake-qnav">
+        <p className="intake-question-progress">Pregunta {questionIndex + 1} de {totalQuestions}</p>
+        <button
+          className="intake-nav-arrow intake-qnav-back"
+          onClick={onBackQuestion}
+          type="button"
+          aria-label="Anterior"
+        >
+          ←
+        </button>
+        <button
+          className="intake-nav-arrow intake-qnav-next"
+          onClick={onNextQuestion}
+          type="button"
+          aria-label={isLast ? 'Comenzar mi asesoría' : 'Siguiente'}
+          disabled={loading}
+        >
+          {loading ? (
+            <span className="intake-loading">
+              <span className="intake-dot" /><span className="intake-dot" /><span className="intake-dot" />
+            </span>
+          ) : (
+            '→'
+          )}
+        </button>
+      </div>
 
       {questionIndex < GROUP_COUNT && (() => {
         const group = KNOWLEDGE_GROUPS[questionIndex];
@@ -199,7 +245,7 @@ export function KnowledgeStep({
           <label className="intake-question-label">
             Tu inversión <span className="kw-wine">cae 30%</span> en un mes. ¿Qué haces?
           </label>
-          <div className="intake-chips intake-chips-grid">
+          <div className="intake-chips intake-chips-grid" style={{ '--intake-cols': balancedColumns(RISK_OPTIONS.length) } as CSSProperties}>
             {RISK_OPTIONS.map((opt) => (
               <button
                 key={opt.value}
@@ -297,31 +343,6 @@ export function KnowledgeStep({
         </div>
       )}
 
-      <div className="intake-footer">
-        <button
-          className="intake-nav-arrow"
-          onClick={onBackQuestion}
-          type="button"
-          aria-label="Anterior"
-        >
-          ←
-        </button>
-        <button
-          className="intake-submit-btn"
-          type="button"
-          onClick={onNextQuestion}
-          disabled={loading}
-        >
-          {loading ? (
-            <span className="intake-loading">
-              <span className="intake-dot" /><span className="intake-dot" /><span className="intake-dot" />
-              Preparando tu perfil
-            </span>
-          ) : (
-            <>{isLast ? 'Comenzar mi asesoría →' : 'Siguiente →'}</>
-          )}
-        </button>
-      </div>
     </div>
   );
 }
