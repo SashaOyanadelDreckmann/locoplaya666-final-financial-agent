@@ -44,6 +44,81 @@ const RISK_OPTIONS: { value: IntakeQuestionnaire['riskReaction']; label: string;
   { value: 'never_invest', label: 'No invierto', sub: 'No es para mí' },
 ];
 
+function getKnowledgeLabel(v: number): string {
+  if (v <= 2) return 'En desarrollo';
+  if (v <= 4) return 'Básico';
+  if (v <= 6) return 'Intermedio';
+  if (v <= 8) return 'Avanzado';
+  return 'Experto';
+}
+
+function getStressLabel(v: number): string {
+  if (v <= 2) return 'Sin estrés';
+  if (v <= 4) return 'Algo presente';
+  if (v <= 6) return 'Moderado';
+  if (v <= 8) return 'Significativo';
+  return 'Muy alto';
+}
+
+function getKnowledgeSegColor(i: number, value: number): string {
+  if (i > value) return 'rgba(255,255,255,0.07)';
+  const intensity = 0.45 + (i / 10) * 0.55;
+  return `rgba(44, 111, 172, ${intensity.toFixed(2)})`;
+}
+
+function getStressSegColor(i: number, value: number): string {
+  if (i > value) return 'rgba(255,255,255,0.07)';
+  if (i <= 3) return 'rgba(89, 176, 196, 0.88)';
+  if (i <= 6) return 'rgba(201, 168, 64, 0.88)';
+  return 'rgba(139, 26, 43, 0.92)';
+}
+
+function SegmentedSlider({
+  value,
+  onChange,
+  colorFn,
+  label,
+  id,
+}: {
+  value: number;
+  onChange: (v: number) => void;
+  colorFn: (i: number, value: number) => string;
+  label: string;
+  id: string;
+}) {
+  return (
+    <div className="intake-seg-slider-wrapper" role="group" aria-labelledby={id}>
+      <div className="intake-seg-bar" aria-hidden>
+        {Array.from({ length: 11 }, (_, i) => {
+          const height = 35 + (i / 10) * 65;
+          return (
+            <div
+              key={i}
+              className="intake-seg-bar-item"
+              style={{
+                height: `${height}%`,
+                backgroundColor: colorFn(i, value),
+                transition: 'background-color 0.18s ease',
+              }}
+            />
+          );
+        })}
+      </div>
+      <input
+        type="range"
+        min={0}
+        max={10}
+        step={1}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className="intake-range-overlay"
+        aria-label={label}
+        id={id}
+      />
+    </div>
+  );
+}
+
 export function KnowledgeStep({
   form,
   update,
@@ -153,19 +228,22 @@ export function KnowledgeStep({
       )}
 
       {questionIndex === 2 && (
-        <div className="intake-question-block intake-sliders-block intake-question-screen animate-intake-in">
-          <div className="intake-slider-row">
-            <div className="intake-slider-labels">
-              <label className="intake-question-label-sm">¿Qué tan sólida sientes que es tu comprensión financiera?</label>
-              <span className="intake-slider-value">{form.selfRatedUnderstanding}<span className="intake-slider-max">/10</span></span>
+        <div className="intake-question-block intake-question-screen animate-intake-in">
+          <label className="intake-question-label-sm">¿Qué tan sólida sientes que es tu comprensión financiera?</label>
+          <div className="intake-premium-slider-block">
+            <div className="intake-slider-meta">
+              <div className="intake-slider-number-group">
+                <span className="intake-slider-number intake-slider-number--blue">{form.selfRatedUnderstanding}</span>
+                <span className="intake-slider-denom">/10</span>
+              </div>
+              <span className="intake-slider-dynamic-label">{getKnowledgeLabel(form.selfRatedUnderstanding)}</span>
             </div>
-            <input
-              type="range"
-              min={0}
-              max={10}
+            <SegmentedSlider
               value={form.selfRatedUnderstanding}
-              onChange={(e) => update('selfRatedUnderstanding', Number(e.target.value))}
-              className="intake-range"
+              onChange={(v) => update('selfRatedUnderstanding', v)}
+              colorFn={getKnowledgeSegColor}
+              label="Nivel de comprensión financiera"
+              id="understanding-slider"
             />
             <div className="intake-range-labels">
               <span>Básica</span>
@@ -176,19 +254,25 @@ export function KnowledgeStep({
       )}
 
       {questionIndex === 3 && (
-        <div className="intake-question-block intake-sliders-block intake-question-screen animate-intake-in">
-          <div className="intake-slider-row">
-            <div className="intake-slider-labels">
-              <label className="intake-question-label-sm">¿Cuánto estrés te genera tu situación financiera hoy?</label>
-              <span className="intake-slider-value">{form.moneyStressLevel}<span className="intake-slider-max">/10</span></span>
+        <div className="intake-question-block intake-question-screen animate-intake-in">
+          <label className="intake-question-label-sm">¿Cuánto estrés te genera tu situación financiera hoy?</label>
+          <div className="intake-premium-slider-block">
+            <div className="intake-slider-meta">
+              <div className="intake-slider-number-group">
+                <span className="intake-slider-number intake-slider-number--stress"
+                  style={{ color: form.moneyStressLevel <= 3 ? 'rgba(89,176,196,0.9)' : form.moneyStressLevel <= 6 ? 'rgba(201,168,64,0.9)' : 'rgba(139,26,43,0.9)' }}>
+                  {form.moneyStressLevel}
+                </span>
+                <span className="intake-slider-denom">/10</span>
+              </div>
+              <span className="intake-slider-dynamic-label">{getStressLabel(form.moneyStressLevel)}</span>
             </div>
-            <input
-              type="range"
-              min={0}
-              max={10}
+            <SegmentedSlider
               value={form.moneyStressLevel}
-              onChange={(e) => update('moneyStressLevel', Number(e.target.value))}
-              className="intake-range intake-range-stress"
+              onChange={(v) => update('moneyStressLevel', v)}
+              colorFn={getStressSegColor}
+              label="Nivel de estrés financiero"
+              id="stress-slider"
             />
             <div className="intake-range-labels">
               <span>Sin estrés</span>

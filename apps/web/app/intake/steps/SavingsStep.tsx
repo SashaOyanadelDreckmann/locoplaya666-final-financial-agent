@@ -134,7 +134,7 @@ export function SavingsStep({
           </div>
           {form.hasDebt && (
             <p className="intake-debt-note animate-intake-in">
-              En el siguiente paso agregarás el detalle de tus productos financieros.
+              Conocer tu situación de deuda permite elaborar un plan de acción real y específico para ti.
             </p>
           )}
         </div>

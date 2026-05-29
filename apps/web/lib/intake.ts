@@ -12,7 +12,7 @@ export async function submitIntake(
   const csrfToken = getCsrfToken();
   const payload = {
     ...data,
-    financialProducts: data.financialProducts.filter((p) => p.product?.trim()),
+    financialProducts: (data.financialProducts ?? []).filter((p) => p.product?.trim()),
   };
 
   const res = await fetch(`${API_URL}/intake/submit`, {

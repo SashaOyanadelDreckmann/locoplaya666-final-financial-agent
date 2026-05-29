@@ -69,7 +69,7 @@ const IntakeRequestSchema = z.object({
     .optional(),
   exactSavingsAmount: z.number().optional(),
   hasDebt: z.boolean(),
-  financialProducts: z.array(FinancialProductEntrySchema),
+  financialProducts: z.array(FinancialProductEntrySchema).optional().default([]),
   financialKnowledge: FinancialKnowledgeChecklistSchema,
   riskReaction: z.enum(['sell', 'hold', 'buy_more', 'never_invest', 'other']),
   riskReactionOther: z.string().optional(),
