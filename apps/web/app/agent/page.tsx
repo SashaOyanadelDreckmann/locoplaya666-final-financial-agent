@@ -843,6 +843,7 @@ export default function AgentPage() {
   const panelLoopPausedRef = useRef(false);
   const panelLoopAutoTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const panelLoopResumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const disableMobilePanelHorizontalMotion = true;
   const [newReportId, setNewReportId] = useState<string | null>(null);
   const [isLandingRecents, setIsLandingRecents] = useState(false);
   const [panelCallout, setPanelCallout] = useState<{ section: string; message: string } | null>(null);
@@ -963,7 +964,7 @@ export default function AgentPage() {
 
   useEffect(() => {
     const el = panelGridRef.current;
-    if (!el || !isMobileViewport) return;
+    if (!el || !isMobileViewport || disableMobilePanelHorizontalMotion) return;
 
     const getMetrics = () => {
       const firstReal = el.querySelector<HTMLElement>('[data-loop-segment="real"][data-loop-origin="0"]');
@@ -1089,7 +1090,7 @@ export default function AgentPage() {
       panelLoopResumeTimerRef.current = null;
       panelLoopPausedRef.current = false;
     };
-  }, [isMobileViewport, panelStage, mobilePanelExpanded, savedReports.length]);
+  }, [isMobileViewport, panelStage, mobilePanelExpanded, savedReports.length, disableMobilePanelHorizontalMotion]);
 
   // Bloquear TODO scroll/bounce/swipe/zoom en la pagina del agente
   useEffect(() => {
@@ -4269,7 +4270,7 @@ export default function AgentPage() {
   const compactPanelCards = panelBaseCards;
 
   const panelRenderedCards =
-    isMobileViewport && !mobilePanelExpanded
+    isMobileViewport && !mobilePanelExpanded && !disableMobilePanelHorizontalMotion
       ? [
           ...compactPanelCards.map((card, index) =>
             React.cloneElement(card.node as ReactElement<Record<string, unknown>>, {
