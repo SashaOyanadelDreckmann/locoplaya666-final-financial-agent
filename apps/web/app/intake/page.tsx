@@ -112,7 +112,7 @@ export default function IntakePage() {
   const cssVars = { '--c-step': stepMeta.rgb } as React.CSSProperties;
 
   return (
-    <div className="intake-shell" style={cssVars}>
+    <div className="intake-shell" data-step={stepMeta.key} style={cssVars}>
       <div className="intake-bg-orb" aria-hidden />
 
       <header className="intake-topbar">
@@ -144,8 +144,8 @@ export default function IntakePage() {
         aria-label={stepMeta.title}
       >
         {step === 0 && <ContextStep form={form} update={update} onNext={nextStep} />}
-        {step === 1 && <CashflowStep form={form} update={update} onNext={nextStep} onBack={prevStep} />}
-        {step === 2 && <SavingsStep form={form} update={update} onNext={nextStep} onBack={prevStep} />}
+        {step === 1 && <CashflowStep form={form} update={update} onNext={nextStep} />}
+        {step === 2 && <SavingsStep form={form} update={update} onNext={nextStep} />}
         {step === 3 && (
           <KnowledgeStep
             form={form}

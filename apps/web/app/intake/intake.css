@@ -68,9 +68,14 @@
   );
   pointer-events: none;
   z-index: 1;
-  transition: background 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background 1.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.9s cubic-bezier(0.22, 0.68, 0, 1.2);
   filter: blur(20px);
 }
+
+.intake-shell[data-step="context"] .intake-bg-orb { transform: translate3d(-50%, 0, 0) scale(1.02) rotate(-1deg); }
+.intake-shell[data-step="cashflow"] .intake-bg-orb { transform: translate3d(-42%, 4%, 0) scale(1.12) rotate(2deg); }
+.intake-shell[data-step="savings"] .intake-bg-orb { transform: translate3d(-58%, 7%, 0) scale(0.95) rotate(-2deg); }
+.intake-shell[data-step="knowledge"] .intake-bg-orb { transform: translate3d(-47%, -3%, 0) scale(1.18) rotate(1.5deg); }
 
 /* Secondary depth orb — subtle inner glow */
 .intake-bg-orb::after {
@@ -231,6 +236,7 @@
   align-items: center;
   justify-content: center;
   padding: 94px 24px 34px;
+  perspective: 1200px;
 }
 
 /* ── Step ───────────────────────────────────────── */
@@ -240,7 +246,13 @@
   gap: 36px;
   width: 100%;
   max-width: 760px;
+  transition: transform 0.8s cubic-bezier(0.22, 0.68, 0, 1.1);
 }
+
+[data-step="context"] .intake-step { transform: rotateY(-2deg) translateZ(10px); }
+[data-step="cashflow"] .intake-step { transform: rotateY(1.5deg) translate3d(10px, 0, 20px); }
+[data-step="savings"] .intake-step { transform: rotateY(-1deg) translate3d(-8px, 0, 8px); }
+[data-step="knowledge"] .intake-step { transform: rotateY(2deg) translate3d(0, 0, 22px); }
 
 @keyframes intakeIn {
   from {
@@ -1096,6 +1108,24 @@ button {
 .intake-step-context .intake-next-btn:hover {
   transform: translateY(-1px);
   background: linear-gradient(180deg, rgba(226, 242, 255, 0.44), rgba(168, 212, 244, 0.3));
+}
+
+.intake-arrow-btn {
+  width: 44px;
+  min-height: 44px;
+  border-radius: 999px;
+  border: 1px solid rgba(183, 212, 236, 0.32);
+  background: rgba(12, 20, 31, 0.6);
+  color: rgba(237, 246, 253, 0.96);
+  font-size: 22px;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.intake-arrow-btn-next {
+  background: rgba(93, 167, 225, 0.22);
 }
 
 @media (max-width: 768px) {

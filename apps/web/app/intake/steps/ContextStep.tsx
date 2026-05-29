@@ -77,6 +77,7 @@ export function ContextStep({
                 onClick={() => {
                   update('age', opt.value);
                   setShowExact(false);
+                  setTimeout(() => onNextQuestion(), 120);
                 }}
                 aria-pressed={selectedAge?.value === opt.value}
               >
@@ -145,16 +146,17 @@ export function ContextStep({
       )}
 
       <div className="intake-footer">
-        {questionIndex > 0 && <button className="intake-back-btn" onClick={onPrevQuestion}>← Anterior</button>}
-        {canAdvance && (
+        {questionIndex === 2 && (
+          <button className="intake-arrow-btn" onClick={onPrevQuestion} aria-label="Anterior">←</button>
+        )}
+        {questionIndex === 2 && canAdvance && (
           <button
-            className="intake-next-btn focus-ring"
+            className="intake-arrow-btn intake-arrow-btn-next focus-ring"
             onClick={onNextQuestion}
             type="button"
             aria-label="Continuar al siguiente paso"
           >
-            {isLast ? 'Continuar al siguiente bloque' : 'Siguiente pregunta'}
-            <span className="intake-next-arrow">→</span>
+            →
           </button>
         )}
       </div>

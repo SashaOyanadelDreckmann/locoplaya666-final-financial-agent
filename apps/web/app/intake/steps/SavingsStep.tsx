@@ -14,38 +14,13 @@ export function SavingsStep({
   form,
   update,
   onNext,
-  onBack,
 }: {
   form: IntakeQuestionnaire;
   update: <K extends keyof IntakeQuestionnaire>(key: K, value: IntakeQuestionnaire[K]) => void;
   onNext: () => void;
-  onBack: () => void;
 }) {
   const [questionIndex, setQuestionIndex] = useState(0);
   const totalQuestions = 2;
-  const isLast = questionIndex === totalQuestions - 1;
-
-  const canContinueSavings =
-    form.hasSavingsOrInvestments === false ||
-    (form.hasSavingsOrInvestments === true && !!form.savingsBand);
-  const canContinueDebt = typeof form.hasDebt === 'boolean';
-  const canAdvance = (questionIndex === 0 && canContinueSavings) || (questionIndex === 1 && canContinueDebt);
-
-  const onNextQuestion = () => {
-    if (isLast) {
-      onNext();
-      return;
-    }
-    setQuestionIndex((prev) => Math.min(prev + 1, totalQuestions - 1));
-  };
-
-  const onBackQuestion = () => {
-    if (questionIndex === 0) {
-      onBack();
-      return;
-    }
-    setQuestionIndex((prev) => Math.max(prev - 1, 0));
-  };
 
   return (
     <div className="intake-step animate-intake-in">
@@ -77,6 +52,7 @@ export function SavingsStep({
               onClick={() => {
                 update('hasSavingsOrInvestments', false);
                 update('savingsBand', undefined as any);
+                setTimeout(() => setQuestionIndex(1), 120);
               }}
             >
               Todavía no
@@ -91,7 +67,10 @@ export function SavingsStep({
                     key={opt.value!}
                     type="button"
                     className={`intake-chip${form.savingsBand === opt.value ? ' is-selected' : ''}`}
-                    onClick={() => update('savingsBand', opt.value)}
+                    onClick={() => {
+                      update('savingsBand', opt.value);
+                      setTimeout(() => setQuestionIndex(1), 120);
+                    }}
                   >
                     {opt.label}
                   </button>
@@ -120,14 +99,20 @@ export function SavingsStep({
             <button
               type="button"
               className={`intake-chip intake-chip-yesno${form.hasDebt === true ? ' is-selected is-caution' : ''}`}
-              onClick={() => update('hasDebt', true)}
+              onClick={() => {
+                update('hasDebt', true);
+                setTimeout(() => onNext(), 120);
+              }}
             >
               Sí, tengo deudas
             </button>
             <button
               type="button"
               className={`intake-chip intake-chip-yesno${form.hasDebt === false ? ' is-selected' : ''}`}
-              onClick={() => update('hasDebt', false)}
+              onClick={() => {
+                update('hasDebt', false);
+                setTimeout(() => onNext(), 120);
+              }}
             >
               Sin deudas activas
             </button>
@@ -140,14 +125,7 @@ export function SavingsStep({
         </div>
       )}
 
-      <div className="intake-footer">
-        <button className="intake-back-btn" onClick={onBackQuestion}>← Anterior</button>
-        {canAdvance && (
-          <button className="intake-next-btn" onClick={onNextQuestion}>
-            {isLast ? 'Continuar al siguiente bloque' : 'Siguiente pregunta'} <span className="intake-next-arrow">→</span>
-          </button>
-        )}
-      </div>
+      <div className="intake-footer" />
     </div>
   );
 }

@@ -30,37 +30,13 @@ export function CashflowStep({
   form,
   update,
   onNext,
-  onBack,
 }: {
   form: IntakeQuestionnaire;
   update: <K extends keyof IntakeQuestionnaire>(key: K, value: IntakeQuestionnaire[K]) => void;
   onNext: () => void;
-  onBack: () => void;
 }) {
   const [questionIndex, setQuestionIndex] = useState(0);
   const totalQuestions = 3;
-  const isLast = questionIndex === totalQuestions - 1;
-
-  const canAdvance =
-    (questionIndex === 0 && Boolean(form.incomeBand)) ||
-    (questionIndex === 1 && Boolean(form.expensesCoverage)) ||
-    (questionIndex === 2 && Boolean(form.tracksExpenses));
-
-  const onNextQuestion = () => {
-    if (isLast) {
-      onNext();
-      return;
-    }
-    setQuestionIndex((prev) => Math.min(prev + 1, totalQuestions - 1));
-  };
-
-  const onBackQuestion = () => {
-    if (questionIndex === 0) {
-      onBack();
-      return;
-    }
-    setQuestionIndex((prev) => Math.max(prev - 1, 0));
-  };
 
   return (
     <div className="intake-step animate-intake-in">
@@ -83,7 +59,10 @@ export function CashflowStep({
                 key={opt.value}
                 type="button"
                 className={`intake-chip intake-chip-wide${form.incomeBand === opt.value ? ' is-selected' : ''}`}
-                onClick={() => update('incomeBand', opt.value)}
+                onClick={() => {
+                  update('incomeBand', opt.value);
+                  setTimeout(() => setQuestionIndex(1), 120);
+                }}
               >
                 <span className="intake-chip-main">{opt.label}</span>
                 <span className="intake-chip-sub">{opt.sub}</span>
@@ -114,7 +93,10 @@ export function CashflowStep({
                 key={opt.value}
                 type="button"
                 className={`intake-chip intake-chip-wide${form.expensesCoverage === opt.value ? ' is-selected' : ''}`}
-                onClick={() => update('expensesCoverage', opt.value)}
+                onClick={() => {
+                  update('expensesCoverage', opt.value);
+                  setTimeout(() => setQuestionIndex(2), 120);
+                }}
               >
                 <span className="intake-chip-main">{opt.label}</span>
                 <span className="intake-chip-sub">{opt.sub}</span>
@@ -133,7 +115,10 @@ export function CashflowStep({
                 key={opt.value}
                 type="button"
                 className={`intake-chip${form.tracksExpenses === opt.value ? ' is-selected' : ''}`}
-                onClick={() => update('tracksExpenses', opt.value)}
+                onClick={() => {
+                  update('tracksExpenses', opt.value);
+                  setTimeout(() => onNext(), 120);
+                }}
               >
                 {opt.label}
               </button>
@@ -142,14 +127,7 @@ export function CashflowStep({
         </div>
       )}
 
-      <div className="intake-footer">
-        <button className="intake-back-btn" onClick={onBackQuestion}>← Anterior</button>
-        {canAdvance && (
-          <button className="intake-next-btn" onClick={onNextQuestion}>
-            {isLast ? 'Continuar al siguiente bloque' : 'Siguiente pregunta'} <span className="intake-next-arrow">→</span>
-          </button>
-        )}
-      </div>
+      <div className="intake-footer" />
     </div>
   );
 }
