@@ -279,10 +279,6 @@ export function estimateBaseKnowledgeScore(profile: any): number {
     score += profile.intake.selfRatedUnderstanding * 6; // 0-60 points
   }
 
-  // Financial products owned
-  const productsCount = profile?.intake?.financialProducts?.length ?? 0;
-  score += Math.min(productsCount * 3, 15); // 0-15 points
-
   // Financial knowledge checklist
   if (profile?.intake?.financialKnowledge) {
     const knownTopics = Object.values(profile.intake.financialKnowledge).filter(

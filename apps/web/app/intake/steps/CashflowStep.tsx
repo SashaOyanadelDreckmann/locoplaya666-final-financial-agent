@@ -76,7 +76,7 @@ export function CashflowStep({
 
       {questionIndex === 0 && (
         <div className="intake-question-block intake-question-screen animate-intake-in">
-          <label className="intake-question-label">¿Cuánto ingresas al mes, aproximadamente?</label>
+          <label className="intake-question-label">¿Cuánto <span className="kw-sky">ingresas</span> al mes, aproximadamente?</label>
           <div className="intake-chips intake-chips-grid">
             {INCOME_OPTIONS.map((opt) => (
               <button
@@ -107,7 +107,7 @@ export function CashflowStep({
 
       {questionIndex === 1 && (
         <div className="intake-question-block intake-question-screen animate-intake-in">
-          <label className="intake-question-label">¿Tus ingresos cubren tus gastos mensuales?</label>
+          <label className="intake-question-label">¿Tus ingresos <span className="kw-sky">cubren</span> tus gastos mensuales?</label>
           <div className="intake-chips">
             {COVERAGE_OPTIONS.map((opt) => (
               <button
@@ -126,7 +126,7 @@ export function CashflowStep({
 
       {questionIndex === 2 && (
         <div className="intake-question-block intake-question-screen animate-intake-in">
-          <label className="intake-question-label">¿Registras o monitoreas tus gastos?</label>
+          <label className="intake-question-label">¿<span className="kw-sky">Registras</span> o monitoreas tus gastos?</label>
           <div className="intake-chips">
             {TRACKING_OPTIONS.map((opt) => (
               <button

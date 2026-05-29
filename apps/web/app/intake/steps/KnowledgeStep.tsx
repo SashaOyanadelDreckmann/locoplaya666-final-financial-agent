@@ -60,49 +60,45 @@ function getStressLabel(v: number): string {
   return 'Muy alto';
 }
 
-function getKnowledgeSegColor(i: number, value: number): string {
-  if (i > value) return 'rgba(255,255,255,0.07)';
-  const intensity = 0.45 + (i / 10) * 0.55;
-  return `rgba(44, 111, 172, ${intensity.toFixed(2)})`;
+function getStressFillColor(v: number): string {
+  if (v <= 3) return '89, 176, 196';
+  if (v <= 6) return '201, 168, 64';
+  return '139, 26, 43';
 }
 
-function getStressSegColor(i: number, value: number): string {
-  if (i > value) return 'rgba(255,255,255,0.07)';
-  if (i <= 3) return 'rgba(89, 176, 196, 0.88)';
-  if (i <= 6) return 'rgba(201, 168, 64, 0.88)';
-  return 'rgba(139, 26, 43, 0.92)';
-}
-
-function SegmentedSlider({
+function PremiumSlider({
   value,
   onChange,
-  colorFn,
+  fillColor,
   label,
   id,
 }: {
   value: number;
   onChange: (v: number) => void;
-  colorFn: (i: number, value: number) => string;
+  fillColor: string;
   label: string;
   id: string;
 }) {
+  const pct = (value / 10) * 100;
+
   return (
-    <div className="intake-seg-slider-wrapper" role="group" aria-labelledby={id}>
-      <div className="intake-seg-bar" aria-hidden>
-        {Array.from({ length: 11 }, (_, i) => {
-          const height = 35 + (i / 10) * 65;
-          return (
-            <div
-              key={i}
-              className="intake-seg-bar-item"
-              style={{
-                height: `${height}%`,
-                backgroundColor: colorFn(i, value),
-                transition: 'background-color 0.18s ease',
-              }}
-            />
-          );
-        })}
+    <div className="intake-track-slider-wrapper" role="group" aria-labelledby={id}>
+      <div className="intake-track-rail" aria-hidden>
+        <div
+          className="intake-track-fill"
+          style={{
+            width: `${pct}%`,
+            background: `rgba(${fillColor}, 0.85)`,
+            boxShadow: `0 0 10px rgba(${fillColor}, 0.40)`,
+          }}
+        />
+        <div
+          className="intake-track-dot"
+          style={{
+            left: `${pct}%`,
+            boxShadow: `0 0 0 5px rgba(${fillColor}, 0.18), 0 2px 14px rgba(0,0,0,0.40)`,
+          }}
+        />
       </div>
       <input
         type="range"
@@ -175,7 +171,7 @@ export function KnowledgeStep({
       {questionIndex === 0 && (
         <div className="intake-question-block intake-question-screen animate-intake-in">
           <label className="intake-question-label">
-            ¿Qué conceptos financieros manejas?
+            ¿Qué <span className="kw-wine">conceptos financieros</span> manejas?
             {totalSelected > 0 && <span className="intake-badge">{totalSelected} seleccionados</span>}
           </label>
           {KNOWLEDGE_GROUPS.map((group) => (
@@ -200,7 +196,9 @@ export function KnowledgeStep({
 
       {questionIndex === 1 && (
         <div className="intake-question-block intake-question-screen animate-intake-in">
-          <label className="intake-question-label">Tu inversión cae 30% en un mes. ¿Qué haces?</label>
+          <label className="intake-question-label">
+            Tu inversión <span className="kw-wine">cae 30%</span> en un mes. ¿Qué haces?
+          </label>
           <div className="intake-chips intake-chips-grid">
             {RISK_OPTIONS.map((opt) => (
               <button
@@ -229,7 +227,9 @@ export function KnowledgeStep({
 
       {questionIndex === 2 && (
         <div className="intake-question-block intake-question-screen animate-intake-in">
-          <label className="intake-question-label-sm">¿Qué tan sólida sientes que es tu comprensión financiera?</label>
+          <label id="understanding-slider" className="intake-question-label-sm">
+            ¿Qué tan sólida sientes que es tu <span className="kw-blue">comprensión financiera</span>?
+          </label>
           <div className="intake-premium-slider-block">
             <div className="intake-slider-meta">
               <div className="intake-slider-number-group">
@@ -238,10 +238,10 @@ export function KnowledgeStep({
               </div>
               <span className="intake-slider-dynamic-label">{getKnowledgeLabel(form.selfRatedUnderstanding)}</span>
             </div>
-            <SegmentedSlider
+            <PremiumSlider
               value={form.selfRatedUnderstanding}
               onChange={(v) => update('selfRatedUnderstanding', v)}
-              colorFn={getKnowledgeSegColor}
+              fillColor="44, 111, 172"
               label="Nivel de comprensión financiera"
               id="understanding-slider"
             />
@@ -255,28 +255,38 @@ export function KnowledgeStep({
 
       {questionIndex === 3 && (
         <div className="intake-question-block intake-question-screen animate-intake-in">
-          <label className="intake-question-label-sm">¿Cuánto estrés te genera tu situación financiera hoy?</label>
+          <label id="stress-slider" className="intake-question-label-sm">
+            ¿Cuánto <span className="kw-wine">estrés</span> te genera tu situación financiera hoy?
+          </label>
           <div className="intake-premium-slider-block">
             <div className="intake-slider-meta">
               <div className="intake-slider-number-group">
-                <span className="intake-slider-number intake-slider-number--stress"
-                  style={{ color: form.moneyStressLevel <= 3 ? 'rgba(89,176,196,0.9)' : form.moneyStressLevel <= 6 ? 'rgba(201,168,64,0.9)' : 'rgba(139,26,43,0.9)' }}>
+                <span
+                  className="intake-slider-number intake-slider-number--stress"
+                  style={{
+                    color: form.moneyStressLevel <= 3
+                      ? 'rgba(89,176,196,0.90)'
+                      : form.moneyStressLevel <= 6
+                        ? 'rgba(201,168,64,0.90)'
+                        : 'rgba(139,26,43,0.92)',
+                  }}
+                >
                   {form.moneyStressLevel}
                 </span>
                 <span className="intake-slider-denom">/10</span>
               </div>
               <span className="intake-slider-dynamic-label">{getStressLabel(form.moneyStressLevel)}</span>
             </div>
-            <SegmentedSlider
+            <PremiumSlider
               value={form.moneyStressLevel}
               onChange={(v) => update('moneyStressLevel', v)}
-              colorFn={getStressSegColor}
+              fillColor={getStressFillColor(form.moneyStressLevel)}
               label="Nivel de estrés financiero"
               id="stress-slider"
             />
             <div className="intake-range-labels">
               <span>Sin estrés</span>
-              <span>Muy estresado</span>
+              <span>Muy alto</span>
             </div>
           </div>
         </div>

@@ -45,15 +45,6 @@ export type RiskReaction =
   | 'never_invest'
   | 'other';
 
-export interface FinancialProductEntry {
-  product: string;
-  institution?: string;
-  notes?: string;
-  acquisitionCost?: number;
-  monthlyCost?: number;
-  anualCost?: number;
-}
-
 export interface FinancialKnowledgeChecklist {
   interest: boolean;
   CAE: boolean;
@@ -89,8 +80,6 @@ export interface IntakeQuestionnaire {
   exactSavingsAmount?: number;
 
   hasDebt: boolean;
-
-  financialProducts?: FinancialProductEntry[];
 
   financialKnowledge: FinancialKnowledgeChecklist;
 

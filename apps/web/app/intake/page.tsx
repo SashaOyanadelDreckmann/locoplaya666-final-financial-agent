@@ -37,7 +37,6 @@ const INITIAL_FORM: IntakeQuestionnaire = {
   savingsBand: undefined,
   exactSavingsAmount: undefined,
   hasDebt: false,
-  financialProducts: [],
   financialKnowledge: {
     interest: false, inflation: false, creditCard: false,
     creditLine: false, loanComponents: false, interestRate: false,

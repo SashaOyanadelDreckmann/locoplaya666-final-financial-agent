@@ -189,18 +189,7 @@ function inferLikelyDebtChoices(intake: JsonRecord | null): string[] | null {
     return ['No tengo deudas activas', 'Solo tarjeta de crédito', 'Crédito de consumo', 'Prefiero explicar'];
   }
 
-  const products = Array.isArray(intake.financialProducts) ? intake.financialProducts : [];
-  const labels = products
-    .map((p) => (isObject(p) && typeof p.product === 'string' ? p.product.toLowerCase() : ''))
-    .filter(Boolean);
-  const inferred: string[] = [];
-  if (labels.some((p) => /tarjeta|credit/.test(p))) inferred.push('Tarjeta de crédito');
-  if (labels.some((p) => /consumo|personal/.test(p))) inferred.push('Crédito de consumo');
-  if (labels.some((p) => /hipotec/.test(p))) inferred.push('Crédito hipotecario');
-  if (labels.some((p) => /auto|automot/.test(p))) inferred.push('Crédito automotriz');
-  if (inferred.length === 0) return null;
-  while (inferred.length < 4) inferred.push(['Línea de crédito', 'CAE', 'Otra deuda', 'Prefiero explicar'][inferred.length - 1] ?? 'Prefiero explicar');
-  return inferred.slice(0, 4);
+  return null;
 }
 
 function inferLikelySavingsChoices(intake: JsonRecord | null): string[] | null {

@@ -42,7 +42,6 @@ describe('Coherence Validation', () => {
     hasSavingsOrInvestments: true,
     exactSavingsAmount: 15000000,
     hasDebt: false,
-    financialProducts: [],
     financialKnowledge: {
       interest: true,
       CAE: true,
