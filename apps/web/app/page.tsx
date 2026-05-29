@@ -1,10 +1,20 @@
 'use client';
 
+import { useEffect } from 'react';
 import Link from 'next/link';
 import { TypewriterText } from '@/components/ui/TypewriterText';
 import { HOME_ASCII_MASCOT } from './brand';
 
 export default function HomePage() {
+  useEffect(() => {
+    document.documentElement.classList.add('home-lock');
+    document.body.classList.add('home-lock');
+    return () => {
+      document.documentElement.classList.remove('home-lock');
+      document.body.classList.remove('home-lock');
+    };
+  }, []);
+
   return (
     <main className="home-essence">
       <div className="home-essence__ambient" aria-hidden />

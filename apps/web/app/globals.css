@@ -904,6 +904,13 @@ button {
   --home-paper: #f4f1e7;
 }
 
+html.home-lock,
+body.home-lock {
+  overflow: hidden !important;
+  overscroll-behavior-x: none !important;
+  touch-action: pan-y !important;
+}
+
 .home-essence::after {
   content: '';
   position: fixed;
@@ -1375,6 +1382,13 @@ button {
     touch-action: manipulation;
   }
 
+  .home-essence,
+  .home-essence__content {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
   .home-essence__brand-lockup {
     flex-direction: column;
     align-items: center;
@@ -1471,11 +1485,11 @@ button {
 
   .home-essence__art {
     z-index: 3;
-    right: -10px;
-    bottom: 86px;
-    width: 176px;
-    max-height: 244px;
-    opacity: 0.44;
+    right: 10px;
+    bottom: 136px;
+    width: 86px;
+    max-height: 118px;
+    opacity: 0.32;
     filter: drop-shadow(0 10px 18px rgba(0,0,0,0.18));
     mask-image: none;
     -webkit-mask-image: none;
