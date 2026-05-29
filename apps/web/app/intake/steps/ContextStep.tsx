@@ -36,7 +36,6 @@ export function ContextStep({
   );
 
   const canContinueAge = typeof form.age === 'number' && form.age > 0;
-  const canContinueEmployment = Boolean(form.employmentStatus);
   const totalQuestions = 3;
   const isLast = questionIndex === totalQuestions - 1;
 
@@ -47,12 +46,6 @@ export function ContextStep({
     }
     setQuestionIndex((prev) => Math.min(prev + 1, totalQuestions - 1));
   };
-
-  const onPrevQuestion = () => setQuestionIndex((prev) => Math.max(prev - 1, 0));
-  const canAdvance =
-    (questionIndex === 0 && canContinueAge) ||
-    (questionIndex === 1 && canContinueEmployment) ||
-    questionIndex === 2;
 
   return (
     <div className="intake-step intake-step-context animate-intake-in">
@@ -149,15 +142,12 @@ export function ContextStep({
       )}
 
       <div className="intake-footer">
-        {questionIndex === 2 && (
-          <button className="intake-arrow-btn" onClick={onPrevQuestion} aria-label="Anterior">←</button>
-        )}
-        {questionIndex === 2 && canAdvance && (
+        {((questionIndex === 0 && showExact && canContinueAge) || questionIndex === 2) && (
           <button
-            className="intake-arrow-btn intake-arrow-btn-next focus-ring"
+            className="intake-nav-arrow focus-ring"
             onClick={onNextQuestion}
             type="button"
-            aria-label="Continuar al siguiente paso"
+            aria-label="Continuar"
           >
             →
           </button>

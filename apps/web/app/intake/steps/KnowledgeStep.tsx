@@ -61,9 +61,9 @@ function getStressLabel(v: number): string {
 }
 
 function getStressFillColor(v: number): string {
-  if (v <= 3) return '89, 176, 196';
-  if (v <= 6) return '201, 168, 64';
-  return '139, 26, 43';
+  if (v <= 3) return '124, 160, 170';
+  if (v <= 6) return '182, 162, 116';
+  return '172, 118, 130';
 }
 
 function PremiumSlider({
@@ -246,7 +246,7 @@ export function KnowledgeStep({
             <PremiumSlider
               value={form.selfRatedUnderstanding}
               onChange={(v) => update('selfRatedUnderstanding', v)}
-              fillColor="44, 111, 172"
+              fillColor="116, 146, 180"
               label="Nivel de comprensión financiera"
               id="understanding-slider"
             />
@@ -270,10 +270,10 @@ export function KnowledgeStep({
                   className="intake-slider-number intake-slider-number--stress"
                   style={{
                     color: form.moneyStressLevel <= 3
-                      ? 'rgba(89,176,196,0.90)'
+                      ? 'rgb(124,160,170)'
                       : form.moneyStressLevel <= 6
-                        ? 'rgba(201,168,64,0.90)'
-                        : 'rgba(139,26,43,0.92)',
+                        ? 'rgb(182,162,116)'
+                        : 'rgb(172,118,130)',
                   }}
                 >
                   {form.moneyStressLevel}
@@ -298,7 +298,14 @@ export function KnowledgeStep({
       )}
 
       <div className="intake-footer">
-        <button className="intake-back-btn" onClick={onBackQuestion}>← Anterior</button>
+        <button
+          className="intake-nav-arrow"
+          onClick={onBackQuestion}
+          type="button"
+          aria-label="Anterior"
+        >
+          ←
+        </button>
         <button
           className="intake-submit-btn"
           type="button"
@@ -311,7 +318,7 @@ export function KnowledgeStep({
               Preparando tu perfil
             </span>
           ) : (
-            <>{isLast ? 'Comenzar mi asesoría personalizada →' : 'Siguiente pregunta →'}</>
+            <>{isLast ? 'Comenzar mi asesoría →' : 'Siguiente →'}</>
           )}
         </button>
       </div>
