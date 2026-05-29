@@ -1,6 +1,6 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import React, { useEffect, useMemo, useRef, useState, type ReactElement, type ReactNode } from 'react';
 import 'katex/dist/katex.min.css';
 
@@ -8,6 +8,7 @@ import { getSessionId } from '@/lib/session';
 import { sendToAgent } from '@/lib/agent';
 import { useInterviewStore } from '@/state/interview.store';
 import { useProfileStore } from '@/state/profile.store';
+import { useSessionStore } from '@/state/session.store';
 import {
   getSessionInfo,
   logoutUser,
@@ -20,17 +21,27 @@ import {
   savePanelState,
   getWelcomeMessage,
   parseDocuments,
+  mergeProductsContextToIntake,
 } from '@/lib/api';
 import { ApiHttpError } from '@/lib/apiEnvelope';
 import { toUserFacingError } from '@/lib/userError';
+import secureStorage from '@/lib/secureStorage';
+import { clearCsrfToken } from '@/lib/csrf';
 import {
-  buildInitialAgentSuggestions,
+  INTERVIEW_UI_STATE_KEY,
+  clearInterviewVoiceState,
+  readInterviewVoiceState,
+} from '@/lib/interviewVoiceState';
+import {
   buildProductCardDescriptor,
   buildTransactionIntelligence,
   firstNameOf,
   inferInstitutionFromText,
   inferProductTypeFromText,
+  dedupeConsecutiveAssistantMessages,
   resolveDocumentUrl,
+  resolveUnlockedChatIds,
+  hasAssistantMessage,
   sanitizeChatItems,
   sanitizeMessageText,
 } from './page.utils';
@@ -42,6 +53,7 @@ import type {
 } from '@/lib/agent.response.types';
 import { toChatItemsFromAgentResponse } from '@/lib/agent.response.types';
 import { BudgetModal, QuestionnaireModal, TransactionsModal } from './modals';
+import { InterviewModal } from './InterviewModal';
 import { SidePanels } from './side-panels';
 import { ChatThreadView } from './chat-thread-view';
 import { ChatHeader } from './chat-header';
@@ -59,6 +71,7 @@ type SavedReport = {
   title: string;
   group: ReportGroup;
   fileUrl: string;
+  previewImageUrl?: string;
   createdAt: string;
 };
 
@@ -67,18 +80,83 @@ type BudgetRow = {
   category: string;
   type: 'income' | 'expense';
   amount: number;
-  note: string;
+  parentId?: string;
+  product?: string;
+  institution?: string;
+  note?: string;
 };
 
 type BankProduct = {
   id: string;
   label: string;
   bank: string;
+  productType: 'credit_card' | 'debit_account' | 'checking_account' | 'savings_account' | 'consumer_loan' | 'mortgage' | 'investment_account';
   simulationAccepted: boolean;
   connected: boolean;
   randomMode: boolean;
   uploadedFiles: string[];
-  parsedDocuments: Array<{ name: string; text: string }>;
+  parsedDocuments: Array<{
+    name: string;
+    text: string;
+    summary?: unknown;
+    structuredData?: unknown;
+    insight?: {
+      format?: string;
+      reliability?: number;
+      extracted_rows?: number;
+      key_findings?: string[];
+    };
+  }>;
+  dashboard?: {
+    period?: { from?: string; to?: string };
+    currency?: string;
+    keyMetrics?: {
+      inflows_total: number;
+      outflows_total: number;
+      net_flow: number;
+      avg_movement: number;
+      movement_count: number;
+      median_movement?: number;
+      p90_movement?: number;
+      max_income?: number;
+      max_expense?: number;
+      expense_to_income_ratio?: number;
+      table_rows_processed?: number;
+      movement_coverage_pct?: number;
+    };
+    topCategories?: Array<{ name: string; amount: number }>;
+    categoryExamples?: Array<{ name: string; amount: number; examples: string[] }>;
+    spendClusters?: Array<{
+      name: string;
+      amount: number;
+      tx_count: number;
+      avg_ticket: number;
+      share_pct: number;
+      examples: string[];
+    }>;
+    topExpenses?: Array<{ label: string; amount: number; date?: string }>;
+    topIncome?: Array<{ label: string; amount: number; date?: string }>;
+    alerts?: string[];
+    alertDetails?: Array<{ title: string; severity: 'high' | 'medium' | 'low'; reason: string }>;
+    opportunities?: string[];
+    metricExplanations?: Array<{ metric: string; value: string; explanation: string }>;
+    movements?: Array<{
+      date?: string;
+      description: string;
+      amount: number;
+      direction: 'expense' | 'income';
+      source_line?: string;
+    }>;
+    summary?: string;
+  };
+};
+
+type CanonicalMovement = {
+  date?: string;
+  description: string;
+  amount: number;
+  direction: 'expense' | 'income';
+  source_line?: string;
 };
 
 type BankSimulation = {
@@ -88,8 +166,21 @@ type BankSimulation = {
   connected: boolean;
   randomMode: boolean;
   uploadedFiles: string[];
-  parsedDocuments: Array<{ name: string; text: string }>;
+  parsedDocuments: Array<{
+    name: string;
+    text: string;
+    summary?: unknown;
+    structuredData?: unknown;
+    insight?: {
+      format?: string;
+      reliability?: number;
+      extracted_rows?: number;
+      key_findings?: string[];
+    };
+  }>;
 };
+
+type ParsedBankDocument = BankSimulation['parsedDocuments'][number];
 
 type DocFlight = {
   id: string;
@@ -111,7 +202,7 @@ type ChatThread = {
   draft: string;
   status: 'active' | 'context';
   contextScore: number;      // 0-100, agent-driven
-  userMessageCount: number;  // track for 70-msg limit
+  userMessageCount: number;  // local counter for UX telemetry
   createdAt: string;
   completedAt?: string;
 };
@@ -144,29 +235,96 @@ const CHAT_GAME_INSTRUCTION =
 const FALLBACK_WELCOME =
   'Ya tengo una lectura inicial de tu situación. Podemos partir por ordenar el flujo, revisar riesgos y definir el primer movimiento útil.';
 
-const DEFAULT_BUDGET_ROWS: BudgetRow[] = [
-  {
-    id: 'income-salary',
-    category: 'Sueldo liquido',
-    type: 'income',
-    amount: 0,
-    note: '',
-  },
-  {
-    id: 'expense-rent',
-    category: 'Vivienda / arriendo',
-    type: 'expense',
-    amount: 0,
-    note: '',
-  },
-  {
-    id: 'expense-food',
-    category: 'Alimentacion',
-    type: 'expense',
-    amount: 0,
-    note: '',
-  },
-];
+function createBudgetStarterRows(): BudgetRow[] {
+  return [
+    {
+      id: 'income_salary',
+      category: 'Sueldo líquido',
+      type: 'income',
+      amount: 0,
+      product: 'Ingresos principales',
+      institution: '',
+    },
+    {
+      id: 'expense_rent',
+      category: 'Arriendo / vivienda',
+      type: 'expense',
+      amount: 0,
+      product: 'Vivienda',
+      institution: '',
+    },
+    {
+      id: 'expense_food',
+      category: 'Alimentación',
+      type: 'expense',
+      amount: 0,
+      product: 'Gasto recurrente',
+      institution: '',
+    },
+    {
+      id: 'expense_transport',
+      category: 'Transporte',
+      type: 'expense',
+      amount: 0,
+      product: 'Movilidad',
+      institution: '',
+    },
+    {
+      id: 'expense_services',
+      category: 'Servicios básicos',
+      type: 'expense',
+      amount: 0,
+      product: 'Hogar',
+      institution: '',
+    },
+    {
+      id: 'expense_debt',
+      category: 'Deuda / cuotas',
+      type: 'expense',
+      amount: 0,
+      product: 'Crédito',
+      institution: '',
+    },
+    {
+      id: 'expense_savings',
+      category: 'Ahorro / inversión',
+      type: 'expense',
+      amount: 0,
+      product: 'Ahorro',
+      institution: '',
+    },
+    {
+      id: 'expense_other',
+      category: 'Otros gastos',
+      type: 'expense',
+      amount: 0,
+      product: 'Variables',
+      institution: '',
+    },
+  ];
+}
+
+const DEFAULT_BUDGET_ROWS: BudgetRow[] = createBudgetStarterRows();
+
+const BUDGET_ROW_ID_ALIASES: Record<string, string> = {
+  'income-salary': 'income_salary',
+  'expense-rent': 'expense_rent',
+  'expense-food': 'expense_food',
+  'expense-transport': 'expense_transport',
+  'expense-services': 'expense_services',
+  'expense-debt': 'expense_debt',
+  'expense-savings': 'expense_savings',
+  'expense-other': 'expense_other',
+};
+
+function canonicalBudgetRowId(id: string) {
+  return BUDGET_ROW_ID_ALIASES[id] ?? id;
+}
+
+function normalizeBudgetRow(row: BudgetRow): BudgetRow {
+  const normalizedId = canonicalBudgetRowId(row.id);
+  return normalizedId === row.id ? row : { ...row, id: normalizedId };
+}
 
 const DEFAULT_BANK_SIMULATION: BankSimulation = {
   products: [],
@@ -178,18 +336,208 @@ const DEFAULT_BANK_SIMULATION: BankSimulation = {
   parsedDocuments: [],
 };
 
+const PANEL_STATE_BACKUP_KEY_PREFIX = 'agent.panel.backup.v1';
+function normalizeBackupUserKey(input: unknown): string {
+  const raw = String(input ?? '').trim().toLowerCase();
+  if (!raw) return 'guest';
+  return raw.replace(/[^a-z0-9@._-]/g, '_').slice(0, 120) || 'guest';
+}
+
+function panelStateBackupKeyForUser(input: unknown): string {
+  return `${PANEL_STATE_BACKUP_KEY_PREFIX}:${normalizeBackupUserKey(input)}`;
+}
+
+function clearAllPanelStateBackups(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    Object.keys(localStorage).forEach((key) => {
+      if (key === PANEL_STATE_BACKUP_KEY_PREFIX || key.startsWith(`${PANEL_STATE_BACKUP_KEY_PREFIX}:`)) {
+        localStorage.removeItem(key);
+      }
+    });
+  } catch {}
+}
+function aggregateParsedDocuments(products: BankProduct[]): ParsedBankDocument[] {
+  const docsByKey = new Map<string, ParsedBankDocument>();
+  for (const product of products) {
+    for (const doc of product.parsedDocuments ?? []) {
+      const key = `${product.id}:${doc.name}`;
+      docsByKey.set(key, doc);
+    }
+  }
+  return Array.from(docsByKey.values());
+}
+
+function aggregateUploadedFiles(products: BankProduct[]): string[] {
+  return Array.from(new Set(products.flatMap((product) => product.uploadedFiles ?? [])));
+}
+
+function aggregateCanonicalMovements(products: BankProduct[]) {
+  const dedup = new Map<string, CanonicalMovement>();
+  for (const product of products) {
+    for (const movement of product.dashboard?.movements ?? []) {
+      const key = [
+        movement.direction,
+        String(movement.date ?? ''),
+        String(movement.description ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''),
+        Math.round(Number(movement.amount) || 0),
+      ].join('|');
+      if (!dedup.has(key)) dedup.set(key, movement);
+    }
+  }
+  return Array.from(dedup.values());
+}
+
+function buildScopedTransactionsContext(products: BankProduct[], activeProductId: string | null) {
+  const activeProduct = activeProductId
+    ? products.find((product) => product.id === activeProductId) ?? null
+    : null;
+
+  const productsIndex = products.slice(0, 20).map((product) => ({
+    id: product.id,
+    label: product.label,
+    bank: product.bank,
+    productType: product.productType,
+    connected: product.connected,
+    uploadedFilesCount: product.uploadedFiles?.length ?? 0,
+    parsedDocumentsCount: product.parsedDocuments?.length ?? 0,
+    movementCount: product.dashboard?.keyMetrics?.movement_count ?? 0,
+    inflowsTotal: product.dashboard?.keyMetrics?.inflows_total ?? 0,
+    outflowsTotal: product.dashboard?.keyMetrics?.outflows_total ?? 0,
+    netFlow: product.dashboard?.keyMetrics?.net_flow ?? 0,
+  }));
+
+  return {
+    activeProduct,
+    productsIndex,
+    scopedUploadedDocuments: (activeProduct?.parsedDocuments ?? []).slice(-3),
+    scopedUploadedEvidenceFiles: (activeProduct?.uploadedFiles ?? []).slice(-6),
+  };
+}
+
+function buildPersistableProductsContext(products: BankProduct[], activeProductId: string | null) {
+  const activeProduct = activeProductId
+    ? products.find((product) => product.id === activeProductId) ?? null
+    : products.find((product) => product.connected) ?? products[0] ?? null;
+  const allMovements = aggregateCanonicalMovements(products);
+  const uploadedFiles = aggregateUploadedFiles(products).slice(0, 50);
+  const productsPayload = products.slice(0, 20).map((product) => ({
+    id: product.id,
+    label: product.label,
+    bank: product.bank,
+    productType: product.productType,
+    dashboardSummary: product.dashboard?.summary,
+    period: product.dashboard?.period,
+    keyMetrics: product.dashboard?.keyMetrics,
+    topCategories: product.dashboard?.topCategories?.slice(0, 10),
+    topIncome: product.dashboard?.topIncome?.slice(0, 10),
+    topExpenses: product.dashboard?.topExpenses?.slice(0, 10),
+    alerts: product.dashboard?.alerts?.slice(0, 10),
+    movements: product.dashboard?.movements?.slice(0, 80) ?? [],
+  }));
+  const topCategories = products
+    .flatMap((product) => product.dashboard?.topCategories ?? [])
+    .reduce<Array<{ name: string; amount: number }>>((acc, category) => {
+      const existing = acc.find((item) => item.name.toLowerCase() === category.name.toLowerCase());
+      if (existing) existing.amount += Math.max(0, Number(category.amount) || 0);
+      else acc.push({ name: category.name, amount: Math.max(0, Number(category.amount) || 0) });
+      return acc;
+    }, [])
+    .sort((left, right) => right.amount - left.amount)
+    .slice(0, 12);
+  const alerts = Array.from(
+    new Set(products.flatMap((product) => product.dashboard?.alerts ?? []).filter(Boolean))
+  ).slice(0, 12);
+  const inflowsTotal = products.reduce(
+    (sum, product) => sum + Math.max(0, Number(product.dashboard?.keyMetrics?.inflows_total ?? 0) || 0),
+    0
+  );
+  const outflowsTotal = products.reduce(
+    (sum, product) => sum + Math.max(0, Number(product.dashboard?.keyMetrics?.outflows_total ?? 0) || 0),
+    0
+  );
+  const movementCount = products.reduce(
+    (sum, product) => sum + Math.max(0, Number(product.dashboard?.keyMetrics?.movement_count ?? 0) || 0),
+    0
+  );
+
+  return {
+    scope: 'all_products',
+    activeProductId: activeProduct?.id ?? null,
+    activeProductLabel: activeProduct?.label,
+    productsCount: products.length,
+    uploadedFiles,
+    activeProduct: productsPayload.find((product) => product.id === activeProduct?.id),
+    productsIndex: products.slice(0, 20).map((product) => ({
+      id: product.id,
+      label: product.label,
+      bank: product.bank,
+      productType: product.productType,
+      connected: product.connected,
+      uploadedFilesCount: product.uploadedFiles?.length ?? 0,
+      parsedDocumentsCount: product.parsedDocuments?.length ?? 0,
+      movementCount: product.dashboard?.keyMetrics?.movement_count ?? 0,
+      inflowsTotal: product.dashboard?.keyMetrics?.inflows_total ?? 0,
+      outflowsTotal: product.dashboard?.keyMetrics?.outflows_total ?? 0,
+      netFlow: product.dashboard?.keyMetrics?.net_flow ?? 0,
+    })),
+    products: productsPayload,
+    transactionSummary: {
+      inflowsTotal: Math.round(inflowsTotal),
+      outflowsTotal: Math.round(outflowsTotal),
+      netFlow: Math.round(inflowsTotal - outflowsTotal),
+      movementCount: Math.round(movementCount || allMovements.length),
+      topCategories,
+      alerts,
+    },
+  };
+}
+
+function getSimulationSnapshot(products: BankProduct[], activeProductId: string | null) {
+  const activeProduct =
+    activeProductId
+      ? products.find((product) => product.id === activeProductId) ?? null
+      : null;
+
+  return {
+    activeProduct,
+    connected: Boolean(activeProduct?.connected),
+    randomMode: Boolean(activeProduct?.randomMode),
+    uploadedFiles: activeProduct?.uploadedFiles ?? [],
+    parsedDocuments: activeProduct?.parsedDocuments ?? [],
+    aggregateUploadedFiles: aggregateUploadedFiles(products),
+    aggregateParsedDocuments: aggregateParsedDocuments(products),
+  };
+}
+
+function hasMeaningfulPanelState(value: any): boolean {
+  if (!value || typeof value !== 'object') return false;
+  const budgetRows = Array.isArray(value.budgetRows) ? value.budgetRows : [];
+  const savedReports = Array.isArray(value.savedReports) ? value.savedReports : [];
+  const products = Array.isArray(value?.bankSimulation?.products) ? value.bankSimulation.products : [];
+  return budgetRows.length > 0 || savedReports.length > 0 || products.length > 0;
+}
+
+const PRIMARY_CHAT_ID = 'chat-1';
+const POST_DIAGNOSIS_CHAT_IDS = ['chat-1', 'chat-2', 'chat-3'] as const;
+const MAX_BUDGET_ROWS = 30;
+const MAX_TRANSACTION_PRODUCTS = 7;
+const MAX_PRODUCT_RECREATIONS = 3;
+const MAX_EVIDENCE_FILES_PER_PRODUCT = 7;
+
 const KNOWLEDGE_MILESTONE_DEFS = [
   { id: 'intake', label: 'Cuestionario y perfil base', threshold: 20 },
   { id: 'budget_base', label: 'Presupuesto personalizado', threshold: 40 },
   { id: 'budget_panel', label: 'Panel de presupuesto', threshold: 55 },
   { id: 'debt_analysis', label: 'Análisis de deuda', threshold: 70 },
-  { id: 'transactions_panel', label: 'Panel de cartolas', threshold: 74 },
+  { id: 'transactions_panel', label: 'Panel de productos y transacciones', threshold: 74 },
   { id: 'advanced', label: 'Estrategias avanzadas', threshold: 85 },
   { id: 'expert', label: 'Nivel experto', threshold: 100 },
 ] as const;
 
 export default function AgentPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const setInterviewIntake = useInterviewStore((s) => s.setIntake);
 
   function buildContextualChatName(items: ChatItem[]): string {
@@ -232,10 +580,6 @@ export default function AgentPage() {
     return 'other';
   }
 
-  function monthKeyOf(date = new Date()) {
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-  }
-
   function isGenericOnboardingMessage(text: string): boolean {
     const normalized = (text || '').toLowerCase().replace(/\s+/g, ' ').trim();
     if (!normalized) return false;
@@ -248,6 +592,31 @@ export default function AgentPage() {
       normalized.includes('generar informes') ||
       normalized.includes('partamos con una acción simple')
     );
+  }
+
+  function isLegacyDiagnosisOpeningMessage(text: string): boolean {
+    const normalized = (text || '').toLowerCase().replace(/\s+/g, ' ').trim();
+    if (!normalized) return false;
+    const isDiagnosisOpening = normalized.includes('informe inicial de diagnóstico');
+    const missingDeepFinanceContext =
+      isDiagnosisOpening && !normalized.includes('las finanzas personales no son solo números');
+    return (
+      missingDeepFinanceContext ||
+      normalized.includes('hoy sin colchón') ||
+      normalized.includes('completa o sube tu presupuesto en el panel') ||
+      normalized.includes('¿te acomoda armarlo por semana o por mes?') ||
+      normalized.includes('ingresos variables y deudas activas') ||
+      normalized.includes('completar o subir tu presupuesto') ||
+      normalized.includes('¿lo armamos con números de este mes o del anterior?') ||
+      normalized.includes('el objetivo del sistema es darte una lectura financiera clara, trazable y accionable') ||
+      normalized.includes('en chile, la ley fintech (ley n° 21.521) impulsa estándares de finanzas abiertas')
+    );
+  }
+
+  function isAnyDiagnosisOpeningMessage(text: string): boolean {
+    const normalized = (text || '').toLowerCase().replace(/\s+/g, ' ').trim();
+    if (!normalized) return false;
+    return normalized.includes('informe inicial de diagnóstico');
   }
 
   function buildEditorialWelcome(session: { name?: string | null; injectedIntake?: unknown } | null | undefined) {
@@ -277,7 +646,42 @@ export default function AgentPage() {
 
     const incomeHint = incomeBand ? ` Tu tramo de ingresos declarado es ${incomeBand}.` : '';
 
-    return `${firstName}, ${read}${incomeHint} Si quieres, partimos por definir el primer frente: liquidez, presupuesto o decisiones de inversión.`;
+    return [
+      `# Informe inicial de diagnóstico`,
+      ``,
+      `${firstName}, ${read}${incomeHint}`,
+      ``,
+      `## Marco de trabajo`,
+      `Este espacio convierte información financiera dispersa en un diagnóstico claro, verificable y accionable.`,
+      `La lógica es simple: evidencia real primero, recomendaciones después.`,
+      ``,
+      `## Estándar regulatorio`,
+      `Bajo la **Ley Fintech (Ley N° 21.521)**, el intercambio de datos ocurre con consentimiento, trazabilidad y control del usuario.`,
+      ``,
+      `## Método`,
+      `1. **Productos y transacciones** (fuente primaria de evidencia)`,
+      `2. **Presupuesto** (estructura de ingresos, gastos y balance)`,
+      `3. **Entrevista breve** (criterio, prioridad y tolerancia al riesgo)`,
+      ``,
+      `## Resultado`,
+      `Se construye un diagnóstico financiero personal con prioridades concretas y una ruta de decisión.`,
+      ``,
+      `¿Partimos por **Productos y transacciones**?`,
+    ].join('\n');
+  }
+
+  function buildOpeningMessageByChat(
+    chatId: string,
+    session: { name?: string | null; injectedIntake?: unknown } | null | undefined
+  ) {
+    const firstName = String(session?.name ?? '').split(' ')[0]?.trim() || 'Hola';
+    if (chatId === 'chat-2') {
+      return `${firstName}, aquí vamos en modo estrategia: convertimos tu diagnóstico en un plan de acción e inversión con escenarios, prioridades y fechas concretas. ¿Partimos por definir meta, plazo y nivel de riesgo?`;
+    }
+    if (chatId === 'chat-3') {
+      return `${firstName}, este espacio es para conciencia social: cómo tus decisiones financieras impactan tu entorno, con criterio ético y responsabilidad. ¿Qué tema social te importa más al decidir con tu dinero?`;
+    }
+    return buildEditorialWelcome(session);
   }
 
   function makeInitialThread(id: string, label: string, name: string): ChatThread {
@@ -298,10 +702,10 @@ export default function AgentPage() {
   function getThreadSpecialization(threadId: string): ChatSpecialization {
     if (threadId === 'chat-1') {
       return {
-        title: 'Diagnóstico',
-        shortTitle: 'Diag',
+        title: interviewCompleted ? 'General' : 'Diagnóstico',
+        shortTitle: interviewCompleted ? 'Gen' : 'Diag',
         accentClass: 'chat-specialization-1',
-        subtitle: 'Lectura base y tensiones',
+        subtitle: interviewCompleted ? 'chat general' : 'Lectura base y tensiones',
       };
     }
     if (threadId === 'chat-2') {
@@ -314,10 +718,10 @@ export default function AgentPage() {
     }
     if (threadId === 'chat-3') {
       return {
-        title: 'Ejecución',
+        title: 'Conciencia social',
         shortTitle: 'Move',
         accentClass: 'chat-specialization-3',
-        subtitle: 'Acciones y seguimiento',
+        subtitle: 'Etica, impacto y responsabilidad',
       };
     }
     return {
@@ -329,11 +733,11 @@ export default function AgentPage() {
   }
 
   const [chatThreads, setChatThreads] = useState<ChatThread[]>([
-    makeInitialThread('chat-1', '1', 'Nueva conversación'),
-    makeInitialThread('chat-2', '2', 'Nueva conversación'),
-    makeInitialThread('chat-3', '3', 'Nueva conversación'),
+    makeInitialThread(PRIMARY_CHAT_ID, '1', 'Diagnóstico financiero'),
+    makeInitialThread('chat-2', '2', 'Plan post-diagnóstico'),
+    makeInitialThread('chat-3', '3', 'Conciencia social post-diagnóstico'),
   ]);
-  const [activeChatId, setActiveChatId] = useState('chat-1');
+  const [activeChatId, setActiveChatId] = useState(PRIMARY_CHAT_ID);
   const [sheetsLoaded, setSheetsLoaded] = useState(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [loading, setLoading] = useState(false);
@@ -350,10 +754,16 @@ export default function AgentPage() {
   const [isTransactionsModalOpen, setIsTransactionsModalOpen] = useState(false);
   const [isQuestionnaireModalOpen, setIsQuestionnaireModalOpen] = useState(false);
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
+  const [isInterviewModalOpen, setIsInterviewModalOpen] = useState(false);
   const [isAccountActionLoading, setIsAccountActionLoading] = useState(false);
-  const [txWizardStep, setTxWizardStep] = useState<'products' | 'credentials' | 'upload' | 'dashboard' | 'locked'>('products');
+  const [txWizardStep, setTxWizardStep] = useState<'products' | 'credentials' | 'upload' | 'dashboard'>('products');
+  const [txDeletedProductsCount, setTxDeletedProductsCount] = useState(0);
+  const [txRecreationUsed, setTxRecreationUsed] = useState(0);
+  const [txCreationNotice, setTxCreationNotice] = useState<string | null>(null);
+  const [savedProductsForBatch, setSavedProductsForBatch] = useState<string[]>([]);
   const [savedReports, setSavedReports] = useState<SavedReport[]>([]);
-  const [budgetRows, setBudgetRows] = useState<BudgetRow[]>(DEFAULT_BUDGET_ROWS);
+  const [budgetRows, setBudgetRows] = useState<BudgetRow[]>([]);
+  const [budgetChatAnswers, setBudgetChatAnswers] = useState<Array<{ q: string; a: string }>>([]);
   const [bankSimulation, setBankSimulation] = useState<BankSimulation>(DEFAULT_BANK_SIMULATION);
   const [docFlight, setDocFlight] = useState<DocFlight | null>(null);
   const chatUploadInputRef = useRef<HTMLInputElement | null>(null);
@@ -365,6 +775,8 @@ export default function AgentPage() {
   const [panelStateLoaded, setPanelStateLoaded] = useState(false);
   const [persistentKnowledgeScore, setPersistentKnowledgeScore] = useState<number | null>(null);
   const [documentsLoading, setDocumentsLoading] = useState(false);
+  const [transactionUploadError, setTransactionUploadError] = useState<string | null>(null);
+  const [accountActionError, setAccountActionError] = useState<string | null>(null);
   const [productLifecycle, setProductLifecycle] = useState<ProductLifecycle | null>(null);
   const agentMetaRef = useRef<AgentMeta>({});
   const [, forceRender] = useState(0);
@@ -382,14 +794,22 @@ export default function AgentPage() {
   const [panelCallout, setPanelCallout] = useState<{ section: string; message: string } | null>(null);
   const [highlightedSection, setHighlightedSection] = useState<string | null>(null);
   const [expandedCitationsByMessage, setExpandedCitationsByMessage] = useState<Record<number, boolean>>({});
+  const [interviewResumePending, setInterviewResumePending] = useState(false);
   const panelCalloutTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const chatBodyRef = useRef<HTMLElement | null>(null);
   const chatThreadRef = useRef<HTMLDivElement | null>(null);
   const mobilePanelHandleRef = useRef<HTMLDivElement | null>(null);
   const panelDragRef = useRef<{ startY: number; startH: number } | null>(null);
+  const chatComposerRef = useRef<HTMLTextAreaElement | null>(null);
+  const interviewAutoOpenHandledRef = useRef(false);
 
   const loadProfileIfNeeded = useProfileStore((s) => s.loadProfileIfNeeded);
   const profile = useProfileStore((s) => s.profile);
+  const clearAuthenticated = useSessionStore((s) => s.clearAuthenticated);
+  const panelStateBackupKey = useMemo(
+    () => panelStateBackupKeyForUser(sessionInfo?.userId ?? sessionInfo?.email ?? sessionInfo?.name),
+    [sessionInfo?.userId, sessionInfo?.email, sessionInfo?.name]
+  );
 
   const activeThread = useMemo(
     () =>
@@ -400,6 +820,11 @@ export default function AgentPage() {
 
   const items = activeThread?.items ?? [];
   const input = activeThread?.draft ?? '';
+  const hasBlockingModalOpen =
+    isBudgetModalOpen || isTransactionsModalOpen || isQuestionnaireModalOpen || isAccountModalOpen || isInterviewModalOpen;
+  const interviewCompleted =
+    savedReports.some((report) => report.group === 'diagnosis') ||
+    Boolean(sessionInfo?.latestDiagnosticCompletedAt);
   const activeThreadThemeClass =
     activeThread?.id === 'chat-2'
       ? 'chat-theme-2'
@@ -408,30 +833,35 @@ export default function AgentPage() {
       : activeThread?.id === 'meta-sheet'
       ? 'chat-theme-meta'
       : 'chat-theme-1';
-  const unlockedChatIds = productLifecycle?.unlockedChats ?? ['chat-1'];
-  const closedChatIds = productLifecycle?.closedChats ?? [];
+  const unlockedChatIds = resolveUnlockedChatIds({
+    unlockedChats: productLifecycle?.unlockedChats ?? null,
+    interviewCompleted,
+  });
+  const closedChatIds = interviewCompleted ? [] : productLifecycle?.closedChats ?? [];
   const activeTurnCount =
     productLifecycle?.chatTurns?.[activeChatId] ??
     activeThread?.userMessageCount ??
     0;
-  const activeTurnsRemaining = Math.max(0, 50 - activeTurnCount);
   const isActiveChatLocked =
-    !unlockedChatIds.includes(activeChatId) || closedChatIds.includes(activeChatId);
+    activeChatId === PRIMARY_CHAT_ID
+      ? false
+      : !unlockedChatIds.includes(activeChatId as any) || closedChatIds.includes(activeChatId);
   const latestActionReminder =
     productLifecycle?.actionReminders?.find((item) => item.sourceChatId === activeChatId) ??
     productLifecycle?.actionReminders?.[0] ??
     null;
 
   function isThreadLocked(threadId: string) {
-    return !unlockedChatIds.includes(threadId) || closedChatIds.includes(threadId);
+    if (threadId === PRIMARY_CHAT_ID) return false;
+    return !unlockedChatIds.includes(threadId as any) || closedChatIds.includes(threadId);
   }
 
   function phaseLabel(phase?: string) {
+    if (phase === 'transactions_needed') return 'Agregar productos y respaldos';
     if (phase === 'budget_needed') return 'Completar presupuesto';
-    if (phase === 'transactions_needed') return 'Subir cartolas';
-    if (phase === 'interview_needed') return 'Entrevista de 4 minutos';
+    if (phase === 'interview_needed') return 'Entrevista breve';
     if (phase === 'diagnosis_ready') return 'Diagnóstico listo';
-    if (phase === 'advisory_unlocked') return 'Chats especializados activos';
+    if (phase === 'advisory_unlocked') return 'Asesoría continua activa';
     return 'Diagnóstico inicial';
   }
 
@@ -611,19 +1041,13 @@ export default function AgentPage() {
   useEffect(() => {
     const html = document.documentElement;
     const body = document.body;
+    html.classList.add('agent-route-active');
+    body.classList.add('agent-route-active');
 
-    // Estilos para bloquear scroll y bounce
+    // Keep the page visually continuous while preventing browser-level bounce.
     html.style.overflow = 'hidden';
-    html.style.position = 'fixed';
-    html.style.inset = '0';
-    html.style.width = '100%';
-    html.style.height = '100%';
     html.style.overscrollBehavior = 'none';
     body.style.overflow = 'hidden';
-    body.style.position = 'fixed';
-    body.style.inset = '0';
-    body.style.width = '100%';
-    body.style.height = '100%';
     body.style.overscrollBehavior = 'none';
 
     // Prevenir touchmove en el document (el bounce de iOS)
@@ -653,17 +1077,11 @@ export default function AgentPage() {
     document.addEventListener('gestureend', preventGesture, { passive: false } as any);
 
     return () => {
+      html.classList.remove('agent-route-active');
+      body.classList.remove('agent-route-active');
       html.style.overflow = '';
-      html.style.position = '';
-      html.style.inset = '';
-      html.style.width = '';
-      html.style.height = '';
       html.style.overscrollBehavior = '';
       body.style.overflow = '';
-      body.style.position = '';
-      body.style.inset = '';
-      body.style.width = '';
-      body.style.height = '';
       body.style.overscrollBehavior = '';
       document.removeEventListener('touchmove', preventBounce);
       document.removeEventListener('gesturestart', preventGesture);
@@ -687,6 +1105,11 @@ export default function AgentPage() {
       vv.removeEventListener('scroll', update);
     };
   }, []);
+
+  useEffect(() => {
+    if (!isBudgetModalOpen) return;
+    chatComposerRef.current?.blur();
+  }, [isBudgetModalOpen]);
 
   // Drag continuo en panel mobile: arrastra el handle para ajustar altura
   useEffect(() => {
@@ -750,8 +1173,10 @@ export default function AgentPage() {
           name: s.name ?? 'Conversación',
           autoNamed: s.autoNamed ?? false,
           items: Array.isArray(s.items)
-            ? sanitizeChatItems(
-                s.items.filter((it: any) => it.type !== 'message' || it.content !== undefined)
+            ? dedupeConsecutiveAssistantMessages(
+                sanitizeChatItems(
+                  s.items.filter((it: any) => it.type !== 'message' || it.content !== undefined)
+                )
               )
             : [],
           draft: s.draft ?? '',
@@ -761,17 +1186,26 @@ export default function AgentPage() {
           createdAt: s.createdAt ?? new Date().toISOString(),
           completedAt: s.completedAt,
         }));
-        // Ensure base sheets chat-1..3 always exist (pad missing ones)
-        const BASE_IDS = ['chat-1', 'chat-2', 'chat-3'] as const;
-        for (const bid of BASE_IDS) {
-          if (!restored.find((s) => s.id === bid)) {
-            const idx = BASE_IDS.indexOf(bid);
-            restored.splice(idx, 0, makeInitialThread(bid, String(idx + 1), 'Nueva conversación'));
-          }
-        }
-        setChatThreads(restored);
-        const activeSheet = restored.find((s) => s.status === 'active');
-        if (activeSheet) setActiveChatId(activeSheet.id);
+        const baseDefs = [
+          { id: 'chat-1', label: '1', name: 'Diagnóstico financiero' },
+          { id: 'chat-2', label: '2', name: 'Plan post-diagnóstico' },
+          { id: 'chat-3', label: '3', name: 'Conciencia social post-diagnóstico' },
+        ];
+        const normalized = baseDefs.map((def) => {
+          const existing = restored.find((s) => s.id === def.id);
+          return {
+            ...(existing ?? makeInitialThread(def.id, def.label, def.name)),
+            id: def.id,
+            label: def.label,
+            name:
+              existing?.name && existing.name !== 'Nueva conversación'
+                ? existing.name
+                : def.name,
+            status: 'active' as const,
+          };
+        });
+        setChatThreads(normalized);
+        setActiveChatId(PRIMARY_CHAT_ID);
       }
       setSheetsLoaded(true);
     }).catch(() => setSheetsLoaded(true));
@@ -784,6 +1218,43 @@ export default function AgentPage() {
     const active = chatThreads.find((t) => t.id === activeChatId);
     if (!active) return;
     if (welcomeInjectedThreadsRef.current.has(active.id)) return;
+    if (hasAssistantMessage(active.items)) {
+      if (active.id === 'chat-1') {
+        const firstAssistantIdx = active.items.findIndex(
+          (it) => it.type === 'message' && it.role === 'assistant'
+        );
+        const firstAssistant =
+          firstAssistantIdx >= 0
+            ? (active.items[firstAssistantIdx] as Extract<ChatItem, { type: 'message'; role: 'assistant' }>)
+            : null;
+        if (
+          firstAssistant &&
+          (isAnyDiagnosisOpeningMessage(String(firstAssistant.content ?? '')) ||
+            isLegacyDiagnosisOpeningMessage(String(firstAssistant.content ?? '')))
+        ) {
+          const replacement = sanitizeMessageText(
+            buildOpeningMessageByChat('chat-1', sessionInfo),
+            FALLBACK_WELCOME
+          );
+          setChatThreads((prev) =>
+            prev.map((t) => {
+              if (t.id !== activeChatId) return t;
+              const cloned = [...t.items];
+              const idx = cloned.findIndex((it) => it.type === 'message' && it.role === 'assistant');
+              if (idx >= 0) {
+                const current = cloned[idx] as Extract<ChatItem, { type: 'message'; role: 'assistant' }>;
+                if (String(current.content ?? '') !== replacement) {
+                  cloned[idx] = { ...current, content: replacement };
+                }
+              }
+              return { ...t, items: cloned };
+            })
+          );
+        }
+      }
+      welcomeInjectedThreadsRef.current.add(active.id);
+      return;
+    }
 
     const firstAssistantIdx = active.items.findIndex(
       (it) => it.type === 'message' && it.role === 'assistant'
@@ -806,51 +1277,82 @@ export default function AgentPage() {
     }
 
     welcomeInjectedThreadsRef.current.add(active.id);
-    getWelcomeMessage().then((data) => {
-      if (data?.message) {
-        const incomingWelcome = sanitizeMessageText(data.message, FALLBACK_WELCOME);
-        const initialSuggestions = buildInitialAgentSuggestions(sessionInfo?.injectedIntake);
-        setChatThreads((prev) =>
-          prev.map((t) => {
-            if (t.id !== activeChatId) return t;
+    if (active.id !== 'chat-1') {
+      const opening = sanitizeMessageText(
+        buildOpeningMessageByChat(active.id, sessionInfo),
+        FALLBACK_WELCOME
+      );
+      setChatThreads((prev) =>
+        prev.map((t) => {
+          if (t.id !== activeChatId) return t;
+          return {
+            ...t,
+            items: [
+              {
+                type: 'message',
+                role: 'assistant',
+                content: opening,
+                mode: 'information',
+              } as ChatItem,
+              ...t.items,
+            ],
+          };
+        })
+      );
+      return;
+    }
 
-            const hasPersonalizedAsFirst =
-              t.items.length > 0 &&
-              t.items[0]?.type === 'message' &&
-              (t.items[0] as Extract<ChatItem, { type: 'message' }>).role === 'assistant' &&
-              String((t.items[0] as Extract<ChatItem, { type: 'message' }>).content ?? '')
-                .toLowerCase()
-                .includes(userFirstName);
-            if (hasPersonalizedAsFirst) return t;
+    const initialPrimaryPanelAction: AgentResponse['panel_action'] = {
+      section: 'transactions',
+      message: 'Primer paso: abre productos y transacciones para cargar respaldos y activar el siguiente desbloqueo.',
+    };
 
-            const hasAssistantAlready = t.items.some(
-              (it) => it.type === 'message' && it.role === 'assistant'
-            );
-            const shouldSkipGenericWelcome =
-              hasAssistantAlready && isGenericOnboardingMessage(incomingWelcome);
-            const finalWelcome = shouldSkipGenericWelcome
-              ? sanitizeMessageText(
-                  buildEditorialWelcome(sessionInfo),
-                  FALLBACK_WELCOME
-                )
-              : incomingWelcome;
+    getWelcomeMessage().then(() => {
+      const incomingWelcome = sanitizeMessageText(
+        buildOpeningMessageByChat('chat-1', sessionInfo),
+        FALLBACK_WELCOME
+      );
+      setChatThreads((prev) =>
+        prev.map((t) => {
+          if (t.id !== activeChatId) return t;
+          if (hasAssistantMessage(t.items)) return t;
 
-            return {
-              ...t,
-              items: [
-                {
-                  type: 'message',
-                  role: 'assistant',
-                  content: finalWelcome,
-                  mode: 'information',
-                  suggested_replies: initialSuggestions,
-                } as ChatItem,
-                ...t.items,
-              ],
-            };
-          })
-        );
-      }
+          const hasPersonalizedAsFirst =
+            t.items.length > 0 &&
+            t.items[0]?.type === 'message' &&
+            (t.items[0] as Extract<ChatItem, { type: 'message' }>).role === 'assistant' &&
+            String((t.items[0] as Extract<ChatItem, { type: 'message' }>).content ?? '')
+              .toLowerCase()
+              .includes(userFirstName);
+          if (hasPersonalizedAsFirst) return t;
+
+          const hasAssistantAlready = t.items.some(
+            (it) => it.type === 'message' && it.role === 'assistant'
+          );
+          const shouldSkipGenericWelcome =
+            hasAssistantAlready && isGenericOnboardingMessage(incomingWelcome);
+          const finalWelcome = shouldSkipGenericWelcome
+            ? sanitizeMessageText(
+                buildOpeningMessageByChat('chat-1', sessionInfo),
+                FALLBACK_WELCOME
+              )
+            : incomingWelcome;
+
+          return {
+            ...t,
+            items: [
+              {
+                type: 'message',
+                role: 'assistant',
+                content: finalWelcome,
+                mode: 'information',
+                panel_action: initialPrimaryPanelAction,
+              } as ChatItem,
+              ...t.items,
+            ],
+          };
+        })
+      );
     }).catch(() => {
       // allow retry on next render if welcome request fails
       welcomeInjectedThreadsRef.current.delete(active.id);
@@ -868,7 +1370,7 @@ export default function AgentPage() {
         label: t.label,
         name: t.name,
         autoNamed: t.autoNamed,
-        items: t.items,
+        items: dedupeConsecutiveAssistantMessages(t.items),
         draft: t.draft,
         status: t.status,
         contextScore: t.contextScore,
@@ -925,18 +1427,71 @@ export default function AgentPage() {
     localStorage.removeItem('agent.panel.collapsed.v1');
     localStorage.removeItem('agent.ui.monochrome.v1');
     localStorage.removeItem('agent.prefill_prompt');
+    clearInterviewVoiceState();
+    clearCsrfToken();
+    secureStorage.clear();
+  }
+
+  function clearAllLocalAgentState() {
+    clearLocalAgentState();
+    clearAllPanelStateBackups();
+  }
+
+  function buildPanelSnapshot() {
+    return {
+      budgetRows,
+      budgetChatAnswers,
+      bankSimulation: {
+        products: bankSimulation.products.map((product) => ({
+          ...product,
+          randomMode: false,
+        })),
+        activeProductId: bankSimulation.activeProductId,
+        lockedMonth: bankSimulation.lockedMonth,
+        connected: bankSimulation.connected,
+        randomMode: bankSimulation.randomMode,
+        uploadedFiles: aggregateUploadedFiles(bankSimulation.products),
+        parsedDocuments: aggregateParsedDocuments(bankSimulation.products),
+      },
+      savedReports,
+      updatedAt: new Date().toISOString(),
+    };
+  }
+
+  async function persistPanelSnapshotNow() {
+    const snapshot = buildPanelSnapshot();
+    try {
+      localStorage.setItem(panelStateBackupKey, JSON.stringify(snapshot));
+    } catch {}
+    try {
+      await savePanelState(snapshot);
+    } catch {}
+  }
+
+  function closeAccountModal() {
+    setAccountActionError(null);
+    setIsAccountModalOpen(false);
   }
 
   async function handleLogout() {
     if (isAccountActionLoading) return;
     try {
       setIsAccountActionLoading(true);
+      setAccountActionError(null);
+      await persistPanelSnapshotNow();
       await logoutUser();
+      clearAuthenticated();
       clearLocalAgentState();
-      setIsAccountModalOpen(false);
+      closeAccountModal();
       router.replace('/login');
+      router.refresh();
+      if (typeof window !== 'undefined') {
+        window.setTimeout(() => {
+          window.location.assign('/login');
+        }, 20);
+      }
     } catch {
-      window.alert('No se pudo cerrar sesión. Inténtalo nuevamente.');
+      setAccountActionError('No se pudo cerrar sesión. Inténtalo nuevamente.');
     } finally {
       setIsAccountActionLoading(false);
     }
@@ -951,12 +1506,20 @@ export default function AgentPage() {
 
     try {
       setIsAccountActionLoading(true);
+      setAccountActionError(null);
       await deleteAccount();
-      clearLocalAgentState();
-      setIsAccountModalOpen(false);
+      clearAuthenticated();
+      clearAllLocalAgentState();
+      closeAccountModal();
       router.replace('/register');
+      router.refresh();
+      if (typeof window !== 'undefined') {
+        window.setTimeout(() => {
+          window.location.assign('/register');
+        }, 20);
+      }
     } catch {
-      window.alert('No se pudo borrar la cuenta. Inténtalo nuevamente.');
+      setAccountActionError('No se pudo borrar la cuenta. Inténtalo nuevamente.');
     } finally {
       setIsAccountActionLoading(false);
     }
@@ -972,18 +1535,17 @@ export default function AgentPage() {
         : `¿Eliminar el chat "${target.name}"?`;
     if (!window.confirm(confirmText)) return;
 
-    const BASE_IDS = ['chat-1', 'chat-2', 'chat-3'] as const;
-    const isBaseThread = BASE_IDS.includes(threadId as (typeof BASE_IDS)[number]);
+    const isBaseThread = POST_DIAGNOSIS_CHAT_IDS.includes(threadId as any);
 
     setChatThreads((prev) => {
       if (isBaseThread) {
-        const resetThread = makeInitialThread(target.id, target.label, 'Nueva conversación');
+        const resetThread = makeInitialThread(target.id, target.label, target.name || 'Nueva conversación');
         return prev.map((thread) => (thread.id === threadId ? resetThread : thread));
       }
 
       const filtered = prev.filter((thread) => thread.id !== threadId);
       if (filtered.length === 0) {
-        return [makeInitialThread('chat-1', '1', 'Nueva conversación')];
+        return [makeInitialThread(PRIMARY_CHAT_ID, 'Core', 'Diagnóstico financiero')];
       }
 
       if (!filtered.some((thread) => thread.status === 'active')) {
@@ -998,7 +1560,7 @@ export default function AgentPage() {
       const candidate =
         chatThreads.find((thread) => thread.id !== threadId && thread.status === 'active') ??
         chatThreads.find((thread) => thread.id !== threadId) ??
-        { id: 'chat-1' };
+        { id: PRIMARY_CHAT_ID };
       return candidate.id;
     });
 
@@ -1009,6 +1571,14 @@ export default function AgentPage() {
     setChatThreads((prev) => {
       let changed = false;
       const next = prev.map((thread) => {
+        if (thread.id === 'chat-1' && interviewCompleted && thread.name !== 'Chat general') {
+          changed = true;
+          return {
+            ...thread,
+            name: 'Chat general',
+            autoNamed: true,
+          };
+        }
         if (thread.autoNamed) return thread;
         const userTurns = thread.items.filter(
           (it) => it.type === 'message' && it.role === 'user'
@@ -1023,7 +1593,7 @@ export default function AgentPage() {
       });
       return changed ? next : prev;
     });
-  }, [chatThreads]);
+  }, [chatThreads, interviewCompleted]);
 
   const allItems = useMemo(
     () => chatThreads.flatMap((thread) => thread.items),
@@ -1064,17 +1634,6 @@ export default function AgentPage() {
     [allItems]
   );
 
-  const engagedChatsCount = useMemo(
-    () =>
-      chatThreads.filter((thread) => {
-        const userTurns = thread.items.filter(
-          (it) => it.type === 'message' && it.role === 'user'
-        ).length;
-        return userTurns >= 3;
-      }).length,
-    [chatThreads]
-  );
-
   const allAssistantBlocksCount = useMemo(
     () =>
       allItems.reduce((acc, item) => {
@@ -1098,8 +1657,8 @@ export default function AgentPage() {
       totalUserMessagesCount * 1.35 + totalAssistantMessagesCount * 0.7;
     const chatDepth = Math.min(30, (chatSignal / 92) * 30);
 
-    // 10% uso de múltiples chats (3/3 chats activos con contexto real)
-    const multiChat = (engagedChatsCount / 3) * 10;
+    // 10% continuidad en el chat principal.
+    const multiChat = Math.min(10, totalUserMessagesCount * 0.8);
 
     // 10% evidencia (citas, artefactos, bloques estructurados)
     const evidenceSignal =
@@ -1166,7 +1725,6 @@ export default function AgentPage() {
   }, [
     totalUserMessagesCount,
     totalAssistantMessagesCount,
-    engagedChatsCount,
     citationsCount,
     artifactsCount,
     allAssistantBlocksCount,
@@ -1195,16 +1753,6 @@ export default function AgentPage() {
     )
   );
 
-  // Sheet-based progress: 3 base sheets × 50 msgs each = 100%
-  const sheetProgress = useMemo(() => {
-    const BASE_IDS = ['chat-1', 'chat-2', 'chat-3'];
-    const baseSheets = chatThreads.filter((t) => BASE_IDS.includes(t.id));
-    const completedCount = baseSheets.filter((t) => t.status === 'context').length;
-    const activeSheet = baseSheets.find((t) => t.status === 'active');
-    const activeContrib = activeSheet ? Math.min(activeSheet.userMessageCount / 50, 1) / 3 : 0;
-    return Math.min(100, Math.round((completedCount / 3 + activeContrib) * 100));
-  }, [chatThreads]);
-
   const knowledgeStage = useMemo(() => {
     if (knowledgeScore < 30) return 'Explorando';
     if (knowledgeScore < 60) return 'Perfilando';
@@ -1224,48 +1772,111 @@ export default function AgentPage() {
   const completedMilestones = milestones.filter((m) => m.done).length;
 
   const unlockedPanelBlocks = useMemo(() => {
-    const budgetUnlocked =
-      knowledgeScore >= 55 ||
-      budgetRows.some((row) => row.amount > 0) ||
-      allItems.some(
-        (it) =>
-          it.type === 'message' &&
-          it.role === 'user' &&
-          /presupuesto|gasto|ingreso|deuda|ahorro/i.test(it.content)
-      );
-
-    const transactionsUnlocked =
-      knowledgeScore >= 74 ||
-      bankSimulation.uploadedFiles.length > 0 ||
-      bankSimulation.parsedDocuments.length > 0 ||
-      allItems.some(
-        (it) =>
-          it.type === 'message' &&
-          it.role === 'user' &&
-          /transaccion|cartola|banco|cuenta|movimiento/i.test(it.content)
-      );
+    const aggregateFiles = aggregateUploadedFiles(bankSimulation.products);
+    const aggregateDocs = aggregateParsedDocuments(bankSimulation.products);
+    const hasTransactionsData =
+      bankSimulation.products.length > 0 &&
+      (aggregateFiles.length > 0 || aggregateDocs.length > 0);
+    const budgetUnlocked = hasTransactionsData;
+    // Productos y transacciones debe estar disponible desde el inicio.
+    const transactionsUnlocked = true;
 
     return { budgetUnlocked, transactionsUnlocked };
-  }, [
-    knowledgeScore,
-    allItems,
-    budgetRows,
-    bankSimulation.uploadedFiles.length,
-    bankSimulation.parsedDocuments.length,
-  ]);
+  }, [bankSimulation.products]);
+
+  const canOpenInterview = useMemo(() => {
+    const hasBudgetData = budgetRows.filter((row) => row.amount > 0).length >= 3;
+    const aggregateFiles = aggregateUploadedFiles(bankSimulation.products);
+    const aggregateDocs = aggregateParsedDocuments(bankSimulation.products);
+    const hasTransactionsData =
+      bankSimulation.products.length > 0 &&
+      (aggregateFiles.length > 0 || aggregateDocs.length > 0);
+    return interviewCompleted || (hasTransactionsData && hasBudgetData);
+  }, [bankSimulation.products, budgetRows, interviewCompleted]);
+
+  function getFlowStatus() {
+    const productsCompleted = bankSimulation.products.length > 0;
+    const aggregateFiles = aggregateUploadedFiles(bankSimulation.products);
+    const aggregateDocs = aggregateParsedDocuments(bankSimulation.products);
+    const transactionsCompleted =
+      productsCompleted &&
+      (aggregateFiles.length > 0 || aggregateDocs.length > 0);
+    const budgetRowsCompleted = budgetRows.filter((row) => row.amount > 0).length;
+    const budgetCompleted = transactionsCompleted && budgetRowsCompleted >= 3;
+    return {
+      productsCompleted,
+      transactionsCompleted,
+      budgetUnlocked: transactionsCompleted,
+      budgetCompleted,
+      budgetRowsCompleted,
+      interviewUnlocked: budgetCompleted,
+      diagnosisCompleted: interviewCompleted,
+    };
+  }
+
+  function getNextFlowPanelAction(): AgentResponse['panel_action'] | undefined {
+    const flow = getFlowStatus();
+    if (!flow.transactionsCompleted) {
+      return {
+        section: 'transactions',
+        message: 'Siguiente desbloqueo: agrega productos y respaldos para activar el presupuesto.',
+      };
+    }
+    if (!flow.budgetCompleted) {
+      return {
+        section: 'budget',
+        message: 'Ya hay evidencia. Completa al menos 3 filas reales de presupuesto para abrir entrevista.',
+      };
+    }
+    if (!flow.diagnosisCompleted) {
+      return {
+        section: 'interview',
+        message: 'Presupuesto listo. Cierra la entrevista breve para desbloquear los chats superiores.',
+      };
+    }
+    return undefined;
+  }
+
+  function normalizePanelActionForCurrentFlow(
+    action?: AgentResponse['panel_action']
+  ): AgentResponse['panel_action'] | undefined {
+    const flow = getFlowStatus();
+    if (action?.section === 'budget' && !flow.budgetUnlocked) {
+      return {
+        section: 'transactions',
+        message: 'Presupuesto está bloqueado hasta completar Productos y Transacciones.',
+      };
+    }
+    if (action?.section === 'interview' && !flow.interviewUnlocked) {
+      return flow.budgetUnlocked
+        ? {
+            section: 'budget',
+            message: 'Entrevista está bloqueada hasta completar el presupuesto.',
+          }
+        : {
+            section: 'transactions',
+            message: 'Primero completa Productos y Transacciones; después se abre Presupuesto y luego Entrevista.',
+          };
+    }
+    return action ?? getNextFlowPanelAction();
+  }
 
   const budgetTotals = useMemo(() => {
-    const income = budgetRows
+    const parentIds = new Set(budgetRows.filter((row) => row.parentId).map((row) => row.parentId as string));
+    const effectiveRows = budgetRows.filter((row) => !parentIds.has(row.id));
+    const income = effectiveRows
       .filter((r) => r.type === 'income')
       .reduce((acc, r) => acc + r.amount, 0);
-    const expenses = budgetRows
+    const expenses = effectiveRows
       .filter((r) => r.type === 'expense')
       .reduce((acc, r) => acc + r.amount, 0);
     return { income, expenses, balance: income - expenses };
   }, [budgetRows]);
 
   const budgetInsights = useMemo(() => {
-    const nonZeroRows = budgetRows.filter((row) => row.amount > 0);
+    const parentIds = new Set(budgetRows.filter((row) => row.parentId).map((row) => row.parentId as string));
+    const effectiveRows = budgetRows.filter((row) => !parentIds.has(row.id));
+    const nonZeroRows = effectiveRows.filter((row) => row.amount > 0);
     const expenseRows = nonZeroRows.filter((row) => row.type === 'expense');
     const fixedLike = expenseRows.filter((row) =>
       /(arriendo|hipoteca|luz|agua|internet|suscrip|colegio|seguro|deuda)/i.test(
@@ -1316,6 +1927,64 @@ export default function AgentPage() {
     };
   }, [budgetRows, budgetTotals.balance, budgetTotals.expenses, budgetTotals.income]);
 
+  const budgetCompletion = useMemo(() => {
+    const parentIds = new Set(budgetRows.filter((row) => row.parentId).map((row) => row.parentId as string));
+    const effectiveRows = budgetRows.filter((row) => !parentIds.has(row.id));
+    const filledRows = effectiveRows.filter((row) => row.amount > 0);
+    const fillRate =
+      effectiveRows.length > 0 ? Math.round((filledRows.length / effectiveRows.length) * 100) : 0;
+    return {
+      filledRows,
+      fillRate,
+      totalRows: effectiveRows.length,
+    };
+  }, [budgetRows]);
+
+  const budgetSignals = useMemo(() => {
+    const activeCanonicalIds = new Set(
+      budgetRows.filter((row) => row.amount > 0).map((row) => canonicalBudgetRowId(row.id))
+    );
+    const coreFilledCount = DEFAULT_BUDGET_ROWS.reduce(
+      (count, templateRow) => count + (activeCanonicalIds.has(templateRow.id) ? 1 : 0),
+      0
+    );
+    const coreFillRate =
+      DEFAULT_BUDGET_ROWS.length > 0
+        ? Math.round((coreFilledCount / DEFAULT_BUDGET_ROWS.length) * 100)
+        : 0;
+    const balanceTone: 'surplus' | 'deficit' | 'balanced' =
+      budgetTotals.balance > 0 ? 'surplus' : budgetTotals.balance < 0 ? 'deficit' : 'balanced';
+    const balanceLabel =
+      balanceTone === 'surplus' ? 'Superávit' : balanceTone === 'deficit' ? 'Déficit' : 'Punto de equilibrio';
+    const balanceHint =
+      balanceTone === 'surplus'
+        ? 'Hay margen para acelerar ahorro o inversión.'
+        : balanceTone === 'deficit'
+        ? 'Conviene reducir presión fija antes de escalar metas.'
+        : 'La base está equilibrada: el siguiente paso es capturar margen.';
+    const readinessScore = Math.max(
+      0,
+      Math.min(100, Math.round(coreFillRate * 0.62 + budgetInsights.healthScore * 0.38))
+    );
+    const nextAction =
+      balanceTone === 'deficit'
+        ? 'Completa vivienda, deuda y servicios para cerrar fugas.'
+        : coreFillRate < 70
+        ? 'Llena la plantilla base antes de refinar categorías secundarias.'
+        : 'Afina variables y convierte el balance en una meta concreta.';
+
+    return {
+      balanceTone,
+      balanceLabel,
+      balanceHint,
+      coreFilledCount,
+      coreTotal: DEFAULT_BUDGET_ROWS.length,
+      coreFillRate,
+      readinessScore,
+      nextAction,
+    };
+  }, [budgetInsights.healthScore, budgetRows, budgetTotals.balance]);
+
   const intakeData = useMemo(
     () => (sessionInfo?.injectedIntake?.intake ?? null) as Record<string, unknown> | null,
     [sessionInfo?.injectedIntake]
@@ -1334,14 +2003,9 @@ export default function AgentPage() {
       bankSimulation.products.map((product) => ({
         product,
         descriptor: buildProductCardDescriptor(product),
-        intel: buildTransactionIntelligence(product.parsedDocuments),
+        intel: buildTransactionIntelligence(product.parsedDocuments, product.dashboard?.movements ?? []),
       })),
     [bankSimulation.products]
-  );
-
-  const isTransactionsLockedThisMonth = useMemo(
-    () => bankSimulation.lockedMonth === monthKeyOf(),
-    [bankSimulation.lockedMonth]
   );
 
   const interviewCard = useMemo(() => {
@@ -1349,12 +2013,22 @@ export default function AgentPage() {
     const stress = typeof intakeData?.moneyStressLevel === 'number' ? intakeData.moneyStressLevel : null;
     const understanding =
       typeof intakeData?.selfRatedUnderstanding === 'number' ? intakeData.selfRatedUnderstanding : null;
+    const interviewDone = interviewCompleted;
     const prompt =
       stress !== null && stress >= 7
         ? 'Conviene una llamada breve para bajar ruido, mapear presión financiera y priorizar decisiones.'
         : understanding !== null && understanding <= 4
         ? 'Conviene una llamada guiada para traducir conceptos y cerrar vacíos antes de recomendar.'
         : 'Conviene una llamada de profundización para pasar de contexto general a decisiones concretas.';
+
+    if (interviewDone) {
+      return {
+        badge: 'Diagnóstico final',
+        title: `Diagnóstico financiero completo de ${name}`,
+        meta: 'La entrevista se cerró y este bloque ahora es informe permanente.',
+        detail: 'Revísalo en detalle y expórtalo en PDF.',
+      };
+    }
 
     return {
       badge: intakeData ? 'Llamada guiada' : 'Activación',
@@ -1367,15 +2041,46 @@ export default function AgentPage() {
           ? `Prioridad actual: estrés ${stress}/10 y comprensión ${understanding}/10.`
           : 'Usa esta capa para transformar contexto disperso en diagnóstico accionable.',
     };
-  }, [intakeData, sessionInfo?.name]);
+  }, [intakeData, sessionInfo?.name, interviewCompleted]);
 
   const transactionIntel = useMemo(
-    () => buildTransactionIntelligence(bankSimulation.parsedDocuments),
-    [bankSimulation.parsedDocuments]
+    () =>
+      buildTransactionIntelligence(
+        aggregateParsedDocuments(bankSimulation.products),
+        aggregateCanonicalMovements(bankSimulation.products),
+      ),
+    [bankSimulation.products]
   );
 
   const questionnaireDashboard = useMemo(() => {
     if (!intakeData) return null;
+    const formatQuestionnaireValue = (value: unknown): string => {
+      const raw = String(value ?? '').trim();
+      const normalized = raw.toLowerCase();
+      const labels: Record<string, string> = {
+        yes: 'Sí',
+        no: 'No',
+        true: 'Sí',
+        false: 'No',
+        hold: 'Mantener',
+        reduce: 'Reducir',
+        increase: 'Aumentar',
+        conservative: 'Conservador',
+        moderate: 'Moderado',
+        aggressive: 'Agresivo',
+        employed: 'Dependiente',
+        employee: 'Dependiente',
+        freelance: 'Independiente',
+        self_employed: 'Independiente',
+        student: 'Estudiante',
+        freelance_student: 'Independiente / estudiante',
+        unemployed: 'Sin empleo',
+        retired: 'Jubilado',
+        none: 'No declarado',
+        unknown: 'No declarado',
+      };
+      return labels[normalized] ?? raw.replace(/_/g, ' ');
+    };
     const stress =
       typeof intakeData.moneyStressLevel === 'number' ? intakeData.moneyStressLevel : null;
     const understanding =
@@ -1398,14 +2103,14 @@ export default function AgentPage() {
       )
     );
     const responsePairs: Array<{ label: string; value: string }> = [
-      { label: 'Profesión', value: String(intakeData.profession ?? 'No declarado') },
-      { label: 'Situación laboral', value: String(intakeData.employmentStatus ?? 'No declarado') },
-      { label: 'Ingreso mensual', value: String(intakeData.incomeBand ?? 'No declarado') },
-      { label: 'Cobertura de gastos', value: String(intakeData.expensesCoverage ?? 'No declarado') },
-      { label: 'Control de gastos', value: String(intakeData.tracksExpenses ?? 'No declarado') },
+      { label: 'Profesión', value: formatQuestionnaireValue(intakeData.profession ?? 'No declarado') },
+      { label: 'Situación laboral', value: formatQuestionnaireValue(intakeData.employmentStatus ?? 'No declarado') },
+      { label: 'Ingreso mensual', value: formatQuestionnaireValue(intakeData.incomeBand ?? 'No declarado') },
+      { label: 'Cobertura de gastos', value: formatQuestionnaireValue(intakeData.expensesCoverage ?? 'No declarado') },
+      { label: 'Control de gastos', value: formatQuestionnaireValue(intakeData.tracksExpenses ?? 'No declarado') },
       { label: 'Deuda activa', value: hasDebt ? 'Sí' : 'No' },
       { label: 'Ahorro / inversión', value: hasSavings ? 'Sí' : 'No' },
-      { label: 'Reacción al riesgo', value: String(intakeData.riskReaction ?? 'No declarado') },
+      { label: 'Reacción al riesgo', value: formatQuestionnaireValue(intakeData.riskReaction ?? 'No declarado') },
       {
         label: 'Comprensión financiera',
         value: understanding !== null ? `${understanding}/10` : 'No declarado',
@@ -1486,14 +2191,14 @@ export default function AgentPage() {
     if (knowledgeScore < 20) {
       return 'Tip: completa tu intake para calibrar lenguaje, riesgo y desbloqueos del panel.';
     }
-    if (engagedChatsCount < 3) {
-      return `Tip: activa los 3 chats (actual ${engagedChatsCount}/3) para ampliar el contexto del agente.`;
+    if (aggregateParsedDocuments(bankSimulation.products).length === 0 && aggregateUploadedFiles(bankSimulation.products).length === 0) {
+      return 'Tip: agrega un producto y sube respaldos para que el presupuesto nazca de evidencia real.';
     }
     if (!unlockedPanelBlocks.budgetUnlocked) {
       return 'Tip: cuentame ingresos y gastos para desbloquear Presupuesto.';
     }
     if (!unlockedPanelBlocks.transactionsUnlocked) {
-      return 'Tip: habla de cartolas, cuentas o banco para desbloquear Transacciones.';
+      return 'Tip: habla de productos, cartolas, cuentas o banco para desbloquear Productos y Transacciones.';
     }
     if (knowledgeScore < 85) {
       return 'Tip: usa presupuesto, deuda, simulaciones o APV para enriquecer el diagnóstico.';
@@ -1501,7 +2206,7 @@ export default function AgentPage() {
     return 'Ya hay aprendizaje avanzado. Ahora conviene consolidar evidencia y planes accionables.';
   }, [
     knowledgeScore,
-    engagedChatsCount,
+    bankSimulation.products,
     unlockedPanelBlocks.budgetUnlocked,
     unlockedPanelBlocks.transactionsUnlocked,
   ]);
@@ -1532,6 +2237,33 @@ export default function AgentPage() {
   }, []);
 
   useEffect(() => {
+    const syncInterviewResume = () => {
+      try {
+        const saved = readInterviewVoiceState();
+        if (!saved) {
+          setInterviewResumePending(false);
+          return;
+        }
+        const hasTranscript =
+          String(saved.voiceAgentTranscript ?? '').trim().length > 0 ||
+          String(saved.voiceUserTranscript ?? '').trim().length > 0;
+        const hasTime = Number(saved.callSeconds ?? 0) > 0;
+        const hasReport = Boolean(saved.voiceReport && typeof saved.voiceReport === 'object');
+        setInterviewResumePending((hasTranscript || hasTime) && !hasReport);
+      } catch {
+        setInterviewResumePending(false);
+      }
+    };
+    syncInterviewResume();
+    window.addEventListener('focus', syncInterviewResume);
+    window.addEventListener('storage', syncInterviewResume);
+    return () => {
+      window.removeEventListener('focus', syncInterviewResume);
+      window.removeEventListener('storage', syncInterviewResume);
+    };
+  }, []);
+
+  useEffect(() => {
     try {
       localStorage.setItem('agent.panel.stage.v3', String(panelStage));
       localStorage.setItem(
@@ -1557,62 +2289,184 @@ export default function AgentPage() {
   }, [isMonochrome]);
 
   useEffect(() => {
+    document.documentElement.classList.toggle('agent-global-monochrome', isMonochrome);
+    return () => {
+      document.documentElement.classList.remove('agent-global-monochrome');
+    };
+  }, [isMonochrome]);
+
+  useEffect(() => {
     if (!authBootstrapped || !isAuthenticated) return;
     let alive = true;
 
     loadPanelState()
       .then((data) => {
         if (!alive) return;
-        const panelState = data?.panelState;
+        let panelState = data?.panelState;
+        if (!hasMeaningfulPanelState(panelState)) {
+          try {
+            const localBackupRaw = localStorage.getItem(panelStateBackupKey);
+            if (localBackupRaw) {
+              const localBackupParsed = JSON.parse(localBackupRaw);
+              if (hasMeaningfulPanelState(localBackupParsed)) panelState = localBackupParsed;
+            }
+          } catch {}
+        }
         if (panelState && typeof panelState === 'object') {
           if (Array.isArray(panelState.budgetRows) && panelState.budgetRows.length > 0) {
             setBudgetRows(
-              panelState.budgetRows.map((row: any) => ({
-                ...row,
-                note: typeof row?.note === 'string' ? row.note : '',
-              }))
+              panelState.budgetRows.map((row: any) =>
+                normalizeBudgetRow({
+                  ...(row as BudgetRow),
+                  note: typeof row?.note === 'string' ? row.note : '',
+                })
+              )
+            );
+          }
+          if (Array.isArray(panelState.budgetChatAnswers)) {
+            setBudgetChatAnswers(
+              (panelState.budgetChatAnswers as Array<{ q: string; a: string }>)
+                .filter((item) => typeof item?.q === 'string' && typeof item?.a === 'string')
+                .slice(0, 30)
             );
           }
           if (Array.isArray(panelState.savedReports)) {
             setSavedReports(panelState.savedReports);
           }
           if (panelState.bankSimulation && typeof panelState.bankSimulation === 'object') {
-            setBankSimulation((prev) => ({
-              ...prev,
-              products: Array.isArray(panelState.bankSimulation.products)
+            setBankSimulation((prev) => {
+              const products: BankProduct[] = Array.isArray(panelState.bankSimulation.products)
                 ? panelState.bankSimulation.products.map((product: unknown) => {
                     const raw = product as Partial<BankProduct>;
                     return {
                       ...(raw as BankProduct),
+                      productType:
+                        raw.productType === 'debit_account' ||
+                        raw.productType === 'checking_account' ||
+                        raw.productType === 'savings_account' ||
+                        raw.productType === 'consumer_loan' ||
+                        raw.productType === 'mortgage' ||
+                        raw.productType === 'investment_account'
+                          ? raw.productType
+                          : 'credit_card',
                       simulationAccepted: Boolean(raw.simulationAccepted),
                       connected: Boolean(raw.connected),
                       randomMode: false,
+                      uploadedFiles: Array.isArray(raw.uploadedFiles) ? raw.uploadedFiles : [],
+                      parsedDocuments: Array.isArray(raw.parsedDocuments) ? raw.parsedDocuments : [],
                     };
                   })
-                : prev.products,
-              activeProductId:
+                : prev.products;
+              const requestedActiveProductId =
                 typeof panelState.bankSimulation.activeProductId === 'string'
                   ? panelState.bankSimulation.activeProductId
-                  : prev.activeProductId,
-              lockedMonth:
-                typeof panelState.bankSimulation.lockedMonth === 'string'
-                  ? panelState.bankSimulation.lockedMonth
-                  : prev.lockedMonth,
-              connected: Boolean(panelState.bankSimulation.connected),
-              randomMode: Boolean(panelState.bankSimulation.randomMode),
-              uploadedFiles: Array.isArray(panelState.bankSimulation.uploadedFiles)
-                ? panelState.bankSimulation.uploadedFiles
-                : prev.uploadedFiles,
-              parsedDocuments: Array.isArray(panelState.bankSimulation.parsedDocuments)
-                ? panelState.bankSimulation.parsedDocuments
-                : prev.parsedDocuments,
-            }));
+                  : prev.activeProductId;
+              const activeProductId =
+                requestedActiveProductId && products.some((product) => product.id === requestedActiveProductId)
+                  ? requestedActiveProductId
+                  : products[0]?.id ?? null;
+              const snapshot = getSimulationSnapshot(products, activeProductId);
+
+              return {
+                ...prev,
+                products,
+                activeProductId,
+                lockedMonth:
+                  typeof panelState.bankSimulation.lockedMonth === 'string'
+                    ? panelState.bankSimulation.lockedMonth
+                    : prev.lockedMonth,
+                connected: snapshot.connected,
+                randomMode: snapshot.randomMode,
+                uploadedFiles: snapshot.uploadedFiles,
+                parsedDocuments: snapshot.parsedDocuments,
+              };
+            });
           }
         }
         setPanelStateLoaded(true);
       })
       .catch(() => {
-        if (alive) setPanelStateLoaded(true);
+        if (alive) {
+          try {
+            const localBackupRaw = localStorage.getItem(panelStateBackupKey);
+            if (localBackupRaw) {
+              const localBackupParsed = JSON.parse(localBackupRaw);
+              if (hasMeaningfulPanelState(localBackupParsed)) {
+                const panelState = localBackupParsed;
+                if (Array.isArray(panelState.budgetRows) && panelState.budgetRows.length > 0) {
+                  setBudgetRows(
+                    panelState.budgetRows.map((row: any) =>
+                      normalizeBudgetRow({
+                        ...(row as BudgetRow),
+                        note: typeof row?.note === 'string' ? row.note : '',
+                      })
+                    )
+                  );
+                }
+                if (Array.isArray(panelState.budgetChatAnswers)) {
+                  setBudgetChatAnswers(
+                    (panelState.budgetChatAnswers as Array<{ q: string; a: string }>)
+                      .filter((item) => typeof item?.q === 'string' && typeof item?.a === 'string')
+                      .slice(0, 30)
+                  );
+                }
+                if (Array.isArray(panelState.savedReports)) {
+                  setSavedReports(panelState.savedReports);
+                }
+                if (panelState.bankSimulation && typeof panelState.bankSimulation === 'object') {
+                  setBankSimulation((prev) => {
+                    const products: BankProduct[] = Array.isArray(panelState.bankSimulation.products)
+                      ? panelState.bankSimulation.products.map((product: unknown) => {
+                          const raw = product as Partial<BankProduct>;
+                          return {
+                            ...(raw as BankProduct),
+                            productType:
+                              raw.productType === 'debit_account' ||
+                              raw.productType === 'checking_account' ||
+                              raw.productType === 'savings_account' ||
+                              raw.productType === 'consumer_loan' ||
+                              raw.productType === 'mortgage' ||
+                              raw.productType === 'investment_account'
+                                ? raw.productType
+                                : 'credit_card',
+                            simulationAccepted: Boolean(raw.simulationAccepted),
+                            connected: Boolean(raw.connected),
+                            randomMode: false,
+                            uploadedFiles: Array.isArray(raw.uploadedFiles) ? raw.uploadedFiles : [],
+                            parsedDocuments: Array.isArray(raw.parsedDocuments) ? raw.parsedDocuments : [],
+                          };
+                        })
+                      : prev.products;
+                    const requestedActiveProductId =
+                      typeof panelState.bankSimulation.activeProductId === 'string'
+                        ? panelState.bankSimulation.activeProductId
+                        : prev.activeProductId;
+                    const activeProductId =
+                      requestedActiveProductId && products.some((product) => product.id === requestedActiveProductId)
+                        ? requestedActiveProductId
+                        : products[0]?.id ?? null;
+                    const snapshot = getSimulationSnapshot(products, activeProductId);
+
+                    return {
+                      ...prev,
+                      products,
+                      activeProductId,
+                      lockedMonth:
+                        typeof panelState.bankSimulation.lockedMonth === 'string'
+                          ? panelState.bankSimulation.lockedMonth
+                          : prev.lockedMonth,
+                      connected: snapshot.connected,
+                      randomMode: snapshot.randomMode,
+                      uploadedFiles: snapshot.uploadedFiles,
+                      parsedDocuments: snapshot.parsedDocuments,
+                    };
+                  });
+                }
+              }
+            }
+          } catch {}
+          setPanelStateLoaded(true);
+        }
       });
 
     return () => {
@@ -1626,51 +2480,31 @@ export default function AgentPage() {
     if (panelSaveTimerRef.current) clearTimeout(panelSaveTimerRef.current);
 
     panelSaveTimerRef.current = setTimeout(() => {
-      savePanelState({
-        budgetRows,
-        bankSimulation: {
-          products: bankSimulation.products.map((product) => ({
-            ...product,
-            randomMode: false,
-          })),
-          activeProductId: bankSimulation.activeProductId,
-          lockedMonth: bankSimulation.lockedMonth,
-          connected: bankSimulation.connected,
-          randomMode: bankSimulation.randomMode,
-          uploadedFiles: bankSimulation.uploadedFiles,
-          parsedDocuments: bankSimulation.parsedDocuments,
-        },
-        savedReports,
-        updatedAt: new Date().toISOString(),
-      }).catch(() => {});
+      const snapshot = buildPanelSnapshot();
+      try {
+        localStorage.setItem(panelStateBackupKey, JSON.stringify(snapshot));
+      } catch {}
+      savePanelState(snapshot).catch(() => {});
     }, 1200);
 
     return () => {
       if (panelSaveTimerRef.current) clearTimeout(panelSaveTimerRef.current);
     };
-  }, [budgetRows, bankSimulation, savedReports, panelStateLoaded]);
+  }, [budgetRows, budgetChatAnswers, bankSimulation, savedReports, panelStateLoaded, panelStateBackupKey]);
 
   useEffect(() => {
-    // Monthly reset for transaction flow (allows uploading previous month once each new month).
-    if (!bankSimulation.lockedMonth) return;
-    if (bankSimulation.lockedMonth === monthKeyOf()) return;
-    setBankSimulation((prev) => ({
-      ...prev,
-      lockedMonth: null,
-      connected: false,
-      randomMode: false,
-      uploadedFiles: [],
-      parsedDocuments: [],
-      products: prev.products.map((p) => ({
-        ...p,
-        connected: false,
-        randomMode: false,
-        uploadedFiles: [],
-        parsedDocuments: [],
-      })),
-    }));
-    setTxWizardStep('products');
-  }, [bankSimulation.lockedMonth]);
+    if (!isAuthenticated || !panelStateLoaded) return;
+    const hasPanelContext =
+      bankSimulation.products.length > 0 ||
+      budgetRows.some((row) => row.amount > 0 || row.category.trim().length > 0);
+    if (!hasPanelContext) return;
+
+    const timer = window.setTimeout(() => {
+      void syncFinancialContextToIntake().catch(() => {});
+    }, 1600);
+
+    return () => window.clearTimeout(timer);
+  }, [isAuthenticated, panelStateLoaded, bankSimulation.products, bankSimulation.activeProductId, budgetRows]);
 
   useEffect(() => {
     const prevScore = previousKnowledgeScoreRef.current;
@@ -1760,34 +2594,6 @@ export default function AgentPage() {
   }, [sessionInfo?.knowledgeScore]);
 
   useEffect(() => {
-    const intake = sessionInfo?.injectedIntake?.intake;
-    if (!panelStateLoaded || !intake) return;
-    if (budgetRows.some((row) => row.amount > 0)) return;
-
-    const monthlyIncome = Number(intake.exactMonthlyIncome ?? 0);
-    if (!Number.isFinite(monthlyIncome) || monthlyIncome <= 0) return;
-
-    setBudgetRows((prev) =>
-      prev.map((row) => {
-        if (row.id === 'income-salary') {
-          return {
-            ...row,
-            amount: monthlyIncome,
-            note: intake.profession ? `Ingreso declarado por ${intake.profession}` : 'Ingreso declarado en intake',
-          };
-        }
-        if (row.id === 'expense-debt' && intake.hasDebt) {
-          return {
-            ...row,
-            note: 'Deuda declarada en intake',
-          };
-        }
-        return row;
-      })
-    );
-  }, [panelStateLoaded, sessionInfo?.injectedIntake, budgetRows]);
-
-  useEffect(() => {
     if (!isAuthenticated) return;
     loadProfileIfNeeded().catch(() => {});
   }, [isAuthenticated, loadProfileIfNeeded]);
@@ -1800,6 +2606,13 @@ export default function AgentPage() {
       localStorage.removeItem('agent.prefill_prompt');
     } catch {}
   }, [activeChatId]);
+
+  // Re-focus composer after a blocking modal closes
+  useEffect(() => {
+    if (!hasBlockingModalOpen && !isActiveChatLocked) {
+      setTimeout(() => chatComposerRef.current?.focus(), 80);
+    }
+  }, [hasBlockingModalOpen, isActiveChatLocked]);
 
   // Haptic feedback — usa Vibration API si esta disponible (Android/algunos iOS PWA)
   function haptic(pattern: number | number[] = 10) {
@@ -1820,7 +2633,8 @@ export default function AgentPage() {
       router.replace('/login');
       return;
     }
-    const outgoingText = String(messageOverride ?? input ?? '').trim();
+    const liveComposerText = chatComposerRef.current?.value ?? '';
+    const outgoingText = String(messageOverride ?? liveComposerText ?? input ?? '').trim();
     if (!outgoingText || loading) return;
     if (isActiveChatLocked) {
       setItemsForActive((prev) => [
@@ -1829,7 +2643,7 @@ export default function AgentPage() {
           type: 'message',
           role: 'assistant',
           content:
-            'Este chat todavia esta bloqueado. Terminemos primero el flujo base en el Chat 1: presupuesto, cartolas y entrevista breve para construir el diagnostico.',
+            'Este chat todavia esta bloqueado. Terminemos primero el flujo base en el Chat 1: productos/transacciones, presupuesto y entrevista breve para construir el diagnostico.',
           mode: 'information',
         },
       ]);
@@ -1941,6 +2755,10 @@ export default function AgentPage() {
     );
 
     try {
+      const scopedTxContext = buildScopedTransactionsContext(
+        bankSimulation.products,
+        bankSimulation.activeProductId,
+      );
       const res = (await sendToAgent({
         user_message: enrichedUserMessage,
         session_id: getSessionId(),
@@ -1948,12 +2766,30 @@ export default function AgentPage() {
         context: {
           recent_artifacts: recentArtifacts,
           recent_chart_summaries: recentChartSummaries,
-          uploaded_documents: bankSimulation.parsedDocuments.slice(-3),
-          uploaded_evidence_files: bankSimulation.uploadedFiles.slice(-6),
+          uploaded_documents: scopedTxContext.scopedUploadedDocuments,
+          uploaded_evidence_files: scopedTxContext.scopedUploadedEvidenceFiles,
           consolidated_context: {
             transactions: {
-              connected: bankSimulation.connected,
-              uploadedFiles: bankSimulation.uploadedFiles.slice(-6),
+              scope: 'active_product',
+              activeProductId: scopedTxContext.activeProduct?.id ?? null,
+              activeProductLabel: scopedTxContext.activeProduct?.label ?? null,
+              activeProductBank: scopedTxContext.activeProduct?.bank ?? null,
+              activeProductType: scopedTxContext.activeProduct?.productType ?? null,
+              connected: Boolean(scopedTxContext.activeProduct?.connected),
+              productsCount: bankSimulation.products.length,
+              uploadedFiles: scopedTxContext.scopedUploadedEvidenceFiles,
+              productsIndex: scopedTxContext.productsIndex,
+              activeProduct: scopedTxContext.activeProduct
+                ? {
+                    id: scopedTxContext.activeProduct.id,
+                    label: scopedTxContext.activeProduct.label,
+                    bank: scopedTxContext.activeProduct.bank,
+                    productType: scopedTxContext.activeProduct.productType,
+                    dashboardSummary: scopedTxContext.activeProduct.dashboard?.summary ?? '',
+                    keyMetrics: scopedTxContext.activeProduct.dashboard?.keyMetrics ?? null,
+                    movements: scopedTxContext.activeProduct.dashboard?.movements?.slice(0, 40) ?? [],
+                  }
+                : null,
             },
           },
         },
@@ -1961,13 +2797,15 @@ export default function AgentPage() {
           panel_stage: panelStage,
           panel_collapsed: isPanelCollapsed,
           active_chat: {
-            id: activeThread?.id,
-            label: activeThread?.label,
-            name: activeThread?.name,
+            id: activeThread?.id ?? activeChatId,
+            label: activeThread?.label ?? 'Core',
+            name: activeThread?.name ?? 'Diagnóstico financiero',
           },
           unlocked_modules: {
             budget: unlockedPanelBlocks.budgetUnlocked,
             transactions: unlockedPanelBlocks.transactionsUnlocked,
+            interview: canOpenInterview,
+            post_diagnosis_chats: interviewCompleted,
           },
           knowledge_score: knowledgeScore,
           engagement_score: engagementScore,
@@ -1983,6 +2821,11 @@ export default function AgentPage() {
             balance: budgetTotals.balance,
             rows_count: budgetRows.filter((r) => r.amount > 0).length,
           },
+          budget_rows: budgetRows
+            .filter((r) => r.amount > 0 || r.category.trim().length > 0)
+            .slice(0, 20)
+            .map((r) => ({ category: r.category, type: r.type, amount: r.amount, note: r.note })),
+          flow_status: getFlowStatus(),
         },
         preferences: {
           response_style: 'professional',
@@ -2029,6 +2872,8 @@ export default function AgentPage() {
       }
       forceRender((x) => x + 1);
 
+      res.panel_action = normalizePanelActionForCurrentFlow(res.panel_action);
+
       // Handle panel action from agent
       if (res?.panel_action && (res.panel_action.section || res.panel_action.message)) {
         handlePanelAction(res.panel_action);
@@ -2038,17 +2883,38 @@ export default function AgentPage() {
       if (Array.isArray(res?.budget_updates) && res.budget_updates.length > 0) {
         setBudgetRows((prev) => {
           const updated = [...prev];
+          const normalizeBudgetKey = (value: string) =>
+            String(value ?? '')
+              .toLowerCase()
+              .normalize('NFD')
+              .replace(/[\u0300-\u036f]/g, '')
+              .replace(/[^\w\s]/g, ' ')
+              .replace(/\s+/g, ' ')
+              .trim();
           for (const upd of res.budget_updates!) {
-            // Try to find existing row with same label (case-insensitive)
+            const normalizedLabel = normalizeBudgetKey(upd.label);
+            const normalizedCategory = normalizeBudgetKey(
+              upd.category ?? (upd.type === 'income' ? 'Ingresos' : 'Gastos')
+            );
+            // Match by type + category/label against category and note (stable, avoids duplicates).
             const existingIdx = updated.findIndex(
-              (r) =>
-                r.type === upd.type &&
-                (r.note ?? '').toLowerCase().includes(upd.label.toLowerCase())
+              (r) => {
+                if (r.type !== upd.type) return false;
+                const rowCategory = normalizeBudgetKey(r.category);
+                const rowNote = normalizeBudgetKey(r.note ?? '');
+                return (
+                  rowCategory === normalizedCategory ||
+                  rowCategory === normalizedLabel ||
+                  rowNote === normalizedLabel ||
+                  rowNote.includes(normalizedLabel)
+                );
+              }
             );
             if (existingIdx >= 0) {
               // Update existing row amount
               updated[existingIdx] = { ...updated[existingIdx], amount: upd.amount };
             } else {
+              if (updated.length >= MAX_BUDGET_ROWS) continue;
               // Add new row
               updated.push({
                 id: `agent-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
@@ -2059,7 +2925,7 @@ export default function AgentPage() {
               });
             }
           }
-          return updated;
+          return updated.slice(0, MAX_BUDGET_ROWS);
         });
       }
 
@@ -2069,19 +2935,6 @@ export default function AgentPage() {
           const updated = prev.map((t) => {
             if (t.id !== activeChatId) return t;
             const newScore = Math.max(t.contextScore, res.context_score!);
-            const shouldCycle = t.userMessageCount >= 50 && t.status === 'active';
-            if (shouldCycle) {
-              // Auto-switch to next available base sheet (chat-1/2/3)
-              const BASE_IDS = ['chat-1', 'chat-2', 'chat-3'];
-              const nextSheet = prev.find((s) => BASE_IDS.includes(s.id) && s.status === 'active' && s.id !== t.id);
-              if (nextSheet) {
-                setTimeout(() => setActiveChatId(nextSheet.id), 0);
-              } else {
-                // All 3 base sheets complete — trigger meta-sheet after brief delay
-                setTimeout(() => generateMetaSheet(prev), 600);
-              }
-              return { ...t, status: 'context' as const, contextScore: newScore, completedAt: new Date().toISOString() };
-            }
             return { ...t, contextScore: newScore };
           });
           return updated;
@@ -2177,13 +3030,50 @@ export default function AgentPage() {
     void onSend(message);
   }
 
+  function reconcileBudgetRows(rows: BudgetRow[]): BudgetRow[] {
+    // Keep parent/child type consistent, then roll up amounts from descendants.
+    const byId = new Map(rows.map((row) => [row.id, row]));
+    const typed = rows.map((row) => {
+      if (!row.parentId) return row;
+      const parent = byId.get(row.parentId);
+      if (!parent) return { ...row, parentId: undefined };
+      if (row.type === parent.type) return row;
+      return { ...row, type: parent.type };
+    });
+    const childrenByParentId = new Map<string, BudgetRow[]>();
+    typed.forEach((row) => {
+      if (!row.parentId) return;
+      const bucket = childrenByParentId.get(row.parentId) ?? [];
+      bucket.push(row);
+      childrenByParentId.set(row.parentId, bucket);
+    });
+    const amountMemo = new Map<string, number>();
+    const computeRolledUpAmount = (row: BudgetRow): number => {
+      if (amountMemo.has(row.id)) return amountMemo.get(row.id)!;
+      const children = childrenByParentId.get(row.id) ?? [];
+      if (children.length === 0) {
+        const selfAmount = Math.max(0, Number(row.amount) || 0);
+        amountMemo.set(row.id, selfAmount);
+        return selfAmount;
+      }
+      const rolled = children.reduce((sum, child) => sum + computeRolledUpAmount(child), 0);
+      amountMemo.set(row.id, rolled);
+      return rolled;
+    };
+    return typed.map((row) => {
+      const children = childrenByParentId.get(row.id) ?? [];
+      if (children.length === 0) return row;
+      return { ...row, amount: computeRolledUpAmount(row) };
+    });
+  }
+
   function updateBudgetRow(
     id: string,
     field: keyof BudgetRow,
     value: string | number
   ) {
-    setBudgetRows((rows) =>
-      rows.map((row) =>
+    setBudgetRows((rows) => {
+      const updated = rows.map((row) =>
         row.id === id
           ? {
               ...row,
@@ -2193,104 +3083,359 @@ export default function AgentPage() {
                   : value,
             }
           : row
-      )
-    );
+      );
+      // If parent type changes manually, propagate it to all children.
+      const propagated =
+        field === 'type'
+          ? updated.map((row) => {
+              const parent = updated.find((candidate) => candidate.id === row.parentId);
+              if (!parent) return row;
+              if (row.type === parent.type) return row;
+              return { ...row, type: parent.type };
+            })
+          : updated;
+      return reconcileBudgetRows(propagated);
+    });
+  }
+
+  function applyBudgetTemplate() {
+    setBudgetRows((rows) => {
+      const starterRows = createBudgetStarterRows();
+      const normalizedRows = rows.map(normalizeBudgetRow);
+      const rowsById = new Map(normalizedRows.map((row) => [row.id, row]));
+      const templateIds = new Set(starterRows.map((row) => row.id));
+      const mergedStarterRows = starterRows.map((templateRow) => {
+        const existing = rowsById.get(templateRow.id);
+        return existing ? { ...templateRow, ...existing } : templateRow;
+      });
+      const customRows = normalizedRows.filter((row) => !templateIds.has(row.id));
+      return [...mergedStarterRows, ...customRows];
+    });
   }
 
   function addBudgetRow(type: 'income' | 'expense') {
-    setBudgetRows((rows) => [
-      ...rows,
-      {
-        id: `${type}-${Date.now()}`,
-        category: type === 'income' ? 'Nuevo ingreso' : 'Nuevo gasto',
-        type,
+    setBudgetRows((rows) => {
+      const next = [
+        ...rows,
+        ...(rows.length >= MAX_BUDGET_ROWS
+          ? []
+          : [
+              {
+                id: `${type}-${Date.now()}`,
+                category: type === 'income' ? 'Nuevo ingreso' : 'Nuevo gasto',
+                type,
+                amount: 0,
+                product: type === 'income' ? 'Producto ingreso' : 'Producto gasto',
+                institution: '',
+              } as BudgetRow,
+            ]),
+      ];
+      return reconcileBudgetRows(next);
+    });
+  }
+
+  function addBudgetSubcategory(parentId: string) {
+    setBudgetRows((rows) => {
+      if (rows.length >= MAX_BUDGET_ROWS) return rows;
+      const parent = rows.find((row) => row.id === parentId);
+      if (!parent) return rows;
+      const siblings = rows.filter((row) => row.parentId === parentId);
+      const nextIdx = siblings.length + 1;
+      const subId = `${parentId}-sub-${Date.now()}`;
+      const subRow: BudgetRow = {
+        id: subId,
+        parentId,
+        category: `${parent.category} · item ${nextIdx}`,
+        type: parent.type,
         amount: 0,
-        note: '',
-      },
-    ]);
+      };
+      return reconcileBudgetRows([...rows, subRow]);
+    });
+  }
+
+  function deleteBudgetRow(id: string) {
+    setBudgetRows((rows) => {
+      const deleteSet = new Set([id]);
+      let changed = true;
+      while (changed) {
+        changed = false;
+        rows.forEach((row) => {
+          if (row.parentId && deleteSet.has(row.parentId) && !deleteSet.has(row.id)) {
+            deleteSet.add(row.id);
+            changed = true;
+          }
+        });
+      }
+      const next = rows.filter((row) => !deleteSet.has(row.id));
+      return reconcileBudgetRows(next);
+    });
   }
 
   function upsertBudgetRow(row: BudgetRow) {
     setBudgetRows((rows) => {
       const idx = rows.findIndex((item) => item.id === row.id);
       if (idx >= 0) {
-        return rows.map((item) => (item.id === row.id ? { ...item, ...row } : item));
+        const next = rows.map((item) => (item.id === row.id ? { ...item, ...row } : item));
+        return reconcileBudgetRows(next);
       }
-      return [...rows, row];
+      if (rows.length >= MAX_BUDGET_ROWS) return rows;
+      return reconcileBudgetRows([...rows, row]);
     });
   }
 
+  function buildPersistableBudgetContext() {
+    return {
+      income: Math.round(Number(budgetTotals.income) || 0),
+      expenses: Math.round(Number(budgetTotals.expenses) || 0),
+      balance: Math.round(Number(budgetTotals.balance) || 0),
+      rowsCount: budgetRows.filter((row) => row.amount > 0).length,
+      rows: budgetRows
+        .filter((row) => row.amount > 0 || row.category.trim().length > 0)
+        .slice(0, 80)
+        .map((row) => ({
+          id: row.id,
+          category: row.category,
+          type: row.type,
+          amount: Math.round(Number(row.amount) || 0),
+          note: row.note || undefined,
+          parentId: row.parentId ?? null,
+          product: row.product || undefined,
+          institution: row.institution || undefined,
+        })),
+    };
+  }
+
+  async function syncFinancialContextToIntake() {
+    await mergeProductsContextToIntake({
+      productsContext: buildPersistableProductsContext(
+        bankSimulation.products,
+        bankSimulation.activeProductId
+      ),
+      budgetContext: buildPersistableBudgetContext(),
+    });
+  }
+
+  function buildInterviewIntakePayload() {
+    const baseIntake =
+      sessionInfo?.injectedIntake?.intake && typeof sessionInfo.injectedIntake.intake === 'object'
+        ? (sessionInfo.injectedIntake.intake as Record<string, unknown>)
+        : ((intakeData ?? {}) as Record<string, unknown>);
+
+    return {
+      ...baseIntake,
+      __productsContext: buildPersistableProductsContext(
+        bankSimulation.products,
+        bankSimulation.activeProductId
+      ),
+      __budgetContext: buildPersistableBudgetContext(),
+    };
+  }
+
   function sendBudgetToAgent() {
-    const budgetSummary = budgetRows
+    const rowsWithData = budgetRows
       .filter((r) => r.amount > 0 || (r.category ?? '').trim().length > 0)
-      .slice(0, 18)
-      .map((r) => ({
-        c: (r.category ?? '').trim().slice(0, 48) || 'sin_categoria',
-        t: r.type === 'income' ? 'I' : 'E',
-        m: Math.round(Number(r.amount) || 0),
-      }));
+      .slice(0, 24);
+    const budgetSummary = rowsWithData.map((r) => ({
+      id: r.id,
+      category: (r.category ?? '').trim().slice(0, 64) || 'sin_categoria',
+      type: r.type === 'income' ? 'income' : 'expense',
+      amount: Math.round(Number(r.amount) || 0),
+      parentId: r.parentId ?? null,
+    }));
     const intakeCompact = (() => {
       const intake = (intakeData ?? {}) as Record<string, unknown>;
       return {
+        age: intake.age ?? null,
+        employmentStatus: intake.employmentStatus ?? null,
+        exactMonthlyIncome: intake.exactMonthlyIncome ?? null,
         incomeBand: intake.incomeBand ?? null,
         hasDebt: intake.hasDebt ?? null,
         hasSavings: intake.hasSavingsOrInvestments ?? null,
         riskReaction: intake.riskReaction ?? null,
       };
     })();
+    const income = Math.round(Number(budgetTotals.income) || 0);
+    const expenses = Math.round(Number(budgetTotals.expenses) || 0);
+    const balance = Math.round(Number(budgetTotals.balance) || 0);
+    const savingsRate = Number.isFinite(budgetInsights.savingsRate) ? Math.round(budgetInsights.savingsRate) : 0;
+    const healthScore = Number.isFinite(budgetInsights.healthScore) ? Math.round(budgetInsights.healthScore) : 0;
+    const expenseTop3 = rowsWithData
+      .filter((r) => r.type === 'expense' && Number(r.amount) > 0)
+      .sort((a, b) => Number(b.amount) - Number(a.amount))
+      .slice(0, 3)
+      .map((r) => ({
+        category: (r.category ?? '').trim() || 'sin_categoria',
+        amount: Math.round(Number(r.amount) || 0),
+      }));
     const message = [
-      'Modo presupuesto: analiza y optimiza.',
-      `KPIs ingreso=${Math.round(budgetTotals.income)} gasto=${Math.round(
-        budgetTotals.expenses
-      )} balance=${Math.round(budgetTotals.balance)} ahorro_pct=${Math.round(
-        budgetInsights.savingsRate
-      )} salud=${budgetInsights.healthScore}`,
-      `Contexto intake compacto=${JSON.stringify(intakeCompact)}`,
-      `Filas presupuesto=${JSON.stringify(budgetSummary)}`,
-      'Entrega SOLO: 1) diagnostico corto, 2) 3 ajustes priorizados con monto sugerido, 3) una meta de ahorro mensual.',
+      'ROL: Analista financiero senior. Objetivo: emitir un informe ejecutivo premium del presupuesto mensual del usuario.',
+      'FUENTE DE VERDAD: usa EXCLUSIVAMENTE los datos entregados abajo. No inventes montos, categorías, deudas, ingresos, productos ni metas.',
+      `DATOS_CERRADOS=${JSON.stringify({
+        kpis: { income, expenses, balance, savingsRatePct: savingsRate, healthScore },
+        intake: intakeCompact,
+        budgetRows: budgetSummary,
+        top3Expenses: expenseTop3,
+      })}`,
+      'REGLAS ANTI-ALUCINACIÓN:',
+      '- Si falta información clave para una recomendación exacta, decláralo explícitamente como "dato faltante".',
+      '- No uses supuestos ocultos ni referencias externas.',
+      '- Si detectas inconsistencia numérica, señálala con cifras y propone validación.',
+      'FORMATO OBLIGATORIO (informe premium):',
+      '- Usa markdown editorial y jerarquía clara: 1 título #, secciones ## y subsecciones ###.',
+      '- Escribe profesional, sobrio y directo. Sin ruido, sin relleno.',
+      '- Máximo 2-4 frases por sección.',
+      'SECCIONES OBLIGATORIAS:',
+      '1) # Informe Ejecutivo de Presupuesto',
+      '2) ## Diagnóstico ejecutivo',
+      '3) ## Riesgos y desviaciones clave',
+      '4) ## Plan de ajuste priorizado (exactamente 3 acciones con monto CLP e impacto mensual)',
+      '5) ## Meta mensual recomendada (CLP y % del ingreso)',
+      '6) ## Datos faltantes críticos',
+      'BLOQUES VISUALES OBLIGATORIOS (usar tags literales):',
+      '- Incluir exactamente 2 bloques <CHART> válidos ANTES de SUGERENCIAS:',
+      '  a) Gráfico bar: Ingreso vs Gasto vs Balance.',
+      '  b) Gráfico bar: Top 5 gastos por categoría (si faltan, usar las disponibles y declararlo).',
+      '- Incluir exactamente 1 bloque <TABLE> válido con columnas:',
+      '  ["Categoría","Monto CLP","% del gasto","Prioridad de ajuste","Acción sugerida"]',
+      '- Todos los montos en CLP enteros; porcentajes redondeados.',
+      'REGLAS DE CONSISTENCIA:',
+      '- No uses LaTeX.',
+      '- No uses símbolos markdown rotos ni bullets mixtos (ej: "1. •").',
+      '- Si un dato no existe en DATOS_CERRADOS, escríbelo como "dato faltante".',
+      '- Cierra con SUGERENCIAS accionables y breves.',
     ].join('\n');
+    setBudgetChatAnswers([]);
     setIsBudgetModalOpen(false);
+    void syncFinancialContextToIntake().catch(() => {});
     void onSend('Configurar presupuesto', {
       agentPayload: message,
       assistantPendingLabel:
-        'Configurando presupuesto con Financiera mente… preparando lectura ejecutiva y recomendaciones.',
+        'Configurando presupuesto con FinancieraMente… construyendo informe ejecutivo premium con gráficos.',
       hideUserMessage: true,
     });
   }
 
   function openTransactionsPanel() {
     if (!unlockedPanelBlocks.transactionsUnlocked) return;
-    if (isTransactionsLockedThisMonth) {
-      setTxWizardStep('locked');
-      setIsTransactionsModalOpen(true);
-      return;
-    }
     setTxWizardStep('products');
     setIsTransactionsModalOpen(true);
   }
 
+  function openInterviewModal() {
+    void syncFinancialContextToIntake().catch(() => {});
+    setInterviewIntake(buildInterviewIntakePayload() as any);
+    setIsInterviewModalOpen(true);
+  }
+
+  useEffect(() => {
+    if (interviewAutoOpenHandledRef.current) return;
+    if (searchParams.get('openInterview') !== '1') return;
+    interviewAutoOpenHandledRef.current = true;
+    openInterviewModal();
+    router.replace('/agent');
+  }, [openInterviewModal, router, searchParams]);
+
+  function openPanelSectionFromChat(action: NonNullable<AgentResponse['panel_action']>) {
+    handlePanelAction(action);
+    const section = action.section;
+    if (section === 'transactions' || section === 'products_transactions') {
+      openTransactionsPanel();
+      return;
+    }
+    if (section === 'budget') {
+      if (!unlockedPanelBlocks.budgetUnlocked) {
+        handlePanelAction({
+          section: 'products_transactions',
+          message: 'Presupuesto sigue bloqueado: primero completa Productos y Transacciones.',
+        });
+        openTransactionsPanel();
+        return;
+      }
+      setIsBudgetModalOpen(true);
+      return;
+    }
+    if (section === 'interview') {
+      if (!canOpenInterview) {
+        const flow = getFlowStatus();
+        if (!flow.transactionsCompleted) {
+          handlePanelAction({
+            section: 'products_transactions',
+            message: 'Entrevista está bloqueada: primero completa Productos y Transacciones.',
+          });
+          openTransactionsPanel();
+          return;
+        }
+        handlePanelAction({
+          section: 'budget',
+          message: 'Entrevista está bloqueada: completa el presupuesto antes de la llamada.',
+        });
+        setIsBudgetModalOpen(true);
+        return;
+      }
+      openInterviewModal();
+    }
+  }
+
   function addTransactionProduct() {
+    if (bankSimulation.products.length >= MAX_TRANSACTION_PRODUCTS) {
+      setTransactionUploadError(`Solo puedes tener ${MAX_TRANSACTION_PRODUCTS} productos activos.`);
+      return;
+    }
+    const hasDeletionHistory = txDeletedProductsCount > 0;
+    const remainingRecreations = MAX_PRODUCT_RECREATIONS - txRecreationUsed;
+    if (hasDeletionHistory && remainingRecreations <= 0) {
+      setTransactionUploadError('Ya usaste las 3 recreaciones permitidas después de eliminar productos.');
+      return;
+    }
+    if (hasDeletionHistory && remainingRecreations === 3) {
+      setTxCreationNotice('Aviso: después de eliminar, solo puedes recrear productos 3 veces en total.');
+    } else if (hasDeletionHistory && remainingRecreations === 2) {
+      setTxCreationNotice('Aviso: te quedan 2 recreaciones de producto.');
+    } else if (hasDeletionHistory && remainingRecreations === 1) {
+      setTxCreationNotice('Aviso final: esta es tu última recreación de producto.');
+    } else {
+      setTxCreationNotice(null);
+    }
     const id = `prod-${Date.now()}`;
     const product: BankProduct = {
       id,
       label: `Producto ${bankSimulation.products.length + 1}`,
       bank: '',
+      productType: 'credit_card',
       simulationAccepted: false,
       connected: false,
       randomMode: false,
       uploadedFiles: [],
       parsedDocuments: [],
     };
-    setBankSimulation((prev) => ({
-      ...prev,
-      products: [...prev.products, product],
-      activeProductId: id,
-      connected: false,
-      randomMode: false,
-      uploadedFiles: [],
-      parsedDocuments: [],
-    }));
+    setBankSimulation((prev) => {
+      const products = [...prev.products, product];
+      const snapshot = getSimulationSnapshot(products, id);
+      return {
+        ...prev,
+        products,
+        activeProductId: id,
+        connected: snapshot.connected,
+        randomMode: snapshot.randomMode,
+        uploadedFiles: snapshot.uploadedFiles,
+        parsedDocuments: snapshot.parsedDocuments,
+      };
+    });
+    setTransactionUploadError(null);
     setTxWizardStep('credentials');
+    if (hasDeletionHistory) setTxRecreationUsed((prev) => prev + 1);
+  }
+
+  function saveTransactionProductForBatch() {
+    if (!activeBankProduct) return;
+    if (!activeBankProduct.connected) {
+      setTransactionUploadError('Autoriza y conecta el producto antes de guardarlo.');
+      return;
+    }
+    setSavedProductsForBatch((prev) =>
+      prev.includes(activeBankProduct.id) ? prev : [...prev, activeBankProduct.id]
+    );
+    setTransactionUploadError(null);
   }
 
   function selectTransactionProduct(productId: string) {
@@ -2298,18 +3443,18 @@ export default function AgentPage() {
     setBankSimulation((prev) => {
       const product = prev.products.find((p) => p.id === productId);
       if (!product) return prev;
+      const snapshot = getSimulationSnapshot(prev.products, product.id);
       return {
         ...prev,
         activeProductId: product.id,
-        connected: product.connected,
-        randomMode: product.randomMode,
-        uploadedFiles: product.uploadedFiles,
-        parsedDocuments: product.parsedDocuments,
-        };
+        connected: snapshot.connected,
+        randomMode: snapshot.randomMode,
+        uploadedFiles: snapshot.uploadedFiles,
+        parsedDocuments: snapshot.parsedDocuments,
+      };
     });
-    if (isTransactionsLockedThisMonth) {
-      setTxWizardStep('locked');
-    } else if (!selectedProduct?.connected) {
+    setTransactionUploadError(null);
+    if (!selectedProduct?.connected) {
       setTxWizardStep('credentials');
     } else if ((selectedProduct.parsedDocuments.length ?? 0) === 0) {
       setTxWizardStep('upload');
@@ -2324,15 +3469,14 @@ export default function AgentPage() {
       const products = prev.products.map((p) =>
         p.id === prev.activeProductId ? { ...p, ...updates } : p
       );
-      const active = products.find((p) => p.id === prev.activeProductId);
-      if (!active) return prev;
+      const snapshot = getSimulationSnapshot(products, prev.activeProductId);
       return {
         ...prev,
         products,
-        connected: active.connected,
-        randomMode: active.randomMode,
-        uploadedFiles: active.uploadedFiles,
-        parsedDocuments: active.parsedDocuments,
+        connected: snapshot.connected,
+        randomMode: snapshot.randomMode,
+        uploadedFiles: snapshot.uploadedFiles,
+        parsedDocuments: snapshot.parsedDocuments,
       };
     });
   }
@@ -2342,63 +3486,94 @@ export default function AgentPage() {
       const products = prev.products.filter((p) => p.id !== productId);
       const nextActiveId =
         prev.activeProductId === productId ? products[0]?.id ?? null : prev.activeProductId;
-      const nextActive = nextActiveId ? products.find((p) => p.id === nextActiveId) ?? null : null;
+      const snapshot = getSimulationSnapshot(products, nextActiveId);
       return {
         ...prev,
         products,
         activeProductId: nextActiveId,
-        connected: nextActive?.connected ?? false,
-        randomMode: nextActive?.randomMode ?? false,
-        uploadedFiles: nextActive?.uploadedFiles ?? [],
-        parsedDocuments: nextActive?.parsedDocuments ?? [],
+        connected: snapshot.connected,
+        randomMode: snapshot.randomMode,
+        uploadedFiles: snapshot.uploadedFiles,
+        parsedDocuments: snapshot.parsedDocuments,
       };
     });
+    setTransactionUploadError(null);
     setTxWizardStep('products');
+    setTxDeletedProductsCount((prev) => prev + 1);
   }
 
-  function simulateBankLogin() {
-    if (!activeBankProduct || isTransactionsLockedThisMonth) return;
+  function simulateBankLogin(nextConfig?: {
+    bank?: string;
+    label?: string;
+    productType?: BankProduct['productType'];
+  }) {
+    if (!activeBankProduct) return;
     if (!activeBankProduct.simulationAccepted) {
-      window.alert('Debes aceptar que este flujo es de simulación y no ingresar credenciales reales.');
+      setTransactionUploadError('Debes aceptar que este flujo es de simulación y no ingresar credenciales reales.');
       return;
     }
+    const nextBank = String(nextConfig?.bank ?? activeBankProduct.bank ?? '').trim();
+    const nextLabel = String(nextConfig?.label ?? activeBankProduct.label ?? '').trim();
+    const nextProductType = nextConfig?.productType ?? activeBankProduct.productType;
     updateActiveProduct({
-      connected: activeBankProduct.bank.trim().length > 0,
+      bank: nextBank,
+      label: nextLabel || activeBankProduct.label,
+      productType: nextProductType,
+      connected: nextBank.length > 0,
       randomMode: false,
     });
+    setTransactionUploadError(null);
     setTxWizardStep('upload');
   }
 
-  async function onUploadStatement(files: FileList | null): Promise<Array<{ name: string; text: string }>> {
+  async function onUploadStatement(
+    files: File[] | FileList | null
+  ): Promise<Array<{ name: string; text: string; summary?: unknown; structuredData?: unknown }>> {
     if (!isAuthenticated) {
       router.replace('/login');
       return [];
     }
-    if (!files || files.length === 0) return [];
-    if (!activeBankProduct || isTransactionsLockedThisMonth) return [];
-
-    const allowedImageExt = new Set(['png', 'jpg', 'jpeg', 'webp', 'gif']);
-    const selectedFiles = Array.from(files).filter((file) => {
-      const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
-      return file.type.startsWith('image/') || allowedImageExt.has(ext);
-    });
-    if (selectedFiles.length === 0) {
-      window.alert('Solo se permiten imágenes de cartola (PNG, JPG, JPEG, WEBP o GIF).');
+    if (!files) return [];
+    const fileArray = Array.isArray(files) ? files : Array.from(files);
+    if (fileArray.length === 0) return [];
+    if (!activeBankProduct) return [];
+    if ((activeBankProduct.parsedDocuments?.length ?? 0) > 0) {
+      setTransactionUploadError('Este producto ya fue analizado. Solo se permite 1 análisis por producto.');
       return [];
     }
-    const names = selectedFiles.map((f) => f.name);
+
+    const allowedExt = new Set(['png', 'jpg', 'jpeg', 'webp', 'gif', 'pdf', 'xls', 'xlsx', 'csv', 'txt', 'md']);
+    const selectedFiles = fileArray.filter((file) => {
+      const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
+      return file.type.startsWith('image/') || file.type === 'application/pdf' || allowedExt.has(ext);
+    });
+    if (selectedFiles.length === 0) {
+      setTransactionUploadError('Formato no soportado. Usa imagen, PDF, Excel, CSV o TXT.');
+      return [];
+    }
+    const availableSlots = Math.max(0, MAX_EVIDENCE_FILES_PER_PRODUCT - activeBankProduct.uploadedFiles.length);
+    if (availableSlots <= 0) {
+      setTransactionUploadError(`Este producto ya alcanzó el límite de ${MAX_EVIDENCE_FILES_PER_PRODUCT} archivos.`);
+      return [];
+    }
+    const cappedFiles = selectedFiles.slice(0, availableSlots);
+    if (cappedFiles.length < selectedFiles.length) {
+      setTxCreationNotice(`Se cargaron ${cappedFiles.length} archivos. Límite por producto: ${MAX_EVIDENCE_FILES_PER_PRODUCT}.`);
+    }
+    const names = cappedFiles.map((f) => f.name);
+    setTransactionUploadError(null);
     setDocumentsLoading(true);
 
     try {
       const encodedFiles = await Promise.all(
-        selectedFiles.map(
+        cappedFiles.map(
           (file) =>
-            new Promise<{ name: string; base64: string }>((resolve, reject) => {
+            new Promise<{ name: string; base64: string; mimeType?: string }>((resolve, reject) => {
               const reader = new FileReader();
               reader.onload = () => {
                 const raw = typeof reader.result === 'string' ? reader.result : '';
                 const base64 = raw.includes(',') ? raw.split(',')[1] ?? '' : raw;
-                resolve({ name: file.name, base64 });
+                resolve({ name: file.name, base64, mimeType: file.type || undefined });
               };
               reader.onerror = () => reject(reader.error ?? new Error('No se pudo leer el archivo'));
               reader.readAsDataURL(file);
@@ -2406,19 +3581,87 @@ export default function AgentPage() {
         )
       );
 
-      const parsed = await parseDocuments(encodedFiles);
+      const parsed = await parseDocuments(encodedFiles, {
+        institutionHint: activeBankProduct.bank,
+        serviceHint: activeBankProduct.label,
+        productTypeHint: activeBankProduct.productType,
+        productLabelHint: activeBankProduct.label,
+      });
       const parsedDocs = Array.isArray(parsed?.documents) ? parsed.documents : [];
+      const transactionAnalysis = parsed?.transactionAnalysis as
+        | {
+            product_profile?: {
+              institution?: string;
+              service?: string;
+              product_type?: BankProduct['productType'];
+              product_label?: string;
+              period?: { from?: string; to?: string };
+              currency?: string;
+              key_metrics?: {
+                inflows_total: number;
+                outflows_total: number;
+                net_flow: number;
+                avg_movement: number;
+                movement_count: number;
+              };
+              top_categories?: Array<{ name: string; amount: number }>;
+              category_examples?: Array<{ name: string; amount: number; examples: string[] }>;
+              spend_clusters?: Array<{
+                name: string;
+                amount: number;
+                tx_count: number;
+                avg_ticket: number;
+                share_pct: number;
+                examples: string[];
+              }>;
+              top_expenses?: Array<{ label: string; amount: number; date?: string }>;
+              top_income?: Array<{ label: string; amount: number; date?: string }>;
+              alerts?: string[];
+              alert_details?: Array<{ title: string; severity: 'high' | 'medium' | 'low'; reason: string }>;
+              opportunities?: string[];
+              metric_explanations?: Array<{ metric: string; value: string; explanation: string }>;
+              executive_summary?: string;
+            };
+            document_insights?: Array<{
+              name: string;
+              format?: string;
+              reliability?: number;
+              extracted_rows?: number;
+              key_findings?: string[];
+            }>;
+            movements?: Array<{
+              date?: string;
+              description: string;
+              amount: number;
+              direction: 'expense' | 'income';
+              source_line?: string;
+            }>;
+          }
+        | undefined;
+      const insightByName = new Map(
+        Array.isArray(transactionAnalysis?.document_insights)
+          ? transactionAnalysis!.document_insights!.map((item) => [item.name, item])
+          : [],
+      );
+
       setBankSimulation((prev) => {
         if (!prev.activeProductId) return prev;
         const active = prev.products.find((p) => p.id === prev.activeProductId);
         if (!active) return prev;
         const nextDocs = [...active.parsedDocuments];
         for (const doc of parsedDocs) {
+          const normalizedDoc = {
+            name: doc.name,
+            text: doc.text,
+            summary: doc.summary,
+            structuredData: doc.structuredData,
+            insight: insightByName.get(doc.name),
+          };
           const existingIdx = nextDocs.findIndex((existing) => existing.name === doc.name);
           if (existingIdx >= 0) {
-            nextDocs[existingIdx] = doc;
+            nextDocs[existingIdx] = normalizedDoc;
           } else {
-            nextDocs.push(doc);
+            nextDocs.push(normalizedDoc);
           }
         }
 
@@ -2429,13 +3672,19 @@ export default function AgentPage() {
           parsedDocuments: nextDocs,
         };
         const descriptor = buildProductCardDescriptor(provisionalProduct);
-        const inferredInstitution = inferInstitutionFromText(
-          nextDocs.map((d) => d.text ?? '').join('\n'),
-          active.bank
-        );
+        const inferredInstitution = inferInstitutionFromText(nextDocs.map((d) => d.text ?? '').join('\n'), active.bank);
         const inferredType = inferProductTypeFromText(nextDocs.map((d) => d.text ?? '').join('\n'));
+        const profile = transactionAnalysis?.product_profile;
+        const profileInstitution = String(profile?.institution ?? '').trim();
+        const profileLabel = String(profile?.product_label ?? '').trim();
+        const profileType = profile?.product_type;
+        const canonicalMovements = Array.isArray(transactionAnalysis?.movements)
+          ? transactionAnalysis.movements
+          : [];
         const generatedLabel =
-          inferredInstitution !== 'Institución no identificada'
+          profileInstitution && profileLabel
+            ? `${profileInstitution} · ${profileLabel}`
+            : inferredInstitution !== 'Institución no identificada'
             ? `${inferredInstitution} · ${inferredType}`
             : active.label;
 
@@ -2445,33 +3694,62 @@ export default function AgentPage() {
                 ...p,
                 uploadedFiles: nextFiles,
                 parsedDocuments: nextDocs,
-                bank: p.bank.trim() ? p.bank : inferredInstitution,
+                bank: profileInstitution || p.bank.trim() || inferredInstitution,
+                productType: profileType || p.productType,
                 label: generatedLabel || descriptor.title || p.label,
+                dashboard: profile
+                  ? {
+                      period: profile.period,
+                      currency: profile.currency,
+                      keyMetrics: profile.key_metrics,
+                      topCategories: profile.top_categories,
+                      categoryExamples: profile.category_examples,
+                      spendClusters: profile.spend_clusters,
+                      topExpenses: profile.top_expenses,
+                      topIncome: profile.top_income,
+                      alerts: profile.alerts,
+                      alertDetails: profile.alert_details,
+                      opportunities: profile.opportunities,
+                      metricExplanations: profile.metric_explanations,
+                      movements: canonicalMovements,
+                      summary: profile.executive_summary,
+                    }
+                  : p.dashboard,
               }
             : p
         );
 
+        const snapshot = getSimulationSnapshot(products, prev.activeProductId);
         return {
           ...prev,
           products,
-          uploadedFiles: nextFiles,
-          parsedDocuments: nextDocs,
+          uploadedFiles: snapshot.uploadedFiles,
+          parsedDocuments: snapshot.parsedDocuments,
+          connected: snapshot.connected,
+          randomMode: snapshot.randomMode,
         };
       });
       setTxWizardStep('dashboard');
       return parsedDocs;
-    } catch {
+    } catch (error) {
+      const errorText = toUserFacingError(error, 'generic');
+      setTransactionUploadError(errorText);
       setBankSimulation((prev) => {
         if (!prev.activeProductId) return prev;
         const active = prev.products.find((p) => p.id === prev.activeProductId);
         if (!active) return prev;
         const nextFiles = Array.from(new Set([...active.uploadedFiles, ...names]));
+        const products = prev.products.map((p) =>
+          p.id === active.id ? { ...p, uploadedFiles: nextFiles } : p
+        );
+        const snapshot = getSimulationSnapshot(products, prev.activeProductId);
         return {
           ...prev,
-          products: prev.products.map((p) =>
-            p.id === active.id ? { ...p, uploadedFiles: nextFiles } : p
-          ),
-          uploadedFiles: nextFiles,
+          products,
+          uploadedFiles: snapshot.uploadedFiles,
+          parsedDocuments: snapshot.parsedDocuments,
+          connected: snapshot.connected,
+          randomMode: snapshot.randomMode,
         };
       });
       return [];
@@ -2480,32 +3758,138 @@ export default function AgentPage() {
     }
   }
 
-  function sendTransactionsToAgent() {
-    if (!activeBankProduct || activeBankProduct.parsedDocuments.length === 0) return;
+  function hydrateBudgetFromProduct(product: BankProduct) {
+    const dashboard = product.dashboard;
+    if (!dashboard) return;
+    const keyMetrics = dashboard.keyMetrics;
+    const categories = dashboard.topCategories ?? [];
+    const topIncome = dashboard.topIncome ?? [];
+    const expenseRows: BudgetRow[] = categories
+      .slice(0, 10)
+      .filter((category) => Number(category.amount) > 0)
+      .map((category) => ({
+        id: `expense-auto-${category.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 28)}`,
+        category: category.name,
+        type: 'expense',
+        amount: Math.max(0, Math.round(Number(category.amount))),
+        product: product.label,
+        institution: product.bank,
+        note: 'Estimado desde movimientos de producto',
+      }));
 
-    const documentsSummary = activeBankProduct.parsedDocuments.map((doc) => ({
-      name: doc.name,
-      preview: doc.text.slice(0, 600),
-    }));
+    const isCardLikeProduct =
+      product.productType === 'credit_card' ||
+      product.productType === 'consumer_loan' ||
+      product.productType === 'mortgage';
 
-    const compactTopKeywords = transactionIntel.topKeywords.slice(0, 8).map((k) => ({
+    const likelyPayrollOrRealIncome = (label: string) => {
+      const normalized = String(label ?? '').toLowerCase();
+      if (!normalized) return false;
+      // Only whitelist strong income signals to avoid treating transfers/abonos as "ingreso mensual".
+      if (/\b(sueldo|remuner|n[oó]mina|payroll|honorari|pensi[oó]n|arriendo|renta|subsidio)\b/.test(normalized)) {
+        if (/\b(transfer|traspas|p2p|trf|abono|devoluci[oó]n|reversa|ajuste)\b/.test(normalized)) return false;
+        return true;
+      }
+      return false;
+    };
+
+    const inferredIncomeFromSignals = topIncome
+      .filter((entry) => entry && typeof entry.amount === 'number' && entry.amount > 0 && likelyPayrollOrRealIncome(entry.label))
+      .reduce((acc, entry) => acc + entry.amount, 0);
+
+    // Avoid auto-filling income from `inflows_total` (often includes transfers, card payments, reversals).
+    // If we don't have strong signals, keep income at 0 so the user confirms the real monthly liquid income.
+    const incomeEstimate = isCardLikeProduct ? 0 : Math.max(0, Math.round(inferredIncomeFromSignals));
+
+    const incomeRow: BudgetRow | null =
+      incomeEstimate > 0
+        ? {
+            id: 'income-derived-products',
+            category: 'Ingreso principal (estimado)',
+            type: 'income',
+            amount: incomeEstimate,
+            product: product.label,
+            institution: product.bank,
+            note: 'Estimado solo desde señales de ingreso (no suma abonos/transferencias)',
+          }
+        : {
+            id: 'income-derived-products',
+            category: 'Ingreso principal (completar)',
+            type: 'income',
+            amount: 0,
+            product: product.label,
+            institution: product.bank,
+            note: isCardLikeProduct
+              ? 'Producto tipo tarjeta/crédito: no se infiere ingreso desde abonos.'
+              : 'Sin señales claras de sueldo/pensión/honorarios: completa tu ingreso mensual.',
+          };
+
+    setBudgetRows((prev) => {
+      const next = [...prev];
+      const upsert = (candidate: BudgetRow) => {
+        const idx = next.findIndex((row) => row.id === candidate.id);
+        if (idx >= 0) {
+          next[idx] = { ...next[idx], ...candidate };
+        } else {
+          next.push(candidate);
+        }
+      };
+      if (incomeRow) upsert(incomeRow);
+      for (const row of expenseRows) upsert(row);
+      return next;
+    });
+  }
+
+  async function sendTransactionsToAgent() {
+    const defaultEligible = bankSimulation.products.filter((p) => p.connected);
+    const selectedSavedProducts = bankSimulation.products.filter((p) => savedProductsForBatch.includes(p.id) && p.connected);
+    const selectedProducts = selectedSavedProducts.length > 0 ? selectedSavedProducts : defaultEligible;
+    if (selectedProducts.length === 0) return;
+
+    const aggregateDocuments = selectedProducts.flatMap((product) =>
+      product.parsedDocuments.map((doc) => ({
+        product: product.label,
+        bank: product.bank,
+        name: doc.name,
+        preview: doc.text.slice(0, 600),
+      }))
+    );
+    const aggregateMovements = selectedProducts.flatMap((product) => product.dashboard?.movements ?? []);
+    const aggregateIntel = buildTransactionIntelligence(
+      aggregateDocuments.map((doc) => ({ name: doc.name, text: doc.preview })),
+      aggregateMovements,
+    );
+    const compactTopKeywords = aggregateIntel.topKeywords.slice(0, 10).map((k) => ({
       l: k.label,
       c: k.count,
     }));
-    const compactDocs = documentsSummary.slice(0, 6).map((d) => ({
+    const compactDocs = aggregateDocuments.slice(0, 10).map((d) => ({
+      pr: d.product,
       n: d.name,
       p: d.preview.slice(0, 220),
     }));
+    const productsDigest = selectedProducts.slice(0, 20).map((product) => ({
+      label: product.label,
+      bank: product.bank,
+      type: product.productType,
+      keyMetrics: product.dashboard?.keyMetrics ?? null,
+      topCategories: product.dashboard?.topCategories?.slice(0, 4) ?? [],
+      alerts: product.dashboard?.alerts?.slice(0, 4) ?? [],
+      opportunities: product.dashboard?.opportunities?.slice(0, 4) ?? [],
+      movements: product.dashboard?.movements?.slice(0, 8) ?? [],
+    }));
 
     const message = [
-      'Modo transacciones: analisis mensual premium.',
-      `Producto=${activeBankProduct.label} banco=${activeBankProduct.bank}`,
-      `Mes objetivo=${monthKeyOf(new Date(Date.now() - 20 * 24 * 3600 * 1000))}`,
-      `KPIs docs=${transactionIntel.docs} rows=${transactionIntel.rows} total=${Math.round(
-        transactionIntel.totalDetected
-      )} avg=${Math.round(transactionIntel.averageDetected)} max=${Math.round(
-        transactionIntel.maxDetected
+      'Modo productos y transacciones: análisis consolidado multi-producto, foco principal en mes reciente y comparación con mes anterior.',
+      `Productos seleccionados=${selectedProducts.length}`,
+      `Productos=${selectedProducts.map((p) => `${p.label} (${p.bank})`).join(' | ')}`,
+      'Historial adicional permitido: úsalo como antecedente, no como centro del diagnóstico.',
+      `KPIs docs=${aggregateIntel.docs} rows=${aggregateIntel.rows} total=${Math.round(
+        aggregateIntel.totalDetected
+      )} avg=${Math.round(aggregateIntel.averageDetected)} max=${Math.round(
+        aggregateIntel.maxDetected
       )}`,
+      `DashboardProductos=${JSON.stringify(productsDigest)}`,
       `Keywords=${JSON.stringify(compactTopKeywords)}`,
       `Contexto presupuesto=${JSON.stringify({
         income: Math.round(budgetTotals.income),
@@ -2513,20 +3897,39 @@ export default function AgentPage() {
         balance: Math.round(budgetTotals.balance),
       })}`,
       `Documentos=${JSON.stringify(compactDocs)}`,
-      'Entrega: dashboard ejecutivo resumido + hallazgos + 3 acciones concretas.',
+      'Entrega: dashboard ejecutivo consolidado + hallazgos transversales + 3 acciones concretas.',
     ].join('\n');
 
+    const productsContextPayload = {
+      productsContext: buildPersistableProductsContext(
+        bankSimulation.products,
+        bankSimulation.activeProductId
+      ),
+      budgetContext: buildPersistableBudgetContext(),
+    };
+    try {
+      await mergeProductsContextToIntake(productsContextPayload);
+    } catch {
+      // Non-blocking: chat can still continue with runtime context.
+    }
+
+    const productsWithMovements = selectedProducts.filter((product) => (product.dashboard?.keyMetrics?.movement_count ?? 0) > 0);
+    if (productsWithMovements.length > 0) {
+      productsWithMovements.forEach((product) => hydrateBudgetFromProduct(product));
+    }
+
+    setActiveChatId(PRIMARY_CHAT_ID);
+    setMobilePanelExpanded(false);
+    setPanelStage(3);
     setIsTransactionsModalOpen(false);
-    setBankSimulation((prev) => ({
-      ...prev,
-      lockedMonth: monthKeyOf(),
-    }));
-    setTxWizardStep('locked');
-    void onSend('Configurar transacciones', {
+    if (productsWithMovements.length > 0) {
+      setIsBudgetModalOpen(true);
+    }
+    void onSend('Productos enviados correctamente al agente', {
       agentPayload: message,
       assistantPendingLabel:
-        'Configurando transacciones con Financiera mente… consolidando cartolas y hallazgos ejecutivos.',
-      hideUserMessage: true,
+        'Configurando productos y transacciones con Financiera mente… consolidando respaldos y hallazgos ejecutivos.',
+      hideUserMessage: false,
     });
   }
 
@@ -2624,10 +4027,23 @@ export default function AgentPage() {
     }, 80);
   }
 
+  function handleBudgetPdfSaved(payload: { title: string; fileUrl: string; createdAt: string }) {
+    const reportId = `budget-pdf-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const report: SavedReport = {
+      id: reportId,
+      title: payload.title || 'Presupuesto mensual',
+      group: 'budget',
+      fileUrl: payload.fileUrl,
+      createdAt: payload.createdAt || new Date().toISOString(),
+    };
+    setSavedReports((prev) => [report, ...prev].slice(0, 120));
+    launchDocToLibraryAnimation(report.title, null, undefined, report.id);
+  }
+
   async function generateMetaSheet(sheets: ChatThread[]) {
-    const BASE_IDS = ['chat-1', 'chat-2', 'chat-3'];
+    const BASE_IDS = [PRIMARY_CHAT_ID];
     const contextSheets = sheets.filter((s) => BASE_IDS.includes(s.id) && s.status === 'context');
-    if (contextSheets.length < 3) return;
+    if (contextSheets.length < 1) return;
     // Already have meta sheet?
     if (sheets.find((s) => s.id === 'meta-sheet')) return;
 
@@ -2649,7 +4065,7 @@ export default function AgentPage() {
 
     try {
       const res = (await sendToAgent({
-        user_message: `SISTEMA: Se han completado las 3 hojas de conversación. Genera un resumen ejecutivo personalizado que integre todo el contexto recopilado, los objetivos identificados, el perfil financiero del usuario y una hoja de ruta de recomendaciones de alto impacto para esta nueva hoja maestra. Contexto de las 3 hojas:\n${contextSummary}`,
+        user_message: `SISTEMA: Genera un resumen ejecutivo personalizado que integre todo el contexto recopilado, los objetivos identificados, el perfil financiero del usuario y una hoja de ruta de recomendaciones de alto impacto. Contexto del chat principal:\n${contextSummary}`,
         session_id: getSessionId(),
         history: [],
         context: { meta_sheet_init: true },
@@ -2715,6 +4131,7 @@ export default function AgentPage() {
 
   function switchChatBySwipe(direction: 'left' | 'right') {
     const ids = chatThreads.map((t) => t.id);
+    if (ids.length <= 1) return;
     const currentIdx = ids.indexOf(activeChatId);
     const nextIdx = direction === 'left'
       ? Math.min(currentIdx + 1, ids.length - 1)
@@ -2736,13 +4153,18 @@ export default function AgentPage() {
     removeInjectedProfile,
     agentMetaRef,
     interviewCard,
-    setInterviewIntake,
-    router,
+    interviewCompleted,
+    canOpenInterview,
+    setInterviewIntake: () => {
+      void syncFinancialContextToIntake().catch(() => {});
+      setInterviewIntake(buildInterviewIntakePayload() as any);
+    },
     unlockedPanelBlocks,
     setIsBudgetModalOpen,
     budgetTotals,
     budgetInsights,
     openTransactionsPanel,
+    openInterviewModal,
     transactionIntel,
     reportsByGroup,
     librarySummary,
@@ -2754,25 +4176,7 @@ export default function AgentPage() {
     docVisualOffset,
   });
 
-  const compactPanelCards =
-    isMobileViewport && !mobilePanelExpanded
-      ? (() => {
-          const profileCard = panelBaseCards.find((card) => card.key === 'profile');
-          const cardsWithProfileAfterLibrary: Array<{ key: string; node: ReactElement }> = [];
-          let profileInsertedAfterLibrary = false;
-          for (const card of panelBaseCards) {
-            cardsWithProfileAfterLibrary.push(card);
-            if (card.key === 'library' && profileCard && !profileInsertedAfterLibrary) {
-              cardsWithProfileAfterLibrary.push({
-                key: 'profile-return',
-                node: profileCard.node,
-              });
-              profileInsertedAfterLibrary = true;
-            }
-          }
-          return cardsWithProfileAfterLibrary;
-        })()
-      : panelBaseCards;
+  const compactPanelCards = panelBaseCards;
 
   const panelRenderedCards =
     isMobileViewport && !mobilePanelExpanded
@@ -2836,17 +4240,45 @@ export default function AgentPage() {
           activeThread={activeThread as any}
           isActiveChatLocked={isActiveChatLocked}
           activeTurnCount={activeTurnCount}
+          diagnosisUnlocked={interviewCompleted}
           knowledgePopupOpen={knowledgePopupOpen}
           knowledgeStage={knowledgeStage}
           completedMilestones={completedMilestones}
           milestones={milestones}
           coachHint={coachHint}
+          isMonochrome={isMonochrome}
+          toggleMonochrome={() => setIsMonochrome((v) => !v)}
+          isMobileViewport={isMobileViewport}
         />
+        {interviewResumePending && canOpenInterview && !interviewCompleted ? (
+          <div className="interview-resume-banner">
+            <div className="interview-resume-copy">
+              <strong>Entrevista pendiente</strong>
+              <span>Tu llamada quedó guardada. Retómala cuando quieras.</span>
+            </div>
+            <button
+              type="button"
+              className="summary-action-btn summary-action-accept"
+              onClick={() => {
+                const injectedIntake = sessionInfo?.injectedIntake?.intake;
+                if (injectedIntake && typeof injectedIntake === 'object') {
+                  setInterviewIntake(injectedIntake as any);
+                }
+                openInterviewModal();
+              }}
+            >
+              Retomar
+            </button>
+          </div>
+        ) : null}
 
         <div className="agent-chat-body">
           <ChatThreadView
             items={items}
             loading={loading}
+            diagnosisUnlocked={interviewCompleted}
+            isMobileViewport={isMobileViewport}
+            sessionUserName={sessionInfo?.name}
             activeThreadId={activeThread?.id}
             activeThreadLabel={activeThread?.label}
             expandedCitationsByMessage={expandedCitationsByMessage}
@@ -2862,23 +4294,36 @@ export default function AgentPage() {
             classifyReportGroup={classifyReportGroup}
             setSavedReports={setSavedReports}
             launchDocToLibraryAnimation={launchDocToLibraryAnimation}
+            onPanelAction={openPanelSectionFromChat}
           />
 
-          <div className="agent-input">
-            <textarea
-              placeholder={isActiveChatLocked ? 'Chat bloqueado hasta completar el diagnóstico' : 'Escribe tu mensaje...'}
-              value={input}
-              disabled={isActiveChatLocked}
-              onChange={(e) => setDraftForActive(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  onSend();
-                }
+          <div className="agent-input-shell terminal-composer-shell">
+            <div
+              className="agent-input terminal-composer"
+              onClick={() => {
+                if (!isActiveChatLocked) chatComposerRef.current?.focus();
               }}
-            />
+              style={{ cursor: isActiveChatLocked ? 'default' : 'text' }}
+            >
+              <div className="terminal-composer-head">$ escribir_mensaje</div>
+              <textarea
+                ref={chatComposerRef}
+                className="terminal-composer-input"
+                placeholder={isActiveChatLocked ? 'Chat bloqueado hasta completar el diagnóstico' : ''}
+                value={input}
+                disabled={isActiveChatLocked}
+                autoFocus={!hasBlockingModalOpen}
+                onChange={(e) => setDraftForActive(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    void onSend((e.currentTarget as HTMLTextAreaElement).value);
+                  }
+                }}
+              />
+            </div>
 
-            <div className="controls">
+            <div className="controls terminal-composer-controls">
               <input
                 ref={chatUploadInputRef}
                 type="file"
@@ -2907,10 +4352,27 @@ export default function AgentPage() {
 
               <button
                 type="button"
+                className={`continue-button composer-icon-btn mobile-panel-toggle-inline${mobilePanelExpanded ? ' is-open' : ''}`}
+                onClick={() => {
+                  haptic(12);
+                  setMobilePanelExpanded((v) => !v);
+                }}
+                aria-label={mobilePanelExpanded ? 'Minimizar panel' : 'Expandir panel'}
+                title={mobilePanelExpanded ? 'Minimizar panel' : 'Expandir panel'}
+              >
+                <svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <path d={mobilePanelExpanded ? 'M4 6L8 10L12 6' : 'M4 10L8 6L12 10'} stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+
+              <div style={{ flex: 1 }} />
+
+              <button
+                type="button"
                 className="continue-button composer-icon-btn composer-send-btn"
                 disabled={isActiveChatLocked}
                 onClick={() => {
-                  void onSend();
+                  void onSend(chatComposerRef.current?.value ?? input);
                 }}
                 aria-label="Enviar mensaje"
               >
@@ -2980,16 +4442,47 @@ export default function AgentPage() {
         budgetTotals={budgetTotals}
         budgetInsights={budgetInsights}
         budgetRows={budgetRows}
+        budgetProductOptions={Array.from(new Set(
+          bankSimulation.products
+            .map((product) => String(product.label ?? '').trim())
+            .filter((label) => label.length > 0)
+        ))}
+        budgetCompletion={budgetCompletion}
+        budgetSignals={budgetSignals}
         updateBudgetRow={updateBudgetRow}
         upsertBudgetRow={upsertBudgetRow}
+        applyBudgetTemplate={applyBudgetTemplate}
         coachHint={coachHint}
         addBudgetRow={addBudgetRow}
+        addBudgetSubcategory={addBudgetSubcategory}
+        deleteBudgetRow={deleteBudgetRow}
         sendBudgetToAgent={sendBudgetToAgent}
+        chatAnswers={budgetChatAnswers}
+        onChatAnswersChange={setBudgetChatAnswers}
+        sessionInfo={sessionInfo}
+        bankProducts={bankSimulation.products.map((p) => ({
+          label: p.label,
+          bank: p.bank,
+          productType: p.productType,
+          dashboardSummary: p.dashboard?.summary,
+          keyMetrics: p.dashboard?.keyMetrics
+            ? {
+                inflows_total: p.dashboard.keyMetrics.inflows_total,
+                outflows_total: p.dashboard.keyMetrics.outflows_total,
+                net_flow: p.dashboard.keyMetrics.net_flow,
+                movement_count: p.dashboard.keyMetrics.movement_count,
+              }
+            : undefined,
+          topCategories: p.dashboard?.topCategories?.slice(0, 8),
+          alerts: p.dashboard?.alerts?.slice(0, 8),
+        }))}
+        onBudgetPdfSaved={handleBudgetPdfSaved}
       />
 
       <QuestionnaireModal
         isOpen={isQuestionnaireModalOpen}
         questionnaireDashboard={questionnaireDashboard}
+        sessionUserName={sessionInfo?.name}
         onClose={() => setIsQuestionnaireModalOpen(false)}
       />
 
@@ -3000,7 +4493,6 @@ export default function AgentPage() {
         setTxWizardStep={setTxWizardStep}
         bankSimulationProductsCount={bankSimulation.products.length}
         transactionIntel={transactionIntel}
-        isTransactionsLockedThisMonth={isTransactionsLockedThisMonth}
         activeBankProduct={activeBankProduct}
         transactionProductCards={transactionProductCards}
         selectedProductId={bankSimulation.activeProductId}
@@ -3011,19 +4503,48 @@ export default function AgentPage() {
         simulateBankLogin={simulateBankLogin}
         onUploadStatement={onUploadStatement}
         documentsLoading={documentsLoading}
+        transactionUploadError={transactionUploadError}
         sendTransactionsToAgent={sendTransactionsToAgent}
+        saveTransactionProductForBatch={saveTransactionProductForBatch}
+        savedProductIds={savedProductsForBatch}
+        maxProducts={MAX_TRANSACTION_PRODUCTS}
+        maxEvidenceFilesPerProduct={MAX_EVIDENCE_FILES_PER_PRODUCT}
+        maxRecreations={MAX_PRODUCT_RECREATIONS}
+        recreationUsed={txRecreationUsed}
+        creationNotice={txCreationNotice}
+      />
+
+      <InterviewModal
+        isOpen={isInterviewModalOpen}
+        onClose={() => setIsInterviewModalOpen(false)}
       />
 
       {isAccountModalOpen && (
-        <div className="agent-modal-overlay" onClick={() => setIsAccountModalOpen(false)}>
+        <div className="agent-modal-overlay" onClick={closeAccountModal}>
           <div className="agent-modal account-modal" onClick={(e) => e.stopPropagation()}>
             <div className="agent-modal-header">
               <h3>Cuenta</h3>
-              <button type="button" className="agent-modal-close" onClick={() => setIsAccountModalOpen(false)}>×</button>
+              <button type="button" className="agent-modal-close" onClick={closeAccountModal}>×</button>
             </div>
             <p className="agent-modal-intro">
-              Administra tu sesión o elimina completamente tu cuenta y toda su información.
+              Gestiona tu sesión actual. Cerrar sesión te devuelve al acceso; borrar cuenta elimina tus datos de forma permanente.
             </p>
+            {accountActionError ? (
+              <div className="transactions-summary-card tx-doc-intel-grid" role="alert">
+                <span className="transactions-summary-title">No se pudo completar la acción</span>
+                <p>{accountActionError}</p>
+              </div>
+            ) : null}
+            <div className="questionnaire-response-grid">
+              <div className="questionnaire-response-item">
+                <span>Usuario</span>
+                <strong>{sessionInfo?.name || 'Cuenta activa'}</strong>
+              </div>
+              <div className="questionnaire-response-item">
+                <span>Email</span>
+                <strong>{sessionInfo?.email || 'Sesión autenticada'}</strong>
+              </div>
+            </div>
             <div className="account-modal-actions">
               <button
                 type="button"
@@ -3031,7 +4552,7 @@ export default function AgentPage() {
                 onClick={() => void handleLogout()}
                 disabled={isAccountActionLoading}
               >
-                Cerrar sesión
+                {isAccountActionLoading ? 'Cerrando…' : 'Cerrar sesión'}
               </button>
               <button
                 type="button"
@@ -3039,7 +4560,7 @@ export default function AgentPage() {
                 onClick={() => void handleDeleteAccount()}
                 disabled={isAccountActionLoading}
               >
-                Borrar cuenta
+                {isAccountActionLoading ? 'Eliminando…' : 'Borrar cuenta'}
               </button>
             </div>
           </div>
