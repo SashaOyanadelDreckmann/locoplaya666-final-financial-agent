@@ -17,6 +17,7 @@ export default function HomePage() {
 
   return (
     <main className="home-essence">
+      <div className="home-essence__grain" aria-hidden />
       <div className="home-essence__ambient" aria-hidden />
       <section className="home-essence__content">
         <div className="home-essence__brand-lockup">
@@ -46,10 +47,15 @@ export default function HomePage() {
           <Link href="/login" className="home-essence__cta home-essence__cta--ghost">Ya tengo cuenta</Link>
         </div>
 
-        <p className="home-essence__foot">Privado · Seguro · Sin consejos automáticos</p>
+        <div className="home-essence__foot">
+          <span className="home-essence__foot-line" aria-hidden />
+          <span>Privado · Seguro · Sin consejos automáticos</span>
+          <span className="home-essence__foot-line" aria-hidden />
+        </div>
       </section>
 
       <aside className="home-essence__art" aria-hidden>
+        <div className="home-essence__scan" />
         <div className="machine-text home-essence__machine">
           <TypewriterText text={HOME_ASCII_MASCOT} speed={2} colorizeSpecial />
         </div>
