@@ -114,6 +114,7 @@ export default function IntakePage() {
 
   return (
     <div className="intake-shell" data-step={stepMeta.key} style={cssVars}>
+      <div className="intake-photo-bg" aria-hidden />
       <div className="intake-bg-orb" aria-hidden />
 
       <header className="intake-topbar">

@@ -205,7 +205,12 @@ export function KnowledgeStep({
                 key={opt.value}
                 type="button"
                 className={`intake-chip intake-chip-wide${form.riskReaction === opt.value ? ' is-selected' : ''}`}
-                onClick={() => update('riskReaction', opt.value)}
+                onClick={() => {
+                  update('riskReaction', opt.value);
+                  if (opt.value !== 'never_invest') {
+                    setTimeout(() => setQuestionIndex(2), 120);
+                  }
+                }}
               >
                 <span className="intake-chip-main">{opt.label}</span>
                 <span className="intake-chip-sub">{opt.sub}</span>

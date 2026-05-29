@@ -119,7 +119,10 @@ export function ContextStep({
                 key={opt.value}
                 type="button"
                 className={`intake-chip intake-chip-wide${form.employmentStatus === opt.value ? ' is-selected' : ''}`}
-                onClick={() => update('employmentStatus', opt.value)}
+                onClick={() => {
+                  update('employmentStatus', opt.value);
+                  setTimeout(() => onNextQuestion(), 120);
+                }}
                 aria-pressed={form.employmentStatus === opt.value}
                 title={opt.sub}
               >

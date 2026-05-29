@@ -1338,3 +1338,146 @@ button {
     animation: none !important;
   }
 }
+
+/* ── Fondo4 cinematic intake layer + premium controls ── */
+.intake-photo-bg {
+  position: fixed;
+  inset: -7vh -7vw;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(90deg, rgba(3, 5, 8, 0.82) 0%, rgba(3, 5, 8, 0.54) 42%, rgba(3, 5, 8, 0.24) 100%),
+    radial-gradient(circle at 68% 30%, rgba(var(--c-step, var(--c-blue)), 0.20), transparent 34%),
+    url('/fondo4.jpg');
+  background-size: auto, auto, cover;
+  background-position: center, center, center;
+  background-repeat: no-repeat;
+  filter: saturate(0.88) contrast(1.12) brightness(0.82);
+  transform: scale(1.04);
+  animation: intakePhotoBreath 18s ease-in-out infinite alternate;
+}
+
+.intake-photo-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(120deg, transparent 8%, rgba(255,255,255,0.055) 34%, transparent 52%),
+    repeating-linear-gradient(90deg, rgba(255,255,255,0.018) 0 1px, transparent 1px 4px);
+  mix-blend-mode: screen;
+  opacity: 0.42;
+  animation: intakePhotoSheen 9s ease-in-out infinite alternate;
+}
+
+@keyframes intakePhotoBreath {
+  0% {
+    transform: scale(1.035) translate3d(-0.8%, -0.4%, 0);
+    background-position: center, center, 48% 52%;
+    filter: saturate(0.86) contrast(1.1) brightness(0.78);
+  }
+  100% {
+    transform: scale(1.085) translate3d(1.1%, 0.7%, 0);
+    background-position: center, center, 55% 45%;
+    filter: saturate(0.98) contrast(1.18) brightness(0.88);
+  }
+}
+
+@keyframes intakePhotoSheen {
+  from { transform: translateX(-4%); opacity: 0.24; }
+  to { transform: translateX(4%); opacity: 0.48; }
+}
+
+.intake-chip,
+.intake-step-context .intake-chip {
+  position: relative;
+  overflow: hidden;
+  border-radius: 999px !important;
+  border: 1px solid rgba(246, 250, 255, 0.14) !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.09), rgba(255,255,255,0.018)),
+    linear-gradient(135deg, rgba(var(--c-step, var(--c-blue)), 0.13), rgba(255,255,255,0.018)),
+    rgba(7, 11, 17, 0.18) !important;
+  box-shadow:
+    0 14px 38px rgba(0,0,0,0.18),
+    inset 0 1px 0 rgba(255,255,255,0.09),
+    inset 0 -18px 28px rgba(0,0,0,0.12) !important;
+  transform-style: preserve-3d;
+}
+
+.intake-chip::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent, rgba(255,255,255,0.22), transparent);
+  transform: translateX(-130%) skewX(-12deg);
+  transition: transform 720ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.intake-chip:hover::before,
+.intake-chip.is-selected::before {
+  transform: translateX(130%) skewX(-12deg);
+}
+
+.intake-chip:hover:not(:disabled),
+.intake-step-context .intake-chip:hover:not(:disabled) {
+  transform: perspective(700px) rotateX(5deg) translateY(-4px) scale(1.018) !important;
+  border-color: rgba(255,255,255,0.24) !important;
+  box-shadow:
+    0 24px 62px rgba(0,0,0,0.28),
+    0 0 28px rgba(var(--c-step, var(--c-blue)), 0.12),
+    inset 0 1px 0 rgba(255,255,255,0.14) !important;
+}
+
+.intake-chip.is-selected,
+.intake-step-context .intake-chip.is-selected {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.16), rgba(255,255,255,0.04)),
+    radial-gradient(circle at 24% 18%, rgba(255,255,255,0.22), transparent 34%),
+    rgba(var(--c-step, var(--c-blue)), 0.24) !important;
+  border-color: rgba(255,255,255,0.32) !important;
+  color: #fff !important;
+  transform: translateY(-2px);
+}
+
+.intake-chip-main,
+.intake-chip-sub,
+.intake-chip {
+  letter-spacing: 0 !important;
+}
+
+.intake-arrow-btn,
+.intake-back-btn,
+.intake-next-btn,
+.intake-submit-btn {
+  position: relative;
+  overflow: hidden;
+}
+
+.intake-arrow-btn {
+  border: 1px solid rgba(255,255,255,0.18);
+  background:
+    radial-gradient(circle at 30% 10%, rgba(255,255,255,0.16), transparent 34%),
+    rgba(var(--c-step, var(--c-blue)), 0.18);
+  box-shadow: 0 18px 45px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.12);
+  transition: transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1), border-color 180ms ease, box-shadow 220ms ease;
+}
+
+.intake-arrow-btn:hover {
+  transform: translateY(-3px) scale(1.04);
+  border-color: rgba(255,255,255,0.32);
+  box-shadow: 0 26px 70px rgba(0,0,0,0.30), 0 0 28px rgba(var(--c-step, var(--c-blue)), 0.18);
+}
+
+@media (max-width: 768px) {
+  .intake-photo-bg {
+    inset: -4vh -18vw;
+    background-position: center, center, 56% 50%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .intake-photo-bg,
+  .intake-photo-bg::after {
+    animation: none !important;
+  }
+}
