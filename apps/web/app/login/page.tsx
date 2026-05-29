@@ -58,6 +58,7 @@ export default function LoginPage() {
   return (
     <main className="auth-shell">
       <div className="auth-card">
+        <div className="auth-logo-mark" aria-label="FinancieraMente">Fm</div>
         <div className="auth-eyebrow">FinancieraMente</div>
         <h1 className="auth-title">Bienvenido de vuelta</h1>
         <p className="auth-subtitle">Accede a tu sesión y retoma donde lo dejaste.</p>
