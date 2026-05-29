@@ -908,8 +908,11 @@ button {
   position: fixed;
   inset: 0;
   z-index: 0;
-  background: url('/fm-home-bg.jpg') center center / cover no-repeat;
-  transform: scale(1.02);
+  background:
+    linear-gradient(180deg, rgba(6, 9, 14, 0.26), rgba(6, 9, 14, 0.34)),
+    url('/images/bg-door.jpg') center center / cover no-repeat;
+  filter: saturate(0.86) contrast(1.04) brightness(0.64);
+  transform: scale(1.03);
   pointer-events: none;
 }
 
@@ -1398,11 +1401,12 @@ button {
   }
 
   .home-essence__art {
-    right: -8px;
-    bottom: 10px;
-    width: 150px;
-    max-height: 210px;
-    opacity: 0.2;
+    z-index: 3;
+    right: -6px;
+    bottom: 74px;
+    width: 188px;
+    max-height: 252px;
+    opacity: 0.34;
   }
 
 }
