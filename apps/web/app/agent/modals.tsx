@@ -1152,6 +1152,21 @@ export function QuestionnaireModal(props: {
 type TxWizardStep = 'products' | 'credentials' | 'upload' | 'dashboard';
 type BankProduct = {
   id: string; label: string; bank: string; simulationAccepted: boolean; connected: boolean; randomMode: boolean;
+  assistant?: {
+    messages: Array<{
+      id: string;
+      role: 'assistant' | 'user';
+      text: string;
+      createdAt: string;
+      attachments?: string[];
+    }>;
+    uploadFormat?: 'photos' | 'pdf' | 'spreadsheet' | 'text' | null;
+    summaryText?: string | null;
+    summaryModel?: string | null;
+    summaryGeneratedAt?: string | null;
+    summaryRegenerationsUsed?: number;
+    lastSummaryFeedback?: string | null;
+  };
   productType: 'credit_card' | 'debit_account' | 'checking_account' | 'savings_account' | 'consumer_loan' | 'mortgage' | 'investment_account';
   uploadedFiles: string[];
   parsedDocuments: Array<{
@@ -1207,6 +1222,27 @@ type BankProduct = {
       source_line?: string;
     }>;
     summary?: string;
+  };
+};
+
+type UploadStatementResult = {
+  documents: Array<{
+    name: string;
+    text: string;
+    summary?: unknown;
+    structuredData?: unknown;
+    insight?: {
+      format?: string;
+      reliability?: number;
+      extracted_rows?: number;
+      key_findings?: string[];
+    };
+  }>;
+  dashboard?: BankProduct['dashboard'];
+  product: {
+    bank: string;
+    label: string;
+    productType: BankProduct['productType'];
   };
 };
 
@@ -1278,7 +1314,7 @@ export function TransactionsModal(props: {
     label?: string;
     productType?: BankProduct['productType'];
   }) => void;
-  onUploadStatement: (files: File[] | FileList | null) => void;
+  onUploadStatement: (files: File[] | FileList | null) => Promise<UploadStatementResult | null>;
   documentsLoading: boolean;
   transactionUploadError?: string | null;
   sendTransactionsToAgent: () => void;
@@ -1300,6 +1336,9 @@ export function TransactionsModal(props: {
   };
   const [pendingEvidenceFiles, setPendingEvidenceFiles] = useState<File[]>([]);
   const [manualEvidenceDraft, setManualEvidenceDraft] = useState('');
+  const [txAssistantInput, setTxAssistantInput] = useState('');
+  const [txAssistantLoading, setTxAssistantLoading] = useState(false);
+  const [txAssistantError, setTxAssistantError] = useState<string | null>(null);
   const [showInjectProductsConfirm, setShowInjectProductsConfirm] = useState(false);
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat('es-CL', {
@@ -1519,6 +1558,70 @@ export function TransactionsModal(props: {
     setManualEvidenceDraft('');
   };
 
+  const assistantMessages = props.activeBankProduct?.assistant?.messages ?? [];
+  const summaryText = props.activeBankProduct?.assistant?.summaryText ?? null;
+  const summaryGeneratedAt = props.activeBankProduct?.assistant?.summaryGeneratedAt ?? null;
+  const summaryModel = props.activeBankProduct?.assistant?.summaryModel ?? null;
+  const summaryRegenerationsUsed = Math.max(0, props.activeBankProduct?.assistant?.summaryRegenerationsUsed ?? 0);
+  const summaryRegenerationsLeft = Math.max(0, 3 - summaryRegenerationsUsed);
+
+  const appendAssistantMessages = (
+    nextMessages: Array<{ role: 'assistant' | 'user'; text: string; attachments?: string[] }>,
+    extraPatch?: Partial<NonNullable<BankProduct['assistant']>>,
+  ) => {
+    if (!props.activeBankProduct || nextMessages.length === 0) return;
+    const baseMessages = props.activeBankProduct.assistant?.messages ?? [];
+    props.updateActiveProduct({
+      assistant: {
+        messages: [
+          ...baseMessages,
+          ...nextMessages.map((message, index) => ({
+            id: `${Date.now()}-${index}-${message.role}`,
+            role: message.role,
+            text: message.text,
+            createdAt: new Date().toISOString(),
+            attachments: message.attachments,
+          })),
+        ],
+        uploadFormat: props.activeBankProduct.assistant?.uploadFormat ?? null,
+        summaryText: props.activeBankProduct.assistant?.summaryText ?? null,
+        summaryModel: props.activeBankProduct.assistant?.summaryModel ?? null,
+        summaryGeneratedAt: props.activeBankProduct.assistant?.summaryGeneratedAt ?? null,
+        summaryRegenerationsUsed: props.activeBankProduct.assistant?.summaryRegenerationsUsed ?? 0,
+        lastSummaryFeedback: props.activeBankProduct.assistant?.lastSummaryFeedback ?? null,
+        ...extraPatch,
+      },
+    });
+  };
+
+  const formatChoiceLabel = (format: 'photos' | 'pdf' | 'spreadsheet' | 'text') =>
+    format === 'photos' ? 'fotos' : format === 'pdf' ? 'PDF' : format === 'spreadsheet' ? 'Excel/CSV' : 'texto';
+
+  const buildUploadGuidance = (format: 'photos' | 'pdf' | 'spreadsheet' | 'text', productType: BankProduct['productType']) => {
+    const productLabel = productType === 'credit_card' ? 'tu tarjeta' : 'tu producto';
+    if (format === 'photos') {
+      return `Perfecto. Para fotos de ${productLabel}: 1) usa capturas nítidas, 2) no repitas un movimiento en dos pantallazos, 3) el siguiente pantallazo debe partir mostrando el último movimiento visible abajo en el anterior, 4) la última captura puede cortar al final. Cuando las tengas, súbelas y presiona Enviar.`;
+    }
+    if (format === 'pdf') {
+      return `Perfecto. Sube el PDF completo de ${productLabel}. Si tiene clave o mala extracción, mejor usa capturas nítidas del mismo período. Luego presiona Enviar.`;
+    }
+    if (format === 'spreadsheet') {
+      return `Ideal. Excel o CSV suele ser el formato más limpio. Mantén fecha, detalle y monto por fila, evita celdas combinadas y sube el archivo con Enviar.`;
+    }
+    return `Puedes pegar texto manual si no tienes archivo. Incluye fecha, detalle y monto por línea. Si luego consigues PDF o Excel, mejor aún. Cuando estés listo, usa Enviar.`;
+  };
+
+  const maybeInitAssistant = () => {
+    if (!props.activeBankProduct || !props.activeBankProduct.connected) return;
+    if ((props.activeBankProduct.assistant?.messages ?? []).length > 0) return;
+    appendAssistantMessages([
+      {
+        role: 'assistant',
+        text: 'Antes de subir movimientos, dime cómo prefieres enviarlos: fotos, PDF, Excel/CSV o texto. Según eso te recomiendo la mejor forma para que el análisis salga limpio.',
+      },
+    ]);
+  };
+
   const buildManualEvidenceFile = (text: string) =>
     new File([text], `antecedente-manual-${Date.now()}.txt`, { type: 'text/plain' });
 
@@ -1662,6 +1765,157 @@ export function TransactionsModal(props: {
   useEffect(() => {
     if (!props.isOpen) setShowInjectProductsConfirm(false);
   }, [props.isOpen]);
+  useEffect(() => {
+    if (!props.isOpen) return;
+    maybeInitAssistant();
+  }, [props.isOpen, props.activeBankProduct?.id, props.activeBankProduct?.connected, props.txWizardStep]);
+
+  async function requestTransactionAssistant(payload: Record<string, unknown>) {
+    const res = await fetch('/api/transactions-chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken() || '' },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok || !data?.ok) throw new Error(data?.error || 'No se pudo responder');
+    return data;
+  }
+
+  async function generateTransactionSummary(options?: { feedback?: string; uploadResult?: UploadStatementResult | null; isRegeneration?: boolean }) {
+    if (!props.activeBankProduct) return;
+    setTxAssistantLoading(true);
+    setTxAssistantError(null);
+    try {
+      const uploadResult = options?.uploadResult ?? null;
+      const response = await requestTransactionAssistant({
+        mode: 'summary',
+        product: {
+          bank: uploadResult?.product.bank ?? props.activeBankProduct.bank,
+          label: uploadResult?.product.label ?? props.activeBankProduct.label,
+          productType: uploadResult?.product.productType ?? props.activeBankProduct.productType,
+        },
+        parsedDocuments: uploadResult?.documents ?? props.activeBankProduct.parsedDocuments ?? [],
+        dashboard: uploadResult?.dashboard ?? props.activeBankProduct.dashboard ?? null,
+        currentSummary: summaryText,
+        feedback: options?.feedback ?? '',
+      });
+      props.updateActiveProduct({
+        assistant: {
+          messages: [
+            ...(props.activeBankProduct.assistant?.messages ?? []),
+            {
+              id: `${Date.now()}-assistant-summary`,
+              role: 'assistant',
+              text: options?.isRegeneration
+                ? 'Revisé el producto de nuevo y actualicé el resumen de abajo.'
+                : 'Ya recibí tus antecedentes. Preparé el resumen ejecutivo aquí abajo y puedo responder dudas sobre tus movimientos.',
+              createdAt: new Date().toISOString(),
+            },
+          ],
+          uploadFormat: props.activeBankProduct.assistant?.uploadFormat ?? null,
+          summaryText: String(response.summary ?? '').trim(),
+          summaryModel: typeof response.model === 'string' ? response.model : null,
+          summaryGeneratedAt: new Date().toISOString(),
+          summaryRegenerationsUsed: options?.isRegeneration ? summaryRegenerationsUsed + 1 : summaryRegenerationsUsed,
+          lastSummaryFeedback: options?.feedback ?? null,
+        },
+        label: uploadResult?.product.label ?? props.activeBankProduct.label,
+        bank: uploadResult?.product.bank ?? props.activeBankProduct.bank,
+        productType: uploadResult?.product.productType ?? props.activeBankProduct.productType,
+      });
+    } catch (error) {
+      setTxAssistantError(error instanceof Error ? error.message : 'No se pudo generar el resumen.');
+    } finally {
+      setTxAssistantLoading(false);
+    }
+  }
+
+  async function handleAssistantUploadSend(messageText: string) {
+    if (!props.activeBankProduct) return;
+    const manualFile =
+      pendingManualEvidence.length > 0 ? buildManualEvidenceFile(pendingManualEvidence) : null;
+    const filesToUpload = manualFile ? [...pendingEvidenceFiles, manualFile] : pendingEvidenceFiles;
+    if (filesToUpload.length === 0) return;
+
+    appendAssistantMessages([
+      {
+        role: 'user',
+        text: messageText || 'Te envío antecedentes de transacciones.',
+        attachments: filesToUpload.map((file) => file.name),
+      },
+    ]);
+    setTxAssistantInput('');
+    const result = await props.onUploadStatement(filesToUpload);
+    clearPendingEvidence();
+    if (result?.documents?.length) {
+      await generateTransactionSummary({ uploadResult: result, isRegeneration: false });
+    }
+  }
+
+  async function handleAssistantTextSend() {
+    if (!props.activeBankProduct || txAssistantLoading) return;
+    const text = txAssistantInput.trim();
+    const hasFiles = pendingEvidenceFiles.length > 0 || pendingManualEvidence.length > 0;
+    if (!text && !hasFiles) return;
+
+    const normalized = text.toLowerCase();
+    const chosenFormat =
+      /excel|csv|xlsx|planilla/.test(normalized)
+        ? 'spreadsheet'
+        : /\bpdf\b/.test(normalized)
+          ? 'pdf'
+          : /foto|captura|pantallazo|imagen/.test(normalized)
+            ? 'photos'
+            : /texto|manual|escrito/.test(normalized)
+              ? 'text'
+              : null;
+
+    if (hasFiles) {
+      await handleAssistantUploadSend(text);
+      return;
+    }
+
+    appendAssistantMessages([{ role: 'user', text }]);
+    setTxAssistantInput('');
+    setTxAssistantError(null);
+
+    if (chosenFormat) {
+      appendAssistantMessages(
+        [{ role: 'assistant', text: buildUploadGuidance(chosenFormat, props.activeBankProduct.productType) }],
+        { uploadFormat: chosenFormat },
+      );
+      return;
+    }
+
+    const asksForRegeneration =
+      Boolean(summaryText) &&
+      /(error|corrige|corregir|revisa|revisar|regenera|regenerar|rehace|rehacer)/i.test(text);
+    if (asksForRegeneration && summaryRegenerationsLeft > 0) {
+      await generateTransactionSummary({ feedback: text, isRegeneration: true });
+      return;
+    }
+
+    setTxAssistantLoading(true);
+    try {
+      const response = await requestTransactionAssistant({
+        mode: 'chat',
+        product: {
+          bank: props.activeBankProduct.bank,
+          label: props.activeBankProduct.label,
+          productType: props.activeBankProduct.productType,
+        },
+        currentSummary: summaryText,
+        dashboard: props.activeBankProduct.dashboard ?? null,
+        parsedDocuments: props.activeBankProduct.parsedDocuments ?? [],
+        messages: [...assistantMessages, { role: 'user', text }],
+      });
+      appendAssistantMessages([{ role: 'assistant', text: String(response.assistant_text ?? 'Listo.') }]);
+    } catch (error) {
+      setTxAssistantError(error instanceof Error ? error.message : 'No se pudo responder.');
+    } finally {
+      setTxAssistantLoading(false);
+    }
+  }
   if (!props.isOpen) return null;
 
   return (
@@ -1700,7 +1954,7 @@ export function TransactionsModal(props: {
               ) : null}
               <div className="tx-meta-card is-neutral">
                 <span className="tx-meta-card-kicker">Límites operativos</span>
-                <p>{props.maxProducts} productos · {props.maxEvidenceFilesPerProduct} archivos por producto · 1 análisis por producto</p>
+                <p>{props.maxProducts} productos · {props.maxEvidenceFilesPerProduct} archivos por producto · 1 análisis + 3 revisiones de resumen por producto</p>
               </div>
               {showInjectProductsConfirm ? (
                 <div className="tx-batch-recommendation-banner" role="dialog" aria-live="polite" aria-label="Confirmación de envío de productos">
@@ -2040,193 +2294,197 @@ export function TransactionsModal(props: {
                   <section className="tx-content-card is-main-center">
                     <div className="pt-stage-header">
                       <span className="pt-stage-eyebrow">Paso 2</span>
-                      <h4>Carga respaldos del producto</h4>
-                      <p>Sube cartolas o capturas. Si el documento tiene clave, envía capturas y se analiza igual.</p>
+                      <h4>Asistente de transacciones</h4>
+                      <p>Conversa, recibe recomendación de formato y envía archivos o texto desde aquí.</p>
                     </div>
                     <div className="transactions-summary-card tx-evidence-card tx-evidence-card--premium">
-                    <span className="transactions-summary-title">Evidencias del producto</span>
-                    <p>{requiredEvidenceText}</p>
-                    <p>Puedes subir hasta {props.maxEvidenceFilesPerProduct} archivos por producto. El orden de las capturas no importa.</p>
-                    <div className="upload-zone">
-                      <label className="upload-label upload-label--minimal">
-                        <span>Seleccionar antecedentes (imagen, PDF, Excel, CSV, TXT)</span>
-                        <span className="upload-trigger-minimal" aria-hidden="true">
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                            <path d="M15.5 7.5L9 14a3 3 0 104.24 4.24l7.07-7.07a5 5 0 10-7.07-7.07L5.46 11.9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                          </svg>
-                        </span>
+                      <span className="transactions-summary-title">Asistente del producto</span>
+                      <p>{requiredEvidenceText}</p>
+                      <p>Puedes subir hasta {props.maxEvidenceFilesPerProduct} archivos por producto. Si ya se analizó, el chat queda para consultas y revisión del resumen.</p>
+
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+                        {([
+                          ['photos', 'Fotos'],
+                          ['pdf', 'PDF'],
+                          ['spreadsheet', 'Excel / CSV'],
+                          ['text', 'Texto'],
+                        ] as const).map(([value, label]) => (
+                          <button
+                            key={value}
+                            type="button"
+                            className="continue-ghost"
+                            onClick={() => {
+                              appendAssistantMessages(
+                                [
+                                  { role: 'user', text: label },
+                                  { role: 'assistant', text: buildUploadGuidance(value, props.activeBankProduct!.productType) },
+                                ],
+                                { uploadFormat: value },
+                              );
+                            }}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+
+                      <div style={{ display: 'grid', gap: 10, maxHeight: 280, overflowY: 'auto', marginBottom: 12, paddingRight: 4 }}>
+                        {assistantMessages.map((message) => (
+                          <div
+                            key={message.id}
+                            style={{
+                              alignSelf: message.role === 'user' ? 'end' : 'start',
+                              background: message.role === 'user' ? 'rgba(198,160,82,0.18)' : 'rgba(255,255,255,0.06)',
+                              border: '1px solid rgba(255,255,255,0.12)',
+                              borderRadius: 14,
+                              padding: '10px 12px',
+                              maxWidth: '92%',
+                            }}
+                          >
+                            <div style={{ fontSize: 12, opacity: 0.72, marginBottom: 4 }}>
+                              {message.role === 'user' ? 'Tú' : 'Asistente'}
+                            </div>
+                            <div style={{ whiteSpace: 'pre-wrap' }}>{message.text}</div>
+                            {message.attachments && message.attachments.length > 0 && (
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+                                {message.attachments.map((attachment) => (
+                                  <span key={attachment} className="upload-file-pill">{attachment}</span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                        {assistantMessages.length === 0 && (
+                          <div style={{ opacity: 0.75 }}>El asistente aparecerá aquí apenas autorices el producto.</div>
+                        )}
+                      </div>
+
+                      <div className="upload-zone">
+                        <label className="upload-label upload-label--minimal">
+                          <span>Adjuntar antecedentes (imagen, PDF, Excel, CSV, TXT)</span>
+                          <span className="upload-trigger-minimal" aria-hidden="true">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                              <path d="M15.5 7.5L9 14a3 3 0 104.24 4.24l7.07-7.07a5 5 0 10-7.07-7.07L5.46 11.9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          </span>
+                          <input
+                            type="file"
+                            accept="image/*,.png,.jpg,.jpeg,.webp,.gif,.pdf,.xls,.xlsx,.csv,.txt,.md"
+                            multiple
+                            onChange={(e: ChangeEvent<HTMLInputElement>) => appendPendingEvidence(e.target.files)}
+                          />
+                        </label>
+                        <label className="manual-evidence-block">
+                          <span className="manual-evidence-label">Texto manual opcional</span>
+                          <textarea
+                            className="manual-evidence-textarea"
+                            value={manualEvidenceDraft}
+                            onChange={(e) => setManualEvidenceDraft(e.target.value)}
+                            placeholder="Si no tienes archivo, pega aquí movimientos o contexto adicional."
+                            rows={4}
+                          />
+                        </label>
+                        {pendingEvidenceFiles.length > 0 && (
+                          <div className="transactions-product-insights">
+                            {pendingEvidenceFiles.slice(0, 12).map((file) => (
+                              <span key={`${file.name}-${file.size}`}>{file.name}</span>
+                            ))}
+                          </div>
+                        )}
+                        <div className="upload-files">
+                          {props.activeBankProduct.uploadedFiles.length === 0 && <span>Aún no hay archivos cargados.</span>}
+                          {props.activeBankProduct.uploadedFiles.map((name, idx) => <span key={`${name}-${idx}`} className="upload-file-pill">{name}</span>)}
+                        </div>
+                      </div>
+
+                      <div className="bcc-hero-input-wrap" style={{ marginTop: 12 }}>
                         <input
-                          type="file"
-                          accept="image/*,.png,.jpg,.jpeg,.webp,.gif,.pdf,.xls,.xlsx,.csv,.txt,.md"
-                          multiple
-                          onChange={(e: ChangeEvent<HTMLInputElement>) => appendPendingEvidence(e.target.files)}
+                          className="bcc-hero-input"
+                          value={txAssistantInput}
+                          onChange={(e) => setTxAssistantInput(e.target.value)}
+                          placeholder={analysisAlreadyDone ? 'Pregúntame sobre tus movimientos o pide revisar el resumen' : 'Escribe o adjunta archivos para enviarlos'}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') void handleAssistantTextSend();
+                          }}
                         />
-                      </label>
-                      <label className="manual-evidence-block">
-                        <span className="manual-evidence-label">Antecedente escrito manual opcional</span>
-                        <textarea
-                          className="manual-evidence-textarea"
-                          value={manualEvidenceDraft}
-                          onChange={(e) => setManualEvidenceDraft(e.target.value)}
-                          placeholder="Escribe aquí condiciones, montos, fechas, observaciones o un resumen del producto si no quieres subir fotos."
-                          rows={5}
-                        />
-                        <p className="manual-evidence-hint">
-                          El texto se convertirá en un respaldo `.txt` y se analizará junto con cualquier archivo que subas.
-                        </p>
-                      </label>
-                      {pendingEvidenceFiles.length > 0 && (
-                        <div className="transactions-product-insights">
-                          {pendingEvidenceFiles.slice(0, 12).map((file) => (
-                            <span key={`${file.name}-${file.size}`}>{file.name}</span>
-                          ))}
-                        </div>
+                        <button
+                          type="button"
+                          className="bcc-hero-send"
+                          onClick={() => void handleAssistantTextSend()}
+                          disabled={
+                            txAssistantLoading ||
+                            props.documentsLoading ||
+                            (
+                              !txAssistantInput.trim() &&
+                              pendingEvidenceFiles.length === 0 &&
+                              pendingManualEvidence.length === 0
+                            ) ||
+                            (
+                              analysisAlreadyDone &&
+                              (pendingEvidenceFiles.length > 0 || pendingManualEvidence.length > 0)
+                            )
+                          }
+                          aria-label="Enviar"
+                          title="Enviar"
+                        >
+                          Enviar
+                        </button>
+                      </div>
+
+                      {(pendingEvidenceFiles.length > 0 || pendingManualEvidence.length > 0) && analysisAlreadyDone && (
+                        <p className="manual-evidence-hint">Este producto ya tiene análisis. Para nuevos antecedentes debes recrear el producto.</p>
                       )}
-                      {props.transactionUploadError ? (
-                        <div className="transactions-summary-card tx-doc-intel-grid" role="alert">
-                          <span className="transactions-summary-title">No se pudo procesar la carga</span>
-                          <p>{props.transactionUploadError}</p>
-                        </div>
-                      ) : null}
-                      {props.documentsLoading && (
+                      {txAssistantError && <p className="bcc-hero-error">{txAssistantError}</p>}
+                      {props.transactionUploadError && <p className="bcc-hero-error">{props.transactionUploadError}</p>}
+                      {(props.documentsLoading || txAssistantLoading) && (
                         <div className="tx-analysis-live" role="status" aria-live="polite">
                           <div className="tx-analysis-head">
-                            <span className="tx-analysis-badge">Análisis en curso</span>
+                            <span className="tx-analysis-badge">{props.documentsLoading ? 'Análisis en curso' : 'Asistente trabajando'}</span>
                             <span className="tx-analysis-meta">
-                              {props.activeBankProduct.uploadedFiles.length > 0
-                                ? `${props.activeBankProduct.uploadedFiles.length} archivo(s) en proceso`
-                                : 'Preparando lectura de evidencias'}
+                              {props.documentsLoading ? 'Procesando antecedentes y detectando movimientos' : 'Preparando respuesta o resumen'}
                             </span>
                           </div>
                           <p className="tx-analysis-copy">
-                            Analizando información, detectando montos y clasificando movimientos relevantes.
+                            {props.documentsLoading
+                              ? 'Leyendo archivos, detectando montos y consolidando movimientos.'
+                              : 'Revisando contexto del producto para responder mejor.'}
                           </p>
                           <div className="tx-analysis-track" aria-hidden="true">
                             <span className="tx-analysis-fill" />
                           </div>
                         </div>
                       )}
-                      <div className="upload-files">
-                        {props.activeBankProduct.uploadedFiles.length === 0 && <span>Aún no hay archivos cargados.</span>}
-                        {props.activeBankProduct.uploadedFiles.map((name, idx) => <span key={`${name}-${idx}`} className="upload-file-pill">{name}</span>)}
-                      </div>
-                      <div className="tx-evidence-next">
-                        <p className="tx-evidence-next-copy">
-                          {parsedDocumentCount > 0
-                            ? 'Archivos analizados. Continúa al resumen analítico para revisar métricas y hallazgos.'
-                            : 'Primero selecciona archivos (o texto manual) y presiona Analizar.'}
-                        </p>
-                        <div className="tx-evidence-inline-actions">
-                          {(pendingEvidenceFiles.length > 0 || pendingManualEvidence.length > 0) && (
+
+                      {summaryText && (
+                        <div className="transactions-summary-card tx-doc-intel-grid" style={{ marginTop: 14 }}>
+                          <span className="transactions-summary-title">Resumen asistente transacciones</span>
+                          <p style={{ whiteSpace: 'pre-wrap' }}>{summaryText}</p>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
+                            <span className="tx-meta-card-kicker">
+                              {summaryGeneratedAt ? `Actualizado ${new Date(summaryGeneratedAt).toLocaleString('es-CL')}` : 'Resumen listo'}
+                            </span>
+                            {summaryModel ? <span className="tx-meta-card-kicker">Modelo: {summaryModel}</span> : null}
+                            <span className="tx-meta-card-kicker">Revisiones restantes: {summaryRegenerationsLeft}</span>
+                          </div>
+                          <div className="agent-modal-actions">
                             <button
                               type="button"
                               className="continue-ghost"
-                              onClick={clearPendingEvidence}
-                              disabled={props.documentsLoading}
+                              onClick={() => props.setTxWizardStep('dashboard')}
                             >
-                              Limpiar selección
+                              Ver detalle analítico
                             </button>
-                          )}
-                          <button
-                            type="button"
-                            className="button-primary"
-                            disabled={
-                              analysisAlreadyDone ||
-                              props.documentsLoading ||
-                              (pendingEvidenceFiles.length === 0 && parsedDocumentCount === 0 && pendingManualEvidence.length === 0)
-                            }
-                            onClick={() => {
-                              const manualFile =
-                                pendingManualEvidence.length > 0 ? buildManualEvidenceFile(pendingManualEvidence) : null;
-                              const filesToUpload = manualFile
-                                ? [...pendingEvidenceFiles, manualFile]
-                                : pendingEvidenceFiles;
-                              if (filesToUpload.length > 0) {
-                                props.onUploadStatement(filesToUpload);
-                                clearPendingEvidence();
-                                return;
-                              }
-                              if (parsedDocumentCount > 0) {
-                                props.setTxWizardStep('dashboard');
-                              }
-                            }}
-                          >
-                            {analysisAlreadyDone
-                              ? 'Análisis ya realizado'
-                              : props.documentsLoading
-                              ? 'Analizando archivos...'
-                              : pendingEvidenceFiles.length > 0 && pendingManualEvidence.length > 0
-                                ? 'Analizar archivos y texto'
-                                : pendingEvidenceFiles.length > 0
-                                ? 'Analizar archivos'
-                                : pendingManualEvidence.length > 0
-                                  ? 'Analizar texto manual'
-                                : parsedDocumentCount > 0
-                                  ? 'Abrir ficha analítica'
-                                  : 'Selecciona archivos'}
-                          </button>
+                            <button
+                              type="button"
+                              className="button-primary"
+                              disabled={txAssistantLoading || summaryRegenerationsLeft <= 0}
+                              onClick={() => void generateTransactionSummary({ feedback: 'Revisar nuevamente consistencia de movimientos y resumen.', isRegeneration: true })}
+                            >
+                              {summaryRegenerationsLeft > 0 ? 'Revisar resumen' : 'Resumen final'}
+                            </button>
+                          </div>
                         </div>
-                        {parsedDocumentCount > 0 && !props.documentsLoading && (
-                          <button
-                            type="button"
-                            className="button-primary tx-evidence-next-btn"
-                            onClick={() => props.setTxWizardStep('dashboard')}
-                          >
-                            Continuar al resumen
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                    <div className="agent-modal-actions">
-                      {(pendingEvidenceFiles.length > 0 || pendingManualEvidence.length > 0) && (
-                        <button
-                          type="button"
-                          className="continue-ghost"
-                          onClick={clearPendingEvidence}
-                          disabled={props.documentsLoading}
-                        >
-                          Limpiar selección
-                        </button>
                       )}
-                      <button
-                        type="button"
-                        className="button-primary"
-                        disabled={
-                          analysisAlreadyDone ||
-                          props.documentsLoading ||
-                          (pendingEvidenceFiles.length === 0 && parsedDocumentCount === 0 && pendingManualEvidence.length === 0)
-                        }
-                        onClick={() => {
-                          const manualFile =
-                            pendingManualEvidence.length > 0 ? buildManualEvidenceFile(pendingManualEvidence) : null;
-                          const filesToUpload = manualFile
-                            ? [...pendingEvidenceFiles, manualFile]
-                            : pendingEvidenceFiles;
-                          if (filesToUpload.length > 0) {
-                            props.onUploadStatement(filesToUpload);
-                            clearPendingEvidence();
-                            return;
-                          }
-                          if (parsedDocumentCount > 0) {
-                            props.setTxWizardStep('dashboard');
-                          }
-                        }}
-                      >
-                        {analysisAlreadyDone
-                          ? 'Análisis ya realizado'
-                          : props.documentsLoading
-                          ? 'Analizando archivos...'
-                          : pendingEvidenceFiles.length > 0 && pendingManualEvidence.length > 0
-                            ? 'Analizar archivos y texto'
-                            : pendingEvidenceFiles.length > 0
-                            ? 'Analizar archivos'
-                            : pendingManualEvidence.length > 0
-                              ? 'Analizar texto manual'
-                            : parsedDocumentCount > 0
-                              ? 'Abrir ficha analítica'
-                              : 'Selecciona archivos'}
-                      </button>
-                    </div>
                     </div>
                   </section>
                   )}

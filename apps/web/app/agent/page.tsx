@@ -90,6 +90,21 @@ type BankProduct = {
   id: string;
   label: string;
   bank: string;
+  assistant?: {
+    messages: Array<{
+      id: string;
+      role: 'assistant' | 'user';
+      text: string;
+      createdAt: string;
+      attachments?: string[];
+    }>;
+    uploadFormat?: 'photos' | 'pdf' | 'spreadsheet' | 'text' | null;
+    summaryText?: string | null;
+    summaryModel?: string | null;
+    summaryGeneratedAt?: string | null;
+    summaryRegenerationsUsed?: number;
+    lastSummaryFeedback?: string | null;
+  };
   productType: 'credit_card' | 'debit_account' | 'checking_account' | 'savings_account' | 'consumer_loan' | 'mortgage' | 'investment_account';
   simulationAccepted: boolean;
   connected: boolean;
@@ -181,6 +196,26 @@ type BankSimulation = {
 };
 
 type ParsedBankDocument = BankSimulation['parsedDocuments'][number];
+type UploadStatementResult = {
+  documents: Array<{
+    name: string;
+    text: string;
+    summary?: unknown;
+    structuredData?: unknown;
+    insight?: {
+      format?: string;
+      reliability?: number;
+      extracted_rows?: number;
+      key_findings?: string[];
+    };
+  }>;
+  dashboard?: BankProduct['dashboard'];
+  product: {
+    bank: string;
+    label: string;
+    productType: BankProduct['productType'];
+  };
+};
 
 type DocFlight = {
   id: string;
@@ -326,6 +361,24 @@ function normalizeBudgetRow(row: BudgetRow): BudgetRow {
   return normalizedId === row.id ? row : { ...row, id: normalizedId };
 }
 
+function normalizeProductAssistantState(raw: Partial<NonNullable<BankProduct['assistant']>> | undefined) {
+  return {
+    messages: Array.isArray(raw?.messages) ? raw!.messages : [],
+    uploadFormat:
+      raw?.uploadFormat === 'photos' ||
+      raw?.uploadFormat === 'pdf' ||
+      raw?.uploadFormat === 'spreadsheet' ||
+      raw?.uploadFormat === 'text'
+        ? raw.uploadFormat
+        : null,
+    summaryText: typeof raw?.summaryText === 'string' ? raw.summaryText : null,
+    summaryModel: typeof raw?.summaryModel === 'string' ? raw.summaryModel : null,
+    summaryGeneratedAt: typeof raw?.summaryGeneratedAt === 'string' ? raw.summaryGeneratedAt : null,
+    summaryRegenerationsUsed: Math.max(0, Number(raw?.summaryRegenerationsUsed ?? 0) || 0),
+    lastSummaryFeedback: typeof raw?.lastSummaryFeedback === 'string' ? raw.lastSummaryFeedback : null,
+  };
+}
+
 const DEFAULT_BANK_SIMULATION: BankSimulation = {
   products: [],
   activeProductId: null,
@@ -426,6 +479,7 @@ function buildPersistableProductsContext(products: BankProduct[], activeProductI
     label: product.label,
     bank: product.bank,
     productType: product.productType,
+    assistantSummary: product.assistant?.summaryText ?? null,
     dashboardSummary: product.dashboard?.summary,
     period: product.dashboard?.period,
     keyMetrics: product.dashboard?.keyMetrics,
@@ -2340,6 +2394,7 @@ export default function AgentPage() {
                     const raw = product as Partial<BankProduct>;
                     return {
                       ...(raw as BankProduct),
+                      assistant: normalizeProductAssistantState(raw.assistant),
                       productType:
                         raw.productType === 'debit_account' ||
                         raw.productType === 'checking_account' ||
@@ -2420,6 +2475,7 @@ export default function AgentPage() {
                           const raw = product as Partial<BankProduct>;
                           return {
                             ...(raw as BankProduct),
+                            assistant: normalizeProductAssistantState(raw.assistant),
                             productType:
                               raw.productType === 'debit_account' ||
                               raw.productType === 'checking_account' ||
@@ -3004,10 +3060,10 @@ export default function AgentPage() {
       { type: 'upload', role: 'user', files: uploadFiles },
     ]);
 
-    const parsedDocuments = await onUploadStatement(files);
+    const uploadResult = await onUploadStatement(files);
 
     const names = selected.map((f) => f.name);
-    if (!parsedDocuments || parsedDocuments.length === 0) {
+    if (!uploadResult || uploadResult.documents.length === 0) {
       setItemsForActive((prev) => [
         ...prev,
         {
@@ -3020,7 +3076,7 @@ export default function AgentPage() {
       return;
     }
 
-    const docsSummary = parsedDocuments.map((doc) => ({
+    const docsSummary = uploadResult.documents.map((doc) => ({
       name: doc.name,
       preview: String(doc.text || '').slice(0, 500),
     }));
@@ -3401,6 +3457,15 @@ export default function AgentPage() {
       id,
       label: `Producto ${bankSimulation.products.length + 1}`,
       bank: '',
+      assistant: {
+        messages: [],
+        uploadFormat: null,
+        summaryText: null,
+        summaryModel: null,
+        summaryGeneratedAt: null,
+        summaryRegenerationsUsed: 0,
+        lastSummaryFeedback: null,
+      },
       productType: 'credit_card',
       simulationAccepted: false,
       connected: false,
@@ -3528,18 +3593,18 @@ export default function AgentPage() {
 
   async function onUploadStatement(
     files: File[] | FileList | null
-  ): Promise<Array<{ name: string; text: string; summary?: unknown; structuredData?: unknown }>> {
+  ): Promise<UploadStatementResult | null> {
     if (!isAuthenticated) {
       router.replace('/login');
-      return [];
+      return null;
     }
-    if (!files) return [];
+    if (!files) return null;
     const fileArray = Array.isArray(files) ? files : Array.from(files);
-    if (fileArray.length === 0) return [];
-    if (!activeBankProduct) return [];
+    if (fileArray.length === 0) return null;
+    if (!activeBankProduct) return null;
     if ((activeBankProduct.parsedDocuments?.length ?? 0) > 0) {
       setTransactionUploadError('Este producto ya fue analizado. Solo se permite 1 análisis por producto.');
-      return [];
+      return null;
     }
 
     const allowedExt = new Set(['png', 'jpg', 'jpeg', 'webp', 'gif', 'pdf', 'xls', 'xlsx', 'csv', 'txt', 'md']);
@@ -3549,12 +3614,12 @@ export default function AgentPage() {
     });
     if (selectedFiles.length === 0) {
       setTransactionUploadError('Formato no soportado. Usa imagen, PDF, Excel, CSV o TXT.');
-      return [];
+      return null;
     }
     const availableSlots = Math.max(0, MAX_EVIDENCE_FILES_PER_PRODUCT - activeBankProduct.uploadedFiles.length);
     if (availableSlots <= 0) {
       setTransactionUploadError(`Este producto ya alcanzó el límite de ${MAX_EVIDENCE_FILES_PER_PRODUCT} archivos.`);
-      return [];
+      return null;
     }
     const cappedFiles = selectedFiles.slice(0, availableSlots);
     if (cappedFiles.length < selectedFiles.length) {
@@ -3643,6 +3708,13 @@ export default function AgentPage() {
           ? transactionAnalysis!.document_insights!.map((item) => [item.name, item])
           : [],
       );
+      const profile = transactionAnalysis?.product_profile;
+      const profileInstitution = String(profile?.institution ?? '').trim();
+      const profileLabel = String(profile?.product_label ?? '').trim();
+      const profileType = profile?.product_type;
+      const canonicalMovements = Array.isArray(transactionAnalysis?.movements)
+        ? transactionAnalysis.movements
+        : [];
 
       setBankSimulation((prev) => {
         if (!prev.activeProductId) return prev;
@@ -3674,13 +3746,6 @@ export default function AgentPage() {
         const descriptor = buildProductCardDescriptor(provisionalProduct);
         const inferredInstitution = inferInstitutionFromText(nextDocs.map((d) => d.text ?? '').join('\n'), active.bank);
         const inferredType = inferProductTypeFromText(nextDocs.map((d) => d.text ?? '').join('\n'));
-        const profile = transactionAnalysis?.product_profile;
-        const profileInstitution = String(profile?.institution ?? '').trim();
-        const profileLabel = String(profile?.product_label ?? '').trim();
-        const profileType = profile?.product_type;
-        const canonicalMovements = Array.isArray(transactionAnalysis?.movements)
-          ? transactionAnalysis.movements
-          : [];
         const generatedLabel =
           profileInstitution && profileLabel
             ? `${profileInstitution} · ${profileLabel}`
@@ -3694,6 +3759,7 @@ export default function AgentPage() {
                 ...p,
                 uploadedFiles: nextFiles,
                 parsedDocuments: nextDocs,
+                assistant: normalizeProductAssistantState(p.assistant),
                 bank: profileInstitution || p.bank.trim() || inferredInstitution,
                 productType: profileType || p.productType,
                 label: generatedLabel || descriptor.title || p.label,
@@ -3729,8 +3795,32 @@ export default function AgentPage() {
           randomMode: snapshot.randomMode,
         };
       });
-      setTxWizardStep('dashboard');
-      return parsedDocs;
+      return {
+        documents: parsedDocs,
+        dashboard: transactionAnalysis?.product_profile
+          ? {
+              period: transactionAnalysis.product_profile.period,
+              currency: transactionAnalysis.product_profile.currency,
+              keyMetrics: transactionAnalysis.product_profile.key_metrics,
+              topCategories: transactionAnalysis.product_profile.top_categories,
+              categoryExamples: transactionAnalysis.product_profile.category_examples,
+              spendClusters: transactionAnalysis.product_profile.spend_clusters,
+              topExpenses: transactionAnalysis.product_profile.top_expenses,
+              topIncome: transactionAnalysis.product_profile.top_income,
+              alerts: transactionAnalysis.product_profile.alerts,
+              alertDetails: transactionAnalysis.product_profile.alert_details,
+              opportunities: transactionAnalysis.product_profile.opportunities,
+              metricExplanations: transactionAnalysis.product_profile.metric_explanations,
+              movements: canonicalMovements,
+              summary: transactionAnalysis.product_profile.executive_summary,
+            }
+          : undefined,
+        product: {
+          bank: profileInstitution || activeBankProduct.bank,
+          label: profileInstitution && profileLabel ? `${profileInstitution} · ${profileLabel}` : profileLabel || activeBankProduct.label,
+          productType: profileType || activeBankProduct.productType,
+        },
+      };
     } catch (error) {
       const errorText = toUserFacingError(error, 'generic');
       setTransactionUploadError(errorText);
@@ -3752,7 +3842,7 @@ export default function AgentPage() {
           randomMode: snapshot.randomMode,
         };
       });
-      return [];
+      return null;
     } finally {
       setDocumentsLoading(false);
     }
