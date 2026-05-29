@@ -1,0 +1,1 @@
+export const INTERVIEW_TOTAL_LIMIT_SEC = 180;

@@ -438,6 +438,38 @@ export function extractPanelAction(
 }
 
 /**
+ * Extract budget updates from the <BUDGET_UPDATE> tag.
+ * Tag payload is a JSON array of { label, type, amount, category? } objects.
+ * Returns [] when the tag is absent or malformed.
+ */
+export function extractBudgetUpdates(
+  text: string
+): Array<{ label: string; type: 'income' | 'expense'; amount: number; category?: string }> {
+  const match = text.match(/<BUDGET_UPDATE>\s*(\[[\s\S]*?\])\s*<\/BUDGET_UPDATE>/i);
+  if (!match) return [];
+
+  try {
+    const parsed = JSON.parse(match[1]);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .map((row) => {
+        const label = typeof row?.label === 'string' ? row.label.trim() : '';
+        const amount = Number(row?.amount);
+        const type = row?.type === 'income' ? 'income' : row?.type === 'expense' ? 'expense' : null;
+        if (!label || !type || !Number.isFinite(amount)) return null;
+        const category = typeof row?.category === 'string' ? row.category.trim() : undefined;
+        return { label, type, amount, ...(category ? { category } : {}) };
+      })
+      .filter(
+        (x): x is { label: string; type: 'income' | 'expense'; amount: number; category?: string } =>
+          x !== null
+      );
+  } catch {
+    return [];
+  }
+}
+
+/**
  * Remove all special tags from text
  */
 export function cleanSpecialTags(text: string): string {
@@ -447,6 +479,7 @@ export function cleanSpecialTags(text: string): string {
     .replace(/<QUESTIONNAIRE>[\s\S]*?<\/QUESTIONNAIRE>/g, '\n\n')
     .replace(/<SUGERENCIAS>[\s\S]*?<\/SUGERENCIAS>/g, '\n\n')
     .replace(/<PANEL>[\s\S]*?<\/PANEL>/g, '\n\n')
+    .replace(/<BUDGET_UPDATE>[\s\S]*?<\/BUDGET_UPDATE>/gi, '\n\n')
     .replace(/(?:^|\n)\s*SUGERENCIAS\s*:\s*\[[\s\S]*?\]\s*(?=\n|$)/gi, '\n\n')
     .replace(/<function_calls>[\s\S]*?<\/function_calls>/gi, '\n\n')
     .replace(/<invoke[\s\S]*?<\/invoke>/gi, '\n\n')

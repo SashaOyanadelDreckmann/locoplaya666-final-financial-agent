@@ -16,8 +16,10 @@ type PanelCardsProps = {
   removeInjectedProfile: () => Promise<unknown>;
   agentMetaRef: React.MutableRefObject<{ objective?: string; mode?: string }>;
   interviewCard: { badge: string; title: string; meta: string; detail: string };
+  interviewCompleted: boolean;
+  canOpenInterview: boolean;
+  openInterviewModal: () => void;
   setInterviewIntake: (intake: any) => void;
-  router: { push: (path: string) => void };
   unlockedPanelBlocks: { budgetUnlocked: boolean; transactionsUnlocked: boolean };
   setIsBudgetModalOpen: (open: boolean) => void;
   budgetTotals: { income: number; expenses: number };
@@ -26,13 +28,42 @@ type PanelCardsProps = {
   transactionIntel: { docs: number; rows: number; amounts: number[] };
   reportsByGroup: Record<string, any[]>;
   librarySummary: string;
-  savedReports: Array<{ id: string; title: string; group: string; fileUrl: string }>;
+  savedReports: Array<{ id: string; title: string; group: string; fileUrl: string; previewImageUrl?: string }>;
   recentLibraryRef: React.RefObject<HTMLDivElement>;
   isLandingRecents: boolean;
-  recentReports: Array<{ id: string; title: string; fileUrl: string }>;
+  recentReports: Array<{ id: string; title: string; fileUrl: string; previewImageUrl?: string }>;
   newReportId: string | null;
   docVisualOffset: (id: string, idx: number) => { rotation: number; yShift: number };
 };
+
+function RecentDocumentPreview(props: { title: string; previewImageUrl?: string }) {
+  const previewUrl = props.previewImageUrl ? resolveDocumentUrl(props.previewImageUrl) : '';
+
+  if (previewUrl) {
+    return (
+      <img
+        src={previewUrl}
+        alt={`Portada de ${props.title}`}
+        className="recent-item-preview recent-item-preview-image"
+      />
+    );
+  }
+
+  const initials = props.title
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((token) => token[0]?.toUpperCase() ?? '')
+    .join('');
+
+  return (
+    <div className="recent-item-preview recent-item-preview-fallback" aria-hidden="true">
+      <span className="recent-item-preview-badge">PDF</span>
+      <span className="recent-item-preview-initials">{initials || 'DOC'}</span>
+      <span className="recent-item-preview-lines" />
+    </div>
+  );
+}
 
 export function buildPanelBaseCards(props: PanelCardsProps): PanelCard[] {
   return [
@@ -141,21 +172,21 @@ export function buildPanelBaseCards(props: PanelCardsProps): PanelCard[] {
             onClick={props.openTransactionsPanel}
             title={
               props.unlockedPanelBlocks.transactionsUnlocked
-                ? 'Abrir transacciones y finanzas abiertas'
-                : 'Bloqueado: conversa sobre cartolas y banco'
+                ? 'Abrir productos y transacciones'
+                : 'Bloqueado: conversa sobre productos, cartolas y banco'
             }
           >
-            <span className="panel-feature-label">Transacciones</span>
+            <span className="panel-feature-label">Productos y Transacciones</span>
             <span className="panel-feature-status">
               {props.unlockedPanelBlocks.transactionsUnlocked ? '● Activo' : '○ Bloqueado'}
             </span>
             <span className="panel-feature-copy">
-              Lectura profunda de cartolas bancarias. Detección de patrones, alertas de gasto y análisis operativo de tus movimientos reales.
+              Revisa tus movimientos del mes para detectar patrones de gasto y alertas clave.
             </span>
             <span className="panel-feature-copy panel-feature-copy-secondary">
               {props.transactionIntel.docs > 0
-                ? `${props.transactionIntel.docs} cartola${props.transactionIntel.docs > 1 ? 's' : ''} · ${props.transactionIntel.rows.toLocaleString('es-CL')} filas · ${props.transactionIntel.amounts.length} montos detectados`
-                : 'Sube una cartola bancaria (PDF o Excel) para activar el análisis de movimientos.'}
+                ? `${props.transactionIntel.docs} respaldo${props.transactionIntel.docs > 1 ? 's' : ''} · ${props.transactionIntel.rows.toLocaleString('es-CL')} filas · ${props.transactionIntel.amounts.length} montos detectados`
+                : 'Agrega un producto y sube respaldos para activar el análisis automático.'}
             </span>
           </button>
         </div>
@@ -184,7 +215,7 @@ export function buildPanelBaseCards(props: PanelCardsProps): PanelCard[] {
               {props.unlockedPanelBlocks.budgetUnlocked ? '● Activo' : '○ Bloqueado'}
             </span>
             <span className="panel-feature-copy">
-              Estructura tu flujo mensual con precisión de analista. Ingresos, gastos fijos, variables y ahorro real calculado por IA.
+              Ordena ingresos y gastos para entender tu balance mensual y capacidad real de ahorro.
             </span>
             <span className="panel-feature-copy panel-feature-copy-secondary">
               {props.unlockedPanelBlocks.budgetUnlocked
@@ -201,20 +232,35 @@ export function buildPanelBaseCards(props: PanelCardsProps): PanelCard[] {
         <div className="mob-col mob-col-wide">
           <button
             type="button"
-            className="interview-flow-card panel-pos-interview glass-card"
+            className={`interview-flow-card panel-pos-interview glass-card${!props.interviewCompleted && !props.canOpenInterview ? ' is-locked' : ''}`}
             onClick={() => {
+              if (!props.canOpenInterview && !props.interviewCompleted) return;
               const injectedIntake = props.sessionInfo?.injectedIntake?.intake;
               if (injectedIntake && typeof injectedIntake === 'object') {
                 props.setInterviewIntake(injectedIntake as any);
               }
-              props.router.push('/interview');
+              props.openInterviewModal();
             }}
-            title="Ir a entrevista y diagnóstico"
+            title={
+              props.interviewCompleted
+                ? 'Ver diagnóstico'
+                : props.canOpenInterview
+                ? 'Abrir entrevista'
+                : 'Bloqueado: completa Productos/Transacciones y Presupuesto'
+            }
           >
             <span className="interview-flow-label">{props.interviewCard.badge}</span>
+            <span className="panel-feature-status">
+              {props.interviewCompleted || props.canOpenInterview ? '● Activo' : '○ Bloqueado'}
+            </span>
             <span className="interview-flow-title">{props.interviewCard.title}</span>
             <span className="interview-flow-meta">{props.interviewCard.meta}</span>
             <span className="interview-flow-meta interview-flow-submeta">{props.interviewCard.detail}</span>
+            {!props.interviewCompleted && !props.canOpenInterview && (
+              <span className="panel-feature-copy panel-feature-copy-secondary">
+                Completa productos/transacciones y presupuesto para iniciar esta etapa.
+              </span>
+            )}
           </button>
         </div>
       ),
@@ -230,6 +276,11 @@ export function buildPanelBaseCards(props: PanelCardsProps): PanelCard[] {
           >
             <a href="https://fintualist.com/chile/" target="_blank" rel="noreferrer" className="news-link">
               <div className="news-image">
+                <img
+                  src="/news-previeww.jpg"
+                  alt="Vista previa editorial de noticias financieras"
+                  className="news-media"
+                />
                 <div className="news-overlay">
                   <span className="news-kicker">Radar de mercado</span>
                   <span className="news-title">Noticias y actualidad</span>
@@ -310,10 +361,9 @@ export function buildPanelBaseCards(props: PanelCardsProps): PanelCard[] {
                   }
                 >
                   <div className="recent-item-preview-wrap">
-                    <embed
-                      src={`${resolveDocumentUrl(report.fileUrl)}#page=1&view=FitH&zoom=55`}
-                      type="application/pdf"
-                      className="recent-item-preview"
+                    <RecentDocumentPreview
+                      title={report.title}
+                      previewImageUrl={report.previewImageUrl}
                     />
                   </div>
                   <span className="recent-item-name">{report.title}</span>

@@ -61,7 +61,7 @@ export interface FormattedResponse {
   suggested_replies: string[];
   panel_action?: { section?: string; message?: string };
   context_score?: number;
-  budget_updates?: Array<{ label: string; type: string; amount: number; category: string }>;
+  budget_updates?: Array<{ label: string; type: string; amount: number; category?: string }>;
   knowledge_event_detected?: boolean;
   knowledge_score?: number;
   milestone_unlocked?: { threshold: number; feature: string };

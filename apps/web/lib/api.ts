@@ -119,13 +119,21 @@ export async function getSessionInfo() {
   return parseApiResponse<any>(res);
 }
 
-export async function parseDocuments(files: Array<{ name: string; base64: string }>) {
+export async function parseDocuments(
+  files: Array<{ name: string; base64: string }>,
+  hints?: {
+    institutionHint?: string;
+    serviceHint?: string;
+    productTypeHint?: string;
+    productLabelHint?: string;
+  }
+) {
   const API_URL = getApiBaseUrl();
   const res = await fetch(`${API_URL}/api/documents/parse`, {
     method: 'POST',
     headers: withCsrf({ 'Content-Type': 'application/json' }),
     credentials: 'include',
-    body: JSON.stringify({ files }),
+    body: JSON.stringify({ files, ...(hints ?? {}) }),
   });
 
   return parseApiResponse<any>(res);
@@ -214,7 +222,20 @@ export async function getInterviewRealtimeToken() {
     total_used_sec?: number;
     remaining_total_sec?: number;
     pause_limit?: number;
+    interview_voice?: Record<string, unknown>;
   }>(res);
+}
+
+export async function saveInterviewVoiceState(payload: Record<string, unknown>) {
+  const API_URL = getApiBaseUrl();
+  const res = await fetch(`${API_URL}/conversation/voice/state`, {
+    method: 'POST',
+    headers: withCsrf({ 'Content-Type': 'application/json' }),
+    credentials: 'include',
+    body: JSON.stringify(payload),
+  });
+
+  return parseApiResponse<{ saved: boolean; interview_voice?: Record<string, unknown> }>(res);
 }
 
 export async function finalizeInterviewVoiceCall(payload: {
@@ -233,4 +254,61 @@ export async function finalizeInterviewVoiceCall(payload: {
   });
 
   return parseApiResponse<any>(res);
+}
+
+export async function mergeProductsContextToIntake(payload: {
+  productsContext: {
+    scope?: string;
+    productsCount: number;
+    uploadedFiles?: string[];
+    activeProductId?: string | null;
+    activeProductLabel?: string;
+    activeProduct?: Record<string, unknown>;
+    productsIndex?: Array<Record<string, unknown>>;
+    transactionSummary?: Record<string, unknown>;
+    products?: Array<{
+      id?: string;
+      label: string;
+      bank: string;
+      productType: string;
+      dashboardSummary?: string;
+      period?: { from?: string; to?: string };
+      keyMetrics?: {
+        inflows_total?: number;
+        outflows_total?: number;
+        net_flow?: number;
+        movement_count?: number;
+      };
+      topIncome?: Array<{ label: string; amount: number; date?: string }>;
+      topExpenses?: Array<{ label: string; amount: number; date?: string }>;
+      topCategories?: Array<{ name: string; amount: number }>;
+      alerts?: string[];
+      movements?: Array<Record<string, unknown>>;
+    }>;
+  };
+  budgetContext?: {
+    income?: number;
+    expenses?: number;
+    balance?: number;
+    rowsCount?: number;
+    rows?: Array<{
+      id: string;
+      category: string;
+      type: 'income' | 'expense';
+      amount: number;
+      note?: string;
+      parentId?: string | null;
+      product?: string;
+      institution?: string;
+    }>;
+  };
+}) {
+  const API_URL = getApiBaseUrl();
+  const res = await fetch(`${API_URL}/api/merge-products-context`, {
+    method: 'POST',
+    headers: withCsrf({ 'Content-Type': 'application/json' }),
+    credentials: 'include',
+    body: JSON.stringify(payload),
+  });
+  return parseApiResponse<{ updated: boolean }>(res);
 }

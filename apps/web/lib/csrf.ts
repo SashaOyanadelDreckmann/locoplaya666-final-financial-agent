@@ -32,6 +32,17 @@ export const setCsrfToken = (token: string): void => {
   }
 };
 
+export const clearCsrfToken = (): void => {
+  try {
+    if (typeof window === 'undefined') return;
+    sessionStorage.removeItem(CSRF_TOKEN_KEY);
+    // backward-compatible cleanup for older key usages
+    sessionStorage.removeItem('csrf_token');
+  } catch {
+    console.warn('Failed to clear CSRF token');
+  }
+};
+
 /**
  * Agrega el token CSRF a los headers de una request
  */
@@ -51,7 +62,7 @@ export const addCsrfTokenToHeaders = (headers: HeadersInit): HeadersInit => {
 /**
  * Wrapper para fetch que automáticamente agrega CSRF token
  */
-export const fetchWithCsrf = async <T = unknown>(
+export const fetchWithCsrf = async (
   url: string,
   options: RequestInit = {}
 ): Promise<Response> => {
@@ -68,6 +79,7 @@ export const fetchWithCsrf = async <T = unknown>(
 export default {
   getCsrfToken,
   setCsrfToken,
+  clearCsrfToken,
   addCsrfTokenToHeaders,
   fetchWithCsrf,
 };

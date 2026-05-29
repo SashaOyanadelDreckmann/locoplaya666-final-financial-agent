@@ -38,26 +38,6 @@ export function SidePanels(props: {
         className={`agent-panel ${props.mobilePanelExpanded ? 'is-mobile-expanded' : 'is-mobile-compact'}`}
         ref={props.panelScrollRef}
       >
-        <div
-          ref={props.mobilePanelHandleRef}
-          className="mobile-panel-handle"
-          onClick={() => { props.haptic(12); props.setMobilePanelExpanded((v) => !v); }}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' || event.key === ' ') {
-              event.preventDefault();
-              props.haptic(12);
-              props.setMobilePanelExpanded((v) => !v);
-            }
-          }}
-          role="button"
-          tabIndex={0}
-          aria-label={props.mobilePanelExpanded ? 'Minimizar panel' : 'Expandir panel'}
-        >
-          <span className="mobile-panel-handle-title">⊞ Panel</span>
-          <svg className={`mobile-panel-chevron${props.mobilePanelExpanded ? ' rotated' : ''}`} width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-            <path d="M4 10L8 6L12 10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </div>
         <div className="mobile-panel-close">
           <button
             type="button"

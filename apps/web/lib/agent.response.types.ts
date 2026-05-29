@@ -51,7 +51,17 @@ export type AgentResponse = {
 
   // acción de panel: el agente puede controlar qué sección destacar
   panel_action?: {
-    section?: 'budget' | 'transactions' | 'library' | 'recents' | 'profile' | 'news' | 'objective' | 'mode';
+    section?:
+      | 'budget'
+      | 'transactions'
+      | 'products_transactions'
+      | 'library'
+      | 'recents'
+      | 'profile'
+      | 'news'
+      | 'objective'
+      | 'mode'
+      | 'interview';
     message?: string;
   };
 
@@ -110,6 +120,20 @@ export type ChatItem =
       objective?: string;
       agent_blocks?: AgentBlock[];
       suggested_replies?: string[];
+      panel_action?: {
+        section?:
+          | 'budget'
+          | 'transactions'
+          | 'products_transactions'
+          | 'library'
+          | 'recents'
+          | 'profile'
+          | 'news'
+          | 'objective'
+          | 'mode'
+          | 'interview';
+        message?: string;
+      };
     }
   | { type: 'artifact'; role: 'assistant'; artifact: Artifact }
   | { type: 'citation'; role: 'assistant'; citation: Citation };

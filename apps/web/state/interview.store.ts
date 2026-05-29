@@ -27,12 +27,17 @@ type InterviewResponse = {
 type InterviewState = {
   intake: IntakeQuestionnaire | null;
   answersByBlock: Record<string, string[]>;
+  transcriptEntries: Array<{
+    blockId: string;
+    answer: string;
+  }>;
   completedBlocks: CompletedBlocksMap;
   lastResponse: InterviewResponse | null;
   setIntake: (intake: IntakeQuestionnaire) => void;
   addAnswer: (blockId: string, answer: string) => void;
   resetBlock: (blockId: string) => void;
   setResponse: (response: InterviewResponse | null) => void;
+  resetInterviewState: () => void;
 };
 
 export const useInterviewStore = create<InterviewState>()(
@@ -40,6 +45,7 @@ export const useInterviewStore = create<InterviewState>()(
     (set) => ({
       intake: null,
       answersByBlock: {},
+      transcriptEntries: [],
       completedBlocks: {},
       lastResponse: null,
       setIntake: (intake) => set({ intake }),
@@ -49,6 +55,13 @@ export const useInterviewStore = create<InterviewState>()(
             ...state.answersByBlock,
             [blockId]: [...(state.answersByBlock[blockId] ?? []), answer],
           },
+          transcriptEntries: [
+            ...state.transcriptEntries,
+            {
+              blockId,
+              answer,
+            },
+          ],
         })),
       resetBlock: (blockId) =>
         set((state) => ({
@@ -65,13 +78,22 @@ export const useInterviewStore = create<InterviewState>()(
               ? response.completedBlocks
               : state.completedBlocks,
         })),
+      resetInterviewState: () =>
+        set({
+          intake: null,
+          answersByBlock: {},
+          transcriptEntries: [],
+          completedBlocks: {},
+          lastResponse: null,
+        }),
     }),
     {
       name: 'financial-agent-interview-store',
-      storage: createJSONStorage(() => sessionStorage),
+      storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         intake: state.intake,
         answersByBlock: state.answersByBlock,
+        transcriptEntries: state.transcriptEntries,
         completedBlocks: state.completedBlocks,
         lastResponse: state.lastResponse,
       }),

@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { formatRemainingInteractions, getChatDisplayTitle, getMaxChatInteractions } from './page.utils';
 
 type ChatThread = {
   id: string;
@@ -6,6 +7,7 @@ type ChatThread = {
   name: string;
   status: 'active' | 'context';
   contextScore: number;
+  userMessageCount: number;
 };
 
 type ChatSpecialization = {
@@ -28,12 +30,41 @@ export function ChatHeader(props: {
   activeThread?: ChatThread;
   isActiveChatLocked: boolean;
   activeTurnCount: number;
+  diagnosisUnlocked?: boolean;
   knowledgePopupOpen: boolean;
   knowledgeStage: string;
   completedMilestones: number;
   milestones: Milestone[];
   coachHint: string;
+  isMonochrome: boolean;
+  toggleMonochrome: () => void;
+  isMobileViewport: boolean;
 }) {
+  const menteColors = useMemo(
+    () => ['#7A9ABA', '#C04F4F', '#E8BD5C', '#5F88B6'],
+    [],
+  );
+
+  const [menteColorIndex, setMenteColorIndex] = useState(() =>
+    Math.floor(Math.random() * menteColors.length),
+  );
+  const [menteBold, setMenteBold] = useState(() => Math.random() > 0.5);
+
+  useEffect(() => {
+    const prefersReducedMotion =
+      typeof window !== 'undefined' &&
+      window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+
+    if (prefersReducedMotion) return;
+
+    const interval = window.setInterval(() => {
+      setMenteColorIndex((prev) => (prev + 1) % menteColors.length);
+      setMenteBold(Math.random() > 0.5);
+    }, 2200);
+
+    return () => window.clearInterval(interval);
+  }, [menteColors.length]);
+
   const activeLabel = props.activeThread?.label;
   const activeHandSubtitle =
     activeLabel === '2'
@@ -45,12 +76,13 @@ export function ChatHeader(props: {
       : 'lectura base';
 
   return (
-    <header className="agent-chat-header">
+    <header className={`agent-chat-header${props.isMobileViewport ? ' is-mobile' : ''}`}>
       <div className="agent-chat-controls-row">
         <div className="chat-switcher" aria-label="Selector de chats">
           {props.chatThreads.map((thread) => {
             const specialization = props.getThreadSpecialization(thread.id);
             const locked = props.isThreadLocked(thread.id);
+            const remainingLabel = formatRemainingInteractions(thread.userMessageCount ?? 0, thread.id);
             return (
               <button
                 key={thread.id}
@@ -82,6 +114,21 @@ export function ChatHeader(props: {
             );
           })}
         </div>
+        <button
+          type="button"
+          className={`chat-monochrome-toggle ${
+            props.isMobileViewport ? 'chat-monochrome-toggle--inline' : 'chat-monochrome-toggle--floating'
+          }${props.isMonochrome ? ' is-active' : ''}`}
+          onClick={props.toggleMonochrome}
+          aria-label={props.isMonochrome ? 'Desactivar blanco y negro' : 'Activar blanco y negro'}
+          title={props.isMonochrome ? 'Desactivar blanco y negro' : 'Activar blanco y negro'}
+        >
+          <svg className="mono-toggle-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <circle className="mono-toggle-icon__ring" cx="12" cy="12" r="9" />
+            <path className="mono-toggle-icon__half" d="M12 3a9 9 0 0 0 0 18z" />
+            <path className="mono-toggle-icon__split" d="M12 3v18" />
+          </svg>
+        </button>
         {props.activeThread && props.activeThread.contextScore > 0 && (
           <div className="sheet-context-bar" title={`Contexto: ${props.activeThread.contextScore}%`}>
             <div className="sheet-context-fill" style={{ width: `${props.activeThread.contextScore}%` }} />
@@ -112,9 +159,9 @@ export function ChatHeader(props: {
           Este chat se desbloquea después del diagnóstico integrado. Sigue en el Chat 1 con presupuesto, cartolas y entrevista breve.
         </div>
       )}
-      {!props.isActiveChatLocked && props.activeTurnCount >= 30 && (
+      {!props.isActiveChatLocked && props.activeTurnCount >= 24 && (
         <div className="product-flow-banner" role="status">
-          Modo cierre activo: estás en la fase final para cerrar con un informe guardable en biblioteca.
+          Modo cierre activo: te quedan {formatRemainingInteractions(props.activeTurnCount, props.activeThread?.id)} antes del tope de {getMaxChatInteractions(props.activeThread?.id)}. Cierra con un informe guardable en biblioteca.
         </div>
       )}
     </header>

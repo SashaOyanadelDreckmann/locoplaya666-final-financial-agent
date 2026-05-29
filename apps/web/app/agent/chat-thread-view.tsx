@@ -1,18 +1,34 @@
-import React, { memo, type ReactNode } from 'react';
+import React, { memo, useState, type ReactNode } from 'react';
+
 import { DocumentBubble } from '@/components/conversation/DocumentBubble';
 import { CitationBubble } from '@/components/conversation/CitationBubble';
 import { AgentBlocksRenderer } from '@/components/agent/AgentBlocksRenderer';
-import { savePdfArtifact } from '@/lib/artifacts';
+import { saveBubbleSnapshotPdfArtifact, savePdfArtifact } from '@/lib/artifacts';
 import type { ChatItem } from '@/lib/agent.response.types';
-import { HOME_ASCII_MASCOT } from '../brand';
 import { buildInitialAgentSuggestions, sanitizeMessageText } from './page.utils';
 import { renderLatexDocMessage } from './message-renderer';
+
+const DOC_MODE_PILL_STYLE: React.CSSProperties = {
+  background: '#000000',
+  backgroundColor: '#000000',
+  backgroundImage: 'none',
+  color: '#ffffff',
+  border: '1px solid rgba(255, 255, 255, 0.26)',
+  opacity: 1,
+  mixBlendMode: 'normal',
+  filter: 'none',
+  backdropFilter: 'none',
+  WebkitBackdropFilter: 'none',
+  WebkitTextFillColor: '#ffffff',
+  textShadow: 'none',
+};
 
 type SavedReport = {
   id: string;
   title: string;
   group: 'plan_action' | 'simulation' | 'budget' | 'diagnosis' | 'other';
   fileUrl: string;
+  previewImageUrl?: string;
   createdAt: string;
 };
 
@@ -25,6 +41,348 @@ function shouldEnableBubbleScroll(content: string) {
     return acc + Math.max(1, Math.ceil(length / 72));
   }, 0);
   return estimatedWrappedLines > 2;
+}
+
+function collectBubbleSnapshotCss(bubbleEl: HTMLElement) {
+  const cssParts: string[] = [];
+  const addRule = (text: string) => {
+    if (!text || cssParts.includes(text)) return;
+    cssParts.push(text);
+  };
+
+  const classes = Array.from(bubbleEl.classList)
+    .map((c) => `.${c}`)
+    .concat([
+      '.agent-bubble',
+      '.assistant',
+      '.latex-doc',
+      '.latex-doc-head',
+      '.latex-doc-heading',
+      '.latex-doc-kicker',
+      '.latex-doc-title',
+      '.latex-doc-subtitle',
+      '.latex-doc-mode',
+      '.latex-doc-body',
+      '.latex-inline-annex',
+      '.latex-inline-annex-head',
+      '.citation-stack',
+      '.citation-bubble',
+      '.citation-link',
+      '.premium-markdown',
+      '.academic-paper',
+      '.md-h1',
+      '.md-h2',
+      '.md-h3',
+      '.md-h4',
+      '.md-h5',
+      '.md-h6',
+      '.md-paragraph',
+      '.md-list',
+      '.md-list-ordered',
+      '.md-list-item',
+      '.md-table',
+      '.katex',
+      '.katex-display',
+      '.katex-inline',
+      '.md-math-block',
+      '.agent-chart-card',
+      '.agent-chart-head',
+      '.agent-chart-title',
+      '.agent-chart-subtitle',
+      '.agent-chart-canvas',
+      'svg',
+      'table',
+      'th',
+      'td',
+      'a',
+      'p',
+      'ul',
+      'ol',
+      'li',
+      ':root',
+      'body',
+      'html',
+    ]);
+
+  for (const sheet of Array.from(document.styleSheets)) {
+    let rules: CSSRuleList;
+    try {
+      rules = sheet.cssRules;
+    } catch {
+      continue;
+    }
+    for (const rule of Array.from(rules)) {
+      if (rule instanceof CSSStyleRule) {
+        const selector = rule.selectorText || '';
+        if (classes.some((s) => selector.includes(s))) addRule(rule.cssText);
+        continue;
+      }
+      if (rule instanceof CSSMediaRule) {
+        const nested: string[] = [];
+        for (const nestedRule of Array.from(rule.cssRules)) {
+          if (
+            nestedRule instanceof CSSStyleRule &&
+            classes.some((s) => (nestedRule.selectorText || '').includes(s))
+          ) {
+            nested.push(nestedRule.cssText);
+          }
+        }
+        if (nested.length > 0) addRule(`@media ${rule.conditionText}{${nested.join('\n')}}`);
+        continue;
+      }
+      if (rule instanceof CSSKeyframesRule) {
+        addRule(rule.cssText);
+      }
+    }
+  }
+
+  return cssParts.join('\n');
+}
+
+function buildBubbleSnapshotHtmlAndCss(bubbleEl: HTMLElement) {
+  const escapeHtml = (value: string) =>
+    value
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+
+  const clonedBubble = bubbleEl.cloneNode(true) as HTMLElement;
+  clonedBubble.classList.add('bubble-pdf-paper');
+  clonedBubble.classList.remove('is-scrollable-bubble');
+
+  // Remove all interactive controls from exported PDF snapshot.
+  clonedBubble.querySelectorAll('button, input, textarea, select, [role="button"]').forEach((el) => {
+    el.remove();
+  });
+
+  // Avoid preserving scroll clipping in PDF; render full content instead.
+  clonedBubble
+    .querySelectorAll('.is-scrollable-bubble, .is-scrollable-content')
+    .forEach((el) => el.classList.remove('is-scrollable-bubble', 'is-scrollable-content'));
+
+  const kickerText =
+    clonedBubble.querySelector('.latex-doc-kicker')?.textContent?.trim() ||
+    clonedBubble.querySelector('.chat-sheet-tab-title')?.textContent?.trim() ||
+    'CHAT GENERAL';
+  const titleText =
+    clonedBubble.querySelector('.latex-doc-title, .latex-doc-h1, .md-h1')?.textContent?.trim() || 'Chat general';
+  const subtitleText =
+    clonedBubble.querySelector('.latex-doc-subtitle, .latex-doc-mode')?.textContent?.trim() ||
+    'Síntesis profesional del contexto, evidencia disponible y próximos pasos.';
+  const badgeText =
+    clonedBubble.querySelector('.latex-doc-mode')?.textContent?.trim() || 'EDUCATION';
+
+  const exportCss = `
+@page {
+  size: A4;
+  margin: 44mm 12mm 14mm 12mm;
+}
+
+html, body, .bubble-pdf-snapshot {
+  margin: 0 !important;
+  padding: 0 !important;
+  background: #f5f1e8 !important;
+}
+
+.bubble-pdf-snapshot .agent-bubble.assistant.latex-doc,
+.bubble-pdf-snapshot .agent-bubble.assistant.latex-doc * {
+  color: #1c3145 !important;
+  -webkit-text-fill-color: #1c3145 !important;
+  text-shadow: none !important;
+}
+
+.bubble-pdf-snapshot {
+  width: 100% !important;
+  min-height: auto !important;
+  box-sizing: border-box !important;
+}
+
+.bubble-pdf-running-brand {
+  position: fixed;
+  top: 3mm;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 10px;
+  line-height: 1;
+  letter-spacing: .14em;
+  text-transform: lowercase;
+  color: #1a3047;
+  font-weight: 600;
+  z-index: 40;
+}
+
+.bubble-pdf-running-header {
+  position: fixed;
+  top: 0;
+  left: 12mm;
+  right: 12mm;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 0 2px 4px 2px;
+  border-bottom: 1px solid rgba(28, 49, 69, 0.1);
+  background: #f5f1e8 !important;
+  z-index: 30;
+}
+
+.bubble-pdf-running-header-copy {
+  min-width: 0;
+  color: #1b3046 !important;
+}
+
+.bubble-pdf-running-kicker {
+  margin: 0 0 3mm 0;
+  font-size: 9px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: #46698f !important;
+  font-weight: 700;
+}
+
+.bubble-pdf-running-title {
+  margin: 0 0 1.5mm 0;
+  font-size: 21px;
+  line-height: 1.1;
+  color: #132b40 !important;
+  font-weight: 700;
+}
+
+.bubble-pdf-running-subtitle {
+  margin: 0;
+  font-size: 10px;
+  line-height: 1.25;
+  color: #2b3f53 !important;
+  max-width: 70ch;
+}
+
+.bubble-pdf-running-badge {
+  border: 1px solid rgba(53, 94, 137, 0.9);
+  border-radius: 999px;
+  padding: 1.4mm 3.4mm;
+  font-size: 9px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: #355f89 !important;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.bubble-pdf-snapshot .bubble-pdf-paper {
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  box-sizing: border-box !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  border: 0 !important;
+  background: #f5f1e8 !important;
+  overflow: visible !important;
+  break-inside: auto !important;
+  page-break-inside: auto !important;
+}
+
+.bubble-pdf-snapshot .bubble-pdf-paper > :first-child {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+.bubble-pdf-snapshot .bubble-pdf-paper .latex-doc-body,
+.bubble-pdf-snapshot .bubble-pdf-paper .premium-markdown,
+.bubble-pdf-snapshot .bubble-pdf-paper .academic-paper,
+.bubble-pdf-snapshot .bubble-pdf-paper .latex-inline-annex {
+  max-height: none !important;
+  height: auto !important;
+  overflow: visible !important;
+  break-inside: auto !important;
+  page-break-inside: auto !important;
+}
+
+.bubble-pdf-snapshot .bubble-pdf-paper .latex-doc-head,
+.bubble-pdf-snapshot .bubble-pdf-paper .latex-doc-title,
+.bubble-pdf-snapshot .bubble-pdf-paper .latex-doc-subtitle,
+.bubble-pdf-snapshot .bubble-pdf-paper .md-h1,
+.bubble-pdf-snapshot .bubble-pdf-paper .md-h2,
+.bubble-pdf-snapshot .bubble-pdf-paper .md-h3 {
+  break-after: avoid-page !important;
+  page-break-after: avoid !important;
+}
+
+.bubble-pdf-snapshot .bubble-pdf-paper .latex-doc-head {
+  display: none !important;
+}
+
+.bubble-pdf-snapshot .bubble-pdf-paper p,
+.bubble-pdf-snapshot .bubble-pdf-paper li,
+.bubble-pdf-snapshot .bubble-pdf-paper blockquote {
+  orphans: 3;
+  widows: 3;
+  break-inside: auto !important;
+  page-break-inside: auto !important;
+}
+
+.bubble-pdf-snapshot .bubble-pdf-paper pre,
+.bubble-pdf-snapshot .bubble-pdf-paper code,
+.bubble-pdf-snapshot .bubble-pdf-paper .latex-block,
+.bubble-pdf-snapshot .bubble-pdf-paper .latex-doc-section,
+.bubble-pdf-snapshot .bubble-pdf-paper .md-list,
+.bubble-pdf-snapshot .bubble-pdf-paper .md-li {
+  break-inside: auto !important;
+  page-break-inside: auto !important;
+}
+
+.bubble-pdf-snapshot .bubble-pdf-paper pre,
+.bubble-pdf-snapshot .bubble-pdf-paper code {
+  white-space: pre-wrap !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
+}
+
+.bubble-pdf-snapshot .agent-bubble.assistant.latex-doc .latex-doc-kicker {
+  color: #3a648b !important;
+  -webkit-text-fill-color: #3a648b !important;
+}
+
+.bubble-pdf-snapshot .agent-bubble.assistant.latex-doc .latex-doc-title,
+.bubble-pdf-snapshot .agent-bubble.assistant.latex-doc .latex-doc-h1,
+.bubble-pdf-snapshot .agent-bubble.assistant.latex-doc .md-h1,
+.bubble-pdf-snapshot .agent-bubble.assistant.latex-doc .md-h2,
+.bubble-pdf-snapshot .agent-bubble.assistant.latex-doc .md-h3 {
+  color: #10283d !important;
+  -webkit-text-fill-color: #10283d !important;
+}
+
+.bubble-pdf-snapshot .agent-bubble.assistant.latex-doc a {
+  color: #225b8e !important;
+  -webkit-text-fill-color: #225b8e !important;
+}
+
+.bubble-pdf-snapshot .agent-bubble.assistant.latex-doc .latex-doc-mode {
+  color: #2b547b !important;
+  -webkit-text-fill-color: #2b547b !important;
+}
+`;
+
+  return {
+    html: `<div class="bubble-pdf-snapshot">
+      <div class="bubble-pdf-running-brand">fiancieramente</div>
+      <header class="bubble-pdf-running-header">
+        <div class="bubble-pdf-running-header-copy">
+          <p class="bubble-pdf-running-kicker">${escapeHtml(kickerText)}</p>
+          <h1 class="bubble-pdf-running-title">${escapeHtml(titleText)}</h1>
+          <p class="bubble-pdf-running-subtitle">${escapeHtml(subtitleText)}</p>
+        </div>
+        <div class="bubble-pdf-running-badge">${escapeHtml(badgeText)}</div>
+      </header>
+      ${clonedBubble.outerHTML}
+    </div>`,
+    css: `${collectBubbleSnapshotCss(bubbleEl)}\n${exportCss}`,
+  };
 }
 
 function isExternalCitation(citation: Extract<ChatItem, { type: 'citation' }>['citation']) {
@@ -43,6 +401,9 @@ function isExternalCitation(citation: Extract<ChatItem, { type: 'citation' }>['c
 export const ChatThreadView = memo(function ChatThreadView(props: {
   items: ChatItem[];
   loading: boolean;
+  diagnosisUnlocked: boolean;
+  isMobileViewport?: boolean;
+  sessionUserName?: string;
   activeThreadId?: string;
   activeThreadLabel?: string;
   expandedCitationsByMessage: Record<number, boolean>;
@@ -58,7 +419,13 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
   classifyReportGroup: (title: string, source?: string) => SavedReport['group'];
   setSavedReports: React.Dispatch<React.SetStateAction<SavedReport[]>>;
   launchDocToLibraryAnimation: (title: string, sourceRect: DOMRect, previewUrl: string, reportId: string) => void;
+  onPanelAction: (action: NonNullable<Extract<ChatItem, { type: 'message'; role: 'assistant' }>['panel_action']>) => void;
 }) {
+  const [savingBubblePdf, setSavingBubblePdf] = useState<Record<number, boolean>>({});
+  const EMPTY_THREAD_FALLBACK =
+    'Estoy listo para iniciar tu diagnóstico financiero. Cuéntame tu objetivo principal y partimos con el primer paso accionable.';
+  const userTag = String(props.sessionUserName ?? 'USER').trim().split(' ')[0] || 'USER';
+
   function renderChatItem(
     it: ChatItem,
     i: number,
@@ -105,14 +472,20 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
                   'Lectura filosófica, responsabilidad social y prudencia normativa aplicada.',
               }
             : {
-                kicker: isFirstAssistantCard ? 'Punto de partida' : 'Diagnóstico',
-                title: isFirstAssistantCard ? 'Lectura inicial del caso' : 'Informe diagnóstico financiero',
+                kicker: props.diagnosisUnlocked ? 'Chat general' : isFirstAssistantCard ? 'Punto de partida' : 'Diagnóstico',
+                title: props.diagnosisUnlocked
+                  ? 'Chat general'
+                  : isFirstAssistantCard
+                  ? 'Lectura inicial del caso'
+                  : 'Informe diagnóstico financiero',
                 subtitle:
                   'Síntesis profesional del contexto, evidencia disponible y próximos pasos.',
               };
         const isScrollable = shouldEnableBubbleScroll(it.content ?? '');
         const blocks = Array.isArray(it.agent_blocks) ? it.agent_blocks : [];
-        const questionnaireBlocks = blocks.filter((b) => b.type === 'questionnaire');
+        const questionnaireBlocks = props.diagnosisUnlocked
+          ? blocks.filter((b) => b.type === 'questionnaire')
+          : [];
         const technicalBlocks = blocks.filter((b) => b.type !== 'questionnaire');
         return (
           <div
@@ -121,15 +494,71 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
           >
             <div className="latex-doc-head">
               <div className="latex-doc-heading">
-                {isFirstAssistantCard ? (
-                  <span className="latex-doc-kicker">{docMeta.kicker}</span>
-                ) : null}
+                <span className="latex-doc-kicker">{docMeta.kicker}</span>
                 <span className="latex-doc-title">{docMeta.title}</span>
                 <span className="latex-doc-subtitle">{docMeta.subtitle}</span>
               </div>
-              <span className="latex-doc-mode">
-                {(it.mode ?? 'analysis').toString().replaceAll('_', ' ')}
-              </span>
+              <div className="latex-doc-head-actions">
+                <span className="latex-doc-mode" style={DOC_MODE_PILL_STYLE}>
+                  {(it.mode ?? 'analysis').toString().replaceAll('_', ' ')}
+                </span>
+                <button
+                  type="button"
+                  className="latex-doc-save-btn"
+                  disabled={Boolean(savingBubblePdf[i])}
+                  onClick={(e) => {
+                    const btn = e.currentTarget as HTMLButtonElement;
+                    const bubbleEl = btn.closest('.agent-bubble.assistant.latex-doc') as HTMLElement | null;
+                    setSavingBubblePdf((prev) => ({ ...prev, [i]: true }));
+                    void (async () => {
+                      try {
+                        if (!bubbleEl) throw new Error('Bubble not found');
+                        const snapshot = buildBubbleSnapshotHtmlAndCss(bubbleEl);
+                        const result = await saveBubbleSnapshotPdfArtifact({
+                          title: docMeta.title,
+                          subtitle: docMeta.subtitle,
+                          html: snapshot.html,
+                          css: snapshot.css,
+                        });
+                        const artifact = result.artifact;
+                        const reportId = `${artifact.id}-${Date.now()}`;
+                        const report: SavedReport = {
+                          id: reportId,
+                          title: artifact.title,
+                          group: props.classifyReportGroup(artifact.title, artifact.source),
+                          fileUrl: artifact.fileUrl ?? '',
+                          createdAt: artifact.createdAt,
+                        };
+                        props.setSavedReports((prev) =>
+                          [report, ...prev.filter((r) => r.fileUrl !== report.fileUrl)]
+                        );
+                        const sourceRect = btn.getBoundingClientRect();
+                        props.launchDocToLibraryAnimation(
+                          artifact.title,
+                          sourceRect,
+                          artifact.previewImageUrl ?? artifact.fileUrl ?? '',
+                          reportId
+                        );
+                      } catch {
+                        props.setItemsForActive((prev) => [
+                          ...prev,
+                          {
+                            type: 'message',
+                            role: 'assistant',
+                            content:
+                              'No pude guardar el PDF de esta burbuja en biblioteca. Reintenta en unos segundos.',
+                            mode: 'information',
+                          } as ChatItem,
+                        ]);
+                      } finally {
+                        setSavingBubblePdf((prev) => ({ ...prev, [i]: false }));
+                      }
+                    })();
+                  }}
+                >
+                  {savingBubblePdf[i] ? 'Guardando…' : 'Guardar PDF'}
+                </button>
+              </div>
             </div>
             <div className={`latex-doc-body ${isScrollable ? 'is-scrollable-content' : ''}`}>
               {renderLatexDocMessage(sanitizeMessageText(it.content ?? ''))}
@@ -178,6 +607,12 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
                     <button
                       type="button"
                       className="citation-toggle"
+                      style={{
+                        color: '#ffffff',
+                        WebkitTextFillColor: '#ffffff',
+                        opacity: 1,
+                        filter: 'none',
+                      }}
                       onClick={() =>
                         props.setExpandedCitationsByMessage((prev) => ({
                           ...prev,
@@ -185,28 +620,69 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
                         }))
                       }
                     >
-                      {expanded ? 'Ver menos' : `Ver todas${remaining > 0 ? ` (+${remaining})` : ''}`}
+                      <span
+                        className="citation-toggle-label"
+                        style={{
+                          color: '#ffffff',
+                          WebkitTextFillColor: '#ffffff',
+                          opacity: 1,
+                          filter: 'none',
+                        }}
+                      >
+                        {expanded ? 'Ver menos' : `Ver todas${remaining > 0 ? ` (+${remaining})` : ''}`}
+                      </span>
                     </button>
                   )}
                 </div>
                 );
               })()}
-              <div className="latex-doc-watermark" aria-hidden>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/fm-logo-watermark.jpg" alt="" className="latex-doc-watermark-logo" />
-                <pre className="latex-doc-watermark-ascii">{HOME_ASCII_MASCOT}</pre>
-              </div>
+              {it.panel_action?.section &&
+              !(
+                props.diagnosisUnlocked &&
+                props.activeThreadId === 'chat-1' &&
+                (it.panel_action.section === 'transactions' || it.panel_action.section === 'products_transactions')
+              ) && (
+                <div className="agent-inline-panel-action">
+                  <button
+                    type="button"
+                    className="agent-inline-panel-button"
+                    onClick={() => props.onPanelAction(it.panel_action!)}
+                  >
+                    {it.panel_action.section === 'transactions' || it.panel_action.section === 'products_transactions'
+                      ? 'Abrir productos y transacciones'
+                      : it.panel_action.section === 'budget'
+                      ? 'Abrir presupuesto'
+                      : it.panel_action.section === 'interview'
+                      ? 'Abrir entrevista'
+                      : 'Abrir panel'}
+                  </button>
+                  {it.panel_action.message ? (
+                    <span className="agent-inline-panel-note">{it.panel_action.message}</span>
+                  ) : null}
+                </div>
+              )}
             </div>
           </div>
         );
       }
       const isScrollable = shouldEnableBubbleScroll(it.content);
+      const textContent = sanitizeMessageText(it.content ?? '');
+      const assistantLooksMarkdown =
+        /(\*\*|`|^#{1,6}\s|^\s*[-*+]\s+|^\s*\d+\.\s+|\$\$[\s\S]+?\$\$|\$[^$\n]+\$)/m.test(textContent);
       return (
         <div
           key={i}
           className={`agent-bubble ${it.role} ${isScrollable ? 'is-scrollable-bubble' : ''}`}
         >
-          <div className="agent-bubble-text">{sanitizeMessageText(it.content ?? '')}</div>
+          {it.role === 'user' ? (
+            <div className="agent-msg-tag">
+              <span className="agent-msg-tag-prefix">$ whoami</span>
+              <span className="agent-msg-tag-value">{userTag}</span>
+            </div>
+          ) : null}
+          <div className="agent-bubble-text">
+            {assistantLooksMarkdown ? renderLatexDocMessage(textContent) : textContent}
+          </div>
         </div>
       );
     }
@@ -231,6 +707,7 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
                   title: artifact.title,
                   group: props.classifyReportGroup(artifact.title, artifact.source),
                   fileUrl: storedUrl,
+                  previewImageUrl: artifact.previewImageUrl || undefined,
                   createdAt: new Date().toISOString(),
                 };
                 props.setSavedReports((prev) => [report, ...prev.filter((r) => r.fileUrl !== storedUrl)]);
@@ -281,48 +758,37 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
     rendered.push(renderChatItem(it, idx));
   }
 
-  const firstAssistant = props.items.find(
-    (it) => it.type === 'message' && it.role === 'assistant'
-  ) as Extract<(typeof props.items)[number], { type: 'message'; role: 'assistant' }> | undefined;
-  const userMessagesCount = props.items.filter((it) => it.type === 'message' && it.role === 'user').length;
-  const assistantMessagesCount = props.items.filter((it) => it.type === 'message' && it.role === 'assistant').length;
-  const shouldShowOnlyInitialSuggestions = userMessagesCount === 0 && assistantMessagesCount === 1;
-  const replies = [
-    ...(firstAssistant?.suggested_replies ?? []),
-    ...buildInitialAgentSuggestions(props.sessionInjectedIntake),
-  ];
-  const uniqueReplies = Array.from(new Set(replies)).slice(0, 12);
-  const showSuggestions = !props.loading && shouldShowOnlyInitialSuggestions && uniqueReplies.length >= 8;
+  // UX decision: hide suggested-reply chips from thread top area to keep the
+  // opening flow focused and avoid visual noise before/after first turns.
 
   return (
     <div className="agent-chat-body">
       <div ref={props.chatThreadRef} className="agent-thread">
-        {rendered}
-
-        {showSuggestions && (
-          <div className="suggested-replies">
-            {uniqueReplies.map((reply, i) => (
-              <button
-                key={`${reply}-${i}`}
-                type="button"
-                className="suggestion-chip"
-                onClick={() => {
-                  props.setDraftForActive(reply);
-                  setTimeout(() => props.onSend(), 80);
-                }}
-              >
-                {reply}
-              </button>
-            ))}
+        {rendered.length === 0 && !props.loading && (
+          <div className="agent-bubble assistant latex-doc is-intro-doc">
+            <div className="latex-doc-head">
+              <div className="latex-doc-heading">
+                <span className="latex-doc-kicker">Punto de partida</span>
+                <span className="latex-doc-title">Inicio de conversación</span>
+                <span className="latex-doc-subtitle">Contexto base y siguiente acción</span>
+              </div>
+              <span className="latex-doc-mode" style={DOC_MODE_PILL_STYLE}>information</span>
+            </div>
+            <div className="latex-doc-body">
+              {renderLatexDocMessage(EMPTY_THREAD_FALLBACK)}
+            </div>
           </div>
         )}
+        {rendered}
 
         {props.loading && (
-          <div className="agent-bubble assistant thinking-bubble" aria-live="polite" aria-label="El agente está escribiendo">
-            <div className="typing-indicator" aria-hidden="true">
-              <span className="thinking-dot" />
-              <span className="thinking-dot" />
-              <span className="thinking-dot" />
+          <div className="agent-loading-pro" role="status" aria-live="polite">
+            <div className="agent-loading-pro-head">
+              <span className="agent-loading-pro-badge">Agente core</span>
+              <span className="agent-loading-pro-label">Analizando contexto y generando respuesta</span>
+            </div>
+            <div className="agent-loading-pro-track" aria-hidden="true">
+              <span className="agent-loading-pro-fill" />
             </div>
           </div>
         )}
