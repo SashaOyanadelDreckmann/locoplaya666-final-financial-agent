@@ -17,7 +17,6 @@ apps/api/data
 escritotesis
 texput.log
 *.log
-apps/api
 apps/web/.next
 apps/web/coverage
 apps/web/__tests__
