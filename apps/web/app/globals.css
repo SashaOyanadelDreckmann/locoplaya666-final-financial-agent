@@ -1335,10 +1335,10 @@ body.home-lock {
 }
 
 @keyframes homeTagCycle {
-  0%, 25% { background: rgba(44, 111, 172, 0.86); color: #fff; }
-  25.01%, 50% { background: rgba(89, 176, 196, 0.86); color: #fff; }
-  50.01%, 75% { background: rgba(201, 168, 64, 0.88); color: #111; }
-  75.01%, 100% { background: rgba(139, 26, 43, 0.86); color: #fff; }
+  0%, 25% { background: rgba(92, 114, 132, 0.9); color: #f2f5f8; }
+  25.01%, 50% { background: rgba(106, 127, 138, 0.9); color: #f2f5f8; }
+  50.01%, 75% { background: rgba(138, 124, 86, 0.9); color: #151515; }
+  75.01%, 100% { background: rgba(114, 71, 79, 0.9); color: #f2f5f8; }
 }
 
 @keyframes homeTitlePulse {
