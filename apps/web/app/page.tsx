@@ -1,84 +1,76 @@
 'use client';
 
 import Link from 'next/link';
-
-const metrics = [
-  { value: '10k+', label: 'simulaciones guiadas' },
-  { value: '92%', label: 'usuarios con más claridad' },
-  { value: '<3 min', label: 'tiempo para primer diagnóstico' },
-];
-
-const useCases = [
-  'Ordenar deudas y flujo mensual',
-  'Preparar una compra importante',
-  'Evaluar escenarios antes de decidir',
-];
+import { useRef, useState } from 'react';
+import { TypewriterText } from '@/components/ui/TypewriterText';
+import { HOME_ASCII_MASCOT } from './brand';
 
 export default function HomePage() {
+  const shellRef = useRef<HTMLElement | null>(null);
+  const [mouse, setMouse] = useState({ x: 0, y: 0 });
+
+  function handleMouseMove(event: React.MouseEvent<HTMLElement>) {
+    if (!shellRef.current) return;
+
+    const rect = shellRef.current.getBoundingClientRect();
+    setMouse({
+      x: (event.clientX - rect.left - rect.width / 2) / rect.width,
+      y: (event.clientY - rect.top - rect.height / 2) / rect.height,
+    });
+  }
+
   return (
-    <main className="home-premium">
-      <section className="home-hero2">
-        <div className="hero-overlay" />
-        <header className="hero-nav">
-          <div className="hero-brand">FinancieraMente</div>
-          <nav className="hero-links">
-            <a href="#casos">Casos</a>
-            <a href="#como">Cómo funciona</a>
-            <a href="#pricing">Pricing</a>
-          </nav>
-          <Link href="/login" className="hero-login">Entrar</Link>
-        </header>
+    <main
+      ref={shellRef}
+      className="home-essence"
+      onMouseMove={handleMouseMove}
+      style={{
+        '--mx': mouse.x,
+        '--my': mouse.y,
+      } as React.CSSProperties}
+    >
+      <div className="home-essence__scene" aria-hidden>
+        <div className="home-essence__portal" />
+        <div className="home-essence__line" />
+        <div className="home-essence__depth home-essence__depth--one" />
+        <div className="home-essence__depth home-essence__depth--two" />
+        <div className="home-essence__depth home-essence__depth--three" />
+      </div>
 
-        <div className="hero-grid">
-          <div className="hero-copy">
-            <p className="hero-kicker">Asesoría financiera personal con IA</p>
-            <h1>Claridad para decidir sin ruido.</h1>
-            <p className="hero-sub">Diagnóstico conversacional, simulaciones y plan accionable en una experiencia premium.</p>
-            <div className="hero-actions">
-              <Link href="/register" className="hero-cta-main">Comenzar ahora</Link>
-              <a href="#como" className="hero-cta-ghost2">Ver recorrido</a>
-            </div>
-          </div>
-          <div className="hero-card">
-            <p className="hero-card-title">Vista rápida</p>
-            <ul>
-              <li>Mapa financiero en tiempo real</li>
-              <li>Recomendaciones explicables</li>
-              <li>Sin venta de productos</li>
-            </ul>
-          </div>
+      <section className="home-essence__content">
+        <div className="home-essence__brand-lockup">
+          <span className="home-essence__logo-mark" aria-hidden>Fm</span>
+          <h1 className="home-essence__title">Financiera<br /><span>mente</span></h1>
         </div>
-      </section>
 
-      <section className="metrics" aria-label="Métricas clave">
-        {metrics.map((m) => (
-          <article key={m.label} className="metric">
-            <strong>{m.value}</strong>
-            <span>{m.label}</span>
-          </article>
-        ))}
-      </section>
+        <p className="home-essence__eyebrow">Proyecto de tesis · Sasha Oyanadel Dreckmann</p>
 
-      <section id="casos" className="premium-section">
-        <h2>Diseñado para momentos financieros reales</h2>
-        <div className="pill-grid">
-          {useCases.map((item) => <p key={item} className="pill">{item}</p>)}
+        <div className="home-essence__tags">
+          <span>Agente en finanzas personales</span>
+          <span>Ley Fintec</span>
+          <span>Finanzas Abiertas</span>
         </div>
-      </section>
 
-      <section id="como" className="premium-section steps">
-        <h2>Cómo funciona</h2>
-        <div className="steps-grid">
-          <article><span>01</span><p>Conversa y captura tu contexto.</p></article>
-          <article><span>02</span><p>Modela escenarios comparables.</p></article>
-          <article><span>03</span><p>Ejecuta un plan priorizado.</p></article>
+        <p className="home-essence__tagline">Claridad financiera, antes de decidir.</p>
+
+        <p className="home-essence__body">
+          Un agente conversacional para entender tu situación financiera con calma, contexto y sin juicios. No vende productos ni decide por ti.
+        </p>
+
+        <div className="home-essence__ctas">
+          <Link href="/register" className="home-essence__cta home-essence__cta--gold">Iniciar conversación</Link>
+          <Link href="/login" className="home-essence__cta home-essence__cta--ghost">Ya tengo cuenta</Link>
         </div>
+
+        <p className="home-essence__foot">Privado · Seguro · Sin consejos automáticos</p>
       </section>
 
-      <section id="pricing" className="premium-section cta-bottom">
-        <h2>Empieza hoy con una experiencia pro</h2>
-        <Link href="/register" className="hero-cta-main">Crear cuenta</Link>
-      </section>
+      <aside className="home-essence__art" aria-hidden>
+        <div className="home-essence__scan" />
+        <div className="machine-text home-essence__machine">
+          <TypewriterText text={HOME_ASCII_MASCOT} speed={2} colorizeSpecial />
+        </div>
+      </aside>
     </main>
   );
 }

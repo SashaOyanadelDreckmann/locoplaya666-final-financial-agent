@@ -1,7 +1,8 @@
 {
   "scripts": {
     "dev": "pnpm --parallel --filter @financial-agent/api --filter @financial-agent/web dev",
-    "qa:smoke": "pnpm --filter @financial-agent/api qa:smoke"
+    "qa:smoke": "pnpm --filter @financial-agent/api qa:smoke",
+    "sync:latest": "bash scripts/sync-latest.sh"
   },
   "dependencies": {
     "pino-pretty": "^13.1.3",

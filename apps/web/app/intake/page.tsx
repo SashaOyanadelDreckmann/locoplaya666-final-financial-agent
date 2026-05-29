@@ -2,6 +2,7 @@
 import './intake.css';
 
 import { useRouter } from 'next/navigation';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { useInterviewStore } from '@/state/interview.store';
 import { submitIntake } from '@/lib/intake';
@@ -143,18 +144,30 @@ export default function IntakePage() {
         data-step={stepMeta.key}
         aria-label={stepMeta.title}
       >
-        {step === 0 && <ContextStep form={form} update={update} onNext={nextStep} />}
-        {step === 1 && <CashflowStep form={form} update={update} onNext={nextStep} />}
-        {step === 2 && <SavingsStep form={form} update={update} onNext={nextStep} />}
-        {step === 3 && (
-          <KnowledgeStep
-            form={form}
-            update={update}
-            onSubmit={onSubmit}
-            loading={loading}
-            onBack={prevStep}
-          />
-        )}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={stepMeta.key}
+            className="intake-warp-stage"
+            initial={{ opacity: 0, rotateX: -5, skewY: -1.5, scaleY: 1.18, scaleX: 0.92, y: 54, filter: 'blur(10px)' }}
+            animate={{ opacity: 1, rotateX: 0, skewY: 0, scaleY: 1, scaleX: 1, y: 0, filter: 'blur(0px)' }}
+            exit={{ opacity: 0, rotateX: 5, skewY: 1.2, scaleY: 0.92, scaleX: 1.05, y: -34, filter: 'blur(10px)' }}
+            transition={{ duration: 0.42, ease: [0.59, 0, 0.35, 1] }}
+            style={{ transformPerspective: 1000, transformOrigin: '50% 0%' }}
+          >
+            {step === 0 && <ContextStep form={form} update={update} onNext={nextStep} />}
+            {step === 1 && <CashflowStep form={form} update={update} onNext={nextStep} />}
+            {step === 2 && <SavingsStep form={form} update={update} onNext={nextStep} />}
+            {step === 3 && (
+              <KnowledgeStep
+                form={form}
+                update={update}
+                onSubmit={onSubmit}
+                loading={loading}
+                onBack={prevStep}
+              />
+            )}
+          </motion.div>
+        </AnimatePresence>
       </main>
 
       {error && (
