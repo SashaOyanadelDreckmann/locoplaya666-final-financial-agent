@@ -1359,7 +1359,7 @@ button {
 
 @media (max-width: 560px) {
   .home-essence {
-    padding: 76px 18px 24px;
+    padding: 74px 16px 22px;
   }
 
   .home-essence__brand-lockup {
@@ -1371,81 +1371,81 @@ button {
   }
 
   .home-essence__logo-mark {
-    width: 86px;
-    height: 86px;
-    font-size: 54px;
+    width: 72px;
+    height: 72px;
+    font-size: 42px;
   }
 
   .home-essence__title {
     width: 100%;
     text-align: center;
-    font-size: 52px;
-    line-height: 0.8;
+    font-size: 44px;
+    line-height: 0.78;
   }
 
   .home-essence__eyebrow {
-    width: min(100%, 480px);
-    font-size: 11px;
-    line-height: 1.25;
+    width: min(100%, 332px);
+    font-size: 9px;
+    line-height: 1.2;
     letter-spacing: 0.14em;
     justify-content: center;
-    margin-top: 2px;
+    margin-top: 4px;
   }
 
   .home-essence__tags {
-    gap: 10px;
-    margin: 12px auto 18px;
-    width: min(100%, 480px);
+    gap: 7px;
+    margin: 10px auto 14px;
+    width: min(100%, 332px);
   }
 
   .home-essence__tags span {
-    min-width: 112px;
+    min-width: 92px;
     flex: 1 1 30%;
-    padding: 12px 8px;
-    font-size: 13px;
-    line-height: 1.1;
+    padding: 9px 6px;
+    font-size: 10px;
+    line-height: 1.05;
   }
 
   .home-essence__tagline {
-    font-size: 21px;
-    line-height: 1.16;
-    margin: 4px 0 10px;
+    font-size: 16px;
+    line-height: 1.14;
+    margin: 4px 0 8px;
   }
 
   .home-essence__body {
-    font-size: 14px;
-    line-height: 1.52;
-    max-width: 355px;
-    margin-bottom: 18px;
+    font-size: 11px;
+    line-height: 1.4;
+    max-width: 318px;
+    margin-bottom: 86px;
   }
 
   .home-essence__ctas {
-    width: min(100%, 480px);
+    width: min(100%, 332px);
     grid-template-columns: 1fr;
     gap: 10px;
   }
 
   .home-essence__cta {
-    min-height: 56px;
-    border-radius: 20px;
-    font-size: 14px;
+    min-height: 48px;
+    border-radius: 16px;
+    font-size: 12px;
     font-weight: 700;
   }
 
   .home-essence__foot {
-    font-size: 11px;
+    font-size: 10px;
     line-height: 1.4;
-    margin-top: 2px;
+    margin-top: 4px;
   }
 
   .home-essence__art {
     z-index: 3;
-    right: -8px;
-    bottom: 62px;
-    width: 232px;
-    max-height: 312px;
-    opacity: 0.52;
-    filter: drop-shadow(0 14px 24px rgba(0,0,0,0.22));
+    right: -2px;
+    bottom: 128px;
+    width: 142px;
+    max-height: 194px;
+    opacity: 0.42;
+    filter: drop-shadow(0 10px 18px rgba(0,0,0,0.18));
     mask-image: linear-gradient(to bottom, transparent 0%, black 9%, black 92%, transparent 100%);
     -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 9%, black 92%, transparent 100%);
   }
@@ -1501,8 +1501,8 @@ button {
   --auth-c3: 201, 168, 64;
   --auth-c4: 139, 26, 43;
   width: 100%;
-  max-width: 430px;
-  background: linear-gradient(180deg, rgba(16, 23, 35, 0.52), rgba(10, 15, 24, 0.44));
+  max-width: 408px;
+  background: linear-gradient(180deg, rgba(16, 23, 35, 0.42), rgba(10, 15, 24, 0.34));
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 26px;
   padding: 40px 34px;
@@ -1547,7 +1547,7 @@ button {
 }
 
 .auth-logo-mark {
-  font-size: 40px;
+  font-size: 34px;
   line-height: 1;
   letter-spacing: -0.04em;
   font-weight: 700;
@@ -1598,14 +1598,14 @@ button {
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.03em;
-  color: rgba(236, 240, 246, 0.68);
+  color: rgba(236, 240, 246, 0.76);
 }
 
 .auth-input {
   height: 50px;
   padding: 0 16px;
   background: rgba(13, 20, 32, 0.8);
-  border: 1px solid rgba(180, 194, 216, 0.24);
+  border: 1px solid rgba(var(--auth-blue), 0.72);
   border-radius: 14px;
   color: #ffffff;
   font-size: 15px;
@@ -1688,7 +1688,7 @@ button {
 
 .auth-footer-link {
   font-size: 13px;
-  color: rgba(var(--auth-blue), 0.95);
+  color: rgba(238, 242, 248, 0.88);
   text-decoration: none;
   font-weight: 600;
   transition: color 0.15s ease;
@@ -1745,19 +1745,79 @@ button {
 
 /* Mobile */
 @media (max-width: 480px) {
+  .auth-shell {
+    padding: 12px;
+  }
+
   .auth-card {
-    border-radius: 20px;
-    padding: 32px 24px;
+    max-width: 330px;
+    border-radius: 18px;
+    padding: 22px 18px;
+    background: linear-gradient(180deg, rgba(16, 23, 35, 0.30), rgba(10, 15, 24, 0.24));
+  }
+
+  .auth-card::before {
+    opacity: 0.44;
+  }
+
+  .auth-card::after {
+    opacity: 0.42;
+  }
+
+  .auth-logo-mark {
+    font-size: 26px;
+    margin-bottom: 8px;
+  }
+
+  .auth-eyebrow {
+    font-size: 9px;
+    margin-bottom: 10px;
   }
 
   .auth-title {
-    font-size: 24px;
+    font-size: 21px;
+    margin-bottom: 6px;
+  }
+
+  .auth-subtitle {
+    font-size: 12px;
+    margin-bottom: 16px;
+  }
+
+  .auth-fields {
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .auth-label {
+    font-size: 11px;
+  }
+
+  .auth-input {
+    height: 40px;
+    border-radius: 11px;
+    font-size: 14px;
+    padding: 0 12px;
   }
 
   .auth-submit {
-    height: 56px;
-    font-size: 16px;
-    border-radius: 16px;
+    height: 42px;
+    font-size: 14px;
+    border-radius: 12px;
+    margin-bottom: 14px;
+  }
+
+  .auth-footer {
+    margin-bottom: 10px;
+  }
+
+  .auth-footer-text,
+  .auth-footer-link {
+    font-size: 12px;
+  }
+
+  .auth-fine-print {
+    font-size: 10px;
   }
 }
 
