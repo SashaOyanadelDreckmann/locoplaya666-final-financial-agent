@@ -10,15 +10,8 @@ export default function HomePage() {
   return (
     <main style={{ position: 'relative', minHeight: '100dvh', overflow: 'hidden', background: '#060810', color: 'white', display: 'flex', flexDirection: 'column' }}>
 
-      {/* Foto de fondo — saturada, mate, vibrante */}
-      <div style={{
-        position: 'absolute', inset: 0, zIndex: 0,
-        backgroundImage: "url('/fondo4.jpg')",
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
-        filter: 'saturate(1.7) contrast(0.82) brightness(0.75)',
-      }} />
+      {/* Foto de fondo — saturada, mate, vibrante; en desktop rotada horizontal */}
+      <div className="home-fondo-bg" />
 
       {/* Overlay color — refuerza el tono mate sin oscurecer demasiado */}
       <div style={{ position: 'absolute', inset: 0, zIndex: 1, background: 'rgba(8,12,22,0.28)', pointerEvents: 'none' }} />

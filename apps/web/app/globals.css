@@ -896,6 +896,29 @@ button {
   display: none;
 }
 
+.home-fondo-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-image: url('/fondo4.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  filter: saturate(1.7) contrast(0.82) brightness(0.75);
+}
+
+@media (min-width: 768px) {
+  .home-fondo-bg {
+    /* Rotate the portrait photo to landscape on desktop */
+    top: 50%;
+    left: 50%;
+    width: 100vh;
+    height: 100vw;
+    transform: translateX(-50%) translateY(-50%) rotate(90deg);
+    inset: unset;
+  }
+}
+
 .home-page-header {
   display: flex;
   align-items: center;
