@@ -1,4 +1,9 @@
 /* ================================================= */
+/* TAILWIND v4 — utilities layer (hidden, flex, etc) */
+/* ================================================= */
+@import "tailwindcss";
+
+/* ================================================= */
 /* PREMIUM ANIMATIONS FIRST                          */
 /* ================================================= */
 @import './animations.css';
@@ -881,6 +886,63 @@ button {
   align-items: center;
   justify-content: center;
   padding: 40px 32px;
+}
+
+/* ================================================= */
+/* HOME — editorial hero (nueva versión)             */
+/* ================================================= */
+
+.home-page-nav {
+  display: none;
+}
+
+.home-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 28px 24px 0;
+}
+
+.home-page-hero {
+  padding: 0 24px 36px;
+}
+
+.home-page-caption {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 24px 20px;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: rgba(255, 255, 255, 0.22);
+  text-transform: uppercase;
+}
+
+@media (min-width: 768px) {
+  .home-page-nav {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    font-size: 13px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.55);
+    letter-spacing: 0.04em;
+  }
+  .home-page-nav span {
+    cursor: pointer;
+    transition: color 0.2s ease;
+  }
+  .home-page-nav span:hover {
+    color: rgba(255, 255, 255, 0.90);
+  }
+  .home-page-header {
+    padding: 36px 56px 0;
+  }
+  .home-page-hero {
+    padding: 0 56px 64px;
+  }
+  .home-page-caption {
+    padding: 0 56px 28px;
+  }
 }
 
 /* ================================================= */
