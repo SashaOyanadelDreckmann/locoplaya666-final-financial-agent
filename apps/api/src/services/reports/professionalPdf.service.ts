@@ -69,7 +69,11 @@ async function composeHtmlWithAnthropic(
   const prompt = [
     'Devuelve SOLO HTML válido (sin markdown, sin ```), listo para imprimir en PDF.',
     'Usa estructura profesional: portada breve, resumen ejecutivo, secciones, hallazgos accionables, siguiente plan de acción.',
+    'Diseño editorial moderno premium (inspiración NYT + Apple), limpio, sobrio y minimalista.',
+    'Integra gráficos/tablas en el flujo del texto cuando aporten claridad.',
+    'Evita bloques que queden cortados entre páginas; agrupa contenido por secciones.',
     'Incluye SOLO contenido relevante de la conversación y contexto entregado.',
+    'Incorpora explícitamente el contexto de intake cuando esté disponible.',
     'No inventes datos numéricos no respaldados por contexto.',
     'Mantén tono senior, sobrio y ejecutivo.',
     '',
@@ -88,6 +92,7 @@ async function composeHtmlWithAnthropic(
   const raw = await completeWithClaude(prompt, {
     systemPrompt:
       'Eres un redactor financiero senior especializado en informes ejecutivos de alta calidad visual.',
+    model: process.env.ANTHROPIC_MODEL_HAIKU ?? 'claude-3-5-haiku-latest',
     temperature: 0.35,
   });
 
@@ -134,7 +139,10 @@ function wrapStyledHtml(bodyHtml: string) {
     @page{size:A4;margin:0;background:var(--bg)}
     html,body{margin:0;padding:0;background:var(--bg)!important;color:var(--text);font-family:"Times New Roman", Times, serif;line-height:1.55}
     body{min-height:100vh}
-    .page{padding:18mm 14mm 16mm 14mm;background:var(--bg);min-height:calc(297mm - 34mm)}
+    main{display:block;width:100%;box-sizing:border-box;padding:10mm 10mm 12mm 10mm;background:var(--bg);min-height:297mm}
+    section,table,blockquote,.kpi,.card,figure{break-inside:avoid;page-break-inside:avoid}
+    h2,h3{break-after:avoid-page;page-break-after:avoid}
+    p,li{orphans:3;widows:3}
     h1{font-size:30px;line-height:1.2;margin:0 0 8px;color:var(--text)}
     .subtitle{margin:0 0 18px;color:var(--muted);font-size:14px}
     h2{font-size:20px;margin:22px 0 8px;color:var(--secondary);border-bottom:1px solid var(--rule);padding-bottom:6px}
@@ -151,7 +159,7 @@ function wrapStyledHtml(bodyHtml: string) {
   </style>
 </head>
 <body>
-  <div class="page">${bodyHtml}</div>
+  ${bodyHtml}
 </body>
 </html>`;
 }
