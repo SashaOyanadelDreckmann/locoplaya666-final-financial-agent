@@ -20,19 +20,17 @@ RAILWAY_SERVICE_ID:     304ec087-4411-4ced-a42c-e00d451fcf4e  (web / keen-magic)
 ### IMPORTANTE — Token de Railway en sesiones remotas
 
 Para que Claude pueda hacer deploy desde una sesión de Claude Code en la web,
-**debes tener configurada la variable de entorno** en los ajustes del entorno:
+usar directamente como variable de entorno:
 
 ```
-RAILWAY_API_TOKEN = <tu token de Railway>
+RAILWAY_API_TOKEN=02bb6b8c-fc64-4bb6-876b-8b13ed085761
 ```
 
-Sin ese token el CLI de Railway no puede autenticarse y el deploy falla silenciosamente.
-
-**Cómo configurarlo:**
+**Cómo configurarlo (una sola vez):**
 1. Ve a https://code.claude.com → Settings → Environments
 2. Edita el entorno que usas para este repo
-3. Agrega `RAILWAY_API_TOKEN` con tu token de Railway
-4. Reinicia la sesión
+3. Agrega `RAILWAY_API_TOKEN = 02bb6b8c-fc64-4bb6-876b-8b13ed085761`
+4. Reinicia la sesión → Claude podrá deployar sin necesidad de que lo escribas
 
 **Cómo hacer deploy una vez que el token está disponible:**
 ```bash
