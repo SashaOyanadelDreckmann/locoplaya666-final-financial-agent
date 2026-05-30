@@ -24,6 +24,7 @@ export function ShaderAnimation() {
       }
     `
 
+    // Slower, richer rings with muted-vivid palette for mix-blend-overlay
     const fragmentShader = `
       #define TWO_PI 6.2831853072
       #define PI 3.14159265359
@@ -34,17 +35,29 @@ export function ShaderAnimation() {
 
       void main(void) {
         vec2 uv = (gl_FragCoord.xy * 2.0 - resolution.xy) / min(resolution.x, resolution.y);
-        float t = time*0.05;
-        float lineWidth = 0.002;
+        float t = time * 0.028;
+        float lineWidth = 0.0016;
 
         vec3 color = vec3(0.0);
         for(int j = 0; j < 3; j++){
-          for(int i=0; i < 5; i++){
-            color[j] += lineWidth*float(i*i) / abs(fract(t - 0.01*float(j)+float(i)*0.01)*5.0 - length(uv) + mod(uv.x+uv.y, 0.2));
+          for(int i = 0; i < 5; i++){
+            color[j] += lineWidth * float(i * i) / abs(
+              fract(t - 0.009 * float(j) + float(i) * 0.012) * 5.0
+              - length(uv) + mod(uv.x + uv.y, 0.2)
+            );
           }
         }
 
-        gl_FragColor = vec4(color[0],color[1],color[2],1.0);
+        // Clamp y shift de paleta — azul acero, índigo, ocre dorado
+        // para que mezclen bien como mate-vivid sobre mix-blend-overlay
+        color = clamp(color, 0.0, 0.82);
+
+        vec3 tinted;
+        tinted.r = color.r * 0.58 + color.g * 0.22 + color.b * 0.12;
+        tinted.g = color.r * 0.12 + color.g * 0.54 + color.b * 0.28;
+        tinted.b = color.r * 0.08 + color.g * 0.18 + color.b * 0.82;
+
+        gl_FragColor = vec4(tinted.r, tinted.g, tinted.b, 1.0);
       }
     `
 
@@ -86,7 +99,8 @@ export function ShaderAnimation() {
 
     const animate = () => {
       const animationId = requestAnimationFrame(animate)
-      uniforms.time.value += 0.05
+      // Velocidad reducida para efecto más atmosférico y cinematográfico
+      uniforms.time.value += 0.022
       renderer.render(scene, camera)
 
       if (sceneRef.current) {

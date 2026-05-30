@@ -8,51 +8,114 @@ export default function HomePage() {
   const router = useRouter();
 
   return (
-    <main className="relative min-h-dvh overflow-hidden text-white">
-      <div className="absolute inset-0 -z-30 bg-[url('/fondo4.jpg')] bg-cover bg-center bg-no-repeat" />
-      <div className="absolute inset-0 -z-20 bg-black/45" />
-      <div className="absolute inset-0 -z-10 opacity-40 mix-blend-screen">
+    <main className="relative min-h-dvh overflow-hidden bg-[#060810] text-white">
+      {/* Foto de fondo */}
+      <div className="absolute inset-0 z-0 bg-[url('/fondo4.jpg')] bg-cover bg-center bg-no-repeat" />
+
+      {/* Overlay oscuro base */}
+      <div className="absolute inset-0 z-[1] bg-black/30 pointer-events-none" />
+
+      {/* Shader ENCIMA de la foto — vivid pero mate con overlay blend */}
+      <div className="absolute inset-0 z-[2] opacity-[0.30] mix-blend-overlay pointer-events-none">
         <ShaderAnimation />
       </div>
-      <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_20%_15%,rgba(255,255,255,0.24),transparent_38%),radial-gradient(circle_at_78%_30%,rgba(122,154,186,0.26),transparent_44%),linear-gradient(to_bottom,rgba(0,0,0,0.05),rgba(0,0,0,0.58))]" />
 
-      <div className="mx-auto flex min-h-dvh w-full max-w-6xl flex-col px-6 py-8 md:px-10">
-        <header className="flex items-center justify-between">
-          <button className="home-essence__logo-mark" onClick={() => router.push('/')} aria-label="Financieramente">
-            <span className="fm-logo-f">F</span>
-            <span className="fm-logo-m">m</span>
+      {/* Gradiente cinematográfico — oscurece bordes, no el centro */}
+      <div
+        className="absolute inset-0 z-[3] pointer-events-none"
+        style={{
+          background:
+            'linear-gradient(168deg, rgba(4,6,12,0.18) 0%, transparent 42%, rgba(4,6,12,0.72) 100%)',
+        }}
+      />
+
+      {/* Fade superior */}
+      <div className="absolute inset-x-0 top-0 z-[4] h-36 bg-gradient-to-b from-black/48 to-transparent pointer-events-none" />
+
+      {/* Fade inferior */}
+      <div className="absolute inset-x-0 bottom-0 z-[4] h-64 bg-gradient-to-t from-black/78 to-transparent pointer-events-none" />
+
+      {/* Layout principal */}
+      <div className="relative z-[10] flex min-h-dvh flex-col">
+
+        {/* Nav */}
+        <header className="flex items-center justify-between px-7 pt-7 md:px-14 md:pt-9">
+          <button
+            className="select-none font-serif text-[22px] font-bold leading-none tracking-[-0.02em] text-white"
+            onClick={() => router.push('/')}
+            aria-label="Financieramente"
+          >
+            Fm
           </button>
-          <div className="rounded-full border border-white/35 bg-white/12 px-4 py-2 text-xs tracking-[0.16em] text-white/85 uppercase backdrop-blur-xl">
-            Financieramente
-          </div>
+
+          <nav className="hidden items-center gap-8 text-[13px] font-medium tracking-[0.04em] text-white/55 md:flex">
+            <span className="cursor-pointer transition-colors duration-200 hover:text-white/90">
+              Acerca
+            </span>
+            <span className="cursor-pointer transition-colors duration-200 hover:text-white/90">
+              Funciones
+            </span>
+            <span className="cursor-pointer transition-colors duration-200 hover:text-white/90">
+              Precios
+            </span>
+          </nav>
+
+          <button
+            onClick={() => router.push('/agent')}
+            className="rounded-full border border-white/22 px-5 py-[9px] text-[13px] font-medium text-white/82 transition-all duration-200 hover:border-white/38 hover:bg-white/[0.07]"
+          >
+            Entrar
+          </button>
         </header>
 
-        <section className="flex flex-1 items-center">
-          <div className="max-w-3xl space-y-6 rounded-[28px] border border-white/20 bg-black/22 p-6 shadow-[0_20px_80px_rgba(0,0,0,0.35)] backdrop-blur-xl md:p-10">
-            <h1 className="text-5xl leading-[0.95] font-semibold tracking-[-0.04em] md:text-7xl">
+        {/* Espacio flexible que empuja el contenido hacia abajo */}
+        <div className="flex-1" />
+
+        {/* Hero — editorial, bottom-left */}
+        <section className="px-7 pb-10 md:px-14 md:pb-16">
+          <div className="max-w-[700px]">
+            <h1 className="mb-5 text-[clamp(48px,6.5vw,90px)] font-bold leading-[0.88] tracking-[-0.04em] text-white">
               Claridad financiera
               <br />
-              de nivel premium.
+              <em
+                className="font-serif font-normal text-white/74"
+                style={{ fontStyle: 'italic' }}
+              >
+                de nivel premium.
+              </em>
             </h1>
-            <p className="max-w-2xl text-sm leading-relaxed text-white/78 md:text-lg">
-              Una experiencia limpia y natural para tomar mejores decisiones de dinero con calma, foco y contexto.
+
+            <p className="mb-8 max-w-[440px] text-[15px] leading-[1.65] text-white/52 md:text-[16px]">
+              Una experiencia limpia y natural para tomar mejores decisiones de
+              dinero con calma, foco y contexto.
             </p>
-            <div className="flex flex-wrap gap-3">
+
+            <div className="flex flex-wrap items-center gap-3">
               <button
                 onClick={() => router.push('/agent')}
-                className="inline-flex items-center gap-2 rounded-full border border-white/35 bg-white/16 px-6 py-3 text-sm font-medium backdrop-blur-2xl transition hover:bg-white/28"
+                className="inline-flex items-center gap-[7px] rounded-full border border-white/26 bg-white/[0.10] px-6 py-3 text-[14px] font-semibold text-white backdrop-blur-sm transition-all duration-200 hover:border-white/40 hover:bg-white/[0.17]"
               >
-                Entrar al agente <ArrowRight className="h-4 w-4" />
+                Entrar al agente <ArrowRight className="h-[14px] w-[14px]" />
               </button>
               <button
                 onClick={() => router.push('/intake')}
-                className="rounded-full border border-white/28 bg-black/24 px-6 py-3 text-sm text-white/92 backdrop-blur-xl transition hover:bg-black/35"
+                className="rounded-full border border-white/16 px-6 py-3 text-[14px] text-white/68 transition-all duration-200 hover:border-white/28 hover:text-white/86"
               >
                 Comenzar diagnóstico
               </button>
             </div>
           </div>
         </section>
+
+        {/* Caption de pie — como los referencias */}
+        <div className="flex items-center justify-between px-7 pb-6 md:px-14">
+          <span className="text-[10px] tracking-[0.16em] text-white/24 uppercase">
+            El camino empieza en la claridad.
+          </span>
+          <span className="text-[10px] tracking-[0.12em] text-white/24 uppercase">
+            Financieramente
+          </span>
+        </div>
       </div>
     </main>
   );
