@@ -1502,6 +1502,7 @@ export function TransactionsModal(props: {
   const [showInstitutionCatalog, setShowInstitutionCatalog] = useState(false);
   const [showTemplateCatalog, setShowTemplateCatalog] = useState(false);
   const [showTxCarousel, setShowTxCarousel] = useState(false);
+  const [recentlyDockedProductId, setRecentlyDockedProductId] = useState<string | null>(null);
   const [txSummaryScrollDepth, setTxSummaryScrollDepth] = useState(0);
   const PRODUCT_STACK_PALETTE = ['#3b5068', '#6e2929', '#9e7228', '#364818', '#111111'] as const;
   const PRODUCT_STACK_TEXT_PALETTE = ['#8ea7bf', '#c89191', '#d8b266', '#86a06f', '#111111'] as const;
@@ -1513,6 +1514,7 @@ export function TransactionsModal(props: {
   const groupCarouselRef = useRef<HTMLDivElement | null>(null);
   const insightCarouselRef = useRef<HTMLDivElement | null>(null);
   const txSummaryScrollRef = useRef<HTMLDivElement | null>(null);
+  const previousConnectedRef = useRef<Record<string, boolean>>({});
   const selectedTemplate = ALL_PRODUCT_TEMPLATES.find((item) => item.label === productTemplate);
   const derivedProductType: BankProduct['productType'] =
     selectedTemplate?.productType ??
@@ -1732,14 +1734,23 @@ export function TransactionsModal(props: {
   const activeDescriptor = props.transactionProductCards.find((entry) => entry.product.id === props.selectedProductId);
   const [productCarouselIndex, setProductCarouselIndex] = useState(0);
   const productCards = props.transactionProductCards;
+  const libraryProductCards = productCards.filter(
+    ({ product }) => product.connected || product.uploadedFiles.length > 0 || product.parsedDocuments.length > 0
+  );
   const activeProductIndex = Math.max(
     0,
-    productCards.findIndex((entry) => entry.product.id === props.selectedProductId),
+    libraryProductCards.findIndex((entry) => entry.product.id === props.selectedProductId),
   );
   const orderedProductCards =
-    productCards.length === 0
+    libraryProductCards.length === 0
       ? []
-      : Array.from({ length: productCards.length }, (_, offset) => productCards[(productCarouselIndex + offset) % productCards.length]);
+      : Array.from(
+          { length: libraryProductCards.length },
+          (_, offset) => libraryProductCards[(productCarouselIndex + offset) % libraryProductCards.length]
+        );
+  const txBackdropCards = orderedProductCards
+    .filter(({ product }) => product.id !== props.selectedProductId)
+    .slice(0, 2);
   const txStages = [
     {
       key: 'consent' as const,
@@ -1773,12 +1784,23 @@ export function TransactionsModal(props: {
     if (stage && !stage.disabled) stage.go();
   }, [activeTxCard]);
   useEffect(() => {
-    if (productCards.length === 0) {
+    if (libraryProductCards.length === 0) {
       setProductCarouselIndex(0);
       return;
     }
     setProductCarouselIndex(activeProductIndex);
-  }, [activeProductIndex, productCards.length]);
+  }, [activeProductIndex, libraryProductCards.length]);
+  useEffect(() => {
+    const nextMap: Record<string, boolean> = {};
+    productCards.forEach(({ product }) => {
+      nextMap[product.id] = Boolean(product.connected);
+      if (!previousConnectedRef.current[product.id] && product.connected) {
+        setRecentlyDockedProductId(product.id);
+        window.setTimeout(() => setRecentlyDockedProductId((current) => (current === product.id ? null : current)), 900);
+      }
+    });
+    previousConnectedRef.current = nextMap;
+  }, [productCards]);
   useEffect(() => {
     if (!props.isOpen || activeTxCard !== 2) return;
     const tickCarousel = (container: HTMLDivElement | null) => {
@@ -2033,9 +2055,9 @@ export function TransactionsModal(props: {
               ) : null}
             </div>
             <div className="pt-list">
-              {productCards.length > 0 ? (
+              {libraryProductCards.length > 0 ? (
                 <>
-                  <div className="pt-stack-carousel">
+                  <div className="pt-stack-carousel tx-library-is-saved">
                     {orderedProductCards.slice(0, 4).map(({ product, descriptor, intel }, stackIndex) => {
                       const isTop = stackIndex === 0;
                       const paletteIndex = (productCarouselIndex + stackIndex) % PRODUCT_STACK_PALETTE.length;
@@ -2047,17 +2069,18 @@ export function TransactionsModal(props: {
                           role="button"
                           tabIndex={0}
                           className={`pt-item pt-item-stack ${isTop ? 'is-active is-top' : ''}`}
+                          data-docked={recentlyDockedProductId === product.id ? 'true' : 'false'}
                           onClick={() => {
                             setShowTxCarousel(true);
                             props.selectTransactionProduct(product.id);
-                            setProductCarouselIndex((productCarouselIndex + stackIndex) % productCards.length);
+                            setProductCarouselIndex((productCarouselIndex + stackIndex) % libraryProductCards.length);
                           }}
                           onKeyDown={(e) => {
                             if (e.key !== 'Enter' && e.key !== ' ') return;
                             e.preventDefault();
                             setShowTxCarousel(true);
                             props.selectTransactionProduct(product.id);
-                            setProductCarouselIndex((productCarouselIndex + stackIndex) % productCards.length);
+                            setProductCarouselIndex((productCarouselIndex + stackIndex) % libraryProductCards.length);
                           }}
                           style={{
                             ['--pt-card-active-bg' as any]: color,
@@ -2098,15 +2121,15 @@ export function TransactionsModal(props: {
                       );
                     })}
                   </div>
-                  {productCards.length > 1 ? (
+                  {libraryProductCards.length > 1 ? (
                     <div className="pt-stack-nav">
                       <button
                         type="button"
                         className="continue-ghost"
                         onClick={() => {
-                          const next = (productCarouselIndex - 1 + productCards.length) % productCards.length;
+                          const next = (productCarouselIndex - 1 + libraryProductCards.length) % libraryProductCards.length;
                           setProductCarouselIndex(next);
-                          props.selectTransactionProduct(productCards[next].product.id);
+                          props.selectTransactionProduct(libraryProductCards[next].product.id);
                         }}
                       >
                         ←
@@ -2115,9 +2138,9 @@ export function TransactionsModal(props: {
                         type="button"
                         className="continue-ghost"
                         onClick={() => {
-                          const next = (productCarouselIndex + 1) % productCards.length;
+                          const next = (productCarouselIndex + 1) % libraryProductCards.length;
                           setProductCarouselIndex(next);
-                          props.selectTransactionProduct(productCards[next].product.id);
+                          props.selectTransactionProduct(libraryProductCards[next].product.id);
                         }}
                       >
                         →
@@ -2125,7 +2148,12 @@ export function TransactionsModal(props: {
                     </div>
                   ) : null}
                 </>
-              ) : null}
+              ) : (
+                <div className="tx-library-empty">
+                  <span className="tx-library-empty-kicker">Biblioteca vacía</span>
+                  <p>Las cards aparecen aquí cuando el producto ya quedó guardado en el flujo.</p>
+                </div>
+              )}
             </div>
           </aside>
 
@@ -2203,6 +2231,15 @@ export function TransactionsModal(props: {
                   <>
                 <div className="tx-content-carousel">
                   <div className="tx-3d-hero-shell" aria-hidden="true">
+                    {txBackdropCards.length > 0 && activeTxCard === 2 ? (
+                      <div className="tx-3d-backstack">
+                        {txBackdropCards.map(({ product }, index) => (
+                          <div key={`${product.id}-ghost`} className={`tx-3d-backcard is-${index + 1}`}>
+                            <span>{product.label}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
                     <div
                       className={`tx-3d-hero ${txVisualTone} ${isCardLikeProduct ? 'is-card-like' : 'is-generic-like'}`}
                       style={{
@@ -2362,12 +2399,17 @@ export function TransactionsModal(props: {
                     <div className="pt-stage-header">
                       <span className="pt-stage-eyebrow">Paso 2</span>
                       <h4>Asistente de transacciones</h4>
-                      <p>Conversa, recibe recomendación de formato y envía archivos o texto desde aquí.</p>
+                      <p>Sube, conversa y ajusta desde una sola superficie.</p>
                     </div>
                     <div ref={txSummaryScrollRef} className="transactions-summary-card tx-evidence-card tx-evidence-card--premium tx-chat-minimal-body">
-                      <span className="transactions-summary-title">Asistente del producto</span>
-                      <p>{requiredEvidenceText}</p>
-                      <p>Puedes subir hasta {props.maxEvidenceFilesPerProduct} archivos por producto. Si ya se analizó, el chat queda para consultas y revisión del resumen.</p>
+                      <div className="tx-editorial-intro">
+                        <span className="transactions-summary-title">Asistente del producto</span>
+                        <p>{analysisAlreadyDone ? 'Haz preguntas, corrige y revisa el resumen final.' : 'Elige formato, adjunta antecedentes y envía.'}</p>
+                        <div className="tx-editorial-meta-row">
+                          <span>{props.maxEvidenceFilesPerProduct} archivos máximo</span>
+                          <span>{summaryRegenerationsLeft} revisiones restantes</span>
+                        </div>
+                      </div>
 
                       <div className="tx-chat-format-pills">
                         {([
@@ -2415,7 +2457,7 @@ export function TransactionsModal(props: {
                           </div>
                         ))}
                         {assistantMessages.length === 0 && (
-                          <div style={{ opacity: 0.75 }}>El asistente aparecerá aquí apenas autorices el producto.</div>
+                          <div className="tx-chat-thread-empty">El asistente aparece aquí cuando el producto entra en flujo.</div>
                         )}
                       </div>
 

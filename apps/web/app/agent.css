@@ -29319,6 +29319,46 @@ body.agent-route-active .app-shell::before {
   justify-content: center;
   pointer-events: none;
   margin: 6px 0 12px;
+  isolation: isolate;
+}
+
+.transactions-modal .tx-3d-backstack {
+  position: absolute;
+  inset: 8px auto auto 50%;
+  width: min(420px, 92%);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.transactions-modal .tx-3d-backcard {
+  position: absolute;
+  inset: 0;
+  min-height: 126px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(8px);
+}
+
+.transactions-modal .tx-3d-backcard.is-1 {
+  transform: translate3d(0, 14px, -20px) scale(0.96);
+  opacity: 0.42;
+}
+
+.transactions-modal .tx-3d-backcard.is-2 {
+  transform: translate3d(0, 26px, -40px) scale(0.92);
+  opacity: 0.22;
+}
+
+.transactions-modal .tx-3d-backcard span {
+  position: absolute;
+  left: 18px;
+  bottom: 16px;
+  color: rgba(244, 248, 255, 0.45);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .transactions-modal .tx-3d-hero {
@@ -29401,11 +29441,48 @@ body.agent-route-active .app-shell::before {
   background: linear-gradient(180deg, rgba(5, 11, 18, 0.78), rgba(8, 15, 24, 0.9));
 }
 
+.transactions-modal .tx-editorial-intro {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 0 0 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.transactions-modal .tx-editorial-intro > p {
+  margin: 0;
+  color: rgba(235, 242, 252, 0.78);
+  line-height: 1.4;
+}
+
+.transactions-modal .tx-editorial-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.transactions-modal .tx-editorial-meta-row span {
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(241, 246, 255, 0.74);
+  font-size: 12px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
 .transactions-modal .tx-chat-format-pills {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 10px;
+}
+
+.transactions-modal .tx-chat-format-pills .continue-ghost {
+  min-height: 36px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.12);
 }
 
 .transactions-modal .tx-chat-thread {
@@ -29415,6 +29492,12 @@ body.agent-route-active .app-shell::before {
   max-height: 250px;
   overflow-y: auto;
   padding-right: 4px;
+}
+
+.transactions-modal .tx-chat-thread-empty {
+  color: rgba(241, 246, 255, 0.54);
+  font-size: 13px;
+  padding: 10px 2px;
 }
 
 .transactions-modal .tx-chat-bubble {
@@ -29488,6 +29571,7 @@ body.agent-route-active .app-shell::before {
 .transactions-modal .tx-chat-summary-pro > p {
   color: rgba(238, 245, 255, 0.94);
   line-height: 1.62;
+  font-size: 14px;
 }
 
 .transactions-modal .tx-chat-summary-meta {
@@ -29495,6 +29579,71 @@ body.agent-route-active .app-shell::before {
   flex-wrap: wrap;
   gap: 10px;
   align-items: center;
+}
+
+.transactions-modal .tx-library-empty {
+  min-height: 200px;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 8px;
+  border-radius: 24px;
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.06), transparent 42%),
+    linear-gradient(180deg, rgba(11, 18, 28, 0.84), rgba(8, 14, 22, 0.92));
+  padding: 24px 18px;
+  text-align: center;
+}
+
+.transactions-modal .tx-library-empty-kicker {
+  color: rgba(242, 246, 255, 0.88);
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.transactions-modal .tx-library-empty p {
+  margin: 0;
+  color: rgba(231, 239, 250, 0.64);
+  line-height: 1.45;
+  max-width: 26ch;
+}
+
+.transactions-modal .tx-library-is-saved .pt-item-stack {
+  animation: txLibraryDockIn 560ms cubic-bezier(.2,.7,.2,1);
+}
+
+.transactions-modal .tx-library-is-saved .pt-item-stack[data-docked="true"] {
+  animation: txLibraryDockPulse 900ms cubic-bezier(.2,.7,.2,1);
+}
+
+@keyframes txLibraryDockIn {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, -20px, 0) scale(0.9) rotateX(16deg);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes txLibraryDockPulse {
+  0% {
+    transform: translate3d(0, -24px, 0) scale(0.88) rotateX(16deg);
+    filter: saturate(1.24);
+    box-shadow: 0 0 0 rgba(0, 0, 0, 0);
+  }
+  65% {
+    transform: translate3d(0, 2px, 0) scale(1.02) rotateX(4deg);
+    box-shadow: 0 18px 36px rgba(0, 0, 0, 0.38);
+  }
+  100% {
+    transform: none;
+    filter: none;
+    box-shadow: inherit;
+  }
 }
 
 @media (max-width: 920px) {
@@ -29506,5 +29655,13 @@ body.agent-route-active .app-shell::before {
   .transactions-modal .tx-chat-minimal-body {
     max-height: 72vh;
     padding: 14px;
+  }
+
+  .transactions-modal .tx-editorial-meta-row {
+    gap: 6px;
+  }
+
+  .transactions-modal .tx-chat-thread {
+    max-height: 220px;
   }
 }
