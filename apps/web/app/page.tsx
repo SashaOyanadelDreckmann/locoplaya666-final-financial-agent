@@ -8,114 +8,129 @@ export default function HomePage() {
   const router = useRouter();
 
   return (
-    <main className="relative min-h-dvh overflow-hidden bg-[#060810] text-white">
-      {/* Foto de fondo */}
-      <div className="absolute inset-0 z-0 bg-[url('/fondo4.jpg')] bg-cover bg-center bg-no-repeat" />
+    <main style={{ position: 'relative', minHeight: '100dvh', overflow: 'hidden', background: '#060810', color: 'white', display: 'flex', flexDirection: 'column' }}>
 
-      {/* Overlay oscuro base */}
-      <div className="absolute inset-0 z-[1] bg-black/30 pointer-events-none" />
+      {/* Foto de fondo — saturada, mate, vibrante */}
+      <div style={{
+        position: 'absolute', inset: 0, zIndex: 0,
+        backgroundImage: "url('/fondo4.jpg')",
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        filter: 'saturate(1.7) contrast(0.82) brightness(0.75)',
+      }} />
 
-      {/* Shader ENCIMA de la foto — vivid pero mate con overlay blend */}
-      <div className="absolute inset-0 z-[2] opacity-[0.30] mix-blend-overlay pointer-events-none">
+      {/* Overlay color — refuerza el tono mate sin oscurecer demasiado */}
+      <div style={{ position: 'absolute', inset: 0, zIndex: 1, background: 'rgba(8,12,22,0.28)', pointerEvents: 'none' }} />
+
+      {/* Shader ENCIMA de la foto — más grande que la foto, desborda el viewport */}
+      <div style={{
+        position: 'absolute', top: '-25%', left: '-25%', width: '150%', height: '150%', zIndex: 2,
+        opacity: 0.45,
+        mixBlendMode: 'screen',
+        pointerEvents: 'none',
+      }}>
         <ShaderAnimation />
       </div>
 
-      {/* Gradiente cinematográfico — oscurece bordes, no el centro */}
-      <div
-        className="absolute inset-0 z-[3] pointer-events-none"
-        style={{
-          background:
-            'linear-gradient(168deg, rgba(4,6,12,0.18) 0%, transparent 42%, rgba(4,6,12,0.72) 100%)',
-        }}
-      />
+      {/* Gradiente cinematográfico */}
+      <div style={{
+        position: 'absolute', inset: 0, zIndex: 3, pointerEvents: 'none',
+        background: 'linear-gradient(to bottom, rgba(0,0,0,0.32) 0%, rgba(0,0,0,0.02) 30%, rgba(0,0,0,0.48) 74%, rgba(0,0,0,0.80) 100%)',
+      }} />
 
-      {/* Fade superior */}
-      <div className="absolute inset-x-0 top-0 z-[4] h-36 bg-gradient-to-b from-black/48 to-transparent pointer-events-none" />
+      {/* Layout */}
+      <div style={{ position: 'relative', zIndex: 10, display: 'flex', minHeight: '100dvh', flexDirection: 'column' }}>
 
-      {/* Fade inferior */}
-      <div className="absolute inset-x-0 bottom-0 z-[4] h-64 bg-gradient-to-t from-black/78 to-transparent pointer-events-none" />
-
-      {/* Layout principal */}
-      <div className="relative z-[10] flex min-h-dvh flex-col">
-
-        {/* Nav */}
-        <header className="flex items-center justify-between px-7 pt-7 md:px-14 md:pt-9">
+        {/* Header — logo + nombre a la izquierda, botón entrar a la derecha */}
+        <div className="home-page-header">
           <button
-            className="select-none font-serif text-[22px] font-bold leading-none tracking-[-0.02em] text-white"
             onClick={() => router.push('/')}
             aria-label="Financieramente"
+            style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
           >
-            Fm
+            {/* Logo mark cuadrado */}
+            <div style={{
+              width: 30, height: 30, flexShrink: 0,
+              background: '#edecea', color: '#0a0a0a',
+              fontFamily: 'Georgia, "Times New Roman", serif',
+              fontSize: 14, fontWeight: 700,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              letterSpacing: '-0.02em',
+            }}>
+              Fm
+            </div>
+            {/* Nombre de la marca */}
+            <span style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.82)', letterSpacing: '0.01em' }}>
+              Financieramente
+            </span>
           </button>
-
-          <nav className="hidden items-center gap-8 text-[13px] font-medium tracking-[0.04em] text-white/55 md:flex">
-            <span className="cursor-pointer transition-colors duration-200 hover:text-white/90">
-              Acerca
-            </span>
-            <span className="cursor-pointer transition-colors duration-200 hover:text-white/90">
-              Funciones
-            </span>
-            <span className="cursor-pointer transition-colors duration-200 hover:text-white/90">
-              Precios
-            </span>
-          </nav>
 
           <button
             onClick={() => router.push('/agent')}
-            className="rounded-full border border-white/22 px-5 py-[9px] text-[13px] font-medium text-white/82 transition-all duration-200 hover:border-white/38 hover:bg-white/[0.07]"
+            style={{ borderRadius: 999, border: '1px solid rgba(255,255,255,0.20)', padding: '8px 18px', fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.78)', background: 'none', cursor: 'pointer' }}
           >
             Entrar
           </button>
-        </header>
+        </div>
 
-        {/* Espacio flexible que empuja el contenido hacia abajo */}
-        <div className="flex-1" />
+        {/* Espacio flexible */}
+        <div style={{ flex: 1 }} />
 
-        {/* Hero — editorial, bottom-left */}
-        <section className="px-7 pb-10 md:px-14 md:pb-16">
-          <div className="max-w-[700px]">
-            <h1 className="mb-5 text-[clamp(48px,6.5vw,90px)] font-bold leading-[0.88] tracking-[-0.04em] text-white">
-              Claridad financiera
-              <br />
-              <em
-                className="font-serif font-normal text-white/74"
-                style={{ fontStyle: 'italic' }}
-              >
-                de nivel premium.
-              </em>
-            </h1>
+        {/* Hero — minimalista, cálido */}
+        <section className="home-page-hero">
+          <h1 style={{
+            fontSize: 'clamp(50px, 7vw, 96px)',
+            fontWeight: 700,
+            lineHeight: 0.90,
+            letterSpacing: '-0.04em',
+            color: 'white',
+            margin: '0 0 20px',
+          }}>
+            Tu dinero,
+            <br />
+            <em style={{ fontFamily: 'Georgia, "Times New Roman", serif', fontWeight: 400, fontStyle: 'italic', color: 'rgba(255,255,255,0.72)' }}>
+              más claro.
+            </em>
+          </h1>
 
-            <p className="mb-8 max-w-[440px] text-[15px] leading-[1.65] text-white/52 md:text-[16px]">
-              Una experiencia limpia y natural para tomar mejores decisiones de
-              dinero con calma, foco y contexto.
-            </p>
+          <p style={{ color: 'rgba(255,255,255,0.48)', fontSize: 15, lineHeight: 1.6, maxWidth: 360, margin: '0 0 32px' }}>
+            Una conversación honesta sobre tus finanzas.
+          </p>
 
-            <div className="flex flex-wrap items-center gap-3">
-              <button
-                onClick={() => router.push('/agent')}
-                className="inline-flex items-center gap-[7px] rounded-full border border-white/26 bg-white/[0.10] px-6 py-3 text-[14px] font-semibold text-white backdrop-blur-sm transition-all duration-200 hover:border-white/40 hover:bg-white/[0.17]"
-              >
-                Entrar al agente <ArrowRight className="h-[14px] w-[14px]" />
-              </button>
-              <button
-                onClick={() => router.push('/intake')}
-                className="rounded-full border border-white/16 px-6 py-3 text-[14px] text-white/68 transition-all duration-200 hover:border-white/28 hover:text-white/86"
-              >
-                Comenzar diagnóstico
-              </button>
-            </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center' }}>
+            <button
+              onClick={() => router.push('/agent')}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 7,
+                borderRadius: 999, border: '1px solid rgba(255,255,255,0.24)',
+                background: 'rgba(255,255,255,0.10)',
+                padding: '11px 24px', fontSize: 13, fontWeight: 600,
+                color: 'white', cursor: 'pointer',
+                backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)',
+              }}
+            >
+              Comenzar <ArrowRight size={14} />
+            </button>
+            <button
+              onClick={() => router.push('/intake')}
+              style={{
+                borderRadius: 999, border: '1px solid rgba(255,255,255,0.13)',
+                background: 'none', padding: '11px 22px', fontSize: 13,
+                color: 'rgba(255,255,255,0.55)', cursor: 'pointer',
+              }}
+            >
+              Ver diagnóstico
+            </button>
           </div>
         </section>
 
-        {/* Caption de pie — como los referencias */}
-        <div className="flex items-center justify-between px-7 pb-6 md:px-14">
-          <span className="text-[10px] tracking-[0.16em] text-white/24 uppercase">
-            El camino empieza en la claridad.
-          </span>
-          <span className="text-[10px] tracking-[0.12em] text-white/24 uppercase">
-            Financieramente
-          </span>
+        {/* Caption de pie */}
+        <div className="home-page-caption">
+          <span>Claridad antes de decidir.</span>
+          <span>Financieramente</span>
         </div>
+
       </div>
     </main>
   );
