@@ -23607,7 +23607,9 @@ input[type="radio"]:checked {
   position: relative;
   left: auto;
   top: auto;
-  width: min(880px, calc(100vw - 180px));
+  flex: 1 1 auto;
+  min-width: 0;
+  width: min(620px, calc(100vw - 310px));
   max-height: calc(100vh - 280px);
   overflow: auto;
   padding-right: 2px;
@@ -29306,28 +29308,159 @@ body.agent-route-active .app-shell::before {
 }
 
 /* Transactions redesign: intake-like, minimal chat, 3D product hero */
+/* ─── Credit card 3D hero — layout y proporciones ───────────────────────
+   Lógica: shell es el ancho de la tarjeta, hero usa aspect-ratio ISO 7810
+   (85.6 × 53.98 mm → ratio 1.586:1, horizontal como tarjeta real).
+   Desktop: tarjeta sticky a la izquierda del carousel.
+   Mobile:  tarjeta centrada encima del formulario (column layout).
+   ─────────────────────────────────────────────────────────────────────── */
+
+@keyframes card-content-in {
+  from { opacity: 0; transform: translateY(4px) translateZ(26px); }
+  to   { opacity: 1; transform: translateY(0)  translateZ(26px); }
+}
+
+@keyframes chip-authorize {
+  0%   { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
+  50%  { box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.22); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
+}
+
 .transactions-modal .tx-content-carousel {
   position: relative;
   perspective: 1400px;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 20px;
+  overflow: visible;
+  min-height: 0;
+  padding: 4px 0 10px;
 }
 
+/* Shell = contenedor de la tarjeta. Ancho fijo en desktop. */
 .transactions-modal .tx-3d-hero-shell {
   position: sticky;
-  top: 10px;
+  top: 16px;
   z-index: 3;
-  display: flex;
-  justify-content: center;
+  flex: 0 0 auto;
+  width: 260px;
   align-self: flex-start;
   pointer-events: none;
-  margin: 6px 0 12px;
+  margin: 0;
   isolation: isolate;
-  width: min(420px, 92%);
 }
 
+/* Tarjeta: horizontal real, proporción ISO 7810 */
+.transactions-modal .tx-3d-hero {
+  width: 100%;
+  aspect-ratio: 1.586 / 1;
+  min-height: unset;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+  transform-style: preserve-3d;
+  transition:
+    background 600ms ease,
+    transform 360ms cubic-bezier(.2,.7,.2,1),
+    box-shadow 300ms ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.transactions-modal .tx-3d-hero.is-credit {
+  background: linear-gradient(140deg, #0f1f34 0%, #22466d 55%, #0f2743 100%);
+}
+
+.transactions-modal .tx-3d-hero.is-account {
+  background: linear-gradient(140deg, #10231c 0%, #1e5442 55%, #15382d 100%);
+}
+
+.transactions-modal .tx-3d-hero.is-generic {
+  background: linear-gradient(140deg, #1e1a12 0%, #4a3520 55%, #2a1e0f 100%);
+}
+
+/* Brillo diagonal */
+.transactions-modal .tx-3d-hero-sheen {
+  position: absolute;
+  inset: -60% -20% auto;
+  height: 180%;
+  background: linear-gradient(115deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0));
+  transform: translateZ(18px) rotate(-7deg);
+  pointer-events: none;
+}
+
+/* Contenido de texto: top-left como tarjeta real */
+.transactions-modal .tx-3d-hero-core {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 14px 16px 0;
+  transform: translateZ(26px);
+  animation: card-content-in 0.4s ease both;
+}
+
+.transactions-modal .tx-3d-hero-eyebrow {
+  font-size: 8px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(230, 238, 248, 0.6);
+  margin-bottom: 2px;
+}
+
+/* Nombre del producto: 2 líneas máx, fuente compacta */
+.transactions-modal .tx-3d-hero-core strong {
+  color: #f0f6ff;
+  font-size: clamp(13px, 1.6vw, 16px);
+  font-weight: 700;
+  line-height: 1.15;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  transition: opacity 0.3s ease;
+}
+
+/* Institución */
+.transactions-modal .tx-3d-hero-core span {
+  color: rgba(220, 234, 248, 0.72);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  transition: opacity 0.3s ease 0.1s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Chip dorado — bottom-right, animación al autorizar */
+.transactions-modal .tx-3d-hero-chip {
+  position: absolute;
+  right: 16px;
+  bottom: 14px;
+  width: 38px;
+  height: 28px;
+  border-radius: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: linear-gradient(145deg, rgba(255, 230, 150, 0.55), rgba(255, 210, 80, 0.2));
+  transform: translateZ(20px);
+}
+
+/* Chip pulsa cuando producto autorizado */
+.transactions-modal .tx-3d-hero.is-card-like .tx-3d-hero-chip {
+  animation: chip-authorize 2.2s ease 0.8s 1;
+}
+
+/* Backstack: escala relativa al shell (100%) */
 .transactions-modal .tx-3d-backstack {
   position: absolute;
-  inset: 8px auto auto 50%;
-  width: min(420px, 92%);
+  inset: 6px auto auto 50%;
+  width: 100%;
   transform: translateX(-50%);
   pointer-events: none;
 }
@@ -29335,106 +29468,61 @@ body.agent-route-active .app-shell::before {
 .transactions-modal .tx-3d-backcard {
   position: absolute;
   inset: 0;
-  min-height: 126px;
-  border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.18);
-  backdrop-filter: blur(8px);
+  aspect-ratio: 1.586 / 1;
+  min-height: unset;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.01));
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
 }
 
 .transactions-modal .tx-3d-backcard.is-1 {
-  transform: translate3d(0, 14px, -20px) scale(0.96);
-  opacity: 0.42;
+  transform: translate3d(0, 10px, -20px) scale(0.97);
+  opacity: 0.38;
 }
 
 .transactions-modal .tx-3d-backcard.is-2 {
-  transform: translate3d(0, 26px, -40px) scale(0.92);
-  opacity: 0.22;
+  transform: translate3d(0, 20px, -40px) scale(0.94);
+  opacity: 0.18;
 }
 
 .transactions-modal .tx-3d-backcard span {
   position: absolute;
-  left: 18px;
-  bottom: 16px;
-  color: rgba(244, 248, 255, 0.45);
-  font-size: 12px;
-  letter-spacing: 0.06em;
+  left: 14px;
+  bottom: 12px;
+  color: rgba(244, 248, 255, 0.4);
+  font-size: 10px;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
-.transactions-modal .tx-3d-hero {
-  width: 100%;
-  aspect-ratio: 1.586 / 1;
-  min-height: unset;
-  border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  box-shadow: 0 24px 50px rgba(0, 0, 0, 0.42);
-  transform-style: preserve-3d;
-  transition: transform 360ms cubic-bezier(.2,.7,.2,1), box-shadow 300ms ease;
-  position: relative;
-  overflow: hidden;
+/* ─── Mobile: tarjeta encima del formulario ───────── */
+@media (max-width: 767px) {
+  .transactions-modal .tx-content-carousel {
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    padding: 8px 0 6px;
+  }
+
+  .transactions-modal .tx-3d-hero-shell {
+    position: relative;
+    top: auto;
+    width: min(280px, 80%);
+    flex: none;
+    margin: 0 auto;
+  }
+
+  .transactions-modal .tx-3d-hero-core strong {
+    font-size: 13px;
+  }
 }
 
-.transactions-modal .tx-3d-hero.is-credit {
-  background: linear-gradient(140deg, #0f1f34 0%, #22466d 38%, #0f2743 100%);
-}
-
-.transactions-modal .tx-3d-hero.is-account {
-  background: linear-gradient(140deg, #10231c 0%, #1e5442 38%, #15382d 100%);
-}
-
-.transactions-modal .tx-3d-hero.is-generic {
-  background: linear-gradient(140deg, #2a1f14 0%, #5d4127 38%, #342516 100%);
-}
-
-.transactions-modal .tx-3d-hero-sheen {
-  position: absolute;
-  inset: -80% -30% auto;
-  height: 220%;
-  background: linear-gradient(115deg, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0));
-  transform: translateZ(18px) rotate(-7deg);
-}
-
-.transactions-modal .tx-3d-hero-core {
-  position: absolute;
-  top: 0;
-  left: 0;
-  z-index: 1;
-  display: grid;
-  gap: 5px;
-  padding: 18px 22px;
-  transform: translateZ(26px);
-}
-
-.transactions-modal .tx-3d-hero-eyebrow {
-  font-size: 11px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: rgba(230, 238, 248, 0.82);
-}
-
-.transactions-modal .tx-3d-hero-core strong {
-  color: #f8fbff;
-  font-size: clamp(18px, 2.4vw, 22px);
-  line-height: 1.08;
-}
-
-.transactions-modal .tx-3d-hero-core span {
-  color: rgba(233, 241, 252, 0.86);
-  font-size: 13px;
-}
-
-.transactions-modal .tx-3d-hero-chip {
-  position: absolute;
-  right: 20px;
-  bottom: 18px;
-  width: 46px;
-  height: 34px;
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  background: linear-gradient(160deg, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0.14));
-  transform: translateZ(20px);
+/* ─── Pantallas medianas (tablet landscape) ───────── */
+@media (min-width: 768px) and (max-width: 1100px) {
+  .transactions-modal .tx-3d-hero-shell {
+    width: 220px;
+  }
 }
 
 .transactions-modal .tx-chat-minimal-body {
@@ -29656,6 +29744,7 @@ body.agent-route-active .app-shell::before {
     width: 100%;
     aspect-ratio: 1.586 / 1;
     min-height: unset;
+    border-radius: 14px;
   }
 
   .transactions-modal .tx-chat-minimal-body {
