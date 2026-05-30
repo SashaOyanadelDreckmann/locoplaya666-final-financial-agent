@@ -29317,9 +29317,11 @@ body.agent-route-active .app-shell::before {
   z-index: 3;
   display: flex;
   justify-content: center;
+  align-self: flex-start;
   pointer-events: none;
   margin: 6px 0 12px;
   isolation: isolate;
+  width: min(420px, 92%);
 }
 
 .transactions-modal .tx-3d-backstack {
@@ -29362,8 +29364,9 @@ body.agent-route-active .app-shell::before {
 }
 
 .transactions-modal .tx-3d-hero {
-  width: min(420px, 92%);
-  min-height: 132px;
+  width: 100%;
+  aspect-ratio: 1.586 / 1;
+  min-height: unset;
   border-radius: 20px;
   border: 1px solid rgba(255, 255, 255, 0.16);
   box-shadow: 0 24px 50px rgba(0, 0, 0, 0.42);
@@ -29394,11 +29397,13 @@ body.agent-route-active .app-shell::before {
 }
 
 .transactions-modal .tx-3d-hero-core {
-  position: relative;
+  position: absolute;
+  top: 0;
+  left: 0;
   z-index: 1;
   display: grid;
   gap: 5px;
-  padding: 20px 22px;
+  padding: 18px 22px;
   transform: translateZ(26px);
 }
 
@@ -29649,7 +29654,8 @@ body.agent-route-active .app-shell::before {
 @media (max-width: 920px) {
   .transactions-modal .tx-3d-hero {
     width: 100%;
-    min-height: 120px;
+    aspect-ratio: 1.586 / 1;
+    min-height: unset;
   }
 
   .transactions-modal .tx-chat-minimal-body {
