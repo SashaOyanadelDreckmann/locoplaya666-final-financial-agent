@@ -84,6 +84,9 @@ type BudgetRow = {
   product?: string;
   institution?: string;
   note?: string;
+  cadence?: 'fixed' | 'variable' | 'oneoff';
+  momentum?: 'up' | 'steady' | 'down';
+  strategy?: 'shield' | 'review' | 'optimize';
 };
 
 type BankProduct = {
@@ -279,6 +282,9 @@ function createBudgetStarterRows(): BudgetRow[] {
       amount: 0,
       product: 'Ingresos principales',
       institution: '',
+      cadence: 'fixed',
+      momentum: 'steady',
+      strategy: 'shield',
     },
     {
       id: 'expense_rent',
@@ -287,6 +293,9 @@ function createBudgetStarterRows(): BudgetRow[] {
       amount: 0,
       product: 'Vivienda',
       institution: '',
+      cadence: 'fixed',
+      momentum: 'steady',
+      strategy: 'shield',
     },
     {
       id: 'expense_food',
@@ -295,6 +304,9 @@ function createBudgetStarterRows(): BudgetRow[] {
       amount: 0,
       product: 'Gasto recurrente',
       institution: '',
+      cadence: 'variable',
+      momentum: 'up',
+      strategy: 'review',
     },
     {
       id: 'expense_transport',
@@ -303,6 +315,9 @@ function createBudgetStarterRows(): BudgetRow[] {
       amount: 0,
       product: 'Movilidad',
       institution: '',
+      cadence: 'variable',
+      momentum: 'up',
+      strategy: 'review',
     },
     {
       id: 'expense_services',
@@ -311,6 +326,9 @@ function createBudgetStarterRows(): BudgetRow[] {
       amount: 0,
       product: 'Hogar',
       institution: '',
+      cadence: 'fixed',
+      momentum: 'up',
+      strategy: 'review',
     },
     {
       id: 'expense_debt',
@@ -319,6 +337,9 @@ function createBudgetStarterRows(): BudgetRow[] {
       amount: 0,
       product: 'Crédito',
       institution: '',
+      cadence: 'fixed',
+      momentum: 'steady',
+      strategy: 'optimize',
     },
     {
       id: 'expense_savings',
@@ -327,6 +348,9 @@ function createBudgetStarterRows(): BudgetRow[] {
       amount: 0,
       product: 'Ahorro',
       institution: '',
+      cadence: 'fixed',
+      momentum: 'steady',
+      strategy: 'shield',
     },
     {
       id: 'expense_other',
@@ -335,6 +359,9 @@ function createBudgetStarterRows(): BudgetRow[] {
       amount: 0,
       product: 'Variables',
       institution: '',
+      cadence: 'variable',
+      momentum: 'up',
+      strategy: 'optimize',
     },
   ];
 }
@@ -358,7 +385,26 @@ function canonicalBudgetRowId(id: string) {
 
 function normalizeBudgetRow(row: BudgetRow): BudgetRow {
   const normalizedId = canonicalBudgetRowId(row.id);
-  return normalizedId === row.id ? row : { ...row, id: normalizedId };
+  const normalized: BudgetRow = normalizedId === row.id ? row : { ...row, id: normalizedId };
+  return {
+    ...normalized,
+    cadence:
+      normalized.cadence === 'fixed' || normalized.cadence === 'variable' || normalized.cadence === 'oneoff'
+        ? normalized.cadence
+        : normalized.type === 'income'
+          ? 'fixed'
+          : 'variable',
+    momentum:
+      normalized.momentum === 'up' || normalized.momentum === 'steady' || normalized.momentum === 'down'
+        ? normalized.momentum
+        : 'steady',
+    strategy:
+      normalized.strategy === 'shield' || normalized.strategy === 'review' || normalized.strategy === 'optimize'
+        ? normalized.strategy
+        : normalized.type === 'income'
+          ? 'shield'
+          : 'review',
+  };
 }
 
 function normalizeProductAssistantState(raw: Partial<NonNullable<BankProduct['assistant']>> | undefined) {
@@ -1979,6 +2025,10 @@ export default function AgentPage() {
       savingsRate,
       healthScore,
       topExpenses,
+      risingExpenseCount: expenseRows.filter((row) => row.momentum === 'up').length,
+      optimizePotential: expenseRows
+        .filter((row) => row.strategy === 'review' || row.strategy === 'optimize')
+        .reduce((sum, row) => sum + row.amount, 0),
     };
   }, [budgetRows, budgetTotals.balance, budgetTotals.expenses, budgetTotals.income]);
 
@@ -2023,9 +2073,13 @@ export default function AgentPage() {
     );
     const nextAction =
       balanceTone === 'deficit'
-        ? 'Completa vivienda, deuda y servicios para cerrar fugas.'
+        ? budgetInsights.optimizePotential > 0
+          ? 'Ataca primero las filas marcadas para optimizar y revisar.'
+          : 'Completa vivienda, deuda y servicios para cerrar fugas.'
         : coreFillRate < 70
         ? 'Llena la plantilla base antes de refinar categorías secundarias.'
+        : budgetInsights.risingExpenseCount >= 2
+        ? 'Hay presión al alza: revisa rubros que suben y congela fugas.'
         : 'Afina variables y convierte el balance en una meta concreta.';
 
     return {
@@ -2037,8 +2091,10 @@ export default function AgentPage() {
       coreFillRate,
       readinessScore,
       nextAction,
+      risingExpenseCount: budgetInsights.risingExpenseCount,
+      optimizePotential: budgetInsights.optimizePotential,
     };
-  }, [budgetInsights.healthScore, budgetRows, budgetTotals.balance]);
+  }, [budgetInsights.healthScore, budgetInsights.optimizePotential, budgetInsights.risingExpenseCount, budgetRows, budgetTotals.balance]);
 
   const intakeData = useMemo(
     () => (sessionInfo?.injectedIntake?.intake ?? null) as Record<string, unknown> | null,
@@ -2881,7 +2937,15 @@ export default function AgentPage() {
           budget_rows: budgetRows
             .filter((r) => r.amount > 0 || r.category.trim().length > 0)
             .slice(0, 20)
-            .map((r) => ({ category: r.category, type: r.type, amount: r.amount, note: r.note })),
+            .map((r) => ({
+              category: r.category,
+              type: r.type,
+              amount: r.amount,
+              note: r.note,
+              cadence: r.cadence,
+              momentum: r.momentum,
+              strategy: r.strategy,
+            })),
           flow_status: getFlowStatus(),
         },
         preferences: {
@@ -3184,6 +3248,9 @@ export default function AgentPage() {
                 amount: 0,
                 product: type === 'income' ? 'Producto ingreso' : 'Producto gasto',
                 institution: '',
+                cadence: type === 'income' ? 'fixed' : 'variable',
+                momentum: 'steady',
+                strategy: type === 'income' ? 'shield' : 'review',
               } as BudgetRow,
             ]),
       ];
@@ -3205,6 +3272,9 @@ export default function AgentPage() {
         category: `${parent.category} · item ${nextIdx}`,
         type: parent.type,
         amount: 0,
+        cadence: parent.cadence,
+        momentum: parent.momentum,
+        strategy: parent.strategy,
       };
       return reconcileBudgetRows([...rows, subRow]);
     });
@@ -3258,6 +3328,9 @@ export default function AgentPage() {
           parentId: row.parentId ?? null,
           product: row.product || undefined,
           institution: row.institution || undefined,
+          cadence: row.cadence,
+          momentum: row.momentum,
+          strategy: row.strategy,
         })),
     };
   }
@@ -3298,6 +3371,9 @@ export default function AgentPage() {
       type: r.type === 'income' ? 'income' : 'expense',
       amount: Math.round(Number(r.amount) || 0),
       parentId: r.parentId ?? null,
+      cadence: r.cadence ?? null,
+      momentum: r.momentum ?? null,
+      strategy: r.strategy ?? null,
     }));
     const intakeCompact = (() => {
       const intake = (intakeData ?? {}) as Record<string, unknown>;

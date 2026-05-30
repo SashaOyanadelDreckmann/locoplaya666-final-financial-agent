@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { getApiBaseUrl } from '@/lib/apiBase';
 import { getCsrfToken } from '@/lib/csrf';
 import { CHILE_FINANCIAL_INSTITUTIONS, FINANCIAL_SERVICE_OPTIONS } from '@/lib/financialCatalog';
+import { BudgetIntelligenceTable } from '@/components/ui/budget-intelligence-table';
 import {
   ResponsiveContainer,
   BarChart,
@@ -33,6 +34,9 @@ type BudgetRow = {
   product?: string;
   institution?: string;
   note?: string;
+  cadence?: 'fixed' | 'variable' | 'oneoff';
+  momentum?: 'up' | 'steady' | 'down';
+  strategy?: 'shield' | 'review' | 'optimize';
 };
 
 type BudgetTopExpense = { id: string; label: string; amount: number; pct: number };
@@ -43,6 +47,8 @@ type BudgetInsights = {
   variableTotal: number;
   topExpenses: BudgetTopExpense[];
   nonZeroRows: unknown[];
+  risingExpenseCount?: number;
+  optimizePotential?: number;
 };
 type BudgetTableStyleId = 'midnight' | 'ledger' | 'atelier' | 'terminal' | 'carbon';
 
@@ -108,6 +114,8 @@ export function BudgetModal(props: {
     coreFillRate: number;
     readinessScore: number;
     nextAction: string;
+    risingExpenseCount: number;
+    optimizePotential: number;
   };
   updateBudgetRow: (id: string, field: keyof BudgetRow, value: string | number) => void;
   upsertBudgetRow: (row: BudgetRow) => void;
@@ -549,6 +557,9 @@ export function BudgetModal(props: {
                   amount: activeBudgetRow.amount,
                   product: activeBudgetRow.product ?? null,
                   institution: activeBudgetRow.institution ?? null,
+                  cadence: activeBudgetRow.cadence ?? null,
+                  momentum: activeBudgetRow.momentum ?? null,
+                  strategy: activeBudgetRow.strategy ?? null,
                 }
               : null,
             intakeContext: props.sessionInfo?.injectedIntake?.intakeContext ?? null,
@@ -655,6 +666,9 @@ export function BudgetModal(props: {
                   amount: activeBudgetRow.amount,
                   product: activeBudgetRow.product ?? null,
                   institution: activeBudgetRow.institution ?? null,
+                  cadence: activeBudgetRow.cadence ?? null,
+                  momentum: activeBudgetRow.momentum ?? null,
+                  strategy: activeBudgetRow.strategy ?? null,
                 }
               : null,
             intakeContext: props.sessionInfo?.injectedIntake?.intakeContext ?? null,
@@ -767,6 +781,14 @@ export function BudgetModal(props: {
               <div className="budget-cockpit-metric">
                 <span>Completitud</span>
                 <strong>{props.budgetCompletion.fillRate}%</strong>
+              </div>
+              <div className="budget-cockpit-metric">
+                <span>Rubros al alza</span>
+                <strong>{props.budgetSignals.risingExpenseCount}</strong>
+              </div>
+              <div className="budget-cockpit-metric">
+                <span>Optimizable</span>
+                <strong>{formatBudgetAmount(props.budgetSignals.optimizePotential)}</strong>
               </div>
             </div>
           </section>
@@ -897,168 +919,23 @@ export function BudgetModal(props: {
               </div>
 
               {props.budgetRows.length > 0 ? (
-                <div ref={budgetPdfRef} className={`budget-pdf-surface budget-table-style-${budgetTableStyle}`}>
-                  {(() => {
-                    const savingsPct =
-                      props.budgetTotals.income > 0
-                        ? Math.round((props.budgetTotals.balance / props.budgetTotals.income) * 100)
-                        : 0;
-                    const isBalancePositive = props.budgetTotals.balance >= 0;
-                    const positiveTone = 'rgba(120, 208, 140, 0.95)';
-                    const negativeTone = 'rgba(255, 130, 130, 0.95)';
-                    const neutralTone = 'rgba(238, 245, 255, 0.95)';
-                    const isEditorialStyle = budgetTableStyle === 'atelier';
-                    const metricCardBg = isEditorialStyle ? '#000000' : 'rgba(8, 16, 26, 0.7)';
-                    const metricCardBorder = isEditorialStyle ? 'rgba(255, 255, 255, 0.24)' : 'rgba(120, 140, 170, 0.35)';
-                    const metricCardLabelColor = isEditorialStyle ? 'rgba(245, 250, 255, 0.9)' : 'rgba(238, 245, 255, 0.8)';
-                    const metricCards = [
-                      { label: 'Ingresos', value: formatBudgetAmount(props.budgetTotals.income), tone: neutralTone },
-                      { label: 'Gastos', value: formatBudgetAmount(props.budgetTotals.expenses), tone: neutralTone },
-                      { label: 'Balance', value: formatBudgetAmount(props.budgetTotals.balance), tone: isBalancePositive ? positiveTone : negativeTone },
-                      { label: '% Ahorro', value: `${savingsPct}%`, tone: savingsPct >= 0 ? positiveTone : negativeTone },
-                    ];
-                    return (
-                  <div
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
-                      gap: '8px',
-                      marginBottom: '12px',
-                    }}
-                  >
-                    {metricCards.map((metric) => (
-                      <div
-                        key={metric.label}
-                        style={{
-                          border: `1px solid ${metricCardBorder}`,
-                          borderRadius: '12px',
-                          background: metricCardBg,
-                          padding: '8px 10px',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '3px',
-                        }}
-                      >
-                        <span style={{ fontSize: '11px', color: metricCardLabelColor }}>{metric.label}</span>
-                        <strong style={{ color: metric.tone, fontSize: 'clamp(14px, 2.6vw, 18px)', lineHeight: 1.15 }}>
-                          {metric.value}
-                        </strong>
-                      </div>
-                    ))}
-                  </div>
-                    );
-                  })()}
-                  <div className="budget-pdf-head">
-                    <div>
-                      <span>Financieramente</span>
-                      <h2>Presupuesto mensual</h2>
-                    </div>
-                    <strong>{activeStyleLabel}</strong>
-                  </div>
-                  <div className="budget-pdf-metrics">
-                    <div><span>Ingreso</span><strong>{formatBudgetAmount(props.budgetTotals.income)}</strong></div>
-                    <div><span>Gasto</span><strong>{formatBudgetAmount(props.budgetTotals.expenses)}</strong></div>
-                    <div><span>Balance</span><strong>{formatBudgetAmount(props.budgetTotals.balance)}</strong></div>
-                  </div>
-                <div className="budget-table-wrap">
-                    <table className="budget-table">
-                    <thead>
-                      <tr>
-                        <th>Categoría</th>
-                        <th>Tipo</th>
-                        <th>Monto mensual</th>
-                        <th aria-label="Acciones"></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {orderedBudgetRows.map((row) => {
-                        const hasChildren = props.budgetRows.some((r) => r.parentId === row.id);
-                        const isSub = Boolean(row.parentId);
-                        return (
-                        <tr
-                          key={row.id}
-                          id={`budget-row-${row.id}`}
-                          className={[
-                            row.type === 'expense' ? 'budget-row-expense' : 'budget-row-income',
-                            row.parentId ? 'is-budget-subrow' : 'is-budget-parent-row',
-                            focusedBudgetRowId === row.id ? 'is-active-row' : '',
-                          ].join(' ')}
-                          style={rowStyle(row)}
-                          onMouseDownCapture={() => focusBudgetRow(row.id)}
-                          onPointerDownCapture={() => focusBudgetRow(row.id)}
-                        >
-                          <td>
-                            <input
-                              className={isSub ? 'budget-subcategory-input' : undefined}
-                              value={row.category}
-                              placeholder={isSub ? 'Subcategoría' : 'Categoría'}
-                              style={{
-                                backgroundColor: `${colorForBudgetRow(row.id)}2E`,
-                                borderColor: `${colorForBudgetRow(row.id)}90`,
-                                paddingLeft: isSub ? '18px' : undefined,
-                              }}
-                              onMouseDownCapture={(e) => focusBudgetField(e.currentTarget)}
-                              onPointerDownCapture={(e) => focusBudgetField(e.currentTarget)}
-                              onFocus={() => focusBudgetRow(row.id)}
-                              onChange={(e) => props.updateBudgetRow(row.id, 'category', e.target.value)}
-                            />
-                          </td>
-                           <td>
-                            <select
-                              className={isSub ? 'budget-subcategory-select' : undefined}
-                              value={row.type}
-                              onMouseDownCapture={(e) => focusBudgetField(e.currentTarget)}
-                              onPointerDownCapture={(e) => focusBudgetField(e.currentTarget)}
-                              onFocus={() => focusBudgetRow(row.id)}
-                              onChange={(e) =>
-                                props.updateBudgetRow(row.id, 'type', e.target.value as 'income' | 'expense')
-                              }
-                            >
-                              <option value="income">Ingreso</option>
-                              <option value="expense">Gasto</option>
-                            </select>
-                          </td>
-                          <td>
-                            <input
-                              className={isSub ? 'budget-subcategory-amount' : undefined}
-                              type="number"
-                              value={row.amount}
-                              min={0}
-                              step={1000}
-                              placeholder="0"
-                              disabled={hasChildren}
-                              onMouseDownCapture={(e) => focusBudgetField(e.currentTarget)}
-                              onPointerDownCapture={(e) => focusBudgetField(e.currentTarget)}
-                              onFocus={() => focusBudgetRow(row.id)}
-                              onChange={(e) => props.updateBudgetRow(row.id, 'amount', Number(e.target.value))}
-                            />
-                          </td>
-                          <td>
-                            {!isSub && (
-                              <button
-                                type="button"
-                                className="continue-ghost"
-                                onClick={() => props.addBudgetSubcategory(row.id)}
-                                title="Agregar subcategoría"
-                              >
-                                + Sub
-                              </button>
-                            )}
-                            <button
-                              type="button"
-                              className="continue-ghost danger"
-                              onClick={() => props.deleteBudgetRow(row.id)}
-                              title="Eliminar fila"
-                            >
-                              ×
-                            </button>
-                          </td>
-                        </tr>
-                      )})}
-                    </tbody>
-                    </table>
-                </div>
-                </div>
+                <BudgetIntelligenceTable
+                  orderedBudgetRows={orderedBudgetRows}
+                  budgetRows={props.budgetRows}
+                  focusedBudgetRowId={focusedBudgetRowId}
+                  budgetTotals={props.budgetTotals}
+                  activeStyleLabel={activeStyleLabel}
+                  budgetTableStyle={budgetTableStyle}
+                  budgetPdfRef={budgetPdfRef}
+                  formatBudgetAmount={formatBudgetAmount}
+                  rowStyle={rowStyle}
+                  colorForBudgetRow={colorForBudgetRow}
+                  focusBudgetRow={focusBudgetRow}
+                  focusBudgetField={focusBudgetField}
+                  updateBudgetRow={props.updateBudgetRow}
+                  addBudgetSubcategory={props.addBudgetSubcategory}
+                  deleteBudgetRow={props.deleteBudgetRow}
+                />
               ) : (
                 <div className="budget-empty-state">
                   <strong>No hay filas todavía.</strong>

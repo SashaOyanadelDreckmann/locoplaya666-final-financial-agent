@@ -7,6 +7,9 @@ type BudgetRow = {
   type: 'income' | 'expense';
   amount: number;
   note: string;
+  cadence?: 'fixed' | 'variable' | 'oneoff';
+  momentum?: 'up' | 'steady' | 'down';
+  strategy?: 'shield' | 'review' | 'optimize';
 };
 
 export async function POST(req: Request) {
@@ -33,10 +36,11 @@ export async function POST(req: Request) {
 
     const prompt = [
       'Eres un agente de presupuesto preciso y profesional.',
-      'Objetivo: extraer SOLO un dato numérico mensual y mapearlo a una fila de presupuesto, con categorías separadas.',
+      'Objetivo: extraer SOLO un dato mensual útil y mapearlo a una fila de presupuesto, con categorías separadas.',
       'Devuelve JSON estricto con campos:',
-      '{"assistant_text":"string muy breve (<=16 palabras)","next_question":"string breve","update":{"id":"income-salary|income-extra|expense-rent|expense-food|expense-transport|expense-services|expense-debt|expense-custom","category":"string","type":"income|expense","amount":number,"note":"string breve"}}',
+      '{"assistant_text":"string muy breve (<=16 palabras)","next_question":"string breve","action":{"kind":"add|update","id":"income-salary|income-extra|expense-rent|expense-food|expense-transport|expense-services|expense-debt|expense-custom","category":"string","type":"income|expense","amount":number,"note":"string breve","cadence":"fixed|variable|oneoff","momentum":"up|steady|down","strategy":"shield|review|optimize"}}',
       'Nunca mezcles categorías en una sola fila.',
+      'Si el usuario menciona si algo es fijo, variable, puntual, si sube o baja, o si debe blindarse/revisarse/optimizarse, rellena esos campos.',
       'Si no se entiende, amount=0 y assistant_text pide aclaración.',
       `Pregunta actual: ${question || 'No especificada'}`,
       `Respuesta usuario: ${answer}`,
@@ -57,12 +61,27 @@ export async function POST(req: Request) {
     const parsed = JSON.parse(raw) as {
       assistant_text?: string;
       next_question?: string;
-      update?: {
+      action?: {
+        kind?: 'add' | 'update';
         id?: string;
         category?: string;
         type?: 'income' | 'expense';
         amount?: number;
         note?: string;
+        cadence?: 'fixed' | 'variable' | 'oneoff';
+        momentum?: 'up' | 'steady' | 'down';
+        strategy?: 'shield' | 'review' | 'optimize';
+      };
+      update?: {
+        kind?: 'add' | 'update';
+        id?: string;
+        category?: string;
+        type?: 'income' | 'expense';
+        amount?: number;
+        note?: string;
+        cadence?: 'fixed' | 'variable' | 'oneoff';
+        momentum?: 'up' | 'steady' | 'down';
+        strategy?: 'shield' | 'review' | 'optimize';
       };
     };
 
@@ -70,7 +89,7 @@ export async function POST(req: Request) {
       ok: true,
       assistant_text: parsed.assistant_text ?? 'Perfecto, sigo.',
       next_question: parsed.next_question ?? '¿Qué otro monto quieres ajustar?',
-      update: parsed.update ?? null,
+      action: parsed.action ?? parsed.update ?? null,
       model,
     });
   } catch (error) {
