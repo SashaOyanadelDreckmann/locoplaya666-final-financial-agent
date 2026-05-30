@@ -29,6 +29,7 @@
     "recharts": "^3.7.0",
     "remark-gfm": "^4.0.1",
     "remark-math": "^6.0.0",
+    "three": "^0.181.2",
     "zod": "^3.22.4",
     "zustand": "^5.0.9"
   },
@@ -39,6 +40,7 @@
     "@types/jest": "^29.5.11",
     "@types/react": "^18.3.23",
     "@types/react-dom": "^18.3.7",
+    "@types/three": "^0.184.1",
     "autoprefixer": "^10.4.23",
     "eslint": "^8.56.0",
     "eslint-config-next": "^14.2.35",
