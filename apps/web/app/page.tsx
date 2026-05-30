@@ -23,10 +23,10 @@ export default function HomePage() {
       {/* Overlay color — refuerza el tono mate sin oscurecer demasiado */}
       <div style={{ position: 'absolute', inset: 0, zIndex: 1, background: 'rgba(8,12,22,0.28)', pointerEvents: 'none' }} />
 
-      {/* Shader ENCIMA de la foto — claramente visible, colores sobre la foto */}
+      {/* Shader ENCIMA de la foto — más grande que la foto, desborda el viewport */}
       <div style={{
-        position: 'absolute', inset: 0, zIndex: 2,
-        opacity: 0.42,
+        position: 'absolute', top: '-25%', left: '-25%', width: '150%', height: '150%', zIndex: 2,
+        opacity: 0.45,
         mixBlendMode: 'screen',
         pointerEvents: 'none',
       }}>
