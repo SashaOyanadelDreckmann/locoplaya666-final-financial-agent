@@ -29862,3 +29862,271 @@ body.agent-route-active .app-shell::before {
     padding-inline: 8px;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   ANIMATED AI CHAT STYLE — Asistentes de Transacciones y Presupuesto
+   Ref: 21st.dev/community/components/jatin-yadav05/animated-ai-chat
+   Paleta: violet-500 #8b5cf6 · indigo-500 #6366f1 · fuchsia-500 #d946ef
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ─── Keyframes compartidos ─────────────────────────────────────────── */
+
+@keyframes ai-dot-pulse {
+  0%, 80%, 100% { opacity: 0.3; transform: scale(0.85); }
+  40%            { opacity: 0.9; transform: scale(1.1);  }
+}
+
+@keyframes ai-orb-drift-1 {
+  0%   { transform: translate(0, 0) scale(1);     opacity: 0.6; }
+  100% { transform: translate(10px, -14px) scale(1.1); opacity: 1; }
+}
+
+@keyframes ai-orb-drift-2 {
+  0%   { transform: translate(0, 0) scale(1);    opacity: 0.5; }
+  100% { transform: translate(-8px, 12px) scale(1.06); opacity: 0.85; }
+}
+
+/* ─── Orbs de fondo — presupuesto ───────────────────────────────────── */
+
+.budget-modal .budget-assistant-panel {
+  position: relative;
+  overflow: hidden;
+}
+
+.budget-modal .budget-assistant-panel::before {
+  content: '';
+  position: absolute;
+  top: -10%;
+  left: 20%;
+  width: 55%;
+  height: 55%;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.13) 0%, transparent 70%);
+  filter: blur(56px);
+  pointer-events: none;
+  z-index: 0;
+  animation: ai-orb-drift-1 9s ease-in-out infinite alternate;
+}
+
+.budget-modal .budget-assistant-panel::after {
+  content: '';
+  position: absolute;
+  bottom: 5%;
+  right: 5%;
+  width: 45%;
+  height: 45%;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.1) 0%, transparent 70%);
+  filter: blur(48px);
+  pointer-events: none;
+  z-index: 0;
+  animation: ai-orb-drift-2 11s ease-in-out infinite alternate;
+}
+
+.budget-modal .budget-assistant-panel > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ─── Orbs de fondo — transacciones ─────────────────────────────────── */
+
+.transactions-modal .tx-evidence-card.tx-chat-minimal-body {
+  position: relative;
+  overflow: hidden;
+}
+
+.transactions-modal .tx-evidence-card.tx-chat-minimal-body::before {
+  content: '';
+  position: absolute;
+  top: -5%;
+  left: 10%;
+  width: 50%;
+  height: 40%;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.1) 0%, transparent 70%);
+  filter: blur(48px);
+  pointer-events: none;
+  z-index: 0;
+  animation: ai-orb-drift-1 10s ease-in-out infinite alternate;
+}
+
+.transactions-modal .tx-evidence-card.tx-chat-minimal-body::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  right: 8%;
+  width: 40%;
+  height: 35%;
+  background: radial-gradient(circle, rgba(217, 70, 239, 0.08) 0%, transparent 70%);
+  filter: blur(40px);
+  pointer-events: none;
+  z-index: 0;
+  animation: ai-orb-drift-2 12s ease-in-out infinite alternate;
+}
+
+.transactions-modal .tx-evidence-card.tx-chat-minimal-body > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ─── Budget assistant — container glassmorphism ────────────────────── */
+
+.budget-modal .budget-assistant-panel .bcc-hero {
+  background: rgba(8, 4, 22, 0.88) !important;
+  border: 1px solid rgba(139, 92, 246, 0.2) !important;
+  backdrop-filter: blur(24px) !important;
+  -webkit-backdrop-filter: blur(24px) !important;
+}
+
+/* Label eyebrow */
+.budget-modal .budget-assistant-panel .bcc-hero .bcc-hero-label,
+.budget-modal .budget-main-carousel .bcc-hero-label {
+  color: rgba(167, 139, 250, 0.65) !important;
+  letter-spacing: 0.12em !important;
+}
+
+/* Active pill */
+.budget-modal .budget-assistant-panel .bcc-hero .bcc-hero-pill {
+  color: rgba(167, 139, 250, 0.9) !important;
+  background: rgba(139, 92, 246, 0.15) !important;
+  border-color: rgba(139, 92, 246, 0.35) !important;
+}
+
+/* Thinking dots — violet + reference scale/opacity animation */
+.budget-modal .budget-assistant-panel .bcc-hero .bcc-dot-pulse,
+.budget-modal .budget-main-carousel .bcc-dot-pulse {
+  background: rgba(139, 92, 246, 0.85) !important;
+  width: 6px !important;
+  height: 6px !important;
+  animation: ai-dot-pulse 1.2s ease-in-out infinite !important;
+}
+.budget-modal .budget-assistant-panel .bcc-hero .bcc-dot-pulse:nth-child(2),
+.budget-modal .budget-main-carousel .bcc-dot-pulse:nth-child(2) {
+  background: rgba(99, 102, 241, 0.85) !important;
+  animation-delay: 0.15s !important;
+}
+.budget-modal .budget-assistant-panel .bcc-hero .bcc-dot-pulse:nth-child(3),
+.budget-modal .budget-main-carousel .bcc-dot-pulse:nth-child(3) {
+  background: rgba(217, 70, 239, 0.75) !important;
+  animation-delay: 0.3s !important;
+}
+
+/* Input wrap — violet focus ring */
+.budget-modal .budget-assistant-panel .bcc-hero .bcc-hero-input-wrap,
+.budget-modal .budget-main-carousel .bcc-hero-input-wrap {
+  background: rgba(255, 255, 255, 0.02) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+.budget-modal .budget-assistant-panel .bcc-hero .bcc-hero-input-wrap:focus-within,
+.budget-modal .budget-main-carousel .bcc-hero-input-wrap:focus-within {
+  border-color: rgba(139, 92, 246, 0.5) !important;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15),
+              0 0 24px rgba(139, 92, 246, 0.1) !important;
+}
+
+/* Input placeholder */
+.budget-modal .budget-assistant-panel .bcc-hero .bcc-hero-input::placeholder,
+.budget-modal .budget-main-carousel .bcc-hero-input::placeholder {
+  color: rgba(167, 139, 250, 0.3) !important;
+}
+
+/* Send button — violet/indigo gradient */
+.budget-modal .budget-assistant-panel .bcc-hero .bcc-hero-send,
+.budget-modal .budget-main-carousel .bcc-hero-send {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.92), rgba(99, 102, 241, 0.92)) !important;
+  color: #ffffff !important;
+}
+.budget-modal .budget-assistant-panel .bcc-hero .bcc-hero-send:hover:not(:disabled),
+.budget-modal .budget-main-carousel .bcc-hero-send:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(167, 139, 250, 0.98), rgba(129, 140, 248, 0.98)) !important;
+  box-shadow: 0 0 22px rgba(139, 92, 246, 0.45) !important;
+  transform: scale(1.05) !important;
+}
+
+/* Send icon — override dark color from base style */
+.budget-modal .budget-assistant-panel .bcc-hero .bcc-hero-send-icon,
+.budget-modal .budget-main-carousel .bcc-hero-send-icon {
+  color: #ffffff !important;
+}
+
+/* ─── Transaction assistant — chat bubbles ──────────────────────────── */
+
+/* User bubble: violet en lugar de dorado */
+.transactions-modal .tx-chat-bubble.is-user {
+  background: rgba(139, 92, 246, 0.18) !important;
+  border-color: rgba(139, 92, 246, 0.32) !important;
+  border-radius: 18px 18px 4px 18px !important;
+}
+
+/* User bubble role tag */
+.transactions-modal .tx-chat-bubble.is-user .tx-chat-bubble-role {
+  color: rgba(167, 139, 250, 0.75) !important;
+}
+
+/* Assistant bubble: indigo tenue */
+.transactions-modal .tx-chat-bubble.is-assistant {
+  background: rgba(99, 102, 241, 0.07) !important;
+  border-color: rgba(99, 102, 241, 0.22) !important;
+  border-radius: 18px 18px 18px 4px !important;
+}
+
+/* ─── Transaction assistant — composer input ────────────────────────── */
+
+/* Wrap del composer (tiene ambas clases) */
+.transactions-modal .bcc-hero-input-wrap.tx-chat-composer-wrap {
+  background: rgba(255, 255, 255, 0.02) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+.transactions-modal .bcc-hero-input-wrap.tx-chat-composer-wrap:focus-within {
+  border-color: rgba(139, 92, 246, 0.5) !important;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15),
+              0 0 24px rgba(139, 92, 246, 0.1) !important;
+}
+
+/* Input text placeholder */
+.transactions-modal .tx-chat-composer-wrap .bcc-hero-input::placeholder {
+  color: rgba(167, 139, 250, 0.3) !important;
+}
+
+/* Send button en el composer de transacciones */
+.transactions-modal .tx-chat-composer-wrap .bcc-hero-send {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.92), rgba(99, 102, 241, 0.92)) !important;
+  color: #ffffff !important;
+}
+.transactions-modal .tx-chat-composer-wrap .bcc-hero-send:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(167, 139, 250, 0.98), rgba(129, 140, 248, 0.98)) !important;
+  box-shadow: 0 0 22px rgba(139, 92, 246, 0.45) !important;
+  transform: scale(1.05) !important;
+}
+
+/* ─── Transaction assistant — loading bar ───────────────────────────── */
+
+.transactions-modal .tx-analysis-live {
+  background: rgba(8, 4, 22, 0.7) !important;
+  border-color: rgba(139, 92, 246, 0.2) !important;
+}
+
+.transactions-modal .tx-analysis-badge {
+  background: rgba(139, 92, 246, 0.16) !important;
+  border-color: rgba(139, 92, 246, 0.32) !important;
+  color: rgba(167, 139, 250, 0.9) !important;
+}
+
+.transactions-modal .tx-analysis-fill {
+  background: linear-gradient(
+    90deg,
+    rgba(139, 92, 246, 0.85),
+    rgba(99, 102, 241, 0.85),
+    rgba(217, 70, 239, 0.6)
+  ) !important;
+}
+
+/* ─── Transaction format pills — violet hover ───────────────────────── */
+
+.transactions-modal .tx-chat-format-pills .continue-ghost {
+  background: rgba(139, 92, 246, 0.05) !important;
+  border-color: rgba(139, 92, 246, 0.18) !important;
+  color: rgba(167, 139, 250, 0.85) !important;
+}
+.transactions-modal .tx-chat-format-pills .continue-ghost:hover {
+  background: rgba(139, 92, 246, 0.14) !important;
+  border-color: rgba(139, 92, 246, 0.38) !important;
+  color: rgba(192, 168, 252, 1) !important;
+}
