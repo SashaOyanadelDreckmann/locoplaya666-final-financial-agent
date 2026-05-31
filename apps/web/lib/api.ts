@@ -297,7 +297,22 @@ export async function mergeProductsContextToIntake(payload: {
       type: 'income' | 'expense';
       amount: number;
       note?: string;
-      parentId?: string | null;
+      detail?: string;
+      cadence?: 'fixed' | 'variable' | 'oneoff';
+      paymentMethod?: 'transfer' | 'debit' | 'credit' | 'cash' | 'prepaid' | 'other';
+      movementType?:
+        | 'income_main'
+        | 'income_extra'
+        | 'housing'
+        | 'home_services'
+        | 'food'
+        | 'transport'
+        | 'health'
+        | 'education'
+        | 'debt'
+        | 'savings_investment'
+        | 'taxes_fees'
+        | 'leisure_other';
       product?: string;
       institution?: string;
     }>;

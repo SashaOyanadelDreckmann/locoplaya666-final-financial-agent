@@ -31,7 +31,6 @@ type BudgetRow = {
   category: string;
   type: 'income' | 'expense';
   amount: number;
-  parentId?: string;
   product?: string;
   institution?: string;
   note?: string;
@@ -138,7 +137,6 @@ export function BudgetModal(props: {
   applyBudgetTemplate: () => void;
   coachHint: string;
   addBudgetRow: (type: 'income' | 'expense') => void;
-  addBudgetSubcategory: (parentId: string) => void;
   deleteBudgetRow: (id: string) => void;
   sendBudgetToAgent: () => void;
   chatAnswers: Array<{ q: string; a: string }>;
@@ -321,9 +319,7 @@ export function BudgetModal(props: {
     }
   }
   const fallbackQuestionForCurrentFlow = '¿Qué categoría o monto quieres agregar al presupuesto?';
-  const orderedBudgetRows = props.budgetRows.flatMap((row) =>
-    row.parentId ? [] : [row, ...props.budgetRows.filter((child) => child.parentId === row.id)],
-  );
+  const orderedBudgetRows = props.budgetRows;
   function sanitizeBudgetQuestion(question: string) {
     return String(question ?? '').trim();
   }
@@ -440,7 +436,6 @@ export function BudgetModal(props: {
             action.movementType === 'leisure_other'
           ? action.movementType
           : undefined;
-    const parentId = typeof action.parent_id === 'string' && action.parent_id.trim() ? action.parent_id.trim() : undefined;
     if (!rowId) return;
 
     if (kind === 'delete') {
@@ -452,14 +447,11 @@ export function BudgetModal(props: {
     if (!rowType || !category) return;
 
     const canonicalId = rowId.replace(/^expense[-_]custom[-_]?/i, 'expense-custom-');
-    const rowHasChildren = props.budgetRows.some((r) => r.parentId === canonicalId);
-    const existingAmount = props.budgetRows.find((r) => r.id === canonicalId)?.amount ?? amount;
     const row: BudgetRow = {
       id: canonicalId,
       type: rowType,
       category,
-      amount: rowHasChildren ? existingAmount : amount,
-      parentId,
+      amount,
       detail: detail || undefined,
       cadence,
       paymentMethod,
@@ -1010,7 +1002,6 @@ export function BudgetModal(props: {
                   focusBudgetRow={focusBudgetRow}
                   focusBudgetField={focusBudgetField}
                   updateBudgetRow={props.updateBudgetRow}
-                  addBudgetSubcategory={props.addBudgetSubcategory}
                   deleteBudgetRow={props.deleteBudgetRow}
                 />
               ) : (

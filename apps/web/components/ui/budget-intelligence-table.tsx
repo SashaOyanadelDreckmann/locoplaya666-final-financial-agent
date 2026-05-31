@@ -31,7 +31,6 @@ type BudgetRow = {
   category: string;
   type: 'income' | 'expense';
   amount: number;
-  parentId?: string;
   product?: string;
   institution?: string;
   note?: string;
@@ -55,7 +54,6 @@ type Props = {
   focusBudgetRow: (rowId: string) => void;
   focusBudgetField: (target: EventTarget | null) => void;
   updateBudgetRow: (id: string, field: keyof BudgetRow, value: string | number) => void;
-  addBudgetSubcategory: (parentId: string) => void;
   deleteBudgetRow: (id: string) => void;
 };
 
@@ -330,8 +328,6 @@ export function BudgetIntelligenceTable(props: Props) {
           </thead>
           <tbody>
             {props.orderedBudgetRows.map((row) => {
-              const hasChildren = props.budgetRows.some((item) => item.parentId === row.id);
-              const isSub = Boolean(row.parentId);
               const cadence = normalizeCadence(row.cadence, row.type);
               const paymentMethod = normalizePaymentMethod(row.paymentMethod, row.type);
               const movementType = normalizeMovementType(row.movementType, row.type);
@@ -344,7 +340,6 @@ export function BudgetIntelligenceTable(props: Props) {
                   id={`budget-row-${row.id}`}
                   className={[
                     row.type === 'expense' ? 'budget-row-expense' : 'budget-row-income',
-                    row.parentId ? 'is-budget-subrow' : 'is-budget-parent-row',
                     props.focusedBudgetRowId === row.id ? 'is-active-row' : '',
                   ].join(' ')}
                   style={props.rowStyle(row)}
@@ -354,13 +349,11 @@ export function BudgetIntelligenceTable(props: Props) {
                   <td data-label="Movimiento">
                     <div className="budget-movement-cell">
                       <input
-                        className={isSub ? 'budget-subcategory-input' : undefined}
                         value={row.category}
-                        placeholder={isSub ? 'Detalle de movimiento' : 'Movimiento'}
+                        placeholder="Movimiento"
                         style={{
                           backgroundColor: `${props.colorForBudgetRow(row.id)}2E`,
                           borderColor: `${props.colorForBudgetRow(row.id)}90`,
-                          paddingLeft: isSub ? '18px' : undefined,
                         }}
                         onMouseDownCapture={(e) => props.focusBudgetField(e.currentTarget)}
                         onPointerDownCapture={(e) => props.focusBudgetField(e.currentTarget)}
@@ -382,7 +375,6 @@ export function BudgetIntelligenceTable(props: Props) {
                   </td>
                   <td data-label="Tipo">
                     <select
-                      className={isSub ? 'budget-subcategory-select' : undefined}
                       value={row.type}
                       onMouseDownCapture={(e) => props.focusBudgetField(e.currentTarget)}
                       onPointerDownCapture={(e) => props.focusBudgetField(e.currentTarget)}
@@ -395,13 +387,11 @@ export function BudgetIntelligenceTable(props: Props) {
                   </td>
                   <td data-label="Monto">
                     <input
-                      className={isSub ? 'budget-subcategory-amount' : undefined}
                       type="number"
                       value={row.amount}
                       min={0}
                       step={1000}
                       placeholder="0"
-                      disabled={hasChildren}
                       onMouseDownCapture={(e) => props.focusBudgetField(e.currentTarget)}
                       onPointerDownCapture={(e) => props.focusBudgetField(e.currentTarget)}
                       onFocus={() => props.focusBudgetRow(row.id)}
@@ -457,16 +447,6 @@ export function BudgetIntelligenceTable(props: Props) {
                     >
                       {detailOpen ? '− Det.' : '+ Det.'}
                     </button>
-                    {!isSub && (
-                      <button
-                        type="button"
-                        className="continue-ghost"
-                        onClick={() => props.addBudgetSubcategory(row.id)}
-                        title="Agregar submovimiento"
-                      >
-                        + Submov.
-                      </button>
-                    )}
                     <button
                       type="button"
                       className="continue-ghost danger"

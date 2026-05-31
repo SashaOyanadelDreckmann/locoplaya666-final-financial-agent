@@ -80,7 +80,6 @@ type BudgetRow = {
   category: string;
   type: 'income' | 'expense';
   amount: number;
-  parentId?: string;
   product?: string;
   institution?: string;
   note?: string;
@@ -423,6 +422,20 @@ const MOVEMENT_TYPE_BY_ROW_ID: Partial<Record<string, NonNullable<BudgetRow['mov
 
 function canonicalBudgetRowId(id: string) {
   return BUDGET_ROW_ID_ALIASES[id] ?? id;
+}
+
+function stripLegacySubmovements(rows: BudgetRow[]): BudgetRow[] {
+  const withLegacy = rows as Array<BudgetRow & { parentId?: string }>;
+  const childRows = withLegacy.filter((row) => typeof row.parentId === 'string' && row.parentId.trim().length > 0);
+  if (childRows.length === 0) return rows;
+
+  const childIds = new Set(childRows.map((row) => row.id));
+  return withLegacy
+    .filter((row) => !childIds.has(row.id))
+    .map((row) => {
+      const { parentId: _ignoredParentId, ...rest } = row as BudgetRow & { parentId?: string };
+      return rest as BudgetRow;
+    });
 }
 
 function normalizePaymentMethod(
@@ -2065,21 +2078,17 @@ export default function AgentPage() {
   }
 
   const budgetTotals = useMemo(() => {
-    const parentIds = new Set(budgetRows.filter((row) => row.parentId).map((row) => row.parentId as string));
-    const effectiveRows = budgetRows.filter((row) => !parentIds.has(row.id));
-    const income = effectiveRows
+    const income = budgetRows
       .filter((r) => r.type === 'income')
       .reduce((acc, r) => acc + r.amount, 0);
-    const expenses = effectiveRows
+    const expenses = budgetRows
       .filter((r) => r.type === 'expense')
       .reduce((acc, r) => acc + r.amount, 0);
     return { income, expenses, balance: income - expenses };
   }, [budgetRows]);
 
   const budgetInsights = useMemo(() => {
-    const parentIds = new Set(budgetRows.filter((row) => row.parentId).map((row) => row.parentId as string));
-    const effectiveRows = budgetRows.filter((row) => !parentIds.has(row.id));
-    const nonZeroRows = effectiveRows.filter((row) => row.amount > 0);
+    const nonZeroRows = budgetRows.filter((row) => row.amount > 0);
     const expenseRows = nonZeroRows.filter((row) => row.type === 'expense');
     const fixedLike = expenseRows.filter((row) => normalizeBudgetRow(row).cadence === 'fixed');
     const variableLike = expenseRows.filter((row) => !fixedLike.some((f) => f.id === row.id));
@@ -2131,15 +2140,13 @@ export default function AgentPage() {
   }, [budgetRows, budgetTotals.balance, budgetTotals.expenses, budgetTotals.income]);
 
   const budgetCompletion = useMemo(() => {
-    const parentIds = new Set(budgetRows.filter((row) => row.parentId).map((row) => row.parentId as string));
-    const effectiveRows = budgetRows.filter((row) => !parentIds.has(row.id));
-    const filledRows = effectiveRows.filter((row) => row.amount > 0);
+    const filledRows = budgetRows.filter((row) => row.amount > 0);
     const fillRate =
-      effectiveRows.length > 0 ? Math.round((filledRows.length / effectiveRows.length) * 100) : 0;
+      budgetRows.length > 0 ? Math.round((filledRows.length / budgetRows.length) * 100) : 0;
     return {
       filledRows,
       fillRate,
-      totalRows: effectiveRows.length,
+      totalRows: budgetRows.length,
     };
   }, [budgetRows]);
 
@@ -2524,11 +2531,13 @@ export default function AgentPage() {
         if (panelState && typeof panelState === 'object') {
           if (Array.isArray(panelState.budgetRows) && panelState.budgetRows.length > 0) {
             setBudgetRows(
-              panelState.budgetRows.map((row: any) =>
-                normalizeBudgetRow({
-                  ...(row as BudgetRow),
-                  note: typeof row?.note === 'string' ? row.note : '',
-                })
+              reconcileBudgetRows(
+                panelState.budgetRows.map((row: any) =>
+                  normalizeBudgetRow({
+                    ...(row as BudgetRow),
+                    note: typeof row?.note === 'string' ? row.note : '',
+                  })
+                )
               )
             );
           }
@@ -2605,11 +2614,13 @@ export default function AgentPage() {
                 const panelState = localBackupParsed;
                 if (Array.isArray(panelState.budgetRows) && panelState.budgetRows.length > 0) {
                   setBudgetRows(
-                    panelState.budgetRows.map((row: any) =>
-                      normalizeBudgetRow({
-                        ...(row as BudgetRow),
-                        note: typeof row?.note === 'string' ? row.note : '',
-                      })
+                    reconcileBudgetRows(
+                      panelState.budgetRows.map((row: any) =>
+                        normalizeBudgetRow({
+                          ...(row as BudgetRow),
+                          note: typeof row?.note === 'string' ? row.note : '',
+                        })
+                      )
                     )
                   );
                 }
@@ -3262,41 +3273,14 @@ export default function AgentPage() {
   }
 
   function reconcileBudgetRows(rows: BudgetRow[]): BudgetRow[] {
-    // Keep parent/child type consistent, then roll up amounts from descendants.
-    const normalizedRows = rows.map(normalizeBudgetRow);
-    const byId = new Map(normalizedRows.map((row) => [row.id, row]));
-    const typed = normalizedRows.map((row) => {
-      if (!row.parentId) return row;
-      const parent = byId.get(row.parentId);
-      if (!parent) return { ...row, parentId: undefined };
-      if (row.type === parent.type) return row;
-      return { ...row, type: parent.type };
+    const flattenedRows = stripLegacySubmovements(rows);
+    const normalizedRows = flattenedRows.map((row) => {
+      const normalized = normalizeBudgetRow(row);
+      return { ...normalized, amount: Math.max(0, Number(normalized.amount) || 0) };
     });
-    const childrenByParentId = new Map<string, BudgetRow[]>();
-    typed.forEach((row) => {
-      if (!row.parentId) return;
-      const bucket = childrenByParentId.get(row.parentId) ?? [];
-      bucket.push(row);
-      childrenByParentId.set(row.parentId, bucket);
-    });
-    const amountMemo = new Map<string, number>();
-    const computeRolledUpAmount = (row: BudgetRow): number => {
-      if (amountMemo.has(row.id)) return amountMemo.get(row.id)!;
-      const children = childrenByParentId.get(row.id) ?? [];
-      if (children.length === 0) {
-        const selfAmount = Math.max(0, Number(row.amount) || 0);
-        amountMemo.set(row.id, selfAmount);
-        return selfAmount;
-      }
-      const rolled = children.reduce((sum, child) => sum + computeRolledUpAmount(child), 0);
-      amountMemo.set(row.id, rolled);
-      return rolled;
-    };
-    return typed.map((row) => {
-      const children = childrenByParentId.get(row.id) ?? [];
-      if (children.length === 0) return row;
-      return { ...row, amount: computeRolledUpAmount(row) };
-    });
+    const dedupedById = new Map<string, BudgetRow>();
+    normalizedRows.forEach((row) => dedupedById.set(row.id, row));
+    return Array.from(dedupedById.values()).slice(0, MAX_BUDGET_ROWS);
   }
 
   function updateBudgetRow(
@@ -3316,17 +3300,7 @@ export default function AgentPage() {
             }
           : row
       );
-      // If parent type changes manually, propagate it to all children.
-      const propagated =
-        field === 'type'
-          ? updated.map((row) => {
-              const parent = updated.find((candidate) => candidate.id === row.parentId);
-              if (!parent) return row;
-              if (row.type === parent.type) return row;
-              return { ...row, type: parent.type };
-            })
-          : updated;
-      return reconcileBudgetRows(propagated);
+      return reconcileBudgetRows(updated);
     });
   }
 
@@ -3341,7 +3315,7 @@ export default function AgentPage() {
         return existing ? { ...templateRow, ...existing } : templateRow;
       });
       const customRows = normalizedRows.filter((row) => !templateIds.has(row.id));
-      return [...mergedStarterRows, ...customRows];
+      return reconcileBudgetRows([...mergedStarterRows, ...customRows]);
     });
   }
 
@@ -3371,47 +3345,8 @@ export default function AgentPage() {
     });
   }
 
-  function addBudgetSubcategory(parentId: string) {
-    setBudgetRows((rows) => {
-      if (rows.length >= MAX_BUDGET_ROWS) return rows;
-      const parent = rows.find((row) => row.id === parentId);
-      if (!parent) return rows;
-      const siblings = rows.filter((row) => row.parentId === parentId);
-      const nextIdx = siblings.length + 1;
-      const subId = `${parentId}-sub-${Date.now()}`;
-      const subRow: BudgetRow = {
-        id: subId,
-        parentId,
-        category: `${parent.category} · detalle ${nextIdx}`,
-        type: parent.type,
-        amount: 0,
-        detail: '',
-        cadence: parent.cadence,
-        paymentMethod: parent.paymentMethod,
-        movementType: parent.movementType,
-        momentum: parent.momentum,
-        strategy: parent.strategy,
-      };
-      return reconcileBudgetRows([...rows, subRow]);
-    });
-  }
-
   function deleteBudgetRow(id: string) {
-    setBudgetRows((rows) => {
-      const deleteSet = new Set([id]);
-      let changed = true;
-      while (changed) {
-        changed = false;
-        rows.forEach((row) => {
-          if (row.parentId && deleteSet.has(row.parentId) && !deleteSet.has(row.id)) {
-            deleteSet.add(row.id);
-            changed = true;
-          }
-        });
-      }
-      const next = rows.filter((row) => !deleteSet.has(row.id));
-      return reconcileBudgetRows(next);
-    });
+    setBudgetRows((rows) => reconcileBudgetRows(rows.filter((row) => row.id !== id)));
   }
 
   function upsertBudgetRow(row: BudgetRow) {
@@ -3442,7 +3377,6 @@ export default function AgentPage() {
           amount: Math.round(Number(row.amount) || 0),
           note: row.note || undefined,
           detail: row.detail || undefined,
-          parentId: row.parentId ?? null,
           product: row.product || undefined,
           institution: row.institution || undefined,
           cadence: row.cadence,
@@ -3490,7 +3424,6 @@ export default function AgentPage() {
       detail: (r.detail ?? '').trim().slice(0, 120) || null,
       type: r.type === 'income' ? 'income' : 'expense',
       amount: Math.round(Number(r.amount) || 0),
-      parentId: r.parentId ?? null,
       cadence: r.cadence ?? null,
       paymentMethod: r.paymentMethod ?? null,
       movementType: r.movementType ?? null,
@@ -4753,7 +4686,6 @@ export default function AgentPage() {
         applyBudgetTemplate={applyBudgetTemplate}
         coachHint={coachHint}
         addBudgetRow={addBudgetRow}
-        addBudgetSubcategory={addBudgetSubcategory}
         deleteBudgetRow={deleteBudgetRow}
         sendBudgetToAgent={sendBudgetToAgent}
         chatAnswers={budgetChatAnswers}
