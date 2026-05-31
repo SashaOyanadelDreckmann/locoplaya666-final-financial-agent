@@ -29724,6 +29724,34 @@ body.agent-route-active .app-shell::before {
   vertical-align: middle;
 }
 
+.budget-modal .budget-table-pro th:nth-child(1),
+.budget-modal .budget-table-pro td:nth-child(1) { width: 23%; }
+.budget-modal .budget-table-pro th:nth-child(2),
+.budget-modal .budget-table-pro td:nth-child(2) { width: 9%; }
+.budget-modal .budget-table-pro th:nth-child(3),
+.budget-modal .budget-table-pro td:nth-child(3) { width: 11%; }
+.budget-modal .budget-table-pro th:nth-child(4),
+.budget-modal .budget-table-pro td:nth-child(4) { width: 11%; }
+.budget-modal .budget-table-pro th:nth-child(5),
+.budget-modal .budget-table-pro td:nth-child(5) { width: 12%; }
+.budget-modal .budget-table-pro th:nth-child(6),
+.budget-modal .budget-table-pro td:nth-child(6) { width: 14%; }
+.budget-modal .budget-table-pro th:nth-child(7),
+.budget-modal .budget-table-pro td:nth-child(7) { width: 12%; }
+.budget-modal .budget-table-pro th:nth-child(8),
+.budget-modal .budget-table-pro td:nth-child(8) { width: 8%; }
+
+.budget-modal .budget-movement-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.budget-modal .budget-detail-input {
+  font-size: 0.82rem;
+  border-style: dashed !important;
+}
+
 .budget-modal .budget-pill-group-shell {
   display: flex;
   align-items: center;
@@ -29835,27 +29863,88 @@ body.agent-route-active .app-shell::before {
   box-shadow: 0 8px 20px rgba(145, 240, 204, 0.2);
 }
 
-.budget-modal .budget-trend-indicator {
-  width: 30px;
-  height: 30px;
+.budget-modal .budget-impact-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.budget-modal .budget-impact-cell {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.05);
+  gap: 6px;
+  border-radius: 12px;
+  padding: 2px 4px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
 }
 
-.budget-modal .budget-trend-indicator.is-up {
-  color: #ff8f8f;
+.budget-modal .budget-impact-cell small {
+  font-size: 0.72rem;
+  font-weight: 600;
+  min-width: 46px;
+  text-align: right;
 }
 
-.budget-modal .budget-trend-indicator.is-steady {
-  color: #ffd76f;
+.budget-modal .budget-impact-zero {
+  stroke: rgba(255, 255, 255, 0.18);
+  stroke-width: 0.8;
 }
 
-.budget-modal .budget-trend-indicator.is-down {
-  color: #8df0c4;
+.budget-modal .budget-impact-line {
+  fill: none;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.budget-modal .budget-impact-area {
+  opacity: 0.28;
+}
+
+.budget-modal .budget-impact-cell.is-positive .budget-impact-line {
+  stroke: #7fe0b7;
+}
+
+.budget-modal .budget-impact-cell.is-positive .budget-impact-area {
+  fill: #7fe0b7;
+}
+
+.budget-modal .budget-impact-cell.is-high .budget-impact-line {
+  stroke: #ff8c8c;
+}
+
+.budget-modal .budget-impact-cell.is-high .budget-impact-area {
+  fill: #ff8c8c;
+}
+
+.budget-modal .budget-impact-cell.is-medium .budget-impact-line {
+  stroke: #ffd487;
+}
+
+.budget-modal .budget-impact-cell.is-medium .budget-impact-area {
+  fill: #ffd487;
+}
+
+.budget-modal .budget-impact-cell.is-low .budget-impact-line {
+  stroke: #9ec4ff;
+}
+
+.budget-modal .budget-impact-cell.is-low .budget-impact-area {
+  fill: #9ec4ff;
+}
+
+.budget-modal .budget-impact-type-label {
+  font-size: 0.66rem;
+  color: rgba(216, 228, 250, 0.66);
+  letter-spacing: 0.03em;
+}
+
+.budget-modal .budget-table-pro td[data-label=\"Acciones\"] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
 }
 
 @media (max-width: 860px) {
@@ -29875,8 +29964,8 @@ body.agent-route-active .app-shell::before {
       "category category"
       "type amount"
       "cadence cadence"
-      "momentum momentum"
-      "strategy strategy"
+      "payment movement"
+      "impact impact"
       "actions actions";
     gap: 10px;
     padding: 14px;
@@ -29906,9 +29995,10 @@ body.agent-route-active .app-shell::before {
   .budget-modal .budget-table-pro tbody td:nth-child(2) { grid-area: type !important; }
   .budget-modal .budget-table-pro tbody td:nth-child(3) { grid-area: amount !important; }
   .budget-modal .budget-table-pro tbody td:nth-child(4) { grid-area: cadence !important; }
-  .budget-modal .budget-table-pro tbody td:nth-child(5) { grid-area: momentum !important; }
-  .budget-modal .budget-table-pro tbody td:nth-child(6) { grid-area: strategy !important; }
-  .budget-modal .budget-table-pro tbody td:nth-child(7) { grid-area: actions !important; }
+  .budget-modal .budget-table-pro tbody td:nth-child(5) { grid-area: payment !important; }
+  .budget-modal .budget-table-pro tbody td:nth-child(6) { grid-area: movement !important; }
+  .budget-modal .budget-table-pro tbody td:nth-child(7) { grid-area: impact !important; }
+  .budget-modal .budget-table-pro tbody td:nth-child(8) { grid-area: actions !important; }
 
   .budget-modal .budget-table-pro tbody td:last-child {
     display: flex !important;
@@ -29973,4 +30063,33 @@ body.agent-route-active .app-shell::before {
     flex-basis: 14px !important;
     font-size: 7px !important;
   }
+}
+
+/* Budget pro final override */
+.budget-modal .budget-table.budget-table-pro td[data-label="Acciones"] {
+  display: flex !important;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+@media (max-width: 860px) {
+  .budget-modal .budget-table.budget-table-pro tbody tr {
+    grid-template-areas:
+      "category category"
+      "type amount"
+      "cadence cadence"
+      "payment movement"
+      "impact impact"
+      "actions actions" !important;
+  }
+
+  .budget-modal .budget-table.budget-table-pro tbody td:nth-child(1) { grid-area: category !important; }
+  .budget-modal .budget-table.budget-table-pro tbody td:nth-child(2) { grid-area: type !important; }
+  .budget-modal .budget-table.budget-table-pro tbody td:nth-child(3) { grid-area: amount !important; }
+  .budget-modal .budget-table.budget-table-pro tbody td:nth-child(4) { grid-area: cadence !important; }
+  .budget-modal .budget-table.budget-table-pro tbody td:nth-child(5) { grid-area: payment !important; }
+  .budget-modal .budget-table.budget-table-pro tbody td:nth-child(6) { grid-area: movement !important; }
+  .budget-modal .budget-table.budget-table-pro tbody td:nth-child(7) { grid-area: impact !important; }
+  .budget-modal .budget-table.budget-table-pro tbody td:nth-child(8) { grid-area: actions !important; }
 }

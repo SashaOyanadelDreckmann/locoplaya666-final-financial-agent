@@ -35,7 +35,22 @@ type BudgetRow = {
   product?: string;
   institution?: string;
   note?: string;
+  detail?: string;
   cadence?: 'fixed' | 'variable' | 'oneoff';
+  paymentMethod?: 'transfer' | 'debit' | 'credit' | 'cash' | 'prepaid' | 'other';
+  movementType?:
+    | 'income_main'
+    | 'income_extra'
+    | 'housing'
+    | 'home_services'
+    | 'food'
+    | 'transport'
+    | 'health'
+    | 'education'
+    | 'debt'
+    | 'savings_investment'
+    | 'taxes_fees'
+    | 'leisure_other';
   momentum?: 'up' | 'steady' | 'down';
   strategy?: 'shield' | 'review' | 'optimize';
 };
@@ -74,24 +89,24 @@ function normalizeBudgetText(value: string): string {
 function buildRefinementPromptForRow(row: { id: string; category: string; type: 'income' | 'expense' }): string {
   const category = normalizeBudgetText(row.category);
   if (row.type === 'income' || row.id === 'income_salary' || /ingreso|sueldo|salario|honorario|freelance|comision/.test(category)) {
-    return `Para "${row.category}", dime fuentes y montos. Ej: sueldo 900000, freelance 250000`;
+    return `Para este movimiento "${row.category}", dime fuentes y montos. Ej: sueldo 900000, freelance 250000`;
   }
   if (row.id === 'expense_savings' || /ahorr|inversion|invertir|apv|fondo/.test(category)) {
-    return `Para "${row.category}", dime aportes reales con monto. Ej: APV 120000, fondo mutuo 80000`;
+    return `Para este movimiento "${row.category}", dime aportes reales con monto. Ej: APV 120000, fondo mutuo 80000`;
   }
   if (row.id === 'expense_debt' || /deuda|cuota|credito|tarjeta|prestamo|hipoteca/.test(category)) {
-    return `Para "${row.category}", dime pagos reales con monto. Ej: cuota tarjeta 90000, credito consumo 140000`;
+    return `Para este movimiento "${row.category}", dime pagos reales con monto. Ej: cuota tarjeta 90000, credito consumo 140000`;
   }
   if (row.id === 'expense_services' || /servicios|luz|agua|gas|internet|telefono/.test(category)) {
-    return `Para "${row.category}", dime servicios y montos. Ej: electricidad 45000, internet 28000`;
+    return `Para este movimiento "${row.category}", dime servicios y montos. Ej: electricidad 45000, internet 28000`;
   }
   if (row.id === 'expense_transport' || /transporte|bencina|metro|bus|uber|peaje/.test(category)) {
-    return `Para "${row.category}", dime gastos de movilidad. Ej: bencina 90000, metro 35000`;
+    return `Para este movimiento "${row.category}", dime gastos de movilidad. Ej: bencina 90000, metro 35000`;
   }
   if (row.id === 'expense_food' || /alimenta|comida|supermercado|feria|restaurante/.test(category)) {
-    return `Para "${row.category}", dime gastos de comida. Ej: supermercado 120000, feria 35000`;
+    return `Para este movimiento "${row.category}", dime gastos de comida. Ej: supermercado 120000, feria 35000`;
   }
-  return `Para "${row.category}", dime 2-4 gastos reales con monto. Ej: supermercado 120000, farmacia 35000`;
+  return `Para este movimiento "${row.category}", dime 2-4 gastos reales con monto. Ej: supermercado 120000, farmacia 35000`;
 }
 
 export function BudgetModal(props: {
@@ -352,7 +367,7 @@ export function BudgetModal(props: {
         return budgetQuestionForId(row.id);
       }
       if (row.type === 'income') {
-        return `Para "${row.category}", ¿cuál es el monto mensual actual?`;
+        return `Para el movimiento "${row.category}", ¿cuál es el monto mensual actual?`;
       }
       return buildRefinementPromptForRow(row);
     })();
@@ -374,6 +389,57 @@ export function BudgetModal(props: {
     const rowType = action.type === 'income' ? 'income' : action.type === 'expense' ? 'expense' : null;
     const amount = Math.max(0, Math.round(Number(action.amount ?? 0)));
     const category = String(action.category ?? '').trim();
+    const detail = String(action.detail ?? '').trim();
+    const cadence =
+      action.cadence === 'fixed' || action.cadence === 'variable'
+        ? action.cadence
+        : action.cadence === 'oneoff'
+          ? 'variable'
+          : undefined;
+    const paymentMethod =
+      action.payment_method === 'transfer' ||
+      action.payment_method === 'debit' ||
+      action.payment_method === 'credit' ||
+      action.payment_method === 'cash' ||
+      action.payment_method === 'prepaid' ||
+      action.payment_method === 'other'
+        ? action.payment_method
+        : action.paymentMethod === 'transfer' ||
+            action.paymentMethod === 'debit' ||
+            action.paymentMethod === 'credit' ||
+            action.paymentMethod === 'cash' ||
+            action.paymentMethod === 'prepaid' ||
+            action.paymentMethod === 'other'
+          ? action.paymentMethod
+          : undefined;
+    const movementType =
+      action.movement_type === 'income_main' ||
+      action.movement_type === 'income_extra' ||
+      action.movement_type === 'housing' ||
+      action.movement_type === 'home_services' ||
+      action.movement_type === 'food' ||
+      action.movement_type === 'transport' ||
+      action.movement_type === 'health' ||
+      action.movement_type === 'education' ||
+      action.movement_type === 'debt' ||
+      action.movement_type === 'savings_investment' ||
+      action.movement_type === 'taxes_fees' ||
+      action.movement_type === 'leisure_other'
+        ? action.movement_type
+        : action.movementType === 'income_main' ||
+            action.movementType === 'income_extra' ||
+            action.movementType === 'housing' ||
+            action.movementType === 'home_services' ||
+            action.movementType === 'food' ||
+            action.movementType === 'transport' ||
+            action.movementType === 'health' ||
+            action.movementType === 'education' ||
+            action.movementType === 'debt' ||
+            action.movementType === 'savings_investment' ||
+            action.movementType === 'taxes_fees' ||
+            action.movementType === 'leisure_other'
+          ? action.movementType
+          : undefined;
     const parentId = typeof action.parent_id === 'string' && action.parent_id.trim() ? action.parent_id.trim() : undefined;
     if (!rowId) return;
 
@@ -394,6 +460,10 @@ export function BudgetModal(props: {
       category,
       amount: rowHasChildren ? existingAmount : amount,
       parentId,
+      detail: detail || undefined,
+      cadence,
+      paymentMethod,
+      movementType,
     };
     props.upsertBudgetRow(row);
     // Animate the updated row directly without touching assistantBudgetRowId (caller sets it for next question)
@@ -551,17 +621,20 @@ export function BudgetModal(props: {
             products: props.bankProducts ?? [],
             activeRowId: activeBudgetRow?.id ?? null,
             activeRow: activeBudgetRow
-              ? {
-                  id: activeBudgetRow.id,
-                  category: activeBudgetRow.category,
-                  type: activeBudgetRow.type,
-                  amount: activeBudgetRow.amount,
-                  product: activeBudgetRow.product ?? null,
-                  institution: activeBudgetRow.institution ?? null,
-                  cadence: activeBudgetRow.cadence ?? null,
-                  momentum: activeBudgetRow.momentum ?? null,
-                  strategy: activeBudgetRow.strategy ?? null,
-                }
+                ? {
+                    id: activeBudgetRow.id,
+                    category: activeBudgetRow.category,
+                    type: activeBudgetRow.type,
+                    amount: activeBudgetRow.amount,
+                    detail: activeBudgetRow.detail ?? null,
+                    product: activeBudgetRow.product ?? null,
+                    institution: activeBudgetRow.institution ?? null,
+                    cadence: activeBudgetRow.cadence ?? null,
+                    paymentMethod: activeBudgetRow.paymentMethod ?? null,
+                    movementType: activeBudgetRow.movementType ?? null,
+                    momentum: activeBudgetRow.momentum ?? null,
+                    strategy: activeBudgetRow.strategy ?? null,
+                  }
               : null,
             intakeContext: props.sessionInfo?.injectedIntake?.intakeContext ?? null,
             intakeData: props.sessionInfo?.injectedIntake?.intake ?? null,
@@ -660,17 +733,20 @@ export function BudgetModal(props: {
             products: props.bankProducts ?? [],
             activeRowId: activeBudgetRow?.id ?? null,
             activeRow: activeBudgetRow
-              ? {
-                  id: activeBudgetRow.id,
-                  category: activeBudgetRow.category,
-                  type: activeBudgetRow.type,
-                  amount: activeBudgetRow.amount,
-                  product: activeBudgetRow.product ?? null,
-                  institution: activeBudgetRow.institution ?? null,
-                  cadence: activeBudgetRow.cadence ?? null,
-                  momentum: activeBudgetRow.momentum ?? null,
-                  strategy: activeBudgetRow.strategy ?? null,
-                }
+                ? {
+                    id: activeBudgetRow.id,
+                    category: activeBudgetRow.category,
+                    type: activeBudgetRow.type,
+                    amount: activeBudgetRow.amount,
+                    detail: activeBudgetRow.detail ?? null,
+                    product: activeBudgetRow.product ?? null,
+                    institution: activeBudgetRow.institution ?? null,
+                    cadence: activeBudgetRow.cadence ?? null,
+                    paymentMethod: activeBudgetRow.paymentMethod ?? null,
+                    movementType: activeBudgetRow.movementType ?? null,
+                    momentum: activeBudgetRow.momentum ?? null,
+                    strategy: activeBudgetRow.strategy ?? null,
+                  }
               : null,
             intakeContext: props.sessionInfo?.injectedIntake?.intakeContext ?? null,
             intakeData: props.sessionInfo?.injectedIntake?.intake ?? null,
@@ -910,7 +986,7 @@ export function BudgetModal(props: {
                   <span className="budget-section-eyebrow">Tabla</span>
                   <h4>Presupuesto mensual</h4>
                   <p className="budget-table-help">
-                    Edita categoría/tipo/monto directo en cada celda. Usa `+ Sub` para desglose y `×` para borrar filas.
+                    Completa Movimiento, Tipo, Monto, Recurrencia, Medio de pago y Tipo de movimiento. Impacto se calcula automático por fila.
                   </p>
                 </div>
                 <div className="budget-table-top-actions">

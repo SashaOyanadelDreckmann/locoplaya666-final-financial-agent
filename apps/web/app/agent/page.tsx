@@ -84,7 +84,22 @@ type BudgetRow = {
   product?: string;
   institution?: string;
   note?: string;
+  detail?: string;
   cadence?: 'fixed' | 'variable' | 'oneoff';
+  paymentMethod?: 'transfer' | 'debit' | 'credit' | 'cash' | 'prepaid' | 'other';
+  movementType?:
+    | 'income_main'
+    | 'income_extra'
+    | 'housing'
+    | 'home_services'
+    | 'food'
+    | 'transport'
+    | 'health'
+    | 'education'
+    | 'debt'
+    | 'savings_investment'
+    | 'taxes_fees'
+    | 'leisure_other';
   momentum?: 'up' | 'steady' | 'down';
   strategy?: 'shield' | 'review' | 'optimize';
 };
@@ -283,6 +298,8 @@ function createBudgetStarterRows(): BudgetRow[] {
       product: 'Ingresos principales',
       institution: '',
       cadence: 'fixed',
+      paymentMethod: 'transfer',
+      movementType: 'income_main',
       momentum: 'steady',
       strategy: 'shield',
     },
@@ -294,6 +311,8 @@ function createBudgetStarterRows(): BudgetRow[] {
       product: 'Vivienda',
       institution: '',
       cadence: 'fixed',
+      paymentMethod: 'debit',
+      movementType: 'housing',
       momentum: 'steady',
       strategy: 'shield',
     },
@@ -305,6 +324,8 @@ function createBudgetStarterRows(): BudgetRow[] {
       product: 'Gasto recurrente',
       institution: '',
       cadence: 'variable',
+      paymentMethod: 'debit',
+      movementType: 'food',
       momentum: 'up',
       strategy: 'review',
     },
@@ -316,6 +337,8 @@ function createBudgetStarterRows(): BudgetRow[] {
       product: 'Movilidad',
       institution: '',
       cadence: 'variable',
+      paymentMethod: 'debit',
+      movementType: 'transport',
       momentum: 'up',
       strategy: 'review',
     },
@@ -327,6 +350,8 @@ function createBudgetStarterRows(): BudgetRow[] {
       product: 'Hogar',
       institution: '',
       cadence: 'fixed',
+      paymentMethod: 'debit',
+      movementType: 'home_services',
       momentum: 'up',
       strategy: 'review',
     },
@@ -338,6 +363,8 @@ function createBudgetStarterRows(): BudgetRow[] {
       product: 'Crédito',
       institution: '',
       cadence: 'fixed',
+      paymentMethod: 'credit',
+      movementType: 'debt',
       momentum: 'steady',
       strategy: 'optimize',
     },
@@ -349,6 +376,8 @@ function createBudgetStarterRows(): BudgetRow[] {
       product: 'Ahorro',
       institution: '',
       cadence: 'fixed',
+      paymentMethod: 'transfer',
+      movementType: 'savings_investment',
       momentum: 'steady',
       strategy: 'shield',
     },
@@ -360,6 +389,8 @@ function createBudgetStarterRows(): BudgetRow[] {
       product: 'Variables',
       institution: '',
       cadence: 'variable',
+      paymentMethod: 'cash',
+      movementType: 'leisure_other',
       momentum: 'up',
       strategy: 'optimize',
     },
@@ -379,21 +410,92 @@ const BUDGET_ROW_ID_ALIASES: Record<string, string> = {
   'expense-other': 'expense_other',
 };
 
+const MOVEMENT_TYPE_BY_ROW_ID: Partial<Record<string, NonNullable<BudgetRow['movementType']>>> = {
+  income_salary: 'income_main',
+  expense_rent: 'housing',
+  expense_food: 'food',
+  expense_transport: 'transport',
+  expense_services: 'home_services',
+  expense_debt: 'debt',
+  expense_savings: 'savings_investment',
+  expense_other: 'leisure_other',
+};
+
 function canonicalBudgetRowId(id: string) {
   return BUDGET_ROW_ID_ALIASES[id] ?? id;
+}
+
+function normalizePaymentMethod(
+  value: BudgetRow['paymentMethod'],
+  rowType: BudgetRow['type']
+): NonNullable<BudgetRow['paymentMethod']> {
+  if (value === 'transfer' || value === 'debit' || value === 'credit' || value === 'cash' || value === 'prepaid' || value === 'other') {
+    return value;
+  }
+  return rowType === 'income' ? 'transfer' : 'debit';
+}
+
+function inferMovementType(row: Pick<BudgetRow, 'id' | 'category' | 'type'>): NonNullable<BudgetRow['movementType']> {
+  const byId = MOVEMENT_TYPE_BY_ROW_ID[canonicalBudgetRowId(row.id)];
+  if (byId) return byId;
+
+  const normalized = `${row.category} ${row.id}`
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+
+  if (row.type === 'income') {
+    if (/\b(extra|adicional|freelance|boleta|comision|comisión|side|secundar)\b/.test(normalized)) return 'income_extra';
+    return 'income_main';
+  }
+  if (/\b(arriend|viviend|hipotec)\b/.test(normalized)) return 'housing';
+  if (/\b(servicio|luz|agua|gas|internet|telefon)\b/.test(normalized)) return 'home_services';
+  if (/\b(aliment|comida|supermerc|feria|restaurant)\b/.test(normalized)) return 'food';
+  if (/\b(transporte|metro|bus|uber|bencina|movilidad|peaje)\b/.test(normalized)) return 'transport';
+  if (/\b(salud|medic|farmac|clinica|isapre)\b/.test(normalized)) return 'health';
+  if (/\b(educa|colegio|universid|curso)\b/.test(normalized)) return 'education';
+  if (/\b(deuda|credito|crédito|cuota|prestamo|tarjeta)\b/.test(normalized)) return 'debt';
+  if (/\b(ahorr|inversion|inversión|apv|fondo)\b/.test(normalized)) return 'savings_investment';
+  if (/\b(impuesto|comision|comisión|fee|cargo)\b/.test(normalized)) return 'taxes_fees';
+  return 'leisure_other';
 }
 
 function normalizeBudgetRow(row: BudgetRow): BudgetRow {
   const normalizedId = canonicalBudgetRowId(row.id);
   const normalized: BudgetRow = normalizedId === row.id ? row : { ...row, id: normalizedId };
-  return {
-    ...normalized,
-    cadence:
-      normalized.cadence === 'fixed' || normalized.cadence === 'variable' || normalized.cadence === 'oneoff'
-        ? normalized.cadence
+  const normalizedCadence =
+    normalized.cadence === 'fixed'
+      ? 'fixed'
+      : normalized.cadence === 'variable' || normalized.cadence === 'oneoff'
+        ? 'variable'
         : normalized.type === 'income'
           ? 'fixed'
-          : 'variable',
+          : 'variable';
+  const normalizedMovementType = (() => {
+    const raw = normalized.movementType;
+    if (
+      raw === 'income_main' ||
+      raw === 'income_extra' ||
+      raw === 'housing' ||
+      raw === 'home_services' ||
+      raw === 'food' ||
+      raw === 'transport' ||
+      raw === 'health' ||
+      raw === 'education' ||
+      raw === 'debt' ||
+      raw === 'savings_investment' ||
+      raw === 'taxes_fees' ||
+      raw === 'leisure_other'
+    ) {
+      return raw;
+    }
+    return inferMovementType(normalized);
+  })();
+  return {
+    ...normalized,
+    cadence: normalizedCadence,
+    paymentMethod: normalizePaymentMethod(normalized.paymentMethod, normalized.type),
+    movementType: normalizedMovementType,
     momentum:
       normalized.momentum === 'up' || normalized.momentum === 'steady' || normalized.momentum === 'down'
         ? normalized.momentum
@@ -1979,11 +2081,7 @@ export default function AgentPage() {
     const effectiveRows = budgetRows.filter((row) => !parentIds.has(row.id));
     const nonZeroRows = effectiveRows.filter((row) => row.amount > 0);
     const expenseRows = nonZeroRows.filter((row) => row.type === 'expense');
-    const fixedLike = expenseRows.filter((row) =>
-      /(arriendo|hipoteca|luz|agua|internet|suscrip|colegio|seguro|deuda)/i.test(
-        `${row.category} ${row.note ?? ''}`
-      )
-    );
+    const fixedLike = expenseRows.filter((row) => normalizeBudgetRow(row).cadence === 'fixed');
     const variableLike = expenseRows.filter((row) => !fixedLike.some((f) => f.id === row.id));
     const fixedTotal = fixedLike.reduce((sum, row) => sum + row.amount, 0);
     const variableTotal = variableLike.reduce((sum, row) => sum + row.amount, 0);
@@ -2939,10 +3037,13 @@ export default function AgentPage() {
             .slice(0, 20)
             .map((r) => ({
               category: r.category,
+              detail: r.detail,
               type: r.type,
               amount: r.amount,
               note: r.note,
               cadence: r.cadence,
+              paymentMethod: r.paymentMethod,
+              movementType: r.movementType,
               momentum: r.momentum,
               strategy: r.strategy,
             })),
@@ -3036,17 +3137,26 @@ export default function AgentPage() {
               updated[existingIdx] = { ...updated[existingIdx], amount: upd.amount };
             } else {
               if (updated.length >= MAX_BUDGET_ROWS) continue;
+              const inferredType: BudgetRow['type'] = upd.type;
+              const inferredCategory = upd.category ?? (upd.type === 'income' ? 'Ingresos' : 'Gastos');
               // Add new row
               updated.push({
                 id: `agent-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-                category: upd.category ?? (upd.type === 'income' ? 'Ingresos' : 'Gastos'),
-                type: upd.type,
+                category: inferredCategory,
+                type: inferredType,
                 amount: upd.amount,
                 note: upd.label,
+                cadence: inferredType === 'income' ? 'fixed' : 'variable',
+                paymentMethod: inferredType === 'income' ? 'transfer' : 'debit',
+                movementType: inferMovementType({
+                  id: inferredCategory,
+                  category: inferredCategory,
+                  type: inferredType,
+                }),
               });
             }
           }
-          return updated.slice(0, MAX_BUDGET_ROWS);
+          return reconcileBudgetRows(updated.slice(0, MAX_BUDGET_ROWS));
         });
       }
 
@@ -3153,8 +3263,9 @@ export default function AgentPage() {
 
   function reconcileBudgetRows(rows: BudgetRow[]): BudgetRow[] {
     // Keep parent/child type consistent, then roll up amounts from descendants.
-    const byId = new Map(rows.map((row) => [row.id, row]));
-    const typed = rows.map((row) => {
+    const normalizedRows = rows.map(normalizeBudgetRow);
+    const byId = new Map(normalizedRows.map((row) => [row.id, row]));
+    const typed = normalizedRows.map((row) => {
       if (!row.parentId) return row;
       const parent = byId.get(row.parentId);
       if (!parent) return { ...row, parentId: undefined };
@@ -3243,12 +3354,14 @@ export default function AgentPage() {
           : [
               {
                 id: `${type}-${Date.now()}`,
-                category: type === 'income' ? 'Nuevo ingreso' : 'Nuevo gasto',
+                category: type === 'income' ? 'Nuevo movimiento de ingreso' : 'Nuevo movimiento de gasto',
                 type,
                 amount: 0,
                 product: type === 'income' ? 'Producto ingreso' : 'Producto gasto',
                 institution: '',
                 cadence: type === 'income' ? 'fixed' : 'variable',
+                paymentMethod: type === 'income' ? 'transfer' : 'debit',
+                movementType: type === 'income' ? 'income_extra' : 'leisure_other',
                 momentum: 'steady',
                 strategy: type === 'income' ? 'shield' : 'review',
               } as BudgetRow,
@@ -3269,10 +3382,13 @@ export default function AgentPage() {
       const subRow: BudgetRow = {
         id: subId,
         parentId,
-        category: `${parent.category} · item ${nextIdx}`,
+        category: `${parent.category} · detalle ${nextIdx}`,
         type: parent.type,
         amount: 0,
+        detail: '',
         cadence: parent.cadence,
+        paymentMethod: parent.paymentMethod,
+        movementType: parent.movementType,
         momentum: parent.momentum,
         strategy: parent.strategy,
       };
@@ -3325,10 +3441,13 @@ export default function AgentPage() {
           type: row.type,
           amount: Math.round(Number(row.amount) || 0),
           note: row.note || undefined,
+          detail: row.detail || undefined,
           parentId: row.parentId ?? null,
           product: row.product || undefined,
           institution: row.institution || undefined,
           cadence: row.cadence,
+          paymentMethod: row.paymentMethod,
+          movementType: row.movementType,
           momentum: row.momentum,
           strategy: row.strategy,
         })),
@@ -3368,10 +3487,13 @@ export default function AgentPage() {
     const budgetSummary = rowsWithData.map((r) => ({
       id: r.id,
       category: (r.category ?? '').trim().slice(0, 64) || 'sin_categoria',
+      detail: (r.detail ?? '').trim().slice(0, 120) || null,
       type: r.type === 'income' ? 'income' : 'expense',
       amount: Math.round(Number(r.amount) || 0),
       parentId: r.parentId ?? null,
       cadence: r.cadence ?? null,
+      paymentMethod: r.paymentMethod ?? null,
+      movementType: r.movementType ?? null,
       momentum: r.momentum ?? null,
       strategy: r.strategy ?? null,
     }));
@@ -3941,6 +4063,12 @@ export default function AgentPage() {
         amount: Math.max(0, Math.round(Number(category.amount))),
         product: product.label,
         institution: product.bank,
+        paymentMethod: 'debit',
+        movementType: inferMovementType({
+          id: `expense-auto-${category.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 28)}`,
+          category: category.name,
+          type: 'expense',
+        }),
         note: 'Estimado desde movimientos de producto',
       }));
 
@@ -3977,6 +4105,8 @@ export default function AgentPage() {
             amount: incomeEstimate,
             product: product.label,
             institution: product.bank,
+            paymentMethod: 'transfer',
+            movementType: 'income_main',
             note: 'Estimado solo desde señales de ingreso (no suma abonos/transferencias)',
           }
         : {
@@ -3986,6 +4116,8 @@ export default function AgentPage() {
             amount: 0,
             product: product.label,
             institution: product.bank,
+            paymentMethod: 'transfer',
+            movementType: 'income_main',
             note: isCardLikeProduct
               ? 'Producto tipo tarjeta/crédito: no se infiere ingreso desde abonos.'
               : 'Sin señales claras de sueldo/pensión/honorarios: completa tu ingreso mensual.',
@@ -4003,7 +4135,7 @@ export default function AgentPage() {
       };
       if (incomeRow) upsert(incomeRow);
       for (const row of expenseRows) upsert(row);
-      return next;
+      return reconcileBudgetRows(next);
     });
   }
 

@@ -1,19 +1,30 @@
 'use client';
 
-import type { CSSProperties, MutableRefObject } from 'react';
+import { useMemo, useState, type CSSProperties, type MutableRefObject } from 'react';
 import { motion } from 'framer-motion';
 import {
   Activity,
   ArrowDownRight,
   ArrowUpRight,
   ShieldCheck,
-  TrendingDown,
-  TrendingUp,
+  Sparkles,
 } from 'lucide-react';
 
-type BudgetCadence = 'fixed' | 'variable' | 'oneoff';
-type BudgetMomentum = 'up' | 'steady' | 'down';
-type BudgetStrategy = 'shield' | 'review' | 'optimize';
+type BudgetCadence = 'fixed' | 'variable';
+type BudgetPaymentMethod = 'transfer' | 'debit' | 'credit' | 'cash' | 'prepaid' | 'other';
+type BudgetMovementType =
+  | 'income_main'
+  | 'income_extra'
+  | 'housing'
+  | 'home_services'
+  | 'food'
+  | 'transport'
+  | 'health'
+  | 'education'
+  | 'debt'
+  | 'savings_investment'
+  | 'taxes_fees'
+  | 'leisure_other';
 
 type BudgetRow = {
   id: string;
@@ -24,9 +35,10 @@ type BudgetRow = {
   product?: string;
   institution?: string;
   note?: string;
-  cadence?: BudgetCadence;
-  momentum?: BudgetMomentum;
-  strategy?: BudgetStrategy;
+  detail?: string;
+  cadence?: 'fixed' | 'variable' | 'oneoff';
+  paymentMethod?: BudgetPaymentMethod;
+  movementType?: BudgetMovementType;
 };
 
 type Props = {
@@ -50,20 +62,150 @@ type Props = {
 const CADENCE_OPTIONS: Array<{ value: BudgetCadence; label: string }> = [
   { value: 'fixed', label: 'Fijo' },
   { value: 'variable', label: 'Variable' },
-  { value: 'oneoff', label: 'Puntual' },
 ];
 
-const MOMENTUM_OPTIONS: Array<{ value: BudgetMomentum; label: string }> = [
-  { value: 'up', label: 'Sube' },
-  { value: 'steady', label: 'Estable' },
-  { value: 'down', label: 'Baja' },
+const PAYMENT_OPTIONS: Array<{ value: BudgetPaymentMethod; label: string }> = [
+  { value: 'transfer', label: 'Transferencia' },
+  { value: 'debit', label: 'Débito' },
+  { value: 'credit', label: 'Crédito' },
+  { value: 'cash', label: 'Efectivo' },
+  { value: 'prepaid', label: 'Prepago' },
+  { value: 'other', label: 'Otro' },
 ];
 
-const STRATEGY_OPTIONS: Array<{ value: BudgetStrategy; label: string }> = [
-  { value: 'shield', label: 'Blindar' },
-  { value: 'review', label: 'Revisar' },
-  { value: 'optimize', label: 'Optimizar' },
+const MOVEMENT_TYPE_OPTIONS: Array<{ value: BudgetMovementType; label: string }> = [
+  { value: 'income_main', label: 'Ingreso principal' },
+  { value: 'income_extra', label: 'Ingreso adicional' },
+  { value: 'housing', label: 'Vivienda' },
+  { value: 'home_services', label: 'Servicios hogar' },
+  { value: 'food', label: 'Alimentación' },
+  { value: 'transport', label: 'Transporte' },
+  { value: 'health', label: 'Salud' },
+  { value: 'education', label: 'Educación' },
+  { value: 'debt', label: 'Deudas' },
+  { value: 'savings_investment', label: 'Ahorro/Inversión' },
+  { value: 'taxes_fees', label: 'Impuestos/Comisiones' },
+  { value: 'leisure_other', label: 'Ocio/Otros' },
 ];
+
+const MOVEMENT_TYPE_LABEL = new Map(MOVEMENT_TYPE_OPTIONS.map((option) => [option.value, option.label]));
+
+function normalizeCadence(value: BudgetRow['cadence'], rowType: BudgetRow['type']): BudgetCadence {
+  if (value === 'fixed' || value === 'variable') return value;
+  return rowType === 'income' ? 'fixed' : 'variable';
+}
+
+function normalizePaymentMethod(value: BudgetRow['paymentMethod'], rowType: BudgetRow['type']): BudgetPaymentMethod {
+  if (value === 'transfer' || value === 'debit' || value === 'credit' || value === 'cash' || value === 'prepaid' || value === 'other') {
+    return value;
+  }
+  return rowType === 'income' ? 'transfer' : 'debit';
+}
+
+function normalizeMovementType(value: BudgetRow['movementType'], rowType: BudgetRow['type']): BudgetMovementType {
+  if (
+    value === 'income_main' ||
+    value === 'income_extra' ||
+    value === 'housing' ||
+    value === 'home_services' ||
+    value === 'food' ||
+    value === 'transport' ||
+    value === 'health' ||
+    value === 'education' ||
+    value === 'debt' ||
+    value === 'savings_investment' ||
+    value === 'taxes_fees' ||
+    value === 'leisure_other'
+  ) {
+    return value;
+  }
+  return rowType === 'income' ? 'income_main' : 'leisure_other';
+}
+
+function hashString(value: string): number {
+  let hash = 0;
+  for (let i = 0; i < value.length; i += 1) {
+    hash = (hash << 5) - hash + value.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash);
+}
+
+function seededNoise(seed: number, offset: number): number {
+  const n = Math.sin(seed * 12.9898 + offset * 78.233) * 43758.5453;
+  return n - Math.floor(n);
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
+}
+
+function buildImpactSeries(row: BudgetRow, totals: { income: number; expenses: number; balance: number }): number[] {
+  const baseIncome = Math.max(1, Math.abs(totals.income), Math.abs(totals.expenses), Math.abs(totals.balance));
+  const signedShare = (row.type === 'income' ? 1 : -1) * (Math.abs(row.amount) / baseIncome);
+  const target = clamp(signedShare * 1.4, -0.95, 0.95);
+  const variability = normalizeCadence(row.cadence, row.type) === 'fixed' ? 0.1 : 0.32;
+  const seed = hashString(row.id || `${row.category}-${row.amount}`);
+  const phase = (seed % 360) * (Math.PI / 180);
+
+  return Array.from({ length: 12 }, (_, month) => {
+    const progress = month / 11;
+    const seasonal = Math.sin(progress * Math.PI * 2 + phase) * variability * (0.7 - progress * 0.2);
+    const noise = (seededNoise(seed, month + 3) - 0.5) * variability * 0.34;
+    const trend = target * (0.52 + progress * 0.48);
+    return clamp(trend + seasonal + noise, -1, 1);
+  });
+}
+
+function toSparkPath(values: number[], width: number, height: number, padding: number): { d: string; area: string; zeroY: number } {
+  const innerWidth = width - padding * 2;
+  const innerHeight = height - padding * 2;
+  const min = Math.min(...values, -0.001);
+  const max = Math.max(...values, 0.001);
+  const range = Math.max(0.01, max - min);
+
+  const points = values.map((value, index) => {
+    const x = padding + (index / (values.length - 1 || 1)) * innerWidth;
+    const y = padding + ((max - value) / range) * innerHeight;
+    return { x, y };
+  });
+
+  const d = points
+    .map((point, index) => `${index === 0 ? 'M' : 'L'}${point.x.toFixed(2)} ${point.y.toFixed(2)}`)
+    .join(' ');
+
+  const first = points[0] ?? { x: padding, y: padding + innerHeight / 2 };
+  const last = points[points.length - 1] ?? first;
+  const area = `${d} L${last.x.toFixed(2)} ${(height - padding).toFixed(2)} L${first.x.toFixed(2)} ${(height - padding).toFixed(2)} Z`;
+  const zeroY = padding + ((max - 0) / range) * innerHeight;
+
+  return { d, area, zeroY };
+}
+
+function ImpactSparkline({ row, totals }: { row: BudgetRow; totals: { income: number; expenses: number; balance: number } }) {
+  const series = useMemo(() => buildImpactSeries(row, totals), [row, totals]);
+  const baseIncome = Math.max(1, Math.abs(totals.income), Math.abs(totals.expenses), Math.abs(totals.balance));
+  const signedImpactPct = ((row.type === 'income' ? row.amount : -row.amount) / baseIncome) * 100;
+  const severity = row.type === 'income'
+    ? 'positive'
+    : signedImpactPct <= -15
+      ? 'high'
+      : signedImpactPct <= -6
+        ? 'medium'
+        : 'low';
+  const { d, area, zeroY } = toSparkPath(series, 104, 30, 2);
+
+  return (
+    <div className={`budget-impact-cell is-${severity}`}>
+      <svg width="104" height="30" viewBox="0 0 104 30" role="img" aria-label="Curva de impacto del movimiento">
+        <line x1="2" y1={zeroY} x2="102" y2={zeroY} className="budget-impact-zero" />
+        <path d={area} className="budget-impact-area" />
+        <path d={d} className="budget-impact-line" />
+      </svg>
+      <small>{`${signedImpactPct >= 0 ? '+' : ''}${signedImpactPct.toFixed(1)}%`}</small>
+    </div>
+  );
+}
 
 function SegmentedPills<T extends string>(props: {
   options: Array<{ value: T; label: string }>;
@@ -88,19 +230,24 @@ function SegmentedPills<T extends string>(props: {
 }
 
 export function BudgetIntelligenceTable(props: Props) {
+  const [openDetails, setOpenDetails] = useState<Record<string, boolean>>({});
+
   const savingsPct =
     props.budgetTotals.income > 0
       ? Math.round((props.budgetTotals.balance / props.budgetTotals.income) * 100)
       : 0;
   const nonZeroRows = props.budgetRows.filter((row) => row.amount > 0);
   const fixedFlow = nonZeroRows
-    .filter((row) => row.cadence === 'fixed')
+    .filter((row) => normalizeCadence(row.cadence, row.type) === 'fixed')
     .reduce((sum, row) => sum + row.amount, 0);
-  const risingRows = nonZeroRows.filter((row) => row.type === 'expense' && row.momentum === 'up');
-  const optimizeRows = nonZeroRows.filter(
-    (row) => row.type === 'expense' && (row.strategy === 'review' || row.strategy === 'optimize')
-  );
-  const optimizePotential = optimizeRows.reduce((sum, row) => sum + row.amount, 0);
+  const variableRows = nonZeroRows.filter((row) => normalizeCadence(row.cadence, row.type) === 'variable');
+  const highImpactRows = nonZeroRows.filter((row) => {
+    if (row.type !== 'expense') return false;
+    const incomeBase = Math.max(1, Math.abs(props.budgetTotals.income), Math.abs(props.budgetTotals.expenses));
+    return row.amount / incomeBase >= 0.15;
+  });
+  const typedRows = nonZeroRows.filter((row) => normalizeMovementType(row.movementType, row.type) !== 'leisure_other').length;
+
   const metricCards = [
     {
       label: 'Ingresos',
@@ -111,7 +258,7 @@ export function BudgetIntelligenceTable(props: Props) {
     {
       label: 'Gastos',
       value: props.formatBudgetAmount(props.budgetTotals.expenses),
-      meta: `${risingRows.length} rubros al alza`,
+      meta: `${highImpactRows.length} focos de alto impacto`,
       icon: <ArrowDownRight size={16} />,
     },
     {
@@ -123,14 +270,14 @@ export function BudgetIntelligenceTable(props: Props) {
     {
       label: 'Flujo fijo',
       value: props.formatBudgetAmount(fixedFlow),
-      meta: 'Base mensual',
+      meta: `${variableRows.length} movimientos variables`,
       icon: <Activity size={16} />,
     },
     {
-      label: 'Optimizable',
-      value: props.formatBudgetAmount(optimizePotential),
-      meta: `${optimizeRows.length} focos accionables`,
-      icon: <TrendingUp size={16} />,
+      label: 'Clasificación',
+      value: `${typedRows}/${nonZeroRows.length || 0}`,
+      meta: 'Movimientos etiquetados',
+      icon: <Sparkles size={16} />,
     },
   ];
 
@@ -171,12 +318,13 @@ export function BudgetIntelligenceTable(props: Props) {
         <table className="budget-table budget-table-pro">
           <thead>
             <tr>
-              <th>Categoría</th>
+              <th>Movimiento</th>
               <th>Tipo</th>
               <th>Monto mensual</th>
-              <th>Constancia</th>
-              <th>Señal</th>
-              <th>Palanca</th>
+              <th>Recurrencia</th>
+              <th>Medio de pago</th>
+              <th>Tipo de movimiento</th>
+              <th>Impacto</th>
               <th aria-label="Acciones"></th>
             </tr>
           </thead>
@@ -184,9 +332,12 @@ export function BudgetIntelligenceTable(props: Props) {
             {props.orderedBudgetRows.map((row) => {
               const hasChildren = props.budgetRows.some((item) => item.parentId === row.id);
               const isSub = Boolean(row.parentId);
-              const cadence = row.cadence ?? 'variable';
-              const momentum = row.momentum ?? 'steady';
-              const strategy = row.strategy ?? 'review';
+              const cadence = normalizeCadence(row.cadence, row.type);
+              const paymentMethod = normalizePaymentMethod(row.paymentMethod, row.type);
+              const movementType = normalizeMovementType(row.movementType, row.type);
+              const hasDetail = Boolean((row.detail ?? '').trim());
+              const detailOpen = openDetails[row.id] || hasDetail;
+
               return (
                 <tr
                   key={row.id}
@@ -200,21 +351,34 @@ export function BudgetIntelligenceTable(props: Props) {
                   onMouseDownCapture={() => props.focusBudgetRow(row.id)}
                   onPointerDownCapture={() => props.focusBudgetRow(row.id)}
                 >
-                  <td data-label="Categoría">
-                    <input
-                      className={isSub ? 'budget-subcategory-input' : undefined}
-                      value={row.category}
-                      placeholder={isSub ? 'Subcategoría' : 'Categoría'}
-                      style={{
-                        backgroundColor: `${props.colorForBudgetRow(row.id)}2E`,
-                        borderColor: `${props.colorForBudgetRow(row.id)}90`,
-                        paddingLeft: isSub ? '18px' : undefined,
-                      }}
-                      onMouseDownCapture={(e) => props.focusBudgetField(e.currentTarget)}
-                      onPointerDownCapture={(e) => props.focusBudgetField(e.currentTarget)}
-                      onFocus={() => props.focusBudgetRow(row.id)}
-                      onChange={(e) => props.updateBudgetRow(row.id, 'category', e.target.value)}
-                    />
+                  <td data-label="Movimiento">
+                    <div className="budget-movement-cell">
+                      <input
+                        className={isSub ? 'budget-subcategory-input' : undefined}
+                        value={row.category}
+                        placeholder={isSub ? 'Detalle de movimiento' : 'Movimiento'}
+                        style={{
+                          backgroundColor: `${props.colorForBudgetRow(row.id)}2E`,
+                          borderColor: `${props.colorForBudgetRow(row.id)}90`,
+                          paddingLeft: isSub ? '18px' : undefined,
+                        }}
+                        onMouseDownCapture={(e) => props.focusBudgetField(e.currentTarget)}
+                        onPointerDownCapture={(e) => props.focusBudgetField(e.currentTarget)}
+                        onFocus={() => props.focusBudgetRow(row.id)}
+                        onChange={(e) => props.updateBudgetRow(row.id, 'category', e.target.value)}
+                      />
+                      {detailOpen && (
+                        <input
+                          className="budget-detail-input"
+                          value={row.detail ?? ''}
+                          placeholder="Detalle (opcional)"
+                          onMouseDownCapture={(e) => props.focusBudgetField(e.currentTarget)}
+                          onPointerDownCapture={(e) => props.focusBudgetField(e.currentTarget)}
+                          onFocus={() => props.focusBudgetRow(row.id)}
+                          onChange={(e) => props.updateBudgetRow(row.id, 'detail', e.target.value)}
+                        />
+                      )}
+                    </div>
                   </td>
                   <td data-label="Tipo">
                     <select
@@ -244,7 +408,7 @@ export function BudgetIntelligenceTable(props: Props) {
                       onChange={(e) => props.updateBudgetRow(row.id, 'amount', Number(e.target.value))}
                     />
                   </td>
-                  <td data-label="Constancia">
+                  <td data-label="Recurrencia">
                     <SegmentedPills
                       options={CADENCE_OPTIONS}
                       value={cadence}
@@ -252,43 +416,62 @@ export function BudgetIntelligenceTable(props: Props) {
                       onChange={(value) => props.updateBudgetRow(row.id, 'cadence', value)}
                     />
                   </td>
-                  <td data-label="Señal">
-                    <div className="budget-pill-group-shell">
-                      <SegmentedPills
-                        options={MOMENTUM_OPTIONS}
-                        value={momentum}
-                        tone={row.type}
-                        onChange={(value) => props.updateBudgetRow(row.id, 'momentum', value)}
-                      />
-                      <span className={`budget-trend-indicator is-${momentum}`}>
-                        {momentum === 'up' ? <TrendingUp size={14} /> : momentum === 'down' ? <TrendingDown size={14} /> : <Activity size={14} />}
-                      </span>
+                  <td data-label="Medio de pago">
+                    <select
+                      value={paymentMethod}
+                      onMouseDownCapture={(e) => props.focusBudgetField(e.currentTarget)}
+                      onPointerDownCapture={(e) => props.focusBudgetField(e.currentTarget)}
+                      onFocus={() => props.focusBudgetRow(row.id)}
+                      onChange={(e) => props.updateBudgetRow(row.id, 'paymentMethod', e.target.value)}
+                    >
+                      {PAYMENT_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                      ))}
+                    </select>
+                  </td>
+                  <td data-label="Tipo de movimiento">
+                    <select
+                      value={movementType}
+                      onMouseDownCapture={(e) => props.focusBudgetField(e.currentTarget)}
+                      onPointerDownCapture={(e) => props.focusBudgetField(e.currentTarget)}
+                      onFocus={() => props.focusBudgetRow(row.id)}
+                      onChange={(e) => props.updateBudgetRow(row.id, 'movementType', e.target.value)}
+                    >
+                      {MOVEMENT_TYPE_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                      ))}
+                    </select>
+                  </td>
+                  <td data-label="Impacto">
+                    <div className="budget-impact-shell">
+                      <ImpactSparkline row={row} totals={props.budgetTotals} />
+                      <span className="budget-impact-type-label">{MOVEMENT_TYPE_LABEL.get(movementType) ?? 'Ocio/Otros'}</span>
                     </div>
                   </td>
-                  <td data-label="Palanca">
-                    <SegmentedPills
-                      options={STRATEGY_OPTIONS}
-                      value={strategy}
-                      tone={row.type}
-                      onChange={(value) => props.updateBudgetRow(row.id, 'strategy', value)}
-                    />
-                  </td>
                   <td data-label="Acciones">
+                    <button
+                      type="button"
+                      className="continue-ghost"
+                      onClick={() => setOpenDetails((prev) => ({ ...prev, [row.id]: !detailOpen }))}
+                      title={detailOpen ? 'Ocultar detalle' : 'Agregar detalle'}
+                    >
+                      {detailOpen ? '− Det.' : '+ Det.'}
+                    </button>
                     {!isSub && (
                       <button
                         type="button"
                         className="continue-ghost"
                         onClick={() => props.addBudgetSubcategory(row.id)}
-                        title="Agregar subcategoría"
+                        title="Agregar submovimiento"
                       >
-                        + Sub
+                        + Submov.
                       </button>
                     )}
                     <button
                       type="button"
                       className="continue-ghost danger"
                       onClick={() => props.deleteBudgetRow(row.id)}
-                      title="Eliminar fila"
+                      title="Eliminar movimiento"
                     >
                       ×
                     </button>
