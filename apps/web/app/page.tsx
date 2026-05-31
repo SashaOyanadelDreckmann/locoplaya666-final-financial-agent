@@ -134,13 +134,10 @@ function FeaturesSection() {
         {FEATURES.map(({ n, title, body }, i) => (
           <div key={n}>
             <AnimHR delay={0.08 + i * 0.1} inView={inView} />
-            <motion.div
-              variants={blurUp}
-              style={{ display: 'grid', gridTemplateColumns: '44px 1fr 2fr', gap: 'clamp(12px,3vw,48px)', padding: 'clamp(22px,3.5vw,40px) 0', alignItems: 'start' }}
-            >
+            <motion.div variants={blurUp} className="home-feature-row">
               <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.18)', letterSpacing: '0.08em', paddingTop: 4 }}>{n}</span>
               <h3 style={{ fontSize: 'clamp(14px,1.8vw,19px)', fontWeight: 600, color: 'rgba(255,255,255,0.88)', margin: 0, lineHeight: 1.28, letterSpacing: '-0.015em' }}>{title}</h3>
-              <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.36)', lineHeight: 1.68, margin: 0 }}>{body}</p>
+              <p className="home-feature-body" style={{ fontSize: 14, color: 'rgba(255,255,255,0.36)', lineHeight: 1.68, margin: 0 }}>{body}</p>
             </motion.div>
           </div>
         ))}
@@ -155,6 +152,13 @@ function StepsSection() {
   const ref = useRef<HTMLElement>(null);
   const inView = useInView(ref, { once: true, margin: '-80px' });
 
+  const DOT_COLORS = ['#6f8fa6', 'rgba(255,255,255,0.30)', '#a48f4f'];
+  const DOT_GLOW   = [
+    '0 0 0 3px rgba(111,143,166,0.15), 0 0 10px rgba(111,143,166,0.55)',
+    '0 0 0 3px rgba(255,255,255,0.06)',
+    '0 0 0 3px rgba(164,143,79,0.15), 0 0 10px rgba(164,143,79,0.55)',
+  ];
+
   return (
     <section ref={ref} style={{ background: '#050810', padding: 'clamp(80px,12vw,160px) clamp(24px,8vw,120px)', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
       <motion.div initial="hidden" animate={inView ? 'visible' : 'hidden'} variants={sg(0.14)}>
@@ -165,20 +169,68 @@ function StepsSection() {
           </h2>
         </motion.div>
 
-        {STEPS.map(({ n, title, body }, i) => (
-          <div key={n}>
-            <AnimHR delay={0.08 + i * 0.1} inView={inView} />
+        {/* Steps timeline with animated vertical line */}
+        <div style={{ position: 'relative' }}>
+
+          {/* Connecting line — scaleY from top as scroll enters view */}
+          <motion.div
+            initial={{ scaleY: 0 }}
+            animate={inView ? { scaleY: 1 } : {}}
+            transition={{ duration: 1.8, delay: 0.55, ease: SILK }}
+            style={{
+              position: 'absolute',
+              left: 19,
+              top: 28,
+              bottom: 28,
+              width: 1,
+              background: 'linear-gradient(to bottom, #6f8fa6, #a48f4f)',
+              transformOrigin: 'top',
+              zIndex: 0,
+            }}
+          />
+
+          {STEPS.map(({ n, title, body }, i) => (
             <motion.div
+              key={n}
               variants={blurUp}
-              style={{ display: 'grid', gridTemplateColumns: '44px 1fr 2fr', gap: 'clamp(12px,3vw,48px)', padding: 'clamp(22px,3.5vw,40px) 0', alignItems: 'start' }}
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '40px 1fr',
+                gap: 'clamp(20px,3vw,44px)',
+                padding: 'clamp(22px,3.5vw,40px) 0',
+                position: 'relative',
+                zIndex: 1,
+                alignItems: 'start',
+              }}
             >
-              <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(164,143,79,0.45)', letterSpacing: '0.08em', paddingTop: 4 }}>{n}</span>
-              <h3 style={{ fontSize: 'clamp(14px,1.8vw,19px)', fontWeight: 600, color: 'rgba(255,255,255,0.88)', margin: 0, lineHeight: 1.28, letterSpacing: '-0.015em' }}>{title}</h3>
-              <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.36)', lineHeight: 1.68, margin: 0 }}>{body}</p>
+              {/* Dot */}
+              <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 5 }}>
+                <motion.div
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={inView ? { scale: 1, opacity: 1 } : {}}
+                  transition={{ duration: 0.35, delay: 0.72 + i * 0.28, ease: SNAP }}
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: '50%',
+                    flexShrink: 0,
+                    background: DOT_COLORS[i],
+                    boxShadow: DOT_GLOW[i],
+                  }}
+                />
+              </div>
+
+              {/* Content */}
+              <div>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 8 }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(164,143,79,0.40)', letterSpacing: '0.10em', flexShrink: 0 }}>{n}</span>
+                  <h3 style={{ fontSize: 'clamp(15px,1.8vw,19px)', fontWeight: 600, color: 'rgba(255,255,255,0.88)', margin: 0, lineHeight: 1.28, letterSpacing: '-0.015em' }}>{title}</h3>
+                </div>
+                <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.36)', lineHeight: 1.68, margin: 0, paddingLeft: 22 }}>{body}</p>
+              </div>
             </motion.div>
-          </div>
-        ))}
-        <AnimHR delay={0.45} inView={inView} />
+          ))}
+        </div>
 
         <motion.button
           variants={blurUp}
@@ -314,7 +366,7 @@ export default function HomePage() {
             backgroundPosition: 'center 18%',
             // Look editorial mate: desaturado, contraste bajo (levanta los negros → efecto mate),
             // sepia suave para tono de película
-            filter: 'saturate(0.18) contrast(0.68) brightness(0.58) sepia(0.22)',
+            filter: 'saturate(1.45) contrast(0.65) brightness(0.52) sepia(0.06)',
             zIndex: 0,
           }}
         />

@@ -3478,3 +3478,22 @@ html {
   .metrics, .pill-grid, .steps-grid { grid-template-columns: 1fr; }
   .home-hero2 { min-height: auto; padding-bottom: 42px; }
 }
+
+/* ── Home feature rows — responsive 3→2 column grid ── */
+.home-feature-row {
+  display: grid;
+  grid-template-columns: 44px 1fr 2fr;
+  gap: clamp(12px, 3vw, 48px);
+  padding: clamp(22px, 3.5vw, 40px) 0;
+  align-items: start;
+}
+
+@media (max-width: 620px) {
+  .home-feature-row {
+    grid-template-columns: 32px 1fr;
+    gap: 6px 16px;
+  }
+  .home-feature-body {
+    grid-column: 2;
+  }
+}
