@@ -29927,3 +29927,50 @@ body.agent-route-active .app-shell::before {
     padding-inline: 8px;
   }
 }
+
+/* FINAL FIX MOBILE: top chat tabs must stay compact after login state changes */
+@media (max-width: 767px) {
+  .agent-chat-header .chat-switcher {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 4px !important;
+    width: 100% !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+  }
+
+  .agent-chat-header .chat-switcher .chat-sheet-tab {
+    min-width: 0 !important;
+    width: 100% !important;
+    height: 30px !important;
+    padding: 3px 6px !important;
+    border-radius: 10px !important;
+    gap: 4px !important;
+  }
+
+  .agent-chat-header .chat-switcher .chat-sheet-tab-copy {
+    min-width: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .agent-chat-header .chat-switcher .chat-sheet-tab-title {
+    display: block !important;
+    font-size: 0.56rem !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .agent-chat-header .chat-switcher .chat-sheet-tab-subtitle {
+    display: none !important;
+  }
+
+  .agent-chat-header .chat-switcher .chat-sheet-tab-index {
+    width: 14px !important;
+    height: 14px !important;
+    min-width: 14px !important;
+    flex-basis: 14px !important;
+    font-size: 7px !important;
+  }
+}

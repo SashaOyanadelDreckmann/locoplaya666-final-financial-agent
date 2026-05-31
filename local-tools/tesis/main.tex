@@ -1,0 +1,754 @@
+% CREACIÓN DEL DOCUMENTO
+\documentclass[
+	spanish, % Idioma	
+	letterpaper, oneside
+]{book}
+
+% INFORMACIÓN DEL DOCUMENTO
+\def\documenttitle {Agente conversacional para la asistencia en finanzas personales}
+\def\documentsubtitle {}
+
+\def\degreetitle {
+	Tesis para optar al grado de Magíster en Ciencia de los Datos
+}
+
+\def\universityname {Universidad de Chile}
+\def\universityfaculty {Facultad de Ciencias Físicas y Matemáticas}
+\def\universitydepartment {Departamento de Postgrado y Postítulo}
+\def\universitydepartmentimage {departamentos/uchile2}
+\def\universitydepartmentimagecfg {height=3cm}
+\def\universitylocation {Santiago de Chile}
+
+% INTEGRANTES, PROFESORES Y FECHAS
+\def\documentauthor {Sasha Nicolas Oyanadel Dreckmann}
+\def\documentdate {\the\year}
+
+\def\portrait {
+	\begin{center}
+	\vspace{1.5cm} ~ \\
+	\MakeUppercase{\textbf{\documenttitle}} ~ \\
+	\vspace{1.5cm}
+	\MakeUppercase{\degreetitle} ~ \\
+	\vfill
+	\begin{tabular}{c}
+		\MakeUppercase{\textbf{\documentauthor}} \\ \\
+		\vspace{1.0cm} \\
+		PROFESOR GUÍA: \\
+		Marcel Goic \\
+		\vspace{0.5cm} \\
+		PROFESOR CO-GUÍA: \\
+		Andrés Abeliuk \\
+		\vspace{0.5cm} \\
+		MIEMBROS DE LA COMISIÓN: \\
+		Francisco Förster \\
+        Eduardo Graells-Garrido \\
+        Marcos Orchard \\
+        Joaquín Fontbona \\
+        Charles Thraves \\
+        Ángel Jiménez \\
+        \vspace{0.5cm} \\
+		\MakeUppercase{\universitylocation} \\
+		\MakeUppercase{\documentdate}
+	\end{tabular}
+	\end{center}
+}
+
+\def\abstracttable {
+	\begin{tabular}{l}
+		RESUMEN DE LA TESIS PARA OPTAR \\
+		AL GRADO DE MAGÍSTER EN CIENCIA \\
+		DE LOS DATOS \\
+		POR: \MakeUppercase{\documentauthor} \\
+		FECHA: \MakeUppercase{\documentdate} \\
+		PROF. GUÍA: Marcel Goic
+	\end{tabular}
+}
+
+
+
+% IMPORTACIÓN DEL TEMPLATE
+\input{template}
+
+\hyphenpenalty=10000
+\exhyphenpenalty=10000
+\setlength{\emergencystretch}{3em}
+
+% INICIO DE LAS PÁGINAS
+\begin{document}
+
+% PORTADA
+\templatePortrait
+
+% CONFIGURACIÓN DE PÁGINA Y ENCABEZADOS
+\templatePagecfg
+
+% RESUMEN O ABSTRACT
+\begin{abstractd}
+
+\end{abstractd}
+
+% DEDICATORIA
+\begin{dedicatory}
+
+	frase de dedicatoria, \\
+	dos líneas. \\
+
+	~
+\end{dedicatory}
+
+% AGRADECIMIENTOS
+\begin{acknowledgments}
+	~
+\end{acknowledgments}
+
+% TABLA DE CONTENIDOS
+\templateIndex
+
+% CONFIGURACIONES FINALES
+\templateFinalcfg
+
+% ======================= INICIO DEL DOCUMENTO =======================
+
+% CAPÍTULO 1: INTRODUCCIÓN
+\chapter{Introducción}
+
+\section{Contexto general}
+
+\subsection{Panorama del sistema financiero chileno}
+
+
+El sistema financiero chileno se caracteriza por una estructura diversificada y altamente regulada, orientada a proveer mecanismos de financiamiento, ahorro, inversión y aseguramiento tanto a personas naturales como a empresas. Bajo la supervisión de la Comisión para el Mercado Financiero (CMF), este sistema ha experimentado una expansión significativa en la oferta de productos y en los canales de acceso, impulsada por la digitalización y el aumento de la competencia entre instituciones.
+
+
+\subsubsection{Gama de productos y servicios financieros}
+
+El sistema financiero chileno ofrece una amplia variedad de productos y servicios destinados a distintos perfiles de usuarios y necesidades financieras, tales como ahorro, inversión, financiamiento, aseguramiento de riesgos y planificación previsional. Según el portal de educación financiera de la Comisión para el Mercado Financiero (CMF Educa), estos productos y servicios pueden agruparse en varias categorías principales \cite{cmf_educa_sistema, cmf_productos_bancarios, cmf_tipos_seguros, cmf_apv}:
+
+\begin{itemize}
+    \item \textbf{Productos bancarios y de depósitos:} servicios ofrecidos por bancos e instituciones financieras, tales como \emph{cuentas de depósito a la vista}, \emph{cuentas corrientes}, \emph{créditos de consumo}, \emph{tarjetas de crédito}, y \emph{créditos hipotecarios}. Estos productos permiten gestionar dinero, pagar bienes o servicios, acceder a financiamiento y realizar transacciones cotidianas \cite{cmf_productos_bancarios}.
+    
+    \item \textbf{Instrumentos de ahorro e inversión:} vehículos financieros mediante los cuales los usuarios pueden almacenar recursos o buscar rentabilidad. Entre ellos se encuentran cuentas de ahorro, depósitos a plazo, \emph{Ahorro Previsional Voluntario (APV)}, cuotas de \emph{fondos mutuos} y otros instrumentos negociados en mercados organizados \cite{cmf_educa_sistema}.
+    
+    \item \textbf{Seguros y productos de aseguramiento:} contratos que transfieren y distribuyen riesgos específicos a cambio de una prima. Entre los tipos de seguros disponibles se encuentran \emph{seguro de vida}, \emph{seguro con ahorro previsional voluntario }, \emph{seguros de salud}, \emph{seguros contra robo}, \emph{seguros de cesantía}, \emph{seguros de desgravamen asociados a créditos}, \emph{seguros de incendio} para bienes inmuebles, \emph{seguros para vehículos motorizados}, \emph{seguros de responsabilidad civil} y otros productos que cubren riesgos específicos \cite{cmf_tipos_seguros}.
+    
+    \item \textbf{Mercados de valores y servicios de intermediación:} facilitan la negociación de instrumentos financieros como acciones, bonos y otros títulos valor a través de bolsas de valores, corredores de bolsa y otros intermediarios registrados, permitiendo a los inversionistas acceder a mercados secundarios y estructurar portafolios diversificados \cite{cmf_educa_sistema}.
+    
+\end{itemize}
+
+Esta diversidad de productos y servicios no solo refleja la amplitud del sistema financiero chileno, sino que también enfatiza la complejidad de información a la que deben enfrentarse los usuarios al evaluar y comparar opciones.
+
+
+\subsubsection{Actores e instituciones del sistema financiero}
+
+El sistema financiero chileno está conformado por un conjunto heterogéneo de actores e instituciones que participan en la provisión de productos financieros, la intermediación de recursos, la administración de riesgos y la supervisión del mercado. De acuerdo con la Comisión para el Mercado Financiero (CMF), estos actores operan bajo distintos marcos regulatorios y cumplen roles diferenciados dentro del ecosistema financiero nacional \cite{cmf_educa_sistema}.
+
+Entre los principales actores del sistema se encuentran:
+
+\begin{itemize}
+    \item \textbf{Bancos e instituciones financieras:} responsables de ofrecer productos de captación y colocación de recursos, tales como cuentas, créditos y medios de pago. Estas entidades cumplen un rol central en la canalización del ahorro hacia el financiamiento de personas y empresas, y están sujetas a exigentes requisitos prudenciales y de solvencia. \cite{cmf_educa_sistema}
+
+
+    
+    \item \textbf{Administradoras de fondos:} incluyen administradoras de fondos mutuos, fondos de inversión y fondos previsionales, cuya función principal es gestionar recursos de terceros bajo distintos perfiles de riesgo y horizontes de inversión. Estas instituciones permiten a los usuarios acceder a instrumentos financieros diversificados que, de forma individual, resultarían difíciles de gestionar. \cite{cmf_educa_sistema}
+    
+    \item \textbf{Compañías de seguros:} encargadas de ofrecer productos destinados a la cobertura de riesgos personales y patrimoniales, tales como seguros de vida, salud, cesantía y seguros asociados a créditos. Estos actores cumplen un rol relevante en la gestión del riesgo financiero y en la protección económica de los hogares. \cite{cmf_educa_sistema}
+    
+    \item \textbf{Intermediarios de valores:} como corredores de bolsa y agentes de valores, que facilitan la negociación de instrumentos financieros en los mercados de capitales, conectando emisores e inversionistas. Estos intermediarios operan en mercados organizados o extrabursátiles y están sujetos a regulación específica en materia de transparencia y conducta de mercado. \cite{cmf_educa_sistema}
+
+        \item \textbf{Empresas fintech:} entidades de base tecnológica que ofrecen servicios financieros o de apoyo al sistema financiero tradicional, tales como plataformas de pago, financiamiento alternativo, agregación de información financiera, asesoría automatizada y servicios de intermediación digital. Estas empresas han adquirido un rol creciente en el ecosistema financiero chileno, especialmente a partir de la aparicion de la ley Fintec. \cite{cmf_fintech}
+    \item \textbf{Organismo supervisor:} la Comisión para el Mercado Financiero (CMF) actúa como el ente encargado de fiscalizar a las entidades participantes, velar por la estabilidad financiera, proteger a los consumidores y promover el adecuado funcionamiento del mercado. La existencia de un regulador único permite articular la supervisión de bancos, seguros y mercados de valores bajo un enfoque integrado \cite{cmf_supervision}.
+\end{itemize}
+
+
+
+\subsubsection{Complejidad informacional y asimetrías de información}
+
+La complejidad informacional y las asimetrías de información constituyen elementos estructurales del sistema financiero que afectan la capacidad de los agentes económicos para tomar decisiones financieras informadas. En un entorno en el que los productos y servicios financieros son numerosos y técnicamente heterogéneos, los distintos participantes no siempre disponen de la misma cantidad ni calidad de información relevante sobre atributos clave como riesgos, costos, rendimiento esperado o condiciones contractuales. Esta disparidad en el acceso y comprensión de información genera situaciones de asimetría, en las cuales una parte posee información más completa o más precisa que la otra, lo que puede dar lugar a problemas como selección adversa y riesgo moral, donde los oferentes o intermediarios tienen ventajas informativas respecto a los usuarios finales. En el contexto de mercados financieros, dichas asimetrías impiden que los precios y las decisiones reflejen de manera eficiente toda la información disponible, amplificando la complejidad de evaluar alternativas y compararlas efectivamente. Esta complejidad informacional se manifiesta tanto en la contratación de productos de crédito, inversión o seguros como en la gestión del propio portafolio financiero de los hogares y las empresas, llevando a que decisiones que parecen racionales desde una perspectiva microeconómica resulten subóptimas en la práctica si los agentes carecen de mecanismos efectivos para acceder, procesar y utilizar información relevante en sus decisiones \cite{info_asymmetry_sciencedirect}.
+
+
+\subsubsection{Digitalización y acceso a servicios financieros}
+
+La rápida digitalización del sistema financiero ha transformado profundamente tanto la oferta como el acceso a servicios financieros, modificando los canales a través de los cuales los usuarios interactúan con las instituciones y productos financieros. Este proceso implica la adopción de tecnologías digitales que permiten a los individuos y empresas acceder a servicios tales como banca por internet, aplicaciones móviles para transacciones, pagos y gestión de cuentas, así como la integración de soluciones de pago electrónico, billeteras digitales y herramientas de gestión financiera personal. La digitalización ha ampliado el alcance de los servicios financieros al disminuir la necesidad de presencia física en sucursales y al facilitar operaciones en tiempo real desde dispositivos conectados a internet, lo que puede mejorar la inclusión financiera al permitir que segmentos tradicionalmente excluidos, como habitantes de zonas rurales o personas con limitaciones de movilidad, accedan a servicios que antes estaban poco disponibles. No obstante, este acceso ampliado también genera desafíos propios, tales como brechas de conectividad, requerimiento de competencias digitales básicas para interactuar con plataformas tecnológicas y la necesidad de asegurar que los servicios sean accesibles y comprensibles para diversos perfiles de usuarios. En este contexto, la digitalización y el acceso a servicios financieros no solo representan una tendencia tecnológica, sino un factor determinante en la forma en que los usuarios perciben, adoptan y utilizan productos financieros complejos, lo que refuerza la necesidad de mecanismos de apoyo que permitan interpretar, comparar y aprovechar de manera efectiva la vasta información disponible \cite{turn0search0}.
+
+
+
+\subsection{Problemas de endeudamiento y toma de decisiones}
+
+El endeudamiento de los hogares constituye un elemento central para comprender los desafíos asociados a la toma de decisiones financieras en contextos de alta complejidad informacional. El Informe de Endeudamiento de los Hogares en Chile publicado por la Comisión para el Mercado Financiero (CMF) entrega una caracterización detallada de las obligaciones financieras de las personas naturales, indicando que a junio de 2024 la deuda mediana representativa alcanzó aproximadamente 1,9 millones de pesos, mientras que la carga financiera y el nivel de apalancamiento se situaron en torno a 13,6 \% del ingreso mensual y 2,3 veces dicho ingreso, respectivamente \cite{cmf2024endeudamiento}. Esta evolución de los indicadores de endeudamiento está influenciada por una combinación de factores macroeconómicos y microeconómicos, tales como la disminución de las tasas de interés de referencia, incrementos en los ingresos reales de los hogares y variaciones en el dinamismo del crédito al consumo, especialmente en segmentos de financiamiento de consumo bancario. No obstante, a pesar de la mejora agregada de los indicadores, el informe también evidencia que un porcentaje relevante de hogares continúa enfrentando situaciones de sobreendeudamiento (definido como una carga financiera superior al 50 \% del ingreso mensual) con cerca de 950 mil personas en esta condición, lo que pone de manifiesto la persistencia de vulnerabilidades financieras y la importancia de mecanismos que faciliten la comprensión y gestión efectiva de compromisos financieros. Estas cifras y las condiciones subyacentes reflejan cómo las decisiones financieras individuales están inmersas en un entorno donde la complejidad informacional y la necesidad de interpretar múltiples variables financieras constituyen un desafío real, alimentando la necesidad de herramientas de apoyo que permitan a los usuarios navegar y comparar de manera efectiva entre distintas opciones crediticias, de ahorro y de inversión, reduciendo así las asimetrías de información y los riesgos asociados a decisiones mal informadas.
+
+
+\subsection{Surgimiento del Sistema de Finanzas Abiertas}
+
+El surgimiento del Sistema de Finanzas Abiertas en Chile responde a la necesidad de modernizar la provisión de servicios financieros en un contexto marcado por una creciente digitalización, diversificación de actores y complejidad informacional para los usuarios. Tradicionalmente, la información financiera de las personas ha estado fragmentada entre múltiples instituciones, tales como bancos, aseguradoras, administradoras de fondos y nuevos proveedores tecnológicos, lo que ha limitado la capacidad de los usuarios para acceder, consolidar y utilizar sus propios datos financieros de manera efectiva en la toma de decisiones. En este escenario, la irrupción de empresas de base tecnológica orientadas a la prestación de servicios financieros ha evidenciado el potencial de soluciones que, mediante el uso intensivo de datos y plataformas digitales, permiten ofrecer servicios más personalizados, eficientes y centrados en el usuario \cite{cmf_fintech}. Sin embargo, esta evolución también ha puesto de manifiesto la necesidad de un marco normativo que permita regular el intercambio de información financiera de forma segura, estandarizada y con el consentimiento expreso de los titulares de los datos. En respuesta a este desafío, la Ley N.º 21.521, conocida como Ley Fintec, establece las bases para el desarrollo del Sistema de Finanzas Abiertas, definiendo un conjunto de reglas e infraestructuras que habilitan el acceso, intercambio y uso de información financiera entre instituciones participantes, con el objetivo de promover la competencia, la innovación y la inclusión financiera, resguardando al mismo tiempo la seguridad, privacidad e idoneidad en el uso de los datos \cite{ley21521}. La implementación de este sistema representa un cambio estructural en la forma en que se concibe la relación entre usuarios, instituciones financieras y proveedores tecnológicos, al reconocer a los datos financieros como un activo cuyo control reside en el usuario y cuya correcta explotación requiere mecanismos de interoperabilidad que faciliten su integración y análisis en beneficio de una toma de decisiones financieras más informada.
+
+\section{Motivación del estudio}
+
+La toma de decisiones financieras personales constituye una de las actividades más críticas y frecuentes en la vida de los individuos. Sin embargo, persisten barreras estructurales que limitan la calidad de la asesoría recibida y la equidad del acceso a información financiera clara, oportuna y personalizada. Aunque los mercados financieros modernos han adoptado tecnologías digitales ampliamente, la asesoría tradicional sigue enfrentando desafíos significativos que dificultan su efectividad para una parte relevante de la población.
+
+\subsection{Limitaciones actuales en asesoría financiera}
+
+\subsection{Oportunidad para agentes conversacionales inteligentes}
+
+
+\subsection{Relevancia social y tecnológica del problema}
+
+El problema que aborda esta tesis tiene una relevancia social significativa: mejorar la capacidad de los individuos para tomar decisiones financieras informadas impacta de manera directa en su bienestar económico, su seguridad financiera y su resiliencia ante choques económicos. La complejidad intrínseca de los sistemas financieros y la fragmentación de la información disponible han contribuido históricamente a decisiones subóptimas, sobreendeudamiento o mala asignación de recursos, especialmente en segmentos vulnerables de la población.
+
+Tecnológicamente, la integración de agentes conversacionales inteligentes en el ámbito financiero representa un hito en el uso de la IA como apoyo a tareas cognitivas complejas. La capacidad de sintetizar, contextualizar y personalizar información en tiempo real redefine los límites de las herramientas tradicionales y abre la puerta a nuevas soluciones que no solo informen, sino que interactúen de forma activa con las necesidades cambiantes de los usuarios. Esta convergencia entre tecnología y asesoría financiera no solo tiene el potencial de democratizar el acceso a análisis sofisticados, sino también de establecer nuevos estándares en la forma en que las personas planifican, comparan y ejecutan decisiones económicas en entornos dinámicos y regulados.
+
+En síntesis, la motivación del estudio radica en responder a la confluencia de una necesidad social urgente de mejorar el apoyo a decisiones financieras personales y una oportunidad tecnológica concreta como el avance de agentes inteligentes capaces de interactuar de forma contextualizada con usuarios y datos financieros, todo en un marco que exige rigor, precisión y responsabilidad en la generación de recomendaciones personalizadas.
+
+\section{Planteamiento del problema}
+
+La toma de decisiones financieras personales constituye un proceso complejo que involucra la evaluación simultánea de múltiples variables económicas, contractuales y contextuales, tales como ingresos, niveles de endeudamiento, tasas de interés, comisiones, riesgos asociados y objetivos financieros individuales. En el contexto del sistema financiero chileno, esta complejidad se ve amplificada por la amplia diversidad de productos y servicios disponibles, la fragmentación de la información entre distintas instituciones y la existencia de asimetrías de información entre los proveedores de servicios financieros y los usuarios finales. Como resultado, una parte relevante de la población enfrenta dificultades para comprender, comparar y seleccionar alternativas financieras que sean consistentes con sus necesidades y capacidades reales, lo que puede derivar en decisiones subóptimas y en una gestión ineficiente de sus recursos financieros.
+
+\subsection{Fragmentación de la información financiera y complejidad cognitiva en la evaluación de productos financieros}
+
+Uno de los principales problemas que enfrentan los usuarios en la toma de decisiones financieras es la fragmentación de la información relevante. Los datos financieros personales, tales como saldos, deudas, historiales de pago, condiciones contractuales y productos vigentes, suelen encontrarse distribuidos entre múltiples instituciones, plataformas y formatos, lo que dificulta su acceso y consolidación. Esta fragmentación impide que los usuarios tengan una visión integrada de su situación financiera global, obligándolos a realizar comparaciones manuales y a interpretar información presentada de forma heterogénea. En este escenario, la ausencia de mecanismos que permitan centralizar y estructurar la información financiera constituye una barrera significativa para la toma de decisiones informadas y coherentes a lo largo del tiempo.
+
+Por otro lado, la evaluación de productos y servicios financieros no solo requiere acceso a información, sino también la capacidad de interpretarla adecuadamente. Muchos productos financieros incorporan estructuras contractuales complejas, con múltiples condiciones, cláusulas y costos asociados que no siempre son fácilmente comprensibles para los usuarios. La necesidad de evaluar variables como tasas de interés nominales y reales, comisiones explícitas e implícitas, plazos, penalidades y riesgos futuros introduce una carga cognitiva elevada, especialmente para personas sin formación financiera especializada. Esta complejidad cognitiva aumenta la probabilidad de errores de juicio y decisiones basadas en información incompleta o mal interpretada, reforzando las asimetrías de información existentes en el sistema financiero.
+
+
+
+\subsection{Potencial y desafíos de los agentes conversacionales basados en modelos de lenguaje}
+
+Los avances recientes en modelos de lenguaje han abierto nuevas posibilidades para el desarrollo de agentes conversacionales capaces de interactuar con usuarios de forma flexible y contextualizada. Estos modelos presentan el potencial de asistir a los usuarios en la comprensión y evaluación de información financiera compleja mediante interacciones en lenguaje natural, adaptadas a distintos perfiles y necesidades. No obstante, su aplicación en dominios sensibles como las finanzas personales plantea desafíos significativos, particularmente en relación con la factualidad de las respuestas, la interpretación correcta del contexto del usuario y la integración segura de información externa. En ausencia de arquitecturas adecuadas, el uso de modelos de lenguaje puede dar lugar a recomendaciones imprecisas o poco transparentes, lo que subraya la necesidad de diseñar enfoques que combinen capacidades conversacionales con mecanismos estructurados de acceso a información confiable.
+
+\subsection{Necesidad de soluciones integradas y regulatoriamente coherentes}
+
+Considerando la complejidad del sistema financiero, la fragmentación de la información y las limitaciones de los enfoques tradicionales de asesoría, surge la necesidad de desarrollar soluciones que integren información financiera de manera coherente y segura, respetando los principios regulatorios vigentes. En particular, el contexto del Sistema de Finanzas Abiertas introduce la posibilidad de acceder y utilizar información financiera de forma estandarizada y con el consentimiento del usuario, lo que abre oportunidades para el desarrollo de herramientas de apoyo a la toma de decisiones más completas y personalizadas. Sin embargo, la implementación efectiva de este tipo de soluciones requiere abordar desafíos técnicos, regulatorios y de diseño de interacción, garantizando que las recomendaciones entregadas sean comprensibles, trazables y alineadas con los intereses del usuario.
+
+\subsection{Formulación del problema de investigación}
+
+A partir de los elementos descritos, el problema central que aborda esta tesis puede formularse como la dificultad de diseñar y evaluar un agente conversacional que, utilizando modelos de lenguaje y arquitecturas de interacción adecuadas, sea capaz de integrar información del usuario y de productos financieros en un entorno coherente con el Sistema de Finanzas Abiertas, y que apoye de manera efectiva la toma de decisiones financieras personales. Este problema involucra no solo aspectos técnicos relacionados con el diseño y evaluación de sistemas basados en modelos de lenguaje, sino también consideraciones de usabilidad, transparencia y cumplimiento regulatorio, lo que plantea un desafío interdisciplinario relevante tanto desde una perspectiva académica como aplicada.
+
+
+\section{Objetivos}
+
+La definición de objetivos constituye un elemento central del presente trabajo de tesis, en tanto delimita con precisión el propósito del estudio, orienta las decisiones metodológicas y establece los criterios bajo los cuales se evaluará el cumplimiento de los resultados esperados. En este contexto, los objetivos se formulan considerando la complejidad del sistema financiero chileno, las asimetrías de información que enfrentan los usuarios en la toma de decisiones financieras y el potencial de las tecnologías basadas en modelos de lenguaje para apoyar procesos de asesoría personalizada en un marco regulatorio exigente.
+
+\subsection{Objetivo general}
+
+El objetivo general de esta tesis es diseñar y evaluar un agente conversacional orientado a la toma de decisiones en finanzas personales, basado en modelos de lenguaje y arquitecturas de interacción avanzadas, que simule la integración de datos provenientes del Sistema de Finanzas Abiertas en Chile y que opere de acuerdo con los principios regulatorios establecidos en la Ley N.º 21.521 y la normativa vigente de la Comisión para el Mercado Financiero. Este agente tiene como propósito demostrar la viabilidad técnica de utilizar modelos de lenguaje como núcleo de sistemas de apoyo a la decisión financiera, así como explorar su potencial para entregar recomendaciones personalizadas, seguras, transparentes y contextualizadas, considerando simultáneamente información del usuario y del ecosistema financiero chileno, se busca que el sistema permita consolidar información dispersa en una única plataforma de interacción, reduciendo la complejidad informacional y las asimetrías de información que enfrentan los usuarios, y facilitando procesos de comparación, evaluación y toma de decisiones financieras en un entorno controlado y coherente con el marco regulatorio chileno. 
+
+\subsection{Objetivos específicos}
+
+Con el fin de dar cumplimiento al objetivo general planteado, este trabajo se estructura en torno a los siguientes objetivos específicos:
+
+\begin{itemize}
+    \item Analizar de manera sistemática los principales productos y servicios financieros disponibles en el sistema financiero chileno, junto con las características y necesidades de los usuarios, con el propósito de identificar criterios de comparación, variables de decisión relevantes y patrones comunes en los procesos de toma de decisiones financieras personales.
+
+    \item Identificar y estructurar la información crítica asociada a productos y servicios financieros que debe encontrarse disponible, actualizada y normalizada para apoyar la toma de decisiones informadas, incorporando además un análisis del marco regulatorio chileno asociado al Sistema de Finanzas Abiertas, con el fin de determinar requisitos de consentimiento, seguridad, trazabilidad e idoneidad que deben ser considerados en el diseño del agente conversacional.
+
+    \item Explorar y evaluar distintas arquitecturas de interacción basadas en modelos de lenguaje, con énfasis en enfoques que permitan combinar razonamiento, recuperación de información y ejecución de acciones, a fin de determinar su pertinencia y viabilidad para la construcción de un agente conversacional aplicado al dominio de las finanzas personales.
+
+    \item Diseñar e implementar un prototipo funcional de agente conversacional que integre información declarada por el usuario con información estructurada de productos y servicios financieros, permitiendo la generación de recomendaciones personalizadas dentro de una misma plataforma de asesoría unificada y contextualizada.
+
+    \item Evaluar el desempeño técnico del agente propuesto, considerando aspectos como la calidad de las recomendaciones entregadas, la coherencia de las respuestas, la capacidad de contextualización según distintos perfiles de usuario y el cumplimiento de principios de seguridad y transparencia, con el fin de analizar su pertinencia como herramienta de apoyo a la toma de decisiones financieras personales.
+\end{itemize}
+
+\section{Aporte esperado}
+
+El presente trabajo se propone contribuir al análisis y desarrollo de herramientas de apoyo a la toma de decisiones financieras personales desde una perspectiva aplicada, considerando el contexto específico del sistema financiero chileno, sus características estructurales y los desafíos que enfrentan los usuarios al interactuar con productos financieros complejos. A partir del diagnóstico expuesto en la introducción, el aporte esperado se articula en tres dimensiones complementarias: técnica, metodológica y práctica.
+
+\subsection{Aporte técnico}
+
+Desde el punto de vista técnico, el aporte principal de esta tesis consiste en el diseño e implementación de un agente conversacional orientado a la asistencia en decisiones financieras personales, capaz de integrar información del usuario con información estructurada sobre productos y servicios financieros. El sistema propuesto explora el uso de modelos de lenguaje como interfaz central de interacción, permitiendo que los usuarios expresen necesidades, dudas y objetivos financieros en lenguaje natural, reduciendo así las barreras de acceso a herramientas de análisis tradicionalmente complejas.
+
+El agente se concibe como un prototipo funcional que demuestra la factibilidad técnica de consolidar información financiera dispersa y heterogénea en un entorno conversacional único. Este enfoque técnico busca responder a la fragmentación de la información financiera descrita en la introducción, ofreciendo una solución que articula múltiples fuentes de datos dentro de un flujo de interacción coherente. Asimismo, el desarrollo del prototipo permite identificar desafíos técnicos asociados a la integración de datos, la contextualización de respuestas y la generación de recomendaciones personalizadas, sentando bases para futuras extensiones del sistema.
+
+\subsection{Aporte metodológico}
+
+En el plano metodológico, la tesis aporta un enfoque estructurado para el diseño y evaluación de sistemas de apoyo a la decisión financiera basados en interacción conversacional. A diferencia de aproximaciones centradas exclusivamente en análisis cuantitativos o en asesoría humana tradicional, este trabajo propone una metodología que combina el análisis del contexto financiero chileno, la identificación de variables relevantes para la toma de decisiones y la traducción de dichas variables en un sistema interactivo orientado al usuario.
+
+La metodología considera explícitamente las limitaciones cognitivas y de información que enfrentan los usuarios al evaluar productos financieros, incorporando estos elementos como criterios de diseño del agente. Asimismo, se propone un marco de evaluación que no solo considera el funcionamiento técnico del sistema, sino también su coherencia, claridad y utilidad percibida en escenarios simulados de toma de decisiones financieras. Este enfoque metodológico puede servir como referencia para investigaciones futuras que busquen evaluar herramientas digitales de apoyo a la decisión en contextos financieros u otros dominios complejos.
+
+\subsection{Aporte práctico para usuarios financieros}
+
+Desde una perspectiva práctica, el aporte esperado de esta investigación se orienta a los usuarios del sistema financiero chileno que enfrentan dificultades para comprender, comparar y seleccionar productos financieros adecuados a su situación personal. El agente conversacional propuesto explora una forma alternativa de interacción que permite acceder a información financiera relevante de manera guiada, contextualizada y progresiva, disminuyendo la carga cognitiva asociada a la evaluación de múltiples variables financieras.
+
+El prototipo busca demostrar cómo una herramienta conversacional puede facilitar la construcción de una visión integrada de la situación financiera del usuario, apoyándolo en la identificación de riesgos, oportunidades y posibles inconsistencias en sus decisiones. Al operar bajo un enfoque alineado con el Sistema de Finanzas Abiertas y los principios regulatorios vigentes, el trabajo ofrece además una aproximación responsable al uso de datos financieros, enfatizando el rol del consentimiento y la protección del usuario.
+
+En conjunto, el aporte práctico de esta tesis no radica únicamente en el desarrollo de un sistema específico, sino en la propuesta de un modelo conceptual de asistencia financiera digital que puede contribuir a reducir asimetrías de información, mejorar la comprensión financiera y apoyar decisiones más informadas por parte de personas y hogares.
+
+\section{Estructura del documento}
+
+La presente tesis se organiza en seis capítulos principales, además de las secciones preliminares y finales, siguiendo los lineamientos formales establecidos por la Universidad de Chile, la Facultad de Ciencias Físicas y Matemáticas y el Departamento de Postgrado y Postítulo. La estructura del documento ha sido diseñada para guiar progresivamente al lector desde el planteamiento del problema hasta la discusión de resultados y las conclusiones, asegurando coherencia entre los objetivos, la metodología y los aportes del estudio.
+
+\begin{itemize}
+    \item \textbf{Capítulo 1: Introducción.}  
+    Este capítulo contextualiza la investigación, describiendo el sistema financiero chileno, los desafíos asociados a la toma de decisiones financieras personales y el surgimiento del Sistema de Finanzas Abiertas. Asimismo, se presentan la motivación del estudio, el planteamiento del problema, los objetivos de la investigación y el aporte esperado de la tesis.
+
+    \item \textbf{Capítulo 2: Estado del arte y revisión de la literatura.}  
+    En este capítulo se desarrolla el marco teórico y conceptual que sustenta el trabajo. Se revisa la literatura relevante sobre agentes conversacionales basados en modelos de lenguaje, su uso como sistemas de apoyo a la toma de decisiones y sus aplicaciones en asesoría financiera. Además, se analizan arquitecturas y enfoques contemporáneos relacionados con razonamiento, recuperación de información e interacción con herramientas externas, junto con el marco regulatorio chileno asociado a las finanzas abiertas. El capítulo concluye con una síntesis conceptual y la identificación de vacíos en la literatura.
+
+    \item \textbf{Capítulo 3: Materiales y métodos.}  
+    Este capítulo describe el diseño metodológico de la investigación, detallando el enfoque del estudio, su alcance y los procedimientos utilizados. Se presentan las fuentes de datos, los procesos de recolección y preparación de información, así como el diseño del agente conversacional y su arquitectura. Finalmente, se expone la estrategia de evaluación empleada, considerando métricas técnicas, evaluación de usuarios y contraste con principios regulatorios.
+
+    \item \textbf{Capítulo 4: Resultados.}  
+    En este capítulo se presentan los resultados obtenidos a partir de la implementación y evaluación del agente conversacional. Se reportan los hallazgos del estudio de usuarios, la construcción de la base de datos consolidada y el funcionamiento del prototipo desarrollado. Asimismo, se exponen los resultados de la evaluación técnica y de la experiencia de usuario.
+
+    \item \textbf{Capítulo 5: Discusión.}  
+    Este capítulo analiza e interpreta los resultados obtenidos en relación con los objetivos planteados y el marco conceptual revisado. Se discuten las principales implicancias de los hallazgos, se comparan con la literatura existente y se identifican las limitaciones del estudio, junto con posibles líneas de extensión y mejoras futuras.
+
+    \item \textbf{Capítulo 6: Conclusiones.}  
+    El capítulo final sintetiza las conclusiones generales de la tesis, destacando las principales contribuciones técnicas, metodológicas y prácticas del trabajo. Además, se formulan recomendaciones y se proponen direcciones para investigaciones futuras en el ámbito de los agentes conversacionales aplicados a las finanzas personales.
+\end{itemize}
+
+Finalmente, el documento incluye la sección de \textbf{Bibliografía}, donde se listan todas las fuentes utilizadas a lo largo del trabajo, garantizando la trazabilidad y el rigor académico de la investigación.
+
+
+
+
+% --------------------------------------------------------------------
+
+% CAPÍTULO 2: REVISIÓN DE LA LITERATURA
+
+
+\chapter{Estado del arte y Revisión de la literatura}
+
+\section{Agentes conversacionales basados en modelos de lenguaje}
+
+\subsection{Agentes para toma de decisiones}
+
+\subsubsection{Definición de agente y racionalidad}
+
+La noción de \emph{agente} constituye uno de los pilares fundamentales de la inteligencia artificial moderna y proporciona un marco conceptual unificador para el diseño y análisis de sistemas inteligentes. 
+Siguiendo el marco propuesto por Russell y Norvig, un agente puede definirse como cualquier entidad capaz de percibir su entorno a través de sensores y de actuar sobre dicho entorno mediante actuadores, estableciendo así una relación dinámica y continua entre percepción, decisión y acción \cite{russell2010aima}. Esta definición es deliberadamente amplia y permite abarcar desde agentes humanos y robots físicos hasta agentes puramente software, como sistemas de recomendación, asistentes conversacionales o agentes de toma de decisiones en dominios financieros.
+
+Desde esta perspectiva, el comportamiento de un agente no se describe únicamente por las acciones que ejecuta, sino por la función abstracta que mapea cada posible secuencia de percepciones en una acción específica. Esta función, denominada \emph{función del agente}, constituye una descripción matemática del comportamiento del sistema y es conceptualmente distinta del programa que la implementa. Mientras la función del agente representa un ideal teórico, el programa del agente corresponde a una realización concreta que opera bajo restricciones computacionales, de información y de diseño.
+
+\subsubsubsection{Agentes, entorno y percepción}
+
+El desempeño de un agente está intrínsecamente ligado a las características del entorno en el cual opera. Un entorno puede presentar distintos grados de observabilidad, determinismo, dinamismo y complejidad, lo que influye directamente en el tipo de agente que resulta adecuado para interactuar con él. En entornos completamente observables y deterministas, el agente puede basar sus decisiones en la información perceptual inmediata. Sin embargo, en la mayoría de los contextos reales, incluyendo los sistemas financieros, los agentes enfrentan entornos parcialmente observables, dinámicos y estocásticos, donde la información disponible es incompleta, ruidosa o distribuida entre múltiples actores.
+
+En este marco, la percepción adquiere un rol central, ya que el agente no actúa sobre el estado real del entorno, sino sobre una representación interna construida a partir de sus percepciones acumuladas. La secuencia completa de percepciones, y no solo la percepción instantánea, puede resultar relevante para la toma de decisiones, especialmente cuando el entorno presenta dependencias temporales o cuando ciertas variables críticas no son observables de manera directa.
+
+\subsubsubsection{Concepto de racionalidad en agentes}
+
+El concepto de racionalidad permite evaluar y comparar el comportamiento de distintos agentes bajo criterios bien definidos. Un agente racional no es aquel que siempre obtiene el mejor resultado posible en retrospectiva, sino aquel que selecciona, para cada secuencia de percepciones, la acción que maximiza el valor esperado de una medida de desempeño, considerando la información disponible y el conocimiento previo incorporado en su diseño \cite{russell2010aima}. Esta definición enfatiza que la racionalidad está asociada a la optimización bajo incertidumbre y no a la omnisciencia o perfección.
+
+La medida de desempeño cumple un rol normativo y debe reflejar fielmente los objetivos que se desean alcanzar en el entorno. En contextos financieros, por ejemplo, una medida de desempeño mal definida podría incentivar comportamientos indeseados, aun cuando el agente actúe de manera estrictamente racional según dicha medida. Por esta razón, la definición de racionalidad depende no solo del agente, sino también de las metas explícitas que guían su evaluación.
+
+Asimismo, la racionalidad de un agente está condicionada por cuatro factores fundamentales: la medida de desempeño utilizada, el conocimiento previo del entorno, el conjunto de acciones disponibles y la información perceptual acumulada hasta el momento de la decisión. En consecuencia, un mismo comportamiento puede ser racional en un contexto y no racional en otro, dependiendo de estas condiciones.
+
+\subsubsubsection{Racionalidad, incertidumbre y toma de decisiones}
+
+Un aspecto clave del enfoque propuesto por Russell y Norvig es la distinción entre racionalidad y certeza. En entornos inciertos, un agente racional actúa maximizando el desempeño esperado, aun cuando el resultado final pueda ser subóptimo debido a eventos imprevisibles. Esta noción resulta especialmente relevante para dominios como las finanzas personales, donde las decisiones se toman bajo condiciones de información incompleta, volatilidad del entorno y restricciones cognitivas de los usuarios.
+
+En este sentido, la racionalidad no implica eliminar el riesgo, sino gestionarlo de manera informada. Un agente racional debe ser capaz de evaluar probabilísticamente las consecuencias de sus acciones y de incorporar mecanismos de aprendizaje que le permitan mejorar su desempeño a partir de la experiencia. La capacidad de aprender y adaptar su comportamiento frente a cambios en el entorno contribuye a aumentar la autonomía del agente y a reducir su dependencia de supuestos rígidos definidos en la etapa de diseño.
+
+\subsubsubsection{Implicancias para el diseño de agentes inteligentes}
+
+El marco conceptual de agentes racionales proporciona una base sólida para el diseño de sistemas inteligentes orientados a la toma de decisiones complejas. En particular, permite estructurar el diseño del agente en torno a componentes claramente definidos, tales como la representación del entorno, los objetivos, la evaluación de resultados y los mecanismos de aprendizaje. Esta estructura resulta especialmente adecuada para agentes conversacionales en dominios financieros, donde la interacción con el usuario, la interpretación de información contextual y la adaptación a distintos perfiles de decisión son elementos centrales.
+
+En el contexto de esta tesis, la definición de agente y racionalidad permite fundamentar el diseño de un agente conversacional que no solo genere respuestas coherentes, sino que actúe de manera racional en función de objetivos explícitos, restricciones regulatorias y condiciones de incertidumbre inherentes al dominio financiero. De este modo, el agente se concibe como un sistema orientado a maximizar la calidad de las decisiones financieras del usuario, considerando tanto la información disponible como las limitaciones prácticas del entorno en el que opera.
+
+\subsubsection{Agentes conversacionales como sistemas de apoyo a la decisión}
+\subsubsection{Aplicaciones en asesoría financiera personalizada}
+
+La literatura reciente no solo ha explorado los fundamentos de los modelos de lenguaje para tareas generales, sino también su aplicación específica en entornos de asesoría automatizada y toma de decisiones complejas. En particular, hay trabajos que examinan el uso de grandes modelos de lenguaje como agentes financieros personalizados, lo cual es especialmente relevante para sistemas que buscan asistir a usuarios en decisiones económicas y de planificación financiera.
+
+Un ejemplo es el estudio de Takayanagi et al. (2025) \cite{takayanagi2025generative}, quien investiga la efectividad de agentes generativos de IA para actuar como asesores financieros personalizados en contextos donde se requiere extraer preferencias de los usuarios y generar recomendaciones individualizadas. Este trabajo, presentado en la conferencia SIGIR 2025, evalúa modelos conversacionales que interactúan con usuarios simulados y analiza su desempeño en tareas de recomendación de productos financieros con criterios comparables a los de asesores humanos bajo ciertas condiciones. Los resultados evidencian tanto el potencial de estos agentes como sus limitaciones actuales, particularmente cuando la extracción de preferencias del usuario es insuficiente para contextualizar las recomendaciones.
+
+Al incorporar este tipo de estudios, se reconoce que los agentes conversacionales basados en LLM no solo son capaces de generar texto coherente, sino que también pueden integrarse en flujos de decisión específicos de dominio, como la asesoría financiera. Este cuerpo emergente de trabajo proporciona un marco de referencia para posicionar nuestra investigación, que busca integrar un agente conversacional con datos reales y mecanismos de recuperación de información en el dominio de finanzas personales.
+
+\subsection{Limitaciones en razonamiento y factualidad}
+
+\subsubsection{Problemas de consistencia y alucinaciones}
+\subsubsection{Implicancias en dominios financieros sensibles}
+
+\section{Paradigma ReAct: razonamiento y acción}
+
+El paradigma ReAct (Reasoning and Acting) surge como una respuesta a una limitación ampliamente reconocida en la aplicación de grandes modelos de lenguaje a tareas complejas de razonamiento y toma de decisiones: la separación tradicional entre el proceso de razonamiento interno y la ejecución de acciones externas. La literatura previa ha abordado de forma independiente técnicas de razonamiento explícito, como el \emph{chain-of-thought}, y enfoques orientados a la generación de acciones o planes en entornos interactivos. Sin embargo, esta disociación dificulta la adaptación dinámica a nueva información, la corrección de errores intermedios y la fundamentación de decisiones en evidencia obtenida del entorno. ReAct propone un marco unificado en el que razonamiento y acción se integran en una secuencia intercalada, permitiendo que ambos procesos se retroalimenten durante la resolución de tareas \cite{yao2023react}.
+
+Desde una perspectiva conceptual, ReAct puede entenderse como una instancia moderna de un agente inteligente que opera en un bucle cerrado de percepción, decisión y acción. En este enfoque, el modelo no se limita a producir una respuesta final, sino que construye trayectorias explícitas de resolución que alternan razonamiento en lenguaje natural y acciones orientadas a interactuar con el entorno. Esta concepción resulta coherente con la definición clásica de agente racional, entendida como una entidad que percibe su entorno y actúa sobre él con el objetivo de maximizar una medida de desempeño bajo condiciones de información incompleta y entornos dinámicos \cite{russell2010aima}.
+
+\subsection{Intercalación de trazas de pensamiento y acciones}
+
+El elemento distintivo del paradigma ReAct es la intercalación explícita entre trazas de razonamiento verbal y acciones ejecutables dentro de una misma trayectoria de resolución. En cada paso, el agente puede optar por generar una traza de pensamiento en lenguaje natural o ejecutar una acción que modifique el estado del entorno. Las trazas de pensamiento no tienen un efecto directo sobre dicho estado, pero cumplen un rol fundamental al estructurar el contexto interno del agente, permitiéndole descomponer objetivos, formular planes, evaluar el progreso y ajustar su comportamiento frente a nueva información.
+
+Este diseño amplía el espacio de acciones del agente al incorporar el lenguaje como una acción cognitiva adicional. Las trazas de pensamiento pueden emplearse para planificar subobjetivos, explicitar conocimiento relevante, sintetizar observaciones previas o detectar inconsistencias en el razonamiento, mientras que las acciones externas permiten acceder a información que no está contenida en los parámetros del modelo, cerrando el ciclo entre razonamiento interno y evidencia externa.
+
+Desde el punto de vista operativo, ReAct se implementa mediante estrategias de \emph{prompting} con ejemplos en contexto que muestran trayectorias humanas compuestas por pensamientos, acciones y observaciones. Esta aproximación permite inducir comportamientos complejos sin modificar la arquitectura del modelo ni recurrir a procesos de entrenamiento adicionales, y ofrece flexibilidad para adaptar la densidad del razonamiento a la naturaleza de cada tarea.
+
+\subsection{Ventajas en tareas de decisión y reducción de alucinaciones}
+
+Uno de los principales aportes del paradigma ReAct es su impacto en la reducción de alucinaciones, especialmente en tareas que requieren precisión factual. En enfoques basados exclusivamente en razonamiento interno, los modelos pueden generar secuencias de razonamiento plausibles pero incorrectas, al carecer de mecanismos para verificar o actualizar la información utilizada. Al permitir la interacción explícita con fuentes externas, ReAct introduce un anclaje factual que mejora la confiabilidad de las trayectorias de resolución.
+
+Los resultados empíricos reportados muestran que este enfoque reduce la incidencia de errores asociados a hechos inventados y mejora la interpretabilidad del proceso de decisión, al hacer explícita la distinción entre conocimiento interno del modelo y conocimiento obtenido del entorno. Asimismo, en tareas de toma de decisiones, las trazas de pensamiento funcionan como una forma de memoria de trabajo que facilita la planificación jerárquica, la gestión de subobjetivos y la adaptación a entornos con recompensas escasas y horizontes largos \cite{yao2023react}.
+
+\subsection{Aplicaciones en QA y ambientes interactivos}
+
+El paradigma ReAct ha sido evaluado en diversos dominios, incluyendo tareas de pregunta-respuesta intensivas en conocimiento, verificación de hechos y entornos interactivos de toma de decisiones. En escenarios de QA multihop, el agente utiliza acciones orientadas a la recuperación de información externa para fundamentar sus respuestas, mientras que el razonamiento guía la selección y uso de dicha información. En entornos interactivos, como juegos de texto o simulaciones de navegación web, el razonamiento explícito permite formular hipótesis sobre el estado del entorno, planificar acciones y corregir estrategias cuando las observaciones no coinciden con las expectativas \cite{yao2023react}.
+
+Adicionalmente, ReAct mejora la interpretabilidad y el control humano sobre el comportamiento del agente, ya que las trazas de pensamiento permiten inspeccionar las bases de las decisiones tomadas y facilitan la intervención cuando es necesario. Estas propiedades resultan particularmente relevantes para el diseño de agentes conversacionales en dominios sensibles, como las finanzas personales, donde la trazabilidad y la auditabilidad de las decisiones constituyen requisitos fundamentales \cite{yao2023react}.
+
+En conjunto, el paradigma ReAct establece un marco sólido para el diseño de agentes basados en modelos de lenguaje que integran razonamiento explícito y acción interactiva, combinando flexibilidad, robustez empírica e interpretabilidad.
+
+\section{Retrieval-Augmented Generation (RAG)}
+
+Retrieval-Augmented Generation (RAG) se ha consolidado como una de las arquitecturas más relevantes para abordar las limitaciones inherentes de los modelos de lenguaje de gran escala en tareas que requieren acceso a conocimiento factual actualizado y verificable. A diferencia de los modelos generativos tradicionales, que dependen exclusivamente de la información implícita aprendida durante su entrenamiento, los sistemas RAG integran explícitamente mecanismos de recuperación de información desde fuentes externas, permitiendo generar respuestas fundamentadas en documentos relevantes y reduciendo la incidencia de alucinaciones. Esta combinación de recuperación y generación ha impulsado una adopción creciente de RAG tanto en investigación como en aplicaciones prácticas, particularmente en dominios intensivos en conocimiento, como la asistencia financiera, médica y legal \cite{yu2024rag_survey}.
+
+\subsection{Arquitectura general de RAG}
+
+La arquitectura de un sistema RAG se compone de dos módulos principales: el componente de recuperación (\emph{retrieval}) y el componente de generación (\emph{generation}). Ambos módulos operan de manera secuencial e interdependiente, conformando un sistema híbrido cuyo desempeño depende tanto de la calidad de los documentos recuperados como de la capacidad del modelo generativo para integrarlos de manera coherente en la respuesta final \cite{yu2024rag_survey}.
+
+El componente de recuperación tiene como objetivo identificar y extraer información relevante desde una base de conocimiento externa, la cual puede consistir en documentos textuales, bases de datos estructuradas o colecciones dinámicas de información. Este proceso se divide típicamente en dos fases: indexación y búsqueda. En la fase de indexación, los documentos son organizados para facilitar una recuperación eficiente, ya sea mediante enfoques de recuperación dispersa basados en índices invertidos o mediante recuperación densa basada en representaciones vectoriales. Posteriormente, la fase de búsqueda utiliza estos índices para seleccionar documentos relevantes en función de una consulta formulada a partir de la entrada del usuario, pudiendo incorporar mecanismos adicionales de reordenamiento para mejorar la calidad del ranking de resultados.
+
+El componente de generación recibe como entrada tanto la consulta original del usuario como los documentos recuperados y utiliza un modelo de lenguaje de gran escala para producir una respuesta final. Este proceso suele involucrar técnicas de \emph{prompting} que guían al modelo a integrar explícitamente la información recuperada en la generación del texto, sin requerir necesariamente un reentrenamiento del modelo. La capacidad emergente de los LLM para seguir instrucciones complejas ha convertido a estos modelos en una opción dominante para la etapa de generación en arquitecturas RAG.
+
+Desde una perspectiva sistémica, la arquitectura RAG puede entenderse como un flujo de cuatro etapas principales: indexación, búsqueda, formulación del \emph{prompt} y generación de la respuesta. Este flujo permite identificar claramente los puntos en los cuales pueden producirse errores o degradaciones de desempeño, lo que resulta fundamental para su evaluación y optimización \cite{yu2024rag_survey}.
+
+\subsection{Desafíos en recuperación y generación}
+
+La evaluación y el diseño de sistemas RAG enfrentan desafíos específicos derivados de su naturaleza híbrida. En el componente de recuperación, uno de los principales retos es la diversidad y dinamismo de las fuentes de información. Las bases de conocimiento pueden variar en tamaño, calidad y actualización temporal, lo que dificulta medir de manera exhaustiva la relevancia y precisión de los documentos recuperados. Los indicadores tradicionales de recuperación, como precisión y recall, resultan insuficientes para capturar la complejidad de estos sistemas, ya que no consideran aspectos como la temporalidad de la información ni la presencia de documentos parcialmente relevantes o engañosos \cite{yu2024rag_survey}.
+
+En el componente de generación, el desafío central radica en evaluar la fidelidad de la respuesta generada respecto de los documentos recuperados. Un sistema RAG puede producir texto fluido y aparentemente correcto que, sin embargo, distorsiona o extrapola incorrectamente la información de las fuentes, reproduciendo alucinaciones de forma más sutil. Además, la evaluación de la calidad generativa se ve afectada por la subjetividad inherente a tareas abiertas, donde múltiples respuestas pueden considerarse aceptables dependiendo del contexto y del criterio utilizado.
+
+A nivel del sistema completo, emerge un desafío adicional: la interacción entre recuperación y generación. Evaluar ambos componentes por separado no permite capturar adecuadamente el valor agregado del enfoque RAG, ya que el desempeño final depende de cómo el modelo generativo utiliza la información recuperada. Asimismo, factores prácticos como la latencia de respuesta, la robustez frente a información irrelevante y la capacidad de manejar consultas ambiguas se vuelven críticos para aplicaciones reales, pero son difíciles de incorporar en métricas tradicionales \cite{yu2024rag_survey}.
+
+\subsection{Evaluación de sistemas RAG}
+
+La evaluación de sistemas RAG ha motivado el desarrollo de marcos conceptuales específicos que buscan capturar su complejidad estructural. Yu et al. proponen un proceso unificado de evaluación denominado \emph{A Unified Evaluation Process of RAG} (Auepora), el cual organiza la evaluación en torno a tres preguntas fundamentales: qué evaluar, cómo evaluar y cómo medir \cite{yu2024rag_survey}.
+
+En este marco, la evaluación se estructura a partir de la relación entre los resultados evaluables del sistema y las referencias disponibles, permitiendo definir objetivos de evaluación tanto para el componente de recuperación como para el de generación. Para la recuperación, los objetivos principales incluyen la relevancia y la precisión de los documentos recuperados respecto de la consulta. Para la generación, los objetivos se centran en la relevancia de la respuesta, su fidelidad respecto de los documentos fuente y su corrección factual.
+
+La selección de conjuntos de datos constituye otro eje crítico del proceso evaluativo. Los benchmarks existentes utilizan tanto datasets establecidos como conjuntos de datos generados específicamente para evaluar capacidades particulares de los sistemas RAG, especialmente en escenarios dinámicos donde la información cambia con el tiempo. Esta diversidad refleja la dificultad de construir un conjunto de datos universal que capture todas las dimensiones relevantes del desempeño de RAG.
+
+En cuanto a las métricas, los sistemas RAG emplean una combinación de métricas tradicionales y enfoques emergentes. Para la recuperación, se utilizan métricas basadas en ranking, como MAP y MRR, junto con métricas no basadas en ranking, como precisión y recall. Para la generación, se emplean métricas como BLEU, ROUGE y medidas semánticas basadas en embeddings, así como evaluaciones realizadas por modelos de lenguaje que actúan como jueces automáticos. Estos enfoques buscan aproximar la evaluación humana, aunque introducen nuevos desafíos relacionados con la consistencia y la alineación con preferencias humanas \cite{yu2024rag_survey}.
+
+En conjunto, la literatura revisada pone de manifiesto que la evaluación de sistemas RAG requiere enfoques integrales que consideren simultáneamente la calidad de la recuperación, la fidelidad de la generación y los requisitos prácticos de uso. Esta complejidad refuerza la necesidad de marcos de evaluación específicos para RAG y justifica su adopción como una arquitectura clave en sistemas de apoyo a la toma de decisiones basados en modelos de lenguaje.
+
+
+\section{Model Context Protocol (MCP)}
+
+El crecimiento reciente de agentes basados en modelos de lenguaje ha puesto de en el escenario actual una limitación estructural en la forma en que estos sistemas interactúan con herramientas externas, datos y servicios del entorno. Si bien mecanismos como el \emph{function calling}, los sistemas de plugins y los frameworks de orquestación de herramientas han ampliado las capacidades operativas de los modelos, dichas soluciones han evolucionado de forma fragmentada, dependiente de plataformas específicas y con una fuerte carga de integración manual. En este contexto, el \emph{Model Context Protocol} (MCP) surge como una propuesta de estandarización destinada a unificar la interacción entre modelos de lenguaje y recursos externos mediante un protocolo abierto, extensible y agnóstico a la plataforma \cite{hou2025mcp}.
+
+MCP se define como una interfaz estandarizada que permite a los modelos de lenguaje descubrir, invocar y coordinar herramientas externas de manera dinámica, superando las limitaciones de los flujos predefinidos y reduciendo el acoplamiento entre agentes y servicios específicos. MCP propone una separación clara entre el agente, el cliente de protocolo y los servidores que exponen capacidades, lo que favorece la interoperabilidad, la escalabilidad y la reutilización de componentes en ecosistemas heterogéneos \cite{hou2025mcp}.
+
+Desde una perspectiva más amplia, MCP puede interpretarse como una evolución natural del paradigma de agentes racionales, en el cual un agente no solo percibe y actúa sobre su entorno, sino que lo hace a través de una capa estructurada que regula el acceso a acciones, recursos y conocimiento externo. Esta concepción es coherente con la definición clásica de agente, donde la racionalidad se evalúa en función de la capacidad del sistema para seleccionar acciones adecuadas bajo restricciones de información y entorno \cite{russell2010aima}.
+
+\subsection{Estandarización del acceso a herramientas externas}
+
+Uno de los aportes fundamentales de MCP es la estandarización del acceso a herramientas externas, abordando directamente la fragmentación observada en enfoques previos. Antes de MCP, la integración de herramientas requería la definición manual de interfaces específicas para cada API, la gestión individual de autenticación y la implementación de lógica ad hoc para cada flujo de ejecución. Incluso los sistemas de plugins y los frameworks de agentes, si bien redujeron parte de esta complejidad, generaron ecosistemas cerrados y poco interoperables \cite{hou2025mcp}.
+
+MCP introduce un modelo uniforme en el que las herramientas se exponen como capacidades declarativas dentro de servidores MCP, permitiendo que los agentes descubran dinámicamente qué acciones están disponibles y cómo invocarlas. Esta abstracción elimina la necesidad de acoplar el razonamiento del agente a implementaciones concretas, facilitando la reutilización de herramientas entre distintas aplicaciones y plataformas. A diferencia de los mecanismos tradicionales de \emph{function calling}, MCP no presupone un flujo fijo de ejecución, sino que habilita interacciones bidireccionales, persistencia de estado y coordinación de múltiples herramientas dentro de un mismo contexto operativo.
+
+Asimismo, MCP amplía el alcance más allá de la recuperación pasiva de información, como ocurre en arquitecturas de \emph{Retrieval-Augmented Generation}. Mientras que RAG permite enriquecer respuestas mediante la consulta a bases de conocimiento, MCP habilita acciones activas sobre el entorno, tales como modificar datos, ejecutar procesos o disparar flujos externos. Esta capacidad transforma al agente desde un sistema puramente informativo a uno verdaderamente operativo, capaz de intervenir de manera controlada en sistemas externos \cite{hou2025mcp}.
+
+\subsubsection{Servidores MCP y orquestadores}
+
+La arquitectura de MCP se articula en torno a tres componentes principales: el \emph{host}, el \emph{client} y el \emph{server}. El \emph{host} corresponde a la aplicación que aloja al agente, como un entorno de desarrollo, una aplicación conversacional o un sistema autónomo. El \emph{client} actúa como intermediario protocolar, gestionando la comunicación entre el agente y uno o más servidores MCP. Finalmente, los \emph{servers} exponen capacidades estructuradas al ecosistema, encapsulando herramientas, recursos y plantillas de interacción \cite{hou2025mcp}.
+
+Los servidores MCP constituyen el núcleo operativo del protocolo. Cada servidor define explícitamente las herramientas disponibles, los recursos a los que puede acceder el agente y los \emph{prompts} reutilizables que facilitan la ejecución de flujos complejos. Esta separación permite que un mismo agente interactúe con múltiples servidores, coordinando acciones distribuidas sin necesidad de conocer los detalles internos de cada sistema externo. En este sentido, el cliente MCP funciona como un orquestador ligero, encargado de seleccionar capacidades, gestionar el intercambio de mensajes y mantener la coherencia del contexto.
+
+Un aspecto central del diseño de MCP es el ciclo de vida del servidor, compuesto por las fases de creación, operación y actualización. Cada una de estas etapas introduce responsabilidades técnicas específicas y define puntos críticos para la seguridad y la gobernanza del sistema. La fase de creación abarca el registro del servidor, la instalación y la verificación de integridad del código; la fase de operación se centra en la ejecución de herramientas y el manejo de comandos; y la fase de actualización gestiona versiones, permisos y configuraciones persistentes \cite{hou2025mcp}.
+
+Desde el punto de vista de los sistemas de agentes, esta arquitectura refuerza la modularidad y favorece la escalabilidad. Los agentes pueden evolucionar incorporando nuevos servidores sin necesidad de rediseñar su lógica central, mientras que los proveedores de herramientas pueden mejorar o reemplazar servidores de forma independiente. Esta separación de responsabilidades resulta especialmente relevante en entornos complejos y regulados, donde la trazabilidad y el control de accesos son requisitos fundamentales.
+
+\subsection{Riesgos de seguridad y consideraciones para sectores críticos}
+
+La apertura y extensibilidad que caracterizan a MCP introducen, de manera inherente, nuevos riesgos de seguridad que deben ser considerados cuidadosamente. El análisis de Hou et al. identifica amenazas específicas asociadas a cada fase del ciclo de vida del servidor MCP, destacando la necesidad de abordar la seguridad como un componente central del diseño del protocolo \cite{hou2025mcp}.
+
+Durante la fase de creación, surgen riesgos como la colisión de nombres de servidores, el \emph{installer spoofing} y la inyección de código malicioso. La ausencia de un registro centralizado y de mecanismos criptográficos obligatorios puede facilitar ataques de suplantación, especialmente a medida que el ecosistema crece y se diversifica. En la fase de operación, los conflictos de nombres de herramientas, la superposición de comandos y las vulnerabilidades de aislamiento pueden conducir a ejecuciones no deseadas o a escaladas de privilegios. Finalmente, en la fase de actualización, problemas como la persistencia indebida de privilegios, la reutilización de versiones vulnerables y la deriva de configuraciones representan amenazas significativas para la integridad del sistema.
+
+Estos riesgos adquieren especial relevancia en sectores críticos como las finanzas, la salud o la infraestructura digital, donde los agentes pueden acceder a información sensible o ejecutar acciones con consecuencias materiales. En dichos contextos, la estandarización que ofrece MCP debe complementarse con mecanismos robustos de autenticación, autorización, auditoría y monitoreo, así como con prácticas estrictas de gestión de versiones y validación de configuraciones \cite{hou2025mcp}.
+
+Desde una perspectiva conceptual, estos desafíos refuerzan la idea de que la racionalidad de un agente no depende únicamente de su capacidad de razonar correctamente, sino también de la calidad y seguridad de los canales a través de los cuales actúa sobre el entorno. En este sentido, MCP puede interpretarse como una infraestructura que condiciona la racionalidad operativa del agente, alineándose con la visión clasica, según la cual el entorno y las restricciones del sistema son determinantes para evaluar el comportamiento racional \cite{russell2010aima}.
+
+En conjunto, MCP representa un avance significativo hacia la estandarización de la interacción entre agentes basados en modelos de lenguaje y sistemas externos. No obstante, su adopción sostenible requiere una atención cuidadosa a los riesgos de seguridad, especialmente en dominios sensibles, así como el desarrollo de marcos de gobernanza que acompañen su crecimiento dentro del ecosistema de inteligencia artificial.
+
+
+\section{Finanzas abiertas y regulación chilena}
+
+El desarrollo de las finanzas abiertas en Chile se enmarca en un proceso más amplio de modernización del sistema financiero, impulsado por la necesidad de fomentar la competencia, la innovación tecnológica y la inclusión financiera, sin descuidar la protección de los usuarios ni la estabilidad del sistema. Este proceso se consolida jurídicamente con la promulgación de la Ley N.º 21.521, conocida como Ley Fintec, la cual establece un marco normativo integral para la prestación de servicios financieros basados en tecnologías digitales, incorporando principios de apertura, interoperabilidad y neutralidad tecnológica \cite{ley21521,cmf_fintech}.
+
+La noción de finanzas abiertas, o \emph{open finance}, supone que los datos financieros pertenecen a los usuarios y que estos pueden autorizar su utilización por terceros para la provisión de servicios financieros innovadores. En este contexto, la Ley Fintec reconoce explícitamente la relevancia de la compartición de información financiera bajo esquemas regulados, sentando las bases legales para la creación de un sistema en el cual distintos actores puedan acceder, procesar y utilizar datos financieros de manera segura, estandarizada y con consentimiento previo del titular \cite{ley21521}. Este enfoque busca reducir barreras de entrada, aumentar la transparencia del mercado y habilitar nuevos modelos de negocio, manteniendo como eje central la protección del cliente financiero \cite{cmf_fintech}.
+
+\subsection{Ley N.º 21.52 y lineamientos de la CMF}
+
+La Ley N.º 21.521 establece el perímetro regulatorio de los denominados servicios Fintec, definiendo un conjunto amplio de actividades financieras que, por su naturaleza tecnológica, no se encontraban adecuadamente cubiertas por la regulación tradicional. Entre sus objetivos principales se encuentra la promoción de la competencia, el fortalecimiento de la inclusión financiera y el resguardo de la fe pública en el uso de plataformas y servicios financieros digitales \cite{ley21521}. Para ello, la ley otorga a la Comisión para el Mercado Financiero (CMF) amplias facultades regulatorias y de supervisión, posicionándola como la autoridad encargada de dictar las normas de carácter general que permitan la correcta implementación del marco Fintec.
+
+Desde la perspectiva institucional, la CMF asume un rol central en la operacionalización de la ley, definiendo requisitos de inscripción, estándares operativos, obligaciones de información y criterios de supervisión para los prestadores de servicios financieros tecnológicos \cite{cmf_fintech}. La ley dispone la creación de un Registro de Prestadores de Servicios Financieros, en el cual deben inscribirse las entidades que deseen operar dentro del marco regulado, asegurando así un control ex ante de su idoneidad y capacidades operativas \cite{ley21521}.
+
+En relación con las finanzas abiertas, la Ley Fintec introduce el concepto de sistemas de información financiera compartida, habilitando legalmente la interoperabilidad entre instituciones financieras y nuevos actores tecnológicos. Este marco normativo permite que la CMF defina estándares técnicos y operativos para la transmisión de datos financieros, asegurando que dicha transmisión se realice bajo principios de seguridad, trazabilidad y consentimiento informado \cite{cmf_fintech}. De este modo, la regulación chilena se alinea con tendencias internacionales que conciben las finanzas abiertas como una infraestructura habilitante para la innovación, más que como un producto específico.
+
+\subsection{Requisitos de consentimiento, seguridad}
+
+El consentimiento del usuario constituye uno de los pilares fundamentales del régimen de finanzas abiertas establecido por la Ley N.º 21.521. La normativa reconoce que la utilización y compartición de datos financieros solo puede realizarse previa autorización expresa del titular, debiendo dicho consentimiento ser libre, informado y verificable \cite{ley21521}. Este enfoque refuerza la idea de que los datos financieros pertenecen al usuario y no a las instituciones que los custodian, desplazando el control desde los intermediarios hacia el cliente final.
+
+Desde el punto de vista regulatorio, la CMF tiene la facultad de establecer los mecanismos mediante los cuales se debe obtener, registrar y revocar el consentimiento, así como los estándares mínimos que deben cumplir los sistemas tecnológicos utilizados para este fin \cite{cmf_fintech}. Ello implica que los prestadores de servicios deben diseñar procesos claros y auditables que permitan demostrar, ante la autoridad supervisora, que el tratamiento de datos se ajusta a las autorizaciones otorgadas por los usuarios.
+
+En materia de seguridad, la Ley Fintec impone a los prestadores de servicios financieros la obligación de contar con sistemas y controles adecuados para resguardar la confidencialidad, integridad y disponibilidad de la información financiera que procesan \cite{ley21521}. Aunque la ley no prescribe soluciones técnicas específicas, sí establece el principio de responsabilidad del prestador respecto de los riesgos tecnológicos asociados a su operación. En consecuencia, corresponde a la CMF definir, mediante normativa secundaria, los estándares de seguridad que deben observarse, considerando la naturaleza, escala y complejidad de los servicios ofrecidos \cite{cmf_fintech}.
+
+La idoneidad de los prestadores constituye otro eje central del marco regulatorio. La Ley N.º 21.521 exige que las entidades que operen bajo el régimen Fintec acrediten capacidades técnicas, operativas y de gestión de riesgos acordes con los servicios que prestan \cite{ley21521}. Esto incluye la existencia de estructuras de gobierno corporativo, políticas internas de gestión de riesgos y mecanismos de control que permitan identificar y mitigar riesgos financieros, operacionales y tecnológicos. La supervisión de estos aspectos por parte de la CMF busca garantizar que la innovación financiera no se traduzca en un deterioro de la protección de los usuarios ni en riesgos sistémicos para el mercado \cite{cmf_fintech}.
+
+\subsubsection{Implicancias para el diseño de agentes financieros}
+
+El marco normativo establecido por la Ley Fintec tiene implicancias directas en el diseño y desarrollo de agentes financieros digitales, particularmente aquellos basados en sistemas automatizados o inteligentes. En primer lugar, estos agentes deben ser concebidos bajo un enfoque de cumplimiento normativo desde su diseño, incorporando mecanismos que permitan gestionar el consentimiento del usuario de forma explícita, granular y revocable, en coherencia con los principios establecidos por la ley y la regulación de la CMF \cite{ley21521,cmf_fintech}.
+
+Asimismo, el diseño de agentes financieros debe considerar la seguridad como un componente estructural y no accesorio. La obligación de resguardar la información financiera implica que los agentes deben integrar controles técnicos y organizacionales que reduzcan la exposición a incidentes de seguridad y permitan una adecuada gestión de riesgos tecnológicos \cite{cmf_fintech}. Este enfoque es coherente con la lógica de la Ley Fintec, que asigna responsabilidad directa a los prestadores respecto de los efectos que puedan derivarse de fallas en sus sistemas.
+
+Desde la perspectiva de la idoneidad, los agentes financieros deben operar dentro de organizaciones que cuenten con capacidades suficientes para cumplir con las exigencias regulatorias, lo que limita el diseño de soluciones puramente experimentales o sin respaldo institucional. La regulación incentiva, de este modo, el desarrollo de agentes financieros robustos, auditables y alineados con prácticas formales de gestión de riesgos y gobierno corporativo \cite{ley21521}.
+
+Finalmente, el régimen de finanzas abiertas habilita nuevas oportunidades para el desarrollo de agentes financieros orientados al análisis, agregación y recomendación de productos y servicios, siempre que dichas funcionalidades se desplieguen dentro del marco de consentimiento, seguridad e idoneidad definido por la normativa vigente. En este sentido, la Ley N.º 21.521 no solo actúa como un conjunto de restricciones, sino también como una infraestructura institucional que condiciona y, al mismo tiempo, posibilita la innovación responsable en el sistema financiero chileno \cite{cmf_fintech}.
+
+\section{Síntesis conceptual}
+
+La literatura revisada converge en un diagnóstico común: los modelos de lenguaje de gran escala habilitan interacción natural, pero su utilidad como \emph{agentes} en dominios sensibles depende de tres capacidades adicionales: (i) acceso controlado a conocimiento verificable fuera de los parámetros del modelo, (ii) capacidad de razonar y actuar en ciclos con retroalimentación del entorno, y (iii) un mecanismo estandarizado para integrar herramientas y contexto operacional sin acoplamientos frágiles. En términos conceptuales, estas tres necesidades se alinean con la visión clásica de agentes racionales, donde un sistema percibe, decide y actúa para maximizar una medida de desempeño bajo información incompleta y restricciones del entorno \cite{russell2010aima}.
+
+En primer lugar, Retrieval-Augmented Generation (RAG) se posiciona como respuesta directa a las limitaciones de factualidad y actualización de los LLM: en lugar de depender únicamente de conocimiento implícito aprendido durante entrenamiento, incorpora un componente de recuperación desde una base externa y condiciona la generación a evidencia recuperada \cite{yu2024rag_survey}. Esta arquitectura es especialmente relevante en finanzas, donde la validez de una recomendación suele depender de fuentes normativas, condiciones contractuales y datos del usuario que cambian en el tiempo.
+
+En segundo lugar, el paradigma ReAct propone integrar el razonamiento (en lenguaje natural) con acciones explícitas, permitiendo trayectorias en las que el agente alterna planificación, ejecución y observación para corregir curso, contrastar hipótesis y reducir errores intermedios \cite{yao2023react}. Esto aporta un puente entre “responder” y “resolver”, aproximándose a un ciclo de decisión más parecido al de un agente que opera en un entorno.
+
+En tercer lugar, MCP aborda un problema de ingeniería y gobernanza: la integración de herramientas y recursos externos tiende a volverse fragmentada (plugins, conectores, funciones ad hoc). MCP propone un protocolo abierto para que un agente pueda descubrir e invocar capacidades expuestas por servidores, disminuyendo el acoplamiento entre el agente y cada servicio específico \cite{hou2025mcp}. En conjunto, RAG, ReAct y MCP pueden entenderse como piezas complementarias: RAG ancla conocimiento, ReAct organiza el ciclo de decisión y MCP estandariza el acceso operativo al entorno.
+
+\subsection{Vacíos en la literatura}
+
+A pesar del progreso, persisten vacíos relevantes para agentes financieros. Primero, la literatura de RAG avanza en marcos, taxonomías y evaluación, pero aún queda espacio para formalizar cómo garantizar \emph{fidelidad} de extremo a extremo cuando la respuesta final combina múltiples fragmentos recuperados, especialmente bajo restricciones de latencia, cobertura documental y calidad heterogénea de fuentes \cite{yu2024rag_survey}. En finanzas, este vacío se vuelve crítico porque pequeñas desviaciones semánticas pueden inducir decisiones materialmente incorrectas.
+
+Segundo, ReAct mejora desempeño en tareas donde el agente puede intercalar razonamiento y acciones, pero la transferencia a dominios regulados requiere resolver preguntas adicionales: cómo auditar el proceso, cómo controlar acciones permitidas, cómo manejar incertidumbre y cómo evitar que la dinámica de “acción” amplifique riesgos (por ejemplo, ejecución de operaciones o recomendaciones no justificadas) \cite{yao2023react,russell2010aima}. Este punto conecta con la necesidad de definir medidas de desempeño y restricciones normativas explícitas en la función objetivo del agente en el marco clasico\cite{russell2010aima}.
+
+Tercero, MCP aparece como infraestructura prometedora para interoperabilidad, pero la literatura aún es incipiente en demostrar, con evidencia sistemática, cuáles configuraciones de gobernanza y seguridad son necesarias para sectores críticos. En particular, faltan patrones consolidados para separar privilegios, aislar servidores, registrar auditorías y gestionar versiones de capacidades de manera que el agente sea útil sin convertirse en un vector de riesgo \cite{hou2025mcp}.
+
+Finalmente, en aplicaciones de asesoría financiera personalizada, los trabajos recientes muestran potencial y también límites: la calidad depende fuertemente de extraer preferencias del usuario, representar objetivos y restricciones, y sostener coherencia a lo largo de la interacción. Este cuerpo emergente aún no se traduce en estándares arquitectónicos claros para producción en escenarios reales \cite{takayanagi2025generative}.
+
+\subsection{Convergencia de RAG, ReAct y MCP para agentes financieros}
+
+La convergencia de RAG, ReAct y MCP sugiere una arquitectura integrada adecuada para agentes financieros: RAG aporta la capacidad de \emph{fundamentar} recomendaciones en evidencia recuperada (normativa, contratos, perfiles, estados de cuenta), reduciendo alucinaciones y mejorando trazabilidad de las respuestas \cite{yu2024rag_survey}. ReAct, en tanto, ofrece un mecanismo para estructurar la resolución como una secuencia de decisiones, verificaciones y acciones, lo cual es valioso cuando el agente debe iterar: preguntar, recuperar, comparar alternativas, recalcular y revisar supuestos antes de recomendar \cite{yao2023react}.
+
+MCP puede operar como capa de interoperabilidad para conectar ese agente con fuentes y servicios: bases de conocimiento internas (políticas, guías, productos), sistemas del usuario (presupuestos, cuentas, objetivos), y eventualmente servicios externos, sin rediseñar integraciones para cada nuevo componente \cite{hou2025mcp}. En un dominio regulado, esta separación es estratégica: permite encapsular capacidades y permisos en servidores específicos, manteniendo el agente como orquestador racional sujeto a restricciones \cite{russell2010aima,hou2025mcp}.
+
+Bajo el marco chileno de innovación financiera, la integración resulta especialmente relevante porque el diseño de agentes debe operar con consentimiento, seguridad e idoneidad como requisitos transversales, lo que implica que el acceso a datos y ejecución de acciones debe ser controlado, trazable y proporcional al servicio prestado \cite{ley21521,cmf_fintech}. Así, la convergencia RAG-ReAct-MCP no solo mejora calidad técnica, sino que habilita un enfoque de \emph{agente financiero auditable}: recupera evidencia, razona con estructura, actúa mediante capacidades controladas y mantiene compatibilidad con exigencias regulatorias del entorno \cite{ley21521,cmf_fintech}.
+
+
+% --------------------------------------------------------------------
+
+% CAPÍTULO 3: MATERIALES Y MÉTODOS
+\chapter{Materiales y métodos}
+
+\section{Diseño general de la investigación}
+
+\subsection{Enfoque metodológico}
+
+La presente investigación adopta un enfoque metodológico de carácter mixto, integrando técnicas cualitativas y cuantitativas, con el objetivo de comprender tanto el comportamiento y las necesidades de los usuarios en sus decisiones financieras como las características objetivas de los productos financieros disponibles en el mercado chileno. Este enfoque permite articular percepciones subjetivas con información empírica estructurada, generando una base sólida para el diseño y evaluación de un agente conversacional de asistencia en finanzas personales.
+
+El diseño metodológico se estructura en las siguientes etapas:
+
+\begin{itemize}
+    \item \textbf{Estudio de usuarios y productos financieros.}  
+    Se realizarán entrevistas semiestructuradas y encuestas a potenciales usuarios con el fin de identificar necesidades, criterios de comparación y experiencias previas en la toma de decisiones financieras. En este proceso se recopilarán:
+    \begin{itemize}
+        \item Variables cualitativas, tales como percepción de riesgo, nivel de confianza y comprensión de conceptos financieros.
+        \item Variables cuantitativas, como nivel de ingresos, endeudamiento y experiencia con distintos productos financieros.
+    \end{itemize}
+    De manera complementaria, se llevará a cabo una revisión de los principales productos del sistema financiero chileno, elaborando fichas comparativas que permitan identificar atributos relevantes y definir los servicios y herramientas que el agente deberá administrar. Este análisis dará origen a una primera especificación de requerimientos funcionales del prototipo.
+    
+  \item \textbf{Recolección y preparación de datos financieros.}  
+Esta etapa contempla la recopilación y generación controlada de datos necesarios para el desarrollo y evaluación del prototipo, incluyendo:
+\begin{itemize}
+    \item Documentos regulatorios y normativos, tales como la Ley N.\textordmasculine{} 21.521 y circulares de la Comisión para el Mercado Financiero.
+    \item Información de mercado proveniente de bases de datos públicas, APIs abiertas y entornos \emph{sandbox}.
+    \item Datos sintéticos generados mediante simulaciones de transacciones financieras de usuarios.
+\end{itemize}
+
+Los datos de mercado incluirán tasas de créditos, costos de tarjetas, comisiones de fondos, seguros y productos de ahorro previsional voluntario. La recolección de esta información se realizará principalmente mediante técnicas de \emph{web scraping} y consumo de APIs, seguida de procesos de limpieza, estandarización y normalización de variables relevantes, tales como tasas, plazos, comisiones y coberturas.
+
+De manera complementaria, se generarán conjuntos de datos sintéticos que simulen transacciones financieras de usuarios, con el objetivo de representar patrones realistas de ingresos, gastos, pagos y uso de productos financieros, sin recurrir a datos personales reales. Estas simulaciones permitirán:
+\begin{itemize}
+    \item Evaluar el comportamiento del agente frente a distintos perfiles de usuario y escenarios de uso.
+    \item Probar la generación de alertas proactivas y recomendaciones personalizadas.
+    \item Validar el funcionamiento del agente simulando integrar datos del sistema de finanzas abiertas en condiciones controladas y reproducibles.
+
+    \end{itemize}
+ 
+    A partir de la información recolectada, se desarrollará una base de datos robusta y estructurada, capaz de alimentar y validar el prototipo del agente en distintos escenarios de prueba. Esta base de datos integrará información de productos financieros y reglas de análisis que faciliten su consulta y comparación por parte del sistema conversacional.
+    
+
+Por razones de factibilidad técnica y control experimental, tanto los datos de mercado como los datos simulados serán actualizados y ajustados con una periodicidad quincenal durante esta etapa de investigación.
+
+
+    \item \textbf{Diseño del prototipo de agente.}  
+    El prototipo se construirá en torno a un modelo de lenguaje de gran escala (LLM) que opera bajo una estrategia ReAct, encargado de:
+    \begin{itemize}
+        \item Interpretar consultas del usuario en lenguaje natural.
+        \item Alternar razonamiento con acciones sobre distintas fuentes de información.
+        \item Generar respuestas finales explicables y contextualizadas.
+    \end{itemize}
+    Las acciones del modelo se canalizarán mediante un orquestador MCP, responsable de decidir entre consultar la base normativa mediante RAG, la base de datos personal o servidores MCP especializados. Estos servidores podrán integrar modelos de \emph{machine learning}, simuladores y servicios externos, enriqueciendo la capacidad analítica y la interpretabilidad de las recomendaciones.
+    
+    \item \textbf{Evaluación del agente.}  
+La evaluación del prototipo se realizará mediante un enfoque combinado que integre métricas técnicas del sistema y evaluación de la experiencia de usuario, con el fin de validar tanto su desempeño computacional como su pertinencia práctica en escenarios de uso.
+
+\begin{itemize}
+    \item \textbf{Evaluación técnica del agente.}  
+    Se considerarán métricas objetivas que permitan cuantificar el desempeño del sistema, entre las que se incluyen:
+    \begin{itemize}
+        \item Precisión en la entrega de información financiera, entendida como la proporción de variables correctamente entregadas respecto del total esperado.
+        \item Cobertura en la comparación de productos financieros, definida como el grado en que el agente es capaz de abarcar los atributos clave previamente definidos.
+        \item Tasa de alucinaciones, entendida como la generación de respuestas no sustentadas en datos verificables.
+        \item Tiempo de respuesta promedio del sistema frente a distintos tipos de consulta.
+    \end{itemize}
+    
+    \item \textbf{Pruebas piloto con escenarios simulados.}  
+    De manera complementaria, se desarrollarán pruebas piloto utilizando escenarios simulados de decisión financiera, diseñados para representar situaciones realistas de uso del agente. Estas pruebas permitirán evaluar el comportamiento del sistema frente a distintos perfiles de usuario y tipos de consulta.
+    
+    \item \textbf{Evaluación de la experiencia de usuario.}  
+    A partir de las pruebas piloto, se evaluará la experiencia del usuario en dimensiones cualitativas clave, tales como:
+    \begin{itemize}
+        \item Utilidad percibida de las recomendaciones entregadas.
+        \item Claridad y comprensibilidad de las respuestas generadas por el agente.
+        \item Capacidad del sistema para fomentar aprendizaje financiero y apoyar ajustes informados en el portafolio de productos del usuario.
+    \end{itemize}
+\end{itemize}
+
+
+\subsection{Alcance del estudio}
+
+El alcance de esta investigación se delimita considerando las siguientes dimensiones:
+
+\begin{itemize}
+    \item \textbf{Alcance temporal.}  
+    El estudio se circunscribe al periodo de diseño, implementación y evaluación experimental del prototipo, considerando actualizaciones de datos con una periodicidad quincenal durante la fase de desarrollo.
+    
+    \item \textbf{Alcance temático.}  
+    La investigación se centra en productos financieros de uso frecuente en Chile, tales como créditos, cuentas, tarjetas, seguros y productos de ahorro previsional voluntario, así como en los procesos de comparación y toma de decisiones asociados a dichos instrumentos.
+    
+    \item \textbf{Alcance poblacional.}  
+    La población objetivo corresponde a potenciales usuarios del sistema financiero chileno, con distintos niveles de ingresos y educación financiera. No se consideran instituciones financieras ni asesorías profesionales certificadas.
+    
+    \item \textbf{Alcance técnico-operativo.}  
+    El prototipo se desarrolla en un entorno experimental controlado, utilizando datos públicos, APIs abiertas y entornos de prueba. El agente no tiene carácter vinculante ni busca reemplazar la asesoría financiera profesional, sino actuar como una herramienta de apoyo informacional, decisional y educativo.
+\end{itemize}
+
+Estas delimitaciones permiten acotar el estudio a un marco factible para mantener coherencia entre los objetivos planteados, la metodología empleada y los resultados esperados.
+
+
+\subsection{Diseño del estudio de usuarios}
+
+El estudio de usuarios se diseñó con un enfoque cualitativo–exploratorio, complementado con elementos descriptivos, buscando identificar patrones generales más que realizar inferencias estadísticas. La selección de participantes se realizó considerando diversidad en edad, nivel de ingresos y experiencia previa con productos financieros, con el fin de capturar una variedad de perfiles relevantes para el diseño del agente.
+
+\subsection{Instrumentos de recolección de información}
+
+Para la recolección de información se utilizaron dos instrumentos principales:
+
+\begin{itemize}
+    \item \textbf{Encuesta estructurada:} orientada a identificar hábitos financieros, nivel de comprensión de productos financieros, criterios de comparación utilizados y percepción de dificultad en la toma de decisiones.
+    \item \textbf{Entrevistas semiestructuradas:} orientadas a profundizar en experiencias individuales, motivaciones, frustraciones y expectativas respecto a la asesoría financiera y al uso de herramientas digitales de apoyo.
+\end{itemize}
+
+Ambos instrumentos fueron diseñados específicamente para este estudio y se aplicaron de manera voluntaria, resguardando el anonimato de los participantes.
+
+\subsection{Identificación de variables relevantes para la toma de decisiones}
+
+A partir del diseño de los instrumentos, se definieron un conjunto de variables consideradas relevantes para la toma de decisiones financieras personales, tales como nivel de endeudamiento percibido, horizonte temporal, tolerancia al riesgo, prioridades financieras y grado de confianza en instituciones financieras. Estas variables sirvieron como insumo directo para la posterior definición de los atributos y flujos conversacionales del agente.
+\section{Recolección y preparación de datos}
+\subsection{Fuentes normativas: Ley 21.521 y CMF}
+\subsection{Scraping, APIs y sandbox financieros}
+\subsection{Limpieza, normalización y estandarización de variables}
+\subsection{Construcción de la base de datos estructurada}
+
+\section{Diseño del agente conversacional}
+\subsection{Arquitectura ReAct: razonamiento + acción}
+\subsection{Orquestador MCP}
+\subsection{Servidores MCP y herramientas conectadas}
+\subsection{Motor analítico proactivo y alertas personalizadas}
+
+\section{Evaluación del agente}
+\subsection{Métricas técnicas: precisión, cobertura, alucinaciones, latencia}
+\subsection{Pruebas piloto con escenarios simulados}
+\subsection{Evaluación de experiencia de usuario}
+
+\section{Contraste regulatorio}
+\subsection{Cumplimiento con principios de seguridad y consentimiento}
+\subsection{Limitaciones éticas y operativas}
+
+% --------------------------------------------------------------------
+
+% CAPÍTULO 4: RESULTADOS
+\chapter{Resultados}
+
+
+\section{Resultados del estudio de usuarios}
+
+Los resultados obtenidos a partir de las encuestas y entrevistas permitieron identificar patrones comunes en la forma en que los usuarios enfrentan decisiones financieras personales. En términos generales, se observó una alta percepción de complejidad al comparar productos financieros, así como dificultades para interpretar información técnica y evaluar costos y riesgos asociados.
+
+Asimismo, los participantes manifestaron la necesidad de contar con herramientas que integren información personal y de productos financieros en un solo espacio, presentando recomendaciones de manera clara y contextualizada.
+
+\subsection{Implicancias para el diseño del agente conversacional}
+
+Los hallazgos del estudio de usuarios influyeron directamente en el diseño del agente conversacional propuesto. En particular, los resultados motivaron la inclusión de mecanismos para:
+
+\begin{itemize}
+    \item Adaptar el lenguaje y nivel de detalle de las respuestas según el perfil del usuario.
+    \item Priorizar variables relevantes identificadas por los usuarios al comparar productos financieros.
+    \item Estructurar el flujo conversacional de forma progresiva, reduciendo la carga cognitiva en cada interacción.
+\end{itemize}
+
+Estas decisiones de diseño buscan asegurar que el agente entregue recomendaciones financieras personalizadas, comprensibles y alineadas con las necesidades reales de los usuarios.
+
+
+\section{Base de datos consolidada}
+\subsection{Estructura y variables clave}
+\subsection{Reglas de actualización periódica}
+
+\section{Prototipo del agente conversacional}
+\subsection{Flujo ReAct-MCP}
+\subsection{Integración de datos personales y de productos financieros}
+\subsection{Ejemplos de trayectorias del agente}
+
+\section{Evaluación técnica}
+\subsection{Precisión y cobertura en recuperación de atributos}
+\subsection{Tasa de alucinaciones}
+
+
+\section{Evaluación de usuario}
+\subsection{Percepción de seguridad y transparencia}
+\subsection{Utilidad en la toma de decisiones}
+\subsection{Aprendizaje y motivación financiera}
+
+% --------------------------------------------------------------------
+
+% CAPÍTULO 5: DISCUSIÓN
+\chapter{Discusión}
+
+\section{Interpretación de resultados}
+\subsection{Desempeño respecto a los objetivos planteados}
+\subsection{Eficacia de la arquitectura propuesta}
+
+\section{Comparación con la literatura}
+\subsection{Convergencias y divergencias}
+\subsection{Aportes al estado del arte}
+
+\section{Limitaciones del estudio}
+\subsection{Dependencia de datos simulados}
+\subsection{Restricciones del marco regulatorio}
+\subsection{Limitaciones técnicas del prototipo}
+
+\section{Implicancias futuras}
+\subsection{Escalabilidad en un entorno real conectado al SFA}
+\subsection{Posibles extensiones tecnológicas}
+
+% --------------------------------------------------------------------
+
+% CAPÍTULO 6: CONCLUSIONES
+\chapter{Conclusiones}
+
+\section{Conclusiones generales}
+\section{Contribuciones del estudio}
+\section{Recomendaciones}
+\section{Trabajos futuros}
+
+% --------------------------------------------------------------------
+% CAPÍTULO 7: BIBLIOGRAFÍA
+
+
+
+
+\bibliography{library}
+
+
+% FIN DEL DOCUMENTO
+
+\end{document}
