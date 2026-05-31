@@ -35,7 +35,7 @@ export default function HomePage() {
       {/* Shader wave overlay */}
       <div style={{
         position: 'absolute', inset: 0, zIndex: 2,
-        opacity: 0.28, mixBlendMode: 'screen', pointerEvents: 'none',
+        opacity: 0.22, mixBlendMode: 'color', pointerEvents: 'none',
       }}>
         <ShaderAnimation />
       </div>
@@ -60,8 +60,6 @@ export default function HomePage() {
         ].join(' '),
       }} />
 
-      {/* Noise film grain */}
-      <div className="home-v2-grain" />
 
       {/* ── UI layout ── */}
       <div style={{
