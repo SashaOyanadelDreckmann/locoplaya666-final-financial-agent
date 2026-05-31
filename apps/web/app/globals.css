@@ -1172,9 +1172,9 @@ button {
 
 @media (min-width: 768px) {
   .home-fondo-bg {
-    /* Rotate portrait photo 90° so it reads landscape on wide screens.
-       scale(1.8) covers the viewport gaps after rotation (ratio ~1.6 needed). */
-    transform: rotate(90deg) scale(1.8);
+    background-position: center 20%;
+    background-size: cover;
+    transform: none;
   }
 }
 
