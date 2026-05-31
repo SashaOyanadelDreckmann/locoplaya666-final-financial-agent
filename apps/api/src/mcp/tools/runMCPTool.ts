@@ -16,12 +16,30 @@ export async function runMCPTool(input: {
   bootstrapMCP();
 
   const toolName = String(input.tool || '');
+  const pdfViaMcpBlocked = (process.env.BLOCK_PDF_MCP ?? 'true').toLowerCase() !== 'false';
   const baseCall: ToolCall = {
     id: `${input.turn_id}:${toolName}`,
     tool: toolName,
     args: (input.args ?? {}) as any,
     status: 'pending',
   };
+
+  if (pdfViaMcpBlocked && /^pdf\./i.test(toolName)) {
+    return {
+      tool_call: {
+        ...baseCall,
+        status: 'error',
+        error_message: 'pdf_mcp_blocked: PDF generation must be delegated to Haiku report worker',
+        latency_ms: Date.now() - startedAt,
+      },
+      data: {
+        ok: false,
+        error: 'pdf_mcp_blocked',
+        tool: toolName,
+        handoff: 'haiku_pdf_worker',
+      },
+    };
+  }
 
   const tool = getTool(toolName);
 

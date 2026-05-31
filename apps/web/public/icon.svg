@@ -1,15 +1,3 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Financieramente">
-  <rect width="512" height="512" fill="#214f83"/>
-  <rect x="58" y="58" width="396" height="396" rx="92" fill="#f3f3f1"/>
-  <text
-    x="256"
-    y="316"
-    text-anchor="middle"
-    fill="#090909"
-    font-family="'Times New Roman', Times, Georgia, serif"
-    font-weight="700"
-  >
-    <tspan font-size="188">F</tspan>
-    <tspan font-size="152" dx="-10">m</tspan>
-  </text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Financieramente">
+  <image href="/logo-financieramente.jpg" width="512" height="512" preserveAspectRatio="xMidYMid slice" />
 </svg>

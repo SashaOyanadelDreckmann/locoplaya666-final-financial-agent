@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import Image from 'next/image';
 import { formatRemainingInteractions, getChatDisplayTitle, getMaxChatInteractions } from './page.utils';
 
 type ChatThread = {
@@ -132,8 +133,13 @@ export function ChatHeader(props: {
         <h1>
           <span className="chat-brand-title-row">
             <span className="chat-brand-logo-mark" aria-hidden="true">
-              <span className="fm-logo-f">F</span>
-              <span className="fm-logo-m">m</span>
+              <Image
+                src="/logo-financieramente.jpg"
+                alt="Financieramente"
+                width={44}
+                height={44}
+                className="h-full w-full object-cover"
+              />
             </span>
             <span className="chat-brand-wordmark">
               <span className="chat-brand-financiera">Financiera</span>

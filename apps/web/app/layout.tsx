@@ -1,6 +1,7 @@
 // apps/web/app/layout.tsx
 import './globals.css';
 import './agent.css';
+import ServiceWorkerReset from '@/components/ServiceWorkerReset';
 
 export const metadata = {
   title: 'Financieramente',
@@ -37,6 +38,7 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital@1&family=Caveat:wght@600&display=swap" rel="stylesheet" />
       </head>
       <body>
+        <ServiceWorkerReset />
         <div className="app-shell">
           {children}
         </div>

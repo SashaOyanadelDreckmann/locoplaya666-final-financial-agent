@@ -29034,8 +29034,9 @@ body.agent-route-active .app-shell::before {
 
 .chat-brand-logo-mark {
   display: inline-flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: center;
+  overflow: hidden;
   width: 28px;
   height: 28px;
   flex: 0 0 28px;
@@ -29737,6 +29738,70 @@ body.agent-route-active .app-shell::before {
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.04);
+}
+
+/* Transactions modal final card/layout constraints */
+.transactions-modal .tx-3d-hero {
+  border-radius: 12px !important;
+}
+
+@media (max-width: 767px) {
+  .transactions-modal .tx-content-carousel {
+    position: relative !important;
+  }
+
+  .transactions-modal .tx-3d-hero-shell {
+    position: absolute !important;
+    top: 8px !important;
+    right: 10px !important;
+    left: auto !important;
+    margin: 0 !important;
+    z-index: 8 !important;
+    justify-content: flex-end !important;
+  }
+
+  .transactions-modal .tx-3d-hero {
+    width: 142px !important;
+    min-height: 88px !important;
+    border-radius: 10px !important;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.34) !important;
+  }
+
+  .transactions-modal .tx-3d-hero-core {
+    padding: 10px 12px !important;
+    gap: 2px !important;
+  }
+
+  .transactions-modal .tx-3d-hero-eyebrow {
+    font-size: 8px !important;
+    letter-spacing: 0.08em !important;
+  }
+
+  .transactions-modal .tx-3d-hero-core strong {
+    font-size: 11px !important;
+    line-height: 1.1 !important;
+  }
+
+  .transactions-modal .tx-3d-hero-core span {
+    font-size: 9px !important;
+    line-height: 1.15 !important;
+  }
+
+  .transactions-modal .tx-3d-hero-chip {
+    width: 22px !important;
+    height: 16px !important;
+    right: 10px !important;
+    bottom: 8px !important;
+    border-radius: 5px !important;
+  }
+
+  .transactions-modal .tx-content-card {
+    padding-top: 64px !important;
+  }
+
+  .transactions-modal .bank-sim-grid {
+    grid-template-columns: 1fr !important;
+  }
 }
 
 .budget-modal .budget-pill-group.is-income {

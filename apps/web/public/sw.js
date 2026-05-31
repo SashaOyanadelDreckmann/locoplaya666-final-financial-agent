@@ -46,7 +46,14 @@ self.addEventListener('fetch', (e) => {
           }
           return response;
         })
-        .catch(() => cached || caches.match('/'));
+        .catch(() => {
+          if (cached) return cached;
+          // Solo hacer fallback al shell para navegación HTML
+          if (request.mode === 'navigate' || request.destination === 'document') {
+            return caches.match('/');
+          }
+          return Response.error();
+        });
     })
   );
 });

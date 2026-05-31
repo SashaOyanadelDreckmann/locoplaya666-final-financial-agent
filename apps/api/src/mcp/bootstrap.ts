@@ -49,8 +49,6 @@ import { monteCarloTool } from './tools/simpro/montecarlo.tool';
 import { portfolioProjectionTool } from './tools/simpro/portfolioProjection.tool';
 import { scenarioProjectionTool } from './tools/simpro/scenarioProjection.tool';
 import { riskDrawdownTool } from './tools/simpro/riskDrawdown.tool';
-import { generateSimulationPdfTool } from './tools/pdf/generateSimulationPdf.tool';
-import { generateNarrativePdfTool } from './tools/pdf/generateNarrativePdf.tool';
 
 /* ────────────────────────────── */
 /* FINANCE — Herramientas de alto valor  */
@@ -99,8 +97,6 @@ export function bootstrapMCP() {
   registerTool(portfolioProjectionTool);
   registerTool(scenarioProjectionTool);
   registerTool(riskDrawdownTool);
-  registerTool(generateSimulationPdfTool);
-  registerTool(generateNarrativePdfTool);
 
   /* FINANCE — Alto valor */
   registerTool(debtAnalyzerTool);

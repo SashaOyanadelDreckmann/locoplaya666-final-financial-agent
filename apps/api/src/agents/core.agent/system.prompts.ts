@@ -714,7 +714,7 @@ PRINCIPIOS DE USO DE HERRAMIENTAS
 2. Encadena herramientas cuando los resultados de una alimentan a otra (ReAct).
 3. Prioriza herramientas de mercado chileno (UF, TPM, USD/CLP) ante consultas de valores actuales.
 4. Para análisis financiero personal usa SIEMPRE las tools de finance.* con los datos del usuario.
-5. Para PDFs usa pdf.generate_simulation (con datos numéricos) o pdf.generate_report (narrativo).
+5. PROHIBIDO usar tools pdf.* en esta fase. Solo entrega contenido/resumen estructurado para handoff a un worker Haiku externo de PDF.
 6. ANTES DE RESPONDER CON FÓRMULAS: Llama latex.format({ content: "...", mode: "auto" })
 7. Máximo 8 invocaciones de herramientas por turno — sé eficiente.
 

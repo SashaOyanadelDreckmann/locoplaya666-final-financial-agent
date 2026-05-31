@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { registerUser } from '@/lib/api';
 import { toUserFacingError } from '@/lib/userError';
 import { useSessionStore } from '@/state/session.store';
@@ -63,8 +64,13 @@ export default function RegisterPage() {
     <main className="auth-shell">
       <div className="auth-card">
         <div className="auth-logo-mark" aria-label="Financieramente">
-          <span className="fm-logo-f">F</span>
-          <span className="fm-logo-m">m</span>
+          <Image
+            src="/logo-financieramente.jpg"
+            alt="Financieramente"
+            width={112}
+            height={112}
+            className="h-full w-full object-cover"
+          />
         </div>
         <div className="auth-eyebrow">Financieramente</div>
         <h1 className="auth-title">Crear cuenta</h1>

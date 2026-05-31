@@ -3,6 +3,7 @@ import { getApiBaseUrl } from '@/lib/apiBase';
 import { getCsrfToken } from '@/lib/csrf';
 import { CHILE_FINANCIAL_INSTITUTIONS, FINANCIAL_SERVICE_OPTIONS } from '@/lib/financialCatalog';
 import { BudgetIntelligenceTable } from '@/components/ui/budget-intelligence-table';
+import { ContainerScroll } from '@/components/ui/container-scroll-animation';
 import {
   ResponsiveContainer,
   BarChart,
@@ -1625,9 +1626,6 @@ export function TransactionsModal(props: {
           { length: libraryProductCards.length },
           (_, offset) => libraryProductCards[(productCarouselIndex + offset) % libraryProductCards.length]
         );
-  const txBackdropCards = orderedProductCards
-    .filter(({ product }) => product.id !== props.selectedProductId)
-    .slice(0, 2);
   const txStages = [
     {
       key: 'consent' as const,
@@ -2108,31 +2106,28 @@ export function TransactionsModal(props: {
                   <>
                 <div className="tx-content-carousel">
                   <div className="tx-3d-hero-shell" aria-hidden="true">
-                    {txBackdropCards.length > 0 && activeTxCard === 2 ? (
-                      <div className="tx-3d-backstack">
-                        {txBackdropCards.map(({ product }, index) => (
-                          <div key={`${product.id}-ghost`} className={`tx-3d-backcard is-${index + 1}`}>
-                            <span>{product.label}</span>
-                          </div>
-                        ))}
-                      </div>
-                    ) : null}
-                    <div
-                      className={`tx-3d-hero ${txVisualTone} ${isCardLikeProduct ? 'is-card-like' : 'is-generic-like'}`}
-                      style={{
-                        transform: `translate3d(0, ${txVisualY}px, 0) rotateX(${txVisualRotateX}deg) rotateY(${txVisualRotateY}deg) scale(${txVisualScale})`,
-                      }}
+                    <ContainerScroll
+                      titleComponent=""
+                      containerClassName="relative w-full flex items-center justify-center p-0"
+                      shellClassName="relative w-full py-0"
                     >
-                      <div className="tx-3d-hero-sheen" />
-                      <div className="tx-3d-hero-core">
-                        <span className="tx-3d-hero-eyebrow">
-                          {isCardLikeProduct ? 'Producto financiero' : 'Instrumento financiero'}
-                        </span>
-                        <strong>{resolvedProductLabel || props.activeBankProduct.label || 'Producto activo'}</strong>
-                        <span>{resolvedBank || props.activeBankProduct.bank || 'Institución por definir'}</span>
+                      <div
+                        className={`tx-3d-hero ${txVisualTone} ${isCardLikeProduct ? 'is-card-like' : 'is-generic-like'}`}
+                        style={{
+                          transform: `translate3d(0, ${txVisualY}px, 0) rotateX(${txVisualRotateX}deg) rotateY(${txVisualRotateY}deg) scale(${txVisualScale})`,
+                        }}
+                      >
+                        <div className="tx-3d-hero-sheen" />
+                        <div className="tx-3d-hero-core">
+                          <span className="tx-3d-hero-eyebrow">
+                            {isCardLikeProduct ? 'Producto financiero' : 'Instrumento financiero'}
+                          </span>
+                          <strong>{resolvedProductLabel || props.activeBankProduct.label || 'Producto activo'}</strong>
+                          <span>{resolvedBank || props.activeBankProduct.bank || 'Institución por definir'}</span>
+                        </div>
+                        <div className="tx-3d-hero-chip" />
                       </div>
-                      <div className="tx-3d-hero-chip" />
-                    </div>
+                    </ContainerScroll>
                   </div>
                   {activeTxCard === 0 && (
                   <section className="tx-content-card is-main-center tx-summary-clean">
@@ -2796,7 +2791,15 @@ export function TransactionsModal(props: {
                     </div>
                     <div className="agent-modal-actions">
                       <button type="button" className="continue-ghost tx-delete-product-btn" onClick={() => props.deleteTransactionProduct(props.activeBankProduct!.id)}>Eliminar producto</button>
-                      <button type="button" className={`button-primary ${isSavedForBatch ? 'is-saved-product' : ''}`} onClick={props.saveTransactionProductForBatch} disabled={props.documentsLoading}>
+                      <button
+                        type="button"
+                        className={`button-primary ${isSavedForBatch ? 'is-saved-product' : ''}`}
+                        onClick={() => {
+                          props.saveTransactionProductForBatch();
+                          setShowTxCarousel(false);
+                        }}
+                        disabled={props.documentsLoading}
+                      >
                         {isSavedForBatch ? 'Producto guardado' : 'Guardar producto'}
                       </button>
                     </div>

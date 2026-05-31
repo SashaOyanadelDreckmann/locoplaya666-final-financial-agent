@@ -1687,13 +1687,12 @@ body.home-lock {
 
 .auth-logo-mark {
   display: inline-flex;
-  align-items: baseline;
-  font-size: 34px;
-  line-height: 1;
-  letter-spacing: -0.04em;
-  font-weight: 700;
-  color: rgba(245, 248, 253, 0.94);
-  font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, 'Times New Roman', serif;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  overflow: hidden;
+  border-radius: 12px;
   margin-bottom: 12px;
 }
 
