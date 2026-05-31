@@ -904,14 +904,13 @@ button {
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  filter: saturate(1.7) contrast(0.82) brightness(0.75);
+  filter: saturate(0.85) contrast(0.88) brightness(0.60);
 }
 
 @media (min-width: 768px) {
   .home-fondo-bg {
-    /* Rotate portrait photo 90° so it reads landscape on wide screens.
-       scale(1.8) covers the viewport gaps after rotation (ratio ~1.6 needed). */
-    transform: rotate(90deg) scale(1.8);
+    transform: none;
+    background-position: center top;
   }
 }
 
