@@ -896,23 +896,7 @@ button {
   display: none;
 }
 
-.home-fondo-bg {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  background-image: url('/fondo4.jpg');
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  filter: saturate(0.85) contrast(0.88) brightness(0.60);
-}
-
-@media (min-width: 768px) {
-  .home-fondo-bg {
-    transform: none;
-    background-position: center top;
-  }
-}
+/* home-fondo-bg is no longer used — parallax handled inline in page.tsx */
 
 .home-page-header {
   display: flex;
