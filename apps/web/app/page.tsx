@@ -5,6 +5,9 @@ import { useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowRight } from 'lucide-react';
 import { motion, useScroll, useTransform, useInView, type Variants } from 'framer-motion';
+import LiveChatDemo from '../components/home/LiveChatDemo';
+import SpotlightCard from '../components/home/SpotlightCard';
+import Counter from '../components/home/Counter';
 
 // ── Easing ────────────────────────────────────────────────────────────────────
 const SILK: [number, number, number, number] = [0.22, 1, 0.36, 1];   // suave, preciso
@@ -65,11 +68,11 @@ const STEPS = [
   { n: '03', title: 'Recibes claridad', body: 'Conversas con el agente, simulas escenarios y descargas tu plan de acción en PDF.' },
 ];
 
-const CHAT = [
-  { from: 'user' as const, text: '¿Cuánto debería ahorrar al mes?' },
-  { from: 'ai' as const,   text: 'Con base en tu perfil: ingreso $1.2M, gastos fijos $820K. Ajustando cuotas, puedes ahorrar un 18% mensual sin sacrificar calidad de vida.' },
-  { from: 'user' as const, text: '¿Cómo mejoro mi score crediticio?' },
-  { from: 'ai' as const,   text: 'Tu deuda más urgente es la tarjeta a 36 meses. Priorizarla reduce tu carga financiera en 23% y mejora tu perfil crediticio.' },
+// Métricas para el strip de stats (counters animados)
+const STATS = [
+  { to: 18, suffix: '%', label: 'ahorro mensual potencial identificado' },
+  { to: 10, suffix: ' min', label: 'para un diagnóstico financiero completo' },
+  { to: 23, suffix: '%', label: 'menos carga de deuda priorizando bien' },
 ];
 
 // ── Sections ──────────────────────────────────────────────────────────────────
@@ -148,17 +151,60 @@ function FeaturesSection() {
           </h2>
         </motion.div>
 
-        {FEATURES.map(({ n, title, body }, i) => (
-          <div key={n}>
-            <AnimHR delay={0.08 + i * 0.1} inView={inView} />
-            <motion.div variants={blurUp} className="home-feature-row">
-              <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.18)', letterSpacing: '0.08em', paddingTop: 4 }}>{n}</span>
-              <h3 style={{ fontSize: 'clamp(14px,1.8vw,19px)', fontWeight: 600, color: 'rgba(255,255,255,0.88)', margin: 0, lineHeight: 1.28, letterSpacing: '-0.015em' }}>{title}</h3>
-              <p className="home-feature-body" style={{ fontSize: 14, color: 'rgba(255,255,255,0.36)', lineHeight: 1.68, margin: 0 }}>{body}</p>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          {FEATURES.map(({ n, title, body }, i) => (
+            <motion.div key={n} variants={blurUp}>
+              <SpotlightCard
+                glow={i === FEATURES.length - 1 ? 'rgba(164,143,79,0.18)' : 'rgba(111,143,166,0.16)'}
+                className="h-full p-6 md:p-7"
+              >
+                <span
+                  className="text-[10px] font-bold tracking-wider"
+                  style={{ color: i === FEATURES.length - 1 ? 'rgba(164,143,79,0.55)' : 'rgba(111,143,166,0.55)' }}
+                >
+                  {n}
+                </span>
+                <h3 className="mt-5 text-[17px] font-semibold leading-snug tracking-tight text-white/90">
+                  {title}
+                </h3>
+                <p className="mt-3 text-[13.5px] leading-relaxed text-white/40">{body}</p>
+              </SpotlightCard>
             </motion.div>
-          </div>
-        ))}
-        <AnimHR delay={0.45} inView={inView} />
+          ))}
+        </div>
+      </motion.div>
+    </section>
+  );
+}
+
+function StatsSection() {
+  const ref = useRef<HTMLElement>(null);
+  const inView = useInView(ref, { once: true, margin: '-80px' });
+
+  return (
+    <section
+      ref={ref}
+      style={{ background: '#050810', padding: 'clamp(70px,10vw,130px) clamp(24px,8vw,120px)', borderTop: '1px solid rgba(255,255,255,0.06)' }}
+    >
+      <motion.div initial="hidden" animate={inView ? 'visible' : 'hidden'} variants={sg(0.16)}>
+        <motion.div variants={blurUp}>
+          <Label text="En números" />
+        </motion.div>
+        <div className="grid grid-cols-1 gap-x-8 gap-y-12 sm:grid-cols-3">
+          {STATS.map((s, i) => (
+            <motion.div key={i} variants={blurUp}>
+              <div
+                className="font-serif text-[clamp(44px,7vw,80px)] font-bold leading-none tracking-tight text-white"
+                style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}
+              >
+                <Counter to={s.to} suffix={s.suffix} />
+              </div>
+              <p className="mt-4 max-w-[220px] text-[13.5px] leading-relaxed text-white/35">
+                {s.label}
+              </p>
+            </motion.div>
+          ))}
+        </div>
       </motion.div>
     </section>
   );
@@ -277,30 +323,8 @@ function PreviewSection() {
           </h2>
         </motion.div>
 
-        <motion.div variants={blurUp} style={{ maxWidth: 460, display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {CHAT.map((msg, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 10, filter: 'blur(6px)' }}
-              animate={inView ? { opacity: 1, y: 0, filter: 'blur(0px)' } : {}}
-              transition={{ duration: 0.55, delay: 0.55 + i * 0.55, ease: SILK }}
-              style={{ display: 'flex', justifyContent: msg.from === 'user' ? 'flex-end' : 'flex-start' }}
-            >
-              <div style={{
-                maxWidth: '80%',
-                padding: '10px 14px',
-                borderRadius: msg.from === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
-                background: msg.from === 'user' ? '#6f8fa6' : '#11151c',
-                border: msg.from === 'ai' ? '1px solid rgba(255,255,255,0.06)' : 'none',
-                fontSize: 13.5,
-                lineHeight: 1.55,
-                color: msg.from === 'user' ? '#fff' : 'rgba(255,255,255,0.68)',
-                letterSpacing: '-0.01em',
-              }}>
-                {msg.text}
-              </div>
-            </motion.div>
-          ))}
+        <motion.div variants={blurUp}>
+          <LiveChatDemo />
         </motion.div>
       </motion.div>
     </section>
@@ -505,6 +529,8 @@ export default function HomePage() {
       {/* ─── SECTIONS ────────────────────────────────────────────────────── */}
       <ProblemSection />
       <FeaturesSection />
+      <StatsSection />
+      <StepsSection />
       <PreviewSection />
       <CtaSection />
 

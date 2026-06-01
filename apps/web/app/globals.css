@@ -1,7 +1,11 @@
 /* ================================================= */
 /* TAILWIND v4 — utilities layer (hidden, flex, etc) */
+/* Se importa SIN preflight para no resetear el      */
+/* diseño inline/CSS existente del sitio.            */
 /* ================================================= */
-@import "tailwindcss";
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
 
 /* ================================================= */
 /* PREMIUM ANIMATIONS FIRST                          */
@@ -114,12 +118,17 @@
 /* Global reset                                      */
 /* ================================================= */
 
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+/* Reset base dentro de @layer base para que las utilities de Tailwind
+   (p-*, m-*, etc.) puedan sobreescribirlo. Sin el layer, este reset
+   global ganaría sobre las utilities por la cascada de v4. */
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
 }
 
 html,
