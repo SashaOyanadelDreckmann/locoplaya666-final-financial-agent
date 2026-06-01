@@ -8,6 +8,7 @@ import { motion, useScroll, useTransform, useInView, type Variants } from 'frame
 import LiveChatDemo from '../components/home/LiveChatDemo';
 import SpotlightCard from '../components/home/SpotlightCard';
 import Counter from '../components/home/Counter';
+import NumbersCanvas from '../components/home/NumbersCanvas';
 
 // ── Easing ────────────────────────────────────────────────────────────────────
 const SILK: [number, number, number, number] = [0.22, 1, 0.36, 1];   // suave, preciso
@@ -381,7 +382,12 @@ function CtaSection() {
 
 export default function HomePage() {
   const router = useRouter();
+  const heroSectionRef = useRef<HTMLElement>(null);
   const { scrollY } = useScroll();
+  const { scrollYProgress: heroProgress } = useScroll({
+    target: heroSectionRef,
+    offset: ['start start', 'end end'],
+  });
 
   const heroY = useTransform(scrollY, [0, 600], [0, -70]);
   const heroOpacity = useTransform(scrollY, [0, 380], [1, 0]);
@@ -391,20 +397,12 @@ export default function HomePage() {
     <main style={{ background: '#050810', color: 'white' }}>
 
       {/* ─── HERO ────────────────────────────────────────────────────────── */}
-      <section style={{ position: 'relative', height: '100dvh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+      {/* Sección tall: el sticky hace que el viewport quede "pegado" mientras scrolleas */}
+      <section ref={heroSectionRef} style={{ position: 'relative', height: '350vh' }}>
+        <div style={{ position: 'sticky', top: 0, height: '100dvh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
 
-        {/* ── Imagen fija — sin parallax ni recorte ── */}
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            backgroundImage: "url('/fondo4.jpg')",
-            backgroundSize: 'cover',
-            backgroundPosition: 'center 18%',
-            filter: 'saturate(1.45) contrast(0.65) brightness(0.52) sepia(0.06)',
-            zIndex: 0,
-          }}
-        />
+        {/* ── Canvas: imagen ↔ números ── */}
+        <NumbersCanvas progress={heroProgress} />
 
         {/* Gradiente de profundidad: texto abajo visible */}
         <div style={{
@@ -519,6 +517,7 @@ export default function HomePage() {
             <span>Financieramente</span>
           </div>
         </div>
+        </div> {/* /sticky inner */}
       </section>
 
       {/* ─── SECTIONS ────────────────────────────────────────────────────── */}
