@@ -738,7 +738,7 @@ const POST_DIAGNOSIS_CHAT_IDS = ['chat-1', 'chat-2', 'chat-3'] as const;
 const MAX_BUDGET_ROWS = 30;
 const MAX_TRANSACTION_PRODUCTS = 7;
 const MAX_PRODUCT_RECREATIONS = 3;
-const MAX_EVIDENCE_FILES_PER_PRODUCT = 7;
+const MAX_EVIDENCE_FILES_PER_PRODUCT = 25;
 
 const KNOWLEDGE_MILESTONE_DEFS = [
   { id: 'intake', label: 'Cuestionario y perfil base', threshold: 20 },
@@ -3956,24 +3956,6 @@ export default function AgentPage() {
     } catch (error) {
       const errorText = toUserFacingError(error, 'generic');
       setTransactionUploadError(errorText);
-      setBankSimulation((prev) => {
-        if (!prev.activeProductId) return prev;
-        const active = prev.products.find((p) => p.id === prev.activeProductId);
-        if (!active) return prev;
-        const nextFiles = Array.from(new Set([...active.uploadedFiles, ...names]));
-        const products = prev.products.map((p) =>
-          p.id === active.id ? { ...p, uploadedFiles: nextFiles } : p
-        );
-        const snapshot = getSimulationSnapshot(products, prev.activeProductId);
-        return {
-          ...prev,
-          products,
-          uploadedFiles: snapshot.uploadedFiles,
-          parsedDocuments: snapshot.parsedDocuments,
-          connected: snapshot.connected,
-          randomMode: snapshot.randomMode,
-        };
-      });
       return null;
     } finally {
       setDocumentsLoading(false);

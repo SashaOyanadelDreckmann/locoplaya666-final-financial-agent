@@ -13,6 +13,7 @@ import agentRouter from './routes/agent';
 import documentsRouter from './routes/documents';
 import { pdfsRouter } from './routes/pdfs.routes';
 import internalRouter from './routes/internal.routes';
+import analyticsRouter from './routes/analytics';
 import { requestLoggerMiddleware } from './middleware/requestLogger';
 import { asyncHandler, errorHandlerMiddleware } from './middleware/errorHandler';
 import { attachCsrfToken, validateCsrfToken } from './middleware/csrf';
@@ -35,6 +36,7 @@ dotenv.config();
 export function createApp() {
   const config = getConfig();
   const app = express();
+  const jsonBodyLimit = process.env.EXPRESS_JSON_LIMIT || '35mb';
 
   if (config.NODE_ENV === 'production') {
     // Required for secure cookies behind proxies (Heroku/Render/Nginx, etc.)
@@ -59,7 +61,7 @@ export function createApp() {
     })
   );
 
-  app.use(express.json({ limit: '2mb' }));
+  app.use(express.json({ limit: jsonBodyLimit }));
   app.use(cookieParser());
 
   // SECURITY: CSRF token attachment for all authenticated requests
@@ -90,6 +92,7 @@ export function createApp() {
   // AGENT CORE
   app.use('/api/agent', chatRateLimiter);
   app.use('/api', agentRouter);
+  app.use('/api/analytics', analyticsRouter);
   app.use('/api/documents', documentsRateLimiter, documentsRouter);
   app.use('/api/pdfs', pdfsRouter);
   app.use('/internal', internalRouter);

@@ -1637,7 +1637,7 @@ export function TransactionsModal(props: {
 
   function openAuthorizationWithPreset(preset?: { bank: string; template: string }) {
     if (preset) {
-      setQuickBank('');
+      setQuickBank(`${preset.bank} (simulacion)`);
       setProductTemplate(preset.template);
     }
     setShowInstitutionCatalog(false);
@@ -1645,6 +1645,14 @@ export function TransactionsModal(props: {
     setShowTxCarousel(true);
     props.setTxWizardStep('credentials');
   }
+  useEffect(() => {
+    if (!props.isOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') props.onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [props.isOpen, props.onClose]);
   useEffect(() => {
     if (!props.isOpen) return;
     // Start with preset selection before opening authorization.
@@ -1933,11 +1941,17 @@ export function TransactionsModal(props: {
 
   return (
     <div className="agent-modal-overlay transactions-modal-overlay" onClick={props.onClose}>
-      <div className="agent-modal transactions-modal" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="agent-modal transactions-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="transactions-modal-title"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="bcc-modal-header">
           <div className="bcc-modal-title-wrap">
             <span className="bcc-modal-eyebrow">Financieramente</span>
-            <h3 className="bcc-modal-title">Transacciones</h3>
+            <h3 id="transactions-modal-title" className="bcc-modal-title">Transacciones</h3>
           </div>
           <button type="button" className="agent-modal-close" onClick={props.onClose}>×</button>
         </div>

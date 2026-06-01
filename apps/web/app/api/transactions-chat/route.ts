@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
+import { requireBackendSession } from '@/lib/serverAuth';
+import { checkRateLimit } from '@/lib/rateLimit';
 
 type AssistantMessage = {
   role?: 'assistant' | 'user';
@@ -7,18 +9,41 @@ type AssistantMessage = {
 };
 
 function compactText(value: unknown, max = 16000) {
-  return String(value ?? '').trim().slice(0, max);
+  return String(value ?? '')
+    .trim()
+    .slice(0, max);
 }
 
 export async function POST(req: Request) {
+  let session: { userId: string };
+  try {
+    session = await requireBackendSession(req);
+  } catch {
+    return NextResponse.json({ ok: false, error: 'Not authenticated' }, { status: 401 });
+  }
+
+  const rl = checkRateLimit(`transactions-chat:${session.userId}`, 30, 60_000);
+  if (!rl.ok) {
+    return NextResponse.json(
+      { ok: false, error: 'Too many requests' },
+      { status: 429, headers: { 'Retry-After': String(rl.retryAfter ?? 60) } }
+    );
+  }
+
   try {
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
-      return NextResponse.json({ ok: false, error: 'OPENAI_API_KEY no configurada' }, { status: 500 });
+      return NextResponse.json(
+        { ok: false, error: 'OPENAI_API_KEY no configurada' },
+        { status: 500 }
+      );
     }
 
     const body = await req.json();
     const mode = String(body?.mode ?? 'chat').trim();
+    if (mode !== 'summary' && mode !== 'chat') {
+      return NextResponse.json({ ok: false, error: 'Invalid mode' }, { status: 400 });
+    }
     const product = body?.product ?? {};
     const parsedDocuments = Array.isArray(body?.parsedDocuments) ? body.parsedDocuments : [];
     const dashboard = body?.dashboard ?? null;
@@ -27,8 +52,10 @@ export async function POST(req: Request) {
     const messages = (Array.isArray(body?.messages) ? body.messages : []) as AssistantMessage[];
 
     const client = new OpenAI({ apiKey });
-    const summaryModel = process.env.TRANSACTIONS_SUMMARY_MODEL || process.env.OPENAI_MODEL || 'gpt-5.1-codex';
-    const chatModel = process.env.TRANSACTIONS_CHAT_MODEL || process.env.OPENAI_MODEL_FAST || 'gpt-4.1-mini';
+    const summaryModel =
+      process.env.TRANSACTIONS_SUMMARY_MODEL || process.env.OPENAI_MODEL || 'gpt-5.1-codex';
+    const chatModel =
+      process.env.TRANSACTIONS_CHAT_MODEL || process.env.OPENAI_MODEL_FAST || 'gpt-4.1-mini';
 
     const docsDigest = parsedDocuments.slice(0, 8).map((doc: any) => ({
       name: String(doc?.name ?? ''),
@@ -62,7 +89,11 @@ export async function POST(req: Request) {
 
       const raw = response.choices[0]?.message?.content?.trim() ?? '{}';
       const parsed = JSON.parse(raw) as { summary?: string };
-      return NextResponse.json({ ok: true, summary: compactText(parsed.summary ?? '', 8000), model: summaryModel });
+      return NextResponse.json({
+        ok: true,
+        summary: compactText(parsed.summary ?? '', 8000),
+        model: summaryModel,
+      });
     }
 
     const compactHistory = messages.slice(-10).map((message) => ({
@@ -104,7 +135,7 @@ export async function POST(req: Request) {
   } catch (error) {
     return NextResponse.json(
       { ok: false, error: error instanceof Error ? error.message : 'transactions chat error' },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
