@@ -30199,3 +30199,1027 @@ body.agent-route-active .app-shell::before {
     border-top: 1px solid rgba(160, 191, 213, 0.24) !important;
   }
 }
+
+/* =====================================================================
+   TRANSACTIONS MODAL — "ULTRA PRO" LAYER
+   Premium · matte · opaque · interactive (desktop + mobile)
+   Appended last so it wins equal-specificity cascade ties.
+   ===================================================================== */
+.transactions-modal {
+  --txp-panel: #0d141d;
+  --txp-panel-edge: #0a1019;
+  --txp-surface-1: #131d28;
+  --txp-surface-2: #18242f;
+  --txp-surface-2-hover: #1f2d3b;
+  --txp-border: rgba(150, 180, 205, 0.12);
+  --txp-border-strong: rgba(152, 186, 212, 0.22);
+  --txp-border-hover: rgba(126, 176, 216, 0.5);
+  --txp-text: #e9f1f8;
+  --txp-text-dim: #9fb3c4;
+  --txp-text-mute: #7f93a4;
+  --txp-accent: #5b8cc0;
+  --txp-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+/* Backdrop — deeper matte vignette, less glossy */
+.transactions-modal-overlay {
+  background:
+    radial-gradient(120% 90% at 50% -10%, rgba(36, 58, 80, 0.34), transparent 60%),
+    radial-gradient(100% 80% at 50% 120%, rgba(10, 18, 28, 0.6), transparent 55%),
+    rgba(6, 11, 18, 0.74) !important;
+  backdrop-filter: blur(10px) saturate(0.9) brightness(0.62) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(0.9) brightness(0.62) !important;
+  padding: 28px !important;
+}
+
+/* The panel itself — a real opaque matte surface */
+.transactions-modal {
+  background:
+    linear-gradient(180deg, var(--txp-panel) 0%, var(--txp-panel-edge) 100%) !important;
+  border: 1px solid var(--txp-border-strong) !important;
+  border-radius: 28px !important;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.05) inset,
+    0 40px 120px rgba(0, 0, 0, 0.62),
+    0 12px 36px rgba(0, 0, 0, 0.45) !important;
+  padding-bottom: 8px !important;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(150, 180, 205, 0.3) transparent;
+}
+.transactions-modal::-webkit-scrollbar { width: 10px; }
+.transactions-modal::-webkit-scrollbar-thumb {
+  background: rgba(150, 180, 205, 0.26);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+.transactions-modal::-webkit-scrollbar-thumb:hover { background: rgba(150, 180, 205, 0.42); background-clip: content-box; }
+
+/* Header — premium eyebrow + title + a real close button */
+.transactions-modal .bcc-modal-header {
+  padding: 26px 28px 0 !important;
+  margin-bottom: 6px !important;
+}
+.transactions-modal .bcc-modal-eyebrow {
+  font-size: 11px !important;
+  letter-spacing: 0.34em !important;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--txp-accent) !important;
+  opacity: 0.9;
+}
+.transactions-modal .bcc-modal-title {
+  font-size: clamp(22px, 2.4vw, 30px) !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.02em !important;
+  color: var(--txp-text) !important;
+  margin-top: 4px !important;
+}
+.transactions-modal .agent-modal-intro {
+  padding: 0 28px !important;
+  text-align: center !important;
+  color: var(--txp-text-dim) !important;
+  font-size: 13.5px !important;
+  max-width: 760px;
+  margin: 6px auto 18px !important;
+}
+.transactions-modal .agent-modal-close {
+  position: absolute !important;
+  top: 22px;
+  right: 22px;
+  width: 38px;
+  height: 38px;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px !important;
+  font-size: 20px !important;
+  color: var(--txp-text-dim) !important;
+  background: var(--txp-surface-2) !important;
+  border: 1px solid var(--txp-border) !important;
+  transition: transform 0.18s var(--txp-ease), color 0.18s var(--txp-ease),
+    background 0.18s var(--txp-ease), border-color 0.18s var(--txp-ease);
+}
+.transactions-modal .agent-modal-close:hover {
+  color: var(--txp-text) !important;
+  background: var(--txp-surface-2-hover) !important;
+  border-color: var(--txp-border-hover) !important;
+  transform: rotate(90deg);
+}
+.transactions-modal .agent-modal-close:active { transform: rotate(90deg) scale(0.92); }
+
+/* Structural columns — opaque matte raised surfaces */
+.transactions-modal .pt-left,
+.transactions-modal .pt-right {
+  background: var(--txp-surface-1) !important;
+  border: 1px solid var(--txp-border) !important;
+  border-radius: 22px !important;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.04) inset,
+    0 20px 44px rgba(0, 0, 0, 0.42) !important;
+}
+
+/* Inner cards — solid matte tiles with interaction */
+.transactions-modal .tx-meta-card,
+.transactions-modal .pt-kpi,
+.transactions-modal .pt-empty-item,
+.transactions-modal .pt-premium-intro {
+  background: var(--txp-surface-2) !important;
+  border: 1px solid var(--txp-border) !important;
+  border-radius: 16px !important;
+  box-shadow: none !important;
+  transition: border-color 0.18s var(--txp-ease), background 0.18s var(--txp-ease),
+    transform 0.18s var(--txp-ease);
+}
+.transactions-modal .pt-kpi:hover,
+.transactions-modal .pt-empty-item:hover {
+  background: var(--txp-surface-2-hover) !important;
+  border-color: var(--txp-border-strong) !important;
+  transform: translateY(-2px);
+}
+.transactions-modal .tx-meta-card-kicker,
+.transactions-modal .pt-kpi span {
+  color: var(--txp-text-mute) !important;
+}
+
+/* Product card (top of stack) — premium interactive surface */
+.transactions-modal .pt-item.pt-item-stack.is-top,
+.transactions-modal .pt-item:not(.pt-item-stack) {
+  background: var(--txp-surface-2) !important;
+  border: 1px solid var(--txp-border-strong) !important;
+  border-radius: 20px !important;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.4) !important;
+  transition: transform 0.2s var(--txp-ease), border-color 0.2s var(--txp-ease),
+    box-shadow 0.2s var(--txp-ease), background 0.2s var(--txp-ease);
+}
+.transactions-modal .pt-item.pt-item-stack.is-top:hover,
+.transactions-modal .pt-item:not(.pt-item-stack):hover {
+  transform: translateY(-3px);
+  border-color: var(--txp-border-hover) !important;
+  box-shadow:
+    0 24px 54px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(126, 176, 216, 0.18) !important;
+}
+
+/* Buttons inside the modal — matte, tactile, interactive */
+.transactions-modal .continue-ghost {
+  background: var(--txp-surface-2) !important;
+  border: 1px solid var(--txp-border-strong) !important;
+  color: var(--txp-text) !important;
+  box-shadow: none !important;
+  transition: transform 0.16s var(--txp-ease), background 0.16s var(--txp-ease),
+    border-color 0.16s var(--txp-ease);
+}
+.transactions-modal .continue-ghost:hover:not(:disabled) {
+  background: var(--txp-surface-2-hover) !important;
+  border-color: var(--txp-border-hover) !important;
+  transform: translateY(-1px);
+}
+.transactions-modal .continue-ghost:active:not(:disabled) { transform: translateY(0) scale(0.98); }
+
+.transactions-modal .tx-preset-btn,
+.transactions-modal .tx-minimal-launch-btn,
+.transactions-modal .button-primary {
+  transition: transform 0.16s var(--txp-ease), box-shadow 0.18s var(--txp-ease),
+    filter 0.18s var(--txp-ease) !important;
+}
+.transactions-modal .tx-preset-btn:hover:not(:disabled),
+.transactions-modal .tx-minimal-launch-btn:hover:not(:disabled),
+.transactions-modal .button-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  filter: brightness(1.06);
+}
+.transactions-modal .tx-preset-btn:active:not(:disabled),
+.transactions-modal .tx-minimal-launch-btn:active:not(:disabled),
+.transactions-modal .button-primary:active:not(:disabled) {
+  transform: translateY(0) scale(0.985);
+}
+
+/* Preset panel — give it a real opaque home instead of floating */
+.transactions-modal .tx-preset-shell {
+  background: var(--txp-surface-1) !important;
+  border: 1px solid var(--txp-border) !important;
+  border-radius: 22px !important;
+  padding: 22px !important;
+  box-shadow: 0 20px 44px rgba(0, 0, 0, 0.42) !important;
+}
+
+/* Accessible focus rings everywhere in the modal */
+.transactions-modal button:focus-visible,
+.transactions-modal [role="button"]:focus-visible {
+  outline: 2px solid var(--txp-accent) !important;
+  outline-offset: 2px !important;
+  border-radius: 14px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .transactions-modal *,
+  .transactions-modal *::before,
+  .transactions-modal *::after { transition: none !important; }
+  .transactions-modal .agent-modal-close:hover { transform: none !important; }
+}
+
+/* ---------- Mobile: full-bleed matte sheet ---------- */
+@media (max-width: 767px) {
+  .transactions-modal-overlay {
+    padding: 0 !important;
+    align-items: stretch !important;
+  }
+  .transactions-modal {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 100% !important;
+    max-height: 100% !important;
+    height: 100% !important;
+    border-radius: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  .transactions-modal .bcc-modal-header {
+    padding: 18px 18px 0 !important;
+    position: sticky !important;
+    top: 0;
+    z-index: 5;
+    background: linear-gradient(180deg, var(--txp-panel) 70%, rgba(13, 20, 29, 0)) !important;
+    padding-bottom: 10px !important;
+  }
+  .transactions-modal .agent-modal-close { top: 16px; right: 14px; width: 40px; height: 40px; }
+  .transactions-modal .agent-modal-intro { padding: 0 18px !important; margin-bottom: 14px !important; }
+  .transactions-modal .pt-shell { padding: 0 14px 18px !important; gap: 14px !important; }
+  .transactions-modal .pt-left,
+  .transactions-modal .pt-right { border-radius: 18px !important; padding: 14px !important; }
+  .transactions-modal .tx-preset-shell { padding: 16px !important; border-radius: 18px !important; }
+  /* Comfortable tap targets */
+  .transactions-modal .continue-ghost,
+  .transactions-modal .tx-preset-btn,
+  .transactions-modal .button-primary { min-height: 46px !important; }
+}
+
+/* =====================================================================
+   TRANSACTIONS MODAL — EDITORIAL PREMIUM PASS (v2)
+   Fixes: mono→editorial type, white cards→matte, hero overlap,
+   floating delete button, product-card hierarchy. Appended last.
+   ===================================================================== */
+.transactions-modal {
+  --txp-sans: "Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --txp-mono: "JetBrains Mono", "SF Mono", ui-monospace, monospace;
+}
+
+/* ---- Typography: refined editorial sans across prose & labels ---- */
+.transactions-modal,
+.transactions-modal .bcc-modal-eyebrow,
+.transactions-modal .bcc-modal-title,
+.transactions-modal .agent-modal-intro,
+.transactions-modal .pt-list-head h4,
+.transactions-modal .tx-meta-card,
+.transactions-modal .tx-meta-card-kicker,
+.transactions-modal .tx-meta-card p,
+.transactions-modal .pt-item-name,
+.transactions-modal .pt-item-status,
+.transactions-modal .pt-item-bank,
+.transactions-modal .pt-item-meta span,
+.transactions-modal .tx-library-empty,
+.transactions-modal .tx-library-empty-kicker,
+.transactions-modal .pt-stage-eyebrow,
+.transactions-modal .pt-stage-header h4,
+.transactions-modal .pt-stage-header p,
+.transactions-modal .transactions-summary-title,
+.transactions-modal .transactions-summary-card,
+.transactions-modal .bank-sim-grid label,
+.transactions-modal .tx-preset-title,
+.transactions-modal .tx-preset-btn,
+.transactions-modal .pt-empty-head h4,
+.transactions-modal .pt-empty-head p,
+.transactions-modal .pt-empty-item strong,
+.transactions-modal .pt-empty-item p,
+.transactions-modal .continue-ghost,
+.transactions-modal .button-primary,
+.transactions-modal .tx-picker-toggle,
+.transactions-modal .tx-picker-option,
+.transactions-modal .tx-3d-hero-eyebrow,
+.transactions-modal .tx-3d-hero-core strong,
+.transactions-modal .tx-3d-hero-core span {
+  font-family: var(--txp-sans) !important;
+}
+/* Keep mono only where it reads as "data" */
+.transactions-modal .bcc-modal-eyebrow,
+.transactions-modal .pt-stage-eyebrow,
+.transactions-modal .tx-meta-card-kicker,
+.transactions-modal .transactions-summary-title {
+  letter-spacing: 0.18em !important;
+}
+.transactions-modal .pt-item-meta span,
+.transactions-modal .pt-item-status {
+  font-family: var(--txp-mono) !important;
+  letter-spacing: 0.04em !important;
+}
+
+/* ---- Product library card: clean left-aligned hierarchy ---- */
+.transactions-modal .pt-item.pt-item-stack.is-top,
+.transactions-modal .pt-item:not(.pt-item-stack) {
+  position: relative !important;
+  align-items: stretch !important;
+  text-align: left !important;
+  padding: 18px 18px 16px !important;
+  gap: 6px !important;
+  min-height: 0 !important;
+}
+.transactions-modal .pt-item-top {
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+  text-align: left !important;
+}
+.transactions-modal .pt-item-name {
+  font-size: 17px !important;
+  font-weight: 650 !important;
+  letter-spacing: -0.01em !important;
+  color: #eef4fa !important;
+  text-align: left !important;
+  line-height: 1.25 !important;
+}
+.transactions-modal .pt-item-bank {
+  font-size: 12px !important;
+  letter-spacing: 0.02em !important;
+  text-transform: none !important;
+  color: var(--txp-text-dim) !important;
+  text-align: left !important;
+}
+.transactions-modal .pt-item-status {
+  font-size: 9.5px !important;
+  text-transform: uppercase;
+  padding: 3px 9px !important;
+  border-radius: 999px !important;
+  border: 1px solid var(--txp-border-strong) !important;
+  color: var(--txp-text-dim) !important;
+  background: rgba(255, 255, 255, 0.03) !important;
+  white-space: nowrap;
+}
+.transactions-modal .pt-item-meta {
+  margin-top: 8px !important;
+  gap: 8px !important;
+  justify-content: flex-start !important;
+}
+.transactions-modal .pt-item-meta span {
+  font-size: 10.5px !important;
+  color: var(--txp-text-mute) !important;
+  padding: 4px 10px !important;
+  border-radius: 999px !important;
+  border: 1px solid var(--txp-border) !important;
+  background: rgba(255, 255, 255, 0.02) !important;
+}
+
+/* Delete "×" — pinned to corner, subtle, no longer in flow */
+.transactions-modal .pt-item-delete-mini {
+  position: absolute !important;
+  top: 12px !important;
+  right: 12px !important;
+  left: auto !important;
+  width: 26px !important;
+  height: 26px !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px !important;
+  line-height: 1 !important;
+  border-radius: 8px !important;
+  color: var(--txp-text-mute) !important;
+  background: rgba(8, 14, 22, 0.55) !important;
+  border: 1px solid var(--txp-border) !important;
+  z-index: 4 !important;
+  transition: color 0.16s var(--txp-ease), background 0.16s var(--txp-ease),
+    border-color 0.16s var(--txp-ease);
+}
+.transactions-modal .pt-item-delete-mini:hover {
+  color: #ffd2d2 !important;
+  background: rgba(120, 40, 44, 0.4) !important;
+  border-color: rgba(200, 90, 95, 0.55) !important;
+}
+
+/* ---- Kill the white summary/consent/evidence cards → matte dark ---- */
+.transactions-modal .transactions-summary-card,
+.transactions-modal .tx-consent-card,
+.transactions-modal .tx-evidence-card,
+.transactions-modal .tx-summary-clean .transactions-summary-card {
+  background: var(--txp-surface-1) !important;
+  background-image: none !important;
+  border: 1px solid var(--txp-border-strong) !important;
+  color: var(--txp-text) !important;
+  border-radius: 18px !important;
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.42) !important;
+}
+.transactions-modal .transactions-summary-title {
+  color: var(--txp-accent) !important;
+  font-size: 11px !important;
+  text-transform: uppercase;
+  font-weight: 600 !important;
+}
+.transactions-modal .transactions-summary-card p,
+.transactions-modal .transactions-summary-card li,
+.transactions-modal .bank-sim-grid > label {
+  color: var(--txp-text-dim) !important;
+}
+
+/* Form labels: strip the white pill background */
+.transactions-modal .bank-sim-grid label {
+  background: transparent !important;
+  background-image: none !important;
+  border: none !important;
+  color: var(--txp-text-dim) !important;
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+}
+
+/* Inputs → matte fields */
+.transactions-modal .bank-sim-grid input[type="text"],
+.transactions-modal .bank-sim-grid input:not([type]),
+.transactions-modal .tx-picker-field input {
+  background: var(--txp-surface-2) !important;
+  background-image: none !important;
+  color: var(--txp-text) !important;
+  border: 1px solid var(--txp-border-strong) !important;
+  border-radius: 12px !important;
+  font-family: var(--txp-sans) !important;
+  font-size: 14px !important;
+  transition: border-color 0.16s var(--txp-ease), background 0.16s var(--txp-ease);
+}
+.transactions-modal .bank-sim-grid input::placeholder,
+.transactions-modal .tx-picker-field input::placeholder {
+  color: var(--txp-text-mute) !important;
+}
+.transactions-modal .bank-sim-grid input:focus,
+.transactions-modal .tx-picker-field input:focus {
+  border-color: var(--txp-border-hover) !important;
+  background: var(--txp-surface-2-hover) !important;
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(91, 140, 192, 0.18) !important;
+}
+
+/* Picker toggle ("Ver catálogo") → refined ghost, not black pill */
+.transactions-modal .tx-picker-toggle {
+  background: rgba(255, 255, 255, 0.04) !important;
+  background-image: none !important;
+  border: 1px solid var(--txp-border-strong) !important;
+  color: var(--txp-text-dim) !important;
+  border-radius: 10px !important;
+  font-size: 12px !important;
+  padding: 6px 12px !important;
+  transition: color 0.16s var(--txp-ease), background 0.16s var(--txp-ease),
+    border-color 0.16s var(--txp-ease);
+}
+.transactions-modal .tx-picker-toggle:hover {
+  color: var(--txp-text) !important;
+  background: rgba(255, 255, 255, 0.07) !important;
+  border-color: var(--txp-border-hover) !important;
+}
+
+/* Catalog dropdown → matte, elevated, scrollable */
+.transactions-modal .tx-picker-catalog {
+  background: #0f1924 !important;
+  background-image: none !important;
+  border: 1px solid var(--txp-border-strong) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6) !important;
+  z-index: 20 !important;
+  max-height: 240px !important;
+  overflow-y: auto !important;
+}
+.transactions-modal .tx-picker-option {
+  color: var(--txp-text-dim) !important;
+  background: transparent !important;
+  border-radius: 9px !important;
+  transition: background 0.14s var(--txp-ease), color 0.14s var(--txp-ease);
+}
+.transactions-modal .tx-picker-option:hover {
+  background: rgba(91, 140, 192, 0.16) !important;
+  color: var(--txp-text) !important;
+}
+
+/* Checkbox accent */
+.transactions-modal .bank-sim-grid input[type="checkbox"] {
+  accent-color: var(--txp-accent) !important;
+  width: 17px !important;
+  height: 17px !important;
+}
+
+/* ---- Stage header: editorial hierarchy ---- */
+.transactions-modal .pt-stage-eyebrow {
+  font-size: 11px !important;
+  text-transform: uppercase;
+  font-weight: 600 !important;
+}
+.transactions-modal .pt-stage-header h4 {
+  font-size: clamp(19px, 2vw, 24px) !important;
+  font-weight: 680 !important;
+  letter-spacing: -0.015em !important;
+  color: #f1f5fa !important;
+}
+.transactions-modal .pt-stage-header p {
+  color: var(--txp-text-dim) !important;
+  font-size: 13.5px !important;
+}
+
+/* ---- 3D hero: stop the overlap. Stack it cleanly above the form ---- */
+.transactions-modal .tx-content-carousel {
+  flex-direction: column !important;
+  align-items: stretch !important;
+  gap: 18px !important;
+}
+.transactions-modal .tx-3d-hero-shell {
+  width: 100% !important;
+  max-width: 320px !important;
+  margin: 0 auto !important;
+  min-height: 0 !important;
+}
+.transactions-modal .tx-content-card.is-main-center {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+}
+
+/* ---- Preset buttons: keep palette, refine to premium pills ---- */
+.transactions-modal .tx-preset-title {
+  color: var(--txp-text-dim) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.16em !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+}
+.transactions-modal .tx-preset-btn {
+  border-radius: 14px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.01em !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.32) !important;
+}
+.transactions-modal .tx-preset-btn-add {
+  background: var(--txp-surface-2) !important;
+  color: var(--txp-text) !important;
+  border: 1px dashed var(--txp-border-hover) !important;
+  box-shadow: none !important;
+}
+
+/* ---- Empty state polish ---- */
+.transactions-modal .pt-empty-head h4 {
+  font-size: clamp(19px, 2vw, 23px) !important;
+  font-weight: 680 !important;
+  letter-spacing: -0.015em !important;
+  color: #f1f5fa !important;
+}
+.transactions-modal .pt-empty-item span {
+  background: rgba(91, 140, 192, 0.16) !important;
+  color: var(--txp-accent) !important;
+  border: 1px solid rgba(91, 140, 192, 0.3) !important;
+  font-family: var(--txp-mono) !important;
+}
+
+/* ============================================================
+   TRANSACTIONS MODAL — EDITORIAL CORRECTIVE PASS (v3)
+   Fixes lost-specificity battles found via live DOM inspection:
+   1) Top library card name rendered salmon (--pt-stack-accent inline)
+      + oversized + clipping behind the corner ×.
+   2) Consent card kept an intentional "paper-white" theme on its
+      labels/inputs — force matte dark to match the opaque system.
+   All selectors here meet or exceed the winning rules' specificity.
+   ============================================================ */
+
+/* 1 ── Top product card: readable light name, contained, no clip */
+.transactions-modal .pt-item.pt-item-stack.is-top .pt-item-name {
+  color: #eef4fa !important;
+  font-size: 16.5px !important;
+  line-height: 1.28 !important;
+  font-weight: 650 !important;
+  letter-spacing: -0.01em !important;
+  white-space: normal !important;
+  overflow-wrap: anywhere !important;
+  padding-right: 38px !important; /* clear the absolute × at right:12 */
+  max-width: 100% !important;
+}
+.transactions-modal .pt-item.pt-item-stack.is-top .pt-item-status {
+  color: #cfe0ef !important;
+  -webkit-text-fill-color: #cfe0ef !important;
+}
+.transactions-modal .pt-item.pt-item-stack.is-top .pt-item-bank {
+  color: var(--txp-text-dim) !important;
+}
+
+/* 2 ── Consent card: kill the white paper theme, go matte dark */
+.transactions-modal .transactions-summary-card.tx-consent-card {
+  background: var(--txp-surface-1) !important;
+  background-image: none !important;
+  border: 1px solid var(--txp-border) !important;
+}
+.transactions-modal .transactions-summary-card.tx-consent-card .bank-sim-grid label {
+  background: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  color: var(--txp-text-dim) !important;
+  padding: 0 !important;
+}
+.transactions-modal .transactions-summary-card.tx-consent-card .bank-sim-grid input:not([type="checkbox"]) {
+  background: linear-gradient(180deg, var(--txp-surface-2), var(--txp-surface-1)) !important;
+  background-image: linear-gradient(180deg, var(--txp-surface-2), var(--txp-surface-1)) !important;
+  border: 1px solid var(--txp-border-strong) !important;
+  color: var(--txp-text) !important;
+  -webkit-text-fill-color: var(--txp-text) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.03) !important;
+}
+.transactions-modal .transactions-summary-card.tx-consent-card .bank-sim-grid input:not([type="checkbox"])::placeholder {
+  color: var(--txp-text-mute) !important;
+}
+.transactions-modal .transactions-summary-card.tx-consent-card .bank-sim-grid input:not([type="checkbox"]):focus {
+  background: var(--txp-surface-2-hover) !important;
+  background-image: none !important;
+  border-color: var(--txp-border-hover) !important;
+  box-shadow: 0 0 0 3px rgba(91,140,192,0.20) !important;
+  outline: none !important;
+}
+/* consent card prose stays light over the dark surface */
+.transactions-modal .transactions-summary-card.tx-consent-card,
+.transactions-modal .transactions-summary-card.tx-consent-card p,
+.transactions-modal .transactions-summary-card.tx-consent-card li,
+.transactions-modal .transactions-summary-card.tx-consent-card .transactions-summary-title {
+  color: var(--txp-text) !important;
+}
+.transactions-modal .transactions-summary-card.tx-consent-card p,
+.transactions-modal .transactions-summary-card.tx-consent-card li {
+  color: var(--txp-text-dim) !important;
+}
+/* picker toggle ("Ver catálogo") inside the consent card → ghost matte */
+.transactions-modal .transactions-summary-card.tx-consent-card .tx-picker-toggle {
+  background: var(--txp-surface-2) !important;
+  background-image: none !important;
+  border: 1px solid var(--txp-border-strong) !important;
+  color: var(--txp-text-dim) !important;
+}
+.transactions-modal .transactions-summary-card.tx-consent-card .tx-picker-toggle:hover {
+  border-color: var(--txp-border-hover) !important;
+  color: var(--txp-text) !important;
+}
+
+/* ── v3.1 ── text-fill wins over color on the gradient name; pin it light */
+.transactions-modal .pt-item.pt-item-stack.is-top .pt-item-name {
+  -webkit-text-fill-color: #eef4fa !important;
+  background: none !important;
+  background-clip: border-box !important;
+  -webkit-background-clip: border-box !important;
+}
+.transactions-modal .pt-item.pt-item-stack.is-top .pt-item-status {
+  -webkit-text-fill-color: #cfe0ef !important;
+}
+
+/* ── v3.1 ── tame the deck: non-top stacked cards go matte (no raw color block) */
+.transactions-modal .pt-item.pt-item-stack:not(.is-top) {
+  background: linear-gradient(180deg, var(--txp-surface-1), var(--txp-panel)) !important;
+  border: 1px solid var(--txp-border) !important;
+  box-shadow: 0 -1px 0 rgba(255,255,255,0.03) inset, 0 18px 40px -28px rgba(0,0,0,0.7) !important;
+  opacity: 0.92 !important;
+}
+
+/* ── v3.2 ── decorative 3D hero is absolute → drops out of flow and the
+   stage header renders underneath it (overlap, worst on mobile). Pin it
+   back in-flow so the column layout reserves its space everywhere. */
+.transactions-modal .tx-content-carousel .tx-3d-hero-shell {
+  position: relative !important;
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  margin: 0 auto 20px !important;
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   PREMIUM EDITORIAL LAYER — Budget Modal  (appended; last-in-source wins)
+   Scope: .budget-modal only. Refines surface, typography, spacing & rhythm
+   for a magazine-grade editorial feel. Does not touch carousel/grid logic.
+   Removable as a block.
+   ════════════════════════════════════════════════════════════════════════ */
+
+.budget-modal {
+  --ed-serif: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  --ed-ink: #f4f1ea;            /* warm paper-white */
+  --ed-ink-soft: rgba(244,241,234,0.62);
+  --ed-ink-faint: rgba(244,241,234,0.38);
+  --ed-line: rgba(244,241,234,0.10);
+  --ed-line-strong: rgba(244,241,234,0.18);
+  --ed-brass: #c8a86b;          /* single restrained accent */
+}
+
+/* ── Modal surface: deep ink, hairline frame, soft editorial shadow ── */
+.agent-modal-overlay.budget-modal-overlay > .agent-modal.budget-modal {
+  background:
+    radial-gradient(120% 90% at 50% -10%, rgba(56,64,74,0.55), transparent 55%),
+    linear-gradient(168deg, #15181d 0%, #101216 52%, #0c0d10 100%) !important;
+  border: 1px solid var(--ed-line-strong) !important;
+  border-radius: 26px !important;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.06) inset,
+    0 48px 120px -36px rgba(0,0,0,0.78),
+    0 18px 48px -28px rgba(0,0,0,0.6) !important;
+}
+
+/* ── Header: tracked brass eyebrow + serif display title + hairline rule ── */
+.budget-modal .bcc-modal-header {
+  padding: 30px 36px 22px !important;
+  border-bottom: 1px solid var(--ed-line) !important;
+  align-items: baseline !important;
+}
+.budget-modal .bcc-modal-eyebrow {
+  font-family: "Playfair Display", var(--ed-serif) !important;
+  font-style: italic !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.05em !important;
+  text-transform: none !important;
+  color: var(--ed-brass) !important;
+  margin-bottom: 6px !important;
+}
+.budget-modal .bcc-modal-title {
+  font-family: var(--ed-serif) !important;
+  font-size: 30px !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.01em !important;
+  color: var(--ed-ink) !important;
+}
+
+.budget-modal .agent-modal-close {
+  width: 38px !important;
+  height: 38px !important;
+  border-radius: 50% !important;
+  border: 1px solid var(--ed-line-strong) !important;
+  background: rgba(255,255,255,0.02) !important;
+  color: var(--ed-ink-soft) !important;
+  font-weight: 300 !important;
+  transition: background 180ms, color 180ms, border-color 180ms !important;
+}
+.budget-modal .agent-modal-close:hover {
+  background: rgba(255,255,255,0.07) !important;
+  color: var(--ed-ink) !important;
+  border-color: var(--ed-line-strong) !important;
+}
+
+.budget-modal .budget-modal-body {
+  padding-top: 22px !important;
+}
+
+/* ── Section eyebrows: consistent editorial small-caps with brass tick ── */
+.budget-modal .budget-section-eyebrow {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.22em !important;
+  text-transform: uppercase !important;
+  color: var(--ed-ink-faint) !important;
+}
+.budget-modal .budget-section-eyebrow::before {
+  content: "" !important;
+  width: 16px !important;
+  height: 1px !important;
+  background: var(--ed-brass) !important;
+  opacity: 0.8 !important;
+}
+
+/* ── Cockpit banner: editorial "deck" — dark, hairline-ruled stat strip ── */
+.budget-modal .budget-cockpit-banner {
+  margin: 0 36px 22px !important;
+  padding: 26px 30px !important;
+  border-radius: 20px !important;
+  border: 1px solid var(--ed-line-strong) !important;
+  background:
+    radial-gradient(140% 120% at 0% 0%, rgba(200,168,107,0.10), transparent 46%),
+    linear-gradient(165deg, rgba(255,255,255,0.045), rgba(255,255,255,0.015)) !important;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.05) inset, 0 24px 60px -40px rgba(0,0,0,0.7) !important;
+  gap: 26px !important;
+}
+.budget-modal .budget-cockpit-banner.is-positive { border-color: rgba(120,170,96,0.30) !important; }
+.budget-modal .budget-cockpit-banner.is-negative { border-color: rgba(195,119,106,0.30) !important; }
+
+.budget-modal .budget-cockpit-copy { gap: 12px !important; }
+.budget-modal .budget-cockpit-copy h4 {
+  font-family: var(--ed-serif) !important;
+  font-size: 1.7rem !important;
+  font-weight: 600 !important;
+  line-height: 1.1 !important;
+  letter-spacing: -0.015em !important;
+  color: var(--ed-ink) !important;
+}
+.budget-modal .budget-cockpit-copy p {
+  color: var(--ed-ink-soft) !important;
+  font-size: 0.95rem !important;
+  line-height: 1.55 !important;
+  max-width: 54ch !important;
+}
+.budget-modal .budget-cockpit-copy strong {
+  color: var(--ed-ink) !important;
+  font-size: 0.9rem !important;
+  font-weight: 600 !important;
+  padding-top: 4px !important;
+}
+.budget-modal .budget-cockpit-banner.is-positive .budget-cockpit-copy strong { color: #b6d58a !important; }
+.budget-modal .budget-cockpit-banner.is-negative .budget-cockpit-copy strong { color: #e6a79a !important; }
+
+/* Metrics → refined hairline-divided stat columns (no boxes) */
+.budget-modal .budget-cockpit-metrics {
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)) !important;
+  gap: 0 !important;
+  align-self: stretch !important;
+  border-left: 1px solid var(--ed-line) !important;
+}
+.budget-modal .budget-cockpit-metric {
+  min-width: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  padding: 4px 18px !important;
+  gap: 8px !important;
+  position: relative !important;
+}
+.budget-modal .budget-cockpit-metric + .budget-cockpit-metric::before {
+  content: "" !important;
+  position: absolute !important;
+  left: 0 !important;
+  top: 12% !important;
+  height: 76% !important;
+  width: 1px !important;
+  background: var(--ed-line) !important;
+}
+.budget-modal .budget-cockpit-metric span {
+  font-size: 0.6rem !important;
+  letter-spacing: 0.16em !important;
+  color: var(--ed-ink-faint) !important;
+}
+.budget-modal .budget-cockpit-metric strong {
+  font-family: var(--ed-serif) !important;
+  font-size: 1.4rem !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.01em !important;
+  color: var(--ed-ink) !important;
+}
+
+/* ── Mode tabs: centered, refined segmented control ── */
+.budget-modal .budget-modal-body.is-desktop .budget-mode-tabs {
+  display: flex !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  margin: 0 36px 18px !important;
+}
+.budget-modal .budget-mode-tab {
+  padding: 7px 20px !important;
+  border-radius: 100px !important;
+  border: 1px solid var(--ed-line) !important;
+  background: rgba(255,255,255,0.02) !important;
+  color: var(--ed-ink-soft) !important;
+  font-size: 0.76rem !important;
+  letter-spacing: 0.06em !important;
+}
+.budget-modal .budget-mode-tab:hover {
+  background: rgba(255,255,255,0.05) !important;
+  color: var(--ed-ink) !important;
+  border-color: var(--ed-line-strong) !important;
+}
+.budget-modal .budget-mode-tab.is-active {
+  background: var(--ed-ink) !important;
+  color: #14161a !important;
+  border-color: var(--ed-ink) !important;
+  font-weight: 600 !important;
+}
+
+/* ── Assistant hero: premium editorial card ── */
+.budget-modal .budget-assistant-panel .bcc-hero {
+  margin: 0 !important;
+  background:
+    radial-gradient(120% 100% at 100% 0%, rgba(200,168,107,0.06), transparent 50%),
+    linear-gradient(168deg, rgba(255,255,255,0.05), rgba(255,255,255,0.015)) !important;
+  border: 1px solid var(--ed-line-strong) !important;
+  border-radius: 22px !important;
+  padding: 34px 34px 26px !important;
+}
+.budget-modal .bcc-hero-label {
+  letter-spacing: 0.2em !important;
+  color: var(--ed-ink-faint) !important;
+}
+.budget-modal .bcc-hero-pill {
+  color: var(--ed-brass) !important;
+  background: rgba(200,168,107,0.10) !important;
+  border-color: rgba(200,168,107,0.35) !important;
+  letter-spacing: 0.08em !important;
+}
+.budget-modal .bcc-hero-question {
+  font-family: var(--ed-serif) !important;
+  font-size: 1.7rem !important;
+  font-weight: 500 !important;
+  line-height: 1.28 !important;
+  letter-spacing: -0.01em !important;
+  color: var(--ed-ink) !important;
+}
+.budget-modal .bcc-hero-tip,
+.budget-modal .bcc-hero-coach {
+  color: var(--ed-ink-soft) !important;
+  font-size: 0.9rem !important;
+  line-height: 1.5 !important;
+  margin-top: 12px !important;
+}
+.budget-modal .bcc-hero-input-wrap {
+  background: rgba(0,0,0,0.22) !important;
+  border: 1px solid var(--ed-line-strong) !important;
+  border-radius: 16px !important;
+}
+.budget-modal .bcc-hero-input-wrap:focus-within {
+  border-color: var(--ed-brass) !important;
+  box-shadow: 0 0 0 3px rgba(200,168,107,0.14) !important;
+}
+.budget-modal .bcc-hero-input { color: var(--ed-ink) !important; }
+.budget-modal .bcc-hero-input::placeholder { color: var(--ed-ink-faint) !important; }
+.budget-modal .bcc-hero-send {
+  background: var(--ed-ink) !important;
+  border-radius: 12px !important;
+  color: #14161a !important;
+}
+.budget-modal .bcc-hero-send:hover:not(:disabled) { background: #ffffff !important; }
+
+/* ── Table section: editorial header ── */
+.budget-modal .budget-table-head { align-items: flex-end !important; }
+.budget-modal .budget-table-head h4 {
+  font-family: var(--ed-serif) !important;
+  font-size: 1.4rem !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.01em !important;
+  color: var(--ed-ink) !important;
+  margin: 6px 0 0 !important;
+}
+.budget-modal .budget-table-help {
+  color: var(--ed-ink-soft) !important;
+  font-size: 0.86rem !important;
+  line-height: 1.5 !important;
+  max-width: 60ch !important;
+}
+
+/* Ingreso / Gasto + footer buttons: quiet editorial outlines */
+.budget-modal .budget-table-top-actions .continue-ghost,
+.budget-modal .budget-style-button,
+.budget-modal .budget-pdf-button {
+  border-radius: 100px !important;
+  border: 1px solid var(--ed-line-strong) !important;
+  background: rgba(255,255,255,0.02) !important;
+  color: var(--ed-ink-soft) !important;
+  letter-spacing: 0.04em !important;
+  font-size: 0.8rem !important;
+  transition: background 180ms, color 180ms, border-color 180ms !important;
+}
+.budget-modal .budget-table-top-actions .continue-ghost:hover,
+.budget-modal .budget-style-button:hover,
+.budget-modal .budget-pdf-button:hover:not(:disabled) {
+  background: rgba(255,255,255,0.07) !important;
+  color: var(--ed-ink) !important;
+}
+.budget-modal .budget-pdf-button {
+  background: var(--ed-ink) !important;
+  color: #14161a !important;
+  border-color: var(--ed-ink) !important;
+  font-weight: 600 !important;
+}
+.budget-modal .budget-pdf-button:hover:not(:disabled) { background: #ffffff !important; }
+
+/* Primary "Inyectar" CTA: brass-edged, editorial weight */
+.budget-modal .budget-agent-actions .button-primary {
+  border-radius: 100px !important;
+  letter-spacing: 0.03em !important;
+  font-weight: 600 !important;
+}
+
+/* ════════ MOBILE — sheet polish & breathing room (≤767px) ════════ */
+@media (max-width: 767px) {
+  .agent-modal-overlay.budget-modal-overlay > .agent-modal.budget-modal {
+    border-radius: 24px 24px 0 0 !important;
+    border-bottom: none !important;
+  }
+  .budget-modal .bcc-modal-header { padding: 22px 22px 18px !important; }
+  .budget-modal .bcc-modal-title { font-size: 25px !important; }
+
+  .budget-modal .budget-cockpit-banner {
+    margin: 0 16px 16px !important;
+    padding: 20px !important;
+    grid-template-columns: 1fr !important;
+    gap: 20px !important;
+  }
+  .budget-modal .budget-cockpit-copy h4 { font-size: 1.45rem !important; }
+  .budget-modal .budget-cockpit-metrics {
+    border-left: none !important;
+    border-top: 1px solid var(--ed-line) !important;
+    padding-top: 16px !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 16px 0 !important;
+  }
+  .budget-modal .budget-cockpit-metric { padding: 0 16px !important; }
+  .budget-modal .budget-cockpit-metric strong { font-size: 1.25rem !important; }
+
+  .budget-modal .budget-assistant-panel .bcc-hero { padding: 24px 20px 22px !important; }
+  .budget-modal .bcc-hero-question { font-size: 1.4rem !important; }
+}
+/* ════════ END PREMIUM EDITORIAL LAYER ════════ */
