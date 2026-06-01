@@ -739,6 +739,8 @@ const MAX_BUDGET_ROWS = 30;
 const MAX_TRANSACTION_PRODUCTS = 7;
 const MAX_PRODUCT_RECREATIONS = 3;
 const MAX_EVIDENCE_FILES_PER_PRODUCT = 25;
+const MAX_EVIDENCE_FILE_BYTES = 10 * 1024 * 1024;
+const MAX_EVIDENCE_TOTAL_BYTES = 35 * 1024 * 1024;
 
 const KNOWLEDGE_MILESTONE_DEFS = [
   { id: 'intake', label: 'Cuestionario y perfil base', threshold: 20 },
@@ -3748,14 +3750,60 @@ export default function AgentPage() {
       setTransactionUploadError('Formato no soportado. Usa imagen, PDF, Excel, CSV o TXT.');
       return null;
     }
+    const sizeEligibleFiles = selectedFiles.filter((file) => file.size <= MAX_EVIDENCE_FILE_BYTES);
+    const oversizeCount = selectedFiles.length - sizeEligibleFiles.length;
+    if (sizeEligibleFiles.length === 0) {
+      setTransactionUploadError(
+        `Todos los archivos exceden ${Math.round(MAX_EVIDENCE_FILE_BYTES / (1024 * 1024))} MB por archivo.`,
+      );
+      return null;
+    }
+    const totalEligibleFiles: File[] = [];
+    let totalEligibleBytes = 0;
+    let droppedByTotalBytes = 0;
+    for (const file of sizeEligibleFiles) {
+      if (totalEligibleBytes + file.size > MAX_EVIDENCE_TOTAL_BYTES) {
+        droppedByTotalBytes += 1;
+        continue;
+      }
+      totalEligibleFiles.push(file);
+      totalEligibleBytes += file.size;
+    }
+    if (totalEligibleFiles.length === 0) {
+      setTransactionUploadError(
+        `El total cargado supera ${Math.round(MAX_EVIDENCE_TOTAL_BYTES / (1024 * 1024))} MB. Divide los archivos en bloques.`,
+      );
+      return null;
+    }
     const availableSlots = Math.max(0, MAX_EVIDENCE_FILES_PER_PRODUCT - activeBankProduct.uploadedFiles.length);
     if (availableSlots <= 0) {
       setTransactionUploadError(`Este producto ya alcanzó el límite de ${MAX_EVIDENCE_FILES_PER_PRODUCT} archivos.`);
       return null;
     }
-    const cappedFiles = selectedFiles.slice(0, availableSlots);
-    if (cappedFiles.length < selectedFiles.length) {
-      setTxCreationNotice(`Se cargaron ${cappedFiles.length} archivos. Límite por producto: ${MAX_EVIDENCE_FILES_PER_PRODUCT}.`);
+    const cappedFiles = totalEligibleFiles.slice(0, availableSlots);
+    if (cappedFiles.length === 0) {
+      setTransactionUploadError('No hay archivos válidos para analizar después de aplicar límites de peso y cupo.');
+      return null;
+    }
+    const slotDropCount = totalEligibleFiles.length - cappedFiles.length;
+    if (oversizeCount > 0 || droppedByTotalBytes > 0 || slotDropCount > 0) {
+      const notices: string[] = [];
+      if (oversizeCount > 0) {
+        notices.push(
+          `${oversizeCount} archivo(s) excedían ${Math.round(MAX_EVIDENCE_FILE_BYTES / (1024 * 1024))} MB.`,
+        );
+      }
+      if (droppedByTotalBytes > 0) {
+        notices.push(
+          `${droppedByTotalBytes} archivo(s) quedaron fuera por límite total de ${Math.round(
+            MAX_EVIDENCE_TOTAL_BYTES / (1024 * 1024),
+          )} MB.`,
+        );
+      }
+      if (slotDropCount > 0) {
+        notices.push(`Límite por producto: ${MAX_EVIDENCE_FILES_PER_PRODUCT} archivos.`);
+      }
+      setTxCreationNotice(notices.join(' '));
     }
     const names = cappedFiles.map((f) => f.name);
     setTransactionUploadError(null);

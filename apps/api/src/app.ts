@@ -6,14 +6,13 @@ import helmet from 'helmet';
 
 import { simulationsRouter } from './routes/simulations.routes';
 import diagnosisRouter from './routes/diagnosis';
-import conversationNext, { finalizeInterviewVoice } from './routes/conversation';
+import conversationNext, { finalizeInterviewVoice, saveInterviewVoiceState } from './routes/conversation';
 import { submitIntake } from './routes/intake';
 import { authRouter } from './routes/auth';
 import agentRouter from './routes/agent';
 import documentsRouter from './routes/documents';
 import { pdfsRouter } from './routes/pdfs.routes';
 import internalRouter from './routes/internal.routes';
-import analyticsRouter from './routes/analytics';
 import { requestLoggerMiddleware } from './middleware/requestLogger';
 import { asyncHandler, errorHandlerMiddleware } from './middleware/errorHandler';
 import { attachCsrfToken, validateCsrfToken } from './middleware/csrf';
@@ -92,7 +91,6 @@ export function createApp() {
   // AGENT CORE
   app.use('/api/agent', chatRateLimiter);
   app.use('/api', agentRouter);
-  app.use('/api/analytics', analyticsRouter);
   app.use('/api/documents', documentsRateLimiter, documentsRouter);
   app.use('/api/pdfs', pdfsRouter);
   app.use('/internal', internalRouter);
@@ -108,6 +106,12 @@ export function createApp() {
     requireAuth,
     requirePermission(PERMISSIONS.AGENT_CHAT_SELF),
     conversationNext,
+  );
+  app.post(
+    '/conversation/voice/state',
+    requireAuth,
+    requirePermission(PERMISSIONS.AGENT_CHAT_SELF),
+    saveInterviewVoiceState,
   );
   app.post(
     '/conversation/voice/finalize',

@@ -238,6 +238,18 @@ export function BudgetModal(props: {
     return () => window.removeEventListener('resize', check);
   }, []);
 
+  const templateAppliedRef = useRef(false);
+  useEffect(() => {
+    if (!props.isOpen) {
+      templateAppliedRef.current = false;
+      return;
+    }
+    if (props.budgetRows.length > 0 || templateAppliedRef.current) return;
+    templateAppliedRef.current = true;
+    props.applyBudgetTemplate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.isOpen, props.budgetRows.length]);
+
   function moveBudgetView(direction: 'next' | 'prev') {
     const maxMode = isDesktopLayout ? 3 : 2;
     setBudgetViewMode((prev) => {
@@ -344,7 +356,7 @@ export function BudgetModal(props: {
       ],
       { duration: 650, easing: 'ease-out' },
     );
-  }, [assistantBudgetRowId]);
+  }, [assistantBudgetRowId, props.budgetRows]);
 
   function focusBudgetRow(rowId: string) {
     const row = props.budgetRows.find((r) => r.id === rowId) ?? null;
@@ -1271,6 +1283,8 @@ export function TransactionsModal(props: {
   recreationUsed: number;
   creationNotice?: string | null;
 }) {
+  const TX_MAX_SINGLE_FILE_BYTES = 10 * 1024 * 1024;
+  const TX_MAX_TOTAL_FILE_BYTES = 35 * 1024 * 1024;
   const hexToRgba = (hex: string, alpha: number) => {
     const normalized = hex.replace('#', '').trim();
     if (!/^[\da-f]{6}$/i.test(normalized)) return `rgba(59, 91, 122, ${alpha})`;
@@ -1285,6 +1299,9 @@ export function TransactionsModal(props: {
   const [txAssistantLoading, setTxAssistantLoading] = useState(false);
   const [txAssistantError, setTxAssistantError] = useState<string | null>(null);
   const [showInjectProductsConfirm, setShowInjectProductsConfirm] = useState(false);
+  const transactionsModalRef = useRef<HTMLDivElement | null>(null);
+  const restoreFocusRef = useRef<HTMLElement | null>(null);
+  const txSendLockRef = useRef(false);
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat('es-CL', {
       style: 'currency',
@@ -1526,16 +1543,63 @@ export function TransactionsModal(props: {
 
   const appendPendingEvidence = (files: FileList | null) => {
     if (!files || files.length === 0) return;
+    if (analysisAlreadyDone) {
+      setTxAssistantError('Este producto ya fue analizado. Para nuevos antecedentes debes recrear el producto.');
+      return;
+    }
+    const availableSlots = Math.max(
+      0,
+      props.maxEvidenceFilesPerProduct - (props.activeBankProduct?.uploadedFiles.length ?? 0),
+    );
+    if (availableSlots <= 0) {
+      setTxAssistantError(
+        `Este producto ya alcanzó el límite de ${props.maxEvidenceFilesPerProduct} archivos.`,
+      );
+      return;
+    }
     const next = Array.from(files);
-    setPendingEvidenceFiles((prev) => {
-      const merged = [...prev];
-      for (const file of next) {
-        if (!merged.some((existing) => existing.name === file.name && existing.size === file.size)) {
-          merged.push(file);
-        }
+    const merged = [...pendingEvidenceFiles];
+    const oversizeNames: string[] = [];
+    let exceededSlots = false;
+    let exceededTotalBytes = false;
+    let rollingBytes = merged.reduce((acc, file) => acc + file.size, 0);
+
+    for (const file of next) {
+      if (file.size > TX_MAX_SINGLE_FILE_BYTES) {
+        oversizeNames.push(file.name);
+        continue;
       }
-      return merged;
-    });
+      if (merged.some((existing) => existing.name === file.name && existing.size === file.size)) continue;
+      if (merged.length >= availableSlots) {
+        exceededSlots = true;
+        continue;
+      }
+      if (rollingBytes + file.size > TX_MAX_TOTAL_FILE_BYTES) {
+        exceededTotalBytes = true;
+        continue;
+      }
+      merged.push(file);
+      rollingBytes += file.size;
+    }
+
+    setPendingEvidenceFiles(merged);
+
+    const notices: string[] = [];
+    if (oversizeNames.length > 0) {
+      const mbLimit = Math.round(TX_MAX_SINGLE_FILE_BYTES / (1024 * 1024));
+      const preview = oversizeNames.slice(0, 2).join(', ');
+      notices.push(
+        `Algunos archivos superan ${mbLimit} MB por archivo (${preview}${oversizeNames.length > 2 ? ', ...' : ''}).`,
+      );
+    }
+    if (exceededTotalBytes) {
+      const mbLimit = Math.round(TX_MAX_TOTAL_FILE_BYTES / (1024 * 1024));
+      notices.push(`El total adjunto no puede superar ${mbLimit} MB.`);
+    }
+    if (exceededSlots) {
+      notices.push(`Límite por producto: ${props.maxEvidenceFilesPerProduct} archivos.`);
+    }
+    setTxAssistantError(notices.length > 0 ? notices.join(' ') : null);
   };
 
   const clearPendingEvidence = () => {
@@ -1647,11 +1711,74 @@ export function TransactionsModal(props: {
   }
   useEffect(() => {
     if (!props.isOpen) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') props.onClose();
+
+    restoreFocusRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+
+    const getFocusableElements = () => {
+      const root = transactionsModalRef.current;
+      if (!root) return [] as HTMLElement[];
+      const selector = [
+        'button:not([disabled])',
+        '[href]',
+        'input:not([disabled]):not([type="hidden"])',
+        'select:not([disabled])',
+        'textarea:not([disabled])',
+        '[tabindex]:not([tabindex="-1"])',
+      ].join(', ');
+      return Array.from(root.querySelectorAll<HTMLElement>(selector)).filter(
+        (node) => !node.hasAttribute('aria-hidden'),
+      );
     };
+
+    const rafId = window.requestAnimationFrame(() => {
+      const focusables = getFocusableElements();
+      (focusables[0] ?? transactionsModalRef.current)?.focus();
+    });
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.stopPropagation();
+        props.onClose();
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      const focusables = getFocusableElements();
+      if (focusables.length === 0) {
+        event.preventDefault();
+        transactionsModalRef.current?.focus();
+        return;
+      }
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const active = document.activeElement as HTMLElement | null;
+      const inside = Boolean(active && transactionsModalRef.current?.contains(active));
+
+      if (!inside) {
+        event.preventDefault();
+        first.focus();
+        return;
+      }
+      if (event.shiftKey && active === first) {
+        event.preventDefault();
+        last.focus();
+        return;
+      }
+      if (!event.shiftKey && active === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
     window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
+    return () => {
+      window.cancelAnimationFrame(rafId);
+      window.removeEventListener('keydown', onKeyDown);
+      const elementToRestore = restoreFocusRef.current;
+      if (elementToRestore && document.contains(elementToRestore)) {
+        window.requestAnimationFrame(() => elementToRestore.focus());
+      }
+    };
   }, [props.isOpen, props.onClose]);
   useEffect(() => {
     if (!props.isOpen) return;
@@ -1858,66 +1985,74 @@ export function TransactionsModal(props: {
     const filesToUpload = manualFile ? [...pendingEvidenceFiles, manualFile] : pendingEvidenceFiles;
     if (filesToUpload.length === 0) return;
 
-    appendAssistantMessages([
-      {
-        role: 'user',
-        text: messageText || 'Te envío antecedentes de transacciones.',
-        attachments: filesToUpload.map((file) => file.name),
-      },
-    ]);
-    setTxAssistantInput('');
-    const result = await props.onUploadStatement(filesToUpload);
-    clearPendingEvidence();
-    if (result?.documents?.length) {
-      await generateTransactionSummary({ uploadResult: result, isRegeneration: false });
+    setTxAssistantLoading(true);
+    setTxAssistantError(null);
+    try {
+      appendAssistantMessages([
+        {
+          role: 'user',
+          text: messageText || 'Te envío antecedentes de transacciones.',
+          attachments: filesToUpload.map((file) => file.name),
+        },
+      ]);
+      setTxAssistantInput('');
+      const result = await props.onUploadStatement(filesToUpload);
+      clearPendingEvidence();
+      if (result?.documents?.length) {
+        await generateTransactionSummary({ uploadResult: result, isRegeneration: false });
+      }
+    } catch (error) {
+      setTxAssistantError(error instanceof Error ? error.message : 'No se pudo enviar evidencia.');
+    } finally {
+      setTxAssistantLoading(false);
     }
   }
 
   async function handleAssistantTextSend() {
-    if (!props.activeBankProduct || txAssistantLoading) return;
+    if (!props.activeBankProduct || txAssistantLoading || txSendLockRef.current) return;
     const text = txAssistantInput.trim();
     const hasFiles = pendingEvidenceFiles.length > 0 || pendingManualEvidence.length > 0;
     if (!text && !hasFiles) return;
-
-    const normalized = text.toLowerCase();
-    const chosenFormat =
-      /excel|csv|xlsx|planilla/.test(normalized)
-        ? 'spreadsheet'
-        : /\bpdf\b/.test(normalized)
-          ? 'pdf'
-          : /foto|captura|pantallazo|imagen/.test(normalized)
-            ? 'photos'
-            : /texto|manual|escrito/.test(normalized)
-              ? 'text'
-              : null;
-
-    if (hasFiles) {
-      await handleAssistantUploadSend(text);
-      return;
-    }
-
-    appendAssistantMessages([{ role: 'user', text }]);
-    setTxAssistantInput('');
-    setTxAssistantError(null);
-
-    if (chosenFormat) {
-      appendAssistantMessages(
-        [{ role: 'assistant', text: buildUploadGuidance(chosenFormat, props.activeBankProduct.productType) }],
-        { uploadFormat: chosenFormat },
-      );
-      return;
-    }
-
-    const asksForRegeneration =
-      Boolean(summaryText) &&
-      /(error|corrige|corregir|revisa|revisar|regenera|regenerar|rehace|rehacer)/i.test(text);
-    if (asksForRegeneration && summaryRegenerationsLeft > 0) {
-      await generateTransactionSummary({ feedback: text, isRegeneration: true });
-      return;
-    }
-
-    setTxAssistantLoading(true);
+    txSendLockRef.current = true;
     try {
+      const normalized = text.toLowerCase();
+      const chosenFormat =
+        /excel|csv|xlsx|planilla/.test(normalized)
+          ? 'spreadsheet'
+          : /\bpdf\b/.test(normalized)
+            ? 'pdf'
+            : /foto|captura|pantallazo|imagen/.test(normalized)
+              ? 'photos'
+              : /texto|manual|escrito/.test(normalized)
+                ? 'text'
+                : null;
+
+      if (hasFiles) {
+        await handleAssistantUploadSend(text);
+        return;
+      }
+
+      appendAssistantMessages([{ role: 'user', text }]);
+      setTxAssistantInput('');
+      setTxAssistantError(null);
+
+      if (chosenFormat) {
+        appendAssistantMessages(
+          [{ role: 'assistant', text: buildUploadGuidance(chosenFormat, props.activeBankProduct.productType) }],
+          { uploadFormat: chosenFormat },
+        );
+        return;
+      }
+
+      const asksForRegeneration =
+        Boolean(summaryText) &&
+        /(error|corrige|corregir|revisa|revisar|regenera|regenerar|rehace|rehacer)/i.test(text);
+      if (asksForRegeneration && summaryRegenerationsLeft > 0) {
+        await generateTransactionSummary({ feedback: text, isRegeneration: true });
+        return;
+      }
+
+      setTxAssistantLoading(true);
       const response = await requestTransactionAssistant({
         mode: 'chat',
         product: {
@@ -1935,6 +2070,7 @@ export function TransactionsModal(props: {
       setTxAssistantError(error instanceof Error ? error.message : 'No se pudo responder.');
     } finally {
       setTxAssistantLoading(false);
+      txSendLockRef.current = false;
     }
   }
   if (!props.isOpen) return null;
@@ -1946,6 +2082,9 @@ export function TransactionsModal(props: {
         role="dialog"
         aria-modal="true"
         aria-labelledby="transactions-modal-title"
+        aria-describedby="transactions-modal-intro"
+        tabIndex={-1}
+        ref={transactionsModalRef}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="bcc-modal-header">
@@ -1955,7 +2094,7 @@ export function TransactionsModal(props: {
           </div>
           <button type="button" className="agent-modal-close" onClick={props.onClose}>×</button>
         </div>
-        <p className="agent-modal-intro">Flujo breve: autoriza, sube evidencias y obtén un análisis ejecutivo confiable.</p>
+        <p id="transactions-modal-intro" className="agent-modal-intro">Flujo breve: autoriza, sube evidencias y obtén un análisis ejecutivo confiable.</p>
         <section className="pt-shell">
           <aside className="pt-left">
             <div className="pt-list-head">
@@ -1984,7 +2123,7 @@ export function TransactionsModal(props: {
                 <p>{props.maxProducts} productos · {props.maxEvidenceFilesPerProduct} archivos por producto · 1 análisis + 3 revisiones de resumen por producto</p>
               </div>
               {showInjectProductsConfirm ? (
-                <div className="tx-batch-recommendation-banner" role="dialog" aria-live="polite" aria-label="Confirmación de envío de productos">
+                <div className="tx-batch-recommendation-banner" role="status" aria-live="polite">
                   <p>Recomendado: enviar cuando hayas subido todos tus productos financieros para un mejor análisis consolidado.</p>
                   <div className="tx-batch-recommendation-actions">
                     <button
