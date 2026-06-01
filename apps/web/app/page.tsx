@@ -383,8 +383,6 @@ export default function HomePage() {
   const router = useRouter();
   const { scrollY } = useScroll();
 
-  // Parallax imagen: se mueve más lento → sensación de recorrido a través de ella
-  const imgY = useTransform(scrollY, [0, 900], [0, 160]);
   const heroY = useTransform(scrollY, [0, 600], [0, -70]);
   const heroOpacity = useTransform(scrollY, [0, 380], [1, 0]);
   const lineOpacity = useTransform(scrollY, [0, 80], [1, 0]);
@@ -395,17 +393,14 @@ export default function HomePage() {
       {/* ─── HERO ────────────────────────────────────────────────────────── */}
       <section style={{ position: 'relative', height: '100dvh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
 
-        {/* ── Imagen con parallax y look editorial mate ── */}
-        <motion.div
+        {/* ── Imagen fija — sin parallax ni recorte ── */}
+        <div
           style={{
             position: 'absolute',
-            inset: '-22%',
-            y: imgY,
+            inset: 0,
             backgroundImage: "url('/fondo4.jpg')",
             backgroundSize: 'cover',
             backgroundPosition: 'center 18%',
-            // Look editorial mate: desaturado, contraste bajo (levanta los negros → efecto mate),
-            // sepia suave para tono de película
             filter: 'saturate(1.45) contrast(0.65) brightness(0.52) sepia(0.06)',
             zIndex: 0,
           }}
