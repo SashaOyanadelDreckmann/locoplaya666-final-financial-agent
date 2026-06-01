@@ -4,7 +4,6 @@ import Image from 'next/image';
 import { useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowRight } from 'lucide-react';
-import { ShaderAnimation } from '@/components/ui/shader-animation';
 import { motion, useScroll, useTransform, useInView, type Variants } from 'framer-motion';
 
 // ── Easing ────────────────────────────────────────────────────────────────────
@@ -122,8 +121,26 @@ function FeaturesSection() {
   const inView = useInView(ref, { once: true, margin: '-80px' });
 
   return (
-    <section ref={ref} style={{ background: '#050810', padding: 'clamp(80px,12vw,160px) clamp(24px,8vw,120px)', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-      <motion.div initial="hidden" animate={inView ? 'visible' : 'hidden'} variants={sg(0.14)}>
+    <section ref={ref} style={{ position: 'relative', overflow: 'hidden', background: '#050810', padding: 'clamp(80px,12vw,160px) clamp(24px,8vw,120px)', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+
+      {/* Animated blurred photo background — fondo4.jpg muy difuso, entra con el scroll */}
+      <motion.div
+        initial={{ opacity: 0, scale: 1.08 }}
+        animate={inView ? { opacity: 1, scale: 1 } : {}}
+        transition={{ duration: 1.6, ease: SILK }}
+        style={{
+          position: 'absolute',
+          inset: '-12%',
+          backgroundImage: "url('/fondo4.jpg')",
+          backgroundSize: 'cover',
+          backgroundPosition: 'center 30%',
+          filter: 'blur(55px) saturate(0.55) brightness(0.16)',
+          zIndex: 0,
+          pointerEvents: 'none',
+        }}
+      />
+
+      <motion.div initial="hidden" animate={inView ? 'visible' : 'hidden'} variants={sg(0.14)} style={{ position: 'relative', zIndex: 1 }}>
         <motion.div variants={blurUp}>
           <Label text="Para ti" />
           <h2 style={{ fontSize: 'clamp(30px,5vw,64px)', fontFamily: 'Georgia, "Times New Roman", serif', fontWeight: 700, lineHeight: 1.05, letterSpacing: '-0.032em', color: 'white', margin: '0 0 clamp(48px,7vw,80px)', maxWidth: 560 }}>
@@ -346,7 +363,6 @@ export default function HomePage() {
   const imgY = useTransform(scrollY, [0, 900], [0, 160]);
   const heroY = useTransform(scrollY, [0, 600], [0, -70]);
   const heroOpacity = useTransform(scrollY, [0, 380], [1, 0]);
-  const shaderOpacity = useTransform(scrollY, [0, 300], [0.28, 0]);
   const lineOpacity = useTransform(scrollY, [0, 80], [1, 0]);
 
   return (
@@ -370,31 +386,6 @@ export default function HomePage() {
             zIndex: 0,
           }}
         />
-
-        {/* Grano de película — textura de puntos muy finos */}
-        <div style={{
-          position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none',
-          backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.022) 1px, transparent 1px)',
-          backgroundSize: '3px 3px',
-          mixBlendMode: 'overlay',
-        }} />
-
-        {/* Viñeta editorial */}
-        <div style={{
-          position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none',
-          background: 'radial-gradient(ellipse at 50% 40%, transparent 25%, rgba(0,0,0,0.65) 100%)',
-        }} />
-
-        {/* Tono cálido de película */}
-        <div style={{
-          position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none',
-          background: 'rgba(210,195,170,0.04)',
-        }} />
-
-        {/* Shader overlay sutil */}
-        <motion.div style={{ position: 'absolute', inset: 0, zIndex: 2, opacity: shaderOpacity, mixBlendMode: 'screen', pointerEvents: 'none' }}>
-          <ShaderAnimation />
-        </motion.div>
 
         {/* Gradiente de profundidad: texto abajo visible */}
         <div style={{
@@ -514,7 +505,6 @@ export default function HomePage() {
       {/* ─── SECTIONS ────────────────────────────────────────────────────── */}
       <ProblemSection />
       <FeaturesSection />
-      <StepsSection />
       <PreviewSection />
       <CtaSection />
 
