@@ -63,15 +63,20 @@ export function toUserFacingError(error: unknown, context: ErrorContext = 'gener
     const message = asText(error.message);
     const detail = asText(error.detail);
     const joined = `${code} ${message} ${detail}`;
+    const joinedLower = joined.toLowerCase();
 
     if (context === 'interview.voice') {
-      if (joined.includes('client_secret') || joined.includes('realtime') || joined.includes('openai')) {
+      if (joinedLower.includes('client_secret') || joinedLower.includes('realtime') || joinedLower.includes('openai')) {
         return 'No se pudo iniciar la llamada en tiempo real. Revisa la configuración de OpenAI del backend.';
       }
-      if (joined.includes('límite alcanzado') || joined.includes('limit reached') || joined.includes('maximo de 3 minutos')) {
+      if (
+        joinedLower.includes('límite alcanzado') ||
+        joinedLower.includes('limit reached') ||
+        /maximo de \d+ minutos/.test(joinedLower)
+      ) {
         return 'Ya alcanzaste el límite de tiempo de la entrevista en llamada.';
       }
-      if (joined.includes('ya usaste tu única llamada') || joined.includes('ya fue completada')) {
+      if (joinedLower.includes('ya usaste tu única llamada') || joinedLower.includes('ya fue completada')) {
         return 'Esta entrevista ya fue completada y no admite otra llamada.';
       }
     }
@@ -82,7 +87,7 @@ export function toUserFacingError(error: unknown, context: ErrorContext = 'gener
         : 'Tu sesión expiró. Inicia sesión nuevamente para continuar.';
     }
 
-    if (error.status === 409 || code === 'conflict' || joined.includes('already exists')) {
+    if (error.status === 409 || code === 'conflict' || joinedLower.includes('already exists')) {
       return context === 'auth.register'
         ? 'Ya existe una cuenta con ese correo.'
         : 'Este recurso ya existe y no se pudo completar la operación.';
@@ -92,7 +97,7 @@ export function toUserFacingError(error: unknown, context: ErrorContext = 'gener
       return 'Hay demasiadas solicitudes en este momento. Intenta nuevamente en unos segundos.';
     }
 
-    if (error.status === 413 || joined.includes('payload too large')) {
+    if (error.status === 413 || joinedLower.includes('payload too large')) {
       return 'El archivo es demasiado grande para procesarlo. Sube uno más liviano o divídelo en partes.';
     }
 
@@ -105,7 +110,7 @@ export function toUserFacingError(error: unknown, context: ErrorContext = 'gener
     }
 
     if (error.status === 403 || code === 'forbidden') {
-      if (context === 'interview.voice' && joined.includes('realtime voice is not configured')) {
+      if (context === 'interview.voice' && joinedLower.includes('realtime voice is not configured')) {
         return 'La llamada en tiempo real no está configurada en este entorno.';
       }
       return 'No tienes permisos para realizar esta acción.';

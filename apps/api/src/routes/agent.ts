@@ -41,6 +41,7 @@ import {
   type ProfessionalPdfInput,
 } from '../services/reports/professionalPdf.service';
 import { getConfig } from '../config';
+import { INTERVIEW_TOTAL_LIMIT_MINUTES, INTERVIEW_TOTAL_LIMIT_SEC } from '@financial-agent/shared';
 
 const router = Router();
 const config = getConfig();
@@ -530,10 +531,10 @@ router.get(
         : {};
     const callsStarted = Number(interviewVoice.callsStarted ?? 0);
     const totalUsedSec = Number(interviewVoice.totalUsedSec ?? 0);
-    const remainingSec = Math.max(0, 120 - totalUsedSec);
+    const remainingSec = Math.max(0, INTERVIEW_TOTAL_LIMIT_SEC - totalUsedSec);
     if (remainingSec <= 0) {
       throw forbidden(
-        'Límite alcanzado: la entrevista en llamada permite máximo 2 minutos totales por usuario.'
+        `Límite alcanzado: la entrevista en llamada permite máximo ${INTERVIEW_TOTAL_LIMIT_MINUTES} minutos totales por usuario.`
       );
     }
     const callId = `call_${Date.now()}`;

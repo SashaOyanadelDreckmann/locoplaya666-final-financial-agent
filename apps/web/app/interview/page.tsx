@@ -15,6 +15,7 @@ import {
 } from '@/lib/api';
 import { ApiHttpError } from '@/lib/apiEnvelope';
 import { toUserFacingError } from '@/lib/userError';
+import { INTERVIEW_TOTAL_LIMIT_MINUTES, INTERVIEW_TOTAL_LIMIT_SEC } from '@financial-agent/shared';
 
 export default function InterviewPage() {
   const router = useRouter();
@@ -49,10 +50,9 @@ export default function InterviewPage() {
   const [voicePaused, setVoicePaused] = useState(false);
   const [pauseUsed, setPauseUsed] = useState(false);
   const [callSeconds, setCallSeconds] = useState(0);
-  const [maxCallDurationSec, setMaxCallDurationSec] = useState(120);
+  const [maxCallDurationSec, setMaxCallDurationSec] = useState(INTERVIEW_TOTAL_LIMIT_SEC);
   const [remainingTotalSec, setRemainingTotalSec] = useState<number | null>(null);
   const [callId, setCallId] = useState<string | null>(null);
-  const [callsLeft, setCallsLeft] = useState<number | null>(null);
   const [isFinalizingCall, setIsFinalizingCall] = useState(false);
   const [voiceReport, setVoiceReport] = useState<{
     executive_report: string;
@@ -276,7 +276,7 @@ export default function InterviewPage() {
           'Habla en español chileno.',
           'Haz solo una pregunta a la vez y profundiza con precisión.',
           'No expliques el sistema ni el contexto técnico.',
-          'La llamada dura máximo 2 minutos y busca un diagnóstico profundo basado en intake y respuestas del usuario.',
+          `La llamada dura máximo ${INTERVIEW_TOTAL_LIMIT_MINUTES} minutos y busca un diagnóstico profundo basado en intake y respuestas del usuario.`,
           'Si ya tienes información suficiente, inicia tu cierre con <<CALL_COMPLETE>> y resume el porqué en 2 frases.',
           `Pregunta de arranque que debes formular con calidez y precisión: ${question}`,
         ].join(' '),
@@ -350,11 +350,10 @@ export default function InterviewPage() {
       const ephemeralKey = token?.value;
       if (!ephemeralKey) throw new Error('No se recibió un client_secret válido');
       setCallId(typeof token?.call_id === 'string' ? token.call_id : null);
-      if (typeof token?.calls_left === 'number') setCallsLeft(token.calls_left);
       if (typeof token?.max_duration_sec === 'number' && token.max_duration_sec > 0) {
         setMaxCallDurationSec(Math.max(1, Math.floor(token.max_duration_sec)));
       } else {
-        setMaxCallDurationSec(120);
+        setMaxCallDurationSec(INTERVIEW_TOTAL_LIMIT_SEC);
       }
       if (typeof token?.remaining_total_sec === 'number') {
         setRemainingTotalSec(Math.max(0, Math.floor(token.remaining_total_sec)));
@@ -661,9 +660,7 @@ export default function InterviewPage() {
                     .toString()
                     .padStart(2, '0')}:${(remainingTotalSec % 60).toString().padStart(2, '0')}`}
             </span>
-            <span className="voice-call-pill">
-              Llamadas iniciadas: {callsLeft === null ? '—' : Math.max(0, 2 - callsLeft)}
-            </span>
+            <span className="voice-call-pill">Sesión: única</span>
           </div>
 
           {voiceError ? <p className="voice-call-error">{voiceError}</p> : null}

@@ -30094,6 +30094,38 @@ body.agent-route-active .app-shell::before {
   .budget-modal .budget-table.budget-table-pro tbody td:nth-child(8) { grid-area: actions !important; }
 }
 
+/* Budget pro strict mobile mapping: avoid legacy 4-column action remap. */
+@media (max-width: 767px) {
+  .budget-modal .budget-table.budget-table-pro tbody tr {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    grid-template-areas:
+      "category category"
+      "type amount"
+      "cadence cadence"
+      "payment movement"
+      "impact impact"
+      "actions actions" !important;
+  }
+
+  .budget-modal .budget-table.budget-table-pro tbody td:nth-child(4) {
+    display: block !important;
+    grid-area: cadence !important;
+    grid-template-columns: none !important;
+  }
+
+  .budget-modal .budget-table.budget-table-pro tbody td:nth-child(4)::before {
+    display: block !important;
+    content: attr(data-label) !important;
+  }
+
+  .budget-modal .budget-table.budget-table-pro tbody td:nth-child(8) {
+    display: flex !important;
+    grid-area: actions !important;
+    gap: 8px !important;
+    flex-wrap: wrap !important;
+  }
+}
+
 /* Transactions modal: authoritative stability layer (desktop + mobile). */
 .agent-modal-overlay.transactions-modal-overlay {
   background: rgba(6, 10, 16, 0.52) !important;

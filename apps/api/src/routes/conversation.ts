@@ -8,6 +8,7 @@ import {
   InterviewBlockId,
 } from '../orchestrator/interview.flow';
 import { IntakeQuestionnaire } from '@financial-agent/shared/src/intake/intake-questionnaire.types';
+import { INTERVIEW_TOTAL_LIMIT_SEC } from '@financial-agent/shared';
 import { InterviewBlockEvidence } from '../schemas/profile.schema';
 import { saveProfile } from '../services/storage.service';
 import { appendMemoryTimelineNote } from '../services/memory.service';
@@ -38,8 +39,35 @@ const VoiceFinalizeSchema = z.object({
   intake: z.record(z.unknown()),
   transcript: z.string().min(10),
   endedBy: z.enum(['timeout', 'agent', 'user']).default('user'),
-  durationSec: z.number().min(1).max(120).optional(),
+  durationSec: z.number().min(0).max(INTERVIEW_TOTAL_LIMIT_SEC).optional(),
   callId: z.string().optional(),
+});
+
+const VoiceStateSchema = z.object({
+  callsStarted: z.number().min(0).max(25).optional(),
+  callId: z.string().min(1).max(120).optional(),
+  activeCallId: z.string().min(1).max(120).nullable().optional(),
+  status: z.enum(['idle', 'in_progress', 'paused', 'completed']).optional(),
+  callSeconds: z.number().min(0).max(INTERVIEW_TOTAL_LIMIT_SEC).optional(),
+  maxDurationSec: z.number().min(0).max(INTERVIEW_TOTAL_LIMIT_SEC).optional(),
+  remainingTotalSec: z.number().min(0).max(INTERVIEW_TOTAL_LIMIT_SEC).nullable().optional(),
+  pauseUsed: z.boolean().optional(),
+  voiceAgentTranscript: z.string().max(120_000).optional(),
+  voiceUserTranscript: z.string().max(120_000).optional(),
+  voicePartialTranscript: z.string().max(120_000).optional(),
+  transcript: z.string().max(240_000).optional(),
+  completedAt: z.string().optional(),
+  updatedAt: z.string().optional(),
+  voiceReport: z
+    .object({
+      executive_report: z.string(),
+      key_findings: z.array(z.string()).optional(),
+      stop_reason: z.string().optional(),
+      has_enough_information: z.boolean().optional(),
+      confidence: z.enum(['high', 'medium', 'low']).optional(),
+    })
+    .nullable()
+    .optional(),
 });
 
 export type ConversationNextBody = {
@@ -276,6 +304,49 @@ export default asyncHandler(async function conversationNext(req: Request, res: R
   return sendSuccess(res, response);
 });
 
+export const saveInterviewVoiceState = asyncHandler(async function saveInterviewVoiceState(req: Request, res: Response) {
+  const user = req.authenticatedUser;
+  if (!user) throw unauthorized('No authenticated user');
+  const parsed = parseBody(VoiceStateSchema, req.body);
+
+  const memoryBlob = (await loadUserMemoryBlob(user.id)) ?? {};
+  const interviewVoice =
+    memoryBlob.interviewVoice && typeof memoryBlob.interviewVoice === 'object'
+      ? (memoryBlob.interviewVoice as Record<string, unknown>)
+      : {};
+
+  const merged: Record<string, unknown> = {
+    ...interviewVoice,
+    ...parsed,
+    activeCallId:
+      parsed.activeCallId === null
+        ? null
+        : typeof parsed.activeCallId === 'string'
+        ? parsed.activeCallId
+        : typeof parsed.callId === 'string'
+        ? parsed.callId
+        : (interviewVoice.activeCallId ?? null),
+    updatedAt: new Date().toISOString(),
+  };
+
+  await saveUserMemoryBlob(user.id, {
+    ...memoryBlob,
+    interviewVoice: merged,
+  });
+
+  req.logger?.debug({
+    msg: 'interview.voice.state.saved',
+    userId: user.id,
+    callId: typeof merged.callId === 'string' ? merged.callId : null,
+    activeCallId: typeof merged.activeCallId === 'string' ? merged.activeCallId : merged.activeCallId ?? null,
+    status: typeof merged.status === 'string' ? merged.status : null,
+    callSeconds: typeof merged.callSeconds === 'number' ? merged.callSeconds : null,
+    remainingTotalSec: typeof merged.remainingTotalSec === 'number' ? merged.remainingTotalSec : null,
+  });
+
+  return sendSuccess(res, { saved: true, interview_voice: merged });
+});
+
 export const finalizeInterviewVoice = asyncHandler(async function finalizeInterviewVoice(req: Request, res: Response) {
   const user = req.authenticatedUser;
   if (!user) throw unauthorized('No authenticated user');
@@ -358,10 +429,41 @@ export const finalizeInterviewVoice = asyncHandler(async function finalizeInterv
     memoryBlob.interviewVoice && typeof memoryBlob.interviewVoice === 'object'
       ? (memoryBlob.interviewVoice as Record<string, unknown>)
       : {};
+  const persistedActiveCallId =
+    typeof interviewVoice.activeCallId === 'string' && interviewVoice.activeCallId.length > 0
+      ? interviewVoice.activeCallId
+      : null;
+  if (persistedActiveCallId && parsed.callId && parsed.callId !== persistedActiveCallId) {
+    req.logger?.warn({
+      msg: 'interview.voice.finalize.call_id_mismatch',
+      userId: user.id,
+      parsedCallId: parsed.callId,
+      persistedActiveCallId,
+    });
+  }
   const previousTotalUsedSec = Math.max(0, Number(interviewVoice.totalUsedSec ?? 0));
-  const safeDurationSec = Math.max(0, Math.min(120, Number(parsed.durationSec ?? 0)));
-  const updatedTotalUsedSec = Math.min(120, previousTotalUsedSec + safeDurationSec);
-  const remainingTotalSec = Math.max(0, 120 - updatedTotalUsedSec);
+  const requestedDurationSec = Number(parsed.durationSec ?? 0);
+  const persistedCallSeconds = Number(interviewVoice.callSeconds ?? 0);
+  const effectiveDurationSec =
+    requestedDurationSec > 0
+      ? requestedDurationSec
+      : persistedCallSeconds > 0
+      ? persistedCallSeconds
+      : 0;
+  const safeDurationSec = Math.max(0, Math.min(INTERVIEW_TOTAL_LIMIT_SEC, effectiveDurationSec));
+  if (requestedDurationSec <= 0 && persistedCallSeconds > 0) {
+    req.logger?.info({
+      msg: 'interview.voice.finalize.duration_fallback_to_persisted',
+      userId: user.id,
+      persistedCallSeconds,
+      parsedDurationSec: requestedDurationSec,
+    });
+  }
+  const updatedTotalUsedSec = Math.min(
+    INTERVIEW_TOTAL_LIMIT_SEC,
+    previousTotalUsedSec + safeDurationSec,
+  );
+  const remainingTotalSec = Math.max(0, INTERVIEW_TOTAL_LIMIT_SEC - updatedTotalUsedSec);
   await saveUserMemoryBlob(user.id, {
     ...memoryBlob,
     interviewVoice: {
@@ -392,6 +494,17 @@ export const finalizeInterviewVoice = asyncHandler(async function finalizeInterv
       value: finding,
       confidence: 0.82,
     })),
+  });
+
+  req.logger?.info({
+    msg: 'interview.voice.finalize.completed',
+    userId: user.id,
+    callId: parsed.callId ?? persistedActiveCallId,
+    endedBy: parsed.endedBy,
+    transcriptLength: transcript.length,
+    durationSec: safeDurationSec,
+    totalUsedSec: updatedTotalUsedSec,
+    remainingTotalSec,
   });
 
   return sendSuccess(res, {

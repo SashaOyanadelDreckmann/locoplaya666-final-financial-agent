@@ -20,8 +20,9 @@ import {
   writeInterviewVoiceState,
 } from '@/lib/interviewVoiceState';
 import { appendTranscriptChunk } from '@/lib/transcript';
+import { INTERVIEW_TOTAL_LIMIT_MINUTES, INTERVIEW_TOTAL_LIMIT_SEC } from '@financial-agent/shared';
 
-const DEFAULT_MAX_CALL_DURATION_SEC = 180;
+const DEFAULT_MAX_CALL_DURATION_SEC = INTERVIEW_TOTAL_LIMIT_SEC;
 
 type InterviewVoiceReport = {
   executive_report: string;
@@ -94,7 +95,6 @@ export function InterviewModal({ isOpen, onClose }: Props) {
   const [callId, setCallId] = useState<string | null>(null);
   const [callsStarted, setCallsStarted] = useState(0);
   const [latestDiagnosticProfileId, setLatestDiagnosticProfileId] = useState<string | null>(null);
-  const [callsLeft, setCallsLeft] = useState<number | null>(null);
   const [isFinalizingCall, setIsFinalizingCall] = useState(false);
   const [voiceReport, setVoiceReport] = useState<InterviewVoiceReport | null>(null);
   const [intakeReady, setIntakeReady] = useState(false);
@@ -108,6 +108,7 @@ export function InterviewModal({ isOpen, onClose }: Props) {
     user: '',
     partial: '',
   });
+  const callSecondsRef = useRef(0);
 
   const currentQuestion =
     lastResponse?.type === 'question' && typeof lastResponse.question === 'string'
@@ -357,6 +358,10 @@ export function InterviewModal({ isOpen, onClose }: Props) {
   }, [voiceAgentTranscript, voiceUserTranscript, voicePartialTranscript]);
 
   useEffect(() => {
+    callSecondsRef.current = callSeconds;
+  }, [callSeconds]);
+
+  useEffect(() => {
     if (!isOpen || !voiceStateHydratedRef.current) return;
     if (voiceSyncTimerRef.current) window.clearTimeout(voiceSyncTimerRef.current);
 
@@ -463,7 +468,7 @@ export function InterviewModal({ isOpen, onClose }: Props) {
         if (next >= maxCallDurationSec) {
           window.clearInterval(timer);
           setRemainingTotalSec(0);
-          void finalizeCallAndGenerateReport('timeout');
+          void finalizeCallAndGenerateReport('timeout', { durationSecOverride: next });
         }
         return next;
       });
@@ -605,7 +610,7 @@ export function InterviewModal({ isOpen, onClose }: Props) {
           'Habla en español chileno.',
           'Haz solo una pregunta a la vez y profundiza con precisión.',
           'No expliques el sistema ni el contexto técnico.',
-          'La llamada dura máximo 3 minutos y busca un diagnóstico profundo basado en intake, transacciones, presupuesto y respuestas del usuario.',
+          `La llamada dura máximo ${INTERVIEW_TOTAL_LIMIT_MINUTES} minutos y busca un diagnóstico profundo basado en intake, transacciones, presupuesto y respuestas del usuario.`,
           'Tono: cool, seguro y sofisticado, estilo alta performance financiera, sin caer en arrogancia.',
           interviewContextSummary
             ? `Contexto financiero consolidado: ${interviewContextSummary}. Usa esto para preguntar con foco.`
@@ -676,8 +681,14 @@ export function InterviewModal({ isOpen, onClose }: Props) {
       const ephemeralKey = token?.value;
       if (!ephemeralKey) throw new Error('No se recibió un client_secret válido');
       const tokenCallId = typeof token?.call_id === 'string' ? token.call_id : null;
-      const hasPersistedCall = Boolean(callId || tokenCallId);
-      const nextCallId = tokenCallId ?? callId ?? null;
+      const hasPersistedCall =
+        !voiceReport &&
+        (Boolean(callId) ||
+          callSeconds > 0 ||
+          Boolean(voiceAgentTranscript.trim()) ||
+          Boolean(voiceUserTranscript.trim()) ||
+          Boolean(voicePartialTranscript.trim()));
+      const nextCallId = tokenCallId ?? (hasPersistedCall ? callId : null) ?? null;
       voiceResumeModeRef.current = hasPersistedCall;
       setCallId(nextCallId);
       if (typeof token?.calls_used === 'number') {
@@ -687,7 +698,6 @@ export function InterviewModal({ isOpen, onClose }: Props) {
       } else {
         setCallsStarted(1);
       }
-      if (typeof token?.calls_left === 'number') setCallsLeft(token.calls_left);
       if (typeof token?.max_duration_sec === 'number' && token.max_duration_sec > 0) {
         setMaxCallDurationSec(Math.max(1, Math.floor(token.max_duration_sec)));
       } else {
@@ -808,7 +818,10 @@ export function InterviewModal({ isOpen, onClose }: Props) {
     setPauseUsed(true);
   }
 
-  async function finalizeCallAndGenerateReport(endedBy: 'timeout' | 'agent' | 'user') {
+  async function finalizeCallAndGenerateReport(
+    endedBy: 'timeout' | 'agent' | 'user',
+    options?: { durationSecOverride?: number },
+  ) {
     if (isFinalizingCall) return;
     setIsFinalizingCall(true);
     cleanupVoiceSession();
@@ -835,7 +848,10 @@ export function InterviewModal({ isOpen, onClose }: Props) {
         intake,
         transcript: finalTranscript,
         endedBy,
-        durationSec: callSeconds,
+        durationSec: Math.max(
+          1,
+          Math.floor(options?.durationSecOverride ?? callSecondsRef.current ?? callSeconds),
+        ),
         callId: callId ?? undefined,
       });
 
@@ -992,6 +1008,7 @@ export function InterviewModal({ isOpen, onClose }: Props) {
                       voiceConnecting ||
                       (!voiceConnected && !currentQuestion) ||
                       isFinalizingCall ||
+                      (!voiceConnected && voiceCallExhausted) ||
                       (!voiceConnected && voiceInterviewLocked && !hasLiveVoiceCall)
                     }
                   >

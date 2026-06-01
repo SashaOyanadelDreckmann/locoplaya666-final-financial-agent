@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
+import { requireBackendSession } from '@/lib/serverAuth';
+import { checkRateLimit } from '@/lib/rateLimit';
 
 type BudgetCadence = 'fixed' | 'variable' | 'oneoff';
 type BudgetPaymentMethod = 'transfer' | 'debit' | 'credit' | 'cash' | 'prepaid' | 'other';
@@ -43,6 +45,49 @@ type BudgetAction = {
   movement_type?: BudgetMovementType;
   movementType?: BudgetMovementType;
 };
+
+function compactText(value: unknown, max = 240): string {
+  return String(value ?? '')
+    .trim()
+    .slice(0, max);
+}
+
+function normalizeIntent(value: unknown): 'init' | 'reply' | null {
+  const intent = compactText(value, 12).toLowerCase();
+  if (intent === 'init' || intent === 'reply') return intent;
+  return null;
+}
+
+function sanitizeBudgetRow(raw: unknown): BudgetRow | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const item = raw as Record<string, unknown>;
+  const id = compactText(item.id, 80);
+  const category = compactText(item.category, 80);
+  const type = item.type === 'income' ? 'income' : item.type === 'expense' ? 'expense' : null;
+  if (!id || !category || !type) return null;
+  const amountNum = Number(item.amount ?? 0);
+  const amount = Number.isFinite(amountNum) ? Math.max(0, Math.round(amountNum)) : 0;
+
+  return {
+    id,
+    category,
+    type,
+    amount,
+    note: compactText(item.note, 120) || undefined,
+    detail: compactText(item.detail, 180) || undefined,
+    cadence: normalizeCadence(item.cadence),
+    paymentMethod: normalizePaymentMethod(item.paymentMethod),
+    movementType: normalizeMovementType(item.movementType),
+  };
+}
+
+function sanitizeBudgetRows(value: unknown, maxRows = 30): BudgetRow[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .slice(0, maxRows)
+    .map((row) => sanitizeBudgetRow(row))
+    .filter((row): row is BudgetRow => Boolean(row));
+}
 
 function normalizeCadence(value: unknown): 'fixed' | 'variable' {
   if (value === 'fixed') return 'fixed';
@@ -93,7 +138,7 @@ function fallbackInit(rows: BudgetRow[]) {
 
 function sanitizeAction(raw: BudgetAction | null | undefined): BudgetAction | null {
   if (!raw || typeof raw !== 'object') return null;
-  const id = String(raw.id ?? '').trim();
+  const id = compactText(raw.id, 80);
   const kind = raw.kind === 'delete' ? 'delete' : raw.kind === 'add' ? 'add' : 'update';
   if (!id) return null;
 
@@ -102,17 +147,18 @@ function sanitizeAction(raw: BudgetAction | null | undefined): BudgetAction | nu
   }
 
   const type = raw.type === 'income' ? 'income' : raw.type === 'expense' ? 'expense' : undefined;
-  const category = String(raw.category ?? '').trim();
+  const category = compactText(raw.category, 80);
   if (!type || !category) return null;
+  const amountNum = Number(raw.amount ?? 0);
 
   return {
     kind,
     id,
     type,
     category,
-    amount: Math.max(0, Math.round(Number(raw.amount ?? 0))),
-    note: String(raw.note ?? '').trim() || undefined,
-    detail: String(raw.detail ?? '').trim() || undefined,
+    amount: Number.isFinite(amountNum) ? Math.max(0, Math.round(amountNum)) : 0,
+    note: compactText(raw.note, 120) || undefined,
+    detail: compactText(raw.detail, 180) || undefined,
     cadence: normalizeCadence(raw.cadence),
     payment_method: normalizePaymentMethod(raw.payment_method ?? raw.paymentMethod),
     movement_type: normalizeMovementType(raw.movement_type ?? raw.movementType),
@@ -120,6 +166,21 @@ function sanitizeAction(raw: BudgetAction | null | undefined): BudgetAction | nu
 }
 
 export async function POST(req: Request) {
+  let session: { userId: string };
+  try {
+    session = await requireBackendSession(req);
+  } catch {
+    return NextResponse.json({ ok: false, error: 'Not authenticated' }, { status: 401 });
+  }
+
+  const rl = checkRateLimit(`budget-chat:${session.userId}`, 30, 60_000);
+  if (!rl.ok) {
+    return NextResponse.json(
+      { ok: false, error: 'Too many requests' },
+      { status: 429, headers: { 'Retry-After': String(rl.retryAfter ?? 60) } },
+    );
+  }
+
   try {
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
@@ -130,10 +191,14 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const intent = String(body?.intent ?? 'reply').trim();
-    const answer = String(body?.answer ?? '').trim();
-    const question = String(body?.question ?? '').trim();
-    const rows = (Array.isArray(body?.budgetRows) ? body.budgetRows : []) as BudgetRow[];
+    const intent = normalizeIntent(body?.intent);
+    if (!intent) {
+      return NextResponse.json({ ok: false, error: 'Invalid intent' }, { status: 400 });
+    }
+    const answer = compactText(body?.answer, 1200);
+    const question = compactText(body?.question, 500);
+    const rows = sanitizeBudgetRows(body?.budgetRows, 30);
+    const activeRow = sanitizeBudgetRow(body?.activeRow);
 
     if (intent === 'init' || !answer) {
       return NextResponse.json(fallbackInit(rows));
@@ -151,7 +216,7 @@ export async function POST(req: Request) {
       'Prioriza actualizar la fila activa si aplica.',
       `Pregunta actual: ${question || 'No especificada'}`,
       `Respuesta usuario: ${answer}`,
-      `Fila activa: ${JSON.stringify(body?.activeRow ?? null)}`,
+      `Fila activa: ${JSON.stringify(activeRow ?? null)}`,
       `Filas actuales: ${JSON.stringify(rows.slice(0, 16))}`,
     ].join('\n');
 
@@ -179,11 +244,20 @@ export async function POST(req: Request) {
       ? parsed.actions.map((item) => sanitizeAction(item)).filter(Boolean)
       : [sanitizeAction(parsed.action ?? parsed.update)].filter(Boolean);
 
+    const assistantText = compactText(
+      parsed.assistant_text ?? 'Perfecto. Sigamos con el siguiente movimiento.',
+      220,
+    );
+    const nextQuestion = compactText(
+      parsed.next_question ?? '¿Qué movimiento quieres ajustar ahora?',
+      220,
+    );
+
     return NextResponse.json({
       ok: true,
-      assistant_text: parsed.assistant_text ?? 'Perfecto. Sigamos con el siguiente movimiento.',
-      next_question: parsed.next_question ?? '¿Qué movimiento quieres ajustar ahora?',
-      focus_row_id: typeof parsed.focus_row_id === 'string' ? parsed.focus_row_id : null,
+      assistant_text: assistantText || 'Perfecto. Sigamos con el siguiente movimiento.',
+      next_question: nextQuestion || '¿Qué movimiento quieres ajustar ahora?',
+      focus_row_id: typeof parsed.focus_row_id === 'string' ? compactText(parsed.focus_row_id, 80) : null,
       actions,
       action: actions[0] ?? null,
       model,
