@@ -26,8 +26,8 @@ export function SidePanels(props: {
 }) {
   return (
     <>
-      <aside className="agent-divider-rail premium-divider-rail" aria-label="Estado del usuario">
-        <div className="mobile-rail-subtitle premium-rail-subtitle">
+      <aside className="agent-divider-rail" aria-label="Estado del usuario">
+        <div className="mobile-rail-subtitle">
           <span className="mobile-rail-subtitle-title">{props.sessionInfoName?.split(' ')[0] ?? 'Financieramente'}</span>
           <span className="mobile-rail-subtitle-badge">{props.knowledgeStage}</span>
           {props.hasInjectedIntake && <span className="mobile-rail-subtitle-memory">● perfil activo</span>}
@@ -35,10 +35,10 @@ export function SidePanels(props: {
       </aside>
 
       <aside
-        className={`agent-panel premium-panel-surface ${props.mobilePanelExpanded ? 'is-mobile-expanded' : 'is-mobile-compact'}`}
+        className={`agent-panel ${props.mobilePanelExpanded ? 'is-mobile-expanded' : 'is-mobile-compact'}`}
         ref={props.panelScrollRef}
       >
-        <div className="mobile-panel-close premium-panel-close">
+        <div className="mobile-panel-close">
           <button
             type="button"
             className="mobile-panel-close-btn"
@@ -67,7 +67,7 @@ export function SidePanels(props: {
           </div>
         )}
 
-        <div ref={props.panelGridRef} className="panel-grid premium-panel-grid">
+        <div ref={props.panelGridRef} className="panel-grid">
           {props.panelRenderedCards}
         </div>
       </aside>

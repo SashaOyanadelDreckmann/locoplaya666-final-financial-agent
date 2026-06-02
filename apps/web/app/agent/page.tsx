@@ -4478,7 +4478,7 @@ export default function AgentPage() {
 
   return (
     <main
-      className={`agent-layout premium-shell ${activeThreadThemeClass} ${
+      className={`agent-layout ${activeThreadThemeClass} ${
         isRailMorphing ? 'is-mode-12-morphing' : ''
       } ${
         isMonochrome ? 'is-monochrome' : ''
@@ -4488,7 +4488,7 @@ export default function AgentPage() {
     >
       <section
         ref={chatBodyRef as React.RefObject<HTMLElement>}
-        className={`agent-chat premium-chat-surface active-chat-${activeThread?.label ?? '1'}${chatSlideDir ? ` chat-slide-${chatSlideDir}` : ''}`}
+        className={`agent-chat active-chat-${activeThread?.label ?? '1'}${chatSlideDir ? ` chat-slide-${chatSlideDir}` : ''}`}
       >
         <ChatHeader
           chatThreads={chatThreads as any}
@@ -4534,7 +4534,7 @@ export default function AgentPage() {
           </div>
         ) : null}
 
-        <div className="agent-chat-body premium-chat-body">
+        <div className="agent-chat-body">
           <ChatThreadView
             items={items}
             loading={loading}
@@ -4559,9 +4559,9 @@ export default function AgentPage() {
             onPanelAction={openPanelSectionFromChat}
           />
 
-          <div className="agent-input-shell terminal-composer-shell premium-composer-shell">
+          <div className="agent-input-shell terminal-composer-shell">
             <div
-              className="agent-input terminal-composer premium-terminal-composer"
+              className="agent-input terminal-composer"
               onClick={() => {
                 if (!isActiveChatLocked) chatComposerRef.current?.focus();
               }}
@@ -4585,7 +4585,7 @@ export default function AgentPage() {
               />
             </div>
 
-            <div className="controls terminal-composer-controls premium-terminal-controls">
+            <div className="controls terminal-composer-controls">
               <input
                 ref={chatUploadInputRef}
                 type="file"
