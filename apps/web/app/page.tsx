@@ -89,7 +89,7 @@ function ProblemSection() {
   ];
 
   return (
-    <section ref={ref} style={{ background: '#050810', padding: 'clamp(100px,14vw,180px) clamp(24px,8vw,120px)' }}>
+    <section ref={ref} style={{ background: 'rgba(5,8,16,0.72)', padding: 'clamp(100px,14vw,180px) clamp(24px,8vw,120px)' }}>
       <motion.div initial="hidden" animate={inView ? 'visible' : 'hidden'} variants={sg(0.22)}>
         <motion.div variants={blurUp}><Label text="El problema" /></motion.div>
 
@@ -125,7 +125,7 @@ function FeaturesSection() {
   const inView = useInView(ref, { once: true, margin: '-80px' });
 
   return (
-    <section ref={ref} style={{ position: 'relative', overflow: 'hidden', background: '#050810', padding: 'clamp(80px,12vw,160px) clamp(24px,8vw,120px)', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+    <section ref={ref} style={{ position: 'relative', overflow: 'hidden', background: 'rgba(5,8,16,0.72)', padding: 'clamp(80px,12vw,160px) clamp(24px,8vw,120px)', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
 
       {/* Animated blurred photo background — fondo4.jpg muy difuso, entra con el scroll */}
       <motion.div
@@ -185,7 +185,7 @@ function StatsSection() {
   return (
     <section
       ref={ref}
-      style={{ background: '#050810', padding: 'clamp(70px,10vw,130px) clamp(24px,8vw,120px)', borderTop: '1px solid rgba(255,255,255,0.06)' }}
+      style={{ background: 'rgba(5,8,16,0.72)', padding: 'clamp(70px,10vw,130px) clamp(24px,8vw,120px)', borderTop: '1px solid rgba(255,255,255,0.06)' }}
     >
       <motion.div initial="hidden" animate={inView ? 'visible' : 'hidden'} variants={sg(0.16)}>
         <motion.div variants={blurUp}>
@@ -224,7 +224,7 @@ function StepsSection() {
   ];
 
   return (
-    <section ref={ref} style={{ background: '#050810', padding: 'clamp(80px,12vw,160px) clamp(24px,8vw,120px)', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+    <section ref={ref} style={{ background: 'rgba(5,8,16,0.72)', padding: 'clamp(80px,12vw,160px) clamp(24px,8vw,120px)', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
       <motion.div initial="hidden" animate={inView ? 'visible' : 'hidden'} variants={sg(0.14)}>
         <motion.div variants={blurUp}>
           <Label text="Proceso" color="#a48f4f" />
@@ -315,7 +315,7 @@ function PreviewSection() {
   const inView = useInView(ref, { once: true, margin: '-80px' });
 
   return (
-    <section ref={ref} style={{ background: '#050810', padding: 'clamp(80px,12vw,160px) clamp(24px,8vw,120px)', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+    <section ref={ref} style={{ background: 'rgba(5,8,16,0.72)', padding: 'clamp(80px,12vw,160px) clamp(24px,8vw,120px)', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
       <motion.div initial="hidden" animate={inView ? 'visible' : 'hidden'} variants={sg(0.12)}>
         <motion.div variants={blurUp}>
           <Label text="En acción" />
@@ -338,7 +338,7 @@ function CtaSection() {
   const inView = useInView(ref, { once: true, margin: '-80px' });
 
   return (
-    <section ref={ref} style={{ background: '#050810', padding: 'clamp(120px,16vw,220px) clamp(24px,8vw,120px)', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+    <section ref={ref} style={{ background: 'rgba(5,8,16,0.44)', padding: 'clamp(120px,16vw,220px) clamp(24px,8vw,120px)', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
       <motion.div initial="hidden" animate={inView ? 'visible' : 'hidden'} variants={sg(0.16)}>
         <motion.h2
           variants={blurUp}
@@ -382,27 +382,27 @@ function CtaSection() {
 
 export default function HomePage() {
   const router = useRouter();
+  const pageRef = useRef<HTMLElement>(null);
   const heroSectionRef = useRef<HTMLElement>(null);
   const { scrollY } = useScroll();
-  const { scrollYProgress: heroProgress } = useScroll({
-    target: heroSectionRef,
+  const { scrollYProgress: pageProgress } = useScroll({
+    target: pageRef,
     offset: ['start start', 'end end'],
   });
-
   const heroY = useTransform(scrollY, [0, 600], [0, -70]);
   const heroOpacity = useTransform(scrollY, [0, 380], [1, 0]);
   const lineOpacity = useTransform(scrollY, [0, 80], [1, 0]);
 
   return (
-    <main style={{ background: '#050810', color: 'white' }}>
+    <main ref={pageRef} style={{ background: '#050810', color: 'white', position: 'relative' }}>
+      <div style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
+        <NumbersCanvas progress={pageProgress} />
+      </div>
 
       {/* ─── HERO ────────────────────────────────────────────────────────── */}
       {/* Sección tall: el sticky hace que el viewport quede "pegado" mientras scrolleas */}
       <section ref={heroSectionRef} style={{ position: 'relative', height: '350vh' }}>
         <div style={{ position: 'sticky', top: 0, height: '100dvh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-
-        {/* ── Canvas: imagen ↔ números ── */}
-        <NumbersCanvas progress={heroProgress} />
 
         {/* Gradiente de profundidad: texto abajo visible */}
         <div style={{
@@ -521,12 +521,14 @@ export default function HomePage() {
       </section>
 
       {/* ─── SECTIONS ────────────────────────────────────────────────────── */}
-      <ProblemSection />
-      <FeaturesSection />
-      <StatsSection />
-      <StepsSection />
-      <PreviewSection />
-      <CtaSection />
+      <div style={{ position: 'relative', zIndex: 4 }}>
+        <ProblemSection />
+        <FeaturesSection />
+        <StatsSection />
+        <StepsSection />
+        <PreviewSection />
+        <CtaSection />
+      </div>
 
     </main>
   );

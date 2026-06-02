@@ -14,12 +14,29 @@ const FS   = 11;  // px — tamaño de fuente
 interface Px { r: number; g: number; b: number; lum: number }
 interface Cd { revIn: number; revOut: number; spd: number; phi: number }
 
-// ── Fases del scroll (p = 0 → 1) ──────────────────────────────────────────────
-// 0.00 – 0.12 : imagen pura
-// 0.12 – 0.42 : los dígitos entran columna a columna (izq → der)
-// 0.42 – 0.58 : zona peak — dígitos cambian rápido y caóticamente
-// 0.58 – 0.88 : los dígitos se van (izq → der igual)
-// 0.88 – 1.00 : imagen pura de nuevo
+const PHASE = {
+  inStart: 0.04,
+  inEnd: 0.36,
+  outStart: 0.68,
+  outEnd: 0.97,
+} as const;
+
+function drawImageCover(
+  ctx: CanvasRenderingContext2D,
+  img: HTMLImageElement,
+  targetW: number,
+  targetH: number,
+  srcW = img.naturalWidth,
+  srcH = img.naturalHeight,
+) {
+  if (!srcW || !srcH || !targetW || !targetH) return;
+  const scale = Math.max(targetW / srcW, targetH / srcH);
+  const drawW = srcW * scale;
+  const drawH = srcH * scale;
+  const dx = (targetW - drawW) / 2;
+  const dy = (targetH - drawH) / 2;
+  ctx.drawImage(img, dx, dy, drawW, drawH);
+}
 
 export default function NumbersCanvas({ progress }: { progress: MotionValue<number> }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -47,7 +64,7 @@ export default function NumbersCanvas({ progress }: { progress: MotionValue<numb
       off.width  = cols;
       off.height = rows;
       const oc = off.getContext('2d')!;
-      oc.drawImage(img, 0, 0, cols, rows);
+      drawImageCover(oc, img, cols, rows);
       const data = oc.getImageData(0, 0, cols, rows).data;
 
       px = [];
@@ -90,17 +107,25 @@ export default function NumbersCanvas({ progress }: { progress: MotionValue<numb
       const p = progress.get(); // scroll progress 0 → 1
 
       // Progreso de entrada y salida
-      const inP  = ease(remap(p, 0.12, 0.42)); // 0 → 1 mientras entran los números
-      const outP = ease(remap(p, 0.58, 0.88)); // 0 → 1 mientras salen los números
+      const inP  = ease(remap(p, PHASE.inStart, PHASE.inEnd));
+      const outP = ease(remap(p, PHASE.outStart, PHASE.outEnd));
       const midP = clamp(inP - outP);           // 1 en la zona peak de números
+      const chaosIn = ease(remap(p, 0.32, 0.50));
+      const chaosOut = ease(remap(p, 0.58, 0.76));
+      const chaosP = clamp(chaosIn - chaosOut); // 0->1->0: vuelve a fiel antes de imagen
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       /* ── Imagen de fondo — siempre presente, se desvanece con los dígitos */
       ctx.save();
-      ctx.globalAlpha = clamp(1 - midP * 0.93);
-      ctx.filter = 'saturate(1.45) contrast(0.65) brightness(0.52) sepia(0.06)';
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      const stylize = chaosP * 0.92;
+      const sat = 1 + 0.55 * stylize;
+      const ctr = 1 - 0.34 * stylize;
+      const bri = 1 - 0.40 * stylize;
+      const sep = 0.06 * stylize;
+      ctx.globalAlpha = 1;
+      ctx.filter = `saturate(${sat}) contrast(${ctr}) brightness(${bri}) sepia(${sep})`;
+      drawImageCover(ctx, img, canvas.width, canvas.height);
       ctx.filter = 'none';
       ctx.restore();
 
@@ -135,15 +160,13 @@ export default function NumbersCanvas({ progress }: { progress: MotionValue<numb
         const wave = Math.sin(col * 0.27 + row * 0.38 + t * 2.1) * 3;
         const cycleDigit = Math.abs(Math.floor(t * c.spd + c.phi * 4 + i * 3.71 + wave)) % 10;
 
-        // Mezcla: al inicio aparece el dígito destino, en el peak cicla caóticamente
-        const digit = midP > 0.58
-          ? cycleDigit
-          : midP > 0.15
-            ? (Math.random() < midP * 1.5 ? cycleDigit : targetDigit)
-            : targetDigit;
+        // Fase fiel -> caos -> fiel (antes de volver a imagen)
+        const digit = chaosP > 0.08
+          ? (Math.random() < chaosP * 0.9 ? cycleDigit : targetDigit)
+          : targetDigit;
 
-        // Color = color del pixel, amplificado en el peak
-        const boost = 1 + midP * 0.75;
+        // Color exacto del pixel al transformar; solo en caos hay desviación
+        const boost = 1 + chaosP * 0.62;
         let rv = clamp(p_.r * boost, 0, 255);
         let gv = clamp(p_.g * boost, 0, 255);
         let bv = clamp(p_.b * boost, 0, 255);
