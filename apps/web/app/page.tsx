@@ -9,6 +9,7 @@ import LiveChatDemo from '../components/home/LiveChatDemo';
 import SpotlightCard from '../components/home/SpotlightCard';
 import Counter from '../components/home/Counter';
 import NumbersCanvas from '../components/home/NumbersCanvas';
+import BillSection from '../components/home/BillSection';
 
 // ── Easing ────────────────────────────────────────────────────────────────────
 const SILK: [number, number, number, number] = [0.22, 1, 0.36, 1];   // suave, preciso
@@ -607,9 +608,10 @@ export default function HomePage() {
 
       </div>{/* /scrollRangeRef */}
 
-      {/* PreviewSection y CTA: fuera del rango, imagen ya está de vuelta */}
+      {/* PreviewSection, BillSection y CTA: fuera del rango, imagen ya está de vuelta */}
       <div style={{ position: 'relative', zIndex: 1 }}>
         <PreviewSection />
+        <BillSection />
         <CtaSection />
       </div>
 
