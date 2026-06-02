@@ -38,10 +38,17 @@ function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
 
+function canBootstrapAdminFromLogin(): boolean {
+  if (process.env.NODE_ENV !== 'production') return true;
+  return process.env.ENABLE_BOOTSTRAP_ADMIN_LOGIN === 'true';
+}
+
 async function ensureBootstrapAdminForCredentials(params: {
   email: string;
   password: string;
 }) {
+  if (!canBootstrapAdminFromLogin()) return;
+
   const adminEmail = normalizeEmail(process.env.BOOTSTRAP_ADMIN_EMAIL ?? '');
   const adminPassword = process.env.BOOTSTRAP_ADMIN_PASSWORD ?? '';
   const adminName = (process.env.BOOTSTRAP_ADMIN_NAME ?? 'Administrador').trim() || 'Administrador';

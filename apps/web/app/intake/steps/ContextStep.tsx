@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import type { CSSProperties } from 'react';
 import type { IntakeQuestionnaire } from '@financial-agent/shared/src/intake/intake-questionnaire.types';
-import { balancedColumns } from './layout';
+import { balancedColumns } from './grid';
 
 const EMPLOYMENT_OPTIONS: { value: IntakeQuestionnaire['employmentStatus']; label: string; sub: string }[] = [
   { value: 'employed', label: 'Dependiente', sub: 'Empleado con contrato' },

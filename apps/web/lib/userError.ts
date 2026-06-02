@@ -132,6 +132,18 @@ export function toUserFacingError(error: unknown, context: ErrorContext = 'gener
   if (error instanceof Error) {
     const msg = asText(error.message);
     if (
+      context === 'auth.login' &&
+      (msg.includes('invalid credentials') || msg.includes('credenciales inválidas'))
+    ) {
+      return 'Credenciales inválidas. Revisa tu correo y contraseña.';
+    }
+    if (
+      context === 'auth.register' &&
+      (msg.includes('already exists') || msg.includes('ya existe'))
+    ) {
+      return 'Ya existe una cuenta con ese correo.';
+    }
+    if (
       msg.includes('failed to fetch') ||
       msg.includes('load failed') ||
       msg.includes('networkerror') ||

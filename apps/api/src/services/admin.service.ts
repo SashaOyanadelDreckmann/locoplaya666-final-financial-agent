@@ -68,6 +68,54 @@ export type AdminUsersFullDump = {
   users: AdminUserSnapshot[];
 };
 
+function redactSecret(): string {
+  return '[REDACTED]';
+}
+
+function truncatePreview(value: string | null | undefined, max = 400): string | null {
+  if (!value) return null;
+  const compact = String(value).replace(/\s+/g, ' ').trim();
+  if (!compact) return null;
+  return compact.length > max ? `${compact.slice(0, max)}…` : compact;
+}
+
+function toAdminDocumentSnapshot(document: {
+  id: string;
+  name: string;
+  kind: string;
+  source: string;
+  mimeType?: string | null;
+  sizeBytes?: number | null;
+  textPreview?: string | null;
+  summary?: unknown;
+  structuredData?: unknown;
+  openaiFileId?: string | null;
+  vectorStoreId?: string | null;
+  status: string;
+  error?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}): AdminDocumentSnapshot {
+  return {
+    id: document.id,
+    name: document.name,
+    kind: document.kind,
+    source: document.source,
+    mimeType: document.mimeType ?? null,
+    sizeBytes: document.sizeBytes ?? null,
+    textPreview: truncatePreview(document.textPreview),
+    extractedText: null,
+    summary: document.summary ?? null,
+    structuredData: document.structuredData ?? null,
+    openaiFileId: document.openaiFileId ?? null,
+    vectorStoreId: document.vectorStoreId ?? null,
+    status: document.status,
+    error: document.error ?? null,
+    createdAt: document.createdAt,
+    updatedAt: document.updatedAt,
+  };
+}
+
 function toIso(value: string | Date | null | undefined): string | null {
   if (!value) return null;
   if (value instanceof Date) return value.toISOString();
@@ -112,24 +160,25 @@ function buildFromMemory(): AdminUsersFullDump {
     const documents = sortByDateDesc(
       Array.from(memoryStore.documents.values())
         .filter((document) => document.userId === user.id)
-        .map((document) => ({
-          id: document.id,
-          name: document.name,
-          kind: document.kind,
-          source: document.source,
-          mimeType: document.mimeType ?? null,
-          sizeBytes: document.sizeBytes ?? null,
-          textPreview: document.textPreview ?? null,
-          extractedText: document.extractedText ?? null,
-          summary: document.summary ?? null,
-          structuredData: document.structuredData ?? null,
-          openaiFileId: document.openaiFileId ?? null,
-          vectorStoreId: document.vectorStoreId ?? null,
-          status: document.status,
-          error: document.error ?? null,
-          createdAt: document.createdAt,
-          updatedAt: document.updatedAt,
-        })),
+        .map((document) =>
+          toAdminDocumentSnapshot({
+            id: document.id,
+            name: document.name,
+            kind: document.kind,
+            source: document.source,
+            mimeType: document.mimeType ?? null,
+            sizeBytes: document.sizeBytes ?? null,
+            textPreview: document.textPreview ?? null,
+            summary: document.summary ?? null,
+            structuredData: document.structuredData ?? null,
+            openaiFileId: document.openaiFileId ?? null,
+            vectorStoreId: document.vectorStoreId ?? null,
+            status: document.status,
+            error: document.error ?? null,
+            createdAt: document.createdAt,
+            updatedAt: document.updatedAt,
+          })
+        ),
       (document) => document.createdAt,
     );
 
@@ -147,7 +196,7 @@ function buildFromMemory(): AdminUsersFullDump {
       name: user.name,
       email: user.email,
       role: user.role,
-      passwordHash: user.passwordHash,
+      passwordHash: redactSecret(),
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
       latestDiagnosticProfileId: user.latestDiagnosticProfileId ?? null,
@@ -202,7 +251,7 @@ async function buildFromPostgres(): Promise<AdminUsersFullDump> {
     name: user.name,
     email: user.email,
     role: user.role as UserRole,
-    passwordHash: user.passwordHash,
+    passwordHash: redactSecret(),
     createdAt: user.createdAt.toISOString(),
     updatedAt: user.updatedAt.toISOString(),
     latestDiagnosticProfileId: user.latestDiagnosticProfileId ?? null,
@@ -234,24 +283,25 @@ async function buildFromPostgres(): Promise<AdminUsersFullDump> {
       createdAt: profile.createdAt.toISOString(),
       payload: profile.payload,
     })),
-    documents: user.documents.map((document) => ({
-      id: document.id,
-      name: document.name,
-      kind: document.kind,
-      source: document.source,
-      mimeType: document.mimeType ?? null,
-      sizeBytes: document.sizeBytes ?? null,
-      textPreview: document.textPreview ?? null,
-      extractedText: document.extractedText ?? null,
-      summary: document.summary ?? null,
-      structuredData: document.structuredData ?? null,
-      openaiFileId: document.openaiFileId ?? null,
-      vectorStoreId: document.vectorStoreId ?? null,
-      status: document.status,
-      error: document.error ?? null,
-      createdAt: document.createdAt.toISOString(),
-      updatedAt: document.updatedAt.toISOString(),
-    })),
+    documents: user.documents.map((document) =>
+      toAdminDocumentSnapshot({
+        id: document.id,
+        name: document.name,
+        kind: document.kind,
+        source: document.source,
+        mimeType: document.mimeType ?? null,
+        sizeBytes: document.sizeBytes ?? null,
+        textPreview: document.textPreview ?? null,
+        summary: document.summary ?? null,
+        structuredData: document.structuredData ?? null,
+        openaiFileId: document.openaiFileId ?? null,
+        vectorStoreId: document.vectorStoreId ?? null,
+        status: document.status,
+        error: document.error ?? null,
+        createdAt: document.createdAt.toISOString(),
+        updatedAt: document.updatedAt.toISOString(),
+      })
+    ),
   })) satisfies AdminUserSnapshot[];
 
   return {

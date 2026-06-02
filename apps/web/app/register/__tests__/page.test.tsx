@@ -46,7 +46,7 @@ describe('RegisterPage', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Nombre debe tener al menos 2 caracteres')).toBeInTheDocument();
-      expect(screen.getByText('Email inválido')).toBeInTheDocument();
+      expect(screen.getByText('Email requerido')).toBeInTheDocument();
     });
   });
 
@@ -132,7 +132,7 @@ describe('RegisterPage', () => {
     await user.click(submitButton);
 
     await waitFor(() => {
-      expect(screen.getByText('Email already exists')).toBeInTheDocument();
+      expect(screen.getByText('Ya existe una cuenta con ese correo.')).toBeInTheDocument();
     });
   });
 

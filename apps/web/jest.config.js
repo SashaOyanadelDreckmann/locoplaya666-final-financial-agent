@@ -9,7 +9,11 @@ const customJestConfig = {
   testEnvironment: 'jest-environment-jsdom',
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
+    '^canvas$': '<rootDir>/test/canvasMock.js',
   },
+  modulePathIgnorePatterns: ['<rootDir>/.next/', '<rootDir>/coverage/'],
+  testPathIgnorePatterns: ['<rootDir>/.next/', '<rootDir>/coverage/'],
+  watchPathIgnorePatterns: ['<rootDir>/.next/', '<rootDir>/coverage/'],
   testMatch: [
     '**/__tests__/**/*.[jt]s?(x)',
     '**/?(*.)+(spec|test).[jt]s?(x)',

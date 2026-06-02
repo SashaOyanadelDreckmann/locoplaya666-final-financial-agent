@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import type { CSSProperties } from 'react';
 import type { IntakeQuestionnaire } from '@financial-agent/shared/src/intake/intake-questionnaire.types';
-import { balancedColumns } from './layout';
+import { balancedColumns } from './grid';
 
 const INCOME_OPTIONS: { value: IntakeQuestionnaire['incomeBand']; label: string; sub: string }[] = [
   { value: 'no_income', label: 'Sin ingresos', sub: 'Actualmente' },

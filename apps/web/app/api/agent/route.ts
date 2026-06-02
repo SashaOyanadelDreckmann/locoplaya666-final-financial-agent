@@ -53,11 +53,20 @@ export async function POST(request: NextRequest) {
     const text = await upstream.text();
     const contentType = upstream.headers.get('content-type') ?? 'application/json; charset=utf-8';
 
+    const responseHeaders = new Headers({
+      'content-type': contentType,
+    });
+    const setCookie = upstream.headers.get('set-cookie');
+    const csrf = upstream.headers.get('x-csrf-token');
+    const cacheControl = upstream.headers.get('cache-control');
+
+    if (setCookie) responseHeaders.set('set-cookie', setCookie);
+    if (csrf) responseHeaders.set('x-csrf-token', csrf);
+    if (cacheControl) responseHeaders.set('cache-control', cacheControl);
+
     return new NextResponse(text, {
       status: upstream.status,
-      headers: {
-        'content-type': contentType,
-      },
+      headers: responseHeaders,
     });
   } catch (error: unknown) {
     const detail =

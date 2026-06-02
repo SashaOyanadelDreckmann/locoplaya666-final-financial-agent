@@ -2,7 +2,7 @@
 import { useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import type { IntakeQuestionnaire } from '@financial-agent/shared/src/intake/intake-questionnaire.types';
-import { balancedColumns } from './layout';
+import { balancedColumns } from './grid';
 
 type FinancialKnowledgeKey = keyof IntakeQuestionnaire['financialKnowledge'];
 

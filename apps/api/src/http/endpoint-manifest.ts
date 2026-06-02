@@ -15,6 +15,8 @@ export const ENDPOINT_MANIFEST: EndpointDefinition[] = [
   { method: 'GET', path: '/auth/me', hasSchemaValidation: true, hasTests: true, hasDocs: true, hasObservability: true },
   { method: 'POST', path: '/intake/submit', hasSchemaValidation: true, hasTests: false, hasDocs: true, hasObservability: true },
   { method: 'POST', path: '/conversation/next', hasSchemaValidation: true, hasTests: false, hasDocs: true, hasObservability: true },
+  { method: 'POST', path: '/conversation/voice/state', hasSchemaValidation: true, hasTests: true, hasDocs: false, hasObservability: true },
+  { method: 'POST', path: '/conversation/voice/finalize', hasSchemaValidation: true, hasTests: true, hasDocs: false, hasObservability: true },
   { method: 'GET', path: '/diagnosis/latest', hasSchemaValidation: true, hasTests: false, hasDocs: true, hasObservability: true },
   { method: 'POST', path: '/api/inject-profile', hasSchemaValidation: true, hasTests: false, hasDocs: true, hasObservability: true },
   { method: 'POST', path: '/api/inject-intake', hasSchemaValidation: true, hasTests: false, hasDocs: true, hasObservability: true },

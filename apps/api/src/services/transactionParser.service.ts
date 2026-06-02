@@ -4,8 +4,8 @@
 
 import fs from 'fs';
 import path from 'path';
+import ExcelJS from 'exceljs';
 import PDFParse from 'pdf-parse';
-import * as XLSX from 'xlsx';
 import { getOpenAIClient, withCompatibleTemperature } from './llm.service';
 
 const DATA_ROOT = path.join(process.cwd(), 'data', 'transactions');
@@ -44,18 +44,36 @@ export async function parsePdfBuffer(buffer: Buffer, filename: string): Promise<
 /**
  * Parsea un buffer de Excel (.xls, .xlsx) y retorna texto tabular.
  */
-export function parseExcelBuffer(buffer: Buffer, filename: string): string {
+export async function parseExcelBuffer(buffer: Buffer, filename: string): Promise<string> {
   try {
-    const workbook = XLSX.read(buffer, { type: 'buffer', raw: true });
+    const workbook = new ExcelJS.Workbook();
+    const excelBuffer = buffer as unknown as Parameters<typeof workbook.xlsx.load>[0];
+    await workbook.xlsx.load(excelBuffer);
     const lines: string[] = [`--- Cartola Excel: ${filename} ---`];
 
-    for (const sheetName of workbook.SheetNames) {
-      const sheet = workbook.Sheets[sheetName];
-      const csv = XLSX.utils.sheet_to_csv(sheet, { FS: ' | ', RS: '\n' });
-      if (csv.trim()) {
-        lines.push(`\n[Hoja: ${sheetName}]\n${csv}`);
+    workbook.eachSheet((sheet) => {
+      const rows = sheet.getSheetValues().slice(1);
+      const serialized = rows
+        .map((row) => {
+          if (!Array.isArray(row)) return '';
+          return row
+            .slice(1)
+            .map((cell) => String(cell ?? '').trim())
+            .join(' | ')
+            .trim();
+        })
+        .filter(Boolean)
+        .join('\n');
+
+      if (serialized) {
+        lines.push(`\n[Hoja: ${sheet.name}]\n${serialized}`);
       }
+    });
+
+    if (lines.length === 1) {
+      return `[Excel ${filename}: sin datos tabulares legibles]`;
     }
+
     lines.push('\n--- Fin ---');
     return lines.join('\n');
   } catch (e) {
@@ -132,6 +150,7 @@ export async function parseTransactionFile(
 ): Promise<string> {
   const ext = path.extname(filename).toLowerCase();
   if (ext === '.pdf') return parsePdfBuffer(buffer, filename);
+  if (ext === '.xls') return `[Excel ${filename}: formato .xls no soportado; exporta a .xlsx o .csv]`;
   if (ext === '.xlsx' || ext === '.xls') return parseExcelBuffer(buffer, filename);
   if (ext === '.csv') return parseCsvBuffer(buffer, filename);
   if (ext === '.txt' || ext === '.md') return parseCsvBuffer(buffer, filename);

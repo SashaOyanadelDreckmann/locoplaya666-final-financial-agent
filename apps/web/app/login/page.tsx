@@ -32,7 +32,9 @@ export default function LoginPage() {
         const errors: Record<string, string> = {};
         e.errors.forEach((err) => {
           const field = err.path[0] as string;
-          errors[field] = err.message;
+          if (!errors[field]) {
+            errors[field] = err.message;
+          }
         });
         setFieldErrors(errors);
       }

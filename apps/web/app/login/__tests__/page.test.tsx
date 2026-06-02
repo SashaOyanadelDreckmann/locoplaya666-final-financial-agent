@@ -48,7 +48,7 @@ describe('LoginPage', () => {
     await user.click(submitButton);
 
     await waitFor(() => {
-      expect(screen.getByText('Email inválido')).toBeInTheDocument();
+      expect(screen.getByText('Email requerido')).toBeInTheDocument();
     });
   });
 
@@ -67,23 +67,19 @@ describe('LoginPage', () => {
     });
   });
 
-  it('validates password strength', async () => {
+  it('requires password', async () => {
     const user = userEvent.setup();
     render(<LoginPage />);
 
     const emailInput = screen.getByPlaceholderText('tu@correo.com');
-    const passwordInput = screen.getByPlaceholderText('Tu clave');
 
     await user.type(emailInput, 'test@example.com');
-    await user.type(passwordInput, 'weak'); // Falta mayúscula y número
 
     const submitButton = screen.getByRole('button', { name: /Continuar/i });
     await user.click(submitButton);
 
     await waitFor(() => {
-      expect(
-        screen.getByText('Debe contener una mayúscula')
-      ).toBeInTheDocument();
+      expect(screen.getByText('Contraseña requerida')).toBeInTheDocument();
     });
   });
 
@@ -142,7 +138,7 @@ describe('LoginPage', () => {
     await user.click(submitButton);
 
     await waitFor(() => {
-      expect(screen.getByText('Invalid credentials')).toBeInTheDocument();
+      expect(screen.getByText('Credenciales inválidas. Revisa tu correo y contraseña.')).toBeInTheDocument();
     });
   });
 

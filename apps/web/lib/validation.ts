@@ -3,20 +3,18 @@ import { z } from 'zod';
 export const LoginSchema = z.object({
   email: z
     .string()
-    .email('Email inválido')
-    .min(1, 'Email requerido'),
+    .min(1, 'Email requerido')
+    .email('Email inválido'),
   password: z
     .string()
-    .min(8, 'Contraseña debe tener al menos 8 caracteres')
-    .regex(/[A-Z]/, 'Debe contener una mayúscula')
-    .regex(/[0-9]/, 'Debe contener un número'),
+    .min(1, 'Contraseña requerida'),
 });
 
 export const RegisterSchema = z.object({
   email: z
     .string()
-    .email('Email inválido')
-    .min(1, 'Email requerido'),
+    .min(1, 'Email requerido')
+    .email('Email inválido'),
   password: z
     .string()
     .min(8, 'Contraseña debe tener al menos 8 caracteres')
