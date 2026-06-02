@@ -31223,3 +31223,439 @@ body.agent-route-active .app-shell::before {
   .budget-modal .bcc-hero-question { font-size: 1.4rem !important; }
 }
 /* ════════ END PREMIUM EDITORIAL LAYER ════════ */
+
+/* Safe UX pass (agent): readability + action hierarchy without rebranding */
+.agent-chat .agent-input.terminal-composer textarea.terminal-composer-input::placeholder {
+  color: rgba(202, 220, 235, 0.76) !important;
+}
+
+.agent-chat .terminal-composer-controls .composer-icon-btn,
+.agent-chat .composer-send-plain {
+  color: rgba(228, 238, 246, 0.9) !important;
+  opacity: 0.92;
+}
+
+.agent-chat .terminal-composer-controls .composer-icon-btn:hover:not(:disabled),
+.agent-chat .composer-send-plain:hover:not(:disabled) {
+  opacity: 1;
+}
+
+.agent-chat .terminal-composer-controls .composer-icon-btn:focus-visible,
+.agent-chat .composer-send-plain:focus-visible,
+.interview-resume-banner .summary-action-btn:focus-visible {
+  outline: 2px solid rgba(183, 215, 239, 0.9) !important;
+  outline-offset: 2px;
+}
+
+.interview-resume-banner {
+  border-color: rgba(203, 224, 240, 0.4);
+}
+
+.interview-resume-copy span {
+  color: rgba(208, 222, 234, 0.98);
+}
+
+/* Ultra-pro polish layer (desk + mobile) */
+.agent-chat-body {
+  background:
+    radial-gradient(circle at 18% -12%, rgba(125, 167, 200, 0.08), transparent 34%),
+    radial-gradient(circle at 82% 118%, rgba(184, 147, 70, 0.06), transparent 34%),
+    linear-gradient(180deg, rgba(6, 10, 16, 0.72), rgba(5, 8, 13, 0.84)) !important;
+}
+
+.agent-chat .agent-input.terminal-composer {
+  border-color: rgba(173, 200, 220, 0.42) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 16px 32px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(155, 185, 209, 0.14) !important;
+}
+
+.agent-chat .composer-send-plain {
+  border-radius: 10px !important;
+  padding: 4px !important;
+  background: rgba(169, 195, 216, 0.12) !important;
+  border: 1px solid rgba(186, 211, 230, 0.34) !important;
+}
+
+.agent-chat .composer-send-plain:hover:not(:disabled) {
+  background: rgba(184, 208, 226, 0.2) !important;
+  border-color: rgba(206, 226, 240, 0.5) !important;
+}
+
+.agent-panel .panel-feature-card,
+.agent-panel .interview-flow-card,
+.agent-panel .panel-pos-library,
+.agent-panel .recent-library-card {
+  border-radius: 18px !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow:
+    0 14px 28px rgba(2, 6, 12, 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+}
+
+.agent-panel .panel-feature-label {
+  letter-spacing: 0.075em !important;
+  font-weight: 600 !important;
+}
+
+.agent-panel .panel-feature-status {
+  font-size: 0.92rem !important;
+  line-height: 1.3 !important;
+}
+
+.agent-panel .panel-feature-copy,
+.agent-panel .panel-feature-copy-secondary,
+.agent-panel .panel-text,
+.agent-panel .recent-item-name {
+  line-height: 1.42 !important;
+}
+
+.agent-panel .panel-feature-copy {
+  font-size: 0.8rem !important;
+}
+
+.agent-panel .panel-feature-copy-secondary {
+  font-size: 0.76rem !important;
+  opacity: 0.9;
+}
+
+.agent-panel .report-item,
+.agent-panel .recent-item {
+  border-radius: 12px !important;
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease !important;
+}
+
+.agent-panel .report-item:hover,
+.agent-panel .recent-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px rgba(8, 14, 22, 0.34) !important;
+}
+
+@media (max-width: 767px) {
+  .agent-chat .agent-input.terminal-composer textarea.terminal-composer-input {
+    min-height: 24px !important;
+    max-height: 42px !important;
+    font-size: 15px !important;
+  }
+
+  .agent-chat .terminal-composer-controls {
+    gap: 18px !important;
+  }
+
+  .agent-panel .panel-grid {
+    gap: 8px !important;
+  }
+
+  .agent-layout.mobile-panel-expanded .agent-panel .panel-feature-status {
+    font-size: 0.92rem !important;
+  }
+
+  .agent-layout.mobile-panel-expanded .agent-panel .panel-feature-copy,
+  .agent-layout.mobile-panel-expanded .agent-panel .panel-feature-copy-secondary,
+  .agent-layout.mobile-panel-expanded .agent-panel .recent-item-name {
+    font-size: 0.8rem !important;
+    line-height: 1.45 !important;
+  }
+}
+
+/* ================================================= */
+/* PREMIUM CHAT + PANEL OVERRIDES (Magic-inspired)   */
+/* ================================================= */
+
+.agent-layout.premium-shell {
+  background:
+    radial-gradient(1200px 520px at -8% -14%, rgba(223, 183, 113, 0.16), transparent 58%),
+    radial-gradient(920px 460px at 108% 8%, rgba(142, 174, 216, 0.2), transparent 62%),
+    linear-gradient(162deg, #05090f 0%, #091420 36%, #0b1826 66%, #09131f 100%);
+}
+
+.agent-layout.premium-shell::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(120deg, rgba(247, 226, 183, 0.05), transparent 28%, transparent 74%, rgba(182, 214, 248, 0.06)),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.015) 0 1px, transparent 1px 38px);
+  opacity: 0.55;
+}
+
+.agent-layout.premium-shell > * {
+  position: relative;
+  z-index: 1;
+}
+
+.agent-layout.premium-shell .premium-chat-surface {
+  border: 1px solid rgba(203, 225, 246, 0.22);
+  background: linear-gradient(180deg, rgba(7, 14, 22, 0.78), rgba(8, 17, 27, 0.72));
+  box-shadow:
+    0 30px 62px rgba(3, 8, 15, 0.56),
+    inset 0 1px 0 rgba(232, 245, 255, 0.09);
+  border-radius: 20px;
+}
+
+.agent-layout.premium-shell .agent-chat-header {
+  border-bottom: 1px solid rgba(182, 213, 239, 0.2);
+  background:
+    linear-gradient(180deg, rgba(16, 29, 43, 0.78), rgba(10, 20, 32, 0.34));
+}
+
+.agent-layout.premium-shell .chat-switcher {
+  border-color: rgba(196, 222, 246, 0.28);
+  background: linear-gradient(180deg, rgba(17, 32, 48, 0.86), rgba(13, 24, 36, 0.88));
+  box-shadow: 0 16px 34px rgba(2, 9, 16, 0.42), inset 0 1px 0 rgba(216, 234, 248, 0.08);
+}
+
+.agent-layout.premium-shell .chat-sheet-tab {
+  min-height: 60px;
+  border-color: rgba(170, 198, 224, 0.22);
+  background: linear-gradient(180deg, rgba(23, 39, 56, 0.8), rgba(14, 27, 41, 0.84));
+  box-shadow: inset 0 1px 0 rgba(229, 242, 252, 0.06);
+}
+
+.agent-layout.premium-shell .chat-sheet-tab.is-active {
+  border-color: rgba(209, 175, 112, 0.62);
+  background:
+    linear-gradient(180deg, rgba(61, 86, 112, 0.92), rgba(29, 48, 66, 0.92));
+  box-shadow:
+    0 14px 26px rgba(3, 12, 22, 0.48),
+    inset 0 1px 0 rgba(246, 230, 199, 0.32);
+}
+
+.agent-layout.premium-shell .chat-sheet-tab-index {
+  background: linear-gradient(180deg, rgba(215, 233, 248, 0.2), rgba(160, 194, 221, 0.12));
+  border: 1px solid rgba(180, 208, 230, 0.35);
+}
+
+.agent-layout.premium-shell .chat-brand-strip h1,
+.agent-layout.premium-shell .chat-brand-wordmark {
+  text-shadow: 0 2px 14px rgba(6, 17, 30, 0.42);
+}
+
+.agent-layout.premium-shell .chat-brand-financiera,
+.agent-layout.premium-shell .chat-brand-mente {
+  letter-spacing: 0.01em;
+}
+
+.agent-layout.premium-shell .premium-chat-body::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(740px 280px at 84% -16%, rgba(169, 201, 232, 0.12), transparent 74%),
+    linear-gradient(180deg, rgba(13, 24, 36, 0.22), rgba(8, 14, 23, 0));
+}
+
+.agent-layout.premium-shell .agent-thread {
+  padding: 18px 18px 28px;
+  gap: 12px;
+}
+
+.agent-layout.premium-shell .agent-thread > .agent-bubble.user {
+  background: linear-gradient(134deg, rgba(36, 109, 168, 0.92), rgba(51, 149, 222, 0.84));
+  border-color: rgba(176, 224, 255, 0.56);
+  box-shadow: 0 16px 30px rgba(11, 40, 63, 0.4), inset 0 1px 0 rgba(236, 248, 255, 0.22);
+}
+
+.agent-layout.premium-shell .agent-thread > .agent-bubble.assistant {
+  background: linear-gradient(160deg, rgba(9, 22, 34, 0.82), rgba(8, 16, 26, 0.72));
+  border-color: rgba(151, 186, 214, 0.34);
+  box-shadow: 0 12px 24px rgba(3, 10, 17, 0.32);
+}
+
+.agent-layout.premium-shell .premium-composer-shell {
+  border-top: 1px solid rgba(176, 206, 230, 0.2);
+  background: linear-gradient(180deg, rgba(9, 19, 30, 0.84), rgba(8, 15, 23, 0.94));
+}
+
+.agent-layout.premium-shell .premium-terminal-composer {
+  border: 1px solid rgba(188, 216, 238, 0.24) !important;
+  border-radius: 16px !important;
+  background:
+    linear-gradient(180deg, rgba(11, 23, 36, 0.96), rgba(8, 17, 27, 0.98)) !important;
+  box-shadow:
+    0 18px 30px rgba(2, 9, 16, 0.36),
+    inset 0 1px 0 rgba(223, 238, 251, 0.08);
+}
+
+.agent-layout.premium-shell .terminal-composer-head {
+  color: rgba(240, 246, 251, 0.9);
+  letter-spacing: 0.08em;
+}
+
+.agent-layout.premium-shell .terminal-composer-input {
+  color: rgba(242, 248, 253, 0.96) !important;
+}
+
+.agent-layout.premium-shell .terminal-composer-input::placeholder {
+  color: rgba(170, 195, 217, 0.76) !important;
+}
+
+.agent-layout.premium-shell .premium-terminal-controls .composer-icon-btn,
+.agent-layout.premium-shell .premium-terminal-controls .composer-send-plain {
+  border: 1px solid rgba(181, 210, 234, 0.3);
+  background: linear-gradient(180deg, rgba(23, 42, 60, 0.84), rgba(16, 31, 46, 0.84));
+  box-shadow: 0 10px 18px rgba(5, 12, 20, 0.26);
+}
+
+.agent-layout.premium-shell .premium-terminal-controls .composer-send-plain {
+  border-color: rgba(230, 197, 133, 0.52);
+  background: linear-gradient(180deg, rgba(203, 164, 96, 0.9), rgba(173, 132, 68, 0.9));
+  color: #08121d;
+}
+
+.agent-layout.premium-shell .premium-divider-rail {
+  border: 1px solid rgba(167, 194, 215, 0.2);
+  background: linear-gradient(180deg, rgba(9, 20, 33, 0.76), rgba(7, 17, 29, 0.82));
+  box-shadow: inset 0 1px 0 rgba(224, 237, 248, 0.06);
+  border-radius: 18px;
+}
+
+.agent-layout.premium-shell .premium-panel-surface {
+  border: 1px solid rgba(176, 206, 230, 0.22);
+  background: linear-gradient(180deg, rgba(8, 17, 28, 0.86), rgba(7, 14, 24, 0.92));
+  box-shadow:
+    0 28px 52px rgba(2, 8, 14, 0.58),
+    inset 0 1px 0 rgba(225, 238, 249, 0.08);
+  border-radius: 20px;
+}
+
+.agent-layout.premium-shell .premium-panel-grid {
+  padding: 14px;
+  gap: 12px;
+}
+
+.agent-layout.premium-shell .agent-panel .panel-card,
+.agent-layout.premium-shell .agent-panel .profile-card,
+.agent-layout.premium-shell .agent-panel .panel-feature-card,
+.agent-layout.premium-shell .agent-panel .interview-flow-card,
+.agent-layout.premium-shell .agent-panel .recent-library-card,
+.agent-layout.premium-shell .agent-panel .panel-pos-library {
+  border: 1px solid rgba(177, 206, 229, 0.24) !important;
+  background: linear-gradient(160deg, rgba(16, 30, 44, 0.78), rgba(11, 24, 37, 0.84)) !important;
+  box-shadow: 0 16px 30px rgba(3, 10, 18, 0.34), inset 0 1px 0 rgba(220, 236, 249, 0.07) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease;
+}
+
+.agent-layout.premium-shell .agent-panel .panel-card:hover,
+.agent-layout.premium-shell .agent-panel .profile-card:hover,
+.agent-layout.premium-shell .agent-panel .panel-feature-card:hover:not(.is-locked),
+.agent-layout.premium-shell .agent-panel .interview-flow-card:hover:not(.is-locked),
+.agent-layout.premium-shell .agent-panel .recent-library-card:hover,
+.agent-layout.premium-shell .agent-panel .panel-pos-library:hover {
+  transform: translateY(-2px);
+  border-color: rgba(224, 193, 137, 0.52) !important;
+  box-shadow: 0 20px 34px rgba(3, 10, 18, 0.45), inset 0 1px 0 rgba(244, 227, 195, 0.2) !important;
+}
+
+.agent-layout.premium-shell .agent-panel .panel-feature-card.is-locked,
+.agent-layout.premium-shell .agent-panel .interview-flow-card.is-locked {
+  opacity: 0.66;
+  filter: saturate(0.8);
+}
+
+.agent-layout.premium-shell .agent-panel .panel-label,
+.agent-layout.premium-shell .agent-panel .profile-badge,
+.agent-layout.premium-shell .agent-panel .interview-flow-label {
+  color: rgba(229, 203, 150, 0.94) !important;
+  letter-spacing: 0.11em;
+}
+
+.agent-layout.premium-shell .agent-panel .panel-value,
+.agent-layout.premium-shell .agent-panel .panel-feature-label,
+.agent-layout.premium-shell .agent-panel .interview-flow-title,
+.agent-layout.premium-shell .agent-panel .profile-name {
+  color: rgba(239, 247, 253, 0.96) !important;
+}
+
+.agent-layout.premium-shell .agent-panel .panel-text,
+.agent-layout.premium-shell .agent-panel .panel-feature-copy,
+.agent-layout.premium-shell .agent-panel .panel-feature-copy-secondary,
+.agent-layout.premium-shell .agent-panel .interview-flow-meta,
+.agent-layout.premium-shell .agent-panel .recent-item-name,
+.agent-layout.premium-shell .agent-panel .report-tag {
+  color: rgba(186, 208, 226, 0.88) !important;
+}
+
+.agent-layout.premium-shell .agent-panel .panel-feature-status,
+.agent-layout.premium-shell .agent-panel .profile-badge {
+  background: linear-gradient(180deg, rgba(208, 173, 106, 0.22), rgba(178, 136, 70, 0.2));
+  border-color: rgba(220, 189, 128, 0.44) !important;
+  color: rgba(244, 229, 201, 0.98) !important;
+}
+
+@media (max-width: 980px) {
+  .agent-layout.premium-shell .chat-switcher {
+    width: 100%;
+    overflow-x: auto;
+    padding: 4px;
+    gap: 6px;
+  }
+
+  .agent-layout.premium-shell .chat-sheet-tab {
+    min-width: 174px;
+    min-height: 54px;
+    padding: 8px 11px;
+  }
+
+  .agent-layout.premium-shell .premium-chat-surface,
+  .agent-layout.premium-shell .premium-panel-surface,
+  .agent-layout.premium-shell .premium-divider-rail {
+    border-radius: 16px;
+  }
+}
+
+@media (max-width: 767px) {
+  .agent-layout.premium-shell {
+    background:
+      radial-gradient(620px 300px at -20% -10%, rgba(213, 170, 96, 0.2), transparent 58%),
+      radial-gradient(560px 280px at 112% 0%, rgba(131, 172, 212, 0.22), transparent 62%),
+      linear-gradient(170deg, #060c14 0%, #0a1522 60%, #0c1a2b 100%) !important;
+  }
+
+  .agent-layout.premium-shell .premium-chat-surface {
+    border-radius: 14px !important;
+    box-shadow: 0 16px 32px rgba(3, 9, 16, 0.38), inset 0 1px 0 rgba(224, 238, 250, 0.08) !important;
+  }
+
+  .agent-layout.premium-shell .agent-chat-header {
+    padding: 12px 12px 10px !important;
+  }
+
+  .agent-layout.premium-shell .premium-composer-shell {
+    padding-top: 8px;
+    padding-bottom: calc(env(safe-area-inset-bottom) + 8px);
+  }
+
+  .agent-layout.premium-shell .premium-terminal-composer {
+    border-radius: 12px !important;
+  }
+
+  .agent-layout.premium-shell .premium-panel-surface {
+    border-radius: 14px !important;
+    border-color: rgba(163, 193, 216, 0.28) !important;
+  }
+
+  .agent-layout.premium-shell .premium-panel-grid {
+    gap: 9px !important;
+    padding: 10px !important;
+  }
+
+  .agent-layout.premium-shell .agent-panel .panel-card,
+  .agent-layout.premium-shell .agent-panel .profile-card,
+  .agent-layout.premium-shell .agent-panel .panel-feature-card,
+  .agent-layout.premium-shell .agent-panel .interview-flow-card,
+  .agent-layout.premium-shell .agent-panel .recent-library-card,
+  .agent-layout.premium-shell .agent-panel .panel-pos-library {
+    border-radius: 14px !important;
+  }
+
+  .agent-layout.premium-shell.mobile-panel-expanded .agent-panel {
+    background: linear-gradient(180deg, rgba(8, 17, 28, 0.95), rgba(7, 14, 24, 0.97)) !important;
+  }
+}

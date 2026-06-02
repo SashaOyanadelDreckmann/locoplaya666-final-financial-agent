@@ -62,6 +62,14 @@ export async function loadUserById(userId: string): Promise<User | null> {
   return toUser(record);
 }
 
+export async function updateUserAuthSecurity(
+  userId: string,
+  patch: { role?: UserRole; passwordHash?: string },
+): Promise<User | null> {
+  const updated = await patchUserRecord(userId, patch);
+  return toUser(updated);
+}
+
 export async function attachProfileToUser(
   userId: string,
   profile: FinancialDiagnosticProfile | Record<string, unknown>,

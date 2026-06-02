@@ -1,7 +1,7 @@
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
-const PROTECTED_PATHS = ['/agent', '/interview', '/diagnosis', '/intake', '/analytics'];
+const PROTECTED_PATHS = ['/agent', '/interview', '/diagnosis', '/intake', '/analytics', '/admin'];
 const GUEST_ONLY_PATHS = ['/login', '/register'];
 const SESSION_COOKIE_NAME = process.env.SESSION_COOKIE_NAME?.trim()
   || process.env.NEXT_PUBLIC_SESSION_COOKIE_NAME?.trim()
@@ -45,6 +45,7 @@ export const config = {
     '/diagnosis/:path*',
     '/intake/:path*',
     '/analytics/:path*',
+    '/admin/:path*',
     '/login',
     '/register',
   ],

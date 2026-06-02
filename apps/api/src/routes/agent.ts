@@ -40,6 +40,7 @@ import {
   generateProfessionalReportPdf,
   type ProfessionalPdfInput,
 } from '../services/reports/professionalPdf.service';
+import { listAdminUsersFullDump } from '../services/admin.service';
 import { getConfig } from '../config';
 import { INTERVIEW_TOTAL_LIMIT_MINUTES, INTERVIEW_TOTAL_LIMIT_SEC } from '@financial-agent/shared';
 
@@ -708,6 +709,16 @@ router.get(
       knowledgeLastUpdated: user.knowledgeLastUpdated,
       productLifecycle: lifecycleState,
     });
+  }),
+);
+
+router.get(
+  '/admin/users/full',
+  requireAuth,
+  requirePermission(PERMISSIONS.DEV_INJECT),
+  asyncHandler(async (_req, res) => {
+    const payload = await listAdminUsersFullDump();
+    return sendSuccess(res, payload);
   }),
 );
 

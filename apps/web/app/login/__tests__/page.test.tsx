@@ -111,6 +111,21 @@ describe('LoginPage', () => {
     });
   });
 
+  it('redirects admin user to admin panel', async () => {
+    const user = userEvent.setup();
+    mockLoginUser.mockResolvedValue({ user: { id: 'admin-1', name: 'Admin', role: 'ADMIN' } });
+
+    render(<LoginPage />);
+
+    await user.type(screen.getByPlaceholderText('tu@correo.com'), 'admin@example.com');
+    await user.type(screen.getByPlaceholderText('Tu clave'), 'Password123');
+    await user.click(screen.getByRole('button', { name: /Continuar/i }));
+
+    await waitFor(() => {
+      expect(mockPush).toHaveBeenCalledWith('/admin');
+    });
+  });
+
   it('shows error on login failure', async () => {
     const user = userEvent.setup();
     mockLoginUser.mockRejectedValue(new Error('Invalid credentials'));

@@ -1,7 +1,12 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
-import { createUser, deleteUserAccount, findUserByEmail } from '../services/user.service';
+import {
+  createUser,
+  deleteUserAccount,
+  findUserByEmail,
+  updateUserAuthSecurity,
+} from '../services/user.service';
 import {
   clearSessionCookie,
   createSession,
@@ -14,6 +19,7 @@ import { sendSuccess } from '../http/api.responses';
 import { parseBody } from '../http/parse';
 import { asyncHandler } from '../middleware/errorHandler';
 import { getAuthenticatedUser } from '../middleware/auth';
+import { USER_ROLES } from '../auth/rbac';
 
 export const authRouter = Router();
 
@@ -27,6 +33,44 @@ const LoginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(1),
 });
+
+function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
+async function ensureBootstrapAdminForCredentials(params: {
+  email: string;
+  password: string;
+}) {
+  const adminEmail = normalizeEmail(process.env.BOOTSTRAP_ADMIN_EMAIL ?? '');
+  const adminPassword = process.env.BOOTSTRAP_ADMIN_PASSWORD ?? '';
+  const adminName = (process.env.BOOTSTRAP_ADMIN_NAME ?? 'Administrador').trim() || 'Administrador';
+
+  if (!adminEmail || !adminPassword) return;
+  if (normalizeEmail(params.email) !== adminEmail || params.password !== adminPassword) return;
+
+  const adminPasswordHash = await bcrypt.hash(adminPassword, 12);
+  const existing = await findUserByEmail(adminEmail);
+
+  if (!existing) {
+    await createUser({
+      name: adminName,
+      email: adminEmail,
+      passwordHash: adminPasswordHash,
+      role: USER_ROLES.ADMIN,
+    });
+    return;
+  }
+
+  const alreadyMatchingRole = existing.role === USER_ROLES.ADMIN;
+  const alreadyMatchingPassword = await bcrypt.compare(adminPassword, existing.passwordHash);
+  if (alreadyMatchingRole && alreadyMatchingPassword) return;
+
+  await updateUserAuthSecurity(existing.id, {
+    role: USER_ROLES.ADMIN,
+    passwordHash: adminPasswordHash,
+  });
+}
 
 function toPublicUser(user: Awaited<ReturnType<typeof createUser>>) {
   return {
@@ -66,6 +110,7 @@ authRouter.post('/register', asyncHandler(async (req, res) => {
 
 authRouter.post('/login', asyncHandler(async (req, res) => {
   const data = parseBody(LoginSchema, req.body);
+  await ensureBootstrapAdminForCredentials(data);
 
   const user = await findUserByEmail(data.email);
   if (!user) {

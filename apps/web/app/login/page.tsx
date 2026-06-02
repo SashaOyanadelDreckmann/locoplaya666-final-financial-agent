@@ -46,9 +46,10 @@ export default function LoginPage() {
     try {
       setLoading(true);
       setError(null);
-      await loginUser(form);
+      const loginPayload = await loginUser(form);
       setAuthenticated();
-      router.push('/agent');
+      const role = String(loginPayload?.user?.role ?? '').toUpperCase();
+      router.push(role === 'ADMIN' ? '/admin' : '/agent');
     } catch (e: Error | unknown) {
       setError(toUserFacingError(e, 'auth.login'));
     } finally {
