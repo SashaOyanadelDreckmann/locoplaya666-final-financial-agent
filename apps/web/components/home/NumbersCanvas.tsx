@@ -123,7 +123,8 @@ export default function NumbersCanvas({ progress }: { progress: MotionValue<numb
       const ctr = 1 - 0.34 * stylize;
       const bri = 1 - 0.40 * stylize;
       const sep = 0.06 * stylize;
-      ctx.globalAlpha = 1;
+      // La imagen se desvanece proporcionalmente a los dígitos presentes
+      ctx.globalAlpha = clamp(1 - midP * 0.92);
       ctx.filter = `saturate(${sat}) contrast(${ctr}) brightness(${bri}) sepia(${sep})`;
       drawImageCover(ctx, img, canvas.width, canvas.height);
       ctx.filter = 'none';

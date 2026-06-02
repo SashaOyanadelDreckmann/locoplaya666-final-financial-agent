@@ -382,30 +382,35 @@ function CtaSection() {
 
 export default function HomePage() {
   const router = useRouter();
-  const pageRef = useRef<HTMLElement>(null);
+  // scrollRangeRef abarca hero + secciones hasta StepsSection (inclusive)
+  // → el canvas anima mientras scrolleas todo ese rango
+  const scrollRangeRef = useRef<HTMLDivElement>(null);
   const heroSectionRef = useRef<HTMLElement>(null);
-  const { scrollYProgress: pageProgress } = useScroll({
-    target: pageRef,
+  const { scrollYProgress: canvasProgress } = useScroll({
+    target: scrollRangeRef,
     offset: ['start start', 'end end'],
   });
   const { scrollYProgress: heroProgress } = useScroll({
     target: heroSectionRef,
     offset: ['start start', 'end end'],
   });
-  const heroY = useTransform(heroProgress, [0, 0.55], [0, -70]);
-  const heroOpacity = useTransform(heroProgress, [0, 0.42, 0.62], [1, 1, 0]);
-  const lineOpacity = useTransform(heroProgress, [0, 0.12], [1, 0]);
+  const heroY       = useTransform(heroProgress, [0, 0.6], [0, -60]);
+  const heroOpacity = useTransform(heroProgress, [0, 0.5, 0.8], [1, 1, 0]);
+  const lineOpacity = useTransform(heroProgress, [0, 0.18], [1, 0]);
 
   return (
-    <main ref={pageRef} style={{ background: '#050810', color: 'white', position: 'relative' }}>
+    <main style={{ background: '#050810', color: 'white', position: 'relative' }}>
+
+      {/* Canvas fijo detrás de toda la página */}
       <div style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
-        <NumbersCanvas progress={pageProgress} />
+        <NumbersCanvas progress={canvasProgress} />
       </div>
 
-      {/* ─── HERO ────────────────────────────────────────────────────────── */}
-      {/* Sección tall: el sticky hace que el viewport quede "pegado" mientras scrolleas */}
-      <section ref={heroSectionRef} style={{ position: 'relative', height: '220vh' }}>
-        <div style={{ position: 'sticky', top: 0, height: '100dvh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+      {/* Rango de scroll que anima el canvas: hero → StepsSection */}
+      <div ref={scrollRangeRef} style={{ position: 'relative', zIndex: 1 }}>
+
+      {/* ─── HERO ─────────────────────────────────────────────────────── */}
+      <section ref={heroSectionRef} style={{ position: 'relative', height: '100dvh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
 
         {/* Gradiente de profundidad: texto abajo visible */}
         <div style={{
@@ -520,15 +525,18 @@ export default function HomePage() {
             <span>Financieramente</span>
           </div>
         </div>
-        </div> {/* /sticky inner */}
       </section>
 
-      {/* ─── SECTIONS ────────────────────────────────────────────────────── */}
-      <div style={{ position: 'relative', zIndex: 4 }}>
-        <ProblemSection />
-        <FeaturesSection />
-        <StatsSection />
-        <StepsSection />
+      {/* Secciones dentro del rango — fondo semi-transparente para que el canvas se vea */}
+      <ProblemSection />
+      <FeaturesSection />
+      <StatsSection />
+      <StepsSection />
+
+      </div>{/* /scrollRangeRef */}
+
+      {/* PreviewSection y CTA: fuera del rango, imagen ya está de vuelta */}
+      <div style={{ position: 'relative', zIndex: 1 }}>
         <PreviewSection />
         <CtaSection />
       </div>
