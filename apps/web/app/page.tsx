@@ -384,14 +384,17 @@ export default function HomePage() {
   const router = useRouter();
   const pageRef = useRef<HTMLElement>(null);
   const heroSectionRef = useRef<HTMLElement>(null);
-  const { scrollY } = useScroll();
   const { scrollYProgress: pageProgress } = useScroll({
     target: pageRef,
     offset: ['start start', 'end end'],
   });
-  const heroY = useTransform(scrollY, [0, 600], [0, -70]);
-  const heroOpacity = useTransform(scrollY, [0, 380], [1, 0]);
-  const lineOpacity = useTransform(scrollY, [0, 80], [1, 0]);
+  const { scrollYProgress: heroProgress } = useScroll({
+    target: heroSectionRef,
+    offset: ['start start', 'end end'],
+  });
+  const heroY = useTransform(heroProgress, [0, 0.55], [0, -70]);
+  const heroOpacity = useTransform(heroProgress, [0, 0.42, 0.62], [1, 1, 0]);
+  const lineOpacity = useTransform(heroProgress, [0, 0.12], [1, 0]);
 
   return (
     <main ref={pageRef} style={{ background: '#050810', color: 'white', position: 'relative' }}>
@@ -401,7 +404,7 @@ export default function HomePage() {
 
       {/* ─── HERO ────────────────────────────────────────────────────────── */}
       {/* Sección tall: el sticky hace que el viewport quede "pegado" mientras scrolleas */}
-      <section ref={heroSectionRef} style={{ position: 'relative', height: '350vh' }}>
+      <section ref={heroSectionRef} style={{ position: 'relative', height: '220vh' }}>
         <div style={{ position: 'sticky', top: 0, height: '100dvh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
 
         {/* Gradiente de profundidad: texto abajo visible */}

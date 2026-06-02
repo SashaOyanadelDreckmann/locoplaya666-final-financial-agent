@@ -15,10 +15,10 @@ interface Px { r: number; g: number; b: number; lum: number }
 interface Cd { revIn: number; revOut: number; spd: number; phi: number }
 
 const PHASE = {
-  inStart: 0.04,
-  inEnd: 0.36,
-  outStart: 0.68,
-  outEnd: 0.97,
+  inStart: 0.01,
+  inEnd: 0.18,
+  outStart: 0.84,
+  outEnd: 0.99,
 } as const;
 
 function drawImageCover(
@@ -110,8 +110,8 @@ export default function NumbersCanvas({ progress }: { progress: MotionValue<numb
       const inP  = ease(remap(p, PHASE.inStart, PHASE.inEnd));
       const outP = ease(remap(p, PHASE.outStart, PHASE.outEnd));
       const midP = clamp(inP - outP);           // 1 en la zona peak de números
-      const chaosIn = ease(remap(p, 0.32, 0.50));
-      const chaosOut = ease(remap(p, 0.58, 0.76));
+      const chaosIn = ease(remap(p, 0.24, 0.44));
+      const chaosOut = ease(remap(p, 0.60, 0.80));
       const chaosP = clamp(chaosIn - chaosOut); // 0->1->0: vuelve a fiel antes de imagen
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
