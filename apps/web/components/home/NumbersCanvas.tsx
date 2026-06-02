@@ -119,10 +119,12 @@ export default function NumbersCanvas({ progress }: { progress: MotionValue<numb
       /* ── Imagen de fondo — siempre presente, se desvanece con los dígitos */
       ctx.save();
       const stylize = chaosP * 0.92;
-      const sat = 1 + 0.55 * stylize;
-      const ctr = 1 - 0.34 * stylize;
-      const bri = 1 - 0.40 * stylize;
-      const sep = 0.06 * stylize;
+      // Base matte: oscura, desaturada y contrastada — efecto cine premium
+      // stylize=0 → look matte; stylize=1 → más vivo durante el caos de dígitos
+      const sat = 0.72 + 0.50 * stylize;          // 0.72 → 1.22
+      const ctr = 1.10 - 0.44 * stylize;           // 1.10 → 0.66
+      const bri = 0.62 - 0.16 * stylize;           // 0.62 → 0.46
+      const sep = 0.06 + 0.04 * stylize;           // 0.06 → 0.10 (leve cálido)
       // La imagen se desvanece proporcionalmente a los dígitos presentes
       ctx.globalAlpha = clamp(1 - midP * 0.92);
       ctx.filter = `saturate(${sat}) contrast(${ctr}) brightness(${bri}) sepia(${sep})`;

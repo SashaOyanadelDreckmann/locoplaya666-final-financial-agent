@@ -406,16 +406,32 @@ export default function HomePage() {
         <NumbersCanvas progress={canvasProgress} />
       </div>
 
+      {/* Grain overlay — textura de grano de cine premium */}
+      <div
+        aria-hidden
+        style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 10,
+          pointerEvents: 'none',
+          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.78' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23g)'/%3E%3C/svg%3E")`,
+          backgroundRepeat: 'repeat',
+          backgroundSize: '220px 220px',
+          opacity: 0.055,
+          mixBlendMode: 'overlay',
+        }}
+      />
+
       {/* Rango de scroll que anima el canvas: hero → StepsSection */}
       <div ref={scrollRangeRef} style={{ position: 'relative', zIndex: 1 }}>
 
       {/* ─── HERO ─────────────────────────────────────────────────────── */}
       <section ref={heroSectionRef} style={{ position: 'relative', height: '100dvh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
 
-        {/* Gradiente de profundidad: texto abajo visible */}
+        {/* Gradiente de profundidad: texto visible en header y hero copy */}
         <div style={{
           position: 'absolute', inset: 0, zIndex: 2, pointerEvents: 'none',
-          background: 'linear-gradient(to bottom, rgba(5,8,16,0.18) 0%, transparent 30%, rgba(5,8,16,0.50) 68%, rgba(5,8,16,0.92) 100%)',
+          background: 'linear-gradient(to bottom, rgba(5,8,16,0.72) 0%, rgba(5,8,16,0.38) 18%, rgba(5,8,16,0.10) 38%, rgba(5,8,16,0.55) 70%, rgba(5,8,16,0.94) 100%)',
         }} />
 
         {/* Contenido */}
