@@ -1,10 +1,10 @@
 'use client';
 
 import Image from 'next/image';
-import { useRef } from 'react';
+import { useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowRight } from 'lucide-react';
-import { motion, useScroll, useTransform, useInView, type Variants } from 'framer-motion';
+import { motion, useScroll, useTransform, useInView, useMotionValue, useSpring, type Variants } from 'framer-motion';
 import LiveChatDemo from '../components/home/LiveChatDemo';
 import SpotlightCard from '../components/home/SpotlightCard';
 import Counter from '../components/home/Counter';
@@ -382,10 +382,29 @@ function CtaSection() {
 
 export default function HomePage() {
   const router = useRouter();
-  // scrollRangeRef abarca hero + secciones hasta StepsSection (inclusive)
-  // → el canvas anima mientras scrolleas todo ese rango
   const scrollRangeRef = useRef<HTMLDivElement>(null);
   const heroSectionRef = useRef<HTMLElement>(null);
+
+  // ── Mouse tracking (shared with canvas for 3D + spotlight) ────────────────
+  const mousePosRef = useRef<{ x: number; y: number }>({ x: 0.5, y: 0.5 });
+
+  // Motion values for hero 3D tilt (spring-physics)
+  const heroMX = useMotionValue(0.5);
+  const heroMY = useMotionValue(0.5);
+  const springCfg = { damping: 28, stiffness: 180, mass: 0.8 };
+  const rotX = useSpring(useTransform(heroMY, [0, 1], [5, -5]), springCfg);
+  const rotY = useSpring(useTransform(heroMX, [0, 1], [-5, 5]), springCfg);
+
+  // Global mousemove → keeps canvas 3D alive even when scrolled past hero
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => {
+      mousePosRef.current.x = e.clientX / window.innerWidth;
+      mousePosRef.current.y = e.clientY / window.innerHeight;
+    };
+    window.addEventListener('mousemove', onMove, { passive: true });
+    return () => window.removeEventListener('mousemove', onMove);
+  }, []);
+
   const { scrollYProgress: canvasProgress } = useScroll({
     target: scrollRangeRef,
     offset: ['start start', 'end end'],
@@ -403,7 +422,7 @@ export default function HomePage() {
 
       {/* Canvas fijo detrás de toda la página */}
       <div style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
-        <NumbersCanvas progress={canvasProgress} />
+        <NumbersCanvas progress={canvasProgress} mouseRef={mousePosRef} />
       </div>
 
       {/* Grain overlay — textura de grano de cine premium */}
@@ -426,7 +445,42 @@ export default function HomePage() {
       <div ref={scrollRangeRef} style={{ position: 'relative', zIndex: 1 }}>
 
       {/* ─── HERO ─────────────────────────────────────────────────────── */}
-      <section ref={heroSectionRef} style={{ position: 'relative', height: '100dvh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+      <section
+        ref={heroSectionRef}
+        style={{ position: 'relative', height: '100dvh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
+        onMouseMove={(e) => {
+          const nx = e.clientX / window.innerWidth;
+          const ny = e.clientY / window.innerHeight;
+          heroMX.set(nx);
+          heroMY.set(ny);
+          mousePosRef.current.x = nx;
+          mousePosRef.current.y = ny;
+        }}
+        onMouseLeave={() => { heroMX.set(0.5); heroMY.set(0.5); }}
+      >
+        {/* Ambient orbs — depth atmosphere */}
+        <div style={{ position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none', overflow: 'hidden' }}>
+          <motion.div
+            style={{ position: 'absolute', left: '8%', top: '18%', width: 480, height: 480, borderRadius: '50%', background: 'radial-gradient(circle, rgba(111,143,166,0.14) 0%, transparent 70%)', filter: 'blur(70px)' }}
+            animate={{ scale: [1, 1.18, 1], x: [0, 24, 0] }}
+            transition={{ duration: 9, repeat: Infinity, ease: 'easeInOut' }}
+          />
+          <motion.div
+            style={{ position: 'absolute', right: '6%', bottom: '22%', width: 360, height: 360, borderRadius: '50%', background: 'radial-gradient(circle, rgba(164,143,79,0.11) 0%, transparent 70%)', filter: 'blur(60px)' }}
+            animate={{ scale: [1, 1.22, 1], y: [0, -36, 0] }}
+            transition={{ duration: 11, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
+          />
+          <motion.div
+            style={{ position: 'absolute', left: '52%', top: '12%', width: 240, height: 240, borderRadius: '50%', background: 'radial-gradient(circle, rgba(111,143,166,0.09) 0%, transparent 70%)', filter: 'blur(45px)' }}
+            animate={{ scale: [1, 1.35, 1], x: [0, -18, 0] }}
+            transition={{ duration: 13, repeat: Infinity, ease: 'easeInOut', delay: 4.5 }}
+          />
+          <motion.div
+            style={{ position: 'absolute', left: '30%', bottom: '30%', width: 200, height: 200, borderRadius: '50%', background: 'radial-gradient(circle, rgba(164,143,79,0.07) 0%, transparent 70%)', filter: 'blur(40px)' }}
+            animate={{ scale: [1, 1.4, 1] }}
+            transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut', delay: 1.5 }}
+          />
+        </div>
 
         {/* Gradiente de profundidad: texto visible en header y hero copy */}
         <div style={{
@@ -434,8 +488,9 @@ export default function HomePage() {
           background: 'linear-gradient(to bottom, rgba(5,8,16,0.72) 0%, rgba(5,8,16,0.38) 18%, rgba(5,8,16,0.10) 38%, rgba(5,8,16,0.55) 70%, rgba(5,8,16,0.94) 100%)',
         }} />
 
-        {/* Contenido */}
-        <div style={{ position: 'relative', zIndex: 10, display: 'flex', height: '100%', flexDirection: 'column' }}>
+        {/* Contenido — 3D perspective wrapper con spring tilt */}
+        <div style={{ position: 'relative', zIndex: 10, height: '100%', perspective: '1400px' }}>
+        <motion.div style={{ display: 'flex', height: '100%', flexDirection: 'column', rotateX: rotX, rotateY: rotY, transformStyle: 'preserve-3d' }}>
 
           {/* Header */}
           <div className="home-page-header" style={{ paddingTop: 'clamp(56px,9vh,88px)' }}>
@@ -540,6 +595,7 @@ export default function HomePage() {
             <span>Proyecto de tesis.</span>
             <span>Financieramente</span>
           </div>
+        </motion.div>
         </div>
       </section>
 

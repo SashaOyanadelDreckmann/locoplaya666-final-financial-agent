@@ -3,22 +3,24 @@
 import { useEffect, useRef } from 'react';
 import type { MotionValue } from 'framer-motion';
 
-// ── helpers ────────────────────────────────────────────────────────────────────
-const clamp = (x: number, lo = 0, hi = 1) => Math.max(lo, Math.min(hi, x));
-const remap = (v: number, lo: number, hi: number) => clamp((v - lo) / (hi - lo));
-const ease  = (t: number) => t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+// ── Helpers ────────────────────────────────────────────────────────────────────
+const clamp  = (x: number, lo = 0, hi = 1) => Math.max(lo, Math.min(hi, x));
+const remap  = (v: number, lo: number, hi: number) => clamp((v - lo) / (hi - lo));
+const ease   = (t: number) => t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
 
-const CELL = 14;  // px — tamaño de celda de carácter
-const FS   = 11;  // px — tamaño de fuente
+const CELL = 14;
+const FS   = 11;
 
 interface Px { r: number; g: number; b: number; lum: number }
 interface Cd { revIn: number; revOut: number; spd: number; phi: number }
 
+export interface MousePos { x: number; y: number }
+
 const PHASE = {
   inStart: 0.01,
-  inEnd: 0.18,
+  inEnd:   0.18,
   outStart: 0.84,
-  outEnd: 0.99,
+  outEnd:   0.99,
 } as const;
 
 function drawImageCover(
@@ -31,56 +33,48 @@ function drawImageCover(
 ) {
   if (!srcW || !srcH || !targetW || !targetH) return;
   const scale = Math.max(targetW / srcW, targetH / srcH);
-  const drawW = srcW * scale;
-  const drawH = srcH * scale;
-  const dx = (targetW - drawW) / 2;
-  const dy = (targetH - drawH) / 2;
-  ctx.drawImage(img, dx, dy, drawW, drawH);
+  const drawW = srcW * scale, drawH = srcH * scale;
+  ctx.drawImage(img, (targetW - drawW) / 2, (targetH - drawH) / 2, drawW, drawH);
 }
 
-export default function NumbersCanvas({ progress }: { progress: MotionValue<number> }) {
+// ── Component ──────────────────────────────────────────────────────────────────
+export default function NumbersCanvas({
+  progress,
+  mouseRef,
+}: {
+  progress: MotionValue<number>;
+  mouseRef: React.RefObject<MousePos>;
+}) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current!;
     const ctx    = canvas.getContext('2d')!;
-    let raf = 0;
-    let px: Px[] = [];
-    let cd: Cd[] = [];
-    let cols = 0;
-    let rows = 0;
+    let raf = 0, px: Px[] = [], cd: Cd[] = [], cols = 0, rows = 0;
 
-    /* ── Imagen ─────────────────────────────────────────────── */
     const img = new Image();
     img.src = '/fondo4.jpg';
 
-    /* ── Pixel sampling — muestrear imagen a resolución de celda ─── */
+    // ── Sample image at cell resolution ──────────────────────────────────────
     function sample() {
       if (!img.complete || !img.naturalWidth) return;
       cols = Math.ceil(canvas.width  / CELL);
       rows = Math.ceil(canvas.height / CELL);
-
       const off = document.createElement('canvas');
-      off.width  = cols;
-      off.height = rows;
+      off.width = cols; off.height = rows;
       const oc = off.getContext('2d')!;
       drawImageCover(oc, img, cols, rows);
       const data = oc.getImageData(0, 0, cols, rows).data;
-
-      px = [];
-      cd = [];
-
+      px = []; cd = [];
       for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
           const i4 = (r * cols + c) * 4;
-          const rv = data[i4], gv = data[i4 + 1], bv = data[i4 + 2];
-          const lum = (rv * 0.299 + gv * 0.587 + bv * 0.114) / 255;
-          px.push({ r: rv, g: gv, b: bv, lum });
-
-          const cf = c / Math.max(cols - 1, 1); // 0 (izq) → 1 (der)
+          const rv = data[i4], gv = data[i4+1], bv = data[i4+2];
+          px.push({ r: rv, g: gv, b: bv, lum: (rv*.299 + gv*.587 + bv*.114) / 255 });
+          const cf = c / Math.max(cols-1, 1);
           cd.push({
-            revIn:  cf * 0.62 + Math.random() * 0.07,
-            revOut: cf * 0.62 + Math.random() * 0.07,
+            revIn:  cf * .62 + Math.random() * .07,
+            revOut: cf * .62 + Math.random() * .07,
             spd:    4 + Math.random() * 10,
             phi:    Math.random() * Math.PI * 2,
           });
@@ -88,128 +82,205 @@ export default function NumbersCanvas({ progress }: { progress: MotionValue<numb
       }
     }
 
-    /* ── Resize ─────────────────────────────────────────────── */
     function resize() {
       canvas.width  = window.innerWidth;
       canvas.height = window.innerHeight;
       sample();
     }
-
     resize();
     window.addEventListener('resize', resize);
     img.onload = sample;
 
-    /* ── Loop de render ─────────────────────────────────────── */
+    // Smoothed mouse (lerped per-frame for buttery response)
+    let smX = 0.5, smY = 0.5;
+
+    // ── Render loop ───────────────────────────────────────────────────────────
     function loop(ts: number) {
       raf = requestAnimationFrame(loop);
-
       const t = ts / 1000;
-      const p = progress.get(); // scroll progress 0 → 1
+      const p = progress.get();
 
-      // Progreso de entrada y salida
+      // Smooth mouse
+      const mxRaw = mouseRef?.current?.x ?? 0.5;
+      const myRaw = mouseRef?.current?.y ?? 0.5;
+      smX += (mxRaw - smX) * 0.055;
+      smY += (myRaw - smY) * 0.055;
+
+      // 3D tilt angles (radians) driven by mouse position
+      const tiltY = (smX - 0.5) * 0.30;   // left/right rotation
+      const tiltX = (smY - 0.5) * 0.18;   // up/down rotation
+
+      // Scroll phases
       const inP  = ease(remap(p, PHASE.inStart, PHASE.inEnd));
       const outP = ease(remap(p, PHASE.outStart, PHASE.outEnd));
-      const midP = clamp(inP - outP);           // 1 en la zona peak de números
-      const chaosIn = ease(remap(p, 0.24, 0.44));
+      const midP = clamp(inP - outP);
+      const chaosIn  = ease(remap(p, 0.24, 0.44));
       const chaosOut = ease(remap(p, 0.60, 0.80));
-      const chaosP = clamp(chaosIn - chaosOut); // 0->1->0: vuelve a fiel antes de imagen
+      const chaosP   = clamp(chaosIn - chaosOut);
 
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const W = canvas.width, H = canvas.height;
+      ctx.clearRect(0, 0, W, H);
 
-      /* ── Imagen de fondo — siempre presente, se desvanece con los dígitos */
-      ctx.save();
-      const stylize = chaosP * 0.92;
-      // Base matte: oscura, desaturada y contrastada — efecto cine premium
-      // stylize=0 → look matte; stylize=1 → más vivo durante el caos de dígitos
-      const sat = 0.72 + 0.50 * stylize;          // 0.72 → 1.22
-      const ctr = 1.10 - 0.44 * stylize;           // 1.10 → 0.66
-      const bri = 0.62 - 0.16 * stylize;           // 0.62 → 0.46
-      const sep = 0.06 + 0.04 * stylize;           // 0.06 → 0.10 (leve cálido)
-      // La imagen se desvanece proporcionalmente a los dígitos presentes
-      ctx.globalAlpha = clamp(1 - midP * 0.92);
-      ctx.filter = `saturate(${sat}) contrast(${ctr}) brightness(${bri}) sepia(${sep})`;
-      drawImageCover(ctx, img, canvas.width, canvas.height);
-      ctx.filter = 'none';
-      ctx.restore();
+      // ── Background image — matte cinematic ─────────────────────────────────
+      {
+        const stylize = chaosP * 0.92;
+        ctx.globalAlpha = clamp(1 - midP * 0.92);
+        ctx.filter = `saturate(${0.72 + 0.50*stylize}) contrast(${1.10 - 0.44*stylize}) brightness(${0.62 - 0.16*stylize}) sepia(${0.06 + 0.04*stylize})`;
+        drawImageCover(ctx, img, W, H);
+        ctx.filter = 'none';
+        ctx.globalAlpha = 1;
+      }
 
-      if (midP < 0.005 || !px.length) return;
+      // ── Cursor spotlight radial (brand steel-blue) ─────────────────────────
+      if (midP > 0.04) {
+        const gx = smX * W, gy = smY * H;
+        const sr = Math.min(W, H) * 0.38;
+        const grd = ctx.createRadialGradient(gx, gy, 0, gx, gy, sr);
+        grd.addColorStop(0, `rgba(111,143,166,${0.10 * midP})`);
+        grd.addColorStop(0.5, `rgba(90,120,145,${0.04 * midP})`);
+        grd.addColorStop(1, 'rgba(111,143,166,0)');
+        ctx.fillStyle = grd;
+        ctx.fillRect(0, 0, W, H);
+      }
 
-      /* ── Dígitos ───────────────────────────────────────────── */
-      ctx.font = `${FS}px "Courier New",monospace`;
-      ctx.textBaseline = 'top';
+      // ── Digits with 3D perspective projection ──────────────────────────────
+      if (midP >= 0.005 && px.length) {
+        ctx.font = `${FS}px "Courier New",monospace`;
+        ctx.textBaseline = 'top';
 
-      // Línea de scanline que barre verticalmente (efecto digital premium)
-      const scanY = (t * 85) % canvas.height;
+        const scanY    = (t * 80) % H;
+        const cursorX  = smX * W;
+        const cursorY  = smY * H;
+        const cursorR  = 130;
 
-      for (let i = 0; i < px.length; i++) {
-        const c  = cd[i];
-        const p_ = px[i];
+        // Pre-compute trig for 3D rotation
+        const cosY = Math.cos(tiltY), sinY = Math.sin(tiltY);
+        const cosX = Math.cos(tiltX), sinX = Math.sin(tiltX);
 
-        // Envolvente de alfa por columna
-        const a_in  = ease(remap(inP,  c.revIn,  c.revIn  + 0.30));
-        const a_out = ease(remap(outP, c.revOut, c.revOut + 0.30));
-        const alpha = clamp(a_in - a_out);
-        if (alpha < 0.01) continue;
+        for (let i = 0; i < px.length; i++) {
+          const c  = cd[i];
+          const p_ = px[i];
 
-        const col = i % cols;
-        const row = Math.floor(i / cols);
-        const x   = col * CELL + 1;
-        const y   = row * CELL + 1;
+          // Reveal envelope per column
+          const a_in  = ease(remap(inP,  c.revIn,  c.revIn  + .30));
+          const a_out = ease(remap(outP, c.revOut, c.revOut + .30));
+          const alpha = clamp(a_in - a_out);
+          if (alpha < .01) continue;
 
-        // Dígito objetivo = luminosidad del pixel → 0-9
-        const targetDigit = Math.round(p_.lum * 9);
+          const col = i % cols, row = Math.floor(i / cols);
 
-        // Dígito ciclando (ondulante para efecto orgánico)
-        const wave = Math.sin(col * 0.27 + row * 0.38 + t * 2.1) * 3;
-        const cycleDigit = Math.abs(Math.floor(t * c.spd + c.phi * 4 + i * 3.71 + wave)) % 10;
+          // 3D: centered cell coordinate → rotate → project
+          const x3 = (col / cols - 0.5) * W;
+          const y3 = (row / rows - 0.5) * H;
 
-        // Fase fiel -> caos -> fiel (antes de volver a imagen)
-        const digit = chaosP > 0.08
-          ? (Math.random() < chaosP * 0.9 ? cycleDigit : targetDigit)
-          : targetDigit;
+          // Rotate Y (left-right tilt)
+          const x3r = x3 * cosY;
+          const z3r = x3 * sinY;
 
-        // Color exacto del pixel al transformar; solo en caos hay desviación
-        const boost = 1 + chaosP * 0.62;
-        let rv = clamp(p_.r * boost, 0, 255);
-        let gv = clamp(p_.g * boost, 0, 255);
-        let bv = clamp(p_.b * boost, 0, 255);
+          // Rotate X (up-down tilt)
+          const y3r = y3 * cosX - z3r * sinX;
+          const z3f = y3 * sinX + z3r * cosX;
 
-        // Glow de scanline sobre los dígitos cercanos a la línea
-        const dist = Math.abs(y - scanY);
-        if (dist < 20 && midP > 0.22) {
-          const g = (1 - dist / 20) * midP * 0.60;
-          rv = clamp(rv + 95 * g, 0, 255);
-          gv = clamp(gv + 95 * g, 0, 255);
-          bv = clamp(bv + 95 * g, 0, 255);
+          // Perspective divide — FOV controls depth intensity
+          const FOV  = Math.min(W, H) * 1.4;
+          const persp = FOV / (FOV + z3f * 0.6);
+
+          const sx = W/2 + x3r * persp;
+          const sy = H/2 + y3r * persp;
+
+          // Depth-based alpha dimming (back of grid = slightly fainter)
+          const depthAlpha = 0.60 + 0.40 * persp;
+
+          // Digit choice
+          const targetDigit = Math.round(p_.lum * 9);
+          const wave = Math.sin(col*.27 + row*.38 + t*2.1) * 3;
+          const cycleDigit = Math.abs(Math.floor(t*c.spd + c.phi*4 + i*3.71 + wave)) % 10;
+          const digit = chaosP > .08
+            ? (Math.random() < chaosP*.9 ? cycleDigit : targetDigit)
+            : targetDigit;
+          const str = String(digit);
+
+          // Base color from image pixel
+          const boost = 1 + chaosP * .62;
+          let rv = clamp(p_.r * boost, 0, 255);
+          let gv = clamp(p_.g * boost, 0, 255);
+          let bv = clamp(p_.b * boost, 0, 255);
+
+          // Scanline glow — sweeping horizontal light
+          const scanDist = Math.abs(sy - scanY);
+          if (scanDist < 24 && midP > .20) {
+            const g = (1 - scanDist/24) * midP * .70;
+            rv = clamp(rv + 100*g, 0, 255);
+            gv = clamp(gv + 105*g, 0, 255);
+            bv = clamp(bv + 130*g, 0, 255); // cooler blue tint on scanline
+          }
+
+          // Cursor proximity glow — brand steel-blue hot spot
+          const dCursor = Math.sqrt((sx-cursorX)**2 + (sy-cursorY)**2);
+          if (dCursor < cursorR) {
+            const prox = (1 - dCursor/cursorR) ** 2;
+            const spot = prox * midP;
+            rv = clamp(rv*(1-spot*.55) + 111*spot, 0, 255);
+            gv = clamp(gv*(1-spot*.55) + 143*spot, 0, 255);
+            bv = clamp(bv*(1-spot*.55) + 166*spot, 0, 255);
+          }
+
+          const shimmer = .70 + .30*Math.sin(t*3.3 + c.phi + col*.52 + row*.87);
+          const finalA  = alpha * shimmer * depthAlpha;
+
+          // ── Chromatic aberration during chaos ─────────────────────────────
+          if (chaosP > .10) {
+            const abr = chaosP * 4.0 * persp;
+            ctx.globalAlpha = finalA * chaosP * .50;
+            ctx.fillStyle = `rgb(255,35,75)`;
+            ctx.fillText(str, sx - abr, sy - abr * .5);
+            ctx.fillStyle = `rgb(30,190,255)`;
+            ctx.fillText(str, sx + abr, sy + abr * .5);
+          }
+
+          // Main digit
+          ctx.globalAlpha = finalA;
+          ctx.fillStyle = `rgb(${Math.round(rv)},${Math.round(gv)},${Math.round(bv)})`;
+          ctx.fillText(str, sx, sy);
         }
 
-        // Shimmer sinusoidal — cada celda pulsa a su propio ritmo
-        const shimmer = 0.70 + 0.30 * Math.sin(t * 3.3 + c.phi + col * 0.52 + row * 0.87);
+        ctx.globalAlpha = 1;
+      }
 
-        ctx.fillStyle = `rgba(${Math.round(rv)},${Math.round(gv)},${Math.round(bv)},${alpha * shimmer})`;
-        ctx.fillText(String(digit), x, y);
+      // ── Cinematic vignette ─────────────────────────────────────────────────
+      {
+        const vr1 = Math.min(W,H) * 0.22;
+        const vr2 = Math.max(W,H) * 0.90;
+        const vg  = ctx.createRadialGradient(W/2, H/2, vr1, W/2, H/2, vr2);
+        vg.addColorStop(0,   'rgba(5,8,16,0)');
+        vg.addColorStop(.55, 'rgba(5,8,16,0.18)');
+        vg.addColorStop(1,   'rgba(5,8,16,0.80)');
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = vg;
+        ctx.fillRect(0, 0, W, H);
+      }
+
+      // ── Top-edge dark bar (helps header readability) ────────────────────────
+      {
+        const tg = ctx.createLinearGradient(0, 0, 0, H * 0.22);
+        tg.addColorStop(0,   'rgba(5,8,16,0.55)');
+        tg.addColorStop(1,   'rgba(5,8,16,0)');
+        ctx.fillStyle = tg;
+        ctx.fillRect(0, 0, W, H * 0.22);
       }
     }
 
     raf = requestAnimationFrame(loop);
-
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener('resize', resize);
     };
-  }, [progress]);
+  }, [progress, mouseRef]);
 
   return (
     <canvas
       ref={canvasRef}
-      style={{
-        position: 'absolute',
-        inset: 0,
-        width: '100%',
-        height: '100%',
-        zIndex: 0,
-        display: 'block',
-      }}
+      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: 0, display: 'block' }}
     />
   );
 }
