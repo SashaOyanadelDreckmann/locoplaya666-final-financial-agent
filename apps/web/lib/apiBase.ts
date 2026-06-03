@@ -16,6 +16,18 @@ export function getApiBaseUrl(): string {
   return 'http://localhost:3001';
 }
 
+export function getAppBaseUrl(): string {
+  if (typeof window !== 'undefined') {
+    return window.location.origin;
+  }
+
+  const fromEnv = process.env.NEXT_PUBLIC_APP_ORIGIN;
+  const base = (fromEnv ?? '').trim();
+  if (base.length > 0) return base.replace(/\/+$/, '');
+
+  return 'http://localhost:3000';
+}
+
 /**
  * URL base directa del API para requests largos del agente.
  *

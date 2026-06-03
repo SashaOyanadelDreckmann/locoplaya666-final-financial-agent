@@ -43,15 +43,29 @@ function canBootstrapAdminFromLogin(): boolean {
   return process.env.ENABLE_BOOTSTRAP_ADMIN_LOGIN === 'true';
 }
 
+function getBootstrapAdminCredentials() {
+  if (process.env.NODE_ENV !== 'production') {
+    return {
+      email: normalizeEmail(process.env.BOOTSTRAP_ADMIN_EMAIL || 'admin@financieramente.local'),
+      password: process.env.BOOTSTRAP_ADMIN_PASSWORD || 'Financieramente123!',
+      name: (process.env.BOOTSTRAP_ADMIN_NAME ?? 'Administrador').trim() || 'Administrador',
+    };
+  }
+
+  return {
+    email: normalizeEmail(process.env.BOOTSTRAP_ADMIN_EMAIL ?? ''),
+    password: process.env.BOOTSTRAP_ADMIN_PASSWORD ?? '',
+    name: (process.env.BOOTSTRAP_ADMIN_NAME ?? 'Administrador').trim() || 'Administrador',
+  };
+}
+
 async function ensureBootstrapAdminForCredentials(params: {
   email: string;
   password: string;
 }) {
   if (!canBootstrapAdminFromLogin()) return;
 
-  const adminEmail = normalizeEmail(process.env.BOOTSTRAP_ADMIN_EMAIL ?? '');
-  const adminPassword = process.env.BOOTSTRAP_ADMIN_PASSWORD ?? '';
-  const adminName = (process.env.BOOTSTRAP_ADMIN_NAME ?? 'Administrador').trim() || 'Administrador';
+  const { email: adminEmail, password: adminPassword, name: adminName } = getBootstrapAdminCredentials();
 
   if (!adminEmail || !adminPassword) return;
   if (normalizeEmail(params.email) !== adminEmail || params.password !== adminPassword) return;

@@ -218,6 +218,7 @@ function SegmentedPills<T extends string>(props: {
           key={option.value}
           type="button"
           className={`budget-pill-button${props.value === option.value ? ' is-active' : ''}`}
+          aria-pressed={props.value === option.value}
           onClick={() => props.onChange(option.value)}
         >
           {option.label}
@@ -443,7 +444,8 @@ export function BudgetIntelligenceTable(props: Props) {
                       type="button"
                       className="continue-ghost"
                       onClick={() => setOpenDetails((prev) => ({ ...prev, [row.id]: !detailOpen }))}
-                      title={detailOpen ? 'Ocultar detalle' : 'Agregar detalle'}
+                      aria-label={detailOpen ? 'Ocultar detalle' : 'Agregar detalle'}
+                      aria-expanded={detailOpen}
                     >
                       {detailOpen ? '− Det.' : '+ Det.'}
                     </button>
@@ -451,9 +453,11 @@ export function BudgetIntelligenceTable(props: Props) {
                       type="button"
                       className="continue-ghost danger"
                       onClick={() => props.deleteBudgetRow(row.id)}
-                      title="Eliminar movimiento"
+                      aria-label={`Eliminar ${row.category}`}
                     >
-                      ×
+                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                        <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                      </svg>
                     </button>
                   </td>
                 </tr>

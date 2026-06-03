@@ -2,16 +2,131 @@ import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { requireBackendSession } from '@/lib/serverAuth';
 import { checkRateLimit } from '@/lib/rateLimit';
+import { getServerEnv } from '@/lib/serverEnv';
+import { getApiBaseUrl } from '@/lib/apiBase';
 
 type AssistantMessage = {
   role?: 'assistant' | 'user';
   text?: string;
 };
 
+type ClientParsedDocument = {
+  documentId?: string;
+  name?: string;
+  text?: string;
+  insight?: unknown;
+  summary?: unknown;
+  structuredData?: unknown;
+};
+
+type CanonicalParsedDocument = {
+  documentId?: string;
+  name: string;
+  text: string;
+  insight?: unknown;
+  summary?: unknown;
+  structuredData?: unknown;
+};
+
 function compactText(value: unknown, max = 16000) {
   return String(value ?? '')
     .trim()
     .slice(0, max);
+}
+
+function safeParseJson<T>(raw: string, fallback: T): T {
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return fallback;
+  }
+}
+
+function parseCookieValue(cookieHeader: string | null, name: string): string | null {
+  if (!cookieHeader) return null;
+  const parts = cookieHeader.split(';');
+  for (const part of parts) {
+    const [rawKey, ...rawValue] = part.trim().split('=');
+    if (rawKey === name) return rawValue.join('=');
+  }
+  return null;
+}
+
+function assertCsrf(req: Request) {
+  const cookieName = process.env.CSRF_COOKIE_NAME?.trim() || 'csrf-token';
+  const headerToken = req.headers.get('x-csrf-token')?.trim();
+  const cookieToken = parseCookieValue(req.headers.get('cookie'), cookieName)?.trim();
+  if (!headerToken || !cookieToken || headerToken !== cookieToken) {
+    throw new Error('CSRF token invalid or missing');
+  }
+}
+
+async function resolveCanonicalDocuments(
+  req: Request,
+  parsedDocuments: ClientParsedDocument[],
+): Promise<CanonicalParsedDocument[]> {
+  const docIds = Array.from(
+    new Set(
+      parsedDocuments
+        .map((doc) => (typeof doc?.documentId === 'string' ? doc.documentId.trim() : ''))
+        .filter(Boolean),
+    ),
+  ).slice(0, 20);
+
+  if (docIds.length === 0) {
+    return parsedDocuments.slice(0, 8).map((doc) => ({
+      documentId: typeof doc?.documentId === 'string' ? doc.documentId : undefined,
+      name: String(doc?.name ?? ''),
+      text: compactText(doc?.text ?? '', 2600),
+      insight: doc?.insight ?? null,
+      summary: doc?.summary ?? null,
+      structuredData: doc?.structuredData ?? null,
+    }));
+  }
+
+  const cookie = req.headers.get('cookie');
+  const res = await fetch(`${getApiBaseUrl()}/api/documents/resolve`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(cookie ? { cookie } : {}),
+      ...(req.headers.get('x-csrf-token') ? { 'X-CSRF-Token': req.headers.get('x-csrf-token') as string } : {}),
+    },
+    body: JSON.stringify({ documentIds: docIds }),
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error('No se pudo validar la evidencia documental');
+  const payload = await res.json().catch(() => null);
+  const documents = Array.isArray(payload?.data?.documents) ? payload.data.documents : [];
+  if (documents.length === 0) {
+    throw new Error('No se encontró evidencia documental válida para este producto');
+  }
+  const canonicalById = new Map<string, CanonicalParsedDocument>(
+    documents.map((doc: any) => [
+      String(doc?.documentId ?? ''),
+      {
+        documentId: String(doc?.documentId ?? ''),
+        name: String(doc?.name ?? ''),
+        text: compactText(doc?.text ?? '', 2600),
+        summary: doc?.summary ?? null,
+        structuredData: doc?.structuredData ?? null,
+      } satisfies CanonicalParsedDocument,
+    ]),
+  );
+  const resolved: CanonicalParsedDocument[] = [];
+  for (const doc of parsedDocuments) {
+    const canonical = canonicalById.get(String(doc?.documentId ?? '').trim());
+    if (!canonical) continue;
+    resolved.push({
+      documentId: canonical.documentId,
+      name: canonical.name,
+      text: canonical.text,
+      summary: canonical.summary,
+      structuredData: canonical.structuredData,
+      insight: doc?.insight ?? null,
+    });
+  }
+  return resolved.slice(0, 8);
 }
 
 export async function POST(req: Request) {
@@ -31,7 +146,8 @@ export async function POST(req: Request) {
   }
 
   try {
-    const apiKey = process.env.OPENAI_API_KEY;
+    assertCsrf(req);
+    const apiKey = getServerEnv('OPENAI_API_KEY');
     if (!apiKey) {
       return NextResponse.json(
         { ok: false, error: 'OPENAI_API_KEY no configurada' },
@@ -45,19 +161,21 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, error: 'Invalid mode' }, { status: 400 });
     }
     const product = body?.product ?? {};
-    const parsedDocuments = Array.isArray(body?.parsedDocuments) ? body.parsedDocuments : [];
+    const parsedDocuments = (Array.isArray(body?.parsedDocuments) ? body.parsedDocuments : []) as ClientParsedDocument[];
     const dashboard = body?.dashboard ?? null;
     const currentSummary = compactText(body?.currentSummary ?? '', 8000);
     const feedback = compactText(body?.feedback ?? '', 4000);
     const messages = (Array.isArray(body?.messages) ? body.messages : []) as AssistantMessage[];
+    const canonicalDocuments = await resolveCanonicalDocuments(req, parsedDocuments);
 
     const client = new OpenAI({ apiKey });
     const summaryModel =
-      process.env.TRANSACTIONS_SUMMARY_MODEL || process.env.OPENAI_MODEL || 'gpt-5.1-codex';
+      getServerEnv('TRANSACTIONS_SUMMARY_MODEL') || getServerEnv('OPENAI_MODEL') || 'gpt-5.1-codex';
     const chatModel =
-      process.env.TRANSACTIONS_CHAT_MODEL || process.env.OPENAI_MODEL_FAST || 'gpt-4.1-mini';
+      getServerEnv('TRANSACTIONS_CHAT_MODEL') || getServerEnv('OPENAI_MODEL_FAST') || 'gpt-4.1-mini';
 
-    const docsDigest = parsedDocuments.slice(0, 8).map((doc: any) => ({
+    const docsDigest = canonicalDocuments.slice(0, 8).map((doc) => ({
+      documentId: doc.documentId,
       name: String(doc?.name ?? ''),
       insight: doc?.insight ?? null,
       text: compactText(doc?.text ?? '', 2600),
@@ -68,6 +186,11 @@ export async function POST(req: Request) {
         'Eres un analista senior de movimientos bancarios.',
         'Debes generar un resumen ejecutivo premium, breve, preciso y accionable.',
         'Objetivo: explicar patrones, anomalías, flujo y puntos a revisar sin inventar datos.',
+        'Toma como fuente principal el Dashboard y la tabla de movimientos ya estructurada.',
+        'Si hay conflicto entre texto libre y dashboard, prioriza dashboard y explicita cualquier duda en vez de asumir.',
+        'Distingue claramente ingresos/abonos vs egresos.',
+        'No llames movimiento a filas que parezcan saldo, subtotal, cupo, resumen, pago mínimo o encabezados.',
+        'Enfatiza fidelidad de la evidencia: cobertura, calidad y si la mayor parte proviene de tabla estructurada.',
         'Si el usuario reportó un posible error, reevalúa con ese foco.',
         'Devuelve JSON estricto: {"summary":"string"}',
         `Producto=${JSON.stringify(product)}`,
@@ -88,7 +211,7 @@ export async function POST(req: Request) {
       });
 
       const raw = response.choices[0]?.message?.content?.trim() ?? '{}';
-      const parsed = JSON.parse(raw) as { summary?: string };
+      const parsed = safeParseJson<{ summary?: string }>(raw, {});
       return NextResponse.json({
         ok: true,
         summary: compactText(parsed.summary ?? '', 8000),
@@ -126,7 +249,7 @@ export async function POST(req: Request) {
     });
 
     const raw = response.choices[0]?.message?.content?.trim() ?? '{}';
-    const parsed = JSON.parse(raw) as { assistant_text?: string };
+    const parsed = safeParseJson<{ assistant_text?: string }>(raw, {});
     return NextResponse.json({
       ok: true,
       assistant_text: compactText(parsed.assistant_text ?? 'Listo.', 1200),
@@ -135,7 +258,7 @@ export async function POST(req: Request) {
   } catch (error) {
     return NextResponse.json(
       { ok: false, error: error instanceof Error ? error.message : 'transactions chat error' },
-      { status: 500 }
+      { status: error instanceof Error && /CSRF token invalid or missing/i.test(error.message) ? 403 : 500 }
     );
   }
 }

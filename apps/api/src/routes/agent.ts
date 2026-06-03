@@ -315,6 +315,84 @@ const SaveSheetsSchema = z.object({
   ),
 });
 
+const PersistedDocumentSchema = z
+  .object({
+    documentId: z.string().min(1).optional(),
+    name: z.string(),
+    text: z.string(),
+    summary: z.unknown().optional(),
+    structuredData: z.unknown().optional(),
+    indexed: z.boolean().optional(),
+    insight: z
+      .object({
+        format: z.string().optional(),
+        reliability: z.number().optional(),
+        extracted_rows: z.number().optional(),
+        key_findings: z.array(z.string()).optional(),
+      })
+      .partial()
+      .optional(),
+  })
+  .passthrough();
+
+const PersistedAssistantMessageSchema = z
+  .object({
+    id: z.string(),
+    role: z.enum(['assistant', 'user']),
+    text: z.string(),
+    createdAt: z.string(),
+    attachments: z.array(z.string()).optional(),
+  })
+  .passthrough();
+
+const PersistedDashboardSchema = z
+  .object({
+    period: z.object({ from: z.string().optional(), to: z.string().optional() }).partial().optional(),
+    currency: z.string().optional(),
+    keyMetrics: z.record(z.string(), z.union([z.number(), z.null()])).optional(),
+    topCategories: z.array(z.object({ name: z.string(), amount: z.number() }).passthrough()).optional(),
+    categoryExamples: z
+      .array(z.object({ name: z.string(), amount: z.number(), examples: z.array(z.string()) }).passthrough())
+      .optional(),
+    spendClusters: z.array(z.record(z.string(), z.unknown())).optional(),
+    topExpenses: z.array(z.record(z.string(), z.unknown())).optional(),
+    topIncome: z.array(z.record(z.string(), z.unknown())).optional(),
+    alerts: z.array(z.string()).optional(),
+    alertDetails: z.array(z.record(z.string(), z.unknown())).optional(),
+    opportunities: z.array(z.string()).optional(),
+    metricExplanations: z.array(z.record(z.string(), z.unknown())).optional(),
+    movements: z.array(z.record(z.string(), z.unknown())).optional(),
+    summary: z.string().optional(),
+  })
+  .passthrough();
+
+const PersistedBankProductSchema = z
+  .object({
+    id: z.string(),
+    label: z.string(),
+    bank: z.string(),
+    productType: z.string(),
+    simulationAccepted: z.boolean().optional(),
+    connected: z.boolean().optional(),
+    randomMode: z.boolean().optional(),
+    uploadedFiles: z.array(z.string()).optional(),
+    parsedDocuments: z.array(PersistedDocumentSchema).optional(),
+    assistant: z
+      .object({
+        messages: z.array(PersistedAssistantMessageSchema).optional(),
+        uploadFormat: z.string().nullable().optional(),
+        summaryText: z.string().nullable().optional(),
+        summaryModel: z.string().nullable().optional(),
+        summaryGeneratedAt: z.string().nullable().optional(),
+        summaryRegenerationsUsed: z.number().optional(),
+        lastSummaryFeedback: z.string().nullable().optional(),
+      })
+      .passthrough()
+      .optional(),
+    dashboard: PersistedDashboardSchema.optional(),
+  })
+  .passthrough();
+
 const SavePanelStateSchema = z.object({
   panelState: z.object({
     budgetRows: z.array(
@@ -324,20 +402,20 @@ const SavePanelStateSchema = z.object({
         type: z.enum(['income', 'expense']),
         amount: z.number(),
         note: z.string(),
-      }),
+      }).passthrough(),
     ),
-    bankSimulation: z.object({
-      username: z.string(),
-      connected: z.boolean(),
-      randomMode: z.boolean(),
-      uploadedFiles: z.array(z.string()),
-      parsedDocuments: z.array(
-        z.object({
-          name: z.string(),
-          text: z.string(),
-        }),
-      ),
-    }),
+    budgetChatAnswers: z.array(z.object({ q: z.string(), a: z.string() })).optional(),
+    bankSimulation: z
+      .object({
+        products: z.array(PersistedBankProductSchema).optional(),
+        activeProductId: z.string().nullable().optional(),
+        lockedMonth: z.string().nullable().optional(),
+        connected: z.boolean().optional(),
+        randomMode: z.boolean().optional(),
+        uploadedFiles: z.array(z.string()).optional(),
+        parsedDocuments: z.array(PersistedDocumentSchema).optional(),
+      })
+      .passthrough(),
     savedReports: z.array(
       z.object({
         id: z.string(),
@@ -345,10 +423,10 @@ const SavePanelStateSchema = z.object({
         group: z.enum(['plan_action', 'simulation', 'budget', 'diagnosis', 'other']),
         fileUrl: z.string(),
         createdAt: z.string(),
-      }),
+      }).passthrough(),
     ),
     updatedAt: z.string(),
-  }),
+  }).passthrough(),
 });
 
 type IntakeEnvelope = {

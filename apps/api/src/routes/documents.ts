@@ -6,6 +6,8 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { ingestUserDocument, searchUserDocumentContext } from '../services/document-intelligence.service';
+import { getUserDocumentsByIds } from '../persistence/repos';
+import { completeStructured } from '../services/llm.service';
 import { requireAuth, requirePermission } from '../middleware/auth';
 import { asyncHandler } from '../middleware/errorHandler';
 import { badRequest, unauthorized } from '../http/api.errors';
@@ -47,6 +49,10 @@ const SearchQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(10).optional(),
 });
 
+const ResolveDocumentsSchema = z.object({
+  documentIds: z.array(z.string().min(1)).min(1).max(20),
+});
+
 type ParsedDocumentResponse = {
   documentId: string;
   name: string;
@@ -62,6 +68,16 @@ type ParsedMovement = {
   amount: number;
   direction: 'expense' | 'income';
   source_line?: string;
+  category?: string;
+  confidence?: number;
+  source_kind?: 'table' | 'line';
+};
+
+type StructuredTableForReconciliation = {
+  name?: string;
+  headers?: string[];
+  rows?: string[][];
+  source?: string;
 };
 
 const PRODUCT_TYPES = new Set([
@@ -84,6 +100,63 @@ const CATEGORY_RULES: Array<{ name: string; regex: RegExp }> = [
   { name: 'Transferencias', regex: /transfer|tef|abono|deposito|dep[oó]sito/i },
   { name: 'Tarjetas', regex: /tarjeta|credito|d[eé]bito|compra nacional|compra internacional/i },
 ];
+
+const SUPPORTED_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif', '.pdf', '.xlsx', '.csv', '.txt', '.md']);
+
+export function isSupportedDocumentFilename(name: string): boolean {
+  const normalized = String(name ?? '').trim().toLowerCase();
+  if (!normalized) return false;
+  const dot = normalized.lastIndexOf('.');
+  if (dot < 0) return false;
+  return SUPPORTED_EXTENSIONS.has(normalized.slice(dot));
+}
+
+export function decodeBase64File(base64: string, name: string): Buffer {
+  const normalized = String(base64 ?? '').trim();
+  if (!normalized) throw badRequest(`Archivo "${name}" sin contenido.`);
+  if (!/^[A-Za-z0-9+/=\s]+$/.test(normalized)) {
+    throw badRequest(`Archivo "${name}" tiene base64 inválido.`);
+  }
+  const buffer = Buffer.from(normalized, 'base64');
+  if (buffer.byteLength === 0) throw badRequest(`Archivo "${name}" no pudo decodificarse.`);
+  const canonical = buffer.toString('base64').replace(/=+$/, '');
+  const inputCanonical = normalized.replace(/\s+/g, '').replace(/=+$/, '');
+  if (canonical !== inputCanonical) {
+    throw badRequest(`Archivo "${name}" tiene base64 corrupto o truncado.`);
+  }
+  return buffer;
+}
+
+export function validateAndPrepareDocumentFiles(
+  files: Array<{ name: string; base64: string; mimeType?: string }>,
+): Array<{ name: string; base64: string; mimeType?: string; buffer: Buffer }> {
+  const decodedFiles = files.map((file) => {
+    if (!isSupportedDocumentFilename(file.name)) {
+      throw badRequest(`Archivo "${file.name}" no soportado. Usa PDF, imagen, XLSX, CSV o TXT.`);
+    }
+    return {
+      ...file,
+      buffer: decodeBase64File(file.base64, file.name),
+    };
+  });
+
+  const totalBytes = decodedFiles.reduce((sum, file) => sum + file.buffer.byteLength, 0);
+  if (totalBytes > MAX_TOTAL_BYTES) {
+    throw badRequest(
+      `El total cargado supera ${Math.round(MAX_TOTAL_BYTES / (1024 * 1024))} MB. Divide los archivos en bloques.`,
+    );
+  }
+
+  for (const file of decodedFiles) {
+    if (file.buffer.byteLength > MAX_FILE_BYTES) {
+      throw badRequest(
+        `Archivo "${file.name}" excede el límite de ${Math.round(MAX_FILE_BYTES / (1024 * 1024))} MB por archivo.`,
+      );
+    }
+  }
+
+  return decodedFiles;
+}
 
 function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -111,13 +184,27 @@ function parseDateFromLine(line: string): string | undefined {
   return toIsoDate(match?.[1]);
 }
 
+function normalizeTextToken(value: string): string {
+  return String(value ?? '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function parseAmountToken(token: string): number | null {
   if (!token) return null;
   if (/\b\d{4}-\d{2}-\d{2}\b|\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b/.test(token)) return null;
   if (/[A-Za-zÁÉÍÓÚÑáéíóúñ]/.test(token) && !/\b(?:clp|usd|uf|eur|\$)\b/i.test(token)) return null;
-  const cleaned = token.replace(/[^\d.,+-]/g, '').trim();
+  const raw = token.trim();
+  const negativeByParens = /^\(.*\)$/.test(raw);
+  const negativeByLeadingMinus = /^\s*-/.test(raw);
+  const negativeByTrailingMinus = /-\s*$/.test(raw);
+  const cleaned = raw.replace(/[^\d.,+-]/g, '').trim();
   if (!cleaned) return null;
-  const sign = cleaned.startsWith('-') ? -1 : 1;
+  const sign = negativeByParens || negativeByLeadingMinus || negativeByTrailingMinus || cleaned.startsWith('-') ? -1 : 1;
   const unsigned = cleaned.replace(/^[+-]/, '');
   const hasDot = unsigned.includes('.');
   const hasComma = unsigned.includes(',');
@@ -135,15 +222,199 @@ function parseAmountToken(token: string): number | null {
   return sign * Math.abs(parsed);
 }
 
-function inferDirection(line: string, signedAmount: number): 'income' | 'expense' {
+function hasExplicitNegativeAmount(token: string): boolean {
+  const raw = String(token ?? '').trim();
+  return /^\(.*\)$/.test(raw) || /^\s*-/.test(raw) || /-\s*$/.test(raw);
+}
+
+function hasExplicitPositiveAmount(token: string): boolean {
+  const raw = String(token ?? '').trim();
+  return /^\s*\+/.test(raw);
+}
+
+function inferDirection(line: string, signedAmount: number, amountToken = ''): 'income' | 'expense' {
   const normalized = line.toLowerCase();
-  if (/\b(abono|ingreso|dep[oó]sito|sueldo|remuner|n[oó]mina|payroll|pensi[oó]n|honorari|pago recibido|transferencia recibida)\b/.test(normalized)) {
-    return 'income';
-  }
-  if (/\b(compra|cargo|pago|retiro|comisi[oó]n|suscrip|cuota|giro|transferencia enviada|transferencia emitida)\b/.test(normalized)) {
-    return 'expense';
-  }
+  const expenseHits = (
+    normalized.match(/\b(compra|cargo|pago|retiro|comisi[oó]n|suscrip|cuota|giro|transferencia enviada|transferencia emitida|pac|pat|webpay|pos|debito|d[eé]bito)\b/g) ?? []
+  ).length;
+  const incomeHits = (
+    normalized.match(/\b(abono|ingreso|dep[oó]sito|sueldo|remuner|n[oó]mina|payroll|pensi[oó]n|honorari|pago recibido|transferencia recibida|devoluci[oó]n)\b/g) ?? []
+  ).length;
+  if (hasExplicitNegativeAmount(amountToken) && incomeHits === 0) return 'expense';
+  if (hasExplicitPositiveAmount(amountToken) && incomeHits > expenseHits) return 'income';
+  if (expenseHits > incomeHits && expenseHits > 0) return 'expense';
+  if (incomeHits > expenseHits && incomeHits > 0) return 'income';
   return signedAmount < 0 ? 'expense' : 'income';
+}
+
+function isNonMovementDescription(value: string): boolean {
+  const normalized = normalizeTextToken(value);
+  if (!normalized) return true;
+  return /\b(saldo anterior|saldo inicial|saldo final|nuevo saldo|saldo disponible|saldo contable|total|subtotal|resumen|cartola|estado de cuenta|periodo|periodo facturado|fecha de facturacion|fecha de vencimiento|pago minimo|cupo disponible|cupo total|linea de credito|linea de credito disponible|interes del periodo|interes rotativo|comision total)\b/.test(
+    normalized,
+  );
+}
+
+function cleanMovementDescription(value: string): string {
+  return String(value ?? '')
+    .replace(/\b(\d{4}-\d{2}-\d{2}|\d{1,2}[/-]\d{1,2}(?:[/-]\d{2,4})?)\b/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function splitCandidateCells(line: string): string[] {
+  const source = String(line ?? '').trim();
+  if (!source) return [];
+  if (source.includes('|')) return source.split('|').map((cell) => cell.trim()).filter(Boolean);
+  if (source.includes('\t')) return source.split('\t').map((cell) => cell.trim()).filter(Boolean);
+  if (source.includes(';')) return source.split(';').map((cell) => cell.trim()).filter(Boolean);
+  return source.split(/\s{2,}/).map((cell) => cell.trim()).filter(Boolean);
+}
+
+function resolveColumnIndex(headers: string[], patterns: RegExp[]): number {
+  for (let i = 0; i < headers.length; i += 1) {
+    const header = normalizeTextToken(headers[i]);
+    if (patterns.some((pattern) => pattern.test(header))) return i;
+  }
+  return -1;
+}
+
+function isBlankLikeCell(value: string | null | undefined): boolean {
+  const normalized = String(value ?? '').trim().toLowerCase();
+  return (
+    normalized.length === 0 ||
+    normalized === '-' ||
+    normalized === '--' ||
+    normalized === '0' ||
+    normalized === '0,00' ||
+    normalized === '0.00' ||
+    normalized === '$0' ||
+    normalized === '$ 0'
+  );
+}
+
+function pickAmountFromCells(cells: string[], preferredIndexes: number[]): { amount: number | null; token: string; index: number } {
+  for (const index of preferredIndexes) {
+    if (index < 0 || index >= cells.length) continue;
+    const token = cells[index];
+    const amount = parseAmountToken(token);
+    if (amount !== null) return { amount, token, index };
+  }
+  for (let index = cells.length - 1; index >= 0; index -= 1) {
+    const token = cells[index];
+    const amount = parseAmountToken(token);
+    if (amount !== null) return { amount, token, index };
+  }
+  return { amount: null, token: '', index: -1 };
+}
+
+function buildMovementKey(movement: ParsedMovement): string {
+  return [
+    movement.date || 'nd',
+    movement.direction,
+    Math.round(movement.amount),
+    normalizeTextToken(movement.description),
+  ].join('|');
+}
+
+function parseMovementFromTableRow(params: {
+  headers: string[];
+  row: string[];
+}): ParsedMovement | null {
+  const { headers, row } = params;
+  if (!Array.isArray(row) || row.length === 0) return null;
+
+  const dateIndex = resolveColumnIndex(headers, [/^fecha\b/, /^fec\b/, /contable/]);
+  const descriptionIndex = resolveColumnIndex(headers, [/detalle/, /descripcion/, /glosa/, /movimiento/, /concepto/]);
+  const expenseIndex = resolveColumnIndex(headers, [/cargo/, /egreso/, /debito/, /debe/]);
+  const incomeIndex = resolveColumnIndex(headers, [/abono/, /ingreso/, /credito/, /haber/]);
+  const amountIndex = resolveColumnIndex(headers, [/^monto$/, /^importe$/, /^valor$/]);
+  const balanceIndex = resolveColumnIndex(headers, [/saldo/, /balance/, /disponible/]);
+
+  const date = toIsoDate(dateIndex >= 0 ? row[dateIndex] : parseDateFromLine(row.join(' ')));
+  const expense = expenseIndex >= 0 && !isBlankLikeCell(row[expenseIndex]) ? parseAmountToken(row[expenseIndex]) : null;
+  const income = incomeIndex >= 0 && !isBlankLikeCell(row[incomeIndex]) ? parseAmountToken(row[incomeIndex]) : null;
+
+  let direction: 'income' | 'expense' | null = null;
+  let amount: number | null = null;
+  let amountToken = '';
+
+  if (income !== null && Math.abs(income) > 0) {
+    direction = 'income';
+    amount = Math.abs(income);
+    amountToken = row[incomeIndex];
+  } else if (expense !== null && Math.abs(expense) > 0) {
+    direction = 'expense';
+    amount = Math.abs(expense);
+    amountToken = row[expenseIndex];
+  } else {
+    const fallbackIndexes = [amountIndex, row.length - 1, row.length - 2].filter(
+      (index, position, list) => index >= 0 && list.indexOf(index) === position && index !== balanceIndex,
+    );
+    const picked = pickAmountFromCells(row, fallbackIndexes);
+    if (picked.amount === null) return null;
+    if (picked.index === balanceIndex) return null;
+    direction = inferDirection(row.join(' '), picked.amount, picked.token);
+    amount = Math.abs(picked.amount);
+    amountToken = picked.token;
+  }
+
+  const description =
+    descriptionIndex >= 0
+      ? cleanMovementDescription(row[descriptionIndex])
+      : cleanMovementDescription(
+          row
+            .filter((cell, index) => index !== dateIndex && cell !== amountToken)
+            .join(' '),
+        );
+
+  if (!description || isNonMovementDescription(description) || !date || !amount || amount <= 0) return null;
+
+  return {
+    date,
+    description,
+    amount,
+    direction,
+    source_line: row.join(' | ').slice(0, 260),
+    category: categorize(description),
+    confidence: descriptionIndex >= 0 && (expenseIndex >= 0 || incomeIndex >= 0 || amountIndex >= 0) ? 0.98 : 0.86,
+    source_kind: 'table',
+  };
+}
+
+function parseMovementFromLooseLine(line: string): ParsedMovement | null {
+  if (!line || isNonMovementDescription(line)) return null;
+  const cells = splitCandidateCells(line);
+  const amountTokens =
+    line.match(/[-+]?\s*(?:\$|clp|usd|uf|eur)?\s*\d{1,3}(?:[.\s]\d{3})+(?:[.,]\d+)?|[-+]?\s*(?:\$|clp|usd|uf|eur)\s*\d+(?:[.,]\d+)?/gi) ?? [];
+  let pickedToken = '';
+  let signedAmount: number | null = null;
+  for (const token of amountTokens) {
+    const parsed = parseAmountToken(token);
+    if (parsed === null) continue;
+    signedAmount = parsed;
+    pickedToken = token;
+  }
+  if (signedAmount === null) return null;
+  const date = parseDateFromLine(line);
+  if (!date) return null;
+  const direction = inferDirection(line, signedAmount, pickedToken);
+  const descriptionBase =
+    cells.length >= 3
+      ? cells.filter((cell) => cell !== pickedToken && !toIsoDate(cell)).join(' ')
+      : line.replace(new RegExp(escapeRegex(pickedToken), 'i'), ' ');
+  const description = cleanMovementDescription(descriptionBase);
+  if (!description || isNonMovementDescription(description)) return null;
+  return {
+    date,
+    description,
+    amount: Math.abs(signedAmount),
+    direction,
+    source_line: line.slice(0, 260),
+    category: categorize(description),
+    confidence: cells.length >= 3 ? 0.8 : 0.68,
+    source_kind: 'line',
+  };
 }
 
 function normalizeProductType(value?: string): string | undefined {
@@ -175,48 +446,52 @@ function extractMovements(documents: ParsedDocumentResponse[]): ParsedMovement[]
   for (const doc of documents) {
     const structured = (doc.structuredData as {
       possibleTransactions?: unknown;
+      tables?: unknown;
     } | null | undefined) ?? {};
+    const tables = Array.isArray(structured.tables)
+      ? structured.tables as Array<{ headers?: unknown; rows?: unknown }>
+      : [];
+    for (const table of tables) {
+      const headers = Array.isArray(table.headers) ? table.headers.map((cell) => String(cell ?? '')) : [];
+      const rows = Array.isArray(table.rows) ? table.rows : [];
+      for (const row of rows) {
+        const parsed = parseMovementFromTableRow({
+          headers,
+          row: Array.isArray(row) ? row.map((cell) => String(cell ?? '')) : [],
+        });
+        if (!parsed) continue;
+        const key = buildMovementKey(parsed);
+        if (dedup.has(key)) continue;
+        dedup.add(key);
+        movements.push(parsed);
+      }
+    }
+
     const candidateLines = Array.isArray(structured.possibleTransactions)
       ? structured.possibleTransactions.map((line) => String(line ?? '').trim()).filter(Boolean)
       : doc.text
           .split('\n')
           .map((line) => line.trim())
           .filter((line) => line.length > 0 && !line.startsWith('---') && !line.startsWith('['))
-          .slice(0, 180);
+          .slice(0, 220);
 
     for (const line of candidateLines) {
-      const amountTokens =
-        line.match(/[-+]?\s*(?:\$|clp|usd|uf|eur)?\s*\d{1,3}(?:[.\s]\d{3})+(?:[.,]\d+)?|[-+]?\s*(?:\$|clp|usd|uf|eur)\s*\d+(?:[.,]\d+)?/gi) ?? [];
-      let pickedToken = '';
-      let signedAmount: number | null = null;
-      for (const token of amountTokens) {
-        const parsed = parseAmountToken(token);
-        if (parsed === null) continue;
-        signedAmount = parsed;
-        pickedToken = token;
-      }
-      if (signedAmount === null) continue;
-
-      const date = parseDateFromLine(line);
-      const direction = inferDirection(line, signedAmount);
-      const amount = Math.abs(signedAmount);
-      const withoutAmount = pickedToken ? line.replace(new RegExp(escapeRegex(pickedToken), 'i'), ' ') : line;
-      const withoutDate = withoutAmount.replace(/\b(\d{4}-\d{2}-\d{2}|\d{1,2}[/-]\d{1,2}(?:[/-]\d{2,4})?)\b/g, ' ');
-      const description = withoutDate.replace(/\s+/g, ' ').trim() || line;
-      const key = `${date || 'ND'}|${direction}|${Math.round(amount)}|${description.toUpperCase()}`;
+      const parsed = parseMovementFromLooseLine(line);
+      if (!parsed) continue;
+      const key = buildMovementKey(parsed);
       if (dedup.has(key)) continue;
       dedup.add(key);
-
-      movements.push({
-        date,
-        description,
-        amount,
-        direction,
-        source_line: line.slice(0, 260),
-      });
+      movements.push(parsed);
     }
   }
-  return movements.slice(0, 1200);
+  return movements
+    .sort((left, right) => {
+      const dateCompare = String(left.date ?? '').localeCompare(String(right.date ?? ''));
+      if (dateCompare !== 0) return dateCompare;
+      if (left.amount !== right.amount) return right.amount - left.amount;
+      return left.description.localeCompare(right.description, 'es');
+    })
+    .slice(0, 1200);
 }
 
 function quantile(sorted: number[], q: number): number {
@@ -248,11 +523,16 @@ function buildTransactionAnalysis(
     const structured = (doc.structuredData as {
       rowCount?: unknown;
       possibleTransactionCount?: unknown;
+      parserMeta?: { confidence?: unknown; mode?: unknown };
     } | null | undefined) ?? {};
     const summary = (doc.summary as { detectedSignals?: unknown } | null | undefined) ?? {};
     const extractedRows = Math.max(0, Number(structured.possibleTransactionCount ?? 0) || 0);
     const rowCount = Math.max(extractedRows, Number(structured.rowCount ?? 0) || 0);
-    const reliability = rowCount > 0 ? Math.min(0.99, Math.max(0.28, extractedRows / rowCount + 0.25)) : 0.35;
+    const parserConfidence = Number(structured.parserMeta?.confidence ?? 0) || 0;
+    const baseReliability = rowCount > 0 ? Math.min(0.99, Math.max(0.28, extractedRows / rowCount + 0.25)) : 0.35;
+    const reliability = parserConfidence > 0
+      ? Math.min(0.99, Math.max(baseReliability, parserConfidence))
+      : baseReliability;
     const keyFindings = Array.isArray(summary.detectedSignals)
       ? summary.detectedSignals.slice(0, 3).map((signal) => String(signal))
       : [];
@@ -267,6 +547,27 @@ function buildTransactionAnalysis(
   });
 
   const movements = extractMovements(documents);
+  return buildTransactionAnalysisFromMovements(documents, hints, documentInsights, movements);
+}
+
+function buildTransactionAnalysisFromMovements(
+  documents: ParsedDocumentResponse[],
+  hints: {
+    institutionHint?: string;
+    serviceHint?: string;
+    productTypeHint?: string;
+    productLabelHint?: string;
+  },
+  documentInsights: Array<{
+    name: string;
+    format?: string;
+    reliability: number;
+    extracted_rows: number;
+    key_findings: string[];
+    row_count: number;
+  }>,
+  movements: ParsedMovement[],
+) {
   const incomeMovements = movements.filter((movement) => movement.direction === 'income');
   const expenseMovements = movements.filter((movement) => movement.direction === 'expense');
   const inflowsTotal = incomeMovements.reduce((acc, movement) => acc + movement.amount, 0);
@@ -345,6 +646,8 @@ function buildTransactionAnalysis(
     ? documentInsights.reduce((acc, insight) => acc + (Number(insight.reliability) || 0), 0) / documentInsights.length
     : 0;
   const movementCoveragePct = rowsProcessed > 0 ? Math.min(100, (movementCount / rowsProcessed) * 100) : 0;
+  const tableBasedMovements = movements.filter((movement) => movement.source_kind === 'table').length;
+  const highConfidenceMovements = movements.filter((movement) => (movement.confidence ?? 0) >= 0.85).length;
 
   const alerts: string[] = [];
   const alertDetails: Array<{ title: string; severity: 'high' | 'medium' | 'low'; reason: string }> = [];
@@ -409,6 +712,11 @@ function buildTransactionAnalysis(
       value: movementCoveragePct > 0 ? `${movementCoveragePct.toFixed(1)}%` : 'N/D',
       explanation: 'Proporción de movimientos estructurados sobre filas procesadas.',
     },
+    {
+      metric: 'Filas fieles de tabla',
+      value: movementCount > 0 ? `${Math.round((tableBasedMovements / movementCount) * 100)}%` : 'N/D',
+      explanation: 'Porcentaje de movimientos reconstruidos desde tablas detectadas, no solo desde texto libre.',
+    },
   ];
 
   const institution = hints.institutionHint?.trim() || 'Institución por confirmar';
@@ -441,6 +749,8 @@ function buildTransactionAnalysis(
         expense_to_income_ratio: expenseToIncomeRatio,
         table_rows_processed: rowsProcessed,
         movement_coverage_pct: Number(movementCoveragePct.toFixed(2)),
+        table_rows_verified: tableBasedMovements,
+        high_confidence_movement_count: highConfidenceMovements,
       },
       top_categories: topCategories,
       category_examples: categoryExamples,
@@ -454,7 +764,7 @@ function buildTransactionAnalysis(
       executive_summary:
         movementCount === 0
           ? 'No hay movimientos suficientes para un resumen confiable. Se recomienda reforzar evidencia.'
-          : `Se detectaron ${movementCount} movimientos: ingresos ${formatAmount(inflowsTotal)} y egresos ${formatAmount(outflowsTotal)}; flujo neto ${formatAmount(netFlow)}.`,
+          : `Se detectaron ${movementCount} movimientos válidos (${tableBasedMovements} desde tabla estructurada) con ingresos por ${formatAmount(inflowsTotal)}, egresos por ${formatAmount(outflowsTotal)} y flujo neto de ${formatAmount(netFlow)}.`,
     },
     document_insights: documentInsights.map(({ row_count, ...rest }) => rest),
     movements: movements.map((movement) => ({
@@ -463,8 +773,82 @@ function buildTransactionAnalysis(
       amount: Math.round(movement.amount),
       direction: movement.direction,
       source_line: movement.source_line,
+      category: movement.category,
+      confidence: movement.confidence,
+      source_kind: movement.source_kind,
     })),
   };
+}
+
+async function reconcileMovementsWithLLM(
+  documents: ParsedDocumentResponse[],
+  heuristicMovements: ParsedMovement[],
+): Promise<ParsedMovement[] | null> {
+  const tablePayload = documents
+    .flatMap((doc) => {
+      const structured = (doc.structuredData as { tables?: StructuredTableForReconciliation[] } | null | undefined) ?? {};
+      return Array.isArray(structured.tables)
+        ? structured.tables.map((table) => ({
+            document: doc.name,
+            name: String(table.name ?? ''),
+            headers: Array.isArray(table.headers) ? table.headers.slice(0, 12) : [],
+            rows: Array.isArray(table.rows) ? table.rows.slice(0, 120).map((row) => Array.isArray(row) ? row.slice(0, 12) : []) : [],
+            source: table.source ?? null,
+          }))
+        : [];
+    })
+    .filter((table) => Array.isArray(table.rows) && table.rows.length > 0)
+    .slice(0, 6);
+
+  if (tablePayload.length === 0) return null;
+
+  try {
+    const reconciled = await completeStructured<{
+      movements?: Array<{
+        date?: string;
+        description: string;
+        amount: number;
+        direction: 'income' | 'expense';
+        category?: string;
+      }>;
+    }>({
+      model: process.env.TRANSACTIONS_RECONCILE_MODEL || process.env.OPENAI_MODEL_FAST || 'gpt-4.1-mini',
+      temperature: 0,
+      maxCompletionTokens: 2200,
+      system:
+        'Reconcilia tablas de cartolas bancarias chilenas. Devuelve solo movimientos reales. Excluye saldos, subtotales, resúmenes, cupos, pagos mínimos y encabezados repetidos. Respeta signo, columnas cargo/abono y contexto contable.',
+      user: JSON.stringify({
+        instructions: [
+          'Devuelve solo JSON con movements.',
+          'Cada movement debe incluir date, description, amount absoluto y direction.',
+          'Si una fila tiene signo negativo o está en columna cargo/debito, normalmente es expense.',
+          'Si una fila está en columna abono/credito/haber, normalmente es income.',
+          'No inventes filas faltantes.',
+        ],
+        tables: tablePayload,
+        heuristicSample: heuristicMovements.slice(0, 40),
+      }),
+    });
+
+    const candidateMovements = Array.isArray(reconciled.movements) ? reconciled.movements : [];
+    const normalized = candidateMovements
+      .map((movement) => ({
+        date: movement.date ? toIsoDate(movement.date) : undefined,
+        description: cleanMovementDescription(movement.description ?? ''),
+        amount: Math.abs(Number(movement.amount) || 0),
+        direction: (movement.direction === 'expense' ? 'expense' : 'income') as 'expense' | 'income',
+        source_line: '',
+        category: movement.category ? String(movement.category) : categorize(movement.description ?? ''),
+        confidence: 0.93,
+        source_kind: 'table' as const,
+      }))
+      .filter((movement) => movement.description && movement.amount > 0);
+
+    if (normalized.length === 0) return null;
+    return normalized;
+  } catch {
+    return null;
+  }
 }
 
 router.post(
@@ -481,42 +865,99 @@ router.post(
       throw badRequest('Se requieren archivos (files: [{ name, base64 }])');
     }
 
-    const documents: ParsedDocumentResponse[] = [];
-    let totalBytes = 0;
+    const decodedFiles = validateAndPrepareDocumentFiles(body.files);
 
-    for (const file of body.files) {
-      const buffer = Buffer.from(file.base64, 'base64');
-      if (buffer.byteLength > MAX_FILE_BYTES) {
-        throw badRequest(
-          `Archivo "${file.name}" excede el límite de ${Math.round(MAX_FILE_BYTES / (1024 * 1024))} MB por archivo.`,
-        );
-      }
-      totalBytes += buffer.byteLength;
-      if (totalBytes > MAX_TOTAL_BYTES) {
-        throw badRequest(
-          `El total cargado supera ${Math.round(MAX_TOTAL_BYTES / (1024 * 1024))} MB. Divide los archivos en bloques.`,
-        );
-      }
+    const documents: ParsedDocumentResponse[] = [];
+    for (const file of decodedFiles) {
       const document = await ingestUserDocument({
         userId: user.id,
         name: file.name,
-        buffer,
+        buffer: file.buffer,
         mimeType: file.mimeType,
       });
       documents.push(document);
     }
 
-    const transactionAnalysis = buildTransactionAnalysis(documents, {
+    const heuristicAnalysis = buildTransactionAnalysis(documents, {
       institutionHint: body.institutionHint,
       serviceHint: body.serviceHint,
       productTypeHint: body.productTypeHint,
       productLabelHint: body.productLabelHint,
     });
+    const shouldReconcile =
+      documents.some((doc) => {
+        const structured = (doc.structuredData as { parserMeta?: { confidence?: unknown }; tables?: unknown[] } | null | undefined) ?? {};
+        const parserConfidence = Number(structured.parserMeta?.confidence ?? 0) || 0;
+        const tableCount = Array.isArray(structured.tables) ? structured.tables.length : 0;
+        return parserConfidence < 0.93 || tableCount > 0;
+      }) &&
+      (heuristicAnalysis.movements?.length ?? 0) <= 400;
+    const reconciledMovements = shouldReconcile ? await reconcileMovementsWithLLM(documents, heuristicAnalysis.movements ?? []) : null;
+    const transactionAnalysis = reconciledMovements
+      ? buildTransactionAnalysisFromMovements(
+          documents,
+          {
+            institutionHint: body.institutionHint,
+            serviceHint: body.serviceHint,
+            productTypeHint: body.productTypeHint,
+            productLabelHint: body.productLabelHint,
+          },
+          documents.map((doc) => {
+            const structured = (doc.structuredData as {
+              rowCount?: unknown;
+              possibleTransactionCount?: unknown;
+              parserMeta?: { confidence?: unknown; mode?: unknown };
+            } | null | undefined) ?? {};
+            const summary = (doc.summary as { detectedSignals?: unknown } | null | undefined) ?? {};
+            const extractedRows = Math.max(0, Number(structured.possibleTransactionCount ?? 0) || 0);
+            const rowCount = Math.max(extractedRows, Number(structured.rowCount ?? 0) || 0);
+            const parserConfidence = Number(structured.parserMeta?.confidence ?? 0) || 0;
+            const baseReliability = rowCount > 0 ? Math.min(0.99, Math.max(0.28, extractedRows / rowCount + 0.25)) : 0.35;
+            const reliability = parserConfidence > 0
+              ? Math.min(0.99, Math.max(baseReliability, parserConfidence))
+              : baseReliability;
+            return {
+              name: doc.name,
+              format: doc.name.split('.').pop()?.toLowerCase() || undefined,
+              reliability: Number(reliability.toFixed(4)),
+              extracted_rows: extractedRows,
+              key_findings: Array.isArray(summary.detectedSignals)
+                ? summary.detectedSignals.slice(0, 3).map((signal) => String(signal))
+                : [],
+              row_count: rowCount,
+            };
+          }),
+          reconciledMovements,
+        )
+      : heuristicAnalysis;
 
     return sendSuccess(res, {
       documents,
       indexed: documents.filter((doc) => doc.indexed).length,
       transactionAnalysis,
+    });
+  }),
+);
+
+router.post(
+  '/resolve',
+  requireAuth,
+  requirePermission(PERMISSIONS.DOCUMENT_PARSE_SELF),
+  asyncHandler(async (req, res) => {
+    const user = req.authenticatedUser;
+    if (!user) throw unauthorized('Authentication required');
+
+    const { documentIds } = parseBody(ResolveDocumentsSchema, req.body);
+    const documents = await getUserDocumentsByIds(user.id, documentIds);
+    return sendSuccess(res, {
+      documents: documents.map((doc) => ({
+        documentId: doc.id,
+        name: doc.name,
+        text: doc.extractedText ?? doc.textPreview ?? '',
+        summary: doc.summary ?? null,
+        structuredData: doc.structuredData ?? null,
+        indexed: doc.status === 'INDEXED',
+      })),
     });
   }),
 );

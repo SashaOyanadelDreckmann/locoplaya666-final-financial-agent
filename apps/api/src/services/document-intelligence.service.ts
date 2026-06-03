@@ -8,7 +8,7 @@ import {
   searchUserDocumentsLocal,
   upsertUserVectorStoreRecord,
 } from '../persistence/repos';
-import { parseTransactionFile } from './transactionParser.service';
+import { parseTransactionFileDetailed, type ParsedTable } from './transactionParser.service';
 import { getOpenAIClient } from './llm.service';
 
 export type DocumentSearchHit = {
@@ -48,6 +48,120 @@ function compactWhitespace(text: string): string {
   return text.replace(/\s+/g, ' ').trim();
 }
 
+function normalizeHeaderToken(value: string): string {
+  return String(value ?? '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]/g, '');
+}
+
+function splitStructuredCells(line: string): string[] {
+  const source = String(line ?? '').trim();
+  if (!source) return [];
+  if (source.includes('|')) {
+    return source
+      .split('|')
+      .map((cell) => cell.trim())
+      .filter(Boolean);
+  }
+  if (source.includes('\t')) {
+    return source
+      .split('\t')
+      .map((cell) => cell.trim())
+      .filter(Boolean);
+  }
+  if (source.includes(';')) {
+    return source
+      .split(';')
+      .map((cell) => cell.trim())
+      .filter(Boolean);
+  }
+  if (source.includes(',') && /,/.test(source) && !/\d,\d{2}\b/.test(source)) {
+    return source
+      .split(',')
+      .map((cell) => cell.trim())
+      .filter(Boolean);
+  }
+  return [];
+}
+
+function isHeaderLikeRow(cells: string[]): boolean {
+  const normalized = cells.map(normalizeHeaderToken);
+  const headerHits = normalized.filter((cell) =>
+    /^(fecha|feccontable|detalle|descripcion|glosa|movimiento|concepto|cargo|abono|debito|credito|monto|saldo|referencia|sucursal)$/.test(
+      cell,
+    ),
+  ).length;
+  return headerHits >= 2;
+}
+
+function isFinancialAmountCell(value: string): boolean {
+  return /[-+]?\s*(?:\$|clp|usd|uf|eur)?\s*\d{1,3}(?:[.\s]\d{3})+(?:[.,]\d+)?|[-+]?\s*(?:\$|clp|usd|uf|eur)\s*\d+(?:[.,]\d+)?/i.test(
+    value,
+  );
+}
+
+function isMovementLikeRow(cells: string[]): boolean {
+  const joined = cells.join(' ').trim();
+  if (!joined) return false;
+  const hasDate = /\b(\d{4}-\d{2}-\d{2}|\d{1,2}[/-]\d{1,2}(?:[/-]\d{2,4})?)\b/.test(joined);
+  const amountCells = cells.filter((cell) => isFinancialAmountCell(cell)).length;
+  return hasDate && amountCells >= 1;
+}
+
+function extractStructuredTables(text: string) {
+  const lines = text
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .slice(0, 1800);
+  const tables: Array<{
+    headers: string[];
+    rows: string[][];
+    movement_like_rows: number;
+    rejected_rows: number;
+  }> = [];
+  let currentBlock: string[][] = [];
+
+  const flushBlock = () => {
+    if (currentBlock.length < 2) {
+      currentBlock = [];
+      return;
+    }
+    let headers = isHeaderLikeRow(currentBlock[0]) ? currentBlock[0] : [];
+    let body = headers.length > 0 ? currentBlock.slice(1) : currentBlock;
+    const movementRows = body.filter((cells) => isMovementLikeRow(cells));
+    const rejectedRows = body.length - movementRows.length;
+    if (movementRows.length === 0) {
+      currentBlock = [];
+      return;
+    }
+    if (headers.length === 0) {
+      headers = movementRows[0].map((_, index) => `col_${index + 1}`);
+      body = movementRows;
+    }
+    tables.push({
+      headers,
+      rows: body,
+      movement_like_rows: movementRows.length,
+      rejected_rows: rejectedRows,
+    });
+    currentBlock = [];
+  };
+
+  for (const line of lines) {
+    const cells = splitStructuredCells(line);
+    if (cells.length >= 3) {
+      currentBlock.push(cells);
+      continue;
+    }
+    flushBlock();
+  }
+  flushBlock();
+  return tables.slice(0, 12);
+}
+
 function inferDocumentSummary(text: string, filename: string): Record<string, unknown> {
   const compact = compactWhitespace(text);
   const moneyMatches = compact.match(/(?:\$|CLP|USD|UF)?\s?-?\d{1,3}(?:[.\s]\d{3})*(?:,\d+)?/gi) ?? [];
@@ -73,21 +187,42 @@ function inferDocumentSummary(text: string, filename: string): Record<string, un
   };
 }
 
-function extractStructuredFinancialData(text: string): Record<string, unknown> {
+function extractStructuredFinancialData(
+  text: string,
+  parserTables: ParsedTable[] = [],
+  parserMeta?: { mode?: string; confidence?: number } | null,
+): Record<string, unknown> {
   const rows = text
     .split('\n')
     .map((line) => line.trim())
     .filter(Boolean)
     .slice(0, 1000);
+  const tables =
+    parserTables.length > 0
+      ? parserTables.map((table) => ({
+          name: table.name,
+          headers: table.headers,
+          rows: table.rows,
+          source: table.source,
+          movement_like_rows: table.rows.length,
+          rejected_rows: 0,
+        }))
+      : extractStructuredTables(text);
   const possibleTransactions = rows
+    .filter((line) => !/\b(saldo anterior|saldo final|nuevo saldo|total|subtotal|resumen|pago minimo|pago mínimo|cupo|disponible)\b/i.test(line))
     .filter((line) => /\d{1,2}[/-]\d{1,2}[/-]\d{2,4}|\d{4}-\d{2}-\d{2}/.test(line))
     .filter((line) => /-?\d{1,3}(?:[.\s]\d{3})+(?:,\d+)?|-?\d+(?:,\d{2})/.test(line))
     .slice(0, 120);
+  const tableRowCount = tables.reduce((acc, table) => acc + (Array.isArray(table.rows) ? table.rows.length : 0), 0);
 
   return {
     rowCount: rows.length,
-    possibleTransactionCount: possibleTransactions.length,
-    possibleTransactions,
+    possibleTransactionCount: Math.max(possibleTransactions.length, tableRowCount),
+    possibleTransactions: possibleTransactions.length > 0 ? possibleTransactions : tables.flatMap((table) =>
+      Array.isArray(table.rows) ? table.rows.map((row) => row.join(' | ')) : []
+    ).slice(0, 120),
+    tables,
+    parserMeta: parserMeta ?? undefined,
   };
 }
 
@@ -159,9 +294,10 @@ async function uploadToVectorStore(params: {
 
 export async function ingestUserDocument(input: IngestUserDocumentInput) {
   const kind = detectDocumentKind(input.name);
-  const extractedText = await parseTransactionFile(input.buffer, input.name);
+  const parsed = await parseTransactionFileDetailed(input.buffer, input.name);
+  const extractedText = parsed.text;
   const summary = inferDocumentSummary(extractedText, input.name);
-  const structuredData = extractStructuredFinancialData(extractedText);
+  const structuredData = extractStructuredFinancialData(extractedText, parsed.tables, parsed.parserMeta);
 
   const document = await createDocumentRecord({
     userId: input.userId,

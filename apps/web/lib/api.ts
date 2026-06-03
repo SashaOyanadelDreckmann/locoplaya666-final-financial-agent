@@ -139,6 +139,18 @@ export async function parseDocuments(
   return parseApiResponse<any>(res);
 }
 
+export async function resolveDocuments(documentIds: string[]) {
+  const API_URL = getApiBaseUrl();
+  const res = await fetch(`${API_URL}/api/documents/resolve`, {
+    method: 'POST',
+    headers: withCsrf({ 'Content-Type': 'application/json' }),
+    credentials: 'include',
+    body: JSON.stringify({ documentIds }),
+  });
+
+  return parseApiResponse<any>(res);
+}
+
 export async function loadSheets() {
   const API_URL = getApiBaseUrl();
   const res = await fetch(`${API_URL}/api/sheets`, {

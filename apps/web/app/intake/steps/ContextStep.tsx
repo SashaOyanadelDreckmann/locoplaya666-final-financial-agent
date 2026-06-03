@@ -10,6 +10,8 @@ const EMPLOYMENT_OPTIONS: { value: IntakeQuestionnaire['employmentStatus']; labe
   { value: 'employed_freelance', label: 'Ambos', sub: 'Dependiente + independiente' },
   { value: 'student', label: 'Estudiante', sub: 'Sin ingresos laborales' },
   { value: 'employed_student', label: 'Estudiante + trabajo', sub: 'Estudio y trabajo' },
+  { value: 'freelance_student', label: 'Independiente + estudiante', sub: 'Freelance y estudio' },
+  { value: 'employed_freelance_student', label: 'Dependiente + independiente + estudiante', sub: 'Tres roles a la vez' },
   { value: 'unemployed', label: 'Sin trabajo', sub: 'Cesante actualmente' },
 ];
 

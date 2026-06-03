@@ -644,7 +644,7 @@ button {
   content: '';
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.64);
+  background: rgba(0, 0, 0, 0.76);
   pointer-events: none;
   z-index: 0;
 }

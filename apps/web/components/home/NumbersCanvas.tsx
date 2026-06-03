@@ -19,7 +19,7 @@ export interface MousePos { x: number; y: number }
 const PHASE = {
   inStart: 0.01,
   inEnd:   0.18,
-  outStart: 0.84,
+  outStart: 0.93,
   outEnd:   0.99,
 } as const;
 
@@ -53,7 +53,7 @@ export default function NumbersCanvas({
     let raf = 0, px: Px[] = [], cd: Cd[] = [], cols = 0, rows = 0;
 
     const img = new Image();
-    img.src = '/fondo4.jpg';
+    img.src = '/images/bg-door.jpg';
 
     // ── Sample image at cell resolution ──────────────────────────────────────
     function sample() {
@@ -124,10 +124,25 @@ export default function NumbersCanvas({
       // ── Background image — matte cinematic ─────────────────────────────────
       {
         const stylize = chaosP * 0.92;
-        ctx.globalAlpha = clamp(1 - midP * 0.92);
-        ctx.filter = `saturate(${0.72 + 0.50*stylize}) contrast(${1.10 - 0.44*stylize}) brightness(${0.62 - 0.16*stylize}) sepia(${0.06 + 0.04*stylize})`;
+        const photoAlpha = clamp(1 - midP * 0.92);
+        ctx.globalAlpha = photoAlpha;
+        ctx.filter = `saturate(${0.84 + 0.38*stylize}) contrast(${1.04 - 0.34*stylize}) brightness(${0.92 - 0.20*stylize}) sepia(${0.04 + 0.04*stylize})`;
         drawImageCover(ctx, img, W, H);
         ctx.filter = 'none';
+        // Matte overlay — matches .app-shell::before rgba(0,0,0,0.76)
+        if (photoAlpha > 0.005) {
+          ctx.globalAlpha = photoAlpha * 0.78;
+          ctx.fillStyle = '#000000';
+          ctx.fillRect(0, 0, W, H);
+        }
+        ctx.globalAlpha = 1;
+      }
+
+      // Dark fill replaces photo as numbers take over
+      if (midP > 0.01) {
+        ctx.globalAlpha = clamp(midP * 0.96);
+        ctx.fillStyle = '#060b18';
+        ctx.fillRect(0, 0, W, H);
         ctx.globalAlpha = 1;
       }
 

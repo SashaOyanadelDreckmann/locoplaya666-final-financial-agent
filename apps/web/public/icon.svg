@@ -1,3 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Financieramente">
-  <image href="/logo-financieramente.jpg" width="512" height="512" preserveAspectRatio="xMidYMid slice" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Logo Fm">
+  <rect width="512" height="512" fill="#ffffff" />
+  <text
+    x="34"
+    y="330"
+    fill="#000000"
+    font-family="Georgia, 'Times New Roman', serif"
+    font-size="250"
+    font-weight="700"
+    letter-spacing="-22"
+  >Fm</text>
 </svg>

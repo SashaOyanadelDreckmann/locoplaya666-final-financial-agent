@@ -190,6 +190,10 @@ export async function POST(req: Request) {
       );
     }
 
+    if (req.headers.get('content-length') && Number(req.headers.get('content-length')) > 32_000) {
+      return NextResponse.json({ ok: false, error: 'Payload too large' }, { status: 413 });
+    }
+
     const body = await req.json();
     const intent = normalizeIntent(body?.intent);
     if (!intent) {
@@ -199,42 +203,64 @@ export async function POST(req: Request) {
     const question = compactText(body?.question, 500);
     const rows = sanitizeBudgetRows(body?.budgetRows, 30);
     const activeRow = sanitizeBudgetRow(body?.activeRow);
-
-    if (intent === 'init' || !answer) {
-      return NextResponse.json(fallbackInit(rows));
-    }
+    const intakeContext = compactText(body?.intakeContext, 400);
+    const chatHistory = Array.isArray(body?.chatAnswers)
+      ? (body.chatAnswers as Array<{ q: unknown; a: unknown }>)
+          .slice(-4)
+          .map((pair) => `P: ${compactText(pair.q, 120)}\nR: ${compactText(pair.a, 240)}`)
+          .join('\n')
+      : '';
+    const productsSummary = Array.isArray(body?.products)
+      ? (body.products as Array<{ label?: unknown; dashboardSummary?: unknown }>)
+          .slice(0, 3)
+          .map((p) => `${compactText(p.label, 40)}: ${compactText(p.dashboardSummary, 120)}`)
+          .join('\n')
+      : '';
 
     const model = process.env.BUDGET_CHAT_MODEL || process.env.OPENAI_MODEL_FAST || 'gpt-4.1-mini';
     const client = new OpenAI({ apiKey });
 
-    const prompt = [
-      'Eres un agente financiero que actualiza una tabla de presupuesto sin fricción.',
-      'Objetivo: capturar UN movimiento por turno, con monto mensual y metadatos clave.',
-      'Responde JSON estricto con este formato:',
-      '{"assistant_text":"string <= 20 palabras","next_question":"string breve","focus_row_id":"string|null","action":{"kind":"add|update|delete","id":"string","category":"string","type":"income|expense","amount":number,"detail":"string opcional","note":"string opcional","cadence":"fixed|variable","payment_method":"transfer|debit|credit|cash|prepaid|other","movement_type":"income_main|income_extra|housing|home_services|food|transport|health|education|debt|savings_investment|taxes_fees|leisure_other"}}',
-      'No inventes montos. Si no hay monto claro, usa amount=0 y pide aclaración.',
-      'Prioriza actualizar la fila activa si aplica.',
-      `Pregunta actual: ${question || 'No especificada'}`,
-      `Respuesta usuario: ${answer}`,
-      `Fila activa: ${JSON.stringify(activeRow ?? null)}`,
-      `Filas actuales: ${JSON.stringify(rows.slice(0, 16))}`,
-    ].join('\n');
+    const systemMsg =
+      'Eres un asesor financiero personal para usuarios chilenos. ' +
+      'Responde SOLO JSON válido, sin markdown ni texto adicional. ' +
+      'Usa pesos chilenos (CLP). No inventes montos; si el usuario no los da, usa amount=0 y pide aclaración. ' +
+      'Sé cálido y directo. Máximo 20 palabras en assistant_reply.';
+
+    const buildPrompt = (isInit: boolean) => {
+      const parts = [
+        isInit
+          ? 'Inicia la conversación de presupuesto. Saluda brevemente y haz la primera pregunta más importante según las filas vacías.'
+          : 'Actualiza la tabla de presupuesto según la respuesta del usuario.',
+        'Formato JSON estricto:',
+        '{"assistant_reply":"string <= 20 palabras","next_question":"string breve","focus_row_id":"string|null","done":false,"coach_message":"string opcional","action":{"kind":"add|update|delete","id":"string","category":"string","type":"income|expense","amount":number,"detail":"string opcional","cadence":"fixed|variable","payment_method":"transfer|debit|credit|cash|prepaid|other","movement_type":"income_main|income_extra|housing|home_services|food|transport|health|education|debt|savings_investment|taxes_fees|leisure_other"}}',
+        rows.length > 0 ? `Filas actuales (${rows.length}): ${JSON.stringify(rows.slice(0, 16))}` : 'No hay filas aún.',
+        activeRow ? `Fila activa: ${JSON.stringify(activeRow)}` : '',
+        intakeContext ? `Contexto del usuario: ${intakeContext}` : '',
+        productsSummary ? `Productos bancarios:\n${productsSummary}` : '',
+        chatHistory ? `Historial reciente:\n${chatHistory}` : '',
+        !isInit && question ? `Pregunta anterior: ${question}` : '',
+        !isInit && answer ? `Respuesta usuario: ${answer}` : '',
+      ].filter(Boolean);
+      return parts.join('\n');
+    };
 
     const response = await client.chat.completions.create({
       model,
       response_format: { type: 'json_object' },
-      max_completion_tokens: 220,
+      max_completion_tokens: 450,
       messages: [
-        { role: 'system', content: 'Responde solo JSON válido, sin markdown.' },
-        { role: 'user', content: prompt },
+        { role: 'system', content: systemMsg },
+        { role: 'user', content: buildPrompt(intent === 'init') },
       ],
     });
 
     const raw = response.choices[0]?.message?.content?.trim() ?? '{}';
     const parsed = JSON.parse(raw) as {
-      assistant_text?: string;
+      assistant_reply?: string;
       next_question?: string;
       focus_row_id?: string | null;
+      done?: boolean;
+      coach_message?: string;
       action?: BudgetAction;
       update?: BudgetAction;
       actions?: BudgetAction[];
@@ -244,20 +270,22 @@ export async function POST(req: Request) {
       ? parsed.actions.map((item) => sanitizeAction(item)).filter(Boolean)
       : [sanitizeAction(parsed.action ?? parsed.update)].filter(Boolean);
 
-    const assistantText = compactText(
-      parsed.assistant_text ?? 'Perfecto. Sigamos con el siguiente movimiento.',
-      220,
+    const assistantReply = compactText(
+      parsed.assistant_reply ?? 'Perfecto. Sigamos con el siguiente movimiento.',
+      240,
     );
     const nextQuestion = compactText(
       parsed.next_question ?? '¿Qué movimiento quieres ajustar ahora?',
-      220,
+      240,
     );
 
     return NextResponse.json({
       ok: true,
-      assistant_text: assistantText || 'Perfecto. Sigamos con el siguiente movimiento.',
+      assistant_reply: assistantReply || 'Perfecto. Sigamos con el siguiente movimiento.',
       next_question: nextQuestion || '¿Qué movimiento quieres ajustar ahora?',
       focus_row_id: typeof parsed.focus_row_id === 'string' ? compactText(parsed.focus_row_id, 80) : null,
+      done: Boolean(parsed.done),
+      coach_message: typeof parsed.coach_message === 'string' ? compactText(parsed.coach_message, 200) : null,
       actions,
       action: actions[0] ?? null,
       model,

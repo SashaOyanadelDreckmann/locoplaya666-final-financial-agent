@@ -80,27 +80,10 @@ type BudgetRow = {
   category: string;
   type: 'income' | 'expense';
   amount: number;
+  parentId?: string;
   product?: string;
   institution?: string;
   note?: string;
-  detail?: string;
-  cadence?: 'fixed' | 'variable' | 'oneoff';
-  paymentMethod?: 'transfer' | 'debit' | 'credit' | 'cash' | 'prepaid' | 'other';
-  movementType?:
-    | 'income_main'
-    | 'income_extra'
-    | 'housing'
-    | 'home_services'
-    | 'food'
-    | 'transport'
-    | 'health'
-    | 'education'
-    | 'debt'
-    | 'savings_investment'
-    | 'taxes_fees'
-    | 'leisure_other';
-  momentum?: 'up' | 'steady' | 'down';
-  strategy?: 'shield' | 'review' | 'optimize';
 };
 
 type BankProduct = {
@@ -296,11 +279,6 @@ function createBudgetStarterRows(): BudgetRow[] {
       amount: 0,
       product: 'Ingresos principales',
       institution: '',
-      cadence: 'fixed',
-      paymentMethod: 'transfer',
-      movementType: 'income_main',
-      momentum: 'steady',
-      strategy: 'shield',
     },
     {
       id: 'expense_rent',
@@ -309,11 +287,6 @@ function createBudgetStarterRows(): BudgetRow[] {
       amount: 0,
       product: 'Vivienda',
       institution: '',
-      cadence: 'fixed',
-      paymentMethod: 'debit',
-      movementType: 'housing',
-      momentum: 'steady',
-      strategy: 'shield',
     },
     {
       id: 'expense_food',
@@ -322,11 +295,6 @@ function createBudgetStarterRows(): BudgetRow[] {
       amount: 0,
       product: 'Gasto recurrente',
       institution: '',
-      cadence: 'variable',
-      paymentMethod: 'debit',
-      movementType: 'food',
-      momentum: 'up',
-      strategy: 'review',
     },
     {
       id: 'expense_transport',
@@ -335,11 +303,6 @@ function createBudgetStarterRows(): BudgetRow[] {
       amount: 0,
       product: 'Movilidad',
       institution: '',
-      cadence: 'variable',
-      paymentMethod: 'debit',
-      movementType: 'transport',
-      momentum: 'up',
-      strategy: 'review',
     },
     {
       id: 'expense_services',
@@ -348,11 +311,6 @@ function createBudgetStarterRows(): BudgetRow[] {
       amount: 0,
       product: 'Hogar',
       institution: '',
-      cadence: 'fixed',
-      paymentMethod: 'debit',
-      movementType: 'home_services',
-      momentum: 'up',
-      strategy: 'review',
     },
     {
       id: 'expense_debt',
@@ -361,11 +319,6 @@ function createBudgetStarterRows(): BudgetRow[] {
       amount: 0,
       product: 'Crédito',
       institution: '',
-      cadence: 'fixed',
-      paymentMethod: 'credit',
-      movementType: 'debt',
-      momentum: 'steady',
-      strategy: 'optimize',
     },
     {
       id: 'expense_savings',
@@ -374,11 +327,6 @@ function createBudgetStarterRows(): BudgetRow[] {
       amount: 0,
       product: 'Ahorro',
       institution: '',
-      cadence: 'fixed',
-      paymentMethod: 'transfer',
-      movementType: 'savings_investment',
-      momentum: 'steady',
-      strategy: 'shield',
     },
     {
       id: 'expense_other',
@@ -387,11 +335,6 @@ function createBudgetStarterRows(): BudgetRow[] {
       amount: 0,
       product: 'Variables',
       institution: '',
-      cadence: 'variable',
-      paymentMethod: 'cash',
-      movementType: 'leisure_other',
-      momentum: 'up',
-      strategy: 'optimize',
     },
   ];
 }
@@ -409,117 +352,13 @@ const BUDGET_ROW_ID_ALIASES: Record<string, string> = {
   'expense-other': 'expense_other',
 };
 
-const MOVEMENT_TYPE_BY_ROW_ID: Partial<Record<string, NonNullable<BudgetRow['movementType']>>> = {
-  income_salary: 'income_main',
-  expense_rent: 'housing',
-  expense_food: 'food',
-  expense_transport: 'transport',
-  expense_services: 'home_services',
-  expense_debt: 'debt',
-  expense_savings: 'savings_investment',
-  expense_other: 'leisure_other',
-};
-
 function canonicalBudgetRowId(id: string) {
   return BUDGET_ROW_ID_ALIASES[id] ?? id;
 }
 
-function stripLegacySubmovements(rows: BudgetRow[]): BudgetRow[] {
-  const withLegacy = rows as Array<BudgetRow & { parentId?: string }>;
-  const childRows = withLegacy.filter((row) => typeof row.parentId === 'string' && row.parentId.trim().length > 0);
-  if (childRows.length === 0) return rows;
-
-  const childIds = new Set(childRows.map((row) => row.id));
-  return withLegacy
-    .filter((row) => !childIds.has(row.id))
-    .map((row) => {
-      const { parentId: _ignoredParentId, ...rest } = row as BudgetRow & { parentId?: string };
-      return rest as BudgetRow;
-    });
-}
-
-function normalizePaymentMethod(
-  value: BudgetRow['paymentMethod'],
-  rowType: BudgetRow['type']
-): NonNullable<BudgetRow['paymentMethod']> {
-  if (value === 'transfer' || value === 'debit' || value === 'credit' || value === 'cash' || value === 'prepaid' || value === 'other') {
-    return value;
-  }
-  return rowType === 'income' ? 'transfer' : 'debit';
-}
-
-function inferMovementType(row: Pick<BudgetRow, 'id' | 'category' | 'type'>): NonNullable<BudgetRow['movementType']> {
-  const byId = MOVEMENT_TYPE_BY_ROW_ID[canonicalBudgetRowId(row.id)];
-  if (byId) return byId;
-
-  const normalized = `${row.category} ${row.id}`
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '');
-
-  if (row.type === 'income') {
-    if (/\b(extra|adicional|freelance|boleta|comision|comisión|side|secundar)\b/.test(normalized)) return 'income_extra';
-    return 'income_main';
-  }
-  if (/\b(arriend|viviend|hipotec)\b/.test(normalized)) return 'housing';
-  if (/\b(servicio|luz|agua|gas|internet|telefon)\b/.test(normalized)) return 'home_services';
-  if (/\b(aliment|comida|supermerc|feria|restaurant)\b/.test(normalized)) return 'food';
-  if (/\b(transporte|metro|bus|uber|bencina|movilidad|peaje)\b/.test(normalized)) return 'transport';
-  if (/\b(salud|medic|farmac|clinica|isapre)\b/.test(normalized)) return 'health';
-  if (/\b(educa|colegio|universid|curso)\b/.test(normalized)) return 'education';
-  if (/\b(deuda|credito|crédito|cuota|prestamo|tarjeta)\b/.test(normalized)) return 'debt';
-  if (/\b(ahorr|inversion|inversión|apv|fondo)\b/.test(normalized)) return 'savings_investment';
-  if (/\b(impuesto|comision|comisión|fee|cargo)\b/.test(normalized)) return 'taxes_fees';
-  return 'leisure_other';
-}
-
 function normalizeBudgetRow(row: BudgetRow): BudgetRow {
   const normalizedId = canonicalBudgetRowId(row.id);
-  const normalized: BudgetRow = normalizedId === row.id ? row : { ...row, id: normalizedId };
-  const normalizedCadence =
-    normalized.cadence === 'fixed'
-      ? 'fixed'
-      : normalized.cadence === 'variable' || normalized.cadence === 'oneoff'
-        ? 'variable'
-        : normalized.type === 'income'
-          ? 'fixed'
-          : 'variable';
-  const normalizedMovementType = (() => {
-    const raw = normalized.movementType;
-    if (
-      raw === 'income_main' ||
-      raw === 'income_extra' ||
-      raw === 'housing' ||
-      raw === 'home_services' ||
-      raw === 'food' ||
-      raw === 'transport' ||
-      raw === 'health' ||
-      raw === 'education' ||
-      raw === 'debt' ||
-      raw === 'savings_investment' ||
-      raw === 'taxes_fees' ||
-      raw === 'leisure_other'
-    ) {
-      return raw;
-    }
-    return inferMovementType(normalized);
-  })();
-  return {
-    ...normalized,
-    cadence: normalizedCadence,
-    paymentMethod: normalizePaymentMethod(normalized.paymentMethod, normalized.type),
-    movementType: normalizedMovementType,
-    momentum:
-      normalized.momentum === 'up' || normalized.momentum === 'steady' || normalized.momentum === 'down'
-        ? normalized.momentum
-        : 'steady',
-    strategy:
-      normalized.strategy === 'shield' || normalized.strategy === 'review' || normalized.strategy === 'optimize'
-        ? normalized.strategy
-        : normalized.type === 'income'
-          ? 'shield'
-          : 'review',
-  };
+  return normalizedId === row.id ? row : { ...row, id: normalizedId };
 }
 
 function normalizeProductAssistantState(raw: Partial<NonNullable<BankProduct['assistant']>> | undefined) {
@@ -738,9 +577,7 @@ const POST_DIAGNOSIS_CHAT_IDS = ['chat-1', 'chat-2', 'chat-3'] as const;
 const MAX_BUDGET_ROWS = 30;
 const MAX_TRANSACTION_PRODUCTS = 7;
 const MAX_PRODUCT_RECREATIONS = 3;
-const MAX_EVIDENCE_FILES_PER_PRODUCT = 25;
-const MAX_EVIDENCE_FILE_BYTES = 10 * 1024 * 1024;
-const MAX_EVIDENCE_TOTAL_BYTES = 35 * 1024 * 1024;
+const MAX_EVIDENCE_FILES_PER_PRODUCT = 7;
 
 const KNOWLEDGE_MILESTONE_DEFS = [
   { id: 'intake', label: 'Cuestionario y perfil base', threshold: 20 },
@@ -1006,7 +843,7 @@ export default function AgentPage() {
   const panelLoopPausedRef = useRef(false);
   const panelLoopAutoTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const panelLoopResumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const disableMobilePanelHorizontalMotion = false;
+  const disableMobilePanelHorizontalMotion = true;
   const [newReportId, setNewReportId] = useState<string | null>(null);
   const [isLandingRecents, setIsLandingRecents] = useState(false);
   const [panelCallout, setPanelCallout] = useState<{ section: string; message: string } | null>(null);
@@ -2080,19 +1917,27 @@ export default function AgentPage() {
   }
 
   const budgetTotals = useMemo(() => {
-    const income = budgetRows
+    const parentIds = new Set(budgetRows.filter((row) => row.parentId).map((row) => row.parentId as string));
+    const effectiveRows = budgetRows.filter((row) => !parentIds.has(row.id));
+    const income = effectiveRows
       .filter((r) => r.type === 'income')
       .reduce((acc, r) => acc + r.amount, 0);
-    const expenses = budgetRows
+    const expenses = effectiveRows
       .filter((r) => r.type === 'expense')
       .reduce((acc, r) => acc + r.amount, 0);
     return { income, expenses, balance: income - expenses };
   }, [budgetRows]);
 
   const budgetInsights = useMemo(() => {
-    const nonZeroRows = budgetRows.filter((row) => row.amount > 0);
+    const parentIds = new Set(budgetRows.filter((row) => row.parentId).map((row) => row.parentId as string));
+    const effectiveRows = budgetRows.filter((row) => !parentIds.has(row.id));
+    const nonZeroRows = effectiveRows.filter((row) => row.amount > 0);
     const expenseRows = nonZeroRows.filter((row) => row.type === 'expense');
-    const fixedLike = expenseRows.filter((row) => normalizeBudgetRow(row).cadence === 'fixed');
+    const fixedLike = expenseRows.filter((row) =>
+      /(arriendo|hipoteca|luz|agua|internet|suscrip|colegio|seguro|deuda)/i.test(
+        `${row.category} ${row.note ?? ''}`
+      )
+    );
     const variableLike = expenseRows.filter((row) => !fixedLike.some((f) => f.id === row.id));
     const fixedTotal = fixedLike.reduce((sum, row) => sum + row.amount, 0);
     const variableTotal = variableLike.reduce((sum, row) => sum + row.amount, 0);
@@ -2134,21 +1979,19 @@ export default function AgentPage() {
       savingsRate,
       healthScore,
       topExpenses,
-      risingExpenseCount: expenseRows.filter((row) => row.momentum === 'up').length,
-      optimizePotential: expenseRows
-        .filter((row) => row.strategy === 'review' || row.strategy === 'optimize')
-        .reduce((sum, row) => sum + row.amount, 0),
     };
   }, [budgetRows, budgetTotals.balance, budgetTotals.expenses, budgetTotals.income]);
 
   const budgetCompletion = useMemo(() => {
-    const filledRows = budgetRows.filter((row) => row.amount > 0);
+    const parentIds = new Set(budgetRows.filter((row) => row.parentId).map((row) => row.parentId as string));
+    const effectiveRows = budgetRows.filter((row) => !parentIds.has(row.id));
+    const filledRows = effectiveRows.filter((row) => row.amount > 0);
     const fillRate =
-      budgetRows.length > 0 ? Math.round((filledRows.length / budgetRows.length) * 100) : 0;
+      effectiveRows.length > 0 ? Math.round((filledRows.length / effectiveRows.length) * 100) : 0;
     return {
       filledRows,
       fillRate,
-      totalRows: budgetRows.length,
+      totalRows: effectiveRows.length,
     };
   }, [budgetRows]);
 
@@ -2180,13 +2023,9 @@ export default function AgentPage() {
     );
     const nextAction =
       balanceTone === 'deficit'
-        ? budgetInsights.optimizePotential > 0
-          ? 'Ataca primero las filas marcadas para optimizar y revisar.'
-          : 'Completa vivienda, deuda y servicios para cerrar fugas.'
+        ? 'Completa vivienda, deuda y servicios para cerrar fugas.'
         : coreFillRate < 70
         ? 'Llena la plantilla base antes de refinar categorías secundarias.'
-        : budgetInsights.risingExpenseCount >= 2
-        ? 'Hay presión al alza: revisa rubros que suben y congela fugas.'
         : 'Afina variables y convierte el balance en una meta concreta.';
 
     return {
@@ -2198,10 +2037,8 @@ export default function AgentPage() {
       coreFillRate,
       readinessScore,
       nextAction,
-      risingExpenseCount: budgetInsights.risingExpenseCount,
-      optimizePotential: budgetInsights.optimizePotential,
     };
-  }, [budgetInsights.healthScore, budgetInsights.optimizePotential, budgetInsights.risingExpenseCount, budgetRows, budgetTotals.balance]);
+  }, [budgetInsights.healthScore, budgetRows, budgetTotals.balance]);
 
   const intakeData = useMemo(
     () => (sessionInfo?.injectedIntake?.intake ?? null) as Record<string, unknown> | null,
@@ -2533,13 +2370,11 @@ export default function AgentPage() {
         if (panelState && typeof panelState === 'object') {
           if (Array.isArray(panelState.budgetRows) && panelState.budgetRows.length > 0) {
             setBudgetRows(
-              reconcileBudgetRows(
-                panelState.budgetRows.map((row: any) =>
-                  normalizeBudgetRow({
-                    ...(row as BudgetRow),
-                    note: typeof row?.note === 'string' ? row.note : '',
-                  })
-                )
+              panelState.budgetRows.map((row: any) =>
+                normalizeBudgetRow({
+                  ...(row as BudgetRow),
+                  note: typeof row?.note === 'string' ? row.note : '',
+                })
               )
             );
           }
@@ -2616,13 +2451,11 @@ export default function AgentPage() {
                 const panelState = localBackupParsed;
                 if (Array.isArray(panelState.budgetRows) && panelState.budgetRows.length > 0) {
                   setBudgetRows(
-                    reconcileBudgetRows(
-                      panelState.budgetRows.map((row: any) =>
-                        normalizeBudgetRow({
-                          ...(row as BudgetRow),
-                          note: typeof row?.note === 'string' ? row.note : '',
-                        })
-                      )
+                    panelState.budgetRows.map((row: any) =>
+                      normalizeBudgetRow({
+                        ...(row as BudgetRow),
+                        note: typeof row?.note === 'string' ? row.note : '',
+                      })
                     )
                   );
                 }
@@ -3048,18 +2881,7 @@ export default function AgentPage() {
           budget_rows: budgetRows
             .filter((r) => r.amount > 0 || r.category.trim().length > 0)
             .slice(0, 20)
-            .map((r) => ({
-              category: r.category,
-              detail: r.detail,
-              type: r.type,
-              amount: r.amount,
-              note: r.note,
-              cadence: r.cadence,
-              paymentMethod: r.paymentMethod,
-              movementType: r.movementType,
-              momentum: r.momentum,
-              strategy: r.strategy,
-            })),
+            .map((r) => ({ category: r.category, type: r.type, amount: r.amount, note: r.note })),
           flow_status: getFlowStatus(),
         },
         preferences: {
@@ -3150,26 +2972,17 @@ export default function AgentPage() {
               updated[existingIdx] = { ...updated[existingIdx], amount: upd.amount };
             } else {
               if (updated.length >= MAX_BUDGET_ROWS) continue;
-              const inferredType: BudgetRow['type'] = upd.type;
-              const inferredCategory = upd.category ?? (upd.type === 'income' ? 'Ingresos' : 'Gastos');
               // Add new row
               updated.push({
                 id: `agent-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-                category: inferredCategory,
-                type: inferredType,
+                category: upd.category ?? (upd.type === 'income' ? 'Ingresos' : 'Gastos'),
+                type: upd.type,
                 amount: upd.amount,
                 note: upd.label,
-                cadence: inferredType === 'income' ? 'fixed' : 'variable',
-                paymentMethod: inferredType === 'income' ? 'transfer' : 'debit',
-                movementType: inferMovementType({
-                  id: inferredCategory,
-                  category: inferredCategory,
-                  type: inferredType,
-                }),
               });
             }
           }
-          return reconcileBudgetRows(updated.slice(0, MAX_BUDGET_ROWS));
+          return updated.slice(0, MAX_BUDGET_ROWS);
         });
       }
 
@@ -3275,14 +3088,40 @@ export default function AgentPage() {
   }
 
   function reconcileBudgetRows(rows: BudgetRow[]): BudgetRow[] {
-    const flattenedRows = stripLegacySubmovements(rows);
-    const normalizedRows = flattenedRows.map((row) => {
-      const normalized = normalizeBudgetRow(row);
-      return { ...normalized, amount: Math.max(0, Number(normalized.amount) || 0) };
+    // Keep parent/child type consistent, then roll up amounts from descendants.
+    const byId = new Map(rows.map((row) => [row.id, row]));
+    const typed = rows.map((row) => {
+      if (!row.parentId) return row;
+      const parent = byId.get(row.parentId);
+      if (!parent) return { ...row, parentId: undefined };
+      if (row.type === parent.type) return row;
+      return { ...row, type: parent.type };
     });
-    const dedupedById = new Map<string, BudgetRow>();
-    normalizedRows.forEach((row) => dedupedById.set(row.id, row));
-    return Array.from(dedupedById.values()).slice(0, MAX_BUDGET_ROWS);
+    const childrenByParentId = new Map<string, BudgetRow[]>();
+    typed.forEach((row) => {
+      if (!row.parentId) return;
+      const bucket = childrenByParentId.get(row.parentId) ?? [];
+      bucket.push(row);
+      childrenByParentId.set(row.parentId, bucket);
+    });
+    const amountMemo = new Map<string, number>();
+    const computeRolledUpAmount = (row: BudgetRow): number => {
+      if (amountMemo.has(row.id)) return amountMemo.get(row.id)!;
+      const children = childrenByParentId.get(row.id) ?? [];
+      if (children.length === 0) {
+        const selfAmount = Math.max(0, Number(row.amount) || 0);
+        amountMemo.set(row.id, selfAmount);
+        return selfAmount;
+      }
+      const rolled = children.reduce((sum, child) => sum + computeRolledUpAmount(child), 0);
+      amountMemo.set(row.id, rolled);
+      return rolled;
+    };
+    return typed.map((row) => {
+      const children = childrenByParentId.get(row.id) ?? [];
+      if (children.length === 0) return row;
+      return { ...row, amount: computeRolledUpAmount(row) };
+    });
   }
 
   function updateBudgetRow(
@@ -3302,7 +3141,17 @@ export default function AgentPage() {
             }
           : row
       );
-      return reconcileBudgetRows(updated);
+      // If parent type changes manually, propagate it to all children.
+      const propagated =
+        field === 'type'
+          ? updated.map((row) => {
+              const parent = updated.find((candidate) => candidate.id === row.parentId);
+              if (!parent) return row;
+              if (row.type === parent.type) return row;
+              return { ...row, type: parent.type };
+            })
+          : updated;
+      return reconcileBudgetRows(propagated);
     });
   }
 
@@ -3317,7 +3166,7 @@ export default function AgentPage() {
         return existing ? { ...templateRow, ...existing } : templateRow;
       });
       const customRows = normalizedRows.filter((row) => !templateIds.has(row.id));
-      return reconcileBudgetRows([...mergedStarterRows, ...customRows]);
+      return [...mergedStarterRows, ...customRows];
     });
   }
 
@@ -3330,16 +3179,11 @@ export default function AgentPage() {
           : [
               {
                 id: `${type}-${Date.now()}`,
-                category: type === 'income' ? 'Nuevo movimiento de ingreso' : 'Nuevo movimiento de gasto',
+                category: type === 'income' ? 'Nuevo ingreso' : 'Nuevo gasto',
                 type,
                 amount: 0,
                 product: type === 'income' ? 'Producto ingreso' : 'Producto gasto',
                 institution: '',
-                cadence: type === 'income' ? 'fixed' : 'variable',
-                paymentMethod: type === 'income' ? 'transfer' : 'debit',
-                movementType: type === 'income' ? 'income_extra' : 'leisure_other',
-                momentum: 'steady',
-                strategy: type === 'income' ? 'shield' : 'review',
               } as BudgetRow,
             ]),
       ];
@@ -3347,8 +3191,41 @@ export default function AgentPage() {
     });
   }
 
+  function addBudgetSubcategory(parentId: string) {
+    setBudgetRows((rows) => {
+      if (rows.length >= MAX_BUDGET_ROWS) return rows;
+      const parent = rows.find((row) => row.id === parentId);
+      if (!parent) return rows;
+      const siblings = rows.filter((row) => row.parentId === parentId);
+      const nextIdx = siblings.length + 1;
+      const subId = `${parentId}-sub-${Date.now()}`;
+      const subRow: BudgetRow = {
+        id: subId,
+        parentId,
+        category: `${parent.category} · item ${nextIdx}`,
+        type: parent.type,
+        amount: 0,
+      };
+      return reconcileBudgetRows([...rows, subRow]);
+    });
+  }
+
   function deleteBudgetRow(id: string) {
-    setBudgetRows((rows) => reconcileBudgetRows(rows.filter((row) => row.id !== id)));
+    setBudgetRows((rows) => {
+      const deleteSet = new Set([id]);
+      let changed = true;
+      while (changed) {
+        changed = false;
+        rows.forEach((row) => {
+          if (row.parentId && deleteSet.has(row.parentId) && !deleteSet.has(row.id)) {
+            deleteSet.add(row.id);
+            changed = true;
+          }
+        });
+      }
+      const next = rows.filter((row) => !deleteSet.has(row.id));
+      return reconcileBudgetRows(next);
+    });
   }
 
   function upsertBudgetRow(row: BudgetRow) {
@@ -3378,14 +3255,9 @@ export default function AgentPage() {
           type: row.type,
           amount: Math.round(Number(row.amount) || 0),
           note: row.note || undefined,
-          detail: row.detail || undefined,
+          parentId: row.parentId ?? null,
           product: row.product || undefined,
           institution: row.institution || undefined,
-          cadence: row.cadence,
-          paymentMethod: row.paymentMethod,
-          movementType: row.movementType,
-          momentum: row.momentum,
-          strategy: row.strategy,
         })),
     };
   }
@@ -3423,14 +3295,9 @@ export default function AgentPage() {
     const budgetSummary = rowsWithData.map((r) => ({
       id: r.id,
       category: (r.category ?? '').trim().slice(0, 64) || 'sin_categoria',
-      detail: (r.detail ?? '').trim().slice(0, 120) || null,
       type: r.type === 'income' ? 'income' : 'expense',
       amount: Math.round(Number(r.amount) || 0),
-      cadence: r.cadence ?? null,
-      paymentMethod: r.paymentMethod ?? null,
-      movementType: r.movementType ?? null,
-      momentum: r.momentum ?? null,
-      strategy: r.strategy ?? null,
+      parentId: r.parentId ?? null,
     }));
     const intakeCompact = (() => {
       const intake = (intakeData ?? {}) as Record<string, unknown>;
@@ -3750,60 +3617,14 @@ export default function AgentPage() {
       setTransactionUploadError('Formato no soportado. Usa imagen, PDF, Excel, CSV o TXT.');
       return null;
     }
-    const sizeEligibleFiles = selectedFiles.filter((file) => file.size <= MAX_EVIDENCE_FILE_BYTES);
-    const oversizeCount = selectedFiles.length - sizeEligibleFiles.length;
-    if (sizeEligibleFiles.length === 0) {
-      setTransactionUploadError(
-        `Todos los archivos exceden ${Math.round(MAX_EVIDENCE_FILE_BYTES / (1024 * 1024))} MB por archivo.`,
-      );
-      return null;
-    }
-    const totalEligibleFiles: File[] = [];
-    let totalEligibleBytes = 0;
-    let droppedByTotalBytes = 0;
-    for (const file of sizeEligibleFiles) {
-      if (totalEligibleBytes + file.size > MAX_EVIDENCE_TOTAL_BYTES) {
-        droppedByTotalBytes += 1;
-        continue;
-      }
-      totalEligibleFiles.push(file);
-      totalEligibleBytes += file.size;
-    }
-    if (totalEligibleFiles.length === 0) {
-      setTransactionUploadError(
-        `El total cargado supera ${Math.round(MAX_EVIDENCE_TOTAL_BYTES / (1024 * 1024))} MB. Divide los archivos en bloques.`,
-      );
-      return null;
-    }
     const availableSlots = Math.max(0, MAX_EVIDENCE_FILES_PER_PRODUCT - activeBankProduct.uploadedFiles.length);
     if (availableSlots <= 0) {
       setTransactionUploadError(`Este producto ya alcanzó el límite de ${MAX_EVIDENCE_FILES_PER_PRODUCT} archivos.`);
       return null;
     }
-    const cappedFiles = totalEligibleFiles.slice(0, availableSlots);
-    if (cappedFiles.length === 0) {
-      setTransactionUploadError('No hay archivos válidos para analizar después de aplicar límites de peso y cupo.');
-      return null;
-    }
-    const slotDropCount = totalEligibleFiles.length - cappedFiles.length;
-    if (oversizeCount > 0 || droppedByTotalBytes > 0 || slotDropCount > 0) {
-      const notices: string[] = [];
-      if (oversizeCount > 0) {
-        notices.push(
-          `${oversizeCount} archivo(s) excedían ${Math.round(MAX_EVIDENCE_FILE_BYTES / (1024 * 1024))} MB.`,
-        );
-      }
-      if (droppedByTotalBytes > 0) {
-        notices.push(
-          `${droppedByTotalBytes} archivo(s) quedaron fuera por límite total de ${Math.round(
-            MAX_EVIDENCE_TOTAL_BYTES / (1024 * 1024),
-          )} MB.`,
-        );
-      }
-      if (slotDropCount > 0) {
-        notices.push(`Límite por producto: ${MAX_EVIDENCE_FILES_PER_PRODUCT} archivos.`);
-      }
-      setTxCreationNotice(notices.join(' '));
+    const cappedFiles = selectedFiles.slice(0, availableSlots);
+    if (cappedFiles.length < selectedFiles.length) {
+      setTxCreationNotice(`Se cargaron ${cappedFiles.length} archivos. Límite por producto: ${MAX_EVIDENCE_FILES_PER_PRODUCT}.`);
     }
     const names = cappedFiles.map((f) => f.name);
     setTransactionUploadError(null);
@@ -4004,6 +3825,24 @@ export default function AgentPage() {
     } catch (error) {
       const errorText = toUserFacingError(error, 'generic');
       setTransactionUploadError(errorText);
+      setBankSimulation((prev) => {
+        if (!prev.activeProductId) return prev;
+        const active = prev.products.find((p) => p.id === prev.activeProductId);
+        if (!active) return prev;
+        const nextFiles = Array.from(new Set([...active.uploadedFiles, ...names]));
+        const products = prev.products.map((p) =>
+          p.id === active.id ? { ...p, uploadedFiles: nextFiles } : p
+        );
+        const snapshot = getSimulationSnapshot(products, prev.activeProductId);
+        return {
+          ...prev,
+          products,
+          uploadedFiles: snapshot.uploadedFiles,
+          parsedDocuments: snapshot.parsedDocuments,
+          connected: snapshot.connected,
+          randomMode: snapshot.randomMode,
+        };
+      });
       return null;
     } finally {
       setDocumentsLoading(false);
@@ -4026,12 +3865,6 @@ export default function AgentPage() {
         amount: Math.max(0, Math.round(Number(category.amount))),
         product: product.label,
         institution: product.bank,
-        paymentMethod: 'debit',
-        movementType: inferMovementType({
-          id: `expense-auto-${category.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 28)}`,
-          category: category.name,
-          type: 'expense',
-        }),
         note: 'Estimado desde movimientos de producto',
       }));
 
@@ -4068,8 +3901,6 @@ export default function AgentPage() {
             amount: incomeEstimate,
             product: product.label,
             institution: product.bank,
-            paymentMethod: 'transfer',
-            movementType: 'income_main',
             note: 'Estimado solo desde señales de ingreso (no suma abonos/transferencias)',
           }
         : {
@@ -4079,8 +3910,6 @@ export default function AgentPage() {
             amount: 0,
             product: product.label,
             institution: product.bank,
-            paymentMethod: 'transfer',
-            movementType: 'income_main',
             note: isCardLikeProduct
               ? 'Producto tipo tarjeta/crédito: no se infiere ingreso desde abonos.'
               : 'Sin señales claras de sueldo/pensión/honorarios: completa tu ingreso mensual.',
@@ -4098,7 +3927,7 @@ export default function AgentPage() {
       };
       if (incomeRow) upsert(incomeRow);
       for (const row of expenseRows) upsert(row);
-      return reconcileBudgetRows(next);
+      return next;
     });
   }
 
@@ -4631,16 +4460,16 @@ export default function AgentPage() {
 
               <button
                 type="button"
-                className="composer-send-plain"
+                className="continue-button composer-icon-btn composer-send-btn"
                 disabled={isActiveChatLocked}
                 onClick={() => {
                   void onSend(chatComposerRef.current?.value ?? input);
                 }}
                 aria-label="Enviar mensaje"
               >
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path d="M22 2L11 13" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M22 2L15 22L11 13L2 9L22 2z" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M5 12h12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+                  <path d="M13 6l6 6-6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </button>
             </div>
@@ -4716,6 +4545,7 @@ export default function AgentPage() {
         applyBudgetTemplate={applyBudgetTemplate}
         coachHint={coachHint}
         addBudgetRow={addBudgetRow}
+        addBudgetSubcategory={addBudgetSubcategory}
         deleteBudgetRow={deleteBudgetRow}
         sendBudgetToAgent={sendBudgetToAgent}
         chatAnswers={budgetChatAnswers}

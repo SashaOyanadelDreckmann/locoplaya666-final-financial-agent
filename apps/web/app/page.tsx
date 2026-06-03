@@ -10,7 +10,6 @@ import {
   useMotionValue, useInView,
   type Variants,
 } from 'framer-motion';
-import LiveChatDemo from '../components/home/LiveChatDemo';
 import SpotlightCard from '../components/home/SpotlightCard';
 import Counter from '../components/home/Counter';
 import NumbersCanvas from '../components/home/NumbersCanvas';
@@ -129,8 +128,7 @@ function ProblemSection() {
         display: 'flex',
         alignItems: 'center',
         overflow: 'hidden',
-        background: BG_INDIGO,
-        borderTop: '1px solid rgba(111,143,166,0.10)',
+        background: 'transparent',
       }}>
 
         {/* Color overlay vibrante */}
@@ -272,9 +270,8 @@ function StatsSection() {
 
   return (
     <section ref={ref} style={{
-      background: BG_NAVY,
+      background: 'transparent',
       padding: 'clamp(70px,10vw,130px) clamp(24px,8vw,120px)',
-      borderTop: '1px solid rgba(111,143,166,0.10)',
       position: 'relative',
       overflow: 'hidden',
     }}>
@@ -330,7 +327,7 @@ function StepsSection() {
 
   return (
     <section ref={ref} style={{
-      background: BG_SLATE,
+      background: 'transparent',
       padding: 'clamp(80px,12vw,160px) clamp(24px,8vw,120px)',
       borderTop: '1px solid rgba(164,143,79,0.10)',
       position: 'relative',
@@ -425,54 +422,6 @@ function StepsSection() {
   );
 }
 
-// ── Preview Section ────────────────────────────────────────────────────────────
-function PreviewSection() {
-  const ref = useRef<HTMLElement>(null);
-  const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end start'] });
-  const headY = useTransform(scrollYProgress, [0, 0.5, 1], [40, 0, -30]);
-  const headO = useTransform(scrollYProgress, [0, 0.18, 0.8, 1], [0, 1, 1, 0.3]);
-
-  return (
-    <section ref={ref} style={{
-      background: BG_INDIGO,
-      padding: 'clamp(80px,12vw,160px) clamp(24px,8vw,120px)',
-      borderTop: '1px solid rgba(111,143,166,0.10)',
-      position: 'relative',
-      overflow: 'hidden',
-    }}>
-      <div style={{
-        position: 'absolute', inset: 0, pointerEvents: 'none',
-        background: 'radial-gradient(ellipse 50% 60% at 90% 30%, rgba(20,45,85,0.30) 0%, transparent 65%)',
-      }} />
-      <motion.div style={{ y: headY, opacity: headO, position: 'relative', zIndex: 1 }}>
-        <Label text="En acción" color={BLUE_DIM} />
-        <h2 style={{
-          fontSize: 'clamp(30px,5vw,68px)',
-          fontFamily: 'Georgia, "Times New Roman", serif',
-          fontWeight: 700,
-          lineHeight: 1.02,
-          letterSpacing: '-0.034em',
-          color: 'white',
-          margin: '0 0 clamp(48px,7vw,80px)',
-          maxWidth: 520,
-        }}>
-          Una conversación que<br />
-          <em style={{ fontStyle: 'italic', color: 'rgba(255,255,255,0.50)' }}>cambia cómo ves tu dinero.</em>
-        </h2>
-      </motion.div>
-      <motion.div
-        whileInView={{ opacity: 1, y: 0 }}
-        initial={{ opacity: 0, y: 30 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.9, ease: SILK }}
-        style={{ position: 'relative', zIndex: 1 }}
-      >
-        <LiveChatDemo />
-      </motion.div>
-    </section>
-  );
-}
-
 // ── CTA Section ────────────────────────────────────────────────────────────────
 function CtaSection() {
   const router = useRouter();
@@ -483,7 +432,7 @@ function CtaSection() {
 
   return (
     <section ref={ref} style={{
-      background: BG_WARM,
+      background: 'transparent',
       padding: 'clamp(120px,16vw,220px) clamp(24px,8vw,120px)',
       borderTop: '1px solid rgba(164,143,79,0.10)',
       position: 'relative',
@@ -574,19 +523,21 @@ export default function HomePage() {
         <NumbersCanvas progress={canvasProgress} mouseRef={mousePosRef} />
       </div>
 
-      {/* Grain */}
+      {/* Grain — dot-pattern matching .app-shell::after */}
       <div
         aria-hidden
         style={{
-          position: 'fixed', inset: 0, zIndex: 10, pointerEvents: 'none',
-          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.78' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23g)'/%3E%3C/svg%3E")`,
-          backgroundRepeat: 'repeat', backgroundSize: '220px 220px',
-          opacity: 0.048, mixBlendMode: 'overlay',
+          position: 'fixed', inset: '-40%', zIndex: 1, pointerEvents: 'none',
+          backgroundImage: `radial-gradient(rgba(255,255,255,0.2) 0.8px, transparent 1.15px), radial-gradient(rgba(0,0,0,0.38) 0.9px, transparent 1.3px)`,
+          backgroundSize: '3px 3px, 7px 7px',
+          backgroundPosition: '0 0, 2px 3px',
+          opacity: 0.4,
+          mixBlendMode: 'normal',
         }}
       />
 
       {/* Rango de scroll para el canvas */}
-      <div ref={scrollRangeRef} style={{ position: 'relative', zIndex: 1 }}>
+      <div ref={scrollRangeRef} style={{ position: 'relative', zIndex: 2 }}>
 
         {/* ─── HERO ──────────────────────────────────────────────────────── */}
         <section
@@ -627,12 +578,7 @@ export default function HomePage() {
           {/* Gradiente — visible desde el primer frame */}
           <div style={{
             position: 'absolute', inset: 0, zIndex: 2, pointerEvents: 'none',
-            background: 'linear-gradient(to bottom, rgba(6,11,24,0.78) 0%, rgba(6,11,24,0.25) 22%, rgba(6,11,24,0.06) 44%, rgba(6,11,24,0.55) 68%, rgba(6,11,24,0.92) 100%)',
-          }} />
-          {/* Fondo sólido detrás del texto hero para garantizar contraste */}
-          <div style={{
-            position: 'absolute', bottom: 0, left: 0, right: 0, height: '38%', zIndex: 3, pointerEvents: 'none',
-            background: 'linear-gradient(to top, rgba(6,11,24,0.96) 0%, rgba(6,11,24,0.70) 60%, transparent 100%)',
+            background: 'linear-gradient(to bottom, rgba(6,11,24,0.78) 0%, rgba(6,11,24,0.25) 22%, rgba(6,11,24,0.06) 44%, rgba(6,11,24,0.04) 72%, rgba(6,11,24,0) 100%)',
           }} />
 
           {/* Contenido */}
@@ -650,7 +596,7 @@ export default function HomePage() {
                   style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
                 >
                   <div style={{ width: 40, height: 40, borderRadius: 9, overflow: 'hidden', flexShrink: 0, boxShadow: '0 4px 16px rgba(0,0,0,0.4)' }}>
-                    <Image src="/logo-financieramente.jpg" alt="Financieramente" width={40} height={40} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <Image src="/logo-fm.svg" alt="Financieramente" width={40} height={40} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   </div>
                   <span style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.82)', letterSpacing: '0.005em' }}>
                     Financieramente
@@ -758,12 +704,8 @@ export default function HomePage() {
         <FeaturesSection />
         <StatsSection />
         <StepsSection />
-
-      </div>
-
-      <div style={{ position: 'relative', zIndex: 1 }}>
-        <PreviewSection />
         <CtaSection />
+
       </div>
 
     </main>

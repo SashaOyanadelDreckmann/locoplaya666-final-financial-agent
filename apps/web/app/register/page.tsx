@@ -67,7 +67,7 @@ export default function RegisterPage() {
       <div className="auth-card">
         <div className="auth-logo-mark" aria-label="Financieramente">
           <Image
-            src="/logo-financieramente.jpg"
+            src="/logo-fm.svg"
             alt="Financieramente"
             width={112}
             height={112}

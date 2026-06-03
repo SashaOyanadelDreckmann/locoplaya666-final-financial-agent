@@ -41,12 +41,20 @@ describe('transactions-chat route', () => {
     });
   });
 
+  function buildReq(body: unknown) {
+    return new Request('http://localhost/api/transactions-chat', {
+      method: 'POST',
+      headers: {
+        cookie: 'csrf-token=test-csrf',
+        'x-csrf-token': 'test-csrf',
+      },
+      body: JSON.stringify(body),
+    });
+  }
+
   it('returns 401 when user is not authenticated', async () => {
     mockedRequireBackendSession.mockRejectedValueOnce(new Error('UNAUTHENTICATED'));
-    const req = new Request('http://localhost/api/transactions-chat', {
-      method: 'POST',
-      body: JSON.stringify({ mode: 'chat', messages: [] }),
-    });
+    const req = buildReq({ mode: 'chat', messages: [] });
 
     const res = await POST(req);
     const body = await res.json();
@@ -59,10 +67,7 @@ describe('transactions-chat route', () => {
 
   it('returns 429 when rate limit is exceeded', async () => {
     mockedCheckRateLimit.mockReturnValueOnce({ ok: false, retryAfter: 15 });
-    const req = new Request('http://localhost/api/transactions-chat', {
-      method: 'POST',
-      body: JSON.stringify({ mode: 'chat', messages: [] }),
-    });
+    const req = buildReq({ mode: 'chat', messages: [] });
 
     const res = await POST(req);
     const body = await res.json();
@@ -75,10 +80,7 @@ describe('transactions-chat route', () => {
   });
 
   it('returns 400 for invalid mode', async () => {
-    const req = new Request('http://localhost/api/transactions-chat', {
-      method: 'POST',
-      body: JSON.stringify({ mode: 'drop_db' }),
-    });
+    const req = buildReq({ mode: 'drop_db' });
 
     const res = await POST(req);
     const body = await res.json();
@@ -93,13 +95,10 @@ describe('transactions-chat route', () => {
     mockCreate.mockResolvedValueOnce({
       choices: [{ message: { content: JSON.stringify({ summary: 'resumen premium' }) } }],
     });
-    const req = new Request('http://localhost/api/transactions-chat', {
-      method: 'POST',
-      body: JSON.stringify({
-        mode: 'summary',
-        product: { bank: 'Banco', label: 'TC', productType: 'credit_card' },
-        parsedDocuments: [],
-      }),
+    const req = buildReq({
+      mode: 'summary',
+      product: { bank: 'Banco', label: 'TC', productType: 'credit_card' },
+      parsedDocuments: [],
     });
 
     const res = await POST(req);
@@ -116,12 +115,9 @@ describe('transactions-chat route', () => {
     mockCreate.mockResolvedValueOnce({
       choices: [{ message: { content: JSON.stringify({ assistant_text: 'respuesta corta' }) } }],
     });
-    const req = new Request('http://localhost/api/transactions-chat', {
-      method: 'POST',
-      body: JSON.stringify({
-        mode: 'chat',
-        messages: [{ role: 'user', text: 'hola' }],
-      }),
+    const req = buildReq({
+      mode: 'chat',
+      messages: [{ role: 'user', text: 'hola' }],
     });
 
     const res = await POST(req);
@@ -132,5 +128,37 @@ describe('transactions-chat route', () => {
     expect(body.assistant_text).toBe('respuesta corta');
     expect(typeof body.model).toBe('string');
     expect(mockCreate).toHaveBeenCalledTimes(1);
+  });
+
+  it('falls back safely when the model returns malformed JSON', async () => {
+    mockCreate.mockResolvedValueOnce({
+      choices: [{ message: { content: 'not-json' } }],
+    });
+    const req = buildReq({
+      mode: 'chat',
+      messages: [{ role: 'user', text: 'hola' }],
+    });
+
+    const res = await POST(req);
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.assistant_text).toBe('Listo.');
+    expect(mockCreate).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns 403 when csrf token is missing', async () => {
+    const req = new Request('http://localhost/api/transactions-chat', {
+      method: 'POST',
+      body: JSON.stringify({ mode: 'chat', messages: [] }),
+    });
+
+    const res = await POST(req);
+    const body = await res.json();
+
+    expect(res.status).toBe(403);
+    expect(body.ok).toBe(false);
+    expect(body.error).toBe('CSRF token invalid or missing');
   });
 });

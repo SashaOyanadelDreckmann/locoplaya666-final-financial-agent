@@ -32,11 +32,11 @@ function getAllowedOrigins(): string[] {
   return origins.filter(Boolean);
 }
 
-function validateFetchUrl(fileUrl: string): string {
+function validateFetchUrl(fileUrl: string, localOrigin: string): string {
   const isAbs = /^https?:\/\//i.test(fileUrl);
   if (!isAbs) {
-    // Relative URLs are always resolved to the trusted API origin — safe.
-    return `${process.env.NEXT_PUBLIC_API_ORIGIN ?? 'http://localhost:3001'}${fileUrl}`;
+    // Local app assets (e.g. /generated/...) live on the frontend origin.
+    return `${localOrigin.replace(/\/+$/, '')}${fileUrl}`;
   }
 
   // For absolute URLs, validate against the allowlist.
@@ -54,9 +54,8 @@ function validateFetchUrl(fileUrl: string): string {
 }
 
 async function fetchPdfBytes(fileUrl: string, cookie: string) {
-  const url = validateFetchUrl(fileUrl);
   // redirect:'error' prevents SSRF via open-redirect on allowed origins
-  const res = await fetch(url, {
+  const res = await fetch(fileUrl, {
     cache: 'no-store',
     redirect: 'error',
     headers: { cookie },
@@ -70,6 +69,7 @@ export async function POST(req: Request) {
   try {
     const session = await requireBackendSession(req);
     const cookie = req.headers.get('cookie') ?? '';
+    const localOrigin = new URL(req.url).origin;
 
     const rl = checkRateLimit(`artifacts:${session.userId}`, 20, 60_000);
     if (!rl.ok) {
@@ -98,7 +98,7 @@ export async function POST(req: Request) {
     const outPath = path.join(outDir, `${id}.pdf`);
     await fs.mkdir(outDir, { recursive: true });
 
-    const bytes = await fetchPdfBytes(body.fileUrl, cookie);
+    const bytes = await fetchPdfBytes(validateFetchUrl(body.fileUrl, localOrigin), cookie);
     await fs.writeFile(outPath, bytes);
 
     // URL served by the authenticated backend endpoint

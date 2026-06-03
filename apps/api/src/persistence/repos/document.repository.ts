@@ -217,3 +217,31 @@ export async function searchUserDocumentsLocal(
     .sort((a, b) => b.score - a.score || b.createdAt.localeCompare(a.createdAt))
     .slice(0, limit);
 }
+
+export async function getUserDocumentsByIds(
+  userId: string,
+  ids: string[],
+): Promise<StoredUserDocument[]> {
+  const uniqueIds = Array.from(new Set(ids.map((id) => String(id || '').trim()).filter(Boolean)));
+  if (uniqueIds.length === 0) return [];
+
+  if (getPersistenceMode() === 'memory') {
+    return uniqueIds
+      .map((id) => memoryStore.documents.get(id) ?? null)
+      .filter((doc): doc is StoredUserDocument => Boolean(doc))
+      .filter((doc) => doc.userId === userId);
+  }
+
+  const prisma = await getPrismaClient();
+  const records = await (prisma as any).userDocument.findMany({
+    where: {
+      userId,
+      id: { in: uniqueIds },
+    },
+  });
+  const byId = new Map(records.map((record: Record<string, unknown>) => {
+    const doc = toStoredDocument(record);
+    return [doc.id, doc] as const;
+  }));
+  return uniqueIds.map((id) => byId.get(id) ?? null).filter((doc): doc is StoredUserDocument => Boolean(doc));
+}

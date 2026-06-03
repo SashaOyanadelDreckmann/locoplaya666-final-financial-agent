@@ -70,12 +70,18 @@ export type StoredPanelState = {
     amount: number;
     note: string;
   }>;
-  bankSimulation: {
-    username: string;
-    connected: boolean;
-    randomMode: boolean;
-    uploadedFiles: string[];
-    parsedDocuments: StoredUploadedDocument[];
+  budgetChatAnswers?: Array<{
+    q: string;
+    a: string;
+  }>;
+  bankSimulation: Record<string, unknown> & {
+    products?: Array<Record<string, unknown>>;
+    activeProductId?: string | null;
+    lockedMonth?: string | null;
+    connected?: boolean;
+    randomMode?: boolean;
+    uploadedFiles?: string[];
+    parsedDocuments?: StoredUploadedDocument[];
   };
   savedReports: StoredReport[];
   updatedAt: string;
