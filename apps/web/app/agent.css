@@ -46,9 +46,9 @@ html.agent-global-monochrome {
   .transactions-modal .pt-item.pt-item-stack {
     top: 50% !important;
     left: 50% !important;
-    width: calc(100% - 18px) !important;
-    max-width: calc(100% - 18px) !important;
-    height: calc(100% - 12px) !important;
+    width: calc(100% - 44px) !important;
+    max-width: calc(100% - 44px) !important;
+    height: calc(100% - 34px) !important;
     overflow: hidden !important;
     padding: 14px 16px !important;
     gap: 4px !important;
@@ -2297,6 +2297,7 @@ html.agent-global-monochrome {
   isolation: isolate;
   overflow: hidden;
   border-radius: 28px;
+  padding: 10px 0 12px;
 }
 
 .transactions-modal .tx-library-stack-block {
@@ -2312,12 +2313,10 @@ html.agent-global-monochrome {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: calc(100% - 18px);
-  height: calc(100% - 12px);
+  width: calc(100% - 44px);
+  height: calc(100% - 34px);
   transform:
     translate(-50%, -50%)
-    translateX(calc((var(--pt-stack-shift, 0)) * 1px))
-    translateY(calc(var(--pt-stack-depth-y, 0) * 1px))
     scale(calc(1 - (var(--pt-stack-idx, 0) * 0.045)))
     rotate(calc(var(--pt-stack-tilt, 0) * 1deg));
   z-index: calc(40 - var(--pt-stack-idx, 0));
@@ -2333,6 +2332,11 @@ html.agent-global-monochrome {
   text-align: center !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
+  transition:
+    transform 0.22s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    opacity 0.2s ease !important;
 }
 
 .pt-item.pt-item-stack.is-top {
@@ -2344,33 +2348,28 @@ html.agent-global-monochrome {
 .pt-item.pt-item-stack:focus-visible {
   transform:
     translate(-50%, -50%)
-    translateX(calc((var(--pt-stack-shift, 0)) * 1px))
-    translateY(calc(var(--pt-stack-depth-y, 0) * 1px))
-    scale(calc((1 - (var(--pt-stack-idx, 0) * 0.045)) * 1.018));
+    scale(calc((1 - (var(--pt-stack-idx, 0) * 0.045)) * 1.018))
+    rotate(calc(var(--pt-stack-tilt, 0) * 1deg)) !important;
+}
+
+.pt-item.pt-item-stack:hover {
+  box-shadow: 0 16px 30px rgba(3, 12, 21, 0.34) !important;
 }
 
 .pt-item.pt-item-stack:nth-child(1) {
-  --pt-stack-shift: 0;
   --pt-stack-tilt: -0.4;
-  --pt-stack-depth-y: 0;
 }
 
 .pt-item.pt-item-stack:nth-child(2) {
-  --pt-stack-shift: -24;
-  --pt-stack-tilt: -3.2;
-  --pt-stack-depth-y: -2;
+  --pt-stack-tilt: -5.2;
 }
 
 .pt-item.pt-item-stack:nth-child(3) {
-  --pt-stack-shift: 22;
-  --pt-stack-tilt: 2.8;
-  --pt-stack-depth-y: -4;
+  --pt-stack-tilt: 4.6;
 }
 
 .pt-item.pt-item-stack:nth-child(4) {
-  --pt-stack-shift: -14;
-  --pt-stack-tilt: -2;
-  --pt-stack-depth-y: -5;
+  --pt-stack-tilt: -2.8;
 }
 
 .pt-item.pt-item-stack:not(.is-top) {
@@ -2382,8 +2381,16 @@ html.agent-global-monochrome {
 .pt-item.pt-item-stack:not(.is-top) .pt-item-meta,
 .pt-item.pt-item-stack:not(.is-top) .pt-item-meta span,
 .pt-item.pt-item-stack:not(.is-top) .pt-item-top {
-  opacity: 0.28;
-  filter: blur(3px);
+  opacity: 0.18;
+  filter: blur(4px);
+}
+
+.pt-item.pt-item-stack:not(.is-top)::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(9, 15, 24, 0.16), rgba(9, 15, 24, 0.3));
+  pointer-events: none;
 }
 
 .pt-item.pt-item-stack .pt-item-top {
@@ -12643,7 +12650,7 @@ input[type="radio"]:checked {
     0 0 0 1px rgba(255, 255, 255, 0.12),
     inset 0 1px 0 rgba(255, 255, 255, 0.28);
   overflow: hidden;
-  animation: chatBrandLogoShift 10s ease-in-out infinite;
+  animation: chatBrandLogoShift 24s ease-in-out infinite;
 }
 
 .chat-brand-logo-frame {
@@ -12663,7 +12670,7 @@ input[type="radio"]:checked {
 
 .chat-brand-logo-bg {
   fill: #ffffff;
-  animation: chatBrandMenteFill 18s ease-in-out infinite;
+  animation: chatBrandMenteFill 28s ease-in-out infinite;
 }
 
 .chat-brand-logo-lettermark {
@@ -12700,8 +12707,8 @@ input[type="radio"]:checked {
   font-weight: 600;
   letter-spacing: -0.01em;
   line-height: 1;
-  transition: font-weight 700ms ease, color 900ms ease, transform 700ms ease;
-  animation: chatBrandMenteTint 18s ease-in-out infinite;
+  transition: font-weight 1200ms ease, color 1800ms ease, transform 1200ms ease;
+  animation: chatBrandMenteTint 28s ease-in-out infinite;
 }
 
 .chat-brand-mente--bold {
@@ -25457,9 +25464,9 @@ input[type="radio"]:checked {
   .transactions-modal .pt-item.pt-item-stack {
     top: 50% !important;
     left: 50% !important;
-    width: calc(100% - 18px) !important;
-    max-width: calc(100% - 18px) !important;
-    height: calc(100% - 12px) !important;
+    width: calc(100% - 44px) !important;
+    max-width: calc(100% - 44px) !important;
+    height: calc(100% - 34px) !important;
     overflow: hidden !important;
   }
 
@@ -35552,3 +35559,369 @@ body.agent-route-active .app-shell::before {
   }
 }
 /* END tx-ap-* ══════════════════════════════════════════════════════ */
+
+/* Final lock: product library cards must stay on the exact same x/y center. */
+.transactions-modal .pt-list {
+  overflow: visible !important;
+}
+
+.transactions-modal .pt-stack-carousel.tx-library-is-saved {
+  overflow: visible !important;
+  position: relative !important;
+  isolation: isolate !important;
+}
+
+.transactions-modal .pt-stack-carousel.tx-library-is-saved .pt-item.pt-item-stack.tx-lib-card,
+.transactions-modal .pt-stack-carousel.tx-library-is-saved .pt-item.pt-item-stack.tx-lib-card.is-top,
+.transactions-modal .pt-stack-carousel.tx-library-is-saved .pt-item.pt-item-stack.tx-lib-card:not(.is-top) {
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  right: auto !important;
+  bottom: auto !important;
+  width: calc(100% - 44px) !important;
+  max-width: calc(100% - 44px) !important;
+  height: calc(100% - 34px) !important;
+  transform-origin: center center !important;
+  transform:
+    translate3d(-50%, -50%, 0)
+    scale(calc(1 - (var(--pt-stack-idx, 0) * 0.045)))
+    rotate(calc(var(--pt-stack-tilt, 0) * 1deg)) !important;
+  animation: none !important;
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    opacity 0.18s ease !important;
+}
+
+.transactions-modal .pt-stack-carousel.tx-library-is-saved .pt-item.pt-item-stack.tx-lib-card:hover,
+.transactions-modal .pt-stack-carousel.tx-library-is-saved .pt-item.pt-item-stack.tx-lib-card:focus-visible,
+.transactions-modal .pt-stack-carousel.tx-library-is-saved .pt-item.pt-item-stack.tx-lib-card.is-top:hover {
+  transform:
+    translate3d(-50%, -50%, 0)
+    scale(calc((1 - (var(--pt-stack-idx, 0) * 0.045)) * 1.018))
+    rotate(calc(var(--pt-stack-tilt, 0) * 1deg)) !important;
+}
+
+.transactions-modal .pt-stack-carousel.tx-library-is-saved .pt-item.pt-item-stack:nth-child(1) {
+  --pt-stack-tilt: -0.6;
+}
+
+.transactions-modal .pt-stack-carousel.tx-library-is-saved .pt-item.pt-item-stack:nth-child(2) {
+  --pt-stack-tilt: -7.5;
+}
+
+.transactions-modal .pt-stack-carousel.tx-library-is-saved .pt-item.pt-item-stack:nth-child(3) {
+  --pt-stack-tilt: 7;
+}
+
+.transactions-modal .pt-stack-carousel.tx-library-is-saved .pt-item.pt-item-stack:nth-child(4) {
+  --pt-stack-tilt: -4;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   TX-AP OVERRIDES — typography fix + footer buttons
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Editorial summary: force Apple executive sans, never mono ───── */
+.transactions-modal .tx-ap-executive-prose .tx-summary-editorial {
+  max-width: 100%;
+  gap: 14px;
+}
+
+.transactions-modal .tx-ap-executive-prose .tx-summary-editorial-kicker {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif !important;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: rgba(125, 180, 230, 0.7);
+}
+
+.transactions-modal .tx-ap-executive-prose .tx-summary-editorial-body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif !important;
+  font-size: 14.5px;
+  font-weight: 400;
+  line-height: 1.72;
+  letter-spacing: -0.005em;
+  color: rgba(220, 232, 245, 0.88);
+  max-width: 100%;
+}
+
+.transactions-modal .tx-ap-executive-prose .tx-summary-editorial-block.is-lead .tx-summary-editorial-body {
+  font-family: Georgia, 'Times New Roman', serif !important;
+  font-size: clamp(1.15rem, 1.6vw, 1.5rem) !important;
+  font-weight: 400;
+  line-height: 1.52 !important;
+  letter-spacing: -0.022em !important;
+  color: rgba(240, 248, 255, 0.96) !important;
+  text-wrap: balance;
+}
+
+.transactions-modal .tx-ap-executive-prose .tx-summary-editorial-block {
+  border-top-color: rgba(143, 178, 214, 0.09);
+  gap: 6px;
+  padding-top: 12px;
+}
+
+/* ── Footer actions: centered row, compact buttons ───────────────── */
+.transactions-modal .tx-ap-footer-actions {
+  justify-content: center !important;
+  gap: 8px !important;
+  padding-top: 4px;
+  flex-wrap: wrap;
+}
+
+.transactions-modal .tx-ap-footer-actions-right {
+  display: contents;
+}
+
+.transactions-modal .tx-ap-footer-actions .continue-ghost,
+.transactions-modal .tx-ap-footer-actions .button-primary {
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  padding: 6px 15px !important;
+  min-height: 32px !important;
+  height: 32px !important;
+  border-radius: 10px !important;
+  letter-spacing: 0.01em !important;
+  line-height: 1 !important;
+}
+
+/* Guardar producto: match ghost style, light teal accent to distinguish */
+.transactions-modal .tx-ap-footer-actions .button-primary:not(.is-saved-product) {
+  background: rgba(125, 200, 230, 0.10) !important;
+  border-color: rgba(125, 200, 230, 0.30) !important;
+  color: rgba(195, 228, 245, 0.92) !important;
+  box-shadow:
+    0 6px 14px rgba(0,0,0,0.22),
+    inset 0 1px 0 rgba(200,230,250,0.12) !important;
+}
+
+.transactions-modal .tx-ap-footer-actions .button-primary:not(.is-saved-product):hover {
+  background: rgba(125, 200, 230, 0.17) !important;
+  border-color: rgba(150, 215, 240, 0.45) !important;
+}
+
+.transactions-modal .tx-ap-footer-actions .button-primary.is-saved-product {
+  background: rgba(60, 120, 80, 0.18) !important;
+  border-color: rgba(120, 200, 150, 0.28) !important;
+  color: rgba(170, 235, 195, 0.9) !important;
+  box-shadow:
+    0 6px 14px rgba(0,0,0,0.22),
+    inset 0 1px 0 rgba(150,220,180,0.10) !important;
+}
+
+/* Delete button: subtle danger tint */
+.transactions-modal .tx-ap-footer-actions .tx-delete-product-btn {
+  color: rgba(240, 130, 120, 0.6) !important;
+  border-color: rgba(240, 130, 120, 0.18) !important;
+}
+
+.transactions-modal .tx-ap-footer-actions .tx-delete-product-btn:hover {
+  color: rgba(240, 130, 120, 0.85) !important;
+  border-color: rgba(240, 130, 120, 0.32) !important;
+  background: rgba(240, 130, 120, 0.07) !important;
+}
+/* END overrides ════════════════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════════════════════════════
+   TX-AP PRO TABLES — Apple executive data table redesign
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Table card — full width variant ────────────────────────────── */
+.transactions-modal .tx-ap-table-card--full {
+  padding: 0;
+  overflow: hidden;
+}
+
+.transactions-modal .tx-ap-table-card--full > .tx-ap-section-label {
+  display: block;
+  padding: 16px 20px 12px;
+}
+
+/* ── Table shell: scroll container ──────────────────────────────── */
+.transactions-modal .tx-ap-table-card .tx-movements-table-shell,
+.transactions-modal .tx-ap-table-card--full .tx-movements-table-shell {
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: 420px;
+  border-radius: 0 0 14px 14px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(143,178,214,0.2) transparent;
+}
+
+.transactions-modal .tx-ap-table-card .tx-movements-table-shell::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.transactions-modal .tx-ap-table-card .tx-movements-table-shell::-webkit-scrollbar-thumb {
+  background: rgba(143,178,214,0.22);
+  border-radius: 4px;
+}
+
+/* ── Pro table base ──────────────────────────────────────────────── */
+.transactions-modal .tx-movements-table--pro {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif !important;
+  font-size: 12.5px;
+  font-weight: 400;
+  table-layout: auto;
+}
+
+/* ── Header ──────────────────────────────────────────────────────── */
+.transactions-modal .tx-movements-table--pro thead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.transactions-modal .tx-movements-table--pro thead tr {
+  background:
+    linear-gradient(180deg, rgba(20,30,46,0.98) 0%, rgba(14,22,36,0.96) 100%);
+  border-bottom: 1px solid rgba(143,178,214,0.14);
+}
+
+.transactions-modal .tx-movements-table--pro thead th {
+  padding: 10px 14px;
+  text-align: left;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif !important;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(156,178,202,0.55);
+  white-space: nowrap;
+  border-right: 1px solid rgba(143,178,214,0.06);
+}
+
+.transactions-modal .tx-movements-table--pro thead th:last-child {
+  border-right: none;
+}
+
+/* ── Body rows ───────────────────────────────────────────────────── */
+.transactions-modal .tx-movements-table--pro tbody tr {
+  border-bottom: 1px solid rgba(143,178,214,0.07);
+  transition: background 140ms ease;
+}
+
+.transactions-modal .tx-movements-table--pro tbody tr:last-child {
+  border-bottom: none;
+}
+
+.transactions-modal .tx-movements-table--pro tbody tr:hover {
+  background: rgba(143,178,214,0.06);
+}
+
+.transactions-modal .tx-movements-table--pro tbody td {
+  padding: 9px 14px;
+  color: rgba(220,232,245,0.82);
+  vertical-align: middle;
+  white-space: nowrap;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif !important;
+  border-right: 1px solid rgba(143,178,214,0.05);
+}
+
+.transactions-modal .tx-movements-table--pro tbody td:last-child {
+  border-right: none;
+}
+
+/* Amount column: Georgia tabular serif */
+.transactions-modal .tx-movements-table--pro tbody td:nth-child(5),
+.transactions-modal .tx-movements-table--pro thead th:nth-child(5) {
+  font-family: Georgia, 'Times New Roman', serif !important;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  font-size: 13px;
+  letter-spacing: -0.01em;
+  color: rgba(230,242,255,0.9);
+}
+
+/* Confidence / percentage columns */
+.transactions-modal .tx-movements-table--pro tbody td:nth-child(7) {
+  text-align: center;
+  font-size: 11px;
+  color: rgba(156,178,202,0.55);
+  letter-spacing: 0.02em;
+}
+
+/* Detail column: allow wrapping on mobile */
+.transactions-modal .tx-movements-table--pro tbody td:nth-child(3) {
+  white-space: normal;
+  max-width: 260px;
+  min-width: 120px;
+  line-height: 1.35;
+  color: rgba(230,242,255,0.82);
+}
+
+/* Striped rows for readability */
+.transactions-modal .tx-movements-table--pro tbody tr:nth-child(even) {
+  background: rgba(255,255,255,0.018);
+}
+
+.transactions-modal .tx-movements-table--pro tbody tr:nth-child(even):hover {
+  background: rgba(143,178,214,0.07);
+}
+
+/* Empty cell */
+.transactions-modal .tx-movements-table--pro tbody td[colspan] {
+  text-align: center;
+  padding: 28px 14px;
+  color: rgba(156,178,202,0.4);
+  font-size: 12px;
+  border-right: none;
+}
+
+/* ── Total box — pro version ─────────────────────────────────────── */
+.transactions-modal .tx-ap-table-card .tx-table-total-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-top: 1px solid rgba(143,178,214,0.1);
+  background: rgba(255,255,255,0.025);
+}
+
+.transactions-modal .tx-ap-table-card .tx-table-total-box span {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif !important;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: rgba(156,178,202,0.55);
+}
+
+.transactions-modal .tx-ap-table-card .tx-table-total-box strong {
+  font-family: Georgia, 'Times New Roman', serif !important;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  font-variant-numeric: tabular-nums;
+}
+
+.transactions-modal .tx-ap-table-card .tx-table-total-box.is-income strong {
+  color: #7de8b8;
+}
+
+.transactions-modal .tx-ap-table-card .tx-table-total-box.is-expense strong {
+  color: #f08080;
+}
+
+/* ── Responsive pro tables ───────────────────────────────────────── */
+@media (max-width: 820px) {
+  .transactions-modal .tx-movements-table--pro tbody td:nth-child(3) {
+    max-width: 160px;
+  }
+}
+
+@media (max-width: 480px) {
+  .transactions-modal .tx-movements-table--pro thead th,
+  .transactions-modal .tx-movements-table--pro tbody td {
+    padding: 8px 10px;
+    font-size: 11.5px;
+  }
+}
+/* END pro tables ═══════════════════════════════════════════════════ */

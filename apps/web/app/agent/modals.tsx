@@ -3064,6 +3064,29 @@ export function TransactionsModal(props: {
                         </div>
                       </div>
 
+                      {assistantMessages.length > 0 && (
+                      <div className="tx-chat-thread">
+                        {assistantMessages.map((message) => (
+                          <div
+                            key={message.id}
+                            className={`tx-chat-bubble ${message.role === 'user' ? 'is-user' : 'is-assistant'}`}
+                          >
+                            <div className="tx-chat-bubble-role">
+                              {message.role === 'user' ? 'Tú' : 'Asistente'}
+                            </div>
+                            <div className="tx-chat-bubble-text">{message.text}</div>
+                            {message.attachments && message.attachments.length > 0 && (
+                              <div className="tx-chat-bubble-attachments">
+                                {message.attachments.map((attachment) => (
+                                  <span key={attachment} className="upload-file-pill">{attachment}</span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                      )}
+
                       {!analysisAlreadyDone && (
                         <div className="tx-upload-onboarding tx-upload-onboarding--agent tx-upload-onboarding--bare">
                           {txUploadOnboardingStep === 'format' && (
@@ -3134,29 +3157,6 @@ export function TransactionsModal(props: {
                             </div>
                           )}
                         </div>
-                      )}
-
-                      {assistantMessages.length > 0 && (
-                      <div className="tx-chat-thread">
-                        {assistantMessages.map((message) => (
-                          <div
-                            key={message.id}
-                            className={`tx-chat-bubble ${message.role === 'user' ? 'is-user' : 'is-assistant'}`}
-                          >
-                            <div className="tx-chat-bubble-role">
-                              {message.role === 'user' ? 'Tú' : 'Asistente'}
-                            </div>
-                            <div className="tx-chat-bubble-text">{message.text}</div>
-                            {message.attachments && message.attachments.length > 0 && (
-                              <div className="tx-chat-bubble-attachments">
-                                {message.attachments.map((attachment) => (
-                                  <span key={attachment} className="upload-file-pill">{attachment}</span>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
                       )}
 
                       {(analysisAlreadyDone || txUploadOnboardingStep === 'upload') && (
@@ -3352,6 +3352,131 @@ export function TransactionsModal(props: {
                         <span className="tx-ap-signal-chip">{props.activeBankProduct.dashboard?.currency || 'CLP'}</span>
                       </div>
                     </div>
+
+                    {/* ── Movement Tables (optional, right after masthead) ── */}
+                    {showAllMovements ? (
+                      <>
+                        <div className="tx-ap-table-card tx-ap-table-card--full">
+                          <span className="tx-ap-section-label">Tabla completa de movimientos</span>
+                          <div className="tx-movements-table-shell">
+                            <table className="tx-movements-table tx-movements-table--pro" aria-label="Tabla completa de movimientos detectados">
+                              <thead>
+                                <tr>
+                                  <th>Tipo</th>
+                                  <th>Fecha</th>
+                                  <th>Detalle</th>
+                                  <th>Categoría</th>
+                                  <th>Monto</th>
+                                  <th>Fuente</th>
+                                  <th>Conf.</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {dedupedMovementRows.length === 0 ? (
+                                  <tr>
+                                    <td colSpan={7}>No hay movimientos detectados aún. Sube una cartola más nítida o archivo XLSX/PDF.</td>
+                                  </tr>
+                                ) : (
+                                  dedupedMovementRows.map((movement, idx) => (
+                                    <tr key={`mv-all-${idx}-${movement.directionForTotals}-${movement.label}-${movement.amount}`}>
+                                      <td>
+                                        <span className={movement.directionForTotals === 'income' ? 'tx-type-income' : 'tx-type-expense'}>
+                                          {movement.directionForTotals === 'income'
+                                            ? isCreditCardProduct ? 'Abono' : 'Ingreso'
+                                            : 'Egreso'}
+                                        </span>
+                                      </td>
+                                      <td>{movement.date || 'N/D'}</td>
+                                      <td>{movement.merchant ? `${movement.label} · ${movement.merchant}` : movement.label}</td>
+                                      <td>{movement.category || 'Otros'}</td>
+                                      <td>{formatCurrency(movement.amount)}</td>
+                                      <td>{movementSourceLabel(movement.sourceKind)}</td>
+                                      <td>{movement.categoryConfidence ? formatPercentCompact(movement.categoryConfidence * 100) : movement.confidence ? formatPercentCompact(movement.confidence * 100) : 'N/D'}</td>
+                                    </tr>
+                                  ))
+                                )}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                        <div className="tx-ap-split-tables">
+                          <div className="tx-ap-table-card">
+                            <span className="tx-ap-section-label">{isCreditCardProduct ? 'Abonos' : 'Ingresos'}</span>
+                            <div className="tx-movements-table-shell">
+                              <table className="tx-movements-table tx-movements-table--pro" aria-label="Tabla de ingresos y abonos">
+                                <thead>
+                                  <tr>
+                                    <th>Tipo</th>
+                                    <th>Fecha</th>
+                                    <th>Detalle</th>
+                                    <th>Categoría</th>
+                                    <th>Monto</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {incomeOrAbonoRows.length === 0 ? (
+                                    <tr>
+                                      <td colSpan={5}>No hay ingresos/abonos detectados.</td>
+                                    </tr>
+                                  ) : (
+                                    incomeOrAbonoRows.map((movement, idx) => (
+                                      <tr key={`mv-in-${idx}-${movement.directionForTotals}-${movement.label}-${movement.amount}`}>
+                                        <td><span className="tx-type-income">{isCreditCardProduct ? 'Abono' : 'Ingreso'}</span></td>
+                                        <td>{movement.date || 'N/D'}</td>
+                                        <td>{movement.merchant ? `${movement.label} · ${movement.merchant}` : movement.label}</td>
+                                        <td>{movement.category || 'Otros'}</td>
+                                        <td>{formatCurrency(movement.amount)}</td>
+                                      </tr>
+                                    ))
+                                  )}
+                                </tbody>
+                              </table>
+                            </div>
+                            <div className="tx-table-total-box is-income" role="status" aria-live="polite">
+                              <span>{isCreditCardProduct ? 'Total abonos' : 'Total ingresos'}</span>
+                              <strong>{formatCurrency(incomeOrAbonoTotal)}</strong>
+                            </div>
+                          </div>
+                          <div className="tx-ap-table-card">
+                            <span className="tx-ap-section-label">Egresos</span>
+                            <div className="tx-movements-table-shell">
+                              <table className="tx-movements-table tx-movements-table--pro" aria-label="Tabla de egresos">
+                                <thead>
+                                  <tr>
+                                    <th>Tipo</th>
+                                    <th>Fecha</th>
+                                    <th>Detalle</th>
+                                    <th>Categoría</th>
+                                    <th>Monto</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {expenseRows.length === 0 ? (
+                                    <tr>
+                                      <td colSpan={5}>No hay egresos detectados.</td>
+                                    </tr>
+                                  ) : (
+                                    expenseRows.map((movement, idx) => (
+                                      <tr key={`mv-out-${idx}-${movement.directionForTotals}-${movement.label}-${movement.amount}`}>
+                                        <td><span className="tx-type-expense">Egreso</span></td>
+                                        <td>{movement.date || 'N/D'}</td>
+                                        <td>{movement.merchant ? `${movement.label} · ${movement.merchant}` : movement.label}</td>
+                                        <td>{movement.category || 'Otros'}</td>
+                                        <td>{formatCurrency(movement.amount)}</td>
+                                      </tr>
+                                    ))
+                                  )}
+                                </tbody>
+                              </table>
+                            </div>
+                            <div className="tx-table-total-box is-expense" role="status" aria-live="polite">
+                              <span>Total egresos</span>
+                              <strong>{formatCurrency(expenseTotal)}</strong>
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    ) : null}
 
                     {/* ── Executive Summary Prose ── */}
                     <div className="tx-ap-executive-prose">
@@ -3601,131 +3726,6 @@ export function TransactionsModal(props: {
                         </article>
                       </div>
                     </div>
-
-                    {/* ── Movement Tables (optional) ── */}
-                    {showAllMovements ? (
-                      <>
-                        <div className="tx-ap-table-card">
-                          <span className="tx-ap-section-label">Tabla completa de movimientos</span>
-                          <div className="tx-movements-table-shell">
-                            <table className="tx-movements-table" aria-label="Tabla completa de movimientos detectados">
-                              <thead>
-                                <tr>
-                                  <th>Tipo</th>
-                                  <th>Fecha</th>
-                                  <th>Detalle</th>
-                                  <th>Categoría</th>
-                                  <th>Monto</th>
-                                  <th>Fuente</th>
-                                  <th>Conf.</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {dedupedMovementRows.length === 0 ? (
-                                  <tr>
-                                    <td colSpan={7}>No hay movimientos detectados aún. Sube una cartola más nítida o archivo XLSX/PDF.</td>
-                                  </tr>
-                                ) : (
-                                  dedupedMovementRows.map((movement, idx) => (
-                                    <tr key={`mv-all-${idx}-${movement.directionForTotals}-${movement.label}-${movement.amount}`}>
-                                      <td>
-                                        <span className={movement.directionForTotals === 'income' ? 'tx-type-income' : 'tx-type-expense'}>
-                                          {movement.directionForTotals === 'income'
-                                            ? isCreditCardProduct ? 'Abono' : 'Ingreso'
-                                            : 'Egreso'}
-                                        </span>
-                                      </td>
-                                      <td>{movement.date || 'N/D'}</td>
-                                      <td>{movement.merchant ? `${movement.label} · ${movement.merchant}` : movement.label}</td>
-                                      <td>{movement.category || 'Otros'}</td>
-                                      <td>{formatCurrency(movement.amount)}</td>
-                                      <td>{movementSourceLabel(movement.sourceKind)}</td>
-                                      <td>{movement.categoryConfidence ? formatPercentCompact(movement.categoryConfidence * 100) : movement.confidence ? formatPercentCompact(movement.confidence * 100) : 'N/D'}</td>
-                                    </tr>
-                                  ))
-                                )}
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
-                        <div className="tx-ap-split-tables">
-                          <div className="tx-ap-table-card">
-                            <span className="tx-ap-section-label">{isCreditCardProduct ? 'Abonos' : 'Ingresos'}</span>
-                            <div className="tx-movements-table-shell">
-                              <table className="tx-movements-table" aria-label="Tabla de ingresos y abonos">
-                                <thead>
-                                  <tr>
-                                    <th>Tipo</th>
-                                    <th>Fecha</th>
-                                    <th>Detalle</th>
-                                    <th>Categoría</th>
-                                    <th>Monto</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {incomeOrAbonoRows.length === 0 ? (
-                                    <tr>
-                                      <td colSpan={5}>No hay ingresos/abonos detectados.</td>
-                                    </tr>
-                                  ) : (
-                                    incomeOrAbonoRows.map((movement, idx) => (
-                                      <tr key={`mv-in-${idx}-${movement.directionForTotals}-${movement.label}-${movement.amount}`}>
-                                        <td><span className="tx-type-income">{isCreditCardProduct ? 'Abono' : 'Ingreso'}</span></td>
-                                        <td>{movement.date || 'N/D'}</td>
-                                        <td>{movement.merchant ? `${movement.label} · ${movement.merchant}` : movement.label}</td>
-                                        <td>{movement.category || 'Otros'}</td>
-                                        <td>{formatCurrency(movement.amount)}</td>
-                                      </tr>
-                                    ))
-                                  )}
-                                </tbody>
-                              </table>
-                            </div>
-                            <div className="tx-table-total-box is-income" role="status" aria-live="polite">
-                              <span>{isCreditCardProduct ? 'Total abonos' : 'Total ingresos'}</span>
-                              <strong>{formatCurrency(incomeOrAbonoTotal)}</strong>
-                            </div>
-                          </div>
-                          <div className="tx-ap-table-card">
-                            <span className="tx-ap-section-label">Egresos</span>
-                            <div className="tx-movements-table-shell">
-                              <table className="tx-movements-table" aria-label="Tabla de egresos">
-                                <thead>
-                                  <tr>
-                                    <th>Tipo</th>
-                                    <th>Fecha</th>
-                                    <th>Detalle</th>
-                                    <th>Categoría</th>
-                                    <th>Monto</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {expenseRows.length === 0 ? (
-                                    <tr>
-                                      <td colSpan={5}>No hay egresos detectados.</td>
-                                    </tr>
-                                  ) : (
-                                    expenseRows.map((movement, idx) => (
-                                      <tr key={`mv-out-${idx}-${movement.directionForTotals}-${movement.label}-${movement.amount}`}>
-                                        <td><span className="tx-type-expense">Egreso</span></td>
-                                        <td>{movement.date || 'N/D'}</td>
-                                        <td>{movement.merchant ? `${movement.label} · ${movement.merchant}` : movement.label}</td>
-                                        <td>{movement.category || 'Otros'}</td>
-                                        <td>{formatCurrency(movement.amount)}</td>
-                                      </tr>
-                                    ))
-                                  )}
-                                </tbody>
-                              </table>
-                            </div>
-                            <div className="tx-table-total-box is-expense" role="status" aria-live="polite">
-                              <span>Total egresos</span>
-                              <strong>{formatCurrency(expenseTotal)}</strong>
-                            </div>
-                          </div>
-                        </div>
-                      </>
-                    ) : null}
 
                     {/* ── Chat Dock ── */}
                     <div className="tx-ap-chat-dock">
