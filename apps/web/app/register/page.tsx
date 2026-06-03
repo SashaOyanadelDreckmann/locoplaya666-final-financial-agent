@@ -88,6 +88,7 @@ export default function RegisterPage() {
             <label className="auth-label" htmlFor="register-name">Nombre</label>
             <input
               id="register-name"
+              name="name"
               className={`auth-input ${fieldErrors.name ? 'error' : ''}`}
               type="text"
               placeholder="Cómo prefieres que te llame"
@@ -108,6 +109,7 @@ export default function RegisterPage() {
             <label className="auth-label" htmlFor="register-email">Email</label>
             <input
               id="register-email"
+              name="email"
               className={`auth-input ${fieldErrors.email ? 'error' : ''}`}
               type="email"
               placeholder="tu@correo.com"
@@ -128,6 +130,7 @@ export default function RegisterPage() {
             <label className="auth-label" htmlFor="register-password">Contraseña</label>
             <input
               id="register-password"
+              name="password"
               className={`auth-input ${fieldErrors.password ? 'error' : ''}`}
               type="password"
               placeholder="Una clave simple, solo para ti"

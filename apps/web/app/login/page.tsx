@@ -92,6 +92,7 @@ function LoginContent() {
             <label className="auth-label" htmlFor="login-email">Email</label>
             <input
               id="login-email"
+              name="email"
               className={`auth-input ${fieldErrors.email ? 'error' : ''}`}
               type="email"
               placeholder="tu@correo.com"
@@ -113,6 +114,7 @@ function LoginContent() {
             <label className="auth-label" htmlFor="login-password">Contraseña</label>
             <input
               id="login-password"
+              name="password"
               className={`auth-input ${fieldErrors.password ? 'error' : ''}`}
               type="password"
               placeholder="Tu clave"

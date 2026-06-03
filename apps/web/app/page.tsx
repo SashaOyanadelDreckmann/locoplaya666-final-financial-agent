@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import Link from 'next/link';
 import { useRef, type RefObject } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowRight } from 'lucide-react';
@@ -17,6 +18,8 @@ import NumbersCanvas from '../components/home/NumbersCanvas';
 import BrandWordmark from '../components/brand/BrandWordmark';
 import { useSessionStore } from '@/state/session.store';
 import { getSessionInfo } from '@/lib/api';
+
+const MotionLink = motion(Link);
 
 // ── Easing ────────────────────────────────────────────────────────────────────
 const SILK: [number, number, number, number] = [0.22, 1, 0.36, 1];
@@ -243,13 +246,15 @@ function FeaturesSection({ sectionRef }: { sectionRef: RefObject<HTMLElement> })
       </motion.div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3" style={{ position: 'relative', zIndex: 1 }}>
-        {FEATURES.map(({ n, title, body, accent }, i) => {
-          const cardRef = useRef<HTMLDivElement>(null);
-          const { scrollYProgress: cardP } = useScroll({ target: cardRef, offset: ['start end', 'center center'] });
-          const cardY = useTransform(cardP, [0, 1], [50, 0]);
-          const cardO = useTransform(cardP, [0, 0.6], [0, 1]);
+        {FEATURES.map(({ n, title, body, accent }) => {
           return (
-            <motion.div key={n} ref={cardRef} style={{ y: cardY, opacity: cardO }}>
+            <motion.div
+              key={n}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.35 }}
+              transition={{ duration: 0.6, ease: SILK }}
+            >
               <SpotlightCard
                 glow={`${accent.replace('1)', '0.18)')}`}
                 className="h-full p-6 md:p-7"
@@ -297,13 +302,15 @@ function StatsSection() {
       </motion.div>
 
       <div className="grid grid-cols-1 gap-x-8 gap-y-14 sm:grid-cols-3" style={{ position: 'relative', zIndex: 1 }}>
-        {STATS.map(({ to, suffix, label, color }, i) => {
-          const statRef = useRef<HTMLDivElement>(null);
-          const { scrollYProgress: sP } = useScroll({ target: statRef, offset: ['start end', 'center center'] });
-          const sY = useTransform(sP, [0, 1], [40, 0]);
-          const sO = useTransform(sP, [0, 0.7], [0, 1]);
+        {STATS.map(({ to, suffix, label, color }) => {
           return (
-            <motion.div key={i} ref={statRef} style={{ y: sY, opacity: sO }}>
+            <motion.div
+              key={`${to}-${suffix}-${label}`}
+              initial={{ opacity: 0, y: 32 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.35 }}
+              transition={{ duration: 0.6, ease: SILK }}
+            >
               <div style={{ width: 32, height: 3, background: color, borderRadius: 2, marginBottom: 16, opacity: 0.7 }} />
               <div style={{
                 fontFamily: 'Georgia, "Times New Roman", serif',
@@ -391,15 +398,14 @@ function StepsSection() {
           }} />
         </div>
 
-        {STEPS.map(({ n, title, body, dot }, i) => {
-          const stepRef = useRef<HTMLDivElement>(null);
-          const { scrollYProgress: sP } = useScroll({ target: stepRef, offset: ['start end', 'center center'] });
-          const sY = useTransform(sP, [0, 1], [30, 0]);
-          const sO = useTransform(sP, [0, 0.6], [0, 1]);
+        {STEPS.map(({ n, title, body, dot }) => {
           return (
             <motion.div
               key={n}
-              ref={stepRef}
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.35 }}
+              transition={{ duration: 0.55, ease: SILK }}
               style={{
                 display: 'grid',
                 gridTemplateColumns: '40px 1fr',
@@ -408,8 +414,6 @@ function StepsSection() {
                 position: 'relative',
                 zIndex: 1,
                 alignItems: 'start',
-                y: sY,
-                opacity: sO,
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 5 }}>
@@ -439,7 +443,7 @@ function StepsSection() {
         onClick={() => void handleStartDiagnosis()}
         whileHover={{ opacity: 0.65 }}
         whileTap={{ scale: 0.97 }}
-        style={{ marginTop: 40, background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 13, fontWeight: 600, color: GOLD_DIM, display: 'inline-flex', alignItems: 'center', gap: 7, letterSpacing: '-0.01em', position: 'relative', zIndex: 1 }}
+        style={{ marginTop: 40, background: 'none', border: 'none', cursor: 'pointer', padding: '11px 4px', fontSize: 13, fontWeight: 600, color: GOLD_DIM, display: 'inline-flex', alignItems: 'center', gap: 7, letterSpacing: '-0.01em', position: 'relative', zIndex: 1 }}
       >
         Comenzar diagnóstico <ArrowRight size={13} />
       </motion.button>
@@ -509,17 +513,17 @@ function CtaSection() {
             whileHover={{ scale: 1.02, opacity: 0.88 }}
             whileTap={{ scale: 0.97 }}
             transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'white', border: 'none', borderRadius: 999, padding: '12px 26px', fontSize: 13, fontWeight: 600, color: '#050810', cursor: 'pointer', letterSpacing: '-0.01em' }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'white', border: 'none', borderRadius: 999, padding: '12px 26px', fontSize: 13, fontWeight: 600, color: '#050810', cursor: 'pointer', letterSpacing: '-0.01em', minHeight: 44 }}
           >
             Comenzar diagnóstico <ArrowRight size={13} />
           </motion.button>
-          <motion.button
-            onClick={() => router.push('/agent')}
+          <MotionLink
+            href="/agent"
             whileHover={{ opacity: 0.65 }}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: GOLD_DIM, padding: 0, letterSpacing: '-0.01em' }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: GOLD_DIM, padding: '11px 4px', letterSpacing: '-0.01em', textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
           >
             Hablar con el agente →
-          </motion.button>
+          </MotionLink>
         </div>
 
         <p style={{ marginTop: 56, fontSize: 10, letterSpacing: '0.16em', color: 'rgba(255,255,255,0.11)', textTransform: 'uppercase' }}>
@@ -649,13 +653,13 @@ export default function HomePage() {
 
               {/* Header */}
               <div className="home-page-header" style={{ paddingTop: 'clamp(56px,9vh,88px)' }}>
-                <motion.button
-                  onClick={() => router.push('/')}
+                <MotionLink
+                  href="/"
                   aria-label="Financieramente"
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.0, ease: SILK }}
-                  style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}
                 >
                   <div style={{ width: 40, height: 40, borderRadius: 9, overflow: 'hidden', flexShrink: 0, boxShadow: '0 4px 16px rgba(0,0,0,0.4)' }}>
                     <Image src="/logo-fm.svg" alt="Financieramente" width={40} height={40} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -665,18 +669,18 @@ export default function HomePage() {
                     financieraClassName="home-brand-financiera"
                     menteClassName="home-brand-mente"
                   />
-                </motion.button>
+                </MotionLink>
 
-                <motion.button
-                  onClick={() => router.push('/agent')}
+                <MotionLink
+                  href="/agent"
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.08, ease: SILK }}
                   whileHover={{ opacity: 0.72 }}
-                  style={{ background: 'none', border: '1px solid rgba(255,255,255,0.20)', borderRadius: 999, padding: '7px 16px', fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.68)', cursor: 'pointer' }}
+                  style={{ background: 'none', border: '1px solid rgba(255,255,255,0.20)', borderRadius: 999, padding: '7px 16px', fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.68)', cursor: 'pointer', textDecoration: 'none' }}
                 >
                   Entrar
-                </motion.button>
+                </MotionLink>
               </div>
 
               <div style={{ flex: 1 }} />
@@ -727,19 +731,19 @@ export default function HomePage() {
                   transition={{ duration: 0.55, delay: 0.30, ease: SILK }}
                   style={{ display: 'flex', gap: 22, alignItems: 'center', flexWrap: 'wrap' }}
                 >
-                  <motion.button
-                    onClick={() => router.push('/agent')}
+                  <MotionLink
+                    href="/agent"
                     whileHover={{ scale: 1.03, opacity: 0.88 }}
                     whileTap={{ scale: 0.97 }}
                     transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: 'white', border: 'none', borderRadius: 999, padding: '11px 22px', fontSize: 13, fontWeight: 600, color: '#050810', cursor: 'pointer' }}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: 'white', border: 'none', borderRadius: 999, padding: '11px 22px', fontSize: 13, fontWeight: 600, color: '#050810', cursor: 'pointer', textDecoration: 'none' }}
                   >
                     Comenzar <ArrowRight size={13} />
-                  </motion.button>
+                  </MotionLink>
                   <motion.button
                     onClick={() => void handleStartDiagnosis()}
                     whileHover={{ opacity: 0.65 }}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'rgba(255,255,255,0.38)', padding: 0, letterSpacing: '-0.01em' }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'rgba(255,255,255,0.38)', padding: '11px 4px', letterSpacing: '-0.01em', display: 'inline-flex', alignItems: 'center' }}
                   >
                     Ver diagnóstico →
                   </motion.button>
