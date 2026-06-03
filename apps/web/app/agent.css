@@ -33667,13 +33667,19 @@ body.agent-route-active .app-shell::before {
 
 .transactions-modal[data-stage="evidence"] .tx-hero-shell-spacer {
   flex-shrink: 0;
-  height: clamp(120px, 16vh, 150px);
-  margin: 0 auto 20px;
+  height: clamp(40px, 7vh, 72px);
+  margin: 0 auto 8px;
   pointer-events: none;
 }
 
 .transactions-modal[data-stage="evidence"] .tx-content-card--agent .tx-chat-thread {
   min-height: 72px;
+}
+
+@media (min-width: 921px) {
+  .transactions-modal[data-stage="evidence"] .tx-content-card--agent .tx-agent-stage-header {
+    margin-bottom: 14px !important;
+  }
 }
 
 @media (max-width: 767px) {
@@ -36001,5 +36007,71 @@ body.agent-route-active .app-shell::before {
     gap: 4px !important;
   }
 }
+
+/* ── Nuclear sans-serif reset — kill ALL serif/mono in tx-ap prose ─ */
+
+/* Everything inside executive prose: force Apple system sans */
+.transactions-modal .tx-ap-executive-prose,
+.transactions-modal .tx-ap-executive-prose *,
+.transactions-modal .tx-ap-chart-note,
+.transactions-modal .tx-ap-chart-note * {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif !important;
+}
+
+/* Lead block: visually prominent but still clean sans — no serif */
+.transactions-modal .tx-ap-executive-prose .tx-summary-editorial-block.is-lead .tx-summary-editorial-body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif !important;
+  font-size: 1.06rem !important;
+  font-weight: 450 !important;
+  line-height: 1.58 !important;
+  letter-spacing: -0.015em !important;
+  color: rgba(240, 248, 255, 0.95) !important;
+}
+
+/* Support blocks: clean, muted, compact */
+.transactions-modal .tx-ap-executive-prose .tx-summary-editorial-body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif !important;
+  font-size: 13.5px !important;
+  font-weight: 400 !important;
+  line-height: 1.65 !important;
+  color: rgba(200, 220, 240, 0.80) !important;
+}
+
+/* Kicker: keep existing uppercase sans — just reinforce */
+.transactions-modal .tx-ap-executive-prose .tx-summary-editorial-kicker {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif !important;
+}
+
+/* Chart note sub-elements: Apple compact labels */
+.transactions-modal .tx-ap-chart-note strong {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif !important;
+  font-size: 9.5px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  color: rgba(130, 168, 210, 0.55) !important;
+  display: block !important;
+  margin-bottom: 3px !important;
+  margin-top: 8px !important;
+}
+
+.transactions-modal .tx-ap-chart-note strong:first-child {
+  margin-top: 0 !important;
+}
+
+.transactions-modal .tx-ap-chart-note p {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif !important;
+  font-size: 11px !important;
+  font-weight: 400 !important;
+  line-height: 1.55 !important;
+  color: rgba(148, 172, 200, 0.50) !important;
+  margin: 0 0 4px !important;
+}
+
+.transactions-modal .tx-ap-chart-note p:last-child {
+  margin-bottom: 0 !important;
+}
+
+/* END nuclear sans reset ══════════════════════════════════════════ */
 
 /* END chart note + prose fix ══════════════════════════════════════ */
