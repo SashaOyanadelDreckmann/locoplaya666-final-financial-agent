@@ -23,6 +23,7 @@ import type { FormatPhaseInput, FormatPhaseOutput, FormattedResponse } from '../
 import { getLogger } from '../../../logger';
 import {
   buildActionPlanFormatInstructions,
+  enforceDeliverPlanStructure,
   resolveActionPlanFunnelStage,
   type ActionPlanFunnelStage,
 } from '../helpers/action-plan-funnel.helpers';
@@ -120,11 +121,21 @@ async function buildFastValuableMessage(input: FormatPhaseInput): Promise<string
 
   const prompt = [
     funnelInstructions,
-    'Responde en español (Chile), breve y útil.',
-    'Entrega valor real al usuario en formato:',
-    '1) tesis o respuesta directa,',
-    '2) recomendacion o siguiente accion concreta,',
-    '3) riesgos/condiciones o supuesto importante si aplica.',
+    funnelStage === 'deliver'
+      ? 'Responde en español (Chile) con documento ejecutivo completo; secciones ## obligatorias; minimo 900 palabras si hay contexto.'
+      : funnelStage === 'brainstorm'
+      ? 'Responde en español (Chile): lluvia de ideas senior, bullets densos, max 220 palabras.'
+      : funnelStage === 'converge'
+      ? 'Responde en español (Chile): convergencia senior, max 320 palabras.'
+      : 'Responde en español (Chile), breve y útil.',
+    funnelStage === 'deliver'
+      ? null
+      : [
+          'Entrega valor real al usuario en formato:',
+          '1) tesis o respuesta directa,',
+          '2) recomendacion o siguiente accion concreta,',
+          '3) riesgos/condiciones o supuesto importante si aplica.',
+        ].join('\n'),
     'No menciones nombres de tools, pipeline interno ni tecnicismos de backend.',
     'Si recomiendas productos, APV, inversiones o instituciones: cruza suitability, explicita riesgos y deja claro que la decision final depende 100% del usuario.',
     '',
@@ -140,7 +151,9 @@ async function buildFastValuableMessage(input: FormatPhaseInput): Promise<string
     'Regla: no escribas fuentes ni citas dentro del cuerpo; la UI las mostrará aparte en el bloque de citas.',
     'Evidencia resumida:',
     toolContext,
-  ].join('\n');
+  ]
+    .filter((line): line is string => line != null && line !== '')
+    .join('\n');
 
   const raw = await complete(prompt, {
     systemPrompt:
@@ -151,6 +164,7 @@ async function buildFastValuableMessage(input: FormatPhaseInput): Promise<string
 
   let cleaned = stripEmojis(cleanSpecialTags(raw)).trim();
   cleaned = sanitizeFormulaContent(cleaned);
+  if (funnelStage === 'deliver') cleaned = enforceDeliverPlanStructure(cleaned);
   cleaned = ensureDecisionDisclaimer(cleaned, input);
   return cleaned.length > 0
     ? cleaned
@@ -253,6 +267,7 @@ export async function runFormatPhase(input: FormatPhaseInput): Promise<FormatPha
     let message = cleanSpecialTags(rawResponse);
     message = stripEmojis(message).trim();
     message = sanitizeFormulaContent(message);
+    if (funnelStage === 'deliver') message = enforceDeliverPlanStructure(message);
     message = ensureDecisionDisclaimer(message, input);
 
     if (shouldApplyLatexFormatting(message)) {

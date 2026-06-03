@@ -1,10 +1,10 @@
 import type { ChatAgentInput, ChatAgentResponse } from '../agents/core.agent/chat.types';
+import { buildActionPlanFunnelDirective } from '../agents/core.agent/helpers/action-plan-funnel.helpers';
 import {
-  buildActionPlanFunnelDirective,
   closingTurnForChat,
   maxTurnsForChat,
   resolveActionPlanFunnelStage,
-} from '../agents/core.agent/helpers/action-plan-funnel.helpers';
+} from '@financial-agent/shared';
 
 export type ProductChatId = 'chat-1' | 'chat-2' | 'chat-3';
 

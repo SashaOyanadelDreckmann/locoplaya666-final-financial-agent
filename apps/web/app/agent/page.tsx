@@ -33,9 +33,6 @@ import {
   resolveTxWizardStep,
 } from '@/lib/transactions-flow.helpers';
 import {
-  canonicalBudgetRowId,
-  createBudgetStarterRows,
-  DEFAULT_BUDGET_ROWS,
   MAX_BUDGET_ROWS,
   normalizeBudgetRow,
   type BudgetRow,
@@ -102,6 +99,7 @@ import { SidePanels } from './side-panels';
 import { ChatThreadView } from './chat-thread-view';
 import { ChatHeader } from './chat-header';
 import { buildPanelBaseCards } from './panel-cards';
+import { useBudgetRows } from './hooks/use-budget-rows';
 
 type AgentMeta = {
   objective?: string;
@@ -399,7 +397,21 @@ export default function AgentPage() {
   const [savedProductsForBatch, setSavedProductsForBatch] = useState<string[]>([]);
   const [savedReports, setSavedReports] = useState<SavedReport[]>([]);
   const [deletingReportIds, setDeletingReportIds] = useState<Record<string, boolean>>({});
-  const [budgetRows, setBudgetRows] = useState<BudgetRow[]>([]);
+  const {
+    budgetRows,
+    setBudgetRows,
+    budgetTotals,
+    budgetInsights,
+    budgetCompletion,
+    budgetSignals,
+    updateBudgetRow,
+    applyBudgetTemplate,
+    addBudgetRow,
+    addBudgetSubcategory,
+    deleteBudgetRow,
+    upsertBudgetRow,
+    buildPersistableBudgetContext,
+  } = useBudgetRows();
   const [budgetChatAnswers, setBudgetChatAnswers] = useState<Array<{ q: string; a: string }>>([]);
   const [bankSimulation, setBankSimulation] = useState<BankSimulation>(DEFAULT_BANK_SIMULATION);
   const [docFlight, setDocFlight] = useState<DocFlight | null>(null);
@@ -1554,134 +1566,6 @@ export default function AgentPage() {
     return action ?? getNextFlowPanelAction();
   }
 
-  const budgetTotals = useMemo(() => {
-    const parentIds = new Set(budgetRows.filter((row) => row.parentId).map((row) => row.parentId as string));
-    const effectiveRows = budgetRows.filter((row) => !parentIds.has(row.id));
-    const income = effectiveRows
-      .filter((r) => r.type === 'income')
-      .reduce((acc, r) => acc + r.amount, 0);
-    const expenses = effectiveRows
-      .filter((r) => r.type === 'expense')
-      .reduce((acc, r) => acc + r.amount, 0);
-    return { income, expenses, balance: income - expenses };
-  }, [budgetRows]);
-
-  const budgetInsights = useMemo(() => {
-    const parentIds = new Set(budgetRows.filter((row) => row.parentId).map((row) => row.parentId as string));
-    const effectiveRows = budgetRows.filter((row) => !parentIds.has(row.id));
-    const nonZeroRows = effectiveRows.filter((row) => row.amount > 0);
-    const expenseRows = nonZeroRows.filter((row) => row.type === 'expense');
-    const fixedLike = expenseRows.filter((row) =>
-      /(arriendo|hipoteca|luz|agua|internet|suscrip|colegio|seguro|deuda)/i.test(
-        `${row.category} ${row.note ?? ''}`
-      )
-    );
-    const variableLike = expenseRows.filter((row) => !fixedLike.some((f) => f.id === row.id));
-    const fixedTotal = fixedLike.reduce((sum, row) => sum + row.amount, 0);
-    const variableTotal = variableLike.reduce((sum, row) => sum + row.amount, 0);
-    const savingsRate =
-      budgetTotals.income > 0
-        ? Math.max(0, (budgetTotals.balance / budgetTotals.income) * 100)
-        : 0;
-    const healthScore = Math.max(
-      0,
-      Math.min(
-        100,
-        Math.round(
-          (budgetTotals.balance >= 0 ? 45 : 15) +
-            Math.min(30, savingsRate * 1.2) +
-            Math.min(25, nonZeroRows.length * 2.5)
-        )
-      )
-    );
-
-    const topExpenses = expenseRows
-      .slice()
-      .sort((a, b) => b.amount - a.amount)
-      .slice(0, 4)
-      .map((row) => ({
-        id: row.id,
-        label: row.category || 'Sin categoria',
-        amount: row.amount,
-        pct:
-          budgetTotals.expenses > 0
-            ? Math.round((row.amount / budgetTotals.expenses) * 100)
-            : 0,
-      }));
-
-    return {
-      nonZeroRows,
-      expenseRows,
-      fixedTotal,
-      variableTotal,
-      savingsRate,
-      healthScore,
-      topExpenses,
-    };
-  }, [budgetRows, budgetTotals.balance, budgetTotals.expenses, budgetTotals.income]);
-
-  const budgetCompletion = useMemo(() => {
-    const parentIds = new Set(budgetRows.filter((row) => row.parentId).map((row) => row.parentId as string));
-    const effectiveRows = budgetRows.filter((row) => !parentIds.has(row.id));
-    const filledRows = effectiveRows.filter((row) => row.amount > 0);
-    const fillRate =
-      effectiveRows.length > 0 ? Math.round((filledRows.length / effectiveRows.length) * 100) : 0;
-    return {
-      filledRows,
-      fillRate,
-      totalRows: effectiveRows.length,
-    };
-  }, [budgetRows]);
-
-  const budgetSignals = useMemo(() => {
-    const activeCanonicalIds = new Set(
-      budgetRows.filter((row) => row.amount > 0).map((row) => canonicalBudgetRowId(row.id))
-    );
-    const coreFilledCount = DEFAULT_BUDGET_ROWS.reduce(
-      (count, templateRow) => count + (activeCanonicalIds.has(templateRow.id) ? 1 : 0),
-      0
-    );
-    const coreFillRate =
-      DEFAULT_BUDGET_ROWS.length > 0
-        ? Math.round((coreFilledCount / DEFAULT_BUDGET_ROWS.length) * 100)
-        : 0;
-    const balanceTone: 'surplus' | 'deficit' | 'balanced' =
-      budgetTotals.balance > 0 ? 'surplus' : budgetTotals.balance < 0 ? 'deficit' : 'balanced';
-    const balanceLabel =
-      balanceTone === 'surplus' ? 'Superávit' : balanceTone === 'deficit' ? 'Déficit' : 'Punto de equilibrio';
-    const balanceHint =
-      balanceTone === 'surplus'
-        ? 'Hay margen para acelerar ahorro o inversión.'
-        : balanceTone === 'deficit'
-        ? 'Conviene reducir presión fija antes de escalar metas.'
-        : 'La base está equilibrada: el siguiente paso es capturar margen.';
-    const readinessScore = Math.max(
-      0,
-      Math.min(100, Math.round(coreFillRate * 0.62 + budgetInsights.healthScore * 0.38))
-    );
-    const nextAction =
-      balanceTone === 'deficit'
-        ? 'Completa vivienda, deuda y servicios para cerrar fugas.'
-        : coreFillRate < 70
-        ? 'Llena la plantilla base antes de refinar categorías secundarias.'
-        : 'Afina variables y convierte el balance en una meta concreta.';
-
-    return {
-      balanceTone,
-      balanceLabel,
-      balanceHint,
-      coreFilledCount,
-      coreTotal: DEFAULT_BUDGET_ROWS.length,
-      coreFillRate,
-      readinessScore,
-      nextAction,
-      risingExpenseCount: budgetRows.filter((row) => row.type === 'expense' && row.momentum === 'up').length,
-      optimizePotential: budgetRows
-        .filter((row) => row.type === 'expense' && row.strategy === 'optimize')
-        .reduce((sum, row) => sum + Math.max(0, Number(row.amount) || 0), 0),
-    };
-  }, [budgetInsights.healthScore, budgetRows, budgetTotals.balance]);
-
   const intakeData = useMemo(
     () => (sessionInfo?.injectedIntake?.intake ?? null) as Record<string, unknown> | null,
     [sessionInfo?.injectedIntake]
@@ -2741,181 +2625,6 @@ export default function AgentPage() {
       ', '
     )}. Contexto extraído: ${JSON.stringify(docsSummary)}. Úsalos para el diagnóstico y próximos cálculos.`;
     void onSend(message);
-  }
-
-  function reconcileBudgetRows(rows: BudgetRow[]): BudgetRow[] {
-    // Keep parent/child type consistent, then roll up amounts from descendants.
-    const byId = new Map(rows.map((row) => [row.id, row]));
-    const typed = rows.map((row) => {
-      if (!row.parentId) return row;
-      const parent = byId.get(row.parentId);
-      if (!parent) return { ...row, parentId: undefined };
-      if (row.type === parent.type) return row;
-      return { ...row, type: parent.type };
-    });
-    const childrenByParentId = new Map<string, BudgetRow[]>();
-    typed.forEach((row) => {
-      if (!row.parentId) return;
-      const bucket = childrenByParentId.get(row.parentId) ?? [];
-      bucket.push(row);
-      childrenByParentId.set(row.parentId, bucket);
-    });
-    const amountMemo = new Map<string, number>();
-    const computeRolledUpAmount = (row: BudgetRow): number => {
-      if (amountMemo.has(row.id)) return amountMemo.get(row.id)!;
-      const children = childrenByParentId.get(row.id) ?? [];
-      if (children.length === 0) {
-        const selfAmount = Math.max(0, Number(row.amount) || 0);
-        amountMemo.set(row.id, selfAmount);
-        return selfAmount;
-      }
-      const rolled = children.reduce((sum, child) => sum + computeRolledUpAmount(child), 0);
-      amountMemo.set(row.id, rolled);
-      return rolled;
-    };
-    return typed.map((row) => {
-      const children = childrenByParentId.get(row.id) ?? [];
-      if (children.length === 0) return row;
-      return { ...row, amount: computeRolledUpAmount(row) };
-    });
-  }
-
-  function updateBudgetRow(
-    id: string,
-    field: keyof BudgetRow,
-    value: string | number
-  ) {
-    setBudgetRows((rows) => {
-      const updated = rows.map((row) =>
-        row.id === id
-          ? {
-              ...row,
-              [field]:
-                field === 'amount'
-                  ? Number(value) || 0
-                  : value,
-            }
-          : row
-      );
-      // If parent type changes manually, propagate it to all children.
-      const propagated =
-        field === 'type'
-          ? updated.map((row) => {
-              const parent = updated.find((candidate) => candidate.id === row.parentId);
-              if (!parent) return row;
-              if (row.type === parent.type) return row;
-              return { ...row, type: parent.type };
-            })
-          : updated;
-      return reconcileBudgetRows(propagated);
-    });
-  }
-
-  function applyBudgetTemplate() {
-    setBudgetRows((rows) => {
-      const starterRows = createBudgetStarterRows();
-      const normalizedRows = rows.map(normalizeBudgetRow);
-      const rowsById = new Map(normalizedRows.map((row) => [row.id, row]));
-      const templateIds = new Set(starterRows.map((row) => row.id));
-      const mergedStarterRows = starterRows.map((templateRow) => {
-        const existing = rowsById.get(templateRow.id);
-        return existing ? { ...templateRow, ...existing } : templateRow;
-      });
-      const customRows = normalizedRows.filter((row) => !templateIds.has(row.id));
-      return [...mergedStarterRows, ...customRows];
-    });
-  }
-
-  function addBudgetRow(type: 'income' | 'expense') {
-    setBudgetRows((rows) => {
-      const next = [
-        ...rows,
-        ...(rows.length >= MAX_BUDGET_ROWS
-          ? []
-          : [
-              {
-                id: `${type}-${Date.now()}`,
-                category: type === 'income' ? 'Nuevo ingreso' : 'Nuevo gasto',
-                type,
-                amount: 0,
-                product: type === 'income' ? 'Producto ingreso' : 'Producto gasto',
-                institution: '',
-              } as BudgetRow,
-            ]),
-      ];
-      return reconcileBudgetRows(next);
-    });
-  }
-
-  function addBudgetSubcategory(parentId: string) {
-    setBudgetRows((rows) => {
-      if (rows.length >= MAX_BUDGET_ROWS) return rows;
-      const parent = rows.find((row) => row.id === parentId);
-      if (!parent) return rows;
-      const siblings = rows.filter((row) => row.parentId === parentId);
-      const nextIdx = siblings.length + 1;
-      const subId = `${parentId}-sub-${Date.now()}`;
-      const subRow: BudgetRow = {
-        id: subId,
-        parentId,
-        category: `${parent.category} · item ${nextIdx}`,
-        type: parent.type,
-        amount: 0,
-      };
-      return reconcileBudgetRows([...rows, subRow]);
-    });
-  }
-
-  function deleteBudgetRow(id: string) {
-    setBudgetRows((rows) => {
-      const deleteSet = new Set([id]);
-      let changed = true;
-      while (changed) {
-        changed = false;
-        rows.forEach((row) => {
-          if (row.parentId && deleteSet.has(row.parentId) && !deleteSet.has(row.id)) {
-            deleteSet.add(row.id);
-            changed = true;
-          }
-        });
-      }
-      const next = rows.filter((row) => !deleteSet.has(row.id));
-      return reconcileBudgetRows(next);
-    });
-  }
-
-  function upsertBudgetRow(row: BudgetRow) {
-    setBudgetRows((rows) => {
-      const idx = rows.findIndex((item) => item.id === row.id);
-      if (idx >= 0) {
-        const next = rows.map((item) => (item.id === row.id ? { ...item, ...row } : item));
-        return reconcileBudgetRows(next);
-      }
-      if (rows.length >= MAX_BUDGET_ROWS) return rows;
-      return reconcileBudgetRows([...rows, row]);
-    });
-  }
-
-  function buildPersistableBudgetContext() {
-    return {
-      income: Math.round(Number(budgetTotals.income) || 0),
-      expenses: Math.round(Number(budgetTotals.expenses) || 0),
-      balance: Math.round(Number(budgetTotals.balance) || 0),
-      rowsCount: budgetRows.filter((row) => row.amount > 0).length,
-      rows: budgetRows
-        .filter((row) => row.amount > 0 || row.category.trim().length > 0)
-        .slice(0, 80)
-        .map((row) => ({
-          id: row.id,
-          category: row.category,
-          type: row.type,
-          amount: Math.round(Number(row.amount) || 0),
-          note: row.note || undefined,
-          parentId: row.parentId ?? null,
-          product: row.product || undefined,
-          institution: row.institution || undefined,
-        })),
-    };
   }
 
   async function syncFinancialContextToIntake() {

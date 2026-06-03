@@ -1,5 +1,10 @@
 import React from 'react';
-import { formatRemainingInteractions, getMaxChatInteractions } from './page.utils';
+import {
+  formatRemainingInteractions,
+  getClosingInteractionThreshold,
+  getMaxChatInteractions,
+} from './page.utils';
+import { funnelStageLabel, funnelStageStepIndex } from '@financial-agent/shared';
 import BrandWordmark from '../../components/brand/BrandWordmark';
 
 type ChatThread = {
@@ -40,11 +45,12 @@ export function ChatHeader(props: {
   isMonochrome: boolean;
   toggleMonochrome: () => void;
   isMobileViewport: boolean;
+  actionPlanFunnelStage?: 'brainstorm' | 'converge' | 'deliver' | null;
 }) {
   const activeLabel = props.activeThread?.label;
   const activeHandSubtitle =
     activeLabel === '2'
-      ? 'embudo plan de accion'
+      ? 'asesoria ejecutiva · plan de accion'
       : activeLabel === '3'
       ? 'conciencia social'
       : activeLabel === '★'
@@ -158,14 +164,36 @@ export function ChatHeader(props: {
         </p>
       </div>
       <p className="muted" />
+      {props.activeChatId === 'chat-2' && !props.isActiveChatLocked && props.actionPlanFunnelStage && (
+        <div className="action-plan-funnel-rail" role="status" aria-label="Progreso del plan de accion">
+          {[1, 2, 3].map((step) => {
+            const current = funnelStageStepIndex(props.actionPlanFunnelStage!);
+            const done = step < current;
+            const active = step === current;
+            const labels = ['Ideas', 'Convergencia', 'Plan ejecutivo'];
+            return (
+              <div
+                key={step}
+                className={`action-plan-funnel-step${done ? ' is-done' : ''}${active ? ' is-active' : ''}`}
+              >
+                <span className="action-plan-funnel-step-index">{step}</span>
+                <span className="action-plan-funnel-step-label">{labels[step - 1]}</span>
+              </div>
+            );
+          })}
+          <span className="action-plan-funnel-stage-pill">{funnelStageLabel(props.actionPlanFunnelStage)}</span>
+        </div>
+      )}
       {props.isActiveChatLocked && (
         <div className="product-flow-banner" role="status">
           Este chat se desbloquea después del diagnóstico integrado. Sigue en el Chat 1 con presupuesto, cartolas y entrevista breve.
         </div>
       )}
-      {!props.isActiveChatLocked && props.activeTurnCount >= 24 && (
+      {!props.isActiveChatLocked &&
+        props.activeTurnCount >= getClosingInteractionThreshold(props.activeThread?.id) && (
         <div className="product-flow-banner" role="status">
-          Modo cierre activo: te quedan {formatRemainingInteractions(props.activeTurnCount, props.activeThread?.id)} antes del tope de {getMaxChatInteractions(props.activeThread?.id)}. Cierra con un informe guardable en biblioteca.
+          Modo cierre activo: te quedan {formatRemainingInteractions(props.activeTurnCount, props.activeThread?.id)} antes del tope de {getMaxChatInteractions(props.activeThread?.id)}.
+          {props.activeChatId === 'chat-2' ? ' El siguiente mensaje del agente debe ser tu plan ejecutivo completo.' : ' Cierra con un informe guardable en biblioteca.'}
         </div>
       )}
     </header>

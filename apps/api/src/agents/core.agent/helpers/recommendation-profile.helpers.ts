@@ -2,7 +2,7 @@ import type { InferredUserModel } from '../agent-types';
 import {
   resolveActionPlanFunnelStage,
   type ActionPlanFunnelStage,
-} from './action-plan-funnel.helpers';
+} from '@financial-agent/shared';
 
 type RecommendationProfile = {
   active_chat_id: string;

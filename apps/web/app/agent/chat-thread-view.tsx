@@ -427,6 +427,7 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
   sessionInjectedIntake?: unknown;
   chatThreadRef: React.RefObject<HTMLDivElement>;
   activeChatId: string;
+  actionPlanFunnelStage?: 'brainstorm' | 'converge' | 'deliver' | null;
   setItemsForActive: React.Dispatch<React.SetStateAction<ChatItem[]>>;
   classifyReportGroup: (title: string, source?: string) => SavedReport['group'];
   setSavedReports: React.Dispatch<React.SetStateAction<SavedReport[]>>;
@@ -477,13 +478,26 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
         const isFirstAssistantCard = !props.items.slice(0, i).some(
           (entry) => entry.type === 'message' && entry.role === 'assistant'
         );
+        const funnelStage = props.activeThreadId === 'chat-2' ? props.actionPlanFunnelStage : null;
         const docMeta =
           props.activeThreadId === 'chat-2'
             ? {
-                kicker: 'Plan de acción',
-                title: 'Informe estratégico e inversiones',
+                kicker:
+                  funnelStage === 'deliver'
+                    ? 'Plan ejecutivo'
+                    : funnelStage === 'converge'
+                    ? 'Convergencia'
+                    : 'Exploración',
+                title:
+                  funnelStage === 'deliver'
+                    ? 'Plan de acción personalizado'
+                    : 'Estrategia financiera · Chile',
                 subtitle:
-                  'Embudo conversacional: lluvia de ideas, convergencia y plan final personalizado.',
+                  funnelStage === 'deliver'
+                    ? 'Documento senior listo para ejecutar — decisión 100% tuya.'
+                    : funnelStage === 'converge'
+                    ? 'Afinando prioridades y secuencia tentativa con tu contexto y mercado vivo.'
+                    : 'Lluvia de ideas anclada a tu diagnóstico, presupuesto y señal de mercado.',
               }
             : props.activeThreadId === 'chat-3'
             ? {
@@ -511,7 +525,7 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
         return (
           <React.Fragment key={i}>
             <div
-              className={`agent-bubble assistant latex-doc ${isScrollable ? 'is-scrollable-bubble' : ''}${isFirstAssistantCard ? ' is-intro-doc' : ''}`}
+              className={`agent-bubble assistant latex-doc ${isScrollable ? 'is-scrollable-bubble' : ''}${isFirstAssistantCard ? ' is-intro-doc' : ''}${funnelStage === 'deliver' ? ' is-action-plan-deliver' : funnelStage ? ` is-action-plan-${funnelStage}` : ''}`}
             >
               <div className="latex-doc-head">
                 <div className="latex-doc-heading">

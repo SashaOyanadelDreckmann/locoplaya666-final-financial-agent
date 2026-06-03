@@ -1,6 +1,7 @@
 // packages/shared/src/index.ts
 export * from './interview.constants';
 export * from './chat-lifecycle.constants';
+export * from './action-plan-funnel';
 export type {
     IntakeQuestionnaire,
     FinancialKnowledgeChecklist,

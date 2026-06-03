@@ -1,7 +1,11 @@
 import { getApiBaseUrl, getAppBaseUrl } from '@/lib/apiBase';
 import { humanizeDiagnosticText } from '@/lib/diagnosticText';
 import type { ChatItem } from '@/lib/agent.response.types';
-import { MAX_CHAT_TURNS_BY_CHAT } from '@financial-agent/shared';
+import {
+  getClosingModeTurn,
+  MAX_CHAT_TURNS_BY_CHAT,
+  resolveActionPlanFunnelStage,
+} from '@financial-agent/shared';
 
 export const MAX_CHAT_INTERACTIONS: Record<string, number> = {
   ...MAX_CHAT_TURNS_BY_CHAT,
@@ -10,6 +14,24 @@ export const MAX_CHAT_INTERACTIONS: Record<string, number> = {
 export function getMaxChatInteractions(chatId?: string): number {
   if (!chatId) return MAX_CHAT_INTERACTIONS['chat-1'];
   return MAX_CHAT_INTERACTIONS[chatId] ?? MAX_CHAT_INTERACTIONS['chat-1'];
+}
+
+export function getClosingInteractionThreshold(chatId?: string): number {
+  const id = (chatId ?? 'chat-1') as keyof typeof MAX_CHAT_TURNS_BY_CHAT;
+  if (id in MAX_CHAT_TURNS_BY_CHAT) return getClosingModeTurn(id);
+  return getClosingModeTurn('chat-1');
+}
+
+export function resolveActiveActionPlanStage(params: {
+  chatId?: string;
+  turnCount?: number;
+  closingMode?: boolean;
+}) {
+  return resolveActionPlanFunnelStage({
+    activeChatId: params.chatId,
+    turnCount: params.turnCount,
+    closingMode: params.closingMode,
+  });
 }
 
 type ParsedDocument = {

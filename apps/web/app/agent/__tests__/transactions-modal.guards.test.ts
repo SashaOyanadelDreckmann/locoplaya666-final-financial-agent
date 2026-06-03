@@ -5,11 +5,13 @@ import path from 'node:path';
 
 describe('transactions modal safeguards', () => {
   it('keeps a11y focus guards and upload limits in place', () => {
-    const sourcePath = path.join(process.cwd(), 'app', 'agent', 'modals.tsx');
+    const sourcePath = path.join(process.cwd(), 'app', 'agent', 'transactions', 'TransactionsModal.tsx');
     const source = fs.readFileSync(sourcePath, 'utf8');
 
-    expect(source).toContain('const TX_MAX_SINGLE_FILE_BYTES = 10 * 1024 * 1024;');
-    expect(source).toContain('const TX_MAX_TOTAL_FILE_BYTES = 35 * 1024 * 1024;');
+    const constantsPath = path.join(process.cwd(), 'app', 'agent', 'transactions', 'constants.ts');
+    const constants = fs.readFileSync(constantsPath, 'utf8');
+    expect(constants).toContain('TX_MAX_SINGLE_FILE_BYTES = 10 * 1024 * 1024');
+    expect(constants).toContain('TX_MAX_TOTAL_FILE_BYTES = 35 * 1024 * 1024');
     expect(source).toContain('const transactionsModalRef = useRef<HTMLDivElement | null>(null);');
     expect(source).toContain("if (event.key !== 'Tab') return;");
     expect(source).toContain('aria-describedby="transactions-modal-intro"');

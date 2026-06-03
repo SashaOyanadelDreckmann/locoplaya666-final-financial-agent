@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { resolveActionPlanFunnelStage } from './action-plan-funnel.helpers';
+import {
+  enforceDeliverPlanStructure,
+  resolveActionPlanFunnelStage,
+} from '@financial-agent/shared';
 
 describe('resolveActionPlanFunnelStage', () => {
   it('returns null outside chat-2', () => {
@@ -32,5 +35,11 @@ describe('resolveActionPlanFunnelStage', () => {
         userMessage: 'listo, dame el plan final estructurado',
       }),
     ).toBe('deliver');
+  });
+
+  it('appends missing deliver sections', () => {
+    const out = enforceDeliverPlanStructure('## Resumen ejecutivo\nCierre rapido.');
+    expect(out).toContain('## Secuencia de ejecucion');
+    expect(out).toContain('## Prioridades 0-90 dias');
   });
 });
