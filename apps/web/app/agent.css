@@ -43721,7 +43721,117 @@ body.agent-route-active .app-shell::before {
   }
 }
 
-/* standalone: no overrides needed — the @media (max-width: 767px) block above is the single source */
+/* ═══════════════════════════════════════════════════════════════
+   PWA / ADD TO HOME SCREEN — Canonical proportions (EOF wins cascade)
+   Targets .is-mobile-standalone (JS: navigator.standalone || display-mode)
+   AND @media (display-mode: standalone) for CSS-level matching.
+   Fixes: (1) tabs too small, (2) toggle floating over panel, (3) panel home-indicator gap.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Shared helpers via JS-applied class (works for iOS navigator.standalone) ── */
+@media (max-width: 767px) {
+  /* Tabs: proportions that match the target screenshot */
+  .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .chat-sheet-tab {
+    height: 28px !important;
+    padding: 2px 8px !important;
+    border-radius: 8px !important;
+    gap: 3px !important;
+    min-width: 0 !important;
+  }
+  .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .chat-sheet-tab-index {
+    width: 14px !important;
+    height: 14px !important;
+    min-width: 14px !important;
+    flex-basis: 14px !important;
+    font-size: 8px !important;
+  }
+  .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .chat-sheet-tab-title {
+    font-size: 9px !important;
+    line-height: 1 !important;
+    letter-spacing: 0.06em !important;
+  }
+  .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .chat-sheet-tab-subtitle {
+    display: none !important;
+  }
+
+  /* Toggle: anchor it inside the header so it never floats over the panel */
+  .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile {
+    position: relative !important;
+  }
+  .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .chat-monochrome-toggle--inline {
+    position: absolute !important;
+    right: 10px !important;
+    bottom: 6px !important;
+    top: auto !important;
+    left: auto !important;
+    width: 28px !important;
+    height: 28px !important;
+    z-index: 20 !important;
+    transform: none !important;
+  }
+
+  /* Panel: fixed height + bottom gap that clears the iOS home indicator */
+  .agent-layout.is-mobile-standalone .agent-panel {
+    flex: 0 0 var(--mobile-panel-h, 122px) !important;
+    max-height: var(--mobile-panel-h, 122px) !important;
+    margin-bottom: max(calc(env(safe-area-inset-bottom, 0px) + 22px), 44px) !important;
+  }
+  .agent-layout.is-mobile-standalone.mobile-panel-expanded .agent-panel {
+    --mobile-panel-h: min(50dvh, 430px) !important;
+  }
+}
+
+/* ── CSS display-mode query (modern browsers + iOS 16.4+) ── */
+@media (display-mode: standalone) and (max-width: 767px) {
+  .agent-chat-header.is-mobile .chat-sheet-tab {
+    height: 28px !important;
+    padding: 2px 8px !important;
+    border-radius: 8px !important;
+    gap: 3px !important;
+    min-width: 0 !important;
+  }
+  .agent-chat-header.is-mobile .chat-sheet-tab-index {
+    width: 14px !important;
+    height: 14px !important;
+    min-width: 14px !important;
+    flex-basis: 14px !important;
+    font-size: 8px !important;
+  }
+  .agent-chat-header.is-mobile .chat-sheet-tab-title {
+    font-size: 9px !important;
+    line-height: 1 !important;
+    letter-spacing: 0.06em !important;
+  }
+  .agent-chat-header.is-mobile .chat-sheet-tab-subtitle {
+    display: none !important;
+  }
+
+  /* Toggle: back inside header, no longer floating over panel */
+  .agent-chat-header.is-mobile {
+    position: relative !important;
+  }
+  .agent-chat-header.is-mobile .chat-monochrome-toggle--inline {
+    position: absolute !important;
+    right: 10px !important;
+    bottom: 6px !important;
+    top: auto !important;
+    left: auto !important;
+    width: 28px !important;
+    height: 28px !important;
+    z-index: 20 !important;
+    transform: none !important;
+  }
+
+  /* Panel: home indicator clearance */
+  .agent-panel {
+    flex: 0 0 var(--mobile-panel-h, 122px) !important;
+    max-height: var(--mobile-panel-h, 122px) !important;
+    margin-bottom: max(calc(env(safe-area-inset-bottom, 0px) + 22px), 44px) !important;
+  }
+  .agent-layout.mobile-panel-expanded .agent-panel {
+    --mobile-panel-h: min(50dvh, 430px) !important;
+  }
+}
 
 
 /* ============================================================
@@ -44315,3 +44425,349 @@ body.agent-route-active .app-shell::before {
   .agent-modal.interview-modal .voice-call-topbar h1 { font-size: 1.05rem !important; }
 }
 /* ==== END EDITORIAL REDESIGN ==== */
+
+/* ================================================================
+   BUDGET MODAL — MOBILE CLEAN SINGLE-PANEL REDESIGN
+   One panel at a time: tabs "Asistente" | "Tabla"
+   Override all conflicting legacy rules with high-specificity rules
+   at the end of the cascade.
+   ================================================================ */
+
+@media (max-width: 1023px) {
+
+  /* ── Modal shell: full height, no scroll on body itself ──────── */
+  .budget-modal {
+    height: 96dvh !important;
+    max-height: 96dvh !important;
+    min-height: 96dvh !important;
+    border-radius: 20px 20px 0 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+  }
+
+  .budget-modal .budget-modal-body {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    gap: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
+  /* ── Cockpit banner: compact single row on mobile ────────────── */
+  .budget-modal .budget-cockpit-banner {
+    margin: 0 !important;
+    border-radius: 0 !important;
+    padding: 10px 16px !important;
+    grid-template-columns: 1fr !important;
+    gap: 6px !important;
+    flex-shrink: 0 !important;
+    border-left: none !important;
+    border-right: none !important;
+    border-top: none !important;
+  }
+
+  .budget-modal .budget-cockpit-copy {
+    gap: 2px !important;
+  }
+
+  .budget-modal .budget-cockpit-copy h4 {
+    font-size: 1.02rem !important;
+  }
+
+  .budget-modal .budget-cockpit-copy p,
+  .budget-modal .budget-cockpit-copy strong {
+    display: none !important;
+  }
+
+  /* Show metrics in a compact single scrolling row */
+  .budget-modal .budget-cockpit-metrics {
+    grid-template-columns: repeat(5, minmax(80px, 1fr)) !important;
+    gap: 6px !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important;
+    padding-bottom: 2px !important;
+  }
+  .budget-modal .budget-cockpit-metrics::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .budget-modal .budget-cockpit-metric {
+    min-width: 72px !important;
+    padding: 7px 10px !important;
+    flex-shrink: 0 !important;
+    border-radius: 10px !important;
+  }
+
+  .budget-modal .budget-cockpit-metric span {
+    font-size: 0.56rem !important;
+  }
+
+  .budget-modal .budget-cockpit-metric strong {
+    font-size: 0.88rem !important;
+  }
+
+  /* ── Tab switcher: clean pill toggle ─────────────────────────── */
+  .budget-modal .budget-mode-tabs {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 4px !important;
+    margin: 8px 12px !important;
+    padding: 4px !important;
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 14px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .budget-modal .budget-mode-tab.is-desktop-only {
+    display: none !important;
+  }
+
+  .budget-modal .budget-mode-tab {
+    padding: 10px 0 !important;
+    border-radius: 10px !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.01em !important;
+    border: none !important;
+    background: transparent !important;
+    color: rgba(255, 255, 255, 0.4) !important;
+    transition: background 0.18s ease, color 0.18s ease !important;
+    cursor: pointer !important;
+    text-align: center !important;
+  }
+
+  .budget-modal .budget-mode-tab.is-active {
+    background: rgba(255, 255, 255, 0.13) !important;
+    color: rgba(255, 255, 255, 0.95) !important;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.18) !important;
+  }
+
+  /* ── Carousel: flex child that fills remaining space ─────────── */
+  .budget-modal .budget-main-carousel:not(.is-desktop) {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    display: block !important;
+    position: relative !important;
+    width: 100% !important;
+    height: 100% !important;
+    overflow: hidden !important;
+  }
+
+  /* ── Single-panel logic: hide ALL cards by default ───────────── */
+  .budget-modal .budget-main-carousel:not(.is-desktop) > .budget-card-agent,
+  .budget-modal .budget-main-carousel:not(.is-desktop) > .budget-card-table {
+    display: none !important;
+  }
+
+  /* ── mode-agent-front: show ONLY the agent card ──────────────── */
+  .budget-modal .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-agent {
+    display: flex !important;
+    flex-direction: column !important;
+    position: relative !important;
+    inset: auto !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+    pointer-events: auto !important;
+    z-index: auto !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: transparent !important;
+    overflow: hidden !important;
+  }
+  .budget-modal .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-table {
+    display: none !important;
+  }
+
+  /* ── mode-table-front: show ONLY the table card ──────────────── */
+  .budget-modal .budget-main-carousel.mode-table-front:not(.is-desktop) > .budget-card-table {
+    display: flex !important;
+    flex-direction: column !important;
+    position: relative !important;
+    inset: auto !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+    pointer-events: auto !important;
+    z-index: auto !important;
+    box-shadow: none !important;
+    padding: 8px 12px !important;
+    overflow: hidden !important;
+  }
+  .budget-modal .budget-main-carousel.mode-table-front:not(.is-desktop) > .budget-card-agent {
+    display: none !important;
+  }
+
+  /* ── bcc-hero: fills the agent card, pinned input at bottom ──── */
+  .budget-modal .budget-assistant-panel {
+    display: contents !important;
+  }
+
+  .budget-modal .budget-assistant-panel .bcc-hero {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    margin: 8px 12px 12px !important;
+    border-radius: 18px !important;
+    padding: 18px 16px 14px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Scrollable area: history + current question */
+  .budget-modal .budget-assistant-panel .bcc-hero-top {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    margin-bottom: 14px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    scrollbar-width: thin !important;
+    scrollbar-color: rgba(255,255,255,0.1) transparent !important;
+  }
+  .budget-modal .budget-assistant-panel .bcc-hero-top::-webkit-scrollbar {
+    width: 3px !important;
+  }
+  .budget-modal .budget-assistant-panel .bcc-hero-top::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.15) !important;
+    border-radius: 2px !important;
+  }
+
+  /* Input row: pinned at bottom, never scrolls away */
+  .budget-modal .budget-assistant-panel .bcc-hero-input-wrap {
+    flex-shrink: 0 !important;
+  }
+
+  /* Current assistant question: slightly smaller for mobile readability */
+  .budget-modal .budget-assistant-panel .bcc-hero-question {
+    font-size: 18px !important;
+    line-height: 1.45 !important;
+    margin-top: 10px !important;
+    margin-bottom: 6px !important;
+  }
+
+  /* Label row: smaller on mobile */
+  .budget-modal .budget-assistant-panel .bcc-hero-label-row {
+    margin-bottom: 10px !important;
+  }
+
+  /* ── Conversation history log ─────────────────────────────────── */
+  .budget-modal .budget-assistant-panel .bcc-hero-log {
+    order: -1 !important;
+    margin: 0 0 10px !important;
+    padding: 0 !important;
+    border: none !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+  }
+
+  .budget-modal .budget-assistant-panel .bcc-log-row {
+    padding: 10px 12px !important;
+    background: rgba(255, 255, 255, 0.04) !important;
+    border-radius: 12px !important;
+    border: 1px solid rgba(255, 255, 255, 0.07) !important;
+  }
+
+  .budget-modal .budget-assistant-panel .bcc-log-q {
+    font-size: 11px !important;
+    color: rgba(255, 255, 255, 0.32) !important;
+    display: block !important;
+    margin-bottom: 4px !important;
+    line-height: 1.4 !important;
+  }
+
+  .budget-modal .budget-assistant-panel .bcc-log-a {
+    font-size: 14px !important;
+    color: rgba(255, 255, 255, 0.8) !important;
+    display: block !important;
+    font-weight: 500 !important;
+    line-height: 1.45 !important;
+  }
+
+  /* ── Send button: 44pt touch target ──────────────────────────── */
+  .budget-modal .budget-assistant-panel .bcc-hero-send {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    border-radius: 10px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  .budget-modal .budget-assistant-panel .bcc-hero-send .bcc-hero-send-icon {
+    width: 18px !important;
+    height: 18px !important;
+    font-size: unset !important;
+  }
+
+  /* ── Table panel on mobile ───────────────────────────────────── */
+  .budget-modal .budget-table-section.budget-card-table {
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  .budget-modal .budget-modal-body .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-head {
+    padding: 0 0 10px !important;
+    gap: 8px !important;
+  }
+
+  .budget-modal .budget-modal-body .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-head h4 {
+    font-size: 1rem !important;
+  }
+
+  .budget-modal .budget-modal-body .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-help {
+    display: none !important;
+  }
+
+  .budget-modal .budget-modal-body .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-pdf-surface {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    box-shadow: none !important;
+    border-radius: 12px !important;
+    overflow: hidden !important;
+  }
+
+  .budget-modal .budget-modal-body .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-wrap {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    max-height: none !important;
+  }
+
+  .budget-modal .budget-modal-body .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-bottom-actions {
+    flex-shrink: 0 !important;
+    padding-top: 8px !important;
+  }
+
+  /* Make budget-table-section a flex column so children fill properly */
+  .budget-modal .budget-main-carousel.mode-table-front:not(.is-desktop) > .budget-card-table > .budget-table-head {
+    flex-shrink: 0 !important;
+  }
+
+  .budget-modal .budget-main-carousel.mode-table-front:not(.is-desktop) > .budget-card-table > div[ref] {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+  }
+
+}
+/* ==== END BUDGET MOBILE FIX ==== */
