@@ -450,9 +450,13 @@ export function BudgetModal(props: {
     if (!q || q === '…') return null;
     if (/ingreso|sueldo/.test(q)) return 'income_salary';
     if (/arriendo|vivienda|hogar/.test(q)) return 'expense_rent';
-    if (/aliment/.test(q)) return 'expense_food';
+    if (/delivery|pedidos\s*ya|pedidosya|rappi|uber\s*eats|ubereats|comida\s*rapida/.test(q)) return 'expense_food';
+    if (/supermerc|lider|jumbo|unimarc|tottus|santa\s*isabel|acuenta|ekono|alvi|mayorista\s*10/.test(q)) return 'expense_food';
+    if (/aliment|comida|restaurante|food|restaurant|caf[eé]|delivery/.test(q)) return 'expense_food';
+    if (/retail|falabella|ripley|paris|hites|mercadolibre|shein|temu|amazon/.test(q)) return 'expense_other';
     if (/transporte|bencina|metro|uber/.test(q)) return 'expense_transport';
     if (/servicios|luz|agua|internet|telefon/.test(q)) return 'expense_services';
+    if (/movistar|entel|claro|wom|telefon[ií]a|celular|m[oó]vil/.test(q)) return 'expense_services';
     if (/deuda|cuota|cr[eé]dito/.test(q)) return 'expense_debt';
     if (/ahorr|inviert/.test(q)) return 'expense_savings';
     if (/otros?|gasto adicional|variab/.test(q)) return 'expense_other';
@@ -470,10 +474,10 @@ export function BudgetModal(props: {
         return '¿Cuánto pagas al mes en vivienda o arriendo?';
       case 'expense_food':
         return '¿Cuánto gastas mensualmente en alimentación?';
+      case 'expense_services':
+        return '¿Cuánto pagas al mes en servicios básicos o telefonía?';
       case 'expense_transport':
         return '¿Cuánto gastas mensualmente en transporte?';
-      case 'expense_services':
-        return '¿Cuánto pagas al mes en servicios básicos?';
       case 'expense_debt':
         return '¿Cuánto pagas al mes en deudas o cuotas?';
       case 'expense_savings':
@@ -1405,8 +1409,10 @@ type BankProduct = {
       movement_coverage_pct?: number;
       table_rows_verified?: number;
       high_confidence_movement_count?: number;
+      avg_category_confidence?: number;
     };
     topCategories?: Array<{ name: string; amount: number }>;
+    topMerchants?: Array<{ merchant: string; category: string; amount: number; tx_count: number }>;
     categoryExamples?: Array<{ name: string; amount: number; examples: string[] }>;
     spendClusters?: Array<{
       name: string;
@@ -1429,6 +1435,8 @@ type BankProduct = {
       direction: 'expense' | 'income';
       source_line?: string;
       category?: string;
+      merchant?: string;
+      category_confidence?: number;
       confidence?: number;
       source_kind?: 'table' | 'line';
     }>;
@@ -1568,6 +1576,7 @@ export function TransactionsModal(props: {
   const dashboardMetrics = props.activeBankProduct?.dashboard?.keyMetrics;
   const isCreditCardProduct = props.activeBankProduct?.productType === 'credit_card';
   const dashboardCategories = props.activeBankProduct?.dashboard?.topCategories ?? [];
+  const dashboardTopMerchants = props.activeBankProduct?.dashboard?.topMerchants ?? [];
   const dashboardClusters = props.activeBankProduct?.dashboard?.spendClusters ?? [];
   const alertDetails = props.activeBankProduct?.dashboard?.alertDetails ?? [];
   const metricExplanations = props.activeBankProduct?.dashboard?.metricExplanations ?? [];
@@ -1642,6 +1651,8 @@ export function TransactionsModal(props: {
     date: movement.date ?? '',
     sourceLine: movement.source_line ?? '',
     category: movement.category ?? '',
+    merchant: movement.merchant ?? '',
+    categoryConfidence: Number(movement.category_confidence ?? 0) || 0,
     confidence: Number(movement.confidence ?? 0) || 0,
     sourceKind: movement.source_kind ?? 'line',
   }));
@@ -2032,6 +2043,17 @@ export function TransactionsModal(props: {
   const buildManualEvidenceFile = (text: string) =>
     new File([text], `antecedente-manual-${Date.now()}.txt`, { type: 'text/plain' });
 
+  const maybeInitAssistant = () => {
+    if (!props.activeBankProduct?.connected) return;
+    if ((props.activeBankProduct.assistant?.messages ?? []).length > 0) return;
+    appendAssistantMessages([
+      {
+        role: 'assistant',
+        text: 'Antes de subir movimientos, dime cómo prefieres enviarlos: fotos, PDF, Excel/CSV o texto. Según eso te recomiendo la mejor forma para que el análisis salga limpio.',
+      },
+    ]);
+  };
+
   const pendingManualEvidence = manualEvidenceDraft.trim();
 
   const hasTemplateChoice =
@@ -2104,9 +2126,9 @@ export function TransactionsModal(props: {
     queueDockTransitionTimeout(() => {
       setDockTransitionPhase('chat-reveal');
       setShuffleTrigger((value) => value + 1);
+      maybeInitAssistant();
     }, 1320);
     queueDockTransitionTimeout(() => {
-      setDockTransitionPhase('idle');
       setIsDockingToLibrary(false);
       setRecentlyDockedProductId((current) => (current === productId ? null : current));
     }, 1960);
@@ -2237,6 +2259,15 @@ export function TransactionsModal(props: {
           { length: libraryProductCards.length },
           (_, offset) => libraryProductCards[(productCarouselIndex + offset) % libraryProductCards.length]
         );
+  const selectLibraryProductAt = (index: number) => {
+    if (libraryProductCards.length === 0) return;
+    const nextIndex = ((index % libraryProductCards.length) + libraryProductCards.length) % libraryProductCards.length;
+    const nextProduct = libraryProductCards[nextIndex]?.product;
+    if (!nextProduct) return;
+    setShowTxCarousel(true);
+    setProductCarouselIndex(nextIndex);
+    props.selectTransactionProduct(nextProduct.id);
+  };
   const txStages = [
     {
       key: 'consent' as const,
@@ -2297,6 +2328,16 @@ export function TransactionsModal(props: {
     previousConnectedRef.current = nextMap;
   }, [productCards]);
   useEffect(() => () => clearDockTransitionTimers(), []);
+  useEffect(() => {
+    if (!props.isOpen || props.txWizardStep !== 'upload' || isDockingToLibrary) return;
+    maybeInitAssistant();
+  }, [
+    props.isOpen,
+    props.txWizardStep,
+    props.activeBankProduct?.id,
+    props.activeBankProduct?.connected,
+    isDockingToLibrary,
+  ]);
   useEffect(() => {
     if (!props.isOpen || activeTxCard !== 2) return;
     const tickCarousel = (container: HTMLDivElement | null) => {
@@ -2623,7 +2664,7 @@ export function TransactionsModal(props: {
             </div>
             <div className="pt-list">
               {libraryProductCards.length > 0 ? (
-                <>
+                <div className="tx-library-stack-block">
                   <div className="pt-stack-carousel tx-library-is-saved">
                     {orderedProductCards.slice(0, 4).map(({ product, descriptor, intel }, stackIndex) => {
                       const isTop = stackIndex === 0;
@@ -2639,16 +2680,12 @@ export function TransactionsModal(props: {
                           className={`pt-item pt-item-stack tx-lib-card ${isTop ? 'is-active is-top' : ''} ${recentlyDockedProductId === product.id ? 'tx-lib-enter' : ''}`}
                           data-docked={recentlyDockedProductId === product.id ? 'true' : 'false'}
                           onClick={() => {
-                            setShowTxCarousel(true);
-                            props.selectTransactionProduct(product.id);
-                            setProductCarouselIndex((productCarouselIndex + stackIndex) % libraryProductCards.length);
+                            selectLibraryProductAt(productCarouselIndex + stackIndex);
                           }}
                           onKeyDown={(e) => {
                             if (e.key !== 'Enter' && e.key !== ' ') return;
                             e.preventDefault();
-                            setShowTxCarousel(true);
-                            props.selectTransactionProduct(product.id);
-                            setProductCarouselIndex((productCarouselIndex + stackIndex) % libraryProductCards.length);
+                            selectLibraryProductAt(productCarouselIndex + stackIndex);
                           }}
                           style={{
                             ['--pt-card-active-bg' as any]: color,
@@ -2706,28 +2743,25 @@ export function TransactionsModal(props: {
                       <button
                         type="button"
                         className="continue-ghost"
-                        onClick={() => {
-                          const next = (productCarouselIndex - 1 + libraryProductCards.length) % libraryProductCards.length;
-                          setProductCarouselIndex(next);
-                          props.selectTransactionProduct(libraryProductCards[next].product.id);
-                        }}
+                        aria-label="Producto anterior"
+                        onClick={() => selectLibraryProductAt(productCarouselIndex - 1)}
                       >
                         ←
                       </button>
+                      <span className="tx-lib-card-nav-status" aria-live="polite">
+                        {productCarouselIndex + 1} / {libraryProductCards.length}
+                      </span>
                       <button
                         type="button"
                         className="continue-ghost"
-                        onClick={() => {
-                          const next = (productCarouselIndex + 1) % libraryProductCards.length;
-                          setProductCarouselIndex(next);
-                          props.selectTransactionProduct(libraryProductCards[next].product.id);
-                        }}
+                        aria-label="Producto siguiente"
+                        onClick={() => selectLibraryProductAt(productCarouselIndex + 1)}
                       >
                         →
                       </button>
                     </div>
                   ) : null}
-                </>
+                </div>
               ) : (
                 <div className="tx-library-empty">
                   <span className="tx-library-empty-kicker">Biblioteca vacía</span>
@@ -2811,7 +2845,7 @@ export function TransactionsModal(props: {
                 ) : (
                   <>
                 <div className="tx-content-carousel">
-                  {(activeTxCard === 0 || isDockingToLibrary) && (
+                  {(activeTxCard === 0 || (activeTxCard === 1 && isDockingToLibrary)) && (
                   <div className="tx-3d-hero-shell" aria-hidden="true">
                     <div className="relative w-full flex items-center justify-center p-0">
                       <div className="relative w-full py-0">
@@ -2841,6 +2875,9 @@ export function TransactionsModal(props: {
                       </div>
                     </div>
                   </div>
+                  )}
+                  {activeTxCard === 1 && !isDockingToLibrary && (
+                    <div className="tx-hero-shell-spacer" aria-hidden="true" />
                   )}
                   {activeTxCard === 0 && (
                   <section className="tx-content-card is-main-center tx-summary-clean tx-step-reveal">
@@ -3255,247 +3292,122 @@ export function TransactionsModal(props: {
                   )}
 
                   {activeTxCard === 2 && (
-                  <section className="tx-content-card is-main-center tx-summary-stage tx-step-reveal">
-                    <div className="pt-stage-header">
-                      <span className="pt-stage-eyebrow">Paso 3</span>
-                      <h4>Resumen analítico</h4>
-                      <p>Consolida señales, métricas y hallazgos antes de enviarlos al agente core.</p>
-                    </div>
-                    <div className="transactions-summary-card tx-premium-sheet tx-summary-executive-shell">
-                      <div className="tx-story-hero">
-                        <div className="tx-summary-executive-head">
-                          <div className="tx-summary-executive-copy">
-                            <span className="transactions-summary-title">Resumen ejecutivo</span>
-                            <EditorialSummary text={hasSummary ? summaryText : summaryFromTable} />
-                          </div>
-                          <div className="tx-chat-summary-meta">
-                            <span className="tx-meta-card-kicker">{summaryGeneratedAt ? `Actualizado ${new Date(summaryGeneratedAt).toLocaleString('es-CL')}` : 'En preparación'}</span>
-                            {summaryModel ? <span className="tx-meta-card-kicker">Modelo: {summaryModel}</span> : null}
-                            <span className="tx-meta-card-kicker">Revisiones restantes: {summaryRegenerationsLeft}</span>
-                          </div>
+                  <section className="tx-content-card is-main-center tx-summary-stage tx-step-reveal tx-ap-dashboard">
+
+                    {/* ── Editorial Masthead ── */}
+                    <div className="tx-ap-masthead">
+                      <div className="tx-ap-masthead-top">
+                        <div className="tx-ap-masthead-meta">
+                          <span className="tx-ap-eyebrow">Resumen analítico · Paso 3</span>
+                          {summaryGeneratedAt ? (
+                            <span className="tx-ap-updated-badge">
+                              Actualizado {new Date(summaryGeneratedAt).toLocaleString('es-CL')}
+                            </span>
+                          ) : (
+                            <span className="tx-ap-updated-badge">En preparación</span>
+                          )}
                         </div>
-                        <div className="tx-story-chips" aria-label="Indicadores de fidelidad">
-                          <span className="tx-story-chip">Periodo {tablePeriod.from} → {tablePeriod.to}</span>
-                          <span className="tx-story-chip">Cobertura {formatPercentCompact(movementCoverageDisplay)}</span>
-                          <span className="tx-story-chip">Fidelidad tabular {formatPercentCompact(movementCount > 0 ? (verifiedTableRows / movementCount) * 100 : 0)}</span>
-                          <span className="tx-story-chip">Confianza {confidenceBand(movementCount > 0 ? highConfidenceMovementCount / movementCount : 0)}</span>
-                        </div>
-                        <div className="tx-story-grid">
-                          <article className="tx-story-card is-positive">
-                            <span>Pulso de caja</span>
-                            <strong>{formatCurrency(netFlowFromTable)}</strong>
-                            <p>{txNarrative.cashAngle}</p>
-                          </article>
-                          <article className="tx-story-card">
-                            <span>Motor del gasto</span>
-                            <strong>{enrichedCategoryData[0]?.name || dashboardClusters[0]?.name || 'Sin patrón dominante'}</strong>
-                            <p>{txNarrative.marketAngle}</p>
-                          </article>
-                          <article className="tx-story-card">
-                            <span>Fidelidad del set</span>
-                            <strong>{formatPercentCompact(movementCount > 0 ? (verifiedTableRows / movementCount) * 100 : 0)}</strong>
-                            <p>{txNarrative.fidelityAngle}</p>
-                          </article>
-                          <article className="tx-story-card">
-                            <span>Confianza operativa</span>
-                            <strong>{formatPercentCompact(movementCount > 0 ? (highConfidenceMovementCount / movementCount) * 100 : 0)}</strong>
-                            <p>{txNarrative.confidenceAngle}</p>
-                          </article>
+                        <div className="tx-ap-masthead-actions">
+                          <button
+                            type="button"
+                            className="continue-ghost"
+                            onClick={() => setShowAllMovements((prev) => !prev)}
+                          >
+                            {showAllMovements ? 'Ocultar tabla' : 'Ver tabla'}
+                          </button>
                         </div>
                       </div>
-                      <div className="agent-modal-actions tx-summary-executive-actions">
+                      <div className="tx-ap-hero-numbers">
+                        <div className="tx-ap-hero-primary">
+                          <span className="tx-ap-hero-label">{isCreditCardProduct ? 'Abonos totales' : 'Ingresos totales'}</span>
+                          <strong className="tx-ap-hero-value tx-ap-value-income">{formatCurrency(tableDerivedMetrics.inflowsTotal)}</strong>
+                        </div>
+                        <div className="tx-ap-hero-divider" aria-hidden="true" />
+                        <div className="tx-ap-hero-secondary">
+                          <div className="tx-ap-hero-pair">
+                            <span>Egresos</span>
+                            <strong className="tx-ap-value-expense">{formatCurrency(tableDerivedMetrics.outflowsTotal)}</strong>
+                          </div>
+                          <div className="tx-ap-hero-pair">
+                            <span>Flujo neto</span>
+                            <strong className={netFlowFromTable >= 0 ? 'tx-ap-value-positive' : 'tx-ap-value-negative'}>
+                              {formatCurrency(netFlowFromTable)}
+                            </strong>
+                          </div>
+                          <div className="tx-ap-hero-pair">
+                            <span>Movimientos</span>
+                            <strong>{movementCount.toLocaleString('es-CL')}</strong>
+                          </div>
+                          <div className="tx-ap-hero-pair">
+                            <span>Ticket medio</span>
+                            <strong>{formatCurrency(avgMovementFromTable)}</strong>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="tx-ap-signal-chips" aria-label="Indicadores de fidelidad">
+                        <span className="tx-ap-signal-chip">{tablePeriod.from} → {tablePeriod.to}</span>
+                        <span className="tx-ap-signal-chip">Cobertura {formatPercentCompact(movementCoverageDisplay)}</span>
+                        <span className="tx-ap-signal-chip">Fidelidad {formatPercentCompact(movementCount > 0 ? (verifiedTableRows / movementCount) * 100 : 0)}</span>
+                        <span className="tx-ap-signal-chip">{confidenceBand(movementCount > 0 ? highConfidenceMovementCount / movementCount : 0)}</span>
+                        <span className="tx-ap-signal-chip">{props.activeBankProduct.dashboard?.currency || 'CLP'}</span>
+                      </div>
+                    </div>
+
+                    {/* ── Executive Summary Prose ── */}
+                    <div className="tx-ap-executive-prose">
+                      <div className="tx-ap-prose-head">
+                        <span className="tx-ap-section-label">Resumen ejecutivo</span>
+                        <div className="tx-ap-prose-meta">
+                          {summaryModel ? <span>{summaryModel}</span> : null}
+                          <span>{summaryRegenerationsLeft} revisión(es)</span>
+                        </div>
+                      </div>
+                      <EditorialSummary text={hasSummary ? summaryText : summaryFromTable} />
+                      <div className="tx-ap-prose-actions">
                         <button
                           type="button"
                           className="continue-ghost"
-                          onClick={() => setShowAllMovements((prev) => !prev)}
+                          disabled={txAssistantLoading || summaryRegenerationsLeft <= 0}
+                          onClick={() => void generateTransactionSummary({ feedback: 'Revisar nuevamente consistencia de movimientos y resumen.', isRegeneration: true })}
                         >
-                          {showAllMovements ? 'Ocultar tabla' : 'Ver tabla'}
+                          {summaryRegenerationsLeft > 0 ? 'Revisar resumen' : 'Resumen final'}
                         </button>
                       </div>
                     </div>
-                    {showAllMovements ? (
-                      <>
-                        <div className="transactions-summary-card tx-doc-intel-grid">
-                          <span className="transactions-summary-title">Tabla completa de movimientos</span>
-                          <div className="tx-movements-table-shell">
-                            <table className="tx-movements-table" aria-label="Tabla completa de movimientos detectados">
-                              <thead>
-                                <tr>
-                                  <th>Tipo</th>
-                                  <th>Fecha</th>
-                                  <th>Detalle</th>
-                                  <th>Categoría</th>
-                                  <th>Monto</th>
-                                  <th>Fuente</th>
-                                  <th>Conf.</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {dedupedMovementRows.length === 0 ? (
-                                  <tr>
-                                    <td colSpan={7}>No hay movimientos detectados aún. Sube una cartola más nítida o archivo XLSX/PDF.</td>
-                                  </tr>
-                                ) : (
-                                  dedupedMovementRows.map((movement, idx) => (
-                                    <tr key={`mv-all-${idx}-${movement.directionForTotals}-${movement.label}-${movement.amount}`}>
-                                      <td>
-                                        <span className={movement.directionForTotals === 'income' ? 'tx-type-income' : 'tx-type-expense'}>
-                                          {movement.directionForTotals === 'income'
-                                            ? isCreditCardProduct ? 'Abono' : 'Ingreso'
-                                            : 'Egreso'}
-                                        </span>
-                                      </td>
-                                      <td>{movement.date || 'N/D'}</td>
-                                      <td>{movement.label}</td>
-                                      <td>{movement.category || 'Otros'}</td>
-                                      <td>{formatCurrency(movement.amount)}</td>
-                                      <td>{movementSourceLabel(movement.sourceKind)}</td>
-                                      <td>{movement.confidence ? formatPercentCompact(movement.confidence * 100) : 'N/D'}</td>
-                                    </tr>
-                                  ))
-                                )}
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
-                        <div className="tx-pro-analysis-grid">
-                          <div className="transactions-summary-card tx-doc-intel-grid">
-                            <span className="transactions-summary-title">{isCreditCardProduct ? 'Tabla de abonos' : 'Tabla de ingresos'}</span>
-                            <div className="tx-movements-table-shell">
-                              <table className="tx-movements-table" aria-label="Tabla de ingresos y abonos">
-                                <thead>
-                                  <tr>
-                                    <th>Tipo</th>
-                                    <th>Fecha</th>
-                                    <th>Detalle</th>
-                                    <th>Categoría</th>
-                                    <th>Monto</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {incomeOrAbonoRows.length === 0 ? (
-                                    <tr>
-                                      <td colSpan={5}>No hay ingresos/abonos detectados.</td>
-                                    </tr>
-                                  ) : (
-                                    incomeOrAbonoRows.map((movement, idx) => (
-                                        <tr key={`mv-in-${idx}-${movement.directionForTotals}-${movement.label}-${movement.amount}`}>
-                                          <td><span className="tx-type-income">{isCreditCardProduct ? 'Abono' : 'Ingreso'}</span></td>
-                                          <td>{movement.date || 'N/D'}</td>
-                                          <td>{movement.label}</td>
-                                          <td>{movement.category || 'Otros'}</td>
-                                          <td>{formatCurrency(movement.amount)}</td>
-                                        </tr>
-                                      ))
-                                  )}
-                                </tbody>
-                              </table>
-                            </div>
-                            <div className="tx-table-total-box is-income" role="status" aria-live="polite">
-                              <span>{isCreditCardProduct ? 'Total abonos' : 'Total ingresos'}</span>
-                              <strong>{formatCurrency(incomeOrAbonoTotal)}</strong>
-                            </div>
-                          </div>
-                          <div className="transactions-summary-card tx-doc-intel-grid">
-                            <span className="transactions-summary-title">Tabla de egresos</span>
-                            <div className="tx-movements-table-shell">
-                              <table className="tx-movements-table" aria-label="Tabla de egresos">
-                                <thead>
-                                  <tr>
-                                    <th>Tipo</th>
-                                    <th>Fecha</th>
-                                    <th>Detalle</th>
-                                    <th>Categoría</th>
-                                    <th>Monto</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {expenseRows.length === 0 ? (
-                                    <tr>
-                                      <td colSpan={5}>No hay egresos detectados.</td>
-                                    </tr>
-                                  ) : (
-                                    expenseRows.map((movement, idx) => (
-                                        <tr key={`mv-out-${idx}-${movement.directionForTotals}-${movement.label}-${movement.amount}`}>
-                                          <td><span className="tx-type-expense">Egreso</span></td>
-                                          <td>{movement.date || 'N/D'}</td>
-                                          <td>{movement.label}</td>
-                                          <td>{movement.category || 'Otros'}</td>
-                                          <td>{formatCurrency(movement.amount)}</td>
-                                        </tr>
-                                      ))
-                                  )}
-                                </tbody>
-                              </table>
-                            </div>
-                            <div className="tx-table-total-box is-expense" role="status" aria-live="polite">
-                              <span>Total egresos</span>
-                              <strong>{formatCurrency(expenseTotal)}</strong>
-                            </div>
-                          </div>
-                        </div>
-                      </>
-                    ) : null}
-                    <div className="tx-pro-analysis-grid">
-                      <div className="transactions-summary-card tx-doc-intel-grid">
-                        <span className="transactions-summary-title">Grupos de gasto</span>
-                        <div className="tx-group-list tx-mini-carousel" aria-label="Carrusel de grupos de gasto" ref={groupCarouselRef}>
-                          {dashboardClusters.length === 0 ? (
-                            <p>No hay grupos suficientes para segmentar. Sube una cartola con más movimientos.</p>
-                          ) : (
-                            dashboardClusters.slice(0, 6).map((cluster) => (
-                              <article key={cluster.name} className="tx-group-item">
-                                <header>
-                                  <strong>{cluster.name}</strong>
-                                  <span>{cluster.share_pct.toFixed(1)}%</span>
-                                </header>
-                                <div className="tx-group-bar" aria-hidden="true">
-                                  <span style={{ width: `${Math.min(100, Math.max(4, cluster.share_pct))}%` }} />
-                                </div>
-                                <p>
-                                  {formatCurrency(cluster.amount)} en {cluster.tx_count} movimiento(s), ticket medio {formatCurrency(cluster.avg_ticket)}.
-                                </p>
-                                {cluster.examples.length > 0 ? (
-                                  <div className="transactions-product-insights tx-mini-tags">
-                                    {cluster.examples.slice(0, 3).map((example) => (
-                                      <span key={`${cluster.name}-${example}`}>{example}</span>
-                                    ))}
-                                  </div>
-                                ) : null}
-                              </article>
-                            ))
-                          )}
-                        </div>
-                      </div>
-                      <div className="transactions-summary-card tx-doc-intel-grid">
-                        <span className="transactions-summary-title">Lectura fina</span>
-                        <div className="tx-insight-stack tx-mini-carousel" aria-label="Carrusel de lectura fina" ref={insightCarouselRef}>
-                          {(alertDetails.length > 0 ? alertDetails : []).slice(0, 4).map((alert) => (
-                            <article key={`${alert.title}-${alert.reason}`} className={`tx-insight-row is-${alert.severity}`}>
-                              <strong>{alert.title}</strong>
-                              <p>{alert.reason}</p>
-                            </article>
-                          ))}
-                          {metricExplanations.slice(0, 4).map((metric) => (
-                            <article key={`${metric.metric}-${metric.value}`} className="tx-insight-row">
-                              <strong>{metric.metric}: {metric.value}</strong>
-                              <p>{metric.explanation}</p>
-                            </article>
-                          ))}
-                          {alertDetails.length === 0 && metricExplanations.length === 0 ? (
-                            <p>Aún no hay señales analíticas suficientes para priorizar acciones.</p>
-                          ) : null}
-                        </div>
-                      </div>
+
+                    {/* ── 4 Story Angle Cards ── */}
+                    <div className="tx-ap-story-grid" aria-label="Ángulos narrativos">
+                      <article className="tx-ap-story-card tx-ap-story-card--cash">
+                        <span className="tx-ap-story-label">Pulso de caja</span>
+                        <strong className="tx-ap-story-value">{formatCurrency(netFlowFromTable)}</strong>
+                        <p className="tx-ap-story-note">{txNarrative.cashAngle}</p>
+                      </article>
+                      <article className="tx-ap-story-card">
+                        <span className="tx-ap-story-label">Motor del gasto</span>
+                        <strong className="tx-ap-story-value">{dashboardTopMerchants[0]?.merchant || enrichedCategoryData[0]?.name || dashboardClusters[0]?.name || '—'}</strong>
+                        <p className="tx-ap-story-note">{txNarrative.marketAngle}</p>
+                      </article>
+                      <article className="tx-ap-story-card">
+                        <span className="tx-ap-story-label">Fidelidad del set</span>
+                        <strong className="tx-ap-story-value">{formatPercentCompact(movementCount > 0 ? (verifiedTableRows / movementCount) * 100 : 0)}</strong>
+                        <p className="tx-ap-story-note">{txNarrative.fidelityAngle}</p>
+                      </article>
+                      <article className="tx-ap-story-card">
+                        <span className="tx-ap-story-label">Confianza operativa</span>
+                        <strong className="tx-ap-story-value">{formatPercentCompact(movementCount > 0 ? (highConfidenceMovementCount / movementCount) * 100 : 0)}</strong>
+                        <p className="tx-ap-story-note">{txNarrative.confidenceAngle}</p>
+                      </article>
                     </div>
-                    <div className="transactions-summary-card tx-premium-chart-shell">
-                      <div className="tx-chart-toolbar">
-                        <span className="transactions-summary-title">Gráficos clave (máximo 3)</span>
+
+                    {/* ── Charts ── */}
+                    <div className="tx-ap-charts-section">
+                      <div className="tx-ap-section-header">
+                        <span className="tx-ap-section-label">Gráficos clave</span>
                       </div>
-                      <div className="tx-chart-grid">
-                        <article className="tx-chart-card">
-                          <h5>Flujo financiero</h5>
-                          <div style={{ width: '100%', height: 210 }}>
+                      <div className="tx-ap-chart-grid">
+                        <article className="tx-ap-chart-card">
+                          <h5 className="tx-ap-chart-title">Flujo financiero</h5>
+                          <div style={{ width: '100%', height: 200 }}>
                             <ResponsiveContainer width="100%" height="100%">
                               <BarChart
                                 data={[
@@ -3530,9 +3442,9 @@ export function TransactionsModal(props: {
                             </ResponsiveContainer>
                           </div>
                         </article>
-                        <article className="tx-chart-card">
-                          <h5>Categorías (monto)</h5>
-                          <div style={{ width: '100%', height: 210 }}>
+                        <article className="tx-ap-chart-card">
+                          <h5 className="tx-ap-chart-title">Categorías por monto</h5>
+                          <div style={{ width: '100%', height: 200 }}>
                             <ResponsiveContainer width="100%" height="100%">
                               <BarChart data={categoryChartData} layout="vertical" margin={{ top: 8, right: 8, left: 20, bottom: 8 }}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(110,125,150,0.24)" />
@@ -3553,10 +3465,10 @@ export function TransactionsModal(props: {
                             </ResponsiveContainer>
                           </div>
                         </article>
-                        <article className="tx-chart-card tx-chart-card-with-note">
-                          <h5>Calidad vs filas extraídas</h5>
-                          <div className="tx-chart-card-note-layout">
-                            <div style={{ width: '100%', height: 210 }}>
+                        <article className="tx-ap-chart-card tx-ap-chart-card--wide">
+                          <h5 className="tx-ap-chart-title">Calidad vs filas extraídas</h5>
+                          <div className="tx-ap-chart-note-layout">
+                            <div style={{ width: '100%', height: 200 }}>
                               <ResponsiveContainer width="100%" height="100%">
                                 <LineChart data={qualityRowsChart} margin={{ top: 8, right: 8, left: 0, bottom: 8 }}>
                                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(110,125,150,0.24)" />
@@ -3570,75 +3482,254 @@ export function TransactionsModal(props: {
                                 </LineChart>
                               </ResponsiveContainer>
                             </div>
-                            <aside className="tx-chart-note" aria-label="Explicación del gráfico">
+                            <aside className="tx-ap-chart-note" aria-label="Cómo leer este gráfico">
                               <strong>Qué muestra</strong>
-                              <p>Confiabilidad (%) indica la calidad de extracción por respaldo. Filas extraídas mide volumen de datos detectados.</p>
+                              <p>Confiabilidad indica la calidad de extracción por respaldo. Filas extraídas mide el volumen detectado.</p>
                               <strong>Cómo leerlo</strong>
-                              <p>Ideal: confiabilidad alta y filas suficientes. Si suben filas pero baja confiabilidad, conviene mejorar nitidez o formato del respaldo.</p>
+                              <p>Ideal: confiabilidad alta y filas suficientes. Si baja confiabilidad, mejorar nitidez o formato del respaldo.</p>
                             </aside>
                           </div>
                         </article>
                       </div>
                     </div>
-                    <div className="transactions-summary-card tx-premium-sheet">
-                      <span className="transactions-summary-title">Ficha analítica del producto</span>
-                      <p>{summaryFromTable}</p>
-                      <div className="tx-period-row">
-                        <span className="tx-period-pill">
-                          Periodo: {tablePeriod.from} → {tablePeriod.to}
-                        </span>
-                        <span className="tx-period-pill">
-                          Moneda: {props.activeBankProduct.dashboard?.currency || 'CLP'}
-                        </span>
-                        <span className="tx-period-pill">
-                          Calidad promedio: {qualityAverage > 0 ? `${qualityAverage}%` : 'N/D'}
-                        </span>
+
+                    {/* ── Clusters + Insights ── */}
+                    <div className="tx-ap-intel-grid">
+                      <div className="tx-ap-intel-card">
+                        <div className="tx-ap-section-header">
+                          <span className="tx-ap-section-label">Grupos de gasto</span>
+                        </div>
+                        <div className="tx-ap-cluster-list" aria-label="Grupos de gasto" ref={groupCarouselRef}>
+                          {dashboardClusters.length === 0 ? (
+                            <p className="tx-ap-empty-note">Sin grupos suficientes. Sube una cartola con más movimientos.</p>
+                          ) : (
+                            dashboardClusters.slice(0, 6).map((cluster) => (
+                              <article key={cluster.name} className="tx-ap-cluster-item">
+                                <div className="tx-ap-cluster-head">
+                                  <strong>{cluster.name}</strong>
+                                  <span>{cluster.share_pct.toFixed(1)}%</span>
+                                </div>
+                                <div className="tx-ap-cluster-bar" aria-hidden="true">
+                                  <span style={{ width: `${Math.min(100, Math.max(4, cluster.share_pct))}%` }} />
+                                </div>
+                                <p>{formatCurrency(cluster.amount)} · {cluster.tx_count} mov. · {formatCurrency(cluster.avg_ticket)} ticket</p>
+                                {cluster.examples.length > 0 ? (
+                                  <div className="tx-ap-cluster-tags">
+                                    {cluster.examples.slice(0, 3).map((example) => (
+                                      <span key={`${cluster.name}-${example}`}>{example}</span>
+                                    ))}
+                                  </div>
+                                ) : null}
+                              </article>
+                            ))
+                          )}
+                        </div>
                       </div>
-                      <div className="tx-kpi-pro-grid tx-kpi-pro-carousel">
-                        <article className="tx-kpi-pro-card is-income">
+                      <div className="tx-ap-intel-card">
+                        <div className="tx-ap-section-header">
+                          <span className="tx-ap-section-label">Lectura fina</span>
+                        </div>
+                        <div className="tx-ap-insight-stack" aria-label="Señales analíticas" ref={insightCarouselRef}>
+                          {alertDetails.length === 0 && metricExplanations.length === 0 ? (
+                            <p className="tx-ap-empty-note">Sin señales analíticas suficientes aún.</p>
+                          ) : null}
+                          {(alertDetails.length > 0 ? alertDetails : []).slice(0, 4).map((alert) => (
+                            <article key={`${alert.title}-${alert.reason}`} className={`tx-ap-insight-row tx-ap-insight-row--${alert.severity}`}>
+                              <strong>{alert.title}</strong>
+                              <p>{alert.reason}</p>
+                            </article>
+                          ))}
+                          {metricExplanations.slice(0, 4).map((metric) => (
+                            <article key={`${metric.metric}-${metric.value}`} className="tx-ap-insight-row">
+                              <strong>{metric.metric}: {metric.value}</strong>
+                              <p>{metric.explanation}</p>
+                            </article>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* ── Ficha Analítica ── */}
+                    <div className="tx-ap-ficha">
+                      <div className="tx-ap-section-header">
+                        <span className="tx-ap-section-label">Ficha analítica del producto</span>
+                        <div className="tx-ap-ficha-pills">
+                          <span className="tx-ap-signal-chip">Calidad {qualityAverage > 0 ? `${qualityAverage}%` : 'N/D'}</span>
+                        </div>
+                      </div>
+                      {summaryFromTable ? <p className="tx-ap-ficha-summary">{summaryFromTable}</p> : null}
+                      <div className="tx-ap-kpi-secondary-grid">
+                        <article className="tx-ap-kpi-secondary-card tx-ap-kpi--income">
                           <span>{isCreditCardProduct ? 'Abonos totales' : 'Ingresos totales'}</span>
                           <strong>{formatCurrency(tableDerivedMetrics.inflowsTotal)}</strong>
                         </article>
-                        <article className="tx-kpi-pro-card is-expense">
+                        <article className="tx-ap-kpi-secondary-card tx-ap-kpi--expense">
                           <span>Egresos totales</span>
                           <strong>{formatCurrency(tableDerivedMetrics.outflowsTotal)}</strong>
                         </article>
-                        <article className="tx-kpi-pro-card">
+                        <article className="tx-ap-kpi-secondary-card">
                           <span>Flujo neto</span>
                           <strong>{formatCurrency(netFlowFromTable)}</strong>
                         </article>
-                        <article className="tx-kpi-pro-card">
+                        <article className="tx-ap-kpi-secondary-card">
                           <span>Movimientos</span>
                           <strong>{movementCount.toLocaleString('es-CL')}</strong>
                         </article>
-                        <article className="tx-kpi-pro-card">
+                        <article className="tx-ap-kpi-secondary-card">
                           <span>Ticket promedio</span>
                           <strong>{formatCurrency(avgMovementFromTable)}</strong>
                         </article>
-                        <article className="tx-kpi-pro-card">
+                        <article className="tx-ap-kpi-secondary-card">
                           <span>Ratio gasto/ingreso</span>
                           <strong>{flowRatioFromTable > 0 ? `${(flowRatioFromTable * 100).toFixed(1)}%` : 'N/D'}</strong>
                         </article>
-                        <article className="tx-kpi-pro-card">
+                        <article className="tx-ap-kpi-secondary-card">
                           <span>Filas tabulares fieles</span>
                           <strong>{verifiedTableRows.toLocaleString('es-CL')}</strong>
                         </article>
-                        <article className="tx-kpi-pro-card">
+                        <article className="tx-ap-kpi-secondary-card">
                           <span>Cobertura detectada</span>
                           <strong>{formatPercentCompact(movementCoverageDisplay)}</strong>
                         </article>
-                        <article className="tx-kpi-pro-card">
-                          <span>Movimientos alta confianza</span>
+                        <article className="tx-ap-kpi-secondary-card">
+                          <span>Alta confianza</span>
                           <strong>{highConfidenceMovementCount.toLocaleString('es-CL')}</strong>
                         </article>
-                        <article className="tx-kpi-pro-card">
+                        <article className="tx-ap-kpi-secondary-card">
                           <span>Origen tabular</span>
                           <strong>{formatPercentCompact(movementCount > 0 ? (verifiedTableRows / movementCount) * 100 : 0)}</strong>
                         </article>
                       </div>
                     </div>
-                    <div className="transactions-summary-card tx-summary-chat-dock">
-                      <span className="transactions-summary-title">Seguir conversación</span>
+
+                    {/* ── Movement Tables (optional) ── */}
+                    {showAllMovements ? (
+                      <>
+                        <div className="tx-ap-table-card">
+                          <span className="tx-ap-section-label">Tabla completa de movimientos</span>
+                          <div className="tx-movements-table-shell">
+                            <table className="tx-movements-table" aria-label="Tabla completa de movimientos detectados">
+                              <thead>
+                                <tr>
+                                  <th>Tipo</th>
+                                  <th>Fecha</th>
+                                  <th>Detalle</th>
+                                  <th>Categoría</th>
+                                  <th>Monto</th>
+                                  <th>Fuente</th>
+                                  <th>Conf.</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {dedupedMovementRows.length === 0 ? (
+                                  <tr>
+                                    <td colSpan={7}>No hay movimientos detectados aún. Sube una cartola más nítida o archivo XLSX/PDF.</td>
+                                  </tr>
+                                ) : (
+                                  dedupedMovementRows.map((movement, idx) => (
+                                    <tr key={`mv-all-${idx}-${movement.directionForTotals}-${movement.label}-${movement.amount}`}>
+                                      <td>
+                                        <span className={movement.directionForTotals === 'income' ? 'tx-type-income' : 'tx-type-expense'}>
+                                          {movement.directionForTotals === 'income'
+                                            ? isCreditCardProduct ? 'Abono' : 'Ingreso'
+                                            : 'Egreso'}
+                                        </span>
+                                      </td>
+                                      <td>{movement.date || 'N/D'}</td>
+                                      <td>{movement.merchant ? `${movement.label} · ${movement.merchant}` : movement.label}</td>
+                                      <td>{movement.category || 'Otros'}</td>
+                                      <td>{formatCurrency(movement.amount)}</td>
+                                      <td>{movementSourceLabel(movement.sourceKind)}</td>
+                                      <td>{movement.categoryConfidence ? formatPercentCompact(movement.categoryConfidence * 100) : movement.confidence ? formatPercentCompact(movement.confidence * 100) : 'N/D'}</td>
+                                    </tr>
+                                  ))
+                                )}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                        <div className="tx-ap-split-tables">
+                          <div className="tx-ap-table-card">
+                            <span className="tx-ap-section-label">{isCreditCardProduct ? 'Abonos' : 'Ingresos'}</span>
+                            <div className="tx-movements-table-shell">
+                              <table className="tx-movements-table" aria-label="Tabla de ingresos y abonos">
+                                <thead>
+                                  <tr>
+                                    <th>Tipo</th>
+                                    <th>Fecha</th>
+                                    <th>Detalle</th>
+                                    <th>Categoría</th>
+                                    <th>Monto</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {incomeOrAbonoRows.length === 0 ? (
+                                    <tr>
+                                      <td colSpan={5}>No hay ingresos/abonos detectados.</td>
+                                    </tr>
+                                  ) : (
+                                    incomeOrAbonoRows.map((movement, idx) => (
+                                      <tr key={`mv-in-${idx}-${movement.directionForTotals}-${movement.label}-${movement.amount}`}>
+                                        <td><span className="tx-type-income">{isCreditCardProduct ? 'Abono' : 'Ingreso'}</span></td>
+                                        <td>{movement.date || 'N/D'}</td>
+                                        <td>{movement.merchant ? `${movement.label} · ${movement.merchant}` : movement.label}</td>
+                                        <td>{movement.category || 'Otros'}</td>
+                                        <td>{formatCurrency(movement.amount)}</td>
+                                      </tr>
+                                    ))
+                                  )}
+                                </tbody>
+                              </table>
+                            </div>
+                            <div className="tx-table-total-box is-income" role="status" aria-live="polite">
+                              <span>{isCreditCardProduct ? 'Total abonos' : 'Total ingresos'}</span>
+                              <strong>{formatCurrency(incomeOrAbonoTotal)}</strong>
+                            </div>
+                          </div>
+                          <div className="tx-ap-table-card">
+                            <span className="tx-ap-section-label">Egresos</span>
+                            <div className="tx-movements-table-shell">
+                              <table className="tx-movements-table" aria-label="Tabla de egresos">
+                                <thead>
+                                  <tr>
+                                    <th>Tipo</th>
+                                    <th>Fecha</th>
+                                    <th>Detalle</th>
+                                    <th>Categoría</th>
+                                    <th>Monto</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {expenseRows.length === 0 ? (
+                                    <tr>
+                                      <td colSpan={5}>No hay egresos detectados.</td>
+                                    </tr>
+                                  ) : (
+                                    expenseRows.map((movement, idx) => (
+                                      <tr key={`mv-out-${idx}-${movement.directionForTotals}-${movement.label}-${movement.amount}`}>
+                                        <td><span className="tx-type-expense">Egreso</span></td>
+                                        <td>{movement.date || 'N/D'}</td>
+                                        <td>{movement.merchant ? `${movement.label} · ${movement.merchant}` : movement.label}</td>
+                                        <td>{movement.category || 'Otros'}</td>
+                                        <td>{formatCurrency(movement.amount)}</td>
+                                      </tr>
+                                    ))
+                                  )}
+                                </tbody>
+                              </table>
+                            </div>
+                            <div className="tx-table-total-box is-expense" role="status" aria-live="polite">
+                              <span>Total egresos</span>
+                              <strong>{formatCurrency(expenseTotal)}</strong>
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    ) : null}
+
+                    {/* ── Chat Dock ── */}
+                    <div className="tx-ap-chat-dock">
+                      <span className="tx-ap-section-label">Seguir conversación</span>
                       {assistantMessages.length > 0 && (
                         <div className="tx-chat-thread tx-summary-chat-thread">
                           {assistantMessages.slice(-2).map((message) => (
@@ -3676,27 +3767,32 @@ export function TransactionsModal(props: {
                         </button>
                       </div>
                     </div>
-                    <div className="agent-modal-actions tx-summary-stage-actions">
+
+                    {/* ── Footer Actions ── */}
+                    <div className="tx-ap-footer-actions">
                       <button type="button" className="continue-ghost tx-delete-product-btn" onClick={() => props.deleteTransactionProduct(props.activeBankProduct!.id)}>Eliminar producto</button>
-                      <button
-                        type="button"
-                        className="continue-ghost"
-                        onClick={() => goToTxStage('evidence')}
-                      >
-                        Volver a evidencia
-                      </button>
-                      <button
-                        type="button"
-                        className={`button-primary ${isSavedForBatch ? 'is-saved-product' : ''}`}
-                        onClick={() => {
-                          props.saveTransactionProductForBatch();
-                          setShowTxCarousel(false);
-                        }}
-                        disabled={props.documentsLoading}
-                      >
-                        {isSavedForBatch ? 'Producto guardado' : 'Guardar producto'}
-                      </button>
+                      <div className="tx-ap-footer-actions-right">
+                        <button
+                          type="button"
+                          className="continue-ghost"
+                          onClick={() => goToTxStage('evidence')}
+                        >
+                          Volver a evidencia
+                        </button>
+                        <button
+                          type="button"
+                          className={`button-primary ${isSavedForBatch ? 'is-saved-product' : ''}`}
+                          onClick={() => {
+                            props.saveTransactionProductForBatch();
+                            setShowTxCarousel(false);
+                          }}
+                          disabled={props.documentsLoading}
+                        >
+                          {isSavedForBatch ? 'Producto guardado' : 'Guardar producto'}
+                        </button>
+                      </div>
                     </div>
+
                   </section>
                   )}
                 </div>
