@@ -44771,3 +44771,218 @@ body.agent-route-active .app-shell::before {
 
 }
 /* ==== END BUDGET MOBILE FIX ==== */
+
+/* ============================================================
+   EDITORIAL NUCLEAR CLEANUP — SPECIFICITY KILLSWITCH
+   Targets every deep selector from the original CSS that
+   overrides the editorial redesign. Must be LAST in file.
+   ============================================================ */
+
+/* Strip ALL rounded corners from every interview element */
+.agent-modal.interview-modal *,
+.agent-modal.interview-modal *::before,
+.agent-modal.interview-modal *::after {
+  border-radius: 0 !important;
+}
+
+/* Restore intentional radii AFTER the global reset */
+.agent-modal.interview-modal {
+  border-radius: 6px !important;
+}
+.agent-modal.interview-modal .agent-modal-close {
+  border-radius: 50% !important;
+}
+.agent-modal.interview-modal .interview-focus-card,
+.agent-modal.interview-modal .interview-validation-card {
+  border-radius: 0 2px 2px 0 !important;
+}
+
+/* Kill ALL gradients & heavy backgrounds on voice-call-shell descendants */
+.agent-modal.interview-modal .voice-call-shell,
+.agent-modal.interview-modal .voice-call-shell.interview-live-shell,
+.agent-modal.interview-modal .voice-call-shell.diagnosis-ready-shell,
+.interview-modal .pro-interview-column .voice-call-shell,
+.interview-modal .pro-interview-column .voice-call-shell.interview-live-shell,
+.interview-modal .pro-interview-column .voice-call-shell.diagnosis-ready-shell {
+  background: transparent !important;
+  background-image: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Status badge — kill gradient, make plain editorial */
+.agent-modal.interview-modal .voice-call-status,
+.interview-modal .pro-interview-column .voice-call-shell .voice-call-status,
+.interview-modal .pro-interview-column .voice-call-shell.interview-live-shell .voice-call-status,
+.interview-modal .pro-interview-column .voice-call-shell.diagnosis-ready-shell .voice-call-status {
+  background: transparent !important;
+  background-image: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  font-size: .67rem !important;
+  font-weight: 500 !important;
+  letter-spacing: .06em !important;
+  color: rgba(255,255,255,.38) !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+}
+
+/* Status dot */
+.agent-modal.interview-modal .voice-call-status-dot,
+.interview-modal .pro-interview-column .voice-call-shell .voice-call-status-dot,
+.interview-modal .pro-interview-column .voice-call-shell.interview-live-shell .voice-call-status-dot,
+.interview-modal .pro-interview-column .voice-call-shell.diagnosis-ready-shell .voice-call-status-dot {
+  background: #22c55e !important;
+  box-shadow: none !important;
+  width: 6px !important;
+  height: 6px !important;
+  border-radius: 50% !important;
+  animation: iv-breathe 2.2s ease-in-out infinite !important;
+}
+
+/* Pills — kill pill shape, make hairline square chips */
+.agent-modal.interview-modal .voice-call-pill,
+.agent-modal.interview-modal .interview-brief-tag,
+.interview-modal .pro-interview-column .voice-call-shell .voice-call-pill,
+.interview-modal .pro-interview-column .voice-call-shell.interview-live-shell .voice-call-pill,
+.interview-modal .pro-interview-column .voice-call-shell.diagnosis-ready-shell .voice-call-pill {
+  border-radius: 2px !important;
+  background: rgba(255,255,255,.04) !important;
+  background-image: none !important;
+  border: 1px solid rgba(255,255,255,.08) !important;
+  color: rgba(255,255,255,.36) !important;
+  padding: 2px 8px !important;
+  font-size: .62rem !important;
+  font-family: 'SF Mono','Fira Mono','Cascadia Code',monospace !important;
+}
+
+/* Brief status chip */
+.agent-modal.interview-modal .interview-brief-status,
+.interview-modal .interview-brief-status {
+  border-radius: 2px !important;
+  font-size: .58rem !important;
+  font-weight: 600 !important;
+  letter-spacing: .1em !important;
+  text-transform: uppercase !important;
+  padding: 2px 7px !important;
+  background: transparent !important;
+  background-image: none !important;
+  color: rgba(255,255,255,.38) !important;
+  border: 1px solid rgba(255,255,255,.12) !important;
+  box-shadow: none !important;
+}
+.agent-modal.interview-modal .interview-brief-status.is-live,
+.interview-modal .interview-brief-status.is-live {
+  color: #22c55e !important;
+  border-color: rgba(34,197,94,.3) !important;
+  background: rgba(34,197,94,.05) !important;
+}
+
+/* Transcript cards — kill all gradients and heavy borders */
+.agent-modal.interview-modal .voice-call-transcript-card,
+.interview-modal .pro-interview-column .voice-call-shell .voice-call-transcript-card,
+.interview-modal .pro-interview-column .voice-call-shell.interview-live-shell .voice-call-transcript-card,
+.interview-modal .pro-interview-column .voice-call-shell.diagnosis-ready-shell .voice-call-transcript-card,
+.interview-modal .pro-interview-column .voice-call-shell.diagnosis-ready-shell .voice-call-transcript-card:nth-of-type(1),
+.interview-modal .pro-interview-column .voice-call-shell.diagnosis-ready-shell .voice-call-transcript-card:nth-of-type(2),
+.interview-modal .pro-interview-column .voice-call-shell.diagnosis-ready-shell .voice-call-transcript-card:nth-of-type(3),
+.interview-modal .pro-interview-column .voice-call-shell.diagnosis-ready-shell .voice-call-transcript-card:nth-of-type(4) {
+  background: rgba(255,255,255,.025) !important;
+  background-image: none !important;
+  border: 1px solid rgba(255,255,255,.07) !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  padding: 13px 15px !important;
+}
+.agent-modal.interview-modal .voice-call-transcript-card p,
+.interview-modal .pro-interview-column .voice-call-shell .voice-call-transcript-card p {
+  color: rgba(255,255,255,.58) !important;
+  font-size: .81rem !important;
+  line-height: 1.65 !important;
+}
+.agent-modal.interview-modal .voice-call-transcript-card li,
+.interview-modal .pro-interview-column .voice-call-shell.diagnosis-ready-shell .voice-call-transcript-card p,
+.interview-modal .pro-interview-column .voice-call-shell.diagnosis-ready-shell .voice-call-transcript-card li {
+  color: rgba(255,255,255,.58) !important;
+  background: transparent !important;
+}
+
+/* Progress bar — kill rounded fat bar */
+.agent-modal.interview-modal .voice-call-progress,
+.interview-modal .pro-interview-column .voice-call-shell .voice-call-progress {
+  height: 2px !important;
+  border-radius: 1px !important;
+  border: none !important;
+  background: rgba(255,255,255,.06) !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  margin-top: 0 !important;
+}
+.agent-modal.interview-modal .voice-call-progress > span,
+.interview-modal .pro-interview-column .voice-call-shell .voice-call-progress > span {
+  background: rgba(255,255,255,.5) !important;
+  background-image: none !important;
+  border-radius: 1px !important;
+  box-shadow: none !important;
+}
+
+/* Kill all box-shadows on every container inside interview modal */
+.agent-modal.interview-modal .interview-brief-card,
+.agent-modal.interview-modal .interview-metric-card,
+.agent-modal.interview-modal .interview-notes-card,
+.agent-modal.interview-modal .interview-status-rail,
+.agent-modal.interview-modal .interview-status-item,
+.agent-modal.interview-modal .interview-focus-card {
+  box-shadow: none !important;
+  background-image: none !important;
+}
+
+/* Focus card — just a left accent, no box */
+.agent-modal.interview-modal .interview-focus-card {
+  background: transparent !important;
+  border-top: none !important;
+  border-right: none !important;
+  border-bottom: none !important;
+  border-left: 2px solid rgba(255,255,255,.14) !important;
+  padding-left: 14px !important;
+}
+.agent-modal.interview-modal .interview-focus-card p {
+  color: rgba(255,255,255,.88) !important;
+  font-size: .84rem !important;
+  font-weight: 500 !important;
+}
+
+/* Validation card — left accent in blue */
+.agent-modal.interview-modal .interview-validation-card {
+  background: transparent !important;
+  border-top: none !important;
+  border-right: none !important;
+  border-bottom: none !important;
+  border-left: 2px solid rgba(147,197,253,.3) !important;
+  padding-left: 14px !important;
+}
+
+/* Action buttons — clean */
+.agent-modal.interview-modal .summary-action-btn,
+.agent-modal.interview-modal button.summary-action-btn {
+  border-radius: 2px !important;
+  box-shadow: none !important;
+  background-image: none !important;
+}
+
+/* Kill any background-image on sidebar surface */
+.agent-modal.interview-modal .interview-panel-surface--sidebar,
+.agent-modal.interview-modal .interview-panel-surface--workspace {
+  background-image: none !important;
+}
+
+/* Topbar — no box, no shadow */
+.agent-modal.interview-modal .voice-call-topbar,
+.interview-modal .pro-interview-column .voice-call-shell .voice-call-topbar {
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+/* ==== END NUCLEAR CLEANUP ==== */
