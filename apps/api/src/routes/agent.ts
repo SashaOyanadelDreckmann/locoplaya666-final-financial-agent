@@ -55,7 +55,7 @@ import {
 
 const router = Router();
 const config = getConfig();
-const OPENAI_REALTIME_MODEL = process.env.OPENAI_REALTIME_MODEL?.trim() || 'gpt-realtime-mini';
+const OPENAI_REALTIME_MODEL = process.env.OPENAI_REALTIME_MODEL?.trim() || 'gpt-4o-mini-realtime-preview';
 const OPENAI_REALTIME_VOICE = (() => {
   const requested = process.env.OPENAI_REALTIME_VOICE?.trim().toLowerCase();
   if (requested && (INTERVIEW_REALTIME_VOICES as readonly string[]).includes(requested)) {
@@ -793,7 +793,12 @@ router.get(
 
     if (!response.ok) {
       const text = await response.text();
-      throw badRequest(`No se pudo crear client_secret para Realtime: ${text}`);
+      let detail = text;
+      try {
+        const parsed = JSON.parse(text);
+        detail = parsed?.error?.message ?? parsed?.message ?? text;
+      } catch { /* use raw text */ }
+      throw badRequest(`OpenAI Realtime error (${response.status}): ${detail}`);
     }
 
     const data = await response.json();

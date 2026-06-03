@@ -66,8 +66,18 @@ export function toUserFacingError(error: unknown, context: ErrorContext = 'gener
     const joinedLower = joined.toLowerCase();
 
     if (context === 'interview.voice') {
-      if (joinedLower.includes('client_secret') || joinedLower.includes('realtime') || joinedLower.includes('openai')) {
-        return 'No se pudo iniciar la llamada en tiempo real. Revisa la configuración de OpenAI del backend.';
+      if (joinedLower.includes('openai realtime error') || joinedLower.includes('client_secret') || joinedLower.includes('realtime')) {
+        // Surface the actual OpenAI error when available (e.g. model not found, quota exceeded)
+        const openaiDetail =
+          typeof error.detail === 'string' && error.detail.trim().length > 0
+            ? error.detail.trim()
+            : typeof error.message === 'string' && error.message.trim().length > 0
+            ? error.message.trim()
+            : null;
+        if (openaiDetail && openaiDetail.length < 200) {
+          return `Llamada en tiempo real: ${openaiDetail}`;
+        }
+        return 'No se pudo iniciar la llamada. Revisa que el modelo de voz esté habilitado en tu cuenta de OpenAI.';
       }
       if (
         joinedLower.includes('límite alcanzado') ||

@@ -317,7 +317,7 @@ export default function AgentPage() {
       return `${firstName}, abrimos con una lluvia de ideas senior: cruzamos tu diagnóstico, presupuesto, cartolas y el mercado de hoy. En este chat convergemos hasta dejar un **plan de acción ejecutivo** completo — sin atajos ni correos automáticos. ¿Priorizamos primero caja, deuda, ahorro o inversión?`;
     }
     if (chatId === 'chat-3') {
-      return `${firstName}, este espacio es para conciencia social: cómo tus decisiones financieras impactan tu entorno, con criterio ético y responsabilidad. ¿Qué tema social te importa más al decidir con tu dinero?`;
+      return `*"El precio de todo y el valor de nada."* — Oscar Wilde\n\n${firstName}, este espacio no es sobre números. Es sobre lo que los números revelan de ti.\n\nCada peso que ganas, gastas o acumulas es una decisión moral —aunque nunca la hayas pensado así.\n\n**¿Tu dinero trabaja para el mundo que quieres vivir, o para el mundo que te tocó?**`;
     }
     return buildEditorialWelcome(session);
   }
@@ -357,9 +357,9 @@ export default function AgentPage() {
     if (threadId === 'chat-3') {
       return {
         title: 'Conciencia social',
-        shortTitle: 'Move',
+        shortTitle: 'φ',
         accentClass: 'chat-specialization-3',
-        subtitle: 'Etica, impacto y responsabilidad',
+        subtitle: 'Filosofía del dinero · sociedad · existencia',
       };
     }
     return {
