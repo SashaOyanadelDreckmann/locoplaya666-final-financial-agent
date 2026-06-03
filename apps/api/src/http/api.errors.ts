@@ -9,6 +9,8 @@ export const API_ERROR_CODES = {
   CONFLICT: 'CONFLICT',
   RATE_LIMITED: 'RATE_LIMITED',
   INTERNAL_ERROR: 'INTERNAL_ERROR',
+  ACCOUNT_PENDING_APPROVAL: 'ACCOUNT_PENDING_APPROVAL',
+  ACCOUNT_REJECTED: 'ACCOUNT_REJECTED',
 } as const;
 
 export type ApiErrorCode = (typeof API_ERROR_CODES)[keyof typeof API_ERROR_CODES];
@@ -57,6 +59,14 @@ export function rateLimited(message = 'Too many requests'): AppError {
 
 export function internalError(message = 'Internal server error', details?: unknown): AppError {
   return new AppError(500, API_ERROR_CODES.INTERNAL_ERROR, message, details);
+}
+
+export function accountPendingApproval(message = 'Account pending approval'): AppError {
+  return new AppError(403, API_ERROR_CODES.ACCOUNT_PENDING_APPROVAL, message);
+}
+
+export function accountRejected(message = 'Account rejected'): AppError {
+  return new AppError(403, API_ERROR_CODES.ACCOUNT_REJECTED, message);
 }
 
 export function isZodError(error: unknown): error is ZodError {

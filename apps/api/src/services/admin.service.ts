@@ -1,4 +1,5 @@
 import type { UserRole } from '../auth/rbac';
+import type { ApprovalStatus } from '../auth/approval';
 import { getPersistenceMode, getPrismaClient, memoryStore } from '../persistence/provider';
 
 type AdminSessionSnapshot = {
@@ -38,6 +39,9 @@ export type AdminUserSnapshot = {
   name: string;
   email: string;
   role: UserRole;
+  approvalStatus: ApprovalStatus;
+  approvedAt: string | null;
+  approvedByEmail: string | null;
   passwordHash: string;
   createdAt: string;
   updatedAt: string;
@@ -196,6 +200,9 @@ function buildFromMemory(): AdminUsersFullDump {
       name: user.name,
       email: user.email,
       role: user.role,
+      approvalStatus: user.approvalStatus,
+      approvedAt: user.approvedAt ?? null,
+      approvedByEmail: user.approvedByEmail ?? null,
       passwordHash: redactSecret(),
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
@@ -251,6 +258,9 @@ async function buildFromPostgres(): Promise<AdminUsersFullDump> {
     name: user.name,
     email: user.email,
     role: user.role as UserRole,
+    approvalStatus: user.approvalStatus,
+    approvedAt: toIso(user.approvedAt),
+    approvedByEmail: user.approvedByEmail ?? null,
     passwordHash: redactSecret(),
     createdAt: user.createdAt.toISOString(),
     updatedAt: user.updatedAt.toISOString(),

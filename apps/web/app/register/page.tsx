@@ -6,13 +6,11 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { registerUser } from '@/lib/api';
 import { toUserFacingError } from '@/lib/userError';
-import { useSessionStore } from '@/state/session.store';
 import { RegisterSchema, type RegisterInput } from '@/lib/validation';
 import { ZodError } from 'zod';
 
 export default function RegisterPage() {
   const router = useRouter();
-  const setAuthenticated = useSessionStore((s) => s.setAuthenticated);
 
   const [form, setForm] = useState<RegisterInput>({
     name: '',
@@ -52,9 +50,16 @@ export default function RegisterPage() {
     try {
       setLoading(true);
       setError(null);
-      await registerUser(form);
-      setAuthenticated();
-      router.push('/intake');
+      const payload = await registerUser(form);
+      if (payload?.requiresApproval) {
+        const qp = new URLSearchParams({
+          email: form.email,
+          name: form.name,
+        });
+        router.push(`/waiting-approval?${qp.toString()}`);
+        return;
+      }
+      router.push('/login');
     } catch (e: Error | unknown) {
       setError(toUserFacingError(e, 'auth.register'));
     } finally {
@@ -80,8 +85,9 @@ export default function RegisterPage() {
 
         <div className="auth-fields">
           <div className="auth-field">
-            <label className="auth-label">Nombre</label>
+            <label className="auth-label" htmlFor="register-name">Nombre</label>
             <input
+              id="register-name"
               className={`auth-input ${fieldErrors.name ? 'error' : ''}`}
               type="text"
               placeholder="Cómo prefieres que te llame"
@@ -99,8 +105,9 @@ export default function RegisterPage() {
           </div>
 
           <div className="auth-field">
-            <label className="auth-label">Email</label>
+            <label className="auth-label" htmlFor="register-email">Email</label>
             <input
+              id="register-email"
               className={`auth-input ${fieldErrors.email ? 'error' : ''}`}
               type="email"
               placeholder="tu@correo.com"
@@ -118,8 +125,9 @@ export default function RegisterPage() {
           </div>
 
           <div className="auth-field">
-            <label className="auth-label">Contraseña</label>
+            <label className="auth-label" htmlFor="register-password">Contraseña</label>
             <input
+              id="register-password"
               className={`auth-input ${fieldErrors.password ? 'error' : ''}`}
               type="password"
               placeholder="Una clave simple, solo para ti"
@@ -130,6 +138,7 @@ export default function RegisterPage() {
               aria-invalid={Boolean(fieldErrors.password)}
               aria-describedby={fieldErrors.password ? 'password-error' : undefined}
             />
+            <p className="auth-fine-print">Debe tener al menos 8 caracteres, una mayúscula y un número.</p>
             {fieldErrors.password && (
               <p id="password-error" className="auth-error-text">
                 {fieldErrors.password}

@@ -1,8 +1,9 @@
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
-const PROTECTED_PATHS = ['/agent', '/interview', '/diagnosis', '/intake', '/analytics', '/admin'];
+const PROTECTED_PATHS = ['/agent', '/interview', '/diagnosis', '/intake', '/analytics', '/admin', '/budgetpreview'];
 const GUEST_ONLY_PATHS = ['/login', '/register'];
+const APPROVAL_WAITING_PATH = '/waiting-approval';
 const SESSION_COOKIE_NAME = process.env.SESSION_COOKIE_NAME?.trim()
   || process.env.NEXT_PUBLIC_SESSION_COOKIE_NAME?.trim()
   || 'session';
@@ -21,6 +22,7 @@ export function middleware(request: NextRequest) {
   const isGuestOnly = GUEST_ONLY_PATHS.some(
     (base) => pathname === base || pathname.startsWith(`${base}/`),
   );
+  const isApprovalWaiting = pathname === APPROVAL_WAITING_PATH || pathname.startsWith(`${APPROVAL_WAITING_PATH}/`);
 
   if (isProtected && !hasSession) {
     const url = request.nextUrl.clone();
@@ -30,6 +32,12 @@ export function middleware(request: NextRequest) {
   }
 
   if (isGuestOnly && hasSession) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/agent';
+    return NextResponse.redirect(url);
+  }
+
+  if (isApprovalWaiting && hasSession) {
     const url = request.nextUrl.clone();
     url.pathname = '/agent';
     return NextResponse.redirect(url);
@@ -46,7 +54,9 @@ export const config = {
     '/intake/:path*',
     '/analytics/:path*',
     '/admin/:path*',
+    '/budgetpreview/:path*',
     '/login',
     '/register',
+    '/waiting-approval',
   ],
 };

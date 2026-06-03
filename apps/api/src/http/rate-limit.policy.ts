@@ -46,7 +46,7 @@ export const HTTP_RATE_LIMIT_POLICIES: HttpRateLimitPolicy[] = [
   {
     name: 'auth_sensitive',
     windowMs: 15 * 60 * 1000,
-    max: 40,
+    max: 15,
     scope: 'auth',
     criticality: 'critical',
   },

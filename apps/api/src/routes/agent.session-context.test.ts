@@ -5,6 +5,7 @@ import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { attachIntakeToUser, saveUserMemoryBlob } from '../services/user.service';
+import { createApprovalToken } from '../services/approval.service';
 
 let dataDir: string;
 
@@ -34,15 +35,27 @@ async function createAuthedAgent() {
   const registerRes = await agent.post('/auth/register').send({
     name: 'Session Test',
     email,
-    password: 'secret123',
+    password: 'Secret123',
   });
   expect(registerRes.status).toBe(200);
+  const userId = String(registerRes.body?.data?.user?.id ?? '');
+  const token = createApprovalToken({
+    userId,
+    adminEmail: 'sasha.oyanadel@ug.uchile.cl',
+  });
+  const approved = await request(app).get(`/auth/approve?token=${encodeURIComponent(token)}`);
+  expect(approved.status).toBe(200);
+  const loginRes = await agent.post('/auth/login').send({
+    email,
+    password: 'Secret123',
+  });
+  expect(loginRes.status).toBe(200);
 
   const sessionRes = await agent.get('/api/session');
   expect(sessionRes.status).toBe(200);
   return {
     agent,
-    userId: String(sessionRes.body?.data?.id ?? ''),
+    userId,
     csrfToken: String(sessionRes.headers['x-csrf-token'] ?? ''),
   };
 }

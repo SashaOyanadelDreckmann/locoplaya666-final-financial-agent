@@ -46,6 +46,10 @@ import {
   getSimulationSnapshot,
 } from '@/lib/products-context.helpers';
 import {
+  applyUploadToTargetProduct,
+  normalizeParsedUploadDocuments,
+} from '@/lib/transactions-upload-state.helpers';
+import {
   clearAllPanelStateBackups,
   hasMeaningfulPanelState,
   panelStateBackupKeyForUser,
@@ -379,6 +383,7 @@ export default function AgentPage() {
   const [panelStage, setPanelStage] = useState(3);
   const [mobilePanelExpanded, setMobilePanelExpanded] = useState(false);
   const [isMobileViewport, setIsMobileViewport] = useState(false);
+  const [isStandaloneDisplayMode, setIsStandaloneDisplayMode] = useState(false);
   const [isMonochrome, setIsMonochrome] = useState(false);
   const [progressPulse, setProgressPulse] = useState(false);
   const [isRailMorphing, setIsRailMorphing] = useState(false);
@@ -567,6 +572,32 @@ export default function AgentPage() {
     syncViewport();
     window.addEventListener('resize', syncViewport);
     return () => window.removeEventListener('resize', syncViewport);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const media = window.matchMedia('(display-mode: standalone)');
+    const syncStandalone = () => {
+      const iosStandalone = Boolean((window.navigator as Navigator & { standalone?: boolean }).standalone);
+      setIsStandaloneDisplayMode(media.matches || iosStandalone);
+    };
+    syncStandalone();
+    if (typeof media.addEventListener === 'function') {
+      media.addEventListener('change', syncStandalone);
+    } else {
+      media.addListener(syncStandalone);
+    }
+    window.addEventListener('focus', syncStandalone);
+    document.addEventListener('visibilitychange', syncStandalone);
+    return () => {
+      if (typeof media.removeEventListener === 'function') {
+        media.removeEventListener('change', syncStandalone);
+      } else {
+        media.removeListener(syncStandalone);
+      }
+      window.removeEventListener('focus', syncStandalone);
+      document.removeEventListener('visibilitychange', syncStandalone);
+    };
   }, []);
 
   useEffect(() => {
@@ -2994,6 +3025,7 @@ export default function AgentPage() {
     const fileArray = Array.isArray(files) ? files : Array.from(files);
     if (fileArray.length === 0) return null;
     if (!activeBankProduct) return null;
+    const targetProductId = activeBankProduct.id;
     if ((activeBankProduct.parsedDocuments?.length ?? 0) > 0) {
       setTransactionUploadError('Este producto ya fue analizado. Solo se permite 1 análisis por producto.');
       return null;
@@ -3006,6 +3038,11 @@ export default function AgentPage() {
     });
     if (selectedFiles.length === 0) {
       setTransactionUploadError('Formato no soportado. Usa imagen, PDF, Excel, CSV o TXT.');
+      return null;
+    }
+    const totalBytes = selectedFiles.reduce((sum, file) => sum + file.size, 0);
+    if (totalBytes > 35 * 1024 * 1024) {
+      setTransactionUploadError('El total adjunto supera 35 MB. Divide la carga en bloques más pequeños.');
       return null;
     }
     const availableSlots = Math.max(0, MAX_EVIDENCE_FILES_PER_PRODUCT - activeBankProduct.uploadedFiles.length);
@@ -3038,12 +3075,20 @@ export default function AgentPage() {
         )
       );
 
-      const parsed = await parseDocuments(encodedFiles, {
-        institutionHint: activeBankProduct.bank,
-        serviceHint: activeBankProduct.label,
-        productTypeHint: activeBankProduct.productType,
-        productLabelHint: activeBankProduct.label,
-      });
+      const callParseDocuments = async () =>
+        parseDocuments(encodedFiles, {
+          institutionHint: activeBankProduct.bank,
+          serviceHint: activeBankProduct.label,
+          productTypeHint: activeBankProduct.productType,
+          productLabelHint: activeBankProduct.label,
+        });
+      let parsed = await callParseDocuments();
+      const parsedDocsFirstTry = Array.isArray(parsed?.documents) ? parsed.documents : [];
+      if (parsedDocsFirstTry.length === 0) {
+        // One safe retry to absorb transient backend/OCR timeouts in deploy.
+        await new Promise((resolve) => setTimeout(resolve, 700));
+        parsed = await callParseDocuments();
+      }
       const parsedDocs = Array.isArray(parsed?.documents) ? parsed.documents : [];
       const transactionAnalysis = parsed?.transactionAnalysis as
         | {
@@ -3114,37 +3159,29 @@ export default function AgentPage() {
       const canonicalMovements = Array.isArray(transactionAnalysis?.movements)
         ? transactionAnalysis.movements
         : [];
+      const normalizedParsedDocs = normalizeParsedUploadDocuments(parsedDocs, insightByName);
+      if (normalizedParsedDocs.length === 0) {
+        setTransactionUploadError(
+          'No se detectó contenido transaccional en esos archivos. Intenta con un PDF/imagen más nítido o un Excel/CSV con columnas de fecha, descripción y monto.',
+        );
+        return null;
+      }
 
       setBankSimulation((prev) => {
-        if (!prev.activeProductId) return prev;
-        const active = prev.products.find((p) => p.id === prev.activeProductId);
+        const uploadApplied = applyUploadToTargetProduct(prev.products, targetProductId, normalizedParsedDocs, names);
+        const active = uploadApplied.targetProduct;
         if (!active) return prev;
-        const nextDocs = [...active.parsedDocuments];
-        for (const doc of parsedDocs) {
-          const normalizedDoc = {
-            name: doc.name,
-            text: doc.text,
-            summary: doc.summary,
-            structuredData: doc.structuredData,
-            insight: insightByName.get(doc.name),
-          };
-          const existingIdx = nextDocs.findIndex((existing) => existing.name === doc.name);
-          if (existingIdx >= 0) {
-            nextDocs[existingIdx] = normalizedDoc;
-          } else {
-            nextDocs.push(normalizedDoc);
-          }
-        }
-
-        const nextFiles = Array.from(new Set([...active.uploadedFiles, ...names]));
         const provisionalProduct: BankProduct = {
           ...active,
-          uploadedFiles: nextFiles,
-          parsedDocuments: nextDocs,
         };
         const descriptor = buildProductCardDescriptor(provisionalProduct);
-        const inferredInstitution = inferInstitutionFromText(nextDocs.map((d) => d.text ?? '').join('\n'), active.bank);
-        const inferredType = inferProductTypeFromText(nextDocs.map((d) => d.text ?? '').join('\n'));
+        const inferredInstitution = inferInstitutionFromText(
+          provisionalProduct.parsedDocuments.map((d) => d.text ?? '').join('\n'),
+          active.bank,
+        );
+        const inferredType = inferProductTypeFromText(
+          provisionalProduct.parsedDocuments.map((d) => d.text ?? '').join('\n'),
+        );
         const generatedLabel =
           profileInstitution && profileLabel
             ? `${profileInstitution} · ${profileLabel}`
@@ -3152,12 +3189,10 @@ export default function AgentPage() {
             ? `${inferredInstitution} · ${inferredType}`
             : active.label;
 
-        const products = prev.products.map((p) =>
+        const products = uploadApplied.products.map((p) =>
           p.id === active.id
             ? {
                 ...p,
-                uploadedFiles: nextFiles,
-                parsedDocuments: nextDocs,
                 assistant: normalizeProductAssistantState(p.assistant),
                 bank: profileInstitution || p.bank.trim() || inferredInstitution,
                 productType: profileType || p.productType,
@@ -3184,7 +3219,6 @@ export default function AgentPage() {
               }
             : p
         );
-
         const snapshot = getSimulationSnapshot(products, prev.activeProductId);
         return {
           ...prev,
@@ -3196,7 +3230,7 @@ export default function AgentPage() {
         };
       });
       return {
-        documents: parsedDocs,
+        documents: normalizedParsedDocs,
         dashboard: transactionAnalysis?.product_profile
           ? {
               period: transactionAnalysis.product_profile.period,
@@ -3218,31 +3252,16 @@ export default function AgentPage() {
           : undefined,
         product: {
           bank: profileInstitution || activeBankProduct.bank,
-          label: profileInstitution && profileLabel ? `${profileInstitution} · ${profileLabel}` : profileLabel || activeBankProduct.label,
+          label:
+            profileInstitution && profileLabel
+              ? `${profileInstitution} · ${profileLabel}`
+              : profileLabel || activeBankProduct.label,
           productType: profileType || activeBankProduct.productType,
         },
       };
     } catch (error) {
       const errorText = toUserFacingError(error, 'generic');
       setTransactionUploadError(errorText);
-      setBankSimulation((prev) => {
-        if (!prev.activeProductId) return prev;
-        const active = prev.products.find((p) => p.id === prev.activeProductId);
-        if (!active) return prev;
-        const nextFiles = Array.from(new Set([...active.uploadedFiles, ...names]));
-        const products = prev.products.map((p) =>
-          p.id === active.id ? { ...p, uploadedFiles: nextFiles } : p
-        );
-        const snapshot = getSimulationSnapshot(products, prev.activeProductId);
-        return {
-          ...prev,
-          products,
-          uploadedFiles: snapshot.uploadedFiles,
-          parsedDocuments: snapshot.parsedDocuments,
-          connected: snapshot.connected,
-          randomMode: snapshot.randomMode,
-        };
-      });
       return null;
     } finally {
       setDocumentsLoading(false);
@@ -3727,6 +3746,8 @@ export default function AgentPage() {
         isMonochrome ? 'is-monochrome' : ''
       } ${
         mobilePanelExpanded ? 'mobile-panel-expanded' : ''
+      } ${
+        isMobileViewport && isStandaloneDisplayMode ? 'is-mobile-standalone' : ''
       }`}
     >
       <section

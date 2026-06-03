@@ -23,10 +23,12 @@ export default function DemoPage() {
 
   const history = useMemo(
     () =>
-      messages.map((m) => ({
-        role: m.role,
-        content: m.content,
-      })),
+      messages
+        .filter((m, index) => !(index === 0 && m.role === 'assistant'))
+        .map((m) => ({
+          role: m.role,
+          content: m.content,
+        })),
     [messages]
   );
 

@@ -96,6 +96,7 @@ export type TransactionTaxonomyOverride = {
 
 export type UploadStatementResult = {
   documents: Array<{
+    documentId?: string;
     name: string;
     text: string;
     summary?: unknown;

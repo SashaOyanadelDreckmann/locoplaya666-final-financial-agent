@@ -3,10 +3,12 @@ import userEvent from '@testing-library/user-event';
 import { useRouter } from 'next/navigation';
 import LoginPage from '../page';
 import { loginUser } from '@/lib/api';
+import { ApiHttpError } from '@/lib/apiEnvelope';
 
 // Mock next/navigation
 jest.mock('next/navigation', () => ({
   useRouter: jest.fn(),
+  useSearchParams: jest.fn(() => new URLSearchParams()),
 }));
 
 // Mock API
@@ -122,6 +124,25 @@ describe('LoginPage', () => {
     });
   });
 
+  it('redirects to next param when present', async () => {
+    const user = userEvent.setup();
+    const { useSearchParams } = jest.requireMock('next/navigation') as {
+      useSearchParams: jest.Mock;
+    };
+    useSearchParams.mockReturnValue(new URLSearchParams('next=/intake'));
+    mockLoginUser.mockResolvedValue({ user: { id: '123', name: 'Test' } });
+
+    render(<LoginPage />);
+
+    await user.type(screen.getByPlaceholderText('tu@correo.com'), 'test@example.com');
+    await user.type(screen.getByPlaceholderText('Tu clave'), 'Password123');
+    await user.click(screen.getByRole('button', { name: /Continuar/i }));
+
+    await waitFor(() => {
+      expect(mockPush).toHaveBeenCalledWith('/intake');
+    });
+  });
+
   it('shows error on login failure', async () => {
     const user = userEvent.setup();
     mockLoginUser.mockRejectedValue(new Error('Invalid credentials'));
@@ -139,6 +160,28 @@ describe('LoginPage', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Credenciales inválidas. Revisa tu correo y contraseña.')).toBeInTheDocument();
+    });
+  });
+
+  it('redirects to waiting approval when account is pending', async () => {
+    const user = userEvent.setup();
+    mockLoginUser.mockRejectedValue(
+      new ApiHttpError({
+        status: 403,
+        code: 'ACCOUNT_PENDING_APPROVAL',
+        message: 'Cuenta pendiente de aprobación',
+      })
+    );
+
+    render(<LoginPage />);
+    await user.type(screen.getByPlaceholderText('tu@correo.com'), 'pending@example.com');
+    await user.type(screen.getByPlaceholderText('Tu clave'), 'Password123');
+    await user.click(screen.getByRole('button', { name: /Continuar/i }));
+
+    await waitFor(() => {
+      expect(mockPush).toHaveBeenCalledWith(
+        expect.stringContaining('/waiting-approval?')
+      );
     });
   });
 

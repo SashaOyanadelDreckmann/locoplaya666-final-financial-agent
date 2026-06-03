@@ -21,4 +21,20 @@ describe('transactions modal safeguards', () => {
     expect(source).toContain('const requestClose = useCallback');
     expect(source).toContain('countProductsWithAnalyzedMovements');
   });
+
+  it('keeps product upload isolation and canonical document ids', () => {
+    const sourcePath = path.join(process.cwd(), 'app', 'agent', 'page.tsx');
+    const source = fs.readFileSync(sourcePath, 'utf8');
+
+    expect(source).toContain('const targetProductId = activeBankProduct.id;');
+    expect(source).toContain('normalizeParsedUploadDocuments');
+    expect(source).toContain('applyUploadToTargetProduct');
+    expect(source).toContain('if (normalizedParsedDocs.length === 0)');
+    expect(source).toContain('No se detectó contenido transaccional en esos archivos');
+    expect(source).toContain('const totalBytes = selectedFiles.reduce((sum, file) => sum + file.size, 0);');
+    expect(source).toContain('if (totalBytes > 35 * 1024 * 1024)');
+    expect(source).toContain('let parsed = await callParseDocuments();');
+    expect(source).toContain('await new Promise((resolve) => setTimeout(resolve, 700));');
+    expect(source).not.toContain('const uploadApplied = applyUploadToTargetProduct(prev.products, targetProductId, [], names);');
+  });
 });

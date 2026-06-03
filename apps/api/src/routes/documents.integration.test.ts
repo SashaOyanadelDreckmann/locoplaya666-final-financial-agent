@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import request from 'supertest';
 import { validateAndPrepareDocumentFiles } from './documents';
+import { createApprovalToken } from '../services/approval.service';
 
 async function buildAuthenticatedAgent() {
   vi.resetModules();
@@ -9,15 +10,28 @@ async function buildAuthenticatedAgent() {
   const app = createApp();
   const agent = request.agent(app);
 
-  await agent.post('/auth/register').send({
+  const email = `docs-${Date.now()}@example.com`;
+  const reg = await agent.post('/auth/register').send({
     name: 'Docs User',
-    email: `docs-${Date.now()}@example.com`,
-    password: 'secret123',
+    email,
+    password: 'Secret123',
   });
+  const userId = String(reg.body?.data?.user?.id ?? '');
+  const token = createApprovalToken({
+    userId,
+    adminEmail: 'sasha.oyanadel@ug.uchile.cl',
+  });
+  const approved = await request(app).get(`/auth/approve?token=${encodeURIComponent(token)}`);
+  expect(approved.status).toBe(200);
+  const loginRes = await agent.post('/auth/login').send({
+    email,
+    password: 'Secret123',
+  });
+  expect(loginRes.status).toBe(200);
   const sessionRes = await agent.get('/api/session');
   const csrfToken = String(sessionRes.headers['x-csrf-token'] ?? '');
-  const userId = String(sessionRes.body?.data?.id ?? '');
-  return { app, agent, csrfToken, userId, listUserDocuments };
+  const hydratedUserId = String(sessionRes.body?.data?.id ?? '');
+  return { app, agent, csrfToken, userId: hydratedUserId || userId, listUserDocuments };
 }
 
 describe('documents routes', () => {

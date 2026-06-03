@@ -2,9 +2,10 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { loginUser } from '@/lib/api';
+import { ApiHttpError } from '@/lib/apiEnvelope';
 import { toUserFacingError } from '@/lib/userError';
 import { useSessionStore } from '@/state/session.store';
 import { LoginSchema, type LoginInput } from '@/lib/validation';
@@ -12,6 +13,7 @@ import { ZodError } from 'zod';
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const setAuthenticated = useSessionStore((s) => s.setAuthenticated);
 
   const [form, setForm] = useState<LoginInput>({ email: '', password: '' });
@@ -51,8 +53,18 @@ export default function LoginPage() {
       const loginPayload = await loginUser(form);
       setAuthenticated();
       const role = String(loginPayload?.user?.role ?? '').toUpperCase();
-      router.push(role === 'ADMIN' ? '/admin' : '/agent');
+      const requestedNext = searchParams.get('next');
+      const safeNext = requestedNext && requestedNext.startsWith('/') && !requestedNext.startsWith('//')
+        ? requestedNext
+        : null;
+      const fallbackRoute = role === 'ADMIN' ? '/admin' : '/agent';
+      router.push(safeNext ?? fallbackRoute);
     } catch (e: Error | unknown) {
+      if (e instanceof ApiHttpError && e.code === 'ACCOUNT_PENDING_APPROVAL') {
+        const qp = new URLSearchParams({ email: form.email });
+        router.push(`/waiting-approval?${qp.toString()}`);
+        return;
+      }
       setError(toUserFacingError(e, 'auth.login'));
     } finally {
       setLoading(false);
@@ -77,8 +89,9 @@ export default function LoginPage() {
 
         <div className="auth-fields">
           <div className="auth-field">
-            <label className="auth-label">Email</label>
+            <label className="auth-label" htmlFor="login-email">Email</label>
             <input
+              id="login-email"
               className={`auth-input ${fieldErrors.email ? 'error' : ''}`}
               type="email"
               placeholder="tu@correo.com"
@@ -97,8 +110,9 @@ export default function LoginPage() {
           </div>
 
           <div className="auth-field">
-            <label className="auth-label">Contraseña</label>
+            <label className="auth-label" htmlFor="login-password">Contraseña</label>
             <input
+              id="login-password"
               className={`auth-input ${fieldErrors.password ? 'error' : ''}`}
               type="password"
               placeholder="Tu clave"
@@ -127,6 +141,11 @@ export default function LoginPage() {
           <span className="auth-footer-text">¿Primera vez?</span>
           <Link href="/register" className="auth-footer-link">
             Crear cuenta
+          </Link>
+        </div>
+        <div className="auth-footer">
+          <Link href="/forgot-password" className="auth-footer-link">
+            ¿Olvidaste tu contraseña?
           </Link>
         </div>
       </div>

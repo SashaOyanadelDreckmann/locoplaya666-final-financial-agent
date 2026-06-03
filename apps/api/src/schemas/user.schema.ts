@@ -2,6 +2,7 @@ import { z } from 'zod';
 import type { FinancialDiagnosticProfile } from './profile.schema';
 
 export const UserRoleSchema = z.enum(['USER', 'ANALYST', 'ADMIN']);
+export const ApprovalStatusSchema = z.enum(['PENDING_APPROVAL', 'APPROVED', 'REJECTED']);
 
 export const KnowledgeEventSchema = z.object({
   timestamp: z.string(),
@@ -17,6 +18,9 @@ export const UserSchema = z.object({
   email: z.string().email(),
   passwordHash: z.string(),
   role: UserRoleSchema.default('USER'),
+  approvalStatus: ApprovalStatusSchema.default('APPROVED'),
+  approvedAt: z.string().optional(),
+  approvedByEmail: z.string().email().optional(),
   injectedProfile: z.unknown().optional(),
   injectedIntake: z
     .object({

@@ -8,12 +8,15 @@ import {
   motion,
   useScroll, useTransform, useSpring,
   useMotionValue, useInView,
+  type MotionValue,
   type Variants,
 } from 'framer-motion';
 import SpotlightCard from '../components/home/SpotlightCard';
 import Counter from '../components/home/Counter';
 import NumbersCanvas from '../components/home/NumbersCanvas';
 import BrandWordmark from '../components/brand/BrandWordmark';
+import { useSessionStore } from '@/state/session.store';
+import { getSessionInfo } from '@/lib/api';
 
 // ── Easing ────────────────────────────────────────────────────────────────────
 const SILK: [number, number, number, number] = [0.22, 1, 0.36, 1];
@@ -47,10 +50,18 @@ function Label({ text, color = BLUE_DIM }: { text: string; color?: string }) {
 }
 
 // ── Accent line ────────────────────────────────────────────────────────────────
-function AccentLine({ color = BLUE, delay = 0, progress }: { color?: string; delay?: number; progress?: any }) {
-  const scaleX = progress
-    ? useTransform(progress, [0, 0.3], [0, 1])
-    : undefined;
+function AccentLine({
+  color = BLUE,
+  delay = 0,
+  progress,
+}: {
+  color?: string;
+  delay?: number;
+  progress?: MotionValue<number>;
+}) {
+  const fallbackProgress = useMotionValue(0);
+  const sourceProgress = progress ?? fallbackProgress;
+  const scaleX = useTransform(sourceProgress, [0, 0.3], [0, 1]);
   return (
     <motion.div
       style={{
@@ -318,12 +329,26 @@ function StatsSection() {
 // ── Steps Section ──────────────────────────────────────────────────────────────
 function StepsSection() {
   const router = useRouter();
+  const isAuthenticated = useSessionStore((s) => s.isAuthenticated);
   const ref = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end start'] });
 
   const headY = useTransform(scrollYProgress, [0, 0.4, 1], [40, 0, -25]);
   const headO = useTransform(scrollYProgress, [0, 0.2, 0.85, 1], [0, 1, 1, 0.3]);
   const lineH = useTransform(scrollYProgress, [0.15, 0.75], ['0%', '100%']);
+
+  const handleStartDiagnosis = async () => {
+    if (isAuthenticated) {
+      router.push('/intake');
+      return;
+    }
+    try {
+      await getSessionInfo();
+      router.push('/intake');
+    } catch {
+      router.push('/register');
+    }
+  };
 
   return (
     <section ref={ref} style={{
@@ -411,7 +436,7 @@ function StepsSection() {
         initial={{ opacity: 0, y: 16 }}
         viewport={{ once: true }}
         transition={{ delay: 0.3, duration: 0.7, ease: SILK }}
-        onClick={() => router.push('/intake')}
+        onClick={() => void handleStartDiagnosis()}
         whileHover={{ opacity: 0.65 }}
         whileTap={{ scale: 0.97 }}
         style={{ marginTop: 40, background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 13, fontWeight: 600, color: GOLD_DIM, display: 'inline-flex', alignItems: 'center', gap: 7, letterSpacing: '-0.01em', position: 'relative', zIndex: 1 }}
@@ -425,10 +450,24 @@ function StepsSection() {
 // ── CTA Section ────────────────────────────────────────────────────────────────
 function CtaSection() {
   const router = useRouter();
+  const isAuthenticated = useSessionStore((s) => s.isAuthenticated);
   const ref = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end start'] });
   const headY = useTransform(scrollYProgress, [0, 0.5, 1], [60, 0, -40]);
   const headO = useTransform(scrollYProgress, [0, 0.2, 0.85, 1], [0, 1, 1, 0.2]);
+
+  const handleStartDiagnosis = async () => {
+    if (isAuthenticated) {
+      router.push('/intake');
+      return;
+    }
+    try {
+      await getSessionInfo();
+      router.push('/intake');
+    } catch {
+      router.push('/register');
+    }
+  };
 
   return (
     <section ref={ref} style={{
@@ -466,7 +505,7 @@ function CtaSection() {
 
         <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'center' }}>
           <motion.button
-            onClick={() => router.push('/intake')}
+            onClick={() => void handleStartDiagnosis()}
             whileHover={{ scale: 1.02, opacity: 0.88 }}
             whileTap={{ scale: 0.97 }}
             transition={{ type: 'spring', stiffness: 500, damping: 30 }}
@@ -494,6 +533,7 @@ function CtaSection() {
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function HomePage() {
   const router = useRouter();
+  const isAuthenticated = useSessionStore((s) => s.isAuthenticated);
   const scrollRangeRef = useRef<HTMLDivElement>(null);
   const heroSectionRef = useRef<HTMLElement>(null);
 
@@ -523,6 +563,19 @@ export default function HomePage() {
 
   const heroY       = useTransform(heroProgress, [0, 0.6], [0, -55]);
   const lineOpacity = useTransform(heroProgress, [0, 0.18], [1, 0]);
+
+  const handleStartDiagnosis = async () => {
+    if (isAuthenticated) {
+      router.push('/intake');
+      return;
+    }
+    try {
+      await getSessionInfo();
+      router.push('/intake');
+    } catch {
+      router.push('/register');
+    }
+  };
 
   return (
     <main style={{ background: '#060b18', color: 'white', position: 'relative' }}>
@@ -684,7 +737,7 @@ export default function HomePage() {
                     Comenzar <ArrowRight size={13} />
                   </motion.button>
                   <motion.button
-                    onClick={() => router.push('/intake')}
+                    onClick={() => void handleStartDiagnosis()}
                     whileHover={{ opacity: 0.65 }}
                     style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'rgba(255,255,255,0.38)', padding: 0, letterSpacing: '-0.01em' }}
                   >

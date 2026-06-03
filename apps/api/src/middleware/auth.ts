@@ -1,12 +1,13 @@
 import type { Request, Response, NextFunction } from 'express';
 import { hasPermission, type Permission } from '../auth/rbac';
-import { unauthorized, forbidden } from '../http/api.errors';
+import { accountPendingApproval, accountRejected, unauthorized, forbidden } from '../http/api.errors';
 import {
   getSessionCookieName,
   getSessionCookieOptions,
   getSessionWithOptionalRotation,
 } from '../services/session.service';
 import { loadUserById } from '../services/user.service';
+import { APPROVAL_STATUS } from '../auth/approval';
 
 declare global {
   namespace Express {
@@ -37,6 +38,12 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
     const user = await getAuthenticatedUser(req, res);
     if (!user) {
       throw unauthorized('Not authenticated');
+    }
+    if (user.approvalStatus === APPROVAL_STATUS.PENDING_APPROVAL) {
+      throw accountPendingApproval('Cuenta pendiente de aprobación');
+    }
+    if (user.approvalStatus === APPROVAL_STATUS.REJECTED) {
+      throw accountRejected('Cuenta rechazada');
     }
 
     req.authenticatedUser = user;

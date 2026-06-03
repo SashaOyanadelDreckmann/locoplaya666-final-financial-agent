@@ -113,6 +113,34 @@ const configSchema = z.object({
     .enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal'])
     .default('info')
     .describe('Pino log level'),
+
+  // Approval flow and transactional email
+  RESEND_API_KEY: z
+    .string()
+    .optional()
+    .describe('Resend API key for account approval emails'),
+  APPROVAL_ADMIN_EMAIL: z
+    .string()
+    .email()
+    .default('sasha.oyanadel@ug.uchile.cl')
+    .describe('Admin inbox that receives account approval requests'),
+  APPROVAL_LINK_SECRET: z
+    .string()
+    .default('dev-approval-link-secret-change-me')
+    .describe('HMAC secret for one-click account approval links'),
+  APPROVAL_LINK_BASE_URL: z
+    .string()
+    .default('http://localhost:3001')
+    .describe('Public API base URL used to build approval links'),
+  APPROVAL_LINK_TTL_HOURS: z
+    .string()
+    .default('24')
+    .transform((v) => Number(v))
+    .describe('Expiration time in hours for approval links'),
+  APPROVAL_EMAIL_FROM: z
+    .string()
+    .default('Financieramente <onboarding@financieramente.app>')
+    .describe('From header used in approval flow emails'),
 });
 
 export type Config = z.infer<typeof configSchema>;
@@ -133,6 +161,10 @@ export function getConfig(): Config {
     if (_config.NODE_ENV === 'production') {
       if (!_config.SESSION_TOKEN_SECRET || _config.SESSION_TOKEN_SECRET.length < 32) {
         console.error('❌ SECURITY ERROR: SESSION_TOKEN_SECRET must be set and at least 32 characters in production');
+        process.exit(1);
+      }
+      if (!_config.APPROVAL_LINK_SECRET || _config.APPROVAL_LINK_SECRET.length < 32) {
+        console.error('❌ SECURITY ERROR: APPROVAL_LINK_SECRET must be set and at least 32 characters in production');
         process.exit(1);
       }
     }

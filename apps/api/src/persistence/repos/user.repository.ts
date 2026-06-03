@@ -2,12 +2,16 @@ import crypto from 'crypto';
 import type { StoredUser } from '../types';
 import { getPersistenceMode, getPrismaClient, memoryStore } from '../provider';
 import { USER_ROLES, type UserRole } from '../../auth/rbac';
+import { APPROVAL_STATUS, type ApprovalStatus } from '../../auth/approval';
 
 type CreateUserInput = {
   name: string;
   email: string;
   passwordHash: string;
   role?: UserRole;
+  approvalStatus?: ApprovalStatus;
+  approvedAt?: string;
+  approvedByEmail?: string;
 };
 
 function nowIso(): string {
@@ -26,6 +30,9 @@ function buildDefaultUser(input: CreateUserInput): StoredUser {
     email: normalizeEmail(input.email),
     passwordHash: input.passwordHash,
     role: input.role ?? USER_ROLES.USER,
+    approvalStatus: input.approvalStatus ?? APPROVAL_STATUS.APPROVED,
+    approvedAt: input.approvedAt,
+    approvedByEmail: input.approvedByEmail,
     knowledgeBaseScore: 0,
     knowledgeScore: 0,
     knowledgeHistory: [],
@@ -42,6 +49,11 @@ function toStoredUser(record: Record<string, unknown>): StoredUser {
     email: String(record.email),
     passwordHash: String(record.passwordHash),
     role: (record.role as UserRole) ?? USER_ROLES.USER,
+    approvalStatus: (record.approvalStatus as ApprovalStatus) ?? APPROVAL_STATUS.APPROVED,
+    approvedAt: record.approvedAt
+      ? new Date(record.approvedAt as string | number | Date).toISOString()
+      : undefined,
+    approvedByEmail: (record.approvedByEmail ?? undefined) as string | undefined,
     injectedProfile: (record.injectedProfile ?? undefined) as StoredUser['injectedProfile'],
     injectedIntake: (record.injectedIntake ?? undefined) as StoredUser['injectedIntake'],
     latestDiagnosticProfileId: (record.latestDiagnosticProfileId ?? undefined) as string | undefined,
@@ -87,11 +99,14 @@ export async function createUserRecord(input: CreateUserInput): Promise<StoredUs
       email: candidate.email,
       passwordHash: candidate.passwordHash,
       role: candidate.role,
+      approvalStatus: candidate.approvalStatus,
+      approvedAt: candidate.approvedAt ? new Date(candidate.approvedAt) : null,
+      approvedByEmail: candidate.approvedByEmail ?? null,
       knowledgeBaseScore: candidate.knowledgeBaseScore,
       knowledgeScore: candidate.knowledgeScore,
       knowledgeHistory: candidate.knowledgeHistory as any,
       knowledgeLastUpdated: new Date(candidate.knowledgeLastUpdated),
-    },
+    } as any,
   }).catch((error: unknown) => {
     if ((error as { code?: string })?.code === 'P2002') {
       throw new Error(`User with email ${candidate.email} already exists`);
@@ -135,6 +150,8 @@ type UserPatch = Partial<Omit<StoredUser, 'id' | 'email' | 'createdAt' | 'update
   panelState?: StoredUser['panelState'] | null;
   sheets?: StoredUser['sheets'] | null;
   memoryBlob?: StoredUser['memoryBlob'] | null;
+  approvedAt?: string | null;
+  approvedByEmail?: string | null;
 };
 
 export async function patchUserRecord(userId: string, patch: UserPatch): Promise<StoredUser | null> {
@@ -168,6 +185,11 @@ export async function patchUserRecord(userId: string, patch: UserPatch): Promise
       ...(patch.name !== undefined ? { name: patch.name } : {}),
       ...(patch.passwordHash !== undefined ? { passwordHash: patch.passwordHash } : {}),
       ...(patch.role !== undefined ? { role: patch.role } : {}),
+      ...(patch.approvalStatus !== undefined ? { approvalStatus: patch.approvalStatus } : {}),
+      ...(patch.approvedAt !== undefined
+        ? { approvedAt: patch.approvedAt ? new Date(patch.approvedAt) : null }
+        : {}),
+      ...(patch.approvedByEmail !== undefined ? { approvedByEmail: patch.approvedByEmail ?? null } : {}),
       ...(patch.injectedProfile !== undefined ? { injectedProfile: patch.injectedProfile as any } : {}),
       ...(patch.injectedIntake !== undefined ? { injectedIntake: patch.injectedIntake as any } : {}),
       ...(patch.latestDiagnosticProfileId !== undefined
@@ -193,7 +215,7 @@ export async function patchUserRecord(userId: string, patch: UserPatch): Promise
         ? { knowledgeLastUpdated: new Date(patch.knowledgeLastUpdated) }
         : {}),
       ...(patch.memoryBlob !== undefined ? { memoryBlob: patch.memoryBlob as any } : {}),
-    },
+    } as any,
   }).catch((error: unknown) => {
     if ((error as { code?: string })?.code === 'P2025') {
       return null;

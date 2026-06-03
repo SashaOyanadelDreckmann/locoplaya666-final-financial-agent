@@ -13,6 +13,12 @@ enum UserRole {
   ADMIN
 }
 
+enum ApprovalStatus {
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+}
+
 enum DocumentSource {
   USER_UPLOAD
   AGENT_GENERATED
@@ -42,6 +48,9 @@ model User {
   email                     String   @unique @db.VarChar(320)
   passwordHash              String   @db.VarChar(200)
   role                      UserRole @default(USER)
+  approvalStatus            ApprovalStatus @default(APPROVED)
+  approvedAt                DateTime?
+  approvedByEmail           String? @db.VarChar(320)
   injectedProfile           Json?
   injectedIntake            Json?
   latestDiagnosticProfileId String?  @db.VarChar(200)

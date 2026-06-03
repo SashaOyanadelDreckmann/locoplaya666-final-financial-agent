@@ -7,6 +7,7 @@ import { useInterviewStore } from '@/state/interview.store';
 import { useProfileStore } from '@/state/profile.store';
 
 import {
+  abortInterviewRealtimeToken,
   finalizeInterviewVoiceCall,
   getInterviewRealtimeToken,
   getSessionInfo,
@@ -384,10 +385,6 @@ function emitVoiceSessionContext(
   });
 }
 
-function buildVoiceKnowledgePacket(intake: unknown, transcriptEntries: Array<{ blockId?: string; answer?: string }>) {
-  return buildVoiceInterviewDossier(intake, transcriptEntries);
-}
-
 function summarizeVoiceInterviewContext(intake: unknown, transcriptEntries: Array<{ blockId?: string; answer?: string }>) {
   const source = (intake ?? {}) as Record<string, unknown>;
   const products = source.__productsContext as Record<string, unknown> | undefined;
@@ -550,8 +547,11 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
   const [summarySubmitting, setSummarySubmitting] = useState(false);
   const [isGeneratingDiagnosis, setIsGeneratingDiagnosis] = useState(false);
   const [bootError, setBootError] = useState<string | null>(null);
+  const [syncError, setSyncError] = useState<string | null>(null);
   const [sessionAlreadyCompleted, setSessionAlreadyCompleted] = useState(false);
   const voiceSyncTimerRef = useRef<number | null>(null);
+  /** Set to true once the server token is received; cleared on DataChannel open (success) or catch (abort). */
+  const tokenIssuedRef = useRef(false);
   const voiceStateHydratedRef = useRef(false);
   const voiceSessionContextRef = useRef<VoiceSessionContext>({
     intake: null,
@@ -678,16 +678,60 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
             } as any);
           }
         } else if (!cancelled && !intake && !sessionIntake) {
-          onClose();
+          setBootError(
+            'No se encontró información de perfil. Completa el cuestionario de intake para iniciar la entrevista.',
+          );
           return;
         }
 
         if (!cancelled) {
           const saved = readInterviewVoiceState();
+          const localSaved = saved && typeof saved === 'object' ? (saved as InterviewVoiceSnapshot) : null;
+
+          /**
+           * Merge strategy (senior rule):
+           *   - Server (sessionVoice) is the source of truth for quota/timer fields:
+           *     callsStarted, remainingTotalSec, maxDurationSec, status, completedAt, voiceReport, activeCallId.
+           *   - Local sessionStorage wins only for transcript fields (not yet synced to server):
+           *     voiceAgentTranscript, voiceUserTranscript, voicePartialTranscript.
+           *   - callSeconds: take the larger of both (most recent progress).
+           */
           const snapshot: InterviewVoiceSnapshot | null =
-            saved && typeof saved === 'object'
-              ? ({ ...(sessionVoice ?? {}), ...(saved as InterviewVoiceSnapshot) } as InterviewVoiceSnapshot)
-              : sessionVoice;
+            localSaved || sessionVoice
+              ? ({
+                  ...(localSaved ?? {}),
+                  // --- Server overrides all quota/timer/status fields ---
+                  ...(sessionVoice
+                    ? {
+                        callsStarted: sessionVoice.callsStarted,
+                        remainingTotalSec: sessionVoice.remainingTotalSec,
+                        maxDurationSec: sessionVoice.maxDurationSec ?? localSaved?.maxDurationSec,
+                        status: sessionVoice.status ?? localSaved?.status,
+                        completedAt: sessionVoice.completedAt ?? localSaved?.completedAt,
+                        voiceReport: sessionVoice.voiceReport ?? localSaved?.voiceReport,
+                        callId: sessionVoice.activeCallId ?? sessionVoice.callId ?? localSaved?.callId,
+                        callSeconds: Math.max(
+                          Number(sessionVoice.callSeconds ?? 0),
+                          Number(localSaved?.callSeconds ?? 0),
+                        ),
+                        pauseUsed: sessionVoice.pauseUsed ?? localSaved?.pauseUsed,
+                      }
+                    : {}),
+                  // --- Local wins for transcripts (more up-to-date before server sync) ---
+                  voiceAgentTranscript:
+                    localSaved?.voiceAgentTranscript ||
+                    sessionVoice?.voiceAgentTranscript ||
+                    undefined,
+                  voiceUserTranscript:
+                    localSaved?.voiceUserTranscript ||
+                    sessionVoice?.voiceUserTranscript ||
+                    undefined,
+                  voicePartialTranscript:
+                    localSaved?.voicePartialTranscript ||
+                    sessionVoice?.voicePartialTranscript ||
+                    undefined,
+                } as InterviewVoiceSnapshot)
+              : null;
 
           if (snapshot && typeof snapshot === 'object') {
             if (typeof snapshot.callsStarted === 'number') {
@@ -745,7 +789,10 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
         }
       } catch (error) {
         if (!cancelled && handleUnauthorized(error)) return;
-        if (!cancelled && !intake) { onClose(); return; }
+        if (!cancelled && !intake) {
+          setBootError('Error al cargar la sesión. Verifica tu conexión e intenta de nuevo.');
+          return;
+        }
       } finally {
         if (!cancelled) setIntakeReady(true);
       }
@@ -761,6 +808,7 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
   useEffect(() => {
     if (isOpen) return;
     setIsGeneratingDiagnosis(false);
+    setSyncError(null);
   }, [isOpen]);
 
   useEffect(() => {
@@ -879,6 +927,7 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
       })
       .catch((error) => {
         if (handleUnauthorized(error)) return;
+        setBootError(toUserFacingError(error, 'interview.voice'));
       });
   }, [isOpen, lastResponse, intake, completedBlocks, resetBlock, setResponse, voiceInterviewLocked, interviewTranscriptSnapshot]);
 
@@ -974,7 +1023,10 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
       };
 
       writeInterviewVoiceState(snapshot);
-      void saveInterviewVoiceState(snapshot).catch(() => {});
+      void saveInterviewVoiceState(snapshot).catch(() => {
+        setSyncError('No se pudo sincronizar el progreso. La entrevista continúa; se reintentará en el próximo ciclo.');
+        window.setTimeout(() => setSyncError(null), 6000);
+      });
     }, 600);
 
     return () => {
@@ -996,11 +1048,12 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
     voicePaused,
   ]);
 
+  // Only derive remaining time from local counter when the server has NOT provided a value yet.
+  // Once the server sets remainingTotalSec (via token or hydration), the call timer takes over.
   useEffect(() => {
-    if (!isOpen) return;
-    const derivedRemaining = Math.max(0, maxCallDurationSec - callSeconds);
-    setRemainingTotalSec((prev) => (prev === derivedRemaining ? prev : derivedRemaining));
-  }, [isOpen, callSeconds, maxCallDurationSec]);
+    if (!isOpen || remainingTotalSec !== null) return;
+    setRemainingTotalSec(Math.max(0, maxCallDurationSec - callSeconds));
+  }, [isOpen, callSeconds, maxCallDurationSec, remainingTotalSec]);
 
   // Cleanup on unmount / close
   useEffect(() => {
@@ -1277,6 +1330,7 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
           Boolean(voicePartialTranscript.trim()));
       const nextCallId = tokenCallId ?? (hasPersistedCall ? callId : null) ?? null;
       voiceResumeModeRef.current = hasPersistedCall;
+      tokenIssuedRef.current = true;
       setCallId(nextCallId);
       if (typeof token?.calls_used === 'number') {
         setCallsStarted(Math.max(0, Math.floor(token.calls_used)));
@@ -1324,6 +1378,8 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
       dataChannelRef.current = dc;
 
       dc.addEventListener('open', () => {
+        // WebRTC handshake confirmed — the call token is legitimately consumed.
+        tokenIssuedRef.current = false;
         setVoiceConnected(true);
         setVoiceConnecting(false);
         primeVoiceQuestion(currentQuestion, { resetTranscript: !hasPersistedCall });
@@ -1356,7 +1412,9 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
           ) {
             setVoicePartialTranscript((prev) => appendTranscriptChunk(prev, payload.delta));
           }
-        } catch {}
+        } catch (parseErr) {
+          console.error('[InterviewModal] DataChannel message parse error:', parseErr);
+        }
       });
 
       const offer = await pc.createOffer();
@@ -1379,6 +1437,18 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
       cleanupVoiceSession();
       voiceResumeModeRef.current = false;
       setVoiceConnecting(false);
+
+      // If the server issued a token but WebRTC never reached DataChannel open,
+      // roll back callsStarted so the user does not lose their one allowed call.
+      if (tokenIssuedRef.current) {
+        tokenIssuedRef.current = false;
+        setCallsStarted((prev) => Math.max(0, prev - 1));
+        void abortInterviewRealtimeToken().catch(() => {
+          // Best-effort: if the abort fails, the quota remains incremented.
+          // The user can contact support; we do not surface this as an error.
+        });
+      }
+
       const message = error instanceof Error ? error.message : 'No se pudo iniciar la llamada';
       if (
         /microphone is not allowed in this document/i.test(message) ||
@@ -1638,6 +1708,12 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
         <p className="agent-modal-intro interview-modal-intro">
           Llamada breve con contexto integrado de presupuesto y productos para convertir señales dispersas en diagnóstico ejecutivo.
         </p>
+
+        {syncError ? (
+          <div className="interview-sync-error-toast" role="status" aria-live="polite">
+            {syncError}
+          </div>
+        ) : null}
 
         {isLoading ? (
           <div className="interview-modal-loading">

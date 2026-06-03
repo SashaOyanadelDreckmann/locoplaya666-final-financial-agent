@@ -101,6 +101,9 @@ export type StoredUser = {
   email: string;
   passwordHash: string;
   role: UserRole;
+  approvalStatus: 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED';
+  approvedAt?: string;
+  approvedByEmail?: string;
   injectedProfile?: FinancialDiagnosticProfile;
   injectedIntake?: {
     intake: unknown;

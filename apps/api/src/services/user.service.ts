@@ -1,5 +1,6 @@
 import type { FinancialDiagnosticProfile } from '../schemas/profile.schema';
 import { USER_ROLES, type UserRole } from '../auth/rbac';
+import { APPROVAL_STATUS, type ApprovalStatus } from '../auth/approval';
 import type { User } from '../schemas/user.schema';
 import type {
   StoredPanelState,
@@ -22,6 +23,9 @@ function toUser(record: Awaited<ReturnType<typeof getUserById>>): User | null {
     email: record.email,
     passwordHash: record.passwordHash,
     role: record.role,
+    approvalStatus: record.approvalStatus,
+    approvedAt: record.approvedAt,
+    approvedByEmail: record.approvedByEmail,
     injectedProfile: record.injectedProfile,
     injectedIntake: record.injectedIntake,
     latestDiagnosticProfileId: record.latestDiagnosticProfileId,
@@ -41,12 +45,18 @@ export async function createUser(data: {
   email: string;
   passwordHash: string;
   role?: UserRole;
+  approvalStatus?: ApprovalStatus;
+  approvedAt?: string;
+  approvedByEmail?: string;
 }): Promise<User> {
   const user = await createUserRecord({
     name: data.name,
     email: data.email,
     passwordHash: data.passwordHash,
     role: data.role ?? USER_ROLES.USER,
+    approvalStatus: data.approvalStatus ?? APPROVAL_STATUS.APPROVED,
+    approvedAt: data.approvedAt,
+    approvedByEmail: data.approvedByEmail,
   });
 
   return toUser(user)!;
@@ -64,9 +74,19 @@ export async function loadUserById(userId: string): Promise<User | null> {
 
 export async function updateUserAuthSecurity(
   userId: string,
-  patch: { role?: UserRole; passwordHash?: string },
+  patch: {
+    role?: UserRole;
+    passwordHash?: string;
+    approvalStatus?: ApprovalStatus;
+    approvedAt?: string | null;
+    approvedByEmail?: string | null;
+  },
 ): Promise<User | null> {
-  const updated = await patchUserRecord(userId, patch);
+  const updated = await patchUserRecord(userId, {
+    ...patch,
+    approvedAt: patch.approvedAt ?? undefined,
+    approvedByEmail: patch.approvedByEmail ?? undefined,
+  });
   return toUser(updated);
 }
 

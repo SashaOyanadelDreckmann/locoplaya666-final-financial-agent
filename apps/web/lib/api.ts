@@ -35,6 +35,8 @@ export async function registerUser(payload: {
 
   return parseApiResponse<{
     user?: { id?: string; name?: string; email?: string; role?: string };
+    approvalStatus?: 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED';
+    requiresApproval?: boolean;
   }>(res);
 }
 
@@ -256,6 +258,16 @@ export async function getInterviewRealtimeToken() {
     pause_limit?: number;
     interview_voice?: Record<string, unknown>;
   }>(res);
+}
+
+export async function abortInterviewRealtimeToken() {
+  const API_URL = getApiBaseUrl();
+  const res = await fetch(`${API_URL}/api/interview/realtime/abort`, {
+    method: 'POST',
+    headers: withCsrf(),
+    credentials: 'include',
+  });
+  return parseApiResponse<{ rolled_back: boolean }>(res);
 }
 
 export async function saveInterviewVoiceState(payload: Record<string, unknown>) {

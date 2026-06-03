@@ -110,6 +110,12 @@ export function toUserFacingError(error: unknown, context: ErrorContext = 'gener
     }
 
     if (error.status === 403 || code === 'forbidden') {
+      if (code === 'account_pending_approval') {
+        return 'Tu cuenta está pendiente de aprobación. Te avisaremos por correo cuando esté lista.';
+      }
+      if (code === 'account_rejected') {
+        return 'Tu cuenta no fue aprobada todavía. Escríbenos para revisar tu solicitud.';
+      }
       if (context === 'interview.voice' && joinedLower.includes('realtime voice is not configured')) {
         return 'La llamada en tiempo real no está configurada en este entorno.';
       }

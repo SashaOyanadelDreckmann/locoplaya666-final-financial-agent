@@ -303,7 +303,7 @@ export default function LiveChatDemo() {
             </div>
 
             <motion.button
-              onClick={() => router.push('/intake')}
+              onClick={() => router.push('/register')}
               whileHover={{ scale: 1.02, opacity: 0.90 }}
               whileTap={{ scale: 0.97 }}
               style={{

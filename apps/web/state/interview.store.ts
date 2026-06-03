@@ -25,7 +25,7 @@ type InterviewResponse = {
   revisionRequested?: boolean;
   userComment?: string;
   completedBlocks?: CompletedBlocksMap;
-  profile?: any;
+  profile?: Record<string, unknown>;
 };
 
 type InterviewState = {

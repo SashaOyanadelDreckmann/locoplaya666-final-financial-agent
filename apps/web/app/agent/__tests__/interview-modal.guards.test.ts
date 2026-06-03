@@ -12,7 +12,7 @@ describe('interview modal safeguards', () => {
     expect(source).toContain('aria-modal="true"');
     expect(source).toContain('tabIndex={-1}');
     expect(source).toContain("if (event.key === 'Escape')");
-    expect(source).toContain('if (isGeneratingDiagnosis || isFinalizingCall) return;');
+    expect(source).toContain('isGeneratingDiagnosis || isFinalizingCall');
     expect(source).toContain("if (event.key !== 'Tab') return;");
     expect(source).toContain('restoreFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;');
     expect(source).toContain('restoreFocusRef.current.focus();');

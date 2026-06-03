@@ -95,9 +95,13 @@ describe('RegisterPage', () => {
     });
   });
 
-  it('submits valid form and navigates to intake', async () => {
+  it('submits valid form and navigates to waiting approval', async () => {
     const user = userEvent.setup();
-    mockRegisterUser.mockResolvedValue({ user: { id: '123', name: 'John' } });
+    mockRegisterUser.mockResolvedValue({
+      user: { id: '123', name: 'John' },
+      approvalStatus: 'PENDING_APPROVAL',
+      requiresApproval: true,
+    });
 
     render(<RegisterPage />);
 
@@ -114,7 +118,9 @@ describe('RegisterPage', () => {
         email: 'john@example.com',
         password: 'Password123',
       });
-      expect(mockPush).toHaveBeenCalledWith('/intake');
+      expect(mockPush).toHaveBeenCalledWith(
+        expect.stringContaining('/waiting-approval?')
+      );
     });
   });
 

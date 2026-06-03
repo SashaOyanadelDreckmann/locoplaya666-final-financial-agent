@@ -846,6 +846,65 @@ router.get(
   }),
 );
 
+/**
+ * POST /api/interview/realtime/abort
+ *
+ * Called by the client when WebRTC setup fails AFTER a token was already issued.
+ * Rolls back the callsStarted increment so the user does not burn their single
+ * allowed call due to a mic/network failure that was never the user's fault.
+ *
+ * Idempotent and safe: only acts if activeCallId is still set (not yet confirmed).
+ */
+router.post(
+  '/interview/realtime/abort',
+  requireAuth,
+  requirePermission(PERMISSIONS.AGENT_CHAT_SELF),
+  asyncHandler(async (req, res) => {
+    const user = req.authenticatedUser;
+    if (!user) throw unauthorized('Not authenticated');
+
+    const memoryBlob =
+      user.memoryBlob && typeof user.memoryBlob === 'object'
+        ? (user.memoryBlob as Record<string, unknown>)
+        : {};
+    const interviewVoice =
+      memoryBlob.interviewVoice && typeof memoryBlob.interviewVoice === 'object'
+        ? (memoryBlob.interviewVoice as Record<string, unknown>)
+        : {};
+
+    const callsStarted = Number(interviewVoice.callsStarted ?? 0);
+    const activeCallId =
+      typeof interviewVoice.activeCallId === 'string' && interviewVoice.activeCallId.length > 0
+        ? interviewVoice.activeCallId
+        : null;
+    const totalUsedSec = Number(interviewVoice.totalUsedSec ?? 0);
+
+    // Only roll back if a pending call exists and no time was actually consumed
+    if (!activeCallId || callsStarted <= 0 || totalUsedSec > 0) {
+      return sendSuccess(res, { rolled_back: false });
+    }
+
+    await saveUserMemoryBlob(user.id, {
+      ...memoryBlob,
+      interviewVoice: {
+        ...interviewVoice,
+        callsStarted: Math.max(0, callsStarted - 1),
+        activeCallId: null,
+        status: 'idle',
+        updatedAt: new Date().toISOString(),
+      },
+    });
+
+    req.logger?.info({
+      msg: 'interview.voice.token.aborted',
+      userId: user.id,
+      previousCallsStarted: callsStarted,
+    });
+
+    return sendSuccess(res, { rolled_back: true });
+  }),
+);
+
 router.get(
   '/welcome',
   requireAuth,
