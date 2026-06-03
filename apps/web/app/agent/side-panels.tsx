@@ -38,6 +38,33 @@ export function SidePanels(props: {
         className={`agent-panel ${props.mobilePanelExpanded ? 'is-mobile-expanded' : 'is-mobile-compact'}`}
         ref={props.panelScrollRef}
       >
+        <div
+          ref={props.mobilePanelHandleRef}
+          className="mobile-panel-handle"
+          role="separator"
+          aria-label="Arrastrar para ajustar el panel"
+          aria-expanded={props.mobilePanelExpanded}
+        >
+          <span className="mobile-panel-handle-pill" aria-hidden="true" />
+          <span className="mobile-panel-handle-title">Panel</span>
+          <svg
+            className={`mobile-panel-chevron${props.mobilePanelExpanded ? ' rotated' : ''}`}
+            width="14"
+            height="14"
+            viewBox="0 0 16 16"
+            fill="none"
+            aria-hidden="true"
+          >
+            <path
+              d={props.mobilePanelExpanded ? 'M4 10L8 6L12 10' : 'M4 6L8 10L12 6'}
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </div>
+
         <div className="mobile-panel-close">
           <button
             type="button"

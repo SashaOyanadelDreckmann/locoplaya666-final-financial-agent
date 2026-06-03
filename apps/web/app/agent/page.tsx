@@ -32,6 +32,42 @@ import {
   productsHaveAnalyzedMovements,
   resolveTxWizardStep,
 } from '@/lib/transactions-flow.helpers';
+import {
+  canonicalBudgetRowId,
+  createBudgetStarterRows,
+  DEFAULT_BUDGET_ROWS,
+  MAX_BUDGET_ROWS,
+  normalizeBudgetRow,
+  type BudgetRow,
+} from '@/lib/budget-rows.helpers';
+import {
+  aggregateCanonicalMovements,
+  aggregateParsedDocuments,
+  aggregateUploadedFiles,
+  buildPersistableProductsContext,
+  buildScopedTransactionsContext,
+  getSimulationSnapshot,
+} from '@/lib/products-context.helpers';
+import {
+  clearAllPanelStateBackups,
+  hasMeaningfulPanelState,
+  panelStateBackupKeyForUser,
+} from '@/lib/panel-state.helpers';
+import { normalizeProductAssistantState } from '@/lib/product-normalization.helpers';
+import {
+  CHAT_GAME_INSTRUCTION,
+  DEFAULT_BANK_SIMULATION,
+  FALLBACK_WELCOME,
+  KNOWLEDGE_MILESTONE_DEFS,
+  MAX_EVIDENCE_FILES_PER_PRODUCT,
+  MAX_PRODUCT_RECREATIONS,
+  MAX_TRANSACTION_PRODUCTS,
+  POST_DIAGNOSIS_CHAT_IDS,
+  PRIMARY_CHAT_ID,
+  type BankSimulation,
+} from './agent-page.constants';
+import type { BankProduct, TransactionTaxonomyOverride, UploadStatementResult } from './transactions/types';
+import { normalizeTaxonomyKey, normalizeTransactionTaxonomyOverride } from './transactions/taxonomy';
 import secureStorage from '@/lib/secureStorage';
 import { clearCsrfToken } from '@/lib/csrf';
 import {
@@ -51,6 +87,7 @@ import {
   hasAssistantMessage,
   sanitizeChatItems,
   sanitizeMessageText,
+  resolveActiveActionPlanStage,
 } from './page.utils';
 
 import type {
@@ -91,187 +128,6 @@ type SavedReportLike = {
   createdAt?: string;
 };
 
-type BudgetRow = {
-  id: string;
-  category: string;
-  type: 'income' | 'expense';
-  amount: number;
-  parentId?: string;
-  product?: string;
-  institution?: string;
-  note?: string;
-  cadence?: 'fixed' | 'variable' | 'oneoff';
-  paymentMethod?: 'transfer' | 'debit' | 'credit' | 'cash' | 'prepaid' | 'other';
-  movementType?:
-    | 'income_main'
-    | 'income_extra'
-    | 'housing'
-    | 'home_services'
-    | 'food'
-    | 'transport'
-    | 'health'
-    | 'education'
-    | 'debt'
-    | 'savings_investment'
-    | 'taxes_fees'
-    | 'leisure_other';
-  momentum?: 'up' | 'steady' | 'down';
-  strategy?: 'shield' | 'review' | 'optimize';
-};
-
-type BankProduct = {
-  id: string;
-  label: string;
-  bank: string;
-  assistant?: {
-    messages: Array<{
-      id: string;
-      role: 'assistant' | 'user';
-      text: string;
-      createdAt: string;
-      attachments?: string[];
-    }>;
-    uploadFormat?: 'photos' | 'pdf' | 'spreadsheet' | 'text' | null;
-    summaryText?: string | null;
-    summaryModel?: string | null;
-    summaryGeneratedAt?: string | null;
-    summaryRegenerationsUsed?: number;
-    lastSummaryFeedback?: string | null;
-  };
-  productType: 'credit_card' | 'debit_account' | 'checking_account' | 'savings_account' | 'consumer_loan' | 'mortgage' | 'investment_account';
-  simulationAccepted: boolean;
-  connected: boolean;
-  randomMode: boolean;
-  uploadedFiles: string[];
-  parsedDocuments: Array<{
-    name: string;
-    text: string;
-    summary?: unknown;
-    structuredData?: unknown;
-    insight?: {
-      format?: string;
-      reliability?: number;
-      extracted_rows?: number;
-      key_findings?: string[];
-    };
-  }>;
-  dashboard?: {
-    period?: { from?: string; to?: string };
-    currency?: string;
-    keyMetrics?: {
-      inflows_total: number;
-      outflows_total: number;
-      net_flow: number;
-      avg_movement: number;
-      movement_count: number;
-      median_movement?: number;
-      p90_movement?: number;
-      max_income?: number;
-      max_expense?: number;
-      expense_to_income_ratio?: number;
-      table_rows_processed?: number;
-      movement_coverage_pct?: number;
-      avg_category_confidence?: number;
-    };
-    topCategories?: Array<{ name: string; amount: number }>;
-    topMerchants?: Array<{ merchant: string; category: string; amount: number; tx_count: number }>;
-    categoryExamples?: Array<{ name: string; amount: number; examples: string[] }>;
-    spendClusters?: Array<{
-      name: string;
-      amount: number;
-      tx_count: number;
-      avg_ticket: number;
-      share_pct: number;
-      examples: string[];
-    }>;
-    topExpenses?: Array<{ label: string; amount: number; date?: string }>;
-    topIncome?: Array<{ label: string; amount: number; date?: string }>;
-    alerts?: string[];
-    alertDetails?: Array<{ title: string; severity: 'high' | 'medium' | 'low'; reason: string }>;
-    opportunities?: string[];
-    metricExplanations?: Array<{ metric: string; value: string; explanation: string }>;
-    movements?: Array<{
-      date?: string;
-      description: string;
-      amount: number;
-      direction: 'expense' | 'income';
-      source_line?: string;
-      category?: string;
-      merchant?: string;
-      category_confidence?: number;
-      confidence?: number;
-      source_kind?: 'table' | 'line';
-    }>;
-    summary?: string;
-  };
-};
-
-type CanonicalMovement = {
-  date?: string;
-  description: string;
-  amount: number;
-  direction: 'expense' | 'income';
-  source_line?: string;
-  category?: string;
-  merchant?: string;
-  category_confidence?: number;
-  confidence?: number;
-  source_kind?: 'table' | 'line';
-};
-
-type TransactionTaxonomyOverride = {
-  id: string;
-  matchKey: string;
-  matchLabel: string;
-  merchant: string;
-  category: string;
-  updatedAt: string;
-};
-
-type BankSimulation = {
-  products: BankProduct[];
-  taxonomyOverrides: TransactionTaxonomyOverride[];
-  activeProductId: string | null;
-  lockedMonth: string | null;
-  connected: boolean;
-  randomMode: boolean;
-  uploadedFiles: string[];
-  parsedDocuments: Array<{
-    name: string;
-    text: string;
-    summary?: unknown;
-    structuredData?: unknown;
-    insight?: {
-      format?: string;
-      reliability?: number;
-      extracted_rows?: number;
-      key_findings?: string[];
-    };
-  }>;
-};
-
-type ParsedBankDocument = BankSimulation['parsedDocuments'][number];
-type UploadStatementResult = {
-  documents: Array<{
-    name: string;
-    text: string;
-    summary?: unknown;
-    structuredData?: unknown;
-    insight?: {
-      format?: string;
-      reliability?: number;
-      extracted_rows?: number;
-      key_findings?: string[];
-    };
-  }>;
-  dashboard?: BankProduct['dashboard'];
-  product: {
-    bank: string;
-    label: string;
-    productType: BankProduct['productType'];
-  };
-};
-
 type DocFlight = {
   id: string;
   label: string;
@@ -302,6 +158,8 @@ type ProductLifecycle = {
   unlockedChats?: string[];
   closedChats?: string[];
   chatTurns?: Record<string, number>;
+  actionPlanFunnelStage?: 'brainstorm' | 'converge' | 'deliver' | null;
+  closingMode?: boolean;
 };
 
 type ChatSpecialization = {
@@ -310,359 +168,6 @@ type ChatSpecialization = {
   accentClass: string;
   subtitle: string;
 };
-
-const CHAT_GAME_INSTRUCTION =
-  'Para aprovechar al maximo este juego: 1) define un objetivo financiero concreto, 2) usa los 3 chats en paralelo para explorar escenarios, 3) pide primero grafico o simulacion y luego informe PDF, 4) guarda documentos clave para compararlos, 5) ajusta riesgo, plazo y aporte en cada iteracion para subir tu nivel de conocimiento.';
-
-const FALLBACK_WELCOME =
-  'Ya tengo una lectura inicial de tu situación. Podemos partir por ordenar el flujo, revisar riesgos y definir el primer movimiento útil.';
-
-function createBudgetStarterRows(): BudgetRow[] {
-  return [
-    {
-      id: 'income_salary',
-      category: 'Sueldo líquido',
-      type: 'income',
-      amount: 0,
-      product: 'Ingresos principales',
-      institution: '',
-    },
-    {
-      id: 'expense_rent',
-      category: 'Arriendo / vivienda',
-      type: 'expense',
-      amount: 0,
-      product: 'Vivienda',
-      institution: '',
-    },
-    {
-      id: 'expense_food',
-      category: 'Alimentación',
-      type: 'expense',
-      amount: 0,
-      product: 'Gasto recurrente',
-      institution: '',
-    },
-    {
-      id: 'expense_transport',
-      category: 'Transporte',
-      type: 'expense',
-      amount: 0,
-      product: 'Movilidad',
-      institution: '',
-    },
-    {
-      id: 'expense_services',
-      category: 'Servicios básicos',
-      type: 'expense',
-      amount: 0,
-      product: 'Hogar',
-      institution: '',
-    },
-    {
-      id: 'expense_debt',
-      category: 'Deuda / cuotas',
-      type: 'expense',
-      amount: 0,
-      product: 'Crédito',
-      institution: '',
-    },
-    {
-      id: 'expense_savings',
-      category: 'Ahorro / inversión',
-      type: 'expense',
-      amount: 0,
-      product: 'Ahorro',
-      institution: '',
-    },
-    {
-      id: 'expense_other',
-      category: 'Otros gastos',
-      type: 'expense',
-      amount: 0,
-      product: 'Variables',
-      institution: '',
-    },
-  ];
-}
-
-const DEFAULT_BUDGET_ROWS: BudgetRow[] = createBudgetStarterRows();
-
-const BUDGET_ROW_ID_ALIASES: Record<string, string> = {
-  'income-salary': 'income_salary',
-  'expense-rent': 'expense_rent',
-  'expense-food': 'expense_food',
-  'expense-transport': 'expense_transport',
-  'expense-services': 'expense_services',
-  'expense-debt': 'expense_debt',
-  'expense-savings': 'expense_savings',
-  'expense-other': 'expense_other',
-};
-
-function canonicalBudgetRowId(id: string) {
-  return BUDGET_ROW_ID_ALIASES[id] ?? id;
-}
-
-function normalizeBudgetRow(row: BudgetRow): BudgetRow {
-  const { id, ...rest } = row;
-  return { ...rest, id: canonicalBudgetRowId(id) };
-}
-
-function normalizeProductAssistantState(raw: Partial<NonNullable<BankProduct['assistant']>> | undefined) {
-  return {
-    messages: Array.isArray(raw?.messages) ? raw!.messages : [],
-    uploadFormat:
-      raw?.uploadFormat === 'photos' ||
-      raw?.uploadFormat === 'pdf' ||
-      raw?.uploadFormat === 'spreadsheet' ||
-      raw?.uploadFormat === 'text'
-        ? raw.uploadFormat
-        : null,
-    summaryText: typeof raw?.summaryText === 'string' ? raw.summaryText : null,
-    summaryModel: typeof raw?.summaryModel === 'string' ? raw.summaryModel : null,
-    summaryGeneratedAt: typeof raw?.summaryGeneratedAt === 'string' ? raw.summaryGeneratedAt : null,
-    summaryRegenerationsUsed: Math.max(0, Number(raw?.summaryRegenerationsUsed ?? 0) || 0),
-    lastSummaryFeedback: typeof raw?.lastSummaryFeedback === 'string' ? raw.lastSummaryFeedback : null,
-  };
-}
-
-function normalizeTaxonomyKey(value: unknown): string {
-  return String(value ?? '')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, ' ')
-    .replace(/\b(compra|pago|cargo|abono|transferencia|debito|credito|webpay|pos|tef|visa|mastercard|trx)\b/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-function normalizeTransactionTaxonomyOverride(raw: unknown): TransactionTaxonomyOverride | null {
-  const value = raw as Partial<TransactionTaxonomyOverride> | null | undefined;
-  const matchKey = normalizeTaxonomyKey(value?.matchKey ?? value?.matchLabel ?? value?.merchant);
-  const category = String(value?.category ?? '').trim();
-  const merchant = String(value?.merchant ?? '').trim();
-  if (!matchKey || !category || !merchant) return null;
-  return {
-    id: String(value?.id ?? `${matchKey}:${category}`).trim(),
-    matchKey,
-    matchLabel: String(value?.matchLabel ?? merchant).trim() || merchant,
-    merchant,
-    category,
-    updatedAt: typeof value?.updatedAt === 'string' ? value.updatedAt : new Date().toISOString(),
-  };
-}
-
-const DEFAULT_BANK_SIMULATION: BankSimulation = {
-  products: [],
-  taxonomyOverrides: [],
-  activeProductId: null,
-  lockedMonth: null,
-  connected: false,
-  randomMode: false,
-  uploadedFiles: [],
-  parsedDocuments: [],
-};
-
-const PANEL_STATE_BACKUP_KEY_PREFIX = 'agent.panel.backup.v1';
-function normalizeBackupUserKey(input: unknown): string {
-  const raw = String(input ?? '').trim().toLowerCase();
-  if (!raw) return 'guest';
-  return raw.replace(/[^a-z0-9@._-]/g, '_').slice(0, 120) || 'guest';
-}
-
-function panelStateBackupKeyForUser(input: unknown): string {
-  return `${PANEL_STATE_BACKUP_KEY_PREFIX}:${normalizeBackupUserKey(input)}`;
-}
-
-function clearAllPanelStateBackups(): void {
-  if (typeof window === 'undefined') return;
-  try {
-    Object.keys(localStorage).forEach((key) => {
-      if (key === PANEL_STATE_BACKUP_KEY_PREFIX || key.startsWith(`${PANEL_STATE_BACKUP_KEY_PREFIX}:`)) {
-        localStorage.removeItem(key);
-      }
-    });
-  } catch {}
-}
-function aggregateParsedDocuments(products: BankProduct[]): ParsedBankDocument[] {
-  const docsByKey = new Map<string, ParsedBankDocument>();
-  for (const product of products) {
-    for (const doc of product.parsedDocuments ?? []) {
-      const key = `${product.id}:${doc.name}`;
-      docsByKey.set(key, doc);
-    }
-  }
-  return Array.from(docsByKey.values());
-}
-
-function aggregateUploadedFiles(products: BankProduct[]): string[] {
-  return Array.from(new Set(products.flatMap((product) => product.uploadedFiles ?? [])));
-}
-
-function aggregateCanonicalMovements(products: BankProduct[]) {
-  const dedup = new Map<string, CanonicalMovement>();
-  for (const product of products) {
-    for (const movement of product.dashboard?.movements ?? []) {
-      const key = [
-        movement.direction,
-        String(movement.date ?? ''),
-        String(movement.description ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''),
-        Math.round(Number(movement.amount) || 0),
-      ].join('|');
-      if (!dedup.has(key)) dedup.set(key, movement);
-    }
-  }
-  return Array.from(dedup.values());
-}
-
-function buildScopedTransactionsContext(products: BankProduct[], activeProductId: string | null) {
-  const activeProduct = activeProductId
-    ? products.find((product) => product.id === activeProductId) ?? null
-    : null;
-
-  const productsIndex = products.slice(0, 20).map((product) => ({
-    id: product.id,
-    label: product.label,
-    bank: product.bank,
-    productType: product.productType,
-    connected: product.connected,
-    uploadedFilesCount: product.uploadedFiles?.length ?? 0,
-    parsedDocumentsCount: product.parsedDocuments?.length ?? 0,
-    movementCount: product.dashboard?.keyMetrics?.movement_count ?? 0,
-    inflowsTotal: product.dashboard?.keyMetrics?.inflows_total ?? 0,
-    outflowsTotal: product.dashboard?.keyMetrics?.outflows_total ?? 0,
-    netFlow: product.dashboard?.keyMetrics?.net_flow ?? 0,
-  }));
-
-  return {
-    activeProduct,
-    productsIndex,
-    scopedUploadedDocuments: (activeProduct?.parsedDocuments ?? []).slice(-3),
-    scopedUploadedEvidenceFiles: (activeProduct?.uploadedFiles ?? []).slice(-6),
-  };
-}
-
-function buildPersistableProductsContext(products: BankProduct[], activeProductId: string | null) {
-  const activeProduct = activeProductId
-    ? products.find((product) => product.id === activeProductId) ?? null
-    : products.find((product) => product.connected) ?? products[0] ?? null;
-  const allMovements = aggregateCanonicalMovements(products);
-  const uploadedFiles = aggregateUploadedFiles(products).slice(0, 50);
-  const productsPayload = products.slice(0, 20).map((product) => ({
-    id: product.id,
-    label: product.label,
-    bank: product.bank,
-    productType: product.productType,
-    assistantSummary: product.assistant?.summaryText ?? null,
-    dashboardSummary: product.dashboard?.summary,
-    period: product.dashboard?.period,
-    keyMetrics: product.dashboard?.keyMetrics,
-    topCategories: product.dashboard?.topCategories?.slice(0, 10),
-    topIncome: product.dashboard?.topIncome?.slice(0, 10),
-    topExpenses: product.dashboard?.topExpenses?.slice(0, 10),
-    alerts: product.dashboard?.alerts?.slice(0, 10),
-    movements: product.dashboard?.movements?.slice(0, 80) ?? [],
-  }));
-  const topCategories = products
-    .flatMap((product) => product.dashboard?.topCategories ?? [])
-    .reduce<Array<{ name: string; amount: number }>>((acc, category) => {
-      const existing = acc.find((item) => item.name.toLowerCase() === category.name.toLowerCase());
-      if (existing) existing.amount += Math.max(0, Number(category.amount) || 0);
-      else acc.push({ name: category.name, amount: Math.max(0, Number(category.amount) || 0) });
-      return acc;
-    }, [])
-    .sort((left, right) => right.amount - left.amount)
-    .slice(0, 12);
-  const alerts = Array.from(
-    new Set(products.flatMap((product) => product.dashboard?.alerts ?? []).filter(Boolean))
-  ).slice(0, 12);
-  const inflowsTotal = products.reduce(
-    (sum, product) => sum + Math.max(0, Number(product.dashboard?.keyMetrics?.inflows_total ?? 0) || 0),
-    0
-  );
-  const outflowsTotal = products.reduce(
-    (sum, product) => sum + Math.max(0, Number(product.dashboard?.keyMetrics?.outflows_total ?? 0) || 0),
-    0
-  );
-  const movementCount = products.reduce(
-    (sum, product) => sum + Math.max(0, Number(product.dashboard?.keyMetrics?.movement_count ?? 0) || 0),
-    0
-  );
-
-  return {
-    scope: 'all_products',
-    activeProductId: activeProduct?.id ?? null,
-    activeProductLabel: activeProduct?.label,
-    productsCount: products.length,
-    uploadedFiles,
-    activeProduct: productsPayload.find((product) => product.id === activeProduct?.id),
-    productsIndex: products.slice(0, 20).map((product) => ({
-      id: product.id,
-      label: product.label,
-      bank: product.bank,
-      productType: product.productType,
-      connected: product.connected,
-      uploadedFilesCount: product.uploadedFiles?.length ?? 0,
-      parsedDocumentsCount: product.parsedDocuments?.length ?? 0,
-      movementCount: product.dashboard?.keyMetrics?.movement_count ?? 0,
-      inflowsTotal: product.dashboard?.keyMetrics?.inflows_total ?? 0,
-      outflowsTotal: product.dashboard?.keyMetrics?.outflows_total ?? 0,
-      netFlow: product.dashboard?.keyMetrics?.net_flow ?? 0,
-    })),
-    products: productsPayload,
-    transactionSummary: {
-      inflowsTotal: Math.round(inflowsTotal),
-      outflowsTotal: Math.round(outflowsTotal),
-      netFlow: Math.round(inflowsTotal - outflowsTotal),
-      movementCount: Math.round(movementCount || allMovements.length),
-      topCategories,
-      alerts,
-    },
-  };
-}
-
-function getSimulationSnapshot(products: BankProduct[], activeProductId: string | null) {
-  const activeProduct =
-    activeProductId
-      ? products.find((product) => product.id === activeProductId) ?? null
-      : null;
-
-  return {
-    activeProduct,
-    connected: Boolean(activeProduct?.connected),
-    randomMode: Boolean(activeProduct?.randomMode),
-    uploadedFiles: activeProduct?.uploadedFiles ?? [],
-    parsedDocuments: activeProduct?.parsedDocuments ?? [],
-    aggregateUploadedFiles: aggregateUploadedFiles(products),
-    aggregateParsedDocuments: aggregateParsedDocuments(products),
-  };
-}
-
-function hasMeaningfulPanelState(value: any): boolean {
-  if (!value || typeof value !== 'object') return false;
-  const budgetRows = Array.isArray(value.budgetRows) ? value.budgetRows : [];
-  const savedReports = Array.isArray(value.savedReports) ? value.savedReports : [];
-  const products = Array.isArray(value?.bankSimulation?.products) ? value.bankSimulation.products : [];
-  return budgetRows.length > 0 || savedReports.length > 0 || products.length > 0;
-}
-
-const PRIMARY_CHAT_ID = 'chat-1';
-const POST_DIAGNOSIS_CHAT_IDS = ['chat-1', 'chat-2', 'chat-3'] as const;
-const MAX_BUDGET_ROWS = 30;
-const MAX_TRANSACTION_PRODUCTS = 7;
-const MAX_PRODUCT_RECREATIONS = 3;
-const MAX_EVIDENCE_FILES_PER_PRODUCT = 7;
-
-const KNOWLEDGE_MILESTONE_DEFS = [
-  { id: 'intake', label: 'Cuestionario y perfil base', threshold: 20 },
-  { id: 'budget_base', label: 'Presupuesto personalizado', threshold: 40 },
-  { id: 'budget_panel', label: 'Panel de presupuesto', threshold: 55 },
-  { id: 'debt_analysis', label: 'Análisis de deuda', threshold: 70 },
-  { id: 'transactions_panel', label: 'Panel de productos y transacciones', threshold: 74 },
-  { id: 'advanced', label: 'Estrategias avanzadas', threshold: 85 },
-  { id: 'expert', label: 'Nivel experto', threshold: 100 },
-] as const;
 
 export default function AgentPage() {
   const router = useRouter();
@@ -807,7 +312,7 @@ export default function AgentPage() {
   ) {
     const firstName = String(session?.name ?? '').split(' ')[0]?.trim() || 'Hola';
     if (chatId === 'chat-2') {
-      return `${firstName}, empezamos con una lluvia de ideas sobre tu situación y el mercado de hoy; conversando vamos afilando hasta cerrar un plan de acción profesional y 100% tuyo. ¿Qué quieres priorizar primero: caja, deuda, ahorro o inversión?`;
+      return `${firstName}, abrimos con una lluvia de ideas senior: cruzamos tu diagnóstico, presupuesto, cartolas y el mercado de hoy. En este chat convergemos hasta dejar un **plan de acción ejecutivo** completo — sin atajos ni correos automáticos. ¿Priorizamos primero caja, deuda, ahorro o inversión?`;
     }
     if (chatId === 'chat-3') {
       return `${firstName}, este espacio es para conciencia social: cómo tus decisiones financieras impactan tu entorno, con criterio ético y responsabilidad. ¿Qué tema social te importa más al decidir con tu dinero?`;
@@ -844,7 +349,7 @@ export default function AgentPage() {
         title: 'Estrategia',
         shortTitle: 'Plan',
         accentClass: 'chat-specialization-2',
-        subtitle: 'Embudo: ideas → plan pro',
+        subtitle: 'Embudo ejecutivo · ideas → plan',
       };
     }
     if (threadId === 'chat-3') {
@@ -932,7 +437,7 @@ export default function AgentPage() {
   const chatBodyRef = useRef<HTMLElement | null>(null);
   const chatThreadRef = useRef<HTMLDivElement | null>(null);
   const mobilePanelHandleRef = useRef<HTMLDivElement | null>(null);
-  const panelDragRef = useRef<{ startY: number; startH: number } | null>(null);
+  const panelDragRef = useRef<{ startY: number; startH: number; moved: boolean } | null>(null);
   const chatComposerRef = useRef<HTMLTextAreaElement | null>(null);
   const interviewAutoOpenHandledRef = useRef(false);
 
@@ -975,6 +480,23 @@ export default function AgentPage() {
     productLifecycle?.chatTurns?.[activeChatId] ??
     activeThread?.userMessageCount ??
     0;
+  const activeActionPlanStage = useMemo(() => {
+    if (activeChatId !== 'chat-2') return null;
+    return (
+      resolveActiveActionPlanStage({
+        chatId: activeChatId,
+        turnCount: activeTurnCount,
+        closingMode: productLifecycle?.closingMode,
+      }) ??
+      productLifecycle?.actionPlanFunnelStage ??
+      null
+    );
+  }, [
+    activeChatId,
+    activeTurnCount,
+    productLifecycle?.closingMode,
+    productLifecycle?.actionPlanFunnelStage,
+  ]);
   const isActiveChatLocked =
     activeChatId === PRIMARY_CHAT_ID
       ? false
@@ -1183,12 +705,22 @@ export default function AgentPage() {
     const preventBounce = (e: TouchEvent) => {
       let target = e.target as HTMLElement | null;
       while (target && target !== document.body) {
+        if (
+          target.classList.contains('mobile-panel-handle') ||
+          target.closest('.mobile-panel-handle') ||
+          target.closest('.agent-panel.is-dragging')
+        ) {
+          return;
+        }
         const style = window.getComputedStyle(target);
         const overflowY = style.overflowY;
         const overflowX = style.overflowX;
-        if (overflowY === 'auto' || overflowY === 'scroll' ||
-            overflowX === 'auto' || overflowX === 'scroll') {
-          // Permitir scroll dentro de este elemento
+        if (
+          overflowY === 'auto' ||
+          overflowY === 'scroll' ||
+          overflowX === 'auto' ||
+          overflowX === 'scroll'
+        ) {
           return;
         }
         target = target.parentElement;
@@ -1243,51 +775,71 @@ export default function AgentPage() {
   useEffect(() => {
     const handle = mobilePanelHandleRef.current;
     const panel = panelScrollRef.current;
-    if (!handle || !panel) return;
+    if (!handle || !panel || !isMobileViewport) return;
 
-    const SNAP_CLOSED = 86;
-    const SNAP_OPEN = Math.round(window.innerHeight * 0.52);
+    const layout = panel.closest('.agent-layout') as HTMLElement | null;
+    const viewportH = () => window.visualViewport?.height ?? window.innerHeight;
+    const snapClosed = () => Math.round(Math.min(108, viewportH() * 0.16));
+    const snapOpen = () => Math.round(viewportH() * 0.46);
 
     const onTouchStart = (e: TouchEvent) => {
       const touch = e.touches[0];
+      if (!touch) return;
       const currentH = panel.getBoundingClientRect().height;
-      panelDragRef.current = { startY: touch.clientY, startH: currentH };
+      panelDragRef.current = { startY: touch.clientY, startH: currentH, moved: false };
+      panel.classList.add('is-dragging');
+      layout?.classList.add('is-panel-dragging');
     };
 
     const onTouchMove = (e: TouchEvent) => {
       if (!panelDragRef.current) return;
       const touch = e.touches[0];
-      const dy = panelDragRef.current.startY - touch.clientY; // positivo = arrastrar hacia arriba
-      const newH = Math.max(80, Math.min(SNAP_OPEN + 20, panelDragRef.current.startH + dy));
-      (panel as HTMLElement).style.setProperty('--mobile-panel-h', `${newH}px`);
-      (panel as HTMLElement).style.flexBasis = `${newH}px`;
+      if (!touch) return;
+      e.preventDefault();
+      const dy = panelDragRef.current.startY - touch.clientY;
+      if (Math.abs(dy) > 6) panelDragRef.current.moved = true;
+      const openMax = snapOpen() + 24;
+      const newH = Math.max(72, Math.min(openMax, panelDragRef.current.startH + dy));
+      panel.style.setProperty('--mobile-panel-h', `${newH}px`);
+      panel.style.flexBasis = `${newH}px`;
+      panel.style.maxHeight = `${newH}px`;
     };
 
     const onTouchEnd = () => {
       if (!panelDragRef.current) return;
+      const closed = snapClosed();
+      const open = snapOpen();
       const currentH = panel.getBoundingClientRect().height;
-      const snapToOpen = currentH > (SNAP_CLOSED + SNAP_OPEN) / 2;
-      const finalH = snapToOpen ? SNAP_OPEN : SNAP_CLOSED;
-      (panel as HTMLElement).style.flexBasis = '';
-      (panel as HTMLElement).style.removeProperty('--mobile-panel-h');
-      setMobilePanelExpanded(snapToOpen);
-      // Actualizar la variable CSS en el layout
-      const layout = panel.closest('.agent-layout') as HTMLElement | null;
-      if (layout) {
-        layout.classList.toggle('mobile-panel-expanded', snapToOpen);
+      const dragged = panelDragRef.current.moved;
+      const snapToOpen = dragged
+        ? currentH > (closed + open) / 2
+        : !mobilePanelExpanded;
+      if (!dragged) {
+        haptic(10);
       }
+      panel.style.flexBasis = '';
+      panel.style.maxHeight = '';
+      panel.style.removeProperty('--mobile-panel-h');
+      panel.classList.remove('is-dragging');
+      layout?.classList.remove('is-panel-dragging');
+      setMobilePanelExpanded(snapToOpen);
+      layout?.classList.toggle('mobile-panel-expanded', snapToOpen);
       panelDragRef.current = null;
     };
 
     handle.addEventListener('touchstart', onTouchStart, { passive: true });
-    handle.addEventListener('touchmove', onTouchMove, { passive: true });
+    handle.addEventListener('touchmove', onTouchMove, { passive: false });
     handle.addEventListener('touchend', onTouchEnd);
+    handle.addEventListener('touchcancel', onTouchEnd);
     return () => {
       handle.removeEventListener('touchstart', onTouchStart);
       handle.removeEventListener('touchmove', onTouchMove);
       handle.removeEventListener('touchend', onTouchEnd);
+      handle.removeEventListener('touchcancel', onTouchEnd);
+      panel.classList.remove('is-dragging');
+      layout?.classList.remove('is-panel-dragging');
     };
-  }, []);
+  }, [isMobileViewport, mobilePanelExpanded, haptic]);
 
   // Load sheets from API on mount
   useEffect(() => {
@@ -3019,6 +2571,16 @@ export default function AgentPage() {
               ? { [metaLifecycle.active_chat_id]: metaLifecycle.turn_count }
               : {}),
           },
+          actionPlanFunnelStage:
+            metaLifecycle.action_plan_funnel_stage === 'brainstorm' ||
+            metaLifecycle.action_plan_funnel_stage === 'converge' ||
+            metaLifecycle.action_plan_funnel_stage === 'deliver'
+              ? metaLifecycle.action_plan_funnel_stage
+              : prev?.actionPlanFunnelStage,
+          closingMode:
+            typeof metaLifecycle.closing_mode === 'boolean'
+              ? metaLifecycle.closing_mode
+              : prev?.closingMode,
         }));
       }
       forceRender((x) => x + 1);
@@ -4483,6 +4045,7 @@ export default function AgentPage() {
           isMonochrome={isMonochrome}
           toggleMonochrome={() => setIsMonochrome((v) => !v)}
           isMobileViewport={isMobileViewport}
+          actionPlanFunnelStage={activeActionPlanStage}
         />
         {interviewResumePending && canOpenInterview && !interviewCompleted ? (
           <div className="interview-resume-banner">
@@ -4522,6 +4085,7 @@ export default function AgentPage() {
             sessionInjectedIntake={sessionInfo?.injectedIntake}
             chatThreadRef={chatThreadRef as React.RefObject<HTMLDivElement>}
             activeChatId={activeChatId}
+            actionPlanFunnelStage={activeActionPlanStage}
             setItemsForActive={setItemsForActive}
             classifyReportGroup={classifyReportGroup}
             setSavedReports={setSavedReports}
