@@ -23,6 +23,7 @@ import { USER_ROLES } from '../auth/rbac';
 import { APPROVAL_STATUS } from '../auth/approval';
 import {
   approveUserFromSignedToken,
+  rejectUserFromSignedToken,
   sendApprovalRequestEmail,
 } from '../services/approval.service';
 
@@ -192,6 +193,20 @@ authRouter.get('/approve', asyncHandler(async (req, res) => {
   return sendSuccess(res, {
     approved: true,
     alreadyApproved: result.alreadyApproved,
+    user: toPublicUser(result.user),
+  });
+}));
+
+authRouter.get('/reject', asyncHandler(async (req, res) => {
+  const token = String(req.query?.token ?? '').trim();
+  if (!token) {
+    throw badRequest('Missing token');
+  }
+
+  const result = await rejectUserFromSignedToken(token);
+  return sendSuccess(res, {
+    rejected: true,
+    alreadyRejected: result.alreadyRejected,
     user: toPublicUser(result.user),
   });
 }));

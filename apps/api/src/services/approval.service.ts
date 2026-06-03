@@ -7,8 +7,23 @@ import { badRequest, forbidden } from '../http/api.errors';
 type ApprovalTokenPayload = {
   userId: string;
   adminEmail: string;
+  action: 'approve' | 'reject';
+  nonce: string;
   exp: number;
 };
+
+function normalizeEmail(email: string): string {
+  return String(email || '').trim().toLowerCase();
+}
+
+function escapeHtml(text: string): string {
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
 
 function toBase64Url(value: string): string {
   return Buffer.from(value, 'utf8')
@@ -48,11 +63,24 @@ function buildApprovalUrl(token: string): string {
   return `${base}/auth/approve?token=${encodeURIComponent(token)}`;
 }
 
-export function createApprovalToken(input: { userId: string; adminEmail: string }): string {
+function buildRejectUrl(token: string): string {
   const config = getConfig();
+  const base = config.APPROVAL_LINK_BASE_URL.replace(/\/+$/, '');
+  return `${base}/auth/reject?token=${encodeURIComponent(token)}`;
+}
+
+export function createApprovalToken(input: {
+  userId: string;
+  adminEmail: string;
+  action?: 'approve' | 'reject';
+}): string {
+  const config = getConfig();
+  const action = input.action ?? 'approve';
   const payload: ApprovalTokenPayload = {
     userId: input.userId,
-    adminEmail: input.adminEmail.trim().toLowerCase(),
+    adminEmail: normalizeEmail(input.adminEmail),
+    action,
+    nonce: crypto.randomUUID(),
     exp: Date.now() + config.APPROVAL_LINK_TTL_HOURS * 60 * 60 * 1000,
   };
   const encodedPayload = toBase64Url(JSON.stringify(payload));
@@ -60,11 +88,14 @@ export function createApprovalToken(input: { userId: string; adminEmail: string 
   return `${encodedPayload}.${signature}`;
 }
 
-export function verifyApprovalToken(token: string): ApprovalTokenPayload {
+export function verifyApprovalToken(
+  token: string,
+  expectedAction?: 'approve' | 'reject',
+): ApprovalTokenPayload {
   const config = getConfig();
   const [encodedPayload, signature] = String(token || '').split('.');
   if (!encodedPayload || !signature) {
-    throw new Error('Invalid token format');
+    throw badRequest('Invalid token format');
   }
 
   const expected = signPayload(encodedPayload, config.APPROVAL_LINK_SECRET);
@@ -73,15 +104,26 @@ export function verifyApprovalToken(token: string): ApprovalTokenPayload {
     throw forbidden('Invalid token signature');
   }
 
-  const payload = JSON.parse(fromBase64Url(encodedPayload)) as ApprovalTokenPayload;
-  if (!payload?.userId || !payload?.adminEmail || !payload?.exp) {
+  let payload: ApprovalTokenPayload;
+  try {
+    payload = JSON.parse(fromBase64Url(encodedPayload)) as ApprovalTokenPayload;
+  } catch {
+    throw badRequest('Invalid token payload encoding');
+  }
+  if (!payload?.userId || !payload?.adminEmail || !payload?.exp || !payload?.nonce || !payload?.action) {
     throw badRequest('Invalid token payload');
+  }
+  if (payload.action !== 'approve' && payload.action !== 'reject') {
+    throw badRequest('Invalid token action');
+  }
+  if (expectedAction && payload.action !== expectedAction) {
+    throw forbidden('Token action mismatch');
   }
   if (Date.now() > payload.exp) {
     throw forbidden('Token expired');
   }
 
-  if (payload.adminEmail !== config.APPROVAL_ADMIN_EMAIL.trim().toLowerCase()) {
+  if (normalizeEmail(payload.adminEmail) !== normalizeEmail(config.APPROVAL_ADMIN_EMAIL)) {
     throw forbidden('Token admin mismatch');
   }
   return payload;
@@ -119,21 +161,29 @@ export async function sendApprovalRequestEmail(params: {
   userEmail: string;
 }) {
   const config = getConfig();
-  const token = createApprovalToken({
+  const approveToken = createApprovalToken({
     userId: params.userId,
     adminEmail: config.APPROVAL_ADMIN_EMAIL,
+    action: 'approve',
   });
-  const url = buildApprovalUrl(token);
+  const rejectToken = createApprovalToken({
+    userId: params.userId,
+    adminEmail: config.APPROVAL_ADMIN_EMAIL,
+    action: 'reject',
+  });
+  const approveUrl = buildApprovalUrl(approveToken);
+  const rejectUrl = buildRejectUrl(rejectToken);
 
   await sendEmail({
     to: config.APPROVAL_ADMIN_EMAIL,
-    subject: `Aprobación pendiente: ${params.userName}`,
+    subject: `Aprobacion pendiente: ${params.userName}`,
     html: `
       <h2>Nueva cuenta pendiente de aprobación</h2>
-      <p><strong>Nombre:</strong> ${params.userName}</p>
-      <p><strong>Email:</strong> ${params.userEmail}</p>
-      <p><strong>ID:</strong> ${params.userId}</p>
-      <p><a href="${url}">Autorizar cuenta (1 clic)</a></p>
+      <p><strong>Nombre:</strong> ${escapeHtml(params.userName)}</p>
+      <p><strong>Email:</strong> ${escapeHtml(params.userEmail)}</p>
+      <p><strong>ID:</strong> ${escapeHtml(params.userId)}</p>
+      <p><a href="${approveUrl}">Autorizar cuenta (1 clic)</a></p>
+      <p><a href="${rejectUrl}">Rechazar cuenta</a></p>
       <p>Este enlace expira en ${config.APPROVAL_LINK_TTL_HOURS} horas.</p>
     `,
   });
@@ -148,17 +198,32 @@ export async function sendApprovedNotificationEmail(params: {
     subject: 'Tu cuenta fue aprobada',
     html: `
       <h2>Tu cuenta ya está activa</h2>
-      <p>Hola ${params.userName}, tu cuenta en Financieramente fue aprobada.</p>
+      <p>Hola ${escapeHtml(params.userName)}, tu cuenta en Financieramente fue aprobada.</p>
       <p>Ya puedes iniciar sesión y continuar con tu diagnóstico.</p>
     `,
   });
 }
 
+export async function sendRejectedNotificationEmail(params: {
+  userEmail: string;
+  userName: string;
+}) {
+  await sendEmail({
+    to: params.userEmail,
+    subject: 'Estado de tu solicitud',
+    html: `
+      <h2>Actualización de tu solicitud</h2>
+      <p>Hola ${escapeHtml(params.userName)}, por ahora no pudimos aprobar tu cuenta.</p>
+      <p>Si crees que fue un error, responde este correo para revisarlo.</p>
+    `,
+  });
+}
+
 export async function approveUserFromSignedToken(token: string) {
-  const payload = verifyApprovalToken(token);
+  const payload = verifyApprovalToken(token, 'approve');
   const user = await loadUserById(payload.userId);
   if (!user) {
-    throw new Error('User not found');
+    throw badRequest('User not found');
   }
 
   if (user.approvalStatus === APPROVAL_STATUS.APPROVED) {
@@ -171,7 +236,7 @@ export async function approveUserFromSignedToken(token: string) {
     approvedByEmail: payload.adminEmail,
   });
   if (!updated) {
-    throw new Error('Failed to approve user');
+    throw badRequest('Failed to approve user');
   }
 
   await sendApprovedNotificationEmail({
@@ -180,4 +245,32 @@ export async function approveUserFromSignedToken(token: string) {
   });
 
   return { alreadyApproved: false, user: updated };
+}
+
+export async function rejectUserFromSignedToken(token: string) {
+  const payload = verifyApprovalToken(token, 'reject');
+  const user = await loadUserById(payload.userId);
+  if (!user) {
+    throw badRequest('User not found');
+  }
+
+  if (user.approvalStatus === APPROVAL_STATUS.REJECTED) {
+    return { alreadyRejected: true, user };
+  }
+
+  const updated = await updateUserAuthSecurity(user.id, {
+    approvalStatus: APPROVAL_STATUS.REJECTED,
+    approvedAt: new Date().toISOString(),
+    approvedByEmail: payload.adminEmail,
+  });
+  if (!updated) {
+    throw badRequest('Failed to reject user');
+  }
+
+  await sendRejectedNotificationEmail({
+    userEmail: updated.email,
+    userName: updated.name,
+  });
+
+  return { alreadyRejected: false, user: updated };
 }

@@ -29,6 +29,9 @@ afterAll(() => {
 });
 
 describe('auth + session', () => {
+  beforeAll(() => {
+    process.env.AUTH_RATE_LIMIT_MAX = '200';
+  });
   it('register creates pending approval account (no session)', async () => {
     const { createApp } = await import('../app');
     const app = createApp();
@@ -68,6 +71,7 @@ describe('auth + session', () => {
     const token = createApprovalToken({
       userId,
       adminEmail: 'sasha.oyanadel@ug.uchile.cl',
+      action: 'approve',
     });
     const approved = await request(app).get(`/auth/approve?token=${encodeURIComponent(token)}`);
     expect(approved.status).toBe(200);
@@ -107,6 +111,7 @@ describe('auth + session', () => {
     const token = createApprovalToken({
       userId,
       adminEmail: 'sasha.oyanadel@ug.uchile.cl',
+      action: 'approve',
     });
     const approved = await request(app).get(`/auth/approve?token=${encodeURIComponent(token)}`);
     expect(approved.status).toBe(200);
@@ -118,5 +123,105 @@ describe('auth + session', () => {
     });
     expect(ok.status).toBe(200);
     expect(ok.body.ok).toBe(true);
+  });
+
+  it('reject link marks account as rejected and keeps login blocked', async () => {
+    const { createApp } = await import('../app');
+    const app = createApp();
+    const email = `reject-${Date.now()}@example.com`;
+
+    const reg = await request(app).post('/auth/register').send({
+      name: 'Rejected User',
+      email,
+      password: 'Secret123',
+    });
+    expect(reg.status).toBe(200);
+    const userId = String(reg.body?.data?.user?.id ?? '');
+    const token = createApprovalToken({
+      userId,
+      adminEmail: 'sasha.oyanadel@ug.uchile.cl',
+      action: 'reject',
+    });
+
+    const rejected = await request(app).get(`/auth/reject?token=${encodeURIComponent(token)}`);
+    expect(rejected.status).toBe(200);
+    expect(rejected.body.data?.rejected).toBe(true);
+
+    const login = await request(app).post('/auth/login').send({
+      email,
+      password: 'Secret123',
+    });
+    expect(login.status).toBe(403);
+    expect(login.body.code).toBe('ACCOUNT_REJECTED');
+  });
+
+  it('approve endpoint is idempotent', async () => {
+    const { createApp } = await import('../app');
+    const app = createApp();
+    const email = `idempotent-${Date.now()}@example.com`;
+
+    const reg = await request(app).post('/auth/register').send({
+      name: 'Idempotent User',
+      email,
+      password: 'Secret123',
+    });
+    const userId = String(reg.body?.data?.user?.id ?? '');
+    const token = createApprovalToken({
+      userId,
+      adminEmail: 'sasha.oyanadel@ug.uchile.cl',
+      action: 'approve',
+    });
+
+    const first = await request(app).get(`/auth/approve?token=${encodeURIComponent(token)}`);
+    const second = await request(app).get(`/auth/approve?token=${encodeURIComponent(token)}`);
+    expect(first.status).toBe(200);
+    expect(second.status).toBe(200);
+    expect(second.body.data?.alreadyApproved).toBe(true);
+  });
+
+  it('reject endpoint is idempotent', async () => {
+    const { createApp } = await import('../app');
+    const app = createApp();
+    const email = `reject-idempotent-${Date.now()}@example.com`;
+
+    const reg = await request(app).post('/auth/register').send({
+      name: 'Reject Idempotent User',
+      email,
+      password: 'Secret123',
+    });
+    const userId = String(reg.body?.data?.user?.id ?? '');
+    const token = createApprovalToken({
+      userId,
+      adminEmail: 'sasha.oyanadel@ug.uchile.cl',
+      action: 'reject',
+    });
+
+    const first = await request(app).get(`/auth/reject?token=${encodeURIComponent(token)}`);
+    const second = await request(app).get(`/auth/reject?token=${encodeURIComponent(token)}`);
+    expect(first.status).toBe(200);
+    expect(second.status).toBe(200);
+    expect(second.body.data?.alreadyRejected).toBe(true);
+  });
+
+  it('reject token cannot be used in approve endpoint', async () => {
+    const { createApp } = await import('../app');
+    const app = createApp();
+    const email = `mismatch-${Date.now()}@example.com`;
+
+    const reg = await request(app).post('/auth/register').send({
+      name: 'Mismatch User',
+      email,
+      password: 'Secret123',
+    });
+    const userId = String(reg.body?.data?.user?.id ?? '');
+    const rejectToken = createApprovalToken({
+      userId,
+      adminEmail: 'sasha.oyanadel@ug.uchile.cl',
+      action: 'reject',
+    });
+
+    const res = await request(app).get(`/auth/approve?token=${encodeURIComponent(rejectToken)}`);
+    expect(res.status).toBe(403);
+    expect(res.body.code).toBe('FORBIDDEN');
   });
 });

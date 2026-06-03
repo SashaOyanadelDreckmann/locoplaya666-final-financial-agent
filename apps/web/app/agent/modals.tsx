@@ -263,36 +263,23 @@ export function BudgetModal(props: {
     });
   }
 
-  // CSS handles layout for desktop modes 2/3 via .is-desktop class — no inline style fights needed
-  const carouselStyle: React.CSSProperties = { display: 'block', position: 'relative', height: 'auto', minHeight: 0, overflow: 'visible', padding: '0' };
-
   function cardStyle(card: 'agent' | 'table'): React.CSSProperties {
-    if (isDesktopLayout && budgetViewMode === 2) return {};
+    if (!isDesktopLayout) return {};
     if (budgetViewMode === 3) {
       return card === 'agent' ? { display: 'none' } : {};
     }
-    return {
-      position: 'relative',
-      width: '100%',
-      maxWidth: '100%',
-      height: 'auto',
-      margin: 0,
-      opacity: 1,
-      transform: 'none',
-      filter: 'none',
-      pointerEvents: 'auto',
-      zIndex: card === 'agent' ? 2 : 1,
-    };
+    return {};
   }
 
-  const budgetModeClass =
-    budgetViewMode === 3
-      ? isDesktopLayout
-        ? 'table-only'
-        : 'table-front'
-      : isDesktopLayout && budgetViewMode === 2
+  const budgetModeClass = isDesktopLayout
+    ? budgetViewMode === 3
+      ? 'table-only'
+      : budgetViewMode === 2
         ? 'split'
-        : 'senior-stack';
+        : 'agent-front'
+    : budgetViewMode === 2
+      ? 'table-front'
+      : 'agent-front';
 
   function inferBudgetFocusRowId(question: string | null): string | null {
     const q = String(question ?? '').toLowerCase();
@@ -828,7 +815,7 @@ export function BudgetModal(props: {
   // On open: reset conversation state and fetch first personalized question from AI
   useEffect(() => {
     if (!props.isOpen) return;
-    setBudgetViewMode(2);
+    setBudgetViewMode(window.innerWidth >= 1024 ? 2 : 1);
     const budgetRowsForInit = props.budgetRows.slice(0, 30);
     setBudgetReply('');
     setConversationDone(false);
@@ -1091,21 +1078,20 @@ export function BudgetModal(props: {
             </div>
           </section>
 
-          {/* Desktop-only mode tabs — sit above the carousel, below on mobile (hidden) */}
           <div className="budget-mode-tabs" aria-label="Modo de presupuesto">
             <button
               type="button"
               className={`budget-mode-tab${budgetViewMode === 1 ? ' is-active' : ''}`}
               onClick={() => setBudgetViewMode(1)}
             >
-              Conversación + Tabla
+              {isDesktopLayout ? 'Asistente + Tabla' : 'Asistente'}
             </button>
             <button
               type="button"
               className={`budget-mode-tab${budgetViewMode === 2 ? ' is-active' : ''}`}
               onClick={() => setBudgetViewMode(2)}
             >
-              {isDesktopLayout ? 'Panel dividido' : 'Edición cómoda'}
+              {isDesktopLayout ? 'Panel dividido' : 'Tabla'}
             </button>
             <button
               type="button"
@@ -1118,28 +1104,31 @@ export function BudgetModal(props: {
 
           <div
             className={`budget-executive-grid budget-main-carousel mode-${budgetModeClass}${isDesktopLayout ? ' is-desktop' : ''}`}
-            style={carouselStyle}
           >
-            <button
-              type="button"
-              className="budget-carousel-arrow is-left"
-              aria-label="Vista anterior"
-              onClick={() => moveBudgetView('prev')}
-            >
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-                <path d="M9 2L4 7l5 5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </button>
-            <button
-              type="button"
-              className="budget-carousel-arrow is-right"
-              aria-label="Vista siguiente"
-              onClick={() => moveBudgetView('next')}
-            >
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-                <path d="M5 2l5 5-5 5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </button>
+            {isDesktopLayout && (
+              <>
+                <button
+                  type="button"
+                  className="budget-carousel-arrow is-left"
+                  aria-label="Vista anterior"
+                  onClick={() => moveBudgetView('prev')}
+                >
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                    <path d="M9 2L4 7l5 5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  className="budget-carousel-arrow is-right"
+                  aria-label="Vista siguiente"
+                  onClick={() => moveBudgetView('next')}
+                >
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                    <path d="M5 2l5 5-5 5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </button>
+              </>
+            )}
             <section
               data-main-card="agent"
               className="budget-assistant-panel budget-card-agent"
@@ -1148,7 +1137,7 @@ export function BudgetModal(props: {
               <div className="bcc-hero">
                 <div className="bcc-hero-top">
                   <div className="bcc-hero-label-row">
-                    <span className="bcc-hero-label">Asistente de presupuesto</span>
+                    <span className="bcc-hero-label">Asistente financiero</span>
                     {props.sessionInfo?.injectedIntake && <span className="bcc-hero-pill">Perfil activo</span>}
                     {isAskingAI && (
                       <span className="bcc-hero-thinking">
@@ -1158,6 +1147,20 @@ export function BudgetModal(props: {
                       </span>
                     )}
                   </div>
+
+                  {/* Conversation history log */}
+                  {props.chatAnswers.length > 0 && (
+                    <div className="bcc-hero-log" aria-label="Historial de conversación">
+                      {props.chatAnswers.slice(-6).map((turn, i) => (
+                        <div key={i} className="bcc-log-row">
+                          <span className="bcc-log-q">{turn.q}</span>
+                          <span className="bcc-log-a">{turn.a}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Current assistant message */}
                   <p className="bcc-hero-question">{agentStatusText}</p>
                   {agentContextText && !isInitializing && !isAskingAI && (
                     <p className="bcc-hero-coach">
@@ -1185,7 +1188,7 @@ export function BudgetModal(props: {
                     className="bcc-hero-input"
                     value={budgetReply}
                     onChange={(e) => setBudgetReply(e.target.value)}
-                    placeholder="Tu respuesta…"
+                    placeholder="Escribe tu respuesta…"
                     onMouseDownCapture={(e) => focusBudgetField(e.currentTarget)}
                     onPointerDownCapture={(e) => focusBudgetField(e.currentTarget)}
                     onKeyDown={(e) => {
@@ -1200,7 +1203,9 @@ export function BudgetModal(props: {
                     aria-label="Enviar mensaje"
                     title="Enviar mensaje"
                   >
-                    <span className="bcc-hero-send-icon" aria-hidden="true">➤</span>
+                    <svg className="bcc-hero-send-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                      <path d="M2 8h10M9 4l5 4-5 4" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
                   </button>
                 </div>
 

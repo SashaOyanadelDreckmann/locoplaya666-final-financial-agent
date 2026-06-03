@@ -46,7 +46,10 @@ export const HTTP_RATE_LIMIT_POLICIES: HttpRateLimitPolicy[] = [
   {
     name: 'auth_sensitive',
     windowMs: 15 * 60 * 1000,
-    max: 15,
+    max:
+      process.env.NODE_ENV === 'test'
+        ? Number(process.env.AUTH_RATE_LIMIT_MAX || 200)
+        : 15,
     scope: 'auth',
     criticality: 'critical',
   },
