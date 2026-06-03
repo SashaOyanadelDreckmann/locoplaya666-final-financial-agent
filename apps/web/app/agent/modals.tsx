@@ -968,6 +968,17 @@ export function BudgetModal(props: {
     return () => window.clearTimeout(timer);
   }, [props.isOpen, isDesktopLayout]);
 
+  useEffect(() => {
+    if (!props.isOpen || isDesktopLayout) return;
+    const selector = budgetViewMode === 1 ? '[data-main-card="agent"]' : '[data-main-card="table"]';
+    const target = budgetModalRef.current?.querySelector<HTMLElement>(selector);
+    if (!target) return;
+    const timer = window.setTimeout(() => {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 80);
+    return () => window.clearTimeout(timer);
+  }, [budgetViewMode, isDesktopLayout, props.isOpen]);
+
 
   const maxExpense = Math.max(
     1,
@@ -1793,6 +1804,7 @@ export function TransactionsModal(props: {
         }))
       : categoryShareData;
   const [showAllMovements, setShowAllMovements] = useState(false);
+  const [execTab, setExecTab] = useState<'summary' | 'metrics'>('summary');
 
   const [quickBank, setQuickBank] = useState('');
   const [productTemplate, setProductTemplate] = useState('');
@@ -3478,51 +3490,104 @@ export function TransactionsModal(props: {
                       </>
                     ) : null}
 
-                    {/* ── Executive Summary Prose ── */}
-                    <div className="tx-ap-executive-prose">
-                      <div className="tx-ap-prose-head">
-                        <span className="tx-ap-section-label">Resumen ejecutivo</span>
-                        <div className="tx-ap-prose-meta">
-                          {summaryModel ? <span>{summaryModel}</span> : null}
-                          <span>{summaryRegenerationsLeft} revisión(es)</span>
-                        </div>
-                      </div>
-                      <EditorialSummary text={hasSummary ? summaryText : summaryFromTable} />
-                      <div className="tx-ap-prose-actions">
-                        <button
-                          type="button"
-                          className="continue-ghost"
-                          disabled={txAssistantLoading || summaryRegenerationsLeft <= 0}
-                          onClick={() => void generateTransactionSummary({ feedback: 'Revisar nuevamente consistencia de movimientos y resumen.', isRegeneration: true })}
-                        >
-                          {summaryRegenerationsLeft > 0 ? 'Revisar resumen' : 'Resumen final'}
-                        </button>
-                      </div>
-                    </div>
+                    {/* ── Executive Summary — interactive premium card ── */}
+                    {(() => {
+                      const execBlocks = buildEditorialSummaryBlocks(hasSummary ? summaryText : summaryFromTable).slice(0, 2);
+                      const topMerchantLabel = dashboardTopMerchants[0]?.merchant || enrichedCategoryData[0]?.name || dashboardClusters[0]?.name || '—';
+                      const fidelityPct = movementCount > 0 ? (verifiedTableRows / movementCount) * 100 : 0;
+                      const confPct = movementCount > 0 ? (highConfidenceMovementCount / movementCount) * 100 : 0;
+                      return (
+                        <div className="tx-ex-card" role="region" aria-label="Resumen ejecutivo">
+                          {/* Header row */}
+                          <div className="tx-ex-header">
+                            <div className="tx-ex-header-left">
+                              <span className="tx-ex-eyebrow">Resumen ejecutivo</span>
+                              {summaryModel ? <span className="tx-ex-model-tag">{summaryModel}</span> : null}
+                            </div>
+                            <div className="tx-ex-tabs" role="tablist" aria-label="Vista del resumen">
+                              <button
+                                type="button"
+                                role="tab"
+                                aria-selected={execTab === 'summary'}
+                                className={`tx-ex-tab${execTab === 'summary' ? ' is-active' : ''}`}
+                                onClick={() => setExecTab('summary')}
+                              >
+                                Análisis
+                              </button>
+                              <button
+                                type="button"
+                                role="tab"
+                                aria-selected={execTab === 'metrics'}
+                                className={`tx-ex-tab${execTab === 'metrics' ? ' is-active' : ''}`}
+                                onClick={() => setExecTab('metrics')}
+                              >
+                                Métricas
+                              </button>
+                            </div>
+                          </div>
 
-                    {/* ── 4 Story Angle Cards ── */}
-                    <div className="tx-ap-story-grid" aria-label="Ángulos narrativos">
-                      <article className="tx-ap-story-card tx-ap-story-card--cash">
-                        <span className="tx-ap-story-label">Pulso de caja</span>
-                        <strong className="tx-ap-story-value">{formatCurrency(netFlowFromTable)}</strong>
-                        <p className="tx-ap-story-note">{txNarrative.cashAngle}</p>
-                      </article>
-                      <article className="tx-ap-story-card">
-                        <span className="tx-ap-story-label">Motor del gasto</span>
-                        <strong className="tx-ap-story-value">{dashboardTopMerchants[0]?.merchant || enrichedCategoryData[0]?.name || dashboardClusters[0]?.name || '—'}</strong>
-                        <p className="tx-ap-story-note">{txNarrative.marketAngle}</p>
-                      </article>
-                      <article className="tx-ap-story-card">
-                        <span className="tx-ap-story-label">Fidelidad del set</span>
-                        <strong className="tx-ap-story-value">{formatPercentCompact(movementCount > 0 ? (verifiedTableRows / movementCount) * 100 : 0)}</strong>
-                        <p className="tx-ap-story-note">{txNarrative.fidelityAngle}</p>
-                      </article>
-                      <article className="tx-ap-story-card">
-                        <span className="tx-ap-story-label">Confianza operativa</span>
-                        <strong className="tx-ap-story-value">{formatPercentCompact(movementCount > 0 ? (highConfidenceMovementCount / movementCount) * 100 : 0)}</strong>
-                        <p className="tx-ap-story-note">{txNarrative.confidenceAngle}</p>
-                      </article>
-                    </div>
+                          {/* Summary tab */}
+                          {execTab === 'summary' && (
+                            <div className="tx-ex-body" role="tabpanel">
+                              {execBlocks.length > 0 ? (
+                                execBlocks.map((block, i) => (
+                                  <div key={i} className={`tx-ex-block${block.lead ? ' is-lead' : ''}`}>
+                                    {block.kicker ? <span className="tx-ex-kicker">{block.kicker}</span> : null}
+                                    <p className="tx-ex-para">{block.body}</p>
+                                  </div>
+                                ))
+                              ) : (
+                                <p className="tx-ex-para tx-ex-para--empty">Generando análisis…</p>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Metrics tab — 4 KPI cards */}
+                          {execTab === 'metrics' && (
+                            <div className="tx-ex-metrics" role="tabpanel">
+                              <article className="tx-ex-kpi" style={{ '--card-idx': 0 } as React.CSSProperties}>
+                                <span className="tx-ex-kpi-label">Pulso de caja</span>
+                                <strong className={`tx-ex-kpi-value${netFlowFromTable >= 0 ? ' is-pos' : ' is-neg'}`}>
+                                  {formatCurrency(netFlowFromTable)}
+                                </strong>
+                                <p className="tx-ex-kpi-note">{txNarrative.cashAngle}</p>
+                              </article>
+                              <article className="tx-ex-kpi" style={{ '--card-idx': 1 } as React.CSSProperties}>
+                                <span className="tx-ex-kpi-label">Motor del gasto</span>
+                                <strong className="tx-ex-kpi-value is-accent">{topMerchantLabel}</strong>
+                                <p className="tx-ex-kpi-note">{txNarrative.marketAngle}</p>
+                              </article>
+                              <article className="tx-ex-kpi" style={{ '--card-idx': 2 } as React.CSSProperties}>
+                                <span className="tx-ex-kpi-label">Fidelidad del set</span>
+                                <strong className="tx-ex-kpi-value is-pos">{formatPercentCompact(fidelityPct)}</strong>
+                                <p className="tx-ex-kpi-note">{txNarrative.fidelityAngle}</p>
+                              </article>
+                              <article className="tx-ex-kpi" style={{ '--card-idx': 3 } as React.CSSProperties}>
+                                <span className="tx-ex-kpi-label">Confianza operativa</span>
+                                <strong className="tx-ex-kpi-value is-pos">{formatPercentCompact(confPct)}</strong>
+                                <p className="tx-ex-kpi-note">{txNarrative.confidenceAngle}</p>
+                              </article>
+                            </div>
+                          )}
+
+                          {/* Footer */}
+                          <div className="tx-ex-footer">
+                            <button
+                              type="button"
+                              className="tx-ex-regen-btn"
+                              disabled={txAssistantLoading || summaryRegenerationsLeft <= 0}
+                              onClick={() => void generateTransactionSummary({ feedback: 'Revisar nuevamente consistencia de movimientos y resumen.', isRegeneration: true })}
+                            >
+                              {txAssistantLoading ? (
+                                <span className="tx-ex-regen-spinner" aria-hidden="true" />
+                              ) : null}
+                              {summaryRegenerationsLeft > 0 ? 'Revisar resumen' : 'Resumen final'}
+                            </button>
+                            <span className="tx-ex-revs">{summaryRegenerationsLeft} revisión(es)</span>
+                          </div>
+                        </div>
+                      );
+                    })()}
 
                     {/* ── Charts ── */}
                     <div className="tx-ap-charts-section">
