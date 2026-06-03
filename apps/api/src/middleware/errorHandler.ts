@@ -126,13 +126,20 @@ export function errorHandlerMiddleware(
   if (statusCode === 422 && title === 'Internal Server Error') title = 'Validation Error';
   if (statusCode === 429 && title === 'Internal Server Error') title = 'Too Many Requests';
 
+  const errorMessage = err instanceof Error ? err.message : String(err);
+  const errorStack = err instanceof Error ? err.stack : undefined;
+  // Emit plain-text line so Railway log viewer exposes full context
+  console.error(
+    `[API error] ${req.method} ${req.path} → ${statusCode} ${errorCode}: ${errorMessage}`,
+    errorStack ? `\n${errorStack}` : '',
+  );
   logger.error({
     msg: 'API error handled',
     errorCode,
     statusCode,
     errorName: err instanceof Error ? err.name : 'UnknownError',
-    errorMessage: err instanceof Error ? err.message : String(err),
-    errorStack: err instanceof Error ? err.stack : undefined,
+    errorMessage,
+    errorStack,
     path: req.path,
     method: req.method,
     correlationId,

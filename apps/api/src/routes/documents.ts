@@ -898,12 +898,29 @@ router.post(
 
     const documents: ParsedDocumentResponse[] = [];
     for (const file of decodedFiles) {
-      const document = await ingestUserDocument({
-        userId: user.id,
-        name: file.name,
-        buffer: file.buffer,
-        mimeType: file.mimeType,
-      });
+      let document: ParsedDocumentResponse;
+      try {
+        document = await ingestUserDocument({
+          userId: user.id,
+          name: file.name,
+          buffer: file.buffer,
+          mimeType: file.mimeType,
+        });
+      } catch (firstErr) {
+        // Single retry for transient DB / upstream errors
+        await new Promise((resolve) => setTimeout(resolve, 600));
+        try {
+          document = await ingestUserDocument({
+            userId: user.id,
+            name: file.name,
+            buffer: file.buffer,
+            mimeType: file.mimeType,
+          });
+        } catch (retryErr) {
+          console.error(`[parse] ingestUserDocument failed for "${file.name}" after retry:`, retryErr);
+          throw retryErr;
+        }
+      }
       documents.push(document);
     }
 

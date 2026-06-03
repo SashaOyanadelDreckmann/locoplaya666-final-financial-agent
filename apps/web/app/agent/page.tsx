@@ -3260,7 +3260,10 @@ export default function AgentPage() {
         },
       };
     } catch (error) {
-      const errorText = toUserFacingError(error, 'generic');
+      const isFiveHundred = error instanceof ApiHttpError && error.status >= 500;
+      const errorText = isFiveHundred
+        ? `Error al procesar archivos: ${error.detail || error.message || 'error interno'}. Intenta nuevamente.`
+        : toUserFacingError(error, 'generic');
       setTransactionUploadError(errorText);
       return null;
     } finally {
