@@ -45792,3 +45792,77 @@ body.agent-route-active .app-shell::before {
   }
 }
 
+/* ════════════════════════════════════════════════════════════ */
+/* MOBILE: tabs compactas + brand strip + panel transparente   */
+/* ════════════════════════════════════════════════════════════ */
+
+@media (max-width: 767px) {
+  /* Tabs: compactas, caben en el ancho sin overflow */
+  .agent-chat-controls-row {
+    overflow-x: hidden !important;
+  }
+
+  .chat-switcher {
+    display: flex !important;
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    gap: 5px !important;
+    overflow: hidden !important;
+  }
+
+  .chat-sheet-tab {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    width: auto !important;
+    height: 36px !important;
+    padding: 4px 7px !important;
+    border-radius: 10px !important;
+    gap: 5px !important;
+    font-size: 10px !important;
+  }
+
+  .chat-sheet-tab-index {
+    width: 17px !important;
+    height: 17px !important;
+    flex: 0 0 17px !important;
+    font-size: 9px !important;
+  }
+
+  .chat-sheet-tab-title {
+    font-size: 0.62rem !important;
+    letter-spacing: 0.03em !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .chat-sheet-tab-subtitle {
+    display: none !important;
+  }
+
+  /* "lectura base" pegada a Financieramente */
+  .chat-brand-strip {
+    margin-top: 3px !important;
+    gap: 1px !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  .chat-identity-subtitle {
+    font-size: 0.67rem !important;
+    letter-spacing: 0.07em !important;
+    text-align: center !important;
+  }
+
+  /* Panel: fondo más transparente para que la imagen cubra la pantalla completa */
+  .agent-panel {
+    background: rgba(5, 8, 14, 0.55) !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.06) !important;
+    border-left: none !important;
+    border-right: none !important;
+    border-bottom: none !important;
+    border-radius: 0 !important;
+  }
+}
+
