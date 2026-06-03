@@ -59,9 +59,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for _ in $(seq 1 60); do
-            STATUS="$(railway deployment list --service "$RAILWAY_SERVICE_ID" --limit 1 --json | jq -r '.[0].status')"
-            ID="$(railway deployment list --service "$RAILWAY_SERVICE_ID" --limit 1 --json | jq -r '.[0].id')"
+          for _ in $(seq 1 30); do
+            PAYLOAD="$(railway deployment list --service "$RAILWAY_SERVICE_ID" --limit 1 --json 2>/dev/null || echo '[]')"
+            STATUS="$(echo "$PAYLOAD" | jq -r '.[0].status // "UNKNOWN"')"
+            ID="$(echo "$PAYLOAD" | jq -r '.[0].id // "none"')"
             echo "status=${STATUS} id=${ID}"
             if [ "$STATUS" = "SUCCESS" ]; then
               break
@@ -70,7 +71,7 @@ jobs:
               echo "Deployment status ${STATUS}"
               exit 1
             fi
-            sleep 10
+            sleep 30
           done
 
       - name: Final checks
