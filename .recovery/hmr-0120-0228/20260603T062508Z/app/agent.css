@@ -1,0 +1,2 @@
+export default "a1eb1aca3546"
+if (module.hot) { module.hot.accept() }
