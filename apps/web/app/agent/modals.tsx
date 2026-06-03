@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ChangeEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type CSSProperties } from 'react';
 import { getApiBaseUrl } from '@/lib/apiBase';
 import { getCsrfToken } from '@/lib/csrf';
 import { CHILE_FINANCIAL_INSTITUTIONS, FINANCIAL_SERVICE_OPTIONS } from '@/lib/financialCatalog';
@@ -85,22 +85,115 @@ function normalizeBudgetText(value: string): string {
     .trim();
 }
 
-function productVisualPalette(seed: string) {
-  let hash = 0;
-  for (let i = 0; i < seed.length; i += 1) {
-    hash = (hash << 5) - hash + seed.charCodeAt(i);
-    hash |= 0;
-  }
-  const hue = Math.abs(hash) % 360;
-  return {
-    base: `hsla(${hue}, 44%, 26%, 0.98)`,
-    glow: `hsla(${(hue + 22) % 360}, 56%, 58%, 0.28)`,
-    edge: `hsla(${hue}, 44%, 46%, 0.52)`,
-    tint: `hsla(${(hue + 18) % 360}, 58%, 84%, 0.96)`,
-  };
+type TxDockTransitionPhase = 'idle' | 'authorizing' | 'flood' | 'library-reveal' | 'chat-reveal';
+
+function NumericDust({
+  scope,
+  pulse,
+  active = true,
+  count = 24,
+}: {
+  scope: string;
+  pulse: number;
+  active?: boolean;
+  count?: number;
+}) {
+  return (
+    <div
+      className={`tx-digit-dust tx-digit-dust--${scope}${active ? ' is-active' : ''}`}
+      aria-hidden="true"
+    >
+      {Array.from({ length: count }, (_, idx) => {
+        const digit = (idx * 3 + pulse * 7 + scope.length) % 10;
+        const style = {
+          ['--dust-x' as any]: `${(idx * 37 + pulse * 11) % 100}%`,
+          ['--dust-y' as any]: `${(idx * 19 + pulse * 13) % 100}%`,
+          ['--dust-delay' as any]: `${(idx % 9) * 0.08}s`,
+          ['--dust-duration' as any]: `${4.2 + (idx % 5) * 0.55}s`,
+          ['--dust-depth' as any]: `${((idx % 7) - 3) * 16}px`,
+          ['--dust-scale' as any]: `${0.7 + (idx % 4) * 0.12}`,
+          ['--dust-rotate' as any]: `${(idx % 6) * 14 - 28}deg`,
+        } as CSSProperties;
+        return (
+          <span key={`${scope}-${idx}-${pulse}`} style={style}>
+            {digit}
+          </span>
+        );
+      })}
+    </div>
+  );
 }
 
-function getFormatMicrocopy(format: 'photos' | 'pdf' | 'spreadsheet' | 'text') {
+function buildEditorialSummaryBlocks(text: string | null | undefined) {
+  return String(text ?? '')
+    .split(/\n\s*\n+/)
+    .map((block) => block.replace(/\s*\n+\s*/g, ' ').trim())
+    .filter(Boolean)
+    .map((block, index) => {
+      const match = block.match(/^([^:]{12,96}):\s*(.+)$/);
+      if (match && index > 0) {
+        return {
+          lead: false,
+          kicker: match[1].trim(),
+          body: match[2].trim(),
+        };
+      }
+      return {
+        lead: index === 0,
+        kicker: null,
+        body: block,
+      };
+    });
+}
+
+function EditorialSummary({
+  text,
+  compact = false,
+}: {
+  text: string | null | undefined;
+  compact?: boolean;
+}) {
+  const blocks = buildEditorialSummaryBlocks(text);
+  if (blocks.length === 0) return null;
+  return (
+    <div className={`tx-summary-editorial${compact ? ' is-compact' : ''}`}>
+      {blocks.map((block, index) => (
+        <article
+          key={`${block.kicker ?? 'block'}-${index}`}
+          className={`tx-summary-editorial-block${block.lead ? ' is-lead' : ''}`}
+        >
+          {block.kicker ? <span className="tx-summary-editorial-kicker">{block.kicker}</span> : null}
+          <p className="tx-summary-editorial-body">{block.body}</p>
+        </article>
+      ))}
+    </div>
+  );
+}
+
+function getFormatLabel(format: 'photos' | 'pdf' | 'spreadsheet' | 'text'): string {
+  if (format === 'photos') return 'Fotos';
+  if (format === 'pdf') return 'PDF';
+  if (format === 'spreadsheet') return 'Excel / CSV';
+  return 'Texto';
+}
+
+function formatPercentCompact(value: number | null | undefined) {
+  if (!Number.isFinite(Number(value))) return 'N/D';
+  return `${Number(value).toFixed(1)}%`;
+}
+
+function confidenceBand(value: number | null | undefined) {
+  const numeric = Number(value ?? 0);
+  if (numeric >= 0.92) return 'Alta';
+  if (numeric >= 0.8) return 'Media';
+  return 'Baja';
+}
+
+function movementSourceLabel(value?: string | null) {
+  return value === 'table' ? 'Tabla' : 'Texto';
+}
+
+function getFormatMicrocopy(format: 'photos' | 'pdf' | 'spreadsheet' | 'text'): string {
   if (format === 'photos') return 'capturas limpias';
   if (format === 'pdf') return 'cartola completa';
   if (format === 'spreadsheet') return 'filas estructuradas';
@@ -111,32 +204,32 @@ function renderFormatIcon(format: 'photos' | 'pdf' | 'spreadsheet' | 'text') {
   if (format === 'photos') {
     return (
       <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M5 7.5A2.5 2.5 0 0 1 7.5 5h9A2.5 2.5 0 0 1 19 7.5v9a2.5 2.5 0 0 1-2.5 2.5h-9A2.5 2.5 0 0 1 5 16.5v-9Z" stroke="currentColor" strokeWidth="1.7" />
-        <path d="m8.5 15 2.3-2.8a1 1 0 0 1 1.53-.02L14 14l1.15-1.3a1 1 0 0 1 1.52.02L18 14.4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
-        <circle cx="9.2" cy="9.2" r="1.15" fill="currentColor" />
+        <rect x="4.5" y="6" width="15" height="12" rx="3" stroke="currentColor" strokeWidth="1.4" />
+        <circle cx="9" cy="10" r="1.2" fill="currentColor" />
+        <path d="M7.5 15l3-3 2.5 2.5 2-2 1.5 2.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     );
   }
   if (format === 'pdf') {
     return (
       <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M8 4.75h5.6L18 9.15V19a1.75 1.75 0 0 1-1.75 1.75H8A1.75 1.75 0 0 1 6.25 19V6.5A1.75 1.75 0 0 1 8 4.75Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
-        <path d="M13.5 4.9V9.4H18" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+        <path d="M8 4.5h6l4 4V18a1.5 1.5 0 01-1.5 1.5h-8A1.5 1.5 0 017 18V6a1.5 1.5 0 011.5-1.5z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
+        <path d="M14 4.5V9h4" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
       </svg>
     );
   }
   if (format === 'spreadsheet') {
     return (
       <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <rect x="5.25" y="5.25" width="13.5" height="13.5" rx="2.25" stroke="currentColor" strokeWidth="1.7" />
-        <path d="M5.5 10.25h13M5.5 14.25h13M10.25 5.5v13M14.25 5.5v13" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+        <rect x="5" y="5.5" width="14" height="13" rx="2.5" stroke="currentColor" strokeWidth="1.4" />
+        <path d="M10 5.5v13M14.5 5.5v13M5 10h14M5 14h14" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
       </svg>
     );
   }
   return (
     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <rect x="4.75" y="5.25" width="14.5" height="13.5" rx="2.4" stroke="currentColor" strokeWidth="1.7" />
-      <path d="M8 10h8M8 13h8M8 16h5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M7 8.5h10M7 12h7M7 15.5h6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      <rect x="4.5" y="5" width="15" height="14" rx="3" stroke="currentColor" strokeWidth="1.4" />
     </svg>
   );
 }
@@ -255,9 +348,13 @@ export function BudgetModal(props: {
   const [budgetTableStyle, setBudgetTableStyle] = useState<BudgetTableStyleId>('terminal');
   const [isGeneratingBudgetPdf, setIsGeneratingBudgetPdf] = useState(false);
   const budgetPdfRef = useRef<HTMLDivElement | null>(null);
+  const budgetModalRef = useRef<HTMLDivElement | null>(null);
+  const budgetRestoreFocusRef = useRef<HTMLElement | null>(null);
   const flyingDotCounter = useRef(0);
   const autoSendTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const askingWatchdogRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const initAbortRef = useRef<AbortController | null>(null);
+  const replyAbortRef = useRef<AbortController | null>(null);
   const budgetReplyInputRef = useRef<HTMLInputElement | null>(null);
   const formatBudgetAmount = (value: number) => `$${Math.round(value).toLocaleString('es-CL')}`;
   const focusBudgetField = (
@@ -447,7 +544,7 @@ export function BudgetModal(props: {
     }, 0);
   }
 
-  function applyBudgetAction(action: any) {
+  function applyBudgetAction(action: Record<string, unknown> | null | undefined) {
     if (!action || typeof action !== 'object') return;
     const kind = action.kind;
     const rowId = String(action.id ?? '').trim();
@@ -553,7 +650,7 @@ export function BudgetModal(props: {
     return rowId.replace(/^expense[-_]custom[-_]?/i, 'expense-custom-');
   }
 
-  function applyBudgetActions(actions: any[]): string | null {
+  function applyBudgetActions(actions: Array<Record<string, unknown>>): string | null {
     if (!Array.isArray(actions)) return null;
     let lastTouchedRowId: string | null = null;
     actions.forEach((a) => {
@@ -621,6 +718,7 @@ export function BudgetModal(props: {
         document.body.appendChild(anchor);
         anchor.click();
         anchor.remove();
+        setTimeout(() => URL.revokeObjectURL(fileUrl), 10_000);
         props.onBudgetPdfSaved?.({
           title: `Presupuesto mensual · ${activeStyleLabel}`,
           fileUrl,
@@ -661,13 +759,17 @@ export function BudgetModal(props: {
     // Call AI to get precise row update + next personalized question
     try {
       setIsAskingAI(true);
+      replyAbortRef.current?.abort();
+      replyAbortRef.current = new AbortController();
       if (askingWatchdogRef.current) clearTimeout(askingWatchdogRef.current);
       askingWatchdogRef.current = setTimeout(() => {
+        replyAbortRef.current?.abort();
         setIsAskingAI(false);
       }, 12000);
       const csrfToken = getCsrfToken();
       const res = await fetch(`${getApiBaseUrl()}/api/budget-chat`, {
         method: 'POST',
+        signal: replyAbortRef.current.signal,
         headers: {
           'Content-Type': 'application/json',
           ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}),
@@ -705,8 +807,8 @@ export function BudgetModal(props: {
       const raw = await res.json();
       const payload = unwrapApiData<{
         ok?: boolean;
-        actions?: any[];
-        action?: any;
+        actions?: Array<Record<string, unknown>>;
+        action?: Record<string, unknown>;
         done?: boolean;
         next_question?: string;
         focus_row_id?: string | null;
@@ -759,6 +861,8 @@ export function BudgetModal(props: {
     () => () => {
       if (askingWatchdogRef.current) clearTimeout(askingWatchdogRef.current);
       if (autoSendTimerRef.current) clearTimeout(autoSendTimerRef.current);
+      initAbortRef.current?.abort();
+      replyAbortRef.current?.abort();
     },
     [],
   );
@@ -777,11 +881,16 @@ export function BudgetModal(props: {
     setActiveBudgetRowId(null);
     setAssistantBudgetRowId(null);
 
+    initAbortRef.current?.abort();
+    initAbortRef.current = new AbortController();
+    const initSignal = initAbortRef.current.signal;
+
     void (async () => {
       try {
         const csrfToken = getCsrfToken();
         const res = await fetch(`${getApiBaseUrl()}/api/budget-chat`, {
           method: 'POST',
+          signal: initSignal,
           headers: {
             'Content-Type': 'application/json',
             ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}),
@@ -835,23 +944,25 @@ export function BudgetModal(props: {
           setAssistantBudgetRowId('income_salary');
           setAssistantCoachMessage(null);
         }
-      } catch {
+      } catch (err) {
+        if (err instanceof DOMException && err.name === 'AbortError') return;
         setAssistantQuestion(budgetQuestionForId('income_salary'));
         setAssistantBudgetRowId('income_salary');
         setAssistantCoachMessage(null);
       } finally {
-        setIsInitializing(false);
+        if (!initSignal.aborted) setIsInitializing(false);
       }
     })();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.isOpen]);
 
   useEffect(() => {
+    if (!props.isOpen || !isDesktopLayout) return;
     const timer = window.setTimeout(() => {
       budgetReplyInputRef.current?.focus();
-    }, 60);
+    }, 120);
     return () => window.clearTimeout(timer);
-  }, []);
+  }, [props.isOpen, isDesktopLayout]);
 
 
   const maxExpense = Math.max(
@@ -873,12 +984,75 @@ export function BudgetModal(props: {
     return { ['--row-bg' as any]: bg };
   }
 
+  useEffect(() => {
+    if (!props.isOpen) return;
+
+    budgetRestoreFocusRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+
+    const getBudgetFocusable = () => {
+      const root = budgetModalRef.current;
+      if (!root) return [] as HTMLElement[];
+      const sel = [
+        'button:not([disabled])',
+        '[href]',
+        'input:not([disabled]):not([type="hidden"])',
+        'select:not([disabled])',
+        'textarea:not([disabled])',
+        '[tabindex]:not([tabindex="-1"])',
+      ].join(', ');
+      return Array.from(root.querySelectorAll<HTMLElement>(sel)).filter(
+        (n) => !n.hasAttribute('aria-hidden'),
+      );
+    };
+
+    const rafId = window.requestAnimationFrame(() => {
+      const focusables = getBudgetFocusable();
+      (focusables[0] ?? budgetModalRef.current)?.focus();
+    });
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.stopPropagation();
+        props.onClose();
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      const focusables = getBudgetFocusable();
+      if (focusables.length === 0) {
+        event.preventDefault();
+        budgetModalRef.current?.focus();
+        return;
+      }
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const active = document.activeElement as HTMLElement | null;
+      const inside = Boolean(active && budgetModalRef.current?.contains(active));
+      if (!inside) { event.preventDefault(); first.focus(); return; }
+      if (event.shiftKey && active === first) { event.preventDefault(); last.focus(); return; }
+      if (!event.shiftKey && active === last) { event.preventDefault(); first.focus(); }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.cancelAnimationFrame(rafId);
+      window.removeEventListener('keydown', onKeyDown);
+      const el = budgetRestoreFocusRef.current;
+      if (el && document.contains(el)) window.requestAnimationFrame(() => el.focus());
+    };
+  }, [props.isOpen, props.onClose]);
+
   if (!props.isOpen) return null;
 
   return (
     <div className="agent-modal-overlay budget-modal-overlay" onClick={props.onClose}>
       <div
         className="agent-modal budget-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="budget-modal-title"
+        tabIndex={-1}
+        ref={budgetModalRef}
         onClick={(e) => e.stopPropagation()}
         onMouseDown={(e) => e.stopPropagation()}
         onPointerDown={(e) => e.stopPropagation()}
@@ -886,9 +1060,18 @@ export function BudgetModal(props: {
         <div className="bcc-modal-header">
           <div className="bcc-modal-title-wrap">
             <span className="bcc-modal-eyebrow">Financieramente</span>
-            <h3 className="bcc-modal-title">Presupuesto</h3>
+            <h3 id="budget-modal-title" className="bcc-modal-title">Presupuesto</h3>
           </div>
-          <button type="button" className="agent-modal-close" onClick={props.onClose}>×</button>
+          <button
+            type="button"
+            className="agent-modal-close"
+            onClick={props.onClose}
+            aria-label="Cerrar"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M2 2l12 12M14 2L2 14" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round"/>
+            </svg>
+          </button>
         </div>
 
         {/* Flying dot animations */}
@@ -966,7 +1149,9 @@ export function BudgetModal(props: {
               aria-label="Vista anterior"
               onClick={() => moveBudgetView('prev')}
             >
-              {'<'}
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                <path d="M9 2L4 7l5 5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
             </button>
             <button
               type="button"
@@ -974,7 +1159,9 @@ export function BudgetModal(props: {
               aria-label="Vista siguiente"
               onClick={() => moveBudgetView('next')}
             >
-              {'>'}
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                <path d="M5 2l5 5-5 5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
             </button>
             <section
               data-main-card="agent"
@@ -997,8 +1184,11 @@ export function BudgetModal(props: {
                   <p className="bcc-hero-question">
                     {isInitializing ? 'Preparando conversación con contexto de tabla…' : isAskingAI ? 'Analizando tabla y mensaje…' : activeQuestion}
                   </p>
+                  {conversationDone && (
+                    <p className="bcc-hero-done">✓ Presupuesto completo — puedes ajustar la tabla cuando quieras.</p>
+                  )}
                   {assistantCoachMessage && <p className="bcc-hero-coach">{assistantCoachMessage}</p>}
-                  {props.coachHint && !assistantCoachMessage && (
+                  {props.coachHint && !assistantCoachMessage && !conversationDone && (
                     <p className="bcc-hero-tip">{props.coachHint}</p>
                   )}
                 </div>
@@ -1164,6 +1354,7 @@ export function QuestionnaireModal(props: {
 }
 
 type TxWizardStep = 'products' | 'credentials' | 'upload' | 'dashboard';
+type TxUploadOnboardingStep = 'format' | 'details' | 'upload';
 type BankProduct = {
   id: string; label: string; bank: string; simulationAccepted: boolean; connected: boolean; randomMode: boolean;
   assistant?: {
@@ -1184,6 +1375,7 @@ type BankProduct = {
   productType: 'credit_card' | 'debit_account' | 'checking_account' | 'savings_account' | 'consumer_loan' | 'mortgage' | 'investment_account';
   uploadedFiles: string[];
   parsedDocuments: Array<{
+    documentId?: string;
     name: string;
     text: string;
     summary?: unknown;
@@ -1211,6 +1403,8 @@ type BankProduct = {
       expense_to_income_ratio?: number;
       table_rows_processed?: number;
       movement_coverage_pct?: number;
+      table_rows_verified?: number;
+      high_confidence_movement_count?: number;
     };
     topCategories?: Array<{ name: string; amount: number }>;
     categoryExamples?: Array<{ name: string; amount: number; examples: string[] }>;
@@ -1234,6 +1428,9 @@ type BankProduct = {
       amount: number;
       direction: 'expense' | 'income';
       source_line?: string;
+      category?: string;
+      confidence?: number;
+      source_kind?: 'table' | 'line';
     }>;
     summary?: string;
   };
@@ -1327,6 +1524,7 @@ export function TransactionsModal(props: {
     bank?: string;
     label?: string;
     productType?: BankProduct['productType'];
+    simulationAccepted?: boolean;
   }) => void;
   onUploadStatement: (files: File[] | FileList | null) => Promise<UploadStatementResult | null>;
   documentsLoading: boolean;
@@ -1350,12 +1548,14 @@ export function TransactionsModal(props: {
     const b = parseInt(normalized.slice(4, 6), 16);
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   };
+  const [shuffleTrigger, setShuffleTrigger] = useState(0);
   const [pendingEvidenceFiles, setPendingEvidenceFiles] = useState<File[]>([]);
   const [manualEvidenceDraft, setManualEvidenceDraft] = useState('');
   const [txAssistantInput, setTxAssistantInput] = useState('');
   const [txAssistantLoading, setTxAssistantLoading] = useState(false);
   const [txAssistantError, setTxAssistantError] = useState<string | null>(null);
   const [showInjectProductsConfirm, setShowInjectProductsConfirm] = useState(false);
+  const [consentAccepted, setConsentAccepted] = useState(false);
   const transactionsModalRef = useRef<HTMLDivElement | null>(null);
   const restoreFocusRef = useRef<HTMLElement | null>(null);
   const txSendLockRef = useRef(false);
@@ -1441,6 +1641,9 @@ export function TransactionsModal(props: {
     direction: movement.direction,
     date: movement.date ?? '',
     sourceLine: movement.source_line ?? '',
+    category: movement.category ?? '',
+    confidence: Number(movement.confidence ?? 0) || 0,
+    sourceKind: movement.source_kind ?? 'line',
   }));
   const topMovements = [...dashboardMovements].sort((a, b) => {
     if (b.amount !== a.amount) return b.amount - a.amount;
@@ -1514,6 +1717,70 @@ export function TransactionsModal(props: {
     movementCount > 0
       ? `Se analizaron ${movementCount.toLocaleString('es-CL')} movimientos sobre cartola de ${isCreditCardProduct ? 'tarjeta' : 'producto'}. Totales detectados desde tabla extraída: ${formatCurrency(tableDerivedMetrics.outflowsTotal)} en egresos y ${formatCurrency(tableDerivedMetrics.inflowsTotal)} en ${isCreditCardProduct ? 'abonos' : 'ingresos'}; flujo neto ${formatCurrency(netFlowFromTable)}.`
       : 'Aún no hay suficientes filas extraídas para construir un resumen analítico confiable.';
+  const verifiedTableRows = Number(dashboardMetrics?.table_rows_verified ?? 0) || dedupedMovementRows.filter((movement) => movement.sourceKind === 'table').length;
+  const highConfidenceMovementCount = Number(dashboardMetrics?.high_confidence_movement_count ?? 0) || dedupedMovementRows.filter((movement) => (movement.confidence ?? 0) >= 0.85).length;
+  const movementCoverageDisplay =
+    Number(dashboardMetrics?.movement_coverage_pct ?? 0) > 0
+      ? Number(dashboardMetrics?.movement_coverage_pct ?? 0)
+      : movementCount > 0 && dashboardMetrics?.table_rows_processed && dashboardMetrics.table_rows_processed > 0
+        ? Math.min(100, (movementCount / dashboardMetrics.table_rows_processed) * 100)
+        : 0;
+  const enrichedCategoryData = useMemo(() => {
+    const byCategory = new Map<string, { amount: number; count: number }>();
+    dedupedMovementRows
+      .filter((movement) => movement.directionForTotals === 'expense')
+      .forEach((movement) => {
+        const key = movement.category?.trim() || 'Otros';
+        const current = byCategory.get(key) ?? { amount: 0, count: 0 };
+        current.amount += movement.amount;
+        current.count += 1;
+        byCategory.set(key, current);
+      });
+    return Array.from(byCategory.entries())
+      .map(([name, data]) => ({
+        name,
+        amount: data.amount,
+        count: data.count,
+        share: expenseTotal > 0 ? (data.amount / expenseTotal) * 100 : 0,
+      }))
+      .sort((left, right) => right.amount - left.amount)
+      .slice(0, 6);
+  }, [dedupedMovementRows, expenseTotal]);
+  const txNarrative = useMemo(() => {
+    const dominantCategory = enrichedCategoryData[0];
+    const concentration = dominantCategory?.share ?? 0;
+    const fidelityPct = movementCount > 0 ? (verifiedTableRows / movementCount) * 100 : 0;
+    const confidencePct = movementCount > 0 ? (highConfidenceMovementCount / movementCount) * 100 : 0;
+    const largestExpense = expenseRows[0];
+    const largestIncome = incomeOrAbonoRows[0];
+    return {
+      marketAngle:
+        dominantCategory && concentration >= 28
+          ? `${dominantCategory.name} está marcando el ritmo del período con ${formatPercentCompact(concentration)} del gasto detectado.`
+          : 'El gasto está más repartido, sin una sola categoría dominando de forma extrema.',
+      fidelityAngle:
+        fidelityPct >= 70
+          ? `La lectura es mayoritariamente tabular: ${formatPercentCompact(fidelityPct)} de los movimientos proviene de filas estructuradas.`
+          : 'Una parte relevante del análisis todavía depende de texto libre; conviene reforzar cartolas nítidas o planillas.',
+      confidenceAngle:
+        confidencePct >= 75
+          ? `La muestra viene sólida: ${formatPercentCompact(confidencePct)} de los movimientos quedó en banda alta/media-alta de confianza.`
+          : 'La confianza del set todavía es mixta; el resumen debe leerse con cautela operativa.',
+      cashAngle:
+        netFlowFromTable >= 0
+          ? `El flujo neto quedó positivo en ${formatCurrency(netFlowFromTable)}.`
+          : `El flujo neto quedó presionado en ${formatCurrency(netFlowFromTable)}.`,
+      anchors: [largestExpense?.label, largestIncome?.label].filter(Boolean) as string[],
+    };
+  }, [enrichedCategoryData, movementCount, verifiedTableRows, highConfidenceMovementCount, expenseRows, incomeOrAbonoRows, netFlowFromTable, formatCurrency]);
+  const categoryChartData =
+    enrichedCategoryData.length > 0
+      ? enrichedCategoryData.map((category) => ({
+          category: category.name,
+          amount: category.amount,
+          share: Number(category.share.toFixed(2)),
+        }))
+      : categoryShareData;
   const [showAllMovements, setShowAllMovements] = useState(false);
 
   const [quickBank, setQuickBank] = useState('');
@@ -1522,7 +1789,11 @@ export function TransactionsModal(props: {
   const [showTemplateCatalog, setShowTemplateCatalog] = useState(false);
   const [showTxCarousel, setShowTxCarousel] = useState(false);
   const [recentlyDockedProductId, setRecentlyDockedProductId] = useState<string | null>(null);
+  const [isDockingToLibrary, setIsDockingToLibrary] = useState(false);
+  const [dockTransitionPhase, setDockTransitionPhase] = useState<TxDockTransitionPhase>('idle');
+  const [transitionPulse, setTransitionPulse] = useState(0);
   const [txSummaryScrollDepth, setTxSummaryScrollDepth] = useState(0);
+  const [txUploadOnboardingStep, setTxUploadOnboardingStep] = useState<TxUploadOnboardingStep>('format');
   const PRODUCT_STACK_PALETTE = ['#3b5068', '#6e2929', '#9e7228', '#364818', '#111111'] as const;
   const PRODUCT_STACK_TEXT_PALETTE = ['#8ea7bf', '#c89191', '#d8b266', '#86a06f', '#111111'] as const;
   const productStackColor = (seed: string) => {
@@ -1530,10 +1801,23 @@ export function TransactionsModal(props: {
     for (let i = 0; i < seed.length; i += 1) hash = (hash << 5) - hash + seed.charCodeAt(i);
     return PRODUCT_STACK_PALETTE[Math.abs(hash) % PRODUCT_STACK_PALETTE.length];
   };
+  const productVisualPalette = (seed: string) => {
+    let hash = 0;
+    for (let i = 0; i < seed.length; i += 1) hash = (hash << 5) - hash + seed.charCodeAt(i);
+    const hue = Math.abs(hash) % 360;
+    const glowHue = (hue + 24) % 360;
+    return {
+      base: `hsl(${hue} 44% 22%)`,
+      glow: `hsla(${glowHue} 90% 70% / 0.26)`,
+      edge: `hsla(${hue} 86% 84% / 0.2)`,
+      tint: `hsla(${glowHue} 100% 95% / 0.94)`,
+    };
+  };
   const groupCarouselRef = useRef<HTMLDivElement | null>(null);
   const insightCarouselRef = useRef<HTMLDivElement | null>(null);
   const txSummaryScrollRef = useRef<HTMLDivElement | null>(null);
   const previousConnectedRef = useRef<Record<string, boolean>>({});
+  const dockTransitionTimersRef = useRef<number[]>([]);
   const selectedTemplate = ALL_PRODUCT_TEMPLATES.find((item) => item.label === productTemplate);
   const derivedProductType: BankProduct['productType'] =
     selectedTemplate?.productType ??
@@ -1578,6 +1862,9 @@ export function TransactionsModal(props: {
 
   const resolvedBank = quickBank.trim();
   const resolvedProductLabel = productTemplate.trim();
+  const activeProductVisualPalette = productVisualPalette(
+    `${props.activeBankProduct?.id ?? 'active'}-${resolvedProductLabel || props.activeBankProduct?.label || 'producto'}-${resolvedBank || props.activeBankProduct?.bank || 'bank'}`
+  );
 
   const currentStage: 'consent' | 'evidence' | 'analyst' =
     props.txWizardStep === 'upload' ? 'evidence' : props.txWizardStep === 'dashboard' ? 'analyst' : 'consent';
@@ -1588,7 +1875,7 @@ export function TransactionsModal(props: {
       label: resolvedProductLabel,
       bank: resolvedBank,
       productType: derivedProductType,
-      connected: Boolean(resolvedBank) && Boolean(props.activeBankProduct.simulationAccepted),
+      connected: Boolean(resolvedBank) && consentAccepted,
       randomMode: false,
     });
   };
@@ -1670,6 +1957,16 @@ export function TransactionsModal(props: {
   const summaryModel = props.activeBankProduct?.assistant?.summaryModel ?? null;
   const summaryRegenerationsUsed = Math.max(0, props.activeBankProduct?.assistant?.summaryRegenerationsUsed ?? 0);
   const summaryRegenerationsLeft = Math.max(0, 3 - summaryRegenerationsUsed);
+  const selectedUploadFormat = props.activeBankProduct?.assistant?.uploadFormat ?? null;
+  const hasSummary = Boolean(summaryText?.trim());
+  const processingModeLabel = props.documentsLoading ? 'Procesando evidencia' : 'Pensando respuesta';
+  const processingMetaLabel = props.documentsLoading ? 'OCR, normalización y conciliación' : 'Contexto, consistencia y respuesta';
+  const processingPrimaryCopy = props.documentsLoading
+    ? 'Leyendo archivos, detectando montos y consolidando movimientos.'
+    : 'Revisando contexto del producto para responder mejor.';
+  const processingSteps = props.documentsLoading
+    ? ['Ingesta', 'Extracción', 'Validación']
+    : ['Contexto', 'Consistencia', 'Respuesta'];
 
   const appendAssistantMessages = (
     nextMessages: Array<{ role: 'assistant' | 'user'; text: string; attachments?: string[] }>,
@@ -1699,6 +1996,21 @@ export function TransactionsModal(props: {
       },
     });
   };
+  const patchAssistant = (extraPatch: Partial<NonNullable<BankProduct['assistant']>>) => {
+    if (!props.activeBankProduct) return;
+    props.updateActiveProduct({
+      assistant: {
+        messages: props.activeBankProduct.assistant?.messages ?? [],
+        uploadFormat: props.activeBankProduct.assistant?.uploadFormat ?? null,
+        summaryText: props.activeBankProduct.assistant?.summaryText ?? null,
+        summaryModel: props.activeBankProduct.assistant?.summaryModel ?? null,
+        summaryGeneratedAt: props.activeBankProduct.assistant?.summaryGeneratedAt ?? null,
+        summaryRegenerationsUsed: props.activeBankProduct.assistant?.summaryRegenerationsUsed ?? 0,
+        lastSummaryFeedback: props.activeBankProduct.assistant?.lastSummaryFeedback ?? null,
+        ...extraPatch,
+      },
+    });
+  };
 
   const formatChoiceLabel = (format: 'photos' | 'pdf' | 'spreadsheet' | 'text') =>
     format === 'photos' ? 'fotos' : format === 'pdf' ? 'PDF' : format === 'spreadsheet' ? 'Excel/CSV' : 'texto';
@@ -1717,17 +2029,6 @@ export function TransactionsModal(props: {
     return `Puedes pegar texto manual si no tienes archivo. Incluye fecha, detalle y monto por línea. Si luego consigues PDF o Excel, mejor aún. Cuando estés listo, usa Enviar.`;
   };
 
-  const maybeInitAssistant = () => {
-    if (!props.activeBankProduct || !props.activeBankProduct.connected) return;
-    if ((props.activeBankProduct.assistant?.messages ?? []).length > 0) return;
-    appendAssistantMessages([
-      {
-        role: 'assistant',
-        text: 'Antes de subir movimientos, dime cómo prefieres enviarlos: fotos, PDF, Excel/CSV o texto. Según eso te recomiendo la mejor forma para que el análisis salga limpio.',
-      },
-    ]);
-  };
-
   const buildManualEvidenceFile = (text: string) =>
     new File([text], `antecedente-manual-${Date.now()}.txt`, { type: 'text/plain' });
 
@@ -1738,7 +2039,7 @@ export function TransactionsModal(props: {
   const canContinueAuto =
     Boolean(resolvedBank.trim()) &&
     hasTemplateChoice &&
-    Boolean(props.activeBankProduct?.simulationAccepted);
+    consentAccepted;
   const hasEvidence = Boolean(props.activeBankProduct?.parsedDocuments.length);
   const parsedDocumentCount = props.activeBankProduct?.parsedDocuments.length ?? 0;
   const isSavedForBatch = Boolean(
@@ -1758,13 +2059,57 @@ export function TransactionsModal(props: {
 
   function openAuthorizationWithPreset(preset?: { bank: string; template: string }) {
     if (preset) {
-      setQuickBank(`${preset.bank} (simulacion)`);
+      setQuickBank('');
       setProductTemplate(preset.template);
     }
-    setShowInstitutionCatalog(false);
-    setShowTemplateCatalog(false);
+    setShowInstitutionCatalog(true);
+    setShowTemplateCatalog(true);
     setShowTxCarousel(true);
     props.setTxWizardStep('credentials');
+  }
+  function clearDockTransitionTimers() {
+    dockTransitionTimersRef.current.forEach((timerId) => window.clearTimeout(timerId));
+    dockTransitionTimersRef.current = [];
+  }
+  function queueDockTransitionTimeout(callback: () => void, delay: number) {
+    const timerId = window.setTimeout(callback, delay);
+    dockTransitionTimersRef.current.push(timerId);
+  }
+  function startAuthorizationTransition() {
+    if (!canContinueAuto || isDockingToLibrary || !props.activeBankProduct) return;
+    clearDockTransitionTimers();
+    const productId = props.activeBankProduct.id;
+    setIsDockingToLibrary(true);
+    setDockTransitionPhase('authorizing');
+    setTransitionPulse((value) => value + 1);
+    setShuffleTrigger((value) => value + 1);
+    queueDockTransitionTimeout(() => setDockTransitionPhase('flood'), 220);
+    queueDockTransitionTimeout(() => {
+      applyOnboarding();
+      setRecentlyDockedProductId(productId);
+      props.simulateBankLogin({
+        bank: resolvedBank,
+        label: resolvedProductLabel,
+        productType: derivedProductType,
+        simulationAccepted: consentAccepted,
+      });
+    }, 520);
+    queueDockTransitionTimeout(() => {
+      setDockTransitionPhase('library-reveal');
+      setShowTxCarousel(true);
+      setActiveTxCard(1);
+      props.setTxWizardStep('upload');
+      setShuffleTrigger((value) => value + 1);
+    }, 940);
+    queueDockTransitionTimeout(() => {
+      setDockTransitionPhase('chat-reveal');
+      setShuffleTrigger((value) => value + 1);
+    }, 1320);
+    queueDockTransitionTimeout(() => {
+      setDockTransitionPhase('idle');
+      setIsDockingToLibrary(false);
+      setRecentlyDockedProductId((current) => (current === productId ? null : current));
+    }, 1960);
   }
   useEffect(() => {
     if (!props.isOpen) return;
@@ -1840,6 +2185,8 @@ export function TransactionsModal(props: {
   useEffect(() => {
     if (!props.isOpen) return;
     // Start with preset selection before opening authorization.
+    clearDockTransitionTimers();
+    setDockTransitionPhase('idle');
     setShowTxCarousel(false);
     props.setTxWizardStep('credentials');
   }, [props.isOpen, props.setTxWizardStep]);
@@ -1848,9 +2195,14 @@ export function TransactionsModal(props: {
     const looksLikeGenericLabel = /^producto\s+\d+$/i.test(currentLabel);
     setQuickBank(props.activeBankProduct?.bank ?? '');
     setProductTemplate(looksLikeGenericLabel ? '' : currentLabel);
-    setShowInstitutionCatalog(false);
-    setShowTemplateCatalog(false);
+    setShowInstitutionCatalog(true);
+    setShowTemplateCatalog(true);
   }, [props.activeBankProduct?.id]);
+  useEffect(() => {
+    if (!props.isOpen || currentStage !== 'consent' || !showTxCarousel) return;
+    setShowInstitutionCatalog(true);
+    setShowTemplateCatalog(true);
+  }, [props.isOpen, currentStage, showTxCarousel, props.activeBankProduct?.id]);
   const matchingInstitutions = CHILE_FINANCIAL_INSTITUTIONS
     .filter((institution) =>
       quickBank.trim().length === 0
@@ -1917,6 +2269,15 @@ export function TransactionsModal(props: {
     const stage = txStages[activeTxCard];
     if (stage && !stage.disabled) stage.go();
   }, [activeTxCard]);
+
+  const goToTxStage = (stageKey: 'consent' | 'evidence' | 'analyst') => {
+    const nextIndex = txStages.findIndex((stage) => stage.key === stageKey);
+    const nextStage = nextIndex >= 0 ? txStages[nextIndex] : null;
+    if (!nextStage || nextStage.disabled) return;
+    setShowTxCarousel(true);
+    setActiveTxCard(nextIndex);
+    nextStage.go();
+  };
   useEffect(() => {
     if (libraryProductCards.length === 0) {
       setProductCarouselIndex(0);
@@ -1935,6 +2296,7 @@ export function TransactionsModal(props: {
     });
     previousConnectedRef.current = nextMap;
   }, [productCards]);
+  useEffect(() => () => clearDockTransitionTimers(), []);
   useEffect(() => {
     if (!props.isOpen || activeTxCard !== 2) return;
     const tickCarousel = (container: HTMLDivElement | null) => {
@@ -1960,6 +2322,13 @@ export function TransactionsModal(props: {
     if (!props.isOpen) setShowInjectProductsConfirm(false);
   }, [props.isOpen]);
   useEffect(() => {
+    if (!props.isOpen) {
+      clearDockTransitionTimers();
+      setIsDockingToLibrary(false);
+      setDockTransitionPhase('idle');
+    }
+  }, [props.isOpen]);
+  useEffect(() => {
     const el = txSummaryScrollRef.current;
     if (!el || !props.isOpen) return;
     const onScroll = () => {
@@ -1972,8 +2341,26 @@ export function TransactionsModal(props: {
   }, [props.isOpen, summaryText, activeTxCard]);
   useEffect(() => {
     if (!props.isOpen) return;
-    maybeInitAssistant();
-  }, [props.isOpen, props.activeBankProduct?.id, props.activeBankProduct?.connected, props.txWizardStep]);
+    setConsentAccepted(Boolean(props.activeBankProduct?.simulationAccepted));
+  }, [props.isOpen, props.activeBankProduct?.id, props.activeBankProduct?.simulationAccepted]);
+  useEffect(() => {
+    if (!props.isOpen || props.txWizardStep !== 'upload') return;
+    if (analysisAlreadyDone) {
+      setTxUploadOnboardingStep('upload');
+      return;
+    }
+    if (selectedUploadFormat) {
+      setTxUploadOnboardingStep('details');
+      return;
+    }
+    setTxUploadOnboardingStep('format');
+  }, [props.isOpen, props.txWizardStep, props.activeBankProduct?.id, analysisAlreadyDone, selectedUploadFormat]);
+  useEffect(() => {
+    if (props.isOpen) return;
+    setTxAssistantLoading(false);
+    setTxAssistantError(null);
+    txSendLockRef.current = false;
+  }, [props.isOpen]);
 
   async function requestTransactionAssistant(payload: Record<string, unknown>) {
     const res = await fetch('/api/transactions-chat', {
@@ -1981,7 +2368,7 @@ export function TransactionsModal(props: {
       headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken() || '' },
       body: JSON.stringify(payload),
     });
-    const data = await res.json();
+    const data = await res.json().catch(() => null);
     if (!res.ok || !data?.ok) throw new Error(data?.error || 'No se pudo responder');
     return data;
   }
@@ -2028,6 +2415,10 @@ export function TransactionsModal(props: {
         bank: uploadResult?.product.bank ?? props.activeBankProduct.bank,
         productType: uploadResult?.product.productType ?? props.activeBankProduct.productType,
       });
+      if (!options?.isRegeneration) {
+        setActiveTxCard(2);
+        props.setTxWizardStep('dashboard');
+      }
     } catch (error) {
       setTxAssistantError(error instanceof Error ? error.message : 'No se pudo generar el resumen.');
     } finally {
@@ -2052,12 +2443,12 @@ export function TransactionsModal(props: {
           attachments: filesToUpload.map((file) => file.name),
         },
       ]);
-      setTxAssistantInput('');
       const result = await props.onUploadStatement(filesToUpload);
-      clearPendingEvidence();
       if (result?.documents?.length) {
         await generateTransactionSummary({ uploadResult: result, isRegeneration: false });
       }
+      setTxAssistantInput('');
+      clearPendingEvidence();
     } catch (error) {
       setTxAssistantError(error instanceof Error ? error.message : 'No se pudo enviar evidencia.');
     } finally {
@@ -2140,23 +2531,44 @@ export function TransactionsModal(props: {
         aria-modal="true"
         aria-labelledby="transactions-modal-title"
         aria-describedby="transactions-modal-intro"
-        data-stage={currentStage}
         tabIndex={-1}
         ref={transactionsModalRef}
         onClick={(e) => e.stopPropagation()}
+        onClickCapture={() => {
+          setShuffleTrigger((n) => n + 1);
+          setTransitionPulse((n) => n + 1);
+        }}
+        data-ui-version="v2"
+        data-dock-phase={dockTransitionPhase}
+        data-stage={currentStage}
       >
-        <ModalNumbersCanvas shuffleTrigger={0} />
+        <ModalNumbersCanvas
+          shuffleTrigger={shuffleTrigger}
+          transitionPhase={dockTransitionPhase}
+          pulse={transitionPulse}
+        />
+        <div className="tx-transition-flood-layer" aria-hidden="true">
+          <NumericDust scope="flood" pulse={transitionPulse} active={dockTransitionPhase !== 'idle'} count={42} />
+        </div>
         <div className="bcc-modal-header tx-modal-header-layer">
           <div className="bcc-modal-title-wrap">
             <span className="bcc-modal-eyebrow">Financieramente</span>
             <h3 id="transactions-modal-title" className="bcc-modal-title">Transacciones</h3>
           </div>
-          <button type="button" className="agent-modal-close tx-close-minimal" onClick={props.onClose}>×</button>
+          <button
+            type="button"
+            className="agent-modal-close tx-close-minimal"
+            onClick={props.onClose}
+            aria-label="Cerrar"
+          >
+            ×
+          </button>
         </div>
         <div className="tx-scroll-body">
         <p id="transactions-modal-intro" className="agent-modal-intro tx-modal-header-layer">Flujo breve: autoriza, sube evidencias y obtén un análisis ejecutivo confiable.</p>
         <section className="pt-shell tx-stage-shell tx-modal-header-layer">
           <aside className="pt-left tx-panel-surface tx-panel-surface--library">
+            <NumericDust scope="library" pulse={transitionPulse} active={dockTransitionPhase !== 'idle'} />
             <div className="pt-list-head">
               <h4>Biblioteca de productos</h4>
               <div className="pt-list-head-actions">
@@ -2224,7 +2636,7 @@ export function TransactionsModal(props: {
                           key={product.id}
                           role="button"
                           tabIndex={0}
-                          className={`pt-item pt-item-stack tx-lib-card ${isTop ? 'is-active is-top' : ''}`}
+                          className={`pt-item pt-item-stack tx-lib-card ${isTop ? 'is-active is-top' : ''} ${recentlyDockedProductId === product.id ? 'tx-lib-enter' : ''}`}
                           data-docked={recentlyDockedProductId === product.id ? 'true' : 'false'}
                           onClick={() => {
                             setShowTxCarousel(true);
@@ -2253,6 +2665,9 @@ export function TransactionsModal(props: {
                             ['--tx-lib-tint' as any]: visualPalette.tint,
                           }}
                         >
+                          {recentlyDockedProductId === product.id ? (
+                            <NumericDust scope="library-card" pulse={transitionPulse} active count={18} />
+                          ) : null}
                           {isTop ? (
                             <button
                               type="button"
@@ -2287,7 +2702,7 @@ export function TransactionsModal(props: {
                     })}
                   </div>
                   {libraryProductCards.length > 1 ? (
-                    <div className="pt-stack-nav tx-lib-card-nav">
+                    <div className="pt-stack-nav">
                       <button
                         type="button"
                         className="continue-ghost"
@@ -2323,6 +2738,7 @@ export function TransactionsModal(props: {
           </aside>
 
           <div className={`pt-right tx-panel-surface tx-panel-surface--workspace ${!props.activeBankProduct || showTxCarousel ? '' : 'tx-only-cta'}`}>
+            <NumericDust scope="workspace" pulse={transitionPulse} active={dockTransitionPhase !== 'idle' || currentStage !== 'consent'} />
             {!props.activeBankProduct ? (
               <div className="transactions-summary-card pt-empty-state">
                 <div className="pt-empty-head">
@@ -2354,7 +2770,7 @@ export function TransactionsModal(props: {
                   </article>
                 </div>
                 <div className="agent-modal-actions pt-empty-actions">
-                  <button type="button" className="button-primary" onClick={props.addTransactionProduct} disabled={!canAddMoreProducts}>Crear primer producto</button>
+                  <button type="button" className="continue-ghost" onClick={props.addTransactionProduct} disabled={!canAddMoreProducts}>Crear primer producto</button>
                 </div>
               </div>
             ) : (
@@ -2395,22 +2811,22 @@ export function TransactionsModal(props: {
                 ) : (
                   <>
                 <div className="tx-content-carousel">
+                  {(activeTxCard === 0 || isDockingToLibrary) && (
                   <div className="tx-3d-hero-shell" aria-hidden="true">
-                    <div className="tx-3d-sway-wrap is-floating">
-                      <div className="tx-3d-backstack">
-                        <div className="tx-3d-backcard is-1"><span>Flujo validado</span></div>
-                        <div className="tx-3d-backcard is-2"><span>Análisis guiado</span></div>
-                      </div>
+                    <div className="relative w-full flex items-center justify-center p-0">
+                      <div className="relative w-full py-0">
+                      <div className={`tx-3d-sway-wrap${txVisualStage === 'consent' && !isDockingToLibrary ? ' is-floating' : ''}`}>
                       <div
-                        className={`tx-3d-hero ${txVisualTone} ${isCardLikeProduct ? 'is-card-like' : 'is-generic-like'}`}
+                        className={`tx-3d-hero ${txVisualTone} ${isCardLikeProduct ? 'is-card-like' : 'is-generic-like'} ${activeTxCard % 2 === 1 ? 'is-solid-step' : 'is-anim-step'} ${isDockingToLibrary ? 'is-docking-out' : ''}`}
                         style={{
-                          ['--tx-hero-base' as any]: productVisualPalette(`${props.activeBankProduct.id}-${resolvedProductLabel}-${resolvedBank}`).base,
-                          ['--tx-hero-glow' as any]: productVisualPalette(`${props.activeBankProduct.id}-${resolvedProductLabel}-${resolvedBank}`).glow,
-                          ['--tx-hero-edge' as any]: productVisualPalette(`${props.activeBankProduct.id}-${resolvedProductLabel}-${resolvedBank}`).edge,
-                          ['--tx-hero-tint' as any]: productVisualPalette(`${props.activeBankProduct.id}-${resolvedProductLabel}-${resolvedBank}`).tint,
+                          ['--tx-hero-base' as any]: activeProductVisualPalette.base,
+                          ['--tx-hero-glow' as any]: activeProductVisualPalette.glow,
+                          ['--tx-hero-edge' as any]: activeProductVisualPalette.edge,
+                          ['--tx-hero-tint' as any]: activeProductVisualPalette.tint,
                           transform: `translate3d(0, ${txVisualY}px, 0) rotateX(${txVisualRotateX}deg) rotateY(${txVisualRotateY}deg) scale(${txVisualScale})`,
                         }}
                       >
+                        <NumericDust scope="hero" pulse={transitionPulse} active={dockTransitionPhase !== 'idle'} />
                         <div className="tx-3d-hero-sheen" />
                         <div className="tx-3d-hero-core">
                           <span className="tx-3d-hero-eyebrow">
@@ -2421,10 +2837,13 @@ export function TransactionsModal(props: {
                         </div>
                         <div className="tx-3d-hero-chip" />
                       </div>
+                      </div>
+                      </div>
                     </div>
                   </div>
+                  )}
                   {activeTxCard === 0 && (
-                  <section className="tx-content-card is-main-center tx-summary-clean">
+                  <section className="tx-content-card is-main-center tx-summary-clean tx-step-reveal">
                     <div className="pt-stage-header">
                       <span className="pt-stage-eyebrow">Paso 1</span>
                       <h4>Autorización del producto</h4>
@@ -2507,53 +2926,45 @@ export function TransactionsModal(props: {
                           )}
                         </div>
                       </label>
-                      <label>
-                        <input
-                          type="checkbox"
-                          checked={props.activeBankProduct.simulationAccepted}
-                          onChange={(e) =>
-                            props.updateActiveProduct({
-                              simulationAccepted: e.target.checked,
-                              connected: false,
-                            })
-                          }
-                        />
-                        {' '}Autorizo el análisis de datos en ambiente simulado (sin credenciales reales).
-                      </label>
+                      <button
+                        type="button"
+                        className={`tx-consent-toggle ${consentAccepted ? 'is-checked' : ''}`}
+                        role="checkbox"
+                        aria-checked={consentAccepted}
+                        onClick={() => {
+                          const nextAccepted = !consentAccepted;
+                          setConsentAccepted(nextAccepted);
+                          props.updateActiveProduct({
+                            simulationAccepted: nextAccepted,
+                            connected: false,
+                          });
+                        }}
+                      >
+                        <span className="tx-consent-toggle-box" aria-hidden="true" />
+                        <span className="tx-consent-toggle-copy">
+                          Autorizo el análisis de datos en ambiente simulado (sin credenciales reales).
+                        </span>
+                      </button>
                       <div className="tx-consent-inline-actions">
                         <button
                           type="button"
-                          className="button-primary tx-consent-inline-continue"
-                          disabled={!canContinueAuto}
-                          onClick={() => {
-                            applyOnboarding();
-                            props.simulateBankLogin({
-                              bank: resolvedBank,
-                              label: resolvedProductLabel,
-                              productType: derivedProductType,
-                            });
-                          }}
+                          className="continue-ghost tx-consent-inline-continue"
+                          disabled={!canContinueAuto || isDockingToLibrary}
+                          onClick={startAuthorizationTransition}
                         >
                           Continuar
                         </button>
                       </div>
                     </div>
-                    <div className="agent-modal-actions">
+                    <div className="agent-modal-actions tx-consent-actions-row">
                       <button type="button" className="continue-ghost tx-delete-product-btn" onClick={() => props.deleteTransactionProduct(props.activeBankProduct!.id)}>Eliminar producto</button>
                       <button
                         type="button"
-                        className="button-primary"
-                        disabled={!canContinueAuto}
-                        onClick={() => {
-                          applyOnboarding();
-                          props.simulateBankLogin({
-                            bank: resolvedBank,
-                            label: resolvedProductLabel,
-                            productType: derivedProductType,
-                          });
-                        }}
+                        className="continue-ghost tx-consent-continue-main"
+                        disabled={!canContinueAuto || isDockingToLibrary}
+                        onClick={startAuthorizationTransition}
                       >
-                        Conectar y continuar
+                        {isDockingToLibrary ? 'Autorizando…' : 'Conectar y continuar'}
                       </button>
                     </div>
                     </div>
@@ -2561,50 +2972,134 @@ export function TransactionsModal(props: {
                   )}
 
                   {activeTxCard === 1 && (
-                  <section className="tx-content-card tx-content-card--agent is-main-center">
+                  <section className="tx-content-card tx-content-card--agent is-main-center tx-step-reveal">
                     <div className="pt-stage-header tx-agent-stage-header">
-                      <span className="pt-stage-eyebrow">Paso 2</span>
-                      <h4 className="tx-agent-stage-title">Sube tus movimientos</h4>
-                      <p className="tx-agent-stage-note">Adjunta cartola, PDF, Excel o texto. El agente ordena la evidencia y devuelve una lectura ejecutiva clara.</p>
+                      <span
+                        className="pt-stage-eyebrow tx-agent-stage-tag"
+                        style={{
+                          color: 'rgba(84, 145, 214, 0.88)',
+                          fontSize: '10px',
+                          fontWeight: 700,
+                          letterSpacing: '0.16em',
+                          textTransform: 'uppercase',
+                        }}
+                      >
+                        Análisis guiado
+                      </span>
+                      <h4
+                        className="tx-agent-stage-title"
+                        style={{
+                          fontFamily: 'Georgia, "Times New Roman", serif',
+                          fontSize: 'clamp(46px, 5.1vw, 82px)',
+                          fontWeight: 400,
+                          letterSpacing: '-0.045em',
+                          lineHeight: 0.96,
+                          color: '#f0f0f5',
+                          margin: 0,
+                          maxWidth: '12ch',
+                          textWrap: 'balance',
+                          textShadow: '0 20px 70px rgba(0, 0, 0, 0.46)',
+                        }}
+                      >
+                        Sube tus movimientos
+                      </h4>
+                      <p
+                        className="tx-agent-stage-note"
+                        style={{
+                          maxWidth: '460px',
+                          fontSize: 'clamp(12px, 0.92vw, 14px)',
+                          lineHeight: 1.4,
+                          color: 'rgba(238, 242, 247, 0.46)',
+                          marginTop: '2px',
+                          letterSpacing: '0.005em',
+                        }}
+                      >
+                        Adjunta cartola, PDF, Excel o texto. El agente ordena la evidencia y devuelve una lectura ejecutiva clara.
+                      </p>
                     </div>
                     <div ref={txSummaryScrollRef} className="transactions-summary-card tx-evidence-card tx-evidence-card--premium tx-chat-minimal-body">
+                      <NumericDust scope="chat" pulse={transitionPulse} active={dockTransitionPhase === 'chat-reveal' || currentStage !== 'consent'} count={28} />
                       <div className="tx-editorial-intro tx-editorial-intro--agent">
-                        <span className="transactions-summary-title">Asistente del producto</span>
-                        <p>{analysisAlreadyDone ? 'Haz preguntas, corrige y revisa el resumen final.' : 'Elige formato, adjunta antecedentes y envía.'}</p>
+                        <span className="transactions-summary-title">Mesa de evidencia</span>
                         <div className="tx-editorial-meta-row">
-                          <span>{props.maxEvidenceFilesPerProduct} archivos máximo</span>
-                          <span>{summaryRegenerationsLeft} revisiones restantes</span>
+                          <span>Hasta {props.maxEvidenceFilesPerProduct} respaldos</span>
+                          <span>{summaryRegenerationsLeft} iteraciones</span>
                         </div>
                       </div>
 
-                      <div className="tx-chat-format-pills tx-chat-format-pills--premium tx-chat-format-pills--deck">
-                        {([
-                          ['photos', 'Fotos'],
-                          ['pdf', 'PDF'],
-                          ['spreadsheet', 'Excel / CSV'],
-                          ['text', 'Texto'],
-                        ] as const).map(([value, label]) => (
-                          <button
-                            key={value}
-                            type="button"
-                            className={`continue-ghost tx-format-choice ${props.activeBankProduct?.assistant?.uploadFormat === value ? 'is-active' : ''}`}
-                            onClick={() => {
-                              appendAssistantMessages(
-                                [
-                                  { role: 'user', text: label },
-                                  { role: 'assistant', text: buildUploadGuidance(value, props.activeBankProduct!.productType) },
-                                ],
-                                { uploadFormat: value },
-                              );
-                            }}
-                          >
-                            <span className="tx-format-choice-icon">{renderFormatIcon(value)}</span>
-                            <span className="tx-format-choice-main">{label}</span>
-                            <span className="tx-format-choice-sub">{getFormatMicrocopy(value)}</span>
-                          </button>
-                        ))}
-                      </div>
+                      {!analysisAlreadyDone && (
+                        <div className="tx-upload-onboarding tx-upload-onboarding--agent tx-upload-onboarding--bare">
+                          {txUploadOnboardingStep === 'format' && (
+                            <div className="tx-onboarding-card tx-onboarding-card--compact tx-onboarding-card--bare">
+                              <div className="tx-onboarding-card-head tx-onboarding-card-head--stack">
+                                <span className="tx-onboarding-kicker">Formato</span>
+                                <div className="tx-onboarding-copy">Selecciona la fuente.</div>
+                              </div>
+                              <div className="tx-chat-format-pills tx-chat-format-pills--premium tx-chat-format-pills--deck">
+                                {([
+                                  ['photos', 'Fotos'],
+                                  ['pdf', 'PDF'],
+                                  ['spreadsheet', 'Excel / CSV'],
+                                  ['text', 'Texto'],
+                                ] as const).map(([value, label]) => (
+                                  <button
+                                    key={value}
+                                    type="button"
+                                    className={`continue-ghost tx-format-choice ${selectedUploadFormat === value ? 'is-active' : ''}`}
+                                    onClick={() => {
+                                      patchAssistant({ uploadFormat: value });
+                                      setTxUploadOnboardingStep('details');
+                                    }}
+                                  >
+                                    <span className="tx-format-choice-icon">{renderFormatIcon(value)}</span>
+                                    <span className="tx-format-choice-main">{label}</span>
+                                    <span className="tx-format-choice-sub">{getFormatMicrocopy(value)}</span>
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
 
+                          {txUploadOnboardingStep === 'details' && selectedUploadFormat && (
+                            <div className="tx-onboarding-card tx-onboarding-card--guidance tx-onboarding-card--compact tx-onboarding-card--bare">
+                              <div className="tx-onboarding-card-head">
+                                <div className="tx-onboarding-card-head tx-onboarding-card-head--stack">
+                                  <span className="tx-onboarding-kicker">Detalle</span>
+                                  <div className="tx-onboarding-detail-chip">{getFormatLabel(selectedUploadFormat)}</div>
+                                </div>
+                                <button
+                                  type="button"
+                                  className="tx-onboarding-reset"
+                                  onClick={() => {
+                                    patchAssistant({ uploadFormat: null });
+                                    setTxUploadOnboardingStep('format');
+                                  }}
+                                >
+                                  Cambiar
+                                </button>
+                              </div>
+                              <div className="tx-onboarding-copy">
+                                {buildUploadGuidance(selectedUploadFormat, props.activeBankProduct!.productType)}
+                              </div>
+                              <button
+                                type="button"
+                                className="tx-onboarding-next tx-onboarding-next--edge"
+                                onClick={() => {
+                                  setTransitionPulse((value) => value + 1);
+                                  setTxUploadOnboardingStep('upload');
+                                }}
+                                aria-label="Continuar a carga"
+                              >
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                  <path d="M8 5l8 7-8 7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {assistantMessages.length > 0 && (
                       <div className="tx-chat-thread">
                         {assistantMessages.map((message) => (
                           <div
@@ -2624,14 +3119,13 @@ export function TransactionsModal(props: {
                             )}
                           </div>
                         ))}
-                        {assistantMessages.length === 0 && (
-                          <div className="tx-chat-thread-empty">El asistente aparece aquí cuando el producto entra en flujo.</div>
-                        )}
                       </div>
+                      )}
 
-                      <div className="upload-zone tx-upload-zone-premium--rail">
+                      {(analysisAlreadyDone || txUploadOnboardingStep === 'upload') && (
+                      <div className="upload-zone tx-upload-zone-premium tx-upload-zone-premium--rail tx-upload-zone-premium--inline">
                         <label className="upload-label upload-label--minimal">
-                          <span>Adjuntar antecedentes (imagen, PDF, Excel, CSV, TXT)</span>
+                          <span>Adjuntar</span>
                           <span className="upload-trigger-minimal" aria-hidden="true">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                               <path d="M15.5 7.5L9 14a3 3 0 104.24 4.24l7.07-7.07a5 5 0 10-7.07-7.07L5.46 11.9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
@@ -2645,13 +3139,13 @@ export function TransactionsModal(props: {
                           />
                         </label>
                         <label className="manual-evidence-block">
-                          <span className="manual-evidence-label">Texto manual opcional</span>
+                          <span className="manual-evidence-label">Nota opcional</span>
                           <textarea
                             className="manual-evidence-textarea"
                             value={manualEvidenceDraft}
                             onChange={(e) => setManualEvidenceDraft(e.target.value)}
-                            placeholder="Si no tienes archivo, pega aquí movimientos o contexto adicional."
-                            rows={4}
+                            placeholder="Contexto adicional."
+                            rows={2}
                           />
                         </label>
                         {pendingEvidenceFiles.length > 0 && (
@@ -2666,8 +3160,10 @@ export function TransactionsModal(props: {
                           {props.activeBankProduct.uploadedFiles.map((name, idx) => <span key={`${name}-${idx}`} className="upload-file-pill">{name}</span>)}
                         </div>
                       </div>
+                      )}
 
-                      <div className="bcc-hero-input-wrap tx-chat-composer-wrap">
+                      {(analysisAlreadyDone || txUploadOnboardingStep === 'upload') && (
+                      <div className="bcc-hero-input-wrap tx-chat-composer-wrap tx-chat-composer-wrap--premium">
                         <input
                           className="bcc-hero-input"
                           value={txAssistantInput}
@@ -2700,6 +3196,7 @@ export function TransactionsModal(props: {
                           Enviar
                         </button>
                       </div>
+                      )}
 
                       {(pendingEvidenceFiles.length > 0 || pendingManualEvidence.length > 0) && analysisAlreadyDone && (
                         <p className="manual-evidence-hint">Este producto ya tiene análisis. Para nuevos antecedentes debes recrear el producto.</p>
@@ -2708,17 +3205,11 @@ export function TransactionsModal(props: {
                       {props.transactionUploadError && <p className="bcc-hero-error">{props.transactionUploadError}</p>}
                       {(props.documentsLoading || txAssistantLoading) && (
                         <div className="tx-analysis-live" role="status" aria-live="polite">
-                          <div className="tx-analysis-head">
-                            <span className="tx-analysis-badge">{props.documentsLoading ? 'Análisis en curso' : 'Asistente trabajando'}</span>
-                            <span className="tx-analysis-meta">
-                              {props.documentsLoading ? 'Procesando antecedentes y detectando movimientos' : 'Preparando respuesta o resumen'}
-                            </span>
+                          <div className="tx-analysis-console-kicker">
+                            <span className="tx-analysis-console-dot" aria-hidden="true" />
+                            <span className="tx-analysis-badge">{processingModeLabel}</span>
+                            <span className="tx-analysis-meta">{processingMetaLabel}</span>
                           </div>
-                          <p className="tx-analysis-copy">
-                            {props.documentsLoading
-                              ? 'Leyendo archivos, detectando montos y consolidando movimientos.'
-                              : 'Revisando contexto del producto para responder mejor.'}
-                          </p>
                           <div className="tx-analysis-track" aria-hidden="true">
                             <span className="tx-analysis-fill" />
                           </div>
@@ -2726,44 +3217,35 @@ export function TransactionsModal(props: {
                       )}
 
                       {summaryText && (
-                        <div className="transactions-summary-card tx-doc-intel-grid tx-chat-summary-bridge">
+                        <div className="transactions-summary-card tx-doc-intel-grid tx-chat-summary-pro tx-chat-summary-bridge">
                           <div className="tx-chat-summary-bridge-head">
                             <div>
-                              <span className="transactions-summary-title">Resumen asistente transacciones</span>
-                              <div className="tx-chat-summary-meta">
-                                <span className="tx-meta-card-kicker">
-                                  {summaryGeneratedAt ? `Actualizado ${new Date(summaryGeneratedAt).toLocaleString('es-CL')}` : 'Resumen listo'}
-                                </span>
-                                {summaryModel ? <span className="tx-meta-card-kicker">Modelo: {summaryModel}</span> : null}
-                                <span className="tx-meta-card-kicker">Revisiones restantes: {summaryRegenerationsLeft}</span>
-                              </div>
+                              <span className="transactions-summary-title">Resumen listo</span>
+                              <EditorialSummary text={summaryText} compact />
                             </div>
-                            <div className="tx-flow-inline-actions">
-                              <button
-                                type="button"
-                                className="continue-ghost"
-                                onClick={() => props.setTxWizardStep('dashboard')}
-                              >
-                                Ver detalle analítico
-                              </button>
-                              <button
-                                type="button"
-                                className="button-primary"
-                                disabled={txAssistantLoading || summaryRegenerationsLeft <= 0}
-                                onClick={() => void generateTransactionSummary({ feedback: 'Revisar nuevamente consistencia de movimientos y resumen.', isRegeneration: true })}
-                              >
-                                {summaryRegenerationsLeft > 0 ? 'Revisar resumen' : 'Resumen final'}
-                              </button>
+                            <div className="tx-chat-summary-meta">
+                              <span className="tx-meta-card-kicker">
+                                {summaryGeneratedAt ? `Actualizado ${new Date(summaryGeneratedAt).toLocaleString('es-CL')}` : 'Resumen listo'}
+                              </span>
+                              {summaryModel ? <span className="tx-meta-card-kicker">Modelo: {summaryModel}</span> : null}
+                              <span className="tx-meta-card-kicker">Revisiones restantes: {summaryRegenerationsLeft}</span>
                             </div>
                           </div>
-                          <p style={{ whiteSpace: 'pre-wrap' }}>{summaryText}</p>
-                          <div className="agent-modal-actions tx-summary-stage-actions">
+                          <div className="agent-modal-actions tx-flow-inline-actions">
                             <button
                               type="button"
                               className="continue-ghost"
-                              onClick={() => props.setTxWizardStep('dashboard')}
+                              onClick={() => goToTxStage('analyst')}
                             >
-                              Ver detalle analítico
+                              Ver resumen completo
+                            </button>
+                            <button
+                              type="button"
+                              className="button-primary"
+                              disabled={txAssistantLoading || summaryRegenerationsLeft <= 0}
+                              onClick={() => void generateTransactionSummary({ feedback: 'Revisar nuevamente consistencia de movimientos y resumen.', isRegeneration: true })}
+                            >
+                              {summaryRegenerationsLeft > 0 ? 'Revisar resumen' : 'Resumen final'}
                             </button>
                           </div>
                         </div>
@@ -2773,15 +3255,58 @@ export function TransactionsModal(props: {
                   )}
 
                   {activeTxCard === 2 && (
-                  <section className="tx-content-card is-main-center tx-summary-stage">
-                    <div className="pt-stage-header tx-agent-stage-header">
+                  <section className="tx-content-card is-main-center tx-summary-stage tx-step-reveal">
+                    <div className="pt-stage-header">
                       <span className="pt-stage-eyebrow">Paso 3</span>
-                      <h4 className="tx-agent-stage-title">Lectura ejecutiva</h4>
-                      <p className="tx-agent-stage-note">Consolida señales, métricas y hallazgos antes de enviarlos al agente core.</p>
-                      <div className="agent-modal-actions tx-summary-stage-actions">
+                      <h4>Resumen analítico</h4>
+                      <p>Consolida señales, métricas y hallazgos antes de enviarlos al agente core.</p>
+                    </div>
+                    <div className="transactions-summary-card tx-premium-sheet tx-summary-executive-shell">
+                      <div className="tx-story-hero">
+                        <div className="tx-summary-executive-head">
+                          <div className="tx-summary-executive-copy">
+                            <span className="transactions-summary-title">Resumen ejecutivo</span>
+                            <EditorialSummary text={hasSummary ? summaryText : summaryFromTable} />
+                          </div>
+                          <div className="tx-chat-summary-meta">
+                            <span className="tx-meta-card-kicker">{summaryGeneratedAt ? `Actualizado ${new Date(summaryGeneratedAt).toLocaleString('es-CL')}` : 'En preparación'}</span>
+                            {summaryModel ? <span className="tx-meta-card-kicker">Modelo: {summaryModel}</span> : null}
+                            <span className="tx-meta-card-kicker">Revisiones restantes: {summaryRegenerationsLeft}</span>
+                          </div>
+                        </div>
+                        <div className="tx-story-chips" aria-label="Indicadores de fidelidad">
+                          <span className="tx-story-chip">Periodo {tablePeriod.from} → {tablePeriod.to}</span>
+                          <span className="tx-story-chip">Cobertura {formatPercentCompact(movementCoverageDisplay)}</span>
+                          <span className="tx-story-chip">Fidelidad tabular {formatPercentCompact(movementCount > 0 ? (verifiedTableRows / movementCount) * 100 : 0)}</span>
+                          <span className="tx-story-chip">Confianza {confidenceBand(movementCount > 0 ? highConfidenceMovementCount / movementCount : 0)}</span>
+                        </div>
+                        <div className="tx-story-grid">
+                          <article className="tx-story-card is-positive">
+                            <span>Pulso de caja</span>
+                            <strong>{formatCurrency(netFlowFromTable)}</strong>
+                            <p>{txNarrative.cashAngle}</p>
+                          </article>
+                          <article className="tx-story-card">
+                            <span>Motor del gasto</span>
+                            <strong>{enrichedCategoryData[0]?.name || dashboardClusters[0]?.name || 'Sin patrón dominante'}</strong>
+                            <p>{txNarrative.marketAngle}</p>
+                          </article>
+                          <article className="tx-story-card">
+                            <span>Fidelidad del set</span>
+                            <strong>{formatPercentCompact(movementCount > 0 ? (verifiedTableRows / movementCount) * 100 : 0)}</strong>
+                            <p>{txNarrative.fidelityAngle}</p>
+                          </article>
+                          <article className="tx-story-card">
+                            <span>Confianza operativa</span>
+                            <strong>{formatPercentCompact(movementCount > 0 ? (highConfidenceMovementCount / movementCount) * 100 : 0)}</strong>
+                            <p>{txNarrative.confidenceAngle}</p>
+                          </article>
+                        </div>
+                      </div>
+                      <div className="agent-modal-actions tx-summary-executive-actions">
                         <button
                           type="button"
-                          className="button-primary"
+                          className="continue-ghost"
                           onClick={() => setShowAllMovements((prev) => !prev)}
                         >
                           {showAllMovements ? 'Ocultar tabla' : 'Ver tabla'}
@@ -2799,13 +3324,16 @@ export function TransactionsModal(props: {
                                   <th>Tipo</th>
                                   <th>Fecha</th>
                                   <th>Detalle</th>
+                                  <th>Categoría</th>
                                   <th>Monto</th>
+                                  <th>Fuente</th>
+                                  <th>Conf.</th>
                                 </tr>
                               </thead>
                               <tbody>
                                 {dedupedMovementRows.length === 0 ? (
                                   <tr>
-                                    <td colSpan={4}>No hay movimientos detectados aún. Sube una cartola más nítida o archivo XLSX/PDF.</td>
+                                    <td colSpan={7}>No hay movimientos detectados aún. Sube una cartola más nítida o archivo XLSX/PDF.</td>
                                   </tr>
                                 ) : (
                                   dedupedMovementRows.map((movement, idx) => (
@@ -2819,7 +3347,10 @@ export function TransactionsModal(props: {
                                       </td>
                                       <td>{movement.date || 'N/D'}</td>
                                       <td>{movement.label}</td>
+                                      <td>{movement.category || 'Otros'}</td>
                                       <td>{formatCurrency(movement.amount)}</td>
+                                      <td>{movementSourceLabel(movement.sourceKind)}</td>
+                                      <td>{movement.confidence ? formatPercentCompact(movement.confidence * 100) : 'N/D'}</td>
                                     </tr>
                                   ))
                                 )}
@@ -2837,13 +3368,14 @@ export function TransactionsModal(props: {
                                     <th>Tipo</th>
                                     <th>Fecha</th>
                                     <th>Detalle</th>
+                                    <th>Categoría</th>
                                     <th>Monto</th>
                                   </tr>
                                 </thead>
                                 <tbody>
                                   {incomeOrAbonoRows.length === 0 ? (
                                     <tr>
-                                      <td colSpan={4}>No hay ingresos/abonos detectados.</td>
+                                      <td colSpan={5}>No hay ingresos/abonos detectados.</td>
                                     </tr>
                                   ) : (
                                     incomeOrAbonoRows.map((movement, idx) => (
@@ -2851,6 +3383,7 @@ export function TransactionsModal(props: {
                                           <td><span className="tx-type-income">{isCreditCardProduct ? 'Abono' : 'Ingreso'}</span></td>
                                           <td>{movement.date || 'N/D'}</td>
                                           <td>{movement.label}</td>
+                                          <td>{movement.category || 'Otros'}</td>
                                           <td>{formatCurrency(movement.amount)}</td>
                                         </tr>
                                       ))
@@ -2872,13 +3405,14 @@ export function TransactionsModal(props: {
                                     <th>Tipo</th>
                                     <th>Fecha</th>
                                     <th>Detalle</th>
+                                    <th>Categoría</th>
                                     <th>Monto</th>
                                   </tr>
                                 </thead>
                                 <tbody>
                                   {expenseRows.length === 0 ? (
                                     <tr>
-                                      <td colSpan={4}>No hay egresos detectados.</td>
+                                      <td colSpan={5}>No hay egresos detectados.</td>
                                     </tr>
                                   ) : (
                                     expenseRows.map((movement, idx) => (
@@ -2886,6 +3420,7 @@ export function TransactionsModal(props: {
                                           <td><span className="tx-type-expense">Egreso</span></td>
                                           <td>{movement.date || 'N/D'}</td>
                                           <td>{movement.label}</td>
+                                          <td>{movement.category || 'Otros'}</td>
                                           <td>{formatCurrency(movement.amount)}</td>
                                         </tr>
                                       ))
@@ -2901,32 +3436,6 @@ export function TransactionsModal(props: {
                         </div>
                       </>
                     ) : null}
-                    <div className="transactions-summary-card tx-summary-executive-shell">
-                      <div className="tx-summary-executive-head">
-                        <div className="tx-summary-executive-copy">
-                          <span className="transactions-summary-title">Ficha analítica del producto</span>
-                          <div className="tx-summary-editorial is-compact">
-                            <article className="tx-summary-editorial-block is-lead">
-                              <span className="tx-summary-editorial-kicker">Lectura principal</span>
-                              <p className="tx-summary-editorial-body">{summaryFromTable}</p>
-                            </article>
-                          </div>
-                        </div>
-                        <div className="tx-summary-executive-actions">
-                          <button type="button" className="continue-ghost" onClick={() => props.setTxWizardStep('upload')}>
-                            Volver al chat
-                          </button>
-                          <button type="button" className={`button-primary ${isSavedForBatch ? 'is-saved-product' : ''}`} onClick={props.saveTransactionProductForBatch} disabled={props.documentsLoading}>
-                            {isSavedForBatch ? 'Producto guardado' : 'Guardar producto'}
-                          </button>
-                        </div>
-                      </div>
-                      <div className="tx-period-row">
-                        <span className="tx-period-pill">Periodo: {tablePeriod.from} → {tablePeriod.to}</span>
-                        <span className="tx-period-pill">Moneda: {props.activeBankProduct.dashboard?.currency || 'CLP'}</span>
-                        <span className="tx-period-pill">Calidad promedio: {qualityAverage > 0 ? `${qualityAverage}%` : 'N/D'}</span>
-                      </div>
-                    </div>
                     <div className="tx-pro-analysis-grid">
                       <div className="transactions-summary-card tx-doc-intel-grid">
                         <span className="transactions-summary-title">Grupos de gasto</span>
@@ -3025,7 +3534,7 @@ export function TransactionsModal(props: {
                           <h5>Categorías (monto)</h5>
                           <div style={{ width: '100%', height: 210 }}>
                             <ResponsiveContainer width="100%" height="100%">
-                              <BarChart data={categoryShareData} layout="vertical" margin={{ top: 8, right: 8, left: 20, bottom: 8 }}>
+                              <BarChart data={categoryChartData} layout="vertical" margin={{ top: 8, right: 8, left: 20, bottom: 8 }}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(110,125,150,0.24)" />
                                 <XAxis type="number" tickFormatter={(value) => formatCurrency(Number(value))} tick={{ fill: '#42566d', fontSize: 11 }} />
                                 <YAxis dataKey="category" type="category" width={120} tick={{ fill: '#42566d', fontSize: 11 }} />
@@ -3036,7 +3545,7 @@ export function TransactionsModal(props: {
                                   itemStyle={{ color: '#ffffff' }}
                                 />
                                 <Bar dataKey="amount" radius={[0, 8, 8, 0]}>
-                                  {categoryShareData.map((entry, idx) => (
+                                  {categoryChartData.map((entry, idx) => (
                                     <Cell key={`cat-bar-${entry.category}`} fill={TX_SECONDARY_COLORS[idx % TX_SECONDARY_COLORS.length]} />
                                   ))}
                                 </Bar>
@@ -3111,21 +3620,71 @@ export function TransactionsModal(props: {
                           <strong>{flowRatioFromTable > 0 ? `${(flowRatioFromTable * 100).toFixed(1)}%` : 'N/D'}</strong>
                         </article>
                         <article className="tx-kpi-pro-card">
-                          <span>Filas tabulares</span>
-                          <strong>{movementCount.toLocaleString('es-CL')}</strong>
+                          <span>Filas tabulares fieles</span>
+                          <strong>{verifiedTableRows.toLocaleString('es-CL')}</strong>
                         </article>
                         <article className="tx-kpi-pro-card">
                           <span>Cobertura detectada</span>
-                          <strong>
-                            {movementCount > 0 && dashboardMetrics?.table_rows_processed && dashboardMetrics.table_rows_processed > 0
-                              ? `${Math.min(100, (movementCount / dashboardMetrics.table_rows_processed) * 100).toFixed(1)}%`
-                              : 'N/D'}
-                          </strong>
+                          <strong>{formatPercentCompact(movementCoverageDisplay)}</strong>
+                        </article>
+                        <article className="tx-kpi-pro-card">
+                          <span>Movimientos alta confianza</span>
+                          <strong>{highConfidenceMovementCount.toLocaleString('es-CL')}</strong>
+                        </article>
+                        <article className="tx-kpi-pro-card">
+                          <span>Origen tabular</span>
+                          <strong>{formatPercentCompact(movementCount > 0 ? (verifiedTableRows / movementCount) * 100 : 0)}</strong>
                         </article>
                       </div>
                     </div>
-                    <div className="agent-modal-actions">
+                    <div className="transactions-summary-card tx-summary-chat-dock">
+                      <span className="transactions-summary-title">Seguir conversación</span>
+                      {assistantMessages.length > 0 && (
+                        <div className="tx-chat-thread tx-summary-chat-thread">
+                          {assistantMessages.slice(-2).map((message) => (
+                            <div
+                              key={`summary-${message.id}`}
+                              className={`tx-chat-bubble ${message.role === 'user' ? 'is-user' : 'is-assistant'}`}
+                            >
+                              <div className="tx-chat-bubble-role">
+                                {message.role === 'user' ? 'Tú' : 'Asistente'}
+                              </div>
+                              <div className="tx-chat-bubble-text">{message.text}</div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <div className="bcc-hero-input-wrap tx-chat-composer-wrap tx-chat-composer-wrap--premium tx-summary-chat-composer">
+                        <input
+                          className="bcc-hero-input"
+                          value={txAssistantInput}
+                          onChange={(e) => setTxAssistantInput(e.target.value)}
+                          placeholder="Pregúntame algo sobre este resumen"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') void handleAssistantTextSend();
+                          }}
+                        />
+                        <button
+                          type="button"
+                          className="bcc-hero-send"
+                          onClick={() => void handleAssistantTextSend()}
+                          disabled={txAssistantLoading || props.documentsLoading || !txAssistantInput.trim()}
+                          aria-label="Enviar"
+                          title="Enviar"
+                        >
+                          Enviar
+                        </button>
+                      </div>
+                    </div>
+                    <div className="agent-modal-actions tx-summary-stage-actions">
                       <button type="button" className="continue-ghost tx-delete-product-btn" onClick={() => props.deleteTransactionProduct(props.activeBankProduct!.id)}>Eliminar producto</button>
+                      <button
+                        type="button"
+                        className="continue-ghost"
+                        onClick={() => goToTxStage('evidence')}
+                      >
+                        Volver a evidencia
+                      </button>
                       <button
                         type="button"
                         className={`button-primary ${isSavedForBatch ? 'is-saved-product' : ''}`}
@@ -3148,7 +3707,7 @@ export function TransactionsModal(props: {
             )}
           </div>
         </section>
-        </div>
+        </div>{/* /tx-scroll-body */}
       </div>
     </div>
   );
