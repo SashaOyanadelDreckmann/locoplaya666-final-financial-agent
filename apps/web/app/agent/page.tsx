@@ -84,6 +84,24 @@ type BudgetRow = {
   product?: string;
   institution?: string;
   note?: string;
+  detail?: string;
+  cadence?: 'fixed' | 'variable' | 'oneoff';
+  paymentMethod?: 'transfer' | 'debit' | 'credit' | 'cash' | 'prepaid' | 'other';
+  movementType?:
+    | 'income_main'
+    | 'income_extra'
+    | 'housing'
+    | 'home_services'
+    | 'food'
+    | 'transport'
+    | 'health'
+    | 'education'
+    | 'debt'
+    | 'savings_investment'
+    | 'taxes_fees'
+    | 'leisure_other';
+  momentum?: 'up' | 'steady' | 'down';
+  strategy?: 'shield' | 'review' | 'optimize';
 };
 
 type BankProduct = {
@@ -2037,6 +2055,8 @@ export default function AgentPage() {
       coreFillRate,
       readinessScore,
       nextAction,
+      risingExpenseCount: budgetRows.filter((row) => row.type === 'expense' && row.momentum === 'up').length,
+      optimizePotential: budgetRows.filter((row) => row.type === 'expense' && row.strategy === 'optimize').length,
     };
   }, [budgetInsights.healthScore, budgetRows, budgetTotals.balance]);
 

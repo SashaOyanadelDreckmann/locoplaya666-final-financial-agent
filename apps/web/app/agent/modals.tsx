@@ -2,6 +2,8 @@ import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { getApiBaseUrl } from '@/lib/apiBase';
 import { getCsrfToken } from '@/lib/csrf';
 import { CHILE_FINANCIAL_INSTITUTIONS, FINANCIAL_SERVICE_OPTIONS } from '@/lib/financialCatalog';
+import { BudgetIntelligenceTable } from '@/components/ui/budget-intelligence-table';
+import ModalNumbersCanvas from '@/components/agent/ModalNumbersCanvas';
 import {
   ResponsiveContainer,
   BarChart,
@@ -29,10 +31,27 @@ type BudgetRow = {
   category: string;
   type: 'income' | 'expense';
   amount: number;
-  parentId?: string;
   product?: string;
   institution?: string;
   note?: string;
+  detail?: string;
+  cadence?: 'fixed' | 'variable' | 'oneoff';
+  paymentMethod?: 'transfer' | 'debit' | 'credit' | 'cash' | 'prepaid' | 'other';
+  movementType?:
+    | 'income_main'
+    | 'income_extra'
+    | 'housing'
+    | 'home_services'
+    | 'food'
+    | 'transport'
+    | 'health'
+    | 'education'
+    | 'debt'
+    | 'savings_investment'
+    | 'taxes_fees'
+    | 'leisure_other';
+  momentum?: 'up' | 'steady' | 'down';
+  strategy?: 'shield' | 'review' | 'optimize';
 };
 
 type BudgetTopExpense = { id: string; label: string; amount: number; pct: number };
@@ -66,27 +85,83 @@ function normalizeBudgetText(value: string): string {
     .trim();
 }
 
+function productVisualPalette(seed: string) {
+  let hash = 0;
+  for (let i = 0; i < seed.length; i += 1) {
+    hash = (hash << 5) - hash + seed.charCodeAt(i);
+    hash |= 0;
+  }
+  const hue = Math.abs(hash) % 360;
+  return {
+    base: `hsla(${hue}, 44%, 26%, 0.98)`,
+    glow: `hsla(${(hue + 22) % 360}, 56%, 58%, 0.28)`,
+    edge: `hsla(${hue}, 44%, 46%, 0.52)`,
+    tint: `hsla(${(hue + 18) % 360}, 58%, 84%, 0.96)`,
+  };
+}
+
+function getFormatMicrocopy(format: 'photos' | 'pdf' | 'spreadsheet' | 'text') {
+  if (format === 'photos') return 'capturas limpias';
+  if (format === 'pdf') return 'cartola completa';
+  if (format === 'spreadsheet') return 'filas estructuradas';
+  return 'entrada manual';
+}
+
+function renderFormatIcon(format: 'photos' | 'pdf' | 'spreadsheet' | 'text') {
+  if (format === 'photos') {
+    return (
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M5 7.5A2.5 2.5 0 0 1 7.5 5h9A2.5 2.5 0 0 1 19 7.5v9a2.5 2.5 0 0 1-2.5 2.5h-9A2.5 2.5 0 0 1 5 16.5v-9Z" stroke="currentColor" strokeWidth="1.7" />
+        <path d="m8.5 15 2.3-2.8a1 1 0 0 1 1.53-.02L14 14l1.15-1.3a1 1 0 0 1 1.52.02L18 14.4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+        <circle cx="9.2" cy="9.2" r="1.15" fill="currentColor" />
+      </svg>
+    );
+  }
+  if (format === 'pdf') {
+    return (
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M8 4.75h5.6L18 9.15V19a1.75 1.75 0 0 1-1.75 1.75H8A1.75 1.75 0 0 1 6.25 19V6.5A1.75 1.75 0 0 1 8 4.75Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+        <path d="M13.5 4.9V9.4H18" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+  if (format === 'spreadsheet') {
+    return (
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <rect x="5.25" y="5.25" width="13.5" height="13.5" rx="2.25" stroke="currentColor" strokeWidth="1.7" />
+        <path d="M5.5 10.25h13M5.5 14.25h13M10.25 5.5v13M14.25 5.5v13" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      </svg>
+    );
+  }
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="4.75" y="5.25" width="14.5" height="13.5" rx="2.4" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M8 10h8M8 13h8M8 16h5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 function buildRefinementPromptForRow(row: { id: string; category: string; type: 'income' | 'expense' }): string {
   const category = normalizeBudgetText(row.category);
   if (row.type === 'income' || row.id === 'income_salary' || /ingreso|sueldo|salario|honorario|freelance|comision/.test(category)) {
-    return `Para "${row.category}", dime fuentes y montos. Ej: sueldo 900000, freelance 250000`;
+    return `Para este movimiento "${row.category}", dime fuentes y montos. Ej: sueldo 900000, freelance 250000`;
   }
   if (row.id === 'expense_savings' || /ahorr|inversion|invertir|apv|fondo/.test(category)) {
-    return `Para "${row.category}", dime aportes reales con monto. Ej: APV 120000, fondo mutuo 80000`;
+    return `Para este movimiento "${row.category}", dime aportes reales con monto. Ej: APV 120000, fondo mutuo 80000`;
   }
   if (row.id === 'expense_debt' || /deuda|cuota|credito|tarjeta|prestamo|hipoteca/.test(category)) {
-    return `Para "${row.category}", dime pagos reales con monto. Ej: cuota tarjeta 90000, credito consumo 140000`;
+    return `Para este movimiento "${row.category}", dime pagos reales con monto. Ej: cuota tarjeta 90000, credito consumo 140000`;
   }
   if (row.id === 'expense_services' || /servicios|luz|agua|gas|internet|telefono/.test(category)) {
-    return `Para "${row.category}", dime servicios y montos. Ej: electricidad 45000, internet 28000`;
+    return `Para este movimiento "${row.category}", dime servicios y montos. Ej: electricidad 45000, internet 28000`;
   }
   if (row.id === 'expense_transport' || /transporte|bencina|metro|bus|uber|peaje/.test(category)) {
-    return `Para "${row.category}", dime gastos de movilidad. Ej: bencina 90000, metro 35000`;
+    return `Para este movimiento "${row.category}", dime gastos de movilidad. Ej: bencina 90000, metro 35000`;
   }
   if (row.id === 'expense_food' || /alimenta|comida|supermercado|feria|restaurante/.test(category)) {
-    return `Para "${row.category}", dime gastos de comida. Ej: supermercado 120000, feria 35000`;
+    return `Para este movimiento "${row.category}", dime gastos de comida. Ej: supermercado 120000, feria 35000`;
   }
-  return `Para "${row.category}", dime 2-4 gastos reales con monto. Ej: supermercado 120000, farmacia 35000`;
+  return `Para este movimiento "${row.category}", dime 2-4 gastos reales con monto. Ej: supermercado 120000, farmacia 35000`;
 }
 
 export function BudgetModal(props: {
@@ -110,8 +185,8 @@ export function BudgetModal(props: {
     coreFillRate: number;
     readinessScore: number;
     nextAction: string;
-    risingExpenseCount?: number;
-    optimizePotential?: number;
+    risingExpenseCount: number;
+    optimizePotential: number;
   };
   updateBudgetRow: (id: string, field: keyof BudgetRow, value: string | number) => void;
   upsertBudgetRow: (row: BudgetRow) => void;
@@ -220,6 +295,18 @@ export function BudgetModal(props: {
     return () => window.removeEventListener('resize', check);
   }, []);
 
+  const templateAppliedRef = useRef(false);
+  useEffect(() => {
+    if (!props.isOpen) {
+      templateAppliedRef.current = false;
+      return;
+    }
+    if (props.budgetRows.length > 0 || templateAppliedRef.current) return;
+    templateAppliedRef.current = true;
+    props.applyBudgetTemplate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.isOpen, props.budgetRows.length]);
+
   function moveBudgetView(direction: 'next' | 'prev') {
     const maxMode = isDesktopLayout ? 3 : 2;
     setBudgetViewMode((prev) => {
@@ -301,9 +388,7 @@ export function BudgetModal(props: {
     }
   }
   const fallbackQuestionForCurrentFlow = '¿Qué categoría o monto quieres agregar al presupuesto?';
-  const orderedBudgetRows = props.budgetRows.flatMap((row) =>
-    row.parentId ? [] : [row, ...props.budgetRows.filter((child) => child.parentId === row.id)],
-  );
+  const orderedBudgetRows = props.budgetRows;
   function sanitizeBudgetQuestion(question: string) {
     return String(question ?? '').trim();
   }
@@ -328,7 +413,7 @@ export function BudgetModal(props: {
       ],
       { duration: 650, easing: 'ease-out' },
     );
-  }, [assistantBudgetRowId]);
+  }, [assistantBudgetRowId, props.budgetRows]);
 
   function focusBudgetRow(rowId: string) {
     const row = props.budgetRows.find((r) => r.id === rowId) ?? null;
@@ -347,7 +432,7 @@ export function BudgetModal(props: {
         return budgetQuestionForId(row.id);
       }
       if (row.type === 'income') {
-        return `Para "${row.category}", ¿cuál es el monto mensual actual?`;
+        return `Para el movimiento "${row.category}", ¿cuál es el monto mensual actual?`;
       }
       return buildRefinementPromptForRow(row);
     })();
@@ -369,7 +454,57 @@ export function BudgetModal(props: {
     const rowType = action.type === 'income' ? 'income' : action.type === 'expense' ? 'expense' : null;
     const amount = Math.max(0, Math.round(Number(action.amount ?? 0)));
     const category = String(action.category ?? '').trim();
-    const parentId = typeof action.parent_id === 'string' && action.parent_id.trim() ? action.parent_id.trim() : undefined;
+    const detail = String(action.detail ?? '').trim();
+    const cadence =
+      action.cadence === 'fixed' || action.cadence === 'variable'
+        ? action.cadence
+        : action.cadence === 'oneoff'
+          ? 'variable'
+          : undefined;
+    const paymentMethod =
+      action.payment_method === 'transfer' ||
+      action.payment_method === 'debit' ||
+      action.payment_method === 'credit' ||
+      action.payment_method === 'cash' ||
+      action.payment_method === 'prepaid' ||
+      action.payment_method === 'other'
+        ? action.payment_method
+        : action.paymentMethod === 'transfer' ||
+            action.paymentMethod === 'debit' ||
+            action.paymentMethod === 'credit' ||
+            action.paymentMethod === 'cash' ||
+            action.paymentMethod === 'prepaid' ||
+            action.paymentMethod === 'other'
+          ? action.paymentMethod
+          : undefined;
+    const movementType =
+      action.movement_type === 'income_main' ||
+      action.movement_type === 'income_extra' ||
+      action.movement_type === 'housing' ||
+      action.movement_type === 'home_services' ||
+      action.movement_type === 'food' ||
+      action.movement_type === 'transport' ||
+      action.movement_type === 'health' ||
+      action.movement_type === 'education' ||
+      action.movement_type === 'debt' ||
+      action.movement_type === 'savings_investment' ||
+      action.movement_type === 'taxes_fees' ||
+      action.movement_type === 'leisure_other'
+        ? action.movement_type
+        : action.movementType === 'income_main' ||
+            action.movementType === 'income_extra' ||
+            action.movementType === 'housing' ||
+            action.movementType === 'home_services' ||
+            action.movementType === 'food' ||
+            action.movementType === 'transport' ||
+            action.movementType === 'health' ||
+            action.movementType === 'education' ||
+            action.movementType === 'debt' ||
+            action.movementType === 'savings_investment' ||
+            action.movementType === 'taxes_fees' ||
+            action.movementType === 'leisure_other'
+          ? action.movementType
+          : undefined;
     if (!rowId) return;
 
     if (kind === 'delete') {
@@ -381,14 +516,15 @@ export function BudgetModal(props: {
     if (!rowType || !category) return;
 
     const canonicalId = rowId.replace(/^expense[-_]custom[-_]?/i, 'expense-custom-');
-    const rowHasChildren = props.budgetRows.some((r) => r.parentId === canonicalId);
-    const existingAmount = props.budgetRows.find((r) => r.id === canonicalId)?.amount ?? amount;
     const row: BudgetRow = {
       id: canonicalId,
       type: rowType,
       category,
-      amount: rowHasChildren ? existingAmount : amount,
-      parentId,
+      amount,
+      detail: detail || undefined,
+      cadence,
+      paymentMethod,
+      movementType,
     };
     props.upsertBudgetRow(row);
     // Animate the updated row directly without touching assistantBudgetRowId (caller sets it for next question)
@@ -546,14 +682,20 @@ export function BudgetModal(props: {
             products: props.bankProducts ?? [],
             activeRowId: activeBudgetRow?.id ?? null,
             activeRow: activeBudgetRow
-              ? {
-                  id: activeBudgetRow.id,
-                  category: activeBudgetRow.category,
-                  type: activeBudgetRow.type,
-                  amount: activeBudgetRow.amount,
-                  product: activeBudgetRow.product ?? null,
-                  institution: activeBudgetRow.institution ?? null,
-                }
+                ? {
+                    id: activeBudgetRow.id,
+                    category: activeBudgetRow.category,
+                    type: activeBudgetRow.type,
+                    amount: activeBudgetRow.amount,
+                    detail: activeBudgetRow.detail ?? null,
+                    product: activeBudgetRow.product ?? null,
+                    institution: activeBudgetRow.institution ?? null,
+                    cadence: activeBudgetRow.cadence ?? null,
+                    paymentMethod: activeBudgetRow.paymentMethod ?? null,
+                    movementType: activeBudgetRow.movementType ?? null,
+                    momentum: activeBudgetRow.momentum ?? null,
+                    strategy: activeBudgetRow.strategy ?? null,
+                  }
               : null,
             intakeContext: props.sessionInfo?.injectedIntake?.intakeContext ?? null,
             intakeData: props.sessionInfo?.injectedIntake?.intake ?? null,
@@ -652,14 +794,20 @@ export function BudgetModal(props: {
             products: props.bankProducts ?? [],
             activeRowId: activeBudgetRow?.id ?? null,
             activeRow: activeBudgetRow
-              ? {
-                  id: activeBudgetRow.id,
-                  category: activeBudgetRow.category,
-                  type: activeBudgetRow.type,
-                  amount: activeBudgetRow.amount,
-                  product: activeBudgetRow.product ?? null,
-                  institution: activeBudgetRow.institution ?? null,
-                }
+                ? {
+                    id: activeBudgetRow.id,
+                    category: activeBudgetRow.category,
+                    type: activeBudgetRow.type,
+                    amount: activeBudgetRow.amount,
+                    detail: activeBudgetRow.detail ?? null,
+                    product: activeBudgetRow.product ?? null,
+                    institution: activeBudgetRow.institution ?? null,
+                    cadence: activeBudgetRow.cadence ?? null,
+                    paymentMethod: activeBudgetRow.paymentMethod ?? null,
+                    movementType: activeBudgetRow.movementType ?? null,
+                    momentum: activeBudgetRow.momentum ?? null,
+                    strategy: activeBudgetRow.strategy ?? null,
+                  }
               : null,
             intakeContext: props.sessionInfo?.injectedIntake?.intakeContext ?? null,
             intakeData: props.sessionInfo?.injectedIntake?.intake ?? null,
@@ -771,6 +919,14 @@ export function BudgetModal(props: {
               <div className="budget-cockpit-metric">
                 <span>Completitud</span>
                 <strong>{props.budgetCompletion.fillRate}%</strong>
+              </div>
+              <div className="budget-cockpit-metric">
+                <span>Rubros al alza</span>
+                <strong>{props.budgetSignals.risingExpenseCount}</strong>
+              </div>
+              <div className="budget-cockpit-metric">
+                <span>Optimizable</span>
+                <strong>{formatBudgetAmount(props.budgetSignals.optimizePotential)}</strong>
               </div>
             </div>
           </section>
@@ -891,7 +1047,7 @@ export function BudgetModal(props: {
                   <span className="budget-section-eyebrow">Tabla</span>
                   <h4>Presupuesto mensual</h4>
                   <p className="budget-table-help">
-                    Edita categoría/tipo/monto directo en cada celda. Usa `+ Sub` para desglose y `×` para borrar filas.
+                    Completa Movimiento, Tipo, Monto, Recurrencia, Medio de pago y Tipo de movimiento. Impacto se calcula automático por fila.
                   </p>
                 </div>
                 <div className="budget-table-top-actions">
@@ -901,168 +1057,22 @@ export function BudgetModal(props: {
               </div>
 
               {props.budgetRows.length > 0 ? (
-                <div ref={budgetPdfRef} className={`budget-pdf-surface budget-table-style-${budgetTableStyle}`}>
-                  {(() => {
-                    const savingsPct =
-                      props.budgetTotals.income > 0
-                        ? Math.round((props.budgetTotals.balance / props.budgetTotals.income) * 100)
-                        : 0;
-                    const isBalancePositive = props.budgetTotals.balance >= 0;
-                    const positiveTone = 'rgba(120, 208, 140, 0.95)';
-                    const negativeTone = 'rgba(255, 130, 130, 0.95)';
-                    const neutralTone = 'rgba(238, 245, 255, 0.95)';
-                    const isEditorialStyle = budgetTableStyle === 'atelier';
-                    const metricCardBg = isEditorialStyle ? '#000000' : 'rgba(8, 16, 26, 0.7)';
-                    const metricCardBorder = isEditorialStyle ? 'rgba(255, 255, 255, 0.24)' : 'rgba(120, 140, 170, 0.35)';
-                    const metricCardLabelColor = isEditorialStyle ? 'rgba(245, 250, 255, 0.9)' : 'rgba(238, 245, 255, 0.8)';
-                    const metricCards = [
-                      { label: 'Ingresos', value: formatBudgetAmount(props.budgetTotals.income), tone: neutralTone },
-                      { label: 'Gastos', value: formatBudgetAmount(props.budgetTotals.expenses), tone: neutralTone },
-                      { label: 'Balance', value: formatBudgetAmount(props.budgetTotals.balance), tone: isBalancePositive ? positiveTone : negativeTone },
-                      { label: '% Ahorro', value: `${savingsPct}%`, tone: savingsPct >= 0 ? positiveTone : negativeTone },
-                    ];
-                    return (
-                  <div
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
-                      gap: '8px',
-                      marginBottom: '12px',
-                    }}
-                  >
-                    {metricCards.map((metric) => (
-                      <div
-                        key={metric.label}
-                        style={{
-                          border: `1px solid ${metricCardBorder}`,
-                          borderRadius: '12px',
-                          background: metricCardBg,
-                          padding: '8px 10px',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '3px',
-                        }}
-                      >
-                        <span style={{ fontSize: '11px', color: metricCardLabelColor }}>{metric.label}</span>
-                        <strong style={{ color: metric.tone, fontSize: 'clamp(14px, 2.6vw, 18px)', lineHeight: 1.15 }}>
-                          {metric.value}
-                        </strong>
-                      </div>
-                    ))}
-                  </div>
-                    );
-                  })()}
-                  <div className="budget-pdf-head">
-                    <div>
-                      <span>Financieramente</span>
-                      <h2>Presupuesto mensual</h2>
-                    </div>
-                    <strong>{activeStyleLabel}</strong>
-                  </div>
-                  <div className="budget-pdf-metrics">
-                    <div><span>Ingreso</span><strong>{formatBudgetAmount(props.budgetTotals.income)}</strong></div>
-                    <div><span>Gasto</span><strong>{formatBudgetAmount(props.budgetTotals.expenses)}</strong></div>
-                    <div><span>Balance</span><strong>{formatBudgetAmount(props.budgetTotals.balance)}</strong></div>
-                  </div>
-                <div className="budget-table-wrap">
-                    <table className="budget-table">
-                    <thead>
-                      <tr>
-                        <th>Categoría</th>
-                        <th>Tipo</th>
-                        <th>Monto mensual</th>
-                        <th aria-label="Acciones"></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {orderedBudgetRows.map((row) => {
-                        const hasChildren = props.budgetRows.some((r) => r.parentId === row.id);
-                        const isSub = Boolean(row.parentId);
-                        return (
-                        <tr
-                          key={row.id}
-                          id={`budget-row-${row.id}`}
-                          className={[
-                            row.type === 'expense' ? 'budget-row-expense' : 'budget-row-income',
-                            row.parentId ? 'is-budget-subrow' : 'is-budget-parent-row',
-                            focusedBudgetRowId === row.id ? 'is-active-row' : '',
-                          ].join(' ')}
-                          style={rowStyle(row)}
-                          onMouseDownCapture={() => focusBudgetRow(row.id)}
-                          onPointerDownCapture={() => focusBudgetRow(row.id)}
-                        >
-                          <td>
-                            <input
-                              className={isSub ? 'budget-subcategory-input' : undefined}
-                              value={row.category}
-                              placeholder={isSub ? 'Subcategoría' : 'Categoría'}
-                              style={{
-                                backgroundColor: `${colorForBudgetRow(row.id)}2E`,
-                                borderColor: `${colorForBudgetRow(row.id)}90`,
-                                paddingLeft: isSub ? '18px' : undefined,
-                              }}
-                              onMouseDownCapture={(e) => focusBudgetField(e.currentTarget)}
-                              onPointerDownCapture={(e) => focusBudgetField(e.currentTarget)}
-                              onFocus={() => focusBudgetRow(row.id)}
-                              onChange={(e) => props.updateBudgetRow(row.id, 'category', e.target.value)}
-                            />
-                          </td>
-                           <td>
-                            <select
-                              className={isSub ? 'budget-subcategory-select' : undefined}
-                              value={row.type}
-                              onMouseDownCapture={(e) => focusBudgetField(e.currentTarget)}
-                              onPointerDownCapture={(e) => focusBudgetField(e.currentTarget)}
-                              onFocus={() => focusBudgetRow(row.id)}
-                              onChange={(e) =>
-                                props.updateBudgetRow(row.id, 'type', e.target.value as 'income' | 'expense')
-                              }
-                            >
-                              <option value="income">Ingreso</option>
-                              <option value="expense">Gasto</option>
-                            </select>
-                          </td>
-                          <td>
-                            <input
-                              className={isSub ? 'budget-subcategory-amount' : undefined}
-                              type="number"
-                              value={row.amount}
-                              min={0}
-                              step={1000}
-                              placeholder="0"
-                              disabled={hasChildren}
-                              onMouseDownCapture={(e) => focusBudgetField(e.currentTarget)}
-                              onPointerDownCapture={(e) => focusBudgetField(e.currentTarget)}
-                              onFocus={() => focusBudgetRow(row.id)}
-                              onChange={(e) => props.updateBudgetRow(row.id, 'amount', Number(e.target.value))}
-                            />
-                          </td>
-                          <td>
-                            {!isSub && (
-                              <button
-                                type="button"
-                                className="continue-ghost"
-                                onClick={() => props.addBudgetSubcategory?.(row.id)}
-                                title="Agregar subcategoría"
-                              >
-                                + Sub
-                              </button>
-                            )}
-                            <button
-                              type="button"
-                              className="continue-ghost danger"
-                              onClick={() => props.deleteBudgetRow(row.id)}
-                              title="Eliminar fila"
-                            >
-                              ×
-                            </button>
-                          </td>
-                        </tr>
-                      )})}
-                    </tbody>
-                    </table>
-                </div>
-                </div>
+                <BudgetIntelligenceTable
+                  orderedBudgetRows={orderedBudgetRows}
+                  budgetRows={props.budgetRows}
+                  focusedBudgetRowId={focusedBudgetRowId}
+                  budgetTotals={props.budgetTotals}
+                  activeStyleLabel={activeStyleLabel}
+                  budgetTableStyle={budgetTableStyle}
+                  budgetPdfRef={budgetPdfRef}
+                  formatBudgetAmount={formatBudgetAmount}
+                  rowStyle={rowStyle}
+                  colorForBudgetRow={colorForBudgetRow}
+                  focusBudgetRow={focusBudgetRow}
+                  focusBudgetField={focusBudgetField}
+                  updateBudgetRow={props.updateBudgetRow}
+                  deleteBudgetRow={props.deleteBudgetRow}
+                />
               ) : (
                 <div className="budget-empty-state">
                   <strong>No hay filas todavía.</strong>
@@ -1330,6 +1340,8 @@ export function TransactionsModal(props: {
   recreationUsed: number;
   creationNotice?: string | null;
 }) {
+  const TX_MAX_SINGLE_FILE_BYTES = 10 * 1024 * 1024;
+  const TX_MAX_TOTAL_FILE_BYTES = 35 * 1024 * 1024;
   const hexToRgba = (hex: string, alpha: number) => {
     const normalized = hex.replace('#', '').trim();
     if (!/^[\da-f]{6}$/i.test(normalized)) return `rgba(59, 91, 122, ${alpha})`;
@@ -1344,6 +1356,9 @@ export function TransactionsModal(props: {
   const [txAssistantLoading, setTxAssistantLoading] = useState(false);
   const [txAssistantError, setTxAssistantError] = useState<string | null>(null);
   const [showInjectProductsConfirm, setShowInjectProductsConfirm] = useState(false);
+  const transactionsModalRef = useRef<HTMLDivElement | null>(null);
+  const restoreFocusRef = useRef<HTMLElement | null>(null);
+  const txSendLockRef = useRef(false);
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat('es-CL', {
       style: 'currency',
@@ -1506,6 +1521,7 @@ export function TransactionsModal(props: {
   const [showInstitutionCatalog, setShowInstitutionCatalog] = useState(false);
   const [showTemplateCatalog, setShowTemplateCatalog] = useState(false);
   const [showTxCarousel, setShowTxCarousel] = useState(false);
+  const [recentlyDockedProductId, setRecentlyDockedProductId] = useState<string | null>(null);
   const [txSummaryScrollDepth, setTxSummaryScrollDepth] = useState(0);
   const PRODUCT_STACK_PALETTE = ['#3b5068', '#6e2929', '#9e7228', '#364818', '#111111'] as const;
   const PRODUCT_STACK_TEXT_PALETTE = ['#8ea7bf', '#c89191', '#d8b266', '#86a06f', '#111111'] as const;
@@ -1517,6 +1533,7 @@ export function TransactionsModal(props: {
   const groupCarouselRef = useRef<HTMLDivElement | null>(null);
   const insightCarouselRef = useRef<HTMLDivElement | null>(null);
   const txSummaryScrollRef = useRef<HTMLDivElement | null>(null);
+  const previousConnectedRef = useRef<Record<string, boolean>>({});
   const selectedTemplate = ALL_PRODUCT_TEMPLATES.find((item) => item.label === productTemplate);
   const derivedProductType: BankProduct['productType'] =
     selectedTemplate?.productType ??
@@ -1583,16 +1600,63 @@ export function TransactionsModal(props: {
 
   const appendPendingEvidence = (files: FileList | null) => {
     if (!files || files.length === 0) return;
+    if (analysisAlreadyDone) {
+      setTxAssistantError('Este producto ya fue analizado. Para nuevos antecedentes debes recrear el producto.');
+      return;
+    }
+    const availableSlots = Math.max(
+      0,
+      props.maxEvidenceFilesPerProduct - (props.activeBankProduct?.uploadedFiles.length ?? 0),
+    );
+    if (availableSlots <= 0) {
+      setTxAssistantError(
+        `Este producto ya alcanzó el límite de ${props.maxEvidenceFilesPerProduct} archivos.`,
+      );
+      return;
+    }
     const next = Array.from(files);
-    setPendingEvidenceFiles((prev) => {
-      const merged = [...prev];
-      for (const file of next) {
-        if (!merged.some((existing) => existing.name === file.name && existing.size === file.size)) {
-          merged.push(file);
-        }
+    const merged = [...pendingEvidenceFiles];
+    const oversizeNames: string[] = [];
+    let exceededSlots = false;
+    let exceededTotalBytes = false;
+    let rollingBytes = merged.reduce((acc, file) => acc + file.size, 0);
+
+    for (const file of next) {
+      if (file.size > TX_MAX_SINGLE_FILE_BYTES) {
+        oversizeNames.push(file.name);
+        continue;
       }
-      return merged;
-    });
+      if (merged.some((existing) => existing.name === file.name && existing.size === file.size)) continue;
+      if (merged.length >= availableSlots) {
+        exceededSlots = true;
+        continue;
+      }
+      if (rollingBytes + file.size > TX_MAX_TOTAL_FILE_BYTES) {
+        exceededTotalBytes = true;
+        continue;
+      }
+      merged.push(file);
+      rollingBytes += file.size;
+    }
+
+    setPendingEvidenceFiles(merged);
+
+    const notices: string[] = [];
+    if (oversizeNames.length > 0) {
+      const mbLimit = Math.round(TX_MAX_SINGLE_FILE_BYTES / (1024 * 1024));
+      const preview = oversizeNames.slice(0, 2).join(', ');
+      notices.push(
+        `Algunos archivos superan ${mbLimit} MB por archivo (${preview}${oversizeNames.length > 2 ? ', ...' : ''}).`,
+      );
+    }
+    if (exceededTotalBytes) {
+      const mbLimit = Math.round(TX_MAX_TOTAL_FILE_BYTES / (1024 * 1024));
+      notices.push(`El total adjunto no puede superar ${mbLimit} MB.`);
+    }
+    if (exceededSlots) {
+      notices.push(`Límite por producto: ${props.maxEvidenceFilesPerProduct} archivos.`);
+    }
+    setTxAssistantError(notices.length > 0 ? notices.join(' ') : null);
   };
 
   const clearPendingEvidence = () => {
@@ -1694,7 +1758,7 @@ export function TransactionsModal(props: {
 
   function openAuthorizationWithPreset(preset?: { bank: string; template: string }) {
     if (preset) {
-      setQuickBank('');
+      setQuickBank(`${preset.bank} (simulacion)`);
       setProductTemplate(preset.template);
     }
     setShowInstitutionCatalog(false);
@@ -1702,6 +1766,77 @@ export function TransactionsModal(props: {
     setShowTxCarousel(true);
     props.setTxWizardStep('credentials');
   }
+  useEffect(() => {
+    if (!props.isOpen) return;
+
+    restoreFocusRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+
+    const getFocusableElements = () => {
+      const root = transactionsModalRef.current;
+      if (!root) return [] as HTMLElement[];
+      const selector = [
+        'button:not([disabled])',
+        '[href]',
+        'input:not([disabled]):not([type="hidden"])',
+        'select:not([disabled])',
+        'textarea:not([disabled])',
+        '[tabindex]:not([tabindex="-1"])',
+      ].join(', ');
+      return Array.from(root.querySelectorAll<HTMLElement>(selector)).filter(
+        (node) => !node.hasAttribute('aria-hidden'),
+      );
+    };
+
+    const rafId = window.requestAnimationFrame(() => {
+      const focusables = getFocusableElements();
+      (focusables[0] ?? transactionsModalRef.current)?.focus();
+    });
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.stopPropagation();
+        props.onClose();
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      const focusables = getFocusableElements();
+      if (focusables.length === 0) {
+        event.preventDefault();
+        transactionsModalRef.current?.focus();
+        return;
+      }
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const active = document.activeElement as HTMLElement | null;
+      const inside = Boolean(active && transactionsModalRef.current?.contains(active));
+
+      if (!inside) {
+        event.preventDefault();
+        first.focus();
+        return;
+      }
+      if (event.shiftKey && active === first) {
+        event.preventDefault();
+        last.focus();
+        return;
+      }
+      if (!event.shiftKey && active === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.cancelAnimationFrame(rafId);
+      window.removeEventListener('keydown', onKeyDown);
+      const elementToRestore = restoreFocusRef.current;
+      if (elementToRestore && document.contains(elementToRestore)) {
+        window.requestAnimationFrame(() => elementToRestore.focus());
+      }
+    };
+  }, [props.isOpen, props.onClose]);
   useEffect(() => {
     if (!props.isOpen) return;
     // Start with preset selection before opening authorization.
@@ -1736,14 +1871,20 @@ export function TransactionsModal(props: {
   const activeDescriptor = props.transactionProductCards.find((entry) => entry.product.id === props.selectedProductId);
   const [productCarouselIndex, setProductCarouselIndex] = useState(0);
   const productCards = props.transactionProductCards;
+  const libraryProductCards = productCards.filter(
+    ({ product }) => product.connected || product.uploadedFiles.length > 0 || product.parsedDocuments.length > 0
+  );
   const activeProductIndex = Math.max(
     0,
-    productCards.findIndex((entry) => entry.product.id === props.selectedProductId),
+    libraryProductCards.findIndex((entry) => entry.product.id === props.selectedProductId),
   );
   const orderedProductCards =
-    productCards.length === 0
+    libraryProductCards.length === 0
       ? []
-      : Array.from({ length: productCards.length }, (_, offset) => productCards[(productCarouselIndex + offset) % productCards.length]);
+      : Array.from(
+          { length: libraryProductCards.length },
+          (_, offset) => libraryProductCards[(productCarouselIndex + offset) % libraryProductCards.length]
+        );
   const txStages = [
     {
       key: 'consent' as const,
@@ -1777,12 +1918,23 @@ export function TransactionsModal(props: {
     if (stage && !stage.disabled) stage.go();
   }, [activeTxCard]);
   useEffect(() => {
-    if (productCards.length === 0) {
+    if (libraryProductCards.length === 0) {
       setProductCarouselIndex(0);
       return;
     }
     setProductCarouselIndex(activeProductIndex);
-  }, [activeProductIndex, productCards.length]);
+  }, [activeProductIndex, libraryProductCards.length]);
+  useEffect(() => {
+    const nextMap: Record<string, boolean> = {};
+    productCards.forEach(({ product }) => {
+      nextMap[product.id] = Boolean(product.connected);
+      if (!previousConnectedRef.current[product.id] && product.connected) {
+        setRecentlyDockedProductId(product.id);
+        window.setTimeout(() => setRecentlyDockedProductId((current) => (current === product.id ? null : current)), 900);
+      }
+    });
+    previousConnectedRef.current = nextMap;
+  }, [productCards]);
   useEffect(() => {
     if (!props.isOpen || activeTxCard !== 2) return;
     const tickCarousel = (container: HTMLDivElement | null) => {
@@ -1890,66 +2042,74 @@ export function TransactionsModal(props: {
     const filesToUpload = manualFile ? [...pendingEvidenceFiles, manualFile] : pendingEvidenceFiles;
     if (filesToUpload.length === 0) return;
 
-    appendAssistantMessages([
-      {
-        role: 'user',
-        text: messageText || 'Te envío antecedentes de transacciones.',
-        attachments: filesToUpload.map((file) => file.name),
-      },
-    ]);
-    setTxAssistantInput('');
-    const result = await props.onUploadStatement(filesToUpload);
-    clearPendingEvidence();
-    if (result?.documents?.length) {
-      await generateTransactionSummary({ uploadResult: result, isRegeneration: false });
+    setTxAssistantLoading(true);
+    setTxAssistantError(null);
+    try {
+      appendAssistantMessages([
+        {
+          role: 'user',
+          text: messageText || 'Te envío antecedentes de transacciones.',
+          attachments: filesToUpload.map((file) => file.name),
+        },
+      ]);
+      setTxAssistantInput('');
+      const result = await props.onUploadStatement(filesToUpload);
+      clearPendingEvidence();
+      if (result?.documents?.length) {
+        await generateTransactionSummary({ uploadResult: result, isRegeneration: false });
+      }
+    } catch (error) {
+      setTxAssistantError(error instanceof Error ? error.message : 'No se pudo enviar evidencia.');
+    } finally {
+      setTxAssistantLoading(false);
     }
   }
 
   async function handleAssistantTextSend() {
-    if (!props.activeBankProduct || txAssistantLoading) return;
+    if (!props.activeBankProduct || txAssistantLoading || txSendLockRef.current) return;
     const text = txAssistantInput.trim();
     const hasFiles = pendingEvidenceFiles.length > 0 || pendingManualEvidence.length > 0;
     if (!text && !hasFiles) return;
-
-    const normalized = text.toLowerCase();
-    const chosenFormat =
-      /excel|csv|xlsx|planilla/.test(normalized)
-        ? 'spreadsheet'
-        : /\bpdf\b/.test(normalized)
-          ? 'pdf'
-          : /foto|captura|pantallazo|imagen/.test(normalized)
-            ? 'photos'
-            : /texto|manual|escrito/.test(normalized)
-              ? 'text'
-              : null;
-
-    if (hasFiles) {
-      await handleAssistantUploadSend(text);
-      return;
-    }
-
-    appendAssistantMessages([{ role: 'user', text }]);
-    setTxAssistantInput('');
-    setTxAssistantError(null);
-
-    if (chosenFormat) {
-      appendAssistantMessages(
-        [{ role: 'assistant', text: buildUploadGuidance(chosenFormat, props.activeBankProduct.productType) }],
-        { uploadFormat: chosenFormat },
-      );
-      return;
-    }
-
-    const asksForRegeneration =
-      Boolean(summaryText) &&
-      /(error|corrige|corregir|revisa|revisar|regenera|regenerar|rehace|rehacer)/i.test(text);
-    if (asksForRegeneration && summaryRegenerationsLeft > 0) {
-      await generateTransactionSummary({ feedback: text, isRegeneration: true });
-      return;
-    }
-
-    setTxAssistantLoading(true);
+    txSendLockRef.current = true;
     try {
+      const normalized = text.toLowerCase();
+      const chosenFormat =
+        /excel|csv|xlsx|planilla/.test(normalized)
+          ? 'spreadsheet'
+          : /\bpdf\b/.test(normalized)
+            ? 'pdf'
+            : /foto|captura|pantallazo|imagen/.test(normalized)
+              ? 'photos'
+              : /texto|manual|escrito/.test(normalized)
+                ? 'text'
+                : null;
+
+      if (hasFiles) {
+        await handleAssistantUploadSend(text);
+        return;
+      }
+
+      appendAssistantMessages([{ role: 'user', text }]);
+      setTxAssistantInput('');
+      setTxAssistantError(null);
+
+      if (chosenFormat) {
+        appendAssistantMessages(
+          [{ role: 'assistant', text: buildUploadGuidance(chosenFormat, props.activeBankProduct.productType) }],
+          { uploadFormat: chosenFormat },
+        );
+        return;
+      }
+
+      const asksForRegeneration =
+        Boolean(summaryText) &&
+        /(error|corrige|corregir|revisa|revisar|regenera|regenerar|rehace|rehacer)/i.test(text);
+      if (asksForRegeneration && summaryRegenerationsLeft > 0) {
+        await generateTransactionSummary({ feedback: text, isRegeneration: true });
+        return;
+      }
+
+      setTxAssistantLoading(true);
       const response = await requestTransactionAssistant({
         mode: 'chat',
         product: {
@@ -1967,35 +2127,48 @@ export function TransactionsModal(props: {
       setTxAssistantError(error instanceof Error ? error.message : 'No se pudo responder.');
     } finally {
       setTxAssistantLoading(false);
+      txSendLockRef.current = false;
     }
   }
   if (!props.isOpen) return null;
 
   return (
     <div className="agent-modal-overlay transactions-modal-overlay" onClick={props.onClose}>
-      <div className="agent-modal transactions-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="bcc-modal-header">
+      <div
+        className="agent-modal transactions-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="transactions-modal-title"
+        aria-describedby="transactions-modal-intro"
+        data-stage={currentStage}
+        tabIndex={-1}
+        ref={transactionsModalRef}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <ModalNumbersCanvas shuffleTrigger={0} />
+        <div className="bcc-modal-header tx-modal-header-layer">
           <div className="bcc-modal-title-wrap">
             <span className="bcc-modal-eyebrow">Financieramente</span>
-            <h3 className="bcc-modal-title">Transacciones</h3>
+            <h3 id="transactions-modal-title" className="bcc-modal-title">Transacciones</h3>
           </div>
-          <button type="button" className="agent-modal-close" onClick={props.onClose}>×</button>
+          <button type="button" className="agent-modal-close tx-close-minimal" onClick={props.onClose}>×</button>
         </div>
-        <p className="agent-modal-intro">Flujo breve: autoriza, sube evidencias y obtén un análisis ejecutivo confiable.</p>
-        <section className="pt-shell">
-          <aside className="pt-left">
+        <div className="tx-scroll-body">
+        <p id="transactions-modal-intro" className="agent-modal-intro tx-modal-header-layer">Flujo breve: autoriza, sube evidencias y obtén un análisis ejecutivo confiable.</p>
+        <section className="pt-shell tx-stage-shell tx-modal-header-layer">
+          <aside className="pt-left tx-panel-surface tx-panel-surface--library">
             <div className="pt-list-head">
               <h4>Biblioteca de productos</h4>
               <div className="pt-list-head-actions">
+                <button type="button" className="continue-ghost" onClick={props.addTransactionProduct} disabled={!canAddMoreProducts}>+ Nuevo</button>
                 <button
                   type="button"
                   className="continue-ghost tx-inject-products-btn"
                   onClick={() => setShowInjectProductsConfirm(true)}
                   disabled={props.documentsLoading}
                 >
-                  Inyectar productos
+                  Inyectar
                 </button>
-                <button type="button" className="continue-ghost" onClick={props.addTransactionProduct} disabled={!canAddMoreProducts}>+ Nuevo</button>
               </div>
             </div>
             <div className="tx-meta-stack" aria-label="Estado y límites del módulo">
@@ -2010,7 +2183,7 @@ export function TransactionsModal(props: {
                 <p>{props.maxProducts} productos · {props.maxEvidenceFilesPerProduct} archivos por producto · 1 análisis + 3 revisiones de resumen por producto</p>
               </div>
               {showInjectProductsConfirm ? (
-                <div className="tx-batch-recommendation-banner" role="dialog" aria-live="polite" aria-label="Confirmación de envío de productos">
+                <div className="tx-batch-recommendation-banner" role="status" aria-live="polite">
                   <p>Recomendado: enviar cuando hayas subido todos tus productos financieros para un mejor análisis consolidado.</p>
                   <div className="tx-batch-recommendation-actions">
                     <button
@@ -2037,31 +2210,33 @@ export function TransactionsModal(props: {
               ) : null}
             </div>
             <div className="pt-list">
-              {productCards.length > 0 ? (
+              {libraryProductCards.length > 0 ? (
                 <>
-                  <div className="pt-stack-carousel">
+                  <div className="pt-stack-carousel tx-library-is-saved">
                     {orderedProductCards.slice(0, 4).map(({ product, descriptor, intel }, stackIndex) => {
                       const isTop = stackIndex === 0;
                       const paletteIndex = (productCarouselIndex + stackIndex) % PRODUCT_STACK_PALETTE.length;
                       const color = PRODUCT_STACK_PALETTE[paletteIndex];
                       const textAccent = PRODUCT_STACK_TEXT_PALETTE[(paletteIndex + 1) % PRODUCT_STACK_TEXT_PALETTE.length];
+                      const visualPalette = productVisualPalette(`${product.id}-${product.label}-${product.bank}`);
                       return (
                         <div
                           key={product.id}
                           role="button"
                           tabIndex={0}
-                          className={`pt-item pt-item-stack ${isTop ? 'is-active is-top' : ''}`}
+                          className={`pt-item pt-item-stack tx-lib-card ${isTop ? 'is-active is-top' : ''}`}
+                          data-docked={recentlyDockedProductId === product.id ? 'true' : 'false'}
                           onClick={() => {
                             setShowTxCarousel(true);
                             props.selectTransactionProduct(product.id);
-                            setProductCarouselIndex((productCarouselIndex + stackIndex) % productCards.length);
+                            setProductCarouselIndex((productCarouselIndex + stackIndex) % libraryProductCards.length);
                           }}
                           onKeyDown={(e) => {
                             if (e.key !== 'Enter' && e.key !== ' ') return;
                             e.preventDefault();
                             setShowTxCarousel(true);
                             props.selectTransactionProduct(product.id);
-                            setProductCarouselIndex((productCarouselIndex + stackIndex) % productCards.length);
+                            setProductCarouselIndex((productCarouselIndex + stackIndex) % libraryProductCards.length);
                           }}
                           style={{
                             ['--pt-card-active-bg' as any]: color,
@@ -2072,8 +2247,10 @@ export function TransactionsModal(props: {
                             ['--pt-stack-border' as any]: color,
                             ['--pt-stack-accent' as any]: textAccent,
                             ['--pt-stack-idx' as any]: stackIndex,
-                            borderColor: color,
-                            background: color,
+                            ['--tx-lib-base' as any]: visualPalette.base,
+                            ['--tx-lib-glow' as any]: visualPalette.glow,
+                            ['--tx-lib-edge' as any]: visualPalette.edge,
+                            ['--tx-lib-tint' as any]: visualPalette.tint,
                           }}
                         >
                           {isTop ? (
@@ -2089,8 +2266,14 @@ export function TransactionsModal(props: {
                               ×
                             </button>
                           ) : null}
-                          <div className="pt-item-top">
-                            <span className="pt-item-name">{product.label}</span>
+                          <div className="tx-lib-card-sheen" aria-hidden="true" />
+                          <div className="pt-item-top tx-lib-card-top">
+                            <div className="tx-lib-card-copy">
+                              <span className="tx-lib-card-eyebrow">
+                                {product.productType === 'credit_card' ? 'Tarjeta autorizada' : 'Producto conectado'}
+                              </span>
+                              <span className="pt-item-name">{product.label}</span>
+                            </div>
                             <span className="pt-item-status">{product.connected ? 'Autorizado' : 'Pendiente'}</span>
                           </div>
                           <span className="pt-item-bank">{product.bank || 'Institución por definir'}</span>
@@ -2098,19 +2281,20 @@ export function TransactionsModal(props: {
                             <span>{intel.docs} respaldo(s)</span>
                             <span>{intel.amounts.length} movimiento(s)</span>
                           </div>
+                          <div className="tx-lib-card-chip" aria-hidden="true" />
                         </div>
                       );
                     })}
                   </div>
-                  {productCards.length > 1 ? (
-                    <div className="pt-stack-nav">
+                  {libraryProductCards.length > 1 ? (
+                    <div className="pt-stack-nav tx-lib-card-nav">
                       <button
                         type="button"
                         className="continue-ghost"
                         onClick={() => {
-                          const next = (productCarouselIndex - 1 + productCards.length) % productCards.length;
+                          const next = (productCarouselIndex - 1 + libraryProductCards.length) % libraryProductCards.length;
                           setProductCarouselIndex(next);
-                          props.selectTransactionProduct(productCards[next].product.id);
+                          props.selectTransactionProduct(libraryProductCards[next].product.id);
                         }}
                       >
                         ←
@@ -2119,9 +2303,9 @@ export function TransactionsModal(props: {
                         type="button"
                         className="continue-ghost"
                         onClick={() => {
-                          const next = (productCarouselIndex + 1) % productCards.length;
+                          const next = (productCarouselIndex + 1) % libraryProductCards.length;
                           setProductCarouselIndex(next);
-                          props.selectTransactionProduct(productCards[next].product.id);
+                          props.selectTransactionProduct(libraryProductCards[next].product.id);
                         }}
                       >
                         →
@@ -2129,11 +2313,16 @@ export function TransactionsModal(props: {
                     </div>
                   ) : null}
                 </>
-              ) : null}
+              ) : (
+                <div className="tx-library-empty">
+                  <span className="tx-library-empty-kicker">Biblioteca vacía</span>
+                  <p>Las cards aparecen aquí cuando el producto ya quedó guardado en el flujo.</p>
+                </div>
+              )}
             </div>
           </aside>
 
-          <div className={`pt-right ${!props.activeBankProduct || showTxCarousel ? '' : 'tx-only-cta'}`}>
+          <div className={`pt-right tx-panel-surface tx-panel-surface--workspace ${!props.activeBankProduct || showTxCarousel ? '' : 'tx-only-cta'}`}>
             {!props.activeBankProduct ? (
               <div className="transactions-summary-card pt-empty-state">
                 <div className="pt-empty-head">
@@ -2207,21 +2396,31 @@ export function TransactionsModal(props: {
                   <>
                 <div className="tx-content-carousel">
                   <div className="tx-3d-hero-shell" aria-hidden="true">
-                    <div
-                      className={`tx-3d-hero ${txVisualTone} ${isCardLikeProduct ? 'is-card-like' : 'is-generic-like'}`}
-                      style={{
-                        transform: `translate3d(0, ${txVisualY}px, 0) rotateX(${txVisualRotateX}deg) rotateY(${txVisualRotateY}deg) scale(${txVisualScale})`,
-                      }}
-                    >
-                      <div className="tx-3d-hero-sheen" />
-                      <div className="tx-3d-hero-core">
-                        <span className="tx-3d-hero-eyebrow">
-                          {isCardLikeProduct ? 'Producto financiero' : 'Instrumento financiero'}
-                        </span>
-                        <strong>{resolvedProductLabel || props.activeBankProduct.label || 'Producto activo'}</strong>
-                        <span>{resolvedBank || props.activeBankProduct.bank || 'Institución por definir'}</span>
+                    <div className="tx-3d-sway-wrap is-floating">
+                      <div className="tx-3d-backstack">
+                        <div className="tx-3d-backcard is-1"><span>Flujo validado</span></div>
+                        <div className="tx-3d-backcard is-2"><span>Análisis guiado</span></div>
                       </div>
-                      <div className="tx-3d-hero-chip" />
+                      <div
+                        className={`tx-3d-hero ${txVisualTone} ${isCardLikeProduct ? 'is-card-like' : 'is-generic-like'}`}
+                        style={{
+                          ['--tx-hero-base' as any]: productVisualPalette(`${props.activeBankProduct.id}-${resolvedProductLabel}-${resolvedBank}`).base,
+                          ['--tx-hero-glow' as any]: productVisualPalette(`${props.activeBankProduct.id}-${resolvedProductLabel}-${resolvedBank}`).glow,
+                          ['--tx-hero-edge' as any]: productVisualPalette(`${props.activeBankProduct.id}-${resolvedProductLabel}-${resolvedBank}`).edge,
+                          ['--tx-hero-tint' as any]: productVisualPalette(`${props.activeBankProduct.id}-${resolvedProductLabel}-${resolvedBank}`).tint,
+                          transform: `translate3d(0, ${txVisualY}px, 0) rotateX(${txVisualRotateX}deg) rotateY(${txVisualRotateY}deg) scale(${txVisualScale})`,
+                        }}
+                      >
+                        <div className="tx-3d-hero-sheen" />
+                        <div className="tx-3d-hero-core">
+                          <span className="tx-3d-hero-eyebrow">
+                            {isCardLikeProduct ? 'Producto financiero' : 'Instrumento financiero'}
+                          </span>
+                          <strong>{resolvedProductLabel || props.activeBankProduct.label || 'Producto activo'}</strong>
+                          <span>{resolvedBank || props.activeBankProduct.bank || 'Institución por definir'}</span>
+                        </div>
+                        <div className="tx-3d-hero-chip" />
+                      </div>
                     </div>
                   </div>
                   {activeTxCard === 0 && (
@@ -2362,18 +2561,23 @@ export function TransactionsModal(props: {
                   )}
 
                   {activeTxCard === 1 && (
-                  <section className="tx-content-card is-main-center">
-                    <div className="pt-stage-header">
+                  <section className="tx-content-card tx-content-card--agent is-main-center">
+                    <div className="pt-stage-header tx-agent-stage-header">
                       <span className="pt-stage-eyebrow">Paso 2</span>
-                      <h4>Asistente de transacciones</h4>
-                      <p>Conversa, recibe recomendación de formato y envía archivos o texto desde aquí.</p>
+                      <h4 className="tx-agent-stage-title">Sube tus movimientos</h4>
+                      <p className="tx-agent-stage-note">Adjunta cartola, PDF, Excel o texto. El agente ordena la evidencia y devuelve una lectura ejecutiva clara.</p>
                     </div>
                     <div ref={txSummaryScrollRef} className="transactions-summary-card tx-evidence-card tx-evidence-card--premium tx-chat-minimal-body">
-                      <span className="transactions-summary-title">Asistente del producto</span>
-                      <p>{requiredEvidenceText}</p>
-                      <p>Puedes subir hasta {props.maxEvidenceFilesPerProduct} archivos por producto. Si ya se analizó, el chat queda para consultas y revisión del resumen.</p>
+                      <div className="tx-editorial-intro tx-editorial-intro--agent">
+                        <span className="transactions-summary-title">Asistente del producto</span>
+                        <p>{analysisAlreadyDone ? 'Haz preguntas, corrige y revisa el resumen final.' : 'Elige formato, adjunta antecedentes y envía.'}</p>
+                        <div className="tx-editorial-meta-row">
+                          <span>{props.maxEvidenceFilesPerProduct} archivos máximo</span>
+                          <span>{summaryRegenerationsLeft} revisiones restantes</span>
+                        </div>
+                      </div>
 
-                      <div className="tx-chat-format-pills">
+                      <div className="tx-chat-format-pills tx-chat-format-pills--premium tx-chat-format-pills--deck">
                         {([
                           ['photos', 'Fotos'],
                           ['pdf', 'PDF'],
@@ -2383,7 +2587,7 @@ export function TransactionsModal(props: {
                           <button
                             key={value}
                             type="button"
-                            className="continue-ghost"
+                            className={`continue-ghost tx-format-choice ${props.activeBankProduct?.assistant?.uploadFormat === value ? 'is-active' : ''}`}
                             onClick={() => {
                               appendAssistantMessages(
                                 [
@@ -2394,7 +2598,9 @@ export function TransactionsModal(props: {
                               );
                             }}
                           >
-                            {label}
+                            <span className="tx-format-choice-icon">{renderFormatIcon(value)}</span>
+                            <span className="tx-format-choice-main">{label}</span>
+                            <span className="tx-format-choice-sub">{getFormatMicrocopy(value)}</span>
                           </button>
                         ))}
                       </div>
@@ -2419,11 +2625,11 @@ export function TransactionsModal(props: {
                           </div>
                         ))}
                         {assistantMessages.length === 0 && (
-                          <div style={{ opacity: 0.75 }}>El asistente aparecerá aquí apenas autorices el producto.</div>
+                          <div className="tx-chat-thread-empty">El asistente aparece aquí cuando el producto entra en flujo.</div>
                         )}
                       </div>
 
-                      <div className="upload-zone">
+                      <div className="upload-zone tx-upload-zone-premium--rail">
                         <label className="upload-label upload-label--minimal">
                           <span>Adjuntar antecedentes (imagen, PDF, Excel, CSV, TXT)</span>
                           <span className="upload-trigger-minimal" aria-hidden="true">
@@ -2520,31 +2726,44 @@ export function TransactionsModal(props: {
                       )}
 
                       {summaryText && (
-                        <div className="transactions-summary-card tx-doc-intel-grid tx-chat-summary-pro">
-                          <span className="transactions-summary-title">Resumen asistente transacciones</span>
-                          <p style={{ whiteSpace: 'pre-wrap' }}>{summaryText}</p>
-                          <div className="tx-chat-summary-meta">
-                            <span className="tx-meta-card-kicker">
-                              {summaryGeneratedAt ? `Actualizado ${new Date(summaryGeneratedAt).toLocaleString('es-CL')}` : 'Resumen listo'}
-                            </span>
-                            {summaryModel ? <span className="tx-meta-card-kicker">Modelo: {summaryModel}</span> : null}
-                            <span className="tx-meta-card-kicker">Revisiones restantes: {summaryRegenerationsLeft}</span>
+                        <div className="transactions-summary-card tx-doc-intel-grid tx-chat-summary-bridge">
+                          <div className="tx-chat-summary-bridge-head">
+                            <div>
+                              <span className="transactions-summary-title">Resumen asistente transacciones</span>
+                              <div className="tx-chat-summary-meta">
+                                <span className="tx-meta-card-kicker">
+                                  {summaryGeneratedAt ? `Actualizado ${new Date(summaryGeneratedAt).toLocaleString('es-CL')}` : 'Resumen listo'}
+                                </span>
+                                {summaryModel ? <span className="tx-meta-card-kicker">Modelo: {summaryModel}</span> : null}
+                                <span className="tx-meta-card-kicker">Revisiones restantes: {summaryRegenerationsLeft}</span>
+                              </div>
+                            </div>
+                            <div className="tx-flow-inline-actions">
+                              <button
+                                type="button"
+                                className="continue-ghost"
+                                onClick={() => props.setTxWizardStep('dashboard')}
+                              >
+                                Ver detalle analítico
+                              </button>
+                              <button
+                                type="button"
+                                className="button-primary"
+                                disabled={txAssistantLoading || summaryRegenerationsLeft <= 0}
+                                onClick={() => void generateTransactionSummary({ feedback: 'Revisar nuevamente consistencia de movimientos y resumen.', isRegeneration: true })}
+                              >
+                                {summaryRegenerationsLeft > 0 ? 'Revisar resumen' : 'Resumen final'}
+                              </button>
+                            </div>
                           </div>
-                          <div className="agent-modal-actions">
+                          <p style={{ whiteSpace: 'pre-wrap' }}>{summaryText}</p>
+                          <div className="agent-modal-actions tx-summary-stage-actions">
                             <button
                               type="button"
                               className="continue-ghost"
                               onClick={() => props.setTxWizardStep('dashboard')}
                             >
                               Ver detalle analítico
-                            </button>
-                            <button
-                              type="button"
-                              className="button-primary"
-                              disabled={txAssistantLoading || summaryRegenerationsLeft <= 0}
-                              onClick={() => void generateTransactionSummary({ feedback: 'Revisar nuevamente consistencia de movimientos y resumen.', isRegeneration: true })}
-                            >
-                              {summaryRegenerationsLeft > 0 ? 'Revisar resumen' : 'Resumen final'}
                             </button>
                           </div>
                         </div>
@@ -2554,12 +2773,12 @@ export function TransactionsModal(props: {
                   )}
 
                   {activeTxCard === 2 && (
-                  <section className="tx-content-card is-main-center">
-                    <div className="pt-stage-header">
+                  <section className="tx-content-card is-main-center tx-summary-stage">
+                    <div className="pt-stage-header tx-agent-stage-header">
                       <span className="pt-stage-eyebrow">Paso 3</span>
-                      <h4>Resumen analítico</h4>
-                      <p>Consolida señales, métricas y hallazgos antes de enviarlos al agente core.</p>
-                      <div className="agent-modal-actions">
+                      <h4 className="tx-agent-stage-title">Lectura ejecutiva</h4>
+                      <p className="tx-agent-stage-note">Consolida señales, métricas y hallazgos antes de enviarlos al agente core.</p>
+                      <div className="agent-modal-actions tx-summary-stage-actions">
                         <button
                           type="button"
                           className="button-primary"
@@ -2682,6 +2901,32 @@ export function TransactionsModal(props: {
                         </div>
                       </>
                     ) : null}
+                    <div className="transactions-summary-card tx-summary-executive-shell">
+                      <div className="tx-summary-executive-head">
+                        <div className="tx-summary-executive-copy">
+                          <span className="transactions-summary-title">Ficha analítica del producto</span>
+                          <div className="tx-summary-editorial is-compact">
+                            <article className="tx-summary-editorial-block is-lead">
+                              <span className="tx-summary-editorial-kicker">Lectura principal</span>
+                              <p className="tx-summary-editorial-body">{summaryFromTable}</p>
+                            </article>
+                          </div>
+                        </div>
+                        <div className="tx-summary-executive-actions">
+                          <button type="button" className="continue-ghost" onClick={() => props.setTxWizardStep('upload')}>
+                            Volver al chat
+                          </button>
+                          <button type="button" className={`button-primary ${isSavedForBatch ? 'is-saved-product' : ''}`} onClick={props.saveTransactionProductForBatch} disabled={props.documentsLoading}>
+                            {isSavedForBatch ? 'Producto guardado' : 'Guardar producto'}
+                          </button>
+                        </div>
+                      </div>
+                      <div className="tx-period-row">
+                        <span className="tx-period-pill">Periodo: {tablePeriod.from} → {tablePeriod.to}</span>
+                        <span className="tx-period-pill">Moneda: {props.activeBankProduct.dashboard?.currency || 'CLP'}</span>
+                        <span className="tx-period-pill">Calidad promedio: {qualityAverage > 0 ? `${qualityAverage}%` : 'N/D'}</span>
+                      </div>
+                    </div>
                     <div className="tx-pro-analysis-grid">
                       <div className="transactions-summary-card tx-doc-intel-grid">
                         <span className="transactions-summary-title">Grupos de gasto</span>
@@ -2881,7 +3126,15 @@ export function TransactionsModal(props: {
                     </div>
                     <div className="agent-modal-actions">
                       <button type="button" className="continue-ghost tx-delete-product-btn" onClick={() => props.deleteTransactionProduct(props.activeBankProduct!.id)}>Eliminar producto</button>
-                      <button type="button" className={`button-primary ${isSavedForBatch ? 'is-saved-product' : ''}`} onClick={props.saveTransactionProductForBatch} disabled={props.documentsLoading}>
+                      <button
+                        type="button"
+                        className={`button-primary ${isSavedForBatch ? 'is-saved-product' : ''}`}
+                        onClick={() => {
+                          props.saveTransactionProductForBatch();
+                          setShowTxCarousel(false);
+                        }}
+                        disabled={props.documentsLoading}
+                      >
                         {isSavedForBatch ? 'Producto guardado' : 'Guardar producto'}
                       </button>
                     </div>
@@ -2895,6 +3148,7 @@ export function TransactionsModal(props: {
             )}
           </div>
         </section>
+        </div>
       </div>
     </div>
   );
