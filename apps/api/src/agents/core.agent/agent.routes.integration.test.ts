@@ -65,6 +65,12 @@ describe('Agent API Routes Integration', () => {
     expect(res.body.code).toBe('UNAUTHORIZED');
   });
 
+  it('DELETE /api/pdfs/delete without session cookie returns 401', async () => {
+    const res = await request(app).delete('/api/pdfs/delete?file=test.pdf');
+    expect(res.status).toBe(401);
+    expect(res.body.code).toBe('UNAUTHORIZED');
+  });
+
   it('POST /api/documents/parse without session cookie returns 401', async () => {
     const res = await request(app)
       .post('/api/documents/parse')

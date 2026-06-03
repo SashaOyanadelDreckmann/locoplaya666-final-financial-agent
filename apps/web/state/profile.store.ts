@@ -17,6 +17,20 @@ export type DiagnosisProfile = {
   tensions?: string[];
   hypotheses?: string[];
   openQuestions?: string[];
+  editorial?: {
+    headline?: string;
+    dek?: string;
+    keySignals?: string[];
+    scorecard?: Array<{
+      id: string;
+      label: string;
+      value: number;
+      tone: 'critical' | 'watch' | 'strong';
+      caption: string;
+    }>;
+    cashflowBuckets?: Array<{ label: string; value: number }>;
+    pressurePoints?: Array<{ label: string; value: number }>;
+  };
 };
 
 type ProfileState = {

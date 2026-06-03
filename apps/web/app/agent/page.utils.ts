@@ -292,13 +292,18 @@ export function buildTransactionIntelligence(
   canonicalMovements: CanonicalMovement[] = [],
 ) {
   const keywordMatchers = [
-    { label: 'Supermercado', regex: /jumbo|lider|unimarc|tottus|supermercad/gi },
-    { label: 'Transporte', regex: /uber|cabify|metro|copec|shell|bencina|combustible/gi },
-    { label: 'Transferencias', regex: /transfer|transf|tef|spei|abono|deposito/gi },
-    { label: 'Tarjetas', regex: /tarjeta|credito|debito|compra nacional|compra internacional/gi },
+    { label: 'Delivery', regex: /pedidos\s*ya|pedidosya|rappi|uber\s*eats|ubereats|cornershop|corner\s*shop|didi\s*food|didifood|glovo|delivery/gi },
+    { label: 'Comida rapida', regex: /mcdonalds?|burger\s*king|kfc|subway|dominos?|papa\s*johns|doggis|dunkin|starbucks|pizza\s*hut|wok|sbarro/gi },
+    { label: 'Supermercado', regex: /jumbo|lider(?:\s*express)?|express\s*de\s*lider|santa\s*isabel|unimarc|tottus|acuenta|superbodega\s*a\s*cuenta|superbodega|ekono|alvi|mayorista\s*10|provimarket|oxxo/gi },
+    { label: 'Hogar', regex: /homecenter|sodimac|easy|construmart|ferreter[ií]a|muebles|decoraci[oó]n|hogar|ikea|casaideas|tricot|bata|paris|falabella|ripley|hites|abc(?:din)?|la\s*polar/gi },
+    { label: 'Retail', regex: /mercadolibre|aliexpress|amazon|temu|shein|linio|falabella|ripley|paris|hites|abc(?:din)?|la\s*polar|tienda|retail|marketplace/gi },
+    { label: 'Telefonia', regex: /movistar|entel|claro|wom|virgin|telsur|gtd|telefon[ií]a|celular|m[oó]vil|prepago|recarga/gi },
+    { label: 'Servicios', regex: /aguas?|luz|electricidad|energia|gas|internet|wifi|fibra|servicio[s]?|sanitaria|alcantarillado|condominio|aseo|municipal/gi },
+    { label: 'Transporte', regex: /uber|cabify|metro|copec|shell|bencina|combustible|peaje|taxi|bip|transantiago|redbus|red/gi },
+    { label: 'Transferencias', regex: /transfer|transf|tef|spei|abono|deposito|dep[oó]sito|envio\s*de\s*dinero|pago\s*recibido/gi },
+    { label: 'Tarjetas', regex: /tarjeta|credito|debito|compra nacional|compra internacional|avance|cuota/gi },
+    { label: 'Suscripciones', regex: /spotify|netflix|youtube|apple|google|amazon prime|subscription|suscripci[oó]n|prime|icloud|office\s*365/gi },
     { label: 'Cajero', regex: /giro|cajero|atm|efectivo/gi },
-    { label: 'Servicios', regex: /agua|luz|internet|movistar|entel|vtr|wom|enel/gi },
-    { label: 'Suscripciones', regex: /spotify|netflix|youtube|apple|google|amazon prime|subscription/gi },
     { label: 'Cuotas', regex: /cuota|cuotas|avance|credito de consumo/gi },
   ];
   const allText = parsedDocuments.map((doc) => doc.text ?? '').join('\n');

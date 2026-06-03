@@ -13,6 +13,7 @@ import agentRouter from './routes/agent';
 import documentsRouter from './routes/documents';
 import { pdfsRouter } from './routes/pdfs.routes';
 import internalRouter from './routes/internal.routes';
+import budgetChatRouter from './routes/budget-chat.routes';
 import { requestLoggerMiddleware } from './middleware/requestLogger';
 import { asyncHandler, errorHandlerMiddleware } from './middleware/errorHandler';
 import { attachCsrfToken, validateCsrfToken } from './middleware/csrf';
@@ -71,7 +72,17 @@ export function createApp() {
 
   app.use(
     cors({
-      origin: config.WEB_ORIGIN,
+      origin: (origin, callback) => {
+        if (!origin) return callback(null, true);
+        const allowedOrigins = new Set([
+          config.WEB_ORIGIN,
+          'http://localhost:3000',
+          'http://127.0.0.1:3000',
+          'http://localhost:3001',
+          'http://127.0.0.1:3001',
+        ]);
+        return callback(null, allowedOrigins.has(origin));
+      },
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization', 'X-Dev-Admin-Token', 'X-CSRF-Token'],
@@ -90,6 +101,7 @@ export function createApp() {
 
   // AGENT CORE
   app.use('/api/agent', chatRateLimiter);
+  app.use('/api/budget-chat', chatRateLimiter, budgetChatRouter);
   app.use('/api', agentRouter);
   app.use('/api/documents', documentsRateLimiter, documentsRouter);
   app.use('/api/pdfs', pdfsRouter);

@@ -19,7 +19,11 @@ type InterviewResponse = {
   type: 'question' | 'block_summary' | 'block_completed' | 'interview_complete';
   blockId?: string;
   question?: string;
+  questionIndex?: number;
   summary?: string;
+  requiresValidation?: boolean;
+  revisionRequested?: boolean;
+  userComment?: string;
   completedBlocks?: CompletedBlocksMap;
   profile?: any;
 };
@@ -89,13 +93,10 @@ export const useInterviewStore = create<InterviewState>()(
     }),
     {
       name: 'financial-agent-interview-store',
-      storage: createJSONStorage(() => localStorage),
+      storage: createJSONStorage(() => sessionStorage),
       partialize: (state) => ({
         intake: state.intake,
-        answersByBlock: state.answersByBlock,
-        transcriptEntries: state.transcriptEntries,
         completedBlocks: state.completedBlocks,
-        lastResponse: state.lastResponse,
       }),
     }
   )

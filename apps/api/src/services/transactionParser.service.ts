@@ -5,9 +5,9 @@
 
 import fs from 'fs';
 import path from 'path';
-import ExcelJS from 'exceljs';
 import PDFParse from 'pdf-parse';
 import { PDFExtract } from 'pdf.js-extract';
+import XLSX from 'xlsx';
 import { getOpenAIClient, withCompatibleTemperature } from './llm.service';
 
 const DATA_ROOT = path.join(process.cwd(), 'data', 'transactions');
@@ -31,7 +31,7 @@ export type ParsedTransactionArtifact = {
   text: string;
   tables: ParsedTable[];
   parserMeta?: {
-    mode: 'exact_sheet' | 'csv_exact' | 'pdf_coordinates' | 'pdf_text' | 'vision_structured';
+    mode: 'exact_sheet' | 'csv_exact' | 'pdf_coordinates' | 'pdf_text' | 'pdf_vision' | 'vision_structured';
     confidence: number;
   };
 };
@@ -57,7 +57,7 @@ function normalizeHeaderToken(value: string): string {
 function looksLikeHeaderRow(cells: string[]): boolean {
   const normalized = cells.map(normalizeHeaderToken);
   const hits = normalized.filter((cell) =>
-    /^(fecha|detalle|descripcion|glosa|movimiento|concepto|cargo|abono|debito|credito|monto|saldo|referencia|oficina|sucursal|canal)$/.test(
+    /^(fecha|fec|feccontable|fechamovimiento|fechaoperacion|detalle|descripcion|glosa|movimiento|concepto|cargo|abono|debito|credito|monto|importe|valor|saldo|referencia|oficina|sucursal|canal|operacion|documento|tipo)$/.test(
       cell,
     ),
   ).length;
@@ -77,23 +77,6 @@ function serializeTablesToText(filename: string, tables: ParsedTable[], fallback
 
 function makeGenericHeaders(width: number): string[] {
   return Array.from({ length: width }, (_, index) => `col_${index + 1}`);
-}
-
-function coerceWorksheetCell(cell: ExcelJS.CellValue | undefined | null): string {
-  if (cell == null) return '';
-  if (cell instanceof Date) return cell.toISOString().slice(0, 10);
-  if (typeof cell === 'object') {
-    if ('text' in cell && typeof cell.text === 'string') return normalizeText(cell.text);
-    if ('result' in cell && cell.result != null) return normalizeText(cell.result);
-    if ('richText' in cell && Array.isArray(cell.richText)) {
-      return normalizeText(cell.richText.map((part) => part.text ?? '').join(' '));
-    }
-    if ('formula' in cell && typeof cell.formula === 'string' && cell.formula.trim()) {
-      return normalizeText(String(cell.result ?? cell.formula));
-    }
-    if ('hyperlink' in cell && typeof cell.hyperlink === 'string') return normalizeText(cell.hyperlink);
-  }
-  return normalizeText(cell);
 }
 
 function detectCsvDelimiter(text: string): string {
@@ -169,6 +152,113 @@ function rowsToTable(name: string, rows: string[][], source: ParsedTable['source
   const headers = looksLikeHeaderRow(padded[0]) ? padded[0] : makeGenericHeaders(width);
   const body = looksLikeHeaderRow(padded[0]) ? padded.slice(1) : padded;
   return { name, headers, rows: body, source };
+}
+
+export function isPdfExtractionWeak(text: string, tables: ParsedTable[]): boolean {
+  const compact = normalizeText(text);
+  if (tables.length > 0 && compact.length >= 180) return false;
+  if (!compact) return true;
+  const alphaNumeric = (compact.match(/[a-z0-9]/gi) ?? []).length;
+  const density = alphaNumeric / Math.max(1, compact.length);
+  return compact.length < 180 || density < 0.35;
+}
+
+async function parsePdfWithVisionDetailed(
+  buffer: Buffer,
+  filename: string,
+  reason: string,
+): Promise<ParsedTransactionArtifact> {
+  const base64 = buffer.toString('base64');
+  const client = getOpenAIClient();
+  const model = process.env.OPENAI_VISION_MODEL || 'gpt-4.1-mini';
+
+  try {
+    const response = await client.chat.completions.create(
+      withCompatibleTemperature(
+        {
+          model,
+          max_completion_tokens: 2600,
+          response_format: { type: 'json_object' },
+          messages: [
+            {
+              role: 'system',
+              content:
+                'Eres un OCR financiero senior. Lee PDFs bancarios escaneados o con poco texto, extrae movimientos reales con máxima fidelidad y sin inventar filas. Devuelve solo JSON valido con keys: summary, text, tables. Si una tabla es dudosa, omitela.',
+            },
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text:
+                    `Archivo: ${filename}\n` +
+                    `Motivo del fallback: ${reason}\n` +
+                    'El PDF puede estar escaneado. Usa OCR visual si hace falta.\n' +
+                    'Devuelve JSON con summary, text y tables.\n' +
+                    'Cada table debe incluir name, headers y rows.\n' +
+                    'Las filas deben ser solo movimientos reales; excluye saldos, subtotales, resúmenes y encabezados repetidos.\n' +
+                    'Si una fila no permite lectura confiable, omítela.',
+                },
+                {
+                  type: 'file',
+                  file: {
+                    filename,
+                    file_data: base64,
+                  },
+                },
+              ] as any,
+            },
+          ],
+        },
+        model,
+        0,
+      ) as any,
+    );
+
+    const raw = response.choices?.[0]?.message?.content?.trim() ?? '{}';
+    const result = JSON.parse(raw) as {
+      summary?: string;
+      text?: string;
+      tables?: Array<{ name?: string; headers?: string[]; rows?: string[][] }>;
+    };
+
+    const tables = Array.isArray(result.tables)
+      ? result.tables
+          .map((table, index) =>
+            rowsToTable(
+              table.name?.trim() || `Tabla OCR ${index + 1}`,
+              Array.isArray(table.rows) ? table.rows : [],
+              'pdf',
+            ),
+          )
+          .filter((table): table is ParsedTable => Boolean(table))
+      : [];
+    const textBody = normalizeText(result.text || result.summary || '');
+
+    return {
+      source: filename,
+      text: textBody
+        ? `--- Documento PDF OCR: ${filename} ---\n${textBody}\n--- Fin ---`
+        : tables.length > 0
+          ? serializeTablesToText(filename, tables, 'Documento PDF OCR')
+          : `[PDF OCR ${filename}: sin texto o tablas extraíbles]`,
+      tables,
+      parserMeta: {
+        mode: 'pdf_vision',
+        confidence: tables.length > 0 ? 0.88 : textBody ? 0.66 : 0.24,
+      },
+    };
+  } catch (error) {
+    return {
+      source: filename,
+      text: '',
+      tables: [],
+      parserMeta: {
+        mode: 'pdf_vision',
+        confidence: 0.08,
+      },
+    };
+  }
 }
 
 export async function parsePdfBufferDetailed(buffer: Buffer, filename: string): Promise<ParsedTransactionArtifact> {
@@ -282,6 +372,10 @@ export async function parsePdfBufferDetailed(buffer: Buffer, filename: string): 
 
     const exactText = textLines.join('\n').trim();
     if (exactText || tables.length > 0) {
+      if (isPdfExtractionWeak(exactText, tables)) {
+        const visionFallback = await parsePdfWithVisionDetailed(buffer, filename, 'extraccion local debil');
+        if (visionFallback.tables.length > 0 || normalizeText(visionFallback.text).length > 0) return visionFallback;
+      }
       return {
         source: filename,
         text: exactText
@@ -295,6 +389,9 @@ export async function parsePdfBufferDetailed(buffer: Buffer, filename: string): 
       };
     }
 
+    const visionFallback = await parsePdfWithVisionDetailed(buffer, filename, 'sin texto local');
+    if (visionFallback.tables.length > 0 || normalizeText(visionFallback.text).length > 0) return visionFallback;
+
     const fallback = await fallbackText();
     return {
       source: filename,
@@ -306,6 +403,9 @@ export async function parsePdfBufferDetailed(buffer: Buffer, filename: string): 
       },
     };
   } catch (error) {
+    const visionFallback = await parsePdfWithVisionDetailed(buffer, filename, `error extractor local: ${String(error)}`);
+    if (visionFallback.tables.length > 0 || normalizeText(visionFallback.text).length > 0) return visionFallback;
+
     const fallback = await fallbackText();
     return {
       source: filename,
@@ -321,20 +421,28 @@ export async function parsePdfBufferDetailed(buffer: Buffer, filename: string): 
 
 export async function parseExcelBufferDetailed(buffer: Buffer, filename: string): Promise<ParsedTransactionArtifact> {
   try {
-    const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.load(buffer as unknown as Parameters<typeof workbook.xlsx.load>[0]);
+    const workbook = XLSX.read(buffer, {
+      type: 'buffer',
+      cellDates: true,
+      cellNF: false,
+      cellText: false,
+      dense: true,
+    });
     const tables: ParsedTable[] = [];
 
-    workbook.eachSheet((sheet) => {
-      const rows: string[][] = [];
-      sheet.eachRow({ includeEmpty: false }, (row) => {
-        const width = Math.max(row.cellCount, row.actualCellCount, 1);
-        const cells = Array.from({ length: width }, (_, index) => coerceWorksheetCell(row.getCell(index + 1).value));
-        if (cells.some((cell) => cell.length > 0)) rows.push(cells);
-      });
-      const table = rowsToTable(sheet.name, rows, 'excel');
+    for (const sheetName of workbook.SheetNames ?? []) {
+      const sheet = workbook.Sheets?.[sheetName];
+      if (!sheet) continue;
+      const matrix = XLSX.utils.sheet_to_json(sheet, {
+        header: 1,
+        raw: false,
+        defval: '',
+        blankrows: false,
+      }) as unknown[][];
+      const rows = matrix.map((row) => row.map((cell) => normalizeText(cell)));
+      const table = rowsToTable(sheetName, rows, 'excel');
       if (table) tables.push(table);
-    });
+    }
 
     if (tables.length === 0) {
       return {
@@ -349,7 +457,7 @@ export async function parseExcelBufferDetailed(buffer: Buffer, filename: string)
       source: filename,
       text: serializeTablesToText(filename, tables, 'Cartola Excel'),
       tables,
-      parserMeta: { mode: 'exact_sheet', confidence: 0.99 },
+      parserMeta: { mode: 'exact_sheet', confidence: 0.995 },
     };
   } catch (error) {
     return {
@@ -533,15 +641,7 @@ export async function parseTransactionFileDetailed(
 ): Promise<ParsedTransactionArtifact> {
   const ext = path.extname(filename).toLowerCase();
   if (ext === '.pdf') return parsePdfBufferDetailed(buffer, filename);
-  if (ext === '.xls') {
-    return {
-      source: filename,
-      text: `[Excel ${filename}: formato .xls no soportado; exporta a .xlsx o .csv]`,
-      tables: [],
-      parserMeta: { mode: 'csv_exact', confidence: 0.01 },
-    };
-  }
-  if (ext === '.xlsx') return parseExcelBufferDetailed(buffer, filename);
+  if (ext === '.xls' || ext === '.xlsx') return parseExcelBufferDetailed(buffer, filename);
   if (ext === '.csv' || ext === '.txt' || ext === '.md') return parseCsvBufferDetailed(buffer, filename);
   if (ext in IMAGE_MIME_BY_EXT) return parseImageBufferDetailed(buffer, filename);
   return {

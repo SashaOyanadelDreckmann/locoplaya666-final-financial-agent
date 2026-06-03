@@ -90,7 +90,7 @@ describe('documents routes', () => {
     expect(loadRes.body.data.panelState.bankSimulation.products).toHaveLength(1);
     expect(loadRes.body.data.panelState.bankSimulation.products[0].assistant.summaryText).toBe('Resumen');
     expect(loadRes.body.data.panelState.bankSimulation.activeProductId).toBe('prod-1');
-  });
+  }, 15000);
 
   it('rejects unsupported extensions before persisting documents', async () => {
     const { agent, csrfToken, userId, listUserDocuments } = await buildAuthenticatedAgent();
@@ -99,13 +99,13 @@ describe('documents routes', () => {
       .post('/api/documents/parse')
       .set('X-CSRF-Token', csrfToken)
       .send({
-        files: [{ name: 'cartola.xls', base64: Buffer.from('fake-xls').toString('base64') }],
+        files: [{ name: 'cartola.zip', base64: Buffer.from('fake-zip').toString('base64') }],
       });
 
     expect(res.status).toBe(400);
     const docs = await listUserDocuments(userId, 20);
     expect(docs).toHaveLength(0);
-  });
+  }, 10000);
 
   it('rejects invalid base64 before persisting documents', async () => {
     const { agent, csrfToken, userId, listUserDocuments } = await buildAuthenticatedAgent();

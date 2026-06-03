@@ -11,6 +11,7 @@
 /* PREMIUM ANIMATIONS FIRST                          */
 /* ================================================= */
 @import './animations.css';
+@import "maplibre-gl/dist/maplibre-gl.css";
 
 /* ================================================= */
 /* DESIGN SYSTEM — Apple Minimalist                  */
@@ -218,6 +219,32 @@ select:focus-visible {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border-width: 0;
+}
+
+.brand-wordmark-initial {
+  display: inline-block;
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 700;
+  font-size: 1.14em;
+  line-height: 0.88;
+  letter-spacing: -0.05em;
+}
+
+.home-brand-wordmark {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.005em;
+}
+
+.home-brand-financiera {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.home-brand-mente {
+  color: rgba(255, 255, 255, 0.82);
 }
 
 /* Respect prefers-reduced-motion */
@@ -2014,6 +2041,192 @@ body.home-lock {
 
 .pro-report .app-section:last-child {
   border-bottom: none;
+}
+
+.diagnosis-page-shell {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(150, 179, 207, 0.08), transparent 22%),
+    linear-gradient(180deg, rgba(6, 10, 15, 0.98), rgba(3, 6, 10, 1));
+}
+
+.diagnosis-premium-report {
+  padding-top: 40px;
+  padding-bottom: 56px;
+}
+
+.diagnosis-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: end;
+}
+
+.diagnosis-hero-copy {
+  max-width: 760px;
+}
+
+.diagnosis-hero-eyebrow {
+  display: inline-block;
+  margin-bottom: 10px;
+  font-size: 10px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: rgba(211, 223, 235, 0.64);
+}
+
+.diagnosis-hero h1 {
+  margin: 0;
+  font-size: clamp(2.2rem, 4vw, 3.35rem);
+  line-height: 1;
+  letter-spacing: -0.06em;
+  color: #f6faff;
+}
+
+.diagnosis-hero-text {
+  margin-top: 14px;
+  color: rgba(205, 217, 228, 0.76);
+  max-width: 680px;
+  line-height: 1.6;
+}
+
+.diagnosis-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.diagnosis-grid {
+  display: grid;
+  gap: 18px;
+}
+
+.diagnosis-grid--lead {
+  grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+}
+
+.diagnosis-grid--secondary {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.diagnosis-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 24px;
+  border: 1px solid rgba(214, 225, 236, 0.12);
+  background:
+    radial-gradient(circle at top left, rgba(145, 170, 194, 0.1), transparent 24%),
+    linear-gradient(180deg, rgba(9, 14, 21, 0.94), rgba(4, 8, 14, 0.98));
+  box-shadow:
+    0 26px 56px rgba(0, 0, 0, 0.32),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.diagnosis-card-head {
+  padding: 22px 24px 10px;
+}
+
+.diagnosis-card-eyebrow {
+  display: inline-block;
+  margin-bottom: 8px;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(209, 222, 235, 0.58);
+}
+
+.diagnosis-card h3 {
+  margin: 0;
+  color: #f6faff;
+  font-size: 1.15rem;
+  letter-spacing: -0.03em;
+}
+
+.diagnosis-card-body {
+  padding: 0 24px 24px;
+}
+
+.diagnosis-prose,
+.diagnosis-empty-copy {
+  margin: 0;
+  color: rgba(217, 228, 239, 0.82);
+  line-height: 1.72;
+  white-space: pre-wrap;
+}
+
+.diagnosis-definition-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.diagnosis-definition-item {
+  border-radius: 18px;
+  border: 1px solid rgba(214, 225, 236, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 14px 15px;
+}
+
+.diagnosis-definition-item span {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(205, 219, 232, 0.54);
+}
+
+.diagnosis-definition-item strong {
+  display: block;
+  margin-top: 8px;
+  color: #f6faff;
+  line-height: 1.45;
+  font-size: 0.96rem;
+}
+
+.diagnosis-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 12px;
+}
+
+.diagnosis-list li {
+  position: relative;
+  padding-left: 18px;
+  color: rgba(217, 228, 239, 0.82);
+  line-height: 1.62;
+}
+
+.diagnosis-list li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.72em;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(150, 179, 207, 0.95), rgba(233, 216, 175, 0.92));
+  box-shadow: 0 0 0 4px rgba(150, 179, 207, 0.08);
+}
+
+@media (max-width: 980px) {
+  .diagnosis-hero,
+  .diagnosis-grid--lead,
+  .diagnosis-grid--secondary {
+    grid-template-columns: 1fr;
+  }
+
+  .diagnosis-hero-actions {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 640px) {
+  .diagnosis-definition-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ================================================= */

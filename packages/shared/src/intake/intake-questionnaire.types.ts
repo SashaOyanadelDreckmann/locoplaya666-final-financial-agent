@@ -65,6 +65,7 @@ export interface FinancialKnowledgeChecklist {
 
 export interface IntakeQuestionnaire {
   age?: number;
+  city?: string;
 
   employmentStatus: EmploymentStatus;
   profession?: string;

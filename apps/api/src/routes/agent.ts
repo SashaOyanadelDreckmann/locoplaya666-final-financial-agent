@@ -42,10 +42,16 @@ import {
 } from '../services/reports/professionalPdf.service';
 import { listAdminUsersFullDump } from '../services/admin.service';
 import { getConfig } from '../config';
-import { INTERVIEW_TOTAL_LIMIT_MINUTES, INTERVIEW_TOTAL_LIMIT_SEC } from '@financial-agent/shared';
+import {
+  INTERVIEW_CLOSEOUT_BUFFER_SEC,
+  INTERVIEW_MAX_CALLS_PER_USER,
+  INTERVIEW_TOTAL_LIMIT_MINUTES,
+  INTERVIEW_TOTAL_LIMIT_SEC,
+} from '@financial-agent/shared';
 
 const router = Router();
 const config = getConfig();
+const OPENAI_REALTIME_MODEL = process.env.OPENAI_REALTIME_MODEL?.trim() || 'gpt-realtime-mini';
 
 function normalizeForSimilarity(text: string) {
   return String(text || '')
@@ -296,6 +302,14 @@ const InjectProfileSchema = z.object({
 const InjectIntakeSchema = z.object({
   intake: z.record(z.unknown()),
   llmSummary: z.unknown().optional(),
+  intakeContext: z.record(z.unknown()).optional(),
+  productsContext: z.record(z.unknown()).optional(),
+  budgetContext: z.record(z.unknown()).optional(),
+});
+
+const MergeProductsContextSchema = z.object({
+  productsContext: z.record(z.unknown()),
+  budgetContext: z.record(z.unknown()).optional(),
 });
 
 const SaveSheetsSchema = z.object({
@@ -432,6 +446,9 @@ const SavePanelStateSchema = z.object({
 type IntakeEnvelope = {
   intake?: Record<string, unknown>;
   intakeContext?: Record<string, unknown>;
+  productsContext?: Record<string, unknown>;
+  budgetContext?: Record<string, unknown>;
+  llmSummary?: unknown;
   [key: string]: unknown;
 };
 
@@ -495,12 +512,61 @@ router.post(
   asyncHandler(async (req, res) => {
     requireDevInjectionAllowed({ req, role: req.authenticatedUser?.role });
 
-    const { intake, llmSummary } = parseBody(InjectIntakeSchema, req.body);
+    const { intake, llmSummary, intakeContext, productsContext, budgetContext } = parseBody(InjectIntakeSchema, req.body);
     const user = req.authenticatedUser;
     if (!user) throw unauthorized('Invalid session');
 
-    const ok = await attachIntakeToUser(user.id, { intake, llmSummary });
+    const ok = await attachIntakeToUser(user.id, {
+      intake,
+      llmSummary,
+      intakeContext,
+      productsContext,
+      budgetContext,
+    });
     if (!ok) throw badRequest('Failed to attach intake');
+
+    return sendSuccess(res, { updated: true });
+  }),
+);
+
+router.post(
+  '/merge-products-context',
+  requireAuth,
+  requirePermission(PERMISSIONS.PANEL_WRITE_SELF),
+  asyncHandler(async (req, res) => {
+    const user = req.authenticatedUser;
+    if (!user) throw unauthorized('Invalid session');
+
+    const { productsContext, budgetContext } = parseBody(MergeProductsContextSchema, req.body);
+    const currentEnvelope =
+      user.injectedIntake && typeof user.injectedIntake === 'object'
+        ? (user.injectedIntake as IntakeEnvelope)
+        : {};
+    const nextEnvelope: IntakeEnvelope = {
+      ...currentEnvelope,
+      intake:
+        currentEnvelope.intake && typeof currentEnvelope.intake === 'object'
+          ? currentEnvelope.intake
+          : {},
+      intakeContext:
+        currentEnvelope.intakeContext && typeof currentEnvelope.intakeContext === 'object'
+          ? currentEnvelope.intakeContext
+          : {},
+      productsContext,
+      budgetContext:
+        budgetContext && typeof budgetContext === 'object'
+          ? budgetContext
+          : currentEnvelope.budgetContext,
+    };
+
+    const ok = await attachIntakeToUser(user.id, {
+      intake: nextEnvelope.intake ?? {},
+      llmSummary: nextEnvelope.llmSummary,
+      intakeContext: nextEnvelope.intakeContext,
+      productsContext: nextEnvelope.productsContext,
+      budgetContext: nextEnvelope.budgetContext,
+    });
+    if (!ok) throw badRequest('Failed to merge financial context into intake');
 
     return sendSuccess(res, { updated: true });
   }),
@@ -609,6 +675,15 @@ router.get(
         ? (memoryBlob.interviewVoice as Record<string, unknown>)
         : {};
     const callsStarted = Number(interviewVoice.callsStarted ?? 0);
+    const activeCallId =
+      typeof interviewVoice.activeCallId === 'string' && interviewVoice.activeCallId.length > 0
+        ? interviewVoice.activeCallId
+        : null;
+    const hasCompletedVoiceInterview =
+      Boolean(user.latestDiagnosticProfileId) ||
+      interviewVoice.status === 'completed' ||
+      Boolean(interviewVoice.lastFinalizedAt) ||
+      Boolean(interviewVoice.lastReport);
     const totalUsedSec = Number(interviewVoice.totalUsedSec ?? 0);
     const remainingSec = Math.max(0, INTERVIEW_TOTAL_LIMIT_SEC - totalUsedSec);
     if (remainingSec <= 0) {
@@ -616,7 +691,14 @@ router.get(
         `Límite alcanzado: la entrevista en llamada permite máximo ${INTERVIEW_TOTAL_LIMIT_MINUTES} minutos totales por usuario.`
       );
     }
-    const callId = `call_${Date.now()}`;
+    if (hasCompletedVoiceInterview) {
+      throw forbidden('La entrevista senior por llamada ya fue usada para este usuario.');
+    }
+    if (!activeCallId && callsStarted >= INTERVIEW_MAX_CALLS_PER_USER) {
+      throw forbidden('Esta entrevista permite una sola llamada por usuario.');
+    }
+    const callId = activeCallId ?? `call_${Date.now()}`;
+    const nextCallsStarted = activeCallId ? Math.max(1, callsStarted) : callsStarted + 1;
 
     const response = await fetch('https://api.openai.com/v1/realtime/client_secrets', {
       method: 'POST',
@@ -627,14 +709,24 @@ router.get(
       body: JSON.stringify({
         session: {
           type: 'realtime',
-          model: 'gpt-realtime',
+          model: OPENAI_REALTIME_MODEL,
           audio: {
             output: {
-              voice: 'marin',
+              voice: 'cedar',
             },
           },
           instructions:
-            'Eres una entrevistadora financiera chilena, cálida y precisa. Hablas en español chileno, haces pausas cortas, escuchas con paciencia y mantienes preguntas breves. Cuando tengas información suficiente, comienza tu cierre final con <<CALL_COMPLETE>> y resume en 2 frases.',
+            [
+              'Eres un entrevistador financiero senior de nivel family office.',
+              'Habla en español chileno natural, con voz masculina, calma y criterio ejecutivo.',
+              'Usa tú, no voseo ni entonación rioplatense.',
+              'Haz una sola pregunta a la vez, breve y filosa.',
+              'No repitas contexto ya conocido y no expliques el sistema.',
+              `La llamada dura máximo ${INTERVIEW_TOTAL_LIMIT_MINUTES} minutos y debes empezar a cerrar ${INTERVIEW_CLOSEOUT_BUFFER_SEC} segundos antes.`,
+              'Detecta tensiones entre flujo, deuda, liquidez, productos, metas y comportamiento real.',
+              'Entrega microinsights útiles durante la conversación.',
+              'Cuando haya claridad suficiente o entres en cierre, comienza con <<CALL_COMPLETE>> y resume en corto.',
+            ].join(' '),
         },
       }),
     });
@@ -667,11 +759,12 @@ router.get(
       ...memoryBlob,
       interviewVoice: {
         ...interviewVoice,
-        callsStarted: callsStarted + 1,
+        callsStarted: nextCallsStarted,
         activeCallId: callId,
         pauseLimit: 1,
         maxDurationSec: remainingSec,
         totalUsedSec,
+        status: 'in_progress',
         updatedAt: new Date().toISOString(),
       },
     });
@@ -681,8 +774,8 @@ router.get(
       expires_at: expiresAt,
       session_id: typeof data?.id === 'string' ? data.id : undefined,
       call_id: callId,
-      calls_used: callsStarted + 1,
-      calls_left: Math.max(0, 2 - (callsStarted + 1)),
+      calls_used: nextCallsStarted,
+      calls_left: Math.max(0, INTERVIEW_MAX_CALLS_PER_USER - nextCallsStarted),
       max_duration_sec: remainingSec,
       total_used_sec: totalUsedSec,
       remaining_total_sec: remainingSec,
@@ -768,8 +861,18 @@ router.get(
       ? {
           intake: (user.injectedIntake as IntakeEnvelope).intake,
           intakeContext: (user.injectedIntake as IntakeEnvelope).intakeContext,
+          productsContext: (user.injectedIntake as IntakeEnvelope).productsContext,
+          budgetContext: (user.injectedIntake as IntakeEnvelope).budgetContext,
         }
       : undefined;
+    const memoryBlob =
+      user.memoryBlob && typeof user.memoryBlob === 'object'
+        ? (user.memoryBlob as Record<string, unknown>)
+        : {};
+    const interviewVoice =
+      memoryBlob.interviewVoice && typeof memoryBlob.interviewVoice === 'object'
+        ? (memoryBlob.interviewVoice as Record<string, unknown>)
+        : null;
 
     const lifecycleState = getLifecycleFromMemory(user.memoryBlob);
 
@@ -780,6 +883,7 @@ router.get(
       role: user.role,
       injectedProfile: user.injectedProfile,
       injectedIntake,
+      interviewVoice,
       latestDiagnosticProfileId: user.latestDiagnosticProfileId,
       latestDiagnosticCompletedAt: user.latestDiagnosticCompletedAt,
       knowledgeBaseScore: user.knowledgeBaseScore ?? 0,

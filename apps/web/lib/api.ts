@@ -195,6 +195,26 @@ export async function savePanelState(panelState: Record<string, unknown>) {
   return parseApiResponse<any>(res);
 }
 
+function extractArtifactFilename(fileUrl: string) {
+  const apiUrl = getApiBaseUrl();
+  const url = new URL(fileUrl, apiUrl);
+  return url.searchParams.get('file') ?? url.pathname.split('/').filter(Boolean).pop() ?? '';
+}
+
+export async function deletePdfArtifact(payload: { fileUrl: string; previewImageUrl?: string }) {
+  const file = extractArtifactFilename(payload.fileUrl);
+  const previewFile = payload.previewImageUrl ? extractArtifactFilename(payload.previewImageUrl) : '';
+  const searchParams = new URLSearchParams({ file });
+  if (previewFile) searchParams.set('previewFile', previewFile);
+  const res = await fetch(`/api/pdfs/delete?${searchParams.toString()}`, {
+    method: 'DELETE',
+    headers: withCsrf(),
+    credentials: 'include',
+  });
+
+  return parseApiResponse<{ deleted: boolean }>(res);
+}
+
 export async function getWelcomeMessage() {
   const API_URL = getApiBaseUrl();
   const res = await fetch(`${API_URL}/api/welcome`, {

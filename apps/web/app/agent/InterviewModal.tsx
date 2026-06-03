@@ -15,12 +15,19 @@ import {
 } from '@/lib/api';
 import { ApiHttpError } from '@/lib/apiEnvelope';
 import { toUserFacingError } from '@/lib/userError';
+import { AiLoader } from '@/components/ui/ai-loader';
 import {
+  clearInterviewVoiceState,
   readInterviewVoiceState,
   writeInterviewVoiceState,
 } from '@/lib/interviewVoiceState';
 import { appendTranscriptChunk } from '@/lib/transcript';
-import { INTERVIEW_TOTAL_LIMIT_MINUTES, INTERVIEW_TOTAL_LIMIT_SEC } from '@financial-agent/shared';
+import {
+  INTERVIEW_CLOSEOUT_BUFFER_SEC,
+  INTERVIEW_MAX_CALLS_PER_USER,
+  INTERVIEW_TOTAL_LIMIT_MINUTES,
+  INTERVIEW_TOTAL_LIMIT_SEC,
+} from '@financial-agent/shared';
 
 const DEFAULT_MAX_CALL_DURATION_SEC = INTERVIEW_TOTAL_LIMIT_SEC;
 
@@ -56,9 +63,192 @@ type Props = {
   onClose: () => void;
 };
 
+function formatMoneyCompact(value: unknown) {
+  const amount = Number(value ?? 0);
+  if (!Number.isFinite(amount)) return '0';
+  return amount.toLocaleString('es-CL');
+}
+
+function buildVoiceKnowledgePacket(intake: unknown, transcriptEntries: Array<{ blockId?: string; answer?: string }>) {
+  const source = (intake ?? {}) as Record<string, unknown>;
+  const products = source.__productsContext as Record<string, unknown> | undefined;
+  const budget = source.__budgetContext as Record<string, unknown> | undefined;
+  const transactionSummary =
+    products?.transactionSummary && typeof products.transactionSummary === 'object'
+      ? (products.transactionSummary as Record<string, unknown>)
+      : {};
+  const topRows = Array.isArray(budget?.rows)
+    ? budget.rows
+        .map((row) => (row && typeof row === 'object' ? (row as Record<string, unknown>) : {}))
+        .filter((row) => Number(row.amount ?? 0) > 0)
+        .sort((a, b) => Number(b.amount ?? 0) - Number(a.amount ?? 0))
+        .slice(0, 3)
+        .map((row) => `${String(row.category ?? 'Item')}: ${formatMoneyCompact(row.amount)} CLP`)
+    : [];
+  const priorAnswers = transcriptEntries
+    .filter((entry) => entry?.answer && String(entry.answer).trim())
+    .slice(-3)
+    .map((entry) => `${formatBlockLabel(entry.blockId)}: ${String(entry.answer).trim().slice(0, 120)}`);
+
+  const packet = [
+    `Perfil base: ${typeof source.age === 'number' ? `${source.age} años, ` : ''}${source.profession ? `${String(source.profession)}, ` : ''}${typeof source.exactMonthlyIncome === 'number' ? `ingreso ${formatMoneyCompact(source.exactMonthlyIncome)} CLP, ` : ''}estrés ${source.moneyStressLevel ?? 'na'}/10.`,
+    typeof source.hasDebt === 'boolean' ? `Deuda: ${source.hasDebt ? 'activa' : 'sin deuda declarada'}.` : '',
+    source.tracksExpenses === false ? 'Blind spot: no registra gastos con disciplina.' : '',
+    Number(budget?.balance ?? 0) < 0
+      ? `Presupuesto en rojo: balance ${formatMoneyCompact(budget?.balance)} CLP.`
+      : budget
+      ? `Presupuesto: ingreso ${formatMoneyCompact(budget.income)} CLP, gasto ${formatMoneyCompact(budget.expenses)} CLP, balance ${formatMoneyCompact(budget.balance)} CLP.`
+      : '',
+    topRows.length > 0 ? `Rubros pesados: ${topRows.join(' | ')}.` : '',
+    Number(transactionSummary.netFlow ?? 0) < 0 ? 'Movimientos recientes muestran salida neta de caja.' : '',
+    Array.isArray(transactionSummary.alerts) && transactionSummary.alerts.length > 0
+      ? `Alertas de productos: ${transactionSummary.alerts.slice(0, 2).join(' | ')}.`
+      : '',
+    Number(products?.productsCount ?? 0) > 0
+      ? `Productos activos: ${Math.max(0, Number(products?.productsCount ?? 0))}; foco en ${String(products?.activeProductLabel ?? 'producto principal')}.`
+      : '',
+    priorAnswers.length > 0 ? `Respuestas previas: ${priorAnswers.join(' | ')}.` : '',
+  ]
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  return packet.join('\n');
+}
+
+function summarizeVoiceInterviewContext(intake: unknown, transcriptEntries: Array<{ blockId?: string; answer?: string }>) {
+  const source = (intake ?? {}) as Record<string, unknown>;
+  const products = source.__productsContext as Record<string, unknown> | undefined;
+  const budget = source.__budgetContext as Record<string, unknown> | undefined;
+  const parts: string[] = [];
+  const knowledge =
+    source.financialKnowledge && typeof source.financialKnowledge === 'object'
+      ? (source.financialKnowledge as Record<string, unknown>)
+      : {};
+  const knownTopics = Object.entries(knowledge)
+    .filter(([, value]) => value === true)
+    .slice(0, 5)
+    .map(([key]) => key.replace(/([A-Z])/g, ' $1').trim().toLowerCase());
+
+  parts.push(
+    [
+      typeof source.age === 'number' ? `${source.age} años` : null,
+      source.profession ? `profesión ${String(source.profession)}` : null,
+      source.employmentStatus ? `situación ${String(source.employmentStatus).replace(/_/g, ' ')}` : null,
+      typeof source.exactMonthlyIncome === 'number'
+        ? `ingreso exacto ${formatMoneyCompact(source.exactMonthlyIncome)} CLP`
+        : source.incomeBand
+        ? `ingreso rango ${String(source.incomeBand)}`
+        : null,
+      source.expensesCoverage ? `cobertura ${String(source.expensesCoverage).replace(/_/g, ' ')}` : null,
+      typeof source.tracksExpenses === 'boolean' ? `registra gastos ${source.tracksExpenses ? 'sí' : 'no'}` : null,
+    ]
+      .filter(Boolean)
+      .join(', '),
+  );
+
+  parts.push(
+    [
+      typeof source.hasSavingsOrInvestments === 'boolean'
+        ? `ahorros/inversiones ${source.hasSavingsOrInvestments ? 'sí' : 'no'}`
+        : null,
+      source.savingsBand ? `tramo ahorro ${String(source.savingsBand)}` : null,
+      typeof source.exactSavingsAmount === 'number'
+        ? `ahorro exacto ${formatMoneyCompact(source.exactSavingsAmount)} CLP`
+        : null,
+      typeof source.hasDebt === 'boolean' ? `deuda activa ${source.hasDebt ? 'sí' : 'no'}` : null,
+    ]
+      .filter(Boolean)
+      .join(', '),
+  );
+
+  parts.push(
+    [
+      typeof source.moneyStressLevel === 'number' ? `estrés financiero ${source.moneyStressLevel}/10` : null,
+      source.selfRatedUnderstanding ? `comprensión ${String(source.selfRatedUnderstanding)}` : null,
+      source.riskReaction ? `reacción al riesgo ${String(source.riskReaction)}` : null,
+      knownTopics.length ? `temas dominados ${knownTopics.join(' | ')}` : null,
+    ]
+      .filter(Boolean)
+      .join(', '),
+  );
+
+  if (products && typeof products === 'object') {
+    const transactionSummary =
+      products.transactionSummary && typeof products.transactionSummary === 'object'
+        ? (products.transactionSummary as Record<string, unknown>)
+        : {};
+    const alerts = Array.isArray(transactionSummary.alerts)
+      ? transactionSummary.alerts.slice(0, 3).map((item) => String(item).trim()).filter(Boolean)
+      : [];
+    parts.push(
+      `Productos: ${Math.max(0, Number(products.productsCount ?? 0))}, producto activo: ${String(products.activeProductLabel ?? 'sin foco')}, flujo neto: ${formatMoneyCompact(transactionSummary.netFlow)} CLP, movimientos: ${Math.round(Number(transactionSummary.movementCount ?? 0))}`,
+    );
+    if (alerts.length > 0) {
+      parts.push(`Alertas detectadas: ${alerts.join(' | ')}`);
+    }
+  }
+
+  if (budget && typeof budget === 'object') {
+    const topRows = Array.isArray(budget.rows)
+      ? budget.rows
+          .slice(0, 5)
+          .map((row) => {
+            const item = row as Record<string, unknown>;
+            return `${String(item.category ?? 'item')}: ${formatMoneyCompact(item.amount)}`;
+          })
+          .join(' | ')
+      : '';
+    parts.push(
+      `Presupuesto: ingreso ${formatMoneyCompact(budget.income)} CLP, gasto ${formatMoneyCompact(budget.expenses)} CLP, balance ${formatMoneyCompact(budget.balance)} CLP, filas ${Math.round(Number(budget.rowsCount ?? 0))}`,
+    );
+    if (topRows) {
+      parts.push(`Renglones relevantes: ${topRows}`);
+    }
+  }
+
+  const priorAnswers = transcriptEntries
+    .filter((entry) => entry?.answer && String(entry.answer).trim())
+    .slice(-3)
+    .map((entry) => `${formatBlockLabel(entry.blockId)}: ${String(entry.answer).trim().slice(0, 180)}`);
+  if (priorAnswers.length > 0) {
+    parts.push(`Respuestas previas: ${priorAnswers.join(' | ')}`);
+  }
+
+  return parts.map((item) => item.trim()).filter(Boolean).join(' || ');
+}
+
+function formatClock(totalSeconds: number | null) {
+  if (totalSeconds === null) return '—';
+  const safe = Math.max(0, Math.floor(totalSeconds));
+  return `${Math.floor(safe / 60).toString().padStart(2, '0')}:${(safe % 60).toString().padStart(2, '0')}`;
+}
+
+function formatBlockLabel(blockId?: string) {
+  if (!blockId) return 'Exploración';
+  const labels: Record<string, string> = {
+    warmup: 'Apertura',
+    cashflow: 'Flujo',
+    resilience: 'Resiliencia',
+    debt: 'Deuda',
+    products: 'Productos',
+    goals: 'Metas',
+    knowledge: 'Comprensión',
+    risk: 'Riesgo',
+    emotional: 'Patrón emocional',
+  };
+  return labels[blockId] ?? blockId;
+}
+
+function wait(ms: number) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
 export function InterviewModal({ isOpen, onClose }: Props) {
   const router = useRouter();
   const bootedRef = useRef(false);
+  const modalRef = useRef<HTMLDivElement | null>(null);
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+  const restoreFocusRef = useRef<HTMLElement | null>(null);
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const dataChannelRef = useRef<RTCDataChannel | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
@@ -99,10 +289,14 @@ export function InterviewModal({ isOpen, onClose }: Props) {
   const [voiceReport, setVoiceReport] = useState<InterviewVoiceReport | null>(null);
   const [intakeReady, setIntakeReady] = useState(false);
   const [microphoneReady, setMicrophoneReady] = useState(false);
+  const [summaryComment, setSummaryComment] = useState('');
+  const [summarySubmitting, setSummarySubmitting] = useState(false);
+  const [isGeneratingDiagnosis, setIsGeneratingDiagnosis] = useState(false);
   const voiceSyncTimerRef = useRef<number | null>(null);
   const voiceStateHydratedRef = useRef(false);
   const voiceResumeModeRef = useRef(false);
   const voiceAutoFinalizeRef = useRef(false);
+  const closeoutPromptSentRef = useRef(false);
   const voiceTranscriptRef = useRef({
     agent: '',
     user: '',
@@ -114,13 +308,14 @@ export function InterviewModal({ isOpen, onClose }: Props) {
     lastResponse?.type === 'question' && typeof lastResponse.question === 'string'
       ? lastResponse.question
       : '';
+  const currentSummary =
+    lastResponse?.type === 'block_summary' && typeof lastResponse.summary === 'string'
+      ? lastResponse.summary
+      : '';
+  const awaitingSummaryValidation = Boolean(currentSummary);
 
   const interviewTranscriptSnapshot = useMemo(() => {
     const lines: string[] = [];
-
-    if (currentQuestion) {
-      lines.push(`AGENTE: ${currentQuestion}`);
-    }
 
     for (const entry of transcriptEntries) {
       if (!entry?.answer || !String(entry.answer).trim()) continue;
@@ -128,7 +323,7 @@ export function InterviewModal({ isOpen, onClose }: Props) {
     }
 
     return lines.join('\n').trim();
-  }, [currentQuestion, transcriptEntries]);
+  }, [transcriptEntries]);
 
   const hasCompletedVoiceInterview =
     Boolean(latestDiagnosticProfileId) || Boolean(voiceReport?.executive_report);
@@ -137,6 +332,10 @@ export function InterviewModal({ isOpen, onClose }: Props) {
   const hasLiveVoiceCall = Boolean(callId) && !hasCompletedVoiceInterview;
   const hasRemainingInterviewTime =
     remainingTotalSec === null ? callSeconds < maxCallDurationSec : remainingTotalSec > 0;
+  const isClosingWindow =
+    voiceConnected &&
+    hasRemainingInterviewTime &&
+    (remainingTotalSec ?? Math.max(0, maxCallDurationSec - callSeconds)) <= INTERVIEW_CLOSEOUT_BUFFER_SEC;
   const voiceCallExhausted =
     !hasCompletedVoiceInterview &&
     !hasRemainingInterviewTime &&
@@ -151,6 +350,15 @@ export function InterviewModal({ isOpen, onClose }: Props) {
     return false;
   }
 
+  function getFocusableElements() {
+    if (!modalRef.current) return [] as HTMLElement[];
+    return Array.from(
+      modalRef.current.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ),
+    ).filter((element) => !element.hasAttribute('disabled') && element.getAttribute('aria-hidden') !== 'true');
+  }
+
   useEffect(() => {
     if (!isOpen) return;
     let cancelled = false;
@@ -159,6 +367,7 @@ export function InterviewModal({ isOpen, onClose }: Props) {
     setIntakeReady(false);
     voiceStateHydratedRef.current = false;
     voiceAutoFinalizeRef.current = false;
+    closeoutPromptSentRef.current = false;
 
     async function hydrateInterviewContext() {
       try {
@@ -235,6 +444,7 @@ export function InterviewModal({ isOpen, onClose }: Props) {
             Boolean(snapshot?.completedAt) ||
             Boolean(snapshot?.voiceReport)
           ) {
+            clearInterviewVoiceState();
             onClose();
             router.push('/diagnosis');
             return;
@@ -255,6 +465,73 @@ export function InterviewModal({ isOpen, onClose }: Props) {
       cancelled = true;
     };
   }, [isOpen]);
+
+  useEffect(() => {
+    if (isOpen) return;
+    setIsGeneratingDiagnosis(false);
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    restoreFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const focusTimer = window.setTimeout(() => {
+      closeButtonRef.current?.focus();
+    }, 0);
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        if (isGeneratingDiagnosis || isFinalizingCall) return;
+        event.preventDefault();
+        onClose();
+        return;
+      }
+      if (event.key !== 'Tab') return;
+
+      const focusable = getFocusableElements();
+      if (focusable.length === 0) {
+        event.preventDefault();
+        modalRef.current?.focus();
+        return;
+      }
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const activeElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      const insideModal = activeElement ? modalRef.current?.contains(activeElement) : false;
+
+      if (!insideModal) {
+        event.preventDefault();
+        first.focus();
+        return;
+      }
+
+      if (event.shiftKey && activeElement === first) {
+        event.preventDefault();
+        last.focus();
+        return;
+      }
+
+      if (!event.shiftKey && activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+
+    document.addEventListener('keydown', onKeyDown);
+
+    return () => {
+      window.clearTimeout(focusTimer);
+      document.removeEventListener('keydown', onKeyDown);
+      document.body.style.overflow = previousOverflow;
+      if (restoreFocusRef.current && document.contains(restoreFocusRef.current)) {
+        restoreFocusRef.current.focus();
+      }
+    };
+  }, [isOpen, onClose, isGeneratingDiagnosis, isFinalizingCall]);
 
   useEffect(() => {
     setVoiceSupported(
@@ -498,6 +775,30 @@ export function InterviewModal({ isOpen, onClose }: Props) {
     void finalizeCallAndGenerateReport('timeout');
   }, [isOpen, voiceCallExhausted, voiceReport, isFinalizingCall]);
 
+  useEffect(() => {
+    if (!isOpen || !isClosingWindow || closeoutPromptSentRef.current) return;
+    closeoutPromptSentRef.current = true;
+    sendVoiceEvent({
+      type: 'session.update',
+      session: {
+        instructions: [
+          'Entraste en ventana final de cierre.',
+          'No abras temas nuevos.',
+          'Cierra con síntesis ejecutiva y una última pregunta de confirmación solo si es indispensable.',
+          'Comienza el cierre con <<CALL_COMPLETE>> apenas tengas claridad suficiente.',
+        ].join(' '),
+      },
+    });
+    sendVoiceEvent({
+      type: 'response.create',
+      response: {
+        output_modalities: ['audio'],
+        instructions:
+          'Empieza a cerrar ahora. Sintetiza los hallazgos principales, valida el punto más crítico si hace falta y no abras líneas nuevas.',
+      },
+    });
+  }, [isOpen, isClosingWindow]);
+
   // Auto-finalize on agent completion signal
   useEffect(() => {
     const normalized = voiceAgentTranscript.toUpperCase();
@@ -506,9 +807,9 @@ export function InterviewModal({ isOpen, onClose }: Props) {
     void finalizeCallAndGenerateReport('agent');
   }, [voiceAgentTranscript, voiceConnected]);
 
-  // Prime question on voice connect
+  // Prime voice session on connect
   useEffect(() => {
-    if (!isOpen || !voiceConnected || !currentQuestion) return;
+    if (!isOpen || !voiceConnected) return;
     primeVoiceQuestion(currentQuestion, { resetTranscript: !voiceResumeModeRef.current });
     voiceResumeModeRef.current = false;
   }, [isOpen, voiceConnected, currentQuestion]);
@@ -547,16 +848,54 @@ export function InterviewModal({ isOpen, onClose }: Props) {
     typeof intake?.moneyStressLevel === 'number' ? `Estrés ${intake.moneyStressLevel}/10` : null,
   ].filter(Boolean) as string[];
 
-  const productsContext = ((intake as unknown) as Record<string, unknown>)?.__productsContext as Record<string, unknown> | null | undefined;
-  const budgetContext = ((intake as unknown) as Record<string, unknown>)?.__budgetContext as Record<string, unknown> | null | undefined;
-  const interviewContextSummary = [
-    productsContext ? `Productos: ${Math.max(0, Number(productsContext.productsCount ?? 0))}` : null,
-    budgetContext
-      ? `Presupuesto: ingreso=${Math.round(Number(budgetContext.income ?? 0))} gasto=${Math.round(Number(budgetContext.expenses ?? 0))} balance=${Math.round(Number(budgetContext.balance ?? 0))}`
+  const interviewContextSummary = summarizeVoiceInterviewContext(intake, transcriptEntries);
+  const voiceKnowledgePacket = buildVoiceKnowledgePacket(intake, transcriptEntries);
+  const enrichedIntake = intake as Record<string, unknown> | null;
+  const productsContext = enrichedIntake?.__productsContext as Record<string, unknown> | undefined;
+  const budgetContext = enrichedIntake?.__budgetContext as Record<string, unknown> | undefined;
+  const currentBlockLabel = formatBlockLabel(blockId);
+  const completedBlockCount = Object.keys(completedBlocks ?? {}).length;
+  const productCount = Math.max(0, Number(productsContext?.productsCount ?? 0));
+  const budgetBalance = Math.round(Number(budgetContext?.balance ?? 0));
+  const budgetRowsCount = Math.max(0, Number(budgetContext?.rowsCount ?? 0));
+  const interviewBriefPoints = [
+    productCount > 0 ? `${productCount} producto${productCount === 1 ? '' : 's'} enlazado${productCount === 1 ? '' : 's'}` : null,
+    budgetRowsCount > 0 ? `${budgetRowsCount} fila${budgetRowsCount === 1 ? '' : 's'} reales de presupuesto` : null,
+    Number.isFinite(budgetBalance) && budgetRowsCount > 0
+      ? `Balance mensual ${budgetBalance >= 0 ? '+' : ''}${budgetBalance.toLocaleString('es-CL')}`
       : null,
-  ]
-    .filter(Boolean)
-    .join(' | ');
+  ].filter(Boolean) as string[];
+  const contextHighlights = interviewContextSummary
+    ? interviewContextSummary
+        .split('||')
+        .map((item) => item.trim())
+        .filter(Boolean)
+        .slice(0, 4)
+    : [];
+  const sessionStatusItems = [
+    {
+      label: 'Estado',
+      value: stageLabel,
+      tone: voiceConnected ? 'is-live' : voiceReport ? 'is-done' : '',
+    },
+    {
+      label: 'Bloque activo',
+      value: currentBlockLabel,
+      tone: awaitingSummaryValidation ? 'is-review' : '',
+    },
+    {
+      label: 'Cierre',
+      value: voiceReport ? 'Informe listo' : awaitingSummaryValidation ? 'Validación pendiente' : isClosingWindow ? 'Ventana final' : 'Exploración abierta',
+      tone: isClosingWindow ? 'is-closing' : voiceReport ? 'is-done' : '',
+    },
+  ];
+  const workspaceCoachNote = awaitingSummaryValidation
+    ? 'Valida o corrige este bloque antes de abrir una línea nueva.'
+    : voiceConnected
+    ? 'Habla directo, concreto y con ejemplos reales. El sistema ya tiene el contexto base.'
+    : hasEverStartedVoiceCall
+    ? 'Puedes retomar la llamada en el punto exacto donde quedó.'
+    : 'Activa micrófono y parte con una conversación corta, precisa y ejecutiva.';
 
   const callProgressPct = Math.max(0, Math.min(100, Math.round((callSeconds / Math.max(1, maxCallDurationSec)) * 100)));
 
@@ -573,6 +912,7 @@ export function InterviewModal({ isOpen, onClose }: Props) {
     setVoicePaused(false);
     setMicrophoneReady(false);
     voiceResumeModeRef.current = false;
+    closeoutPromptSentRef.current = false;
     if (dataChannelRef.current && dataChannelRef.current.readyState === 'open') {
       try { dataChannelRef.current.close(); } catch {}
     }
@@ -596,7 +936,7 @@ export function InterviewModal({ isOpen, onClose }: Props) {
   }
 
   function primeVoiceQuestion(question: string, options?: { resetTranscript?: boolean }) {
-    if (!question) return;
+    const startingFocus = question || `Explora el bloque ${currentBlockLabel.toLowerCase()} usando el contexto disponible y entra por la señal más relevante.`;
     if (options?.resetTranscript !== false) {
       setVoiceAgentTranscript('');
       setVoiceUserTranscript('');
@@ -606,17 +946,22 @@ export function InterviewModal({ isOpen, onClose }: Props) {
       type: 'session.update',
       session: {
         instructions: [
-          'Eres un entrevistador financiero premium en una llamada breve.',
-          'Habla en español chileno.',
-          'Haz solo una pregunta a la vez y profundiza con precisión.',
-          'No expliques el sistema ni el contexto técnico.',
-          `La llamada dura máximo ${INTERVIEW_TOTAL_LIMIT_MINUTES} minutos y busca un diagnóstico profundo basado en intake, transacciones, presupuesto y respuestas del usuario.`,
-          'Tono: cool, seguro y sofisticado, estilo alta performance financiera, sin caer en arrogancia.',
+          'Eres un entrevistador financiero senior, sobrio, relajado y muy claro.',
+          'Habla en español chileno natural. Usa tú; no voseo ni entonación rioplatense.',
+          'Haz una sola pregunta a la vez y profundiza con precisión quirúrgica.',
+          'No expliques el sistema.',
+          `La llamada dura máximo ${INTERVIEW_TOTAL_LIMIT_MINUTES} minutos y debes empezar a cerrar ${INTERVIEW_CLOSEOUT_BUFFER_SEC} segundos antes.`,
+          'Prioriza fricciones reales, inconsistencias, liquidez, deuda, uso de productos, metas y capacidad de ejecución.',
+          'Si detectas tensión o incoherencia, conviértela en una pregunta de alto valor.',
+          'Cada pocos turnos entrega una microlectura útil en una frase.',
           interviewContextSummary
             ? `Contexto financiero consolidado: ${interviewContextSummary}. Usa esto para preguntar con foco.`
             : '',
-          'Si ya tienes información suficiente, inicia tu cierre con <<CALL_COMPLETE>> y resume el porqué en 2 frases.',
-          `Pregunta de arranque que debes formular con calidez y precisión: ${question}`,
+          voiceKnowledgePacket
+            ? `Brief estrategico del usuario:\n${voiceKnowledgePacket}`
+            : '',
+          'Si ya tienes información suficiente, inicia tu cierre con <<CALL_COMPLETE>>, no abras temas nuevos y resume el porqué en 2 frases.',
+          `Foco inicial de la conversación: ${startingFocus}`,
         ].join(' '),
       },
     });
@@ -624,7 +969,7 @@ export function InterviewModal({ isOpen, onClose }: Props) {
       type: 'response.create',
       response: {
         output_modalities: ['audio'],
-        instructions: `Inicia con esta pregunta y luego continúa entrevistando en profundidad: ${question}`,
+        instructions: `Inicia la conversación desde el foco definido, usa toda la ficha del usuario, evita sonar argentino, habla como chileno natural, profundiza con criterio senior y deja insights útiles durante la conversación: ${startingFocus}`,
       },
     });
   }
@@ -661,12 +1006,16 @@ export function InterviewModal({ isOpen, onClose }: Props) {
   }
 
   async function startVoiceSession() {
-    if (!voiceSupported || voiceConnecting || voiceConnected || !currentQuestion) return;
+    if (!voiceSupported || voiceConnecting || voiceConnected) return;
     if (voiceCallExhausted) {
       return;
     }
     if (voiceInterviewLocked && !hasLiveVoiceCall) {
-      setVoiceError('Esta entrevista ya se convirtió en diagnóstico y no admite otra llamada.');
+      setVoiceError('Esta entrevista senior ya quedó cerrada y no admite otra llamada.');
+      return;
+    }
+    if (!hasLiveVoiceCall && callsStarted >= INTERVIEW_MAX_CALLS_PER_USER) {
+      setVoiceError('Solo se permite una llamada por usuario en esta entrevista.');
       return;
     }
 
@@ -675,6 +1024,7 @@ export function InterviewModal({ isOpen, onClose }: Props) {
 
     setVoiceError(null);
     setVoiceConnecting(true);
+    closeoutPromptSentRef.current = false;
 
     try {
       const token = await getInterviewRealtimeToken();
@@ -824,10 +1174,11 @@ export function InterviewModal({ isOpen, onClose }: Props) {
   ) {
     if (isFinalizingCall) return;
     setIsFinalizingCall(true);
+    setIsGeneratingDiagnosis(true);
     cleanupVoiceSession();
     try {
       const latestTranscript = voiceTranscriptRef.current;
-      const transcript = [
+      const rawTranscript = [
         latestTranscript.agent ? `AGENTE:\n${latestTranscript.agent}` : '',
         latestTranscript.user ? `USUARIO:\n${latestTranscript.user}` : '',
         latestTranscript.partial ? `PARCIAL:\n${latestTranscript.partial}` : '',
@@ -838,22 +1189,56 @@ export function InterviewModal({ isOpen, onClose }: Props) {
       const persistedState = readInterviewVoiceState();
       const persistedTranscript =
         typeof persistedState?.transcript === 'string' ? persistedState.transcript.trim() : '';
-      const finalTranscript = transcript || persistedTranscript;
-      if (!finalTranscript || finalTranscript.length < 10) {
-        setVoiceError('No hay suficiente transcripción para generar informe ejecutivo.');
-        return;
-      }
+      const interviewFlowFallback = [
+        currentQuestion ? `ULTIMA_PREGUNTA_PLANIFICADA:\n${currentQuestion}` : '',
+        currentSummary ? `RESUMEN_ACTIVO:\n${currentSummary}` : '',
+        interviewTranscriptSnapshot ? `HISTORIAL_ENTREVISTA:\n${interviewTranscriptSnapshot}` : '',
+        voiceKnowledgePacket ? `CONTEXTO_USUARIO:\n${voiceKnowledgePacket}` : '',
+        'NOTA: si la transcripción de audio es parcial, igual debes consolidar diagnóstico con el contexto estructurado disponible.',
+      ]
+        .filter(Boolean)
+        .join('\n\n')
+        .trim();
+      const finalTranscript = [rawTranscript, persistedTranscript, interviewFlowFallback]
+        .filter((item) => String(item || '').trim().length > 0)
+        .join('\n\n')
+        .trim();
+      const safeTranscript =
+        finalTranscript.length >= 10
+          ? finalTranscript
+          : [
+              'TRANSCRIPCION_MINIMA:',
+              'La llamada finalizó antes de consolidar suficiente audio limpio.',
+              interviewFlowFallback || 'Se debe diagnosticar con intake y contexto estructurado disponible.',
+            ]
+              .filter(Boolean)
+              .join('\n');
 
-      const result = await finalizeInterviewVoiceCall({
-        intake,
-        transcript: finalTranscript,
-        endedBy,
-        durationSec: Math.max(
-          1,
-          Math.floor(options?.durationSecOverride ?? callSecondsRef.current ?? callSeconds),
-        ),
-        callId: callId ?? undefined,
-      });
+      let result: Awaited<ReturnType<typeof finalizeInterviewVoiceCall>> | null = null;
+      let lastError: unknown = null;
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        try {
+          result = await finalizeInterviewVoiceCall({
+            intake,
+            transcript: safeTranscript,
+            endedBy,
+            durationSec: Math.max(
+              1,
+              Math.floor(options?.durationSecOverride ?? callSecondsRef.current ?? callSeconds),
+            ),
+            callId: callId ?? undefined,
+          });
+          break;
+        } catch (error) {
+          lastError = error;
+          if (handleUnauthorized(error)) {
+            setIsGeneratingDiagnosis(false);
+            return;
+          }
+          if (attempt < 2) await wait(400 * (attempt + 1));
+        }
+      }
+      if (!result) throw lastError ?? new Error('No se pudo finalizar la llamada');
 
       if (result?.profile) setProfile(result.profile);
       if (result?.type === 'interview_complete') setResponse(result);
@@ -882,10 +1267,15 @@ export function InterviewModal({ isOpen, onClose }: Props) {
               : undefined,
         });
       }
+      clearInterviewVoiceState();
       onClose();
       router.push('/diagnosis');
     } catch (error) {
-      if (handleUnauthorized(error)) return;
+      if (handleUnauthorized(error)) {
+        setIsGeneratingDiagnosis(false);
+        return;
+      }
+      setIsGeneratingDiagnosis(false);
       setVoiceError(toUserFacingError(error, 'interview.voice'));
     } finally {
       setIsFinalizingCall(false);
@@ -894,7 +1284,7 @@ export function InterviewModal({ isOpen, onClose }: Props) {
 
   async function useVoiceTranscriptAsAnswer() {
     const clean = (voiceUserTranscript || voicePartialTranscript).trim();
-    if (!clean || !blockId) return;
+    if (!clean || !blockId || awaitingSummaryValidation) return;
 
     addAnswer(blockId, clean);
 
@@ -923,6 +1313,30 @@ export function InterviewModal({ isOpen, onClose }: Props) {
     }
   }
 
+  async function submitSummaryValidation(accepted: boolean) {
+    if (!blockId || !currentSummary || summarySubmitting) return;
+    setSummarySubmitting(true);
+    try {
+      const res = await nextConversationStep({
+        intake,
+        blockId,
+        answersInCurrentBlock: answersInBlock,
+        completedBlocks,
+        summaryValidation: {
+          accepted,
+          comment: summaryComment.trim() || undefined,
+        },
+        interviewTranscript: interviewTranscriptSnapshot,
+      });
+      setSummaryComment('');
+      setResponse(res);
+    } catch (error) {
+      if (handleUnauthorized(error)) return;
+    } finally {
+      setSummarySubmitting(false);
+    }
+  }
+
   const isLoading = !intakeReady || !intake || !lastResponse;
 
   return (
@@ -931,19 +1345,40 @@ export function InterviewModal({ isOpen, onClose }: Props) {
       role="dialog"
       aria-modal="true"
       aria-label="Entrevista estratégica"
-      onClick={onClose}
+      onClick={isGeneratingDiagnosis ? undefined : onClose}
     >
+      {isGeneratingDiagnosis ? (
+        <div
+          className="agent-modal interview-modal interview-modal--generating"
+          ref={modalRef}
+          tabIndex={-1}
+          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          <AiLoader
+            text="Generando diagnostico"
+            subtitle="Estamos consolidando el diagnostico profesional con toda la evidencia disponible."
+          />
+        </div>
+      ) : (
       <div
         className="agent-modal interview-modal"
+        ref={modalRef}
+        tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
         onMouseDown={(e) => e.stopPropagation()}
         onPointerDown={(e) => e.stopPropagation()}
       >
-        <div className="agent-modal-header">
-          <h3>Entrevista estratégica</h3>
+        <div className="bcc-modal-header interview-modal-header">
+          <div className="bcc-modal-title-wrap">
+            <span className="bcc-modal-eyebrow">Financieramente</span>
+            <h3 className="bcc-modal-title">Entrevista estratégica</h3>
+          </div>
           <button
             type="button"
             className="agent-modal-close"
+            ref={closeButtonRef}
             onClick={onClose}
             aria-label="Cerrar entrevista"
           >
@@ -951,18 +1386,109 @@ export function InterviewModal({ isOpen, onClose }: Props) {
           </button>
         </div>
 
+        <p className="agent-modal-intro interview-modal-intro">
+          Llamada breve con contexto integrado de presupuesto y productos para convertir señales dispersas en diagnóstico ejecutivo.
+        </p>
+
         {isLoading ? (
           <div className="interview-modal-loading">
             <span>Cargando sesión…</span>
           </div>
         ) : (
           <div className="interview-shell pro-interview-shell interview-modal-body">
-            <div className="interview-column pro-interview-column">
-              <section className="voice-call-shell">
+            <div className="interview-stage-shell">
+              <aside className="interview-panel-surface interview-panel-surface--sidebar">
+                <div className="interview-brief-card">
+                  <div className="interview-brief-top">
+                    <div>
+                      <span className="interview-surface-eyebrow">Session brief</span>
+                      <h4>Entrevista premium guiada</h4>
+                    </div>
+                    <span className={`interview-brief-status${voiceConnected ? ' is-live' : voiceReport ? ' is-done' : ''}`}>
+                      {voiceConnected ? 'Live' : voiceReport ? 'Done' : stageLabel}
+                    </span>
+                  </div>
+                  <p>
+                    {awaitingSummaryValidation
+                      ? 'Se consolidó un bloque y ahora toca validar precisión antes de seguir.'
+                      : voiceConnected
+                      ? 'La sesión está activa. Mantén foco en señales concretas, no en explicación general.'
+                      : 'La capa de entrevista toma contexto previo y lo convierte en lectura ejecutiva accionable.'}
+                  </p>
+                  <div className="interview-brief-tags">
+                    <span className="interview-brief-tag">{currentBlockLabel}</span>
+                    <span className="interview-brief-tag">{completedBlockCount} bloque{completedBlockCount === 1 ? '' : 's'} cerrado{completedBlockCount === 1 ? '' : 's'}</span>
+                    <span className="interview-brief-tag">Tiempo {callTimeLabel}</span>
+                  </div>
+                </div>
+
+                <div className="interview-metrics-grid">
+                  <article className="interview-metric-card">
+                    <span>Tiempo restante</span>
+                    <strong>{formatClock(remainingTotalSec)}</strong>
+                  </article>
+                  <article className="interview-metric-card">
+                    <span>Balance base</span>
+                    <strong>{budgetRowsCount > 0 ? `${budgetBalance >= 0 ? '+' : ''}${budgetBalance.toLocaleString('es-CL')}` : '—'}</strong>
+                  </article>
+                  <article className="interview-metric-card">
+                    <span>Productos</span>
+                    <strong>{productCount}</strong>
+                  </article>
+                  <article className="interview-metric-card">
+                    <span>Pausa</span>
+                    <strong>{pauseUsed ? (voicePaused ? 'Activa' : 'Usada') : 'Disponible'}</strong>
+                  </article>
+                </div>
+
+                {interviewBriefPoints.length > 0 ? (
+                  <div className="interview-notes-card">
+                    <span className="interview-surface-eyebrow">Base detectada</span>
+                    <ul>
+                      {interviewBriefPoints.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+
+                {contextHighlights.length > 0 ? (
+                  <div className="interview-notes-card">
+                    <span className="interview-surface-eyebrow">Contexto consolidado</span>
+                    <ul>
+                      {contextHighlights.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+
+                <div className="interview-status-rail">
+                  <span className="interview-surface-eyebrow">Session rail</span>
+                  <div className="interview-status-list">
+                    {sessionStatusItems.map((item) => (
+                      <div key={item.label} className={`interview-status-item ${item.tone}`.trim()}>
+                        <span>{item.label}</span>
+                        <strong>{item.value}</strong>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </aside>
+
+              <div className="interview-column pro-interview-column interview-panel-surface interview-panel-surface--workspace">
+              <section className="voice-call-shell interview-live-shell">
                 <div className="voice-call-topbar">
                   <div>
                     <span className="voice-call-label">Voice diagnostic session</span>
                     <h1>Entrevista estratégica en tiempo real</h1>
+                    <p className="voice-call-subtitle">
+                      {awaitingSummaryValidation
+                        ? 'Validación de bloque antes de seguir'
+                        : voiceReport
+                        ? 'Diagnóstico listo para lectura completa'
+                        : 'Modo entrevista premium con contexto financiero vivo'}
+                    </p>
                   </div>
                   <div className="voice-call-status">
                     <span className="voice-call-status-dot" />
@@ -980,6 +1506,49 @@ export function InterviewModal({ isOpen, onClose }: Props) {
                   </div>
                 </div>
 
+                <div className="voice-call-transcript-card">
+                  <span className="voice-call-transcript-label">
+                    {awaitingSummaryValidation ? 'Resumen del bloque' : 'Foco de conversación'}
+                  </span>
+                  <p>
+                    {awaitingSummaryValidation
+                      ? currentSummary
+                      : `Bloque activo: ${currentBlockLabel}. La llamada parte desde contexto real, no desde una pregunta fija.`}
+                  </p>
+                  <small className="interview-inline-note">{workspaceCoachNote}</small>
+                </div>
+
+                {awaitingSummaryValidation ? (
+                  <div className="voice-call-transcript-card">
+                    <span className="voice-call-transcript-label">Validación</span>
+                    <textarea
+                      className="agent-textarea"
+                      rows={3}
+                      value={summaryComment}
+                      onChange={(event) => setSummaryComment(event.target.value)}
+                      placeholder="Si falta algo, escríbelo aquí para que la siguiente repregunta sea precisa."
+                    />
+                    <div className="voice-call-actions">
+                      <button
+                        type="button"
+                        className="summary-action-btn summary-action-accept"
+                        onClick={() => void submitSummaryValidation(true)}
+                        disabled={summarySubmitting}
+                      >
+                        {summarySubmitting ? 'Guardando…' : 'Validar bloque'}
+                      </button>
+                      <button
+                        type="button"
+                        className="summary-action-btn summary-action-reject"
+                        onClick={() => void submitSummaryValidation(false)}
+                        disabled={summarySubmitting}
+                      >
+                        {summarySubmitting ? 'Repreguntando…' : 'Pedir repregunta'}
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+
                 <div className="voice-call-progress" aria-hidden="true">
                   <span style={{ width: `${callProgressPct}%` }} />
                 </div>
@@ -990,36 +1559,35 @@ export function InterviewModal({ isOpen, onClose }: Props) {
                   ))}
                 </div>
 
-                <div className="voice-call-actions">
+                <div className="voice-call-actions interview-call-actions interview-call-actions--primary">
                   <button
                     type="button"
                     className="summary-action-btn"
                     onClick={activateMicrophone}
-                    disabled={!voiceSupported || voiceConnecting || voiceConnected || voiceInterviewLocked}
+                    disabled={!voiceSupported || voiceConnecting || voiceConnected || voiceInterviewLocked || awaitingSummaryValidation}
                   >
                     {microphoneReady ? 'Micrófono activo' : 'Activar micrófono'}
                   </button>
                   <button
                     type="button"
                     className="summary-action-btn summary-action-accept"
-                    onClick={voiceConnected ? () => void finalizeCallAndGenerateReport('user') : startVoiceSession}
+                    onClick={() => void startVoiceSession()}
                     disabled={
                       !voiceSupported ||
                       voiceConnecting ||
-                      (!voiceConnected && !currentQuestion) ||
+                      voiceConnected ||
                       isFinalizingCall ||
                       (!voiceConnected && voiceCallExhausted) ||
-                      (!voiceConnected && voiceInterviewLocked && !hasLiveVoiceCall)
+                      (!voiceConnected && voiceInterviewLocked && !hasLiveVoiceCall) ||
+                      awaitingSummaryValidation
                     }
                   >
                     {voiceConnecting
                       ? 'Conectando llamada…'
-                      : voiceConnected
-                        ? isFinalizingCall
-                          ? 'Cerrando llamada…'
-                          : 'Colgar y generar informe'
                       : hasCompletedVoiceInterview
                       ? 'Diagnóstico listo'
+                      : voiceConnected
+                      ? 'Llamada activa'
                       : voiceCallExhausted
                       ? 'Llamada agotada'
                       : hasEverStartedVoiceCall
@@ -1030,12 +1598,15 @@ export function InterviewModal({ isOpen, onClose }: Props) {
                     type="button"
                     className="summary-action-btn"
                     onClick={toggleCallPause}
-                    disabled={!voiceConnected || Boolean(voiceReport) || (pauseUsed && !voicePaused)}
+                    disabled={!voiceConnected || Boolean(voiceReport) || (pauseUsed && !voicePaused) || awaitingSummaryValidation}
                     title={pauseUsed ? 'Ya usaste la pausa única de esta llamada' : 'Pausar una vez'}
                   >
                     {voicePaused ? 'Reanudar' : pauseUsed ? 'Pausa usada' : 'Pausar (1 vez)'}
                   </button>
-                  {(voiceUserTranscript || voicePartialTranscript) && blockId ? (
+                </div>
+
+                <div className="voice-call-actions interview-call-actions interview-call-actions--secondary">
+                  {(voiceUserTranscript || voicePartialTranscript) && blockId && !awaitingSummaryValidation ? (
                     <button
                       type="button"
                       className="summary-action-btn summary-action-reject"
@@ -1049,7 +1620,7 @@ export function InterviewModal({ isOpen, onClose }: Props) {
                       type="button"
                       className="summary-action-btn summary-action-reject"
                       onClick={() => void finalizeCallAndGenerateReport('user')}
-                      disabled={isFinalizingCall || Boolean(voiceReport)}
+                      disabled={isFinalizingCall || Boolean(voiceReport) || awaitingSummaryValidation}
                     >
                       {isFinalizingCall ? 'Generando informe…' : 'Finalizar y generar informe'}
                     </button>
@@ -1072,7 +1643,7 @@ export function InterviewModal({ isOpen, onClose }: Props) {
                   </span>
                 </div>
 
-                {voiceError ? <p className="voice-call-error">{voiceError}</p> : null}
+                {voiceError ? <p className="voice-call-error interview-call-error-banner">{voiceError}</p> : null}
 
                 {(voiceConnected || voiceUserTranscript || voicePartialTranscript || voiceAgentTranscript) && (
                   <div className="voice-call-transcripts">
@@ -1089,11 +1660,17 @@ export function InterviewModal({ isOpen, onClose }: Props) {
               </section>
 
               {voiceReport && (
-                <section className="voice-call-shell">
+                <section className="voice-call-shell diagnosis-ready-shell">
                   <div className="voice-call-topbar">
                     <div>
+                      <span className="voice-call-brand">Financieramente</span>
                       <span className="voice-call-label">Informe ejecutivo</span>
                       <h1>Diagnóstico de la llamada</h1>
+                      <span className="voice-call-subtitle">Cierre consolidado de la entrevista senior</span>
+                    </div>
+                    <div className="voice-call-status">
+                      <span className="voice-call-status-dot" />
+                      Diagnóstico listo
                     </div>
                   </div>
                   <div className="voice-call-transcript-card">
@@ -1120,10 +1697,12 @@ export function InterviewModal({ isOpen, onClose }: Props) {
                   </div>
                 </section>
               )}
+              </div>
             </div>
           </div>
         )}
       </div>
+      )}
     </div>
   );
 }

@@ -4,8 +4,10 @@ import {
 } from '../orchestrator/interview.flow';
 import { IntakeQuestionnaire } from '@financial-agent/shared/src/intake/intake-questionnaire.types';
 import { complete } from '../services/llm.service';
-
-
+import {
+  buildInterviewContextDigest,
+  buildInterviewStrategicBrief,
+} from './interview-strategy';
 
 import { User } from '../schemas/user.schema';
 
@@ -29,6 +31,12 @@ export class InterviewerAgent {
     if (!block) return null;
 
     const name = user.name;
+    const contextDigest = buildInterviewContextDigest(intake);
+    const strategicBrief = buildInterviewStrategicBrief({
+      blockId,
+      intake,
+      answersInCurrentBlock,
+    });
 
     /**
      * ✅ ÚNICA CONDICIÓN DE SALUDO
@@ -74,23 +82,30 @@ export class InterviewerAgent {
      * ─────────────────────────────────────────────
      */
     const warmupPrompt = `
-Eres un entrevistador financiero experto, humano y elegante.
+Eres un entrevistador financiero senior, premium y muy observador.
 
 Tu tarea es:
-1. Saludar a ${name} de forma profesional y cercana.
-2. Hacer una observación personalizada muy breve pero que sea como un insight o dato que el talvez no sabia,  no preguntar sobre cosas que preguntaremos en la entrevista, que la pregunta sea ¿sabias? no como lleva su vida(maximo 30 palabras) (nombre, etapa de vida o contexto).
-
-
+1. Abrir con una sola línea breve, elegante y relajada para ${name}.
+2. Conectar con una observación útil tomada del intake, productos o presupuesto.
+3. Cerrar con una sola pregunta tipo "¿sabías...?" que active la conversación sin abrir demasiados temas.
 
 📋 CONTEXTO DEL USUARIO
-${JSON.stringify(intake, null, 2)}
+${JSON.stringify(strategicBrief.userSnapshot, null, 2)}
+
+📊 CONTEXTO PRODUCTOS/PRESUPUESTO
+${JSON.stringify(contextDigest, null, 2)}
+
+🎯 SEÑALES PRIORITARIAS
+${JSON.stringify(strategicBrief.prioritySignals, null, 2)}
 
 ────────────────────────
 REGLAS ESTRICTAS:
-- El saludo debe sentirse natural, no exagerado.
-- El dato curioso debe ser simple y humano, no académico.
-- No expliques lo que estás haciendo.
-- Termina siempre con UN ¿sabias?.
+- Máximo 28 palabras.
+- Debe sonar senior, claro y humano.
+- No expliques la metodología.
+- No hagas más de una pregunta.
+- No uses tono infantil ni motivacional.
+- Usa una observación concreta, no genérica.
 `.trim();
 
     /**
@@ -99,14 +114,14 @@ REGLAS ESTRICTAS:
      * ─────────────────────────────────────────────
      */
     const questionPrompt = `
-Eres un entrevistador financiero experto, humano y perceptivo.
+Eres un entrevistador financiero senior de altísimo nivel, humano, perceptivo y quirúrgico.
 
 No saludas.
 No te presentas.
 No usas el nombre del usuario.
 No haces introducciones.
 
-Tu tarea es formular UNA sola pregunta para este bloque.
+Tu tarea es formular UNA sola pregunta muy valiosa para este bloque.
 
 ────────────────────────
 🧩 BLOQUE
@@ -117,7 +132,13 @@ Objetivo: ${block.objective}
 ${block.signals.map((s) => `- ${s}`).join('\n')}
 
 📋 CONTEXTO (INTAKE)
-${JSON.stringify(intake, null, 2)}
+${JSON.stringify(strategicBrief.userSnapshot, null, 2)}
+
+📊 CONTEXTO DE PRODUCTOS Y PRESUPUESTO
+${JSON.stringify(contextDigest, null, 2)}
+
+🧠 BRIEF ESTRATÉGICO
+${JSON.stringify(strategicBrief, null, 2)}
 
 🗣 RESPUESTAS PREVIAS:
 ${
@@ -137,19 +158,24 @@ REGLAS:
    - dilo con respeto
    - explica brevemente por qué necesitas más contexto
    - cambia completamente el enfoque.
-6. Las preguntas deben ser MUY distintas entre sí
-   (emocional, narrativa, hipotética, práctica, contraste).
-7. No recomiendes acciones.
-8. No expliques tu proceso.
-9. Si ya es suficiente, responde EXACTAMENTE: CLOSE
+6. Prioriza preguntas que crucen intake con presupuesto, productos, deuda, liquidez o hábitos reales.
+7. Las preguntas deben ser MUY distintas entre sí
+   (conductual, narrativa, práctica, tensión, trade-off, consistencia).
+8. Debe sonar como entrevista ejecutiva, no como formulario.
+9. No recomiendes acciones.
+10. No expliques tu proceso.
+11. Usa el brief estratégico para entrar por la tensión más valiosa, no por la más obvia.
+12. Si ya es suficiente, responde EXACTAMENTE: CLOSE
 `.trim();
 
     const prompt = isWarmupGreeting ? warmupPrompt : questionPrompt;
 
     const out = await complete(prompt, {
       systemPrompt:
-        'Eres un entrevistador financiero empático, humano y muy observador.',
+        'Eres un entrevistador financiero senior, elegante, incisivo y muy observador.',
       temperature: 0.55,
+      model: process.env.OPENAI_MODEL_INTERVIEW_WRITER ?? 'gpt-5-mini',
+      maxCompletionTokens: 180,
     });
 
     const cleaned = (out ?? '').trim();
@@ -204,6 +230,8 @@ return complete(prompt, {
   systemPrompt:
     'Eres un entrevistador financiero empático que habla poco y claro.',
   temperature: 0.4,
+  model: process.env.OPENAI_MODEL_INTERVIEW_SUMMARIZER ?? 'gpt-5-mini',
+  maxCompletionTokens: 120,
 });
 
   }

@@ -30,6 +30,7 @@ const FinancialKnowledgeChecklistSchema = z.object({
 
 const IntakeRequestSchema = z.object({
   age: z.number().optional(),
+  city: z.string().trim().min(1).max(120).optional(),
   employmentStatus: z.enum([
     'employed',
     'freelance',

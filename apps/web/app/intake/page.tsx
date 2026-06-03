@@ -28,6 +28,7 @@ const INTAKE_STEPS = [
 
 const INITIAL_FORM: IntakeQuestionnaire = {
   age: undefined,
+  city: '',
   employmentStatus: 'employed',
   profession: '',
   incomeBand: '600k-1M',

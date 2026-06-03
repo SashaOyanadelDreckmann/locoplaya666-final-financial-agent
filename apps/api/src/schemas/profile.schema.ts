@@ -113,6 +113,28 @@ export interface FinancialProfileTraits {
   coherenceScore: number;
 }
 
+export interface DiagnosticEditorialScore {
+  id: string;
+  label: string;
+  value: number;
+  tone: 'critical' | 'watch' | 'strong';
+  caption: string;
+}
+
+export interface DiagnosticEditorialDatum {
+  label: string;
+  value: number;
+}
+
+export interface DiagnosticEditorialLayer {
+  headline: string;
+  dek: string;
+  keySignals: string[];
+  scorecard: DiagnosticEditorialScore[];
+  cashflowBuckets: DiagnosticEditorialDatum[];
+  pressurePoints: DiagnosticEditorialDatum[];
+}
+
 /* ────────────────────────────── */
 /* Diagnóstico financiero final   */
 /* ────────────────────────────── */
@@ -164,4 +186,9 @@ export interface FinancialDiagnosticProfile {
    * Input directo para agentes de seguimiento.
    */
   openQuestions: string[];
+
+  /**
+   * Capa editorial para visualización premium.
+   */
+  editorial?: DiagnosticEditorialLayer;
 }

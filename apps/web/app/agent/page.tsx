@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from 'next/navigation';
 import React, { useEffect, useMemo, useRef, useState, type ReactElement, type ReactNode } from 'react';
+import { Send } from 'lucide-react';
 import 'katex/dist/katex.min.css';
 
 import { getSessionId } from '@/lib/session';
@@ -19,6 +20,7 @@ import {
   saveSheets,
   loadPanelState,
   savePanelState,
+  deletePdfArtifact,
   getWelcomeMessage,
   parseDocuments,
   mergeProductsContextToIntake,
@@ -75,6 +77,15 @@ type SavedReport = {
   createdAt: string;
 };
 
+type SavedReportLike = {
+  id: string;
+  title: string;
+  fileUrl: string;
+  previewImageUrl?: string;
+  group?: string;
+  createdAt?: string;
+};
+
 type BudgetRow = {
   id: string;
   category: string;
@@ -84,7 +95,6 @@ type BudgetRow = {
   product?: string;
   institution?: string;
   note?: string;
-  detail?: string;
   cadence?: 'fixed' | 'variable' | 'oneoff';
   paymentMethod?: 'transfer' | 'debit' | 'credit' | 'cash' | 'prepaid' | 'other';
   movementType?:
@@ -156,8 +166,10 @@ type BankProduct = {
       expense_to_income_ratio?: number;
       table_rows_processed?: number;
       movement_coverage_pct?: number;
+      avg_category_confidence?: number;
     };
     topCategories?: Array<{ name: string; amount: number }>;
+    topMerchants?: Array<{ merchant: string; category: string; amount: number; tx_count: number }>;
     categoryExamples?: Array<{ name: string; amount: number; examples: string[] }>;
     spendClusters?: Array<{
       name: string;
@@ -179,6 +191,11 @@ type BankProduct = {
       amount: number;
       direction: 'expense' | 'income';
       source_line?: string;
+      category?: string;
+      merchant?: string;
+      category_confidence?: number;
+      confidence?: number;
+      source_kind?: 'table' | 'line';
     }>;
     summary?: string;
   };
@@ -190,10 +207,25 @@ type CanonicalMovement = {
   amount: number;
   direction: 'expense' | 'income';
   source_line?: string;
+  category?: string;
+  merchant?: string;
+  category_confidence?: number;
+  confidence?: number;
+  source_kind?: 'table' | 'line';
+};
+
+type TransactionTaxonomyOverride = {
+  id: string;
+  matchKey: string;
+  matchLabel: string;
+  merchant: string;
+  category: string;
+  updatedAt: string;
 };
 
 type BankSimulation = {
   products: BankProduct[];
+  taxonomyOverrides: TransactionTaxonomyOverride[];
   activeProductId: string | null;
   lockedMonth: string | null;
   connected: boolean;
@@ -375,8 +407,8 @@ function canonicalBudgetRowId(id: string) {
 }
 
 function normalizeBudgetRow(row: BudgetRow): BudgetRow {
-  const normalizedId = canonicalBudgetRowId(row.id);
-  return normalizedId === row.id ? row : { ...row, id: normalizedId };
+  const { id, ...rest } = row;
+  return { ...rest, id: canonicalBudgetRowId(id) };
 }
 
 function normalizeProductAssistantState(raw: Partial<NonNullable<BankProduct['assistant']>> | undefined) {
@@ -397,8 +429,36 @@ function normalizeProductAssistantState(raw: Partial<NonNullable<BankProduct['as
   };
 }
 
+function normalizeTaxonomyKey(value: unknown): string {
+  return String(value ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\b(compra|pago|cargo|abono|transferencia|debito|credito|webpay|pos|tef|visa|mastercard|trx)\b/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function normalizeTransactionTaxonomyOverride(raw: unknown): TransactionTaxonomyOverride | null {
+  const value = raw as Partial<TransactionTaxonomyOverride> | null | undefined;
+  const matchKey = normalizeTaxonomyKey(value?.matchKey ?? value?.matchLabel ?? value?.merchant);
+  const category = String(value?.category ?? '').trim();
+  const merchant = String(value?.merchant ?? '').trim();
+  if (!matchKey || !category || !merchant) return null;
+  return {
+    id: String(value?.id ?? `${matchKey}:${category}`).trim(),
+    matchKey,
+    matchLabel: String(value?.matchLabel ?? merchant).trim() || merchant,
+    merchant,
+    category,
+    updatedAt: typeof value?.updatedAt === 'string' ? value.updatedAt : new Date().toISOString(),
+  };
+}
+
 const DEFAULT_BANK_SIMULATION: BankSimulation = {
   products: [],
+  taxonomyOverrides: [],
   activeProductId: null,
   lockedMonth: null,
   connected: false,
@@ -706,6 +766,7 @@ export default function AgentPage() {
       typeof intake?.hasSavingsOrInvestments === 'boolean' ? intake.hasSavingsOrInvestments : null;
     const hasDebt = typeof intake?.hasDebt === 'boolean' ? intake.hasDebt : null;
     const incomeBand = typeof intake?.incomeBand === 'string' ? intake.incomeBand : '';
+    const city = typeof intake?.city === 'string' ? intake.city.trim() : '';
 
     let read = 'hay base para ordenar mejor tu mapa financiero.';
     if (hasSavings === false && hasDebt === false) {
@@ -717,11 +778,12 @@ export default function AgentPage() {
     }
 
     const incomeHint = incomeBand ? ` Tu tramo de ingresos declarado es ${incomeBand}.` : '';
+    const cityHint = city ? ` Estás operando desde ${city}.` : '';
 
     return [
       `# Informe inicial de diagnóstico`,
       ``,
-      `${firstName}, ${read}${incomeHint}`,
+      `${firstName}, ${read}${cityHint}${incomeHint}`,
       ``,
       `## Marco de trabajo`,
       `Este espacio convierte información financiera dispersa en un diagnóstico claro, verificable y accionable.`,
@@ -834,6 +896,7 @@ export default function AgentPage() {
   const [txCreationNotice, setTxCreationNotice] = useState<string | null>(null);
   const [savedProductsForBatch, setSavedProductsForBatch] = useState<string[]>([]);
   const [savedReports, setSavedReports] = useState<SavedReport[]>([]);
+  const [deletingReportIds, setDeletingReportIds] = useState<Record<string, boolean>>({});
   const [budgetRows, setBudgetRows] = useState<BudgetRow[]>([]);
   const [budgetChatAnswers, setBudgetChatAnswers] = useState<Array<{ q: string; a: string }>>([]);
   const [bankSimulation, setBankSimulation] = useState<BankSimulation>(DEFAULT_BANK_SIMULATION);
@@ -1519,6 +1582,7 @@ export default function AgentPage() {
           ...product,
           randomMode: false,
         })),
+        taxonomyOverrides: bankSimulation.taxonomyOverrides,
         activeProductId: bankSimulation.activeProductId,
         lockedMonth: bankSimulation.lockedMonth,
         connected: bankSimulation.connected,
@@ -1567,6 +1631,25 @@ export default function AgentPage() {
       setAccountActionError('No se pudo cerrar sesión. Inténtalo nuevamente.');
     } finally {
       setIsAccountActionLoading(false);
+    }
+  }
+
+  async function handleDeleteReport(report: SavedReportLike) {
+    if (deletingReportIds[report.id]) return;
+    const confirmed = window.confirm(`¿Eliminar "${report.title}"? Esta acción no se puede deshacer.`);
+    if (!confirmed) return;
+
+    setDeletingReportIds((current) => ({ ...current, [report.id]: true }));
+    try {
+      await deletePdfArtifact({ fileUrl: report.fileUrl, previewImageUrl: report.previewImageUrl });
+      setSavedReports((current) => current.filter((item) => item.id !== report.id));
+      setNewReportId((current) => (current === report.id ? null : current));
+    } finally {
+      setDeletingReportIds((current) => {
+        const next = { ...current };
+        delete next[report.id];
+        return next;
+      });
     }
   }
 
@@ -2056,7 +2139,9 @@ export default function AgentPage() {
       readinessScore,
       nextAction,
       risingExpenseCount: budgetRows.filter((row) => row.type === 'expense' && row.momentum === 'up').length,
-      optimizePotential: budgetRows.filter((row) => row.type === 'expense' && row.strategy === 'optimize').length,
+      optimizePotential: budgetRows
+        .filter((row) => row.type === 'expense' && row.strategy === 'optimize')
+        .reduce((sum, row) => sum + Math.max(0, Number(row.amount) || 0), 0),
     };
   }, [budgetInsights.healthScore, budgetRows, budgetTotals.balance]);
 
@@ -2433,6 +2518,11 @@ export default function AgentPage() {
                     };
                   })
                 : prev.products;
+              const taxonomyOverrides = Array.isArray((panelState.bankSimulation as any).taxonomyOverrides)
+                ? ((panelState.bankSimulation as any).taxonomyOverrides as unknown[])
+                    .map(normalizeTransactionTaxonomyOverride)
+                    .filter((item): item is TransactionTaxonomyOverride => Boolean(item))
+                : prev.taxonomyOverrides;
               const requestedActiveProductId =
                 typeof panelState.bankSimulation.activeProductId === 'string'
                   ? panelState.bankSimulation.activeProductId
@@ -2446,6 +2536,7 @@ export default function AgentPage() {
               return {
                 ...prev,
                 products,
+                taxonomyOverrides,
                 activeProductId,
                 lockedMonth:
                   typeof panelState.bankSimulation.lockedMonth === 'string'
@@ -2514,6 +2605,11 @@ export default function AgentPage() {
                           };
                         })
                       : prev.products;
+                    const taxonomyOverrides = Array.isArray((panelState.bankSimulation as any).taxonomyOverrides)
+                      ? ((panelState.bankSimulation as any).taxonomyOverrides as unknown[])
+                          .map(normalizeTransactionTaxonomyOverride)
+                          .filter((item): item is TransactionTaxonomyOverride => Boolean(item))
+                      : prev.taxonomyOverrides;
                     const requestedActiveProductId =
                       typeof panelState.bankSimulation.activeProductId === 'string'
                         ? panelState.bankSimulation.activeProductId
@@ -2527,6 +2623,7 @@ export default function AgentPage() {
                     return {
                       ...prev,
                       products,
+                      taxonomyOverrides,
                       activeProductId,
                       lockedMonth:
                         typeof panelState.bankSimulation.lockedMonth === 'string'
@@ -3567,6 +3664,30 @@ export default function AgentPage() {
     });
   }
 
+  function upsertTransactionTaxonomyOverride(override: TransactionTaxonomyOverride) {
+    const normalized = normalizeTransactionTaxonomyOverride(override);
+    if (!normalized) return;
+    setBankSimulation((prev) => {
+      const nextOverrides = [
+        normalized,
+        ...prev.taxonomyOverrides.filter((item) => item.matchKey !== normalized.matchKey),
+      ].slice(0, 400);
+      return {
+        ...prev,
+        taxonomyOverrides: nextOverrides,
+      };
+    });
+  }
+
+  function removeTransactionTaxonomyOverride(matchKey: string) {
+    const normalizedKey = normalizeTaxonomyKey(matchKey);
+    if (!normalizedKey) return;
+    setBankSimulation((prev) => ({
+      ...prev,
+      taxonomyOverrides: prev.taxonomyOverrides.filter((item) => item.matchKey !== normalizedKey),
+    }));
+  }
+
   function deleteTransactionProduct(productId: string) {
     setBankSimulation((prev) => {
       const products = prev.products.filter((p) => p.id !== productId);
@@ -3689,8 +3810,10 @@ export default function AgentPage() {
                 net_flow: number;
                 avg_movement: number;
                 movement_count: number;
+                avg_category_confidence?: number;
               };
               top_categories?: Array<{ name: string; amount: number }>;
+              top_merchants?: Array<{ merchant: string; category: string; amount: number; tx_count: number }>;
               category_examples?: Array<{ name: string; amount: number; examples: string[] }>;
               spend_clusters?: Array<{
                 name: string;
@@ -3721,6 +3844,11 @@ export default function AgentPage() {
               amount: number;
               direction: 'expense' | 'income';
               source_line?: string;
+              category?: string;
+              merchant?: string;
+              category_confidence?: number;
+              confidence?: number;
+              source_kind?: 'table' | 'line';
             }>;
           }
         | undefined;
@@ -3790,6 +3918,7 @@ export default function AgentPage() {
                       currency: profile.currency,
                       keyMetrics: profile.key_metrics,
                       topCategories: profile.top_categories,
+                      topMerchants: profile.top_merchants,
                       categoryExamples: profile.category_examples,
                       spendClusters: profile.spend_clusters,
                       topExpenses: profile.top_expenses,
@@ -3824,6 +3953,7 @@ export default function AgentPage() {
               currency: transactionAnalysis.product_profile.currency,
               keyMetrics: transactionAnalysis.product_profile.key_metrics,
               topCategories: transactionAnalysis.product_profile.top_categories,
+              topMerchants: transactionAnalysis.product_profile.top_merchants,
               categoryExamples: transactionAnalysis.product_profile.category_examples,
               spendClusters: transactionAnalysis.product_profile.spend_clusters,
               topExpenses: transactionAnalysis.product_profile.top_expenses,
@@ -4280,11 +4410,13 @@ export default function AgentPage() {
     reportsByGroup,
     librarySummary,
     savedReports,
+    deletingReportIds,
     recentLibraryRef,
     isLandingRecents,
     recentReports,
     newReportId,
     docVisualOffset,
+    handleDeleteReport,
   });
 
   const compactPanelCards = panelBaseCards;
@@ -4406,6 +4538,7 @@ export default function AgentPage() {
             setSavedReports={setSavedReports}
             launchDocToLibraryAnimation={launchDocToLibraryAnimation}
             onPanelAction={openPanelSectionFromChat}
+            flowPanelAction={getNextFlowPanelAction()}
           />
 
           <div className="agent-input-shell terminal-composer-shell">
@@ -4480,17 +4613,14 @@ export default function AgentPage() {
 
               <button
                 type="button"
-                className="continue-button composer-icon-btn composer-send-btn"
+                className="composer-send-btn"
                 disabled={isActiveChatLocked}
                 onClick={() => {
                   void onSend(chatComposerRef.current?.value ?? input);
                 }}
                 aria-label="Enviar mensaje"
               >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path d="M5 12h12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
-                  <path d="M13 6l6 6-6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
+                <Send size={18} strokeWidth={1.8} aria-hidden="true" />
               </button>
             </div>
           </div>
@@ -4611,6 +4741,9 @@ export default function AgentPage() {
         deleteTransactionProduct={deleteTransactionProduct}
         addTransactionProduct={addTransactionProduct}
         updateActiveProduct={updateActiveProduct}
+        transactionTaxonomyOverrides={bankSimulation.taxonomyOverrides}
+        upsertTransactionTaxonomyOverride={upsertTransactionTaxonomyOverride}
+        removeTransactionTaxonomyOverride={removeTransactionTaxonomyOverride}
         simulateBankLogin={simulateBankLogin}
         onUploadStatement={onUploadStatement}
         documentsLoading={documentsLoading}

@@ -1,9 +1,17 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type CSSProperties } from 'react';
-import { getApiBaseUrl } from '@/lib/apiBase';
 import { getCsrfToken } from '@/lib/csrf';
 import { CHILE_FINANCIAL_INSTITUTIONS, FINANCIAL_SERVICE_OPTIONS } from '@/lib/financialCatalog';
 import { BudgetIntelligenceTable } from '@/components/ui/budget-intelligence-table';
 import ModalNumbersCanvas from '@/components/agent/ModalNumbersCanvas';
+import {
+  RETRO_CHART_COLORS,
+  RETRO_CHART_NEGATIVE,
+  RETRO_GRID,
+  RETRO_TICK,
+  RETRO_TOOLTIP_STYLE,
+  RetroBarShape,
+  RetroDot,
+} from '@/components/ui/retro-chart';
 import {
   ResponsiveContainer,
   BarChart,
@@ -18,14 +26,6 @@ import {
   Legend,
 } from 'recharts';
 
-const darkTooltipStyle = {
-  background: 'rgba(10,14,20,0.95)',
-  border: '1px solid rgba(255,255,255,0.18)',
-  borderRadius: 10,
-  color: '#ffffff',
-};
-const TX_SECONDARY_COLORS = ['#425d7d', '#8ea7bf', '#c6a052', '#823232'];
-
 type BudgetRow = {
   id: string;
   category: string;
@@ -34,7 +34,6 @@ type BudgetRow = {
   product?: string;
   institution?: string;
   note?: string;
-  detail?: string;
   cadence?: 'fixed' | 'variable' | 'oneoff';
   paymentMethod?: 'transfer' | 'debit' | 'credit' | 'cash' | 'prepaid' | 'other';
   movementType?:
@@ -149,9 +148,11 @@ function buildEditorialSummaryBlocks(text: string | null | undefined) {
 function EditorialSummary({
   text,
   compact = false,
+  onBlockDoubleClick,
 }: {
   text: string | null | undefined;
   compact?: boolean;
+  onBlockDoubleClick?: (payload: { kicker?: string | null; body: string }) => void;
 }) {
   const blocks = buildEditorialSummaryBlocks(text);
   if (blocks.length === 0) return null;
@@ -160,7 +161,9 @@ function EditorialSummary({
       {blocks.map((block, index) => (
         <article
           key={`${block.kicker ?? 'block'}-${index}`}
-          className={`tx-summary-editorial-block${block.lead ? ' is-lead' : ''}`}
+          className={`tx-summary-editorial-block${block.lead ? ' is-lead' : ''}${onBlockDoubleClick ? ' is-refinable' : ''}`}
+          onDoubleClick={() => onBlockDoubleClick?.({ kicker: block.kicker, body: block.body })}
+          title={onBlockDoubleClick ? 'Doble clic para reanalizar este hallazgo' : undefined}
         >
           {block.kicker ? <span className="tx-summary-editorial-kicker">{block.kicker}</span> : null}
           <p className="tx-summary-editorial-body">{block.body}</p>
@@ -186,6 +189,14 @@ function confidenceBand(value: number | null | undefined) {
   const numeric = Number(value ?? 0);
   if (numeric >= 0.92) return 'Alta';
   if (numeric >= 0.8) return 'Media';
+  return 'Baja';
+}
+
+function confidenceBandLong(value: number | null | undefined) {
+  const numeric = Number(value ?? 0);
+  if (numeric >= 0.92) return 'Alta';
+  if (numeric >= 0.8) return 'Media';
+  if (numeric >= 0.65) return 'Mixta';
   return 'Baja';
 }
 
@@ -370,6 +381,13 @@ export function BudgetModal(props: {
     });
   };
   const activeQuestion = assistantQuestion ?? '…';
+  const transcriptRows = props.chatAnswers
+    .slice(-6)
+    .flatMap((entry, index) => [
+      { key: `assistant-${index}`, role: 'assistant' as const, text: String(entry.q ?? '').trim() },
+      { key: `user-${index}`, role: 'user' as const, text: String(entry.a ?? '').trim() },
+    ])
+    .filter((entry) => entry.text.length > 0);
   const activeStyleIndex = BUDGET_TABLE_STYLES.findIndex((style) => style.id === budgetTableStyle);
   const activeStyleLabel = BUDGET_TABLE_STYLES[Math.max(0, activeStyleIndex)]?.label ?? 'Nocturno';
   const completedRowsCount = props.budgetCompletion.filledRows.length;
@@ -494,6 +512,29 @@ export function BudgetModal(props: {
     return String(question ?? '').trim();
   }
 
+  function buildAssistantVisibleText(payload: {
+    assistant_reply?: string;
+    assistant_text?: string;
+    next_question?: string | null;
+  }) {
+    const assistantReply =
+      typeof payload.assistant_reply === 'string' && payload.assistant_reply.trim()
+        ? payload.assistant_reply.trim()
+        : '';
+    const assistantText =
+      typeof payload.assistant_text === 'string' && payload.assistant_text.trim()
+        ? payload.assistant_text.trim()
+        : '';
+    const nextQuestion =
+      typeof payload.next_question === 'string' && payload.next_question.trim()
+        ? payload.next_question.trim()
+        : '';
+    if (assistantText) return assistantText;
+    return [assistantReply, nextQuestion]
+      .filter((item, index, items) => item && (index === 0 || normalizeBudgetText(item) !== normalizeBudgetText(items[index - 1] ?? '')))
+      .join('\n');
+  }
+
   useEffect(() => {
     if (activeBudgetRowId && !props.budgetRows.some((row) => row.id === activeBudgetRowId)) {
       setActiveBudgetRowId(null);
@@ -514,54 +555,37 @@ export function BudgetModal(props: {
       ],
       { duration: 650, easing: 'ease-out' },
     );
-  }, [assistantBudgetRowId, props.budgetRows]);
+  }, [assistantBudgetRowId]);
 
   function focusBudgetRow(rowId: string) {
-    const row = props.budgetRows.find((r) => r.id === rowId) ?? null;
-    const contextualQuestion = (() => {
-      if (!row) return null;
-      if (
-        row.id === 'income_salary' ||
-        row.id === 'expense_rent' ||
-        row.id === 'expense_food' ||
-        row.id === 'expense_transport' ||
-        row.id === 'expense_services' ||
-        row.id === 'expense_debt' ||
-        row.id === 'expense_savings' ||
-        row.id === 'expense_other'
-      ) {
-        return budgetQuestionForId(row.id);
-      }
-      if (row.type === 'income') {
-        return `Para el movimiento "${row.category}", ¿cuál es el monto mensual actual?`;
-      }
-      return buildRefinementPromptForRow(row);
-    })();
-    setAssistantBudgetRowId(rowId);
     setActiveBudgetRowId(rowId);
-    if (contextualQuestion) setAssistantQuestion(contextualQuestion);
-    window.setTimeout(() => {
-      document.getElementById(`budget-row-${rowId}`)?.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center',
-      });
-    }, 0);
   }
 
   function applyBudgetAction(action: Record<string, unknown> | null | undefined) {
     if (!action || typeof action !== 'object') return;
-    const kind = action.kind;
-    const rowId = String(action.id ?? '').trim();
-    const rowType = action.type === 'income' ? 'income' : action.type === 'expense' ? 'expense' : null;
-    const amount = Math.max(0, Math.round(Number(action.amount ?? 0)));
-    const category = String(action.category ?? '').trim();
-    const detail = String(action.detail ?? '').trim();
+    let kind = action.kind;
+    const rowId = normalizeActionRowId(action.id);
+    const existingRow =
+      rowId ? props.budgetRows.find((row) => normalizeActionRowId(row.id) === rowId) ?? null : null;
+    const rowType =
+      action.type === 'income'
+        ? 'income'
+        : action.type === 'expense'
+          ? 'expense'
+          : existingRow?.type ?? null;
+    const amount =
+      action.amount === undefined
+        ? existingRow?.amount ?? 0
+        : Math.max(0, Math.round(Number(action.amount ?? 0)));
+    const category = String(action.category ?? existingRow?.category ?? '').trim();
     const cadence =
       action.cadence === 'fixed' || action.cadence === 'variable'
         ? action.cadence
         : action.cadence === 'oneoff'
           ? 'variable'
-          : undefined;
+          : existingRow?.cadence === 'fixed' || existingRow?.cadence === 'variable'
+            ? existingRow.cadence
+            : undefined;
     const paymentMethod =
       action.payment_method === 'transfer' ||
       action.payment_method === 'debit' ||
@@ -577,7 +601,7 @@ export function BudgetModal(props: {
             action.paymentMethod === 'prepaid' ||
             action.paymentMethod === 'other'
           ? action.paymentMethod
-          : undefined;
+          : existingRow?.paymentMethod;
     const movementType =
       action.movement_type === 'income_main' ||
       action.movement_type === 'income_extra' ||
@@ -605,24 +629,27 @@ export function BudgetModal(props: {
             action.movementType === 'taxes_fees' ||
             action.movementType === 'leisure_other'
           ? action.movementType
-          : undefined;
+          : existingRow?.movementType;
     if (!rowId) return;
+    const existingRowIds = new Set(props.budgetRows.map((row) => normalizeActionRowId(row.id)).filter(Boolean));
+    const rowExists = existingRowIds.has(rowId);
 
     if (kind === 'delete') {
+      if (!rowExists) return;
       props.deleteBudgetRow(rowId);
       if (activeBudgetRowId === rowId) setActiveBudgetRowId(null);
       return;
     }
     if (kind !== 'add' && kind !== 'update') return;
     if (!rowType || !category) return;
+    if (kind === 'update' && !rowExists) return;
+    if (kind === 'add' && rowExists) kind = 'update';
 
-    const canonicalId = rowId.replace(/^expense[-_]custom[-_]?/i, 'expense-custom-');
     const row: BudgetRow = {
-      id: canonicalId,
+      id: rowId,
       type: rowType,
       category,
       amount,
-      detail: detail || undefined,
       cadence,
       paymentMethod,
       movementType,
@@ -750,6 +777,43 @@ export function BudgetModal(props: {
     return payload as T;
   }
 
+  type BudgetChatApiPayload = {
+    ok?: boolean;
+    error?: string;
+    detail?: string;
+    next_question?: string;
+    focus_row_id?: string | null;
+    coach_message?: string;
+    assistant_reply?: string;
+    assistant_text?: string;
+    done?: boolean;
+    actions?: Array<Record<string, unknown>>;
+    action?: Record<string, unknown>;
+  };
+
+  function isBudgetChatAbortError(error: unknown): boolean {
+    return error instanceof DOMException && error.name === 'AbortError';
+  }
+
+  function createBudgetChatHttpError(status: number, payload: BudgetChatApiPayload | null) {
+    const detail = typeof payload?.error === 'string' ? payload.error : typeof payload?.detail === 'string' ? payload.detail : '';
+    return new Error(`HTTP ${status}${detail ? ` ${detail}` : ''}`);
+  }
+
+  function budgetChatErrorMessage(error: unknown): string {
+    const message = error instanceof Error ? error.message : '';
+    if (message.includes('HTTP 401')) {
+      return 'Sesion expirada o no iniciada. Vuelve a entrar para usar el asistente.';
+    }
+    if (message.includes('HTTP 429')) {
+      return 'Demasiadas solicitudes al asistente. Espera un momento e intenta otra vez.';
+    }
+    if (message.includes('HTTP 5')) {
+      return 'El servicio del asistente no esta disponible ahora. Intenta nuevamente en unos segundos.';
+    }
+    return 'No se pudo conectar con el asistente. No se aplicaron cambios automaticos.';
+  }
+
   async function handleBudgetAgentReplySubmit() {
     const answer = budgetReply.trim();
     if (!answer || isAskingAI) return;
@@ -771,7 +835,7 @@ export function BudgetModal(props: {
         setIsAskingAI(false);
       }, 12000);
       const csrfToken = getCsrfToken();
-      const res = await fetch(`${getApiBaseUrl()}/api/budget-chat`, {
+      const res = await fetch('/api/budget-chat', {
         method: 'POST',
         signal: replyAbortRef.current.signal,
         headers: {
@@ -793,7 +857,6 @@ export function BudgetModal(props: {
                     category: activeBudgetRow.category,
                     type: activeBudgetRow.type,
                     amount: activeBudgetRow.amount,
-                    detail: activeBudgetRow.detail ?? null,
                     product: activeBudgetRow.product ?? null,
                     institution: activeBudgetRow.institution ?? null,
                     cadence: activeBudgetRow.cadence ?? null,
@@ -807,30 +870,16 @@ export function BudgetModal(props: {
             intakeData: props.sessionInfo?.injectedIntake?.intake ?? null,
           }),
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const raw = await res.json();
-      const payload = unwrapApiData<{
-        ok?: boolean;
-        actions?: Array<Record<string, unknown>>;
-        action?: Record<string, unknown>;
-        done?: boolean;
-        next_question?: string;
-        focus_row_id?: string | null;
-        coach_message?: string;
-        assistant_reply?: string;
-      }>(raw);
+      const raw = (await res.json()) as BudgetChatApiPayload;
+      if (!res.ok) throw createBudgetChatHttpError(res.status, raw);
+      const payload = unwrapApiData<BudgetChatApiPayload>(raw);
       if (payload) {
         const rawActions = payload.actions ?? (payload.action ? [payload.action] : []);
         const lastTouchedRowId = applyBudgetActions(rawActions);
         setConversationDone(Boolean(payload.done));
         setAssistantCoachMessage(typeof payload.coach_message === 'string' ? payload.coach_message : null);
         const explicitFocus = normalizeActionRowId(payload.focus_row_id);
-        const replyText =
-          typeof payload.assistant_reply === 'string' && payload.assistant_reply.trim()
-            ? payload.assistant_reply.trim()
-            : typeof payload.next_question === 'string'
-              ? payload.next_question.trim()
-              : '';
+        const replyText = buildAssistantVisibleText(payload);
         if (replyText) {
           const safeQuestion = sanitizeBudgetQuestion(replyText);
           const nextQuestion =
@@ -847,11 +896,12 @@ export function BudgetModal(props: {
         setAssistantBudgetRowId(inferBudgetFocusRowId(fallbackNextQuestion));
         setAssistantCoachMessage(null);
       }
-    } catch {
+    } catch (error) {
+      if (isBudgetChatAbortError(error)) return;
       setAssistantQuestion(fallbackNextQuestion);
       setAssistantBudgetRowId(inferBudgetFocusRowId(fallbackNextQuestion));
       setAssistantCoachMessage(null);
-      setAiError('Sin conexión con IA — fila guardada con categoría estimada.');
+      setAiError(budgetChatErrorMessage(error));
     } finally {
       if (askingWatchdogRef.current) {
         clearTimeout(askingWatchdogRef.current);
@@ -874,7 +924,7 @@ export function BudgetModal(props: {
   // On open: reset conversation and fetch first personalized question from AI
   useEffect(() => {
     if (!props.isOpen) return;
-    setBudgetViewMode(1);
+    setBudgetViewMode(window.innerWidth >= 1024 ? 2 : 1);
     const budgetRowsForInit = props.budgetRows.slice(0, 30);
     setBudgetReply('');
     setConversationDone(false);
@@ -892,7 +942,7 @@ export function BudgetModal(props: {
     void (async () => {
       try {
         const csrfToken = getCsrfToken();
-        const res = await fetch(`${getApiBaseUrl()}/api/budget-chat`, {
+        const res = await fetch('/api/budget-chat', {
           method: 'POST',
           signal: initSignal,
           headers: {
@@ -912,7 +962,6 @@ export function BudgetModal(props: {
                     category: activeBudgetRow.category,
                     type: activeBudgetRow.type,
                     amount: activeBudgetRow.amount,
-                    detail: activeBudgetRow.detail ?? null,
                     product: activeBudgetRow.product ?? null,
                     institution: activeBudgetRow.institution ?? null,
                     cadence: activeBudgetRow.cadence ?? null,
@@ -926,14 +975,10 @@ export function BudgetModal(props: {
             intakeData: props.sessionInfo?.injectedIntake?.intake ?? null,
           }),
         });
-        const raw = res.ok ? await res.json() : null;
-        const payload = unwrapApiData<{
-          next_question?: string;
-          focus_row_id?: string | null;
-          coach_message?: string;
-          assistant_reply?: string;
-        }>(raw);
-        const initReply = payload?.assistant_reply || payload?.next_question || '';
+        const raw = (await res.json()) as BudgetChatApiPayload;
+        if (!res.ok) throw createBudgetChatHttpError(res.status, raw);
+        const payload = unwrapApiData<BudgetChatApiPayload>(raw);
+        const initReply = buildAssistantVisibleText(payload ?? {});
         if (initReply) {
           const safeQuestion = sanitizeBudgetQuestion(initReply);
           const nextQuestion =
@@ -949,10 +994,11 @@ export function BudgetModal(props: {
           setAssistantCoachMessage(null);
         }
       } catch (err) {
-        if (err instanceof DOMException && err.name === 'AbortError') return;
+        if (isBudgetChatAbortError(err)) return;
         setAssistantQuestion(budgetQuestionForId('income_salary'));
         setAssistantBudgetRowId('income_salary');
         setAssistantCoachMessage(null);
+        setAiError(budgetChatErrorMessage(err));
       } finally {
         if (!initSignal.aborted) setIsInitializing(false);
       }
@@ -1203,10 +1249,18 @@ export function BudgetModal(props: {
                     <p className="bcc-hero-done">✓ Presupuesto completo — puedes ajustar la tabla cuando quieras.</p>
                   )}
                   {assistantCoachMessage && <p className="bcc-hero-coach">{assistantCoachMessage}</p>}
-                  {props.coachHint && !assistantCoachMessage && !conversationDone && (
-                    <p className="bcc-hero-tip">{props.coachHint}</p>
-                  )}
                 </div>
+
+                {transcriptRows.length > 0 && (
+                  <div className="budget-chat-log" aria-label="Historial de conversación">
+                    {transcriptRows.map((entry) => (
+                      <div key={entry.key} className="budget-chat-log-row">
+                        <strong>{entry.role === 'assistant' ? 'Asistente' : 'Tú'}</strong>
+                        <span>{entry.text}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 <div className="bcc-hero-input-wrap">
                   <input
@@ -1455,6 +1509,15 @@ type BankProduct = {
   };
 };
 
+type TransactionTaxonomyOverride = {
+  id: string;
+  matchKey: string;
+  matchLabel: string;
+  merchant: string;
+  category: string;
+  updatedAt: string;
+};
+
 type UploadStatementResult = {
   documents: Array<{
     name: string;
@@ -1525,6 +1588,59 @@ const ALL_PRODUCT_TEMPLATES: Array<{
   (item, idx, arr) => arr.findIndex((other) => other.label.toLowerCase() === item.label.toLowerCase()) === idx
 );
 
+const TX_CATEGORY_OPTIONS = [
+  'Supermercado',
+  'Delivery',
+  'Comida rapida',
+  'Restaurantes y Cafe',
+  'Retail y Marketplace',
+  'Hogar y Mejoramiento',
+  'Telecomunicaciones',
+  'Servicios Basicos',
+  'Combustible y Estacion',
+  'Transporte y Movilidad',
+  'Autopistas y Peajes',
+  'Farmacia y Salud',
+  'Educacion',
+  'Viajes y Turismo',
+  'Entretenimiento y Suscripciones',
+  'Gobierno e Impuestos',
+  'Seguros',
+  'Mascotas',
+  'Transferencias',
+  'Cajero y Giro',
+  'Servicios Financieros',
+  'Consumo general',
+] as const;
+
+function normalizeTaxonomyKey(value: unknown): string {
+  return String(value ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\b(compra|pago|cargo|abono|transferencia|debito|credito|webpay|pos|tef|visa|mastercard|trx)\b/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function movementOverrideKey(movement: { merchant?: string; label: string }) {
+  return normalizeTaxonomyKey(movement.merchant || movement.label);
+}
+
+function resolveTransactionOverride(
+  movement: { merchant?: string; label: string },
+  overrides: TransactionTaxonomyOverride[],
+) {
+  const key = movementOverrideKey(movement);
+  if (!key) return null;
+  return (
+    overrides.find((item) => item.matchKey === key) ??
+    overrides.find((item) => key.includes(item.matchKey) || item.matchKey.includes(key)) ??
+    null
+  );
+}
+
 export function TransactionsModal(props: {
   isOpen: boolean;
   onClose: () => void;
@@ -1539,6 +1655,9 @@ export function TransactionsModal(props: {
   deleteTransactionProduct: (id: string) => void;
   addTransactionProduct: () => void;
   updateActiveProduct: (patch: Partial<BankProduct>) => void;
+  transactionTaxonomyOverrides: TransactionTaxonomyOverride[];
+  upsertTransactionTaxonomyOverride: (override: TransactionTaxonomyOverride) => void;
+  removeTransactionTaxonomyOverride: (matchKey: string) => void;
   simulateBankLogin: (config?: {
     bank?: string;
     label?: string;
@@ -1575,6 +1694,9 @@ export function TransactionsModal(props: {
   const [txAssistantError, setTxAssistantError] = useState<string | null>(null);
   const [showInjectProductsConfirm, setShowInjectProductsConfirm] = useState(false);
   const [consentAccepted, setConsentAccepted] = useState(false);
+  const [selectedMovementKey, setSelectedMovementKey] = useState<string | null>(null);
+  const [overrideMerchantDraft, setOverrideMerchantDraft] = useState('');
+  const [overrideCategoryDraft, setOverrideCategoryDraft] = useState<string>(TX_CATEGORY_OPTIONS[0]);
   const transactionsModalRef = useRef<HTMLDivElement | null>(null);
   const restoreFocusRef = useRef<HTMLElement | null>(null);
   const txSendLockRef = useRef(false);
@@ -1587,7 +1709,6 @@ export function TransactionsModal(props: {
   const dashboardMetrics = props.activeBankProduct?.dashboard?.keyMetrics;
   const isCreditCardProduct = props.activeBankProduct?.productType === 'credit_card';
   const dashboardCategories = props.activeBankProduct?.dashboard?.topCategories ?? [];
-  const dashboardTopMerchants = props.activeBankProduct?.dashboard?.topMerchants ?? [];
   const dashboardClusters = props.activeBankProduct?.dashboard?.spendClusters ?? [];
   const alertDetails = props.activeBankProduct?.dashboard?.alertDetails ?? [];
   const metricExplanations = props.activeBankProduct?.dashboard?.metricExplanations ?? [];
@@ -1673,7 +1794,7 @@ export function TransactionsModal(props: {
     return a.label.localeCompare(b.label, 'es');
   });
   const movementTableRows = dashboardMovements.length > 0 ? dashboardMovements : topMovements;
-  const normalizedMovementRows = movementTableRows.map((movement) => {
+  const normalizedMovementRows = movementTableRows.map((movement, idx) => {
     const rawAmount = Number(movement.amount) || 0;
     const hasDeclaredDirection = movement.direction === 'income' || movement.direction === 'expense';
     const normalizedDirection = hasDeclaredDirection
@@ -1683,12 +1804,28 @@ export function TransactionsModal(props: {
         : rawAmount > 0
           ? 'income'
           : 'expense';
-    return {
+    const baseRow = {
       ...movement,
+      uiKey: `${movement.date ?? 'nd'}|${normalizedDirection}|${Math.round(Math.abs(rawAmount))}|${normalizeMovementText(movement.label)}|${idx}`,
       rawAmount,
       directionForTotals: normalizedDirection,
       amount: Math.abs(rawAmount),
     };
+    const manualOverride = resolveTransactionOverride(baseRow, props.transactionTaxonomyOverrides);
+    return manualOverride
+      ? {
+          ...baseRow,
+          merchant: manualOverride.merchant,
+          category: manualOverride.category,
+          categoryConfidence: 0.999,
+          overrideApplied: true,
+          overrideMatchKey: manualOverride.matchKey,
+        }
+      : {
+          ...baseRow,
+          overrideApplied: false,
+          overrideMatchKey: movementOverrideKey(baseRow),
+        };
   });
   const datedMovementKeys = new Set<string>();
   normalizedMovementRows.forEach((movement) => {
@@ -1803,6 +1940,90 @@ export function TransactionsModal(props: {
           share: Number(category.share.toFixed(2)),
         }))
       : categoryShareData;
+  const derivedTopMerchants = useMemo(() => {
+    const buckets = new Map<string, { merchant: string; category: string; amount: number; tx_count: number }>();
+    dedupedMovementRows
+      .filter((movement) => movement.directionForTotals === 'expense')
+      .forEach((movement) => {
+        const merchant = String(movement.merchant || movement.label || '').trim();
+        if (!merchant) return;
+        const key = normalizeTaxonomyKey(merchant);
+        const current = buckets.get(key) ?? {
+          merchant,
+          category: movement.category || 'Consumo general',
+          amount: 0,
+          tx_count: 0,
+        };
+        current.amount += movement.amount;
+        current.tx_count += 1;
+        current.category = movement.category || current.category;
+        current.merchant = movement.merchant || current.merchant;
+        buckets.set(key, current);
+      });
+    return Array.from(buckets.values())
+      .sort((left, right) => right.amount - left.amount)
+      .slice(0, 8);
+  }, [dedupedMovementRows]);
+  const merchantConfidenceRows = useMemo(() => {
+    const buckets = new Map<string, { merchant: string; avgConfidence: number; count: number; manual: boolean; category: string }>();
+    dedupedMovementRows.forEach((movement) => {
+      const merchant = String(movement.merchant || movement.label || '').trim();
+      if (!merchant) return;
+      const key = normalizeTaxonomyKey(merchant);
+      const current = buckets.get(key) ?? {
+        merchant,
+        avgConfidence: 0,
+        count: 0,
+        manual: false,
+        category: movement.category || 'Consumo general',
+      };
+      current.avgConfidence += Number(movement.categoryConfidence ?? movement.confidence ?? 0) || 0;
+      current.count += 1;
+      current.manual = current.manual || Boolean(movement.overrideApplied);
+      current.category = movement.category || current.category;
+      buckets.set(key, current);
+    });
+    return Array.from(buckets.values())
+      .map((item) => ({
+        merchant: item.merchant,
+        category: item.category,
+        count: item.count,
+        manual: item.manual,
+        avgConfidence: item.count > 0 ? item.avgConfidence / item.count : 0,
+      }))
+      .sort((left, right) => right.count - left.count)
+      .slice(0, 6);
+  }, [dedupedMovementRows]);
+  const effectiveDashboard = useMemo(() => ({
+    ...(props.activeBankProduct?.dashboard ?? {}),
+    topCategories: enrichedCategoryData.map((item) => ({ name: item.name, amount: Math.round(item.amount) })),
+    topMerchants: derivedTopMerchants,
+    spendClusters: enrichedCategoryData.map((item) => ({
+      name: item.name,
+      amount: Math.round(item.amount),
+      tx_count: item.count,
+      avg_ticket: item.count > 0 ? Math.round(item.amount / item.count) : 0,
+      share_pct: Number(item.share.toFixed(2)),
+      examples: dedupedMovementRows
+        .filter((movement) => movement.directionForTotals === 'expense' && (movement.category || 'Otros') === item.name)
+        .slice(0, 3)
+        .map((movement) => movement.merchant || movement.label),
+    })),
+    movements: dedupedMovementRows.map((movement) => ({
+      date: movement.date ?? '',
+      description: movement.label,
+      amount: movement.amount,
+      direction: movement.directionForTotals,
+      source_line: movement.sourceLine ?? '',
+      category: movement.category ?? 'Consumo general',
+      merchant: movement.merchant ?? '',
+      category_confidence: movement.categoryConfidence ?? movement.confidence ?? 0,
+      confidence: movement.confidence ?? 0,
+      source_kind: movement.sourceKind ?? 'line',
+    })),
+  }), [props.activeBankProduct?.dashboard, enrichedCategoryData, derivedTopMerchants, dedupedMovementRows]);
+  const selectedMovement =
+    dedupedMovementRows.find((movement) => movement.uiKey === selectedMovementKey) ?? null;
   const [showAllMovements, setShowAllMovements] = useState(false);
   const [execTab, setExecTab] = useState<'summary' | 'metrics'>('summary');
 
@@ -2397,6 +2618,16 @@ export function TransactionsModal(props: {
     setConsentAccepted(Boolean(props.activeBankProduct?.simulationAccepted));
   }, [props.isOpen, props.activeBankProduct?.id, props.activeBankProduct?.simulationAccepted]);
   useEffect(() => {
+    if (!selectedMovement) return;
+    setOverrideMerchantDraft(selectedMovement.merchant || selectedMovement.label);
+    setOverrideCategoryDraft(selectedMovement.category || 'Consumo general');
+  }, [selectedMovementKey, selectedMovement?.merchant, selectedMovement?.label, selectedMovement?.category]);
+  useEffect(() => {
+    if (!selectedMovementKey) return;
+    if (dedupedMovementRows.some((movement) => movement.uiKey === selectedMovementKey)) return;
+    setSelectedMovementKey(null);
+  }, [selectedMovementKey, dedupedMovementRows]);
+  useEffect(() => {
     if (!props.isOpen || props.txWizardStep !== 'upload') return;
     if (analysisAlreadyDone) {
       setTxUploadOnboardingStep('upload');
@@ -2426,6 +2657,69 @@ export function TransactionsModal(props: {
     return data;
   }
 
+  async function refineTransactionSummaryFromFocus(source: string, focusText: string) {
+    if (!props.activeBankProduct || !summaryText || summaryRegenerationsLeft <= 0 || txAssistantLoading) return;
+    const clippedFocus = focusText.trim().replace(/\s+/g, ' ').slice(0, 320);
+    if (!clippedFocus) return;
+    await generateTransactionSummary({
+      feedback: `Reanaliza con foco en ${source}: "${clippedFocus}". Verifica cálculo, categorización de comercios chilenos y consistencia global del resumen. Corrige el resumen final si detectas desvíos.`,
+      isRegeneration: true,
+    });
+  }
+
+  const buildMovementRefinementText = (movement: {
+    label: string;
+    merchant?: string;
+    category?: string;
+    amount: number;
+    date?: string;
+    categoryConfidence?: number;
+  }) =>
+    [
+      `Movimiento: ${movement.label}`,
+      movement.merchant ? `Comercio detectado: ${movement.merchant}` : null,
+      movement.category ? `Categoría actual: ${movement.category}` : null,
+      movement.date ? `Fecha: ${movement.date}` : null,
+      `Monto: ${formatCurrency(movement.amount)}`,
+      movement.categoryConfidence !== undefined
+        ? `Confianza categorización: ${formatPercentCompact(movement.categoryConfidence * 100)} (${confidenceBandLong(movement.categoryConfidence)})`
+        : null,
+    ]
+      .filter(Boolean)
+      .join('. ');
+
+  function saveSelectedMovementOverride() {
+    if (!selectedMovement) return;
+    const merchant = overrideMerchantDraft.trim();
+    const category = overrideCategoryDraft.trim();
+    const matchKey = movementOverrideKey({
+      merchant: selectedMovement.merchant || selectedMovement.label,
+      label: selectedMovement.label,
+    });
+    if (!merchant || !category || !matchKey) return;
+    props.upsertTransactionTaxonomyOverride({
+      id: `${matchKey}:${category}`,
+      matchKey,
+      matchLabel: selectedMovement.merchant || selectedMovement.label,
+      merchant,
+      category,
+      updatedAt: new Date().toISOString(),
+    });
+    void refineTransactionSummaryFromFocus(
+      'edición manual de categorización',
+      `${buildMovementRefinementText(selectedMovement)}. Ajuste manual solicitado: comercio "${merchant}", categoría "${category}".`,
+    );
+  }
+
+  function clearSelectedMovementOverride() {
+    if (!selectedMovement?.overrideMatchKey) return;
+    props.removeTransactionTaxonomyOverride(selectedMovement.overrideMatchKey);
+    void refineTransactionSummaryFromFocus(
+      'limpieza de override',
+      `${buildMovementRefinementText(selectedMovement)}. Se eliminó la clasificación manual y debe reevaluarse la categorización base.`,
+    );
+  }
+
   async function generateTransactionSummary(options?: { feedback?: string; uploadResult?: UploadStatementResult | null; isRegeneration?: boolean }) {
     if (!props.activeBankProduct) return;
     setTxAssistantLoading(true);
@@ -2440,7 +2734,7 @@ export function TransactionsModal(props: {
           productType: uploadResult?.product.productType ?? props.activeBankProduct.productType,
         },
         parsedDocuments: uploadResult?.documents ?? props.activeBankProduct.parsedDocuments ?? [],
-        dashboard: uploadResult?.dashboard ?? props.activeBankProduct.dashboard ?? null,
+        dashboard: uploadResult?.dashboard ?? effectiveDashboard ?? null,
         currentSummary: summaryText,
         feedback: options?.feedback ?? '',
       });
@@ -2562,7 +2856,7 @@ export function TransactionsModal(props: {
           productType: props.activeBankProduct.productType,
         },
         currentSummary: summaryText,
-        dashboard: props.activeBankProduct.dashboard ?? null,
+        dashboard: effectiveDashboard ?? null,
         parsedDocuments: props.activeBankProduct.parsedDocuments ?? [],
         messages: [...assistantMessages, { role: 'user', text }],
       });
@@ -2649,11 +2943,14 @@ export function TransactionsModal(props: {
               </div>
               {showInjectProductsConfirm ? (
                 <div className="tx-batch-recommendation-banner" role="status" aria-live="polite">
-                  <p>Recomendado: enviar cuando hayas subido todos tus productos financieros para un mejor análisis consolidado.</p>
+                  <div className="tx-batch-recommendation-copy">
+                    <span className="tx-batch-recommendation-kicker">Inyección consolidada</span>
+                    <p>Envía cuando ya hayas subido todos tus productos financieros para obtener una lectura más completa y consistente.</p>
+                  </div>
                   <div className="tx-batch-recommendation-actions">
                     <button
                       type="button"
-                      className="continue-ghost"
+                      className="continue-ghost tx-batch-action"
                       onClick={() => setShowInjectProductsConfirm(false)}
                       disabled={props.documentsLoading}
                     >
@@ -2661,7 +2958,7 @@ export function TransactionsModal(props: {
                     </button>
                     <button
                       type="button"
-                      className="button-primary"
+                      className="button-primary tx-batch-action"
                       onClick={() => {
                         setShowInjectProductsConfirm(false);
                         props.sendTransactionsToAgent();
@@ -3270,7 +3567,16 @@ export function TransactionsModal(props: {
                           <div className="tx-chat-summary-bridge-head">
                             <div>
                               <span className="transactions-summary-title">Resumen listo</span>
-                              <EditorialSummary text={summaryText} compact />
+                              <EditorialSummary
+                                text={summaryText}
+                                compact
+                                onBlockDoubleClick={({ kicker, body }) =>
+                                  void refineTransactionSummaryFromFocus(
+                                    kicker ? `hallazgo "${kicker}"` : 'hallazgo del resumen',
+                                    body,
+                                  )
+                                }
+                              />
                             </div>
                             <div className="tx-chat-summary-meta">
                               <span className="tx-meta-card-kicker">
@@ -3278,6 +3584,7 @@ export function TransactionsModal(props: {
                               </span>
                               {summaryModel ? <span className="tx-meta-card-kicker">Modelo: {summaryModel}</span> : null}
                               <span className="tx-meta-card-kicker">Revisiones restantes: {summaryRegenerationsLeft}</span>
+                              <span className="tx-meta-card-kicker">Doble clic en hallazgos o respuestas para reanalizar</span>
                             </div>
                           </div>
                           <div className="agent-modal-actions tx-flow-inline-actions">
@@ -3390,7 +3697,18 @@ export function TransactionsModal(props: {
                                   </tr>
                                 ) : (
                                   dedupedMovementRows.map((movement, idx) => (
-                                    <tr key={`mv-all-${idx}-${movement.directionForTotals}-${movement.label}-${movement.amount}`}>
+                                    <tr
+                                      key={`mv-all-${idx}-${movement.directionForTotals}-${movement.label}-${movement.amount}`}
+                                      className={`tx-refinable-block${selectedMovementKey === movement.uiKey ? ' is-selected' : ''}`}
+                                      onClick={() => setSelectedMovementKey(movement.uiKey)}
+                                      onDoubleClick={() =>
+                                        void refineTransactionSummaryFromFocus(
+                                          'movimiento completo',
+                                          buildMovementRefinementText(movement),
+                                        )
+                                      }
+                                      title="Doble clic para revisar esta categorización"
+                                    >
                                       <td>
                                         <span className={movement.directionForTotals === 'income' ? 'tx-type-income' : 'tx-type-expense'}>
                                           {movement.directionForTotals === 'income'
@@ -3400,7 +3718,10 @@ export function TransactionsModal(props: {
                                       </td>
                                       <td>{movement.date || 'N/D'}</td>
                                       <td>{movement.merchant ? `${movement.label} · ${movement.merchant}` : movement.label}</td>
-                                      <td>{movement.category || 'Otros'}</td>
+                                      <td>
+                                        {movement.category || 'Otros'}
+                                        {movement.overrideApplied ? <span className="tx-override-pill">Manual</span> : null}
+                                      </td>
                                       <td>{formatCurrency(movement.amount)}</td>
                                       <td>{movementSourceLabel(movement.sourceKind)}</td>
                                       <td>{movement.categoryConfidence ? formatPercentCompact(movement.categoryConfidence * 100) : movement.confidence ? formatPercentCompact(movement.confidence * 100) : 'N/D'}</td>
@@ -3432,11 +3753,25 @@ export function TransactionsModal(props: {
                                     </tr>
                                   ) : (
                                     incomeOrAbonoRows.map((movement, idx) => (
-                                      <tr key={`mv-in-${idx}-${movement.directionForTotals}-${movement.label}-${movement.amount}`}>
+                                      <tr
+                                        key={`mv-in-${idx}-${movement.directionForTotals}-${movement.label}-${movement.amount}`}
+                                        className={`tx-refinable-block${selectedMovementKey === movement.uiKey ? ' is-selected' : ''}`}
+                                        onClick={() => setSelectedMovementKey(movement.uiKey)}
+                                        onDoubleClick={() =>
+                                          void refineTransactionSummaryFromFocus(
+                                            isCreditCardProduct ? 'abono' : 'ingreso',
+                                            buildMovementRefinementText(movement),
+                                          )
+                                        }
+                                        title="Doble clic para revisar esta categorización"
+                                      >
                                         <td><span className="tx-type-income">{isCreditCardProduct ? 'Abono' : 'Ingreso'}</span></td>
                                         <td>{movement.date || 'N/D'}</td>
                                         <td>{movement.merchant ? `${movement.label} · ${movement.merchant}` : movement.label}</td>
-                                        <td>{movement.category || 'Otros'}</td>
+                                        <td>
+                                          {movement.category || 'Otros'}
+                                          {movement.overrideApplied ? <span className="tx-override-pill">Manual</span> : null}
+                                        </td>
                                         <td>{formatCurrency(movement.amount)}</td>
                                       </tr>
                                     ))
@@ -3469,11 +3804,25 @@ export function TransactionsModal(props: {
                                     </tr>
                                   ) : (
                                     expenseRows.map((movement, idx) => (
-                                      <tr key={`mv-out-${idx}-${movement.directionForTotals}-${movement.label}-${movement.amount}`}>
+                                      <tr
+                                        key={`mv-out-${idx}-${movement.directionForTotals}-${movement.label}-${movement.amount}`}
+                                        className={`tx-refinable-block${selectedMovementKey === movement.uiKey ? ' is-selected' : ''}`}
+                                        onClick={() => setSelectedMovementKey(movement.uiKey)}
+                                        onDoubleClick={() =>
+                                          void refineTransactionSummaryFromFocus(
+                                            'egreso',
+                                            buildMovementRefinementText(movement),
+                                          )
+                                        }
+                                        title="Doble clic para revisar esta categorización"
+                                      >
                                         <td><span className="tx-type-expense">Egreso</span></td>
                                         <td>{movement.date || 'N/D'}</td>
                                         <td>{movement.merchant ? `${movement.label} · ${movement.merchant}` : movement.label}</td>
-                                        <td>{movement.category || 'Otros'}</td>
+                                        <td>
+                                          {movement.category || 'Otros'}
+                                          {movement.overrideApplied ? <span className="tx-override-pill">Manual</span> : null}
+                                        </td>
                                         <td>{formatCurrency(movement.amount)}</td>
                                       </tr>
                                     ))
@@ -3490,10 +3839,86 @@ export function TransactionsModal(props: {
                       </>
                     ) : null}
 
+                    {selectedMovement ? (
+                      <div className="tx-override-editor-card">
+                        <div className="tx-override-editor-head">
+                          <div>
+                            <span className="tx-ap-section-label">Editor de categorización</span>
+                            <p className="tx-override-editor-copy">
+                              Ajusta comercio y categoría para este merchant. El aprendizaje queda guardado y se reutiliza en próximas revisiones.
+                            </p>
+                          </div>
+                          <div className="tx-override-editor-meta">
+                            <span>{selectedMovement.label}</span>
+                            <strong>{formatCurrency(selectedMovement.amount)}</strong>
+                          </div>
+                        </div>
+                        <div className="tx-override-editor-grid">
+                          <label>
+                            Comercio
+                            <input
+                              value={overrideMerchantDraft}
+                              onChange={(e) => setOverrideMerchantDraft(e.target.value)}
+                              placeholder="Nombre comercial canónico"
+                            />
+                          </label>
+                          <label>
+                            Categoría
+                            <select
+                              value={overrideCategoryDraft}
+                              onChange={(e) => setOverrideCategoryDraft(e.target.value)}
+                            >
+                              {TX_CATEGORY_OPTIONS.map((category) => (
+                                <option key={category} value={category}>
+                                  {category}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                        </div>
+                        <div className="tx-override-editor-actions">
+                          <button type="button" className="button-primary" onClick={saveSelectedMovementOverride}>
+                            Guardar aprendizaje
+                          </button>
+                          <button
+                            type="button"
+                            className="continue-ghost"
+                            onClick={clearSelectedMovementOverride}
+                            disabled={!selectedMovement.overrideApplied}
+                          >
+                            Limpiar override
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {merchantConfidenceRows.length > 0 ? (
+                      <div className="tx-merchant-quality-card">
+                        <div className="tx-merchant-quality-head">
+                          <span className="tx-ap-section-label">Precisión por comercio</span>
+                          <span className="tx-meta-card-kicker">Confianza promedio y aprendizaje manual</span>
+                        </div>
+                        <div className="tx-merchant-quality-list">
+                          {merchantConfidenceRows.map((row) => (
+                            <article key={`${row.merchant}-${row.category}`} className="tx-merchant-quality-row">
+                              <div>
+                                <strong>{row.merchant}</strong>
+                                <p>{row.category} · {row.count} mov.</p>
+                              </div>
+                              <div className="tx-merchant-quality-metrics">
+                                <span>{formatPercentCompact(row.avgConfidence * 100)}</span>
+                                <span>{row.manual ? 'Manual' : confidenceBandLong(row.avgConfidence)}</span>
+                              </div>
+                            </article>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+
                     {/* ── Executive Summary — interactive premium card ── */}
                     {(() => {
                       const execBlocks = buildEditorialSummaryBlocks(hasSummary ? summaryText : summaryFromTable).slice(0, 2);
-                      const topMerchantLabel = dashboardTopMerchants[0]?.merchant || enrichedCategoryData[0]?.name || dashboardClusters[0]?.name || '—';
+                      const topMerchantLabel = derivedTopMerchants[0]?.merchant || enrichedCategoryData[0]?.name || dashboardClusters[0]?.name || '—';
                       const fidelityPct = movementCount > 0 ? (verifiedTableRows / movementCount) * 100 : 0;
                       const confPct = movementCount > 0 ? (highConfidenceMovementCount / movementCount) * 100 : 0;
                       return (
@@ -3531,7 +3956,17 @@ export function TransactionsModal(props: {
                             <div className="tx-ex-body" role="tabpanel">
                               {execBlocks.length > 0 ? (
                                 execBlocks.map((block, i) => (
-                                  <div key={i} className={`tx-ex-block${block.lead ? ' is-lead' : ''}`}>
+                                  <div
+                                    key={i}
+                                    className={`tx-ex-block${block.lead ? ' is-lead' : ''} tx-refinable-block`}
+                                    onDoubleClick={() =>
+                                      void refineTransactionSummaryFromFocus(
+                                        block.kicker ? `bloque "${block.kicker}"` : 'bloque ejecutivo',
+                                        block.body,
+                                      )
+                                    }
+                                    title="Doble clic para reanalizar este bloque"
+                                  >
                                     {block.kicker ? <span className="tx-ex-kicker">{block.kicker}</span> : null}
                                     <p className="tx-ex-para">{block.body}</p>
                                   </div>
@@ -3607,16 +4042,16 @@ export function TransactionsModal(props: {
                                 ]}
                                 margin={{ top: 8, right: 8, left: 0, bottom: 8 }}
                               >
-                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(110,125,150,0.24)" />
-                                <XAxis dataKey="metric" interval={0} tick={{ fill: '#42566d', fontSize: 11 }} />
-                                <YAxis tickFormatter={(value) => formatCurrency(Number(value))} tick={{ fill: '#42566d', fontSize: 11 }} />
+                                <CartesianGrid strokeDasharray="8 8" stroke={RETRO_GRID} />
+                                <XAxis dataKey="metric" interval={0} tick={RETRO_TICK} axisLine={false} tickLine={false} />
+                                <YAxis tickFormatter={(value) => formatCurrency(Number(value))} tick={RETRO_TICK} axisLine={false} tickLine={false} />
                                 <Tooltip
                                   formatter={(value) => formatCurrency(Number(value))}
-                                  contentStyle={darkTooltipStyle}
+                                  contentStyle={RETRO_TOOLTIP_STYLE}
                                   labelStyle={{ color: '#ffffff' }}
                                   itemStyle={{ color: '#ffffff' }}
                                 />
-                                <Bar dataKey="value" radius={[8, 8, 0, 0]}>
+                                <Bar dataKey="value" shape={<RetroBarShape />}>
                                   {[
                                     { metric: isCreditCardProduct ? 'Abonos' : 'Ingresos', value: tableDerivedMetrics.inflowsTotal },
                                     { metric: 'Egresos', value: tableDerivedMetrics.outflowsTotal },
@@ -3624,7 +4059,7 @@ export function TransactionsModal(props: {
                                   ].map((entry, idx) => (
                                     <Cell
                                       key={`flow-bar-${entry.metric}`}
-                                      fill={entry.value >= 0 ? TX_SECONDARY_COLORS[idx % TX_SECONDARY_COLORS.length] : '#823232'}
+                                      fill={entry.value >= 0 ? RETRO_CHART_COLORS[idx % RETRO_CHART_COLORS.length] : RETRO_CHART_NEGATIVE}
                                     />
                                   ))}
                                 </Bar>
@@ -3637,18 +4072,18 @@ export function TransactionsModal(props: {
                           <div style={{ width: '100%', height: 200 }}>
                             <ResponsiveContainer width="100%" height="100%">
                               <BarChart data={categoryChartData} layout="vertical" margin={{ top: 8, right: 8, left: 20, bottom: 8 }}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(110,125,150,0.24)" />
-                                <XAxis type="number" tickFormatter={(value) => formatCurrency(Number(value))} tick={{ fill: '#42566d', fontSize: 11 }} />
-                                <YAxis dataKey="category" type="category" width={120} tick={{ fill: '#42566d', fontSize: 11 }} />
+                                <CartesianGrid strokeDasharray="8 8" stroke={RETRO_GRID} />
+                                <XAxis type="number" tickFormatter={(value) => formatCurrency(Number(value))} tick={RETRO_TICK} axisLine={false} tickLine={false} />
+                                <YAxis dataKey="category" type="category" width={120} tick={RETRO_TICK} axisLine={false} tickLine={false} />
                                 <Tooltip
                                   formatter={(value) => formatCurrency(Number(value))}
-                                  contentStyle={darkTooltipStyle}
+                                  contentStyle={RETRO_TOOLTIP_STYLE}
                                   labelStyle={{ color: '#ffffff' }}
                                   itemStyle={{ color: '#ffffff' }}
                                 />
-                                <Bar dataKey="amount" radius={[0, 8, 8, 0]}>
+                                <Bar dataKey="amount" shape={<RetroBarShape />}>
                                   {categoryChartData.map((entry, idx) => (
-                                    <Cell key={`cat-bar-${entry.category}`} fill={TX_SECONDARY_COLORS[idx % TX_SECONDARY_COLORS.length]} />
+                                    <Cell key={`cat-bar-${entry.category}`} fill={RETRO_CHART_COLORS[idx % RETRO_CHART_COLORS.length]} />
                                   ))}
                                 </Bar>
                               </BarChart>
@@ -3661,14 +4096,14 @@ export function TransactionsModal(props: {
                             <div style={{ width: '100%', height: 200 }}>
                               <ResponsiveContainer width="100%" height="100%">
                                 <LineChart data={qualityRowsChart} margin={{ top: 8, right: 8, left: 0, bottom: 8 }}>
-                                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(110,125,150,0.24)" />
-                                  <XAxis dataKey="document" interval={0} tick={{ fill: '#42566d', fontSize: 10 }} />
-                                  <YAxis yAxisId="left" tickFormatter={(value) => `${Number(value)}%`} tick={{ fill: '#42566d', fontSize: 11 }} domain={[0, 100]} />
-                                  <YAxis yAxisId="right" orientation="right" tickFormatter={(value) => new Intl.NumberFormat('es-CL').format(Number(value))} tick={{ fill: '#42566d', fontSize: 11 }} />
-                                  <Tooltip contentStyle={darkTooltipStyle} labelStyle={{ color: '#ffffff' }} itemStyle={{ color: '#ffffff' }} />
+                                  <CartesianGrid strokeDasharray="8 8" stroke={RETRO_GRID} />
+                                  <XAxis dataKey="document" interval={0} tick={{ ...RETRO_TICK, fontSize: 10 }} axisLine={false} tickLine={false} />
+                                  <YAxis yAxisId="left" tickFormatter={(value) => `${Number(value)}%`} tick={RETRO_TICK} domain={[0, 100]} axisLine={false} tickLine={false} />
+                                  <YAxis yAxisId="right" orientation="right" tickFormatter={(value) => new Intl.NumberFormat('es-CL').format(Number(value))} tick={RETRO_TICK} axisLine={false} tickLine={false} />
+                                  <Tooltip contentStyle={RETRO_TOOLTIP_STYLE} labelStyle={{ color: '#ffffff' }} itemStyle={{ color: '#ffffff' }} />
                                   <Legend />
-                                  <Line yAxisId="left" type="monotone" dataKey="reliability" stroke="#8ea7bf" strokeWidth={2} dot={false} name="Confiabilidad %" />
-                                  <Line yAxisId="right" type="monotone" dataKey="rows" stroke="#c6a052" strokeWidth={2} dot={false} name="Filas extraídas" />
+                                  <Line yAxisId="left" type="stepAfter" dataKey="reliability" stroke={RETRO_CHART_COLORS[3]} strokeWidth={4} dot={<RetroDot stroke={RETRO_CHART_COLORS[3]} />} activeDot={<RetroDot stroke={RETRO_CHART_COLORS[0]} />} name="Confiabilidad %" />
+                                  <Line yAxisId="right" type="stepAfter" dataKey="rows" stroke={RETRO_CHART_COLORS[1]} strokeWidth={4} dot={<RetroDot stroke={RETRO_CHART_COLORS[1]} />} activeDot={<RetroDot stroke={RETRO_CHART_COLORS[2]} />} name="Filas extraídas" />
                                 </LineChart>
                               </ResponsiveContainer>
                             </div>
@@ -3724,13 +4159,33 @@ export function TransactionsModal(props: {
                             <p className="tx-ap-empty-note">Sin señales analíticas suficientes aún.</p>
                           ) : null}
                           {(alertDetails.length > 0 ? alertDetails : []).slice(0, 4).map((alert) => (
-                            <article key={`${alert.title}-${alert.reason}`} className={`tx-ap-insight-row tx-ap-insight-row--${alert.severity}`}>
+                            <article
+                              key={`${alert.title}-${alert.reason}`}
+                              className={`tx-ap-insight-row tx-ap-insight-row--${alert.severity} tx-refinable-block`}
+                              onDoubleClick={() =>
+                                void refineTransactionSummaryFromFocus(
+                                  `señal "${alert.title}"`,
+                                  `${alert.title}. ${alert.reason}`,
+                                )
+                              }
+                              title="Doble clic para reanalizar esta señal"
+                            >
                               <strong>{alert.title}</strong>
                               <p>{alert.reason}</p>
                             </article>
                           ))}
                           {metricExplanations.slice(0, 4).map((metric) => (
-                            <article key={`${metric.metric}-${metric.value}`} className="tx-ap-insight-row">
+                            <article
+                              key={`${metric.metric}-${metric.value}`}
+                              className="tx-ap-insight-row tx-refinable-block"
+                              onDoubleClick={() =>
+                                void refineTransactionSummaryFromFocus(
+                                  `métrica "${metric.metric}"`,
+                                  `${metric.metric}: ${metric.value}. ${metric.explanation}`,
+                                )
+                              }
+                              title="Doble clic para reanalizar esta métrica"
+                            >
                               <strong>{metric.metric}: {metric.value}</strong>
                               <p>{metric.explanation}</p>
                             </article>
@@ -3800,7 +4255,12 @@ export function TransactionsModal(props: {
                           {assistantMessages.slice(-2).map((message) => (
                             <div
                               key={`summary-${message.id}`}
-                              className={`tx-chat-bubble ${message.role === 'user' ? 'is-user' : 'is-assistant'}`}
+                              className={`tx-chat-bubble ${message.role === 'user' ? 'is-user' : 'is-assistant'}${message.role === 'assistant' ? ' tx-refinable-block' : ''}`}
+                              onDoubleClick={() => {
+                                if (message.role !== 'assistant') return;
+                                void refineTransactionSummaryFromFocus('respuesta del chat', message.text);
+                              }}
+                              title={message.role === 'assistant' ? 'Doble clic para reanalizar esta respuesta' : undefined}
                             >
                               <div className="tx-chat-bubble-role">
                                 {message.role === 'user' ? 'Tú' : 'Asistente'}

@@ -177,7 +177,7 @@ function buildBubbleSnapshotHtmlAndCss(bubbleEl: HTMLElement) {
   const exportCss = `
 @page {
   size: A4;
-  margin: 44mm 12mm 14mm 12mm;
+  margin: 0;
 }
 
 html, body, .bubble-pdf-snapshot {
@@ -197,13 +197,30 @@ html, body, .bubble-pdf-snapshot {
   width: 100% !important;
   min-height: auto !important;
   box-sizing: border-box !important;
+  padding: 12mm 12mm 14mm 12mm !important;
+  -webkit-box-decoration-break: clone !important;
+  box-decoration-break: clone !important;
+}
+
+.bubble-pdf-snapshot,
+.bubble-pdf-snapshot * {
+  opacity: 1 !important;
+  filter: none !important;
+  mix-blend-mode: normal !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.bubble-pdf-snapshot,
+.bubble-pdf-snapshot .bubble-pdf-paper,
+.bubble-pdf-snapshot .bubble-pdf-paper * {
+  background-color: #f5f1e8 !important;
 }
 
 .bubble-pdf-running-brand {
-  position: fixed;
-  top: 3mm;
-  left: 0;
-  right: 0;
+  position: static;
+  display: block;
+  margin: 0 0 3mm 0;
   text-align: center;
   font-size: 10px;
   line-height: 1;
@@ -212,22 +229,18 @@ html, body, .bubble-pdf-snapshot {
   color: #1a3047;
   font-weight: 600;
   font-family: "Times New Roman", Times, Georgia, serif;
-  z-index: 40;
 }
 
 .bubble-pdf-running-header {
-  position: fixed;
-  top: 0;
-  left: 12mm;
-  right: 12mm;
+  position: static;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 14px;
+  margin: 0 0 10mm 0;
   padding: 0 2px 4px 2px;
   border-bottom: 1px solid rgba(28, 49, 69, 0.1);
   background: #f5f1e8 !important;
-  z-index: 30;
 }
 
 .bubble-pdf-running-header-copy {
@@ -421,6 +434,7 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
   setSavedReports: React.Dispatch<React.SetStateAction<SavedReport[]>>;
   launchDocToLibraryAnimation: (title: string, sourceRect: DOMRect, previewUrl: string, reportId: string) => void;
   onPanelAction: (action: NonNullable<Extract<ChatItem, { type: 'message'; role: 'assistant' }>['panel_action']>) => void;
+  flowPanelAction?: NonNullable<Extract<ChatItem, { type: 'message'; role: 'assistant' }>['panel_action']>;
 }) {
   const [savingBubblePdf, setSavingBubblePdf] = useState<Record<number, boolean>>({});
   const EMPTY_THREAD_FALLBACK =
@@ -432,6 +446,14 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
     i: number,
     attachedCitations: Array<Extract<ChatItem, { type: 'citation' }>['citation']> = []
   ) {
+    const messagePanelAction =
+      it.type === 'message' && it.role === 'assistant' ? it.panel_action : undefined;
+    const shouldHidePrimaryFlowAction =
+      props.activeThreadId === 'chat-1' &&
+      Boolean(props.flowPanelAction?.section) &&
+      Boolean(messagePanelAction?.section) &&
+      props.flowPanelAction?.section === messagePanelAction?.section;
+
     if (it.type === 'upload') {
       return (
         <div key={i} className="agent-bubble user upload-bubble">
@@ -489,181 +511,183 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
           : [];
         const technicalBlocks = blocks.filter((b) => b.type !== 'questionnaire');
         return (
-          <div
-            key={i}
-            className={`agent-bubble assistant latex-doc ${isScrollable ? 'is-scrollable-bubble' : ''}${isFirstAssistantCard ? ' is-intro-doc' : ''}`}
-          >
-            <div className="latex-doc-head">
-              <div className="latex-doc-heading">
-                <span className="latex-doc-kicker">{docMeta.kicker}</span>
-                <span className="latex-doc-title">{docMeta.title}</span>
-                <span className="latex-doc-subtitle">{docMeta.subtitle}</span>
-              </div>
-              <div className="latex-doc-head-actions">
-                <span className="latex-doc-mode" style={DOC_MODE_PILL_STYLE}>
-                  {(it.mode ?? 'analysis').toString().replaceAll('_', ' ')}
-                </span>
-                <button
-                  type="button"
-                  className="latex-doc-save-btn"
-                  disabled={Boolean(savingBubblePdf[i])}
-                  onClick={(e) => {
-                    const btn = e.currentTarget as HTMLButtonElement;
-                    const bubbleEl = btn.closest('.agent-bubble.assistant.latex-doc') as HTMLElement | null;
-                    setSavingBubblePdf((prev) => ({ ...prev, [i]: true }));
-                    void (async () => {
-                      try {
-                        if (!bubbleEl) throw new Error('Bubble not found');
-                        const snapshot = buildBubbleSnapshotHtmlAndCss(bubbleEl);
-                        const result = await saveBubbleSnapshotPdfArtifact({
-                          title: docMeta.title,
-                          subtitle: docMeta.subtitle,
-                          html: snapshot.html,
-                          css: snapshot.css,
-                        });
-                        const artifact = result.artifact;
-                        const reportId = `${artifact.id}-${Date.now()}`;
-                        const report: SavedReport = {
-                          id: reportId,
-                          title: artifact.title,
-                          group: props.classifyReportGroup(artifact.title, artifact.source),
-                          fileUrl: artifact.fileUrl ?? '',
-                          createdAt: artifact.createdAt,
-                        };
-                        props.setSavedReports((prev) =>
-                          [report, ...prev.filter((r) => r.fileUrl !== report.fileUrl)]
-                        );
-                        const sourceRect = btn.getBoundingClientRect();
-                        props.launchDocToLibraryAnimation(
-                          artifact.title,
-                          sourceRect,
-                          artifact.previewImageUrl ?? artifact.fileUrl ?? '',
-                          reportId
-                        );
-                      } catch {
-                        props.setItemsForActive((prev) => [
-                          ...prev,
-                          {
-                            type: 'message',
-                            role: 'assistant',
-                            content:
-                              'No pude guardar el PDF de esta burbuja en biblioteca. Reintenta en unos segundos.',
-                            mode: 'information',
-                          } as ChatItem,
-                        ]);
-                      } finally {
-                        setSavingBubblePdf((prev) => ({ ...prev, [i]: false }));
-                      }
-                    })();
-                  }}
-                >
-                  {savingBubblePdf[i] ? 'Guardando…' : 'Guardar PDF'}
-                </button>
-              </div>
-            </div>
-            <div className={`latex-doc-body ${isScrollable ? 'is-scrollable-content' : ''}`}>
-              {renderLatexDocMessage(sanitizeMessageText(it.content ?? ''))}
-              {questionnaireBlocks.length > 0 && (
-                <div className="latex-inline-questionnaire">
-                  <AgentBlocksRenderer
-                    blocks={questionnaireBlocks}
-                    onQuestionnaireSubmit={({ message }) => {
-                      void props.onSend(message);
-                    }}
-                  />
+          <React.Fragment key={i}>
+            <div
+              className={`agent-bubble assistant latex-doc ${isScrollable ? 'is-scrollable-bubble' : ''}${isFirstAssistantCard ? ' is-intro-doc' : ''}`}
+            >
+              <div className="latex-doc-head">
+                <div className="latex-doc-heading">
+                  <span className="latex-doc-kicker">{docMeta.kicker}</span>
+                  <span className="latex-doc-title">{docMeta.title}</span>
+                  <span className="latex-doc-subtitle">{docMeta.subtitle}</span>
                 </div>
-              )}
-              {technicalBlocks.length > 0 && (
-                <div className="latex-inline-annex">
-                  <div className="latex-inline-annex-head">
-                    <span>Anexos técnicos</span>
-                    <span>evidencia viva</span>
-                  </div>
-                  <AgentBlocksRenderer
-                    blocks={technicalBlocks}
-                    onQuestionnaireSubmit={({ message }) => {
-                      void props.onSend(message);
+                <div className="latex-doc-head-actions">
+                  <span className="latex-doc-mode" style={DOC_MODE_PILL_STYLE}>
+                    {(it.mode ?? 'analysis').toString().replaceAll('_', ' ')}
+                  </span>
+                  <button
+                    type="button"
+                    className="latex-doc-save-btn"
+                    disabled={Boolean(savingBubblePdf[i])}
+                    onClick={(e) => {
+                      const btn = e.currentTarget as HTMLButtonElement;
+                      const bubbleEl = btn.closest('.agent-bubble.assistant.latex-doc') as HTMLElement | null;
+                      setSavingBubblePdf((prev) => ({ ...prev, [i]: true }));
+                      void (async () => {
+                        try {
+                          if (!bubbleEl) throw new Error('Bubble not found');
+                          const snapshot = buildBubbleSnapshotHtmlAndCss(bubbleEl);
+                          const result = await saveBubbleSnapshotPdfArtifact({
+                            title: docMeta.title,
+                            subtitle: docMeta.subtitle,
+                            html: snapshot.html,
+                            css: snapshot.css,
+                          });
+                          const artifact = result.artifact;
+                          const reportId = `${artifact.id}-${Date.now()}`;
+                          const report: SavedReport = {
+                            id: reportId,
+                            title: artifact.title,
+                            group: props.classifyReportGroup(artifact.title, artifact.source),
+                            fileUrl: artifact.fileUrl ?? '',
+                            createdAt: artifact.createdAt,
+                          };
+                          props.setSavedReports((prev) =>
+                            [report, ...prev.filter((r) => r.fileUrl !== report.fileUrl)]
+                          );
+                          const sourceRect = btn.getBoundingClientRect();
+                          props.launchDocToLibraryAnimation(
+                            artifact.title,
+                            sourceRect,
+                            artifact.previewImageUrl ?? artifact.fileUrl ?? '',
+                            reportId
+                          );
+                        } catch {
+                          props.setItemsForActive((prev) => [
+                            ...prev,
+                            {
+                              type: 'message',
+                              role: 'assistant',
+                              content:
+                                'No pude guardar el PDF de esta burbuja en biblioteca. Reintenta en unos segundos.',
+                              mode: 'information',
+                            } as ChatItem,
+                          ]);
+                        } finally {
+                          setSavingBubblePdf((prev) => ({ ...prev, [i]: false }));
+                        }
+                      })();
                     }}
-                  />
+                  >
+                    {savingBubblePdf[i] ? 'Guardando…' : 'Guardar PDF'}
+                  </button>
                 </div>
-              )}
-              {(() => {
-                const externalCitations = attachedCitations.filter(isExternalCitation);
-                if (externalCitations.length === 0) return null;
-                const expanded = Boolean(props.expandedCitationsByMessage[i]);
-                const visibleCitations = expanded ? externalCitations : externalCitations.slice(0, 3);
-                const remaining = Math.max(0, externalCitations.length - visibleCitations.length);
-                return (
-                <div className="latex-inline-annex">
-                  <div className="latex-inline-annex-head">
-                    <span>Fuentes verificables</span>
-                    <span>{externalCitations.length} referencias</span>
-                  </div>
-                  <div className="citation-stack">
-                    {visibleCitations.map((citation, idx) => (
-                      <CitationBubble key={`${i}-citation-${idx}`} citation={citation} />
-                    ))}
-                  </div>
-                  {externalCitations.length > 3 && (
-                    <button
-                      type="button"
-                      className="citation-toggle"
-                      style={{
-                        color: '#ffffff',
-                        WebkitTextFillColor: '#ffffff',
-                        opacity: 1,
-                        filter: 'none',
+              </div>
+              <div className={`latex-doc-body ${isScrollable ? 'is-scrollable-content' : ''}`}>
+                {renderLatexDocMessage(sanitizeMessageText(it.content ?? ''))}
+                {questionnaireBlocks.length > 0 && (
+                  <div className="latex-inline-questionnaire">
+                    <AgentBlocksRenderer
+                      blocks={questionnaireBlocks}
+                      onQuestionnaireSubmit={({ message }) => {
+                        void props.onSend(message);
                       }}
-                      onClick={() =>
-                        props.setExpandedCitationsByMessage((prev) => ({
-                          ...prev,
-                          [i]: !expanded,
-                        }))
-                      }
-                    >
-                      <span
-                        className="citation-toggle-label"
+                    />
+                  </div>
+                )}
+                {technicalBlocks.length > 0 && (
+                  <div className="latex-inline-annex">
+                    <div className="latex-inline-annex-head">
+                      <span>Anexos técnicos</span>
+                      <span>evidencia viva</span>
+                    </div>
+                    <AgentBlocksRenderer
+                      blocks={technicalBlocks}
+                      onQuestionnaireSubmit={({ message }) => {
+                        void props.onSend(message);
+                      }}
+                    />
+                  </div>
+                )}
+                {(() => {
+                  const externalCitations = attachedCitations.filter(isExternalCitation);
+                  if (externalCitations.length === 0) return null;
+                  const expanded = Boolean(props.expandedCitationsByMessage[i]);
+                  const visibleCitations = expanded ? externalCitations : externalCitations.slice(0, 3);
+                  const remaining = Math.max(0, externalCitations.length - visibleCitations.length);
+                  return (
+                  <div className="latex-inline-annex">
+                    <div className="latex-inline-annex-head">
+                      <span>Fuentes verificables</span>
+                      <span>{externalCitations.length} referencias</span>
+                    </div>
+                    <div className="citation-stack">
+                      {visibleCitations.map((citation, idx) => (
+                        <CitationBubble key={`${i}-citation-${idx}`} citation={citation} />
+                      ))}
+                    </div>
+                    {externalCitations.length > 3 && (
+                      <button
+                        type="button"
+                        className="citation-toggle"
                         style={{
                           color: '#ffffff',
                           WebkitTextFillColor: '#ffffff',
                           opacity: 1,
                           filter: 'none',
                         }}
+                        onClick={() =>
+                          props.setExpandedCitationsByMessage((prev) => ({
+                            ...prev,
+                            [i]: !expanded,
+                          }))
+                        }
                       >
-                        {expanded ? 'Ver menos' : `Ver todas${remaining > 0 ? ` (+${remaining})` : ''}`}
-                      </span>
-                    </button>
-                  )}
-                </div>
-                );
-              })()}
-              {it.panel_action?.section &&
-              !(
-                props.diagnosisUnlocked &&
-                props.activeThreadId === 'chat-1' &&
-                (it.panel_action.section === 'transactions' || it.panel_action.section === 'products_transactions')
-              ) && (
-                <div className="agent-inline-panel-action">
-                  <button
-                    type="button"
-                    className="agent-inline-panel-button"
-                    onClick={() => props.onPanelAction(it.panel_action!)}
-                  >
-                    {it.panel_action.section === 'transactions' || it.panel_action.section === 'products_transactions'
-                      ? 'Abrir productos y transacciones'
-                      : it.panel_action.section === 'budget'
-                      ? 'Abrir presupuesto'
-                      : it.panel_action.section === 'interview'
-                      ? 'Abrir entrevista'
-                      : 'Abrir panel'}
-                  </button>
-                  {it.panel_action.message ? (
-                    <span className="agent-inline-panel-note">{it.panel_action.message}</span>
-                  ) : null}
-                </div>
-              )}
+                        <span
+                          className="citation-toggle-label"
+                          style={{
+                            color: '#ffffff',
+                            WebkitTextFillColor: '#ffffff',
+                            opacity: 1,
+                            filter: 'none',
+                          }}
+                        >
+                          {expanded ? 'Ver menos' : `Ver todas${remaining > 0 ? ` (+${remaining})` : ''}`}
+                        </span>
+                      </button>
+                    )}
+                  </div>
+                  );
+                })()}
+              </div>
             </div>
-          </div>
+            {messagePanelAction?.section &&
+            !(
+              props.diagnosisUnlocked &&
+              props.activeThreadId === 'chat-1' &&
+              (messagePanelAction.section === 'transactions' || messagePanelAction.section === 'products_transactions')
+            ) &&
+            !shouldHidePrimaryFlowAction && (
+              <div className="agent-inline-panel-action">
+                <button
+                  type="button"
+                  className="agent-inline-panel-button"
+                  onClick={() => props.onPanelAction(messagePanelAction!)}
+                >
+                  {messagePanelAction.section === 'transactions' || messagePanelAction.section === 'products_transactions'
+                    ? 'Abrir productos y transacciones'
+                    : messagePanelAction.section === 'budget'
+                    ? 'Abrir presupuesto'
+                    : messagePanelAction.section === 'interview'
+                    ? 'Abrir entrevista'
+                    : 'Abrir panel'}
+                </button>
+                {messagePanelAction.message ? (
+                  <span className="agent-inline-panel-note">{messagePanelAction.message}</span>
+                ) : null}
+              </div>
+            )}
+          </React.Fragment>
         );
       }
       const isScrollable = shouldEnableBubbleScroll(it.content);
@@ -759,6 +783,9 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
     rendered.push(renderChatItem(it, idx));
   }
 
+  const flowPanelAction =
+    props.activeThreadId === 'chat-1' && !props.diagnosisUnlocked ? props.flowPanelAction : undefined;
+
   // UX decision: hide suggested-reply chips from thread top area to keep the
   // opening flow focused and avoid visual noise before/after first turns.
 
@@ -825,6 +852,26 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
             </button>
           </div>
         )}
+        {flowPanelAction?.section ? (
+          <div className="agent-flow-cta agent-flow-cta--thread">
+            <button
+              type="button"
+              className="agent-flow-cta-button"
+              onClick={() => props.onPanelAction(flowPanelAction)}
+            >
+              {flowPanelAction.section === 'transactions' || flowPanelAction.section === 'products_transactions'
+                ? 'Abrir productos y transacciones'
+                : flowPanelAction.section === 'budget'
+                ? 'Abrir presupuesto'
+                : flowPanelAction.section === 'interview'
+                ? 'Abrir entrevista'
+                : 'Abrir panel'}
+            </button>
+            {flowPanelAction.message ? (
+              <span className="agent-flow-cta-copy">{flowPanelAction.message}</span>
+            ) : null}
+          </div>
+        ) : null}
       </div>
     </div>
   );

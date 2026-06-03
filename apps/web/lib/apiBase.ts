@@ -9,6 +9,12 @@ export function getApiBaseUrl(): string {
     return '/backend';
   }
 
+  if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
+    const protocol = window.location.protocol || 'http:';
+    const hostname = window.location.hostname || 'localhost';
+    return `${protocol}//${hostname}:3001`;
+  }
+
   const fromEnv = process.env.NEXT_PUBLIC_API_URL;
   const base = (fromEnv ?? '').trim();
   if (base.length > 0) return base.replace(/\/+$/, '');

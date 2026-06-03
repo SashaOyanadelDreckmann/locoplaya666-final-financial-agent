@@ -3,6 +3,7 @@ import { useState } from 'react';
 import type { CSSProperties } from 'react';
 import type { IntakeQuestionnaire } from '@financial-agent/shared/src/intake/intake-questionnaire.types';
 import { balancedColumns } from './grid';
+import { CityMapQuestion } from './CityMapQuestion';
 
 const EMPLOYMENT_OPTIONS: { value: IntakeQuestionnaire['employmentStatus']; label: string; sub: string }[] = [
   { value: 'employed', label: 'Dependiente', sub: 'Empleado con contrato' },
@@ -27,7 +28,8 @@ export function ContextStep({
   const [questionIndex, setQuestionIndex] = useState(0);
 
   const canContinueAge = typeof form.age === 'number' && form.age > 0;
-  const totalQuestions = 3;
+  const canContinueCity = typeof form.city === 'string' && form.city.trim().length > 1;
+  const totalQuestions = 4;
   const isLast = questionIndex === totalQuestions - 1;
 
   const onNextQuestion = () => {
@@ -69,6 +71,16 @@ export function ContextStep({
 
       {questionIndex === 1 && (
         <div className="intake-question-block intake-question-screen animate-intake-in">
+          <label htmlFor="city" className="intake-question-label">¿De qué <span className="kw-blue">ciudad</span> eres?</label>
+          <CityMapQuestion
+            city={form.city ?? ''}
+            onCityChange={(value) => update('city', value)}
+          />
+        </div>
+      )}
+
+      {questionIndex === 2 && (
+        <div className="intake-question-block intake-question-screen animate-intake-in">
           <label htmlFor="employment-group" className="intake-question-label">¿Cuál es tu <span className="kw-blue">situación laboral</span>?</label>
           <div className="intake-chips intake-chips-grid" id="employment-group" role="group" aria-labelledby="employment-group" style={{ '--intake-cols': balancedColumns(EMPLOYMENT_OPTIONS.length) } as CSSProperties}>
             {EMPLOYMENT_OPTIONS.map((opt) => (
@@ -91,7 +103,7 @@ export function ContextStep({
         </div>
       )}
 
-      {questionIndex === 2 && (
+      {questionIndex === 3 && (
         <div className="intake-question-block intake-question-screen animate-intake-in">
           <label htmlFor="profession" className="intake-question-label">¿A qué te <span className="kw-blue">dedicas</span>? <span className="intake-optional">(opcional)</span></label>
           <input
@@ -106,7 +118,7 @@ export function ContextStep({
       )}
 
       <div className="intake-footer">
-        {((questionIndex === 0 && canContinueAge) || questionIndex === 2) && (
+        {((questionIndex === 0 && canContinueAge) || (questionIndex === 1 && canContinueCity) || questionIndex === 3) && (
           <button
             className="intake-nav-arrow focus-ring"
             onClick={onNextQuestion}

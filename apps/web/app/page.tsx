@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { useRef } from 'react';
+import { useRef, type RefObject } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowRight } from 'lucide-react';
 import {
@@ -13,6 +13,7 @@ import {
 import SpotlightCard from '../components/home/SpotlightCard';
 import Counter from '../components/home/Counter';
 import NumbersCanvas from '../components/home/NumbersCanvas';
+import BrandWordmark from '../components/brand/BrandWordmark';
 
 // ── Easing ────────────────────────────────────────────────────────────────────
 const SILK: [number, number, number, number] = [0.22, 1, 0.36, 1];
@@ -192,26 +193,25 @@ function ProblemSection() {
 }
 
 // ── Features Section ───────────────────────────────────────────────────────────
-function FeaturesSection() {
-  const ref = useRef<HTMLElement>(null);
-  const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end start'] });
+function FeaturesSection({ sectionRef }: { sectionRef: RefObject<HTMLElement> }) {
+  const { scrollYProgress } = useScroll({ target: sectionRef, offset: ['start end', 'end start'] });
 
   const headY = useTransform(scrollYProgress, [0, 0.5, 1], [40, 0, -30]);
   const headO = useTransform(scrollYProgress, [0, 0.15, 0.75, 1], [0, 1, 1, 0.3]);
 
   return (
-    <section ref={ref} style={{
+    <section ref={sectionRef} style={{
       position: 'relative',
       overflow: 'hidden',
-      background: BG_WARM,
+      background: 'transparent',
       padding: 'clamp(80px,12vw,160px) clamp(24px,8vw,120px)',
       borderTop: '1px solid rgba(164,143,79,0.10)',
     }}>
 
-      {/* Ambient dorado */}
+      {/* Ambient dorado — sutil */}
       <div style={{
         position: 'absolute', inset: 0, pointerEvents: 'none',
-        background: 'radial-gradient(ellipse 70% 50% at 80% 40%, rgba(100,80,20,0.22) 0%, transparent 70%)',
+        background: 'radial-gradient(ellipse 70% 50% at 80% 40%, rgba(100,80,20,0.08) 0%, transparent 70%)',
       }} />
 
       <motion.div style={{ y: headY, opacity: headO, position: 'relative', zIndex: 1 }}>
@@ -504,6 +504,8 @@ export default function HomePage() {
   const rotX = useSpring(useTransform(heroMY, [0, 1], [4, -4]), springCfg);
   const rotY = useSpring(useTransform(heroMX, [0, 1], [-4, 4]), springCfg);
 
+  const featureSectionRef = useRef<HTMLElement>(null);
+
   const { scrollYProgress: canvasProgress } = useScroll({
     target: scrollRangeRef,
     offset: ['start start', 'end end'],
@@ -512,6 +514,13 @@ export default function HomePage() {
     target: heroSectionRef,
     offset: ['start start', 'end end'],
   });
+  const { scrollYProgress: featureRawP } = useScroll({
+    target: featureSectionRef,
+    offset: ['start end', 'end start'],
+  });
+  // featureDip: 0 fuera de vista → 1 centrada → 0 al salir
+  const featureDip = useTransform(featureRawP, [0, 0.22, 0.72, 1], [0, 1, 1, 0]);
+
   const heroY       = useTransform(heroProgress, [0, 0.6], [0, -55]);
   const lineOpacity = useTransform(heroProgress, [0, 0.18], [1, 0]);
 
@@ -520,7 +529,7 @@ export default function HomePage() {
 
       {/* Canvas fijo */}
       <div style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
-        <NumbersCanvas progress={canvasProgress} mouseRef={mousePosRef} />
+        <NumbersCanvas progress={canvasProgress} mouseRef={mousePosRef} featureDip={featureDip} />
       </div>
 
       {/* Grain — dot-pattern matching .app-shell::after */}
@@ -598,9 +607,11 @@ export default function HomePage() {
                   <div style={{ width: 40, height: 40, borderRadius: 9, overflow: 'hidden', flexShrink: 0, boxShadow: '0 4px 16px rgba(0,0,0,0.4)' }}>
                     <Image src="/logo-fm.svg" alt="Financieramente" width={40} height={40} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   </div>
-                  <span style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.82)', letterSpacing: '0.005em' }}>
-                    Financieramente
-                  </span>
+                  <BrandWordmark
+                    className="home-brand-wordmark"
+                    financieraClassName="home-brand-financiera"
+                    menteClassName="home-brand-mente"
+                  />
                 </motion.button>
 
                 <motion.button
@@ -701,7 +712,7 @@ export default function HomePage() {
         </section>
 
         <ProblemSection />
-        <FeaturesSection />
+        <FeaturesSection sectionRef={featureSectionRef} />
         <StatsSection />
         <StepsSection />
         <CtaSection />

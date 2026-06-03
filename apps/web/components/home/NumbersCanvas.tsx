@@ -19,7 +19,7 @@ export interface MousePos { x: number; y: number }
 const PHASE = {
   inStart: 0.01,
   inEnd:   0.18,
-  outStart: 0.93,
+  outStart: 0.78,
   outEnd:   0.99,
 } as const;
 
@@ -41,9 +41,11 @@ function drawImageCover(
 export default function NumbersCanvas({
   progress,
   mouseRef,
+  featureDip,
 }: {
   progress: MotionValue<number>;
   mouseRef: React.RefObject<MousePos>;
+  featureDip?: MotionValue<number>;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -118,13 +120,18 @@ export default function NumbersCanvas({
       const chaosOut = ease(remap(p, 0.60, 0.80));
       const chaosP   = clamp(chaosIn - chaosOut);
 
+      // FeaturesSection dip: hunde midP cuando la sección está en vista
+      const fd = featureDip?.get() ?? 0;
+      const eMid   = clamp(midP * (1 - fd));   // effective midP
+      const eChaos = clamp(chaosP * (1 - fd)); // effective chaos
+
       const W = canvas.width, H = canvas.height;
       ctx.clearRect(0, 0, W, H);
 
       // ── Background image — matte cinematic ─────────────────────────────────
       {
-        const stylize = chaosP * 0.92;
-        const photoAlpha = clamp(1 - midP * 0.92);
+        const stylize = eChaos * 0.92;
+        const photoAlpha = clamp(1 - eMid * 0.92);
         ctx.globalAlpha = photoAlpha;
         ctx.filter = `saturate(${0.84 + 0.38*stylize}) contrast(${1.04 - 0.34*stylize}) brightness(${0.92 - 0.20*stylize}) sepia(${0.04 + 0.04*stylize})`;
         drawImageCover(ctx, img, W, H);
@@ -139,27 +146,27 @@ export default function NumbersCanvas({
       }
 
       // Dark fill replaces photo as numbers take over
-      if (midP > 0.01) {
-        ctx.globalAlpha = clamp(midP * 0.96);
+      if (eMid > 0.01) {
+        ctx.globalAlpha = clamp(eMid * 0.96);
         ctx.fillStyle = '#060b18';
         ctx.fillRect(0, 0, W, H);
         ctx.globalAlpha = 1;
       }
 
       // ── Cursor spotlight radial (brand steel-blue) ─────────────────────────
-      if (midP > 0.04) {
+      if (eMid > 0.04) {
         const gx = smX * W, gy = smY * H;
         const sr = Math.min(W, H) * 0.38;
         const grd = ctx.createRadialGradient(gx, gy, 0, gx, gy, sr);
-        grd.addColorStop(0, `rgba(111,143,166,${0.10 * midP})`);
-        grd.addColorStop(0.5, `rgba(90,120,145,${0.04 * midP})`);
+        grd.addColorStop(0, `rgba(111,143,166,${0.10 * eMid})`);
+        grd.addColorStop(0.5, `rgba(90,120,145,${0.04 * eMid})`);
         grd.addColorStop(1, 'rgba(111,143,166,0)');
         ctx.fillStyle = grd;
         ctx.fillRect(0, 0, W, H);
       }
 
       // ── Digits with 3D perspective projection ──────────────────────────────
-      if (midP >= 0.005 && px.length) {
+      if (eMid >= 0.005 && px.length) {
         ctx.font = `${FS}px "Courier New",monospace`;
         ctx.textBaseline = 'top';
 
@@ -179,7 +186,7 @@ export default function NumbersCanvas({
           // Reveal envelope per column
           const a_in  = ease(remap(inP,  c.revIn,  c.revIn  + .30));
           const a_out = ease(remap(outP, c.revOut, c.revOut + .30));
-          const alpha = clamp(a_in - a_out);
+          const alpha = clamp(a_in - a_out) * (1 - fd);
           if (alpha < .01) continue;
 
           const col = i % cols, row = Math.floor(i / cols);
@@ -210,31 +217,31 @@ export default function NumbersCanvas({
           const targetDigit = Math.round(p_.lum * 9);
           const wave = Math.sin(col*.27 + row*.38 + t*2.1) * 3;
           const cycleDigit = Math.abs(Math.floor(t*c.spd + c.phi*4 + i*3.71 + wave)) % 10;
-          const digit = chaosP > .08
-            ? (Math.random() < chaosP*.9 ? cycleDigit : targetDigit)
+          const digit = eChaos > .08
+            ? (Math.random() < eChaos*.9 ? cycleDigit : targetDigit)
             : targetDigit;
           const str = String(digit);
 
           // Base color from image pixel
-          const boost = 1 + chaosP * .62;
+          const boost = 1 + eChaos * .62;
           let rv = clamp(p_.r * boost, 0, 255);
           let gv = clamp(p_.g * boost, 0, 255);
           let bv = clamp(p_.b * boost, 0, 255);
 
           // Scanline glow — sweeping horizontal light
           const scanDist = Math.abs(sy - scanY);
-          if (scanDist < 24 && midP > .20) {
-            const g = (1 - scanDist/24) * midP * .70;
+          if (scanDist < 24 && eMid > .20) {
+            const g = (1 - scanDist/24) * eMid * .70;
             rv = clamp(rv + 100*g, 0, 255);
             gv = clamp(gv + 105*g, 0, 255);
-            bv = clamp(bv + 130*g, 0, 255); // cooler blue tint on scanline
+            bv = clamp(bv + 130*g, 0, 255);
           }
 
           // Cursor proximity glow — brand steel-blue hot spot
           const dCursor = Math.sqrt((sx-cursorX)**2 + (sy-cursorY)**2);
           if (dCursor < cursorR) {
             const prox = (1 - dCursor/cursorR) ** 2;
-            const spot = prox * midP;
+            const spot = prox * eMid;
             rv = clamp(rv*(1-spot*.55) + 111*spot, 0, 255);
             gv = clamp(gv*(1-spot*.55) + 143*spot, 0, 255);
             bv = clamp(bv*(1-spot*.55) + 166*spot, 0, 255);
@@ -244,9 +251,9 @@ export default function NumbersCanvas({
           const finalA  = alpha * shimmer * depthAlpha;
 
           // ── Chromatic aberration during chaos ─────────────────────────────
-          if (chaosP > .10) {
-            const abr = chaosP * 4.0 * persp;
-            ctx.globalAlpha = finalA * chaosP * .50;
+          if (eChaos > .10) {
+            const abr = eChaos * 4.0 * persp;
+            ctx.globalAlpha = finalA * eChaos * .50;
             ctx.fillStyle = `rgb(255,35,75)`;
             ctx.fillText(str, sx - abr, sy - abr * .5);
             ctx.fillStyle = `rgb(30,190,255)`;
@@ -290,7 +297,7 @@ export default function NumbersCanvas({
       cancelAnimationFrame(raf);
       window.removeEventListener('resize', resize);
     };
-  }, [progress, mouseRef]);
+  }, [progress, mouseRef, featureDip]);
 
   return (
     <canvas

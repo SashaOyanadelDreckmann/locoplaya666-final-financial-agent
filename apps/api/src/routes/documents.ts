@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { ingestUserDocument, searchUserDocumentContext } from '../services/document-intelligence.service';
 import { getUserDocumentsByIds } from '../persistence/repos';
 import { completeStructured } from '../services/llm.service';
+import { inferTransactionTaxonomy } from '../services/transactionTaxonomy.service';
 import { requireAuth, requirePermission } from '../middleware/auth';
 import { asyncHandler } from '../middleware/errorHandler';
 import { badRequest, unauthorized } from '../http/api.errors';
@@ -69,6 +70,8 @@ type ParsedMovement = {
   direction: 'expense' | 'income';
   source_line?: string;
   category?: string;
+  merchant?: string;
+  category_confidence?: number;
   confidence?: number;
   source_kind?: 'table' | 'line';
 };
@@ -90,18 +93,7 @@ const PRODUCT_TYPES = new Set([
   'investment_account',
 ]);
 
-const CATEGORY_RULES: Array<{ name: string; regex: RegExp }> = [
-  { name: 'Supermercado', regex: /jumbo|lider|unimarc|tottus|supermercad/i },
-  { name: 'Transporte', regex: /uber|cabify|metro|copec|shell|bencina|combustible|peaje/i },
-  { name: 'Servicios', regex: /agua|luz|electricidad|internet|movistar|entel|vtr|wom|gas|telefono/i },
-  { name: 'Suscripciones', regex: /spotify|netflix|youtube|apple|google|amazon|subscription/i },
-  { name: 'Salud', regex: /farmacia|clinica|isapre|fonasa|medic/i },
-  { name: 'Educacion', regex: /colegio|universidad|matricula|educa/i },
-  { name: 'Transferencias', regex: /transfer|tef|abono|deposito|dep[oó]sito/i },
-  { name: 'Tarjetas', regex: /tarjeta|credito|d[eé]bito|compra nacional|compra internacional/i },
-];
-
-const SUPPORTED_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif', '.pdf', '.xlsx', '.csv', '.txt', '.md']);
+const SUPPORTED_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif', '.pdf', '.xls', '.xlsx', '.csv', '.txt', '.md']);
 
 export function isSupportedDocumentFilename(name: string): boolean {
   const normalized = String(name ?? '').trim().toLowerCase();
@@ -132,7 +124,7 @@ export function validateAndPrepareDocumentFiles(
 ): Array<{ name: string; base64: string; mimeType?: string; buffer: Buffer }> {
   const decodedFiles = files.map((file) => {
     if (!isSupportedDocumentFilename(file.name)) {
-      throw badRequest(`Archivo "${file.name}" no soportado. Usa PDF, imagen, XLSX, CSV o TXT.`);
+      throw badRequest(`Archivo "${file.name}" no soportado. Usa PDF, imagen, XLS, XLSX, CSV o TXT.`);
     }
     return {
       ...file,
@@ -369,6 +361,7 @@ function parseMovementFromTableRow(params: {
         );
 
   if (!description || isNonMovementDescription(description) || !date || !amount || amount <= 0) return null;
+  const taxonomy = inferTransactionTaxonomy(description);
 
   return {
     date,
@@ -376,7 +369,9 @@ function parseMovementFromTableRow(params: {
     amount,
     direction,
     source_line: row.join(' | ').slice(0, 260),
-    category: categorize(description),
+    category: taxonomy.category,
+    merchant: taxonomy.merchant,
+    category_confidence: taxonomy.categoryConfidence,
     confidence: descriptionIndex >= 0 && (expenseIndex >= 0 || incomeIndex >= 0 || amountIndex >= 0) ? 0.98 : 0.86,
     source_kind: 'table',
   };
@@ -405,13 +400,16 @@ function parseMovementFromLooseLine(line: string): ParsedMovement | null {
       : line.replace(new RegExp(escapeRegex(pickedToken), 'i'), ' ');
   const description = cleanMovementDescription(descriptionBase);
   if (!description || isNonMovementDescription(description)) return null;
+  const taxonomy = inferTransactionTaxonomy(description);
   return {
     date,
     description,
     amount: Math.abs(signedAmount),
     direction,
     source_line: line.slice(0, 260),
-    category: categorize(description),
+    category: taxonomy.category,
+    merchant: taxonomy.merchant,
+    category_confidence: taxonomy.categoryConfidence,
     confidence: cells.length >= 3 ? 0.8 : 0.68,
     source_kind: 'line',
   };
@@ -503,11 +501,8 @@ function quantile(sorted: number[], q: number): number {
   return sorted[base] + rest * (next - sorted[base]);
 }
 
-function categorize(description: string): string {
-  for (const rule of CATEGORY_RULES) {
-    if (rule.regex.test(description)) return rule.name;
-  }
-  return 'Otros';
+export function categorizeTransactionDescription(description: string): string {
+  return inferTransactionTaxonomy(description).category;
 }
 
 function buildTransactionAnalysis(
@@ -583,13 +578,24 @@ function buildTransactionAnalysisFromMovements(
   const expenseToIncomeRatio = inflowsTotal > 0 ? outflowsTotal / inflowsTotal : undefined;
 
   const categoryMap = new Map<string, { amount: number; txCount: number; examples: Set<string> }>();
+  const merchantMap = new Map<string, { amount: number; txCount: number; category: string }>();
   for (const movement of expenseMovements) {
-    const name = categorize(movement.description);
+    const name = categorizeTransactionDescription(movement.description);
     const bucket = categoryMap.get(name) ?? { amount: 0, txCount: 0, examples: new Set<string>() };
     bucket.amount += movement.amount;
     bucket.txCount += 1;
     if (movement.description) bucket.examples.add(movement.description);
     categoryMap.set(name, bucket);
+    if (movement.merchant) {
+      const merchantBucket = merchantMap.get(movement.merchant) ?? {
+        amount: 0,
+        txCount: 0,
+        category: movement.category || name,
+      };
+      merchantBucket.amount += movement.amount;
+      merchantBucket.txCount += 1;
+      merchantMap.set(movement.merchant, merchantBucket);
+    }
   }
   const topCategoryEntries = Array.from(categoryMap.entries())
     .map(([name, data]) => ({ name, ...data }))
@@ -614,6 +620,19 @@ function buildTransactionAnalysisFromMovements(
     share_pct: expenseBase > 0 ? Number(((category.amount / expenseBase) * 100).toFixed(2)) : 0,
     examples: Array.from(category.examples).slice(0, 3),
   }));
+  const topMerchants = Array.from(merchantMap.entries())
+    .map(([merchant, data]) => ({
+      merchant,
+      category: data.category,
+      amount: Math.round(data.amount),
+      tx_count: data.txCount,
+    }))
+    .sort((a, b) => b.amount - a.amount)
+    .slice(0, 8);
+  const avgCategoryConfidence =
+    movements.length > 0
+      ? movements.reduce((acc, movement) => acc + (Number(movement.category_confidence ?? 0) || 0), 0) / movements.length
+      : 0;
 
   const topExpenses = [...expenseMovements]
     .sort((a, b) => b.amount - a.amount)
@@ -751,8 +770,10 @@ function buildTransactionAnalysisFromMovements(
         movement_coverage_pct: Number(movementCoveragePct.toFixed(2)),
         table_rows_verified: tableBasedMovements,
         high_confidence_movement_count: highConfidenceMovements,
+        avg_category_confidence: Number(avgCategoryConfidence.toFixed(4)),
       },
       top_categories: topCategories,
+      top_merchants: topMerchants,
       category_examples: categoryExamples,
       spend_clusters: spendClusters,
       top_expenses: topExpenses,
@@ -774,6 +795,8 @@ function buildTransactionAnalysisFromMovements(
       direction: movement.direction,
       source_line: movement.source_line,
       category: movement.category,
+      merchant: movement.merchant,
+      category_confidence: movement.category_confidence,
       confidence: movement.confidence,
       source_kind: movement.source_kind,
     })),
@@ -832,16 +855,22 @@ async function reconcileMovementsWithLLM(
 
     const candidateMovements = Array.isArray(reconciled.movements) ? reconciled.movements : [];
     const normalized = candidateMovements
-      .map((movement) => ({
-        date: movement.date ? toIsoDate(movement.date) : undefined,
-        description: cleanMovementDescription(movement.description ?? ''),
-        amount: Math.abs(Number(movement.amount) || 0),
-        direction: (movement.direction === 'expense' ? 'expense' : 'income') as 'expense' | 'income',
-        source_line: '',
-        category: movement.category ? String(movement.category) : categorize(movement.description ?? ''),
-        confidence: 0.93,
-        source_kind: 'table' as const,
-      }))
+      .map((movement) => {
+        const description = cleanMovementDescription(movement.description ?? '');
+        const taxonomy = inferTransactionTaxonomy(description);
+        return {
+          date: movement.date ? toIsoDate(movement.date) : undefined,
+          description,
+          amount: Math.abs(Number(movement.amount) || 0),
+          direction: (movement.direction === 'expense' ? 'expense' : 'income') as 'expense' | 'income',
+          source_line: '',
+          category: movement.category ? String(movement.category) : taxonomy.category,
+          merchant: taxonomy.merchant,
+          category_confidence: taxonomy.categoryConfidence,
+          confidence: 0.93,
+          source_kind: 'table' as const,
+        };
+      })
       .filter((movement) => movement.description && movement.amount > 0);
 
     if (normalized.length === 0) return null;

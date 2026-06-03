@@ -17,4 +17,21 @@ describe('budget modal logic guards', () => {
     expect(source).toContain('if (props.budgetRows.length > 0 || templateAppliedRef.current) return;');
     expect(source).toContain('props.applyBudgetTemplate();');
   });
+
+  it('guards client-side AI actions against unknown row deletes and blind updates', () => {
+    expect(source).toContain('const existingRowIds = new Set(props.budgetRows.map((row) => normalizeActionRowId(row.id)).filter(Boolean));');
+    expect(source).toContain("if (kind === 'delete') {");
+    expect(source).toContain('if (!rowExists) return;');
+    expect(source).toContain("if (kind === 'update' && !rowExists) return;");
+    expect(source).toContain("if (kind === 'add' && rowExists) kind = 'update';");
+  });
+
+  it('maps auth, rate limit and server failures to explicit assistant error copy', () => {
+    expect(source).toContain("if (message.includes('HTTP 401'))");
+    expect(source).toContain('Sesion expirada o no iniciada. Vuelve a entrar para usar el asistente.');
+    expect(source).toContain("if (message.includes('HTTP 429'))");
+    expect(source).toContain('Demasiadas solicitudes al asistente. Espera un momento e intenta otra vez.');
+    expect(source).toContain("if (message.includes('HTTP 5'))");
+    expect(source).toContain('El servicio del asistente no esta disponible ahora. Intenta nuevamente en unos segundos.');
+  });
 });

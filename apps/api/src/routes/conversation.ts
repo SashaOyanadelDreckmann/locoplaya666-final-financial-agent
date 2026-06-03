@@ -13,7 +13,7 @@ import { InterviewBlockEvidence } from '../schemas/profile.schema';
 import { saveProfile } from '../services/storage.service';
 import { appendMemoryTimelineNote } from '../services/memory.service';
 import { recordKnowledgeEvent } from '../services/knowledge.service';
-import { complete } from '../services/llm.service';
+import { completeStructured } from '../services/llm.service';
 import { loadUserMemoryBlob, saveUserMemoryBlob } from '../services/user.service';
 import { sendSuccess } from '../http/api.responses';
 import { parseBody } from '../http/parse';
@@ -200,18 +200,33 @@ export async function conversationNextCore(
 
   if (summaryValidation && currentBlockId !== 'warmup') {
     if (!summaryValidation.accepted) {
+      const revisionAnswers = summaryValidation.comment?.trim()
+        ? [...answersInCurrentBlock, `Aclaración del usuario: ${summaryValidation.comment.trim()}`]
+        : answersInCurrentBlock;
+      const revisionQuestion = await agent.generateNextQuestion({
+        blockId: currentBlockId,
+        intake,
+        answersInCurrentBlock: revisionAnswers,
+        user: user as any,
+      });
+
       appendMemoryTimelineNote({
         userId: user.id,
         chatId: interviewChatId,
         userMessage: summaryValidation.comment ?? 'Solicitud de revisión de bloque',
-        agentMessage: `Bloque ${currentBlockId} marcado para revisión`,
+        agentMessage: revisionQuestion || `Bloque ${currentBlockId} marcado para revisión`,
         mode: 'diagnostic_interview',
         summary: `Usuario pidió revisar el bloque ${currentBlockId}.`,
       });
 
       return {
-        type: 'block_revision',
+        type: 'question',
         blockId: currentBlockId,
+        question:
+          revisionQuestion ||
+          'Necesito una aclaración puntual antes de cerrar este bloque. Cuéntame el matiz más importante que faltó.',
+        questionIndex: answersInCurrentBlock.length,
+        revisionRequested: true,
         userComment: summaryValidation.comment ?? '',
       };
     }
@@ -356,32 +371,30 @@ export const finalizeInterviewVoice = asyncHandler(async function finalizeInterv
   const transcript = String(parsed.transcript ?? '').trim();
   const interviewChatId = `interview:${user.id}`;
 
-  const raw = await complete(
-    [
-      'Devuelve SOLO JSON válido con formato:',
-      '{"executive_report":"string","key_findings":["string","string","string"],"confidence":"high|medium|low","stop_reason":"string","has_enough_information":true|false}',
-      'Reglas:',
-      '- español chileno profesional',
-      '- enfoque diagnóstico profundo',
-      '- hallazgos accionables y concretos',
-      '- sin mencionar sistema ni herramientas',
-      `Motivo término llamada: ${parsed.endedBy}`,
-      `Duración (segundos): ${parsed.durationSec ?? 0}`,
-      `Intake usuario: ${JSON.stringify(intake)}`,
-      `Transcripción completa: ${transcript}`,
-    ].join('\n'),
-    {
-      systemPrompt:
-        'Eres una directora de diagnóstico financiero ejecutivo. Sintetizas llamadas en hallazgos claros, honestos y priorizados.',
-      temperature: 0.25,
-    }
-  );
-
-  const blockMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/i);
-  const candidate = (blockMatch ? blockMatch[1] : raw).trim();
   let parsedReport: any = null;
   try {
-    parsedReport = JSON.parse(candidate);
+    parsedReport = await completeStructured({
+      system:
+        'Eres una directora de diagnóstico financiero ejecutivo. Sintetizas llamadas en hallazgos claros, honestos y priorizados.',
+      user: [
+        'Devuelve un JSON con formato:',
+        '{"executive_report":"string","key_findings":["string","string","string"],"confidence":"high|medium|low","stop_reason":"string","has_enough_information":true|false}',
+        'Reglas:',
+        '- español chileno profesional',
+        '- enfoque diagnóstico senior, ejecutivo y profundo',
+        '- hallazgos concretos y bien priorizados',
+        '- integra intake, productos y presupuesto si aparecen en el contexto',
+        '- detecta tensiones entre discurso, flujo real, productos y capacidad financiera',
+        '- sin mencionar sistema ni herramientas',
+        `Motivo término llamada: ${parsed.endedBy}`,
+        `Duración (segundos): ${parsed.durationSec ?? 0}`,
+        `Intake usuario: ${JSON.stringify(intake)}`,
+        `Transcripción completa: ${transcript}`,
+      ].join('\n'),
+      temperature: 0.2,
+      model: process.env.OPENAI_MODEL_INTERVIEW_FINALIZER ?? 'gpt-5-mini',
+      maxCompletionTokens: 420,
+    });
   } catch {
     parsedReport = null;
   }
@@ -468,10 +481,22 @@ export const finalizeInterviewVoice = asyncHandler(async function finalizeInterv
     ...memoryBlob,
     interviewVoice: {
       ...interviewVoice,
+      status: 'completed',
       activeCallId: null,
       totalUsedSec: updatedTotalUsedSec,
       maxDurationSec: remainingTotalSec,
+      remainingTotalSec: remainingTotalSec,
       lastFinalizedAt: new Date().toISOString(),
+      voiceReport: {
+        executive_report: executiveReport,
+        key_findings: keyFindings,
+        stop_reason: typeof parsedReport?.stop_reason === 'string' ? parsedReport.stop_reason : parsed.endedBy,
+        has_enough_information: hasEnoughInformation,
+        confidence:
+          parsedReport?.confidence === 'high' || parsedReport?.confidence === 'medium' || parsedReport?.confidence === 'low'
+            ? parsedReport.confidence
+            : 'high',
+      },
       lastReport: {
         executive_report: executiveReport,
         key_findings: keyFindings,

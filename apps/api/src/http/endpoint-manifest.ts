@@ -32,6 +32,7 @@ export const ENDPOINT_MANIFEST: EndpointDefinition[] = [
   { method: 'POST', path: '/api/documents/parse', hasSchemaValidation: true, hasTests: true, hasDocs: true, hasObservability: true },
   { method: 'POST', path: '/api/documents/resolve', hasSchemaValidation: true, hasTests: true, hasDocs: false, hasObservability: true },
   { method: 'GET', path: '/api/pdfs/serve', hasSchemaValidation: true, hasTests: false, hasDocs: true, hasObservability: true },
+  { method: 'DELETE', path: '/api/pdfs/delete', hasSchemaValidation: true, hasTests: true, hasDocs: true, hasObservability: true },
   { method: 'GET', path: '/simulations', hasSchemaValidation: true, hasTests: false, hasDocs: true, hasObservability: true },
   { method: 'POST', path: '/simulations/:id/save', hasSchemaValidation: true, hasTests: false, hasDocs: true, hasObservability: true },
   { method: 'GET', path: '/health', hasSchemaValidation: true, hasTests: false, hasDocs: true, hasObservability: true },

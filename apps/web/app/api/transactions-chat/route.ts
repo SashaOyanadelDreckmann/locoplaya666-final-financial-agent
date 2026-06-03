@@ -183,13 +183,15 @@ export async function POST(req: Request) {
 
     if (mode === 'summary') {
       const prompt = [
-        'Eres un analista senior de movimientos bancarios.',
+        'Eres un analista senior de movimientos bancarios del mercado chileno.',
         'Debes generar un resumen ejecutivo premium, breve, preciso y accionable.',
         'Objetivo: explicar patrones, anomalías, flujo y puntos a revisar sin inventar datos.',
         'Toma como fuente principal el Dashboard y la tabla de movimientos ya estructurada.',
         'Si hay conflicto entre texto libre y dashboard, prioriza dashboard y explicita cualquier duda en vez de asumir.',
         'Distingue claramente ingresos/abonos vs egresos.',
         'No llames movimiento a filas que parezcan saldo, subtotal, cupo, resumen, pago mínimo o encabezados.',
+        'Categoriza comercios y giros con criterio financiero realista para Chile: supermercado, delivery, retail, telecom, servicios básicos, transporte, combustible, farmacia/salud, etc.',
+        'Si el feedback del usuario apunta a una sección, cálculo o categorización, debes reanalizar esa parte y corregir el resumen completo si corresponde.',
         'Enfatiza fidelidad de la evidencia: cobertura, calidad y si la mayor parte proviene de tabla estructurada.',
         'Si el usuario reportó un posible error, reevalúa con ese foco.',
         'Devuelve JSON estricto: {"summary":"string"}',

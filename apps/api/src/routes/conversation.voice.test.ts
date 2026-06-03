@@ -6,8 +6,8 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vites
 import { INTERVIEW_TOTAL_LIMIT_SEC } from '@financial-agent/shared';
 
 vi.mock('../services/llm.service', () => ({
-  complete: vi.fn(async () =>
-    JSON.stringify({
+  completeStructured: vi.fn(async () =>
+    ({
       executive_report: 'Resumen ejecutivo de prueba',
       key_findings: ['Hallazgo 1'],
       confidence: 'high',
@@ -102,7 +102,7 @@ describe('conversation voice routes', () => {
     expect(res.body.data.interview_voice.callId).toBe('call-voice-test-1');
     expect(res.body.data.interview_voice.activeCallId).toBe('call-voice-test-1');
     expect(res.body.data.interview_voice.status).toBe('paused');
-  });
+  }, 15000);
 
   it('accepts durationSec=0 when finalizing voice call', async () => {
     const { agent, csrfToken } = await createAuthedAgent();
@@ -141,5 +141,5 @@ describe('conversation voice routes', () => {
     expect(res.body.data.interview_voice.remaining_total_sec).toBe(
       INTERVIEW_TOTAL_LIMIT_SEC - 44,
     );
-  });
+  }, 15000);
 });

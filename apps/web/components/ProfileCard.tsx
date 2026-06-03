@@ -69,6 +69,9 @@ export default function ProfileCard({
       : 'Aun sin diagnostico definitivo.';
 
   const intakeHighlights = [
+    typeof intakeData.city === 'string' && intakeData.city.trim()
+      ? intakeData.city.trim()
+      : null,
     typeof intakeData.profession === 'string' && intakeData.profession.trim()
       ? intakeData.profession.trim()
       : null,

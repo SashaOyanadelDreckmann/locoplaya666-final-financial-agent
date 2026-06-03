@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { formatRemainingInteractions, getChatDisplayTitle, getMaxChatInteractions } from './page.utils';
+import React from 'react';
+import { formatRemainingInteractions, getMaxChatInteractions } from './page.utils';
+import BrandWordmark from '../../components/brand/BrandWordmark';
 
 type ChatThread = {
   id: string;
@@ -40,22 +41,6 @@ export function ChatHeader(props: {
   toggleMonochrome: () => void;
   isMobileViewport: boolean;
 }) {
-  const [menteBold, setMenteBold] = useState(() => Math.random() > 0.5);
-
-  useEffect(() => {
-    const prefersReducedMotion =
-      typeof window !== 'undefined' &&
-      window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
-
-    if (prefersReducedMotion) return;
-
-    const interval = window.setInterval(() => {
-      setMenteBold(Math.random() > 0.5);
-    }, 2200);
-
-    return () => window.clearInterval(interval);
-  }, []);
-
   const activeLabel = props.activeThread?.label;
   const activeHandSubtitle =
     activeLabel === '2'
@@ -73,7 +58,6 @@ export function ChatHeader(props: {
           {props.chatThreads.map((thread) => {
             const specialization = props.getThreadSpecialization(thread.id);
             const locked = props.isThreadLocked(thread.id);
-            const remainingLabel = formatRemainingInteractions(thread.userMessageCount ?? 0, thread.id);
             return (
               <button
                 key={thread.id}
@@ -130,20 +114,34 @@ export function ChatHeader(props: {
       </div>
       <div className="chat-brand-strip">
         <h1>
-          <span className="chat-brand-title-row">
+          <button
+            type="button"
+            className="chat-brand-title-row chat-brand-title-row--home"
+            aria-label="Financieramente"
+            onClick={() => {
+              window.location.assign('/');
+            }}
+          >
             <span className="chat-brand-logo-mark" aria-hidden="true">
-              <span className="fm-logo-f">F</span>
-              <span className="fm-logo-m">m</span>
-            </span>
-            <span className="chat-brand-wordmark">
-              <span className="chat-brand-financiera">Financiera</span>
-              <span
-                className={`chat-brand-mente${menteBold ? ' chat-brand-mente--bold' : ''}`}
-              >
-                mente
+              <span className="chat-brand-logo-frame">
+                <svg viewBox="0 0 1254 1254" className="chat-brand-logo-svg" role="presentation" focusable="false">
+                  <rect className="chat-brand-logo-bg" width="1254" height="1254" />
+                  <text
+                    x="94"
+                    y="810"
+                    className="chat-brand-logo-lettermark"
+                  >
+                    Fm
+                  </text>
+                </svg>
               </span>
             </span>
-          </span>
+            <BrandWordmark
+              className="chat-brand-wordmark"
+              financieraClassName="chat-brand-financiera"
+              menteClassName="chat-brand-mente"
+            />
+          </button>
         </h1>
         <p
           className={`chat-identity-subtitle ${

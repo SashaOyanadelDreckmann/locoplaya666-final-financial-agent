@@ -212,6 +212,31 @@
   animation: stageShimmer 3.2s ease-in-out infinite;
 }
 
+.intake-city-map-shell {
+  display: grid;
+  gap: 14px;
+}
+
+.intake-city-map-frame {
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 22px;
+  background: rgba(10, 15, 22, 0.72);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+  min-height: 270px;
+}
+
+.intake-city-map-frame .maplibregl-map {
+  min-height: 270px;
+}
+
+.intake-city-map-frame .maplibregl-ctrl-bottom-left,
+.intake-city-map-frame .maplibregl-ctrl-bottom-right,
+.intake-city-map-frame .maplibregl-ctrl-top-left,
+.intake-city-map-frame .maplibregl-ctrl-top-right {
+  display: none;
+}
+
 @keyframes stageShimmer {
   0%   { transform: translateX(-200%); }
   100% { transform: translateX(300%); }
@@ -1589,7 +1614,7 @@ button {
 @media (max-width: 768px) {
   .intake-input {
     max-width: 100% !important;
-    font-size: 15px !important;
+    font-size: 16px !important;
     padding: 9px 13px !important;
   }
 }

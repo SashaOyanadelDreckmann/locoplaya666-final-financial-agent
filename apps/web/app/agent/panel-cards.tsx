@@ -5,6 +5,14 @@ import ProfileCard from '../../components/ProfileCard';
 import { resolveDocumentUrl } from './page.utils';
 
 type PanelCard = { key: string; node: ReactElement };
+type SavedReportLike = {
+  id: string;
+  title: string;
+  fileUrl: string;
+  previewImageUrl?: string;
+  group?: string;
+  createdAt?: string;
+};
 
 type PanelCardsProps = {
   highlightedSection: string | null;
@@ -28,10 +36,12 @@ type PanelCardsProps = {
   transactionIntel: { docs: number; rows: number; amounts: number[] };
   reportsByGroup: Record<string, any[]>;
   librarySummary: string;
-  savedReports: Array<{ id: string; title: string; group: string; fileUrl: string; previewImageUrl?: string }>;
+  savedReports: SavedReportLike[];
+  deletingReportIds: Record<string, boolean>;
+  handleDeleteReport: (report: SavedReportLike) => Promise<void>;
   recentLibraryRef: React.RefObject<HTMLDivElement>;
   isLandingRecents: boolean;
-  recentReports: Array<{ id: string; title: string; fileUrl: string; previewImageUrl?: string }>;
+  recentReports: SavedReportLike[];
   newReportId: string | null;
   docVisualOffset: (id: string, idx: number) => { rotation: number; yShift: number };
 };
@@ -316,10 +326,28 @@ export function buildPanelBaseCards(props: PanelCardsProps): PanelCard[] {
                 <span className="report-empty">Guarda PDFs desde el chat para agruparlos aqui.</span>
               )}
               {props.savedReports.slice(0, 6).map((report) => (
-                <a key={report.id} href={resolveDocumentUrl(report.fileUrl)} target="_blank" rel="noreferrer" className="report-item">
-                  <span>{report.title}</span>
-                  <span className="report-tag">{report.group}</span>
-                </a>
+                <div key={report.id} className="report-item">
+                  <a href={resolveDocumentUrl(report.fileUrl)} target="_blank" rel="noreferrer" className="report-item-link">
+                    <span>{report.title}</span>
+                    <span className="report-tag">{report.group}</span>
+                  </a>
+                  <button
+                    type="button"
+                    className="report-delete-button"
+                    aria-label={`Eliminar ${report.title}`}
+                    title="Eliminar PDF"
+                    disabled={Boolean(props.deletingReportIds[report.id])}
+                    onClick={async (event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      await props.handleDeleteReport(report);
+                    }}
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true" className="report-delete-icon">
+                      <path d="M9 3.75h6M10 3.75l.5-1h3l.5 1M6.75 6.5h10.5M9.25 6.5l.5 12.25h4.5l.5-12.25M10.5 10v5M13.5 10v5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </button>
+                </div>
               ))}
             </div>
           </AnimatedPanelCard>
@@ -344,11 +372,8 @@ export function buildPanelBaseCards(props: PanelCardsProps): PanelCard[] {
                 <span className="recent-empty">Aqui llegan los PDFs guardados desde el chat.</span>
               )}
               {props.recentReports.map((report, idx) => (
-                <a
+                <div
                   key={report.id}
-                  href={resolveDocumentUrl(report.fileUrl)}
-                  target="_blank"
-                  rel="noreferrer"
                   className={`recent-item${report.id === props.newReportId ? ' is-new' : ''}`}
                   style={
                     (() => {
@@ -360,14 +385,32 @@ export function buildPanelBaseCards(props: PanelCardsProps): PanelCard[] {
                     })()
                   }
                 >
-                  <div className="recent-item-preview-wrap">
-                    <RecentDocumentPreview
-                      title={report.title}
-                      previewImageUrl={report.previewImageUrl}
-                    />
-                  </div>
-                  <span className="recent-item-name">{report.title}</span>
-                </a>
+                  <a href={resolveDocumentUrl(report.fileUrl)} target="_blank" rel="noreferrer" className="recent-item-link">
+                    <div className="recent-item-preview-wrap">
+                      <RecentDocumentPreview
+                        title={report.title}
+                        previewImageUrl={report.previewImageUrl}
+                      />
+                    </div>
+                    <span className="recent-item-name">{report.title}</span>
+                  </a>
+                  <button
+                    type="button"
+                    className="recent-item-delete-button"
+                    aria-label={`Eliminar ${report.title}`}
+                    title="Eliminar PDF"
+                    disabled={Boolean(props.deletingReportIds[report.id])}
+                    onClick={async (event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      await props.handleDeleteReport(report);
+                    }}
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true" className="recent-item-delete-icon">
+                      <path d="M9 3.75h6M10 3.75l.5-1h3l.5 1M6.75 6.5h10.5M9.25 6.5l.5 12.25h4.5l.5-12.25M10.5 10v5M13.5 10v5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </button>
+                </div>
               ))}
             </div>
           </div>

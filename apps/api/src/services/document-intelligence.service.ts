@@ -89,7 +89,7 @@ function splitStructuredCells(line: string): string[] {
 function isHeaderLikeRow(cells: string[]): boolean {
   const normalized = cells.map(normalizeHeaderToken);
   const headerHits = normalized.filter((cell) =>
-    /^(fecha|feccontable|detalle|descripcion|glosa|movimiento|concepto|cargo|abono|debito|credito|monto|saldo|referencia|sucursal)$/.test(
+    /^(fecha|fec|feccontable|fechamovimiento|fechaoperacion|fechacontable|detalle|descripcion|glosa|movimiento|concepto|cargo|abono|debito|credito|monto|importe|valor|saldo|referencia|sucursal|operacion|canal|tipo|documento)$/.test(
       cell,
     ),
   ).length;
@@ -107,7 +107,8 @@ function isMovementLikeRow(cells: string[]): boolean {
   if (!joined) return false;
   const hasDate = /\b(\d{4}-\d{2}-\d{2}|\d{1,2}[/-]\d{1,2}(?:[/-]\d{2,4})?)\b/.test(joined);
   const amountCells = cells.filter((cell) => isFinancialAmountCell(cell)).length;
-  return hasDate && amountCells >= 1;
+  const hasMovementVerb = /\b(compra|cargo|abono|pago|retiro|transferencia|deposito|dep[oó]sito|webpay|pos|pac|pat|tef|compra)\b/i.test(joined);
+  return (hasDate && amountCells >= 1) || (amountCells >= 2 && hasMovementVerb);
 }
 
 function extractStructuredTables(text: string) {

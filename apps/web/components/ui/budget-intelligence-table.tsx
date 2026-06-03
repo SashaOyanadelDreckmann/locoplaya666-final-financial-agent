@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, type CSSProperties, type MutableRefObject } from 'react';
+import { useMemo, type CSSProperties, type MutableRefObject } from 'react';
 import { motion } from 'framer-motion';
 import {
   Activity,
@@ -31,14 +31,22 @@ type BudgetRow = {
   category: string;
   type: 'income' | 'expense';
   amount: number;
+  parentId?: string;
   product?: string;
   institution?: string;
   note?: string;
-  detail?: string;
   cadence?: 'fixed' | 'variable' | 'oneoff';
   paymentMethod?: BudgetPaymentMethod;
   movementType?: BudgetMovementType;
 };
+
+type EditableBudgetField =
+  | 'category'
+  | 'type'
+  | 'amount'
+  | 'cadence'
+  | 'paymentMethod'
+  | 'movementType';
 
 type Props = {
   orderedBudgetRows: BudgetRow[];
@@ -53,7 +61,7 @@ type Props = {
   colorForBudgetRow: (rowId: string) => string;
   focusBudgetRow: (rowId: string) => void;
   focusBudgetField: (target: EventTarget | null) => void;
-  updateBudgetRow: (id: string, field: keyof BudgetRow, value: string | number) => void;
+  updateBudgetRow: (id: string, field: EditableBudgetField, value: string | number) => void;
   deleteBudgetRow: (id: string) => void;
 };
 
@@ -136,6 +144,11 @@ function seededNoise(seed: number, offset: number): number {
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
+}
+
+function getEffectiveBudgetRows(rows: BudgetRow[]): BudgetRow[] {
+  const parentIds = new Set(rows.filter((row) => row.parentId).map((row) => row.parentId as string));
+  return rows.filter((row) => !parentIds.has(row.id));
 }
 
 function buildImpactSeries(row: BudgetRow, totals: { income: number; expenses: number; balance: number }): number[] {
@@ -229,13 +242,12 @@ function SegmentedPills<T extends string>(props: {
 }
 
 export function BudgetIntelligenceTable(props: Props) {
-  const [openDetails, setOpenDetails] = useState<Record<string, boolean>>({});
-
+  const effectiveRows = useMemo(() => getEffectiveBudgetRows(props.budgetRows), [props.budgetRows]);
   const savingsPct =
     props.budgetTotals.income > 0
       ? Math.round((props.budgetTotals.balance / props.budgetTotals.income) * 100)
       : 0;
-  const nonZeroRows = props.budgetRows.filter((row) => row.amount > 0);
+  const nonZeroRows = effectiveRows.filter((row) => row.amount > 0);
   const fixedFlow = nonZeroRows
     .filter((row) => normalizeCadence(row.cadence, row.type) === 'fixed')
     .reduce((sum, row) => sum + row.amount, 0);
@@ -332,8 +344,6 @@ export function BudgetIntelligenceTable(props: Props) {
               const cadence = normalizeCadence(row.cadence, row.type);
               const paymentMethod = normalizePaymentMethod(row.paymentMethod, row.type);
               const movementType = normalizeMovementType(row.movementType, row.type);
-              const hasDetail = Boolean((row.detail ?? '').trim());
-              const detailOpen = openDetails[row.id] || hasDetail;
 
               return (
                 <tr
@@ -356,29 +366,14 @@ export function BudgetIntelligenceTable(props: Props) {
                           backgroundColor: `${props.colorForBudgetRow(row.id)}2E`,
                           borderColor: `${props.colorForBudgetRow(row.id)}90`,
                         }}
-                        onMouseDownCapture={(e) => props.focusBudgetField(e.currentTarget)}
-                        onPointerDownCapture={(e) => props.focusBudgetField(e.currentTarget)}
                         onFocus={() => props.focusBudgetRow(row.id)}
                         onChange={(e) => props.updateBudgetRow(row.id, 'category', e.target.value)}
                       />
-                      {detailOpen && (
-                        <input
-                          className="budget-detail-input"
-                          value={row.detail ?? ''}
-                          placeholder="Detalle (opcional)"
-                          onMouseDownCapture={(e) => props.focusBudgetField(e.currentTarget)}
-                          onPointerDownCapture={(e) => props.focusBudgetField(e.currentTarget)}
-                          onFocus={() => props.focusBudgetRow(row.id)}
-                          onChange={(e) => props.updateBudgetRow(row.id, 'detail', e.target.value)}
-                        />
-                      )}
                     </div>
                   </td>
                   <td data-label="Tipo">
                     <select
                       value={row.type}
-                      onMouseDownCapture={(e) => props.focusBudgetField(e.currentTarget)}
-                      onPointerDownCapture={(e) => props.focusBudgetField(e.currentTarget)}
                       onFocus={() => props.focusBudgetRow(row.id)}
                       onChange={(e) => props.updateBudgetRow(row.id, 'type', e.target.value as 'income' | 'expense')}
                     >
@@ -393,8 +388,6 @@ export function BudgetIntelligenceTable(props: Props) {
                       min={0}
                       step={1000}
                       placeholder="0"
-                      onMouseDownCapture={(e) => props.focusBudgetField(e.currentTarget)}
-                      onPointerDownCapture={(e) => props.focusBudgetField(e.currentTarget)}
                       onFocus={() => props.focusBudgetRow(row.id)}
                       onChange={(e) => props.updateBudgetRow(row.id, 'amount', Number(e.target.value))}
                     />
@@ -410,8 +403,6 @@ export function BudgetIntelligenceTable(props: Props) {
                   <td data-label="Medio de pago">
                     <select
                       value={paymentMethod}
-                      onMouseDownCapture={(e) => props.focusBudgetField(e.currentTarget)}
-                      onPointerDownCapture={(e) => props.focusBudgetField(e.currentTarget)}
                       onFocus={() => props.focusBudgetRow(row.id)}
                       onChange={(e) => props.updateBudgetRow(row.id, 'paymentMethod', e.target.value)}
                     >
@@ -423,8 +414,6 @@ export function BudgetIntelligenceTable(props: Props) {
                   <td data-label="Tipo de movimiento">
                     <select
                       value={movementType}
-                      onMouseDownCapture={(e) => props.focusBudgetField(e.currentTarget)}
-                      onPointerDownCapture={(e) => props.focusBudgetField(e.currentTarget)}
                       onFocus={() => props.focusBudgetRow(row.id)}
                       onChange={(e) => props.updateBudgetRow(row.id, 'movementType', e.target.value)}
                     >
@@ -440,15 +429,6 @@ export function BudgetIntelligenceTable(props: Props) {
                     </div>
                   </td>
                   <td data-label="Acciones">
-                    <button
-                      type="button"
-                      className="continue-ghost"
-                      onClick={() => setOpenDetails((prev) => ({ ...prev, [row.id]: !detailOpen }))}
-                      aria-label={detailOpen ? 'Ocultar detalle' : 'Agregar detalle'}
-                      aria-expanded={detailOpen}
-                    >
-                      {detailOpen ? '− Det.' : '+ Det.'}
-                    </button>
                     <button
                       type="button"
                       className="continue-ghost danger"

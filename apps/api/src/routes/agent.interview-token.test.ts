@@ -4,6 +4,7 @@ import path from 'path';
 import request from 'supertest';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import {
+  INTERVIEW_MAX_CALLS_PER_USER,
   INTERVIEW_TOTAL_LIMIT_MINUTES,
   INTERVIEW_TOTAL_LIMIT_SEC,
 } from '@financial-agent/shared';
@@ -83,6 +84,8 @@ describe('GET /api/interview/realtime/token', () => {
     expect(res.body.data.remaining_total_sec).toBe(INTERVIEW_TOTAL_LIMIT_SEC);
     expect(typeof res.body.data.call_id).toBe('string');
     expect(fetchSpy).toHaveBeenCalledTimes(1);
+    const requestBody = JSON.parse(String(fetchSpy.mock.calls[0]?.[1]?.body ?? '{}'));
+    expect(requestBody.session.model).toBe('gpt-realtime-mini');
   });
 
   it('returns exact remaining time after prior consumption', async () => {
@@ -94,6 +97,8 @@ describe('GET /api/interview/realtime/token', () => {
       interviewVoice: {
         totalUsedSec: INTERVIEW_TOTAL_LIMIT_SEC - 15,
         callsStarted: 1,
+        activeCallId: 'call_resume_test',
+        status: 'paused',
       },
     });
 
@@ -125,6 +130,27 @@ describe('GET /api/interview/realtime/token', () => {
     expect(String(res.body?.detail ?? '')).toContain(
       `máximo ${INTERVIEW_TOTAL_LIMIT_MINUTES} minutos`,
     );
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it('blocks a second fresh call for the same user', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    const { agent, userId } = await createAuthedAgent();
+    const { saveUserMemoryBlob } = await import('../services/user.service');
+
+    await saveUserMemoryBlob(userId, {
+      interviewVoice: {
+        totalUsedSec: 42,
+        callsStarted: INTERVIEW_MAX_CALLS_PER_USER,
+        activeCallId: null,
+        status: 'idle',
+      },
+    });
+
+    const res = await agent.get('/api/interview/realtime/token');
+
+    expect(res.status).toBe(403);
+    expect(String(res.body?.detail ?? '')).toContain('una sola llamada por usuario');
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 });

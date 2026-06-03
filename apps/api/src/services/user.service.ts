@@ -82,7 +82,13 @@ export async function attachProfileToUser(
 
 export async function attachIntakeToUser(
   userId: string,
-  intakePayload: { intake: unknown; llmSummary?: unknown; intakeContext?: unknown },
+  intakePayload: {
+    intake: unknown;
+    llmSummary?: unknown;
+    intakeContext?: unknown;
+    productsContext?: unknown;
+    budgetContext?: unknown;
+  },
 ): Promise<boolean> {
   const updated = await patchUserRecord(userId, { injectedIntake: intakePayload });
   return Boolean(updated);

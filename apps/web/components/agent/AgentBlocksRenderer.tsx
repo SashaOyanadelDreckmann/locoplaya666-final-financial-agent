@@ -14,7 +14,16 @@ import {
   Bar,
   AreaChart,
   Area,
+  Cell,
 } from 'recharts';
+import {
+  RETRO_CHART_COLORS,
+  RETRO_GRID,
+  RETRO_TICK,
+  RETRO_TOOLTIP_STYLE,
+  RetroBarShape,
+  RetroDot,
+} from '@/components/ui/retro-chart';
 
 type AgentBlocksRendererProps = {
   blocks?: AgentBlock[];
@@ -185,6 +194,8 @@ export function AgentBlocksRenderer({ blocks = [], onQuestionnaireSubmit }: Agen
     return `Este gráfico muestra ${chart.title}. Valores principales: ${points}${chart.data.length > 3 ? '...' : ''}.`;
   };
 
+  const getSeriesColor = (index: number) => RETRO_CHART_COLORS[index % RETRO_CHART_COLORS.length];
+
   return (
     <div className="agent-blocks-renderer">
       {blocks.map((block, idx) => {
@@ -218,60 +229,52 @@ export function AgentBlocksRenderer({ blocks = [], onQuestionnaireSubmit }: Agen
                 <ResponsiveContainer width="100%" height={220}>
                   {chart.kind === 'bar' ? (
                     <BarChart data={chart.data}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
-                      <XAxis dataKey={chart.xKey} tick={{ fill: '#93a0b3', fontSize: 11 }} />
-                      <YAxis tick={{ fill: '#93a0b3', fontSize: 11 }} />
+                      <CartesianGrid strokeDasharray="8 8" stroke={RETRO_GRID} />
+                      <XAxis dataKey={chart.xKey} tick={RETRO_TICK} axisLine={false} tickLine={false} />
+                      <YAxis tick={RETRO_TICK} axisLine={false} tickLine={false} />
                       <Tooltip
                         formatter={(value) => formatValue(value as number | string, chart.format, chart.currency)}
-                        contentStyle={{
-                          background: '#0f1420',
-                          border: '1px solid rgba(148,163,184,0.25)',
-                          borderRadius: 10,
-                        }}
+                        contentStyle={RETRO_TOOLTIP_STYLE}
                       />
-                      <Bar dataKey={chart.yKey} fill="#3b82f6" radius={[6, 6, 0, 0]} />
+                      <Bar dataKey={chart.yKey} shape={<RetroBarShape />}>
+                        {chart.data.map((_: unknown, pointIdx: number) => (
+                          <Cell key={`retro-bar-${idx}-${pointIdx}`} fill={getSeriesColor(pointIdx)} />
+                        ))}
+                      </Bar>
                     </BarChart>
                   ) : chart.kind === 'area' ? (
                     <AreaChart data={chart.data}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
-                      <XAxis dataKey={chart.xKey} tick={{ fill: '#93a0b3', fontSize: 11 }} />
-                      <YAxis tick={{ fill: '#93a0b3', fontSize: 11 }} />
+                      <CartesianGrid strokeDasharray="8 8" stroke={RETRO_GRID} />
+                      <XAxis dataKey={chart.xKey} tick={RETRO_TICK} axisLine={false} tickLine={false} />
+                      <YAxis tick={RETRO_TICK} axisLine={false} tickLine={false} />
                       <Tooltip
                         formatter={(value) => formatValue(value as number | string, chart.format, chart.currency)}
-                        contentStyle={{
-                          background: '#0f1420',
-                          border: '1px solid rgba(148,163,184,0.25)',
-                          borderRadius: 10,
-                        }}
+                        contentStyle={RETRO_TOOLTIP_STYLE}
                       />
                       <Area
-                        type="monotone"
+                        type="stepAfter"
                         dataKey={chart.yKey}
-                        stroke="#22c55e"
-                        fill="rgba(34,197,94,0.2)"
-                        strokeWidth={2}
+                        stroke={RETRO_CHART_COLORS[2]}
+                        fill="rgba(110, 159, 122, 0.26)"
+                        strokeWidth={4}
                       />
                     </AreaChart>
                   ) : (
                     <LineChart data={chart.data}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
-                      <XAxis dataKey={chart.xKey} tick={{ fill: '#93a0b3', fontSize: 11 }} />
-                      <YAxis tick={{ fill: '#93a0b3', fontSize: 11 }} />
+                      <CartesianGrid strokeDasharray="8 8" stroke={RETRO_GRID} />
+                      <XAxis dataKey={chart.xKey} tick={RETRO_TICK} axisLine={false} tickLine={false} />
+                      <YAxis tick={RETRO_TICK} axisLine={false} tickLine={false} />
                       <Tooltip
                         formatter={(value) => formatValue(value as number | string, chart.format, chart.currency)}
-                        contentStyle={{
-                          background: '#0f1420',
-                          border: '1px solid rgba(148,163,184,0.25)',
-                          borderRadius: 10,
-                        }}
+                        contentStyle={RETRO_TOOLTIP_STYLE}
                       />
                       <Line
-                        type="monotone"
+                        type="stepAfter"
                         dataKey={chart.yKey}
-                        stroke="#60a5fa"
-                        strokeWidth={2.5}
-                        dot={{ r: 3, fill: '#60a5fa' }}
-                        activeDot={{ r: 5 }}
+                        stroke={RETRO_CHART_COLORS[3]}
+                        strokeWidth={4}
+                        dot={<RetroDot stroke={RETRO_CHART_COLORS[3]} />}
+                        activeDot={<RetroDot stroke={RETRO_CHART_COLORS[0]} />}
                       />
                     </LineChart>
                   )}
