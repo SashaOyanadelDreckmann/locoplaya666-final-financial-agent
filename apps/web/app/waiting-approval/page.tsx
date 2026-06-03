@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
@@ -57,7 +57,7 @@ function getPlatformGuide() {
   };
 }
 
-export default function WaitingApprovalPage() {
+function WaitingApprovalContent() {
   const searchParams = useSearchParams();
   const [deferredPrompt, setDeferredPrompt] = useState<DeferredInstallPrompt | null>(null);
   const [installStatus, setInstallStatus] = useState<'idle' | 'accepted' | 'dismissed'>('idle');
@@ -130,5 +130,13 @@ export default function WaitingApprovalPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function WaitingApprovalPage() {
+  return (
+    <Suspense>
+      <WaitingApprovalContent />
+    </Suspense>
   );
 }
