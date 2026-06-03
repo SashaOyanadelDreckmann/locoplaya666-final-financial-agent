@@ -61,7 +61,7 @@ export async function runPlanExecutePhase(input: PlanPhaseInput): Promise<PlanPh
       const planMaxTokens = Number(process.env.OPENAI_PLAN_MAX_COMPLETION_TOKENS || 1024);
 
       // Call OpenAI with tool calling
-      const model = process.env.OPENAI_MODEL || 'gpt-5.1-codex';
+      const model = process.env.OPENAI_MODEL || 'gpt-4.1';
       const response = await client.chat.completions.create(
         withCompatibleTemperature(
           {

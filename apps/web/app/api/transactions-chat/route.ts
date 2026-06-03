@@ -170,7 +170,7 @@ export async function POST(req: Request) {
 
     const client = new OpenAI({ apiKey });
     const summaryModel =
-      getServerEnv('TRANSACTIONS_SUMMARY_MODEL') || getServerEnv('OPENAI_MODEL') || 'gpt-5.1-codex';
+      getServerEnv('TRANSACTIONS_SUMMARY_MODEL') || getServerEnv('OPENAI_MODEL') || 'gpt-4.1';
     const chatModel =
       getServerEnv('TRANSACTIONS_CHAT_MODEL') || getServerEnv('OPENAI_MODEL_FAST') || 'gpt-4.1-mini';
 

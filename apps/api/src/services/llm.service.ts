@@ -57,7 +57,7 @@ function estimateInputChars(input: string | LLMMessage[]): number {
 function resolveOpenAIModel(inputChars: number, explicitModel?: string): string {
   if (explicitModel && explicitModel.trim().length > 0) return explicitModel;
 
-  const primary = (process.env.OPENAI_MODEL ?? 'gpt-5.1-codex').trim();
+  const primary = (process.env.OPENAI_MODEL ?? 'gpt-4.1').trim();
   const fast = (process.env.OPENAI_MODEL_FAST ?? primary).trim();
   const quality = (process.env.OPENAI_MODEL_QUALITY ?? primary).trim();
   const mode = getBudgetMode();
