@@ -25839,24 +25839,6 @@ input[type="radio"]:checked {
   color: #fff0eb !important;
 }
 
-/* Non-blocking sync warning toast — amber, auto-dismisses after 6s */
-.interview-modal .interview-sync-error-toast {
-  margin: 0 24px 8px !important;
-  padding: 10px 14px !important;
-  border-radius: 10px !important;
-  border: 1px solid rgba(220, 180, 80, 0.28) !important;
-  background: rgba(90, 65, 10, 0.28) !important;
-  color: #fef3c7 !important;
-  font-size: 0.78rem !important;
-  line-height: 1.45 !important;
-  animation: interview-toast-in 0.22s ease both !important;
-}
-
-@keyframes interview-toast-in {
-  from { opacity: 0; transform: translateY(-6px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
 .interview-modal .interview-modal-loading {
   margin: 0 24px 24px !important;
   min-height: 320px !important;
@@ -43587,17 +43569,40 @@ body.agent-route-active .app-shell::before {
   }
 }
 
-/* Final mobile PWA polish: compact header + full chat + visible bottom panel */
+/* ═══════════════════════════════════════════════════════════════
+   MOBILE PWA CANONICAL LAYOUT — single authoritative block
+   Overrides all previous mobile rules in this file.
+   ═══════════════════════════════════════════════════════════════ */
 @media (max-width: 767px) {
+  /* Full-height layout: safe-area on the container edges, nowhere else */
   .agent-layout {
+    display: flex !important;
+    flex-direction: column !important;
     height: var(--visual-vh, 100dvh) !important;
     max-height: var(--visual-vh, 100dvh) !important;
-    padding-bottom: max(2px, env(safe-area-inset-bottom, 0px)) !important;
+    min-height: var(--visual-vh, 100dvh) !important;
+    padding-top: env(safe-area-inset-top, 0px) !important;
+    padding-bottom: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    gap: 6px !important;
+    overflow: hidden !important;
   }
 
+  /* Chat area: takes all remaining space */
+  .agent-chat {
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  /* Header: same horizontal width as the input field (8px side margins) */
   .agent-chat-header.is-mobile {
-    padding: calc(env(safe-area-inset-top, 0px) + 1px) 8px 1px !important;
+    flex: 0 0 auto !important;
+    margin: 0 8px !important;
+    padding: 5px 0 3px !important;
     border-bottom: none !important;
+    min-height: 0 !important;
   }
 
   .agent-chat-header.is-mobile .agent-chat-controls-row {
@@ -43613,24 +43618,25 @@ body.agent-route-active .app-shell::before {
     align-items: stretch !important;
   }
 
+  /* Tabs: slightly smaller */
   .agent-chat-header.is-mobile .chat-sheet-tab {
     min-width: 0 !important;
-    height: 24px !important;
-    padding: 1px 6px !important;
-    border-radius: 9px !important;
-    gap: 4px !important;
+    height: 22px !important;
+    padding: 1px 5px !important;
+    border-radius: 8px !important;
+    gap: 3px !important;
   }
 
   .agent-chat-header.is-mobile .chat-sheet-tab-index {
-    width: 11px !important;
-    height: 11px !important;
-    min-width: 11px !important;
-    flex-basis: 11px !important;
+    width: 10px !important;
+    height: 10px !important;
+    min-width: 10px !important;
+    flex-basis: 10px !important;
     font-size: 6px !important;
   }
 
   .agent-chat-header.is-mobile .chat-sheet-tab-title {
-    font-size: 8px !important;
+    font-size: 7px !important;
     line-height: 1 !important;
   }
 
@@ -43639,7 +43645,7 @@ body.agent-route-active .app-shell::before {
   }
 
   .agent-chat-header.is-mobile .chat-brand-strip {
-    margin: 2px 0 0 !important;
+    margin: 3px 0 0 !important;
     min-height: 0 !important;
     gap: 0 !important;
   }
@@ -43662,12 +43668,16 @@ body.agent-route-active .app-shell::before {
     margin-top: 0 !important;
   }
 
+  /* Toggle: fixed floating button, bottom-right corner with generous margin */
   .agent-chat-header.is-mobile .chat-monochrome-toggle--inline {
-    width: 20px !important;
-    height: 20px !important;
-    right: 4px !important;
-    top: 2px !important;
-    bottom: auto !important;
+    position: fixed !important;
+    bottom: calc(env(safe-area-inset-bottom, 20px) + 22px) !important;
+    right: 20px !important;
+    top: auto !important;
+    left: auto !important;
+    width: 30px !important;
+    height: 30px !important;
+    z-index: 9999 !important;
     transform: none !important;
   }
 
@@ -43682,6 +43692,8 @@ body.agent-route-active .app-shell::before {
 
   .agent-chat-body {
     min-height: 0 !important;
+    flex: 1 1 0 !important;
+    padding-top: 0 !important;
   }
 
   .agent-thread {
@@ -43689,11 +43701,14 @@ body.agent-route-active .app-shell::before {
     padding-bottom: 6px !important;
   }
 
+  /* Panel: fixed height + generous bottom margin so cards clear the home indicator */
   .agent-panel {
-    flex: 0 0 var(--mobile-panel-h, 72px) !important;
-    margin: 6px 8px max(4px, env(safe-area-inset-bottom, 0px)) !important;
+    flex: 0 0 var(--mobile-panel-h, 130px) !important;
+    max-height: var(--mobile-panel-h, 130px) !important;
+    margin: 0 8px max(calc(env(safe-area-inset-bottom, 0px) + 12px), 28px) !important;
     border-radius: 16px !important;
     overflow: hidden !important;
+    transform: none !important;
   }
 
   .agent-layout.mobile-panel-expanded .agent-panel {
@@ -43706,1005 +43721,5 @@ body.agent-route-active .app-shell::before {
   }
 }
 
-@media (display-mode: standalone) and (max-width: 767px) {
-  .agent-layout {
-    padding-top: max(2px, env(safe-area-inset-top, 0px)) !important;
-    padding-bottom: max(2px, env(safe-area-inset-bottom, 0px)) !important;
-  }
+/* standalone: no overrides needed — the @media (max-width: 767px) block above is the single source */
 
-  .agent-chat-header.is-mobile {
-    padding-top: calc(env(safe-area-inset-top, 0px) + 1px) !important;
-  }
-}
-
-/* Standalone iOS hard-fix: ultra-compact header + stable bottom panel */
-@media (display-mode: standalone) and (max-width: 767px) {
-  .agent-layout {
-    height: var(--visual-vh, 100svh) !important;
-    max-height: var(--visual-vh, 100svh) !important;
-    min-height: var(--visual-vh, 100svh) !important;
-    padding-top: max(1px, env(safe-area-inset-top, 0px)) !important;
-    padding-bottom: 0 !important;
-    gap: 4px !important;
-  }
-
-  .agent-chat-header.is-mobile {
-    padding: calc(env(safe-area-inset-top, 0px) + 1px) 8px 0 !important;
-  }
-
-  .agent-chat-header.is-mobile .agent-chat-controls-row {
-    margin: 0 !important;
-    gap: 3px !important;
-  }
-
-  .agent-chat-header.is-mobile .chat-switcher {
-    gap: 3px !important;
-  }
-
-  .agent-chat-header.is-mobile .chat-sheet-tab {
-    height: 22px !important;
-    padding: 1px 5px !important;
-    border-radius: 8px !important;
-    gap: 3px !important;
-  }
-
-  .agent-chat-header.is-mobile .chat-sheet-tab-index {
-    width: 10px !important;
-    height: 10px !important;
-    min-width: 10px !important;
-    flex-basis: 10px !important;
-    font-size: 6px !important;
-  }
-
-  .agent-chat-header.is-mobile .chat-sheet-tab-title {
-    font-size: 7px !important;
-    line-height: 1 !important;
-  }
-
-  /* Hide brand strip in installed app mode to maximize chat viewport. */
-  .agent-chat-header.is-mobile .chat-brand-strip {
-    display: none !important;
-  }
-
-  .agent-chat-header.is-mobile .chat-monochrome-toggle--inline {
-    width: 18px !important;
-    height: 18px !important;
-    top: 1px !important;
-    right: 3px !important;
-  }
-
-  .agent-chat-body {
-    padding-top: 2px !important;
-  }
-
-  .agent-thread {
-    padding-top: 4px !important;
-    padding-bottom: 4px !important;
-  }
-
-  .agent-chat .terminal-composer-shell {
-    margin-top: 1px !important;
-  }
-
-  .agent-chat .agent-input.terminal-composer {
-    padding: 5px 10px 4px !important;
-  }
-
-  .agent-panel {
-    flex: 0 0 var(--mobile-panel-h, 84px) !important;
-    margin: 4px 8px 0 !important;
-    border-radius: 14px !important;
-    overflow: hidden !important;
-  }
-
-  .agent-layout.mobile-panel-expanded .agent-panel {
-    --mobile-panel-h: min(52dvh, 440px) !important;
-  }
-}
-
-/* Canonical senior mobile standalone layout (single source of truth). */
-@media (max-width: 767px) {
-  .agent-layout.is-mobile-standalone {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 4px !important;
-    height: var(--visual-vh, 100svh) !important;
-    max-height: var(--visual-vh, 100svh) !important;
-    min-height: var(--visual-vh, 100svh) !important;
-    padding: max(1px, env(safe-area-inset-top, 0px)) 0 max(1px, env(safe-area-inset-bottom, 0px)) !important;
-    overflow: hidden !important;
-  }
-
-  .agent-layout.is-mobile-standalone .agent-divider-rail {
-    display: none !important;
-  }
-
-  .agent-layout.is-mobile-standalone .agent-chat {
-    flex: 1 1 auto !important;
-    min-height: 0 !important;
-    border: none !important;
-    border-radius: 0 !important;
-    box-shadow: none !important;
-    background: transparent !important;
-    overflow: hidden !important;
-  }
-
-  .agent-layout.is-mobile-standalone .agent-chat-header,
-  .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile {
-    padding: calc(env(safe-area-inset-top, 0px) + 1px) 8px 0 !important;
-    border-bottom: none !important;
-    background: transparent !important;
-  }
-
-  .agent-layout.is-mobile-standalone .agent-chat-header .agent-chat-controls-row {
-    margin: 0 !important;
-    padding: 0 !important;
-    gap: 3px !important;
-    align-items: start !important;
-  }
-
-  .agent-layout.is-mobile-standalone .agent-chat-header .chat-switcher {
-    width: 100% !important;
-    gap: 3px !important;
-  }
-
-  .agent-layout.is-mobile-standalone .agent-chat-header .chat-sheet-tab {
-    min-width: 0 !important;
-    width: 100% !important;
-    height: 22px !important;
-    padding: 1px 5px !important;
-    border-radius: 8px !important;
-    gap: 3px !important;
-  }
-
-  .agent-layout.is-mobile-standalone .agent-chat-header .chat-sheet-tab-index {
-    width: 10px !important;
-    height: 10px !important;
-    min-width: 10px !important;
-    flex-basis: 10px !important;
-    font-size: 6px !important;
-  }
-
-  .agent-layout.is-mobile-standalone .agent-chat-header .chat-sheet-tab-title {
-    font-size: 7px !important;
-    line-height: 1 !important;
-  }
-
-  .agent-layout.is-mobile-standalone .agent-chat-header .chat-sheet-tab-subtitle,
-  .agent-layout.is-mobile-standalone .agent-chat-header .chat-brand-strip,
-  .agent-layout.is-mobile-standalone .agent-chat-header .muted {
-    display: none !important;
-  }
-
-  .agent-layout.is-mobile-standalone .agent-chat-header .chat-monochrome-toggle--inline {
-    width: 18px !important;
-    height: 18px !important;
-    top: 1px !important;
-    right: 3px !important;
-    bottom: auto !important;
-    transform: none !important;
-  }
-
-  .agent-layout.is-mobile-standalone .agent-chat-body {
-    flex: 1 1 auto !important;
-    min-height: 0 !important;
-    padding-top: 2px !important;
-  }
-
-  .agent-layout.is-mobile-standalone .agent-thread {
-    padding: 4px 8px !important;
-    min-height: 0 !important;
-    flex: 1 1 auto !important;
-  }
-
-  .agent-layout.is-mobile-standalone .agent-chat .terminal-composer-shell {
-    margin-top: 1px !important;
-    gap: 4px !important;
-  }
-
-  .agent-layout.is-mobile-standalone .agent-chat .agent-input.terminal-composer {
-    padding: 5px 10px 4px !important;
-  }
-
-  .agent-layout.is-mobile-standalone .agent-panel {
-    flex: 0 0 var(--mobile-panel-h, 86px) !important;
-    min-height: 0 !important;
-    margin: 0 8px !important;
-    border-radius: 14px !important;
-    overflow: hidden !important;
-  }
-
-  .agent-layout.is-mobile-standalone.mobile-panel-expanded .agent-panel {
-    --mobile-panel-h: min(52dvh, 440px) !important;
-  }
-
-  .agent-layout.is-mobile-standalone .mobile-panel-handle {
-    min-height: 22px !important;
-    padding: 4px 10px 3px !important;
-  }
-}
-
-/* Mobile PWA final authority: no inner safe-area gap, visible lower panel. */
-@media (max-width: 767px) {
-  .agent-layout.is-mobile-standalone {
-    gap: 6px !important;
-    padding-top: 0 !important;
-    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 14px) !important;
-  }
-
-  .agent-layout.is-mobile-standalone .agent-chat {
-    flex: 1 1 0 !important;
-    min-height: 0 !important;
-  }
-
-  .agent-layout.is-mobile-standalone .agent-chat-header,
-  .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile {
-    padding: 4px 8px 1px !important;
-    min-height: 0 !important;
-  }
-
-  .agent-layout.is-mobile-standalone .agent-chat-header .agent-chat-controls-row {
-    min-height: 22px !important;
-    margin: 0 !important;
-    padding: 0 !important;
-  }
-
-  .agent-layout.is-mobile-standalone .agent-chat-header .chat-sheet-tab {
-    height: 22px !important;
-  }
-
-  .agent-layout.is-mobile-standalone .agent-chat-body {
-    padding-top: 0 !important;
-  }
-
-  .agent-layout.is-mobile-standalone .agent-thread {
-    padding: 3px 8px 5px !important;
-  }
-
-  .agent-layout.is-mobile-standalone .agent-chat .terminal-composer-shell {
-    margin-top: 0 !important;
-  }
-
-  .agent-layout.is-mobile-standalone .agent-panel {
-    flex: 0 0 var(--mobile-panel-h, 118px) !important;
-    max-height: var(--mobile-panel-h, 118px) !important;
-    margin: 0 8px !important;
-    transform: translateY(-2px) !important;
-  }
-}
-
-@media (display-mode: standalone) and (max-width: 767px) {
-  .agent-layout {
-    gap: 6px !important;
-    padding-top: 0 !important;
-    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 14px) !important;
-  }
-
-  .agent-chat {
-    flex: 1 1 0 !important;
-    min-height: 0 !important;
-  }
-
-  .agent-chat-header.is-mobile {
-    padding: 4px 8px 1px !important;
-    min-height: 0 !important;
-  }
-
-  .agent-chat-header.is-mobile .agent-chat-controls-row {
-    min-height: 22px !important;
-    margin: 0 !important;
-    padding: 0 !important;
-  }
-
-  .agent-chat-header.is-mobile .chat-sheet-tab {
-    height: 22px !important;
-  }
-
-  .agent-chat-body {
-    padding-top: 0 !important;
-  }
-
-  .agent-thread {
-    padding: 3px 8px 5px !important;
-  }
-
-  .agent-chat .terminal-composer-shell {
-    margin-top: 0 !important;
-  }
-
-  .agent-panel {
-    flex: 0 0 var(--mobile-panel-h, 118px) !important;
-    max-height: var(--mobile-panel-h, 118px) !important;
-    margin: 0 8px !important;
-    transform: translateY(-2px) !important;
-  }
-}
-
-/* ============================================================
-   ENTREVISTA — REDESIGN EDITORIAL PREMIUM
-   Minimalista · Dark · Senior · Financieramente
-   ============================================================ */
-
-:root {
-  --iv-bg:         #07070f;
-  --iv-bg-sidebar: #0b0b16;
-  --iv-bg-card:    #0f0f1c;
-  --iv-border:     rgba(255,255,255,0.07);
-  --iv-border-mid: rgba(255,255,255,0.13);
-  --iv-text:       rgba(255,255,255,0.88);
-  --iv-text-muted: rgba(255,255,255,0.36);
-  --iv-text-dim:   rgba(255,255,255,0.58);
-  --iv-live:       #22c55e;
-  --iv-amber:      #f59e0b;
-  --iv-red:        #ef4444;
-  --iv-white:      #ffffff;
-  --iv-radius:     3px;
-  --iv-mono:       'SF Mono','Fira Mono','Cascadia Code',monospace;
-}
-
-@keyframes iv-pulse   { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.25;transform:scale(.7)} }
-@keyframes iv-breathe { 0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,.45)} 60%{box-shadow:0 0 0 7px rgba(34,197,94,0)} }
-@keyframes iv-fadein  { from{opacity:0;transform:translateY(7px)} to{opacity:1;transform:translateY(0)} }
-
-/* Overlay */
-.interview-modal-overlay.agent-modal-overlay {
-  background: rgba(0,0,0,.90) !important;
-  backdrop-filter: blur(5px) !important;
-}
-
-/* Modal shell */
-.agent-modal.interview-modal {
-  background: var(--iv-bg) !important;
-  border: 1px solid rgba(255,255,255,.08) !important;
-  border-radius: 6px !important;
-  box-shadow: 0 0 0 1px rgba(255,255,255,.03), 0 40px 80px rgba(0,0,0,.75), 0 10px 30px rgba(0,0,0,.5) !important;
-  max-width: 1100px !important;
-  width: calc(100vw - 32px) !important;
-  max-height: calc(100vh - 40px) !important;
-  display: flex !important;
-  flex-direction: column !important;
-  overflow: hidden !important;
-  animation: iv-fadein .22s cubic-bezier(.22,1,.36,1) both !important;
-}
-.agent-modal.interview-modal.interview-modal--generating {
-  max-width: 520px !important;
-  min-height: 260px !important;
-  align-items: center !important;
-  justify-content: center !important;
-}
-
-/* Header */
-.agent-modal.interview-modal .interview-modal-header,
-.agent-modal.interview-modal .bcc-modal-header {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: space-between !important;
-  padding: 16px 24px !important;
-  border-bottom: 1px solid var(--iv-border) !important;
-  background: transparent !important;
-  flex-shrink: 0 !important;
-}
-.agent-modal.interview-modal .bcc-modal-eyebrow {
-  display: block !important;
-  font-size: .6rem !important;
-  font-weight: 600 !important;
-  letter-spacing: .14em !important;
-  text-transform: uppercase !important;
-  color: var(--iv-text-muted) !important;
-  margin-bottom: 2px !important;
-}
-.agent-modal.interview-modal .bcc-modal-title,
-.agent-modal.interview-modal .agent-modal-header h3,
-.agent-modal.interview-modal h3.bcc-modal-title {
-  font-size: .93rem !important;
-  font-weight: 600 !important;
-  letter-spacing: -.01em !important;
-  color: var(--iv-text) !important;
-  margin: 0 !important;
-}
-.agent-modal.interview-modal .agent-modal-close {
-  width: 27px !important;
-  height: 27px !important;
-  border-radius: 50% !important;
-  border: 1px solid var(--iv-border-mid) !important;
-  background: transparent !important;
-  color: var(--iv-text-muted) !important;
-  font-size: 1rem !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  cursor: pointer !important;
-  transition: border-color .15s, color .15s !important;
-  flex-shrink: 0 !important;
-  line-height: 1 !important;
-}
-.agent-modal.interview-modal .agent-modal-close:hover:not(:disabled) {
-  border-color: rgba(255,255,255,.3) !important;
-  color: var(--iv-white) !important;
-}
-.agent-modal.interview-modal .agent-modal-close:disabled {
-  opacity: .28 !important;
-  cursor: not-allowed !important;
-}
-.agent-modal.interview-modal .interview-modal-intro {
-  display: none !important;
-}
-
-/* Sync toast */
-.agent-modal.interview-modal .interview-sync-error-toast {
-  margin: 0 !important;
-  padding: 8px 24px !important;
-  border-top: 1px solid rgba(245,158,11,.16) !important;
-  border-bottom: none !important;
-  border-left: none !important;
-  border-right: none !important;
-  background: rgba(245,158,11,.06) !important;
-  color: rgba(253,230,138,.82) !important;
-  font-size: .71rem !important;
-  letter-spacing: .01em !important;
-  line-height: 1.5 !important;
-  border-radius: 0 !important;
-  animation: iv-fadein .2s ease both !important;
-}
-
-/* Loading */
-.agent-modal.interview-modal .interview-modal-loading {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  min-height: 260px !important;
-  color: var(--iv-text-muted) !important;
-  font-size: .78rem !important;
-  letter-spacing: .06em !important;
-}
-
-/* Body */
-.agent-modal.interview-modal .interview-modal-body {
-  flex: 1 !important;
-  overflow: hidden !important;
-  display: flex !important;
-  flex-direction: column !important;
-  min-height: 0 !important;
-}
-
-/* Two-column stage */
-.agent-modal.interview-modal .interview-stage-shell {
-  display: flex !important;
-  flex: 1 !important;
-  min-height: 0 !important;
-  overflow: hidden !important;
-}
-
-/* ---- Sidebar ---- */
-.agent-modal.interview-modal .interview-panel-surface--sidebar {
-  width: 228px !important;
-  min-width: 228px !important;
-  max-width: 228px !important;
-  background: var(--iv-bg-sidebar) !important;
-  border-right: 1px solid var(--iv-border) !important;
-  overflow-y: auto !important;
-  padding: 0 !important;
-  scrollbar-width: none !important;
-  display: flex !important;
-  flex-direction: column !important;
-}
-.agent-modal.interview-modal .interview-panel-surface--sidebar::-webkit-scrollbar { display: none !important; }
-
-.agent-modal.interview-modal .interview-brief-card {
-  padding: 18px 16px 16px !important;
-  border-bottom: 1px solid var(--iv-border) !important;
-  background: transparent !important;
-  box-shadow: none !important;
-  border-radius: 0 !important;
-}
-.agent-modal.interview-modal .interview-brief-top {
-  display: flex !important;
-  align-items: flex-start !important;
-  justify-content: space-between !important;
-  gap: 8px !important;
-  margin-bottom: 8px !important;
-}
-.agent-modal.interview-modal .interview-surface-eyebrow {
-  display: block !important;
-  font-size: .6rem !important;
-  font-weight: 600 !important;
-  letter-spacing: .13em !important;
-  text-transform: uppercase !important;
-  color: var(--iv-text-muted) !important;
-  margin-bottom: 3px !important;
-}
-.agent-modal.interview-modal .interview-brief-card h4 {
-  font-size: .8rem !important;
-  font-weight: 600 !important;
-  color: var(--iv-text) !important;
-  margin: 0 0 5px !important;
-  letter-spacing: -.01em !important;
-}
-.agent-modal.interview-modal .interview-brief-card > p {
-  font-size: .72rem !important;
-  color: var(--iv-text-dim) !important;
-  line-height: 1.55 !important;
-  margin: 0 0 10px !important;
-}
-.agent-modal.interview-modal .interview-brief-status {
-  font-size: .58rem !important;
-  font-weight: 600 !important;
-  letter-spacing: .1em !important;
-  text-transform: uppercase !important;
-  color: var(--iv-text-muted) !important;
-  white-space: nowrap !important;
-  flex-shrink: 0 !important;
-  padding: 2px 7px !important;
-  border: 1px solid var(--iv-border-mid) !important;
-  border-radius: 2px !important;
-  background: transparent !important;
-}
-.agent-modal.interview-modal .interview-brief-status.is-live {
-  color: var(--iv-live) !important;
-  border-color: rgba(34,197,94,.3) !important;
-  background: rgba(34,197,94,.05) !important;
-}
-.agent-modal.interview-modal .interview-brief-status.is-done {
-  color: var(--iv-text-dim) !important;
-}
-.agent-modal.interview-modal .interview-brief-tags {
-  display: flex !important;
-  flex-wrap: wrap !important;
-  gap: 4px !important;
-}
-.agent-modal.interview-modal .interview-brief-tag {
-  font-size: .61rem !important;
-  color: var(--iv-text-muted) !important;
-  background: rgba(255,255,255,.04) !important;
-  border: 1px solid var(--iv-border) !important;
-  border-radius: 2px !important;
-  padding: 2px 6px !important;
-}
-
-/* Metrics grid */
-.agent-modal.interview-modal .interview-metrics-grid {
-  display: grid !important;
-  grid-template-columns: 1fr 1fr !important;
-  border-bottom: 1px solid var(--iv-border) !important;
-}
-.agent-modal.interview-modal .interview-metric-card {
-  padding: 12px 14px !important;
-  border-right: 1px solid var(--iv-border) !important;
-  border-bottom: 1px solid var(--iv-border) !important;
-  background: transparent !important;
-  box-shadow: none !important;
-  border-radius: 0 !important;
-}
-.agent-modal.interview-modal .interview-metric-card:nth-child(even) { border-right: none !important; }
-.agent-modal.interview-modal .interview-metric-card:nth-last-child(-n+2) { border-bottom: none !important; }
-.agent-modal.interview-modal .interview-metric-card span {
-  display: block !important;
-  font-size: .58rem !important;
-  font-weight: 500 !important;
-  letter-spacing: .09em !important;
-  text-transform: uppercase !important;
-  color: var(--iv-text-muted) !important;
-  margin-bottom: 4px !important;
-}
-.agent-modal.interview-modal .interview-metric-card strong {
-  display: block !important;
-  font-size: 1.05rem !important;
-  font-weight: 700 !important;
-  font-family: var(--iv-mono) !important;
-  color: var(--iv-text) !important;
-  letter-spacing: -.02em !important;
-  line-height: 1 !important;
-}
-
-/* Notes card */
-.agent-modal.interview-modal .interview-notes-card {
-  padding: 12px 16px !important;
-  border-bottom: 1px solid var(--iv-border) !important;
-  background: transparent !important;
-  box-shadow: none !important;
-  border-radius: 0 !important;
-}
-.agent-modal.interview-modal .interview-notes-card ul {
-  margin: 5px 0 0 !important;
-  padding: 0 !important;
-  list-style: none !important;
-}
-.agent-modal.interview-modal .interview-notes-card li {
-  font-size: .71rem !important;
-  color: var(--iv-text-dim) !important;
-  line-height: 1.6 !important;
-  padding: 1px 0 1px 12px !important;
-  position: relative !important;
-}
-.agent-modal.interview-modal .interview-notes-card li::before {
-  content: '—' !important;
-  position: absolute !important;
-  left: 0 !important;
-  color: var(--iv-text-muted) !important;
-  font-size: .65rem !important;
-}
-
-/* Status rail */
-.agent-modal.interview-modal .interview-status-rail {
-  padding: 12px 16px !important;
-  flex: 1 !important;
-}
-.agent-modal.interview-modal .interview-status-list {
-  margin-top: 7px !important;
-  display: flex !important;
-  flex-direction: column !important;
-}
-.agent-modal.interview-modal .interview-status-item {
-  display: flex !important;
-  justify-content: space-between !important;
-  align-items: baseline !important;
-  padding: 6px 0 !important;
-  border-bottom: 1px solid var(--iv-border) !important;
-  background: transparent !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-}
-.agent-modal.interview-modal .interview-status-item:last-child { border-bottom: none !important; }
-.agent-modal.interview-modal .interview-status-item span {
-  font-size: .66rem !important;
-  color: var(--iv-text-muted) !important;
-  letter-spacing: .01em !important;
-}
-.agent-modal.interview-modal .interview-status-item strong {
-  font-size: .7rem !important;
-  font-weight: 500 !important;
-  color: var(--iv-text-dim) !important;
-  text-align: right !important;
-  max-width: 110px !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-  white-space: nowrap !important;
-}
-.agent-modal.interview-modal .interview-status-item.is-live strong  { color: var(--iv-live) !important; }
-.agent-modal.interview-modal .interview-status-item.is-closing strong { color: var(--iv-amber) !important; }
-.agent-modal.interview-modal .interview-status-item.is-review strong { color: rgba(147,197,253,.85) !important; }
-.agent-modal.interview-modal .interview-status-item.is-done strong   { color: var(--iv-text-dim) !important; }
-
-/* ---- Workspace ---- */
-.agent-modal.interview-modal .interview-panel-surface--workspace {
-  flex: 1 !important;
-  background: var(--iv-bg) !important;
-  overflow-y: auto !important;
-  scrollbar-width: thin !important;
-  scrollbar-color: rgba(255,255,255,.07) transparent !important;
-  display: flex !important;
-  flex-direction: column !important;
-  min-width: 0 !important;
-}
-
-/* Voice call shell */
-.agent-modal.interview-modal .voice-call-shell {
-  padding: 22px 26px !important;
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 14px !important;
-  background: transparent !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-  min-width: 0 !important;
-}
-.agent-modal.interview-modal .voice-call-shell.is-hidden-by-report { display: none !important; }
-
-/* Topbar */
-.agent-modal.interview-modal .voice-call-topbar {
-  display: flex !important;
-  align-items: flex-start !important;
-  justify-content: space-between !important;
-  gap: 16px !important;
-  border-bottom: 1px solid var(--iv-border) !important;
-  padding-bottom: 14px !important;
-  background: transparent !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-}
-.agent-modal.interview-modal .voice-call-label,
-.agent-modal.interview-modal .voice-call-brand {
-  display: block !important;
-  font-size: .6rem !important;
-  font-weight: 600 !important;
-  letter-spacing: .13em !important;
-  text-transform: uppercase !important;
-  color: var(--iv-text-muted) !important;
-  margin-bottom: 3px !important;
-}
-.agent-modal.interview-modal .voice-call-topbar h1 {
-  font-size: 1.3rem !important;
-  font-weight: 700 !important;
-  letter-spacing: -.025em !important;
-  color: var(--iv-white) !important;
-  line-height: 1.15 !important;
-  margin: 0 0 4px !important;
-}
-.agent-modal.interview-modal .voice-call-subtitle {
-  font-size: .74rem !important;
-  color: var(--iv-text-muted) !important;
-  margin: 0 !important;
-  line-height: 1.4 !important;
-}
-
-/* Status badge */
-.agent-modal.interview-modal .voice-call-status {
-  display: flex !important;
-  align-items: center !important;
-  gap: 7px !important;
-  font-size: .67rem !important;
-  font-weight: 500 !important;
-  letter-spacing: .06em !important;
-  color: var(--iv-text-muted) !important;
-  white-space: nowrap !important;
-  flex-shrink: 0 !important;
-  background: transparent !important;
-  border: none !important;
-  padding: 0 !important;
-}
-.agent-modal.interview-modal .voice-call-status-dot {
-  width: 6px !important;
-  height: 6px !important;
-  border-radius: 50% !important;
-  background: rgba(255,255,255,.18) !important;
-  flex-shrink: 0 !important;
-  transition: background .3s !important;
-}
-/* Green breathing dot when call is live */
-.agent-modal.interview-modal .voice-call-shell .voice-call-status-dot {
-  background: var(--iv-live) !important;
-  animation: iv-breathe 2.2s ease-in-out infinite !important;
-}
-
-/* Progress bar — 2px hairline */
-.agent-modal.interview-modal .voice-call-progress {
-  height: 2px !important;
-  background: rgba(255,255,255,.05) !important;
-  border-radius: 1px !important;
-  overflow: hidden !important;
-  position: relative !important;
-}
-.agent-modal.interview-modal .voice-call-progress > span {
-  position: absolute !important;
-  left: 0 !important;
-  top: 0 !important;
-  height: 100% !important;
-  background: rgba(255,255,255,.5) !important;
-  border-radius: 1px !important;
-  transition: width 1s linear !important;
-}
-
-/* Pills */
-.agent-modal.interview-modal .voice-call-context,
-.agent-modal.interview-modal .interview-call-meta {
-  display: flex !important;
-  flex-wrap: wrap !important;
-  gap: 6px !important;
-  background: transparent !important;
-  padding: 0 !important;
-}
-.agent-modal.interview-modal .voice-call-pill {
-  font-size: .62rem !important;
-  color: var(--iv-text-muted) !important;
-  background: rgba(255,255,255,.03) !important;
-  border: 1px solid var(--iv-border) !important;
-  border-radius: 2px !important;
-  padding: 2px 8px !important;
-  font-family: var(--iv-mono) !important;
-  letter-spacing: .01em !important;
-}
-
-/* Transcript cards */
-.agent-modal.interview-modal .voice-call-transcript-card {
-  background: var(--iv-bg-card) !important;
-  border: 1px solid var(--iv-border) !important;
-  border-radius: var(--iv-radius) !important;
-  padding: 13px 15px !important;
-  box-shadow: none !important;
-}
-.agent-modal.interview-modal .voice-call-transcript-label {
-  display: block !important;
-  font-size: .59rem !important;
-  font-weight: 600 !important;
-  letter-spacing: .12em !important;
-  text-transform: uppercase !important;
-  color: var(--iv-text-muted) !important;
-  margin-bottom: 7px !important;
-}
-.agent-modal.interview-modal .voice-call-transcript-card p {
-  font-size: .81rem !important;
-  color: var(--iv-text-dim) !important;
-  line-height: 1.65 !important;
-  margin: 0 !important;
-}
-.agent-modal.interview-modal .voice-call-transcripts {
-  display: grid !important;
-  grid-template-columns: 1fr 1fr !important;
-  gap: 10px !important;
-  background: transparent !important;
-}
-.agent-modal.interview-modal .voice-call-transcript-card ul {
-  margin: 7px 0 0 !important;
-  padding: 0 !important;
-  list-style: none !important;
-}
-.agent-modal.interview-modal .voice-call-transcript-card li {
-  font-size: .79rem !important;
-  color: var(--iv-text-dim) !important;
-  line-height: 1.6 !important;
-  padding: 5px 0 5px 16px !important;
-  border-bottom: 1px solid var(--iv-border) !important;
-  position: relative !important;
-}
-.agent-modal.interview-modal .voice-call-transcript-card li:last-child { border-bottom: none !important; }
-.agent-modal.interview-modal .voice-call-transcript-card li::before {
-  content: '→' !important;
-  position: absolute !important;
-  left: 0 !important;
-  color: var(--iv-text-muted) !important;
-  font-size: .7rem !important;
-  top: 6px !important;
-}
-
-/* Focus card */
-.agent-modal.interview-modal .interview-focus-card {
-  border-left: 2px solid rgba(255,255,255,.13) !important;
-  border-radius: 0 var(--iv-radius) var(--iv-radius) 0 !important;
-  background: rgba(255,255,255,.02) !important;
-}
-.agent-modal.interview-modal .interview-focus-card p {
-  color: var(--iv-text) !important;
-  font-size: .84rem !important;
-  font-weight: 500 !important;
-  line-height: 1.55 !important;
-}
-.agent-modal.interview-modal .interview-inline-note {
-  display: block !important;
-  font-size: .69rem !important;
-  color: var(--iv-text-muted) !important;
-  margin-top: 5px !important;
-  line-height: 1.4 !important;
-}
-
-/* Validation card */
-.agent-modal.interview-modal .interview-validation-card {
-  border-left: 2px solid rgba(147,197,253,.28) !important;
-  border-radius: 0 var(--iv-radius) var(--iv-radius) 0 !important;
-  background: rgba(147,197,253,.025) !important;
-}
-
-/* Error banners */
-.agent-modal.interview-modal .interview-call-error-banner,
-.agent-modal.interview-modal .voice-call-error {
-  font-size: .74rem !important;
-  color: rgba(252,165,165,.9) !important;
-  background: rgba(239,68,68,.07) !important;
-  border: 1px solid rgba(239,68,68,.17) !important;
-  border-radius: var(--iv-radius) !important;
-  padding: 10px 14px !important;
-  line-height: 1.5 !important;
-  margin: 0 !important;
-}
-
-/* Boot error */
-.agent-modal.interview-modal .voice-call-error.interview-call-error-banner {
-  background: rgba(239,68,68,.07) !important;
-}
-
-/* --- Buttons --- */
-.agent-modal.interview-modal .summary-action-btn {
-  font-size: .71rem !important;
-  font-weight: 600 !important;
-  letter-spacing: .06em !important;
-  text-transform: uppercase !important;
-  padding: 9px 18px !important;
-  border-radius: 2px !important;
-  border: 1px solid var(--iv-border-mid) !important;
-  background: transparent !important;
-  color: var(--iv-text-dim) !important;
-  cursor: pointer !important;
-  transition: border-color .15s, color .15s, background .15s !important;
-  white-space: nowrap !important;
-  line-height: 1.2 !important;
-}
-.agent-modal.interview-modal .summary-action-btn:hover:not(:disabled) {
-  border-color: rgba(255,255,255,.28) !important;
-  color: var(--iv-white) !important;
-  background: rgba(255,255,255,.04) !important;
-}
-.agent-modal.interview-modal .summary-action-btn:disabled {
-  opacity: .28 !important;
-  cursor: not-allowed !important;
-}
-.agent-modal.interview-modal .summary-action-accept {
-  background: rgba(255,255,255,.94) !important;
-  color: #07070f !important;
-  border-color: transparent !important;
-}
-.agent-modal.interview-modal .summary-action-accept:hover:not(:disabled) {
-  background: #fff !important;
-  color: #000 !important;
-  border-color: transparent !important;
-}
-.agent-modal.interview-modal .summary-action-reject {
-  background: transparent !important;
-  color: rgba(252,165,165,.72) !important;
-  border-color: rgba(239,68,68,.2) !important;
-}
-.agent-modal.interview-modal .summary-action-reject:hover:not(:disabled) {
-  background: rgba(239,68,68,.06) !important;
-  color: rgba(252,165,165,1) !important;
-  border-color: rgba(239,68,68,.35) !important;
-}
-.agent-modal.interview-modal .interview-call-start-btn { flex: 1 !important; }
-
-/* Action rows */
-.agent-modal.interview-modal .voice-call-actions,
-.agent-modal.interview-modal .interview-call-actions {
-  display: flex !important;
-  flex-wrap: wrap !important;
-  gap: 8px !important;
-  background: transparent !important;
-  padding: 0 !important;
-}
-
-/* Textarea */
-.agent-modal.interview-modal .agent-textarea {
-  background: rgba(255,255,255,.03) !important;
-  border: 1px solid var(--iv-border-mid) !important;
-  border-radius: var(--iv-radius) !important;
-  color: var(--iv-text) !important;
-  font-size: .8rem !important;
-  line-height: 1.6 !important;
-  padding: 10px 12px !important;
-  width: 100% !important;
-  resize: vertical !important;
-  outline: none !important;
-  transition: border-color .15s !important;
-}
-.agent-modal.interview-modal .agent-textarea:focus { border-color: rgba(255,255,255,.22) !important; }
-.agent-modal.interview-modal .agent-textarea::placeholder { color: var(--iv-text-muted) !important; }
-
-/* Completed state */
-.agent-modal.interview-modal .interview-modal-completed {
-  padding: 30px 26px !important;
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 16px !important;
-}
-
-/* Diagnosis shell */
-.agent-modal.interview-modal .diagnosis-ready-shell {
-  border-top: 1px solid var(--iv-border) !important;
-  padding: 22px 26px !important;
-  background: rgba(255,255,255,.012) !important;
-  animation: iv-fadein .28s ease both !important;
-}
-.agent-modal.interview-modal .diagnosis-ready-shell .voice-call-topbar h1 { font-size: 1.08rem !important; }
-
-/* Decorative bg elements — remove */
-.agent-modal.interview-modal .pro-interview-shell::before,
-.agent-modal.interview-modal .interview-shell::before { display: none !important; }
-.agent-modal.interview-modal .pro-interview-shell,
-.agent-modal.interview-modal .interview-shell {
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-}
-
-/* --- Responsive --- */
-@media (max-width: 720px) {
-  .agent-modal.interview-modal .interview-stage-shell { flex-direction: column !important; }
-  .agent-modal.interview-modal .interview-panel-surface--sidebar {
-    width: 100% !important;
-    max-width: 100% !important;
-    min-width: unset !important;
-    border-right: none !important;
-    border-bottom: 1px solid var(--iv-border) !important;
-    max-height: 220px !important;
-  }
-  .agent-modal.interview-modal .voice-call-shell { padding: 14px 16px !important; }
-  .agent-modal.interview-modal .voice-call-transcripts { grid-template-columns: 1fr !important; }
-  .agent-modal.interview-modal .voice-call-topbar h1 { font-size: 1.05rem !important; }
-}
-/* ==== END EDITORIAL REDESIGN ==== */
