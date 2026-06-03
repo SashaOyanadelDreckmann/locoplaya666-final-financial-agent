@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, type CSSProperties, type MutableRefObject } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type MutableRefObject } from 'react';
 import { motion } from 'framer-motion';
 import {
   Activity,
@@ -218,6 +218,101 @@ function ImpactSparkline({ row, totals }: { row: BudgetRow; totals: { income: nu
   );
 }
 
+function stopRowCapture(event: React.SyntheticEvent) {
+  event.stopPropagation();
+}
+
+function BudgetTextInput(props: {
+  rowId: string;
+  value: string;
+  placeholder: string;
+  style?: CSSProperties;
+  onFocus: () => void;
+  onCommit: (value: string) => void;
+}) {
+  const [draft, setDraft] = useState(props.value);
+  const isEditingRef = useRef(false);
+
+  useEffect(() => {
+    if (!isEditingRef.current) {
+      setDraft(props.value);
+    }
+  }, [props.value, props.rowId]);
+
+  return (
+    <input
+      value={draft}
+      placeholder={props.placeholder}
+      style={props.style}
+      onFocus={() => {
+        isEditingRef.current = true;
+        props.onFocus();
+      }}
+      onMouseDown={stopRowCapture}
+      onPointerDown={stopRowCapture}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={() => {
+        isEditingRef.current = false;
+        props.onCommit(draft.trim() || props.value);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          e.currentTarget.blur();
+        }
+      }}
+    />
+  );
+}
+
+function BudgetAmountInput(props: {
+  rowId: string;
+  amount: number;
+  onFocus: () => void;
+  onCommit: (value: number) => void;
+}) {
+  const [draft, setDraft] = useState(() => (props.amount > 0 ? String(props.amount) : ''));
+  const isEditingRef = useRef(false);
+
+  useEffect(() => {
+    if (!isEditingRef.current) {
+      setDraft(props.amount > 0 ? String(props.amount) : '');
+    }
+  }, [props.amount, props.rowId]);
+
+  function commit(nextDraft: string) {
+    const digits = nextDraft.replace(/\D/g, '');
+    const parsed = digits ? Math.max(0, Math.round(Number(digits))) : 0;
+    setDraft(parsed > 0 ? String(parsed) : '');
+    props.onCommit(parsed);
+  }
+
+  return (
+    <input
+      type="text"
+      inputMode="numeric"
+      pattern="[0-9]*"
+      value={draft}
+      placeholder="0"
+      onFocus={() => {
+        isEditingRef.current = true;
+        props.onFocus();
+      }}
+      onMouseDown={stopRowCapture}
+      onPointerDown={stopRowCapture}
+      onChange={(e) => setDraft(e.target.value.replace(/\D/g, ''))}
+      onBlur={() => {
+        isEditingRef.current = false;
+        commit(draft);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          e.currentTarget.blur();
+        }
+      }}
+    />
+  );
+}
+
 function SegmentedPills<T extends string>(props: {
   options: Array<{ value: T; label: string }>;
   value: T;
@@ -243,6 +338,10 @@ function SegmentedPills<T extends string>(props: {
 
 export function BudgetIntelligenceTable(props: Props) {
   const effectiveRows = useMemo(() => getEffectiveBudgetRows(props.budgetRows), [props.budgetRows]);
+  const parentIdsWithChildren = useMemo(
+    () => new Set(props.budgetRows.filter((row) => row.parentId).map((row) => row.parentId as string)),
+    [props.budgetRows],
+  );
   const savingsPct =
     props.budgetTotals.income > 0
       ? Math.round((props.budgetTotals.balance / props.budgetTotals.income) * 100)
@@ -344,6 +443,7 @@ export function BudgetIntelligenceTable(props: Props) {
               const cadence = normalizeCadence(row.cadence, row.type);
               const paymentMethod = normalizePaymentMethod(row.paymentMethod, row.type);
               const movementType = normalizeMovementType(row.movementType, row.type);
+              const isRollupParent = parentIdsWithChildren.has(row.id);
 
               return (
                 <tr
@@ -354,12 +454,11 @@ export function BudgetIntelligenceTable(props: Props) {
                     props.focusedBudgetRowId === row.id ? 'is-active-row' : '',
                   ].join(' ')}
                   style={props.rowStyle(row)}
-                  onMouseDownCapture={() => props.focusBudgetRow(row.id)}
-                  onPointerDownCapture={() => props.focusBudgetRow(row.id)}
                 >
                   <td data-label="Movimiento">
                     <div className="budget-movement-cell">
-                      <input
+                      <BudgetTextInput
+                        rowId={row.id}
                         value={row.category}
                         placeholder="Movimiento"
                         style={{
@@ -367,7 +466,7 @@ export function BudgetIntelligenceTable(props: Props) {
                           borderColor: `${props.colorForBudgetRow(row.id)}90`,
                         }}
                         onFocus={() => props.focusBudgetRow(row.id)}
-                        onChange={(e) => props.updateBudgetRow(row.id, 'category', e.target.value)}
+                        onCommit={(value) => props.updateBudgetRow(row.id, 'category', value)}
                       />
                     </div>
                   </td>
@@ -375,6 +474,8 @@ export function BudgetIntelligenceTable(props: Props) {
                     <select
                       value={row.type}
                       onFocus={() => props.focusBudgetRow(row.id)}
+                      onMouseDown={stopRowCapture}
+                      onPointerDown={stopRowCapture}
                       onChange={(e) => props.updateBudgetRow(row.id, 'type', e.target.value as 'income' | 'expense')}
                     >
                       <option value="income">Ingreso</option>
@@ -382,15 +483,23 @@ export function BudgetIntelligenceTable(props: Props) {
                     </select>
                   </td>
                   <td data-label="Monto">
-                    <input
-                      type="number"
-                      value={row.amount}
-                      min={0}
-                      step={1000}
-                      placeholder="0"
-                      onFocus={() => props.focusBudgetRow(row.id)}
-                      onChange={(e) => props.updateBudgetRow(row.id, 'amount', Number(e.target.value))}
-                    />
+                    {isRollupParent ? (
+                      <input
+                        value={row.amount > 0 ? String(row.amount) : ''}
+                        readOnly
+                        tabIndex={-1}
+                        aria-readonly="true"
+                        title="Monto calculado desde subcategorías"
+                        className="is-readonly-amount"
+                      />
+                    ) : (
+                      <BudgetAmountInput
+                        rowId={row.id}
+                        amount={row.amount}
+                        onFocus={() => props.focusBudgetRow(row.id)}
+                        onCommit={(value) => props.updateBudgetRow(row.id, 'amount', value)}
+                      />
+                    )}
                   </td>
                   <td data-label="Recurrencia">
                     <SegmentedPills
@@ -404,6 +513,8 @@ export function BudgetIntelligenceTable(props: Props) {
                     <select
                       value={paymentMethod}
                       onFocus={() => props.focusBudgetRow(row.id)}
+                      onMouseDown={stopRowCapture}
+                      onPointerDown={stopRowCapture}
                       onChange={(e) => props.updateBudgetRow(row.id, 'paymentMethod', e.target.value)}
                     >
                       {PAYMENT_OPTIONS.map((option) => (
@@ -415,6 +526,8 @@ export function BudgetIntelligenceTable(props: Props) {
                     <select
                       value={movementType}
                       onFocus={() => props.focusBudgetRow(row.id)}
+                      onMouseDown={stopRowCapture}
+                      onPointerDown={stopRowCapture}
                       onChange={(e) => props.updateBudgetRow(row.id, 'movementType', e.target.value)}
                     >
                       {MOVEMENT_TYPE_OPTIONS.map((option) => (

@@ -1,4 +1,10 @@
 import type { ChatAgentInput, ChatAgentResponse } from '../agents/core.agent/chat.types';
+import {
+  buildActionPlanFunnelDirective,
+  closingTurnForChat,
+  maxTurnsForChat,
+  resolveActionPlanFunnelStage,
+} from '../agents/core.agent/helpers/action-plan-funnel.helpers';
 
 export type ProductChatId = 'chat-1' | 'chat-2' | 'chat-3';
 
@@ -23,14 +29,6 @@ export type ProductLifecycleState = {
     createdAt: string;
     summary: string;
   }>;
-  actionReminders: Array<{
-    id: string;
-    title: string;
-    proposedDate: string;
-    sourceChatId: ProductChatId;
-    status: 'proposed' | 'queued';
-    createdAt: string;
-  }>;
   updatedAt: string;
 };
 
@@ -44,8 +42,6 @@ export type LifecycleDecision = {
 };
 
 const PRODUCT_CHAT_IDS: ProductChatId[] = ['chat-1', 'chat-2', 'chat-3'];
-const MAX_CHAT_TURNS = 50;
-const CLOSING_MODE_TURN = 30;
 
 export function defaultProductLifecycleState(): ProductLifecycleState {
   return {
@@ -54,7 +50,6 @@ export function defaultProductLifecycleState(): ProductLifecycleState {
     chatTurns: { 'chat-1': 0, 'chat-2': 0, 'chat-3': 0 },
     closedChats: [],
     reports: [],
-    actionReminders: [],
     updatedAt: new Date().toISOString(),
   };
 }
@@ -81,15 +76,12 @@ export function getLifecycleFromMemory(memoryBlob: unknown): ProductLifecycleSta
     phase: isOnboardingPhase(candidate.phase) ? candidate.phase : base.phase,
     unlockedChats: unlockedChats.includes('chat-1') ? unlockedChats : ['chat-1', ...unlockedChats],
     chatTurns: {
-      'chat-1': safeTurnCount(candidate.chatTurns?.['chat-1']),
-      'chat-2': safeTurnCount(candidate.chatTurns?.['chat-2']),
-      'chat-3': safeTurnCount(candidate.chatTurns?.['chat-3']),
+      'chat-1': safeTurnCount(candidate.chatTurns?.['chat-1'], 'chat-1'),
+      'chat-2': safeTurnCount(candidate.chatTurns?.['chat-2'], 'chat-2'),
+      'chat-3': safeTurnCount(candidate.chatTurns?.['chat-3'], 'chat-3'),
     },
     closedChats,
     reports: Array.isArray(candidate.reports) ? candidate.reports.slice(-20) : [],
-    actionReminders: Array.isArray(candidate.actionReminders)
-      ? candidate.actionReminders.slice(-30)
-      : [],
     updatedAt:
       typeof candidate.updatedAt === 'string' ? candidate.updatedAt : new Date().toISOString(),
   };
@@ -113,12 +105,13 @@ export function buildLifecycleDecision(params: {
     updatedAt: new Date().toISOString(),
   };
 
+  const maxTurns = maxTurnsForChat(activeChatId);
   const blocked =
     !unlockedChats.includes(activeChatId) ||
     updatedState.closedChats.includes(activeChatId) ||
-    updatedState.chatTurns[activeChatId] >= MAX_CHAT_TURNS;
+    updatedState.chatTurns[activeChatId] >= maxTurns;
 
-  const closingMode = updatedState.chatTurns[activeChatId] >= CLOSING_MODE_TURN;
+  const closingMode = updatedState.chatTurns[activeChatId] >= closingTurnForChat(activeChatId);
 
   return {
     state: updatedState,
@@ -147,14 +140,17 @@ export function applyLifecycleAfterResponse(params: {
     chatTurns: {
       ...params.state.chatTurns,
       [params.activeChatId]: Math.min(
-        MAX_CHAT_TURNS,
+        maxTurnsForChat(params.activeChatId),
         (params.state.chatTurns[params.activeChatId] ?? 0) + 1
       ),
     },
     updatedAt: new Date().toISOString(),
   };
 
-  if (next.chatTurns[params.activeChatId] >= MAX_CHAT_TURNS && !next.closedChats.includes(params.activeChatId)) {
+  if (
+    next.chatTurns[params.activeChatId] >= maxTurnsForChat(params.activeChatId) &&
+    !next.closedChats.includes(params.activeChatId)
+  ) {
     next.closedChats = [...next.closedChats, params.activeChatId];
     next.reports = [
       {
@@ -166,11 +162,6 @@ export function applyLifecycleAfterResponse(params: {
       },
       ...next.reports,
     ].slice(0, 20);
-  }
-
-  const actionProposal = inferActionReminder(params.input.user_message, params.response.message, params.activeChatId);
-  if (actionProposal && params.activeChatId === 'chat-2') {
-    next.actionReminders = [actionProposal, ...next.actionReminders].slice(0, 30);
   }
 
   return next;
@@ -185,10 +176,14 @@ export function lifecycleMeta(state: ProductLifecycleState, activeChatId: Produc
       unlocked_chats: state.unlockedChats,
       closed_chats: state.closedChats,
       turn_count: turns,
-      turns_remaining: Math.max(0, MAX_CHAT_TURNS - turns),
-      closing_mode: turns >= CLOSING_MODE_TURN,
+      turns_remaining: Math.max(0, maxTurnsForChat(activeChatId) - turns),
+      closing_mode: turns >= closingTurnForChat(activeChatId),
       reports_count: state.reports.length,
-      latest_action_reminder: state.actionReminders[0] ?? null,
+      action_plan_funnel_stage: resolveActionPlanFunnelStage({
+        activeChatId,
+        turnCount: turns,
+        closingMode: turns >= closingTurnForChat(activeChatId),
+      }) ?? 'brainstorm',
     },
   };
 }
@@ -250,7 +245,7 @@ function buildSystemDirective(params: {
     'ARQUITECTURA DE PRODUCTO FINANCIERA MENTE:',
     'Opera como una aplicacion premium chilena, sobria, legalmente prudente y de alto valor.',
     'No prometas rentabilidades, no ejecutes decisiones por el usuario y respeta normativa CMF/SII cuando corresponda.',
-    `Chat activo: ${params.activeChatId}. Interaccion actual: ${params.turnCount + 1}/50.`,
+    `Chat activo: ${params.activeChatId}. Interaccion actual: ${params.turnCount + 1}/${maxTurnsForChat(params.activeChatId)}.`,
   ];
 
   if (params.closingMode) {
@@ -268,9 +263,17 @@ function buildSystemDirective(params: {
   }
 
   if (params.activeChatId === 'chat-2') {
+    const funnelStage =
+      resolveActionPlanFunnelStage({
+        activeChatId: 'chat-2',
+        turnCount: params.turnCount,
+        closingMode: params.closingMode,
+      }) ?? 'brainstorm';
     base.push(
-      'CHAT 2 PLAN DE ACCION E INVERSIONES: usa diagnostico, presupuesto, cartolas, RAG y regulacion para estructurar planes, simulaciones, graficos y fechas.',
-      'Cuando propongas fechas concretas, emite un plan claro y prudente, indicando que el usuario debe confirmar recordatorios antes de enviar correos.'
+      'CHAT 2 PLAN DE ACCION: embudo conversacional — lluvia de ideas → convergencia → plan final estructurado.',
+      'Usa diagnostico, presupuesto, cartolas, intake, mercado vivo y regulacion cuando aporte.',
+      'No ofrezcas correos, recordatorios externos ni automatizaciones fuera del chat.',
+      buildActionPlanFunnelDirective(funnelStage),
     );
   }
 
@@ -291,16 +294,17 @@ function buildBlockedReason(chatId: ProductChatId, state: ProductLifecycleState)
   if (state.closedChats.includes(chatId)) {
     return 'Este chat ya fue cerrado y su informe quedo guardado en biblioteca.';
   }
-  return 'Este chat alcanzo el limite de 50 interacciones.';
+  return `Este chat alcanzo el limite de ${maxTurnsForChat(chatId)} interacciones.`;
 }
 
 function normalizeChatId(value: unknown): ProductChatId {
   return PRODUCT_CHAT_IDS.includes(value as ProductChatId) ? (value as ProductChatId) : 'chat-1';
 }
 
-function safeTurnCount(value: unknown) {
+function safeTurnCount(value: unknown, chatId: ProductChatId) {
   const n = Number(value);
-  return Number.isFinite(n) ? Math.max(0, Math.min(MAX_CHAT_TURNS, Math.floor(n))) : 0;
+  const max = maxTurnsForChat(chatId);
+  return Number.isFinite(n) ? Math.max(0, Math.min(max, Math.floor(n))) : 0;
 }
 
 function isOnboardingPhase(value: unknown): value is OnboardingPhase {
@@ -321,22 +325,3 @@ function buildReportTitle(chatId: ProductChatId) {
   return 'Informe de diagnostico general';
 }
 
-function inferActionReminder(
-  userMessage: string,
-  agentMessage: string,
-  sourceChatId: ProductChatId
-): ProductLifecycleState['actionReminders'][number] | null {
-  const text = `${userMessage}\n${agentMessage}`;
-  const dateMatch = text.match(/\b(\d{1,2}[/-]\d{1,2}(?:[/-]\d{2,4})?|\d{4}-\d{2}-\d{2})\b/);
-  if (!dateMatch || !/\b(plan|accion|acción|invert|ahorr|pago|fecha|recordatorio)\b/i.test(text)) {
-    return null;
-  }
-  return {
-    id: `rem_${Date.now()}`,
-    title: 'Recordatorio de plan de accion',
-    proposedDate: dateMatch[1],
-    sourceChatId,
-    status: 'proposed',
-    createdAt: new Date().toISOString(),
-  };
-}

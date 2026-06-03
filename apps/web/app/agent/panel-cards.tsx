@@ -27,6 +27,7 @@ type PanelCardsProps = {
   interviewCompleted: boolean;
   canOpenInterview: boolean;
   openInterviewModal: () => void;
+  openDiagnosisView?: () => void;
   setInterviewIntake: (intake: any) => void;
   unlockedPanelBlocks: { budgetUnlocked: boolean; transactionsUnlocked: boolean };
   setIsBudgetModalOpen: (open: boolean) => void;
@@ -244,11 +245,11 @@ export function buildPanelBaseCards(props: PanelCardsProps): PanelCard[] {
             type="button"
             className={`interview-flow-card panel-pos-interview glass-card${!props.interviewCompleted && !props.canOpenInterview ? ' is-locked' : ''}`}
             onClick={() => {
-              if (!props.canOpenInterview && !props.interviewCompleted) return;
-              const injectedIntake = props.sessionInfo?.injectedIntake?.intake;
-              if (injectedIntake && typeof injectedIntake === 'object') {
-                props.setInterviewIntake(injectedIntake as any);
+              if (props.interviewCompleted) {
+                props.openDiagnosisView?.();
+                return;
               }
+              if (!props.canOpenInterview) return;
               props.openInterviewModal();
             }}
             title={

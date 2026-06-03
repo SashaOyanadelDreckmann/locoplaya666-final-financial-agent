@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useState, type ChangeEvent, type CSSProperties } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type CSSProperties } from 'react';
 import { getCsrfToken } from '@/lib/csrf';
+import { countProductsWithAnalyzedMovements } from '@/lib/transactions-flow.helpers';
 import { CHILE_FINANCIAL_INSTITUTIONS, FINANCIAL_SERVICE_OPTIONS } from '@/lib/financialCatalog';
 import { BudgetIntelligenceTable } from '@/components/ui/budget-intelligence-table';
 import ModalNumbersCanvas from '@/components/agent/ModalNumbersCanvas';
@@ -348,6 +349,12 @@ export function BudgetModal(props: {
   const [assistantQuestion, setAssistantQuestion] = useState<string | null>(null);
   const [conversationDone, setConversationDone] = useState(false);
   const [assistantCoachMessage, setAssistantCoachMessage] = useState<string | null>(null);
+  const [assistantMarketSnapshot, setAssistantMarketSnapshot] = useState<{
+    uf: { value: number | null; unit: string | null; date: string | null; source: string | null };
+    tpm: { value: number | null; unit: string | null; date: string | null; source: string | null };
+    usd: { value: number | null; unit: string | null; date: string | null; source: string | null };
+    summary: string;
+  } | null>(null);
   const [isAskingAI, setIsAskingAI] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
@@ -368,6 +375,11 @@ export function BudgetModal(props: {
   const replyAbortRef = useRef<AbortController | null>(null);
   const budgetReplyInputRef = useRef<HTMLInputElement | null>(null);
   const formatBudgetAmount = (value: number) => `$${Math.round(value).toLocaleString('es-CL')}`;
+  const formatMarketValue = (value: number, decimals = 0) =>
+    Number(value).toLocaleString('es-CL', {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    });
   const focusBudgetField = (
     target: EventTarget | null,
   ) => {
@@ -375,19 +387,16 @@ export function BudgetModal(props: {
     if (!el || typeof el.focus !== 'function') return;
     requestAnimationFrame(() => {
       el.focus();
-      if (el instanceof HTMLInputElement && typeof el.select === 'function' && el.type !== 'number') {
-        el.select();
-      }
     });
   };
   const activeQuestion = assistantQuestion ?? '…';
-  const transcriptRows = props.chatAnswers
-    .slice(-6)
-    .flatMap((entry, index) => [
-      { key: `assistant-${index}`, role: 'assistant' as const, text: String(entry.q ?? '').trim() },
-      { key: `user-${index}`, role: 'user' as const, text: String(entry.a ?? '').trim() },
-    ])
-    .filter((entry) => entry.text.length > 0);
+  const agentStatusText = isInitializing
+    ? 'Preparando conversación con contexto de tabla…'
+    : isAskingAI
+      ? 'Analizando tu mensaje…'
+      : activeQuestion;
+  const agentContextText =
+    assistantCoachMessage && !isInitializing && !isAskingAI ? assistantCoachMessage : null;
   const activeStyleIndex = BUDGET_TABLE_STYLES.findIndex((style) => style.id === budgetTableStyle);
   const activeStyleLabel = BUDGET_TABLE_STYLES[Math.max(0, activeStyleIndex)]?.label ?? 'Nocturno';
   const completedRowsCount = props.budgetCompletion.filledRows.length;
@@ -397,6 +406,13 @@ export function BudgetModal(props: {
       : props.budgetSignals.balanceTone === 'deficit'
         ? 'is-negative'
         : 'is-neutral';
+  const marketSnapshotChips = assistantMarketSnapshot
+    ? [
+        assistantMarketSnapshot.uf.value !== null ? `UF ${formatMarketValue(assistantMarketSnapshot.uf.value, 2)}` : null,
+        assistantMarketSnapshot.tpm.value !== null ? `TPM ${formatMarketValue(assistantMarketSnapshot.tpm.value, 2)}%` : null,
+        assistantMarketSnapshot.usd.value !== null ? `USD/CLP ${formatMarketValue(assistantMarketSnapshot.usd.value, 2)}` : null,
+      ].filter((value): value is string => Boolean(value))
+    : [];
 
   useEffect(() => {
     const check = () => {
@@ -434,34 +450,32 @@ export function BudgetModal(props: {
   const carouselStyle: React.CSSProperties = { display: 'block', position: 'relative', height: 'auto', minHeight: 0, overflow: 'visible', padding: '0' };
 
   function cardStyle(card: 'agent' | 'table'): React.CSSProperties {
-    // Desktop modes 2/3: CSS rules with higher specificity take over completely
-    if (isDesktopLayout && (budgetViewMode === 2 || budgetViewMode === 3)) {
-      return {};
+    if (isDesktopLayout && budgetViewMode === 2) return {};
+    if (budgetViewMode === 3) {
+      return card === 'agent' ? { display: 'none' } : {};
     }
-    // Carousel mode: mode 1 = agent front, mode 2/3 on mobile = table front
-    const effectiveIsAgentFront = budgetViewMode === 1;
-    const isActive = effectiveIsAgentFront ? card === 'agent' : card === 'table';
-    const isBackground = effectiveIsAgentFront ? card === 'table' : card === 'agent';
     return {
-      position: 'absolute', inset: 0, top: 0, left: 0, right: 0, bottom: 0,
-      width: '100%', maxWidth: '100%', height: '100%', margin: 0,
-      opacity: isActive ? 1 : isBackground ? 0.42 : 0,
-      transform: isActive ? 'none' : isBackground ? 'translateY(12px) scale(0.985)' : 'translateY(14px) scale(0.97)',
-      filter: isActive ? 'none' : isBackground ? 'blur(3px) saturate(0.82)' : 'none',
-      pointerEvents: isActive ? 'auto' : 'none',
-      zIndex: isActive ? 4 : 3,
-      transition: 'opacity 260ms ease, transform 260ms ease, filter 260ms ease',
+      position: 'relative',
+      width: '100%',
+      maxWidth: '100%',
+      height: 'auto',
+      margin: 0,
+      opacity: 1,
+      transform: 'none',
+      filter: 'none',
+      pointerEvents: 'auto',
+      zIndex: card === 'agent' ? 2 : 1,
     };
   }
 
   const budgetModeClass =
-    budgetViewMode === 1
-      ? 'agent-front'
-      : isDesktopLayout
-        ? budgetViewMode === 2
-          ? 'split'
-          : 'table-only'
-        : 'table-front';
+    budgetViewMode === 3
+      ? isDesktopLayout
+        ? 'table-only'
+        : 'table-front'
+      : isDesktopLayout && budgetViewMode === 2
+        ? 'split'
+        : 'senior-stack';
 
   function inferBudgetFocusRowId(question: string | null): string | null {
     const q = String(question ?? '').toLowerCase();
@@ -506,33 +520,76 @@ export function BudgetModal(props: {
         return '¿Cuál es tu ingreso mensual promedio en pesos?';
     }
   }
-  const fallbackQuestionForCurrentFlow = '¿Qué categoría o monto quieres agregar al presupuesto?';
+
   const orderedBudgetRows = props.budgetRows;
+
   function sanitizeBudgetQuestion(question: string) {
     return String(question ?? '').trim();
   }
 
-  function buildAssistantVisibleText(payload: {
+  function getAssistantMessage(payload: {
     assistant_reply?: string;
     assistant_text?: string;
-    next_question?: string | null;
   }) {
     const assistantReply =
       typeof payload.assistant_reply === 'string' && payload.assistant_reply.trim()
         ? payload.assistant_reply.trim()
         : '';
+    if (assistantReply) return assistantReply;
     const assistantText =
       typeof payload.assistant_text === 'string' && payload.assistant_text.trim()
         ? payload.assistant_text.trim()
         : '';
+    return assistantText || null;
+  }
+
+  function getNextQuestion(
+    payload: {
+      next_question?: string | null;
+    },
+    fallback: string,
+  ) {
+    if (payload.next_question === null) return '';
     const nextQuestion =
       typeof payload.next_question === 'string' && payload.next_question.trim()
         ? payload.next_question.trim()
         : '';
-    if (assistantText) return assistantText;
-    return [assistantReply, nextQuestion]
-      .filter((item, index, items) => item && (index === 0 || normalizeBudgetText(item) !== normalizeBudgetText(items[index - 1] ?? '')))
-      .join('\n');
+    return nextQuestion || fallback;
+  }
+
+  function applyAssistantTurn(
+    payload: BudgetChatApiPayload,
+    previousQuestion: string,
+  ) {
+    const reply = getAssistantMessage(payload);
+    const coach =
+      typeof payload.coach_message === 'string' && payload.coach_message.trim()
+        ? payload.coach_message.trim()
+        : null;
+    const nextQuestion = sanitizeBudgetQuestion(getNextQuestion(payload, ''));
+
+    if (reply) {
+      setAssistantQuestion(reply);
+      const isEducation = payload.source === 'deterministic_education';
+      const hint =
+        coach ||
+        (!isEducation &&
+        nextQuestion &&
+        normalizeBudgetText(nextQuestion) !== normalizeBudgetText(reply)
+          ? nextQuestion
+          : null);
+      setAssistantCoachMessage(hint);
+      return;
+    }
+
+    if (nextQuestion) {
+      setAssistantQuestion(nextQuestion);
+      setAssistantCoachMessage(coach);
+      return;
+    }
+
+    setAssistantQuestion(previousQuestion);
+    setAssistantCoachMessage(coach);
   }
 
   useEffect(() => {
@@ -543,10 +600,18 @@ export function BudgetModal(props: {
 
   useEffect(() => {
     if (!assistantBudgetRowId) return;
+    const active = document.activeElement;
+    if (
+      active instanceof HTMLInputElement ||
+      active instanceof HTMLSelectElement ||
+      active instanceof HTMLTextAreaElement
+    ) {
+      if (active.closest('.budget-table')) return;
+    }
     setActiveBudgetRowId(assistantBudgetRowId);
     const row = document.getElementById(`budget-row-${assistantBudgetRowId}`);
     if (!row) return;
-    row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     row.animate(
       [
         { transform: 'scale(1)', boxShadow: '0 0 0 rgba(255,255,255,0)' },
@@ -558,7 +623,7 @@ export function BudgetModal(props: {
   }, [assistantBudgetRowId]);
 
   function focusBudgetRow(rowId: string) {
-    setActiveBudgetRowId(rowId);
+    setActiveBudgetRowId((prev) => (prev === rowId ? prev : rowId));
   }
 
   function applyBudgetAction(action: Record<string, unknown> | null | undefined) {
@@ -781,12 +846,19 @@ export function BudgetModal(props: {
     ok?: boolean;
     error?: string;
     detail?: string;
-    next_question?: string;
+    source?: string;
+    next_question?: string | null;
     focus_row_id?: string | null;
     coach_message?: string;
     assistant_reply?: string;
     assistant_text?: string;
     done?: boolean;
+    market_snapshot?: {
+      uf?: { value?: number | null; unit?: string | null; date?: string | null; source?: string | null };
+      tpm?: { value?: number | null; unit?: string | null; date?: string | null; source?: string | null };
+      usd?: { value?: number | null; unit?: string | null; date?: string | null; source?: string | null };
+      summary?: string;
+    };
     actions?: Array<Record<string, unknown>>;
     action?: Record<string, unknown>;
   };
@@ -818,8 +890,8 @@ export function BudgetModal(props: {
     const answer = budgetReply.trim();
     if (!answer || isAskingAI) return;
 
-    const fallbackNextQuestion = fallbackQuestionForCurrentFlow;
-    const newChatAnswers = [...props.chatAnswers, { q: activeQuestion, a: answer }];
+    const previousQuestion = activeQuestion;
+    const newChatAnswers = [...props.chatAnswers, { q: previousQuestion, a: answer }];
     props.onChatAnswersChange(newChatAnswers);
     setBudgetReply('');
     setAiError(null);
@@ -833,7 +905,7 @@ export function BudgetModal(props: {
       askingWatchdogRef.current = setTimeout(() => {
         replyAbortRef.current?.abort();
         setIsAskingAI(false);
-      }, 12000);
+      }, 20000);
       const csrfToken = getCsrfToken();
       const res = await fetch('/api/budget-chat', {
         method: 'POST',
@@ -877,29 +949,44 @@ export function BudgetModal(props: {
         const rawActions = payload.actions ?? (payload.action ? [payload.action] : []);
         const lastTouchedRowId = applyBudgetActions(rawActions);
         setConversationDone(Boolean(payload.done));
-        setAssistantCoachMessage(typeof payload.coach_message === 'string' ? payload.coach_message : null);
+        applyAssistantTurn(payload, previousQuestion);
+        setAssistantMarketSnapshot(
+          payload.market_snapshot
+            ? {
+                uf: {
+                  value: payload.market_snapshot.uf?.value ?? null,
+                  unit: payload.market_snapshot.uf?.unit ?? null,
+                  date: payload.market_snapshot.uf?.date ?? null,
+                  source: payload.market_snapshot.uf?.source ?? null,
+                },
+                tpm: {
+                  value: payload.market_snapshot.tpm?.value ?? null,
+                  unit: payload.market_snapshot.tpm?.unit ?? null,
+                  date: payload.market_snapshot.tpm?.date ?? null,
+                  source: payload.market_snapshot.tpm?.source ?? null,
+                },
+                usd: {
+                  value: payload.market_snapshot.usd?.value ?? null,
+                  unit: payload.market_snapshot.usd?.unit ?? null,
+                  date: payload.market_snapshot.usd?.date ?? null,
+                  source: payload.market_snapshot.usd?.source ?? null,
+                },
+                summary: typeof payload.market_snapshot.summary === 'string' ? payload.market_snapshot.summary : '',
+            }
+            : null,
+        );
         const explicitFocus = normalizeActionRowId(payload.focus_row_id);
-        const replyText = buildAssistantVisibleText(payload);
-        if (replyText) {
-          const safeQuestion = sanitizeBudgetQuestion(replyText);
-          const nextQuestion =
-            normalizeBudgetText(safeQuestion) === normalizeBudgetText(activeQuestion)
-              ? fallbackNextQuestion
-              : safeQuestion;
-          setAssistantQuestion(nextQuestion);
-          setAssistantBudgetRowId(explicitFocus ?? lastTouchedRowId ?? inferBudgetFocusRowId(safeQuestion));
-        } else if (lastTouchedRowId || explicitFocus) {
-          setAssistantBudgetRowId(explicitFocus ?? lastTouchedRowId);
+        const nextQuestion = sanitizeBudgetQuestion(getNextQuestion(payload, ''));
+        if (explicitFocus || lastTouchedRowId) {
+          setAssistantBudgetRowId(explicitFocus ?? lastTouchedRowId ?? null);
+        } else if (nextQuestion) {
+          setAssistantBudgetRowId(inferBudgetFocusRowId(nextQuestion));
         }
       } else {
-        setAssistantQuestion(fallbackNextQuestion);
-        setAssistantBudgetRowId(inferBudgetFocusRowId(fallbackNextQuestion));
-        setAssistantCoachMessage(null);
+        setAssistantCoachMessage('No recibí respuesta del asistente. Intenta reformular tu mensaje.');
       }
     } catch (error) {
       if (isBudgetChatAbortError(error)) return;
-      setAssistantQuestion(fallbackNextQuestion);
-      setAssistantBudgetRowId(inferBudgetFocusRowId(fallbackNextQuestion));
       setAssistantCoachMessage(null);
       setAiError(budgetChatErrorMessage(error));
     } finally {
@@ -921,16 +1008,17 @@ export function BudgetModal(props: {
     [],
   );
 
-  // On open: reset conversation and fetch first personalized question from AI
+  // On open: reset conversation state and fetch first personalized question from AI
   useEffect(() => {
     if (!props.isOpen) return;
-    setBudgetViewMode(window.innerWidth >= 1024 ? 2 : 1);
+    setBudgetViewMode(2);
     const budgetRowsForInit = props.budgetRows.slice(0, 30);
     setBudgetReply('');
     setConversationDone(false);
     setAiError(null);
     setAssistantQuestion(null);
     setAssistantCoachMessage(null);
+    setAssistantMarketSnapshot(null);
     setIsInitializing(true);
     setActiveBudgetRowId(null);
     setAssistantBudgetRowId(null);
@@ -978,26 +1066,46 @@ export function BudgetModal(props: {
         const raw = (await res.json()) as BudgetChatApiPayload;
         if (!res.ok) throw createBudgetChatHttpError(res.status, raw);
         const payload = unwrapApiData<BudgetChatApiPayload>(raw);
-        const initReply = buildAssistantVisibleText(payload ?? {});
-        if (initReply) {
-          const safeQuestion = sanitizeBudgetQuestion(initReply);
-          const nextQuestion =
-            normalizeBudgetText(safeQuestion) === normalizeBudgetText(activeQuestion)
-              ? budgetQuestionForId('income_salary')
-              : safeQuestion;
-          setAssistantQuestion(nextQuestion);
-          setAssistantBudgetRowId(payload?.focus_row_id ?? inferBudgetFocusRowId(safeQuestion));
-          setAssistantCoachMessage(typeof payload?.coach_message === 'string' ? payload.coach_message : null);
+        if (payload) {
+          applyAssistantTurn(payload, budgetQuestionForId('income_salary'));
+          const nextQuestion = sanitizeBudgetQuestion(getNextQuestion(payload, ''));
+          setAssistantBudgetRowId(payload.focus_row_id ?? inferBudgetFocusRowId(nextQuestion));
         } else {
           setAssistantQuestion(budgetQuestionForId('income_salary'));
           setAssistantBudgetRowId('income_salary');
           setAssistantCoachMessage(null);
         }
+        setAssistantMarketSnapshot(
+          payload?.market_snapshot
+            ? {
+                uf: {
+                  value: payload.market_snapshot.uf?.value ?? null,
+                  unit: payload.market_snapshot.uf?.unit ?? null,
+                  date: payload.market_snapshot.uf?.date ?? null,
+                  source: payload.market_snapshot.uf?.source ?? null,
+                },
+                tpm: {
+                  value: payload.market_snapshot.tpm?.value ?? null,
+                  unit: payload.market_snapshot.tpm?.unit ?? null,
+                  date: payload.market_snapshot.tpm?.date ?? null,
+                  source: payload.market_snapshot.tpm?.source ?? null,
+                },
+                usd: {
+                  value: payload.market_snapshot.usd?.value ?? null,
+                  unit: payload.market_snapshot.usd?.unit ?? null,
+                  date: payload.market_snapshot.usd?.date ?? null,
+                  source: payload.market_snapshot.usd?.source ?? null,
+                },
+                summary: typeof payload.market_snapshot.summary === 'string' ? payload.market_snapshot.summary : '',
+              }
+            : null,
+        );
       } catch (err) {
         if (isBudgetChatAbortError(err)) return;
         setAssistantQuestion(budgetQuestionForId('income_salary'));
         setAssistantBudgetRowId('income_salary');
         setAssistantCoachMessage(null);
+        setAssistantMarketSnapshot(null);
         setAiError(budgetChatErrorMessage(err));
       } finally {
         if (!initSignal.aborted) setIsInitializing(false);
@@ -1005,14 +1113,6 @@ export function BudgetModal(props: {
     })();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.isOpen]);
-
-  useEffect(() => {
-    if (!props.isOpen || !isDesktopLayout) return;
-    const timer = window.setTimeout(() => {
-      budgetReplyInputRef.current?.focus();
-    }, 120);
-    return () => window.clearTimeout(timer);
-  }, [props.isOpen, isDesktopLayout]);
 
   useEffect(() => {
     if (!props.isOpen || isDesktopLayout) return;
@@ -1068,8 +1168,7 @@ export function BudgetModal(props: {
     };
 
     const rafId = window.requestAnimationFrame(() => {
-      const focusables = getBudgetFocusable();
-      (focusables[0] ?? budgetModalRef.current)?.focus();
+      budgetModalRef.current?.focus();
     });
 
     const onKeyDown = (event: KeyboardEvent) => {
@@ -1182,14 +1281,14 @@ export function BudgetModal(props: {
               className={`budget-mode-tab${budgetViewMode === 1 ? ' is-active' : ''}`}
               onClick={() => setBudgetViewMode(1)}
             >
-              Asistente
+              Conversación + Tabla
             </button>
             <button
               type="button"
               className={`budget-mode-tab${budgetViewMode === 2 ? ' is-active' : ''}`}
               onClick={() => setBudgetViewMode(2)}
             >
-              {isDesktopLayout ? 'Asistente + Tabla' : 'Tabla'}
+              {isDesktopLayout ? 'Panel dividido' : 'Edición cómoda'}
             </button>
             <button
               type="button"
@@ -1242,25 +1341,26 @@ export function BudgetModal(props: {
                       </span>
                     )}
                   </div>
-                  <p className="bcc-hero-question">
-                    {isInitializing ? 'Preparando conversación con contexto de tabla…' : isAskingAI ? 'Analizando tabla y mensaje…' : activeQuestion}
-                  </p>
+                  <p className="bcc-hero-question">{agentStatusText}</p>
+                  {agentContextText && !isInitializing && !isAskingAI && (
+                    <p className="bcc-hero-coach">
+                      <span className="bcc-hero-coach-label">Siguiente paso · </span>
+                      {agentContextText}
+                    </p>
+                  )}
                   {conversationDone && (
                     <p className="bcc-hero-done">✓ Presupuesto completo — puedes ajustar la tabla cuando quieras.</p>
                   )}
-                  {assistantCoachMessage && <p className="bcc-hero-coach">{assistantCoachMessage}</p>}
+                  {marketSnapshotChips.length > 0 && (
+                    <div className="budget-market-strip" aria-label="Contexto de mercado">
+                      {marketSnapshotChips.map((chip) => (
+                        <span key={chip} className="budget-market-chip">
+                          {chip}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
-
-                {transcriptRows.length > 0 && (
-                  <div className="budget-chat-log" aria-label="Historial de conversación">
-                    {transcriptRows.map((entry) => (
-                      <div key={entry.key} className="budget-chat-log-row">
-                        <strong>{entry.role === 'assistant' ? 'Asistente' : 'Tú'}</strong>
-                        <span>{entry.text}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
 
                 <div className="bcc-hero-input-wrap">
                   <input
@@ -1268,8 +1368,7 @@ export function BudgetModal(props: {
                     className="bcc-hero-input"
                     value={budgetReply}
                     onChange={(e) => setBudgetReply(e.target.value)}
-                    placeholder="Habla con el agente o pídele modificar la tabla"
-                    autoFocus
+                    placeholder="Tu respuesta…"
                     onMouseDownCapture={(e) => focusBudgetField(e.currentTarget)}
                     onPointerDownCapture={(e) => focusBudgetField(e.currentTarget)}
                     onKeyDown={(e) => {
@@ -1289,10 +1388,6 @@ export function BudgetModal(props: {
                 </div>
 
                 {aiError && <p className="bcc-hero-error">{aiError}</p>}
-
-                <div className="budget-quick-actions budget-agent-actions">
-                  <button type="button" className="button-primary" onClick={props.sendBudgetToAgent}>Inyectar a Financieramente</button>
-                </div>
               </div>
             </section>
 
@@ -1634,11 +1729,7 @@ function resolveTransactionOverride(
 ) {
   const key = movementOverrideKey(movement);
   if (!key) return null;
-  return (
-    overrides.find((item) => item.matchKey === key) ??
-    overrides.find((item) => key.includes(item.matchKey) || item.matchKey.includes(key)) ??
-    null
-  );
+  return overrides.find((item) => item.matchKey === key) ?? null;
 }
 
 export function TransactionsModal(props: {
@@ -2368,83 +2459,15 @@ export function TransactionsModal(props: {
   }
   useEffect(() => {
     if (!props.isOpen) return;
-
-    restoreFocusRef.current =
-      document.activeElement instanceof HTMLElement ? document.activeElement : null;
-
-    const getFocusableElements = () => {
-      const root = transactionsModalRef.current;
-      if (!root) return [] as HTMLElement[];
-      const selector = [
-        'button:not([disabled])',
-        '[href]',
-        'input:not([disabled]):not([type="hidden"])',
-        'select:not([disabled])',
-        'textarea:not([disabled])',
-        '[tabindex]:not([tabindex="-1"])',
-      ].join(', ');
-      return Array.from(root.querySelectorAll<HTMLElement>(selector)).filter(
-        (node) => !node.hasAttribute('aria-hidden'),
-      );
-    };
-
-    const rafId = window.requestAnimationFrame(() => {
-      const focusables = getFocusableElements();
-      (focusables[0] ?? transactionsModalRef.current)?.focus();
-    });
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        event.stopPropagation();
-        props.onClose();
-        return;
-      }
-      if (event.key !== 'Tab') return;
-      const focusables = getFocusableElements();
-      if (focusables.length === 0) {
-        event.preventDefault();
-        transactionsModalRef.current?.focus();
-        return;
-      }
-      const first = focusables[0];
-      const last = focusables[focusables.length - 1];
-      const active = document.activeElement as HTMLElement | null;
-      const inside = Boolean(active && transactionsModalRef.current?.contains(active));
-
-      if (!inside) {
-        event.preventDefault();
-        first.focus();
-        return;
-      }
-      if (event.shiftKey && active === first) {
-        event.preventDefault();
-        last.focus();
-        return;
-      }
-      if (!event.shiftKey && active === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-
-    window.addEventListener('keydown', onKeyDown);
-    return () => {
-      window.cancelAnimationFrame(rafId);
-      window.removeEventListener('keydown', onKeyDown);
-      const elementToRestore = restoreFocusRef.current;
-      if (elementToRestore && document.contains(elementToRestore)) {
-        window.requestAnimationFrame(() => elementToRestore.focus());
-      }
-    };
-  }, [props.isOpen, props.onClose]);
-  useEffect(() => {
-    if (!props.isOpen) return;
-    // Start with preset selection before opening authorization.
     clearDockTransitionTimers();
     setDockTransitionPhase('idle');
-    setShowTxCarousel(false);
-    props.setTxWizardStep('credentials');
-  }, [props.isOpen, props.setTxWizardStep]);
+    setIsDockingToLibrary(false);
+    const hasLibrary = props.transactionProductCards.some(
+      ({ product }) =>
+        product.connected || product.uploadedFiles.length > 0 || product.parsedDocuments.length > 0,
+    );
+    setShowTxCarousel(hasLibrary || Boolean(props.activeBankProduct?.connected));
+  }, [props.isOpen, props.activeBankProduct?.connected, props.transactionProductCards]);
   useEffect(() => {
     const currentLabel = String(props.activeBankProduct?.label ?? '').trim();
     const looksLikeGenericLabel = /^producto\s+\d+$/i.test(currentLabel);
@@ -2530,9 +2553,14 @@ export function TransactionsModal(props: {
     if (currentTxStageIndex >= 0) setActiveTxCard(currentTxStageIndex);
   }, [currentTxStageIndex]);
   useEffect(() => {
+    if (currentTxStageIndex < 0) return;
     const stage = txStages[activeTxCard];
-    if (stage && !stage.disabled) stage.go();
-  }, [activeTxCard]);
+    if (!stage || stage.disabled) {
+      if (activeTxCard !== currentTxStageIndex) setActiveTxCard(currentTxStageIndex);
+      return;
+    }
+    if (activeTxCard !== currentTxStageIndex) stage.go();
+  }, [activeTxCard, currentTxStageIndex, consentLocked, hasEvidence]);
 
   const goToTxStage = (stageKey: 'consent' | 'evidence' | 'analyst') => {
     const nextIndex = txStages.findIndex((stage) => stage.key === stageKey);
@@ -2645,6 +2673,108 @@ export function TransactionsModal(props: {
     setTxAssistantError(null);
     txSendLockRef.current = false;
   }, [props.isOpen]);
+
+  const analyzedProductsCount = useMemo(
+    () => countProductsWithAnalyzedMovements(props.transactionProductCards.map(({ product }) => product)),
+    [props.transactionProductCards],
+  );
+  const canInjectToAgent = analyzedProductsCount > 0;
+
+  const requestClose = useCallback(() => {
+    const hasPending = pendingEvidenceFiles.length > 0 || pendingManualEvidence.length > 0;
+    const isBusy = props.documentsLoading || txAssistantLoading;
+    if (isBusy) {
+      const confirmed = window.confirm(
+        'Hay un análisis en curso. Si cierras ahora, el proceso puede quedar incompleto. ¿Cerrar el panel igual?',
+      );
+      if (!confirmed) return;
+    } else if (hasPending) {
+      const confirmed = window.confirm(
+        'Tienes archivos o notas sin enviar. ¿Cerrar el panel y descartar ese borrador?',
+      );
+      if (!confirmed) return;
+      clearPendingEvidence();
+    }
+    props.onClose();
+  }, [
+    pendingEvidenceFiles.length,
+    pendingManualEvidence,
+    props.documentsLoading,
+    props.onClose,
+    txAssistantLoading,
+  ]);
+
+  useEffect(() => {
+    if (!props.isOpen) return;
+
+    restoreFocusRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+
+    const getFocusableElements = () => {
+      const root = transactionsModalRef.current;
+      if (!root) return [] as HTMLElement[];
+      const selector = [
+        'button:not([disabled])',
+        '[href]',
+        'input:not([disabled]):not([type="hidden"])',
+        'select:not([disabled])',
+        'textarea:not([disabled])',
+        '[tabindex]:not([tabindex="-1"])',
+      ].join(', ');
+      return Array.from(root.querySelectorAll<HTMLElement>(selector)).filter(
+        (node) => !node.hasAttribute('aria-hidden'),
+      );
+    };
+
+    const rafId = window.requestAnimationFrame(() => {
+      const focusables = getFocusableElements();
+      (focusables[0] ?? transactionsModalRef.current)?.focus();
+    });
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.stopPropagation();
+        requestClose();
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      const focusables = getFocusableElements();
+      if (focusables.length === 0) {
+        event.preventDefault();
+        transactionsModalRef.current?.focus();
+        return;
+      }
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const active = document.activeElement as HTMLElement | null;
+      const inside = Boolean(active && transactionsModalRef.current?.contains(active));
+
+      if (!inside) {
+        event.preventDefault();
+        first.focus();
+        return;
+      }
+      if (event.shiftKey && active === first) {
+        event.preventDefault();
+        last.focus();
+        return;
+      }
+      if (!event.shiftKey && active === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.cancelAnimationFrame(rafId);
+      window.removeEventListener('keydown', onKeyDown);
+      const elementToRestore = restoreFocusRef.current;
+      if (elementToRestore && document.contains(elementToRestore)) {
+        window.requestAnimationFrame(() => elementToRestore.focus());
+      }
+    };
+  }, [props.isOpen, requestClose]);
 
   async function requestTransactionAssistant(payload: Record<string, unknown>) {
     const res = await fetch('/api/transactions-chat', {
@@ -2871,7 +3001,7 @@ export function TransactionsModal(props: {
   if (!props.isOpen) return null;
 
   return (
-    <div className="agent-modal-overlay transactions-modal-overlay" onClick={props.onClose}>
+    <div className="agent-modal-overlay transactions-modal-overlay" onClick={requestClose}>
       <div
         className="agent-modal transactions-modal"
         role="dialog"
@@ -2900,19 +3030,21 @@ export function TransactionsModal(props: {
         <div className="bcc-modal-header tx-modal-header-layer">
           <div className="bcc-modal-title-wrap">
             <span className="bcc-modal-eyebrow">Financieramente</span>
-            <h3 id="transactions-modal-title" className="bcc-modal-title">Transacciones</h3>
+            <h3 id="transactions-modal-title" className="bcc-modal-title">Productos y transacciones</h3>
           </div>
           <button
             type="button"
             className="agent-modal-close tx-close-minimal"
-            onClick={props.onClose}
-            aria-label="Cerrar"
+            onClick={requestClose}
+            aria-label="Cerrar panel de productos y transacciones"
           >
             ×
           </button>
         </div>
         <div className="tx-scroll-body">
-        <p id="transactions-modal-intro" className="agent-modal-intro tx-modal-header-layer">Flujo breve: autoriza, sube evidencias y obtén un análisis ejecutivo confiable.</p>
+        <p id="transactions-modal-intro" className="agent-modal-intro tx-modal-header-layer">
+          Conecta cada producto, sube cartolas y revisa el resumen analítico antes de enviar todo al agente.
+        </p>
         <section className="pt-shell tx-stage-shell tx-modal-header-layer">
           <aside className="pt-left tx-panel-surface tx-panel-surface--library">
             <NumericDust scope="library" pulse={transitionPulse} active={dockTransitionPhase !== 'idle'} />
@@ -2924,7 +3056,12 @@ export function TransactionsModal(props: {
                   type="button"
                   className="continue-ghost tx-inject-products-btn"
                   onClick={() => setShowInjectProductsConfirm(true)}
-                  disabled={props.documentsLoading}
+                  disabled={props.documentsLoading || !canInjectToAgent}
+                  title={
+                    canInjectToAgent
+                      ? 'Enviar productos analizados al chat principal'
+                      : 'Disponible cuando al menos un producto tenga movimientos detectados'
+                  }
                 >
                   Inyectar
                 </button>
@@ -2945,7 +3082,9 @@ export function TransactionsModal(props: {
                 <div className="tx-batch-recommendation-banner" role="status" aria-live="polite">
                   <div className="tx-batch-recommendation-copy">
                     <span className="tx-batch-recommendation-kicker">Inyección consolidada</span>
-                    <p>Envía cuando ya hayas subido todos tus productos financieros para obtener una lectura más completa y consistente.</p>
+                    <p>
+                      Envía al agente cuando tengas {analyzedProductsCount > 0 ? `${analyzedProductsCount} producto(s) con movimientos` : 'al menos un producto con cartola procesada y movimientos detectados'} para una lectura consolidada.
+                    </p>
                   </div>
                   <div className="tx-batch-recommendation-actions">
                     <button
@@ -2963,9 +3102,9 @@ export function TransactionsModal(props: {
                         setShowInjectProductsConfirm(false);
                         props.sendTransactionsToAgent();
                       }}
-                      disabled={props.documentsLoading}
+                      disabled={props.documentsLoading || !canInjectToAgent}
                     >
-                      Enviar productos
+                      Enviar al agente
                     </button>
                   </div>
                 </div>

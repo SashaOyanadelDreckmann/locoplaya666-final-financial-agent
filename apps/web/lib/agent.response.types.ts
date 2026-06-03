@@ -88,14 +88,7 @@ export type AgentResponse = {
       turns_remaining?: number;
       closing_mode?: boolean;
       reports_count?: number;
-      latest_action_reminder?: {
-        id: string;
-        title: string;
-        proposedDate: string;
-        sourceChatId: string;
-        status: 'proposed' | 'queued';
-        createdAt: string;
-      } | null;
+      action_plan_funnel_stage?: 'brainstorm' | 'converge' | 'deliver' | null;
     };
     [key: string]: unknown;
   };

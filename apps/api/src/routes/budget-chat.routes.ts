@@ -4,6 +4,7 @@ import OpenAI from 'openai';
 import { asyncHandler } from '../middleware/errorHandler';
 import { requireAuth } from '../middleware/auth';
 import { getConfig } from '../config';
+import { fetchIndicador } from '../mcp/tools/market/mindicadorClient';
 
 const router = Router();
 
@@ -83,8 +84,17 @@ type BudgetProductSummary = {
   topCategories: string[];
 };
 
-const BUDGET_CHAT_TEXT_LIMIT = 220;
-const BUDGET_CHAT_TIMEOUT_MS = 10_000;
+type MarketSnapshot = {
+  uf: { value: number | null; unit: string | null; date: string | null; source: string | null };
+  tpm: { value: number | null; unit: string | null; date: string | null; source: string | null };
+  usd: { value: number | null; unit: string | null; date: string | null; source: string | null };
+  summary: string;
+};
+
+const BUDGET_CHAT_TEXT_LIMIT = 360;
+const BUDGET_CHAT_TIMEOUT_MS = 15_000;
+const MARKET_SNAPSHOT_CACHE_MS = 5 * 60_000;
+const MARKET_SNAPSHOT_SOFT_TIMEOUT_MS = 2_500;
 const ANTHROPIC_API_VERSION = '2023-06-01';
 
 function compactText(value: unknown, max = 240): string {
@@ -219,16 +229,48 @@ function buildBudgetSnapshot(rows: BudgetRow[]): BudgetSnapshot {
   };
 }
 
+function isEducationalBudgetQuestion(answer: string): boolean {
+  const text = normalizeLooseText(answer);
+  if (!text) return false;
+
+  const financialConcept =
+    /\b(fijo|fija|variable|fijos|variables|ingreso|ingresos|gasto|gastos|recurrencia|cadencia|balance|presupuesto|monto|sueldo|salario)\b/.test(
+      text,
+    );
+  const definitional =
+    /\b(que es|que era|que son|que significa|que significan|explicame|explicar|explicas|explica|explain|define|definicion|que quiere decir|que es un|que es una|que es el|que es la|como funciona|diferencia|diferencias|distincion|distinction)\b/.test(
+      text,
+    );
+  const whQuestion = /\b(que|como|cual|por que)\b/.test(text) && financialConcept;
+  const confusion = /\b(no entiendo|no comprendo|help|ayuda)\b/.test(text) && financialConcept;
+  const bothCadences =
+    /\b(fijo|fija|fijos)\b/.test(text) &&
+    /\b(variable|variables)\b/.test(text) &&
+    financialConcept;
+
+  return definitional || whQuestion || confusion || bothCadences;
+}
+
 function detectBudgetIntent(answer: string): string {
   const text = normalizeLooseText(answer);
   if (!text) return 'unclear';
-  if (/^(hola|hola hola|buenas|buenos dias|buen dia|buenas tardes|buenas noches|hello|hi|ola)\b/.test(text)) return 'greeting';
+
+  if (isEducationalBudgetQuestion(answer)) return 'education';
+
   if (/\b(elimina|eliminar|borra|borrar|quita|quitar|remove|delete|saca|sacar)\b/.test(text)) return 'delete_row';
   if (/\b(resumen|status|estado|como voy|balance|diagnostico|review)\b/.test(text)) return 'status_review';
   if (/\b(recomiendas|recomendar|conviene|mejor|optimizar|ahorrar|consejo)\b/.test(text)) return 'advice';
   if (/\b(agrega|agregar|anade|añade|incluye|incorpora|nuevo|nueva|create|add)\b/.test(text)) return 'add_row';
   if (/\?$/.test(answer.trim()) || /\b(que|como|por que|cual|cuanto)\b/.test(text)) return 'question';
   if (/\d/.test(text)) return 'update_amount';
+
+  const strippedGreeting = text
+    .replace(/^(hola|hola hola|buenas|buenos dias|buen dia|buenas tardes|buenas noches|hello|hi|ola)\b[!,.?\s]*/i, '')
+    .trim();
+  if (/^(hola|hola hola|buenas|buenos dias|buen dia|buenas tardes|buenas noches|hello|hi|ola)\b/.test(text)) {
+    return strippedGreeting.length < 8 ? 'greeting' : 'question';
+  }
+
   return 'unclear';
 }
 
@@ -319,6 +361,115 @@ function buildQuestionForRow(row: BudgetRow | null, intakeData?: Record<string, 
         ? `Para ${rowDisplayLabel(row)}, dime el monto mensual y si entra fijo o variable.`
         : `Para ${rowDisplayLabel(row)}, dime monto, recurrencia y medio de pago.`;
   }
+}
+
+function formatMarketValue(value: number | null, decimals = 0) {
+  if (!Number.isFinite(Number(value))) return null;
+  return Number(value).toLocaleString('es-CL', {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  });
+}
+
+function buildMarketSummary(snapshot: Pick<MarketSnapshot, 'uf' | 'tpm' | 'usd'>) {
+  const parts = [
+    snapshot.uf.value !== null ? `UF ${formatMarketValue(snapshot.uf.value, 2)}` : null,
+    snapshot.tpm.value !== null ? `TPM ${formatMarketValue(snapshot.tpm.value, 2)}%` : null,
+    snapshot.usd.value !== null ? `USD/CLP ${formatMarketValue(snapshot.usd.value, 2)}` : null,
+  ].filter(Boolean);
+  return parts.length > 0
+    ? `Mercado vivo hoy: ${parts.join(' · ')}. Usa esto como contexto externo verificable y no extrapoles sin base.`
+    : 'Mercado vivo no disponible en este intento.';
+}
+
+async function buildMarketSnapshot(): Promise<MarketSnapshot> {
+  const [ufResult, tpmResult, usdResult] = await Promise.allSettled([
+    fetchIndicador('uf'),
+    fetchIndicador('tpm'),
+    fetchIndicador('dolar'),
+  ]);
+
+  const toItem = (result: PromiseSettledResult<Awaited<ReturnType<typeof fetchIndicador>>>) => {
+    if (result.status !== 'fulfilled') {
+      return { value: null, unit: null, date: null, source: null };
+    }
+    return {
+      value: result.value.valor,
+      unit: result.value.unidad,
+      date: result.value.fecha,
+      source: result.value.url,
+    };
+  };
+
+  const uf = toItem(ufResult);
+  const tpm = toItem(tpmResult);
+  const usd = toItem(usdResult);
+
+  return {
+    uf,
+    tpm,
+    usd,
+    summary: buildMarketSummary({ uf, tpm, usd }),
+  };
+}
+
+function emptyMarketSnapshot(): MarketSnapshot {
+  return {
+    uf: { value: null, unit: null, date: null, source: null },
+    tpm: { value: null, unit: null, date: null, source: null },
+    usd: { value: null, unit: null, date: null, source: null },
+    summary: 'Mercado vivo no disponible en este intento.',
+  };
+}
+
+let cachedMarketSnapshot: { data: MarketSnapshot; at: number } | null = null;
+
+async function getMarketSnapshot(forceRefresh = false): Promise<MarketSnapshot> {
+  if (
+    !forceRefresh &&
+    cachedMarketSnapshot &&
+    Date.now() - cachedMarketSnapshot.at < MARKET_SNAPSHOT_CACHE_MS
+  ) {
+    return cachedMarketSnapshot.data;
+  }
+  const data = await buildMarketSnapshot();
+  cachedMarketSnapshot = { data, at: Date.now() };
+  return data;
+}
+
+async function getMarketSnapshotOptional(timeoutMs = MARKET_SNAPSHOT_SOFT_TIMEOUT_MS): Promise<MarketSnapshot> {
+  try {
+    return await Promise.race([
+      getMarketSnapshot(),
+      new Promise<MarketSnapshot>((_, reject) =>
+        setTimeout(() => reject(new Error('market_timeout')), timeoutMs),
+      ),
+    ]);
+  } catch {
+    return emptyMarketSnapshot();
+  }
+}
+
+function buildExecutiveLens(
+  snapshot: BudgetSnapshot,
+  intakeData: Record<string, unknown>,
+  products: BudgetProductSummary[],
+) {
+  const hasDebt = intakeData.hasDebt === true || intakeData.hasDebt === 'true';
+  const hasSavings = intakeData.hasSavingsOrInvestments === true || intakeData.hasSavingsOrInvestments === 'true';
+  const hasCreditProduct = products.some((product) =>
+    /credit|loan|mortgage|tarjeta|credito|consumer_loan|mortgage/i.test(
+      `${product.productType} ${product.label} ${product.dashboardSummary}`,
+    ),
+  );
+  const pressure = snapshot.balance < 0 || hasDebt || hasCreditProduct ? 'alta' : 'media';
+  const orientation = hasSavings || snapshot.balance > 0 ? 'crecimiento' : 'defensa de caja';
+  return [
+    `Presion financiera: ${pressure}`,
+    `Orientacion recomendada: ${orientation}`,
+    `Secuencia senior: diagnostico -> liquidez -> deuda -> asignacion`,
+    hasSavings ? 'Ya existe base para optimizar ahorro e inversion' : 'Primero conviene estabilizar liquidez y automatizar ahorro',
+  ].join(' | ');
 }
 
 function summarizeIntakeContext(value: unknown): Record<string, unknown> {
@@ -419,18 +570,81 @@ function fallbackInit(rows: BudgetRow[], intakeData: Record<string, unknown>, pr
   };
 }
 
-function fallbackReply(
+function buildEducationReply(
+  answer: string,
   rows: BudgetRow[],
   activeRow: BudgetRow | null,
   intakeData: Record<string, unknown>,
   products: BudgetProductSummary[],
-  source = 'fallback_reply',
 ) {
-  const { focus, question } = buildBudgetFocusQuestion(rows, activeRow, intakeData, products);
+  const text = normalizeLooseText(answer);
+  let assistant_reply =
+    'Te explico conceptos del presupuesto y te ayudo a reflejarlos en la tabla cuando quieras.';
+
+  if (
+    /\b(fijo|fija|variable|fijos|variables)\b/.test(text) &&
+    /\b(ingreso|ingresos|gasto|gastos|recurrencia|cadencia)\b/.test(text)
+  ) {
+    assistant_reply =
+      'Ingreso fijo: entra de forma estable todos los meses (sueldo líquido, renta fija). Ingreso variable: cambia mes a mes (bonos, comisiones, freelance, propinas). Gasto fijo: obligatorio y predecible (arriendo, dividendo, planes). Gasto variable: fluctúa (supermercado, salidas, bencina). En la tabla, Recurrencia marca fijo vs variable para proyectar tu flujo con realismo.';
+  } else if (/\b(fijo|fija|variable|fijos|variables)\b/.test(text)) {
+    assistant_reply =
+      'Fijo = patrón estable mes a mes. Variable = cambia según uso, temporada o actividad. Esa distinción te ayuda a estimar liquidez y detectar meses más apretados.';
+  } else if (/\b(ingreso principal|ingreso extra|sueldo|salario)\b/.test(text)) {
+    assistant_reply =
+      'Ingreso principal: tu sueldo o fuente base mensual. Ingreso extra: entradas adicionales no permanentes (honorarios, ventas ocasionales, bonos). Conviene separarlos para no sobrestimar tu capacidad de gasto.';
+  } else if (/\b(presupuesto|balance|flujo)\b/.test(text)) {
+    assistant_reply =
+      'Presupuesto = mapa mensual de ingresos y gastos. Balance = ingresos menos gastos. Flujo fijo te da estabilidad; el variable explica por qué algunos meses sobra o falta caja.';
+  }
+
   return {
     ok: true,
-    assistant_text: question,
-    assistant_reply: 'Vamos fila por fila hasta dejar el presupuesto bien cerrado.',
+    assistant_text: assistant_reply,
+    assistant_reply,
+    next_question: null,
+    focus_row_id: activeRow?.id ?? findBudgetFocusRow(rows, null)?.id ?? null,
+    done: false,
+    coach_message: null,
+    actions: [],
+    action: null,
+    source: 'deterministic_education',
+    provider: 'deterministic',
+  };
+}
+
+function buildConversationalFallback(
+  answer: string,
+  rows: BudgetRow[],
+  activeRow: BudgetRow | null,
+  intakeData: Record<string, unknown>,
+  products: BudgetProductSummary[],
+  source = 'conversational_fallback',
+) {
+  const userText = compactText(answer, 160);
+  const amount = extractClpAmount(answer);
+  if (isEducationalBudgetQuestion(answer)) {
+    return buildEducationReply(answer, rows, activeRow, intakeData, products);
+  }
+  const { focus, question } = buildBudgetFocusQuestion(rows, activeRow, intakeData, products);
+  let assistant_reply = userText
+    ? `Entiendo: "${userText}".`
+    : 'Cuéntame qué quieres ajustar en tu presupuesto.';
+
+  if (amount !== null && activeRow) {
+    assistant_reply = `Tomé $${formatClp(amount)} para ${activeRow.category}. Revisa la tabla y dime si falta algo.`;
+  } else if (amount !== null) {
+    assistant_reply = `Vi $${formatClp(amount)} en tu mensaje. Dime la categoría y lo dejo en la tabla.`;
+  } else if (/\?/.test(userText)) {
+    assistant_reply = `${assistant_reply} Te respondo mejor con el modelo activo; mientras tanto, dime montos y categorías concretas.`;
+  } else {
+    assistant_reply = `${assistant_reply} Si es ingreso o gasto, indícame monto mensual y categoría.`;
+  }
+
+  return {
+    ok: true,
+    assistant_text: assistant_reply,
+    assistant_reply,
     next_question: question,
     focus_row_id: focus?.id ?? null,
     done: false,
@@ -440,6 +654,17 @@ function fallbackReply(
     source,
     provider: 'deterministic',
   };
+}
+
+function fallbackReply(
+  rows: BudgetRow[],
+  activeRow: BudgetRow | null,
+  intakeData: Record<string, unknown>,
+  products: BudgetProductSummary[],
+  source = 'fallback_reply',
+  answer = '',
+) {
+  return buildConversationalFallback(answer, rows, activeRow, intakeData, products, source);
 }
 
 function buildGreetingReply(
@@ -651,32 +876,33 @@ function buildDeterministicUpdate(
   intakeData: Record<string, unknown>,
   products: BudgetProductSummary[],
 ) {
-  if (!activeRow) return null;
+  const targetRow = activeRow ?? findBudgetFocusRow(rows, null);
+  if (!targetRow) return null;
   const amount = extractClpAmount(answer);
   if (amount === null) return null;
   const action: BudgetAction = {
     kind: 'update',
-    id: activeRow.id,
-    category: activeRow.category,
-    type: activeRow.type,
+    id: targetRow.id,
+    category: targetRow.category,
+    type: targetRow.type,
     amount,
-    note: activeRow.note,
-    cadence: normalizeCadence(extractCadenceFromText(answer) ?? activeRow.cadence, activeRow.type),
+    note: targetRow.note,
+    cadence: normalizeCadence(extractCadenceFromText(answer) ?? targetRow.cadence, targetRow.type),
     payment_method:
       extractPaymentMethodFromText(answer) ??
-      activeRow.paymentMethod ??
-      (activeRow.type === 'income' ? 'transfer' : 'debit'),
-    movement_type: coerceMovementTypeForRow(activeRow.movementType, activeRow.type, activeRow.category),
+      targetRow.paymentMethod ??
+      (targetRow.type === 'income' ? 'transfer' : 'debit'),
+    movement_type: coerceMovementTypeForRow(targetRow.movementType, targetRow.type, targetRow.category),
   };
 
-  const projectedRows = rows.map((row) => (row.id === activeRow.id ? { ...row, amount } : row));
+  const projectedRows = rows.map((row) => (row.id === targetRow.id ? { ...row, amount } : row));
   const { focus, question } = buildBudgetFocusQuestion(projectedRows, null, intakeData, products);
   return {
     ok: true,
-    assistant_text: `Actualicé ${activeRow.category} a $${formatClp(amount)}. ${question}`,
-    assistant_reply: `Actualicé ${activeRow.category} a $${formatClp(amount)}.`,
+    assistant_text: `Actualicé ${targetRow.category} a $${formatClp(amount)}. ${question}`,
+    assistant_reply: `Actualicé ${targetRow.category} a $${formatClp(amount)}.`,
     next_question: question,
-    focus_row_id: focus?.id ?? activeRow.id,
+    focus_row_id: focus?.id ?? targetRow.id,
     done: false,
     coach_message: null,
     actions: [action],
@@ -728,14 +954,20 @@ function buildPrompt(params: {
   intakeData: Record<string, unknown>;
   products: BudgetProductSummary[];
   chatHistory: string;
+  marketContext: string;
+  executiveLens: string;
 }) {
   const allowedIds = params.rows.map((row) => row.id);
   return [
     params.isInit
-      ? 'Inicia un chat simple de coedicion de presupuesto.'
-      : 'Responde como copiloto de presupuesto. Conversa y propone cambios concretos cuando corresponda.',
-    'Objetivo: dejar un presupuesto mensual lo mas completo y util posible con el menor costo de tokens.',
+      ? 'Inicia un chat premium de coedicion de presupuesto y estrategia financiera.'
+      : 'Responde como un asesor senior de plan de accion financiera. Conversa, prioriza y propone cambios concretos cuando corresponda.',
+    'Objetivo: convertir contexto disperso en un plan de accion util, priorizado y ejecutable con el menor costo de tokens.',
     'Reglas:',
+    '- Responde PRIMERO lo que el usuario acaba de decir o preguntar. No ignores su mensaje.',
+    '- Si pregunta definiciones (fijo, variable, ingreso, gasto), explícalas en lenguaje claro antes de pedir datos.',
+    '- assistant_reply debe reconocer el mensaje del usuario y responder con criterio concreto.',
+    '- next_question solo si realmente necesitas un dato adicional; si no, usa null.',
     '- Devuelve SOLO JSON valido.',
     '- Puedes devolver varias acciones en actions.',
     '- Si la fila ya existe, usa su id exacto y solo cambia lo necesario.',
@@ -743,13 +975,20 @@ function buildPrompt(params: {
     '- Para add incluye al menos category y type. Si no sabes el id, dejalo vacio.',
     '- Para delete solo si el usuario lo pidio explicitamente.',
     '- No inventes montos. Si faltan, responde y pide el dato exacto.',
-    '- assistant_reply: 1-2 frases, max 55 palabras.',
+    '- assistant_reply: 2-4 frases, max 90 palabras, tono ejecutivo y concreto.',
     '- next_question: una sola pregunta util o null.',
     '- focus_row_id: usa un id existente si quieres enfocar una fila.',
+    '- Si existe contexto de mercado, incorpóralo solo como señal verificable y relaciona la recomendacion con la situacion del usuario.',
+    '- Siempre prioriza la siguiente mejor accion segun riesgo, caja, deuda, ahorro y horizonte.',
+    '- Usa marcos senior: proteccion de caja, costo financiero, automatizacion del ahorro, secuencia de deuda, y regla 24h antes de comprometer gasto.',
+    '- Si hay superavit, asigna primero: fondo de emergencia, deuda cara, luego crecimiento.',
+    '- Si hay deficit, prioriza fugas y obligaciones antes de cualquier recomendacion de inversion.',
     'JSON:',
     '{"assistant_reply":"string","next_question":"string|null","focus_row_id":"string|null","done":false,"coach_message":"string|null","actions":[{"kind":"add|update|delete","id":"string opcional","category":"string opcional","type":"income|expense opcional","amount":123 opcional,"cadence":"fixed|variable opcional","payment_method":"transfer|debit|credit|cash|prepaid|other opcional","movement_type":"income_main|income_extra|housing|home_services|food|transport|health|education|debt|savings_investment|taxes_fees|leisure_other opcional","note":"string opcional"}]}',
     `Intento detectado: ${params.detectedIntent}`,
     `Estado actual: ingresos $${formatClp(params.snapshot.income)}, gastos $${formatClp(params.snapshot.expenses)}, balance $${formatClp(Math.abs(params.snapshot.balance))}${params.snapshot.balance < 0 ? ' deficit' : ' superavit'}.`,
+    `Lectura ejecutiva: ${params.executiveLens}`,
+    `Mercado actual: ${params.marketContext}`,
     `Filas actuales: ${JSON.stringify(params.rows.slice(0, 20))}`,
     `IDs existentes: ${JSON.stringify(allowedIds)}`,
     params.activeRow ? `Fila activa: ${JSON.stringify(params.activeRow)}` : '',
@@ -760,8 +999,8 @@ function buildPrompt(params: {
     !params.isInit && params.question ? `Ultimo mensaje del asistente: ${params.question}` : '',
     !params.isInit && params.answer ? `Mensaje del usuario: ${params.answer}` : '',
     params.isInit
-      ? 'Arranca con una pregunta concreta guiada por intake/productos/filas vacias.'
-      : 'Si el usuario quiere consejo o duda conceptual, responde bien y luego sugiere el siguiente dato a cerrar.',
+      ? 'Arranca con una pregunta concreta y estrategica guiada por intake/productos/filas vacias.'
+      : 'Si el usuario quiere consejo o duda conceptual, responde con criterio senior y luego sugiere el siguiente dato a cerrar.',
   ]
     .filter(Boolean)
     .join('\n');
@@ -782,7 +1021,7 @@ async function createAnthropicBudgetReply(params: {
     },
     body: JSON.stringify({
       model: params.model,
-      max_tokens: 260,
+      max_tokens: 420,
       temperature: 0.1,
       system: params.system,
       messages: [{ role: 'user', content: params.prompt }],
@@ -797,7 +1036,8 @@ async function createAnthropicBudgetReply(params: {
         .join('\n')
         .trim()
     : '';
-  return text || '{}';
+  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  return (fenced?.[1] ?? text).trim() || '{}';
 }
 
 router.post(
@@ -824,6 +1064,7 @@ router.post(
     const snapshot = buildBudgetSnapshot(rows);
     const detectedIntent = detectBudgetIntent(answer);
     const isInit = intent === 'init';
+    const executiveLens = buildExecutiveLens(snapshot, intakeData, products);
 
     const chatHistory = Array.isArray(body?.chatAnswers)
       ? (body.chatAnswers as Array<{ q: unknown; a: unknown }>)
@@ -840,19 +1081,29 @@ router.post(
       ? buildDeterministicUpdate(rows, activeRow, answer, intakeData, products)
       : null;
   if (deterministicUpdate) {
-    res.json(deterministicUpdate);
+    res.json({ ...deterministicUpdate, market_snapshot: emptyMarketSnapshot() });
+    return;
+  }
+
+  if (!isInit && detectedIntent === 'education') {
+    res.json({
+      ...buildEducationReply(answer, rows, activeRow, intakeData, products),
+      market_snapshot: emptyMarketSnapshot(),
+    });
     return;
   }
 
   if (!isInit && detectedIntent === 'greeting') {
-    res.json(buildGreetingReply(rows, activeRow, intakeData, products));
+    res.json({ ...buildGreetingReply(rows, activeRow, intakeData, products), market_snapshot: emptyMarketSnapshot() });
     return;
   }
 
     if (!isInit && detectedIntent === 'status_review') {
-      res.json(buildStatusReply(rows, intakeData, products));
+      res.json({ ...buildStatusReply(rows, intakeData, products), market_snapshot: emptyMarketSnapshot() });
       return;
     }
+
+    const marketSnapshot = await getMarketSnapshotOptional();
 
     const anthropicApiKey = config.ANTHROPIC_API_KEY;
     const openAiApiKey = config.OPENAI_API_KEY;
@@ -862,14 +1113,17 @@ router.post(
     if (!anthropicApiKey && !openAiApiKey) {
       res.json(
         isInit
-          ? fallbackInit(rows, intakeData, products)
-          : { ...fallbackReply(rows, activeRow, intakeData, products, 'missing_provider_key'), source: 'missing_provider_key' },
+          ? { ...fallbackInit(rows, intakeData, products), market_snapshot: marketSnapshot }
+          : {
+              ...buildConversationalFallback(answer, rows, activeRow, intakeData, products, 'missing_provider_key'),
+              market_snapshot: marketSnapshot,
+            },
       );
       return;
     }
 
     const systemMsg =
-      'Eres un asistente de presupuesto chileno. Conversas breve, propones cambios seguros y trabajas en equipo con el usuario. Tu prioridad es dejar la tabla bien armada con el menor costo de tokens.';
+      'Eres un asesor senior de plan de accion financiera en Chile. Tu prioridad es convertir contexto real en decisiones claras, sofisticadas y ejecutables.';
     const prompt = buildPrompt({
       isInit,
       rows,
@@ -882,6 +1136,8 @@ router.post(
       intakeData,
       products,
       chatHistory,
+      marketContext: marketSnapshot.summary,
+      executiveLens,
     });
 
     let raw = '{}';
@@ -917,10 +1173,13 @@ router.post(
       ]);
     } catch {
       res.json({
-        ...(isInit ? fallbackInit(rows, intakeData, products) : fallbackReply(rows, activeRow, intakeData, products, 'model_failure')),
+        ...(isInit
+          ? fallbackInit(rows, intakeData, products)
+          : buildConversationalFallback(answer, rows, activeRow, intakeData, products, 'model_failure')),
         model: anthropicApiKey ? anthropicModel : openAiModel,
         provider,
         source: 'model_failure',
+        market_snapshot: marketSnapshot,
       });
       return;
     }
@@ -939,10 +1198,13 @@ router.post(
       parsed = JSON.parse(raw) as typeof parsed;
     } catch {
       res.json({
-        ...(isInit ? fallbackInit(rows, intakeData, products) : fallbackReply(rows, activeRow, intakeData, products, 'invalid_model_json')),
+        ...(isInit
+          ? fallbackInit(rows, intakeData, products)
+          : buildConversationalFallback(answer, rows, activeRow, intakeData, products, 'invalid_model_json')),
         model: anthropicApiKey ? anthropicModel : openAiModel,
         provider,
         source: 'invalid_model_json',
+        market_snapshot: marketSnapshot,
       });
       return;
     }
@@ -980,7 +1242,7 @@ router.post(
 
     const assistantReply = compactText(
       parsed.assistant_reply ?? 'Propuse el siguiente ajuste para seguir cerrando el presupuesto.',
-      220,
+      300,
     );
     const nextQuestion =
       parsed.next_question === null
@@ -1005,6 +1267,7 @@ router.post(
       done: Boolean(parsed.done),
       coach_message:
         typeof parsed.coach_message === 'string' ? compactText(parsed.coach_message, 180) : null,
+      market_snapshot: marketSnapshot,
       actions,
       action: actions[0] ?? null,
       model: provider === 'anthropic' ? anthropicModel : openAiModel,

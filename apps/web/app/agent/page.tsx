@@ -27,6 +27,11 @@ import {
 } from '@/lib/api';
 import { ApiHttpError } from '@/lib/apiEnvelope';
 import { toUserFacingError } from '@/lib/userError';
+import {
+  productHasAnalyzedMovements,
+  productsHaveAnalyzedMovements,
+  resolveTxWizardStep,
+} from '@/lib/transactions-flow.helpers';
 import secureStorage from '@/lib/secureStorage';
 import { clearCsrfToken } from '@/lib/csrf';
 import {
@@ -297,14 +302,6 @@ type ProductLifecycle = {
   unlockedChats?: string[];
   closedChats?: string[];
   chatTurns?: Record<string, number>;
-  actionReminders?: Array<{
-    id: string;
-    title: string;
-    proposedDate: string;
-    sourceChatId: string;
-    status: 'proposed' | 'queued';
-    createdAt: string;
-  }>;
 };
 
 type ChatSpecialization = {
@@ -810,7 +807,7 @@ export default function AgentPage() {
   ) {
     const firstName = String(session?.name ?? '').split(' ')[0]?.trim() || 'Hola';
     if (chatId === 'chat-2') {
-      return `${firstName}, aquí vamos en modo estrategia: convertimos tu diagnóstico en un plan de acción e inversión con escenarios, prioridades y fechas concretas. ¿Partimos por definir meta, plazo y nivel de riesgo?`;
+      return `${firstName}, empezamos con una lluvia de ideas sobre tu situación y el mercado de hoy; conversando vamos afilando hasta cerrar un plan de acción profesional y 100% tuyo. ¿Qué quieres priorizar primero: caja, deuda, ahorro o inversión?`;
     }
     if (chatId === 'chat-3') {
       return `${firstName}, este espacio es para conciencia social: cómo tus decisiones financieras impactan tu entorno, con criterio ético y responsabilidad. ¿Qué tema social te importa más al decidir con tu dinero?`;
@@ -847,7 +844,7 @@ export default function AgentPage() {
         title: 'Estrategia',
         shortTitle: 'Plan',
         accentClass: 'chat-specialization-2',
-        subtitle: 'Escenarios y estructura',
+        subtitle: 'Embudo: ideas → plan pro',
       };
     }
     if (threadId === 'chat-3') {
@@ -982,11 +979,6 @@ export default function AgentPage() {
     activeChatId === PRIMARY_CHAT_ID
       ? false
       : !unlockedChatIds.includes(activeChatId as any) || closedChatIds.includes(activeChatId);
-  const latestActionReminder =
-    productLifecycle?.actionReminders?.find((item) => item.sourceChatId === activeChatId) ??
-    productLifecycle?.actionReminders?.[0] ??
-    null;
-
   function isThreadLocked(threadId: string) {
     if (threadId === PRIMARY_CHAT_ID) return false;
     return !unlockedChatIds.includes(threadId as any) || closedChatIds.includes(threadId);
@@ -1928,11 +1920,11 @@ export default function AgentPage() {
   const completedMilestones = milestones.filter((m) => m.done).length;
 
   const unlockedPanelBlocks = useMemo(() => {
-    const aggregateFiles = aggregateUploadedFiles(bankSimulation.products);
+    const hasAnalyzedMovements = productsHaveAnalyzedMovements(bankSimulation.products);
     const aggregateDocs = aggregateParsedDocuments(bankSimulation.products);
     const hasTransactionsData =
       bankSimulation.products.length > 0 &&
-      (aggregateFiles.length > 0 || aggregateDocs.length > 0);
+      (hasAnalyzedMovements || aggregateDocs.length > 0);
     const budgetUnlocked = hasTransactionsData;
     // Productos y transacciones debe estar disponible desde el inicio.
     const transactionsUnlocked = true;
@@ -1942,21 +1934,14 @@ export default function AgentPage() {
 
   const canOpenInterview = useMemo(() => {
     const hasBudgetData = budgetRows.filter((row) => row.amount > 0).length >= 3;
-    const aggregateFiles = aggregateUploadedFiles(bankSimulation.products);
-    const aggregateDocs = aggregateParsedDocuments(bankSimulation.products);
-    const hasTransactionsData =
-      bankSimulation.products.length > 0 &&
-      (aggregateFiles.length > 0 || aggregateDocs.length > 0);
+    const hasTransactionsData = productsHaveAnalyzedMovements(bankSimulation.products);
     return interviewCompleted || (hasTransactionsData && hasBudgetData);
   }, [bankSimulation.products, budgetRows, interviewCompleted]);
 
   function getFlowStatus() {
     const productsCompleted = bankSimulation.products.length > 0;
-    const aggregateFiles = aggregateUploadedFiles(bankSimulation.products);
-    const aggregateDocs = aggregateParsedDocuments(bankSimulation.products);
     const transactionsCompleted =
-      productsCompleted &&
-      (aggregateFiles.length > 0 || aggregateDocs.length > 0);
+      productsCompleted && productsHaveAnalyzedMovements(bankSimulation.products);
     const budgetRowsCompleted = budgetRows.filter((row) => row.amount > 0).length;
     const budgetCompleted = transactionsCompleted && budgetRowsCompleted >= 3;
     return {
@@ -3034,14 +3019,6 @@ export default function AgentPage() {
               ? { [metaLifecycle.active_chat_id]: metaLifecycle.turn_count }
               : {}),
           },
-          actionReminders: metaLifecycle.latest_action_reminder
-            ? [
-                metaLifecycle.latest_action_reminder,
-                ...(prev?.actionReminders ?? []).filter(
-                  (item) => item.id !== metaLifecycle.latest_action_reminder?.id
-                ),
-              ]
-            : prev?.actionReminders,
         }));
       }
       forceRender((x) => x + 1);
@@ -3491,14 +3468,21 @@ export default function AgentPage() {
 
   function openTransactionsPanel() {
     if (!unlockedPanelBlocks.transactionsUnlocked) return;
-    setTxWizardStep('products');
+    const activeProduct =
+      bankSimulation.products.find((product) => product.id === bankSimulation.activeProductId) ?? null;
+    setTxWizardStep(resolveTxWizardStep(activeProduct));
+    setTransactionUploadError(null);
     setIsTransactionsModalOpen(true);
   }
 
-  function openInterviewModal() {
-    void syncFinancialContextToIntake().catch(() => {});
+  async function openInterviewModal() {
+    await syncFinancialContextToIntake().catch(() => {});
     setInterviewIntake(buildInterviewIntakePayload() as any);
     setIsInterviewModalOpen(true);
+  }
+
+  function openDiagnosisView() {
+    router.push('/diagnosis');
   }
 
   useEffect(() => {
@@ -3637,13 +3621,7 @@ export default function AgentPage() {
       };
     });
     setTransactionUploadError(null);
-    if (!selectedProduct?.connected) {
-      setTxWizardStep('credentials');
-    } else if ((selectedProduct.parsedDocuments.length ?? 0) === 0) {
-      setTxWizardStep('upload');
-    } else {
-      setTxWizardStep('dashboard');
-    }
+    setTxWizardStep(resolveTxWizardStep(selectedProduct));
   }
 
   function updateActiveProduct(updates: Partial<BankProduct>) {
@@ -3689,10 +3667,11 @@ export default function AgentPage() {
   }
 
   function deleteTransactionProduct(productId: string) {
+    const products = bankSimulation.products.filter((p) => p.id !== productId);
+    const nextActiveId =
+      bankSimulation.activeProductId === productId ? products[0]?.id ?? null : bankSimulation.activeProductId;
+    const nextActive = nextActiveId ? products.find((p) => p.id === nextActiveId) ?? null : null;
     setBankSimulation((prev) => {
-      const products = prev.products.filter((p) => p.id !== productId);
-      const nextActiveId =
-        prev.activeProductId === productId ? products[0]?.id ?? null : prev.activeProductId;
       const snapshot = getSimulationSnapshot(products, nextActiveId);
       return {
         ...prev,
@@ -3705,7 +3684,7 @@ export default function AgentPage() {
       };
     });
     setTransactionUploadError(null);
-    setTxWizardStep('products');
+    setTxWizardStep(resolveTxWizardStep(nextActive));
     setTxDeletedProductsCount((prev) => prev + 1);
   }
 
@@ -4085,9 +4064,20 @@ export default function AgentPage() {
     const defaultEligible = bankSimulation.products.filter((p) => p.connected);
     const selectedSavedProducts = bankSimulation.products.filter((p) => savedProductsForBatch.includes(p.id) && p.connected);
     const selectedProducts = selectedSavedProducts.length > 0 ? selectedSavedProducts : defaultEligible;
-    if (selectedProducts.length === 0) return;
+    if (selectedProducts.length === 0) {
+      setTransactionUploadError('Conecta y autoriza al menos un producto antes de enviar al agente.');
+      return;
+    }
+    const analyzedProducts = selectedProducts.filter((product) => productHasAnalyzedMovements(product));
+    if (analyzedProducts.length === 0) {
+      setTransactionUploadError(
+        'Necesitas al menos un producto con cartola procesada y movimientos detectados. Sube evidencias y espera el análisis antes de inyectar.',
+      );
+      return;
+    }
 
-    const aggregateDocuments = selectedProducts.flatMap((product) =>
+    setTransactionUploadError(null);
+    const aggregateDocuments = analyzedProducts.flatMap((product) =>
       product.parsedDocuments.map((doc) => ({
         product: product.label,
         bank: product.bank,
@@ -4095,7 +4085,7 @@ export default function AgentPage() {
         preview: doc.text.slice(0, 600),
       }))
     );
-    const aggregateMovements = selectedProducts.flatMap((product) => product.dashboard?.movements ?? []);
+    const aggregateMovements = analyzedProducts.flatMap((product) => product.dashboard?.movements ?? []);
     const aggregateIntel = buildTransactionIntelligence(
       aggregateDocuments.map((doc) => ({ name: doc.name, text: doc.preview })),
       aggregateMovements,
@@ -4109,7 +4099,7 @@ export default function AgentPage() {
       n: d.name,
       p: d.preview.slice(0, 220),
     }));
-    const productsDigest = selectedProducts.slice(0, 20).map((product) => ({
+    const productsDigest = analyzedProducts.slice(0, 20).map((product) => ({
       label: product.label,
       bank: product.bank,
       type: product.productType,
@@ -4122,8 +4112,8 @@ export default function AgentPage() {
 
     const message = [
       'Modo productos y transacciones: análisis consolidado multi-producto, foco principal en mes reciente y comparación con mes anterior.',
-      `Productos seleccionados=${selectedProducts.length}`,
-      `Productos=${selectedProducts.map((p) => `${p.label} (${p.bank})`).join(' | ')}`,
+      `Productos seleccionados=${analyzedProducts.length}`,
+      `Productos=${analyzedProducts.map((p) => `${p.label} (${p.bank})`).join(' | ')}`,
       'Historial adicional permitido: úsalo como antecedente, no como centro del diagnóstico.',
       `KPIs docs=${aggregateIntel.docs} rows=${aggregateIntel.rows} total=${Math.round(
         aggregateIntel.totalDetected
@@ -4154,7 +4144,7 @@ export default function AgentPage() {
       // Non-blocking: chat can still continue with runtime context.
     }
 
-    const productsWithMovements = selectedProducts.filter((product) => (product.dashboard?.keyMetrics?.movement_count ?? 0) > 0);
+    const productsWithMovements = analyzedProducts;
     if (productsWithMovements.length > 0) {
       productsWithMovements.forEach((product) => hydrateBudgetFromProduct(product));
     }
@@ -4406,6 +4396,7 @@ export default function AgentPage() {
     budgetInsights,
     openTransactionsPanel,
     openInterviewModal,
+    openDiagnosisView,
     transactionIntel,
     reportsByGroup,
     librarySummary,
@@ -4530,9 +4521,7 @@ export default function AgentPage() {
             setDraftForActive={setDraftForActive}
             sessionInjectedIntake={sessionInfo?.injectedIntake}
             chatThreadRef={chatThreadRef as React.RefObject<HTMLDivElement>}
-            latestActionReminder={latestActionReminder}
             activeChatId={activeChatId}
-            setProductLifecycle={setProductLifecycle}
             setItemsForActive={setItemsForActive}
             classifyReportGroup={classifyReportGroup}
             setSavedReports={setSavedReports}
@@ -4761,6 +4750,14 @@ export default function AgentPage() {
       <InterviewModal
         isOpen={isInterviewModalOpen}
         onClose={() => setIsInterviewModalOpen(false)}
+        onDiagnosisComplete={() => {
+          void loadProfileIfNeeded();
+          void getSessionInfo()
+            .then((info) => {
+              if (info) setSessionInfo(info);
+            })
+            .catch(() => {});
+        }}
       />
 
       {isAccountModalOpen && (

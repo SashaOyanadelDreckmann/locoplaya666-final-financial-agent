@@ -21,6 +21,11 @@ import { stripEmojis } from '../helpers/format.helpers';
 import { sanitizeFormulaContent } from '../helpers/formula-sanitizer';
 import type { FormatPhaseInput, FormatPhaseOutput, FormattedResponse } from '../agent-types';
 import { getLogger } from '../../../logger';
+import {
+  buildActionPlanFormatInstructions,
+  resolveActionPlanFunnelStage,
+  type ActionPlanFunnelStage,
+} from '../helpers/action-plan-funnel.helpers';
 
 function shouldApplyLatexFormatting(message: string): boolean {
   if (!message || message.length < 120) return false;
@@ -49,6 +54,44 @@ function compactToolOutputs(input: FormatPhaseInput): string {
     .join('\n');
 }
 
+function shouldEnforceDecisionDisclaimer(input: FormatPhaseInput): boolean {
+  const activeChatId = String(input.ui_state?.active_chat?.id ?? '');
+  return (
+    activeChatId === 'chat-2' ||
+    input.mode === 'decision_support' ||
+    input.mode === 'comparison' ||
+    input.mode === 'planification'
+  );
+}
+
+function resolveFormatFunnelStage(input: FormatPhaseInput): ActionPlanFunnelStage | null {
+  const profile = input.context_summary?.recommendation_profile as
+    | { action_plan_funnel_stage?: ActionPlanFunnelStage | null }
+    | undefined;
+  if (profile?.action_plan_funnel_stage) return profile.action_plan_funnel_stage;
+
+  const ui = input.ui_state ?? {};
+  return resolveActionPlanFunnelStage({
+    activeChatId: (ui.active_chat as { id?: string } | undefined)?.id ?? ui.active_chat,
+    turnCount: typeof ui.product_turn_count === 'number' ? ui.product_turn_count : undefined,
+    closingMode: ui.product_closing_mode === true,
+    userMessage: input.user_message,
+  });
+}
+
+function ensureDecisionDisclaimer(message: string, input: FormatPhaseInput): string {
+  if (!shouldEnforceDecisionDisclaimer(input)) return message;
+  const normalized = message.toLowerCase();
+  if (
+    normalized.includes('decision final') ||
+    normalized.includes('depende 100% del usuario') ||
+    normalized.includes('debe tomarla el usuario')
+  ) {
+    return message;
+  }
+  return `${message}\n\nDecision final: debe tomarla el usuario de forma 100% informada. Esta recomendacion orienta, no sustituye su criterio ni su validacion final.`;
+}
+
 async function buildFastValuableMessage(input: FormatPhaseInput): Promise<string> {
   const toolsUsed = input.execution_result?.tool_calls?.map((tc) => tc.tool).slice(0, 4) ?? [];
   const artifacts = input.execution_result?.artifacts?.slice(0, 2) ?? [];
@@ -62,19 +105,35 @@ async function buildFastValuableMessage(input: FormatPhaseInput): Promise<string
     input.context_summary.recent_thread_context.length > 0
       ? input.context_summary.recent_thread_context
       : '';
+  const marketSnapshot =
+    input.context_summary?.market_snapshot?.summary &&
+    typeof input.context_summary.market_snapshot.summary === 'string'
+      ? input.context_summary.market_snapshot.summary
+      : '';
+  const recommendationProfile =
+    input.context_summary?.recommendation_profile &&
+    typeof input.context_summary.recommendation_profile === 'object'
+      ? JSON.stringify(input.context_summary.recommendation_profile)
+      : '';
+  const funnelStage = resolveFormatFunnelStage(input);
+  const funnelInstructions = funnelStage ? buildActionPlanFormatInstructions(funnelStage) : '';
 
   const prompt = [
+    funnelInstructions,
     'Responde en español (Chile), breve y útil.',
     'Entrega valor real al usuario en formato:',
-    '1) respuesta directa (2-4 líneas),',
-    '2) 2-3 acciones concretas inmediatas,',
-    '3) una advertencia o supuesto importante si aplica.',
+    '1) tesis o respuesta directa,',
+    '2) recomendacion o siguiente accion concreta,',
+    '3) riesgos/condiciones o supuesto importante si aplica.',
     'No menciones nombres de tools, pipeline interno ni tecnicismos de backend.',
+    'Si recomiendas productos, APV, inversiones o instituciones: cruza suitability, explicita riesgos y deja claro que la decision final depende 100% del usuario.',
     '',
     `Pregunta del usuario: ${input.user_message}`,
     recentThreadContext ? `Hilo reciente:\n${recentThreadContext}` : '',
     `Modo: ${input.mode}`,
     `Arquitectura del producto: ${productDirective || 'sin directiva especial'}`,
+    marketSnapshot ? `Mercado vivo: ${marketSnapshot}` : '',
+    recommendationProfile ? `Suitability: ${recommendationProfile}` : '',
     `Herramientas usadas: ${toolsUsed.join(', ') || 'ninguna'}`,
     `Artefactos: ${artifacts.map((a) => a.title).join(' | ') || 'ninguno'}`,
     '',
@@ -86,12 +145,13 @@ async function buildFastValuableMessage(input: FormatPhaseInput): Promise<string
   const raw = await complete(prompt, {
     systemPrompt:
       'Eres un asesor financiero senior. Tu prioridad es claridad, utilidad inmediata, precision y coherencia con la arquitectura del producto.',
-    temperature: 0.2,
-    maxCompletionTokens: 520,
+    temperature: funnelStage === 'deliver' ? 0.25 : 0.2,
+    maxCompletionTokens: funnelStage === 'deliver' ? 1400 : 520,
   });
 
   let cleaned = stripEmojis(cleanSpecialTags(raw)).trim();
   cleaned = sanitizeFormulaContent(cleaned);
+  cleaned = ensureDecisionDisclaimer(cleaned, input);
   return cleaned.length > 0
     ? cleaned
     : 'Aquí va una lectura rápida: con la evidencia disponible, conviene confirmar contexto clave y ejecutar 2-3 pasos de control antes de decidir.';
@@ -152,13 +212,23 @@ export async function runFormatPhase(input: FormatPhaseInput): Promise<FormatPha
         ? input.context_summary.recent_thread_context
         : null;
 
+    const funnelStage = resolveFormatFunnelStage(input);
+    const funnelInstructions = funnelStage ? buildActionPlanFormatInstructions(funnelStage) : '';
+
     const formatterInput = [
+      funnelInstructions,
       `Modo: ${input.mode}`,
       `Directiva de producto: ${
         typeof input.context_summary?.product_directive === 'string'
           ? input.context_summary.product_directive
           : 'sin directiva especial'
       }`,
+      typeof input.context_summary?.market_snapshot?.summary === 'string'
+        ? `Mercado vivo: ${input.context_summary.market_snapshot.summary}`
+        : '',
+      input.context_summary?.recommendation_profile
+        ? `Suitability: ${JSON.stringify(input.context_summary.recommendation_profile)}`
+        : '',
       ...(snowballCtx ? [`\n${snowballCtx}\n`] : []),
       ...(recentThreadContext ? [`\n${recentThreadContext}\n`] : []),
       'Mensaje del usuario:',
@@ -183,6 +253,7 @@ export async function runFormatPhase(input: FormatPhaseInput): Promise<FormatPha
     let message = cleanSpecialTags(rawResponse);
     message = stripEmojis(message).trim();
     message = sanitizeFormulaContent(message);
+    message = ensureDecisionDisclaimer(message, input);
 
     if (shouldApplyLatexFormatting(message)) {
       try {
@@ -243,6 +314,7 @@ export async function runFormatPhase(input: FormatPhaseInput): Promise<FormatPha
     let fallbackMessage =
       'Preparé una respuesta base con los resultados disponibles. Si quieres, la refinamos en el siguiente mensaje.';
     fallbackMessage = sanitizeFormulaContent(fallbackMessage);
+    fallbackMessage = ensureDecisionDisclaimer(fallbackMessage, input);
 
     const formatted_response: FormattedResponse = {
       message: fallbackMessage,

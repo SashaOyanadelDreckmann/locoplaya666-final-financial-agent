@@ -11925,52 +11925,6 @@ html.agent-global-monochrome {
   line-height: 1.35;
 }
 
-.agent-action-orb {
-  position: sticky;
-  bottom: 10px;
-  z-index: 3;
-  width: min(420px, calc(100% - 18px));
-  margin: 8px auto 0;
-  padding: 10px 12px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  border: 1px solid rgba(207, 166, 83, 0.34);
-  border-radius: 14px;
-  background: rgba(20, 18, 13, 0.92);
-  box-shadow: 0 14px 38px rgba(0, 0, 0, 0.28);
-}
-
-.agent-action-orb div {
-  min-width: 0;
-  display: grid;
-  gap: 2px;
-}
-
-.agent-action-orb strong {
-  color: rgba(255, 247, 230, 0.96);
-  font-size: 0.78rem;
-}
-
-.agent-action-orb span {
-  color: rgba(236, 219, 181, 0.78);
-  font-size: 0.68rem;
-}
-
-.agent-action-orb button {
-  flex: 0 0 auto;
-  min-height: 32px;
-  padding: 0 10px;
-  border-radius: 9px;
-  border: 1px solid rgba(232, 193, 112, 0.42);
-  background: rgba(222, 171, 72, 0.16);
-  color: rgba(255, 245, 221, 0.96);
-  font-size: 0.7rem;
-  font-weight: 700;
-  cursor: pointer;
-}
-
 .chat-specialization-1.is-active {
   background: rgba(56, 96, 140, 0.26) !important;
   border-color: rgba(129, 182, 224, 0.34) !important;
@@ -13705,18 +13659,6 @@ input[type="radio"]:checked {
   background: rgba(var(--chat-accent-rgb), 0.18) !important;
   border-color: rgba(var(--chat-accent-rgb), 0.34) !important;
   color: rgba(250, 253, 255, 0.96) !important;
-}
-
-.agent-action-orb {
-  border-radius: 15px !important;
-  border-color: rgba(var(--chat-accent-rgb), 0.36) !important;
-  background:
-    linear-gradient(135deg, rgba(var(--chat-accent-rgb), 0.18), rgba(10, 13, 18, 0.94)) !important;
-}
-
-.agent-action-orb button {
-  border-color: rgba(var(--chat-accent-rgb), 0.42) !important;
-  background: rgba(var(--chat-accent-rgb), 0.18) !important;
 }
 
 @media (max-width: 767px) {
@@ -39889,6 +39831,130 @@ body.agent-route-active .app-shell::before {
   margin: 10px 0 0 !important;
 }
 
+.budget-modal .budget-assistant-panel .budget-market-strip {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  margin: 12px auto 0 !important;
+  width: min(100%, 620px) !important;
+}
+
+.budget-modal .budget-assistant-panel .budget-market-chip {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 7px 11px !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(219, 182, 81, 0.20) !important;
+  background: rgba(219, 182, 81, 0.08) !important;
+  color: rgba(245, 246, 249, 0.92) !important;
+  font-size: 0.78rem !important;
+  line-height: 1 !important;
+  letter-spacing: 0.01em !important;
+}
+
+/* Senior stack: agent + editable table together (mobile + desktop mode 1) */
+.budget-modal .budget-main-carousel.mode-senior-stack {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 16px !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow: visible !important;
+  perspective: none !important;
+  padding: 8px 16px 18px !important;
+}
+
+.budget-modal .budget-main-carousel.mode-senior-stack > .budget-card-agent,
+.budget-modal .budget-main-carousel.mode-senior-stack > .budget-card-table {
+  position: relative !important;
+  inset: auto !important;
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  height: auto !important;
+  min-height: 0 !important;
+  opacity: 1 !important;
+  transform: none !important;
+  filter: none !important;
+  pointer-events: auto !important;
+  z-index: auto !important;
+  box-shadow: none !important;
+  margin: 0 !important;
+}
+
+.budget-modal .budget-main-carousel.mode-senior-stack > .budget-card-agent {
+  flex: 0 0 auto !important;
+  max-height: min(48vh, 520px) !important;
+  overflow: auto !important;
+}
+
+.budget-modal .budget-main-carousel.mode-senior-stack > .budget-card-table {
+  flex: 1 1 auto !important;
+  min-height: 320px !important;
+  overflow: visible !important;
+}
+
+.budget-modal .budget-main-carousel.mode-senior-stack .budget-table-wrap,
+.budget-modal .budget-main-carousel.mode-senior-stack .budget-table-wrap-pro {
+  max-height: min(52vh, 560px) !important;
+  overflow: auto !important;
+}
+
+.budget-modal .budget-table input.is-readonly-amount {
+  opacity: 0.72 !important;
+  cursor: default !important;
+  background: rgba(255, 255, 255, 0.72) !important;
+}
+
+.budget-modal .budget-table input,
+.budget-modal .budget-table select,
+.budget-modal .budget-table textarea {
+  caret-color: #102033 !important;
+}
+
+.budget-modal .budget-assistant-panel .budget-chat-log {
+  display: none !important;
+}
+
+.budget-modal .budget-assistant-panel .budget-quick-actions,
+.budget-modal .budget-assistant-panel .budget-agent-actions {
+  display: none !important;
+}
+
+.budget-modal .budget-assistant-panel .bcc-hero-question {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif !important;
+  font-size: clamp(1.05rem, 2.8vw, 1.35rem) !important;
+  line-height: 1.35 !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.01em !important;
+}
+
+.budget-modal .budget-assistant-panel .bcc-hero-coach {
+  font-size: 0.82rem !important;
+  line-height: 1.4 !important;
+  opacity: 0.72 !important;
+}
+
+.budget-modal .budget-assistant-panel .bcc-hero-coach-label {
+  opacity: 0.8 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.08em !important;
+  font-size: 0.68rem !important;
+}
+
+.budget-modal .budget-main-carousel.mode-split .budget-table td,
+.budget-modal .budget-main-carousel.mode-senior-stack .budget-table td,
+.budget-modal .budget-main-carousel.is-desktop.mode-table-only .budget-table td {
+  overflow: visible !important;
+}
+
 /* ── Separator before input ── */
 .budget-modal .budget-assistant-panel .bcc-hero-input-wrap {
   display: flex !important;
@@ -43172,5 +43238,139 @@ body.agent-route-active .app-shell::before {
     word-break: normal !important;
     overflow-wrap: normal !important;
     writing-mode: horizontal-tb !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   INTERVIEW MODAL — OPERATIONAL v2 (restore critical UI, pro layout)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.agent-modal.interview-modal .interview-modal-intro {
+  display: block !important;
+  margin: 0 28px 16px !important;
+  color: rgba(203, 216, 228, 0.78) !important;
+  font-size: 14px !important;
+  line-height: 1.5 !important;
+}
+
+.agent-modal.interview-modal .interview-brief-card > p {
+  display: block !important;
+  margin: 8px 0 0 !important;
+  color: rgba(190, 206, 224, 0.72) !important;
+  font-size: 12px !important;
+  line-height: 1.45 !important;
+}
+
+.agent-modal.interview-modal .interview-notes-card {
+  display: block !important;
+}
+
+.agent-modal.interview-modal .voice-call-subtitle {
+  display: block !important;
+  color: rgba(180, 198, 220, 0.68) !important;
+  font-size: 13px !important;
+  margin-top: 6px !important;
+}
+
+.agent-modal.interview-modal .voice-call-label {
+  display: block !important;
+  font-size: 9px !important;
+  letter-spacing: 0.22em !important;
+  text-transform: uppercase !important;
+  color: rgba(74, 222, 128, 0.65) !important;
+}
+
+.agent-modal.interview-modal .interview-live-shell > .interview-focus-card p,
+.agent-modal.interview-modal .interview-live-shell > .interview-focus-card small,
+.agent-modal.interview-modal .interview-live-shell > .interview-focus-card .interview-inline-note {
+  display: block !important;
+}
+
+.agent-modal.interview-modal .interview-live-shell > .interview-focus-card {
+  background: rgba(8, 13, 20, 0.55) !important;
+  border: 1px solid rgba(200, 212, 227, 0.14) !important;
+  border-radius: 14px !important;
+  padding: 14px 16px !important;
+  margin-bottom: 14px !important;
+}
+
+.agent-modal.interview-modal .interview-live-shell > .interview-focus-card p {
+  color: rgba(235, 242, 250, 0.88) !important;
+  font-size: 14px !important;
+  line-height: 1.45 !important;
+  margin: 6px 0 0 !important;
+}
+
+.agent-modal.interview-modal .interview-live-shell > .interview-focus-card .interview-inline-note {
+  color: rgba(160, 180, 210, 0.62) !important;
+  font-size: 12px !important;
+  margin-top: 8px !important;
+}
+
+.agent-modal.interview-modal .interview-call-meta,
+.agent-modal.interview-modal .voice-call-context.interview-call-meta {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 6px !important;
+  margin-top: 12px !important;
+  padding-top: 12px !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+
+.agent-modal.interview-modal .interview-call-actions--primary {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+  margin-top: 4px !important;
+}
+
+.agent-modal.interview-modal .interview-call-actions--primary .interview-call-start-btn {
+  flex: 1 1 auto !important;
+  min-height: 42px !important;
+  font-weight: 500 !important;
+}
+
+.agent-modal.interview-modal .interview-live-shell.is-hidden-by-report {
+  display: none !important;
+}
+
+.agent-modal.interview-modal .interview-modal-completed {
+  padding: 32px 28px 36px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 20px !important;
+}
+
+.agent-modal.interview-modal .interview-validation-card {
+  margin-top: 12px !important;
+  opacity: 0.92 !important;
+}
+
+.agent-modal.interview-modal .agent-modal-close:disabled {
+  opacity: 0.35 !important;
+  cursor: not-allowed !important;
+}
+
+@media (max-width: 780px) {
+  .agent-modal.interview-modal {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    min-height: 92vh !important;
+    max-height: 96vh !important;
+    border-radius: 20px 20px 0 0 !important;
+  }
+
+  .agent-modal.interview-modal .interview-stage-shell {
+    grid-template-columns: 1fr !important;
+    grid-template-rows: auto 1fr !important;
+  }
+
+  .agent-modal.interview-modal .interview-panel-surface--sidebar {
+    max-height: 38vh !important;
+    overflow-y: auto !important;
+  }
+
+  .agent-modal.interview-modal .interview-call-actions--primary .interview-call-start-btn {
+    width: 100% !important;
   }
 }

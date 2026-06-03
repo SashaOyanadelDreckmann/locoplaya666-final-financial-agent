@@ -7,6 +7,10 @@ describe('budget modal logic guards', () => {
   const modalsPath = path.join(process.cwd(), 'app', 'agent', 'modals.tsx');
   const source = fs.readFileSync(modalsPath, 'utf8');
 
+  it('opens in split/stack senior mode by default when modal opens', () => {
+    expect(source).toContain('setBudgetViewMode(2);');
+  });
+
   it('keeps desktop->mobile mode fallback to prevent invalid mode 3 on mobile', () => {
     expect(source).toContain('window.innerWidth >= 1024');
     expect(source).toContain("if (!desktop) setBudgetViewMode((prev) => (prev === 3 ? 2 : prev));");
@@ -24,6 +28,13 @@ describe('budget modal logic guards', () => {
     expect(source).toContain('if (!rowExists) return;');
     expect(source).toContain("if (kind === 'update' && !rowExists) return;");
     expect(source).toContain("if (kind === 'add' && rowExists) kind = 'update';");
+  });
+
+  it('prioritizes assistant_reply and suppresses next step for education turns', () => {
+    expect(source).toContain('function getAssistantMessage(payload:');
+    expect(source).toContain('payload.assistant_reply');
+    expect(source).toContain("payload.source === 'deterministic_education'");
+    expect(source).toContain('if (payload.next_question === null) return');
   });
 
   it('maps auth, rate limit and server failures to explicit assistant error copy', () => {

@@ -16,6 +16,7 @@ import { runClassifyPhase } from './phases/classify.phase';
 import { runPlanExecutePhase } from './phases/plan-execute.phase';
 import { runFormatPhase, detectAndRecordKnowledge } from './phases/format.phase';
 import { runValidatePhase } from './phases/validate.phase';
+import { buildRecommendationProfile } from './helpers/recommendation-profile.helpers';
 import { getLogger } from '../../logger';
 
 /**
@@ -72,6 +73,19 @@ export async function runCoreAgent(input: ChatAgentInput): Promise<ChatAgentResp
       confidence: classifyOutput.classification.confidence,
     });
 
+    const recommendationProfile = buildRecommendationProfile({
+      activeChatId: inputUiState.active_chat?.id,
+      budgetSummary: inputUiState.budget_summary,
+      intake: ctx.injected_intake as Record<string, unknown> | null | undefined,
+      inferredUserModel: classifyOutput.inferred_user_model,
+      userMessage: input.user_message,
+      turnCount:
+        typeof inputUiState.product_turn_count === 'number'
+          ? inputUiState.product_turn_count
+          : undefined,
+      closingMode: inputUiState.product_closing_mode === true,
+    });
+
     // Build context summary
     const context_summary = {
       profile: ctx.injected_profile,
@@ -88,6 +102,14 @@ export async function runCoreAgent(input: ChatAgentInput): Promise<ChatAgentResp
       consolidated_context: inputContext.consolidated_context || {},
       product_lifecycle: inputContext.product_lifecycle || {},
       product_directive: inputContext.product_directive || '',
+      market_snapshot: inputContext.market_snapshot || null,
+      ui_state_snapshot: {
+        active_chat: inputUiState.active_chat || null,
+        budget_summary: inputUiState.budget_summary || null,
+        milestone_details: inputUiState.milestone_details || [],
+        flow_status: inputUiState.flow_status || null,
+      },
+      recommendation_profile: recommendationProfile,
     };
 
     // ────────────────────────────────────────────────
@@ -190,16 +212,21 @@ export async function runCoreAgent(input: ChatAgentInput): Promise<ChatAgentResp
       compliance: {
         mode: classifyOutput.classification.mode,
         no_auto_execution: true,
-        includes_recommendation: classifyOutput.classification.mode === 'decision_support',
+        includes_recommendation:
+          classifyOutput.classification.mode === 'decision_support' ||
+          classifyOutput.classification.mode === 'comparison' ||
+          classifyOutput.classification.mode === 'planification' ||
+          recommendationProfile.specialization === 'strategy',
         includes_simulation: classifyOutput.classification.mode === 'simulation',
         includes_regulation: classifyOutput.classification.mode === 'regulation',
-        missing_information: [],
-        disclaimers_shown: [],
+        missing_information: recommendationProfile.missing_critical_data,
+        disclaimers_shown: ['final_decision_user'],
         risk_score: classifyOutput.classification.confidence,
         blocked: { is_blocked: false },
       },
       state_updates: {
         inferred_user_model: classifyOutput.inferred_user_model,
+        recommendation_profile: recommendationProfile,
         coherence_validation: ctx.coherence_check,
         technical_backend_message: ctx.formatted_response.technical_backend_message,
       },

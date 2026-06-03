@@ -42,16 +42,71 @@ import {
 } from '../services/reports/professionalPdf.service';
 import { listAdminUsersFullDump } from '../services/admin.service';
 import { getConfig } from '../config';
+import { fetchIndicador } from '../mcp/tools/market/mindicadorClient';
 import {
   INTERVIEW_CLOSEOUT_BUFFER_SEC,
   INTERVIEW_MAX_CALLS_PER_USER,
   INTERVIEW_TOTAL_LIMIT_MINUTES,
   INTERVIEW_TOTAL_LIMIT_SEC,
+  INTERVIEW_REALTIME_VOICES,
+  INTERVIEW_REALTIME_VOICE_DEFAULT,
+  INTERVIEW_REALTIME_VOICE_SPEED,
 } from '@financial-agent/shared';
 
 const router = Router();
 const config = getConfig();
 const OPENAI_REALTIME_MODEL = process.env.OPENAI_REALTIME_MODEL?.trim() || 'gpt-realtime-mini';
+const OPENAI_REALTIME_VOICE = (() => {
+  const requested = process.env.OPENAI_REALTIME_VOICE?.trim().toLowerCase();
+  if (requested && (INTERVIEW_REALTIME_VOICES as readonly string[]).includes(requested)) {
+    return requested;
+  }
+  return INTERVIEW_REALTIME_VOICE_DEFAULT;
+})();
+
+function shouldAttachLiveMarketContext(params: { userMessage: string; activeChatId?: unknown }) {
+  const userMessage = String(params.userMessage ?? '').toLowerCase();
+  const activeChatId = String(params.activeChatId ?? 'chat-1');
+  if (activeChatId === 'chat-2') return true;
+  return /\b(apv|inversion|invertir|fondo|etf|acciones|banco|institucion|tasa|mercado|uf|tpm|dolar|credito|hipotec)/.test(
+    userMessage,
+  );
+}
+
+async function buildLiveMarketContext() {
+  const [ufResult, tpmResult, usdResult] = await Promise.allSettled([
+    fetchIndicador('uf'),
+    fetchIndicador('tpm'),
+    fetchIndicador('dolar'),
+  ]);
+
+  const normalize = (result: PromiseSettledResult<Awaited<ReturnType<typeof fetchIndicador>>>) =>
+    result.status === 'fulfilled'
+      ? {
+          value: result.value.valor,
+          unit: result.value.unidad,
+          date: result.value.fecha,
+          source: result.value.url,
+        }
+      : { value: null, unit: null, date: null, source: null };
+
+  const uf = normalize(ufResult);
+  const tpm = normalize(tpmResult);
+  const usd = normalize(usdResult);
+
+  return {
+    uf,
+    tpm,
+    usd,
+    summary: [
+      uf.value !== null ? `UF ${Number(uf.value).toLocaleString('es-CL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : null,
+      tpm.value !== null ? `TPM ${Number(tpm.value).toLocaleString('es-CL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%` : null,
+      usd.value !== null ? `USD/CLP ${Number(usd.value).toLocaleString('es-CL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : null,
+    ]
+      .filter(Boolean)
+      .join(' · '),
+  };
+}
 
 function normalizeForSimilarity(text: string) {
   return String(text || '')
@@ -116,8 +171,8 @@ function buildResilientFallbackMessage(params: {
   const activeChatId = String(params.activeChatId ?? 'chat-1');
   if (activeChatId === 'chat-2') {
     return [
-      'Tuvimos una intermitencia breve, pero mantenemos el rumbo del plan de accion e inversion.',
-      'Puedo continuar con: simulacion base, definicion de fechas clave o estructura de plan trimestral.',
+      'Tuvimos una intermitencia breve, pero seguimos en el embudo del plan de accion.',
+      'Retomemos: dime si quieres seguir explorando ideas, afilar prioridades o cerrar ya el plan estructurado.',
     ].join('\n\n');
   }
   if (activeChatId === 'chat-3') {
@@ -711,21 +766,26 @@ router.get(
           type: 'realtime',
           model: OPENAI_REALTIME_MODEL,
           audio: {
+            input: {
+              transcription: {
+                language: 'es',
+              },
+              turn_detection: {
+                type: 'server_vad',
+              },
+            },
             output: {
-              voice: 'cedar',
+              voice: OPENAI_REALTIME_VOICE,
+              speed: INTERVIEW_REALTIME_VOICE_SPEED,
             },
           },
           instructions:
             [
-              'Eres un entrevistador financiero senior de nivel family office.',
-              'Habla en español chileno natural, con voz masculina, calma y criterio ejecutivo.',
-              'Usa tú, no voseo ni entonación rioplatense.',
-              'Haz una sola pregunta a la vez, breve y filosa.',
-              'No repitas contexto ya conocido y no expliques el sistema.',
-              `La llamada dura máximo ${INTERVIEW_TOTAL_LIMIT_MINUTES} minutos y debes empezar a cerrar ${INTERVIEW_CLOSEOUT_BUFFER_SEC} segundos antes.`,
-              'Detecta tensiones entre flujo, deuda, liquidez, productos, metas y comportamiento real.',
-              'Entrega microinsights útiles durante la conversación.',
-              'Cuando haya claridad suficiente o entres en cierre, comienza con <<CALL_COMPLETE>> y resume en corto.',
+              'Eres el entrevistador financiero senior de Financieramente — nivel family office, criterio ejecutivo.',
+              'Habla en español chileno profesional: claro, sobrio, cálido. Usa tú; nunca voseo ni tono rioplatense.',
+              'Conoces el intake, presupuesto y cartolas del usuario. Cita cifras y categorías reales; no pidas lo que ya tienes.',
+              'Una pregunta precisa por turno. Microlecturas ejecutivas cada pocos turnos.',
+              `Máximo ${INTERVIEW_TOTAL_LIMIT_MINUTES} minutos; cierra ${INTERVIEW_CLOSEOUT_BUFFER_SEC}s antes con <<CALL_COMPLETE>> y síntesis breve.`,
             ].join(' '),
         },
       }),
@@ -780,6 +840,8 @@ router.get(
       total_used_sec: totalUsedSec,
       remaining_total_sec: remainingSec,
       pause_limit: 1,
+      voice: OPENAI_REALTIME_VOICE,
+      voice_speed: INTERVIEW_REALTIME_VOICE_SPEED,
     });
   }),
 );
@@ -963,6 +1025,22 @@ router.post(
         ...((normalizedInput.ui_state as Record<string, unknown>) ?? {}),
         knowledge_score: authedUser.knowledgeScore,
       };
+    }
+
+    try {
+      const activeChatId = (normalizedInput.ui_state as Record<string, unknown> | undefined)?.active_chat
+        ? ((normalizedInput.ui_state as Record<string, unknown>).active_chat as Record<string, unknown>)?.id
+        : undefined;
+      const userMessage = String(normalizedInput.user_message ?? '');
+      if (shouldAttachLiveMarketContext({ userMessage, activeChatId })) {
+        const marketSnapshot = await buildLiveMarketContext();
+        normalizedInput.context = {
+          ...((normalizedInput.context as Record<string, unknown>) ?? {}),
+          market_snapshot: marketSnapshot,
+        };
+      }
+    } catch (marketErr) {
+      req.logger?.warn({ msg: 'Error loading market snapshot', error: marketErr });
     }
 
     try {

@@ -44,7 +44,7 @@ export function ChatHeader(props: {
   const activeLabel = props.activeThread?.label;
   const activeHandSubtitle =
     activeLabel === '2'
-      ? 'plan de accion'
+      ? 'embudo plan de accion'
       : activeLabel === '3'
       ? 'conciencia social'
       : activeLabel === '★'

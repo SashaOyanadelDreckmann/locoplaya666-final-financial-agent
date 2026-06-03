@@ -15,5 +15,8 @@ describe('transactions modal safeguards', () => {
     expect(source).toContain('aria-describedby="transactions-modal-intro"');
     expect(source).toContain('tabIndex={-1}');
     expect(source).toContain('tx-batch-recommendation-banner" role="status" aria-live="polite"');
+    expect(source).toContain('Productos y transacciones');
+    expect(source).toContain('const requestClose = useCallback');
+    expect(source).toContain('countProductsWithAnalyzedMovements');
   });
 });

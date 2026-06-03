@@ -426,9 +426,7 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
   setDraftForActive: (value: string) => void;
   sessionInjectedIntake?: unknown;
   chatThreadRef: React.RefObject<HTMLDivElement>;
-  latestActionReminder: { id: string; title: string; proposedDate: string } | null;
   activeChatId: string;
-  setProductLifecycle: React.Dispatch<React.SetStateAction<any>>;
   setItemsForActive: React.Dispatch<React.SetStateAction<ChatItem[]>>;
   classifyReportGroup: (title: string, source?: string) => SavedReport['group'];
   setSavedReports: React.Dispatch<React.SetStateAction<SavedReport[]>>;
@@ -485,7 +483,7 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
                 kicker: 'Plan de acción',
                 title: 'Informe estratégico e inversiones',
                 subtitle:
-                  'Simulación, secuencia de decisiones, fechas críticas y resguardos regulatorios.',
+                  'Embudo conversacional: lluvia de ideas, convergencia y plan final personalizado.',
               }
             : props.activeThreadId === 'chat-3'
             ? {
@@ -821,37 +819,6 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
           </div>
         )}
 
-        {props.activeChatId === 'chat-2' && props.latestActionReminder && (
-          <div className="agent-action-orb" role="status">
-            <div>
-              <strong>{props.latestActionReminder.title}</strong>
-              <span>Fecha sugerida: {props.latestActionReminder.proposedDate}</span>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                props.setProductLifecycle((prev: any) => ({
-                  ...(prev ?? {}),
-                  actionReminders: (prev?.actionReminders ?? []).map((item: any) =>
-                    item.id === props.latestActionReminder?.id ? { ...item, status: 'queued' } : item
-                  ),
-                }));
-                props.setItemsForActive((prev: ChatItem[]) => [
-                  ...prev,
-                  {
-                    type: 'message',
-                    role: 'assistant',
-                    content:
-                      'Recordatorio activado en cola local. En la siguiente iteración lo conectamos al envío real de correos programados.',
-                    mode: 'information',
-                  } as ChatItem,
-                ]);
-              }}
-            >
-              Activar correo
-            </button>
-          </div>
-        )}
         {flowPanelAction?.section ? (
           <div className="agent-flow-cta agent-flow-cta--thread">
             <button
