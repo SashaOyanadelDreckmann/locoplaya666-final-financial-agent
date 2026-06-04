@@ -12,6 +12,7 @@ import type { ExecutionResult } from '../agent-types';
 
 // Mock dependencies
 vi.mock('../../../services/llm.service', () => ({
+  complete: vi.fn(),
   completeWithClaude: vi.fn(),
 }));
 
@@ -25,7 +26,7 @@ vi.mock('../knowledge-detector', () => ({
   detectKnowledgeEvent: vi.fn(() => ({ detected: false })),
 }));
 
-import { completeWithClaude } from '../../../services/llm.service';
+import { complete, completeWithClaude } from '../../../services/llm.service';
 import { recordKnowledgeEvent, getMilestones } from '../../../services/knowledge.service';
 
 describe('runFormatPhase', () => {
@@ -33,6 +34,7 @@ describe('runFormatPhase', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    delete process.env.AGENT_FAST_FORMAT;
     mockExecutionResult = testUtils.createMockExecutionResult();
   });
 
@@ -208,6 +210,27 @@ invalid json
 
     expect(result.formatted_response.message).toContain('respuesta base');
     expect(result.formatted_response.suggested_replies).toEqual([]);
+  });
+
+  it('should prefer fast format for low-complexity turns outside test mode', async () => {
+    const previousNodeEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'development';
+    (complete as any).mockResolvedValueOnce('Respuesta ejecutiva breve');
+
+    const result = await runFormatPhase({
+      mode: 'information',
+      execution_result: testUtils.createMockExecutionResult({
+        tool_calls: [],
+        citations: [],
+      }),
+      user_message: 'Dame un resumen',
+      context_summary: {},
+    });
+
+    expect(complete).toHaveBeenCalled();
+    expect(completeWithClaude).not.toHaveBeenCalled();
+    expect(result.formatted_response.message).not.toContain('Fuentes:');
+    process.env.NODE_ENV = previousNodeEnv;
   });
 });
 

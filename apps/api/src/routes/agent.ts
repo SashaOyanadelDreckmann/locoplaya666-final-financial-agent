@@ -14,7 +14,7 @@ import {
   saveUserPanelState,
   saveUserMemoryBlob,
 } from '../services/user.service';
-import { complete, completeWithClaude } from '../services/llm.service';
+import { complete } from '../services/llm.service';
 import {
   appendTurnToMemoryRealtime,
   buildAgentMemoryContextRealtime,
@@ -26,8 +26,6 @@ import {
   lifecycleMeta,
 } from '../services/product-lifecycle.service';
 import {
-  ingestGeneratedReportDocument,
-  reportSpecToSearchableText,
   searchUserDocumentContext,
 } from '../services/document-intelligence.service';
 import { asyncHandler } from '../middleware/errorHandler';
@@ -36,10 +34,6 @@ import { badRequest, forbidden, unauthorized } from '../http/api.errors';
 import { sendSuccess } from '../http/api.responses';
 import { parseBody } from '../http/parse';
 import { hasPermission, PERMISSIONS, type UserRole } from '../auth/rbac';
-import {
-  generateProfessionalReportPdf,
-  type ProfessionalPdfInput,
-} from '../services/reports/professionalPdf.service';
 import { listAdminUsersFullDump } from '../services/admin.service';
 import { getConfig } from '../config';
 import { fetchIndicador } from '../mcp/tools/market/mindicadorClient';
@@ -131,7 +125,46 @@ function isTooSimilarMessage(a: string, b: string) {
     if (bWords.has(w)) overlap += 1;
   }
   const ratio = overlap / Math.max(aWords.size, bWords.size);
-  return ratio >= 0.72;
+  return ratio >= 0.88;
+}
+
+function toFiniteNumber(value: unknown): number | null {
+  if (value == null) return null;
+  if (typeof value === 'string' && value.trim().length === 0) return null;
+  const n = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function resolveInjectedBudget(params: {
+  context?: Record<string, unknown>;
+  uiState?: Record<string, unknown>;
+}): { income: number; expenses: number; balance: number } {
+  const context = params.context ?? {};
+  const uiState = params.uiState ?? {};
+  const contextBudget =
+    context.injected_budget && typeof context.injected_budget === 'object'
+      ? (context.injected_budget as Record<string, unknown>)
+      : {};
+  const uiBudget =
+    uiState.budget_summary && typeof uiState.budget_summary === 'object'
+      ? (uiState.budget_summary as Record<string, unknown>)
+      : {};
+
+  const uiIncome = toFiniteNumber(uiBudget.income);
+  const uiExpenses = toFiniteNumber(uiBudget.expenses);
+  const uiBalance = toFiniteNumber(uiBudget.balance);
+  const contextIncome = toFiniteNumber(contextBudget.income);
+  const contextExpenses = toFiniteNumber(contextBudget.expenses);
+  const contextBalance = toFiniteNumber(contextBudget.balance);
+
+  const income = uiIncome ?? contextIncome ?? 0;
+  const expenses = uiExpenses ?? contextExpenses ?? 0;
+  const balance =
+    uiBalance ??
+    (uiIncome !== null && uiExpenses !== null ? uiIncome - uiExpenses : null) ??
+    contextBalance ??
+    income - expenses;
+  return { income, expenses, balance };
 }
 
 function buildBudgetPanelGuidance() {
@@ -192,162 +225,24 @@ function buildResilientFallbackMessage(params: {
   ].join('\n\n');
 }
 
-function extractJsonObject(raw: string): Record<string, unknown> | null {
-  if (!raw) return null;
-  const codeBlockMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/i);
-  const candidate = codeBlockMatch ? codeBlockMatch[1].trim() : raw.trim();
-  try {
-    const parsed = JSON.parse(candidate);
-    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
-      ? (parsed as Record<string, unknown>)
-      : null;
-  } catch {
-    return null;
-  }
-}
+function shouldReplaceWithDuplicateFallback(params: {
+  response: Record<string, unknown>;
+  recentAssistantMessages: string[];
+}): boolean {
+  const message = typeof params.response.message === 'string' ? params.response.message : '';
+  if (!message.trim()) return false;
 
-async function buildAgenticPremiumPdfSpec(params: {
-  userMessage: string;
-  history: Array<{ role?: string; content?: string }>;
-  citations?: Array<{ source?: string; title?: string; url?: string }>;
-}) {
-  const compactHistory = params.history
-    .slice(-10)
-    .map((h) => ({
-      role: h.role ?? 'user',
-      content: String(h.content ?? '').slice(0, 900),
-    }));
-  const compactCitations = (params.citations ?? []).slice(0, 8).map((c) => ({
-    source: c.source,
-    title: c.title,
-    url: c.url,
-  }));
+  const hasStructuredOutput =
+    (Array.isArray(params.response.artifacts) && params.response.artifacts.length > 0) ||
+    (Array.isArray(params.response.agent_blocks) && params.response.agent_blocks.length > 0) ||
+    (Array.isArray(params.response.citations) && params.response.citations.length > 0) ||
+    (Array.isArray(params.response.budget_updates) && params.response.budget_updates.length > 0);
+  if (hasStructuredOutput) return false;
 
-  const raw = await completeWithClaude(
-    [
-      'Devuelve SOLO JSON válido con:',
-      '{ "title": string, "subtitle": string, "sections": [{ "heading": string, "body": string }], "charts"?: [{ "title": string, "subtitle"?: string, "kind"?: "line"|"bar"|"area", "labels": string[], "values": number[] }], "tables"?: [{ "title": string, "columns": string[], "rows": (string|number)[][] }] }',
-      'Reglas:',
-      '- 5 a 8 secciones útiles y accionables.',
-      '- Español profesional, claro y concreto.',
-      '- Incluir síntesis de conversación y próximos pasos.',
-      '- Si aporta claridad, incluye 1 a 3 gráficos y/o 1 a 2 tablas con datos coherentes.',
-      '- Si hay fuentes, incluir una sección "Fuentes y contexto externo".',
-      '',
-      `Solicitud actual: ${params.userMessage}`,
-      `Historial reciente: ${JSON.stringify(compactHistory)}`,
-      `Fuentes disponibles: ${JSON.stringify(compactCitations)}`,
-    ].join('\n'),
-    {
-      systemPrompt:
-        'Eres un director editorial financiero premium. Estructuras informes profesionales de alta claridad y utilidad.',
-      temperature: 0.3,
-    }
-  );
+  // Only intervene on short conversational loops; keep rich answers untouched.
+  if (message.length > 240) return false;
 
-  const parsed = extractJsonObject(raw);
-  const title = typeof parsed?.title === 'string' && parsed.title.trim().length > 0
-    ? parsed.title.trim()
-    : 'Informe financiero premium';
-  const subtitle = typeof parsed?.subtitle === 'string' && parsed.subtitle.trim().length > 0
-    ? parsed.subtitle.trim()
-    : 'Documento generado automáticamente con síntesis accionable';
-  const sections = Array.isArray(parsed?.sections)
-    ? parsed.sections
-        .map((s) => ({
-          heading:
-            s && typeof s === 'object' && typeof (s as any).heading === 'string'
-              ? String((s as any).heading).trim()
-              : '',
-          body:
-            s && typeof s === 'object' && typeof (s as any).body === 'string'
-              ? String((s as any).body).trim()
-              : '',
-        }))
-        .filter((s) => s.heading.length >= 2 && s.body.length >= 8)
-        .slice(0, 10)
-    : [];
-  const charts = Array.isArray(parsed?.charts)
-    ? parsed.charts
-        .map((c) => {
-          const obj = (c && typeof c === 'object' ? c : {}) as Record<string, unknown>;
-          const labels = Array.isArray(obj.labels)
-            ? obj.labels
-                .map((x) => String(x ?? '').trim())
-                .filter((x) => x.length > 0)
-                .slice(0, 48)
-            : [];
-          const values = Array.isArray(obj.values)
-            ? obj.values
-                .map((x) => Number(x))
-                .filter((x) => Number.isFinite(x))
-                .slice(0, labels.length || 48)
-            : [];
-          const n = Math.min(labels.length, values.length);
-          return {
-            title: typeof obj.title === 'string' ? obj.title.trim() : '',
-            subtitle: typeof obj.subtitle === 'string' ? obj.subtitle.trim() : undefined,
-            kind:
-              obj.kind === 'bar' || obj.kind === 'area' || obj.kind === 'line'
-                ? obj.kind
-                : ('line' as const),
-            labels: labels.slice(0, n),
-            values: values.slice(0, n),
-          };
-        })
-        .filter((c) => c.title.length > 2 && c.labels.length >= 2 && c.values.length >= 2)
-        .slice(0, 3)
-    : [];
-  const tables = Array.isArray(parsed?.tables)
-    ? parsed.tables
-        .map((t) => {
-          const obj = (t && typeof t === 'object' ? t : {}) as Record<string, unknown>;
-          const columns = Array.isArray(obj.columns)
-            ? obj.columns
-                .map((x) => String(x ?? '').trim())
-                .filter((x) => x.length > 0)
-                .slice(0, 6)
-            : [];
-          const rows = Array.isArray(obj.rows)
-            ? obj.rows
-                .filter((r) => Array.isArray(r))
-                .map((r) =>
-                  (r as unknown[])
-                    .slice(0, columns.length || 6)
-                    .map((x) => (typeof x === 'number' ? x : String(x ?? '')))
-                )
-                .filter((r) => r.length > 0)
-                .slice(0, 20)
-            : [];
-          return {
-            title: typeof obj.title === 'string' ? obj.title.trim() : '',
-            columns,
-            rows,
-          };
-        })
-        .filter((t) => t.title.length > 2 && t.columns.length >= 2 && t.rows.length >= 1)
-        .slice(0, 2)
-    : [];
-
-  return {
-    title,
-    subtitle,
-    charts,
-    tables,
-    sections:
-      sections.length > 0
-        ? sections
-        : [
-            {
-              heading: 'Resumen ejecutivo',
-              body: params.userMessage,
-            },
-            {
-              heading: 'Siguientes pasos',
-              body: 'Validar supuestos, contrastar indicadores y ejecutar el plan recomendado en hitos semanales.',
-            },
-          ],
-  };
+  return params.recentAssistantMessages.some((msg) => isTooSimilarMessage(msg, message));
 }
 
 const InjectProfileSchema = z.object({
@@ -1091,6 +986,16 @@ router.post(
       };
     }
 
+    const normalizedContext = ((normalizedInput.context as Record<string, unknown>) ?? {});
+    const normalizedUiState = ((normalizedInput.ui_state as Record<string, unknown>) ?? {});
+    normalizedInput.context = {
+      ...normalizedContext,
+      injected_budget: resolveInjectedBudget({
+        context: normalizedContext,
+        uiState: normalizedUiState,
+      }),
+    };
+
     try {
       const activeChatId = (normalizedInput.ui_state as Record<string, unknown> | undefined)?.active_chat
         ? ((normalizedInput.ui_state as Record<string, unknown>).active_chat as Record<string, unknown>)?.id
@@ -1264,10 +1169,7 @@ router.post(
       .map((h) => String((h as Record<string, unknown>).content ?? ''))
       .filter((x) => x.trim().length > 0)
       .slice(-2);
-    if (
-      typeof response?.message === 'string' &&
-      recentAssistantMessages.some((msg) => isTooSimilarMessage(msg, response.message))
-    ) {
+    if (shouldReplaceWithDuplicateFallback({ response, recentAssistantMessages })) {
       response.message = buildResilientFallbackMessage({
         userMessage: String(input.user_message ?? ''),
         phase: lifecycleDecision.state.phase,
@@ -1278,67 +1180,6 @@ router.post(
         'Subir cartola',
         'Continuar con entrevista',
       ];
-    }
-
-    const asksPdf =
-      typeof input.user_message === 'string' &&
-      /\b(pdf|reporte|informe|documento|descargable|archivo|adjunto|descargar|exportar|guardarlo)\b/i.test(
-        input.user_message
-      );
-    if (asksPdf) {
-      try {
-        const spec = await buildAgenticPremiumPdfSpec({
-          userMessage: String(input.user_message),
-          history: Array.isArray(input.history) ? input.history : [],
-          citations: Array.isArray(response.citations) ? (response.citations as any) : [],
-        });
-        const pdfInput: ProfessionalPdfInput = {
-          title: spec.title,
-          subtitle: spec.subtitle,
-          style: 'premium_dark' as const,
-          source: 'analysis' as const,
-          sections: spec.sections,
-          charts: spec.charts.map((chart) => ({
-            ...chart,
-            kind:
-              chart.kind === 'line' || chart.kind === 'bar' || chart.kind === 'area'
-                ? chart.kind
-                : 'line',
-          })),
-          tables: spec.tables,
-        };
-        const fallbackArtifact = await generateProfessionalReportPdf(pdfInput, authedUser.id, {
-          userMessage: String(input.user_message),
-          history: Array.isArray(input.history) ? input.history : [],
-          citations: Array.isArray(response.citations) ? (response.citations as any) : [],
-        });
-
-        try {
-          await ingestGeneratedReportDocument({
-            userId: authedUser.id,
-            title: spec.title,
-            text: reportSpecToSearchableText(spec),
-          });
-        } catch (documentErr) {
-          req.logger?.warn({
-            msg: 'Generated report document ingestion failed',
-            error: documentErr,
-            userId: authedUser.id,
-          });
-        }
-
-        const nonPdfArtifacts = (response.artifacts ?? []).filter(
-          (a: { type?: string }) => a?.type !== 'pdf',
-        );
-        response.artifacts = [fallbackArtifact, ...nonPdfArtifacts];
-        response.message = `${response.message ?? ''}\n\nGeneré un PDF profesional y ya está listo para abrir/guardar/descargar.`;
-      } catch (pdfErr) {
-        req.logger?.warn({
-          msg: 'Agentic premium PDF generation failed in /api/agent',
-          error: pdfErr,
-          userId: authedUser.id,
-        });
-      }
     }
 
     try {

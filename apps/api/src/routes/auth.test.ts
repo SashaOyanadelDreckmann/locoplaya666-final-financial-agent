@@ -123,6 +123,11 @@ describe('auth + session', () => {
     });
     expect(ok.status).toBe(200);
     expect(ok.body.ok).toBe(true);
+    const setCookie = ok.headers['set-cookie'];
+    const cookieStr = Array.isArray(setCookie) ? setCookie.join(' ') : String(setCookie ?? '');
+    expect(cookieStr).toContain('session=');
+    expect(cookieStr).toMatch(/Max-Age=\d+/i);
+    expect(cookieStr).toMatch(/Expires=/i);
   });
 
   it('reject link marks account as rejected and keeps login blocked', async () => {

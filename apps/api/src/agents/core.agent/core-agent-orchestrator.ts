@@ -1,8 +1,13 @@
 /**
  * core-agent-orchestrator.ts
  *
- * Main orchestrator for the 5-phase core agent
- * Coordinates: Classify → Execute (Plan+Execute) → Format → Validate → Knowledge
+ * Main orchestrator for the core agent runtime pipeline.
+ * Runtime order:
+ *   1) Classify
+ *   2) Execute (ReAct tool loop)
+ *   3) Format response
+ *   4) Validate coherence
+ *   5) Detect/record knowledge
  */
 
 import type {
@@ -113,7 +118,7 @@ export async function runCoreAgent(input: ChatAgentInput): Promise<ChatAgentResp
     };
 
     // ────────────────────────────────────────────────
-    // PHASE 2-3: PLAN + EXECUTE (ReAct Loop)
+    // PHASE 2: EXECUTE (ReAct Loop)
     // ────────────────────────────────────────────────
     const executeOutput = await runPlanExecutePhase({
       classification: classifyOutput.classification,
@@ -135,7 +140,7 @@ export async function runCoreAgent(input: ChatAgentInput): Promise<ChatAgentResp
     });
 
     // ────────────────────────────────────────────────
-    // PHASE 5: FORMAT RESPONSE
+    // PHASE 3: FORMAT RESPONSE
     // ────────────────────────────────────────────────
     const formatOutput = await runFormatPhase({
       mode: classifyOutput.classification.mode,
@@ -176,7 +181,7 @@ export async function runCoreAgent(input: ChatAgentInput): Promise<ChatAgentResp
     });
 
     // ────────────────────────────────────────────────
-    // KNOWLEDGE DETECTION & RECORDING
+    // PHASE 5: KNOWLEDGE DETECTION & RECORDING
     // ────────────────────────────────────────────────
     const knowledge = await detectAndRecordKnowledge({
       user_id: input.user_id,

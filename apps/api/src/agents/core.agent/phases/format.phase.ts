@@ -40,46 +40,10 @@ function shouldApplyLatexFormatting(message: string): boolean {
   return hasMathLikeContent;
 }
 
-function citationLabel(citation: Citation): string {
-  return (
-    citation.doc_title ||
-    citation.source ||
-    citation.url ||
-    citation.doc_id ||
-    'Fuente sin titulo'
-  );
-}
-
-function appendSourcesBlock(message: string, citations: Citation[]): string {
-  const cleanMessage = message.trim();
-  const hasSourcesHeading = /\n#{0,3}\s*fuentes\b/i.test(cleanMessage);
-  if (hasSourcesHeading) return cleanMessage;
-
-  const scored = citations.map((citation, idx) => ({
-    citation,
-    idx,
-    score:
-      (citation.confidence ?? 0.5) +
-      (citation.url ? 0.1 : 0) +
-      ((citation.supporting_span?.length ?? 0) > 24 ? 0.05 : 0),
-  }));
-  scored.sort((a, b) => b.score - a.score || a.idx - b.idx);
-
-  const uniqueLabels: string[] = [];
-  for (const item of scored) {
-    const citation = item.citation;
-    const label = citationLabel(citation).trim();
-    if (!label) continue;
-    if (!uniqueLabels.includes(label)) uniqueLabels.push(label);
-    if (uniqueLabels.length >= 6) break;
-  }
-
-  const renderedSources =
-    uniqueLabels.length > 0
-      ? uniqueLabels.map((label) => `- ${label}`).join('\n')
-      : '- Base regulatoria interna (CMF / Ley 21.521 / glosario financiero)';
-
-  return `${cleanMessage}\n\nFuentes:\n${renderedSources}`;
+function stripInlineSourcesBlock(message: string): string {
+  return message
+    .replace(/\n{0,2}#{0,3}\s*fuentes\s*:?[ \t]*\n[\s\S]*$/i, '')
+    .trim();
 }
 
 async function ensureMinimumCitations(input: FormatPhaseInput): Promise<Citation[]> {
@@ -122,6 +86,17 @@ function shouldEnforceDecisionDisclaimer(input: FormatPhaseInput): boolean {
     input.mode === 'comparison' ||
     input.mode === 'planification'
   );
+}
+
+function shouldUseFastFormat(input: FormatPhaseInput): boolean {
+  if (process.env.NODE_ENV === 'test') return false;
+  if (process.env.AGENT_FAST_FORMAT === 'true') return true;
+  // Always keep premium depth for the most complex modes.
+  if (input.mode === 'regulation' || input.mode === 'simulation') return false;
+  const toolCalls = input.execution_result?.tool_calls?.length ?? 0;
+  const citations = input.execution_result?.citations?.length ?? 0;
+  // Cheap path for low-complexity turns while preserving senior tone.
+  return toolCalls <= 2 && citations <= 4;
 }
 
 function resolveFormatFunnelStage(input: FormatPhaseInput): ActionPlanFunnelStage | null {
@@ -186,14 +161,14 @@ async function buildFastValuableMessage(input: FormatPhaseInput): Promise<string
       ? 'Responde en español (Chile): lluvia de ideas senior, bullets densos, max 220 palabras.'
       : funnelStage === 'converge'
       ? 'Responde en español (Chile): convergencia senior, max 320 palabras.'
-      : 'Responde en español (Chile), breve y útil.',
+      : 'Responde en español (Chile), breve pero senior.',
     funnelStage === 'deliver'
       ? null
       : [
           'Entrega valor real al usuario en formato:',
-          '1) tesis o respuesta directa,',
-          '2) recomendacion o siguiente accion concreta,',
-          '3) riesgos/condiciones o supuesto importante si aplica.',
+          '1) tesis ejecutiva clara,',
+          '2) recomendacion accionable con criterio senior,',
+          '3) riesgos/condiciones y siguiente validacion concreta.',
         ].join('\n'),
     'No menciones nombres de tools, pipeline interno ni tecnicismos de backend.',
     'Si recomiendas productos, APV, inversiones o instituciones: cruza suitability, explicita riesgos y deja claro que la decision final depende 100% del usuario.',
@@ -216,7 +191,7 @@ async function buildFastValuableMessage(input: FormatPhaseInput): Promise<string
 
   const raw = await complete(prompt, {
     systemPrompt:
-      'Eres un asesor financiero senior. Tu prioridad es claridad, utilidad inmediata, precision y coherencia con la arquitectura del producto.',
+      'Eres un asesor financiero senior estilo wealth advisory. Tu prioridad es claridad ejecutiva, utilidad inmediata, precision y criterio de riesgo.',
     temperature: funnelStage === 'deliver' ? 0.25 : 0.2,
     maxCompletionTokens: funnelStage === 'deliver' ? 1400 : 520,
   });
@@ -233,7 +208,7 @@ async function buildFastValuableMessage(input: FormatPhaseInput): Promise<string
 export async function runFormatPhase(input: FormatPhaseInput): Promise<FormatPhaseOutput> {
   const logger = getLogger();
   const startTime = Date.now();
-  const fastFormatEnabled = process.env.NODE_ENV !== 'test' && process.env.AGENT_FAST_FORMAT === 'true';
+  const fastFormatEnabled = shouldUseFastFormat(input);
 
   try {
     if (fastFormatEnabled) {
@@ -241,7 +216,7 @@ export async function runFormatPhase(input: FormatPhaseInput): Promise<FormatPha
       const message = await buildFastValuableMessage(input);
 
       const formatted_response: FormattedResponse = {
-        message: appendSourcesBlock(message, ensuredCitations),
+        message: stripInlineSourcesBlock(message),
         agent_blocks: input.execution_result?.agent_blocks || [],
         artifacts: input.execution_result?.artifacts || [],
         citations: ensuredCitations,
@@ -350,7 +325,7 @@ export async function runFormatPhase(input: FormatPhaseInput): Promise<FormatPha
     const contextScoreMatch = rawResponse.match(/<CONTEXT_SCORE>(\d+)<\/CONTEXT_SCORE>/);
     const context_score = contextScoreMatch ? parseInt(contextScoreMatch[1], 10) : undefined;
     const ensuredCitations = await ensureMinimumCitations(input);
-    message = appendSourcesBlock(message, ensuredCitations);
+    message = stripInlineSourcesBlock(message);
 
     const hasQuestionnaireBlock = [...(input.execution_result?.agent_blocks || []), ...responseChartBlocks]
       .some((b) => b.type === 'questionnaire');
@@ -393,7 +368,7 @@ export async function runFormatPhase(input: FormatPhaseInput): Promise<FormatPha
     fallbackMessage = sanitizeFormulaContent(fallbackMessage);
     fallbackMessage = ensureDecisionDisclaimer(fallbackMessage, input);
     const ensuredCitations = await ensureMinimumCitations(input);
-    fallbackMessage = appendSourcesBlock(fallbackMessage, ensuredCitations);
+    fallbackMessage = stripInlineSourcesBlock(fallbackMessage);
 
     const formatted_response: FormattedResponse = {
       message: fallbackMessage,

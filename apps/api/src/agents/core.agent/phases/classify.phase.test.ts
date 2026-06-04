@@ -132,6 +132,9 @@ describe('runClassifyPhase', () => {
 
     expect(result.classification).toBeDefined();
     expect(completeStructured).toHaveBeenCalled();
+    const calledWith = (completeStructured as any).mock.calls[0]?.[0] ?? {};
+    expect(String(calledWith.user ?? '')).toContain('Historial reciente');
+    expect(String(calledWith.user ?? '')).toContain('¿Cuál es el riesgo?');
   });
 
   it('should return valid inferred_user_model', async () => {

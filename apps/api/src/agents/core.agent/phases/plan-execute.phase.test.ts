@@ -84,6 +84,7 @@ describe('runPlanExecutePhase', () => {
 
     const result = await runPlanExecutePhase({
       classification: mockClassification,
+      user_message: 'Compara APV y cuenta 2 para jubilacion',
       inferred_user_model: mockUserModel,
       context_summary: {},
       injected_profile: null,
@@ -111,6 +112,7 @@ describe('runPlanExecutePhase', () => {
 
     const result = await runPlanExecutePhase({
       classification: mockClassification,
+      user_message: 'Compara APV y cuenta 2 para jubilacion',
       inferred_user_model: mockUserModel,
       context_summary: {},
       injected_profile: null,
@@ -139,6 +141,7 @@ describe('runPlanExecutePhase', () => {
 
     const result = await runPlanExecutePhase({
       classification: mockClassification,
+      user_message: 'Compara APV y cuenta 2 para jubilacion',
       inferred_user_model: mockUserModel,
       context_summary: {},
       injected_profile: null,
@@ -256,10 +259,6 @@ describe('runPlanExecutePhase', () => {
   });
 
   it('should skip tool execution when requires_tools=false', async () => {
-    mockCreate.mockResolvedValueOnce({
-      choices: [{ message: { content: 'General information response', tool_calls: [] } }],
-    });
-
     const noToolsClassification = testUtils.createMockClassification({
       requires_tools: false,
       requires_rag: false,
@@ -274,6 +273,8 @@ describe('runPlanExecutePhase', () => {
     });
 
     expect(result.execution_result.tool_calls.length).toBe(0);
+    expect(result.execution_result.iterations_count).toBe(0);
+    expect(mockCreate).not.toHaveBeenCalled();
   });
 
   it('should extract chart blocks from tool output', async () => {

@@ -39,6 +39,14 @@ type CachedWebEvidence = {
 
 const webEvidenceCacheByUser = new Map<string, CachedWebEvidence[]>();
 
+function resolveIterationBudget(input: PlanPhaseInput): number {
+  const base = Math.max(1, MAX_REACT_ITERATIONS);
+  const mode = input.classification.mode;
+  if (mode === 'information' || mode === 'education') return Math.min(base, 2);
+  if (mode === 'budgeting' || mode === 'comparison' || mode === 'planification') return Math.min(base, 3);
+  return base; // regulation/simulation/decision_support/containment keep full depth
+}
+
 function shouldAutoWebVerify(userMessage?: string): boolean {
   const msg = String(userMessage ?? '').trim();
   if (!msg) return false;
@@ -115,6 +123,9 @@ export async function runPlanExecutePhase(input: PlanPhaseInput): Promise<PlanPh
     const artifacts: Artifact[] = [];
     const agent_blocks: AgentBlock[] = [];
     const react_trace: Array<{ iteration: number; decision: string; result: string }> = [];
+    const shouldRunTools =
+      input.classification.requires_tools === true || input.classification.requires_rag === true;
+    const iterationBudget = resolveIterationBudget(input);
     const isRegulatoryRequest =
       input.classification.mode === 'regulation' ||
       input.classification.requires_rag === true ||
@@ -156,7 +167,7 @@ export async function runPlanExecutePhase(input: PlanPhaseInput): Promise<PlanPh
     }
 
     // Cheap-by-design web grounding: one trusted search per meaningful turn.
-    if (AUTO_WEB_VERIFY_ENABLED && shouldAutoWebVerify(input.user_message)) {
+    if (shouldRunTools && AUTO_WEB_VERIFY_ENABLED && shouldAutoWebVerify(input.user_message)) {
       try {
         const cacheUserId = input.user_id || 'unknown';
         const webQuery = buildTrustedWebQuery(String(input.user_message ?? input.classification.intent));
@@ -224,6 +235,30 @@ export async function runPlanExecutePhase(input: PlanPhaseInput): Promise<PlanPh
       }
     }
 
+    if (!shouldRunTools) {
+      react_trace.push({
+        iteration: 0,
+        decision: 'Skip tools by classifier',
+        result: 'requires_tools=false',
+      });
+      logger.info({
+        msg: '[Execute] Skipping tool loop by classifier decision',
+        mode: input.classification.mode,
+      });
+      return {
+        execution_result: {
+          tool_calls,
+          tool_outputs,
+          artifacts: [],
+          agent_blocks: [],
+          citations,
+          react_trace,
+          iterations_count: 0,
+        },
+        plan_objective: input.classification.intent,
+      };
+    }
+
     // Build loop messages
     const loopMessages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
       {
@@ -240,8 +275,13 @@ export async function runPlanExecutePhase(input: PlanPhaseInput): Promise<PlanPh
     let iterations = 0;
     let is_complete = false;
 
-    while (iterations < MAX_REACT_ITERATIONS && !is_complete && Date.now() - startTime < REACT_TIMEOUT_MS) {
+    while (iterations < iterationBudget && !is_complete && Date.now() - startTime < REACT_TIMEOUT_MS) {
       iterations++;
+      react_trace.push({
+        iteration: iterations,
+        decision: 'Evaluate next step',
+        result: 'pending',
+      });
       const planMaxTokens = Number(process.env.OPENAI_PLAN_MAX_COMPLETION_TOKENS || 1024);
 
       // Call OpenAI with tool calling
@@ -262,6 +302,7 @@ export async function runPlanExecutePhase(input: PlanPhaseInput): Promise<PlanPh
 
       const assistantMessage = response.choices[0]?.message;
       if (!assistantMessage) {
+        react_trace[react_trace.length - 1].result = 'no_message';
         is_complete = true;
         break;
       }
@@ -272,10 +313,15 @@ export async function runPlanExecutePhase(input: PlanPhaseInput): Promise<PlanPh
 
       // Check if model is done without tool calls
       if (!assistantMessage.tool_calls || assistantMessage.tool_calls.length === 0) {
+        react_trace[react_trace.length - 1].decision = 'Complete without tool calls';
+        react_trace[react_trace.length - 1].result = 'complete';
         is_complete = true;
         if (assistantText) loopMessages.push({ role: 'assistant', content: assistantText });
         break;
       }
+
+      react_trace[react_trace.length - 1].decision = `Requested ${assistantMessage.tool_calls.length} tool call(s)`;
+      react_trace[react_trace.length - 1].result = 'tool_calls_requested';
 
       // Add assistant message with requested tool calls
       loopMessages.push({
@@ -402,6 +448,7 @@ export async function runPlanExecutePhase(input: PlanPhaseInput): Promise<PlanPh
     logger.info({
       msg: '[Execute] ReAct loop complete',
       iterations,
+      iteration_budget: iterationBudget,
       tool_calls_count: tool_calls.length,
       latency_ms: Date.now() - startTime,
     });

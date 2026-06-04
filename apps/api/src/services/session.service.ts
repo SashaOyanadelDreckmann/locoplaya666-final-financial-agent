@@ -70,12 +70,15 @@ export function getSessionCookieOptions(): CookieOptions {
     sameSiteRaw === 'strict' || sameSiteRaw === 'none' || sameSiteRaw === 'lax'
       ? sameSiteRaw
       : 'lax';
+  const ttlMs = getSessionTtlMs();
 
   return {
     httpOnly: true,
     secure: isProd || sameSite === 'none',
     sameSite,
-    maxAge: getSessionTtlMs(),
+    // Keep the browser session persistent across restarts for the configured TTL.
+    maxAge: ttlMs,
+    expires: new Date(Date.now() + ttlMs),
     path: '/',
     ...(process.env.SESSION_COOKIE_DOMAIN ? { domain: process.env.SESSION_COOKIE_DOMAIN } : {}),
   };

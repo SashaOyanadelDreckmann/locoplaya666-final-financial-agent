@@ -17,6 +17,39 @@ import type {
 } from '../agent-types';
 import { getLogger } from '../../../logger';
 
+function buildClassifierUserInput(params: {
+  userMessage: string;
+  history?: Array<{ role: string; content: string }>;
+}): string {
+  const trimmedMessage = String(params.userMessage ?? '').trim();
+  const compactHistory = Array.isArray(params.history)
+    ? params.history
+        .filter(
+          (h) =>
+            h &&
+            typeof h === 'object' &&
+            typeof h.role === 'string' &&
+            typeof h.content === 'string' &&
+            h.content.trim().length > 0
+        )
+        .slice(-6)
+        .map((h) => ({
+          role: h.role === 'system' ? 'assistant' : h.role,
+          content: h.content.trim().slice(0, 280),
+        }))
+    : [];
+
+  if (compactHistory.length === 0) return trimmedMessage;
+
+  return [
+    'Mensaje actual del usuario:',
+    trimmedMessage,
+    '',
+    'Historial reciente (para resolver follow-ups y contexto):',
+    JSON.stringify(compactHistory),
+  ].join('\n');
+}
+
 /**
  * Run classification phase
  * Returns: user intent, reasoning mode, tool requirements, inferred profile
@@ -37,7 +70,7 @@ export async function runClassifyPhase(input: ClassifyPhaseInput): Promise<Class
       confidence?: number;
     }>({
       system: CORE_CLASSIFIER_SYSTEM,
-      user: user_message,
+      user: buildClassifierUserInput({ userMessage: user_message, history }),
       temperature: 0,
     });
 
