@@ -56,6 +56,11 @@ import {
 } from '@/lib/panel-state.helpers';
 import { normalizeProductAssistantState } from '@/lib/product-normalization.helpers';
 import {
+  IDLE_PARSE_PROGRESS,
+  advanceParseProgressTick,
+  type DocumentsParseProgress,
+} from '@/lib/transactions-parse-progress.helpers';
+import {
   CHAT_GAME_INSTRUCTION,
   DEFAULT_BANK_SIMULATION,
   FALLBACK_WELCOME,
@@ -445,6 +450,7 @@ export default function AgentPage() {
   const [panelStateLoaded, setPanelStateLoaded] = useState(false);
   const [persistentKnowledgeScore, setPersistentKnowledgeScore] = useState<number | null>(null);
   const [documentsLoading, setDocumentsLoading] = useState(false);
+  const [documentsParseProgress, setDocumentsParseProgress] = useState<DocumentsParseProgress>(IDLE_PARSE_PROGRESS);
   const [transactionUploadError, setTransactionUploadError] = useState<string | null>(null);
   const [accountActionError, setAccountActionError] = useState<string | null>(null);
   const [productLifecycle, setProductLifecycle] = useState<ProductLifecycle | null>(null);
@@ -3082,6 +3088,22 @@ export default function AgentPage() {
     });
   }
 
+  function updateProductById(productId: string, updates: Partial<BankProduct>) {
+    setBankSimulation((prev) => {
+      if (!prev.products.some((p) => p.id === productId)) return prev;
+      const products = prev.products.map((p) => (p.id === productId ? { ...p, ...updates } : p));
+      const snapshot = getSimulationSnapshot(products, prev.activeProductId);
+      return {
+        ...prev,
+        products,
+        connected: snapshot.connected,
+        randomMode: snapshot.randomMode,
+        uploadedFiles: snapshot.uploadedFiles,
+        parsedDocuments: snapshot.parsedDocuments,
+      };
+    });
+  }
+
   function upsertTransactionTaxonomyOverride(override: TransactionTaxonomyOverride) {
     const normalized = normalizeTransactionTaxonomyOverride(override);
     if (!normalized) return;
@@ -3214,6 +3236,15 @@ export default function AgentPage() {
     const names = cappedFiles.map((f) => f.name);
     setTransactionUploadError(null);
     setDocumentsLoading(true);
+    setDocumentsParseProgress({
+      stage: 'reading',
+      percent: 8,
+      detail: 'Leyendo archivos en tu dispositivo.',
+    });
+    let progressTimer: number | null = null;
+    progressTimer = window.setInterval(() => {
+      setDocumentsParseProgress((current) => advanceParseProgressTick(current));
+    }, 450);
 
     try {
       const encodedFiles = await Promise.all(
@@ -3232,13 +3263,25 @@ export default function AgentPage() {
         )
       );
 
+      setDocumentsParseProgress({
+        stage: 'uploading',
+        percent: 22,
+        detail: 'Enviando respaldos al analizador.',
+      });
+
       const callParseDocuments = async () =>
         parseDocuments(encodedFiles, {
           institutionHint: activeBankProduct.bank,
           serviceHint: activeBankProduct.label,
           productTypeHint: activeBankProduct.productType,
           productLabelHint: activeBankProduct.label,
+          fastParse: true,
         });
+      setDocumentsParseProgress({
+        stage: 'extracting',
+        percent: 36,
+        detail: 'Extrayendo movimientos con OCR y parser financiero.',
+      });
       let parsed = await callParseDocuments();
       const parsedDocsFirstTry = Array.isArray(parsed?.documents) ? parsed.documents : [];
       if (parsedDocsFirstTry.length === 0) {
@@ -3246,6 +3289,11 @@ export default function AgentPage() {
         await new Promise((resolve) => setTimeout(resolve, 700));
         parsed = await callParseDocuments();
       }
+      setDocumentsParseProgress({
+        stage: 'structuring',
+        percent: 88,
+        detail: 'Organizando categorías, totales y alertas.',
+      });
       const parsedDocs = Array.isArray(parsed?.documents) ? parsed.documents : [];
       const transactionAnalysis = parsed?.transactionAnalysis as
         | {
@@ -3435,8 +3483,10 @@ export default function AgentPage() {
         ? `Error al procesar archivos: ${error.detail || error.message || 'error interno'}. Intenta nuevamente.`
         : toUserFacingError(error, 'generic');
       setTransactionUploadError(errorText);
+      setDocumentsParseProgress(IDLE_PARSE_PROGRESS);
       return null;
     } finally {
+      if (progressTimer !== null) window.clearInterval(progressTimer);
       setDocumentsLoading(false);
     }
   }
@@ -4215,12 +4265,15 @@ export default function AgentPage() {
         deleteTransactionProduct={deleteTransactionProduct}
         addTransactionProduct={addTransactionProduct}
         updateActiveProduct={updateActiveProduct}
+        updateProductById={updateProductById}
         transactionTaxonomyOverrides={bankSimulation.taxonomyOverrides}
         upsertTransactionTaxonomyOverride={upsertTransactionTaxonomyOverride}
         removeTransactionTaxonomyOverride={removeTransactionTaxonomyOverride}
         simulateBankLogin={simulateBankLogin}
         onUploadStatement={onUploadStatement}
         documentsLoading={documentsLoading}
+        documentsParseProgress={documentsParseProgress}
+        onDocumentsParseProgress={setDocumentsParseProgress}
         transactionUploadError={transactionUploadError}
         sendTransactionsToAgent={sendTransactionsToAgent}
         saveTransactionProductForBatch={saveTransactionProductForBatch}

@@ -15,6 +15,10 @@ import { badRequest, unauthorized } from '../http/api.errors';
 import { sendSuccess } from '../http/api.responses';
 import { parseBody } from '../http/parse';
 import { PERMISSIONS } from '../auth/rbac';
+import {
+  buildExecutiveSummaryText,
+  shouldReconcileMovements,
+} from './documents.parse.helpers';
 
 const router = Router();
 
@@ -43,6 +47,7 @@ const ParseRequestSchema = z.object({
   serviceHint: z.string().trim().max(160).optional(),
   productTypeHint: z.string().trim().max(80).optional(),
   productLabelHint: z.string().trim().max(160).optional(),
+  fastParse: z.boolean().optional(),
 });
 
 const SearchQuerySchema = z.object({
@@ -802,10 +807,18 @@ function buildTransactionAnalysisFromMovements(
       alert_details: alertDetails,
       opportunities,
       metric_explanations: metricExplanations,
-      executive_summary:
-        movementCount === 0
-          ? 'No hay movimientos suficientes para un resumen confiable. Se recomienda reforzar evidencia.'
-          : `Se detectaron ${movementCount} movimientos válidos (${tableBasedMovements} desde tabla estructurada) con ingresos por ${formatAmount(inflowsTotal)}, egresos por ${formatAmount(outflowsTotal)} y flujo neto de ${formatAmount(netFlow)}.`,
+      executive_summary: buildExecutiveSummaryText({
+        movementCount,
+        tableBasedMovements,
+        inflowsTotal,
+        outflowsTotal,
+        netFlow,
+        topCategories,
+        topMerchants,
+        alerts,
+        period,
+        formatAmount,
+      }),
     },
     document_insights: documentInsights.map(({ row_count, ...rest }) => rest),
     movements: movements.map((movement) => ({
@@ -857,7 +870,7 @@ async function reconcileMovementsWithLLM(
     }>({
       model: process.env.TRANSACTIONS_RECONCILE_MODEL || process.env.OPENAI_MODEL_FAST || 'gpt-4.1-mini',
       temperature: 0,
-      maxCompletionTokens: 2200,
+      maxCompletionTokens: 1200,
       system:
         'Reconcilia tablas de cartolas bancarias chilenas. Devuelve solo movimientos reales. Excluye saldos, subtotales, resúmenes, cupos, pagos mínimos y encabezados repetidos. Respeta signo, columnas cargo/abono y contexto contable.',
       user: JSON.stringify({
@@ -916,33 +929,33 @@ router.post(
 
     const decodedFiles = validateAndPrepareDocumentFiles(body.files);
 
-    const documents: ParsedDocumentResponse[] = [];
-    for (const file of decodedFiles) {
-      let document: ParsedDocumentResponse;
-      try {
-        document = await ingestUserDocument({
-          userId: user.id,
-          name: file.name,
-          buffer: file.buffer,
-          mimeType: file.mimeType,
-        });
-      } catch (firstErr) {
-        // Single retry for transient DB / upstream errors
-        await new Promise((resolve) => setTimeout(resolve, 600));
+    const documents: ParsedDocumentResponse[] = await Promise.all(
+      decodedFiles.map(async (file) => {
         try {
-          document = await ingestUserDocument({
+          return await ingestUserDocument({
             userId: user.id,
             name: file.name,
             buffer: file.buffer,
             mimeType: file.mimeType,
+            skipVectorIndexing: body.fastParse === true,
           });
-        } catch (retryErr) {
-          console.error(`[parse] ingestUserDocument failed for "${file.name}" after retry:`, retryErr);
-          throw retryErr;
+        } catch (firstErr) {
+          await new Promise((resolve) => setTimeout(resolve, 600));
+          try {
+            return await ingestUserDocument({
+              userId: user.id,
+              name: file.name,
+              buffer: file.buffer,
+              mimeType: file.mimeType,
+              skipVectorIndexing: body.fastParse === true,
+            });
+          } catch (retryErr) {
+            console.error(`[parse] ingestUserDocument failed for "${file.name}" after retry:`, retryErr);
+            throw retryErr;
+          }
         }
-      }
-      documents.push(document);
-    }
+      }),
+    );
 
     const heuristicAnalysis = buildTransactionAnalysis(documents, {
       institutionHint: body.institutionHint,
@@ -950,15 +963,10 @@ router.post(
       productTypeHint: body.productTypeHint,
       productLabelHint: body.productLabelHint,
     });
-    const shouldReconcile =
-      documents.some((doc) => {
-        const structured = (doc.structuredData as { parserMeta?: { confidence?: unknown }; tables?: unknown[] } | null | undefined) ?? {};
-        const parserConfidence = Number(structured.parserMeta?.confidence ?? 0) || 0;
-        const tableCount = Array.isArray(structured.tables) ? structured.tables.length : 0;
-        return parserConfidence < 0.93 || tableCount > 0;
-      }) &&
-      (heuristicAnalysis.movements?.length ?? 0) <= 400;
-    const reconciledMovements = shouldReconcile ? await reconcileMovementsWithLLM(documents, heuristicAnalysis.movements ?? []) : null;
+    const shouldReconcile = shouldReconcileMovements(documents, heuristicAnalysis.movements ?? []);
+    const reconciledMovements = shouldReconcile
+      ? await reconcileMovementsWithLLM(documents, heuristicAnalysis.movements ?? [])
+      : null;
     const transactionAnalysis = reconciledMovements
       ? buildTransactionAnalysisFromMovements(
           documents,

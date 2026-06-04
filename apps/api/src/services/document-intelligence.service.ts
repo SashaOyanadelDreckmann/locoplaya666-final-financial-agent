@@ -26,6 +26,7 @@ type IngestUserDocumentInput = {
   buffer: Buffer;
   mimeType?: string;
   source?: StoredDocumentSource;
+  skipVectorIndexing?: boolean;
 };
 
 const MAX_INDEX_BYTES = Number(process.env.DOCUMENT_INDEX_MAX_BYTES || 24 * 1024 * 1024);
@@ -325,26 +326,28 @@ export async function ingestUserDocument(input: IngestUserDocumentInput) {
   });
 
   let indexed = false;
-  try {
-    const upload = await uploadToVectorStore({
-      userId: input.userId,
-      filename: input.name,
-      buffer: input.buffer,
-      documentId: document.id,
-      kind,
-    });
-    indexed = upload.status === 'INDEXED';
-    await patchDocumentRecord(document.id, {
-      openaiFileId: upload.fileId,
-      vectorStoreId: upload.vectorStoreId || undefined,
-      status: upload.status,
-      error: upload.error,
-    });
-  } catch (error) {
-    await patchDocumentRecord(document.id, {
-      status: 'PARSED',
-      error: `Index fallback activo: ${error instanceof Error ? error.message : String(error)}`,
-    });
+  if (!input.skipVectorIndexing) {
+    try {
+      const upload = await uploadToVectorStore({
+        userId: input.userId,
+        filename: input.name,
+        buffer: input.buffer,
+        documentId: document.id,
+        kind,
+      });
+      indexed = upload.status === 'INDEXED';
+      await patchDocumentRecord(document.id, {
+        openaiFileId: upload.fileId,
+        vectorStoreId: upload.vectorStoreId || undefined,
+        status: upload.status,
+        error: upload.error,
+      });
+    } catch (error) {
+      await patchDocumentRecord(document.id, {
+        status: 'PARSED',
+        error: `Index fallback activo: ${error instanceof Error ? error.message : String(error)}`,
+      });
+    }
   }
 
   return {

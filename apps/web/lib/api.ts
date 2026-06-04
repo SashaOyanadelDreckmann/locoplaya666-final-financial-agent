@@ -154,6 +154,7 @@ export async function parseDocuments(
     serviceHint?: string;
     productTypeHint?: string;
     productLabelHint?: string;
+    fastParse?: boolean;
   }
 ) {
   const API_URL = await resolveUploadApiBaseUrl();

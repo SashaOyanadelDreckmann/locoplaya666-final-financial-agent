@@ -19,6 +19,14 @@ const IMAGE_MIME_BY_EXT: Record<string, string> = {
   '.gif': 'image/gif',
 };
 
+function resolveVisionModel(): string {
+  return process.env.OPENAI_VISION_MODEL?.trim() || 'gpt-4o-mini';
+}
+
+function visionImageDetail(): 'auto' | 'high' {
+  return process.env.TRANSACTIONS_VISION_DETAIL === 'high' ? 'high' : 'auto';
+}
+
 export type ParsedTable = {
   name: string;
   headers: string[];
@@ -170,7 +178,7 @@ async function parsePdfWithVisionDetailed(
 ): Promise<ParsedTransactionArtifact> {
   const base64 = buffer.toString('base64');
   const client = getOpenAIClient();
-  const model = process.env.OPENAI_VISION_MODEL || 'gpt-4.1-mini';
+  const model = resolveVisionModel();
 
   try {
     const response = await client.chat.completions.create(
@@ -517,12 +525,12 @@ export async function parseImageBufferDetailed(buffer: Buffer, filename: string)
 
   try {
     const client = getOpenAIClient();
-    const model = process.env.OPENAI_VISION_MODEL || 'gpt-4.1-mini';
+    const model = resolveVisionModel();
     const response = await client.chat.completions.create(
       withCompatibleTemperature(
         {
           model,
-          max_completion_tokens: 1800,
+          max_completion_tokens: 1500,
           response_format: { type: 'json_object' },
           messages: [
             {
@@ -541,7 +549,7 @@ export async function parseImageBufferDetailed(buffer: Buffer, filename: string)
                     'Cada table debe incluir name, headers y rows.\n' +
                     'Si una fila no es movimiento real y parece saldo/resumen, déjala fuera de rows.',
                 },
-                { type: 'image_url', image_url: { url: imageDataUrl, detail: 'high' } },
+                { type: 'image_url', image_url: { url: imageDataUrl, detail: visionImageDetail() } },
               ] as any,
             },
           ],
@@ -586,7 +594,7 @@ export async function parseImageBufferDetailed(buffer: Buffer, filename: string)
   } catch {
     try {
       const fallbackClient = getOpenAIClient();
-      const fallbackModel = process.env.OPENAI_VISION_MODEL || 'gpt-4.1-mini';
+      const fallbackModel = resolveVisionModel();
       const response = await fallbackClient.chat.completions.create(
         withCompatibleTemperature(
           {
@@ -602,7 +610,7 @@ export async function parseImageBufferDetailed(buffer: Buffer, filename: string)
                 role: 'user',
                 content: [
                   { type: 'text', text: `Analiza esta imagen financiera llamada "${filename}" y extrae su contenido.` },
-                  { type: 'image_url', image_url: { url: imageDataUrl, detail: 'high' } },
+                  { type: 'image_url', image_url: { url: imageDataUrl, detail: visionImageDetail() } },
                 ] as any,
               },
             ],

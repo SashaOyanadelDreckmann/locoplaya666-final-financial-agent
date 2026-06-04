@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { getCsrfToken } from '@/lib/csrf';
+import { buildChatDashboardForQuestion, compactDashboardForPrompt } from '@/lib/transactions-chat.helpers';
+import { resolveInstantTransactionSummary } from '@/lib/transactions-summary.helpers';
 import { countProductsWithAnalyzedMovements } from '@/lib/transactions-flow.helpers';
 import { CHILE_FINANCIAL_INSTITUTIONS } from '@/lib/financialCatalog';
 import ModalNumbersCanvas from '@/components/agent/ModalNumbersCanvas';
@@ -307,12 +309,14 @@ export function TransactionsModal(props: TransactionsModalProps) {
     : ['Contexto', 'Consistencia', 'Respuesta'];
 
   const appendAssistantMessages = (
+    productId: string,
+    productSnapshot: BankProduct,
     nextMessages: Array<{ role: 'assistant' | 'user'; text: string; attachments?: string[] }>,
     extraPatch?: Partial<NonNullable<BankProduct['assistant']>>,
   ) => {
-    if (!props.activeBankProduct || nextMessages.length === 0) return;
-    const baseMessages = props.activeBankProduct.assistant?.messages ?? [];
-    props.updateActiveProduct({
+    if (nextMessages.length === 0) return;
+    const baseMessages = productSnapshot.assistant?.messages ?? [];
+    props.updateProductById(productId, {
       assistant: {
         messages: [
           ...baseMessages,
@@ -324,12 +328,12 @@ export function TransactionsModal(props: TransactionsModalProps) {
             attachments: message.attachments,
           })),
         ],
-        uploadFormat: props.activeBankProduct.assistant?.uploadFormat ?? null,
-        summaryText: props.activeBankProduct.assistant?.summaryText ?? null,
-        summaryModel: props.activeBankProduct.assistant?.summaryModel ?? null,
-        summaryGeneratedAt: props.activeBankProduct.assistant?.summaryGeneratedAt ?? null,
-        summaryRegenerationsUsed: props.activeBankProduct.assistant?.summaryRegenerationsUsed ?? 0,
-        lastSummaryFeedback: props.activeBankProduct.assistant?.lastSummaryFeedback ?? null,
+        uploadFormat: productSnapshot.assistant?.uploadFormat ?? null,
+        summaryText: productSnapshot.assistant?.summaryText ?? null,
+        summaryModel: productSnapshot.assistant?.summaryModel ?? null,
+        summaryGeneratedAt: productSnapshot.assistant?.summaryGeneratedAt ?? null,
+        summaryRegenerationsUsed: productSnapshot.assistant?.summaryRegenerationsUsed ?? 0,
+        lastSummaryFeedback: productSnapshot.assistant?.lastSummaryFeedback ?? null,
         ...extraPatch,
       },
     });
@@ -357,9 +361,10 @@ export function TransactionsModal(props: TransactionsModalProps) {
     new File([text], `antecedente-manual-${Date.now()}.txt`, { type: 'text/plain' });
 
   const maybeInitAssistant = () => {
-    if (!props.activeBankProduct?.connected) return;
-    if ((props.activeBankProduct.assistant?.messages ?? []).length > 0) return;
-    appendAssistantMessages([
+    const product = props.activeBankProduct;
+    if (!product?.connected) return;
+    if ((product.assistant?.messages ?? []).length > 0) return;
+    appendAssistantMessages(product.id, product, [
       {
         role: 'assistant',
         text: 'Antes de subir movimientos, dime cómo prefieres enviarlos: fotos, PDF, Excel/CSV o texto. Según eso te recomiendo la mejor forma para que el análisis salga limpio.',
@@ -850,28 +855,122 @@ export function TransactionsModal(props: TransactionsModalProps) {
     );
   }
 
-  async function generateTransactionSummary(options?: { feedback?: string; uploadResult?: UploadStatementResult | null; isRegeneration?: boolean }) {
-    if (!props.activeBankProduct) return;
+  async function applyInstantTransactionSummary(options?: {
+    uploadResult?: UploadStatementResult | null;
+    feedback?: string;
+    isRegeneration?: boolean;
+    productId?: string;
+    productSnapshot?: BankProduct;
+  }) {
+    const product = options?.productSnapshot ?? props.activeBankProduct;
+    if (!product) return false;
+    const productId = options?.productId ?? product.id;
+    const priorRegenerations = product.assistant?.summaryRegenerationsUsed ?? 0;
+    props.onDocumentsParseProgress?.({
+      stage: 'summarizing',
+      percent: 94,
+      detail: 'Preparando resumen ejecutivo instantáneo.',
+    });
+    const uploadResult = options?.uploadResult ?? null;
+    const dashboard = uploadResult?.dashboard ?? product.dashboard ?? null;
+    const instantSummary = resolveInstantTransactionSummary(dashboard);
+    if (!instantSummary) return false;
+
+    props.updateProductById(productId, {
+      assistant: {
+        messages: [
+          ...(product.assistant?.messages ?? []),
+          {
+            id: `${Date.now()}-assistant-summary`,
+            role: 'assistant',
+            text: options?.isRegeneration
+              ? 'Revisé el producto de nuevo y actualicé el resumen de abajo.'
+              : 'Ya recibí tus antecedentes. Preparé el resumen ejecutivo aquí abajo y puedo responder dudas sobre tus movimientos.',
+            createdAt: new Date().toISOString(),
+          },
+        ],
+        uploadFormat: product.assistant?.uploadFormat ?? null,
+        summaryText: instantSummary,
+        summaryModel: 'instant-heuristic',
+        summaryGeneratedAt: new Date().toISOString(),
+        summaryRegenerationsUsed: options?.isRegeneration ? priorRegenerations + 1 : priorRegenerations,
+        lastSummaryFeedback: options?.feedback ?? null,
+      },
+      label: uploadResult?.product.label ?? product.label,
+      bank: uploadResult?.product.bank ?? product.bank,
+      productType: uploadResult?.product.productType ?? product.productType,
+    });
+    if (!options?.isRegeneration && productId === props.selectedProductId) {
+      setActiveTxCard(2);
+      props.setTxWizardStep('dashboard');
+    }
+    props.onDocumentsParseProgress?.({
+      stage: 'complete',
+      percent: 100,
+      detail: 'Análisis listo.',
+    });
+    window.setTimeout(() => {
+      props.onDocumentsParseProgress?.({
+        stage: 'idle',
+        percent: 0,
+        detail: '',
+      });
+    }, 1400);
+    return true;
+  }
+
+  async function generateTransactionSummary(options?: {
+    feedback?: string;
+    uploadResult?: UploadStatementResult | null;
+    isRegeneration?: boolean;
+    productId?: string;
+    productSnapshot?: BankProduct;
+  }) {
+    const product = options?.productSnapshot ?? props.activeBankProduct;
+    if (!product) return;
+    const productId = options?.productId ?? product.id;
+    const priorMessages = product.assistant?.messages ?? [];
+    const priorRegenerations = product.assistant?.summaryRegenerationsUsed ?? 0;
+    const priorSummary = product.assistant?.summaryText ?? null;
+    const priorUploadFormat = product.assistant?.uploadFormat ?? null;
+    const wantsLlmSummary = Boolean(options?.isRegeneration || options?.feedback?.trim());
+    if (!wantsLlmSummary) {
+      const applied = await applyInstantTransactionSummary({
+        ...options,
+        productId,
+        productSnapshot: product,
+      });
+      if (applied) return;
+    }
+
     setTxAssistantLoading(true);
     setTxAssistantError(null);
+    props.onDocumentsParseProgress?.({
+      stage: 'summarizing',
+      percent: 92,
+      detail: 'Regenerando resumen con el modelo analítico.',
+    });
     try {
       const uploadResult = options?.uploadResult ?? null;
       const response = await requestTransactionAssistant({
         mode: 'summary',
         product: {
-          bank: uploadResult?.product.bank ?? props.activeBankProduct.bank,
-          label: uploadResult?.product.label ?? props.activeBankProduct.label,
-          productType: uploadResult?.product.productType ?? props.activeBankProduct.productType,
+          bank: uploadResult?.product.bank ?? product.bank,
+          label: uploadResult?.product.label ?? product.label,
+          productType: uploadResult?.product.productType ?? product.productType,
         },
-        parsedDocuments: uploadResult?.documents ?? props.activeBankProduct.parsedDocuments ?? [],
-        dashboard: uploadResult?.dashboard ?? effectiveDashboard ?? null,
-        currentSummary: summaryText,
+        parsedDocuments: uploadResult?.documents ?? product.parsedDocuments ?? [],
+        dashboard:
+          uploadResult?.dashboard ??
+          compactDashboardForPrompt(effectiveDashboard, { maxMovements: 80, maxMerchants: 10 }) ??
+          null,
+        currentSummary: priorSummary,
         feedback: options?.feedback ?? '',
       });
-      props.updateActiveProduct({
+      props.updateProductById(productId, {
         assistant: {
           messages: [
-            ...(props.activeBankProduct.assistant?.messages ?? []),
+            ...priorMessages,
             {
               id: `${Date.now()}-assistant-summary`,
               role: 'assistant',
@@ -881,21 +980,26 @@ export function TransactionsModal(props: TransactionsModalProps) {
               createdAt: new Date().toISOString(),
             },
           ],
-          uploadFormat: props.activeBankProduct.assistant?.uploadFormat ?? null,
+          uploadFormat: priorUploadFormat,
           summaryText: String(response.summary ?? '').trim(),
           summaryModel: typeof response.model === 'string' ? response.model : null,
           summaryGeneratedAt: new Date().toISOString(),
-          summaryRegenerationsUsed: options?.isRegeneration ? summaryRegenerationsUsed + 1 : summaryRegenerationsUsed,
+          summaryRegenerationsUsed: options?.isRegeneration ? priorRegenerations + 1 : priorRegenerations,
           lastSummaryFeedback: options?.feedback ?? null,
         },
-        label: uploadResult?.product.label ?? props.activeBankProduct.label,
-        bank: uploadResult?.product.bank ?? props.activeBankProduct.bank,
-        productType: uploadResult?.product.productType ?? props.activeBankProduct.productType,
+        label: uploadResult?.product.label ?? product.label,
+        bank: uploadResult?.product.bank ?? product.bank,
+        productType: uploadResult?.product.productType ?? product.productType,
       });
-      if (!options?.isRegeneration) {
+      if (!options?.isRegeneration && productId === props.selectedProductId) {
         setActiveTxCard(2);
         props.setTxWizardStep('dashboard');
       }
+      props.onDocumentsParseProgress?.({
+        stage: 'complete',
+        percent: 100,
+        detail: 'Resumen actualizado.',
+      });
     } catch (error) {
       setTxAssistantError(error instanceof Error ? error.message : 'No se pudo generar el resumen.');
     } finally {
@@ -904,7 +1008,9 @@ export function TransactionsModal(props: TransactionsModalProps) {
   }
 
   async function handleAssistantUploadSend(messageText: string) {
-    if (!props.activeBankProduct) return;
+    const product = props.activeBankProduct;
+    if (!product) return;
+    const productId = product.id;
     const manualFile =
       pendingManualEvidence.length > 0 ? buildManualEvidenceFile(pendingManualEvidence) : null;
     const filesToUpload = manualFile ? [...pendingEvidenceFiles, manualFile] : pendingEvidenceFiles;
@@ -913,7 +1019,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
     setTxAssistantLoading(true);
     setTxAssistantError(null);
     try {
-      appendAssistantMessages([
+      appendAssistantMessages(productId, product, [
         {
           role: 'user',
           text: messageText || 'Te envío antecedentes de transacciones.',
@@ -922,10 +1028,24 @@ export function TransactionsModal(props: TransactionsModalProps) {
       ]);
       const result = await props.onUploadStatement(filesToUpload);
       if (result?.documents?.length) {
-        await generateTransactionSummary({ uploadResult: result, isRegeneration: false });
+        await generateTransactionSummary({
+          uploadResult: result,
+          isRegeneration: false,
+          productId,
+          productSnapshot: {
+            ...product,
+            parsedDocuments: result.documents,
+            dashboard: result.dashboard ?? product.dashboard,
+            label: result.product.label,
+            bank: result.product.bank,
+            productType: result.product.productType,
+          },
+        });
       }
-      setTxAssistantInput('');
-      clearPendingEvidence();
+      if (productId === props.selectedProductId) {
+        setTxAssistantInput('');
+        clearPendingEvidence();
+      }
     } catch (error) {
       setTxAssistantError(error instanceof Error ? error.message : 'No se pudo enviar evidencia.');
     } finally {
@@ -935,6 +1055,12 @@ export function TransactionsModal(props: TransactionsModalProps) {
 
   async function handleAssistantTextSend() {
     if (!props.activeBankProduct || txAssistantLoading || txSendLockRef.current) return;
+    const product = props.activeBankProduct;
+    const productId = product.id;
+    const productSummaryText = product.assistant?.summaryText ?? null;
+    const productRegenerationsUsed = product.assistant?.summaryRegenerationsUsed ?? 0;
+    const productRegenerationsLeft = Math.max(0, 3 - productRegenerationsUsed);
+    const productMessages = product.assistant?.messages ?? [];
     const text = txAssistantInput.trim();
     const hasFiles = pendingEvidenceFiles.length > 0 || pendingManualEvidence.length > 0;
     if (!text && !hasFiles) return;
@@ -957,40 +1083,76 @@ export function TransactionsModal(props: TransactionsModalProps) {
         return;
       }
 
-      appendAssistantMessages([{ role: 'user', text }]);
-      setTxAssistantInput('');
+      appendAssistantMessages(productId, product, [{ role: 'user', text }]);
+      if (productId === props.selectedProductId) {
+        setTxAssistantInput('');
+      }
       setTxAssistantError(null);
+
+      const withUserMessage: BankProduct = {
+        ...product,
+        assistant: {
+          messages: [
+            ...productMessages,
+            {
+              id: `${Date.now()}-user`,
+              role: 'user',
+              text,
+              createdAt: new Date().toISOString(),
+            },
+          ],
+          uploadFormat: product.assistant?.uploadFormat ?? null,
+          summaryText: productSummaryText,
+          summaryModel: product.assistant?.summaryModel ?? null,
+          summaryGeneratedAt: product.assistant?.summaryGeneratedAt ?? null,
+          summaryRegenerationsUsed: productRegenerationsUsed,
+          lastSummaryFeedback: product.assistant?.lastSummaryFeedback ?? null,
+        },
+      };
 
       if (chosenFormat) {
         appendAssistantMessages(
-          [{ role: 'assistant', text: buildUploadGuidance(chosenFormat, props.activeBankProduct.productType) }],
+          productId,
+          withUserMessage,
+          [{ role: 'assistant', text: buildUploadGuidance(chosenFormat, product.productType) }],
           { uploadFormat: chosenFormat },
         );
         return;
       }
 
       const asksForRegeneration =
-        Boolean(summaryText) &&
+        Boolean(productSummaryText) &&
         /(error|corrige|corregir|revisa|revisar|regenera|regenerar|rehace|rehacer)/i.test(text);
-      if (asksForRegeneration && summaryRegenerationsLeft > 0) {
-        await generateTransactionSummary({ feedback: text, isRegeneration: true });
+      if (asksForRegeneration && productRegenerationsLeft > 0) {
+        await generateTransactionSummary({
+          feedback: text,
+          isRegeneration: true,
+          productId,
+          productSnapshot: withUserMessage,
+        });
         return;
       }
 
       setTxAssistantLoading(true);
+      const chatDashboard =
+        buildChatDashboardForQuestion(effectiveDashboard, text) ??
+        compactDashboardForPrompt(effectiveDashboard, { maxMovements: 24, maxMerchants: 8 });
       const response = await requestTransactionAssistant({
         mode: 'chat',
+        question: text,
         product: {
-          bank: props.activeBankProduct.bank,
-          label: props.activeBankProduct.label,
-          productType: props.activeBankProduct.productType,
+          bank: product.bank,
+          label: product.label,
+          productType: product.productType,
         },
-        currentSummary: summaryText,
-        dashboard: effectiveDashboard ?? null,
-        parsedDocuments: props.activeBankProduct.parsedDocuments ?? [],
-        messages: [...assistantMessages, { role: 'user', text }],
+        currentSummary: productSummaryText,
+        dashboard: chatDashboard,
+        parsedDocuments: [],
+        messages: [...productMessages, { role: 'user', text }],
       });
-      appendAssistantMessages([{ role: 'assistant', text: String(response.assistant_text ?? 'Listo.') }]);
+      appendAssistantMessages(withUserMessage.id, withUserMessage, [
+        { role: 'assistant', text: String(response.assistant_text ?? 'Listo.') },
+      ]);
     } catch (error) {
       setTxAssistantError(error instanceof Error ? error.message : 'No se pudo responder.');
     } finally {
@@ -1464,6 +1626,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
 
                   {activeTxCard === 1 && props.activeBankProduct && (
                     <TxEvidenceStep
+                      key={`tx-evidence-${props.selectedProductId}`}
                       activeBankProduct={props.activeBankProduct}
                       maxEvidenceFilesPerProduct={props.maxEvidenceFilesPerProduct}
                       summaryRegenerationsLeft={summaryRegenerationsLeft}
@@ -1486,6 +1649,8 @@ export function TransactionsModal(props: TransactionsModalProps) {
                       summaryModel={summaryModel}
                       processingModeLabel={processingModeLabel}
                       processingMetaLabel={processingMetaLabel}
+                      processingPrimaryCopy={processingPrimaryCopy}
+                      documentsParseProgress={props.documentsParseProgress}
                       txAssistantError={txAssistantError}
                       pendingManualEvidence={pendingManualEvidence}
                       onPatchUploadFormat={(format) => patchAssistant({ uploadFormat: format })}

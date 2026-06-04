@@ -24,6 +24,8 @@ Variables mínimas:
 - `WEB_ORIGIN=https://TU-WEB.up.railway.app`
 - `OPENAI_API_KEY=...`
 - `OPENAI_MODEL=gpt-5.2`
+- `OPENAI_VISION_MODEL=gpt-4o-mini`
+- `TRANSACTIONS_VISION_DETAIL=auto`
 - `ANTHROPIC_API_KEY=...`
 - `ANTHROPIC_MODEL=claude-sonnet-4-6`
 - `SESSION_TOKEN_SECRET=pega-un-secret-de-32+-chars`
@@ -51,6 +53,7 @@ Variables mínimas:
 - `NEXT_PUBLIC_API_ORIGIN=https://TU-API.up.railway.app`
 - `NEXT_PUBLIC_APP_ORIGIN=https://TU-WEB.up.railway.app`
 - `OPENAI_API_KEY=...`
+- `TRANSACTIONS_CHAT_MODEL=gpt-4o-mini`
 - `DATA_DIR=/app/data`
 
 ## 4. Orden recomendado

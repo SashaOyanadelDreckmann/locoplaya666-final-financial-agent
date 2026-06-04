@@ -4,6 +4,13 @@ import { requireBackendSession } from '@/lib/serverAuth';
 import { checkRateLimit } from '@/lib/rateLimit';
 import { getServerEnv } from '@/lib/serverEnv';
 import { getServerApiBaseUrl } from '@/lib/apiBase';
+import {
+  buildChatDashboardForQuestion,
+  compactChatHistory,
+  compactDashboardForPrompt,
+  compactDocumentsForPrompt,
+  compactTxText,
+} from '@/lib/transactions-chat.helpers';
 
 type AssistantMessage = {
   role?: 'assistant' | 'user';
@@ -27,12 +34,6 @@ type CanonicalParsedDocument = {
   summary?: unknown;
   structuredData?: unknown;
 };
-
-function compactText(value: unknown, max = 16000) {
-  return String(value ?? '')
-    .trim()
-    .slice(0, max);
-}
 
 function safeParseJson<T>(raw: string, fallback: T): T {
   try {
@@ -61,6 +62,17 @@ function assertCsrf(req: Request) {
   }
 }
 
+function documentsFromClient(parsedDocuments: ClientParsedDocument[], maxText = 2600) {
+  return parsedDocuments.slice(0, 8).map((doc) => ({
+    documentId: typeof doc?.documentId === 'string' ? doc.documentId : undefined,
+    name: String(doc?.name ?? ''),
+    text: compactTxText(doc?.text ?? '', maxText),
+    insight: doc?.insight ?? null,
+    summary: doc?.summary ?? null,
+    structuredData: doc?.structuredData ?? null,
+  }));
+}
+
 async function resolveCanonicalDocuments(
   req: Request,
   parsedDocuments: ClientParsedDocument[],
@@ -74,14 +86,7 @@ async function resolveCanonicalDocuments(
   ).slice(0, 20);
 
   if (docIds.length === 0) {
-    return parsedDocuments.slice(0, 8).map((doc) => ({
-      documentId: typeof doc?.documentId === 'string' ? doc.documentId : undefined,
-      name: String(doc?.name ?? ''),
-      text: compactText(doc?.text ?? '', 2600),
-      insight: doc?.insight ?? null,
-      summary: doc?.summary ?? null,
-      structuredData: doc?.structuredData ?? null,
-    }));
+    return documentsFromClient(parsedDocuments);
   }
 
   const cookie = req.headers.get('cookie');
@@ -102,15 +107,15 @@ async function resolveCanonicalDocuments(
     throw new Error('No se encontró evidencia documental válida para este producto');
   }
   const canonicalById = new Map<string, CanonicalParsedDocument>(
-    documents.map((doc: any) => [
+    documents.map((doc: { documentId?: string; name?: string; text?: string; summary?: unknown; structuredData?: unknown }) => [
       String(doc?.documentId ?? ''),
       {
         documentId: String(doc?.documentId ?? ''),
         name: String(doc?.name ?? ''),
-        text: compactText(doc?.text ?? '', 2600),
+        text: compactTxText(doc?.text ?? '', 2600),
         summary: doc?.summary ?? null,
         structuredData: doc?.structuredData ?? null,
-      } satisfies CanonicalParsedDocument,
+      },
     ]),
   );
   const resolved: CanonicalParsedDocument[] = [];
@@ -129,6 +134,17 @@ async function resolveCanonicalDocuments(
   return resolved.slice(0, 8);
 }
 
+function extractAssistantText(raw: string): string {
+  const trimmed = raw.trim();
+  if (!trimmed) return 'Listo.';
+  if (trimmed.startsWith('{')) {
+    const parsed = safeParseJson<{ assistant_text?: string }>(trimmed, {});
+    const fromJson = compactTxText(parsed.assistant_text ?? '', 1200);
+    if (fromJson) return fromJson;
+  }
+  return compactTxText(trimmed, 1200);
+}
+
 export async function POST(req: Request) {
   let session: { userId: string };
   try {
@@ -137,7 +153,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: 'Not authenticated' }, { status: 401 });
   }
 
-  const rl = checkRateLimit(`transactions-chat:${session.userId}`, 30, 60_000);
+  const rl = checkRateLimit(`transactions-chat:${session.userId}`, 40, 60_000);
   if (!rl.ok) {
     return NextResponse.json(
       { ok: false, error: 'Too many requests' },
@@ -163,40 +179,37 @@ export async function POST(req: Request) {
     const product = body?.product ?? {};
     const parsedDocuments = (Array.isArray(body?.parsedDocuments) ? body.parsedDocuments : []) as ClientParsedDocument[];
     const dashboard = body?.dashboard ?? null;
-    const currentSummary = compactText(body?.currentSummary ?? '', 8000);
-    const feedback = compactText(body?.feedback ?? '', 4000);
+    const question = compactTxText(body?.question ?? '', 600);
+    const currentSummary = compactTxText(body?.currentSummary ?? '', 4000);
+    const feedback = compactTxText(body?.feedback ?? '', 2000);
     const messages = (Array.isArray(body?.messages) ? body.messages : []) as AssistantMessage[];
-    const canonicalDocuments = await resolveCanonicalDocuments(req, parsedDocuments);
+
+    const hasDocumentIds = parsedDocuments.some(
+      (doc) => typeof doc?.documentId === 'string' && doc.documentId.trim().length > 0,
+    );
+    const canonicalDocuments =
+      mode === 'chat'
+        ? documentsFromClient(parsedDocuments, 0)
+        : hasDocumentIds
+          ? await resolveCanonicalDocuments(req, parsedDocuments)
+          : documentsFromClient(parsedDocuments);
 
     const client = new OpenAI({ apiKey });
     const summaryModel =
-      getServerEnv('TRANSACTIONS_SUMMARY_MODEL') || getServerEnv('OPENAI_MODEL') || 'gpt-4.1';
+      getServerEnv('TRANSACTIONS_SUMMARY_MODEL') || getServerEnv('OPENAI_MODEL') || 'gpt-4o-mini';
     const chatModel =
-      getServerEnv('TRANSACTIONS_CHAT_MODEL') || getServerEnv('OPENAI_MODEL_FAST') || 'gpt-4.1-mini';
-
-    const docsDigest = canonicalDocuments.slice(0, 8).map((doc) => ({
-      documentId: doc.documentId,
-      name: String(doc?.name ?? ''),
-      insight: doc?.insight ?? null,
-      text: compactText(doc?.text ?? '', 2600),
-    }));
+      getServerEnv('TRANSACTIONS_CHAT_MODEL') || getServerEnv('OPENAI_MODEL_FAST') || 'gpt-4o-mini';
 
     if (mode === 'summary') {
+      const docsDigest = compactDocumentsForPrompt(canonicalDocuments, { maxDocs: 6, maxText: 1200 });
+      const dashboardDigest = compactDashboardForPrompt(dashboard, { maxMovements: 80, maxMerchants: 10 });
       const prompt = [
         'Eres un analista senior de movimientos bancarios del mercado chileno.',
-        'Debes generar un resumen ejecutivo premium, breve, preciso y accionable.',
-        'Objetivo: explicar patrones, anomalías, flujo y puntos a revisar sin inventar datos.',
-        'Toma como fuente principal el Dashboard y la tabla de movimientos ya estructurada.',
-        'Si hay conflicto entre texto libre y dashboard, prioriza dashboard y explicita cualquier duda en vez de asumir.',
-        'Distingue claramente ingresos/abonos vs egresos.',
-        'No llames movimiento a filas que parezcan saldo, subtotal, cupo, resumen, pago mínimo o encabezados.',
-        'Categoriza comercios y giros con criterio financiero realista para Chile: supermercado, delivery, retail, telecom, servicios básicos, transporte, combustible, farmacia/salud, etc.',
-        'Si el feedback del usuario apunta a una sección, cálculo o categorización, debes reanalizar esa parte y corregir el resumen completo si corresponde.',
-        'Enfatiza fidelidad de la evidencia: cobertura, calidad y si la mayor parte proviene de tabla estructurada.',
-        'Si el usuario reportó un posible error, reevalúa con ese foco.',
+        'Genera un resumen ejecutivo breve, preciso y accionable (máx. 12 líneas).',
+        'Prioriza dashboard estructurado sobre texto libre. No inventes datos.',
         'Devuelve JSON estricto: {"summary":"string"}',
         `Producto=${JSON.stringify(product)}`,
-        `Dashboard=${JSON.stringify(dashboard)}`,
+        `Dashboard=${JSON.stringify(dashboardDigest)}`,
         `Resumen actual=${JSON.stringify(currentSummary)}`,
         `Feedback usuario=${JSON.stringify(feedback)}`,
         `Documentos=${JSON.stringify(docsDigest)}`,
@@ -205,7 +218,8 @@ export async function POST(req: Request) {
       const response = await client.chat.completions.create({
         model: summaryModel,
         response_format: { type: 'json_object' },
-        max_completion_tokens: 900,
+        max_completion_tokens: 650,
+        temperature: 0.2,
         messages: [
           { role: 'system', content: 'Responde solo JSON válido.' },
           { role: 'user', content: prompt },
@@ -216,46 +230,65 @@ export async function POST(req: Request) {
       const parsed = safeParseJson<{ summary?: string }>(raw, {});
       return NextResponse.json({
         ok: true,
-        summary: compactText(parsed.summary ?? '', 8000),
+        summary: compactTxText(parsed.summary ?? '', 8000),
         model: summaryModel,
       });
     }
 
-    const compactHistory = messages.slice(-10).map((message) => ({
-      role: message.role === 'assistant' ? 'assistant' : 'user',
-      text: compactText(message.text ?? '', 800),
-    }));
+    const lastUserMessage = [...messages].reverse().find((message) => message.role === 'user');
+    const retrievalQuestion = question || compactTxText(lastUserMessage?.text ?? '', 600);
+    const dashboardDigest =
+      dashboard && typeof dashboard === 'object' && dashboard !== null && 'retrieval' in (dashboard as object)
+        ? dashboard
+        : buildChatDashboardForQuestion(dashboard, retrievalQuestion) ??
+          compactDashboardForPrompt(dashboard, { maxMovements: 24, maxMerchants: 8 });
 
-    const prompt = [
-      'Eres un asistente de transacciones financiero claro y eficiente.',
-      'Tu trabajo aquí es responder dudas sobre movimientos y el resumen ya generado.',
-      'Usa tono profesional, breve y útil.',
-      'Si faltan antecedentes, dilo y pide el dato exacto.',
-      'No rehagas el resumen completo salvo que el usuario lo pida explícitamente.',
-      'Devuelve JSON estricto: {"assistant_text":"string"}',
+    const compactHistory = compactChatHistory(messages, 8, 500);
+    const retrievalMeta =
+      dashboardDigest &&
+      typeof dashboardDigest === 'object' &&
+      dashboardDigest !== null &&
+      'retrieval' in dashboardDigest
+        ? (dashboardDigest as { retrieval?: { mode?: string; matchedCount?: number } }).retrieval
+        : null;
+
+    const systemPrompt = [
+      'Eres un asistente de transacciones financiero para Chile.',
+      'Responde en español, tono profesional, máximo 4 oraciones.',
+      'Usa el resumen, métricas agregadas y los movimientos recuperados.',
+      retrievalMeta?.mode === 'targeted'
+        ? `Los movimientos incluidos fueron recuperados por relevancia a la pregunta (${retrievalMeta.matchedCount ?? 0} coincidencias). Priorízalos.`
+        : 'Los movimientos incluidos son una muestra representativa para preguntas generales.',
+      'Si falta un dato puntual, dilo y pide el detalle exacto.',
+    ].join(' ');
+
+    const contextBlock = [
       `Producto=${JSON.stringify(product)}`,
+      `Pregunta=${JSON.stringify(retrievalQuestion)}`,
       `Resumen=${JSON.stringify(currentSummary)}`,
-      `Dashboard=${JSON.stringify(dashboard)}`,
-      `Documentos=${JSON.stringify(docsDigest.slice(0, 4))}`,
-      `Historial=${JSON.stringify(compactHistory)}`,
+      `Dashboard=${JSON.stringify(dashboardDigest)}`,
     ].join('\n');
 
     const response = await client.chat.completions.create({
       model: chatModel,
-      response_format: { type: 'json_object' },
-      max_completion_tokens: 220,
+      max_completion_tokens: 180,
+      temperature: 0.3,
       messages: [
-        { role: 'system', content: 'Responde solo JSON válido.' },
-        { role: 'user', content: prompt },
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: contextBlock },
+        ...compactHistory.map((message) => ({
+          role: message.role as 'assistant' | 'user',
+          content: message.text,
+        })),
       ],
     });
 
-    const raw = response.choices[0]?.message?.content?.trim() ?? '{}';
-    const parsed = safeParseJson<{ assistant_text?: string }>(raw, {});
+    const raw = response.choices[0]?.message?.content?.trim() ?? '';
     return NextResponse.json({
       ok: true,
-      assistant_text: compactText(parsed.assistant_text ?? 'Listo.', 1200),
+      assistant_text: extractAssistantText(raw),
       model: chatModel,
+      retrieval_mode: retrievalMeta?.mode ?? 'overview',
     });
   } catch (error) {
     return NextResponse.json(

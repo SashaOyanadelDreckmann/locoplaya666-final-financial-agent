@@ -130,6 +130,7 @@ export type TransactionsModalProps = {
   deleteTransactionProduct: (id: string) => void;
   addTransactionProduct: () => void;
   updateActiveProduct: (patch: Partial<BankProduct>) => void;
+  updateProductById: (productId: string, patch: Partial<BankProduct>) => void;
   transactionTaxonomyOverrides: TransactionTaxonomyOverride[];
   upsertTransactionTaxonomyOverride: (override: TransactionTaxonomyOverride) => void;
   removeTransactionTaxonomyOverride: (matchKey: string) => void;
@@ -141,6 +142,10 @@ export type TransactionsModalProps = {
   }) => void;
   onUploadStatement: (files: File[] | FileList | null) => Promise<UploadStatementResult | null>;
   documentsLoading: boolean;
+  documentsParseProgress?: import('@/lib/transactions-parse-progress.helpers').DocumentsParseProgress | null;
+  onDocumentsParseProgress?: (
+    progress: import('@/lib/transactions-parse-progress.helpers').DocumentsParseProgress,
+  ) => void;
   transactionUploadError?: string | null;
   sendTransactionsToAgent: () => void;
   saveTransactionProductForBatch: () => void;

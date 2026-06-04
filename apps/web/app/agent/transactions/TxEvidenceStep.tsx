@@ -9,6 +9,8 @@ import {
   renderFormatIcon,
   buildUploadGuidance,
 } from './presentation';
+import { TxParseProgress } from './TxParseProgress';
+import type { DocumentsParseProgress } from '@/lib/transactions-parse-progress.helpers';
 import type { BankProduct } from './types';
 
 export interface TxEvidenceStepProps {
@@ -39,6 +41,8 @@ export interface TxEvidenceStepProps {
   summaryModel: string | null;
   processingModeLabel: string;
   processingMetaLabel: string;
+  processingPrimaryCopy: string;
+  documentsParseProgress?: DocumentsParseProgress | null;
   txAssistantError: string | null;
   pendingManualEvidence: string;
   onPatchUploadFormat: (format: 'photos' | 'pdf' | 'spreadsheet' | 'text') => void;
@@ -289,16 +293,13 @@ export function TxEvidenceStep(props: TxEvidenceStepProps) {
                       {p.txAssistantError && <p className="bcc-hero-error">{p.txAssistantError}</p>}
                       {p.transactionUploadError && <p className="bcc-hero-error">{p.transactionUploadError}</p>}
                       {(p.documentsLoading || p.txAssistantLoading) && (
-                        <div className="tx-analysis-live" role="status" aria-live="polite">
-                          <div className="tx-analysis-console-kicker">
-                            <span className="tx-analysis-console-dot" aria-hidden="true" />
-                            <span className="tx-analysis-badge">{p.processingModeLabel}</span>
-                            <span className="tx-analysis-meta">{p.processingMetaLabel}</span>
-                          </div>
-                          <div className="tx-analysis-track" aria-hidden="true">
-                            <span className="tx-analysis-fill" />
-                          </div>
-                        </div>
+                        <TxParseProgress
+                          progress={p.documentsParseProgress}
+                          fallbackModeLabel={p.processingModeLabel}
+                          fallbackMetaLabel={p.processingMetaLabel}
+                          fallbackPrimaryCopy={p.processingPrimaryCopy}
+                          chatMode={!p.documentsLoading && p.txAssistantLoading}
+                        />
                       )}
 
                       {p.summaryText && (

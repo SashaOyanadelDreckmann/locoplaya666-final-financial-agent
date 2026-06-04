@@ -113,11 +113,17 @@ describe('transactions-chat route', () => {
 
   it('returns assistant text in chat mode', async () => {
     mockCreate.mockResolvedValueOnce({
-      choices: [{ message: { content: JSON.stringify({ assistant_text: 'respuesta corta' }) } }],
+      choices: [{ message: { content: 'respuesta corta' } }],
     });
     const req = buildReq({
       mode: 'chat',
+      question: 'hola',
       messages: [{ role: 'user', text: 'hola' }],
+      dashboard: {
+        keyMetrics: { movement_count: 0 },
+        retrieval: { mode: 'overview', matchedCount: 0 },
+        movements: [],
+      },
     });
 
     const res = await POST(req);
@@ -126,6 +132,7 @@ describe('transactions-chat route', () => {
     expect(res.status).toBe(200);
     expect(body.ok).toBe(true);
     expect(body.assistant_text).toBe('respuesta corta');
+    expect(body.retrieval_mode).toBe('overview');
     expect(typeof body.model).toBe('string');
     expect(mockCreate).toHaveBeenCalledTimes(1);
   });
@@ -136,7 +143,13 @@ describe('transactions-chat route', () => {
     });
     const req = buildReq({
       mode: 'chat',
+      question: 'hola',
       messages: [{ role: 'user', text: 'hola' }],
+      dashboard: {
+        keyMetrics: { movement_count: 0 },
+        retrieval: { mode: 'overview', matchedCount: 0 },
+        movements: [],
+      },
     });
 
     const res = await POST(req);
@@ -144,7 +157,7 @@ describe('transactions-chat route', () => {
 
     expect(res.status).toBe(200);
     expect(body.ok).toBe(true);
-    expect(body.assistant_text).toBe('Listo.');
+    expect(body.assistant_text).toBe('not-json');
     expect(mockCreate).toHaveBeenCalledTimes(1);
   });
 
