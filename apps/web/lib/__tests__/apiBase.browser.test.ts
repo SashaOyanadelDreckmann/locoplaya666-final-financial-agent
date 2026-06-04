@@ -1,6 +1,11 @@
 /** @jest-environment jsdom */
 
-import { getApiBaseUrl, getSessionApiBaseUrl, getUploadApiBaseUrl } from '../apiBase';
+import {
+  getApiBaseUrl,
+  getDocumentParseRequestUrl,
+  getSessionApiBaseUrl,
+  getUploadApiBaseUrl,
+} from '../apiBase';
 
 describe('apiBase browser production', () => {
   const originalNodeEnv = process.env.NODE_ENV;
@@ -35,5 +40,10 @@ describe('apiBase browser production', () => {
   it('getSessionApiBaseUrl always uses same-origin /backend for auth cookies', () => {
     window.__FA_RUNTIME__ = { apiOrigin: 'https://runtime-api.example.com' };
     expect(getSessionApiBaseUrl()).toBe('/backend');
+  });
+
+  it('getDocumentParseRequestUrl uses same-origin Next route in production', () => {
+    window.__FA_RUNTIME__ = { apiOrigin: 'https://runtime-api.example.com' };
+    expect(getDocumentParseRequestUrl()).toBe('/api/documents/parse');
   });
 });

@@ -96,6 +96,18 @@ export function getServerApiBaseUrl(): string {
 }
 
 /**
+ * URL para parse de documentos desde el browser.
+ * En producción usa la ruta interna de Next, que reenvía cookies al API
+ * con timeout largo. El API directo cross-origin no recibe la sesión.
+ */
+export function getDocumentParseRequestUrl(): string {
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
+    return '/api/documents/parse';
+  }
+  return `${getUploadApiBaseUrl()}/api/documents/parse`;
+}
+
+/**
  * Base URL para llamadas con sesión (cookies httpOnly).
  * En producción usa el proxy same-origin `/backend` para que la cookie
  * quede en el dominio del frontend; el API directo rompe el login tras el guard.
