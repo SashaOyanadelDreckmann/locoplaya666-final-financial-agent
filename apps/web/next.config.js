@@ -14,9 +14,7 @@ const nextConfig = {
   reactStrictMode: true,
   output: 'standalone',
   eslint: {
-    // The repo has a broken ESLint rule reference that blocks `next build`.
-    // Keep production deploys unblocked; linting can still run separately.
-    ignoreDuringBuilds: true,
+    ignoreDuringBuilds: false,
   },
   webpack: (config, { dev }) => {
     if (!dev && config?.optimization?.minimizer) {

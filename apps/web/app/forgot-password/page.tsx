@@ -25,7 +25,7 @@ export default function ForgotPasswordPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email.trim() }),
       });
-      if (!res.ok && res.status !== 404) {
+      if (!res.ok) {
         throw new Error('Error del servidor');
       }
       setSubmitted(true);

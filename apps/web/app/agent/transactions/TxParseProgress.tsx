@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useRef, useState } from 'react';
 import {
   PARSE_PROGRESS_STEPS,
   buildParseProgressLabels,
@@ -7,6 +8,13 @@ import {
   resolveStepState,
   type DocumentsParseProgress,
 } from '@/lib/transactions-parse-progress.helpers';
+
+const PARSE_TOTAL_ESTIMATE_SEC = 60;
+
+function formatElapsed(sec: number): string {
+  if (sec < 60) return `${sec} seg`;
+  return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')} min`;
+}
 
 type TxParseProgressProps = {
   progress: DocumentsParseProgress | null | undefined;
@@ -34,6 +42,21 @@ export function TxParseProgress({
   const percent = clampParsePercent(progress?.percent ?? (chatMode ? 42 : 18));
   const showSteps = Boolean(activeStage) && !chatMode;
 
+  const startRef = useRef<number>(Date.now());
+  const [elapsed, setElapsed] = useState(0);
+
+  useEffect(() => {
+    startRef.current = Date.now();
+    setElapsed(0);
+    const id = window.setInterval(() => {
+      setElapsed(Math.floor((Date.now() - startRef.current) / 1000));
+    }, 1000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  const remaining = Math.max(0, PARSE_TOTAL_ESTIMATE_SEC - elapsed);
+  const showTimer = !chatMode && elapsed > 2;
+
   return (
     <div className="tx-analysis-live" role="status" aria-live="polite" aria-busy="true">
       <div className="tx-analysis-console-head">
@@ -42,9 +65,16 @@ export function TxParseProgress({
           <span className="tx-analysis-badge">{labels.modeLabel}</span>
           <span className="tx-analysis-meta">{labels.metaLabel}</span>
         </div>
-        <span className="tx-analysis-percent" aria-hidden="true">
-          {percent}%
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {showTimer && (
+            <span className="tx-analysis-meta" aria-live="polite">
+              {remaining > 0 ? `~${formatElapsed(remaining)} restantes` : `${formatElapsed(elapsed)} transcurridos`}
+            </span>
+          )}
+          <span className="tx-analysis-percent" aria-hidden="true">
+            {percent}%
+          </span>
+        </div>
       </div>
 
       <div className="tx-analysis-console-body">
