@@ -43588,7 +43588,7 @@ body.agent-route-active .app-shell::before {
 @media (display-mode: standalone) and (max-width: 767px) {
   .agent-layout {
     padding-top: max(4px, env(safe-area-inset-top, 0px)) !important;
-    padding-bottom: max(4px, env(safe-area-inset-bottom, 0px)) !important;
+    padding-bottom: 0 !important;
   }
 
   .agent-chat-header.is-mobile {
@@ -43739,14 +43739,20 @@ body.agent-route-active .app-shell::before {
     padding-bottom: 6px !important;
   }
 
-  /* Panel: fixed height + generous bottom margin so cards clear the home indicator */
+  /* Panel: flush to bottom; safe-area handled inside the panel */
   .agent-panel {
     flex: 0 0 var(--mobile-panel-h, 130px) !important;
     max-height: var(--mobile-panel-h, 130px) !important;
-    margin: 0 8px max(calc(env(safe-area-inset-bottom, 0px) + 26px), 46px) !important;
-    border-radius: 16px !important;
+    margin: 0 8px 0 !important;
+    padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+    border-radius: 16px 16px 0 0 !important;
     overflow: hidden !important;
     transform: none !important;
+    box-sizing: border-box !important;
+  }
+
+  .agent-panel .panel-grid {
+    padding-bottom: max(6px, env(safe-area-inset-bottom, 0px)) !important;
   }
 
   .agent-layout.mobile-panel-expanded .agent-panel {
@@ -43850,11 +43856,12 @@ body.agent-route-active .app-shell::before {
     height: 10px !important;
   }
 
-  /* Panel: fixed height + bottom gap that clears the iOS home indicator */
+  /* Panel: no external bottom gap (avoids black strip under panel) */
   .agent-layout.is-mobile-standalone .agent-panel {
     flex: 0 0 var(--mobile-panel-h, 122px) !important;
     max-height: var(--mobile-panel-h, 122px) !important;
-    margin-bottom: max(calc(env(safe-area-inset-bottom, 0px) + 22px), 44px) !important;
+    margin-bottom: 0 !important;
+    padding-bottom: env(safe-area-inset-bottom, 0px) !important;
   }
   .agent-layout.is-mobile-standalone.mobile-panel-expanded .agent-panel {
     --mobile-panel-h: min(50dvh, 430px) !important;
@@ -43943,14 +43950,42 @@ body.agent-route-active .app-shell::before {
     height: 10px !important;
   }
 
-  /* Panel: home indicator clearance */
+  /* Panel: flush bottom — safe-area inset only inside panel */
   .agent-panel {
     flex: 0 0 var(--mobile-panel-h, 122px) !important;
     max-height: var(--mobile-panel-h, 122px) !important;
-    margin-bottom: max(calc(env(safe-area-inset-bottom, 0px) + 22px), 44px) !important;
+    margin-bottom: 0 !important;
+    padding-bottom: env(safe-area-inset-bottom, 0px) !important;
   }
   .agent-layout.mobile-panel-expanded .agent-panel {
     --mobile-panel-h: min(50dvh, 430px) !important;
+  }
+}
+
+/* Mobile/PWA: kill empty strip below layout (letterbox / margin gap) */
+@media (max-width: 767px) {
+  html.agent-route-active,
+  body.agent-route-active {
+    height: var(--visual-vh, 100dvh) !important;
+    min-height: var(--visual-vh, 100dvh) !important;
+    max-height: var(--visual-vh, 100dvh) !important;
+    overflow: hidden !important;
+  }
+
+  body.agent-route-active .app-shell {
+    min-height: var(--visual-vh, 100dvh) !important;
+    height: var(--visual-vh, 100dvh) !important;
+    max-height: var(--visual-vh, 100dvh) !important;
+    overflow: hidden !important;
+  }
+
+  .agent-layout {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
+  .agent-layout .agent-panel {
+    margin-bottom: 0 !important;
   }
 }
 
