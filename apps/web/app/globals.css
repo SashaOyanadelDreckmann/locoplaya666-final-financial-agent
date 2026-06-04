@@ -136,6 +136,7 @@ html,
 body {
   min-height: 100%;
   height: 100%;
+  overscroll-behavior: none;
   background: #050810; /* fallback oscuro que hace juego con fondo4.jpg */
   color: var(--fg);
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
@@ -665,11 +666,12 @@ button {
   isolation: isolate;
 }
 
-/* Background image + matte overlay — both fixed so they always cover the mobile viewport */
+/* Background image + matte overlay: fixed + slight overextend prevents
+   sub-pixel gaps and covers safe-area-inset regions in PWA standalone mode */
 .app-shell::before {
   content: '';
   position: fixed;
-  inset: 0;
+  inset: -2px;
   background:
     linear-gradient(rgba(0, 0, 0, 0.76), rgba(0, 0, 0, 0.76)),
     url('/images/bg-door.jpg') center/cover no-repeat;
@@ -1628,12 +1630,15 @@ body.home-lock {
   --auth-blue: 44, 111, 172;
   position: relative;
   z-index: 1;
-  min-height: 100dvh;
+  /* svh (small viewport height) is stable — doesn't change when the
+     keyboard opens, preventing layout jumps on mobile */
+  min-height: 100svh;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px 20px;
-  overflow: hidden;
+  /* Bottom padding accounts for iPhone home indicator in PWA mode */
+  padding: max(env(safe-area-inset-top, 0px), 24px) 20px max(env(safe-area-inset-bottom, 0px), 24px);
+  overflow-y: auto;
   background: transparent;
 }
 

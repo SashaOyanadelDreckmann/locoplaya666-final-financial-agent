@@ -9,13 +9,6 @@ export const metadata = {
   description: 'Claridad financiera, antes de decidir.',
 };
 
-export const viewport = {
-  width: 'device-width',
-  initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
-  viewportFit: 'cover' as const,
-};
 
 export default function RootLayout({
   children,
@@ -27,6 +20,10 @@ export default function RootLayout({
   return (
     <html lang="es">
       <head>
+        <meta
+          name="viewport"
+          content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-visual"
+        />
         <script
           id="fa-runtime-config"
           dangerouslySetInnerHTML={{ __html: runtimeConfigScript }}
