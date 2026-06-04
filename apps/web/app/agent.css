@@ -32758,10 +32758,10 @@ body.agent-route-active .app-shell::before {
   .agent-chat-header .chat-switcher .chat-sheet-tab {
     min-width: 0 !important;
     width: 100% !important;
-    height: 26px !important;
-    padding: 2px 5px !important;
-    border-radius: 8px !important;
-    gap: 3px !important;
+    height: 13px !important;
+    padding: 0 3px !important;
+    border-radius: 5px !important;
+    gap: 2px !important;
   }
 
   .agent-chat-header .chat-switcher .chat-sheet-tab-copy {
@@ -32783,17 +32783,17 @@ body.agent-route-active .app-shell::before {
   }
 
   .agent-chat-header .chat-switcher .chat-sheet-tab-index {
-    width: 12px !important;
-    height: 12px !important;
-    min-width: 12px !important;
-    flex-basis: 12px !important;
-    font-size: 6px !important;
+    width: 8px !important;
+    height: 8px !important;
+    min-width: 8px !important;
+    flex-basis: 8px !important;
+    font-size: 4px !important;
   }
 
   .agent-chat-header .chat-brand-strip {
-    margin: 2px 0 0 !important;
+    margin: 0 !important;
     padding: 0 28px 0 0 !important;
-    gap: 0 !important;
+    gap: 2px !important;
   }
 
   .agent-chat-header .chat-brand-logo-mark {
@@ -43643,25 +43643,25 @@ body.agent-route-active .app-shell::before {
     align-items: stretch !important;
   }
 
-  /* Tabs: much smaller, barely noticeable */
+  /* Tabs: compact — must not exceed header band */
   .agent-chat-header.is-mobile .chat-sheet-tab {
     min-width: 0 !important;
-    height: 17px !important;
-    padding: 1px 4px !important;
-    border-radius: 6px !important;
+    height: 13px !important;
+    padding: 0 3px !important;
+    border-radius: 5px !important;
     gap: 2px !important;
   }
 
   .agent-chat-header.is-mobile .chat-sheet-tab-index {
-    width: 9px !important;
-    height: 9px !important;
-    min-width: 9px !important;
-    flex-basis: 9px !important;
-    font-size: 5px !important;
+    width: 8px !important;
+    height: 8px !important;
+    min-width: 8px !important;
+    flex-basis: 8px !important;
+    font-size: 4px !important;
   }
 
   .agent-chat-header.is-mobile .chat-sheet-tab-title {
-    font-size: 6px !important;
+    font-size: 5px !important;
     line-height: 1 !important;
   }
 
@@ -43669,10 +43669,16 @@ body.agent-route-active .app-shell::before {
     display: none !important;
   }
 
+  .agent-chat-header.is-mobile .agent-chat-controls-row {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
   .agent-chat-header.is-mobile .chat-brand-strip {
-    margin: 3px 0 0 !important;
+    margin: 0 !important;
     min-height: 0 !important;
-    gap: 0 !important;
+    gap: 2px !important;
+    padding-top: 0 !important;
   }
 
   .agent-chat-header.is-mobile .chat-brand-logo-mark {
@@ -43688,9 +43694,10 @@ body.agent-route-active .app-shell::before {
   }
 
   .agent-chat-header.is-mobile .chat-identity-subtitle {
-    font-size: 8px !important;
+    font-size: 7px !important;
     line-height: 1 !important;
-    margin-top: 0 !important;
+    margin: 0 !important;
+    padding-top: 0 !important;
   }
 
   /* Toggle: fixed floating button, bottom-right corner with generous margin */
@@ -43750,33 +43757,65 @@ body.agent-route-active .app-shell::before {
    PWA / ADD TO HOME SCREEN — Canonical proportions (EOF wins cascade)
    Targets .is-mobile-standalone (JS: navigator.standalone || display-mode)
    AND @media (display-mode: standalone) for CSS-level matching.
-   Fixes: (1) tabs too small, (2) toggle floating over panel, (3) panel home-indicator gap.
+   Fixes: (1) tiny tabs inside header, (2) subtitle tight to brand, (3) toggle in header.
    ═══════════════════════════════════════════════════════════════ */
 
 /* ── Shared helpers via JS-applied class (works for iOS navigator.standalone) ── */
 @media (max-width: 767px) {
-  /* Tabs: proportions that match the target screenshot */
-  .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .chat-sheet-tab {
-    height: 28px !important;
-    padding: 2px 8px !important;
-    border-radius: 8px !important;
+  .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile {
+    padding: 3px 0 2px !important;
+  }
+
+  .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .agent-chat-controls-row {
+    margin: 0 !important;
+    padding: 0 !important;
     gap: 3px !important;
+    min-height: 0 !important;
+  }
+
+  .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .chat-switcher {
+    gap: 3px !important;
+  }
+
+  /* Tabs: very small — stay inside header, no overflow */
+  .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .chat-sheet-tab,
+  .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .chat-switcher .chat-sheet-tab {
+    height: 13px !important;
+    padding: 0 3px !important;
+    border-radius: 5px !important;
+    gap: 2px !important;
     min-width: 0 !important;
   }
-  .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .chat-sheet-tab-index {
-    width: 14px !important;
-    height: 14px !important;
-    min-width: 14px !important;
-    flex-basis: 14px !important;
-    font-size: 8px !important;
+  .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .chat-sheet-tab-index,
+  .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .chat-switcher .chat-sheet-tab-index {
+    width: 8px !important;
+    height: 8px !important;
+    min-width: 8px !important;
+    flex-basis: 8px !important;
+    font-size: 4px !important;
   }
-  .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .chat-sheet-tab-title {
-    font-size: 9px !important;
+  .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .chat-sheet-tab-title,
+  .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .chat-switcher .chat-sheet-tab-title {
+    font-size: 5px !important;
     line-height: 1 !important;
-    letter-spacing: 0.06em !important;
+    letter-spacing: 0.04em !important;
   }
   .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .chat-sheet-tab-subtitle {
     display: none !important;
+  }
+
+  /* Brand + lectura base: minimal gap under Financieramente */
+  .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .chat-brand-strip {
+    margin: 0 !important;
+    gap: 2px !important;
+    padding-top: 0 !important;
+  }
+
+  .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .chat-identity-subtitle {
+    margin: 0 !important;
+    padding: 0 !important;
+    font-size: 7px !important;
+    line-height: 1 !important;
   }
 
   /* Toggle: anchor it inside the header so it never floats over the panel */
@@ -43785,14 +43824,19 @@ body.agent-route-active .app-shell::before {
   }
   .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .chat-monochrome-toggle--inline {
     position: absolute !important;
-    right: 10px !important;
-    bottom: 6px !important;
+    right: 8px !important;
+    bottom: 4px !important;
     top: auto !important;
     left: auto !important;
-    width: 28px !important;
-    height: 28px !important;
+    width: 22px !important;
+    height: 22px !important;
     z-index: 20 !important;
     transform: none !important;
+  }
+
+  .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .chat-monochrome-toggle--inline .mono-toggle-icon {
+    width: 10px !important;
+    height: 10px !important;
   }
 
   /* Panel: fixed height + bottom gap that clears the iOS home indicator */
@@ -43808,27 +43852,53 @@ body.agent-route-active .app-shell::before {
 
 /* ── CSS display-mode query (modern browsers + iOS 16.4+) ── */
 @media (display-mode: standalone) and (max-width: 767px) {
-  .agent-chat-header.is-mobile .chat-sheet-tab {
-    height: 28px !important;
-    padding: 2px 8px !important;
-    border-radius: 8px !important;
-    gap: 3px !important;
+  .agent-chat-header.is-mobile {
+    padding: 3px 0 2px !important;
+  }
+
+  .agent-chat-header.is-mobile .agent-chat-controls-row {
+    margin: 0 !important;
+    padding: 0 !important;
+    min-height: 0 !important;
+  }
+
+  .agent-chat-header.is-mobile .chat-sheet-tab,
+  .agent-chat-header.is-mobile .chat-switcher .chat-sheet-tab {
+    height: 13px !important;
+    padding: 0 3px !important;
+    border-radius: 5px !important;
+    gap: 2px !important;
     min-width: 0 !important;
   }
-  .agent-chat-header.is-mobile .chat-sheet-tab-index {
-    width: 14px !important;
-    height: 14px !important;
-    min-width: 14px !important;
-    flex-basis: 14px !important;
-    font-size: 8px !important;
+  .agent-chat-header.is-mobile .chat-sheet-tab-index,
+  .agent-chat-header.is-mobile .chat-switcher .chat-sheet-tab-index {
+    width: 8px !important;
+    height: 8px !important;
+    min-width: 8px !important;
+    flex-basis: 8px !important;
+    font-size: 4px !important;
   }
-  .agent-chat-header.is-mobile .chat-sheet-tab-title {
-    font-size: 9px !important;
+  .agent-chat-header.is-mobile .chat-sheet-tab-title,
+  .agent-chat-header.is-mobile .chat-switcher .chat-sheet-tab-title {
+    font-size: 5px !important;
     line-height: 1 !important;
-    letter-spacing: 0.06em !important;
+    letter-spacing: 0.04em !important;
   }
   .agent-chat-header.is-mobile .chat-sheet-tab-subtitle {
     display: none !important;
+  }
+
+  .agent-chat-header.is-mobile .chat-brand-strip {
+    margin: 0 !important;
+    gap: 2px !important;
+    padding-top: 0 !important;
+  }
+
+  .agent-chat-header.is-mobile .chat-identity-subtitle {
+    margin: 0 !important;
+    padding: 0 !important;
+    font-size: 7px !important;
+    line-height: 1 !important;
   }
 
   /* Toggle: back inside header, no longer floating over panel */
@@ -43837,14 +43907,19 @@ body.agent-route-active .app-shell::before {
   }
   .agent-chat-header.is-mobile .chat-monochrome-toggle--inline {
     position: absolute !important;
-    right: 10px !important;
-    bottom: 6px !important;
+    right: 8px !important;
+    bottom: 4px !important;
     top: auto !important;
     left: auto !important;
-    width: 28px !important;
-    height: 28px !important;
+    width: 22px !important;
+    height: 22px !important;
     z-index: 20 !important;
     transform: none !important;
+  }
+
+  .agent-chat-header.is-mobile .chat-monochrome-toggle--inline .mono-toggle-icon {
+    width: 10px !important;
+    height: 10px !important;
   }
 
   /* Panel: home indicator clearance */
