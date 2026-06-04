@@ -17378,6 +17378,40 @@ input[type="radio"]:checked {
   50% { transform: scale(1.18); opacity: 1; }
 }
 
+.transactions-modal .tx-analysis-fill.is-determinate {
+  left: 0;
+  width: 0;
+  animation: none;
+  transition: width 420ms ease;
+  background: linear-gradient(90deg, rgba(198, 160, 82, 0.92), rgba(142, 167, 191, 0.88));
+}
+
+.transactions-modal .tx-analysis-percent {
+  color: rgba(235, 223, 186, 0.88);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  font-variant-numeric: tabular-nums;
+}
+
+.transactions-modal .tx-analysis-step.is-done {
+  border-color: rgba(198, 160, 82, 0.42);
+  background: rgba(198, 160, 82, 0.12);
+  color: rgba(235, 223, 186, 0.92);
+  animation: none;
+}
+
+.transactions-modal .tx-analysis-step.is-active {
+  border-color: rgba(198, 160, 82, 0.72);
+  background: rgba(198, 160, 82, 0.18);
+  color: rgba(255, 248, 232, 0.98);
+  box-shadow: 0 0 0 1px rgba(198, 160, 82, 0.16);
+}
+
+.transactions-modal .tx-analysis-step.is-pending {
+  opacity: 0.62;
+  animation: none;
+}
+
 @keyframes txAnalysisSweep {
   0% { left: -36%; }
   100% { left: 100%; }
@@ -32816,8 +32850,8 @@ body.agent-route-active .app-shell::before {
   }
 
   .agent-panel.is-mobile-compact {
-    flex: 0 0 min(96px, 17dvh) !important;
-    max-height: min(96px, 17dvh) !important;
+    flex: 0 0 var(--mobile-panel-h, 162px) !important;
+    max-height: var(--mobile-panel-h, 162px) !important;
   }
 
   .agent-layout.mobile-panel-expanded .agent-panel {
@@ -43612,7 +43646,7 @@ body.agent-route-active .app-shell::before {
     padding-bottom: 0 !important;
     padding-left: 0 !important;
     padding-right: 0 !important;
-    gap: 6px !important;
+    gap: 4px !important;
     overflow: hidden !important;
   }
 
@@ -43623,20 +43657,26 @@ body.agent-route-active .app-shell::before {
     overflow: hidden !important;
   }
 
-  /* Header: same horizontal width as the input field (8px side margins) */
+  /* Header: unified stack (tabs + brand + subtitle) */
   .agent-chat-header.is-mobile {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
     flex: 0 0 auto !important;
     margin: 0 8px !important;
-    padding: 5px 0 3px !important;
+    padding: 3px 0 2px !important;
+    gap: 2px !important;
     border-bottom: none !important;
     min-height: 0 !important;
   }
 
   .agent-chat-header.is-mobile .agent-chat-controls-row {
+    width: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
-    gap: 4px !important;
-    align-items: start !important;
+    gap: 2px !important;
+    align-items: center !important;
+    justify-content: center !important;
   }
 
   .agent-chat-header.is-mobile .chat-switcher {
@@ -43683,19 +43723,24 @@ body.agent-route-active .app-shell::before {
   .agent-chat-header.is-mobile .chat-brand-strip {
     margin: 0 !important;
     min-height: 0 !important;
-    gap: 2px !important;
+    gap: 1px !important;
     padding-top: 0 !important;
+    width: 100% !important;
+  }
+
+  .agent-chat-header.is-mobile .chat-brand-title-row {
+    gap: 6px !important;
   }
 
   .agent-chat-header.is-mobile .chat-brand-logo-mark {
-    width: 20px !important;
-    height: 20px !important;
-    flex: 0 0 20px !important;
+    width: 18px !important;
+    height: 18px !important;
+    flex: 0 0 18px !important;
   }
 
   .agent-chat-header.is-mobile .chat-brand-financiera,
   .agent-chat-header.is-mobile .chat-brand-mente {
-    font-size: 11px !important;
+    font-size: 10px !important;
     line-height: 1 !important;
   }
 
@@ -43703,29 +43748,64 @@ body.agent-route-active .app-shell::before {
     font-size: 7px !important;
     line-height: 1 !important;
     margin: 0 !important;
-    padding-top: 0 !important;
+    padding: 0 !important;
   }
 
-  /* Toggle: fixed floating button, bottom-right corner with generous margin */
+  /* Toggle: inside unified header (brand row) */
+  .agent-chat-header.is-mobile {
+    position: relative !important;
+  }
+
   .agent-chat-header.is-mobile .chat-monochrome-toggle--inline {
-    position: fixed !important;
-    bottom: calc(env(safe-area-inset-bottom, 20px) + 22px) !important;
-    right: 20px !important;
+    position: absolute !important;
+    right: 6px !important;
+    bottom: 2px !important;
     top: auto !important;
     left: auto !important;
-    width: 30px !important;
-    height: 30px !important;
-    z-index: 9999 !important;
+    width: 20px !important;
+    height: 20px !important;
+    z-index: 20 !important;
     transform: none !important;
   }
 
+  .agent-chat-header.is-mobile .chat-monochrome-toggle--inline .mono-toggle-icon {
+    width: 10px !important;
+    height: 10px !important;
+  }
+
   .agent-chat .terminal-composer-shell {
-    margin-top: 2px !important;
-    gap: 4px !important;
+    margin-top: 0 !important;
+    gap: 2px !important;
+    padding: 0 8px 4px !important;
   }
 
   .agent-chat .agent-input.terminal-composer {
-    padding: 6px 10px 4px !important;
+    padding: 4px 8px 3px !important;
+    gap: 2px !important;
+    border-radius: 12px !important;
+  }
+
+  .agent-chat .terminal-composer-head {
+    font-size: 9px !important;
+    line-height: 1 !important;
+    padding: 0 !important;
+  }
+
+  .agent-chat .agent-input.terminal-composer textarea.terminal-composer-input {
+    min-height: 18px !important;
+    max-height: 26px !important;
+    font-size: 13px !important;
+    line-height: 1.2 !important;
+  }
+
+  .agent-chat .terminal-composer-controls {
+    gap: 12px !important;
+    margin-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
+  .agent-chat .terminal-composer-controls .composer-icon-btn {
+    font-size: 14px !important;
   }
 
   .agent-chat-body {
@@ -43739,12 +43819,15 @@ body.agent-route-active .app-shell::before {
     padding-bottom: 6px !important;
   }
 
-  /* Panel: flush to bottom; safe-area handled inside the panel */
-  .agent-panel {
-    flex: 0 0 var(--mobile-panel-h, 130px) !important;
-    max-height: var(--mobile-panel-h, 130px) !important;
+  /* Panel: tall enough for cards; safe-area only inside grid */
+  .agent-panel,
+  .agent-panel.is-mobile-compact {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 0 0 var(--mobile-panel-h, 162px) !important;
+    max-height: var(--mobile-panel-h, 162px) !important;
     margin: 0 8px 0 !important;
-    padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+    padding-bottom: 0 !important;
     border-radius: 16px 16px 0 0 !important;
     overflow: hidden !important;
     transform: none !important;
@@ -43752,7 +43835,15 @@ body.agent-route-active .app-shell::before {
   }
 
   .agent-panel .panel-grid {
-    padding-bottom: max(6px, env(safe-area-inset-bottom, 0px)) !important;
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    padding: 6px 10px max(8px, env(safe-area-inset-bottom, 0px)) !important;
+    align-items: stretch !important;
+  }
+
+  .agent-panel .mob-col > * {
+    min-height: 0 !important;
+    max-height: 100% !important;
   }
 
   .agent-layout.mobile-panel-expanded .agent-panel {
@@ -43760,8 +43851,9 @@ body.agent-route-active .app-shell::before {
   }
 
   .mobile-panel-handle {
-    min-height: 22px !important;
-    padding: 4px 10px 3px !important;
+    flex: 0 0 auto !important;
+    min-height: 18px !important;
+    padding: 3px 10px 2px !important;
   }
 }
 
@@ -43775,14 +43867,20 @@ body.agent-route-active .app-shell::before {
 /* ── Shared helpers via JS-applied class (works for iOS navigator.standalone) ── */
 @media (max-width: 767px) {
   .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 2px !important;
     padding: 3px 0 2px !important;
   }
 
   .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .agent-chat-controls-row {
+    width: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
-    gap: 3px !important;
+    gap: 2px !important;
     min-height: 0 !important;
+    justify-content: center !important;
   }
 
   .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .chat-switcher {
@@ -43856,12 +43954,13 @@ body.agent-route-active .app-shell::before {
     height: 10px !important;
   }
 
-  /* Panel: no external bottom gap (avoids black strip under panel) */
-  .agent-layout.is-mobile-standalone .agent-panel {
-    flex: 0 0 var(--mobile-panel-h, 122px) !important;
-    max-height: var(--mobile-panel-h, 122px) !important;
+  /* Panel: full card visibility in compact mode */
+  .agent-layout.is-mobile-standalone .agent-panel,
+  .agent-layout.is-mobile-standalone .agent-panel.is-mobile-compact {
+    flex: 0 0 var(--mobile-panel-h, 162px) !important;
+    max-height: var(--mobile-panel-h, 162px) !important;
     margin-bottom: 0 !important;
-    padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+    padding-bottom: 0 !important;
   }
   .agent-layout.is-mobile-standalone.mobile-panel-expanded .agent-panel {
     --mobile-panel-h: min(50dvh, 430px) !important;
@@ -43950,12 +44049,13 @@ body.agent-route-active .app-shell::before {
     height: 10px !important;
   }
 
-  /* Panel: flush bottom — safe-area inset only inside panel */
-  .agent-panel {
-    flex: 0 0 var(--mobile-panel-h, 122px) !important;
-    max-height: var(--mobile-panel-h, 122px) !important;
+  /* Panel: flush bottom — safe-area inset only inside panel grid */
+  .agent-panel,
+  .agent-panel.is-mobile-compact {
+    flex: 0 0 var(--mobile-panel-h, 162px) !important;
+    max-height: var(--mobile-panel-h, 162px) !important;
     margin-bottom: 0 !important;
-    padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+    padding-bottom: 0 !important;
   }
   .agent-layout.mobile-panel-expanded .agent-panel {
     --mobile-panel-h: min(50dvh, 430px) !important;
@@ -43985,6 +44085,16 @@ body.agent-route-active .app-shell::before {
   }
 
   .agent-layout .agent-panel {
+    margin-bottom: 0 !important;
+  }
+
+  /* Hard guarantee: compact panel never clips card row */
+  .agent-panel.is-mobile-compact:not(.is-mobile-expanded) {
+    flex: 0 0 var(--mobile-panel-h, 162px) !important;
+    max-height: var(--mobile-panel-h, 162px) !important;
+  }
+
+  .agent-chat-header.is-mobile .chat-switcher {
     margin-bottom: 0 !important;
   }
 }
