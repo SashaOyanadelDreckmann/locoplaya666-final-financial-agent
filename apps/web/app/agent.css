@@ -32749,7 +32749,9 @@ body.agent-route-active .app-shell::before {
     display: grid !important;
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
     gap: 3px !important;
-    width: 100% !important;
+    width: 50% !important;
+    max-width: 50% !important;
+    margin-inline: auto !important;
     overflow: visible !important;
     padding: 0 !important;
     box-sizing: border-box !important;
@@ -43638,8 +43640,12 @@ body.agent-route-active .app-shell::before {
   }
 
   .agent-chat-header.is-mobile .chat-switcher {
-    width: 100% !important;
-    gap: 4px !important;
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    width: 50% !important;
+    max-width: 50% !important;
+    margin-inline: auto !important;
+    gap: 3px !important;
     align-items: stretch !important;
   }
 
@@ -43774,6 +43780,11 @@ body.agent-route-active .app-shell::before {
   }
 
   .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .chat-switcher {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    width: 50% !important;
+    max-width: 50% !important;
+    margin-inline: auto !important;
     gap: 3px !important;
   }
 
@@ -43862,6 +43873,15 @@ body.agent-route-active .app-shell::before {
     min-height: 0 !important;
   }
 
+  .agent-chat-header.is-mobile .chat-switcher {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    width: 50% !important;
+    max-width: 50% !important;
+    margin-inline: auto !important;
+    gap: 3px !important;
+  }
+
   .agent-chat-header.is-mobile .chat-sheet-tab,
   .agent-chat-header.is-mobile .chat-switcher .chat-sheet-tab {
     height: 13px !important;
@@ -43869,6 +43889,7 @@ body.agent-route-active .app-shell::before {
     border-radius: 5px !important;
     gap: 2px !important;
     min-width: 0 !important;
+    width: 100% !important;
   }
   .agent-chat-header.is-mobile .chat-sheet-tab-index,
   .agent-chat-header.is-mobile .chat-switcher .chat-sheet-tab-index {
