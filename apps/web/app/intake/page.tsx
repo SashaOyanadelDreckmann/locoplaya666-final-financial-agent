@@ -8,7 +8,7 @@ import { useInterviewStore } from '@/state/interview.store';
 import { submitIntake } from '@/lib/intake';
 import { getSessionInfo } from '@/lib/api';
 import { toUserFacingError } from '@/lib/userError';
-import { hasMeaningfulIntake, resolveAuthRedirectPath } from '@/lib/sessionAccess';
+import { hasCompletedIntakeAccess, resolveAuthRedirectPath } from '@/lib/sessionAccess';
 
 import type { IntakeQuestionnaire } from '@financial-agent/shared/src/intake/intake-questionnaire.types';
 
@@ -73,7 +73,7 @@ export default function IntakePage() {
           router.replace('/login');
           return;
         }
-        if (hasMeaningfulIntake(session?.injectedIntake)) {
+        if (hasCompletedIntakeAccess(session?.injectedIntake)) {
           router.replace('/agent');
           return;
         }

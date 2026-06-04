@@ -88,7 +88,7 @@ import {
   sanitizeChatItems,
   sanitizeMessageText,
   resolveActiveActionPlanStage,
-  hasMeaningfulIntake,
+  hasCompletedIntakeAccess,
   resolveAuthRedirectPath,
 } from './page.utils';
 
@@ -560,7 +560,7 @@ export default function AgentPage() {
           router.replace('/login');
           return;
         }
-        if (!hasMeaningfulIntake(info?.injectedIntake)) {
+        if (!hasCompletedIntakeAccess(info?.injectedIntake)) {
           setIsAuthenticated(false);
           router.replace('/intake');
           return;

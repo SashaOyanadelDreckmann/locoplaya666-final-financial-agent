@@ -1,4 +1,4 @@
-import { getApiBaseUrl, getUploadApiBaseUrl } from './apiBase';
+import { getApiBaseUrl, getSessionApiBaseUrl, getUploadApiBaseUrl } from './apiBase';
 import { readApiOriginFromProcessEnv, readApiOriginFromRuntimeWindow } from './runtimePublicConfig';
 import { parseApiResponse } from './apiEnvelope';
 import { getCsrfToken } from './csrf';
@@ -10,7 +10,7 @@ function withCsrf(headers: Record<string, string> = {}): Record<string, string> 
 }
 
 export async function nextConversationStep(payload: unknown) {
-  const API_URL = getApiBaseUrl();
+  const API_URL = getSessionApiBaseUrl();
   const res = await fetch(`${API_URL}/conversation/next`, {
     method: 'POST',
     headers: withCsrf({ 'Content-Type': 'application/json' }),
@@ -26,7 +26,7 @@ export async function registerUser(payload: {
   email: string;
   password: string;
 }) {
-  const API_URL = getApiBaseUrl();
+  const API_URL = getSessionApiBaseUrl();
   const res = await fetch(`${API_URL}/auth/register`, {
     method: 'POST',
     headers: withCsrf({ 'Content-Type': 'application/json' }),
@@ -42,7 +42,7 @@ export async function registerUser(payload: {
 }
 
 export async function loginUser(payload: { email: string; password: string }) {
-  const API_URL = getApiBaseUrl();
+  const API_URL = getSessionApiBaseUrl();
   const res = await fetch(`${API_URL}/auth/login`, {
     method: 'POST',
     headers: withCsrf({ 'Content-Type': 'application/json' }),
@@ -56,7 +56,7 @@ export async function loginUser(payload: { email: string; password: string }) {
 }
 
 export async function logoutUser() {
-  const API_URL = getApiBaseUrl();
+  const API_URL = getSessionApiBaseUrl();
   const res = await fetch(`${API_URL}/auth/logout`, {
     method: 'POST',
     headers: withCsrf(),
@@ -67,7 +67,7 @@ export async function logoutUser() {
 }
 
 export async function deleteAccount() {
-  const API_URL = getApiBaseUrl();
+  const API_URL = getSessionApiBaseUrl();
   const res = await fetch(`${API_URL}/auth/account`, {
     method: 'DELETE',
     headers: withCsrf(),
@@ -78,7 +78,7 @@ export async function deleteAccount() {
 }
 
 export async function injectProfileToAgent(profile: unknown) {
-  const API_URL = getApiBaseUrl();
+  const API_URL = getSessionApiBaseUrl();
   const res = await fetch(`${API_URL}/api/inject-profile`, {
     method: 'POST',
     headers: withCsrf({ 'Content-Type': 'application/json' }),
@@ -90,7 +90,7 @@ export async function injectProfileToAgent(profile: unknown) {
 }
 
 export async function injectIntakeToAgent(payload: { intake: unknown; llmSummary?: unknown }) {
-  const API_URL = getApiBaseUrl();
+  const API_URL = getSessionApiBaseUrl();
   const res = await fetch(`${API_URL}/api/inject-intake`, {
     method: 'POST',
     headers: withCsrf({ 'Content-Type': 'application/json' }),
@@ -102,7 +102,7 @@ export async function injectIntakeToAgent(payload: { intake: unknown; llmSummary
 }
 
 export async function removeInjectedIntake() {
-  const API_URL = getApiBaseUrl();
+  const API_URL = getSessionApiBaseUrl();
   const res = await fetch(`${API_URL}/api/remove-injected-intake`, {
     method: 'POST',
     headers: withCsrf(),
@@ -113,7 +113,7 @@ export async function removeInjectedIntake() {
 }
 
 export async function getSessionInfo() {
-  const API_URL = getApiBaseUrl();
+  const API_URL = getSessionApiBaseUrl();
   const res = await fetch(`${API_URL}/api/session`, {
     method: 'GET',
     credentials: 'include',
@@ -168,7 +168,7 @@ export async function parseDocuments(
 }
 
 export async function resolveDocuments(documentIds: string[]) {
-  const API_URL = getApiBaseUrl();
+  const API_URL = getSessionApiBaseUrl();
   const res = await fetch(`${API_URL}/api/documents/resolve`, {
     method: 'POST',
     headers: withCsrf({ 'Content-Type': 'application/json' }),
@@ -180,7 +180,7 @@ export async function resolveDocuments(documentIds: string[]) {
 }
 
 export async function loadSheets() {
-  const API_URL = getApiBaseUrl();
+  const API_URL = getSessionApiBaseUrl();
   const res = await fetch(`${API_URL}/api/sheets`, {
     method: 'GET',
     credentials: 'include',
@@ -190,7 +190,7 @@ export async function loadSheets() {
 }
 
 export async function saveSheets(sheets: unknown[]) {
-  const API_URL = getApiBaseUrl();
+  const API_URL = getSessionApiBaseUrl();
   const res = await fetch(`${API_URL}/api/sheets`, {
     method: 'POST',
     headers: withCsrf({ 'Content-Type': 'application/json' }),
@@ -202,7 +202,7 @@ export async function saveSheets(sheets: unknown[]) {
 }
 
 export async function loadPanelState() {
-  const API_URL = getApiBaseUrl();
+  const API_URL = getSessionApiBaseUrl();
   const res = await fetch(`${API_URL}/api/panel-state`, {
     method: 'GET',
     credentials: 'include',
@@ -212,7 +212,7 @@ export async function loadPanelState() {
 }
 
 export async function savePanelState(panelState: Record<string, unknown>) {
-  const API_URL = getApiBaseUrl();
+  const API_URL = getSessionApiBaseUrl();
   const res = await fetch(`${API_URL}/api/panel-state`, {
     method: 'POST',
     headers: withCsrf({ 'Content-Type': 'application/json' }),
@@ -244,7 +244,7 @@ export async function deletePdfArtifact(payload: { fileUrl: string; previewImage
 }
 
 export async function getWelcomeMessage() {
-  const API_URL = getApiBaseUrl();
+  const API_URL = getSessionApiBaseUrl();
   const res = await fetch(`${API_URL}/api/welcome`, {
     method: 'GET',
     credentials: 'include',
@@ -254,7 +254,7 @@ export async function getWelcomeMessage() {
 }
 
 export async function removeInjectedProfile() {
-  const API_URL = getApiBaseUrl();
+  const API_URL = getSessionApiBaseUrl();
   const res = await fetch(`${API_URL}/api/remove-injected-profile`, {
     method: 'POST',
     headers: withCsrf(),
@@ -265,7 +265,7 @@ export async function removeInjectedProfile() {
 }
 
 export async function getInterviewRealtimeToken() {
-  const API_URL = getApiBaseUrl();
+  const API_URL = getSessionApiBaseUrl();
   const res = await fetch(`${API_URL}/api/interview/realtime/token`, {
     method: 'GET',
     credentials: 'include',
@@ -287,7 +287,7 @@ export async function getInterviewRealtimeToken() {
 }
 
 export async function abortInterviewRealtimeToken() {
-  const API_URL = getApiBaseUrl();
+  const API_URL = getSessionApiBaseUrl();
   const res = await fetch(`${API_URL}/api/interview/realtime/abort`, {
     method: 'POST',
     headers: withCsrf(),
@@ -297,7 +297,7 @@ export async function abortInterviewRealtimeToken() {
 }
 
 export async function saveInterviewVoiceState(payload: Record<string, unknown>) {
-  const API_URL = getApiBaseUrl();
+  const API_URL = getSessionApiBaseUrl();
   const res = await fetch(`${API_URL}/conversation/voice/state`, {
     method: 'POST',
     headers: withCsrf({ 'Content-Type': 'application/json' }),
@@ -315,7 +315,7 @@ export async function finalizeInterviewVoiceCall(payload: {
   durationSec?: number;
   callId?: string;
 }) {
-  const API_URL = getApiBaseUrl();
+  const API_URL = getSessionApiBaseUrl();
   const res = await fetch(`${API_URL}/conversation/voice/finalize`, {
     method: 'POST',
     headers: withCsrf({ 'Content-Type': 'application/json' }),
@@ -388,7 +388,7 @@ export async function mergeProductsContextToIntake(payload: {
     }>;
   };
 }) {
-  const API_URL = getApiBaseUrl();
+  const API_URL = getSessionApiBaseUrl();
   const res = await fetch(`${API_URL}/api/merge-products-context`, {
     method: 'POST',
     headers: withCsrf({ 'Content-Type': 'application/json' }),

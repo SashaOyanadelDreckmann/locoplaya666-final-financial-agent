@@ -94,3 +94,18 @@ export function getServerApiBaseUrl(): string {
   if (direct) return direct;
   return 'http://localhost:3001';
 }
+
+/**
+ * Base URL para llamadas con sesión (cookies httpOnly).
+ * En producción usa el proxy same-origin `/backend` para que la cookie
+ * quede en el dominio del frontend; el API directo rompe el login tras el guard.
+ */
+export function getSessionApiBaseUrl(): string {
+  if (typeof window !== 'undefined') {
+    if (process.env.NODE_ENV === 'production') return '/backend';
+    const protocol = window.location.protocol || 'http:';
+    const hostname = window.location.hostname || 'localhost';
+    return `${protocol}//${hostname}:3001`;
+  }
+  return getServerApiBaseUrl();
+}

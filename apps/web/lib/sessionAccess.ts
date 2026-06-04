@@ -1,6 +1,21 @@
 import { ApiHttpError } from '@/lib/apiEnvelope';
 import { readApiOriginFromProcessEnv } from '@/lib/runtimePublicConfig';
 
+export function hasCompletedIntakeAccess(
+  injectedIntake: { intake?: unknown } | null | undefined,
+): boolean {
+  if (hasMeaningfulIntake(injectedIntake)) return true;
+  const intake = injectedIntake?.intake;
+  if (!intake || typeof intake !== 'object') return false;
+  const data = intake as Record<string, unknown>;
+  return (
+    typeof data.employmentStatus === 'string' &&
+    data.employmentStatus.length > 0 &&
+    typeof data.incomeBand === 'string' &&
+    data.incomeBand.length > 0
+  );
+}
+
 export function hasMeaningfulIntake(
   injectedIntake: { intake?: unknown } | null | undefined,
 ): boolean {
@@ -100,10 +115,15 @@ export async function fetchServerSession(params: {
   }
 }
 
-export async function hasValidBackendSession(params: {
+export type BackendSessionValidation = {
+  valid: boolean;
+  clearCookie: boolean;
+};
+
+export async function validateBackendSession(params: {
   cookieHeader: string;
   backendBase: string;
-}): Promise<boolean> {
+}): Promise<BackendSessionValidation> {
   const base = params.backendBase.replace(/\/+$/, '');
   try {
     const res = await fetch(`${base}/auth/me`, {
@@ -111,15 +131,28 @@ export async function hasValidBackendSession(params: {
       cache: 'no-store',
       headers: { cookie: params.cookieHeader },
     });
-    if (!res.ok) return false;
+    if (res.status === 401 || res.status === 403) {
+      return { valid: false, clearCookie: true };
+    }
+    if (!res.ok) {
+      return { valid: false, clearCookie: false };
+    }
     const raw = await res.json().catch(() => null);
     const envelope = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : null;
     const userId =
       envelope?.ok === true
         ? String((envelope.data as Record<string, unknown> | undefined)?.userId ?? '').trim()
         : '';
-    return Boolean(userId);
+    return { valid: Boolean(userId), clearCookie: !userId };
   } catch {
-    return false;
+    return { valid: false, clearCookie: false };
   }
+}
+
+export async function hasValidBackendSession(params: {
+  cookieHeader: string;
+  backendBase: string;
+}): Promise<boolean> {
+  const result = await validateBackendSession(params);
+  return result.valid;
 }

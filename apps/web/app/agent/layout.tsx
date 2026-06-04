@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 
 import {
   fetchServerSession,
-  hasMeaningfulIntake,
+  hasCompletedIntakeAccess,
   resolveServerBackendBase,
 } from '@/lib/sessionAccess';
 
@@ -42,7 +42,7 @@ export default async function AgentLayout({
   if (!session?.id) {
     redirect('/login?next=/agent');
   }
-  if (!hasMeaningfulIntake(session.injectedIntake)) {
+  if (!hasCompletedIntakeAccess(session.injectedIntake)) {
     redirect('/intake');
   }
 

@@ -1,5 +1,9 @@
 import { getApiBaseUrl, getAppBaseUrl } from '@/lib/apiBase';
-export { hasMeaningfulIntake, resolveAuthRedirectPath } from '@/lib/sessionAccess';
+export {
+  hasCompletedIntakeAccess,
+  hasMeaningfulIntake,
+  resolveAuthRedirectPath,
+} from '@/lib/sessionAccess';
 import { humanizeDiagnosticText } from '@/lib/diagnosticText';
 import type { ChatItem } from '@/lib/agent.response.types';
 import {
