@@ -87,7 +87,6 @@ export function buildPersistableProductsContext(products: BankProduct[], activeP
       text: String(doc.text ?? '').slice(0, 900),
       summary: doc.summary,
       structuredData: doc.structuredData,
-      indexed: doc.indexed,
       insight: doc.insight,
     })),
     documentPreviews: (product.parsedDocuments ?? []).slice(0, 4).map((doc) => ({
