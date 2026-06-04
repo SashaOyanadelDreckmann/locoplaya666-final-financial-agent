@@ -23624,7 +23624,7 @@ input[type="radio"]:checked {
   content: "" !important;
   position: absolute !important;
   inset: -4px !important;
-  background: url('/objective-bg-candles.jpg') center / cover no-repeat !important;
+  background: url('/news-preview.jpg') center / cover no-repeat !important;
   filter: blur(7px) saturate(0.88) brightness(0.9) !important;
   opacity: 0.96 !important;
   transform: scale(1.06) !important;
@@ -23658,7 +23658,7 @@ input[type="radio"]:checked {
   content: "" !important;
   position: absolute !important;
   inset: -10px !important;
-  background-image: url('/objective-bg-candles.jpg') !important;
+  background-image: url('/news-preview.jpg') !important;
   background-size: cover !important;
   background-position: center !important;
   background-repeat: no-repeat !important;
@@ -23687,7 +23687,7 @@ input[type="radio"]:checked {
   overflow: hidden !important;
   background:
     linear-gradient(180deg, rgba(10, 16, 24, 0.18), rgba(12, 20, 30, 0.28)),
-    url('/objective-bg-candles.jpg') center / cover no-repeat !important;
+    url('/news-preview.jpg') center / cover no-repeat !important;
   border: 1px solid rgba(216, 224, 233, 0.38) !important;
 }
 
@@ -23696,7 +23696,7 @@ input[type="radio"]:checked {
   content: "" !important;
   position: absolute !important;
   inset: -4px !important;
-  background: url('/objective-bg-candles.jpg') center / cover no-repeat !important;
+  background: url('/news-preview.jpg') center / cover no-repeat !important;
   filter: blur(7px) saturate(0.88) brightness(0.9) !important;
   opacity: 0.96 !important;
   transform: scale(1.06) !important;

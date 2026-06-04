@@ -5,6 +5,7 @@ import { asyncHandler } from '../middleware/errorHandler';
 import { requireAuth } from '../middleware/auth';
 import { getConfig } from '../config';
 import { fetchIndicador } from '../mcp/tools/market/mindicadorClient';
+import { stripEmojis } from '../agents/core.agent/helpers/format.helpers';
 
 const router = Router();
 
@@ -91,16 +92,58 @@ type MarketSnapshot = {
   summary: string;
 };
 
-const BUDGET_CHAT_TEXT_LIMIT = 360;
+const BUDGET_CHAT_TEXT_LIMIT = 260;
+const BUDGET_REPLY_WORD_CAP = 65;
 const BUDGET_CHAT_TIMEOUT_MS = 15_000;
 const MARKET_SNAPSHOT_CACHE_MS = 5 * 60_000;
 const MARKET_SNAPSHOT_SOFT_TIMEOUT_MS = 2_500;
 const ANTHROPIC_API_VERSION = '2023-06-01';
 
 function compactText(value: unknown, max = 240): string {
-  return String(value ?? '')
-    .trim()
-    .slice(0, max);
+  return stripEmojis(
+    String(value ?? '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, max),
+  );
+}
+
+function finalizeBudgetAssistantMessage(reply: string, followUp?: string | null): string {
+  const main = compactText(reply, BUDGET_CHAT_TEXT_LIMIT);
+  const tail = followUp ? compactText(followUp, 120) : '';
+  if (!tail) return main;
+  const mainNorm = main.toLowerCase();
+  const tailNorm = tail.toLowerCase();
+  if (mainNorm.includes(tailNorm) || tailNorm.includes(mainNorm)) return main;
+  return compactText(`${main} ${tail}`, BUDGET_CHAT_TEXT_LIMIT);
+}
+
+function packageBudgetReply(input: {
+  reply: string;
+  followUp?: string | null;
+  focus_row_id?: string | null;
+  done?: boolean;
+  actions?: BudgetAction[];
+  action?: BudgetAction | null;
+  source: string;
+  provider?: string;
+}): Record<string, unknown> {
+  const followUp = input.followUp ?? null;
+  const message = finalizeBudgetAssistantMessage(input.reply, followUp);
+  const actions = input.actions ?? [];
+  return {
+    ok: true,
+    assistant_text: message,
+    assistant_reply: message,
+    next_question: followUp,
+    focus_row_id: input.focus_row_id ?? null,
+    done: Boolean(input.done),
+    coach_message: null,
+    actions,
+    action: input.action ?? actions[0] ?? null,
+    source: input.source,
+    provider: input.provider ?? 'deterministic',
+  };
 }
 
 function normalizeCadence(value: unknown, fallback: 'income' | 'expense' = 'expense'): 'fixed' | 'variable' {
@@ -331,35 +374,35 @@ function buildQuestionForRow(row: BudgetRow | null, intakeData?: Record<string, 
     ),
   );
 
-  if (!row) return 'Partamos por tu ingreso principal mensual y cómo entra hoy.';
+  if (!row) return '¿Cuánto es tu ingreso principal mensual?';
   switch (row.id) {
     case 'income_salary':
       return intakeData?.exactMonthlyIncome
-        ? `En tu intake aparece un ingreso cercano a $${formatClp(Number(intakeData.exactMonthlyIncome) || 0)}. ¿Lo dejamos como tu ingreso mensual actual o lo corregimos?`
-        : 'Partamos por tu ingreso principal mensual y cómo entra hoy.';
+        ? `En tu perfil hay ~$${formatClp(Number(intakeData.exactMonthlyIncome) || 0)}. ¿Lo dejamos como ingreso principal?`
+        : '¿Cuánto es tu ingreso principal mensual?';
     case 'income_extra':
-      return '¿Tienes ingresos extra estables o variables que deban entrar al presupuesto?';
+      return '¿Tienes ingresos extra mensuales? Indica monto.';
     case 'expense_rent':
-      return '¿Cuánto pagas al mes en vivienda, arriendo o dividendo?';
+      return '¿Cuánto pagas al mes en vivienda o dividendo?';
     case 'expense_food':
-      return '¿Cuánto se va al mes en supermercado, feria y comida fuera?';
+      return '¿Cuánto gastas al mes en comida y supermercado?';
     case 'expense_transport':
-      return '¿Cuánto gastas al mes en transporte, bencina, Uber o peajes?';
+      return '¿Cuánto va al mes en transporte y bencina?';
     case 'expense_services':
-      return '¿Cuánto pagas al mes en servicios basicos, internet y telefonia?';
+      return '¿Cuánto pagas al mes en servicios e internet?';
     case 'expense_debt':
       if (hasDebtFromIntake || hasCreditProduct) {
-        return 'Veo senales de deuda/productos de credito. ¿Cuanto pagas al mes en cuotas, tarjetas o creditos?';
+        return '¿Cuánto pagas al mes en cuotas o créditos?';
       }
-      return '¿Pagas deudas o cuotas mensuales que deban entrar al presupuesto?';
+      return '¿Tienes cuotas o deudas mensuales? Indica monto.';
     case 'expense_savings':
       return hasSavingsFromIntake
-        ? 'En tu intake marcas ahorro o inversion. ¿Cuanto apartas al mes y en que instrumento?'
-        : '¿Cuanto quieres dejar fijo para ahorro o inversion cada mes?';
+        ? '¿Cuánto apartas al mes para ahorro o inversión?'
+        : '¿Cuánto quieres destinar al mes a ahorro?';
     default:
       return row.type === 'income'
-        ? `Para ${rowDisplayLabel(row)}, dime el monto mensual y si entra fijo o variable.`
-        : `Para ${rowDisplayLabel(row)}, dime monto, recurrencia y medio de pago.`;
+        ? `¿Monto mensual de ${rowDisplayLabel(row)}?`
+        : `¿Monto mensual de ${rowDisplayLabel(row)}?`;
   }
 }
 
@@ -555,19 +598,12 @@ function hasMissingDebtOrSavings(
 
 function fallbackInit(rows: BudgetRow[], intakeData: Record<string, unknown>, products: BudgetProductSummary[]) {
   const { focus, question } = buildBudgetFocusQuestion(rows, null, intakeData, products);
-  return {
-    ok: true,
-    assistant_text: `Trabajemos el presupuesto juntos. Yo propongo cambios y tu los validas. ${question}`,
-    assistant_reply: `Trabajemos el presupuesto juntos. Yo propongo cambios y tu los validas.`,
-    next_question: question,
+  return packageBudgetReply({
+    reply: question,
+    followUp: question,
     focus_row_id: focus?.id ?? 'income_salary',
-    done: false,
-    coach_message: null,
-    actions: [],
-    action: null,
     source: 'deterministic_init',
-    provider: 'deterministic',
-  };
+  });
 }
 
 function buildEducationReply(
@@ -578,39 +614,33 @@ function buildEducationReply(
   products: BudgetProductSummary[],
 ) {
   const text = normalizeLooseText(answer);
+  const { focus, question } = buildBudgetFocusQuestion(rows, activeRow, intakeData, products);
   let assistant_reply =
-    'Te explico conceptos del presupuesto y te ayudo a reflejarlos en la tabla cuando quieras.';
+    'Fijo es estable mes a mes; variable cambia según uso. Marca recurrencia en la tabla.';
 
   if (
     /\b(fijo|fija|variable|fijos|variables)\b/.test(text) &&
     /\b(ingreso|ingresos|gasto|gastos|recurrencia|cadencia)\b/.test(text)
   ) {
     assistant_reply =
-      'Ingreso fijo: entra de forma estable todos los meses (sueldo líquido, renta fija). Ingreso variable: cambia mes a mes (bonos, comisiones, freelance, propinas). Gasto fijo: obligatorio y predecible (arriendo, dividendo, planes). Gasto variable: fluctúa (supermercado, salidas, bencina). En la tabla, Recurrencia marca fijo vs variable para proyectar tu flujo con realismo.';
+      'Ingreso fijo: sueldo o renta estable; variable: bonos o freelance. Gasto fijo: arriendo o planes; variable: super o salidas. Usa Recurrencia en cada fila.';
   } else if (/\b(fijo|fija|variable|fijos|variables)\b/.test(text)) {
     assistant_reply =
-      'Fijo = patrón estable mes a mes. Variable = cambia según uso, temporada o actividad. Esa distinción te ayuda a estimar liquidez y detectar meses más apretados.';
+      'Fijo anticipa caja; variable explica meses más apretados. Ajusta Recurrencia en las filas que apliquen.';
   } else if (/\b(ingreso principal|ingreso extra|sueldo|salario)\b/.test(text)) {
     assistant_reply =
-      'Ingreso principal: tu sueldo o fuente base mensual. Ingreso extra: entradas adicionales no permanentes (honorarios, ventas ocasionales, bonos). Conviene separarlos para no sobrestimar tu capacidad de gasto.';
+      'Ingreso principal es tu base mensual; ingreso extra es esporádico. Conviene separarlos en la tabla.';
   } else if (/\b(presupuesto|balance|flujo)\b/.test(text)) {
     assistant_reply =
-      'Presupuesto = mapa mensual de ingresos y gastos. Balance = ingresos menos gastos. Flujo fijo te da estabilidad; el variable explica por qué algunos meses sobra o falta caja.';
+      'Presupuesto ordena ingresos y gastos; balance es la diferencia. Completa montos en filas vacías.';
   }
 
-  return {
-    ok: true,
-    assistant_text: assistant_reply,
-    assistant_reply,
-    next_question: null,
-    focus_row_id: activeRow?.id ?? findBudgetFocusRow(rows, null)?.id ?? null,
-    done: false,
-    coach_message: null,
-    actions: [],
-    action: null,
+  return packageBudgetReply({
+    reply: assistant_reply,
+    followUp: question,
+    focus_row_id: focus?.id ?? activeRow?.id ?? findBudgetFocusRow(rows, null)?.id ?? null,
     source: 'deterministic_education',
-    provider: 'deterministic',
-  };
+  });
 }
 
 function buildConversationalFallback(
@@ -621,39 +651,36 @@ function buildConversationalFallback(
   products: BudgetProductSummary[],
   source = 'conversational_fallback',
 ) {
-  const userText = compactText(answer, 160);
   const amount = extractClpAmount(answer);
   if (isEducationalBudgetQuestion(answer)) {
     return buildEducationReply(answer, rows, activeRow, intakeData, products);
   }
+  if (amount !== null) {
+    const deterministic = buildDeterministicUpdate(
+      rows,
+      activeRow ?? findBudgetFocusRow(rows, null),
+      answer,
+      intakeData,
+      products,
+    );
+    if (deterministic) return deterministic;
+  }
   const { focus, question } = buildBudgetFocusQuestion(rows, activeRow, intakeData, products);
+  const userText = compactText(answer, 80);
   let assistant_reply = userText
-    ? `Entiendo: "${userText}".`
-    : 'Cuéntame qué quieres ajustar en tu presupuesto.';
+    ? `Entendido. Sigamos cerrando la tabla.`
+    : 'Dime monto y categoría para actualizar la tabla.';
 
-  if (amount !== null && activeRow) {
-    assistant_reply = `Tomé $${formatClp(amount)} para ${activeRow.category}. Revisa la tabla y dime si falta algo.`;
-  } else if (amount !== null) {
-    assistant_reply = `Vi $${formatClp(amount)} en tu mensaje. Dime la categoría y lo dejo en la tabla.`;
-  } else if (/\?/.test(userText)) {
-    assistant_reply = `${assistant_reply} Te respondo mejor con el modelo activo; mientras tanto, dime montos y categorías concretas.`;
-  } else {
-    assistant_reply = `${assistant_reply} Si es ingreso o gasto, indícame monto mensual y categoría.`;
+  if (amount !== null) {
+    assistant_reply = 'Indica la fila o categoría y dejo el monto en la tabla.';
   }
 
-  return {
-    ok: true,
-    assistant_text: assistant_reply,
-    assistant_reply,
-    next_question: question,
+  return packageBudgetReply({
+    reply: assistant_reply,
+    followUp: question,
     focus_row_id: focus?.id ?? null,
-    done: false,
-    coach_message: null,
-    actions: [],
-    action: null,
     source,
-    provider: 'deterministic',
-  };
+  });
 }
 
 function fallbackReply(
@@ -674,19 +701,12 @@ function buildGreetingReply(
   products: BudgetProductSummary[],
 ) {
   const { focus, question } = buildBudgetFocusQuestion(rows, activeRow, intakeData, products);
-  return {
-    ok: true,
-    assistant_text: `Hola. Vamos armando el presupuesto juntos, fila por fila. ${question}`,
-    assistant_reply: 'Hola. Te ayudo a cerrar un presupuesto claro y util.',
-    next_question: question,
+  return packageBudgetReply({
+    reply: `Hola. Vamos fila por fila.`,
+    followUp: question,
     focus_row_id: focus?.id ?? 'income_salary',
-    done: false,
-    coach_message: null,
-    actions: [],
-    action: null,
     source: 'deterministic_greeting',
-    provider: 'deterministic',
-  };
+  });
 }
 
 function sanitizeActionDraft(raw: BudgetActionDraft | null | undefined): BudgetActionDraft | null {
@@ -788,10 +808,14 @@ function resolveSafeActions(
     normalizedAnswer,
   );
 
+  const inferredAmount = extractClpAmount(answer);
   const result: BudgetAction[] = [];
   for (const raw of rawActions) {
-    const draft = sanitizeActionDraft(raw);
+    let draft = sanitizeActionDraft(raw);
     if (!draft) continue;
+    if (draft.amount === undefined && inferredAmount !== null) {
+      draft = { ...draft, amount: inferredAmount };
+    }
 
     const matchedRow = findRowByReference(rows, activeRow, draft, normalizedAnswer);
     if (draft.kind === 'delete') {
@@ -811,8 +835,27 @@ function resolveSafeActions(
       continue;
     }
 
+    if (activeRow && inferredAmount !== null && (draft.kind === 'update' || draft.amount !== undefined)) {
+      const action = mergeDraftWithExisting('update', activeRow, draft, rows);
+      if (action) result.push(action);
+      continue;
+    }
+
     if (addIntent) {
       const action = mergeDraftWithExisting('add', null, draft, rows);
+      if (action) result.push(action);
+    }
+  }
+
+  if (result.length === 0 && inferredAmount !== null) {
+    const target = activeRow ?? findBudgetFocusRow(rows, null);
+    if (target) {
+      const action = mergeDraftWithExisting(
+        'update',
+        target,
+        { kind: 'update', id: target.id, amount: inferredAmount },
+        rows,
+      );
       if (action) result.push(action);
     }
   }
@@ -897,19 +940,14 @@ function buildDeterministicUpdate(
 
   const projectedRows = rows.map((row) => (row.id === targetRow.id ? { ...row, amount } : row));
   const { focus, question } = buildBudgetFocusQuestion(projectedRows, null, intakeData, products);
-  return {
-    ok: true,
-    assistant_text: `Actualicé ${targetRow.category} a $${formatClp(amount)}. ${question}`,
-    assistant_reply: `Actualicé ${targetRow.category} a $${formatClp(amount)}.`,
-    next_question: question,
+  return packageBudgetReply({
+    reply: `Listo: ${targetRow.category} quedó en $${formatClp(amount)}.`,
+    followUp: question,
     focus_row_id: focus?.id ?? targetRow.id,
-    done: false,
-    coach_message: null,
     actions: [action],
     action,
     source: 'deterministic_update',
-    provider: 'deterministic',
-  };
+  });
 }
 
 function buildStatusReply(
@@ -921,25 +959,19 @@ function buildStatusReply(
   const margin =
     snapshot.income > 0 ? Math.round((snapshot.balance / Math.max(1, snapshot.income)) * 100) : 0;
   const biggest = snapshot.topExpense
-    ? `Tu mayor gasto es ${snapshot.topExpense.category} por $${formatClp(snapshot.topExpense.amount)}.`
-    : 'Todavía no hay un gasto dominante claro.';
+    ? `Mayor gasto: ${snapshot.topExpense.category} ($${formatClp(snapshot.topExpense.amount)}).`
+    : '';
+  const missing =
+    snapshot.missingCoreRows.length > 0
+      ? `Faltan: ${snapshot.missingCoreRows.slice(0, 3).join(', ')}.`
+      : '';
   const { focus, question } = buildBudgetFocusQuestion(rows, null, intakeData, products);
-  return {
-    ok: true,
-    assistant_text: `Hoy vas con ingresos por $${formatClp(snapshot.income)}, gastos por $${formatClp(snapshot.expenses)} y balance ${snapshot.balance >= 0 ? 'positivo' : 'negativo'} de $${formatClp(Math.abs(snapshot.balance))}. ${biggest}`,
-    assistant_reply: `Hoy vas con ingresos por $${formatClp(snapshot.income)}, gastos por $${formatClp(snapshot.expenses)} y un margen de ${margin}% sobre ingreso.`,
-    next_question: question,
+  return packageBudgetReply({
+    reply: `Ingresos $${formatClp(snapshot.income)}, gastos $${formatClp(snapshot.expenses)}, margen ${margin}%. ${biggest} ${missing}`.trim(),
+    followUp: question,
     focus_row_id: focus?.id ?? null,
-    done: false,
-    coach_message:
-      snapshot.missingCoreRows.length > 0
-        ? `Aun faltan datos base: ${snapshot.missingCoreRows.join(', ')}.`
-        : null,
-    actions: [],
-    action: null,
     source: 'deterministic_status',
-    provider: 'deterministic',
-  };
+  });
 }
 
 function buildPrompt(params: {
@@ -960,31 +992,22 @@ function buildPrompt(params: {
   const allowedIds = params.rows.map((row) => row.id);
   return [
     params.isInit
-      ? 'Inicia un chat premium de coedicion de presupuesto y estrategia financiera.'
-      : 'Responde como un asesor senior de plan de accion financiera. Conversa, prioriza y propone cambios concretos cuando corresponda.',
-    'Objetivo: convertir contexto disperso en un plan de accion util, priorizado y ejecutable con el menor costo de tokens.',
+      ? 'Inicia coedicion de presupuesto: primera pregunta para completar la tabla.'
+      : 'Copiloto de presupuesto: conversa con contexto (intake, productos, filas) y edita la tabla.',
+    'Meta principal: proponer actions (update/add/delete) para enriquecer filas existentes, agregar filas utiles o eliminar filas mal definidas.',
     'Reglas:',
-    '- Responde PRIMERO lo que el usuario acaba de decir o preguntar. No ignores su mensaje.',
-    '- Si pregunta definiciones (fijo, variable, ingreso, gasto), explícalas en lenguaje claro antes de pedir datos.',
-    '- assistant_reply debe reconocer el mensaje del usuario y responder con criterio concreto.',
-    '- next_question solo si realmente necesitas un dato adicional; si no, usa null.',
+    '- Un solo mensaje visible: assistant_reply (1-2 frases, max ' + BUDGET_REPLY_WORD_CAP + ' palabras, tono premium sobrio). Sin emojis.',
+    '- Si necesitas un dato, incluye la pregunta en assistant_reply; next_question repite solo esa pregunta final o null.',
+    '- coach_message siempre null.',
+    '- Responde primero al usuario; luego empuja el siguiente dato de tabla.',
     '- Devuelve SOLO JSON valido.',
-    '- Puedes devolver varias acciones en actions.',
-    '- Si la fila ya existe, usa su id exacto y solo cambia lo necesario.',
-    '- Para update puedes omitir campos no modificados; el backend completa el resto.',
-    '- Para add incluye al menos category y type. Si no sabes el id, dejalo vacio.',
-    '- Para delete solo si el usuario lo pidio explicitamente.',
-    '- No inventes montos. Si faltan, responde y pide el dato exacto.',
-    '- assistant_reply: 2-4 frases, max 90 palabras, tono ejecutivo y concreto.',
-    '- next_question: una sola pregunta util o null.',
-    '- focus_row_id: usa un id existente si quieres enfocar una fila.',
-    '- Si existe contexto de mercado, incorpóralo solo como señal verificable y relaciona la recomendacion con la situacion del usuario.',
-    '- Siempre prioriza la siguiente mejor accion segun riesgo, caja, deuda, ahorro y horizonte.',
-    '- Usa marcos senior: proteccion de caja, costo financiero, automatizacion del ahorro, secuencia de deuda, y regla 24h antes de comprometer gasto.',
-    '- Si hay superavit, asigna primero: fondo de emergencia, deuda cara, luego crecimiento.',
-    '- Si hay deficit, prioriza fugas y obligaciones antes de cualquier recomendacion de inversion.',
+    '- Prioriza actions cuando haya monto, categoria o pedido explicito; no inventes montos.',
+    '- Si la fila existe, usa su id exacto.',
+    '- delete solo si el usuario lo pidio.',
+    '- focus_row_id: fila a enfocar en UI.',
+    '- Mercado/intake: solo como señal breve si aporta a la siguiente edicion de tabla.',
     'JSON:',
-    '{"assistant_reply":"string","next_question":"string|null","focus_row_id":"string|null","done":false,"coach_message":"string|null","actions":[{"kind":"add|update|delete","id":"string opcional","category":"string opcional","type":"income|expense opcional","amount":123 opcional,"cadence":"fixed|variable opcional","payment_method":"transfer|debit|credit|cash|prepaid|other opcional","movement_type":"income_main|income_extra|housing|home_services|food|transport|health|education|debt|savings_investment|taxes_fees|leisure_other opcional","note":"string opcional"}]}',
+    '{"assistant_reply":"string","next_question":"string|null","focus_row_id":"string|null","done":false,"coach_message":null,"actions":[{"kind":"add|update|delete","id":"string opcional","category":"string opcional","type":"income|expense opcional","amount":123 opcional,"cadence":"fixed|variable opcional","payment_method":"transfer|debit|credit|cash|prepaid|other opcional","movement_type":"income_main|income_extra|housing|home_services|food|transport|health|education|debt|savings_investment|taxes_fees|leisure_other opcional","note":"string opcional"}]}',
     `Intento detectado: ${params.detectedIntent}`,
     `Estado actual: ingresos $${formatClp(params.snapshot.income)}, gastos $${formatClp(params.snapshot.expenses)}, balance $${formatClp(Math.abs(params.snapshot.balance))}${params.snapshot.balance < 0 ? ' deficit' : ' superavit'}.`,
     `Lectura ejecutiva: ${params.executiveLens}`,
@@ -999,8 +1022,8 @@ function buildPrompt(params: {
     !params.isInit && params.question ? `Ultimo mensaje del asistente: ${params.question}` : '',
     !params.isInit && params.answer ? `Mensaje del usuario: ${params.answer}` : '',
     params.isInit
-      ? 'Arranca con una pregunta concreta y estrategica guiada por intake/productos/filas vacias.'
-      : 'Si el usuario quiere consejo o duda conceptual, responde con criterio senior y luego sugiere el siguiente dato a cerrar.',
+      ? 'Arranca con una pregunta corta guiada por intake/productos/filas vacias.'
+      : 'Cierra cada turno invitando a editar una fila concreta (monto, recurrencia o nueva fila).',
   ]
     .filter(Boolean)
     .join('\n');
@@ -1021,7 +1044,7 @@ async function createAnthropicBudgetReply(params: {
     },
     body: JSON.stringify({
       model: params.model,
-      max_tokens: 420,
+      max_tokens: 280,
       temperature: 0.1,
       system: params.system,
       messages: [{ role: 'user', content: params.prompt }],
@@ -1123,7 +1146,7 @@ router.post(
     }
 
     const systemMsg =
-      'Eres un asesor senior de plan de accion financiera en Chile. Tu prioridad es convertir contexto real en decisiones claras, sofisticadas y ejecutables.';
+      'Eres copiloto premium de presupuesto en Chile. Prioridad: editar la tabla (montos, filas, limpieza). Un mensaje breve por turno, sin emojis, sin tono promocional.';
     const prompt = buildPrompt({
       isInit,
       rows,
@@ -1159,7 +1182,7 @@ router.post(
           const response = await client.chat.completions.create({
             model: openAiModel,
             response_format: { type: 'json_object' },
-            max_completion_tokens: 320,
+            max_completion_tokens: 260,
             messages: [
               { role: 'system', content: systemMsg },
               { role: 'user', content: prompt },
@@ -1240,33 +1263,30 @@ router.post(
       typeof parsed.focus_row_id === 'string' ? parsed.focus_row_id : activeRow?.id,
     );
 
-    const assistantReply = compactText(
-      parsed.assistant_reply ?? 'Propuse el siguiente ajuste para seguir cerrando el presupuesto.',
-      300,
-    );
     const nextQuestion =
       parsed.next_question === null
         ? null
-        : compactText(parsed.next_question || fallbackFocus.question, BUDGET_CHAT_TEXT_LIMIT);
-    const assistantText = compactText(
-      [assistantReply, nextQuestion]
-        .filter((item, index, items) => item && (index === 0 || item !== items[index - 1]))
-        .join('\n'),
+        : compactText(parsed.next_question || fallbackFocus.question, 120);
+    let assistantReply = compactText(
+      parsed.assistant_reply ?? 'Sigamos completando la tabla.',
       BUDGET_CHAT_TEXT_LIMIT,
     );
+    if (actions.length > 0 && !/listo|actualic|registr|dej[eé]|qued[oó]/i.test(assistantReply)) {
+      assistantReply = compactText(`Listo, ajusté la tabla. ${assistantReply}`, BUDGET_CHAT_TEXT_LIMIT);
+    }
+    const displayMessage = finalizeBudgetAssistantMessage(assistantReply, nextQuestion);
 
     res.json({
       ok: true,
-      assistant_text: assistantText || assistantReply,
-      assistant_reply: assistantReply,
+      assistant_text: displayMessage,
+      assistant_reply: displayMessage,
       next_question: nextQuestion,
       focus_row_id:
         typeof parsed.focus_row_id === 'string' && parsed.focus_row_id.trim()
           ? compactText(parsed.focus_row_id, 80)
           : fallbackFocus.focus?.id ?? null,
       done: Boolean(parsed.done),
-      coach_message:
-        typeof parsed.coach_message === 'string' ? compactText(parsed.coach_message, 180) : null,
+      coach_message: null,
       market_snapshot: marketSnapshot,
       actions,
       action: actions[0] ?? null,

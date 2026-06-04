@@ -205,9 +205,10 @@ export function TransactionsModal(props: TransactionsModalProps) {
   const activeProductVisualPalette = productVisualPalette(
     `${props.activeBankProduct?.id ?? 'active'}-${resolvedProductLabel || props.activeBankProduct?.label || 'producto'}-${resolvedBank || props.activeBankProduct?.bank || 'bank'}`
   );
-
   const currentStage: 'consent' | 'evidence' | 'analyst' =
     props.txWizardStep === 'upload' ? 'evidence' : props.txWizardStep === 'dashboard' ? 'analyst' : 'consent';
+  const parsedDocumentCount = props.activeBankProduct?.parsedDocuments.length ?? 0;
+  const analysisAlreadyDone = parsedDocumentCount > 0;
 
   const applyOnboarding = () => {
     if (!props.activeBankProduct) return;
@@ -381,13 +382,11 @@ export function TransactionsModal(props: TransactionsModalProps) {
     hasTemplateChoice &&
     consentAccepted;
   const hasEvidence = Boolean(props.activeBankProduct?.parsedDocuments.length);
-  const parsedDocumentCount = props.activeBankProduct?.parsedDocuments.length ?? 0;
   const isSavedForBatch = Boolean(
     props.activeBankProduct &&
     props.activeBankProduct.connected &&
     props.savedProductIds.includes(props.activeBankProduct.id)
   );
-  const analysisAlreadyDone = parsedDocumentCount > 0;
   const remainingProductCreations = Math.max(0, props.maxProducts - props.productsCreatedTotal);
   const canAddMoreProducts = remainingProductCreations > 0;
   const consentLocked = Boolean(props.activeBankProduct?.connected);
@@ -397,11 +396,19 @@ export function TransactionsModal(props: TransactionsModalProps) {
     { title: 'Cuenta vista', bank: 'BancoEstado', template: 'Cuenta vista' },
   ];
 
-  function handleCreateProduct() {
+  function handleCreateProduct(seed?: { bank?: string; template?: string; productType?: BankProduct['productType'] }) {
     if (!canAddMoreProducts) return;
-    props.addTransactionProduct();
-    setQuickBank('');
-    setProductTemplate('');
+    props.addTransactionProduct(
+      seed
+        ? {
+            bank: seed.bank ?? '',
+            label: seed.template ?? '',
+            productType: seed.productType,
+          }
+        : undefined,
+    );
+    setQuickBank(seed?.bank ?? '');
+    setProductTemplate(seed?.template ?? '');
     setShowInstitutionCatalog(false);
     setShowTemplateCatalog(false);
     setShowTxCarousel(true);
@@ -410,8 +417,13 @@ export function TransactionsModal(props: TransactionsModalProps) {
 
   function openAuthorizationWithPreset(preset?: { bank: string; template: string }) {
     if (preset) {
-      setQuickBank('');
-      setProductTemplate(preset.template);
+      const presetTemplate = ALL_PRODUCT_TEMPLATES.find((item) => item.label === preset.template);
+      handleCreateProduct({
+        bank: `${preset.bank} (simulacion)`,
+        template: preset.template,
+        productType: presetTemplate?.productType,
+      });
+      return;
     }
     setShowInstitutionCatalog(true);
     setShowTemplateCatalog(true);
@@ -684,6 +696,22 @@ export function TransactionsModal(props: TransactionsModalProps) {
     [props.transactionProductCards],
   );
   const canInjectToAgent = analyzedProductsCount > 0;
+  const txStageSummary =
+    currentStage === 'consent'
+      ? 'Paso 1 de 3: define institución, plantilla y consentimiento.'
+      : currentStage === 'evidence'
+        ? 'Paso 2 de 3: sube cartolas o respaldos y espera el análisis.'
+        : 'Paso 3 de 3: revisa el resumen y envíalo al agente principal.';
+  const txStageCta =
+    currentStage === 'consent'
+      ? 'Conectar y continuar'
+      : currentStage === 'evidence'
+        ? analysisAlreadyDone
+          ? 'Resumen listo para revisar'
+          : 'Sube evidencia para desbloquear el resumen'
+        : canInjectToAgent
+          ? 'Enviar al agente cuando cierres revisión'
+          : 'Guarda o analiza un producto para inyectarlo';
 
   const requestClose = useCallback(() => {
     const hasPending = pendingEvidenceFiles.length > 0 || pendingManualEvidence.length > 0;
@@ -1216,7 +1244,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
                 <button
                   type="button"
                   className="continue-ghost tx-create-product-btn"
-                  onClick={handleCreateProduct}
+                  onClick={() => handleCreateProduct()}
                   disabled={!canAddMoreProducts}
                 >
                   + Agregar producto
@@ -1390,6 +1418,11 @@ export function TransactionsModal(props: TransactionsModalProps) {
 
           <div className={`pt-right tx-panel-surface tx-panel-surface--workspace ${!props.activeBankProduct || showTxCarousel ? '' : 'tx-only-cta'}`}>
             <NumericDust scope="workspace" pulse={transitionPulse} active={dockTransitionPhase !== 'idle' || currentStage !== 'consent'} />
+            <div className="tx-meta-card is-neutral" role="status" aria-live="polite" style={{ marginBottom: 14 }}>
+              <span className="tx-meta-card-kicker">Estado del flujo</span>
+              <p>{txStageSummary}</p>
+              <p>{txStageCta}</p>
+            </div>
             {!props.activeBankProduct ? (
               <div className="transactions-summary-card pt-empty-state">
                 <div className="pt-empty-head">
@@ -1424,7 +1457,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
                   <button
                     type="button"
                     className="continue-ghost tx-create-product-btn"
-                    onClick={handleCreateProduct}
+                    onClick={() => handleCreateProduct()}
                     disabled={!canAddMoreProducts}
                   >
                     Crear primer producto
@@ -1451,7 +1484,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
                         <button
                           type="button"
                           className="tx-preset-btn tx-preset-btn-add"
-                          onClick={handleCreateProduct}
+                          onClick={() => handleCreateProduct()}
                         >
                           + Agregar otro producto
                         </button>
@@ -1599,14 +1632,6 @@ export function TransactionsModal(props: TransactionsModalProps) {
                         </span>
                       </button>
                       <div className="tx-consent-inline-actions">
-                        <button
-                          type="button"
-                          className="continue-ghost tx-consent-inline-continue"
-                          disabled={!canContinueAuto || isDockingToLibrary}
-                          onClick={startAuthorizationTransition}
-                        >
-                          Continuar
-                        </button>
                       </div>
                     </div>
                     <div className="agent-modal-actions tx-consent-actions-row">

@@ -2333,7 +2333,9 @@ export default function AgentPage() {
 
     const userMessage = outgoingText;
     const agentMessage = String(options?.agentPayload ?? userMessage).trim();
-    const pendingLabel = String(options?.assistantPendingLabel ?? '').trim();
+    const pendingLabel = String(
+      options?.assistantPendingLabel ?? 'Financieramente está analizando tu mensaje…'
+    ).trim();
     const hideUserMessage = options?.hideUserMessage === true;
 
     const removePendingAssistantMessage = (list: ChatItem[]): ChatItem[] => {
@@ -2418,12 +2420,10 @@ export default function AgentPage() {
         { type: 'message', role: 'user', content: userMessage },
       ]);
     }
-    if (pendingLabel) {
-      setItemsForActive((prev) => [
-        ...prev,
-        { type: 'message', role: 'assistant', content: pendingLabel, mode: 'information' },
-      ]);
-    }
+    setItemsForActive((prev) => [
+      ...prev,
+      { type: 'message', role: 'assistant', content: pendingLabel, mode: 'information' },
+    ]);
 
     // Increment user message count for sheet cycling
     setChatThreads((prev) =>
@@ -3002,17 +3002,19 @@ export default function AgentPage() {
     }
   }
 
-  function addTransactionProduct() {
+  function addTransactionProduct(seed?: Partial<BankProduct>) {
     if (txProductsCreatedTotal >= MAX_TRANSACTION_PRODUCTS) {
       setTransactionUploadError(`Solo puedes crear ${MAX_TRANSACTION_PRODUCTS} productos por usuario.`);
       return;
     }
     setTxCreationNotice(null);
     const id = `prod-${Date.now()}`;
+    const seededLabel = String(seed?.label ?? '').trim();
+    const seededBank = String(seed?.bank ?? '').trim();
     const product: BankProduct = {
       id,
-      label: `Producto ${bankSimulation.products.length + 1}`,
-      bank: '',
+      label: seededLabel || `Producto ${bankSimulation.products.length + 1}`,
+      bank: seededBank,
       assistant: {
         messages: [],
         uploadFormat: null,
@@ -3022,8 +3024,8 @@ export default function AgentPage() {
         summaryRegenerationsUsed: 0,
         lastSummaryFeedback: null,
       },
-      productType: 'credit_card',
-      simulationAccepted: false,
+      productType: seed?.productType ?? 'checking_account',
+      simulationAccepted: Boolean(seed?.simulationAccepted),
       connected: false,
       randomMode: false,
       uploadedFiles: [],
@@ -3177,6 +3179,9 @@ export default function AgentPage() {
       connected: nextBank.length > 0,
       randomMode: false,
     });
+    setTxCreationNotice(
+      `Producto configurado: ${(nextLabel || activeBankProduct.label).trim()} · ${(nextBank || 'institución por definir').trim()}. Sube una cartola o respaldo para continuar.`,
+    );
     setTransactionUploadError(null);
     setTxWizardStep('upload');
   }
@@ -3369,6 +3374,16 @@ export default function AgentPage() {
       const profileInstitution = String(profile?.institution ?? '').trim();
       const profileLabel = String(profile?.product_label ?? '').trim();
       const profileType = profile?.product_type;
+      const normalizedBankHint = String(activeBankProduct.bank ?? '')
+        .replace(/\s*\(simulacion\)\s*/gi, '')
+        .trim();
+      const normalizedLabelHint = String(activeBankProduct.label ?? '').trim();
+      const isPlaceholderInstitution =
+        profileInstitution.length === 0 || /instituci[oó]n por confirmar/i.test(profileInstitution);
+      const isGenericLabel =
+        profileLabel.length === 0 ||
+        /^producto(\s+\d+)?$/i.test(profileLabel) ||
+        /producto financiero/i.test(profileLabel);
       const canonicalMovements = Array.isArray(transactionAnalysis?.movements)
         ? transactionAnalysis.movements
         : [];
@@ -3409,19 +3424,25 @@ export default function AgentPage() {
           provisionalProduct.parsedDocuments.map((d) => d.text ?? '').join('\n'),
         );
         const generatedLabel =
-          profileInstitution && profileLabel
+          !isPlaceholderInstitution && !isGenericLabel
             ? `${profileInstitution} · ${profileLabel}`
-            : inferredInstitution !== 'Institución no identificada'
-            ? `${inferredInstitution} · ${inferredType}`
-            : active.label;
+            : normalizedBankHint && normalizedLabelHint
+              ? `${normalizedBankHint} · ${normalizedLabelHint}`
+              : inferredInstitution !== 'Institución no identificada'
+                ? `${inferredInstitution} · ${inferredType}`
+                : active.label;
 
         const products = uploadApplied.products.map((p) =>
           p.id === active.id
             ? {
                 ...p,
                 assistant: normalizeProductAssistantState(p.assistant),
-                bank: profileInstitution || p.bank.trim() || inferredInstitution,
-                productType: profileType || p.productType,
+                bank:
+                  (isPlaceholderInstitution ? '' : profileInstitution) ||
+                  normalizedBankHint ||
+                  p.bank.trim() ||
+                  inferredInstitution,
+                productType: profileType || activeBankProduct.productType || p.productType,
                 label: generatedLabel || descriptor.title || p.label,
                 dashboard: profile
                   ? {
@@ -3455,6 +3476,9 @@ export default function AgentPage() {
           randomMode: snapshot.randomMode,
         };
       });
+      setTxCreationNotice(
+        `${names.length} respaldo(s) procesado(s) para ${normalizedLabelHint || activeBankProduct.label}. Ya puedes revisar el resumen o inyectar el producto al agente.`,
+      );
       return {
         documents: fallbackParsedDocs,
         dashboard: transactionAnalysis?.product_profile
@@ -3477,11 +3501,14 @@ export default function AgentPage() {
             }
           : undefined,
         product: {
-          bank: profileInstitution || activeBankProduct.bank,
+          bank:
+            (isPlaceholderInstitution ? '' : profileInstitution) ||
+            normalizedBankHint ||
+            activeBankProduct.bank,
           label:
-            profileInstitution && profileLabel
+            !isPlaceholderInstitution && !isGenericLabel
               ? `${profileInstitution} · ${profileLabel}`
-              : profileLabel || activeBankProduct.label,
+              : normalizedLabelHint || profileLabel || activeBankProduct.label,
           productType: profileType || activeBankProduct.productType,
         },
       };

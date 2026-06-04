@@ -763,14 +763,17 @@ function buildTransactionAnalysisFromMovements(
     },
   ];
 
-  const institution = hints.institutionHint?.trim() || 'Institución por confirmar';
-  const service = hints.serviceHint?.trim() || hints.productLabelHint?.trim() || 'Producto financiero';
+  const cleanedInstitutionHint = hints.institutionHint?.replace(/\s*\(simulaci[oó]n\)\s*/gi, '').trim() || '';
+  const cleanedServiceHint = hints.serviceHint?.trim() || '';
+  const cleanedProductLabelHint = hints.productLabelHint?.trim() || '';
+  const institution = cleanedInstitutionHint || 'Institución por confirmar';
+  const service = cleanedServiceHint || cleanedProductLabelHint || 'Producto financiero';
   const normalizedProductType =
     normalizeProductType(hints.productTypeHint) ||
-    normalizeProductType(hints.serviceHint) ||
-    normalizeProductType(hints.productLabelHint) ||
+    normalizeProductType(cleanedServiceHint) ||
+    normalizeProductType(cleanedProductLabelHint) ||
     'credit_card';
-  const productLabel = hints.productLabelHint?.trim() || service;
+  const productLabel = cleanedProductLabelHint || service;
 
   return {
     product_profile: {

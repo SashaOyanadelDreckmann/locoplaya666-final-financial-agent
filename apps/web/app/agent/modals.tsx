@@ -423,7 +423,6 @@ export function BudgetModal(props: {
   const [budgetReply, setBudgetReply] = useState('');
   const [assistantQuestion, setAssistantQuestion] = useState<string | null>(null);
   const [conversationDone, setConversationDone] = useState(false);
-  const [assistantCoachMessage, setAssistantCoachMessage] = useState<string | null>(null);
   const [assistantMarketSnapshot, setAssistantMarketSnapshot] = useState<{
     uf: { value: number | null; unit: string | null; date: string | null; source: string | null };
     tpm: { value: number | null; unit: string | null; date: string | null; source: string | null };
@@ -466,12 +465,10 @@ export function BudgetModal(props: {
   };
   const activeQuestion = assistantQuestion ?? '…';
   const agentStatusText = isInitializing
-    ? 'Preparando conversación con contexto de tabla…'
+    ? 'Preparando asistente…'
     : isAskingAI
-      ? 'Analizando tu mensaje…'
+      ? 'Analizando…'
       : activeQuestion;
-  const agentContextText =
-    assistantCoachMessage && !isInitializing && !isAskingAI ? assistantCoachMessage : null;
   const activeStyleIndex = BUDGET_TABLE_STYLES.findIndex((style) => style.id === budgetTableStyle);
   const activeStyleLabel = BUDGET_TABLE_STYLES[Math.max(0, activeStyleIndex)]?.label ?? 'Nocturno';
   const completedRowsCount = props.budgetCompletion.filledRows.length;
@@ -619,39 +616,9 @@ export function BudgetModal(props: {
     return nextQuestion || fallback;
   }
 
-  function applyAssistantTurn(
-    payload: BudgetChatApiPayload,
-    previousQuestion: string,
-  ) {
+  function applyAssistantTurn(payload: BudgetChatApiPayload, previousQuestion: string) {
     const reply = getAssistantMessage(payload);
-    const coach =
-      typeof payload.coach_message === 'string' && payload.coach_message.trim()
-        ? payload.coach_message.trim()
-        : null;
-    const nextQuestion = sanitizeBudgetQuestion(getNextQuestion(payload, ''));
-
-    if (reply) {
-      setAssistantQuestion(reply);
-      const isEducation = payload.source === 'deterministic_education';
-      const hint =
-        coach ||
-        (!isEducation &&
-        nextQuestion &&
-        normalizeBudgetText(nextQuestion) !== normalizeBudgetText(reply)
-          ? nextQuestion
-          : null);
-      setAssistantCoachMessage(hint);
-      return;
-    }
-
-    if (nextQuestion) {
-      setAssistantQuestion(nextQuestion);
-      setAssistantCoachMessage(coach);
-      return;
-    }
-
-    setAssistantQuestion(previousQuestion);
-    setAssistantCoachMessage(coach);
+    setAssistantQuestion(reply || previousQuestion);
   }
 
   useEffect(() => {
@@ -1006,11 +973,10 @@ export function BudgetModal(props: {
           setAssistantBudgetRowId(inferBudgetFocusRowId(nextQuestion));
         }
       } else {
-        setAssistantCoachMessage('No recibí respuesta del asistente. Intenta reformular tu mensaje.');
+        setAssistantQuestion('No recibí respuesta. Reformula con monto o categoría.');
       }
     } catch (error) {
       if (isBudgetChatAbortError(error)) return;
-      setAssistantCoachMessage(null);
       setAiError(budgetChatErrorMessage(error));
     } finally {
       if (askingWatchdogRef.current) {
@@ -1040,7 +1006,6 @@ export function BudgetModal(props: {
     setConversationDone(false);
     setAiError(null);
     setAssistantQuestion(null);
-    setAssistantCoachMessage(null);
     setAssistantMarketSnapshot(null);
     setIsInitializing(true);
     setActiveBudgetRowId(null);
@@ -1096,7 +1061,6 @@ export function BudgetModal(props: {
         } else {
           setAssistantQuestion(budgetQuestionForId('income_salary'));
           setAssistantBudgetRowId('income_salary');
-          setAssistantCoachMessage(null);
         }
         setAssistantMarketSnapshot(
           payload?.market_snapshot
@@ -1127,7 +1091,6 @@ export function BudgetModal(props: {
         if (isBudgetChatAbortError(err)) return;
         setAssistantQuestion(budgetQuestionForId('income_salary'));
         setAssistantBudgetRowId('income_salary');
-        setAssistantCoachMessage(null);
         setAssistantMarketSnapshot(null);
         setAiError(budgetChatErrorMessage(err));
       } finally {
@@ -1367,28 +1330,9 @@ export function BudgetModal(props: {
                     )}
                   </div>
 
-                  {/* Conversation history log */}
-                  {props.chatAnswers.length > 0 && (
-                    <div className="bcc-hero-log" aria-label="Historial de conversación">
-                      {props.chatAnswers.slice(-6).map((turn, i) => (
-                        <div key={i} className="bcc-log-row">
-                          <span className="bcc-log-q">{turn.q}</span>
-                          <span className="bcc-log-a">{turn.a}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Current assistant message */}
                   <p className="bcc-hero-question">{agentStatusText}</p>
-                  {agentContextText && !isInitializing && !isAskingAI && (
-                    <p className="bcc-hero-coach">
-                      <span className="bcc-hero-coach-label">Siguiente paso · </span>
-                      {agentContextText}
-                    </p>
-                  )}
                   {conversationDone && (
-                    <p className="bcc-hero-done">✓ Presupuesto completo — puedes ajustar la tabla cuando quieras.</p>
+                    <p className="bcc-hero-done">Presupuesto completo. Puedes seguir ajustando la tabla.</p>
                   )}
                   {marketSnapshotChips.length > 0 && (
                     <div className="budget-market-strip" aria-label="Contexto de mercado">

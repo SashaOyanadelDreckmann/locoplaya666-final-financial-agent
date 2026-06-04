@@ -73,7 +73,8 @@ describe('budget-chat routes', () => {
     expect(res.body.source).toBe('deterministic_education');
     expect(String(res.body.assistant_reply)).toMatch(/fijo/i);
     expect(String(res.body.assistant_reply)).toMatch(/variable/i);
-    expect(res.body.next_question).toBeNull();
+    expect(res.body.coach_message).toBeNull();
+    expect(String(res.body.assistant_reply)).toBe(String(res.body.assistant_text));
   }, 15_000);
 
   it('does not treat hola + definitional question as pure greeting', async () => {
@@ -92,7 +93,7 @@ describe('budget-chat routes', () => {
     expect(res.status).toBe(200);
     expect(res.body.source).toBe('deterministic_education');
     expect(String(res.body.assistant_reply)).toMatch(/ingreso fijo/i);
-    expect(res.body.next_question).toBeNull();
+    expect(res.body.coach_message).toBeNull();
   }, 15_000);
 
   it('answers natural-language education questions without que es', async () => {
@@ -111,6 +112,6 @@ describe('budget-chat routes', () => {
     expect(res.status).toBe(200);
     expect(res.body.source).toBe('deterministic_education');
     expect(String(res.body.assistant_reply)).toMatch(/fijo/i);
-    expect(res.body.next_question).toBeNull();
+    expect(res.body.coach_message).toBeNull();
   }, 15_000);
 });

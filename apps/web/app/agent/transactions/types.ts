@@ -128,7 +128,7 @@ export type TransactionsModalProps = {
   selectedProductId: string | null;
   selectTransactionProduct: (id: string) => void;
   deleteTransactionProduct: (id: string) => void;
-  addTransactionProduct: () => void;
+  addTransactionProduct: (seed?: Partial<BankProduct>) => void;
   updateActiveProduct: (patch: Partial<BankProduct>) => void;
   updateProductById: (productId: string, patch: Partial<BankProduct>) => void;
   transactionTaxonomyOverrides: TransactionTaxonomyOverride[];

@@ -4,11 +4,12 @@ import { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
-import { loginUser } from '@/lib/api';
+import { getSessionInfo, loginUser } from '@/lib/api';
 import { ApiHttpError } from '@/lib/apiEnvelope';
 import { toUserFacingError } from '@/lib/userError';
 import { useSessionStore } from '@/state/session.store';
 import { LoginSchema, type LoginInput } from '@/lib/validation';
+import { hasCompletedIntakeAccess } from '@/lib/sessionAccess';
 import { ZodError } from 'zod';
 
 function LoginContent() {
@@ -57,7 +58,13 @@ function LoginContent() {
       const safeNext = requestedNext && requestedNext.startsWith('/') && !requestedNext.startsWith('//')
         ? requestedNext
         : null;
-      const fallbackRoute = role === 'ADMIN' ? '/admin' : '/agent';
+      let fallbackRoute = role === 'ADMIN' ? '/admin' : '/agent';
+      if (role !== 'ADMIN') {
+        const session = await getSessionInfo().catch(() => null);
+        if (session && !hasCompletedIntakeAccess(session.injectedIntake)) {
+          fallbackRoute = '/intake?status=approved';
+        }
+      }
       router.push(safeNext ?? fallbackRoute);
     } catch (e: Error | unknown) {
       if (e instanceof ApiHttpError && e.code === 'ACCOUNT_PENDING_APPROVAL') {

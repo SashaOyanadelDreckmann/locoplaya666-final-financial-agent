@@ -1,7 +1,7 @@
 'use client';
 import './intake.css';
 
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { useInterviewStore } from '@/state/interview.store';
@@ -54,6 +54,7 @@ const INITIAL_FORM: IntakeQuestionnaire = {
 
 export default function IntakePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const setIntake = useInterviewStore((s) => s.setIntake);
 
   const [form, setForm] = useState<IntakeQuestionnaire>(structuredClone(INITIAL_FORM));
@@ -127,6 +128,7 @@ export default function IntakePage() {
 
   const stepMeta = INTAKE_STEPS[step];
   const cssVars = { '--c-step': stepMeta.rgb } as React.CSSProperties;
+  const approvedStatus = searchParams.get('status') === 'approved';
 
   return (
     <div className="intake-shell" data-step={stepMeta.key} style={cssVars}>
@@ -161,6 +163,11 @@ export default function IntakePage() {
         data-step={stepMeta.key}
         aria-label={stepMeta.title}
       >
+        {approvedStatus ? (
+          <div className="intake-error" role="status" style={{ marginBottom: 12 }}>
+            Cuenta aprobada. Falta completar este perfil inicial para entrar al agente.
+          </div>
+        ) : null}
         <AnimatePresence mode="wait">
           <motion.div
             key={stepMeta.key}
