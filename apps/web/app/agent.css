@@ -764,14 +764,16 @@ html.agent-global-monochrome {
   }
 
   .agent-panel {
-    flex: 0 0 108px !important;
-    max-height: 108px !important;
+    /* Extend panel into safe-area-inset-bottom so no bare strip shows below cards */
+    flex: 0 0 calc(108px + env(safe-area-inset-bottom, 0px)) !important;
+    max-height: calc(108px + env(safe-area-inset-bottom, 0px)) !important;
+    padding-bottom: env(safe-area-inset-bottom, 0px) !important;
     overflow: hidden !important;
   }
 
   .agent-layout.mobile-panel-expanded .agent-panel {
-    flex-basis: 46vh !important;
-    max-height: 46vh !important;
+    flex-basis: calc(46vh + env(safe-area-inset-bottom, 0px)) !important;
+    max-height: calc(46vh + env(safe-area-inset-bottom, 0px)) !important;
   }
 
   .agent-panel .panel-grid {
@@ -5387,9 +5389,10 @@ html.agent-global-monochrome {
     /* 12px side padding lets the background show on both sides */
     padding: 0 12px;
     gap: 0;
-    /* --visual-vh se actualiza via JS (visualViewport API) para manejar teclado iOS */
-    height: var(--visual-vh, 100dvh);
-    max-height: var(--visual-vh, 100dvh);
+    /* Use 100dvh (full screen incl. safe areas) so no strip shows below panel.
+       --visual-vh is still set by JS for keyboard handling via the chat flex child. */
+    height: 100dvh;
+    max-height: 100dvh;
     overflow: hidden;
     overscroll-behavior: none;
     touch-action: manipulation;
@@ -10671,6 +10674,12 @@ html.agent-global-monochrome {
     box-shadow: 0 -18px 46px rgba(0, 0, 0, 0.34) !important;
     padding-bottom: calc(18px + env(safe-area-inset-bottom)) !important;
     overflow-y: auto !important;
+  }
+
+  /* Account modal: small content, no forced full-height */
+  .account-modal {
+    min-height: auto !important;
+    max-height: min(80dvh, 80vh) !important;
   }
 
   .agent-modal-header {
