@@ -157,8 +157,20 @@ function rowsToTable(name: string, rows: string[][], source: ParsedTable['source
   if (cleanRows.length === 0) return null;
   const width = cleanRows.reduce((max, row) => Math.max(max, row.length), 0);
   const padded = cleanRows.map((row) => Array.from({ length: width }, (_, index) => row[index] ?? ''));
-  const headers = looksLikeHeaderRow(padded[0]) ? padded[0] : makeGenericHeaders(width);
-  const body = looksLikeHeaderRow(padded[0]) ? padded.slice(1) : padded;
+
+  // Scan the first rows to find the actual header row. Chilean bank CSVs often
+  // include metadata lines (institution name, account number, period) before the
+  // real column headers, so checking only row[0] is insufficient.
+  let headerRowIndex = -1;
+  for (let i = 0; i < Math.min(12, padded.length); i++) {
+    if (looksLikeHeaderRow(padded[i])) {
+      headerRowIndex = i;
+      break;
+    }
+  }
+
+  const headers = headerRowIndex >= 0 ? padded[headerRowIndex] : makeGenericHeaders(width);
+  const body = headerRowIndex >= 0 ? padded.slice(headerRowIndex + 1) : padded;
   return { name, headers, rows: body, source };
 }
 

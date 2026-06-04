@@ -251,16 +251,30 @@ function hasExplicitPositiveAmount(token: string): boolean {
 
 function inferDirection(line: string, signedAmount: number, amountToken = ''): 'income' | 'expense' {
   const normalized = line.toLowerCase();
+
+  // High-specificity income phrases are checked separately to prevent generic
+  // keywords like "pago" (also in expense list) from masking them.
+  const specificIncomeHits = (
+    normalized.match(/\b(abono|ingreso|dep[oó]sito|sueldo|remuner|n[oó]mina|payroll|pensi[oó]n|honorari|pago\s+recibido|transferencia\s+recibida|devoluci[oó]n)\b/g) ?? []
+  ).length;
+
+  // Generic expense keywords excluding "pago" standalone so that
+  // "pago recibido" (already counted above) does not inflate expenseHits.
   const expenseHits = (
-    normalized.match(/\b(compra|cargo|pago|retiro|comisi[oó]n|suscrip|cuota|giro|transferencia enviada|transferencia emitida|pac|pat|webpay|pos|debito|d[eé]bito)\b/g) ?? []
+    normalized.match(/\b(compra|cargo|retiro|comisi[oó]n|suscrip|giro|transferencia\s+enviada|transferencia\s+emitida|pac|pat|webpay|pos|debito|d[eé]bito)\b/g) ?? []
+  ).length + (
+    // "pago" only counts as expense when NOT followed by "recibido"
+    normalized.match(/\bpago(?!\s+recibido)\b/g) ?? []
   ).length;
-  const incomeHits = (
-    normalized.match(/\b(abono|ingreso|dep[oó]sito|sueldo|remuner|n[oó]mina|payroll|pensi[oó]n|honorari|pago recibido|transferencia recibida|devoluci[oó]n)\b/g) ?? []
-  ).length;
-  if (hasExplicitNegativeAmount(amountToken) && incomeHits === 0) return 'expense';
-  if (hasExplicitPositiveAmount(amountToken) && incomeHits > expenseHits) return 'income';
-  if (expenseHits > incomeHits && expenseHits > 0) return 'expense';
-  if (incomeHits > expenseHits && incomeHits > 0) return 'income';
+
+  // Credit card installment notation (1/3, 1/6, etc.) always signals an expense.
+  const isCreditCardInstallment = /\b\d+\/\d+\b/.test(normalized);
+  if (isCreditCardInstallment && specificIncomeHits === 0) return 'expense';
+
+  if (hasExplicitNegativeAmount(amountToken) && specificIncomeHits === 0) return 'expense';
+  if (hasExplicitPositiveAmount(amountToken) && specificIncomeHits > expenseHits) return 'income';
+  if (specificIncomeHits > expenseHits && specificIncomeHits > 0) return 'income';
+  if (expenseHits > specificIncomeHits && expenseHits > 0) return 'expense';
   return signedAmount < 0 ? 'expense' : 'income';
 }
 
@@ -455,10 +469,27 @@ function normalizeProductType(value?: string): string | undefined {
 }
 
 function inferCurrency(documents: ParsedDocumentResponse[]): string {
-  const text = documents.map((doc) => doc.text ?? '').join('\n').toUpperCase();
-  if (/\bUSD\b|US\$/i.test(text)) return 'USD';
-  if (/\bUF\b/.test(text)) return 'UF';
-  if (/\bEUR\b|€/.test(text)) return 'EUR';
+  const text = documents.map((doc) => doc.text ?? '').join('\n');
+  const upper = text.toUpperCase();
+
+  // Count affirmative signals per currency. CLP is the default for Chilean
+  // financial documents; USD/UF/EUR must clearly dominate to override it.
+  // We distinguish "MONTO CLP" / explicit $ amounts from incidental USD mentions
+  // such as exchange-rate notes ("tipo de cambio USD: $ 980").
+  const clpHits =
+    (upper.match(/\bCLP\b/g) ?? []).length +
+    (text.match(/\bpesos?\b/gi) ?? []).length +
+    (text.match(/MONTO\s+CLP|EN\s+CLP|MONEDA\s+CLP/gi) ?? []).length;
+
+  const usdHits = (upper.match(/\bUSD\b|US\$|U\.S\.\$/g) ?? []).length;
+  const ufHits = (upper.match(/\bUF\b/g) ?? []).length + (text.match(/unidad\s+de\s+fomento/gi) ?? []).length;
+  const eurHits = (upper.match(/\bEUR\b|€/g) ?? []).length;
+
+  // Foreign currency wins only when it clearly outnumbers CLP signals.
+  if (clpHits > 0 && clpHits >= usdHits && clpHits >= ufHits && clpHits >= eurHits) return 'CLP';
+  if (usdHits > ufHits && usdHits > eurHits && usdHits > clpHits) return 'USD';
+  if (ufHits > usdHits && ufHits > eurHits) return 'UF';
+  if (eurHits > usdHits) return 'EUR';
   return 'CLP';
 }
 
@@ -474,6 +505,8 @@ function extractMovements(documents: ParsedDocumentResponse[]): ParsedMovement[]
     const tables = Array.isArray(structured.tables)
       ? structured.tables as Array<{ headers?: unknown; rows?: unknown }>
       : [];
+
+    const countBefore = movements.length;
     for (const table of tables) {
       const headers = Array.isArray(table.headers) ? table.headers.map((cell) => String(cell ?? '')) : [];
       const rows = Array.isArray(table.rows) ? table.rows : [];
@@ -489,22 +522,31 @@ function extractMovements(documents: ParsedDocumentResponse[]): ParsedMovement[]
         movements.push(parsed);
       }
     }
+    const tableMovementsFromDoc = movements.length - countBefore;
 
-    const candidateLines = Array.isArray(structured.possibleTransactions)
-      ? structured.possibleTransactions.map((line) => String(line ?? '').trim()).filter(Boolean)
-      : doc.text
-          .split('\n')
-          .map((line) => line.trim())
-          .filter((line) => line.length > 0 && !line.startsWith('---') && !line.startsWith('['))
-          .slice(0, 220);
+    // If structured table extraction yielded a meaningful number of movements,
+    // skip loose-line parsing for this document. Running both would produce
+    // near-duplicate entries with slightly different descriptions or amounts
+    // (e.g. the saldo column leaking into the parsed amount), inflating totals.
+    const skipLooseLines = tableMovementsFromDoc >= 3;
 
-    for (const line of candidateLines) {
-      const parsed = parseMovementFromLooseLine(line);
-      if (!parsed) continue;
-      const key = buildMovementKey(parsed);
-      if (dedup.has(key)) continue;
-      dedup.add(key);
-      movements.push(parsed);
+    if (!skipLooseLines) {
+      const candidateLines = Array.isArray(structured.possibleTransactions)
+        ? structured.possibleTransactions.map((line) => String(line ?? '').trim()).filter(Boolean)
+        : doc.text
+            .split('\n')
+            .map((line) => line.trim())
+            .filter((line) => line.length > 0 && !line.startsWith('---') && !line.startsWith('['))
+            .slice(0, 220);
+
+      for (const line of candidateLines) {
+        const parsed = parseMovementFromLooseLine(line);
+        if (!parsed) continue;
+        const key = buildMovementKey(parsed);
+        if (dedup.has(key)) continue;
+        dedup.add(key);
+        movements.push(parsed);
+      }
     }
   }
   return movements

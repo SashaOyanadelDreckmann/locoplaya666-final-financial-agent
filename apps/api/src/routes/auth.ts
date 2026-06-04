@@ -26,6 +26,9 @@ import {
   approveUserFromSignedToken,
   rejectUserFromSignedToken,
   sendApprovalRequestEmail,
+  createPasswordResetToken,
+  verifyPasswordResetToken,
+  sendPasswordResetEmail,
 } from '../services/approval.service';
 
 export const authRouter = Router();
@@ -241,6 +244,64 @@ authRouter.delete('/account', asyncHandler(async (req, res) => {
 
   clearSessionCookie(res);
   return sendSuccess(res, { deleted: true });
+}));
+
+const ForgotPasswordSchema = z.object({
+  email: z.string().email(),
+});
+
+const ResetPasswordSchema = z.object({
+  token: z.string().min(1),
+  password: z
+    .string()
+    .min(8)
+    .max(128)
+    .regex(/[A-Z]/, 'Password must include at least one uppercase letter')
+    .regex(/[0-9]/, 'Password must include at least one number'),
+});
+
+/**
+ * POST /auth/forgot-password
+ * Generates a short-lived HMAC-signed reset token and sends it via email.
+ * Always responds with success to prevent email enumeration attacks.
+ */
+authRouter.post('/forgot-password', asyncHandler(async (req, res) => {
+  const data = parseBody(ForgotPasswordSchema, req.body);
+  const user = await findUserByEmail(normalizeEmail(data.email));
+
+  if (user && user.approvalStatus === APPROVAL_STATUS.APPROVED) {
+    const token = createPasswordResetToken({ userId: user.id, userEmail: user.email });
+    await sendPasswordResetEmail({ userName: user.name, userEmail: user.email, token }).catch(
+      (error: unknown) => {
+        logger.warn({ msg: 'Password reset email failed', userId: user.id, error });
+      },
+    );
+  }
+
+  // Always succeed — do not leak whether the email exists.
+  return sendSuccess(res, { sent: true });
+}));
+
+/**
+ * POST /auth/reset-password
+ * Verifies the HMAC-signed reset token and updates the user's password.
+ */
+authRouter.post('/reset-password', asyncHandler(async (req, res) => {
+  const data = parseBody(ResetPasswordSchema, req.body);
+  const payload = verifyPasswordResetToken(data.token);
+
+  const user = await findUserByEmail(payload.userEmail);
+  if (!user || user.id !== payload.userId) {
+    throw badRequest('Token inválido o expirado');
+  }
+  if (user.approvalStatus !== APPROVAL_STATUS.APPROVED) {
+    throw badRequest('Token inválido o expirado');
+  }
+
+  const passwordHash = await bcrypt.hash(data.password, 12);
+  await updateUserAuthSecurity(user.id, { passwordHash });
+
+  return sendSuccess(res, { reset: true });
 }));
 
 /** GET /auth/me — lightweight session check used by Next.js API routes. */
