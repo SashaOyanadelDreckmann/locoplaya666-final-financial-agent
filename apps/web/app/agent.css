@@ -32794,9 +32794,9 @@ body.agent-route-active .app-shell::before {
   .agent-chat-header .chat-switcher .chat-sheet-tab {
     min-width: 0 !important;
     width: 100% !important;
-    height: 13px !important;
-    padding: 0 3px !important;
-    border-radius: 5px !important;
+    height: 16px !important;
+    padding: 1px 4px !important;
+    border-radius: 6px !important;
     gap: 2px !important;
   }
 
@@ -32819,11 +32819,11 @@ body.agent-route-active .app-shell::before {
   }
 
   .agent-chat-header .chat-switcher .chat-sheet-tab-index {
-    width: 8px !important;
-    height: 8px !important;
-    min-width: 8px !important;
-    flex-basis: 8px !important;
-    font-size: 4px !important;
+    width: 10px !important;
+    height: 10px !important;
+    min-width: 10px !important;
+    flex-basis: 10px !important;
+    font-size: 5px !important;
   }
 
   .agent-chat-header .chat-brand-strip {
@@ -43664,8 +43664,8 @@ body.agent-route-active .app-shell::before {
     align-items: center !important;
     flex: 0 0 auto !important;
     margin: 0 8px !important;
-    padding: 3px 0 2px !important;
-    gap: 2px !important;
+    padding: 6px 0 4px !important;
+    gap: 4px !important;
     border-bottom: none !important;
     min-height: 0 !important;
   }
@@ -43673,7 +43673,7 @@ body.agent-route-active .app-shell::before {
   .agent-chat-header.is-mobile .agent-chat-controls-row {
     width: 100% !important;
     margin: 0 !important;
-    padding: 0 !important;
+    padding: 2px 0 0 !important;
     gap: 2px !important;
     align-items: center !important;
     justify-content: center !important;
@@ -43682,32 +43682,32 @@ body.agent-route-active .app-shell::before {
   .agent-chat-header.is-mobile .chat-switcher {
     display: grid !important;
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-    width: 50% !important;
-    max-width: 50% !important;
+    width: 54% !important;
+    max-width: 54% !important;
     margin-inline: auto !important;
     gap: 3px !important;
     align-items: stretch !important;
   }
 
-  /* Tabs: compact — must not exceed header band */
+  /* Tabs: slightly larger, with breathing room from container top */
   .agent-chat-header.is-mobile .chat-sheet-tab {
     min-width: 0 !important;
-    height: 13px !important;
-    padding: 0 3px !important;
-    border-radius: 5px !important;
+    height: 16px !important;
+    padding: 1px 4px !important;
+    border-radius: 6px !important;
     gap: 2px !important;
   }
 
   .agent-chat-header.is-mobile .chat-sheet-tab-index {
-    width: 8px !important;
-    height: 8px !important;
-    min-width: 8px !important;
-    flex-basis: 8px !important;
-    font-size: 4px !important;
+    width: 10px !important;
+    height: 10px !important;
+    min-width: 10px !important;
+    flex-basis: 10px !important;
+    font-size: 5px !important;
   }
 
   .agent-chat-header.is-mobile .chat-sheet-tab-title {
-    font-size: 5px !important;
+    font-size: 6px !important;
     line-height: 1 !important;
   }
 
@@ -43723,7 +43723,7 @@ body.agent-route-active .app-shell::before {
   .agent-chat-header.is-mobile .chat-brand-strip {
     margin: 0 !important;
     min-height: 0 !important;
-    gap: 1px !important;
+    gap: 2px !important;
     padding-top: 0 !important;
     width: 100% !important;
   }
@@ -43870,14 +43870,14 @@ body.agent-route-active .app-shell::before {
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
-    gap: 2px !important;
-    padding: 3px 0 2px !important;
+    gap: 4px !important;
+    padding: 6px 0 4px !important;
   }
 
   .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .agent-chat-controls-row {
     width: 100% !important;
     margin: 0 !important;
-    padding: 0 !important;
+    padding: 2px 0 0 !important;
     gap: 2px !important;
     min-height: 0 !important;
     justify-content: center !important;
@@ -43886,32 +43886,31 @@ body.agent-route-active .app-shell::before {
   .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .chat-switcher {
     display: grid !important;
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-    width: 50% !important;
-    max-width: 50% !important;
+    width: 54% !important;
+    max-width: 54% !important;
     margin-inline: auto !important;
     gap: 3px !important;
   }
 
-  /* Tabs: very small — stay inside header, no overflow */
   .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .chat-sheet-tab,
   .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .chat-switcher .chat-sheet-tab {
-    height: 13px !important;
-    padding: 0 3px !important;
-    border-radius: 5px !important;
+    height: 16px !important;
+    padding: 1px 4px !important;
+    border-radius: 6px !important;
     gap: 2px !important;
     min-width: 0 !important;
   }
   .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .chat-sheet-tab-index,
   .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .chat-switcher .chat-sheet-tab-index {
-    width: 8px !important;
-    height: 8px !important;
-    min-width: 8px !important;
-    flex-basis: 8px !important;
-    font-size: 4px !important;
+    width: 10px !important;
+    height: 10px !important;
+    min-width: 10px !important;
+    flex-basis: 10px !important;
+    font-size: 5px !important;
   }
   .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .chat-sheet-tab-title,
   .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .chat-switcher .chat-sheet-tab-title {
-    font-size: 5px !important;
+    font-size: 6px !important;
     line-height: 1 !important;
     letter-spacing: 0.04em !important;
   }
@@ -43988,26 +43987,40 @@ body.agent-route-active .app-shell::before {
     gap: 3px !important;
   }
 
+  .agent-chat-header.is-mobile {
+    padding: 6px 0 4px !important;
+    gap: 4px !important;
+  }
+
+  .agent-chat-header.is-mobile .agent-chat-controls-row {
+    padding-top: 2px !important;
+  }
+
+  .agent-chat-header.is-mobile .chat-switcher {
+    width: 54% !important;
+    max-width: 54% !important;
+  }
+
   .agent-chat-header.is-mobile .chat-sheet-tab,
   .agent-chat-header.is-mobile .chat-switcher .chat-sheet-tab {
-    height: 13px !important;
-    padding: 0 3px !important;
-    border-radius: 5px !important;
+    height: 16px !important;
+    padding: 1px 4px !important;
+    border-radius: 6px !important;
     gap: 2px !important;
     min-width: 0 !important;
     width: 100% !important;
   }
   .agent-chat-header.is-mobile .chat-sheet-tab-index,
   .agent-chat-header.is-mobile .chat-switcher .chat-sheet-tab-index {
-    width: 8px !important;
-    height: 8px !important;
-    min-width: 8px !important;
-    flex-basis: 8px !important;
-    font-size: 4px !important;
+    width: 10px !important;
+    height: 10px !important;
+    min-width: 10px !important;
+    flex-basis: 10px !important;
+    font-size: 5px !important;
   }
   .agent-chat-header.is-mobile .chat-sheet-tab-title,
   .agent-chat-header.is-mobile .chat-switcher .chat-sheet-tab-title {
-    font-size: 5px !important;
+    font-size: 6px !important;
     line-height: 1 !important;
     letter-spacing: 0.04em !important;
   }
@@ -44062,24 +44075,60 @@ body.agent-route-active .app-shell::before {
   }
 }
 
-/* Mobile/PWA: kill empty strip below layout (letterbox / margin gap) */
+/* Mobile/PWA: full-bleed background + no black bar below content */
 @media (max-width: 767px) {
   html.agent-route-active,
   body.agent-route-active {
-    height: var(--visual-vh, 100dvh) !important;
-    min-height: var(--visual-vh, 100dvh) !important;
-    max-height: var(--visual-vh, 100dvh) !important;
+    min-height: 100dvh !important;
+    min-height: 100svh !important;
+    height: 100% !important;
+    max-height: none !important;
     overflow: hidden !important;
+    background-color: #05090f !important;
+    background-image:
+      linear-gradient(180deg, rgba(6, 10, 16, 0.22), rgba(6, 10, 16, 0.28)),
+      url('/fondo4.jpg') !important;
+    background-size: cover !important;
+    background-position: center bottom !important;
+    background-repeat: no-repeat !important;
+    background-attachment: fixed !important;
   }
 
   body.agent-route-active .app-shell {
-    min-height: var(--visual-vh, 100dvh) !important;
-    height: var(--visual-vh, 100dvh) !important;
-    max-height: var(--visual-vh, 100dvh) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: 100dvh !important;
+    min-height: 100svh !important;
+    height: 100% !important;
+    max-height: none !important;
     overflow: hidden !important;
+    background-color: transparent !important;
+  }
+
+  body.agent-route-active .app-shell::before {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 100dvh !important;
+    min-height: 100svh !important;
+    background-image:
+      linear-gradient(180deg, rgba(6, 10, 16, 0.22), rgba(6, 10, 16, 0.28)),
+      url('/fondo4.jpg') !important;
+    background-size: cover !important;
+    background-position: center bottom !important;
+    background-repeat: no-repeat !important;
+    background-color: #05090f !important;
+    z-index: 0 !important;
   }
 
   .agent-layout {
+    position: relative !important;
+    z-index: 1 !important;
+    flex: 1 1 auto !important;
+    height: var(--visual-vh, 100dvh) !important;
+    max-height: var(--visual-vh, 100dvh) !important;
+    min-height: var(--visual-vh, 100dvh) !important;
     margin-bottom: 0 !important;
     padding-bottom: 0 !important;
   }
