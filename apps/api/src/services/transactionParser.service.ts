@@ -162,6 +162,48 @@ function rowsToTable(name: string, rows: string[][], source: ParsedTable['source
   return { name, headers, rows: body, source };
 }
 
+function scoreHeaderRow(cells: string[]): number {
+  const normalized = cells.map(normalizeHeaderToken);
+  const canonicalHeaders = new Set([
+    'fecha',
+    'detalle',
+    'cargo',
+    'abono',
+    'saldo',
+    'descripcion',
+    'glosa',
+    'debito',
+    'credito',
+    'monto',
+  ]);
+  const exactHits = normalized.filter((cell) => canonicalHeaders.has(cell)).length;
+  const hasFecha = normalized.includes('fecha');
+  const hasDetalle =
+    normalized.includes('detalle') || normalized.includes('descripcion') || normalized.includes('glosa');
+  const hasMoneyColumn = normalized.some((cell) =>
+    ['cargo', 'abono', 'debito', 'credito', 'monto', 'saldo'].includes(cell),
+  );
+  return exactHits + (hasFecha ? 3 : 0) + (hasDetalle ? 2 : 0) + (hasMoneyColumn ? 2 : 0);
+}
+
+function stripCsvLeadingMetadata(rows: string[][]): string[][] {
+  if (rows.length === 0) return rows;
+  let bestIndex = -1;
+  let bestScore = -1;
+  const scanLimit = Math.min(rows.length, 20);
+  for (let index = 0; index < scanLimit; index += 1) {
+    const row = rows[index] ?? [];
+    if (!looksLikeHeaderRow(row)) continue;
+    const score = scoreHeaderRow(row);
+    if (score > bestScore) {
+      bestScore = score;
+      bestIndex = index;
+    }
+    if (score >= 8) break;
+  }
+  return bestIndex > 0 ? rows.slice(bestIndex) : rows;
+}
+
 export function isPdfExtractionWeak(text: string, tables: ParsedTable[]): boolean {
   const compact = normalizeText(text);
   if (tables.length > 0 && compact.length >= 180) return false;
@@ -489,7 +531,7 @@ export async function parseCsvBufferDetailed(buffer: Buffer, filename: string): 
       };
     }
     const delimiter = detectCsvDelimiter(text);
-    const rows = parseDelimitedText(text, delimiter);
+    const rows = stripCsvLeadingMetadata(parseDelimitedText(text, delimiter));
     const table = rowsToTable(path.basename(filename), rows, 'csv');
     const tables = table ? [table] : [];
     return {

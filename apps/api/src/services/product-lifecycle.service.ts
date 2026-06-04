@@ -10,8 +10,8 @@ export type ProductChatId = 'chat-1' | 'chat-2' | 'chat-3';
 
 export type OnboardingPhase =
   | 'intake_review'
-  | 'budget_needed'
   | 'transactions_needed'
+  | 'budget_needed'
   | 'statement_analysis'
   | 'interview_needed'
   | 'diagnosis_ready'
@@ -41,17 +41,120 @@ export type LifecycleDecision = {
   closingMode: boolean;
 };
 
+export type OnboardingSignals = {
+  hasBudget: boolean;
+  hasTransactions: boolean;
+  interviewCompleted: boolean;
+};
+
 const PRODUCT_CHAT_IDS: ProductChatId[] = ['chat-1', 'chat-2', 'chat-3'];
 
 export function defaultProductLifecycleState(): ProductLifecycleState {
   return {
-    phase: 'budget_needed',
+    phase: 'transactions_needed',
     unlockedChats: ['chat-1'],
     chatTurns: { 'chat-1': 0, 'chat-2': 0, 'chat-3': 0 },
     closedChats: [],
     reports: [],
     updatedAt: new Date().toISOString(),
   };
+}
+
+function hasMeaningfulDocument(doc: unknown): boolean {
+  if (!doc || typeof doc !== 'object') return false;
+  const candidate = doc as Record<string, unknown>;
+  return (
+    typeof candidate.text === 'string' && candidate.text.trim().length > 0 ||
+    typeof candidate.name === 'string' && candidate.name.trim().length > 0 ||
+    typeof candidate.documentId === 'string' && candidate.documentId.trim().length > 0
+  );
+}
+
+function hasPersistedTransactionContext(productsContext: Record<string, unknown>): boolean {
+  const products = Array.isArray(productsContext.products) ? productsContext.products : [];
+  const uploadedFiles = Array.isArray(productsContext.uploadedFiles) ? productsContext.uploadedFiles : [];
+  const activeProduct = productsContext.activeProduct;
+  const transactionSummary =
+    productsContext.transactionSummary && typeof productsContext.transactionSummary === 'object'
+      ? (productsContext.transactionSummary as Record<string, unknown>)
+      : {};
+
+  const hasProductMovements = products.some((product) => {
+    if (!product || typeof product !== 'object') return false;
+    const dashboard = (product as Record<string, unknown>).keyMetrics;
+    const movements = (product as Record<string, unknown>).movements;
+    return (
+      Number((dashboard as Record<string, unknown> | undefined)?.movement_count ?? 0) > 0 ||
+      (Array.isArray(movements) && movements.length > 0)
+    );
+  });
+
+  const activeProductHasMovements =
+    activeProduct && typeof activeProduct === 'object'
+      ? Number(
+          ((activeProduct as Record<string, unknown>).keyMetrics as Record<string, unknown> | undefined)
+            ?.movement_count ?? 0
+        ) > 0 ||
+        Array.isArray((activeProduct as Record<string, unknown>).parsedDocuments) ||
+        Array.isArray((activeProduct as Record<string, unknown>).documentPreviews)
+      : false;
+
+  return (
+    Number(transactionSummary.movementCount ?? 0) > 0 ||
+    hasProductMovements ||
+    activeProductHasMovements ||
+    uploadedFiles.length > 0
+  );
+}
+
+export function detectOnboardingSignals(input: ChatAgentInput): OnboardingSignals {
+  const ui = input.ui_state ?? {};
+  const unlocked = (ui.unlocked_modules ?? {}) as Record<string, unknown>;
+  const budgetSummary = (ui.budget_summary ?? {}) as Record<string, unknown>;
+  const context = input.context ?? {};
+  const injectedBudget = (context.injected_budget ?? {}) as Record<string, unknown>;
+  const injectedIntake =
+    context.injected_intake && typeof context.injected_intake === 'object'
+      ? (context.injected_intake as Record<string, unknown>)
+      : {};
+  const productsContext =
+    injectedIntake.productsContext && typeof injectedIntake.productsContext === 'object'
+      ? (injectedIntake.productsContext as Record<string, unknown>)
+      : {};
+  const budgetContext =
+    injectedIntake.budgetContext && typeof injectedIntake.budgetContext === 'object'
+      ? (injectedIntake.budgetContext as Record<string, unknown>)
+      : {};
+  const uploadedDocuments = Array.isArray(context.uploaded_documents) ? context.uploaded_documents : [];
+  const consolidatedTransactions =
+    context.consolidated_context &&
+    typeof context.consolidated_context === 'object' &&
+    (context.consolidated_context as Record<string, unknown>).transactions &&
+    typeof (context.consolidated_context as Record<string, unknown>).transactions === 'object'
+      ? ((context.consolidated_context as Record<string, unknown>).transactions as Record<string, unknown>)
+      : {};
+
+  const hasBudget =
+    Number(budgetSummary.income ?? budgetContext.income ?? 0) > 0 ||
+    Number(budgetSummary.expenses ?? budgetContext.expenses ?? 0) > 0 ||
+    Number(injectedBudget.income ?? 0) > 0 ||
+    Number(injectedBudget.expenses ?? 0) > 0 ||
+    unlocked.budget === true;
+  const hasTransactions =
+    unlocked.transactions === true ||
+    uploadedDocuments.some(hasMeaningfulDocument) ||
+    Number(consolidatedTransactions.productsCount ?? 0) > 0 &&
+      (Number(consolidatedTransactions.activeProductMovementCount ?? 0) > 0 ||
+        Array.isArray(consolidatedTransactions.uploadedFiles) &&
+          consolidatedTransactions.uploadedFiles.length > 0) ||
+    hasPersistedTransactionContext(productsContext);
+  const interviewCompleted =
+    unlocked.interview === true ||
+    (context.product_lifecycle &&
+      typeof context.product_lifecycle === 'object' &&
+      (context.product_lifecycle as Record<string, unknown>).interviewCompleted === true);
+
+  return { hasBudget, hasTransactions, interviewCompleted };
 }
 
 export function getLifecycleFromMemory(memoryBlob: unknown): ProductLifecycleState {
@@ -193,33 +296,15 @@ function derivePhase(
   state: ProductLifecycleState,
   hasIntake: boolean
 ): OnboardingPhase {
-  const ui = input.ui_state ?? {};
-  const unlocked = (ui.unlocked_modules ?? {}) as Record<string, unknown>;
-  const budgetSummary = (ui.budget_summary ?? {}) as Record<string, unknown>;
-  const context = input.context ?? {};
-  const injectedBudget = (context.injected_budget ?? {}) as Record<string, unknown>;
-  const hasBudget =
-    Number(budgetSummary.income ?? 0) > 0 ||
-    Number(budgetSummary.expenses ?? 0) > 0 ||
-    Number(injectedBudget.income ?? 0) > 0 ||
-    Number(injectedBudget.expenses ?? 0) > 0 ||
-    unlocked.budget === true;
-  const hasTransactions =
-    unlocked.transactions === true ||
-    (Array.isArray(context.uploaded_documents) && context.uploaded_documents.length > 0);
-  const interviewCompleted =
-    unlocked.interview === true ||
-    (context.product_lifecycle &&
-      typeof context.product_lifecycle === 'object' &&
-      (context.product_lifecycle as Record<string, unknown>).interviewCompleted === true);
+  const { hasBudget, hasTransactions, interviewCompleted } = detectOnboardingSignals(input);
   const interviewSignal =
     interviewCompleted ||
     state.phase === 'diagnosis_ready' ||
     state.phase === 'advisory_unlocked';
 
   if (!hasIntake) return 'intake_review';
-  if (!hasBudget) return 'budget_needed';
   if (!hasTransactions) return 'transactions_needed';
+  if (!hasBudget) return 'budget_needed';
   if (!interviewSignal && state.phase !== 'diagnosis_ready' && state.phase !== 'advisory_unlocked') {
     return 'interview_needed';
   }
@@ -256,8 +341,8 @@ function buildSystemDirective(params: {
 
   if (params.activeChatId === 'chat-1') {
     base.push(
-      'CHAT 1 GENERAL: guia el onboarding. Primer objetivo: intake -> presupuesto -> cartolas/transacciones -> entrevista de 4 minutos -> diagnostico.',
-      'Si falta presupuesto, recomienda subirlo o completarlo en el panel. Si falta cartola, recomienda subir transacciones del mes.',
+      'CHAT 1 GENERAL: guia el onboarding. Primer objetivo: intake -> cartolas/transacciones -> presupuesto -> entrevista de 4 minutos -> diagnostico.',
+      'Si faltan cartolas o movimientos reales, recomienda subir transacciones del mes. Si ya existen, avanza a presupuesto antes de entrevista.',
       'Cuando ya exista presupuesto y cartola, recomienda una entrevista breve, profesional y consciente del tiempo.'
     );
   }
@@ -324,4 +409,3 @@ function buildReportTitle(chatId: ProductChatId) {
   if (chatId === 'chat-3') return 'Informe de conciencia social financiera';
   return 'Informe de diagnostico general';
 }
-

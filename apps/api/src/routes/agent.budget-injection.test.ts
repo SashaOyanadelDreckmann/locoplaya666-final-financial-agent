@@ -133,5 +133,92 @@ describe('/api/agent budget_summary → injected_budget', () => {
       balance: 1200000,
     });
   }, 15000);
-});
 
+  it('rehydrates persisted products context so the agent sees parsed cartolas without UI payload', async () => {
+    runCoreAgentMock.mockReset();
+    runCoreAgentMock.mockResolvedValue({
+      message: 'ok',
+      mode: 'information',
+      tool_calls: [],
+      agent_blocks: [],
+      artifacts: [],
+      citations: [],
+      compliance: {
+        mode: 'information',
+        no_auto_execution: true,
+        includes_recommendation: false,
+        includes_simulation: false,
+        includes_regulation: false,
+        missing_information: [],
+        disclaimers_shown: [],
+        risk_score: 0,
+        blocked: { is_blocked: false },
+      },
+      state_updates: {},
+      suggested_replies: [],
+      budget_updates: [],
+      knowledge_score: 0,
+      knowledge_event_detected: false,
+      meta: {},
+    });
+
+    const { agent, userId, csrfToken } = await createAuthedAgent();
+    const intakeOk = await attachIntakeToUser(userId, {
+      intake: { profession: 'Ingeniera' },
+      intakeContext: { financialLiteracy: 'high' },
+      productsContext: {
+        scope: 'all_products',
+        productsCount: 1,
+        uploadedFiles: ['cartola.csv'],
+        activeProductLabel: 'Cuenta corriente',
+        activeProduct: {
+          id: 'prod-1',
+          label: 'Cuenta corriente',
+          bank: 'Banco Demo',
+          productType: 'checking_account',
+          connected: true,
+          keyMetrics: { movement_count: 2, inflows_total: 950000, outflows_total: 12900 },
+          parsedDocuments: [
+            {
+              documentId: 'doc-1',
+              name: 'cartola.csv',
+              text: 'Fecha;Detalle;Cargo;Abono;Saldo\n2026-05-01;SUPERMERCADO;12900;;150000',
+            },
+          ],
+        },
+        transactionSummary: { movementCount: 2, netFlow: 937100 },
+      },
+      budgetContext: { income: 2100000, expenses: 1500000, balance: 600000 },
+    });
+    expect(intakeOk).toBe(true);
+
+    const res = await agent
+      .post('/api/agent')
+      .set('x-csrf-token', csrfToken)
+      .send({
+        user_message: 'Analiza mis movimientos',
+        history: [],
+        context: {},
+        ui_state: {
+          active_chat: { id: 'chat-1' },
+        },
+      });
+
+    expect(res.status).toBe(200);
+    expect(runCoreAgentMock).toHaveBeenCalledTimes(1);
+    const input = runCoreAgentMock.mock.calls[0]?.[0] as {
+      context?: Record<string, unknown>;
+    };
+    expect(Array.isArray(input?.context?.uploaded_documents)).toBe(true);
+    expect((input?.context?.uploaded_documents as Array<Record<string, unknown>>)[0]?.name).toBe('cartola.csv');
+    expect(
+      ((input?.context?.consolidated_context as Record<string, unknown>)?.transactions as Record<string, unknown>)
+        ?.activeProductLabel
+    ).toBe('Cuenta corriente');
+    expect(input?.context?.injected_budget).toEqual({
+      income: 2100000,
+      expenses: 1500000,
+      balance: 600000,
+    });
+  }, 15000);
+});
