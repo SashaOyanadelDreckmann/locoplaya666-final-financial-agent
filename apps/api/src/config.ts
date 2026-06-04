@@ -38,6 +38,11 @@ const configSchema = z.object({
     .string()
     .default('claude-sonnet-4-6')
     .describe('Anthropic model ID (claude-opus-4-6, claude-sonnet-4-6, claude-haiku-4-5)'),
+  ANTHROPIC_MODEL_FAST: z
+    .string()
+    .optional()
+    .transform((v) => (v?.trim() || 'claude-haiku-4-5'))
+    .describe('Cheap Anthropic model for budget chat and other fast paths'),
   ANTHROPIC_TEMPERATURE: z
     .string()
     .optional()
@@ -195,6 +200,7 @@ export function formatConfigSummary(config: Config): string {
     `  Environment: ${config.NODE_ENV}`,
     `  Core Brain (OpenAI): ${config.OPENAI_MODEL}`,
     `  Front Report (Claude): ${config.ANTHROPIC_MODEL}`,
+    `  Budget Chat (Claude fast): ${config.ANTHROPIC_MODEL_FAST}`,
     `  Port: ${config.PORT}`,
     `  Web Origin: ${config.WEB_ORIGIN}`,
     `  Data Dir: ${config.DATA_DIR}`,

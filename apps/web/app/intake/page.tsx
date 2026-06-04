@@ -3,7 +3,7 @@ import './intake.css';
 
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useInterviewStore } from '@/state/interview.store';
 import { submitIntake } from '@/lib/intake';
 import { getSessionInfo } from '@/lib/api';
@@ -52,7 +52,7 @@ const INITIAL_FORM: IntakeQuestionnaire = {
   moneyStressLevel: 5,
 };
 
-export default function IntakePage() {
+function IntakeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const setIntake = useInterviewStore((s) => s.setIntake);
@@ -198,5 +198,13 @@ export default function IntakePage() {
         <div className="intake-error">{error}</div>
       )}
     </div>
+  );
+}
+
+export default function IntakePage() {
+  return (
+    <Suspense fallback={null}>
+      <IntakeContent />
+    </Suspense>
   );
 }

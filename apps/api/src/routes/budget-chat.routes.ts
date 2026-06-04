@@ -1130,7 +1130,7 @@ router.post(
 
     const anthropicApiKey = config.ANTHROPIC_API_KEY;
     const openAiApiKey = config.OPENAI_API_KEY;
-    const anthropicModel = config.ANTHROPIC_MODEL || 'claude-haiku-4-5';
+    const anthropicModel = config.ANTHROPIC_MODEL_FAST;
     const openAiModel = 'gpt-4.1-mini';
 
     if (!anthropicApiKey && !openAiApiKey) {
