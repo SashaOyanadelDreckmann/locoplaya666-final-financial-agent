@@ -93,7 +93,25 @@ const PRODUCT_TYPES = new Set([
   'investment_account',
 ]);
 
-const SUPPORTED_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif', '.pdf', '.xls', '.xlsx', '.csv', '.txt', '.md']);
+const SUPPORTED_EXTENSIONS = new Set([
+  '.png',
+  '.jpg',
+  '.jpeg',
+  '.webp',
+  '.gif',
+  '.pdf',
+  '.xls',
+  '.xlsx',
+  '.csv',
+  '.tsv',
+  '.txt',
+  '.md',
+  '.json',
+  '.xml',
+  '.yaml',
+  '.yml',
+  '.log',
+]);
 
 export function isSupportedDocumentFilename(name: string): boolean {
   const normalized = String(name ?? '').trim().toLowerCase();
@@ -124,7 +142,9 @@ export function validateAndPrepareDocumentFiles(
 ): Array<{ name: string; base64: string; mimeType?: string; buffer: Buffer }> {
   const decodedFiles = files.map((file) => {
     if (!isSupportedDocumentFilename(file.name)) {
-      throw badRequest(`Archivo "${file.name}" no soportado. Usa PDF, imagen, XLS, XLSX, CSV o TXT.`);
+      throw badRequest(
+        `Archivo "${file.name}" no soportado. Usa PDF, imagen, XLS/XLSX, CSV/TSV, TXT/MD, JSON, XML, YAML o LOG.`,
+      );
     }
     return {
       ...file,

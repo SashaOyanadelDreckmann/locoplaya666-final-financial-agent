@@ -9,64 +9,85 @@ type DeferredInstallPrompt = Event & {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
 };
 
-function getPlatformGuide() {
-  if (typeof navigator === 'undefined') {
-    return {
-      title: 'Instalación',
-      steps: [
-        'Abre la app en tu navegador móvil o desktop.',
-        'Busca la opción de instalar/agregar al inicio.',
-      ],
-    };
-  }
+type Platform = 'ios' | 'android-chrome' | 'desktop' | 'unknown';
+type InstallState = 'idle' | 'accepted' | 'dismissed' | 'open-safari' | 'use-share';
 
+function detectPlatform(): Platform {
+  if (typeof navigator === 'undefined') return 'unknown';
   const ua = navigator.userAgent.toLowerCase();
-  const isIos = /iphone|ipad|ipod/.test(ua);
-  const isAndroid = /android/.test(ua);
-  const isChrome = /chrome|chromium/.test(ua);
+  if (/iphone|ipad|ipod/.test(ua)) return 'ios';
+  if (/android/.test(ua) && /chrome|chromium/.test(ua)) return 'android-chrome';
+  return 'desktop';
+}
 
-  if (isIos) {
+function isSafariBrowser(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent;
+  return /Safari/i.test(ua) && !/CriOS|FxiOS|EdgiOS|OPiOS|mercury/i.test(ua);
+}
+
+function isStandaloneMode(): boolean {
+  if (typeof window === 'undefined') return false;
+  return window.matchMedia?.('(display-mode: standalone)')?.matches || (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
+}
+
+function getPlatformGuide(platform: Platform) {
+  if (platform === 'ios') {
     return {
-      title: 'iPhone/iPad (Safari)',
+      title: 'iPhone / iPad',
+      accent: 'Instalación manual requerida por iOS',
       steps: [
         'Abre esta página en Safari.',
         'Pulsa el botón Compartir.',
-        'Selecciona "Agregar a pantalla de inicio".',
+        'Selecciona "Agregar a inicio".',
       ],
+      primaryLabel: 'Abrir compartir',
+      helper: 'Apple no permite agregar a inicio automáticamente desde una web.',
     };
   }
-
-  if (isAndroid && isChrome) {
+  if (platform === 'android-chrome') {
     return {
-      title: 'Android (Chrome)',
+      title: 'Android',
+      accent: 'Instalación directa disponible',
       steps: [
-        'Pulsa el menú de Chrome (tres puntos).',
-        'Selecciona "Instalar app" o "Agregar a pantalla principal".',
+        'Pulsa el menú (tres puntos) de Chrome.',
+        'Selecciona "Instalar app".',
         'Confirma la instalación.',
       ],
+      primaryLabel: 'Instalar app',
+      helper: 'Si Chrome detecta la app instalable, verás el prompt nativo.',
     };
   }
-
   return {
     title: 'Desktop',
+    accent: 'Acceso como app de escritorio',
     steps: [
-      'Abre el menú del navegador.',
+      'Abre el menú de tu navegador.',
       'Elige "Instalar app" o "Crear acceso directo".',
       'Confirma para tenerla como app independiente.',
     ],
+    primaryLabel: 'Ver instrucciones',
+    helper: 'La opción cambia según navegador.',
   };
 }
 
 function WaitingApprovalContent() {
   const searchParams = useSearchParams();
   const [deferredPrompt, setDeferredPrompt] = useState<DeferredInstallPrompt | null>(null);
-  const [installStatus, setInstallStatus] = useState<'idle' | 'accepted' | 'dismissed'>('idle');
+  const [platform, setPlatform] = useState<Platform>('unknown');
+  const [installState, setInstallState] = useState<InstallState>('idle');
+  const [isSafari, setIsSafari] = useState(false);
+  const [standalone, setStandalone] = useState(false);
 
   const email = useMemo(() => String(searchParams.get('email') ?? '').trim(), [searchParams]);
-  const name = useMemo(() => String(searchParams.get('name') ?? '').trim(), [searchParams]);
-  const guide = useMemo(() => getPlatformGuide(), []);
+  const name  = useMemo(() => String(searchParams.get('name')  ?? '').trim(), [searchParams]);
 
   useEffect(() => {
+    const p = detectPlatform();
+    setPlatform(p);
+    setIsSafari(isSafariBrowser());
+    setStandalone(isStandaloneMode());
+
     const handler = (event: Event) => {
       event.preventDefault();
       setDeferredPrompt(event as DeferredInstallPrompt);
@@ -75,13 +96,51 @@ function WaitingApprovalContent() {
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
+  const guide = useMemo(() => getPlatformGuide(platform), [platform]);
+
+  const canShare = typeof navigator !== 'undefined' && 'share' in navigator;
+
   const onInstallClick = async () => {
-    if (!deferredPrompt) return;
-    await deferredPrompt.prompt();
-    const choice = await deferredPrompt.userChoice;
-    setInstallStatus(choice.outcome);
-    setDeferredPrompt(null);
+    if (deferredPrompt) {
+      await deferredPrompt.prompt();
+      const choice = await deferredPrompt.userChoice;
+      setInstallState(choice.outcome);
+      setDeferredPrompt(null);
+      return;
+    }
+    if (platform === 'ios' && !isSafari) {
+      setInstallState('open-safari');
+      return;
+    }
+    if (canShare && platform === 'ios') {
+      try {
+        await navigator.share({ title: 'Financieramente', url: window.location.href });
+        setInstallState('use-share');
+      } catch {
+        // user dismissed share sheet
+      }
+      return;
+    }
+    setInstallState('dismissed');
   };
+
+  const btnLabel =
+    deferredPrompt ? 'Instalar app' : guide.primaryLabel;
+
+  const showButton = !standalone && installState === 'idle' && (platform === 'ios' || !!deferredPrompt || canShare);
+
+  const statusMessage =
+    standalone
+      ? 'La app ya está abierta como acceso directo.'
+      : installState === 'accepted'
+        ? '✓ Instalación iniciada.'
+        : installState === 'dismissed'
+          ? 'Puedes instalarla cuando quieras desde el navegador.'
+          : installState === 'open-safari'
+            ? 'Para iPhone, abre esta página en Safari y luego usa Compartir.'
+            : installState === 'use-share'
+              ? 'Se abrió Compartir. Luego elige "Agregar a inicio".'
+              : null;
 
   return (
     <main className="auth-shell">
@@ -92,35 +151,34 @@ function WaitingApprovalContent() {
           {name ? `${name}, r` : 'R'}ecibimos tu registro{email ? ` (${email})` : ''}. Te avisaré por correo cuando la cuenta quede autorizada.
         </p>
 
-        <div className="auth-fields">
-          <div className="auth-field">
-            <label className="auth-label">Mientras tanto, instala la app</label>
-            <p className="auth-fine-print" style={{ textAlign: 'left' }}>
-              {guide.title}
-            </p>
-            <ol style={{ margin: 0, paddingLeft: 18, color: 'rgba(235, 240, 248, 0.8)', fontSize: 13, lineHeight: 1.6 }}>
-              {guide.steps.map((step) => (
-                <li key={step}>{step}</li>
-              ))}
-            </ol>
+        <div className="waiting-install-block">
+          <div className="waiting-install-header">
+            <div className="waiting-install-title-group">
+              <span className="waiting-install-label">Instala la app</span>
+              <strong className="waiting-install-kicker">{guide.accent}</strong>
+            </div>
+            {platform !== 'unknown' && <span className="waiting-platform-badge">{guide.title}</span>}
           </div>
+
+          <p className="waiting-install-helper">{guide.helper}</p>
+
+          <ol className="waiting-steps">
+            {guide.steps.map((step, i) => (
+              <li key={step} className="waiting-step">
+                <span className="waiting-step-num">{i + 1}</span>
+                <span className="waiting-step-text">{step}</span>
+              </li>
+            ))}
+          </ol>
+
+          {showButton ? (
+            <button className="waiting-install-btn" onClick={() => void onInstallClick()}>
+              {btnLabel}
+            </button>
+          ) : null}
+
+          {statusMessage ? <div className="waiting-install-status">{statusMessage}</div> : null}
         </div>
-
-        <button
-          className="auth-submit"
-          onClick={() => void onInstallClick()}
-          disabled={!deferredPrompt}
-        >
-          {deferredPrompt ? 'Instalar app ahora' : 'Instalación guiada disponible según navegador'}
-        </button>
-
-        {installStatus !== 'idle' && (
-          <p className="auth-fine-print" style={{ marginBottom: 12 }}>
-            {installStatus === 'accepted'
-              ? 'Instalación iniciada correctamente.'
-              : 'Instalación cancelada. Puedes intentarlo nuevamente cuando quieras.'}
-          </p>
-        )}
 
         <div className="auth-footer">
           <span className="auth-footer-text">¿Ya te aprobaron?</span>

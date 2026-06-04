@@ -130,6 +130,7 @@ export async function parseDocuments(
     productLabelHint?: string;
   }
 ) {
+  // Keep uploads on the same origin in production so auth cookies/session survive Railway deploys.
   const API_URL = getApiBaseUrl();
   const res = await fetch(`${API_URL}/api/documents/parse`, {
     method: 'POST',

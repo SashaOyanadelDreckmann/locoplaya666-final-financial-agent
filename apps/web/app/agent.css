@@ -2516,6 +2516,25 @@ html.agent-global-monochrome {
   color: rgba(225, 237, 247, 0.82);
 }
 
+.transactions-modal .tx-create-product-btn {
+  border-color: rgba(110, 168, 214, 0.42);
+  background:
+    linear-gradient(180deg, rgba(53, 86, 120, 0.9), rgba(30, 54, 81, 0.92)),
+    radial-gradient(circle at top, rgba(126, 188, 235, 0.24), transparent 56%);
+  color: rgba(245, 249, 253, 0.98);
+  box-shadow:
+    0 14px 30px rgba(10, 23, 37, 0.28),
+    inset 0 1px 0 rgba(223, 237, 248, 0.18);
+}
+
+.transactions-modal .tx-create-product-btn:hover:not(:disabled) {
+  border-color: rgba(145, 194, 232, 0.6);
+  background:
+    linear-gradient(180deg, rgba(67, 105, 143, 0.94), rgba(35, 62, 92, 0.96)),
+    radial-gradient(circle at top, rgba(151, 207, 244, 0.3), transparent 58%);
+  transform: translateY(-1px);
+}
+
 @media (min-width: 768px) {
   .pt-item.pt-item-stack {
     padding: 10px 14px !important;
@@ -45791,4 +45810,3 @@ body.agent-route-active .app-shell::before {
     padding: 4px 0 !important;
   }
 }
-

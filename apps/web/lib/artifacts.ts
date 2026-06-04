@@ -50,11 +50,48 @@ export async function saveBubbleSnapshotPdfArtifact(payload: {
   return res.json() as Promise<{ ok: true; artifact: Artifact }>;
 }
 
+function isProbablyMobileDevice() {
+  if (typeof window === 'undefined' || typeof navigator === 'undefined') return false;
+  return /android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent || '');
+}
+
 export function downloadFile(url: string, filename: string) {
+  const shouldOpenDirectly = isProbablyMobileDevice() && /\.pdf($|[?#])/i.test(filename);
+  if (shouldOpenDirectly) {
+    const popup = window.open(url, '_blank', 'noopener,noreferrer');
+    if (!popup) window.location.href = url;
+    return;
+  }
+
   const a = document.createElement('a');
   a.href = url;
   a.download = filename;
+  a.rel = 'noopener noreferrer';
   document.body.appendChild(a);
   a.click();
   a.remove();
+}
+
+export async function downloadBlobFile(blob: Blob, filename: string) {
+  const nav = navigator as Navigator & {
+    canShare?: (data?: ShareData) => boolean;
+  };
+
+  if (typeof File !== 'undefined' && typeof nav.share === 'function') {
+    const file = new File([blob], filename, { type: blob.type || 'application/octet-stream' });
+    try {
+      if (!nav.canShare || nav.canShare({ files: [file] })) {
+        await nav.share({ files: [file], title: filename });
+        return URL.createObjectURL(blob);
+      }
+    } catch (error) {
+      if ((error as Error | null)?.name === 'AbortError') {
+        return URL.createObjectURL(blob);
+      }
+    }
+  }
+
+  const fileUrl = URL.createObjectURL(blob);
+  downloadFile(fileUrl, filename);
+  return fileUrl;
 }

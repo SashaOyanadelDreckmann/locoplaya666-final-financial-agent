@@ -15,7 +15,8 @@ export interface RateLimitConfig {
  * Configured based on external API costs and internal computational load
  */
 export const DEFAULT_RATE_LIMITS: Record<string, RateLimitConfig> = {
-  'web.search': { requests_per_minute: 10, burst_size: 2 },
+  // Keep web grounding cheap: allow light steady verification, prevent burst abuse.
+  'web.search': { requests_per_minute: 6, burst_size: 1 },
   'web.extract': { requests_per_minute: 20, burst_size: 3 },
   'web.scrape': { requests_per_minute: 5, burst_size: 1 },
   'regulatory.lookup_cl': { requests_per_minute: 10, burst_size: 1 },

@@ -8,6 +8,7 @@
 import { getOpenAIClient, withCompatibleTemperature } from '../../../services/llm.service';
 import { buildOpenAITools, getOriginalToolName } from '../../../mcp/openai-bridge';
 import { runMCPTool } from '../../../mcp/tools/runMCPTool';
+import { retrieveRAGContext } from '../../../services/rag.service';
 import { CORE_TOOL_AGENT_SYSTEM } from '../system.prompts';
 import { extractChartBlocksFromToolOutput } from '../helpers/chart-extraction.helpers';
 import { isArtifactLike } from '../helpers/validation.helpers';
@@ -18,6 +19,81 @@ import type OpenAI from 'openai';
 
 const MAX_REACT_ITERATIONS = Number(process.env.AGENT_MAX_REACT_ITERATIONS || 4);
 const REACT_TIMEOUT_MS = Number(process.env.AGENT_REACT_TIMEOUT_MS || 18000);
+const AUTO_WEB_VERIFY_ENABLED =
+  process.env.NODE_ENV !== 'test' &&
+  (process.env.AGENT_ALWAYS_VERIFY_WEB ?? 'true').toLowerCase() !== 'false';
+const WEB_VERIFY_CACHE_TTL_MS = Number(
+  process.env.AGENT_WEB_VERIFY_CACHE_TTL_MS ?? 20 * 60 * 1000
+);
+const REGULATORY_KEYWORDS =
+  /\b(cmf|fintec|fintech|ley\s*21\.?521|normativa|regulator|sfa|finanzas abiertas|comision para el mercado financiero)\b/i;
+const TRIVIAL_GREETING =
+  /^\s*(hola|buenas|buenos dias|buenas tardes|buenas noches|gracias|ok|dale|listo)\s*[.!?]*\s*$/i;
+
+type CachedWebEvidence = {
+  ts: number;
+  query: string;
+  results: any;
+  citations: Citation[];
+};
+
+const webEvidenceCacheByUser = new Map<string, CachedWebEvidence[]>();
+
+function shouldAutoWebVerify(userMessage?: string): boolean {
+  const msg = String(userMessage ?? '').trim();
+  if (!msg) return false;
+  if (TRIVIAL_GREETING.test(msg)) return false;
+  return true;
+}
+
+function buildTrustedWebQuery(userMessage: string): string {
+  return `${userMessage} (site:cmfchile.cl OR site:cmfeduca.cl OR site:leychile.cl OR site:bcentral.cl OR site:hacienda.cl)`;
+}
+
+function normalizeForSemanticCache(text: string): string[] {
+  return String(text)
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^\w\s]/g, ' ')
+    .split(/\s+/)
+    .filter((token) => token.length >= 4);
+}
+
+function semanticSimilarity(a: string, b: string): number {
+  const aTokens = new Set(normalizeForSemanticCache(a));
+  const bTokens = new Set(normalizeForSemanticCache(b));
+  if (aTokens.size === 0 || bTokens.size === 0) return 0;
+  let intersection = 0;
+  for (const token of aTokens) {
+    if (bTokens.has(token)) intersection += 1;
+  }
+  const union = new Set([...aTokens, ...bTokens]).size || 1;
+  return intersection / union;
+}
+
+function findCachedWebEvidence(userId: string, query: string): CachedWebEvidence | null {
+  const now = Date.now();
+  const entries = webEvidenceCacheByUser.get(userId) ?? [];
+  const freshEntries = entries.filter((entry) => now - entry.ts <= WEB_VERIFY_CACHE_TTL_MS);
+  if (freshEntries.length !== entries.length) webEvidenceCacheByUser.set(userId, freshEntries);
+  let best: CachedWebEvidence | null = null;
+  let bestScore = 0;
+  for (const entry of freshEntries) {
+    const score = semanticSimilarity(entry.query, query);
+    if (score > bestScore) {
+      bestScore = score;
+      best = entry;
+    }
+  }
+  return bestScore >= 0.55 ? best : null;
+}
+
+function storeCachedWebEvidence(userId: string, evidence: CachedWebEvidence): void {
+  const current = webEvidenceCacheByUser.get(userId) ?? [];
+  const next = [evidence, ...current].slice(0, 8); // keep cache cheap and bounded
+  webEvidenceCacheByUser.set(userId, next);
+}
 
 /**
  * Run ReAct loop: classify → identify tools → execute in loop until complete
@@ -39,6 +115,114 @@ export async function runPlanExecutePhase(input: PlanPhaseInput): Promise<PlanPh
     const artifacts: Artifact[] = [];
     const agent_blocks: AgentBlock[] = [];
     const react_trace: Array<{ iteration: number; decision: string; result: string }> = [];
+    const isRegulatoryRequest =
+      input.classification.mode === 'regulation' ||
+      input.classification.requires_rag === true ||
+      REGULATORY_KEYWORDS.test(input.classification.intent) ||
+      REGULATORY_KEYWORDS.test(input.user_message ?? '');
+
+    // Warm up regulatory/knowledge citations early to reduce unsupported claims.
+    if (isRegulatoryRequest) {
+      try {
+        const ragQuery = `${input.user_message ?? input.classification.intent} Ley 21.521 CMF glosario financiero`;
+        const ragCitations = await retrieveRAGContext(ragQuery, {
+          mode: input.classification.mode,
+          intent: input.classification.intent,
+        });
+        if (ragCitations.length > 0) {
+          citations.push(...ragCitations);
+          tool_outputs.push({
+            tool: 'rag.lookup',
+            data: { found: ragCitations.length, citations: ragCitations },
+          });
+          tool_calls.push({
+            id: `prefetch-rag-${Date.now()}`,
+            tool: 'rag.lookup',
+            args: { query: ragQuery, limit: 6 },
+            status: 'success',
+          });
+          react_trace.push({
+            iteration: 0,
+            decision: 'Prefetch RAG regulatorio',
+            result: 'success',
+          });
+        }
+      } catch (err) {
+        logger.warn({
+          msg: '[Execute] Regulatory RAG prefetch failed (non-blocking)',
+          error: err,
+        });
+      }
+    }
+
+    // Cheap-by-design web grounding: one trusted search per meaningful turn.
+    if (AUTO_WEB_VERIFY_ENABLED && shouldAutoWebVerify(input.user_message)) {
+      try {
+        const cacheUserId = input.user_id || 'unknown';
+        const webQuery = buildTrustedWebQuery(String(input.user_message ?? input.classification.intent));
+        const cached = findCachedWebEvidence(cacheUserId, webQuery);
+
+        if (cached) {
+          citations.push(...cached.citations);
+          tool_outputs.push({
+            tool: 'web.search',
+            data: cached.results,
+          });
+          tool_calls.push({
+            id: `prefetch-web-${Date.now()}`,
+            tool: 'web.search',
+            args: { query: cached.query, limit: 3, cache_hit: true },
+            status: 'success',
+          });
+          react_trace.push({
+            iteration: 0,
+            decision: 'Prefetch web confiable (cache)',
+            result: 'cache_hit',
+          });
+        } else {
+          const webResult = await runMCPTool({
+            tool: 'web.search',
+            args: { query: webQuery, limit: 3 },
+            turn_id: input.turn_id || 'unknown',
+            user_id: input.user_id || 'unknown',
+          });
+
+          if (webResult.tool_call?.status === 'success' || !webResult.tool_call?.status) {
+            const gatheredCitations = [
+              ...(Array.isArray(webResult.citations) ? webResult.citations : []),
+              ...(Array.isArray(webResult.data?.citations) ? webResult.data.citations : []),
+            ];
+            citations.push(...gatheredCitations);
+            tool_outputs.push({
+              tool: 'web.search',
+              data: webResult.data,
+            });
+            tool_calls.push({
+              id: `prefetch-web-${Date.now()}`,
+              tool: 'web.search',
+              args: { query: webQuery, limit: 3 },
+              status: 'success',
+            });
+            react_trace.push({
+              iteration: 0,
+              decision: 'Prefetch web confiable',
+              result: 'success',
+            });
+            storeCachedWebEvidence(cacheUserId, {
+              ts: Date.now(),
+              query: webQuery,
+              results: webResult.data,
+              citations: gatheredCitations,
+            });
+          }
+        }
+      } catch (err) {
+        logger.warn({
+          msg: '[Execute] Trusted web prefetch failed (non-blocking)',
+          error: err,
+        });
+      }
+    }
 
     // Build loop messages
     const loopMessages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [

@@ -20,6 +20,8 @@ import {
 import { stripEmojis } from '../helpers/format.helpers';
 import { sanitizeFormulaContent } from '../helpers/formula-sanitizer';
 import type { FormatPhaseInput, FormatPhaseOutput, FormattedResponse } from '../agent-types';
+import type { Citation } from '../chat.types';
+import { retrieveRAGContext } from '../../../services/rag.service';
 import { getLogger } from '../../../logger';
 import {
   buildActionPlanFormatInstructions,
@@ -36,6 +38,63 @@ function shouldApplyLatexFormatting(message: string): boolean {
     /\b(VF|VA|APV|CAE|UF|TPM)\b/i.test(message) ||
     /(?:\d+\s*[%]|=\s*[^=\n]+)/.test(message);
   return hasMathLikeContent;
+}
+
+function citationLabel(citation: Citation): string {
+  return (
+    citation.doc_title ||
+    citation.source ||
+    citation.url ||
+    citation.doc_id ||
+    'Fuente sin titulo'
+  );
+}
+
+function appendSourcesBlock(message: string, citations: Citation[]): string {
+  const cleanMessage = message.trim();
+  const hasSourcesHeading = /\n#{0,3}\s*fuentes\b/i.test(cleanMessage);
+  if (hasSourcesHeading) return cleanMessage;
+
+  const scored = citations.map((citation, idx) => ({
+    citation,
+    idx,
+    score:
+      (citation.confidence ?? 0.5) +
+      (citation.url ? 0.1 : 0) +
+      ((citation.supporting_span?.length ?? 0) > 24 ? 0.05 : 0),
+  }));
+  scored.sort((a, b) => b.score - a.score || a.idx - b.idx);
+
+  const uniqueLabels: string[] = [];
+  for (const item of scored) {
+    const citation = item.citation;
+    const label = citationLabel(citation).trim();
+    if (!label) continue;
+    if (!uniqueLabels.includes(label)) uniqueLabels.push(label);
+    if (uniqueLabels.length >= 6) break;
+  }
+
+  const renderedSources =
+    uniqueLabels.length > 0
+      ? uniqueLabels.map((label) => `- ${label}`).join('\n')
+      : '- Base regulatoria interna (CMF / Ley 21.521 / glosario financiero)';
+
+  return `${cleanMessage}\n\nFuentes:\n${renderedSources}`;
+}
+
+async function ensureMinimumCitations(input: FormatPhaseInput): Promise<Citation[]> {
+  const existing = input.execution_result?.citations ?? [];
+  if (existing.length > 0) return existing;
+
+  try {
+    const fallback = await retrieveRAGContext(
+      `${input.user_message} CMF Ley 21.521 glosario financiero`,
+      { mode: input.mode, intent: input.user_message },
+    );
+    return fallback;
+  } catch {
+    return existing;
+  }
 }
 
 function compactToolOutputs(input: FormatPhaseInput): string {
@@ -178,13 +237,14 @@ export async function runFormatPhase(input: FormatPhaseInput): Promise<FormatPha
 
   try {
     if (fastFormatEnabled) {
+      const ensuredCitations = await ensureMinimumCitations(input);
       const message = await buildFastValuableMessage(input);
 
       const formatted_response: FormattedResponse = {
-        message,
+        message: appendSourcesBlock(message, ensuredCitations),
         agent_blocks: input.execution_result?.agent_blocks || [],
         artifacts: input.execution_result?.artifacts || [],
-        citations: input.execution_result?.citations || [],
+        citations: ensuredCitations,
         suggested_replies: [],
         panel_action: undefined,
         context_score: undefined,
@@ -289,6 +349,8 @@ export async function runFormatPhase(input: FormatPhaseInput): Promise<FormatPha
 
     const contextScoreMatch = rawResponse.match(/<CONTEXT_SCORE>(\d+)<\/CONTEXT_SCORE>/);
     const context_score = contextScoreMatch ? parseInt(contextScoreMatch[1], 10) : undefined;
+    const ensuredCitations = await ensureMinimumCitations(input);
+    message = appendSourcesBlock(message, ensuredCitations);
 
     const hasQuestionnaireBlock = [...(input.execution_result?.agent_blocks || []), ...responseChartBlocks]
       .some((b) => b.type === 'questionnaire');
@@ -308,7 +370,7 @@ export async function runFormatPhase(input: FormatPhaseInput): Promise<FormatPha
         ...(inferredQuestionnaire ? [inferredQuestionnaire] : []),
       ],
       artifacts: input.execution_result?.artifacts || [],
-      citations: input.execution_result?.citations || [],
+      citations: ensuredCitations,
       suggested_replies,
       panel_action,
       context_score,
@@ -330,12 +392,14 @@ export async function runFormatPhase(input: FormatPhaseInput): Promise<FormatPha
       'Preparé una respuesta base con los resultados disponibles. Si quieres, la refinamos en el siguiente mensaje.';
     fallbackMessage = sanitizeFormulaContent(fallbackMessage);
     fallbackMessage = ensureDecisionDisclaimer(fallbackMessage, input);
+    const ensuredCitations = await ensureMinimumCitations(input);
+    fallbackMessage = appendSourcesBlock(fallbackMessage, ensuredCitations);
 
     const formatted_response: FormattedResponse = {
       message: fallbackMessage,
       agent_blocks: input.execution_result?.agent_blocks || [],
       artifacts: input.execution_result?.artifacts || [],
-      citations: input.execution_result?.citations || [],
+      citations: ensuredCitations,
       suggested_replies: [],
       panel_action: undefined,
       context_score: undefined,

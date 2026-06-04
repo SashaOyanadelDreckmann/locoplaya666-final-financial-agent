@@ -713,6 +713,11 @@ Tu rol en esta fase es RECOPILAR DATOS mediante herramientas (tool_use).
 Usa las herramientas necesarias para obtener la información que el usuario requiere.
 Cuando tengas suficientes datos, detente — otro módulo generará la respuesta final.
 
+VALIDACION BARATA Y CONFIABLE (OBLIGATORIO):
+- Prioriza fuentes oficiales para Chile: cmfchile.cl, cmfeduca.cl, leychile.cl, bcentral.cl, hacienda.cl.
+- Evita busquedas redundantes; reutiliza la evidencia ya disponible en tool_outputs si ya existe.
+- No hagas mas de una busqueda web adicional si ya hay evidencia reciente y suficiente.
+
 ════════════════════════════════════════════════════════════════
 ⚠️  FORMATO DE FÓRMULAS Y ECUACIONES (CRÍTICO)
 ════════════════════════════════════════════════════════════════

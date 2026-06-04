@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type CSSProperties } from 'react';
 import { getCsrfToken } from '@/lib/csrf';
+import { downloadBlobFile } from '@/lib/artifacts';
 import { countProductsWithAnalyzedMovements } from '@/lib/transactions-flow.helpers';
 import { CHILE_FINANCIAL_INSTITUTIONS, FINANCIAL_SERVICE_OPTIONS } from '@/lib/financialCatalog';
 import { BudgetIntelligenceTable } from '@/components/ui/budget-intelligence-table';
@@ -611,14 +612,7 @@ export function BudgetModal(props: {
           .set(pdfOptions)
           .from(element);
         const pdfBlob = await worker.outputPdf('blob');
-        const fileUrl = URL.createObjectURL(pdfBlob);
-        const anchor = document.createElement('a');
-        anchor.href = fileUrl;
-        anchor.download = 'presupuesto-financieramente.pdf';
-        document.body.appendChild(anchor);
-        anchor.click();
-        anchor.remove();
-        setTimeout(() => URL.revokeObjectURL(fileUrl), 10_000);
+        const fileUrl = await downloadBlobFile(pdfBlob, 'presupuesto-financieramente.pdf');
         props.onBudgetPdfSaved?.({
           title: `Presupuesto mensual · ${activeStyleLabel}`,
           fileUrl,
@@ -1338,4 +1332,3 @@ export function QuestionnaireModal(props: {
     </div>
   );
 }
-

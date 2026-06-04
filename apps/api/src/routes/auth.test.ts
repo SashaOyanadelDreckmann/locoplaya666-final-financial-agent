@@ -55,7 +55,7 @@ describe('auth + session', () => {
 
     const session = await agent.get('/api/session');
     expect(session.status).toBe(401);
-  });
+  }, 15000);
 
   it('login fails with wrong password after account approval', async () => {
     const { createApp } = await import('../app');

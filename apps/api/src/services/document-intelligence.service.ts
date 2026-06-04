@@ -34,9 +34,19 @@ export function detectDocumentKind(filename: string): StoredDocumentKind {
   const ext = path.extname(filename).toLowerCase();
   if (ext === '.pdf') return 'PDF';
   if (ext === '.xlsx' || ext === '.xls') return 'EXCEL';
-  if (ext === '.csv') return 'CSV';
+  if (ext === '.csv' || ext === '.tsv') return 'CSV';
   if (['.png', '.jpg', '.jpeg', '.webp', '.gif'].includes(ext)) return 'IMAGE';
-  if (ext === '.txt' || ext === '.md') return 'TEXT';
+  if (
+    ext === '.txt' ||
+    ext === '.md' ||
+    ext === '.json' ||
+    ext === '.xml' ||
+    ext === '.yaml' ||
+    ext === '.yml' ||
+    ext === '.log'
+  ) {
+    return 'TEXT';
+  }
   return 'OTHER';
 }
 

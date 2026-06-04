@@ -28,8 +28,8 @@ describe('ToolRateLimiter', () => {
   describe('Default rate limits', () => {
     it('has web.search configured', () => {
       expect(DEFAULT_RATE_LIMITS['web.search']).toBeDefined();
-      expect(DEFAULT_RATE_LIMITS['web.search'].requests_per_minute).toBe(10);
-      expect(DEFAULT_RATE_LIMITS['web.search'].burst_size).toBe(2);
+      expect(DEFAULT_RATE_LIMITS['web.search'].requests_per_minute).toBe(6);
+      expect(DEFAULT_RATE_LIMITS['web.search'].burst_size).toBe(1);
     });
 
     it('has web.scrape configured', () => {
@@ -51,8 +51,8 @@ describe('ToolRateLimiter', () => {
   describe('checkRateLimit', () => {
     it('allows requests within limit', () => {
       const userId = 'user-1';
-      // web.search has 10 req/min limit
-      for (let i = 0; i < 10; i++) {
+      // web.search has 6 req/min limit
+      for (let i = 0; i < 6; i++) {
         expect(() =>
           limiter.checkRateLimit(userId, 'web.search')
         ).not.toThrow();
@@ -61,8 +61,8 @@ describe('ToolRateLimiter', () => {
 
     it('allows burst requests exceeding normal limit but within burst', () => {
       const userId = 'user-1';
-      // web.search: 10 req/min + 2 burst = 12 total
-      for (let i = 0; i < 12; i++) {
+      // web.search: 6 req/min + 1 burst = 7 total
+      for (let i = 0; i < 7; i++) {
         expect(() =>
           limiter.checkRateLimit(userId, 'web.search')
         ).not.toThrow();
@@ -71,11 +71,11 @@ describe('ToolRateLimiter', () => {
 
     it('blocks requests exceeding burst limit', () => {
       const userId = 'user-1';
-      // web.search: 10 + 2 burst = 12 max
-      for (let i = 0; i < 12; i++) {
+      // web.search: 6 + 1 burst = 7 max
+      for (let i = 0; i < 7; i++) {
         limiter.checkRateLimit(userId, 'web.search');
       }
-      // 13th request should fail
+      // 8th request should fail
       expect(() =>
         limiter.checkRateLimit(userId, 'web.search')
       ).toThrow('rate limit exceeded');
@@ -84,7 +84,7 @@ describe('ToolRateLimiter', () => {
     it('throws rate limit error with correct code', () => {
       const userId = 'user-1';
       // Exhaust limit
-      for (let i = 0; i < 12; i++) {
+      for (let i = 0; i < 7; i++) {
         limiter.checkRateLimit(userId, 'web.search');
       }
       try {
@@ -98,7 +98,7 @@ describe('ToolRateLimiter', () => {
 
     it('isolates limits per user', () => {
       // User 1 exhausts limit
-      for (let i = 0; i < 12; i++) {
+      for (let i = 0; i < 7; i++) {
         limiter.checkRateLimit('user-1', 'web.search');
       }
       // User 2 should still be able to make requests
@@ -109,7 +109,7 @@ describe('ToolRateLimiter', () => {
 
     it('isolates limits per tool', () => {
       // Exhaust web.search
-      for (let i = 0; i < 12; i++) {
+      for (let i = 0; i < 7; i++) {
         limiter.checkRateLimit('user-1', 'web.search');
       }
       // web.scrape should still work (5 req/min limit)
@@ -126,8 +126,8 @@ describe('ToolRateLimiter', () => {
 
     it('resets window after duration expires', () => {
       const userId = 'user-1';
-      // Make 12 requests (exhaust limit)
-      for (let i = 0; i < 12; i++) {
+      // Make 7 requests (exhaust limit)
+      for (let i = 0; i < 7; i++) {
         limiter.checkRateLimit(userId, 'web.search');
       }
       // Wait for window to expire (mocked in real tests)
@@ -141,7 +141,7 @@ describe('ToolRateLimiter', () => {
     it('respects burst only within same window', () => {
       const userId = 'user-1';
       // Use all requests + burst
-      for (let i = 0; i < 12; i++) {
+      for (let i = 0; i < 7; i++) {
         limiter.checkRateLimit(userId, 'web.search');
       }
       // Next request in same window should fail
@@ -156,7 +156,7 @@ describe('ToolRateLimiter', () => {
       const status = limiter.getStatus('new-user', 'web.search');
       expect(status.limited).toBe(false);
       expect(status.used).toBe(0);
-      expect(status.remaining).toBe(10); // web.search limit
+      expect(status.remaining).toBe(6); // web.search limit
     });
 
     it('shows remaining count after usage', () => {
@@ -164,12 +164,12 @@ describe('ToolRateLimiter', () => {
       limiter.checkRateLimit('user-1', 'web.search');
       const status = limiter.getStatus('user-1', 'web.search');
       expect(status.used).toBe(2);
-      expect(status.remaining).toBe(8); // 10 - 2
+      expect(status.remaining).toBe(4); // 6 - 2
     });
 
     it('shows limited=true when rate limit exceeded', () => {
       // Exhaust limit
-      for (let i = 0; i < 12; i++) {
+      for (let i = 0; i < 7; i++) {
         limiter.checkRateLimit('user-1', 'web.search');
       }
       const status = limiter.getStatus('user-1', 'web.search');
@@ -194,7 +194,7 @@ describe('ToolRateLimiter', () => {
       // Create a new limiter to have fresh state
       const newLimiter = new ToolRateLimiter(999);
       // Use all limit + burst
-      for (let i = 0; i < 12; i++) {
+      for (let i = 0; i < 7; i++) {
         newLimiter.checkRateLimit('user-1', 'web.search');
       }
       const status = newLimiter.getStatus('user-1', 'web.search');
@@ -220,13 +220,13 @@ describe('ToolRateLimiter', () => {
       // Verify cleared
       status = limiter.getStatus(userId, 'web.search');
       expect(status.used).toBe(0);
-      expect(status.remaining).toBe(10);
+      expect(status.remaining).toBe(6);
     });
 
     it('allows full quota after reset', () => {
       const userId = 'user-to-reset';
       // Exhaust limit
-      for (let i = 0; i < 12; i++) {
+      for (let i = 0; i < 7; i++) {
         limiter.checkRateLimit(userId, 'web.search');
       }
       // Reset
@@ -262,9 +262,9 @@ describe('ToolRateLimiter', () => {
   });
 
   describe('Burst configuration', () => {
-    it('web.search has burst=2', () => {
+    it('web.search has burst=1', () => {
       const config = DEFAULT_RATE_LIMITS['web.search'];
-      expect(config.burst_size).toBe(2);
+      expect(config.burst_size).toBe(1);
     });
 
     it('web.scrape has burst=1', () => {
@@ -288,7 +288,7 @@ describe('ToolRateLimiter', () => {
     it('enforces 60-second window', () => {
       const userId = 'user-1';
       // All requests in same 60s window should be counted together
-      for (let i = 0; i < 10; i++) {
+      for (let i = 0; i < 6; i++) {
         limiter.checkRateLimit(userId, 'web.search');
       }
       // Should be at limit
@@ -312,20 +312,20 @@ describe('Global rate limiter', () => {
   });
 
   it('checkRateLimit function uses global limiter', () => {
-    // Should not throw for first 10 requests
-    for (let i = 0; i < 10; i++) {
+    // Should not throw for first 6 requests
+    for (let i = 0; i < 6; i++) {
       expect(() =>
         checkRateLimit('global-user', 'web.search')
       ).not.toThrow();
     }
-    // 11th within burst should work
+    // 7th within burst should work
     expect(() =>
       checkRateLimit('global-user', 'web.search')
     ).not.toThrow();
-    // 12th should still pass because burst_size=2
+    // 8th should fail (burst_size=1)
     expect(() =>
       checkRateLimit('global-user', 'web.search')
-    ).not.toThrow();
+    ).toThrow();
   });
 });
 
@@ -343,8 +343,8 @@ describe('Multi-tool rate limiting', () => {
   it('tracks limits independently per tool', () => {
     const userId = 'user-1';
 
-    // web.search: 10/min limit
-    for (let i = 0; i < 10; i++) {
+    // web.search: 6/min limit
+    for (let i = 0; i < 6; i++) {
       limiter.checkRateLimit(userId, 'web.search');
     }
 

@@ -382,14 +382,25 @@ export function TransactionsModal(props: TransactionsModalProps) {
     props.savedProductIds.includes(props.activeBankProduct.id)
   );
   const analysisAlreadyDone = parsedDocumentCount > 0;
-  const recreationsLeft = Math.max(0, props.maxRecreations - props.recreationUsed);
-  const canAddMoreProducts = props.bankSimulationProductsCount < props.maxProducts && recreationsLeft > 0;
+  const remainingProductCreations = Math.max(0, props.maxProducts - props.productsCreatedTotal);
+  const canAddMoreProducts = remainingProductCreations > 0;
   const consentLocked = Boolean(props.activeBankProduct?.connected);
   const recommendedTxProducts: Array<{ title: string; bank: string; template: string }> = [
     { title: 'Tarjeta de crédito', bank: 'Banco BICE', template: 'Tarjeta de crédito' },
     { title: 'Cuenta corriente', bank: 'Banco de Chile', template: 'Cuenta corriente' },
     { title: 'Cuenta vista', bank: 'BancoEstado', template: 'Cuenta vista' },
   ];
+
+  function handleCreateProduct() {
+    if (!canAddMoreProducts) return;
+    props.addTransactionProduct();
+    setQuickBank('');
+    setProductTemplate('');
+    setShowInstitutionCatalog(false);
+    setShowTemplateCatalog(false);
+    setShowTxCarousel(true);
+    props.setTxWizardStep('credentials');
+  }
 
   function openAuthorizationWithPreset(preset?: { bank: string; template: string }) {
     if (preset) {
@@ -1039,7 +1050,14 @@ export function TransactionsModal(props: TransactionsModalProps) {
             <div className="pt-list-head">
               <h4>Biblioteca de productos</h4>
               <div className="pt-list-head-actions">
-                <button type="button" className="continue-ghost" onClick={props.addTransactionProduct} disabled={!canAddMoreProducts}>+ Nuevo</button>
+                <button
+                  type="button"
+                  className="continue-ghost tx-create-product-btn"
+                  onClick={handleCreateProduct}
+                  disabled={!canAddMoreProducts}
+                >
+                  + Agregar producto
+                </button>
                 <button
                   type="button"
                   className="continue-ghost tx-inject-products-btn"
@@ -1058,13 +1076,13 @@ export function TransactionsModal(props: TransactionsModalProps) {
             <div className="tx-meta-stack" aria-label="Estado y límites del módulo">
               {props.creationNotice ? (
                 <div className="tx-meta-card is-warning" role="status">
-                  <span className="tx-meta-card-kicker">Estado de recreación</span>
+                  <span className="tx-meta-card-kicker">Estado de creación</span>
                   <p>{props.creationNotice}</p>
                 </div>
               ) : null}
               <div className="tx-meta-card is-neutral">
                 <span className="tx-meta-card-kicker">Límites operativos</span>
-                <p>{props.maxProducts} productos · {props.maxEvidenceFilesPerProduct} archivos por producto · 1 análisis + 3 revisiones de resumen por producto</p>
+                <p>{props.maxProducts} productos creados por usuario · {props.maxEvidenceFilesPerProduct} archivos por producto · 1 análisis + 3 revisiones de resumen por producto</p>
               </div>
               {showInjectProductsConfirm ? (
                 <div className="tx-batch-recommendation-banner" role="status" aria-live="polite">
@@ -1240,7 +1258,14 @@ export function TransactionsModal(props: TransactionsModalProps) {
                   </article>
                 </div>
                 <div className="agent-modal-actions pt-empty-actions">
-                  <button type="button" className="continue-ghost" onClick={props.addTransactionProduct} disabled={!canAddMoreProducts}>Crear primer producto</button>
+                  <button
+                    type="button"
+                    className="continue-ghost tx-create-product-btn"
+                    onClick={handleCreateProduct}
+                    disabled={!canAddMoreProducts}
+                  >
+                    Crear primer producto
+                  </button>
                 </div>
               </div>
             ) : (
@@ -1263,15 +1288,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
                         <button
                           type="button"
                           className="tx-preset-btn tx-preset-btn-add"
-                          onClick={() => {
-                            props.addTransactionProduct();
-                            setQuickBank('');
-                            setProductTemplate('');
-                            setShowInstitutionCatalog(false);
-                            setShowTemplateCatalog(false);
-                            setShowTxCarousel(true);
-                            props.setTxWizardStep('credentials');
-                          }}
+                          onClick={handleCreateProduct}
                         >
                           + Agregar otro producto
                         </button>

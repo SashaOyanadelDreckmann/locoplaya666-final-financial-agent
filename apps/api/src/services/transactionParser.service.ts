@@ -642,7 +642,19 @@ export async function parseTransactionFileDetailed(
   const ext = path.extname(filename).toLowerCase();
   if (ext === '.pdf') return parsePdfBufferDetailed(buffer, filename);
   if (ext === '.xls' || ext === '.xlsx') return parseExcelBufferDetailed(buffer, filename);
-  if (ext === '.csv' || ext === '.txt' || ext === '.md') return parseCsvBufferDetailed(buffer, filename);
+  if (
+    ext === '.csv' ||
+    ext === '.tsv' ||
+    ext === '.txt' ||
+    ext === '.md' ||
+    ext === '.json' ||
+    ext === '.xml' ||
+    ext === '.yaml' ||
+    ext === '.yml' ||
+    ext === '.log'
+  ) {
+    return parseCsvBufferDetailed(buffer, filename);
+  }
   if (ext in IMAGE_MIME_BY_EXT) return parseImageBufferDetailed(buffer, filename);
   return {
     source: filename,

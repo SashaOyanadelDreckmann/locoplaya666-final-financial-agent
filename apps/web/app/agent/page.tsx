@@ -61,7 +61,6 @@ import {
   FALLBACK_WELCOME,
   KNOWLEDGE_MILESTONE_DEFS,
   MAX_EVIDENCE_FILES_PER_PRODUCT,
-  MAX_PRODUCT_RECREATIONS,
   MAX_TRANSACTION_PRODUCTS,
   POST_DIAGNOSIS_CHAT_IDS,
   PRIMARY_CHAT_ID,
@@ -99,6 +98,7 @@ import type {
 import { toChatItemsFromAgentResponse } from '@/lib/agent.response.types';
 import { BudgetModal, QuestionnaireModal, TransactionsModal } from './modals';
 import { InterviewModal } from './InterviewModal';
+import { SocialConsciousnessModal } from './SocialConsciousnessModal';
 import { SidePanels } from './side-panels';
 import { ChatThreadView } from './chat-thread-view';
 import { ChatHeader } from './chat-header';
@@ -139,6 +139,20 @@ type DocFlight = {
   endX: number;
   endY: number;
   running: boolean;
+};
+
+type ParsedUploadDocument = {
+  documentId?: string;
+  name: string;
+  text?: string;
+  summary?: unknown;
+  structuredData?: unknown;
+  insight?: {
+    format?: string;
+    reliability?: number;
+    extracted_rows?: number;
+    key_findings?: string[];
+  };
 };
 
 type ChatThread = {
@@ -394,10 +408,10 @@ export default function AgentPage() {
   const [isQuestionnaireModalOpen, setIsQuestionnaireModalOpen] = useState(false);
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
   const [isInterviewModalOpen, setIsInterviewModalOpen] = useState(false);
+  const [isSocialConsciousnessModalOpen, setIsSocialConsciousnessModalOpen] = useState(false);
   const [isAccountActionLoading, setIsAccountActionLoading] = useState(false);
   const [txWizardStep, setTxWizardStep] = useState<'products' | 'credentials' | 'upload' | 'dashboard'>('products');
-  const [txDeletedProductsCount, setTxDeletedProductsCount] = useState(0);
-  const [txRecreationUsed, setTxRecreationUsed] = useState(0);
+  const [txProductsCreatedTotal, setTxProductsCreatedTotal] = useState(0);
   const [txCreationNotice, setTxCreationNotice] = useState<string | null>(null);
   const [savedProductsForBatch, setSavedProductsForBatch] = useState<string[]>([]);
   const [savedReports, setSavedReports] = useState<SavedReport[]>([]);
@@ -476,7 +490,7 @@ export default function AgentPage() {
   const items = activeThread?.items ?? [];
   const input = activeThread?.draft ?? '';
   const hasBlockingModalOpen =
-    isBudgetModalOpen || isTransactionsModalOpen || isQuestionnaireModalOpen || isAccountModalOpen || isInterviewModalOpen;
+    isBudgetModalOpen || isTransactionsModalOpen || isQuestionnaireModalOpen || isAccountModalOpen || isInterviewModalOpen || isSocialConsciousnessModalOpen;
   const interviewCompleted =
     savedReports.some((report) => report.group === 'diagnosis') ||
     Boolean(sessionInfo?.latestDiagnosticCompletedAt);
@@ -751,7 +765,8 @@ export default function AgentPage() {
         if (
           target.classList.contains('mobile-panel-handle') ||
           target.closest('.mobile-panel-handle') ||
-          target.closest('.agent-panel.is-dragging')
+          target.closest('.agent-panel.is-dragging') ||
+          target.closest('.agent-panel')
         ) {
           return;
         }
@@ -1177,6 +1192,7 @@ export default function AgentPage() {
         uploadedFiles: aggregateUploadedFiles(bankSimulation.products),
         parsedDocuments: aggregateParsedDocuments(bankSimulation.products),
       },
+      txProductsCreatedTotal,
       savedReports,
       updatedAt: new Date().toISOString(),
     };
@@ -1945,7 +1961,17 @@ export default function AgentPage() {
           if (Array.isArray(panelState.savedReports)) {
             setSavedReports(panelState.savedReports);
           }
+          if (typeof panelState.txProductsCreatedTotal === 'number') {
+            setTxProductsCreatedTotal(
+              Math.max(0, Math.min(MAX_TRANSACTION_PRODUCTS, Math.floor(panelState.txProductsCreatedTotal))),
+            );
+          }
           if (panelState.bankSimulation && typeof panelState.bankSimulation === 'object') {
+            if (Array.isArray(panelState.bankSimulation.products)) {
+              setTxProductsCreatedTotal((prev) =>
+                Math.max(prev, Math.min(MAX_TRANSACTION_PRODUCTS, panelState.bankSimulation.products.length)),
+              );
+            }
             setBankSimulation((prev) => {
               const products: BankProduct[] = Array.isArray(panelState.bankSimulation.products)
                 ? panelState.bankSimulation.products.map((product: unknown) => {
@@ -2032,7 +2058,17 @@ export default function AgentPage() {
                 if (Array.isArray(panelState.savedReports)) {
                   setSavedReports(panelState.savedReports);
                 }
+                if (typeof panelState.txProductsCreatedTotal === 'number') {
+                  setTxProductsCreatedTotal(
+                    Math.max(0, Math.min(MAX_TRANSACTION_PRODUCTS, Math.floor(panelState.txProductsCreatedTotal))),
+                  );
+                }
                 if (panelState.bankSimulation && typeof panelState.bankSimulation === 'object') {
+                  if (Array.isArray(panelState.bankSimulation.products)) {
+                    setTxProductsCreatedTotal((prev) =>
+                      Math.max(prev, Math.min(MAX_TRANSACTION_PRODUCTS, panelState.bankSimulation.products.length)),
+                    );
+                  }
                   setBankSimulation((prev) => {
                     const products: BankProduct[] = Array.isArray(panelState.bankSimulation.products)
                       ? panelState.bankSimulation.products.map((product: unknown) => {
@@ -2116,7 +2152,7 @@ export default function AgentPage() {
     return () => {
       if (panelSaveTimerRef.current) clearTimeout(panelSaveTimerRef.current);
     };
-  }, [budgetRows, budgetChatAnswers, bankSimulation, savedReports, panelStateLoaded, panelStateBackupKey]);
+  }, [budgetRows, budgetChatAnswers, bankSimulation, txProductsCreatedTotal, savedReports, panelStateLoaded, panelStateBackupKey]);
 
   useEffect(() => {
     if (!isAuthenticated || !panelStateLoaded) return;
@@ -2622,7 +2658,78 @@ export default function AgentPage() {
   async function onUploadFromChat(files: FileList | null) {
     if (!files || files.length === 0) return;
     const selected = Array.from(files);
-    const uploadFiles = selected.map((file) => ({
+    const allowedExt = new Set([
+      'png',
+      'jpg',
+      'jpeg',
+      'webp',
+      'gif',
+      'pdf',
+      'xls',
+      'xlsx',
+      'csv',
+      'tsv',
+      'txt',
+      'md',
+      'json',
+      'xml',
+      'yaml',
+      'yml',
+      'log',
+    ]);
+    const accepted = selected.filter((file) => {
+      const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
+      return file.type.startsWith('image/') || file.type === 'application/pdf' || allowedExt.has(ext);
+    });
+    const rejected = selected.filter((file) => !accepted.includes(file));
+    const totalBytes = accepted.reduce((sum, file) => sum + file.size, 0);
+    if (accepted.length === 0) {
+      setItemsForActive((prev) => [
+        ...prev,
+        {
+          type: 'message',
+          role: 'assistant',
+          content:
+            'No pude adjuntar esos formatos. Sube PDF, imágenes, Excel, CSV/TSV, TXT/MD, JSON, XML, YAML o LOG.',
+        },
+      ]);
+      return;
+    }
+    if (totalBytes > 35 * 1024 * 1024) {
+      setItemsForActive((prev) => [
+        ...prev,
+        {
+          type: 'message',
+          role: 'assistant',
+          content: 'La carga supera 35 MB. Divide los archivos y vuelve a intentar.',
+        },
+      ]);
+      return;
+    }
+
+    if (rejected.length > 0) {
+      setItemsForActive((prev) => [
+        ...prev,
+        {
+          type: 'message',
+          role: 'assistant',
+          content: `Omití ${rejected.length} archivo(s) no compatible(s): ${rejected
+            .map((f) => f.name)
+            .slice(0, 6)
+            .join(', ')}.`,
+        },
+      ]);
+    }
+
+    const topNameHints = activeBankProduct
+      ? {
+          institutionHint: activeBankProduct.bank,
+          serviceHint: activeBankProduct.label,
+          productTypeHint: activeBankProduct.productType,
+          productLabelHint: activeBankProduct.label,
+        }
+      : undefined;
+    const uploadFiles = accepted.map((file) => ({
       name: file.name,
       mime: file.type || undefined,
       previewUrl: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined,
@@ -2632,10 +2739,35 @@ export default function AgentPage() {
       { type: 'upload', role: 'user', files: uploadFiles },
     ]);
 
-    const uploadResult = await onUploadStatement(files);
+    const encodedFiles = await Promise.all(
+      accepted.map(
+        (file) =>
+          new Promise<{ name: string; base64: string; mimeType?: string }>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+              const raw = typeof reader.result === 'string' ? reader.result : '';
+              const base64 = raw.includes(',') ? raw.split(',')[1] ?? '' : raw;
+              resolve({ name: file.name, base64, mimeType: file.type || undefined });
+            };
+            reader.onerror = () => reject(reader.error ?? new Error('No se pudo leer el archivo'));
+            reader.readAsDataURL(file);
+          })
+      )
+    );
 
-    const names = selected.map((f) => f.name);
-    if (!uploadResult || uploadResult.documents.length === 0) {
+    let parsed: { documents?: ParsedUploadDocument[]; transactionAnalysis?: unknown } | null = null;
+    try {
+      setDocumentsLoading(true);
+      parsed = await parseDocuments(encodedFiles, topNameHints);
+    } catch {
+      parsed = null;
+    } finally {
+      setDocumentsLoading(false);
+    }
+
+    const names = accepted.map((f) => f.name);
+    const parsedDocs = Array.isArray(parsed?.documents) ? parsed.documents : [];
+    if (parsedDocs.length === 0) {
       setItemsForActive((prev) => [
         ...prev,
         {
@@ -2648,13 +2780,29 @@ export default function AgentPage() {
       return;
     }
 
-    const docsSummary = uploadResult.documents.map((doc) => ({
-      name: doc.name,
-      preview: String(doc.text || '').slice(0, 500),
-    }));
+    const docsSummary = parsedDocs.map((doc) => {
+      const format = String(doc.insight?.format ?? '').toLowerCase() || (doc.name.split('.').pop()?.toLowerCase() ?? 'unknown');
+      const reliability = Number(doc.insight?.reliability ?? 0);
+      const extractedRows = Number(doc.insight?.extracted_rows ?? 0);
+      const keyFindings = Array.isArray(doc.insight?.key_findings) ? doc.insight!.key_findings!.slice(0, 4) : [];
+      return {
+        name: doc.name,
+        format,
+        reliability: Number.isFinite(reliability) ? Number(reliability.toFixed(3)) : undefined,
+        extractedRows: Number.isFinite(extractedRows) ? extractedRows : 0,
+        keyFindings,
+        preview: String(doc.text || '').slice(0, 450),
+      };
+    });
+    const analysisEnvelope =
+      parsed?.transactionAnalysis && typeof parsed.transactionAnalysis === 'object'
+        ? parsed.transactionAnalysis
+        : undefined;
     const message = `Cargué y procesé estos archivos para analizarlos contigo: ${names.join(
       ', '
-    )}. Contexto extraído: ${JSON.stringify(docsSummary)}. Úsalos para el diagnóstico y próximos cálculos.`;
+    )}. Analiza este paquete documental con enfoque profesional, detecta inconsistencias y oportunidades, y cita evidencia exacta por archivo. DOCUMENTOS_JSON=${JSON.stringify(
+      docsSummary
+    )}${analysisEnvelope ? ` ANALISIS_TRANSACCIONAL_JSON=${JSON.stringify(analysisEnvelope)}` : ''}`;
     void onSend(message);
   }
 
@@ -2837,25 +2985,11 @@ export default function AgentPage() {
   }
 
   function addTransactionProduct() {
-    if (bankSimulation.products.length >= MAX_TRANSACTION_PRODUCTS) {
-      setTransactionUploadError(`Solo puedes tener ${MAX_TRANSACTION_PRODUCTS} productos activos.`);
+    if (txProductsCreatedTotal >= MAX_TRANSACTION_PRODUCTS) {
+      setTransactionUploadError(`Solo puedes crear ${MAX_TRANSACTION_PRODUCTS} productos por usuario.`);
       return;
     }
-    const hasDeletionHistory = txDeletedProductsCount > 0;
-    const remainingRecreations = MAX_PRODUCT_RECREATIONS - txRecreationUsed;
-    if (hasDeletionHistory && remainingRecreations <= 0) {
-      setTransactionUploadError('Ya usaste las 3 recreaciones permitidas después de eliminar productos.');
-      return;
-    }
-    if (hasDeletionHistory && remainingRecreations === 3) {
-      setTxCreationNotice('Aviso: después de eliminar, solo puedes recrear productos 3 veces en total.');
-    } else if (hasDeletionHistory && remainingRecreations === 2) {
-      setTxCreationNotice('Aviso: te quedan 2 recreaciones de producto.');
-    } else if (hasDeletionHistory && remainingRecreations === 1) {
-      setTxCreationNotice('Aviso final: esta es tu última recreación de producto.');
-    } else {
-      setTxCreationNotice(null);
-    }
+    setTxCreationNotice(null);
     const id = `prod-${Date.now()}`;
     const product: BankProduct = {
       id,
@@ -2878,7 +3012,7 @@ export default function AgentPage() {
       parsedDocuments: [],
     };
     setBankSimulation((prev) => {
-      const products = [...prev.products, product];
+      const products = [product, ...prev.products];
       const snapshot = getSimulationSnapshot(products, id);
       return {
         ...prev,
@@ -2890,9 +3024,9 @@ export default function AgentPage() {
         parsedDocuments: snapshot.parsedDocuments,
       };
     });
+    setTxProductsCreatedTotal((prev) => prev + 1);
     setTransactionUploadError(null);
     setTxWizardStep('credentials');
-    if (hasDeletionHistory) setTxRecreationUsed((prev) => prev + 1);
   }
 
   function saveTransactionProductForBatch() {
@@ -2987,7 +3121,6 @@ export default function AgentPage() {
     });
     setTransactionUploadError(null);
     setTxWizardStep(resolveTxWizardStep(nextActive));
-    setTxDeletedProductsCount((prev) => prev + 1);
   }
 
   function simulateBankLogin(nextConfig?: {
@@ -3031,13 +3164,33 @@ export default function AgentPage() {
       return null;
     }
 
-    const allowedExt = new Set(['png', 'jpg', 'jpeg', 'webp', 'gif', 'pdf', 'xls', 'xlsx', 'csv', 'txt', 'md']);
+    const allowedExt = new Set([
+      'png',
+      'jpg',
+      'jpeg',
+      'webp',
+      'gif',
+      'pdf',
+      'xls',
+      'xlsx',
+      'csv',
+      'tsv',
+      'txt',
+      'md',
+      'json',
+      'xml',
+      'yaml',
+      'yml',
+      'log',
+    ]);
     const selectedFiles = fileArray.filter((file) => {
       const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
       return file.type.startsWith('image/') || file.type === 'application/pdf' || allowedExt.has(ext);
     });
     if (selectedFiles.length === 0) {
-      setTransactionUploadError('Formato no soportado. Usa imagen, PDF, Excel, CSV o TXT.');
+      setTransactionUploadError(
+        'Formato no soportado. Usa imagen, PDF, XLS/XLSX, CSV/TSV, TXT/MD, JSON, XML, YAML o LOG.',
+      );
       return null;
     }
     const totalBytes = selectedFiles.reduce((sum, file) => sum + file.size, 0);
@@ -3160,7 +3313,20 @@ export default function AgentPage() {
         ? transactionAnalysis.movements
         : [];
       const normalizedParsedDocs = normalizeParsedUploadDocuments(parsedDocs, insightByName);
-      if (normalizedParsedDocs.length === 0) {
+      const fallbackParsedDocs =
+        normalizedParsedDocs.length > 0
+          ? normalizedParsedDocs
+          : canonicalMovements.length > 0 || insightByName.size > 0
+            ? names.map((name) => ({
+                documentId: undefined,
+                name,
+                text: '',
+                summary: null,
+                structuredData: null,
+                insight: insightByName.get(name) as BankProduct['parsedDocuments'][number]['insight'],
+              }))
+            : [];
+      if (fallbackParsedDocs.length === 0) {
         setTransactionUploadError(
           'No se detectó contenido transaccional en esos archivos. Intenta con un PDF/imagen más nítido o un Excel/CSV con columnas de fecha, descripción y monto.',
         );
@@ -3168,7 +3334,7 @@ export default function AgentPage() {
       }
 
       setBankSimulation((prev) => {
-        const uploadApplied = applyUploadToTargetProduct(prev.products, targetProductId, normalizedParsedDocs, names);
+        const uploadApplied = applyUploadToTargetProduct(prev.products, targetProductId, fallbackParsedDocs, names);
         const active = uploadApplied.targetProduct;
         if (!active) return prev;
         const provisionalProduct: BankProduct = {
@@ -3230,7 +3396,7 @@ export default function AgentPage() {
         };
       });
       return {
-        documents: normalizedParsedDocs,
+        documents: fallbackParsedDocs,
         dashboard: transactionAnalysis?.product_profile
           ? {
               period: transactionAnalysis.product_profile.period,
@@ -3827,6 +3993,20 @@ export default function AgentPage() {
             flowPanelAction={getNextFlowPanelAction()}
           />
 
+          {activeChatId === 'chat-3' && (
+            <div style={{ padding: '0 0 10px', display: 'flex' }}>
+              <button
+                type="button"
+                className="social-philosophy-trigger"
+                onClick={() => setIsSocialConsciousnessModalOpen(true)}
+                aria-label="Abrir reflexión filosófica interactiva"
+              >
+                <span className="social-trigger-phi" aria-hidden="true">φ</span>
+                Reflexión interactiva
+              </button>
+            </div>
+          )}
+
           <div className="agent-input-shell terminal-composer-shell">
             <div
               className="agent-input terminal-composer"
@@ -3857,7 +4037,7 @@ export default function AgentPage() {
               <input
                 ref={chatUploadInputRef}
                 type="file"
-                accept=".pdf,.xls,.xlsx,.csv,image/*"
+                accept=".pdf,.xls,.xlsx,.csv,.tsv,.txt,.md,.json,.xml,.yaml,.yml,.log,image/*"
                 multiple
                 style={{ display: 'none' }}
                 onChange={(e) => {
@@ -3870,7 +4050,7 @@ export default function AgentPage() {
                 className="continue-button composer-icon-btn"
                 disabled={isActiveChatLocked}
                 onClick={() => chatUploadInputRef.current?.click()}
-                title="Adjuntar imagen, PDF o Excel"
+                title="Adjuntar archivos (PDF, imagen, Excel, texto y más)"
                 aria-label="Adjuntar archivo"
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -4039,8 +4219,7 @@ export default function AgentPage() {
         savedProductIds={savedProductsForBatch}
         maxProducts={MAX_TRANSACTION_PRODUCTS}
         maxEvidenceFilesPerProduct={MAX_EVIDENCE_FILES_PER_PRODUCT}
-        maxRecreations={MAX_PRODUCT_RECREATIONS}
-        recreationUsed={txRecreationUsed}
+        productsCreatedTotal={txProductsCreatedTotal}
         creationNotice={txCreationNotice}
       />
 
@@ -4055,6 +4234,16 @@ export default function AgentPage() {
             })
             .catch(() => {});
         }}
+      />
+
+      <SocialConsciousnessModal
+        isOpen={isSocialConsciousnessModalOpen}
+        onClose={() => setIsSocialConsciousnessModalOpen(false)}
+        onSendToChat={(message) => {
+          setIsSocialConsciousnessModalOpen(false);
+          void onSend(message);
+        }}
+        sessionUserName={sessionInfo?.name}
       />
 
       {isAccountModalOpen && (

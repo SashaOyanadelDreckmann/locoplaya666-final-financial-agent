@@ -19,6 +19,7 @@ import { sendSuccess } from '../http/api.responses';
 import { parseBody } from '../http/parse';
 import { asyncHandler } from '../middleware/errorHandler';
 import { getAuthenticatedUser } from '../middleware/auth';
+import { getLogger } from '../logger';
 import { USER_ROLES } from '../auth/rbac';
 import { APPROVAL_STATUS } from '../auth/approval';
 import {
@@ -28,6 +29,7 @@ import {
 } from '../services/approval.service';
 
 export const authRouter = Router();
+const logger = getLogger();
 
 const RegisterSchema = z.object({
   name: z.string().trim().min(1),
@@ -143,8 +145,13 @@ authRouter.post('/register', asyncHandler(async (req, res) => {
     userId: user.id,
     userName: user.name,
     userEmail: user.email,
-  }).catch(() => {
-    // Keep registration successful even if email provider is temporarily unavailable.
+  }).catch((error: unknown) => {
+    logger.warn({
+      msg: 'Approval request email failed after registration',
+      userId: user.id,
+      userEmail: user.email,
+      error,
+    });
   });
 
   return sendSuccess(res, {

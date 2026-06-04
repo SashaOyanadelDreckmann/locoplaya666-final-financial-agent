@@ -1865,6 +1865,191 @@ body.home-lock {
   letter-spacing: 0.02em;
 }
 
+/* ---- Waiting approval — install block ---- */
+.waiting-install-block {
+  border: 1px solid rgba(209, 223, 243, 0.12);
+  border-radius: 12px;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.03);
+  margin-bottom: 14px;
+}
+
+.waiting-install-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.waiting-install-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.waiting-install-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(246, 250, 255, 0.55);
+}
+
+.waiting-install-kicker {
+  font-size: 16px;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+  color: rgba(247, 250, 255, 0.96);
+}
+
+.waiting-platform-badge {
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(190, 210, 240, 0.6);
+  background: rgba(160, 195, 240, 0.08);
+  border: 1px solid rgba(160, 195, 240, 0.15);
+  border-radius: 6px;
+  padding: 2px 7px;
+  letter-spacing: 0.02em;
+}
+
+.waiting-install-helper {
+  margin: 0 0 14px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: rgba(226, 234, 244, 0.62);
+}
+
+.waiting-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.waiting-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.waiting-step-num {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(160, 195, 240, 0.12);
+  border: 1px solid rgba(160, 195, 240, 0.22);
+  color: rgba(190, 215, 250, 0.75);
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1px;
+}
+
+.waiting-step-text {
+  font-size: 13px;
+  line-height: 1.5;
+  color: rgba(235, 240, 248, 0.72);
+}
+
+.waiting-install-btn {
+  width: 100%;
+  margin-top: 14px;
+  padding: 0 16px;
+  height: 48px;
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, rgba(229, 236, 250, 0.18), rgba(166, 187, 232, 0.18)),
+    linear-gradient(135deg, rgba(97, 127, 187, 0.38), rgba(118, 82, 154, 0.22));
+  border: 1px solid rgba(171, 194, 238, 0.42);
+  color: rgba(240, 246, 255, 0.98);
+  font-size: 14px;
+  font-weight: 700;
+  font-family: inherit;
+  letter-spacing: -0.02em;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow:
+    0 16px 32px rgba(12, 20, 36, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.waiting-install-btn:hover {
+  background:
+    linear-gradient(180deg, rgba(236, 242, 255, 0.24), rgba(175, 196, 240, 0.24)),
+    linear-gradient(135deg, rgba(111, 143, 206, 0.44), rgba(131, 94, 170, 0.28));
+  border-color: rgba(193, 211, 245, 0.58);
+  transform: translateY(-1px);
+  box-shadow:
+    0 20px 38px rgba(12, 20, 36, 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.waiting-install-btn:active {
+  transform: translateY(0);
+  background:
+    linear-gradient(180deg, rgba(236, 242, 255, 0.2), rgba(175, 196, 240, 0.2)),
+    linear-gradient(135deg, rgba(111, 143, 206, 0.38), rgba(131, 94, 170, 0.24));
+}
+
+.waiting-install-status {
+  margin-top: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(190, 220, 255, 0.55);
+  text-align: center;
+}
+
+@media (max-width: 480px) {
+  .waiting-install-block {
+    padding: 12px 14px;
+    border-radius: 10px;
+    margin-bottom: 12px;
+  }
+  .waiting-install-label {
+    font-size: 10px;
+  }
+  .waiting-platform-badge {
+    font-size: 9px;
+    padding: 2px 6px;
+  }
+  .waiting-install-kicker {
+    font-size: 14px;
+  }
+  .waiting-install-helper {
+    font-size: 11px;
+    margin-bottom: 12px;
+  }
+  .waiting-step-text {
+    font-size: 12px;
+  }
+  .waiting-step-num {
+    width: 18px;
+    height: 18px;
+    font-size: 10px;
+  }
+  .waiting-install-btn {
+    height: 44px;
+    font-size: 13px;
+    border-radius: 12px;
+    margin-top: 12px;
+  }
+
+  .waiting-install-status {
+    font-size: 11px;
+    margin-top: 10px;
+  }
+}
+
 @keyframes authCardPulse {
   0% {
     background:

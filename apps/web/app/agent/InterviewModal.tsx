@@ -1596,7 +1596,7 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
     }
   }
 
-  async function useVoiceTranscriptAsAnswer() {
+  async function applyVoiceTranscriptAsAnswer() {
     const clean = (voiceUserTranscript || voicePartialTranscript).trim();
     if (!clean || !blockId || awaitingSummaryValidation) return;
 
@@ -1954,7 +1954,7 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
                     <button
                       type="button"
                       className="summary-action-btn summary-action-reject"
-                      onClick={() => void useVoiceTranscriptAsAnswer()}
+                      onClick={() => void applyVoiceTranscriptAsAnswer()}
                     >
                       Usar transcripción
                     </button>

@@ -147,7 +147,6 @@ export type TransactionsModalProps = {
   savedProductIds: string[];
   maxProducts: number;
   maxEvidenceFilesPerProduct: number;
-  maxRecreations: number;
-  recreationUsed: number;
+  productsCreatedTotal: number;
   creationNotice?: string | null;
 };

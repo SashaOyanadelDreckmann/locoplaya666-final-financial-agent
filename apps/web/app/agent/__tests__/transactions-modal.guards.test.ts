@@ -10,8 +10,12 @@ describe('transactions modal safeguards', () => {
 
     const constantsPath = path.join(process.cwd(), 'app', 'agent', 'transactions', 'constants.ts');
     const constants = fs.readFileSync(constantsPath, 'utf8');
+    const pageConstantsPath = path.join(process.cwd(), 'app', 'agent', 'agent-page.constants.ts');
+    const pageConstants = fs.readFileSync(pageConstantsPath, 'utf8');
     expect(constants).toContain('TX_MAX_SINGLE_FILE_BYTES = 10 * 1024 * 1024');
     expect(constants).toContain('TX_MAX_TOTAL_FILE_BYTES = 35 * 1024 * 1024');
+    expect(pageConstants).toContain('MAX_TRANSACTION_PRODUCTS = 7');
+    expect(pageConstants).toContain('MAX_EVIDENCE_FILES_PER_PRODUCT = 25');
     expect(source).toContain('const transactionsModalRef = useRef<HTMLDivElement | null>(null);');
     expect(source).toContain("if (event.key !== 'Tab') return;");
     expect(source).toContain('aria-describedby="transactions-modal-intro"');
@@ -29,7 +33,8 @@ describe('transactions modal safeguards', () => {
     expect(source).toContain('const targetProductId = activeBankProduct.id;');
     expect(source).toContain('normalizeParsedUploadDocuments');
     expect(source).toContain('applyUploadToTargetProduct');
-    expect(source).toContain('if (normalizedParsedDocs.length === 0)');
+    expect(source).toContain('const fallbackParsedDocs =');
+    expect(source).toContain('if (fallbackParsedDocs.length === 0)');
     expect(source).toContain('No se detectó contenido transaccional en esos archivos');
     expect(source).toContain('const totalBytes = selectedFiles.reduce((sum, file) => sum + file.size, 0);');
     expect(source).toContain('if (totalBytes > 35 * 1024 * 1024)');
