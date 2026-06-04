@@ -56,11 +56,6 @@ import {
 } from '@/lib/panel-state.helpers';
 import { normalizeProductAssistantState } from '@/lib/product-normalization.helpers';
 import {
-  IDLE_PARSE_PROGRESS,
-  advanceParseProgressTick,
-  type DocumentsParseProgress,
-} from '@/lib/transactions-parse-progress.helpers';
-import {
   CHAT_GAME_INSTRUCTION,
   DEFAULT_BANK_SIMULATION,
   FALLBACK_WELCOME,
@@ -450,7 +445,6 @@ export default function AgentPage() {
   const [panelStateLoaded, setPanelStateLoaded] = useState(false);
   const [persistentKnowledgeScore, setPersistentKnowledgeScore] = useState<number | null>(null);
   const [documentsLoading, setDocumentsLoading] = useState(false);
-  const [documentsParseProgress, setDocumentsParseProgress] = useState<DocumentsParseProgress>(IDLE_PARSE_PROGRESS);
   const [transactionUploadError, setTransactionUploadError] = useState<string | null>(null);
   const [accountActionError, setAccountActionError] = useState<string | null>(null);
   const [productLifecycle, setProductLifecycle] = useState<ProductLifecycle | null>(null);
@@ -3220,15 +3214,6 @@ export default function AgentPage() {
     const names = cappedFiles.map((f) => f.name);
     setTransactionUploadError(null);
     setDocumentsLoading(true);
-    setDocumentsParseProgress({
-      stage: 'reading',
-      percent: 8,
-      detail: 'Leyendo archivos en tu dispositivo.',
-    });
-    let progressTimer: number | null = null;
-    progressTimer = window.setInterval(() => {
-      setDocumentsParseProgress((current) => advanceParseProgressTick(current));
-    }, 450);
 
     try {
       const encodedFiles = await Promise.all(
@@ -3247,25 +3232,13 @@ export default function AgentPage() {
         )
       );
 
-      setDocumentsParseProgress({
-        stage: 'uploading',
-        percent: 22,
-        detail: 'Enviando respaldos al analizador.',
-      });
-
       const callParseDocuments = async () =>
         parseDocuments(encodedFiles, {
           institutionHint: activeBankProduct.bank,
           serviceHint: activeBankProduct.label,
           productTypeHint: activeBankProduct.productType,
           productLabelHint: activeBankProduct.label,
-          fastParse: true,
         });
-      setDocumentsParseProgress({
-        stage: 'extracting',
-        percent: 36,
-        detail: 'Extrayendo movimientos con OCR y parser financiero.',
-      });
       let parsed = await callParseDocuments();
       const parsedDocsFirstTry = Array.isArray(parsed?.documents) ? parsed.documents : [];
       if (parsedDocsFirstTry.length === 0) {
@@ -3273,11 +3246,6 @@ export default function AgentPage() {
         await new Promise((resolve) => setTimeout(resolve, 700));
         parsed = await callParseDocuments();
       }
-      setDocumentsParseProgress({
-        stage: 'structuring',
-        percent: 88,
-        detail: 'Organizando categorías, totales y alertas.',
-      });
       const parsedDocs = Array.isArray(parsed?.documents) ? parsed.documents : [];
       const transactionAnalysis = parsed?.transactionAnalysis as
         | {
@@ -3469,9 +3437,7 @@ export default function AgentPage() {
       setTransactionUploadError(errorText);
       return null;
     } finally {
-      if (progressTimer !== null) window.clearInterval(progressTimer);
       setDocumentsLoading(false);
-      setDocumentsParseProgress(IDLE_PARSE_PROGRESS);
     }
   }
 
@@ -4255,8 +4221,6 @@ export default function AgentPage() {
         simulateBankLogin={simulateBankLogin}
         onUploadStatement={onUploadStatement}
         documentsLoading={documentsLoading}
-        documentsParseProgress={documentsParseProgress}
-        onDocumentsParseProgress={setDocumentsParseProgress}
         transactionUploadError={transactionUploadError}
         sendTransactionsToAgent={sendTransactionsToAgent}
         saveTransactionProductForBatch={saveTransactionProductForBatch}
