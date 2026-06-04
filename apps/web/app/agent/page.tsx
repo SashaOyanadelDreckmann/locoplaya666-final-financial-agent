@@ -818,19 +818,27 @@ export default function AgentPage() {
     };
   }, []);
 
-  // Fix teclado virtual iOS/Android: ajusta --visual-vh al viewport visible real
+  // iOS/Android: layout follows visible viewport (keyboard); background always fills full screen.
   useEffect(() => {
     const vv = window.visualViewport;
-    if (!vv) return;
     const update = () => {
-      document.documentElement.style.setProperty('--visual-vh', `${vv.height}px`);
+      const screenH = window.innerHeight;
+      const visibleH = vv?.height ?? screenH;
+      document.documentElement.style.setProperty('--screen-h', `${screenH}px`);
+      document.documentElement.style.setProperty('--visual-vh', `${visibleH}px`);
     };
     update();
-    vv.addEventListener('resize', update);
-    vv.addEventListener('scroll', update);
+    window.addEventListener('resize', update);
+    window.addEventListener('orientationchange', update);
+    vv?.addEventListener('resize', update);
+    vv?.addEventListener('scroll', update);
     return () => {
-      vv.removeEventListener('resize', update);
-      vv.removeEventListener('scroll', update);
+      window.removeEventListener('resize', update);
+      window.removeEventListener('orientationchange', update);
+      vv?.removeEventListener('resize', update);
+      vv?.removeEventListener('scroll', update);
+      document.documentElement.style.removeProperty('--screen-h');
+      document.documentElement.style.removeProperty('--visual-vh');
     };
   }, []);
 

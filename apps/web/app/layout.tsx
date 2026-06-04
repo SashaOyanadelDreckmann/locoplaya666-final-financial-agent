@@ -33,7 +33,8 @@ export default function RootLayout({
         />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
-        <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#000000" />
+        <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#05090f" />
+        <meta name="theme-color" content="#05090f" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="FinMente" />
