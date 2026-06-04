@@ -5384,7 +5384,8 @@ html.agent-global-monochrome {
   .agent-layout {
     display: flex !important;
     flex-direction: column !important;
-    padding: 0;
+    /* 12px side padding lets the background show on both sides */
+    padding: 0 12px;
     gap: 0;
     /* --visual-vh se actualiza via JS (visualViewport API) para manejar teclado iOS */
     height: var(--visual-vh, 100dvh);
@@ -5660,7 +5661,7 @@ html.agent-global-monochrome {
     border-bottom: 1px solid rgba(255,255,255,0.06);
     flex-shrink: 0;
     gap: 8px;
-    background: rgba(255,255,255,0.04);
+    background: transparent;
     cursor: ns-resize;
     touch-action: none;
     -webkit-tap-highlight-color: transparent;
