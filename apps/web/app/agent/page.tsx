@@ -88,6 +88,8 @@ import {
   sanitizeChatItems,
   sanitizeMessageText,
   resolveActiveActionPlanStage,
+  hasMeaningfulIntake,
+  resolveAuthRedirectPath,
 } from './page.utils';
 
 import type {
@@ -553,8 +555,12 @@ export default function AgentPage() {
       try {
         const info = await getSessionInfo();
         if (cancelled) return;
-        const hasCompletedIntake = Boolean(info?.injectedIntake?.intake);
-        if (!hasCompletedIntake) {
+        if (!info?.id) {
+          setIsAuthenticated(false);
+          router.replace('/login');
+          return;
+        }
+        if (!hasMeaningfulIntake(info?.injectedIntake)) {
           setIsAuthenticated(false);
           router.replace('/intake');
           return;
@@ -565,9 +571,7 @@ export default function AgentPage() {
       } catch (error) {
         if (cancelled) return;
         setIsAuthenticated(false);
-        if (error instanceof ApiHttpError && error.status === 401) {
-          router.replace('/login');
-        }
+        router.replace(resolveAuthRedirectPath(error));
       } finally {
         if (!cancelled) setAuthBootstrapped(true);
       }
@@ -3906,6 +3910,10 @@ export default function AgentPage() {
             'data-loop-origin': String(index),
           })
         );
+
+  if (!authBootstrapped || !isAuthenticated) {
+    return null;
+  }
 
   return (
     <main

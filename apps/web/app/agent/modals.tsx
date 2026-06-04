@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type CSSProperties } from 'react';
 import { getCsrfToken } from '@/lib/csrf';
-import { downloadBlobFile } from '@/lib/artifacts';
+import { downloadFile, saveBubbleSnapshotPdfArtifact } from '@/lib/artifacts';
 import { countProductsWithAnalyzedMovements } from '@/lib/transactions-flow.helpers';
 import { CHILE_FINANCIAL_INSTITUTIONS, FINANCIAL_SERVICE_OPTIONS } from '@/lib/financialCatalog';
 import { BudgetIntelligenceTable } from '@/components/ui/budget-intelligence-table';
@@ -59,6 +59,263 @@ function normalizeBudgetText(value: string): string {
     .replace(/[^a-z0-9\s/]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+function collectBudgetSnapshotCss(rootEl: HTMLElement) {
+  const cssParts: string[] = [];
+  const seen = new Set<string>();
+  const selectors = new Set<string>([
+    ':root',
+    'html',
+    'body',
+    'table',
+    'thead',
+    'tbody',
+    'tr',
+    'th',
+    'td',
+    'svg',
+    'path',
+    'line',
+    'small',
+    'strong',
+    'span',
+    'div',
+    'article',
+  ]);
+
+  rootEl.querySelectorAll('*').forEach((node) => {
+    if (!(node instanceof HTMLElement || node instanceof SVGElement)) return;
+    node.classList.forEach((className) => selectors.add(`.${className}`));
+  });
+
+  for (const sheet of Array.from(document.styleSheets)) {
+    let rules: CSSRuleList;
+    try {
+      rules = sheet.cssRules;
+    } catch {
+      continue;
+    }
+
+    for (const rule of Array.from(rules)) {
+      if (rule instanceof CSSStyleRule) {
+        const selector = rule.selectorText || '';
+        if (Array.from(selectors).some((entry) => selector.includes(entry)) && !seen.has(rule.cssText)) {
+          seen.add(rule.cssText);
+          cssParts.push(rule.cssText);
+        }
+        continue;
+      }
+
+      if (rule instanceof CSSMediaRule) {
+        const nested: string[] = [];
+        for (const nestedRule of Array.from(rule.cssRules)) {
+          if (!(nestedRule instanceof CSSStyleRule)) continue;
+          const selector = nestedRule.selectorText || '';
+          if (Array.from(selectors).some((entry) => selector.includes(entry)) && !seen.has(nestedRule.cssText)) {
+            seen.add(nestedRule.cssText);
+            nested.push(nestedRule.cssText);
+          }
+        }
+        if (nested.length > 0) cssParts.push(`@media ${rule.conditionText}{${nested.join('\n')}}`);
+        continue;
+      }
+
+      if (rule instanceof CSSKeyframesRule && !seen.has(rule.cssText)) {
+        seen.add(rule.cssText);
+        cssParts.push(rule.cssText);
+      }
+    }
+  }
+
+  return cssParts.join('\n');
+}
+
+function buildBudgetSnapshotHtmlAndCss(rootEl: HTMLElement, styleLabel: string) {
+  const escapeHtml = (value: string) =>
+    value
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+
+  const cloned = rootEl.cloneNode(true) as HTMLElement;
+  cloned.classList.add('budget-pdf-paper');
+
+  cloned.querySelectorAll('.continue-ghost.danger').forEach((el) => el.remove());
+
+  cloned.querySelectorAll('.budget-pill-group').forEach((group) => {
+    const active = group.querySelector('.budget-pill-button.is-active') as HTMLElement | null;
+    const span = document.createElement('span');
+    span.className = 'budget-static-pill';
+    span.textContent = active?.textContent?.trim() || '';
+    group.replaceWith(span);
+  });
+
+  cloned.querySelectorAll('select').forEach((selectEl) => {
+    const select = selectEl as HTMLSelectElement;
+    const span = document.createElement('span');
+    span.className = `budget-static-field budget-static-select ${select.className}`.trim();
+    span.textContent = select.options[select.selectedIndex]?.text?.trim() || select.value || '';
+    select.replaceWith(span);
+  });
+
+  cloned.querySelectorAll('input, textarea').forEach((inputEl) => {
+    const input = inputEl as HTMLInputElement | HTMLTextAreaElement;
+    const span = document.createElement('span');
+    span.className = `budget-static-field ${input.className}`.trim();
+    span.textContent = input.value?.trim() || input.getAttribute('placeholder') || '0';
+    const inlineStyle = input.getAttribute('style');
+    if (inlineStyle) span.setAttribute('style', inlineStyle);
+    input.replaceWith(span);
+  });
+
+  cloned.querySelectorAll('button').forEach((buttonEl) => {
+    const button = buttonEl as HTMLButtonElement;
+    if (button.closest('.budget-intel-kpis')) return;
+    const span = document.createElement('span');
+    span.className = `budget-static-button ${button.className}`.trim();
+    span.textContent = button.textContent?.trim() || '';
+    button.replaceWith(span);
+  });
+
+  const exportCss = `
+@page {
+  size: A4;
+  margin: 0;
+}
+
+html, body {
+  margin: 0 !important;
+  padding: 0 !important;
+  background: #f5f1e8 !important;
+}
+
+.budget-pdf-snapshot {
+  width: 100% !important;
+  box-sizing: border-box !important;
+  padding: 12mm !important;
+  background: #f5f1e8 !important;
+}
+
+.budget-pdf-running-brand {
+  display: block;
+  margin: 0 0 3mm 0;
+  text-align: center;
+  font-size: 10px;
+  color: #1a3047;
+  font-weight: 600;
+  font-family: "Times New Roman", Times, Georgia, serif;
+}
+
+.budget-pdf-running-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin: 0 0 8mm 0;
+  padding: 0 2px 4px 2px;
+  border-bottom: 1px solid rgba(28, 49, 69, 0.1);
+  background: #f5f1e8 !important;
+}
+
+.budget-pdf-running-kicker {
+  margin: 0 0 3mm 0;
+  font-size: 9px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: #46698f !important;
+  font-weight: 700;
+}
+
+.budget-pdf-running-title {
+  margin: 0 0 1.5mm 0;
+  font-size: 21px;
+  line-height: 1.1;
+  color: #132b40 !important;
+  font-weight: 700;
+}
+
+.budget-pdf-running-subtitle {
+  margin: 0;
+  font-size: 10px;
+  line-height: 1.25;
+  color: #2b3f53 !important;
+  max-width: 70ch;
+}
+
+.budget-pdf-running-badge {
+  border: 1px solid rgba(53, 94, 137, 0.9);
+  border-radius: 999px;
+  padding: 1.4mm 3.4mm;
+  font-size: 9px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: #355f89 !important;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.budget-pdf-paper,
+.budget-pdf-paper * {
+  opacity: 1 !important;
+  filter: none !important;
+  mix-blend-mode: normal !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.budget-pdf-paper {
+  overflow: visible !important;
+  box-shadow: none !important;
+}
+
+.budget-pdf-paper .budget-table-wrap,
+.budget-pdf-paper .budget-table {
+  overflow: visible !important;
+}
+
+.budget-static-field,
+.budget-static-pill,
+.budget-static-button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  box-sizing: border-box;
+}
+
+.budget-static-field {
+  width: 100%;
+  white-space: normal;
+}
+
+.budget-static-pill {
+  justify-content: center;
+  padding: 8px 12px;
+  border-radius: 999px;
+}
+
+.budget-pdf-paper .budget-impact-shell {
+  min-width: 118px;
+}
+`;
+
+  return {
+    html: `<div class="budget-pdf-snapshot">
+      <div class="budget-pdf-running-brand">Financieramente</div>
+      <header class="budget-pdf-running-header">
+        <div class="budget-pdf-running-header-copy">
+          <p class="budget-pdf-running-kicker">PRESUPUESTO</p>
+          <h1 class="budget-pdf-running-title">Budget intelligence</h1>
+          <p class="budget-pdf-running-subtitle">Tabla exportada con el estilo visual activo y los valores actuales del presupuesto.</p>
+        </div>
+        <div class="budget-pdf-running-badge">${escapeHtml(styleLabel)}</div>
+      </header>
+      ${cloned.outerHTML}
+    </div>`,
+    css: `${collectBudgetSnapshotCss(rootEl)}\n${exportCss}`,
+  };
 }
 
 export { TransactionsModal } from './transactions';
@@ -578,57 +835,25 @@ export function BudgetModal(props: {
     await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
 
     try {
-      const html2pdf = (await import('html2pdf.js')).default;
-      const exportWidth = Math.max(960, Math.ceil(element.getBoundingClientRect().width));
-      const exportHeight = Math.max(
-        element.scrollHeight,
-        Math.ceil(element.getBoundingClientRect().height),
-      );
-      const runExport = async (scale: number, lightMode: boolean) => {
-        const pdfOptions: Record<string, unknown> = {
-          margin: [10, 10, 10, 10],
-          filename: 'presupuesto-financieramente.pdf',
-          image: { type: 'jpeg', quality: lightMode ? 0.9 : 0.98 },
-          html2canvas: {
-            scale,
-            useCORS: true,
-            allowTaint: false,
-            backgroundColor: null,
-            windowWidth: exportWidth,
-            ...(lightMode
-              ? {}
-              : {
-                  windowHeight: exportHeight,
-                  height: exportHeight,
-                }),
-            scrollX: 0,
-            scrollY: 0,
-            logging: false,
-          },
-          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-          pagebreak: { mode: ['css', 'legacy'] },
-        };
-        const worker = html2pdf()
-          .set(pdfOptions)
-          .from(element);
-        const pdfBlob = await worker.outputPdf('blob');
-        const fileUrl = await downloadBlobFile(pdfBlob, 'presupuesto-financieramente.pdf');
-        props.onBudgetPdfSaved?.({
-          title: `Presupuesto mensual · ${activeStyleLabel}`,
-          fileUrl,
-          createdAt: new Date().toISOString(),
-        });
-      };
-
-      try {
-        await runExport(exportHeight > 7000 ? 1.1 : 1.5, false);
-      } catch {
-        await runExport(1, true);
+      const snapshot = buildBudgetSnapshotHtmlAndCss(element, activeStyleLabel);
+      const result = await saveBubbleSnapshotPdfArtifact({
+        title: `Presupuesto mensual · ${activeStyleLabel}`,
+        subtitle: 'Tabla exportada con el diseño activo del presupuesto.',
+        html: snapshot.html,
+        css: snapshot.css,
+      });
+      const artifact = result.artifact;
+      if (artifact.fileUrl) {
+        downloadFile(artifact.fileUrl, 'presupuesto-financieramente.pdf');
       }
-
+      props.onBudgetPdfSaved?.({
+        title: artifact.title || `Presupuesto mensual · ${activeStyleLabel}`,
+        fileUrl: artifact.fileUrl ?? '',
+        createdAt: artifact.createdAt || new Date().toISOString(),
+      });
       setAiError(null);
     } catch {
-      setAiError('No se pudo generar el PDF. Intenta nuevamente; si persiste, exporta desde vista compacta.');
+      setAiError('No se pudo generar el PDF del presupuesto. Intenta nuevamente.');
     } finally {
       setIsGeneratingBudgetPdf(false);
     }

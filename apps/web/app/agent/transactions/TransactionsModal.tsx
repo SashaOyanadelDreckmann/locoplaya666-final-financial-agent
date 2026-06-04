@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { createPortal } from 'react-dom';
 import { getCsrfToken } from '@/lib/csrf';
 import { countProductsWithAnalyzedMovements } from '@/lib/transactions-flow.helpers';
 import { CHILE_FINANCIAL_INSTITUTIONS } from '@/lib/financialCatalog';
@@ -999,7 +1000,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
   }
   if (!props.isOpen) return null;
 
-  return (
+  const modalTree = (
     <div className="agent-modal-overlay transactions-modal-overlay" onClick={requestClose}>
       <div
         className="agent-modal transactions-modal"
@@ -1565,4 +1566,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
       </div>
     </div>
   );
+
+  if (typeof document === 'undefined') return null;
+  return createPortal(modalTree, document.body);
 }

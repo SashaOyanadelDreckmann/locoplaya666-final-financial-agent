@@ -3,7 +3,7 @@ import OpenAI from 'openai';
 import { requireBackendSession } from '@/lib/serverAuth';
 import { checkRateLimit } from '@/lib/rateLimit';
 import { getServerEnv } from '@/lib/serverEnv';
-import { getApiBaseUrl } from '@/lib/apiBase';
+import { getServerApiBaseUrl } from '@/lib/apiBase';
 
 type AssistantMessage = {
   role?: 'assistant' | 'user';
@@ -85,7 +85,7 @@ async function resolveCanonicalDocuments(
   }
 
   const cookie = req.headers.get('cookie');
-  const res = await fetch(`${getApiBaseUrl()}/api/documents/resolve`, {
+  const res = await fetch(`${getServerApiBaseUrl()}/api/documents/resolve`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

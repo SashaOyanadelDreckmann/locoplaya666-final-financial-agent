@@ -32931,6 +32931,7 @@ body.agent-route-active .app-shell::before {
 
 /* Transactions modal: authoritative stability layer (desktop + mobile). */
 .agent-modal-overlay.transactions-modal-overlay {
+  z-index: 11000 !important;
   background: rgba(6, 10, 16, 0.52) !important;
   backdrop-filter: blur(18px) saturate(0.75) brightness(0.72) !important;
   -webkit-backdrop-filter: blur(18px) saturate(0.75) brightness(0.72) !important;

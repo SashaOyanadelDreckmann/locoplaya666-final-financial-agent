@@ -7,8 +7,8 @@ import { useEffect, useState } from 'react';
 import { useInterviewStore } from '@/state/interview.store';
 import { submitIntake } from '@/lib/intake';
 import { getSessionInfo } from '@/lib/api';
-import { ApiHttpError } from '@/lib/apiEnvelope';
 import { toUserFacingError } from '@/lib/userError';
+import { hasMeaningfulIntake, resolveAuthRedirectPath } from '@/lib/sessionAccess';
 
 import type { IntakeQuestionnaire } from '@financial-agent/shared/src/intake/intake-questionnaire.types';
 
@@ -69,16 +69,18 @@ export default function IntakePage() {
       try {
         const session = await getSessionInfo();
         if (cancelled) return;
-        if (session?.injectedIntake?.intake) {
+        if (!session?.id) {
+          router.replace('/login');
+          return;
+        }
+        if (hasMeaningfulIntake(session?.injectedIntake)) {
           router.replace('/agent');
           return;
         }
       } catch (err) {
         if (cancelled) return;
-        if (err instanceof ApiHttpError && err.status === 401) {
-          router.replace('/login');
-          return;
-        }
+        router.replace(resolveAuthRedirectPath(err));
+        return;
       } finally {
         if (!cancelled) setBootstrapping(false);
       }

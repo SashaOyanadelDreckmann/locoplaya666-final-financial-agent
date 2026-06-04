@@ -1,4 +1,5 @@
-import { getApiBaseUrl } from './apiBase';
+import { getApiBaseUrl, getUploadApiBaseUrl } from './apiBase';
+import { readApiOriginFromProcessEnv, readApiOriginFromRuntimeWindow } from './runtimePublicConfig';
 import { parseApiResponse } from './apiEnvelope';
 import { getCsrfToken } from './csrf';
 
@@ -121,6 +122,31 @@ export async function getSessionInfo() {
   return parseApiResponse<any>(res);
 }
 
+async function resolveUploadApiBaseUrl(): Promise<string> {
+  if (typeof window === 'undefined') {
+    return getUploadApiBaseUrl();
+  }
+
+  const existing = readApiOriginFromRuntimeWindow() ?? readApiOriginFromProcessEnv();
+  if (existing) return existing;
+
+  try {
+    const res = await fetch('/api/public-config', { cache: 'no-store' });
+    const payload = await res.json().catch(() => null);
+    const origin = String(payload?.config?.apiOrigin ?? '')
+      .trim()
+      .replace(/\/+$/, '');
+    if (origin) {
+      window.__FA_RUNTIME__ = { apiOrigin: origin };
+      return origin;
+    }
+  } catch {
+    // Fall through to proxy/direct resolver.
+  }
+
+  return getUploadApiBaseUrl();
+}
+
 export async function parseDocuments(
   files: Array<{ name: string; base64: string }>,
   hints?: {
@@ -130,8 +156,7 @@ export async function parseDocuments(
     productLabelHint?: string;
   }
 ) {
-  // Keep uploads on the same origin in production so auth cookies/session survive Railway deploys.
-  const API_URL = getApiBaseUrl();
+  const API_URL = await resolveUploadApiBaseUrl();
   const res = await fetch(`${API_URL}/api/documents/parse`, {
     method: 'POST',
     headers: withCsrf({ 'Content-Type': 'application/json' }),

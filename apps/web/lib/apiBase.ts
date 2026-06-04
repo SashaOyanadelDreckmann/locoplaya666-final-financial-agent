@@ -1,23 +1,38 @@
+import {
+  readApiOriginFromProcessEnv,
+  readApiOriginFromRuntimeWindow,
+} from './runtimePublicConfig';
+
+function readDirectApiOriginFromEnv(): string | null {
+  return readApiOriginFromProcessEnv();
+}
+
+function readDirectApiOriginForClient(): string | null {
+  return readApiOriginFromRuntimeWindow() ?? readDirectApiOriginFromEnv();
+}
+
 /**
  * Base URL del API para el frontend.
  *
  * - En dev local, si no está configurado, cae a http://localhost:3001
  * - En deploy, configurar NEXT_PUBLIC_API_URL (ej: https://api.tu-dominio.com)
+ * - En browser+prod se prioriza URL directa al API (runtime + build) para evitar truncar uploads
  */
 export function getApiBaseUrl(): string {
-  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
-    return '/backend';
-  }
+  if (typeof window !== 'undefined') {
+    if (process.env.NODE_ENV === 'production') {
+      const direct = readDirectApiOriginForClient();
+      if (direct) return direct;
+      return '/backend';
+    }
 
-  if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
     const protocol = window.location.protocol || 'http:';
     const hostname = window.location.hostname || 'localhost';
     return `${protocol}//${hostname}:3001`;
   }
 
-  const fromEnv = process.env.NEXT_PUBLIC_API_URL;
-  const base = (fromEnv ?? '').trim();
-  if (base.length > 0) return base.replace(/\/+$/, '');
+  const direct = readDirectApiOriginFromEnv();
+  if (direct) return direct;
 
   return 'http://localhost:3001';
 }
@@ -41,11 +56,23 @@ export function getAppBaseUrl(): string {
  * algunas respuestas extensas pueden cortarse con ECONNRESET en Railway.
  */
 export function getAgentApiBaseUrl(): string {
-  const fromEnv = process.env.NEXT_PUBLIC_AGENT_API_URL;
-  const base = (fromEnv ?? '').trim();
-  if (base.length > 0) return base.replace(/\/+$/, '');
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
+    const direct = readDirectApiOriginForClient();
+    if (direct) return direct;
+  }
+
+  const direct = readDirectApiOriginFromEnv();
+  if (direct) return direct;
 
   return getApiBaseUrl();
+}
+
+/**
+ * URL directa para uploads pesados (cartolas/fotos/PDF) en producción.
+ * El rewrite `/backend` de Next puede truncar payloads grandes o cortar OCR largo.
+ */
+export function getUploadApiBaseUrl(): string {
+  return getAgentApiBaseUrl();
 }
 
 /**
@@ -57,4 +84,13 @@ export function getAgentRequestUrl(path = '/api/agent'): string {
     return path;
   }
   return `${getAgentApiBaseUrl()}${path}`;
+}
+
+/**
+ * Base URL del API en rutas/server actions de Next (sin proxy /backend).
+ */
+export function getServerApiBaseUrl(): string {
+  const direct = readDirectApiOriginFromEnv();
+  if (direct) return direct;
+  return 'http://localhost:3001';
 }

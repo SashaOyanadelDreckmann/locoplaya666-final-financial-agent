@@ -2,6 +2,7 @@
 import './globals.css';
 import './agent.css';
 import ServiceWorkerReset from '@/components/ServiceWorkerReset';
+import { buildRuntimePublicConfigScript } from '@/lib/runtimePublicConfig';
 
 export const metadata = {
   title: 'Financieramente',
@@ -21,9 +22,15 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const runtimeConfigScript = buildRuntimePublicConfigScript();
+
   return (
     <html lang="es">
       <head>
+        <script
+          id="fa-runtime-config"
+          dangerouslySetInnerHTML={{ __html: runtimeConfigScript }}
+        />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
         <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#000000" />
