@@ -123,6 +123,9 @@ const MERCHANT_RULES: MerchantRule[] = [
 ];
 
 const CATEGORY_RULES: CategoryRule[] = [
+  // High-priority income categories checked before generic expense rules
+  { category: 'Salario e Ingresos', confidence: 0.97, keywords: ['remuneracion', 'remuneraciones', 'sueldo', 'salario', 'nomina', 'payroll', 'honorario', 'honorarios', 'abono remuneracion', 'pago remuneracion'] },
+  { category: 'Vivienda', confidence: 0.95, keywords: ['dividendo hipotecario', 'dividendo', 'hipotecario', 'arriendo', 'arrendamiento', 'renta mensual', 'gastos comunes', 'gasto comun', 'condominio'] },
   { category: 'Delivery', confidence: 0.95, keywords: ['delivery', 'pedidos ya', 'pedidosya', 'rappi', 'uber eats', 'cornershop', 'didifood', 'didi food'] },
   { category: 'Supermercado', confidence: 0.95, keywords: ['supermercado', 'supermercad', 'jumbo', 'lider', 'unimarc', 'tottus', 'santa isabel', 'ekono', 'acuenta', 'mayorista 10', 'alvi', 'feria libre'] },
   { category: 'Comida rapida', confidence: 0.93, keywords: ['mcdonalds', 'burger king', 'kfc', 'subway', 'dominos', 'papa johns', 'doggis', 'pizza hut'] },
@@ -131,11 +134,11 @@ const CATEGORY_RULES: CategoryRule[] = [
   { category: 'Hogar y Mejoramiento', confidence: 0.91, keywords: ['sodimac', 'homecenter', 'easy', 'construmart', 'ferreteria', 'mueble', 'decoracion', 'hogar', 'ikea', 'casaideas'] },
   { category: 'Retail y Marketplace', confidence: 0.9, keywords: ['falabella', 'ripley', 'paris', 'hites', 'la polar', 'abcdin', 'mercadolibre', 'mercado libre', 'shein', 'temu', 'amazon', 'aliexpress', 'marketplace', 'tienda online'] },
   { category: 'Telecomunicaciones', confidence: 0.94, keywords: ['movistar', 'entel', 'claro', 'wom', 'vtr', 'gtd', 'telsur', 'recarga', 'prepago', 'fibra', 'internet hogar', 'telefonia'] },
-  { category: 'Servicios Basicos', confidence: 0.92, keywords: ['agua', 'electricidad', 'energia', 'gas', 'servicio basico', 'alcantarillado', 'condominio', 'gasto comun', 'enel', 'aguas andinas', 'metrogas', 'lipigas', 'abastible'] },
+  { category: 'Servicios Basicos', confidence: 0.92, keywords: ['agua', 'electricidad', 'energia', 'gas', 'servicio basico', 'alcantarillado', 'enel', 'aguas andinas', 'metrogas', 'lipigas', 'abastible'] },
   { category: 'Combustible y Estacion', confidence: 0.94, keywords: ['copec', 'shell', 'petrobras', 'aramco', 'bencina', 'combustible', 'estacion de servicio'] },
   { category: 'Transporte y Movilidad', confidence: 0.93, keywords: ['uber', 'cabify', 'metro', 'bip', 'red movilidad', 'peaje', 'autopista', 'tag', 'taxi', 'bus'] },
   { category: 'Autopistas y Peajes', confidence: 0.93, keywords: ['autopista', 'peaje', 'tag', 'costanera norte', 'autopista central', 'vespucio'] },
-  { category: 'Entretenimiento y Suscripciones', confidence: 0.91, keywords: ['spotify', 'netflix', 'youtube', 'apple', 'google', 'prime video', 'disney', 'max', 'suscripcion', 'subscription', 'membresia'] },
+  { category: 'Entretenimiento y Suscripciones', confidence: 0.91, keywords: ['spotify', 'netflix', 'youtube', 'apple', 'google', 'prime video', 'disney', 'max', 'suscripcion', 'subscription', 'membresia', 'cinemark', 'cineplanet', 'cinemundo', 'cine hoyts', 'hoyts', 'cine ', 'teatro', 'concierto'] },
   { category: 'Educacion', confidence: 0.92, keywords: ['colegio', 'universidad', 'matricula', 'escuela', 'instituto', 'curso', 'capacitacion', 'preuniversitario'] },
   { category: 'Viajes y Turismo', confidence: 0.9, keywords: ['hotel', 'booking', 'airbnb', 'latam', 'sky airline', 'jetsmart', 'pasaje', 'turismo'] },
   { category: 'Seguros', confidence: 0.91, keywords: ['seguro', 'aseguradora', 'prima', 'soap'] },
@@ -143,7 +146,7 @@ const CATEGORY_RULES: CategoryRule[] = [
   { category: 'Mascotas', confidence: 0.9, keywords: ['veterinaria', 'veterinario', 'pet', 'mascota', 'petshop'] },
   { category: 'Transferencias', confidence: 0.9, keywords: ['transferencia', 'tef', 'deposito', 'abono', 'pago recibido', 'envio de dinero'] },
   { category: 'Cajero y Giro', confidence: 0.9, keywords: ['cajero', 'atm', 'giro', 'retiro efectivo', 'retiro cajero'] },
-  { category: 'Servicios Financieros', confidence: 0.88, keywords: ['comision', 'interes', 'mantencion', 'avance', 'tarjeta de credito', 'pago tarjeta', 'cuota tarjeta', 'cuota', 'gasto bancario'] },
+  { category: 'Servicios Financieros', confidence: 0.88, keywords: ['comision', 'interes', 'mantencion', 'avance', 'tarjeta de credito', 'pago tarjeta', 'cuota tarjeta', 'gasto bancario'] },
 ];
 
 const CATEGORY_RULES_WITH_PATTERNS = CATEGORY_RULES.map((rule) => ({
@@ -177,7 +180,10 @@ function buildLoosePattern(alias: string): RegExp {
 function fallbackMerchant(normalized: string): string | undefined {
   if (!normalized) return undefined;
   const cleaned = normalized
-    .replace(/\b(compra|pago|cargo|abono|transferencia|transfer|debito|credito|webpay|pos|pac|pat|tef|nacional|internacional|trx|visa|mastercard|tarjeta|cuota|cuotas|sucursal|chile|cl|www|com)\b/g, ' ')
+    .replace(
+      /\b(compra|pago|cargo|abono|transferencia|transfer|debito|credito|webpay|pos|pac|pat|tef|nacional|internacional|trx|visa|mastercard|tarjeta|cuota|cuotas|sucursal|chile|cl|www|com|enviada|recibida|emitida|rechazada|autorizada|anulada|reversa|devolucion|deposito|giro|retiro|rojo|red|internet)\b/g,
+      ' ',
+    )
     .replace(/\b\d{2,}\b/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();

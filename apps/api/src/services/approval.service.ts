@@ -219,6 +219,79 @@ export async function sendRejectedNotificationEmail(params: {
   });
 }
 
+// ─── Password Reset ──────────────────────────────────────────────────────────
+
+type PasswordResetPayload = {
+  userId: string;
+  userEmail: string;
+  nonce: string;
+  exp: number;
+};
+
+const RESET_TTL_HOURS = 1;
+
+export function createPasswordResetToken(input: { userId: string; userEmail: string }): string {
+  const config = getConfig();
+  const payload: PasswordResetPayload = {
+    userId: input.userId,
+    userEmail: normalizeEmail(input.userEmail),
+    nonce: crypto.randomUUID(),
+    exp: Date.now() + RESET_TTL_HOURS * 60 * 60 * 1000,
+  };
+  const encodedPayload = toBase64Url(JSON.stringify(payload));
+  const signature = signPayload(encodedPayload, config.APPROVAL_LINK_SECRET);
+  return `${encodedPayload}.${signature}`;
+}
+
+export function verifyPasswordResetToken(token: string): PasswordResetPayload {
+  const config = getConfig();
+  const [encodedPayload, signature] = String(token || '').split('.');
+  if (!encodedPayload || !signature) {
+    throw badRequest('Token inválido');
+  }
+  const expected = signPayload(encodedPayload, config.APPROVAL_LINK_SECRET);
+  if (!safeTimingEqual(signature, expected)) {
+    throw badRequest('Token inválido o expirado');
+  }
+  let payload: PasswordResetPayload;
+  try {
+    payload = JSON.parse(fromBase64Url(encodedPayload)) as PasswordResetPayload;
+  } catch {
+    throw badRequest('Token inválido');
+  }
+  if (!payload?.userId || !payload?.userEmail || !payload?.exp || !payload?.nonce) {
+    throw badRequest('Token inválido');
+  }
+  if (Date.now() > payload.exp) {
+    throw badRequest('El enlace de recuperación expiró. Solicita uno nuevo.');
+  }
+  return payload;
+}
+
+export async function sendPasswordResetEmail(params: {
+  userName: string;
+  userEmail: string;
+  token: string;
+}) {
+  const config = getConfig();
+  const base = config.APPROVAL_LINK_BASE_URL.replace(/\/+$/, '');
+  const resetUrl = `${base}/reset-password?token=${encodeURIComponent(params.token)}`;
+
+  await sendEmail({
+    to: params.userEmail,
+    subject: 'Recupera tu contraseña — Financieramente',
+    html: `
+      <h2>Recuperación de contraseña</h2>
+      <p>Hola ${escapeHtml(params.userName)},</p>
+      <p>Recibimos una solicitud para restablecer la contraseña de tu cuenta.</p>
+      <p><a href="${resetUrl}">Restablecer contraseña (válido por ${RESET_TTL_HOURS} hora)</a></p>
+      <p>Si no solicitaste esto, ignora este mensaje. Tu contraseña no cambiará.</p>
+    `,
+  });
+}
+
+// ─── Approval ────────────────────────────────────────────────────────────────
+
 export async function approveUserFromSignedToken(token: string) {
   const payload = verifyApprovalToken(token, 'approve');
   const user = await loadUserById(payload.userId);
