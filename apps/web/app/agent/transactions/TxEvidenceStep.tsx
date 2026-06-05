@@ -243,16 +243,19 @@ export function TxEvidenceStep(props: TxEvidenceStepProps) {
                       {(p.analysisAlreadyDone || p.txUploadOnboardingStep === 'upload') && (
                       <div className="upload-zone tx-upload-zone-premium tx-upload-zone-premium--rail tx-upload-zone-premium--inline">
                         <div className="tx-upload-actions">
-                          <button
-                            type="button"
-                            className="tx-upload-video-btn"
-                            onClick={() => {
-                              p.onPatchUploadFormat('video');
-                              p.onSetUploadOnboardingStep('upload');
-                            }}
-                          >
+                          <label className="tx-upload-video-btn">
                             Subir video
-                          </button>
+                            <input
+                              type="file"
+                              accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm,.m4v,.avi"
+                              style={{ display: 'none' }}
+                              onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                                p.onPatchUploadFormat('video');
+                                p.onSetUploadOnboardingStep('upload');
+                                p.onAppendPendingEvidence(e.target.files);
+                              }}
+                            />
+                          </label>
                         </div>
                         <label className="upload-label upload-label--minimal">
                           <span>Adjuntar</span>
