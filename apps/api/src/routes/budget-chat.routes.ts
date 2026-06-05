@@ -611,7 +611,12 @@ function hasMissingDebtOrSavings(
 }
 
 function fallbackInit(rows: BudgetRow[], intakeData: Record<string, unknown>, products: BudgetProductSummary[]) {
-  const { focus, question } = buildBudgetFocusQuestion(rows, null, intakeData, products);
+  const incomeRow = rows.find((row) => normalizeRowId(row.id) === 'income_salary') ?? null;
+  const preferredRowId =
+    incomeRow && Number(incomeRow.amount ?? 0) <= 0
+      ? 'income_salary'
+      : hasMissingDebtOrSavings(rows, intakeData, products);
+  const { focus, question } = buildBudgetFocusQuestion(rows, null, intakeData, products, preferredRowId);
   return packageBudgetReply({
     reply: question,
     followUp: question,

@@ -161,6 +161,7 @@ describe('budget-chat routes', () => {
     expect(res.status).toBe(200);
     expect(res.body.source).toBe('deterministic_init');
     expect(String(res.body.next_question || res.body.assistant_reply)).toMatch(/ingreso|sueldo/i);
+    expect(res.body.focus_row_id).toBe('income_salary');
   }, 15_000);
 
   it('updates debt row when assistant focus is set despite sueldo in confirmation text', async () => {
