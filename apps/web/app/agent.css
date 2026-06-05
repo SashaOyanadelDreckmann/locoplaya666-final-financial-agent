@@ -46954,7 +46954,8 @@ body.agent-route-active .app-shell > * {
 /* ============================================================
    PHONE PANEL + BACKDROP CONTINUITY
    Desktop sidebar and mobile bottom panel share the same wallpaper.
-   Swipe-up frame shift exposes continuous background (no black strip).
+   Mobile swipe + zoom live on .mobile-scale-frame (page content), not on
+   the fixed backdrop layers behind it.
    ============================================================ */
 @media (min-width: 768px) {
   .agent-layout {
@@ -46978,55 +46979,50 @@ body.agent-route-active .app-shell > * {
     background-image:
       linear-gradient(180deg, rgba(6, 10, 16, 0.18), rgba(6, 10, 16, 0.28)),
       url('/fondo4.jpg') !important;
-    background-size: calc(100% * var(--agent-mobile-bg-zoom, 1.14)) auto !important;
+    background-size: cover !important;
     background-position: center top !important;
     background-repeat: no-repeat !important;
   }
 
   body.agent-route-active .global-agent-backdrop {
-    inset: calc(env(safe-area-inset-top, 0px) * -1 - 12vh) -8vw -22vh -8vw !important;
-    transform: scale(var(--agent-mobile-bg-zoom, 1.14)) !important;
-    transform-origin: center top !important;
+    inset: calc(env(safe-area-inset-top, 0px) * -1) 0 0 0 !important;
+    transform: none !important;
     background-position: center top !important;
     background-size: cover !important;
     box-shadow: none !important;
   }
 
   body.agent-route-active .app-shell::before {
-    top: calc(env(safe-area-inset-top, 0px) * -1 - 12vh) !important;
-    right: -8vw !important;
-    left: -8vw !important;
-    bottom: -22vh !important;
-    width: auto !important;
-    height: calc(var(--screen-h, 100dvh) + 34vh + env(safe-area-inset-top, 0px)) !important;
-    min-height: calc(var(--screen-h, 100dvh) + 34vh + env(safe-area-inset-top, 0px)) !important;
-    transform: scale(var(--agent-mobile-bg-zoom, 1.14)) !important;
-    transform-origin: center top !important;
+    inset: 0 !important;
+    height: 100% !important;
+    min-height: 100% !important;
+    max-height: none !important;
+    transform: none !important;
     background-position: center top !important;
     background-size: cover !important;
     box-shadow: inset 0 0 0 9999px rgba(0, 0, 0, 0.42) !important;
   }
 
   body.agent-route-active .app-shell::after {
-    inset: calc(env(safe-area-inset-top, 0px) * -1 - 12vh) -8vw -22vh -8vw !important;
-    transform: scale(var(--agent-mobile-bg-zoom, 1.14)) !important;
-    transform-origin: center top !important;
+    inset: -40% !important;
+    transform: none !important;
   }
 
   body.agent-route-active .mobile-scale-frame {
-    transform: none !important;
+    transform: translateY(var(--agent-mobile-frame-shift, 56px))
+      scale(var(--agent-mobile-frame-scale, 0.94)) !important;
+    transform-origin: top center !important;
   }
 
   body.agent-route-active .agent-layout,
   body.agent-route-active .agent-layout.is-mobile-standalone {
-    transform: translateY(var(--agent-mobile-frame-shift, 56px)) !important;
-    transform-origin: top center !important;
+    transform: none !important;
     padding-top: 0 !important;
     margin-top: 0 !important;
     background: transparent !important;
-    height: calc(var(--screen-h, 100dvh) - var(--agent-mobile-frame-shift, 56px)) !important;
-    max-height: calc(var(--screen-h, 100dvh) - var(--agent-mobile-frame-shift, 56px)) !important;
-    min-height: calc(var(--screen-h, 100dvh) - var(--agent-mobile-frame-shift, 56px)) !important;
+    height: var(--screen-h, 100dvh) !important;
+    max-height: var(--screen-h, 100dvh) !important;
+    min-height: var(--screen-h, 100dvh) !important;
     overflow: hidden !important;
   }
 

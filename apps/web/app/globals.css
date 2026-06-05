@@ -788,7 +788,9 @@ button {
 
 @media (max-width: 767px) {
   .mobile-scale-frame {
-    transform: none;
+    transform: translateY(var(--agent-mobile-frame-shift, 0px))
+      scale(var(--agent-mobile-frame-scale, 1));
+    transform-origin: top center;
     height: 100dvh;
     min-height: 100dvh;
     overflow-y: auto;
