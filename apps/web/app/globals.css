@@ -671,12 +671,21 @@ button {
 .app-shell::before {
   content: '';
   position: fixed;
-  inset: -2px;
+  inset: -24px -2px -2px -2px;
   background:
-    linear-gradient(rgba(0, 0, 0, 0.76), rgba(0, 0, 0, 0.76)),
+    linear-gradient(
+      180deg,
+      rgba(0, 0, 0, 0.10) 0%,
+      rgba(0, 0, 0, 0.24) 12%,
+      rgba(0, 0, 0, 0.60) 44%,
+      rgba(0, 0, 0, 0.76) 100%
+    ),
     url('/images/bg-door.jpg') center/cover no-repeat;
   pointer-events: none;
   z-index: 0;
+  transform: scale(1.03) translateY(-1%);
+  transform-origin: center top;
+  animation: appShellBackdropEntrance 850ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 /* Grano puro sobre foto (sin glow ni pulso de luz) */
@@ -699,6 +708,17 @@ button {
 .app-shell > * {
   position: relative;
   z-index: 1;
+}
+
+@keyframes appShellBackdropEntrance {
+  from {
+    opacity: 0;
+    transform: scale(1.08) translateY(-3%);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1.03) translateY(-1%);
+  }
 }
 
 @keyframes film-grain-drift-a {
