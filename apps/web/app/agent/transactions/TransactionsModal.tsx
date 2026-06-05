@@ -155,6 +155,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
   const insightCarouselRef = useRef<HTMLDivElement | null>(null);
   const txSummaryScrollRef = useRef<HTMLDivElement | null>(null);
   const previousConnectedRef = useRef<Record<string, boolean>>({});
+  const modalOpenInitRef = useRef(false);
   const dockTransitionTimersRef = useRef<number[]>([]);
   const selectedTemplate = ALL_PRODUCT_TEMPLATES.find((item) => item.label === productTemplate);
   const derivedProductType: BankProduct['productType'] =
@@ -393,6 +394,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
 
   function handleCreateProduct(seed?: { bank?: string; template?: string; productType?: BankProduct['productType'] }) {
     if (!canAddMoreProducts) return;
+    bumpModalMotion();
     props.addTransactionProduct(
       seed
         ? {
@@ -433,14 +435,17 @@ export function TransactionsModal(props: TransactionsModalProps) {
     const timerId = window.setTimeout(callback, delay);
     dockTransitionTimersRef.current.push(timerId);
   }
+  function bumpModalMotion() {
+    setShuffleTrigger((value) => value + 1);
+    setTransitionPulse((value) => value + 1);
+  }
   function startAuthorizationTransition() {
     if (!canContinueAuto || isDockingToLibrary || !props.activeBankProduct) return;
     clearDockTransitionTimers();
     const productId = props.activeBankProduct.id;
     setIsDockingToLibrary(true);
     setDockTransitionPhase('authorizing');
-    setTransitionPulse((value) => value + 1);
-    setShuffleTrigger((value) => value + 1);
+    bumpModalMotion();
     queueDockTransitionTimeout(() => setDockTransitionPhase('flood'), 220);
     queueDockTransitionTimeout(() => {
       applyOnboarding();
@@ -470,7 +475,15 @@ export function TransactionsModal(props: TransactionsModalProps) {
     }, 1960);
   }
   useEffect(() => {
-    if (!props.isOpen) return;
+    if (!props.isOpen) {
+      modalOpenInitRef.current = false;
+      clearDockTransitionTimers();
+      setDockTransitionPhase('idle');
+      setIsDockingToLibrary(false);
+      return;
+    }
+    if (modalOpenInitRef.current) return;
+    modalOpenInitRef.current = true;
     clearDockTransitionTimers();
     setDockTransitionPhase('idle');
     setIsDockingToLibrary(false);
@@ -532,6 +545,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
     const nextIndex = ((index % libraryProductCards.length) + libraryProductCards.length) % libraryProductCards.length;
     const nextProduct = libraryProductCards[nextIndex]?.product;
     if (!nextProduct) return;
+    bumpModalMotion();
     setShowTxCarousel(true);
     setProductCarouselIndex(nextIndex);
     props.selectTransactionProduct(nextProduct.id);
@@ -1190,10 +1204,6 @@ export function TransactionsModal(props: TransactionsModalProps) {
         tabIndex={-1}
         ref={transactionsModalRef}
         onClick={(e) => e.stopPropagation()}
-        onClickCapture={() => {
-          setShuffleTrigger((n) => n + 1);
-          setTransitionPulse((n) => n + 1);
-        }}
         data-ui-version="v2"
         data-dock-phase={dockTransitionPhase}
         data-stage={currentStage}
@@ -1430,6 +1440,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
                             type="button"
                             className="tx-preset-btn"
                             onClick={() => openAuthorizationWithPreset(preset)}
+                            disabled={!canAddMoreProducts}
                           >
                             {preset.title}
                           </button>
@@ -1438,6 +1449,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
                           type="button"
                           className="tx-preset-btn tx-preset-btn-add"
                           onClick={() => handleCreateProduct()}
+                          disabled={!canAddMoreProducts}
                         >
                           + Agregar otro producto
                         </button>
