@@ -3,6 +3,7 @@ export * from './interview.constants';
 export * from './chat-lifecycle.constants';
 export * from './action-plan-funnel';
 export * from './budget-rows';
+export * from './transactions-chat';
 export type {
     IntakeQuestionnaire,
     FinancialKnowledgeChecklist,
