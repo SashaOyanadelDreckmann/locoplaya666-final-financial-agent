@@ -226,17 +226,19 @@ type PasswordResetPayload = {
   userEmail: string;
   nonce: string;
   exp: number;
+  version: number;
 };
 
 const RESET_TTL_HOURS = 1;
 
-export function createPasswordResetToken(input: { userId: string; userEmail: string }): string {
+export function createPasswordResetToken(input: { userId: string; userEmail: string; version: number }): string {
   const config = getConfig();
   const payload: PasswordResetPayload = {
     userId: input.userId,
     userEmail: normalizeEmail(input.userEmail),
     nonce: crypto.randomUUID(),
     exp: Date.now() + RESET_TTL_HOURS * 60 * 60 * 1000,
+    version: Number.isFinite(input.version) && input.version >= 0 ? Math.floor(input.version) : 0,
   };
   const encodedPayload = toBase64Url(JSON.stringify(payload));
   const signature = signPayload(encodedPayload, config.PASSWORD_RESET_LINK_SECRET);
@@ -260,6 +262,9 @@ export function verifyPasswordResetToken(token: string): PasswordResetPayload {
     throw badRequest('Token inválido');
   }
   if (!payload?.userId || !payload?.userEmail || !payload?.exp || !payload?.nonce) {
+    throw badRequest('Token inválido');
+  }
+  if (!Number.isInteger(payload.version) || payload.version < 0) {
     throw badRequest('Token inválido');
   }
   if (Date.now() > payload.exp) {

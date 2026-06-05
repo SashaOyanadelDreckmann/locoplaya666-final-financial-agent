@@ -1,4 +1,6 @@
+import crypto from 'crypto';
 import type { UserRole } from '../auth/rbac';
+import { getConfig } from '../config';
 import { getPersistenceMode, getPrismaClient, memoryStore } from '../persistence/provider';
 
 type SortOrder = 'asc' | 'desc';
@@ -33,6 +35,12 @@ export type AnalyticsListUserActivityParams = {
   to?: string;
   limit: number;
   offset: number;
+};
+
+export type ResearchAnalyticsParams = {
+  role?: UserRole;
+  from?: string;
+  to?: string;
 };
 
 export type AnalyticsInteraction = {
@@ -108,6 +116,67 @@ type AnalyticsInteractionsResult = {
   };
 };
 
+type ResearchStage = 'new' | 'onboarding' | 'diagnosis' | 'building' | 'active' | 'advanced' | 'stale';
+
+export type ResearchAnalyticsUser = {
+  pseudonymId: string;
+  role: UserRole;
+  createdAtMonth: string;
+  lastSessionSeenAtBucket: string;
+  lastActivityBucket: string;
+  daysSinceCreated: number;
+  daysSinceLastActivity: number | null;
+  stage: ResearchStage;
+  progressScore: number;
+  interactionsCount: number;
+  sessionsCount: number;
+  profilesCount: number;
+  documentsCount: number;
+  sheetsCount: number;
+  budgetRowsCount: number;
+  savedReportsCount: number;
+  knowledgeScore: number;
+  knowledgeBaseScore: number;
+  modesUsed: string[];
+  toolsUsedCount: number;
+  artifactsGeneratedCount: number;
+  hasIntake: boolean;
+  hasProfile: boolean;
+  hasDocuments: boolean;
+};
+
+export type ResearchAnalyticsSummary = {
+  totalUsers: number;
+  totalInteractions: number;
+  activeUsers7d: number;
+  activeUsers30d: number;
+  avgProgressScore: number;
+  avgKnowledgeScore: number;
+  avgKnowledgeBaseScore: number;
+  intakeCompletionRate: number;
+  profileAttachmentRate: number;
+  documentAdoptionRate: number;
+  stageCounts: Record<ResearchStage, number>;
+  topModes: Array<{ mode: string; count: number }>;
+  topTools: Array<{ tool: string; count: number }>;
+};
+
+export type ResearchAnalyticsCohort = {
+  month: string;
+  users: number;
+  active7d: number;
+  active30d: number;
+  avgProgressScore: number;
+  avgKnowledgeScore: number;
+};
+
+export type ResearchAnalyticsReport = {
+  generatedAt: string;
+  summary: ResearchAnalyticsSummary;
+  cohorts: ResearchAnalyticsCohort[];
+  users: ResearchAnalyticsUser[];
+};
+
 type AnalyticsUserActivityResult = {
   user: AnalyticsUser;
   interactions: AnalyticsInteraction[];
@@ -169,6 +238,85 @@ function ensureStringArray(value: unknown): string[] {
     .filter((item) => typeof item === 'string')
     .map((item) => String(item).trim())
     .filter((item) => item.length > 0);
+}
+
+function hashResearchIdentifier(value: string): string {
+  const secret = getConfig().SESSION_TOKEN_SECRET;
+  return crypto
+    .createHmac('sha256', `${secret}:research-analytics`)
+    .update(value)
+    .digest('hex')
+    .slice(0, 10)
+    .toUpperCase();
+}
+
+function monthBucket(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'unknown';
+  return date.toISOString().slice(0, 7);
+}
+
+function activityBucket(daysSince: number | null): string {
+  if (daysSince === null) return 'unknown';
+  if (daysSince <= 0) return 'today';
+  if (daysSince <= 7) return '7d';
+  if (daysSince <= 30) return '30d';
+  if (daysSince <= 90) return '90d';
+  return 'older';
+}
+
+function countDaysBetween(now: number, value: string): number | null {
+  const ts = Date.parse(value);
+  if (!Number.isFinite(ts)) return null;
+  return Math.max(0, Math.floor((now - ts) / (24 * 60 * 60 * 1000)));
+}
+
+function deriveResearchStage(user: RawUserAnalytics): ResearchStage {
+  if (!user.hasIntake) return 'new';
+  if (!user.hasProfile) return 'onboarding';
+  if (user.documentsCount === 0 && user.timeline.length < 3) return 'diagnosis';
+  if (user.documentsCount > 0 && user.sheetsCount === 0) return 'building';
+  if (user.savedReportsCount === 0) return 'active';
+  if (user.knowledgeScore >= 70 || user.timeline.length >= 12) return 'advanced';
+  return 'active';
+}
+
+function calculateProgressScore(user: RawUserAnalytics): number {
+  const score =
+    (user.hasIntake ? 15 : 0) +
+    (user.hasProfile ? 20 : 0) +
+    Math.min(20, user.documentsCount * 5) +
+    Math.min(15, user.sheetsCount * 3) +
+    Math.min(15, user.savedReportsCount * 3) +
+    Math.min(10, user.timeline.length * 2) +
+    Math.min(5, Math.round(user.knowledgeScore / 20)) +
+    Math.min(5, Math.round(user.knowledgeBaseScore / 20));
+  return Math.max(0, Math.min(100, score));
+}
+
+function countModes(timeline: RawTimelineEntry[]): Array<{ mode: string; count: number }> {
+  const counts = new Map<string, number>();
+  for (const entry of timeline) {
+    const mode = normalizeText(entry.mode) || 'unknown';
+    counts.set(mode, (counts.get(mode) ?? 0) + 1);
+  }
+  return Array.from(counts.entries())
+    .map(([mode, count]) => ({ mode, count }))
+    .sort((a, b) => b.count - a.count || a.mode.localeCompare(b.mode))
+    .slice(0, 6);
+}
+
+function countTools(timeline: RawTimelineEntry[]): Array<{ tool: string; count: number }> {
+  const counts = new Map<string, number>();
+  for (const entry of timeline) {
+    for (const tool of entry.toolNames) {
+      counts.set(tool, (counts.get(tool) ?? 0) + 1);
+    }
+  }
+  return Array.from(counts.entries())
+    .map(([tool, count]) => ({ tool, count }))
+    .sort((a, b) => b.count - a.count || a.tool.localeCompare(b.tool))
+    .slice(0, 6);
 }
 
 function parseTimeline(memoryBlob: unknown): RawTimelineEntry[] {
@@ -313,6 +461,127 @@ function buildUserAnalytics(user: RawUserAnalytics, from?: string, to?: string):
     hasIntake: user.hasIntake,
     hasProfile: user.hasProfile,
   };
+}
+
+function buildResearchUser(user: RawUserAnalytics, now: number): ResearchAnalyticsUser {
+  const daysSinceCreated = countDaysBetween(now, user.createdAt) ?? 0;
+  const daysSinceLastActivity = user.timeline[0]?.timestamp
+    ? countDaysBetween(now, user.timeline[0].timestamp)
+    : user.lastSessionSeenAt
+      ? countDaysBetween(now, user.lastSessionSeenAt)
+      : null;
+
+  return {
+    pseudonymId: `P-${hashResearchIdentifier(user.id)}`,
+    role: user.role,
+    createdAtMonth: monthBucket(user.createdAt),
+    lastSessionSeenAtBucket: activityBucket(user.lastSessionSeenAt ? countDaysBetween(now, user.lastSessionSeenAt) : null),
+    lastActivityBucket: activityBucket(daysSinceLastActivity),
+    daysSinceCreated,
+    daysSinceLastActivity,
+    stage: deriveResearchStage(user),
+    progressScore: calculateProgressScore(user),
+    interactionsCount: user.timeline.length,
+    sessionsCount: user.sessionsCount,
+    profilesCount: user.profilesCount,
+    documentsCount: user.documentsCount,
+    sheetsCount: user.sheetsCount,
+    budgetRowsCount: user.budgetRowsCount,
+    savedReportsCount: user.savedReportsCount,
+    knowledgeScore: user.knowledgeScore,
+    knowledgeBaseScore: user.knowledgeBaseScore,
+    modesUsed: countModes(user.timeline).map((entry) => entry.mode),
+    toolsUsedCount: new Set(user.timeline.flatMap((entry) => entry.toolNames)).size,
+    artifactsGeneratedCount: user.timeline.reduce((sum, entry) => sum + entry.artifactTitles.length, 0),
+    hasIntake: user.hasIntake,
+    hasProfile: user.hasProfile,
+    hasDocuments: user.documentsCount > 0,
+  };
+}
+
+function buildResearchSummary(users: ResearchAnalyticsUser[], rawUsers: RawUserAnalytics[]): ResearchAnalyticsSummary {
+  const stageCounts: Record<ResearchStage, number> = {
+    new: 0,
+    onboarding: 0,
+    diagnosis: 0,
+    building: 0,
+    active: 0,
+    advanced: 0,
+    stale: 0,
+  };
+
+  const modeCounts = new Map<string, number>();
+  const toolCounts = new Map<string, number>();
+  let activeUsers7d = 0;
+  let activeUsers30d = 0;
+
+  for (const user of users) {
+    stageCounts[user.stage] += 1;
+    const activityAge = user.daysSinceLastActivity;
+    if (activityAge !== null && activityAge <= 7) activeUsers7d += 1;
+    if (activityAge !== null && activityAge <= 30) activeUsers30d += 1;
+  }
+
+  for (const raw of rawUsers) {
+    for (const entry of raw.timeline) {
+      const mode = normalizeText(entry.mode) || 'unknown';
+      modeCounts.set(mode, (modeCounts.get(mode) ?? 0) + 1);
+      for (const tool of entry.toolNames) {
+        toolCounts.set(tool, (toolCounts.get(tool) ?? 0) + 1);
+      }
+    }
+  }
+
+  const totalProgress = users.reduce((sum, user) => sum + user.progressScore, 0);
+  const totalKnowledge = users.reduce((sum, user) => sum + user.knowledgeScore, 0);
+  const totalKnowledgeBase = users.reduce((sum, user) => sum + user.knowledgeBaseScore, 0);
+
+  return {
+    totalUsers: users.length,
+    totalInteractions: rawUsers.reduce((sum, user) => sum + user.timeline.length, 0),
+    activeUsers7d,
+    activeUsers30d,
+    avgProgressScore: users.length ? Math.round((totalProgress / users.length) * 10) / 10 : 0,
+    avgKnowledgeScore: users.length ? Math.round((totalKnowledge / users.length) * 10) / 10 : 0,
+    avgKnowledgeBaseScore: users.length ? Math.round((totalKnowledgeBase / users.length) * 10) / 10 : 0,
+    intakeCompletionRate: users.length ? Math.round((users.filter((user) => user.hasIntake).length / users.length) * 1000) / 10 : 0,
+    profileAttachmentRate: users.length ? Math.round((users.filter((user) => user.hasProfile).length / users.length) * 1000) / 10 : 0,
+    documentAdoptionRate: users.length ? Math.round((users.filter((user) => user.hasDocuments).length / users.length) * 1000) / 10 : 0,
+    stageCounts,
+    topModes: Array.from(modeCounts.entries())
+      .map(([mode, count]) => ({ mode, count }))
+      .sort((a, b) => b.count - a.count || a.mode.localeCompare(b.mode))
+      .slice(0, 6),
+    topTools: Array.from(toolCounts.entries())
+      .map(([tool, count]) => ({ tool, count }))
+      .sort((a, b) => b.count - a.count || a.tool.localeCompare(b.tool))
+      .slice(0, 6),
+  };
+}
+
+function buildCohorts(users: ResearchAnalyticsUser[]): ResearchAnalyticsCohort[] {
+  const buckets = new Map<string, ResearchAnalyticsUser[]>();
+  for (const user of users) {
+    const bucket = user.createdAtMonth || 'unknown';
+    const list = buckets.get(bucket) ?? [];
+    list.push(user);
+    buckets.set(bucket, list);
+  }
+
+  return Array.from(buckets.entries())
+    .map(([month, cohort]) => ({
+      month,
+      users: cohort.length,
+      active7d: cohort.filter((user) => user.daysSinceLastActivity !== null && user.daysSinceLastActivity <= 7).length,
+      active30d: cohort.filter((user) => user.daysSinceLastActivity !== null && user.daysSinceLastActivity <= 30).length,
+      avgProgressScore: cohort.length
+        ? Math.round((cohort.reduce((sum, user) => sum + user.progressScore, 0) / cohort.length) * 10) / 10
+        : 0,
+      avgKnowledgeScore: cohort.length
+        ? Math.round((cohort.reduce((sum, user) => sum + user.knowledgeScore, 0) / cohort.length) * 10) / 10
+        : 0,
+    }))
+    .sort((a, b) => a.month.localeCompare(b.month));
 }
 
 function applyUserFilters(users: RawUserAnalytics[], params: {
@@ -745,4 +1014,41 @@ export async function exportAnalyticsInteractionsCsv(
   ]);
 
   return buildCsv(columns, rows);
+}
+
+export async function listResearchAnalytics(params: ResearchAnalyticsParams = {}): Promise<ResearchAnalyticsReport> {
+  const rawUsers = await loadRawUsers();
+  const filteredRawUsers = applyUserFilters(rawUsers, {
+    role: params.role,
+    search: undefined,
+  });
+
+  const fromTs = normalizeDate(params.from);
+  const toTs = normalizeDate(params.to);
+  const filteredByWindow = filteredRawUsers.map((user) => {
+    if (!fromTs && !toTs) return user;
+    const timeline = user.timeline.filter((entry) => {
+      const ts = normalizeDate(entry.timestamp);
+      if (!ts) return false;
+      if (fromTs && ts < fromTs) return false;
+      if (toTs && ts > toTs) return false;
+      return true;
+    });
+    return {
+      ...user,
+      timeline,
+    };
+  });
+
+  const now = Date.now();
+  const users = filteredByWindow.map((user) => buildResearchUser(user, now));
+  const cohorts = buildCohorts(users);
+  const summary = buildResearchSummary(users, filteredByWindow);
+
+  return {
+    generatedAt: new Date().toISOString(),
+    summary,
+    cohorts,
+    users,
+  };
 }

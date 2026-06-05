@@ -68,6 +68,67 @@ export type AdminUsersFullDump = {
   users: AdminUserSnapshot[];
 };
 
+export type ResearchAnalyticsStage = 'new' | 'onboarding' | 'diagnosis' | 'building' | 'active' | 'advanced' | 'stale';
+
+export type ResearchAnalyticsUser = {
+  pseudonymId: string;
+  role: 'USER' | 'ANALYST' | 'ADMIN';
+  createdAtMonth: string;
+  lastSessionSeenAtBucket: string;
+  lastActivityBucket: string;
+  daysSinceCreated: number;
+  daysSinceLastActivity: number | null;
+  stage: ResearchAnalyticsStage;
+  progressScore: number;
+  interactionsCount: number;
+  sessionsCount: number;
+  profilesCount: number;
+  documentsCount: number;
+  sheetsCount: number;
+  budgetRowsCount: number;
+  savedReportsCount: number;
+  knowledgeScore: number;
+  knowledgeBaseScore: number;
+  modesUsed: string[];
+  toolsUsedCount: number;
+  artifactsGeneratedCount: number;
+  hasIntake: boolean;
+  hasProfile: boolean;
+  hasDocuments: boolean;
+};
+
+export type ResearchAnalyticsSummary = {
+  totalUsers: number;
+  totalInteractions: number;
+  activeUsers7d: number;
+  activeUsers30d: number;
+  avgProgressScore: number;
+  avgKnowledgeScore: number;
+  avgKnowledgeBaseScore: number;
+  intakeCompletionRate: number;
+  profileAttachmentRate: number;
+  documentAdoptionRate: number;
+  stageCounts: Record<ResearchAnalyticsStage, number>;
+  topModes: Array<{ mode: string; count: number }>;
+  topTools: Array<{ tool: string; count: number }>;
+};
+
+export type ResearchAnalyticsCohort = {
+  month: string;
+  users: number;
+  active7d: number;
+  active30d: number;
+  avgProgressScore: number;
+  avgKnowledgeScore: number;
+};
+
+export type ResearchAnalyticsReport = {
+  generatedAt: string;
+  summary: ResearchAnalyticsSummary;
+  cohorts: ResearchAnalyticsCohort[];
+  users: ResearchAnalyticsUser[];
+};
+
 export async function fetchAdminUsersFullDump(): Promise<AdminUsersFullDump> {
   const API_URL = getApiBaseUrl();
   const res = await fetch(`${API_URL}/api/admin/users/full`, {
@@ -76,4 +137,14 @@ export async function fetchAdminUsersFullDump(): Promise<AdminUsersFullDump> {
   });
 
   return parseApiResponse<AdminUsersFullDump>(res);
+}
+
+export async function fetchResearchAnalyticsReport(): Promise<ResearchAnalyticsReport> {
+  const API_URL = getApiBaseUrl();
+  const res = await fetch(`${API_URL}/api/analytics/research`, {
+    method: 'GET',
+    credentials: 'include',
+  });
+
+  return parseApiResponse<ResearchAnalyticsReport>(res);
 }

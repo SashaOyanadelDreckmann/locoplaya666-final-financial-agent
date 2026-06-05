@@ -69,12 +69,15 @@ export function sanitizeString(str: string): string {
   result = result.replace(/sk-[A-Za-z0-9]{20,}/g, 'sk-***');
   result = result.replace(/pk-[A-Za-z0-9]{20,}/g, 'pk-***');
   result = result.replace(/openai-[A-Za-z0-9]{20,}/g, 'openai-***');
+  result = result.replace(/([?&](?:token|access_token|refresh_token|password|secret|api_key|key)=)[^&\s]+/gi, '$1***');
 
   // Mask JWT tokens (rough pattern)
   result = result.replace(/eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, 'jwt-***');
 
   // Mask Bearer tokens
   result = result.replace(/Bearer\s+[A-Za-z0-9_-]+/gi, 'Bearer ***');
+  result = result.replace(/(Authorization:\s*Bearer\s+)[A-Za-z0-9._-]+/gi, '$1***');
+  result = result.replace(/(Basic\s+)[A-Za-z0-9+/=]+/gi, '$1***');
 
   // Mask email addresses (optional - can be disabled if emails are not considered sensitive)
   // result = result.replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '***@***.***');

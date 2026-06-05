@@ -37,6 +37,7 @@ export const UserSchema = z.object({
   knowledgeScore: z.number().min(0).max(100).default(0),
   knowledgeHistory: z.array(KnowledgeEventSchema).default([]),
   knowledgeLastUpdated: z.string().default(new Date().toISOString()),
+  updatedAt: z.string(),
   memoryBlob: z.record(z.unknown()).optional(),
 });
 

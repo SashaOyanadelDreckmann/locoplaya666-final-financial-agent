@@ -6,6 +6,7 @@ import {
   deleteUserAccount,
   findUserByEmail,
   updateUserAuthSecurity,
+  updateUserAuthSecurityIfUnchanged,
 } from '../services/user.service';
 import {
   clearSessionCookie,
@@ -56,24 +57,29 @@ function normalizeEmail(email: string): string {
 }
 
 function canBootstrapAdminFromLogin(): boolean {
-  if (process.env.NODE_ENV !== 'production') return true;
-  return process.env.ENABLE_BOOTSTRAP_ADMIN_LOGIN === 'true';
+  return process.env.NODE_ENV !== 'production';
 }
 
 function getBootstrapAdminCredentials() {
-  if (process.env.NODE_ENV !== 'production') {
-    return {
-      email: normalizeEmail(process.env.BOOTSTRAP_ADMIN_EMAIL || 'admin@financieramente.local'),
-      password: process.env.BOOTSTRAP_ADMIN_PASSWORD || 'Financieramente123!',
-      name: (process.env.BOOTSTRAP_ADMIN_NAME ?? 'Administrador').trim() || 'Administrador',
-    };
-  }
-
   return {
-    email: normalizeEmail(process.env.BOOTSTRAP_ADMIN_EMAIL ?? ''),
-    password: process.env.BOOTSTRAP_ADMIN_PASSWORD ?? '',
+    email: normalizeEmail(process.env.BOOTSTRAP_ADMIN_EMAIL || 'admin@financieramente.local'),
+    password: process.env.BOOTSTRAP_ADMIN_PASSWORD || 'Financieramente123!',
     name: (process.env.BOOTSTRAP_ADMIN_NAME ?? 'Administrador').trim() || 'Administrador',
   };
+}
+
+function getPasswordResetVersion(memoryBlob: unknown): number {
+  if (!memoryBlob || typeof memoryBlob !== 'object') return 0;
+  const authSecurity = (memoryBlob as Record<string, unknown>).authSecurity;
+  if (!authSecurity || typeof authSecurity !== 'object') return 0;
+  const rawVersion = Number((authSecurity as Record<string, unknown>).passwordResetVersion ?? 0);
+  return Number.isFinite(rawVersion) && rawVersion >= 0 ? Math.floor(rawVersion) : 0;
+}
+
+function getAuthSecurityBlob(memoryBlob: unknown): Record<string, unknown> {
+  if (!memoryBlob || typeof memoryBlob !== 'object') return {};
+  const authSecurity = (memoryBlob as Record<string, unknown>).authSecurity;
+  return authSecurity && typeof authSecurity === 'object' ? { ...(authSecurity as Record<string, unknown>) } : {};
 }
 
 async function ensureBootstrapAdminForCredentials(params: {
@@ -271,7 +277,11 @@ authRouter.post('/forgot-password', asyncHandler(async (req, res) => {
   const user = await findUserByEmail(normalizeEmail(data.email));
 
   if (user && user.approvalStatus === APPROVAL_STATUS.APPROVED) {
-    const token = createPasswordResetToken({ userId: user.id, userEmail: user.email });
+    const token = createPasswordResetToken({
+      userId: user.id,
+      userEmail: user.email,
+      version: getPasswordResetVersion(user.memoryBlob),
+    });
     await sendPasswordResetEmail({ userName: user.name, userEmail: user.email, token }).catch(
       (error: unknown) => {
         logger.warn({ msg: 'Password reset email failed', userId: user.id, error });
@@ -298,9 +308,28 @@ authRouter.post('/reset-password', asyncHandler(async (req, res) => {
   if (user.approvalStatus !== APPROVAL_STATUS.APPROVED) {
     throw badRequest('Token inválido o expirado');
   }
+  if (payload.version !== getPasswordResetVersion(user.memoryBlob)) {
+    throw badRequest('Token inválido o expirado');
+  }
+
+  const currentMemoryBlob = user.memoryBlob && typeof user.memoryBlob === 'object' ? (user.memoryBlob as Record<string, unknown>) : {};
+  const nextMemoryBlob = {
+    ...currentMemoryBlob,
+    authSecurity: {
+      ...getAuthSecurityBlob(currentMemoryBlob),
+      passwordResetVersion: getPasswordResetVersion(currentMemoryBlob) + 1,
+      passwordResetUpdatedAt: new Date().toISOString(),
+    },
+  };
 
   const passwordHash = await bcrypt.hash(data.password, 12);
-  await updateUserAuthSecurity(user.id, { passwordHash });
+  const updated = await updateUserAuthSecurityIfUnchanged(user.id, user.updatedAt, {
+    passwordHash,
+    memoryBlob: nextMemoryBlob,
+  });
+  if (!updated) {
+    throw badRequest('Token inválido o expirado');
+  }
   await invalidateSessionsForUser(user.id);
 
   return sendSuccess(res, { reset: true });

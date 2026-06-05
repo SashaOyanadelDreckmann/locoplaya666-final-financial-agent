@@ -286,7 +286,7 @@ async function buildFromPostgres(): Promise<AdminUsersFullDump> {
       createdAt: session.createdAt.toISOString(),
       expiresAt: session.expiresAt.toISOString(),
       lastSeenAt: session.lastSeenAt.toISOString(),
-      rotatedFromHash: session.rotatedFromHash ?? null,
+      rotatedFromHash: null,
     })),
     profiles: user.profiles.map((profile) => ({
       id: profile.id,

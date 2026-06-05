@@ -12,6 +12,7 @@ import {
   getAnalyticsUserActivity,
   listAnalyticsInteractions,
   listAnalyticsUsers,
+  listResearchAnalytics,
 } from '../services/analytics.service';
 
 const router = Router();
@@ -71,6 +72,12 @@ const ExportUsersQuerySchema = BaseFiltersSchema.extend({
 
 const ExportInteractionsQuerySchema = BaseFiltersSchema.extend({
   mode: z.string().trim().max(100).optional(),
+});
+
+const ResearchQuerySchema = z.object({
+  role: AnalyticsRoleSchema.optional(),
+  from: DateFilterSchema.optional(),
+  to: DateFilterSchema.optional(),
 });
 
 router.get(
@@ -133,6 +140,22 @@ router.get(
     if (!payload) {
       throw notFound('User not found');
     }
+
+    return sendSuccess(res, payload);
+  }),
+);
+
+router.get(
+  '/research',
+  requireAuth,
+  requirePermission(PERMISSIONS.OBSERVABILITY_READ),
+  asyncHandler(async (req, res) => {
+    const query = parseQuery(ResearchQuerySchema, req.query);
+    const payload = await listResearchAnalytics({
+      role: query.role,
+      from: query.from,
+      to: query.to,
+    });
 
     return sendSuccess(res, payload);
   }),

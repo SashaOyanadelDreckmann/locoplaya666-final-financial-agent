@@ -36,6 +36,7 @@ function toUser(record: Awaited<ReturnType<typeof getUserById>>): User | null {
     knowledgeScore: record.knowledgeScore,
     knowledgeHistory: record.knowledgeHistory,
     knowledgeLastUpdated: record.knowledgeLastUpdated,
+    updatedAt: record.updatedAt,
     memoryBlob: record.memoryBlob,
   };
 }
@@ -80,13 +81,41 @@ export async function updateUserAuthSecurity(
     approvalStatus?: ApprovalStatus;
     approvedAt?: string | null;
     approvedByEmail?: string | null;
+    memoryBlob?: Record<string, unknown> | null;
   },
 ): Promise<User | null> {
   const updated = await patchUserRecord(userId, {
     ...patch,
     approvedAt: patch.approvedAt ?? undefined,
     approvedByEmail: patch.approvedByEmail ?? undefined,
+    memoryBlob: patch.memoryBlob ?? undefined,
   });
+  return toUser(updated);
+}
+
+export async function updateUserAuthSecurityIfUnchanged(
+  userId: string,
+  expectedUpdatedAt: string,
+  patch: {
+    role?: UserRole;
+    passwordHash?: string;
+    approvalStatus?: ApprovalStatus;
+    approvedAt?: string | null;
+    approvedByEmail?: string | null;
+    memoryBlob?: Record<string, unknown> | null;
+  },
+): Promise<User | null> {
+  const current = await loadUserById(userId);
+  if (!current || current.updatedAt !== expectedUpdatedAt) {
+    return null;
+  }
+
+  const updated = await patchUserRecord(userId, {
+    ...patch,
+    approvedAt: patch.approvedAt ?? undefined,
+    approvedByEmail: patch.approvedByEmail ?? undefined,
+    memoryBlob: patch.memoryBlob ?? undefined,
+  }, { expectedUpdatedAt });
   return toUser(updated);
 }
 

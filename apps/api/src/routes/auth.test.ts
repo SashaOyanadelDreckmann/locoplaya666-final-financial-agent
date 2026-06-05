@@ -256,12 +256,19 @@ describe('auth + session', () => {
     });
     expect(login.status).toBe(200);
 
-    const token = createPasswordResetToken({ userId, userEmail: email });
+    const token = createPasswordResetToken({ userId, userEmail: email, version: 0 });
     const reset = await request(app).post('/auth/reset-password').send({
       token,
       password: 'NewSecret123',
     });
     expect(reset.status).toBe(200);
+
+    const replay = await request(app).post('/auth/reset-password').send({
+      token,
+      password: 'AnotherSecret123',
+    });
+    expect(replay.status).toBe(400);
+    expect(replay.body.code).toBe('BAD_REQUEST');
 
     const session = await loginAgent.get('/api/session');
     expect(session.status).toBe(401);

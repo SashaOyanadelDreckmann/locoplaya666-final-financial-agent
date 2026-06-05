@@ -154,12 +154,19 @@ type UserPatch = Partial<Omit<StoredUser, 'id' | 'email' | 'createdAt' | 'update
   approvedByEmail?: string | null;
 };
 
-export async function patchUserRecord(userId: string, patch: UserPatch): Promise<StoredUser | null> {
+export async function patchUserRecord(
+  userId: string,
+  patch: UserPatch,
+  options?: { expectedUpdatedAt?: string },
+): Promise<StoredUser | null> {
   const mode = getPersistenceMode();
 
   if (mode === 'memory') {
     const current = memoryStore.users.get(userId);
     if (!current) return null;
+    if (options?.expectedUpdatedAt && current.updatedAt !== options.expectedUpdatedAt) {
+      return null;
+    }
     const normalizedPatch = {
       ...patch,
       ...(patch.injectedProfile === null ? { injectedProfile: undefined } : {}),
@@ -179,43 +186,48 @@ export async function patchUserRecord(userId: string, patch: UserPatch): Promise
 
   const prisma = await getPrismaClient();
 
+  const data = {
+    ...(patch.name !== undefined ? { name: patch.name } : {}),
+    ...(patch.passwordHash !== undefined ? { passwordHash: patch.passwordHash } : {}),
+    ...(patch.role !== undefined ? { role: patch.role } : {}),
+    ...(patch.approvalStatus !== undefined ? { approvalStatus: patch.approvalStatus } : {}),
+    ...(patch.approvedAt !== undefined ? { approvedAt: patch.approvedAt ? new Date(patch.approvedAt) : null } : {}),
+    ...(patch.approvedByEmail !== undefined ? { approvedByEmail: patch.approvedByEmail ?? null } : {}),
+    ...(patch.injectedProfile !== undefined ? { injectedProfile: patch.injectedProfile as any } : {}),
+    ...(patch.injectedIntake !== undefined ? { injectedIntake: patch.injectedIntake as any } : {}),
+    ...(patch.latestDiagnosticProfileId !== undefined ? { latestDiagnosticProfileId: patch.latestDiagnosticProfileId } : {}),
+    ...(patch.latestDiagnosticCompletedAt !== undefined
+      ? {
+          latestDiagnosticCompletedAt: patch.latestDiagnosticCompletedAt
+            ? new Date(patch.latestDiagnosticCompletedAt)
+            : null,
+        }
+      : {}),
+    ...(patch.panelState !== undefined ? { panelState: patch.panelState as any } : {}),
+    ...(patch.sheets !== undefined ? { sheets: patch.sheets as any } : {}),
+    ...(patch.knowledgeBaseScore !== undefined ? { knowledgeBaseScore: patch.knowledgeBaseScore } : {}),
+    ...(patch.knowledgeScore !== undefined ? { knowledgeScore: patch.knowledgeScore } : {}),
+    ...(patch.knowledgeHistory !== undefined ? { knowledgeHistory: patch.knowledgeHistory as any } : {}),
+    ...(patch.knowledgeLastUpdated !== undefined ? { knowledgeLastUpdated: new Date(patch.knowledgeLastUpdated) } : {}),
+    ...(patch.memoryBlob !== undefined ? { memoryBlob: patch.memoryBlob as any } : {}),
+  } as any;
+
+  if (options?.expectedUpdatedAt) {
+    const result = await prisma.user.updateMany({
+      where: {
+        id: userId,
+        updatedAt: new Date(options.expectedUpdatedAt),
+      },
+      data,
+    });
+    if (result.count === 0) return null;
+    const updatedRecord = await prisma.user.findUnique({ where: { id: userId } });
+    return updatedRecord ? toStoredUser(updatedRecord) : null;
+  }
+
   const updated = await prisma.user.update({
     where: { id: userId },
-    data: {
-      ...(patch.name !== undefined ? { name: patch.name } : {}),
-      ...(patch.passwordHash !== undefined ? { passwordHash: patch.passwordHash } : {}),
-      ...(patch.role !== undefined ? { role: patch.role } : {}),
-      ...(patch.approvalStatus !== undefined ? { approvalStatus: patch.approvalStatus } : {}),
-      ...(patch.approvedAt !== undefined
-        ? { approvedAt: patch.approvedAt ? new Date(patch.approvedAt) : null }
-        : {}),
-      ...(patch.approvedByEmail !== undefined ? { approvedByEmail: patch.approvedByEmail ?? null } : {}),
-      ...(patch.injectedProfile !== undefined ? { injectedProfile: patch.injectedProfile as any } : {}),
-      ...(patch.injectedIntake !== undefined ? { injectedIntake: patch.injectedIntake as any } : {}),
-      ...(patch.latestDiagnosticProfileId !== undefined
-        ? { latestDiagnosticProfileId: patch.latestDiagnosticProfileId }
-        : {}),
-      ...(patch.latestDiagnosticCompletedAt !== undefined
-        ? {
-            latestDiagnosticCompletedAt: patch.latestDiagnosticCompletedAt
-              ? new Date(patch.latestDiagnosticCompletedAt)
-              : null,
-          }
-        : {}),
-      ...(patch.panelState !== undefined ? { panelState: patch.panelState as any } : {}),
-      ...(patch.sheets !== undefined ? { sheets: patch.sheets as any } : {}),
-      ...(patch.knowledgeBaseScore !== undefined
-        ? { knowledgeBaseScore: patch.knowledgeBaseScore }
-        : {}),
-      ...(patch.knowledgeScore !== undefined ? { knowledgeScore: patch.knowledgeScore } : {}),
-      ...(patch.knowledgeHistory !== undefined
-        ? { knowledgeHistory: patch.knowledgeHistory as any }
-        : {}),
-      ...(patch.knowledgeLastUpdated !== undefined
-        ? { knowledgeLastUpdated: new Date(patch.knowledgeLastUpdated) }
-        : {}),
-      ...(patch.memoryBlob !== undefined ? { memoryBlob: patch.memoryBlob as any } : {}),
-    } as any,
+    data,
   }).catch((error: unknown) => {
     if ((error as { code?: string })?.code === 'P2025') {
       return null;

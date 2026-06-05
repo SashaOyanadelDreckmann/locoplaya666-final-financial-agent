@@ -14,6 +14,7 @@ import documentsRouter from './routes/documents';
 import { pdfsRouter } from './routes/pdfs.routes';
 import internalRouter from './routes/internal.routes';
 import budgetChatRouter from './routes/budget-chat.routes';
+import analyticsRouter from './routes/analytics';
 import { requestLoggerMiddleware } from './middleware/requestLogger';
 import { asyncHandler, errorHandlerMiddleware } from './middleware/errorHandler';
 import { attachCsrfToken, isAllowedOrigin, validateCsrfToken } from './middleware/csrf';
@@ -95,6 +96,7 @@ export function createApp() {
   // AGENT CORE
   app.use('/api/agent', chatRateLimiter);
   app.use('/api/budget-chat', chatRateLimiter, budgetChatRouter);
+  app.use('/api/analytics', analyticsRouter);
   app.use('/api', agentRouter);
   app.use('/api/documents', documentsRateLimiter, documentsRouter);
   app.use('/api/pdfs', pdfsRouter);
