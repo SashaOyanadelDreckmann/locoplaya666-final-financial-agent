@@ -95,12 +95,15 @@ async function parseVideoBufferDetailed(buffer: Buffer, filename: string): Promi
     const durationSeconds = parseVideoDurationSeconds(`${probe.stderr ?? ''}`);
     const frameRate = resolveVideoFrameRate(durationSeconds);
     const outputPattern = path.join(framesDir, 'frame-%03d.jpg');
+    const MAX_VIDEO_SECONDS = 40;
     const extract = spawnSync(
       ffmpegBinary,
       [
         '-hide_banner',
         '-loglevel',
         'error',
+        '-t',
+        String(MAX_VIDEO_SECONDS),
         '-i',
         inputPath,
         '-vf',

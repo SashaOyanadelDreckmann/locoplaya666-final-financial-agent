@@ -3366,6 +3366,27 @@ export default function AgentPage() {
     if (cappedFiles.length < selectedFiles.length) {
       setTxCreationNotice(`Se cargaron ${cappedFiles.length} archivos. Límite por producto: ${MAX_EVIDENCE_FILES_PER_PRODUCT}.`);
     }
+
+    // Validate video duration before starting the upload
+    for (const file of cappedFiles) {
+      if (file.type.startsWith('video/') || /\.(mp4|mov|webm|m4v|avi)$/i.test(file.name)) {
+        const duration = await new Promise<number>((resolve) => {
+          const video = document.createElement('video');
+          video.preload = 'metadata';
+          const url = URL.createObjectURL(file);
+          video.onloadedmetadata = () => { URL.revokeObjectURL(url); resolve(video.duration); };
+          video.onerror = () => { URL.revokeObjectURL(url); resolve(0); };
+          video.src = url;
+        });
+        if (duration > 40) {
+          setTransactionUploadError(
+            `El video "${file.name}" dura ${Math.round(duration)} s. El máximo es 40 segundos — recorta la grabación antes de subirla.`,
+          );
+          return null;
+        }
+      }
+    }
+
     const names = cappedFiles.map((f) => f.name);
     setTransactionUploadError(null);
     setDocumentsLoading(true);
