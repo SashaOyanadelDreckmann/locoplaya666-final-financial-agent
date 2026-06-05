@@ -3,8 +3,10 @@ import { getServerApiBaseUrl } from '@/lib/apiBase';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+export const maxDuration = 120;
 
-const FORWARD_TIMEOUT_MS = 180_000;
+const FORWARD_TIMEOUT_MS = 115_000;
+const MAX_BODY_BYTES = 70 * 1024 * 1024; // 70 MB — matches Express backend limit
 const RETRYABLE_STATUS = new Set([502, 503, 504]);
 const RETRY_DELAY_MS = 700;
 
@@ -16,6 +18,13 @@ function pickHeader(request: NextRequest, name: string): string | null {
 export async function POST(request: NextRequest) {
   const target = `${getServerApiBaseUrl()}/api/documents/parse`;
   const body = await request.text();
+
+  if (body.length > MAX_BODY_BYTES) {
+    return NextResponse.json(
+      { ok: false, error: { code: 'PAYLOAD_TOO_LARGE', detail: `El cuerpo supera ${MAX_BODY_BYTES / 1024 / 1024} MB.` } },
+      { status: 413 },
+    );
+  }
 
   const headers: Record<string, string> = {
     'content-type': 'application/json',

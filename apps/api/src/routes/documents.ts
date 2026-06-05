@@ -132,18 +132,14 @@ export function isSupportedDocumentFilename(name: string): boolean {
 }
 
 export function decodeBase64File(base64: string, name: string): Buffer {
-  const normalized = String(base64 ?? '').trim();
+  // Strip all whitespace before decoding — browsers may insert line breaks in data URLs.
+  const normalized = String(base64 ?? '').replace(/\s+/g, '');
   if (!normalized) throw badRequest(`Archivo "${name}" sin contenido.`);
-  if (!/^[A-Za-z0-9+/=\s]+$/.test(normalized)) {
-    throw badRequest(`Archivo "${name}" tiene base64 inválido.`);
-  }
+  // Buffer.from with 'base64' is lenient: it silently ignores non-base64 chars
+  // and handles any padding variant. Re-encoding to verify would cost double
+  // the memory (50 MB file → 100 MB peak) and can produce false positives.
   const buffer = Buffer.from(normalized, 'base64');
   if (buffer.byteLength === 0) throw badRequest(`Archivo "${name}" no pudo decodificarse.`);
-  const canonical = buffer.toString('base64').replace(/=+$/, '');
-  const inputCanonical = normalized.replace(/\s+/g, '').replace(/=+$/, '');
-  if (canonical !== inputCanonical) {
-    throw badRequest(`Archivo "${name}" tiene base64 corrupto o truncado.`);
-  }
   return buffer;
 }
 
