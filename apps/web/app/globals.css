@@ -2219,20 +2219,8 @@ body.home-lock {
   }
 }
 
-/* Mobile — zoom de página bloqueado en 88 %
-   El body se escala al 88 % del viewport, generando márgenes naturales alrededor
-   del contenido en todos los bordes (incluyendo la zona del status bar).
-   El background del elemento <html> se propaga al canvas del browser — única capa
-   que el OS pinta DETRÁS del status bar — y así el fondo llena toda la pantalla
-   física aunque el body esté zoomado. */
+/* Mobile */
 @media (max-width: 480px) {
-  body {
-    zoom: 0.88;
-  }
-
-  /* Con body zoomado al 88 %, el app-shell::before (position:fixed) también
-     se escala. Usamos insets negativos generosos para que la capa del fondo
-     cubra los bordes del viewport aunque body esté reducido, evitando huecos. */
   .app-shell::before {
     inset: calc(-1 * max(env(safe-area-inset-top, 54px), 44px) - 12px) -8px -8px -8px;
     transform-origin: center top;
