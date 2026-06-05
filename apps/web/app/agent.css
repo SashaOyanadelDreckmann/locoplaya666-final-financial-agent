@@ -10049,6 +10049,83 @@ html.agent-global-monochrome {
   .agent-thread {
     padding-bottom: calc(220px + env(safe-area-inset-bottom)) !important;
   }
+
+  /* ── News card: no zoom, centered overlay text ── */
+  .agent-panel .news-card .news-media {
+    transform: none !important;
+    object-fit: cover !important;
+    object-position: center 20% !important;
+  }
+
+  .agent-panel .news-card .news-overlay {
+    flex-direction: column !important;
+    justify-content: flex-end !important;
+    align-items: center !important;
+    text-align: center !important;
+    gap: 5px !important;
+    padding: 14px 12px !important;
+    background: linear-gradient(
+      to top,
+      rgba(4, 8, 16, 0.88) 0%,
+      rgba(4, 8, 16, 0.52) 55%,
+      rgba(4, 8, 16, 0.06) 100%
+    ) !important;
+  }
+
+  .agent-panel .news-kicker {
+    font-size: 0.56rem !important;
+    padding: 3px 8px !important;
+    letter-spacing: 0.10em !important;
+  }
+
+  .agent-panel .news-title {
+    font-size: 0.88rem !important;
+    font-weight: 700 !important;
+    line-height: 1.2 !important;
+    text-align: center !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+    white-space: normal !important;
+    max-width: 26ch !important;
+  }
+
+  .agent-panel .news-subtitle {
+    font-size: 0.7rem !important;
+    line-height: 1.35 !important;
+    text-align: center !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+    max-width: none !important;
+  }
+
+  /* ── Cognitive card: hide long description, show only label + value ── */
+  .agent-panel .panel-mode-cognitive .panel-text {
+    display: none !important;
+  }
+
+  .agent-panel .panel-mode-cognitive .panel-label {
+    font-size: 0.58rem !important;
+    letter-spacing: 0.16em !important;
+    color: rgba(148, 196, 230, 0.92) !important;
+    margin-bottom: 4px !important;
+  }
+
+  .agent-panel .panel-mode-cognitive .panel-value {
+    font-size: 1rem !important;
+    font-weight: 600 !important;
+    color: #fff !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+    text-align: center !important;
+    line-height: 1.2 !important;
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.7) !important;
+  }
 }
 
 /* ================================================= */
