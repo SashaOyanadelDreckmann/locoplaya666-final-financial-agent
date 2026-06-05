@@ -902,18 +902,42 @@ html.home-route-active .app-shell::after {
 }
 
 @media (max-width: 767px) {
-  /* Let document scroll naturally so fixed canvas stays pinned (iOS scroll-container bug) */
+  /* Home route: window is the scroll container — framer-motion useScroll and sticky
+     sections need window.scrollY to update. height:auto lets html/body grow with content
+     so the document can scroll. overflow-x:clip on the frame prevents horizontal bleed
+     without creating a scroll container (unlike overflow-x:hidden per CSS spec). */
+  html.home-route-active,
+  html.home-route-active body {
+    height: auto;
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
+
   html.home-route-active .mobile-scale-frame {
     height: auto;
     min-height: 100dvh;
     max-height: none;
-    overflow: visible;
-    overflow-x: hidden;
+    overflow-x: clip;
+    overflow-y: visible;
   }
+}
 
-  html.home-route-active,
-  html.home-route-active body {
-    overflow-x: hidden;
+/* 100vh fallback for browsers without dvh support (iOS ≤ 15.3, old Android WebView) */
+.home-hero-full {
+  height: 100vh;
+  height: 100dvh;
+}
+
+/* Very small screens (320–359px) — prevent hero title overflow */
+@media (max-width: 359px) {
+  .home-page-hero h1 {
+    font-size: 42px !important;
+    letter-spacing: -0.04em !important;
+  }
+  .home-page-header,
+  .home-page-hero {
+    padding-left: 18px;
+    padding-right: 18px;
   }
 }
 
