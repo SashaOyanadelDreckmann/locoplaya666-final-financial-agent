@@ -141,10 +141,9 @@ function buildVoiceInterviewDossier(
 
   // INTAKE
   const intakeLines: string[] = [];
-  const skipKeys = new Set(['__productsContext', '__budgetContext', 'financialKnowledge']);
+  const skipKeys = new Set(['__productsContext', '__budgetContext']);
   for (const [key, value] of Object.entries(source)) {
     if (skipKeys.has(key) || value === null || value === undefined || value === '') continue;
-    if (typeof value === 'object' && !Array.isArray(value)) continue;
     if (key === 'financialKnowledge' && typeof value === 'object') {
       const known = Object.entries(value as Record<string, unknown>)
         .filter(([, v]) => v === true)
@@ -152,6 +151,7 @@ function buildVoiceInterviewDossier(
       if (known.length) intakeLines.push(`Temas que domina: ${known.join(', ')}`);
       continue;
     }
+    if (typeof value === 'object' && !Array.isArray(value)) continue;
     const label = formatIntakeFieldLabel(key);
     if (typeof value === 'boolean') intakeLines.push(`${label}: ${value ? 'sí' : 'no'}`);
     else if (typeof value === 'number' && /income|amount|savings/i.test(key))

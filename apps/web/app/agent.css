@@ -46700,45 +46700,349 @@ body.agent-route-active .app-shell > * {
 }
 
 /* ============================================================
-   MOBILE MODAL SURFACE STRIP
-   Removes the shell panel so modal content floats on the backdrop.
+   MOBILE MODAL FLOATING LAYOUT (all modals)
+   - Sheet swipe-up entrance
+   - Full-bleed thin black header bar
+   - Inner shells removed; content floats on backdrop
    ============================================================ */
+@keyframes modalMobileSheetUp {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 100%, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
 @media (max-width: 767px) {
-  .agent-modal-overlay {
-    align-items: flex-start !important;
-    justify-content: center !important;
-    padding: calc(env(safe-area-inset-top) + 12px) 12px calc(env(safe-area-inset-bottom) + 12px) !important;
-    background:
-      radial-gradient(circle at 20% 8%, rgba(204, 230, 247, 0.2), transparent 40%),
-      rgba(16, 28, 40, 0.48) !important;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
+  .agent-modal-overlay,
+  .budget-modal-overlay,
+  .transactions-modal-overlay,
+  .interview-modal-overlay,
+  .social-modal-overlay {
+    align-items: flex-end !important;
+    justify-content: stretch !important;
+    padding: 0 !important;
+    background: rgba(4, 8, 14, 0.58) !important;
+    backdrop-filter: blur(12px) saturate(0.9) !important;
+    -webkit-backdrop-filter: blur(12px) saturate(0.9) !important;
   }
 
   .agent-modal,
   .budget-modal,
   .transactions-modal,
+  .interview-modal,
+  .questionnaire-modal,
+  .account-modal,
   .social-modal {
     width: 100% !important;
     max-width: none !important;
-    max-height: min(96dvh, 96vh) !important;
     min-height: 0 !important;
+    max-height: 100dvh !important;
+    height: 100dvh !important;
     margin: 0 !important;
-    padding-bottom: calc(16px + env(safe-area-inset-bottom)) !important;
-    background: transparent !important;
+    padding: 0 0 calc(env(safe-area-inset-bottom) + 12px) !important;
     border: none !important;
+    border-radius: 0 !important;
+    background: transparent !important;
     box-shadow: none !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
-    border-radius: 0 !important;
-    overflow: visible !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    display: flex !important;
+    flex-direction: column !important;
+    animation: modalMobileSheetUp 0.38s cubic-bezier(0.22, 1, 0.36, 1) both !important;
   }
 
-  .social-modal-overlay {
-    padding: calc(env(safe-area-inset-top) + 12px) 12px calc(env(safe-area-inset-bottom) + 12px) !important;
-    background: rgba(0, 0, 0, 0.5) !important;
+  .account-modal {
+    height: auto !important;
+    max-height: min(88dvh, 88vh) !important;
+  }
+
+  .bcc-modal-header,
+  .agent-modal-header,
+  .social-modal-header {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 40 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: calc(6px + env(safe-area-inset-top)) 12px 6px !important;
+    min-height: 0 !important;
+    background: #000 !important;
+    border: none !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12) !important;
+    border-radius: 0 !important;
+    overflow: visible !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+    flex-shrink: 0 !important;
+    box-shadow: none !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
   }
 
+  .bcc-modal-eyebrow,
+  .social-header-eyebrow,
+  .social-phi-symbol {
+    display: none !important;
+  }
+
+  .bcc-modal-title-wrap,
+  .social-header-left {
+    overflow: visible !important;
+    min-width: 0 !important;
+    flex: 1 1 auto !important;
+  }
+
+  .bcc-modal-title,
+  .agent-modal-header h3,
+  .social-header-title {
+    margin: 0 !important;
+    font-size: 0.92rem !important;
+    font-weight: 600 !important;
+    line-height: 1.15 !important;
+    letter-spacing: -0.02em !important;
+    color: rgba(248, 248, 252, 0.98) !important;
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: unset !important;
+  }
+
+  .questionnaire-user-name {
+    margin: 4px 0 0 !important;
+    font-size: 0.78rem !important;
+    color: rgba(255, 255, 255, 0.62) !important;
+    overflow: visible !important;
+  }
+
+  .agent-modal-close,
+  .social-close-btn,
+  .transactions-modal .tx-close-minimal {
+    flex-shrink: 0 !important;
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    padding: 0 !important;
+    border-radius: 8px !important;
+    border: 1px solid rgba(255, 255, 255, 0.18) !important;
+    background: rgba(255, 255, 255, 0.06) !important;
+    color: rgba(248, 248, 252, 0.95) !important;
+    align-self: flex-start !important;
+    margin-top: 2px !important;
+  }
+
+  .agent-modal-intro,
+  .interview-modal-intro {
+    display: none !important;
+  }
+
+  .agent-modal .bcc-hero,
+  .budget-modal .budget-cockpit-banner,
+  .budget-modal .budget-assistant-panel,
+  .budget-modal .budget-table-section,
+  .budget-modal .budget-pdf-surface,
+  .budget-modal .budget-table-wrap,
+  .budget-modal .budget-insights-panel,
+  .budget-modal .budget-summary-panel,
+  .budget-modal .budget-health,
+  .budget-modal .budget-top-expenses,
+  .budget-modal .budget-kpi-card,
+  .budget-modal .budget-summary-chip,
+  .budget-modal .budget-swipe-metric,
+  .budget-modal .budget-guidance-list,
+  .transactions-modal .tx-panel-surface,
+  .transactions-modal .pt-left,
+  .transactions-modal .pt-right,
+  .transactions-modal .transactions-summary-card,
+  .transactions-modal .transactions-stat-card,
+  .transactions-modal .tx-meta-card,
+  .transactions-modal .tx-intel-box,
+  .transactions-modal .upload-zone,
+  .interview-modal .interview-shell,
+  .interview-modal .voice-call-shell,
+  .questionnaire-modal .questionnaire-kpi,
+  .questionnaire-modal .questionnaire-response-item,
+  .questionnaire-modal .questionnaire-insights,
+  .account-modal .questionnaire-response-item,
+  .account-modal .transactions-summary-card,
+  .social-modal .social-step,
+  .social-modal .social-quote-strip,
+  .social-modal .social-choice-btn {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .budget-modal-body,
+  .tx-scroll-body,
+  .interview-modal-body,
+  .questionnaire-dashboard {
+    padding-left: 14px !important;
+    padding-right: 14px !important;
+    background: transparent !important;
+  }
+
+  .budget-modal .budget-cockpit-banner {
+    margin: 8px 0 10px !important;
+    padding: 0 !important;
+    display: block !important;
+  }
+
+  .budget-modal .budget-mode-tabs {
+    margin: 0 14px 10px !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: none !important;
+  }
+
+  .transactions-modal .pt-shell {
+    padding: 0 14px 14px !important;
+    gap: 12px !important;
+    background: transparent !important;
+  }
+
+  .transactions-modal .pt-premium-intro,
+  .transactions-modal .pt-left,
+  .transactions-modal .pt-right {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .transactions-modal .pt-premium-intro {
+    position: static !important;
+    margin: 8px 14px !important;
+  }
+
+  .budget-modal .budget-main-carousel:not(.is-desktop) .budget-pdf-surface,
+  .budget-modal .budget-main-carousel:not(.is-desktop) .budget-table-wrap {
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .social-modal-ambient {
+    opacity: 0.3 !important;
+  }
+}
+
+@media (max-width: 767px) and (prefers-reduced-motion: reduce) {
+  .agent-modal,
+  .budget-modal,
+  .transactions-modal,
+  .interview-modal,
+  .questionnaire-modal,
+  .account-modal,
+  .social-modal {
+    animation: none !important;
+  }
+}
+
+/* ============================================================
+   PHONE PANEL + BACKDROP CONTINUITY
+   Desktop sidebar and mobile bottom panel share the same wallpaper.
+   Swipe-up frame shift exposes continuous background (no black strip).
+   ============================================================ */
+@media (min-width: 768px) {
+  .agent-layout {
+    background: transparent !important;
+  }
+
+  .agent-panel,
+  .agent-divider-rail {
+    background: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: none !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+  }
+}
+
+@media (max-width: 767px) {
+  html.agent-route-active,
+  body.agent-route-active {
+    background-color: #05090f !important;
+    background-image:
+      linear-gradient(180deg, rgba(6, 10, 16, 0.18), rgba(6, 10, 16, 0.28)),
+      url('/fondo4.jpg') !important;
+    background-size: cover !important;
+    background-position: center top !important;
+    background-repeat: no-repeat !important;
+  }
+
+  body.agent-route-active .global-agent-backdrop {
+    inset: calc(env(safe-area-inset-top, 0px) * -1 - 12vh) -8vw -24vh -8vw !important;
+    transform: scale(var(--agent-mobile-bg-zoom, 1.08)) translateY(-2.5%) !important;
+    transform-origin: center top !important;
+    background-position: center top !important;
+    background-size: cover !important;
+    box-shadow: none !important;
+  }
+
+  body.agent-route-active .app-shell::before {
+    top: calc(env(safe-area-inset-top, 0px) * -1 - 12vh) !important;
+    right: -8vw !important;
+    left: -8vw !important;
+    bottom: -24vh !important;
+    width: auto !important;
+    height: calc(var(--screen-h, 100dvh) + 36vh + env(safe-area-inset-top, 0px)) !important;
+    min-height: calc(var(--screen-h, 100dvh) + 36vh + env(safe-area-inset-top, 0px)) !important;
+    transform: scale(var(--agent-mobile-bg-zoom, 1.08)) translateY(-2.5%) !important;
+    transform-origin: center top !important;
+    background-position: center top !important;
+    background-size: cover !important;
+    box-shadow: inset 0 0 0 9999px rgba(0, 0, 0, 0.42) !important;
+  }
+
+  body.agent-route-active .app-shell::after {
+    inset: calc(env(safe-area-inset-top, 0px) * -1 - 12vh) -8vw -24vh -8vw !important;
+    transform: scale(var(--agent-mobile-bg-zoom, 1.08)) translateY(-2.5%) !important;
+    transform-origin: center top !important;
+  }
+
+  .agent-layout,
+  .agent-layout.is-mobile-standalone {
+    padding-top: 0 !important;
+    margin-top: 0 !important;
+    background: transparent !important;
+    height: var(--screen-h, 100dvh) !important;
+    max-height: var(--screen-h, 100dvh) !important;
+    min-height: var(--screen-h, 100dvh) !important;
+  }
+
+  .agent-chat-header.is-mobile {
+    padding-top: calc(env(safe-area-inset-top, 0px) + 4px) !important;
+    margin-top: 0 !important;
+    background: transparent !important;
+  }
+
+  .agent-panel,
+  .agent-panel.is-mobile-compact,
+  .agent-layout.mobile-panel-expanded .agent-panel {
+    background: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: none !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  .agent-panel .panel-grid {
+    background: transparent !important;
+  }
 }

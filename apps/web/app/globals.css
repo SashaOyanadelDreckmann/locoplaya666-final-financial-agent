@@ -195,7 +195,7 @@ html.pwa-standalone body {
 html.pwa-standalone .global-agent-backdrop,
 body.agent-route-active .global-agent-backdrop {
   position: fixed;
-  inset: -96px 0 -24px 0;
+  inset: -96px 0 -20vh 0;
   z-index: 0;
   pointer-events: none;
   background-color: #5f7280;
@@ -786,16 +786,16 @@ button {
   min-height: 100dvh;
 }
 
-@media (max-width: 480px) {
+@media (max-width: 767px) {
   .mobile-scale-frame {
-    transform: translateY(var(--agent-mobile-frame-shift, 0px))
-      scale(var(--agent-mobile-frame-scale, 0.88));
-    transform-origin: 50% 20%;
-    /* height fijo para que el frame no desborde y el scroll
-       ocurra dentro del frame en lugar de en el document */
+    transform: translateY(var(--agent-mobile-frame-shift, -52px))
+      scale(var(--agent-mobile-frame-scale, 1));
+    transform-origin: 50% 0%;
     height: 100dvh;
+    min-height: 100dvh;
     overflow-y: auto;
     overflow-x: hidden;
+    background: transparent;
   }
 }
 

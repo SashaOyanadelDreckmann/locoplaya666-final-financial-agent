@@ -18,4 +18,16 @@ describe('interview modal safeguards', () => {
     expect(source).toContain('restoreFocusRef.current.focus();');
     expect(source).toContain("document.body.style.overflow = 'hidden';");
   });
+
+  it('keeps financialKnowledge extraction ahead of generic object filtering', () => {
+    const sourcePath = path.join(process.cwd(), 'app', 'agent', 'InterviewModal.tsx');
+    const source = fs.readFileSync(sourcePath, 'utf8');
+
+    const financialKnowledgeIndex = source.indexOf("if (key === 'financialKnowledge' && typeof value === 'object') {");
+    const genericObjectFilterIndex = source.indexOf("if (typeof value === 'object' && !Array.isArray(value)) continue;");
+
+    expect(financialKnowledgeIndex).toBeGreaterThanOrEqual(0);
+    expect(genericObjectFilterIndex).toBeGreaterThanOrEqual(0);
+    expect(financialKnowledgeIndex).toBeLessThan(genericObjectFilterIndex);
+  });
 });
