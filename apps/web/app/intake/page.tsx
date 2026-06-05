@@ -128,8 +128,6 @@ function IntakeContent() {
 
   const stepMeta = INTAKE_STEPS[step];
   const cssVars = { '--c-step': stepMeta.rgb } as React.CSSProperties;
-  const approvedStatus = searchParams.get('status') === 'approved';
-
   return (
     <div className="intake-shell" data-step={stepMeta.key} style={cssVars}>
       <div className="intake-photo-bg" aria-hidden />
@@ -163,11 +161,6 @@ function IntakeContent() {
         data-step={stepMeta.key}
         aria-label={stepMeta.title}
       >
-        {approvedStatus ? (
-          <div className="intake-error" role="status" style={{ marginBottom: 12 }}>
-            Cuenta aprobada. Falta completar este perfil inicial para entrar al agente.
-          </div>
-        ) : null}
         <AnimatePresence mode="wait">
           <motion.div
             key={stepMeta.key}
