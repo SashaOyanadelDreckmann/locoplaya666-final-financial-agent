@@ -43,6 +43,7 @@ export default function RootLayout({
       </head>
       <body>
         <ServiceWorkerReset />
+        <div className="global-agent-backdrop" aria-hidden="true" />
         <div className="app-shell">
           {children}
         </div>

@@ -15,6 +15,7 @@ describe('transactions modal safeguards', () => {
     expect(constants).toContain('TX_MAX_SINGLE_FILE_BYTES = 10 * 1024 * 1024');
     expect(constants).toContain('TX_MAX_TOTAL_FILE_BYTES = 35 * 1024 * 1024');
     expect(pageConstants).toContain('MAX_TRANSACTION_PRODUCTS = 7');
+    expect(pageConstants).toContain('MAX_TRANSACTION_PRODUCTS_CREATED_TOTAL = 12');
     expect(pageConstants).toContain('MAX_EVIDENCE_FILES_PER_PRODUCT = 25');
     expect(source).toContain('const transactionsModalRef = useRef<HTMLDivElement | null>(null);');
     expect(source).toContain("if (event.key !== 'Tab') return;");

@@ -38,6 +38,7 @@ import {
   TX_MAX_SINGLE_FILE_BYTES,
   TX_MAX_TOTAL_FILE_BYTES,
 } from './constants';
+import { MAX_TRANSACTION_PRODUCTS_CREATED_TOTAL } from '../agent-page.constants';
 import { useMovementAnalytics } from './use-movement-analytics';
 import { TxEvidenceStep } from './TxEvidenceStep';
 import { TxAnalystDashboard } from './TxAnalystDashboard';
@@ -378,13 +379,15 @@ export function TransactionsModal(props: TransactionsModalProps) {
     hasTemplateChoice &&
     consentAccepted;
   const hasEvidence = Boolean(props.activeBankProduct?.parsedDocuments.length);
+  const activeProductCreations = props.transactionProductCards.length;
+  const activeProductSlotsLeft = Math.max(0, props.maxProducts - activeProductCreations);
+  const totalProductCreationsLeft = Math.max(0, MAX_TRANSACTION_PRODUCTS_CREATED_TOTAL - props.productsCreatedTotal);
   const isSavedForBatch = Boolean(
     props.activeBankProduct &&
     props.activeBankProduct.connected &&
     props.savedProductIds.includes(props.activeBankProduct.id)
   );
-  const remainingProductCreations = Math.max(0, props.maxProducts - props.transactionProductCards.length);
-  const canAddMoreProducts = remainingProductCreations > 0;
+  const canAddMoreProducts = activeProductSlotsLeft > 0 && totalProductCreationsLeft > 0;
   const consentLocked = Boolean(props.activeBankProduct?.connected);
   const recommendedTxProducts: Array<{ title: string; bank: string; template: string }> = [
     { title: 'Tarjeta de crédito', bank: 'Banco BICE', template: 'Tarjeta de crédito' },
@@ -699,13 +702,15 @@ export function TransactionsModal(props: TransactionsModalProps) {
 
   const txStageSummary =
     currentStage === 'consent'
-      ? 'Paso 1 de 3: define institución, plantilla y consentimiento.'
+      ? `Paso 1/3 · ${activeProductCreations}/${props.maxProducts} activos · ${props.productsCreatedTotal}/${MAX_TRANSACTION_PRODUCTS_CREATED_TOTAL} creados`
       : currentStage === 'evidence'
         ? 'Paso 2 de 3: sube cartolas o respaldos y espera el análisis.'
         : 'Paso 3 de 3: revisa el resumen y continúa con el agente principal.';
   const txStageCta =
     currentStage === 'consent'
-      ? 'Conectar y continuar'
+      ? canContinueAuto
+        ? 'Autorizar y continuar'
+        : 'Completa institución, plantilla y consentimiento'
       : currentStage === 'evidence'
         ? analysisAlreadyDone
           ? 'Resumen listo para revisar'
@@ -1259,7 +1264,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
               ) : null}
               <div className="tx-meta-card is-neutral">
                 <span className="tx-meta-card-kicker">Límites operativos</span>
-                <p>{props.maxProducts} productos creados por usuario · {props.maxEvidenceFilesPerProduct} archivos por producto · 1 análisis + 3 revisiones de resumen por producto · sincronización automática al guardar</p>
+                <p>{activeProductCreations}/{props.maxProducts} activos · {props.productsCreatedTotal}/{MAX_TRANSACTION_PRODUCTS_CREATED_TOTAL} creados · quedan {totalProductCreationsLeft} totales</p>
               </div>
               <div className="tx-batch-recommendation-banner" role="status" aria-live="polite">
                 <div className="tx-batch-recommendation-copy">
@@ -1603,11 +1608,11 @@ export function TransactionsModal(props: TransactionsModalProps) {
                       <button type="button" className="continue-ghost tx-delete-product-btn" onClick={() => props.deleteTransactionProduct(props.activeBankProduct!.id)}>Eliminar producto</button>
                       <button
                         type="button"
-                        className="continue-ghost tx-consent-continue-main"
+                        className="button-primary tx-consent-continue-main"
                         disabled={!canContinueAuto || isDockingToLibrary}
                         onClick={startAuthorizationTransition}
                       >
-                        {isDockingToLibrary ? 'Autorizando…' : 'Conectar y continuar'}
+                        {isDockingToLibrary ? 'Autorizando…' : 'Autorizar y continuar'}
                       </button>
                     </div>
                     </div>

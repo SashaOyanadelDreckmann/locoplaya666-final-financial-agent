@@ -156,6 +156,25 @@ body {
   isolation: isolate;
 }
 
+.global-agent-backdrop {
+  display: none;
+}
+
+body.agent-route-active .global-agent-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-color: #05090f;
+  background-image:
+    linear-gradient(180deg, rgba(6, 10, 16, 0.22), rgba(6, 10, 16, 0.28)),
+    url('/fondo4.jpg');
+  background-size: cover;
+  background-position: center top;
+  background-repeat: no-repeat;
+  display: block;
+}
+
 /* Global matte overlay + animated film grain for all pages */
 body::before,
 body::after {

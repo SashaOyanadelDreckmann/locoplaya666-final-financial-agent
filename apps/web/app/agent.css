@@ -46412,6 +46412,58 @@ body.agent-route-active .app-shell > * {
    extend the agent backdrop above the visual viewport so the image
    also sits behind the standalone status bar area. */
 @media (max-width: 767px) {
+  html.agent-route-standalone,
+  body.agent-route-standalone {
+    background-color: #05090f !important;
+    background-image: none !important;
+  }
+
+  body.agent-route-standalone .app-shell::before,
+  body.agent-route-standalone .app-shell::after {
+    display: none !important;
+    content: none !important;
+  }
+
+  body.agent-route-standalone .app-shell {
+    background: transparent !important;
+  }
+
+  body.agent-route-standalone .global-agent-backdrop {
+    inset: calc(env(safe-area-inset-top, 0px) * -1) 0 0 0;
+  }
+
+  .agent-layout.is-mobile-standalone {
+    width: calc(100% / 0.94) !important;
+    margin-left: calc((100% - (100% / 0.94)) / 2) !important;
+    margin-top: calc(env(safe-area-inset-top, 0px) * -1) !important;
+    padding-top: calc(env(safe-area-inset-top, 0px) + 22px) !important;
+    transform: scale(0.94) !important;
+    transform-origin: top center !important;
+    gap: 12px !important;
+  }
+
+  .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile {
+    margin: 0 14px !important;
+    padding-top: 6px !important;
+  }
+
+  .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .chat-switcher {
+    margin-top: 0 !important;
+    margin-bottom: 6px !important;
+  }
+
+  .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .chat-brand-strip {
+    margin-top: 8px !important;
+  }
+
+  .agent-layout.is-mobile-standalone .agent-chat-body {
+    padding-top: 4px !important;
+  }
+
+  .agent-layout.is-mobile-standalone .agent-panel.is-mobile-compact {
+    margin-top: 8px !important;
+  }
+
   html.agent-route-active,
   body.agent-route-active,
   body.agent-route-active .app-shell {
@@ -46420,9 +46472,9 @@ body.agent-route-active .app-shell > * {
   }
 
   body.agent-route-active .app-shell::before {
-    inset: calc(env(safe-area-inset-top, 0px) * -1) 0 0 0 !important;
-    height: calc(var(--screen-h, 100dvh) + env(safe-area-inset-top, 0px)) !important;
-    min-height: calc(var(--screen-h, 100dvh) + env(safe-area-inset-top, 0px)) !important;
+    inset: 0 !important;
+    height: 100% !important;
+    min-height: 100% !important;
     max-height: none !important;
     background-position: center top !important;
     background-size: cover !important;

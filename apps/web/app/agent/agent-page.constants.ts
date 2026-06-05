@@ -10,6 +10,7 @@ export const PRIMARY_CHAT_ID = 'chat-1';
 export const POST_DIAGNOSIS_CHAT_IDS = ['chat-1', 'chat-2', 'chat-3'] as const;
 
 export const MAX_TRANSACTION_PRODUCTS = 7;
+export const MAX_TRANSACTION_PRODUCTS_CREATED_TOTAL = 12;
 export const MAX_EVIDENCE_FILES_PER_PRODUCT = 25;
 
 export const KNOWLEDGE_MILESTONE_DEFS = [

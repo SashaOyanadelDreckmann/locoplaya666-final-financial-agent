@@ -67,6 +67,7 @@ import {
   KNOWLEDGE_MILESTONE_DEFS,
   MAX_EVIDENCE_FILES_PER_PRODUCT,
   MAX_TRANSACTION_PRODUCTS,
+  MAX_TRANSACTION_PRODUCTS_CREATED_TOTAL,
   POST_DIAGNOSIS_CHAT_IDS,
   PRIMARY_CHAT_ID,
   type BankSimulation,
@@ -2054,13 +2055,25 @@ export default function AgentPage() {
           }
           if (typeof panelState.txProductsCreatedTotal === 'number') {
             setTxProductsCreatedTotal(
-              Math.max(0, Math.min(MAX_TRANSACTION_PRODUCTS, Math.floor(panelState.txProductsCreatedTotal))),
+              Math.max(
+                0,
+                Math.min(
+                  MAX_TRANSACTION_PRODUCTS_CREATED_TOTAL,
+                  Math.floor(panelState.txProductsCreatedTotal),
+                ),
+              ),
             );
           }
           if (panelState.bankSimulation && typeof panelState.bankSimulation === 'object') {
             if (Array.isArray(panelState.bankSimulation.products)) {
               setTxProductsCreatedTotal((prev) =>
-                Math.max(prev, Math.min(MAX_TRANSACTION_PRODUCTS, panelState.bankSimulation.products.length)),
+                Math.max(
+                  prev,
+                  Math.min(
+                    MAX_TRANSACTION_PRODUCTS_CREATED_TOTAL,
+                    panelState.bankSimulation.products.length,
+                  ),
+                ),
               );
             }
             setBankSimulation((prev) => {
@@ -2151,13 +2164,25 @@ export default function AgentPage() {
                 }
                 if (typeof panelState.txProductsCreatedTotal === 'number') {
                   setTxProductsCreatedTotal(
-                    Math.max(0, Math.min(MAX_TRANSACTION_PRODUCTS, Math.floor(panelState.txProductsCreatedTotal))),
+                    Math.max(
+                      0,
+                      Math.min(
+                        MAX_TRANSACTION_PRODUCTS_CREATED_TOTAL,
+                        Math.floor(panelState.txProductsCreatedTotal),
+                      ),
+                    ),
                   );
                 }
                 if (panelState.bankSimulation && typeof panelState.bankSimulation === 'object') {
                   if (Array.isArray(panelState.bankSimulation.products)) {
                     setTxProductsCreatedTotal((prev) =>
-                      Math.max(prev, Math.min(MAX_TRANSACTION_PRODUCTS, panelState.bankSimulation.products.length)),
+                      Math.max(
+                        prev,
+                        Math.min(
+                          MAX_TRANSACTION_PRODUCTS_CREATED_TOTAL,
+                          panelState.bankSimulation.products.length,
+                        ),
+                      ),
                     );
                   }
                   setBankSimulation((prev) => {
@@ -3081,6 +3106,12 @@ export default function AgentPage() {
   }
 
   function addTransactionProduct(seed?: Partial<BankProduct>) {
+    if (txProductsCreatedTotal >= MAX_TRANSACTION_PRODUCTS_CREATED_TOTAL) {
+      const limitMessage = `Ya creaste ${MAX_TRANSACTION_PRODUCTS_CREATED_TOTAL} productos en total.`;
+      setTransactionUploadError(limitMessage);
+      setTxCreationNotice(limitMessage);
+      return;
+    }
     if (bankSimulation.products.length >= MAX_TRANSACTION_PRODUCTS) {
       const limitMessage = `Solo puedes crear ${MAX_TRANSACTION_PRODUCTS} productos por usuario.`;
       setTransactionUploadError(limitMessage);
