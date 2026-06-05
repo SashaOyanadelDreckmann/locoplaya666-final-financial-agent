@@ -39,6 +39,7 @@ recopilar.todo.txt
 
 .claude/worktrees/
 .codex/
+.codex-tmp/
 
 # Runtime / local previews (no versionar)
 apps/web/public/generated/
