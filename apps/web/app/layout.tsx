@@ -3,10 +3,20 @@ import './globals.css';
 import './agent.css';
 import ServiceWorkerReset from '@/components/ServiceWorkerReset';
 import { buildRuntimePublicConfigScript } from '@/lib/runtimePublicConfig';
+import type { Viewport } from 'next';
 
 export const metadata = {
   title: 'Financieramente',
   description: 'Claridad financiera, antes de decidir.',
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: 'cover',
+  interactiveWidget: 'resizes-visual',
 };
 
 
@@ -60,10 +70,6 @@ export default function RootLayout({
   return (
     <html lang="es">
       <head>
-        <meta
-          name="viewport"
-          content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-visual"
-        />
         <script
           id="fa-runtime-config"
           dangerouslySetInnerHTML={{ __html: runtimeConfigScript }}

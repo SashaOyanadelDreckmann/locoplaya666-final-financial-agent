@@ -35,6 +35,12 @@ describe('transactions-flow helpers', () => {
         dashboard: { movements: [{ description: 'x', amount: 1, direction: 'expense' }] },
       }),
     ).toBe(true);
+    expect(
+      productHasAnalyzedMovements({
+        parsedDocuments: [{ name: 'a.pdf', text: 'Sueldo 450000 ingreso\\nArriendo 180000 gasto' }],
+        dashboard: { keyMetrics: { movement_count: 0 }, movements: [] },
+      }),
+    ).toBe(true);
   });
 
   it('aggregates analyzed products across a library', () => {
