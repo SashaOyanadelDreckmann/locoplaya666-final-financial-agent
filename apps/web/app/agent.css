@@ -20312,7 +20312,7 @@ input[type="radio"]:checked {
 /* Absolute final budget mobile table flow */
 @media (max-width: 767px) {
   .budget-modal .budget-modal-body .budget-main-carousel.mode-table-front .budget-table-section {
-    padding-top: 116px !important;
+    padding-top: 8px !important;
   }
 
   .budget-modal .budget-modal-body .budget-main-carousel.mode-table-front .budget-table-bottom-actions {
@@ -20382,25 +20382,16 @@ input[type="radio"]:checked {
 
   .budget-modal .budget-modal-body .budget-main-carousel.mode-table-front .budget-pdf-surface {
     position: relative !important;
-    padding-top: 56px !important;
+    padding-top: 0 !important;
   }
 
   .budget-modal .budget-modal-body .budget-main-carousel.mode-table-front .budget-pdf-surface::before {
-    content: "Presupuesto mensual" !important;
-    position: absolute !important;
-    top: 18px !important;
-    left: 0 !important;
-    right: 0 !important;
-    text-align: center !important;
-    font-size: 0.96rem !important;
-    font-weight: 760 !important;
-    letter-spacing: 0.01em !important;
-    color: rgba(238, 245, 252, 0.94) !important;
-    pointer-events: none !important;
+    content: none !important;
+    display: none !important;
   }
 
   .budget-modal .budget-modal-body .budget-main-carousel.mode-table-front .budget-pdf-surface > div:first-child {
-    margin-top: 10px !important;
+    margin-top: 0 !important;
   }
 }
 
@@ -44139,45 +44130,46 @@ body.agent-route-active .app-shell::before {
   }
 
   .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .agent-chat-controls-row {
+    display: flex !important;
+    justify-content: center !important;
     width: 100% !important;
     margin: 0 !important;
     margin-bottom: 0 !important;
     padding: 0 2px !important;
     gap: 0 !important;
     min-height: 0 !important;
-    justify-content: stretch !important;
   }
 
   .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .chat-switcher {
     display: grid !important;
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    margin: 0 !important;
-    gap: 3px !important;
+    width: min(188px, 54vw) !important;
+    max-width: min(188px, 54vw) !important;
+    margin: 0 auto !important;
+    gap: 2px !important;
   }
 
   .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .chat-sheet-tab,
   .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .chat-switcher .chat-sheet-tab {
-    height: 16px !important;
-    padding: 1px 4px !important;
-    border-radius: 6px !important;
-    gap: 2px !important;
+    height: 14px !important;
+    padding: 0 1px !important;
+    border-radius: 5px !important;
+    gap: 1px !important;
     min-width: 0 !important;
   }
   .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .chat-sheet-tab-index,
   .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .chat-switcher .chat-sheet-tab-index {
-    width: 10px !important;
-    height: 10px !important;
-    min-width: 10px !important;
-    flex-basis: 10px !important;
+    width: 9px !important;
+    height: 9px !important;
+    min-width: 9px !important;
+    flex-basis: 9px !important;
     font-size: 5px !important;
   }
   .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .chat-sheet-tab-title,
   .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .chat-switcher .chat-sheet-tab-title {
-    font-size: 6px !important;
+    font-size: 5.5px !important;
     line-height: 1 !important;
-    letter-spacing: 0.04em !important;
+    letter-spacing: 0 !important;
   }
   .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .chat-sheet-tab-subtitle {
     display: none !important;
@@ -47287,7 +47279,8 @@ body.agent-route-active .app-shell > * {
   }
 
   body.agent-route-active .agent-chat-header.is-mobile .agent-chat-controls-row {
-    display: block !important;
+    display: flex !important;
+    justify-content: center !important;
     width: 100% !important;
     margin: 0 !important;
     margin-bottom: 0 !important;
@@ -47302,14 +47295,14 @@ body.agent-route-active .app-shell > * {
   body.agent-route-active .agent-chat-header.is-mobile .chat-switcher {
     display: grid !important;
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-    width: 100% !important;
+    width: min(188px, 54vw) !important;
     min-width: 0 !important;
-    max-width: 100% !important;
+    max-width: min(188px, 54vw) !important;
     min-height: 0 !important;
     height: auto !important;
     padding: 0 !important;
-    gap: 3px !important;
-    margin: 0 !important;
+    gap: 2px !important;
+    margin: 0 auto !important;
     visibility: visible !important;
     opacity: 1 !important;
     overflow: visible !important;
@@ -47320,15 +47313,16 @@ body.agent-route-active .app-shell > * {
   body.agent-route-active .agent-chat-header.is-mobile .chat-sheet-tab {
     display: flex !important;
     align-items: center !important;
-    min-height: 18px !important;
-    height: 18px !important;
+    justify-content: center !important;
+    min-height: 14px !important;
+    height: 14px !important;
     min-width: 0 !important;
-    padding: 1px 2px !important;
-    border-radius: 6px !important;
-    gap: 2px !important;
+    padding: 0 1px !important;
+    border-radius: 5px !important;
+    gap: 1px !important;
     visibility: visible !important;
     opacity: 1 !important;
-    overflow: visible !important;
+    overflow: hidden !important;
   }
 
   body.agent-route-active .agent-chat-header.is-mobile .chat-sheet-tab-subtitle {
@@ -47336,19 +47330,19 @@ body.agent-route-active .app-shell > * {
   }
 
   body.agent-route-active .agent-chat-header.is-mobile .chat-sheet-tab-index {
-    width: 12px !important;
-    height: 12px !important;
-    min-width: 12px !important;
-    font-size: 7px !important;
+    width: 9px !important;
+    height: 9px !important;
+    min-width: 9px !important;
+    font-size: 5px !important;
   }
 
   body.agent-route-active .agent-chat-header.is-mobile .chat-sheet-tab-title {
     display: block !important;
-    font-size: 7px !important;
+    font-size: 5.5px !important;
     line-height: 1 !important;
     white-space: nowrap !important;
-    overflow: visible !important;
-    text-overflow: clip !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
     letter-spacing: 0 !important;
     text-transform: none !important;
   }
@@ -47690,6 +47684,8 @@ body.agent-route-active .app-shell > * {
   }
 
   body.agent-route-active .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .agent-chat-controls-row {
+    display: flex !important;
+    justify-content: center !important;
     width: 100% !important;
     margin: 0 !important;
     margin-bottom: 0 !important;
@@ -47698,10 +47694,28 @@ body.agent-route-active .app-shell > * {
   }
 
   body.agent-route-active .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .chat-switcher {
-    width: 100% !important;
-    max-width: 100% !important;
-    margin: 0 !important;
-    gap: 3px !important;
+    width: min(188px, 54vw) !important;
+    max-width: min(188px, 54vw) !important;
+    margin: 0 auto !important;
+    gap: 2px !important;
+  }
+
+  body.agent-route-active .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .chat-sheet-tab {
+    min-height: 14px !important;
+    height: 14px !important;
+    padding: 0 1px !important;
+    border-radius: 5px !important;
+  }
+
+  body.agent-route-active .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .chat-sheet-tab-index {
+    width: 9px !important;
+    height: 9px !important;
+    min-width: 9px !important;
+    font-size: 5px !important;
+  }
+
+  body.agent-route-active .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .chat-sheet-tab-title {
+    font-size: 5.5px !important;
   }
 
   body.agent-route-active .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .chat-brand-strip {
@@ -47760,5 +47774,251 @@ body.agent-route-active .app-shell > * {
     max-width: 100% !important;
     border-radius: 0 !important;
     overflow: visible !important;
+  }
+}
+
+/* Mobile budget table — compact header/metrics so rows gain space */
+@media (max-width: 767px) {
+  .budget-modal .budget-modal-body .budget-main-carousel:not(.is-desktop).mode-table-front .budget-table-head {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 6px !important;
+    margin: 0 0 6px !important;
+    padding-right: 0 !important;
+  }
+
+  .budget-modal .budget-modal-body .budget-main-carousel:not(.is-desktop).mode-table-front .budget-table-head h4,
+  .budget-modal .budget-modal-body .budget-main-carousel:not(.is-desktop).mode-table-front .budget-table-help,
+  .budget-modal .budget-modal-body .budget-main-carousel:not(.is-desktop).mode-table-front .budget-section-eyebrow {
+    display: none !important;
+  }
+
+  .budget-modal .budget-modal-body .budget-main-carousel:not(.is-desktop).mode-table-front .budget-table-top-actions {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 6px !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+  }
+
+  .budget-modal .budget-modal-body .budget-main-carousel:not(.is-desktop).mode-table-front .budget-table-top-actions .continue-ghost {
+    width: 100% !important;
+    min-width: 0 !important;
+    height: 28px !important;
+    min-height: 28px !important;
+    padding: 0 8px !important;
+    border-radius: 999px !important;
+    font-size: 0.62rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.02em !important;
+  }
+
+  .budget-modal .budget-modal-body .budget-main-carousel:not(.is-desktop).mode-table-front .budget-intel-kpis {
+    display: none !important;
+  }
+
+  .budget-modal .budget-modal-body .budget-main-carousel:not(.is-desktop).mode-table-front > .budget-card-table .budget-pdf-surface::before {
+    content: none !important;
+    display: none !important;
+  }
+
+  .budget-modal .budget-modal-body .budget-main-carousel:not(.is-desktop).mode-table-front > .budget-card-table .budget-pdf-surface {
+    padding-top: 0 !important;
+  }
+
+  .budget-modal .budget-modal-body .budget-main-carousel:not(.is-desktop).mode-table-front > .budget-card-table .budget-pdf-head {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    align-items: center !important;
+    gap: 8px !important;
+    padding: 7px 10px 5px !important;
+    margin: 0 0 4px !important;
+    border-bottom: 0 !important;
+    flex-shrink: 0 !important;
+  }
+
+  .budget-modal .budget-modal-body .budget-main-carousel:not(.is-desktop).mode-table-front > .budget-card-table .budget-pdf-head span {
+    font-size: 7px !important;
+    letter-spacing: 0.12em !important;
+    line-height: 1.1 !important;
+  }
+
+  .budget-modal .budget-modal-body .budget-main-carousel:not(.is-desktop).mode-table-front > .budget-card-table .budget-pdf-head h2 {
+    font-size: 0.82rem !important;
+    line-height: 1.05 !important;
+    margin: 1px 0 0 !important;
+    font-weight: 700 !important;
+  }
+
+  .budget-modal .budget-modal-body .budget-main-carousel:not(.is-desktop).mode-table-front > .budget-card-table .budget-pdf-head > strong {
+    font-size: 8px !important;
+    padding: 3px 6px !important;
+    letter-spacing: 0.08em !important;
+    border-radius: 999px !important;
+  }
+
+  .budget-modal .budget-modal-body .budget-main-carousel:not(.is-desktop).mode-table-front > .budget-card-table .budget-pdf-metrics {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 5px !important;
+    padding: 0 0 4px !important;
+    margin: 0 0 4px !important;
+    border: 0 !important;
+    background: transparent !important;
+    border-radius: 0 !important;
+    flex-shrink: 0 !important;
+  }
+
+  .budget-modal .budget-modal-body .budget-main-carousel:not(.is-desktop).mode-table-front > .budget-card-table .budget-pdf-metrics > div {
+    padding: 5px 6px !important;
+    border-radius: 10px !important;
+    min-height: 0 !important;
+  }
+
+  .budget-modal .budget-modal-body .budget-main-carousel:not(.is-desktop).mode-table-front > .budget-card-table .budget-pdf-metrics span {
+    font-size: 7px !important;
+    letter-spacing: 0.1em !important;
+    line-height: 1.1 !important;
+  }
+
+  .budget-modal .budget-modal-body .budget-main-carousel:not(.is-desktop).mode-table-front > .budget-card-table .budget-pdf-metrics strong {
+    margin-top: 1px !important;
+    font-size: 0.68rem !important;
+    line-height: 1.05 !important;
+    font-weight: 650 !important;
+    letter-spacing: -0.01em !important;
+  }
+
+  .budget-modal .budget-modal-body .budget-main-carousel:not(.is-desktop).mode-table-front > .budget-card-table .budget-table-wrap {
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    height: 0 !important;
+    max-height: none !important;
+    margin-top: 0 !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  .budget-modal .budget-modal-body .budget-main-carousel:not(.is-desktop).mode-table-front .budget-table-section {
+    padding-top: 6px !important;
+    padding-bottom: calc(120px + env(safe-area-inset-bottom)) !important;
+  }
+}
+
+/* Class-based mobile compact — wins over legacy selector wars */
+@media (max-width: 767px) {
+  .budget-modal .budget-table-section.is-mobile-table-compact .budget-table-head {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 6px !important;
+    margin: 0 0 6px !important;
+    padding: 0 !important;
+    border: 0 !important;
+  }
+
+  .budget-modal .budget-table-section.is-mobile-table-compact .budget-table-top-actions {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 6px !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+  }
+
+  .budget-modal .budget-table-section.is-mobile-table-compact .budget-table-top-actions .continue-ghost {
+    width: 100% !important;
+    min-width: 0 !important;
+    height: 28px !important;
+    min-height: 28px !important;
+    padding: 0 8px !important;
+    border-radius: 999px !important;
+    font-size: 0.62rem !important;
+    font-weight: 700 !important;
+  }
+
+  .budget-modal .budget-table-section.is-mobile-table-compact .budget-pdf-surface.is-mobile-compact {
+    padding-top: 0 !important;
+  }
+
+  .budget-modal .budget-table-section.is-mobile-table-compact .budget-pdf-surface.is-mobile-compact::before {
+    content: none !important;
+    display: none !important;
+  }
+
+  .budget-modal .budget-table-section.is-mobile-table-compact .budget-pdf-surface.is-mobile-compact .budget-pdf-head,
+  .budget-modal .budget-table-section.is-mobile-table-compact .budget-pdf-surface.is-mobile-compact .budget-pdf-metrics {
+    display: grid !important;
+  }
+
+  .budget-modal .budget-table-section.is-mobile-table-compact .budget-pdf-surface.is-mobile-compact .budget-pdf-head {
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    align-items: center !important;
+    gap: 6px !important;
+    padding: 6px 8px 4px !important;
+    margin: 0 0 4px !important;
+    border-bottom: 0 !important;
+    flex-shrink: 0 !important;
+  }
+
+  .budget-modal .budget-table-section.is-mobile-table-compact .budget-pdf-surface.is-mobile-compact .budget-pdf-head span {
+    font-size: 7px !important;
+    letter-spacing: 0.1em !important;
+    line-height: 1.1 !important;
+  }
+
+  .budget-modal .budget-table-section.is-mobile-table-compact .budget-pdf-surface.is-mobile-compact .budget-pdf-head h2 {
+    font-size: 0.78rem !important;
+    line-height: 1.05 !important;
+    margin: 1px 0 0 !important;
+    font-weight: 700 !important;
+  }
+
+  .budget-modal .budget-table-section.is-mobile-table-compact .budget-pdf-surface.is-mobile-compact .budget-pdf-head > strong {
+    font-size: 7px !important;
+    padding: 2px 5px !important;
+    letter-spacing: 0.06em !important;
+  }
+
+  .budget-modal .budget-table-section.is-mobile-table-compact .budget-pdf-surface.is-mobile-compact .budget-pdf-metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 4px !important;
+    padding: 0 0 4px !important;
+    margin: 0 0 4px !important;
+    border: 0 !important;
+    background: transparent !important;
+    flex-shrink: 0 !important;
+  }
+
+  .budget-modal .budget-table-section.is-mobile-table-compact .budget-pdf-surface.is-mobile-compact .budget-pdf-metrics > div {
+    padding: 4px 5px !important;
+    border-radius: 8px !important;
+    min-height: 0 !important;
+  }
+
+  .budget-modal .budget-table-section.is-mobile-table-compact .budget-pdf-surface.is-mobile-compact .budget-pdf-metrics span {
+    font-size: 6.5px !important;
+    letter-spacing: 0.08em !important;
+    line-height: 1.1 !important;
+  }
+
+  .budget-modal .budget-table-section.is-mobile-table-compact .budget-pdf-surface.is-mobile-compact .budget-pdf-metrics strong {
+    margin-top: 0 !important;
+    font-size: 0.62rem !important;
+    line-height: 1.05 !important;
+    font-weight: 650 !important;
+  }
+
+  .budget-modal .budget-table-section.is-mobile-table-compact .budget-pdf-surface.is-mobile-compact .budget-table-wrap {
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    height: 0 !important;
+    max-height: none !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
   }
 }
