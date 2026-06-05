@@ -2527,11 +2527,6 @@ export default function AgentPage() {
         { type: 'message', role: 'user', content: userMessage },
       ]);
     }
-    setItemsForActive((prev) => [
-      ...prev,
-      { type: 'message', role: 'assistant', content: pendingLabel, mode: 'information' },
-    ]);
-
     // Increment user message count for sheet cycling
     setChatThreads((prev) =>
       prev.map((t) =>

@@ -46448,35 +46448,35 @@ body.agent-route-active .app-shell > * {
   }
 
   .agent-layout.is-mobile-standalone {
-    width: calc(100% / 0.94) !important;
-    margin-left: calc((100% - (100% / 0.94)) / 2) !important;
+    width: calc(100% / 0.92) !important;
+    margin-left: calc((100% - (100% / 0.92)) / 2) !important;
     margin-top: calc(env(safe-area-inset-top, 0px) * -1) !important;
-    padding-top: calc(env(safe-area-inset-top, 0px) + 22px) !important;
-    transform: scale(0.94) !important;
+    padding-top: calc(env(safe-area-inset-top, 0px) + 34px) !important;
+    transform: scale(0.92) !important;
     transform-origin: top center !important;
-    gap: 12px !important;
+    gap: 16px !important;
   }
 
   .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile {
-    margin: 0 14px !important;
-    padding-top: 6px !important;
+    margin: 0 12px !important;
+    padding-top: 18px !important;
   }
 
   .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .chat-switcher {
-    margin-top: 0 !important;
-    margin-bottom: 6px !important;
+    margin-top: 6px !important;
+    margin-bottom: 8px !important;
   }
 
   .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .chat-brand-strip {
-    margin-top: 8px !important;
+    margin-top: 10px !important;
   }
 
   .agent-layout.is-mobile-standalone .agent-chat-body {
-    padding-top: 4px !important;
+    padding-top: 10px !important;
   }
 
   .agent-layout.is-mobile-standalone .agent-panel.is-mobile-compact {
-    margin-top: 8px !important;
+    margin-top: 12px !important;
   }
 
   html.agent-route-active,

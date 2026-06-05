@@ -254,13 +254,28 @@ function hasExplicitPositiveAmount(token: string): boolean {
   return /^\s*\+/.test(raw);
 }
 
-function inferDirection(line: string, signedAmount: number, amountToken = ''): 'income' | 'expense' {
+function normalizeMovementProductType(value?: string): string | undefined {
+  return normalizeProductType(value);
+}
+
+export function inferMovementDirection(
+  line: string,
+  signedAmount: number,
+  amountToken = '',
+  productType?: string,
+): 'income' | 'expense' {
   const normalized = line.toLowerCase();
+  const normalizedProductType = normalizeMovementProductType(productType);
+  const isCreditCard = normalizedProductType === 'credit_card';
 
   // High-specificity income phrases are checked separately to prevent generic
   // keywords like "pago" (also in expense list) from masking them.
   const specificIncomeHits = (
-    normalized.match(/\b(abono|ingreso|dep[oó]sito|sueldo|remuner|n[oó]mina|payroll|pensi[oó]n|honorari|pago\s+recibido|transferencia\s+recibida|devoluci[oó]n)\b/g) ?? []
+    normalized.match(
+      isCreditCard
+        ? /\b(abono|ingreso|dep[oó]sito|sueldo|remuner|n[oó]mina|payroll|pensi[oó]n|honorari|pago\s+(?:recibido|minimo|mínimo|tarjeta|a\s+la\s+tarjeta|de\s+tarjeta)|transferencia\s+recibida|devoluci[oó]n|reintegro|reembolso)\b/g
+        : /\b(abono|ingreso|dep[oó]sito|sueldo|remuner|n[oó]mina|payroll|pensi[oó]n|honorari|pago\s+recibido|transferencia\s+recibida|devoluci[oó]n|reintegro|reembolso)\b/g,
+    ) ?? []
   ).length;
 
   // Generic expense keywords excluding "pago" standalone so that
@@ -268,14 +283,18 @@ function inferDirection(line: string, signedAmount: number, amountToken = ''): '
   const expenseHits = (
     normalized.match(/\b(compra|cargo|retiro|comisi[oó]n|suscrip|giro|transferencia\s+enviada|transferencia\s+emitida|pac|pat|webpay|pos|debito|d[eé]bito)\b/g) ?? []
   ).length + (
-    // "pago" only counts as expense when NOT followed by "recibido"
-    normalized.match(/\bpago(?!\s+recibido)\b/g) ?? []
-  ).length;
+    // "pago" only counts as expense when NOT followed by "recibido"; on credit
+    // cards it usually means an abono/pago a la tarjeta, so keep it income-side.
+    !isCreditCard
+      ? (normalized.match(/\bpago(?!\s+recibido)\b/g) ?? []).length
+      : 0
+  );
 
   // Credit card installment notation (1/3, 1/6, etc.) always signals an expense.
   const isCreditCardInstallment = /\b\d+\/\d+\b/.test(normalized);
   if (isCreditCardInstallment && specificIncomeHits === 0) return 'expense';
 
+  if (isCreditCard && specificIncomeHits > 0) return 'income';
   if (hasExplicitNegativeAmount(amountToken) && specificIncomeHits === 0) return 'expense';
   if (hasExplicitPositiveAmount(amountToken) && specificIncomeHits > expenseHits) return 'income';
   if (specificIncomeHits > expenseHits && specificIncomeHits > 0) return 'income';
@@ -356,8 +375,9 @@ function buildMovementKey(movement: ParsedMovement): string {
 function parseMovementFromTableRow(params: {
   headers: string[];
   row: string[];
+  productType?: string;
 }): ParsedMovement | null {
-  const { headers, row } = params;
+  const { headers, row, productType } = params;
   if (!Array.isArray(row) || row.length === 0) return null;
 
   const dateIndex = resolveColumnIndex(headers, [/^fecha\b/, /^fec\b/, /contable/]);
@@ -390,7 +410,7 @@ function parseMovementFromTableRow(params: {
     const picked = pickAmountFromCells(row, fallbackIndexes);
     if (picked.amount === null) return null;
     if (picked.index === balanceIndex) return null;
-    direction = inferDirection(row.join(' '), picked.amount, picked.token);
+    direction = inferMovementDirection(row.join(' '), picked.amount, picked.token, productType);
     amount = Math.abs(picked.amount);
     amountToken = picked.token;
   }
@@ -421,7 +441,7 @@ function parseMovementFromTableRow(params: {
   };
 }
 
-function parseMovementFromLooseLine(line: string): ParsedMovement | null {
+function parseMovementFromLooseLine(line: string, productType?: string): ParsedMovement | null {
   if (!line || isNonMovementDescription(line)) return null;
   const cells = splitCandidateCells(line);
   const amountTokens =
@@ -437,7 +457,7 @@ function parseMovementFromLooseLine(line: string): ParsedMovement | null {
   if (signedAmount === null) return null;
   const date = parseDateFromLine(line);
   if (!date) return null;
-  const direction = inferDirection(line, signedAmount, pickedToken);
+  const direction = inferMovementDirection(line, signedAmount, pickedToken, productType);
   const descriptionBase =
     cells.length >= 3
       ? cells.filter((cell) => cell !== pickedToken && !toIsoDate(cell)).join(' ')
@@ -498,7 +518,7 @@ function inferCurrency(documents: ParsedDocumentResponse[]): string {
   return 'CLP';
 }
 
-function extractMovements(documents: ParsedDocumentResponse[]): ParsedMovement[] {
+function extractMovements(documents: ParsedDocumentResponse[], productType?: string): ParsedMovement[] {
   const dedup = new Set<string>();
   const movements: ParsedMovement[] = [];
 
@@ -519,6 +539,7 @@ function extractMovements(documents: ParsedDocumentResponse[]): ParsedMovement[]
         const parsed = parseMovementFromTableRow({
           headers,
           row: Array.isArray(row) ? row.map((cell) => String(cell ?? '')) : [],
+          productType,
         });
         if (!parsed) continue;
         const key = buildMovementKey(parsed);
@@ -545,7 +566,7 @@ function extractMovements(documents: ParsedDocumentResponse[]): ParsedMovement[]
             .slice(0, 220);
 
       for (const line of candidateLines) {
-        const parsed = parseMovementFromLooseLine(line);
+        const parsed = parseMovementFromLooseLine(line, productType);
         if (!parsed) continue;
         const key = buildMovementKey(parsed);
         if (dedup.has(key)) continue;
@@ -585,7 +606,12 @@ function buildTransactionAnalysis(
     productTypeHint?: string;
     productLabelHint?: string;
   },
-) {
+  ) {
+  const normalizedProductType =
+    normalizeMovementProductType(hints.productTypeHint) ||
+    normalizeMovementProductType(hints.serviceHint) ||
+    normalizeMovementProductType(hints.productLabelHint) ||
+    'credit_card';
   const documentInsights = documents.map((doc) => {
     const structured = (doc.structuredData as {
       rowCount?: unknown;
@@ -613,8 +639,8 @@ function buildTransactionAnalysis(
     };
   });
 
-  const movements = extractMovements(documents);
-  return buildTransactionAnalysisFromMovements(documents, hints, documentInsights, movements);
+  const movements = extractMovements(documents, normalizedProductType);
+  return buildTransactionAnalysisFromMovements(documents, hints, documentInsights, movements, normalizedProductType);
 }
 
 function buildTransactionAnalysisFromMovements(
@@ -634,6 +660,7 @@ function buildTransactionAnalysisFromMovements(
     row_count: number;
   }>,
   movements: ParsedMovement[],
+  productType?: string,
 ) {
   const incomeMovements = movements.filter((movement) => movement.direction === 'income');
   const expenseMovements = movements.filter((movement) => movement.direction === 'expense');
@@ -816,9 +843,10 @@ function buildTransactionAnalysisFromMovements(
   const institution = cleanedInstitutionHint || 'Institución por confirmar';
   const service = cleanedServiceHint || cleanedProductLabelHint || 'Producto financiero';
   const normalizedProductType =
-    normalizeProductType(hints.productTypeHint) ||
-    normalizeProductType(cleanedServiceHint) ||
-    normalizeProductType(cleanedProductLabelHint) ||
+    normalizeMovementProductType(productType) ||
+    normalizeMovementProductType(hints.productTypeHint) ||
+    normalizeMovementProductType(cleanedServiceHint) ||
+    normalizeMovementProductType(cleanedProductLabelHint) ||
     'credit_card';
   const productLabel = cleanedProductLabelHint || service;
 
@@ -889,6 +917,7 @@ function buildTransactionAnalysisFromMovements(
 async function reconcileMovementsWithLLM(
   documents: ParsedDocumentResponse[],
   heuristicMovements: ParsedMovement[],
+  productType?: string,
 ): Promise<ParsedMovement[] | null> {
   const tablePayload = documents
     .flatMap((doc) => {
@@ -945,7 +974,7 @@ async function reconcileMovementsWithLLM(
           date: movement.date ? toIsoDate(movement.date) : undefined,
           description,
           amount: Math.abs(Number(movement.amount) || 0),
-          direction: (movement.direction === 'expense' ? 'expense' : 'income') as 'expense' | 'income',
+          direction: inferMovementDirection(description, Number(movement.amount) || 0, '', productType),
           source_line: '',
           category: movement.category ? String(movement.category) : taxonomy.category,
           merchant: taxonomy.merchant,
@@ -1013,9 +1042,14 @@ router.post(
       productTypeHint: body.productTypeHint,
       productLabelHint: body.productLabelHint,
     });
+    const productTypeForAnalysis =
+      normalizeMovementProductType(body.productTypeHint) ||
+      normalizeMovementProductType(body.serviceHint) ||
+      normalizeMovementProductType(body.productLabelHint) ||
+      'credit_card';
     const shouldReconcile = shouldReconcileMovements(documents, heuristicAnalysis.movements ?? []);
     const reconciledMovements = shouldReconcile
-      ? await reconcileMovementsWithLLM(documents, heuristicAnalysis.movements ?? [])
+      ? await reconcileMovementsWithLLM(documents, heuristicAnalysis.movements ?? [], productTypeForAnalysis)
       : null;
     const transactionAnalysis = reconciledMovements
       ? buildTransactionAnalysisFromMovements(
@@ -1052,6 +1086,7 @@ router.post(
             };
           }),
           reconciledMovements,
+          productTypeForAnalysis,
         )
       : heuristicAnalysis;
 
