@@ -19007,55 +19007,6 @@ input[type="radio"]:checked {
   }
 }
 
-/* Premium loading state while agent response is in progress */
-.agent-loading-pro {
-  margin: 8px 0 10px;
-  padding: 12px 14px;
-  border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: rgba(0, 0, 0, 0.94);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 10px 20px rgba(0,0,0,0.2);
-}
-
-.agent-loading-pro-head {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 10px;
-}
-
-.agent-loading-pro-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 22px;
-  padding: 0 9px;
-  border-radius: 999px;
-  border: 1px solid rgba(235, 205, 124, 0.76);
-  color: rgba(219, 182, 81, 0.96);
-  background: rgba(219, 182, 81, 0.14);
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  font-family: "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace;
-  white-space: nowrap;
-}
-
-@media (max-width: 767px) {
-  .agent-loading-pro-badge {
-    min-height: 22px !important;
-    padding: 0 10px !important;
-    font-size: 9px !important;
-    letter-spacing: 0.03em !important;
-  }
-}
-
-.agent-loading-pro-label {
-  color: rgba(240, 240, 245, 0.9);
-  font-size: 13px;
-  font-family: "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace;
-}
-
 /* FINAL HARD OVERRIDE — budget table must not clip */
 .budget-modal .budget-table-wrap {
   overflow-x: hidden !important;
@@ -19114,31 +19065,6 @@ input[type="radio"]:checked {
   padding: 0 !important;
 }
 
-.agent-loading-pro-track {
-  position: relative;
-  width: 100%;
-  height: 7px;
-  border-radius: 999px;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.agent-loading-pro-fill {
-  position: absolute;
-  top: 0;
-  left: -34%;
-  width: 34%;
-  height: 100%;
-  border-radius: inherit;
-  background: linear-gradient(90deg, rgba(219, 182, 81, 0), rgba(219, 182, 81, 0.95), rgba(219, 182, 81, 0));
-  animation: agentLoadingSweep 1.2s ease-in-out infinite;
-}
-
-@keyframes agentLoadingSweep {
-  0% { left: -34%; }
-  100% { left: 100%; }
-}
 
 /* Questionnaire CTA text style */
 .profile-questionnaire-btn,
@@ -26086,17 +26012,6 @@ input[type="radio"]:checked {
     display: none !important;
   }
 
-  .transactions-modal .tx-consent-inline-actions {
-    display: grid !important;
-    margin-top: 8px !important;
-  }
-
-  .transactions-modal .tx-consent-inline-continue {
-    width: 100% !important;
-    min-height: 46px !important;
-    justify-content: center !important;
-  }
-
   .transactions-modal .tx-evidence-inline-actions {
     display: grid !important;
     gap: 8px !important;
@@ -26111,6 +26026,19 @@ input[type="radio"]:checked {
 
   .transactions-modal .tx-delete-product-btn {
     display: none !important;
+  }
+
+  .transactions-modal .tx-consent-actions-row {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+
+  .transactions-modal .tx-consent-actions-row .button-primary,
+  .transactions-modal .tx-consent-actions-row .continue-ghost {
+    width: 100% !important;
+    min-height: 46px !important;
+    justify-content: center !important;
   }
 
   .agent-modal-overlay.transactions-modal-overlay {
@@ -46448,22 +46376,24 @@ body.agent-route-active .app-shell > * {
   }
 
   .agent-layout.is-mobile-standalone {
-    width: calc(100% / 0.92) !important;
-    margin-left: calc((100% - (100% / 0.92)) / 2) !important;
-    margin-top: calc(env(safe-area-inset-top, 0px) * -1) !important;
-    padding-top: calc(env(safe-area-inset-top, 0px) + 34px) !important;
-    transform: scale(0.92) !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding-top: 34px !important;
+    transform: none !important;
     transform-origin: top center !important;
-    gap: 16px !important;
+    gap: 6px !important;
+    height: var(--visual-vh, 100dvh) !important;
+    min-height: var(--visual-vh, 100dvh) !important;
+    max-height: var(--visual-vh, 100dvh) !important;
   }
 
   .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile {
-    margin: 0 12px !important;
-    padding-top: 18px !important;
+    margin: 0 10px !important;
+    padding-top: 0 !important;
   }
 
   .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .chat-switcher {
-    margin-top: 6px !important;
+    margin-top: 0 !important;
     margin-bottom: 8px !important;
   }
 
@@ -46476,7 +46406,8 @@ body.agent-route-active .app-shell > * {
   }
 
   .agent-layout.is-mobile-standalone .agent-panel.is-mobile-compact {
-    margin-top: 12px !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
   }
 
   html.agent-route-active,
@@ -46496,14 +46427,40 @@ body.agent-route-active .app-shell > * {
   }
 
   .agent-layout.is-mobile-standalone {
-    margin-top: calc(env(safe-area-inset-top, 0px) * -1) !important;
-    padding-top: 0 !important;
-    height: calc(var(--visual-vh, 100dvh) + env(safe-area-inset-top, 0px)) !important;
-    min-height: calc(var(--visual-vh, 100dvh) + env(safe-area-inset-top, 0px)) !important;
-    max-height: calc(var(--visual-vh, 100dvh) + env(safe-area-inset-top, 0px)) !important;
+    margin-top: 0 !important;
+    width: calc(100% / 0.985) !important;
+    margin-left: calc((100% - (100% / 0.985)) / 2) !important;
+    padding-top: 56px !important;
+    padding-bottom: 0 !important;
+    height: var(--visual-vh, 100dvh) !important;
+    min-height: var(--visual-vh, 100dvh) !important;
+    max-height: var(--visual-vh, 100dvh) !important;
+    transform: scale(0.985) translate3d(0, 8px, 0) !important;
+    transform-origin: top center !important;
+    animation: agentStandaloneSettle 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 
   .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile {
-    padding-top: calc(env(safe-area-inset-top, 0px) + 6px) !important;
+    padding-top: 0 !important;
+  }
+
+  .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .agent-chat-controls-row {
+    padding-top: 0 !important;
+    margin-bottom: 10px !important;
+  }
+
+  .agent-layout.is-mobile-standalone .agent-panel,
+  .agent-layout.is-mobile-standalone .agent-panel.is-mobile-compact {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+  }
+}
+
+@keyframes agentStandaloneSettle {
+  from {
+    transform: translate3d(0, -10px, 0);
+  }
+  to {
+    transform: translate3d(0, 0, 0);
   }
 }
