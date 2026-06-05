@@ -6,7 +6,6 @@ html.agent-global-monochrome {
   filter: grayscale(1) !important;
 }
 
-
 .transactions-modal .agent-modal-actions .button-primary.is-saved-product {
   background: linear-gradient(135deg, #17323a, #225464);
   border-color: rgba(126, 194, 214, 0.45);
@@ -12245,14 +12244,18 @@ html.agent-global-monochrome {
 /* Centered modal for mobile checkboxes */
 @media (max-width: 767px) {
   .modal-content {
-    width: calc(100vw - 32px);
-    max-width: 90vw;
+    width: calc(100vw - 24px);
+    max-width: none;
     position: fixed;
     top: 50% !important;
     left: 50% !important;
     transform: translate(-50%, -50%) !important;
-    max-height: 80vh;
+    max-height: calc(96dvh - 24px);
     overflow-y: auto;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0;
   }
 
   .modal-overlay {
@@ -46693,5 +46696,69 @@ body.agent-route-active .app-shell > * {
   .budget-modal .budget-modal-body .budget-main-carousel.mode-agent-front > .budget-card-agent .bcc-hero-tip,
   .budget-modal .budget-modal-body .budget-main-carousel.mode-agent-front > .budget-card-agent .bcc-log-row {
     text-shadow: 0 1px 1px rgba(0, 0, 0, 0.45) !important;
+  }
+}
+
+/* ============================================================
+   MOBILE MODAL SURFACE STRIP
+   Removes the shell panel so modal content floats on the backdrop.
+   ============================================================ */
+@media (max-width: 767px) {
+  .agent-modal-overlay {
+    align-items: flex-start !important;
+    justify-content: center !important;
+    padding: calc(env(safe-area-inset-top) + 12px) 12px calc(env(safe-area-inset-bottom) + 12px) !important;
+    background:
+      radial-gradient(circle at 20% 8%, rgba(204, 230, 247, 0.2), transparent 40%),
+      rgba(16, 28, 40, 0.48) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .agent-modal,
+  .budget-modal,
+  .transactions-modal,
+  .social-modal {
+    width: 100% !important;
+    max-width: none !important;
+    max-height: min(96dvh, 96vh) !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom)) !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border-radius: 0 !important;
+    overflow: visible !important;
+  }
+
+  .agent-modal-header {
+    background: transparent !important;
+    border-bottom: none !important;
+    box-shadow: none !important;
+  }
+
+  .agent-modal-intro {
+    background: transparent !important;
+  }
+
+  .budget-modal .bcc-modal-header,
+  .budget-modal .budget-modal-body,
+  .transactions-modal .tx-modal-header-layer,
+  .social-modal-header,
+  .social-quote-strip,
+  .social-step {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  .social-modal-overlay {
+    padding: calc(env(safe-area-inset-top) + 12px) 12px calc(env(safe-area-inset-bottom) + 12px) !important;
+    background: rgba(0, 0, 0, 0.5) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
   }
 }
