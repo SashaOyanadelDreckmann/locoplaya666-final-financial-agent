@@ -567,11 +567,11 @@ export default function AgentPage() {
     if (!isMobileViewport) return;
     clearMobileKeyboardSettleTimer();
     setKeyboardOpeningMode(true);
+    chatComposerRef.current?.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'auto' });
     mobileKeyboardSettleTimerRef.current = setTimeout(() => {
-      chatComposerRef.current?.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'auto' });
       setKeyboardOpeningMode(false);
       mobileKeyboardSettleTimerRef.current = null;
-    }, 140);
+    }, 180);
   }
 
   function focusComposerAfterLayout(options?: { collapsePanelFirst?: boolean }) {
@@ -588,8 +588,8 @@ export default function AgentPage() {
     composerFocusTimerRef.current = setTimeout(() => {
       const el = chatComposerRef.current;
       if (!el) return;
-      el.focus({ preventScroll: true });
       settleMobileComposerViewport();
+      el.focus({ preventScroll: true });
       composerFocusTimerRef.current = null;
     }, collapsePanelFirst ? 220 : 40);
   }
@@ -676,6 +676,18 @@ export default function AgentPage() {
       document.removeEventListener('visibilitychange', syncStandalone);
     };
   }, []);
+
+  useEffect(() => {
+    const html = document.documentElement;
+    const body = document.body;
+    const standaloneActive = isMobileViewport && isStandaloneDisplayMode;
+    html.classList.toggle('agent-route-standalone', standaloneActive);
+    body.classList.toggle('agent-route-standalone', standaloneActive);
+    return () => {
+      html.classList.remove('agent-route-standalone');
+      body.classList.remove('agent-route-standalone');
+    };
+  }, [isMobileViewport, isStandaloneDisplayMode]);
 
   useEffect(() => {
     const el = panelGridRef.current;
@@ -4091,7 +4103,6 @@ export default function AgentPage() {
                     const layout = panelScrollRef.current?.closest('.agent-layout') as HTMLElement | null;
                     layout?.classList.remove('mobile-panel-expanded');
                   }
-                  settleMobileComposerViewport();
                 }}
                 onBlur={() => {
                   clearMobileKeyboardSettleTimer();
