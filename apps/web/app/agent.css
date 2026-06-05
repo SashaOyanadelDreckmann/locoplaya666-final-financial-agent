@@ -46514,7 +46514,12 @@ body.agent-route-active .app-shell > * {
   html.agent-route-standalone,
   body.agent-route-standalone {
     background-color: #05090f !important;
-    background-image: none !important;
+    background-image:
+      linear-gradient(180deg, rgba(6, 10, 16, 0.22), rgba(6, 10, 16, 0.28)),
+      url('/fondo4.jpg') !important;
+    background-size: cover !important;
+    background-position: center top !important;
+    background-repeat: no-repeat !important;
   }
 
   body.agent-route-standalone .app-shell::before,
@@ -46529,6 +46534,13 @@ body.agent-route-active .app-shell > * {
 
   body.agent-route-standalone .global-agent-backdrop {
     inset: calc(env(safe-area-inset-top, 0px) * -1) 0 0 0;
+    background-color: #05090f;
+    background-image:
+      linear-gradient(180deg, rgba(6, 10, 16, 0.22), rgba(6, 10, 16, 0.28)),
+      url('/fondo4.jpg');
+    background-size: cover;
+    background-position: center top;
+    background-repeat: no-repeat;
   }
 
   .agent-layout.is-mobile-standalone {
