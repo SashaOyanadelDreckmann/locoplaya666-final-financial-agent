@@ -242,6 +242,18 @@ export function TxEvidenceStep(props: TxEvidenceStepProps) {
 
                       {(p.analysisAlreadyDone || p.txUploadOnboardingStep === 'upload') && (
                       <div className="upload-zone tx-upload-zone-premium tx-upload-zone-premium--rail tx-upload-zone-premium--inline">
+                        <div className="tx-upload-actions">
+                          <button
+                            type="button"
+                            className="tx-upload-video-btn"
+                            onClick={() => {
+                              p.onPatchUploadFormat('video');
+                              p.onSetUploadOnboardingStep('upload');
+                            }}
+                          >
+                            Subir video
+                          </button>
+                        </div>
                         <label className="upload-label upload-label--minimal">
                           <span>Adjuntar</span>
                           <span className="upload-trigger-minimal" aria-hidden="true">

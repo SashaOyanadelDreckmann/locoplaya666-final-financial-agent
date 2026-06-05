@@ -31262,6 +31262,29 @@ body.agent-route-active .app-shell::before {
   padding-top: 12px;
 }
 
+.transactions-modal .tx-upload-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.transactions-modal .tx-upload-video-btn {
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(164, 196, 223, 0.34);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(244, 249, 255, 0.95);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.transactions-modal .tx-upload-video-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
 .transactions-modal .manual-evidence-block {
   border: none !important;
   background: transparent !important;
@@ -32276,6 +32299,15 @@ body.agent-route-active .app-shell::before {
   .transactions-modal .tx-content-card--agent .tx-upload-zone-premium--inline {
     gap: 16px !important;
     padding: 18px !important;
+  }
+
+  .transactions-modal .tx-content-card--agent .tx-upload-actions {
+    width: 100% !important;
+  }
+
+  .transactions-modal .tx-content-card--agent .tx-upload-video-btn {
+    width: 100% !important;
+    min-height: 44px !important;
   }
 
   .transactions-modal .tx-content-card--agent .tx-upload-zone-premium--rail,
