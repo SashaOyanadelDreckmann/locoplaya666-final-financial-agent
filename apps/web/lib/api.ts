@@ -76,6 +76,30 @@ export async function deleteAccount() {
   return parseApiResponse<{ deleted: boolean }>(res);
 }
 
+export async function forgotPassword(payload: { email: string }) {
+  const API_URL = getSessionApiBaseUrl();
+  const res = await fetch(`${API_URL}/auth/forgot-password`, {
+    method: 'POST',
+    headers: withCsrf({ 'Content-Type': 'application/json' }),
+    credentials: 'include',
+    body: JSON.stringify(payload),
+  });
+
+  return parseApiResponse<{ sent: boolean }>(res);
+}
+
+export async function resetPassword(payload: { token: string; password: string }) {
+  const API_URL = getSessionApiBaseUrl();
+  const res = await fetch(`${API_URL}/auth/reset-password`, {
+    method: 'POST',
+    headers: withCsrf({ 'Content-Type': 'application/json' }),
+    credentials: 'include',
+    body: JSON.stringify(payload),
+  });
+
+  return parseApiResponse<{ reset: boolean }>(res);
+}
+
 export async function injectProfileToAgent(profile: unknown) {
   const API_URL = getSessionApiBaseUrl();
   const res = await fetch(`${API_URL}/api/inject-profile`, {

@@ -3,6 +3,8 @@ import { ApiHttpError } from './apiEnvelope';
 type ErrorContext =
   | 'auth.login'
   | 'auth.register'
+  | 'auth.forgotPassword'
+  | 'auth.resetPassword'
   | 'chat.send'
   | 'intake.submit'
   | 'interview.voice'
@@ -88,6 +90,12 @@ export function toUserFacingError(error: unknown, context: ErrorContext = 'gener
       }
       if (joinedLower.includes('ya usaste tu única llamada') || joinedLower.includes('ya fue completada')) {
         return 'Esta entrevista ya fue completada y no admite otra llamada.';
+      }
+    }
+
+    if (context === 'auth.resetPassword') {
+      if (error.status === 400 || code === 'bad_request') {
+        return 'El enlace de recuperación expiró o ya fue usado. Solicita uno nuevo desde "¿Olvidaste tu contraseña?".';
       }
     }
 

@@ -42,7 +42,31 @@ export const SavedReportSchema = z.object({
   createdAt: z.string().datetime(),
 });
 
+export const ForgotPasswordSchema = z.object({
+  email: z
+    .string()
+    .min(1, 'Email requerido')
+    .email('Ingresa un correo válido'),
+});
+
+export const ResetPasswordSchema = z
+  .object({
+    password: z
+      .string()
+      .min(8, 'Contraseña debe tener al menos 8 caracteres')
+      .max(128, 'Contraseña muy larga')
+      .regex(/[A-Z]/, 'Debe contener al menos una mayúscula')
+      .regex(/[0-9]/, 'Debe contener al menos un número'),
+    confirm: z.string().min(1, 'Confirma tu contraseña'),
+  })
+  .refine((data) => data.password === data.confirm, {
+    message: 'Las contraseñas no coinciden',
+    path: ['confirm'],
+  });
+
 export type LoginInput = z.infer<typeof LoginSchema>;
 export type RegisterInput = z.infer<typeof RegisterSchema>;
+export type ForgotPasswordInput = z.infer<typeof ForgotPasswordSchema>;
+export type ResetPasswordInput = z.infer<typeof ResetPasswordSchema>;
 export type BudgetRow = z.infer<typeof BudgetRowSchema>;
 export type SavedReport = z.infer<typeof SavedReportSchema>;
