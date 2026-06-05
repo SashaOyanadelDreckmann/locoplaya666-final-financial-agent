@@ -18,6 +18,12 @@ describe('transactions modal safeguards', () => {
     expect(pageConstants).toContain('MAX_TRANSACTION_PRODUCTS_CREATED_TOTAL = 12');
     expect(pageConstants).toContain('MAX_EVIDENCE_FILES_PER_PRODUCT = 25');
     expect(source).toContain('const transactionsModalRef = useRef<HTMLDivElement | null>(null);');
+    expect(source).toContain("props.txWizardStep === 'products'");
+    expect(source).toContain("setShowTxCarousel(props.txWizardStep !== 'products');");
+    expect(source).toContain('pendingEvidenceFilesByProduct');
+    expect(source).toContain('txAssistantInputByProduct');
+    expect(source).toContain('txAssistantLoadingByProduct');
+    expect(source).toContain("setSelectedMovementKey(null);");
     expect(source).toContain("if (event.key !== 'Tab') return;");
     expect(source).toContain('aria-describedby="transactions-modal-intro"');
     expect(source).toContain('tabIndex={-1}');
@@ -25,6 +31,7 @@ describe('transactions modal safeguards', () => {
     expect(source).toContain('Productos y transacciones');
     expect(source).toContain('const requestClose = useCallback');
     expect(source).toContain('grabaci[oó]n|pantalla|screen');
+    expect(source).toContain("props.setTxWizardStep('products');");
   });
 
   it('keeps product upload isolation and canonical document ids', () => {

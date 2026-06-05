@@ -103,7 +103,7 @@ async function buildLiveMarketContext() {
   };
 }
 
-function normalizeForSimilarity(text: string) {
+export function normalizeForSimilarity(text: string) {
   return String(text || '')
     .toLowerCase()
     .normalize('NFD')
@@ -113,20 +113,11 @@ function normalizeForSimilarity(text: string) {
     .trim();
 }
 
-function isTooSimilarMessage(a: string, b: string) {
+export function isTooSimilarMessage(a: string, b: string) {
   const na = normalizeForSimilarity(a);
   const nb = normalizeForSimilarity(b);
   if (!na || !nb) return false;
-  if (na === nb) return true;
-  const aWords = new Set(na.split(' ').filter((w) => w.length > 3));
-  const bWords = new Set(nb.split(' ').filter((w) => w.length > 3));
-  if (aWords.size === 0 || bWords.size === 0) return false;
-  let overlap = 0;
-  for (const w of aWords) {
-    if (bWords.has(w)) overlap += 1;
-  }
-  const ratio = overlap / Math.max(aWords.size, bWords.size);
-  return ratio >= 0.88;
+  return na === nb;
 }
 
 function toFiniteNumber(value: unknown): number | null {
@@ -317,7 +308,7 @@ function buildBudgetPanelGuidance() {
   ].join('\n');
 }
 
-function buildResilientFallbackMessage(params: {
+export function buildResilientFallbackMessage(params: {
   userMessage: string;
   phase?: unknown;
   activeChatId?: unknown;
@@ -384,7 +375,7 @@ function buildResilientFallbackMessage(params: {
   ].join('\n\n');
 }
 
-function shouldReplaceWithDuplicateFallback(params: {
+export function shouldReplaceWithDuplicateFallback(params: {
   response: Record<string, unknown>;
   recentAssistantMessages: string[];
 }): boolean {

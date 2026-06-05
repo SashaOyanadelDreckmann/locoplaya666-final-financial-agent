@@ -10,7 +10,8 @@ export function normalizeProductAssistantState(
       raw?.uploadFormat === 'photos' ||
       raw?.uploadFormat === 'pdf' ||
       raw?.uploadFormat === 'spreadsheet' ||
-      raw?.uploadFormat === 'text'
+      raw?.uploadFormat === 'text' ||
+      raw?.uploadFormat === 'video'
         ? raw.uploadFormat
         : null,
     summaryText: typeof raw?.summaryText === 'string' ? raw.summaryText : null,

@@ -74,11 +74,11 @@ export function TransactionsModal(props: TransactionsModalProps) {
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   };
   const [shuffleTrigger, setShuffleTrigger] = useState(0);
-  const [pendingEvidenceFiles, setPendingEvidenceFiles] = useState<File[]>([]);
-  const [manualEvidenceDraft, setManualEvidenceDraft] = useState('');
-  const [txAssistantInput, setTxAssistantInput] = useState('');
-  const [txAssistantLoading, setTxAssistantLoading] = useState(false);
-  const [txAssistantError, setTxAssistantError] = useState<string | null>(null);
+  const [pendingEvidenceFilesByProduct, setPendingEvidenceFilesByProduct] = useState<Record<string, File[]>>({});
+  const [manualEvidenceDraftByProduct, setManualEvidenceDraftByProduct] = useState<Record<string, string>>({});
+  const [txAssistantInputByProduct, setTxAssistantInputByProduct] = useState<Record<string, string>>({});
+  const [txAssistantLoadingByProduct, setTxAssistantLoadingByProduct] = useState<Record<string, boolean>>({});
+  const [txAssistantErrorByProduct, setTxAssistantErrorByProduct] = useState<Record<string, string | null>>({});
   const [consentAccepted, setConsentAccepted] = useState(false);
   const [selectedMovementKey, setSelectedMovementKey] = useState<string | null>(null);
   const [overrideMerchantDraft, setOverrideMerchantDraft] = useState('');
@@ -156,7 +156,6 @@ export function TransactionsModal(props: TransactionsModalProps) {
   const insightCarouselRef = useRef<HTMLDivElement | null>(null);
   const txSummaryScrollRef = useRef<HTMLDivElement | null>(null);
   const previousConnectedRef = useRef<Record<string, boolean>>({});
-  const modalOpenInitRef = useRef(false);
   const dockTransitionTimersRef = useRef<number[]>([]);
   const selectedTemplate = ALL_PRODUCT_TEMPLATES.find((item) => item.label === productTemplate);
   const derivedProductType: BankProduct['productType'] =
@@ -205,10 +204,51 @@ export function TransactionsModal(props: TransactionsModalProps) {
   const activeProductVisualPalette = productVisualPalette(
     `${props.activeBankProduct?.id ?? 'active'}-${resolvedProductLabel || props.activeBankProduct?.label || 'producto'}-${resolvedBank || props.activeBankProduct?.bank || 'bank'}`
   );
-  const currentStage: 'consent' | 'evidence' | 'analyst' =
-    props.txWizardStep === 'upload' ? 'evidence' : props.txWizardStep === 'dashboard' ? 'analyst' : 'consent';
+  const activeProductId = props.activeBankProduct?.id ?? null;
+  const pendingEvidenceFiles = activeProductId ? pendingEvidenceFilesByProduct[activeProductId] ?? [] : [];
+  const manualEvidenceDraft = activeProductId ? manualEvidenceDraftByProduct[activeProductId] ?? '' : '';
+  const txAssistantInput = activeProductId ? txAssistantInputByProduct[activeProductId] ?? '' : '';
+  const txAssistantLoading = activeProductId ? Boolean(txAssistantLoadingByProduct[activeProductId]) : false;
+  const txAssistantError = activeProductId ? txAssistantErrorByProduct[activeProductId] ?? null : null;
+  const currentStage: 'products' | 'consent' | 'evidence' | 'analyst' =
+    props.txWizardStep === 'products'
+      ? 'products'
+      : props.txWizardStep === 'upload'
+        ? 'evidence'
+        : props.txWizardStep === 'dashboard'
+          ? 'analyst'
+          : 'consent';
   const parsedDocumentCount = props.activeBankProduct?.parsedDocuments.length ?? 0;
   const analysisAlreadyDone = parsedDocumentCount > 0;
+
+  const setActivePendingEvidenceFiles = (updater: File[] | ((current: File[]) => File[])) => {
+    if (!activeProductId) return;
+    setPendingEvidenceFilesByProduct((prev) => {
+      const current = prev[activeProductId] ?? [];
+      const next = typeof updater === 'function' ? updater(current) : updater;
+      return { ...prev, [activeProductId]: next };
+    });
+  };
+  const setActiveManualEvidenceDraft = (value: string) => {
+    if (!activeProductId) return;
+    setManualEvidenceDraftByProduct((prev) => ({ ...prev, [activeProductId]: value }));
+  };
+  const setActiveTxAssistantInput = (value: string) => {
+    if (!activeProductId) return;
+    setTxAssistantInputByProduct((prev) => ({ ...prev, [activeProductId]: value }));
+  };
+  const setProductLoading = (productId: string, value: boolean) => {
+    setTxAssistantLoadingByProduct((prev) => ({ ...prev, [productId]: value }));
+  };
+  const setProductError = (productId: string, value: string | null) => {
+    setTxAssistantErrorByProduct((prev) => ({ ...prev, [productId]: value }));
+  };
+  const clearProductDraft = (productId: string) => {
+    setPendingEvidenceFilesByProduct((prev) => ({ ...prev, [productId]: [] }));
+    setManualEvidenceDraftByProduct((prev) => ({ ...prev, [productId]: '' }));
+    setTxAssistantInputByProduct((prev) => ({ ...prev, [productId]: '' }));
+    setTxAssistantErrorByProduct((prev) => ({ ...prev, [productId]: null }));
+  };
 
   const applyOnboarding = () => {
     if (!props.activeBankProduct) return;
@@ -228,8 +268,9 @@ export function TransactionsModal(props: TransactionsModalProps) {
 
   const appendPendingEvidence = (files: FileList | null) => {
     if (!files || files.length === 0) return;
+    if (!activeProductId) return;
     if (analysisAlreadyDone) {
-      setTxAssistantError('Este producto ya fue analizado. Para nuevos antecedentes debes recrear el producto.');
+      setProductError(activeProductId, 'Este producto ya fue analizado. Para nuevos antecedentes debes recrear el producto.');
       return;
     }
     const availableSlots = Math.max(
@@ -237,9 +278,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
       props.maxEvidenceFilesPerProduct - (props.activeBankProduct?.uploadedFiles.length ?? 0),
     );
     if (availableSlots <= 0) {
-      setTxAssistantError(
-        `Este producto ya alcanzó el límite de ${props.maxEvidenceFilesPerProduct} archivos.`,
-      );
+      setProductError(activeProductId, `Este producto ya alcanzó el límite de ${props.maxEvidenceFilesPerProduct} archivos.`);
       return;
     }
     const next = Array.from(files);
@@ -267,7 +306,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
       rollingBytes += file.size;
     }
 
-    setPendingEvidenceFiles(merged);
+    setActivePendingEvidenceFiles(merged);
 
     const notices: string[] = [];
     if (oversizeNames.length > 0) {
@@ -284,12 +323,12 @@ export function TransactionsModal(props: TransactionsModalProps) {
     if (exceededSlots) {
       notices.push(`Límite por producto: ${props.maxEvidenceFilesPerProduct} archivos.`);
     }
-    setTxAssistantError(notices.length > 0 ? notices.join(' ') : null);
+    setProductError(activeProductId, notices.length > 0 ? notices.join(' ') : null);
   };
 
   const clearPendingEvidence = () => {
-    setPendingEvidenceFiles([]);
-    setManualEvidenceDraft('');
+    if (!activeProductId) return;
+    clearProductDraft(activeProductId);
   };
 
   const assistantMessages = props.activeBankProduct?.assistant?.messages ?? [];
@@ -479,23 +518,17 @@ export function TransactionsModal(props: TransactionsModalProps) {
   }
   useEffect(() => {
     if (!props.isOpen) {
-      modalOpenInitRef.current = false;
       clearDockTransitionTimers();
       setDockTransitionPhase('idle');
       setIsDockingToLibrary(false);
+      setShowTxCarousel(false);
       return;
     }
-    if (modalOpenInitRef.current) return;
-    modalOpenInitRef.current = true;
     clearDockTransitionTimers();
     setDockTransitionPhase('idle');
     setIsDockingToLibrary(false);
-    const hasLibrary = props.transactionProductCards.some(
-      ({ product }) =>
-        product.connected || product.uploadedFiles.length > 0 || product.parsedDocuments.length > 0,
-    );
-    setShowTxCarousel(hasLibrary || Boolean(props.activeBankProduct?.connected));
-  }, [props.isOpen, props.activeBankProduct?.connected, props.transactionProductCards]);
+    setShowTxCarousel(props.txWizardStep !== 'products');
+  }, [props.isOpen, props.txWizardStep, props.activeBankProduct?.id, props.transactionProductCards]);
   useEffect(() => {
     const currentLabel = String(props.activeBankProduct?.label ?? '').trim();
     const looksLikeGenericLabel = /^producto\s+\d+$/i.test(currentLabel);
@@ -577,7 +610,14 @@ export function TransactionsModal(props: TransactionsModalProps) {
     },
   ];
   const [activeTxCard, setActiveTxCard] = useState(0);
-  const currentTxStageIndex = txStages.findIndex((stage) => stage.key === currentStage);
+  const currentTxStageIndex =
+    props.txWizardStep === 'credentials'
+      ? 0
+      : props.txWizardStep === 'upload'
+        ? 1
+        : props.txWizardStep === 'dashboard'
+          ? 2
+          : -1;
   useEffect(() => {
     if (currentTxStageIndex >= 0) setActiveTxCard(currentTxStageIndex);
   }, [currentTxStageIndex]);
@@ -695,19 +735,24 @@ export function TransactionsModal(props: TransactionsModalProps) {
   }, [props.isOpen, props.txWizardStep, props.activeBankProduct?.id, analysisAlreadyDone, selectedUploadFormat]);
   useEffect(() => {
     if (props.isOpen) return;
-    setTxAssistantLoading(false);
-    setTxAssistantError(null);
+    if (!activeProductId) return;
+    setProductLoading(activeProductId, false);
+    setProductError(activeProductId, null);
     txSendLockRef.current = false;
-  }, [props.isOpen]);
+  }, [props.isOpen, activeProductId]);
 
   const txStageSummary =
-    currentStage === 'consent'
+    currentStage === 'products'
+      ? `Paso 1/3 · ${activeProductCreations}/${props.maxProducts} activos · ${props.productsCreatedTotal}/${MAX_TRANSACTION_PRODUCTS_CREATED_TOTAL} creados`
+      : currentStage === 'consent'
       ? `Paso 1/3 · ${activeProductCreations}/${props.maxProducts} activos · ${props.productsCreatedTotal}/${MAX_TRANSACTION_PRODUCTS_CREATED_TOTAL} creados`
       : currentStage === 'evidence'
         ? 'Paso 2 de 3: sube cartolas o respaldos y espera el análisis.'
         : 'Paso 3 de 3: revisa el resumen y continúa con el agente principal.';
   const txStageCta =
-    currentStage === 'consent'
+    currentStage === 'products'
+      ? 'Elige un producto o crea uno nuevo para continuar'
+      : currentStage === 'consent'
       ? canContinueAuto
         ? 'Autorizar y continuar'
         : 'Completa institución, plantilla y consentimiento'
@@ -977,8 +1022,8 @@ export function TransactionsModal(props: TransactionsModalProps) {
       if (applied) return;
     }
 
-    setTxAssistantLoading(true);
-    setTxAssistantError(null);
+    setProductLoading(productId, true);
+    setProductError(productId, null);
     props.onDocumentsParseProgress?.({
       stage: 'summarizing',
       percent: 92,
@@ -1035,9 +1080,9 @@ export function TransactionsModal(props: TransactionsModalProps) {
         detail: 'Resumen actualizado.',
       });
     } catch (error) {
-      setTxAssistantError(error instanceof Error ? error.message : 'No se pudo generar el resumen.');
+      setProductError(productId, error instanceof Error ? error.message : 'No se pudo generar el resumen.');
     } finally {
-      setTxAssistantLoading(false);
+      setProductLoading(productId, false);
     }
   }
 
@@ -1050,8 +1095,8 @@ export function TransactionsModal(props: TransactionsModalProps) {
     const filesToUpload = manualFile ? [...pendingEvidenceFiles, manualFile] : pendingEvidenceFiles;
     if (filesToUpload.length === 0) return;
 
-    setTxAssistantLoading(true);
-    setTxAssistantError(null);
+    setProductLoading(productId, true);
+    setProductError(productId, null);
     try {
       appendAssistantMessages(productId, product, [
         {
@@ -1076,14 +1121,11 @@ export function TransactionsModal(props: TransactionsModalProps) {
           },
         });
       }
-      if (productId === props.selectedProductId) {
-        setTxAssistantInput('');
-        clearPendingEvidence();
-      }
+      clearProductDraft(productId);
     } catch (error) {
-      setTxAssistantError(error instanceof Error ? error.message : 'No se pudo enviar evidencia.');
+      setProductError(productId, error instanceof Error ? error.message : 'No se pudo enviar evidencia.');
     } finally {
-      setTxAssistantLoading(false);
+      setProductLoading(productId, false);
     }
   }
 
@@ -1120,10 +1162,8 @@ export function TransactionsModal(props: TransactionsModalProps) {
       }
 
       appendAssistantMessages(productId, product, [{ role: 'user', text }]);
-      if (productId === props.selectedProductId) {
-        setTxAssistantInput('');
-      }
-      setTxAssistantError(null);
+      setTxAssistantInputByProduct((prev) => ({ ...prev, [productId]: '' }));
+      setProductError(productId, null);
 
       const withUserMessage: BankProduct = {
         ...product,
@@ -1169,7 +1209,8 @@ export function TransactionsModal(props: TransactionsModalProps) {
         return;
       }
 
-      setTxAssistantLoading(true);
+      setProductLoading(productId, true);
+      setProductError(productId, null);
       const chatDashboard =
         buildChatDashboardForQuestion(effectiveDashboard, text) ??
         compactDashboardForPrompt(effectiveDashboard, { maxMovements: 24, maxMerchants: 8 });
@@ -1190,9 +1231,9 @@ export function TransactionsModal(props: TransactionsModalProps) {
         { role: 'assistant', text: String(response.assistant_text ?? 'Listo.') },
       ]);
     } catch (error) {
-      setTxAssistantError(error instanceof Error ? error.message : 'No se pudo responder.');
+      setProductError(productId, error instanceof Error ? error.message : 'No se pudo responder.');
     } finally {
-      setTxAssistantLoading(false);
+      setProductLoading(productId, false);
       txSendLockRef.current = false;
     }
   }
@@ -1653,8 +1694,8 @@ export function TransactionsModal(props: TransactionsModalProps) {
                       onSetUploadOnboardingStep={setTxUploadOnboardingStep}
                       onBumpTransitionPulse={() => setTransitionPulse((value) => value + 1)}
                       onAppendPendingEvidence={appendPendingEvidence}
-                      onManualEvidenceChange={setManualEvidenceDraft}
-                      onAssistantInputChange={setTxAssistantInput}
+                      onManualEvidenceChange={setActiveManualEvidenceDraft}
+                      onAssistantInputChange={setActiveTxAssistantInput}
                       onAssistantSend={() => void handleAssistantTextSend()}
                       onRefineSummary={(source, body) => void refineTransactionSummaryFromFocus(source, body)}
                       onGoToAnalyst={() => goToTxStage('analyst')}
@@ -1691,7 +1732,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
                       insightCarouselRef={insightCarouselRef}
                       assistantMessages={assistantMessages}
                       txAssistantInput={txAssistantInput}
-                      onAssistantInputChange={setTxAssistantInput}
+                      onAssistantInputChange={setActiveTxAssistantInput}
                       txAssistantLoading={txAssistantLoading}
                       documentsLoading={props.documentsLoading}
                       isSavedForBatch={isSavedForBatch}
@@ -1699,6 +1740,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
                       onGoToEvidence={() => goToTxStage('evidence')}
                       onSaveProductForBatch={() => {
                         props.saveTransactionProductForBatch();
+                        props.setTxWizardStep('products');
                         setShowTxCarousel(false);
                       }}
                       onRefineSummary={(source, body) => void refineTransactionSummaryFromFocus(source, body)}
