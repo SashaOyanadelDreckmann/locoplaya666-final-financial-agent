@@ -41,7 +41,13 @@ function visionImageDetail(): 'auto' | 'high' {
 
 function resolveFfmpegBinary(): string | null {
   const binary = typeof ffmpegStatic === 'string' ? ffmpegStatic.trim() : '';
-  return binary.length > 0 ? binary : null;
+  if (!binary) return null;
+  try {
+    fs.accessSync(binary, fs.constants.X_OK);
+    return binary;
+  } catch {
+    return null;
+  }
 }
 
 function parseVideoDurationSeconds(stderr: string): number | null {
@@ -98,18 +104,19 @@ async function parseVideoBufferDetailed(buffer: Buffer, filename: string): Promi
         '-i',
         inputPath,
         '-vf',
-        `fps=${frameRate.toFixed(4)},scale=960:-1:flags=lanczos`,
+        `fps=${frameRate.toFixed(4)},scale=1280:-1:flags=lanczos`,
         '-q:v',
-        '4',
+        '2',
         outputPattern,
       ],
       { encoding: 'utf8', timeout: 60_000 },
     );
 
-    if (extract.status !== 0 && extract.status !== null) {
+    if (extract.status !== 0 || extract.error) {
+      const reason = extract.error?.message ?? String(extract.stderr ?? 'error');
       return {
         source: filename,
-        text: `[Video ${filename}: no se pudo extraer fotogramas (${String(extract.stderr ?? extract.error ?? 'error')})]`,
+        text: `[Video ${filename}: no se pudo extraer fotogramas (${reason})]`,
         tables: [],
         parserMeta: { mode: 'video_vision', confidence: 0.08 },
       };
@@ -145,13 +152,18 @@ async function parseVideoBufferDetailed(buffer: Buffer, filename: string): Promi
       withCompatibleTemperature(
         {
           model,
-          max_completion_tokens: 2200,
+          max_completion_tokens: 4096,
           response_format: { type: 'json_object' },
           messages: [
             {
               role: 'system',
               content:
-                'Eres un OCR financiero senior para grabaciones de pantalla. Observa varios fotogramas del mismo scroll y fusiona solo movimientos reales y únicos. Devuelve solo JSON válido con keys: summary, text, tables. No inventes filas, no repitas movimientos entre fotogramas y omite interfaces no financieras.',
+                'Eres un OCR financiero experto para grabaciones de pantalla de apps bancarias. ' +
+                'Devuelve SOLO JSON válido con keys: summary (string), text (string), tables (array). ' +
+                'Cada table incluye: name (string), headers (string[]), rows (string[][]). ' +
+                'Reglas estrictas: (1) desduplicar — si el mismo movimiento aparece en varios fotogramas, incluirlo UNA sola vez; ' +
+                '(2) no inventar datos; (3) incluir TODOS los movimientos visibles en orden cronológico; ' +
+                '(4) omitir saldos totales, resúmenes y elementos de UI no financieros.',
             },
             {
               role: 'user',
@@ -160,15 +172,14 @@ async function parseVideoBufferDetailed(buffer: Buffer, filename: string): Promi
                   type: 'text',
                   text:
                     `Archivo: ${filename}\n` +
-                    'La evidencia proviene de una grabación de pantalla bancaria.\n' +
-                    'Lee los fotogramas en orden y consolida la lista final.\n' +
-                    'Cada table debe incluir name, headers y rows.\n' +
-                    'Preferir columnas de fecha, descripción, monto, saldo y dirección cuando existan.\n' +
-                    'Si un movimiento aparece repetido en fotogramas consecutivos, mantenlo una sola vez.',
+                    `Fotogramas: ${framePayloads.length} (ordenados cronológicamente del scroll).\n` +
+                    'Consolida TODOS los movimientos en una sola tabla. ' +
+                    'Columnas preferidas: fecha, descripción, monto, saldo, tipo (cargo/abono). ' +
+                    'Si un movimiento aparece en fotogramas consecutivos, inclúyelo una sola vez.',
                 },
                 ...framePayloads.flatMap((frame) => [
                   { type: 'text', text: frame.label },
-                  { type: 'image_url', image_url: { url: frame.url, detail: visionImageDetail() } },
+                  { type: 'image_url', image_url: { url: frame.url, detail: 'high' } },
                 ]),
               ] as any,
             },
@@ -180,11 +191,17 @@ async function parseVideoBufferDetailed(buffer: Buffer, filename: string): Promi
     );
 
     const raw = response.choices?.[0]?.message?.content?.trim() ?? '{}';
-    const result = JSON.parse(raw) as {
-      summary?: string;
-      text?: string;
-      tables?: Array<{ name?: string; headers?: string[]; rows?: string[][] }>;
-    };
+    type VisionResult = { summary?: string; text?: string; tables?: Array<{ name?: string; headers?: string[]; rows?: string[][] }> };
+    let result: VisionResult = {};
+    try {
+      result = JSON.parse(raw) as VisionResult;
+    } catch {
+      // JSON truncated by token limit — salvage whatever partial data is readable
+      const textMatch = raw.match(/"text"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+      const summaryMatch = raw.match(/"summary"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+      const salvaged = textMatch?.[1] ?? summaryMatch?.[1] ?? '';
+      result = { text: salvaged };
+    }
     const tables = Array.isArray(result.tables)
       ? result.tables
           .map((table, index) =>
@@ -476,11 +493,15 @@ async function parsePdfWithVisionDetailed(
     );
 
     const raw = response.choices?.[0]?.message?.content?.trim() ?? '{}';
-    const result = JSON.parse(raw) as {
-      summary?: string;
-      text?: string;
-      tables?: Array<{ name?: string; headers?: string[]; rows?: string[][] }>;
-    };
+    type VisionResultPdf = { summary?: string; text?: string; tables?: Array<{ name?: string; headers?: string[]; rows?: string[][] }> };
+    let result: VisionResultPdf = {};
+    try {
+      result = JSON.parse(raw) as VisionResultPdf;
+    } catch {
+      const textMatch = raw.match(/"text"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+      const summaryMatch = raw.match(/"summary"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+      result = { text: textMatch?.[1] ?? summaryMatch?.[1] ?? '' };
+    }
 
     const tables = Array.isArray(result.tables)
       ? result.tables
@@ -811,11 +832,15 @@ export async function parseImageBufferDetailed(buffer: Buffer, filename: string)
       ) as any,
     );
     const raw = response.choices?.[0]?.message?.content?.trim() ?? '{}';
-    const result = JSON.parse(raw) as {
-      summary?: string;
-      text?: string;
-      tables?: Array<{ name?: string; headers?: string[]; rows?: string[][] }>;
-    };
+    type VisionResultImg = { summary?: string; text?: string; tables?: Array<{ name?: string; headers?: string[]; rows?: string[][] }> };
+    let result: VisionResultImg = {};
+    try {
+      result = JSON.parse(raw) as VisionResultImg;
+    } catch {
+      const textMatch = raw.match(/"text"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+      const summaryMatch = raw.match(/"summary"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+      result = { text: textMatch?.[1] ?? summaryMatch?.[1] ?? '' };
+    }
 
     const tables = Array.isArray(result.tables)
       ? result.tables
