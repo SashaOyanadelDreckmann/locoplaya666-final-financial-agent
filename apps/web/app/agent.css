@@ -43881,27 +43881,28 @@ body.agent-route-active .app-shell::before {
 
   .agent-chat .terminal-composer-shell {
     margin-top: 0 !important;
-    gap: 2px !important;
-    padding: 0 8px 4px !important;
+    gap: 4px !important;
+    padding: 0 8px calc(8px + env(safe-area-inset-bottom)) !important;
   }
 
   .agent-chat .agent-input.terminal-composer {
-    padding: 4px 8px 3px !important;
-    gap: 2px !important;
-    border-radius: 12px !important;
+    padding: 7px 9px 6px !important;
+    gap: 4px !important;
+    border-radius: 14px !important;
   }
 
   .agent-chat .terminal-composer-head {
-    font-size: 9px !important;
+    font-size: 10px !important;
     line-height: 1 !important;
     padding: 0 !important;
   }
 
   .agent-chat .agent-input.terminal-composer textarea.terminal-composer-input {
-    min-height: 18px !important;
-    max-height: 26px !important;
-    font-size: 13px !important;
-    line-height: 1.2 !important;
+    min-height: 24px !important;
+    max-height: 56px !important;
+    font-size: 16px !important;
+    line-height: 1.35 !important;
+    -webkit-text-size-adjust: 100% !important;
   }
 
   .agent-chat .terminal-composer-controls {
@@ -46241,5 +46242,162 @@ body.agent-route-active .app-shell > * {
   .budget-modal .budget-table th {
     font-size: 0.63rem !important;
     padding: 4px 0 !important;
+  }
+}
+
+/* ================================================================
+   FINAL MOBILE POLISH — keep header continuous and compact cards even
+   when older overrides are present earlier in the file.
+   ================================================================ */
+
+@media (max-width: 767px) {
+  .agent-chat-header.is-mobile {
+    padding-top: calc(env(safe-area-inset-top) + 6px) !important;
+    padding-bottom: 4px !important;
+    background: linear-gradient(180deg, rgba(6, 9, 14, 0.99) 0%, rgba(11, 15, 21, 0.98) 100%) !important;
+    border-bottom: 0 !important;
+    box-shadow: none !important;
+    overflow: hidden !important;
+  }
+
+  .agent-chat-header.is-mobile .agent-chat-controls-row {
+    margin-bottom: 6px !important;
+    padding-top: 0 !important;
+  }
+
+  .agent-chat-header.is-mobile .chat-brand-strip {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 2px !important;
+    margin: 0 !important;
+    padding: 0 32px 2px !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .agent-chat-header.is-mobile .chat-brand-title-row {
+    width: 100% !important;
+    max-width: calc(100% - 44px) !important;
+    justify-content: center !important;
+    align-items: center !important;
+    gap: 7px !important;
+    overflow: hidden !important;
+    margin: 0 auto !important;
+  }
+
+  .agent-chat-header.is-mobile .chat-brand-logo-mark {
+    width: 24px !important;
+    height: 24px !important;
+    flex: 0 0 24px !important;
+    padding: 1px !important;
+    border-radius: 6px !important;
+  }
+
+  .agent-chat-header.is-mobile .chat-brand-logo-frame {
+    border-radius: 5px !important;
+  }
+
+  .agent-chat-header.is-mobile .chat-brand-wordmark {
+    transform: none !important;
+    min-width: 0 !important;
+    white-space: nowrap !important;
+    gap: 0 !important;
+  }
+
+  .agent-chat-header.is-mobile .chat-brand-financiera,
+  .agent-chat-header.is-mobile .chat-brand-mente {
+    font-size: 14px !important;
+    line-height: 1 !important;
+    letter-spacing: -0.02em !important;
+  }
+
+  .agent-chat-header.is-mobile .chat-identity-subtitle {
+    margin: 0 !important;
+    padding: 0 !important;
+    max-width: calc(100% - 44px) !important;
+    text-align: center !important;
+    font-size: 8px !important;
+    line-height: 1.05 !important;
+    letter-spacing: 0.015em !important;
+  }
+
+  .agent-chat-header.is-mobile .chat-monochrome-toggle--inline {
+    right: 8px !important;
+    bottom: 4px !important;
+    width: 22px !important;
+    height: 22px !important;
+  }
+
+  .agent-chat-header.is-mobile .chat-monochrome-toggle--inline .mono-toggle-icon {
+    width: 10px !important;
+    height: 10px !important;
+  }
+
+  .agent-panel.is-mobile-compact .panel-grid {
+    gap: 8px !important;
+    padding: 8px 12px calc(10px + env(safe-area-inset-bottom)) !important;
+  }
+
+  .agent-panel.is-mobile-compact .mob-col,
+  .agent-panel.is-mobile-compact .mob-col-wide,
+  .agent-panel.is-mobile-compact .mob-col-narrow {
+    width: min(212px, 74vw) !important;
+    min-width: min(212px, 74vw) !important;
+    max-width: min(212px, 74vw) !important;
+    flex: 0 0 min(212px, 74vw) !important;
+  }
+
+  .agent-panel.is-mobile-compact .mob-col > * {
+    min-height: 0 !important;
+    height: 100% !important;
+    flex: 1 1 0 !important;
+  }
+
+  .agent-panel.is-mobile-compact .panel-card,
+  .agent-panel.is-mobile-compact .profile-card,
+  .agent-panel.is-mobile-compact .panel-feature-card,
+  .agent-panel.is-mobile-compact .interview-flow-card,
+  .agent-panel.is-mobile-compact .recent-library-card {
+    min-height: 0 !important;
+    height: 100% !important;
+  }
+
+  .agent-panel.is-mobile-compact .mob-col:has(.panel-pos-news),
+  .agent-panel.is-mobile-compact .mob-col:has(.panel-pos-mode) {
+    display: flex !important;
+  }
+
+  .agent-panel.is-mobile-compact .panel-pos-news,
+  .agent-panel.is-mobile-compact .panel-mode-cognitive {
+    min-height: 0 !important;
+    height: 100% !important;
+  }
+
+  .agent-panel.is-mobile-compact .panel-mode-cognitive {
+    padding: 8px 9px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    align-items: stretch !important;
+  }
+
+  .agent-panel.is-mobile-compact .news-card {
+    padding: 0 !important;
+    min-height: 0 !important;
+    height: 100% !important;
+  }
+
+  .agent-panel.is-mobile-compact .news-card .panel-text,
+  .agent-panel.is-mobile-compact .news-card .news-link,
+  .agent-panel.is-mobile-compact .news-card .news-image {
+    min-height: 0 !important;
+    height: 100% !important;
+  }
+
+  .agent-panel.is-mobile-compact .news-card .news-image {
+    min-height: 0 !important;
+    border-radius: 10px !important;
   }
 }

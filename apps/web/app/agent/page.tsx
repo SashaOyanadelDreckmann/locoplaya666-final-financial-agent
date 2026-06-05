@@ -2289,10 +2289,10 @@ export default function AgentPage() {
 
   // Re-focus composer after a blocking modal closes
   useEffect(() => {
-    if (!hasBlockingModalOpen && !isActiveChatLocked) {
+    if (!hasBlockingModalOpen && !isActiveChatLocked && !isMobileViewport) {
       setTimeout(() => chatComposerRef.current?.focus(), 80);
     }
-  }, [hasBlockingModalOpen, isActiveChatLocked]);
+  }, [hasBlockingModalOpen, isActiveChatLocked, isMobileViewport]);
 
   // Haptic feedback — usa Vibration API si esta disponible (Android/algunos iOS PWA)
   function haptic(pattern: number | number[] = 10) {
@@ -4011,7 +4011,7 @@ export default function AgentPage() {
                 placeholder={isActiveChatLocked ? 'Chat bloqueado hasta completar el diagnóstico' : ''}
                 value={input}
                 disabled={isActiveChatLocked}
-                autoFocus={!hasBlockingModalOpen}
+                autoFocus={!hasBlockingModalOpen && !isMobileViewport}
                 onChange={(e) => setDraftForActive(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
