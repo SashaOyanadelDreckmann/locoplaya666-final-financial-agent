@@ -85,7 +85,7 @@ async function parseVideoBufferDetailed(buffer: Buffer, filename: string): Promi
 
   try {
     fs.writeFileSync(inputPath, buffer);
-    const probe = spawnSync(ffmpegBinary, ['-hide_banner', '-i', inputPath], { encoding: 'utf8' });
+    const probe = spawnSync(ffmpegBinary, ['-hide_banner', '-i', inputPath], { encoding: 'utf8', timeout: 15_000 });
     const durationSeconds = parseVideoDurationSeconds(`${probe.stderr ?? ''}`);
     const frameRate = resolveVideoFrameRate(durationSeconds);
     const outputPattern = path.join(framesDir, 'frame-%03d.jpg');
@@ -103,7 +103,7 @@ async function parseVideoBufferDetailed(buffer: Buffer, filename: string): Promi
         '4',
         outputPattern,
       ],
-      { encoding: 'utf8' },
+      { encoding: 'utf8', timeout: 60_000 },
     );
 
     if (extract.status !== 0 && extract.status !== null) {
