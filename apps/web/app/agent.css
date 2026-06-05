@@ -9096,8 +9096,8 @@ html.agent-global-monochrome {
     background-position: center !important;
   }
 
-  /* Asegurar visibilidad/posición de Noticias en el carrusel móvil */
-  .agent-panel .mob-col:has(.panel-pos-news) {
+  /* Asegurar visibilidad/posición de Noticias en el carrusel móvil (solo compacto) */
+  .agent-panel.is-mobile-compact .mob-col:has(.panel-pos-news) {
     order: 3 !important;
     display: block !important;
   }
@@ -9113,7 +9113,7 @@ html.agent-global-monochrome {
     display: none !important;
   }
 
-  .agent-panel .mob-col:has(.panel-pos-library) {
+  .agent-panel.is-mobile-compact .mob-col:has(.panel-pos-library) {
     order: 4 !important;
   }
 
@@ -15156,8 +15156,9 @@ input[type="radio"]:checked {
   }
 
   .agent-layout.mobile-panel-expanded .agent-panel .panel-grid {
+    display: grid !important;
     grid-auto-flow: row !important;
-    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
     grid-auto-columns: auto !important;
     overflow-x: hidden !important;
     overflow-y: auto !important;
@@ -15170,10 +15171,11 @@ input[type="radio"]:checked {
   .agent-layout.mobile-panel-expanded .agent-panel .mob-col,
   .agent-layout.mobile-panel-expanded .agent-panel .mob-col-wide,
   .agent-layout.mobile-panel-expanded .agent-panel .mob-col-narrow {
-    display: block !important;
-    width: 100% !important;
-    min-width: 100% !important;
-    max-width: 100% !important;
+    display: contents !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    order: unset !important;
   }
 
   .agent-layout.mobile-panel-expanded .agent-panel .panel-grid > * {
@@ -15181,6 +15183,18 @@ input[type="radio"]:checked {
     transform: none !important;
     opacity: 1 !important;
     z-index: 1 !important;
+  }
+
+  .agent-layout.mobile-panel-expanded .agent-panel .panel-grid .panel-pos-profile,
+  .agent-layout.mobile-panel-expanded .agent-panel .panel-grid .panel-pos-objective,
+  .agent-layout.mobile-panel-expanded .agent-panel .panel-grid .panel-pos-mode,
+  .agent-layout.mobile-panel-expanded .agent-panel .panel-grid .panel-pos-transactions,
+  .agent-layout.mobile-panel-expanded .agent-panel .panel-grid .panel-pos-budget,
+  .agent-layout.mobile-panel-expanded .agent-panel .panel-grid .panel-pos-news,
+  .agent-layout.mobile-panel-expanded .agent-panel .panel-grid .panel-pos-interview,
+  .agent-layout.mobile-panel-expanded .agent-panel .panel-grid .panel-pos-library,
+  .agent-layout.mobile-panel-expanded .agent-panel .panel-grid .panel-pos-recent {
+    order: unset !important;
   }
 
   .agent-layout.mobile-panel-expanded .panel-pos-profile,
@@ -47596,6 +47610,32 @@ body.agent-route-active .app-shell > * {
   body.agent-route-active .agent-panel.is-mobile-expanded .panel-pos-transactions,
   body.agent-route-active .agent-panel.is-mobile-expanded .panel-pos-news {
     grid-column: 2 !important;
+  }
+
+  body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .panel-grid .panel-pos-profile,
+  body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .panel-grid .panel-pos-objective,
+  body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .panel-grid .panel-pos-mode,
+  body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .panel-grid .panel-pos-transactions,
+  body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .panel-grid .panel-pos-budget,
+  body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .panel-grid .panel-pos-news,
+  body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .panel-grid .panel-pos-interview,
+  body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .panel-grid .panel-pos-library,
+  body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .panel-grid .panel-pos-recent,
+  body.agent-route-active .agent-panel.is-mobile-expanded .panel-grid .panel-pos-profile,
+  body.agent-route-active .agent-panel.is-mobile-expanded .panel-grid .panel-pos-objective,
+  body.agent-route-active .agent-panel.is-mobile-expanded .panel-grid .panel-pos-mode,
+  body.agent-route-active .agent-panel.is-mobile-expanded .panel-grid .panel-pos-transactions,
+  body.agent-route-active .agent-panel.is-mobile-expanded .panel-grid .panel-pos-budget,
+  body.agent-route-active .agent-panel.is-mobile-expanded .panel-grid .panel-pos-news,
+  body.agent-route-active .agent-panel.is-mobile-expanded .panel-grid .panel-pos-interview,
+  body.agent-route-active .agent-panel.is-mobile-expanded .panel-grid .panel-pos-library,
+  body.agent-route-active .agent-panel.is-mobile-expanded .panel-grid .panel-pos-recent {
+    order: unset !important;
+  }
+
+  body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel.is-mobile-compact .mob-col:has(.panel-pos-news),
+  body.agent-route-active .agent-panel.is-mobile-compact .mob-col:has(.panel-pos-news) {
+    order: 3 !important;
   }
 
   body.agent-route-active .agent-layout.mobile-panel-expanded .panel-pos-budget.panel-feature-card,
