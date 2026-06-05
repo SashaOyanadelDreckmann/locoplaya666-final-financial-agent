@@ -5675,6 +5675,12 @@ html.agent-global-monochrome {
   .agent-panel {
     transition: flex-basis 0.32s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   }
+  .agent-layout.keyboard-opening .agent-panel,
+  .agent-layout.keyboard-opening .agent-chat,
+  .agent-layout.keyboard-opening .agent-chat-body,
+  .agent-layout.keyboard-opening .agent-input-shell {
+    transition: none !important;
+  }
   .agent-panel.is-dragging {
     transition: none !important;
   }
@@ -46420,5 +46426,17 @@ body.agent-route-active .app-shell > * {
     max-height: none !important;
     background-position: center top !important;
     background-size: cover !important;
+  }
+
+  .agent-layout.is-mobile-standalone {
+    margin-top: calc(env(safe-area-inset-top, 0px) * -1) !important;
+    padding-top: 0 !important;
+    height: calc(var(--visual-vh, 100dvh) + env(safe-area-inset-top, 0px)) !important;
+    min-height: calc(var(--visual-vh, 100dvh) + env(safe-area-inset-top, 0px)) !important;
+    max-height: calc(var(--visual-vh, 100dvh) + env(safe-area-inset-top, 0px)) !important;
+  }
+
+  .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile {
+    padding-top: calc(env(safe-area-inset-top, 0px) + 6px) !important;
   }
 }

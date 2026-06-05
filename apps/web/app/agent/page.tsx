@@ -479,6 +479,7 @@ export default function AgentPage() {
   const panelDragRef = useRef<{ startY: number; startH: number; moved: boolean } | null>(null);
   const chatComposerRef = useRef<HTMLTextAreaElement | null>(null);
   const composerFocusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mobileKeyboardSettleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const interviewAutoOpenHandledRef = useRef(false);
 
   const loadProfileIfNeeded = useProfileStore((s) => s.loadProfileIfNeeded);
@@ -549,6 +550,30 @@ export default function AgentPage() {
     }
   }
 
+  function clearMobileKeyboardSettleTimer() {
+    if (mobileKeyboardSettleTimerRef.current) {
+      clearTimeout(mobileKeyboardSettleTimerRef.current);
+      mobileKeyboardSettleTimerRef.current = null;
+    }
+  }
+
+  function setKeyboardOpeningMode(enabled: boolean) {
+    const layout = panelScrollRef.current?.closest('.agent-layout') as HTMLElement | null;
+    if (!layout) return;
+    layout.classList.toggle('keyboard-opening', enabled);
+  }
+
+  function settleMobileComposerViewport() {
+    if (!isMobileViewport) return;
+    clearMobileKeyboardSettleTimer();
+    setKeyboardOpeningMode(true);
+    mobileKeyboardSettleTimerRef.current = setTimeout(() => {
+      chatComposerRef.current?.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'auto' });
+      setKeyboardOpeningMode(false);
+      mobileKeyboardSettleTimerRef.current = null;
+    }, 140);
+  }
+
   function focusComposerAfterLayout(options?: { collapsePanelFirst?: boolean }) {
     if (isActiveChatLocked) return;
     clearComposerFocusTimer();
@@ -564,7 +589,7 @@ export default function AgentPage() {
       const el = chatComposerRef.current;
       if (!el) return;
       el.focus({ preventScroll: true });
-      el.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'auto' });
+      settleMobileComposerViewport();
       composerFocusTimerRef.current = null;
     }, collapsePanelFirst ? 220 : 40);
   }
@@ -875,7 +900,13 @@ export default function AgentPage() {
     chatComposerRef.current?.blur();
   }, [isBudgetModalOpen]);
 
-  useEffect(() => () => clearComposerFocusTimer(), []);
+  useEffect(
+    () => () => {
+      clearComposerFocusTimer();
+      clearMobileKeyboardSettleTimer();
+    },
+    []
+  );
 
   // Drag continuo en panel mobile: arrastra el handle para ajustar altura
   useEffect(() => {
@@ -2323,27 +2354,6 @@ export default function AgentPage() {
       setTimeout(() => chatComposerRef.current?.focus(), 80);
     }
   }, [hasBlockingModalOpen, isActiveChatLocked, isMobileViewport]);
-
-  useEffect(() => {
-    if (!isMobileViewport) return;
-    const vv = window.visualViewport;
-    if (!vv) return;
-    let raf = 0;
-    const settleComposer = () => {
-      cancelAnimationFrame(raf);
-      raf = window.requestAnimationFrame(() => {
-        if (document.activeElement !== chatComposerRef.current) return;
-        chatComposerRef.current?.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'auto' });
-      });
-    };
-    vv.addEventListener('resize', settleComposer);
-    vv.addEventListener('scroll', settleComposer);
-    return () => {
-      vv.removeEventListener('resize', settleComposer);
-      vv.removeEventListener('scroll', settleComposer);
-      cancelAnimationFrame(raf);
-    };
-  }, [isMobileViewport]);
 
   // Haptic feedback — usa Vibration API si esta disponible (Android/algunos iOS PWA)
   function haptic(pattern: number | number[] = 10) {
@@ -4081,9 +4091,11 @@ export default function AgentPage() {
                     const layout = panelScrollRef.current?.closest('.agent-layout') as HTMLElement | null;
                     layout?.classList.remove('mobile-panel-expanded');
                   }
-                  window.setTimeout(() => {
-                    chatComposerRef.current?.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'auto' });
-                  }, 0);
+                  settleMobileComposerViewport();
+                }}
+                onBlur={() => {
+                  clearMobileKeyboardSettleTimer();
+                  setKeyboardOpeningMode(false);
                 }}
                 onChange={(e) => setDraftForActive(e.target.value)}
                 onKeyDown={(e) => {
