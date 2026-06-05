@@ -238,6 +238,35 @@ export function buildPanelBaseCards(props: PanelCardsProps): PanelCard[] {
       ),
     },
     {
+      key: 'news',
+      node: (
+        <div className="mob-col">
+          <AnimatedPanelCard
+            delay={0.5}
+            className={`news-card panel-pos-news${props.highlightedSection === 'news' ? ' is-panel-highlighted' : ''}`}
+            data-panel-section="news"
+          >
+            <a href="https://fintualist.com/chile/" target="_blank" rel="noreferrer" className="news-link">
+              <div className="news-image">
+                <img
+                  src="/news-previeww.jpg"
+                  alt="Vista previa editorial de noticias financieras"
+                  className="news-media"
+                />
+                <div className="news-overlay">
+                  <span className="news-kicker">Radar de mercado</span>
+                  <span className="news-title">Noticias y actualidad</span>
+                  <span className="news-subtitle">
+                    Señales macro, tasas y conversación financiera para decidir mejor.
+                  </span>
+                </div>
+              </div>
+            </a>
+          </AnimatedPanelCard>
+        </div>
+      ),
+    },
+    {
       key: 'interview',
       node: (
         <div className="mob-col mob-col-wide">
@@ -273,35 +302,6 @@ export function buildPanelBaseCards(props: PanelCardsProps): PanelCard[] {
               </span>
             )}
           </button>
-        </div>
-      ),
-    },
-    {
-      key: 'news',
-      node: (
-        <div className="mob-col mob-col-wide">
-          <AnimatedPanelCard
-            delay={0.5}
-            className={`news-card panel-pos-news${props.highlightedSection === 'news' ? ' is-panel-highlighted' : ''}`}
-            data-panel-section="news"
-          >
-            <a href="https://fintualist.com/chile/" target="_blank" rel="noreferrer" className="news-link">
-              <div className="news-image">
-                <img
-                  src="/news-previeww.jpg"
-                  alt="Vista previa editorial de noticias financieras"
-                  className="news-media"
-                />
-                <div className="news-overlay">
-                  <span className="news-kicker">Radar de mercado</span>
-                  <span className="news-title">Noticias y actualidad</span>
-                  <span className="news-subtitle">
-                    Señales macro, tasas y conversación financiera para decidir mejor.
-                  </span>
-                </div>
-              </div>
-            </a>
-          </AnimatedPanelCard>
         </div>
       ),
     },
