@@ -16,7 +16,7 @@ import internalRouter from './routes/internal.routes';
 import budgetChatRouter from './routes/budget-chat.routes';
 import { requestLoggerMiddleware } from './middleware/requestLogger';
 import { asyncHandler, errorHandlerMiddleware } from './middleware/errorHandler';
-import { attachCsrfToken, validateCsrfToken } from './middleware/csrf';
+import { attachCsrfToken, isAllowedOrigin, validateCsrfToken } from './middleware/csrf';
 import { getConfig } from './config';
 import { sendSuccess } from './http/api.responses';
 import { getDodCoverage } from './http/endpoint-manifest';
@@ -74,14 +74,7 @@ export function createApp() {
     cors({
       origin: (origin, callback) => {
         if (!origin) return callback(null, true);
-        const allowedOrigins = new Set([
-          config.WEB_ORIGIN,
-          'http://localhost:3000',
-          'http://127.0.0.1:3000',
-          'http://localhost:3001',
-          'http://127.0.0.1:3001',
-        ]);
-        return callback(null, allowedOrigins.has(origin));
+        return callback(null, isAllowedOrigin(origin));
       },
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],

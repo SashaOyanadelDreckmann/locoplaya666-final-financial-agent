@@ -139,6 +139,11 @@ export async function destroySession(token: string): Promise<boolean> {
   return deleteSessionByTokenHash(hashToken(token));
 }
 
+export async function invalidateSessionsForUser(userId: string): Promise<number> {
+  if (!userId) return 0;
+  return deleteSessionsByUserId(userId);
+}
+
 export async function rotateSession(token: string): Promise<SessionRecord | null> {
   const current = await loadSession(token);
   if (!current) return null;

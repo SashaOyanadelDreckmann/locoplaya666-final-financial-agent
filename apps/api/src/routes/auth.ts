@@ -13,12 +13,13 @@ import {
   destroySession,
   getSessionCookieName,
   getSessionCookieOptions,
+  invalidateSessionsForUser,
 } from '../services/session.service';
 import { accountPendingApproval, accountRejected, badRequest, conflict, unauthorized } from '../http/api.errors';
 import { sendSuccess } from '../http/api.responses';
 import { parseBody } from '../http/parse';
 import { asyncHandler } from '../middleware/errorHandler';
-import { getAuthenticatedUser } from '../middleware/auth';
+import { getAuthenticatedUser, requireAuth } from '../middleware/auth';
 import { getLogger } from '../logger';
 import { USER_ROLES } from '../auth/rbac';
 import { APPROVAL_STATUS } from '../auth/approval';
@@ -231,8 +232,8 @@ authRouter.post('/logout', asyncHandler(async (req, res) => {
   return sendSuccess(res, { loggedOut: true });
 }));
 
-authRouter.delete('/account', asyncHandler(async (req, res) => {
-  const user = await getAuthenticatedUser(req, res);
+authRouter.delete('/account', requireAuth, asyncHandler(async (req, res) => {
+  const user = req.authenticatedUser;
   if (!user) {
     throw unauthorized('UNAUTHORIZED');
   }
@@ -300,6 +301,7 @@ authRouter.post('/reset-password', asyncHandler(async (req, res) => {
 
   const passwordHash = await bcrypt.hash(data.password, 12);
   await updateUserAuthSecurity(user.id, { passwordHash });
+  await invalidateSessionsForUser(user.id);
 
   return sendSuccess(res, { reset: true });
 }));

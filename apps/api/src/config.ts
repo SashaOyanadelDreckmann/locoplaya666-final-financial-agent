@@ -133,6 +133,10 @@ const configSchema = z.object({
     .string()
     .default('dev-approval-link-secret-change-me')
     .describe('HMAC secret for one-click account approval links'),
+  PASSWORD_RESET_LINK_SECRET: z
+    .string()
+    .default('dev-password-reset-link-secret-change-me')
+    .describe('HMAC secret for one-click password reset links'),
   APPROVAL_LINK_BASE_URL: z
     .string()
     .default('http://localhost:3001')
@@ -162,14 +166,57 @@ export function getConfig(): Config {
   try {
     _config = configSchema.parse(process.env);
 
-    // SECURITY: Validate SESSION_TOKEN_SECRET in production
-    if (_config.NODE_ENV === 'production') {
-      if (!_config.SESSION_TOKEN_SECRET || _config.SESSION_TOKEN_SECRET.length < 32) {
-        console.error('❌ SECURITY ERROR: SESSION_TOKEN_SECRET must be set and at least 32 characters in production');
+    const prodEnv = process.env.NODE_ENV === 'production';
+
+    const requireProductionValue = (name: keyof Config, options?: { minLength?: number; deny?: string[] }) => {
+      if (!prodEnv) return;
+      const raw = String(process.env[String(name)] ?? '').trim();
+      if (!raw) {
+        console.error(`❌ SECURITY ERROR: ${String(name)} must be set in production`);
         process.exit(1);
       }
-      if (!_config.APPROVAL_LINK_SECRET || _config.APPROVAL_LINK_SECRET.length < 32) {
-        console.error('❌ SECURITY ERROR: APPROVAL_LINK_SECRET must be set and at least 32 characters in production');
+      if (options?.minLength && raw.length < options.minLength) {
+        console.error(
+          `❌ SECURITY ERROR: ${String(name)} must be at least ${options.minLength} characters in production`,
+        );
+        process.exit(1);
+      }
+      if (options?.deny?.includes(raw)) {
+        console.error(`❌ SECURITY ERROR: ${String(name)} uses an unsafe placeholder value in production`);
+        process.exit(1);
+      }
+      if (raw.includes('localhost') || raw.includes('127.0.0.1')) {
+        console.error(`❌ SECURITY ERROR: ${String(name)} cannot point to localhost in production`);
+        process.exit(1);
+      }
+    };
+
+    if (_config.NODE_ENV === 'production') {
+      requireProductionValue('DATABASE_URL');
+      requireProductionValue('WEB_ORIGIN');
+      requireProductionValue('APPROVAL_LINK_BASE_URL');
+      requireProductionValue('SESSION_TOKEN_SECRET', {
+        minLength: 32,
+        deny: ['dev-only-session-secret-change-me'],
+      });
+      requireProductionValue('APPROVAL_LINK_SECRET', {
+        minLength: 32,
+        deny: ['dev-approval-link-secret-change-me'],
+      });
+      requireProductionValue('PASSWORD_RESET_LINK_SECRET', {
+        minLength: 32,
+        deny: ['dev-password-reset-link-secret-change-me'],
+      });
+      if (_config.APPROVAL_LINK_SECRET === _config.PASSWORD_RESET_LINK_SECRET) {
+        console.error('❌ SECURITY ERROR: approval and password-reset secrets must be different in production');
+        process.exit(1);
+      }
+      if (!_config.OPENAI_API_KEY || _config.OPENAI_API_KEY.startsWith('test-')) {
+        console.error('❌ SECURITY ERROR: OPENAI_API_KEY must be configured in production');
+        process.exit(1);
+      }
+      if (!_config.ANTHROPIC_API_KEY || _config.ANTHROPIC_API_KEY.startsWith('test-')) {
+        console.error('❌ SECURITY ERROR: ANTHROPIC_API_KEY must be configured in production');
         process.exit(1);
       }
     }

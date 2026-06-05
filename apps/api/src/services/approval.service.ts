@@ -239,7 +239,7 @@ export function createPasswordResetToken(input: { userId: string; userEmail: str
     exp: Date.now() + RESET_TTL_HOURS * 60 * 60 * 1000,
   };
   const encodedPayload = toBase64Url(JSON.stringify(payload));
-  const signature = signPayload(encodedPayload, config.APPROVAL_LINK_SECRET);
+  const signature = signPayload(encodedPayload, config.PASSWORD_RESET_LINK_SECRET);
   return `${encodedPayload}.${signature}`;
 }
 
@@ -249,7 +249,7 @@ export function verifyPasswordResetToken(token: string): PasswordResetPayload {
   if (!encodedPayload || !signature) {
     throw badRequest('Token inválido');
   }
-  const expected = signPayload(encodedPayload, config.APPROVAL_LINK_SECRET);
+  const expected = signPayload(encodedPayload, config.PASSWORD_RESET_LINK_SECRET);
   if (!safeTimingEqual(signature, expected)) {
     throw badRequest('Token inválido o expirado');
   }

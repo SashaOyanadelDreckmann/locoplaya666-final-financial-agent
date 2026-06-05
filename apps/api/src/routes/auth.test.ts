@@ -3,7 +3,7 @@ import request from 'supertest';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import { createApprovalToken } from '../services/approval.service';
+import { createApprovalToken, createPasswordResetToken } from '../services/approval.service';
 
 let dataDir: string;
 
@@ -16,6 +16,7 @@ beforeAll(() => {
   process.env.ANTHROPIC_API_KEY = 'test-key';
   process.env.LOG_LEVEL = 'error';
   process.env.APPROVAL_LINK_SECRET = 'test-approval-link-secret-abcdefghijklmnopqrstuvwxyz';
+  process.env.PASSWORD_RESET_LINK_SECRET = 'test-password-reset-link-secret-abcdefghijklmnopqrstuvwxyz';
   process.env.APPROVAL_LINK_BASE_URL = 'http://localhost:3001';
   process.env.APPROVAL_ADMIN_EMAIL = 'sasha.oyanadel@ug.uchile.cl';
   process.env.APPROVAL_LINK_TTL_HOURS = '24';
@@ -228,5 +229,76 @@ describe('auth + session', () => {
     const res = await request(app).get(`/auth/approve?token=${encodeURIComponent(rejectToken)}`);
     expect(res.status).toBe(403);
     expect(res.body.code).toBe('FORBIDDEN');
+  });
+
+  it('reset password invalidates existing sessions', async () => {
+    const { createApp } = await import('../app');
+    const app = createApp();
+    const email = `reset-${Date.now()}@example.com`;
+
+    const reg = await request(app).post('/auth/register').send({
+      name: 'Reset User',
+      email,
+      password: 'Secret123',
+    });
+    const userId = String(reg.body?.data?.user?.id ?? '');
+    const approveToken = createApprovalToken({
+      userId,
+      adminEmail: 'sasha.oyanadel@ug.uchile.cl',
+      action: 'approve',
+    });
+    await request(app).get(`/auth/approve?token=${encodeURIComponent(approveToken)}`);
+
+    const loginAgent = request.agent(app);
+    const login = await loginAgent.post('/auth/login').send({
+      email,
+      password: 'Secret123',
+    });
+    expect(login.status).toBe(200);
+
+    const token = createPasswordResetToken({ userId, userEmail: email });
+    const reset = await request(app).post('/auth/reset-password').send({
+      token,
+      password: 'NewSecret123',
+    });
+    expect(reset.status).toBe(200);
+
+    const session = await loginAgent.get('/api/session');
+    expect(session.status).toBe(401);
+  });
+
+  it('blocks authenticated mutations from a foreign origin', async () => {
+    const { createApp } = await import('../app');
+    const app = createApp();
+    const agent = request.agent(app);
+
+    const reg = await agent.post('/auth/register').send({
+      name: 'Origin User',
+      email: `origin-${Date.now()}@example.com`,
+      password: 'Secret123',
+    });
+    const userId = String(reg.body?.data?.user?.id ?? '');
+    const approveToken = createApprovalToken({
+      userId,
+      adminEmail: 'sasha.oyanadel@ug.uchile.cl',
+      action: 'approve',
+    });
+    await request(app).get(`/auth/approve?token=${encodeURIComponent(approveToken)}`);
+    await agent.post('/auth/login').send({
+      email: reg.body.data.user.email,
+      password: 'Secret123',
+    });
+
+    const session = await agent.get('/auth/me');
+    const csrfToken = String(session.headers['x-csrf-token'] ?? '');
+    expect(csrfToken.length).toBeGreaterThan(0);
+
+    const logout = await agent
+      .post('/auth/logout')
+      .set('Origin', 'https://evil.example')
+      .set('X-CSRF-Token', csrfToken);
+
+    expect(logout.status).toBe(403);
+    expect(logout.body.code).toBe('FORBIDDEN');
   });
 });

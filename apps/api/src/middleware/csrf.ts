@@ -30,6 +30,42 @@ function hasSessionCookie(req: Request): boolean {
   return Boolean(req.cookies?.[sessionCookieName]);
 }
 
+export function getAllowedOrigins(): string[] {
+  const webOrigin = process.env.WEB_ORIGIN?.trim();
+  const origins = new Set<string>();
+
+  if (webOrigin) origins.add(webOrigin);
+
+  if (process.env.NODE_ENV !== 'production') {
+    origins.add('http://localhost:3000');
+    origins.add('http://127.0.0.1:3000');
+    origins.add('http://localhost:3001');
+    origins.add('http://127.0.0.1:3001');
+  }
+
+  return Array.from(origins);
+}
+
+export function isAllowedOrigin(origin?: string | null): boolean {
+  const value = String(origin ?? '').trim();
+  if (!value) return false;
+  return getAllowedOrigins().includes(value);
+}
+
+function getRequestOrigin(req: Request): string | null {
+  const origin = req.get('origin');
+  if (origin) return origin;
+
+  const referer = req.get('referer');
+  if (!referer) return null;
+
+  try {
+    return new URL(referer).origin;
+  } catch {
+    return null;
+  }
+}
+
 function secureCompare(a: string, b: string): boolean {
   const aBuf = Buffer.from(a, 'utf8');
   const bBuf = Buffer.from(b, 'utf8');
@@ -69,6 +105,11 @@ export function validateCsrfToken(req: Request, res: Response, next: NextFunctio
   // Only enforce CSRF when a session cookie exists (cookie-authenticated flow).
   if (!hasSessionCookie(req)) {
     return next();
+  }
+
+  const requestOrigin = getRequestOrigin(req);
+  if (requestOrigin && !isAllowedOrigin(requestOrigin)) {
+    return next(forbidden('Request origin not allowed'));
   }
 
   const token = req.get(CSRF_TOKEN_HEADER)?.trim();
