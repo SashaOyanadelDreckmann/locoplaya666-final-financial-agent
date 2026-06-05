@@ -114,4 +114,35 @@ describe('budget-chat routes', () => {
     expect(String(res.body.assistant_reply)).toMatch(/fijo/i);
     expect(res.body.coach_message).toBeNull();
   }, 15_000);
+
+  it('updates the row implied by the assistant question even when activeRow points elsewhere', async () => {
+    const { agent, csrfToken } = await createAuthedAgent();
+    const budgetRows = [
+      { id: 'income_salary', category: 'Sueldo líquido', type: 'income', amount: 0 },
+      { id: 'expense_rent', category: 'Arriendo / vivienda', type: 'expense', amount: 0 },
+    ];
+
+    const res = await agent
+      .post('/api/budget-chat')
+      .set('x-csrf-token', csrfToken)
+      .send({
+        intent: 'reply',
+        answer: '850000',
+        question: '¿Cuál es tu ingreso mensual promedio en pesos?',
+        assistantFocusRowId: 'income_salary',
+        budgetRows,
+        activeRow: {
+          id: 'expense_rent',
+          category: 'Arriendo / vivienda',
+          type: 'expense',
+          amount: 0,
+        },
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.ok).toBe(true);
+    expect(res.body.source).toBe('deterministic_update');
+    expect(res.body.action?.id).toBe('income_salary');
+    expect(res.body.action?.amount).toBe(850000);
+  }, 15_000);
 });

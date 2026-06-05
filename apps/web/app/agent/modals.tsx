@@ -29,6 +29,7 @@ import {
 } from 'recharts';
 
 import type { BudgetRow } from '@/lib/budget-rows.helpers';
+import { inferBudgetFocusRowId, resolveBudgetChatTargetRow } from '@/lib/budget-rows.helpers';
 
 type BudgetTopExpense = { id: string; label: string; amount: number; pct: number };
 type BudgetInsights = {
@@ -560,26 +561,8 @@ export function BudgetModal(props: {
       ? 'table-front'
       : 'agent-front';
 
-  function inferBudgetFocusRowId(question: string | null): string | null {
-    const q = String(question ?? '').toLowerCase();
-    if (!q || q === '…') return null;
-    if (/ingreso|sueldo/.test(q)) return 'income_salary';
-    if (/arriendo|vivienda|hogar/.test(q)) return 'expense_rent';
-    if (/delivery|pedidos\s*ya|pedidosya|rappi|uber\s*eats|ubereats|comida\s*rapida/.test(q)) return 'expense_food';
-    if (/supermerc|lider|jumbo|unimarc|tottus|santa\s*isabel|acuenta|ekono|alvi|mayorista\s*10/.test(q)) return 'expense_food';
-    if (/aliment|comida|restaurante|food|restaurant|caf[eé]|delivery/.test(q)) return 'expense_food';
-    if (/retail|falabella|ripley|paris|hites|mercadolibre|shein|temu|amazon/.test(q)) return 'expense_other';
-    if (/transporte|bencina|metro|uber/.test(q)) return 'expense_transport';
-    if (/servicios|luz|agua|internet|telefon/.test(q)) return 'expense_services';
-    if (/movistar|entel|claro|wom|telefon[ií]a|celular|m[oó]vil/.test(q)) return 'expense_services';
-    if (/deuda|cuota|cr[eé]dito/.test(q)) return 'expense_debt';
-    if (/ahorr|inviert/.test(q)) return 'expense_savings';
-    if (/otros?|gasto adicional|variab/.test(q)) return 'expense_other';
-    return null;
-  }
-
   const inferredBudgetRowId = inferBudgetFocusRowId(activeQuestion) ?? null;
-  const focusedBudgetRowId = activeBudgetRowId ?? assistantBudgetRowId ?? inferredBudgetRowId;
+  const focusedBudgetRowId = assistantBudgetRowId ?? inferredBudgetRowId ?? activeBudgetRowId;
   const activeBudgetRow = props.budgetRows.find((row) => row.id === focusedBudgetRowId) ?? null;
   function budgetQuestionForId(rowId: string | null) {
     switch (rowId) {
@@ -910,6 +893,12 @@ export function BudgetModal(props: {
     setBudgetReply('');
     setAiError(null);
 
+    const chatTargetRow =
+      resolveBudgetChatTargetRow(props.budgetRows, previousQuestion, {
+        assistantFocusRowId: assistantBudgetRowId,
+        activeRow: activeBudgetRow,
+      }) ?? null;
+
     // Call AI to get precise row update + next personalized question
     try {
       setIsAskingAI(true);
@@ -936,20 +925,21 @@ export function BudgetModal(props: {
             budgetRows: props.budgetRows.slice(0, 30),
             chatAnswers: newChatAnswers.slice(-6),
             products: props.bankProducts ?? [],
-            activeRowId: activeBudgetRow?.id ?? null,
-            activeRow: activeBudgetRow
+            assistantFocusRowId: assistantBudgetRowId,
+            activeRowId: chatTargetRow?.id ?? null,
+            activeRow: chatTargetRow
                 ? {
-                    id: activeBudgetRow.id,
-                    category: activeBudgetRow.category,
-                    type: activeBudgetRow.type,
-                    amount: activeBudgetRow.amount,
-                    product: activeBudgetRow.product ?? null,
-                    institution: activeBudgetRow.institution ?? null,
-                    cadence: activeBudgetRow.cadence ?? null,
-                    paymentMethod: activeBudgetRow.paymentMethod ?? null,
-                    movementType: activeBudgetRow.movementType ?? null,
-                    momentum: activeBudgetRow.momentum ?? null,
-                    strategy: activeBudgetRow.strategy ?? null,
+                    id: chatTargetRow.id,
+                    category: chatTargetRow.category,
+                    type: chatTargetRow.type,
+                    amount: chatTargetRow.amount,
+                    product: chatTargetRow.product ?? null,
+                    institution: chatTargetRow.institution ?? null,
+                    cadence: chatTargetRow.cadence ?? null,
+                    paymentMethod: chatTargetRow.paymentMethod ?? null,
+                    movementType: chatTargetRow.movementType ?? null,
+                    momentum: chatTargetRow.momentum ?? null,
+                    strategy: chatTargetRow.strategy ?? null,
                   }
               : null,
             intakeContext: props.sessionInfo?.injectedIntake?.intakeContext ?? null,

@@ -13,5 +13,7 @@ export {
   mergeBudgetTemplate,
   normalizeBudgetRow,
   reconcileBudgetRows,
+  inferBudgetFocusRowId,
+  resolveBudgetChatTargetRow,
 } from '@financial-agent/shared';
 export type { BudgetRow, BudgetTopExpense } from '@financial-agent/shared';

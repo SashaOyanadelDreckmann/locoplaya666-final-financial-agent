@@ -12,6 +12,7 @@ import {
   canonicalBudgetRowId,
   reconcileBudgetRows,
   getEffectiveBudgetRows,
+  resolveBudgetChatTargetRow,
 } from '@financial-agent/shared';
 
 const router = Router();
@@ -662,6 +663,8 @@ function buildConversationalFallback(
   intakeData: Record<string, unknown>,
   products: BudgetProductSummary[],
   source = 'conversational_fallback',
+  assistantQuestion = '',
+  assistantFocusRowId: string | null = null,
 ) {
   const amount = extractClpAmount(answer);
   if (isEducationalBudgetQuestion(answer)) {
@@ -674,6 +677,8 @@ function buildConversationalFallback(
       answer,
       intakeData,
       products,
+      assistantQuestion,
+      assistantFocusRowId,
     );
     if (deterministic) return deterministic;
   }
@@ -811,6 +816,8 @@ function resolveSafeActions(
   rows: BudgetRow[],
   activeRow: BudgetRow | null,
   answer: string,
+  question = '',
+  assistantFocusRowId: string | null = null,
 ): BudgetAction[] {
   const normalizedAnswer = normalizeLooseText(answer);
   const deleteIntent = /\b(elimina|eliminar|borra|borrar|quita|quitar|remove|delete|drop|saca|sacar)\b/i.test(
@@ -860,7 +867,9 @@ function resolveSafeActions(
   }
 
   if (result.length === 0 && inferredAmount !== null) {
-    const target = activeRow ?? findBudgetFocusRow(rows, null);
+    const target =
+      resolveBudgetChatTargetRow(rows, question, { assistantFocusRowId, activeRow }) ??
+      findBudgetFocusRow(rows, null);
     if (target) {
       const action = mergeDraftWithExisting(
         'update',
@@ -930,8 +939,12 @@ function buildDeterministicUpdate(
   answer: string,
   intakeData: Record<string, unknown>,
   products: BudgetProductSummary[],
+  assistantQuestion = '',
+  assistantFocusRowId: string | null = null,
 ) {
-  const targetRow = activeRow ?? findBudgetFocusRow(rows, null);
+  const targetRow =
+    resolveBudgetChatTargetRow(rows, assistantQuestion, { assistantFocusRowId, activeRow }) ??
+    findBudgetFocusRow(rows, null);
   if (!targetRow) return null;
   const amount = extractClpAmount(answer);
   if (amount === null) return null;
@@ -1101,6 +1114,8 @@ router.post(
     const isInit = intent === 'init';
     const executiveLens = buildExecutiveLens(snapshot, intakeData, products);
 
+    const assistantFocusRowId = compactText(body?.assistantFocusRowId, 80) || null;
+
     const chatHistory = Array.isArray(body?.chatAnswers)
       ? (body.chatAnswers as Array<{ q: unknown; a: unknown }>)
           .slice(-6)
@@ -1113,7 +1128,7 @@ router.post(
 
     const deterministicUpdate =
       !isInit && detectedIntent === 'update_amount'
-        ? buildDeterministicUpdate(rows, activeRow, answer, intakeData, products)
+        ? buildDeterministicUpdate(rows, activeRow, answer, intakeData, products, question, assistantFocusRowId)
         : null;
     if (deterministicUpdate) {
       res.json({ ...deterministicUpdate, market_snapshot: emptyMarketSnapshot() });
@@ -1150,7 +1165,16 @@ router.post(
         isInit
           ? { ...fallbackInit(rows, intakeData, products), market_snapshot: marketSnapshot }
           : {
-              ...buildConversationalFallback(answer, rows, activeRow, intakeData, products, 'missing_provider_key'),
+              ...buildConversationalFallback(
+                answer,
+                rows,
+                activeRow,
+                intakeData,
+                products,
+                'missing_provider_key',
+                question,
+                assistantFocusRowId,
+              ),
               market_snapshot: marketSnapshot,
             },
       );
@@ -1210,7 +1234,16 @@ router.post(
       res.json({
         ...(isInit
           ? fallbackInit(rows, intakeData, products)
-          : buildConversationalFallback(answer, rows, activeRow, intakeData, products, 'model_failure')),
+          : buildConversationalFallback(
+              answer,
+              rows,
+              activeRow,
+              intakeData,
+              products,
+              'model_failure',
+              question,
+              assistantFocusRowId,
+            )),
         model: anthropicApiKey ? anthropicModel : openAiModel,
         provider,
         source: 'model_failure',
@@ -1235,7 +1268,16 @@ router.post(
       res.json({
         ...(isInit
           ? fallbackInit(rows, intakeData, products)
-          : buildConversationalFallback(answer, rows, activeRow, intakeData, products, 'invalid_model_json')),
+          : buildConversationalFallback(
+              answer,
+              rows,
+              activeRow,
+              intakeData,
+              products,
+              'invalid_model_json',
+              question,
+              assistantFocusRowId,
+            )),
         model: anthropicApiKey ? anthropicModel : openAiModel,
         provider,
         source: 'invalid_model_json',
@@ -1247,7 +1289,7 @@ router.post(
     const rawActions = Array.isArray(parsed.actions)
       ? parsed.actions
       : [parsed.action ?? parsed.update];
-    const actions = resolveSafeActions(rawActions, rows, activeRow, answer);
+    const actions = resolveSafeActions(rawActions, rows, activeRow, answer, question, assistantFocusRowId);
 
     const projectedRows = reconcileBudgetRows(
       actions.reduce<BudgetRow[]>((acc, action) => {
