@@ -14688,11 +14688,20 @@ input[type="radio"]:checked {
   .agent-panel .profile-card,
   .agent-panel .panel-feature-card,
   .agent-panel .interview-flow-card,
-  .agent-panel .recent-library-card {
+  .agent-panel .recent-library-card,
+  .agent-panel .news-card,
+  .agent-panel .panel-mode-cognitive {
     min-height: 86px !important;
     height: 86px !important;
+    max-height: 86px !important;
     padding: 8px 9px !important;
     border-radius: 12px !important;
+  }
+
+  /* news-card has its own zero-padding and image layout — restore */
+  .agent-panel .news-card {
+    padding: 0 !important;
+    overflow: hidden !important;
   }
 
   .agent-layout:not(.mobile-panel-expanded) .agent-panel .panel-label,
@@ -15140,9 +15149,12 @@ input[type="radio"]:checked {
   .agent-layout.mobile-panel-expanded .agent-panel .profile-card,
   .agent-layout.mobile-panel-expanded .agent-panel .panel-feature-card,
   .agent-layout.mobile-panel-expanded .agent-panel .interview-flow-card,
-  .agent-layout.mobile-panel-expanded .agent-panel .recent-library-card {
+  .agent-layout.mobile-panel-expanded .agent-panel .recent-library-card,
+  .agent-layout.mobile-panel-expanded .agent-panel .news-card,
+  .agent-layout.mobile-panel-expanded .agent-panel .panel-mode-cognitive {
     min-height: 160px !important;
     height: auto !important;
+    max-height: none !important;
   }
 
   .agent-layout.mobile-panel-expanded .agent-panel .panel-card,
