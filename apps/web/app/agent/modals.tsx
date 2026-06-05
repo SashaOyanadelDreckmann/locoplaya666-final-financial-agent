@@ -1265,6 +1265,7 @@ export function BudgetModal(props: {
         ))}
 
         <div className={`budget-modal-body${isDesktopLayout ? ' is-desktop' : ''}`}>
+          {!( !isDesktopLayout && budgetViewMode === 2 ) && (
           <section className={`budget-cockpit-banner ${heroToneClass}`}>
             <div className="budget-cockpit-copy">
               <span className="budget-section-eyebrow">Cockpit financiero</span>
@@ -1295,6 +1296,7 @@ export function BudgetModal(props: {
               </div>
             </div>
           </section>
+          )}
 
           <div className="budget-mode-tabs" aria-label="Modo de presupuesto">
             <button
@@ -1414,23 +1416,26 @@ export function BudgetModal(props: {
 
             <section
               data-main-card="table"
-              className="budget-table-section budget-card-table"
+              className={`budget-table-section budget-card-table${isDesktopLayout ? '' : ' is-mobile-table-compact'}`}
               style={cardStyle('table')}
             >
               <div className="budget-table-head">
-                <div>
-                  <span className="budget-section-eyebrow">Tabla</span>
-                  <h4>Presupuesto mensual</h4>
-                  <p className="budget-table-help">
-                    Completa Movimiento, Tipo, Monto, Recurrencia, Medio de pago y Tipo de movimiento. Impacto se calcula automático por fila.
-                  </p>
-                </div>
+                {isDesktopLayout && (
+                  <div>
+                    <span className="budget-section-eyebrow">Tabla</span>
+                    <h4>Presupuesto mensual</h4>
+                    <p className="budget-table-help">
+                      Completa Movimiento, Tipo, Monto, Recurrencia, Medio de pago y Tipo de movimiento. Impacto se calcula automático por fila.
+                    </p>
+                  </div>
+                )}
                 <div className="budget-table-top-actions">
                   <button type="button" className="continue-ghost is-income-action" onClick={() => props.addBudgetRow('income')}>Ingreso</button>
                   <button type="button" className="continue-ghost is-expense-action" onClick={() => props.addBudgetRow('expense')}>Gasto</button>
                 </div>
               </div>
 
+              <div className={isDesktopLayout ? 'budget-table-scroll-host budget-table-scroll-host--desktop' : 'budget-table-scroll-host'}>
               {props.budgetRows.length > 0 ? (
                 <BudgetIntelligenceTable
                   orderedBudgetRows={orderedBudgetRows}
@@ -1447,6 +1452,7 @@ export function BudgetModal(props: {
                   focusBudgetField={focusBudgetField}
                   updateBudgetRow={props.updateBudgetRow}
                   deleteBudgetRow={props.deleteBudgetRow}
+                  compactMobile={!isDesktopLayout}
                 />
               ) : (
                 <div className="budget-empty-state">
@@ -1454,6 +1460,7 @@ export function BudgetModal(props: {
                   <p>Cargando estructura base de presupuesto…</p>
                 </div>
               )}
+              </div>
               <div className="budget-table-bottom-actions">
                 <button type="button" className="budget-style-button" onClick={cycleBudgetTableStyle}>
                   Estilos · {activeStyleLabel}

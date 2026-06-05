@@ -63,6 +63,7 @@ type Props = {
   focusBudgetField: (target: EventTarget | null) => void;
   updateBudgetRow: (id: string, field: EditableBudgetField, value: string | number) => void;
   deleteBudgetRow: (id: string) => void;
+  compactMobile?: boolean;
 };
 
 const CADENCE_OPTIONS: Array<{ value: BudgetCadence; label: string }> = [
@@ -399,24 +400,34 @@ export function BudgetIntelligenceTable(props: Props) {
     },
   ];
 
+  const surfaceClassName = [
+    'budget-pdf-surface',
+    `budget-table-style-${props.budgetTableStyle}`,
+    props.compactMobile ? 'is-mobile-compact' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
   return (
-    <div ref={props.budgetPdfRef} className={`budget-pdf-surface budget-table-style-${props.budgetTableStyle}`}>
-      <div className="budget-intel-kpis">
-        {metricCards.map((metric, index) => (
-          <motion.article
-            key={metric.label}
-            className="budget-intel-kpi"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.22, delay: index * 0.04 }}
-          >
-            <span className="budget-intel-kpi-icon">{metric.icon}</span>
-            <span className="budget-intel-kpi-label">{metric.label}</span>
-            <strong>{metric.value}</strong>
-            <small>{metric.meta}</small>
-          </motion.article>
-        ))}
-      </div>
+    <div ref={props.budgetPdfRef} className={surfaceClassName}>
+      {!props.compactMobile && (
+        <div className="budget-intel-kpis">
+          {metricCards.map((metric, index) => (
+            <motion.article
+              key={metric.label}
+              className="budget-intel-kpi"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.22, delay: index * 0.04 }}
+            >
+              <span className="budget-intel-kpi-icon">{metric.icon}</span>
+              <span className="budget-intel-kpi-label">{metric.label}</span>
+              <strong>{metric.value}</strong>
+              <small>{metric.meta}</small>
+            </motion.article>
+          ))}
+        </div>
+      )}
 
       <div className="budget-pdf-head">
         <div>

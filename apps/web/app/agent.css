@@ -47904,7 +47904,7 @@ body.agent-route-active .app-shell > * {
 
   .budget-modal .budget-modal-body .budget-main-carousel:not(.is-desktop).mode-table-front .budget-table-section {
     padding-top: 6px !important;
-    padding-bottom: calc(120px + env(safe-area-inset-bottom)) !important;
+    padding-bottom: 0 !important;
   }
 }
 
@@ -48019,6 +48019,134 @@ body.agent-route-active .app-shell > * {
     height: 0 !important;
     max-height: none !important;
     overflow-y: auto !important;
+    overflow-x: hidden !important;
     -webkit-overflow-scrolling: touch !important;
   }
+
+  /* Footer pinned to modal bottom; table scroll zone fills all middle space */
+  .budget-modal .budget-modal-body .budget-main-carousel:not(.is-desktop).mode-table-front > .budget-card-table.is-mobile-table-compact,
+  .budget-modal .budget-table-section.is-mobile-table-compact {
+    position: relative !important;
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    overflow: hidden !important;
+    padding-bottom: 0 !important;
+  }
+
+  .budget-modal .budget-table-section.is-mobile-table-compact .budget-table-head {
+    flex-shrink: 0 !important;
+  }
+
+  .budget-modal .budget-table-section.is-mobile-table-compact .budget-pdf-surface.is-mobile-compact {
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    height: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+  }
+
+  .budget-modal .budget-table-section.is-mobile-table-compact .budget-table-bottom-actions {
+    flex-shrink: 0 !important;
+    order: 99 !important;
+    position: absolute !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 6px) !important;
+    transform: none !important;
+    width: 100% !important;
+    margin: 0 !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 0.4fr) 1fr !important;
+    gap: 8px !important;
+    padding: 0 0 2px !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    z-index: 6 !important;
+  }
+
+  .budget-modal .budget-table-section.is-mobile-table-compact .budget-style-button,
+  .budget-modal .budget-table-section.is-mobile-table-compact .budget-pdf-button {
+    min-height: 38px !important;
+    height: 38px !important;
+  }
+}
+
+/* Mobile table layout — absolute footer + scroll host (max-width 1023 matches isDesktopLayout) */
+@media (max-width: 1023px) {
+  .budget-modal .budget-modal-body .budget-main-carousel:not(.is-desktop).mode-table-front {
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    height: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+  }
+
+  .budget-modal .budget-main-carousel.mode-table-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact {
+    position: relative !important;
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    height: 100% !important;
+    overflow: hidden !important;
+    padding-bottom: calc(46px + env(safe-area-inset-bottom, 0px) + 12px) !important;
+  }
+
+  .budget-modal .budget-table-section.is-mobile-table-compact .budget-table-scroll-host {
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    height: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+  }
+
+  .budget-modal .budget-table-section.is-mobile-table-compact .budget-table-scroll-host .budget-pdf-surface.is-mobile-compact {
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    height: 100% !important;
+    overflow: hidden !important;
+  }
+
+  .budget-modal .budget-table-section.is-mobile-table-compact .budget-table-scroll-host .budget-table-wrap {
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    height: 0 !important;
+    max-height: none !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  .budget-modal .budget-table-section.is-mobile-table-compact .budget-table-bottom-actions {
+    position: fixed !important;
+    left: 12px !important;
+    right: 12px !important;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 10px) !important;
+    width: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    z-index: 120 !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 0.4fr) 1fr !important;
+    gap: 8px !important;
+  }
+
+  .budget-modal .budget-main-carousel.mode-table-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact {
+    padding-bottom: calc(54px + env(safe-area-inset-bottom, 0px) + 16px) !important;
+  }
+}
+
+.budget-modal .budget-table-scroll-host--desktop {
+  display: contents !important;
 }
