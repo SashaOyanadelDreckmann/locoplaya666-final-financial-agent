@@ -788,8 +788,9 @@ button {
 
 @media (max-width: 480px) {
   .mobile-scale-frame {
-    transform: scale(0.88);
-    transform-origin: 50% 50%;
+    transform: translateY(var(--agent-mobile-frame-shift, 0px))
+      scale(var(--agent-mobile-frame-scale, 0.88));
+    transform-origin: 50% 20%;
     /* height fijo para que el frame no desborde y el scroll
        ocurra dentro del frame en lugar de en el document */
     height: 100dvh;

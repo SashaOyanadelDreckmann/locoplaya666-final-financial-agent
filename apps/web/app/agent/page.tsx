@@ -700,13 +700,14 @@ export default function AgentPage() {
     if (!authBootstrapped || !isAuthenticated) return;
     if (typeof window === 'undefined' || !isMobileViewport) return;
 
-    const timer = window.setTimeout(() => {
-      const frame = document.querySelector<HTMLElement>('.mobile-scale-frame');
-      if (!frame) return;
-      frame.scrollTo({ top: 72, behavior: 'auto' });
-    }, 120);
+    const root = document.documentElement;
+    root.style.setProperty('--agent-mobile-frame-scale', '0.92');
+    root.style.setProperty('--agent-mobile-frame-shift', '32px');
 
-    return () => window.clearTimeout(timer);
+    return () => {
+      root.style.removeProperty('--agent-mobile-frame-scale');
+      root.style.removeProperty('--agent-mobile-frame-shift');
+    };
   }, [authBootstrapped, isAuthenticated, isMobileViewport]);
 
   useEffect(() => {
