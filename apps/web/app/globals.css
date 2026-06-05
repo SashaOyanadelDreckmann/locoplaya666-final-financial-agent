@@ -183,7 +183,7 @@ body {
 
 html.pwa-standalone,
 html.pwa-standalone body {
-  background-color: #5f7280;
+  background-color: #050810;
   background-image:
     linear-gradient(180deg, rgba(6, 10, 16, 0.10), rgba(6, 10, 16, 0.24)),
     url('/fondo4.jpg');
@@ -198,7 +198,7 @@ body.agent-route-active .global-agent-backdrop {
   inset: -96px 0 -20vh 0;
   z-index: 0;
   pointer-events: none;
-  background-color: #5f7280;
+  background-color: #050810;
   background-image:
     linear-gradient(180deg, rgba(6, 10, 16, 0.10), rgba(6, 10, 16, 0.24)),
     url('/fondo4.jpg');
@@ -788,8 +788,8 @@ button {
 
 @media (max-width: 767px) {
   .mobile-scale-frame {
-    transform: translateY(var(--agent-mobile-frame-shift, 0px))
-      scale(var(--agent-mobile-frame-scale, 1));
+    transform: translateY(var(--agent-mobile-frame-shift, -52px))
+      scale(var(--agent-mobile-frame-scale, 0.94));
     transform-origin: top center;
     height: 100dvh;
     min-height: 100dvh;

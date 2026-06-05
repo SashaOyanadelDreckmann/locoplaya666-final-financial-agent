@@ -697,20 +697,6 @@ export default function AgentPage() {
   }, [isMobileViewport, isStandaloneDisplayMode]);
 
   useEffect(() => {
-    if (!authBootstrapped || !isAuthenticated) return;
-    if (typeof window === 'undefined' || !isMobileViewport) return;
-
-    const root = document.documentElement;
-    root.style.setProperty('--agent-mobile-frame-shift', '56px');
-    root.style.setProperty('--agent-mobile-frame-scale', '0.94');
-
-    return () => {
-      root.style.removeProperty('--agent-mobile-frame-shift');
-      root.style.removeProperty('--agent-mobile-frame-scale');
-    };
-  }, [authBootstrapped, isAuthenticated, isMobileViewport]);
-
-  useEffect(() => {
     const el = panelGridRef.current;
     if (!el || !isMobileViewport || disableMobilePanelHorizontalMotion) return;
 

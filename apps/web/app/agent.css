@@ -46924,6 +46924,96 @@ body.agent-route-active .app-shell > * {
     margin: 8px 14px !important;
   }
 
+  .budget-modal .budget-cockpit-banner {
+    margin: 4px 0 6px !important;
+    padding: 0 !important;
+  }
+
+  .budget-modal .budget-cockpit-copy h4 {
+    font-size: 0.92rem !important;
+    line-height: 1.1 !important;
+  }
+
+  .budget-modal .budget-cockpit-metrics {
+    margin-top: 4px !important;
+    gap: 4px !important;
+    grid-template-columns: repeat(5, minmax(62px, 1fr)) !important;
+  }
+
+  .budget-modal .budget-cockpit-metric {
+    min-width: 62px !important;
+    padding: 6px 8px !important;
+  }
+
+  .budget-modal .budget-cockpit-metric span {
+    font-size: 0.5rem !important;
+  }
+
+  .budget-modal .budget-cockpit-metric strong {
+    font-size: 0.76rem !important;
+    line-height: 1.05 !important;
+  }
+
+  .budget-modal .budget-main-carousel:not(.is-desktop) .budget-intel-kpis {
+    gap: 6px !important;
+    overflow-x: auto !important;
+    flex-wrap: nowrap !important;
+    scrollbar-width: none !important;
+  }
+
+  .budget-modal .budget-main-carousel:not(.is-desktop) .budget-intel-kpis::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .budget-modal .budget-main-carousel:not(.is-desktop) .budget-intel-kpi,
+  .budget-modal .budget-main-carousel:not(.is-desktop) .budget-pdf-metrics > div,
+  .budget-modal .budget-main-carousel:not(.is-desktop) .budget-impact-cell,
+  .budget-modal .budget-main-carousel:not(.is-desktop) .budget-impact-shell,
+  .budget-modal .budget-main-carousel:not(.is-desktop) .budget-table-pro td,
+  .budget-modal .budget-main-carousel:not(.is-desktop) .budget-table-pro td > *,
+  .budget-modal .budget-main-carousel:not(.is-desktop) .budget-table-pro input,
+  .budget-modal .budget-main-carousel:not(.is-desktop) .budget-table-pro select {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+  }
+
+  .budget-modal .budget-main-carousel:not(.is-desktop) .budget-intel-kpi {
+    flex-shrink: 0 !important;
+    min-width: 86px !important;
+    padding: 10px 11px !important;
+  }
+
+  .budget-modal .budget-main-carousel:not(.is-desktop) .budget-intel-kpi strong,
+  .budget-modal .budget-main-carousel:not(.is-desktop) .budget-intel-kpi small,
+  .budget-modal .budget-main-carousel:not(.is-desktop) .budget-pdf-metrics strong,
+  .budget-modal .budget-main-carousel:not(.is-desktop) .budget-impact-cell small,
+  .budget-modal .budget-main-carousel:not(.is-desktop) .budget-impact-type-label {
+    white-space: nowrap !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .budget-modal .budget-main-carousel:not(.is-desktop) .budget-intel-kpi strong,
+  .budget-modal .budget-main-carousel:not(.is-desktop) .budget-pdf-metrics strong {
+    display: block !important;
+    overflow: hidden !important;
+  }
+
+  .budget-modal .budget-main-carousel:not(.is-desktop) .budget-impact-shell {
+    gap: 2px !important;
+  }
+
+  .budget-modal .budget-main-carousel:not(.is-desktop) .budget-impact-cell {
+    width: 100% !important;
+    justify-content: space-between !important;
+  }
+
+  .budget-modal .budget-main-carousel:not(.is-desktop) .budget-impact-cell small {
+    min-width: 0 !important;
+    flex: 0 1 auto !important;
+  }
+
   .budget-modal .budget-main-carousel:not(.is-desktop) .budget-pdf-surface,
   .budget-modal .budget-main-carousel:not(.is-desktop) .budget-table-wrap {
     background: transparent !important;
@@ -47009,7 +47099,7 @@ body.agent-route-active .app-shell > * {
   }
 
   body.agent-route-active .mobile-scale-frame {
-    transform: translateY(var(--agent-mobile-frame-shift, 56px))
+    transform: translateY(var(--agent-mobile-frame-shift, -52px))
       scale(var(--agent-mobile-frame-scale, 0.94)) !important;
     transform-origin: top center !important;
   }
