@@ -53,7 +53,7 @@ export default function NumbersCanvas({
     const canvas = canvasRef.current!;
     const ctx    = canvas.getContext('2d')!;
     let raf = 0, px: Px[] = [], cd: Cd[] = [], cols = 0, rows = 0;
-    let dpr = 1;
+    let dpr = 1, isMobile = false, lastFrameTs = 0;
 
     const img = new Image();
     img.src = '/images/bg-door.jpg';
@@ -94,6 +94,7 @@ export default function NumbersCanvas({
       const h = layer?.clientHeight ?? window.innerHeight;
       // Cap at 2× to keep mobile GPU load reasonable
       dpr = Math.min(window.devicePixelRatio || 1, 2);
+      isMobile = w < 768;
       canvas.width  = w * dpr;
       canvas.height = h * dpr;
       ctx.scale(dpr, dpr);
@@ -112,6 +113,9 @@ export default function NumbersCanvas({
     // ── Render loop ───────────────────────────────────────────────────────────
     function loop(ts: number) {
       raf = requestAnimationFrame(loop);
+      // Throttle to ~30fps on mobile to save battery and GPU
+      if (isMobile && ts - lastFrameTs < 33) return;
+      lastFrameTs = ts;
       const t = ts / 1000;
       const p = progress.get();
 

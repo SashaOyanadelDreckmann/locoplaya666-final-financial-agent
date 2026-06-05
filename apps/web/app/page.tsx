@@ -171,7 +171,7 @@ function ProblemSection() {
             <div key={i}>
               <motion.p
                 style={{
-                  fontSize: 'clamp(22px,3.6vw,50px)',
+                  fontSize: 'clamp(22px,5vw,50px)',
                   fontFamily: 'Georgia, "Times New Roman", serif',
                   fontWeight: 700,
                   lineHeight: 1.12,
@@ -445,7 +445,7 @@ function StepsSection() {
         onClick={() => void handleStartDiagnosis()}
         whileHover={{ opacity: 0.65 }}
         whileTap={{ scale: 0.97 }}
-        style={{ marginTop: 40, background: 'none', border: 'none', cursor: 'pointer', padding: '11px 4px', fontSize: 13, fontWeight: 600, color: GOLD_DIM, display: 'inline-flex', alignItems: 'center', gap: 7, letterSpacing: '-0.01em', position: 'relative', zIndex: 1 }}
+        style={{ marginTop: 40, background: 'none', border: 'none', cursor: 'pointer', padding: '11px 4px', fontSize: 13, fontWeight: 600, color: GOLD_DIM, display: 'inline-flex', alignItems: 'center', gap: 7, letterSpacing: '-0.01em', position: 'relative', zIndex: 1, minHeight: 44 }}
       >
         Comenzar diagnóstico <ArrowRight size={13} />
       </motion.button>
@@ -522,7 +522,7 @@ function CtaSection() {
           <MotionLink
             href="/agent"
             whileHover={{ opacity: 0.65 }}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: GOLD_DIM, padding: '11px 4px', letterSpacing: '-0.01em', textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: GOLD_DIM, padding: '11px 4px', letterSpacing: '-0.01em', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', minHeight: 44 }}
           >
             Hablar con el agente →
           </MotionLink>
@@ -647,7 +647,8 @@ export default function HomePage() {
         {/* ─── HERO ──────────────────────────────────────────────────────── */}
         <section
           ref={heroSectionRef}
-          style={{ position: 'relative', height: '100dvh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
+          className="home-hero-full"
+          style={{ position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
           onMouseMove={(e) => updatePointer(e.clientX, e.clientY)}
           onMouseLeave={() => {
             heroMX.set(0.5);
@@ -720,7 +721,7 @@ export default function HomePage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.08, ease: SILK }}
                   whileHover={{ opacity: 0.72 }}
-                  style={{ background: 'none', border: '1px solid rgba(255,255,255,0.20)', borderRadius: 999, padding: '7px 16px', fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.68)', cursor: 'pointer', textDecoration: 'none' }}
+                  style={{ background: 'none', border: '1px solid rgba(255,255,255,0.20)', borderRadius: 999, padding: '7px 16px', fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.68)', cursor: 'pointer', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', minHeight: 44 }}
                 >
                   Entrar
                 </MotionLink>
@@ -779,14 +780,14 @@ export default function HomePage() {
                     whileHover={{ scale: 1.03, opacity: 0.88 }}
                     whileTap={{ scale: 0.97 }}
                     transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: 'white', border: 'none', borderRadius: 999, padding: '11px 22px', fontSize: 13, fontWeight: 600, color: '#050810', cursor: 'pointer', textDecoration: 'none' }}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: 'white', border: 'none', borderRadius: 999, padding: '11px 22px', fontSize: 13, fontWeight: 600, color: '#050810', cursor: 'pointer', textDecoration: 'none', minHeight: 44 }}
                   >
                     Comenzar <ArrowRight size={13} />
                   </MotionLink>
                   <motion.button
                     onClick={() => void handleStartDiagnosis()}
                     whileHover={{ opacity: 0.65 }}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'rgba(255,255,255,0.38)', padding: '11px 4px', letterSpacing: '-0.01em', display: 'inline-flex', alignItems: 'center' }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'rgba(255,255,255,0.38)', padding: '11px 4px', letterSpacing: '-0.01em', display: 'inline-flex', alignItems: 'center', minHeight: 44 }}
                   >
                     Ver diagnóstico →
                   </motion.button>
