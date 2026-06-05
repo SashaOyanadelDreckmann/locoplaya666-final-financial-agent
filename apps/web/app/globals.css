@@ -132,16 +132,6 @@
   }
 }
 
-html {
-  /* bg-door behind status bar on iOS: body can't paint into safe-area-inset-top,
-     but html can — this prevents the dark fallback from showing there */
-  background-color: #050810;
-  background-image: url('/images/bg-door.jpg');
-  background-size: cover;
-  background-position: center top;
-  background-repeat: no-repeat;
-}
-
 html,
 body {
   min-height: 100%;
@@ -2197,8 +2187,16 @@ body.home-lock {
 
 /* Mobile */
 @media (max-width: 480px) {
+  /* Paint bg-door directly on body so it fills the safe-area-inset-top region
+     (status bar on iOS). The ::before gradient overlay starts below that. */
+  body {
+    background-image: url('/images/bg-door.jpg');
+    background-size: cover;
+    background-position: center top;
+    background-repeat: no-repeat;
+  }
+
   .app-shell::before {
-    /* Extend into iOS safe-area-inset-top so the bg covers the status bar area */
     top: calc(-1 * env(safe-area-inset-top, 60px));
     right: 0;
     bottom: 0;
