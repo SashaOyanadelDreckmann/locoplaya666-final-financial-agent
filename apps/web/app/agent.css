@@ -47099,19 +47099,19 @@ body.agent-route-active .app-shell > * {
   }
 
   body.agent-route-active .mobile-scale-frame {
-    transform: scale(var(--agent-mobile-frame-scale, 0.94)) !important;
-    transform-origin: top center !important;
+    transform: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
   }
 
   body.agent-route-active .agent-layout,
   body.agent-route-active .agent-layout.is-mobile-standalone {
     transform: none !important;
-    padding-top: 0 !important;
-    padding-left: 0 !important;
-    padding-right: 0 !important;
-    margin-top: 0 !important;
-    margin-left: 0 !important;
-    margin-right: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    gap: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
     background: transparent !important;
     height: var(--screen-h, 100dvh) !important;
     max-height: var(--screen-h, 100dvh) !important;
@@ -47133,10 +47133,10 @@ body.agent-route-active .app-shell > * {
     width: 100% !important;
     max-width: 100% !important;
     box-sizing: border-box !important;
-    padding: calc(env(safe-area-inset-top, 0px) + 3px) 6px 3px !important;
+    padding: calc(env(safe-area-inset-top, 0px) + 2px) 8px 2px !important;
     margin: 0 !important;
-    gap: 2px !important;
-    background: rgba(0, 0, 0, 0.94) !important;
+    gap: 0 !important;
+    background: #000000 !important;
     border-bottom: none !important;
     border-radius: 0 !important;
     overflow: visible !important;
@@ -47234,12 +47234,37 @@ body.agent-route-active .app-shell > * {
     width: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
-    gap: 1px !important;
+    gap: 0 !important;
     min-height: 0 !important;
+    overflow: visible !important;
+  }
+
+  body.agent-route-active .agent-chat-header.is-mobile .chat-brand-title-row,
+  body.agent-route-active .agent-chat-header.is-mobile .chat-brand-strip h1 {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    width: auto !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
   }
 
   body.agent-route-active .agent-chat-header.is-mobile .chat-brand-title-row {
     gap: 5px !important;
+  }
+
+  body.agent-route-active .agent-chat-header.is-mobile .chat-brand-wordmark {
+    display: inline-flex !important;
+    min-width: max-content !important;
+    max-width: none !important;
+    overflow: visible !important;
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
   }
 
   body.agent-route-active .agent-chat-header.is-mobile .chat-brand-logo-mark {
@@ -47247,12 +47272,15 @@ body.agent-route-active .app-shell > * {
     height: 16px !important;
     flex: 0 0 16px !important;
     border-radius: 4px !important;
+    overflow: visible !important;
   }
 
   body.agent-route-active .agent-chat-header.is-mobile .chat-brand-financiera,
   body.agent-route-active .agent-chat-header.is-mobile .chat-brand-mente {
     font-size: 10px !important;
     line-height: 1 !important;
+    flex-shrink: 0 !important;
+    overflow: visible !important;
   }
 
   body.agent-route-active .agent-chat-header.is-mobile .chat-identity-subtitle {
@@ -47260,22 +47288,55 @@ body.agent-route-active .app-shell > * {
     line-height: 1 !important;
     margin: 0 !important;
     padding: 0 !important;
+    max-width: none !important;
+    overflow: visible !important;
   }
 
-  .agent-panel,
-  .agent-panel.is-mobile-compact,
-  .agent-layout.mobile-panel-expanded .agent-panel {
-    background: transparent !important;
+  body.agent-route-active .agent-panel,
+  body.agent-route-active .agent-panel.is-mobile-compact,
+  body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #000000 !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
     box-shadow: none !important;
-    border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
     border-radius: 0 !important;
-    margin-left: 0 !important;
-    margin-right: 0 !important;
+    flex: 0 0 var(--mobile-panel-h, 162px) !important;
+    max-height: var(--mobile-panel-h, 162px) !important;
   }
 
-  .agent-panel .panel-grid {
-    background: transparent !important;
+  body.agent-route-active .agent-panel .mobile-panel-handle {
+    background: #000000 !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+  }
+
+  body.agent-route-active .agent-panel .panel-grid {
+    display: flex !important;
+    align-items: flex-end !important;
+    background: #000000 !important;
+    min-height: 100% !important;
+    padding: 12px 8px max(8px, env(safe-area-inset-bottom, 0px)) !important;
+    gap: 8px !important;
+    box-sizing: border-box !important;
+  }
+
+  body.agent-route-active .agent-panel .mob-col,
+  body.agent-route-active .agent-panel .mob-col-wide,
+  body.agent-route-active .agent-panel .mob-col-narrow {
+    width: min(159px, 55.5vw) !important;
+    height: 107px !important;
+    max-height: 107px !important;
+    flex: 0 0 auto !important;
+    align-self: flex-end !important;
+  }
+
+  body.agent-route-active .agent-panel .mob-col > * {
+    height: 100% !important;
+    max-height: 107px !important;
+    flex: 1 1 auto !important;
   }
 }
