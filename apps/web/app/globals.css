@@ -151,6 +151,24 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/* The root element's background is propagated to the document canvas — the
+   ONLY layer browsers paint into the top safe-area behind the status bar /
+   notch (body and position:fixed overlays never reach it). Painting the same
+   image + gradient here as .app-shell::before makes the background bleed
+   edge-to-edge on iOS/Android with viewport-fit=cover, seamlessly. */
+html {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(0, 0, 0, 0.10) 0%,
+      rgba(0, 0, 0, 0.24) 12%,
+      rgba(0, 0, 0, 0.60) 44%,
+      rgba(0, 0, 0, 0.76) 100%
+    ),
+    url('/images/bg-door.jpg') center top / cover no-repeat fixed;
+  background-color: #050810;
+}
+
 body {
   position: relative;
   isolation: isolate;
@@ -2187,20 +2205,10 @@ body.home-lock {
 
 /* Mobile */
 @media (max-width: 480px) {
-  /* Paint bg-door directly on body so it fills the safe-area-inset-top region
-     (status bar on iOS). The ::before gradient overlay starts below that. */
-  body {
-    background-image: url('/images/bg-door.jpg');
-    background-size: cover;
-    background-position: center top;
-    background-repeat: no-repeat;
-  }
-
+  /* ::before overlays the viewport; the status-bar safe-area is covered by the
+     html canvas background above (same image + gradient, so it's seamless). */
   .app-shell::before {
-    top: calc(-1 * env(safe-area-inset-top, 60px));
-    right: 0;
-    bottom: 0;
-    left: 0;
+    inset: 0;
     transform: none;
     background-position: center top;
     background-size: cover;
