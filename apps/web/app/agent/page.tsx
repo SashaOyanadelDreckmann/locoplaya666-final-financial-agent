@@ -57,7 +57,6 @@ import {
 import { normalizeProductAssistantState } from '@/lib/product-normalization.helpers';
 import {
   IDLE_PARSE_PROGRESS,
-  advanceParseProgressTick,
   type DocumentsParseProgress,
 } from '@/lib/transactions-parse-progress.helpers';
 import {
@@ -3399,10 +3398,6 @@ export default function AgentPage() {
       percent: 8,
       detail: 'Leyendo archivos en tu dispositivo.',
     });
-    let progressTimer: number | null = null;
-    progressTimer = window.setInterval(() => {
-      setDocumentsParseProgress((current) => advanceParseProgressTick(current));
-    }, 450);
 
     try {
       const encodedFiles = await Promise.all(
@@ -3666,7 +3661,6 @@ export default function AgentPage() {
       setDocumentsParseProgress(IDLE_PARSE_PROGRESS);
       return null;
     } finally {
-      if (progressTimer !== null) window.clearInterval(progressTimer);
       setDocumentsLoading(false);
     }
   }

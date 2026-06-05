@@ -308,6 +308,55 @@ function buildBudgetPanelGuidance() {
   ].join('\n');
 }
 
+function buildContextualSuggestedReplies(params: {
+  phase?: unknown;
+  activeChatId?: unknown;
+  hasBudget?: boolean;
+  hasTransactions?: boolean;
+}) {
+  const phase = String(params.phase ?? '');
+  const activeChatId = String(params.activeChatId ?? 'chat-1');
+  if (activeChatId === 'chat-2') return ['Volver al plan', 'Priorizar deudas', 'Simular ahorro'];
+  if (activeChatId === 'chat-3') return ['Resumir diagnóstico', 'Revisar riesgo', 'Cerrar plan'];
+  if (params.hasBudget && params.hasTransactions) return ['Abrir entrevista breve', 'Revisar presupuesto', 'Ver cartola'];
+  if (phase === 'transactions_needed') return ['Subir cartola', 'Explorar deuda', 'Simular ahorro'];
+  if (phase === 'budget_needed') return ['Completar presupuesto', 'Ver balance', 'Probar escenario'];
+  return ['Revisemos mi presupuesto', 'Hazme una simulación simple', 'Genera un resumen de mi perfil'];
+}
+
+function normalizeQuestionTopic(text: string) {
+  return String(text ?? '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
+function buildTransactionsNeededFallback(userMessage: string) {
+  const text = normalizeQuestionTopic(userMessage);
+  if (/\b(deuda|cuota|credito|prestamo|morosidad)\b/.test(text)) {
+    return [
+      'Si tu duda es sobre deuda, la regla práctica es priorizar vencimientos, evitar nuevas obligaciones y pagar primero lo caro o atrasado.',
+      'En paralelo, sube tu cartola o transacciones del mes para aterrizarlo a números reales y no a supuestos.',
+    ].join('\n\n');
+  }
+  if (/\b(apv|inversion|invertir|fondo|etf|acciones?)\b/.test(text)) {
+    return [
+      'Si tu duda es sobre APV o inversión, primero conviene asegurar caja mensual y un colchón mínimo antes de subir riesgo.',
+      'Cuando cargues la cartola, te digo cuánto margen real tienes para invertir sin apretar el flujo.',
+    ].join('\n\n');
+  }
+  if (/\b(ahorro|emergencia|colchon|respaldo)\b/.test(text)) {
+    return [
+      'Si tu duda es sobre ahorro, la meta base es automatizar una transferencia pequeña pero constante y no tocarla salvo emergencia real.',
+      'Si subes la cartola, la ajusto a tu flujo mensual y te digo un monto sostenible.',
+    ].join('\n\n');
+  }
+  return [
+    'Puedo responder tu duda, pero todavía me falta la cartola o transacciones del mes para afinar el diagnóstico sin adivinar.',
+    'Sube ese respaldo y te devuelvo un análisis ejecutivo con foco en lo que realmente está pasando.',
+  ].join('\n\n');
+}
+
 export function buildResilientFallbackMessage(params: {
   userMessage: string;
   phase?: unknown;
@@ -366,7 +415,7 @@ export function buildResilientFallbackMessage(params: {
   }
   if (phase === 'budget_needed') return buildBudgetPanelGuidance();
   if (phase === 'transactions_needed') {
-    return 'Siguiente paso recomendado: sube cartola o transacciones del mes en el panel. Con eso preparo un análisis ejecutivo y pasamos a entrevista breve.';
+    return buildTransactionsNeededFallback(userMessage);
   }
 
   return [
@@ -1249,7 +1298,12 @@ router.post(
         agent_blocks: [],
         artifacts: [],
         citations: [],
-        suggested_replies: ['Volver al Chat 1', 'Subir presupuesto', 'Subir cartola'],
+        suggested_replies: buildContextualSuggestedReplies({
+          phase: lifecycleDecision.state.phase,
+          activeChatId: lifecycleDecision.activeChatId,
+          hasBudget: onboardingSignals.hasBudget,
+          hasTransactions: onboardingSignals.hasTransactions,
+        }),
         panel_action: {
           section: 'budget',
           message: 'Completa presupuesto y cartolas para desbloquear los chats especializados.',
@@ -1307,11 +1361,12 @@ router.post(
         agent_blocks: [],
         artifacts: [],
         citations: [],
-        suggested_replies: [
-          'Revisemos mi presupuesto',
-          'Hazme una simulación simple',
-          'Genera un resumen de mi perfil',
-        ],
+        suggested_replies: buildContextualSuggestedReplies({
+          phase: lifecycleDecision.state.phase,
+          activeChatId: lifecycleDecision.activeChatId,
+          hasBudget: onboardingSignals.hasBudget,
+          hasTransactions: onboardingSignals.hasTransactions,
+        }),
         compliance: {
           mode: 'information',
           no_auto_execution: true,
@@ -1340,11 +1395,12 @@ router.post(
         hasBudget: onboardingSignals.hasBudget,
         hasTransactions: onboardingSignals.hasTransactions,
       });
-      response.suggested_replies = [
-        'Abrir presupuesto',
-        'Subir cartola',
-        'Continuar con entrevista',
-      ];
+      response.suggested_replies = buildContextualSuggestedReplies({
+        phase: lifecycleDecision.state.phase,
+        activeChatId: lifecycleDecision.activeChatId,
+        hasBudget: onboardingSignals.hasBudget,
+        hasTransactions: onboardingSignals.hasTransactions,
+      });
     }
 
     try {

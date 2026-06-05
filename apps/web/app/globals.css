@@ -2327,7 +2327,7 @@ body.home-lock {
   }
   .waiting-install-btn {
     height: 44px;
-    font-size: 13px;
+    font-size: 16px;
     border-radius: 12px;
     margin-top: 12px;
   }
@@ -2335,6 +2335,10 @@ body.home-lock {
   .waiting-install-status {
     font-size: 11px;
     margin-top: 10px;
+  }
+
+  .waiting-platform-art {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -2440,7 +2444,7 @@ body.home-lock {
   .auth-input {
     height: 44px;
     border-radius: 13px;
-    font-size: 14px;
+    font-size: 16px;
     padding: 0 14px;
   }
 

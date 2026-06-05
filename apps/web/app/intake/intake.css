@@ -145,7 +145,7 @@
 }
 
 .intake-stage-seg-label {
-  font-size: 8.5px;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -293,6 +293,53 @@
 .animate-intake-in {
   animation: intakeIn 0.52s cubic-bezier(0.22, 0.68, 0, 1.2) forwards;
   transform-origin: center bottom;
+}
+
+@media (max-width: 767px) {
+  .intake-step {
+    transition: opacity 0.24s ease, transform 0.24s ease;
+  }
+
+  [data-step="context"] .intake-step,
+  [data-step="cashflow"] .intake-step,
+  [data-step="savings"] .intake-step,
+  [data-step="knowledge"] .intake-step {
+    transform: translateY(0);
+  }
+
+  .animate-intake-in {
+    animation: intakeInMobile 0.36s ease forwards;
+  }
+
+  .intake-shell input,
+  .intake-shell select,
+  .intake-shell textarea,
+  .intake-input-sm,
+  .intake-sub-question input,
+  .intake-sub-question select,
+  .intake-sub-question textarea {
+    font-size: 16px !important;
+  }
+
+  .intake-stage-seg-label {
+    font-size: 10.5px;
+  }
+
+  .intake-bg-orb,
+  .intake-bg-orb::after {
+    filter: blur(12px);
+  }
+}
+
+@keyframes intakeInMobile {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 /* ── Step header ────────────────────────────────── */
