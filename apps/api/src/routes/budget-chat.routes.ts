@@ -678,6 +678,7 @@ function buildConversationalFallback(
   source = 'conversational_fallback',
   assistantQuestion = '',
   assistantFocusRowId: string | null = null,
+  manualFocusRowId: string | null = null,
 ) {
   const amount = extractClpAmount(answer);
   if (isEducationalBudgetQuestion(answer)) {
@@ -692,6 +693,7 @@ function buildConversationalFallback(
       products,
       assistantQuestion,
       assistantFocusRowId,
+      manualFocusRowId,
     );
     if (deterministic) return deterministic;
   }
@@ -833,6 +835,7 @@ function resolveSafeActions(
   answer: string,
   question = '',
   assistantFocusRowId: string | null = null,
+  manualFocusRowId: string | null = null,
 ): BudgetAction[] {
   const normalizedAnswer = normalizeLooseText(answer);
   const deleteIntent = /\b(elimina|eliminar|borra|borrar|quita|quitar|remove|delete|drop|saca|sacar)\b/i.test(
@@ -884,6 +887,7 @@ function resolveSafeActions(
   if (result.length === 0 && inferredAmount !== null) {
     const target =
       resolveBudgetChatTargetRow(rows, extractInferenceQuestionText(question) || question, {
+        manualFocusRowId,
         assistantFocusRowId,
         activeRow,
       }) ?? findBudgetFocusRow(rows, null);
@@ -958,9 +962,11 @@ function buildDeterministicUpdate(
   products: BudgetProductSummary[],
   assistantQuestion = '',
   assistantFocusRowId: string | null = null,
+  manualFocusRowId: string | null = null,
 ) {
   const targetRow =
     resolveBudgetChatTargetRow(rows, extractInferenceQuestionText(assistantQuestion) || assistantQuestion, {
+      manualFocusRowId,
       assistantFocusRowId,
       activeRow,
     }) ?? findBudgetFocusRow(rows, null);
@@ -1140,6 +1146,7 @@ router.post(
     const executiveLens = buildExecutiveLens(snapshot, intakeData, products);
 
     const assistantFocusRowId = compactText(body?.assistantFocusRowId, 80) || null;
+    const manualFocusRowId = compactText(body?.manualFocusRowId, 80) || null;
 
     const chatHistory = Array.isArray(body?.chatAnswers)
       ? (body.chatAnswers as Array<{ q: unknown; a: unknown }>)
@@ -1161,6 +1168,7 @@ router.post(
             products,
             inferenceQuestion,
             assistantFocusRowId,
+            manualFocusRowId,
           )
         : null;
     if (deterministicUpdate) {
@@ -1215,6 +1223,7 @@ router.post(
                 'missing_provider_key',
                 inferenceQuestion,
                 assistantFocusRowId,
+                manualFocusRowId,
               ),
               market_snapshot: marketSnapshot,
             },
@@ -1284,6 +1293,7 @@ router.post(
               'model_failure',
               inferenceQuestion,
               assistantFocusRowId,
+              manualFocusRowId,
             )),
         model: anthropicApiKey ? anthropicModel : openAiModel,
         provider,
@@ -1318,6 +1328,7 @@ router.post(
               'invalid_model_json',
               inferenceQuestion,
               assistantFocusRowId,
+              manualFocusRowId,
             )),
         model: anthropicApiKey ? anthropicModel : openAiModel,
         provider,
@@ -1337,6 +1348,7 @@ router.post(
       answer,
       inferenceQuestion,
       assistantFocusRowId,
+      manualFocusRowId,
     );
 
     const projectedRows = reconcileBudgetRows(

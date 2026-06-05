@@ -200,6 +200,37 @@ describe('budget-chat routes', () => {
     expect(String(res.body.next_question || '')).toContain('?');
   }, 15_000);
 
+  it('updates manually focused row when user taps a different row than assistant question', async () => {
+    const { agent, csrfToken } = await createAuthedAgent();
+    const budgetRows = [
+      { id: 'expense_transport', category: 'Transporte', type: 'expense', amount: 0, note: '' },
+      { id: 'expense_rent', category: 'Arriendo / vivienda', type: 'expense', amount: 0, note: '' },
+    ];
+
+    const res = await agent
+      .post('/api/budget-chat')
+      .set('x-csrf-token', csrfToken)
+      .send({
+        intent: 'reply',
+        answer: '420000',
+        question: '¿Cuánto gastas al mes en transporte o bencina?',
+        assistantFocusRowId: 'expense_transport',
+        manualFocusRowId: 'expense_rent',
+        budgetRows,
+        activeRow: {
+          id: 'expense_rent',
+          category: 'Arriendo / vivienda',
+          type: 'expense',
+          amount: 0,
+        },
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.source).toBe('deterministic_update');
+    expect(res.body.action?.id).toBe('expense_rent');
+    expect(res.body.action?.amount).toBe(420000);
+  }, 15_000);
+
   it('keeps contextual amount answers out of deterministic short-circuit', async () => {
     const { agent, csrfToken } = await createAuthedAgent();
 

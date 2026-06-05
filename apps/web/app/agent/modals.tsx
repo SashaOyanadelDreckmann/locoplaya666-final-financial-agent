@@ -564,7 +564,7 @@ export function BudgetModal(props: {
 
   const inferredBudgetRowId =
     inferBudgetFocusRowId(assistantNextQuestion ?? activeQuestion) ?? null;
-  const focusedBudgetRowId = assistantBudgetRowId ?? inferredBudgetRowId ?? activeBudgetRowId;
+  const focusedBudgetRowId = activeBudgetRowId ?? assistantBudgetRowId ?? inferredBudgetRowId;
   const activeBudgetRow = props.budgetRows.find((row) => row.id === focusedBudgetRowId) ?? null;
   function budgetQuestionForId(rowId: string | null) {
     switch (rowId) {
@@ -663,7 +663,9 @@ export function BudgetModal(props: {
   }, [assistantBudgetRowId]);
 
   function focusBudgetRow(rowId: string) {
-    setActiveBudgetRowId((prev) => (prev === rowId ? prev : rowId));
+    setActiveBudgetRowId(rowId);
+    setAssistantBudgetRowId(rowId);
+    setAssistantNextQuestion(budgetQuestionForId(rowId));
   }
 
   function applyBudgetAction(action: Record<string, unknown> | null | undefined) {
@@ -891,7 +893,9 @@ export function BudgetModal(props: {
     const answer = budgetReply.trim();
     if (!answer || isAskingAI) return;
 
+    const manualFocusRowId = activeBudgetRowId;
     const questionForTurn =
+      (manualFocusRowId ? budgetQuestionForId(manualFocusRowId) : null) ??
       assistantNextQuestion ??
       extractInferenceQuestionText(assistantQuestion ?? '') ??
       assistantQuestion ??
@@ -903,6 +907,7 @@ export function BudgetModal(props: {
 
     const chatTargetRow =
       resolveBudgetChatTargetRow(props.budgetRows, questionForTurn, {
+        manualFocusRowId,
         assistantFocusRowId: assistantBudgetRowId,
         activeRow: activeBudgetRow,
       }) ?? null;
@@ -934,6 +939,7 @@ export function BudgetModal(props: {
             budgetRows: props.budgetRows.slice(0, 30),
             chatAnswers: newChatAnswers.slice(-6),
             products: props.bankProducts ?? [],
+            manualFocusRowId: manualFocusRowId,
             assistantFocusRowId: assistantBudgetRowId,
             activeRowId: chatTargetRow?.id ?? null,
             activeRow: chatTargetRow

@@ -45,4 +45,14 @@ describe('budget-chat-focus helpers', () => {
     });
     expect(target?.id).toBe('expense_debt');
   });
+
+  it('prioritizes manual row tap over assistant focus and question inference', () => {
+    const transportQuestion = '¿Cuánto gastas al mes en transporte o bencina?';
+    const target = resolveBudgetChatTargetRow(rows, transportQuestion, {
+      manualFocusRowId: 'expense_rent',
+      assistantFocusRowId: 'expense_debt',
+      activeRow: rows[0],
+    });
+    expect(target?.id).toBe('expense_rent');
+  });
 });
