@@ -47044,7 +47044,7 @@ body.agent-route-active .app-shell > * {
 /* ============================================================
    PHONE PANEL + BACKDROP CONTINUITY
    Desktop sidebar and mobile bottom panel share the same wallpaper.
-   Mobile swipe + zoom live on .mobile-scale-frame (page content), not on
+   Mobile page zoom lives on .mobile-scale-frame (page content only), not on
    the fixed backdrop layers behind it.
    ============================================================ */
 @media (min-width: 768px) {
@@ -47099,8 +47099,7 @@ body.agent-route-active .app-shell > * {
   }
 
   body.agent-route-active .mobile-scale-frame {
-    transform: translateY(var(--agent-mobile-frame-shift, -52px))
-      scale(var(--agent-mobile-frame-scale, 0.94)) !important;
+    transform: scale(var(--agent-mobile-frame-scale, 0.94)) !important;
     transform-origin: top center !important;
   }
 

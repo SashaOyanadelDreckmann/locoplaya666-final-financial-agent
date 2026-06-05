@@ -773,14 +773,10 @@ button {
 /* ================================================= */
 
 /* Wrapper que envuelve TODO el contenido de la página.
-   En mobile se aplica transform: scale(0.88) con origen en el centro,
-   lo que crea ~6 % de margen en los 4 bordes (incluyendo la zona del
-   status bar). El background vive en app-shell::before y en el canvas
-   del elemento html — ambos FUERA de este wrapper — así que no se ven
-   afectados por el scale y cubren la pantalla física completa.
-   Los elementos position:fixed del contenido (header, input bar, etc.)
-   quedan posicionados dentro del sistema de coordenadas del frame, por
-   lo que también respetan los márgenes automáticamente. */
+   En mobile solo se aplica un scale ligero (zoom manual) sobre la página;
+   sin translateY para no recortar header ni controles. El background vive
+   en app-shell::before y en el canvas del html — fuera de este wrapper —
+   y cubre la pantalla física completa sin moverse. */
 .mobile-scale-frame {
   width: 100%;
   min-height: 100dvh;
@@ -788,8 +784,7 @@ button {
 
 @media (max-width: 767px) {
   .mobile-scale-frame {
-    transform: translateY(var(--agent-mobile-frame-shift, -52px))
-      scale(var(--agent-mobile-frame-scale, 0.94));
+    transform: scale(var(--agent-mobile-frame-scale, 0.94));
     transform-origin: top center;
     height: 100dvh;
     min-height: 100dvh;
