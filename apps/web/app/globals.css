@@ -132,6 +132,16 @@
   }
 }
 
+html {
+  /* bg-door behind status bar on iOS: body can't paint into safe-area-inset-top,
+     but html can — this prevents the dark fallback from showing there */
+  background-color: #050810;
+  background-image: url('/images/bg-door.jpg');
+  background-size: cover;
+  background-position: center top;
+  background-repeat: no-repeat;
+}
+
 html,
 body {
   min-height: 100%;
@@ -2188,7 +2198,11 @@ body.home-lock {
 /* Mobile */
 @media (max-width: 480px) {
   .app-shell::before {
-    inset: 0;
+    /* Extend into iOS safe-area-inset-top so the bg covers the status bar area */
+    top: calc(-1 * env(safe-area-inset-top, 60px));
+    right: 0;
+    bottom: 0;
+    left: 0;
     transform: none;
     background-position: center top;
     background-size: cover;
