@@ -448,20 +448,44 @@ export function BudgetModal(props: {
   const initAbortRef = useRef<AbortController | null>(null);
   const replyAbortRef = useRef<AbortController | null>(null);
   const budgetReplyInputRef = useRef<HTMLInputElement | null>(null);
+  const budgetKeyboardTimerRef = useRef<number | null>(null);
   const formatBudgetAmount = (value: number) => `$${Math.round(value).toLocaleString('es-CL')}`;
   const formatMarketValue = (value: number, decimals = 0) =>
     Number(value).toLocaleString('es-CL', {
       minimumFractionDigits: decimals,
       maximumFractionDigits: decimals,
     });
+  const setBudgetKeyboardOpeningMode = (enabled: boolean) => {
+    document.documentElement.classList.toggle('keyboard-opening', enabled);
+    document.body.classList.toggle('keyboard-opening', enabled);
+    budgetModalRef.current?.classList.toggle('keyboard-opening', enabled);
+  };
+
+  const clearBudgetKeyboardTimer = () => {
+    if (budgetKeyboardTimerRef.current) {
+      clearTimeout(budgetKeyboardTimerRef.current);
+      budgetKeyboardTimerRef.current = null;
+    }
+  };
+
+  const settleBudgetField = (el: HTMLElement | null) => {
+    if (!el || typeof window === 'undefined') return;
+    clearBudgetKeyboardTimer();
+    setBudgetKeyboardOpeningMode(true);
+    el.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'auto' });
+    budgetKeyboardTimerRef.current = window.setTimeout(() => {
+      setBudgetKeyboardOpeningMode(false);
+      budgetKeyboardTimerRef.current = null;
+    }, 180);
+  };
+
   const focusBudgetField = (
     target: EventTarget | null,
   ) => {
     const el = target as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | null;
     if (!el || typeof el.focus !== 'function') return;
-    requestAnimationFrame(() => {
-      el.focus();
-    });
+    settleBudgetField(el);
+    el.focus({ preventScroll: true });
   };
   const activeQuestion = assistantQuestion ?? '…';
   const agentStatusText = isInitializing
@@ -640,7 +664,7 @@ export function BudgetModal(props: {
     setActiveBudgetRowId(assistantBudgetRowId);
     const row = document.getElementById(`budget-row-${assistantBudgetRowId}`);
     if (!row) return;
-    row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    row.scrollIntoView({ behavior: 'auto', block: 'nearest' });
     row.animate(
       [
         { transform: 'scale(1)', boxShadow: '0 0 0 rgba(255,255,255,0)' },
@@ -753,7 +777,7 @@ export function BudgetModal(props: {
     window.setTimeout(() => {
       const el = document.getElementById(`budget-row-${row.id}`);
       if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.scrollIntoView({ behavior: 'auto', block: 'center' });
         el.animate(
           [
             { boxShadow: '0 0 0 2px rgba(255,255,255,0.7)', transform: 'scale(1.012)' },
@@ -1106,7 +1130,7 @@ export function BudgetModal(props: {
     const target = budgetModalRef.current?.querySelector<HTMLElement>(selector);
     if (!target) return;
     const timer = window.setTimeout(() => {
-      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      target.scrollIntoView({ behavior: 'auto', block: 'start' });
     }, 80);
     return () => window.clearTimeout(timer);
   }, [budgetViewMode, isDesktopLayout, props.isOpen]);
@@ -1181,6 +1205,8 @@ export function BudgetModal(props: {
 
     window.addEventListener('keydown', onKeyDown);
     return () => {
+      clearBudgetKeyboardTimer();
+      setBudgetKeyboardOpeningMode(false);
       window.cancelAnimationFrame(rafId);
       window.removeEventListener('keydown', onKeyDown);
       const el = budgetRestoreFocusRef.current;

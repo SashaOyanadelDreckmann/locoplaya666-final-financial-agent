@@ -17835,11 +17835,27 @@ input[type="radio"]:checked {
 
   .transactions-modal .manual-evidence-textarea {
     min-height: 104px !important;
-    font-size: 0.75rem !important;
+    font-size: 16px !important;
   }
 
   .transactions-modal .manual-evidence-hint {
     font-size: 0.68rem !important;
+  }
+
+  .transactions-modal,
+  .transactions-modal input,
+  .transactions-modal select,
+  .transactions-modal textarea {
+    -webkit-text-size-adjust: 100% !important;
+    text-size-adjust: 100% !important;
+  }
+
+  .transactions-modal input:not([type="checkbox"]):not([type="radio"]),
+  .transactions-modal select,
+  .transactions-modal textarea,
+  .transactions-modal .bcc-hero-input,
+  .transactions-modal .manual-evidence-textarea {
+    font-size: 16px !important;
   }
 
   .transactions-modal .upload-label input[type="file"] {

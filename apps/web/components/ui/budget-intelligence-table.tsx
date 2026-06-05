@@ -228,6 +228,7 @@ function BudgetTextInput(props: {
   placeholder: string;
   style?: CSSProperties;
   onFocus: () => void;
+  onFocusField: (target: EventTarget | null) => void;
   onCommit: (value: string) => void;
 }) {
   const [draft, setDraft] = useState(props.value);
@@ -247,7 +248,10 @@ function BudgetTextInput(props: {
       onFocus={() => {
         isEditingRef.current = true;
         props.onFocus();
+        props.onFocusField(null);
       }}
+      onMouseDownCapture={(event) => props.onFocusField(event.currentTarget)}
+      onPointerDownCapture={(event) => props.onFocusField(event.currentTarget)}
       onMouseDown={stopRowCapture}
       onPointerDown={stopRowCapture}
       onChange={(e) => setDraft(e.target.value)}
@@ -268,6 +272,7 @@ function BudgetAmountInput(props: {
   rowId: string;
   amount: number;
   onFocus: () => void;
+  onFocusField: (target: EventTarget | null) => void;
   onCommit: (value: number) => void;
 }) {
   const [draft, setDraft] = useState(() => (props.amount > 0 ? String(props.amount) : ''));
@@ -296,7 +301,10 @@ function BudgetAmountInput(props: {
       onFocus={() => {
         isEditingRef.current = true;
         props.onFocus();
+        props.onFocusField(null);
       }}
+      onMouseDownCapture={(event) => props.onFocusField(event.currentTarget)}
+      onPointerDownCapture={(event) => props.onFocusField(event.currentTarget)}
       onMouseDown={stopRowCapture}
       onPointerDown={stopRowCapture}
       onChange={(e) => setDraft(e.target.value.replace(/\D/g, ''))}
@@ -466,6 +474,7 @@ export function BudgetIntelligenceTable(props: Props) {
                           borderColor: `${props.colorForBudgetRow(row.id)}90`,
                         }}
                         onFocus={() => props.focusBudgetRow(row.id)}
+                        onFocusField={props.focusBudgetField}
                         onCommit={(value) => props.updateBudgetRow(row.id, 'category', value)}
                       />
                     </div>
@@ -474,6 +483,8 @@ export function BudgetIntelligenceTable(props: Props) {
                     <select
                       value={row.type}
                       onFocus={() => props.focusBudgetRow(row.id)}
+                      onMouseDownCapture={(event) => props.focusBudgetField(event.currentTarget)}
+                      onPointerDownCapture={(event) => props.focusBudgetField(event.currentTarget)}
                       onMouseDown={stopRowCapture}
                       onPointerDown={stopRowCapture}
                       onChange={(e) => props.updateBudgetRow(row.id, 'type', e.target.value as 'income' | 'expense')}
@@ -497,6 +508,7 @@ export function BudgetIntelligenceTable(props: Props) {
                         rowId={row.id}
                         amount={row.amount}
                         onFocus={() => props.focusBudgetRow(row.id)}
+                        onFocusField={props.focusBudgetField}
                         onCommit={(value) => props.updateBudgetRow(row.id, 'amount', value)}
                       />
                     )}
@@ -513,6 +525,8 @@ export function BudgetIntelligenceTable(props: Props) {
                     <select
                       value={paymentMethod}
                       onFocus={() => props.focusBudgetRow(row.id)}
+                      onMouseDownCapture={(event) => props.focusBudgetField(event.currentTarget)}
+                      onPointerDownCapture={(event) => props.focusBudgetField(event.currentTarget)}
                       onMouseDown={stopRowCapture}
                       onPointerDown={stopRowCapture}
                       onChange={(e) => props.updateBudgetRow(row.id, 'paymentMethod', e.target.value)}
@@ -526,6 +540,8 @@ export function BudgetIntelligenceTable(props: Props) {
                     <select
                       value={movementType}
                       onFocus={() => props.focusBudgetRow(row.id)}
+                      onMouseDownCapture={(event) => props.focusBudgetField(event.currentTarget)}
+                      onPointerDownCapture={(event) => props.focusBudgetField(event.currentTarget)}
                       onMouseDown={stopRowCapture}
                       onPointerDown={stopRowCapture}
                       onChange={(e) => props.updateBudgetRow(row.id, 'movementType', e.target.value)}
