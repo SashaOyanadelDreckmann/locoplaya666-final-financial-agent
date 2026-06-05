@@ -155,7 +155,10 @@ body {
    ONLY layer browsers paint into the top safe-area behind the status bar /
    notch (body and position:fixed overlays never reach it). Painting the same
    image + gradient here as .app-shell::before makes the background bleed
-   edge-to-edge on iOS/Android with viewport-fit=cover, seamlessly. */
+   edge-to-edge on iOS/Android with viewport-fit=cover, seamlessly.
+   NOTE: no background-attachment:fixed — it is broken on iOS Safari. The html
+   element's background acts as the canvas background which is inherently fixed
+   to the screen, so 'scroll' (default) gives the same result without the bug. */
 html {
   background:
     linear-gradient(
@@ -165,7 +168,7 @@ html {
       rgba(0, 0, 0, 0.60) 44%,
       rgba(0, 0, 0, 0.76) 100%
     ),
-    url('/images/bg-door.jpg') center top / cover no-repeat fixed;
+    url('/images/bg-door.jpg') center top / cover no-repeat;
   background-color: #050810;
 }
 
@@ -2216,14 +2219,24 @@ body.home-lock {
   }
 }
 
-/* Mobile */
+/* Mobile — zoom de página bloqueado en 88 %
+   El body se escala al 88 % del viewport, generando márgenes naturales alrededor
+   del contenido en todos los bordes (incluyendo la zona del status bar).
+   El background del elemento <html> se propaga al canvas del browser — única capa
+   que el OS pinta DETRÁS del status bar — y así el fondo llena toda la pantalla
+   física aunque el body esté zoomado. */
 @media (max-width: 480px) {
+  body {
+    zoom: 0.88;
+  }
+
+  /* Con body zoomado al 88 %, el app-shell::before (position:fixed) también
+     se escala. Usamos insets negativos generosos para que la capa del fondo
+     cubra los bordes del viewport aunque body esté reducido, evitando huecos. */
   .app-shell::before {
-    inset: 0;
+    inset: calc(-1 * max(env(safe-area-inset-top, 54px), 44px) - 12px) -8px -8px -8px;
     transform-origin: center top;
-    /* Override animation with mobile variant that shifts up by env(safe-area-inset-top)
-       so the background bleeds behind the status bar on iPhone/Android edge-to-edge */
-    animation: appShellBackdropEntranceMobile 850ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation: appShellBackdropEntrance 850ms cubic-bezier(0.22, 1, 0.36, 1) both;
     background-position: center top;
     background-size: cover;
   }
