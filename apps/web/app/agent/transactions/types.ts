@@ -10,7 +10,7 @@ export type BankProduct = {
       createdAt: string;
       attachments?: string[];
     }>;
-    uploadFormat?: 'photos' | 'pdf' | 'spreadsheet' | 'text' | null;
+    uploadFormat?: 'photos' | 'pdf' | 'spreadsheet' | 'text' | 'video' | null;
     summaryText?: string | null;
     summaryModel?: string | null;
     summaryGeneratedAt?: string | null;

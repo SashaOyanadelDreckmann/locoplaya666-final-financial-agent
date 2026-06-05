@@ -2682,6 +2682,11 @@ export default function AgentPage() {
       'jpeg',
       'webp',
       'gif',
+      'mp4',
+      'mov',
+      'webm',
+      'm4v',
+      'avi',
       'pdf',
       'xls',
       'xlsx',
@@ -3224,11 +3229,11 @@ export default function AgentPage() {
     ]);
     const selectedFiles = fileArray.filter((file) => {
       const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
-      return file.type.startsWith('image/') || file.type === 'application/pdf' || allowedExt.has(ext);
+      return file.type.startsWith('image/') || file.type.startsWith('video/') || file.type === 'application/pdf' || allowedExt.has(ext);
     });
     if (selectedFiles.length === 0) {
       setTransactionUploadError(
-        'Formato no soportado. Usa imagen, PDF, XLS/XLSX, CSV/TSV, TXT/MD, JSON, XML, YAML o LOG.',
+        'Formato no soportado. Usa imagen, video, PDF, XLS/XLSX, CSV/TSV, TXT/MD, JSON, XML, YAML o LOG.',
       );
       return null;
     }

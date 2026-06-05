@@ -29,7 +29,7 @@ export interface TxEvidenceStepProps {
   }>;
   analysisAlreadyDone: boolean;
   txUploadOnboardingStep: 'format' | 'details' | 'upload';
-  selectedUploadFormat: 'photos' | 'pdf' | 'spreadsheet' | 'text' | null;
+  selectedUploadFormat: 'photos' | 'pdf' | 'spreadsheet' | 'text' | 'video' | null;
   pendingEvidenceFiles: File[];
   manualEvidenceDraft: string;
   txAssistantInput: string;
@@ -45,7 +45,7 @@ export interface TxEvidenceStepProps {
   documentsParseProgress?: DocumentsParseProgress | null;
   txAssistantError: string | null;
   pendingManualEvidence: string;
-  onPatchUploadFormat: (format: 'photos' | 'pdf' | 'spreadsheet' | 'text') => void;
+  onPatchUploadFormat: (format: 'photos' | 'pdf' | 'spreadsheet' | 'text' | 'video') => void;
   onResetUploadFormat: () => void;
   onSetUploadOnboardingStep: (step: 'format' | 'details' | 'upload') => void;
   onBumpTransitionPulse: () => void;
@@ -103,7 +103,7 @@ export function TxEvidenceStep(props: TxEvidenceStepProps) {
                           letterSpacing: '0.005em',
                         }}
                       >
-                        Adjunta cartola, PDF, Excel o texto. El agente ordena la evidencia y devuelve una lectura ejecutiva clara.
+                        Adjunta cartola, PDF, Excel, texto o una grabación rápida de pantalla. El agente ordena la evidencia y devuelve una lectura ejecutiva clara.
                       </p>
                     </div>
                     <div ref={p.scrollRef} className="transactions-summary-card tx-evidence-card tx-evidence-card--premium tx-chat-minimal-body">
@@ -149,6 +149,7 @@ export function TxEvidenceStep(props: TxEvidenceStepProps) {
                               </div>
                               <div className="tx-chat-format-pills tx-chat-format-pills--premium tx-chat-format-pills--deck">
                                 {([
+                                  ['video', 'Rápido'],
                                   ['photos', 'Fotos'],
                                   ['pdf', 'PDF'],
                                   ['spreadsheet', 'Excel / CSV'],
@@ -222,7 +223,7 @@ export function TxEvidenceStep(props: TxEvidenceStepProps) {
                           </span>
                           <input
                             type="file"
-                            accept="image/*,.png,.jpg,.jpeg,.webp,.gif,.pdf,.xls,.xlsx,.csv,.txt,.md"
+                            accept="image/*,video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm,.m4v,.avi,.png,.jpg,.jpeg,.webp,.gif,.pdf,.xls,.xlsx,.csv,.txt,.md"
                             multiple
                             onChange={(e: ChangeEvent<HTMLInputElement>) => p.onAppendPendingEvidence(e.target.files)}
                           />

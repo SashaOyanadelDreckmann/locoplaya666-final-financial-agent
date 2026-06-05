@@ -353,8 +353,16 @@ export function TransactionsModal(props: TransactionsModalProps) {
     });
   };
 
-  const formatChoiceLabel = (format: 'photos' | 'pdf' | 'spreadsheet' | 'text') =>
-    format === 'photos' ? 'fotos' : format === 'pdf' ? 'PDF' : format === 'spreadsheet' ? 'Excel/CSV' : 'texto';
+  const formatChoiceLabel = (format: 'photos' | 'pdf' | 'spreadsheet' | 'text' | 'video') =>
+    format === 'photos'
+      ? 'fotos'
+      : format === 'pdf'
+        ? 'PDF'
+        : format === 'spreadsheet'
+          ? 'Excel/CSV'
+          : format === 'video'
+            ? 'rápido'
+            : 'texto';
 
   const buildManualEvidenceFile = (text: string) =>
     new File([text], `antecedente-manual-${Date.now()}.txt`, { type: 'text/plain' });
@@ -366,7 +374,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
     appendAssistantMessages(product.id, product, [
       {
         role: 'assistant',
-        text: 'Antes de subir movimientos, dime cómo prefieres enviarlos: fotos, PDF, Excel/CSV o texto. Según eso te recomiendo la mejor forma para que el análisis salga limpio.',
+        text: 'Antes de subir movimientos, dime cómo prefieres enviarlos: rápido, fotos, PDF, Excel/CSV o texto. Según eso te recomiendo la mejor forma para que el análisis salga limpio.',
       },
     ]);
   };
