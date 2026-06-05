@@ -16,6 +16,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   const runtimeConfigScript = buildRuntimePublicConfigScript();
+  const standaloneClassScript = `
+(() => {
+  try {
+    const isStandalone = window.matchMedia?.('(display-mode: standalone)')?.matches || window.navigator?.standalone === true;
+    if (isStandalone) document.documentElement.classList.add('pwa-standalone');
+  } catch (_) {}
+})();
+`;
 
   return (
     <html lang="es">
@@ -28,10 +36,14 @@ export default function RootLayout({
           id="fa-runtime-config"
           dangerouslySetInnerHTML={{ __html: runtimeConfigScript }}
         />
+        <script
+          id="fa-standalone-class"
+          dangerouslySetInnerHTML={{ __html: standaloneClassScript }}
+        />
         <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
-        <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#05090f" />
-        <meta name="theme-color" content="#05090f" />
+        <meta name="theme-color" media="(prefers-color-scheme: light)" content="#5f7280" />
+        <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#5f7280" />
+        <meta name="theme-color" content="#5f7280" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="FinMente" />

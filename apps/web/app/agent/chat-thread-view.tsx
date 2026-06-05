@@ -795,8 +795,16 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
     rendered.push(renderChatItem(it, idx));
   }
 
+  const hasInlinePrimaryFlowAction = props.items.some((item) => {
+    if (item.type !== 'message' || item.role !== 'assistant') return false;
+    const section = item.panel_action?.section;
+    return Boolean(section) && section === props.flowPanelAction?.section;
+  });
+
   const flowPanelAction =
-    props.activeThreadId === 'chat-1' && !props.diagnosisUnlocked ? props.flowPanelAction : undefined;
+    props.activeThreadId === 'chat-1' && !props.diagnosisUnlocked && !hasInlinePrimaryFlowAction
+      ? props.flowPanelAction
+      : undefined;
 
   // UX decision: hide suggested-reply chips from thread top area to keep the
   // opening flow focused and avoid visual noise before/after first turns.
@@ -820,18 +828,6 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
           </div>
         )}
         {rendered}
-
-        {props.loading && (
-          <div className="agent-loading-pro" role="status" aria-live="polite">
-            <div className="agent-loading-pro-head">
-              <span className="agent-loading-pro-badge">Agente core</span>
-              <span className="agent-loading-pro-label">Analizando contexto y generando respuesta</span>
-            </div>
-            <div className="agent-loading-pro-track" aria-hidden="true">
-              <span className="agent-loading-pro-fill" />
-            </div>
-          </div>
-        )}
 
         {flowPanelAction?.section ? (
           <div className="agent-flow-cta agent-flow-cta--thread">

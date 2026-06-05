@@ -134,16 +134,6 @@
   }
 }
 
-/* Horizontal infinite scroll */
-@keyframes autoScroll {
-  0% {
-    transform: translateX(0);
-  }
-  100% {
-    transform: translateX(calc(-100% + 100vw));
-  }
-}
-
 /* Expand in */
 @keyframes expandIn {
   from {
@@ -155,30 +145,6 @@
     opacity: 1;
     transform: scale(1);
     clip-path: inset(0%);
-  }
-}
-
-/* Blur in effect */
-@keyframes blurIn {
-  from {
-    filter: blur(10px);
-    opacity: 0;
-  }
-  to {
-    filter: blur(0);
-    opacity: 1;
-  }
-}
-
-/* Flip in X */
-@keyframes flipInX {
-  from {
-    opacity: 0;
-    transform: perspective(400px) rotateX(90deg);
-  }
-  to {
-    opacity: 1;
-    transform: perspective(400px) rotateX(0deg);
   }
 }
 
@@ -219,33 +185,9 @@
   }
 }
 
-/* Breathing effect (subtle) */
-@keyframes breathing {
-  0%, 100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  50% {
-    transform: scale(1.01);
-    opacity: 0.98;
-  }
-}
-
 /* ─────────────────────────────────────────────────── */
 /* SCROLL ANIMATION TRIGGERS                          */
 /* ─────────────────────────────────────────────────── */
-
-/* Fade in when scrolling into view */
-.scroll-fade-in {
-  animation: fadeInScale 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-  opacity: 0;
-}
-
-.scroll-slide-in {
-  animation: slideInFromBottom 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-  opacity: 0;
-}
-
 /* ─────────────────────────────────────────────────── */
 /* BUTTON & INTERACTIVE ELEMENTS                      */
 /* ─────────────────────────────────────────────────── */
@@ -525,72 +467,6 @@ input:focus {
 }
 
 /* ─────────────────────────────────────────────────── */
-/* CHART & GRAPH ANIMATIONS                           */
-/* ─────────────────────────────────────────────────── */
-
-.chart-container {
-  animation: fadeInScale 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.chart-bar {
-  animation: slideInFromBottom 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
-}
-
-.chart-bar:nth-child(1) { animation-delay: 0.1s; }
-.chart-bar:nth-child(2) { animation-delay: 0.2s; }
-.chart-bar:nth-child(3) { animation-delay: 0.3s; }
-.chart-bar:nth-child(n+4) { animation-delay: 0.4s; }
-
-/* ─────────────────────────────────────────────────── */
-/* NOTIFICATION & TOAST ANIMATIONS                    */
-/* ─────────────────────────────────────────────────── */
-
-.toast {
-  animation: slideInFromBottom 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.toast.exiting {
-  animation: slideInFromBottom 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) reverse;
-}
-
-.notification {
-  animation: slideInFromTop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-/* ─────────────────────────────────────────────────── */
-/* HOVER GLOW EFFECTS                                  */
-/* ─────────────────────────────────────────────────── */
-
-.glow-on-hover {
-  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-  position: relative;
-}
-
-.glow-on-hover:hover {
-  box-shadow: var(--shadow-glow);
-}
-
-.glow-accent-2:hover {
-  box-shadow: var(--shadow-glow-yellow);
-}
-
-/* ─────────────────────────────────────────────────── */
-/* SCROLL PARALLAX EFFECTS                            */
-/* ─────────────────────────────────────────────────── */
-
-.parallax-scroll {
-  background-attachment: fixed;
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: cover;
-}
-
-.parallax-element {
-  position: relative;
-  will-change: transform;
-}
-
-/* ─────────────────────────────────────────────────── */
 /* RESPONSIVE ANIMATIONS                              */
 /* ─────────────────────────────────────────────────── */
 
@@ -623,25 +499,6 @@ input:focus {
   /* Slower animations for better performance */
   .typing-indicator {
     animation-duration: 1.8s;
-  }
-}
-
-/* ─────────────────────────────────────────────────── */
-/* DARK MODE SPECIFIC ANIMATIONS                      */
-/* ─────────────────────────────────────────────────── */
-
-@media (prefers-color-scheme: dark) {
-  .shimmer {
-    background: linear-gradient(
-      90deg,
-      rgba(255, 255, 255, 0.05) 25%,
-      rgba(255, 255, 255, 0.1) 50%,
-      rgba(255, 255, 255, 0.05) 75%
-    );
-  }
-
-  .glow-on-hover:hover {
-    box-shadow: 0 0 30px rgba(111, 143, 166, 0.4);
   }
 }
 
@@ -704,18 +561,6 @@ select:focus-visible {
   animation: slideInFromRight 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.animate-slide-in-top {
-  animation: slideInFromTop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.animate-slide-in-bottom {
-  animation: slideInFromBottom 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.animate-bounce-in {
-  animation: bounceIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
 .animate-float {
   animation: float 3s ease-in-out infinite;
 }
@@ -724,36 +569,18 @@ select:focus-visible {
   animation: gentlePulse 2s ease-in-out infinite;
 }
 
-.animate-glow {
-  animation: glowPulse 2s ease-in-out infinite;
-}
-
 .animate-spin {
   animation: rotate360 1s linear infinite;
-}
-
-.animate-breathing {
-  animation: breathing 2s ease-in-out infinite;
 }
 
 /* Delay utilities */
 .delay-100 { animation-delay: 0.1s; }
 .delay-200 { animation-delay: 0.2s; }
 .delay-300 { animation-delay: 0.3s; }
-.delay-400 { animation-delay: 0.4s; }
-.delay-500 { animation-delay: 0.5s; }
 
 /* ─────────────────────────────────────────────────── */
 /* PERFORMANCE OPTIMIZATION                           */
 /* ─────────────────────────────────────────────────── */
-
-/* GPU acceleration for smooth animations */
-.hardware-accelerate {
-  will-change: transform;
-  transform: translateZ(0);
-  backface-visibility: hidden;
-  perspective: 1000px;
-}
 
 /* Reduce motion for accessibility */
 @media (prefers-reduced-motion: reduce) {
