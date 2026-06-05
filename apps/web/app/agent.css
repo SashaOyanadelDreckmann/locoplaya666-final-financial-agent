@@ -48053,24 +48053,21 @@ body.agent-route-active .app-shell > * {
   .budget-modal .budget-table-section.is-mobile-table-compact .budget-table-bottom-actions {
     flex-shrink: 0 !important;
     order: 99 !important;
-    position: absolute !important;
-    left: 0 !important;
-    right: 0 !important;
-    bottom: calc(env(safe-area-inset-bottom, 0px) + 6px) !important;
+    position: static !important;
     transform: none !important;
     width: 100% !important;
-    margin: 0 !important;
+    margin: 10px 0 0 !important;
     display: grid !important;
-    grid-template-columns: minmax(0, 0.4fr) 1fr !important;
-    gap: 8px !important;
-    padding: 0 0 2px !important;
+    grid-template-columns: minmax(0, 0.42fr) 1fr !important;
+    gap: 10px !important;
+    padding: 0 !important;
     border: 0 !important;
     border-radius: 0 !important;
     background: transparent !important;
     box-shadow: none !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
-    z-index: 6 !important;
+    z-index: 1 !important;
   }
 
   .budget-modal .budget-table-section.is-mobile-table-compact .budget-style-button,
@@ -48129,21 +48126,29 @@ body.agent-route-active .app-shell > * {
   }
 
   .budget-modal .budget-table-section.is-mobile-table-compact .budget-table-bottom-actions {
-    position: fixed !important;
-    left: 12px !important;
-    right: 12px !important;
-    bottom: calc(env(safe-area-inset-bottom, 0px) + 10px) !important;
-    width: auto !important;
-    margin: 0 !important;
+    position: static !important;
+    inset: auto !important;
+    left: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    width: 100% !important;
+    margin: 10px 0 0 !important;
     padding: 0 !important;
-    z-index: 120 !important;
+    z-index: 1 !important;
     display: grid !important;
-    grid-template-columns: minmax(0, 0.4fr) 1fr !important;
-    gap: 8px !important;
+    grid-template-columns: minmax(0, 0.42fr) 1fr !important;
+    gap: 10px !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
   }
 
   .budget-modal .budget-main-carousel.mode-table-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact {
-    padding-bottom: calc(54px + env(safe-area-inset-bottom, 0px) + 16px) !important;
+    gap: 10px !important;
+    padding: 0 12px calc(env(safe-area-inset-bottom, 0px) + 10px) !important;
   }
 }
 
@@ -48307,5 +48312,100 @@ body.agent-route-active .app-shell > * {
     border: 1px solid rgba(255, 255, 255, 0.08) !important;
     backdrop-filter: blur(10px) !important;
     -webkit-backdrop-filter: blur(10px) !important;
+  }
+}
+
+/* Mobile Tabla — flex stack, scrollable rows, footer never overlaps content */
+@media (max-width: 1023px) {
+  .budget-modal .budget-main-carousel.is-mobile-budget.mode-table-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    height: 100% !important;
+    gap: 10px !important;
+    padding: 4px 12px calc(env(safe-area-inset-bottom, 0px) + 10px) !important;
+    overflow: hidden !important;
+    position: relative !important;
+  }
+
+  .budget-modal .budget-main-carousel.is-mobile-budget.mode-table-front:not(.is-desktop) .budget-table-head {
+    flex: 0 0 auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    gap: 8px !important;
+  }
+
+  .budget-modal .budget-main-carousel.is-mobile-budget.mode-table-front:not(.is-desktop) .budget-table-scroll-host {
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    height: 0 !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  .budget-modal .budget-main-carousel.is-mobile-budget.mode-table-front:not(.is-desktop) .budget-pdf-surface.is-mobile-compact {
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    overflow: hidden !important;
+  }
+
+  .budget-modal .budget-main-carousel.is-mobile-budget.mode-table-front:not(.is-desktop) .budget-pdf-head,
+  .budget-modal .budget-main-carousel.is-mobile-budget.mode-table-front:not(.is-desktop) .budget-pdf-metrics {
+    flex-shrink: 0 !important;
+    margin: 0 !important;
+  }
+
+  .budget-modal .budget-main-carousel.is-mobile-budget.mode-table-front:not(.is-desktop) .budget-table-wrap {
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    height: 0 !important;
+    max-height: none !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior-y: contain !important;
+    touch-action: pan-y !important;
+    padding-bottom: 6px !important;
+  }
+
+  .budget-modal .budget-main-carousel.is-mobile-budget.mode-table-front:not(.is-desktop) .budget-table,
+  .budget-modal .budget-main-carousel.is-mobile-budget.mode-table-front:not(.is-desktop) .budget-table tbody {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .budget-modal .budget-main-carousel.is-mobile-budget.mode-table-front:not(.is-desktop) .budget-table tbody tr {
+    margin: 0 0 10px !important;
+  }
+
+  .budget-modal .budget-main-carousel.is-mobile-budget.mode-table-front:not(.is-desktop) .budget-table-bottom-actions {
+    position: static !important;
+    inset: auto !important;
+    left: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    top: auto !important;
+    transform: none !important;
+    flex: 0 0 auto !important;
+    width: 100% !important;
+    margin: 4px 0 0 !important;
+    padding: 0 !important;
+    z-index: 1 !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 0.42fr) 1fr !important;
+    gap: 10px !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
   }
 }
