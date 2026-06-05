@@ -14321,6 +14321,23 @@ input[type="radio"]:checked {
     box-shadow: none !important;
   }
 
+  body.agent-route-active .agent-layout,
+  body.agent-route-active .agent-layout.is-panel-stage-1,
+  body.agent-route-active .agent-layout.is-panel-stage-2,
+  body.agent-route-active .agent-layout.is-panel-stage-small,
+  body.agent-route-active .agent-layout.is-panel-collapsed {
+    padding: 0 !important;
+    gap: 0 !important;
+  }
+
+  body.agent-route-active .agent-chat {
+    border-radius: 0 !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
   /* Mobile hard-fix: keep monochrome toggle in normal flow to avoid overlap */
   .chat-monochrome-toggle {
     position: relative !important;
@@ -43879,13 +43896,16 @@ body.agent-route-active .app-shell::before {
   .agent-chat-header.is-mobile {
     display: flex !important;
     flex-direction: column !important;
-    align-items: center !important;
+    align-items: stretch !important;
     flex: 0 0 auto !important;
-    margin: 0 8px !important;
-    padding: 6px 0 4px !important;
-    gap: 4px !important;
+    margin: 0 !important;
+    padding: calc(env(safe-area-inset-top, 0px) + 2px) 0 1px !important;
+    gap: 0 !important;
     border-bottom: none !important;
     min-height: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    background: #000000 !important;
   }
 
   .agent-chat-header.is-mobile .agent-chat-controls-row {
@@ -43900,9 +43920,9 @@ body.agent-route-active .app-shell::before {
   .agent-chat-header.is-mobile .chat-switcher {
     display: grid !important;
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-    width: 54% !important;
-    max-width: 54% !important;
-    margin-inline: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-inline: 0 !important;
     gap: 3px !important;
     align-items: stretch !important;
   }
@@ -46394,16 +46414,19 @@ body.agent-route-active .app-shell > * {
 
 @media (max-width: 767px) {
   .agent-chat-header.is-mobile {
-    padding-top: calc(env(safe-area-inset-top) + 6px) !important;
-    padding-bottom: 4px !important;
-    background: transparent !important;
+    padding-top: calc(env(safe-area-inset-top, 0px) + 2px) !important;
+    padding-bottom: 1px !important;
+    background: #000000 !important;
     border-bottom: 0 !important;
     box-shadow: none !important;
-    overflow: hidden !important;
+    overflow: visible !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
   }
 
   .agent-chat-header.is-mobile .agent-chat-controls-row {
-    margin-bottom: 6px !important;
+    margin-bottom: 0 !important;
     padding-top: 0 !important;
   }
 
@@ -46412,20 +46435,22 @@ body.agent-route-active .app-shell > * {
     flex-direction: column !important;
     align-items: center !important;
     justify-content: center !important;
-    gap: 2px !important;
+    gap: 0 !important;
     margin: 0 !important;
-    padding: 0 32px 2px !important;
+    margin-top: 3px !important;
+    padding: 0 !important;
     min-height: 0 !important;
-    overflow: hidden !important;
+    overflow: visible !important;
+    background: #000000 !important;
   }
 
   .agent-chat-header.is-mobile .chat-brand-title-row {
     width: 100% !important;
-    max-width: calc(100% - 44px) !important;
+    max-width: none !important;
     justify-content: center !important;
     align-items: center !important;
-    gap: 7px !important;
-    overflow: hidden !important;
+    gap: 5px !important;
+    overflow: visible !important;
     margin: 0 auto !important;
   }
 
@@ -47172,26 +47197,36 @@ body.agent-route-active .app-shell > * {
     border-radius: 0 !important;
     width: 100% !important;
     max-width: 100% !important;
+    overflow: visible !important;
+    min-width: 0 !important;
+  }
+
+  body.agent-route-active .agent-chat-body {
+    overflow: hidden !important;
+    min-width: 0 !important;
   }
 
   body.agent-route-active .agent-chat-header.is-mobile {
     display: flex !important;
     flex-direction: column !important;
     align-items: stretch !important;
-    width: 100vw !important;
-    max-width: 100vw !important;
-    margin-left: calc(50% - 50vw) !important;
-    margin-right: calc(50% - 50vw) !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
     box-sizing: border-box !important;
-    padding: calc(env(safe-area-inset-top, 0px) + 2px) 0 2px !important;
+    padding: calc(env(safe-area-inset-top, 0px) + 2px) 0 1px !important;
     gap: 0 !important;
     background: #000000 !important;
+    background-color: #000000 !important;
     background-image: none !important;
     border-bottom: none !important;
     border-radius: 0 !important;
     overflow: visible !important;
     flex: 0 0 auto !important;
     box-shadow: none !important;
+    position: relative !important;
+    left: 0 !important;
+    right: 0 !important;
   }
 
   body.agent-route-active .agent-chat-header.is-mobile::before,
@@ -47205,9 +47240,10 @@ body.agent-route-active .app-shell > * {
     width: 100% !important;
     margin: 0 !important;
     margin-bottom: 0 !important;
-    padding: 0 4px !important;
+    padding: 0 2px !important;
     overflow: visible !important;
     background: #000000 !important;
+    background-color: #000000 !important;
     background-image: none !important;
     box-shadow: none !important;
   }
@@ -47233,11 +47269,11 @@ body.agent-route-active .app-shell > * {
   body.agent-route-active .agent-chat-header.is-mobile .chat-sheet-tab {
     display: flex !important;
     align-items: center !important;
-    min-height: 20px !important;
-    height: 20px !important;
+    min-height: 18px !important;
+    height: 18px !important;
     min-width: 0 !important;
-    padding: 2px 3px !important;
-    border-radius: 7px !important;
+    padding: 1px 2px !important;
+    border-radius: 6px !important;
     gap: 2px !important;
     visibility: visible !important;
     opacity: 1 !important;
@@ -47257,12 +47293,12 @@ body.agent-route-active .app-shell > * {
 
   body.agent-route-active .agent-chat-header.is-mobile .chat-sheet-tab-title {
     display: block !important;
-    font-size: 8px !important;
+    font-size: 7px !important;
     line-height: 1 !important;
     white-space: nowrap !important;
     overflow: visible !important;
     text-overflow: clip !important;
-    letter-spacing: 0.02em !important;
+    letter-spacing: 0 !important;
     text-transform: none !important;
   }
 
@@ -47272,12 +47308,13 @@ body.agent-route-active .app-shell > * {
     align-items: center !important;
     width: 100% !important;
     margin: 0 !important;
-    margin-top: 5px !important;
+    margin-top: 3px !important;
     padding: 0 !important;
     gap: 0 !important;
     min-height: 0 !important;
     overflow: visible !important;
     background: #000000 !important;
+    background-color: #000000 !important;
     background-image: none !important;
     box-shadow: none !important;
   }
@@ -47285,24 +47322,24 @@ body.agent-route-active .app-shell > * {
   body.agent-route-active .agent-chat-header.is-mobile .chat-brand-action-row {
     position: relative !important;
     display: flex !important;
-    align-items: flex-start !important;
+    align-items: center !important;
     justify-content: center !important;
     width: 100% !important;
-    min-height: 18px !important;
-    padding: 0 44px 0 4px !important;
+    min-height: 16px !important;
+    padding: 0 36px 0 2px !important;
     box-sizing: border-box !important;
     overflow: visible !important;
   }
 
   body.agent-route-active .agent-chat-header.is-mobile .chat-brand-action-row .chat-monochrome-toggle--inline {
     position: absolute !important;
-    top: -1px !important;
-    right: 38px !important;
+    top: -2px !important;
+    right: 46px !important;
     left: auto !important;
     bottom: auto !important;
-    flex: 0 0 20px !important;
-    width: 20px !important;
-    height: 20px !important;
+    flex: 0 0 18px !important;
+    width: 18px !important;
+    height: 18px !important;
     margin: 0 !important;
     transform: none !important;
     z-index: 3 !important;
@@ -47368,6 +47405,18 @@ body.agent-route-active .app-shell > * {
     padding: 0 !important;
     max-width: none !important;
     overflow: visible !important;
+  }
+
+  body.agent-route-active .agent-chat-header.is-mobile > .muted {
+    display: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    height: 0 !important;
+    min-height: 0 !important;
+  }
+
+  body.agent-route-active .agent-chat-controls-row {
+    margin-bottom: 0 !important;
   }
 
   body.agent-route-active .agent-panel,
