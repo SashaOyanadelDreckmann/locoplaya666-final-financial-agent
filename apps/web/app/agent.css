@@ -44899,6 +44899,10 @@ body.agent-route-active .app-shell > * {
    ================================================================ */
 
 @media (max-width: 1023px) {
+  .budget-modal-overlay {
+    align-items: flex-end !important;
+    padding: 0 !important;
+  }
 
   /* ── Modal shell: full height, no scroll on body itself ──────── */
   .budget-modal {
@@ -44911,6 +44915,12 @@ body.agent-route-active .app-shell > * {
     overflow: hidden !important;
   }
 
+  .budget-modal.keyboard-opening {
+    height: var(--visual-vh, 100dvh) !important;
+    max-height: var(--visual-vh, 100dvh) !important;
+    min-height: var(--visual-vh, 100dvh) !important;
+  }
+
   .budget-modal .budget-modal-body {
     flex: 1 1 auto !important;
     min-height: 0 !important;
@@ -44919,6 +44929,13 @@ body.agent-route-active .app-shell > * {
     overflow: hidden !important;
     gap: 0 !important;
     padding-bottom: 0 !important;
+  }
+
+  .budget-modal.keyboard-opening .budget-modal-body {
+    height: auto !important;
+    max-height: none !important;
+    min-height: 0 !important;
+    flex: 1 1 auto !important;
   }
 
   /* ── Cockpit banner: compact single row on mobile ────────────── */
@@ -46119,6 +46136,19 @@ body.agent-route-active .app-shell > * {
     overflow: hidden !important;
     gap: 6px !important;
     padding-bottom: 0 !important;
+  }
+
+  .budget-modal.keyboard-opening {
+    height: calc(var(--visual-vh, 100dvh) + env(safe-area-inset-bottom, 0px)) !important;
+    max-height: calc(var(--visual-vh, 100dvh) + env(safe-area-inset-bottom, 0px)) !important;
+    min-height: calc(var(--visual-vh, 100dvh) + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  .budget-modal.keyboard-opening .budget-modal-body {
+    height: auto !important;
+    max-height: none !important;
+    min-height: 0 !important;
+    flex: 1 1 auto !important;
   }
 
   /* 4 ── Cockpit banner: compact, don't shrink */
