@@ -478,6 +478,7 @@ export default function AgentPage() {
   const mobilePanelHandleRef = useRef<HTMLDivElement | null>(null);
   const panelDragRef = useRef<{ startY: number; startH: number; moved: boolean } | null>(null);
   const chatComposerRef = useRef<HTMLTextAreaElement | null>(null);
+  const composerFocusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const interviewAutoOpenHandledRef = useRef(false);
 
   const loadProfileIfNeeded = useProfileStore((s) => s.loadProfileIfNeeded);
@@ -540,6 +541,33 @@ export default function AgentPage() {
     activeChatId === PRIMARY_CHAT_ID
       ? false
       : !unlockedChatIds.includes(activeChatId as any) || closedChatIds.includes(activeChatId);
+
+  function clearComposerFocusTimer() {
+    if (composerFocusTimerRef.current) {
+      clearTimeout(composerFocusTimerRef.current);
+      composerFocusTimerRef.current = null;
+    }
+  }
+
+  function focusComposerAfterLayout(options?: { collapsePanelFirst?: boolean }) {
+    if (isActiveChatLocked) return;
+    clearComposerFocusTimer();
+
+    const collapsePanelFirst = Boolean(options?.collapsePanelFirst && isMobileViewport);
+    if (collapsePanelFirst && mobilePanelExpanded) {
+      setMobilePanelExpanded(false);
+      const layout = panelScrollRef.current?.closest('.agent-layout') as HTMLElement | null;
+      layout?.classList.remove('mobile-panel-expanded');
+    }
+
+    composerFocusTimerRef.current = setTimeout(() => {
+      const el = chatComposerRef.current;
+      if (!el) return;
+      el.focus({ preventScroll: true });
+      el.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'auto' });
+      composerFocusTimerRef.current = null;
+    }, collapsePanelFirst ? 220 : 40);
+  }
   function isThreadLocked(threadId: string) {
     if (threadId === PRIMARY_CHAT_ID) return false;
     return !unlockedChatIds.includes(threadId as any) || closedChatIds.includes(threadId);
@@ -846,6 +874,8 @@ export default function AgentPage() {
     if (!isBudgetModalOpen) return;
     chatComposerRef.current?.blur();
   }, [isBudgetModalOpen]);
+
+  useEffect(() => () => clearComposerFocusTimer(), []);
 
   // Drag continuo en panel mobile: arrastra el handle para ajustar altura
   useEffect(() => {
@@ -2293,6 +2323,27 @@ export default function AgentPage() {
       setTimeout(() => chatComposerRef.current?.focus(), 80);
     }
   }, [hasBlockingModalOpen, isActiveChatLocked, isMobileViewport]);
+
+  useEffect(() => {
+    if (!isMobileViewport) return;
+    const vv = window.visualViewport;
+    if (!vv) return;
+    let raf = 0;
+    const settleComposer = () => {
+      cancelAnimationFrame(raf);
+      raf = window.requestAnimationFrame(() => {
+        if (document.activeElement !== chatComposerRef.current) return;
+        chatComposerRef.current?.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'auto' });
+      });
+    };
+    vv.addEventListener('resize', settleComposer);
+    vv.addEventListener('scroll', settleComposer);
+    return () => {
+      vv.removeEventListener('resize', settleComposer);
+      vv.removeEventListener('scroll', settleComposer);
+      cancelAnimationFrame(raf);
+    };
+  }, [isMobileViewport]);
 
   // Haptic feedback — usa Vibration API si esta disponible (Android/algunos iOS PWA)
   function haptic(pattern: number | number[] = 10) {
@@ -4012,7 +4063,7 @@ export default function AgentPage() {
             <div
               className="agent-input terminal-composer"
               onClick={() => {
-                if (!isActiveChatLocked) chatComposerRef.current?.focus();
+                focusComposerAfterLayout({ collapsePanelFirst: true });
               }}
               style={{ cursor: isActiveChatLocked ? 'default' : 'text' }}
             >
@@ -4024,6 +4075,16 @@ export default function AgentPage() {
                 value={input}
                 disabled={isActiveChatLocked}
                 autoFocus={!hasBlockingModalOpen && !isMobileViewport}
+                onFocus={() => {
+                  if (isMobileViewport && mobilePanelExpanded) {
+                    setMobilePanelExpanded(false);
+                    const layout = panelScrollRef.current?.closest('.agent-layout') as HTMLElement | null;
+                    layout?.classList.remove('mobile-panel-expanded');
+                  }
+                  window.setTimeout(() => {
+                    chatComposerRef.current?.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'auto' });
+                  }, 0);
+                }}
                 onChange={(e) => setDraftForActive(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
