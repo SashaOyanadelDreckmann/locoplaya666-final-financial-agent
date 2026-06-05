@@ -29,7 +29,7 @@ const VIDEO_MIME_BY_EXT: Record<string, string> = {
   '.m4v': 'video/mp4',
   '.avi': 'video/x-msvideo',
 };
-const MAX_VIDEO_FRAMES = 8;
+const MAX_VIDEO_FRAMES = 16;
 
 function resolveVisionModel(): string {
   return process.env.OPENAI_VISION_MODEL?.trim() || 'gpt-4o-mini';
@@ -62,9 +62,10 @@ function parseVideoDurationSeconds(stderr: string): number | null {
 
 function resolveVideoFrameRate(durationSeconds: number | null): number {
   if (!durationSeconds || !Number.isFinite(durationSeconds) || durationSeconds <= 0) return 0.5;
-  const targetFrames = Math.min(MAX_VIDEO_FRAMES, Math.max(4, Math.ceil(durationSeconds / 6)));
+  // 1 frame every 2.5 s covers typical bank-app scroll speed (new screen every ~2-3 s).
+  const targetFrames = Math.min(MAX_VIDEO_FRAMES, Math.max(4, Math.ceil(durationSeconds / 2.5)));
   const rate = targetFrames / durationSeconds;
-  return Math.max(0.12, Math.min(1, Number(rate.toFixed(4))));
+  return Math.max(0.12, Math.min(2, Number(rate.toFixed(4))));
 }
 
 function cleanupTempDir(dir: string): void {
@@ -162,11 +163,19 @@ async function parseVideoBufferDetailed(buffer: Buffer, filename: string): Promi
               role: 'system',
               content:
                 'Eres un OCR financiero experto para grabaciones de pantalla de apps bancarias. ' +
-                'Devuelve SOLO JSON válido con keys: summary (string), text (string), tables (array). ' +
-                'Cada table incluye: name (string), headers (string[]), rows (string[][]). ' +
-                'Reglas estrictas: (1) desduplicar — si el mismo movimiento aparece en varios fotogramas, incluirlo UNA sola vez; ' +
-                '(2) no inventar datos; (3) incluir TODOS los movimientos visibles en orden cronológico; ' +
-                '(4) omitir saldos totales, resúmenes y elementos de UI no financieros.',
+                'Recibes fotogramas ordenados de un mismo scroll continuo hacia abajo. ' +
+                'Tu objetivo es extraer CADA movimiento real visible, sin perder ninguno y sin duplicar.\n\n' +
+                'REGLAS DE DEDUPLICACIÓN (muy importantes):\n' +
+                '- Un movimiento es duplicado SOLO si fecha + monto + primeros 12 caracteres de descripción coinciden exactamente con otro ya incluido.\n' +
+                '- Dos cargos del mismo monto en fechas distintas = movimientos DISTINTOS → incluir ambos.\n' +
+                '- Dos cargos con descripción similar pero monto diferente = movimientos DISTINTOS → incluir ambos.\n' +
+                '- Ante la duda, incluir el movimiento — es mejor incluir un duplicado que perder un movimiento real.\n\n' +
+                'REGLAS DE EXTRACCIÓN:\n' +
+                '- Devuelve SOLO JSON válido: { summary: string, text: string, tables: Array<{name, headers, rows}> }\n' +
+                '- Incluir TODOS los movimientos en orden cronológico tal como aparecen en la app.\n' +
+                '- Columnas preferidas: fecha, descripción, monto, saldo, tipo (cargo/abono).\n' +
+                '- No inventar datos. Si un campo no es legible con certeza, dejarlo vacío.\n' +
+                '- Omitir saldos totales, resúmenes globales y elementos de UI sin valor financiero.',
             },
             {
               role: 'user',
@@ -174,11 +183,10 @@ async function parseVideoBufferDetailed(buffer: Buffer, filename: string): Promi
                 {
                   type: 'text',
                   text:
-                    `Archivo: ${filename}\n` +
-                    `Fotogramas: ${framePayloads.length} (ordenados cronológicamente del scroll).\n` +
-                    'Consolida TODOS los movimientos en una sola tabla. ' +
-                    'Columnas preferidas: fecha, descripción, monto, saldo, tipo (cargo/abono). ' +
-                    'Si un movimiento aparece en fotogramas consecutivos, inclúyelo una sola vez.',
+                    `Archivo: ${filename}. Fotogramas: ${framePayloads.length} (scroll continuo hacia abajo).\n` +
+                    'Extrae TODOS los movimientos financieros visibles en los fotogramas. ' +
+                    'Recuerda: el mismo movimiento puede aparecer en 2-4 fotogramas consecutivos mientras el usuario hace scroll — contarlo UNA sola vez. ' +
+                    'Un movimiento nuevo que aparece en la mitad inferior de un fotograma NO es duplicado del que apareció en la mitad superior del anterior si la descripción o monto difieren.',
                 },
                 ...framePayloads.flatMap((frame) => [
                   { type: 'text', text: frame.label },
