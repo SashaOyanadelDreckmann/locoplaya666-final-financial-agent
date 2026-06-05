@@ -57,6 +57,24 @@ export function ChatHeader(props: {
       ? 'sintesis maestra'
       : 'lectura base';
 
+  const monochromeToggle = (
+    <button
+      type="button"
+      className={`chat-monochrome-toggle ${
+        props.isMobileViewport ? 'chat-monochrome-toggle--inline' : 'chat-monochrome-toggle--floating'
+      }${props.isMonochrome ? ' is-active' : ''}`}
+      onClick={props.toggleMonochrome}
+      aria-label={props.isMonochrome ? 'Desactivar blanco y negro' : 'Activar blanco y negro'}
+      title={props.isMonochrome ? 'Desactivar blanco y negro' : 'Activar blanco y negro'}
+    >
+      <svg className="mono-toggle-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <circle className="mono-toggle-icon__ring" cx="12" cy="12" r="9" />
+        <path className="mono-toggle-icon__half" d="M12 3a9 9 0 0 0 0 18z" />
+        <path className="mono-toggle-icon__split" d="M12 3v18" />
+      </svg>
+    </button>
+  );
+
   return (
     <header className={`agent-chat-header${props.isMobileViewport ? ' is-mobile' : ''}`}>
       <div className="agent-chat-controls-row">
@@ -95,21 +113,7 @@ export function ChatHeader(props: {
             );
           })}
         </div>
-        <button
-          type="button"
-          className={`chat-monochrome-toggle ${
-            props.isMobileViewport ? 'chat-monochrome-toggle--inline' : 'chat-monochrome-toggle--floating'
-          }${props.isMonochrome ? ' is-active' : ''}`}
-          onClick={props.toggleMonochrome}
-          aria-label={props.isMonochrome ? 'Desactivar blanco y negro' : 'Activar blanco y negro'}
-          title={props.isMonochrome ? 'Desactivar blanco y negro' : 'Activar blanco y negro'}
-        >
-          <svg className="mono-toggle-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-            <circle className="mono-toggle-icon__ring" cx="12" cy="12" r="9" />
-            <path className="mono-toggle-icon__half" d="M12 3a9 9 0 0 0 0 18z" />
-            <path className="mono-toggle-icon__split" d="M12 3v18" />
-          </svg>
-        </button>
+        {!props.isMobileViewport ? monochromeToggle : null}
         {props.activeThread && props.activeThread.contextScore > 0 && (
           <div className="sheet-context-bar" title={`Contexto: ${props.activeThread.contextScore}%`}>
             <div className="sheet-context-fill" style={{ width: `${props.activeThread.contextScore}%` }} />
@@ -119,36 +123,39 @@ export function ChatHeader(props: {
         )}
       </div>
       <div className="chat-brand-strip">
-        <h1>
-          <button
-            type="button"
-            className="chat-brand-title-row chat-brand-title-row--home"
-            aria-label="Financieramente"
-            onClick={() => {
-              window.location.assign('/');
-            }}
-          >
-            <span className="chat-brand-logo-mark" aria-hidden="true">
-              <span className="chat-brand-logo-frame">
-                <svg viewBox="0 0 1254 1254" className="chat-brand-logo-svg" role="presentation" focusable="false">
-                  <rect className="chat-brand-logo-bg" width="1254" height="1254" />
-                  <text
-                    x="94"
-                    y="810"
-                    className="chat-brand-logo-lettermark"
-                  >
-                    Fm
-                  </text>
-                </svg>
+        <div className="chat-brand-action-row">
+          <h1>
+            <button
+              type="button"
+              className="chat-brand-title-row chat-brand-title-row--home"
+              aria-label="Financieramente"
+              onClick={() => {
+                window.location.assign('/');
+              }}
+            >
+              <span className="chat-brand-logo-mark" aria-hidden="true">
+                <span className="chat-brand-logo-frame">
+                  <svg viewBox="0 0 1254 1254" className="chat-brand-logo-svg" role="presentation" focusable="false">
+                    <rect className="chat-brand-logo-bg" width="1254" height="1254" />
+                    <text
+                      x="94"
+                      y="810"
+                      className="chat-brand-logo-lettermark"
+                    >
+                      Fm
+                    </text>
+                  </svg>
+                </span>
               </span>
-            </span>
-            <BrandWordmark
-              className="chat-brand-wordmark"
-              financieraClassName="chat-brand-financiera"
-              menteClassName="chat-brand-mente"
-            />
-          </button>
-        </h1>
+              <BrandWordmark
+                className="chat-brand-wordmark"
+                financieraClassName="chat-brand-financiera"
+                menteClassName="chat-brand-mente"
+              />
+            </button>
+          </h1>
+          {props.isMobileViewport ? monochromeToggle : null}
+        </div>
         <p
           className={`chat-identity-subtitle ${
             activeLabel === '2'

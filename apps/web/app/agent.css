@@ -4763,13 +4763,15 @@ html.agent-global-monochrome {
   max-width: min(96vw, 1380px) !important;
   max-height: 94vh !important;
   min-height: 84vh !important;
+  display: flex !important;
+  flex-direction: column !important;
   border-radius: 24px !important;
   background: transparent !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   border: none !important;
   box-shadow: none !important;
-  overflow-y: auto !important;
+  overflow: hidden !important;
   overflow-x: hidden !important;
 }
 
@@ -12791,6 +12793,13 @@ input[type="radio"]:checked {
 
 .agent-chat-controls-row {
   align-items: flex-start !important;
+}
+
+.chat-brand-action-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
 }
 
 .chat-brand-strip {
@@ -31255,6 +31264,7 @@ body.agent-route-active .app-shell::before {
   max-height: 280px;
   overflow-y: auto;
   padding: 4px 4px 0 0;
+  min-width: 0;
 }
 
 .transactions-modal .tx-chat-thread-empty {
@@ -31265,6 +31275,7 @@ body.agent-route-active .app-shell::before {
 
 .transactions-modal .tx-chat-bubble {
   max-width: 88%;
+  min-width: 0;
   border-radius: 18px;
   border: 1px solid rgba(255, 255, 255, 0.05);
   padding: 10px 12px;
@@ -31291,6 +31302,8 @@ body.agent-route-active .app-shell::before {
 
 .transactions-modal .tx-chat-bubble-text {
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
   color: rgba(243, 248, 255, 0.95);
   line-height: 1.5;
 }
@@ -34430,6 +34443,15 @@ body.agent-route-active .app-shell::before {
   z-index: 2;
 }
 
+.transactions-modal .tx-scroll-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
 .transactions-modal .tx-numbers-canvas {
   opacity: 0.42 !important;
   mix-blend-mode: normal !important;
@@ -34441,6 +34463,18 @@ body.agent-route-active .app-shell::before {
 .transactions-modal .tx-scroll-body {
   position: relative;
   z-index: 2;
+}
+
+.transactions-modal .pt-shell,
+.transactions-modal .pt-left,
+.transactions-modal .pt-right,
+.transactions-modal .tx-panel-surface,
+.transactions-modal .tx-content-card,
+.transactions-modal .tx-content-card--agent,
+.transactions-modal .transactions-summary-card,
+.transactions-modal .tx-chat-thread,
+.transactions-modal .tx-chat-bubble {
+  min-width: 0;
 }
 
 /* ── Close button: minimal bare × ─────────────────────────────────────────── */
@@ -47144,11 +47178,12 @@ body.agent-route-active .app-shell > * {
     display: flex !important;
     flex-direction: column !important;
     align-items: stretch !important;
-    width: 100% !important;
-    max-width: 100% !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    margin-left: calc(50% - 50vw) !important;
+    margin-right: calc(50% - 50vw) !important;
     box-sizing: border-box !important;
-    padding: calc(env(safe-area-inset-top, 0px) + 2px) 6px 2px !important;
-    margin: 0 !important;
+    padding: calc(env(safe-area-inset-top, 0px) + 2px) 0 2px !important;
     gap: 0 !important;
     background: #000000 !important;
     background-image: none !important;
@@ -47166,15 +47201,11 @@ body.agent-route-active .app-shell > * {
   }
 
   body.agent-route-active .agent-chat-header.is-mobile .agent-chat-controls-row {
-    display: flex !important;
-    flex-direction: row !important;
+    display: block !important;
     width: 100% !important;
-    align-items: center !important;
-    justify-content: flex-start !important;
-    gap: 4px !important;
     margin: 0 !important;
     margin-bottom: 0 !important;
-    padding: 0 !important;
+    padding: 0 4px !important;
     overflow: visible !important;
     background: #000000 !important;
     background-image: none !important;
@@ -47184,10 +47215,9 @@ body.agent-route-active .app-shell > * {
   body.agent-route-active .agent-chat-header.is-mobile .chat-switcher {
     display: grid !important;
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-    flex: 1 1 auto !important;
-    width: auto !important;
+    width: 100% !important;
     min-width: 0 !important;
-    max-width: none !important;
+    max-width: 100% !important;
     min-height: 0 !important;
     height: auto !important;
     padding: 0 !important;
@@ -47195,26 +47225,9 @@ body.agent-route-active .app-shell > * {
     margin: 0 !important;
     visibility: visible !important;
     opacity: 1 !important;
-    overflow: hidden !important;
+    overflow: visible !important;
     background: transparent !important;
-  }
-
-  body.agent-route-active .agent-chat-header.is-mobile .chat-monochrome-toggle--inline {
-    position: relative !important;
-    top: auto !important;
-    right: auto !important;
-    bottom: auto !important;
-    left: auto !important;
-    flex: 0 0 22px !important;
-    width: 22px !important;
-    height: 22px !important;
-    margin: 0 !important;
-    transform: none !important;
-  }
-
-  body.agent-route-active .agent-chat-header.is-mobile .chat-monochrome-toggle--inline .mono-toggle-icon {
-    width: 11px !important;
-    height: 11px !important;
+    box-sizing: border-box !important;
   }
 
   body.agent-route-active .agent-chat-header.is-mobile .chat-sheet-tab {
@@ -47223,11 +47236,12 @@ body.agent-route-active .app-shell > * {
     min-height: 20px !important;
     height: 20px !important;
     min-width: 0 !important;
-    padding: 2px 4px !important;
+    padding: 2px 3px !important;
     border-radius: 7px !important;
-    gap: 3px !important;
+    gap: 2px !important;
     visibility: visible !important;
     opacity: 1 !important;
+    overflow: visible !important;
   }
 
   body.agent-route-active .agent-chat-header.is-mobile .chat-sheet-tab-subtitle {
@@ -47243,12 +47257,12 @@ body.agent-route-active .app-shell > * {
 
   body.agent-route-active .agent-chat-header.is-mobile .chat-sheet-tab-title {
     display: block !important;
-    font-size: 9px !important;
+    font-size: 8px !important;
     line-height: 1 !important;
     white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    letter-spacing: 0.04em !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    letter-spacing: 0.02em !important;
     text-transform: none !important;
   }
 
@@ -47258,15 +47272,45 @@ body.agent-route-active .app-shell > * {
     align-items: center !important;
     width: 100% !important;
     margin: 0 !important;
-    margin-top: 0 !important;
+    margin-top: 5px !important;
     padding: 0 !important;
-    padding-right: 0 !important;
     gap: 0 !important;
     min-height: 0 !important;
     overflow: visible !important;
     background: #000000 !important;
     background-image: none !important;
     box-shadow: none !important;
+  }
+
+  body.agent-route-active .agent-chat-header.is-mobile .chat-brand-action-row {
+    position: relative !important;
+    display: flex !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
+    width: 100% !important;
+    min-height: 18px !important;
+    padding: 0 44px 0 4px !important;
+    box-sizing: border-box !important;
+    overflow: visible !important;
+  }
+
+  body.agent-route-active .agent-chat-header.is-mobile .chat-brand-action-row .chat-monochrome-toggle--inline {
+    position: absolute !important;
+    top: -1px !important;
+    right: 38px !important;
+    left: auto !important;
+    bottom: auto !important;
+    flex: 0 0 20px !important;
+    width: 20px !important;
+    height: 20px !important;
+    margin: 0 !important;
+    transform: none !important;
+    z-index: 3 !important;
+  }
+
+  body.agent-route-active .agent-chat-header.is-mobile .chat-brand-action-row .chat-monochrome-toggle--inline .mono-toggle-icon {
+    width: 10px !important;
+    height: 10px !important;
   }
 
   body.agent-route-active .agent-chat-header.is-mobile .chat-brand-title-row,
