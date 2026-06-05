@@ -46552,3 +46552,66 @@ body.agent-route-active .app-shell > * {
     transform: translate3d(0, 0, 0);
   }
 }
+
+/* FINAL MOBILE BUDGET ASSISTANT OVERLAY
+   - Table stays visible only as a blurred backdrop
+   - Assistant loses the heavy square container on phones
+*/
+@media (max-width: 767px) {
+  .budget-modal .budget-modal-body .budget-main-carousel.mode-agent-front {
+    position: relative !important;
+    overflow: hidden !important;
+  }
+
+  .budget-modal .budget-modal-body .budget-main-carousel.mode-agent-front > .budget-card-table {
+    display: block !important;
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    opacity: 0.95 !important;
+    pointer-events: none !important;
+    z-index: 1 !important;
+    transform: scale(1.06) !important;
+    filter: blur(24px) saturate(0.7) brightness(0.45) contrast(0.92) !important;
+    -webkit-filter: blur(24px) saturate(0.7) brightness(0.45) contrast(0.92) !important;
+  }
+
+  .budget-modal .budget-modal-body .budget-main-carousel.mode-agent-front > .budget-card-agent {
+    display: flex !important;
+    position: relative !important;
+    z-index: 2 !important;
+    width: 100% !important;
+    height: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+  }
+
+  .budget-modal .budget-modal-body .budget-main-carousel.mode-agent-front > .budget-card-agent .bcc-hero {
+    margin: 0 !important;
+    padding: 14px 12px 10px !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border-radius: 0 !important;
+    overflow: visible !important;
+  }
+
+  .budget-modal .budget-modal-body .budget-main-carousel.mode-agent-front > .budget-card-agent .bcc-hero-top {
+    margin-bottom: 14px !important;
+  }
+
+  .budget-modal .budget-modal-body .budget-main-carousel.mode-agent-front > .budget-card-agent .bcc-hero-question,
+  .budget-modal .budget-modal-body .budget-main-carousel.mode-agent-front > .budget-card-agent .bcc-hero-coach,
+  .budget-modal .budget-modal-body .budget-main-carousel.mode-agent-front > .budget-card-agent .bcc-hero-tip,
+  .budget-modal .budget-modal-body .budget-main-carousel.mode-agent-front > .budget-card-agent .bcc-log-row {
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.45) !important;
+  }
+}
