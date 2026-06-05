@@ -559,7 +559,11 @@ export default function AgentPage() {
   }
 
   function setKeyboardOpeningMode(enabled: boolean) {
+    const html = document.documentElement;
+    const body = document.body;
     const layout = panelScrollRef.current?.closest('.agent-layout') as HTMLElement | null;
+    html.classList.toggle('keyboard-opening', enabled);
+    body.classList.toggle('keyboard-opening', enabled);
     if (!layout) return;
     layout.classList.toggle('keyboard-opening', enabled);
   }
@@ -571,6 +575,8 @@ export default function AgentPage() {
     chatComposerRef.current?.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'auto' });
     mobileKeyboardSettleTimerRef.current = setTimeout(() => {
       setKeyboardOpeningMode(false);
+      const visibleH = window.visualViewport?.height ?? window.innerHeight;
+      document.documentElement.style.setProperty('--visual-vh', `${visibleH}px`);
       mobileKeyboardSettleTimerRef.current = null;
     }, 180);
   }
@@ -888,6 +894,9 @@ export default function AgentPage() {
   useEffect(() => {
     const vv = window.visualViewport;
     const update = () => {
+      if (document.documentElement.classList.contains('keyboard-opening')) {
+        return;
+      }
       const screenH = window.innerHeight;
       const visibleH = vv?.height ?? screenH;
       document.documentElement.style.setProperty('--screen-h', `${screenH}px`);

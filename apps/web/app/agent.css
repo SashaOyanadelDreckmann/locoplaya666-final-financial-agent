@@ -5382,6 +5382,21 @@ html.agent-global-monochrome {
 /* ─── Mobile (<768px) ───────────────────────────── */
 
 @media (max-width: 767px) {
+  html.keyboard-opening,
+  body.keyboard-opening {
+    overflow: hidden !important;
+  }
+
+  body.keyboard-opening .global-agent-backdrop,
+  body.keyboard-opening .app-shell::before,
+  body.keyboard-opening .app-shell::after {
+    animation: none !important;
+    transform: none !important;
+    transition: none !important;
+    background-attachment: scroll !important;
+    will-change: auto !important;
+  }
+
   /* ── Layout: fondo único que cubre chat + panel ── */
   .agent-layout {
     display: flex !important;
