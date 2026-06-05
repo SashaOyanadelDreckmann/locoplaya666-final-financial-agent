@@ -1,0 +1,116 @@
+{
+  "when": "2026-06-05T05:15:55.900322+00:00",
+  "base": "https://financieramente.up.railway.app",
+  "passes": [
+    {
+      "area": "Infra",
+      "title": "Web health"
+    },
+    {
+      "area": "Infra",
+      "title": "API health"
+    },
+    {
+      "area": "Infra",
+      "title": "Ruta /demo redirige (sin demo pública)"
+    },
+    {
+      "area": "Auth",
+      "title": "Login cuenta de prueba"
+    },
+    {
+      "area": "Auth",
+      "title": "CSRF token en sesión"
+    },
+    {
+      "area": "Auth",
+      "title": "Sesión activa"
+    },
+    {
+      "area": "Auth",
+      "title": "Agente bloqueado sin sesión"
+    },
+    {
+      "area": "Intake",
+      "title": "Intake persistido en sesión"
+    },
+    {
+      "area": "Cartola",
+      "title": "Parse CSV limpio OK (7 mov, ingresos $1,700,000)"
+    },
+    {
+      "area": "Cartola",
+      "title": "CSV con metadata parseado correctamente"
+    },
+    {
+      "area": "Transacciones",
+      "title": "Q&A sobre movimientos coherente"
+    },
+    {
+      "area": "Panel",
+      "title": "Guardar panel state"
+    },
+    {
+      "area": "Panel",
+      "title": "Cargar panel state"
+    },
+    {
+      "area": "Panel",
+      "title": "Merge products context"
+    },
+    {
+      "area": "Agente",
+      "title": "Respuesta contextual (cartola_loaded)"
+    },
+    {
+      "area": "Agente",
+      "title": "Respuesta contextual (budget_loaded)"
+    },
+    {
+      "area": "Presupuesto",
+      "title": "Budget chat init"
+    }
+  ],
+  "warnings": [
+    {
+      "area": "Agente",
+      "title": "Respuesta poco específica (specific_advice)",
+      "detail": "Ya tengo tus movimientos/cartolas integrados. Puedo leer patrones, alertas y relaciones entre productos sin pedirte que vuelvas a subirlos.\n\nSi algo luce inconsistente, lo contrasto contigo antes de a"
+    },
+    {
+      "area": "Sesión",
+      "title": "Sin diagnostic profile ID",
+      "detail": "fase=diagnosis_ready"
+    }
+  ],
+  "bugs": [
+    {
+      "id": "B012",
+      "severity": "high",
+      "area": "Transacciones",
+      "title": "transactions-chat summary falla",
+      "detail": "HTTP 500 {'type': 'https://api.financial-agent.local/problems/internal_error', 'title': 'Internal Server Error', 'status': 500, 'detail': 'Internal server error', 'instance': '/api/transactions-chat', 'code': "
+    },
+    {
+      "id": "B019",
+      "severity": "critical",
+      "area": "Entrevista",
+      "title": "Token Realtime roto — falta transcription.model",
+      "detail": "OpenAI Realtime error (400): Missing required parameter: 'session.audio.input.transcription.model'."
+    },
+    {
+      "id": "B020",
+      "severity": "critical",
+      "area": "Entrevista",
+      "title": "Finalize entrevista error 500",
+      "detail": "No se genera diagnóstico post-llamada"
+    },
+    {
+      "id": "B021",
+      "severity": "medium",
+      "area": "Diagnóstico",
+      "title": "Sin diagnóstico generado",
+      "detail": "No diagnosis found for this user"
+    }
+  ]
+}
