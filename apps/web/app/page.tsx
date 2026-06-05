@@ -164,7 +164,7 @@ function ProblemSection() {
           }} />
         </div>
 
-        <div style={{ padding: 'clamp(40px,8vw,120px)', width: '100%', maxWidth: 900 }}>
+        <div style={{ padding: 'clamp(24px,8vw,120px)', width: '100%', maxWidth: 900 }}>
           <Label text="El problema" color={BLUE_DIM} />
 
           {PROBLEM_LINES.map((line, i) => (
@@ -220,7 +220,7 @@ function FeaturesSection({ sectionRef }: { sectionRef: RefObject<HTMLElement> })
       position: 'relative',
       overflow: 'hidden',
       background: 'transparent',
-      padding: 'clamp(80px,12vw,160px) clamp(24px,8vw,120px)',
+      padding: 'clamp(52px,12vw,160px) clamp(24px,8vw,120px)',
       borderTop: '1px solid rgba(164,143,79,0.10)',
     }}>
 
@@ -239,7 +239,7 @@ function FeaturesSection({ sectionRef }: { sectionRef: RefObject<HTMLElement> })
           lineHeight: 1.02,
           letterSpacing: '-0.034em',
           color: 'white',
-          margin: '0 0 clamp(48px,7vw,80px)',
+          margin: '0 0 clamp(28px,7vw,80px)',
           maxWidth: 540,
         }}>
           Lo que el agente<br />
@@ -289,7 +289,7 @@ function StatsSection() {
   return (
     <section ref={ref} style={{
       background: 'transparent',
-      padding: 'clamp(70px,10vw,130px) clamp(24px,8vw,120px)',
+      padding: 'clamp(44px,10vw,130px) clamp(24px,8vw,120px)',
       position: 'relative',
       overflow: 'hidden',
     }}>
@@ -303,7 +303,7 @@ function StatsSection() {
         <Label text="En números" color={BLUE_DIM} />
       </motion.div>
 
-      <div className="grid grid-cols-1 gap-x-8 gap-y-14 sm:grid-cols-3" style={{ position: 'relative', zIndex: 1 }}>
+      <div className="grid grid-cols-1 gap-x-8 gap-y-10 sm:gap-y-14 sm:grid-cols-3" style={{ position: 'relative', zIndex: 1 }}>
         {STATS.map(({ to, suffix, label, color }) => {
           return (
             <motion.div
@@ -362,7 +362,7 @@ function StepsSection() {
   return (
     <section ref={ref} style={{
       background: 'transparent',
-      padding: 'clamp(80px,12vw,160px) clamp(24px,8vw,120px)',
+      padding: 'clamp(52px,12vw,160px) clamp(24px,8vw,120px)',
       borderTop: '1px solid rgba(164,143,79,0.10)',
       position: 'relative',
       overflow: 'hidden',
@@ -382,7 +382,7 @@ function StepsSection() {
           lineHeight: 1.02,
           letterSpacing: '-0.034em',
           color: 'white',
-          margin: '0 0 clamp(48px,7vw,80px)',
+          margin: '0 0 clamp(28px,7vw,80px)',
           maxWidth: 440,
         }}>
           Tres pasos<br />
@@ -478,7 +478,7 @@ function CtaSection() {
   return (
     <section ref={ref} style={{
       background: 'transparent',
-      padding: 'clamp(120px,16vw,220px) clamp(24px,8vw,120px)',
+      padding: 'clamp(72px,16vw,220px) clamp(24px,8vw,120px)',
       borderTop: '1px solid rgba(164,143,79,0.10)',
       position: 'relative',
       overflow: 'hidden',
@@ -492,7 +492,7 @@ function CtaSection() {
       <motion.div style={{ y: headY, opacity: headO, position: 'relative', zIndex: 1 }}>
         <motion.h2
           style={{
-            fontSize: 'clamp(52px,9vw,120px)',
+            fontSize: 'clamp(40px,10vw,120px)',
             fontFamily: 'Georgia, "Times New Roman", serif',
             fontStyle: 'italic',
             fontWeight: 700,
