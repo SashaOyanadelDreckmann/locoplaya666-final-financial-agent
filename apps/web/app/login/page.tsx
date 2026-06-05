@@ -12,6 +12,24 @@ import { LoginSchema, type LoginInput } from '@/lib/validation';
 import { hasCompletedIntakeAccess } from '@/lib/sessionAccess';
 import { ZodError } from 'zod';
 
+const SESSION_READY_RETRIES = 8;
+const SESSION_READY_DELAY_MS = 125;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function waitForSessionReady() {
+  for (let attempt = 0; attempt < SESSION_READY_RETRIES; attempt += 1) {
+    const session = await getSessionInfo().catch(() => null);
+    if (session?.id) return session;
+    if (attempt < SESSION_READY_RETRIES - 1) {
+      await sleep(SESSION_READY_DELAY_MS * (attempt + 1));
+    }
+  }
+  return null;
+}
+
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -52,7 +70,6 @@ function LoginContent() {
       setLoading(true);
       setError(null);
       const loginPayload = await loginUser(form);
-      setAuthenticated();
       const role = String(loginPayload?.user?.role ?? '').toUpperCase();
       const requestedNext = searchParams.get('next');
       const safeNext = requestedNext && requestedNext.startsWith('/') && !requestedNext.startsWith('//')
@@ -60,12 +77,14 @@ function LoginContent() {
         : null;
       let fallbackRoute = role === 'ADMIN' ? '/admin' : '/agent';
       if (role !== 'ADMIN') {
-        const session = await getSessionInfo().catch(() => null);
+        const session = await waitForSessionReady();
         if (session && !hasCompletedIntakeAccess(session.injectedIntake)) {
           fallbackRoute = '/intake?status=approved';
         }
       }
-      router.push(safeNext ?? fallbackRoute);
+      setAuthenticated();
+      const target = safeNext ?? fallbackRoute;
+      window.location.assign(target);
     } catch (e: Error | unknown) {
       if (e instanceof ApiHttpError && e.code === 'ACCOUNT_PENDING_APPROVAL') {
         const qp = new URLSearchParams({ email: form.email });

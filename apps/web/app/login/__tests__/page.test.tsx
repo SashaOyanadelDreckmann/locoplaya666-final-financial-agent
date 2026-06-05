@@ -2,7 +2,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useRouter } from 'next/navigation';
 import LoginPage from '../page';
-import { loginUser } from '@/lib/api';
+import { getSessionInfo, loginUser } from '@/lib/api';
 import { ApiHttpError } from '@/lib/apiEnvelope';
 
 // Mock next/navigation
@@ -14,6 +14,7 @@ jest.mock('next/navigation', () => ({
 // Mock API
 jest.mock('@/lib/api', () => ({
   loginUser: jest.fn(),
+  getSessionInfo: jest.fn(),
 }));
 
 // Mock Zustand store
@@ -27,11 +28,33 @@ jest.mock('@/state/session.store', () => ({
 describe('LoginPage', () => {
   const mockPush = jest.fn();
   const mockLoginUser = loginUser as jest.MockedFunction<typeof loginUser>;
+  const mockGetSessionInfo = getSessionInfo as jest.MockedFunction<typeof getSessionInfo>;
+  const originalLocation = window.location;
 
   beforeEach(() => {
     jest.clearAllMocks();
     (useRouter as jest.Mock).mockReturnValue({
       push: mockPush,
+    });
+    mockGetSessionInfo.mockResolvedValue({
+      id: 'session-1',
+      injectedIntake: {
+        intake: {
+          employmentStatus: 'employed',
+          incomeBand: '600k-1M',
+        },
+      },
+    });
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: { ...originalLocation, assign: jest.fn() },
+    });
+  });
+
+  afterEach(() => {
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: originalLocation,
     });
   });
 
@@ -105,7 +128,7 @@ describe('LoginPage', () => {
         email: 'test@example.com',
         password: 'Password123',
       });
-      expect(mockPush).toHaveBeenCalledWith('/agent');
+      expect(window.location.assign).toHaveBeenCalledWith('/agent');
     });
   });
 
@@ -120,7 +143,7 @@ describe('LoginPage', () => {
     await user.click(screen.getByRole('button', { name: /Continuar/i }));
 
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith('/admin');
+      expect(window.location.assign).toHaveBeenCalledWith('/admin');
     });
   });
 
@@ -139,7 +162,7 @@ describe('LoginPage', () => {
     await user.click(screen.getByRole('button', { name: /Continuar/i }));
 
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith('/intake');
+      expect(window.location.assign).toHaveBeenCalledWith('/intake');
     });
   });
 
