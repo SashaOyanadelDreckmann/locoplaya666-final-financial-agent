@@ -46761,4 +46761,93 @@ body.agent-route-active .app-shell > * {
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
   }
+
+  .agent-modal :is(.card, .panel, .shell, .surface, .section, .wrap),
+  .budget-modal :is(.card, .panel, .shell, .surface, .section, .wrap),
+  .transactions-modal :is(.card, .panel, .shell, .surface, .section, .wrap),
+  .social-modal :is(.card, .panel, .shell, .surface, .section, .wrap) {
+    background: transparent !important;
+    background-image: none !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .budget-modal .budget-assistant-panel,
+  .budget-modal .budget-table-section,
+  .budget-modal .budget-card-agent,
+  .budget-modal .budget-card-table,
+  .budget-modal .bcc-hero,
+  .budget-modal .bcc-hero-top,
+  .budget-modal .bcc-hero-log,
+  .budget-modal .bcc-hero-input-wrap,
+  .budget-modal .bcc-hero-send,
+  .budget-modal .budget-mode-tabs,
+  .budget-modal .budget-mode-tab,
+  .budget-modal .budget-table-head,
+  .budget-modal .budget-table-wrap,
+  .budget-modal .budget-table-bottom-actions,
+  .budget-modal .budget-pdf-surface,
+  .budget-modal .budget-cockpit-banner,
+  .budget-modal .budget-cockpit-metrics,
+  .budget-modal .budget-cockpit-metric,
+  .budget-modal .budget-health,
+  .budget-modal .budget-chat-card,
+  .budget-modal .budget-top-expenses,
+  .budget-modal .budget-summary,
+  .budget-modal .budget-main-carousel > section,
+  .budget-modal .budget-main-carousel > section > *,
+  .budget-modal .budget-main-carousel > section > * > * {
+    background: transparent !important;
+    background-image: none !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  .transactions-modal .pt-shell,
+  .transactions-modal .pt-left,
+  .transactions-modal .pt-right,
+  .transactions-modal .tx-stage-shell,
+  .transactions-modal .tx-panel-surface,
+  .transactions-modal .tx-panel-surface--library,
+  .transactions-modal .tx-panel-surface--workspace,
+  .transactions-modal .tx-content-card,
+  .transactions-modal .tx-content-card > *,
+  .transactions-modal .tx-content-card > * > *,
+  .transactions-modal .transactions-summary-card,
+  .transactions-modal .tx-meta-card,
+  .transactions-modal .tx-preset-shell,
+  .transactions-modal .tx-preset-grid,
+  .transactions-modal .tx-lib-card,
+  .transactions-modal .tx-lib-card-top,
+  .transactions-modal .tx-lib-card-copy,
+  .transactions-modal .tx-lib-card-nav,
+  .transactions-modal .tx-lib-card-nav-status,
+  .transactions-modal .tx-lib-card-sheen,
+  .transactions-modal .tx-3d-hero-shell,
+  .transactions-modal .tx-hero-shell-spacer {
+    background: transparent !important;
+    background-image: none !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  .social-modal .social-modal-ambient,
+  .social-modal .social-quote-strip,
+  .social-modal .social-step,
+  .social-modal .social-choice-btn,
+  .social-modal .social-answer-item {
+    background: transparent !important;
+    background-image: none !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  .agent-modal .agent-modal-actions,
+  .budget-modal .agent-modal-actions,
+  .transactions-modal .agent-modal-actions,
+  .social-modal .agent-modal-actions {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
 }
