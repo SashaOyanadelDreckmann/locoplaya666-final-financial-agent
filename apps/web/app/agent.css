@@ -22512,6 +22512,72 @@ input[type="radio"]:checked {
   padding: 0 6px !important;
 }
 
+/* ============================================================ */
+/* Mobile budget chat: sin contenedor + tabla desenfocada atrás */
+/* ============================================================ */
+@media (max-width: 767px) {
+  /* Carousel = contexto de apilamiento en modo agente */
+  .budget-modal .budget-modal-body .budget-main-carousel.mode-agent-front:not(.is-desktop) {
+    position: relative !important;
+    display: block !important;
+    overflow: hidden !important;
+    min-height: 62vh !important;
+  }
+
+  /* Tabla: visible pero absolutamente posicionada, muy desenfocada */
+  .budget-modal .budget-modal-body .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-table,
+  .budget-modal .budget-modal-body .budget-main-carousel.mode-agent-front:not(.is-desktop) > section[data-main-card="table"] {
+    display: block !important;
+    position: absolute !important;
+    inset: 0 !important;
+    z-index: 1 !important;
+    pointer-events: none !important;
+    filter: blur(24px) brightness(0.55) !important;
+    opacity: 0.6 !important;
+    transform: scale(1.1) !important;
+    overflow: hidden !important;
+    -webkit-user-select: none !important;
+    user-select: none !important;
+    /* reset any box model overrides */
+    padding: 0 !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+  }
+
+  /* Panel del agente: define el alto, flota encima sin contenedor */
+  .budget-modal .budget-modal-body .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-agent,
+  .budget-modal .budget-modal-body .budget-main-carousel.mode-agent-front:not(.is-desktop) > section[data-main-card="agent"] {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    align-items: center !important;
+    position: relative !important;
+    z-index: 3 !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 40px 24px !important;
+    min-height: 62vh !important;
+  }
+
+  /* bcc-hero: sin caja, sin fondo, sin borde */
+  .budget-modal .budget-modal-body .budget-main-carousel.mode-agent-front .budget-assistant-panel .bcc-hero {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 520px !important;
+  }
+}
+
 /* Budget table: category + type + amount + actions (no note column) */
 .budget-modal .budget-table th:nth-child(1),
 .budget-modal .budget-table td:nth-child(1) { width: 52% !important; }
