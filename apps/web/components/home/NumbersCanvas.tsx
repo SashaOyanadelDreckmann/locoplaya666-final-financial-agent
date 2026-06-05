@@ -85,12 +85,18 @@ export default function NumbersCanvas({
     }
 
     function resize() {
-      canvas.width  = window.innerWidth;
-      canvas.height = window.innerHeight;
+      const layer = canvas.parentElement;
+      const w = layer?.clientWidth ?? window.innerWidth;
+      const h = layer?.clientHeight ?? window.innerHeight;
+      canvas.width  = w;
+      canvas.height = h;
       sample();
     }
     resize();
     window.addEventListener('resize', resize);
+    const vv = window.visualViewport;
+    vv?.addEventListener('resize', resize);
+    vv?.addEventListener('scroll', resize);
     img.onload = sample;
 
     // Smoothed mouse (lerped per-frame for buttery response)
@@ -296,6 +302,8 @@ export default function NumbersCanvas({
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener('resize', resize);
+      vv?.removeEventListener('resize', resize);
+      vv?.removeEventListener('scroll', resize);
     };
   }, [progress, mouseRef, featureDip]);
 

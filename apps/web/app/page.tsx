@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRef, type RefObject } from 'react';
+import { useRef, useEffect, useCallback, type RefObject } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowRight } from 'lucide-react';
 import {
@@ -20,6 +20,8 @@ import { useSessionStore } from '@/state/session.store';
 import { getSessionInfo } from '@/lib/api';
 
 const MotionLink = motion(Link);
+
+const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
 
 // ── Easing ────────────────────────────────────────────────────────────────────
 const SILK: [number, number, number, number] = [0.22, 1, 0.36, 1];
@@ -568,6 +570,53 @@ export default function HomePage() {
   const heroY       = useTransform(heroProgress, [0, 0.6], [0, -55]);
   const lineOpacity = useTransform(heroProgress, [0, 0.18], [1, 0]);
 
+  useEffect(() => {
+    const html = document.documentElement;
+    const body = document.body;
+    html.classList.add('home-route-active');
+    body.classList.add('home-route-active');
+    return () => {
+      html.classList.remove('home-route-active');
+      body.classList.remove('home-route-active');
+    };
+  }, []);
+
+  const updatePointer = useCallback((clientX: number, clientY: number) => {
+    const vv = window.visualViewport;
+    const w = vv?.width ?? window.innerWidth;
+    const h = vv?.height ?? window.innerHeight;
+    const ox = vv?.offsetLeft ?? 0;
+    const oy = vv?.offsetTop ?? 0;
+    const nx = clamp01((clientX - ox) / w);
+    const ny = clamp01((clientY - oy) / h);
+    heroMX.set(nx);
+    heroMY.set(ny);
+    mousePosRef.current.x = nx;
+    mousePosRef.current.y = ny;
+  }, [heroMX, heroMY]);
+
+  useEffect(() => {
+    const resetPointer = () => {
+      heroMX.set(0.5);
+      heroMY.set(0.5);
+      mousePosRef.current.x = 0.5;
+      mousePosRef.current.y = 0.5;
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      const touch = e.touches[0];
+      if (!touch) return;
+      updatePointer(touch.clientX, touch.clientY);
+    };
+    window.addEventListener('touchmove', onTouchMove, { passive: true });
+    window.addEventListener('touchend', resetPointer, { passive: true });
+    window.addEventListener('touchcancel', resetPointer, { passive: true });
+    return () => {
+      window.removeEventListener('touchmove', onTouchMove);
+      window.removeEventListener('touchend', resetPointer);
+      window.removeEventListener('touchcancel', resetPointer);
+    };
+  }, [heroMX, heroMY, updatePointer]);
+
   const handleStartDiagnosis = async () => {
     if (isAuthenticated) {
       router.push('/intake');
@@ -585,22 +634,12 @@ export default function HomePage() {
     <main style={{ background: '#060b18', color: 'white', position: 'relative' }}>
 
       {/* Canvas fijo */}
-      <div style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
+      <div className="home-canvas-layer">
         <NumbersCanvas progress={canvasProgress} mouseRef={mousePosRef} featureDip={featureDip} />
       </div>
 
       {/* Grain — dot-pattern matching .app-shell::after */}
-      <div
-        aria-hidden
-        style={{
-          position: 'fixed', inset: '-40%', zIndex: 1, pointerEvents: 'none',
-          backgroundImage: `radial-gradient(rgba(255,255,255,0.2) 0.8px, transparent 1.15px), radial-gradient(rgba(0,0,0,0.38) 0.9px, transparent 1.3px)`,
-          backgroundSize: '3px 3px, 7px 7px',
-          backgroundPosition: '0 0, 2px 3px',
-          opacity: 0.4,
-          mixBlendMode: 'normal',
-        }}
-      />
+      <div aria-hidden className="home-grain-layer" />
 
       {/* Rango de scroll para el canvas */}
       <div ref={scrollRangeRef} style={{ position: 'relative', zIndex: 2 }}>
@@ -609,13 +648,17 @@ export default function HomePage() {
         <section
           ref={heroSectionRef}
           style={{ position: 'relative', height: '100dvh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
-          onMouseMove={(e) => {
-            const nx = e.clientX / window.innerWidth;
-            const ny = e.clientY / window.innerHeight;
-            heroMX.set(nx); heroMY.set(ny);
-            mousePosRef.current.x = nx; mousePosRef.current.y = ny;
+          onMouseMove={(e) => updatePointer(e.clientX, e.clientY)}
+          onMouseLeave={() => {
+            heroMX.set(0.5);
+            heroMY.set(0.5);
+            mousePosRef.current.x = 0.5;
+            mousePosRef.current.y = 0.5;
           }}
-          onMouseLeave={() => { heroMX.set(0.5); heroMY.set(0.5); }}
+          onTouchStart={(e) => {
+            const touch = e.touches[0];
+            if (touch) updatePointer(touch.clientX, touch.clientY);
+          }}
         >
           {/* Ambient orbs */}
           <div style={{ position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none', overflow: 'hidden' }}>

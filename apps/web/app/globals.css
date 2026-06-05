@@ -865,6 +865,58 @@ button {
   }
 }
 
+/* Home owns NumbersCanvas + grain — suppress global shell layers to avoid double bg / cuts */
+html.home-route-active {
+  background: #060b18;
+  background-color: #060b18;
+}
+
+html.home-route-active .app-shell::before,
+html.home-route-active .app-shell::after {
+  display: none;
+  content: none;
+}
+
+.home-canvas-layer {
+  position: fixed;
+  top: calc(-1 * env(safe-area-inset-top, 0px));
+  right: 0;
+  bottom: calc(-1 * env(safe-area-inset-bottom, 0px));
+  left: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.home-grain-layer {
+  position: fixed;
+  inset: -40%;
+  z-index: 1;
+  pointer-events: none;
+  background-image:
+    radial-gradient(rgba(255, 255, 255, 0.2) 0.8px, transparent 1.15px),
+    radial-gradient(rgba(0, 0, 0, 0.38) 0.9px, transparent 1.3px);
+  background-size: 3px 3px, 7px 7px;
+  background-position: 0 0, 2px 3px;
+  opacity: 0.4;
+  mix-blend-mode: normal;
+}
+
+@media (max-width: 767px) {
+  /* Let document scroll naturally so fixed canvas stays pinned (iOS scroll-container bug) */
+  html.home-route-active .mobile-scale-frame {
+    height: auto;
+    min-height: 100dvh;
+    max-height: none;
+    overflow: visible;
+    overflow-x: hidden;
+  }
+
+  html.home-route-active,
+  html.home-route-active body {
+    overflow-x: hidden;
+  }
+}
+
 .app-content {
   max-width: 720px;
   margin: 0 auto;

@@ -22,19 +22,32 @@ export default function SpotlightCard({
   const [pos, setPos] = useState({ x: 0, y: 0 });
   const [active, setActive] = useState(false);
 
-  function handleMove(e: React.MouseEvent<HTMLDivElement>) {
+  function handleMove(clientX: number, clientY: number) {
     const el = ref.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
-    setPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+    setPos({ x: clientX - rect.left, y: clientY - rect.top });
+  }
+
+  function handleMouseMove(e: React.MouseEvent<HTMLDivElement>) {
+    handleMove(e.clientX, e.clientY);
+  }
+
+  function handleTouchMove(e: React.TouchEvent<HTMLDivElement>) {
+    const touch = e.touches[0];
+    if (touch) handleMove(touch.clientX, touch.clientY);
   }
 
   return (
     <div
       ref={ref}
-      onMouseMove={handleMove}
+      onMouseMove={handleMouseMove}
       onMouseEnter={() => setActive(true)}
       onMouseLeave={() => setActive(false)}
+      onTouchStart={() => setActive(true)}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={() => setActive(false)}
+      onTouchCancel={() => setActive(false)}
       className={`group relative overflow-hidden rounded-xl border border-white/[0.06] bg-white/[0.015] transition-colors duration-500 hover:border-white/[0.12] ${className}`}
     >
       {/* Glow que sigue al cursor */}
