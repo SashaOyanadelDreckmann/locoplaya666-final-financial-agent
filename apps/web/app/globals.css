@@ -917,6 +917,25 @@ html.home-route-active .app-shell::after {
   }
 }
 
+/* 100vh fallback for browsers without dvh support (iOS ≤ 15.3, old Android WebView) */
+.home-hero-full {
+  height: 100vh;
+  height: 100dvh;
+}
+
+/* Very small screens (320–359px) — prevent hero title overflow */
+@media (max-width: 359px) {
+  .home-page-hero h1 {
+    font-size: 42px !important;
+    letter-spacing: -0.04em !important;
+  }
+  .home-page-header,
+  .home-page-hero {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+}
+
 .app-content {
   max-width: 720px;
   margin: 0 auto;
