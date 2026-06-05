@@ -442,6 +442,7 @@ export function BudgetModal(props: {
   const [budgetTableStyle, setBudgetTableStyle] = useState<BudgetTableStyleId>('terminal');
   const [isGeneratingBudgetPdf, setIsGeneratingBudgetPdf] = useState(false);
   const budgetPdfRef = useRef<HTMLDivElement | null>(null);
+  const budgetTableScrollRef = useRef<HTMLDivElement | null>(null);
   const budgetModalRef = useRef<HTMLDivElement | null>(null);
   const budgetRestoreFocusRef = useRef<HTMLElement | null>(null);
   const flyingDotCounter = useRef(0);
@@ -651,7 +652,17 @@ export function BudgetModal(props: {
     setActiveBudgetRowId(assistantBudgetRowId);
     const row = document.getElementById(`budget-row-${assistantBudgetRowId}`);
     if (!row) return;
-    row.scrollIntoView({ behavior: 'auto', block: 'nearest' });
+    const wrap =
+      budgetTableScrollRef.current ??
+      (row.closest('.budget-table-wrap') as HTMLElement | null);
+    if (wrap) {
+      const wrapRect = wrap.getBoundingClientRect();
+      const rowRect = row.getBoundingClientRect();
+      const nextTop = wrap.scrollTop + (rowRect.top - wrapRect.top) - wrap.clientHeight * 0.35;
+      wrap.scrollTo({ top: Math.max(0, nextTop), behavior: 'smooth' });
+    } else {
+      row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
     row.animate(
       [
         { transform: 'scale(1)', boxShadow: '0 0 0 rgba(255,255,255,0)' },
@@ -1323,7 +1334,7 @@ export function BudgetModal(props: {
           </div>
 
           <div
-            className={`budget-executive-grid budget-main-carousel mode-${budgetModeClass}${isDesktopLayout ? ' is-desktop' : ''}`}
+            className={`budget-executive-grid budget-main-carousel mode-${budgetModeClass}${isDesktopLayout ? ' is-desktop' : ' is-mobile-budget'}`}
           >
             {isDesktopLayout && (
               <>
@@ -1435,7 +1446,10 @@ export function BudgetModal(props: {
                 </div>
               </div>
 
-              <div className={isDesktopLayout ? 'budget-table-scroll-host budget-table-scroll-host--desktop' : 'budget-table-scroll-host'}>
+              <div
+                ref={budgetTableScrollRef}
+                className={isDesktopLayout ? 'budget-table-scroll-host budget-table-scroll-host--desktop' : 'budget-table-scroll-host'}
+              >
               {props.budgetRows.length > 0 ? (
                 <BudgetIntelligenceTable
                   orderedBudgetRows={orderedBudgetRows}

@@ -48150,3 +48150,162 @@ body.agent-route-active .app-shell > * {
 .budget-modal .budget-table-scroll-host--desktop {
   display: contents !important;
 }
+
+/* Mobile assistant: blurred live table backdrop + borderless chat overlay */
+@media (max-width: 1023px) {
+  .budget-modal .budget-mode-tabs {
+    margin: 20px 14px 12px !important;
+    padding: 4px !important;
+  }
+
+  .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) {
+    position: relative !important;
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    height: 0 !important;
+    overflow: hidden !important;
+    display: block !important;
+  }
+
+  .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact {
+    display: flex !important;
+    flex-direction: column !important;
+    position: absolute !important;
+    inset: 0 !important;
+    z-index: 1 !important;
+    width: 100% !important;
+    height: 100% !important;
+    margin: 0 !important;
+    padding: 0 10px calc(env(safe-area-inset-bottom, 0px) + 8px) !important;
+    opacity: 1 !important;
+    pointer-events: none !important;
+    transform: none !important;
+    filter: blur(11px) saturate(0.72) brightness(0.58) !important;
+    overflow: hidden !important;
+  }
+
+  .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact .budget-table-head,
+  .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact .budget-table-bottom-actions,
+  .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact .budget-pdf-head,
+  .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact .budget-pdf-metrics {
+    display: none !important;
+  }
+
+  .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact .budget-table-scroll-host {
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    height: 100% !important;
+    overflow: hidden !important;
+  }
+
+  .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact .budget-table-wrap {
+    height: 100% !important;
+    max-height: none !important;
+    overflow: hidden !important;
+    pointer-events: none !important;
+  }
+
+  .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact .budget-table tbody tr.is-active-row {
+    outline: 2px solid rgba(92, 214, 140, 0.72) !important;
+    outline-offset: -1px !important;
+    box-shadow: 0 0 28px rgba(72, 190, 120, 0.35) !important;
+    transform: scale(1.012) !important;
+    transition: transform 0.35s ease, box-shadow 0.35s ease, outline-color 0.35s ease !important;
+  }
+
+  .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop)::after {
+    content: "" !important;
+    position: absolute !important;
+    inset: 0 !important;
+    z-index: 2 !important;
+    pointer-events: none !important;
+    background:
+      linear-gradient(180deg, rgba(4, 7, 11, 0.58) 0%, rgba(4, 7, 11, 0.34) 42%, rgba(4, 7, 11, 0.62) 100%) !important;
+  }
+
+  .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-agent.budget-assistant-panel {
+    display: flex !important;
+    flex-direction: column !important;
+    position: relative !important;
+    z-index: 3 !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 12px calc(env(safe-area-inset-bottom, 0px) + 10px) !important;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    overflow: hidden !important;
+    pointer-events: none !important;
+  }
+
+  .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-agent .bcc-hero,
+  .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-agent .bcc-hero * {
+    pointer-events: auto !important;
+  }
+
+  .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-agent .bcc-hero {
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-end !important;
+    margin: 0 !important;
+    padding: 0 0 8px !important;
+    background: transparent !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-agent .bcc-hero-top {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    margin: 0 0 14px !important;
+    padding: 8px 4px 0 !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-agent .bcc-hero-label {
+    color: rgba(219, 182, 81, 0.82) !important;
+    text-shadow: 0 1px 12px rgba(0, 0, 0, 0.65) !important;
+  }
+
+  .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-agent .bcc-hero-question {
+    margin: 10px 0 0 !important;
+    font-size: clamp(1.05rem, 5.2vw, 1.35rem) !important;
+    line-height: 1.34 !important;
+    color: rgba(248, 250, 252, 0.97) !important;
+    text-shadow: 0 2px 18px rgba(0, 0, 0, 0.82) !important;
+  }
+
+  .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-agent .bcc-hero-input-wrap {
+    flex-shrink: 0 !important;
+    margin: 0 !important;
+    padding: 8px 10px !important;
+    border-radius: 16px !important;
+    border: 1px solid rgba(255, 255, 255, 0.14) !important;
+    background: rgba(8, 12, 18, 0.52) !important;
+    backdrop-filter: blur(14px) saturate(1.05) !important;
+    -webkit-backdrop-filter: blur(14px) saturate(1.05) !important;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28) !important;
+  }
+
+  .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-agent .bcc-hero-log {
+    margin-bottom: 10px !important;
+  }
+
+  .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-agent .bcc-log-row {
+    background: rgba(8, 12, 18, 0.42) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+  }
+}
