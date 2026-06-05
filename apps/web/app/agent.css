@@ -46254,7 +46254,7 @@ body.agent-route-active .app-shell > * {
   .agent-chat-header.is-mobile {
     padding-top: calc(env(safe-area-inset-top) + 6px) !important;
     padding-bottom: 4px !important;
-    background: linear-gradient(180deg, rgba(6, 9, 14, 0.99) 0%, rgba(11, 15, 21, 0.98) 100%) !important;
+    background: transparent !important;
     border-bottom: 0 !important;
     box-shadow: none !important;
     overflow: hidden !important;
@@ -46399,5 +46399,26 @@ body.agent-route-active .app-shell > * {
   .agent-panel.is-mobile-compact .news-card .news-image {
     min-height: 0 !important;
     border-radius: 10px !important;
+  }
+}
+
+/* Final iPhone safe-area background fix:
+   extend the agent backdrop above the visual viewport so the image
+   also sits behind the standalone status bar area. */
+@media (max-width: 767px) {
+  html.agent-route-active,
+  body.agent-route-active,
+  body.agent-route-active .app-shell {
+    background-position: center top !important;
+    background-size: cover !important;
+  }
+
+  body.agent-route-active .app-shell::before {
+    inset: calc(env(safe-area-inset-top, 0px) * -1) 0 0 0 !important;
+    height: calc(var(--screen-h, 100dvh) + env(safe-area-inset-top, 0px)) !important;
+    min-height: calc(var(--screen-h, 100dvh) + env(safe-area-inset-top, 0px)) !important;
+    max-height: none !important;
+    background-position: center top !important;
+    background-size: cover !important;
   }
 }

@@ -383,7 +383,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
     props.activeBankProduct.connected &&
     props.savedProductIds.includes(props.activeBankProduct.id)
   );
-  const remainingProductCreations = Math.max(0, props.maxProducts - props.productsCreatedTotal);
+  const remainingProductCreations = Math.max(0, props.maxProducts - props.transactionProductCards.length);
   const canAddMoreProducts = remainingProductCreations > 0;
   const consentLocked = Boolean(props.activeBankProduct?.connected);
   const recommendedTxProducts: Array<{ title: string; bank: string; template: string }> = [

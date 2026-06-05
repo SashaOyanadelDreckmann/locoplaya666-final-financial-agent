@@ -3059,7 +3059,7 @@ export default function AgentPage() {
   }
 
   function addTransactionProduct(seed?: Partial<BankProduct>) {
-    if (txProductsCreatedTotal >= MAX_TRANSACTION_PRODUCTS) {
+    if (bankSimulation.products.length >= MAX_TRANSACTION_PRODUCTS) {
       const limitMessage = `Solo puedes crear ${MAX_TRANSACTION_PRODUCTS} productos por usuario.`;
       setTransactionUploadError(limitMessage);
       setTxCreationNotice(limitMessage);
