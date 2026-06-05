@@ -53,6 +53,7 @@ export default function NumbersCanvas({
     const canvas = canvasRef.current!;
     const ctx    = canvas.getContext('2d')!;
     let raf = 0, px: Px[] = [], cd: Cd[] = [], cols = 0, rows = 0;
+    let dpr = 1;
 
     const img = new Image();
     img.src = '/images/bg-door.jpg';
@@ -60,8 +61,11 @@ export default function NumbersCanvas({
     // ── Sample image at cell resolution ──────────────────────────────────────
     function sample() {
       if (!img.complete || !img.naturalWidth) return;
-      cols = Math.ceil(canvas.width  / CELL);
-      rows = Math.ceil(canvas.height / CELL);
+      // Sample using CSS pixel dimensions so grid matches visual layout
+      const cssW = canvas.width / dpr;
+      const cssH = canvas.height / dpr;
+      cols = Math.ceil(cssW / CELL);
+      rows = Math.ceil(cssH / CELL);
       const off = document.createElement('canvas');
       off.width = cols; off.height = rows;
       const oc = off.getContext('2d')!;
@@ -88,8 +92,11 @@ export default function NumbersCanvas({
       const layer = canvas.parentElement;
       const w = layer?.clientWidth ?? window.innerWidth;
       const h = layer?.clientHeight ?? window.innerHeight;
-      canvas.width  = w;
-      canvas.height = h;
+      // Cap at 2× to keep mobile GPU load reasonable
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width  = w * dpr;
+      canvas.height = h * dpr;
+      ctx.scale(dpr, dpr);
       sample();
     }
     resize();
@@ -131,7 +138,8 @@ export default function NumbersCanvas({
       const eMid   = clamp(midP * (1 - fd));   // effective midP
       const eChaos = clamp(chaosP * (1 - fd)); // effective chaos
 
-      const W = canvas.width, H = canvas.height;
+      // Work in CSS pixels — ctx is already scaled by dpr from resize()
+      const W = canvas.width / dpr, H = canvas.height / dpr;
       ctx.clearRect(0, 0, W, H);
 
       // ── Background image — matte cinematic ─────────────────────────────────
