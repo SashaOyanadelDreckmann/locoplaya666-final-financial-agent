@@ -25,11 +25,11 @@ const router = Router();
 const MAX_PARSE_FILES = Math.max(1, Number.parseInt(process.env.DOCUMENT_PARSE_MAX_FILES || '25', 10) || 25);
 const MAX_FILE_BYTES = Math.max(
   1024,
-  Number.parseInt(process.env.DOCUMENT_PARSE_MAX_FILE_BYTES || `${10 * 1024 * 1024}`, 10) || 10 * 1024 * 1024,
+  Number.parseInt(process.env.DOCUMENT_PARSE_MAX_FILE_BYTES || `${50 * 1024 * 1024}`, 10) || 50 * 1024 * 1024,
 );
 const MAX_TOTAL_BYTES = Math.max(
   MAX_FILE_BYTES,
-  Number.parseInt(process.env.DOCUMENT_PARSE_MAX_TOTAL_BYTES || `${35 * 1024 * 1024}`, 10) || 35 * 1024 * 1024,
+  Number.parseInt(process.env.DOCUMENT_PARSE_MAX_TOTAL_BYTES || `${50 * 1024 * 1024}`, 10) || 50 * 1024 * 1024,
 );
 
 const ParseRequestSchema = z.object({

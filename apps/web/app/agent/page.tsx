@@ -3353,8 +3353,8 @@ export default function AgentPage() {
       return null;
     }
     const totalBytes = selectedFiles.reduce((sum, file) => sum + file.size, 0);
-    if (totalBytes > 35 * 1024 * 1024) {
-      setTransactionUploadError('El total adjunto supera 35 MB. Divide la carga en bloques más pequeños.');
+    if (totalBytes > 50 * 1024 * 1024) {
+      setTransactionUploadError('El total adjunto supera 50 MB. Divide la carga en bloques más pequeños.');
       return null;
     }
     const availableSlots = Math.max(0, MAX_EVIDENCE_FILES_PER_PRODUCT - activeBankProduct.uploadedFiles.length);
