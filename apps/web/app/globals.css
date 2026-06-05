@@ -1654,9 +1654,10 @@ body.home-lock {
   z-index: 0;
   pointer-events: none;
   background:
-    radial-gradient(circle at 50% -12%, rgba(var(--auth-blue), 0.28) 0%, rgba(var(--auth-blue), 0.1) 34%, transparent 68%),
-    linear-gradient(180deg, rgba(4, 6, 10, 0.58) 0%, rgba(4, 6, 10, 0.58) 100%);
-  filter: blur(0.2px);
+    linear-gradient(180deg, rgba(4, 6, 10, 0.08) 0%, rgba(4, 6, 10, 0.42) 100%),
+    radial-gradient(circle at 50% -12%, rgba(var(--auth-blue), 0.18) 0%, rgba(var(--auth-blue), 0.08) 34%, transparent 68%),
+    url('/fondo4.jpg') center top / cover no-repeat;
+  filter: blur(0.2px) saturate(1.02);
 }
 
 .auth-card {
