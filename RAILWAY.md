@@ -24,7 +24,9 @@ Variables mínimas:
 - `WEB_ORIGIN=https://TU-WEB.up.railway.app`
 - `OPENAI_API_KEY=...`
 - `OPENAI_MODEL=gpt-5.2`
-- `OPENAI_VISION_MODEL=gpt-4o-mini`
+- `OPENAI_VISION_MODEL=gpt-5.2`
+- `TRANSACTIONS_RECONCILE_MODEL=gpt-5.2`
+- `TRANSACTIONS_SUMMARY_MODEL=gpt-4.1-mini`
 - `TRANSACTIONS_VISION_DETAIL=auto`
 - `ANTHROPIC_API_KEY=...`
 - `ANTHROPIC_MODEL=claude-sonnet-4-6`

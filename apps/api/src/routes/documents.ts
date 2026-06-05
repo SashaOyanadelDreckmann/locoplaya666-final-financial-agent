@@ -943,7 +943,7 @@ async function reconcileMovementsWithLLM(
         category?: string;
       }>;
     }>({
-      model: process.env.TRANSACTIONS_RECONCILE_MODEL || process.env.OPENAI_MODEL_FAST || 'gpt-4.1-mini',
+      model: process.env.TRANSACTIONS_RECONCILE_MODEL || 'gpt-5.2',
       temperature: 0,
       maxCompletionTokens: 1200,
       system:

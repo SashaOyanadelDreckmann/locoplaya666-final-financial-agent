@@ -32,7 +32,7 @@ const VIDEO_MIME_BY_EXT: Record<string, string> = {
 const MAX_VIDEO_FRAMES = 16;
 
 function resolveVisionModel(): string {
-  return process.env.OPENAI_VISION_MODEL?.trim() || 'gpt-4o-mini';
+  return process.env.OPENAI_VISION_MODEL?.trim() || 'gpt-5.2';
 }
 
 function visionImageDetail(): 'auto' | 'high' {

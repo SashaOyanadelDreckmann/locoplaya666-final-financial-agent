@@ -182,7 +182,7 @@ router.post(
           : documentsFromClient(parsedDocuments);
 
     const client = new OpenAI({ apiKey: config.OPENAI_API_KEY });
-    const summaryModel = process.env.TRANSACTIONS_SUMMARY_MODEL || config.OPENAI_MODEL || 'gpt-4o-mini';
+    const summaryModel = process.env.TRANSACTIONS_SUMMARY_MODEL || 'gpt-4.1-mini';
     const chatModel = process.env.TRANSACTIONS_CHAT_MODEL || process.env.OPENAI_MODEL_FAST || 'gpt-4o-mini';
 
     if (mode === 'summary') {
