@@ -1294,6 +1294,38 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
     return null;
   }
 
+  function canResumeExistingVoiceSession() {
+    const pc = peerConnectionRef.current;
+    const stream = localStreamRef.current;
+    return Boolean(
+      callId &&
+        pc &&
+        stream &&
+        pc.connectionState !== 'closed' &&
+        pc.signalingState !== 'closed' &&
+        (voicePaused || !voiceConnected),
+    );
+  }
+
+  function resumeExistingVoiceSession() {
+    const pc = peerConnectionRef.current;
+    const stream = localStreamRef.current;
+    if (!pc || !stream || pc.connectionState === 'closed' || pc.signalingState === 'closed') {
+      return false;
+    }
+
+    setVoiceError(null);
+    stream.getAudioTracks().forEach((track) => {
+      track.enabled = true;
+    });
+    setMicrophoneReady(true);
+    setVoicePaused(false);
+    setVoiceConnected(true);
+    setVoiceConnecting(false);
+    primeVoiceQuestion(currentQuestion, { resetTranscript: false });
+    return true;
+  }
+
   async function startVoiceSession() {
     if (!voiceSupported || voiceConnecting || voiceConnected) return;
     if (voiceCallExhausted && !hasLiveVoiceCall) {
@@ -1460,6 +1492,13 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
       }
       setVoiceError(toUserFacingError(error, 'interview.voice'));
     }
+  }
+
+  async function startOrResumeVoiceSession() {
+    if (canResumeExistingVoiceSession() && resumeExistingVoiceSession()) {
+      return;
+    }
+    await startVoiceSession();
   }
 
   function toggleCallPause() {
@@ -1915,7 +1954,7 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
                   <button
                     type="button"
                     className="summary-action-btn summary-action-accept interview-call-start-btn"
-                    onClick={() => void startVoiceSession()}
+                    onClick={() => void startOrResumeVoiceSession()}
                     disabled={
                       !voiceSupported ||
                       voiceConnecting ||
