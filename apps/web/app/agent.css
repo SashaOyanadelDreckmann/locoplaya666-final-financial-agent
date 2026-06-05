@@ -43920,7 +43920,7 @@ body.agent-route-active .app-shell::before {
     align-items: stretch !important;
     flex: 0 0 auto !important;
     margin: 0 !important;
-    padding: calc(env(safe-area-inset-top, 0px) + 2px) 0 1px !important;
+    padding: calc(env(safe-area-inset-top, 0px) + 2px) 0 8px !important;
     gap: 0 !important;
     border-bottom: none !important;
     min-height: 0 !important;
@@ -44134,7 +44134,7 @@ body.agent-route-active .app-shell::before {
     width: 100% !important;
     max-width: 100% !important;
     margin: 0 !important;
-    padding: calc(env(safe-area-inset-top, 0px) + 2px) 0 1px !important;
+    padding: calc(env(safe-area-inset-top, 0px) + 2px) 0 8px !important;
     background: #000000 !important;
   }
 
@@ -44183,10 +44183,10 @@ body.agent-route-active .app-shell::before {
     display: none !important;
   }
 
-  /* Brand + lectura base: minimal gap under Financieramente */
+  /* Brand + lectura base: breathing room under tabs and above panel */
   .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .chat-brand-strip {
     margin: 0 !important;
-    margin-top: 3px !important;
+    margin-top: 8px !important;
     gap: 0 !important;
     padding: 0 !important;
     width: 100% !important;
@@ -46472,7 +46472,7 @@ body.agent-route-active .app-shell > * {
     justify-content: center !important;
     gap: 0 !important;
     margin: 0 !important;
-    margin-top: 3px !important;
+    margin-top: 8px !important;
     padding: 0 !important;
     min-height: 0 !important;
     overflow: visible !important;
@@ -46663,7 +46663,7 @@ body.agent-route-active .app-shell > * {
   }
 
   .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .chat-brand-strip {
-    margin-top: 3px !important;
+    margin-top: 8px !important;
   }
 
   .agent-layout.is-mobile-standalone .agent-chat-body {
@@ -47265,7 +47265,7 @@ body.agent-route-active .app-shell > * {
     max-width: 100% !important;
     margin: 0 !important;
     box-sizing: border-box !important;
-    padding: calc(env(safe-area-inset-top, 0px) + 2px) 0 1px !important;
+    padding: calc(env(safe-area-inset-top, 0px) + 2px) 0 8px !important;
     gap: 0 !important;
     background: #000000 !important;
     background-color: #000000 !important;
@@ -47359,7 +47359,7 @@ body.agent-route-active .app-shell > * {
     align-items: center !important;
     width: 100% !important;
     margin: 0 !important;
-    margin-top: 3px !important;
+    margin-top: 8px !important;
     padding: 0 !important;
     gap: 0 !important;
     min-height: 0 !important;
@@ -47453,7 +47453,7 @@ body.agent-route-active .app-shell > * {
     font-size: 7px !important;
     line-height: 1 !important;
     margin: 0 !important;
-    padding: 0 !important;
+    padding: 0 0 2px !important;
     max-width: none !important;
     overflow: visible !important;
   }
@@ -47680,7 +47680,7 @@ body.agent-route-active .app-shell > * {
     width: 100% !important;
     max-width: 100% !important;
     margin: 0 !important;
-    padding: calc(env(safe-area-inset-top, 0px) + 2px) 0 1px !important;
+    padding: calc(env(safe-area-inset-top, 0px) + 2px) 0 8px !important;
     gap: 0 !important;
     background: #000000 !important;
     background-color: #000000 !important;
@@ -47707,7 +47707,7 @@ body.agent-route-active .app-shell > * {
   body.agent-route-active .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .chat-brand-strip {
     width: 100% !important;
     margin: 0 !important;
-    margin-top: 3px !important;
+    margin-top: 8px !important;
     padding: 0 !important;
     background: #000000 !important;
   }
@@ -47732,6 +47732,10 @@ body.agent-route-active .app-shell > * {
     width: 18px !important;
     height: 18px !important;
     transform: none !important;
+  }
+
+  body.agent-route-active .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .chat-identity-subtitle {
+    padding: 0 0 2px !important;
   }
 
   body.agent-route-active .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .agent-chat-controls-row .chat-switcher {
