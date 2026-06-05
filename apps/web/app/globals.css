@@ -1132,7 +1132,7 @@ html.home-route-active .app-shell::after {
 }
 
 .home-page-hero {
-  padding: 0 24px 36px;
+  padding: 0 24px clamp(20px, 5vh, 52px);
 }
 
 .home-page-caption {
