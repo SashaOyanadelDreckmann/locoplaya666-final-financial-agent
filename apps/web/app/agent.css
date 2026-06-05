@@ -47371,8 +47371,7 @@ body.agent-route-active .app-shell > * {
   }
 
   body.agent-route-active .agent-panel,
-  body.agent-route-active .agent-panel.is-mobile-compact,
-  body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel {
+  body.agent-route-active .agent-panel.is-mobile-compact {
     width: 100% !important;
     max-width: 100% !important;
     margin: 0 !important;
@@ -47387,26 +47386,49 @@ body.agent-route-active .app-shell > * {
     max-height: var(--mobile-panel-h, 162px) !important;
   }
 
+  body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel,
+  body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel.is-mobile-expanded {
+    --mobile-panel-h: min(50dvh, 430px) !important;
+    flex: 0 0 min(50dvh, 430px) !important;
+    max-height: min(50dvh, 430px) !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #000000 !important;
+    border-radius: 0 !important;
+  }
+
   body.agent-route-active .agent-panel .mobile-panel-handle {
     background: #000000 !important;
     border-color: rgba(255, 255, 255, 0.08) !important;
   }
 
-  body.agent-route-active .agent-panel .panel-grid {
+  body.agent-route-active .agent-panel.is-mobile-compact .panel-grid,
+  body.agent-route-active .agent-panel:not(.is-mobile-expanded) .panel-grid {
     display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
     align-items: flex-start !important;
     align-content: flex-start !important;
     background: #000000 !important;
     min-height: 0 !important;
     flex: 1 1 auto !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
     padding: 4px 8px max(18px, calc(12px + env(safe-area-inset-bottom, 0px))) !important;
     gap: 8px !important;
     box-sizing: border-box !important;
+    -webkit-overflow-scrolling: touch !important;
+    touch-action: pan-x !important;
   }
 
-  body.agent-route-active .agent-panel .mob-col,
-  body.agent-route-active .agent-panel .mob-col-wide,
-  body.agent-route-active .agent-panel .mob-col-narrow {
+  body.agent-route-active .agent-panel.is-mobile-compact .mob-col,
+  body.agent-route-active .agent-panel.is-mobile-compact .mob-col-wide,
+  body.agent-route-active .agent-panel.is-mobile-compact .mob-col-narrow,
+  body.agent-route-active .agent-panel:not(.is-mobile-expanded) .mob-col,
+  body.agent-route-active .agent-panel:not(.is-mobile-expanded) .mob-col-wide,
+  body.agent-route-active .agent-panel:not(.is-mobile-expanded) .mob-col-narrow {
     width: min(159px, 55.5vw) !important;
     height: 107px !important;
     max-height: 107px !important;
@@ -47414,9 +47436,96 @@ body.agent-route-active .app-shell > * {
     align-self: flex-start !important;
   }
 
-  body.agent-route-active .agent-panel .mob-col > * {
+  body.agent-route-active .agent-panel.is-mobile-compact .mob-col > *,
+  body.agent-route-active .agent-panel:not(.is-mobile-expanded) .mob-col > * {
     height: 100% !important;
     max-height: 107px !important;
     flex: 1 1 auto !important;
+  }
+
+  body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .panel-grid,
+  body.agent-route-active .agent-panel.is-mobile-expanded .panel-grid {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+    grid-auto-flow: row !important;
+    align-items: stretch !important;
+    align-content: start !important;
+    background: #000000 !important;
+    min-height: 0 !important;
+    flex: 1 1 auto !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    padding: 8px 8px max(18px, calc(12px + env(safe-area-inset-bottom, 0px))) !important;
+    gap: 8px !important;
+    box-sizing: border-box !important;
+    scroll-snap-type: none !important;
+    touch-action: pan-y !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .mob-col,
+  body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .mob-col-wide,
+  body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .mob-col-narrow,
+  body.agent-route-active .agent-panel.is-mobile-expanded .mob-col,
+  body.agent-route-active .agent-panel.is-mobile-expanded .mob-col-wide,
+  body.agent-route-active .agent-panel.is-mobile-expanded .mob-col-narrow {
+    display: contents !important;
+  }
+
+  body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .panel-grid > *,
+  body.agent-route-active .agent-panel.is-mobile-expanded .panel-grid > * {
+    min-width: 0 !important;
+    width: auto !important;
+    height: auto !important;
+    max-height: none !important;
+    min-height: 0 !important;
+  }
+
+  body.agent-route-active .agent-layout.mobile-panel-expanded .panel-pos-profile,
+  body.agent-route-active .agent-layout.mobile-panel-expanded .panel-pos-objective,
+  body.agent-route-active .agent-layout.mobile-panel-expanded .panel-pos-interview,
+  body.agent-route-active .agent-layout.mobile-panel-expanded .panel-pos-recent,
+  body.agent-route-active .agent-layout.mobile-panel-expanded .panel-pos-aux,
+  body.agent-route-active .agent-layout.mobile-panel-expanded .panel-pos-library,
+  body.agent-route-active .agent-layout.mobile-panel-expanded .panel-pos-news,
+  body.agent-route-active .agent-panel.is-mobile-expanded .panel-pos-profile,
+  body.agent-route-active .agent-panel.is-mobile-expanded .panel-pos-objective,
+  body.agent-route-active .agent-panel.is-mobile-expanded .panel-pos-interview,
+  body.agent-route-active .agent-panel.is-mobile-expanded .panel-pos-recent,
+  body.agent-route-active .agent-panel.is-mobile-expanded .panel-pos-aux,
+  body.agent-route-active .agent-panel.is-mobile-expanded .panel-pos-library,
+  body.agent-route-active .agent-panel.is-mobile-expanded .panel-pos-news {
+    grid-column: 1 / -1 !important;
+  }
+
+  body.agent-route-active .agent-layout.mobile-panel-expanded .panel-pos-mode,
+  body.agent-route-active .agent-layout.mobile-panel-expanded .panel-pos-budget,
+  body.agent-route-active .agent-panel.is-mobile-expanded .panel-pos-mode,
+  body.agent-route-active .agent-panel.is-mobile-expanded .panel-pos-budget {
+    grid-column: 1 !important;
+  }
+
+  body.agent-route-active .agent-layout.mobile-panel-expanded .panel-pos-next,
+  body.agent-route-active .agent-layout.mobile-panel-expanded .panel-pos-transactions,
+  body.agent-route-active .agent-panel.is-mobile-expanded .panel-pos-next,
+  body.agent-route-active .agent-panel.is-mobile-expanded .panel-pos-transactions {
+    grid-column: 2 !important;
+  }
+
+  body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .profile-card,
+  body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .panel-card,
+  body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .panel-feature-card,
+  body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .interview-flow-card,
+  body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .recent-library-card,
+  body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .news-card,
+  body.agent-route-active .agent-panel.is-mobile-expanded .profile-card,
+  body.agent-route-active .agent-panel.is-mobile-expanded .panel-card,
+  body.agent-route-active .agent-panel.is-mobile-expanded .panel-feature-card,
+  body.agent-route-active .agent-panel.is-mobile-expanded .interview-flow-card,
+  body.agent-route-active .agent-panel.is-mobile-expanded .recent-library-card,
+  body.agent-route-active .agent-panel.is-mobile-expanded .news-card {
+    min-height: 120px !important;
+    height: auto !important;
+    max-height: none !important;
   }
 }
