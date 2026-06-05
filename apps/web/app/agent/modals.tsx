@@ -29,7 +29,7 @@ import {
 } from 'recharts';
 
 import type { BudgetRow } from '@/lib/budget-rows.helpers';
-import { inferBudgetFocusRowId, resolveBudgetChatTargetRow } from '@/lib/budget-rows.helpers';
+import { inferBudgetFocusRowId, extractInferenceQuestionText, resolveBudgetChatTargetRow } from '@/lib/budget-rows.helpers';
 
 type BudgetTopExpense = { id: string; label: string; amount: number; pct: number };
 type BudgetInsights = {
@@ -436,6 +436,7 @@ export function BudgetModal(props: {
   const [flyingDots, setFlyingDots] = useState<Array<{ id: number; type: 'income' | 'expense' }>>([]);
   const [activeBudgetRowId, setActiveBudgetRowId] = useState<string | null>(null);
   const [assistantBudgetRowId, setAssistantBudgetRowId] = useState<string | null>(null);
+  const [assistantNextQuestion, setAssistantNextQuestion] = useState<string | null>(null);
   const [budgetViewMode, setBudgetViewMode] = useState<1 | 2 | 3>(1);
   const [isDesktopLayout, setIsDesktopLayout] = useState(false);
   const [budgetTableStyle, setBudgetTableStyle] = useState<BudgetTableStyleId>('terminal');
@@ -561,7 +562,8 @@ export function BudgetModal(props: {
       ? 'table-front'
       : 'agent-front';
 
-  const inferredBudgetRowId = inferBudgetFocusRowId(activeQuestion) ?? null;
+  const inferredBudgetRowId =
+    inferBudgetFocusRowId(assistantNextQuestion ?? activeQuestion) ?? null;
   const focusedBudgetRowId = assistantBudgetRowId ?? inferredBudgetRowId ?? activeBudgetRowId;
   const activeBudgetRow = props.budgetRows.find((row) => row.id === focusedBudgetRowId) ?? null;
   function budgetQuestionForId(rowId: string | null) {
@@ -626,6 +628,8 @@ export function BudgetModal(props: {
   function applyAssistantTurn(payload: BudgetChatApiPayload, previousQuestion: string) {
     const reply = getAssistantMessage(payload);
     setAssistantQuestion(reply || previousQuestion);
+    const nextQuestion = sanitizeBudgetQuestion(getNextQuestion(payload, ''));
+    setAssistantNextQuestion(nextQuestion || null);
   }
 
   useEffect(() => {
@@ -887,8 +891,11 @@ export function BudgetModal(props: {
     const answer = budgetReply.trim();
     if (!answer || isAskingAI) return;
 
-    const previousQuestion = activeQuestion;
-    const newChatAnswers = [...props.chatAnswers, { q: previousQuestion, a: answer }];
+    const previousQuestion =
+      assistantNextQuestion ??
+      extractInferenceQuestionText(activeQuestion) ??
+      activeQuestion;
+    const newChatAnswers = [...props.chatAnswers, { q: activeQuestion, a: answer }];
     props.onChatAnswersChange(newChatAnswers);
     setBudgetReply('');
     setAiError(null);
@@ -921,6 +928,7 @@ export function BudgetModal(props: {
           body: JSON.stringify({
             intent: 'reply',
             question: activeQuestion,
+            nextQuestion: previousQuestion,
             answer,
             budgetRows: props.budgetRows.slice(0, 30),
             chatAnswers: newChatAnswers.slice(-6),
@@ -981,6 +989,7 @@ export function BudgetModal(props: {
         );
         const explicitFocus = normalizeActionRowId(payload.focus_row_id);
         const nextQuestion = sanitizeBudgetQuestion(getNextQuestion(payload, ''));
+        setAssistantNextQuestion(nextQuestion || null);
         if (explicitFocus || lastTouchedRowId) {
           setAssistantBudgetRowId(explicitFocus ?? lastTouchedRowId ?? null);
         } else if (nextQuestion) {
@@ -1020,6 +1029,7 @@ export function BudgetModal(props: {
     setConversationDone(false);
     setAiError(null);
     setAssistantQuestion(null);
+    setAssistantNextQuestion(null);
     setAssistantMarketSnapshot(null);
     setIsInitializing(true);
     setActiveBudgetRowId(null);
@@ -1043,7 +1053,7 @@ export function BudgetModal(props: {
           body: JSON.stringify({
             intent: 'init',
             budgetRows: budgetRowsForInit,
-            chatAnswers: props.chatAnswers.slice(-6),
+            chatAnswers: [],
             products: props.bankProducts ?? [],
             activeRowId: activeBudgetRow?.id ?? null,
             activeRow: activeBudgetRow
@@ -1071,9 +1081,11 @@ export function BudgetModal(props: {
         if (payload) {
           applyAssistantTurn(payload, budgetQuestionForId('income_salary'));
           const nextQuestion = sanitizeBudgetQuestion(getNextQuestion(payload, ''));
+          setAssistantNextQuestion(nextQuestion || null);
           setAssistantBudgetRowId(payload.focus_row_id ?? inferBudgetFocusRowId(nextQuestion));
         } else {
           setAssistantQuestion(budgetQuestionForId('income_salary'));
+          setAssistantNextQuestion(budgetQuestionForId('income_salary'));
           setAssistantBudgetRowId('income_salary');
         }
         setAssistantMarketSnapshot(
@@ -1104,6 +1116,7 @@ export function BudgetModal(props: {
       } catch (err) {
         if (isBudgetChatAbortError(err)) return;
         setAssistantQuestion(budgetQuestionForId('income_salary'));
+        setAssistantNextQuestion(budgetQuestionForId('income_salary'));
         setAssistantBudgetRowId('income_salary');
         setAssistantMarketSnapshot(null);
         setAiError(budgetChatErrorMessage(err));

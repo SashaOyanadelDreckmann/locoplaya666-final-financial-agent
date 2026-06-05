@@ -1,8 +1,21 @@
 import type { BudgetRow } from './budget-rows';
 import { canonicalBudgetRowId } from './budget-rows';
 
+export function extractInferenceQuestionText(text: string | null | undefined): string {
+  const raw = String(text ?? '').trim();
+  if (!raw) return '';
+
+  const questionParts = raw.match(/[^.!?\n]*\?/g);
+  if (questionParts?.length) {
+    return questionParts[questionParts.length - 1].trim();
+  }
+
+  const withoutConfirmation = raw.replace(/^listo:\s*[^.?!]+[.!?]\s*/i, '').trim();
+  return withoutConfirmation || raw;
+}
+
 export function inferBudgetFocusRowId(question: string | null | undefined): string | null {
-  const q = String(question ?? '').toLowerCase();
+  const q = extractInferenceQuestionText(question).toLowerCase();
   if (!q || q === '…') return null;
   if (/ingreso|sueldo/.test(q)) return 'income_salary';
   if (/arriendo|vivienda|hogar/.test(q)) return 'expense_rent';
@@ -32,10 +45,15 @@ export function resolveBudgetChatTargetRow(
   question: string,
   options?: { assistantFocusRowId?: string | null; activeRow?: BudgetRow | null },
 ): BudgetRow | null {
-  const fromQuestion = findBudgetRowByFocusId(rows, inferBudgetFocusRowId(question));
-  if (fromQuestion) return fromQuestion;
   const fromAssistant = findBudgetRowByFocusId(rows, options?.assistantFocusRowId ?? null);
   if (fromAssistant) return fromAssistant;
+
+  const fromQuestion = findBudgetRowByFocusId(
+    rows,
+    inferBudgetFocusRowId(extractInferenceQuestionText(question) || question),
+  );
+  if (fromQuestion) return fromQuestion;
+
   if (options?.activeRow) return options.activeRow;
   return null;
 }

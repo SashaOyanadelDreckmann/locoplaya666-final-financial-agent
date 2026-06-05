@@ -145,4 +145,54 @@ describe('budget-chat routes', () => {
     expect(res.body.action?.id).toBe('income_salary');
     expect(res.body.action?.amount).toBe(850000);
   }, 15_000);
+
+  it('returns deterministic init without calling the model', async () => {
+    const { agent, csrfToken } = await createAuthedAgent();
+
+    const res = await agent
+      .post('/api/budget-chat')
+      .set('x-csrf-token', csrfToken)
+      .send({
+        intent: 'init',
+        budgetRows: [{ id: 'income_salary', category: 'Sueldo líquido', type: 'income', amount: 850000, note: '' }],
+        chatAnswers: [{ q: 'old', a: '850000' }],
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.source).toBe('deterministic_init');
+    expect(String(res.body.next_question || res.body.assistant_reply)).toMatch(/ingreso|sueldo/i);
+  }, 15_000);
+
+  it('updates debt row when assistant focus is set despite sueldo in confirmation text', async () => {
+    const { agent, csrfToken } = await createAuthedAgent();
+    const budgetRows = [
+      { id: 'income_salary', category: 'Sueldo líquido', type: 'income', amount: 850000, note: '' },
+      { id: 'expense_debt', category: 'Deuda / cuotas', type: 'expense', amount: 0, note: '' },
+    ];
+    const combinedQuestion =
+      'Listo: Sueldo líquido quedó en $850.000. ¿Cuánto pagas al mes en cuotas o créditos?';
+
+    const res = await agent
+      .post('/api/budget-chat')
+      .set('x-csrf-token', csrfToken)
+      .send({
+        intent: 'reply',
+        answer: '150000',
+        question: combinedQuestion,
+        nextQuestion: '¿Cuánto pagas al mes en cuotas o créditos?',
+        assistantFocusRowId: 'expense_debt',
+        budgetRows,
+        activeRow: {
+          id: 'income_salary',
+          category: 'Sueldo líquido',
+          type: 'income',
+          amount: 850000,
+        },
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.source).toBe('deterministic_update');
+    expect(res.body.action?.id).toBe('expense_debt');
+    expect(res.body.action?.amount).toBe(150000);
+  }, 15_000);
 });

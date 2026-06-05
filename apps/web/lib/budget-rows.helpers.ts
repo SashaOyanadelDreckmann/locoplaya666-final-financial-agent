@@ -14,6 +14,7 @@ export {
   normalizeBudgetRow,
   reconcileBudgetRows,
   inferBudgetFocusRowId,
+  extractInferenceQuestionText,
   resolveBudgetChatTargetRow,
 } from '@financial-agent/shared';
 export type { BudgetRow, BudgetTopExpense } from '@financial-agent/shared';

@@ -13,6 +13,7 @@ import {
   reconcileBudgetRows,
   getEffectiveBudgetRows,
   resolveBudgetChatTargetRow,
+  extractInferenceQuestionText,
 } from '@financial-agent/shared';
 
 const router = Router();
@@ -868,8 +869,10 @@ function resolveSafeActions(
 
   if (result.length === 0 && inferredAmount !== null) {
     const target =
-      resolveBudgetChatTargetRow(rows, question, { assistantFocusRowId, activeRow }) ??
-      findBudgetFocusRow(rows, null);
+      resolveBudgetChatTargetRow(rows, extractInferenceQuestionText(question) || question, {
+        assistantFocusRowId,
+        activeRow,
+      }) ?? findBudgetFocusRow(rows, null);
     if (target) {
       const action = mergeDraftWithExisting(
         'update',
@@ -943,8 +946,10 @@ function buildDeterministicUpdate(
   assistantFocusRowId: string | null = null,
 ) {
   const targetRow =
-    resolveBudgetChatTargetRow(rows, assistantQuestion, { assistantFocusRowId, activeRow }) ??
-    findBudgetFocusRow(rows, null);
+    resolveBudgetChatTargetRow(rows, extractInferenceQuestionText(assistantQuestion) || assistantQuestion, {
+      assistantFocusRowId,
+      activeRow,
+    }) ?? findBudgetFocusRow(rows, null);
   if (!targetRow) return null;
   const amount = extractClpAmount(answer);
   if (amount === null) return null;
@@ -1103,7 +1108,11 @@ router.post(
     }
 
     const answer = compactText(body?.answer, 1200);
-    const question = compactText(body?.question, 500);
+    const displayQuestion = compactText(body?.question, 500);
+    const explicitNextQuestion = compactText(body?.nextQuestion ?? body?.next_question, 500);
+    const inferenceQuestion =
+      explicitNextQuestion || extractInferenceQuestionText(displayQuestion) || displayQuestion;
+    const question = displayQuestion || inferenceQuestion;
     const rows = sanitizeBudgetRows(body?.budgetRows, 30);
     const activeRow = sanitizeBudgetRow(body?.activeRow);
     const intakeContext = compactText(body?.intakeContext, 600);
@@ -1128,7 +1137,15 @@ router.post(
 
     const deterministicUpdate =
       !isInit && detectedIntent === 'update_amount'
-        ? buildDeterministicUpdate(rows, activeRow, answer, intakeData, products, question, assistantFocusRowId)
+        ? buildDeterministicUpdate(
+            rows,
+            activeRow,
+            answer,
+            intakeData,
+            products,
+            inferenceQuestion,
+            assistantFocusRowId,
+          )
         : null;
     if (deterministicUpdate) {
       res.json({ ...deterministicUpdate, market_snapshot: emptyMarketSnapshot() });
@@ -1153,6 +1170,14 @@ router.post(
       return;
     }
 
+    if (isInit) {
+      res.json({
+        ...fallbackInit(rows, intakeData, products),
+        market_snapshot: await getMarketSnapshotOptional(),
+      });
+      return;
+    }
+
     const marketSnapshot = await getMarketSnapshotOptional();
 
     const anthropicApiKey = config.ANTHROPIC_API_KEY;
@@ -1172,7 +1197,7 @@ router.post(
                 intakeData,
                 products,
                 'missing_provider_key',
-                question,
+                inferenceQuestion,
                 assistantFocusRowId,
               ),
               market_snapshot: marketSnapshot,
@@ -1241,7 +1266,7 @@ router.post(
               intakeData,
               products,
               'model_failure',
-              question,
+              inferenceQuestion,
               assistantFocusRowId,
             )),
         model: anthropicApiKey ? anthropicModel : openAiModel,
@@ -1275,7 +1300,7 @@ router.post(
               intakeData,
               products,
               'invalid_model_json',
-              question,
+              inferenceQuestion,
               assistantFocusRowId,
             )),
         model: anthropicApiKey ? anthropicModel : openAiModel,
@@ -1289,7 +1314,14 @@ router.post(
     const rawActions = Array.isArray(parsed.actions)
       ? parsed.actions
       : [parsed.action ?? parsed.update];
-    const actions = resolveSafeActions(rawActions, rows, activeRow, answer, question, assistantFocusRowId);
+    const actions = resolveSafeActions(
+      rawActions,
+      rows,
+      activeRow,
+      answer,
+      inferenceQuestion,
+      assistantFocusRowId,
+    );
 
     const projectedRows = reconcileBudgetRows(
       actions.reduce<BudgetRow[]>((acc, action) => {

@@ -73,8 +73,8 @@ export function useMovementAnalytics(
     rows: row.extractedRows,
   }));
 
-  const normalizeMovementText = (value: string) =>
-    value
+  const normalizeMovementText = (value: string | null | undefined) =>
+    String(value ?? '')
       .toUpperCase()
       .replace(/\b\d{4}-\d{2}-\d{2}\b/g, ' ')
       .replace(/\b\d{2}[/-]\d{2}(?:[/-]\d{2,4})?\b/g, ' ')
@@ -111,7 +111,7 @@ export function useMovementAnalytics(
     `${dateToken}|${direction}|${Math.round(amountAbs)}|${normalizeMovementText(label)}`;
 
   const dashboardMovements = (activeBankProduct?.dashboard?.movements ?? []).map((movement) => ({
-    label: movement.description,
+    label: movement.description ?? movement.source_line ?? movement.merchant ?? '',
     amount: Number(movement.amount) || 0,
     direction: movement.direction,
     date: movement.date ?? '',
@@ -126,7 +126,7 @@ export function useMovementAnalytics(
   const topMovements = [...dashboardMovements].sort((a, b) => {
     if (b.amount !== a.amount) return b.amount - a.amount;
     if (a.direction !== b.direction) return a.direction === 'expense' ? -1 : 1;
-    return a.label.localeCompare(b.label, 'es');
+    return (a.label || '').localeCompare(b.label || '', 'es');
   });
 
   const movementTableRows = dashboardMovements.length > 0 ? dashboardMovements : topMovements;
