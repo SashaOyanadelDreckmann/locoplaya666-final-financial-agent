@@ -701,12 +701,10 @@ export default function AgentPage() {
     if (typeof window === 'undefined' || !isMobileViewport) return;
 
     const root = document.documentElement;
-    root.style.setProperty('--agent-mobile-frame-scale', '1');
-    root.style.setProperty('--agent-mobile-frame-shift', '-52px');
-    root.style.setProperty('--agent-mobile-bg-zoom', '1.08');
+    root.style.setProperty('--agent-mobile-frame-shift', '56px');
+    root.style.setProperty('--agent-mobile-bg-zoom', '1.06');
 
     return () => {
-      root.style.removeProperty('--agent-mobile-frame-scale');
       root.style.removeProperty('--agent-mobile-frame-shift');
       root.style.removeProperty('--agent-mobile-bg-zoom');
     };
