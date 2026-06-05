@@ -13,5 +13,8 @@ describe('budget pro mobile css safeguards', () => {
     expect(css).toContain('grid-area: cadence !important;');
     expect(css).toContain('.budget-modal .budget-table.budget-table-pro tbody td:nth-child(8)');
     expect(css).toContain('grid-area: actions !important;');
+    expect(css).toContain('.budget-modal .budget-cockpit-metrics');
+    expect(css).toContain('.budget-modal .budget-main-carousel:not(.is-desktop) .budget-intel-kpis');
+    expect(css).toContain('text-overflow: ellipsis !important;');
   });
 });
