@@ -195,5 +195,25 @@ describe('budget-chat routes', () => {
     expect(res.body.source).toBe('deterministic_update');
     expect(res.body.action?.id).toBe('expense_debt');
     expect(res.body.action?.amount).toBe(150000);
+    expect(String(res.body.assistant_reply)).toMatch(/listo/i);
+    expect(String(res.body.assistant_reply)).not.toContain('?');
+    expect(String(res.body.next_question || '')).toContain('?');
+  }, 15_000);
+
+  it('keeps contextual amount answers out of deterministic short-circuit', async () => {
+    const { agent, csrfToken } = await createAuthedAgent();
+
+    const res = await agent
+      .post('/api/budget-chat')
+      .set('x-csrf-token', csrfToken)
+      .send({
+        intent: 'reply',
+        answer: 'son 850 mil liquidos al mes',
+        question: '¿Cuánto es tu ingreso principal mensual?',
+        budgetRows: [{ id: 'income_salary', category: 'Sueldo líquido', type: 'income', amount: 0, note: '' }],
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.source).not.toBe('deterministic_update');
   }, 15_000);
 });

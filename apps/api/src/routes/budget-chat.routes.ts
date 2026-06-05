@@ -14,6 +14,7 @@ import {
   getEffectiveBudgetRows,
   resolveBudgetChatTargetRow,
   extractInferenceQuestionText,
+  isBareBudgetAmountAnswer,
 } from '@financial-agent/shared';
 
 const router = Router();
@@ -125,9 +126,13 @@ function packageBudgetReply(input: {
   action?: BudgetAction | null;
   source: string;
   provider?: string;
+  combineFollowUp?: boolean;
 }): Record<string, unknown> {
   const followUp = input.followUp ?? null;
-  const message = finalizeBudgetAssistantMessage(input.reply, followUp);
+  const message =
+    input.combineFollowUp === false
+      ? compactText(input.reply, BUDGET_CHAT_TEXT_LIMIT)
+      : finalizeBudgetAssistantMessage(input.reply, followUp);
   const actions = input.actions ?? [];
   return {
     ok: true,
@@ -622,6 +627,7 @@ function fallbackInit(rows: BudgetRow[], intakeData: Record<string, unknown>, pr
     followUp: question,
     focus_row_id: focus?.id ?? 'income_salary',
     source: 'deterministic_init',
+    combineFollowUp: false,
   });
 }
 
@@ -659,6 +665,7 @@ function buildEducationReply(
     followUp: question,
     focus_row_id: focus?.id ?? activeRow?.id ?? findBudgetFocusRow(rows, null)?.id ?? null,
     source: 'deterministic_education',
+    combineFollowUp: false,
   });
 }
 
@@ -676,7 +683,7 @@ function buildConversationalFallback(
   if (isEducationalBudgetQuestion(answer)) {
     return buildEducationReply(answer, rows, activeRow, intakeData, products);
   }
-  if (amount !== null) {
+  if (amount !== null && isBareBudgetAmountAnswer(answer)) {
     const deterministic = buildDeterministicUpdate(
       rows,
       activeRow ?? findBudgetFocusRow(rows, null),
@@ -703,6 +710,7 @@ function buildConversationalFallback(
     followUp: question,
     focus_row_id: focus?.id ?? null,
     source,
+    combineFollowUp: false,
   });
 }
 
@@ -729,6 +737,7 @@ function buildGreetingReply(
     followUp: question,
     focus_row_id: focus?.id ?? 'income_salary',
     source: 'deterministic_greeting',
+    combineFollowUp: false,
   });
 }
 
@@ -982,6 +991,7 @@ function buildDeterministicUpdate(
     actions: [action],
     action,
     source: 'deterministic_update',
+    combineFollowUp: false,
   });
 }
 
@@ -1006,6 +1016,7 @@ function buildStatusReply(
     followUp: question,
     focus_row_id: focus?.id ?? null,
     source: 'deterministic_status',
+    combineFollowUp: false,
   });
 }
 
@@ -1141,7 +1152,7 @@ router.post(
       : '';
 
     const deterministicUpdate =
-      !isInit && detectedIntent === 'update_amount'
+      !isInit && detectedIntent === 'update_amount' && isBareBudgetAmountAnswer(answer)
         ? buildDeterministicUpdate(
             rows,
             activeRow,

@@ -1,6 +1,24 @@
 import type { BudgetRow } from './budget-rows';
 import { canonicalBudgetRowId } from './budget-rows';
 
+export function isBareBudgetAmountAnswer(answer: string | null | undefined): boolean {
+  const text = String(answer ?? '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+  if (!text || !/\d/.test(text)) return false;
+
+  const withoutAmount = text
+    .replace(/\$|\bclp\b/g, ' ')
+    .replace(/[+-]?\d[\d.,\s]{0,18}(?:\s*(?:k|mil|m|mm|millones?))?/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!withoutAmount) return true;
+  return /^(si|sí|ok|dale|listo|ya|mm+|ah|bueno)$/.test(withoutAmount);
+}
+
 export function extractInferenceQuestionText(text: string | null | undefined): string {
   const raw = String(text ?? '').trim();
   if (!raw) return '';

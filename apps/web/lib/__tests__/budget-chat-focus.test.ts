@@ -3,10 +3,17 @@
 import {
   extractInferenceQuestionText,
   inferBudgetFocusRowId,
+  isBareBudgetAmountAnswer,
   resolveBudgetChatTargetRow,
 } from '@financial-agent/shared';
 
 describe('budget-chat-focus helpers', () => {
+  it('treats only bare numeric answers as deterministic amount updates', () => {
+    expect(isBareBudgetAmountAnswer('850000')).toBe(true);
+    expect(isBareBudgetAmountAnswer('$850.000')).toBe(true);
+    expect(isBareBudgetAmountAnswer('son 850 mil liquidos al mes')).toBe(false);
+    expect(isBareBudgetAmountAnswer('850 mil neto despues de impuestos')).toBe(false);
+  });
   const rows = [
     { id: 'income_salary', category: 'Sueldo líquido', type: 'income' as const, amount: 0 },
     { id: 'expense_debt', category: 'Deuda / cuotas', type: 'expense' as const, amount: 0 },

@@ -489,7 +489,7 @@ export function BudgetModal(props: {
     settleBudgetField(el);
     el.focus({ preventScroll: true });
   };
-  const activeQuestion = assistantQuestion ?? '…';
+  const activeQuestion = assistantNextQuestion ?? assistantQuestion ?? '…';
   const agentStatusText = isInitializing
     ? 'Preparando asistente…'
     : isAskingAI
@@ -891,17 +891,18 @@ export function BudgetModal(props: {
     const answer = budgetReply.trim();
     if (!answer || isAskingAI) return;
 
-    const previousQuestion =
+    const questionForTurn =
       assistantNextQuestion ??
-      extractInferenceQuestionText(activeQuestion) ??
+      extractInferenceQuestionText(assistantQuestion ?? '') ??
+      assistantQuestion ??
       activeQuestion;
-    const newChatAnswers = [...props.chatAnswers, { q: activeQuestion, a: answer }];
+    const newChatAnswers = [...props.chatAnswers, { q: questionForTurn, a: answer }];
     props.onChatAnswersChange(newChatAnswers);
     setBudgetReply('');
     setAiError(null);
 
     const chatTargetRow =
-      resolveBudgetChatTargetRow(props.budgetRows, previousQuestion, {
+      resolveBudgetChatTargetRow(props.budgetRows, questionForTurn, {
         assistantFocusRowId: assistantBudgetRowId,
         activeRow: activeBudgetRow,
       }) ?? null;
@@ -927,8 +928,8 @@ export function BudgetModal(props: {
         credentials: 'include',
           body: JSON.stringify({
             intent: 'reply',
-            question: activeQuestion,
-            nextQuestion: previousQuestion,
+            question: assistantQuestion ?? activeQuestion,
+            nextQuestion: questionForTurn,
             answer,
             budgetRows: props.budgetRows.slice(0, 30),
             chatAnswers: newChatAnswers.slice(-6),
@@ -961,7 +962,7 @@ export function BudgetModal(props: {
         const rawActions = payload.actions ?? (payload.action ? [payload.action] : []);
         const lastTouchedRowId = applyBudgetActions(rawActions);
         setConversationDone(Boolean(payload.done));
-        applyAssistantTurn(payload, previousQuestion);
+        applyAssistantTurn(payload, questionForTurn);
         setAssistantMarketSnapshot(
           payload.market_snapshot
             ? {
