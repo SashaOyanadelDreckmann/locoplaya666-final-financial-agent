@@ -24,6 +24,22 @@ export default function RootLayout({
   } catch (_) {}
 })();
 `;
+  const agentRouteClassScript = `
+(() => {
+  try {
+    const isAgentRoute = /^\\/agent(\\/|$)/.test(window.location.pathname);
+    if (!isAgentRoute) return;
+    const apply = () => {
+      document.documentElement.classList.add('agent-route-active');
+      document.body?.classList.add('agent-route-active');
+    };
+    apply();
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', apply, { once: true });
+    }
+  } catch (_) {}
+})();
+`;
 
   return (
     <html lang="es">
@@ -39,6 +55,10 @@ export default function RootLayout({
         <script
           id="fa-standalone-class"
           dangerouslySetInnerHTML={{ __html: standaloneClassScript }}
+        />
+        <script
+          id="fa-agent-route-class"
+          dangerouslySetInnerHTML={{ __html: agentRouteClassScript }}
         />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="theme-color" media="(prefers-color-scheme: light)" content="#5f7280" />
