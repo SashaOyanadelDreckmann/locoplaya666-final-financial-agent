@@ -697,6 +697,19 @@ export default function AgentPage() {
   }, [isMobileViewport, isStandaloneDisplayMode]);
 
   useEffect(() => {
+    if (!authBootstrapped || !isAuthenticated) return;
+    if (typeof window === 'undefined' || !isMobileViewport) return;
+
+    const timer = window.setTimeout(() => {
+      const frame = document.querySelector<HTMLElement>('.mobile-scale-frame');
+      if (!frame) return;
+      frame.scrollTo({ top: 72, behavior: 'auto' });
+    }, 120);
+
+    return () => window.clearTimeout(timer);
+  }, [authBootstrapped, isAuthenticated, isMobileViewport]);
+
+  useEffect(() => {
     const el = panelGridRef.current;
     if (!el || !isMobileViewport || disableMobilePanelHorizontalMotion) return;
 
