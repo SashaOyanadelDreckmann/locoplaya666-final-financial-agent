@@ -45,7 +45,9 @@ export default function RootLayout({
         <ServiceWorkerReset />
         <div className="global-agent-backdrop" aria-hidden="true" />
         <div className="app-shell">
-          {children}
+          <div className="mobile-scale-frame">
+            {children}
+          </div>
         </div>
       </body>
     </html>

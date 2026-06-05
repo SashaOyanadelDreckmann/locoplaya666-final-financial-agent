@@ -750,6 +750,36 @@ button {
   z-index: 1;
 }
 
+/* ================================================= */
+/* Mobile scale frame                                */
+/* ================================================= */
+
+/* Wrapper que envuelve TODO el contenido de la página.
+   En mobile se aplica transform: scale(0.88) con origen en el centro,
+   lo que crea ~6 % de margen en los 4 bordes (incluyendo la zona del
+   status bar). El background vive en app-shell::before y en el canvas
+   del elemento html — ambos FUERA de este wrapper — así que no se ven
+   afectados por el scale y cubren la pantalla física completa.
+   Los elementos position:fixed del contenido (header, input bar, etc.)
+   quedan posicionados dentro del sistema de coordenadas del frame, por
+   lo que también respetan los márgenes automáticamente. */
+.mobile-scale-frame {
+  width: 100%;
+  min-height: 100dvh;
+}
+
+@media (max-width: 480px) {
+  .mobile-scale-frame {
+    transform: scale(0.88);
+    transform-origin: 50% 50%;
+    /* height fijo para que el frame no desborde y el scroll
+       ocurra dentro del frame en lugar de en el document */
+    height: 100dvh;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+}
+
 @keyframes appShellBackdropEntrance {
   from {
     opacity: 0;
