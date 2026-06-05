@@ -1,11 +1,10 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { getCsrfToken } from '@/lib/csrf';
 import { buildChatDashboardForQuestion, compactDashboardForPrompt } from '@/lib/transactions-chat.helpers';
 import { resolveInstantTransactionSummary } from '@/lib/transactions-summary.helpers';
-import { countProductsWithAnalyzedMovements } from '@/lib/transactions-flow.helpers';
 import { CHILE_FINANCIAL_INSTITUTIONS } from '@/lib/financialCatalog';
 import ModalNumbersCanvas from '@/components/agent/ModalNumbersCanvas';
 import {
@@ -79,7 +78,6 @@ export function TransactionsModal(props: TransactionsModalProps) {
   const [txAssistantInput, setTxAssistantInput] = useState('');
   const [txAssistantLoading, setTxAssistantLoading] = useState(false);
   const [txAssistantError, setTxAssistantError] = useState<string | null>(null);
-  const [showInjectProductsConfirm, setShowInjectProductsConfirm] = useState(false);
   const [consentAccepted, setConsentAccepted] = useState(false);
   const [selectedMovementKey, setSelectedMovementKey] = useState<string | null>(null);
   const [overrideMerchantDraft, setOverrideMerchantDraft] = useState('');
@@ -638,9 +636,6 @@ export function TransactionsModal(props: TransactionsModalProps) {
     return () => window.clearInterval(intervalId);
   }, [props.isOpen, activeTxCard, dashboardClusters.length, alertDetails.length, metricExplanations.length]);
   useEffect(() => {
-    if (!props.isOpen) setShowInjectProductsConfirm(false);
-  }, [props.isOpen]);
-  useEffect(() => {
     if (!props.isOpen) {
       clearDockTransitionTimers();
       setIsDockingToLibrary(false);
@@ -691,17 +686,12 @@ export function TransactionsModal(props: TransactionsModalProps) {
     txSendLockRef.current = false;
   }, [props.isOpen]);
 
-  const analyzedProductsCount = useMemo(
-    () => countProductsWithAnalyzedMovements(props.transactionProductCards.map(({ product }) => product)),
-    [props.transactionProductCards],
-  );
-  const canInjectToAgent = analyzedProductsCount > 0;
   const txStageSummary =
     currentStage === 'consent'
       ? 'Paso 1 de 3: define institución, plantilla y consentimiento.'
       : currentStage === 'evidence'
         ? 'Paso 2 de 3: sube cartolas o respaldos y espera el análisis.'
-        : 'Paso 3 de 3: revisa el resumen y envíalo al agente principal.';
+        : 'Paso 3 de 3: revisa el resumen y continúa con el agente principal.';
   const txStageCta =
     currentStage === 'consent'
       ? 'Conectar y continuar'
@@ -709,9 +699,9 @@ export function TransactionsModal(props: TransactionsModalProps) {
         ? analysisAlreadyDone
           ? 'Resumen listo para revisar'
           : 'Sube evidencia para desbloquear el resumen'
-        : canInjectToAgent
-          ? 'Enviar al agente cuando cierres revisión'
-          : 'Guarda o analiza un producto para inyectarlo';
+        : analysisAlreadyDone
+          ? 'El contexto validado ya se sincroniza solo'
+          : 'Guarda o analiza un producto para sincronizar contexto';
 
   const requestClose = useCallback(() => {
     const hasPending = pendingEvidenceFiles.length > 0 || pendingManualEvidence.length > 0;
@@ -1233,35 +1223,22 @@ export function TransactionsModal(props: TransactionsModalProps) {
         </div>
         <div className="tx-scroll-body">
         <p id="transactions-modal-intro" className="agent-modal-intro tx-modal-header-layer">
-          Conecta cada producto, sube cartolas y revisa el resumen analítico antes de enviar todo al agente.
+          Conecta cada producto, sube cartolas y revisa el resumen analítico. El contexto validado se sincroniza solo.
         </p>
         <section className="pt-shell tx-stage-shell tx-modal-header-layer">
           <aside className="pt-left tx-panel-surface tx-panel-surface--library">
             <NumericDust scope="library" pulse={transitionPulse} active={dockTransitionPhase !== 'idle'} />
             <div className="pt-list-head">
               <h4>Biblioteca de productos</h4>
-              <div className="pt-list-head-actions">
-                <button
-                  type="button"
-                  className="continue-ghost tx-create-product-btn"
-                  onClick={() => handleCreateProduct()}
-                  disabled={!canAddMoreProducts}
-                >
-                  + Agregar producto
-                </button>
-                <button
-                  type="button"
-                  className="continue-ghost tx-inject-products-btn"
-                  onClick={() => setShowInjectProductsConfirm(true)}
-                  disabled={props.documentsLoading || !canInjectToAgent}
-                  title={
-                    canInjectToAgent
-                      ? 'Enviar productos analizados al chat principal'
-                      : 'Disponible cuando al menos un producto tenga movimientos detectados'
-                  }
-                >
-                  Inyectar
-                </button>
+            <div className="pt-list-head-actions">
+              <button
+                type="button"
+                className="continue-ghost tx-create-product-btn"
+                onClick={() => handleCreateProduct()}
+                disabled={!canAddMoreProducts}
+              >
+                + Agregar producto
+              </button>
               </div>
             </div>
             <div className="tx-meta-stack" aria-label="Estado y límites del módulo">
@@ -1273,39 +1250,16 @@ export function TransactionsModal(props: TransactionsModalProps) {
               ) : null}
               <div className="tx-meta-card is-neutral">
                 <span className="tx-meta-card-kicker">Límites operativos</span>
-                <p>{props.maxProducts} productos creados por usuario · {props.maxEvidenceFilesPerProduct} archivos por producto · 1 análisis + 3 revisiones de resumen por producto</p>
+                <p>{props.maxProducts} productos creados por usuario · {props.maxEvidenceFilesPerProduct} archivos por producto · 1 análisis + 3 revisiones de resumen por producto · sincronización automática al guardar</p>
               </div>
-              {showInjectProductsConfirm ? (
-                <div className="tx-batch-recommendation-banner" role="status" aria-live="polite">
-                  <div className="tx-batch-recommendation-copy">
-                    <span className="tx-batch-recommendation-kicker">Inyección consolidada</span>
-                    <p>
-                      Envía al agente cuando tengas {analyzedProductsCount > 0 ? `${analyzedProductsCount} producto(s) con movimientos` : 'al menos un producto con cartola procesada y movimientos detectados'} para una lectura consolidada.
-                    </p>
-                  </div>
-                  <div className="tx-batch-recommendation-actions">
-                    <button
-                      type="button"
-                      className="continue-ghost tx-batch-action"
-                      onClick={() => setShowInjectProductsConfirm(false)}
-                      disabled={props.documentsLoading}
-                    >
-                      Cerrar
-                    </button>
-                    <button
-                      type="button"
-                      className="button-primary tx-batch-action"
-                      onClick={() => {
-                        setShowInjectProductsConfirm(false);
-                        props.sendTransactionsToAgent();
-                      }}
-                      disabled={props.documentsLoading || !canInjectToAgent}
-                    >
-                      Enviar al agente
-                    </button>
-                  </div>
+              <div className="tx-batch-recommendation-banner" role="status" aria-live="polite">
+                <div className="tx-batch-recommendation-copy">
+                  <span className="tx-batch-recommendation-kicker">Sincronización automática</span>
+                  <p>
+                    Cuando guardes productos con movimientos, el contexto validado se actualiza solo para el agente principal.
+                  </p>
                 </div>
-              ) : null}
+              </div>
             </div>
             <div className="pt-list">
               {libraryProductCards.length > 0 ? (

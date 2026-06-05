@@ -2181,7 +2181,7 @@ export default function AgentPage() {
 
     const timer = window.setTimeout(() => {
       void syncFinancialContextToIntake().catch(() => {});
-    }, 1600);
+    }, 600);
 
     return () => window.clearTimeout(timer);
   }, [isAuthenticated, panelStateLoaded, bankSimulation.products, bankSimulation.activeProductId, budgetRows]);
@@ -3608,110 +3608,6 @@ export default function AgentPage() {
     });
   }
 
-  async function sendTransactionsToAgent() {
-    const defaultEligible = bankSimulation.products.filter((p) => p.connected);
-    const selectedSavedProducts = bankSimulation.products.filter((p) => savedProductsForBatch.includes(p.id) && p.connected);
-    const selectedProducts = selectedSavedProducts.length > 0 ? selectedSavedProducts : defaultEligible;
-    if (selectedProducts.length === 0) {
-      setTransactionUploadError('Conecta y autoriza al menos un producto antes de enviar al agente.');
-      return;
-    }
-    const analyzedProducts = selectedProducts.filter((product) => productHasAnalyzedMovements(product));
-    if (analyzedProducts.length === 0) {
-      setTransactionUploadError(
-        'Necesitas al menos un producto con cartola procesada y movimientos detectados. Sube evidencias y espera el análisis antes de inyectar.',
-      );
-      return;
-    }
-
-    setTransactionUploadError(null);
-    const aggregateDocuments = analyzedProducts.flatMap((product) =>
-      product.parsedDocuments.map((doc) => ({
-        product: product.label,
-        bank: product.bank,
-        name: doc.name,
-        preview: doc.text.slice(0, 600),
-      }))
-    );
-    const aggregateMovements = analyzedProducts.flatMap((product) => product.dashboard?.movements ?? []);
-    const aggregateIntel = buildTransactionIntelligence(
-      aggregateDocuments.map((doc) => ({ name: doc.name, text: doc.preview })),
-      aggregateMovements,
-    );
-    const compactTopKeywords = aggregateIntel.topKeywords.slice(0, 10).map((k) => ({
-      l: k.label,
-      c: k.count,
-    }));
-    const compactDocs = aggregateDocuments.slice(0, 10).map((d) => ({
-      pr: d.product,
-      n: d.name,
-      p: d.preview.slice(0, 220),
-    }));
-    const productsDigest = analyzedProducts.slice(0, 20).map((product) => ({
-      label: product.label,
-      bank: product.bank,
-      type: product.productType,
-      keyMetrics: product.dashboard?.keyMetrics ?? null,
-      topCategories: product.dashboard?.topCategories?.slice(0, 4) ?? [],
-      alerts: product.dashboard?.alerts?.slice(0, 4) ?? [],
-      opportunities: product.dashboard?.opportunities?.slice(0, 4) ?? [],
-      movements: product.dashboard?.movements?.slice(0, 8) ?? [],
-    }));
-
-    const message = [
-      'Modo productos y transacciones: análisis consolidado multi-producto, foco principal en mes reciente y comparación con mes anterior.',
-      `Productos seleccionados=${analyzedProducts.length}`,
-      `Productos=${analyzedProducts.map((p) => `${p.label} (${p.bank})`).join(' | ')}`,
-      'Historial adicional permitido: úsalo como antecedente, no como centro del diagnóstico.',
-      `KPIs docs=${aggregateIntel.docs} rows=${aggregateIntel.rows} total=${Math.round(
-        aggregateIntel.totalDetected
-      )} avg=${Math.round(aggregateIntel.averageDetected)} max=${Math.round(
-        aggregateIntel.maxDetected
-      )}`,
-      `DashboardProductos=${JSON.stringify(productsDigest)}`,
-      `Keywords=${JSON.stringify(compactTopKeywords)}`,
-      `Contexto presupuesto=${JSON.stringify({
-        income: Math.round(budgetTotals.income),
-        expenses: Math.round(budgetTotals.expenses),
-        balance: Math.round(budgetTotals.balance),
-      })}`,
-      `Documentos=${JSON.stringify(compactDocs)}`,
-      'Entrega: dashboard ejecutivo consolidado + hallazgos transversales + 3 acciones concretas.',
-    ].join('\n');
-
-    const productsContextPayload = {
-      productsContext: buildPersistableProductsContext(
-        bankSimulation.products,
-        bankSimulation.activeProductId
-      ),
-      budgetContext: buildPersistableBudgetContext(),
-    };
-    try {
-      await mergeProductsContextToIntake(productsContextPayload);
-    } catch {
-      // Non-blocking: chat can still continue with runtime context.
-    }
-
-    const productsWithMovements = analyzedProducts;
-    if (productsWithMovements.length > 0) {
-      productsWithMovements.forEach((product) => hydrateBudgetFromProduct(product));
-    }
-
-    setActiveChatId(PRIMARY_CHAT_ID);
-    setMobilePanelExpanded(false);
-    setPanelStage(3);
-    setIsTransactionsModalOpen(false);
-    if (productsWithMovements.length > 0) {
-      setIsBudgetModalOpen(true);
-    }
-    void onSend('Productos enviados correctamente al agente', {
-      agentPayload: message,
-      assistantPendingLabel:
-        'Configurando productos y transacciones con Financiera mente… consolidando respaldos y hallazgos ejecutivos.',
-      hideUserMessage: false,
-    });
-  }
-
   function launchDocToLibraryAnimation(
     label: string,
     sourceRect?: DOMRect | null,
@@ -4310,7 +4206,6 @@ export default function AgentPage() {
         documentsParseProgress={documentsParseProgress}
         onDocumentsParseProgress={setDocumentsParseProgress}
         transactionUploadError={transactionUploadError}
-        sendTransactionsToAgent={sendTransactionsToAgent}
         saveTransactionProductForBatch={saveTransactionProductForBatch}
         savedProductIds={savedProductsForBatch}
         maxProducts={MAX_TRANSACTION_PRODUCTS}

@@ -147,7 +147,6 @@ export type TransactionsModalProps = {
     progress: import('@/lib/transactions-parse-progress.helpers').DocumentsParseProgress,
   ) => void;
   transactionUploadError?: string | null;
-  sendTransactionsToAgent: () => void;
   saveTransactionProductForBatch: () => void;
   savedProductIds: string[];
   maxProducts: number;

@@ -60,6 +60,24 @@ describe('transaction parser', () => {
     expect(parsed.text).toContain('PEDIDOSYA CL 12345');
   });
 
+  it('skips csv metadata rows and starts from canonical banking headers', async () => {
+    const csv = [
+      'Banco Demo',
+      'Cartola cuenta corriente',
+      'Periodo;2026-05',
+      'Cliente;Ada Lovelace',
+      'Fecha;Detalle;Cargo;Abono;Saldo',
+      '2026-05-01;SUPERMERCADO;12900;;150000',
+      '2026-05-02;SUELDO;;950000;1100000',
+    ].join('\n');
+
+    const parsed = await parseCsvBufferDetailed(Buffer.from(csv, 'utf-8'), 'cartola.csv');
+    expect(parsed.tables).toHaveLength(1);
+    expect(parsed.tables[0].headers).toEqual(['Fecha', 'Detalle', 'Cargo', 'Abono', 'Saldo']);
+    expect(parsed.tables[0].rows).toHaveLength(2);
+    expect(parsed.tables[0].rows[0][1]).toBe('SUPERMERCADO');
+  });
+
   it('parses xls workbooks as transaction tables', async () => {
     const workbook = XLSX.utils.book_new();
     const sheet = XLSX.utils.aoa_to_sheet([

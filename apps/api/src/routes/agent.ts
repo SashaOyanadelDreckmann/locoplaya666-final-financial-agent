@@ -22,6 +22,7 @@ import {
 import {
   applyLifecycleAfterResponse,
   buildLifecycleDecision,
+  detectOnboardingSignals,
   getLifecycleFromMemory,
   lifecycleMeta,
 } from '../services/product-lifecycle.service';
@@ -145,6 +146,15 @@ function resolveInjectedBudget(params: {
     context.injected_budget && typeof context.injected_budget === 'object'
       ? (context.injected_budget as Record<string, unknown>)
       : {};
+  const persistedBudget =
+    context.persisted_budget_context && typeof context.persisted_budget_context === 'object'
+      ? (context.persisted_budget_context as Record<string, unknown>)
+      : context.injected_intake &&
+          typeof context.injected_intake === 'object' &&
+          (context.injected_intake as Record<string, unknown>).budgetContext &&
+          typeof (context.injected_intake as Record<string, unknown>).budgetContext === 'object'
+        ? ((context.injected_intake as Record<string, unknown>).budgetContext as Record<string, unknown>)
+        : {};
   const uiBudget =
     uiState.budget_summary && typeof uiState.budget_summary === 'object'
       ? (uiState.budget_summary as Record<string, unknown>)
@@ -153,9 +163,9 @@ function resolveInjectedBudget(params: {
   const uiIncome = toFiniteNumber(uiBudget.income);
   const uiExpenses = toFiniteNumber(uiBudget.expenses);
   const uiBalance = toFiniteNumber(uiBudget.balance);
-  const contextIncome = toFiniteNumber(contextBudget.income);
-  const contextExpenses = toFiniteNumber(contextBudget.expenses);
-  const contextBalance = toFiniteNumber(contextBudget.balance);
+  const contextIncome = toFiniteNumber(contextBudget.income ?? persistedBudget.income);
+  const contextExpenses = toFiniteNumber(contextBudget.expenses ?? persistedBudget.expenses);
+  const contextBalance = toFiniteNumber(contextBudget.balance ?? persistedBudget.balance);
 
   const income = uiIncome ?? contextIncome ?? 0;
   const expenses = uiExpenses ?? contextExpenses ?? 0;
@@ -165,6 +175,135 @@ function resolveInjectedBudget(params: {
     contextBalance ??
     income - expenses;
   return { income, expenses, balance };
+}
+
+function toDocumentPreview(document: unknown): Record<string, unknown> | null {
+  if (!document || typeof document !== 'object') return null;
+  const candidate = document as Record<string, unknown>;
+  const name = typeof candidate.name === 'string' ? candidate.name.trim() : '';
+  const text = typeof candidate.text === 'string' ? candidate.text.trim() : '';
+  const documentId = typeof candidate.documentId === 'string' ? candidate.documentId.trim() : '';
+  if (!name && !text && !documentId) return null;
+  return {
+    name: name || 'Documento financiero',
+    text: text.slice(0, 2400),
+    documentId: documentId || undefined,
+    summary: candidate.summary,
+    structuredData: candidate.structuredData,
+    indexed: candidate.indexed,
+    source: candidate.source,
+  };
+}
+
+function mergeUniqueDocuments(...sources: unknown[][]): Record<string, unknown>[] {
+  const dedup = new Map<string, Record<string, unknown>>();
+  for (const source of sources) {
+    for (const item of source) {
+      const preview = toDocumentPreview(item);
+      if (!preview) continue;
+      const key = String(preview.documentId || preview.name || preview.text).toLowerCase();
+      if (!dedup.has(key)) dedup.set(key, preview);
+    }
+  }
+  return Array.from(dedup.values());
+}
+
+function buildPersistedTransactionsContext(productsContext: Record<string, unknown>) {
+  const activeProduct =
+    productsContext.activeProduct && typeof productsContext.activeProduct === 'object'
+      ? (productsContext.activeProduct as Record<string, unknown>)
+      : null;
+  const transactionSummary =
+    productsContext.transactionSummary && typeof productsContext.transactionSummary === 'object'
+      ? (productsContext.transactionSummary as Record<string, unknown>)
+      : {};
+  const productsIndex = Array.isArray(productsContext.productsIndex)
+    ? productsContext.productsIndex.slice(0, 20)
+    : [];
+  const uploadedFiles = Array.isArray(productsContext.uploadedFiles)
+    ? productsContext.uploadedFiles.slice(0, 20)
+    : [];
+
+  return {
+    transactions: {
+      scope: productsContext.scope ?? 'persisted_products',
+      activeProductId: productsContext.activeProductId ?? activeProduct?.id ?? null,
+      activeProductLabel: productsContext.activeProductLabel ?? activeProduct?.label ?? null,
+      activeProductBank: activeProduct?.bank ?? null,
+      activeProductType: activeProduct?.productType ?? null,
+      connected: Boolean(activeProduct?.connected),
+      productsCount: Number(productsContext.productsCount ?? productsIndex.length ?? 0),
+      uploadedFiles,
+      activeProductMovementCount: Number(
+        ((activeProduct?.keyMetrics as Record<string, unknown> | undefined)?.movement_count as number | undefined) ??
+          0
+      ),
+      productsIndex,
+      activeProduct,
+      transactionSummary,
+    },
+  };
+}
+
+function hydrateAgentFinancialContext(params: {
+  context: Record<string, unknown>;
+  intakeEnvelope?: IntakeEnvelope;
+}) {
+  const intakeEnvelope = params.intakeEnvelope ?? {};
+  const productsContext =
+    intakeEnvelope.productsContext && typeof intakeEnvelope.productsContext === 'object'
+      ? (intakeEnvelope.productsContext as Record<string, unknown>)
+      : {};
+  const budgetContext =
+    intakeEnvelope.budgetContext && typeof intakeEnvelope.budgetContext === 'object'
+      ? (intakeEnvelope.budgetContext as Record<string, unknown>)
+      : {};
+  const requestDocuments = Array.isArray(params.context.uploaded_documents)
+    ? params.context.uploaded_documents
+    : [];
+  const persistedDocuments = activeProductDocumentsFromProductsContext(productsContext);
+  const uploadedDocuments = mergeUniqueDocuments(requestDocuments, persistedDocuments).slice(0, 10);
+  const requestConsolidated =
+    params.context.consolidated_context && typeof params.context.consolidated_context === 'object'
+      ? (params.context.consolidated_context as Record<string, unknown>)
+      : {};
+  const persistedConsolidated = buildPersistedTransactionsContext(productsContext);
+
+  return {
+    ...params.context,
+    uploaded_documents: uploadedDocuments,
+    uploaded_evidence_files:
+      Array.isArray(params.context.uploaded_evidence_files) && params.context.uploaded_evidence_files.length > 0
+        ? params.context.uploaded_evidence_files
+        : Array.isArray(productsContext.uploadedFiles)
+          ? productsContext.uploadedFiles.slice(0, 20)
+          : [],
+    consolidated_context: {
+      ...persistedConsolidated,
+      ...requestConsolidated,
+      transactions: {
+        ...(persistedConsolidated.transactions as Record<string, unknown>),
+        ...((requestConsolidated.transactions as Record<string, unknown> | undefined) ?? {}),
+      },
+    },
+    persisted_products_context:
+      Object.keys(productsContext).length > 0 ? productsContext : params.context.persisted_products_context,
+    persisted_budget_context:
+      Object.keys(budgetContext).length > 0 ? budgetContext : params.context.persisted_budget_context,
+  };
+}
+
+function activeProductDocumentsFromProductsContext(productsContext: Record<string, unknown>): unknown[] {
+  const activeProduct =
+    productsContext.activeProduct && typeof productsContext.activeProduct === 'object'
+      ? (productsContext.activeProduct as Record<string, unknown>)
+      : null;
+  if (!activeProduct) return [];
+  const parsedDocuments = Array.isArray(activeProduct.parsedDocuments) ? activeProduct.parsedDocuments : [];
+  const documentPreviews = Array.isArray(activeProduct.documentPreviews)
+    ? activeProduct.documentPreviews
+    : [];
+  return [...parsedDocuments, ...documentPreviews];
 }
 
 function buildBudgetPanelGuidance() {
@@ -182,18 +321,38 @@ function buildResilientFallbackMessage(params: {
   userMessage: string;
   phase?: unknown;
   activeChatId?: unknown;
+  hasBudget?: boolean;
+  hasTransactions?: boolean;
 }) {
   const userMessage = String(params.userMessage ?? '').trim();
   if (/\b(c[oó]mo|como).*\b(actualiz|editar|cambiar|completar).*\b(presupuesto)\b/i.test(userMessage)) {
+    if (params.hasBudget) {
+      return [
+        'Ya tengo tu presupuesto cargado. Si quieres, te doy una lectura ejecutiva del balance, la tasa de ahorro y los riesgos concretos.',
+        'Si hay una cifra que no te calza, la validamos en el panel y no la doy por cierta hasta confirmarla.',
+      ].join('\n\n');
+    }
     return buildBudgetPanelGuidance();
   }
   if (/\b(presupuesto|ingresos|gastos|flujo)\b/i.test(userMessage)) {
+    if (params.hasBudget) {
+      return [
+        'Ya veo tu presupuesto validado en el sistema. Puedo ayudarte a interpretarlo, detectar tensiones y priorizar ajustes sin pedirte que lo rehagas.',
+        'Si quieres, te marco ahora mismo qué es consistente y qué conviene confirmar.',
+      ].join('\n\n');
+    }
     return [
       'Vamos directo a algo útil: primero actualizamos tu presupuesto en el panel y luego te doy una lectura ejecutiva de balance, tasa de ahorro y riesgos.',
       'Si me compartes ingreso mensual, gastos fijos y gastos variables, lo dejamos estructurado ahora.',
     ].join('\n\n');
   }
   if (/\b(cartola|transacci[oó]n|movimientos?|estado de cuenta)\b/i.test(userMessage)) {
+    if (params.hasTransactions) {
+      return [
+        'Ya tengo tus movimientos/cartolas integrados. Puedo leer patrones, alertas y relaciones entre productos sin pedirte que vuelvas a subirlos.',
+        'Si algo luce inconsistente, lo contrasto contigo antes de asumirlo como verdad.',
+      ].join('\n\n');
+    }
     return [
       'Perfecto. Sube tu cartola o transacciones del mes en el panel y te devuelvo un informe ejecutivo con patrones de gasto, alertas y próximos pasos.',
       'En cuanto esté cargada, sigo desde ahí sin repetir contexto.',
@@ -988,10 +1147,14 @@ router.post(
 
     const normalizedContext = ((normalizedInput.context as Record<string, unknown>) ?? {});
     const normalizedUiState = ((normalizedInput.ui_state as Record<string, unknown>) ?? {});
+    normalizedInput.context = hydrateAgentFinancialContext({
+      context: normalizedContext,
+      intakeEnvelope: authedUser.injectedIntake as IntakeEnvelope | undefined,
+    });
     normalizedInput.context = {
-      ...normalizedContext,
+      ...((normalizedInput.context as Record<string, unknown>) ?? {}),
       injected_budget: resolveInjectedBudget({
-        context: normalizedContext,
+        context: (normalizedInput.context as Record<string, unknown>) ?? {},
         uiState: normalizedUiState,
       }),
     };
@@ -1072,6 +1235,7 @@ router.post(
     }
 
     let input = ChatAgentInputSchema.parse(normalizedInput);
+    const onboardingSignals = detectOnboardingSignals(input);
     const lifecycleDecision = buildLifecycleDecision({
       input,
       memoryBlob: authedUser.memoryBlob,
@@ -1082,7 +1246,13 @@ router.post(
       return sendSuccess(res, {
         message:
           lifecycleDecision.reason ??
-          'Este espacio aun no esta disponible. Terminemos primero el diagnostico base en el Chat 1.',
+          buildResilientFallbackMessage({
+            userMessage: String(input.user_message ?? ''),
+            phase: lifecycleDecision.state.phase,
+            activeChatId: lifecycleDecision.activeChatId,
+            hasBudget: onboardingSignals.hasBudget,
+            hasTransactions: onboardingSignals.hasTransactions,
+          }),
         mode: 'information',
         tool_calls: [],
         agent_blocks: [],
@@ -1138,6 +1308,8 @@ router.post(
           userMessage: String(input.user_message ?? ''),
           phase: lifecycleDecision.state.phase,
           activeChatId: lifecycleDecision.activeChatId,
+          hasBudget: onboardingSignals.hasBudget,
+          hasTransactions: onboardingSignals.hasTransactions,
         }),
         mode: 'information',
         tool_calls: [],
@@ -1174,6 +1346,8 @@ router.post(
         userMessage: String(input.user_message ?? ''),
         phase: lifecycleDecision.state.phase,
         activeChatId: lifecycleDecision.activeChatId,
+        hasBudget: onboardingSignals.hasBudget,
+        hasTransactions: onboardingSignals.hasTransactions,
       });
       response.suggested_replies = [
         'Abrir presupuesto',
