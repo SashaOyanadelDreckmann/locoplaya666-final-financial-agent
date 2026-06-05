@@ -941,22 +941,39 @@ html.home-route-active .app-shell::after {
   }
 }
 
-/* 100vh fallback for browsers without dvh support (iOS ≤ 15.3, old Android WebView) */
-.home-hero-full {
-  height: 100vh;
-  height: 100dvh;
+/* Hero spacer: flex:1 that pushes copy toward bottom; capped on mobile so
+   the cinematic gap doesn't swallow the screen on shorter devices */
+.home-hero-spacer {
+  flex: 1;
+}
+@media (max-width: 767px) {
+  .home-hero-spacer {
+    max-height: clamp(60px, 22vh, 160px);
+  }
 }
 
-/* Very small screens (320–359px) — prevent hero title overflow */
-@media (max-width: 359px) {
-  .home-page-hero h1 {
-    font-size: 42px !important;
-    letter-spacing: -0.04em !important;
+/* Problem scroll tunnel — same 0→1 progress ratio, shorter absolute distance
+   on mobile so it feels immersive without being endless */
+.home-problem-wrapper {
+  height: 280vh;
+}
+@media (max-width: 767px) {
+  .home-problem-wrapper {
+    height: 230vh;
   }
-  .home-page-header,
-  .home-page-hero {
-    padding-left: 18px;
-    padding-right: 18px;
+}
+
+/* CTA action row — side-by-side on desktop, column on mobile */
+.home-cta-row {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+}
+@media (max-width: 767px) {
+  .home-cta-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
   }
 }
 

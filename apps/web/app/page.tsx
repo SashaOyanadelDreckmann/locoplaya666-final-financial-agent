@@ -137,7 +137,7 @@ function ProblemSection() {
   const ys = [y0, y1, y2];
 
   return (
-    <div ref={ref} style={{ height: '280vh', position: 'relative' }}>
+    <div ref={ref} className="home-problem-wrapper" style={{ position: 'relative' }}>
       <div style={{
         position: 'sticky',
         top: 0,
@@ -509,7 +509,7 @@ function CtaSection() {
           Crea tu cuenta, completa tu perfil y conversa con el agente sobre tu situación real.
         </p>
 
-        <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'center' }}>
+        <div className="home-cta-row">
           <motion.button
             onClick={() => void handleStartDiagnosis()}
             whileHover={{ scale: 1.02, opacity: 0.88 }}
@@ -727,7 +727,7 @@ export default function HomePage() {
                 </MotionLink>
               </div>
 
-              <div style={{ flex: 1 }} />
+              <div className="home-hero-spacer" />
 
               {/* Hero copy — visible INMEDIATAMENTE en desktop */}
               <motion.div className="home-page-hero" style={{ y: heroY }}>
