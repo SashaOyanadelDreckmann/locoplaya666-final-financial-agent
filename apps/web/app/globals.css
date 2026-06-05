@@ -758,6 +758,19 @@ button {
   }
 }
 
+/* Mobile variant: translateY uses the actual safe-area-inset-top so the
+   background bleeds exactly behind the status bar on any device/OS */
+@keyframes appShellBackdropEntranceMobile {
+  from {
+    opacity: 0;
+    transform: scale(1.05) translateY(calc(-1.5 * env(safe-area-inset-top, 54px)));
+  }
+  to {
+    opacity: 1;
+    transform: scale(1.02) translateY(calc(-1 * env(safe-area-inset-top, 54px)));
+  }
+}
+
 @keyframes film-grain-drift-a {
   0% { transform: translate3d(0, 0, 0) scale(1.025) rotate(0deg); background-position: 0 0, 1px 2px, 3px 5px; }
   13% { transform: translate3d(-5.2%, 2.6%, 0) scale(1.031) rotate(0.35deg); background-position: 13px -7px, -19px 23px, 31px -11px; }
@@ -2205,11 +2218,12 @@ body.home-lock {
 
 /* Mobile */
 @media (max-width: 480px) {
-  /* ::before overlays the viewport; the status-bar safe-area is covered by the
-     html canvas background above (same image + gradient, so it's seamless). */
   .app-shell::before {
     inset: 0;
-    transform: none;
+    transform-origin: center top;
+    /* Override animation with mobile variant that shifts up by env(safe-area-inset-top)
+       so the background bleeds behind the status bar on iPhone/Android edge-to-edge */
+    animation: appShellBackdropEntranceMobile 850ms cubic-bezier(0.22, 1, 0.36, 1) both;
     background-position: center top;
     background-size: cover;
   }
