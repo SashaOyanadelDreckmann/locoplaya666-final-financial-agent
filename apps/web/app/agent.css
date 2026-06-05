@@ -46978,14 +46978,14 @@ body.agent-route-active .app-shell > * {
     background-image:
       linear-gradient(180deg, rgba(6, 10, 16, 0.18), rgba(6, 10, 16, 0.28)),
       url('/fondo4.jpg') !important;
-    background-size: cover !important;
+    background-size: calc(100% * var(--agent-mobile-bg-zoom, 1.14)) auto !important;
     background-position: center top !important;
     background-repeat: no-repeat !important;
   }
 
   body.agent-route-active .global-agent-backdrop {
-    inset: calc(env(safe-area-inset-top, 0px) * -1 - 10vh) -6vw -20vh -6vw !important;
-    transform: scale(var(--agent-mobile-bg-zoom, 1.06)) !important;
+    inset: calc(env(safe-area-inset-top, 0px) * -1 - 12vh) -8vw -22vh -8vw !important;
+    transform: scale(var(--agent-mobile-bg-zoom, 1.14)) !important;
     transform-origin: center top !important;
     background-position: center top !important;
     background-size: cover !important;
@@ -46993,14 +46993,14 @@ body.agent-route-active .app-shell > * {
   }
 
   body.agent-route-active .app-shell::before {
-    top: calc(env(safe-area-inset-top, 0px) * -1 - 10vh) !important;
-    right: -6vw !important;
-    left: -6vw !important;
-    bottom: -20vh !important;
+    top: calc(env(safe-area-inset-top, 0px) * -1 - 12vh) !important;
+    right: -8vw !important;
+    left: -8vw !important;
+    bottom: -22vh !important;
     width: auto !important;
-    height: calc(var(--screen-h, 100dvh) + 30vh + env(safe-area-inset-top, 0px)) !important;
-    min-height: calc(var(--screen-h, 100dvh) + 30vh + env(safe-area-inset-top, 0px)) !important;
-    transform: scale(var(--agent-mobile-bg-zoom, 1.06)) !important;
+    height: calc(var(--screen-h, 100dvh) + 34vh + env(safe-area-inset-top, 0px)) !important;
+    min-height: calc(var(--screen-h, 100dvh) + 34vh + env(safe-area-inset-top, 0px)) !important;
+    transform: scale(var(--agent-mobile-bg-zoom, 1.14)) !important;
     transform-origin: center top !important;
     background-position: center top !important;
     background-size: cover !important;
@@ -47008,8 +47008,8 @@ body.agent-route-active .app-shell > * {
   }
 
   body.agent-route-active .app-shell::after {
-    inset: calc(env(safe-area-inset-top, 0px) * -1 - 10vh) -6vw -20vh -6vw !important;
-    transform: scale(var(--agent-mobile-bg-zoom, 1.06)) !important;
+    inset: calc(env(safe-area-inset-top, 0px) * -1 - 12vh) -8vw -22vh -8vw !important;
+    transform: scale(var(--agent-mobile-bg-zoom, 1.14)) !important;
     transform-origin: center top !important;
   }
 

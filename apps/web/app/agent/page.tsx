@@ -702,7 +702,7 @@ export default function AgentPage() {
 
     const root = document.documentElement;
     root.style.setProperty('--agent-mobile-frame-shift', '56px');
-    root.style.setProperty('--agent-mobile-bg-zoom', '1.06');
+    root.style.setProperty('--agent-mobile-bg-zoom', '1.14');
 
     return () => {
       root.style.removeProperty('--agent-mobile-frame-shift');
