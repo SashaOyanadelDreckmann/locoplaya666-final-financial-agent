@@ -902,18 +902,23 @@ html.home-route-active .app-shell::after {
 }
 
 @media (max-width: 767px) {
-  /* Let document scroll naturally so fixed canvas stays pinned (iOS scroll-container bug) */
+  /* Home route: window is the scroll container — framer-motion useScroll and sticky
+     sections need window.scrollY to update. height:auto lets html/body grow with content
+     so the document can scroll. overflow-x:clip on the frame prevents horizontal bleed
+     without creating a scroll container (unlike overflow-x:hidden per CSS spec). */
+  html.home-route-active,
+  html.home-route-active body {
+    height: auto;
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
+
   html.home-route-active .mobile-scale-frame {
     height: auto;
     min-height: 100dvh;
     max-height: none;
-    overflow: visible;
-    overflow-x: hidden;
-  }
-
-  html.home-route-active,
-  html.home-route-active body {
-    overflow-x: hidden;
+    overflow-x: clip;
+    overflow-y: visible;
   }
 }
 

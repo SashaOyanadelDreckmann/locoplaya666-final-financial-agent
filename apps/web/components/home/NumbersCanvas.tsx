@@ -8,7 +8,8 @@ const clamp  = (x: number, lo = 0, hi = 1) => Math.max(lo, Math.min(hi, x));
 const remap  = (v: number, lo: number, hi: number) => clamp((v - lo) / (hi - lo));
 const ease   = (t: number) => t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
 
-const CELL = 14;
+const CELL_DESKTOP = 14;
+const CELL_MOBILE  = 9;
 const FS   = 11;
 
 interface Px { r: number; g: number; b: number; lum: number }
@@ -64,6 +65,7 @@ export default function NumbersCanvas({
       // Sample using CSS pixel dimensions so grid matches visual layout
       const cssW = canvas.width / dpr;
       const cssH = canvas.height / dpr;
+      const CELL = isMobile ? CELL_MOBILE : CELL_DESKTOP;
       cols = Math.ceil(cssW / CELL);
       rows = Math.ceil(cssH / CELL);
       const off = document.createElement('canvas');
@@ -185,6 +187,7 @@ export default function NumbersCanvas({
 
       // ── Digits with 3D perspective projection ──────────────────────────────
       if (eMid >= 0.005 && px.length) {
+        const CELL = isMobile ? CELL_MOBILE : CELL_DESKTOP;
         ctx.font = `${FS}px "Courier New",monospace`;
         ctx.textBaseline = 'top';
 
