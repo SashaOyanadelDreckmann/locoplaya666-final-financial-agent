@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { ArrowRight, MoreHorizontal, Share2, Sparkles, SmartphoneNfc, SquareArrowOutUpRight, MonitorSmartphone } from 'lucide-react';
 
 type DeferredInstallPrompt = Event & {
   prompt: () => Promise<void>;
@@ -37,12 +38,18 @@ function getPlatformGuide(platform: Platform) {
       title: 'iPhone / iPad',
       accent: 'Instalación manual requerida por iOS',
       steps: [
-        'Abre esta página en Safari.',
-        'Pulsa el botón Compartir.',
-        'Selecciona "Agregar a inicio".',
+        'Abre esta página en Safari, no dentro de otro navegador.',
+        'Pulsa el botón Compartir en la barra inferior.',
+        'Si no ves la opción, toca Ver más y luego Agregar a pantalla de inicio.',
       ],
-      primaryLabel: 'Abrir compartir',
-      helper: 'Apple no permite agregar a inicio automáticamente desde una web.',
+      primaryLabel: 'Ver guía iPhone',
+      helper: 'Apple no permite agregar a inicio automáticamente desde una web; este es el flujo correcto.',
+      platformArt: [
+        { label: 'Safari', icon: SmartphoneNfc },
+        { label: 'Compartir', icon: Share2 },
+        { label: 'Ver más', icon: MoreHorizontal },
+        { label: 'Agregar', icon: SquareArrowOutUpRight },
+      ],
     };
   }
   if (platform === 'android-chrome') {
@@ -56,6 +63,11 @@ function getPlatformGuide(platform: Platform) {
       ],
       primaryLabel: 'Instalar app',
       helper: 'Si Chrome detecta la app instalable, verás el prompt nativo.',
+      platformArt: [
+        { label: 'Chrome', icon: MonitorSmartphone },
+        { label: 'Menú', icon: MoreHorizontal },
+        { label: 'Instalar', icon: Sparkles },
+      ],
     };
   }
   return {
@@ -68,6 +80,11 @@ function getPlatformGuide(platform: Platform) {
     ],
     primaryLabel: 'Ver instrucciones',
     helper: 'La opción cambia según navegador.',
+    platformArt: [
+      { label: 'Navegador', icon: MonitorSmartphone },
+      { label: 'Menú', icon: MoreHorizontal },
+      { label: 'Instalar', icon: SquareArrowOutUpRight },
+    ],
   };
 }
 
@@ -161,6 +178,21 @@ function WaitingApprovalContent() {
           </div>
 
           <p className="waiting-install-helper">{guide.helper}</p>
+
+          <div className="waiting-platform-art" aria-hidden="true">
+            {guide.platformArt.map((item, i) => {
+              const Icon = item.icon;
+              return (
+                <div key={item.label} className="waiting-platform-art-step">
+                  <div className="waiting-platform-art-icon">
+                    <Icon size={15} strokeWidth={2.2} />
+                  </div>
+                  <span className="waiting-platform-art-label">{item.label}</span>
+                  {i < guide.platformArt.length - 1 ? <ArrowRight size={13} className="waiting-platform-art-arrow" /> : null}
+                </div>
+              );
+            })}
+          </div>
 
           <ol className="waiting-steps">
             {guide.steps.map((step, i) => (

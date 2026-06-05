@@ -27,6 +27,15 @@ const nextConfig = {
     }
     return config;
   },
+  async redirects() {
+    return [
+      {
+        source: '/demo',
+        destination: '/register',
+        permanent: false,
+      },
+    ];
+  },
   async rewrites() {
     return [
       {

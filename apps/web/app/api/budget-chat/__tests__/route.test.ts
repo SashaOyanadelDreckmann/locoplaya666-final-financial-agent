@@ -153,4 +153,41 @@ describe('budget-chat route', () => {
     expect(body.ok).toBe(false);
     expect(body.error).toBe('Upstream failure');
   });
+
+  it('wraps non-JSON upstream responses without crashing', async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response('<html>oops</html>', {
+        status: 502,
+        headers: { 'content-type': 'text/html' },
+      }),
+    );
+
+    const req = new Request('http://localhost/api/budget-chat', {
+      method: 'POST',
+      body: JSON.stringify({ intent: 'reply', answer: 'hola' }),
+    });
+
+    const res = await POST(req);
+    const body = await res.json();
+
+    expect(res.status).toBe(502);
+    expect(body.ok).toBe(false);
+    expect(String(body.error)).toMatch(/invalid upstream response/i);
+  });
+
+  it('returns 502 when the upstream request fails', async () => {
+    fetchMock.mockRejectedValueOnce(new Error('network down'));
+
+    const req = new Request('http://localhost/api/budget-chat', {
+      method: 'POST',
+      body: JSON.stringify({ intent: 'reply', answer: 'hola' }),
+    });
+
+    const res = await POST(req);
+    const body = await res.json();
+
+    expect(res.status).toBe(502);
+    expect(body.ok).toBe(false);
+    expect(body.error).toBe('Upstream request failed');
+  });
 });

@@ -116,7 +116,7 @@ export const budgetAnalyzerTool: MCPTool = {
 
     const rule5030Gap  = needsTotal - target50;  // positivo = exceso en needs
     const rule30Gap    = wantsTotal - target30;
-    const rule20Gap    = (target20) - (savingsActual + savingsCapacity); // positivo = déficit ahorro
+    const rule20Gap    = target20 - savingsActual; // positivo = déficit ahorro real
 
     // ── Fondo de emergencia ─────────────────────────────────────────
     const targetEmergencyMonths  = deps > 0 ? 6 : 3;
@@ -247,7 +247,8 @@ export const budgetAnalyzerTool: MCPTool = {
       rule_50_30_20: {
         needs_actual: Math.round(needsTotal), needs_target: Math.round(target50),
         wants_actual: Math.round(wantsTotal), wants_target: Math.round(target30),
-        savings_target: Math.round(target20), savings_actual: Math.round(savingsActual + savingsCapacity),
+        savings_target: Math.round(target20), savings_actual: Math.round(savingsActual),
+        savings_capacity: Math.round(savingsCapacity),
         needs_excess:   Math.round(Math.max(0, rule5030Gap)),
         wants_excess:   Math.round(Math.max(0, rule30Gap)),
         savings_gap:    Math.round(Math.max(0, rule20Gap)),

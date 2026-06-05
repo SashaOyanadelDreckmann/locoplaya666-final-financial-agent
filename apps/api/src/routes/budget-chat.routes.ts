@@ -6,6 +6,13 @@ import { requireAuth } from '../middleware/auth';
 import { getConfig } from '../config';
 import { fetchIndicador } from '../mcp/tools/market/mindicadorClient';
 import { stripEmojis } from '../agents/core.agent/helpers/format.helpers';
+import {
+  type BudgetRow,
+  collectBudgetDescendantIds,
+  canonicalBudgetRowId,
+  reconcileBudgetRows,
+  getEffectiveBudgetRows,
+} from '@financial-agent/shared';
 
 const router = Router();
 
@@ -24,17 +31,6 @@ type BudgetMovementType =
   | 'savings_investment'
   | 'taxes_fees'
   | 'leisure_other';
-
-type BudgetRow = {
-  id: string;
-  category: string;
-  type: 'income' | 'expense';
-  amount: number;
-  note?: string;
-  cadence?: BudgetCadence;
-  paymentMethod?: BudgetPaymentMethod;
-  movementType?: BudgetMovementType;
-};
 
 type BudgetActionDraft = {
   kind?: 'add' | 'update' | 'delete';
@@ -181,6 +177,14 @@ function normalizeMovementType(value: unknown): BudgetMovementType | undefined {
   return valid.includes(value as string) ? (value as BudgetMovementType) : undefined;
 }
 
+function normalizeMomentum(value: unknown): BudgetRow['momentum'] | undefined {
+  return value === 'up' || value === 'steady' || value === 'down' ? value : undefined;
+}
+
+function normalizeStrategy(value: unknown): BudgetRow['strategy'] | undefined {
+  return value === 'shield' || value === 'review' || value === 'optimize' ? value : undefined;
+}
+
 function normalizeLooseText(value: string) {
   return String(value ?? '')
     .toLowerCase()
@@ -196,7 +200,7 @@ function formatClp(value: number) {
 }
 
 function normalizeRowId(value: unknown): string {
-  return compactText(value, 80).replace(/^expense[-_]custom[-_]?/i, 'expense-custom-');
+  return canonicalBudgetRowId(compactText(value, 80).replace(/^expense[-_]custom[-_]?/i, 'expense-custom-'));
 }
 
 function slugifyRowPart(value: string) {
@@ -228,38 +232,46 @@ function sanitizeBudgetRow(raw: unknown): BudgetRow | null {
     category,
     type,
     amount: Number.isFinite(amountNum) ? Math.max(0, Math.round(amountNum)) : 0,
+    parentId: normalizeRowId(item.parentId) || undefined,
+    product: compactText(item.product, 80) || undefined,
+    institution: compactText(item.institution, 60) || undefined,
     note: compactText(item.note, 160) || undefined,
     cadence: normalizeCadence(item.cadence, type),
     paymentMethod: normalizePaymentMethod(item.paymentMethod),
     movementType: normalizeMovementType(item.movementType),
+    momentum: normalizeMomentum(item.momentum),
+    strategy: normalizeStrategy(item.strategy),
   };
 }
 
 function sanitizeBudgetRows(value: unknown, maxRows = 30): BudgetRow[] {
   if (!Array.isArray(value)) return [];
-  return value
+  return reconcileBudgetRows(
+    value
     .slice(0, maxRows)
     .map((row) => sanitizeBudgetRow(row))
-    .filter((row): row is BudgetRow => Boolean(row));
+    .filter((row): row is BudgetRow => Boolean(row)),
+  );
 }
 
 function buildBudgetSnapshot(rows: BudgetRow[]): BudgetSnapshot {
-  const income = rows
+  const effectiveRows = getEffectiveBudgetRows(rows);
+  const income = effectiveRows
     .filter((r) => r.type === 'income')
     .reduce((sum, r) => sum + Math.max(0, r.amount), 0);
-  const expenses = rows
+  const expenses = effectiveRows
     .filter((r) => r.type === 'expense')
     .reduce((sum, r) => sum + Math.max(0, r.amount), 0);
   const balance = income - expenses;
   const topExpense =
-    rows
+    effectiveRows
       .filter((r) => r.type === 'expense' && r.amount > 0)
       .sort((a, b) => b.amount - a.amount)[0] ?? null;
   const missingCoreRows = [
-    !rows.some((r) => r.id === 'income_salary' && r.amount > 0) ? 'ingreso principal' : '',
-    !rows.some((r) => r.id === 'expense_rent' && r.amount > 0) ? 'vivienda' : '',
-    !rows.some((r) => r.id === 'expense_food' && r.amount > 0) ? 'alimentacion' : '',
-    !rows.some((r) => r.id === 'expense_transport' && r.amount > 0) ? 'transporte' : '',
+    !effectiveRows.some((r) => r.id === 'income_salary' && r.amount > 0) ? 'ingreso principal' : '',
+    !effectiveRows.some((r) => r.id === 'expense_rent' && r.amount > 0) ? 'vivienda' : '',
+    !effectiveRows.some((r) => r.id === 'expense_food' && r.amount > 0) ? 'alimentacion' : '',
+    !effectiveRows.some((r) => r.id === 'expense_transport' && r.amount > 0) ? 'transporte' : '',
   ].filter(Boolean);
 
   return {
@@ -268,7 +280,7 @@ function buildBudgetSnapshot(rows: BudgetRow[]): BudgetSnapshot {
     balance,
     topExpense,
     missingCoreRows,
-    filledRows: rows.filter((r) => r.amount > 0 || r.category.trim().length > 0).length,
+    filledRows: effectiveRows.filter((r) => r.amount > 0 || r.category.trim().length > 0).length,
   };
 }
 
@@ -938,7 +950,7 @@ function buildDeterministicUpdate(
     movement_type: coerceMovementTypeForRow(targetRow.movementType, targetRow.type, targetRow.category),
   };
 
-  const projectedRows = rows.map((row) => (row.id === targetRow.id ? { ...row, amount } : row));
+  const projectedRows = reconcileBudgetRows(rows.map((row) => (row.id === targetRow.id ? { ...row, amount } : row)));
   const { focus, question } = buildBudgetFocusQuestion(projectedRows, null, intakeData, products);
   return packageBudgetReply({
     reply: `Listo: ${targetRow.category} quedó en $${formatClp(amount)}.`,
@@ -1099,27 +1111,27 @@ router.post(
           .join('\n')
       : '';
 
-  const deterministicUpdate =
-    !isInit && detectedIntent === 'update_amount'
-      ? buildDeterministicUpdate(rows, activeRow, answer, intakeData, products)
-      : null;
-  if (deterministicUpdate) {
-    res.json({ ...deterministicUpdate, market_snapshot: emptyMarketSnapshot() });
-    return;
-  }
+    const deterministicUpdate =
+      !isInit && detectedIntent === 'update_amount'
+        ? buildDeterministicUpdate(rows, activeRow, answer, intakeData, products)
+        : null;
+    if (deterministicUpdate) {
+      res.json({ ...deterministicUpdate, market_snapshot: emptyMarketSnapshot() });
+      return;
+    }
 
-  if (!isInit && detectedIntent === 'education') {
-    res.json({
-      ...buildEducationReply(answer, rows, activeRow, intakeData, products),
-      market_snapshot: emptyMarketSnapshot(),
-    });
-    return;
-  }
+    if (!isInit && detectedIntent === 'education') {
+      res.json({
+        ...buildEducationReply(answer, rows, activeRow, intakeData, products),
+        market_snapshot: emptyMarketSnapshot(),
+      });
+      return;
+    }
 
-  if (!isInit && detectedIntent === 'greeting') {
-    res.json({ ...buildGreetingReply(rows, activeRow, intakeData, products), market_snapshot: emptyMarketSnapshot() });
-    return;
-  }
+    if (!isInit && detectedIntent === 'greeting') {
+      res.json({ ...buildGreetingReply(rows, activeRow, intakeData, products), market_snapshot: emptyMarketSnapshot() });
+      return;
+    }
 
     if (!isInit && detectedIntent === 'status_review') {
       res.json({ ...buildStatusReply(rows, intakeData, products), market_snapshot: emptyMarketSnapshot() });
@@ -1237,8 +1249,12 @@ router.post(
       : [parsed.action ?? parsed.update];
     const actions = resolveSafeActions(rawActions, rows, activeRow, answer);
 
-    const projectedRows = actions.reduce<BudgetRow[]>((acc, action) => {
-      if (action.kind === 'delete') return acc.filter((row) => row.id !== action.id);
+    const projectedRows = reconcileBudgetRows(
+      actions.reduce<BudgetRow[]>((acc, action) => {
+        if (action.kind === 'delete') {
+          const deleteIds = collectBudgetDescendantIds(acc, action.id);
+          return acc.filter((row) => !deleteIds.has(row.id));
+        }
       const exists = acc.some((row) => row.id === action.id);
       const nextRow: BudgetRow = {
         id: action.id,
@@ -1253,7 +1269,8 @@ router.post(
       return exists
         ? acc.map((row) => (row.id === action.id ? { ...row, ...nextRow } : row))
         : [...acc, nextRow];
-    }, rows);
+      }, rows),
+    );
 
     const fallbackFocus = buildBudgetFocusQuestion(
       projectedRows,

@@ -148,7 +148,7 @@ export default function ProfileCard({
         <div className="profile-avatar" aria-hidden="true">{initials}</div>
         <div className="profile-identity">
           <div className="profile-name">{userName ?? 'Usuario'}</div>
-          <div className="profile-subtitle">{injected ? 'Datos inyectados para demo' : 'Perfil en construccion'}</div>
+          <div className="profile-subtitle">{injected ? 'Perfil financiero activo' : 'Perfil en construccion'}</div>
         </div>
       </div>
 

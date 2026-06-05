@@ -500,11 +500,11 @@ function CtaSection() {
             margin: '0 0 30px',
           }}
         >
-          Prueba<br />el agente.
+          Empieza<br />con claridad.
         </motion.h2>
 
         <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.35)', margin: '0 0 44px', lineHeight: 1.62, maxWidth: 360, letterSpacing: '-0.005em' }}>
-          Un prototipo de tesis real, disponible para explorar libremente.
+          Crea tu cuenta, completa tu perfil y conversa con el agente sobre tu situación real.
         </p>
 
         <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'center' }}>
