@@ -4,9 +4,12 @@
  */
 
 import fs from 'fs';
+import os from 'os';
+import { spawnSync } from 'child_process';
 import path from 'path';
 import PDFParse from 'pdf-parse';
 import { PDFExtract } from 'pdf.js-extract';
+import ffmpegStatic from 'ffmpeg-static';
 import XLSX from 'xlsx';
 import { getOpenAIClient, withCompatibleTemperature } from './llm.service';
 
@@ -18,6 +21,15 @@ const IMAGE_MIME_BY_EXT: Record<string, string> = {
   '.webp': 'image/webp',
   '.gif': 'image/gif',
 };
+const VIDEO_EXTENSIONS = new Set(['.mp4', '.mov', '.webm', '.m4v', '.avi']);
+const VIDEO_MIME_BY_EXT: Record<string, string> = {
+  '.mp4': 'video/mp4',
+  '.mov': 'video/quicktime',
+  '.webm': 'video/webm',
+  '.m4v': 'video/mp4',
+  '.avi': 'video/x-msvideo',
+};
+const MAX_VIDEO_FRAMES = 8;
 
 function resolveVisionModel(): string {
   return process.env.OPENAI_VISION_MODEL?.trim() || 'gpt-4o-mini';
@@ -25,6 +37,192 @@ function resolveVisionModel(): string {
 
 function visionImageDetail(): 'auto' | 'high' {
   return process.env.TRANSACTIONS_VISION_DETAIL === 'high' ? 'high' : 'auto';
+}
+
+function resolveFfmpegBinary(): string | null {
+  const binary = typeof ffmpegStatic === 'string' ? ffmpegStatic.trim() : '';
+  return binary.length > 0 ? binary : null;
+}
+
+function parseVideoDurationSeconds(stderr: string): number | null {
+  const match = stderr.match(/Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)/i);
+  if (!match) return null;
+  const hours = Number(match[1] ?? 0);
+  const minutes = Number(match[2] ?? 0);
+  const seconds = Number(match[3] ?? 0);
+  const total = hours * 3600 + minutes * 60 + seconds;
+  return Number.isFinite(total) && total > 0 ? total : null;
+}
+
+function resolveVideoFrameRate(durationSeconds: number | null): number {
+  if (!durationSeconds || !Number.isFinite(durationSeconds) || durationSeconds <= 0) return 0.5;
+  const targetFrames = Math.min(MAX_VIDEO_FRAMES, Math.max(4, Math.ceil(durationSeconds / 6)));
+  const rate = targetFrames / durationSeconds;
+  return Math.max(0.12, Math.min(1, Number(rate.toFixed(4))));
+}
+
+function cleanupTempDir(dir: string): void {
+  try {
+    fs.rmSync(dir, { recursive: true, force: true });
+  } catch {}
+}
+
+async function parseVideoBufferDetailed(buffer: Buffer, filename: string): Promise<ParsedTransactionArtifact> {
+  const ffmpegBinary = resolveFfmpegBinary();
+  if (!ffmpegBinary) {
+    return {
+      source: filename,
+      text: `[Video ${filename}: no se encontró un binario de FFmpeg disponible]`,
+      tables: [],
+      parserMeta: { mode: 'video_vision', confidence: 0.05 },
+    };
+  }
+
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tx-video-'));
+  const inputPath = path.join(tempDir, path.basename(filename));
+  const framesDir = path.join(tempDir, 'frames');
+  fs.mkdirSync(framesDir, { recursive: true });
+
+  try {
+    fs.writeFileSync(inputPath, buffer);
+    const probe = spawnSync(ffmpegBinary, ['-hide_banner', '-i', inputPath], { encoding: 'utf8' });
+    const durationSeconds = parseVideoDurationSeconds(`${probe.stderr ?? ''}`);
+    const frameRate = resolveVideoFrameRate(durationSeconds);
+    const outputPattern = path.join(framesDir, 'frame-%03d.jpg');
+    const extract = spawnSync(
+      ffmpegBinary,
+      [
+        '-hide_banner',
+        '-loglevel',
+        'error',
+        '-i',
+        inputPath,
+        '-vf',
+        `fps=${frameRate.toFixed(4)},scale=960:-1:flags=lanczos`,
+        '-q:v',
+        '4',
+        outputPattern,
+      ],
+      { encoding: 'utf8' },
+    );
+
+    if (extract.status !== 0 && extract.status !== null) {
+      return {
+        source: filename,
+        text: `[Video ${filename}: no se pudo extraer fotogramas (${String(extract.stderr ?? extract.error ?? 'error')})]`,
+        tables: [],
+        parserMeta: { mode: 'video_vision', confidence: 0.08 },
+      };
+    }
+
+    const frameFiles = fs
+      .readdirSync(framesDir)
+      .filter((entry) => /\.(jpe?g)$/i.test(entry))
+      .sort()
+      .slice(0, MAX_VIDEO_FRAMES);
+
+    if (frameFiles.length === 0) {
+      return {
+        source: filename,
+        text: `[Video ${filename}: sin fotogramas útiles para analizar]`,
+        tables: [],
+        parserMeta: { mode: 'video_vision', confidence: 0.1 },
+      };
+    }
+
+    const client = getOpenAIClient();
+    const model = resolveVisionModel();
+    const framePayloads = frameFiles.map((frameFile, index) => {
+      const frameBuffer = fs.readFileSync(path.join(framesDir, frameFile));
+      return {
+        index: index + 1,
+        url: `data:image/jpeg;base64,${frameBuffer.toString('base64')}`,
+        label: `Fotograma ${index + 1}`,
+      };
+    });
+
+    const response = await client.chat.completions.create(
+      withCompatibleTemperature(
+        {
+          model,
+          max_completion_tokens: 2200,
+          response_format: { type: 'json_object' },
+          messages: [
+            {
+              role: 'system',
+              content:
+                'Eres un OCR financiero senior para grabaciones de pantalla. Observa varios fotogramas del mismo scroll y fusiona solo movimientos reales y únicos. Devuelve solo JSON válido con keys: summary, text, tables. No inventes filas, no repitas movimientos entre fotogramas y omite interfaces no financieras.',
+            },
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text:
+                    `Archivo: ${filename}\n` +
+                    'La evidencia proviene de una grabación de pantalla bancaria.\n' +
+                    'Lee los fotogramas en orden y consolida la lista final.\n' +
+                    'Cada table debe incluir name, headers y rows.\n' +
+                    'Preferir columnas de fecha, descripción, monto, saldo y dirección cuando existan.\n' +
+                    'Si un movimiento aparece repetido en fotogramas consecutivos, mantenlo una sola vez.',
+                },
+                ...framePayloads.flatMap((frame) => [
+                  { type: 'text', text: frame.label },
+                  { type: 'image_url', image_url: { url: frame.url, detail: visionImageDetail() } },
+                ]),
+              ] as any,
+            },
+          ],
+        },
+        model,
+        0,
+      ) as any,
+    );
+
+    const raw = response.choices?.[0]?.message?.content?.trim() ?? '{}';
+    const result = JSON.parse(raw) as {
+      summary?: string;
+      text?: string;
+      tables?: Array<{ name?: string; headers?: string[]; rows?: string[][] }>;
+    };
+    const tables = Array.isArray(result.tables)
+      ? result.tables
+          .map((table, index) =>
+            rowsToTable(
+              table.name?.trim() || `Video ${index + 1}`,
+              Array.isArray(table.rows) ? table.rows : [],
+              'image',
+            ),
+          )
+          .filter((table): table is ParsedTable => Boolean(table))
+      : [];
+    const textBody = normalizeText(result.text || result.summary || '');
+    return {
+      source: filename,
+      text: textBody
+        ? `--- Video OCR: ${filename} ---\n${textBody}\n--- Fin ---`
+        : tables.length > 0
+          ? serializeTablesToText(filename, tables, 'Video OCR')
+          : `[Video ${filename}: sin texto o tablas extraíbles]`,
+      tables,
+      parserMeta: {
+        mode: 'video_vision',
+        confidence: tables.length > 0 ? 0.83 : textBody ? 0.54 : 0.18,
+      },
+    };
+  } catch (error) {
+    return {
+      source: filename,
+      text: `[Video ${filename}: error al extraer - ${String(error)}]`,
+      tables: [],
+      parserMeta: {
+        mode: 'video_vision',
+        confidence: 0.05,
+      },
+    };
+  } finally {
+    cleanupTempDir(tempDir);
+  }
 }
 
 export type ParsedTable = {
@@ -39,7 +237,7 @@ export type ParsedTransactionArtifact = {
   text: string;
   tables: ParsedTable[];
   parserMeta?: {
-    mode: 'exact_sheet' | 'csv_exact' | 'pdf_coordinates' | 'pdf_text' | 'pdf_vision' | 'vision_structured';
+    mode: 'exact_sheet' | 'csv_exact' | 'pdf_coordinates' | 'pdf_text' | 'pdf_vision' | 'vision_structured' | 'video_vision';
     confidence: number;
   };
 };
@@ -704,6 +902,7 @@ export async function parseTransactionFileDetailed(
   const ext = path.extname(filename).toLowerCase();
   if (ext === '.pdf') return parsePdfBufferDetailed(buffer, filename);
   if (ext === '.xls' || ext === '.xlsx') return parseExcelBufferDetailed(buffer, filename);
+  if (VIDEO_EXTENSIONS.has(ext)) return parseVideoBufferDetailed(buffer, filename);
   if (
     ext === '.csv' ||
     ext === '.tsv' ||

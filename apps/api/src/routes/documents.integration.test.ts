@@ -121,6 +121,14 @@ describe('documents routes', () => {
     expect(docs).toHaveLength(0);
   }, 10000);
 
+  it('accepts rapid screen recording extensions in prevalidation', () => {
+    expect(() =>
+      validateAndPrepareDocumentFiles([
+        { name: 'movimientos-rapidos.mp4', base64: Buffer.from('fake-video').toString('base64') },
+      ]),
+    ).not.toThrow();
+  });
+
   it('rejects invalid base64 before persisting documents', async () => {
     const { agent, csrfToken, userId, listUserDocuments } = await buildAuthenticatedAgent();
 

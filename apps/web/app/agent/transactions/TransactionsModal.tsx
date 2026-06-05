@@ -353,17 +353,6 @@ export function TransactionsModal(props: TransactionsModalProps) {
     });
   };
 
-  const formatChoiceLabel = (format: 'photos' | 'pdf' | 'spreadsheet' | 'text' | 'video') =>
-    format === 'photos'
-      ? 'fotos'
-      : format === 'pdf'
-        ? 'PDF'
-        : format === 'spreadsheet'
-          ? 'Excel/CSV'
-          : format === 'video'
-            ? 'rápido'
-            : 'texto';
-
   const buildManualEvidenceFile = (text: string) =>
     new File([text], `antecedente-manual-${Date.now()}.txt`, { type: 'text/plain' });
 
@@ -1094,15 +1083,17 @@ export function TransactionsModal(props: TransactionsModalProps) {
     try {
       const normalized = text.toLowerCase();
       const chosenFormat =
-        /excel|csv|xlsx|planilla/.test(normalized)
-          ? 'spreadsheet'
-          : /\bpdf\b/.test(normalized)
-            ? 'pdf'
-            : /foto|captura|pantallazo|imagen/.test(normalized)
-              ? 'photos'
-              : /texto|manual|escrito/.test(normalized)
-                ? 'text'
-                : null;
+        /video|grabaci[oó]n|pantalla|screen/.test(normalized)
+          ? 'video'
+          : /excel|csv|xlsx|planilla/.test(normalized)
+            ? 'spreadsheet'
+            : /\bpdf\b/.test(normalized)
+              ? 'pdf'
+              : /foto|captura|pantallazo|imagen/.test(normalized)
+                ? 'photos'
+                : /texto|manual|escrito/.test(normalized)
+                  ? 'text'
+                  : null;
 
       if (hasFiles) {
         await handleAssistantUploadSend(text);

@@ -59,7 +59,7 @@ export function downloadFile(url: string, filename: string) {
   const shouldOpenDirectly = isProbablyMobileDevice() && /\.pdf($|[?#])/i.test(filename);
   if (shouldOpenDirectly) {
     const popup = window.open(url, '_blank', 'noopener,noreferrer');
-    if (!popup) window.location.href = url;
+    if (!popup) window.location.assign(url);
     return;
   }
 
@@ -67,6 +67,7 @@ export function downloadFile(url: string, filename: string) {
   a.href = url;
   a.download = filename;
   a.rel = 'noopener noreferrer';
+  a.target = '_blank';
   document.body.appendChild(a);
   a.click();
   a.remove();

@@ -104,6 +104,11 @@ const SUPPORTED_EXTENSIONS = new Set([
   '.jpeg',
   '.webp',
   '.gif',
+  '.mp4',
+  '.mov',
+  '.webm',
+  '.m4v',
+  '.avi',
   '.pdf',
   '.xls',
   '.xlsx',
@@ -147,8 +152,8 @@ export function validateAndPrepareDocumentFiles(
 ): Array<{ name: string; base64: string; mimeType?: string; buffer: Buffer }> {
   const decodedFiles = files.map((file) => {
     if (!isSupportedDocumentFilename(file.name)) {
-      throw badRequest(
-        `Archivo "${file.name}" no soportado. Usa PDF, imagen, XLS/XLSX, CSV/TSV, TXT/MD, JSON, XML, YAML o LOG.`,
+        throw badRequest(
+        `Archivo "${file.name}" no soportado. Usa PDF, imagen, video, XLS/XLSX, CSV/TSV, TXT/MD, JSON, XML, YAML o LOG.`,
       );
     }
     return {

@@ -1,6 +1,6 @@
 'use client';
 
-import type { ChangeEvent, Ref } from 'react';
+import { useState, type ChangeEvent, type Ref } from 'react';
 import {
   NumericDust,
   EditorialSummary,
@@ -60,6 +60,7 @@ export interface TxEvidenceStepProps {
 
 export function TxEvidenceStep(props: TxEvidenceStepProps) {
   const p = props;
+  const [showRapidExample, setShowRapidExample] = useState(false);
   return (
                   <section className="tx-content-card tx-content-card--agent is-main-center tx-step-reveal">
                     <div className="pt-stage-header tx-agent-stage-header">
@@ -193,7 +194,34 @@ export function TxEvidenceStep(props: TxEvidenceStepProps) {
                               </div>
                               <div className="tx-onboarding-copy">
                                 {buildUploadGuidance(p.selectedUploadFormat, p.activeBankProduct!.productType)}
+                                {p.selectedUploadFormat === 'video' && (
+                                  <div className="mt-4 flex flex-wrap items-center gap-3">
+                                    <button
+                                      type="button"
+                                      className="tx-onboarding-reset"
+                                      onClick={() => setShowRapidExample((prev) => !prev)}
+                                    >
+                                      {showRapidExample ? 'Ocultar ejemplo' : 'Ver ejemplo'}
+                                    </button>
+                                    <span className="text-[11px] uppercase tracking-[0.18em] text-white/35">
+                                      Grabación real
+                                    </span>
+                                  </div>
+                                )}
                               </div>
+                              {p.selectedUploadFormat === 'video' && showRapidExample && (
+                                <div className="mt-4 overflow-hidden rounded-2xl border border-white/10 bg-black/30">
+                                  <video
+                                    controls
+                                    playsInline
+                                    preload="metadata"
+                                    className="w-full max-h-[420px] bg-black"
+                                  >
+                                    <source src="/generated/transactions-fast-example.mp4" type="video/mp4" />
+                                    Tu navegador no soporta reproducción de video.
+                                  </video>
+                                </div>
+                              )}
                               <button
                                 type="button"
                                 className="tx-onboarding-next tx-onboarding-next--edge"

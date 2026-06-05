@@ -23,7 +23,7 @@ describe('transactions modal safeguards', () => {
     expect(source).toContain('tx-batch-recommendation-banner" role="status" aria-live="polite"');
     expect(source).toContain('Productos y transacciones');
     expect(source).toContain('const requestClose = useCallback');
-    expect(source).toContain('countProductsWithAnalyzedMovements');
+    expect(source).toContain('grabaci[oó]n|pantalla|screen');
   });
 
   it('keeps product upload isolation and canonical document ids', () => {
@@ -41,5 +41,16 @@ describe('transactions modal safeguards', () => {
     expect(source).toContain('let parsed = await callParseDocuments();');
     expect(source).toContain('await new Promise((resolve) => setTimeout(resolve, 700));');
     expect(source).not.toContain('const uploadApplied = applyUploadToTargetProduct(prev.products, targetProductId, [], names);');
+  });
+
+  it('keeps the rapid upload mode visible in the evidence step', () => {
+    const sourcePath = path.join(process.cwd(), 'app', 'agent', 'transactions', 'TxEvidenceStep.tsx');
+    const source = fs.readFileSync(sourcePath, 'utf8');
+
+    expect(source).toContain("['video', 'Rápido']");
+    expect(source).toContain('video/mp4,video/quicktime,video/webm');
+    expect(source).toContain('grabación rápida de pantalla');
+    expect(source).toContain('/generated/transactions-fast-example.mp4');
+    expect(source).toContain('Ver ejemplo');
   });
 });
