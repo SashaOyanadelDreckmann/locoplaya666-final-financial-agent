@@ -106,10 +106,10 @@ function ProblemSection() {
         maskImage: 'linear-gradient(to bottom, black 72%, transparent 100%)',
       }}>
 
-        {/* Permanent dark gradient — left-side scrim so text is readable during chaos */}
+        {/* Subtle veil — just enough to lift text off digits on very bright image areas */}
         <div style={{
           position: 'absolute', inset: 0, pointerEvents: 'none',
-          background: 'linear-gradient(to right, rgba(6,11,24,0.62) 0%, rgba(6,11,24,0.28) 55%, rgba(6,11,24,0) 100%)',
+          background: 'linear-gradient(to right, rgba(6,11,24,0.18) 0%, rgba(6,11,24,0.06) 50%, rgba(6,11,24,0) 100%)',
         }} />
 
         {/* Color overlay vibrante */}
