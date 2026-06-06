@@ -10,13 +10,14 @@ RUN corepack prepare pnpm@10.33.0 --activate
 FROM base AS deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/api/package.json apps/api/package.json
+COPY apps/api/prisma apps/api/prisma
 COPY apps/web/package.json apps/web/package.json
 COPY packages/shared/package.json packages/shared/package.json
 RUN pnpm install --frozen-lockfile
+RUN pnpm --filter @financial-agent/api db:generate
 
 FROM deps AS build
 COPY . .
-RUN pnpm --filter @financial-agent/api db:generate
 RUN pnpm --filter @financial-agent/api build
 
 FROM base AS runner
