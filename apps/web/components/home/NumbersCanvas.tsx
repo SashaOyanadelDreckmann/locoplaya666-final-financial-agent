@@ -20,7 +20,7 @@ export interface MousePos { x: number; y: number }
 const PHASE = {
   inStart: 0.01,
   inEnd:   0.18,
-  outStart: 0.78,
+  outStart: 0.93,
   outEnd:   0.99,
 } as const;
 
@@ -123,9 +123,9 @@ export default function NumbersCanvas({
     function loop(ts: number) {
       raf = requestAnimationFrame(loop);
       const p = progress.get();
-      // 60fps during entrance/exit transition; 30fps during steady-state to save battery
-      const inTransition = p < 0.22 || p > 0.76;
-      if (isMobile && !inTransition && ts - lastFrameTs < 33) return;
+      // 60fps always — chaos runs the full scroll so throttling would kill the effect
+      const inTransition = p < 0.22 || p > 0.90;
+      if (isMobile && !inTransition && ts - lastFrameTs < 24) return;
       lastFrameTs = ts;
       const t = ts / 1000;
 
@@ -144,7 +144,7 @@ export default function NumbersCanvas({
       const outP = ease(remap(p, PHASE.outStart, PHASE.outEnd));
       const midP = clamp(inP - outP);
       const chaosIn  = ease(remap(p, 0.24, 0.44));
-      const chaosOut = ease(remap(p, 0.60, 0.80));
+      const chaosOut = ease(remap(p, 0.91, 0.98));
       const chaosP   = clamp(chaosIn - chaosOut);
 
       // FeaturesSection dip: hunde midP cuando la sección está en vista
