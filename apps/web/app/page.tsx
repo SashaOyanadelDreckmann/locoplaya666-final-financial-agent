@@ -148,6 +148,12 @@ function ProblemSection() {
         background: 'transparent',
       }}>
 
+        {/* Permanent dark gradient — left-side scrim so text is readable during chaos */}
+        <div style={{
+          position: 'absolute', inset: 0, pointerEvents: 'none',
+          background: 'linear-gradient(to right, rgba(6,11,24,0.62) 0%, rgba(6,11,24,0.28) 55%, rgba(6,11,24,0) 100%)',
+        }} />
+
         {/* Color overlay vibrante */}
         <motion.div style={{
           position: 'absolute', inset: 0, pointerEvents: 'none',
@@ -181,6 +187,7 @@ function ProblemSection() {
                   opacity: colors[i],
                   y: ys[i],
                   color: 'white',
+                  textShadow: '0 2px 14px rgba(0,0,0,0.98), 0 0 40px rgba(0,0,0,0.90)',
                 }}
               >
                 {line}
