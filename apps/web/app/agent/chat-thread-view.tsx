@@ -795,14 +795,8 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
     rendered.push(renderChatItem(it, idx));
   }
 
-  const hasInlinePrimaryFlowAction = props.items.some((item) => {
-    if (item.type !== 'message' || item.role !== 'assistant') return false;
-    const section = item.panel_action?.section;
-    return Boolean(section) && section === props.flowPanelAction?.section;
-  });
-
   const flowPanelAction =
-    props.activeThreadId === 'chat-1' && !props.diagnosisUnlocked && !hasInlinePrimaryFlowAction
+    props.activeThreadId === 'chat-1' && !props.diagnosisUnlocked
       ? props.flowPanelAction
       : undefined;
 
