@@ -7,27 +7,31 @@
 
 :root {
   --vp-bg-fallback: #050810;
-  --vp-bg-seam-overlap: 22px;
-  /* Bottom: short soft fade + minimal solid strip flush to home indicator */
-  --vp-bg-seam-fade-band: 14vh;
-  --vp-bg-solid-band: max(env(safe-area-inset-bottom, 0px), 10px);
+  --vp-bg-seam-overlap: 28px;
+  /* Bottom: soft fade merged into photo stack + tiny solid strip at home indicator */
+  --vp-bg-seam-fade-band: 11vh;
+  --vp-bg-solid-band: max(env(safe-area-inset-bottom, 0px), 4px);
   --vp-bg-seam-band: var(--vp-bg-seam-fade-band);
-  --vp-bg-bottom-seam-height: calc(var(--vp-bg-seam-fade-band) + var(--vp-bg-solid-band) + var(--vp-bg-seam-overlap));
+  --vp-bg-bottom-seam-height: calc(var(--vp-bg-seam-fade-band) + var(--vp-bg-solid-band));
+  --vp-bg-photo-extend: 112%;
   --vp-bg-bottom-seam: linear-gradient(
     to bottom,
     rgba(5, 8, 16, 0) 0%,
-    rgba(5, 8, 16, 0.03) 10%,
-    rgba(5, 8, 16, 0.07) 20%,
-    rgba(5, 8, 16, 0.12) 30%,
-    rgba(5, 8, 16, 0.18) 40%,
-    rgba(5, 8, 16, 0.26) 50%,
-    rgba(5, 8, 16, 0.36) 60%,
-    rgba(5, 8, 16, 0.48) 70%,
-    rgba(5, 8, 16, 0.62) 80%,
-    rgba(5, 8, 16, 0.78) 90%,
-    rgba(5, 8, 16, 0.90) 96%,
+    rgba(5, 8, 16, 0.04) 18%,
+    rgba(5, 8, 16, 0.10) 32%,
+    rgba(5, 8, 16, 0.18) 46%,
+    rgba(5, 8, 16, 0.28) 58%,
+    rgba(5, 8, 16, 0.40) 68%,
+    rgba(5, 8, 16, 0.54) 76%,
+    rgba(5, 8, 16, 0.68) 84%,
+    rgba(5, 8, 16, 0.82) 91%,
+    rgba(5, 8, 16, 0.92) 96%,
     var(--vp-bg-fallback) 100%
   );
+  --vp-bg-mobile-stack:
+    var(--vp-bg-bottom-seam),
+    var(--vp-bg-matte-mobile),
+    var(--vp-bg-photo-url);
   /* Top seam — soft vignette on top of full photo (home-style), not a black bar */
   --vp-bg-top-seam-band: 14vh;
   --vp-bg-top-seam-height: calc(max(env(safe-area-inset-top, 0px), 20px) + var(--vp-bg-top-seam-band));
@@ -51,18 +55,21 @@ html.pwa-standalone {
   --vp-bg-bottom-seam: linear-gradient(
     to bottom,
     rgba(6, 10, 16, 0) 0%,
-    rgba(6, 10, 16, 0.03) 10%,
-    rgba(6, 10, 16, 0.07) 20%,
-    rgba(6, 10, 16, 0.12) 30%,
-    rgba(6, 10, 16, 0.18) 40%,
-    rgba(6, 10, 16, 0.26) 50%,
-    rgba(6, 10, 16, 0.36) 60%,
-    rgba(6, 10, 16, 0.48) 70%,
-    rgba(6, 10, 16, 0.62) 80%,
-    rgba(6, 10, 16, 0.78) 90%,
-    rgba(6, 10, 16, 0.90) 96%,
+    rgba(6, 10, 16, 0.04) 18%,
+    rgba(6, 10, 16, 0.10) 32%,
+    rgba(6, 10, 16, 0.18) 46%,
+    rgba(6, 10, 16, 0.28) 58%,
+    rgba(6, 10, 16, 0.40) 68%,
+    rgba(6, 10, 16, 0.54) 76%,
+    rgba(6, 10, 16, 0.68) 84%,
+    rgba(6, 10, 16, 0.82) 91%,
+    rgba(6, 10, 16, 0.92) 96%,
     var(--vp-bg-fallback) 100%
   );
+  --vp-bg-mobile-stack:
+    var(--vp-bg-bottom-seam),
+    var(--vp-bg-matte-mobile),
+    var(--vp-bg-photo-url);
   --vp-bg-top-seam: linear-gradient(
     to bottom,
     rgba(6, 10, 16, 0.62) 0%,
@@ -78,11 +85,11 @@ html.pwa-standalone {
     linear-gradient(
       180deg,
       rgba(6, 10, 16, 0.10) 0%,
-      rgba(6, 10, 16, 0.18) 14%,
+      rgba(6, 10, 16, 0.16) 14%,
       rgba(6, 10, 16, 0.28) 48%,
-      rgba(6, 10, 16, 0.34) 72%,
-      rgba(6, 10, 16, 0.48) 88%,
-      rgba(6, 10, 16, 0.62) 100%
+      rgba(6, 10, 16, 0.30) 72%,
+      rgba(6, 10, 16, 0.36) 88%,
+      rgba(6, 10, 16, 0.44) 100%
     );
 }
 
@@ -106,21 +113,22 @@ html.pwa-standalone {
   html:not(.home-route-active),
   body:not(.home-route-active) {
     background-color: var(--vp-bg-fallback) !important;
+    min-height: 100dvh !important;
   }
 
   html:not(.home-route-active) {
-    background-image: var(--vp-bg-matte-mobile), var(--vp-bg-photo-url) !important;
-    background-size: 100% 108%, 100% 108% !important;
-    background-position: center bottom, center bottom !important;
+    background-image: var(--vp-bg-mobile-stack) !important;
+    background-size: 100% var(--vp-bg-bottom-seam-height), 100% var(--vp-bg-photo-extend), 100% var(--vp-bg-photo-extend) !important;
+    background-position: center bottom, center bottom, center bottom !important;
     background-repeat: no-repeat !important;
   }
 
   html.agent-route-active,
   body.agent-route-active {
     background-color: var(--vp-bg-fallback) !important;
-    background-image: var(--vp-bg-matte-mobile), var(--vp-bg-photo-url) !important;
-    background-size: 100% 108%, 100% 108% !important;
-    background-position: center bottom, center bottom !important;
+    background-image: var(--vp-bg-mobile-stack) !important;
+    background-size: 100% var(--vp-bg-bottom-seam-height), 100% var(--vp-bg-photo-extend), 100% var(--vp-bg-photo-extend) !important;
+    background-position: center bottom, center bottom, center bottom !important;
     background-repeat: no-repeat !important;
   }
 }
@@ -130,9 +138,10 @@ html.pwa-standalone {
     --vp-bg-bleed-top: max(env(safe-area-inset-top, 0px), 44px);
     --vp-bg-bleed-bottom: max(env(safe-area-inset-bottom, 0px), 34px);
     --vp-bg-bleed-extra-bottom: 14vh;
-    --vp-bg-seam-fade-band: 16vh;
+    --vp-bg-seam-fade-band: 12vh;
     --vp-bg-seam-band: var(--vp-bg-seam-fade-band);
     --vp-bg-top-seam-band: 16vh;
+    --vp-bg-photo-extend: 114%;
   }
 }
 
@@ -203,17 +212,22 @@ body.agent-route-standalone .global-agent-backdrop,
   }
 
   html.pwa-standalone .global-agent-backdrop,
+  html:not(.home-route-active) .app-shell::before,
   .app-shell::before,
   body.agent-route-active .app-shell::before,
   body.agent-route-standalone .app-shell::before,
   body.agent-route-active .global-agent-backdrop {
+    top: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
     background-color: var(--vp-bg-fallback) !important;
-    background-image: var(--vp-bg-matte-mobile), var(--vp-bg-photo-url) !important;
-    background-size: 100% 108% !important;
-    background-position: center bottom !important;
+    background-image: var(--vp-bg-mobile-stack) !important;
+    background-size: 100% var(--vp-bg-bottom-seam-height), 100% var(--vp-bg-photo-extend), 100% var(--vp-bg-photo-extend) !important;
+    background-position: center bottom, center bottom, center bottom !important;
     background-repeat: no-repeat !important;
     transform: none !important;
-    transform-origin: center center !important;
+    transform-origin: center bottom !important;
     filter: none !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
@@ -242,37 +256,12 @@ body.agent-route-standalone .global-agent-backdrop,
   }
 
   /*
-   * Bottom seam — overlaps the crop line, then fades into --vp-bg-fallback.
+   * Bottom seam lives inside the unified background stack (html + ::before).
+   * No separate ::after layer — avoids the visible gap at the viewport bottom.
    */
   html:not(.home-route-active) .app-shell::after {
-    content: '' !important;
-    display: block !important;
-    position: fixed !important;
-    top: auto !important;
-    left: 0 !important;
-    right: 0 !important;
-    bottom: 0 !important;
-    width: 100% !important;
-    height: var(--vp-bg-bottom-seam-height) !important;
-    transform: translateY(calc(-1 * var(--vp-bg-seam-overlap))) !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    pointer-events: none !important;
-    z-index: 0 !important;
-    animation: none !important;
-    opacity: 1 !important;
-    mix-blend-mode: normal !important;
-    background-color: transparent !important;
-    background-image: var(--vp-bg-bottom-seam) !important;
-    background-size: 100% 100% !important;
-    background-position: center bottom !important;
-    background-repeat: no-repeat !important;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    filter: none !important;
-    box-shadow: 0 -10px 24px -14px var(--vp-bg-fallback) !important;
-    -webkit-mask-image: none !important;
-    mask-image: none !important;
+    display: none !important;
+    content: none !important;
   }
 
   html:not(.home-route-active) .app-shell::before {
