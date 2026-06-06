@@ -652,10 +652,19 @@ export default function AgentPage() {
   // Mobile panel carousel loop + idle autoplay (every 5s).
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const syncViewport = () => setIsMobileViewport(window.innerWidth <= 767);
+    const syncViewport = () => {
+      const mobile = window.innerWidth <= 767;
+      setIsMobileViewport(mobile);
+      document.documentElement.classList.toggle('is-mobile-viewport', mobile);
+      document.body?.classList.toggle('is-mobile-viewport', mobile);
+    };
     syncViewport();
     window.addEventListener('resize', syncViewport);
-    return () => window.removeEventListener('resize', syncViewport);
+    return () => {
+      window.removeEventListener('resize', syncViewport);
+      document.documentElement.classList.remove('is-mobile-viewport');
+      document.body?.classList.remove('is-mobile-viewport');
+    };
   }, []);
 
   useEffect(() => {
@@ -3460,6 +3469,7 @@ export default function AgentPage() {
               currency?: string;
               key_metrics?: {
                 inflows_total: number;
+                abonos_total?: number;
                 outflows_total: number;
                 net_flow: number;
                 avg_movement: number;
@@ -3497,6 +3507,7 @@ export default function AgentPage() {
               description: string;
               amount: number;
               direction: 'expense' | 'income';
+              movement_kind?: 'expense' | 'income' | 'abono';
               source_line?: string;
               category?: string;
               merchant?: string;
@@ -4036,6 +4047,103 @@ export default function AgentPage() {
     return null;
   }
 
+  const terminalComposerShell = (
+    <div className="agent-input-shell terminal-composer-shell">
+      <div
+        className="agent-input terminal-composer"
+        onClick={() => {
+          focusComposerAfterLayout({ collapsePanelFirst: true });
+        }}
+        style={{ cursor: isActiveChatLocked ? 'default' : 'text' }}
+      >
+        <div className="terminal-composer-head">$ escribir_mensaje</div>
+        <textarea
+          ref={chatComposerRef}
+          className="terminal-composer-input"
+          placeholder={isActiveChatLocked ? 'Chat bloqueado hasta completar el diagnóstico' : ''}
+          value={input}
+          disabled={isActiveChatLocked}
+          autoFocus={!hasBlockingModalOpen && !isMobileViewport}
+          onFocus={() => {
+            if (isMobileViewport && mobilePanelExpanded) {
+              setMobilePanelExpanded(false);
+              const layout = panelScrollRef.current?.closest('.agent-layout') as HTMLElement | null;
+              layout?.classList.remove('mobile-panel-expanded');
+            }
+          }}
+          onBlur={() => {
+            clearMobileKeyboardSettleTimer();
+            setKeyboardOpeningMode(false);
+          }}
+          onChange={(e) => setDraftForActive(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              void onSend((e.currentTarget as HTMLTextAreaElement).value);
+            }
+          }}
+        />
+      </div>
+
+      <div className="controls terminal-composer-controls">
+        <input
+          ref={chatUploadInputRef}
+          type="file"
+          accept=".pdf,.xls,.xlsx,.csv,.tsv,.txt,.md,.json,.xml,.yaml,.yml,.log,image/*"
+          multiple
+          style={{ display: 'none' }}
+          onChange={(e) => {
+            void onUploadFromChat(e.target.files);
+            e.currentTarget.value = '';
+          }}
+        />
+        <button
+          type="button"
+          className="continue-button composer-icon-btn"
+          disabled={isActiveChatLocked}
+          onClick={() => chatUploadInputRef.current?.click()}
+          title="Adjuntar archivos (PDF, imagen, Excel, texto y más)"
+          aria-label="Adjuntar archivo"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M15.5 7.5L9 14a3 3 0 104.24 4.24l7.07-7.07a5 5 0 10-7.07-7.07L5.46 11.9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+
+        <div style={{ flex: 1 }} />
+
+        <button
+          type="button"
+          className={`continue-button composer-icon-btn mobile-panel-toggle-inline${mobilePanelExpanded ? ' is-open' : ''}`}
+          onClick={() => {
+            haptic(12);
+            setMobilePanelExpanded((v) => !v);
+          }}
+          aria-label={mobilePanelExpanded ? 'Minimizar panel' : 'Expandir panel'}
+          title={mobilePanelExpanded ? 'Minimizar panel' : 'Expandir panel'}
+        >
+          <svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d={mobilePanelExpanded ? 'M4 6L8 10L12 6' : 'M4 10L8 6L12 10'} stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+
+        <div style={{ flex: 1 }} />
+
+        <button
+          type="button"
+          className="composer-send-btn"
+          disabled={isActiveChatLocked}
+          onClick={() => {
+            void onSend(chatComposerRef.current?.value ?? input);
+          }}
+          aria-label="Enviar mensaje"
+        >
+          <Send size={18} strokeWidth={1.8} aria-hidden="true" />
+        </button>
+      </div>
+    </div>
+  );
+
   return (
     <main
       className={`agent-layout ${activeThreadThemeClass} ${
@@ -4044,6 +4152,8 @@ export default function AgentPage() {
         isMonochrome ? 'is-monochrome' : ''
       } ${
         mobilePanelExpanded ? 'mobile-panel-expanded' : ''
+      } ${
+        isMobileViewport ? 'is-mobile-viewport' : ''
       } ${
         isMobileViewport && isStandaloneDisplayMode ? 'is-mobile-standalone' : ''
       }`}
@@ -4136,102 +4246,13 @@ export default function AgentPage() {
             </div>
           )}
 
-          <div className="agent-input-shell terminal-composer-shell">
-            <div
-              className="agent-input terminal-composer"
-              onClick={() => {
-                focusComposerAfterLayout({ collapsePanelFirst: true });
-              }}
-              style={{ cursor: isActiveChatLocked ? 'default' : 'text' }}
-            >
-              <div className="terminal-composer-head">$ escribir_mensaje</div>
-              <textarea
-                ref={chatComposerRef}
-                className="terminal-composer-input"
-                placeholder={isActiveChatLocked ? 'Chat bloqueado hasta completar el diagnóstico' : ''}
-                value={input}
-                disabled={isActiveChatLocked}
-                autoFocus={!hasBlockingModalOpen && !isMobileViewport}
-                onFocus={() => {
-                  if (isMobileViewport && mobilePanelExpanded) {
-                    setMobilePanelExpanded(false);
-                    const layout = panelScrollRef.current?.closest('.agent-layout') as HTMLElement | null;
-                    layout?.classList.remove('mobile-panel-expanded');
-                  }
-                }}
-                onBlur={() => {
-                  clearMobileKeyboardSettleTimer();
-                  setKeyboardOpeningMode(false);
-                }}
-                onChange={(e) => setDraftForActive(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    void onSend((e.currentTarget as HTMLTextAreaElement).value);
-                  }
-                }}
-              />
-            </div>
-
-            <div className="controls terminal-composer-controls">
-              <input
-                ref={chatUploadInputRef}
-                type="file"
-                accept=".pdf,.xls,.xlsx,.csv,.tsv,.txt,.md,.json,.xml,.yaml,.yml,.log,image/*"
-                multiple
-                style={{ display: 'none' }}
-                onChange={(e) => {
-                  void onUploadFromChat(e.target.files);
-                  e.currentTarget.value = '';
-                }}
-              />
-              <button
-                type="button"
-                className="continue-button composer-icon-btn"
-                disabled={isActiveChatLocked}
-                onClick={() => chatUploadInputRef.current?.click()}
-                title="Adjuntar archivos (PDF, imagen, Excel, texto y más)"
-                aria-label="Adjuntar archivo"
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path d="M15.5 7.5L9 14a3 3 0 104.24 4.24l7.07-7.07a5 5 0 10-7.07-7.07L5.46 11.9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </button>
-
-              <div style={{ flex: 1 }} />
-
-              <button
-                type="button"
-                className={`continue-button composer-icon-btn mobile-panel-toggle-inline${mobilePanelExpanded ? ' is-open' : ''}`}
-                onClick={() => {
-                  haptic(12);
-                  setMobilePanelExpanded((v) => !v);
-                }}
-                aria-label={mobilePanelExpanded ? 'Minimizar panel' : 'Expandir panel'}
-                title={mobilePanelExpanded ? 'Minimizar panel' : 'Expandir panel'}
-              >
-                <svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                  <path d={mobilePanelExpanded ? 'M4 6L8 10L12 6' : 'M4 10L8 6L12 10'} stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </button>
-
-              <div style={{ flex: 1 }} />
-
-              <button
-                type="button"
-                className="composer-send-btn"
-                disabled={isActiveChatLocked}
-                onClick={() => {
-                  void onSend(chatComposerRef.current?.value ?? input);
-                }}
-                aria-label="Enviar mensaje"
-              >
-                <Send size={18} strokeWidth={1.8} aria-hidden="true" />
-              </button>
-            </div>
-          </div>
+          {!isMobileViewport ? terminalComposerShell : null}
         </div>
       </section>
+
+      {isMobileViewport ? (
+        <div className="agent-mobile-composer-dock">{terminalComposerShell}</div>
+      ) : null}
 
       <SidePanels
         knowledgeScore={knowledgeScore}

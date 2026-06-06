@@ -810,8 +810,7 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
   // opening flow focused and avoid visual noise before/after first turns.
 
   return (
-    <div className="agent-chat-body">
-      <div ref={props.chatThreadRef} className="agent-thread">
+    <div ref={props.chatThreadRef} className="agent-thread">
         {rendered.length === 0 && !props.loading && (
           <div className="agent-bubble assistant latex-doc is-intro-doc">
             <div className="latex-doc-head">
@@ -849,7 +848,6 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
             ) : null}
           </div>
         ) : null}
-      </div>
     </div>
   );
 });

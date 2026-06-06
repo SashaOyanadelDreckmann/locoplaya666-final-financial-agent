@@ -1,0 +1,94 @@
+/* Mobile agent shell — imported last in agent.css; wins the cascade. */
+
+@media (max-width: 767px) {
+  main.agent-layout.is-mobile-viewport {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0 !important;
+    padding: 0 !important;
+    padding-top: env(safe-area-inset-top, 0px) !important;
+    height: var(--screen-h, var(--visual-vh, 100dvh)) !important;
+    max-height: var(--screen-h, var(--visual-vh, 100dvh)) !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    grid-template-columns: none !important;
+    grid-template-rows: none !important;
+  }
+
+  main.agent-layout.is-mobile-viewport > section.agent-chat {
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    height: auto !important;
+    max-height: none !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    margin: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile {
+    flex: 0 0 auto !important;
+    padding: 10px 0 6px !important;
+    margin: 0 !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .agent-chat-controls-row {
+    margin: 0 !important;
+    padding: 4px 0 0 !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-chat-body {
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-chat-body > .agent-thread {
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  /* Composer docked between chat and panel — no dead flex gap */
+  main.agent-layout.is-mobile-viewport > .agent-mobile-composer-dock {
+    flex: 0 0 auto !important;
+    margin: 0 !important;
+    padding: 0 8px 4px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  main.agent-layout.is-mobile-viewport > .agent-mobile-composer-dock .terminal-composer-shell {
+    margin: 0 !important;
+    padding: 0 !important;
+    gap: 3px !important;
+  }
+
+  main.agent-layout.is-mobile-viewport > .agent-mobile-composer-dock .terminal-composer-controls {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  main.agent-layout.is-mobile-viewport > aside.agent-panel,
+  main.agent-layout.is-mobile-viewport .agent-panel {
+    flex: 0 0 var(--mobile-panel-h, 162px) !important;
+    max-height: var(--mobile-panel-h, 162px) !important;
+    margin: 0 !important;
+    margin-top: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-divider-rail {
+    display: none !important;
+  }
+}

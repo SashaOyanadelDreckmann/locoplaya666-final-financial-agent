@@ -700,7 +700,7 @@
   }
 
   .agent-input {
-    padding: 6px 8px env(safe-area-inset-bottom) !important;
+    padding: 6px 8px 0 !important;
     margin-bottom: 0 !important;
   }
   .agent-chat-body::before {
@@ -3787,7 +3787,7 @@
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
     overflow: hidden !important;
-    margin-top: auto !important;
+    margin-top: 0 !important;
   }
 
   .mobile-panel-handle {
@@ -4230,7 +4230,7 @@
     min-height: 135px !important;
     max-height: 24dvh !important;
     width: 100% !important;
-    margin-top: auto !important;
+    margin-top: 0 !important;
     border-radius: 16px 16px 0 0 !important;
     border-top: 1px solid var(--panel-border) !important;
     border-left: none !important;
@@ -9569,10 +9569,9 @@ input[type="radio"]:checked {
   .agent-layout.is-panel-stage-2,
   .agent-layout.is-panel-stage-small,
   .agent-layout.is-panel-collapsed {
-    display: grid !important;
-    grid-template-columns: minmax(0, 1fr) !important;
-    grid-template-rows: minmax(0, 1fr) auto !important;
-    gap: 8px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0 !important;
     height: 100dvh !important;
     max-height: 100dvh !important;
     padding-top: max(8px, env(safe-area-inset-top, 0px)) !important;
@@ -9602,16 +9601,29 @@ input[type="radio"]:checked {
   body.agent-route-active .agent-layout.is-panel-stage-2,
   body.agent-route-active .agent-layout.is-panel-stage-small,
   body.agent-route-active .agent-layout.is-panel-collapsed {
+    display: flex !important;
+    flex-direction: column !important;
     padding: 0 !important;
+    padding-top: env(safe-area-inset-top, 0px) !important;
     gap: 0 !important;
   }
 
   body.agent-route-active .agent-chat {
     border-radius: 0 !important;
-    overflow: visible !important;
+    overflow: hidden !important;
     margin: 0 !important;
     width: 100% !important;
     max-width: 100% !important;
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  body.agent-route-active .agent-panel,
+  body.agent-route-active aside.agent-panel {
+    margin-top: 0 !important;
+    flex-shrink: 0 !important;
   }
 
   /* Mobile hard-fix: keep monochrome toggle in normal flow to avoid overlap */
@@ -12241,7 +12253,7 @@ input[type="radio"]:checked {
   }
 
   .agent-chat .terminal-composer-shell {
-    margin-top: 10px !important;
+    margin-top: 0 !important;
   }
 }
 
