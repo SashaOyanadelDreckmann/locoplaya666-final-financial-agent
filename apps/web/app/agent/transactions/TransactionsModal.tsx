@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { getCsrfToken } from '@/lib/csrf';
 import { CHILE_FINANCIAL_INSTITUTIONS } from '@/lib/financialCatalog';
 import { buildChatDashboardForQuestion, compactDashboardForPrompt } from '@/lib/transactions-chat.helpers';
+import { buildTransactionChatRequest } from '@/lib/transactions-chat.request';
 import { resolveInstantTransactionSummary } from '@/lib/transactions-summary.helpers';
 
 import {
@@ -1156,22 +1157,17 @@ export function TransactionsModal(props: TransactionsModalProps) {
 
       setProductLoading(productId, true);
       setProductError(productId, null);
-      const chatDashboard =
-        buildChatDashboardForQuestion(effectiveDashboard, text) ??
-        compactDashboardForPrompt(effectiveDashboard, { maxMovements: 24, maxMerchants: 8 });
-      const response = await requestTransactionAssistant({
-        mode: 'chat',
-        question: text,
-        product: {
-          bank: product.bank,
-          label: product.label,
-          productType: product.productType,
-        },
-        currentSummary: productSummaryText,
-        dashboard: chatDashboard,
-        parsedDocuments: [],
-        messages: [...productMessages, { role: 'user', text }],
-      });
+      const response = await requestTransactionAssistant(
+        buildTransactionChatRequest(product, {
+          mode: 'chat',
+          question: text,
+          currentSummary: productSummaryText,
+          dashboard:
+            buildChatDashboardForQuestion(effectiveDashboard, text) ??
+            compactDashboardForPrompt(effectiveDashboard, { maxMovements: 24, maxMerchants: 8 }),
+          messages: [...productMessages, { role: 'user', text }],
+        }),
+      );
       appendAssistantMessages(withUserMessage.id, withUserMessage, [
         { role: 'assistant', text: String(response.assistant_text ?? 'Listo.') },
       ]);

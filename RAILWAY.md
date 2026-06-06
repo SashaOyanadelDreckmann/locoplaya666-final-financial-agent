@@ -39,6 +39,9 @@ Notas:
 
 - `SESSION_COOKIE_SAME_SITE=none` es importante porque `web` y `api` estarán en dominios distintos.
 - No habilitar `ENABLE_DEV_INJECTION` en producción.
+- Ejecutar migraciones aparte del arranque del servicio:
+  - `pnpm --filter @financial-agent/api db:migrate`
+  - luego desplegar/reiniciar el API
 
 ## 3. Crear servicio Web
 

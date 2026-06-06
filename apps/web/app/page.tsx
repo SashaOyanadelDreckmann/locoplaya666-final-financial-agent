@@ -179,7 +179,7 @@ function FeaturesSection({ sectionRef }: { sectionRef: RefObject<HTMLElement> })
   const headO = useTransform(scrollYProgress, [0, 0.15, 0.75, 1], [0, 1, 1, 0.3]);
 
   return (
-    <section ref={sectionRef} style={{
+    <section ref={sectionRef} className="home-content-section" style={{
       position: 'relative',
       overflow: 'hidden',
       background: 'transparent',
@@ -250,7 +250,7 @@ function StatsSection() {
   const headO = useTransform(scrollYProgress, [0, 0.2, 0.8, 1], [0, 1, 1, 0.4]);
 
   return (
-    <section ref={ref} style={{
+    <section ref={ref} className="home-content-section" style={{
       background: 'transparent',
       padding: 'clamp(44px,10vw,130px) clamp(24px,8vw,120px)',
       position: 'relative',
@@ -323,7 +323,7 @@ function StepsSection() {
   };
 
   return (
-    <section ref={ref} style={{
+    <section ref={ref} className="home-content-section" style={{
       background: 'transparent',
       padding: 'clamp(52px,12vw,160px) clamp(24px,8vw,120px)',
       borderTop: '1px solid rgba(164,143,79,0.10)',
@@ -439,7 +439,7 @@ function CtaSection() {
   };
 
   return (
-    <section ref={ref} style={{
+    <section ref={ref} className="home-content-section" style={{
       background: 'transparent',
       padding: 'clamp(72px,16vw,220px) clamp(24px,8vw,120px)',
       borderTop: '1px solid rgba(164,143,79,0.10)',

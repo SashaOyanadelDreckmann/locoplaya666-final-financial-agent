@@ -5,6 +5,16 @@ import { BudgetIntelligenceTable } from '@/components/ui/budget-intelligence-tab
 
 import type { BudgetRow } from '@/lib/budget-rows.helpers';
 import { inferBudgetFocusRowId, extractInferenceQuestionText, resolveBudgetChatTargetRow } from '@/lib/budget-rows.helpers';
+import {
+  BUDGET_TABLE_STYLES,
+  buildBudgetRowSummary,
+  getAssistantMessage,
+  getBudgetQuestionForId,
+  getNextQuestion,
+  normalizeActionRowId,
+  sanitizeBudgetQuestion,
+} from './budget-modal.helpers';
+import { useBudgetModalLayout } from './use-budget-modal-layout';
 
 type BudgetTopExpense = { id: string; label: string; amount: number; pct: number };
 type BudgetInsights = {
@@ -17,16 +27,6 @@ type BudgetInsights = {
   risingExpenseCount?: number;
   optimizePotential?: number;
 };
-type BudgetTableStyleId = 'midnight' | 'ledger' | 'atelier' | 'terminal' | 'carbon';
-
-const BUDGET_TABLE_STYLES: Array<{ id: BudgetTableStyleId; label: string }> = [
-  { id: 'midnight', label: 'Nocturno' },
-  { id: 'ledger', label: 'Editorial' },
-  { id: 'atelier', label: 'Atelier' },
-  { id: 'terminal', label: 'Mercado' },
-  { id: 'carbon', label: 'Carbono' },
-];
-
 function collectBudgetSnapshotCss(rootEl: HTMLElement) {
   const cssParts: string[] = [];
   const seen = new Set<string>();
@@ -379,9 +379,9 @@ export function BudgetModal(props: {
   const [activeBudgetRowId, setActiveBudgetRowId] = useState<string | null>(null);
   const [assistantBudgetRowId, setAssistantBudgetRowId] = useState<string | null>(null);
   const [assistantNextQuestion, setAssistantNextQuestion] = useState<string | null>(null);
-  const [budgetViewMode, setBudgetViewMode] = useState<1 | 2 | 3>(1);
-  const [isDesktopLayout, setIsDesktopLayout] = useState(false);
-  const [budgetTableStyle, setBudgetTableStyle] = useState<BudgetTableStyleId>('terminal');
+  const { isDesktopLayout, budgetViewMode, setBudgetViewMode, moveBudgetView, cardStyle, budgetModeClass } =
+    useBudgetModalLayout(props.isOpen);
+  const [budgetTableStyle, setBudgetTableStyle] = useState<'midnight' | 'ledger' | 'atelier' | 'terminal' | 'carbon'>('terminal');
   const [isGeneratingBudgetPdf, setIsGeneratingBudgetPdf] = useState(false);
   const budgetPdfRef = useRef<HTMLDivElement | null>(null);
   const budgetTableScrollRef = useRef<HTMLDivElement | null>(null);
@@ -390,6 +390,9 @@ export function BudgetModal(props: {
   const flyingDotCounter = useRef(0);
   const autoSendTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const askingWatchdogRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const budgetActionTimersRef = useRef<number[]>([]);
+  const budgetDotTimersRef = useRef<number[]>([]);
+  const replySubmitLockRef = useRef(false);
   const initAbortRef = useRef<AbortController | null>(null);
   const replyAbortRef = useRef<AbortController | null>(null);
   const budgetReplyInputRef = useRef<HTMLInputElement | null>(null);
@@ -454,18 +457,6 @@ export function BudgetModal(props: {
       ].filter((value): value is string => Boolean(value))
     : [];
 
-  useEffect(() => {
-    const check = () => {
-      const desktop = window.innerWidth >= 1024;
-      setIsDesktopLayout(desktop);
-      // If shrinking to mobile while on mode 3 (desktop-only), fall back to mode 2
-      if (!desktop) setBudgetViewMode((prev) => (prev === 3 ? 2 : prev));
-    };
-    check();
-    window.addEventListener('resize', check);
-    return () => window.removeEventListener('resize', check);
-  }, []);
-
   const templateAppliedRef = useRef(false);
   useEffect(() => {
     if (!props.isOpen) {
@@ -478,92 +469,12 @@ export function BudgetModal(props: {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.isOpen, props.budgetRows.length]);
 
-  function moveBudgetView(direction: 'next' | 'prev') {
-    const maxMode = isDesktopLayout ? 3 : 2;
-    setBudgetViewMode((prev) => {
-      if (direction === 'next') return (prev >= maxMode ? 1 : prev + 1) as 1 | 2 | 3;
-      return (prev <= 1 ? maxMode : prev - 1) as 1 | 2 | 3;
-    });
-  }
-
-  function cardStyle(card: 'agent' | 'table'): React.CSSProperties {
-    if (!isDesktopLayout) return {};
-    if (budgetViewMode === 3) {
-      return card === 'agent' ? { display: 'none' } : {};
-    }
-    return {};
-  }
-
-  const budgetModeClass = isDesktopLayout
-    ? budgetViewMode === 3
-      ? 'table-only'
-      : budgetViewMode === 2
-        ? 'split'
-        : 'agent-front'
-    : budgetViewMode === 2
-      ? 'table-front'
-      : 'agent-front';
-
   const inferredBudgetRowId =
     inferBudgetFocusRowId(assistantNextQuestion ?? activeQuestion) ?? null;
   const focusedBudgetRowId = activeBudgetRowId ?? assistantBudgetRowId ?? inferredBudgetRowId;
   const activeBudgetRow = props.budgetRows.find((row) => row.id === focusedBudgetRowId) ?? null;
-  function budgetQuestionForId(rowId: string | null) {
-    switch (rowId) {
-      case 'income_salary':
-        return '¿Cuál es tu ingreso mensual promedio en pesos?';
-      case 'expense_rent':
-        return '¿Cuánto pagas al mes en vivienda o arriendo?';
-      case 'expense_food':
-        return '¿Cuánto gastas mensualmente en alimentación?';
-      case 'expense_services':
-        return '¿Cuánto pagas al mes en servicios básicos o telefonía?';
-      case 'expense_transport':
-        return '¿Cuánto gastas mensualmente en transporte?';
-      case 'expense_debt':
-        return '¿Cuánto pagas al mes en deudas o cuotas?';
-      case 'expense_savings':
-        return '¿Cuánto ahorras o inviertes mensualmente?';
-      case 'expense_other':
-        return '¿Qué otro gasto mensual recurrente quieres agregar?';
-      default:
-        return '¿Cuál es tu ingreso mensual promedio en pesos?';
-    }
-  }
 
   const orderedBudgetRows = props.budgetRows;
-
-  function sanitizeBudgetQuestion(question: string) {
-    return String(question ?? '').trim();
-  }
-
-  function getAssistantMessage(payload: BudgetChatApiPayload) {
-    const assistantReply =
-      typeof payload.assistant_reply === 'string' && payload.assistant_reply.trim()
-        ? payload.assistant_reply.trim()
-        : '';
-    if (assistantReply) return assistantReply;
-    if (payload.source === 'deterministic_education' && payload.next_question === null) return '';
-    const assistantText =
-      typeof payload.assistant_text === 'string' && payload.assistant_text.trim()
-        ? payload.assistant_text.trim()
-        : '';
-    return assistantText || null;
-  }
-
-  function getNextQuestion(
-    payload: {
-      next_question?: string | null;
-    },
-    fallback: string,
-  ) {
-    if (payload.next_question === null) return '';
-    const nextQuestion =
-      typeof payload.next_question === 'string' && payload.next_question.trim()
-        ? payload.next_question.trim()
-        : '';
-    return nextQuestion || fallback;
-  }
 
   function applyAssistantTurn(payload: BudgetChatApiPayload, previousQuestion: string) {
     const reply = getAssistantMessage(payload);
@@ -615,7 +526,7 @@ export function BudgetModal(props: {
   function focusBudgetRow(rowId: string) {
     setActiveBudgetRowId(rowId);
     setAssistantBudgetRowId(rowId);
-    setAssistantNextQuestion(budgetQuestionForId(rowId));
+    setAssistantNextQuestion(getBudgetQuestionForId(rowId));
   }
 
   function applyBudgetAction(action: Record<string, unknown> | null | undefined) {
@@ -713,29 +624,27 @@ export function BudgetModal(props: {
     };
     props.upsertBudgetRow(row);
     // Animate the updated row directly without touching assistantBudgetRowId (caller sets it for next question)
-    window.setTimeout(() => {
-      const el = document.getElementById(`budget-row-${row.id}`);
-      if (el) {
-        el.scrollIntoView({ behavior: 'auto', block: 'center' });
-        el.animate(
-          [
-            { boxShadow: '0 0 0 2px rgba(255,255,255,0.7)', transform: 'scale(1.012)' },
-            { boxShadow: '0 0 0 0px rgba(255,255,255,0)', transform: 'scale(1)' },
-          ],
-          { duration: 600, easing: 'ease-out' },
-        );
-      }
-    }, 80);
+    budgetActionTimersRef.current.push(
+      window.setTimeout(() => {
+        const el = document.getElementById(`budget-row-${row.id}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'auto', block: 'center' });
+          el.animate(
+            [
+              { boxShadow: '0 0 0 2px rgba(255,255,255,0.7)', transform: 'scale(1.012)' },
+              { boxShadow: '0 0 0 0px rgba(255,255,255,0)', transform: 'scale(1)' },
+            ],
+            { duration: 600, easing: 'ease-out' },
+          );
+        }
+      }, 80),
+    );
     // Trigger flying dot animation
     const dotId = ++flyingDotCounter.current;
     setFlyingDots((prev) => [...prev, { id: dotId, type: rowType }]);
-    setTimeout(() => setFlyingDots((prev) => prev.filter((d) => d.id !== dotId)), 750);
-  }
-
-  function normalizeActionRowId(rawId: unknown): string | null {
-    const rowId = String(rawId ?? '').trim();
-    if (!rowId) return null;
-    return rowId.replace(/^expense[-_]custom[-_]?/i, 'expense-custom-');
+    budgetDotTimersRef.current.push(
+      window.setTimeout(() => setFlyingDots((prev) => prev.filter((d) => d.id !== dotId)), 750),
+    );
   }
 
   function applyBudgetActions(actions: Array<Record<string, unknown>>): string | null {
@@ -842,11 +751,12 @@ export function BudgetModal(props: {
 
   async function handleBudgetAgentReplySubmit() {
     const answer = budgetReply.trim();
-    if (!answer || isAskingAI) return;
+    if (!answer || isAskingAI || replySubmitLockRef.current) return;
+    replySubmitLockRef.current = true;
 
     const manualFocusRowId = activeBudgetRowId;
     const questionForTurn =
-      (manualFocusRowId ? budgetQuestionForId(manualFocusRowId) : null) ??
+      (manualFocusRowId ? getBudgetQuestionForId(manualFocusRowId) : null) ??
       assistantNextQuestion ??
       extractInferenceQuestionText(assistantQuestion ?? '') ??
       assistantQuestion ??
@@ -882,35 +792,21 @@ export function BudgetModal(props: {
           ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}),
         },
         credentials: 'include',
-          body: JSON.stringify({
-            intent: 'reply',
-            question: assistantQuestion ?? activeQuestion,
-            nextQuestion: questionForTurn,
-            answer,
-            budgetRows: props.budgetRows.slice(0, 30),
-            chatAnswers: newChatAnswers.slice(-6),
-            products: props.bankProducts ?? [],
-            manualFocusRowId: manualFocusRowId,
-            assistantFocusRowId: assistantBudgetRowId,
-            activeRowId: chatTargetRow?.id ?? null,
-            activeRow: chatTargetRow
-                ? {
-                    id: chatTargetRow.id,
-                    category: chatTargetRow.category,
-                    type: chatTargetRow.type,
-                    amount: chatTargetRow.amount,
-                    product: chatTargetRow.product ?? null,
-                    institution: chatTargetRow.institution ?? null,
-                    cadence: chatTargetRow.cadence ?? null,
-                    paymentMethod: chatTargetRow.paymentMethod ?? null,
-                    movementType: chatTargetRow.movementType ?? null,
-                    momentum: chatTargetRow.momentum ?? null,
-                    strategy: chatTargetRow.strategy ?? null,
-                  }
-              : null,
-            intakeContext: props.sessionInfo?.injectedIntake?.intakeContext ?? null,
-            intakeData: props.sessionInfo?.injectedIntake?.intake ?? null,
-          }),
+        body: JSON.stringify({
+          intent: 'reply',
+          question: assistantQuestion ?? activeQuestion,
+          nextQuestion: questionForTurn,
+          answer,
+          budgetRows: props.budgetRows.slice(0, 30),
+          chatAnswers: newChatAnswers.slice(-6),
+          products: props.bankProducts ?? [],
+          manualFocusRowId,
+          assistantFocusRowId: assistantBudgetRowId,
+          activeRowId: chatTargetRow?.id ?? null,
+          activeRow: chatTargetRow ? buildBudgetRowSummary(chatTargetRow) : null,
+          intakeContext: props.sessionInfo?.injectedIntake?.intakeContext ?? null,
+          intakeData: props.sessionInfo?.injectedIntake?.intake ?? null,
+        }),
       });
       const raw = (await res.json()) as BudgetChatApiPayload;
       if (!res.ok) throw createBudgetChatHttpError(res.status, raw);
@@ -965,6 +861,7 @@ export function BudgetModal(props: {
         askingWatchdogRef.current = null;
       }
       setIsAskingAI(false);
+      replySubmitLockRef.current = false;
     }
   }
 
@@ -972,6 +869,10 @@ export function BudgetModal(props: {
     () => () => {
       if (askingWatchdogRef.current) clearTimeout(askingWatchdogRef.current);
       if (autoSendTimerRef.current) clearTimeout(autoSendTimerRef.current);
+      budgetActionTimersRef.current.forEach((timerId) => clearTimeout(timerId));
+      budgetDotTimersRef.current.forEach((timerId) => clearTimeout(timerId));
+      budgetActionTimersRef.current = [];
+      budgetDotTimersRef.current = [];
       initAbortRef.current?.abort();
       replyAbortRef.current?.abort();
     },
@@ -1013,22 +914,8 @@ export function BudgetModal(props: {
             budgetRows: budgetRowsForInit,
             chatAnswers: [],
             products: props.bankProducts ?? [],
-            activeRowId: activeBudgetRow?.id ?? null,
-            activeRow: activeBudgetRow
-                ? {
-                    id: activeBudgetRow.id,
-                    category: activeBudgetRow.category,
-                    type: activeBudgetRow.type,
-                    amount: activeBudgetRow.amount,
-                    product: activeBudgetRow.product ?? null,
-                    institution: activeBudgetRow.institution ?? null,
-                    cadence: activeBudgetRow.cadence ?? null,
-                    paymentMethod: activeBudgetRow.paymentMethod ?? null,
-                    movementType: activeBudgetRow.movementType ?? null,
-                    momentum: activeBudgetRow.momentum ?? null,
-                    strategy: activeBudgetRow.strategy ?? null,
-                  }
-              : null,
+            activeRowId: null,
+            activeRow: null,
             intakeContext: props.sessionInfo?.injectedIntake?.intakeContext ?? null,
             intakeData: props.sessionInfo?.injectedIntake?.intake ?? null,
           }),
@@ -1037,13 +924,13 @@ export function BudgetModal(props: {
         if (!res.ok) throw createBudgetChatHttpError(res.status, raw);
         const payload = unwrapApiData<BudgetChatApiPayload>(raw);
         if (payload) {
-          applyAssistantTurn(payload, budgetQuestionForId('income_salary'));
+          applyAssistantTurn(payload, getBudgetQuestionForId('income_salary'));
           const nextQuestion = sanitizeBudgetQuestion(getNextQuestion(payload, ''));
           setAssistantNextQuestion(nextQuestion || null);
           setAssistantBudgetRowId(payload.focus_row_id ?? inferBudgetFocusRowId(nextQuestion));
         } else {
-          setAssistantQuestion(budgetQuestionForId('income_salary'));
-          setAssistantNextQuestion(budgetQuestionForId('income_salary'));
+          setAssistantQuestion(getBudgetQuestionForId('income_salary'));
+          setAssistantNextQuestion(getBudgetQuestionForId('income_salary'));
           setAssistantBudgetRowId('income_salary');
         }
         setAssistantMarketSnapshot(
@@ -1073,8 +960,8 @@ export function BudgetModal(props: {
         );
       } catch (err) {
         if (isBudgetChatAbortError(err)) return;
-        setAssistantQuestion(budgetQuestionForId('income_salary'));
-        setAssistantNextQuestion(budgetQuestionForId('income_salary'));
+        setAssistantQuestion(getBudgetQuestionForId('income_salary'));
+        setAssistantNextQuestion(getBudgetQuestionForId('income_salary'));
         setAssistantBudgetRowId('income_salary');
         setAssistantMarketSnapshot(null);
         setAiError(budgetChatErrorMessage(err));

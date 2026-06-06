@@ -40,6 +40,11 @@ railway link --project 6a535ffc-9224-4db3-b385-adf8f2bf0218 \
 railway up --service 304ec087-4411-4ced-a42c-e00d451fcf4e --detach
 ```
 
+Para el API, correr migraciones aparte antes del restart/deploy:
+```bash
+pnpm --filter @financial-agent/api db:migrate
+```
+
 **Alternativa — GitHub Actions:**
 El workflow `.github/workflows/deploy-keen-magic.yml` se dispara automáticamente
 con cada push a `main` en paths de `apps/web/**`. También se puede lanzar

@@ -194,11 +194,9 @@ router.post(
       (doc) => typeof doc?.documentId === 'string' && doc.documentId.trim().length > 0,
     );
     const canonicalDocuments =
-      mode === 'chat'
-        ? documentsFromClient(parsedDocuments, 0)
-        : hasDocumentIds
-          ? await resolveCanonicalDocuments(user.id, parsedDocuments)
-          : documentsFromClient(parsedDocuments);
+      hasDocumentIds
+        ? await resolveCanonicalDocuments(user.id, parsedDocuments)
+        : documentsFromClient(parsedDocuments);
 
     const client = new OpenAI({ apiKey: config.OPENAI_API_KEY });
     const summaryModel = process.env.TRANSACTIONS_SUMMARY_MODEL || 'gpt-4.1-mini';
@@ -264,11 +262,13 @@ router.post(
       'Si falta un dato puntual, dilo y pide el detalle exacto.',
     ].join(' ');
 
+    const docsDigest = compactDocumentsForPrompt(canonicalDocuments, { maxDocs: mode === 'chat' ? 4 : 6, maxText: mode === 'chat' ? 600 : 1200 });
     const contextBlock = [
       `Producto=${JSON.stringify(product)}`,
       `Pregunta=${JSON.stringify(retrievalQuestion)}`,
       `Resumen=${JSON.stringify(currentSummary)}`,
       `Dashboard=${JSON.stringify(dashboardDigest)}`,
+      `Documentos=${JSON.stringify(docsDigest)}`,
     ].join('\n');
 
     const response = await client.chat.completions.create({

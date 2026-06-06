@@ -10,7 +10,7 @@ const apiOrigin = normalizeOrigin(
   process.env.NEXT_PUBLIC_API_ORIGIN ||
     process.env.NEXT_PUBLIC_API_URL ||
     (process.env.NODE_ENV === 'production'
-      ? 'https://financial-agent-api.up.railway.app'
+      ? 'https://locoplaya666-final-financial-agent-production.up.railway.app'
       : 'http://localhost:3001')
 );
 

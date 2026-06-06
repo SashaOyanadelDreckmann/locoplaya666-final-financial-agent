@@ -4,6 +4,8 @@
     "build": "pnpm --filter @financial-agent/web build",
     "start": "pnpm --filter @financial-agent/web start",
     "dev": "pnpm --parallel --filter @financial-agent/api --filter @financial-agent/web dev",
+    "deploy:api": "bash scripts/deploy-api.sh",
+    "deploy:web": "bash scripts/deploy-web.sh",
     "qa:smoke": "pnpm --filter @financial-agent/api qa:smoke",
     "sync:latest": "bash scripts/sync-latest.sh"
   },

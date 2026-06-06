@@ -12,14 +12,34 @@ describe('budget modal logic guards', () => {
   });
 
   it('keeps desktop->mobile mode fallback to prevent invalid mode 3 on mobile', () => {
-    expect(source).toContain('window.innerWidth >= 1024');
-    expect(source).toContain("if (!desktop) setBudgetViewMode((prev) => (prev === 3 ? 2 : prev));");
+    const layoutSource = fs.readFileSync(path.join(process.cwd(), 'app', 'agent', 'use-budget-modal-layout.ts'), 'utf8');
+    expect(layoutSource).toContain('window.innerWidth >= 1024');
+    expect(layoutSource).toContain("if (!desktop) setBudgetViewMode((prev) => (prev === 3 ? 2 : prev));");
   });
 
   it('auto-applies budget template when modal opens with empty rows', () => {
     expect(source).toContain('const templateAppliedRef = useRef(false);');
     expect(source).toContain('if (props.budgetRows.length > 0 || templateAppliedRef.current) return;');
     expect(source).toContain('props.applyBudgetTemplate();');
+  });
+
+  it('opens budget init without stale active row context', () => {
+    expect(source).toContain('activeRowId: null,');
+    expect(source).toContain('activeRow: null,');
+  });
+
+  it('prevents duplicate reply submissions while a request is in flight', () => {
+    expect(source).toContain('const replySubmitLockRef = useRef(false);');
+    expect(source).toContain('if (!answer || isAskingAI || replySubmitLockRef.current) return;');
+    expect(source).toContain('replySubmitLockRef.current = true;');
+    expect(source).toContain('replySubmitLockRef.current = false;');
+  });
+
+  it('cleans up async budget timers on unmount', () => {
+    expect(source).toContain('budgetActionTimersRef.current.forEach((timerId) => clearTimeout(timerId));');
+    expect(source).toContain('budgetDotTimersRef.current.forEach((timerId) => clearTimeout(timerId));');
+    expect(source).toContain('budgetActionTimersRef.current = [];');
+    expect(source).toContain('budgetDotTimersRef.current = [];');
   });
 
   it('guards client-side AI actions against unknown row deletes and blind updates', () => {
@@ -31,10 +51,11 @@ describe('budget modal logic guards', () => {
   });
 
   it('prioritizes assistant_reply and suppresses next step for education turns', () => {
-    expect(source).toContain('function getAssistantMessage(payload:');
-    expect(source).toContain('payload.assistant_reply');
-    expect(source).toContain("payload.source === 'deterministic_education'");
-    expect(source).toContain('if (payload.next_question === null) return');
+    const helperSource = fs.readFileSync(path.join(process.cwd(), 'app', 'agent', 'budget-modal.helpers.ts'), 'utf8');
+    expect(helperSource).toContain('export function getAssistantMessage(payload:');
+    expect(helperSource).toContain('payload.assistant_reply');
+    expect(helperSource).toContain("payload.source === 'deterministic_education'");
+    expect(helperSource).toContain('if (payload.next_question === null) return');
   });
 
   it('maps auth, rate limit and server failures to explicit assistant error copy', () => {

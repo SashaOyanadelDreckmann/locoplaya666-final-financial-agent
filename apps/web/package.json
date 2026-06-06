@@ -4,7 +4,7 @@
   "version": "0.0.1",
   "scripts": {
     "dev": "next dev",
-    "build": "NEXT_DISABLE_OPTIMIZED_CSS=1 next build",
+    "build": "next build",
     "start": "next start",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "jest --watch",

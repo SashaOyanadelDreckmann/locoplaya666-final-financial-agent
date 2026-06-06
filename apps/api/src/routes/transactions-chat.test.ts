@@ -95,4 +95,29 @@ describe('transactions-chat api route', () => {
     expect(res.body.retrieval_mode).toBe('overview');
     expect(mockCreate).toHaveBeenCalledTimes(1);
   }, 15000);
+
+  it('keeps parsed documents in chat context', async () => {
+    mockCreate.mockResolvedValueOnce({
+      choices: [{ message: { content: 'respuesta corta' } }],
+    });
+    const { agent, csrfToken } = await createAuthedAgent();
+    await agent.post('/api/transactions-chat').set('x-csrf-token', csrfToken).send({
+      mode: 'chat',
+      question: 'qué ves',
+      messages: [{ role: 'user', text: 'qué ves' }],
+      dashboard: { keyMetrics: { movement_count: 0 }, retrieval: { mode: 'overview', matchedCount: 0 }, movements: [] },
+      parsedDocuments: [
+        {
+          name: 'cartola.csv',
+          text: '2026-05-01,ABONO,+1000',
+        },
+      ],
+    });
+
+    const callArgs = mockCreate.mock.calls[0]?.[0];
+    const userMessage = Array.isArray(callArgs?.messages) ? callArgs.messages.find((msg: { role?: string; content?: string }) => msg.role === 'user') : null;
+
+    expect(String(userMessage?.content ?? '')).toContain('Documentos=');
+    expect(String(userMessage?.content ?? '')).toContain('cartola.csv');
+  }, 15000);
 });

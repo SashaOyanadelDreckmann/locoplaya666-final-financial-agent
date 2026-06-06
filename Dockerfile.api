@@ -32,4 +32,4 @@ COPY --from=build /app/apps/api ./apps/api
 COPY --from=build /app/packages/shared ./packages/shared
 COPY --from=build /app/apps/web/package.json ./apps/web/package.json
 
-CMD ["sh", "-c", "pnpm --filter @financial-agent/api db:migrate && pnpm --filter @financial-agent/api start"]
+CMD ["pnpm", "--filter", "@financial-agent/api", "start"]

@@ -1,0 +1,16 @@
+.git
+node_modules
+.recovery
+.codex-previews
+rag_data
+coverage
+**/node_modules
+**/.next
+apps/web/.next
+apps/api/.next
+**/.next
+**/dist
+**/.turbo
+**/.cache
+.env
+.env.*

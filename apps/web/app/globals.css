@@ -1021,6 +1021,37 @@ html.home-route-active .app-shell::after {
   }
 }
 
+/* Mobile legibility scrim — on small screens the full-intensity digit field
+   competes with stacked text. A frosted veil lets the cinematic digit texture
+   stay visible while keeping copy crisp and readable (desktop keeps the digits
+   raw because horizontal space separates text from the field). */
+@media (max-width: 767px) {
+  .home-content-section::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background: linear-gradient(
+      180deg,
+      rgba(6, 11, 24, 0.76) 0%,
+      rgba(6, 11, 24, 0.6) 20%,
+      rgba(6, 11, 24, 0.6) 80%,
+      rgba(6, 11, 24, 0.76) 100%
+    );
+    -webkit-backdrop-filter: blur(2px);
+    backdrop-filter: blur(2px);
+  }
+}
+
+@media (max-width: 767px) and (prefers-reduced-motion: reduce) {
+  .home-content-section::before {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: rgba(6, 11, 24, 0.82);
+  }
+}
+
 .app-content {
   max-width: 720px;
   margin: 0 auto;
