@@ -21,6 +21,8 @@ function readDirectApiOriginForClient(): string | null {
 export function getApiBaseUrl(): string {
   if (typeof window !== 'undefined') {
     if (process.env.NODE_ENV === 'production') {
+      const direct = readDirectApiOriginForClient();
+      if (direct) return direct;
       return '/backend';
     }
 
@@ -82,6 +84,8 @@ export function getUploadApiBaseUrl(): string {
  */
 export function getAgentRequestUrl(path = '/api/agent'): string {
   if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
+    const direct = readDirectApiOriginForClient();
+    if (direct) return `${direct}${path}`;
     return path;
   }
   return `${getAgentApiBaseUrl()}${path}`;
@@ -115,7 +119,11 @@ export function getDocumentParseRequestUrl(): string {
  */
 export function getSessionApiBaseUrl(): string {
   if (typeof window !== 'undefined') {
-    if (process.env.NODE_ENV === 'production') return '/backend';
+    if (process.env.NODE_ENV === 'production') {
+      const direct = readDirectApiOriginForClient();
+      if (direct) return direct;
+      return '/backend';
+    }
     const protocol = window.location.protocol || 'http:';
     const hostname = window.location.hostname || 'localhost';
     return `${protocol}//${hostname}:3001`;
