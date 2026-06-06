@@ -184,13 +184,12 @@ function FeaturesSection({ sectionRef }: { sectionRef: RefObject<HTMLElement> })
       overflow: 'hidden',
       background: 'transparent',
       padding: 'clamp(52px,12vw,160px) clamp(24px,8vw,120px)',
-      borderTop: '1px solid rgba(164,143,79,0.10)',
     }}>
 
       {/* Ambient dorado — sutil */}
       <div style={{
         position: 'absolute', inset: 0, pointerEvents: 'none',
-        background: 'radial-gradient(ellipse 70% 50% at 80% 40%, rgba(100,80,20,0.08) 0%, transparent 70%)',
+        background: 'radial-gradient(ellipse 70% 50% at 80% 40%, rgba(100,80,20,0.05) 0%, transparent 70%)',
       }} />
 
       <motion.div style={{ y: headY, opacity: headO, position: 'relative', zIndex: 1 }}>
@@ -259,7 +258,7 @@ function StatsSection() {
       {/* Ambient azul profundo */}
       <div style={{
         position: 'absolute', inset: 0, pointerEvents: 'none',
-        background: 'radial-gradient(ellipse 60% 80% at 10% 60%, rgba(20,50,100,0.28) 0%, transparent 65%)',
+        background: 'radial-gradient(ellipse 60% 80% at 10% 60%, rgba(20,50,100,0.10) 0%, transparent 65%)',
       }} />
 
       <motion.div style={{ y: headY, opacity: headO, position: 'relative', zIndex: 1 }}>
@@ -326,14 +325,13 @@ function StepsSection() {
     <section ref={ref} className="home-content-section" style={{
       background: 'transparent',
       padding: 'clamp(52px,12vw,160px) clamp(24px,8vw,120px)',
-      borderTop: '1px solid rgba(164,143,79,0.10)',
       position: 'relative',
       overflow: 'hidden',
     }}>
       {/* Ambient cálido izquierda */}
       <div style={{
         position: 'absolute', inset: 0, pointerEvents: 'none',
-        background: 'radial-gradient(ellipse 55% 70% at 0% 50%, rgba(70,50,10,0.20) 0%, transparent 65%)',
+        background: 'radial-gradient(ellipse 55% 70% at 0% 50%, rgba(70,50,10,0.08) 0%, transparent 65%)',
       }} />
 
       <motion.div style={{ y: headY, opacity: headO, position: 'relative', zIndex: 1 }}>
@@ -442,14 +440,13 @@ function CtaSection() {
     <section ref={ref} className="home-content-section" style={{
       background: 'transparent',
       padding: 'clamp(72px,16vw,220px) clamp(24px,8vw,120px)',
-      borderTop: '1px solid rgba(164,143,79,0.10)',
       position: 'relative',
       overflow: 'hidden',
     }}>
       {/* Ambient dorado radiante */}
       <div style={{
         position: 'absolute', inset: 0, pointerEvents: 'none',
-        background: 'radial-gradient(ellipse 60% 50% at 50% 50%, rgba(90,68,15,0.28) 0%, transparent 70%)',
+        background: 'radial-gradient(ellipse 60% 50% at 50% 50%, rgba(90,68,15,0.10) 0%, transparent 70%)',
       }} />
 
       <motion.div style={{ y: headY, opacity: headO, position: 'relative', zIndex: 1 }}>

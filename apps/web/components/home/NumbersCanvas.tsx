@@ -156,27 +156,30 @@ export default function NumbersCanvas({
       const W = canvas.width / dpr, H = canvas.height / dpr;
       ctx.clearRect(0, 0, W, H);
 
-      // ── Background image — matte cinematic ─────────────────────────────────
+      // ── Background image — morph into numbers ──────────────────────────────
+      // The photo fades slowly so digits appear ON TOP of it → true image-to-
+      // numbers morph, not a replacement. At peak eMid the photo is still faintly
+      // visible through the digit field, giving depth and continuity.
       {
         const stylize = eChaos * 0.92;
-        // Faster photo fade — clears mostly before column sweep completes, avoiding split-screen
-        const photoAlpha = clamp(1 - Math.min(eMid * 2.4, 1) * 0.96);
+        // Slow linear fade: photo lingers as digits dissolve in over it
+        const photoAlpha = clamp(1 - eMid * 0.88);
         ctx.globalAlpha = photoAlpha;
         ctx.filter = `saturate(${0.84 + 0.38*stylize}) contrast(${1.04 - 0.34*stylize}) brightness(${0.92 - 0.20*stylize}) sepia(${0.04 + 0.04*stylize})`;
         drawImageCover(ctx, img, W, H);
         ctx.filter = 'none';
-        // Matte overlay — matches .app-shell::before rgba(0,0,0,0.76)
+        // Matte overlay — softened so photo texture stays visible longer
         if (photoAlpha > 0.005) {
-          ctx.globalAlpha = photoAlpha * 0.78;
+          ctx.globalAlpha = photoAlpha * 0.62;
           ctx.fillStyle = '#000000';
           ctx.fillRect(0, 0, W, H);
         }
         ctx.globalAlpha = 1;
       }
 
-      // Dark fill replaces photo as numbers take over
+      // Dark base builds up gently as numbers take over — doesn't hard-replace photo
       if (eMid > 0.01) {
-        ctx.globalAlpha = clamp(eMid * 0.96);
+        ctx.globalAlpha = clamp(eMid * 0.72);
         ctx.fillStyle = '#060b18';
         ctx.fillRect(0, 0, W, H);
         ctx.globalAlpha = 1;
