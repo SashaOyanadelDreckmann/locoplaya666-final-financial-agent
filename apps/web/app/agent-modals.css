@@ -8,3 +8,5 @@
 @import './agent-modals-budget.css';
 /* Diagnostic and mobile parity overlays. */
 @import './agent-modals-diagnostics.css';
+/* Mobile safe-area for modal shells (backdrop stays full bleed). */
+@import './agent-modals-safe-area.css';

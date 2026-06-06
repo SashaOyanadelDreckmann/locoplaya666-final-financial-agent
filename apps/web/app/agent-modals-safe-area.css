@@ -1,0 +1,117 @@
+/* ================================================= */
+/* MOBILE MODAL SAFE-AREA CONTRACT                   */
+/* Overlay/backdrop bleeds edge-to-edge.             */
+/* Modal shells + chrome stay below status bar.      */
+/* Loaded last via agent-modals.css                  */
+/* ================================================= */
+
+@media (max-width: 767px) {
+  :root {
+    --modal-safe-top-gap: 10px;
+    /* Mobile browser often reports safe-area-inset-top: 0 — reserve status bar height */
+    --modal-safe-top-min: 44px;
+    --modal-safe-top: calc(max(env(safe-area-inset-top, 0px), var(--modal-safe-top-min)) + var(--modal-safe-top-gap));
+    --modal-safe-bottom: max(env(safe-area-inset-bottom, 0px), 0px);
+    --modal-safe-x: max(env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px), 0px);
+  }
+
+  /* Full-bleed backdrop — photo/dim stays behind status bar + home indicator */
+  .agent-modal-overlay,
+  .agent-modal-overlay.transactions-modal-overlay,
+  .agent-modal-overlay.budget-modal-overlay,
+  .agent-modal-overlay.interview-modal-overlay,
+  .agent-modal-overlay:has(> .agent-modal.questionnaire-modal),
+  .social-modal-overlay {
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100dvh !important;
+    min-height: 100dvh !important;
+    max-height: none !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Modal shells — never occupy the status-bar band */
+  .agent-modal-overlay > .agent-modal,
+  .social-modal-overlay > .social-modal {
+    box-sizing: border-box !important;
+    margin-top: var(--modal-safe-top) !important;
+    margin-bottom: var(--modal-safe-bottom) !important;
+    margin-left: max(env(safe-area-inset-left, 0px), 0px) !important;
+    margin-right: max(env(safe-area-inset-right, 0px), 0px) !important;
+    width: auto !important;
+    max-width: none !important;
+    height: auto !important;
+    max-height: calc(100dvh - var(--modal-safe-top) - var(--modal-safe-bottom)) !important;
+    min-height: 0 !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+  }
+
+  .agent-modal.account-modal {
+    max-height: min(calc(100dvh - var(--modal-safe-top) - var(--modal-safe-bottom)), 88dvh) !important;
+  }
+
+  /* Inner padding: safe inset is on the shell margin, not duplicated here */
+  .agent-modal-overlay.transactions-modal-overlay > .agent-modal.transactions-modal,
+  .agent-modal-overlay.budget-modal-overlay > .agent-modal.budget-modal,
+  .agent-modal-overlay.interview-modal-overlay > .agent-modal.interview-modal,
+  .agent-modal-overlay:has(> .agent-modal.questionnaire-modal) > .agent-modal.questionnaire-modal,
+  .agent-modal.transactions-modal,
+  .agent-modal.budget-modal,
+  .agent-modal.interview-modal,
+  .agent-modal.questionnaire-modal {
+    padding-top: 0 !important;
+    padding-left: max(8px, env(safe-area-inset-left, 0px)) !important;
+    padding-right: max(8px, env(safe-area-inset-right, 0px)) !important;
+    min-height: calc(100dvh - var(--modal-safe-top) - var(--modal-safe-bottom)) !important;
+  }
+
+  /* Headers live at top of modal shell (already below status bar) */
+  .bcc-modal-header,
+  .agent-modal-header,
+  .social-modal-header,
+  .transactions-modal .bcc-modal-header.tx-modal-header-layer {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 40 !important;
+    padding: 8px 12px 6px !important;
+    margin: 0 !important;
+  }
+
+  /* Close controls stay in header flow — never pinned to viewport top */
+  .agent-modal-close,
+  .transactions-modal .agent-modal-close,
+  .transactions-modal .tx-close-minimal,
+  .budget-modal .agent-modal-close,
+  .interview-modal .agent-modal-close,
+  .agent-modal.questionnaire-modal .agent-modal-close,
+  .agent-modal.account-modal .agent-modal-close,
+  .social-modal .social-close-btn {
+    position: relative !important;
+    top: auto !important;
+    right: auto !important;
+    left: auto !important;
+    bottom: auto !important;
+  }
+
+  .interview-modal .agent-modal-header,
+  .interview-modal .bcc-modal-header.interview-modal-header {
+    position: sticky !important;
+    top: 0 !important;
+    right: auto !important;
+    left: auto !important;
+    width: 100% !important;
+    display: flex !important;
+    align-items: flex-start !important;
+    justify-content: space-between !important;
+    gap: 8px !important;
+    padding: 8px 12px 6px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  :root {
+    --modal-safe-top-min: 48px;
+  }
+}
