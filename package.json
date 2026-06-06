@@ -1,5 +1,8 @@
 {
+  "packageManager": "pnpm@10.33.0",
   "scripts": {
+    "build": "pnpm --filter @financial-agent/web build",
+    "start": "pnpm --filter @financial-agent/web start",
     "dev": "pnpm --parallel --filter @financial-agent/api --filter @financial-agent/web dev",
     "qa:smoke": "pnpm --filter @financial-agent/api qa:smoke",
     "sync:latest": "bash scripts/sync-latest.sh"
