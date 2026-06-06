@@ -1532,7 +1532,6 @@ body.agent-route-active .app-shell::before {
 
   .agent-chat-header {
     padding: 2px 8px 1px !important;
-    padding-top: calc(env(safe-area-inset-top) + 2px) !important;
   }
 
   .agent-chat-controls-row {
@@ -4077,7 +4076,7 @@ body.agent-route-active .app-shell::before {
 /* FINAL FIX MOBILE: top chat tabs must stay compact after login state changes */
 @media (max-width: 767px) {
   .agent-chat-header {
-    padding: calc(env(safe-area-inset-top) + 5px) 8px 4px !important;
+    padding: 5px 8px 4px !important;
   }
 
   .agent-chat-header .agent-chat-controls-row {
@@ -14907,7 +14906,7 @@ body.agent-route-active .app-shell::before {
   }
 
   .agent-chat-header.is-mobile {
-    padding: calc(env(safe-area-inset-top) + 4px) 8px 3px !important;
+    padding: 4px 8px 3px !important;
   }
 
   .agent-chat-header.is-mobile .agent-chat-controls-row {
@@ -14954,7 +14953,7 @@ body.agent-route-active .app-shell::before {
   }
 
   .agent-chat-header.is-mobile {
-    padding-top: calc(env(safe-area-inset-top) + 3px) !important;
+    padding-top: 3px !important;
   }
 }
 
@@ -14985,14 +14984,14 @@ body.agent-route-active .app-shell::before {
     overflow: hidden !important;
   }
 
-  /* Header: unified stack (tabs + brand + subtitle) */
+  /* Header: unified stack (tabs + brand + subtitle); safe-area lives on .agent-layout only */
   .agent-chat-header.is-mobile {
     display: flex !important;
     flex-direction: column !important;
     align-items: stretch !important;
     flex: 0 0 auto !important;
     margin: 0 !important;
-    padding: calc(env(safe-area-inset-top, 0px) + 2px) 0 8px !important;
+    padding: 2px 0 8px !important;
     gap: 0 !important;
     border-bottom: none !important;
     min-height: 0 !important;
@@ -15206,7 +15205,7 @@ body.agent-route-active .app-shell::before {
     width: 100% !important;
     max-width: 100% !important;
     margin: 0 !important;
-    padding: calc(env(safe-area-inset-top, 0px) + 2px) 0 8px !important;
+    padding: 2px 0 8px !important;
     background: #000000 !important;
   }
 
@@ -17522,7 +17521,7 @@ body.agent-route-active .app-shell > * {
 
 @media (max-width: 767px) {
   .agent-chat-header.is-mobile {
-    padding-top: calc(env(safe-area-inset-top, 0px) + 2px) !important;
+    padding-top: 2px !important;
     padding-bottom: 1px !important;
     background: #000000 !important;
     border-bottom: 0 !important;
@@ -17728,7 +17727,7 @@ body.agent-route-active .app-shell > * {
 
   .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile {
     margin: 0 !important;
-    padding-top: calc(env(safe-area-inset-top, 0px) + 2px) !important;
+    padding-top: 2px !important;
   }
 
   .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .chat-switcher {
@@ -17740,7 +17739,7 @@ body.agent-route-active .app-shell > * {
   }
 
   .agent-layout.is-mobile-standalone .agent-chat-body {
-    padding-top: 10px !important;
+    padding-top: 0 !important;
   }
 
   .agent-layout.is-mobile-standalone .agent-panel.is-mobile-compact {
@@ -17789,7 +17788,7 @@ body.agent-route-active .app-shell > * {
   }
 
   .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile {
-    padding-top: calc(env(safe-area-inset-top, 0px) + 2px) !important;
+    padding-top: 2px !important;
   }
 
   .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .agent-chat-controls-row {
@@ -18338,7 +18337,7 @@ body.agent-route-active .app-shell > * {
     max-width: 100% !important;
     margin: 0 !important;
     box-sizing: border-box !important;
-    padding: calc(env(safe-area-inset-top, 0px) + 2px) 0 8px !important;
+    padding: 2px 0 8px !important;
     gap: 0 !important;
     background: #000000 !important;
     background-color: #000000 !important;
@@ -18755,7 +18754,7 @@ body.agent-route-active .app-shell > * {
     width: 100% !important;
     max-width: 100% !important;
     margin: 0 !important;
-    padding: calc(env(safe-area-inset-top, 0px) + 2px) 0 8px !important;
+    padding: 2px 0 8px !important;
     gap: 0 !important;
     background: #000000 !important;
     background-color: #000000 !important;

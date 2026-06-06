@@ -184,7 +184,7 @@
 }
 
 .agent-chat-header.is-mobile {
-  padding-top: max(18px, env(safe-area-inset-top)) !important;
+  padding-top: 2px !important;
 }
 
 /* Chat tab switcher */
