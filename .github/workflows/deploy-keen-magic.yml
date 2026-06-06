@@ -16,14 +16,19 @@ on:
       - "package.json"
       - ".github/workflows/deploy-keen-magic.yml"
 
+concurrency:
+  group: deploy-web-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     env:
       RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
       RAILWAY_PROJECT_ID: 6a535ffc-9224-4db3-b385-adf8f2bf0218
       RAILWAY_ENVIRONMENT_ID: 240cefd8-f924-4b76-a890-771db0a45a91
-      RAILWAY_SERVICE_ID: 304ec087-4411-4ced-a42c-e00d451fcf4e
+      RAILWAY_WEB_SERVICE_ID: 304ec087-4411-4ced-a42c-e00d451fcf4e
       WEB_URL: https://financieramente.up.railway.app
     steps:
       - name: Checkout
@@ -32,7 +37,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 10.26.1
+          version: 10.33.0
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -43,39 +48,8 @@ jobs:
       - name: Install deps
         run: pnpm install --frozen-lockfile
 
-      - name: Typecheck web
-        run: ./node_modules/.bin/pnpm --filter @financial-agent/web typecheck
-
       - name: Install Railway CLI
         run: npm i -g @railway/cli
 
-      - name: Link Railway target
-        run: railway link --project "$RAILWAY_PROJECT_ID" --environment "$RAILWAY_ENVIRONMENT_ID" --service "$RAILWAY_SERVICE_ID"
-
-      - name: Deploy keen-magic
-        run: railway up --service "$RAILWAY_SERVICE_ID" --detach
-
-      - name: Wait for SUCCESS
-        shell: bash
-        run: |
-          set -euo pipefail
-          for _ in $(seq 1 30); do
-            PAYLOAD="$(railway deployment list --service "$RAILWAY_SERVICE_ID" --limit 1 --json 2>/dev/null || echo '[]')"
-            STATUS="$(echo "$PAYLOAD" | jq -r '.[0].status // "UNKNOWN"')"
-            ID="$(echo "$PAYLOAD" | jq -r '.[0].id // "none"')"
-            echo "status=${STATUS} id=${ID}"
-            if [ "$STATUS" = "SUCCESS" ]; then
-              break
-            fi
-            if [ "$STATUS" = "FAILED" ] || [ "$STATUS" = "CRASHED" ] || [ "$STATUS" = "REMOVED" ]; then
-              echo "Deployment status ${STATUS}"
-              exit 1
-            fi
-            sleep 30
-          done
-
-      - name: Final checks
-        run: |
-          railway deployment list --service "$RAILWAY_SERVICE_ID" --limit 1 --json
-          railway status
-          curl -I -m 20 "$WEB_URL"
+      - name: Deploy web
+        run: bash scripts/deploy-web.sh
