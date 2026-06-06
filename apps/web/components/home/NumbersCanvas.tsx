@@ -9,7 +9,7 @@ const remap  = (v: number, lo: number, hi: number) => clamp((v - lo) / (hi - lo)
 const ease   = (t: number) => t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
 
 const CELL_DESKTOP = 14;
-const CELL_MOBILE  = 9;
+const CELL_MOBILE  = 14;   // same cell size as desktop — FS=11 fits cleanly in 14px cell
 const FS   = 11;
 
 interface Px { r: number; g: number; b: number; lum: number }

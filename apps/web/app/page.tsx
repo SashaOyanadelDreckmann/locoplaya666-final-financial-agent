@@ -171,13 +171,13 @@ function ProblemSection() {
             <div key={i}>
               <motion.p
                 style={{
-                  fontSize: 'clamp(22px,5vw,50px)',
+                  fontSize: 'clamp(30px,5vw,50px)',
                   fontFamily: 'Georgia, "Times New Roman", serif',
                   fontWeight: 700,
                   lineHeight: 1.12,
                   letterSpacing: '-0.028em',
                   margin: 0,
-                  padding: 'clamp(20px,3vw,36px) 0',
+                  padding: 'clamp(16px,3vw,36px) 0',
                   opacity: colors[i],
                   y: ys[i],
                   color: 'white',
