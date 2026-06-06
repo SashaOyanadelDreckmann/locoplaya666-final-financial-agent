@@ -1,32 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type CSSProperties } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { getCsrfToken } from '@/lib/csrf';
 import { downloadFile, saveBubbleSnapshotPdfArtifact } from '@/lib/artifacts';
-import { countProductsWithAnalyzedMovements } from '@/lib/transactions-flow.helpers';
-import { CHILE_FINANCIAL_INSTITUTIONS, FINANCIAL_SERVICE_OPTIONS } from '@/lib/financialCatalog';
 import { BudgetIntelligenceTable } from '@/components/ui/budget-intelligence-table';
-import ModalNumbersCanvas from '@/components/agent/ModalNumbersCanvas';
-import {
-  RETRO_CHART_COLORS,
-  RETRO_CHART_NEGATIVE,
-  RETRO_GRID,
-  RETRO_TICK,
-  RETRO_TOOLTIP_STYLE,
-  RetroBarShape,
-  RetroDot,
-} from '@/components/ui/retro-chart';
-import {
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  Cell,
-  LineChart,
-  Line,
-  CartesianGrid,
-  XAxis,
-  YAxis,
-  Tooltip,
-  Legend,
-} from 'recharts';
 
 import type { BudgetRow } from '@/lib/budget-rows.helpers';
 import { inferBudgetFocusRowId, extractInferenceQuestionText, resolveBudgetChatTargetRow } from '@/lib/budget-rows.helpers';
@@ -51,16 +26,6 @@ const BUDGET_TABLE_STYLES: Array<{ id: BudgetTableStyleId; label: string }> = [
   { id: 'terminal', label: 'Mercado' },
   { id: 'carbon', label: 'Carbono' },
 ];
-
-function normalizeBudgetText(value: string): string {
-  return String(value ?? '')
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9\s/]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
 
 function collectBudgetSnapshotCss(rootEl: HTMLElement) {
   const cssParts: string[] = [];
@@ -322,29 +287,6 @@ html, body {
 export { TransactionsModal } from './transactions';
 
 
-function buildRefinementPromptForRow(row: { id: string; category: string; type: 'income' | 'expense' }): string {
-  const category = normalizeBudgetText(row.category);
-  if (row.type === 'income' || row.id === 'income_salary' || /ingreso|sueldo|salario|honorario|freelance|comision/.test(category)) {
-    return `Para este movimiento "${row.category}", dime fuentes y montos. Ej: sueldo 900000, freelance 250000`;
-  }
-  if (row.id === 'expense_savings' || /ahorr|inversion|invertir|apv|fondo/.test(category)) {
-    return `Para este movimiento "${row.category}", dime aportes reales con monto. Ej: APV 120000, fondo mutuo 80000`;
-  }
-  if (row.id === 'expense_debt' || /deuda|cuota|credito|tarjeta|prestamo|hipoteca/.test(category)) {
-    return `Para este movimiento "${row.category}", dime pagos reales con monto. Ej: cuota tarjeta 90000, credito consumo 140000`;
-  }
-  if (row.id === 'expense_services' || /servicios|luz|agua|gas|internet|telefono/.test(category)) {
-    return `Para este movimiento "${row.category}", dime servicios y montos. Ej: electricidad 45000, internet 28000`;
-  }
-  if (row.id === 'expense_transport' || /transporte|bencina|metro|bus|uber|peaje/.test(category)) {
-    return `Para este movimiento "${row.category}", dime gastos de movilidad. Ej: bencina 90000, metro 35000`;
-  }
-  if (row.id === 'expense_food' || /alimenta|comida|supermercado|feria|restaurante/.test(category)) {
-    return `Para este movimiento "${row.category}", dime gastos de comida. Ej: supermercado 120000, feria 35000`;
-  }
-  return `Para este movimiento "${row.category}", dime 2-4 gastos reales con monto. Ej: supermercado 120000, farmacia 35000`;
-}
-
 export function BudgetModal(props: {
   isOpen: boolean;
   onClose: () => void;
@@ -498,7 +440,6 @@ export function BudgetModal(props: {
       : activeQuestion;
   const activeStyleIndex = BUDGET_TABLE_STYLES.findIndex((style) => style.id === budgetTableStyle);
   const activeStyleLabel = BUDGET_TABLE_STYLES[Math.max(0, activeStyleIndex)]?.label ?? 'Nocturno';
-  const completedRowsCount = props.budgetCompletion.filledRows.length;
   const heroToneClass =
     props.budgetSignals.balanceTone === 'surplus'
       ? 'is-positive'
@@ -848,7 +789,7 @@ export function BudgetModal(props: {
     }
   }
 
-  function unwrapApiData<T>(payload: any): T | null {
+  function unwrapApiData<T>(payload: unknown): T | null {
     if (!payload || typeof payload !== 'object') return null;
     if ('data' in payload && payload.ok === true) return (payload.data ?? null) as T | null;
     return payload as T;
@@ -1171,11 +1112,13 @@ export function BudgetModal(props: {
       row.type === 'expense'
         ? `rgba(118, 26, 36, ${alpha.toFixed(2)})`
         : `rgba(62, 84, 22, ${alpha.toFixed(2)})`;
-    return { ['--row-bg' as any]: bg };
+    return { '--row-bg': bg } as React.CSSProperties;
   }
 
+  const { isOpen, onClose } = props;
+
   useEffect(() => {
-    if (!props.isOpen) return;
+    if (!isOpen) return;
 
     budgetRestoreFocusRef.current =
       document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -1203,7 +1146,7 @@ export function BudgetModal(props: {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.stopPropagation();
-        props.onClose();
+        onClose();
         return;
       }
       if (event.key !== 'Tab') return;
@@ -1231,12 +1174,12 @@ export function BudgetModal(props: {
       const el = budgetRestoreFocusRef.current;
       if (el && document.contains(el)) window.requestAnimationFrame(() => el.focus());
     };
-  }, [props.isOpen, props.onClose]);
+  }, [isOpen, onClose]);
 
-  if (!props.isOpen) return null;
+  if (!isOpen) return null;
 
   return (
-    <div className="agent-modal-overlay budget-modal-overlay" onClick={props.onClose}>
+    <div className="agent-modal-overlay budget-modal-overlay" onClick={onClose}>
       <div
         className="agent-modal budget-modal"
         role="dialog"

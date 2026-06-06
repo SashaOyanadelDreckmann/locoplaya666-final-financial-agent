@@ -76,10 +76,12 @@ export const fetchWithCsrf = async (
   return fetch(url, options);
 };
 
-export default {
+const csrf = {
   getCsrfToken,
   setCsrfToken,
   clearCsrfToken,
   addCsrfTokenToHeaders,
   fetchWithCsrf,
 };
+
+export default csrf;

@@ -1,8 +1,8 @@
 import React, { type ReactNode } from 'react';
-import ReactMarkdown from 'react-markdown';
+import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
-import { BlockMath, InlineMath } from 'react-katex';
+import { BlockMath } from 'react-katex';
 
 export function renderLatexDocMessage(content: string): ReactNode {
   const sanitized = content
@@ -198,25 +198,34 @@ export function renderLatexDocMessage(content: string): ReactNode {
     .join('\n')
     .replace(/(^|[\s([{])\*\*(?=\s|$|[.,;:!?])/g, '$1')
     .replace(/\*\*(?=\s|$)/g, '');
-  const markdownComponents = {
-    h1: ({ node, ...props }: any) => <h1 className="md-h1" {...props} />,
-    h2: ({ node, ...props }: any) => <h2 className="md-h2" {...props} />,
-    h3: ({ node, ...props }: any) => <h3 className="md-h3" {...props} />,
-    h4: ({ node, ...props }: any) => <h4 className="md-h4" {...props} />,
-    h5: ({ node, ...props }: any) => <h5 className="md-h5" {...props} />,
-    h6: ({ node, ...props }: any) => <h6 className="md-h6" {...props} />,
-    p: ({ node, ...props }: any) => <p className="md-paragraph" {...props} />,
-    strong: ({ node, ...props }: any) => <strong className="md-bold" {...props} />,
-    em: ({ node, ...props }: any) => <em className="md-italic" {...props} />,
-    code: ({ node, inline, ...props }: any) => (inline ? <code className="md-code" {...props} /> : <code className="md-code-block" {...props} />),
-    a: ({ node, ...props }: any) => <a className="md-link" {...props} />,
-    ul: ({ node, ...props }: any) => <ul className="md-list" {...props} />,
-    ol: ({ node, ...props }: any) => <ol className="md-list-ordered" {...props} />,
-    li: ({ node, ...props }: any) => <li className="md-list-item" {...props} />,
-    blockquote: ({ node, ...props }: any) => <blockquote className="md-blockquote" {...props} />,
-    table: ({ node, ...props }: any) => <table className="md-table" {...props} />,
-    math: ({ node, value }: any) => <BlockMath math={value} errorColor="#d7e6f5" />,
-    inlineMath: ({ node, value }: any) => <InlineMath math={value} errorColor="#d7e6f5" />,
+  const markdownComponents: Components = {
+    h1: (props) => <h1 className="md-h1" {...props} />,
+    h2: (props) => <h2 className="md-h2" {...props} />,
+    h3: (props) => <h3 className="md-h3" {...props} />,
+    h4: (props) => <h4 className="md-h4" {...props} />,
+    h5: (props) => <h5 className="md-h5" {...props} />,
+    h6: (props) => <h6 className="md-h6" {...props} />,
+    p: (props) => <p className="md-paragraph" {...props} />,
+    strong: (props) => <strong className="md-bold" {...props} />,
+    em: (props) => <em className="md-italic" {...props} />,
+    code: ({ className, children, ...props }: React.ComponentPropsWithoutRef<'code'>) => {
+      const isInline = !String(className ?? '').includes('language-');
+      return isInline ? (
+        <code className="md-code" {...props}>
+          {children}
+        </code>
+      ) : (
+        <code className="md-code-block" {...props}>
+          {children}
+        </code>
+      );
+    },
+    a: (props) => <a className="md-link" {...props} />,
+    ul: (props) => <ul className="md-list" {...props} />,
+    ol: (props) => <ol className="md-list-ordered" {...props} />,
+    li: (props) => <li className="md-list-item" {...props} />,
+    blockquote: (props) => <blockquote className="md-blockquote" {...props} />,
+    table: (props) => <table className="md-table" {...props} />,
   };
   const hasBlockMath = /\$\$[\s\S]+?\$\$/.test(refinedMarkdown);
   if (hasBlockMath) {

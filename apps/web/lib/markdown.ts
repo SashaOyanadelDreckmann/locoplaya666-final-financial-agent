@@ -52,7 +52,9 @@ export const validateMarkdownContent = (content: string): boolean => {
   return !dangerousPatterns.some((pattern) => pattern.test(content));
 };
 
-export default {
+const markdown = {
   sanitizeMarkdown,
   validateMarkdownContent,
 };
+
+export default markdown;

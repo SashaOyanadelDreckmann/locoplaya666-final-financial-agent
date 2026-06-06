@@ -1,34 +1,10 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { getCsrfToken } from '@/lib/csrf';
 import { buildChatDashboardForQuestion, compactDashboardForPrompt } from '@/lib/transactions-chat.helpers';
 import { resolveInstantTransactionSummary } from '@/lib/transactions-summary.helpers';
-import { CHILE_FINANCIAL_INSTITUTIONS } from '@/lib/financialCatalog';
-import ModalNumbersCanvas from '@/components/agent/ModalNumbersCanvas';
-import {
-  RETRO_CHART_COLORS,
-  RETRO_CHART_NEGATIVE,
-  RETRO_GRID,
-  RETRO_TICK,
-  RETRO_TOOLTIP_STYLE,
-  RetroBarShape,
-  RetroDot,
-} from '@/components/ui/retro-chart';
-import {
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  Cell,
-  LineChart,
-  Line,
-  CartesianGrid,
-  XAxis,
-  YAxis,
-  Tooltip,
-  Legend,
-} from 'recharts';
 
 import {
   ALL_PRODUCT_TEMPLATES,
@@ -43,19 +19,12 @@ import { useMovementAnalytics } from './use-movement-analytics';
 import { TxEvidenceStep } from './TxEvidenceStep';
 import { TxAnalystDashboard } from './TxAnalystDashboard';
 import {
-  EditorialSummary,
   NumericDust,
-  buildEditorialSummaryBlocks,
   buildUploadGuidance,
-  confidenceBand,
   confidenceBandLong,
   formatPercentCompact,
-  getFormatLabel,
-  getFormatMicrocopy,
-  movementSourceLabel,
-  renderFormatIcon,
 } from './presentation';
-import { movementOverrideKey, normalizeTaxonomyKey, resolveTransactionOverride } from './taxonomy';
+import { movementOverrideKey } from './taxonomy';
 import type {
   BankProduct,
   TransactionsModalProps,
@@ -63,7 +32,7 @@ import type {
   UploadStatementResult,
 } from './types';
 import type { TxDockTransitionPhase } from './presentation';
-import { hexToRgba, productVisualPalette } from './visuals';
+import { productVisualPalette } from './visuals';
 
 export function TransactionsModal(props: TransactionsModalProps) {
   const [shuffleTrigger, setShuffleTrigger] = useState(0);
@@ -1747,3 +1716,4 @@ export function TransactionsModal(props: TransactionsModalProps) {
   if (typeof document === 'undefined') return null;
   return createPortal(modalTree, document.body);
 }
+import ModalNumbersCanvas from '@/components/agent/ModalNumbersCanvas';

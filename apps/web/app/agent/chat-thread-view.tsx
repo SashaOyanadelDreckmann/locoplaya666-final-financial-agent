@@ -5,7 +5,7 @@ import { CitationBubble } from '@/components/conversation/CitationBubble';
 import { AgentBlocksRenderer } from '@/components/agent/AgentBlocksRenderer';
 import { saveBubbleSnapshotPdfArtifact, savePdfArtifact } from '@/lib/artifacts';
 import type { ChatItem } from '@/lib/agent.response.types';
-import { buildInitialAgentSuggestions, sanitizeMessageText } from './page.utils';
+import { sanitizeMessageText } from './page.utils';
 import { renderLatexDocMessage } from './message-renderer';
 
 const DOC_MODE_PILL_STYLE: React.CSSProperties = {

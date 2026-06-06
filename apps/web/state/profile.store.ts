@@ -37,7 +37,7 @@ type ProfileState = {
   profile: DiagnosisProfile | null;
   loading: boolean;
   error: string | null;
-  setProfile: (profile: any) => void;
+  setProfile: (profile: DiagnosisProfile | null) => void;
   loadProfileIfNeeded: () => Promise<void>;
 };
 

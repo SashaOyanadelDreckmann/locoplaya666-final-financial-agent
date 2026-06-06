@@ -2,15 +2,15 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRef, useEffect, useCallback, type RefObject } from 'react';
+import { useCallback, useEffect, useRef, type RefObject } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowRight } from 'lucide-react';
 import {
   motion,
-  useScroll, useTransform, useSpring,
-  useMotionValue, useInView,
-  type MotionValue,
-  type Variants,
+  useMotionValue,
+  useSpring,
+  useScroll,
+  useTransform,
 } from 'framer-motion';
 import SpotlightCard from '../components/home/SpotlightCard';
 import Counter from '../components/home/Counter';
@@ -33,56 +33,12 @@ const GOLD  = 'rgba(164,143,79,1)';
 const BLUE_DIM  = 'rgba(111,143,166,0.45)';
 const GOLD_DIM  = 'rgba(164,143,79,0.40)';
 
-// ── Section bg tokens ─────────────────────────────────────────────────────────
-const BG_INDIGO = 'linear-gradient(160deg, rgba(6,11,24,0.82) 0%, rgba(9,16,34,0.80) 100%)';
-const BG_WARM   = 'linear-gradient(160deg, rgba(16,11,6,0.82) 0%, rgba(20,14,6,0.80) 100%)';
-const BG_NAVY   = 'linear-gradient(160deg, rgba(4,10,20,0.82) 0%, rgba(7,14,28,0.80) 100%)';
-const BG_SLATE  = 'linear-gradient(160deg, rgba(8,12,18,0.82) 0%, rgba(5,10,16,0.82) 100%)';
-
-const blurUp: Variants = {
-  hidden: { opacity: 0, y: 24, filter: 'blur(8px)' },
-  visible: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.8, ease: SILK } },
-};
-const sg = (s = 0.12): Variants => ({ hidden: {}, visible: { transition: { staggerChildren: s } } });
-
 // ── Label ──────────────────────────────────────────────────────────────────────
 function Label({ text, color = BLUE_DIM }: { text: string; color?: string }) {
   return (
     <p style={{ margin: '0 0 24px', fontSize: 10, letterSpacing: '0.22em', color, textTransform: 'uppercase', fontWeight: 700 }}>
       {text}
     </p>
-  );
-}
-
-// ── Accent line ────────────────────────────────────────────────────────────────
-function AccentLine({
-  color = BLUE,
-  delay = 0,
-  progress,
-}: {
-  color?: string;
-  delay?: number;
-  progress?: MotionValue<number>;
-}) {
-  const fallbackProgress = useMotionValue(0);
-  const sourceProgress = progress ?? fallbackProgress;
-  const scaleX = useTransform(sourceProgress, [0, 0.3], [0, 1]);
-  return (
-    <motion.div
-      style={{
-        height: 1,
-        background: color,
-        opacity: 0.18,
-        transformOrigin: 'left',
-        scaleX: scaleX ?? undefined,
-      }}
-      {...(!progress ? {
-        initial: { scaleX: 0, opacity: 0 },
-        whileInView: { scaleX: 1, opacity: 0.18 },
-        viewport: { once: true },
-        transition: { duration: 0.9, delay, ease: SNAP },
-      } : {})}
-    />
   );
 }
 

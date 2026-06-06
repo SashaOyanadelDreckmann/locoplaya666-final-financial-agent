@@ -180,7 +180,17 @@ authRouter.post('/login', asyncHandler(async (req, res) => {
     throw unauthorized('Invalid credentials');
   }
 
-  const ok = await bcrypt.compare(data.password, user.passwordHash);
+  const passwordHash = String(user.passwordHash ?? '').trim();
+  if (!passwordHash) {
+    throw unauthorized('Invalid credentials');
+  }
+
+  let ok = false;
+  try {
+    ok = await bcrypt.compare(data.password, passwordHash);
+  } catch {
+    throw unauthorized('Invalid credentials');
+  }
   if (!ok) {
     throw unauthorized('Invalid credentials');
   }

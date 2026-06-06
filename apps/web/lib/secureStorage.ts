@@ -15,7 +15,7 @@ export const secureStorage = {
       if (typeof window === 'undefined') return;
       const secureKey = `${SECURE_PREFIX}${key}`;
       sessionStorage.setItem(secureKey, value);
-    } catch (e) {
+    } catch {
       console.warn(`Failed to set secure storage: ${key}`);
     }
   },
@@ -28,7 +28,7 @@ export const secureStorage = {
       if (typeof window === 'undefined') return null;
       const secureKey = `${SECURE_PREFIX}${key}`;
       return sessionStorage.getItem(secureKey);
-    } catch (e) {
+    } catch {
       console.warn(`Failed to get secure storage: ${key}`);
       return null;
     }
@@ -42,7 +42,7 @@ export const secureStorage = {
       if (typeof window === 'undefined') return;
       const secureKey = `${SECURE_PREFIX}${key}`;
       sessionStorage.removeItem(secureKey);
-    } catch (e) {
+    } catch {
       console.warn(`Failed to remove secure storage: ${key}`);
     }
   },
@@ -59,7 +59,7 @@ export const secureStorage = {
           sessionStorage.removeItem(key);
         }
       });
-    } catch (e) {
+    } catch {
       console.warn('Failed to clear secure storage');
     }
   },

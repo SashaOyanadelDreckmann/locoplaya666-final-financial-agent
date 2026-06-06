@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import React, { useEffect, useMemo, useRef, useState, type ReactElement, type ReactNode } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from 'react';
 import { Send } from 'lucide-react';
 import 'katex/dist/katex.min.css';
 
@@ -26,15 +26,10 @@ import {
 import { ApiHttpError } from '@/lib/apiEnvelope';
 import { toUserFacingError } from '@/lib/userError';
 import {
-  productHasAnalyzedMovements,
   productsHaveAnalyzedMovements,
   resolveTxWizardStep,
 } from '@/lib/transactions-flow.helpers';
-import {
-  MAX_BUDGET_ROWS,
-  normalizeBudgetRow,
-  type BudgetRow,
-} from '@/lib/budget-rows.helpers';
+import { MAX_BUDGET_ROWS } from '@/lib/budget-rows.helpers';
 import {
   aggregateCanonicalMovements,
   aggregateParsedDocuments,
@@ -56,14 +51,12 @@ import {
   type DocumentsParseProgress,
 } from '@/lib/transactions-parse-progress.helpers';
 import {
-  CHAT_GAME_INSTRUCTION,
   DEFAULT_BANK_SIMULATION,
   FALLBACK_WELCOME,
   KNOWLEDGE_MILESTONE_DEFS,
   MAX_EVIDENCE_FILES_PER_PRODUCT,
   MAX_TRANSACTION_PRODUCTS,
   MAX_TRANSACTION_PRODUCTS_CREATED_TOTAL,
-  POST_DIAGNOSIS_CHAT_IDS,
   PRIMARY_CHAT_ID,
   type BankSimulation,
 } from './agent-page.constants';
@@ -72,7 +65,6 @@ import { normalizeTaxonomyKey, normalizeTransactionTaxonomyOverride } from './tr
 import secureStorage from '@/lib/secureStorage';
 import { clearCsrfToken } from '@/lib/csrf';
 import {
-  INTERVIEW_UI_STATE_KEY,
   clearInterviewVoiceState,
   readInterviewVoiceState,
 } from '@/lib/interviewVoiceState';
@@ -83,7 +75,6 @@ import {
   inferInstitutionFromText,
   inferProductTypeFromText,
   dedupeConsecutiveAssistantMessages,
-  resolveDocumentUrl,
   resolveUnlockedChatIds,
   hasAssistantMessage,
   sanitizeChatItems,
@@ -107,10 +98,7 @@ import { buildPanelBaseCards } from './panel-cards';
 import { useBudgetRows } from './hooks/use-budget-rows';
 import { useAgentShell } from './hooks/use-agent-shell';
 import { mergeBankProductPatch } from './transactions/state.helpers';
-import {
-  buildMetaSheetContextSummary,
-  buildPanelSnapshotPayload,
-} from './page.flow';
+import { buildPanelSnapshotPayload } from './page.flow';
 import { clearPanelStateBackups, hydratePanelState, persistPanelState } from './panel-state.service';
 
 type AgentMeta = {
@@ -278,7 +266,7 @@ export default function AgentPage() {
     return normalized.includes('informe inicial de diagnóstico');
   }
 
-  function buildEditorialWelcome(session: { name?: string | null; injectedIntake?: unknown } | null | undefined) {
+  const buildEditorialWelcome = useCallback((session: { name?: string | null; injectedIntake?: unknown } | null | undefined) => {
     const firstName = String(session?.name ?? '').split(' ')[0]?.trim() || 'Hola';
     const intakeRoot =
       session?.injectedIntake && typeof session.injectedIntake === 'object'
@@ -329,12 +317,12 @@ export default function AgentPage() {
       ``,
       `¿Partimos por **Productos y transacciones**?`,
     ].join('\n');
-  }
+  }, []);
 
-  function buildOpeningMessageByChat(
+  const buildOpeningMessageByChat = useCallback((
     chatId: string,
     session: { name?: string | null; injectedIntake?: unknown } | null | undefined
-  ) {
+  ) => {
     const firstName = String(session?.name ?? '').split(' ')[0]?.trim() || 'Hola';
     if (chatId === 'chat-2') {
       return `${firstName}, abrimos con una lluvia de ideas senior: cruzamos tu diagnóstico, presupuesto, cartolas y el mercado de hoy. En este chat convergemos hasta dejar un **plan de acción ejecutivo** completo — sin atajos ni correos automáticos. ¿Priorizamos primero caja, deuda, ahorro o inversión?`;
@@ -343,7 +331,7 @@ export default function AgentPage() {
       return `*"El precio de todo y el valor de nada."* — Oscar Wilde\n\n${firstName}, este espacio no es sobre números. Es sobre lo que los números revelan de ti.\n\nCada peso que ganas, gastas o acumulas es una decisión moral —aunque nunca la hayas pensado así.\n\n**¿Tu dinero trabaja para el mundo que quieres vivir, o para el mundo que te tocó?**`;
     }
     return buildEditorialWelcome(session);
-  }
+  }, [buildEditorialWelcome]);
 
   function makeInitialThread(id: string, label: string, name: string): ChatThread {
     return {
@@ -402,7 +390,6 @@ export default function AgentPage() {
   const [sheetsLoaded, setSheetsLoaded] = useState(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [loading, setLoading] = useState(false);
-  const [micActive, setMicActive] = useState(false);
   const [panelStage, setPanelStage] = useState(3);
   const [mobilePanelExpanded, setMobilePanelExpanded] = useState(false);
   const {
@@ -415,7 +402,7 @@ export default function AgentPage() {
   } = useAgentShell();
   const [isMonochrome, setIsMonochrome] = useState(false);
   const [progressPulse, setProgressPulse] = useState(false);
-  const [isRailMorphing, setIsRailMorphing] = useState(false);
+  const [isRailMorphing] = useState(false);
   const [levelUpText, setLevelUpText] = useState<string | null>(null);
   const [knowledgePopupOpen, setKnowledgePopupOpen] = useState(false);
   const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
@@ -461,7 +448,7 @@ export default function AgentPage() {
   const [productLifecycle, setProductLifecycle] = useState<ProductLifecycle | null>(null);
   const agentMetaRef = useRef<AgentMeta>({});
   const [, forceRender] = useState(0);
-  const [chatSlideDir, setChatSlideDir] = useState<'left' | 'right' | null>(null);
+  const [chatSlideDir] = useState<'left' | 'right' | null>(null);
   const previousKnowledgeScoreRef = useRef(0);
   const previousMilestoneDoneIdsRef = useRef<Set<string>>(new Set());
   const recentLibraryRef = useRef<HTMLDivElement | null>(null);
@@ -493,6 +480,17 @@ export default function AgentPage() {
   const panelStateBackupKey = useMemo(
     () => panelStateBackupKeyForUser(sessionInfo?.userId ?? sessionInfo?.email ?? sessionInfo?.name),
     [sessionInfo?.userId, sessionInfo?.email, sessionInfo?.name]
+  );
+  const panelHydrateInput = useMemo(
+    () => ({
+      panelStateBackupKey,
+      budgetRows,
+      budgetChatAnswers,
+      savedReports,
+      txProductsCreatedTotal,
+      bankSimulation,
+    }),
+    [bankSimulation, budgetChatAnswers, budgetRows, panelStateBackupKey, savedReports, txProductsCreatedTotal]
   );
 
   const activeThread = useMemo(
@@ -546,7 +544,7 @@ export default function AgentPage() {
   const isActiveChatLocked =
     activeChatId === PRIMARY_CHAT_ID
       ? false
-      : !unlockedChatIds.includes(activeChatId as any) || closedChatIds.includes(activeChatId);
+      : !unlockedChatIds.includes(activeChatId) || closedChatIds.includes(activeChatId);
 
   function clearComposerFocusTimer() {
     if (composerFocusTimerRef.current) {
@@ -606,16 +604,7 @@ export default function AgentPage() {
   }
   function isThreadLocked(threadId: string) {
     if (threadId === PRIMARY_CHAT_ID) return false;
-    return !unlockedChatIds.includes(threadId as any) || closedChatIds.includes(threadId);
-  }
-
-  function phaseLabel(phase?: string) {
-    if (phase === 'transactions_needed') return 'Agregar productos y respaldos';
-    if (phase === 'budget_needed') return 'Completar presupuesto';
-    if (phase === 'interview_needed') return 'Entrevista breve';
-    if (phase === 'diagnosis_ready') return 'Diagnóstico listo';
-    if (phase === 'advisory_unlocked') return 'Asesoría continua activa';
-    return 'Diagnóstico inicial';
+    return !unlockedChatIds.includes(threadId) || closedChatIds.includes(threadId);
   }
 
   useEffect(() => {
@@ -837,7 +826,8 @@ export default function AgentPage() {
     loadSheets().then((data) => {
       if (data?.sheets && Array.isArray(data.sheets) && data.sheets.length > 0) {
         // Migrate saved sheets to current type
-        const restored: ChatThread[] = data.sheets.map((s: any) => ({
+        const sheets = data.sheets as Array<Record<string, unknown>>;
+        const restored: ChatThread[] = sheets.map((s) => ({
           id: s.id ?? `chat-${Date.now()}`,
           label: s.label ?? '1',
           name: s.name ?? 'Conversación',
@@ -845,7 +835,7 @@ export default function AgentPage() {
           items: Array.isArray(s.items)
             ? dedupeConsecutiveAssistantMessages(
                 sanitizeChatItems(
-                  s.items.filter((it: any) => it.type !== 'message' || it.content !== undefined)
+                  (s.items as Array<Record<string, unknown>>).filter((it) => it.type !== 'message' || it.content !== undefined)
                 )
               )
             : [],
@@ -1027,7 +1017,7 @@ export default function AgentPage() {
       // allow retry on next render if welcome request fails
       welcomeInjectedThreadsRef.current.delete(active.id);
     });
-  }, [sheetsLoaded, chatThreads, activeChatId, sessionInfo?.name, sessionInfo?.injectedIntake]);
+  }, [buildOpeningMessageByChat, chatThreads, activeChatId, sessionInfo, sheetsLoaded]);
 
   // Save sheets to API with debounce whenever they change
   useEffect(() => {
@@ -1055,7 +1045,7 @@ export default function AgentPage() {
     };
   }, [chatThreads, sheetsLoaded]);
 
-  function setDraftForActive(nextDraft: string) {
+  const setDraftForActive = useCallback((nextDraft: string) => {
     setChatThreads((prev) =>
       prev.map((thread) =>
         thread.id === activeChatId
@@ -1063,7 +1053,7 @@ export default function AgentPage() {
           : thread
       )
     );
-  }
+  }, [activeChatId]);
 
   function setItemsForActive(
     updater: ChatItem[] | ((prevItems: ChatItem[]) => ChatItem[])
@@ -1077,16 +1067,6 @@ export default function AgentPage() {
             : updater;
         return { ...thread, items: nextItems };
       })
-    );
-  }
-
-  function setNameForActive(nextName: string) {
-    setChatThreads((prev) =>
-      prev.map((thread) =>
-        thread.id === activeChatId
-          ? { ...thread, name: nextName, autoNamed: true }
-          : thread
-      )
     );
   }
 
@@ -1107,7 +1087,7 @@ export default function AgentPage() {
     clearPanelStateBackups();
   }
 
-  function buildPanelSnapshot() {
+  const buildPanelSnapshot = useCallback(() => {
     return buildPanelSnapshotPayload({
       budgetRows,
       budgetChatAnswers,
@@ -1115,7 +1095,7 @@ export default function AgentPage() {
       txProductsCreatedTotal,
       savedReports,
     });
-  }
+  }, [bankSimulation, budgetChatAnswers, budgetRows, savedReports, txProductsCreatedTotal]);
 
   async function persistPanelSnapshotNow() {
     await persistPanelState({
@@ -1200,48 +1180,6 @@ export default function AgentPage() {
     }
   }
 
-  function deleteThreadById(threadId: string) {
-    const target = chatThreads.find((thread) => thread.id === threadId);
-    if (!target) return;
-
-    const confirmText =
-      target.items.length > 0
-        ? `¿Eliminar el chat "${target.name}"? Esta acción limpiará su contenido.`
-        : `¿Eliminar el chat "${target.name}"?`;
-    if (!window.confirm(confirmText)) return;
-
-    const isBaseThread = POST_DIAGNOSIS_CHAT_IDS.includes(threadId as any);
-
-    setChatThreads((prev) => {
-      if (isBaseThread) {
-        const resetThread = makeInitialThread(target.id, target.label, target.name || 'Nueva conversación');
-        return prev.map((thread) => (thread.id === threadId ? resetThread : thread));
-      }
-
-      const filtered = prev.filter((thread) => thread.id !== threadId);
-      if (filtered.length === 0) {
-        return [makeInitialThread(PRIMARY_CHAT_ID, 'Core', 'Diagnóstico financiero')];
-      }
-
-      if (!filtered.some((thread) => thread.status === 'active')) {
-        filtered[0] = { ...filtered[0], status: 'active', completedAt: undefined };
-      }
-      return filtered;
-    });
-
-    setActiveChatId((prevActive) => {
-      if (prevActive !== threadId) return prevActive;
-      if (isBaseThread) return threadId;
-      const candidate =
-        chatThreads.find((thread) => thread.id !== threadId && thread.status === 'active') ??
-        chatThreads.find((thread) => thread.id !== threadId) ??
-        { id: PRIMARY_CHAT_ID };
-      return candidate.id;
-    });
-
-    welcomeInjectedThreadsRef.current.delete(threadId);
-  }
-
   useEffect(() => {
     setChatThreads((prev) => {
       let changed = false;
@@ -1273,14 +1211,6 @@ export default function AgentPage() {
   const allItems = useMemo(
     () => chatThreads.flatMap((thread) => thread.items),
     [chatThreads]
-  );
-
-  const userMessagesCount = useMemo(
-    () =>
-      items.filter(
-        (it) => it.type === 'message' && it.role === 'user'
-      ).length,
-    [items]
   );
 
   const totalUserMessagesCount = useMemo(
@@ -1844,12 +1774,7 @@ export default function AgentPage() {
     let alive = true;
 
     hydratePanelState({
-      panelStateBackupKey,
-      budgetRows,
-      budgetChatAnswers,
-      savedReports,
-      txProductsCreatedTotal,
-      bankSimulation,
+      ...panelHydrateInput,
     })
       .then((result) => {
         if (!alive) return;
@@ -1874,7 +1799,7 @@ export default function AgentPage() {
     return () => {
       alive = false;
     };
-  }, [authBootstrapped, isAuthenticated]);
+  }, [authBootstrapped, isAuthenticated, panelHydrateInput, setBudgetRows]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -1891,7 +1816,7 @@ export default function AgentPage() {
     return () => {
       if (panelSaveTimerRef.current) clearTimeout(panelSaveTimerRef.current);
     };
-  }, [budgetRows, budgetChatAnswers, bankSimulation, txProductsCreatedTotal, savedReports, panelStateLoaded, panelStateBackupKey]);
+  }, [bankSimulation, budgetChatAnswers, budgetRows, buildPanelSnapshot, isAuthenticated, panelStateBackupKey, panelStateLoaded, savedReports, setBudgetRows, txProductsCreatedTotal]);
 
   useEffect(() => {
     if (!isAuthenticated || !panelStateLoaded) return;
@@ -1905,7 +1830,7 @@ export default function AgentPage() {
     }, 600);
 
     return () => window.clearTimeout(timer);
-  }, [isAuthenticated, panelStateLoaded, bankSimulation.products, bankSimulation.activeProductId, budgetRows]);
+  }, [bankSimulation, budgetRows, isAuthenticated, panelStateLoaded, syncFinancialContextToIntake]);
 
   useEffect(() => {
     const prevScore = previousKnowledgeScoreRef.current;
@@ -1961,7 +1886,7 @@ export default function AgentPage() {
       setDraftForActive(prefill);
       localStorage.removeItem('agent.prefill_prompt');
     } catch {}
-  }, [activeChatId]);
+  }, [activeChatId, setDraftForActive]);
 
   // Re-focus composer after a blocking modal closes
   useEffect(() => {
@@ -1971,11 +1896,11 @@ export default function AgentPage() {
   }, [hasBlockingModalOpen, isActiveChatLocked, isMobileViewport]);
 
   // Haptic feedback — usa Vibration API si esta disponible (Android/algunos iOS PWA)
-  function haptic(pattern: number | number[] = 10) {
+  const haptic = useCallback((pattern: number | number[] = 10) => {
     if (typeof navigator !== 'undefined' && navigator.vibrate) {
       navigator.vibrate(pattern);
     }
-  }
+  }, []);
 
   async function onSend(
     messageOverride?: string,
@@ -2034,8 +1959,8 @@ export default function AgentPage() {
     const historySnapshot = items
       .filter((it) => it.type === 'message')
       .map((m) => ({
-        role: (m as any).role,
-        content: (m as any).content,
+        role: (m as Extract<ChatItem, { type: 'message' }>).role,
+        content: (m as Extract<ChatItem, { type: 'message' }>).content,
       }))
       .slice(-8);
     const recentArtifacts = items
@@ -2504,7 +2429,7 @@ export default function AgentPage() {
     void onSend(message);
   }
 
-  async function syncFinancialContextToIntake() {
+  const syncFinancialContextToIntake = useCallback(async () => {
     await mergeProductsContextToIntake({
       productsContext: buildPersistableProductsContext(
         bankSimulation.products,
@@ -2512,9 +2437,9 @@ export default function AgentPage() {
       ),
       budgetContext: buildPersistableBudgetContext(),
     });
-  }
+  }, [bankSimulation.activeProductId, bankSimulation.products, buildPersistableBudgetContext]);
 
-  function buildInterviewIntakePayload() {
+  const buildInterviewIntakePayload = useCallback(() => {
     const baseIntake =
       sessionInfo?.injectedIntake?.intake && typeof sessionInfo.injectedIntake.intake === 'object'
         ? (sessionInfo.injectedIntake.intake as Record<string, unknown>)
@@ -2528,7 +2453,7 @@ export default function AgentPage() {
       ),
       __budgetContext: buildPersistableBudgetContext(),
     };
-  }
+  }, [bankSimulation.activeProductId, bankSimulation.products, buildPersistableBudgetContext, intakeData, sessionInfo]);
 
   function sendBudgetToAgent() {
     const rowsWithData = budgetRows
@@ -2623,16 +2548,17 @@ export default function AgentPage() {
     setIsTransactionsModalOpen(true);
   }
 
-  async function openInterviewModal() {
+  const openInterviewModal = useCallback(async () => {
     await syncFinancialContextToIntake().catch(() => {});
-    setInterviewIntake(buildInterviewIntakePayload() as any);
+    setInterviewIntake(buildInterviewIntakePayload());
     setIsInterviewModalOpen(true);
-  }
+  }, [buildInterviewIntakePayload, setInterviewIntake, syncFinancialContextToIntake]);
 
   function openDiagnosisView() {
     router.push('/diagnosis');
   }
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (interviewAutoOpenHandledRef.current) return;
     if (searchParams.get('openInterview') !== '1') return;
@@ -3237,88 +3163,6 @@ export default function AgentPage() {
     }
   }
 
-  function hydrateBudgetFromProduct(product: BankProduct) {
-    const dashboard = product.dashboard;
-    if (!dashboard) return;
-    const keyMetrics = dashboard.keyMetrics;
-    const categories = dashboard.topCategories ?? [];
-    const topIncome = dashboard.topIncome ?? [];
-    const expenseRows: BudgetRow[] = categories
-      .slice(0, 10)
-      .filter((category) => Number(category.amount) > 0)
-      .map((category) => ({
-        id: `expense-auto-${category.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 28)}`,
-        category: category.name,
-        type: 'expense',
-        amount: Math.max(0, Math.round(Number(category.amount))),
-        product: product.label,
-        institution: product.bank,
-        note: 'Estimado desde movimientos de producto',
-      }));
-
-    const isCardLikeProduct =
-      product.productType === 'credit_card' ||
-      product.productType === 'consumer_loan' ||
-      product.productType === 'mortgage';
-
-    const likelyPayrollOrRealIncome = (label: string) => {
-      const normalized = String(label ?? '').toLowerCase();
-      if (!normalized) return false;
-      // Only whitelist strong income signals to avoid treating transfers/abonos as "ingreso mensual".
-      if (/\b(sueldo|remuner|n[oó]mina|payroll|honorari|pensi[oó]n|arriendo|renta|subsidio)\b/.test(normalized)) {
-        if (/\b(transfer|traspas|p2p|trf|abono|devoluci[oó]n|reversa|ajuste)\b/.test(normalized)) return false;
-        return true;
-      }
-      return false;
-    };
-
-    const inferredIncomeFromSignals = topIncome
-      .filter((entry) => entry && typeof entry.amount === 'number' && entry.amount > 0 && likelyPayrollOrRealIncome(entry.label))
-      .reduce((acc, entry) => acc + entry.amount, 0);
-
-    // Avoid auto-filling income from `inflows_total` (often includes transfers, card payments, reversals).
-    // If we don't have strong signals, keep income at 0 so the user confirms the real monthly liquid income.
-    const incomeEstimate = isCardLikeProduct ? 0 : Math.max(0, Math.round(inferredIncomeFromSignals));
-
-    const incomeRow: BudgetRow | null =
-      incomeEstimate > 0
-        ? {
-            id: 'income-derived-products',
-            category: 'Ingreso principal (estimado)',
-            type: 'income',
-            amount: incomeEstimate,
-            product: product.label,
-            institution: product.bank,
-            note: 'Estimado solo desde señales de ingreso (no suma abonos/transferencias)',
-          }
-        : {
-            id: 'income-derived-products',
-            category: 'Ingreso principal (completar)',
-            type: 'income',
-            amount: 0,
-            product: product.label,
-            institution: product.bank,
-            note: isCardLikeProduct
-              ? 'Producto tipo tarjeta/crédito: no se infiere ingreso desde abonos.'
-              : 'Sin señales claras de sueldo/pensión/honorarios: completa tu ingreso mensual.',
-          };
-
-    setBudgetRows((prev) => {
-      const next = [...prev];
-      const upsert = (candidate: BudgetRow) => {
-        const idx = next.findIndex((row) => row.id === candidate.id);
-        if (idx >= 0) {
-          next[idx] = { ...next[idx], ...candidate };
-        } else {
-          next.push(candidate);
-        }
-      };
-      if (incomeRow) upsert(incomeRow);
-      for (const row of expenseRows) upsert(row);
-      return next;
-    });
-  }
-
   function launchDocToLibraryAnimation(
     label: string,
     sourceRect?: DOMRect | null,
@@ -3426,44 +3270,6 @@ export default function AgentPage() {
     launchDocToLibraryAnimation(report.title, null, undefined, report.id);
   }
 
-  async function generateMetaSheet(sheets: ChatThread[]) {
-    const BASE_IDS = [PRIMARY_CHAT_ID];
-    const contextSheets = sheets.filter((s) => BASE_IDS.includes(s.id) && s.status === 'context');
-    if (contextSheets.length < 1) return;
-    // Already have meta sheet?
-    if (sheets.find((s) => s.id === 'meta-sheet')) return;
-
-    const metaSheet = makeInitialThread('meta-sheet', '★', 'Hoja maestra');
-    setChatThreads((prev) => [...prev, metaSheet]);
-    setActiveChatId('meta-sheet');
-
-    // Build a rich context summary from the 3 sheets
-    const contextSummary = buildMetaSheetContextSummary(contextSheets);
-
-    try {
-      const res = (await sendToAgent({
-        user_message: `SISTEMA: Genera un resumen ejecutivo personalizado que integre todo el contexto recopilado, los objetivos identificados, el perfil financiero del usuario y una hoja de ruta de recomendaciones de alto impacto. Contexto del chat principal:\n${contextSummary}`,
-        session_id: getSessionId(),
-        history: [],
-        context: { meta_sheet_init: true },
-        ui_state: { meta_sheet: true },
-        preferences: { response_style: 'professional', language: 'es-CL' },
-      })) as AgentResponse;
-
-      const items = sanitizeChatItems(toChatItemsFromAgentResponse(res));
-      const toAdd = items.length > 0 ? items : [{
-        type: 'message' as const,
-        role: 'assistant' as const,
-        content: sanitizeMessageText(res.message, 'Hoja maestra inicializada.'),
-        mode: res.mode ?? 'synthesis',
-      }];
-      setChatThreads((prev) =>
-        prev.map((t) => t.id === 'meta-sheet' ? { ...t, items: toAdd } : t)
-      );
-    } catch {}
-  }
-
-
   function handlePanelAction(action: { section?: string; message?: string }) {
     const section = action.section;
     const message = action.message;
@@ -3506,20 +3312,6 @@ export default function AgentPage() {
   }
 
 
-  function switchChatBySwipe(direction: 'left' | 'right') {
-    const ids = chatThreads.map((t) => t.id);
-    if (ids.length <= 1) return;
-    const currentIdx = ids.indexOf(activeChatId);
-    const nextIdx = direction === 'left'
-      ? Math.min(currentIdx + 1, ids.length - 1)
-      : Math.max(currentIdx - 1, 0);
-    if (nextIdx === currentIdx) return;
-    setChatSlideDir(direction);
-    setActiveChatId(ids[nextIdx]);
-    setTimeout(() => setChatSlideDir(null), 320);
-  }
-
-
   const panelBaseCards: Array<{ key: string; node: ReactElement }> = buildPanelBaseCards({
     highlightedSection,
     sessionInfo,
@@ -3534,7 +3326,7 @@ export default function AgentPage() {
     canOpenInterview,
     setInterviewIntake: () => {
       void syncFinancialContextToIntake().catch(() => {});
-      setInterviewIntake(buildInterviewIntakePayload() as any);
+      setInterviewIntake(buildInterviewIntakePayload());
     },
     unlockedPanelBlocks,
     setIsBudgetModalOpen,
@@ -3714,15 +3506,15 @@ export default function AgentPage() {
         className={`agent-chat active-chat-${activeThread?.label ?? '1'}${chatSlideDir ? ` chat-slide-${chatSlideDir}` : ''}`}
       >
         <ChatHeader
-          chatThreads={chatThreads as any}
+          chatThreads={chatThreads}
           activeChatId={activeChatId}
           setActiveChatId={setActiveChatId}
-          getThreadSpecialization={getThreadSpecialization as any}
+          getThreadSpecialization={getThreadSpecialization}
           isThreadLocked={isThreadLocked}
           setPanelCallout={setPanelCallout}
           setKnowledgePopupOpen={setKnowledgePopupOpen}
           knowledgeScore={knowledgeScore}
-          activeThread={activeThread as any}
+          activeThread={activeThread}
           isActiveChatLocked={isActiveChatLocked}
           activeTurnCount={activeTurnCount}
           diagnosisUnlocked={interviewCompleted}
@@ -3748,7 +3540,7 @@ export default function AgentPage() {
               onClick={() => {
                 const injectedIntake = sessionInfo?.injectedIntake?.intake;
                 if (injectedIntake && typeof injectedIntake === 'object') {
-                  setInterviewIntake(injectedIntake as any);
+                  setInterviewIntake(injectedIntake as Parameters<typeof setInterviewIntake>[0]);
                 }
                 openInterviewModal();
               }}
@@ -3831,14 +3623,12 @@ export default function AgentPage() {
       {docFlight && (
         <div
           className={`doc-flight-chip${docFlight.running ? ' is-running' : ''}`}
-          style={
-            {
-              left: `${docFlight.startX}px`,
-              top: `${docFlight.startY}px`,
-              ['--dx' as any]: `${docFlight.endX - docFlight.startX}px`,
-              ['--dy' as any]: `${docFlight.endY - docFlight.startY}px`,
-            } as any
-          }
+          style={{
+            left: `${docFlight.startX}px`,
+            top: `${docFlight.startY}px`,
+            ['--dx']: `${docFlight.endX - docFlight.startX}px`,
+            ['--dy']: `${docFlight.endY - docFlight.startY}px`,
+          } as React.CSSProperties & Record<'--dx' | '--dy', string>}
         >
           <div className="doc-flight-preview">
             {docFlight.previewUrl ? (
