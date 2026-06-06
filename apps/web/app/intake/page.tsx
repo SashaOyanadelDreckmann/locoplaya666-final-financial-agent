@@ -1,7 +1,7 @@
 'use client';
 import './intake.css';
 
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Suspense, useEffect, useState } from 'react';
 import { useInterviewStore } from '@/state/interview.store';
@@ -54,9 +54,7 @@ const INITIAL_FORM: IntakeQuestionnaire = {
 
 function IntakeContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const setIntake = useInterviewStore((s) => s.setIntake);
-  const isPreviewMode = searchParams.get('preview') === '1';
 
   const [form, setForm] = useState<IntakeQuestionnaire>(structuredClone(INITIAL_FORM));
   const [step, setStep] = useState(0);
@@ -65,13 +63,20 @@ function IntakeContent() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const html = document.documentElement;
+    const body = document.body;
+    html.classList.add('intake-route-active');
+    body.classList.add('intake-route-active');
+    return () => {
+      html.classList.remove('intake-route-active');
+      body.classList.remove('intake-route-active');
+    };
+  }, []);
+
+  useEffect(() => {
     let cancelled = false;
 
     const bootstrap = async () => {
-      if (isPreviewMode) {
-        setBootstrapping(false);
-        return;
-      }
       try {
         const session = await getSessionInfo();
         if (cancelled) return;
@@ -94,7 +99,7 @@ function IntakeContent() {
 
     void bootstrap();
     return () => { cancelled = true; };
-  }, [router, isPreviewMode]);
+  }, [router]);
 
   // Cursor-following glow on answer cards: track pointer position into CSS vars
   useEffect(() => {
@@ -116,10 +121,6 @@ function IntakeContent() {
   const prevStep = () => setStep((s) => Math.max(s - 1, 0));
 
   const onSubmit = async () => {
-    if (isPreviewMode) {
-      router.push('/agent');
-      return;
-    }
     try {
       setLoading(true);
       setError(null);
@@ -139,11 +140,6 @@ function IntakeContent() {
   const cssVars = { '--c-step': stepMeta.rgb } as React.CSSProperties;
   return (
     <div className="intake-shell" data-step={stepMeta.key} style={cssVars}>
-      {isPreviewMode && (
-        <div className="intake-preview-banner" role="status">
-          Modo preview activo: estás viendo el diseño sin necesidad de cuenta.
-        </div>
-      )}
       <div className="intake-photo-bg" aria-hidden />
       <div className="intake-bg-orb" aria-hidden />
 

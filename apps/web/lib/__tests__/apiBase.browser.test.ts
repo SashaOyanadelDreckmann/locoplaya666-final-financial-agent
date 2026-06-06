@@ -7,15 +7,10 @@ import {
   getUploadApiBaseUrl,
 } from '../apiBase';
 
-describe('apiBase browser production', () => {
+describe('apiBase browser', () => {
   const originalNodeEnv = process.env.NODE_ENV;
 
   beforeEach(() => {
-    Object.defineProperty(process.env, 'NODE_ENV', {
-      value: 'production',
-      configurable: true,
-      writable: true,
-    });
     delete (window as Window & { __FA_RUNTIME__?: { apiOrigin: string } }).__FA_RUNTIME__;
   });
 
@@ -27,7 +22,22 @@ describe('apiBase browser production', () => {
     });
   });
 
+  it('getApiBaseUrl uses same-origin /backend in dev browser', () => {
+    Object.defineProperty(process.env, 'NODE_ENV', {
+      value: 'development',
+      configurable: true,
+      writable: true,
+    });
+    expect(getApiBaseUrl()).toBe('/backend');
+    expect(getSessionApiBaseUrl()).toBe('/backend');
+  });
+
   it('getApiBaseUrl uses same-origin /backend in production browser', () => {
+    Object.defineProperty(process.env, 'NODE_ENV', {
+      value: 'production',
+      configurable: true,
+      writable: true,
+    });
     window.__FA_RUNTIME__ = { apiOrigin: 'https://runtime-api.example.com' };
     expect(getApiBaseUrl()).toBe('/backend');
     expect(getUploadApiBaseUrl()).toBe('/api/documents/parse');

@@ -39,7 +39,7 @@ export const HTTP_RATE_LIMIT_POLICIES: HttpRateLimitPolicy[] = [
   {
     name: 'global_default',
     windowMs: 15 * 60 * 1000,
-    max: 300,
+    max: Number(process.env.GLOBAL_RATE_LIMIT_MAX || 600),
     scope: 'global',
     criticality: 'medium',
   },
@@ -49,14 +49,14 @@ export const HTTP_RATE_LIMIT_POLICIES: HttpRateLimitPolicy[] = [
     max:
       process.env.NODE_ENV === 'test'
         ? Number(process.env.AUTH_RATE_LIMIT_MAX || 200)
-        : 15,
+        : Number(process.env.AUTH_RATE_LIMIT_MAX || 60),
     scope: 'auth',
     criticality: 'critical',
   },
   {
     name: 'agent_chat_heavy',
     windowMs: 15 * 60 * 1000,
-    max: 120,
+    max: Number(process.env.CHAT_RATE_LIMIT_MAX || 240),
     scope: 'chat',
     criticality: 'high',
   },

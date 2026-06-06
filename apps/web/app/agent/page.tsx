@@ -62,6 +62,7 @@ import {
   type BankSimulation,
 } from './agent-page.constants';
 import type { BankProduct, TransactionTaxonomyOverride, UploadStatementResult } from './transactions/types';
+import type { TxWizardStep } from '@/lib/transactions-flow.helpers';
 import { normalizeTaxonomyKey, normalizeTransactionTaxonomyOverride } from './transactions/taxonomy';
 import secureStorage from '@/lib/secureStorage';
 import { clearCsrfToken } from '@/lib/csrf';
@@ -187,7 +188,6 @@ export default function AgentPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const setInterviewIntake = useInterviewStore((s) => s.setIntake);
-  const isPreviewMode = searchParams.get('preview') === '1';
 
   function buildContextualChatName(items: ChatItem[]): string {
     const userTexts = items
@@ -401,7 +401,7 @@ export default function AgentPage() {
     isAuthenticated,
     isMobileViewport,
     isStandaloneDisplayMode,
-  } = useAgentShell({ previewMode: isPreviewMode });
+  } = useAgentShell();
   const [isMonochrome, setIsMonochrome] = useState(false);
   const [progressPulse, setProgressPulse] = useState(false);
   const [isRailMorphing] = useState(false);
@@ -2624,7 +2624,7 @@ export default function AgentPage() {
       return;
     }
     setTxCreationNotice(null);
-    const id = `prod-${Date.now()}`;
+    const id = `prod-${typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`}`;
     const seededLabel = String(seed?.label ?? '').trim();
     const seededBank = String(seed?.bank ?? '').trim();
     const product: BankProduct = {
@@ -2666,19 +2666,22 @@ export default function AgentPage() {
   }
 
   function saveTransactionProductForBatch() {
-    if (!activeBankProduct) return;
+    if (!activeBankProduct) return false;
     if (!activeBankProduct.connected) {
       setTransactionUploadError('Autoriza y conecta el producto antes de guardarlo.');
-      return;
+      return false;
     }
     setSavedProductsForBatch((prev) =>
       prev.includes(activeBankProduct.id) ? prev : [...prev, activeBankProduct.id]
     );
     setTransactionUploadError(null);
+    return true;
   }
 
   function selectTransactionProduct(productId: string) {
     const selectedProduct = bankSimulation.products.find((p) => p.id === productId) ?? null;
+    if (!selectedProduct) return;
+    const nextTxWizardStep = resolveTxWizardStep(selectedProduct);
     setBankSimulation((prev) => {
       const product = prev.products.find((p) => p.id === productId);
       if (!product) return prev;
@@ -2692,8 +2695,8 @@ export default function AgentPage() {
         parsedDocuments: snapshot.parsedDocuments,
       };
     });
+    setTxWizardStep(nextTxWizardStep);
     setTransactionUploadError(null);
-    setTxWizardStep(resolveTxWizardStep(selectedProduct));
   }
 
   function updateActiveProduct(updates: Partial<BankProduct>) {
@@ -2755,12 +2758,14 @@ export default function AgentPage() {
   }
 
   function deleteTransactionProduct(productId: string) {
-    const products = bankSimulation.products.filter((p) => p.id !== productId);
-    const nextActiveId =
-      bankSimulation.activeProductId === productId ? products[0]?.id ?? null : bankSimulation.activeProductId;
-    const nextActive = nextActiveId ? products.find((p) => p.id === nextActiveId) ?? null : null;
+    let nextTxWizardStep = txWizardStep;
     setBankSimulation((prev) => {
+      const products = prev.products.filter((p) => p.id !== productId);
+      const nextActiveId =
+        prev.activeProductId === productId ? products[0]?.id ?? null : prev.activeProductId;
       const snapshot = getSimulationSnapshot(products, nextActiveId);
+      const nextActive = nextActiveId ? products.find((p) => p.id === nextActiveId) ?? null : null;
+      nextTxWizardStep = resolveTxWizardStep(nextActive);
       return {
         ...prev,
         products,
@@ -2771,8 +2776,8 @@ export default function AgentPage() {
         parsedDocuments: snapshot.parsedDocuments,
       };
     });
+    setTxWizardStep(nextTxWizardStep);
     setTransactionUploadError(null);
-    setTxWizardStep(resolveTxWizardStep(nextActive));
   }
 
   function simulateBankLogin(nextConfig?: {
@@ -3504,11 +3509,6 @@ export default function AgentPage() {
         isMobileViewport && isStandaloneDisplayMode ? 'is-mobile-standalone' : ''
       }`}
     >
-      {isPreviewMode && (
-        <div className="agent-preview-banner" role="status">
-          Modo preview: estás viendo el chat principal sin sesión real.
-        </div>
-      )}
       <section
         ref={chatBodyRef as React.RefObject<HTMLElement>}
         className={`agent-chat active-chat-${activeThread?.label ?? '1'}${chatSlideDir ? ` chat-slide-${chatSlideDir}` : ''}`}

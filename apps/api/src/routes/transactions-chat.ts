@@ -14,6 +14,7 @@ import {
   compactDocumentsForPrompt,
   compactTxText,
 } from '@financial-agent/shared';
+import { forbidden, notFound } from '../http/api.errors';
 
 type AssistantMessage = {
   role?: 'assistant' | 'user';
@@ -65,7 +66,7 @@ const TransactionChatRequestSchema = z.object({
   question: z.string().trim().max(600).default(''),
   currentSummary: z.string().trim().max(4000).default(''),
   feedback: z.string().trim().max(2000).default(''),
-  messages: z.array(AssistantMessageSchema).max(8).default([]),
+  messages: z.array(AssistantMessageSchema).max(50).default([]),
 });
 
 function safeParseJson<T>(raw: string, fallback: T): T {
@@ -91,20 +92,31 @@ function assertCsrf(req: Request) {
   const headerToken = req.get('x-csrf-token')?.trim();
   const cookieToken = parseCookieValue(req.get('cookie') ?? null, cookieName)?.trim();
   if (!headerToken || !cookieToken || headerToken !== cookieToken) {
-    throw new Error('CSRF token invalid or missing');
+    throw forbidden('CSRF token invalid or missing');
   }
 }
 
 function documentsFromClient(parsedDocuments: ClientParsedDocument[], maxText = 2600) {
-  return parsedDocuments.slice(0, 8).map((doc) => ({
-    documentId: typeof doc?.documentId === 'string' ? doc.documentId : undefined,
-    name: String(doc?.name ?? ''),
-    text: compactTxText(doc?.text ?? '', maxText),
-    insight: doc?.insight ?? null,
-    summary: doc?.summary ?? null,
-    structuredData: doc?.structuredData ?? null,
-    documentProfile: doc?.documentProfile ?? null,
-  }));
+  return parsedDocuments
+    .slice(0, 8)
+    .map((doc, index) => ({
+      documentId: typeof doc?.documentId === 'string' ? doc.documentId.trim() : undefined,
+      name: String(doc?.name ?? '').trim() || `documento-${index + 1}`,
+      text: compactTxText(doc?.text ?? '', maxText),
+      insight: doc?.insight ?? null,
+      summary: doc?.summary ?? null,
+      structuredData: doc?.structuredData ?? null,
+      documentProfile: doc?.documentProfile ?? null,
+    }))
+    .filter(
+      (doc) =>
+        doc.name.length > 0 ||
+        doc.text.length > 0 ||
+        doc.summary !== null ||
+        doc.structuredData !== null ||
+        doc.documentProfile !== null ||
+        doc.insight !== null,
+    );
 }
 
 async function resolveCanonicalDocuments(
@@ -125,7 +137,7 @@ async function resolveCanonicalDocuments(
 
   const documents = await getUserDocumentsByIds(userId, docIds);
   if (documents.length === 0) {
-    throw new Error('No se encontró evidencia documental válida para este producto');
+    throw notFound('No se encontró evidencia documental válida para este producto');
   }
   const canonicalById = new Map<string, CanonicalParsedDocument>();
   for (const doc of documents) {
@@ -141,15 +153,15 @@ async function resolveCanonicalDocuments(
   for (const doc of parsedDocuments) {
     const canonical = canonicalById.get(String(doc?.documentId ?? '').trim());
     if (!canonical) continue;
-      resolved.push({
-        documentId: canonical.documentId,
-        name: canonical.name,
-        text: canonical.text,
-        summary: canonical.summary,
-        structuredData: canonical.structuredData,
-        documentProfile: doc?.documentProfile ?? canonical.documentProfile ?? null,
-        insight: doc?.insight ?? null,
-      });
+    resolved.push({
+      documentId: canonical.documentId,
+      name: canonical.name,
+      text: canonical.text,
+      summary: canonical.summary,
+      structuredData: canonical.structuredData,
+      documentProfile: doc?.documentProfile ?? canonical.documentProfile ?? null,
+      insight: doc?.insight ?? null,
+    });
   }
   return resolved.slice(0, 8);
 }

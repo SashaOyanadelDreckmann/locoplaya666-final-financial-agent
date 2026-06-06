@@ -114,8 +114,8 @@
       rgba(0, 0, 0, 0.20) 14%,
       rgba(0, 0, 0, 0.36) 48%,
       rgba(0, 0, 0, 0.30) 72%,
-      rgba(5, 8, 16, 0.38) 88%,
-      rgba(5, 8, 16, 0.48) 100%
+      rgba(0, 0, 0, 0.22) 88%,
+      rgba(0, 0, 0, 0.12) 100%
     );
 }
 
@@ -2021,42 +2021,6 @@ body.home-lock {
   box-shadow: none;
 }
 
-.auth-preview-banner {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 0 14px;
-  padding: 7px 10px;
-  border-radius: 999px;
-  background: rgba(7, 12, 18, 0.72);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: rgba(244, 248, 252, 0.84);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-}
-
-.agent-preview-banner {
-  position: fixed;
-  top: max(env(safe-area-inset-top), 10px);
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 50;
-  padding: 8px 12px;
-  border-radius: 999px;
-  background: rgba(7, 12, 18, 0.72);
-  border: 1px solid rgba(255, 255, 255, 0.10);
-  color: rgba(244, 248, 252, 0.84);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.20);
-}
-
 .auth-title {
   font-size: 30px;
   font-weight: 350;
@@ -2615,8 +2579,8 @@ body.home-lock {
 /* ================================================= */
 
 .intake-shell {
-  min-height: 100vh;
-  background: var(--bg);
+  min-height: 100dvh;
+  background: transparent;
   display: flex;
   flex-direction: column;
 }

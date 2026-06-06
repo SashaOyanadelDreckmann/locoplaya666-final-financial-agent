@@ -17,6 +17,7 @@ import {
   TX_MAX_SINGLE_FILE_BYTES,
   TX_MAX_TOTAL_FILE_BYTES,
 } from './constants';
+import ModalNumbersCanvas from '@/components/agent/ModalNumbersCanvas';
 import { MAX_TRANSACTION_PRODUCTS_CREATED_TOTAL } from '../agent-page.constants';
 import { useMovementAnalytics } from './use-movement-analytics';
 import { TxEvidenceStep } from './TxEvidenceStep';
@@ -721,6 +722,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
         'Hay un análisis en curso. Si cierras ahora, el proceso puede quedar incompleto. ¿Cerrar el panel igual?',
       );
       if (!confirmed) return;
+      clearPendingEvidence();
     } else if (hasPending) {
       const confirmed = window.confirm(
         'Tienes archivos o notas sin enviar. ¿Cerrar el panel y descartar ese borrador?',
@@ -1172,7 +1174,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
           messages: [...productMessages, { role: 'user', text }],
         }),
       );
-      appendAssistantMessages(withUserMessage.id, withUserMessage, [
+      appendAssistantMessages(productId, withUserMessage, [
         { role: 'assistant', text: String(response.assistant_text ?? 'Listo.') },
       ]);
     } catch (error) {
@@ -1607,9 +1609,11 @@ export function TransactionsModal(props: TransactionsModalProps) {
                       onDeleteProduct={() => props.deleteTransactionProduct(props.activeBankProduct!.id)}
                       onGoToEvidence={() => goToTxStage('evidence')}
                       onSaveProductForBatch={() => {
-                        props.saveTransactionProductForBatch();
-                        props.setTxWizardStep('products');
-                        setShowTxCarousel(false);
+                        const saved = props.saveTransactionProductForBatch();
+                        if (saved) {
+                          props.setTxWizardStep('products');
+                          setShowTxCarousel(false);
+                        }
                       }}
                       onRefineSummary={(source, body) => void refineTransactionSummaryFromFocus(source, body)}
                       onRegenerateSummary={() =>
@@ -1640,4 +1644,3 @@ export function TransactionsModal(props: TransactionsModalProps) {
   if (typeof document === 'undefined') return null;
   return createPortal(modalTree, document.body);
 }
-import ModalNumbersCanvas from '@/components/agent/ModalNumbersCanvas';

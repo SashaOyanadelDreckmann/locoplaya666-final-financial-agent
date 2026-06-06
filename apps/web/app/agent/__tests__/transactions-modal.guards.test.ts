@@ -30,6 +30,7 @@ describe('transactions modal safeguards', () => {
     expect(source).toContain('tx-batch-recommendation-banner" role="status" aria-live="polite"');
     expect(source).toContain('Productos y transacciones');
     expect(source).toContain('const requestClose = useCallback');
+    expect(source).toContain('clearPendingEvidence();');
     expect(source).toContain('grabaci[oó]n|pantalla|screen');
     expect(source).toContain("props.setTxWizardStep('products');");
   });

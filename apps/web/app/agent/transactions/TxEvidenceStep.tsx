@@ -222,19 +222,19 @@ export function TxEvidenceStep(props: TxEvidenceStepProps) {
                                   </video>
                                 </div>
                               )}
-                              <button
-                                type="button"
-                                className="tx-onboarding-next tx-onboarding-next--edge"
-                                onClick={() => {
-                                  p.onBumpTransitionPulse();
-                                  p.onSetUploadOnboardingStep('upload');
-                                }}
-                                aria-label="Continuar a carga"
-                              >
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                  <path d="M8 5l8 7-8 7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                                </svg>
-                              </button>
+                              <div className="tx-onboarding-next-wrap">
+                                <button
+                                  type="button"
+                                  className="tx-onboarding-next tx-onboarding-next--text"
+                                  onClick={() => {
+                                    p.onBumpTransitionPulse();
+                                    p.onSetUploadOnboardingStep('upload');
+                                  }}
+                                  aria-label="Continuar a carga"
+                                >
+                                  Continuar
+                                </button>
+                              </div>
                             </div>
                           )}
                         </div>

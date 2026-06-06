@@ -30,9 +30,8 @@ export type AgentSessionInfo = {
   latestDiagnosticCompletedAt?: string | null;
 } | null;
 
-export function useAgentShell(options?: { previewMode?: boolean }) {
+export function useAgentShell() {
   const router = useRouter();
-  const previewMode = Boolean(options?.previewMode);
   const [sessionInfo, setSessionInfo] = useState<AgentSessionInfo>(null);
   const [authBootstrapped, setAuthBootstrapped] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -43,65 +42,6 @@ export function useAgentShell(options?: { previewMode?: boolean }) {
     let cancelled = false;
 
     const bootstrapAuth = async () => {
-      if (previewMode) {
-        setSessionInfo({
-          id: 'preview-session',
-          name: 'Cuenta demo',
-          email: 'demo@financieramente.local',
-          userId: 'preview-user',
-          injectedIntake: {
-            intake: {
-              age: 34,
-              city: 'Santiago',
-              employmentStatus: 'employed',
-              profession: 'Preview',
-              incomeBand: '1M-2M',
-              expensesCoverage: 'tight',
-              tracksExpenses: 'sometimes',
-              hasSavingsOrInvestments: true,
-              hasDebt: true,
-              riskReaction: 'hold',
-              selfRatedUnderstanding: 6,
-              moneyStressLevel: 5,
-              financialKnowledge: {
-                interest: true,
-                inflation: true,
-                creditCard: true,
-                creditLine: true,
-                loanComponents: true,
-                interestRate: true,
-                liquidity: true,
-                returnConcept: true,
-                diversification: true,
-                assetVsLiability: true,
-                financialRisk: true,
-                capitalMarkets: true,
-                alternativeInvestments: false,
-                fintech: true,
-                CAE: true,
-              },
-            },
-            intakeContext: 'preview',
-          },
-          injectedProfile: {
-            diagnosticNarrative: 'Modo preview del chat principal.',
-            profile: {
-              financialClarity: 'medium',
-              decisionStyle: 'mixed',
-              timeHorizon: 'mixed',
-              financialPressure: 'moderate',
-              emotionalPattern: 'neutral',
-            },
-            tensions: ['Preview layout'],
-            hypotheses: ['Chat principal visible sin sesión real'],
-            openQuestions: [],
-          },
-          knowledgeScore: 48,
-        });
-        setIsAuthenticated(true);
-        setAuthBootstrapped(true);
-        return;
-      }
       try {
         const info = await getSessionInfo();
         if (cancelled) return;
@@ -131,7 +71,7 @@ export function useAgentShell(options?: { previewMode?: boolean }) {
     return () => {
       cancelled = true;
     };
-  }, [router, previewMode]);
+  }, [router]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -253,9 +193,15 @@ export function useAgentShell(options?: { previewMode?: boolean }) {
       if (document.documentElement.classList.contains('keyboard-opening')) {
         return;
       }
-      const screenH = window.innerHeight;
-      const visibleH = vv?.height ?? screenH;
-      document.documentElement.style.setProperty('--screen-h', `${screenH}px`);
+      const vv = window.visualViewport;
+      const layoutH = window.innerHeight;
+      const visibleH = vv?.height ?? layoutH;
+      const visualStackH = Math.max(
+        layoutH,
+        document.documentElement.clientHeight,
+        Math.round(visibleH + (vv?.offsetTop ?? 0)),
+      );
+      document.documentElement.style.setProperty('--screen-h', `${visualStackH}px`);
       document.documentElement.style.setProperty('--visual-vh', `${visibleH}px`);
     };
     update();
@@ -319,7 +265,7 @@ export function useAgentShell(options?: { previewMode?: boolean }) {
       alive = false;
       if (timer) clearTimeout(timer);
     };
-  }, [authBootstrapped, isAuthenticated, router, previewMode]);
+  }, [authBootstrapped, isAuthenticated, router]);
 
   return {
     sessionInfo,

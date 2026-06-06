@@ -65,7 +65,7 @@
   z-index: 0;
   pointer-events: none;
   background:
-    linear-gradient(180deg, rgba(2,4,7,0.84) 0%, rgba(3,5,8,0.92) 42%, rgba(0,0,0,0.99) 100%),
+    linear-gradient(180deg, rgba(2,4,7,0.84) 0%, rgba(3,5,8,0.92) 42%, rgba(0,0,0,0.88) 100%),
     radial-gradient(circle at 50% 18%, rgba(10,14,21,0.10), rgba(0,0,0,0.82) 76%);
 }
 
@@ -1258,16 +1258,13 @@ button {
 
 /* ── Premium open-canvas pass: no blocking containers ── */
 .intake-shell {
-  background:
-    radial-gradient(circle at 16% 18%, rgba(var(--c-yellow), 0.04), transparent 24%),
-    radial-gradient(circle at 82% 16%, rgba(var(--c-step, var(--c-blue)), 0.07), transparent 30%),
-    linear-gradient(180deg, #0b1118 0%, #06090d 46%, #000000 100%);
+  background: transparent;
   isolation: isolate;
 }
 
 .intake-shell::before {
   background:
-    linear-gradient(180deg, rgba(2,4,7,0.86) 0%, rgba(3,5,8,0.94) 44%, rgba(0,0,0,0.99) 100%),
+    linear-gradient(180deg, rgba(2,4,7,0.86) 0%, rgba(3,5,8,0.94) 44%, rgba(0,0,0,0.78) 100%),
     radial-gradient(circle at 50% 18%, rgba(var(--c-step, var(--c-blue)), 0.04), rgba(0,0,0,0.72) 72%);
 }
 
@@ -1455,7 +1452,7 @@ button {
 @media (max-width: 768px) {
   .intake-shell::before {
     background:
-      linear-gradient(180deg, rgba(2,4,7,0.30) 0%, rgba(2,4,7,0.56) 38%, rgba(0,0,0,0.90) 72%, rgba(0,0,0,1) 100%),
+      linear-gradient(180deg, rgba(2,4,7,0.30) 0%, rgba(2,4,7,0.56) 38%, rgba(0,0,0,0.72) 72%, rgba(0,0,0,0.82) 100%),
       radial-gradient(circle at 50% 18%, rgba(10,14,21,0.06), rgba(0,0,0,0.84) 76%);
   }
 
@@ -1494,7 +1491,6 @@ button {
 /* ── Fondo4: STATIC layer — no zoom, no animation. Dark/opaque but vibrant. ── */
 .intake-photo-bg {
   position: fixed;
-  /* expanded well past the viewport so the heavier blur never reveals soft edges */
   inset: -90px;
   z-index: 0;
   pointer-events: none;
@@ -1502,7 +1498,7 @@ button {
     linear-gradient(180deg, rgba(4, 6, 10, 0.64) 0%, rgba(4, 6, 10, 0.72) 100%),
     url('/fondo4.jpg');
   background-size: cover, cover;
-  background-position: center, center;
+  background-position: center bottom, center bottom;
   background-repeat: no-repeat;
   filter: none;
   transform: none;
@@ -1653,7 +1649,7 @@ button {
 @media (max-width: 768px) {
   .intake-shell::before {
     background:
-      linear-gradient(180deg, rgba(2,4,7,0.30) 0%, rgba(2,4,7,0.56) 38%, rgba(0,0,0,0.90) 72%, rgba(0,0,0,1) 100%),
+      linear-gradient(180deg, rgba(2,4,7,0.30) 0%, rgba(2,4,7,0.56) 38%, rgba(0,0,0,0.72) 72%, rgba(0,0,0,0.82) 100%),
       radial-gradient(circle at 50% 18%, rgba(10,14,21,0.06), rgba(0,0,0,0.84) 76%);
   }
 
@@ -1668,8 +1664,7 @@ button {
   }
 
   .intake-photo-bg {
-    inset: -90px;
-    background-position: center, center;
+    background-position: center bottom, center bottom;
   }
 }
 
@@ -1863,20 +1858,18 @@ button {
 @media (max-width: 768px) {
   .intake-shell::before {
     background:
-      linear-gradient(180deg, rgba(0,0,0,0.10) 0%, rgba(0,0,0,0.34) 30%, rgba(0,0,0,0.72) 58%, rgba(0,0,0,0.88) 80%, rgba(0,0,0,0.98) 100%) !important,
+      linear-gradient(180deg, rgba(0,0,0,0.10) 0%, rgba(0,0,0,0.34) 30%, rgba(0,0,0,0.58) 58%, rgba(0,0,0,0.68) 80%, rgba(0,0,0,0.72) 100%) !important,
       radial-gradient(circle at 50% 18%, rgba(0,0,0,0.02), rgba(0,0,0,0.86) 82%) !important;
   }
 
   .intake-shell::after {
     opacity: 0.32 !important;
     background-size: 2px 2px, 5px 5px !important;
+    inset: -40% !important;
+    bottom: auto !important;
   }
 
   .intake-photo-bg {
     filter: brightness(0.26) contrast(0.92) saturate(0.78) grayscale(0.06) !important;
-  }
-
-  .intake-shell::after {
-    bottom: max(env(safe-area-inset-bottom), 0px) !important;
   }
 }

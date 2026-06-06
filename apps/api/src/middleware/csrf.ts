@@ -46,10 +46,24 @@ export function getAllowedOrigins(): string[] {
   return Array.from(origins);
 }
 
+function isPrivateNetworkOrigin(origin: string): boolean {
+  try {
+    const { hostname } = new URL(origin);
+    if (hostname === 'localhost' || hostname === '127.0.0.1') return true;
+    if (/^192\.168\.\d{1,3}\.\d{1,3}$/.test(hostname)) return true;
+    if (/^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(hostname)) return true;
+    if (/^172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}$/.test(hostname)) return true;
+    return false;
+  } catch {
+    return false;
+  }
+}
+
 export function isAllowedOrigin(origin?: string | null): boolean {
   const value = String(origin ?? '').trim();
   if (!value) return false;
-  return getAllowedOrigins().includes(value);
+  if (getAllowedOrigins().includes(value)) return true;
+  return process.env.NODE_ENV !== 'production' && isPrivateNetworkOrigin(value);
 }
 
 function getRequestOrigin(req: Request): string | null {

@@ -4,6 +4,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { createApprovalToken } from '../services/approval.service';
+import { createDocumentRecord } from '../persistence/repos';
 
 const mockCreate = vi.fn();
 
@@ -53,7 +54,7 @@ describe('transactions-chat api route', () => {
     await request(app).get(`/auth/approve?token=${encodeURIComponent(token)}`);
     await agent.post('/auth/login').send({ email, password: 'Secret123' });
     const sessionRes = await agent.get('/api/session');
-    return { agent, csrfToken: String(sessionRes.headers['x-csrf-token'] ?? '') };
+    return { agent, csrfToken: String(sessionRes.headers['x-csrf-token'] ?? ''), userId };
   }
 
   beforeEach(() => {
@@ -119,5 +120,86 @@ describe('transactions-chat api route', () => {
 
     expect(String(userMessage?.content ?? '')).toContain('Documentos=');
     expect(String(userMessage?.content ?? '')).toContain('cartola.csv');
+  }, 15000);
+
+  it('rejects foreign document ids with a not found response', async () => {
+    const { agent, csrfToken } = await createAuthedAgent();
+    const res = await agent.post('/api/transactions-chat').set('x-csrf-token', csrfToken).send({
+      mode: 'chat',
+      question: 'hola',
+      messages: [{ role: 'user', text: 'hola' }],
+      dashboard: { keyMetrics: { movement_count: 0 }, retrieval: { mode: 'overview', matchedCount: 0 }, movements: [] },
+      parsedDocuments: [
+        {
+          documentId: 'doc-inexistente',
+          name: 'cartola.csv',
+          text: '2026-05-01,ABONO,+1000',
+        },
+      ],
+    });
+
+    expect(res.status).toBe(404);
+    expect(String(res.body.code ?? '')).toBe('NOT_FOUND');
+    expect(String(res.body.detail ?? '')).toContain('No se encontró evidencia documental válida');
+  }, 15000);
+
+  it('keeps valid canonical documents when one referenced id is stale', async () => {
+    mockCreate.mockResolvedValueOnce({
+      choices: [{ message: { content: 'respuesta corta' } }],
+    });
+    const { agent, csrfToken, userId } = await createAuthedAgent();
+    const validDoc = await createDocumentRecord({
+      userId,
+      name: 'cartola-real.csv',
+      kind: 'CSV',
+      extractedText: '2026-05-01,ABONO,+1000',
+      textPreview: '2026-05-01,ABONO,+1000',
+      status: 'PARSED',
+    });
+
+    const res = await agent.post('/api/transactions-chat').set('x-csrf-token', csrfToken).send({
+      mode: 'chat',
+      question: 'hola',
+      messages: [{ role: 'user', text: 'hola' }],
+      dashboard: { keyMetrics: { movement_count: 0 }, retrieval: { mode: 'overview', matchedCount: 0 }, movements: [] },
+      parsedDocuments: [
+        {
+          documentId: validDoc.id,
+          name: 'cartola-real.csv',
+          text: '2026-05-01,ABONO,+1000',
+        },
+        {
+          documentId: 'doc-stale',
+          name: 'cartola-stale.csv',
+          text: '2026-05-02,ABONO,+2000',
+        },
+      ],
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.ok).toBe(true);
+    expect(mockCreate).toHaveBeenCalledTimes(1);
+  }, 15000);
+
+  it('accepts long chat histories without rejecting the request', async () => {
+    mockCreate.mockResolvedValueOnce({
+      choices: [{ message: { content: 'respuesta corta' } }],
+    });
+    const { agent, csrfToken } = await createAuthedAgent();
+    const messages = Array.from({ length: 18 }, (_, index) => ({
+      role: index % 2 === 0 ? 'user' : 'assistant',
+      text: `mensaje ${index + 1}`,
+    }));
+
+    const res = await agent.post('/api/transactions-chat').set('x-csrf-token', csrfToken).send({
+      mode: 'chat',
+      question: 'hola',
+      messages,
+      dashboard: { keyMetrics: { movement_count: 0 }, retrieval: { mode: 'overview', matchedCount: 0 }, movements: [] },
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.ok).toBe(true);
+    expect(mockCreate).toHaveBeenCalledTimes(1);
   }, 15000);
 });

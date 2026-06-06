@@ -67,6 +67,22 @@ export default function RootLayout({
   } catch (_) {}
 })();
 `;
+  const intakeRouteClassScript = `
+(() => {
+  try {
+    const isIntakeRoute = /^\\/intake(\\/|$)/.test(window.location.pathname);
+    if (!isIntakeRoute) return;
+    const apply = () => {
+      document.documentElement.classList.add('intake-route-active');
+      document.body?.classList.add('intake-route-active');
+    };
+    apply();
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', apply, { once: true });
+    }
+  } catch (_) {}
+})();
+`;
 
   return (
     <html lang="es">
@@ -86,6 +102,10 @@ export default function RootLayout({
         <script
           id="fa-home-route-class"
           dangerouslySetInnerHTML={{ __html: homeRouteClassScript }}
+        />
+        <script
+          id="fa-intake-route-class"
+          dangerouslySetInnerHTML={{ __html: intakeRouteClassScript }}
         />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="theme-color" media="(prefers-color-scheme: light)" content="#5f7280" />

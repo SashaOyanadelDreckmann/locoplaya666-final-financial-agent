@@ -14,19 +14,13 @@ function readDirectApiOriginForClient(): string | null {
 /**
  * Base URL del API para el frontend.
  *
- * - En dev local, si no está configurado, cae a http://localhost:3001
- * - En deploy, configurar NEXT_PUBLIC_API_URL (ej: https://api.tu-dominio.com)
- * - En browser+prod usa `/backend` (same-origin) para cookies de sesión en móvil/Safari
+ * - En browser usa `/backend` (same-origin) — funciona en localhost y en LAN (iPhone)
+ * - En deploy server-side, configurar NEXT_PUBLIC_API_URL
  */
 export function getApiBaseUrl(): string {
   if (typeof window !== 'undefined') {
-    if (process.env.NODE_ENV === 'production') {
-      return '/backend';
-    }
-
-    const protocol = window.location.protocol || 'http:';
-    const hostname = window.location.hostname || 'localhost';
-    return `${protocol}//${hostname}:3001`;
+    // Same-origin proxy works on localhost and on LAN (iPhone → Mac dev server).
+    return '/backend';
   }
 
   const direct = readDirectApiOriginFromEnv();
@@ -117,12 +111,7 @@ export function getDocumentParseRequestUrl(): string {
  */
 export function getSessionApiBaseUrl(): string {
   if (typeof window !== 'undefined') {
-    if (process.env.NODE_ENV === 'production') {
-      return '/backend';
-    }
-    const protocol = window.location.protocol || 'http:';
-    const hostname = window.location.hostname || 'localhost';
-    return `${protocol}//${hostname}:3001`;
+    return '/backend';
   }
   return getServerApiBaseUrl();
 }

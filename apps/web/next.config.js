@@ -14,9 +14,17 @@ const apiOrigin = normalizeOrigin(
       : 'http://localhost:3001')
 );
 
+const devAllowedOrigins = (process.env.DEV_ALLOWED_ORIGINS ?? '')
+  .split(',')
+  .map((value) => value.trim())
+  .filter(Boolean);
+
 const nextConfig = {
   reactStrictMode: true,
   output: 'standalone',
+  ...(process.env.NODE_ENV !== 'production' && devAllowedOrigins.length > 0
+    ? { allowedDevOrigins: devAllowedOrigins }
+    : {}),
   experimental: {
     proxyClientMaxBodySize: '40mb',
   },

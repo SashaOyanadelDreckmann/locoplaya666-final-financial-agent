@@ -7,12 +7,14 @@
     gap: 0 !important;
     padding: 0 !important;
     padding-top: env(safe-area-inset-top, 0px) !important;
-    height: var(--screen-h, var(--visual-vh, 100dvh)) !important;
-    max-height: var(--screen-h, var(--visual-vh, 100dvh)) !important;
+    padding-bottom: 0 !important;
+    height: var(--fa-app-height, 100lvh) !important;
+    max-height: var(--fa-app-height, 100lvh) !important;
     min-height: 0 !important;
     overflow: hidden !important;
     grid-template-columns: none !important;
     grid-template-rows: none !important;
+    box-sizing: border-box !important;
   }
 
   main.agent-layout.is-mobile-viewport > section.agent-chat {
@@ -69,12 +71,14 @@
 
   main.agent-layout.is-mobile-viewport > aside.agent-panel,
   main.agent-layout.is-mobile-viewport .agent-panel {
-    flex: 0 0 var(--mobile-panel-h, 162px) !important;
-    max-height: var(--mobile-panel-h, 162px) !important;
+    flex: 0 0 calc(var(--mobile-panel-h, 162px) + env(safe-area-inset-bottom, 0px)) !important;
+    max-height: calc(var(--mobile-panel-h, 162px) + env(safe-area-inset-bottom, 0px)) !important;
     margin: 0 !important;
     margin-top: 0 !important;
+    margin-bottom: 0 !important;
     width: 100% !important;
     max-width: 100% !important;
+    box-sizing: border-box !important;
   }
 
   main.agent-layout.is-mobile-viewport .agent-divider-rail {
