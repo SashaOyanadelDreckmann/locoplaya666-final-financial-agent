@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { getCsrfToken } from '@/lib/csrf';
 import { buildChatDashboardForQuestion, compactDashboardForPrompt } from '@/lib/transactions-chat.helpers';
@@ -63,16 +63,9 @@ import type {
   UploadStatementResult,
 } from './types';
 import type { TxDockTransitionPhase } from './presentation';
+import { hexToRgba, productVisualPalette } from './visuals';
 
 export function TransactionsModal(props: TransactionsModalProps) {
-  const hexToRgba = (hex: string, alpha: number) => {
-    const normalized = hex.replace('#', '').trim();
-    if (!/^[\da-f]{6}$/i.test(normalized)) return `rgba(59, 91, 122, ${alpha})`;
-    const r = parseInt(normalized.slice(0, 2), 16);
-    const g = parseInt(normalized.slice(2, 4), 16);
-    const b = parseInt(normalized.slice(4, 6), 16);
-    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-  };
   const [shuffleTrigger, setShuffleTrigger] = useState(0);
   const [pendingEvidenceFilesByProduct, setPendingEvidenceFilesByProduct] = useState<Record<string, File[]>>({});
   const [manualEvidenceDraftByProduct, setManualEvidenceDraftByProduct] = useState<Record<string, string>>({});
@@ -135,23 +128,6 @@ export function TransactionsModal(props: TransactionsModalProps) {
   const [transitionPulse, setTransitionPulse] = useState(0);
   const [txSummaryScrollDepth, setTxSummaryScrollDepth] = useState(0);
   const [txUploadOnboardingStep, setTxUploadOnboardingStep] = useState<TxUploadOnboardingStep>('format');
-  const productStackColor = (seed: string) => {
-    let hash = 0;
-    for (let i = 0; i < seed.length; i += 1) hash = (hash << 5) - hash + seed.charCodeAt(i);
-    return PRODUCT_STACK_PALETTE[Math.abs(hash) % PRODUCT_STACK_PALETTE.length];
-  };
-  const productVisualPalette = (seed: string) => {
-    let hash = 0;
-    for (let i = 0; i < seed.length; i += 1) hash = (hash << 5) - hash + seed.charCodeAt(i);
-    const hue = Math.abs(hash) % 360;
-    const glowHue = (hue + 24) % 360;
-    return {
-      base: `hsl(${hue} 44% 22%)`,
-      glow: `hsla(${glowHue} 90% 70% / 0.26)`,
-      edge: `hsla(${hue} 86% 84% / 0.2)`,
-      tint: `hsla(${glowHue} 100% 95% / 0.94)`,
-    };
-  };
   const groupCarouselRef = useRef<HTMLDivElement | null>(null);
   const insightCarouselRef = useRef<HTMLDivElement | null>(null);
   const txSummaryScrollRef = useRef<HTMLDivElement | null>(null);
@@ -543,22 +519,20 @@ export function TransactionsModal(props: TransactionsModalProps) {
     setShowInstitutionCatalog(true);
     setShowTemplateCatalog(true);
   }, [props.isOpen, currentStage, showTxCarousel, props.activeBankProduct?.id]);
-  const matchingInstitutions = CHILE_FINANCIAL_INSTITUTIONS
-    .filter((institution) =>
-      quickBank.trim().length === 0
-        ? true
-        : institution.toLowerCase().includes(quickBank.toLowerCase().replace(/\s*\(simulacion\)\s*/gi, '').trim())
+  const filteredInstitutions = useMemo(() => {
+    const query = quickBank.trim().toLowerCase().replace(/\s*\(simulacion\)\s*/gi, '').trim();
+    const matching = CHILE_FINANCIAL_INSTITUTIONS.filter((institution) =>
+      query.length === 0 ? true : institution.toLowerCase().includes(query),
     );
-  const filteredInstitutions =
-    (matchingInstitutions.length > 0 ? matchingInstitutions : CHILE_FINANCIAL_INSTITUTIONS).slice(0, 24);
-  const matchingTemplates = ALL_PRODUCT_TEMPLATES
-    .filter((template) =>
-      productTemplate.trim().length === 0
-        ? true
-        : template.label.toLowerCase().includes(productTemplate.toLowerCase().trim())
+    return (matching.length > 0 ? matching : CHILE_FINANCIAL_INSTITUTIONS).slice(0, 24);
+  }, [quickBank]);
+  const filteredTemplates = useMemo(() => {
+    const query = productTemplate.trim().toLowerCase();
+    const matching = ALL_PRODUCT_TEMPLATES.filter((template) =>
+      query.length === 0 ? true : template.label.toLowerCase().includes(query),
     );
-  const filteredTemplates =
-    (matchingTemplates.length > 0 ? matchingTemplates : ALL_PRODUCT_TEMPLATES).slice(0, 24);
+    return (matching.length > 0 ? matching : ALL_PRODUCT_TEMPLATES).slice(0, 24);
+  }, [productTemplate]);
 
   const activeDescriptor = props.transactionProductCards.find((entry) => entry.product.id === props.selectedProductId);
   const [productCarouselIndex, setProductCarouselIndex] = useState(0);
@@ -587,7 +561,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
     setProductCarouselIndex(nextIndex);
     props.selectTransactionProduct(nextProduct.id);
   };
-  const txStages = [
+  const txStages = useMemo(() => [
     {
       key: 'consent' as const,
       title: '1. Autorización',
@@ -609,7 +583,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
       disabled: !consentLocked || !hasEvidence,
       go: () => hasEvidence && props.setTxWizardStep('dashboard'),
     },
-  ];
+  ], [consentLocked, hasEvidence, props.setTxWizardStep]);
   const [activeTxCard, setActiveTxCard] = useState(0);
   const currentTxStageIndex =
     props.txWizardStep === 'credentials'
@@ -742,28 +716,27 @@ export function TransactionsModal(props: TransactionsModalProps) {
     txSendLockRef.current = false;
   }, [props.isOpen, activeProductId]);
 
-  const txStageSummary =
-    currentStage === 'products'
-      ? `Paso 1/3 · ${activeProductCreations}/${props.maxProducts} activos · ${props.productsCreatedTotal}/${MAX_TRANSACTION_PRODUCTS_CREATED_TOTAL} creados`
-      : currentStage === 'consent'
-      ? `Paso 1/3 · ${activeProductCreations}/${props.maxProducts} activos · ${props.productsCreatedTotal}/${MAX_TRANSACTION_PRODUCTS_CREATED_TOTAL} creados`
-      : currentStage === 'evidence'
-        ? 'Paso 2 de 3: sube cartolas o respaldos y espera el análisis.'
-        : 'Paso 3 de 3: revisa el resumen y continúa con el agente principal.';
-  const txStageCta =
-    currentStage === 'products'
-      ? 'Elige un producto o crea uno nuevo para continuar'
-      : currentStage === 'consent'
-      ? canContinueAuto
-        ? 'Autorizar y continuar'
-        : 'Completa institución, plantilla y consentimiento'
-      : currentStage === 'evidence'
-        ? analysisAlreadyDone
-          ? 'Resumen listo para revisar'
-          : 'Sube evidencia para desbloquear el resumen'
-        : analysisAlreadyDone
-          ? 'El contexto validado ya se sincroniza solo'
-          : 'Guarda o analiza un producto para sincronizar contexto';
+  const txStageSummary = useMemo(() => {
+    if (currentStage === 'products' || currentStage === 'consent') {
+      return `Paso 1/3 · ${activeProductCreations}/${props.maxProducts} activos · ${props.productsCreatedTotal}/${MAX_TRANSACTION_PRODUCTS_CREATED_TOTAL} creados`;
+    }
+    if (currentStage === 'evidence') {
+      return 'Paso 2 de 3: sube cartolas o respaldos y espera el análisis.';
+    }
+    return 'Paso 3 de 3: revisa el resumen y continúa con el agente principal.';
+  }, [activeProductCreations, currentStage, props.maxProducts, props.productsCreatedTotal]);
+  const txStageCta = useMemo(() => {
+    if (currentStage === 'products') return 'Elige un producto o crea uno nuevo para continuar';
+    if (currentStage === 'consent') {
+      return canContinueAuto ? 'Autorizar y continuar' : 'Completa institución, plantilla y consentimiento';
+    }
+    if (currentStage === 'evidence') {
+      return analysisAlreadyDone ? 'Resumen listo para revisar' : 'Sube evidencia para desbloquear el resumen';
+    }
+    return analysisAlreadyDone
+      ? 'El contexto validado ya se sincroniza solo'
+      : 'Guarda o analiza un producto para sincronizar contexto';
+  }, [analysisAlreadyDone, canContinueAuto, currentStage]);
 
   const requestClose = useCallback(() => {
     const hasPending = pendingEvidenceFiles.length > 0 || pendingManualEvidence.length > 0;

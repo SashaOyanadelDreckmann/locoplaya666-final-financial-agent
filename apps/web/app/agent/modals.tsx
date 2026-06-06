@@ -596,15 +596,13 @@ export function BudgetModal(props: {
     return String(question ?? '').trim();
   }
 
-  function getAssistantMessage(payload: {
-    assistant_reply?: string;
-    assistant_text?: string;
-  }) {
+  function getAssistantMessage(payload: BudgetChatApiPayload) {
     const assistantReply =
       typeof payload.assistant_reply === 'string' && payload.assistant_reply.trim()
         ? payload.assistant_reply.trim()
         : '';
     if (assistantReply) return assistantReply;
+    if (payload.source === 'deterministic_education' && payload.next_question === null) return '';
     const assistantText =
       typeof payload.assistant_text === 'string' && payload.assistant_text.trim()
         ? payload.assistant_text.trim()
