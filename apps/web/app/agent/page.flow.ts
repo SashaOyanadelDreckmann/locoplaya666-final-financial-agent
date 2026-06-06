@@ -68,12 +68,17 @@ export function restorePanelStateFromPayload(
   if (Array.isArray(p.budgetRows) && p.budgetRows.length > 0) {
     next.budgetRows = p.budgetRows
       .filter((row): row is Record<string, unknown> => typeof row === 'object' && row !== null)
-      .map((row) =>
-        normalizeBudgetRow({
+      .map((row, index) => {
+        const draft = {
           ...(row as Partial<BudgetRow>),
+          id: typeof row.id === 'string' ? row.id : `budget-row-${index}-${Date.now()}`,
+          category: typeof row.category === 'string' && row.category.trim() ? row.category : 'Sin categoría',
+          type: row.type === 'expense' ? 'expense' : 'income',
+          amount: typeof row.amount === 'number' ? row.amount : 0,
           note: typeof row.note === 'string' ? row.note : '',
-        })
-      );
+        } satisfies BudgetRow;
+        return normalizeBudgetRow(draft);
+      });
   }
   if (Array.isArray(p.budgetChatAnswers)) {
     next.budgetChatAnswers = (p.budgetChatAnswers as Array<{ q: string; a: string }>)
