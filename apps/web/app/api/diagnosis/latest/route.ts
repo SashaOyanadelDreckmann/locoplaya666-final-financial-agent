@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
   }
 
   const cookie = request.headers.get('cookie') ?? '';
-  const target = `${getServerApiBaseUrl()}/api/diagnosis/latest`;
+  const target = `${getServerApiBaseUrl()}/diagnosis/latest`;
 
   try {
     const upstream = await fetch(target, {

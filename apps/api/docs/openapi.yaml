@@ -105,7 +105,7 @@ paths:
                 $ref: '#/components/schemas/GenericSuccess'
   /auth/register:
     post:
-      summary: Register user and create session
+      summary: Register user in pending-approval state
       requestBody:
         required: true
         content:
@@ -124,7 +124,7 @@ paths:
                   minLength: 8
       responses:
         '200':
-          description: Registered
+          description: Registered pending approval account
           content:
             application/json:
               schema:
@@ -137,7 +137,7 @@ paths:
                 $ref: '#/components/schemas/ApiError'
   /auth/login:
     post:
-      summary: Login and rotate session
+      summary: Login and issue session cookie
       requestBody:
         required: true
         content:

@@ -13,5 +13,5 @@
 - `pnpm --filter @financial-agent/api db:migrate`
 
 ## Notes
-- If `DATABASE_URL` is missing, API runs with in-memory fallback for local/test usage.
+- If `DATABASE_URL` is missing, API uses memory persistence in non-production unless `ALLOW_MEMORY_FALLBACK=false`.
 - In production, startup exits if `DATABASE_URL` or secure secrets are missing.

@@ -325,7 +325,7 @@ export default function AgentPage() {
   ) => {
     const firstName = String(session?.name ?? '').split(' ')[0]?.trim() || 'Hola';
     if (chatId === 'chat-2') {
-      return `${firstName}, abrimos con una lluvia de ideas senior: cruzamos tu diagnóstico, presupuesto, cartolas y el mercado de hoy. En este chat convergemos hasta dejar un **plan de acción ejecutivo** completo — sin atajos ni correos automáticos. ¿Priorizamos primero caja, deuda, ahorro o inversión?`;
+      return `${firstName}, abrimos con una lluvia de ideas senior: cruzamos tu entrevista, presupuesto, cartolas y el mercado de hoy. En este chat convergemos hasta dejar un **plan de acción ejecutivo** completo — sin atajos ni correos automáticos. ¿Priorizamos primero caja, deuda, ahorro o inversión?`;
     }
     if (chatId === 'chat-3') {
       return `*"El precio de todo y el valor de nada."* — Oscar Wilde\n\n${firstName}, este espacio no es sobre números. Es sobre lo que los números revelan de ti.\n\nCada peso que ganas, gastas o acumulas es una decisión moral —aunque nunca la hayas pensado así.\n\n**¿Tu dinero trabaja para el mundo que quieres vivir, o para el mundo que te tocó?**`;
@@ -354,7 +354,7 @@ export default function AgentPage() {
         title: interviewCompleted ? 'General' : 'Diagnóstico',
         shortTitle: interviewCompleted ? 'Gen' : 'Diag',
         accentClass: 'chat-specialization-1',
-        subtitle: interviewCompleted ? 'chat general' : 'Lectura base y tensiones',
+        subtitle: interviewCompleted ? 'chat general' : 'Entrevista en curso',
       };
     }
     if (threadId === 'chat-2') {
@@ -1306,7 +1306,7 @@ export default function AgentPage() {
         (bankSimulation.randomMode ? 2 : 0)
     );
 
-    // 10% entrevista/diagnóstico (flujo externo y resultados)
+    // 10% entrevista y resultado final (flujo externo)
     const interviewDiagnosis = Math.min(
       10,
       (sessionInfo?.injectedIntake ? 5 : 0) +
@@ -1934,7 +1934,7 @@ export default function AgentPage() {
           type: 'message',
           role: 'assistant',
           content:
-            'Este chat todavia esta bloqueado. Terminemos primero el flujo base en el Chat 1: productos/transacciones, presupuesto y entrevista breve para construir el diagnostico.',
+          'Este chat todavía está bloqueado. Terminemos primero el flujo base en el Chat 1: productos/transacciones, presupuesto y entrevista breve para construir el diagnóstico final.',
           mode: 'information',
         },
       ]);
@@ -3403,7 +3403,7 @@ export default function AgentPage() {
         <textarea
           ref={chatComposerRef}
           className="terminal-composer-input"
-          placeholder={isActiveChatLocked ? 'Chat bloqueado hasta completar el diagnóstico' : ''}
+          placeholder={isActiveChatLocked ? 'Chat bloqueado hasta completar la entrevista' : ''}
           value={input}
           disabled={isActiveChatLocked}
           autoFocus={!hasBlockingModalOpen && !isMobileViewport}

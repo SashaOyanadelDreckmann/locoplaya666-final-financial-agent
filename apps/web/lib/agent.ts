@@ -59,11 +59,6 @@ export async function sendToAgent(payload: {
     },
   };
 
-  if (process.env.NODE_ENV !== 'production') {
-    // útil en desarrollo sin ensuciar prod
-    console.log('[DEV] payload.user_message =', payload.user_message);
-  }
-
   const AGENT_URL = getAgentRequestUrl('/api/agent');
   const csrfToken = getCsrfToken();
   const requestHeaders: Record<string, string> = {

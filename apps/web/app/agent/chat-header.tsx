@@ -98,7 +98,7 @@ export function ChatHeader(props: {
                   }
                   props.setActiveChatId(thread.id);
                 }}
-                title={locked ? 'Bloqueado hasta completar el diagnóstico' : thread.status === 'context' ? `Contexto: ${thread.name}` : `Chat ${thread.label}: ${thread.name}`}
+                title={locked ? 'Bloqueado hasta completar la entrevista' : thread.status === 'context' ? `Contexto: ${thread.name}` : `Chat ${thread.label}: ${thread.name}`}
               >
                 <span className="chat-sheet-tab-index">{thread.label}</span>
                 <span className="chat-sheet-tab-copy">
@@ -106,7 +106,7 @@ export function ChatHeader(props: {
                     {locked ? 'Bloqueado' : thread.status === 'context' ? 'Síntesis' : specialization.title}
                   </span>
                   <span className="chat-sheet-tab-subtitle">
-                    {locked ? 'Completa diagnóstico' : thread.status === 'context' ? 'Contexto consolidado' : specialization.subtitle}
+                    {locked ? 'Completa entrevista' : thread.status === 'context' ? 'Contexto consolidado' : specialization.subtitle}
                   </span>
                 </span>
               </button>
@@ -193,7 +193,7 @@ export function ChatHeader(props: {
       )}
       {props.isActiveChatLocked && (
         <div className="product-flow-banner" role="status">
-          Este chat se desbloquea después del diagnóstico integrado. Sigue en el Chat 1 con presupuesto, cartolas y entrevista breve.
+          Este chat se desbloquea después de cerrar la entrevista. Sigue en el Chat 1 con presupuesto, cartolas y entrevista breve.
         </div>
       )}
       {!props.isActiveChatLocked &&

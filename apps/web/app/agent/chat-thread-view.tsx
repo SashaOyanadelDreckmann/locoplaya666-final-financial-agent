@@ -437,7 +437,7 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
 }) {
   const [savingBubblePdf, setSavingBubblePdf] = useState<Record<number, boolean>>({});
   const EMPTY_THREAD_FALLBACK =
-    'Estoy listo para iniciar tu diagnóstico financiero. Cuéntame tu objetivo principal y partimos con el primer paso accionable.';
+    'Estoy listo para iniciar tu entrevista financiera. Cuéntame tu objetivo principal y partimos con el primer paso accionable.';
   const userTag = String(props.sessionUserName ?? 'USER').trim().split(' ')[0] || 'USER';
 
   function renderChatItem(
@@ -507,14 +507,15 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
                   'Lectura filosófica, responsabilidad social y prudencia normativa aplicada.',
               }
             : {
-                kicker: props.diagnosisUnlocked ? 'Chat general' : isFirstAssistantCard ? 'Punto de partida' : 'Diagnóstico',
+                kicker: props.diagnosisUnlocked ? 'Chat general' : isFirstAssistantCard ? 'Punto de partida' : 'Entrevista',
                 title: props.diagnosisUnlocked
                   ? 'Chat general'
                   : isFirstAssistantCard
-                  ? 'Lectura inicial del caso'
-                  : 'Informe diagnóstico financiero',
-                subtitle:
-                  'Síntesis profesional del contexto, evidencia disponible y próximos pasos.',
+                  ? 'Inicio de entrevista'
+                  : 'Entrevista financiera en curso',
+                subtitle: props.diagnosisUnlocked
+                  ? 'Síntesis profesional del contexto, evidencia disponible y próximos pasos.'
+                  : 'Reunimos contexto, presupuesto y señales del caso antes del diagnóstico final.',
               };
         const isScrollable = shouldEnableBubbleScroll(it.content ?? '');
         const blocks = Array.isArray(it.agent_blocks) ? it.agent_blocks : [];

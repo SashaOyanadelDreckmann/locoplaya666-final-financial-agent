@@ -10,7 +10,7 @@ type AiLoaderProps = {
 
 export function AiLoader({
   size = 176,
-  text = "Generando diagnostico",
+  text = "Generando diagnóstico",
   subtitle = "Integrando entrevista, intake, productos y presupuesto.",
 }: AiLoaderProps) {
   const letters = text.split("");

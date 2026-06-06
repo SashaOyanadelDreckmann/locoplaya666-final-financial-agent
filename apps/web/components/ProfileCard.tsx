@@ -66,7 +66,7 @@ export default function ProfileCard({
   const shortDiagnostic =
     typeof diagnostics === 'string' && diagnostics.trim().length > 0
       ? diagnostics.trim()
-      : 'Aun sin diagnostico definitivo.';
+      : 'Aún sin diagnóstico definitivo.';
 
   const intakeHighlights = [
     typeof intakeData.city === 'string' && intakeData.city.trim()

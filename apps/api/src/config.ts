@@ -100,7 +100,7 @@ const configSchema = z.object({
   DATABASE_URL: z
     .string()
     .optional()
-    .describe('Postgres connection string. If missing, API uses in-memory fallback.'),
+    .describe('Postgres connection string. Required for Postgres persistence; memory mode is non-production only.'),
 
   // Dev Features
   ENABLE_DEV_INJECTION: z
@@ -251,7 +251,7 @@ export function formatConfigSummary(config: Config): string {
     `  Port: ${config.PORT}`,
     `  Web Origin: ${config.WEB_ORIGIN}`,
     `  Data Dir: ${config.DATA_DIR}`,
-    `  Persistence: ${config.DATABASE_URL ? 'postgres' : 'memory-fallback'}`,
+    `  Persistence: ${config.DATABASE_URL ? 'postgres' : 'memory'}`,
     `  Dev Injection: ${config.ENABLE_DEV_INJECTION ? '🔓 ENABLED' : '🔒 disabled'}`,
   ];
 

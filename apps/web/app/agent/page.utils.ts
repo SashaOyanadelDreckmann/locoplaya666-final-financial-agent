@@ -276,6 +276,9 @@ export function getChatDisplayTitle(params: {
   if (params.chatId === 'chat-1' && params.diagnosisUnlocked) {
     return 'Chat general';
   }
+  if (params.chatId === 'chat-1') {
+    return 'Entrevista';
+  }
   return params.fallbackTitle;
 }
 

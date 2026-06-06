@@ -678,7 +678,7 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
             } as any);
           }
         } else if (!cancelled && !intake && !sessionIntake) {
-          setBootError(
+        setBootError(
             'No se encontró información de perfil. Completa el cuestionario de intake para iniciar la entrevista.',
           );
           return;
@@ -1714,8 +1714,8 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
           onPointerDown={(e) => e.stopPropagation()}
         >
           <AiLoader
-            text="Generando diagnóstico"
-            subtitle="Estamos consolidando tu diagnóstico profesional con toda la evidencia disponible."
+        text="Generando diagnóstico final"
+        subtitle="Estamos consolidando el diagnóstico profesional con toda la evidencia disponible."
           />
         </div>
       ) : (
@@ -1745,7 +1745,7 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
         </div>
 
         <p className="agent-modal-intro interview-modal-intro">
-          Llamada breve con contexto integrado de presupuesto y productos para convertir señales dispersas en diagnóstico ejecutivo.
+          Llamada breve con contexto integrado de presupuesto y productos para convertir señales dispersas en entrevista útil y diagnóstico final.
         </p>
 
         {syncError ? (
@@ -1762,7 +1762,7 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
           <div className="interview-modal-completed">
             <div className="voice-call-transcript-card">
               <span className="voice-call-transcript-label">Entrevista completada</span>
-              <p>Ya consolidamos tu diagnóstico financiero. Puedes revisarlo en detalle o exportarlo.</p>
+              <p>Ya consolidamos tu diagnóstico final. Puedes revisarlo en detalle o exportarlo.</p>
             </div>
             <div className="voice-call-actions">
               <button
@@ -2055,7 +2055,7 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
                     <div>
                       <span className="voice-call-brand">Financieramente</span>
                       <span className="voice-call-label">Informe ejecutivo</span>
-                      <h1>Diagnóstico de la entrevista</h1>
+          <h1>Entrevista financiera</h1>
                       <span className="voice-call-subtitle">Cierre consolidado de tu sesión</span>
                     </div>
                     <div className="voice-call-status">
