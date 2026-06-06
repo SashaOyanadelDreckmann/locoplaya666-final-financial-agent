@@ -96,6 +96,27 @@
   --vp-bg-inset-top: calc(-1 * var(--vp-bg-bleed-top));
   --vp-bg-inset-bottom: calc(-1 * var(--vp-bg-bleed-bottom) - var(--vp-bg-bleed-extra-bottom));
   --vp-bg-inset-x: calc(-1 * var(--vp-bg-bleed-x));
+
+  /* Photo + matte stacks — backdrop-system.css applies mobile fade variants */
+  --vp-bg-photo-url: url('/images/bg-door.jpg');
+  --vp-bg-matte:
+    linear-gradient(
+      180deg,
+      rgba(0, 0, 0, 0.10) 0%,
+      rgba(0, 0, 0, 0.24) 12%,
+      rgba(0, 0, 0, 0.60) 44%,
+      rgba(0, 0, 0, 0.76) 100%
+    );
+  --vp-bg-matte-mobile:
+    linear-gradient(
+      180deg,
+      rgba(0, 0, 0, 0.10) 0%,
+      rgba(0, 0, 0, 0.20) 14%,
+      rgba(0, 0, 0, 0.46) 48%,
+      rgba(0, 0, 0, 0.28) 74%,
+      rgba(0, 0, 0, 0.10) 90%,
+      rgba(0, 0, 0, 0) 100%
+    );
 }
 
 /* Dark mode overrides */
@@ -169,15 +190,7 @@ body {
    element's background acts as the canvas background which is inherently fixed
    to the screen, so 'scroll' (default) gives the same result without the bug. */
 html {
-  background:
-    linear-gradient(
-      180deg,
-      rgba(0, 0, 0, 0.10) 0%,
-      rgba(0, 0, 0, 0.24) 12%,
-      rgba(0, 0, 0, 0.60) 44%,
-      rgba(0, 0, 0, 0.76) 100%
-    ),
-    url('/images/bg-door.jpg') center top / cover no-repeat;
+  background: var(--vp-bg-matte), var(--vp-bg-photo-url) center top / cover no-repeat;
   background-color: #050810;
 }
 
@@ -768,15 +781,7 @@ button {
   right: var(--vp-bg-inset-x);
   bottom: var(--vp-bg-inset-bottom);
   left: var(--vp-bg-inset-x);
-  background:
-    linear-gradient(
-      180deg,
-      rgba(0, 0, 0, 0.10) 0%,
-      rgba(0, 0, 0, 0.24) 12%,
-      rgba(0, 0, 0, 0.60) 44%,
-      rgba(0, 0, 0, 0.76) 100%
-    ),
-    url('/images/bg-door.jpg') center/cover no-repeat;
+  background: var(--vp-bg-matte), var(--vp-bg-photo-url) center/cover no-repeat;
   pointer-events: none;
   z-index: 0;
   transform: scale(1.03) translateY(-1%);
