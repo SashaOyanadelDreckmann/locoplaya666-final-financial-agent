@@ -24,6 +24,13 @@ import { runValidatePhase } from './phases/validate.phase';
 import { buildRecommendationProfile } from './helpers/recommendation-profile.helpers';
 import { getLogger } from '../../logger';
 
+function clamp01(value: unknown, fallback = 0): number {
+  const raw = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(raw)) return fallback;
+  if (raw > 1) return Math.max(0, Math.min(1, raw / 100));
+  return Math.max(0, Math.min(1, raw));
+}
+
 /**
  * Main entry point: run all phases and return final response
  */
@@ -226,7 +233,7 @@ export async function runCoreAgent(input: ChatAgentInput): Promise<ChatAgentResp
         includes_regulation: classifyOutput.classification.mode === 'regulation',
         missing_information: recommendationProfile.missing_critical_data,
         disclaimers_shown: ['final_decision_user'],
-        risk_score: classifyOutput.classification.confidence,
+        risk_score: clamp01(classifyOutput.classification.confidence, 0.6),
         blocked: { is_blocked: false },
       },
       state_updates: {

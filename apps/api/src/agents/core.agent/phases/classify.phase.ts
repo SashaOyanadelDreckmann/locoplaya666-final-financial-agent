@@ -17,6 +17,13 @@ import type {
 } from '../agent-types';
 import { getLogger } from '../../../logger';
 
+function normalizeConfidence(value: unknown, fallback: number): number {
+  const raw = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(raw)) return fallback;
+  if (raw > 1) return Math.max(0, Math.min(1, raw / 100));
+  return Math.max(0, Math.min(1, raw));
+}
+
 function buildClassifierUserInput(params: {
   userMessage: string;
   history?: Array<{ role: string; content: string }>;
@@ -112,7 +119,7 @@ export async function runClassifyPhase(input: ClassifyPhaseInput): Promise<Class
       intent: classificationRaw.intent || 'general inquiry',
       requires_tools: classificationRaw.requires_tools === true,
       requires_rag: classificationRaw.requires_rag === true,
-      confidence: classificationRaw.confidence || 0.6,
+      confidence: normalizeConfidence(classificationRaw.confidence, 0.6),
     };
 
     // Step 3: Infer user model

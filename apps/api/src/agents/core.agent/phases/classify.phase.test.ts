@@ -173,6 +173,26 @@ describe('runClassifyPhase', () => {
     expect(result.classification.confidence).toBeLessThan(0.75);
   });
 
+  it('should normalize confidence values above 1 into 0-1 range', async () => {
+    const mockResponse = JSON.stringify({
+      mode: 'decision_support',
+      intent: 'user wants advice',
+      requires_tools: true,
+      requires_rag: false,
+      confidence: 80,
+    });
+    (completeStructured as any).mockResolvedValueOnce(
+      testUtils.mockCompleteStructured(mockResponse),
+    );
+
+    const result = await runClassifyPhase({
+      user_message: '¿Me conviene invertir ahora?',
+    });
+
+    expect(result.classification.confidence).toBeGreaterThan(0.7);
+    expect(result.classification.confidence).toBeLessThanOrEqual(1);
+  });
+
   it('should throw on invalid JSON response', async () => {
     (completeStructured as any).mockResolvedValueOnce({
       safeParse: () => ({
