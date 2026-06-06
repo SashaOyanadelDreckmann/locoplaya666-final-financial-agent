@@ -26,7 +26,6 @@ const nextConfig = {
     ? { allowedDevOrigins: devAllowedOrigins }
     : {}),
   experimental: {
-    proxyClientMaxBodySize: '40mb',
   },
   eslint: {
     ignoreDuringBuilds: false,
