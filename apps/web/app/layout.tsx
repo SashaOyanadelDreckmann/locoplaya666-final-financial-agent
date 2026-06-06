@@ -103,7 +103,6 @@ export default function RootLayout({
       <body>
         <ServiceWorkerReset />
         <div className="global-agent-backdrop" aria-hidden="true" />
-        <div className="viewport-backdrop-feather" aria-hidden="true" />
         <div className="app-shell">
           <div className="mobile-scale-frame">
             {children}
