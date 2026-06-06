@@ -7,29 +7,25 @@
 
 :root {
   --vp-bg-fallback: #050810;
-  --vp-bg-seam-overlap: 14px;
-  /* Bottom seam */
-  --vp-bg-seam-band: 32vh;
-  --vp-bg-bottom-seam-height: calc(max(env(safe-area-inset-bottom, 0px), 20px) + var(--vp-bg-seam-band) + var(--vp-bg-seam-overlap));
+  --vp-bg-seam-overlap: 22px;
+  /* Bottom: short soft fade + minimal solid strip flush to home indicator */
+  --vp-bg-seam-fade-band: 14vh;
+  --vp-bg-solid-band: max(env(safe-area-inset-bottom, 0px), 10px);
+  --vp-bg-seam-band: var(--vp-bg-seam-fade-band);
+  --vp-bg-bottom-seam-height: calc(var(--vp-bg-seam-fade-band) + var(--vp-bg-solid-band) + var(--vp-bg-seam-overlap));
   --vp-bg-bottom-seam: linear-gradient(
     to bottom,
-    rgba(5, 8, 16, 0.06) 0%,
-    rgba(5, 8, 16, 0.10) 5%,
-    rgba(5, 8, 16, 0.15) 10%,
-    rgba(5, 8, 16, 0.21) 16%,
-    rgba(5, 8, 16, 0.28) 22%,
-    rgba(5, 8, 16, 0.35) 28%,
-    rgba(5, 8, 16, 0.42) 34%,
-    rgba(5, 8, 16, 0.49) 40%,
-    rgba(5, 8, 16, 0.56) 46%,
-    rgba(5, 8, 16, 0.63) 52%,
-    rgba(5, 8, 16, 0.69) 58%,
-    rgba(5, 8, 16, 0.75) 64%,
-    rgba(5, 8, 16, 0.81) 70%,
-    rgba(5, 8, 16, 0.86) 76%,
-    rgba(5, 8, 16, 0.90) 82%,
-    rgba(5, 8, 16, 0.94) 88%,
-    rgba(5, 8, 16, 0.97) 94%,
+    rgba(5, 8, 16, 0) 0%,
+    rgba(5, 8, 16, 0.03) 10%,
+    rgba(5, 8, 16, 0.07) 20%,
+    rgba(5, 8, 16, 0.12) 30%,
+    rgba(5, 8, 16, 0.18) 40%,
+    rgba(5, 8, 16, 0.26) 50%,
+    rgba(5, 8, 16, 0.36) 60%,
+    rgba(5, 8, 16, 0.48) 70%,
+    rgba(5, 8, 16, 0.62) 80%,
+    rgba(5, 8, 16, 0.78) 90%,
+    rgba(5, 8, 16, 0.90) 96%,
     var(--vp-bg-fallback) 100%
   );
   /* Top seam — soft vignette on top of full photo (home-style), not a black bar */
@@ -54,23 +50,17 @@ html.pwa-standalone {
   --vp-bg-fallback: #05090f;
   --vp-bg-bottom-seam: linear-gradient(
     to bottom,
-    rgba(6, 10, 16, 0.06) 0%,
-    rgba(6, 10, 16, 0.10) 5%,
-    rgba(6, 10, 16, 0.15) 10%,
-    rgba(6, 10, 16, 0.21) 16%,
-    rgba(6, 10, 16, 0.28) 22%,
-    rgba(6, 10, 16, 0.35) 28%,
-    rgba(6, 10, 16, 0.42) 34%,
-    rgba(6, 10, 16, 0.49) 40%,
-    rgba(6, 10, 16, 0.56) 46%,
-    rgba(6, 10, 16, 0.63) 52%,
-    rgba(6, 10, 16, 0.69) 58%,
-    rgba(6, 10, 16, 0.75) 64%,
-    rgba(6, 10, 16, 0.81) 70%,
-    rgba(6, 10, 16, 0.86) 76%,
-    rgba(6, 10, 16, 0.90) 82%,
-    rgba(6, 10, 16, 0.94) 88%,
-    rgba(6, 10, 16, 0.97) 94%,
+    rgba(6, 10, 16, 0) 0%,
+    rgba(6, 10, 16, 0.03) 10%,
+    rgba(6, 10, 16, 0.07) 20%,
+    rgba(6, 10, 16, 0.12) 30%,
+    rgba(6, 10, 16, 0.18) 40%,
+    rgba(6, 10, 16, 0.26) 50%,
+    rgba(6, 10, 16, 0.36) 60%,
+    rgba(6, 10, 16, 0.48) 70%,
+    rgba(6, 10, 16, 0.62) 80%,
+    rgba(6, 10, 16, 0.78) 90%,
+    rgba(6, 10, 16, 0.90) 96%,
     var(--vp-bg-fallback) 100%
   );
   --vp-bg-top-seam: linear-gradient(
@@ -105,11 +95,11 @@ html.pwa-standalone {
       linear-gradient(
         180deg,
         rgba(0, 0, 0, 0.10) 0%,
-        rgba(0, 0, 0, 0.20) 14%,
-        rgba(0, 0, 0, 0.44) 48%,
-        rgba(0, 0, 0, 0.36) 72%,
-        rgba(0, 0, 0, 0.28) 88%,
-        rgba(0, 0, 0, 0.24) 100%
+        rgba(0, 0, 0, 0.18) 14%,
+        rgba(0, 0, 0, 0.36) 48%,
+        rgba(0, 0, 0, 0.30) 72%,
+        rgba(5, 8, 16, 0.38) 88%,
+        rgba(5, 8, 16, 0.48) 100%
       );
   }
 
@@ -120,8 +110,8 @@ html.pwa-standalone {
 
   html:not(.home-route-active) {
     background-image: var(--vp-bg-matte-mobile), var(--vp-bg-photo-url) !important;
-    background-size: cover !important;
-    background-position: center bottom !important;
+    background-size: 100% 108%, 100% 108% !important;
+    background-position: center bottom, center bottom !important;
     background-repeat: no-repeat !important;
   }
 
@@ -129,8 +119,8 @@ html.pwa-standalone {
   body.agent-route-active {
     background-color: var(--vp-bg-fallback) !important;
     background-image: var(--vp-bg-matte-mobile), var(--vp-bg-photo-url) !important;
-    background-size: cover !important;
-    background-position: center bottom !important;
+    background-size: 100% 108%, 100% 108% !important;
+    background-position: center bottom, center bottom !important;
     background-repeat: no-repeat !important;
   }
 }
@@ -140,7 +130,8 @@ html.pwa-standalone {
     --vp-bg-bleed-top: max(env(safe-area-inset-top, 0px), 44px);
     --vp-bg-bleed-bottom: max(env(safe-area-inset-bottom, 0px), 34px);
     --vp-bg-bleed-extra-bottom: 14vh;
-    --vp-bg-seam-band: 36vh;
+    --vp-bg-seam-fade-band: 16vh;
+    --vp-bg-seam-band: var(--vp-bg-seam-fade-band);
     --vp-bg-top-seam-band: 16vh;
   }
 }
@@ -218,7 +209,7 @@ body.agent-route-standalone .global-agent-backdrop,
   body.agent-route-active .global-agent-backdrop {
     background-color: var(--vp-bg-fallback) !important;
     background-image: var(--vp-bg-matte-mobile), var(--vp-bg-photo-url) !important;
-    background-size: 100% 105% !important;
+    background-size: 100% 108% !important;
     background-position: center bottom !important;
     background-repeat: no-repeat !important;
     transform: none !important;
@@ -279,7 +270,7 @@ body.agent-route-standalone .global-agent-backdrop,
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
     filter: none !important;
-    box-shadow: 0 -20px 36px -8px var(--vp-bg-fallback) !important;
+    box-shadow: 0 -10px 24px -14px var(--vp-bg-fallback) !important;
     -webkit-mask-image: none !important;
     mask-image: none !important;
   }
