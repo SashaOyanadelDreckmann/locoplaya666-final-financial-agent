@@ -1449,8 +1449,7 @@ button {
   background-size: cover, cover;
   background-position: center, center;
   background-repeat: no-repeat;
-  /* strong, diffuse, matte blur — colors muted, low contrast, dark, heavily blurred */
-  filter: saturate(1.05) contrast(0.82) brightness(0.46) blur(34px);
+  filter: none;
   transform: none;
   animation: none;
 }
