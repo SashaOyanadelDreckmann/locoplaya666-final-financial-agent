@@ -193,6 +193,25 @@ describe('runClassifyPhase', () => {
     expect(result.classification.confidence).toBeLessThanOrEqual(1);
   });
 
+  it('should downgrade false containment on normal budget pressure queries', async () => {
+    const mockResponse = JSON.stringify({
+      mode: 'containment',
+      intent: 'user feels monthly cash pressure',
+      requires_tools: false,
+      requires_rag: false,
+      confidence: 0.9,
+    });
+    (completeStructured as any).mockResolvedValueOnce(
+      testUtils.mockCompleteStructured(mockResponse),
+    );
+
+    const result = await runClassifyPhase({
+      user_message: 'siempre me falta plata a fin de mes y no entiendo bien por qué',
+    });
+
+    expect(result.classification.mode).toBe('budgeting');
+  });
+
   it('should throw on invalid JSON response', async () => {
     (completeStructured as any).mockResolvedValueOnce({
       safeParse: () => ({

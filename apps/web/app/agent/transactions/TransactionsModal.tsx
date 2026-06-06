@@ -6,6 +6,7 @@ import { getCsrfToken } from '@/lib/csrf';
 import { CHILE_FINANCIAL_INSTITUTIONS } from '@/lib/financialCatalog';
 import { buildChatDashboardForQuestion, compactDashboardForPrompt } from '@/lib/transactions-chat.helpers';
 import { buildTransactionChatRequest } from '@/lib/transactions-chat.request';
+import { deriveTransactionAuthorizationState } from '@/lib/transactions-authorization.helpers';
 import { resolveInstantTransactionSummary } from '@/lib/transactions-summary.helpers';
 
 import {
@@ -26,6 +27,7 @@ import {
   confidenceBandLong,
   formatPercentCompact,
 } from './presentation';
+import { TxConsentStep } from './TxConsentStep';
 import { movementOverrideKey } from './taxonomy';
 import type {
   BankProduct,
@@ -146,8 +148,14 @@ export function TransactionsModal(props: TransactionsModalProps) {
         ? 'is-account'
         : 'is-generic';
 
-  const resolvedBank = quickBank.trim();
-  const resolvedProductLabel = productTemplate.trim();
+  const authorizationState = deriveTransactionAuthorizationState(props.activeBankProduct, {
+    bank: quickBank,
+    label: productTemplate,
+    simulationAccepted: consentAccepted,
+  });
+  const resolvedBank = authorizationState.bank;
+  const resolvedProductLabel = authorizationState.label;
+  const consentIsGranted = authorizationState.simulationAccepted;
   const activeProductVisualPalette = productVisualPalette(
     `${props.activeBankProduct?.id ?? 'active'}-${resolvedProductLabel || props.activeBankProduct?.label || 'producto'}-${resolvedBank || props.activeBankProduct?.bank || 'bank'}`
   );
@@ -358,12 +366,8 @@ export function TransactionsModal(props: TransactionsModalProps) {
 
   const pendingManualEvidence = manualEvidenceDraft.trim();
 
-  const hasTemplateChoice =
-    productTemplate.trim().length > 0;
   const canContinueAuto =
-    Boolean(resolvedBank.trim()) &&
-    hasTemplateChoice &&
-    consentAccepted;
+    authorizationState.canContinue;
   const hasEvidence = Boolean(props.activeBankProduct?.parsedDocuments.length);
   const activeProductCreations = props.transactionProductCards.length;
   const activeProductSlotsLeft = Math.max(0, props.maxProducts - activeProductCreations);
@@ -443,7 +447,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
         bank: resolvedBank,
         label: resolvedProductLabel,
         productType: derivedProductType,
-        simulationAccepted: consentAccepted,
+        simulationAccepted: consentIsGranted,
       });
     }, 520);
     queueDockTransitionTimeout(() => {
@@ -1480,125 +1484,48 @@ export function TransactionsModal(props: TransactionsModalProps) {
                   {activeTxCard === 1 && !isDockingToLibrary && (
                     <div className="tx-hero-shell-spacer" aria-hidden="true" />
                   )}
-                  {activeTxCard === 0 && (
-                  <section className="tx-content-card is-main-center tx-summary-clean tx-step-reveal">
-                    <div className="pt-stage-header">
-                      <span className="pt-stage-eyebrow">Paso 1</span>
-                      <h4>Autorización del producto</h4>
-                      <p>Define institución, tipo y consentimiento para iniciar el flujo simulado.</p>
-                    </div>
-                    <div className="transactions-summary-card tx-consent-card">
-                    <span className="transactions-summary-title">Consentimiento Open Finance (simulado)</span>
-                    <div className="bank-sim-grid">
-                      <label>Institución (sugerida)
-                        <div className="tx-picker-field">
-                          <input
-                            value={quickBank}
-                            onChange={(e) => {
-                              setQuickBank(e.target.value);
-                              setShowInstitutionCatalog(true);
-                            }}
-                            onFocus={() => setShowInstitutionCatalog(true)}
-                            placeholder="Busca o escribe una institución"
-                          />
-                          <button
-                            type="button"
-                            className="tx-picker-toggle"
-                            onClick={() => setShowInstitutionCatalog((prev) => !prev)}
-                          >
-                            {showInstitutionCatalog ? 'Ocultar catálogo' : 'Ver catálogo'}
-                          </button>
-                          {showInstitutionCatalog && (
-                            <div className="tx-picker-catalog">
-                              {filteredInstitutions.map((institution) => (
-                                <button
-                                  key={institution}
-                                  type="button"
-                                  className="tx-picker-option"
-                                  onClick={() => {
-                                    setQuickBank(`${institution} (simulacion)`);
-                                    setShowInstitutionCatalog(false);
-                                  }}
-                                >
-                                  {institution}
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </label>
-                      <label>Plantilla de producto o servicio
-                        <div className="tx-picker-field">
-                          <input
-                            value={productTemplate}
-                            onChange={(e) => {
-                              setProductTemplate(e.target.value);
-                              setShowTemplateCatalog(true);
-                            }}
-                            onFocus={() => setShowTemplateCatalog(true)}
-                            placeholder="Busca o escribe una plantilla"
-                          />
-                          <button
-                            type="button"
-                            className="tx-picker-toggle"
-                            onClick={() => setShowTemplateCatalog((prev) => !prev)}
-                          >
-                            {showTemplateCatalog ? 'Ocultar catálogo' : 'Ver catálogo'}
-                          </button>
-                          {showTemplateCatalog && (
-                            <div className="tx-picker-catalog">
-                              {filteredTemplates.map((template) => (
-                                <button
-                                  key={template.label}
-                                  type="button"
-                                  className="tx-picker-option"
-                                  onClick={() => {
-                                    setProductTemplate(template.label);
-                                    setShowTemplateCatalog(false);
-                                  }}
-                                >
-                                  {template.label}
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </label>
-                      <button
-                        type="button"
-                        className={`tx-consent-toggle ${consentAccepted ? 'is-checked' : ''}`}
-                        role="checkbox"
-                        aria-checked={consentAccepted}
-                        onClick={() => {
-                          const nextAccepted = !consentAccepted;
-                          setConsentAccepted(nextAccepted);
-                          props.updateActiveProduct({
-                            simulationAccepted: nextAccepted,
-                            connected: false,
-                          });
-                        }}
-                      >
-                        <span className="tx-consent-toggle-box" aria-hidden="true" />
-                        <span className="tx-consent-toggle-copy">
-                          Autorizo el análisis de datos en ambiente simulado (sin credenciales reales).
-                        </span>
-                      </button>
-                      <div className="tx-consent-inline-actions">
-                      </div>
-                    </div>
-                    <div className="agent-modal-actions tx-consent-actions-row">
-                      <button type="button" className="continue-ghost tx-delete-product-btn" onClick={() => props.deleteTransactionProduct(props.activeBankProduct!.id)}>Eliminar producto</button>
-                      <button
-                        type="button"
-                        className="button-primary tx-consent-continue-main"
-                        disabled={!canContinueAuto || isDockingToLibrary}
-                        onClick={startAuthorizationTransition}
-                      >
-                        {isDockingToLibrary ? 'Autorizando…' : 'Autorizar y continuar'}
-                      </button>
-                    </div>
-                    </div>
-                  </section>
+                  {activeTxCard === 0 && props.activeBankProduct && (
+                    <TxConsentStep
+                      quickBank={quickBank}
+                      productTemplate={productTemplate}
+                      showInstitutionCatalog={showInstitutionCatalog}
+                      showTemplateCatalog={showTemplateCatalog}
+                      filteredInstitutions={filteredInstitutions}
+                      filteredTemplates={filteredTemplates}
+                      consentAccepted={consentAccepted}
+                      canContinueAuto={canContinueAuto}
+                      isDockingToLibrary={isDockingToLibrary}
+                      onBankChange={(value) => {
+                        setQuickBank(value);
+                        setShowInstitutionCatalog(true);
+                      }}
+                      onTemplateChange={(value) => {
+                        setProductTemplate(value);
+                        setShowTemplateCatalog(true);
+                      }}
+                      onOpenInstitutionCatalog={() => setShowInstitutionCatalog(true)}
+                      onOpenTemplateCatalog={() => setShowTemplateCatalog(true)}
+                      onToggleInstitutionCatalog={() => setShowInstitutionCatalog((prev) => !prev)}
+                      onToggleTemplateCatalog={() => setShowTemplateCatalog((prev) => !prev)}
+                      onSelectInstitution={(institution) => {
+                        setQuickBank(`${institution} (simulacion)`);
+                        setShowInstitutionCatalog(false);
+                      }}
+                      onSelectTemplate={(template) => {
+                        setProductTemplate(template);
+                        setShowTemplateCatalog(false);
+                      }}
+                      onToggleConsent={() => {
+                        const nextAccepted = !consentAccepted;
+                        setConsentAccepted(nextAccepted);
+                        props.updateActiveProduct({
+                          simulationAccepted: nextAccepted,
+                          connected: false,
+                        });
+                      }}
+                      onDeleteProduct={() => props.deleteTransactionProduct(props.activeBankProduct!.id)}
+                      onContinue={startAuthorizationTransition}
+                    />
                   )}
 
                   {activeTxCard === 1 && props.activeBankProduct && (

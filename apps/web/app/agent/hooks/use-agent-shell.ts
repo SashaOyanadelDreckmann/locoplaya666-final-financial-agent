@@ -30,8 +30,9 @@ export type AgentSessionInfo = {
   latestDiagnosticCompletedAt?: string | null;
 } | null;
 
-export function useAgentShell() {
+export function useAgentShell(options?: { previewMode?: boolean }) {
   const router = useRouter();
+  const previewMode = Boolean(options?.previewMode);
   const [sessionInfo, setSessionInfo] = useState<AgentSessionInfo>(null);
   const [authBootstrapped, setAuthBootstrapped] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -42,6 +43,65 @@ export function useAgentShell() {
     let cancelled = false;
 
     const bootstrapAuth = async () => {
+      if (previewMode) {
+        setSessionInfo({
+          id: 'preview-session',
+          name: 'Cuenta demo',
+          email: 'demo@financieramente.local',
+          userId: 'preview-user',
+          injectedIntake: {
+            intake: {
+              age: 34,
+              city: 'Santiago',
+              employmentStatus: 'employed',
+              profession: 'Preview',
+              incomeBand: '1M-2M',
+              expensesCoverage: 'tight',
+              tracksExpenses: 'sometimes',
+              hasSavingsOrInvestments: true,
+              hasDebt: true,
+              riskReaction: 'hold',
+              selfRatedUnderstanding: 6,
+              moneyStressLevel: 5,
+              financialKnowledge: {
+                interest: true,
+                inflation: true,
+                creditCard: true,
+                creditLine: true,
+                loanComponents: true,
+                interestRate: true,
+                liquidity: true,
+                returnConcept: true,
+                diversification: true,
+                assetVsLiability: true,
+                financialRisk: true,
+                capitalMarkets: true,
+                alternativeInvestments: false,
+                fintech: true,
+                CAE: true,
+              },
+            },
+            intakeContext: 'preview',
+          },
+          injectedProfile: {
+            diagnosticNarrative: 'Modo preview del chat principal.',
+            profile: {
+              financialClarity: 'medium',
+              decisionStyle: 'mixed',
+              timeHorizon: 'mixed',
+              financialPressure: 'moderate',
+              emotionalPattern: 'neutral',
+            },
+            tensions: ['Preview layout'],
+            hypotheses: ['Chat principal visible sin sesión real'],
+            openQuestions: [],
+          },
+          knowledgeScore: 48,
+        });
+        setIsAuthenticated(true);
+        setAuthBootstrapped(true);
+        return;
+      }
       try {
         const info = await getSessionInfo();
         if (cancelled) return;
@@ -71,7 +131,7 @@ export function useAgentShell() {
     return () => {
       cancelled = true;
     };
-  }, [router]);
+  }, [router, previewMode]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -259,7 +319,7 @@ export function useAgentShell() {
       alive = false;
       if (timer) clearTimeout(timer);
     };
-  }, [authBootstrapped, isAuthenticated, router]);
+  }, [authBootstrapped, isAuthenticated, router, previewMode]);
 
   return {
     sessionInfo,

@@ -45,10 +45,9 @@ function ForgotPasswordContent() {
             alt="Financieramente"
             width={112}
             height={112}
-            className="h-full w-full object-cover"
+            className="h-full w-full object-contain"
           />
         </div>
-        <div className="auth-eyebrow">Financieramente</div>
 
         {submitted ? (
           <>

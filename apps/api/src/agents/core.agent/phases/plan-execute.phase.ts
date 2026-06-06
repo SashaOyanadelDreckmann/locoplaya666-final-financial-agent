@@ -487,6 +487,9 @@ function buildExecutionPrompt(input: PlanPhaseInput): string {
     typeof input.context_summary?.product_directive === 'string'
       ? input.context_summary.product_directive
       : '';
+  const uploadedDocuments = Array.isArray(input.context_summary?.uploaded_documents)
+    ? input.context_summary.uploaded_documents
+    : [];
   return `
 User intent: ${input.classification.intent}
 Mode: ${input.classification.mode}
@@ -496,6 +499,10 @@ ${productDirective || 'No product-specific directive.'}
 
 User context:
 ${JSON.stringify(input.context_summary, null, 2)}
+
+Uploaded documents present: ${uploadedDocuments.length > 0 ? 'yes' : 'no'}
+Rule: if uploaded_documents or consolidated_context.transactions exist, treat them as primary evidence.
+Never tell the user to upload transacciones again if the context already contains their files or parsed cartolas.
 
 Please use available tools to fulfill the user's request.
 `;

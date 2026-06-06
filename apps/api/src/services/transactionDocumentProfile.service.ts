@@ -328,6 +328,14 @@ function fromText(input: ProfileInput): Partial<TransactionDocumentProfile> {
     bank = bank || 'Banco BICE';
     evidence.push('text:bice');
   }
+  if (has('mach') || has('tenpo')) {
+    bank = bank || (has('tenpo') ? 'Tenpo' : 'Mach');
+    productType = 'debit_account';
+    formatFamily = `${bankSlug(bank)}_wallet_statement`;
+    signConvention = 'column_cargo_abono';
+    confidence = Math.max(confidence, 0.94);
+    evidence.push(`text:${bankSlug(bank)}_wallet`);
+  }
   if (has('movimientos nacionales de tarjeta de credito') || has('movimientos facturados') || has('saldos y movimientos no facturados')) {
     bank = bank || 'Banco de Chile';
     productType = 'credit_card';
@@ -390,6 +398,9 @@ function fromText(input: ProfileInput): Partial<TransactionDocumentProfile> {
   }
   if (headers.some((header) => header.includes('nº operacion')) || headers.some((header) => header.includes('n° operacion'))) {
     evidence.push('headers:numero_operacion');
+  }
+  if (headers.some((header) => header.includes('tipo'))) {
+    evidence.push('headers:tipo');
   }
   if (headers.some((header) => header.includes('tipo de tarjeta'))) {
     productType = 'credit_card';
@@ -464,6 +475,12 @@ function buildHeaderMap(headers: string[], formatFamily: string): Record<string,
     map.amount = map.amount ?? 'cargo|abono';
     map.balance = map.balance ?? 'saldo';
     map.channel = map.channel ?? 'canal o sucursal';
+  }
+  if (formatFamily.includes('wallet_statement')) {
+    map.description = map.description ?? 'descripcion';
+    map.amount = map.amount ?? 'monto';
+    map.balance = map.balance ?? 'saldo';
+    map.movement_type = map.movement_type ?? 'tipo';
   }
   if (formatFamily.startsWith('visa_signature')) {
     map.amount = map.amount ?? 'monto';

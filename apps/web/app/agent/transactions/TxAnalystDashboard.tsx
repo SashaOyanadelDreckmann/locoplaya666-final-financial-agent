@@ -1,6 +1,6 @@
 'use client';
 
-import type { KeyboardEvent, Ref } from 'react';
+import type { Ref } from 'react';
 import {
   RETRO_CHART_COLORS,
   RETRO_CHART_NEGATIVE,
@@ -24,7 +24,6 @@ import {
   Legend,
 } from 'recharts';
 import {
-  buildEditorialSummaryBlocks,
   confidenceBand,
   confidenceBandLong,
   formatPercentCompact,
@@ -33,6 +32,7 @@ import {
 import { TX_CATEGORY_OPTIONS } from './constants';
 import type { useMovementAnalytics } from './use-movement-analytics';
 import type { BankProduct } from './types';
+import { TxExecutiveSummary } from './TxExecutiveSummary';
 
 type MovementAnalytics = ReturnType<typeof useMovementAnalytics>;
 
@@ -141,31 +141,6 @@ export function TxAnalystDashboard({
     derivedTopMerchants,
     merchantConfidenceRows,
   } = analytics;
-  const summaryTabId = 'tx-ex-summary-tab';
-  const metricsTabId = 'tx-ex-metrics-tab';
-  const summaryPanelId = 'tx-ex-summary-panel';
-  const metricsPanelId = 'tx-ex-metrics-panel';
-  const onExecTabsKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (event.key === 'ArrowRight') {
-      event.preventDefault();
-      onExecTabChange(execTab === 'summary' ? 'metrics' : 'summary');
-      return;
-    }
-    if (event.key === 'ArrowLeft') {
-      event.preventDefault();
-      onExecTabChange(execTab === 'metrics' ? 'summary' : 'metrics');
-      return;
-    }
-    if (event.key === 'Home') {
-      event.preventDefault();
-      onExecTabChange('summary');
-      return;
-    }
-    if (event.key === 'End') {
-      event.preventDefault();
-      onExecTabChange('metrics');
-    }
-  };
   const movementTypeLabel = (movement: MovementAnalytics['dedupedMovementRows'][number]) =>
     movement.movementKind === 'abono'
       ? 'Abono'
@@ -484,120 +459,29 @@ export function TxAnalystDashboard({
                       </div>
                     ) : null}
 
-                    {/* ── Executive Summary — interactive premium card ── */}
-                    {(() => {
-                      const execBlocks = buildEditorialSummaryBlocks(hasSummary ? summaryText : summaryFromTable).slice(0, 2);
-                      const topMerchantLabel = derivedTopMerchants[0]?.merchant || enrichedCategoryData[0]?.name || dashboardClusters[0]?.name || '—';
-                      const fidelityPct = movementCount > 0 ? (verifiedTableRows / movementCount) * 100 : 0;
-                      const confPct = movementCount > 0 ? (highConfidenceMovementCount / movementCount) * 100 : 0;
-                      return (
-                        <div className="tx-ex-card" role="region" aria-label="Resumen ejecutivo">
-                          {/* Header row */}
-                          <div className="tx-ex-header">
-                            <div className="tx-ex-header-left">
-                              <span className="tx-ex-eyebrow">Resumen ejecutivo</span>
-                              {summaryModel ? <span className="tx-ex-model-tag">{summaryModel}</span> : null}
-                            </div>
-                            <div className="tx-ex-tabs" role="tablist" aria-label="Vista del resumen" onKeyDown={onExecTabsKeyDown}>
-                              <button
-                                id={summaryTabId}
-                                type="button"
-                                role="tab"
-                                aria-selected={execTab === 'summary'}
-                                aria-controls={summaryPanelId}
-                                tabIndex={execTab === 'summary' ? 0 : -1}
-                                className={`tx-ex-tab${execTab === 'summary' ? ' is-active' : ''}`}
-                                onClick={() => onExecTabChange('summary')}
-                              >
-                                Análisis
-                              </button>
-                              <button
-                                id={metricsTabId}
-                                type="button"
-                                role="tab"
-                                aria-selected={execTab === 'metrics'}
-                                aria-controls={metricsPanelId}
-                                tabIndex={execTab === 'metrics' ? 0 : -1}
-                                className={`tx-ex-tab${execTab === 'metrics' ? ' is-active' : ''}`}
-                                onClick={() => onExecTabChange('metrics')}
-                              >
-                                Métricas
-                              </button>
-                            </div>
-                          </div>
-
-                          {/* Summary tab */}
-                          {execTab === 'summary' && (
-                            <div className="tx-ex-body" role="tabpanel" id={summaryPanelId} aria-labelledby={summaryTabId}>
-                              {execBlocks.length > 0 ? (
-                                execBlocks.map((block, i) => (
-                                  <div
-                                    key={i}
-                                    className={`tx-ex-block${block.lead ? ' is-lead' : ''} tx-refinable-block`}
-                                    onDoubleClick={() =>
-                                      onRefineSummary(
-                                        block.kicker ? `bloque "${block.kicker}"` : 'bloque ejecutivo',
-                                        block.body,
-                                      )
-                                    }
-                                    title="Doble clic para reanalizar este bloque"
-                                  >
-                                    {block.kicker ? <span className="tx-ex-kicker">{block.kicker}</span> : null}
-                                    <p className="tx-ex-para">{block.body}</p>
-                                  </div>
-                                ))
-                              ) : (
-                                <p className="tx-ex-para tx-ex-para--empty">Generando análisis…</p>
-                              )}
-                            </div>
-                          )}
-
-                          {/* Metrics tab — 4 KPI cards */}
-                          {execTab === 'metrics' && (
-                            <div className="tx-ex-metrics" role="tabpanel" id={metricsPanelId} aria-labelledby={metricsTabId}>
-                              <article className="tx-ex-kpi" style={{ '--card-idx': 0 } as React.CSSProperties}>
-                                <span className="tx-ex-kpi-label">Pulso de caja</span>
-                                <strong className={`tx-ex-kpi-value${netFlowFromTable >= 0 ? ' is-pos' : ' is-neg'}`}>
-                                  {formatCurrency(netFlowFromTable)}
-                                </strong>
-                                <p className="tx-ex-kpi-note">{txNarrative.cashAngle}</p>
-                              </article>
-                              <article className="tx-ex-kpi" style={{ '--card-idx': 1 } as React.CSSProperties}>
-                                <span className="tx-ex-kpi-label">Motor del gasto</span>
-                                <strong className="tx-ex-kpi-value is-accent">{topMerchantLabel}</strong>
-                                <p className="tx-ex-kpi-note">{txNarrative.marketAngle}</p>
-                              </article>
-                              <article className="tx-ex-kpi" style={{ '--card-idx': 2 } as React.CSSProperties}>
-                                <span className="tx-ex-kpi-label">Fidelidad del set</span>
-                                <strong className="tx-ex-kpi-value is-pos">{formatPercentCompact(fidelityPct)}</strong>
-                                <p className="tx-ex-kpi-note">{txNarrative.fidelityAngle}</p>
-                              </article>
-                              <article className="tx-ex-kpi" style={{ '--card-idx': 3 } as React.CSSProperties}>
-                                <span className="tx-ex-kpi-label">Confianza operativa</span>
-                                <strong className="tx-ex-kpi-value is-pos">{formatPercentCompact(confPct)}</strong>
-                                <p className="tx-ex-kpi-note">{txNarrative.confidenceAngle}</p>
-                              </article>
-                            </div>
-                          )}
-
-                          {/* Footer */}
-                          <div className="tx-ex-footer">
-                            <button
-                              type="button"
-                              className="tx-ex-regen-btn"
-                              disabled={txAssistantLoading || summaryRegenerationsLeft <= 0}
-                              onClick={() => onRegenerateSummary()}
-                            >
-                              {txAssistantLoading ? (
-                                <span className="tx-ex-regen-spinner" aria-hidden="true" />
-                              ) : null}
-                              {summaryRegenerationsLeft > 0 ? 'Revisar resumen' : 'Resumen final'}
-                            </button>
-                            <span className="tx-ex-revs">{summaryRegenerationsLeft} revisión(es)</span>
-                          </div>
-                        </div>
-                      );
-                    })()}
+                    <TxExecutiveSummary
+                      hasSummary={hasSummary}
+                      summaryText={summaryText}
+                      summaryFromTable={summaryFromTable}
+                      summaryGeneratedAt={summaryGeneratedAt}
+                      summaryModel={summaryModel}
+                      summaryRegenerationsLeft={summaryRegenerationsLeft}
+                      execTab={execTab}
+                      onExecTabChange={onExecTabChange}
+                      txAssistantLoading={txAssistantLoading}
+                      onRegenerateSummary={onRegenerateSummary}
+                      onRefineSummary={onRefineSummary}
+                      netFlowFromTable={netFlowFromTable}
+                      tableInflowLabel={inflowLabel}
+                      movementCount={movementCount}
+                      verifiedTableRows={verifiedTableRows}
+                      highConfidenceMovementCount={highConfidenceMovementCount}
+                      movementCoverageDisplay={movementCoverageDisplay}
+                      txNarrative={txNarrative}
+                      derivedTopMerchants={derivedTopMerchants}
+                      enrichedCategoryData={enrichedCategoryData}
+                      dashboardClusters={dashboardClusters}
+                    />
 
                     {/* ── Charts ── */}
                     <div className="tx-ap-charts-section">

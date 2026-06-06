@@ -19,7 +19,7 @@ export interface MousePos { x: number; y: number }
 
 const PHASE = {
   inStart: 0.01,
-  inEnd:   0.18,
+  inEnd:   0.42,  // much longer entrance → gradual morph across first ~40% of scroll
   outStart: 0.93,
   outEnd:   0.99,
 } as const;
@@ -86,11 +86,11 @@ export default function NumbersCanvas({
           // screens — the reveal looks the same on mobile as on desktop.
           const cf = c / Math.max(cols-1, 1);
           const rf = r / Math.max(rows-1, 1);
-          const bias = (cf * 0.62 + rf * 0.38) * 0.16; // soft diagonal, 0..0.16
+          const bias = (cf * 0.62 + rf * 0.38) * 0.18; // soft diagonal, 0..0.18
           cd.push({
-            revIn:  bias + Math.random() * .34,
-            revOut: bias + Math.random() * .34,
-            spd:    4 + Math.random() * 10,
+            revIn:  bias + Math.random() * .52,  // wider stagger → cells dissolve in over a longer range
+            revOut: bias + Math.random() * .40,
+            spd:    3 + Math.random() * 8,
             phi:    Math.random() * Math.PI * 2,
           });
         }

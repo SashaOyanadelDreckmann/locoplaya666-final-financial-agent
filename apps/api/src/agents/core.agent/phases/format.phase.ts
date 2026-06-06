@@ -178,15 +178,10 @@ async function buildFastValuableMessage(input: FormatPhaseInput): Promise<string
       ? 'Responde en español (Chile): lluvia de ideas senior, bullets densos, max 220 palabras.'
       : funnelStage === 'converge'
       ? 'Responde en español (Chile): convergencia senior, max 320 palabras.'
-      : 'Responde en español (Chile), breve pero senior.',
+      : 'Responde en español (Chile) con tono claro, cercano y natural; breve pero útil.',
     funnelStage === 'deliver'
       ? null
-      : [
-          'Entrega valor real al usuario en formato:',
-          '1) tesis ejecutiva clara,',
-          '2) recomendacion accionable con criterio senior,',
-          '3) riesgos/condiciones y siguiente validacion concreta.',
-        ].join('\n'),
+      : 'Si el usuario escribe coloquial o corto, evita una estructura corporativa rígida; usa una explicación natural y concreta.',
     'No menciones nombres de tools, pipeline interno ni tecnicismos de backend.',
     'Si recomiendas productos, APV, inversiones o instituciones: cruza suitability, explicita riesgos y deja claro que la decision final depende 100% del usuario.',
     '',

@@ -29,6 +29,7 @@ import {
   productsHaveAnalyzedMovements,
   resolveTxWizardStep,
 } from '@/lib/transactions-flow.helpers';
+import { deriveTransactionAuthorizationState } from '@/lib/transactions-authorization.helpers';
 import { MAX_BUDGET_ROWS } from '@/lib/budget-rows.helpers';
 import {
   aggregateCanonicalMovements,
@@ -186,6 +187,7 @@ export default function AgentPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const setInterviewIntake = useInterviewStore((s) => s.setIntake);
+  const isPreviewMode = searchParams.get('preview') === '1';
 
   function buildContextualChatName(items: ChatItem[]): string {
     const userTexts = items
@@ -399,7 +401,7 @@ export default function AgentPage() {
     isAuthenticated,
     isMobileViewport,
     isStandaloneDisplayMode,
-  } = useAgentShell();
+  } = useAgentShell({ previewMode: isPreviewMode });
   const [isMonochrome, setIsMonochrome] = useState(false);
   const [progressPulse, setProgressPulse] = useState(false);
   const [isRailMorphing] = useState(false);
@@ -2779,7 +2781,8 @@ export default function AgentPage() {
     productType?: BankProduct['productType'];
   }) {
     if (!activeBankProduct) return;
-    if (!activeBankProduct.simulationAccepted) {
+    const authorizationState = deriveTransactionAuthorizationState(activeBankProduct);
+    if (!authorizationState.simulationAccepted) {
       setTransactionUploadError('Debes aceptar que este flujo es de simulación y no ingresar credenciales reales.');
       return;
     }
@@ -3501,6 +3504,11 @@ export default function AgentPage() {
         isMobileViewport && isStandaloneDisplayMode ? 'is-mobile-standalone' : ''
       }`}
     >
+      {isPreviewMode && (
+        <div className="agent-preview-banner" role="status">
+          Modo preview: estás viendo el chat principal sin sesión real.
+        </div>
+      )}
       <section
         ref={chatBodyRef as React.RefObject<HTMLElement>}
         className={`agent-chat active-chat-${activeThread?.label ?? '1'}${chatSlideDir ? ` chat-slide-${chatSlideDir}` : ''}`}

@@ -76,10 +76,9 @@ export default function RegisterPage() {
             alt="Financieramente"
             width={112}
             height={112}
-            className="h-full w-full object-cover"
+            className="h-full w-full object-contain"
           />
         </div>
-        <div className="auth-eyebrow">Financieramente</div>
         <h1 className="auth-title">Crear cuenta</h1>
         <p className="auth-subtitle">Un primer paso breve. Luego, conversamos con calma.</p>
 

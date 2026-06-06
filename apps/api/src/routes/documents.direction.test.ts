@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { inferMovementDirection, inferMovementKind } from './documents';
+import { inferMovementDirection, inferMovementKind, toIsoDate } from './documents';
 
 describe('documents movement direction', () => {
   it('keeps credit card abonos semantically separate from income', () => {
@@ -19,5 +19,12 @@ describe('documents movement direction', () => {
     expect(inferMovementKind('Sueldo mensual', 800000, '', 'checking_account')).toBe('income');
     expect(inferMovementDirection('Abono transferencia recibida', 80000, '', 'checking_account')).toBe('income');
     expect(inferMovementDirection('Cargo por mantención', 4900, '', 'checking_account')).toBe('expense');
+  });
+
+  it('accepts wallet rows with date-time and Tipo direction markers', () => {
+    const line = '03/04/2026 12:33 | Transferencia recibida | 10.000 | Abono | 25.000';
+    expect(inferMovementKind(line, 10000, '10.000', 'debit_account')).toBe('abono');
+    expect(inferMovementDirection(line, 10000, '10.000', 'debit_account')).toBe('income');
+    expect(toIsoDate('03/04/2026 12:33')).toBe('2026-04-03');
   });
 });

@@ -56,6 +56,7 @@ function IntakeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const setIntake = useInterviewStore((s) => s.setIntake);
+  const isPreviewMode = searchParams.get('preview') === '1';
 
   const [form, setForm] = useState<IntakeQuestionnaire>(structuredClone(INITIAL_FORM));
   const [step, setStep] = useState(0);
@@ -67,6 +68,10 @@ function IntakeContent() {
     let cancelled = false;
 
     const bootstrap = async () => {
+      if (isPreviewMode) {
+        setBootstrapping(false);
+        return;
+      }
       try {
         const session = await getSessionInfo();
         if (cancelled) return;
@@ -89,7 +94,7 @@ function IntakeContent() {
 
     void bootstrap();
     return () => { cancelled = true; };
-  }, [router]);
+  }, [router, isPreviewMode]);
 
   // Cursor-following glow on answer cards: track pointer position into CSS vars
   useEffect(() => {
@@ -111,6 +116,10 @@ function IntakeContent() {
   const prevStep = () => setStep((s) => Math.max(s - 1, 0));
 
   const onSubmit = async () => {
+    if (isPreviewMode) {
+      router.push('/agent');
+      return;
+    }
     try {
       setLoading(true);
       setError(null);
@@ -130,6 +139,11 @@ function IntakeContent() {
   const cssVars = { '--c-step': stepMeta.rgb } as React.CSSProperties;
   return (
     <div className="intake-shell" data-step={stepMeta.key} style={cssVars}>
+      {isPreviewMode && (
+        <div className="intake-preview-banner" role="status">
+          Modo preview activo: estás viendo el diseño sin necesidad de cuenta.
+        </div>
+      )}
       <div className="intake-photo-bg" aria-hidden />
       <div className="intake-bg-orb" aria-hidden />
 

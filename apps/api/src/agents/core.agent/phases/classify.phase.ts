@@ -24,6 +24,25 @@ function normalizeConfidence(value: unknown, fallback: number): number {
   return Math.max(0, Math.min(1, raw));
 }
 
+function normalizeMessage(text: string): string {
+  return String(text ?? '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
+function hasContainmentSignals(text: string): boolean {
+  return /\b(angust|crisis|panic|panico|desesper|ahogo|bloquead|colaps|llor|miedo|ansied|suicid|no puedo seguir|no doy mas)\b/.test(
+    text,
+  );
+}
+
+function looksLikeBudgetPressure(text: string): boolean {
+  return /\b(plata|dinero|gasto|gastos|presupuesto|fin de mes|no me alcanza|me falta|deuda|ahorro|cuenta)\b/.test(
+    text,
+  );
+}
+
 function buildClassifierUserInput(params: {
   userMessage: string;
   history?: Array<{ role: string; content: string }>;
@@ -121,6 +140,11 @@ export async function runClassifyPhase(input: ClassifyPhaseInput): Promise<Class
       requires_rag: classificationRaw.requires_rag === true,
       confidence: normalizeConfidence(classificationRaw.confidence, 0.6),
     };
+
+    const normalizedMessage = normalizeMessage(user_message);
+    if (classification.mode === 'containment' && !hasContainmentSignals(normalizedMessage)) {
+      classification.mode = looksLikeBudgetPressure(normalizedMessage) ? 'budgeting' : 'information';
+    }
 
     // Step 3: Infer user model
     const inferredUserModel = inferUserModel({

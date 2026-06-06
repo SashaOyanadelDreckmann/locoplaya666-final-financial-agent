@@ -125,4 +125,27 @@ describe('transactionDocumentProfile', () => {
     expect(profile.sign_convention).toBe('keyword_overrides_amount_sign');
     expect(profile.needs_rag).toBe(false);
   });
+
+  it('classifies Mach wallet statements with type-based direction', async () => {
+    const profile = await buildTransactionDocumentProfile({
+      filename: 'Mach_cartola_2026.csv',
+      text: [
+        'Mach',
+        'Fecha;Descripción;Monto;Tipo;Saldo',
+        '03/04/2026 12:33;Transferencia recibida;10000;Abono;25000',
+      ].join('\n'),
+      tables: [
+        {
+          headers: ['Fecha', 'Descripción', 'Monto', 'Tipo', 'Saldo'],
+          rows: [],
+        },
+      ],
+    });
+
+    expect(profile.bank).toBe('Mach');
+    expect(profile.product_type).toBe('debit_account');
+    expect(profile.format_family).toContain('wallet_statement');
+    expect(profile.sign_convention).toBe('column_cargo_abono');
+    expect(profile.header_map.movement_type).toBe('tipo');
+  });
 });

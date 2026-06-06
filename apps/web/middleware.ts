@@ -32,6 +32,10 @@ async function sessionIsValid(request: NextRequest): Promise<{
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const isIntakePreview = pathname === '/intake' && request.nextUrl.searchParams.get('preview') === '1';
+  const isAgentPreview =
+    (pathname === '/agent' || pathname === '/agent-preview') &&
+    request.nextUrl.searchParams.get('preview') === '1';
   const hasSessionCookieValue = hasSessionCookie(request);
 
   const isProtected = PROTECTED_PATHS.some(
@@ -42,7 +46,7 @@ export async function middleware(request: NextRequest) {
   );
   const isApprovalWaiting = pathname === APPROVAL_WAITING_PATH || pathname.startsWith(`${APPROVAL_WAITING_PATH}/`);
 
-  if (isProtected) {
+  if (isProtected && !isIntakePreview && !isAgentPreview) {
     if (!hasSessionCookieValue) {
       const url = request.nextUrl.clone();
       url.pathname = '/login';
@@ -86,7 +90,8 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/agent/:path*',
+  '/agent/:path*',
+  '/agent-preview',
     '/interview/:path*',
     '/diagnosis/:path*',
     '/intake/:path*',

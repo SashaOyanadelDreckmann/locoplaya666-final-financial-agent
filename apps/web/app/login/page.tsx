@@ -34,6 +34,7 @@ function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const setAuthenticated = useSessionStore((s) => s.setAuthenticated);
+  const isPreviewMode = searchParams.get('preview') === '1';
 
   const [form, setForm] = useState<LoginInput>({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
@@ -64,6 +65,14 @@ function LoginContent() {
   };
 
   const onSubmit = async () => {
+    if (isPreviewMode) {
+      const requestedNext = searchParams.get('next');
+      const safeNext = requestedNext && requestedNext.startsWith('/') && !requestedNext.startsWith('//')
+        ? requestedNext
+        : null;
+      window.location.assign(safeNext === '/intake' ? '/intake?preview=1' : '/agent-preview');
+      return;
+    }
     if (!validateForm()) return;
 
     try {
@@ -100,16 +109,20 @@ function LoginContent() {
   return (
     <main className="auth-shell">
       <div className="auth-card">
+        {isPreviewMode && (
+          <div className="auth-preview-banner" role="status">
+            Modo preview: entrarás directo al intake sin crear cuenta.
+          </div>
+        )}
         <div className="auth-logo-mark" aria-label="Financieramente">
           <Image
             src="/logo-fm.svg"
             alt="Financieramente"
             width={112}
             height={112}
-            className="h-full w-full object-cover"
+            className="h-full w-full object-contain"
           />
         </div>
-        <div className="auth-eyebrow">Financieramente</div>
         <h1 className="auth-title">Bienvenido de vuelta</h1>
         <p className="auth-subtitle">Accede a tu sesión y retoma donde lo dejaste.</p>
 

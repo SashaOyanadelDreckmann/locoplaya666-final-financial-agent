@@ -90,6 +90,27 @@ type StructuredTableForReconciliation = {
   source?: string;
 };
 
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  limit: number,
+  mapper: (item: T, index: number) => Promise<R>,
+): Promise<R[]> {
+  const safeLimit = Math.max(1, Math.min(limit, items.length || 1));
+  const results = new Array<R>(items.length);
+  let cursor = 0;
+
+  const workers = Array.from({ length: safeLimit }, async () => {
+    while (cursor < items.length) {
+      const index = cursor;
+      cursor += 1;
+      results[index] = await mapper(items[index], index);
+    }
+  });
+
+  await Promise.all(workers);
+  return results;
+}
+
 const PRODUCT_TYPES = new Set([
   'credit_card',
   'debit_account',
@@ -196,12 +217,12 @@ function formatAmount(value: number): string {
   return new Intl.NumberFormat('es-CL', { maximumFractionDigits: 0 }).format(Math.round(value));
 }
 
-function toIsoDate(value: string | null | undefined): string | undefined {
+export function toIsoDate(value: string | null | undefined): string | undefined {
   const raw = String(value ?? '').trim();
   if (!raw) return undefined;
-  const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})(?:\b|$)/);
   if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
-  const dm = raw.match(/^(\d{1,2})[/-](\d{1,2})(?:[/-](\d{2,4}))?$/);
+  const dm = raw.match(/^(\d{1,2})[/-](\d{1,2})(?:[/-](\d{2,4}))?(?:\b|$)/);
   if (!dm) return undefined;
   const dd = dm[1].padStart(2, '0');
   const mm = dm[2].padStart(2, '0');
@@ -424,8 +445,10 @@ function parseMovementFromTableRow(params: {
   const incomeIndex = resolveColumnIndex(headers, [/abono/, /ingreso/, /credito/, /haber/]);
   const amountIndex = resolveColumnIndex(headers, [/^monto$/, /^importe$/, /^valor$/]);
   const balanceIndex = resolveColumnIndex(headers, [/saldo/, /balance/, /disponible/]);
+  const typeIndex = resolveColumnIndex(headers, [/^tipo\b/, /^movimiento\b/]);
 
-  const date = toIsoDate(dateIndex >= 0 ? row[dateIndex] : parseDateFromLine(row.join(' ')));
+  const dateSource = dateIndex >= 0 ? row[dateIndex] : row.join(' ');
+  const date = toIsoDate(dateSource) ?? parseDateFromLine(dateSource);
   const expense = expenseIndex >= 0 && !isBlankLikeCell(row[expenseIndex]) ? parseAmountToken(row[expenseIndex]) : null;
   const income = incomeIndex >= 0 && !isBlankLikeCell(row[incomeIndex]) ? parseAmountToken(row[incomeIndex]) : null;
 
@@ -453,7 +476,8 @@ function parseMovementFromTableRow(params: {
     const picked = pickAmountFromCells(row, fallbackIndexes);
     if (picked.amount === null) return null;
     if (picked.index === balanceIndex) return null;
-    const semantics = inferMovementSemantics(row.join(' '), picked.amount, picked.token, productType);
+    const typeToken = typeIndex >= 0 ? row[typeIndex] ?? '' : '';
+    const semantics = inferMovementSemantics([row.join(' '), typeToken].filter(Boolean).join(' '), picked.amount, picked.token, productType);
     direction = semantics.direction;
     movementKind = semantics.kind;
     amount = Math.abs(picked.amount);
@@ -1090,8 +1114,10 @@ router.post(
 
     const decodedFiles = validateAndPrepareDocumentFiles(body.files);
 
-    const documents: ParsedDocumentResponse[] = await Promise.all(
-      decodedFiles.map(async (file) => {
+    const documents: ParsedDocumentResponse[] = await mapWithConcurrency(
+      decodedFiles,
+      Number(process.env.DOCUMENT_PARSE_CONCURRENCY || '1') || 1,
+      async (file) => {
         try {
           return await ingestUserDocument({
             userId: user.id,
@@ -1115,7 +1141,7 @@ router.post(
             throw retryErr;
           }
         }
-      }),
+      },
     );
 
     const heuristicAnalysis = buildTransactionAnalysis(documents, {
