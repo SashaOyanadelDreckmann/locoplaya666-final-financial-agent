@@ -79,10 +79,17 @@ export default function NumbersCanvas({
           const i4 = (r * cols + c) * 4;
           const rv = data[i4], gv = data[i4+1], bv = data[i4+2];
           px.push({ r: rv, g: gv, b: bv, lum: (rv*.299 + gv*.587 + bv*.114) / 255 });
+          // Resolution-independent dissolve: a gentle diagonal bias driven by
+          // FRACTIONAL position (identical at any column count) dominated by a
+          // strong per-cell random term. This avoids the hard directional
+          // column-wipe that reads as a vertical "cut" on narrow/low-column
+          // screens — the reveal looks the same on mobile as on desktop.
           const cf = c / Math.max(cols-1, 1);
+          const rf = r / Math.max(rows-1, 1);
+          const bias = (cf * 0.62 + rf * 0.38) * 0.16; // soft diagonal, 0..0.16
           cd.push({
-            revIn:  cf * .22 + Math.random() * .12,
-            revOut: cf * .22 + Math.random() * .12,
+            revIn:  bias + Math.random() * .34,
+            revOut: bias + Math.random() * .34,
             spd:    4 + Math.random() * 10,
             phi:    Math.random() * Math.PI * 2,
           });
@@ -117,7 +124,7 @@ export default function NumbersCanvas({
       raf = requestAnimationFrame(loop);
       const p = progress.get();
       // 60fps during entrance/exit transition; 30fps during steady-state to save battery
-      const inTransition = p < 0.22 || p > 0.82;
+      const inTransition = p < 0.22 || p > 0.76;
       if (isMobile && !inTransition && ts - lastFrameTs < 33) return;
       lastFrameTs = ts;
       const t = ts / 1000;
@@ -207,8 +214,8 @@ export default function NumbersCanvas({
           const p_ = px[i];
 
           // Reveal envelope per column
-          const a_in  = ease(remap(inP,  c.revIn,  c.revIn  + .30));
-          const a_out = ease(remap(outP, c.revOut, c.revOut + .30));
+          const a_in  = ease(remap(inP,  c.revIn,  c.revIn  + .36));
+          const a_out = ease(remap(outP, c.revOut, c.revOut + .36));
           const alpha = clamp(a_in - a_out) * (1 - fd);
           if (alpha < .01) continue;
 
