@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { getCsrfToken } from '@/lib/csrf';
+import { CHILE_FINANCIAL_INSTITUTIONS } from '@/lib/financialCatalog';
 import { buildChatDashboardForQuestion, compactDashboardForPrompt } from '@/lib/transactions-chat.helpers';
 import { resolveInstantTransactionSummary } from '@/lib/transactions-summary.helpers';
 

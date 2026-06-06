@@ -791,7 +791,8 @@ export function BudgetModal(props: {
 
   function unwrapApiData<T>(payload: unknown): T | null {
     if (!payload || typeof payload !== 'object') return null;
-    if ('data' in payload && payload.ok === true) return (payload.data ?? null) as T | null;
+    const candidate = payload as { ok?: boolean; data?: unknown };
+    if ('data' in candidate && candidate.ok === true) return (candidate.data ?? null) as T | null;
     return payload as T;
   }
 

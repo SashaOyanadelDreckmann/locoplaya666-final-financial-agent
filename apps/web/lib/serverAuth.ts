@@ -2,14 +2,14 @@
  * Server-side auth helper for Next.js API routes.
  * Validates the session cookie against the backend before allowing access.
  */
-import { getApiBaseUrl } from './apiBase';
+import { getServerApiBaseUrl } from './apiBase';
 import { parseApiResponse } from './apiEnvelope';
 
 export async function requireBackendSession(request: Request) {
   const cookie = request.headers.get('cookie');
   if (!cookie) throw new Error('UNAUTHENTICATED');
 
-  const res = await fetch(`${getApiBaseUrl()}/auth/me`, {
+  const res = await fetch(`${getServerApiBaseUrl()}/auth/me`, {
     method: 'GET',
     cache: 'no-store',
     headers: { cookie },

@@ -16,13 +16,11 @@ function readDirectApiOriginForClient(): string | null {
  *
  * - En dev local, si no está configurado, cae a http://localhost:3001
  * - En deploy, configurar NEXT_PUBLIC_API_URL (ej: https://api.tu-dominio.com)
- * - En browser+prod se prioriza URL directa al API (runtime + build) para evitar truncar uploads
+ * - En browser+prod usa `/backend` (same-origin) para cookies de sesión en móvil/Safari
  */
 export function getApiBaseUrl(): string {
   if (typeof window !== 'undefined') {
     if (process.env.NODE_ENV === 'production') {
-      const direct = readDirectApiOriginForClient();
-      if (direct) return direct;
       return '/backend';
     }
 
@@ -68,11 +66,14 @@ export function getAgentApiBaseUrl(): string {
 }
 
 /**
- * URL directa para uploads pesados (cartolas/fotos/PDF) en producción.
- * El rewrite `/backend` de Next puede truncar payloads grandes o cortar OCR largo.
+ * Uploads de documentos usan `/api/documents/parse` (proxy Next same-origin).
+ * @deprecated Usar ruta relativa `/api/documents/parse` desde el cliente.
  */
 export function getUploadApiBaseUrl(): string {
-  return getAgentApiBaseUrl();
+  if (typeof window !== 'undefined') {
+    return '/api/documents/parse';
+  }
+  return `${getServerApiBaseUrl()}/api/documents/parse`;
 }
 
 /**

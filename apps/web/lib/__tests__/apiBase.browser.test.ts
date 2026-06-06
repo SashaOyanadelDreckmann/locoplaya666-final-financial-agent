@@ -27,14 +27,10 @@ describe('apiBase browser production', () => {
     });
   });
 
-  it('getApiBaseUrl uses runtime-injected apiOrigin before /backend fallback', () => {
+  it('getApiBaseUrl uses same-origin /backend in production browser', () => {
     window.__FA_RUNTIME__ = { apiOrigin: 'https://runtime-api.example.com' };
-    expect(getApiBaseUrl()).toBe('https://runtime-api.example.com');
-    expect(getUploadApiBaseUrl()).toBe('https://runtime-api.example.com');
-  });
-
-  it('getApiBaseUrl falls back to /backend when no direct origin is configured', () => {
     expect(getApiBaseUrl()).toBe('/backend');
+    expect(getUploadApiBaseUrl()).toBe('/api/documents/parse');
   });
 
   it('getSessionApiBaseUrl always uses same-origin /backend for auth cookies', () => {

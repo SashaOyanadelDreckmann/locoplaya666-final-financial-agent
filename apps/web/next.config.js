@@ -13,6 +13,9 @@ const apiOrigin = normalizeOrigin(
 const nextConfig = {
   reactStrictMode: true,
   output: 'standalone',
+  experimental: {
+    proxyClientMaxBodySize: '40mb',
+  },
   eslint: {
     ignoreDuringBuilds: false,
   },

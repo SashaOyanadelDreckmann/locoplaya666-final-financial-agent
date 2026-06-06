@@ -29,7 +29,7 @@ type InterviewResponse = {
 };
 
 type InterviewState = {
-  intake: IntakeQuestionnaire | null;
+  intake: (Partial<IntakeQuestionnaire> & Record<string, unknown>) | null;
   answersByBlock: Record<string, string[]>;
   transcriptEntries: Array<{
     blockId: string;
@@ -37,7 +37,7 @@ type InterviewState = {
   }>;
   completedBlocks: CompletedBlocksMap;
   lastResponse: InterviewResponse | null;
-  setIntake: (intake: IntakeQuestionnaire) => void;
+  setIntake: (intake: Partial<IntakeQuestionnaire> & Record<string, unknown>) => void;
   addAnswer: (blockId: string, answer: string) => void;
   resetBlock: (blockId: string) => void;
   setResponse: (response: InterviewResponse | null) => void;

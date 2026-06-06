@@ -750,6 +750,13 @@ export default function AgentPage() {
     []
   );
 
+  // Haptic feedback — usa Vibration API si esta disponible (Android/algunos iOS PWA)
+  const haptic = useCallback((pattern: number | number[] = 10) => {
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      navigator.vibrate(pattern);
+    }
+  }, []);
+
   // Drag continuo en panel mobile: arrastra el handle para ajustar altura
   useEffect(() => {
     const handle = mobilePanelHandleRef.current;
@@ -828,23 +835,23 @@ export default function AgentPage() {
         // Migrate saved sheets to current type
         const sheets = data.sheets as Array<Record<string, unknown>>;
         const restored: ChatThread[] = sheets.map((s) => ({
-          id: s.id ?? `chat-${Date.now()}`,
-          label: s.label ?? '1',
-          name: s.name ?? 'Conversación',
-          autoNamed: s.autoNamed ?? false,
+          id: String(s.id ?? `chat-${Date.now()}`),
+          label: String(s.label ?? '1'),
+          name: String(s.name ?? 'Conversación'),
+          autoNamed: Boolean(s.autoNamed ?? false),
           items: Array.isArray(s.items)
             ? dedupeConsecutiveAssistantMessages(
                 sanitizeChatItems(
-                  (s.items as Array<Record<string, unknown>>).filter((it) => it.type !== 'message' || it.content !== undefined)
+                  (s.items as any[]).filter((it) => it.type !== 'message' || it.content !== undefined)
                 )
               )
             : [],
-          draft: s.draft ?? '',
-          status: s.status ?? 'active',
-          contextScore: s.contextScore ?? 0,
-          userMessageCount: s.userMessageCount ?? 0,
-          createdAt: s.createdAt ?? new Date().toISOString(),
-          completedAt: s.completedAt,
+          draft: String(s.draft ?? ''),
+          status: (String(s.status ?? 'active') as ChatThread['status']),
+          contextScore: Number(s.contextScore ?? 0),
+          userMessageCount: Number(s.userMessageCount ?? 0),
+          createdAt: String(s.createdAt ?? new Date().toISOString()),
+          completedAt: s.completedAt == null ? undefined : String(s.completedAt),
         }));
         const baseDefs = [
           { id: 'chat-1', label: '1', name: 'Diagnóstico financiero' },
@@ -1818,6 +1825,16 @@ export default function AgentPage() {
     };
   }, [bankSimulation, budgetChatAnswers, budgetRows, buildPanelSnapshot, isAuthenticated, panelStateBackupKey, panelStateLoaded, savedReports, setBudgetRows, txProductsCreatedTotal]);
 
+  const syncFinancialContextToIntake = useCallback(async () => {
+    await mergeProductsContextToIntake({
+      productsContext: buildPersistableProductsContext(
+        bankSimulation.products,
+        bankSimulation.activeProductId
+      ),
+      budgetContext: buildPersistableBudgetContext(),
+    });
+  }, [bankSimulation.activeProductId, bankSimulation.products, buildPersistableBudgetContext]);
+
   useEffect(() => {
     if (!isAuthenticated || !panelStateLoaded) return;
     const hasPanelContext =
@@ -1894,13 +1911,6 @@ export default function AgentPage() {
       setTimeout(() => chatComposerRef.current?.focus(), 80);
     }
   }, [hasBlockingModalOpen, isActiveChatLocked, isMobileViewport]);
-
-  // Haptic feedback — usa Vibration API si esta disponible (Android/algunos iOS PWA)
-  const haptic = useCallback((pattern: number | number[] = 10) => {
-    if (typeof navigator !== 'undefined' && navigator.vibrate) {
-      navigator.vibrate(pattern);
-    }
-  }, []);
 
   async function onSend(
     messageOverride?: string,
@@ -2428,16 +2438,6 @@ export default function AgentPage() {
     )}${analysisEnvelope ? ` ANALISIS_TRANSACCIONAL_JSON=${JSON.stringify(analysisEnvelope)}` : ''}`;
     void onSend(message);
   }
-
-  const syncFinancialContextToIntake = useCallback(async () => {
-    await mergeProductsContextToIntake({
-      productsContext: buildPersistableProductsContext(
-        bankSimulation.products,
-        bankSimulation.activeProductId
-      ),
-      budgetContext: buildPersistableBudgetContext(),
-    });
-  }, [bankSimulation.activeProductId, bankSimulation.products, buildPersistableBudgetContext]);
 
   const buildInterviewIntakePayload = useCallback(() => {
     const baseIntake =

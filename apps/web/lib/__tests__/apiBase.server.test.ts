@@ -18,9 +18,9 @@ describe('apiBase server', () => {
     expect(getServerApiBaseUrl()).toBe('https://api.example.com');
   });
 
-  it('getUploadApiBaseUrl prefers direct API origin from env on server', () => {
+  it('getUploadApiBaseUrl points to documents parse on server', () => {
     delete process.env.NEXT_PUBLIC_API_URL;
     process.env.NEXT_PUBLIC_API_ORIGIN = 'https://api-origin.example.com';
-    expect(getUploadApiBaseUrl()).toBe('https://api-origin.example.com');
+    expect(getUploadApiBaseUrl()).toBe('https://api-origin.example.com/api/documents/parse');
   });
 });
