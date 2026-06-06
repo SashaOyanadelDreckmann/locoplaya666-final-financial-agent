@@ -50,6 +50,14 @@ describe('formula-sanitizer', () => {
       expect(result).toBe(text);
     });
 
+    it('preserves currency amounts with dollar signs', () => {
+      const text = 'La simulación muestra $1.000.000 en ahorro y $250.000 de aporte.';
+      const result = sanitizeFormulaContent(text);
+      expect(result).toContain('$1.000.000');
+      expect(result).toContain('$250.000');
+      expect(result).not.toContain('$$1$');
+    });
+
     it('fixes corrupted function calls like _fin(...)', () => {
       const text = 'valor = 100_fin(.classification)]]';
       const result = sanitizeFormulaContent(text);

@@ -6,7 +6,12 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { runFormatPhase, detectAndRecordKnowledge } from './format.phase';
+import {
+  runFormatPhase,
+  detectAndRecordKnowledge,
+  ensureDecisionDisclaimer,
+  shouldApplyLatexFormatting,
+} from './format.phase';
 import * as testUtils from '../../../test/mocks';
 import type { ExecutionResult } from '../agent-types';
 
@@ -212,6 +217,22 @@ invalid json
     expect(result.formatted_response.suggested_replies).toEqual([]);
   });
 
+  it('should not duplicate decision disclaimer when recent context already contains it', () => {
+    const input = {
+      mode: 'decision_support',
+      user_message: '¿Me conviene APV?',
+      context_summary: {
+        recent_thread_context: 'Decision final: debe tomarla el usuario de forma 100% informada.',
+      },
+      ui_state: {
+        active_chat: { id: 'chat-2' },
+      },
+    } as any;
+
+    const result = ensureDecisionDisclaimer('Te conviene revisar liquidez antes de invertir.', input);
+    expect(result).not.toMatch(/decision final/i);
+  });
+
   it('should prefer fast format for low-complexity turns outside test mode', async () => {
     const previousNodeEnv = process.env.NODE_ENV;
     process.env.NODE_ENV = 'development';
@@ -329,5 +350,12 @@ describe('detectAndRecordKnowledge', () => {
     });
 
     expect(result).toHaveProperty('knowledge_score');
+  });
+
+  it('should not trigger latex formatting for APV prose with currency', () => {
+    const text =
+      'APV: con $100.000 mensuales y un retorno esperado de 8% anual, el foco es comparar beneficio fiscal y liquidez.';
+
+    expect(shouldApplyLatexFormatting(text)).toBe(false);
   });
 });

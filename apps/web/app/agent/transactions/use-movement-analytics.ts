@@ -7,6 +7,7 @@ export type NormalizedMovementRow = {
   label: string;
   amount: number;
   direction: 'income' | 'expense';
+  movementKind: 'income' | 'expense' | 'abono';
   date: string;
   sourceLine: string;
   category: string;
@@ -114,6 +115,7 @@ export function useMovementAnalytics(
     label: movement.description ?? movement.source_line ?? movement.merchant ?? '',
     amount: Number(movement.amount) || 0,
     direction: movement.direction,
+    movementKind: movement.movement_kind ?? (movement.direction === 'income' ? 'income' : 'expense'),
     date: movement.date ?? '',
     sourceLine: movement.source_line ?? '',
     category: movement.category ?? '',
@@ -147,6 +149,7 @@ export function useMovementAnalytics(
       rawAmount,
       directionForTotals: normalizedDirection as 'income' | 'expense',
       amount: Math.abs(rawAmount),
+      movementKind: movement.movementKind,
     };
     const manualOverride = resolveTransactionOverride(baseRow, transactionTaxonomyOverrides);
     return manualOverride
@@ -184,6 +187,13 @@ export function useMovementAnalytics(
 
   const incomeOrAbonoRows = dedupedMovementRows.filter((m) => m.directionForTotals === 'income');
   const expenseRows = dedupedMovementRows.filter((m) => m.directionForTotals === 'expense');
+  const hasAbonoRows = incomeOrAbonoRows.some((m) => m.movementKind === 'abono');
+  const hasIncomeRows = incomeOrAbonoRows.some((m) => m.movementKind === 'income');
+  const inflowLabel = hasAbonoRows
+    ? hasIncomeRows
+      ? 'abonos e ingresos'
+      : 'abonos'
+    : 'ingresos';
   const incomeOrAbonoTotal = incomeOrAbonoRows.reduce((acc, m) => acc + m.amount, 0);
   const expenseTotal = expenseRows.reduce((acc, m) => acc + m.amount, 0);
 
@@ -219,7 +229,7 @@ export function useMovementAnalytics(
 
   const summaryFromTable =
     movementCount > 0
-      ? `Se analizaron ${movementCount.toLocaleString('es-CL')} movimientos sobre cartola de ${isCreditCardProduct ? 'tarjeta' : 'producto'}. Totales detectados desde tabla extraída: ${formatCurrency(tableDerivedMetrics.outflowsTotal)} en egresos y ${formatCurrency(tableDerivedMetrics.inflowsTotal)} en ${isCreditCardProduct ? 'abonos' : 'ingresos'}; flujo neto ${formatCurrency(netFlowFromTable)}.`
+      ? `Se analizaron ${movementCount.toLocaleString('es-CL')} movimientos sobre cartola de ${isCreditCardProduct ? 'tarjeta' : 'producto'}. Totales detectados desde tabla extraída: ${formatCurrency(tableDerivedMetrics.outflowsTotal)} en egresos y ${formatCurrency(tableDerivedMetrics.inflowsTotal)} en ${inflowLabel}; flujo neto ${formatCurrency(netFlowFromTable)}.`
       : 'Aún no hay suficientes filas extraídas para construir un resumen analítico confiable.';
 
   const verifiedTableRows =
@@ -383,6 +393,7 @@ export function useMovementAnalytics(
         description: m.label,
         amount: m.amount,
         direction: m.directionForTotals,
+        movement_kind: m.movementKind,
         source_line: m.sourceLine ?? '',
         category: m.category ?? 'Consumo general',
         merchant: m.merchant ?? '',
@@ -416,6 +427,7 @@ export function useMovementAnalytics(
     flowRatioFromTable,
     tablePeriod,
     summaryFromTable,
+    inflowLabel,
     verifiedTableRows,
     highConfidenceMovementCount,
     movementCoverageDisplay,

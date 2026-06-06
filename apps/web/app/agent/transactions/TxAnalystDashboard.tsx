@@ -131,6 +131,7 @@ export function TxAnalystDashboard({
     flowRatioFromTable,
     tablePeriod,
     summaryFromTable,
+    inflowLabel,
     verifiedTableRows,
     highConfidenceMovementCount,
     movementCoverageDisplay,
@@ -165,6 +166,18 @@ export function TxAnalystDashboard({
       onExecTabChange('metrics');
     }
   };
+  const movementTypeLabel = (movement: MovementAnalytics['dedupedMovementRows'][number]) =>
+    movement.movementKind === 'abono'
+      ? 'Abono'
+      : movement.directionForTotals === 'income'
+        ? 'Ingreso'
+        : 'Egreso';
+  const inflowSectionLabel =
+    inflowLabel === 'abonos e ingresos'
+      ? 'Abonos e ingresos'
+      : inflowLabel === 'abonos'
+        ? 'Abonos'
+        : 'Ingresos';
 
   return (
                   <section className="tx-content-card is-main-center tx-summary-stage tx-step-reveal tx-ap-dashboard">
@@ -194,7 +207,7 @@ export function TxAnalystDashboard({
                       </div>
                       <div className="tx-ap-hero-numbers">
                         <div className="tx-ap-hero-primary">
-                          <span className="tx-ap-hero-label">{isCreditCardProduct ? 'Abonos totales' : 'Ingresos totales'}</span>
+                          <span className="tx-ap-hero-label">{`${inflowSectionLabel} totales`}</span>
                           <strong className="tx-ap-hero-value tx-ap-value-income">{formatCurrency(tableDerivedMetrics.inflowsTotal)}</strong>
                         </div>
                         <div className="tx-ap-hero-divider" aria-hidden="true" />
@@ -290,9 +303,9 @@ export function TxAnalystDashboard({
                         </div>
                         <div className="tx-ap-split-tables">
                           <div className="tx-ap-table-card">
-                            <span className="tx-ap-section-label">{isCreditCardProduct ? 'Abonos' : 'Ingresos'}</span>
+                            <span className="tx-ap-section-label">{inflowSectionLabel}</span>
                             <div className="tx-movements-table-shell">
-                              <table className="tx-movements-table tx-movements-table--pro" aria-label="Tabla de ingresos y abonos">
+                              <table className="tx-movements-table tx-movements-table--pro" aria-label={`Tabla de ${inflowLabel}`}>
                                 <thead>
                                   <tr>
                                     <th>Tipo</th>
@@ -321,7 +334,7 @@ export function TxAnalystDashboard({
                                         }
                                         title="Doble clic para revisar esta categorización"
                                       >
-                                        <td><span className="tx-type-income">{isCreditCardProduct ? 'Abono' : 'Ingreso'}</span></td>
+                                        <td><span className="tx-type-income">{movementTypeLabel(movement)}</span></td>
                                         <td>{movement.date || 'N/D'}</td>
                                         <td>{movement.merchant ? `${movement.label} · ${movement.merchant}` : movement.label}</td>
                                         <td>
@@ -336,7 +349,7 @@ export function TxAnalystDashboard({
                               </table>
                             </div>
                             <div className="tx-table-total-box is-income" role="status" aria-live="polite">
-                              <span>{isCreditCardProduct ? 'Total abonos' : 'Total ingresos'}</span>
+                              <span>{inflowSectionLabel.startsWith('Abonos') ? `Total ${inflowSectionLabel.toLowerCase()}` : 'Total ingresos'}</span>
                               <strong>{formatCurrency(incomeOrAbonoTotal)}</strong>
                             </div>
                           </div>
@@ -598,7 +611,7 @@ export function TxAnalystDashboard({
                             <ResponsiveContainer width="100%" height="100%">
                               <BarChart
                                 data={[
-                                  { metric: isCreditCardProduct ? 'Abonos' : 'Ingresos', value: tableDerivedMetrics.inflowsTotal },
+                                  { metric: inflowSectionLabel, value: tableDerivedMetrics.inflowsTotal },
                                   { metric: 'Egresos', value: tableDerivedMetrics.outflowsTotal },
                                   { metric: 'Flujo neto', value: netFlowFromTable },
                                 ]}
@@ -615,7 +628,7 @@ export function TxAnalystDashboard({
                                 />
                                 <Bar dataKey="value" shape={<RetroBarShape />}>
                                   {[
-                                    { metric: isCreditCardProduct ? 'Abonos' : 'Ingresos', value: tableDerivedMetrics.inflowsTotal },
+                                    { metric: inflowSectionLabel, value: tableDerivedMetrics.inflowsTotal },
                                     { metric: 'Egresos', value: tableDerivedMetrics.outflowsTotal },
                                     { metric: 'Flujo neto', value: netFlowFromTable },
                                   ].map((entry, idx) => (
@@ -767,7 +780,7 @@ export function TxAnalystDashboard({
                       {summaryFromTable ? <p className="tx-ap-ficha-summary">{summaryFromTable}</p> : null}
                       <div className="tx-ap-kpi-secondary-grid">
                         <article className="tx-ap-kpi-secondary-card tx-ap-kpi--income">
-                          <span>{isCreditCardProduct ? 'Abonos totales' : 'Ingresos totales'}</span>
+                          <span>{`${inflowSectionLabel} totales`}</span>
                           <strong>{formatCurrency(tableDerivedMetrics.inflowsTotal)}</strong>
                         </article>
                         <article className="tx-ap-kpi-secondary-card tx-ap-kpi--expense">

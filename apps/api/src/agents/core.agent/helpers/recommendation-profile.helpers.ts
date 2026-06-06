@@ -24,6 +24,28 @@ function toNumber(value: unknown): number | null {
   return Number.isFinite(numeric) ? numeric : null;
 }
 
+function inferMonthlyIncome(params: {
+  budget: Record<string, unknown>;
+  intake: Record<string, unknown>;
+}): number {
+  const exact = toNumber(params.budget.income) ?? toNumber(params.intake.exactMonthlyIncome);
+  if (exact !== null) return exact;
+
+  const incomeBand = String(params.intake.incomeBand ?? '').trim();
+  const bandFallbacks: Record<string, number> = {
+    no_income: 0,
+    '<300k': 250_000,
+    '300k-600k': 450_000,
+    '600k-1M': 800_000,
+    '1M-2M': 1_500_000,
+    '2M-4M': 3_000_000,
+    '>4M': 4_500_000,
+    variable: 0,
+  };
+
+  return bandFallbacks[incomeBand] ?? 0;
+}
+
 export function buildRecommendationProfile(params: {
   activeChatId?: unknown;
   budgetSummary?: Record<string, unknown> | null;
@@ -45,7 +67,7 @@ export function buildRecommendationProfile(params: {
   const inferredRisk = params.inferredUserModel?.risk_profile ?? 'balanced';
   const userMessage = String(params.userMessage ?? '').toLowerCase();
 
-  const income = toNumber(budget.income) ?? toNumber(intake.exactMonthlyIncome) ?? 0;
+  const income = inferMonthlyIncome({ budget, intake });
   const expenses = toNumber(budget.expenses) ?? 0;
   const balance = toNumber(budget.balance) ?? income - expenses;
   const debt = intake.hasDebt === true || intake.hasDebt === 'true';
@@ -81,7 +103,11 @@ export function buildRecommendationProfile(params: {
   }
 
   const missing_critical_data: string[] = [];
-  if (!income) missing_critical_data.push('ingreso mensual');
+  const hasDeclaredIncome =
+    toNumber(budget.income) !== null ||
+    toNumber(intake.exactMonthlyIncome) !== null ||
+    typeof intake.incomeBand === 'string' && intake.incomeBand.length > 0;
+  if (!hasDeclaredIncome) missing_critical_data.push('ingreso mensual');
   if (specialization === 'strategy' && horizon_bucket === 'unknown') missing_critical_data.push('horizonte');
   if (specialization === 'strategy' && !/\bobjetivo|meta|casa|auto|viaje|retiro|emergencia\b/.test(userMessage)) {
     missing_critical_data.push('objetivo financiero');

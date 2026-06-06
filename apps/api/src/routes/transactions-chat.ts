@@ -1,9 +1,12 @@
 import { Router } from 'express';
 import type { Request, Response } from 'express';
 import OpenAI from 'openai';
+import { z } from 'zod';
 import { requireAuth } from '../middleware/auth';
 import { asyncHandler } from '../middleware/errorHandler';
 import { getConfig } from '../config';
+import { parseBody } from '../http/parse';
+import { getUserDocumentsByIds } from '../persistence/repos';
 import {
   buildChatDashboardForQuestion,
   compactChatHistory,
@@ -36,6 +39,31 @@ type CanonicalParsedDocument = {
 };
 
 const router = Router();
+
+const AssistantMessageSchema = z.object({
+  role: z.enum(['assistant', 'user']).optional(),
+  text: z.string().trim().max(1200).optional(),
+});
+
+const ParsedDocumentSchema = z.object({
+  documentId: z.string().trim().max(120).optional(),
+  name: z.string().trim().max(180).optional(),
+  text: z.string().trim().max(4000).optional(),
+  insight: z.unknown().optional(),
+  summary: z.unknown().optional(),
+  structuredData: z.unknown().optional(),
+});
+
+const TransactionChatRequestSchema = z.object({
+  mode: z.enum(['summary', 'chat']).default('chat'),
+  product: z.record(z.unknown()).default({}),
+  parsedDocuments: z.array(ParsedDocumentSchema).max(20).default([]),
+  dashboard: z.unknown().optional().nullable(),
+  question: z.string().trim().max(600).default(''),
+  currentSummary: z.string().trim().max(4000).default(''),
+  feedback: z.string().trim().max(2000).default(''),
+  messages: z.array(AssistantMessageSchema).max(8).default([]),
+});
 
 function safeParseJson<T>(raw: string, fallback: T): T {
   try {
@@ -76,7 +104,7 @@ function documentsFromClient(parsedDocuments: ClientParsedDocument[], maxText = 
 }
 
 async function resolveCanonicalDocuments(
-  req: Request,
+  userId: string,
   parsedDocuments: ClientParsedDocument[],
 ): Promise<CanonicalParsedDocument[]> {
   const docIds = Array.from(
@@ -91,35 +119,20 @@ async function resolveCanonicalDocuments(
     return documentsFromClient(parsedDocuments);
   }
 
-  const cookie = req.get('cookie');
-    const res = await fetch(`${getConfig().WEB_ORIGIN}/api/documents/resolve`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(cookie ? { cookie } : {}),
-      ...(req.get('x-csrf-token') ? { 'X-CSRF-Token': req.get('x-csrf-token') as string } : {}),
-    },
-    body: JSON.stringify({ documentIds: docIds }),
-    cache: 'no-store',
-  });
-  if (!res.ok) throw new Error('No se pudo validar la evidencia documental');
-  const payload = await res.json().catch(() => null);
-  const documents = Array.isArray(payload?.data?.documents) ? payload.data.documents : [];
+  const documents = await getUserDocumentsByIds(userId, docIds);
   if (documents.length === 0) {
     throw new Error('No se encontró evidencia documental válida para este producto');
   }
-  const canonicalById = new Map<string, CanonicalParsedDocument>(
-    documents.map((doc: { documentId?: string; name?: string; text?: string; summary?: unknown; structuredData?: unknown }) => [
-      String(doc?.documentId ?? ''),
-      {
-        documentId: String(doc?.documentId ?? ''),
-        name: String(doc?.name ?? ''),
-        text: compactTxText(doc?.text ?? '', 2600),
-        summary: doc?.summary ?? null,
-        structuredData: doc?.structuredData ?? null,
-      },
-    ]),
-  );
+  const canonicalById = new Map<string, CanonicalParsedDocument>();
+  for (const doc of documents) {
+    canonicalById.set(doc.id, {
+      documentId: doc.id,
+      name: doc.name,
+      text: compactTxText(doc.extractedText ?? doc.textPreview ?? '', 2600),
+      summary: doc.summary ?? null,
+      structuredData: doc.structuredData ?? null,
+    });
+  }
   const resolved: CanonicalParsedDocument[] = [];
   for (const doc of parsedDocuments) {
     const canonical = canonicalById.get(String(doc?.documentId ?? '').trim());
@@ -151,6 +164,10 @@ router.post(
   '/',
   requireAuth,
   asyncHandler(async (req: Request, res: Response) => {
+    const user = req.authenticatedUser;
+    if (!user) {
+      return res.status(401).json({ ok: false, error: 'Not authenticated' });
+    }
     const config = getConfig();
     assertCsrf(req);
 
@@ -158,18 +175,15 @@ router.post(
       return res.status(500).json({ ok: false, error: 'OPENAI_API_KEY no configurada' });
     }
 
-    const body = req.body ?? {};
-    const mode = String(body?.mode ?? 'chat').trim();
-    if (mode !== 'summary' && mode !== 'chat') {
-      return res.status(400).json({ ok: false, error: 'Invalid mode' });
-    }
-    const product = body?.product ?? {};
-    const parsedDocuments = (Array.isArray(body?.parsedDocuments) ? body.parsedDocuments : []) as ClientParsedDocument[];
-    const dashboard = body?.dashboard ?? null;
-    const question = compactTxText(body?.question ?? '', 600);
-    const currentSummary = compactTxText(body?.currentSummary ?? '', 4000);
-    const feedback = compactTxText(body?.feedback ?? '', 2000);
-    const messages = (Array.isArray(body?.messages) ? body.messages : []) as AssistantMessage[];
+    const body = parseBody(TransactionChatRequestSchema, req.body);
+    const mode = body.mode;
+    const product = body.product;
+    const parsedDocuments = body.parsedDocuments as ClientParsedDocument[];
+    const dashboard = body.dashboard ?? null;
+    const question = compactTxText(body.question, 600);
+    const currentSummary = compactTxText(body.currentSummary, 4000);
+    const feedback = compactTxText(body.feedback, 2000);
+    const messages = body.messages as AssistantMessage[];
 
     const hasDocumentIds = parsedDocuments.some(
       (doc) => typeof doc?.documentId === 'string' && doc.documentId.trim().length > 0,
@@ -178,7 +192,7 @@ router.post(
       mode === 'chat'
         ? documentsFromClient(parsedDocuments, 0)
         : hasDocumentIds
-          ? await resolveCanonicalDocuments(req, parsedDocuments)
+          ? await resolveCanonicalDocuments(user.id, parsedDocuments)
           : documentsFromClient(parsedDocuments);
 
     const client = new OpenAI({ apiKey: config.OPENAI_API_KEY });
@@ -223,10 +237,8 @@ router.post(
     const lastUserMessage = [...messages].reverse().find((message) => message.role === 'user');
     const retrievalQuestion = question || compactTxText(lastUserMessage?.text ?? '', 600);
     const dashboardDigest =
-      dashboard && typeof dashboard === 'object' && dashboard !== null && 'retrieval' in (dashboard as object)
-        ? dashboard
-        : buildChatDashboardForQuestion(dashboard, retrievalQuestion) ??
-          compactDashboardForPrompt(dashboard, { maxMovements: 24, maxMerchants: 8 });
+      buildChatDashboardForQuestion(dashboard, retrievalQuestion) ??
+      compactDashboardForPrompt(dashboard, { maxMovements: 24, maxMerchants: 8 });
 
     const compactHistory = compactChatHistory(messages, 8, 500);
     const retrievalMeta =

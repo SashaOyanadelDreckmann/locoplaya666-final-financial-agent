@@ -126,14 +126,17 @@ function ensureProperLatexFormatting(text: string): string {
   const fixed = lines.map((line) => {
     // Count $ signs to detect unclosed patterns
     const dollarCount = (line.match(/\$/g) || []).length;
+    const hasCurrency = /\$\s*\d[\d.,]*/.test(line) || /\bCLP\b/i.test(line);
+    const hasMathContext =
+      /\\(frac|sum|int|sqrt|cdot|times|left|right|begin|end)|\b(VF|VA|APV|CAE|UF|TPM)\b|(?:\d+\s*[%]|=\s*[^=\n]+)/i.test(
+        line,
+      );
 
     // If odd number of $, we might have a problem
-    if (dollarCount % 2 !== 0) {
-      // Try to find and close the pattern
-      // If line contains math-like content, wrap it
-      if (/\d+|[×÷+\-]|[a-zA-Z]{2,}/.test(line.replace(/\$/g, ''))) {
-        // This might be a formula, ensure it's properly closed
-        return line.replace(/\$([^$]*?)$/g, '$$$$1$');
+    if (dollarCount % 2 !== 0 && hasMathContext && !hasCurrency) {
+      // Prefer a conservative repair: only close obvious math fragments.
+      if (line.includes('$') && !line.trim().endsWith('$')) {
+        return `${line}$`;
       }
     }
 

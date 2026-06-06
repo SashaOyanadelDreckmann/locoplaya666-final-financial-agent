@@ -41,6 +41,7 @@ describe('documents.parse.helpers', () => {
       inflowsTotal: 1_800_000,
       outflowsTotal: 1_250_000,
       netFlow: 550_000,
+      inflowLabel: 'Abonos',
       topCategories: [
         { name: 'Supermercado', amount: 320_000 },
         { name: 'Transporte', amount: 110_000 },
@@ -52,6 +53,7 @@ describe('documents.parse.helpers', () => {
     });
 
     expect(summary).toContain('42 movimientos');
+    expect(summary).toContain('Abonos');
     expect(summary).toContain('Supermercado');
     expect(summary).toContain('Jumbo');
   });

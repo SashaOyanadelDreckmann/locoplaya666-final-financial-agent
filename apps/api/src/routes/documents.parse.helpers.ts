@@ -74,6 +74,7 @@ export function buildExecutiveSummaryText(params: {
   inflowsTotal: number;
   outflowsTotal: number;
   netFlow: number;
+  inflowLabel?: string;
   topCategories: Array<{ name: string; amount: number }>;
   topMerchants: Array<{ merchant: string; amount: number }>;
   alerts: string[];
@@ -88,8 +89,9 @@ export function buildExecutiveSummaryText(params: {
     params.period?.from && params.period?.to
       ? ` (${params.period.from} a ${params.period.to})`
       : '';
+  const inflowLabel = params.inflowLabel ?? 'Ingresos';
   const lines = [
-    `Se detectaron ${params.movementCount} movimientos válidos${periodLabel}, con ${params.tableBasedMovements} desde tabla estructurada. Ingresos ${params.formatAmount(params.inflowsTotal)}, egresos ${params.formatAmount(params.outflowsTotal)} y flujo neto ${params.formatAmount(params.netFlow)}.`,
+    `Se detectaron ${params.movementCount} movimientos válidos${periodLabel}, con ${params.tableBasedMovements} desde tabla estructurada. ${inflowLabel} ${params.formatAmount(params.inflowsTotal)}, egresos ${params.formatAmount(params.outflowsTotal)} y flujo neto ${params.formatAmount(params.netFlow)}.`,
   ];
 
   if (params.topCategories.length > 0) {

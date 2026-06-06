@@ -8,7 +8,6 @@ import os from 'os';
 import { spawnSync } from 'child_process';
 import path from 'path';
 import PDFParse from 'pdf-parse';
-import { PDFExtract } from 'pdf.js-extract';
 import ffmpegStatic from 'ffmpeg-static';
 import XLSX from 'xlsx';
 import { getOpenAIClient, withCompatibleTemperature } from './llm.service';
@@ -451,6 +450,15 @@ export function isPdfExtractionWeak(text: string, tables: ParsedTable[]): boolea
   return compact.length < 180 || density < 0.35;
 }
 
+async function createPdfExtractParser() {
+  const mod = await import('pdf.js-extract');
+  const PdfExtract = (mod as { PDFExtract?: new () => { extractBuffer: (buffer: Buffer, options: Record<string, unknown>) => Promise<unknown> } }).PDFExtract;
+  if (!PdfExtract) {
+    throw new Error('pdf.js-extract PDFExtract no disponible');
+  }
+  return new PdfExtract();
+}
+
 async function parsePdfWithVisionDetailed(
   buffer: Buffer,
   filename: string,
@@ -554,7 +562,6 @@ async function parsePdfWithVisionDetailed(
 }
 
 export async function parsePdfBufferDetailed(buffer: Buffer, filename: string): Promise<ParsedTransactionArtifact> {
-  const pdfExtract = new PDFExtract();
   const fallbackText = async () => {
     let parser: any = null;
     try {
@@ -570,6 +577,7 @@ export async function parsePdfBufferDetailed(buffer: Buffer, filename: string): 
   };
 
   try {
+    const pdfExtract = await createPdfExtractParser();
     const extracted: any = await pdfExtract.extractBuffer(buffer, {
       normalizeWhitespace: true,
       disableCombineTextItems: false,

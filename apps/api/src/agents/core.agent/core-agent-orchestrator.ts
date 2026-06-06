@@ -42,6 +42,10 @@ export async function runCoreAgent(input: ChatAgentInput): Promise<ChatAgentResp
   // Extract injected context from input.context (set by route handler)
   const inputContext = input.context as Record<string, any> || {};
   const inputUiState = input.ui_state as Record<string, any> || {};
+  const budgetSummary =
+    inputUiState.budget_summary ||
+    inputContext.injected_budget ||
+    { income: 0, expenses: 0, balance: 0 };
 
   const ctx: CoreAgentContext = {
     input,
@@ -87,7 +91,7 @@ export async function runCoreAgent(input: ChatAgentInput): Promise<ChatAgentResp
 
     const recommendationProfile = buildRecommendationProfile({
       activeChatId: inputUiState.active_chat?.id,
-      budgetSummary: inputUiState.budget_summary,
+      budgetSummary,
       intake: ctx.injected_intake as Record<string, unknown> | null | undefined,
       inferredUserModel: classifyOutput.inferred_user_model,
       userMessage: input.user_message,

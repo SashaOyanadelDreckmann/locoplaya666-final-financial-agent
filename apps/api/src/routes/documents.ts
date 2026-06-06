@@ -73,6 +73,7 @@ type ParsedMovement = {
   description: string;
   amount: number;
   direction: 'expense' | 'income';
+  movement_kind?: 'expense' | 'income' | 'abono';
   source_line?: string;
   category?: string;
   merchant?: string;
@@ -260,18 +261,36 @@ export function inferMovementDirection(
   amountToken = '',
   productType?: string,
 ): 'income' | 'expense' {
+  return inferMovementSemantics(line, signedAmount, amountToken, productType).direction;
+}
+
+export function inferMovementKind(
+  line: string,
+  signedAmount: number,
+  amountToken = '',
+  productType?: string,
+): 'expense' | 'income' | 'abono' {
+  return inferMovementSemantics(line, signedAmount, amountToken, productType).kind;
+}
+
+function inferMovementSemantics(
+  line: string,
+  signedAmount: number,
+  amountToken = '',
+  productType?: string,
+): { direction: 'income' | 'expense'; kind: 'expense' | 'income' | 'abono' } {
   const normalized = line.toLowerCase();
   const normalizedProductType = normalizeMovementProductType(productType);
   const isCreditCard = normalizedProductType === 'credit_card';
 
-  // High-specificity income phrases are checked separately to prevent generic
-  // keywords like "pago" (also in expense list) from masking them.
-  const specificIncomeHits = (
+  const incomeHits = (
     normalized.match(
-      isCreditCard
-        ? /\b(abono|ingreso|dep[oó]sito|sueldo|remuner|n[oó]mina|payroll|pensi[oó]n|honorari|pago\s+(?:recibido|minimo|mínimo|tarjeta|a\s+la\s+tarjeta|de\s+tarjeta)|transferencia\s+recibida|devoluci[oó]n|reintegro|reembolso)\b/g
-        : /\b(abono|ingreso|dep[oó]sito|sueldo|remuner|n[oó]mina|payroll|pensi[oó]n|honorari|pago\s+recibido|transferencia\s+recibida|devoluci[oó]n|reintegro|reembolso)\b/g,
+      /\b(ingreso|sueldo|remuner|n[oó]mina|payroll|pensi[oó]n|honorari)\b/g,
     ) ?? []
+  ).length;
+  const abonoHits = (
+    normalized.match(/\b(abono|pago\s+recibido|pago\s+(?:minimo|mínimo|tarjeta|a\s+la\s+tarjeta|de\s+tarjeta)|transferencia\s+recibida|dep[oó]sito|reintegro|reembolso|devoluci[oó]n)\b/g) ??
+    []
   ).length;
 
   // Generic expense keywords excluding "pago" standalone so that
@@ -279,8 +298,6 @@ export function inferMovementDirection(
   const expenseHits = (
     normalized.match(/\b(compra|cargo|retiro|comisi[oó]n|suscrip|giro|transferencia\s+enviada|transferencia\s+emitida|pac|pat|webpay|pos|debito|d[eé]bito)\b/g) ?? []
   ).length + (
-    // "pago" only counts as expense when NOT followed by "recibido"; on credit
-    // cards it usually means an abono/pago a la tarjeta, so keep it income-side.
     !isCreditCard
       ? (normalized.match(/\bpago(?!\s+recibido)\b/g) ?? []).length
       : 0
@@ -288,14 +305,27 @@ export function inferMovementDirection(
 
   // Credit card installment notation (1/3, 1/6, etc.) always signals an expense.
   const isCreditCardInstallment = /\b\d+\/\d+\b/.test(normalized);
-  if (isCreditCardInstallment && specificIncomeHits === 0) return 'expense';
-
-  if (isCreditCard && specificIncomeHits > 0) return 'income';
-  if (hasExplicitNegativeAmount(amountToken) && specificIncomeHits === 0) return 'expense';
-  if (hasExplicitPositiveAmount(amountToken) && specificIncomeHits > expenseHits) return 'income';
-  if (specificIncomeHits > expenseHits && specificIncomeHits > 0) return 'income';
-  if (expenseHits > specificIncomeHits && expenseHits > 0) return 'expense';
-  return signedAmount < 0 ? 'expense' : 'income';
+  if (isCreditCardInstallment && incomeHits === 0 && abonoHits === 0) {
+    return { direction: 'expense', kind: 'expense' };
+  }
+  if (hasExplicitNegativeAmount(amountToken) && incomeHits === 0 && abonoHits === 0) {
+    return { direction: 'expense', kind: 'expense' };
+  }
+  if (hasExplicitPositiveAmount(amountToken) && incomeHits > expenseHits) {
+    return { direction: 'income', kind: 'income' };
+  }
+  if (incomeHits > expenseHits && incomeHits > 0) {
+    return { direction: 'income', kind: 'income' };
+  }
+  if (abonoHits > 0) {
+    return { direction: 'income', kind: 'abono' };
+  }
+  if (expenseHits > incomeHits && expenseHits > 0) {
+    return { direction: 'expense', kind: 'expense' };
+  }
+  return signedAmount < 0
+    ? { direction: 'expense', kind: 'expense' }
+    : { direction: 'income', kind: 'income' };
 }
 
 function isNonMovementDescription(value: string): boolean {
@@ -363,6 +393,7 @@ function buildMovementKey(movement: ParsedMovement): string {
   return [
     movement.date || 'nd',
     movement.direction,
+    movement.movement_kind || 'income',
     Math.round(movement.amount),
     normalizeTextToken(movement.description),
   ].join('|');
@@ -388,15 +419,20 @@ function parseMovementFromTableRow(params: {
   const income = incomeIndex >= 0 && !isBlankLikeCell(row[incomeIndex]) ? parseAmountToken(row[incomeIndex]) : null;
 
   let direction: 'income' | 'expense' | null = null;
+  let movementKind: 'expense' | 'income' | 'abono' | null = null;
   let amount: number | null = null;
   let amountToken = '';
 
   if (income !== null && Math.abs(income) > 0) {
-    direction = 'income';
+    const semantics = inferMovementSemantics(row.join(' '), income, row[incomeIndex], productType);
+    direction = semantics.direction;
+    movementKind = semantics.kind;
     amount = Math.abs(income);
     amountToken = row[incomeIndex];
   } else if (expense !== null && Math.abs(expense) > 0) {
-    direction = 'expense';
+    const semantics = inferMovementSemantics(row.join(' '), expense, row[expenseIndex], productType);
+    direction = semantics.direction;
+    movementKind = semantics.kind;
     amount = Math.abs(expense);
     amountToken = row[expenseIndex];
   } else {
@@ -406,7 +442,9 @@ function parseMovementFromTableRow(params: {
     const picked = pickAmountFromCells(row, fallbackIndexes);
     if (picked.amount === null) return null;
     if (picked.index === balanceIndex) return null;
-    direction = inferMovementDirection(row.join(' '), picked.amount, picked.token, productType);
+    const semantics = inferMovementSemantics(row.join(' '), picked.amount, picked.token, productType);
+    direction = semantics.direction;
+    movementKind = semantics.kind;
     amount = Math.abs(picked.amount);
     amountToken = picked.token;
   }
@@ -428,6 +466,7 @@ function parseMovementFromTableRow(params: {
     description,
     amount,
     direction,
+    movement_kind: movementKind ?? direction,
     source_line: row.join(' | ').slice(0, 260),
     category: taxonomy.category,
     merchant: taxonomy.merchant,
@@ -454,6 +493,7 @@ function parseMovementFromLooseLine(line: string, productType?: string): ParsedM
   const date = parseDateFromLine(line);
   if (!date) return null;
   const direction = inferMovementDirection(line, signedAmount, pickedToken, productType);
+  const movementKind = inferMovementKind(line, signedAmount, pickedToken, productType);
   const descriptionBase =
     cells.length >= 3
       ? cells.filter((cell) => cell !== pickedToken && !toIsoDate(cell)).join(' ')
@@ -466,6 +506,7 @@ function parseMovementFromLooseLine(line: string, productType?: string): ParsedM
     description,
     amount: Math.abs(signedAmount),
     direction,
+    movement_kind: movementKind,
     source_line: line.slice(0, 260),
     category: taxonomy.category,
     merchant: taxonomy.merchant,
@@ -659,8 +700,10 @@ function buildTransactionAnalysisFromMovements(
   productType?: string,
 ) {
   const incomeMovements = movements.filter((movement) => movement.direction === 'income');
+  const abonoMovements = movements.filter((movement) => movement.movement_kind === 'abono');
   const expenseMovements = movements.filter((movement) => movement.direction === 'expense');
   const inflowsTotal = incomeMovements.reduce((acc, movement) => acc + movement.amount, 0);
+  const abonosTotal = abonoMovements.reduce((acc, movement) => acc + movement.amount, 0);
   const outflowsTotal = expenseMovements.reduce((acc, movement) => acc + movement.amount, 0);
   const movementCount = movements.length;
   const netFlow = inflowsTotal - outflowsTotal;
@@ -745,6 +788,13 @@ function buildTransactionAnalysisFromMovements(
       amount: Math.round(movement.amount),
       date: movement.date,
     }));
+  const hasAbonoMovements = abonoMovements.length > 0;
+  const hasIncomeMovements = incomeMovements.some((movement) => movement.movement_kind === 'income');
+  const inflowLabel = hasAbonoMovements
+    ? hasIncomeMovements
+      ? 'Abonos e ingresos'
+      : 'Abonos'
+    : 'Ingresos';
 
   const dated = movements
     .map((movement) => movement.date)
@@ -856,6 +906,7 @@ function buildTransactionAnalysisFromMovements(
       currency: inferCurrency(documents),
       key_metrics: {
         inflows_total: Math.round(inflowsTotal),
+        abonos_total: Math.round(abonosTotal),
         outflows_total: Math.round(outflowsTotal),
         net_flow: Math.round(netFlow),
         avg_movement: Math.round(avgMovement),
@@ -887,6 +938,7 @@ function buildTransactionAnalysisFromMovements(
         inflowsTotal,
         outflowsTotal,
         netFlow,
+        inflowLabel,
         topCategories,
         topMerchants,
         alerts,
@@ -900,6 +952,7 @@ function buildTransactionAnalysisFromMovements(
       description: movement.description,
       amount: Math.round(movement.amount),
       direction: movement.direction,
+      movement_kind: movement.movement_kind,
       source_line: movement.source_line,
       category: movement.category,
       merchant: movement.merchant,
@@ -971,6 +1024,7 @@ async function reconcileMovementsWithLLM(
           description,
           amount: Math.abs(Number(movement.amount) || 0),
           direction: inferMovementDirection(description, Number(movement.amount) || 0, '', productType),
+          movement_kind: inferMovementKind(description, Number(movement.amount) || 0, '', productType),
           source_line: '',
           category: movement.category ? String(movement.category) : taxonomy.category,
           merchant: taxonomy.merchant,

@@ -32,14 +32,15 @@ export type BankProduct = {
       key_findings?: string[];
     };
   }>;
-  dashboard?: {
-    period?: { from?: string; to?: string };
-    currency?: string;
-    keyMetrics?: {
-      inflows_total: number;
-      outflows_total: number;
-      net_flow: number;
-      avg_movement: number;
+    dashboard?: {
+      period?: { from?: string; to?: string };
+      currency?: string;
+      keyMetrics?: {
+        inflows_total: number;
+        abonos_total?: number;
+        outflows_total: number;
+        net_flow: number;
+        avg_movement: number;
       movement_count: number;
       median_movement?: number;
       p90_movement?: number;
@@ -74,6 +75,7 @@ export type BankProduct = {
       description: string;
       amount: number;
       direction: 'expense' | 'income';
+      movement_kind?: 'expense' | 'income' | 'abono';
       source_line?: string;
       category?: string;
       merchant?: string;

@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { inferMovementDirection } from './documents';
+import { inferMovementDirection, inferMovementKind } from './documents';
 
 describe('documents movement direction', () => {
-  it('treats credit card abonos and payments as income', () => {
+  it('keeps credit card abonos semantically separate from income', () => {
+    expect(inferMovementKind('Abono tarjeta de crédito', 120000, '', 'credit_card')).toBe('abono');
+    expect(inferMovementKind('Pago mínimo tarjeta', 45000, '', 'credit_card')).toBe('abono');
     expect(inferMovementDirection('Abono tarjeta de crédito', 120000, '', 'credit_card')).toBe('income');
-    expect(inferMovementDirection('Pago mínimo tarjeta', 45000, '', 'credit_card')).toBe('income');
   });
 
   it('keeps credit card purchases as expense', () => {
@@ -13,6 +14,9 @@ describe('documents movement direction', () => {
   });
 
   it('preserves standard banking semantics for other products', () => {
+    expect(inferMovementKind('Abono transferencia recibida', 80000, '', 'checking_account')).toBe('abono');
+    expect(inferMovementKind('Pago recibido transferencia', 80000, '', 'checking_account')).toBe('abono');
+    expect(inferMovementKind('Sueldo mensual', 800000, '', 'checking_account')).toBe('income');
     expect(inferMovementDirection('Abono transferencia recibida', 80000, '', 'checking_account')).toBe('income');
     expect(inferMovementDirection('Cargo por mantención', 4900, '', 'checking_account')).toBe('expense');
   });

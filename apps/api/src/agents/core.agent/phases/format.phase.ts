@@ -30,14 +30,16 @@ import {
   type ActionPlanFunnelStage,
 } from '../helpers/action-plan-funnel.helpers';
 
-function shouldApplyLatexFormatting(message: string): boolean {
+export function shouldApplyLatexFormatting(message: string): boolean {
   if (!message || message.length < 120) return false;
-  const hasMathLikeContent =
-    /\$[^$]+\$/.test(message) ||
-    /\\(frac|sum|int|sqrt|cdot|times|left|right|begin|end)/.test(message) ||
-    /\b(VF|VA|APV|CAE|UF|TPM)\b/i.test(message) ||
-    /(?:\d+\s*[%]|=\s*[^=\n]+)/.test(message);
-  return hasMathLikeContent;
+  const hasDisplayMath = /\$\$[\s\S]+\$\$/.test(message);
+  const hasInlineMath = /\$[^$\n]+\$/.test(message);
+  const hasLatexEscape = /\\(frac|sum|int|sqrt|cdot|times|left|right|begin|end|\(|\)|\[|\])/i.test(
+    message,
+  );
+  const hasEquation = /\b[A-Za-zÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑ0-9_]{1,}\s*=\s*[^=\n]+/.test(message);
+
+  return hasDisplayMath || hasInlineMath || hasLatexEscape || hasEquation;
 }
 
 function stripInlineSourcesBlock(message: string): string {
@@ -88,6 +90,20 @@ function shouldEnforceDecisionDisclaimer(input: FormatPhaseInput): boolean {
   );
 }
 
+function hasRecentDecisionDisclaimer(input: FormatPhaseInput): boolean {
+  const recentThreadContext =
+    typeof input.context_summary?.recent_thread_context === 'string'
+      ? input.context_summary.recent_thread_context.toLowerCase()
+      : '';
+
+  return [recentThreadContext].some(
+    (message) =>
+      message.includes('decision final') ||
+      message.includes('depende 100% del usuario') ||
+      message.includes('debe tomarla el usuario'),
+  );
+}
+
 function shouldUseFastFormat(input: FormatPhaseInput): boolean {
   if (process.env.NODE_ENV === 'test') return false;
   if (process.env.AGENT_FAST_FORMAT === 'true') return true;
@@ -114,8 +130,9 @@ function resolveFormatFunnelStage(input: FormatPhaseInput): ActionPlanFunnelStag
   });
 }
 
-function ensureDecisionDisclaimer(message: string, input: FormatPhaseInput): string {
+export function ensureDecisionDisclaimer(message: string, input: FormatPhaseInput): string {
   if (!shouldEnforceDecisionDisclaimer(input)) return message;
+  if (hasRecentDecisionDisclaimer(input)) return message;
   const normalized = message.toLowerCase();
   if (
     normalized.includes('decision final') ||
