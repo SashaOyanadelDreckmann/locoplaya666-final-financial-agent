@@ -7,10 +7,10 @@
 
 :root {
   --vp-bg-fallback: #050810;
-  --vp-bg-seam-band: 32vh;
   --vp-bg-seam-overlap: 14px;
+  /* Bottom seam */
+  --vp-bg-seam-band: 32vh;
   --vp-bg-bottom-seam-height: calc(max(env(safe-area-inset-bottom, 0px), 20px) + var(--vp-bg-seam-band) + var(--vp-bg-seam-overlap));
-  /* Band-local seam — micro-opacity at 0% hides the 1px cover crop line */
   --vp-bg-bottom-seam: linear-gradient(
     to bottom,
     rgba(5, 8, 16, 0.06) 0%,
@@ -31,6 +31,30 @@
     rgba(5, 8, 16, 0.94) 88%,
     rgba(5, 8, 16, 0.97) 94%,
     var(--vp-bg-fallback) 100%
+  );
+  /* Top seam — mirrors home hero gradient behind the mobile browser chrome */
+  --vp-bg-top-seam-band: 22vh;
+  --vp-bg-top-seam-height: calc(max(env(safe-area-inset-top, 0px), 20px) + var(--vp-bg-top-seam-band) + var(--vp-bg-seam-overlap));
+  --vp-bg-top-seam: linear-gradient(
+    to bottom,
+    var(--vp-bg-fallback) 0%,
+    rgba(5, 8, 16, 0.97) 5%,
+    rgba(5, 8, 16, 0.90) 10%,
+    rgba(5, 8, 16, 0.81) 16%,
+    rgba(5, 8, 16, 0.72) 22%,
+    rgba(5, 8, 16, 0.62) 28%,
+    rgba(5, 8, 16, 0.52) 34%,
+    rgba(5, 8, 16, 0.43) 40%,
+    rgba(5, 8, 16, 0.35) 46%,
+    rgba(5, 8, 16, 0.28) 52%,
+    rgba(5, 8, 16, 0.22) 58%,
+    rgba(5, 8, 16, 0.17) 64%,
+    rgba(5, 8, 16, 0.12) 70%,
+    rgba(5, 8, 16, 0.08) 76%,
+    rgba(5, 8, 16, 0.05) 82%,
+    rgba(5, 8, 16, 0.03) 88%,
+    rgba(5, 8, 16, 0.02) 94%,
+    rgba(5, 8, 16, 0.01) 100%
   );
 }
 
@@ -58,6 +82,27 @@ html.pwa-standalone {
     rgba(6, 10, 16, 0.94) 88%,
     rgba(6, 10, 16, 0.97) 94%,
     var(--vp-bg-fallback) 100%
+  );
+  --vp-bg-top-seam: linear-gradient(
+    to bottom,
+    var(--vp-bg-fallback) 0%,
+    rgba(6, 10, 16, 0.97) 5%,
+    rgba(6, 10, 16, 0.90) 10%,
+    rgba(6, 10, 16, 0.81) 16%,
+    rgba(6, 10, 16, 0.72) 22%,
+    rgba(6, 10, 16, 0.62) 28%,
+    rgba(6, 10, 16, 0.52) 34%,
+    rgba(6, 10, 16, 0.43) 40%,
+    rgba(6, 10, 16, 0.35) 46%,
+    rgba(6, 10, 16, 0.28) 52%,
+    rgba(6, 10, 16, 0.22) 58%,
+    rgba(6, 10, 16, 0.17) 64%,
+    rgba(6, 10, 16, 0.12) 70%,
+    rgba(6, 10, 16, 0.08) 76%,
+    rgba(6, 10, 16, 0.05) 82%,
+    rgba(6, 10, 16, 0.03) 88%,
+    rgba(6, 10, 16, 0.02) 94%,
+    rgba(6, 10, 16, 0.01) 100%
   );
   --vp-bg-matte-mobile:
     linear-gradient(
@@ -95,8 +140,8 @@ html.pwa-standalone {
 
   html:not(.home-route-active) {
     background-image: var(--vp-bg-matte-mobile), var(--vp-bg-photo-url) !important;
-    background-size: 100% 105% !important;
-    background-position: center bottom !important;
+    background-size: 105% 108% !important;
+    background-position: center center !important;
     background-repeat: no-repeat !important;
   }
 
@@ -104,8 +149,8 @@ html.pwa-standalone {
   body.agent-route-active {
     background-color: var(--vp-bg-fallback) !important;
     background-image: var(--vp-bg-matte-mobile), var(--vp-bg-photo-url) !important;
-    background-size: 100% 105% !important;
-    background-position: center bottom !important;
+    background-size: 105% 108% !important;
+    background-position: center center !important;
     background-repeat: no-repeat !important;
   }
 }
@@ -116,6 +161,7 @@ html.pwa-standalone {
     --vp-bg-bleed-bottom: max(env(safe-area-inset-bottom, 0px), 34px);
     --vp-bg-bleed-extra-bottom: 14vh;
     --vp-bg-seam-band: 36vh;
+    --vp-bg-top-seam-band: 26vh;
   }
 }
 
@@ -173,6 +219,11 @@ body.agent-route-standalone .global-agent-backdrop,
   display: none !important;
 }
 
+.viewport-backdrop-seam-top {
+  display: none;
+  pointer-events: none;
+}
+
 @media (max-width: 767px) {
   html.pwa-standalone .app-shell::before,
   html.pwa-standalone .app-shell::after {
@@ -187,14 +238,36 @@ body.agent-route-standalone .global-agent-backdrop,
   body.agent-route-active .global-agent-backdrop {
     background-color: var(--vp-bg-fallback) !important;
     background-image: var(--vp-bg-matte-mobile), var(--vp-bg-photo-url) !important;
-    /* Slightly taller photo removes the hard 1px cover crop at the bottom */
-    background-size: 100% 105% !important;
-    background-position: center bottom !important;
+    background-size: 105% 108% !important;
+    background-position: center center !important;
     background-repeat: no-repeat !important;
     transform: none !important;
     transform-origin: center center !important;
     -webkit-mask-image: none !important;
     mask-image: none !important;
+  }
+
+  /*
+   * Top seam — mobile browser only (Safari/Chrome URL bar zone).
+   * Home and PWA keep their own treatment.
+   */
+  html:not(.home-route-active):not(.pwa-standalone) .viewport-backdrop-seam-top {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 0;
+    height: var(--vp-bg-top-seam-height);
+    transform: translateY(calc(-1 * var(--vp-bg-seam-overlap)));
+    background-color: transparent;
+    background-image: var(--vp-bg-top-seam);
+    background-size: 100% 100%;
+    background-position: center top;
+    background-repeat: no-repeat;
+    backdrop-filter: blur(10px) saturate(1.04);
+    -webkit-backdrop-filter: blur(10px) saturate(1.04);
+    box-shadow: 0 20px 36px -8px var(--vp-bg-fallback);
   }
 
   /*
