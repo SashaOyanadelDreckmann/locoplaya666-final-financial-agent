@@ -1,6 +1,6 @@
 'use client';
 
-import type { Ref } from 'react';
+import type { KeyboardEvent, Ref } from 'react';
 import {
   RETRO_CHART_COLORS,
   RETRO_CHART_NEGATIVE,
@@ -140,6 +140,31 @@ export function TxAnalystDashboard({
     derivedTopMerchants,
     merchantConfidenceRows,
   } = analytics;
+  const summaryTabId = 'tx-ex-summary-tab';
+  const metricsTabId = 'tx-ex-metrics-tab';
+  const summaryPanelId = 'tx-ex-summary-panel';
+  const metricsPanelId = 'tx-ex-metrics-panel';
+  const onExecTabsKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'ArrowRight') {
+      event.preventDefault();
+      onExecTabChange(execTab === 'summary' ? 'metrics' : 'summary');
+      return;
+    }
+    if (event.key === 'ArrowLeft') {
+      event.preventDefault();
+      onExecTabChange(execTab === 'metrics' ? 'summary' : 'metrics');
+      return;
+    }
+    if (event.key === 'Home') {
+      event.preventDefault();
+      onExecTabChange('summary');
+      return;
+    }
+    if (event.key === 'End') {
+      event.preventDefault();
+      onExecTabChange('metrics');
+    }
+  };
 
   return (
                   <section className="tx-content-card is-main-center tx-summary-stage tx-step-reveal tx-ap-dashboard">
@@ -460,20 +485,26 @@ export function TxAnalystDashboard({
                               <span className="tx-ex-eyebrow">Resumen ejecutivo</span>
                               {summaryModel ? <span className="tx-ex-model-tag">{summaryModel}</span> : null}
                             </div>
-                            <div className="tx-ex-tabs" role="tablist" aria-label="Vista del resumen">
+                            <div className="tx-ex-tabs" role="tablist" aria-label="Vista del resumen" onKeyDown={onExecTabsKeyDown}>
                               <button
+                                id={summaryTabId}
                                 type="button"
                                 role="tab"
                                 aria-selected={execTab === 'summary'}
+                                aria-controls={summaryPanelId}
+                                tabIndex={execTab === 'summary' ? 0 : -1}
                                 className={`tx-ex-tab${execTab === 'summary' ? ' is-active' : ''}`}
                                 onClick={() => onExecTabChange('summary')}
                               >
                                 Análisis
                               </button>
                               <button
+                                id={metricsTabId}
                                 type="button"
                                 role="tab"
                                 aria-selected={execTab === 'metrics'}
+                                aria-controls={metricsPanelId}
+                                tabIndex={execTab === 'metrics' ? 0 : -1}
                                 className={`tx-ex-tab${execTab === 'metrics' ? ' is-active' : ''}`}
                                 onClick={() => onExecTabChange('metrics')}
                               >
@@ -484,7 +515,7 @@ export function TxAnalystDashboard({
 
                           {/* Summary tab */}
                           {execTab === 'summary' && (
-                            <div className="tx-ex-body" role="tabpanel">
+                            <div className="tx-ex-body" role="tabpanel" id={summaryPanelId} aria-labelledby={summaryTabId}>
                               {execBlocks.length > 0 ? (
                                 execBlocks.map((block, i) => (
                                   <div
@@ -510,7 +541,7 @@ export function TxAnalystDashboard({
 
                           {/* Metrics tab — 4 KPI cards */}
                           {execTab === 'metrics' && (
-                            <div className="tx-ex-metrics" role="tabpanel">
+                            <div className="tx-ex-metrics" role="tabpanel" id={metricsPanelId} aria-labelledby={metricsTabId}>
                               <article className="tx-ex-kpi" style={{ '--card-idx': 0 } as React.CSSProperties}>
                                 <span className="tx-ex-kpi-label">Pulso de caja</span>
                                 <strong className={`tx-ex-kpi-value${netFlowFromTable >= 0 ? ' is-pos' : ' is-neg'}`}>

@@ -1,0 +1,1027 @@
+/* Bootstrap module for agent layout, budget, and mobile stabilization. */
+html.agent-global-monochrome {
+  filter: grayscale(1) !important;
+}
+
+.transactions-modal .agent-modal-actions .button-primary.is-saved-product {
+  background: linear-gradient(135deg, #17323a, #225464);
+  border-color: rgba(126, 194, 214, 0.45);
+  color: #d8f5ff;
+}
+
+.transactions-modal .agent-modal-actions .tx-inject-products-btn {
+  border-color: rgba(24, 57, 68, 0.34);
+  color: #12333f;
+  background: rgba(229, 243, 247, 0.74);
+}
+
+.transactions-modal .agent-modal-actions .tx-inject-products-btn:hover:not(:disabled) {
+  background: rgba(215, 237, 244, 0.92);
+}
+
+.transactions-modal .tx-batch-recommendation-banner {
+  margin-top: 10px;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(184, 203, 223, 0.22);
+  background:
+    linear-gradient(180deg, rgba(23, 32, 46, 0.96), rgba(14, 21, 32, 0.96)),
+    radial-gradient(circle at top right, rgba(142, 167, 191, 0.18), transparent 44%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 18px 34px rgba(4, 10, 18, 0.34);
+  color: rgba(237, 244, 251, 0.95);
+}
+
+.transactions-modal .tx-batch-recommendation-copy {
+  display: grid;
+  gap: 6px;
+}
+
+.transactions-modal .tx-batch-recommendation-kicker {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 4px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(184, 203, 223, 0.18);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(173, 190, 209, 0.92);
+  font-size: 0.64rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.transactions-modal .tx-batch-recommendation-banner p {
+  margin: 0;
+  color: rgba(237, 244, 251, 0.92);
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.transactions-modal .tx-batch-recommendation-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.transactions-modal .tx-batch-action {
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 999px;
+}
+
+.transactions-modal .tx-batch-recommendation-actions .tx-batch-action:last-child {
+  min-width: 172px;
+}
+
+/* Desktop parity: product stack cards in Transacciones should match the mobile card design language. */
+@media (min-width: 768px) {
+  .transactions-modal .pt-stack-carousel {
+    width: 100% !important;
+    min-height: 248px !important;
+    height: 248px !important;
+  }
+
+  .transactions-modal .pt-item.pt-item-stack {
+    top: 50% !important;
+    left: 50% !important;
+    width: calc(100% - 44px) !important;
+    max-width: calc(100% - 44px) !important;
+    height: calc(100% - 34px) !important;
+    overflow: hidden !important;
+    padding: 14px 16px !important;
+    gap: 4px !important;
+    border-radius: 22px !important;
+    background: linear-gradient(180deg, rgba(122, 145, 174, 0.78), rgba(110, 131, 159, 0.74)) !important;
+    border: 1px solid rgba(214, 226, 238, 0.3) !important;
+    box-shadow: 0 10px 26px rgba(7, 12, 20, 0.28) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .transactions-modal .pt-item.pt-item-stack:not(.is-top) {
+    opacity: calc(1 - (var(--pt-stack-idx, 0) * 0.14)) !important;
+  }
+
+  .transactions-modal .pt-item.pt-item-stack:not(.is-top) .pt-item-name,
+  .transactions-modal .pt-item.pt-item-stack:not(.is-top) .pt-item-bank,
+  .transactions-modal .pt-item.pt-item-stack:not(.is-top) .pt-item-status,
+  .transactions-modal .pt-item.pt-item-stack:not(.is-top) .pt-item-meta,
+  .transactions-modal .pt-item.pt-item-stack:not(.is-top) .pt-item-meta span,
+  .transactions-modal .pt-item.pt-item-stack:not(.is-top) .pt-item-top {
+    opacity: 0.28 !important;
+    filter: blur(3px) !important;
+  }
+
+  .transactions-modal .pt-item.pt-item-stack .pt-item-name {
+    font-size: clamp(22px, 2.2vw, 30px) !important;
+    line-height: 1.05 !important;
+    letter-spacing: -0.035em !important;
+  }
+
+  .transactions-modal .pt-item.pt-item-stack .pt-item-status {
+    font-size: 10px !important;
+    letter-spacing: 0.12em !important;
+  }
+
+  .transactions-modal .pt-item.pt-item-stack .pt-item-bank {
+    font-size: 11px !important;
+    letter-spacing: 0.2em !important;
+  }
+
+  .transactions-modal .pt-item.pt-item-stack .pt-item-meta {
+    margin-top: 10px !important;
+    font-size: 10px !important;
+    letter-spacing: 0.06em !important;
+  }
+
+  .transactions-modal .pt-stack-nav {
+    margin-top: 12px !important;
+    justify-content: center !important;
+    align-items: center !important;
+    position: static !important;
+  }
+
+  .transactions-modal .pt-stack-nav .continue-ghost {
+    min-width: 56px !important;
+    min-height: 40px !important;
+  }
+}
+
+/* Mobile executive report polish: assistant response bubble */
+@media (max-width: 820px) {
+  .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc,
+  .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc.is-intro-doc {
+    max-width: 100% !important;
+    border-radius: 18px 18px 12px 12px !important;
+    border: 1px solid rgba(178, 146, 90, 0.36) !important;
+    background: linear-gradient(155deg, rgba(247, 243, 234, 0.98) 0%, rgba(237, 229, 214, 0.97) 100%) !important;
+    box-shadow:
+      0 14px 34px rgba(0, 0, 0, 0.28),
+      0 2px 0 rgba(255, 255, 255, 0.35) inset !important;
+    overflow: hidden !important;
+  }
+
+  .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-head {
+    padding: 12px 14px 10px !important;
+    border-bottom: 1px solid rgba(126, 104, 73, 0.2) !important;
+    background: linear-gradient(180deg, rgba(254, 251, 245, 0.98) 0%, rgba(244, 236, 223, 0.95) 100%) !important;
+  }
+
+  .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-title {
+    font-size: 13px !important;
+    letter-spacing: 0.08em !important;
+    color: #2a2216 !important;
+    font-weight: 700 !important;
+  }
+
+  .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-subtitle,
+  .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-contextline {
+    color: #5b4d39 !important;
+  }
+
+  .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-mode {
+    background: rgba(177, 139, 71, 0.14) !important;
+    border: 1px solid rgba(161, 128, 67, 0.35) !important;
+    color: #5a4522 !important;
+    font-weight: 700 !important;
+  }
+
+  .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-body,
+  .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-body *,
+  .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .premium-markdown,
+  .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .premium-markdown *,
+  .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .academic-paper,
+  .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .academic-paper * {
+    color: #221d15 !important;
+    font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif !important;
+  }
+
+  .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-body {
+    padding: 14px 14px 16px !important;
+    background: transparent !important;
+    font-size: 18px !important;
+    line-height: 1.68 !important;
+    letter-spacing: 0.01em !important;
+  }
+
+  .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .md-h2,
+  .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-h2 {
+    font-size: 1.26rem !important;
+    line-height: 1.34 !important;
+    margin: 0.8rem 0 0.5rem !important;
+    color: #1f1a12 !important;
+    border-left: 3px solid rgba(140, 112, 63, 0.6) !important;
+    padding-left: 0.62rem !important;
+  }
+
+  .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .md-h3,
+  .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-h3 {
+    font-size: 1.08rem !important;
+    line-height: 1.38 !important;
+    margin: 0.75rem 0 0.42rem !important;
+    color: #403424 !important;
+  }
+
+  .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .md-paragraph,
+  .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-p,
+  .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .md-list-item {
+    font-size: 1.06rem !important;
+    line-height: 1.72 !important;
+    margin: 0.56rem 0 !important;
+    text-wrap: pretty !important;
+  }
+
+  /* Bullet fix: avoid double marker overlap (native marker + pseudo marker). */
+  .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .md-list,
+  .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .md-list-ordered {
+    list-style-position: outside !important;
+    padding-left: 1.28rem !important;
+    margin-left: 0 !important;
+  }
+
+  .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .md-list-item {
+    display: list-item !important;
+    padding-left: 0 !important;
+    margin: 0.34rem 0 !important;
+  }
+
+  .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .md-list-item::before {
+    content: none !important;
+    display: none !important;
+  }
+
+  .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .md-list-item::marker {
+    color: #8a6930 !important;
+    font-size: 0.95em !important;
+  }
+}
+
+/* ─── Layout variables ──────────────────────────── */
+.agent-layout {
+  --chat-bg:        var(--bg-elevated);
+  --bubble-user-bg: var(--accent);
+  --bubble-user-fg: #ffffff;
+  --bubble-ai-bg:   var(--bg-secondary);
+  --bubble-ai-fg:   var(--fg);
+  --input-bg:       var(--bg-overlay);
+  --panel-bg:       var(--bg-secondary);
+  --rail-bg:        var(--bg-secondary);
+  --bubble-maxw:    72%;
+  --bubble-user-maxw: 68%;
+  --artifact-maxw:  80%;
+  --doc-maxw:       600px;
+  --chart-height:   clamp(240px, 40vh, 480px);
+
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 52px 280px;
+  grid-template-rows: 1fr;
+  gap: 12px;
+  width: 100%;
+  height: 100dvh;
+  max-height: 100dvh;
+  padding: 12px 12px 12px 16px;
+  background: transparent;
+  /* Bloquear swipe/bounce/resize/zoom en la pagina del agente */
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: manipulation; /* bloquea double-tap zoom, permite tap y scroll internos */
+  transition: grid-template-columns 0.32s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* ================================================= */
+/* Budget Modal Pro Table Actions + Export Styles    */
+/* ================================================= */
+.budget-modal .budget-agent-actions {
+  margin-top: 18px !important;
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+}
+
+.budget-modal .budget-agent-actions .button-primary {
+  width: 100% !important;
+  min-height: 46px !important;
+  border-radius: 14px !important;
+  background: linear-gradient(135deg, rgba(184, 147, 70, 0.88), rgba(142, 167, 191, 0.78)) !important;
+  color: #061018 !important;
+  border: 1px solid rgba(237, 223, 186, 0.55) !important;
+  box-shadow: 0 16px 34px rgba(13, 22, 32, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.42) !important;
+}
+
+.budget-modal .budget-table-head {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  align-items: end !important;
+  gap: 14px !important;
+}
+
+.budget-modal .budget-table-top-actions {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 6px !important;
+  border-radius: 14px !important;
+  border: 1px solid rgba(200, 212, 227, 0.18) !important;
+  background: rgba(6, 10, 15, 0.48) !important;
+}
+
+.budget-modal .budget-table-top-actions .continue-ghost {
+  min-width: 86px !important;
+  height: 34px !important;
+  border-radius: 10px !important;
+  font-size: 0.72rem !important;
+  letter-spacing: 0.02em !important;
+}
+
+.budget-modal .budget-table-top-actions .is-income-action {
+  border-color: rgba(113, 161, 111, 0.42) !important;
+  background: rgba(78, 119, 76, 0.22) !important;
+}
+
+.budget-modal .budget-table-top-actions .is-expense-action {
+  border-color: rgba(184, 147, 70, 0.44) !important;
+  background: rgba(184, 147, 70, 0.18) !important;
+}
+
+.budget-modal .budget-pdf-surface {
+  border-radius: 18px !important;
+  border: 1px solid rgba(220, 232, 245, 0.16) !important;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+  overflow: hidden !important;
+}
+
+.budget-modal .budget-pdf-head,
+.budget-modal .budget-pdf-metrics {
+  display: grid !important;
+}
+
+.budget-modal .budget-pdf-head {
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  align-items: center !important;
+  gap: 18px !important;
+  padding: 22px 24px 12px !important;
+}
+
+.budget-modal .budget-pdf-head span,
+.budget-modal .budget-pdf-metrics span {
+  display: block !important;
+  font-size: 0.62rem !important;
+  letter-spacing: 0.16em !important;
+  text-transform: uppercase !important;
+}
+
+.budget-modal .budget-pdf-head h2 {
+  margin: 3px 0 0 !important;
+  font-size: 1.35rem !important;
+  line-height: 1.1 !important;
+  font-weight: 760 !important;
+  letter-spacing: 0 !important;
+}
+
+.budget-modal .budget-pdf-head > strong {
+  font-size: 0.7rem !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase !important;
+  border-radius: 999px !important;
+  padding: 8px 12px !important;
+}
+
+.budget-modal .budget-pdf-metrics {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+  padding: 0 24px 16px !important;
+}
+
+.budget-modal .budget-pdf-metrics > div {
+  border-radius: 12px !important;
+  padding: 12px 14px !important;
+}
+
+.budget-modal .budget-pdf-metrics strong {
+  display: block !important;
+  margin-top: 4px !important;
+  font-size: 1rem !important;
+}
+
+.budget-modal .budget-table-bottom-actions {
+  display: grid !important;
+  grid-template-columns: minmax(160px, 0.36fr) minmax(220px, 1fr) !important;
+  gap: 12px !important;
+  margin-top: 16px !important;
+}
+
+.budget-modal .budget-style-button,
+.budget-modal .budget-pdf-button {
+  min-height: 52px !important;
+  border-radius: 14px !important;
+  font-weight: 680 !important;
+  letter-spacing: 0.01em !important;
+  cursor: pointer !important;
+  transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease !important;
+}
+
+.budget-modal .budget-style-button {
+  border: 1px solid rgba(142, 167, 191, 0.34) !important;
+  background: rgba(142, 167, 191, 0.10) !important;
+  color: rgba(236, 243, 250, 0.94) !important;
+}
+
+.budget-modal .budget-pdf-button {
+  border: 1px solid rgba(237, 223, 186, 0.34) !important;
+  background: linear-gradient(135deg, rgba(240, 244, 248, 0.96), rgba(210, 222, 234, 0.92)) !important;
+  color: #071018 !important;
+  box-shadow: 0 18px 36px rgba(6, 10, 15, 0.34) !important;
+}
+
+.budget-modal .budget-style-button:hover,
+.budget-modal .budget-pdf-button:hover:not(:disabled) {
+  transform: translateY(-1px) !important;
+}
+
+.budget-modal .budget-pdf-button:disabled {
+  opacity: 0.45 !important;
+  cursor: progress !important;
+}
+
+.budget-modal .budget-table-style-midnight {
+  background: #05070b !important;
+  color: #f4f7fb !important;
+}
+
+.budget-modal .budget-table-style-midnight .budget-pdf-head,
+.budget-modal .budget-table-style-midnight .budget-pdf-metrics > div {
+  background: rgba(220, 232, 245, 0.045) !important;
+  border: 1px solid rgba(220, 232, 245, 0.12) !important;
+}
+
+.budget-modal .budget-table-style-ledger {
+  background: #f4efe7 !important;
+  color: #141312 !important;
+}
+
+.budget-modal .budget-table-style-ledger .budget-table,
+.budget-modal .budget-table-style-ledger .budget-table-wrap,
+.budget-modal .budget-table-style-ledger .budget-table th,
+.budget-modal .budget-table-style-ledger .budget-table td {
+  background: #f4efe7 !important;
+  color: #141312 !important;
+}
+
+.budget-modal .budget-table-style-ledger .budget-pdf-head,
+.budget-modal .budget-table-style-ledger .budget-pdf-metrics > div {
+  background: #ebe0d1 !important;
+  border: 1px solid #d1bfa9 !important;
+}
+
+.budget-modal .budget-table-style-ledger .budget-table input,
+.budget-modal .budget-table-style-ledger .budget-table select {
+  background: rgba(255, 251, 244, 0.88) !important;
+  color: #151515 !important;
+  border-color: #c8b69e !important;
+}
+
+.budget-modal .budget-table-style-atelier {
+  background: #111215 !important;
+  color: #f8efe6 !important;
+}
+
+.budget-modal .budget-table-style-atelier .budget-table,
+.budget-modal .budget-table-style-atelier .budget-table-wrap,
+.budget-modal .budget-table-style-atelier .budget-table th,
+.budget-modal .budget-table-style-atelier .budget-table td {
+  background: #111215 !important;
+}
+
+.budget-modal .budget-table-style-atelier .budget-pdf-head,
+.budget-modal .budget-table-style-atelier .budget-pdf-metrics > div {
+  background: rgba(130, 64, 54, 0.18) !important;
+  border: 1px solid rgba(214, 160, 124, 0.22) !important;
+}
+
+.budget-modal .budget-table-style-atelier .budget-table input,
+.budget-modal .budget-table-style-atelier .budget-table select {
+  background: rgba(244, 220, 196, 0.08) !important;
+  color: #faefe5 !important;
+  border-color: rgba(214, 160, 124, 0.3) !important;
+}
+
+.budget-modal .budget-table-style-terminal {
+  background: #07110f !important;
+  color: #e9fff5 !important;
+}
+
+.budget-modal .budget-table-style-terminal .budget-table,
+.budget-modal .budget-table-style-terminal .budget-table-wrap,
+.budget-modal .budget-table-style-terminal .budget-table th,
+.budget-modal .budget-table-style-terminal .budget-table td {
+  background: #07110f !important;
+}
+
+.budget-modal .budget-table-style-terminal .budget-pdf-head,
+.budget-modal .budget-table-style-terminal .budget-pdf-metrics > div {
+  background: rgba(57, 118, 102, 0.16) !important;
+  border: 1px solid rgba(132, 198, 176, 0.24) !important;
+}
+
+.budget-modal .budget-table-style-terminal .budget-table input,
+.budget-modal .budget-table-style-terminal .budget-table select {
+  background: rgba(132, 198, 176, 0.08) !important;
+  color: #e9fff5 !important;
+  border-color: rgba(132, 198, 176, 0.28) !important;
+}
+
+.budget-modal .budget-table-style-carbon {
+  background: #06080c !important;
+  color: #f3f7ff !important;
+}
+
+.budget-modal .budget-table-style-carbon .budget-table,
+.budget-modal .budget-table-style-carbon .budget-table-wrap,
+.budget-modal .budget-table-style-carbon .budget-table th,
+.budget-modal .budget-table-style-carbon .budget-table td {
+  background: #06080c !important;
+  color: #f3f7ff !important;
+}
+
+.budget-modal .budget-table-style-carbon .budget-table input,
+.budget-modal .budget-table-style-carbon .budget-table select {
+  background: #000000 !important;
+  color: #ffffff !important;
+  border-color: rgba(184, 202, 230, 0.36) !important;
+}
+
+.budget-modal .budget-pdf-surface.is-budget-pdf-exporting {
+  width: 960px !important;
+  transform: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+.budget-modal .budget-pdf-surface.is-budget-pdf-exporting .budget-table th:nth-child(4),
+.budget-modal .budget-pdf-surface.is-budget-pdf-exporting .budget-table td:nth-child(4) {
+  display: none !important;
+}
+
+.budget-modal .budget-pdf-surface.is-budget-pdf-exporting .budget-table th:nth-child(1),
+.budget-modal .budget-pdf-surface.is-budget-pdf-exporting .budget-table td:nth-child(1) { width: 52% !important; }
+.budget-modal .budget-pdf-surface.is-budget-pdf-exporting .budget-table th:nth-child(2),
+.budget-modal .budget-pdf-surface.is-budget-pdf-exporting .budget-table td:nth-child(2) { width: 18% !important; }
+.budget-modal .budget-pdf-surface.is-budget-pdf-exporting .budget-table th:nth-child(3),
+.budget-modal .budget-pdf-surface.is-budget-pdf-exporting .budget-table td:nth-child(3) { width: 30% !important; }
+
+@media (max-width: 760px) {
+  .budget-modal .budget-table-head,
+  .budget-modal .budget-table-bottom-actions {
+    grid-template-columns: 1fr !important;
+  }
+
+  .budget-modal .budget-table-top-actions {
+    width: 100% !important;
+    justify-content: stretch !important;
+  }
+
+  .budget-modal .budget-table-top-actions .continue-ghost {
+    flex: 1 1 0 !important;
+  }
+}
+
+/* Final override: INFORMATION pill must be black */
+.agent-layout .agent-thread .agent-bubble.assistant .latex-doc-mode,
+.agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-mode,
+.agent-layout .agent-thread .agent-bubble.assistant .latex-doc-mode.comparison-mode,
+.agent-layout .agent-thread .agent-bubble.assistant .latex-doc-mode[class*="comparison"],
+.agent-layout .agent-thread .agent-bubble.assistant .latex-doc-mode[data-mode="comparison"] {
+  background: #000 !important;
+  border: 1px solid rgba(255, 255, 255, 0.26) !important;
+  color: #f2f6fb !important;
+  -webkit-text-fill-color: #f2f6fb !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+.transactions-modal .tx-carousel-gate {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  box-shadow: none;
+}
+
+.transactions-modal .pt-right.tx-only-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: clamp(360px, 58vh, 680px);
+}
+
+.transactions-modal .tx-minimal-launch-btn {
+  appearance: none;
+  border: 1px solid rgba(235, 240, 248, 0.35);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(245, 248, 253, 0.92);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  padding: 10px 22px;
+  min-height: 42px;
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+
+.transactions-modal .tx-minimal-launch-btn:hover {
+  transform: translateY(-1px);
+  border-color: rgba(245, 248, 253, 0.62);
+  box-shadow: 0 10px 20px rgba(5, 10, 20, 0.2);
+}
+
+
+.transactions-modal .tx-preset-shell {
+  width: min(680px, 100%);
+  padding: 8px 0;
+}
+
+.transactions-modal .tx-preset-title {
+  margin: 0 0 14px;
+  text-align: center;
+  font-size: 0.98rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(232, 238, 247, 0.88);
+}
+
+.transactions-modal .tx-preset-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.transactions-modal .tx-preset-btn {
+  appearance: none;
+  border: 1px solid rgba(234, 240, 248, 0.34);
+  border-radius: 999px;
+  background: rgba(5, 10, 18, 0.62);
+  color: rgba(244, 248, 253, 0.94);
+  min-height: 46px;
+  padding: 10px 16px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  transition: border-color 160ms ease, transform 160ms ease, background 160ms ease;
+}
+
+.transactions-modal .tx-preset-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: rgba(244, 248, 253, 0.62);
+  background: rgba(10, 16, 28, 0.78);
+}
+
+.transactions-modal .tx-preset-btn:disabled {
+  opacity: 0.52;
+  cursor: not-allowed;
+}
+
+.transactions-modal .tx-preset-btn-add {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+@media (max-width: 760px) {
+  .transactions-modal .tx-preset-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Railway/mobile production stabilization: keep the chat usable on narrow iOS viewports. */
+@media (max-width: 767px) {
+  .agent-layout {
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+  }
+
+  .agent-chat {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+  }
+
+  .agent-chat-body {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    padding: 8px 8px calc(env(safe-area-inset-bottom) + 8px) !important;
+  }
+
+  .agent-thread {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding-bottom: 10px !important;
+  }
+
+  .agent-input {
+    flex: 0 0 auto !important;
+    padding: 8px 8px calc(env(safe-area-inset-bottom) + 8px) !important;
+    gap: 7px !important;
+    background: rgba(5, 8, 16, 0.42) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .agent-input textarea {
+    min-height: 44px !important;
+    max-height: 92px !important;
+    font-size: 16px !important;
+    line-height: 1.35 !important;
+  }
+
+  .agent-input input {
+    min-height: 44px !important;
+    font-size: 16px !important;
+  }
+
+  .agent-input .controls {
+    display: grid !important;
+    grid-template-columns: auto 1fr auto !important;
+    gap: 6px !important;
+    align-items: center !important;
+  }
+
+  .agent-input .controls > div {
+    display: none !important;
+  }
+
+  .agent-input .continue-button {
+    min-height: 30px !important;
+    padding: 6px 8px !important;
+    font-size: 10px !important;
+    white-space: nowrap !important;
+  }
+
+  .agent-panel {
+    /* Extend panel into safe-area-inset-bottom so no bare strip shows below cards */
+    flex: 0 0 calc(108px + env(safe-area-inset-bottom, 0px)) !important;
+    max-height: calc(108px + env(safe-area-inset-bottom, 0px)) !important;
+    padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+    overflow: hidden !important;
+  }
+
+  .agent-layout.mobile-panel-expanded .agent-panel {
+    flex-basis: calc(46vh + env(safe-area-inset-bottom, 0px)) !important;
+    max-height: calc(46vh + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  .agent-panel .panel-grid {
+    padding: 8px !important;
+    gap: 8px !important;
+  }
+
+  .agent-panel .mob-col,
+  .agent-panel .mob-col-wide,
+  .agent-panel .mob-col-narrow {
+    width: min(72vw, 240px) !important;
+  }
+
+  .agent-panel .panel-card,
+  .agent-panel .panel-feature-card,
+  .agent-panel .interview-flow-card,
+  .agent-panel .recent-library-card,
+  .agent-panel .profile-card {
+    overflow: hidden !important;
+    word-break: normal !important;
+  }
+
+  .agent-panel .panel-value,
+  .agent-panel .panel-text,
+  .agent-panel .panel-feature-copy,
+  .agent-panel .interview-flow-title {
+    overflow-wrap: normal !important;
+    word-break: normal !important;
+    hyphens: none !important;
+  }
+}
+
+/* Budget modal mobile-mode: remove desktop layered carousel, show one panel at a time via mode class. */
+.budget-modal .budget-main-carousel:not(.is-desktop) {
+  position: relative !important;
+  display: block !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+.budget-modal .budget-main-carousel:not(.is-desktop) > section {
+  position: relative !important;
+  inset: auto !important;
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  width: 100% !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  margin: 0 !important;
+  transform: none !important;
+  overflow: visible !important;
+  opacity: 1 !important;
+  filter: none !important;
+  pointer-events: auto !important;
+}
+
+/* mode-agent-front: show agent, hide table */
+.budget-modal .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-agent {
+  display: block !important;
+  opacity: 1 !important;
+  z-index: 4 !important;
+  pointer-events: auto !important;
+}
+
+.budget-modal .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-table {
+  display: none !important;
+}
+
+/* mode-table-front: show table, hide agent */
+.budget-modal .budget-main-carousel.mode-table-front:not(.is-desktop) > .budget-card-table {
+  display: block !important;
+  opacity: 1 !important;
+  z-index: 4 !important;
+  pointer-events: auto !important;
+}
+
+.budget-modal .budget-main-carousel.mode-table-front:not(.is-desktop) > .budget-card-agent {
+  display: none !important;
+}
+
+.budget-modal .budget-main-carousel:not(.is-desktop) .budget-table-section.budget-card-table,
+.budget-modal .budget-main-carousel:not(.is-desktop) .budget-pdf-surface,
+.budget-modal .budget-main-carousel:not(.is-desktop) .budget-table-wrap,
+.budget-modal .budget-main-carousel:not(.is-desktop) .budget-table,
+.budget-modal .budget-main-carousel:not(.is-desktop) .budget-table tbody,
+.budget-modal .budget-main-carousel:not(.is-desktop) .budget-table tr,
+.budget-modal .budget-main-carousel:not(.is-desktop) .budget-table td {
+  box-sizing: border-box !important;
+  inline-size: 100% !important;
+  max-inline-size: 100% !important;
+  min-inline-size: 0 !important;
+  overflow-x: clip !important;
+}
+
+.budget-modal .budget-main-carousel:not(.is-desktop) .budget-table-section.budget-card-table {
+  padding-inline: 4px !important;
+}
+
+.budget-modal .budget-main-carousel:not(.is-desktop) .budget-pdf-surface {
+  background: rgba(4, 10, 18, 0.98) !important;
+  border: 1px solid rgba(122, 152, 182, 0.22) !important;
+  border-radius: 14px !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
+  padding: 0 !important;
+}
+
+.budget-modal .budget-main-carousel:not(.is-desktop) .budget-table-wrap {
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.budget-modal .budget-main-carousel:not(.is-desktop) .budget-table tbody tr,
+.budget-modal .budget-main-carousel:not(.is-desktop) .budget-table tbody tr.is-budget-subrow {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  grid-template-areas:
+    "category"
+    "type"
+    "amount"
+    "actions" !important;
+  gap: 4px !important;
+  padding: 5px !important;
+  margin: 0 0 6px 0 !important;
+  border-radius: 9px !important;
+  overflow: visible !important;
+}
+
+.budget-modal .budget-main-carousel:not(.is-desktop) .budget-table tbody td:nth-child(1) { grid-area: category !important; }
+.budget-modal .budget-main-carousel:not(.is-desktop) .budget-table tbody td:nth-child(2) { grid-area: type !important; }
+.budget-modal .budget-main-carousel:not(.is-desktop) .budget-table tbody td:nth-child(3) { grid-area: amount !important; }
+.budget-modal .budget-main-carousel:not(.is-desktop) .budget-table tbody td:nth-child(4) { grid-area: actions !important; }
+
+.budget-modal .budget-main-carousel:not(.is-desktop) .budget-table input,
+.budget-modal .budget-main-carousel:not(.is-desktop) .budget-table select {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  height: 22px !important;
+  min-height: 22px !important;
+  padding: 0 5px !important;
+  border-radius: 6px !important;
+  font-size: 0.66rem !important;
+  line-height: 1 !important;
+}
+
+.budget-modal .budget-main-carousel:not(.is-desktop) .budget-table tbody td:nth-child(4) {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: wrap !important;
+  gap: 4px !important;
+  align-items: center !important;
+  min-height: 26px !important;
+}
+
+.budget-modal .budget-main-carousel:not(.is-desktop) .budget-table tbody td:nth-child(4) .continue-ghost {
+  width: 100% !important;
+  min-width: 0 !important;
+  height: 22px !important;
+  min-height: 22px !important;
+  border-radius: 6px !important;
+  font-size: 0.64rem !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 7px !important;
+  background: rgba(36, 57, 79, 0.92) !important;
+  border: 1px solid rgba(142, 167, 191, 0.42) !important;
+  color: rgba(245, 248, 252, 0.98) !important;
+  -webkit-text-fill-color: rgba(245, 248, 252, 0.98) !important;
+}
+
+.budget-modal .budget-main-carousel:not(.is-desktop) .budget-table tbody td:nth-child(4) .continue-ghost[title="Agregar subcategoría"] {
+  width: auto !important;
+  min-width: 74px !important;
+  max-width: 90px !important;
+  padding: 0 8px !important;
+  margin-left: auto !important;
+}
+
+.budget-modal .budget-main-carousel:not(.is-desktop) .budget-table tbody td:nth-child(4) .continue-ghost.danger {
+  width: auto !important;
+  min-width: 42px !important;
+  max-width: 46px !important;
+  margin-left: 0 !important;
+}
+
+/* Focus/active white inputs: text must remain black and readable. */
+.budget-modal .budget-main-carousel:not(.is-desktop) .budget-table input:focus,
+.budget-modal .budget-main-carousel:not(.is-desktop) .budget-table select:focus,
+.budget-modal .budget-main-carousel:not(.is-desktop) .budget-table tr.is-active-row input,
+.budget-modal .budget-main-carousel:not(.is-desktop) .budget-table tr.is-active-row select {
+  background: #ffffff !important;
+  color: #111111 !important;
+  -webkit-text-fill-color: #111111 !important;
+  border-color: rgba(120, 140, 165, 0.6) !important;
+}
+
+.budget-modal .budget-main-carousel:not(.is-desktop) .budget-table tr.is-active-row input::placeholder {
+  color: rgba(17, 17, 17, 0.52) !important;
+}
+
+/* Stage variations */
+.agent-layout.is-panel-stage-1 {
+  grid-template-columns: 1fr 48px 320px;
+}
+
+.agent-layout.is-panel-stage-2 {
+  grid-template-columns: 1fr 48px 380px;
+}
+
+.agent-layout.is-panel-stage-small {
+  grid-template-columns: 1fr 48px 0px;
+}
+
+.agent-layout.is-panel-stage-small .agent-panel {
+  display: none;
+}
+
+.agent-layout.is-panel-collapsed {
+  grid-template-columns: 1fr 48px 0px;
+}
+
+.agent-layout.is-panel-collapsed .agent-panel {
+  display: none;
+}
+
+/* Monochrome mode */
+.agent-layout.is-monochrome {
+  filter: none;
+}
+
+.agent-layout.is-normal-matte {
+  /* no filter in Apple style */
+}
+
+/* Mode morphing transition */
+.agent-layout.is-mode-12-morphing .agent-panel,
+.agent-layout.is-mode-12-morphing .agent-chat,
+.agent-layout.is-mode-12-morphing .agent-divider-rail {
+  transition-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1);
+}

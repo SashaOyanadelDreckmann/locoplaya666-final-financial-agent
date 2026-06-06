@@ -111,6 +111,7 @@ import { ChatThreadView } from './chat-thread-view';
 import { ChatHeader } from './chat-header';
 import { buildPanelBaseCards } from './panel-cards';
 import { useBudgetRows } from './hooks/use-budget-rows';
+import { mergeBankProductPatch } from './transactions/state.helpers';
 
 type AgentMeta = {
   objective?: string;
@@ -3202,7 +3203,7 @@ export default function AgentPage() {
     setBankSimulation((prev) => {
       if (!prev.activeProductId) return prev;
       const products = prev.products.map((p) =>
-        p.id === prev.activeProductId ? { ...p, ...updates } : p
+        p.id === prev.activeProductId ? mergeBankProductPatch(p, updates) : p
       );
       const snapshot = getSimulationSnapshot(products, prev.activeProductId);
       return {
@@ -3219,7 +3220,7 @@ export default function AgentPage() {
   function updateProductById(productId: string, updates: Partial<BankProduct>) {
     setBankSimulation((prev) => {
       if (!prev.products.some((p) => p.id === productId)) return prev;
-      const products = prev.products.map((p) => (p.id === productId ? { ...p, ...updates } : p));
+      const products = prev.products.map((p) => (p.id === productId ? mergeBankProductPatch(p, updates) : p));
       const snapshot = getSimulationSnapshot(products, prev.activeProductId);
       return {
         ...prev,

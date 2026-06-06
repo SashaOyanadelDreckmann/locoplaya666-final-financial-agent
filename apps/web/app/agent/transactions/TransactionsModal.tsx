@@ -534,9 +534,10 @@ export function TransactionsModal(props: TransactionsModalProps) {
     const looksLikeGenericLabel = /^producto\s+\d+$/i.test(currentLabel);
     setQuickBank(props.activeBankProduct?.bank ?? '');
     setProductTemplate(looksLikeGenericLabel ? '' : currentLabel);
+    setSelectedMovementKey(null);
     setShowInstitutionCatalog(true);
     setShowTemplateCatalog(true);
-  }, [props.activeBankProduct?.id]);
+  }, [props.activeBankProduct?.id, props.activeBankProduct?.bank, props.activeBankProduct?.label]);
   useEffect(() => {
     if (!props.isOpen || currentStage !== 'consent' || !showTxCarousel) return;
     setShowInstitutionCatalog(true);
@@ -715,7 +716,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
     if (!selectedMovement) return;
     setOverrideMerchantDraft(selectedMovement.merchant || selectedMovement.label);
     setOverrideCategoryDraft(selectedMovement.category || 'Consumo general');
-  }, [selectedMovementKey, selectedMovement?.merchant, selectedMovement?.label, selectedMovement?.category]);
+  }, [selectedMovement]);
   useEffect(() => {
     if (!selectedMovementKey) return;
     if (dedupedMovementRows.some((movement) => movement.uiKey === selectedMovementKey)) return;
@@ -781,6 +782,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
     }
     props.onClose();
   }, [
+    clearPendingEvidence,
     pendingEvidenceFiles.length,
     pendingManualEvidence,
     props.documentsLoading,
