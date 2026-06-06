@@ -81,8 +81,8 @@ export default function NumbersCanvas({
           px.push({ r: rv, g: gv, b: bv, lum: (rv*.299 + gv*.587 + bv*.114) / 255 });
           const cf = c / Math.max(cols-1, 1);
           cd.push({
-            revIn:  cf * .62 + Math.random() * .07,
-            revOut: cf * .62 + Math.random() * .07,
+            revIn:  cf * .22 + Math.random() * .12,
+            revOut: cf * .22 + Math.random() * .12,
             spd:    4 + Math.random() * 10,
             phi:    Math.random() * Math.PI * 2,
           });
@@ -115,11 +115,12 @@ export default function NumbersCanvas({
     // ── Render loop ───────────────────────────────────────────────────────────
     function loop(ts: number) {
       raf = requestAnimationFrame(loop);
-      // Throttle to ~30fps on mobile to save battery and GPU
-      if (isMobile && ts - lastFrameTs < 33) return;
+      const p = progress.get();
+      // 60fps during entrance/exit transition; 30fps during steady-state to save battery
+      const inTransition = p < 0.22 || p > 0.82;
+      if (isMobile && !inTransition && ts - lastFrameTs < 33) return;
       lastFrameTs = ts;
       const t = ts / 1000;
-      const p = progress.get();
 
       // Smooth mouse
       const mxRaw = mouseRef?.current?.x ?? 0.5;
@@ -151,7 +152,8 @@ export default function NumbersCanvas({
       // ── Background image — matte cinematic ─────────────────────────────────
       {
         const stylize = eChaos * 0.92;
-        const photoAlpha = clamp(1 - eMid * 0.92);
+        // Faster photo fade — clears mostly before column sweep completes, avoiding split-screen
+        const photoAlpha = clamp(1 - Math.min(eMid * 2.4, 1) * 0.96);
         ctx.globalAlpha = photoAlpha;
         ctx.filter = `saturate(${0.84 + 0.38*stylize}) contrast(${1.04 - 0.34*stylize}) brightness(${0.92 - 0.20*stylize}) sepia(${0.04 + 0.04*stylize})`;
         drawImageCover(ctx, img, W, H);
@@ -268,7 +270,9 @@ export default function NumbersCanvas({
             bv = clamp(bv*(1-spot*.55) + 166*spot, 0, 255);
           }
 
-          const shimmer = .70 + .30*Math.sin(t*3.3 + c.phi + col*.52 + row*.87);
+          // Mobile: reduce shimmer amplitude so 30fps steady-state doesn't look like flickering
+          const shimmerAmp = isMobile ? 0.12 : 0.30;
+          const shimmer = (1 - shimmerAmp) + shimmerAmp * Math.sin(t*3.3 + c.phi + col*.52 + row*.87);
           const finalA  = alpha * shimmer * depthAlpha;
 
           // ── Chromatic aberration during chaos ─────────────────────────────
