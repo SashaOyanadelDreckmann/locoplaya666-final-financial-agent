@@ -27,6 +27,7 @@ type ClientParsedDocument = {
   insight?: unknown;
   summary?: unknown;
   structuredData?: unknown;
+  documentProfile?: unknown;
 };
 
 type CanonicalParsedDocument = {
@@ -36,6 +37,7 @@ type CanonicalParsedDocument = {
   insight?: unknown;
   summary?: unknown;
   structuredData?: unknown;
+  documentProfile?: unknown;
 };
 
 const router = Router();
@@ -52,6 +54,7 @@ const ParsedDocumentSchema = z.object({
   insight: z.unknown().optional(),
   summary: z.unknown().optional(),
   structuredData: z.unknown().optional(),
+  documentProfile: z.unknown().optional(),
 });
 
 const TransactionChatRequestSchema = z.object({
@@ -100,6 +103,7 @@ function documentsFromClient(parsedDocuments: ClientParsedDocument[], maxText = 
     insight: doc?.insight ?? null,
     summary: doc?.summary ?? null,
     structuredData: doc?.structuredData ?? null,
+    documentProfile: doc?.documentProfile ?? null,
   }));
 }
 
@@ -137,14 +141,15 @@ async function resolveCanonicalDocuments(
   for (const doc of parsedDocuments) {
     const canonical = canonicalById.get(String(doc?.documentId ?? '').trim());
     if (!canonical) continue;
-    resolved.push({
-      documentId: canonical.documentId,
-      name: canonical.name,
-      text: canonical.text,
-      summary: canonical.summary,
-      structuredData: canonical.structuredData,
-      insight: doc?.insight ?? null,
-    });
+      resolved.push({
+        documentId: canonical.documentId,
+        name: canonical.name,
+        text: canonical.text,
+        summary: canonical.summary,
+        structuredData: canonical.structuredData,
+        documentProfile: doc?.documentProfile ?? canonical.documentProfile ?? null,
+        insight: doc?.insight ?? null,
+      });
   }
   return resolved.slice(0, 8);
 }

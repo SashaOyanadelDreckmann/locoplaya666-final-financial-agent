@@ -1,0 +1,96 @@
+/* ================================================= */
+/* VIEWPORT BACKDROP SYSTEM                          */
+/* Loaded after agent.css — authoritative edge bleed */
+/* for every full-screen photo / scrim layer.        */
+/* Do not use inset:0 on these layers elsewhere.     */
+/* ================================================= */
+
+@media (max-width: 767px) {
+  :root {
+    --vp-bg-bleed-top: max(env(safe-area-inset-top, 0px), 32px);
+    --vp-bg-bleed-bottom: max(env(safe-area-inset-bottom, 0px), 34px);
+    --vp-bg-bleed-extra-bottom: 1.5vh;
+  }
+}
+
+@media (max-width: 480px) {
+  :root {
+    --vp-bg-bleed-top: max(env(safe-area-inset-top, 0px), 44px);
+    --vp-bg-bleed-bottom: max(env(safe-area-inset-bottom, 0px), 34px);
+    --vp-bg-bleed-extra-bottom: 2vh;
+  }
+}
+
+/* Photo + matte layers */
+.app-shell::before,
+body.agent-route-active .app-shell::before,
+body.agent-route-standalone .app-shell::before,
+.global-agent-backdrop,
+html.pwa-standalone .global-agent-backdrop,
+body.agent-route-active .global-agent-backdrop,
+body.agent-route-standalone .global-agent-backdrop,
+.home-canvas-layer {
+  top: var(--vp-bg-inset-top) !important;
+  right: var(--vp-bg-inset-x) !important;
+  bottom: var(--vp-bg-inset-bottom) !important;
+  left: var(--vp-bg-inset-x) !important;
+  width: auto !important;
+  height: auto !important;
+  min-height: auto !important;
+  max-height: none !important;
+}
+
+/* Blurred / drift layers need extra bleed so soft edges never show */
+.intake-photo-bg,
+.animated-bg {
+  top: calc(-1 * max(var(--vp-bg-bleed-top), 90px)) !important;
+  right: calc(-1 * max(var(--vp-bg-bleed-x), 90px)) !important;
+  bottom: calc(-1 * max(var(--vp-bg-bleed-bottom), 90px) - var(--vp-bg-bleed-extra-bottom)) !important;
+  left: calc(-1 * max(var(--vp-bg-bleed-x), 90px)) !important;
+  width: auto !important;
+  height: auto !important;
+  min-height: auto !important;
+  max-height: none !important;
+}
+
+/* Modal scrims — extend blur/scrim behind status bar + home indicator */
+.agent-modal-overlay,
+.agent-modal-overlay.transactions-modal-overlay,
+.agent-modal-overlay.interview-modal-overlay,
+.agent-modal-overlay.budget-modal-overlay,
+.social-modal-overlay,
+.modal-overlay,
+.intake-page::before,
+.register-page::before,
+.login-page::before {
+  top: var(--vp-bg-inset-top) !important;
+  right: var(--vp-bg-inset-x) !important;
+  bottom: var(--vp-bg-inset-bottom) !important;
+  left: var(--vp-bg-inset-x) !important;
+  width: auto !important;
+  height: auto !important;
+  min-height: auto !important;
+  max-height: none !important;
+}
+
+/* Scale/translate on the photo layer creates gaps at the bottom on mobile */
+@media (max-width: 767px) {
+  .app-shell::before,
+  body.agent-route-active .app-shell::before,
+  body.agent-route-standalone .app-shell::before {
+    transform: none !important;
+    transform-origin: center center !important;
+    background-size: cover !important;
+  }
+
+  html:not(.home-route-active) .app-shell::before {
+    animation: appShellBackdropEntranceMobile 850ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    background-position: center top !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell::before {
+    animation: none !important;
+  }
+}

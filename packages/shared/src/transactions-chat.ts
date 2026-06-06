@@ -187,10 +187,16 @@ export function compactDashboardForPrompt(dashboard: unknown, options?: { maxMov
   return { period: d.period ?? null, currency: d.currency ?? null, keyMetrics: d.keyMetrics ?? null, topCategories: Array.isArray(d.topCategories) ? d.topCategories.slice(0, 8) : [], topMerchants: Array.isArray(d.topMerchants) ? d.topMerchants.slice(0, maxMerchants) : [], spendClusters: Array.isArray(d.spendClusters) ? d.spendClusters.slice(0, 6) : [], alerts: Array.isArray(d.alerts) ? d.alerts.slice(0, 4) : [], alertDetails: Array.isArray(d.alertDetails) ? d.alertDetails.slice(0, 4) : [], movements: selectedMovements.map((row) => compactMovementRow(row)) };
 }
 
-export function compactDocumentsForPrompt(docs: Array<{ documentId?: string; name?: string; text?: string; insight?: unknown; summary?: unknown }>, options?: { maxDocs?: number; maxText?: number }) {
+export function compactDocumentsForPrompt(docs: Array<{ documentId?: string; name?: string; text?: string; insight?: unknown; summary?: unknown; documentProfile?: unknown }>, options?: { maxDocs?: number; maxText?: number }) {
   const maxDocs = options?.maxDocs ?? 4;
   const maxText = options?.maxText ?? 900;
-  return docs.slice(0, maxDocs).map((doc) => ({ documentId: doc.documentId, name: compactTxText(doc.name ?? '', 120), insight: doc.insight ?? null, text: compactTxText(doc.text ?? '', maxText) }));
+  return docs.slice(0, maxDocs).map((doc) => ({
+    documentId: doc.documentId,
+    name: compactTxText(doc.name ?? '', 120),
+    insight: doc.insight ?? null,
+    documentProfile: doc.documentProfile ?? null,
+    text: compactTxText(doc.text ?? '', maxText),
+  }));
 }
 
 export function compactChatHistory(messages: Array<{ role?: string; text?: string }>, maxMessages = 8, maxText = 600) {

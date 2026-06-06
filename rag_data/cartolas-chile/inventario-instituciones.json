@@ -1,0 +1,164 @@
+{
+  "updatedAt": "2026-06-06",
+  "scope": "Chile",
+  "families": [
+    "cartola de cuenta corriente",
+    "cartola de cuenta vista",
+    "cartola historica",
+    "cartola de transferencias",
+    "estado de cuenta de tarjeta de credito",
+    "reporte de conciliacion",
+    "exportable TXT/CSV/XLSX/PDF"
+  ],
+  "commonFields": [
+    "fecha",
+    "descripcion",
+    "glosa",
+    "canal",
+    "sucursal",
+    "numero_operacion",
+    "cargos",
+    "abonos",
+    "saldo",
+    "retenciones",
+    "saldo_contable",
+    "saldo_disponible",
+    "cupo_total",
+    "cupo_usado",
+    "cupo_disponible",
+    "monto_minimo",
+    "fecha_de_pago",
+    "intereses",
+    "comisiones"
+  ],
+  "institutions": [
+    {
+      "name": "BancoEstado",
+      "products": ["cuenta_rut", "cuenta_corriente", "tarjeta_credito"],
+      "documentPatterns": [
+        "Saldo y Retenciones",
+        "Fecha / Sucursal / N° Operacion / Descripcion / Cargos / Abonos / Saldo",
+        "estado de cuenta con compras, avances, intereses y cupos"
+      ]
+    },
+    {
+      "name": "Banco de Chile",
+      "products": ["cuenta_corriente", "linea_credito", "tarjeta_credito"],
+      "documentPatterns": [
+        "Saldo disponible",
+        "Saldo contable",
+        "Total cargos",
+        "Total abonos",
+        "Retenciones",
+        "Linea de credito",
+        "cartola historica",
+        "cartolas masivas"
+      ]
+    },
+    {
+      "name": "Santander Chile",
+      "products": ["cuenta_corriente", "tarjeta_credito"],
+      "documentPatterns": [
+        "cartola mensual",
+        "Mis Documentos",
+        "estado de cuenta con pago minimo e intereses"
+      ]
+    },
+    {
+      "name": "BCI",
+      "products": ["cuenta_corriente", "tarjeta_credito"],
+      "documentPatterns": [
+        "Cartola",
+        "Estado de Cuenta",
+        "Ultimos movimientos",
+        "MT940",
+        "TXT conciliacion"
+      ]
+    },
+    {
+      "name": "Itaú",
+      "products": ["cuenta_corriente", "tarjeta_credito"],
+      "documentPatterns": [
+        "texto",
+        "excel",
+        "pdf",
+        "periodicidad diaria/semanal/quincenal/mensual"
+      ]
+    },
+    {
+      "name": "Scotiabank",
+      "products": ["cuenta_corriente", "tarjeta_credito"],
+      "documentPatterns": [
+        "cartola digital",
+        "periodo facturado",
+        "monto minimo",
+        "nacional e internacional"
+      ]
+    },
+    {
+      "name": "Banco Falabella / CMR",
+      "products": ["tarjeta_credito"],
+      "documentPatterns": [
+        "cupo total",
+        "cupo compras",
+        "cupo avance",
+        "cupo super avance",
+        "monto facturado",
+        "monto minimo"
+      ]
+    },
+    {
+      "name": "Banco BICE",
+      "products": ["cuenta_corriente", "tarjeta_credito"],
+      "documentPatterns": [
+        "cartola electronica",
+        "conciliacion diaria",
+        "multiproducto"
+      ]
+    },
+    {
+      "name": "Tenpo",
+      "products": ["cuenta_digital"],
+      "documentPatterns": [
+        "estado de cuenta descargable desde app"
+      ]
+    },
+    {
+      "name": "Mercado Pago",
+      "products": ["ledger_fintech"],
+      "documentPatterns": [
+        "reporte de transacciones",
+        "saldo",
+        "devoluciones",
+        "contracargos",
+        "settlement_net_amount"
+      ]
+    },
+    {
+      "name": "Global66",
+      "products": ["cuenta_multimoneda"],
+      "documentPatterns": [
+        "historial de movimientos",
+        "certificados por cuenta o moneda"
+      ]
+    }
+  ],
+  "heuristics": [
+    {
+      "signal": "saldo + cargos + abonos",
+      "classification": "cartola_cuenta"
+    },
+    {
+      "signal": "cupo + monto minimo + fecha de pago",
+      "classification": "estado_tarjeta_credito"
+    },
+    {
+      "signal": "saldo contable + saldo disponible + retenciones",
+      "classification": "cartola_cuenta_corriente"
+    },
+    {
+      "signal": "csv/txt/xlsx",
+      "classification": "ledger_estructurado"
+    }
+  ]
+}

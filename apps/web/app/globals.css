@@ -87,6 +87,15 @@
   --warning:      #ff9500;
   --error:        #ff5a52;
   --nav-height:   60px;
+
+  /* Viewport backdrop bleed — see backdrop-system.css for layer application */
+  --vp-bg-bleed-top: max(env(safe-area-inset-top, 0px), 24px);
+  --vp-bg-bleed-bottom: max(env(safe-area-inset-bottom, 0px), 24px);
+  --vp-bg-bleed-x: 8px;
+  --vp-bg-bleed-extra-bottom: 0px;
+  --vp-bg-inset-top: calc(-1 * var(--vp-bg-bleed-top));
+  --vp-bg-inset-bottom: calc(-1 * var(--vp-bg-bleed-bottom) - var(--vp-bg-bleed-extra-bottom));
+  --vp-bg-inset-x: calc(-1 * var(--vp-bg-bleed-x));
 }
 
 /* Dark mode overrides */
@@ -195,7 +204,10 @@ html.pwa-standalone body {
 html.pwa-standalone .global-agent-backdrop,
 body.agent-route-active .global-agent-backdrop {
   position: fixed;
-  inset: -96px 0 -20vh 0;
+  top: var(--vp-bg-inset-top);
+  right: var(--vp-bg-inset-x);
+  bottom: var(--vp-bg-inset-bottom);
+  left: var(--vp-bg-inset-x);
   z-index: 0;
   pointer-events: none;
   background-color: #050810;
@@ -748,11 +760,14 @@ button {
 }
 
 /* Background image + matte overlay: fixed + slight overextend prevents
-   sub-pixel gaps and covers safe-area-inset regions in PWA standalone mode */
+   sub-pixel gaps and covers safe-area-inset regions (top + bottom) in PWA mode */
 .app-shell::before {
   content: '';
   position: fixed;
-  inset: -24px -2px -2px -2px;
+  top: var(--vp-bg-inset-top);
+  right: var(--vp-bg-inset-x);
+  bottom: var(--vp-bg-inset-bottom);
+  left: var(--vp-bg-inset-x);
   background:
     linear-gradient(
       180deg,
@@ -902,10 +917,10 @@ html.home-route-active .app-shell::after {
 
 .home-canvas-layer {
   position: fixed;
-  top: calc(-1 * env(safe-area-inset-top, 0px));
-  right: 0;
-  bottom: calc(-1 * env(safe-area-inset-bottom, 0px));
-  left: 0;
+  top: var(--vp-bg-inset-top);
+  right: var(--vp-bg-inset-x);
+  bottom: var(--vp-bg-inset-bottom);
+  left: var(--vp-bg-inset-x);
   z-index: 0;
   pointer-events: none;
 }
@@ -2423,14 +2438,6 @@ body.home-lock {
 
 /* Mobile */
 @media (max-width: 480px) {
-  .app-shell::before {
-    inset: calc(-1 * max(env(safe-area-inset-top, 54px), 44px) - 12px) -8px -8px -8px;
-    transform-origin: center top;
-    animation: appShellBackdropEntrance 850ms cubic-bezier(0.22, 1, 0.36, 1) both;
-    background-position: center top;
-    background-size: cover;
-  }
-
   .auth-shell {
     align-items: flex-start;
     padding: calc(env(safe-area-inset-top, 0px) + 8px) 12px max(env(safe-area-inset-bottom, 0px), 18px);

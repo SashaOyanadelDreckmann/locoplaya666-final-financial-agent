@@ -1,6 +1,7 @@
 // apps/web/app/layout.tsx
 import './globals.css';
 import './agent.css';
+import './backdrop-system.css';
 import ServiceWorkerReset from '@/components/ServiceWorkerReset';
 import { buildRuntimePublicConfigScript } from '@/lib/runtimePublicConfig';
 import type { Viewport } from 'next';

@@ -19,16 +19,17 @@ export type BankProduct = {
   };
   productType: 'credit_card' | 'debit_account' | 'checking_account' | 'savings_account' | 'consumer_loan' | 'mortgage' | 'investment_account';
   uploadedFiles: string[];
-  parsedDocuments: Array<{
-    documentId?: string;
-    name: string;
-    text: string;
-    summary?: unknown;
-    structuredData?: unknown;
-    insight?: {
-      format?: string;
-      reliability?: number;
-      extracted_rows?: number;
+    parsedDocuments: Array<{
+      documentId?: string;
+      name: string;
+      text: string;
+      summary?: unknown;
+      structuredData?: unknown;
+      documentProfile?: unknown;
+      insight?: {
+        format?: string;
+        reliability?: number;
+        extracted_rows?: number;
       key_findings?: string[];
     };
   }>;
@@ -103,6 +104,7 @@ export type UploadStatementResult = {
     text: string;
     summary?: unknown;
     structuredData?: unknown;
+    documentProfile?: unknown;
     insight?: {
       format?: string;
       reliability?: number;

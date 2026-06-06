@@ -18,8 +18,6 @@ import {
   removeInjectedProfile,
   loadSheets,
   saveSheets,
-  loadPanelState,
-  savePanelState,
   deletePdfArtifact,
   getWelcomeMessage,
   parseDocuments,
@@ -50,8 +48,6 @@ import {
   normalizeParsedUploadDocuments,
 } from '@/lib/transactions-upload-state.helpers';
 import {
-  clearAllPanelStateBackups,
-  hasMeaningfulPanelState,
   panelStateBackupKeyForUser,
 } from '@/lib/panel-state.helpers';
 import { normalizeProductAssistantState } from '@/lib/product-normalization.helpers';
@@ -112,6 +108,11 @@ import { ChatHeader } from './chat-header';
 import { buildPanelBaseCards } from './panel-cards';
 import { useBudgetRows } from './hooks/use-budget-rows';
 import { mergeBankProductPatch } from './transactions/state.helpers';
+import {
+  buildMetaSheetContextSummary,
+  buildPanelSnapshotPayload,
+} from './page.flow';
+import { clearPanelStateBackups, hydratePanelState, persistPanelState } from './panel-state.service';
 
 type AgentMeta = {
   objective?: string;
@@ -155,6 +156,7 @@ type ParsedUploadDocument = {
   text?: string;
   summary?: unknown;
   structuredData?: unknown;
+  documentProfile?: unknown;
   insight?: {
     format?: string;
     reliability?: number;
@@ -1282,40 +1284,24 @@ export default function AgentPage() {
 
   function clearAllLocalAgentState() {
     clearLocalAgentState();
-    clearAllPanelStateBackups();
+    clearPanelStateBackups();
   }
 
   function buildPanelSnapshot() {
-    return {
+    return buildPanelSnapshotPayload({
       budgetRows,
       budgetChatAnswers,
-      bankSimulation: {
-        products: bankSimulation.products.map((product) => ({
-          ...product,
-          randomMode: false,
-        })),
-        taxonomyOverrides: bankSimulation.taxonomyOverrides,
-        activeProductId: bankSimulation.activeProductId,
-        lockedMonth: bankSimulation.lockedMonth,
-        connected: bankSimulation.connected,
-        randomMode: bankSimulation.randomMode,
-        uploadedFiles: aggregateUploadedFiles(bankSimulation.products),
-        parsedDocuments: aggregateParsedDocuments(bankSimulation.products),
-      },
+      bankSimulation,
       txProductsCreatedTotal,
       savedReports,
-      updatedAt: new Date().toISOString(),
-    };
+    });
   }
 
   async function persistPanelSnapshotNow() {
-    const snapshot = buildPanelSnapshot();
-    try {
-      localStorage.setItem(panelStateBackupKey, JSON.stringify(snapshot));
-    } catch {}
-    try {
-      await savePanelState(snapshot);
-    } catch {}
+    await persistPanelState({
+      panelStateBackupKey,
+      snapshot: buildPanelSnapshot(),
+    });
   }
 
   function closeAccountModal() {
@@ -2037,232 +2023,32 @@ export default function AgentPage() {
     if (!authBootstrapped || !isAuthenticated) return;
     let alive = true;
 
-    loadPanelState()
-      .then((data) => {
+    hydratePanelState({
+      panelStateBackupKey,
+      budgetRows,
+      budgetChatAnswers,
+      savedReports,
+      txProductsCreatedTotal,
+      bankSimulation,
+    })
+      .then((result) => {
         if (!alive) return;
-        let panelState = data?.panelState;
-        if (!hasMeaningfulPanelState(panelState)) {
-          try {
-            const localBackupRaw = localStorage.getItem(panelStateBackupKey);
-            if (localBackupRaw) {
-              const localBackupParsed = JSON.parse(localBackupRaw);
-              if (hasMeaningfulPanelState(localBackupParsed)) panelState = localBackupParsed;
-            }
-          } catch {}
-        }
-        if (panelState && typeof panelState === 'object') {
-          if (Array.isArray(panelState.budgetRows) && panelState.budgetRows.length > 0) {
-            setBudgetRows(
-              panelState.budgetRows.map((row: any) =>
-                normalizeBudgetRow({
-                  ...(row as BudgetRow),
-                  note: typeof row?.note === 'string' ? row.note : '',
-                })
-              )
-            );
-          }
-          if (Array.isArray(panelState.budgetChatAnswers)) {
-            setBudgetChatAnswers(
-              (panelState.budgetChatAnswers as Array<{ q: string; a: string }>)
-                .filter((item) => typeof item?.q === 'string' && typeof item?.a === 'string')
-                .slice(0, 30)
-            );
-          }
-          if (Array.isArray(panelState.savedReports)) {
-            setSavedReports(panelState.savedReports);
-          }
-          if (typeof panelState.txProductsCreatedTotal === 'number') {
+        if (result?.restored) {
+          const { restored } = result;
+          if (restored.budgetRows) setBudgetRows(restored.budgetRows);
+          if (restored.budgetChatAnswers) setBudgetChatAnswers(restored.budgetChatAnswers);
+          if (restored.savedReports) setSavedReports(restored.savedReports as SavedReport[]);
+          if (typeof restored.txProductsCreatedTotal === 'number') {
             setTxProductsCreatedTotal(
-              Math.max(
-                0,
-                Math.min(
-                  MAX_TRANSACTION_PRODUCTS_CREATED_TOTAL,
-                  Math.floor(panelState.txProductsCreatedTotal),
-                ),
-              ),
+              Math.max(0, Math.min(MAX_TRANSACTION_PRODUCTS_CREATED_TOTAL, restored.txProductsCreatedTotal))
             );
           }
-          if (panelState.bankSimulation && typeof panelState.bankSimulation === 'object') {
-            if (Array.isArray(panelState.bankSimulation.products)) {
-              setTxProductsCreatedTotal((prev) =>
-                Math.max(
-                  prev,
-                  Math.min(
-                    MAX_TRANSACTION_PRODUCTS_CREATED_TOTAL,
-                    panelState.bankSimulation.products.length,
-                  ),
-                ),
-              );
-            }
-            setBankSimulation((prev) => {
-              const products: BankProduct[] = Array.isArray(panelState.bankSimulation.products)
-                ? panelState.bankSimulation.products.map((product: unknown) => {
-                    const raw = product as Partial<BankProduct>;
-                    return {
-                      ...(raw as BankProduct),
-                      assistant: normalizeProductAssistantState(raw.assistant),
-                      productType:
-                        raw.productType === 'debit_account' ||
-                        raw.productType === 'checking_account' ||
-                        raw.productType === 'savings_account' ||
-                        raw.productType === 'consumer_loan' ||
-                        raw.productType === 'mortgage' ||
-                        raw.productType === 'investment_account'
-                          ? raw.productType
-                          : 'credit_card',
-                      simulationAccepted: Boolean(raw.simulationAccepted),
-                      connected: Boolean(raw.connected),
-                      randomMode: false,
-                      uploadedFiles: Array.isArray(raw.uploadedFiles) ? raw.uploadedFiles : [],
-                      parsedDocuments: Array.isArray(raw.parsedDocuments) ? raw.parsedDocuments : [],
-                    };
-                  })
-                : prev.products;
-              const taxonomyOverrides = Array.isArray((panelState.bankSimulation as any).taxonomyOverrides)
-                ? ((panelState.bankSimulation as any).taxonomyOverrides as unknown[])
-                    .map(normalizeTransactionTaxonomyOverride)
-                    .filter((item): item is TransactionTaxonomyOverride => Boolean(item))
-                : prev.taxonomyOverrides;
-              const requestedActiveProductId =
-                typeof panelState.bankSimulation.activeProductId === 'string'
-                  ? panelState.bankSimulation.activeProductId
-                  : prev.activeProductId;
-              const activeProductId =
-                requestedActiveProductId && products.some((product) => product.id === requestedActiveProductId)
-                  ? requestedActiveProductId
-                  : products[0]?.id ?? null;
-              const snapshot = getSimulationSnapshot(products, activeProductId);
-
-              return {
-                ...prev,
-                products,
-                taxonomyOverrides,
-                activeProductId,
-                lockedMonth:
-                  typeof panelState.bankSimulation.lockedMonth === 'string'
-                    ? panelState.bankSimulation.lockedMonth
-                    : prev.lockedMonth,
-                connected: snapshot.connected,
-                randomMode: snapshot.randomMode,
-                uploadedFiles: snapshot.uploadedFiles,
-                parsedDocuments: snapshot.parsedDocuments,
-              };
-            });
-          }
+          if (restored.bankSimulation) setBankSimulation(restored.bankSimulation);
         }
         setPanelStateLoaded(true);
       })
       .catch(() => {
-        if (alive) {
-          try {
-            const localBackupRaw = localStorage.getItem(panelStateBackupKey);
-            if (localBackupRaw) {
-              const localBackupParsed = JSON.parse(localBackupRaw);
-              if (hasMeaningfulPanelState(localBackupParsed)) {
-                const panelState = localBackupParsed;
-                if (Array.isArray(panelState.budgetRows) && panelState.budgetRows.length > 0) {
-                  setBudgetRows(
-                    panelState.budgetRows.map((row: any) =>
-                      normalizeBudgetRow({
-                        ...(row as BudgetRow),
-                        note: typeof row?.note === 'string' ? row.note : '',
-                      })
-                    )
-                  );
-                }
-                if (Array.isArray(panelState.budgetChatAnswers)) {
-                  setBudgetChatAnswers(
-                    (panelState.budgetChatAnswers as Array<{ q: string; a: string }>)
-                      .filter((item) => typeof item?.q === 'string' && typeof item?.a === 'string')
-                      .slice(0, 30)
-                  );
-                }
-                if (Array.isArray(panelState.savedReports)) {
-                  setSavedReports(panelState.savedReports);
-                }
-                if (typeof panelState.txProductsCreatedTotal === 'number') {
-                  setTxProductsCreatedTotal(
-                    Math.max(
-                      0,
-                      Math.min(
-                        MAX_TRANSACTION_PRODUCTS_CREATED_TOTAL,
-                        Math.floor(panelState.txProductsCreatedTotal),
-                      ),
-                    ),
-                  );
-                }
-                if (panelState.bankSimulation && typeof panelState.bankSimulation === 'object') {
-                  if (Array.isArray(panelState.bankSimulation.products)) {
-                    setTxProductsCreatedTotal((prev) =>
-                      Math.max(
-                        prev,
-                        Math.min(
-                          MAX_TRANSACTION_PRODUCTS_CREATED_TOTAL,
-                          panelState.bankSimulation.products.length,
-                        ),
-                      ),
-                    );
-                  }
-                  setBankSimulation((prev) => {
-                    const products: BankProduct[] = Array.isArray(panelState.bankSimulation.products)
-                      ? panelState.bankSimulation.products.map((product: unknown) => {
-                          const raw = product as Partial<BankProduct>;
-                          return {
-                            ...(raw as BankProduct),
-                            assistant: normalizeProductAssistantState(raw.assistant),
-                            productType:
-                              raw.productType === 'debit_account' ||
-                              raw.productType === 'checking_account' ||
-                              raw.productType === 'savings_account' ||
-                              raw.productType === 'consumer_loan' ||
-                              raw.productType === 'mortgage' ||
-                              raw.productType === 'investment_account'
-                                ? raw.productType
-                                : 'credit_card',
-                            simulationAccepted: Boolean(raw.simulationAccepted),
-                            connected: Boolean(raw.connected),
-                            randomMode: false,
-                            uploadedFiles: Array.isArray(raw.uploadedFiles) ? raw.uploadedFiles : [],
-                            parsedDocuments: Array.isArray(raw.parsedDocuments) ? raw.parsedDocuments : [],
-                          };
-                        })
-                      : prev.products;
-                    const taxonomyOverrides = Array.isArray((panelState.bankSimulation as any).taxonomyOverrides)
-                      ? ((panelState.bankSimulation as any).taxonomyOverrides as unknown[])
-                          .map(normalizeTransactionTaxonomyOverride)
-                          .filter((item): item is TransactionTaxonomyOverride => Boolean(item))
-                      : prev.taxonomyOverrides;
-                    const requestedActiveProductId =
-                      typeof panelState.bankSimulation.activeProductId === 'string'
-                        ? panelState.bankSimulation.activeProductId
-                        : prev.activeProductId;
-                    const activeProductId =
-                      requestedActiveProductId && products.some((product) => product.id === requestedActiveProductId)
-                        ? requestedActiveProductId
-                        : products[0]?.id ?? null;
-                    const snapshot = getSimulationSnapshot(products, activeProductId);
-
-                    return {
-                      ...prev,
-                      products,
-                      taxonomyOverrides,
-                      activeProductId,
-                      lockedMonth:
-                        typeof panelState.bankSimulation.lockedMonth === 'string'
-                          ? panelState.bankSimulation.lockedMonth
-                          : prev.lockedMonth,
-                      connected: snapshot.connected,
-                      randomMode: snapshot.randomMode,
-                      uploadedFiles: snapshot.uploadedFiles,
-                      parsedDocuments: snapshot.parsedDocuments,
-                    };
-                  });
-                }
-              }
-            }
-          } catch {}
-          setPanelStateLoaded(true);
-        }
+        if (alive) setPanelStateLoaded(true);
       });
 
     return () => {
@@ -2276,11 +2062,10 @@ export default function AgentPage() {
     if (panelSaveTimerRef.current) clearTimeout(panelSaveTimerRef.current);
 
     panelSaveTimerRef.current = setTimeout(() => {
-      const snapshot = buildPanelSnapshot();
-      try {
-        localStorage.setItem(panelStateBackupKey, JSON.stringify(snapshot));
-      } catch {}
-      savePanelState(snapshot).catch(() => {});
+      void persistPanelState({
+        panelStateBackupKey,
+        snapshot: buildPanelSnapshot(),
+      });
     }, 1200);
 
     return () => {
@@ -3878,16 +3663,7 @@ export default function AgentPage() {
     setActiveChatId('meta-sheet');
 
     // Build a rich context summary from the 3 sheets
-    const contextSummary = contextSheets
-      .map((s) => {
-        const msgs = s.items
-          .filter((it) => it.type === 'message')
-          .slice(-6)
-          .map((it) => `[${(it as any).role}]: ${((it as any).content ?? '').slice(0, 300)}`)
-          .join('\n');
-        return `=== Hoja "${s.name}" ===\n${msgs}`;
-      })
-      .join('\n\n');
+    const contextSummary = buildMetaSheetContextSummary(contextSheets);
 
     try {
       const res = (await sendToAgent({

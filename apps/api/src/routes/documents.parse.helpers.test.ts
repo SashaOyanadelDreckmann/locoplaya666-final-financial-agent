@@ -34,6 +34,48 @@ describe('documents.parse.helpers', () => {
     expect(shouldReconcileMovements(documents, movements)).toBe(true);
   });
 
+  it('skips reconcile when document profile is already high confidence and known', () => {
+    const documents = [
+      {
+        structuredData: {
+          rowCount: 60,
+          parserMeta: { mode: 'exact_sheet', confidence: 0.98 },
+          documentProfile: {
+            confidence: 0.95,
+            format_family: 'banco_chile_cartola_historica',
+            needs_rag: false,
+          },
+        },
+      },
+    ];
+    const movements = Array.from({ length: 18 }, () => ({
+      source_kind: 'table' as const,
+    }));
+
+    expect(shouldReconcileMovements(documents, movements)).toBe(false);
+  });
+
+  it('skips reconcile for high-confidence inventory profiles outside the old hardcoded set', () => {
+    const documents = [
+      {
+        structuredData: {
+          rowCount: 48,
+          parserMeta: { mode: 'vision_structured', confidence: 0.96 },
+          documentProfile: {
+            confidence: 0.94,
+            format_family: 'santander_estado_cuenta_tarjeta_credito',
+            needs_rag: false,
+          },
+        },
+      },
+    ];
+    const movements = Array.from({ length: 22 }, () => ({
+      source_kind: 'table' as const,
+    }));
+
+    expect(shouldReconcileMovements(documents, movements)).toBe(false);
+  });
+
   it('builds a richer executive summary without LLM', () => {
     const summary = buildExecutiveSummaryText({
       movementCount: 42,

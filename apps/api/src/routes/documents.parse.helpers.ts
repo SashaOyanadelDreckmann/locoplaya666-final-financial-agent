@@ -8,6 +8,12 @@ type StructuredDoc = {
   possibleTransactionCount?: unknown;
   parserMeta?: ParserMeta;
   tables?: unknown[];
+  documentProfile?: {
+    confidence?: number;
+    format_family?: string;
+    bank?: string;
+    needs_rag?: boolean;
+  };
 };
 
 type DocumentInsight = {
@@ -49,8 +55,20 @@ export function shouldReconcileMovements(
       Number(structured.rowCount ?? 0) || 0,
       Number(structured.possibleTransactionCount ?? 0) || 0,
     );
+    const profileConfidence = Number(structured.documentProfile?.confidence ?? 0) || 0;
+    const profileFamily = String(structured.documentProfile?.format_family ?? '').toLowerCase();
+    const hasSpecificProfile =
+      profileFamily.includes('banco_') ||
+      profileFamily.includes('visa_signature') ||
+      profileFamily.includes('ledger') ||
+      profileFamily.includes('fintech') ||
+      profileFamily.includes('cartola') ||
+      profileFamily.includes('estado_cuenta');
 
     if ((mode === 'csv_exact' || mode === 'exact_sheet') && parserConfidence >= 0.95) {
+      continue;
+    }
+    if (profileConfidence >= 0.92 && !structured.documentProfile?.needs_rag && hasSpecificProfile) {
       continue;
     }
     if (parserConfidence >= 0.93 && tableRatio >= 0.65 && heuristicMovements.length >= 3) {

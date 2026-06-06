@@ -8,6 +8,7 @@ type ParsedDocInput = {
   text?: unknown;
   summary?: unknown;
   structuredData?: unknown;
+  documentProfile?: unknown;
 };
 
 type InsightMap = Map<string, unknown>;
@@ -32,6 +33,7 @@ export function normalizeParsedUploadDocuments(
       text: toStringSafe(doc.text),
       summary: doc.summary,
       structuredData: doc.structuredData,
+      documentProfile: doc.documentProfile,
       insight: insightByName.get(name) as ParsedDocument['insight'],
     };
   });

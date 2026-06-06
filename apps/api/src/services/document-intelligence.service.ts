@@ -10,6 +10,7 @@ import {
 } from '../persistence/repos';
 import { parseTransactionFileDetailed, type ParsedTable } from './transactionParser.service';
 import { getOpenAIClient } from './llm.service';
+import { buildTransactionDocumentProfile } from './transactionDocumentProfile.service';
 
 export type DocumentSearchHit = {
   source: 'openai_file_search' | 'local_document_store';
@@ -308,8 +309,18 @@ export async function ingestUserDocument(input: IngestUserDocumentInput) {
   const kind = detectDocumentKind(input.name);
   const parsed = await parseTransactionFileDetailed(input.buffer, input.name);
   const extractedText = parsed.text;
+  const documentProfile = await buildTransactionDocumentProfile({
+    filename: input.name,
+    text: extractedText,
+    tables: parsed.tables,
+    parserMeta: parsed.parserMeta ?? null,
+    productTypeHint: kind === 'EXCEL' || kind === 'CSV' ? 'checking_account' : undefined,
+  });
   const summary = inferDocumentSummary(extractedText, input.name);
-  const structuredData = extractStructuredFinancialData(extractedText, parsed.tables, parsed.parserMeta);
+  const structuredData = {
+    ...extractStructuredFinancialData(extractedText, parsed.tables, parsed.parserMeta),
+    documentProfile,
+  };
 
   const document = await createDocumentRecord({
     userId: input.userId,

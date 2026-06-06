@@ -15,6 +15,7 @@ import { badRequest, unauthorized } from '../http/api.errors';
 import { sendSuccess } from '../http/api.responses';
 import { parseBody } from '../http/parse';
 import { PERMISSIONS } from '../auth/rbac';
+import { type TransactionDocumentProfile } from '../services/transactionDocumentProfile.service';
 import {
   buildExecutiveSummaryText,
   shouldReconcileMovements,
@@ -132,10 +133,20 @@ export function isSupportedDocumentFilename(name: string): boolean {
   return SUPPORTED_EXTENSIONS.has(normalized.slice(dot));
 }
 
+function isProbablyBase64(value: string): boolean {
+  const normalized = String(value ?? '').replace(/\s+/g, '');
+  if (!normalized) return false;
+  if (normalized.length % 4 === 1) return false;
+  return /^[A-Za-z0-9+/]*={0,2}$/.test(normalized);
+}
+
 export function decodeBase64File(base64: string, name: string): Buffer {
   // Strip all whitespace before decoding — browsers may insert line breaks in data URLs.
   const normalized = String(base64 ?? '').replace(/\s+/g, '');
   if (!normalized) throw badRequest(`Archivo "${name}" sin contenido.`);
+  if (!isProbablyBase64(normalized)) {
+    throw badRequest(`Archivo "${name}" no tiene un base64 válido.`);
+  }
   // Buffer.from with 'base64' is lenient: it silently ignores non-base64 chars
   // and handles any padding variant. Re-encoding to verify would cost double
   // the memory (50 MB file → 100 MB peak) and can produce false positives.
@@ -643,17 +654,26 @@ function buildTransactionAnalysis(
     productTypeHint?: string;
     productLabelHint?: string;
   },
-  ) {
+) {
+  const documentProfiles = documents
+    .map((doc) => {
+      const structured = (doc.structuredData as { documentProfile?: TransactionDocumentProfile } | null | undefined) ?? {};
+      return structured.documentProfile ?? null;
+    })
+    .filter((profile): profile is TransactionDocumentProfile => Boolean(profile));
+  const primaryProfile = documentProfiles[0] ?? null;
   const normalizedProductType =
     normalizeMovementProductType(hints.productTypeHint) ||
     normalizeMovementProductType(hints.serviceHint) ||
     normalizeMovementProductType(hints.productLabelHint) ||
+    primaryProfile?.product_type ||
     'credit_card';
   const documentInsights = documents.map((doc) => {
     const structured = (doc.structuredData as {
       rowCount?: unknown;
       possibleTransactionCount?: unknown;
       parserMeta?: { confidence?: unknown; mode?: unknown };
+      documentProfile?: TransactionDocumentProfile;
     } | null | undefined) ?? {};
     const summary = (doc.summary as { detectedSignals?: unknown } | null | undefined) ?? {};
     const extractedRows = Math.max(0, Number(structured.possibleTransactionCount ?? 0) || 0);
@@ -699,6 +719,13 @@ function buildTransactionAnalysisFromMovements(
   movements: ParsedMovement[],
   productType?: string,
 ) {
+  const documentProfiles = documents
+    .map((doc) => {
+      const structured = (doc.structuredData as { documentProfile?: TransactionDocumentProfile } | null | undefined) ?? {};
+      return structured.documentProfile ?? null;
+    })
+    .filter((profile): profile is TransactionDocumentProfile => Boolean(profile));
+  const primaryProfile = documentProfiles[0] ?? null;
   const incomeMovements = movements.filter((movement) => movement.direction === 'income');
   const abonoMovements = movements.filter((movement) => movement.movement_kind === 'abono');
   const expenseMovements = movements.filter((movement) => movement.direction === 'expense');
@@ -886,13 +913,14 @@ function buildTransactionAnalysisFromMovements(
   const cleanedInstitutionHint = hints.institutionHint?.replace(/\s*\(simulaci[oó]n\)\s*/gi, '').trim() || '';
   const cleanedServiceHint = hints.serviceHint?.trim() || '';
   const cleanedProductLabelHint = hints.productLabelHint?.trim() || '';
-  const institution = cleanedInstitutionHint || 'Institución por confirmar';
-  const service = cleanedServiceHint || cleanedProductLabelHint || 'Producto financiero';
+  const institution = cleanedInstitutionHint || primaryProfile?.bank || 'Institución por confirmar';
+  const service = cleanedServiceHint || cleanedProductLabelHint || primaryProfile?.format_family || 'Producto financiero';
   const normalizedProductType =
     normalizeMovementProductType(productType) ||
     normalizeMovementProductType(hints.productTypeHint) ||
     normalizeMovementProductType(cleanedServiceHint) ||
     normalizeMovementProductType(cleanedProductLabelHint) ||
+    primaryProfile?.product_type ||
     'credit_card';
   const productLabel = cleanedProductLabelHint || service;
 
@@ -902,6 +930,9 @@ function buildTransactionAnalysisFromMovements(
       service,
       product_type: normalizedProductType,
       product_label: productLabel,
+      format_family: primaryProfile?.format_family,
+      document_profile_confidence: primaryProfile?.confidence,
+      document_profile_sign_convention: primaryProfile?.sign_convention,
       period,
       currency: inferCurrency(documents),
       key_metrics: {
@@ -947,6 +978,7 @@ function buildTransactionAnalysisFromMovements(
       }),
     },
     document_insights: documentInsights.map(({ row_count, ...rest }) => rest),
+    document_profiles: documentProfiles,
     movements: movements.map((movement) => ({
       date: movement.date,
       description: movement.description,
@@ -1093,6 +1125,7 @@ router.post(
       productLabelHint: body.productLabelHint,
     });
     const productTypeForAnalysis =
+      normalizeMovementProductType(heuristicAnalysis.product_profile?.product_type) ||
       normalizeMovementProductType(body.productTypeHint) ||
       normalizeMovementProductType(body.serviceHint) ||
       normalizeMovementProductType(body.productLabelHint) ||
