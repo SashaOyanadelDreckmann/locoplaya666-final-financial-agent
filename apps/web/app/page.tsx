@@ -106,12 +106,6 @@ function ProblemSection() {
         maskImage: 'linear-gradient(to bottom, black 72%, transparent 100%)',
       }}>
 
-        {/* Subtle veil — just enough to lift text off digits on very bright image areas */}
-        <div style={{
-          position: 'absolute', inset: 0, pointerEvents: 'none',
-          background: 'linear-gradient(to right, rgba(6,11,24,0.18) 0%, rgba(6,11,24,0.06) 50%, rgba(6,11,24,0) 100%)',
-        }} />
-
         {/* Color overlay vibrante */}
         <motion.div style={{
           position: 'absolute', inset: 0, pointerEvents: 'none',
