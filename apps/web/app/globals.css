@@ -927,13 +927,14 @@ html.home-route-active .app-shell::after {
 @media (max-width: 767px) {
   /* Home route: window is the scroll container — framer-motion useScroll and sticky
      sections need window.scrollY to update. height:auto lets html/body grow with content
-     so the document can scroll. overflow-x:clip on the frame prevents horizontal bleed
-     without creating a scroll container (unlike overflow-x:hidden per CSS spec). */
+     so the document can scroll. overflow-x:clip (NOT hidden) prevents horizontal bleed
+     without creating a scroll mechanism — overflow-x:hidden forces overflow-y to auto
+     per CSS spec, making html/body a scroll container and breaking position:sticky. */
   html.home-route-active,
   html.home-route-active body {
     height: auto;
     min-height: 100dvh;
-    overflow-x: hidden;
+    overflow-x: clip;
   }
 
   html.home-route-active .mobile-scale-frame {
