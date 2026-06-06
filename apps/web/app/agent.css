@@ -14,8 +14,10 @@
 @import './agent-artifacts.css';
 /* Modals module */
 @import './agent-modals.css';
-/* Mobile shell — must stay last */
+/* Mobile shell */
 @import './agent-mobile-shell.css';
+/* Modal safe-area — must win over diagnostics + mobile sheet rules */
+@import './agent-modals-safe-area.css';
 
 /* Budget pro strict mobile mapping: avoid legacy 4-column action remap. */
 /* .budget-modal .budget-table.budget-table-pro tbody td:nth-child(4) */
