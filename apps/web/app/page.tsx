@@ -102,6 +102,8 @@ function ProblemSection() {
         alignItems: 'center',
         overflow: 'hidden',
         background: 'transparent',
+        WebkitMaskImage: 'linear-gradient(to bottom, black 72%, transparent 100%)',
+        maskImage: 'linear-gradient(to bottom, black 72%, transparent 100%)',
       }}>
 
         {/* Permanent dark gradient — left-side scrim so text is readable during chaos */}
