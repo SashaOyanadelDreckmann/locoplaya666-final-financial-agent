@@ -154,10 +154,10 @@
     align-items: center !important;
     justify-content: space-between !important;
     gap: 10px !important;
+    padding: 0 28px !important;
     background: transparent !important;
     border: 0 !important;
     box-shadow: none !important;
-    padding: 0 !important;
     margin: 0 !important;
   }
 
