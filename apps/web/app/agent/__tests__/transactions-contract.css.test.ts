@@ -47,8 +47,14 @@ describe('transactions modal layout contract css', () => {
     expect(contractCss).toContain('.transactions-modal .tx-lib-card-select');
     expect(contractCss).toContain('flex-direction: row !important');
     expect(contractCss).toContain('.transactions-modal .pt-item.pt-item-stack.tx-lib-card');
-    expect(contractCss).toContain('var(--tx-lib-base)');
+    expect(contractCss).toContain('var(--tx-lib-inline-bg)');
     expect(contractCss).toContain('min-height: 232px !important');
     expect(contractCss).toContain('-webkit-line-clamp: 2 !important');
+  });
+
+  it('fits mobile wizard stepper in one row without swipe', () => {
+    expect(contractCss).toContain('grid-template-columns: repeat(3, minmax(0, 1fr)) !important');
+    expect(contractCss).toContain('.transactions-modal .tx-wizard-step-idx');
+    expect(contractCss).toContain('display: none !important');
   });
 });

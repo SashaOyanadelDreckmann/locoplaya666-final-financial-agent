@@ -39,7 +39,7 @@ import type {
   BankProduct,
   TransactionsModalProps,
 } from './types';
-import { productVisualPalette } from './visuals';
+import { libraryCardSurface, productVisualPalette } from './visuals';
 
 export function TransactionsModal(props: TransactionsModalProps) {
   const [consentAccepted, setConsentAccepted] = useState(false);
@@ -618,12 +618,16 @@ export function TransactionsModal(props: TransactionsModalProps) {
                       const color = PRODUCT_STACK_PALETTE[paletteIndex];
                       const textAccent = PRODUCT_STACK_TEXT_PALETTE[(paletteIndex + 1) % PRODUCT_STACK_TEXT_PALETTE.length];
                       const visualPalette = productVisualPalette(`${product.id}-${product.label}-${product.bank}`);
+                      const cardSurface = libraryCardSurface(visualPalette);
                       return (
                         <div
                           key={product.id}
                           className={`pt-item pt-item-stack tx-lib-card tx-lib-card-shell ${isTop ? 'is-active is-top' : ''} ${recentlyDockedProductId === product.id ? 'tx-lib-enter' : ''}`}
                           data-docked={recentlyDockedProductId === product.id ? 'true' : 'false'}
                           style={{
+                            ['--tx-lib-inline-bg' as any]: cardSurface.background,
+                            ['--tx-lib-inline-edge' as any]: cardSurface.borderColor,
+                            ['--tx-lib-inline-shadow' as any]: cardSurface.boxShadow,
                             ['--pt-card-active-bg' as any]: color,
                             ['--pt-card-active-border' as any]: color,
                             ['--pt-card-active-shadow' as any]: color,
@@ -743,6 +747,9 @@ export function TransactionsModal(props: TransactionsModalProps) {
                           title={stage.disabled ? stage.disabledReason : stage.copy}
                         >
                           <span className="tx-wizard-step-title">{stage.title}</span>
+                          <span className="tx-wizard-step-idx" aria-hidden="true">
+                            {index + 1}
+                          </span>
                           <span className="tx-wizard-step-copy">{stage.copy}</span>
                         </button>
                       </li>

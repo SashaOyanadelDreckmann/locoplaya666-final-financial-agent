@@ -33,3 +33,11 @@ export function productVisualPalette(seed: string) {
     tint: `hsla(${glowHue} 100% 95% / 0.94)`,
   };
 }
+
+export function libraryCardSurface(palette: ReturnType<typeof productVisualPalette>) {
+  return {
+    background: `radial-gradient(circle at 18% 18%, ${palette.glow}, transparent 34%), linear-gradient(145deg, ${palette.base}, #08111b 100%)`,
+    borderColor: palette.edge,
+    boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 20px 44px rgba(0, 0, 0, 0.38)',
+  };
+}

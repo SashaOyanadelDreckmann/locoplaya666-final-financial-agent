@@ -4477,8 +4477,8 @@ body.agent-route-active .app-shell::before {
   color: var(--txp-text-mute) !important;
 }
 
-/* Product card (top of stack) — premium interactive surface */
-.transactions-modal .pt-item.pt-item-stack.is-top,
+/* Product card (top of stack) — premium interactive surface (legacy items only) */
+.transactions-modal .pt-item.pt-item-stack.is-top:not(.tx-lib-card),
 .transactions-modal .pt-item:not(.pt-item-stack) {
   background: var(--txp-surface-2) !important;
   border: 1px solid var(--txp-border-strong) !important;
@@ -4487,7 +4487,7 @@ body.agent-route-active .app-shell::before {
   transition: transform 0.2s var(--txp-ease), border-color 0.2s var(--txp-ease),
     box-shadow 0.2s var(--txp-ease), background 0.2s var(--txp-ease);
 }
-.transactions-modal .pt-item.pt-item-stack.is-top:hover,
+.transactions-modal .pt-item.pt-item-stack.is-top:not(.tx-lib-card):hover,
 .transactions-modal .pt-item:not(.pt-item-stack):hover {
   transform: translateY(-3px);
   border-color: var(--txp-border-hover) !important;
@@ -4650,7 +4650,7 @@ body.agent-route-active .app-shell::before {
 }
 
 /* ---- Product library card: clean left-aligned hierarchy ---- */
-.transactions-modal .pt-item.pt-item-stack.is-top,
+.transactions-modal .pt-item.pt-item-stack.is-top:not(.tx-lib-card),
 .transactions-modal .pt-item:not(.pt-item-stack) {
   position: relative !important;
   align-items: stretch !important;

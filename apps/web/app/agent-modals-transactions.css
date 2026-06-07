@@ -16847,8 +16847,3 @@ html.mobile-input-engaged .transactions-modal .tx-composer-field {
   }
 }
 
-@media (max-width: 767px) {
-  .transactions-modal .tx-wizard-stepper-list {
-    grid-template-columns: 1fr;
-  }
-}

@@ -187,6 +187,10 @@
   color: rgba(203, 213, 225, 0.76) !important;
 }
 
+.transactions-modal .tx-wizard-step-idx {
+  display: none !important;
+}
+
 /* ── Content carousel: in-flow stack (no absolute hero overlap) ───────────── */
 .transactions-modal .tx-content-carousel {
   display: flex !important;
@@ -330,25 +334,23 @@
   text-align: right !important;
 }
 
-/* Premium palette wins over legacy flat --pt-stack-bg rotation */
+/* Premium palette: inline --tx-lib-inline-* vars (set per product in JSX) */
 .transactions-modal .pt-item.pt-item-stack.tx-lib-card,
 .transactions-modal .pt-item.pt-item-stack.tx-lib-card.is-top,
 .transactions-modal .pt-item.pt-item-stack.tx-lib-card:not(.is-top) {
-  background:
-    radial-gradient(circle at 18% 18%, var(--tx-lib-glow), transparent 34%),
-    linear-gradient(145deg, color-mix(in srgb, var(--tx-lib-base) 86%, #08111b 14%), #08111b 100%) !important;
-  background-image:
-    radial-gradient(circle at 18% 18%, var(--tx-lib-glow), transparent 34%),
-    linear-gradient(145deg, color-mix(in srgb, var(--tx-lib-base) 86%, #08111b 14%), #08111b 100%) !important;
-  border: 1px solid var(--tx-lib-edge) !important;
-  border-color: var(--tx-lib-edge) !important;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.12),
-    0 20px 44px rgba(0, 0, 0, 0.38) !important;
+  background: var(--tx-lib-inline-bg) !important;
+  background-image: var(--tx-lib-inline-bg) !important;
+  border: 1px solid var(--tx-lib-inline-edge, var(--tx-lib-edge)) !important;
+  border-color: var(--tx-lib-inline-edge, var(--tx-lib-edge)) !important;
+  box-shadow: var(--tx-lib-inline-shadow) !important;
+}
+
+.transactions-modal .pt-item.pt-item-stack.tx-lib-card.is-top {
+  opacity: 1 !important;
 }
 
 .transactions-modal .pt-item.pt-item-stack.tx-lib-card:not(.is-top) {
-  opacity: calc(1 - (var(--pt-stack-idx, 0) * 0.12)) !important;
+  opacity: calc(1 - (var(--pt-stack-idx, 0) * 0.08)) !important;
 }
 
 .transactions-modal .pt-item.pt-item-stack.tx-lib-card:not(.is-top) .pt-item-name,
@@ -358,8 +360,12 @@
 .transactions-modal .pt-item.pt-item-stack.tx-lib-card:not(.is-top) .pt-item-meta span,
 .transactions-modal .pt-item.pt-item-stack.tx-lib-card:not(.is-top) .pt-item-top,
 .transactions-modal .pt-item.pt-item-stack.tx-lib-card:not(.is-top) .tx-lib-card-eyebrow {
-  opacity: 0.38 !important;
-  filter: blur(2px) !important;
+  opacity: 0.72 !important;
+  filter: none !important;
+}
+
+.transactions-modal .pt-item.pt-item-stack.tx-lib-card:not(.is-top)::after {
+  display: none !important;
 }
 
 .transactions-modal .pt-item-delete-mini {
@@ -559,31 +565,58 @@
     font-size: 0.8rem !important;
   }
 
-  /* Compact horizontal stepper */
+  /* Stepper: 3 compact pills, no horizontal swipe */
   .transactions-modal .tx-wizard-stepper-list {
-    display: flex !important;
-    flex-direction: row !important;
-    gap: 8px !important;
-    overflow-x: auto !important;
-    overscroll-behavior-x: contain !important;
-    scroll-snap-type: x proximity !important;
-    padding-bottom: 2px !important;
-    -webkit-overflow-scrolling: touch !important;
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 6px !important;
+    overflow: visible !important;
+    scroll-snap-type: none !important;
+    padding-bottom: 0 !important;
   }
 
   .transactions-modal .tx-wizard-stepper-item {
-    flex: 0 0 auto !important;
-    min-width: min(44vw, 168px) !important;
-    scroll-snap-align: start !important;
+    flex: unset !important;
+    min-width: 0 !important;
+    width: 100% !important;
   }
 
   .transactions-modal .tx-wizard-step {
-    min-height: 44px !important;
-    padding: 8px 10px !important;
+    min-height: 34px !important;
+    padding: 5px 4px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+  }
+
+  .transactions-modal .tx-wizard-step-title {
+    display: none !important;
+  }
+
+  .transactions-modal .tx-wizard-step-idx {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-width: 22px !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0 !important;
+    line-height: 1 !important;
   }
 
   .transactions-modal .tx-wizard-step-copy {
     display: none !important;
+  }
+
+  /* Mobile library: one vivid card (no gray deck behind) */
+  .transactions-modal .pt-stack-carousel.tx-library-is-saved .pt-item.pt-item-stack.tx-lib-card:not(.is-top) {
+    display: none !important;
+  }
+
+  .transactions-modal .pt-stack-carousel.tx-library-is-saved .pt-item.pt-item-stack.tx-lib-card.is-top {
+    opacity: 1 !important;
+    transform: translate3d(-50%, -50%, 0) scale(1) rotate(0deg) !important;
   }
 
   .transactions-modal .tx-content-carousel .tx-3d-hero-shell {
