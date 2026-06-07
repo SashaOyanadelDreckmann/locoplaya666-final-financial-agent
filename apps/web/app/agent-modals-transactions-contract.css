@@ -416,12 +416,15 @@
 
 .transactions-modal .tx-format-rail {
   display: flex !important;
-  flex-wrap: nowrap !important;
+  flex-wrap: wrap !important;
   gap: 8px !important;
-  overflow-x: auto !important;
-  overscroll-behavior-x: contain !important;
-  scrollbar-width: thin !important;
+  overflow: visible !important;
+  overscroll-behavior: contain !important;
   padding-bottom: 4px !important;
+}
+
+.transactions-modal .tx-format-rail-chip-label-short {
+  display: none !important;
 }
 
 /* ── Close confirm ──────────────────────────────────────────────────────────── */
@@ -433,14 +436,26 @@
    MOBILE — bottom sheet, compact stepper, single column
    ============================================================================= */
 @media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+  /* Single scroll host: overlay must never scroll (beats safe-area overflow-y:auto) */
   .agent-modal-overlay.transactions-modal-overlay {
     align-items: flex-end !important;
     justify-content: stretch !important;
     padding: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    overflow-y: hidden !important;
+    overscroll-behavior: none !important;
+    -webkit-overflow-scrolling: auto !important;
+    height: 100dvh !important;
+    min-height: 100dvh !important;
+    max-height: 100dvh !important;
   }
 
   .agent-modal.transactions-modal,
   .transactions-modal {
+    display: flex !important;
+    flex-direction: column !important;
     width: 100% !important;
     max-width: 100% !important;
     min-height: min(92dvh, 92vh) !important;
@@ -449,8 +464,13 @@
     padding: 0 0 calc(12px + env(safe-area-inset-bottom, 0px)) !important;
     border-radius: 22px 22px 0 0 !important;
     border-bottom: none !important;
+    overflow: hidden !important;
     background: linear-gradient(180deg, var(--tx-contract-panel) 0%, var(--tx-contract-panel-edge) 100%) !important;
     box-shadow: 0 -16px 48px rgba(0, 0, 0, 0.42) !important;
+  }
+
+  .transactions-modal .bcc-modal-header.tx-modal-header-layer {
+    flex-shrink: 0 !important;
   }
 
   .transactions-modal .bcc-modal-header,
@@ -473,7 +493,15 @@
   }
 
   .transactions-modal .tx-scroll-body {
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
     padding: 0 14px 14px !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    overscroll-behavior: contain !important;
+    -webkit-overflow-scrolling: touch !important;
+    overflow-anchor: none !important;
+    scroll-behavior: auto !important;
   }
 
   .transactions-modal .pt-shell {
@@ -648,6 +676,75 @@
   .transactions-modal .tx-content-card {
     padding-bottom: 0 !important;
     scroll-padding-bottom: 0 !important;
+  }
+
+  /* Format picker — 5 compact chips in one row, no horizontal swipe */
+  .transactions-modal .tx-format-rail,
+  .transactions-modal .tx-evidence-card--premium .tx-format-rail,
+  .transactions-modal .tx-content-card--agent .tx-format-rail {
+    display: grid !important;
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+    gap: 4px !important;
+    overflow: visible !important;
+    margin-inline: 0 !important;
+    padding-inline: 0 !important;
+    mask-image: none !important;
+    -webkit-mask-image: none !important;
+  }
+
+  .transactions-modal .tx-format-rail-chip {
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 48px !important;
+    min-width: 0 !important;
+    width: 100% !important;
+    padding: 4px 2px !important;
+    gap: 2px !important;
+    border-radius: 10px !important;
+    font-size: 0 !important;
+    touch-action: manipulation !important;
+  }
+
+  .transactions-modal .tx-format-rail-chip-icon {
+    width: 14px !important;
+    height: 14px !important;
+  }
+
+  .transactions-modal .tx-format-rail-chip-label {
+    display: none !important;
+  }
+
+  .transactions-modal .tx-format-rail-chip-label-short {
+    display: block !important;
+    font-size: 8px !important;
+    font-weight: 650 !important;
+    line-height: 1.1 !important;
+    letter-spacing: 0 !important;
+    white-space: normal !important;
+    text-align: center !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  /* Inputs — 16px prevents iOS zoom; scroll stays inside tx-scroll-body */
+  .transactions-modal .bank-sim-grid input,
+  .transactions-modal .bank-sim-grid textarea,
+  .transactions-modal .bank-sim-grid select,
+  .transactions-modal .tx-picker-field input,
+  .transactions-modal .tx-composer-field,
+  .transactions-modal textarea.tx-composer-field {
+    font-size: 16px !important;
+    line-height: 1.4 !important;
+    scroll-margin-bottom: 12px !important;
+  }
+
+  .transactions-modal button,
+  .transactions-modal .tx-wizard-step,
+  .transactions-modal .tx-format-rail-chip,
+  .transactions-modal .continue-ghost {
+    touch-action: manipulation !important;
   }
 }
 

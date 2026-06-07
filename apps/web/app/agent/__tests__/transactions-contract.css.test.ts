@@ -5,12 +5,12 @@ import path from 'node:path';
 
 describe('transactions modal layout contract css', () => {
   const contractPath = path.join(process.cwd(), 'app', 'agent-modals-transactions-contract.css');
-  const modalsPath = path.join(process.cwd(), 'app', 'agent-modals.css');
+  const agentCssPath = path.join(process.cwd(), 'app', 'agent.css');
   const contractCss = fs.readFileSync(contractPath, 'utf8');
-  const modalsCss = fs.readFileSync(modalsPath, 'utf8');
+  const agentCss = fs.readFileSync(agentCssPath, 'utf8');
 
-  it('loads contract css last in agent-modals.css', () => {
-    const imports = [...modalsCss.matchAll(/@import\s+'\.\/([^']+)'/g)].map((match) => match[1]);
+  it('loads contract css last in agent.css', () => {
+    const imports = [...agentCss.matchAll(/@import\s+'\.\/([^']+)'/g)].map((match) => match[1]);
     expect(imports[imports.length - 1]).toBe('agent-modals-transactions-contract.css');
   });
 
@@ -56,5 +56,12 @@ describe('transactions modal layout contract css', () => {
     expect(contractCss).toContain('grid-template-columns: repeat(3, minmax(0, 1fr)) !important');
     expect(contractCss).toContain('.transactions-modal .tx-wizard-step-idx');
     expect(contractCss).toContain('display: none !important');
+  });
+
+  it('locks mobile overlay scroll and fits format rail without swipe', () => {
+    expect(contractCss).toContain('.agent-modal-overlay.transactions-modal-overlay');
+    expect(contractCss).toContain('overflow-y: hidden !important');
+    expect(contractCss).toContain('grid-template-columns: repeat(5, minmax(0, 1fr)) !important');
+    expect(contractCss).toContain('.transactions-modal .tx-format-rail-chip-label-short');
   });
 });

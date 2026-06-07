@@ -21,6 +21,7 @@ import { useTxAssistantChat } from './use-tx-assistant-chat';
 import { useTxCloseConfirm } from './use-tx-close-confirm';
 import { useTxDockTransition } from './use-tx-dock-transition';
 import { useTxModalA11y } from './use-tx-modal-a11y';
+import { useTxModalScrollLock } from './use-tx-modal-scroll';
 import {
   buildTxStageCta,
   buildTxStages,
@@ -47,6 +48,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
   const [overrideMerchantDraft, setOverrideMerchantDraft] = useState('');
   const [overrideCategoryDraft, setOverrideCategoryDraft] = useState<string>(TX_CATEGORY_OPTIONS[0]);
   const transactionsModalRef = useRef<HTMLDivElement | null>(null);
+  const txScrollBodyRef = useRef<HTMLDivElement | null>(null);
   const analytics = useMovementAnalytics(props.activeBankProduct, props.transactionTaxonomyOverrides);
   const {
     formatCurrency,
@@ -201,6 +203,11 @@ export function TransactionsModal(props: TransactionsModalProps) {
     closeConfirmKind,
     dismissCloseConfirm,
     requestClose,
+  });
+  useTxModalScrollLock({
+    isOpen: props.isOpen,
+    scrollBodyRef: txScrollBodyRef,
+    modalRef: transactionsModalRef,
   });
 
   const canContinueAuto = authorizationState.canContinue;
@@ -568,7 +575,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
             ×
           </button>
         </div>
-        <div className="tx-scroll-body">
+        <div className="tx-scroll-body" ref={txScrollBodyRef}>
         <p id="transactions-modal-intro" className="agent-modal-intro tx-modal-header-layer">
           Conecta cada producto, sube cartolas y revisa el resumen analítico. El contexto validado se sincroniza solo.
         </p>

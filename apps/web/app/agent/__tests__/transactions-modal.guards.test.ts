@@ -28,6 +28,8 @@ describe('transactions modal safeguards', () => {
     expect(modal).toContain('useTxAssistantChat');
     expect(modal).toContain('useTxCloseConfirm');
     expect(modal).toContain('useTxModalA11y');
+    expect(modal).toContain('useTxModalScrollLock');
+    expect(modal).toContain('txScrollBodyRef');
     expect(modal).toContain('useTxDockTransition');
     expect(modal).toContain("props.txWizardStep === 'products'");
     expect(modal).toContain('setSelectedMovementKey(null);');
@@ -84,7 +86,8 @@ describe('transactions modal safeguards', () => {
   it('keeps the rapid upload mode visible in the evidence step', () => {
     const source = read('app/agent/transactions/TxEvidenceStep.tsx');
 
-    expect(source).toContain("['video', 'Rápido']");
+    expect(source).toContain("['video', 'Rápido', 'Rápido']");
+    expect(source).toContain('tx-format-rail-chip-label-short');
     expect(source).toContain('video/mp4,video/quicktime,video/webm');
     expect(source).toContain('Chat exclusivo del producto');
     expect(source).toContain('/generated/transactions-fast-example.mp4');

@@ -121,6 +121,15 @@ export function isAuthIntakeElement(el: Element | null): boolean {
   return Boolean(el.closest('.auth-shell') || el.closest('.intake-shell'));
 }
 
+export function isTransactionsModalElement(el: Element | null): boolean {
+  if (!el || !(el instanceof HTMLElement)) return false;
+  return Boolean(el.closest('.transactions-modal'));
+}
+
+export function findTransactionsScrollHost(el: HTMLElement): HTMLElement | null {
+  return el.closest('.transactions-modal .tx-scroll-body') as HTMLElement | null;
+}
+
 function isAuthIntakeFocused() {
   const active = document.activeElement;
   return isTextInput(active) && isAuthIntakeElement(active);
@@ -292,9 +301,9 @@ export function scrollInputAboveKeyboard(el: HTMLElement, padding = 14) {
   if (Math.abs(deltaY) < 1) return;
 
   const scrollParent =
+    findTransactionsScrollHost(el) ??
     findScrollableParent(el) ??
     (el.closest('.auth-shell') as HTMLElement | null) ??
-    (el.closest('.agent-modal-overlay') as HTMLElement | null) ??
     (el.closest('.intake-main') as HTMLElement | null);
 
   if (scrollParent) {
@@ -373,4 +382,10 @@ export function focusMobileInput(el: HTMLElement | null) {
   }
 
   el.focus({ preventScroll: true });
+
+  if (isTransactionsModalElement(el)) {
+    setMobileInputEngaged(true);
+    applyMobileViewportTokens();
+    scheduleInputViewportSync(el);
+  }
 }

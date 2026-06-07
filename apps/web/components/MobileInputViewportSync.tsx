@@ -9,6 +9,7 @@ import {
   isComposerDockElement,
   isMobileBrowserViewport,
   isMobileFormRouteViewport,
+  isTransactionsModalElement,
   isTextInput,
   clearComposerTypingVisual,
   scheduleComposerViewportSync,
@@ -29,15 +30,33 @@ export default function MobileInputViewportSync() {
       scheduleInputViewportSync(el);
     };
 
+    const engageTransactionsInput = (el: HTMLElement) => {
+      setMobileInputEngaged(true);
+      applyMobileViewportTokens();
+      scheduleInputViewportSync(el);
+    };
+
     const onPointerDown = (event: PointerEvent) => {
       if (event.pointerType !== 'touch' && event.pointerType !== 'pen') return;
       const target = event.target as Element | null;
       if (!isTextInput(target)) return;
       if (isComposerDockElement(target)) return;
+
+      const el = target as HTMLElement;
+
+      if (isTransactionsModalElement(target)) {
+        if (!isMobileBrowserViewport()) return;
+        activeInput = el;
+        engageTransactionsInput(el);
+        if (document.activeElement !== el) {
+          el.focus({ preventScroll: true });
+        }
+        return;
+      }
+
       if (!isAuthIntakeElement(target)) return;
       if (!isMobileFormRouteViewport()) return;
 
-      const el = target as HTMLElement;
       activeInput = el;
       engageAuthIntakeInput(el);
 
@@ -59,6 +78,12 @@ export default function MobileInputViewportSync() {
       if (isComposerDockElement(target)) {
         if (!isMobileBrowserViewport()) return;
         engageComposerTypingLayout();
+        return;
+      }
+
+      if (isTransactionsModalElement(target)) {
+        if (!isMobileBrowserViewport()) return;
+        engageTransactionsInput(activeInput);
         return;
       }
 

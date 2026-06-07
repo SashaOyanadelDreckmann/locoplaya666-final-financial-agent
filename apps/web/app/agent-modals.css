@@ -10,5 +10,3 @@
 @import './agent-modals-diagnostics.css';
 /* Budget mobile shell — wins diagnostics legacy overrides */
 @import './agent-modals-budget-mobile.css';
-/* Transactions authoritative layout — wins all modal cascade wars */
-@import './agent-modals-transactions-contract.css';

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type ChangeEvent, type KeyboardEvent, type Ref } from 'react';
+import { useState, type ChangeEvent, type KeyboardEvent, type PointerEvent, type Ref } from 'react';
 import {
   NumericDust,
   EditorialSummary,
@@ -16,11 +16,11 @@ const EVIDENCE_FILE_ACCEPT =
   'image/*,video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm,.m4v,.avi,.png,.jpg,.jpeg,.webp,.gif,.pdf,.xls,.xlsx,.csv,.txt,.md';
 
 const FORMAT_OPTIONS = [
-  ['video', 'Rápido'],
-  ['photos', 'Fotos'],
-  ['pdf', 'PDF'],
-  ['spreadsheet', 'Excel / CSV'],
-  ['text', 'Texto'],
+  ['video', 'Rápido', 'Rápido'],
+  ['photos', 'Fotos', 'Fotos'],
+  ['pdf', 'PDF', 'PDF'],
+  ['spreadsheet', 'Excel / CSV', 'Excel'],
+  ['text', 'Texto', 'Texto'],
 ] as const;
 
 function SendIcon() {
@@ -123,6 +123,11 @@ export function TxEvidenceStep(props: TxEvidenceStepProps) {
     p.onBumpTransitionPulse();
   };
 
+  const handleFormatPointerDown = (event: PointerEvent<HTMLButtonElement>) => {
+    if (event.pointerType === 'mouse') return;
+    event.preventDefault();
+  };
+
   const handleAttachChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
@@ -208,16 +213,21 @@ export function TxEvidenceStep(props: TxEvidenceStepProps) {
 
         {!p.analysisAlreadyDone && (
           <div className="tx-format-rail" role="group" aria-label="Formato de evidencia">
-            {FORMAT_OPTIONS.map(([value, label]) => (
+            {FORMAT_OPTIONS.map(([value, label, shortLabel]) => (
               <button
                 key={value}
                 type="button"
                 className={`tx-format-rail-chip ${p.selectedUploadFormat === value ? 'is-active' : ''}`}
+                onPointerDown={handleFormatPointerDown}
                 onClick={() => handleFormatSelect(value)}
                 aria-pressed={p.selectedUploadFormat === value}
+                aria-label={label}
               >
                 <span className="tx-format-rail-chip-icon">{renderFormatIcon(value)}</span>
                 <span className="tx-format-rail-chip-label">{label}</span>
+                <span className="tx-format-rail-chip-label-short" aria-hidden="true">
+                  {shortLabel}
+                </span>
               </button>
             ))}
           </div>

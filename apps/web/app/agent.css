@@ -20,3 +20,5 @@
 @import './agent-modals-safe-area.css';
 /* Budget mobile shell — EOF wins safe-area scroll defaults */
 @import './agent-modals-budget-mobile.css';
+/* Transactions authoritative layout — must load last (wins safe-area + diagnostics) */
+@import './agent-modals-transactions-contract.css';

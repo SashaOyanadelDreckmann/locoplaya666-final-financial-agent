@@ -38,7 +38,8 @@ export function useTxModalA11y(params: {
 
     const rafId = window.requestAnimationFrame(() => {
       const focusables = getFocusableElements();
-      (focusables[0] ?? modalRef.current)?.focus();
+      const initialFocus = focusables[0] ?? modalRef.current;
+      initialFocus?.focus({ preventScroll: true });
     });
 
     const onKeyDown = (event: KeyboardEvent) => {
@@ -55,7 +56,7 @@ export function useTxModalA11y(params: {
       const focusables = getFocusableElements();
       if (focusables.length === 0) {
         event.preventDefault();
-        modalRef.current?.focus();
+        modalRef.current?.focus({ preventScroll: true });
         return;
       }
       const first = focusables[0];
@@ -65,17 +66,17 @@ export function useTxModalA11y(params: {
 
       if (!inside) {
         event.preventDefault();
-        first.focus();
+        first.focus({ preventScroll: true });
         return;
       }
       if (event.shiftKey && active === first) {
         event.preventDefault();
-        last.focus();
+        last.focus({ preventScroll: true });
         return;
       }
       if (!event.shiftKey && active === last) {
         event.preventDefault();
-        first.focus();
+        first.focus({ preventScroll: true });
       }
     };
 
