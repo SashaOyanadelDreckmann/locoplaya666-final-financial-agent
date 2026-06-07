@@ -305,10 +305,21 @@ html.is-desktop-viewport .agent-chat-header:not(.is-mobile) {
   border-radius: 0 0 var(--radius-lg, 16px) var(--radius-lg, 16px) !important;
   border: 1px solid rgba(190, 220, 245, 0.14) !important;
   border-top: none !important;
-  background:
-    linear-gradient(180deg, rgba(10, 15, 22, 0.9), rgba(9, 13, 19, 0.78)) !important;
+  background: #000000 !important;
+  background-color: #000000 !important;
+  background-image: none !important;
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.16) !important;
   overflow: hidden !important;
+}
+
+/* Panel sidebar — same matte black shell as mobile header */
+html.is-desktop-viewport .agent-panel {
+  background: #000000 !important;
+  background-color: #000000 !important;
+  background-image: none !important;
+  border: 1px solid rgba(190, 220, 245, 0.14) !important;
+  border-radius: var(--radius-lg, 16px) !important;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.16) !important;
 }
 
 html.is-desktop-viewport .agent-chat-header:not(.is-mobile) .chat-brand-strip {
@@ -437,6 +448,18 @@ html.is-desktop-viewport .agent-chat-header:not(.is-mobile) .sheet-context-bar {
 @media (min-width: 768px) and (max-width: 1366px) and (orientation: landscape) {
   html.is-tablet-landscape .agent-chat-header:not(.is-mobile) {
     border-radius: 0 0 14px 14px !important;
+    background: #000000 !important;
+    background-color: #000000 !important;
+    background-image: none !important;
+  }
+
+  html.is-tablet-landscape .agent-panel {
+    background: #000000 !important;
+    background-color: #000000 !important;
+    background-image: none !important;
+    border: 1px solid rgba(190, 220, 245, 0.14) !important;
+    border-radius: 14px !important;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.16) !important;
   }
 
   html.is-tablet-landscape .agent-chat-header:not(.is-mobile) .chat-identity-subtitle {

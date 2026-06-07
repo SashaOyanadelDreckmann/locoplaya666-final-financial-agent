@@ -1,5 +1,10 @@
 import React, { type ReactNode } from 'react';
 
+import {
+  MobilePanelCompactCarousel,
+  type PanelCardItem,
+} from './mobile-panel-compact-carousel';
+
 type Milestone = { id: string; label: string; done: boolean };
 
 export function SidePanels(props: {
@@ -23,6 +28,8 @@ export function SidePanels(props: {
   setPanelCallout: React.Dispatch<React.SetStateAction<{ section: string; message: string } | null>>;
   panelGridRef: React.RefObject<HTMLDivElement>;
   panelScrollRef: React.RefObject<HTMLElement>;
+  compactPanelCards?: PanelCardItem[];
+  compactPanelLoopResetKey?: number;
   panelRenderedCards: ReactNode;
 }) {
   return (
@@ -101,9 +108,17 @@ export function SidePanels(props: {
           </div>
         )}
 
-        <div ref={props.panelGridRef} className="panel-grid">
-          {props.panelRenderedCards}
-        </div>
+        {props.isMobileViewport && !props.mobilePanelExpanded && props.compactPanelCards ? (
+          <MobilePanelCompactCarousel
+            cards={props.compactPanelCards}
+            gridRef={props.panelGridRef}
+            resetKey={props.compactPanelLoopResetKey ?? props.compactPanelCards.length}
+          />
+        ) : (
+          <div ref={props.panelGridRef} className="panel-grid">
+            {props.panelRenderedCards}
+          </div>
+        )}
       </aside>
     </>
   );

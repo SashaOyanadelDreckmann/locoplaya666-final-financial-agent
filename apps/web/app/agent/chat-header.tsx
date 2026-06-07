@@ -75,118 +75,115 @@ export function ChatHeader(props: {
     </button>
   );
 
+  const chatSwitcher = (
+    <div className="chat-switcher" aria-label="Selector de chats">
+      {props.chatThreads.map((thread) => {
+        const specialization = props.getThreadSpecialization(thread.id);
+        const locked = props.isThreadLocked(thread.id);
+        return (
+          <button
+            key={thread.id}
+            type="button"
+            className={`chat-sheet-tab ${specialization.accentClass}${thread.id === props.activeChatId ? ' is-active' : ''}${thread.status === 'context' ? ' is-context' : ''}${locked ? ' is-locked' : ''}`}
+            onClick={() => {
+              if (locked) {
+                props.setActiveChatId('chat-1');
+                props.setPanelCallout({
+                  section: 'budget',
+                  message: 'Completa presupuesto, cartolas y entrevista para desbloquear este chat.',
+                });
+                return;
+              }
+              props.setActiveChatId(thread.id);
+            }}
+            title={locked ? 'Bloqueado hasta completar la entrevista' : thread.status === 'context' ? `Contexto: ${thread.name}` : `Chat ${thread.label}: ${thread.name}`}
+          >
+            <span className="chat-sheet-tab-index">{thread.label}</span>
+            <span className="chat-sheet-tab-copy">
+              <span className="chat-sheet-tab-title">
+                {locked ? 'Bloqueado' : thread.status === 'context' ? 'Síntesis' : specialization.title}
+              </span>
+              <span className="chat-sheet-tab-subtitle">
+                {locked ? 'Completa entrevista' : thread.status === 'context' ? 'Contexto consolidado' : specialization.subtitle}
+              </span>
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+
+  const brandTitleButton = (
+    <button
+      type="button"
+      className="chat-brand-title-row chat-brand-title-row--home"
+      aria-label="Financieramente"
+      onClick={() => {
+        window.location.assign('/');
+      }}
+    >
+      <span className="chat-brand-logo-mark" aria-hidden="true">
+        <span className="chat-brand-logo-frame">
+          <svg viewBox="0 0 1254 1254" className="chat-brand-logo-svg" role="presentation" focusable="false">
+            <rect className="chat-brand-logo-bg" width="1254" height="1254" />
+            <text x="94" y="810" className="chat-brand-logo-lettermark">
+              Fm
+            </text>
+          </svg>
+        </span>
+      </span>
+      <BrandWordmark
+        className="chat-brand-wordmark"
+        financieraClassName="chat-brand-financiera"
+        menteClassName="chat-brand-mente"
+      />
+    </button>
+  );
+
+  const subtitleClassName = `chat-identity-subtitle ${
+    activeLabel === '2'
+      ? 'chat-subtitle-2'
+      : activeLabel === '3'
+      ? 'chat-subtitle-3'
+      : activeLabel === '★'
+      ? 'chat-subtitle-meta'
+      : 'chat-subtitle-1'
+  }`;
+
   return (
     <header className={`agent-chat-header${props.isMobileViewport ? ' is-mobile' : ''}`}>
-      <div className="agent-chat-controls-row">
-        <div className="chat-switcher" aria-label="Selector de chats">
-          {props.chatThreads.map((thread) => {
-            const specialization = props.getThreadSpecialization(thread.id);
-            const locked = props.isThreadLocked(thread.id);
-            return (
-              <button
-                key={thread.id}
-                type="button"
-                className={`chat-sheet-tab ${specialization.accentClass}${thread.id === props.activeChatId ? ' is-active' : ''}${thread.status === 'context' ? ' is-context' : ''}${locked ? ' is-locked' : ''}`}
-                onClick={() => {
-                  if (locked) {
-                    props.setActiveChatId('chat-1');
-                    props.setPanelCallout({
-                      section: 'budget',
-                      message: 'Completa presupuesto, cartolas y entrevista para desbloquear este chat.',
-                    });
-                    return;
-                  }
-                  props.setActiveChatId(thread.id);
-                }}
-                title={locked ? 'Bloqueado hasta completar la entrevista' : thread.status === 'context' ? `Contexto: ${thread.name}` : `Chat ${thread.label}: ${thread.name}`}
-              >
-                <span className="chat-sheet-tab-index">{thread.label}</span>
-                <span className="chat-sheet-tab-copy">
-                  <span className="chat-sheet-tab-title">
-                    {locked ? 'Bloqueado' : thread.status === 'context' ? 'Síntesis' : specialization.title}
-                  </span>
-                  <span className="chat-sheet-tab-subtitle">
-                    {locked ? 'Completa entrevista' : thread.status === 'context' ? 'Contexto consolidado' : specialization.subtitle}
-                  </span>
-                </span>
-              </button>
-            );
-          })}
-        </div>
-        {!props.isMobileViewport ? monochromeToggle : null}
-        {props.activeThread && props.activeThread.contextScore > 0 && (
-          <div className="sheet-context-bar" title={`Contexto: ${props.activeThread.contextScore}%`}>
-            <div className="sheet-context-fill" style={{ width: `${props.activeThread.contextScore}%` }} />
-            <span className="sheet-context-label">{props.activeThread.contextScore}% contexto</span>
-            {props.activeThread.contextScore >= 80 && <span className="sheet-context-badge">Rico</span>}
+      {props.isMobileViewport ? (
+        <>
+          <div className="chat-mobile-tabs-row">{chatSwitcher}</div>
+          <div className="chat-mobile-meta-row">
+            <div className="chat-mobile-brand-cluster">
+              <h1 className="chat-mobile-brand-heading">{brandTitleButton}</h1>
+              <p className={subtitleClassName}>{activeHandSubtitle}</p>
+            </div>
+            {monochromeToggle}
           </div>
-        )}
-      </div>
-      <div className="chat-brand-strip">
-        <div className="chat-brand-action-row">
-          <h1>
-            <button
-              type="button"
-              className="chat-brand-title-row chat-brand-title-row--home"
-              aria-label="Financieramente"
-              onClick={() => {
-                window.location.assign('/');
-              }}
-            >
-              <span className="chat-brand-logo-mark" aria-hidden="true">
-                <span className="chat-brand-logo-frame">
-                  <svg viewBox="0 0 1254 1254" className="chat-brand-logo-svg" role="presentation" focusable="false">
-                    <rect className="chat-brand-logo-bg" width="1254" height="1254" />
-                    <text
-                      x="94"
-                      y="810"
-                      className="chat-brand-logo-lettermark"
-                    >
-                      Fm
-                    </text>
-                  </svg>
-                </span>
-              </span>
-              <BrandWordmark
-                className="chat-brand-wordmark"
-                financieraClassName="chat-brand-financiera"
-                menteClassName="chat-brand-mente"
-              />
-            </button>
-          </h1>
-          {!props.isMobileViewport ? (
-            <p
-              className={`chat-identity-subtitle ${
-                activeLabel === '2'
-                  ? 'chat-subtitle-2'
-                  : activeLabel === '3'
-                  ? 'chat-subtitle-3'
-                  : activeLabel === '★'
-                  ? 'chat-subtitle-meta'
-                  : 'chat-subtitle-1'
-              }`}
-            >
-              {activeHandSubtitle}
-            </p>
-          ) : null}
-          {props.isMobileViewport ? monochromeToggle : null}
-        </div>
-        {props.isMobileViewport ? (
-          <p
-            className={`chat-identity-subtitle ${
-              activeLabel === '2'
-                ? 'chat-subtitle-2'
-                : activeLabel === '3'
-                ? 'chat-subtitle-3'
-                : activeLabel === '★'
-                ? 'chat-subtitle-meta'
-                : 'chat-subtitle-1'
-            }`}
-          >
-            {activeHandSubtitle}
-          </p>
-        ) : null}
-      </div>
+        </>
+      ) : (
+        <>
+          <div className="agent-chat-controls-row">
+            {chatSwitcher}
+            {monochromeToggle}
+            {props.activeThread && props.activeThread.contextScore > 0 && (
+              <div className="sheet-context-bar" title={`Contexto: ${props.activeThread.contextScore}%`}>
+                <div className="sheet-context-fill" style={{ width: `${props.activeThread.contextScore}%` }} />
+                <span className="sheet-context-label">{props.activeThread.contextScore}% contexto</span>
+                {props.activeThread.contextScore >= 80 && <span className="sheet-context-badge">Rico</span>}
+              </div>
+            )}
+          </div>
+          <div className="chat-brand-strip">
+            <div className="chat-brand-action-row">
+              <h1>{brandTitleButton}</h1>
+              <p className={subtitleClassName}>{activeHandSubtitle}</p>
+            </div>
+          </div>
+        </>
+      )}
       <p className="muted" />
       {props.activeChatId === 'chat-2' && !props.isActiveChatLocked && props.actionPlanFunnelStage && (
         <div className="action-plan-funnel-rail" role="status" aria-label="Progreso del plan de accion">

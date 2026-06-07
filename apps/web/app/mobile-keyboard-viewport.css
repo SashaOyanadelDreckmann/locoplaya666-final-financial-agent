@@ -1,0 +1,215 @@
+/* ================================================= */
+/* MOBILE KEYBOARD + FIXED BACKDROP CONTRACT         */
+/* Photo / matte / vignette stay on --screen-h.      */
+/* Interactive UI stack uses --visual-vh.            */
+/* Loaded last in layout.tsx                         */
+/* ================================================= */
+
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+  /*
+   * Fixed backdrop — never shrink when the keyboard opens.
+   */
+  html:not(.home-route-active) .global-agent-backdrop {
+    position: fixed !important;
+    inset: auto !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: auto !important;
+    width: 100% !important;
+    height: var(--screen-h, 100lvh) !important;
+    min-height: var(--screen-h, 100lvh) !important;
+    max-height: none !important;
+    transform: none !important;
+    will-change: auto !important;
+    pointer-events: none !important;
+    z-index: 0 !important;
+  }
+
+  html:not(.pwa-standalone):not(.home-route-active) body > .browser-chrome-vignette-top,
+  html:not(.pwa-standalone):not(.home-route-active) body > .browser-chrome-vignette-bottom,
+  html:not(.pwa-standalone).home-route-active main > .browser-chrome-vignette-top,
+  html:not(.pwa-standalone).home-route-active main > .browser-chrome-vignette-bottom {
+    height: auto !important;
+    min-height: 0 !important;
+    transition: opacity 0.28s ease !important;
+  }
+
+  /* Keep chrome fades visible while typing — no flash to flat black */
+  html:not(.pwa-standalone).browser-keyboard-open body > .browser-chrome-vignette-top,
+  html:not(.pwa-standalone).browser-keyboard-open body > .browser-chrome-vignette-bottom,
+  html:not(.pwa-standalone).browser-keyboard-open main > .browser-chrome-vignette-top,
+  html:not(.pwa-standalone).browser-keyboard-open main > .browser-chrome-vignette-bottom {
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+
+  /*
+   * Document chrome — stable layout height; only the app shell shrinks.
+   */
+  html:not(.pwa-standalone):not(.home-route-active),
+  html:not(.pwa-standalone):not(.home-route-active) body,
+  html:not(.pwa-standalone).agent-route-active,
+  html:not(.pwa-standalone).agent-route-active body,
+  html:not(.pwa-standalone) body.agent-route-active,
+  html:not(.pwa-standalone).auth-route-active,
+  html:not(.pwa-standalone).auth-route-active body,
+  html:not(.pwa-standalone).intake-route-active,
+  html:not(.pwa-standalone).intake-route-active body {
+    height: var(--screen-h, 100lvh) !important;
+    max-height: var(--screen-h, 100lvh) !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  html:not(.pwa-standalone):not(.home-route-active) .app-shell,
+  html:not(.pwa-standalone):not(.home-route-active) .mobile-scale-frame {
+    height: var(--visual-vh, var(--screen-h, 100lvh)) !important;
+    max-height: var(--visual-vh, var(--screen-h, 100lvh)) !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    transition: height 0.26s ease, max-height 0.26s ease !important;
+  }
+
+  html:not(.pwa-standalone).browser-keyboard-open:not(.home-route-active) .app-shell,
+  html:not(.pwa-standalone).browser-keyboard-open:not(.home-route-active) .mobile-scale-frame {
+    transform: translateY(var(--browser-keyboard-offset-top, 0px)) !important;
+    transition: height 0.26s ease, max-height 0.26s ease, transform 0.26s ease !important;
+  }
+
+  /*
+   * Auth — card glass + orbs; global backdrop carries the photo.
+   */
+  html.auth-route-active,
+  html.auth-route-active body {
+    background-color: var(--browser-chrome-color) !important;
+    background-image: none !important;
+  }
+
+  html.auth-route-active .auth-shell {
+    min-height: var(--visual-vh, var(--screen-h, 100svh)) !important;
+    max-height: var(--visual-vh, var(--screen-h, 100svh)) !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior: contain !important;
+  }
+
+  html.auth-route-active .auth-card::before {
+    opacity: 0.42 !important;
+  }
+
+  html.auth-route-active .auth-card::after {
+    opacity: 0.58 !important;
+  }
+
+  /*
+   * Agent mobile stack — fit visible viewport; panel eases away while typing.
+   */
+  html:not(.pwa-standalone).agent-route-active main.agent-layout.is-mobile-viewport,
+  html:not(.pwa-standalone) body.agent-route-active main.agent-layout.is-mobile-viewport {
+    height: var(--visual-vh, var(--screen-h, 100lvh)) !important;
+    max-height: var(--visual-vh, var(--screen-h, 100lvh)) !important;
+    min-height: 0 !important;
+    transition: height 0.26s ease, max-height 0.26s ease !important;
+  }
+
+  html:not(.pwa-standalone) body.agent-route-active.browser-keyboard-open main.agent-layout.is-mobile-viewport .agent-panel,
+  html:not(.pwa-standalone) body.agent-route-active.mobile-input-engaged main.agent-layout.is-mobile-viewport .agent-panel,
+  html:not(.pwa-standalone) body.agent-route-active.keyboard-opening main.agent-layout.is-mobile-viewport .agent-panel {
+    flex: 0 0 0 !important;
+    max-height: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    opacity: 0 !important;
+    overflow: hidden !important;
+    pointer-events: none !important;
+    visibility: hidden !important;
+    transition:
+      max-height 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 0.22s ease,
+      flex-basis 0.28s cubic-bezier(0.22, 1, 0.36, 1) !important;
+  }
+
+  html:not(.pwa-standalone) body.agent-route-active.browser-keyboard-open main.agent-layout.is-mobile-viewport > .agent-mobile-composer-dock,
+  html:not(.pwa-standalone) body.agent-route-active.mobile-input-engaged main.agent-layout.is-mobile-viewport > .agent-mobile-composer-dock,
+  html:not(.pwa-standalone) body.agent-route-active.keyboard-opening main.agent-layout.is-mobile-viewport > .agent-mobile-composer-dock {
+    flex-shrink: 0 !important;
+  }
+
+  /*
+   * Composer engaged — snap to typing layout instantly (no intermediate frame).
+   */
+  html:not(.pwa-standalone).mobile-input-engaged:not(.home-route-active) .app-shell,
+  html:not(.pwa-standalone).mobile-input-engaged:not(.home-route-active) .mobile-scale-frame,
+  html:not(.pwa-standalone).mobile-input-engaged.agent-route-active main.agent-layout.is-mobile-viewport,
+  html:not(.pwa-standalone) body.agent-route-active.mobile-input-engaged main.agent-layout.is-mobile-viewport {
+    transition: none !important;
+  }
+
+  html:not(.pwa-standalone).mobile-input-engaged body.agent-route-active.browser-keyboard-open:not(.home-route-active) .app-shell,
+  html:not(.pwa-standalone).mobile-input-engaged body.agent-route-active.browser-keyboard-open:not(.home-route-active) .mobile-scale-frame {
+    transform: translateY(var(--browser-keyboard-offset-top, 0px)) !important;
+  }
+
+  /*
+   * Modals — scrim lets fixed backdrop show; overlay scroll area tracks keyboard.
+   */
+  html:not(.pwa-standalone):not(.home-route-active) .agent-modal-overlay,
+  html:not(.pwa-standalone):not(.home-route-active) .agent-modal-overlay.transactions-modal-overlay,
+  html:not(.pwa-standalone):not(.home-route-active) .agent-modal-overlay.budget-modal-overlay,
+  html:not(.pwa-standalone):not(.home-route-active) .agent-modal-overlay.interview-modal-overlay,
+  html:not(.pwa-standalone):not(.home-route-active) .social-modal-overlay,
+  html:not(.pwa-standalone):not(.home-route-active) .modal-overlay {
+    background: rgba(5, 8, 16, 0.42) !important;
+    background-color: rgba(5, 8, 16, 0.42) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    height: var(--visual-vh, var(--screen-h, 100lvh)) !important;
+    min-height: var(--visual-vh, var(--screen-h, 100lvh)) !important;
+    max-height: var(--visual-vh, var(--screen-h, 100lvh)) !important;
+    transition: height 0.26s ease, max-height 0.26s ease !important;
+  }
+
+  html:not(.pwa-standalone).browser-keyboard-open:not(.home-route-active) .agent-modal-overlay,
+  html:not(.pwa-standalone).browser-keyboard-open:not(.home-route-active) .social-modal-overlay,
+  html:not(.pwa-standalone).browser-keyboard-open:not(.home-route-active) .modal-overlay {
+    transform: translateY(var(--browser-keyboard-offset-top, 0px)) !important;
+  }
+
+  html:not(.pwa-standalone).mobile-input-engaged .global-agent-backdrop,
+  html:not(.pwa-standalone).browser-keyboard-open .app-shell::before,
+  html:not(.pwa-standalone).keyboard-opening .app-shell::before,
+  html:not(.pwa-standalone).mobile-input-engaged .app-shell::before {
+    animation: none !important;
+    transform: none !important;
+    transition: none !important;
+    filter: var(--agent-bg-photo-filter, none) !important;
+  }
+
+  html.mobile-input-engaged .agent-modal-overlay,
+  html.mobile-input-engaged .auth-shell,
+  html.mobile-input-engaged .budget-modal-body,
+  html.mobile-input-engaged .tx-scroll-body,
+  html.mobile-input-engaged .intake-main.intake-main-immersive,
+  html.mobile-input-engaged .questionnaire-shell,
+  html.mobile-input-engaged .interview-shell {
+    scroll-behavior: auto !important;
+    scroll-padding-bottom: max(20px, env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  html.mobile-input-engaged input,
+  html.mobile-input-engaged textarea,
+  html.mobile-input-engaged select {
+    scroll-margin-bottom: max(20px, env(safe-area-inset-bottom, 0px)) !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:not(.pwa-standalone):not(.home-route-active) .app-shell,
+  html:not(.pwa-standalone):not(.home-route-active) .mobile-scale-frame,
+  html:not(.pwa-standalone).agent-route-active main.agent-layout.is-mobile-viewport,
+  html:not(.pwa-standalone):not(.home-route-active) .agent-modal-overlay {
+    transition: none !important;
+  }
+}

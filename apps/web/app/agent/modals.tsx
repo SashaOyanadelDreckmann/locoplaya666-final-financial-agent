@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { shouldUseMobileShell } from '@/lib/viewport-mode';
+import { focusMobileInput } from '@/lib/mobile-viewport-sync';
 import { getCsrfToken } from '@/lib/csrf';
 import { downloadFile, saveBubbleSnapshotPdfArtifact } from '@/lib/artifacts';
 import { BudgetIntelligenceTable } from '@/components/ui/budget-intelligence-table';
@@ -397,44 +398,15 @@ export function BudgetModal(props: {
   const initAbortRef = useRef<AbortController | null>(null);
   const replyAbortRef = useRef<AbortController | null>(null);
   const budgetReplyInputRef = useRef<HTMLInputElement | null>(null);
-  const budgetKeyboardTimerRef = useRef<number | null>(null);
   const formatBudgetAmount = (value: number) => `$${Math.round(value).toLocaleString('es-CL')}`;
   const formatMarketValue = (value: number, decimals = 0) =>
     Number(value).toLocaleString('es-CL', {
       minimumFractionDigits: decimals,
       maximumFractionDigits: decimals,
     });
-  const setBudgetKeyboardOpeningMode = (enabled: boolean) => {
-    document.documentElement.classList.toggle('keyboard-opening', enabled);
-    document.body.classList.toggle('keyboard-opening', enabled);
-    budgetModalRef.current?.classList.toggle('keyboard-opening', enabled);
-  };
-
-  const clearBudgetKeyboardTimer = () => {
-    if (budgetKeyboardTimerRef.current) {
-      clearTimeout(budgetKeyboardTimerRef.current);
-      budgetKeyboardTimerRef.current = null;
-    }
-  };
-
-  const settleBudgetField = (el: HTMLElement | null) => {
-    if (!el || typeof window === 'undefined') return;
-    clearBudgetKeyboardTimer();
-    setBudgetKeyboardOpeningMode(true);
-    el.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'auto' });
-    budgetKeyboardTimerRef.current = window.setTimeout(() => {
-      setBudgetKeyboardOpeningMode(false);
-      budgetKeyboardTimerRef.current = null;
-    }, 180);
-  };
-
-  const focusBudgetField = (
-    target: EventTarget | null,
-  ) => {
+  const focusBudgetField = (target: EventTarget | null) => {
     const el = target as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | null;
-    if (!el || typeof el.focus !== 'function') return;
-    settleBudgetField(el);
-    el.focus({ preventScroll: true });
+    focusMobileInput(el);
   };
   const activeQuestion = assistantNextQuestion ?? assistantQuestion ?? '…';
   const agentStatusText = isInitializing
@@ -1056,8 +1028,6 @@ export function BudgetModal(props: {
 
     window.addEventListener('keydown', onKeyDown);
     return () => {
-      clearBudgetKeyboardTimer();
-      setBudgetKeyboardOpeningMode(false);
       window.cancelAnimationFrame(rafId);
       window.removeEventListener('keydown', onKeyDown);
       const el = budgetRestoreFocusRef.current;

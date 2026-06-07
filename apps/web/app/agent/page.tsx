@@ -6,6 +6,7 @@ import { Send } from 'lucide-react';
 import 'katex/dist/katex.min.css';
 
 import { getSessionId } from '@/lib/session';
+import { focusMobileInput, prepareMobileInputEngagement } from '@/lib/mobile-viewport-sync';
 import { sendToAgent } from '@/lib/agent';
 import { useInterviewStore } from '@/state/interview.store';
 import { useProfileStore } from '@/state/profile.store';
@@ -480,10 +481,6 @@ export default function AgentPage() {
   const recentLibraryRef = useRef<HTMLDivElement | null>(null);
   const panelScrollRef = useRef<HTMLElement | null>(null);
   const panelGridRef = useRef<HTMLDivElement | null>(null);
-  const panelLoopPausedRef = useRef(false);
-  const panelLoopAutoTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const panelLoopResumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const disableMobilePanelHorizontalMotion = true;
   const [newReportId, setNewReportId] = useState<string | null>(null);
   const [isLandingRecents, setIsLandingRecents] = useState(false);
   const [panelCallout, setPanelCallout] = useState<{ section: string; message: string } | null>(null);
@@ -497,7 +494,6 @@ export default function AgentPage() {
   const panelDragRef = useRef<{ startY: number; startH: number; moved: boolean } | null>(null);
   const chatComposerRef = useRef<HTMLTextAreaElement | null>(null);
   const composerFocusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const mobileKeyboardSettleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const interviewAutoOpenHandledRef = useRef(false);
 
   const loadProfileIfNeeded = useProfileStore((s) => s.loadProfileIfNeeded);
@@ -579,202 +575,25 @@ export default function AgentPage() {
     }
   }
 
-  function clearMobileKeyboardSettleTimer() {
-    if (mobileKeyboardSettleTimerRef.current) {
-      clearTimeout(mobileKeyboardSettleTimerRef.current);
-      mobileKeyboardSettleTimerRef.current = null;
-    }
-  }
-
-  function setKeyboardOpeningMode(enabled: boolean) {
-    const html = document.documentElement;
-    const body = document.body;
-    const layout = panelScrollRef.current?.closest('.agent-layout') as HTMLElement | null;
-    html.classList.toggle('keyboard-opening', enabled);
-    body.classList.toggle('keyboard-opening', enabled);
-    if (!layout) return;
-    layout.classList.toggle('keyboard-opening', enabled);
-  }
-
-  function settleMobileComposerViewport() {
+  function collapseMobilePanelForComposer() {
     if (!isMobileViewport) return;
-    clearMobileKeyboardSettleTimer();
-
-    const syncVisibleHeight = () => {
-      const visibleH = window.visualViewport?.height ?? window.innerHeight;
-      document.documentElement.style.setProperty('--visual-vh', `${visibleH}px`);
-    };
-
-    syncVisibleHeight();
-    setKeyboardOpeningMode(true);
-
-    const vv = window.visualViewport;
-    const onViewportChange = () => syncVisibleHeight();
-    vv?.addEventListener('resize', onViewportChange);
-    vv?.addEventListener('scroll', onViewportChange);
-
-    mobileKeyboardSettleTimerRef.current = setTimeout(() => {
-      vv?.removeEventListener('resize', onViewportChange);
-      vv?.removeEventListener('scroll', onViewportChange);
-      syncVisibleHeight();
-      setKeyboardOpeningMode(false);
-      mobileKeyboardSettleTimerRef.current = null;
-    }, 320);
+    if (!mobilePanelExpanded) return;
+    setMobilePanelExpanded(false);
+    const layout = panelScrollRef.current?.closest('.agent-layout') as HTMLElement | null;
+    layout?.classList.remove('mobile-panel-expanded');
   }
 
-  function focusComposerAfterLayout(options?: { collapsePanelFirst?: boolean }) {
+  function focusComposerAfterLayout(_options?: { collapsePanelFirst?: boolean }) {
     if (isActiveChatLocked) return;
     clearComposerFocusTimer();
-
-    const collapsePanelFirst = Boolean(options?.collapsePanelFirst && isMobileViewport);
-    if (collapsePanelFirst && mobilePanelExpanded) {
-      setMobilePanelExpanded(false);
-      const layout = panelScrollRef.current?.closest('.agent-layout') as HTMLElement | null;
-      layout?.classList.remove('mobile-panel-expanded');
-    }
-
-    composerFocusTimerRef.current = setTimeout(() => {
-      const el = chatComposerRef.current;
-      if (!el) return;
-      settleMobileComposerViewport();
-      el.focus({ preventScroll: true });
-      composerFocusTimerRef.current = null;
-    }, collapsePanelFirst ? 220 : 40);
+    collapseMobilePanelForComposer();
+    focusMobileInput(chatComposerRef.current);
   }
+
   function isThreadLocked(threadId: string) {
     if (threadId === PRIMARY_CHAT_ID) return false;
     return !unlockedChatIds.includes(threadId) || closedChatIds.includes(threadId);
   }
-
-  useEffect(() => {
-    const el = panelGridRef.current;
-    if (!el || !isMobileViewport || disableMobilePanelHorizontalMotion) return;
-
-    const getMetrics = () => {
-      const firstReal = el.querySelector<HTMLElement>('[data-loop-segment="real"][data-loop-origin="0"]');
-      const firstAppend = el.querySelector<HTMLElement>('[data-loop-segment="append"][data-loop-origin="0"]');
-      if (!firstReal || !firstAppend) return null;
-      return {
-        firstRealLeft: firstReal.offsetLeft,
-        firstAppendLeft: firstAppend.offsetLeft,
-        segmentWidth: firstAppend.offsetLeft - firstReal.offsetLeft,
-      };
-    };
-
-    const hasLoopSegments = () =>
-      Boolean(
-        el.querySelector<HTMLElement>('[data-loop-segment="prepend"]') &&
-        el.querySelector<HTMLElement>('[data-loop-segment="append"]')
-      );
-
-    const resetToRealSegment = () => {
-      if (!hasLoopSegments()) return;
-      const metrics = getMetrics();
-      if (!metrics) return;
-      el.scrollLeft = metrics.firstRealLeft;
-    };
-
-    resetToRealSegment();
-
-    const pauseLoop = (resumeDelay = 3000) => {
-      panelLoopPausedRef.current = true;
-      if (panelLoopResumeTimerRef.current) clearTimeout(panelLoopResumeTimerRef.current);
-      panelLoopResumeTimerRef.current = setTimeout(() => {
-        panelLoopPausedRef.current = false;
-      }, resumeDelay);
-    };
-
-    const syncFrontCard = () => {
-      if (mobilePanelExpanded) return;
-      const cards = Array.from(el.children) as HTMLElement[];
-      if (cards.length === 0) return;
-      const viewportCenter = el.scrollLeft + el.clientWidth / 2;
-      let closest: HTMLElement | null = null;
-      let minDistance = Number.POSITIVE_INFINITY;
-      for (const card of cards) {
-        const cardCenter = card.offsetLeft + card.offsetWidth / 2;
-        const distance = Math.abs(cardCenter - viewportCenter);
-        if (distance < minDistance) {
-          minDistance = distance;
-          closest = card;
-        }
-      }
-      for (const card of cards) {
-        card.classList.remove('is-mobile-front', 'is-mobile-left', 'is-mobile-right');
-        if (!closest) continue;
-        if (card === closest) {
-          card.classList.add('is-mobile-front');
-        } else if (card.offsetLeft < closest.offsetLeft) {
-          card.classList.add('is-mobile-left');
-        } else {
-          card.classList.add('is-mobile-right');
-        }
-      }
-    };
-
-    const normalizeLoop = () => {
-      if (!hasLoopSegments()) {
-        syncFrontCard();
-        return;
-      }
-      const metrics = getMetrics();
-      if (!metrics || metrics.segmentWidth <= 0) return;
-      if (el.scrollLeft >= metrics.firstAppendLeft - 4) {
-        el.scrollLeft -= metrics.segmentWidth;
-      } else if (el.scrollLeft <= metrics.firstRealLeft - metrics.segmentWidth + 4) {
-        el.scrollLeft += metrics.segmentWidth;
-      }
-      syncFrontCard();
-    };
-
-    const advanceToNextCard = () => {
-      if (panelLoopPausedRef.current || mobilePanelExpanded || !hasLoopSegments()) return;
-      const cards = Array.from(el.children) as HTMLElement[];
-      if (cards.length === 0) return;
-      const viewportCenter = el.scrollLeft + el.clientWidth / 2;
-      let closestIndex = 0;
-      let minDistance = Number.POSITIVE_INFINITY;
-      for (let i = 0; i < cards.length; i += 1) {
-        const card = cards[i];
-        const cardCenter = card.offsetLeft + card.offsetWidth / 2;
-        const distance = Math.abs(cardCenter - viewportCenter);
-        if (distance < minDistance) {
-          minDistance = distance;
-          closestIndex = i;
-        }
-      }
-      const next = cards[Math.min(closestIndex + 1, cards.length - 1)];
-      if (!next) return;
-      const targetLeft = Math.max(0, next.offsetLeft - Math.max(0, (el.clientWidth - next.offsetWidth) / 2));
-      el.scrollTo({ left: targetLeft, behavior: 'smooth' });
-      window.setTimeout(normalizeLoop, 650);
-    };
-
-    const onPointerDown = () => pauseLoop(3000);
-    const onTouchStart = () => pauseLoop(3000);
-    const onMouseEnter = () => pauseLoop(3000);
-    const onScroll = () => normalizeLoop();
-
-    el.addEventListener('pointerdown', onPointerDown, { passive: true });
-    el.addEventListener('touchstart', onTouchStart, { passive: true });
-    el.addEventListener('mouseenter', onMouseEnter);
-    el.addEventListener('scroll', onScroll, { passive: true });
-    syncFrontCard();
-    if (panelLoopAutoTimerRef.current) clearInterval(panelLoopAutoTimerRef.current);
-    panelLoopAutoTimerRef.current = setInterval(advanceToNextCard, 3000);
-
-    return () => {
-      el.removeEventListener('pointerdown', onPointerDown);
-      el.removeEventListener('touchstart', onTouchStart);
-      el.removeEventListener('mouseenter', onMouseEnter);
-      el.removeEventListener('scroll', onScroll);
-      if (panelLoopAutoTimerRef.current) clearInterval(panelLoopAutoTimerRef.current);
-      if (panelLoopResumeTimerRef.current) clearTimeout(panelLoopResumeTimerRef.current);
-      panelLoopAutoTimerRef.current = null;
-      panelLoopResumeTimerRef.current = null;
-      panelLoopPausedRef.current = false;
-    };
-  }, [isMobileViewport, panelStage, mobilePanelExpanded, savedReports.length, disableMobilePanelHorizontalMotion]);
 
   useEffect(() => {
     if (!isBudgetModalOpen) return;
@@ -784,7 +603,6 @@ export default function AgentPage() {
   useEffect(
     () => () => {
       clearComposerFocusTimer();
-      clearMobileKeyboardSettleTimer();
     },
     []
   );
@@ -3294,21 +3112,18 @@ export default function AgentPage() {
 
         // On mobile the panel is a horizontal premium rail; glide to recents without breaking its height/state.
         if (isMobileViewport && panelGridRef.current && recentLibraryRef.current) {
-          panelLoopPausedRef.current = true;
           const gridEl = panelGridRef.current;
           const panelEl = panelScrollRef.current as HTMLElement | null;
           if (panelEl) {
             panelEl.style.flexBasis = '';
             panelEl.style.removeProperty('--mobile-panel-h');
           }
-          const targetCard = recentLibraryRef.current.closest('.mob-col') as HTMLElement | null;
+          const targetCard =
+            (recentLibraryRef.current.closest('[data-loop-segment="real"]') as HTMLElement | null) ??
+            (recentLibraryRef.current.closest('.mob-col') as HTMLElement | null);
           if (targetCard) {
             gridEl.scrollTo({ left: Math.max(0, targetCard.offsetLeft - 10), behavior: 'smooth' });
           }
-          if (panelLoopResumeTimerRef.current) clearTimeout(panelLoopResumeTimerRef.current);
-          panelLoopResumeTimerRef.current = setTimeout(() => {
-            panelLoopPausedRef.current = false;
-          }, 2600);
         } else if (panelScrollRef.current && recentLibraryRef.current) {
           const panelEl = panelScrollRef.current;
           const cardEl = recentLibraryRef.current;
@@ -3418,42 +3233,15 @@ export default function AgentPage() {
   });
 
   const compactPanelCards = panelBaseCards;
-
-  const panelRenderedCards =
-    isMobileViewport && !mobilePanelExpanded && !disableMobilePanelHorizontalMotion
-      ? [
-          ...compactPanelCards.map((card, index) =>
-            React.cloneElement(card.node as ReactElement<Record<string, unknown>>, {
-              key: `prepend-${card.key}-${index}`,
-              'data-loop-segment': 'prepend',
-              'data-loop-origin': String(index),
-              className: `${((card.node.props as { className?: string }).className ?? '')} mobile-loop-card`,
-            })
-          ),
-          ...compactPanelCards.map((card, index) =>
-            React.cloneElement(card.node as ReactElement<Record<string, unknown>>, {
-              key: `real-${card.key}-${index}`,
-              'data-loop-segment': 'real',
-              'data-loop-origin': String(index),
-              className: `${((card.node.props as { className?: string }).className ?? '')} mobile-loop-card`,
-            })
-          ),
-          ...compactPanelCards.map((card, index) =>
-            React.cloneElement(card.node as ReactElement<Record<string, unknown>>, {
-              key: `append-${card.key}-${index}`,
-              'data-loop-segment': 'append',
-              'data-loop-origin': String(index),
-              className: `${((card.node.props as { className?: string }).className ?? '')} mobile-loop-card`,
-            })
-          ),
-        ]
-      : compactPanelCards.map((card, index) =>
-          React.cloneElement(card.node as ReactElement<Record<string, unknown>>, {
-            key: `real-${card.key}-${index}`,
-            'data-loop-segment': 'real',
-            'data-loop-origin': String(index),
-          })
-        );
+  const compactPanelLoopResetKey =
+    (isMobileViewport ? 1 : 0) * 10000 + panelStage * 1000 + savedReports.length;
+  const panelRenderedCards = compactPanelCards.map((card, index) =>
+    React.cloneElement(card.node as ReactElement<Record<string, unknown>>, {
+      key: `real-${card.key}-${index}`,
+      'data-loop-segment': 'real',
+      'data-loop-origin': String(index),
+    })
+  );
 
   if (!authBootstrapped || !isAuthenticated) {
     return null;
@@ -3467,6 +3255,13 @@ export default function AgentPage() {
     >
       <div
         className="agent-input terminal-composer"
+        onPointerDown={(e) => {
+          if (isActiveChatLocked || !isMobileViewport) return;
+          if (e.pointerType === 'touch' || e.pointerType === 'pen') {
+            collapseMobilePanelForComposer();
+            prepareMobileInputEngagement(chatComposerRef.current);
+          }
+        }}
         onClick={() => {
           focusComposerAfterLayout({ collapsePanelFirst: true });
         }}
@@ -3481,15 +3276,7 @@ export default function AgentPage() {
           disabled={isActiveChatLocked}
           autoFocus={!hasBlockingModalOpen && !isMobileViewport}
           onFocus={() => {
-            if (isMobileViewport && mobilePanelExpanded) {
-              setMobilePanelExpanded(false);
-              const layout = panelScrollRef.current?.closest('.agent-layout') as HTMLElement | null;
-              layout?.classList.remove('mobile-panel-expanded');
-            }
-          }}
-          onBlur={() => {
-            clearMobileKeyboardSettleTimer();
-            setKeyboardOpeningMode(false);
+            collapseMobilePanelForComposer();
           }}
           onChange={(e) => setDraftForActive(e.target.value)}
           onKeyDown={(e) => {
@@ -3695,6 +3482,8 @@ export default function AgentPage() {
         setPanelCallout={setPanelCallout}
         panelGridRef={panelGridRef}
         panelScrollRef={panelScrollRef as React.RefObject<HTMLElement>}
+        compactPanelCards={compactPanelCards}
+        compactPanelLoopResetKey={compactPanelLoopResetKey}
         panelRenderedCards={panelRenderedCards}
       />
 

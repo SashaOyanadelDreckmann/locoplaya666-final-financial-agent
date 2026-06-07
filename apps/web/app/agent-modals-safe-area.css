@@ -35,10 +35,18 @@
    */
   body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile {
     margin-top: 0 !important;
-    padding-top: var(--mobile-shell-pad-top, 12px) !important;
-    padding-bottom: var(--mobile-shell-pad-y, 4px) !important;
+    padding-top: var(--mobile-shell-pad-top, 8px) !important;
+    padding-bottom: var(--mobile-shell-pad-y, 3px) !important;
     padding-left: var(--mobile-shell-pad-x, 10px) !important;
     padding-right: var(--mobile-shell-pad-x, 10px) !important;
+  }
+
+  /* Mobile brand h1 must stay visible (transactions.css hides all header h1 on mobile) */
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-brand-heading,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-meta-row h1 {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
   }
 
   /*

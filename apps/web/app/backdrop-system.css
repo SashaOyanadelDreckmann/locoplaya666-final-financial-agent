@@ -749,44 +749,14 @@ body.agent-route-active .app-shell::before {
   }
 
   /*
-   * On-screen keyboard — shrink stack to visible viewport; no chrome vignette offsets.
+   * On-screen keyboard — see mobile-keyboard-viewport.css (authoritative).
+   * Keep only backdrop-layer guard here so legacy keyboard-opening toggles
+   * cannot animate or detach the photo stack mid-focus.
    */
-  html:not(.pwa-standalone).browser-keyboard-open,
-  html:not(.pwa-standalone).browser-keyboard-open body,
-  html:not(.pwa-standalone).keyboard-opening,
-  html:not(.pwa-standalone).keyboard-opening body {
-    height: var(--visual-vh, 100dvh) !important;
-    max-height: var(--visual-vh, 100dvh) !important;
-    min-height: 0 !important;
-    overflow: hidden !important;
-  }
-
-  html:not(.pwa-standalone).browser-keyboard-open .agent-modal-overlay,
-  html:not(.pwa-standalone).browser-keyboard-open .agent-modal-overlay.transactions-modal-overlay,
-  html:not(.pwa-standalone).browser-keyboard-open .agent-modal-overlay.budget-modal-overlay,
-  html:not(.pwa-standalone).browser-keyboard-open .agent-modal-overlay.interview-modal-overlay,
-  html:not(.pwa-standalone).browser-keyboard-open .social-modal-overlay,
-  html:not(.pwa-standalone).browser-keyboard-open .modal-overlay {
-    height: var(--visual-vh, 100dvh) !important;
-    min-height: var(--visual-vh, 100dvh) !important;
-    max-height: var(--visual-vh, 100dvh) !important;
-  }
-
-  html:not(.pwa-standalone) body.agent-route-active.browser-keyboard-open main.agent-layout.is-mobile-viewport .agent-panel,
-  html:not(.pwa-standalone) body.agent-route-active.keyboard-opening main.agent-layout.is-mobile-viewport .agent-panel {
-    flex: 0 0 0 !important;
-    max-height: 0 !important;
-    min-height: 0 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    overflow: hidden !important;
-    visibility: hidden !important;
-    pointer-events: none !important;
-  }
-
-  html:not(.pwa-standalone) body.agent-route-active.browser-keyboard-open main.agent-layout.is-mobile-viewport > .agent-mobile-composer-dock,
-  html:not(.pwa-standalone) body.agent-route-active.keyboard-opening main.agent-layout.is-mobile-viewport > .agent-mobile-composer-dock {
-    flex-shrink: 0 !important;
+  html:not(.pwa-standalone).browser-keyboard-open .global-agent-backdrop,
+  html:not(.pwa-standalone).keyboard-opening .global-agent-backdrop {
+    height: var(--screen-h, 100lvh) !important;
+    min-height: var(--screen-h, 100lvh) !important;
   }
 
   html:not(.pwa-standalone):not(.home-route-active) body > .browser-chrome-vignette-top,

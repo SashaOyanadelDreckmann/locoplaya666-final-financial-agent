@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { ApiHttpError } from '@/lib/apiEnvelope';
 import { getSessionInfo } from '@/lib/api';
 import { syncViewportModeClasses } from '@/lib/viewport-mode';
+import { applyMobileViewportTokens } from '@/lib/mobile-viewport-sync';
 import { hasCompletedIntakeAccess, resolveAuthRedirectPath } from '../page.utils';
 
 export type AgentSessionInfo = {
@@ -207,21 +208,7 @@ export function useAgentShell() {
   useEffect(() => {
     const vv = window.visualViewport;
     const update = () => {
-      const vv = window.visualViewport;
-      const layoutH = window.innerHeight;
-      const visibleH = vv?.height ?? layoutH;
-      /* Always track visible height — required when the on-screen keyboard opens. */
-      document.documentElement.style.setProperty('--visual-vh', `${visibleH}px`);
-
-      if (document.documentElement.classList.contains('keyboard-opening')) {
-        return;
-      }
-      const visualStackH = Math.max(
-        layoutH,
-        document.documentElement.clientHeight,
-        Math.round(visibleH + (vv?.offsetTop ?? 0)),
-      );
-      document.documentElement.style.setProperty('--screen-h', `${visualStackH}px`);
+      applyMobileViewportTokens();
     };
     update();
     window.addEventListener('resize', update);
@@ -233,8 +220,6 @@ export function useAgentShell() {
       window.removeEventListener('orientationchange', update);
       vv?.removeEventListener('resize', update);
       vv?.removeEventListener('scroll', update);
-      document.documentElement.style.removeProperty('--screen-h');
-      document.documentElement.style.removeProperty('--visual-vh');
     };
   }, []);
 

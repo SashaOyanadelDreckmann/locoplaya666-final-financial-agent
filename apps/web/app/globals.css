@@ -2486,7 +2486,7 @@ body.home-lock {
 }
 
 /* Mobile */
-@media (max-width: 480px) {
+  @media (max-width: 480px) {
   .auth-shell {
     align-items: flex-start;
     padding: calc(env(safe-area-inset-top, 0px) + 20px) 12px max(env(safe-area-inset-bottom, 0px), 18px);
@@ -2498,16 +2498,16 @@ body.home-lock {
     border-radius: 22px;
     padding: 28px 20px 22px;
     background:
-      linear-gradient(180deg, rgba(18, 28, 42, 0.5), rgba(9, 14, 22, 0.28)),
-      rgba(11, 16, 25, 0.2);
+      linear-gradient(180deg, rgba(18, 28, 42, 0.58), rgba(9, 14, 22, 0.36)),
+      rgba(11, 16, 25, 0.28);
   }
 
   .auth-card::before {
-    opacity: 0.26;
+    opacity: 0.38;
   }
 
   .auth-card::after {
-    opacity: 0.42;
+    opacity: 0.52;
   }
 
   .auth-logo-mark {

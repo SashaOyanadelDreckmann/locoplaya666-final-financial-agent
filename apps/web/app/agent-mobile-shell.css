@@ -5,9 +5,14 @@
   :root {
     --mobile-shell-gutter-x: 8px;
     --mobile-shell-pad-x: 10px;
-    --mobile-shell-pad-y: 4px;
-    --mobile-shell-pad-top: 12px;
-    --mobile-shell-header-row-gap: 6px;
+    --mobile-shell-pad-y: 3px;
+    --mobile-shell-pad-top: 8px;
+    --mobile-shell-header-row-gap: 5px;
+    --mobile-shell-primary-h: 22px;
+    --mobile-shell-meta-h: 22px;
+    --mobile-shell-tab-h: 18px;
+    --mobile-shell-brand-logo: 18px;
+    --mobile-shell-brand-font: 11px;
     --mobile-shell-radius: 16px;
     --mobile-shell-border: 1px solid rgba(173, 200, 220, 0.42);
     --mobile-shell-bg: linear-gradient(180deg, rgba(2, 8, 14, 0.94), rgba(2, 8, 14, 0.98));
@@ -53,7 +58,7 @@
     box-sizing: border-box !important;
     width: auto !important;
     max-width: none !important;
-    margin: 2px var(--mobile-shell-gutter-x) 2px !important;
+    margin: 2px var(--mobile-shell-gutter-x) 3px !important;
     padding: var(--mobile-shell-pad-top) var(--mobile-shell-pad-x) var(--mobile-shell-pad-y) !important;
     gap: var(--mobile-shell-header-row-gap) !important;
     border-radius: var(--mobile-shell-radius) !important;
@@ -72,10 +77,10 @@
     position: relative !important;
   }
 
-  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .agent-chat-controls-row,
-  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .agent-chat-controls-row,
-  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-brand-strip,
-  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-brand-strip {
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-tabs-row,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-tabs-row,
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-meta-row,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-meta-row {
     background: transparent !important;
     background-color: transparent !important;
     background-image: none !important;
@@ -84,74 +89,73 @@
     width: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
+    box-sizing: border-box !important;
   }
 
-  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .agent-chat-controls-row,
-  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .agent-chat-controls-row {
-    justify-content: center !important;
+  /* Row 1 — chat tabs */
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-tabs-row,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-tabs-row {
+    display: flex !important;
     align-items: center !important;
-    gap: 6px !important;
-    min-height: 0 !important;
-    height: auto !important;
-    padding: 0 !important;
-    margin: 0 !important;
+    justify-content: center !important;
+    min-height: var(--mobile-shell-primary-h) !important;
+    overflow: visible !important;
   }
 
-  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-switcher,
-  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-switcher {
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-tabs-row .chat-switcher,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-tabs-row .chat-switcher {
     display: grid !important;
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-    width: 75% !important;
-    max-width: 75% !important;
+    width: 100% !important;
+    max-width: 100% !important;
     min-width: 0 !important;
     height: auto !important;
-    min-height: 0 !important;
-    margin: 0 auto !important;
+    margin: 0 !important;
     padding: 0 !important;
     gap: 4px !important;
     border: none !important;
     background: transparent !important;
   }
 
-  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-sheet-tab,
-  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-sheet-tab {
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-tabs-row .chat-sheet-tab,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-tabs-row .chat-sheet-tab {
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    min-height: 22px !important;
-    height: 22px !important;
-    max-height: 22px !important;
+    min-height: var(--mobile-shell-tab-h) !important;
+    height: var(--mobile-shell-tab-h) !important;
+    max-height: var(--mobile-shell-tab-h) !important;
     min-width: 0 !important;
     max-width: 100% !important;
-    padding: 0 4px !important;
-    border-radius: 8px !important;
-    gap: 3px !important;
+    padding: 0 3px !important;
+    border-radius: 6px !important;
+    gap: 2px !important;
   }
 
-  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-sheet-tab-subtitle,
-  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-sheet-tab-subtitle {
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-tabs-row .chat-sheet-tab-subtitle,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-tabs-row .chat-sheet-tab-subtitle {
     display: none !important;
   }
 
-  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-sheet-tab-index,
-  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-sheet-tab-index {
-    width: 12px !important;
-    height: 12px !important;
-    min-width: 12px !important;
-    flex-basis: 12px !important;
-    font-size: 8px !important;
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-tabs-row .chat-sheet-tab-index,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-tabs-row .chat-sheet-tab-index {
+    width: 11px !important;
+    height: 11px !important;
+    min-width: 11px !important;
+    flex-basis: 11px !important;
+    font-size: 7px !important;
   }
 
-  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-sheet-tab-copy,
-  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-sheet-tab-copy {
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-tabs-row .chat-sheet-tab-copy,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-tabs-row .chat-sheet-tab-copy {
     min-width: 0 !important;
     overflow: hidden !important;
   }
 
-  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-sheet-tab-title,
-  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-sheet-tab-title {
-    font-size: 10px !important;
-    line-height: 1.15 !important;
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-tabs-row .chat-sheet-tab-title,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-tabs-row .chat-sheet-tab-title {
+    font-size: 8px !important;
+    line-height: 1.05 !important;
     letter-spacing: 0 !important;
     white-space: nowrap !important;
     overflow: hidden !important;
@@ -159,92 +163,216 @@
     max-width: 100% !important;
   }
 
-  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-brand-strip,
-  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-brand-strip {
+  /* Row 2 — brand lockup left of subtitle + B/W toggle */
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-meta-row,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-meta-row {
     display: flex !important;
-    flex-direction: column !important;
+    flex-direction: row !important;
     align-items: center !important;
-    gap: 1px !important;
+    justify-content: flex-start !important;
+    gap: 8px !important;
+    min-height: var(--mobile-shell-meta-h) !important;
+    margin: 0 !important;
+    padding: 0 2px !important;
+    overflow: hidden !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-brand-cluster,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-brand-cluster {
+    display: flex !important;
+    flex: 1 1 auto !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 6px !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+  }
+
+  /* Beats agent-modals-transactions.css `.agent-chat-header h1 { display: none }` on mobile */
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-brand-heading,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-brand-heading,
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-meta-row h1,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-meta-row h1 {
+    display: block !important;
+    flex: 0 0 auto !important;
+    flex-shrink: 0 !important;
+    width: auto !important;
+    min-width: max-content !important;
+    max-width: none !important;
     margin: 0 !important;
     padding: 0 !important;
-    min-height: 0 !important;
+    overflow: visible !important;
+    text-align: left !important;
+    font-size: inherit !important;
+    line-height: 1 !important;
+    visibility: visible !important;
+    opacity: 1 !important;
   }
 
-  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-brand-action-row,
-  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-brand-action-row {
-    position: relative !important;
-    display: flex !important;
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-meta-row .chat-brand-title-row,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-meta-row .chat-brand-title-row {
+    display: inline-flex !important;
     align-items: center !important;
-    justify-content: center !important;
-    width: 100% !important;
-    min-height: 0 !important;
-    padding: 0 22px !important;
-    box-sizing: border-box !important;
+    justify-content: flex-start !important;
+    width: auto !important;
+    max-width: none !important;
+    min-width: max-content !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    gap: 4px !important;
+    overflow: visible !important;
+    flex-shrink: 0 !important;
+    transform: none !important;
+    background: transparent !important;
+    visibility: visible !important;
+    opacity: 1 !important;
   }
 
-  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-monochrome-toggle--inline,
-  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-monochrome-toggle--inline,
-  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-brand-action-row .chat-monochrome-toggle--inline,
-  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-brand-action-row .chat-monochrome-toggle--inline {
-    position: absolute !important;
-    right: 0 !important;
-    top: 50% !important;
-    bottom: auto !important;
-    left: auto !important;
-    transform: translateY(-50%) !important;
-    width: 18px !important;
-    height: 24px !important;
-    min-width: 18px !important;
-    min-height: 24px !important;
-    max-width: 18px !important;
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-meta-row .chat-brand-logo-mark,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-meta-row .chat-brand-logo-mark {
+    display: inline-flex !important;
+    width: var(--mobile-shell-brand-logo) !important;
+    height: var(--mobile-shell-brand-logo) !important;
+    flex: 0 0 var(--mobile-shell-brand-logo) !important;
+    flex-shrink: 0 !important;
+    padding: 2px !important;
+    border-radius: 6px !important;
+    overflow: hidden !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-meta-row .chat-brand-logo-frame,
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-meta-row .chat-brand-logo-svg,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-meta-row .chat-brand-logo-frame,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-meta-row .chat-brand-logo-svg {
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-meta-row .chat-brand-wordmark,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-meta-row .chat-brand-wordmark {
+    display: inline-flex !important;
+    align-items: center !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    flex: 0 1 auto !important;
+    overflow: hidden !important;
+    white-space: nowrap !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-meta-row .chat-brand-financiera,
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-meta-row .chat-brand-mente,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-meta-row .chat-brand-financiera,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-meta-row .chat-brand-mente {
+    display: inline-flex !important;
+    font-size: var(--mobile-shell-brand-font) !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+    overflow: visible !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-meta-row .chat-brand-financiera,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-meta-row .chat-brand-financiera {
+    color: rgba(255, 255, 255, 0.9) !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-meta-row .chat-brand-mente,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-meta-row .chat-brand-mente {
+    color: rgba(166, 193, 220, 0.94) !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-brand-cluster .chat-identity-subtitle,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-brand-cluster .chat-identity-subtitle,
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-meta-row .chat-identity-subtitle,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-meta-row .chat-identity-subtitle {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    font-size: 8px !important;
+    line-height: 1.15 !important;
+    text-align: left !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-brand-cluster .chat-subtitle-1,
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-brand-cluster .chat-subtitle-2,
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-brand-cluster .chat-subtitle-3,
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-brand-cluster .chat-subtitle-meta,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-brand-cluster .chat-subtitle-1,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-brand-cluster .chat-subtitle-2,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-brand-cluster .chat-subtitle-3,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-brand-cluster .chat-subtitle-meta,
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-meta-row .chat-subtitle-1,
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-meta-row .chat-subtitle-2,
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-meta-row .chat-subtitle-3,
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-meta-row .chat-subtitle-meta,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-meta-row .chat-subtitle-1,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-meta-row .chat-subtitle-2,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-meta-row .chat-subtitle-3,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-meta-row .chat-subtitle-meta {
+    font-size: 8px !important;
+    font-weight: 500 !important;
+    line-height: 1.15 !important;
+    letter-spacing: 0 !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-meta-row .chat-monochrome-toggle--inline,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-meta-row .chat-monochrome-toggle--inline {
+    position: static !important;
+    right: auto !important;
+    top: auto !important;
+    transform: none !important;
+    flex: 0 0 14px !important;
+    width: 14px !important;
+    height: 14px !important;
+    min-width: 14px !important;
+    min-height: 14px !important;
+    max-width: 14px !important;
+    margin: 0 0 0 auto !important;
     border: 1px solid rgba(255, 255, 255, 0.14) !important;
     background: rgba(0, 0, 0, 0.92) !important;
-    z-index: 20 !important;
+    z-index: 1 !important;
   }
 
-  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-monochrome-toggle--inline .mono-toggle-icon,
-  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-monochrome-toggle--inline .mono-toggle-icon {
-    width: 12px !important;
-    height: 12px !important;
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-meta-row .chat-monochrome-toggle--inline .mono-toggle-icon,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-meta-row .chat-monochrome-toggle--inline .mono-toggle-icon {
+    width: 9px !important;
+    height: 9px !important;
   }
 
-  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-brand-title-row,
-  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-brand-title-row,
-  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-brand-strip h1,
-  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-brand-strip h1 {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    width: auto !important;
-    max-width: 100% !important;
-    margin: 0 auto !important;
-    padding: 0 !important;
-    gap: 6px !important;
+  /* Legacy brand strip hidden — mobile uses chat-mobile-* rows */
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-brand-strip,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-brand-strip {
+    display: none !important;
   }
 
-  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-brand-logo-mark,
-  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-brand-logo-mark {
-    width: 20px !important;
-    height: 20px !important;
-    flex: 0 0 20px !important;
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .sheet-context-bar,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .sheet-context-bar {
+    display: none !important;
   }
 
-  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-brand-financiera,
-  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-brand-mente,
-  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-brand-financiera,
-  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-brand-mente {
-    font-size: 13px !important;
-    line-height: 1.1 !important;
-  }
-
-  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-identity-subtitle,
-  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-identity-subtitle {
-    font-size: 10px !important;
-    line-height: 1.05 !important;
-    text-align: center !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    width: 100% !important;
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile > .action-plan-funnel-rail,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile > .action-plan-funnel-rail {
+    grid-column: unset !important;
+    margin-top: 2px !important;
+    padding: 2px 0 0 !important;
+    gap: 4px !important;
+    transform: scale(0.92) !important;
+    transform-origin: top center !important;
   }
 
   main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile > p.muted:empty,
@@ -676,6 +804,71 @@
     flex: 0 0 auto !important;
     height: auto !important;
     max-height: calc(var(--mobile-panel-h, 126px) + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-infinite-loop,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-infinite-loop {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: stretch !important;
+    overflow-x: scroll !important;
+    overflow-y: hidden !important;
+    scroll-snap-type: none !important;
+    scroll-behavior: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior-x: contain !important;
+    touch-action: pan-x !important;
+    scrollbar-width: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding-inline: 8px !important;
+  }
+
+  /* Beat transactions.css calc((100% - 16px) / 3) — loop needs fixed card width + overflow */
+  main.agent-layout.is-mobile-viewport .agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-infinite-loop > *,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-infinite-loop > *,
+  main.agent-layout.is-mobile-viewport .agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-infinite-loop > .mobile-loop-card,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-infinite-loop > .mobile-loop-card {
+    scroll-snap-align: none !important;
+    flex: 0 0 min(212px, 74vw) !important;
+    width: min(212px, 74vw) !important;
+    min-width: min(212px, 74vw) !important;
+    max-width: min(212px, 74vw) !important;
+    flex-shrink: 0 !important;
+    transform: none !important;
+    opacity: 1 !important;
+    transition: none !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-infinite-loop > .mobile-loop-card > *,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-infinite-loop > .mobile-loop-card > * {
+    animation: none !important;
+    transform: none !important;
+    transition: none !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-infinite-loop > .mobile-loop-card.is-mobile-front,
+  main.agent-layout.is-mobile-viewport .agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-infinite-loop > .mobile-loop-card.is-mobile-left,
+  main.agent-layout.is-mobile-viewport .agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-infinite-loop > .mobile-loop-card.is-mobile-right,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-infinite-loop > .mobile-loop-card.is-mobile-front,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-infinite-loop > .mobile-loop-card.is-mobile-left,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-infinite-loop > .mobile-loop-card.is-mobile-right {
+    transform: none !important;
+    opacity: 1 !important;
+    z-index: auto !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-infinite-loop > .mobile-loop-card + .mobile-loop-card,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-infinite-loop > .mobile-loop-card + .mobile-loop-card {
+    margin-left: -10px !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-infinite-loop::-webkit-scrollbar,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-infinite-loop::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
   }
 
   main.agent-layout.is-mobile-viewport .agent-panel .panel-grid {

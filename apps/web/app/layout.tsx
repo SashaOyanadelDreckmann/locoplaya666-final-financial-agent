@@ -2,7 +2,9 @@
 import './globals.css';
 import './agent.css';
 import './backdrop-system.css';
+import './mobile-keyboard-viewport.css';
 import './tablet-system.css';
+import MobileInputViewportSync from '@/components/MobileInputViewportSync';
 import ServiceWorkerReset from '@/components/ServiceWorkerReset';
 import BrowserChromeVignetteSync from '@/components/BrowserChromeVignetteSync';
 import ViewportModeSync from '@/components/ViewportModeSync';
@@ -87,6 +89,22 @@ export default function RootLayout({
   } catch (_) {}
 })();
 `;
+  const authRouteClassScript = `
+(() => {
+  try {
+    const isAuthRoute = /^\\/(login|register|forgot-password|waiting-approval)(\\/|$)/.test(window.location.pathname);
+    if (!isAuthRoute) return;
+    const apply = () => {
+      document.documentElement.classList.add('auth-route-active');
+      document.body?.classList.add('auth-route-active');
+    };
+    apply();
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', apply, { once: true });
+    }
+  } catch (_) {}
+})();
+`;
 
   return (
     <html lang="es">
@@ -111,6 +129,10 @@ export default function RootLayout({
           id="fa-intake-route-class"
           dangerouslySetInnerHTML={{ __html: intakeRouteClassScript }}
         />
+        <script
+          id="fa-auth-route-class"
+          dangerouslySetInnerHTML={{ __html: authRouteClassScript }}
+        />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="theme-color" media="(prefers-color-scheme: light)" content="#050810" />
         <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#050810" />
@@ -127,6 +149,7 @@ export default function RootLayout({
       <body>
         <ServiceWorkerReset />
         <BrowserChromeVignetteSync />
+        <MobileInputViewportSync />
         <ViewportModeSync />
         <div className="global-agent-backdrop" aria-hidden="true" />
         <div className="viewport-backdrop-seam-top" aria-hidden="true" />
