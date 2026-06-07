@@ -977,14 +977,12 @@ html[data-visual-mode='light-outline'] body.agent-route-active .agent-modal .age
   }
 }
 
-/* Backdrop — sits behind the floating card shell */
+/* Backdrop — invisible touch target to close the floating card */
 .floating-card-backdrop {
   position: fixed;
   inset: 0;
   z-index: 890;
-  background: rgba(0, 0, 0, 0.54);
-  backdrop-filter: blur(8px) saturate(0.7);
-  -webkit-backdrop-filter: blur(8px) saturate(0.7);
+  background: transparent;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }

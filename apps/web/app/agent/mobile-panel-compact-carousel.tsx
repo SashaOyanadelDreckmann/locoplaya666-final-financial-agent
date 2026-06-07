@@ -42,13 +42,13 @@ const DECK_CLASS_BY_OFFSET: Record<(typeof SLOT_OFFSETS)[number], string> = {
 };
 
 const SWIPE_COMMIT_PX = 1;
-const SWIPE_COMMIT_RATIO = 0.012;
-const SWIPE_VELOCITY_COMMIT = 0.016;
+const SWIPE_COMMIT_RATIO = 0.010;
+const SWIPE_VELOCITY_COMMIT = 0.014;
 const DRAG_LOCK_PX = 0;
-const DRAG_SENSITIVITY = 1.78;
-const STEP_DURATION_MS = 52;
-const SNAP_DURATION_MS = 36;
-const MIN_TWEEN_MS = 28;
+const DRAG_SENSITIVITY = 2.4;
+const STEP_DURATION_MS = 30;
+const SNAP_DURATION_MS = 20;
+const MIN_TWEEN_MS = 12;
 const PROFILE_HOME_INDEX = 0;
 
 // Cards that expand into a floating overlay when tapped (informative only, no action cards)
@@ -84,10 +84,8 @@ function rubberBandPhase(phase: number, maxProgress = 0.48) {
   return base + maxProgress - overflow * 0.15;
 }
 
-function easeOutBack(t: number): number {
-  const c1 = 1.18;
-  const c3 = c1 + 1;
-  return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+function easeOutExpo(t: number): number {
+  return t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
 }
 
 function runPhaseTween(
@@ -102,8 +100,8 @@ function runPhaseTween(
   let raf = 0;
   const start = performance.now();
   const distance = to - from;
-  const velocityBoost = Math.min(42, Math.abs(initialVelocity) * 0.048);
-  const duration = Math.max(MIN_TWEEN_MS, Math.min(baseDurationMs, baseDurationMs - velocityBoost));
+  const velocityBoost = Math.min(baseDurationMs * 0.85, Math.abs(initialVelocity) * 8);
+  const duration = Math.max(MIN_TWEEN_MS, baseDurationMs - velocityBoost);
 
   const cancel = () => {
     done = true;
@@ -114,7 +112,7 @@ function runPhaseTween(
   const tick = (now: number) => {
     if (done) return;
     const t = Math.min(1, (now - start) / duration);
-    onUpdate(from + distance * easeOutBack(t));
+    onUpdate(from + distance * easeOutExpo(t));
     if (t >= 1) {
       onUpdate(to);
       cancel();
