@@ -1,17 +1,55 @@
 'use client';
 
-import { useState, type ChangeEvent, type Ref } from 'react';
+import { useState, type ChangeEvent, type KeyboardEvent, type Ref } from 'react';
 import {
   NumericDust,
   EditorialSummary,
   getFormatLabel,
-  getFormatMicrocopy,
   renderFormatIcon,
   buildUploadGuidance,
 } from './presentation';
 import { TxParseProgress } from './TxParseProgress';
 import type { DocumentsParseProgress } from '@/lib/transactions-parse-progress.helpers';
 import type { BankProduct } from './types';
+
+const EVIDENCE_FILE_ACCEPT =
+  'image/*,video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm,.m4v,.avi,.png,.jpg,.jpeg,.webp,.gif,.pdf,.xls,.xlsx,.csv,.txt,.md';
+
+const FORMAT_OPTIONS = [
+  ['video', 'Rápido'],
+  ['photos', 'Fotos'],
+  ['pdf', 'PDF'],
+  ['spreadsheet', 'Excel / CSV'],
+  ['text', 'Texto'],
+] as const;
+
+function SendIcon() {
+  return (
+    <svg className="tx-composer-send-icon" width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path
+        d="M2 8h10M9 4l5 4-5 4"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function AttachIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M15.5 7.5L9 14a3 3 0 104.24 4.24l7.07-7.07a5 5 0 10-7.07-7.07L5.46 11.9"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
 
 export interface TxEvidenceStepProps {
   activeBankProduct: BankProduct;
@@ -63,6 +101,52 @@ export function TxEvidenceStep(props: TxEvidenceStepProps) {
   const p = props;
   const [showRapidExample, setShowRapidExample] = useState(false);
   const messageCount = p.assistantMessages.length;
+  const composerValue = p.txAssistantInput;
+  const canAttach = !p.analysisAlreadyDone;
+  const hasComposerPayload =
+    Boolean(composerValue.trim()) ||
+    p.pendingEvidenceFiles.length > 0 ||
+    p.pendingManualEvidence.length > 0;
+  const sendDisabled =
+    p.txAssistantLoading ||
+    p.documentsLoading ||
+    !hasComposerPayload ||
+    (p.analysisAlreadyDone && (p.pendingEvidenceFiles.length > 0 || p.pendingManualEvidence.length > 0));
+
+  const handleComposerChange = (value: string) => {
+    p.onAssistantInputChange(value);
+    p.onManualEvidenceChange(value);
+  };
+
+  const handleComposerKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key !== 'Enter' || event.shiftKey) return;
+    event.preventDefault();
+    if (!sendDisabled) p.onAssistantSend();
+  };
+
+  const handleFormatSelect = (value: (typeof FORMAT_OPTIONS)[number][0]) => {
+    p.onPatchUploadFormat(value);
+    p.onSetUploadOnboardingStep('details');
+    p.onBumpTransitionPulse();
+  };
+
+  const handleAttachChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+    const hasVideo = Array.from(files).some(
+      (file) => file.type.startsWith('video/') || /\.(mp4|mov|webm|m4v|avi)$/i.test(file.name),
+    );
+    if (hasVideo) {
+      p.onPatchUploadFormat('video');
+    }
+    p.onSetUploadOnboardingStep('upload');
+    p.onAppendPendingEvidence(files);
+    event.target.value = '';
+  };
+
+  const composerPlaceholder = p.analysisAlreadyDone
+    ? 'Pregúntame sobre tus movimientos o pide revisar el resumen'
+    : 'Escribe, pega movimientos o adjunta cartolas…';
 
   return (
     <section className="tx-content-card tx-content-card--agent is-main-center tx-step-reveal">
@@ -93,15 +177,10 @@ export function TxEvidenceStep(props: TxEvidenceStepProps) {
             <span>{p.activeBankProduct.bank || 'Institución por definir'}</span>
           </div>
           <div className="tx-evidence-product-meta">
-            <span>{messageCount} mensaje{messageCount === 1 ? '' : 's'}</span>
+            <span>
+              {messageCount} mensaje{messageCount === 1 ? '' : 's'}
+            </span>
             <span>{p.summaryRegenerationsLeft} revisiones</span>
-          </div>
-        </div>
-
-        <div className="tx-editorial-intro tx-editorial-intro--agent">
-          <span className="transactions-summary-title">Mesa de evidencia</span>
-          <div className="tx-editorial-meta-row">
-            <span>Hasta {p.maxEvidenceFilesPerProduct} respaldos</span>
           </div>
         </div>
 
@@ -134,204 +213,108 @@ export function TxEvidenceStep(props: TxEvidenceStepProps) {
         </div>
 
         {!p.analysisAlreadyDone && (
-          <div className="tx-upload-onboarding tx-upload-onboarding--agent tx-upload-onboarding--bare">
-            {p.txUploadOnboardingStep === 'format' && (
-              <div className="tx-onboarding-card tx-onboarding-card--compact tx-onboarding-card--bare">
-                <div className="tx-onboarding-card-head tx-onboarding-card-head--stack">
-                  <span className="tx-onboarding-kicker">Formato</span>
-                  <div className="tx-onboarding-copy">Selecciona la fuente.</div>
-                </div>
-                <div className="tx-chat-format-pills tx-chat-format-pills--premium tx-chat-format-pills--deck">
-                  {(
-                    [
-                      ['video', 'Rápido'],
-                      ['photos', 'Fotos'],
-                      ['pdf', 'PDF'],
-                      ['spreadsheet', 'Excel / CSV'],
-                      ['text', 'Texto'],
-                    ] as const
-                  ).map(([value, label]) => (
-                    <button
-                      key={value}
-                      type="button"
-                      className={`continue-ghost tx-format-choice ${p.selectedUploadFormat === value ? 'is-active' : ''}`}
-                      onClick={() => {
-                        p.onPatchUploadFormat(value);
-                        p.onSetUploadOnboardingStep('details');
-                      }}
-                    >
-                      <span className="tx-format-choice-icon">{renderFormatIcon(value)}</span>
-                      <span className="tx-format-choice-main">{label}</span>
-                      <span className="tx-format-choice-sub">{getFormatMicrocopy(value)}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {p.txUploadOnboardingStep === 'details' && p.selectedUploadFormat && (
-              <div className="tx-onboarding-card tx-onboarding-card--guidance tx-onboarding-card--compact tx-onboarding-card--bare">
-                <div className="tx-onboarding-card-head">
-                  <div className="tx-onboarding-card-head tx-onboarding-card-head--stack">
-                    <span className="tx-onboarding-kicker">Detalle</span>
-                    <div className="tx-onboarding-detail-chip">{getFormatLabel(p.selectedUploadFormat)}</div>
-                  </div>
-                  <button
-                    type="button"
-                    className="tx-onboarding-reset"
-                    onClick={() => {
-                      p.onResetUploadFormat();
-                      p.onSetUploadOnboardingStep('format');
-                    }}
-                  >
-                    Cambiar
-                  </button>
-                </div>
-                <div className="tx-onboarding-copy">
-                  {buildUploadGuidance(p.selectedUploadFormat, p.activeBankProduct.productType)}
-                  {p.selectedUploadFormat === 'video' && (
-                    <div className="tx-video-example-actions">
-                      <button
-                        type="button"
-                        className="tx-onboarding-reset"
-                        onClick={() => setShowRapidExample((prev) => !prev)}
-                      >
-                        {showRapidExample ? 'Ocultar ejemplo' : 'Ver ejemplo'}
-                      </button>
-                      <span className="tx-video-example-label">Grabación real</span>
-                    </div>
-                  )}
-                </div>
-                {p.selectedUploadFormat === 'video' && showRapidExample && (
-                  <div className="tx-video-example-shell">
-                    <video controls playsInline preload="metadata" className="tx-video-example-player">
-                      <source src="/generated/transactions-fast-example.mp4" type="video/mp4" />
-                      Tu navegador no soporta reproducción de video.
-                    </video>
-                  </div>
-                )}
-                <div className="tx-onboarding-next-wrap">
-                  <button
-                    type="button"
-                    className="tx-onboarding-next tx-onboarding-next--text"
-                    onClick={() => {
-                      p.onBumpTransitionPulse();
-                      p.onSetUploadOnboardingStep('upload');
-                    }}
-                    aria-label="Continuar a carga"
-                  >
-                    Continuar
-                  </button>
-                </div>
-              </div>
-            )}
+          <div className="tx-format-rail" role="group" aria-label="Formato de evidencia">
+            {FORMAT_OPTIONS.map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                className={`tx-format-rail-chip ${p.selectedUploadFormat === value ? 'is-active' : ''}`}
+                onClick={() => handleFormatSelect(value)}
+                aria-pressed={p.selectedUploadFormat === value}
+              >
+                <span className="tx-format-rail-chip-icon">{renderFormatIcon(value)}</span>
+                <span className="tx-format-rail-chip-label">{label}</span>
+              </button>
+            ))}
           </div>
         )}
 
-        {(p.analysisAlreadyDone || p.txUploadOnboardingStep === 'upload') && (
-          <div className="upload-zone tx-upload-zone-premium tx-upload-zone-premium--rail tx-upload-zone-premium--inline">
-            <div className="tx-upload-actions">
-              <label className="tx-upload-video-btn">
-                Subir video
-                <input
-                  type="file"
-                  accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm,.m4v,.avi"
-                  style={{ display: 'none' }}
-                  onChange={(e: ChangeEvent<HTMLInputElement>) => {
-                    p.onPatchUploadFormat('video');
-                    p.onSetUploadOnboardingStep('upload');
-                    p.onAppendPendingEvidence(e.target.files);
-                  }}
-                />
-              </label>
+        {!p.analysisAlreadyDone && p.selectedUploadFormat && p.txUploadOnboardingStep !== 'format' && (
+          <div className="tx-format-guidance" role="status">
+            <div className="tx-format-guidance-copy">
+              <span className="tx-format-guidance-kicker">{getFormatLabel(p.selectedUploadFormat)}</span>
+              <p>{buildUploadGuidance(p.selectedUploadFormat, p.activeBankProduct.productType)}</p>
+              {p.selectedUploadFormat === 'video' && (
+                <div className="tx-video-example-actions">
+                  <button
+                    type="button"
+                    className="tx-format-guidance-link"
+                    onClick={() => setShowRapidExample((prev) => !prev)}
+                  >
+                    {showRapidExample ? 'Ocultar ejemplo' : 'Ver ejemplo de grabación'}
+                  </button>
+                </div>
+              )}
             </div>
-            <label className="upload-label upload-label--minimal">
-              <span>Adjuntar</span>
-              <span className="upload-trigger-minimal" aria-hidden="true">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                  <path
-                    d="M15.5 7.5L9 14a3 3 0 104.24 4.24l7.07-7.07a5 5 0 10-7.07-7.07L5.46 11.9"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </span>
-              <input
-                type="file"
-                accept="image/*,video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm,.m4v,.avi,.png,.jpg,.jpeg,.webp,.gif,.pdf,.xls,.xlsx,.csv,.txt,.md"
-                multiple
-                onChange={(e: ChangeEvent<HTMLInputElement>) => p.onAppendPendingEvidence(e.target.files)}
-              />
-            </label>
-            <label className="manual-evidence-block">
-              <span className="manual-evidence-label">Nota opcional</span>
-              <textarea
-                className="manual-evidence-textarea"
-                value={p.manualEvidenceDraft}
-                onChange={(e) => p.onManualEvidenceChange(e.target.value)}
-                placeholder="Contexto adicional."
-                rows={2}
-              />
-            </label>
-            {p.pendingEvidenceFiles.length > 0 && (
-              <div className="transactions-product-insights">
-                {p.pendingEvidenceFiles.slice(0, 12).map((file) => (
-                  <span key={`${file.name}-${file.size}`} title={file.name}>
-                    {file.name}
-                  </span>
-                ))}
-              </div>
-            )}
-            <div className="upload-files">
-              {p.activeBankProduct.uploadedFiles.length === 0 && <span>Aún no hay archivos cargados.</span>}
-              {p.activeBankProduct.uploadedFiles.map((name, idx) => (
-                <span key={`${name}-${idx}`} className="upload-file-pill" title={name}>
-                  {name}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {(p.analysisAlreadyDone || p.txUploadOnboardingStep === 'upload') && (
-          <div className="bcc-hero-input-wrap tx-chat-composer-wrap tx-chat-composer-wrap--premium">
-            <input
-              className="bcc-hero-input"
-              value={p.txAssistantInput}
-              onChange={(e) => p.onAssistantInputChange(e.target.value)}
-              placeholder={
-                p.analysisAlreadyDone
-                  ? 'Pregúntame sobre tus movimientos o pide revisar el resumen'
-                  : 'Escribe o adjunta archivos para enviarlos'
-              }
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') p.onAssistantSend();
-              }}
-            />
             <button
               type="button"
-              className="bcc-hero-send"
-              onClick={() => p.onAssistantSend()}
-              disabled={
-                p.txAssistantLoading ||
-                p.documentsLoading ||
-                (!p.txAssistantInput.trim() &&
-                  p.pendingEvidenceFiles.length === 0 &&
-                  p.pendingManualEvidence.length === 0) ||
-                (p.analysisAlreadyDone &&
-                  (p.pendingEvidenceFiles.length > 0 || p.pendingManualEvidence.length > 0))
-              }
-              aria-label="Enviar"
-              title="Enviar"
+              className="tx-format-guidance-link"
+              onClick={() => {
+                p.onResetUploadFormat();
+                p.onSetUploadOnboardingStep('format');
+              }}
             >
-              Enviar
+              Cambiar
             </button>
+            {p.selectedUploadFormat === 'video' && showRapidExample && (
+              <div className="tx-video-example-shell">
+                <video controls playsInline preload="metadata" className="tx-video-example-player">
+                  <source src="/generated/transactions-fast-example.mp4" type="video/mp4" />
+                  Tu navegador no soporta reproducción de video.
+                </video>
+              </div>
+            )}
           </div>
         )}
 
-        {(p.pendingEvidenceFiles.length > 0 || p.pendingManualEvidence.length > 0) && p.analysisAlreadyDone && (
+        {(p.pendingEvidenceFiles.length > 0 || p.activeBankProduct.uploadedFiles.length > 0) && (
+          <div className="tx-composer-attachments" aria-label="Archivos adjuntos">
+            {p.pendingEvidenceFiles.slice(0, 12).map((file) => (
+              <span key={`pending-${file.name}-${file.size}`} className="upload-file-pill" title={file.name}>
+                {file.name}
+              </span>
+            ))}
+            {p.activeBankProduct.uploadedFiles.map((name, idx) => (
+              <span key={`uploaded-${name}-${idx}`} className="upload-file-pill is-uploaded" title={name}>
+                {name}
+              </span>
+            ))}
+          </div>
+        )}
+
+        <div className="tx-composer-pro" data-analysis-done={p.analysisAlreadyDone ? 'true' : 'false'}>
+          {canAttach ? (
+            <label className="tx-composer-attach" aria-label="Adjuntar archivos o video">
+              <AttachIcon />
+              <input type="file" accept={EVIDENCE_FILE_ACCEPT} multiple onChange={handleAttachChange} />
+            </label>
+          ) : null}
+          <textarea
+            className="tx-composer-field"
+            value={composerValue}
+            onChange={(e) => handleComposerChange(e.target.value)}
+            onKeyDown={handleComposerKeyDown}
+            placeholder={composerPlaceholder}
+            rows={2}
+            aria-label="Mensaje del chat de transacciones"
+          />
+          <button
+            type="button"
+            className="tx-composer-send"
+            onClick={() => p.onAssistantSend()}
+            disabled={sendDisabled}
+            aria-label="Enviar mensaje"
+            title="Enviar"
+          >
+            <SendIcon />
+          </button>
+        </div>
+
+        {!p.analysisAlreadyDone && (
+          <p className="tx-composer-hint">Enter para enviar · Shift+Enter para nueva línea · Hasta {p.maxEvidenceFilesPerProduct} archivos</p>
+        )}
+
+        {p.analysisAlreadyDone && (p.pendingEvidenceFiles.length > 0 || p.pendingManualEvidence.length > 0) && (
           <p className="manual-evidence-hint">
             Este producto ya tiene análisis. Para nuevos antecedentes debes recrear el producto.
           </p>

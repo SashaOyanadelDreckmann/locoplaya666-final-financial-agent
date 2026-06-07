@@ -16237,3 +16237,361 @@ html:not([data-visual-mode='light-outline']) .agent-panel .panel-feature-card {
   }
 }
 
+/* ── Tx evidence chat: unified pro composer (v3) ─────────────────────────── */
+.transactions-modal .tx-evidence-card--premium .tx-format-rail {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  padding: 2px 0 4px;
+  margin-top: 4px;
+}
+
+.transactions-modal .tx-format-rail-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex: 0 0 auto;
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(186, 206, 226, 0.22);
+  background: rgba(12, 20, 31, 0.62);
+  color: rgba(236, 244, 252, 0.9);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+}
+
+.transactions-modal .tx-format-rail-chip:hover {
+  border-color: rgba(210, 226, 242, 0.42);
+  background: rgba(18, 30, 44, 0.78);
+}
+
+.transactions-modal .tx-format-rail-chip.is-active {
+  border-color: rgba(184, 147, 70, 0.62);
+  background: rgba(184, 147, 70, 0.14);
+  color: rgba(255, 248, 236, 0.98);
+}
+
+.transactions-modal .tx-format-rail-chip-icon {
+  display: inline-flex;
+  width: 15px;
+  height: 15px;
+  color: rgba(220, 234, 248, 0.82);
+}
+
+.transactions-modal .tx-format-rail-chip.is-active .tx-format-rail-chip-icon {
+  color: rgba(255, 236, 198, 0.95);
+}
+
+.transactions-modal .tx-format-rail-chip-label {
+  white-space: nowrap;
+}
+
+.transactions-modal .tx-format-guidance {
+  display: grid;
+  gap: 10px;
+  margin-top: 6px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(186, 206, 226, 0.16);
+  background: rgba(10, 17, 27, 0.5);
+}
+
+.transactions-modal .tx-format-guidance-copy p {
+  margin: 6px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: rgba(214, 228, 242, 0.78);
+}
+
+.transactions-modal .tx-format-guidance-kicker {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(210, 224, 240, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(236, 244, 252, 0.72);
+}
+
+.transactions-modal .tx-format-guidance-link {
+  justify-self: start;
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(174, 206, 232, 0.92);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.transactions-modal .tx-format-guidance-link:hover {
+  color: rgba(214, 232, 248, 1);
+}
+
+.transactions-modal .tx-composer-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.transactions-modal .tx-composer-attachments .upload-file-pill.is-uploaded {
+  opacity: 0.72;
+}
+
+.transactions-modal .tx-composer-pro {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 8px 10px 8px 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(186, 206, 226, 0.2);
+  background: rgba(8, 14, 22, 0.72);
+  box-shadow:
+    0 14px 28px rgba(0, 0, 0, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  transition: border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.transactions-modal .tx-composer-pro:focus-within {
+  border-color: rgba(184, 147, 70, 0.52);
+  box-shadow:
+    0 16px 30px rgba(0, 0, 0, 0.22),
+    0 0 0 3px rgba(184, 147, 70, 0.12);
+}
+
+.transactions-modal .tx-composer-pro[data-analysis-done='true'] {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.transactions-modal .tx-composer-pro--summary {
+  grid-template-columns: minmax(0, 1fr) auto;
+  margin-top: 10px;
+}
+
+.transactions-modal .tx-composer-attach {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  border: 1px solid rgba(186, 206, 226, 0.18);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(228, 239, 251, 0.9);
+  cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+
+.transactions-modal .tx-composer-attach:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(210, 226, 242, 0.34);
+  color: rgba(245, 250, 255, 1);
+}
+
+.transactions-modal .tx-composer-attach input[type='file'] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.transactions-modal .tx-composer-field {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  max-height: 160px;
+  resize: vertical;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: rgba(244, 249, 255, 0.96);
+  font-size: 16px;
+  line-height: 1.45;
+  padding: 8px 2px;
+  font-family: inherit;
+}
+
+.transactions-modal .tx-composer-field::placeholder {
+  color: rgba(186, 204, 220, 0.48);
+}
+
+.transactions-modal .tx-composer-send {
+  display: inline-grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: 12px;
+  background: rgba(244, 249, 255, 0.94);
+  color: #0b1118;
+  cursor: pointer;
+  transition: transform 140ms ease, background 140ms ease, opacity 140ms ease;
+}
+
+.transactions-modal .tx-composer-send:hover:not(:disabled) {
+  background: #ffffff;
+  transform: scale(1.04);
+}
+
+.transactions-modal .tx-composer-send:disabled {
+  opacity: 0.32;
+  cursor: not-allowed;
+}
+
+.transactions-modal .tx-composer-send-icon {
+  display: block;
+}
+
+.transactions-modal .tx-composer-hint {
+  margin: 8px 2px 0;
+  font-size: 11px;
+  line-height: 1.4;
+  color: rgba(186, 204, 220, 0.52);
+}
+
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+  .transactions-modal .tx-content-card--agent .tx-chat-thread {
+    max-height: min(32vh, 260px) !important;
+  }
+
+  .transactions-modal .tx-content-card--agent .tx-format-rail {
+    margin-inline: -2px;
+    padding-inline: 2px 10px;
+    mask-image: linear-gradient(90deg, #000 0%, #000 calc(100% - 28px), transparent 100%);
+    -webkit-mask-image: linear-gradient(90deg, #000 0%, #000 calc(100% - 28px), transparent 100%);
+  }
+
+  .transactions-modal .tx-content-card--agent .tx-format-guidance {
+    padding: 10px 12px;
+    border-radius: 12px;
+  }
+
+  .transactions-modal .tx-content-card--agent .tx-format-guidance-copy p {
+    font-size: 12px;
+    line-height: 1.45;
+  }
+
+  .transactions-modal .tx-composer-pro,
+  .transactions-modal .tx-composer-pro--summary {
+    padding: 8px;
+    gap: 8px;
+    border-radius: 14px;
+    margin-bottom: max(4px, env(safe-area-inset-bottom, 0px));
+  }
+
+  .transactions-modal .tx-composer-attach {
+    width: 44px;
+    height: 44px;
+    border-radius: 11px;
+  }
+
+  .transactions-modal .tx-composer-send {
+    width: 44px;
+    height: 44px;
+    border-radius: 11px;
+  }
+
+  .transactions-modal .tx-composer-field {
+    min-height: 44px;
+    font-size: 16px !important;
+    line-height: 1.4;
+    padding: 10px 2px;
+  }
+
+  .transactions-modal .tx-format-rail-chip {
+    min-height: 36px;
+    padding: 0 11px;
+    font-size: 11px;
+  }
+
+  .transactions-modal .tx-composer-hint {
+    font-size: 10px;
+    margin-bottom: max(2px, env(safe-area-inset-bottom, 0px));
+  }
+
+  .transactions-modal .tx-evidence-product-bar {
+    gap: 8px;
+  }
+}
+
+@media (min-width: 921px) {
+  .transactions-modal .tx-evidence-card--premium .tx-format-rail {
+    flex-wrap: wrap;
+    overflow-x: visible;
+    mask-image: none;
+    -webkit-mask-image: none;
+    padding-inline: 0;
+  }
+
+  .transactions-modal .tx-evidence-card--premium .tx-chat-thread {
+    max-height: min(42vh, 380px) !important;
+  }
+
+  .transactions-modal .tx-evidence-card--premium .tx-composer-pro,
+  .transactions-modal .tx-composer-pro--summary {
+    padding: 10px 12px 10px 14px;
+    gap: 12px;
+    border-radius: 18px;
+  }
+
+  .transactions-modal .tx-evidence-card--premium .tx-composer-field {
+    min-height: 48px;
+    max-height: 200px;
+    font-size: 15px;
+    padding: 10px 4px;
+  }
+
+  .transactions-modal .tx-evidence-card--premium .tx-composer-attach,
+  .transactions-modal .tx-evidence-card--premium .tx-composer-send {
+    width: 44px;
+    height: 44px;
+  }
+
+  .transactions-modal .tx-format-guidance {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+  }
+
+  .transactions-modal .tx-format-guidance .tx-video-example-shell {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 920px) {
+  .transactions-modal .tx-evidence-card--premium .tx-format-rail {
+    flex-wrap: wrap;
+    overflow-x: visible;
+    mask-image: none;
+    -webkit-mask-image: none;
+  }
+
+  .transactions-modal .tx-evidence-card--premium .tx-chat-thread {
+    max-height: min(36vh, 320px) !important;
+  }
+}
+
+html.mobile-input-engaged .transactions-modal .tx-composer-field {
+  scroll-margin-bottom: max(24px, env(safe-area-inset-bottom, 0px)) !important;
+}
+

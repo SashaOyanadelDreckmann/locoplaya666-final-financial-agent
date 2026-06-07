@@ -174,21 +174,21 @@ describe('TransactionsModal chat isolation', () => {
   it('keeps separate composer drafts per product while switching', () => {
     render(<SwitchableChatHarness />);
 
-    const composer = screen.getByPlaceholderText(/Pregúntame sobre tus movimientos/i) as HTMLInputElement;
+    const composer = screen.getByLabelText(/mensaje del chat de transacciones/i) as HTMLTextAreaElement;
 
     fireEvent.change(composer, { target: { value: 'borrador A' } });
     expect(composer.value).toBe('borrador A');
 
     fireEvent.click(screen.getByRole('button', { name: 'Seleccionar B' }));
-    fireEvent.change(screen.getByPlaceholderText(/Pregúntame sobre tus movimientos/i), {
+    fireEvent.change(screen.getByLabelText(/mensaje del chat de transacciones/i), {
       target: { value: 'borrador B' },
     });
-    expect((screen.getByPlaceholderText(/Pregúntame sobre tus movimientos/i) as HTMLInputElement).value).toBe(
+    expect((screen.getByLabelText(/mensaje del chat de transacciones/i) as HTMLTextAreaElement).value).toBe(
       'borrador B',
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'Seleccionar A' }));
-    expect((screen.getByPlaceholderText(/Pregúntame sobre tus movimientos/i) as HTMLInputElement).value).toBe(
+    expect((screen.getByLabelText(/mensaje del chat de transacciones/i) as HTMLTextAreaElement).value).toBe(
       'borrador A',
     );
   });

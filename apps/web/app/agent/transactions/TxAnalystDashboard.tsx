@@ -729,25 +729,47 @@ export function TxAnalystDashboard({
                           ))}
                         </div>
                       )}
-                      <div className="bcc-hero-input-wrap tx-chat-composer-wrap tx-chat-composer-wrap--premium tx-summary-chat-composer">
-                        <input
-                          className="bcc-hero-input"
+                      <div className="tx-composer-pro tx-composer-pro--summary">
+                        <textarea
+                          className="tx-composer-field"
                           value={txAssistantInput}
                           onChange={(e) => onAssistantInputChange(e.target.value)}
                           placeholder="Pregúntame algo sobre este resumen"
+                          rows={2}
+                          aria-label="Pregunta sobre el resumen"
                           onKeyDown={(e) => {
-                            if (e.key === 'Enter') onAssistantSend();
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                              e.preventDefault();
+                              if (!txAssistantLoading && !documentsLoading && txAssistantInput.trim()) {
+                                onAssistantSend();
+                              }
+                            }
                           }}
                         />
                         <button
                           type="button"
-                          className="bcc-hero-send"
+                          className="tx-composer-send"
                           onClick={() => onAssistantSend()}
                           disabled={txAssistantLoading || documentsLoading || !txAssistantInput.trim()}
-                          aria-label="Enviar"
+                          aria-label="Enviar mensaje"
                           title="Enviar"
                         >
-                          Enviar
+                          <svg
+                            className="tx-composer-send-icon"
+                            width="18"
+                            height="18"
+                            viewBox="0 0 16 16"
+                            fill="none"
+                            aria-hidden="true"
+                          >
+                            <path
+                              d="M2 8h10M9 4l5 4-5 4"
+                              stroke="currentColor"
+                              strokeWidth="1.75"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
                         </button>
                       </div>
                     </div>
