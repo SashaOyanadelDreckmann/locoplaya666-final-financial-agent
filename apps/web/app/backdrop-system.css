@@ -46,6 +46,12 @@
     rgba(5, 8, 16, 0.01) 84%,
     rgba(5, 8, 16, 0) 100%
   );
+  /* Mobile browser chrome — one letterbox black everywhere (vignette + nav bars) */
+  --browser-chrome-color: #050810;
+  --browser-chrome-rgb: 5, 8, 16;
+  --browser-vv-offset-top: 0px;
+  --browser-vv-offset-bottom: 0px;
+  --browser-chrome-fade-band: 76px;
 }
 
 html.agent-route-active,
@@ -96,7 +102,7 @@ html.pwa-standalone {
     );
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   :root {
     --vp-bg-bleed-top: max(env(safe-area-inset-top, 0px), 32px);
     --vp-bg-bleed-bottom: max(env(safe-area-inset-bottom, 0px), 34px);
@@ -196,6 +202,12 @@ html.pwa-standalone .global-agent-backdrop {
   pointer-events: none;
 }
 
+.browser-chrome-vignette-top,
+.browser-chrome-vignette-bottom {
+  display: none;
+  pointer-events: none;
+}
+
 body.agent-route-active .global-agent-backdrop,
 html.agent-route-active .global-agent-backdrop {
   background-image:
@@ -213,7 +225,7 @@ body.agent-route-active .app-shell::before {
   box-shadow: inset 0 0 0 9999px rgba(0, 0, 0, var(--agent-bg-scrim)) !important;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   html.pwa-standalone .app-shell::before,
   html.pwa-standalone .app-shell::after {
     display: none !important;
@@ -225,8 +237,6 @@ body.agent-route-active .app-shell::before {
    * One height everywhere — large viewport includes home-indicator band.
    * No document scroll; no gap below panel or modals.
    */
-  html,
-  html body,
   html:not(.home-route-active),
   html:not(.home-route-active) body,
   html.agent-route-active,
@@ -241,21 +251,56 @@ body.agent-route-active .app-shell::before {
     overscroll-behavior: none !important;
   }
 
+  /* Agent in mobile browser — stack ends at visual viewport (above URL bar) */
+  html:not(.pwa-standalone).agent-route-active,
+  html:not(.pwa-standalone).agent-route-active body,
+  html:not(.pwa-standalone) body.agent-route-active {
+    height: var(--visual-vh, 100dvh) !important;
+    max-height: var(--visual-vh, 100dvh) !important;
+    min-height: 0 !important;
+  }
+
+  html:not(.pwa-standalone) body.agent-route-active .app-shell,
+  html:not(.pwa-standalone) body.agent-route-active .mobile-scale-frame {
+    height: 100% !important;
+    max-height: 100% !important;
+    min-height: 0 !important;
+  }
+
   html.home-route-active,
   html.home-route-active body {
     height: auto !important;
     min-height: 100dvh !important;
     max-height: none !important;
-    /* Document scroll — required for swipe, sticky sections, and NumbersCanvas morph */
     overflow-x: clip !important;
-    overflow-y: visible !important;
-    overscroll-behavior: none !important;
-    background: #060b18 !important;
-    background-color: #060b18 !important;
+    overflow-y: auto !important;
+    overscroll-behavior-y: auto !important;
+    touch-action: pan-y pinch-zoom;
+    -webkit-overflow-scrolling: touch;
+    background: var(--browser-chrome-color) !important;
+    background-color: var(--browser-chrome-color) !important;
   }
 
-  html.home-route-active .app-shell,
-  html.home-route-active .mobile-scale-frame {
+  html.home-route-active .app-shell {
+    height: auto !important;
+    min-height: 100dvh !important;
+    max-height: none !important;
+    overflow: visible !important;
+    overscroll-behavior: none !important;
+  }
+
+  html.home-route-active .mobile-scale-frame.home-scroll-root {
+    height: var(--fa-app-height, 100dvh) !important;
+    max-height: var(--fa-app-height, 100dvh) !important;
+    min-height: 0 !important;
+    overflow-x: clip !important;
+    overflow-y: auto !important;
+    overscroll-behavior-y: contain !important;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y pinch-zoom;
+  }
+
+  html.home-route-active .mobile-scale-frame:not(.home-scroll-root) {
     height: auto !important;
     min-height: 100dvh !important;
     max-height: none !important;
@@ -539,8 +584,8 @@ body.agent-route-active .app-shell::before {
 
   /* Modals — full-bleed backdrop; content starts below status bar */
   html:not(.home-route-active) {
-    --modal-safe-top-gap: 10px;
-    --modal-safe-top-min: max(48px, 12vmin);
+    --modal-safe-top-gap: 4px;
+    --modal-safe-top-min: max(22px, 5.5vmin);
     --modal-safe-top: calc(max(env(safe-area-inset-top, 0px), var(--modal-safe-top-min)) + var(--modal-safe-top-gap));
     --modal-safe-bottom: max(env(safe-area-inset-bottom, 0px), 0px);
   }
@@ -641,23 +686,158 @@ body.agent-route-active .app-shell::before {
   }
 
   /*
-   * Top vignette — overlays full-bleed photo (home-style), never letterboxes it.
+   * Browser chrome vignettes — mobile web only (not PWA).
+   * Background layer: below .app-shell UI (non-home) or below main content (home).
+   * Suspended while the on-screen keyboard is open.
    */
-  html:not(.home-route-active):not(.pwa-standalone) .viewport-backdrop-seam-top {
+  html:not(.pwa-standalone) {
+    --browser-chrome-color: #050810;
+    --browser-chrome-rgb: 5, 8, 16;
+    --vp-bg-fallback: #050810;
+    background-color: var(--browser-chrome-color) !important;
+  }
+
+  html:not(.pwa-standalone) body {
+    background-color: var(--browser-chrome-color) !important;
+  }
+
+  html:not(.pwa-standalone).home-route-active,
+  html:not(.pwa-standalone).home-route-active body {
+    background: var(--browser-chrome-color) !important;
+    background-color: var(--browser-chrome-color) !important;
+    background-image: none !important;
+  }
+
+  html:not(.pwa-standalone).agent-route-active,
+  html:not(.pwa-standalone).agent-route-active body,
+  html:not(.pwa-standalone).intake-route-active,
+  html:not(.pwa-standalone).intake-route-active body {
+    background-color: var(--browser-chrome-color) !important;
+  }
+
+  /* Modal letterbox — solid chrome black (beats semi-transparent scrim shorthands) */
+  html:not(.pwa-standalone) .agent-modal-overlay,
+  html:not(.pwa-standalone) .agent-modal-overlay.transactions-modal-overlay,
+  html:not(.pwa-standalone) .agent-modal-overlay.budget-modal-overlay,
+  html:not(.pwa-standalone) .agent-modal-overlay.interview-modal-overlay,
+  html:not(.pwa-standalone) .social-modal-overlay,
+  html:not(.pwa-standalone) .modal-overlay,
+  html:not(.pwa-standalone) .transactions-modal-overlay,
+  html:not(.pwa-standalone) .budget-modal-overlay,
+  html:not(.pwa-standalone) .interview-modal-overlay {
+    background: var(--browser-chrome-color) !important;
+    background-color: var(--browser-chrome-color) !important;
+  }
+
+  html:not(.pwa-standalone):not(.home-route-active) .app-shell {
+    position: relative;
+    z-index: 2;
+    isolation: isolate;
+  }
+
+  html.home-route-active body > .browser-chrome-vignette-top,
+  html.home-route-active body > .browser-chrome-vignette-bottom {
+    display: none !important;
+  }
+
+  html.browser-chrome-vignette-suspended body > .browser-chrome-vignette-top,
+  html.browser-chrome-vignette-suspended body > .browser-chrome-vignette-bottom,
+  html.browser-chrome-vignette-suspended main > .browser-chrome-vignette-top,
+  html.browser-chrome-vignette-suspended main > .browser-chrome-vignette-bottom {
+    opacity: 0 !important;
+    visibility: hidden !important;
+  }
+
+  /*
+   * On-screen keyboard — shrink stack to visible viewport; no chrome vignette offsets.
+   */
+  html:not(.pwa-standalone).browser-keyboard-open,
+  html:not(.pwa-standalone).browser-keyboard-open body,
+  html:not(.pwa-standalone).keyboard-opening,
+  html:not(.pwa-standalone).keyboard-opening body {
+    height: var(--visual-vh, 100dvh) !important;
+    max-height: var(--visual-vh, 100dvh) !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  html:not(.pwa-standalone).browser-keyboard-open .agent-modal-overlay,
+  html:not(.pwa-standalone).browser-keyboard-open .agent-modal-overlay.transactions-modal-overlay,
+  html:not(.pwa-standalone).browser-keyboard-open .agent-modal-overlay.budget-modal-overlay,
+  html:not(.pwa-standalone).browser-keyboard-open .agent-modal-overlay.interview-modal-overlay,
+  html:not(.pwa-standalone).browser-keyboard-open .social-modal-overlay,
+  html:not(.pwa-standalone).browser-keyboard-open .modal-overlay {
+    height: var(--visual-vh, 100dvh) !important;
+    min-height: var(--visual-vh, 100dvh) !important;
+    max-height: var(--visual-vh, 100dvh) !important;
+  }
+
+  html:not(.pwa-standalone) body.agent-route-active.browser-keyboard-open main.agent-layout.is-mobile-viewport .agent-panel,
+  html:not(.pwa-standalone) body.agent-route-active.keyboard-opening main.agent-layout.is-mobile-viewport .agent-panel {
+    flex: 0 0 0 !important;
+    max-height: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+
+  html:not(.pwa-standalone) body.agent-route-active.browser-keyboard-open main.agent-layout.is-mobile-viewport > .agent-mobile-composer-dock,
+  html:not(.pwa-standalone) body.agent-route-active.keyboard-opening main.agent-layout.is-mobile-viewport > .agent-mobile-composer-dock {
+    flex-shrink: 0 !important;
+  }
+
+  html:not(.pwa-standalone):not(.home-route-active) body > .browser-chrome-vignette-top,
+  html:not(.pwa-standalone):not(.home-route-active) body > .browser-chrome-vignette-bottom,
+  html.home-route-active:not(.pwa-standalone) main > .browser-chrome-vignette-top,
+  html.home-route-active:not(.pwa-standalone) main > .browser-chrome-vignette-bottom {
     display: block;
     position: fixed;
-    top: 0;
     left: 0;
     right: 0;
-    z-index: 0;
-    height: var(--vp-bg-top-seam-height);
-    background-color: transparent;
-    background-image: var(--vp-bg-top-seam);
-    background-size: 100% 100%;
-    background-position: center top;
-    background-repeat: no-repeat;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  html:not(.pwa-standalone):not(.home-route-active) body > .browser-chrome-vignette-top,
+  html.home-route-active:not(.pwa-standalone) main > .browser-chrome-vignette-top {
+    top: 0;
+    height: calc(
+      var(--browser-vv-offset-top, 0px) +
+      env(safe-area-inset-top, 0px) +
+      var(--browser-chrome-fade-band)
+    );
+    background: linear-gradient(
+      to bottom,
+      var(--browser-chrome-color) 0%,
+      var(--browser-chrome-color) calc(var(--browser-vv-offset-top, 0px) + env(safe-area-inset-top, 0px)),
+      rgba(var(--browser-chrome-rgb), 0.92) calc(var(--browser-vv-offset-top, 0px) + env(safe-area-inset-top, 0px) + 18px),
+      rgba(var(--browser-chrome-rgb), 0.68) calc(var(--browser-vv-offset-top, 0px) + env(safe-area-inset-top, 0px) + 36px),
+      rgba(var(--browser-chrome-rgb), 0.38) calc(var(--browser-vv-offset-top, 0px) + env(safe-area-inset-top, 0px) + 54px),
+      rgba(var(--browser-chrome-rgb), 0.12) calc(var(--browser-vv-offset-top, 0px) + env(safe-area-inset-top, 0px) + 68px),
+      rgba(var(--browser-chrome-rgb), 0) 100%
+    );
+  }
+
+  html:not(.pwa-standalone):not(.home-route-active) body > .browser-chrome-vignette-bottom,
+  html.home-route-active:not(.pwa-standalone) main > .browser-chrome-vignette-bottom {
+    bottom: var(--browser-vv-offset-bottom, 0px);
+    height: calc(
+      max(env(safe-area-inset-bottom, 0px), 8px) +
+      var(--browser-chrome-fade-band)
+    );
+    background: linear-gradient(
+      to top,
+      var(--browser-chrome-color) 0%,
+      var(--browser-chrome-color) max(env(safe-area-inset-bottom, 0px), 8px),
+      rgba(var(--browser-chrome-rgb), 0.94) calc(max(env(safe-area-inset-bottom, 0px), 8px) + 20px),
+      rgba(var(--browser-chrome-rgb), 0.72) calc(max(env(safe-area-inset-bottom, 0px), 8px) + 38px),
+      rgba(var(--browser-chrome-rgb), 0.42) calc(max(env(safe-area-inset-bottom, 0px), 8px) + 56px),
+      rgba(var(--browser-chrome-rgb), 0.14) calc(max(env(safe-area-inset-bottom, 0px), 8px) + 70px),
+      rgba(var(--browser-chrome-rgb), 0) 100%
+    );
   }
 
   /*
@@ -672,6 +852,29 @@ body.agent-route-active .app-shell::before {
   html:not(.home-route-active) .app-shell::before {
     animation: appShellBackdropEntranceMobile 850ms cubic-bezier(0.22, 1, 0.36, 1) both;
   }
+
+  /*
+   * iPad / tablet portrait in mobile browser — no chrome fade bands (phones keep them).
+   */
+  html:not(.pwa-standalone).is-tablet-portrait body > .browser-chrome-vignette-top,
+  html:not(.pwa-standalone).is-tablet-portrait body > .browser-chrome-vignette-bottom,
+  html:not(.pwa-standalone).is-tablet-portrait .app-shell > .browser-chrome-vignette-top,
+  html:not(.pwa-standalone).is-tablet-portrait .app-shell > .browser-chrome-vignette-bottom,
+  html:not(.pwa-standalone).browser-chrome-vignette-tablet-off body > .browser-chrome-vignette-top,
+  html:not(.pwa-standalone).browser-chrome-vignette-tablet-off body > .browser-chrome-vignette-bottom,
+  html:not(.pwa-standalone).browser-chrome-vignette-tablet-off .app-shell > .browser-chrome-vignette-top,
+  html:not(.pwa-standalone).browser-chrome-vignette-tablet-off .app-shell > .browser-chrome-vignette-bottom,
+  html:not(.pwa-standalone).is-tablet-portrait.home-route-active main > .browser-chrome-vignette-top,
+  html:not(.pwa-standalone).is-tablet-portrait.home-route-active main > .browser-chrome-vignette-bottom,
+  html:not(.pwa-standalone).browser-chrome-vignette-tablet-off.home-route-active main > .browser-chrome-vignette-top,
+  html:not(.pwa-standalone).browser-chrome-vignette-tablet-off.home-route-active main > .browser-chrome-vignette-bottom {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    height: 0 !important;
+    max-height: 0 !important;
+    pointer-events: none !important;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -684,7 +887,7 @@ body.agent-route-active .app-shell::before {
 /* INTAKE — route tweaks (backdrop is global-agent)   */
 /* ================================================= */
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   html.intake-route-active .intake-shell {
     height: var(--fa-app-height) !important;
     max-height: var(--fa-app-height) !important;
@@ -796,7 +999,7 @@ body.agent-route-active .app-shell::before {
 /* 100% of viewport (not 100vw); no horizontal clip   */
 /* ================================================= */
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   html:not(.home-route-active) .agent-modal-overlay,
   html:not(.home-route-active) .agent-modal-overlay.transactions-modal-overlay,
   html:not(.home-route-active) .agent-modal-overlay.budget-modal-overlay,
@@ -867,7 +1070,7 @@ body.agent-route-active .app-shell::before {
 /* MOBILE MODAL SURFACE CLEANUP — no ghost panels     */
 /* ================================================= */
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   html:not(.home-route-active) .agent-modal-overlay.transactions-modal-overlay,
   html:not(.home-route-active) .agent-modal-overlay.budget-modal-overlay,
   html:not(.home-route-active) .agent-modal-overlay.interview-modal-overlay {

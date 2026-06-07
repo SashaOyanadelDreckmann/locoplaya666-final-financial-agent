@@ -8,12 +8,13 @@ describe('budget modal logic guards', () => {
   const source = fs.readFileSync(modalsPath, 'utf8');
 
   it('opens in split/stack senior mode by default when modal opens', () => {
-    expect(source).toContain("setBudgetViewMode(window.innerWidth >= 1024 ? 2 : 1);");
+    expect(source).toContain('shouldUseMobileShell');
+    expect(source).toContain('setBudgetViewMode(!shouldUseMobileShell() ? 2 : 1);');
   });
 
   it('keeps desktop->mobile mode fallback to prevent invalid mode 3 on mobile', () => {
     const layoutSource = fs.readFileSync(path.join(process.cwd(), 'app', 'agent', 'use-budget-modal-layout.ts'), 'utf8');
-    expect(layoutSource).toContain('window.innerWidth >= 1024');
+    expect(layoutSource).toContain('shouldUseMobileShell');
     expect(layoutSource).toContain("if (!desktop) setBudgetViewMode((prev) => (prev === 3 ? 2 : prev));");
   });
 

@@ -167,12 +167,12 @@ body {
   min-height: 100%;
   height: 100%;
   overscroll-behavior: none;
-  background: #050810; /* fallback oscuro que hace juego con fondo4.jpg */
+  background-color: var(--browser-chrome-color, #050810);
   color: var(--fg);
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
     "Helvetica Neue", Helvetica, Arial, sans-serif;
   font-size: 15px;
-  line-height: 1.47059; /* SF Pro Text line-height */
+  line-height: 1.47059;
   letter-spacing: -0.01em;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -181,17 +181,10 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-/* The root element's background is propagated to the document canvas — the
-   ONLY layer browsers paint into the top safe-area behind the status bar /
-   notch (body and position:fixed overlays never reach it). Painting the same
-   image + gradient here as .app-shell::before makes the background bleed
-   edge-to-edge on iOS/Android with viewport-fit=cover, seamlessly.
-   NOTE: no background-attachment:fixed — it is broken on iOS Safari. The html
-   element's background acts as the canvas background which is inherently fixed
-   to the screen, so 'scroll' (default) gives the same result without the bug. */
+/* html background propagates to the document canvas (status bar / notch band). */
 html {
   background: var(--vp-bg-matte), var(--vp-bg-photo-url) center top / cover no-repeat;
-  background-color: #050810;
+  background-color: var(--browser-chrome-color, #050810);
 }
 
 body {
@@ -834,7 +827,7 @@ button {
   min-height: 100dvh;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .mobile-scale-frame {
     transform: none;
     width: 100%;
@@ -912,8 +905,8 @@ button {
 
 /* Home owns NumbersCanvas + grain — suppress global shell layers to avoid double bg / cuts */
 html.home-route-active {
-  background: #060b18;
-  background-color: #060b18;
+  background: var(--browser-chrome-color);
+  background-color: var(--browser-chrome-color);
 }
 
 html.home-route-active .app-shell::before,
@@ -946,59 +939,6 @@ html.home-route-active .app-shell::after {
   mix-blend-mode: normal;
 }
 
-/* Hidden on desktop / PWA — mobile browser only (see @media below) */
-.home-edge-feather-top,
-.home-edge-feather-bottom {
-  display: none;
-  pointer-events: none;
-}
-
-@media (max-width: 767px) {
-  /* Feather the hard cut where the photo ends and browser chrome begins */
-  html.home-route-active:not(.pwa-standalone) .home-edge-feather-top,
-  html.home-route-active:not(.pwa-standalone) .home-edge-feather-bottom {
-    display: block;
-    position: fixed;
-    left: 0;
-    right: 0;
-    z-index: 1;
-  }
-
-  html.home-route-active:not(.pwa-standalone) .home-edge-feather-top {
-    top: 0;
-    height: calc(env(safe-area-inset-top, 0px) + 76px);
-    background: linear-gradient(
-      to bottom,
-      #060b18 0%,
-      rgba(6, 11, 24, 0.94) 22%,
-      rgba(6, 11, 24, 0.62) 52%,
-      rgba(6, 11, 24, 0.18) 78%,
-      rgba(6, 11, 24, 0) 100%
-    );
-    -webkit-backdrop-filter: blur(16px) saturate(1.08);
-    backdrop-filter: blur(16px) saturate(1.08);
-    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 38%, transparent 100%);
-    mask-image: linear-gradient(to bottom, #000 0%, #000 38%, transparent 100%);
-  }
-
-  html.home-route-active:not(.pwa-standalone) .home-edge-feather-bottom {
-    bottom: 0;
-    height: calc(max(env(safe-area-inset-bottom, 0px), 12px) + 92px);
-    background: linear-gradient(
-      to top,
-      #060b18 0%,
-      rgba(6, 11, 24, 0.96) 24%,
-      rgba(6, 11, 24, 0.64) 54%,
-      rgba(6, 11, 24, 0.2) 80%,
-      rgba(6, 11, 24, 0) 100%
-    );
-    -webkit-backdrop-filter: blur(18px) saturate(1.08);
-    backdrop-filter: blur(18px) saturate(1.08);
-    -webkit-mask-image: linear-gradient(to top, #000 0%, #000 42%, transparent 100%);
-    mask-image: linear-gradient(to top, #000 0%, #000 42%, transparent 100%);
-  }
-}
-
 @media (max-width: 1024px) {
   .home-grain-layer {
     opacity: 0.4;
@@ -1006,18 +946,38 @@ html.home-route-active .app-shell::after {
   }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   html.home-route-active,
   html.home-route-active body {
     height: auto;
     min-height: 100dvh;
     overflow-x: clip;
-    overflow-y: visible;
-    touch-action: pan-y;
+    overflow-y: auto;
+    overscroll-behavior-y: auto;
+    touch-action: pan-y pinch-zoom;
+    -webkit-overflow-scrolling: touch;
   }
 
-  html.home-route-active .app-shell,
-  html.home-route-active .mobile-scale-frame {
+  html.home-route-active .app-shell {
+    height: auto;
+    min-height: 100dvh;
+    max-height: none;
+    overflow: visible;
+  }
+
+  /* Explicit scroll root — Framer useScroll container on phone + iPad portrait */
+  html.home-route-active .mobile-scale-frame.home-scroll-root {
+    height: var(--fa-app-height, 100dvh) !important;
+    max-height: var(--fa-app-height, 100dvh) !important;
+    min-height: 0 !important;
+    overflow-x: clip !important;
+    overflow-y: auto !important;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y pinch-zoom;
+  }
+
+  html.home-route-active .mobile-scale-frame:not(.home-scroll-root) {
     height: auto;
     min-height: 100dvh;
     max-height: none;
@@ -1050,7 +1010,7 @@ html.home-route-active .app-shell::after {
 .home-hero-spacer {
   flex: 1;
 }
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .home-hero-spacer {
     max-height: clamp(60px, 22vh, 160px);
   }
@@ -1061,7 +1021,7 @@ html.home-route-active .app-shell::after {
 .home-problem-wrapper {
   height: 280vh;
 }
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .home-problem-wrapper {
     height: 230vh;
   }
@@ -1073,7 +1033,7 @@ html.home-route-active .app-shell::after {
   gap: 24px;
   align-items: center;
 }
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .home-cta-row {
     flex-direction: column;
     align-items: flex-start;

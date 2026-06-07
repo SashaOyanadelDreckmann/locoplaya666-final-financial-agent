@@ -5,8 +5,8 @@
   "start_url": "/agent",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#5f7280",
-  "theme_color": "#5f7280",
+  "background_color": "#050810",
+  "theme_color": "#050810",
   "lang": "es",
   "scope": "/",
   "icons": [

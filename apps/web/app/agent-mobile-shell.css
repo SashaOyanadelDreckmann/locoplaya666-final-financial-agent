@@ -1,6 +1,7 @@
 /* Mobile agent shell — imported last in agent.css; wins the cascade. */
+/* Tablet portrait (768–1366) shares this contract. */
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   :root {
     --mobile-shell-gutter-x: 8px;
     --mobile-shell-pad-x: 10px;
@@ -20,7 +21,7 @@
     flex-direction: column !important;
     gap: 0 !important;
     padding: 0 !important;
-    padding-top: env(safe-area-inset-top, 0px) !important;
+    padding-top: var(--agent-shell-safe-top, env(safe-area-inset-top, 0px)) !important;
     padding-bottom: 0 !important;
     height: var(--fa-app-height, 100lvh) !important;
     max-height: var(--fa-app-height, 100lvh) !important;
@@ -284,7 +285,7 @@
   main.agent-layout.is-mobile-viewport .agent-panel:not(.is-mobile-expanded) {
     flex: 0 0 auto !important;
     height: auto !important;
-    max-height: calc(var(--mobile-panel-h, 126px) + env(safe-area-inset-bottom, 0px)) !important;
+    max-height: calc(var(--mobile-panel-h, 126px) + var(--mobile-panel-bottom-inset, env(safe-area-inset-bottom, 0px))) !important;
     margin: 0 !important;
     margin-top: 0 !important;
     margin-bottom: 0 !important;
@@ -300,9 +301,9 @@
   main.agent-layout.is-mobile-viewport.mobile-panel-expanded .agent-panel,
   main.agent-layout.is-mobile-viewport.mobile-panel-expanded .agent-panel.is-mobile-expanded,
   body.agent-route-active main.agent-layout.is-mobile-viewport.mobile-panel-expanded .agent-panel {
-    flex: 0 0 calc(min(50dvh, 430px) + env(safe-area-inset-bottom, 0px)) !important;
-    height: calc(min(50dvh, 430px) + env(safe-area-inset-bottom, 0px)) !important;
-    max-height: calc(min(50dvh, 430px) + env(safe-area-inset-bottom, 0px)) !important;
+    flex: 0 0 calc(min(50dvh, 430px) + var(--mobile-panel-bottom-inset, env(safe-area-inset-bottom, 0px))) !important;
+    height: calc(min(50dvh, 430px) + var(--mobile-panel-bottom-inset, env(safe-area-inset-bottom, 0px))) !important;
+    max-height: calc(min(50dvh, 430px) + var(--mobile-panel-bottom-inset, env(safe-area-inset-bottom, 0px))) !important;
     min-height: 0 !important;
     display: flex !important;
     flex-direction: column !important;
@@ -325,7 +326,7 @@
   main.agent-layout.is-mobile-viewport .agent-panel:not(.is-mobile-expanded) .panel-grid {
     flex: 0 0 auto !important;
     margin-top: 0 !important;
-    padding: 0 8px max(2px, calc(env(safe-area-inset-bottom, 0px) + var(--mobile-panel-bottom-gap, 4px))) 8px !important;
+    padding: 0 8px max(2px, calc(var(--mobile-panel-bottom-inset, env(safe-area-inset-bottom, 0px)) + var(--mobile-panel-bottom-gap, 4px))) 8px !important;
     align-items: flex-end !important;
     align-content: flex-end !important;
     gap: 8px !important;
@@ -344,7 +345,7 @@
     touch-action: pan-y !important;
     align-items: stretch !important;
     align-content: start !important;
-    padding: 8px 8px max(8px, calc(env(safe-area-inset-bottom, 0px) + 4px)) 8px !important;
+    padding: 8px 8px max(8px, calc(var(--mobile-panel-bottom-inset, env(safe-area-inset-bottom, 0px)) + 4px)) 8px !important;
     gap: 8px !important;
     transition: none !important;
   }
@@ -631,7 +632,8 @@
   }
 }
 
-@media (display-mode: standalone) and (max-width: 767px) {
+@media (display-mode: standalone) and (max-width: 767px),
+(display-mode: standalone) and (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   :root {
     --mobile-panel-h: 126px;
     --mobile-panel-bottom-gap: 0px;

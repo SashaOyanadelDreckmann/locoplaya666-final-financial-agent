@@ -2,7 +2,10 @@
 import './globals.css';
 import './agent.css';
 import './backdrop-system.css';
+import './tablet-system.css';
 import ServiceWorkerReset from '@/components/ServiceWorkerReset';
+import BrowserChromeVignetteSync from '@/components/BrowserChromeVignetteSync';
+import ViewportModeSync from '@/components/ViewportModeSync';
 import { buildRuntimePublicConfigScript } from '@/lib/runtimePublicConfig';
 import type { Viewport } from 'next';
 
@@ -18,6 +21,7 @@ export const viewport: Viewport = {
   userScalable: false,
   viewportFit: 'cover',
   interactiveWidget: 'resizes-visual',
+  themeColor: '#050810',
 };
 
 
@@ -108,9 +112,9 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: intakeRouteClassScript }}
         />
         <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="theme-color" media="(prefers-color-scheme: light)" content="#5f7280" />
-        <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#5f7280" />
-        <meta name="theme-color" content="#5f7280" />
+        <meta name="theme-color" media="(prefers-color-scheme: light)" content="#050810" />
+        <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#050810" />
+        <meta name="theme-color" content="#050810" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="FinMente" />
@@ -122,8 +126,12 @@ export default function RootLayout({
       </head>
       <body>
         <ServiceWorkerReset />
+        <BrowserChromeVignetteSync />
+        <ViewportModeSync />
         <div className="global-agent-backdrop" aria-hidden="true" />
         <div className="viewport-backdrop-seam-top" aria-hidden="true" />
+        <div className="browser-chrome-vignette-top" aria-hidden="true" />
+        <div className="browser-chrome-vignette-bottom" aria-hidden="true" />
         <div className="app-shell">
           <div className="mobile-scale-frame">
             {children}

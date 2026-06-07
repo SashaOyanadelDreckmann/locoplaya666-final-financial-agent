@@ -28,6 +28,8 @@ const TRACKING_OPTIONS: { value: IntakeQuestionnaire['tracksExpenses']; label: s
   { value: 'no', label: 'No registro' },
 ];
 
+import { IntakeQuestionNav } from './IntakeQuestionNav';
+
 export function CashflowStep({
   form,
   update,
@@ -40,6 +42,23 @@ export function CashflowStep({
   const [questionIndex, setQuestionIndex] = useState(0);
   const totalQuestions = 3;
 
+  const onNextQuestion = () => {
+    if (questionIndex >= totalQuestions - 1) {
+      onNext();
+      return;
+    }
+    setQuestionIndex((prev) => Math.min(prev + 1, totalQuestions - 1));
+  };
+
+  const onBackQuestion = () => {
+    setQuestionIndex((prev) => Math.max(prev - 1, 0));
+  };
+
+  const showForward =
+    (questionIndex === 0 && Boolean(form.incomeBand)) ||
+    (questionIndex === 1 && Boolean(form.expensesCoverage)) ||
+    (questionIndex === 2 && Boolean(form.tracksExpenses));
+
   return (
     <div className="intake-step animate-intake-in">
       <div className="intake-step-header">
@@ -50,7 +69,15 @@ export function CashflowStep({
           Sin datos reales, los consejos son genéricos. Los tuyos no lo serán.
         </p>
       </div>
-      <p className="intake-question-progress">Pregunta {questionIndex + 1} de {totalQuestions}</p>
+
+      <IntakeQuestionNav
+        questionIndex={questionIndex}
+        totalQuestions={totalQuestions}
+        onBack={onBackQuestion}
+        onNext={questionIndex === totalQuestions - 1 ? onNext : onNextQuestion}
+        showForward={showForward}
+        forwardAriaLabel={questionIndex === totalQuestions - 1 ? 'Siguiente sección' : 'Continuar'}
+      />
 
       {questionIndex === 0 && (
         <div className="intake-question-block intake-question-screen animate-intake-in">
@@ -128,8 +155,6 @@ export function CashflowStep({
           </div>
         </div>
       )}
-
-      <div className="intake-footer" />
     </div>
   );
 }

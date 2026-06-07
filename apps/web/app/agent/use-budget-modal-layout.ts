@@ -1,24 +1,30 @@
 import { useEffect, useState } from 'react';
 import type { CSSProperties } from 'react';
 
+import { shouldUseMobileShell } from '@/lib/viewport-mode';
+
 export function useBudgetModalLayout(isOpen: boolean) {
   const [isDesktopLayout, setIsDesktopLayout] = useState(false);
   const [budgetViewMode, setBudgetViewMode] = useState<1 | 2 | 3>(1);
 
   useEffect(() => {
     const check = () => {
-      const desktop = window.innerWidth >= 1024;
+      const desktop = !shouldUseMobileShell();
       setIsDesktopLayout(desktop);
       if (!desktop) setBudgetViewMode((prev) => (prev === 3 ? 2 : prev));
     };
     check();
     window.addEventListener('resize', check);
-    return () => window.removeEventListener('resize', check);
+    window.addEventListener('orientationchange', check);
+    return () => {
+      window.removeEventListener('resize', check);
+      window.removeEventListener('orientationchange', check);
+    };
   }, []);
 
   useEffect(() => {
     if (!isOpen) return;
-    setBudgetViewMode(window.innerWidth >= 1024 ? 2 : 1);
+    setBudgetViewMode(!shouldUseMobileShell() ? 2 : 1);
   }, [isOpen]);
 
   function moveBudgetView(direction: 'next' | 'prev') {

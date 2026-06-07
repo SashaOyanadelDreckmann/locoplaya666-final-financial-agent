@@ -9,9 +9,9 @@ import {
   motion,
   useMotionValue,
   useSpring,
-  useScroll,
   useTransform,
 } from 'framer-motion';
+import { HomeScrollRoot, useHomeScroll } from '@/lib/home-scroll-context';
 import SpotlightCard from '../components/home/SpotlightCard';
 import Counter from '../components/home/Counter';
 import NumbersCanvas from '../components/home/NumbersCanvas';
@@ -70,7 +70,7 @@ const PROBLEM_LINES = [
 // ── Problem Section — sticky scroll con 3 fases ────────────────────────────────
 function ProblemSection() {
   const ref = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end end'] });
+  const { scrollYProgress } = useHomeScroll({ target: ref, offset: ['start start', 'end end'] });
 
   const sp = scrollYProgress;
 
@@ -169,7 +169,7 @@ function ProblemSection() {
 
 // ── Features Section ───────────────────────────────────────────────────────────
 function FeaturesSection({ sectionRef }: { sectionRef: RefObject<HTMLElement> }) {
-  const { scrollYProgress } = useScroll({ target: sectionRef, offset: ['start end', 'end start'] });
+  const { scrollYProgress } = useHomeScroll({ target: sectionRef, offset: ['start end', 'end start'] });
 
   const headY = useTransform(scrollYProgress, [0, 0.5, 1], [40, 0, -30]);
   const headO = useTransform(scrollYProgress, [0, 0.15, 0.75, 1], [0, 1, 1, 0.3]);
@@ -239,7 +239,7 @@ function FeaturesSection({ sectionRef }: { sectionRef: RefObject<HTMLElement> })
 // ── Stats Section ──────────────────────────────────────────────────────────────
 function StatsSection() {
   const ref = useRef<HTMLElement>(null);
-  const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end start'] });
+  const { scrollYProgress } = useHomeScroll({ target: ref, offset: ['start end', 'end start'] });
 
   const headY = useTransform(scrollYProgress, [0, 0.4, 1], [30, 0, -20]);
   const headO = useTransform(scrollYProgress, [0, 0.2, 0.8, 1], [0, 1, 1, 0.4]);
@@ -298,7 +298,7 @@ function StepsSection() {
   const router = useRouter();
   const isAuthenticated = useSessionStore((s) => s.isAuthenticated);
   const ref = useRef<HTMLElement>(null);
-  const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end start'] });
+  const { scrollYProgress } = useHomeScroll({ target: ref, offset: ['start end', 'end start'] });
 
   const headY = useTransform(scrollYProgress, [0, 0.4, 1], [40, 0, -25]);
   const headO = useTransform(scrollYProgress, [0, 0.2, 0.85, 1], [0, 1, 1, 0.3]);
@@ -415,7 +415,7 @@ function CtaSection() {
   const router = useRouter();
   const isAuthenticated = useSessionStore((s) => s.isAuthenticated);
   const ref = useRef<HTMLElement>(null);
-  const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end start'] });
+  const { scrollYProgress } = useHomeScroll({ target: ref, offset: ['start end', 'end start'] });
   const headY = useTransform(scrollYProgress, [0, 0.5, 1], [60, 0, -40]);
   const headO = useTransform(scrollYProgress, [0, 0.2, 0.85, 1], [0, 1, 1, 0.2]);
 
@@ -508,15 +508,15 @@ export default function HomePage() {
 
   const featureSectionRef = useRef<HTMLElement>(null);
 
-  const { scrollYProgress: canvasProgress } = useScroll({
+  const { scrollYProgress: canvasProgress } = useHomeScroll({
     target: scrollRangeRef,
     offset: ['start start', 'end end'],
   });
-  const { scrollYProgress: heroProgress } = useScroll({
+  const { scrollYProgress: heroProgress } = useHomeScroll({
     target: heroSectionRef,
     offset: ['start start', 'end end'],
   });
-  const { scrollYProgress: featureRawP } = useScroll({
+  const { scrollYProgress: featureRawP } = useHomeScroll({
     target: featureSectionRef,
     offset: ['start end', 'end start'],
   });
@@ -587,7 +587,8 @@ export default function HomePage() {
   };
 
   return (
-    <main style={{ background: '#060b18', color: 'white', position: 'relative' }}>
+    <HomeScrollRoot>
+    <main style={{ background: 'var(--browser-chrome-color, #050810)', color: 'white', position: 'relative' }}>
 
       {/* Canvas fijo */}
       <div className="home-canvas-layer">
@@ -597,9 +598,9 @@ export default function HomePage() {
       {/* Grain — dot-pattern matching .app-shell::after */}
       <div aria-hidden className="home-grain-layer" />
 
-      {/* Mobile browser — soft blend where photo meets top/bottom chrome bars */}
-      <div aria-hidden className="home-edge-feather-top" />
-      <div aria-hidden className="home-edge-feather-bottom" />
+      {/* Chrome vignettes — sobre canvas, bajo contenido (home) */}
+      <div aria-hidden className="browser-chrome-vignette-top" />
+      <div aria-hidden className="browser-chrome-vignette-bottom" />
 
       {/* Rango de scroll para el canvas */}
       <div ref={scrollRangeRef} style={{ position: 'relative', zIndex: 2 }}>
@@ -781,5 +782,6 @@ export default function HomePage() {
       </div>
 
     </main>
+    </HomeScrollRoot>
   );
 }

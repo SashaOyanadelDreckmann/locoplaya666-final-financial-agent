@@ -87,7 +87,7 @@
 }
 
 /* Final mobile budget table contract: one row = one readable card, no horizontal swipe. */
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .agent-chat-header .chat-brand-strip h1 {
     font-size: 15px !important;
     line-height: 0.96 !important;
@@ -314,7 +314,7 @@
 }
 
 /* Mobile budget table final visual override: dark readable cards, no inherited table widths. */
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .budget-modal .budget-table-style-ledger,
   .budget-modal .budget-table-style-midnight,
   .budget-modal .budget-table-style-atelier,
@@ -490,7 +490,7 @@
 }
 
 /* Mobile budget containment: the table must live inside the panel margins. */
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .budget-modal .budget-main-carousel,
   .budget-modal .budget-main-carousel > section,
   .budget-modal .budget-main-carousel > section.budget-card-table,
@@ -672,7 +672,7 @@
 }
 
 /* ULTIMATE MOBILE BUDGET LAYOUT FIX: no layered blur, no internal swipe containers. */
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .budget-modal {
     height: 100dvh !important;
     max-height: 100dvh !important;
@@ -815,7 +815,7 @@
 /* ===================================================
    Budget mobile rebuild — two premium modes only
    =================================================== */
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .agent-modal-overlay.budget-modal-overlay {
     background:
       radial-gradient(circle at 20% 0%, rgba(142, 167, 191, 0.18), transparent 34%),
@@ -1521,7 +1521,7 @@ body.agent-route-active .app-shell::before {
   }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .agent-layout {
     padding-bottom: 0 !important;
   }
@@ -1709,7 +1709,7 @@ body.agent-route-active .app-shell::before {
 }
 
 /* Absolute final mobile layout guards */
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .agent-chat-header {
     border-radius: 18px !important;
     overflow: hidden !important;
@@ -2994,7 +2994,7 @@ body.agent-route-active .app-shell::before {
   }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .transactions-modal .tx-hero-shell-spacer {
     display: none !important;
   }
@@ -3086,7 +3086,7 @@ body.agent-route-active .app-shell::before {
   }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .transactions-modal .transactions-summary-card.tx-evidence-card.tx-evidence-card--premium {
     padding-top: 2px !important;
     gap: 16px !important;
@@ -3277,7 +3277,7 @@ body.agent-route-active .app-shell::before {
   color: rgba(196, 210, 226, 0.54);
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .agent-modal-overlay.transactions-modal-overlay {
     background: rgba(4, 7, 12, 0.14) !important;
     backdrop-filter: blur(18px) saturate(0.78) brightness(0.86) !important;
@@ -3831,7 +3831,7 @@ body.agent-route-active .app-shell::before {
   border-radius: 12px !important;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .transactions-modal .tx-content-carousel {
     position: relative !important;
   }
@@ -4077,7 +4077,7 @@ body.agent-route-active .app-shell::before {
 }
 
 /* FINAL FIX MOBILE: top chat tabs must stay compact after login state changes */
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .agent-chat-header {
     padding: 5px 8px 4px !important;
   }
@@ -4243,7 +4243,7 @@ body.agent-route-active .app-shell::before {
 }
 
 /* Budget pro strict mobile mapping: avoid legacy 4-column action remap. */
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .budget-modal .budget-table.budget-table-pro tbody tr {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     grid-template-areas:
@@ -4289,7 +4289,7 @@ body.agent-route-active .app-shell::before {
   overflow-x: hidden !important;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .agent-modal-overlay.transactions-modal-overlay {
     position: fixed !important;
     inset: 0 !important;
@@ -4569,7 +4569,7 @@ body.agent-route-active .app-shell::before {
 }
 
 /* ---------- Mobile: full-bleed matte sheet ---------- */
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .transactions-modal-overlay {
     padding: 0 !important;
     align-items: stretch !important;
@@ -5053,7 +5053,7 @@ body.agent-route-active .app-shell::before {
 }
 
 /* ── v3.3 ── mobile: card centered + proportional, desktop sway intact */
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .transactions-modal .tx-content-carousel .tx-3d-hero-shell {
     transform: translateX(28px) !important;
   }
@@ -5377,7 +5377,7 @@ body.agent-route-active .app-shell::before {
 }
 
 /* ════════ MOBILE — sheet polish & breathing room (≤767px) ════════ */
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .agent-modal-overlay.budget-modal-overlay > .agent-modal.budget-modal {
     border-radius: 24px 24px 0 0 !important;
     border-bottom: none !important;
@@ -5516,7 +5516,7 @@ body.agent-route-active .app-shell::before {
   box-shadow: 0 10px 22px rgba(8, 14, 22, 0.34) !important;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .agent-chat .agent-input.terminal-composer textarea.terminal-composer-input {
     min-height: 24px !important;
     max-height: 42px !important;
@@ -5841,7 +5841,7 @@ body.agent-route-active .app-shell::before {
   }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .transactions-modal[data-dock-phase] {
     --tx-flood-opacity: 0.18;
     --tx-surface-shift: 0px;
@@ -6021,7 +6021,7 @@ body.agent-route-active .app-shell::before {
    viewport height; the header stays at the top as a non-scrolling row; the
    new .tx-scroll-body wrapper gets flex:1 + overflow-y:auto for inner scroll.
    ───────────────────────────────────────────────────────────────────────── */
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .agent-modal-overlay.transactions-modal-overlay > .agent-modal.transactions-modal,
   .agent-modal.transactions-modal,
   .transactions-modal {
@@ -6833,7 +6833,7 @@ body.agent-route-active .app-shell::before {
 }
 
 /* ── Mobile overrides (≤ 767px) ── */
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .budget-modal .bm-header {
     padding: 16px 18px 14px !important;
   }
@@ -6921,7 +6921,7 @@ body.agent-route-active .app-shell::before {
   cursor: not-allowed !important;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .agent-chat .terminal-composer-controls button.composer-send-btn,
   .agent-chat .terminal-composer-controls button.composer-send-btn:hover:not(:disabled),
   .agent-chat .terminal-composer-controls button.composer-send-btn:focus-visible,
@@ -8441,7 +8441,7 @@ body.agent-route-active .app-shell::before {
   flex: 0 0 auto !important;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .budget-modal {
     width: 100vw !important;
     max-width: 100vw !important;
@@ -8982,7 +8982,7 @@ body.agent-route-active .app-shell::before {
   justify-content: center;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .budget-modal .budget-main-carousel:not(.is-desktop) .budget-table.budget-table-pro tbody tr {
     display: flex !important;
     flex-direction: column !important;
@@ -9173,7 +9173,7 @@ body.agent-route-active .app-shell::before {
   min-width: 118px !important;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .budget-modal .budget-main-carousel:not(.is-desktop) .budget-table.budget-table-pro thead {
     display: none !important;
   }
@@ -10596,7 +10596,7 @@ body.agent-route-active .app-shell::before {
   white-space: nowrap !important;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .agent-chat-header {
     overflow: visible !important;
   }
@@ -14577,7 +14577,7 @@ body.agent-route-active .app-shell::before {
   -webkit-text-fill-color: rgba(208, 224, 236, 0.9) !important;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .budget-modal .budget-mode-tabs {
     width: auto !important;
     margin: 8px auto 14px !important;
@@ -14751,7 +14751,7 @@ body.agent-route-active .app-shell::before {
   color: rgba(232, 240, 247, 0.96) !important;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .budget-modal .budget-pdf-surface.budget-table-style-ledger:not(.is-budget-pdf-exporting) .budget-table tr.is-active-row td::before,
   .budget-modal [class*="budget-table-style-ledger"]:not(.budget-pdf-surface) .budget-table tr.is-active-row td::before {
     color: rgba(215, 225, 236, 0.72) !important;
@@ -14900,7 +14900,7 @@ body.agent-route-active .app-shell::before {
 }
 
 /* PWA / Add to Home Screen: panel scroll + compact header (wins cascade) */
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   @supports (height: 100dvh) {
     .agent-layout {
       height: var(--visual-vh, 100dvh) !important;
@@ -14964,7 +14964,7 @@ body.agent-route-active .app-shell::before {
    MOBILE PWA CANONICAL LAYOUT — single authoritative block
    Overrides all previous mobile rules in this file.
    ═══════════════════════════════════════════════════════════════ */
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   /* Full-height layout: safe-area on the container edges, nowhere else */
   .agent-layout {
     display: flex !important;
@@ -15210,7 +15210,7 @@ body.agent-route-active .app-shell::before {
    ═══════════════════════════════════════════════════════════════ */
 
 /* ── Shared helpers via JS-applied class (works for iOS navigator.standalone) ── */
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile {
     display: flex !important;
     flex-direction: column !important;
@@ -15436,7 +15436,7 @@ body.agent-route-active .app-shell::before {
 }
 
 /* Mobile/PWA: layout height + panel guarantees */
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   body.agent-route-active .app-shell {
     display: flex !important;
     flex-direction: column !important;
@@ -17357,7 +17357,7 @@ body.agent-route-active .app-shell > * {
    Compact layout · pinned footer · visible rows · safe area
    Must stay LAST so !important wins by declaration order.
    ============================================================ */
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
 
   /* 1 ── Extend modal surface to cover safe area at bottom */
   .budget-modal {
@@ -17534,7 +17534,7 @@ body.agent-route-active .app-shell > * {
    when older overrides are present earlier in the file.
    ================================================================ */
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .agent-chat-header.is-mobile {
     padding-top: 8px !important;
     padding-bottom: 1px !important;
@@ -17738,7 +17738,7 @@ body.agent-route-active .app-shell > * {
 /* Final iPhone safe-area background fix:
    extend the agent backdrop above the visual viewport so the image
    also sits behind the standalone status bar area. */
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   html.agent-route-standalone,
   body.agent-route-standalone {
     background-color: #05090f !important;
@@ -17877,7 +17877,7 @@ body.agent-route-active .app-shell > * {
    - Table stays visible only as a blurred backdrop
    - Assistant loses the heavy square container on phones
 */
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .budget-modal .budget-modal-body .budget-main-carousel.mode-agent-front {
     position: relative !important;
     overflow: hidden !important;
@@ -17953,7 +17953,7 @@ body.agent-route-active .app-shell > * {
   }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .agent-modal-overlay,
   .budget-modal-overlay,
   .transactions-modal-overlay,
@@ -18299,7 +18299,7 @@ body.agent-route-active .app-shell > * {
   }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   html.agent-route-active,
   body.agent-route-active {
     background-color: #05090f !important;
@@ -18950,7 +18950,7 @@ body.agent-route-active .app-shell > * {
 }
 
 /* Mobile budget table — compact header/metrics so rows gain space */
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .budget-modal .budget-modal-body .budget-main-carousel:not(.is-desktop).mode-table-front .budget-table-head {
     display: grid !important;
     grid-template-columns: 1fr !important;
@@ -19081,7 +19081,7 @@ body.agent-route-active .app-shell > * {
 }
 
 /* Class-based mobile compact — wins over legacy selector wars */
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .budget-modal .budget-table-section.is-mobile-table-compact .budget-table-head {
     display: grid !important;
     grid-template-columns: 1fr !important;
@@ -19586,7 +19586,7 @@ body.agent-route-active .app-shell > * {
    MOBILE AGENT SHELL — authoritative layout (EOF wins all prior overrides)
    Fixes: composer gap above panel, thread height, header tab breathing room.
    ═══════════════════════════════════════════════════════════════════════════ */
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   body.agent-route-active main.agent-layout {
     display: flex !important;
     flex-direction: column !important;

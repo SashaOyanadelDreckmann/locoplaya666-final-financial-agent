@@ -599,14 +599,27 @@ export default function AgentPage() {
   function settleMobileComposerViewport() {
     if (!isMobileViewport) return;
     clearMobileKeyboardSettleTimer();
-    setKeyboardOpeningMode(true);
-    chatComposerRef.current?.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'auto' });
-    mobileKeyboardSettleTimerRef.current = setTimeout(() => {
-      setKeyboardOpeningMode(false);
+
+    const syncVisibleHeight = () => {
       const visibleH = window.visualViewport?.height ?? window.innerHeight;
       document.documentElement.style.setProperty('--visual-vh', `${visibleH}px`);
+    };
+
+    syncVisibleHeight();
+    setKeyboardOpeningMode(true);
+
+    const vv = window.visualViewport;
+    const onViewportChange = () => syncVisibleHeight();
+    vv?.addEventListener('resize', onViewportChange);
+    vv?.addEventListener('scroll', onViewportChange);
+
+    mobileKeyboardSettleTimerRef.current = setTimeout(() => {
+      vv?.removeEventListener('resize', onViewportChange);
+      vv?.removeEventListener('scroll', onViewportChange);
+      syncVisibleHeight();
+      setKeyboardOpeningMode(false);
       mobileKeyboardSettleTimerRef.current = null;
-    }, 180);
+    }, 320);
   }
 
   function focusComposerAfterLayout(options?: { collapsePanelFirst?: boolean }) {
@@ -3673,6 +3686,7 @@ export default function AgentPage() {
         levelUpText={levelUpText}
         sessionInfoName={sessionInfo?.name}
         hasInjectedIntake={Boolean(sessionInfo?.injectedIntake)}
+        isMobileViewport={isMobileViewport}
         mobilePanelHandleRef={mobilePanelHandleRef}
         mobilePanelExpanded={mobilePanelExpanded}
         setMobilePanelExpanded={setMobilePanelExpanded}

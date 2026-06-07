@@ -10,6 +10,8 @@ const SAVINGS_BAND_OPTIONS: { value: IntakeQuestionnaire['savingsBand']; label: 
   { value: '>10M', label: 'Más de $10M' },
 ];
 
+import { IntakeQuestionNav } from './IntakeQuestionNav';
+
 export function SavingsStep({
   form,
   update,
@@ -22,6 +24,26 @@ export function SavingsStep({
   const [questionIndex, setQuestionIndex] = useState(0);
   const totalQuestions = 2;
 
+  const onNextQuestion = () => {
+    if (questionIndex >= totalQuestions - 1) {
+      onNext();
+      return;
+    }
+    setQuestionIndex((prev) => Math.min(prev + 1, totalQuestions - 1));
+  };
+
+  const onBackQuestion = () => {
+    setQuestionIndex((prev) => Math.max(prev - 1, 0));
+  };
+
+  const canContinueSavings =
+    form.hasSavingsOrInvestments === false ||
+    (form.hasSavingsOrInvestments === true && Boolean(form.savingsBand));
+
+  const showForward =
+    (questionIndex === 0 && canContinueSavings) ||
+    (questionIndex === 1 && typeof form.hasDebt === 'boolean');
+
   return (
     <div className="intake-step animate-intake-in">
       <div className="intake-step-header">
@@ -32,7 +54,15 @@ export function SavingsStep({
           tienes para crecer. Seamos honestos.
         </p>
       </div>
-      <p className="intake-question-progress">Pregunta {questionIndex + 1} de {totalQuestions}</p>
+
+      <IntakeQuestionNav
+        questionIndex={questionIndex}
+        totalQuestions={totalQuestions}
+        onBack={onBackQuestion}
+        onNext={questionIndex === totalQuestions - 1 ? onNext : onNextQuestion}
+        showForward={showForward}
+        forwardAriaLabel={questionIndex === totalQuestions - 1 ? 'Siguiente sección' : 'Continuar'}
+      />
 
       {questionIndex === 0 && (
         <div className="intake-question-block intake-question-screen animate-intake-in">
@@ -124,8 +154,6 @@ export function SavingsStep({
           )}
         </div>
       )}
-
-      <div className="intake-footer" />
     </div>
   );
 }

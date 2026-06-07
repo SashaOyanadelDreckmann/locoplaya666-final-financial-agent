@@ -329,7 +329,7 @@
   transform-origin: center bottom;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .intake-step {
     transition: opacity 0.24s ease, transform 0.24s ease;
   }
@@ -1758,11 +1758,11 @@ button {
 .intake-stage-seg.active .intake-stage-seg-pill::after { animation: none !important; content: none !important; }
 
 /* Mobile: pull the content up and center it (was bottom-anchored) */
-@media (max-width: 768px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .intake-main.intake-main-immersive {
-    align-items: center !important;
-    justify-content: center !important;
-    padding: 84px 18px 28px !important;
+    align-items: stretch !important;
+    justify-content: flex-start !important;
+    padding: max(76px, calc(env(safe-area-inset-top, 0px) + 56px)) 18px max(28px, env(safe-area-inset-bottom, 0px)) !important;
   }
   .intake-question-screen { min-height: 0 !important; }
   .intake-step { gap: 22px !important; }
@@ -1788,11 +1788,24 @@ button {
   align-items: center;
   gap: 14px;
   margin: 2px 0 6px;
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
 }
-.intake-qnav .intake-question-progress { margin: 0 !important; }
-.intake-qnav .intake-nav-arrow { font-size: 22px !important; }
+.intake-qnav .intake-question-progress { margin: 0 !important; flex: 1 1 auto; min-width: 0; }
+.intake-qnav .intake-nav-arrow {
+  font-size: 22px !important;
+  flex: 0 0 auto;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
 .intake-qnav-back { opacity: 0.7; }
 .intake-qnav-next .intake-loading { transform: scale(0.8); }
+
+/* Legacy footer nav — hide when empty; arrows live in .intake-qnav */
+.intake-footer:empty { display: none !important; }
 
 /* KnowledgeStep footer buttons → matte + compact (forward = subtle pill) */
 .intake-back-btn {
@@ -1872,5 +1885,40 @@ button {
 
   .intake-photo-bg {
     filter: brightness(0.26) contrast(0.92) saturate(0.78) grayscale(0.06) !important;
+  }
+}
+
+/* ── Tablet portrait intake — city step nav + scroll ── */
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+  .intake-main.intake-main-immersive {
+    align-items: stretch !important;
+    justify-content: flex-start !important;
+    padding:
+      max(76px, calc(env(safe-area-inset-top, 0px) + 56px))
+      24px
+      max(32px, env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  .intake-warp-stage {
+    width: 100% !important;
+    margin-left: 0 !important;
+  }
+
+  .intake-step {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+  }
+
+  .intake-question-screen {
+    min-height: 0 !important;
+  }
+
+  .intake-city-map-frame {
+    min-height: clamp(180px, 26vh, 230px);
+  }
+
+  .intake-city-map-frame .maplibregl-map {
+    min-height: clamp(180px, 26vh, 230px);
   }
 }

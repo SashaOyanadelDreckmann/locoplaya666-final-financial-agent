@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useRef } from "react";
+import { shouldUseMobileShell } from '@/lib/viewport-mode';
 import { useScroll, useTransform, motion, MotionValue } from "framer-motion";
 
 export const ContainerScroll = ({
@@ -22,7 +23,7 @@ export const ContainerScroll = ({
 
   React.useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 768);
+      setIsMobile(shouldUseMobileShell());
     };
     checkMobile();
     window.addEventListener("resize", checkMobile);

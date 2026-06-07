@@ -105,7 +105,7 @@ export default function NumbersCanvas({
       let w = layer?.clientWidth ?? baseW;
       let h = layer?.clientHeight ?? baseH;
       dpr = Math.min(window.devicePixelRatio || 1, 2);
-      isMobile = baseW < 768;
+      isMobile = window.matchMedia('(max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait)').matches;
       if (isMobile) {
         w = Math.max(w, baseW);
         h = Math.max(h, baseH);
@@ -186,7 +186,7 @@ export default function NumbersCanvas({
       // Dark base builds up gently as numbers take over — doesn't hard-replace photo
       if (eMid > 0.01) {
         ctx.globalAlpha = clamp(eMid * 0.72);
-        ctx.fillStyle = '#060b18';
+        ctx.fillStyle = '#050810';
         ctx.fillRect(0, 0, W, H);
         ctx.globalAlpha = 1;
       }

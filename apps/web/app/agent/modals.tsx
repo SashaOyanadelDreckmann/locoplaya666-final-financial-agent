@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { shouldUseMobileShell } from '@/lib/viewport-mode';
 import { getCsrfToken } from '@/lib/csrf';
 import { downloadFile, saveBubbleSnapshotPdfArtifact } from '@/lib/artifacts';
 import { BudgetIntelligenceTable } from '@/components/ui/budget-intelligence-table';
@@ -882,7 +883,7 @@ export function BudgetModal(props: {
   // On open: reset conversation state and fetch first personalized question from AI
   useEffect(() => {
     if (!props.isOpen) return;
-    setBudgetViewMode(window.innerWidth >= 1024 ? 2 : 1);
+    setBudgetViewMode(!shouldUseMobileShell() ? 2 : 1);
     const budgetRowsForInit = props.budgetRows.slice(0, 30);
     setBudgetReply('');
     setConversationDone(false);

@@ -1,0 +1,290 @@
+/* ================================================= */
+/* TABLET SYSTEM — iPad / tablet orientation contract */
+/* Portrait → mobile shell; landscape → desktop.    */
+/* Loaded after backdrop-system.css.                  */
+/* ================================================= */
+
+/*
+ * Landscape tablet: full desktop agent (no cramped 768–1023 hybrid).
+ */
+@media (min-width: 768px) and (max-width: 1366px) and (orientation: landscape) {
+  html.is-tablet-landscape .agent-layout {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) 48px minmax(260px, 340px) !important;
+    padding: 12px 14px !important;
+    gap: 10px !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  html.is-tablet-landscape .agent-layout.is-panel-stage-1 {
+    grid-template-columns: minmax(0, 1fr) 48px 280px !important;
+  }
+
+  html.is-tablet-landscape .agent-layout.is-panel-stage-2 {
+    grid-template-columns: minmax(0, 1fr) 48px 320px !important;
+  }
+
+  html.is-tablet-landscape .agent-panel {
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: 0 !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain !important;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+  }
+
+  html.is-tablet-landscape .agent-panel .panel-grid {
+    flex: 1 1 auto;
+    min-height: min-content;
+  }
+
+  html.is-tablet-landscape .agent-panel .panel-pos-library,
+  html.is-tablet-landscape .agent-panel .panel-text,
+  html.is-tablet-landscape .agent-panel .report-list {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  html.is-tablet-landscape .agent-chat {
+    min-height: 0 !important;
+    height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  html.is-tablet-landscape .agent-chat-header.is-mobile {
+    display: none !important;
+  }
+
+  html.is-tablet-landscape .agent-chat-header:not(.is-mobile) {
+    display: block !important;
+  }
+
+  html.is-tablet-landscape .agent-mobile-composer-dock {
+    display: none !important;
+  }
+
+  html.is-tablet-landscape .agent-layout.is-mobile-viewport {
+    display: grid !important;
+    flex-direction: unset !important;
+    padding-top: 12px !important;
+  }
+
+  html.is-tablet-landscape:not(.home-route-active) .mobile-scale-frame {
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    overflow: hidden !important;
+  }
+
+  /* Home on iPad landscape — scroll root for canvas swipe (same as portrait). */
+  html.is-tablet-landscape.home-route-active,
+  html.is-tablet-landscape.home-route-active body {
+    height: var(--fa-app-height, 100dvh) !important;
+    max-height: var(--fa-app-height, 100dvh) !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    overscroll-behavior: none !important;
+  }
+
+  html.is-tablet-landscape.home-route-active .app-shell {
+    height: 100% !important;
+    max-height: 100% !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  html.is-tablet-landscape.home-route-active .mobile-scale-frame.home-scroll-root {
+    height: 100% !important;
+    max-height: 100% !important;
+    min-height: 0 !important;
+    overflow-x: clip !important;
+    overflow-y: auto !important;
+    overscroll-behavior-y: contain !important;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y pinch-zoom;
+  }
+}
+
+/*
+ * Portrait tablet: extend mobile-shell pages (home, intake, modals, chrome).
+ */
+@media (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+  html.is-tablet-portrait.home-route-active,
+  html.is-tablet-portrait.home-route-active body {
+    height: auto !important;
+    min-height: 100dvh !important;
+    max-height: none !important;
+    overflow-x: clip !important;
+    overflow-y: visible !important;
+  }
+
+  html.is-tablet-portrait.home-route-active .app-shell {
+    height: auto !important;
+    min-height: 100dvh !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  html.is-tablet-portrait.home-route-active .mobile-scale-frame.home-scroll-root {
+    height: var(--fa-app-height, 100dvh) !important;
+    max-height: var(--fa-app-height, 100dvh) !important;
+    min-height: 0 !important;
+    overflow-x: clip !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y pinch-zoom;
+  }
+
+  html.is-tablet-portrait.home-route-active .mobile-scale-frame:not(.home-scroll-root) {
+    height: auto !important;
+    min-height: 100dvh !important;
+    max-height: none !important;
+    overflow-x: clip !important;
+    overflow-y: visible !important;
+  }
+
+  html.is-tablet-portrait .mobile-scale-frame {
+    height: auto !important;
+    min-height: 100dvh !important;
+    max-height: none !important;
+    overflow-x: clip !important;
+    overflow-y: visible !important;
+    transform: none !important;
+    width: 100% !important;
+  }
+
+  html.is-tablet-portrait.intake-route-active .intake-shell,
+  html.is-tablet-portrait.intake-route-active .intake-main.intake-main-immersive {
+    height: var(--fa-app-height, 100dvh) !important;
+    max-height: var(--fa-app-height, 100dvh) !important;
+    min-height: 0 !important;
+  }
+
+  html.is-tablet-portrait.intake-route-active .intake-main.intake-main-immersive {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    justify-content: flex-start !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain !important;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: max(28px, env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  html.is-tablet-portrait:not(.pwa-standalone).agent-route-active,
+  html.is-tablet-portrait:not(.pwa-standalone).agent-route-active body {
+    height: var(--visual-vh, 100dvh) !important;
+    max-height: var(--visual-vh, 100dvh) !important;
+    min-height: 0 !important;
+  }
+
+  /* Kill legacy hybrid tablet rules that hide the panel in portrait */
+  html.is-tablet-portrait .agent-layout {
+    display: flex !important;
+    flex-direction: column !important;
+    grid-template-columns: none !important;
+    padding: 0 !important;
+  }
+
+  html.is-tablet-portrait .agent-panel {
+    display: flex !important;
+  }
+
+  html.is-tablet-portrait .agent-layout.is-panel-stage-1,
+  html.is-tablet-portrait .agent-layout.is-panel-stage-2 {
+    grid-template-columns: none !important;
+  }
+}
+
+/*
+ * Intake — iPad / tablet portrait + landscape: same matte backdrop (match vertical).
+ * Phone keeps the mobile-shell block in backdrop-system.css; landscape tablet was missing it.
+ */
+html.is-tablet-device.intake-route-active .global-agent-backdrop {
+  box-shadow: none !important;
+  filter: brightness(0.26) contrast(0.92) saturate(0.78) grayscale(0.06) !important;
+  background-size: cover !important;
+  background-position: center bottom !important;
+  background-image:
+    linear-gradient(180deg, rgba(6, 10, 16, 0.24) 0%, rgba(6, 10, 16, 0.48) 100%),
+    url('/fondo4.jpg') !important;
+}
+
+html.is-tablet-device.intake-route-active,
+html.is-tablet-device.intake-route-active body {
+  background-color: #0a0e14 !important;
+  background-image: none !important;
+}
+
+html.is-tablet-device.intake-route-active .app-shell::before,
+html.is-tablet-device.intake-route-active .app-shell::after {
+  display: none !important;
+  content: none !important;
+  background-image: none !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+html.is-tablet-device.intake-route-active .intake-shell {
+  height: var(--fa-app-height, 100dvh) !important;
+  max-height: var(--fa-app-height, 100dvh) !important;
+  min-height: var(--fa-app-height, 100dvh) !important;
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+}
+
+html.is-tablet-device.intake-route-active .intake-main.intake-main-immersive {
+  height: var(--fa-app-height, 100dvh) !important;
+  max-height: var(--fa-app-height, 100dvh) !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain !important;
+  -webkit-overflow-scrolling: touch;
+  padding:
+    max(76px, calc(env(safe-area-inset-top, 0px) + 56px))
+    24px
+    max(28px, env(safe-area-inset-bottom, 0px)) !important;
+}
+
+html.is-tablet-device.intake-route-active .intake-shell::before {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(0, 0, 0, 0.08) 0%,
+      rgba(0, 0, 0, 0.26) 42%,
+      rgba(0, 0, 0, 0.36) 100%
+    ) !important;
+}
+
+html.is-tablet-device.intake-route-active .intake-shell::after {
+  display: none !important;
+  content: none !important;
+}
+
+html.is-tablet-device.intake-route-active .intake-bg-orb::before,
+html.is-tablet-device.intake-route-active .intake-bg-orb::after {
+  display: none !important;
+  content: none !important;
+}
+
+html.is-tablet-device.intake-route-active .intake-photo-bg {
+  background-image: none !important;
+  filter: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+html.is-tablet-device.intake-route-active .intake-warp-stage {
+  width: 100% !important;
+  margin-left: 0 !important;
+}

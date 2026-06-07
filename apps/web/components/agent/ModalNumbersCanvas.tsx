@@ -200,7 +200,9 @@ export default function ModalNumbersCanvas({
       ctx.globalAlpha = 1;
 
       // Vignette — lighter on mobile so it doesn't read as a dark panel block
-      const isMobileCanvas = W <= 767;
+      const isMobileCanvas = window.matchMedia(
+        '(max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait)',
+      ).matches;
       const vg = ctx.createRadialGradient(
         W / 2, H / 2, Math.min(W, H) * (isMobileCanvas ? 0.22 : 0.14),
         W / 2, H / 2, Math.max(W, H) * (isMobileCanvas ? 0.92 : 0.84),

@@ -4,6 +4,7 @@ import type { CSSProperties } from 'react';
 import type { IntakeQuestionnaire } from '@financial-agent/shared/src/intake/intake-questionnaire.types';
 import { balancedColumns } from './grid';
 import { CityMapQuestion } from './CityMapQuestion';
+import { IntakeQuestionNav } from './IntakeQuestionNav';
 
 const EMPLOYMENT_OPTIONS: { value: IntakeQuestionnaire['employmentStatus']; label: string; sub: string }[] = [
   { value: 'employed', label: 'Dependiente', sub: 'Empleado con contrato' },
@@ -26,9 +27,11 @@ export function ContextStep({
   onNext: () => void;
 }) {
   const [questionIndex, setQuestionIndex] = useState(0);
+  const [cityGeocoded, setCityGeocoded] = useState(false);
 
   const canContinueAge = typeof form.age === 'number' && form.age > 0;
-  const canContinueCity = typeof form.city === 'string' && form.city.trim().length > 1;
+  const canContinueCity =
+    (typeof form.city === 'string' && form.city.trim().length > 1) || cityGeocoded;
   const totalQuestions = 4;
   const isLast = questionIndex === totalQuestions - 1;
 
@@ -40,6 +43,15 @@ export function ContextStep({
     setQuestionIndex((prev) => Math.min(prev + 1, totalQuestions - 1));
   };
 
+  const onBackQuestion = () => {
+    setQuestionIndex((prev) => Math.max(prev - 1, 0));
+  };
+
+  const showForward =
+    (questionIndex === 0 && canContinueAge) ||
+    (questionIndex === 1 && canContinueCity) ||
+    questionIndex === 3;
+
   return (
     <div className="intake-step intake-step-context animate-intake-in">
       <div className="intake-step-header">
@@ -49,7 +61,15 @@ export function ContextStep({
           Necesito entender tu punto de partida para darte asesoría que realmente se ajuste a tu vida.
         </p>
       </div>
-      <p className="intake-question-progress">Pregunta {questionIndex + 1} de {totalQuestions}</p>
+
+      <IntakeQuestionNav
+        questionIndex={questionIndex}
+        totalQuestions={totalQuestions}
+        onBack={onBackQuestion}
+        onNext={onNextQuestion}
+        showForward={showForward}
+        forwardAriaLabel={isLast ? 'Siguiente sección' : 'Continuar'}
+      />
 
       {questionIndex === 0 && (
         <div className="intake-question-block intake-question-screen animate-intake-in">
@@ -75,6 +95,7 @@ export function ContextStep({
           <CityMapQuestion
             city={form.city ?? ''}
             onCityChange={(value) => update('city', value)}
+            onGeocodeResolved={setCityGeocoded}
           />
         </div>
       )}
@@ -116,19 +137,6 @@ export function ContextStep({
           />
         </div>
       )}
-
-      <div className="intake-footer">
-        {((questionIndex === 0 && canContinueAge) || (questionIndex === 1 && canContinueCity) || questionIndex === 3) && (
-          <button
-            className="intake-nav-arrow focus-ring"
-            onClick={onNextQuestion}
-            type="button"
-            aria-label="Continuar"
-          >
-            →
-          </button>
-        )}
-      </div>
     </div>
   );
 }

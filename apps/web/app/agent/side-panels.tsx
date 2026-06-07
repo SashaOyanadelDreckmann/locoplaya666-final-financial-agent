@@ -3,6 +3,7 @@ import React, { type ReactNode } from 'react';
 type Milestone = { id: string; label: string; done: boolean };
 
 export function SidePanels(props: {
+  isMobileViewport: boolean;
   knowledgeScore: number;
   progressPulse: boolean;
   setKnowledgePopupOpen: React.Dispatch<React.SetStateAction<boolean>>;
@@ -35,7 +36,13 @@ export function SidePanels(props: {
       </aside>
 
       <aside
-        className={`agent-panel ${props.mobilePanelExpanded ? 'is-mobile-expanded' : 'is-mobile-compact'}`}
+        className={`agent-panel${
+          props.isMobileViewport
+            ? props.mobilePanelExpanded
+              ? ' is-mobile-expanded'
+              : ' is-mobile-compact'
+            : ''
+        }`}
         ref={props.panelScrollRef}
       >
         <div

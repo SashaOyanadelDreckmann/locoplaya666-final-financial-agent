@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 
 import { ApiHttpError } from '@/lib/apiEnvelope';
 import { getSessionInfo } from '@/lib/api';
+import { syncViewportModeClasses } from '@/lib/viewport-mode';
 import { hasCompletedIntakeAccess, resolveAuthRedirectPath } from '../page.utils';
 
 export type AgentSessionInfo = {
@@ -76,17 +77,17 @@ export function useAgentShell() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const syncViewport = () => {
-      const mobile = window.innerWidth <= 767;
+      const { mobileShell: mobile } = syncViewportModeClasses();
       setIsMobileViewport(mobile);
-      document.documentElement.classList.toggle('is-mobile-viewport', mobile);
-      document.body?.classList.toggle('is-mobile-viewport', mobile);
     };
     syncViewport();
     window.addEventListener('resize', syncViewport);
+    window.addEventListener('orientationchange', syncViewport);
+    window.visualViewport?.addEventListener('resize', syncViewport);
     return () => {
       window.removeEventListener('resize', syncViewport);
-      document.documentElement.classList.remove('is-mobile-viewport');
-      document.body?.classList.remove('is-mobile-viewport');
+      window.removeEventListener('orientationchange', syncViewport);
+      window.visualViewport?.removeEventListener('resize', syncViewport);
     };
   }, []);
 
@@ -159,6 +160,13 @@ export function useAgentShell() {
           return;
         }
 
+        if (
+          document.documentElement.classList.contains('is-tablet-landscape') &&
+          target.closest('.agent-panel')
+        ) {
+          return;
+        }
+
         const style = window.getComputedStyle(target);
         const overflowY = style.overflowY;
         const overflowX = style.overflowX;
@@ -199,19 +207,21 @@ export function useAgentShell() {
   useEffect(() => {
     const vv = window.visualViewport;
     const update = () => {
-      if (document.documentElement.classList.contains('keyboard-opening')) {
-        return;
-      }
       const vv = window.visualViewport;
       const layoutH = window.innerHeight;
       const visibleH = vv?.height ?? layoutH;
+      /* Always track visible height — required when the on-screen keyboard opens. */
+      document.documentElement.style.setProperty('--visual-vh', `${visibleH}px`);
+
+      if (document.documentElement.classList.contains('keyboard-opening')) {
+        return;
+      }
       const visualStackH = Math.max(
         layoutH,
         document.documentElement.clientHeight,
         Math.round(visibleH + (vv?.offsetTop ?? 0)),
       );
       document.documentElement.style.setProperty('--screen-h', `${visualStackH}px`);
-      document.documentElement.style.setProperty('--visual-vh', `${visibleH}px`);
     };
     update();
     window.addEventListener('resize', update);

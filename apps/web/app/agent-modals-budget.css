@@ -595,7 +595,7 @@
   border: 1px solid rgba(255, 255, 255, 0.07) !important;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .interview-modal {
     min-height: calc(100dvh - max(14px, calc(env(safe-area-inset-top) + 8px))) !important;
     max-height: calc(100dvh - max(14px, calc(env(safe-area-inset-top) + 8px))) !important;
@@ -741,7 +741,7 @@
   width: 100%;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .agent-chat-header {
     padding: 28px 12px 8px 10px !important;
   }
@@ -1839,7 +1839,7 @@
 /* ============================================================ */
 /* Mobile budget chat: sin contenedor + tabla desenfocada atrás */
 /* ============================================================ */
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   /* Carousel = contexto de apilamiento en modo agente */
   .budget-modal .budget-modal-body .budget-main-carousel.mode-agent-front:not(.is-desktop) {
     position: relative !important;
@@ -3735,7 +3735,7 @@
 /* MOBILE DIAGNOSIS PARITY — editorial NYT-like      */
 /* Final override to keep mobile as premium as desktop */
 /* ================================================= */
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .agent-layout .agent-thread {
     overflow-y: auto !important;
     overflow-x: hidden !important;
@@ -5394,7 +5394,7 @@
 /* ================================================= */
 /* MOBILE PRO PASS — budget + transactions + diagnosis */
 /* ================================================= */
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .agent-modal-overlay.interview-modal-overlay {
     align-items: flex-end !important;
     justify-content: center !important;
@@ -6363,7 +6363,7 @@
   margin-top: 0 !important;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .agent-modal-overlay.budget-modal-overlay {
     align-items: flex-end !important;
     padding-top: 0 !important;
@@ -6374,7 +6374,7 @@
 }
 
 /* Budget mobile hard fix: prevent stacked/absolute cards from overlapping. */
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .budget-modal {
     height: 94dvh !important;
     max-height: 94dvh !important;
@@ -6558,7 +6558,7 @@
 }
 
 /* FINAL MOBILE HOTFIX — tx summary must fully adapt without cuts */
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .transactions-modal .tx-content-card.tx-summary-clean {
     overflow-x: hidden !important;
   }
@@ -6622,7 +6622,7 @@
 }
 
 /* FINAL MOBILE GUARDRAIL — prevent oversized cards/buttons in tx summary */
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .transactions-modal {
     --tx-mobile-bottom-clearance: 132px;
   }
@@ -6785,7 +6785,7 @@
 
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   body:has(.transactions-modal-overlay) .agent-chat,
   body:has(.transactions-modal-overlay) .agent-thread,
   body:has(.transactions-modal-overlay) .chat-pages-outer {
@@ -6805,7 +6805,7 @@
   display: none;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .transactions-modal .tx-meta-card {
     background: rgba(15, 22, 34, 0.82) !important;
     border: 1px solid rgba(190, 207, 226, 0.24) !important;
@@ -6971,7 +6971,7 @@
    - restore vertical swipe inside table
    - compact table so columns fit viewport
    =================================================== */
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .budget-modal .budget-modal-body,
   .budget-modal .budget-table-section,
   .budget-modal .budget-table-wrap {
@@ -7033,7 +7033,7 @@
 }
 
 /* Transactions mobile: full-page blurred backdrop, not a modal-sized invisible sheet. */
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .agent-modal-overlay.transactions-modal-overlay {
     position: fixed !important;
     inset: 0 !important;
@@ -7092,7 +7092,7 @@
 
 /* Transactions mobile final visual contract:
    no modal sheet, only floating controls over a blurred/dimmed app behind. */
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .agent-modal-overlay.transactions-modal-overlay {
     background: rgba(5, 7, 10, 0.18) !important;
     background-image: none !important;
@@ -7146,7 +7146,7 @@
 }
 
 /* Match mobile backdrop style from Transacciones for Presupuesto + Entrevista */
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .agent-modal-overlay.budget-modal-overlay,
   .agent-modal-overlay.interview-modal-overlay {
     background: rgba(5, 7, 10, 0.18) !important;
@@ -7180,7 +7180,7 @@
 
 /* Mobile final contract: Presupuesto + Entrevista/Diagnóstico match Transacciones.
    The page floats over the blurred main chat; internal full-size sheets stay transparent. */
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .agent-modal-overlay.budget-modal-overlay,
   .agent-modal-overlay.interview-modal-overlay {
     position: fixed !important;
@@ -7535,7 +7535,7 @@
 }
 
 /* Questionnaire mobile: fit response cards in first viewport, no swipe for this section. */
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .agent-modal-overlay:has(> .agent-modal.questionnaire-modal) {
     overflow: hidden !important;
   }
@@ -7775,7 +7775,7 @@
 }
 
 /* Budget table mobile: no horizontal swipe, columns fit viewport */
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .budget-modal .budget-table-section,
   .budget-modal .budget-pdf-surface,
   .budget-modal .budget-table-wrap {
@@ -7945,7 +7945,7 @@
 }
 
 /* Final mobile budget table fit: real compact table, no side swipe */
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .budget-modal .budget-table-section,
   .budget-modal .budget-pdf-surface,
   .budget-modal .budget-table-wrap {
@@ -8054,7 +8054,7 @@
 }
 
 /* Questionnaire answers mobile: much denser cards */
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .agent-modal.questionnaire-modal {
     padding-top: calc(18px + env(safe-area-inset-top)) !important;
   }
@@ -8130,7 +8130,7 @@
 /* ─── Mobile: tabla presupuesto sin scroll horizontal ─────────────────────── */
 /* El overflow venía de: (1) budget-table-bottom-actions con minmax(160px)+minmax(220px)
    y (2) cascada de overflow:visible que llegaba hasta el viewport en iOS.          */
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   /* Cortar cualquier desbordamiento antes de que llegue al viewport */
   .budget-modal-overlay {
     overflow-x: hidden !important;

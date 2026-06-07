@@ -657,7 +657,7 @@
 
 /* ─── Mobile (<768px) ───────────────────────────── */
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   html.keyboard-opening,
   body.keyboard-opening {
     overflow: hidden !important;
@@ -1938,7 +1938,7 @@
 
 /* ─── Tablet (768px-1023px) ─────────────────────── */
 
-@media (min-width: 768px) and (max-width: 1023px) {
+@media (min-width: 768px) and (max-width: 1023px) and (orientation: landscape) {
   .agent-layout {
     grid-template-columns: 1fr 48px !important;
     padding: 10px;
@@ -2042,7 +2042,7 @@
   animation: suggestFadeIn 0.3s ease forwards;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .suggested-replies {
     flex-wrap: wrap;
     overflow-x: visible;
@@ -3616,7 +3616,7 @@
   color: var(--fg-tertiary);
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .agent-chart-footnote {
     margin-top: 16px !important;
     line-height: 1.35 !important;
@@ -3741,7 +3741,7 @@
 /* ================================================= */
 /* MOBILE LOCK: SMART PANEL AT BOTTOM               */
 /* ================================================= */
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .agent-panel {
     --panel-matte: rgba(8, 12, 18, 0.82);
     --panel-glass: rgba(12, 18, 28, 0.56);
@@ -4193,7 +4193,7 @@
 }
 
 /* Mobile hard override: panel visible below chat as horizontal carousel */
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .agent-panel {
     --panel-matte: rgba(8, 12, 18, 0.82);
     --panel-glass: rgba(12, 18, 28, 0.56);
@@ -4641,7 +4641,7 @@
   touch-action: pan-y !important;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .agent-bubble,
   .agent-bubble.user,
   .agent-bubble.assistant {
@@ -4757,7 +4757,7 @@
 /* ================================================= */
 /* MOBILE FULL-WIDTH BUBBLES                         */
 /* ================================================= */
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .agent-thread {
     padding-left: 8px !important;
     padding-right: 8px !important;
@@ -5159,7 +5159,7 @@
 }
 
 /* Final hard override: mobile compact news title must remain visible. */
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   /* Mobile compact rail: transparent container, glass only on cards */
   .agent-panel.is-mobile-compact {
     background: transparent !important;
@@ -5237,7 +5237,7 @@
   }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .agent-panel {
     flex: 0 0 min(27dvh, 290px) !important;
     min-height: min(27dvh, 290px) !important;
@@ -5599,7 +5599,7 @@
   min-height: 150px !important;
 }
 
-@media (min-width: 768px) and (max-width: 1023px) {
+@media (min-width: 768px) and (max-width: 1023px) and (orientation: landscape) {
   .agent-layout,
   .agent-layout.is-panel-stage-1,
   .agent-layout.is-panel-stage-2,
@@ -5613,7 +5613,7 @@
   }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .mobile-progress-pill {
     display: inline-flex !important;
     align-items: center;
@@ -6021,7 +6021,7 @@
   }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .agent-modal-overlay {
     align-items: flex-end !important;
     justify-content: stretch !important;
@@ -6255,7 +6255,7 @@
 }
 
 /* Final mobile polish: safe-area aware header and tighter vertical rhythm. */
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .agent-layout,
   .agent-layout.is-panel-stage-1,
   .agent-layout.is-panel-stage-2,
@@ -6687,7 +6687,7 @@
 }
 
 /* Final mobile cockpit polish: compact composer + breathable top controls */
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .agent-chat-header {
     padding: calc(env(safe-area-inset-top) + 5px) 10px 3px !important;
     border-bottom: none !important;
@@ -6853,7 +6853,7 @@
 }
 
 /* Mobile panel refinements (profile/news/recents/library stability) */
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   /* 1) Perfil: mostrar mas info sin desbordes ni solapes */
   .agent-panel .profile-card {
     min-height: 132px !important;
@@ -7009,7 +7009,7 @@
 }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .questionnaire-kpi-grid {
     grid-template-columns: 1fr;
   }
@@ -7020,7 +7020,7 @@
 }
 
 /* Mobile final harmonization: composer + panel card sizes + compact library */
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   /* 1) Composer textarea without dark fill */
   .agent-input {
     background: transparent !important;
@@ -7357,7 +7357,7 @@
   border-color: rgba(181, 191, 214, 0.28) !important;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .chat-switcher {
     overflow-x: auto !important;
     overflow-y: hidden !important;
@@ -7476,7 +7476,7 @@
 }
 
 /* Mobile-specific enhancements */
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .infinite-scroll-panel {
     gap: 6px;
     padding: 6px;
@@ -7500,7 +7500,7 @@
 }
 
 /* Enhanced chat animations for mobile */
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .chat-bubble {
     animation-duration: 0.3s;
     animation-delay: 0s !important;
@@ -7520,7 +7520,7 @@
 }
 
 /* Centered modal for mobile checkboxes */
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .modal-content {
     width: calc(100vw - 24px);
     max-width: none;
@@ -7744,7 +7744,7 @@ input[type="radio"]:checked {
 /* ================================================================= */
 
 /* ── 1. Input area: textarea left + buttons stacked right ── */
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .agent-input {
     display: grid !important;
     grid-template-columns: 1fr 72px !important;
@@ -7795,7 +7795,7 @@ input[type="radio"]:checked {
 }
 
 /* ── 2. Knowledge popup: always centered vertically on mobile ── */
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .mobile-knowledge-sheet {
     position: fixed !important;
     top: 50% !important;
@@ -7829,7 +7829,7 @@ input[type="radio"]:checked {
 }
 
 /* ── 4. Library card: visible even in collapsed panel ── */
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .agent-panel .mob-col:has(.panel-pos-library) {
     flex: 0 0 min(92vw, 340px) !important;
     width: min(92vw, 340px) !important;
@@ -7874,7 +7874,7 @@ input[type="radio"]:checked {
 }
 
 /* ── 5. Modo cognitivo: show more of the image, less zoom ── */
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .agent-panel .panel-mode-cognitive::before {
     background-size: 70% auto !important;
     background-position: center 20% !important;
@@ -7883,7 +7883,7 @@ input[type="radio"]:checked {
 }
 
 /* ── 6. Feature cards (Budget, Transactions): elegant compact layout ── */
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .agent-panel .panel-feature-card {
     display: flex !important;
     flex-direction: column !important;
@@ -8605,7 +8605,7 @@ input[type="radio"]:checked {
   -webkit-backdrop-filter: none !important;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .agent-chat-header {
     padding: 8px 10px 7px !important;
   }
@@ -9166,7 +9166,7 @@ input[type="radio"]:checked {
   color: rgba(250, 253, 255, 0.96) !important;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .agent-thread {
     padding: 12px 10px calc(128px + env(safe-area-inset-bottom)) !important;
     gap: 12px !important;
@@ -12103,7 +12103,7 @@ input[type="radio"]:checked {
 }
 
 /* Mobile expanded panel should preserve desktop card look */
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .agent-layout.mobile-panel-expanded .agent-panel .panel-card,
   .agent-layout.mobile-panel-expanded .agent-panel .profile-card,
   .agent-layout.mobile-panel-expanded .agent-panel .panel-feature-card,
@@ -12247,7 +12247,7 @@ input[type="radio"]:checked {
   display: none !important;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .mobile-panel-toggle-inline {
     display: inline-flex !important;
   }
@@ -12884,7 +12884,7 @@ input[type="radio"]:checked {
 /* ================================================= */
 /* TRANSACTIONS MOBILE UX PASS                       */
 /* ================================================= */
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .transactions-modal {
     min-height: 100dvh !important;
     max-height: 100dvh !important;
@@ -14341,7 +14341,7 @@ input[type="radio"]:checked {
 }
 
 /* Mobile fix: inline panel CTA text must stay readable on black */
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .agent-thread .agent-bubble.assistant .agent-inline-panel-action .agent-inline-panel-button,
   .agent-thread .agent-bubble.assistant.latex-doc .agent-inline-panel-action .agent-inline-panel-button,
   .agent-layout .agent-thread > .agent-bubble.assistant .agent-inline-panel-action .agent-inline-panel-button,
@@ -14478,7 +14478,7 @@ input[type="radio"]:checked {
   font-family: "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace !important;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-title,
   .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-title {
     font-size: clamp(34px, 8.6vw, 46px) !important;
@@ -15110,7 +15110,7 @@ input[type="radio"]:checked {
   line-height: 1.45;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .transactions-modal .tx-chart-card-with-note .tx-chart-card-note-layout {
     grid-template-columns: 1fr !important;
     gap: 8px !important;
@@ -15382,7 +15382,7 @@ input[type="radio"]:checked {
 }
 
 /* Absolute final: in mobile table mode only table is visible. */
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .budget-modal .budget-modal-body .budget-main-carousel.mode-table-front > .budget-card-agent,
   .budget-modal .budget-modal-body .budget-main-carousel.mode-table-front > section[data-main-card="agent"] {
     display: none !important;
@@ -15473,7 +15473,7 @@ input[type="radio"]:checked {
 }
 
 /* Budget mobile: ensure send button/icon stays visible */
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .budget-modal .budget-assistant-panel .bcc-hero-input-wrap {
     display: grid !important;
     grid-template-columns: minmax(0, 1fr) 52px !important;
@@ -15597,7 +15597,7 @@ input[type="radio"]:checked {
 }
 
 /* Absolute final budget mobile table flow */
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .budget-modal .budget-modal-body .budget-main-carousel.mode-table-front .budget-table-section {
     padding-top: 8px !important;
   }
@@ -15653,7 +15653,7 @@ input[type="radio"]:checked {
 }
 
 /* Absolute final fixes: no overlap + editorial black text */
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .budget-modal .budget-modal-body .budget-main-carousel.mode-table-front .budget-table-head h4 {
     display: none !important;
   }
@@ -15972,7 +15972,7 @@ input[type="radio"]:checked {
   opacity: 1 !important;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .agent-layout.mobile-panel-expanded .agent-panel .panel-pos-budget.panel-feature-card .panel-feature-label,
   .agent-layout.mobile-panel-expanded .agent-panel .panel-pos-budget.panel-feature-card .panel-feature-status,
   .agent-layout.mobile-panel-expanded .agent-panel .panel-pos-budget.panel-feature-card .panel-feature-copy,

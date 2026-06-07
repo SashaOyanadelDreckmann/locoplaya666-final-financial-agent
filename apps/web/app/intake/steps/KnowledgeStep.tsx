@@ -2,6 +2,7 @@
 import { useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import type { IntakeQuestionnaire } from '@financial-agent/shared/src/intake/intake-questionnaire.types';
+import { IntakeQuestionNav } from './IntakeQuestionNav';
 import { balancedColumns } from './grid';
 
 type FinancialKnowledgeKey = keyof IntakeQuestionnaire['financialKnowledge'];
@@ -187,32 +188,16 @@ export function KnowledgeStep({
           No hay respuestas correctas o incorrectas.
         </p>
       </div>
-      <div className="intake-qnav">
-        <p className="intake-question-progress">Pregunta {questionIndex + 1} de {totalQuestions}</p>
-        <button
-          className="intake-nav-arrow intake-qnav-back"
-          onClick={onBackQuestion}
-          type="button"
-          aria-label="Anterior"
-        >
-          ←
-        </button>
-        <button
-          className="intake-nav-arrow intake-qnav-next"
-          onClick={onNextQuestion}
-          type="button"
-          aria-label={isLast ? 'Comenzar mi asesoría' : 'Siguiente'}
-          disabled={loading}
-        >
-          {loading ? (
-            <span className="intake-loading">
-              <span className="intake-dot" /><span className="intake-dot" /><span className="intake-dot" />
-            </span>
-          ) : (
-            '→'
-          )}
-        </button>
-      </div>
+      <IntakeQuestionNav
+        questionIndex={questionIndex}
+        totalQuestions={totalQuestions}
+        onBack={onBackQuestion}
+        onNext={onNextQuestion}
+        showBack
+        showForward
+        forwardAriaLabel={isLast ? 'Comenzar mi asesoría' : 'Siguiente'}
+        loading={loading}
+      />
 
       {questionIndex < GROUP_COUNT && (() => {
         const group = KNOWLEDGE_GROUPS[questionIndex];

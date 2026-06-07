@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { MOBILE_SHELL_MEDIA } from "@/lib/viewport-mode";
 import { Map as ArcMap, MapControls, MapMarker, MarkerContent, MarkerLabel } from "@/components/ui/mapcn-map-arc";
 
 type CityGeo = {
@@ -44,9 +45,11 @@ async function geocodeCity(city: string): Promise<CityGeo | null> {
 export function CityMapQuestion({
   city,
   onCityChange,
+  onGeocodeResolved,
 }: {
   city: string;
   onCityChange: (value: string) => void;
+  onGeocodeResolved?: (resolved: boolean) => void;
 }) {
   const [resolved, setResolved] = useState<CityGeo | null>(null);
   const [loading, setLoading] = useState(false);
@@ -55,7 +58,7 @@ export function CityMapQuestion({
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const mediaQuery = window.matchMedia("(max-width: 768px)");
+    const mediaQuery = window.matchMedia(MOBILE_SHELL_MEDIA);
     const syncViewport = (event?: MediaQueryList | MediaQueryListEvent) => {
       setIsCompactViewport(event?.matches ?? mediaQuery.matches);
     };
@@ -90,6 +93,10 @@ export function CityMapQuestion({
       clearTimeout(timer);
     };
   }, [city]);
+
+  useEffect(() => {
+    onGeocodeResolved?.(!!resolved);
+  }, [resolved, onGeocodeResolved]);
 
   const center = resolved?.center ?? DEFAULT_CENTER;
   const zoom = resolved ? 9 : 3.2;
