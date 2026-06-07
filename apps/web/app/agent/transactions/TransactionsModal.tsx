@@ -8,6 +8,12 @@ import { buildChatDashboardForQuestion, compactDashboardForPrompt } from '@/lib/
 import { buildTransactionChatRequest } from '@/lib/transactions-chat.request';
 import { deriveTransactionAuthorizationState } from '@/lib/transactions-authorization.helpers';
 import { buildTransactionAuthorizationBlockMessage } from '@/lib/transactions-authorization.helpers';
+import {
+  buildEvidenceAppendNotice,
+  getEvidenceUploadCapacity,
+  mergeEvidenceFiles,
+  prepareIncomingEvidenceFiles,
+} from '@/lib/transactions-evidence.helpers';
 import { resolveInstantTransactionSummary } from '@/lib/transactions-summary.helpers';
 
 import {
@@ -257,64 +263,37 @@ export function TransactionsModal(props: TransactionsModalProps) {
       ? 'Obligatorio: cartola de tarjeta (imagen o PDF). También puedes agregar un antecedente escrito manual si no quieres subir fotos.'
       : 'Recomendado: estado de cuenta/cartola en imagen, PDF, Excel o CSV. También puedes pegar un antecedente escrito manual.';
 
-  const appendPendingEvidence = (files: FileList | null) => {
+  const appendPendingEvidence = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
     if (!activeProductId) return;
     if (analysisAlreadyDone) {
       setProductError(activeProductId, 'Este producto ya fue analizado. Para nuevos antecedentes debes recrear el producto.');
       return;
     }
-    const availableSlots = Math.max(
-      0,
-      props.maxEvidenceFilesPerProduct - (props.activeBankProduct?.uploadedFiles.length ?? 0),
+    const capacity = getEvidenceUploadCapacity(
+      props.maxEvidenceFilesPerProduct,
+      props.activeBankProduct?.uploadedFiles.length ?? 0,
     );
-    if (availableSlots <= 0) {
+    if (capacity <= 0) {
       setProductError(activeProductId, `Este producto ya alcanzó el límite de ${props.maxEvidenceFilesPerProduct} archivos.`);
       return;
     }
-    const next = Array.from(files);
-    const merged = [...pendingEvidenceFiles];
-    const oversizeNames: string[] = [];
-    let exceededSlots = false;
-    let exceededTotalBytes = false;
-    let rollingBytes = merged.reduce((acc, file) => acc + file.size, 0);
+    const optimized = await prepareIncomingEvidenceFiles(files);
+    const mergeResult = mergeEvidenceFiles(pendingEvidenceFiles, optimized, {
+      capacity,
+      maxSingleBytes: TX_MAX_SINGLE_FILE_BYTES,
+      maxTotalBytes: TX_MAX_TOTAL_FILE_BYTES,
+    });
 
-    for (const file of next) {
-      if (file.size > TX_MAX_SINGLE_FILE_BYTES) {
-        oversizeNames.push(file.name);
-        continue;
-      }
-      if (merged.some((existing) => existing.name === file.name && existing.size === file.size)) continue;
-      if (merged.length >= availableSlots) {
-        exceededSlots = true;
-        continue;
-      }
-      if (rollingBytes + file.size > TX_MAX_TOTAL_FILE_BYTES) {
-        exceededTotalBytes = true;
-        continue;
-      }
-      merged.push(file);
-      rollingBytes += file.size;
-    }
-
-    setActivePendingEvidenceFiles(merged);
-
-    const notices: string[] = [];
-    if (oversizeNames.length > 0) {
-      const mbLimit = Math.round(TX_MAX_SINGLE_FILE_BYTES / (1024 * 1024));
-      const preview = oversizeNames.slice(0, 2).join(', ');
-      notices.push(
-        `Algunos archivos superan ${mbLimit} MB por archivo (${preview}${oversizeNames.length > 2 ? ', ...' : ''}).`,
-      );
-    }
-    if (exceededTotalBytes) {
-      const mbLimit = Math.round(TX_MAX_TOTAL_FILE_BYTES / (1024 * 1024));
-      notices.push(`El total adjunto no puede superar ${mbLimit} MB.`);
-    }
-    if (exceededSlots) {
-      notices.push(`Límite por producto: ${props.maxEvidenceFilesPerProduct} archivos.`);
-    }
-    setProductError(activeProductId, notices.length > 0 ? notices.join(' ') : null);
+    setActivePendingEvidenceFiles(mergeResult.files);
+    setProductError(
+      activeProductId,
+      buildEvidenceAppendNotice(mergeResult, {
+        maxFilesPerProduct: props.maxEvidenceFilesPerProduct,
+        maxSingleBytes: TX_MAX_SINGLE_FILE_BYTES,
+        maxTotalBytes: TX_MAX_TOTAL_FILE_BYTES,
+      }),
+    );
   };
 
   const clearPendingEvidence = () => {
@@ -806,7 +785,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
   }, [analysisAlreadyDone, authorizationState, canContinueAuto, currentStage]);
 
   const requestClose = useCallback(() => {
-    const hasPending = pendingEvidenceFiles.length > 0 || pendingManualEvidence.length > 0;
+    const hasPending = pendingEvidenceFiles.length > 0 || manualEvidenceDraft.trim().length > 0;
     const isBusy = props.documentsLoading || txAssistantLoading;
     if (isBusy) {
       const confirmed = window.confirm(
@@ -826,7 +805,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
   }, [
     clearPendingEvidence,
     pendingEvidenceFiles.length,
-    pendingManualEvidence,
+    manualEvidenceDraft,
     props.documentsLoading,
     props.onClose,
     txAssistantLoading,
@@ -1145,12 +1124,12 @@ export function TransactionsModal(props: TransactionsModalProps) {
     }
   }
 
-  async function handleAssistantUploadSend(messageText: string) {
+  async function handleAssistantUploadSend(messageText: string, options?: { includeTextAsEvidence?: boolean }) {
     const product = props.activeBankProduct;
     if (!product) return;
     const productId = product.id;
-    const manualFile =
-      pendingManualEvidence.length > 0 ? buildManualEvidenceFile(pendingManualEvidence) : null;
+    const manualText = options?.includeTextAsEvidence ? messageText.trim() : pendingManualEvidence;
+    const manualFile = manualText.length > 0 ? buildManualEvidenceFile(manualText) : null;
     const filesToUpload = manualFile ? [...pendingEvidenceFiles, manualFile] : pendingEvidenceFiles;
     if (filesToUpload.length === 0) return;
 
@@ -1204,8 +1183,13 @@ export function TransactionsModal(props: TransactionsModalProps) {
     const productRegenerationsLeft = Math.max(0, 3 - productRegenerationsUsed);
     const productMessages = product.assistant?.messages ?? [];
     const text = txAssistantInput.trim();
-    const hasFiles = pendingEvidenceFiles.length > 0 || pendingManualEvidence.length > 0;
-    if (!text && !hasFiles) return;
+    const hasAttachedFiles = pendingEvidenceFiles.length > 0;
+    const wantsTextEvidenceUpload =
+      !analysisAlreadyDone &&
+      product.assistant?.uploadFormat === 'text' &&
+      text.length > 0 &&
+      !hasAttachedFiles;
+    if (!text && !hasAttachedFiles) return;
     txSendLockRef.current = true;
     const txAction = beginTxAction();
     const { sessionId, controller, finish } = txAction;
@@ -1224,8 +1208,8 @@ export function TransactionsModal(props: TransactionsModalProps) {
                   ? 'text'
                   : null;
 
-      if (hasFiles) {
-        await handleAssistantUploadSend(text);
+      if (hasAttachedFiles || wantsTextEvidenceUpload) {
+        await handleAssistantUploadSend(text, { includeTextAsEvidence: wantsTextEvidenceUpload });
         return;
       }
 

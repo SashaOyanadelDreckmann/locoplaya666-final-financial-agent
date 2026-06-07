@@ -88,7 +88,7 @@ export interface TxEvidenceStepProps {
   onResetUploadFormat: () => void;
   onSetUploadOnboardingStep: (step: 'format' | 'details' | 'upload') => void;
   onBumpTransitionPulse: () => void;
-  onAppendPendingEvidence: (files: FileList | null) => void;
+  onAppendPendingEvidence: (files: FileList | null) => void | Promise<void>;
   onManualEvidenceChange: (value: string) => void;
   onAssistantInputChange: (value: string) => void;
   onAssistantSend: () => void;
@@ -103,19 +103,15 @@ export function TxEvidenceStep(props: TxEvidenceStepProps) {
   const messageCount = p.assistantMessages.length;
   const composerValue = p.txAssistantInput;
   const canAttach = !p.analysisAlreadyDone;
-  const hasComposerPayload =
-    Boolean(composerValue.trim()) ||
-    p.pendingEvidenceFiles.length > 0 ||
-    p.pendingManualEvidence.length > 0;
+  const hasComposerPayload = Boolean(composerValue.trim()) || p.pendingEvidenceFiles.length > 0;
   const sendDisabled =
     p.txAssistantLoading ||
     p.documentsLoading ||
     !hasComposerPayload ||
-    (p.analysisAlreadyDone && (p.pendingEvidenceFiles.length > 0 || p.pendingManualEvidence.length > 0));
+    (p.analysisAlreadyDone && p.pendingEvidenceFiles.length > 0);
 
   const handleComposerChange = (value: string) => {
     p.onAssistantInputChange(value);
-    p.onManualEvidenceChange(value);
   };
 
   const handleComposerKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -130,7 +126,7 @@ export function TxEvidenceStep(props: TxEvidenceStepProps) {
     p.onBumpTransitionPulse();
   };
 
-  const handleAttachChange = (event: ChangeEvent<HTMLInputElement>) => {
+  const handleAttachChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
     const hasVideo = Array.from(files).some(
@@ -138,9 +134,11 @@ export function TxEvidenceStep(props: TxEvidenceStepProps) {
     );
     if (hasVideo) {
       p.onPatchUploadFormat('video');
+    } else if (!p.selectedUploadFormat) {
+      p.onPatchUploadFormat('photos');
     }
     p.onSetUploadOnboardingStep('upload');
-    p.onAppendPendingEvidence(files);
+    await p.onAppendPendingEvidence(files);
     event.target.value = '';
   };
 
@@ -269,8 +267,8 @@ export function TxEvidenceStep(props: TxEvidenceStepProps) {
 
         {(p.pendingEvidenceFiles.length > 0 || p.activeBankProduct.uploadedFiles.length > 0) && (
           <div className="tx-composer-attachments" aria-label="Archivos adjuntos">
-            {p.pendingEvidenceFiles.slice(0, 12).map((file) => (
-              <span key={`pending-${file.name}-${file.size}`} className="upload-file-pill" title={file.name}>
+            {p.pendingEvidenceFiles.map((file) => (
+              <span key={`pending-${file.name}-${file.size}-${file.lastModified}`} className="upload-file-pill" title={file.name}>
                 {file.name}
               </span>
             ))}
@@ -279,6 +277,9 @@ export function TxEvidenceStep(props: TxEvidenceStepProps) {
                 {name}
               </span>
             ))}
+            <span className="tx-composer-attachments-count" aria-live="polite">
+              {p.pendingEvidenceFiles.length + p.activeBankProduct.uploadedFiles.length}/{p.maxEvidenceFilesPerProduct}
+            </span>
           </div>
         )}
 
@@ -311,10 +312,12 @@ export function TxEvidenceStep(props: TxEvidenceStepProps) {
         </div>
 
         {!p.analysisAlreadyDone && (
-          <p className="tx-composer-hint">Enter para enviar · Shift+Enter para nueva línea · Hasta {p.maxEvidenceFilesPerProduct} archivos</p>
+          <p className="tx-composer-hint">
+            Enter para enviar · Shift+Enter nueva línea · Hasta {p.maxEvidenceFilesPerProduct} archivos · 50 MB por envío
+          </p>
         )}
 
-        {p.analysisAlreadyDone && (p.pendingEvidenceFiles.length > 0 || p.pendingManualEvidence.length > 0) && (
+        {p.analysisAlreadyDone && p.pendingEvidenceFiles.length > 0 && (
           <p className="manual-evidence-hint">
             Este producto ya tiene análisis. Para nuevos antecedentes debes recrear el producto.
           </p>

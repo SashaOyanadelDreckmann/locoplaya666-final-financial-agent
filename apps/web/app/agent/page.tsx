@@ -120,6 +120,8 @@ import { buildPanelBaseCards } from './panel-cards';
 import { useBudgetRows } from './hooks/use-budget-rows';
 import { useAgentShell } from './hooks/use-agent-shell';
 import { mergeBankProductPatch } from './transactions/state.helpers';
+import { TX_MAX_TOTAL_FILE_BYTES } from './transactions/constants';
+import { getEvidenceUploadCapacity } from '@/lib/transactions-evidence.helpers';
 import { buildPanelSnapshotPayload } from './page.flow';
 import { clearPanelStateBackups, hydratePanelState, persistPanelState } from './panel-state.service';
 
@@ -2810,11 +2812,13 @@ export default function AgentPage() {
       return null;
     }
     const totalBytes = selectedFiles.reduce((sum, file) => sum + file.size, 0);
-    if (totalBytes > 50 * 1024 * 1024) {
-      setTransactionUploadError('El total adjunto supera 50 MB. Divide la carga en bloques más pequeños.');
+    if (totalBytes > TX_MAX_TOTAL_FILE_BYTES) {
+      setTransactionUploadError(
+        `El total adjunto supera ${Math.round(TX_MAX_TOTAL_FILE_BYTES / (1024 * 1024))} MB. Divide la carga en bloques más pequeños.`,
+      );
       return null;
     }
-    const availableSlots = Math.max(0, MAX_EVIDENCE_FILES_PER_PRODUCT - activeBankProduct.uploadedFiles.length);
+    const availableSlots = getEvidenceUploadCapacity(MAX_EVIDENCE_FILES_PER_PRODUCT, activeBankProduct.uploadedFiles.length);
     if (availableSlots <= 0) {
       setTransactionUploadError(`Este producto ya alcanzó el límite de ${MAX_EVIDENCE_FILES_PER_PRODUCT} archivos.`);
       return null;

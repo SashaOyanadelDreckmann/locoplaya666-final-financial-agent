@@ -13,7 +13,7 @@ describe('transactions modal safeguards', () => {
     const pageConstantsPath = path.join(process.cwd(), 'app', 'agent', 'agent-page.constants.ts');
     const pageConstants = fs.readFileSync(pageConstantsPath, 'utf8');
     expect(constants).toContain('TX_MAX_SINGLE_FILE_BYTES = 10 * 1024 * 1024');
-    expect(constants).toContain('TX_MAX_TOTAL_FILE_BYTES = 35 * 1024 * 1024');
+    expect(constants).toContain('TX_MAX_TOTAL_FILE_BYTES = 50 * 1024 * 1024');
     expect(pageConstants).toContain('MAX_TRANSACTION_PRODUCTS = 7');
     expect(pageConstants).toContain('MAX_TRANSACTION_PRODUCTS_CREATED_TOTAL = 12');
     expect(pageConstants).toContain('MAX_EVIDENCE_FILES_PER_PRODUCT = 25');
@@ -54,7 +54,8 @@ describe('transactions modal safeguards', () => {
     expect(source).toContain('if (fallbackParsedDocs.length === 0)');
     expect(source).toContain('No se detectó contenido transaccional en esos archivos');
     expect(source).toContain('const totalBytes = selectedFiles.reduce((sum, file) => sum + file.size, 0);');
-    expect(source).toContain('if (totalBytes > 35 * 1024 * 1024)');
+    expect(source).toContain('TX_MAX_TOTAL_FILE_BYTES');
+    expect(source).toContain('getEvidenceUploadCapacity');
     expect(source).toContain('let parsed = await callParseDocuments();');
     expect(source).toContain('await new Promise((resolve) => setTimeout(resolve, 700));');
     expect(source).not.toContain('const uploadApplied = applyUploadToTargetProduct(prev.products, targetProductId, [], names);');
