@@ -908,10 +908,10 @@
   overflow: visible !important;
 }
 
-.budget-modal .budget-main-carousel:not(.is-desktop) .budget-table tbody td:nth-child(1) { grid-area: category !important; }
-.budget-modal .budget-main-carousel:not(.is-desktop) .budget-table tbody td:nth-child(2) { grid-area: type !important; }
-.budget-modal .budget-main-carousel:not(.is-desktop) .budget-table tbody td:nth-child(3) { grid-area: amount !important; }
-.budget-modal .budget-main-carousel:not(.is-desktop) .budget-table tbody td:nth-child(4) { grid-area: actions !important; }
+.budget-modal .budget-main-carousel:not(.is-desktop) .budget-table:not(.budget-table-pro) tbody td:nth-child(1) { grid-area: category !important; }
+.budget-modal .budget-main-carousel:not(.is-desktop) .budget-table:not(.budget-table-pro) tbody td:nth-child(2) { grid-area: type !important; }
+.budget-modal .budget-main-carousel:not(.is-desktop) .budget-table:not(.budget-table-pro) tbody td:nth-child(3) { grid-area: amount !important; }
+.budget-modal .budget-main-carousel:not(.is-desktop) .budget-table:not(.budget-table-pro) tbody td:nth-child(4) { grid-area: actions !important; }
 
 .budget-modal .budget-main-carousel:not(.is-desktop) .budget-table input,
 .budget-modal .budget-main-carousel:not(.is-desktop) .budget-table select {

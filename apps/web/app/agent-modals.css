@@ -8,3 +8,5 @@
 @import './agent-modals-budget.css';
 /* Diagnostic and mobile parity overlays. */
 @import './agent-modals-diagnostics.css';
+/* Budget mobile shell — wins diagnostics legacy overrides */
+@import './agent-modals-budget-mobile.css';

@@ -1286,42 +1286,41 @@
   overflow-x: visible !important;
 }
 
-/* Hard override: no fixed-height carousel / no inner table scroll */
-.budget-modal .budget-modal-body .budget-main-carousel,
-.budget-modal .budget-modal-body .budget-main-carousel.mode-split,
-.budget-modal .budget-modal-body .budget-main-carousel.mode-compact-side,
-.budget-modal .budget-modal-body .budget-main-carousel.mode-table-front {
+/* Hard override: desktop carousel grows with content (mobile uses agent-modals-budget-mobile.css) */
+.budget-modal .budget-modal-body.is-desktop .budget-main-carousel,
+.budget-modal .budget-modal-body.is-desktop .budget-main-carousel.mode-split,
+.budget-modal .budget-modal-body.is-desktop .budget-main-carousel.mode-compact-side,
+.budget-modal .budget-modal-body.is-desktop .budget-main-carousel.mode-table-front {
   height: auto !important;
   min-height: 0 !important;
   overflow: visible !important;
 }
 
-.budget-modal .budget-modal-body .budget-main-carousel.mode-split > .budget-card-table .budget-table-wrap,
-.budget-modal .budget-modal-body .budget-main-carousel.mode-compact-side > .budget-card-table .budget-table-wrap,
-.budget-modal .budget-modal-body .budget-main-carousel.mode-table-front > .budget-card-table .budget-table-wrap,
-.budget-modal .budget-table-wrap {
+.budget-modal .budget-modal-body.is-desktop .budget-main-carousel.mode-split > .budget-card-table .budget-table-wrap,
+.budget-modal .budget-modal-body.is-desktop .budget-main-carousel.mode-compact-side > .budget-card-table .budget-table-wrap,
+.budget-modal .budget-modal-body.is-desktop .budget-main-carousel.mode-table-front > .budget-card-table .budget-table-wrap,
+.budget-modal .budget-modal-body.is-desktop .budget-table-wrap {
   max-height: none !important;
   height: auto !important;
   overflow: visible !important;
 }
 
-/* Absolute override: modal must grow with all rows, no inner swipe/scroll */
-.budget-modal {
+.budget-modal:has(.budget-modal-body.is-desktop) {
   max-height: none !important;
   height: auto !important;
   overflow: visible !important;
 }
 
-.budget-modal .budget-modal-body {
+.budget-modal .budget-modal-body.is-desktop {
   max-height: none !important;
   height: auto !important;
   overflow: visible !important;
 }
 
-.budget-modal .budget-pdf-surface,
-.budget-modal .budget-table-section,
-.budget-modal .budget-table-wrap,
-.budget-modal .budget-table {
+.budget-modal .budget-modal-body.is-desktop .budget-pdf-surface,
+.budget-modal .budget-modal-body.is-desktop .budget-table-section,
+.budget-modal .budget-modal-body.is-desktop .budget-table-wrap,
+.budget-modal .budget-modal-body.is-desktop .budget-table {
   max-height: none !important;
   height: auto !important;
   overflow: visible !important;
@@ -1912,8 +1911,8 @@
 .budget-modal .budget-table th:nth-child(4),
 .budget-modal .budget-table td:nth-child(4) { width: 12% !important; display: table-cell !important; }
 
-.budget-modal .budget-table th:nth-child(n+5),
-.budget-modal .budget-table td:nth-child(n+5) {
+.budget-modal .budget-table:not(.budget-table-pro) th:nth-child(n+5),
+.budget-modal .budget-table:not(.budget-table-pro) td:nth-child(n+5) {
   display: none !important;
 }
 
@@ -4438,13 +4437,14 @@
 
 .budget-modal .budget-table-bottom-actions {
   display: grid !important;
-  grid-template-columns: minmax(160px, 0.36fr) minmax(220px, 1fr) !important;
+  grid-template-columns: minmax(140px, 0.3fr) minmax(180px, 1fr) minmax(160px, 0.85fr) !important;
   gap: 12px !important;
   margin-top: 16px !important;
 }
 
 .budget-modal .budget-style-button,
-.budget-modal .budget-pdf-button {
+.budget-modal .budget-pdf-button,
+.budget-modal .budget-chat-sync-button {
   min-height: 52px !important;
   border-radius: 14px !important;
   font-weight: 680 !important;
@@ -4462,6 +4462,17 @@
   background: linear-gradient(135deg, rgba(240, 244, 248, 0.96), rgba(210, 222, 234, 0.92)) !important;
   color: #071018 !important;
   box-shadow: 0 18px 36px rgba(6, 10, 15, 0.34) !important;
+}
+
+.budget-modal .budget-chat-sync-button {
+  border: 1px solid rgba(142, 167, 191, 0.34) !important;
+  background: rgba(36, 57, 79, 0.72) !important;
+  color: rgba(245, 248, 252, 0.96) !important;
+}
+
+.budget-modal .budget-chat-sync-button:disabled {
+  opacity: 0.45 !important;
+  cursor: not-allowed !important;
 }
 
 .budget-modal .budget-pdf-button:disabled {

@@ -1084,6 +1084,18 @@ export function BudgetModal(props: {
   }
 
   const { isOpen, onClose } = props;
+  const isMobileShell = !isDesktopLayout;
+
+  const handleOverlayPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!isMobileShell && event.target === event.currentTarget) {
+      onClose();
+    }
+  };
+
+  const handleSendBudgetToAgent = () => {
+    props.sendBudgetToAgent();
+    onClose();
+  };
 
   useEffect(() => {
     if (!isOpen) return;
@@ -1145,9 +1157,12 @@ export function BudgetModal(props: {
   if (!isOpen) return null;
 
   return (
-    <div className="agent-modal-overlay budget-modal-overlay" onClick={onClose}>
+    <div
+      className="agent-modal-overlay budget-modal-overlay"
+      onPointerDown={handleOverlayPointerDown}
+    >
       <div
-        className="agent-modal budget-modal"
+        className={`agent-modal budget-modal${isMobileShell ? ' is-mobile-shell' : ''}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="budget-modal-title"
@@ -1183,8 +1198,11 @@ export function BudgetModal(props: {
         ))}
 
         <div className={`budget-modal-body${isDesktopLayout ? ' is-desktop' : ''}`}>
-          {!( !isDesktopLayout && budgetViewMode === 2 ) && (
-          <section className={`budget-cockpit-banner ${heroToneClass}`}>
+          <section
+            className={`budget-cockpit-banner ${heroToneClass}${
+              isMobileShell && budgetViewMode === 2 ? ' is-compact' : ''
+            }`}
+          >
             <div className="budget-cockpit-copy">
               <span className="budget-section-eyebrow">Cockpit financiero</span>
               <h4>{props.budgetSignals.balanceLabel}</h4>
@@ -1214,11 +1232,12 @@ export function BudgetModal(props: {
               </div>
             </div>
           </section>
-          )}
 
-          <div className="budget-mode-tabs" aria-label="Modo de presupuesto">
+          <div className="budget-mode-tabs" role="tablist" aria-label="Modo de presupuesto">
             <button
               type="button"
+              role="tab"
+              aria-selected={budgetViewMode === 1}
               className={`budget-mode-tab${budgetViewMode === 1 ? ' is-active' : ''}`}
               onClick={() => setBudgetViewMode(1)}
             >
@@ -1226,6 +1245,8 @@ export function BudgetModal(props: {
             </button>
             <button
               type="button"
+              role="tab"
+              aria-selected={budgetViewMode === 2}
               className={`budget-mode-tab${budgetViewMode === 2 ? ' is-active' : ''}`}
               onClick={() => setBudgetViewMode(2)}
             >
@@ -1233,6 +1254,8 @@ export function BudgetModal(props: {
             </button>
             <button
               type="button"
+              role="tab"
+              aria-selected={budgetViewMode === 3}
               className={`budget-mode-tab is-desktop-only${budgetViewMode === 3 ? ' is-active' : ''}`}
               onClick={() => setBudgetViewMode(3)}
             >
@@ -1329,6 +1352,15 @@ export function BudgetModal(props: {
                 </div>
 
                 {aiError && <p className="bcc-hero-error">{aiError}</p>}
+
+                <button
+                  type="button"
+                  className="budget-chat-sync-button is-assistant-action"
+                  onClick={handleSendBudgetToAgent}
+                  disabled={props.budgetRows.length === 0}
+                >
+                  Generar informe en chat
+                </button>
               </div>
             </section>
 
@@ -1393,6 +1425,14 @@ export function BudgetModal(props: {
                   disabled={isGeneratingBudgetPdf || props.budgetRows.length === 0}
                 >
                   {isGeneratingBudgetPdf ? 'Preparando PDF…' : 'Guardar como PDF'}
+                </button>
+                <button
+                  type="button"
+                  className="budget-chat-sync-button"
+                  onClick={handleSendBudgetToAgent}
+                  disabled={props.budgetRows.length === 0}
+                >
+                  Informe en chat
                 </button>
               </div>
             </section>

@@ -81,4 +81,22 @@ describe('budget modal logic guards', () => {
     expect(source).toContain("if (message.includes('HTTP 5'))");
     expect(source).toContain('El servicio del asistente no esta disponible ahora. Intenta nuevamente en unos segundos.');
   });
+
+  it('wires mobile shell class, compact cockpit, chat sync, and safe overlay dismiss', () => {
+    expect(source).toContain("isMobileShell ? ' is-mobile-shell' : ''");
+    expect(source).toContain('is-compact');
+    expect(source).toContain('handleSendBudgetToAgent');
+    expect(source).toContain('props.sendBudgetToAgent()');
+    expect(source).toContain('budget-chat-sync-button');
+    expect(source).toContain('handleOverlayPointerDown');
+    expect(source).toContain('role="tablist"');
+    expect(source).toContain('aria-selected={budgetViewMode === 1}');
+  });
+
+  it('scopes legacy table column hiding away from budget-table-pro', () => {
+    const budgetCssPath = path.join(process.cwd(), 'app', 'agent-modals-budget.css');
+    const budgetCss = fs.readFileSync(budgetCssPath, 'utf8');
+    expect(budgetCss).toContain('.budget-table:not(.budget-table-pro) th:nth-child(n+5)');
+    expect(budgetCss).toContain('.budget-modal-body.is-desktop .budget-table-wrap');
+  });
 });
