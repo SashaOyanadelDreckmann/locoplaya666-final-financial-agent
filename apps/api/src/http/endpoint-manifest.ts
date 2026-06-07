@@ -23,7 +23,6 @@ export const ENDPOINT_MANIFEST: EndpointDefinition[] = [
   { method: 'POST', path: '/api/remove-injected-intake', hasSchemaValidation: true, hasTests: false, hasDocs: true, hasObservability: true },
   { method: 'POST', path: '/api/remove-injected-profile', hasSchemaValidation: true, hasTests: false, hasDocs: true, hasObservability: true },
   { method: 'POST', path: '/api/agent', hasSchemaValidation: true, hasTests: true, hasDocs: true, hasObservability: true },
-  { method: 'POST', path: '/api/budget-chat', hasSchemaValidation: true, hasTests: true, hasDocs: false, hasObservability: true },
   { method: 'GET', path: '/api/session', hasSchemaValidation: true, hasTests: true, hasDocs: true, hasObservability: true },
   { method: 'GET', path: '/api/welcome', hasSchemaValidation: true, hasTests: false, hasDocs: true, hasObservability: true },
   { method: 'GET', path: '/api/sheets', hasSchemaValidation: true, hasTests: false, hasDocs: true, hasObservability: true },

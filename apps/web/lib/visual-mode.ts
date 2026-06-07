@@ -70,8 +70,8 @@ export function clearStoredVisualMode(): void {
 }
 
 /** Duración del reveal cinematográfico al cambiar de modo (ms). */
-export const VISUAL_MODE_TRANSITION_MS = 2200;
-const SHIMMER_LINGER_MS = 2600;
+export const VISUAL_MODE_TRANSITION_MS = 4000;
+const SHIMMER_LINGER_MS = 4600;
 
 function prefersReducedMotion(): boolean {
   if (typeof window === 'undefined' || !window.matchMedia) return false;
@@ -142,7 +142,6 @@ export function runVisualModeTransition(
       applyOnce();
     });
   } catch {
-    // La API existe pero abortó (p. ej. documento no renderizable): aplica directo.
     applyOnce();
     return;
   }
@@ -154,24 +153,29 @@ export function runVisualModeTransition(
         Math.max(cy, window.innerHeight - cy),
       );
       const root = document.documentElement;
-      const easing = 'cubic-bezier(0.22, 1, 0.36, 1)';
+      const revealEasing = 'cubic-bezier(0.12, 0.88, 0.22, 1)';
+      const fadeEasing = 'cubic-bezier(0.42, 0, 0.58, 1)';
 
-      // Entrante: círculo que florece + brillo que se asienta.
+      // Entrante: círculo que florece con pasos intermedios para un reveal más gradual.
       root.animate(
         {
           clipPath: [
             `circle(0px at ${cx}px ${cy}px)`,
+            `circle(${maxRadius * 0.12}px at ${cx}px ${cy}px)`,
+            `circle(${maxRadius * 0.48}px at ${cx}px ${cy}px)`,
             `circle(${maxRadius}px at ${cx}px ${cy}px)`,
           ],
-          opacity: [0.4, 1],
+          opacity: [0.22, 0.48, 0.78, 1],
           filter: [
-            'saturate(1.45) brightness(1.1)',
+            'saturate(1.38) brightness(1.09)',
+            'saturate(1.22) brightness(1.05)',
+            'saturate(1.08) brightness(1.02)',
             'saturate(1) brightness(1)',
           ],
         },
         {
           duration: VISUAL_MODE_TRANSITION_MS,
-          easing,
+          easing: revealEasing,
           pseudoElement: '::view-transition-new(root)',
         },
       );
@@ -179,13 +183,13 @@ export function runVisualModeTransition(
       // Saliente: se desvanece y se desenfoca por debajo (mezcla, no corte).
       root.animate(
         {
-          opacity: [1, 0],
-          filter: ['blur(0px)', 'blur(7px)'],
-          transform: ['scale(1)', 'scale(1.035)'],
+          opacity: [1, 0.88, 0.52, 0],
+          filter: ['blur(0px)', 'blur(2px)', 'blur(5px)', 'blur(8px)'],
+          transform: ['scale(1)', 'scale(1.012)', 'scale(1.024)', 'scale(1.034)'],
         },
         {
-          duration: Math.round(VISUAL_MODE_TRANSITION_MS * 0.82),
-          easing: 'ease-in',
+          duration: Math.round(VISUAL_MODE_TRANSITION_MS * 0.92),
+          easing: fadeEasing,
           pseudoElement: '::view-transition-old(root)',
         },
       );

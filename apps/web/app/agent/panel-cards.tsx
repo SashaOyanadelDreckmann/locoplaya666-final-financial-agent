@@ -29,8 +29,8 @@ type PanelCardsProps = {
   openInterviewModal: () => void;
   openDiagnosisView?: () => void;
   setInterviewIntake: (intake: any) => void;
+  setPanelCallout: (value: { section: string; message: string } | null) => void;
   unlockedPanelBlocks: { budgetUnlocked: boolean; transactionsUnlocked: boolean };
-  setIsBudgetModalOpen: (open: boolean) => void;
   budgetTotals: { income: number; expenses: number };
   budgetInsights: { healthScore?: number } | null;
   openTransactionsPanel: () => void;
@@ -211,15 +211,18 @@ export function buildPanelBaseCards(props: PanelCardsProps): PanelCard[] {
             type="button"
             data-panel-section="budget"
             className={`panel-feature-card panel-pos-budget ${props.unlockedPanelBlocks.budgetUnlocked ? '' : 'is-locked'}${props.highlightedSection === 'budget' ? ' is-panel-highlighted' : ''}`}
-            onClick={() => {
-              if (!props.unlockedPanelBlocks.budgetUnlocked) return;
-              props.setIsBudgetModalOpen(true);
-            }}
-            title={
-              props.unlockedPanelBlocks.budgetUnlocked
-                ? 'Abrir presupuesto inteligente'
-                : 'Bloqueado: conversa sobre ingresos y gastos'
-            }
+              onClick={() => {
+                if (!props.unlockedPanelBlocks.budgetUnlocked) return;
+                props.setPanelCallout({
+                  section: 'budget',
+                  message: 'El modal de presupuesto fue retirado. Usa la tarjeta de presupuesto como resumen del estado actual.',
+                });
+              }}
+              title={
+                props.unlockedPanelBlocks.budgetUnlocked
+                  ? 'Presupuesto resumido'
+                  : 'Bloqueado: conversa sobre ingresos y gastos'
+              }
           >
             <span className="panel-feature-label">Presupuesto</span>
             <span className="panel-feature-status">

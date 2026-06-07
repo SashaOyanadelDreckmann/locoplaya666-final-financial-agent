@@ -108,7 +108,7 @@ import type {
   ChatItem,
 } from '@/lib/agent.response.types';
 import { toChatItemsFromAgentResponse } from '@/lib/agent.response.types';
-import { AccountModal, BudgetModal, QuestionnaireModal, TransactionsModal } from './modals';
+import { AccountModal, QuestionnaireModal, TransactionsModal } from './modals';
 import { InterviewModal } from './InterviewModal';
 import { SocialConsciousnessModal } from './SocialConsciousnessModal';
 import { SidePanels } from './side-panels';
@@ -464,7 +464,6 @@ export default function AgentPage() {
   const [isRailMorphing] = useState(false);
   const [levelUpText, setLevelUpText] = useState<string | null>(null);
   const [knowledgePopupOpen, setKnowledgePopupOpen] = useState(false);
-  const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
   const [isTransactionsModalOpen, setIsTransactionsModalOpen] = useState(false);
   const [isQuestionnaireModalOpen, setIsQuestionnaireModalOpen] = useState(false);
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
@@ -547,7 +546,7 @@ export default function AgentPage() {
   const items = activeThread?.items ?? [];
   const input = activeThread?.draft ?? '';
   const hasBlockingModalOpen =
-    isBudgetModalOpen || isTransactionsModalOpen || isQuestionnaireModalOpen || isAccountModalOpen || isInterviewModalOpen || isSocialConsciousnessModalOpen;
+    isTransactionsModalOpen || isQuestionnaireModalOpen || isAccountModalOpen || isInterviewModalOpen || isSocialConsciousnessModalOpen;
   const interviewCompleted =
     savedReports.some((report) => report.group === 'diagnosis') ||
     Boolean(sessionInfo?.latestDiagnosticCompletedAt);
@@ -625,11 +624,6 @@ export default function AgentPage() {
     if (threadId === PRIMARY_CHAT_ID) return false;
     return !unlockedChatIds.includes(threadId) || closedChatIds.includes(threadId);
   }
-
-  useEffect(() => {
-    if (!isBudgetModalOpen) return;
-    chatComposerRef.current?.blur();
-  }, [isBudgetModalOpen]);
 
   useEffect(
     () => () => {
@@ -2478,7 +2472,6 @@ export default function AgentPage() {
       '- Cierra con SUGERENCIAS accionables y breves.',
     ].join('\n');
     setBudgetChatAnswers([]);
-    setIsBudgetModalOpen(false);
     void syncFinancialContextToIntake().catch(() => {});
     void onSend('Configurar presupuesto', {
       agentPayload: message,
@@ -2524,15 +2517,10 @@ export default function AgentPage() {
       return;
     }
     if (section === 'budget') {
-      if (!unlockedPanelBlocks.budgetUnlocked) {
-        handlePanelAction({
-          section: 'products_transactions',
-          message: 'Presupuesto sigue bloqueado: primero completa Productos y Transacciones.',
-        });
-        openTransactionsPanel();
-        return;
-      }
-      setIsBudgetModalOpen(true);
+      handlePanelAction({
+        section: 'budget',
+        message: 'El modal de presupuesto fue retirado. Usa la tarjeta lateral como resumen.',
+      });
       return;
     }
     if (section === 'interview') {
@@ -2550,7 +2538,6 @@ export default function AgentPage() {
           section: 'budget',
           message: 'Entrevista está bloqueada: completa el presupuesto antes de la llamada.',
         });
-        setIsBudgetModalOpen(true);
         return;
       }
       openInterviewModal();
@@ -3281,8 +3268,8 @@ export default function AgentPage() {
       void syncFinancialContextToIntake().catch(() => {});
       setInterviewIntake(buildInterviewIntakePayload());
     },
+    setPanelCallout,
     unlockedPanelBlocks,
-    setIsBudgetModalOpen,
     budgetTotals,
     budgetInsights,
     openTransactionsPanel,
@@ -3592,48 +3579,6 @@ export default function AgentPage() {
         </div>
       )}
 
-      <BudgetModal
-        isOpen={isBudgetModalOpen}
-        onClose={() => setIsBudgetModalOpen(false)}
-        budgetTotals={budgetTotals}
-        budgetInsights={budgetInsights}
-        budgetRows={budgetRows}
-        budgetProductOptions={Array.from(new Set(
-          bankSimulation.products
-            .map((product) => String(product.label ?? '').trim())
-            .filter((label) => label.length > 0)
-        ))}
-        budgetCompletion={budgetCompletion}
-        budgetSignals={budgetSignals}
-        updateBudgetRow={updateBudgetRow}
-        upsertBudgetRow={upsertBudgetRow}
-        applyBudgetTemplate={applyBudgetTemplate}
-        coachHint={coachHint}
-        addBudgetRow={addBudgetRow}
-        addBudgetSubcategory={addBudgetSubcategory}
-        deleteBudgetRow={deleteBudgetRow}
-        sendBudgetToAgent={sendBudgetToAgent}
-        chatAnswers={budgetChatAnswers}
-        onChatAnswersChange={setBudgetChatAnswers}
-        sessionInfo={sessionInfo}
-        bankProducts={bankSimulation.products.map((p) => ({
-          label: p.label,
-          bank: p.bank,
-          productType: p.productType,
-          dashboardSummary: p.dashboard?.summary,
-          keyMetrics: p.dashboard?.keyMetrics
-            ? {
-                inflows_total: p.dashboard.keyMetrics.inflows_total,
-                outflows_total: p.dashboard.keyMetrics.outflows_total,
-                net_flow: p.dashboard.keyMetrics.net_flow,
-                movement_count: p.dashboard.keyMetrics.movement_count,
-              }
-            : undefined,
-          topCategories: p.dashboard?.topCategories?.slice(0, 8),
-          alerts: p.dashboard?.alerts?.slice(0, 8),
-        }))}
-        onBudgetPdfSaved={handleBudgetPdfSaved}
-      />
 
       <QuestionnaireModal
         isOpen={isQuestionnaireModalOpen}

@@ -13,7 +13,6 @@ import agentRouter from './routes/agent';
 import documentsRouter from './routes/documents';
 import { pdfsRouter } from './routes/pdfs.routes';
 import internalRouter from './routes/internal.routes';
-import budgetChatRouter from './routes/budget-chat.routes';
 import transactionsChatRouter from './routes/transactions-chat';
 import transcribeRouter from './routes/transcribe';
 import analyticsRouter from './routes/analytics';
@@ -101,7 +100,6 @@ export function createApp() {
 
   // AGENT CORE
   app.use('/api/agent', chatRateLimiter);
-  app.use('/api/budget-chat', chatRateLimiter, budgetChatRouter);
   app.use('/api/transactions-chat', chatRateLimiter, transactionsChatRouter);
   app.use('/api/transcribe', chatRateLimiter, transcribeRouter);
   app.use('/api/analytics', analyticsRouter);
