@@ -8,6 +8,7 @@ import './visual-modes.css';
 import './agent-compact-deck.css';
 import './agent-modals-budget-mobile-authoritative.css';
 import './agent-modals-transactions-contract.css';
+import './agent-desktop-shell.css';
 import MobileInputViewportSync from '@/components/MobileInputViewportSync';
 import ServiceWorkerReset from '@/components/ServiceWorkerReset';
 import BrowserChromeVignetteSync from '@/components/BrowserChromeVignetteSync';

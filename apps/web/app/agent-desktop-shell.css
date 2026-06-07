@@ -1,0 +1,170 @@
+/* ================================================= */
+/* DESKTOP AGENT SHELL — authoritative grid contract */
+/* Mirrors iPad landscape (tablet-system.css).       */
+/* Loaded last in layout.tsx to win modal CSS wars.  */
+/* ================================================= */
+
+@media (min-width: 768px) {
+  html.is-desktop-viewport body.agent-route-active main.agent-layout,
+  html.is-desktop-viewport main.agent-layout {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) 48px minmax(260px, 340px) !important;
+    grid-template-rows: 1fr !important;
+    gap: 10px !important;
+    padding: 12px 14px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    flex-direction: unset !important;
+    align-items: stretch !important;
+    box-sizing: border-box !important;
+    background: transparent !important;
+  }
+
+  html.is-desktop-viewport .agent-layout.is-panel-stage-1 {
+    grid-template-columns: minmax(0, 1fr) 48px 280px !important;
+  }
+
+  html.is-desktop-viewport .agent-layout.is-panel-stage-2 {
+    grid-template-columns: minmax(0, 1fr) 48px 320px !important;
+  }
+
+  html.is-desktop-viewport .agent-layout.is-panel-stage-small,
+  html.is-desktop-viewport .agent-layout.is-panel-collapsed {
+    grid-template-columns: minmax(0, 1fr) 48px 0px !important;
+  }
+
+  html.is-desktop-viewport .agent-layout.is-panel-stage-small .agent-panel,
+  html.is-desktop-viewport .agent-layout.is-panel-collapsed .agent-panel {
+    display: none !important;
+  }
+
+  html.is-desktop-viewport .agent-layout > section.agent-chat {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    width: auto !important;
+    max-width: none !important;
+    height: 100% !important;
+    margin: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    position: relative !important;
+  }
+
+  html.is-desktop-viewport .agent-layout > aside.agent-divider-rail {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    position: relative !important;
+    top: auto !important;
+    right: auto !important;
+    left: auto !important;
+    width: auto !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    pointer-events: auto !important;
+    order: unset !important;
+  }
+
+  html.is-desktop-viewport .agent-layout > aside.agent-panel {
+    grid-column: 3 !important;
+    grid-row: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    position: relative !important;
+    width: auto !important;
+    min-width: 0 !important;
+    height: 100% !important;
+    max-height: none !important;
+    min-height: 0 !important;
+    flex: unset !important;
+    margin: 0 !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain !important;
+    align-self: stretch !important;
+  }
+
+  html.is-desktop-viewport .agent-panel .panel-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    grid-auto-flow: row !important;
+    flex-direction: unset !important;
+    flex-wrap: unset !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    align-items: stretch !important;
+    align-content: start !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 8px !important;
+    gap: 8px !important;
+  }
+
+  html.is-desktop-viewport .agent-panel .panel-pos-profile,
+  html.is-desktop-viewport .agent-panel .panel-pos-objective,
+  html.is-desktop-viewport .agent-panel .panel-pos-interview,
+  html.is-desktop-viewport .agent-panel .panel-pos-budget,
+  html.is-desktop-viewport .agent-panel .panel-pos-library,
+  html.is-desktop-viewport .agent-panel .panel-pos-recent,
+  html.is-desktop-viewport .agent-panel .panel-pos-aux {
+    grid-column: 1 / -1 !important;
+  }
+
+  html.is-desktop-viewport .agent-panel .panel-pos-mode {
+    grid-column: 1 !important;
+  }
+
+  html.is-desktop-viewport .agent-panel .panel-pos-next,
+  html.is-desktop-viewport .agent-panel .panel-pos-transactions,
+  html.is-desktop-viewport .agent-panel .panel-pos-news {
+    grid-column: 2 !important;
+  }
+
+  html.is-desktop-viewport .agent-panel .mobile-panel-handle,
+  html.is-desktop-viewport .agent-panel .mobile-panel-close {
+    display: none !important;
+  }
+
+  html.is-desktop-viewport .agent-chat-header.is-mobile {
+    display: none !important;
+  }
+
+  html.is-desktop-viewport .agent-chat-header:not(.is-mobile) {
+    display: grid !important;
+  }
+
+  html.is-desktop-viewport .agent-mobile-composer-dock {
+    display: none !important;
+  }
+
+  html.is-desktop-viewport .agent-layout .agent-chat .terminal-composer-shell {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-top: auto !important;
+  }
+
+  html.is-desktop-viewport:not(.home-route-active) .mobile-scale-frame {
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    overflow: hidden !important;
+  }
+
+  html.is-desktop-viewport .chat-sheet-tab {
+    color: inherit !important;
+    font-size: inherit !important;
+  }
+
+  html.is-desktop-viewport .chat-sheet-tab::after {
+    display: none !important;
+    content: none !important;
+  }
+}

@@ -3466,6 +3466,12 @@ export default function AgentPage() {
         isMobileViewport ? 'is-mobile-viewport' : ''
       } ${
         isMobileViewport && isStandaloneDisplayMode ? 'is-mobile-standalone' : ''
+      } ${
+        !isMobileViewport
+          ? panelStage === 1
+            ? 'is-panel-stage-1'
+            : 'is-panel-stage-2'
+          : ''
       }`}
     >
       <section
