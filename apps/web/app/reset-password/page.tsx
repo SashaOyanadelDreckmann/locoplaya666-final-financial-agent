@@ -12,7 +12,7 @@ import { ResetPasswordSchema } from '@/lib/validation';
 function ResetPasswordContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const token = searchParams.get('token') ?? '';
+  const token = searchParams?.get('token') ?? '';
 
   const [form, setForm] = useState({ password: '', confirm: '' });
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});

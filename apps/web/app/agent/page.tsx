@@ -2516,7 +2516,7 @@ export default function AgentPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (interviewAutoOpenHandledRef.current) return;
-    if (searchParams.get('openInterview') !== '1') return;
+    if (searchParams?.get('openInterview') !== '1') return;
     interviewAutoOpenHandledRef.current = true;
     openInterviewModal();
     router.replace('/agent');

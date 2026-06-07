@@ -27,3 +27,110 @@
 /* .budget-modal .budget-cockpit-metrics */
 /* .budget-modal .budget-main-carousel:not(.is-desktop) .budget-intel-kpis */
 /* text-overflow: ellipsis !important; */
+
+/* Budget modal mobile — lock overlay/body scroll; table rows scroll only (EOF wins safe-area). */
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+  .agent-modal-overlay.budget-modal-overlay,
+  html:not(.pwa-standalone):not(.home-route-active) .agent-modal-overlay.budget-modal-overlay,
+  html.mobile-input-engaged .agent-modal-overlay.budget-modal-overlay {
+    overflow: hidden !important;
+    overscroll-behavior: none !important;
+  }
+
+  .agent-modal-overlay.budget-modal-overlay > .agent-modal.budget-modal,
+  .agent-modal.budget-modal {
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    height: calc(100dvh - var(--modal-safe-top) - var(--modal-safe-bottom)) !important;
+    max-height: calc(100dvh - var(--modal-safe-top) - var(--modal-safe-bottom)) !important;
+    min-height: 0 !important;
+  }
+
+  .budget-modal.keyboard-opening {
+    height: calc(var(--visual-vh, 100dvh) - var(--modal-safe-top) - var(--modal-safe-bottom)) !important;
+    max-height: calc(var(--visual-vh, 100dvh) - var(--modal-safe-top) - var(--modal-safe-bottom)) !important;
+  }
+
+  .budget-modal .bcc-modal-header,
+  .budget-modal .budget-cockpit-banner,
+  .budget-modal .budget-mode-tabs {
+    flex-shrink: 0 !important;
+  }
+
+  .budget-modal .budget-modal-body,
+  .budget-modal.keyboard-opening .budget-modal-body,
+  html.mobile-input-engaged .budget-modal .budget-modal-body {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overscroll-behavior: none !important;
+  }
+
+  .budget-modal .budget-modal-body .budget-main-carousel.is-mobile-budget {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  .budget-modal .budget-main-carousel.is-mobile-budget.mode-table-front:not(.is-desktop) {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    height: auto !important;
+    overflow: hidden !important;
+  }
+
+  .budget-modal .budget-main-carousel.is-mobile-budget.mode-table-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact,
+  .budget-modal .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-section {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    height: auto !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+  }
+
+  .budget-modal .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-scroll-host {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  .budget-modal .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-scroll-host .budget-pdf-surface {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  .budget-modal .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-scroll-host .budget-table-wrap,
+  .budget-modal .budget-main-carousel.is-mobile-budget.mode-table-front:not(.is-desktop) .budget-table-wrap {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior: contain !important;
+    touch-action: pan-y !important;
+  }
+
+  .budget-modal .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-bottom-actions {
+    flex-shrink: 0 !important;
+  }
+
+  .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+}

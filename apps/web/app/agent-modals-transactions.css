@@ -50,6 +50,26 @@
   overflow-x: hidden !important;
 }
 
+.transactions-modal .tx-scroll-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  padding: 0 22px 18px;
+  display: grid;
+  gap: 14px;
+}
+
+.transactions-modal .tx-stage-shell {
+  min-height: 0;
+}
+
+.transactions-modal .tx-modal-header-layer {
+  position: relative;
+  z-index: 1;
+}
+
 .transactions-modal .transactions-products-column {
   max-height: 52vh;
   overflow: auto;
@@ -16227,6 +16247,11 @@ html:not([data-visual-mode='light-outline']) .agent-panel .panel-feature-card {
 }
 
 @media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+  .transactions-modal .tx-scroll-body {
+    padding-inline: 14px;
+    padding-bottom: 14px;
+  }
+
   .transactions-modal .tx-chat-thread {
     max-height: min(28vh, 240px) !important;
   }
@@ -16602,4 +16627,3 @@ html:not([data-visual-mode='light-outline']) .agent-panel .panel-feature-card {
 html.mobile-input-engaged .transactions-modal .tx-composer-field {
   scroll-margin-bottom: max(24px, env(safe-area-inset-bottom, 0px)) !important;
 }
-

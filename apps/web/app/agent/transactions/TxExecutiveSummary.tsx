@@ -3,8 +3,6 @@
 import type { CSSProperties, KeyboardEvent } from 'react';
 import {
   buildEditorialSummaryBlocks,
-  confidenceBand,
-  confidenceBandLong,
   formatPercentCompact,
 } from './presentation';
 

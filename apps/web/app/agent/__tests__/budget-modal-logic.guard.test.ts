@@ -12,6 +12,13 @@ describe('budget modal logic guards', () => {
     expect(source).toContain('setBudgetViewMode(!shouldUseMobileShell() ? 2 : 1);');
   });
 
+  it('mounts the budget modal in the agent page again', () => {
+    const pageSource = fs.readFileSync(path.join(process.cwd(), 'app', 'agent', 'page.tsx'), 'utf8');
+    expect(pageSource).toContain('<BudgetModal');
+    expect(pageSource).toContain('isBudgetModalOpen');
+    expect(pageSource).toContain('setIsBudgetModalOpen(true);');
+  });
+
   it('keeps desktop->mobile mode fallback to prevent invalid mode 3 on mobile', () => {
     const layoutSource = fs.readFileSync(path.join(process.cwd(), 'app', 'agent', 'use-budget-modal-layout.ts'), 'utf8');
     expect(layoutSource).toContain('shouldUseMobileShell');
@@ -49,6 +56,13 @@ describe('budget modal logic guards', () => {
     expect(source).toContain('if (!rowExists) return;');
     expect(source).toContain("if (kind === 'update' && !rowExists) return;");
     expect(source).toContain("if (kind === 'add' && rowExists) kind = 'update';");
+  });
+
+  it('opens the budget modal from the panel card instead of leaving dead copy', () => {
+    const panelCardsSource = fs.readFileSync(path.join(process.cwd(), 'app', 'agent', 'panel-cards.tsx'), 'utf8');
+    expect(panelCardsSource).toContain('openBudgetModal');
+    expect(panelCardsSource).toContain('Presupuesto está bloqueado: primero completa Productos y Transacciones.');
+    expect(panelCardsSource).not.toContain('modal de presupuesto fue retirado');
   });
 
   it('prioritizes assistant_reply and suppresses next step for education turns', () => {

@@ -96,8 +96,8 @@ function WaitingApprovalContent() {
   const [isSafari, setIsSafari] = useState(false);
   const [standalone, setStandalone] = useState(false);
 
-  const email = useMemo(() => String(searchParams.get('email') ?? '').trim(), [searchParams]);
-  const name  = useMemo(() => String(searchParams.get('name')  ?? '').trim(), [searchParams]);
+  const email = useMemo(() => String(searchParams?.get('email') ?? '').trim(), [searchParams]);
+  const name = useMemo(() => String(searchParams?.get('name') ?? '').trim(), [searchParams]);
 
   useEffect(() => {
     const p = detectPlatform();

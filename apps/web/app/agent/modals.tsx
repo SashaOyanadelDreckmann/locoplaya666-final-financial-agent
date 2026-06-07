@@ -699,6 +699,110 @@ export function BudgetModal(props: {
     action?: Record<string, unknown>;
   };
 
+  function normalizeBudgetChatPayload(payload: unknown): BudgetChatApiPayload | null {
+    if (!payload || typeof payload !== 'object') return null;
+    const candidate = payload as BudgetChatApiPayload;
+    const marketSnapshot =
+      candidate.market_snapshot && typeof candidate.market_snapshot === 'object'
+        ? {
+            uf:
+              candidate.market_snapshot.uf && typeof candidate.market_snapshot.uf === 'object'
+                ? {
+                    value:
+                      typeof candidate.market_snapshot.uf.value === 'number'
+                        ? candidate.market_snapshot.uf.value
+                        : null,
+                    unit:
+                      typeof candidate.market_snapshot.uf.unit === 'string'
+                        ? candidate.market_snapshot.uf.unit
+                        : null,
+                    date:
+                      typeof candidate.market_snapshot.uf.date === 'string'
+                        ? candidate.market_snapshot.uf.date
+                        : null,
+                    source:
+                      typeof candidate.market_snapshot.uf.source === 'string'
+                        ? candidate.market_snapshot.uf.source
+                        : null,
+                  }
+                : undefined,
+            tpm:
+              candidate.market_snapshot.tpm && typeof candidate.market_snapshot.tpm === 'object'
+                ? {
+                    value:
+                      typeof candidate.market_snapshot.tpm.value === 'number'
+                        ? candidate.market_snapshot.tpm.value
+                        : null,
+                    unit:
+                      typeof candidate.market_snapshot.tpm.unit === 'string'
+                        ? candidate.market_snapshot.tpm.unit
+                        : null,
+                    date:
+                      typeof candidate.market_snapshot.tpm.date === 'string'
+                        ? candidate.market_snapshot.tpm.date
+                        : null,
+                    source:
+                      typeof candidate.market_snapshot.tpm.source === 'string'
+                        ? candidate.market_snapshot.tpm.source
+                        : null,
+                  }
+                : undefined,
+            usd:
+              candidate.market_snapshot.usd && typeof candidate.market_snapshot.usd === 'object'
+                ? {
+                    value:
+                      typeof candidate.market_snapshot.usd.value === 'number'
+                        ? candidate.market_snapshot.usd.value
+                        : null,
+                    unit:
+                      typeof candidate.market_snapshot.usd.unit === 'string'
+                        ? candidate.market_snapshot.usd.unit
+                        : null,
+                    date:
+                      typeof candidate.market_snapshot.usd.date === 'string'
+                        ? candidate.market_snapshot.usd.date
+                        : null,
+                    source:
+                      typeof candidate.market_snapshot.usd.source === 'string'
+                        ? candidate.market_snapshot.usd.source
+                        : null,
+                  }
+                : undefined,
+            summary:
+              typeof candidate.market_snapshot.summary === 'string' ? candidate.market_snapshot.summary : '',
+          }
+        : undefined;
+
+    return {
+      ok: candidate.ok === true,
+      error: typeof candidate.error === 'string' ? candidate.error : undefined,
+      detail: typeof candidate.detail === 'string' ? candidate.detail : undefined,
+      source: typeof candidate.source === 'string' ? candidate.source : undefined,
+      next_question:
+        candidate.next_question === null
+          ? null
+          : typeof candidate.next_question === 'string'
+            ? candidate.next_question
+            : undefined,
+      focus_row_id:
+        typeof candidate.focus_row_id === 'string' && candidate.focus_row_id.trim()
+          ? candidate.focus_row_id
+          : null,
+      coach_message: typeof candidate.coach_message === 'string' ? candidate.coach_message : undefined,
+      assistant_reply: typeof candidate.assistant_reply === 'string' ? candidate.assistant_reply : undefined,
+      assistant_text: typeof candidate.assistant_text === 'string' ? candidate.assistant_text : undefined,
+      done: typeof candidate.done === 'boolean' ? candidate.done : undefined,
+      market_snapshot: marketSnapshot,
+      actions: Array.isArray(candidate.actions)
+        ? candidate.actions.filter((action): action is Record<string, unknown> => Boolean(action && typeof action === 'object'))
+        : undefined,
+      action:
+        candidate.action && typeof candidate.action === 'object'
+          ? (candidate.action as Record<string, unknown>)
+          : undefined,
+    };
+  }
+
   function isBudgetChatAbortError(error: unknown): boolean {
     return error instanceof DOMException && error.name === 'AbortError';
   }
@@ -781,9 +885,9 @@ export function BudgetModal(props: {
           intakeData: props.sessionInfo?.injectedIntake?.intake ?? null,
         }),
       });
-      const raw = (await res.json()) as BudgetChatApiPayload;
-      if (!res.ok) throw createBudgetChatHttpError(res.status, raw);
-      const payload = unwrapApiData<BudgetChatApiPayload>(raw);
+      const raw = await res.json();
+      if (!res.ok) throw createBudgetChatHttpError(res.status, normalizeBudgetChatPayload(raw));
+      const payload = normalizeBudgetChatPayload(unwrapApiData<BudgetChatApiPayload>(raw));
       if (payload) {
         const rawActions = payload.actions ?? (payload.action ? [payload.action] : []);
         const lastTouchedRowId = applyBudgetActions(rawActions);
@@ -824,6 +928,8 @@ export function BudgetModal(props: {
         }
       } else {
         setAssistantQuestion('No recibí respuesta. Reformula con monto o categoría.');
+        setAssistantNextQuestion(null);
+        setAssistantMarketSnapshot(null);
       }
     } catch (error) {
       if (isBudgetChatAbortError(error)) return;
@@ -893,9 +999,9 @@ export function BudgetModal(props: {
             intakeData: props.sessionInfo?.injectedIntake?.intake ?? null,
           }),
         });
-        const raw = (await res.json()) as BudgetChatApiPayload;
-        if (!res.ok) throw createBudgetChatHttpError(res.status, raw);
-        const payload = unwrapApiData<BudgetChatApiPayload>(raw);
+        const raw = await res.json();
+        if (!res.ok) throw createBudgetChatHttpError(res.status, normalizeBudgetChatPayload(raw));
+        const payload = normalizeBudgetChatPayload(unwrapApiData<BudgetChatApiPayload>(raw));
         if (payload) {
           applyAssistantTurn(payload, getBudgetQuestionForId('income_salary'));
           const nextQuestion = sanitizeBudgetQuestion(getNextQuestion(payload, ''));
@@ -905,6 +1011,7 @@ export function BudgetModal(props: {
           setAssistantQuestion(getBudgetQuestionForId('income_salary'));
           setAssistantNextQuestion(getBudgetQuestionForId('income_salary'));
           setAssistantBudgetRowId('income_salary');
+          setAssistantMarketSnapshot(null);
         }
         setAssistantMarketSnapshot(
           payload?.market_snapshot

@@ -70,7 +70,7 @@ function LoginContent() {
       setError(null);
       const loginPayload = await loginUser(form);
       const role = String(loginPayload?.user?.role ?? '').toUpperCase();
-      const requestedNext = searchParams.get('next');
+      const requestedNext = searchParams?.get('next');
       const safeNext = requestedNext && requestedNext.startsWith('/') && !requestedNext.startsWith('//')
         ? requestedNext
         : null;

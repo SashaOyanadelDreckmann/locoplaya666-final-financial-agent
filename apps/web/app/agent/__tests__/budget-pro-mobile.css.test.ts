@@ -17,4 +17,16 @@ describe('budget pro mobile css safeguards', () => {
     expect(css).toContain('.budget-modal .budget-main-carousel:not(.is-desktop) .budget-intel-kpis');
     expect(css).toContain('text-overflow: ellipsis !important;');
   });
+
+  it('locks budget modal page scroll on mobile and keeps table-wrap as the scroll host', () => {
+    const cssPath = path.join(process.cwd(), 'app', 'agent.css');
+    const css = fs.readFileSync(cssPath, 'utf8');
+
+    expect(css).toContain('Budget modal mobile — lock overlay/body scroll; table rows scroll only');
+    expect(css).toContain('.agent-modal-overlay.budget-modal-overlay');
+    expect(css).toContain('overflow: hidden !important');
+    expect(css).toContain('.budget-table-scroll-host .budget-table-wrap');
+    expect(css).toContain('overflow-y: auto !important');
+    expect(css).toContain('touch-action: pan-y !important');
+  });
 });

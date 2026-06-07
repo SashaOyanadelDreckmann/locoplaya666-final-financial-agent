@@ -65,34 +65,10 @@ export function TransactionsModal(props: TransactionsModalProps) {
   const analytics = useMovementAnalytics(props.activeBankProduct, props.transactionTaxonomyOverrides);
   const {
     formatCurrency,
-    isCreditCardProduct,
     dashboardClusters,
     alertDetails,
     metricExplanations,
-    documentQualityRows,
-    qualityAverage,
-    categoryShareData,
-    qualityRowsChart,
     dedupedMovementRows,
-    incomeOrAbonoRows,
-    expenseRows,
-    incomeOrAbonoTotal,
-    expenseTotal,
-    tableDerivedMetrics,
-    movementCount,
-    netFlowFromTable,
-    avgMovementFromTable,
-    flowRatioFromTable,
-    tablePeriod,
-    summaryFromTable,
-    verifiedTableRows,
-    highConfidenceMovementCount,
-    movementCoverageDisplay,
-    enrichedCategoryData,
-    txNarrative,
-    categoryChartData,
-    derivedTopMerchants,
-    merchantConfidenceRows,
     effectiveDashboard,
   } = analytics;
   const selectedMovement =
@@ -247,6 +223,30 @@ export function TransactionsModal(props: TransactionsModalProps) {
     setTxAssistantErrorByProduct((prev) => ({ ...prev, [productId]: null }));
   };
 
+  const restoreAssistantMessages = (
+    productId: string,
+    productSnapshot: BankProduct,
+    messages: Array<{ role: 'assistant' | 'user'; text: string; attachments?: string[] }>,
+  ) => {
+    props.updateProductById(productId, {
+      assistant: {
+        messages: messages.map((message, index) => ({
+          id: `${Date.now()}-${index}-${message.role}`,
+          role: message.role,
+          text: message.text,
+          createdAt: new Date().toISOString(),
+          attachments: message.attachments,
+        })),
+        uploadFormat: productSnapshot.assistant?.uploadFormat ?? null,
+        summaryText: productSnapshot.assistant?.summaryText ?? null,
+        summaryModel: productSnapshot.assistant?.summaryModel ?? null,
+        summaryGeneratedAt: productSnapshot.assistant?.summaryGeneratedAt ?? null,
+        summaryRegenerationsUsed: productSnapshot.assistant?.summaryRegenerationsUsed ?? 0,
+        lastSummaryFeedback: productSnapshot.assistant?.lastSummaryFeedback ?? null,
+      },
+    });
+  };
+
   const applyOnboarding = () => {
     if (!props.activeBankProduct) return;
     props.updateActiveProduct({
@@ -257,11 +257,6 @@ export function TransactionsModal(props: TransactionsModalProps) {
       randomMode: false,
     });
   };
-
-  const requiredEvidenceText =
-    derivedProductType === 'credit_card'
-      ? 'Obligatorio: cartola de tarjeta (imagen o PDF). También puedes agregar un antecedente escrito manual si no quieres subir fotos.'
-      : 'Recomendado: estado de cuenta/cartola en imagen, PDF, Excel o CSV. También puedes pegar un antecedente escrito manual.';
 
   const appendPendingEvidence = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -314,10 +309,6 @@ export function TransactionsModal(props: TransactionsModalProps) {
   const processingPrimaryCopy = props.documentsLoading
     ? 'Leyendo archivos, detectando montos y consolidando movimientos.'
     : 'Revisando contexto del producto para responder mejor.';
-  const processingSteps = props.documentsLoading
-    ? ['Ingesta', 'Extracción', 'Validación']
-    : ['Contexto', 'Consistencia', 'Respuesta'];
-
   const appendAssistantMessages = (
     productId: string,
     productSnapshot: BankProduct,
@@ -548,7 +539,6 @@ export function TransactionsModal(props: TransactionsModalProps) {
     return (matching.length > 0 ? matching : ALL_PRODUCT_TEMPLATES).slice(0, 24);
   }, [productTemplate]);
 
-  const activeDescriptor = props.transactionProductCards.find((entry) => entry.product.id === props.selectedProductId);
   const [productCarouselIndex, setProductCarouselIndex] = useState(0);
   const productCards = props.transactionProductCards;
   const libraryProductCards = productCards.filter(
@@ -1132,6 +1122,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
     const manualFile = manualText.length > 0 ? buildManualEvidenceFile(manualText) : null;
     const filesToUpload = manualFile ? [...pendingEvidenceFiles, manualFile] : pendingEvidenceFiles;
     if (filesToUpload.length === 0) return;
+    const previousMessages = product.assistant?.messages ?? [];
 
     setProductLoading(productId, true);
     setProductError(productId, null);
@@ -1165,6 +1156,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
       clearProductDraft(productId);
     } catch (error) {
       if (isTxActionStale(sessionId, productId)) return;
+      restoreAssistantMessages(productId, product, previousMessages);
       setProductError(productId, error instanceof Error ? error.message : 'No se pudo enviar evidencia.');
     } finally {
       finish();
@@ -1193,6 +1185,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
     txSendLockRef.current = true;
     const txAction = beginTxAction();
     const { sessionId, controller, finish } = txAction;
+    const previousMessages = productMessages;
     try {
       const normalized = text.toLowerCase();
       const chosenFormat =
@@ -1282,6 +1275,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') return;
       if (isTxActionStale(sessionId, productId)) return;
+      restoreAssistantMessages(productId, product, previousMessages);
       setProductError(productId, error instanceof Error ? error.message : 'No se pudo responder.');
     } finally {
       finish();
