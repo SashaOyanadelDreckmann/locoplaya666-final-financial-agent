@@ -104,6 +104,7 @@ function PremiumSlider({
       aria-valuemin={0}
       aria-valuemax={10}
       aria-valuenow={value}
+      data-testid={`slider-${id}`}
       onPointerDown={(e) => {
         e.currentTarget.setPointerCapture(e.pointerId);
         setFromClientX(e.clientX);
