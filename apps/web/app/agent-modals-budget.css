@@ -7421,8 +7421,8 @@
   }
 }
 
-/* Transactions product cards: matte solid palette with color rotation on each navigation step. */
-.transactions-modal .pt-item.pt-item-stack {
+/* Legacy flat palette — tx-lib-card uses premium gradient in transactions-contract.css */
+.transactions-modal .pt-item.pt-item-stack:not(.tx-lib-card) {
   background: var(--pt-stack-bg, #3b5068) !important;
   background-image: none !important;
   border-color: var(--pt-stack-border, #3b5068) !important;
@@ -7430,15 +7430,15 @@
   text-shadow: none !important;
 }
 
-.transactions-modal .pt-item.pt-item-stack .pt-item-name,
-.transactions-modal .pt-item.pt-item-stack .pt-item-status {
+.transactions-modal .pt-item.pt-item-stack:not(.tx-lib-card) .pt-item-name,
+.transactions-modal .pt-item.pt-item-stack:not(.tx-lib-card) .pt-item-status {
   color: var(--pt-stack-accent, #8ea7bf) !important;
   -webkit-text-fill-color: var(--pt-stack-accent, #8ea7bf) !important;
 }
 
-.transactions-modal .pt-item.pt-item-stack .pt-item-bank,
-.transactions-modal .pt-item.pt-item-stack .pt-item-meta,
-.transactions-modal .pt-item.pt-item-stack .pt-item-meta span {
+.transactions-modal .pt-item.pt-item-stack:not(.tx-lib-card) .pt-item-bank,
+.transactions-modal .pt-item.pt-item-stack:not(.tx-lib-card) .pt-item-meta,
+.transactions-modal .pt-item.pt-item-stack:not(.tx-lib-card) .pt-item-meta span {
   color: rgba(228, 236, 244, 0.92) !important;
   -webkit-text-fill-color: rgba(228, 236, 244, 0.92) !important;
 }

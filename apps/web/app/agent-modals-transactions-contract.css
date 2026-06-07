@@ -240,17 +240,141 @@
 }
 
 /* ── Library stack ────────────────────────────────────────────────────────── */
+.transactions-modal .tx-library-stack-block {
+  width: 100% !important;
+  gap: 12px !important;
+}
+
 .transactions-modal .pt-stack-carousel.tx-library-is-saved {
   position: relative !important;
   width: 100% !important;
   min-height: 220px !important;
   height: 220px !important;
   overflow: visible !important;
+  padding: 8px 0 10px !important;
 }
 
 .transactions-modal .pt-list {
   display: block !important;
   overflow: visible !important;
+}
+
+/* Library card shell: valid button + corner delete — stretch content, left-aligned copy */
+.transactions-modal .pt-stack-carousel.tx-library-is-saved .pt-item.pt-item-stack.tx-lib-card {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  justify-content: stretch !important;
+  text-align: left !important;
+  padding: 0 !important;
+}
+
+.transactions-modal .tx-lib-card-select {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+  gap: 6px !important;
+  padding: 14px 46px 14px 14px !important;
+  box-sizing: border-box !important;
+  text-align: left !important;
+}
+
+.transactions-modal .tx-lib-card .tx-lib-card-top,
+.transactions-modal .tx-lib-card-select .pt-item-top {
+  flex-direction: row !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+  width: 100% !important;
+  text-align: left !important;
+}
+
+.transactions-modal .tx-lib-card-copy {
+  min-width: 0 !important;
+  flex: 1 1 auto !important;
+}
+
+.transactions-modal .tx-lib-card .pt-item-name {
+  text-align: left !important;
+  color: #f6fbff !important;
+  -webkit-text-fill-color: #f6fbff !important;
+  background: none !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+}
+
+.transactions-modal .tx-lib-card .pt-item-bank {
+  text-align: left !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.transactions-modal .tx-lib-card .pt-item-meta {
+  justify-content: flex-start !important;
+  flex-wrap: wrap !important;
+  margin-top: auto !important;
+  text-align: left !important;
+}
+
+.transactions-modal .tx-lib-card .pt-item-status {
+  flex-shrink: 0 !important;
+  color: var(--tx-lib-tint) !important;
+  -webkit-text-fill-color: var(--tx-lib-tint) !important;
+  text-align: right !important;
+}
+
+/* Premium palette wins over legacy flat --pt-stack-bg rotation */
+.transactions-modal .pt-item.pt-item-stack.tx-lib-card,
+.transactions-modal .pt-item.pt-item-stack.tx-lib-card.is-top,
+.transactions-modal .pt-item.pt-item-stack.tx-lib-card:not(.is-top) {
+  background:
+    radial-gradient(circle at 18% 18%, var(--tx-lib-glow), transparent 34%),
+    linear-gradient(145deg, color-mix(in srgb, var(--tx-lib-base) 86%, #08111b 14%), #08111b 100%) !important;
+  background-image:
+    radial-gradient(circle at 18% 18%, var(--tx-lib-glow), transparent 34%),
+    linear-gradient(145deg, color-mix(in srgb, var(--tx-lib-base) 86%, #08111b 14%), #08111b 100%) !important;
+  border: 1px solid var(--tx-lib-edge) !important;
+  border-color: var(--tx-lib-edge) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 20px 44px rgba(0, 0, 0, 0.38) !important;
+}
+
+.transactions-modal .pt-item.pt-item-stack.tx-lib-card:not(.is-top) {
+  opacity: calc(1 - (var(--pt-stack-idx, 0) * 0.12)) !important;
+}
+
+.transactions-modal .pt-item.pt-item-stack.tx-lib-card:not(.is-top) .pt-item-name,
+.transactions-modal .pt-item.pt-item-stack.tx-lib-card:not(.is-top) .pt-item-bank,
+.transactions-modal .pt-item.pt-item-stack.tx-lib-card:not(.is-top) .pt-item-status,
+.transactions-modal .pt-item.pt-item-stack.tx-lib-card:not(.is-top) .pt-item-meta,
+.transactions-modal .pt-item.pt-item-stack.tx-lib-card:not(.is-top) .pt-item-meta span,
+.transactions-modal .pt-item.pt-item-stack.tx-lib-card:not(.is-top) .pt-item-top,
+.transactions-modal .pt-item.pt-item-stack.tx-lib-card:not(.is-top) .tx-lib-card-eyebrow {
+  opacity: 0.38 !important;
+  filter: blur(2px) !important;
+}
+
+.transactions-modal .pt-item-delete-mini {
+  top: 10px !important;
+  right: 10px !important;
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  z-index: 6 !important;
+}
+
+.transactions-modal .pt-stack-nav {
+  margin-top: 4px !important;
+  position: relative !important;
+  z-index: 3 !important;
 }
 
 .transactions-modal .tx-meta-stack {
@@ -366,8 +490,64 @@
   }
 
   .transactions-modal .pt-stack-carousel.tx-library-is-saved {
-    min-height: 200px !important;
-    height: 200px !important;
+    min-height: 232px !important;
+    height: 232px !important;
+    padding: 6px 0 8px !important;
+  }
+
+  .transactions-modal .pt-stack-carousel.tx-library-is-saved .pt-item.pt-item-stack.tx-lib-card,
+  .transactions-modal .pt-stack-carousel.tx-library-is-saved .pt-item.pt-item-stack.tx-lib-card.is-top,
+  .transactions-modal .pt-stack-carousel.tx-library-is-saved .pt-item.pt-item-stack.tx-lib-card:not(.is-top) {
+    width: calc(100% - 24px) !important;
+    max-width: calc(100% - 24px) !important;
+    height: calc(100% - 16px) !important;
+  }
+
+  .transactions-modal .tx-lib-card-select {
+    padding: 12px 42px 12px 12px !important;
+    gap: 5px !important;
+  }
+
+  .transactions-modal .tx-lib-card .pt-item-name {
+    font-size: clamp(17px, 4.6vw, 22px) !important;
+    line-height: 1.12 !important;
+    letter-spacing: -0.03em !important;
+  }
+
+  .transactions-modal .tx-lib-card-eyebrow {
+    font-size: 9px !important;
+    letter-spacing: 0.14em !important;
+  }
+
+  .transactions-modal .tx-lib-card .pt-item-bank {
+    font-size: 10px !important;
+    letter-spacing: 0.16em !important;
+  }
+
+  .transactions-modal .tx-lib-card .pt-item-meta {
+    gap: 6px !important;
+    font-size: 9px !important;
+  }
+
+  .transactions-modal .tx-lib-card .pt-item-meta span {
+    padding: 3px 8px !important;
+    font-size: 9px !important;
+  }
+
+  .transactions-modal .tx-lib-card-chip {
+    width: 28px !important;
+    height: 20px !important;
+    right: 12px !important;
+    bottom: 12px !important;
+  }
+
+  .transactions-modal .pt-stack-nav .continue-ghost {
+    min-width: 48px !important;
+    min-height: 48px !important;
+  }
+
+  .transactions-modal .tx-lib-card-nav-status {
+    font-size: 10px !important;
   }
 
   .transactions-modal .tx-flow-status-card {

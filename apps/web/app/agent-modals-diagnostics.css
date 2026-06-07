@@ -5017,8 +5017,8 @@ body.agent-route-active .app-shell::before {
   -webkit-text-fill-color: #cfe0ef !important;
 }
 
-/* ── v3.1 ── tame the deck: non-top stacked cards go matte (no raw color block) */
-.transactions-modal .pt-item.pt-item-stack:not(.is-top) {
+/* ── v3.1 ── tame the deck: non-top stacked cards go matte (legacy items only) */
+.transactions-modal .pt-item.pt-item-stack:not(.is-top):not(.tx-lib-card) {
   background: linear-gradient(180deg, var(--txp-surface-1), var(--txp-panel)) !important;
   border: 1px solid var(--txp-border) !important;
   box-shadow: 0 -1px 0 rgba(255,255,255,0.03) inset, 0 18px 40px -28px rgba(0,0,0,0.7) !important;

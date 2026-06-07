@@ -42,4 +42,13 @@ describe('transactions modal layout contract css', () => {
     expect(contractCss).toContain('padding-bottom: 0 !important');
     expect(contractCss).not.toContain('132px');
   });
+
+  it('locks mobile library card layout and premium palette', () => {
+    expect(contractCss).toContain('.transactions-modal .tx-lib-card-select');
+    expect(contractCss).toContain('flex-direction: row !important');
+    expect(contractCss).toContain('.transactions-modal .pt-item.pt-item-stack.tx-lib-card');
+    expect(contractCss).toContain('var(--tx-lib-base)');
+    expect(contractCss).toContain('min-height: 232px !important');
+    expect(contractCss).toContain('-webkit-line-clamp: 2 !important');
+  });
 });
