@@ -256,8 +256,12 @@
  * Mobile header — tight safe band + fixed large effects toggle (all visual modes).
  */
 @media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+  body.agent-route-active {
+    --mobile-chat-header-top-offset: 8px;
+  }
+
   body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile {
-    margin: 0 var(--mobile-shell-gutter-x, 8px) 0 !important;
+    margin: var(--mobile-chat-header-top-offset) var(--mobile-shell-gutter-x, 8px) 0 !important;
     padding-top: 7px !important;
     padding-bottom: 7px !important;
     padding-left: 12px !important;
