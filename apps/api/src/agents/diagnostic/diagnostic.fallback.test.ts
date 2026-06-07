@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
+import { IntakeQuestionnaire } from '@financial-agent/shared/src/intake/intake-questionnaire.types';
+
 import { buildVoiceInterviewFallbackProfile } from './diagnostic.fallback';
 
 describe('buildVoiceInterviewFallbackProfile', () => {
@@ -7,10 +9,13 @@ describe('buildVoiceInterviewFallbackProfile', () => {
     const profile = buildVoiceInterviewFallbackProfile({
       intake: {
         hasDebt: true,
-        tracksExpenses: false,
+        tracksExpenses: 'no',
         moneyStressLevel: 8,
         hasSavingsOrInvestments: false,
-      },
+        employmentStatus: 'employed',
+        incomeBand: '1M-2M',
+        expensesCoverage: 'tight',
+      } as IntakeQuestionnaire,
       blocks: {
         warmup: {
           blockId: 'warmup',

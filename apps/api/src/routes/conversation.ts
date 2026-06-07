@@ -486,7 +486,7 @@ export const finalizeInterviewVoice = asyncHandler(async function finalizeInterv
       blocks: syntheticBlocks,
       executiveReport,
       keyFindings,
-      endedBy: parsed.endedBy,
+      endedBy: parsed.endedBy ?? 'timeout',
     });
   }
   const { profileId } = await saveProfile(user.id, diagnosticProfile);

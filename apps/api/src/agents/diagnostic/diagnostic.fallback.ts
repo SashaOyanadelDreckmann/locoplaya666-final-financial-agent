@@ -48,7 +48,7 @@ function inferTraitsFromIntake(intake: IntakeQuestionnaire) {
   const budget = source.__budgetContext as Record<string, unknown> | undefined;
   const stress = clamp01(Number(source.moneyStressLevel ?? 5) / 10);
   const hasDebt = Boolean(source.hasDebt);
-  const tracksExpenses = Boolean(source.tracksExpenses);
+  const tracksExpenses = hasConsistentExpenseTracking(source.tracksExpenses);
   const income = Math.max(0, Number(budget?.income ?? source.exactMonthlyIncome ?? 0));
   const expenses = Math.max(0, Number(budget?.expenses ?? 0));
   const balance = Number(budget?.balance ?? income - expenses);
@@ -134,7 +134,7 @@ function buildFallbackTensions(intake: IntakeQuestionnaire, keyFindings: string[
     source.hasDebt && source.hasSavingsOrInvestments
       ? 'Conviven deuda activa y ahorro/inversión, lo que sugiere prioridades en tensión.'
       : null,
-    source.tracksExpenses === false && stress >= 5
+    lacksConsistentExpenseTracking(source.tracksExpenses) && stress >= 5
       ? 'La presión financiera aparece antes que una estructura de seguimiento consistente.'
       : null,
     ...keyFindings.slice(0, 2).map((finding) => `Hallazgo de entrevista: ${finding}`),
@@ -148,7 +148,7 @@ function buildFallbackTensions(intake: IntakeQuestionnaire, keyFindings: string[
 function buildFallbackHypotheses(intake: IntakeQuestionnaire, keyFindings: string[]): string[] {
   const source = intake as IntakeQuestionnaire & Record<string, unknown>;
   const hypotheses = [
-    source.tracksExpenses
+    hasConsistentExpenseTracking(source.tracksExpenses)
       ? 'El usuario tiende a operar con cierta estructura, aunque no necesariamente con tranquilidad emocional.'
       : 'El usuario podría estar tomando decisiones financieras más reactivas que planificadas.',
     source.hasDebt
@@ -163,7 +163,9 @@ function buildFallbackHypotheses(intake: IntakeQuestionnaire, keyFindings: strin
 function buildFallbackOpenQuestions(intake: IntakeQuestionnaire, keyFindings: string[]): string[] {
   const source = intake as IntakeQuestionnaire & Record<string, unknown>;
   const questions = [
-    !source.tracksExpenses ? '¿Qué parte del flujo mensual hoy se controla con datos y cuál sigue siendo intuitiva?' : null,
+    lacksConsistentExpenseTracking(source.tracksExpenses)
+      ? '¿Qué parte del flujo mensual hoy se controla con datos y cuál sigue siendo intuitiva?'
+      : null,
     source.hasDebt ? '¿Qué deuda concentra hoy la mayor fricción operativa o emocional?' : null,
     keyFindings.length === 0 ? '¿Qué decisión financiera reciente sintió más ambigua o postergada?' : null,
     '¿Qué objetivo financiero de mediano plazo hoy compite más con el gasto cotidiano?',
@@ -239,6 +241,14 @@ function estimateCompleteness(blocks: Partial<Record<InterviewBlockId, Interview
   const validated = Object.values(blocks).filter((block) => block?.userValidated).length;
   if (total === 0) return 0.55;
   return Math.min(1, Math.max(0.45, validated / total));
+}
+
+function hasConsistentExpenseTracking(value: IntakeQuestionnaire['tracksExpenses'] | undefined): boolean {
+  return value === 'yes';
+}
+
+function lacksConsistentExpenseTracking(value: IntakeQuestionnaire['tracksExpenses'] | undefined): boolean {
+  return value === 'no' || value === 'sometimes';
 }
 
 function clamp01(value: number) {
