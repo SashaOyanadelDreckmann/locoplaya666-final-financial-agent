@@ -980,15 +980,47 @@ export function BudgetModal(props: {
 
   useEffect(() => {
     if (!props.isOpen || isDesktopLayout) return;
-    const selector = budgetViewMode === 1 ? '[data-main-card="agent"]' : '[data-main-card="table"]';
-    const target = budgetModalRef.current?.querySelector<HTMLElement>(selector);
-    if (!target) return;
-    const timer = window.setTimeout(() => {
-      target.scrollIntoView({ behavior: 'auto', block: 'start' });
-    }, 80);
-    return () => window.clearTimeout(timer);
-  }, [budgetViewMode, isDesktopLayout, props.isOpen]);
 
+    const measureMobileRowSlot = () => {
+      const root = budgetModalRef.current;
+      const scrollHost = budgetTableScrollRef.current;
+      if (!root || !scrollHost) return;
+      const sampleRow = root.querySelector<HTMLElement>('.budget-table-pro tbody tr');
+      if (!sampleRow) return;
+      const rowStyles = window.getComputedStyle(sampleRow);
+      const marginBlock =
+        (parseFloat(rowStyles.marginTop) || 0) + (parseFloat(rowStyles.marginBottom) || 0);
+      const rowHeight = Math.ceil(sampleRow.getBoundingClientRect().height + marginBlock);
+      if (rowHeight <= 0) return;
+      scrollHost.style.setProperty('--budget-mobile-row-slot', `${rowHeight}px`);
+      root.style.setProperty('--budget-mobile-row-slot', `${rowHeight}px`);
+    };
+
+    measureMobileRowSlot();
+    const timer = window.setTimeout(measureMobileRowSlot, 120);
+    const rafId = window.requestAnimationFrame(measureMobileRowSlot);
+
+    const sampleRow = budgetModalRef.current?.querySelector<HTMLElement>('.budget-table-pro tbody tr');
+    const rowObserver =
+      sampleRow && typeof ResizeObserver !== 'undefined'
+        ? new ResizeObserver(measureMobileRowSlot)
+        : null;
+    rowObserver?.observe(sampleRow!);
+
+    window.addEventListener('resize', measureMobileRowSlot);
+    window.addEventListener('orientationchange', measureMobileRowSlot);
+    if (document.fonts?.ready) {
+      void document.fonts.ready.then(measureMobileRowSlot);
+    }
+
+    return () => {
+      window.clearTimeout(timer);
+      window.cancelAnimationFrame(rafId);
+      rowObserver?.disconnect();
+      window.removeEventListener('resize', measureMobileRowSlot);
+      window.removeEventListener('orientationchange', measureMobileRowSlot);
+    };
+  }, [props.isOpen, isDesktopLayout, budgetViewMode, props.budgetRows.length, budgetTableStyle]);
 
   const maxExpense = Math.max(
     1,
@@ -1266,14 +1298,16 @@ export function BudgetModal(props: {
 
                 {aiError && <p className="bcc-hero-error">{aiError}</p>}
 
-                <button
-                  type="button"
-                  className="budget-chat-sync-button is-assistant-action"
-                  onClick={handleSendBudgetToAgent}
-                  disabled={props.budgetRows.length === 0}
-                >
-                  Generar informe en chat
-                </button>
+                {isDesktopLayout && (
+                  <button
+                    type="button"
+                    className="budget-chat-sync-button is-assistant-action"
+                    onClick={handleSendBudgetToAgent}
+                    disabled={props.budgetRows.length === 0}
+                  >
+                    Generar informe en chat
+                  </button>
+                )}
               </div>
             </section>
 
@@ -1339,14 +1373,16 @@ export function BudgetModal(props: {
                 >
                   {isGeneratingBudgetPdf ? 'Preparando PDF…' : 'Guardar como PDF'}
                 </button>
-                <button
-                  type="button"
-                  className="budget-chat-sync-button"
-                  onClick={handleSendBudgetToAgent}
-                  disabled={props.budgetRows.length === 0}
-                >
-                  Informe en chat
-                </button>
+                {isDesktopLayout && (
+                  <button
+                    type="button"
+                    className="budget-chat-sync-button"
+                    onClick={handleSendBudgetToAgent}
+                    disabled={props.budgetRows.length === 0}
+                  >
+                    Informe en chat
+                  </button>
+                )}
               </div>
             </section>
 

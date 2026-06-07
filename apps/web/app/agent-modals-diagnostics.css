@@ -3840,13 +3840,13 @@ body.agent-route-active .app-shell::before {
   }
 
   .transactions-modal .tx-3d-hero-shell {
-    position: absolute !important;
-    top: 8px !important;
-    right: 0 !important;
+    position: relative !important;
+    top: auto !important;
+    right: auto !important;
     left: auto !important;
-    margin: 0 !important;
-    z-index: 8 !important;
-    justify-content: flex-end !important;
+    margin: 0 auto 12px !important;
+    z-index: 1 !important;
+    justify-content: center !important;
   }
 
   .transactions-modal .tx-3d-hero {
@@ -3884,8 +3884,8 @@ body.agent-route-active .app-shell::before {
     border-radius: 5px !important;
   }
 
-  .transactions-modal .tx-content-card {
-    padding-top: 64px !important;
+  .transactions-modal .tx-content-card.tx-summary-clean {
+    padding-top: 0 !important;
   }
 
   .transactions-modal .bank-sim-grid {
@@ -4296,7 +4296,7 @@ body.agent-route-active .app-shell::before {
     min-height: 100dvh !important;
     max-height: none !important;
     margin: 0 !important;
-    padding: calc(18px + env(safe-area-inset-top)) 10px calc(132px + env(safe-area-inset-bottom)) !important;
+    padding: calc(16px + env(safe-area-inset-top)) 12px calc(20px + env(safe-area-inset-bottom)) !important;
     border: none !important;
     border-radius: 5px !important;
     background: transparent !important;

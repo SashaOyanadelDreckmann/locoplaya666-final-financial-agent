@@ -473,18 +473,38 @@ export function BudgetIntelligenceTable(props: Props) {
                     props.focusedBudgetRowId === row.id ? 'is-active-row' : '',
                   ].join(' ')}
                   style={props.rowStyle(row)}
-                  onPointerDown={(event) => {
-                    const target = event.target;
-                    if (
-                      target instanceof HTMLInputElement ||
-                      target instanceof HTMLSelectElement ||
-                      target instanceof HTMLTextAreaElement ||
-                      target instanceof HTMLButtonElement
-                    ) {
-                      return;
-                    }
-                    props.focusBudgetRow(row.id);
-                  }}
+                  onClick={
+                    props.compactMobile
+                      ? (event) => {
+                          const target = event.target;
+                          if (
+                            target instanceof HTMLInputElement ||
+                            target instanceof HTMLSelectElement ||
+                            target instanceof HTMLTextAreaElement ||
+                            target instanceof HTMLButtonElement
+                          ) {
+                            return;
+                          }
+                          props.focusBudgetRow(row.id);
+                        }
+                      : undefined
+                  }
+                  onPointerDown={
+                    props.compactMobile
+                      ? undefined
+                      : (event) => {
+                          const target = event.target;
+                          if (
+                            target instanceof HTMLInputElement ||
+                            target instanceof HTMLSelectElement ||
+                            target instanceof HTMLTextAreaElement ||
+                            target instanceof HTMLButtonElement
+                          ) {
+                            return;
+                          }
+                          props.focusBudgetRow(row.id);
+                        }
+                  }
                 >
                   <td data-label="Movimiento">
                     <div className="budget-movement-cell">

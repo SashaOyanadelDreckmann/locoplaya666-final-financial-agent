@@ -722,7 +722,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
               pulse={transitionPulse}
               active={!prefersReducedMotion && (dockTransitionPhase !== 'idle' || currentStage !== 'consent')}
             />
-            <div className="tx-meta-card is-neutral" role="status" aria-live="polite" style={{ marginBottom: 14 }}>
+            <div className="tx-meta-card is-neutral tx-flow-status-card" role="status" aria-live="polite">
               <span className="tx-meta-card-kicker">Estado del flujo</span>
               <p>{txStageSummary}</p>
               <p>{txStageCta}</p>

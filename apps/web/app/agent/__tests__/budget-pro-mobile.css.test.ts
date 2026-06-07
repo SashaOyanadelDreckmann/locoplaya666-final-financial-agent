@@ -36,6 +36,16 @@ describe('budget pro mobile css safeguards', () => {
 
   it('keeps assistant internal scroll on mobile shell', () => {
     expect(mobileCss).toContain('.budget-main-carousel.mode-agent-front .budget-assistant-panel .bcc-hero');
-    expect(mobileCss).toContain('overflow-y: auto !important');
+    expect(mobileCss).toContain('backdrop-filter: blur(20px)');
+    expect(mobileCss).toContain('Diagnostics reset');
+  });
+
+  it('uses one-row scroll snap viewport on mobile table tab', () => {
+    expect(mobileCss).toContain('--budget-mobile-row-slot');
+    expect(mobileCss).toContain('scroll-snap-type: y mandatory');
+    expect(mobileCss).toContain('scroll-snap-align: start');
+    expect(mobileCss).toContain('grid-template-columns: minmax(0, 1fr) minmax(0, 1fr)');
+    expect(mobileCss).toContain('.budget-chat-sync-button:not(.is-assistant-action)');
+    expect(mobileCss).toContain('display: none !important');
   });
 });

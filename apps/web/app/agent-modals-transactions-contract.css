@@ -1,0 +1,457 @@
+/* =============================================================================
+   TRANSACTIONS MODAL — AUTHORITATIVE LAYOUT CONTRACT (v1)
+   Loaded last in agent-modals.css. Resolves cascade wars between transactions,
+   budget, and diagnostics without removing animations or dock phases.
+   ============================================================================= */
+
+.transactions-modal {
+  --tx-contract-panel: #0d141d;
+  --tx-contract-panel-edge: #0a1019;
+  --tx-contract-surface: #131d28;
+  --tx-contract-border: rgba(150, 180, 205, 0.14);
+  --tx-contract-text: #e9f1f8;
+  --tx-contract-text-dim: #9fb3c4;
+  --tx-contract-accent: #5b8cc0;
+  --tx-contract-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+/* ── Shell: one scroll host, opaque premium panel ─────────────────────────── */
+.agent-modal-overlay.transactions-modal-overlay {
+  align-items: center !important;
+  justify-content: center !important;
+  padding: clamp(12px, 2.5vw, 28px) !important;
+  background:
+    radial-gradient(120% 90% at 50% -10%, rgba(36, 58, 80, 0.34), transparent 60%),
+    rgba(6, 11, 18, 0.78) !important;
+  backdrop-filter: blur(12px) saturate(0.92) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(0.92) !important;
+}
+
+.agent-modal.transactions-modal,
+.transactions-modal {
+  display: flex !important;
+  flex-direction: column !important;
+  width: min(96vw, 1380px) !important;
+  max-width: min(96vw, 1380px) !important;
+  min-height: min(84vh, 920px) !important;
+  max-height: min(94vh, 960px) !important;
+  margin: 0 auto !important;
+  padding: 0 0 12px !important;
+  overflow: hidden !important;
+  border-radius: 24px !important;
+  border: 1px solid rgba(152, 186, 212, 0.18) !important;
+  background: linear-gradient(180deg, var(--tx-contract-panel) 0%, var(--tx-contract-panel-edge) 100%) !important;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.05) inset,
+    0 40px 120px rgba(0, 0, 0, 0.55),
+    0 12px 36px rgba(0, 0, 0, 0.42) !important;
+}
+
+.transactions-modal .tx-scroll-body {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain !important;
+  -webkit-overflow-scrolling: touch !important;
+  padding: 0 22px 18px !important;
+}
+
+/* Decorative layers stay behind content */
+.transactions-modal .tx-transition-flood-layer,
+.transactions-modal .tx-numbers-canvas {
+  z-index: 0 !important;
+  pointer-events: none !important;
+}
+
+.transactions-modal .bcc-modal-header,
+.transactions-modal .tx-scroll-body,
+.transactions-modal .tx-modal-header-layer {
+  position: relative !important;
+  z-index: 2 !important;
+}
+
+/* ── Two-column workspace (desktop) ───────────────────────────────────────── */
+.transactions-modal .pt-shell {
+  display: grid !important;
+  grid-template-columns: minmax(300px, 380px) minmax(0, 1fr) !important;
+  gap: 16px !important;
+  align-items: start !important;
+  min-height: 0 !important;
+  height: auto !important;
+  padding: 0 !important;
+}
+
+.transactions-modal .pt-left,
+.transactions-modal .pt-right {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  border-radius: 20px !important;
+  border: 1px solid var(--tx-contract-border) !important;
+  background: linear-gradient(180deg, rgba(19, 29, 40, 0.94), rgba(12, 20, 30, 0.98)) !important;
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.28) !important;
+}
+
+.transactions-modal .pt-left {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+  padding: 14px !important;
+  overflow: visible !important;
+  max-height: none !important;
+}
+
+.transactions-modal .pt-right {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+  padding: 14px 16px 16px !important;
+  overflow: visible !important;
+}
+
+.transactions-modal .tx-panel-surface {
+  transform: translate3d(0, var(--tx-surface-shift, 0px), 0) scale(var(--tx-surface-scale, 1)) !important;
+}
+
+/* ── Flow status + stepper ────────────────────────────────────────────────── */
+.transactions-modal .tx-flow-status-card {
+  margin: 0 0 12px !important;
+  padding: 12px 14px !important;
+  border-radius: 14px !important;
+  border: 1px solid var(--tx-contract-border) !important;
+  background: rgba(14, 22, 32, 0.88) !important;
+}
+
+.transactions-modal .tx-flow-status-card p {
+  margin: 0 !important;
+}
+
+.transactions-modal .tx-flow-status-card p + p {
+  margin-top: 6px !important;
+  color: var(--tx-contract-text-dim) !important;
+  font-size: 0.86rem !important;
+  line-height: 1.45 !important;
+}
+
+.transactions-modal .tx-wizard-stepper {
+  margin: 0 0 14px !important;
+}
+
+.transactions-modal .tx-wizard-stepper-list {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+  list-style: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.transactions-modal .tx-wizard-step {
+  width: 100% !important;
+  min-height: 52px !important;
+  display: grid !important;
+  gap: 3px !important;
+  padding: 10px 12px !important;
+  border-radius: 12px !important;
+  border: 1px solid rgba(148, 163, 184, 0.22) !important;
+  background: rgba(8, 14, 22, 0.5) !important;
+  color: var(--tx-contract-text) !important;
+  text-align: left !important;
+  cursor: pointer !important;
+  transition:
+    border-color 0.16s var(--tx-contract-ease),
+    background 0.16s var(--tx-contract-ease),
+    transform 0.16s var(--tx-contract-ease) !important;
+}
+
+.transactions-modal .tx-wizard-step.is-current {
+  border-color: rgba(96, 165, 250, 0.62) !important;
+  background: rgba(30, 58, 95, 0.55) !important;
+}
+
+.transactions-modal .tx-wizard-step.is-disabled,
+.transactions-modal .tx-wizard-step:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+}
+
+.transactions-modal .tx-wizard-step-title {
+  font-size: 12px !important;
+  font-weight: 650 !important;
+  letter-spacing: 0.02em !important;
+}
+
+.transactions-modal .tx-wizard-step-copy {
+  font-size: 11px !important;
+  line-height: 1.35 !important;
+  color: rgba(203, 213, 225, 0.76) !important;
+}
+
+/* ── Content carousel: in-flow stack (no absolute hero overlap) ───────────── */
+.transactions-modal .tx-content-carousel {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  gap: 14px !important;
+  position: relative !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  overflow: visible !important;
+  perspective: none !important;
+}
+
+.transactions-modal .tx-content-carousel .tx-3d-hero-shell {
+  position: relative !important;
+  top: auto !important;
+  right: auto !important;
+  left: auto !important;
+  bottom: auto !important;
+  z-index: 1 !important;
+  width: 100% !important;
+  max-width: 280px !important;
+  margin: 0 auto 4px !important;
+  justify-content: center !important;
+  transform: none !important;
+}
+
+.transactions-modal .tx-content-card,
+.transactions-modal .tx-content-card.is-main-center,
+.transactions-modal .tx-content-card.tx-summary-clean,
+.transactions-modal .tx-content-card--agent {
+  position: relative !important;
+  left: auto !important;
+  top: auto !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  box-sizing: border-box !important;
+  overflow: visible !important;
+  max-height: none !important;
+}
+
+.transactions-modal .tx-hero-shell-spacer {
+  display: none !important;
+  height: 0 !important;
+  margin: 0 !important;
+}
+
+/* ── Library stack ────────────────────────────────────────────────────────── */
+.transactions-modal .pt-stack-carousel.tx-library-is-saved {
+  position: relative !important;
+  width: 100% !important;
+  min-height: 220px !important;
+  height: 220px !important;
+  overflow: visible !important;
+}
+
+.transactions-modal .pt-list {
+  display: block !important;
+  overflow: visible !important;
+}
+
+.transactions-modal .tx-meta-stack {
+  display: grid !important;
+  gap: 8px !important;
+}
+
+.transactions-modal .tx-meta-card {
+  border-radius: 12px !important;
+  border: 1px solid var(--tx-contract-border) !important;
+  background: rgba(12, 20, 30, 0.92) !important;
+}
+
+/* ── Evidence chat ──────────────────────────────────────────────────────────── */
+.transactions-modal .tx-evidence-card--premium .tx-chat-thread {
+  max-height: min(38vh, 340px) !important;
+}
+
+.transactions-modal[data-stage='evidence'] .tx-composer-sticky-host {
+  position: sticky !important;
+  bottom: 0 !important;
+  z-index: 5 !important;
+  margin-top: 8px !important;
+  padding-top: 10px !important;
+  padding-bottom: max(6px, env(safe-area-inset-bottom, 0px)) !important;
+  background: linear-gradient(
+    180deg,
+    rgba(8, 14, 22, 0) 0%,
+    rgba(8, 14, 22, 0.92) 28%,
+    rgba(8, 14, 22, 0.98) 100%
+  ) !important;
+}
+
+.transactions-modal .tx-format-rail {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  gap: 8px !important;
+  overflow-x: auto !important;
+  overscroll-behavior-x: contain !important;
+  scrollbar-width: thin !important;
+  padding-bottom: 4px !important;
+}
+
+/* ── Close confirm ──────────────────────────────────────────────────────────── */
+.transactions-modal .tx-close-confirm-layer {
+  z-index: 50 !important;
+}
+
+/* =============================================================================
+   MOBILE — bottom sheet, compact stepper, single column
+   ============================================================================= */
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+  .agent-modal-overlay.transactions-modal-overlay {
+    align-items: flex-end !important;
+    justify-content: stretch !important;
+    padding: 0 !important;
+  }
+
+  .agent-modal.transactions-modal,
+  .transactions-modal {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: min(92dvh, 92vh) !important;
+    max-height: min(96dvh, 96vh) !important;
+    margin: 0 !important;
+    padding: 0 0 calc(12px + env(safe-area-inset-bottom, 0px)) !important;
+    border-radius: 22px 22px 0 0 !important;
+    border-bottom: none !important;
+    background: linear-gradient(180deg, var(--tx-contract-panel) 0%, var(--tx-contract-panel-edge) 100%) !important;
+    box-shadow: 0 -16px 48px rgba(0, 0, 0, 0.42) !important;
+  }
+
+  .transactions-modal .bcc-modal-header,
+  .transactions-modal .bcc-modal-header.tx-modal-header-layer {
+    padding: calc(10px + env(safe-area-inset-top, 0px)) 14px 10px !important;
+    background: linear-gradient(180deg, rgba(13, 20, 29, 0.98), rgba(13, 20, 29, 0.9)) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  }
+
+  .transactions-modal .agent-modal-close,
+  .transactions-modal .tx-close-minimal {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    border-radius: 12px !important;
+  }
+
+  .transactions-modal .agent-modal-intro {
+    display: none !important;
+  }
+
+  .transactions-modal .tx-scroll-body {
+    padding: 0 14px 14px !important;
+  }
+
+  .transactions-modal .pt-shell {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+  }
+
+  .transactions-modal .pt-left,
+  .transactions-modal .pt-right {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 12px !important;
+    background: linear-gradient(180deg, rgba(19, 29, 40, 0.96), rgba(12, 20, 30, 0.98)) !important;
+    border: 1px solid var(--tx-contract-border) !important;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.24) !important;
+  }
+
+  .transactions-modal .pt-stack-carousel.tx-library-is-saved {
+    min-height: 200px !important;
+    height: 200px !important;
+  }
+
+  .transactions-modal .tx-flow-status-card {
+    margin-bottom: 10px !important;
+    padding: 10px 12px !important;
+  }
+
+  .transactions-modal .tx-flow-status-card p + p {
+    font-size: 0.8rem !important;
+  }
+
+  /* Compact horizontal stepper */
+  .transactions-modal .tx-wizard-stepper-list {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 8px !important;
+    overflow-x: auto !important;
+    overscroll-behavior-x: contain !important;
+    scroll-snap-type: x proximity !important;
+    padding-bottom: 2px !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  .transactions-modal .tx-wizard-stepper-item {
+    flex: 0 0 auto !important;
+    min-width: min(44vw, 168px) !important;
+    scroll-snap-align: start !important;
+  }
+
+  .transactions-modal .tx-wizard-step {
+    min-height: 44px !important;
+    padding: 8px 10px !important;
+  }
+
+  .transactions-modal .tx-wizard-step-copy {
+    display: none !important;
+  }
+
+  .transactions-modal .tx-content-carousel .tx-3d-hero-shell {
+    max-width: min(220px, 72vw) !important;
+    margin-bottom: 0 !important;
+  }
+
+  .transactions-modal .tx-content-carousel .tx-3d-hero {
+    width: 100% !important;
+    min-height: 112px !important;
+  }
+
+  .transactions-modal .tx-evidence-card--premium .tx-chat-thread {
+    max-height: min(32vh, 260px) !important;
+  }
+
+  .transactions-modal .tx-composer-field {
+    font-size: 16px !important;
+  }
+
+  .transactions-modal .tx-composer-attach,
+  .transactions-modal .tx-composer-send {
+    width: 44px !important;
+    height: 44px !important;
+  }
+
+  .transactions-modal .pt-right,
+  .transactions-modal .tx-content-carousel,
+  .transactions-modal .tx-content-card {
+    padding-bottom: 0 !important;
+    scroll-padding-bottom: 0 !important;
+  }
+}
+
+/* Tablet / narrow desktop: single column before overlap */
+@media (max-width: 1100px) and (min-width: 768px) {
+  .transactions-modal .pt-shell {
+    grid-template-columns: 1fr !important;
+  }
+
+  .transactions-modal .pt-left {
+    max-height: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .transactions-modal[data-reduced-motion='true'] .tx-wizard-step,
+  .transactions-modal[data-reduced-motion='true'] .tx-panel-surface {
+    transition: none !important;
+  }
+}

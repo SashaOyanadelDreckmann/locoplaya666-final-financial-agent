@@ -652,6 +652,8 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
         track.enabled = true;
       });
       setVoicePaused(false);
+      const snapshot = persistVoiceSnapshot('in_progress');
+      void saveInterviewVoiceState(snapshot).catch(() => {});
       return;
     }
     if (pauseUsed) return;
@@ -660,10 +662,13 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
     });
     setVoicePaused(true);
     setPauseUsed(true);
+    const snapshot = persistVoiceSnapshot('paused');
+    writeInterviewVoiceState(snapshot);
+    void saveInterviewVoiceState(snapshot).catch(() => {});
   }
 
   async function finalizeCallAndGenerateReport(
-    endedBy: 'timeout' | 'agent' | 'user',
+    endedBy: 'timeout' | 'agent',
     options?: { durationSecOverride?: number },
   ) {
     if (isFinalizingCall || voiceFinalizeTriggeredRef.current) return;
@@ -1000,7 +1005,8 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
     };
   }, []);
 
-  const blockVoiceInteraction = voiceConnected || voiceConnecting || isFinalizingCall || isGeneratingDiagnosis;
+  const blockVoiceInteraction =
+    (voiceConnected && !voicePaused) || voiceConnecting || isFinalizingCall || isGeneratingDiagnosis;
 
   return {
     voiceSupported,
@@ -1041,7 +1047,6 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
     cleanupVoiceSession,
     startOrResumeVoiceSession,
     toggleCallPause,
-    finalizeCallAndGenerateReport,
     applyLatestVoiceSummaryAsAnswer,
     setVoiceUserTranscript,
     setMinuteSummaries,

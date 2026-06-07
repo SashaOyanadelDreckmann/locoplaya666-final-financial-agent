@@ -144,7 +144,6 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
     cleanupVoiceSession,
     startOrResumeVoiceSession,
     toggleCallPause,
-    finalizeCallAndGenerateReport,
     applyLatestVoiceSummaryAsAnswer,
     voiceSupported,
   } = voice;
@@ -307,7 +306,7 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
 
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') {
-        if (isGeneratingDiagnosis || isFinalizingCall || voiceConnected || voiceConnecting) return;
+        if (isGeneratingDiagnosis || isFinalizingCall || voiceConnecting || (voiceConnected && !voicePaused)) return;
         event.preventDefault();
         handleOverlayDismiss();
         return;
@@ -354,7 +353,7 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
         restoreFocusRef.current.focus();
       }
     };
-  }, [isOpen, onClose, isGeneratingDiagnosis, isFinalizingCall, voiceConnected, voiceConnecting]);
+  }, [isOpen, onClose, isGeneratingDiagnosis, isFinalizingCall, voiceConnected, voiceConnecting, voicePaused]);
 
   if (!isOpen) return null;
 
@@ -420,23 +419,31 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
       label: 'Cierre',
       value: voiceReport
         ? 'Informe listo'
+        : isFinalizingCall || isGeneratingDiagnosis
+          ? 'Diagnóstico en curso'
         : finalSummary
           ? 'Síntesis lista'
           : awaitingSummaryValidation
             ? 'Validación pendiente'
             : voiceFlags.isClosingWindow
-              ? 'Ventana final'
+              ? 'Cierre automático'
               : 'Exploración abierta',
       tone: voiceFlags.isClosingWindow ? 'is-closing' : voiceReport || finalSummary ? 'is-done' : '',
     },
   ];
   const workspaceCoachNote = awaitingSummaryValidation
     ? 'Puedes validar el bloque en paralelo. La llamada sigue disponible.'
+    : voiceConnected && voicePaused
+      ? 'Llamada en pausa. Tu progreso y síntesis quedaron guardados; puedes cerrar el modal y retomar después.'
+    : voiceConnected && voiceFlags.isClosingWindow
+      ? 'Cierre de entrevista en curso. El diagnóstico se generará automáticamente al terminar.'
     : voiceConnected
-      ? 'Responde con ejemplos concretos. El entrevistador ya tiene tu intake, presupuesto, cartolas y síntesis de llamada.'
+      ? 'El diagnóstico se genera solo al cerrar la entrevista. Puedes pausar una vez y retomar con el contexto guardado.'
+      : voiceFlags.voiceCallExhausted && (isFinalizingCall || isGeneratingDiagnosis)
+        ? 'Entrevista finalizada. Estamos consolidando tu diagnóstico automáticamente.'
       : voiceFlags.hasEverStartedVoiceCall
-        ? 'Puedes retomar la llamada donde quedó.'
-        : 'Inicia la llamada para una entrevista ejecutiva breve con contexto completo.';
+        ? 'Puedes retomar la llamada donde quedó. El progreso y las síntesis siguen guardados.'
+        : 'Inicia la llamada para una entrevista ejecutiva breve. El diagnóstico se entrega al terminar el tiempo o el cierre del entrevistador.';
 
   const callProgressPct = Math.max(0, Math.min(100, Math.round((callSeconds / Math.max(1, maxCallDurationSec)) * 100)));
   const voiceStatusAnnouncement = voiceConnecting
@@ -526,15 +533,21 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
               ref={closeButtonRef}
               onClick={canDismissOverlay ? handleOverlayDismiss : undefined}
               disabled={!canDismissOverlay}
-              aria-label={canDismissOverlay ? 'Cerrar entrevista' : 'Cerrar bloqueado mientras la llamada está activa'}
+              aria-label={
+              canDismissOverlay
+                ? voicePaused
+                  ? 'Cerrar entrevista en pausa'
+                  : 'Cerrar entrevista'
+                : 'Cerrar bloqueado mientras la llamada está activa'
+            }
             >
               ×
             </button>
           </div>
 
           <p id={descriptionId} className="agent-modal-intro interview-modal-intro">
-            Llamada breve con contexto integrado de presupuesto y productos para convertir señales dispersas en
-            entrevista útil y diagnóstico final.
+            Llamada breve con contexto integrado de presupuesto y productos. El diagnóstico se genera automáticamente
+            al terminar la entrevista; no hace falta finalizarla manualmente.
           </p>
 
           <p className="sr-only" aria-live="polite" aria-atomic="true">
@@ -672,7 +685,9 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
                         <h1>Entrevista estratégica</h1>
                         <p className="voice-call-subtitle">
                           {voiceFlags.voiceCallExhausted && !showVoiceReport
-                            ? 'Tiempo agotado — puedes generar el informe con lo registrado'
+                            ? isFinalizingCall || isGeneratingDiagnosis
+                              ? 'Entrevista finalizada — generando diagnóstico automáticamente'
+                              : 'Tiempo agotado — preparando cierre y diagnóstico automático'
                             : voiceConnected
                               ? voicePaused
                                 ? 'Llamada en pausa'
@@ -797,33 +812,24 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
                       </button>
                     </div>
 
+                    {voiceConnected && !voicePaused ? (
+                      <div className="voice-call-transcript-card interview-flow-notice">
+                        <span className="voice-call-transcript-label">Flujo de cierre</span>
+                        <p>
+                          La entrevista cierra sola al terminar el tiempo o cuando el entrevistador concluye. El
+                          diagnóstico se genera en ese momento, sin pasos manuales.
+                        </p>
+                      </div>
+                    ) : null}
+
                     <div className="voice-call-actions interview-call-actions interview-call-actions--secondary">
-                      {(minuteSummaries.length > 0 || finalSummary) && blockId ? (
+                      {awaitingSummaryValidation && (minuteSummaries.length > 0 || finalSummary) && blockId ? (
                         <button
                           type="button"
                           className="summary-action-btn summary-action-reject"
                           onClick={() => void applyLatestVoiceSummaryAsAnswer()}
                         >
-                          Usar síntesis
-                        </button>
-                      ) : null}
-                      {voiceFlags.voiceCallExhausted && !showVoiceReport && !voiceConnected && !isFinalizingCall ? (
-                        <button
-                          type="button"
-                          className="summary-action-btn summary-action-accept"
-                          onClick={() => void finalizeCallAndGenerateReport('timeout')}
-                        >
-                          Generar informe con contexto disponible
-                        </button>
-                      ) : null}
-                      {voiceConnected ? (
-                        <button
-                          type="button"
-                          className="summary-action-btn summary-action-reject"
-                          onClick={() => void finalizeCallAndGenerateReport('user')}
-                          disabled={isFinalizingCall || showVoiceReport}
-                        >
-                          {isFinalizingCall ? 'Generando informe…' : 'Finalizar y generar informe'}
+                          Usar síntesis en bloque
                         </button>
                       ) : null}
                     </div>

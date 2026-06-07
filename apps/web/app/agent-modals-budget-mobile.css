@@ -69,6 +69,71 @@
     min-height: 44px !important;
   }
 
+  /* ── Diagnostics reset (agent-modals-diagnostics.css legacy mobile rules) ── */
+  .budget-modal.is-mobile-shell,
+  .budget-modal.is-mobile-shell.budget-modal {
+    height: 100% !important;
+    max-height: 100% !important;
+    overflow: hidden !important;
+    overflow-y: hidden !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-modal-body,
+  .budget-modal.is-mobile-shell .budget-modal-body .budget-main-carousel.mode-agent-front,
+  .budget-modal.is-mobile-shell .budget-modal-body .budget-main-carousel.mode-table-front {
+    max-height: none !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    gap: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-modal-body .budget-main-carousel.is-mobile-budget {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    position: relative !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-assistant-panel .bcc-hero,
+  .budget-modal.is-mobile-shell .budget-modal-body .budget-main-carousel:not(.is-desktop).mode-agent-front > .budget-card-agent .bcc-hero {
+    min-height: 0 !important;
+    background: transparent !important;
+    backdrop-filter: blur(20px) saturate(1.12) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(1.12) !important;
+    box-shadow: none !important;
+    opacity: 1 !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-table-section,
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front .budget-table-section {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding-bottom: 0 !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-modal-body .budget-main-carousel:not(.is-desktop).mode-agent-front > .budget-card-table {
+    display: block !important;
+    opacity: 1 !important;
+    filter: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    pointer-events: none !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-table,
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) > .budget-card-agent {
+    opacity: 1 !important;
+    filter: none !important;
+    transform: none !important;
+    max-height: none !important;
+    top: auto !important;
+    left: auto !important;
+    right: auto !important;
+  }
+
   /* ── 3. Table tab — reset desktop carousel absolute layout ── */
   .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) {
     display: flex !important;
@@ -115,34 +180,112 @@
     min-width: 0 !important;
   }
 
-  /* ── 4. Assistant mode — internal scroll, no page swipe ── */
+  /* ── 4. Assistant mode — tabla visible detrás + glass solo en el chat ── */
   .budget-modal.is-mobile-shell .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) {
     flex: 1 1 auto !important;
     min-height: 0 !important;
     overflow: hidden !important;
-    display: flex !important;
-    flex-direction: column !important;
+    display: block !important;
+    position: relative !important;
+    height: 100% !important;
   }
 
-  .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-agent {
-    flex: 1 1 auto !important;
-    min-height: 0 !important;
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-table,
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) > section[data-main-card="table"] {
     display: flex !important;
     flex-direction: column !important;
+    position: absolute !important;
+    inset: 0 !important;
+    z-index: 1 !important;
+    pointer-events: none !important;
+    opacity: 1 !important;
+    filter: none !important;
+    transform: none !important;
     overflow: hidden !important;
-    padding: 12px 14px !important;
+    padding: 6px 10px 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    justify-content: center !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-table .budget-table-head,
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-table .budget-table-bottom-actions {
+    display: none !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-table .budget-table-scroll-host {
+    flex: 0 0 auto !important;
+    width: 100% !important;
+    overflow: hidden !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-table .budget-pdf-surface {
+    width: 100% !important;
+    height: var(--budget-mobile-row-slot, 292px) !important;
+    max-height: var(--budget-mobile-row-slot, 292px) !important;
+    overflow: hidden !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-table .budget-table-wrap {
+    overflow: hidden !important;
+    max-height: 100% !important;
+    height: 100% !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-agent,
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) > section[data-main-card="agent"] {
+    position: absolute !important;
+    inset: 0 !important;
+    z-index: 3 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    align-items: stretch !important;
+    min-height: 0 !important;
+    height: 100% !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 12px !important;
+    overflow: hidden !important;
+    pointer-events: none !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-agent .bcc-hero,
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-agent .bcc-hero-input-wrap,
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-agent .bcc-hero-send,
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-agent .bcc-hero-input {
+    pointer-events: auto !important;
   }
 
   .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front .budget-assistant-panel .bcc-hero {
-    flex: 1 1 auto !important;
+    flex: 0 1 auto !important;
     min-height: 0 !important;
-    max-height: 100% !important;
+    max-height: min(72vh, 100%) !important;
     overflow-y: auto !important;
     overflow-x: hidden !important;
     overscroll-behavior: contain !important;
     -webkit-overflow-scrolling: touch !important;
     touch-action: pan-y !important;
-    padding-bottom: 12px !important;
+    padding: 16px 14px !important;
+    margin: 0 !important;
+    background: transparent !important;
+    backdrop-filter: blur(20px) saturate(1.12) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(1.12) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    border-radius: 18px !important;
+    box-shadow: none !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front .budget-assistant-panel .bcc-hero::before,
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front .budget-assistant-panel .bcc-hero::after {
+    display: none !important;
+    content: none !important;
   }
 
   .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front .bcc-hero-input-wrap,
@@ -177,28 +320,55 @@
     opacity: 0.45 !important;
   }
 
-  /* ── 5. Table mode — flex stack + scroll host ── */
+  /* ── 5. Table mode — una fila exacta + botones al fondo ── */
   .budget-modal.is-mobile-shell .budget-main-carousel.is-mobile-budget.mode-table-front:not(.is-desktop) {
     flex: 1 1 auto !important;
     min-height: 0 !important;
     overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
   }
 
   .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact,
   .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-section {
     flex: 1 1 auto !important;
     min-height: 0 !important;
+    height: 100% !important;
     display: flex !important;
     flex-direction: column !important;
     overflow: hidden !important;
+    padding: 6px 10px 0 !important;
+    padding-bottom: 0 !important;
+    justify-content: flex-start !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-head {
+    flex-shrink: 0 !important;
+    margin-bottom: 4px !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-top-actions {
+    display: flex !important;
+    gap: 8px !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-top-actions .continue-ghost {
+    flex: 1 1 0 !important;
+    min-height: 34px !important;
+    height: 34px !important;
+    font-size: 0.72rem !important;
   }
 
   .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-scroll-host {
-    flex: 1 1 auto !important;
+    flex: 0 0 auto !important;
+    width: 100% !important;
     min-height: 0 !important;
     overflow: hidden !important;
     display: flex !important;
     flex-direction: column !important;
+    justify-content: flex-start !important;
+    height: var(--budget-mobile-row-slot, 292px) !important;
+    max-height: var(--budget-mobile-row-slot, 292px) !important;
   }
 
   .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-scroll-host .budget-pdf-surface {
@@ -207,31 +377,61 @@
     overflow: hidden !important;
     display: flex !important;
     flex-direction: column !important;
+    height: 100% !important;
+    max-height: 100% !important;
   }
 
   .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-scroll-host .budget-table-wrap,
   .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-wrap {
     flex: 1 1 auto !important;
     min-height: 0 !important;
-    max-height: none !important;
+    height: 100% !important;
+    max-height: 100% !important;
     overflow-x: hidden !important;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch !important;
     overscroll-behavior: contain !important;
     touch-action: pan-y !important;
+    scroll-snap-type: y mandatory !important;
+    scroll-padding-top: 0 !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table.budget-table-pro tbody tr {
+    scroll-snap-align: start !important;
+    scroll-snap-stop: always !important;
+    margin-bottom: 0 !important;
+    box-sizing: border-box !important;
   }
 
   .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-bottom-actions {
     flex-shrink: 0 !important;
     display: grid !important;
-    grid-template-columns: 1fr !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
     gap: 8px !important;
+    align-items: center !important;
+    margin-top: auto !important;
+    padding: 6px 0 max(2px, env(safe-area-inset-bottom, 0px)) !important;
   }
 
-  .budget-modal.is-mobile-shell .budget-style-button,
-  .budget-modal.is-mobile-shell .budget-pdf-button,
-  .budget-modal.is-mobile-shell .budget-chat-sync-button {
-    min-height: 44px !important;
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-bottom-actions .budget-chat-sync-button:not(.is-assistant-action) {
+    display: none !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-style-button,
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-pdf-button {
+    min-height: 30px !important;
+    height: 30px !important;
+    width: 100% !important;
+    padding: 0 6px !important;
+    font-size: 0.62rem !important;
+    letter-spacing: 0.02em !important;
+    border-radius: 9px !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-style-button,
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-pdf-button,
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-chat-sync-button {
+    min-height: 30px !important;
     width: 100% !important;
   }
 
@@ -252,7 +452,7 @@
       "actions actions" !important;
     gap: 8px !important;
     padding: 10px !important;
-    margin: 0 0 10px !important;
+    margin: 0 !important;
     border-radius: 16px !important;
     overflow: visible !important;
   }
@@ -322,13 +522,38 @@
     display: none !important;
   }
 
-  /* Agent backdrop table: never scroll or intercept touches */
-  .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-table {
-    pointer-events: none !important;
-    overflow: hidden !important;
+  /* Agent backdrop + table tab: diagnostics overflow reset */
+  .budget-modal.is-mobile-shell .budget-table-wrap,
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-wrap {
+    overflow-x: hidden !important;
   }
 
   .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-table .budget-table-wrap {
     overflow: hidden !important;
+    max-height: 100% !important;
+  }
+
+  /* Override diagnostics legacy hide on agent tab */
+  .budget-modal.is-mobile-shell .budget-modal-body .budget-main-carousel:not(.is-desktop).mode-agent-front > .budget-card-table {
+    display: flex !important;
+    opacity: 1 !important;
+    filter: none !important;
+    pointer-events: none !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-modal-body .budget-main-carousel:not(.is-desktop).mode-agent-front > .budget-card-agent {
+    display: flex !important;
+    position: absolute !important;
+    inset: 0 !important;
+    opacity: 1 !important;
+    pointer-events: none !important;
+    z-index: 3 !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-modal-body .budget-main-carousel:not(.is-desktop).mode-agent-front > .budget-card-agent .bcc-hero {
+    background: transparent !important;
+    backdrop-filter: blur(20px) saturate(1.12) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(1.12) !important;
+    opacity: 1 !important;
   }
 }

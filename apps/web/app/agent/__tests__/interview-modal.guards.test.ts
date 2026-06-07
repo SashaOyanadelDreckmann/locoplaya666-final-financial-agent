@@ -50,6 +50,31 @@ describe('interview modal safeguards', () => {
     expect(source).not.toContain(".split('||')");
   });
 
+  it('does not expose manual interview finalization in the modal shell', () => {
+    const modalPath = path.join(process.cwd(), 'app', 'agent', 'InterviewModal.tsx');
+    const runtimePath = path.join(process.cwd(), 'app', 'agent', 'useInterviewVoiceRuntime.ts');
+    const modal = fs.readFileSync(modalPath, 'utf8');
+    const runtime = fs.readFileSync(runtimePath, 'utf8');
+
+    expect(modal).not.toContain('Finalizar y generar informe');
+    expect(modal).not.toContain('Generar informe con contexto disponible');
+    expect(modal).not.toContain("finalizeCallAndGenerateReport('user')");
+    expect(modal).not.toContain("finalizeCallAndGenerateReport('timeout')");
+    expect(runtime).toContain("finalizeCallAndGenerateReport('timeout')");
+    expect(runtime).toContain("finalizeCallAndGenerateReport('agent')");
+    expect(runtime).not.toContain("finalizeCallAndGenerateReport('user')");
+  });
+
+  it('allows closing the modal while the call is paused', () => {
+    const modalPath = path.join(process.cwd(), 'app', 'agent', 'InterviewModal.tsx');
+    const runtimePath = path.join(process.cwd(), 'app', 'agent', 'useInterviewVoiceRuntime.ts');
+    const modal = fs.readFileSync(modalPath, 'utf8');
+    const runtime = fs.readFileSync(runtimePath, 'utf8');
+
+    expect(modal).toContain('voiceConnected && !voicePaused');
+    expect(runtime).toContain('voiceConnected && !voicePaused');
+  });
+
   it('extracts voice runtime from the modal shell', () => {
     const modalPath = path.join(process.cwd(), 'app', 'agent', 'InterviewModal.tsx');
     const runtimePath = path.join(process.cwd(), 'app', 'agent', 'useInterviewVoiceRuntime.ts');

@@ -1854,7 +1854,7 @@
     min-height: 62vh !important;
   }
 
-  /* Tabla: visible pero absolutamente posicionada, muy desenfocada */
+  /* Tabla: visible detrás del agente, sin capa de opacidad */
   .budget-modal .budget-modal-body .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-table,
   .budget-modal .budget-modal-body .budget-main-carousel.mode-agent-front:not(.is-desktop) > section[data-main-card="table"] {
     display: block !important;
@@ -1862,13 +1862,12 @@
     inset: 0 !important;
     z-index: 1 !important;
     pointer-events: none !important;
-    filter: blur(24px) brightness(0.55) !important;
-    opacity: 0.6 !important;
-    transform: scale(1.1) !important;
+    filter: none !important;
+    opacity: 1 !important;
+    transform: none !important;
     overflow: hidden !important;
     -webkit-user-select: none !important;
     user-select: none !important;
-    /* reset any box model overrides */
     padding: 0 !important;
     margin: 0 !important;
     border-radius: 0 !important;
@@ -1893,15 +1892,15 @@
     min-height: 62vh !important;
   }
 
-  /* bcc-hero: sin caja, sin fondo, sin borde */
+  /* bcc-hero: glass blur puro, sin fondo opaco */
   .budget-modal .budget-modal-body .budget-main-carousel.mode-agent-front .budget-assistant-panel .bcc-hero {
     background: transparent !important;
-    border: none !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
     box-shadow: none !important;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    border-radius: 0 !important;
-    padding: 0 !important;
+    backdrop-filter: blur(20px) saturate(1.12) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(1.12) !important;
+    border-radius: 20px !important;
+    padding: 20px 18px !important;
     margin: 0 !important;
     width: 100% !important;
     max-width: 520px !important;
@@ -3701,10 +3700,12 @@
   position: relative;
   left: auto;
   top: auto;
-  width: min(880px, calc(100vw - 180px));
-  max-height: calc(100vh - 280px);
-  overflow: auto;
+  width: 100%;
+  max-width: 100%;
+  max-height: none;
+  overflow: visible;
   padding-right: 2px;
+  box-sizing: border-box;
 }
 
 .transactions-modal .tx-content-card.is-main-center {
@@ -3724,8 +3725,9 @@
 
 @media (max-width: 920px) {
   .transactions-modal .tx-content-card {
-    width: calc(100vw - 54px);
-    max-height: calc(100vh - 240px);
+    width: 100%;
+    max-width: 100%;
+    max-height: none;
   }
 
   .transactions-modal .tx-stage-carousel .budget-carousel-arrow.is-left {
@@ -6662,8 +6664,8 @@
   .transactions-modal .tx-content-carousel,
   .transactions-modal .tx-content-card,
   .transactions-modal .tx-content-card.tx-summary-clean {
-    padding-bottom: calc(var(--tx-mobile-bottom-clearance) + env(safe-area-inset-bottom)) !important;
-    scroll-padding-bottom: calc(var(--tx-mobile-bottom-clearance) + env(safe-area-inset-bottom)) !important;
+    padding-bottom: 0 !important;
+    scroll-padding-bottom: max(8px, env(safe-area-inset-bottom, 0px)) !important;
   }
 
   .transactions-modal .transactions-summary-card,
@@ -7050,118 +7052,7 @@
   }
 }
 
-/* Transactions mobile: full-page blurred backdrop, not a modal-sized invisible sheet. */
-@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
-  .agent-modal-overlay.transactions-modal-overlay {
-    position: fixed !important;
-    inset: 0 !important;
-    width: 100vw !important;
-    height: 100dvh !important;
-    min-height: 100dvh !important;
-    display: block !important;
-    align-items: unset !important;
-    justify-content: unset !important;
-    padding: 0 !important;
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
-    background: rgba(5, 7, 10, 0.46) !important;
-    background-image: none !important;
-    backdrop-filter: blur(20px) saturate(0.72) brightness(0.62) !important;
-    -webkit-backdrop-filter: blur(20px) saturate(0.72) brightness(0.62) !important;
-  }
-
-  .agent-modal-overlay.transactions-modal-overlay > .agent-modal.transactions-modal,
-  .agent-modal.transactions-modal,
-  .transactions-modal {
-    position: relative !important;
-    inset: auto !important;
-    width: 100vw !important;
-    max-width: 100vw !important;
-    min-height: 100dvh !important;
-    max-height: none !important;
-    margin: 0 !important;
-    padding: calc(28px + env(safe-area-inset-top)) 8px calc(144px + env(safe-area-inset-bottom)) !important;
-    border: none !important;
-    border-radius: 0 !important;
-    background: transparent !important;
-    background-image: none !important;
-    box-shadow: none !important;
-    overflow: visible !important;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-  }
-
-  .transactions-modal .bcc-modal-header,
-  .transactions-modal .pt-shell {
-    width: min(100%, 520px) !important;
-    margin-left: auto !important;
-    margin-right: auto !important;
-  }
-
-  .transactions-modal .pt-left,
-  .transactions-modal .pt-right,
-  .transactions-modal .tx-content-card {
-    background: transparent !important;
-    background-image: none !important;
-    border: none !important;
-    box-shadow: none !important;
-  }
-}
-
-/* Transactions mobile final visual contract:
-   no modal sheet, only floating controls over a blurred/dimmed app behind. */
-@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
-  .agent-modal-overlay.transactions-modal-overlay {
-    background: rgba(5, 7, 10, 0.18) !important;
-    background-image: none !important;
-    backdrop-filter: blur(20px) saturate(0.76) brightness(0.82) !important;
-    -webkit-backdrop-filter: blur(20px) saturate(0.76) brightness(0.82) !important;
-  }
-
-  .agent-modal-overlay.transactions-modal-overlay > .agent-modal.transactions-modal,
-  .agent-modal.transactions-modal,
-  .transactions-modal {
-    background: transparent !important;
-    background-image: none !important;
-    border: none !important;
-    box-shadow: none !important;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-  }
-
-  .transactions-modal .bcc-modal-header,
-  .transactions-modal .bcc-modal-title-wrap,
-  .transactions-modal .pt-shell,
-  .transactions-modal .pt-left,
-  .transactions-modal .pt-right,
-  .transactions-modal .pt-list,
-  .transactions-modal .pt-stack-carousel,
-  .transactions-modal .tx-content-carousel,
-  .transactions-modal .tx-content-card,
-  .transactions-modal .tx-content-card.tx-summary-clean,
-  .transactions-modal .pt-stagebar,
-  .transactions-modal .agent-modal-actions {
-    background: transparent !important;
-    background-image: none !important;
-    border: none !important;
-    box-shadow: none !important;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-  }
-
-  .transactions-modal .tx-meta-card {
-    background: rgba(9, 14, 22, 0.78) !important;
-    border: 1px solid rgba(214, 226, 238, 0.2) !important;
-    box-shadow: none !important;
-  }
-
-  .transactions-modal .pt-item.pt-item-stack {
-    border: 1px solid rgba(216, 228, 238, 0.24) !important;
-    box-shadow: none !important;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-  }
-}
+/* Transactions mobile layout: see agent-modals-transactions-contract.css (loaded last). */
 
 /* Match mobile backdrop style from Transacciones for Presupuesto + Entrevista */
 @media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {

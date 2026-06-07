@@ -108,6 +108,16 @@ describe('budget modal logic guards', () => {
     expect(source).toContain('aria-selected={budgetViewMode === 1}');
   });
 
+  it('measures mobile row slot height for one-row table viewport', () => {
+    expect(source).toContain('--budget-mobile-row-slot');
+    expect(source).toContain('measureMobileRowSlot');
+  });
+
+  it('hides table informe button on mobile while keeping desktop copy', () => {
+    expect(source).toContain('{isDesktopLayout && (');
+    expect(source).toContain('Informe en chat');
+  });
+
   it('scopes legacy table column hiding away from budget-table-pro', () => {
     const budgetCssPath = path.join(process.cwd(), 'app', 'agent-modals-budget.css');
     const budgetCss = fs.readFileSync(budgetCssPath, 'utf8');
