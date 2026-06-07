@@ -41,14 +41,14 @@ const DECK_CLASS_BY_OFFSET: Record<(typeof SLOT_OFFSETS)[number], string> = {
   2: 'is-deck-far-right',
 };
 
-const SWIPE_COMMIT_PX = 1;
-const SWIPE_COMMIT_RATIO = 0.010;
-const SWIPE_VELOCITY_COMMIT = 0.014;
-const DRAG_LOCK_PX = 0;
-const DRAG_SENSITIVITY = 2.4;
-const STEP_DURATION_MS = 30;
-const SNAP_DURATION_MS = 20;
-const MIN_TWEEN_MS = 12;
+const SWIPE_COMMIT_PX = 8;
+const SWIPE_COMMIT_RATIO = 0.14;
+const SWIPE_VELOCITY_COMMIT = 0.35;
+const DRAG_LOCK_PX = 4;
+const DRAG_SENSITIVITY = 1.65;
+const STEP_DURATION_MS = 300;
+const SNAP_DURATION_MS = 210;
+const MIN_TWEEN_MS = 90;
 const PROFILE_HOME_INDEX = 0;
 
 // Cards that expand into a floating overlay when tapped (informative only, no action cards)
@@ -84,8 +84,8 @@ function rubberBandPhase(phase: number, maxProgress = 0.48) {
   return base + maxProgress - overflow * 0.15;
 }
 
-function easeOutExpo(t: number): number {
-  return t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
+function easeOutQuart(t: number): number {
+  return 1 - Math.pow(1 - t, 4);
 }
 
 function runPhaseTween(
@@ -100,7 +100,7 @@ function runPhaseTween(
   let raf = 0;
   const start = performance.now();
   const distance = to - from;
-  const velocityBoost = Math.min(baseDurationMs * 0.85, Math.abs(initialVelocity) * 8);
+  const velocityBoost = Math.min(baseDurationMs * 0.72, Math.abs(initialVelocity) * 140);
   const duration = Math.max(MIN_TWEEN_MS, baseDurationMs - velocityBoost);
 
   const cancel = () => {
@@ -112,7 +112,7 @@ function runPhaseTween(
   const tick = (now: number) => {
     if (done) return;
     const t = Math.min(1, (now - start) / duration);
-    onUpdate(from + distance * easeOutExpo(t));
+    onUpdate(from + distance * easeOutQuart(t));
     if (t >= 1) {
       onUpdate(to);
       cancel();
@@ -293,7 +293,7 @@ export const MobilePanelCircularDeck = forwardRef<
     [props.gridRef]
   );
 
-  const applyDeckPhase = useCallback((phase: number, syncReact: boolean) => {
+  const applyDeckPhase = useCallback((phase: number, syncReact: boolean, forceSync = false) => {
     deckPhaseRef.current = phase;
     const { progress } = splitDeckPhase(phase, count);
     const step = stepWidthRef.current;
@@ -308,11 +308,11 @@ export const MobilePanelCircularDeck = forwardRef<
         Math.abs(ratio) < 0.012 ? 'idle' : ratio < 0 ? 'next' : 'prev';
     }
 
-    const nextFloor = Math.floor(phase + 1e-6);
     if (syncReact) {
-      setDeckPhase(phase);
-      if (nextFloor !== floorPhaseRef.current) {
+      const nextFloor = Math.floor(phase + 1e-6);
+      if (forceSync || nextFloor !== floorPhaseRef.current) {
         floorPhaseRef.current = nextFloor;
+        setDeckPhase(phase);
       }
     }
   }, [count]);
@@ -336,7 +336,7 @@ export const MobilePanelCircularDeck = forwardRef<
       const rounded = Math.round(targetPhase);
       deckPhaseRef.current = rounded;
       floorPhaseRef.current = Math.floor(rounded);
-      applyDeckPhase(rounded, true);
+      applyDeckPhase(rounded, true, true);
       setIsAnimating(false);
 
       const center = mod(rounded, count);
@@ -367,7 +367,14 @@ export const MobilePanelCircularDeck = forwardRef<
       animRef.current = runPhaseTween(
         from,
         targetPhase,
-        (phase) => applyDeckPhase(phase, true),
+        (phase) => {
+          applyDeckPhase(phase, false);
+          const nextFloor = Math.floor(phase + 1e-6);
+          if (nextFloor !== floorPhaseRef.current) {
+            floorPhaseRef.current = nextFloor;
+            setDeckPhase(phase);
+          }
+        },
         () => settleAtPhase(targetPhase, haptic),
         durationMs,
         velocity
@@ -515,7 +522,12 @@ export const MobilePanelCircularDeck = forwardRef<
       const step = stepWidthRef.current;
       const rawPhase = dragStartPhaseRef.current - (dx / step) * DRAG_SENSITIVITY;
       const phase = rubberBandPhase(rawPhase);
-      applyDeckPhase(phase, true);
+      applyDeckPhase(phase, false);
+      const nextFloor = Math.floor(phase + 1e-6);
+      if (nextFloor !== floorPhaseRef.current) {
+        floorPhaseRef.current = nextFloor;
+        setDeckPhase(phase);
+      }
     },
     [applyDeckPhase, isDragging]
   );

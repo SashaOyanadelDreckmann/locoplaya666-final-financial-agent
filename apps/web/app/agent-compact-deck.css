@@ -148,9 +148,16 @@
     scroll-snap-align: none !important;
     --mobile-deck-step: var(--deck-shift-near);
     --mobile-deck-card-w: var(--deck-card-w);
-    touch-action: pan-x pinch-zoom !important;
+    touch-action: none !important;
+    transition: none !important;
+    will-change: transform;
     perspective: 1040px !important;
     transform-style: preserve-3d !important;
+  }
+
+  body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-track.is-dragging,
+  body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-track.is-animating {
+    transition: none !important;
   }
 
   body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-slot {
@@ -165,41 +172,55 @@
     max-height: var(--deck-card-h) !important;
     transform-origin: center bottom !important;
     transform-style: preserve-3d !important;
+    transition: none !important;
+    will-change: transform, opacity, filter;
     pointer-events: none !important;
     box-sizing: border-box !important;
+    --deck-t-front: abs(var(--deck-drag-ratio, 0));
+    --deck-t-prev: max(0, var(--deck-drag-ratio, 0));
+    --deck-t-next: max(0, calc(var(--deck-drag-ratio, 0) * -1));
   }
 
   body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-slot.is-deck-far-left {
     z-index: 1 !important;
-    transform: translateX(calc(-50% - var(--deck-shift-far))) scale(0.94) translate3d(0, 0, -4px) !important;
-    opacity: 0.58 !important;
+    transform: translateX(calc(-50% - var(--deck-shift-far))) scale(0.88) translate3d(0, 0, -4px) !important;
+    opacity: 0.52 !important;
+    filter: brightness(0.92) saturate(0.94) !important;
   }
 
   body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-slot.is-deck-far-right {
     z-index: 1 !important;
-    transform: translateX(calc(-50% + var(--deck-shift-far))) scale(0.94) translate3d(0, 0, -4px) !important;
-    opacity: 0.58 !important;
+    transform: translateX(calc(-50% + var(--deck-shift-far))) scale(0.88) translate3d(0, 0, -4px) !important;
+    opacity: 0.52 !important;
+    filter: brightness(0.92) saturate(0.94) !important;
   }
 
   body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-slot.is-deck-near-left {
-    z-index: 6 !important;
-    transform: translateX(calc(-50% - var(--deck-shift-near))) scale(0.99) translate3d(0, 0, 0) !important;
-    opacity: 0.98 !important;
+    z-index: calc(6 + var(--deck-t-prev) * 2) !important;
+    transform: translateX(calc(-50% - var(--deck-shift-near) + var(--deck-t-prev) * 1px)) scale(calc(0.982 + var(--deck-t-prev) * 0.018)) translate3d(0, 0, calc(var(--deck-t-prev) * 2px)) !important;
+    opacity: calc(0.97 + var(--deck-t-prev) * 0.03) !important;
+    filter: brightness(calc(0.99 + var(--deck-t-prev) * 0.01)) saturate(calc(0.99 + var(--deck-t-prev) * 0.01)) !important;
     pointer-events: auto !important;
   }
 
   body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-slot.is-deck-near-right {
-    z-index: 6 !important;
-    transform: translateX(calc(-50% + var(--deck-shift-near))) scale(0.99) translate3d(0, 0, 0) !important;
-    opacity: 0.98 !important;
+    z-index: calc(6 + var(--deck-t-next) * 2) !important;
+    transform: translateX(calc(-50% + var(--deck-shift-near) - var(--deck-t-next) * 1px)) scale(calc(0.982 + var(--deck-t-next) * 0.018)) translate3d(0, 0, calc(var(--deck-t-next) * 2px)) !important;
+    opacity: calc(0.97 + var(--deck-t-next) * 0.03) !important;
+    filter: brightness(calc(0.99 + var(--deck-t-next) * 0.01)) saturate(calc(0.99 + var(--deck-t-next) * 0.01)) !important;
     pointer-events: auto !important;
   }
 
   body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-slot.is-mobile-front {
-    z-index: 10 !important;
-    transform: translateX(-50%) scale(1) translate3d(0, 0, 0) !important;
-    opacity: 1 !important;
+    z-index: calc(10 - var(--deck-t-front) * 2) !important;
+    transform: translateX(-50%) scale(calc(1 - var(--deck-t-front) * 0.022)) translate3d(0, 0, calc(var(--deck-t-front) * -3px)) !important;
+    opacity: calc(1 - var(--deck-t-front) * 0.05) !important;
+    filter: brightness(calc(1 - var(--deck-t-front) * 0.02)) saturate(calc(1 - var(--deck-t-front) * 0.015)) !important;
     pointer-events: auto !important;
+  }
+
+  body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-slot.is-deck-pulse {
+    animation: mobileDeckPulse 0.34s cubic-bezier(0.22, 1, 0.36, 1) !important;
   }
 
   body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-circular-deck .mob-col,
@@ -1074,4 +1095,55 @@ html[data-visual-mode='light-outline'] .floating-card-shell {
     0 24px 64px rgba(0, 0, 0, 0.58),
     0 4px 24px rgba(0, 0, 0, 0.36),
     0 0 0 0.5px rgba(255, 255, 255, 0.05);
+}
+
+@keyframes mobileDeckPulse {
+  0% {
+    transform: translateX(-50%) scale(calc(1 - var(--deck-t-front, 0) * 0.022));
+    filter: brightness(calc(1 - var(--deck-t-front, 0) * 0.02));
+  }
+  45% {
+    transform: translateX(-50%) scale(calc(1.01 - var(--deck-t-front, 0) * 0.022));
+    filter: brightness(calc(1.03 - var(--deck-t-front, 0) * 0.02));
+  }
+  100% {
+    transform: translateX(-50%) scale(calc(1 - var(--deck-t-front, 0) * 0.022));
+    filter: brightness(calc(1 - var(--deck-t-front, 0) * 0.02));
+  }
+}
+
+/*
+ * Light-outline — restore premium deck drag interpolation (beats visual-modes static transforms).
+ */
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel:is(.is-mobile-compact, .is-mobile-expanded):not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-slot {
+    --deck-t-front: abs(var(--deck-drag-ratio, 0));
+    --deck-t-prev: max(0, var(--deck-drag-ratio, 0));
+    --deck-t-next: max(0, calc(var(--deck-drag-ratio, 0) * -1));
+  }
+
+  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel:is(.is-mobile-compact, .is-mobile-expanded):not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-slot.is-deck-far-left {
+    transform: translateX(calc(-50% - var(--deck-shift-far))) scale(0.88) !important;
+    opacity: 0.52 !important;
+  }
+
+  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel:is(.is-mobile-compact, .is-mobile-expanded):not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-slot.is-deck-far-right {
+    transform: translateX(calc(-50% + var(--deck-shift-far))) scale(0.88) !important;
+    opacity: 0.52 !important;
+  }
+
+  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel:is(.is-mobile-compact, .is-mobile-expanded):not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-slot.is-deck-near-left {
+    transform: translateX(calc(-50% - var(--deck-shift-near) + var(--deck-t-prev) * 1px)) scale(calc(0.982 + var(--deck-t-prev) * 0.018)) !important;
+    opacity: calc(0.97 + var(--deck-t-prev) * 0.03) !important;
+  }
+
+  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel:is(.is-mobile-compact, .is-mobile-expanded):not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-slot.is-deck-near-right {
+    transform: translateX(calc(-50% + var(--deck-shift-near) - var(--deck-t-next) * 1px)) scale(calc(0.982 + var(--deck-t-next) * 0.018)) !important;
+    opacity: calc(0.97 + var(--deck-t-next) * 0.03) !important;
+  }
+
+  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel:is(.is-mobile-compact, .is-mobile-expanded):not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-slot.is-mobile-front {
+    transform: translateX(-50%) scale(calc(1 - var(--deck-t-front) * 0.022)) !important;
+    opacity: calc(1 - var(--deck-t-front) * 0.05) !important;
+  }
 }
