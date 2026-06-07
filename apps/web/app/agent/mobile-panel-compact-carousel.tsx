@@ -41,14 +41,16 @@ const DECK_CLASS_BY_OFFSET: Record<(typeof SLOT_OFFSETS)[number], string> = {
   2: 'is-deck-far-right',
 };
 
-const SWIPE_COMMIT_PX = 8;
-const SWIPE_COMMIT_RATIO = 0.14;
-const SWIPE_VELOCITY_COMMIT = 0.35;
+const SWIPE_COMMIT_PX = 6;
+const SWIPE_COMMIT_RATIO = 0.08;
+const SWIPE_VELOCITY_COMMIT = 0.22;
+const FLICK_PROJECTION_MS = 220;
 const DRAG_LOCK_PX = 4;
-const DRAG_SENSITIVITY = 1.65;
-const STEP_DURATION_MS = 300;
-const SNAP_DURATION_MS = 210;
-const MIN_TWEEN_MS = 90;
+const DRAG_SENSITIVITY = 1;
+const SNAP_DURATION_MS = 180;
+const MIN_TWEEN_MS = 70;
+const MAX_SNAP_DURATION_MS = 520;
+const MS_PER_CARD_STEP = 46;
 const PROFILE_HOME_INDEX = 0;
 
 // Cards that expand into a floating overlay when tapped (informative only, no action cards)
@@ -71,17 +73,40 @@ function splitDeckPhase(phase: number, count: number) {
   return { baseIndex: mod(base, count), progress };
 }
 
-function rubberBandPhase(phase: number, maxProgress = 0.48) {
-  const base = Math.floor(phase);
-  let progress = phase - base;
-  if (progress < 0) progress += 1;
-  if (progress <= 1 - maxProgress && progress >= maxProgress) return phase;
-  if (progress > 1 - maxProgress) {
-    const overflow = progress - (1 - maxProgress);
-    return base + (1 - maxProgress) + overflow * 0.15;
+function dragPhaseFromPointer(startPhase: number, dx: number, step: number) {
+  if (step <= 0) return startPhase;
+  return startPhase - (dx / step) * DRAG_SENSITIVITY;
+}
+
+function computeSnapDuration(from: number, to: number, velocity = 0) {
+  const steps = Math.abs(to - from);
+  if (steps < 0.05) return SNAP_DURATION_MS;
+  const base = SNAP_DURATION_MS + steps * MS_PER_CARD_STEP;
+  const velocityBoost = Math.min(base * 0.62, Math.abs(velocity) * 130);
+  return Math.max(MIN_TWEEN_MS, Math.min(MAX_SNAP_DURATION_MS, base - velocityBoost));
+}
+
+function resolveSwipeTarget(
+  current: number,
+  startPhase: number,
+  dx: number,
+  velocity: number,
+  step: number
+) {
+  const moved = Math.abs(dx);
+  const ratioMoved = step > 0 ? moved / step : 0;
+  const dragPhase = dragPhaseFromPointer(startPhase, dx, step);
+  const flickCards = step > 0 ? (-velocity / step) * DRAG_SENSITIVITY * FLICK_PROJECTION_MS : 0;
+
+  if (Math.abs(velocity) >= SWIPE_VELOCITY_COMMIT) {
+    return Math.round(current + flickCards);
   }
-  const overflow = maxProgress - progress;
-  return base + maxProgress - overflow * 0.15;
+
+  if (moved >= SWIPE_COMMIT_PX || ratioMoved >= SWIPE_COMMIT_RATIO) {
+    return Math.round(dragPhase);
+  }
+
+  return Math.round(startPhase);
 }
 
 function easeOutQuart(t: number): number {
@@ -428,7 +453,7 @@ export const MobilePanelCircularDeck = forwardRef<
       const target = mod(index, count);
       const delta = shortestPhaseDelta(deckPhaseRef.current, target, count);
       const targetPhase = Math.round(deckPhaseRef.current) + delta;
-      animateToPhase(targetPhase, STEP_DURATION_MS);
+      animateToPhase(targetPhase, computeSnapDuration(deckPhaseRef.current, targetPhase));
     },
     [animateToPhase, count]
   );
@@ -444,7 +469,7 @@ export const MobilePanelCircularDeck = forwardRef<
       },
       focusByIndex,
       resetHome: () => {
-        animateToPhase(PROFILE_HOME_INDEX, STEP_DURATION_MS);
+        animateToPhase(PROFILE_HOME_INDEX, computeSnapDuration(deckPhaseRef.current, PROFILE_HOME_INDEX));
       },
     }),
     [focusByIndex, props.cards]
@@ -520,8 +545,7 @@ export const MobilePanelCircularDeck = forwardRef<
       }
 
       const step = stepWidthRef.current;
-      const rawPhase = dragStartPhaseRef.current - (dx / step) * DRAG_SENSITIVITY;
-      const phase = rubberBandPhase(rawPhase);
+      const phase = dragPhaseFromPointer(dragStartPhaseRef.current, dx, step);
       applyDeckPhase(phase, false);
       const nextFloor = Math.floor(phase + 1e-6);
       if (nextFloor !== floorPhaseRef.current) {
@@ -548,26 +572,9 @@ export const MobilePanelCircularDeck = forwardRef<
       const step = stepWidthRef.current;
       const current = deckPhaseRef.current;
       const start = dragStartPhaseRef.current;
-      const moved = Math.abs(dx);
-      const ratioMoved = moved / step;
 
-      let target = Math.round(current);
-
-      const flickNext = velocity <= -SWIPE_VELOCITY_COMMIT;
-      const flickPrev = velocity >= SWIPE_VELOCITY_COMMIT;
-      const distanceNext = moved >= SWIPE_COMMIT_PX || ratioMoved >= SWIPE_COMMIT_RATIO;
-
-      if (flickNext) {
-        target = Math.ceil(current - 1e-4);
-      } else if (flickPrev) {
-        target = Math.floor(current + 1e-4);
-      } else if (distanceNext) {
-        target = dx < 0 ? Math.ceil(current - 1e-4) : Math.floor(current + 1e-4);
-      } else {
-        target = Math.round(start);
-      }
-
-      const duration = Math.abs(target - current) >= 1 ? STEP_DURATION_MS : SNAP_DURATION_MS;
+      const target = resolveSwipeTarget(current, start, dx, velocity, step);
+      const duration = computeSnapDuration(current, target, velocity);
       animateToPhase(target, duration, velocity);
     },
     [animateToPhase]
@@ -583,7 +590,7 @@ export const MobilePanelCircularDeck = forwardRef<
     (dir: -1 | 1) => {
       if (count <= 1 || isDragging || isAnimating || didDragRef.current) return;
       const target = Math.round(deckPhaseRef.current) + dir;
-      animateToPhase(target, STEP_DURATION_MS);
+      animateToPhase(target, computeSnapDuration(deckPhaseRef.current, target));
     },
     [animateToPhase, count, isAnimating, isDragging]
   );
