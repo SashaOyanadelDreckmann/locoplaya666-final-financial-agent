@@ -1,7 +1,4 @@
 /* Bootstrap module for agent layout, budget, and mobile stabilization. */
-html.agent-global-monochrome {
-  filter: grayscale(1) !important;
-}
 
 .transactions-modal .agent-modal-actions .button-primary.is-saved-product {
   background: linear-gradient(135deg, #17323a, #225464);

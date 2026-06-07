@@ -78,6 +78,90 @@
   stroke-linecap: round;
 }
 
+.mono-toggle-icon__half-alt,
+.mono-toggle-icon__soft {
+  display: none;
+}
+
+.mono-toggle-mode-dot {
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(236, 243, 248, 0.92);
+  opacity: 0;
+  transform: scale(0.6);
+  transition: opacity var(--transition), transform var(--transition), background var(--transition);
+  pointer-events: none;
+}
+
+.chat-monochrome-toggle.is-active .mono-toggle-mode-dot {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.chat-monochrome-toggle.is-visual-mode-grayscale .mono-toggle-mode-dot {
+  background: rgba(236, 243, 248, 0.95);
+}
+
+.chat-monochrome-toggle.is-visual-mode-palette-shuffle .mono-toggle-icon__half {
+  fill: #88a7bc;
+}
+
+.chat-monochrome-toggle.is-visual-mode-palette-shuffle .mono-toggle-icon__half-alt {
+  display: block;
+  fill: #b7a66a;
+}
+
+.chat-monochrome-toggle.is-visual-mode-palette-shuffle .mono-toggle-icon__ring {
+  stroke: rgba(228, 236, 244, 0.9);
+}
+
+.chat-monochrome-toggle.is-visual-mode-palette-shuffle .mono-toggle-mode-dot {
+  background: conic-gradient(from 210deg, #6f8fa6, #a48f4f, #dce8f2, #6f8fa6);
+}
+
+.chat-monochrome-toggle.is-visual-mode-dark-outline .mono-toggle-icon__ring {
+  stroke: rgba(238, 244, 248, 0.95);
+}
+
+.chat-monochrome-toggle.is-visual-mode-dark-outline .mono-toggle-icon__half {
+  fill: rgba(238, 244, 248, 0.95);
+}
+
+.chat-monochrome-toggle.is-visual-mode-dark-outline .mono-toggle-icon__split {
+  stroke: rgba(15, 22, 31, 0.9);
+}
+
+.chat-monochrome-toggle.is-visual-mode-dark-outline .mono-toggle-mode-dot {
+  background: rgba(238, 244, 248, 0.95);
+}
+
+.chat-monochrome-toggle.is-visual-mode-light-outline .mono-toggle-icon__half,
+.chat-monochrome-toggle.is-visual-mode-light-outline .mono-toggle-icon__half-alt,
+.chat-monochrome-toggle.is-visual-mode-light-outline .mono-toggle-icon__split {
+  display: none;
+}
+
+.chat-monochrome-toggle.is-visual-mode-light-outline .mono-toggle-icon__ring {
+  stroke: rgba(15, 22, 31, 0.92);
+}
+
+.chat-monochrome-toggle.is-visual-mode-light-outline .mono-toggle-icon__soft {
+  display: block;
+  fill: rgba(15, 22, 31, 0.92);
+}
+
+.chat-monochrome-toggle.is-visual-mode-light-outline .mono-toggle-mode-dot {
+  background: rgba(15, 22, 31, 0.78);
+}
+
+.chat-monochrome-toggle {
+  position: relative;
+}
+
 .layout-mode-toggle.monochrome-toggle .mono-toggle-icon {
   width: 13px;
   height: 13px;
@@ -184,8 +268,8 @@
 }
 
 .agent-chat-header.is-mobile {
-  padding-top: 4px !important;
-  padding-bottom: 4px !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
 }
 
 /* Chat tab switcher */

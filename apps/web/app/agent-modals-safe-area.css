@@ -12,15 +12,15 @@
     --modal-safe-top-min: max(22px, 5.5vmin);
     --modal-safe-top: calc(max(env(safe-area-inset-top, 0px), var(--modal-safe-top-min)) + var(--modal-safe-top-gap));
     --modal-safe-bottom: max(env(safe-area-inset-bottom, 0px), 0px);
-    /* Agent mobile shell — header must sit below status bar in mobile browser */
-    --agent-shell-safe-top-gap: 8px;
-    --agent-shell-safe-top-min: max(44px, 11vmin);
+    /* Agent mobile shell — trust env(safe-area); light fallback in mobile browser */
+    --agent-shell-safe-top-gap: 2px;
+    --agent-shell-safe-top-min: 16px;
     --agent-shell-safe-top: calc(max(env(safe-area-inset-top, 0px), var(--agent-shell-safe-top-min)) + var(--agent-shell-safe-top-gap));
   }
 
   html.pwa-standalone {
     --agent-shell-safe-top-min: 0px;
-    --agent-shell-safe-top-gap: 6px;
+    --agent-shell-safe-top-gap: 2px;
     --agent-shell-safe-top: calc(env(safe-area-inset-top, 0px) + var(--agent-shell-safe-top-gap));
   }
 
@@ -35,8 +35,8 @@
    */
   body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile {
     margin-top: 0 !important;
-    padding-top: var(--mobile-shell-pad-top, 8px) !important;
-    padding-bottom: var(--mobile-shell-pad-y, 3px) !important;
+    padding-top: 2px !important;
+    padding-bottom: 2px !important;
     padding-left: var(--mobile-shell-pad-x, 10px) !important;
     padding-right: var(--mobile-shell-pad-x, 10px) !important;
   }
@@ -58,6 +58,8 @@
   .agent-modal-overlay.budget-modal-overlay,
   .agent-modal-overlay.interview-modal-overlay,
   .agent-modal-overlay:has(> .agent-modal.questionnaire-modal),
+  .agent-modal-overlay:has(> .agent-modal.account-modal),
+  .agent-modal-overlay.account-modal-overlay,
   .social-modal-overlay {
     position: fixed !important;
     inset: 0 !important;
@@ -174,6 +176,8 @@
   .budget-modal .budget-table-section,
   .interview-modal .interview-shell,
   .questionnaire-modal .questionnaire-shell,
+  .account-modal .account-modal-dashboard,
+  .account-modal .questionnaire-dashboard,
   .agent-modal-body,
   .social-modal-body {
     width: 100% !important;
@@ -182,16 +186,6 @@
     margin-left: 0 !important;
     margin-right: 0 !important;
     box-sizing: border-box !important;
-  }
-}
-
-@media (max-width: 480px) {
-  :root {
-    --modal-safe-top-min: max(26px, 6.5vmin);
-    --modal-safe-top-gap: 6px;
-    --agent-shell-safe-top-min: max(52px, 13vmin);
-    --agent-shell-safe-top-gap: 10px;
-    --agent-shell-safe-top: calc(max(env(safe-area-inset-top, 0px), var(--agent-shell-safe-top-min)) + var(--agent-shell-safe-top-gap));
   }
 }
 
@@ -223,12 +217,20 @@
     padding-bottom: 0 !important;
   }
 
+  html:not(.pwa-standalone) body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel:has(.panel-grid.is-circular-deck),
+  html:not(.pwa-standalone) body.agent-route-active main.agent-layout.is-mobile-viewport .agent-panel.is-mobile-compact:has(.panel-grid.is-circular-deck) {
+    flex: 0 0 auto !important;
+    height: auto !important;
+    max-height: none !important;
+    padding-bottom: 0 !important;
+  }
+
   html:not(.pwa-standalone) body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel,
   html:not(.pwa-standalone) body.agent-route-active main.agent-layout.is-mobile-viewport .agent-panel,
   html:not(.pwa-standalone) body.agent-route-active main.agent-layout.is-mobile-viewport .agent-panel.is-mobile-compact {
     flex: 0 0 auto !important;
     height: auto !important;
-    max-height: var(--mobile-panel-h, 126px) !important;
+    max-height: var(--mobile-panel-h, 96px) !important;
     margin: 0 !important;
     margin-bottom: 0 !important;
     padding-bottom: 0 !important;
@@ -261,8 +263,74 @@
 @media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   html:not(.pwa-standalone) body.agent-route-active.keyboard-opening main.agent-layout.is-mobile-viewport,
   html:not(.pwa-standalone) body.agent-route-active.browser-keyboard-open main.agent-layout.is-mobile-viewport {
-    height: 100% !important;
-    max-height: 100% !important;
+    height: var(--visual-vh, 100%) !important;
+    max-height: var(--visual-vh, 100%) !important;
     min-height: 0 !important;
   }
+}
+
+/* =====================================================================
+   TRANSACTIONS MODAL — PREMIUM SANS TYPOGRAPHY LOCK
+   Wins over diagnostics mono/serif overrides. No code or editorial serif.
+   ===================================================================== */
+.transactions-modal {
+  --tx-premium-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --tx-premium-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --txp-mono: var(--tx-premium-sans);
+  --mh-eyebrow-font: var(--tx-premium-sans);
+}
+
+.transactions-modal,
+.transactions-modal * {
+  font-family: var(--tx-premium-sans) !important;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+.transactions-modal h1,
+.transactions-modal h2,
+.transactions-modal h3,
+.transactions-modal h4,
+.transactions-modal h5,
+.transactions-modal h6,
+.transactions-modal .agent-modal-header h3,
+.transactions-modal .bcc-modal-title,
+.transactions-modal .transactions-summary-title,
+.transactions-modal .pt-stage-header h4,
+.transactions-modal .pt-empty-head h4,
+.transactions-modal .pt-list-head h4,
+.transactions-modal .tx-ap-hero-value,
+.transactions-modal .tx-3d-hero-core strong,
+.transactions-modal .pt-premium-intro-main strong,
+.transactions-modal .tx-summary-editorial-block.is-lead .tx-summary-editorial-body,
+.transactions-modal .tx-ap-executive-prose .tx-summary-editorial-block.is-lead .tx-summary-editorial-body {
+  font-family: var(--tx-premium-display) !important;
+  letter-spacing: -0.022em !important;
+}
+
+.transactions-modal .bcc-modal-eyebrow,
+.transactions-modal .pt-stage-eyebrow,
+.transactions-modal .tx-meta-card-kicker,
+.transactions-modal .tx-ap-eyebrow,
+.transactions-modal .tx-summary-editorial-kicker,
+.transactions-modal .tx-video-example-label,
+.transactions-modal .tx-library-empty-kicker {
+  font-family: var(--tx-premium-sans) !important;
+  letter-spacing: 0.1em !important;
+  text-transform: uppercase;
+  font-weight: 500 !important;
+}
+
+.transactions-modal code,
+.transactions-modal pre,
+.transactions-modal kbd,
+.transactions-modal samp,
+.transactions-modal .md-code,
+.transactions-modal .premium-markdown .md-code,
+.transactions-modal .premium-markdown pre,
+.transactions-modal .terminal-composer-head,
+.transactions-modal .tx-digit-dust {
+  font-family: var(--tx-premium-sans) !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.008em !important;
 }

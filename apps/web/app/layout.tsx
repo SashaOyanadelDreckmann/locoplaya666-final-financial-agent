@@ -2,8 +2,10 @@
 import './globals.css';
 import './agent.css';
 import './backdrop-system.css';
-import './mobile-keyboard-viewport.css';
 import './tablet-system.css';
+import './mobile-keyboard-viewport.css';
+import './visual-modes.css';
+import './agent-compact-deck.css';
 import MobileInputViewportSync from '@/components/MobileInputViewportSync';
 import ServiceWorkerReset from '@/components/ServiceWorkerReset';
 import BrowserChromeVignetteSync from '@/components/BrowserChromeVignetteSync';
@@ -36,8 +38,26 @@ export default function RootLayout({
   const standaloneClassScript = `
 (() => {
   try {
-    const isStandalone = window.matchMedia?.('(display-mode: standalone)')?.matches || window.navigator?.standalone === true;
-    if (isStandalone) document.documentElement.classList.add('pwa-standalone');
+    const syncStandalone = () => {
+      const isStandalone =
+        window.matchMedia?.('(display-mode: standalone)')?.matches ||
+        window.navigator?.standalone === true;
+      document.documentElement.classList.toggle('pwa-standalone', isStandalone);
+      document.body?.classList.toggle('pwa-standalone', isStandalone);
+      if (!isStandalone) return;
+      document.querySelectorAll('.browser-chrome-vignette-top, .browser-chrome-vignette-bottom').forEach((node) => {
+        node.style.display = 'none';
+        node.style.visibility = 'hidden';
+        node.style.opacity = '0';
+        node.style.height = '0';
+        node.style.maxHeight = '0';
+        node.style.pointerEvents = 'none';
+      });
+    };
+    syncStandalone();
+    window.addEventListener('pageshow', syncStandalone);
+    document.addEventListener('visibilitychange', syncStandalone);
+    window.addEventListener('focus', syncStandalone);
   } catch (_) {}
 })();
 `;

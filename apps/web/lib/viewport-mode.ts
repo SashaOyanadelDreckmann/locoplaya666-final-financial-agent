@@ -10,6 +10,21 @@ export const MOBILE_SHELL_MEDIA = `(max-width: 767px), ${TABLET_PORTRAIT_MEDIA}`
 export const TABLET_LANDSCAPE_MEDIA =
   '(min-width: 768px) and (max-width: 1366px) and (orientation: landscape)';
 
+export function detectPwaStandalone(): boolean {
+  if (typeof window === 'undefined') return false;
+  return (
+    window.matchMedia('(display-mode: standalone)').matches ||
+    Boolean((window.navigator as Navigator & { standalone?: boolean }).standalone)
+  );
+}
+
+export function syncPwaStandaloneClass(root: HTMLElement = document.documentElement): boolean {
+  const standalone = detectPwaStandalone();
+  root.classList.toggle('pwa-standalone', standalone);
+  document.body?.classList.toggle('pwa-standalone', standalone);
+  return standalone;
+}
+
 function isCoarsePointer(): boolean {
   if (typeof window === 'undefined') return false;
   return window.matchMedia('(pointer: coarse)').matches;
@@ -41,7 +56,7 @@ export function shouldUseMobileShell(): boolean {
 
 export function isTabletPortraitBrowser(): boolean {
   if (typeof window === 'undefined') return false;
-  if (document.documentElement.classList.contains('pwa-standalone')) return false;
+  if (detectPwaStandalone()) return false;
   return isTabletDevice() && isPortraitOrientation();
 }
 

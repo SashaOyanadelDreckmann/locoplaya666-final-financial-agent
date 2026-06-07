@@ -1751,12 +1751,13 @@ body.agent-route-active .app-shell::before {
   }
 
   .agent-panel.is-mobile-compact .panel-callout {
-    position: absolute !important;
-    left: 0 !important;
-    right: 0 !important;
-    bottom: calc(100% + 8px) !important;
+    position: fixed !important;
+    left: max(10px, env(safe-area-inset-left, 0px)) !important;
+    right: max(10px, env(safe-area-inset-right, 0px)) !important;
+    bottom: var(--agent-mobile-notify-bottom, calc(env(safe-area-inset-bottom, 0px) + 210px)) !important;
     margin: 0 !important;
-    z-index: 25 !important;
+    z-index: 50 !important;
+    pointer-events: auto !important;
   }
 
   .agent-panel.is-mobile-expanded .panel-callout {
@@ -2902,10 +2903,10 @@ body.agent-route-active .app-shell::before {
 
 .transactions-modal .tx-content-card--agent .tx-agent-stage-header > h4 {
   grid-area: title;
-  max-width: 7ch;
+  max-width: none;
   margin: 0;
-  font-size: clamp(3.4rem, 5.2vw, 5.8rem) !important;
-  line-height: 0.9 !important;
+  font-size: clamp(1.55rem, 2.5vw, 2.05rem) !important;
+  line-height: 1.08 !important;
 }
 
 .transactions-modal .tx-content-card--agent .tx-agent-stage-note {
@@ -2974,8 +2975,8 @@ body.agent-route-active .app-shell::before {
   }
 
   .transactions-modal .tx-content-card--agent .tx-agent-stage-header > h4 {
-    max-width: 8ch;
-    font-size: clamp(2.6rem, 9vw, 4.2rem) !important;
+    max-width: none;
+    font-size: clamp(1.45rem, 5.2vw, 1.85rem) !important;
   }
 
   .transactions-modal .tx-content-card--agent .tx-agent-stage-note {
@@ -3458,9 +3459,11 @@ body.agent-route-active .app-shell::before {
   }
 
   .transactions-modal .tx-content-card--agent .tx-chat-thread {
-    max-height: none !important;
+    max-height: min(34vh, 300px) !important;
     margin: 0 !important;
     padding: 16px !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain !important;
   }
 
   .transactions-modal .tx-content-card--agent .tx-chat-bubble {
@@ -4593,8 +4596,8 @@ body.agent-route-active .app-shell::before {
    floating delete button, product-card hierarchy. Appended last.
    ===================================================================== */
 .transactions-modal {
-  --txp-sans: "Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-  --txp-mono: "JetBrains Mono", "SF Mono", ui-monospace, monospace;
+  --txp-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --txp-mono: var(--txp-sans);
 }
 
 /* ---- Typography: refined editorial sans across prose & labels ---- */
@@ -4633,16 +4636,16 @@ body.agent-route-active .app-shell::before {
 .transactions-modal .tx-3d-hero-core span {
   font-family: var(--txp-sans) !important;
 }
-/* Keep mono only where it reads as "data" */
+/* Eyebrows / meta — sans with tracking, never monospace */
 .transactions-modal .bcc-modal-eyebrow,
 .transactions-modal .pt-stage-eyebrow,
 .transactions-modal .tx-meta-card-kicker,
 .transactions-modal .transactions-summary-title {
-  letter-spacing: 0.18em !important;
+  letter-spacing: 0.12em !important;
 }
 .transactions-modal .pt-item-meta span,
 .transactions-modal .pt-item-status {
-  font-family: var(--txp-mono) !important;
+  font-family: var(--txp-sans) !important;
   letter-spacing: 0.04em !important;
 }
 
@@ -15433,7 +15436,7 @@ body.agent-route-active .app-shell::before {
     flex: 1 1 auto !important;
     height: var(--visual-vh, 100dvh) !important;
     max-height: var(--visual-vh, 100dvh) !important;
-    min-height: var(--visual-vh, 100dvh) !important;
+    min-height: 0 !important;
     margin-bottom: 0 !important;
     padding-bottom: 0 !important;
   }
@@ -17651,21 +17654,21 @@ body.agent-route-active .app-shell > * {
     margin-top: 0 !important;
   }
 
-  .agent-panel.is-mobile-compact .panel-grid {
+  .agent-panel.is-mobile-compact .panel-grid:not(.is-circular-deck) {
     gap: 8px !important;
     padding: 8px 12px calc(10px + env(safe-area-inset-bottom)) !important;
   }
 
-  .agent-panel.is-mobile-compact .mob-col,
-  .agent-panel.is-mobile-compact .mob-col-wide,
-  .agent-panel.is-mobile-compact .mob-col-narrow {
+  .agent-panel.is-mobile-compact .panel-grid:not(.is-circular-deck) .mob-col,
+  .agent-panel.is-mobile-compact .panel-grid:not(.is-circular-deck) .mob-col-wide,
+  .agent-panel.is-mobile-compact .panel-grid:not(.is-circular-deck) .mob-col-narrow {
     width: min(212px, 74vw) !important;
     min-width: min(212px, 74vw) !important;
     max-width: min(212px, 74vw) !important;
     flex: 0 0 min(212px, 74vw) !important;
   }
 
-  .agent-panel.is-mobile-compact .mob-col > * {
+  .agent-panel.is-mobile-compact .panel-grid:not(.is-circular-deck) .mob-col > * {
     min-height: 0 !important;
     height: 100% !important;
     flex: 1 1 0 !important;
@@ -18356,9 +18359,9 @@ body.agent-route-active .app-shell > * {
     background: transparent !important;
     display: flex !important;
     flex-direction: column !important;
-    height: var(--screen-h, 100dvh) !important;
-    max-height: var(--screen-h, 100dvh) !important;
-    min-height: var(--screen-h, 100dvh) !important;
+    height: var(--visual-vh, var(--screen-h, 100dvh)) !important;
+    max-height: var(--visual-vh, var(--screen-h, 100dvh)) !important;
+    min-height: 0 !important;
     overflow: hidden !important;
   }
 
@@ -18619,6 +18622,13 @@ body.agent-route-active .app-shell > * {
     padding-bottom: 0 !important;
   }
 
+  body.agent-route-active .agent-panel:has(.panel-grid.is-circular-deck),
+  body.agent-route-active .agent-panel.is-mobile-compact:has(.panel-grid.is-circular-deck) {
+    flex: 0 0 auto !important;
+    max-height: none !important;
+    height: auto !important;
+  }
+
   body.agent-route-active .agent-panel,
   body.agent-route-active .agent-panel.is-mobile-compact {
     width: 100% !important;
@@ -18653,8 +18663,8 @@ body.agent-route-active .app-shell > * {
     border-color: rgba(255, 255, 255, 0.08) !important;
   }
 
-  body.agent-route-active .agent-panel.is-mobile-compact .panel-grid,
-  body.agent-route-active .agent-panel:not(.is-mobile-expanded) .panel-grid {
+  body.agent-route-active .agent-panel.is-mobile-compact .panel-grid:not(.is-circular-deck),
+  body.agent-route-active .agent-panel:not(.is-mobile-expanded) .panel-grid:not(.is-circular-deck) {
     display: flex !important;
     flex-direction: row !important;
     flex-wrap: nowrap !important;
@@ -18672,12 +18682,12 @@ body.agent-route-active .app-shell > * {
     touch-action: pan-x !important;
   }
 
-  body.agent-route-active .agent-panel.is-mobile-compact .mob-col,
-  body.agent-route-active .agent-panel.is-mobile-compact .mob-col-wide,
-  body.agent-route-active .agent-panel.is-mobile-compact .mob-col-narrow,
-  body.agent-route-active .agent-panel:not(.is-mobile-expanded) .mob-col,
-  body.agent-route-active .agent-panel:not(.is-mobile-expanded) .mob-col-wide,
-  body.agent-route-active .agent-panel:not(.is-mobile-expanded) .mob-col-narrow {
+  body.agent-route-active .agent-panel.is-mobile-compact .panel-grid:not(.is-circular-deck) .mob-col,
+  body.agent-route-active .agent-panel.is-mobile-compact .panel-grid:not(.is-circular-deck) .mob-col-wide,
+  body.agent-route-active .agent-panel.is-mobile-compact .panel-grid:not(.is-circular-deck) .mob-col-narrow,
+  body.agent-route-active .agent-panel:not(.is-mobile-expanded) .panel-grid:not(.is-circular-deck) .mob-col,
+  body.agent-route-active .agent-panel:not(.is-mobile-expanded) .panel-grid:not(.is-circular-deck) .mob-col-wide,
+  body.agent-route-active .agent-panel:not(.is-mobile-expanded) .panel-grid:not(.is-circular-deck) .mob-col-narrow {
     width: min(159px, 55.5vw) !important;
     height: 107px !important;
     max-height: 107px !important;
@@ -18685,8 +18695,8 @@ body.agent-route-active .app-shell > * {
     align-self: flex-start !important;
   }
 
-  body.agent-route-active .agent-panel.is-mobile-compact .mob-col > *,
-  body.agent-route-active .agent-panel:not(.is-mobile-expanded) .mob-col > * {
+  body.agent-route-active .agent-panel.is-mobile-compact .panel-grid:not(.is-circular-deck) .mob-col > *,
+  body.agent-route-active .agent-panel:not(.is-mobile-expanded) .panel-grid:not(.is-circular-deck) .mob-col > * {
     height: 100% !important;
     max-height: 107px !important;
     flex: 1 1 auto !important;
@@ -19576,9 +19586,9 @@ body.agent-route-active .app-shell > * {
     gap: 0 !important;
     padding: 0 !important;
     padding-top: env(safe-area-inset-top, 0px) !important;
-    height: var(--screen-h, var(--visual-vh, 100dvh)) !important;
-    max-height: var(--screen-h, var(--visual-vh, 100dvh)) !important;
-    min-height: var(--screen-h, var(--visual-vh, 100dvh)) !important;
+    height: var(--visual-vh, var(--screen-h, 100dvh)) !important;
+    max-height: var(--visual-vh, var(--screen-h, 100dvh)) !important;
+    min-height: 0 !important;
     overflow: hidden !important;
   }
 
@@ -19592,6 +19602,12 @@ body.agent-route-active .app-shell > * {
     border: none !important;
     border-radius: 0 !important;
     box-shadow: none !important;
+  }
+
+  body.agent-route-active main.agent-layout > aside.agent-panel:has(.panel-grid.is-circular-deck) {
+    flex: 0 0 auto !important;
+    max-height: none !important;
+    height: auto !important;
   }
 
   body.agent-route-active main.agent-layout > aside.agent-panel {

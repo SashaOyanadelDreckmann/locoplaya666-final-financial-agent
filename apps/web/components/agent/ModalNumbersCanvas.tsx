@@ -191,7 +191,7 @@ export default function ModalNumbersCanvas({
 
         const fontScale =
           transitionPhase === 'flood' ? 1.12 : transitionPhase === 'authorizing' ? 1.04 : isOrderedPhase ? 0.92 : 1;
-        ctx.font = `600 ${Math.round(FS * fontScale)}px "Courier New", monospace`;
+        ctx.font = `600 ${Math.round(FS * fontScale)}px -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif`;
         ctx.globalAlpha = Math.min(0.78, Math.max(0.04, alpha));
         ctx.fillStyle = `rgb(${r},${g},${b})`;
         ctx.fillText(String(d), sx, sy);

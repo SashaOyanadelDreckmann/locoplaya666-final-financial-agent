@@ -330,6 +330,27 @@
 }
 
 @media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+  html:not(.pwa-standalone).intake-route-active .intake-main.intake-main-immersive {
+    min-height: 0 !important;
+  }
+
+  .intake-city-map-shell.is-map-collapsed .intake-city-map-frame {
+    max-height: 0 !important;
+    min-height: 0 !important;
+    opacity: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border-width: 0 !important;
+    overflow: hidden !important;
+    pointer-events: none !important;
+    visibility: hidden !important;
+    transition: none !important;
+  }
+
+  .intake-city-map-shell.is-map-collapsed .intake-city-map-frame .maplibregl-map {
+    min-height: 0 !important;
+  }
+
   .intake-step {
     transition: opacity 0.24s ease, transform 0.24s ease;
   }
@@ -1762,7 +1783,7 @@ button {
   .intake-main.intake-main-immersive {
     align-items: stretch !important;
     justify-content: flex-start !important;
-    padding: max(76px, calc(env(safe-area-inset-top, 0px) + 56px)) 18px max(28px, env(safe-area-inset-bottom, 0px)) !important;
+    padding: max(76px, calc(env(safe-area-inset-top, 0px) + 56px)) 18px 28px !important;
   }
   .intake-question-screen { min-height: 0 !important; }
   .intake-step { gap: 22px !important; }

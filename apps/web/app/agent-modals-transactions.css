@@ -12418,10 +12418,9 @@ input[type="radio"]:checked {
 }
 
 /* ================================================= */
-/* INTAKE MATCH FIX — TYPO + COLOR PARITY            */
+/* PREMIUM SANS — base typography for transactions   */
 /* ================================================= */
 
-/* Typography parity with intake */
 .transactions-modal,
 .transactions-modal p,
 .transactions-modal span,
@@ -12431,7 +12430,8 @@ input[type="radio"]:checked {
 .transactions-modal textarea,
 .transactions-modal button,
 .agent-panel .panel-pos-transactions.panel-feature-card {
-  font-family: "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace !important;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif !important;
+  letter-spacing: -0.01em;
 }
 
 .transactions-modal .agent-modal-header h3,
@@ -14266,7 +14266,7 @@ input[type="radio"]:checked {
 }
 
 /* Inline panel action button inside chat bubble: black + yellow, chat-coherent */
-.agent-inline-panel-button {
+html:not([data-visual-mode='light-outline']) .agent-inline-panel-button {
   background: rgba(0, 0, 0, 0.94) !important;
   border: 1px solid rgba(255, 255, 255, 0.22) !important;
   color: rgba(240, 240, 245, 0.95) !important;
@@ -14276,7 +14276,7 @@ input[type="radio"]:checked {
   font-family: "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace !important;
 }
 
-.agent-inline-panel-button:hover:not(:disabled) {
+html:not([data-visual-mode='light-outline']) .agent-inline-panel-button:hover:not(:disabled) {
   background: rgba(219, 182, 81, 0.96) !important;
   border-color: rgba(235, 205, 124, 0.98) !important;
   color: rgba(20, 15, 8, 0.94) !important;
@@ -14289,10 +14289,10 @@ input[type="radio"]:checked {
 }
 
 /* Hard override for inline CTA inside assistant report bubble */
-.agent-thread .agent-bubble.assistant .agent-inline-panel-action .agent-inline-panel-button,
-.agent-thread .agent-bubble.assistant.latex-doc .agent-inline-panel-action .agent-inline-panel-button,
-.agent-layout .agent-thread > .agent-bubble.assistant .agent-inline-panel-action .agent-inline-panel-button,
-.agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .agent-inline-panel-action .agent-inline-panel-button {
+html:not([data-visual-mode='light-outline']) .agent-thread .agent-bubble.assistant .agent-inline-panel-action .agent-inline-panel-button,
+html:not([data-visual-mode='light-outline']) .agent-thread .agent-bubble.assistant.latex-doc .agent-inline-panel-action .agent-inline-panel-button,
+html:not([data-visual-mode='light-outline']) .agent-layout .agent-thread > .agent-bubble.assistant .agent-inline-panel-action .agent-inline-panel-button,
+html:not([data-visual-mode='light-outline']) .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .agent-inline-panel-action .agent-inline-panel-button {
   background: rgba(0, 0, 0, 0.96) !important;
   background-image: none !important;
   border: 1px solid rgba(255, 255, 255, 0.24) !important;
@@ -14304,10 +14304,10 @@ input[type="radio"]:checked {
   font-family: "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace !important;
 }
 
-.agent-thread .agent-bubble.assistant .agent-inline-panel-action .agent-inline-panel-button:hover:not(:disabled),
-.agent-thread .agent-bubble.assistant.latex-doc .agent-inline-panel-action .agent-inline-panel-button:hover:not(:disabled),
-.agent-layout .agent-thread > .agent-bubble.assistant .agent-inline-panel-action .agent-inline-panel-button:hover:not(:disabled),
-.agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .agent-inline-panel-action .agent-inline-panel-button:hover:not(:disabled) {
+html:not([data-visual-mode='light-outline']) .agent-thread .agent-bubble.assistant .agent-inline-panel-action .agent-inline-panel-button:hover:not(:disabled),
+html:not([data-visual-mode='light-outline']) .agent-thread .agent-bubble.assistant.latex-doc .agent-inline-panel-action .agent-inline-panel-button:hover:not(:disabled),
+html:not([data-visual-mode='light-outline']) .agent-layout .agent-thread > .agent-bubble.assistant .agent-inline-panel-action .agent-inline-panel-button:hover:not(:disabled),
+html:not([data-visual-mode='light-outline']) .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .agent-inline-panel-action .agent-inline-panel-button:hover:not(:disabled) {
   background: rgba(219, 182, 81, 0.96) !important;
   border-color: rgba(235, 205, 124, 0.98) !important;
   color: rgba(20, 15, 8, 0.94) !important;
@@ -15762,30 +15762,30 @@ input[type="radio"]:checked {
   text-shadow: none !important;
 }
 
-.agent-shell button,
-.agent-panel button,
+html:not([data-visual-mode='light-outline']) .agent-shell button,
+html:not([data-visual-mode='light-outline']) .agent-panel button,
 .agent-modal button,
-.agent-thread button,
-.agent-input button,
-.agent-shell [role="button"],
-.agent-panel [role="button"],
-.continue-button,
-.composer-icon-btn,
-.composer-send-btn,
-.chat-delete-btn,
-.knowledge-rail-cta,
-.doc-bubble-btn,
-.agent-questionnaire-submit,
-.realtime-mic-btn,
-.realtime-btn,
-.voice-mic-btn,
-.summary-action-btn,
-.agent-inline-panel-button,
-.latex-doc-save-btn,
-.pt-stage,
-.chat-sheet-tab,
-.panel-feature-card,
-.agent-panel .panel-feature-card {
+html:not([data-visual-mode='light-outline']) .agent-thread button,
+html:not([data-visual-mode='light-outline']) .agent-input button,
+html:not([data-visual-mode='light-outline']) .agent-shell [role="button"],
+html:not([data-visual-mode='light-outline']) .agent-panel [role="button"],
+html:not([data-visual-mode='light-outline']) .continue-button,
+html:not([data-visual-mode='light-outline']) .composer-icon-btn,
+html:not([data-visual-mode='light-outline']) .composer-send-btn,
+html:not([data-visual-mode='light-outline']) .chat-delete-btn,
+html:not([data-visual-mode='light-outline']) .knowledge-rail-cta,
+html:not([data-visual-mode='light-outline']) .doc-bubble-btn,
+html:not([data-visual-mode='light-outline']) .agent-questionnaire-submit,
+html:not([data-visual-mode='light-outline']) .realtime-mic-btn,
+html:not([data-visual-mode='light-outline']) .realtime-btn,
+html:not([data-visual-mode='light-outline']) .voice-mic-btn,
+html:not([data-visual-mode='light-outline']) .summary-action-btn,
+html:not([data-visual-mode='light-outline']) .agent-inline-panel-button,
+html:not([data-visual-mode='light-outline']) .latex-doc-save-btn,
+html:not([data-visual-mode='light-outline']) .pt-stage,
+html:not([data-visual-mode='light-outline']) .chat-sheet-tab,
+html:not([data-visual-mode='light-outline']) .panel-feature-card,
+html:not([data-visual-mode='light-outline']) .agent-panel .panel-feature-card {
   background-color: #141922 !important;
   border-color: rgba(255, 255, 255, 0.1) !important;
   color: rgba(240, 244, 248, 0.96) !important;
@@ -16002,5 +16002,238 @@ input[type="radio"]:checked {
 .agent-panel .panel-pos-budget.panel-feature-card.is-panel-highlighted .panel-feature-copy,
 .agent-panel .panel-pos-budget.panel-feature-card.is-panel-highlighted .panel-feature-copy-secondary {
   color: #0f1720 !important;
+}
+
+/* ============================================================
+   TRANSACTIONS CHAT — containment + per-product pro UX
+   ============================================================ */
+
+.transactions-modal .tx-content-card--agent,
+.transactions-modal .tx-evidence-card--premium,
+.transactions-modal .tx-chat-minimal-body,
+.transactions-modal .tx-upload-onboarding,
+.transactions-modal .tx-chat-summary-bridge {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.transactions-modal .tx-agent-stage-header {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.transactions-modal .tx-agent-stage-tag {
+  color: rgba(84, 145, 214, 0.88);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.transactions-modal .tx-agent-stage-title {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(1.55rem, 2.5vw, 2rem);
+  font-weight: 400;
+  letter-spacing: -0.03em;
+  line-height: 1.08;
+  color: #f0f0f5;
+  text-wrap: balance;
+}
+
+.transactions-modal .tx-agent-stage-note {
+  margin: 0;
+  max-width: 52ch;
+  font-size: clamp(12px, 0.92vw, 14px);
+  line-height: 1.45;
+  color: rgba(238, 242, 247, 0.58);
+}
+
+.transactions-modal .tx-evidence-product-bar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(205, 219, 236, 0.12);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.015));
+  min-width: 0;
+}
+
+.transactions-modal .tx-evidence-product-copy,
+.transactions-modal .tx-evidence-product-meta {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.transactions-modal .tx-evidence-product-copy strong,
+.transactions-modal .tx-evidence-product-copy span,
+.transactions-modal .tx-evidence-product-meta span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.transactions-modal .tx-evidence-product-kicker {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(226, 236, 246, 0.62);
+}
+
+.transactions-modal .tx-evidence-product-copy strong {
+  color: rgba(244, 248, 255, 0.96);
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.transactions-modal .tx-evidence-product-copy span {
+  color: rgba(226, 236, 246, 0.68);
+  font-size: 12px;
+}
+
+.transactions-modal .tx-evidence-product-meta {
+  justify-items: end;
+  flex: 0 0 auto;
+}
+
+.transactions-modal .tx-evidence-product-meta span {
+  font-size: 11px;
+  color: rgba(214, 228, 242, 0.62);
+}
+
+.transactions-modal .tx-chat-thread {
+  max-height: min(34vh, 300px) !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.transactions-modal .tx-chat-bubble {
+  max-width: min(88%, 100%);
+}
+
+.transactions-modal .tx-chat-bubble-text,
+.transactions-modal .tx-onboarding-copy,
+.transactions-modal .manual-evidence-textarea,
+.transactions-modal .tx-chat-composer-wrap .bcc-hero-input {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.transactions-modal .upload-file-pill,
+.transactions-modal .transactions-product-insights span,
+.transactions-modal .upload-files span {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: top;
+}
+
+.transactions-modal .tx-chat-format-pills--deck {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: 10px;
+  min-width: 0;
+}
+
+.transactions-modal .tx-format-choice {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.transactions-modal .tx-format-choice-main,
+.transactions-modal .tx-format-choice-sub {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.transactions-modal .tx-upload-zone-premium--rail {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+
+.transactions-modal .tx-video-example-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.transactions-modal .tx-video-example-label {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.transactions-modal .tx-video-example-shell {
+  margin-top: 12px;
+  overflow: hidden;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.28);
+}
+
+.transactions-modal .tx-video-example-player {
+  display: block;
+  width: 100%;
+  max-height: min(42vh, 360px);
+  background: #000;
+}
+
+.transactions-modal .tx-chat-composer-wrap {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+}
+
+.transactions-modal .tx-chat-composer-wrap .bcc-hero-input {
+  width: 100%;
+  min-width: 0;
+}
+
+.transactions-modal .tx-summary-chat-thread {
+  max-height: min(24vh, 220px) !important;
+  overflow-y: auto !important;
+}
+
+@media (max-width: 920px) {
+  .transactions-modal .tx-evidence-product-bar {
+    flex-direction: column;
+  }
+
+  .transactions-modal .tx-evidence-product-meta {
+    justify-items: start;
+    flex-direction: row;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .transactions-modal .tx-chat-format-pills--deck {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+  .transactions-modal .tx-chat-thread {
+    max-height: min(28vh, 240px) !important;
+  }
+
+  .transactions-modal .tx-chat-composer-wrap .bcc-hero-send {
+    min-width: 58px;
+    padding-inline: 12px !important;
+  }
 }
 

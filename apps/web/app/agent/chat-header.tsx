@@ -6,6 +6,12 @@ import {
 } from './page.utils';
 import { funnelStageLabel, funnelStageStepIndex } from '@financial-agent/shared';
 import BrandWordmark from '../../components/brand/BrandWordmark';
+import {
+  cycleVisualMode,
+  isVisualModeActive,
+  VISUAL_MODE_LABELS,
+  type VisualMode,
+} from '@/lib/visual-mode';
 
 type ChatThread = {
   id: string;
@@ -42,8 +48,8 @@ export function ChatHeader(props: {
   completedMilestones: number;
   milestones: Milestone[];
   coachHint: string;
-  isMonochrome: boolean;
-  toggleMonochrome: () => void;
+  visualMode: VisualMode;
+  cycleVisualMode: () => void;
   isMobileViewport: boolean;
   actionPlanFunnelStage?: 'brainstorm' | 'converge' | 'deliver' | null;
 }) {
@@ -57,21 +63,38 @@ export function ChatHeader(props: {
       ? 'sintesis maestra'
       : 'lectura base';
 
+  const nextVisualMode = cycleVisualMode(props.visualMode);
+  const visualModeLabel = VISUAL_MODE_LABELS[props.visualMode];
+  const nextVisualModeLabel = VISUAL_MODE_LABELS[nextVisualMode];
+  const isVisualModeOn = isVisualModeActive(props.visualMode);
+
   const monochromeToggle = (
     <button
       type="button"
       className={`chat-monochrome-toggle ${
         props.isMobileViewport ? 'chat-monochrome-toggle--inline' : 'chat-monochrome-toggle--floating'
-      }${props.isMonochrome ? ' is-active' : ''}`}
-      onClick={props.toggleMonochrome}
-      aria-label={props.isMonochrome ? 'Desactivar blanco y negro' : 'Activar blanco y negro'}
-      title={props.isMonochrome ? 'Desactivar blanco y negro' : 'Activar blanco y negro'}
+      }${isVisualModeOn ? ' is-active' : ''} is-visual-mode-${props.visualMode}`}
+      data-visual-mode={props.visualMode}
+      onClick={props.cycleVisualMode}
+      aria-label={
+        isVisualModeOn
+          ? `Modo visual: ${visualModeLabel}. Toca para ${nextVisualModeLabel}.`
+          : `Activar filtros visuales. Siguiente: ${nextVisualModeLabel}.`
+      }
+      title={
+        isVisualModeOn
+          ? `${visualModeLabel} · siguiente: ${nextVisualModeLabel}`
+          : `Filtros visuales · siguiente: ${nextVisualModeLabel}`
+      }
     >
       <svg className="mono-toggle-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
         <circle className="mono-toggle-icon__ring" cx="12" cy="12" r="9" />
         <path className="mono-toggle-icon__half" d="M12 3a9 9 0 0 0 0 18z" />
+        <path className="mono-toggle-icon__half-alt" d="M12 3a9 9 0 0 1 0 18z" />
         <path className="mono-toggle-icon__split" d="M12 3v18" />
+        <circle className="mono-toggle-icon__soft" cx="12" cy="12" r="4.5" />
       </svg>
+      <span className="mono-toggle-mode-dot" aria-hidden="true" />
     </button>
   );
 

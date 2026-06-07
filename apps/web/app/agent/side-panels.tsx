@@ -1,7 +1,8 @@
 import React, { type ReactNode } from 'react';
 
 import {
-  MobilePanelCompactCarousel,
+  MobilePanelCircularDeck,
+  type MobilePanelDeckHandle,
   type PanelCardItem,
 } from './mobile-panel-compact-carousel';
 
@@ -30,6 +31,7 @@ export function SidePanels(props: {
   panelScrollRef: React.RefObject<HTMLElement>;
   compactPanelCards?: PanelCardItem[];
   compactPanelLoopResetKey?: number;
+  compactPanelDeckRef?: React.Ref<MobilePanelDeckHandle>;
   panelRenderedCards: ReactNode;
 }) {
   return (
@@ -61,22 +63,6 @@ export function SidePanels(props: {
         >
           <span className="mobile-panel-handle-pill" aria-hidden="true" />
           <span className="mobile-panel-handle-title">Panel</span>
-          <svg
-            className={`mobile-panel-chevron${props.mobilePanelExpanded ? ' rotated' : ''}`}
-            width="14"
-            height="14"
-            viewBox="0 0 16 16"
-            fill="none"
-            aria-hidden="true"
-          >
-            <path
-              d={props.mobilePanelExpanded ? 'M4 10L8 6L12 10' : 'M4 6L8 10L12 6'}
-              stroke="currentColor"
-              strokeWidth="1.6"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
         </div>
 
         <div className="mobile-panel-close">
@@ -109,10 +95,12 @@ export function SidePanels(props: {
         )}
 
         {props.isMobileViewport && !props.mobilePanelExpanded && props.compactPanelCards ? (
-          <MobilePanelCompactCarousel
+          <MobilePanelCircularDeck
+            ref={props.compactPanelDeckRef}
             cards={props.compactPanelCards}
             gridRef={props.panelGridRef}
             resetKey={props.compactPanelLoopResetKey ?? props.compactPanelCards.length}
+            haptic={props.haptic}
           />
         ) : (
           <div ref={props.panelGridRef} className="panel-grid">

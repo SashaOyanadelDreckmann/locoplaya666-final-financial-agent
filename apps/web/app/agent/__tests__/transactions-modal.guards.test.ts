@@ -21,9 +21,13 @@ describe('transactions modal safeguards', () => {
     expect(source).toContain('const txSessionIdRef = useRef(0);');
     expect(source).toContain('const invalidateTxSession = () => {');
     expect(source).toContain("props.txWizardStep === 'products'");
-    expect(source).toContain("setShowTxCarousel(props.txWizardStep !== 'products');");
+    expect(source).toContain('hasPendingAuthorization');
+    expect(source).toContain('const authorized = props.simulateBankLogin');
     expect(source).toContain('pendingEvidenceFilesByProduct');
     expect(source).toContain('txAssistantInputByProduct');
+    expect(source).toContain('txUploadOnboardingStepByProduct');
+    expect(source).toContain('previousActiveProductIdRef');
+    expect(source).toContain('isTxActionStale(sessionId, productId)');
     expect(source).toContain('txAssistantLoadingByProduct');
     expect(source).toContain("setSelectedMovementKey(null);");
     expect(source).toContain("if (event.key !== 'Tab') return;");
@@ -62,7 +66,7 @@ describe('transactions modal safeguards', () => {
 
     expect(source).toContain("['video', 'Rápido']");
     expect(source).toContain('video/mp4,video/quicktime,video/webm');
-    expect(source).toContain('grabación rápida de pantalla');
+    expect(source).toContain('Chat exclusivo del producto');
     expect(source).toContain('/generated/transactions-fast-example.mp4');
     expect(source).toContain('Ver ejemplo');
   });

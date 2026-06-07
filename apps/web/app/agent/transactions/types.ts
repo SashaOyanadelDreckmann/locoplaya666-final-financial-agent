@@ -143,7 +143,7 @@ export type TransactionsModalProps = {
     label?: string;
     productType?: BankProduct['productType'];
     simulationAccepted?: boolean;
-  }) => void;
+  }) => boolean;
   onUploadStatement: (files: File[] | FileList | null) => Promise<UploadStatementResult | null>;
   documentsLoading: boolean;
   documentsParseProgress?: import('@/lib/transactions-parse-progress.helpers').DocumentsParseProgress | null;

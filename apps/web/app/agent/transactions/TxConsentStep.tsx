@@ -10,6 +10,7 @@ type TxConsentStepProps = {
   consentAccepted: boolean;
   canContinueAuto: boolean;
   isDockingToLibrary: boolean;
+  transactionUploadError?: string | null;
   onBankChange: (value: string) => void;
   onTemplateChange: (value: string) => void;
   onOpenInstitutionCatalog: () => void;
@@ -116,6 +117,11 @@ export function TxConsentStep(props: TxConsentStepProps) {
           </button>
           <div className="tx-consent-inline-actions" />
         </div>
+        {props.transactionUploadError ? (
+          <p className="bcc-hero-error" role="alert">
+            {props.transactionUploadError}
+          </p>
+        ) : null}
         <div className="agent-modal-actions tx-consent-actions-row">
           <button
             type="button"

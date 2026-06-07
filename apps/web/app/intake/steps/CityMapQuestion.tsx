@@ -100,10 +100,13 @@ export function CityMapQuestion({
 
   const center = resolved?.center ?? DEFAULT_CENTER;
   const zoom = resolved ? 9 : 3.2;
-  const shouldRenderMap = !isCompactViewport || !isFocused;
 
   return (
-    <div className="intake-city-map-shell animate-intake-in">
+    <div
+      className={`intake-city-map-shell animate-intake-in${
+        isCompactViewport && isFocused ? ' is-map-collapsed' : ''
+      }`}
+    >
       <input
         id="city"
         className="intake-input"
@@ -115,9 +118,8 @@ export function CityMapQuestion({
         aria-label="Tu ciudad"
         autoFocus
       />
-      {shouldRenderMap ? (
-        <div className="intake-city-map-frame">
-          <ArcMap
+      <div className="intake-city-map-frame">
+        <ArcMap
             center={center}
             zoom={zoom}
             attributionControl={false}
@@ -142,8 +144,7 @@ export function CityMapQuestion({
               </MapMarker>
             )}
           </ArcMap>
-        </div>
-      ) : null}
+      </div>
       <p className="intake-question-hint">
         {resolved ? `Mostrando ${resolved.name}.` : "Escribe tu ciudad y el mapa se enfoca ahí."}
       </p>

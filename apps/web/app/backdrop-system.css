@@ -136,13 +136,23 @@ html.pwa-standalone {
 .app-shell::before,
 body.agent-route-active .app-shell::before,
 body.agent-route-standalone .app-shell::before,
-html.pwa-standalone .global-agent-backdrop,
-body.agent-route-standalone .global-agent-backdrop,
 .home-canvas-layer {
   top: var(--vp-bg-inset-top) !important;
   right: var(--vp-bg-inset-x) !important;
   bottom: var(--vp-bg-inset-bottom) !important;
   left: var(--vp-bg-inset-x) !important;
+  width: auto !important;
+  height: auto !important;
+  min-height: auto !important;
+  max-height: none !important;
+}
+
+html.pwa-standalone .global-agent-backdrop,
+body.agent-route-standalone .global-agent-backdrop {
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  left: 0 !important;
   width: auto !important;
   height: auto !important;
   min-height: auto !important;
@@ -180,9 +190,8 @@ body.agent-route-standalone .global-agent-backdrop,
   max-height: none !important;
 }
 
-/* Desktop / tablet: agent backdrop follows bleed tokens */
-body.agent-route-active .global-agent-backdrop,
-html.pwa-standalone .global-agent-backdrop {
+/* Desktop / tablet: agent backdrop follows bleed tokens (not PWA — full bleed) */
+body.agent-route-active .global-agent-backdrop {
   top: var(--vp-bg-inset-top) !important;
   right: var(--vp-bg-inset-x) !important;
   bottom: var(--vp-bg-inset-bottom) !important;
@@ -237,13 +246,13 @@ body.agent-route-active .app-shell::before {
    * One height everywhere — large viewport includes home-indicator band.
    * No document scroll; no gap below panel or modals.
    */
-  html:not(.home-route-active),
-  html:not(.home-route-active) body,
-  html.agent-route-active,
-  html.agent-route-active body,
-  body.agent-route-active,
-  html.intake-route-active,
-  html.intake-route-active body {
+  html:not(.home-route-active):not(.pwa-standalone),
+  html:not(.home-route-active):not(.pwa-standalone) body,
+  html.agent-route-active:not(.pwa-standalone),
+  html.agent-route-active:not(.pwa-standalone) body,
+  body.agent-route-active:not(.pwa-standalone),
+  html.intake-route-active:not(.pwa-standalone),
+  html.intake-route-active:not(.pwa-standalone) body {
     height: var(--fa-app-height) !important;
     max-height: var(--fa-app-height) !important;
     min-height: var(--fa-app-height) !important;
@@ -328,11 +337,11 @@ body.agent-route-active .app-shell::before {
     pointer-events: none !important;
   }
 
-  html:not(.home-route-active) .app-shell,
-  html:not(.home-route-active) .mobile-scale-frame,
-  html.agent-route-active .app-shell,
-  html.agent-route-active .mobile-scale-frame,
-  body.agent-route-active .app-shell {
+  html:not(.home-route-active):not(.pwa-standalone) .app-shell,
+  html:not(.home-route-active):not(.pwa-standalone) .mobile-scale-frame,
+  html.agent-route-active:not(.pwa-standalone) .app-shell,
+  html.agent-route-active:not(.pwa-standalone) .mobile-scale-frame,
+  body.agent-route-active:not(.pwa-standalone) .app-shell {
     height: var(--fa-app-height) !important;
     max-height: var(--fa-app-height) !important;
     min-height: var(--fa-app-height) !important;
@@ -470,6 +479,14 @@ body.agent-route-active .app-shell::before {
     overflow: hidden !important;
   }
 
+  html.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel:has(.panel-grid.is-circular-deck),
+  html.agent-route-active main.agent-layout.is-mobile-viewport .agent-panel.is-mobile-compact:has(.panel-grid.is-circular-deck),
+  body.agent-route-active .agent-panel.is-mobile-compact:has(.panel-grid.is-circular-deck) {
+    flex: 0 0 auto !important;
+    height: auto !important;
+    max-height: none !important;
+  }
+
   html.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel,
   html.agent-route-active main.agent-layout.is-mobile-viewport .agent-panel:not(.is-mobile-expanded),
   html.agent-route-active .agent-panel:not(.is-mobile-expanded),
@@ -478,7 +495,7 @@ body.agent-route-active .app-shell::before {
     flex-direction: column !important;
     flex: 0 0 auto !important;
     height: auto !important;
-    max-height: calc(var(--mobile-panel-h, 126px) + env(safe-area-inset-bottom, 0px)) !important;
+    max-height: calc(var(--mobile-panel-h, 96px) + env(safe-area-inset-bottom, 0px)) !important;
     margin: 0 !important;
     margin-bottom: 0 !important;
     border-radius: 0 !important;
@@ -712,7 +729,7 @@ body.agent-route-active .app-shell::before {
   html:not(.pwa-standalone).agent-route-active body,
   html:not(.pwa-standalone).intake-route-active,
   html:not(.pwa-standalone).intake-route-active body {
-    background-color: var(--browser-chrome-color) !important;
+    background-color: transparent !important;
   }
 
   /* Modal letterbox — solid chrome black (beats semi-transparent scrim shorthands) */
@@ -858,17 +875,27 @@ body.agent-route-active .app-shell::before {
 /* ================================================= */
 
 @media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
-  html.intake-route-active .intake-shell {
-    height: var(--fa-app-height) !important;
-    max-height: var(--fa-app-height) !important;
-    min-height: var(--fa-app-height) !important;
+  html:not(.pwa-standalone).intake-route-active .intake-shell {
+    height: var(--screen-h, var(--fa-app-height, 100lvh)) !important;
+    max-height: var(--screen-h, var(--fa-app-height, 100lvh)) !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    overscroll-behavior: none !important;
+  }
+
+  html.pwa-standalone.intake-route-active .intake-shell {
+    flex: 1 1 auto !important;
+    height: auto !important;
+    max-height: none !important;
+    min-height: 0 !important;
     overflow: hidden !important;
     overscroll-behavior: none !important;
   }
 
   html.intake-route-active .intake-main.intake-main-immersive {
-    height: var(--fa-app-height) !important;
-    max-height: var(--fa-app-height) !important;
+    flex: 1 1 auto !important;
+    height: auto !important;
+    max-height: none !important;
     min-height: 0 !important;
     overflow-y: auto !important;
     overflow-x: hidden !important;
@@ -909,7 +936,7 @@ body.agent-route-active .app-shell::before {
   }
 
   /*
-   * PWA — cards flush to bottom; safe-area only, no extra air below cards.
+   * PWA — panel black bg to bottom; cards keep bottom air via --pwa-panel-bottom-inset.
    */
   html.pwa-standalone body.agent-route-active main.agent-layout.is-mobile-viewport .agent-panel,
   html.pwa-standalone body.agent-route-active main.agent-layout.is-mobile-viewport .agent-panel.is-mobile-compact,
@@ -919,14 +946,6 @@ body.agent-route-active .app-shell::before {
     height: auto !important;
     max-height: none !important;
     margin-bottom: 0 !important;
-    padding-bottom: 0 !important;
-  }
-
-  html.pwa-standalone body.agent-route-active .agent-panel .mobile-panel-handle,
-  html.pwa-standalone body.agent-route-active .agent-layout.is-mobile-standalone .mobile-panel-handle {
-    padding: 2px 10px 0 !important;
-    margin: 0 !important;
-    border-bottom: none !important;
   }
 
   html.pwa-standalone body.agent-route-active .agent-panel .panel-grid,
@@ -934,7 +953,6 @@ body.agent-route-active .app-shell::before {
   html.pwa-standalone body.agent-route-active .agent-layout.is-mobile-standalone .agent-panel .panel-grid {
     flex: 0 0 auto !important;
     margin-top: 0 !important;
-    padding: 0 8px max(2px, calc(env(safe-area-inset-bottom, 0px) - 6px)) 8px !important;
     align-items: flex-end !important;
     align-content: flex-end !important;
   }
@@ -954,9 +972,14 @@ body.agent-route-active .app-shell::before {
 }
 
 @media (display-mode: standalone) and (max-width: 767px) {
+  body.agent-route-active .agent-panel.is-mobile-compact:not(.is-mobile-expanded) {
+    padding-bottom: var(--pwa-panel-bottom-inset, calc(env(safe-area-inset-bottom, 0px) + 12px)) !important;
+    max-height: none !important;
+  }
+
   body.agent-route-active .agent-panel .panel-grid,
   body.agent-route-active .agent-panel.is-mobile-compact .panel-grid {
-    padding: 0 8px max(2px, calc(env(safe-area-inset-bottom, 0px) - 6px)) 8px !important;
+    padding: 0 var(--deck-pad-inline, 8px) 0 var(--deck-pad-inline, 8px) !important;
   }
 
   body.agent-route-active .agent-panel .mobile-panel-handle {

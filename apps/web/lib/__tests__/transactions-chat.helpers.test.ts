@@ -91,7 +91,15 @@ describe('transactions-chat.helpers', () => {
   it('compacts documents and chat history', () => {
     expect(
       compactDocumentsForPrompt([{ name: 'doc.pdf', text: 'x'.repeat(2000) }], { maxDocs: 2, maxText: 40 }),
-    ).toEqual([{ documentId: undefined, name: 'doc.pdf', insight: null, text: 'x'.repeat(40) }]);
+    ).toEqual([
+      {
+        documentId: undefined,
+        documentProfile: null,
+        name: 'doc.pdf',
+        insight: null,
+        text: 'x'.repeat(40),
+      },
+    ]);
 
     expect(
       compactChatHistory(

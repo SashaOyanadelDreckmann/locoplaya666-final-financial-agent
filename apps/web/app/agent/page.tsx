@@ -1,13 +1,25 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import React, { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactElement } from 'react';
 import { Send } from 'lucide-react';
 import 'katex/dist/katex.min.css';
 
-import { getSessionId } from '@/lib/session';
-import { focusMobileInput, prepareMobileInputEngagement } from '@/lib/mobile-viewport-sync';
+import {
+  clearComposerTypingVisual,
+  focusMobileInput,
+} from '@/lib/mobile-viewport-sync';
+import {
+  applyVisualModeToDocument,
+  clearStoredVisualMode,
+  cycleVisualMode,
+  isVisualModeActive,
+  readStoredVisualMode,
+  storeVisualMode,
+  type VisualMode,
+} from '@/lib/visual-mode';
 import { sendToAgent } from '@/lib/agent';
+import { getSessionId } from '@/lib/session';
 import { useInterviewStore } from '@/state/interview.store';
 import { useProfileStore } from '@/state/profile.store';
 import { useSessionStore } from '@/state/session.store';
@@ -30,7 +42,10 @@ import {
   productsHaveAnalyzedMovements,
   resolveTxWizardStep,
 } from '@/lib/transactions-flow.helpers';
-import { deriveTransactionAuthorizationState } from '@/lib/transactions-authorization.helpers';
+import {
+  deriveTransactionAuthorizationState,
+  buildTransactionAuthorizationBlockMessage,
+} from '@/lib/transactions-authorization.helpers';
 import { MAX_BUDGET_ROWS } from '@/lib/budget-rows.helpers';
 import {
   aggregateCanonicalMovements,
@@ -91,10 +106,11 @@ import type {
   ChatItem,
 } from '@/lib/agent.response.types';
 import { toChatItemsFromAgentResponse } from '@/lib/agent.response.types';
-import { BudgetModal, QuestionnaireModal, TransactionsModal } from './modals';
+import { AccountModal, BudgetModal, QuestionnaireModal, TransactionsModal } from './modals';
 import { InterviewModal } from './InterviewModal';
 import { SocialConsciousnessModal } from './SocialConsciousnessModal';
 import { SidePanels } from './side-panels';
+import type { MobilePanelDeckHandle } from './mobile-panel-compact-carousel';
 import { ChatThreadView } from './chat-thread-view';
 import { ChatHeader } from './chat-header';
 import { buildPanelBaseCards } from './panel-cards';
@@ -427,7 +443,7 @@ export default function AgentPage() {
     isMobileViewport,
     isStandaloneDisplayMode,
   } = useAgentShell();
-  const [isMonochrome, setIsMonochrome] = useState(false);
+  const [visualMode, setVisualMode] = useState<VisualMode>('off');
   const [progressPulse, setProgressPulse] = useState(false);
   const [isRailMorphing] = useState(false);
   const [levelUpText, setLevelUpText] = useState<string | null>(null);
@@ -465,6 +481,7 @@ export default function AgentPage() {
   const [docFlight, setDocFlight] = useState<DocFlight | null>(null);
   const chatUploadInputRef = useRef<HTMLInputElement | null>(null);
   const panelSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const panelHydrateOwnerRef = useRef<string | null>(null);
 
   const [panelStateLoaded, setPanelStateLoaded] = useState(false);
   const [persistentKnowledgeScore, setPersistentKnowledgeScore] = useState<number | null>(null);
@@ -481,6 +498,7 @@ export default function AgentPage() {
   const recentLibraryRef = useRef<HTMLDivElement | null>(null);
   const panelScrollRef = useRef<HTMLElement | null>(null);
   const panelGridRef = useRef<HTMLDivElement | null>(null);
+  const compactPanelDeckRef = useRef<MobilePanelDeckHandle | null>(null);
   const [newReportId, setNewReportId] = useState<string | null>(null);
   const [isLandingRecents, setIsLandingRecents] = useState(false);
   const [panelCallout, setPanelCallout] = useState<{ section: string; message: string } | null>(null);
@@ -503,18 +521,6 @@ export default function AgentPage() {
     () => panelStateBackupKeyForUser(sessionInfo?.userId ?? sessionInfo?.email ?? sessionInfo?.name),
     [sessionInfo?.userId, sessionInfo?.email, sessionInfo?.name]
   );
-  const panelHydrateInput = useMemo(
-    () => ({
-      panelStateBackupKey,
-      budgetRows,
-      budgetChatAnswers,
-      savedReports,
-      txProductsCreatedTotal,
-      bankSimulation,
-    }),
-    [bankSimulation, budgetChatAnswers, budgetRows, panelStateBackupKey, savedReports, txProductsCreatedTotal]
-  );
-
   const activeThread = useMemo(
     () =>
       chatThreads.find((thread) => thread.id === activeChatId) ??
@@ -583,11 +589,20 @@ export default function AgentPage() {
     layout?.classList.remove('mobile-panel-expanded');
   }
 
+  function openComposerFromGesture() {
+    if (isActiveChatLocked || !isMobileViewport) return;
+    collapseMobilePanelForComposer();
+    focusMobileInput(chatComposerRef.current);
+  }
+
   function focusComposerAfterLayout(_options?: { collapsePanelFirst?: boolean }) {
     if (isActiveChatLocked) return;
     clearComposerFocusTimer();
-    collapseMobilePanelForComposer();
-    focusMobileInput(chatComposerRef.current);
+    if (isMobileViewport) {
+      openComposerFromGesture();
+      return;
+    }
+    chatComposerRef.current?.focus({ preventScroll: true });
   }
 
   function isThreadLocked(threadId: string) {
@@ -684,6 +699,14 @@ export default function AgentPage() {
     };
   }, [isMobileViewport, mobilePanelExpanded, haptic]);
 
+  useLayoutEffect(() => {
+    if (!isMobileViewport) return;
+    clearComposerTypingVisual();
+    setMobilePanelExpanded(false);
+    const layout = panelScrollRef.current?.closest('.agent-layout') as HTMLElement | null;
+    layout?.classList.remove('mobile-panel-expanded');
+  }, [isMobileViewport]);
+
   useEffect(() => {
     if (!isMobileViewport) return;
     const panel = panelScrollRef.current;
@@ -697,9 +720,31 @@ export default function AgentPage() {
     panel.closest('.agent-layout')?.classList.remove('is-panel-dragging');
 
     if (mobilePanelExpanded) {
-      requestAnimationFrame(() => {
+      const resetExpandedPanelScroll = () => {
         panel.scrollTop = 0;
-        if (grid) grid.scrollLeft = 0;
+        if (!grid) return;
+        grid.scrollTop = 0;
+        grid.scrollLeft = 0;
+        const profileCard = grid.querySelector('.panel-pos-profile') as HTMLElement | null;
+        if (!profileCard) return;
+
+        const scrollToProfile = (scrollEl: HTMLElement) => {
+          const containerRect = scrollEl.getBoundingClientRect();
+          const profileRect = profileCard.getBoundingClientRect();
+          scrollEl.scrollTop += profileRect.top - containerRect.top - 8;
+        };
+
+        if (grid.scrollHeight > grid.clientHeight) {
+          scrollToProfile(grid);
+          return;
+        }
+        if (panel.scrollHeight > panel.clientHeight) {
+          scrollToProfile(panel);
+        }
+      };
+      requestAnimationFrame(() => {
+        resetExpandedPanelScroll();
+        requestAnimationFrame(resetExpandedPanelScroll);
       });
     }
   }, [mobilePanelExpanded, isMobileViewport]);
@@ -962,7 +1007,7 @@ export default function AgentPage() {
     localStorage.removeItem('agent_session_id');
     localStorage.removeItem('agent.panel.stage.v3');
     localStorage.removeItem('agent.panel.collapsed.v1');
-    localStorage.removeItem('agent.ui.monochrome.v1');
+    clearStoredVisualMode();
     localStorage.removeItem('agent.prefill_prompt');
     clearInterviewVoiceState();
     clearCsrfToken();
@@ -1591,10 +1636,7 @@ export default function AgentPage() {
   }, []);
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem('agent.ui.monochrome.v1');
-      if (raw === '1') setIsMonochrome(true);
-    } catch {}
+    setVisualMode(readStoredVisualMode());
   }, []);
 
   useEffect(() => {
@@ -1645,24 +1687,34 @@ export default function AgentPage() {
   }, [items.length, activeChatId, loading]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem('agent.ui.monochrome.v1', isMonochrome ? '1' : '0');
-    } catch {}
-  }, [isMonochrome]);
+    storeVisualMode(visualMode);
+  }, [visualMode]);
 
   useEffect(() => {
-    document.documentElement.classList.toggle('agent-global-monochrome', isMonochrome);
+    applyVisualModeToDocument(visualMode);
     return () => {
-      document.documentElement.classList.remove('agent-global-monochrome');
+      applyVisualModeToDocument('off');
     };
-  }, [isMonochrome]);
+  }, [visualMode]);
 
   useEffect(() => {
-    if (!authBootstrapped || !isAuthenticated) return;
+    if (!authBootstrapped || !isAuthenticated) {
+      panelHydrateOwnerRef.current = null;
+      return;
+    }
+    if (panelHydrateOwnerRef.current === panelStateBackupKey) return;
+    panelHydrateOwnerRef.current = panelStateBackupKey;
+
+    setPanelStateLoaded(false);
     let alive = true;
 
-    hydratePanelState({
-      ...panelHydrateInput,
+    void hydratePanelState({
+      panelStateBackupKey,
+      budgetRows: [],
+      budgetChatAnswers: [],
+      savedReports: [],
+      txProductsCreatedTotal: 0,
+      bankSimulation: DEFAULT_BANK_SIMULATION,
     })
       .then((result) => {
         if (!alive) return;
@@ -1687,7 +1739,7 @@ export default function AgentPage() {
     return () => {
       alive = false;
     };
-  }, [authBootstrapped, isAuthenticated, panelHydrateInput, setBudgetRows]);
+  }, [authBootstrapped, isAuthenticated, panelStateBackupKey]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -2663,21 +2715,27 @@ export default function AgentPage() {
     bank?: string;
     label?: string;
     productType?: BankProduct['productType'];
-  }) {
-    if (!activeBankProduct) return;
-    const authorizationState = deriveTransactionAuthorizationState(activeBankProduct);
-    if (!authorizationState.simulationAccepted) {
-      setTransactionUploadError('Debes aceptar que este flujo es de simulación y no ingresar credenciales reales.');
-      return;
+    simulationAccepted?: boolean;
+  }): boolean {
+    if (!activeBankProduct) return false;
+    const authorizationState = deriveTransactionAuthorizationState(activeBankProduct, {
+      bank: nextConfig?.bank,
+      label: nextConfig?.label,
+      simulationAccepted: nextConfig?.simulationAccepted,
+    });
+    if (!authorizationState.canContinue) {
+      setTransactionUploadError(buildTransactionAuthorizationBlockMessage(authorizationState));
+      return false;
     }
-    const nextBank = String(nextConfig?.bank ?? activeBankProduct.bank ?? '').trim();
-    const nextLabel = String(nextConfig?.label ?? activeBankProduct.label ?? '').trim();
+    const nextBank = authorizationState.bank;
+    const nextLabel = authorizationState.label;
     const nextProductType = nextConfig?.productType ?? activeBankProduct.productType;
     updateActiveProduct({
       bank: nextBank,
       label: nextLabel || activeBankProduct.label,
       productType: nextProductType,
       connected: nextBank.length > 0,
+      simulationAccepted: authorizationState.simulationAccepted,
       randomMode: false,
     });
     setTxCreationNotice(
@@ -2685,6 +2743,7 @@ export default function AgentPage() {
     );
     setTransactionUploadError(null);
     setTxWizardStep('upload');
+    return true;
   }
 
   async function onUploadStatement(
@@ -3110,20 +3169,14 @@ export default function AgentPage() {
           window.setTimeout(() => setNewReportId(null), 1800);
         }
 
-        // On mobile the panel is a horizontal premium rail; glide to recents without breaking its height/state.
-        if (isMobileViewport && panelGridRef.current && recentLibraryRef.current) {
-          const gridEl = panelGridRef.current;
+        // On mobile compact, rotate the circular deck to recents (single instance, no clone scroll).
+        if (isMobileViewport && !mobilePanelExpanded) {
           const panelEl = panelScrollRef.current as HTMLElement | null;
           if (panelEl) {
             panelEl.style.flexBasis = '';
             panelEl.style.removeProperty('--mobile-panel-h');
           }
-          const targetCard =
-            (recentLibraryRef.current.closest('[data-loop-segment="real"]') as HTMLElement | null) ??
-            (recentLibraryRef.current.closest('.mob-col') as HTMLElement | null);
-          if (targetCard) {
-            gridEl.scrollTo({ left: Math.max(0, targetCard.offsetLeft - 10), behavior: 'smooth' });
-          }
+          compactPanelDeckRef.current?.focusByKey('recents');
         } else if (panelScrollRef.current && recentLibraryRef.current) {
           const panelEl = panelScrollRef.current;
           const cardEl = recentLibraryRef.current;
@@ -3255,19 +3308,24 @@ export default function AgentPage() {
     >
       <div
         className="agent-input terminal-composer"
-        onPointerDown={(e) => {
-          if (isActiveChatLocked || !isMobileViewport) return;
-          if (e.pointerType === 'touch' || e.pointerType === 'pen') {
-            collapseMobilePanelForComposer();
-            prepareMobileInputEngagement(chatComposerRef.current);
-          }
-        }}
         onClick={() => {
+          if (isActiveChatLocked || isMobileViewport) return;
           focusComposerAfterLayout({ collapsePanelFirst: true });
         }}
         style={{ cursor: isActiveChatLocked ? 'default' : 'text' }}
       >
-        <div className="terminal-composer-head">$ escribir_mensaje</div>
+        <div
+          className="terminal-composer-head"
+          onPointerDown={(e) => {
+            if (isActiveChatLocked || !isMobileViewport) return;
+            if (e.pointerType !== 'touch' && e.pointerType !== 'pen') return;
+            /* iOS: prevent ghost click on the label from stealing focus back. */
+            e.preventDefault();
+            openComposerFromGesture();
+          }}
+        >
+          $ escribir_mensaje
+        </div>
         <textarea
           ref={chatComposerRef}
           className="terminal-composer-input"
@@ -3275,6 +3333,8 @@ export default function AgentPage() {
           value={input}
           disabled={isActiveChatLocked}
           autoFocus={!hasBlockingModalOpen && !isMobileViewport}
+          enterKeyHint="send"
+          inputMode="text"
           onFocus={() => {
             collapseMobilePanelForComposer();
           }}
@@ -3352,7 +3412,9 @@ export default function AgentPage() {
       className={`agent-layout ${activeThreadThemeClass} ${
         isRailMorphing ? 'is-mode-12-morphing' : ''
       } ${
-        isMonochrome ? 'is-monochrome' : ''
+        isVisualModeActive(visualMode) ? 'is-monochrome' : ''
+      } ${
+        visualMode !== 'off' ? `is-visual-mode-${visualMode}` : ''
       } ${
         mobilePanelExpanded ? 'mobile-panel-expanded' : ''
       } ${
@@ -3383,8 +3445,8 @@ export default function AgentPage() {
           completedMilestones={completedMilestones}
           milestones={milestones}
           coachHint={coachHint}
-          isMonochrome={isMonochrome}
-          toggleMonochrome={() => setIsMonochrome((v) => !v)}
+          visualMode={visualMode}
+          cycleVisualMode={() => setVisualMode((current) => cycleVisualMode(current))}
           isMobileViewport={isMobileViewport}
           actionPlanFunnelStage={activeActionPlanStage}
         />
@@ -3433,6 +3495,7 @@ export default function AgentPage() {
             launchDocToLibraryAnimation={launchDocToLibraryAnimation}
             onPanelAction={openPanelSectionFromChat}
             flowPanelAction={getNextFlowPanelAction()}
+            visualMode={visualMode}
           />
 
           {activeChatId === 'chat-3' && (
@@ -3484,6 +3547,7 @@ export default function AgentPage() {
         panelScrollRef={panelScrollRef as React.RefObject<HTMLElement>}
         compactPanelCards={compactPanelCards}
         compactPanelLoopResetKey={compactPanelLoopResetKey}
+        compactPanelDeckRef={compactPanelDeckRef}
         panelRenderedCards={panelRenderedCards}
       />
 
@@ -3617,53 +3681,16 @@ export default function AgentPage() {
         sessionUserName={sessionInfo?.name}
       />
 
-      {isAccountModalOpen && (
-        <div className="agent-modal-overlay" onClick={closeAccountModal}>
-          <div className="agent-modal account-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="agent-modal-header">
-              <h3>Cuenta</h3>
-              <button type="button" className="agent-modal-close" onClick={closeAccountModal}>×</button>
-            </div>
-            <p className="agent-modal-intro">
-              Gestiona tu sesión actual. Cerrar sesión te devuelve al acceso; borrar cuenta elimina tus datos de forma permanente.
-            </p>
-            {accountActionError ? (
-              <div className="transactions-summary-card tx-doc-intel-grid" role="alert">
-                <span className="transactions-summary-title">No se pudo completar la acción</span>
-                <p>{accountActionError}</p>
-              </div>
-            ) : null}
-            <div className="questionnaire-response-grid">
-              <div className="questionnaire-response-item">
-                <span>Usuario</span>
-                <strong>{sessionInfo?.name || 'Cuenta activa'}</strong>
-              </div>
-              <div className="questionnaire-response-item">
-                <span>Email</span>
-                <strong>{sessionInfo?.email || 'Sesión autenticada'}</strong>
-              </div>
-            </div>
-            <div className="account-modal-actions">
-              <button
-                type="button"
-                className="continue-button"
-                onClick={() => void handleLogout()}
-                disabled={isAccountActionLoading}
-              >
-                {isAccountActionLoading ? 'Cerrando…' : 'Cerrar sesión'}
-              </button>
-              <button
-                type="button"
-                className="continue-button danger"
-                onClick={() => void handleDeleteAccount()}
-                disabled={isAccountActionLoading}
-              >
-                {isAccountActionLoading ? 'Eliminando…' : 'Borrar cuenta'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <AccountModal
+        isOpen={isAccountModalOpen}
+        sessionUserName={sessionInfo?.name}
+        sessionEmail={sessionInfo?.email}
+        isLoading={isAccountActionLoading}
+        error={accountActionError}
+        onClose={closeAccountModal}
+        onLogout={handleLogout}
+        onDeleteAccount={handleDeleteAccount}
+      />
     </main>
   );
 }

@@ -5,10 +5,11 @@ import { CitationBubble } from '@/components/conversation/CitationBubble';
 import { AgentBlocksRenderer } from '@/components/agent/AgentBlocksRenderer';
 import { saveBubbleSnapshotPdfArtifact, savePdfArtifact } from '@/lib/artifacts';
 import type { ChatItem } from '@/lib/agent.response.types';
+import type { VisualMode } from '@/lib/visual-mode';
 import { sanitizeMessageText } from './page.utils';
 import { renderLatexDocMessage } from './message-renderer';
 
-const DOC_MODE_PILL_STYLE: React.CSSProperties = {
+const DOC_MODE_PILL_STYLE_DARK: React.CSSProperties = {
   background: '#000000',
   backgroundColor: '#000000',
   backgroundImage: 'none',
@@ -22,6 +23,25 @@ const DOC_MODE_PILL_STYLE: React.CSSProperties = {
   WebkitTextFillColor: '#ffffff',
   textShadow: 'none',
 };
+
+const DOC_MODE_PILL_STYLE_LIGHT: React.CSSProperties = {
+  background: '#ffffff',
+  backgroundColor: '#ffffff',
+  backgroundImage: 'none',
+  color: '#000000',
+  border: '1px solid rgba(0, 0, 0, 0.2)',
+  opacity: 1,
+  mixBlendMode: 'normal',
+  filter: 'none',
+  backdropFilter: 'none',
+  WebkitBackdropFilter: 'none',
+  WebkitTextFillColor: '#000000',
+  textShadow: 'none',
+};
+
+function getDocModePillStyle(visualMode?: VisualMode): React.CSSProperties {
+  return visualMode === 'light-outline' ? DOC_MODE_PILL_STYLE_LIGHT : DOC_MODE_PILL_STYLE_DARK;
+}
 
 type SavedReport = {
   id: string;
@@ -434,7 +454,9 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
   launchDocToLibraryAnimation: (title: string, sourceRect: DOMRect, previewUrl: string, reportId: string) => void;
   onPanelAction: (action: NonNullable<Extract<ChatItem, { type: 'message'; role: 'assistant' }>['panel_action']>) => void;
   flowPanelAction?: NonNullable<Extract<ChatItem, { type: 'message'; role: 'assistant' }>['panel_action']>;
+  visualMode?: VisualMode;
 }) {
+  const docModePillStyle = getDocModePillStyle(props.visualMode);
   const [savingBubblePdf, setSavingBubblePdf] = useState<Record<number, boolean>>({});
   const EMPTY_THREAD_FALLBACK =
     'Estoy listo para iniciar tu entrevista financiera. Cuéntame tu objetivo principal y partimos con el primer paso accionable.';
@@ -535,7 +557,7 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
                   <span className="latex-doc-subtitle">{docMeta.subtitle}</span>
                 </div>
                 <div className="latex-doc-head-actions">
-                  <span className="latex-doc-mode" style={DOC_MODE_PILL_STYLE}>
+                  <span className="latex-doc-mode" style={docModePillStyle}>
                     {(it.mode ?? 'analysis').toString().replaceAll('_', ' ')}
                   </span>
                   <button
@@ -814,7 +836,7 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
                 <span className="latex-doc-title">Inicio de conversación</span>
                 <span className="latex-doc-subtitle">Contexto base y siguiente acción</span>
               </div>
-              <span className="latex-doc-mode" style={DOC_MODE_PILL_STYLE}>information</span>
+              <span className="latex-doc-mode" style={docModePillStyle}>information</span>
             </div>
             <div className="latex-doc-body">
               {renderLatexDocMessage(EMPTY_THREAD_FALLBACK)}

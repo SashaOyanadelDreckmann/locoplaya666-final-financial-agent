@@ -37,8 +37,18 @@ export function useAgentShell() {
   const [sessionInfo, setSessionInfo] = useState<AgentSessionInfo>(null);
   const [authBootstrapped, setAuthBootstrapped] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isMobileViewport, setIsMobileViewport] = useState(false);
-  const [isStandaloneDisplayMode, setIsStandaloneDisplayMode] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return syncViewportModeClasses().mobileShell;
+  });
+  const [isStandaloneDisplayMode, setIsStandaloneDisplayMode] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    const media = window.matchMedia('(display-mode: standalone)');
+    const iosStandalone = Boolean(
+      (window.navigator as Navigator & { standalone?: boolean }).standalone
+    );
+    return media.matches || iosStandalone;
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -158,6 +168,10 @@ export function useAgentShell() {
         }
 
         if (target.closest('.agent-panel.is-mobile-compact')) {
+          return;
+        }
+
+        if (target.closest('.agent-mobile-composer-dock')) {
           return;
         }
 
