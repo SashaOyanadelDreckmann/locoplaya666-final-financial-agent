@@ -8,9 +8,41 @@ import type { ChatItem } from '@/lib/agent.response.types';
 import type { VisualMode } from '@/lib/visual-mode';
 import { sanitizeMessageText } from './page.utils';
 import { renderLatexDocMessage } from './message-renderer';
+import { GradientBlobCard } from '@/components/ui/gradient-bold-card';
+
+type PanelAction = NonNullable<
+  Extract<ChatItem, { type: 'message'; role: 'assistant' }>['panel_action']
+>;
+
+function getFlowPanelActionLabel(section: PanelAction['section']): string {
+  if (section === 'transactions' || section === 'products_transactions') {
+    return 'Abrir productos y transacciones';
+  }
+  if (section === 'budget') return 'Abrir presupuesto';
+  if (section === 'interview') return 'Abrir entrevista';
+  return 'Abrir panel';
+}
+
+function renderFlowPanelActionRow(
+  action: PanelAction,
+  onClick: () => void,
+  variant: 'intro' | 'welcome' = 'intro',
+) {
+  const variantClass =
+    variant === 'welcome'
+      ? 'agent-inline-panel-action--welcome'
+      : 'agent-inline-panel-action--intro';
+  return (
+    <div className={`agent-inline-panel-action ${variantClass}`}>
+      <button type="button" className="agent-inline-panel-button" onClick={onClick}>
+        {getFlowPanelActionLabel(action.section)}
+      </button>
+      {action.message ? <span className="agent-inline-panel-note">{action.message}</span> : null}
+    </div>
+  );
+}
 
 const DOC_MODE_PILL_STYLE_DARK: React.CSSProperties = {
-  background: '#000000',
   backgroundColor: '#000000',
   backgroundImage: 'none',
   color: '#ffffff',
@@ -25,7 +57,6 @@ const DOC_MODE_PILL_STYLE_DARK: React.CSSProperties = {
 };
 
 const DOC_MODE_PILL_STYLE_LIGHT: React.CSSProperties = {
-  background: '#ffffff',
   backgroundColor: '#ffffff',
   backgroundImage: 'none',
   color: '#000000',
@@ -419,6 +450,21 @@ html, body, .bubble-pdf-snapshot {
   };
 }
 
+function isWelcomeCarouselShellItem(
+  item: ChatItem,
+  index: number,
+  items: ChatItem[],
+  activeThreadId: string | undefined,
+  diagnosisUnlocked: boolean,
+): boolean {
+  if (activeThreadId !== 'chat-1' || diagnosisUnlocked) return false;
+  if (item.type !== 'message' || item.role !== 'assistant') return false;
+  const isFirstAssistant = !items
+    .slice(0, index)
+    .some((prior) => prior.type === 'message' && prior.role === 'assistant');
+  return isFirstAssistant && !String(item.content ?? '').trim();
+}
+
 function isExternalCitation(citation: Extract<ChatItem, { type: 'citation' }>['citation']) {
   const raw = citation?.url;
   if (!raw || typeof raw !== 'string') return false;
@@ -461,6 +507,19 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
   const EMPTY_THREAD_FALLBACK =
     'Estoy listo para iniciar tu entrevista financiera. Cuéntame tu objetivo principal y partimos con el primer paso accionable.';
   const userTag = String(props.sessionUserName ?? 'USER').trim().split(' ')[0] || 'USER';
+  const welcomeFlowAction =
+    props.activeThreadId === 'chat-1' && !props.diagnosisUnlocked
+      ? props.flowPanelAction
+      : undefined;
+  const hasWelcomeEmptyBubble = props.items.some((entry, idx) =>
+    isWelcomeCarouselShellItem(
+      entry,
+      idx,
+      props.items,
+      props.activeThreadId,
+      props.diagnosisUnlocked,
+    ),
+  );
 
   function renderChatItem(
     it: ChatItem,
@@ -533,93 +592,117 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
                 title: props.diagnosisUnlocked
                   ? 'Chat general'
                   : isFirstAssistantCard
-                  ? 'Inicio de entrevista'
+                  ? 'Informe inicial de diagnóstico'
                   : 'Entrevista financiera en curso',
                 subtitle: props.diagnosisUnlocked
                   ? 'Síntesis profesional del contexto, evidencia disponible y próximos pasos.'
+                  : isFirstAssistantCard
+                  ? 'Introducción ejecutiva personalizada — evidencia real, simulación normativa y ruta de decisión.'
                   : 'Reunimos contexto, presupuesto y señales del caso antes del diagnóstico final.',
               };
         const isScrollable = shouldEnableBubbleScroll(it.content ?? '');
         const blocks = Array.isArray(it.agent_blocks) ? it.agent_blocks : [];
+        const isEmptyWelcomeShell = isWelcomeCarouselShellItem(
+          it,
+          i,
+          props.items,
+          props.activeThreadId,
+          props.diagnosisUnlocked,
+        );
         const questionnaireBlocks = props.diagnosisUnlocked
           ? blocks.filter((b) => b.type === 'questionnaire')
           : [];
-        const technicalBlocks = blocks.filter((b) => b.type !== 'questionnaire');
+        const technicalBlocks = blocks.filter(
+          (b) => b.type !== 'questionnaire' && b.type !== 'executive_intro'
+        );
+
         return (
           <React.Fragment key={i}>
             <div
-              className={`agent-bubble assistant latex-doc ${isScrollable ? 'is-scrollable-bubble' : ''}${isFirstAssistantCard ? ' is-intro-doc' : ''}${funnelStage === 'deliver' ? ' is-action-plan-deliver' : funnelStage ? ` is-action-plan-${funnelStage}` : ''}`}
+              className={`agent-bubble assistant latex-doc ${isScrollable ? 'is-scrollable-bubble' : ''}${isFirstAssistantCard ? ' is-intro-doc' : ''}${isEmptyWelcomeShell ? ' is-empty-welcome' : ''}${funnelStage === 'deliver' ? ' is-action-plan-deliver' : funnelStage ? ` is-action-plan-${funnelStage}` : ''}`}
             >
-              <div className="latex-doc-head">
-                <div className="latex-doc-heading">
-                  <span className="latex-doc-kicker">{docMeta.kicker}</span>
-                  <span className="latex-doc-title">{docMeta.title}</span>
-                  <span className="latex-doc-subtitle">{docMeta.subtitle}</span>
+              {!isEmptyWelcomeShell ? (
+                <div className="latex-doc-head">
+                  <div className="latex-doc-heading">
+                    <span className="latex-doc-kicker">{docMeta.kicker}</span>
+                    <span className="latex-doc-title">{docMeta.title}</span>
+                    <span className="latex-doc-subtitle">{docMeta.subtitle}</span>
+                  </div>
+                  <div className="latex-doc-head-actions">
+                    <span className="latex-doc-mode" style={docModePillStyle}>
+                      {(it.mode ?? 'analysis').toString().replaceAll('_', ' ')}
+                    </span>
+                    <button
+                      type="button"
+                      className="latex-doc-save-btn"
+                      disabled={Boolean(savingBubblePdf[i])}
+                      onClick={(e) => {
+                        const btn = e.currentTarget as HTMLButtonElement;
+                        const bubbleEl = btn.closest('.agent-bubble.assistant.latex-doc') as HTMLElement | null;
+                        setSavingBubblePdf((prev) => ({ ...prev, [i]: true }));
+                        void (async () => {
+                          try {
+                            if (!bubbleEl) throw new Error('Bubble not found');
+                            const snapshot = buildBubbleSnapshotHtmlAndCss(bubbleEl);
+                            const result = await saveBubbleSnapshotPdfArtifact({
+                              title: docMeta.title,
+                              subtitle: docMeta.subtitle,
+                              html: snapshot.html,
+                              css: snapshot.css,
+                            });
+                            const artifact = result.artifact;
+                            const reportId = `${artifact.id}-${Date.now()}`;
+                            const report: SavedReport = {
+                              id: reportId,
+                              title: artifact.title,
+                              group: props.classifyReportGroup(artifact.title, artifact.source),
+                              fileUrl: artifact.fileUrl ?? '',
+                              createdAt: artifact.createdAt,
+                            };
+                            props.setSavedReports((prev) =>
+                              [report, ...prev.filter((r) => r.fileUrl !== report.fileUrl)]
+                            );
+                            const sourceRect = btn.getBoundingClientRect();
+                            props.launchDocToLibraryAnimation(
+                              artifact.title,
+                              sourceRect,
+                              artifact.previewImageUrl ?? artifact.fileUrl ?? '',
+                              reportId
+                            );
+                          } catch {
+                            props.setItemsForActive((prev) => [
+                              ...prev,
+                              {
+                                type: 'message',
+                                role: 'assistant',
+                                content:
+                                  'No pude guardar el PDF de esta burbuja en biblioteca. Reintenta en unos segundos.',
+                                mode: 'information',
+                              } as ChatItem,
+                            ]);
+                          } finally {
+                            setSavingBubblePdf((prev) => ({ ...prev, [i]: false }));
+                          }
+                        })();
+                      }}
+                    >
+                      {savingBubblePdf[i] ? 'Guardando…' : 'Guardar PDF'}
+                    </button>
+                  </div>
                 </div>
-                <div className="latex-doc-head-actions">
-                  <span className="latex-doc-mode" style={docModePillStyle}>
-                    {(it.mode ?? 'analysis').toString().replaceAll('_', ' ')}
-                  </span>
-                  <button
-                    type="button"
-                    className="latex-doc-save-btn"
-                    disabled={Boolean(savingBubblePdf[i])}
-                    onClick={(e) => {
-                      const btn = e.currentTarget as HTMLButtonElement;
-                      const bubbleEl = btn.closest('.agent-bubble.assistant.latex-doc') as HTMLElement | null;
-                      setSavingBubblePdf((prev) => ({ ...prev, [i]: true }));
-                      void (async () => {
-                        try {
-                          if (!bubbleEl) throw new Error('Bubble not found');
-                          const snapshot = buildBubbleSnapshotHtmlAndCss(bubbleEl);
-                          const result = await saveBubbleSnapshotPdfArtifact({
-                            title: docMeta.title,
-                            subtitle: docMeta.subtitle,
-                            html: snapshot.html,
-                            css: snapshot.css,
-                          });
-                          const artifact = result.artifact;
-                          const reportId = `${artifact.id}-${Date.now()}`;
-                          const report: SavedReport = {
-                            id: reportId,
-                            title: artifact.title,
-                            group: props.classifyReportGroup(artifact.title, artifact.source),
-                            fileUrl: artifact.fileUrl ?? '',
-                            createdAt: artifact.createdAt,
-                          };
-                          props.setSavedReports((prev) =>
-                            [report, ...prev.filter((r) => r.fileUrl !== report.fileUrl)]
-                          );
-                          const sourceRect = btn.getBoundingClientRect();
-                          props.launchDocToLibraryAnimation(
-                            artifact.title,
-                            sourceRect,
-                            artifact.previewImageUrl ?? artifact.fileUrl ?? '',
-                            reportId
-                          );
-                        } catch {
-                          props.setItemsForActive((prev) => [
-                            ...prev,
-                            {
-                              type: 'message',
-                              role: 'assistant',
-                              content:
-                                'No pude guardar el PDF de esta burbuja en biblioteca. Reintenta en unos segundos.',
-                              mode: 'information',
-                            } as ChatItem,
-                          ]);
-                        } finally {
-                          setSavingBubblePdf((prev) => ({ ...prev, [i]: false }));
-                        }
-                      })();
-                    }}
-                  >
-                    {savingBubblePdf[i] ? 'Guardando…' : 'Guardar PDF'}
-                  </button>
-                </div>
-              </div>
-              <div className={`latex-doc-body ${isScrollable ? 'is-scrollable-content' : ''}`}>
-                {renderLatexDocMessage(sanitizeMessageText(it.content ?? ''))}
+              ) : null}
+              <div className={`latex-doc-body ${isScrollable ? 'is-scrollable-content' : ''}${isEmptyWelcomeShell ? ' is-empty-welcome-body' : ''}`}>
+                {isEmptyWelcomeShell ? (
+                  <GradientBlobCard
+                    className="gradient-blob-card--welcome"
+                    sessionUserName={props.sessionUserName}
+                    sessionInjectedIntake={props.sessionInjectedIntake}
+                  />
+                ) : (
+                  <div className="premium-markdown">
+                    {renderLatexDocMessage(sanitizeMessageText(it.content ?? ''))}
+                  </div>
+                )}
                 {questionnaireBlocks.length > 0 && (
                   <div className="latex-inline-questionnaire">
                     <AgentBlocksRenderer
@@ -696,31 +779,24 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
                 })()}
               </div>
             </div>
+            {isEmptyWelcomeShell && welcomeFlowAction?.section
+              ? renderFlowPanelActionRow(
+                  welcomeFlowAction,
+                  () => props.onPanelAction(welcomeFlowAction),
+                  'welcome',
+                )
+              : null}
             {messagePanelAction?.section &&
+            !isEmptyWelcomeShell &&
             !(
               props.diagnosisUnlocked &&
               props.activeThreadId === 'chat-1' &&
               (messagePanelAction.section === 'transactions' || messagePanelAction.section === 'products_transactions')
             ) &&
             !shouldHidePrimaryFlowAction && (
-              <div className="agent-inline-panel-action">
-                <button
-                  type="button"
-                  className="agent-inline-panel-button"
-                  onClick={() => props.onPanelAction(messagePanelAction!)}
-                >
-                  {messagePanelAction.section === 'transactions' || messagePanelAction.section === 'products_transactions'
-                    ? 'Abrir productos y transacciones'
-                    : messagePanelAction.section === 'budget'
-                    ? 'Abrir presupuesto'
-                    : messagePanelAction.section === 'interview'
-                    ? 'Abrir entrevista'
-                    : 'Abrir panel'}
-                </button>
-                {messagePanelAction.message ? (
-                  <span className="agent-inline-panel-note">{messagePanelAction.message}</span>
-                ) : null}
-              </div>
+              renderFlowPanelActionRow(messagePanelAction, () =>
+                props.onPanelAction(messagePanelAction!),
+              )
             )}
           </React.Fragment>
         );
@@ -845,20 +921,14 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
         )}
         {rendered}
 
-        {flowPanelAction?.section ? (
+        {flowPanelAction?.section && !hasWelcomeEmptyBubble ? (
           <div className="agent-flow-cta agent-flow-cta--thread">
             <button
               type="button"
               className="agent-flow-cta-button"
               onClick={() => props.onPanelAction(flowPanelAction)}
             >
-              {flowPanelAction.section === 'transactions' || flowPanelAction.section === 'products_transactions'
-                ? 'Abrir productos y transacciones'
-                : flowPanelAction.section === 'budget'
-                ? 'Abrir presupuesto'
-                : flowPanelAction.section === 'interview'
-                ? 'Abrir entrevista'
-                : 'Abrir panel'}
+              {getFlowPanelActionLabel(flowPanelAction.section)}
             </button>
             {flowPanelAction.message ? (
               <span className="agent-flow-cta-copy">{flowPanelAction.message}</span>

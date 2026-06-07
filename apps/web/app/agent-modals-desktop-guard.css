@@ -1,0 +1,39 @@
+/* ================================================= */
+/* MODALS — DESKTOP GUARD                           */
+/* Explicit desktop contract; keeps mobile rules out. */
+/* ================================================= */
+
+@media (min-width: 768px) {
+  html.is-desktop-viewport body.agent-route-active .agent-modal-overlay,
+  html.is-desktop-viewport body.agent-route-active .social-modal-overlay {
+    padding: 24px !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  html.is-desktop-viewport body.agent-route-active .agent-modal,
+  html.is-desktop-viewport body.agent-route-active .transactions-modal,
+  html.is-desktop-viewport body.agent-route-active .budget-modal,
+  html.is-desktop-viewport body.agent-route-active .interview-modal,
+  html.is-desktop-viewport body.agent-route-active .questionnaire-modal,
+  html.is-desktop-viewport body.agent-route-active .account-modal,
+  html.is-desktop-viewport body.agent-route-active .social-modal {
+    max-height: min(92dvh, 980px) !important;
+    overflow: hidden !important;
+  }
+
+  html.is-desktop-viewport body.agent-route-active .transactions-modal {
+    width: min(96vw, 1380px) !important;
+    max-width: min(96vw, 1380px) !important;
+  }
+
+  html.is-desktop-viewport body.agent-route-active .budget-modal {
+    width: min(96vw, 1240px) !important;
+    max-width: min(96vw, 1240px) !important;
+  }
+
+  html.is-desktop-viewport body.agent-route-active .agent-modal-header {
+    position: sticky !important;
+    top: 0 !important;
+  }
+}

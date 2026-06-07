@@ -310,6 +310,106 @@ function normalizeMovementProductType(value?: string): string | undefined {
   return normalizeProductType(value);
 }
 
+function isCreditCardProduct(productType?: string): boolean {
+  return normalizeMovementProductType(productType) === 'credit_card';
+}
+
+function resolveCreditCardCategoryDirection(
+  categoryToken: string,
+): { direction: 'income' | 'expense'; kind: 'abono' | 'expense'; basis: string } | null {
+  const normalized = normalizeTextToken(categoryToken);
+  if (!normalized) return null;
+  if (/\babonos?\b/.test(normalized)) {
+    return { direction: 'income', kind: 'abono', basis: 'category_abonos' };
+  }
+  if (/\bcargos?\b/.test(normalized)) {
+    return { direction: 'expense', kind: 'expense', basis: 'category_cargos' };
+  }
+  return null;
+}
+
+function isCreditCardAbonoSignal(input: {
+  line: string;
+  categoryToken?: string;
+  description?: string;
+  signedAmount?: number;
+  amountToken?: string;
+}): boolean {
+  const normalized = normalizeTextToken(
+    [input.categoryToken, input.description, input.line].filter(Boolean).join(' '),
+  );
+  if (/\babonos?\b/.test(normalized)) return true;
+  if (/\b(monto cancelado|dev intereses|reembolso|reintegro|devolucion|nota de credito|nota credito)\b/.test(normalized)) {
+    return true;
+  }
+  if (typeof input.signedAmount === 'number' && input.signedAmount < 0) return true;
+  return hasExplicitNegativeAmount(input.amountToken ?? '');
+}
+
+function isCreditCardCargoSignal(input: {
+  line: string;
+  categoryToken?: string;
+  description?: string;
+  signedAmount?: number;
+  amountToken?: string;
+}): boolean {
+  const categoryDirection = resolveCreditCardCategoryDirection(input.categoryToken ?? '');
+  if (categoryDirection?.direction === 'expense') return true;
+  const normalized = normalizeTextToken(
+    [input.categoryToken, input.description, input.line].filter(Boolean).join(' '),
+  );
+  if (/\bcargos?\b/.test(normalized) && !/\babonos?\b/.test(normalized)) return true;
+  if (typeof input.signedAmount === 'number' && input.signedAmount > 0) return true;
+  return hasExplicitPositiveAmount(input.amountToken ?? '') || !hasExplicitNegativeAmount(input.amountToken ?? '');
+}
+
+function finalizeCreditCardMovement(
+  movement: ParsedMovement,
+  context: {
+    productType?: string;
+    line?: string;
+    categoryToken?: string;
+    signedAmount?: number;
+    amountToken?: string;
+  },
+): ParsedMovement {
+  if (!isCreditCardProduct(context.productType)) return movement;
+
+  const abonoSignal = isCreditCardAbonoSignal({
+    line: context.line ?? movement.source_line ?? movement.description,
+    categoryToken: context.categoryToken,
+    description: movement.description,
+    signedAmount: context.signedAmount,
+    amountToken: context.amountToken,
+  });
+  if (abonoSignal) {
+    return {
+      ...movement,
+      direction: 'income',
+      movement_kind: 'abono',
+      direction_basis: movement.direction_basis ?? 'credit_card_abono_guard',
+    };
+  }
+
+  const cargoSignal = isCreditCardCargoSignal({
+    line: context.line ?? movement.source_line ?? movement.description,
+    categoryToken: context.categoryToken,
+    description: movement.description,
+    signedAmount: context.signedAmount,
+    amountToken: context.amountToken,
+  });
+  if (cargoSignal && movement.direction === 'income' && movement.movement_kind !== 'abono') {
+    return {
+      ...movement,
+      direction: 'expense',
+      movement_kind: 'expense',
+      direction_basis: movement.direction_basis ?? 'credit_card_cargo_guard',
+    };
+  }
+
+  return movement;
+}
+
 export function inferMovementDirection(
   line: string,
   signedAmount: number,
@@ -328,6 +428,13 @@ export function inferMovementKind(
   return inferMovementSemantics(line, signedAmount, amountToken, productType).kind;
 }
 
+function isCreditCardInstallmentNotation(line: string): boolean {
+  const normalized = line.toLowerCase();
+  if (/\b\d+\s+de\s+\d+\b/.test(normalized)) return true;
+  const withoutDates = normalized.replace(/\b\d{1,2}\/\d{1,2}\/\d{2,4}\b/g, ' ');
+  return /\b\d{1,2}\/\d{1,2}\b/.test(withoutDates) && /\b(cuota|cuotas)\b/.test(normalized);
+}
+
 function inferMovementSemantics(
   line: string,
   signedAmount: number,
@@ -344,26 +451,31 @@ function inferMovementSemantics(
     ) ?? []
   ).length;
   const abonoHits = (
-    normalized.match(/\b(abono|pago\s+recibido|pago\s+(?:minimo|mínimo|tarjeta|a\s+la\s+tarjeta|de\s+tarjeta)|transferencia\s+recibida|dep[oó]sito|reintegro|reembolso|devoluci[oó]n)\b/g) ??
-    []
+    normalized.match(
+      /\b(abonos?|pago\s+recibido|pago\s+(?:minimo|mínimo|tarjeta|a\s+la\s+tarjeta|de\s+tarjeta)|transferencia\s+recibida|dep[oó]sito|reintegro|reembolso|devoluci[oó]n|monto\s+cancelado|dev\s+intereses)\b/g,
+    ) ?? []
   ).length;
 
   // Generic expense keywords excluding "pago" standalone so that
   // "pago recibido" (already counted above) does not inflate expenseHits.
   const expenseHits = (
-    normalized.match(/\b(compra|cargo|retiro|comisi[oó]n|suscrip|giro|transferencia\s+enviada|transferencia\s+emitida|pac|pat|webpay|pos|debito|d[eé]bito)\b/g) ?? []
+    normalized.match(/\b(compras?|cargo|retiro|comisi[oó]n|suscrip|giro|transferencia\s+enviada|transferencia\s+emitida|pac|pat|webpay|pos|debito|d[eé]bito)\b/g) ?? []
   ).length + (
     !isCreditCard
       ? (normalized.match(/\bpago(?!\s+recibido)\b/g) ?? []).length
       : 0
   );
 
-  // Credit card installment notation (1/3, 1/6, etc.) always signals an expense.
-  const isCreditCardInstallment = /\b\d+\/\d+\b/.test(normalized);
-  if (isCreditCardInstallment && incomeHits === 0 && abonoHits === 0) {
+  if (isCreditCardInstallmentNotation(normalized) && incomeHits === 0 && abonoHits === 0) {
     return { direction: 'expense', kind: 'expense' };
   }
-  if (hasExplicitNegativeAmount(amountToken) && incomeHits === 0 && abonoHits === 0) {
+  if (abonoHits > 0) {
+    return { direction: 'income', kind: 'abono' };
+  }
+  if (hasExplicitNegativeAmount(amountToken) && incomeHits === 0) {
+    if (isCreditCard) {
+      return { direction: 'income', kind: 'abono' };
+    }
     return { direction: 'expense', kind: 'expense' };
   }
   if (hasExplicitPositiveAmount(amountToken) && incomeHits > expenseHits) {
@@ -372,11 +484,13 @@ function inferMovementSemantics(
   if (incomeHits > expenseHits && incomeHits > 0) {
     return { direction: 'income', kind: 'income' };
   }
-  if (abonoHits > 0) {
-    return { direction: 'income', kind: 'abono' };
-  }
   if (expenseHits > incomeHits && expenseHits > 0) {
     return { direction: 'expense', kind: 'expense' };
+  }
+  if (isCreditCard) {
+    return signedAmount < 0 || hasExplicitNegativeAmount(amountToken)
+      ? { direction: 'income', kind: 'abono' }
+      : { direction: 'expense', kind: 'expense' };
   }
   return signedAmount < 0
     ? { direction: 'expense', kind: 'expense' }
@@ -471,7 +585,8 @@ function parseMovementFromTableRow(params: {
   const installmentAmountIndex = resolveColumnIndex(headers, [/monto\s*cuota/, /importe\s*cuota/, /valor\s*cuota/]);
   const amountIndex = installmentAmountIndex >= 0
     ? installmentAmountIndex
-    : resolveColumnIndex(headers, [/^monto$/, /^importe$/, /^valor$/]);
+    : resolveColumnIndex(headers, [/^monto\b/, /^importe$/, /^valor$/]);
+  const categoryIndex = resolveColumnIndex(headers, [/categoria/]);
   // Treat "monto total" as a non-transactional summary column when "monto cuota" is also present.
   const montoTotalIndex = installmentAmountIndex >= 0
     ? resolveColumnIndex(headers, [/monto\s*total/, /importe\s*total/, /valor\s*total/])
@@ -481,24 +596,32 @@ function parseMovementFromTableRow(params: {
 
   const dateSource = dateIndex >= 0 ? row[dateIndex] : row.join(' ');
   const date = toIsoDate(dateSource) ?? parseDateFromLine(dateSource);
+  const categoryToken = categoryIndex >= 0 ? row[categoryIndex] ?? '' : '';
+  const categoryDirection = isCreditCardProduct(productType)
+    ? resolveCreditCardCategoryDirection(categoryToken)
+    : null;
   const expense = expenseIndex >= 0 && !isBlankLikeCell(row[expenseIndex]) ? parseAmountToken(row[expenseIndex]) : null;
   const income = incomeIndex >= 0 && !isBlankLikeCell(row[incomeIndex]) ? parseAmountToken(row[incomeIndex]) : null;
 
   let direction: 'income' | 'expense' | null = null;
   let movementKind: 'expense' | 'income' | 'abono' | null = null;
+  let directionBasis: string | undefined;
   let amount: number | null = null;
   let amountToken = '';
+  let signedAmount: number | null = null;
 
   if (income !== null && Math.abs(income) > 0) {
     const semantics = inferMovementSemantics(row.join(' '), income, row[incomeIndex], productType);
     direction = semantics.direction;
     movementKind = semantics.kind;
+    signedAmount = income;
     amount = Math.abs(income);
     amountToken = row[incomeIndex];
   } else if (expense !== null && Math.abs(expense) > 0) {
     const semantics = inferMovementSemantics(row.join(' '), expense, row[expenseIndex], productType);
     direction = semantics.direction;
     movementKind = semantics.kind;
+    signedAmount = expense;
     amount = Math.abs(expense);
     amountToken = row[expenseIndex];
   } else {
@@ -513,11 +636,23 @@ function parseMovementFromTableRow(params: {
     if (picked.amount === null) return null;
     if (picked.index === balanceIndex) return null;
     const typeToken = typeIndex >= 0 ? row[typeIndex] ?? '' : '';
-    const semantics = inferMovementSemantics([row.join(' '), typeToken].filter(Boolean).join(' '), picked.amount, picked.token, productType);
+    const semantics = inferMovementSemantics(
+      [row.join(' '), typeToken, categoryToken].filter(Boolean).join(' '),
+      picked.amount,
+      picked.token,
+      productType,
+    );
     direction = semantics.direction;
     movementKind = semantics.kind;
+    signedAmount = picked.amount;
     amount = Math.abs(picked.amount);
     amountToken = picked.token;
+  }
+
+  if (categoryDirection) {
+    direction = categoryDirection.direction;
+    movementKind = categoryDirection.kind;
+    directionBasis = categoryDirection.basis;
   }
 
   const description =
@@ -531,20 +666,32 @@ function parseMovementFromTableRow(params: {
 
   if (!description || isNonMovementDescription(description) || !date || !amount || amount <= 0) return null;
   const taxonomy = inferTransactionTaxonomy(description);
+  const sourceLine = row.join(' | ').slice(0, 260);
 
-  return {
-    date,
-    description,
-    amount,
-    direction,
-    movement_kind: movementKind ?? direction,
-    source_line: row.join(' | ').slice(0, 260),
-    category: taxonomy.category,
-    merchant: taxonomy.merchant,
-    category_confidence: taxonomy.categoryConfidence,
-    confidence: descriptionIndex >= 0 && (expenseIndex >= 0 || incomeIndex >= 0 || amountIndex >= 0) ? 0.98 : 0.86,
-    source_kind: 'table',
-  };
+  return finalizeCreditCardMovement(
+    {
+      date,
+      description,
+      amount,
+      direction: direction ?? 'expense',
+      movement_kind: movementKind ?? direction ?? 'expense',
+      direction_basis: directionBasis,
+      amount_signed: signedAmount ?? undefined,
+      source_line: sourceLine,
+      category: taxonomy.category,
+      merchant: taxonomy.merchant,
+      category_confidence: taxonomy.categoryConfidence,
+      confidence: descriptionIndex >= 0 && (expenseIndex >= 0 || incomeIndex >= 0 || amountIndex >= 0) ? 0.98 : 0.86,
+      source_kind: 'table',
+    },
+    {
+      productType,
+      line: sourceLine,
+      categoryToken,
+      signedAmount: signedAmount ?? undefined,
+      amountToken,
+    },
+  );
 }
 
 function parseMovementFromLooseLine(line: string, productType?: string): ParsedMovement | null {
@@ -626,7 +773,7 @@ function inferCurrency(documents: ParsedDocumentResponse[]): string {
   return 'CLP';
 }
 
-function extractMovements(documents: ParsedDocumentResponse[], productType?: string): ParsedMovement[] {
+export function extractMovements(documents: ParsedDocumentResponse[], productType?: string): ParsedMovement[] {
   const dedup = new Set<string>();
   const movements: ParsedMovement[] = [];
 
@@ -683,7 +830,20 @@ function extractMovements(documents: ParsedDocumentResponse[], productType?: str
       }
     }
   }
-  return movements
+  const normalizedProductType = normalizeMovementProductType(productType);
+  const guardedMovements =
+    normalizedProductType === 'credit_card'
+      ? movements.map((movement) =>
+          finalizeCreditCardMovement(movement, {
+            productType: normalizedProductType,
+            line: movement.source_line ?? movement.description,
+            signedAmount: movement.amount_signed,
+            amountToken: movement.amount_signed !== undefined ? String(movement.amount_signed) : undefined,
+          }),
+        )
+      : movements;
+
+  return guardedMovements
     .sort((left, right) => {
       const dateCompare = String(left.date ?? '').localeCompare(String(right.date ?? ''));
       if (dateCompare !== 0) return dateCompare;

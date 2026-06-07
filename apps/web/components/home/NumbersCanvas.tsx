@@ -65,14 +65,24 @@ export default function NumbersCanvas({
       // Sample using CSS pixel dimensions so grid matches visual layout
       const cssW = canvas.width / dpr;
       const cssH = canvas.height / dpr;
+      if (cssW <= 0 || cssH <= 0) return;
       const CELL = isMobile ? CELL_MOBILE : CELL_DESKTOP;
       cols = Math.ceil(cssW / CELL);
       rows = Math.ceil(cssH / CELL);
+      if (cols <= 0 || rows <= 0) return;
       const off = document.createElement('canvas');
-      off.width = cols; off.height = rows;
-      const oc = off.getContext('2d')!;
+      off.width = cols;
+      off.height = rows;
+      if (off.width <= 0 || off.height <= 0) return;
+      const oc = off.getContext('2d');
+      if (!oc) return;
       drawImageCover(oc, img, cols, rows);
-      const data = oc.getImageData(0, 0, cols, rows).data;
+      let data: Uint8ClampedArray;
+      try {
+        data = oc.getImageData(0, 0, off.width, off.height).data;
+      } catch {
+        return;
+      }
       px = []; cd = [];
       for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {

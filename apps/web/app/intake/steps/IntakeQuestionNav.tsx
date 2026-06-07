@@ -1,4 +1,5 @@
 'use client';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 type IntakeQuestionNavProps = {
   questionIndex: number;
@@ -7,6 +8,7 @@ type IntakeQuestionNavProps = {
   onNext?: () => void;
   showBack?: boolean;
   showForward?: boolean;
+  forwardDisabled?: boolean;
   forwardAriaLabel?: string;
   loading?: boolean;
 };
@@ -18,6 +20,7 @@ export function IntakeQuestionNav({
   onNext,
   showBack = questionIndex > 0,
   showForward = false,
+  forwardDisabled = false,
   forwardAriaLabel = 'Continuar',
   loading = false,
 }: IntakeQuestionNavProps) {
@@ -33,7 +36,7 @@ export function IntakeQuestionNav({
           type="button"
           aria-label="Anterior"
         >
-          ←
+          <ChevronLeft size={38} strokeWidth={3.8} aria-hidden />
         </button>
       ) : null}
       {showForward && onNext ? (
@@ -42,7 +45,7 @@ export function IntakeQuestionNav({
           onClick={onNext}
           type="button"
           aria-label={forwardAriaLabel}
-          disabled={loading}
+          disabled={loading || forwardDisabled}
         >
           {loading ? (
             <span className="intake-loading">
@@ -51,7 +54,7 @@ export function IntakeQuestionNav({
               <span className="intake-dot" />
             </span>
           ) : (
-            '→'
+            <ChevronRight size={38} strokeWidth={3.8} aria-hidden />
           )}
         </button>
       ) : null}

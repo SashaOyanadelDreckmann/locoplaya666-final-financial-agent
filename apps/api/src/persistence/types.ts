@@ -1,5 +1,6 @@
 import type { UserRole } from '../auth/rbac';
 import type { FinancialDiagnosticProfile } from '../schemas/profile.schema';
+import type { WelcomeIntroCache } from '@financial-agent/shared';
 
 export type StoredSheet = {
   id: string;
@@ -109,6 +110,9 @@ export type StoredUser = {
     intake: unknown;
     llmSummary?: unknown;
     intakeContext?: unknown;
+    productsContext?: unknown;
+    budgetContext?: unknown;
+    welcomeIntroCache?: WelcomeIntroCache;
   };
   latestDiagnosticProfileId?: string;
   latestDiagnosticCompletedAt?: string;

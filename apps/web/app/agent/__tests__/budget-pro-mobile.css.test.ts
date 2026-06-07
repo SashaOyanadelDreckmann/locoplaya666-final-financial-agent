@@ -49,9 +49,17 @@ describe('budget pro mobile css safeguards', () => {
     expect(mobileCss).toContain('display: none !important');
   });
 
-  it('loads authoritative budget mobile css last in layout', () => {
+  it('loads budget mobile authoritative and desktop guard before transactions contract', () => {
     const layoutCss = fs.readFileSync(path.join(process.cwd(), 'app', 'layout.tsx'), 'utf8');
     expect(layoutCss).toContain("import './agent-modals-budget-mobile-authoritative.css';");
+    expect(layoutCss).toContain("import './agent-modals-budget-desktop-guard.css';");
+    const imports = [...layoutCss.matchAll(/import\s+'\.\/([^']+\.css)'/g)].map((match) => match[1]);
+    const authIdx = imports.indexOf('agent-modals-budget-mobile-authoritative.css');
+    const deskIdx = imports.indexOf('agent-modals-budget-desktop-guard.css');
+    const txIdx = imports.indexOf('agent-modals-transactions-contract.css');
+    expect(authIdx).toBeGreaterThanOrEqual(0);
+    expect(deskIdx).toBeGreaterThan(authIdx);
+    expect(txIdx).toBeGreaterThan(deskIdx);
   });
 
   it('blurs assistant backdrop table on mobile without hiding live updates', () => {

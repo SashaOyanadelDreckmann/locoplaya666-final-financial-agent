@@ -10,6 +10,14 @@ const SESSION_COOKIE_NAME = process.env.SESSION_COOKIE_NAME?.trim()
   || process.env.NEXT_PUBLIC_SESSION_COOKIE_NAME?.trim()
   || 'session';
 
+const PATHNAME_HEADER = 'x-pathname';
+
+function nextWithPathname(request: NextRequest) {
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set(PATHNAME_HEADER, request.nextUrl.pathname);
+  return NextResponse.next({ request: { headers: requestHeaders } });
+}
+
 function hasSessionCookie(request: NextRequest): boolean {
   return Boolean(request.cookies.get(SESSION_COOKIE_NAME)?.value?.trim());
 }
@@ -81,12 +89,12 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  return NextResponse.next();
+  return nextWithPathname(request);
 }
 
 export const config = {
   matcher: [
-  '/agent/:path*',
+    '/agent/:path*',
     '/interview/:path*',
     '/diagnosis/:path*',
     '/intake/:path*',
@@ -96,5 +104,6 @@ export const config = {
     '/login',
     '/register',
     '/waiting-approval',
+    '/((?!api|_next/static|_next/image|favicon.ico|.*\\..*).*)',
   ],
 };

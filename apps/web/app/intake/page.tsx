@@ -9,6 +9,7 @@ import { submitIntake } from '@/lib/intake';
 import { getSessionInfo } from '@/lib/api';
 import { toUserFacingError } from '@/lib/userError';
 import { hasCompletedIntakeAccess, resolveAuthRedirectPath } from '@/lib/sessionAccess';
+import { markAgentBootFromIntake } from '../agent/agent-boot-sequence.helpers';
 
 import type { IntakeQuestionnaire } from '@financial-agent/shared/src/intake/intake-questionnaire.types';
 
@@ -63,17 +64,6 @@ function IntakeContent() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const html = document.documentElement;
-    const body = document.body;
-    html.classList.add('intake-route-active');
-    body.classList.add('intake-route-active');
-    return () => {
-      html.classList.remove('intake-route-active');
-      body.classList.remove('intake-route-active');
-    };
-  }, []);
-
-  useEffect(() => {
     let cancelled = false;
 
     const bootstrap = async () => {
@@ -126,6 +116,7 @@ function IntakeContent() {
       setError(null);
       const res = await submitIntake(form);
       setIntake(res.intake);
+      markAgentBootFromIntake();
       router.push('/agent');
     } catch (e: any) {
       setError(toUserFacingError(e, 'intake.submit'));
@@ -179,7 +170,7 @@ function IntakeContent() {
             animate={{ opacity: 1, rotateX: 0, skewY: 0, scaleY: 1, scaleX: 1, y: 0, filter: 'blur(0px)' }}
             exit={{ opacity: 0, rotateX: 5, skewY: 1.2, scaleY: 0.92, scaleX: 1.05, y: -34, filter: 'blur(10px)' }}
             transition={{ duration: 0.42, ease: [0.59, 0, 0.35, 1] }}
-            style={{ transformPerspective: 1000, transformOrigin: '50% 0%' }}
+            style={{ transformPerspective: 1200, transformOrigin: '50% 0%' }}
           >
             {step === 0 && <ContextStep form={form} update={update} onNext={nextStep} />}
             {step === 1 && <CashflowStep form={form} update={update} onNext={nextStep} />}

@@ -9,26 +9,8 @@ import { ApiHttpError } from '@/lib/apiEnvelope';
 import { toUserFacingError } from '@/lib/userError';
 import { useSessionStore } from '@/state/session.store';
 import { LoginSchema, type LoginInput } from '@/lib/validation';
-import { hasCompletedIntakeAccess } from '@/lib/sessionAccess';
+import { resolveLoginFallbackRoute, waitForSessionReady } from '@/lib/auth-redirect';
 import { ZodError } from 'zod';
-
-const SESSION_READY_RETRIES = 8;
-const SESSION_READY_DELAY_MS = 125;
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-async function waitForSessionReady() {
-  for (let attempt = 0; attempt < SESSION_READY_RETRIES; attempt += 1) {
-    const session = await getSessionInfo().catch(() => null);
-    if (session?.id) return session;
-    if (attempt < SESSION_READY_RETRIES - 1) {
-      await sleep(SESSION_READY_DELAY_MS * (attempt + 1));
-    }
-  }
-  return null;
-}
 
 function LoginContent() {
   const router = useRouter();
@@ -74,12 +56,10 @@ function LoginContent() {
       const safeNext = requestedNext && requestedNext.startsWith('/') && !requestedNext.startsWith('//')
         ? requestedNext
         : null;
-      let fallbackRoute = role === 'ADMIN' ? '/admin' : '/agent';
+      let fallbackRoute = resolveLoginFallbackRoute({ role, session: null });
       if (role !== 'ADMIN') {
         const session = await waitForSessionReady();
-        if (session && !hasCompletedIntakeAccess(session.injectedIntake)) {
-          fallbackRoute = '/intake?status=approved';
-        }
+        fallbackRoute = resolveLoginFallbackRoute({ role, session });
       }
       setAuthenticated();
       const target = safeNext ?? fallbackRoute;

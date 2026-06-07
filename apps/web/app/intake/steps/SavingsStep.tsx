@@ -10,7 +10,9 @@ const SAVINGS_BAND_OPTIONS: { value: IntakeQuestionnaire['savingsBand']; label: 
   { value: '>10M', label: 'Más de $10M' },
 ];
 
+import { useIntakeQuestionAmbient } from '../useIntakeQuestionAmbient';
 import { IntakeQuestionNav } from './IntakeQuestionNav';
+import { IntakeQuestionTransition } from './IntakeQuestionTransition';
 
 export function SavingsStep({
   form,
@@ -23,6 +25,8 @@ export function SavingsStep({
 }) {
   const [questionIndex, setQuestionIndex] = useState(0);
   const totalQuestions = 2;
+
+  useIntakeQuestionAmbient(questionIndex, totalQuestions);
 
   const onNextQuestion = () => {
     if (questionIndex >= totalQuestions - 1) {
@@ -40,9 +44,10 @@ export function SavingsStep({
     form.hasSavingsOrInvestments === false ||
     (form.hasSavingsOrInvestments === true && Boolean(form.savingsBand));
 
-  const showForward =
-    (questionIndex === 0 && canContinueSavings) ||
-    (questionIndex === 1 && typeof form.hasDebt === 'boolean');
+  const showForward = true;
+  const forwardDisabled =
+    (questionIndex === 0 && !canContinueSavings) ||
+    (questionIndex === 1 && typeof form.hasDebt !== 'boolean');
 
   return (
     <div className="intake-step animate-intake-in">
@@ -61,11 +66,13 @@ export function SavingsStep({
         onBack={onBackQuestion}
         onNext={questionIndex === totalQuestions - 1 ? onNext : onNextQuestion}
         showForward={showForward}
+        forwardDisabled={forwardDisabled}
         forwardAriaLabel={questionIndex === totalQuestions - 1 ? 'Siguiente sección' : 'Continuar'}
       />
 
+      <IntakeQuestionTransition questionKey={questionIndex}>
       {questionIndex === 0 && (
-        <div className="intake-question-block intake-question-screen animate-intake-in">
+        <>
           <label className="intake-question-label">¿Tienes <span className="kw-yellow">ahorros</span> o dinero <span className="kw-yellow">invertido</span>?</label>
           <p className="intake-question-hint">Cuenta bancaria de ahorro, DAP, fondos mutuos, AFP voluntario, etc.</p>
           <div className="intake-chips">
@@ -118,11 +125,11 @@ export function SavingsStep({
               />
             </div>
           )}
-        </div>
+        </>
       )}
 
       {questionIndex === 1 && (
-        <div className="intake-question-block intake-question-screen animate-intake-in">
+        <>
           <label className="intake-question-label">¿Tienes <span className="kw-yellow">deudas</span> o compromisos activos?</label>
           <p className="intake-question-hint">Tarjeta de crédito, crédito de consumo, hipotecario, cuotas, etc.</p>
           <div className="intake-chips">
@@ -152,8 +159,9 @@ export function SavingsStep({
               Conocer tu situación de deuda permite elaborar un plan de acción real y específico para ti.
             </p>
           )}
-        </div>
+        </>
       )}
+      </IntakeQuestionTransition>
     </div>
   );
 }

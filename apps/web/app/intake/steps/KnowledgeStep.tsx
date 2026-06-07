@@ -2,7 +2,9 @@
 import { useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import type { IntakeQuestionnaire } from '@financial-agent/shared/src/intake/intake-questionnaire.types';
+import { useIntakeQuestionAmbient } from '../useIntakeQuestionAmbient';
 import { IntakeQuestionNav } from './IntakeQuestionNav';
+import { IntakeQuestionTransition } from './IntakeQuestionTransition';
 import { balancedColumns } from './grid';
 
 type FinancialKnowledgeKey = keyof IntakeQuestionnaire['financialKnowledge'];
@@ -162,6 +164,8 @@ export function KnowledgeStep({
   const totalQuestions = GROUP_COUNT + 3;
   const isLast = questionIndex === totalQuestions - 1;
 
+  useIntakeQuestionAmbient(questionIndex, totalQuestions);
+
   const onNextQuestion = () => {
     if (isLast) {
       onSubmit();
@@ -196,15 +200,17 @@ export function KnowledgeStep({
         onNext={onNextQuestion}
         showBack
         showForward
+        forwardDisabled={loading}
         forwardAriaLabel={isLast ? 'Comenzar mi asesoría' : 'Siguiente'}
         loading={loading}
       />
 
+      <IntakeQuestionTransition questionKey={questionIndex}>
       {questionIndex < GROUP_COUNT && (() => {
         const group = KNOWLEDGE_GROUPS[questionIndex];
         const groupSelected = group.keys.filter(({ key }) => knowledge[key]).length;
         return (
-          <div className="intake-question-block intake-question-screen animate-intake-in">
+          <>
             <label className="intake-question-label">
               ¿Qué manejas sobre <span className="kw-wine">{group.title.toLowerCase()}</span>?
               {groupSelected > 0 && <span className="intake-badge">{groupSelected} seleccionados</span>}
@@ -222,12 +228,12 @@ export function KnowledgeStep({
                 </button>
               ))}
             </div>
-          </div>
+          </>
         );
       })()}
 
       {questionIndex === GROUP_COUNT && (
-        <div className="intake-question-block intake-question-screen animate-intake-in">
+        <>
           <label className="intake-question-label">
             Tu inversión <span className="kw-wine">cae 30%</span> en un mes. ¿Qué haces?
           </label>
@@ -259,11 +265,11 @@ export function KnowledgeStep({
               />
             </div>
           )}
-        </div>
+        </>
       )}
 
       {questionIndex === GROUP_COUNT + 1 && (
-        <div className="intake-question-block intake-question-screen animate-intake-in">
+        <>
           <label id="understanding-slider" className="intake-question-label-sm">
             ¿Qué tan sólida sientes que es tu <span className="kw-blue">comprensión financiera</span>?
           </label>
@@ -287,11 +293,11 @@ export function KnowledgeStep({
               <span>Experto</span>
             </div>
           </div>
-        </div>
+        </>
       )}
 
       {questionIndex === GROUP_COUNT + 2 && (
-        <div className="intake-question-block intake-question-screen animate-intake-in">
+        <>
           <label id="stress-slider" className="intake-question-label-sm">
             ¿Cuánto <span className="kw-wine">estrés</span> te genera tu situación financiera hoy?
           </label>
@@ -326,8 +332,9 @@ export function KnowledgeStep({
               <span>Muy alto</span>
             </div>
           </div>
-        </div>
+        </>
       )}
+      </IntakeQuestionTransition>
 
     </div>
   );

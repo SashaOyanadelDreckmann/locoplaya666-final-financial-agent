@@ -635,59 +635,38 @@ button {
   -webkit-appearance: none;
 }
 
-/* Primary */
+/* Primary — matte (same contract as continue-ghost) */
 .button-primary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   height: 44px;
   padding: 0 22px;
-  background:
-    linear-gradient(180deg, rgba(188, 218, 239, 0.16), rgba(255,255,255,0.04)),
-    rgba(16, 24, 35, 0.5);
-  border: 1px solid rgba(176, 205, 226, 0.24);
-  color: rgba(242, 247, 251, 0.96);
+  background: #18242f;
+  border: 1px solid rgba(152, 186, 212, 0.22);
+  color: #e9f1f8;
   border-radius: var(--radius-pill);
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 500;
   letter-spacing: -0.01em;
-  backdrop-filter: blur(18px) saturate(1.2);
-  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   transition: background var(--transition), border-color var(--transition),
     box-shadow var(--transition), transform var(--transition);
   white-space: nowrap;
-  box-shadow:
-    0 18px 34px rgba(0, 0, 0, 0.18),
-    inset 0 1px 0 rgba(255,255,255,0.08);
+  box-shadow: none;
 }
 
 .button-primary:hover {
-  background:
-    linear-gradient(180deg, rgba(199, 225, 242, 0.22), rgba(255,255,255,0.06)),
-    rgba(20, 30, 41, 0.62);
-  border-color: rgba(190, 216, 234, 0.38);
-  box-shadow:
-    0 20px 38px rgba(0, 0, 0, 0.22),
-    0 0 24px rgba(150, 188, 214, 0.12);
+  background: #1f2d3b;
+  border-color: rgba(126, 176, 216, 0.5);
+  box-shadow: none;
   transform: translateY(-1px);
 }
 
 .button-primary:active {
-  transform: translateY(0);
-  background: rgba(58, 120, 176, 0.32);
-}
-
-@media (prefers-color-scheme: dark) {
-  .button-primary {
-    background: rgba(104, 168, 212, 0.14);
-    border-color: rgba(104, 168, 212, 0.35);
-    color: var(--accent);
-  }
-  .button-primary:hover {
-    background: rgba(104, 168, 212, 0.24);
-    border-color: rgba(104, 168, 212, 0.55);
-    box-shadow: 0 0 24px rgba(104, 168, 212, 0.18);
-  }
+  transform: translateY(0) scale(0.98);
+  background: #1f2d3b;
 }
 
 /* Ghost / secondary */
@@ -2486,7 +2465,7 @@ body.home-lock {
 }
 
 /* Mobile */
-  @media (max-width: 480px) {
+@media (max-width: 480px) {
   .auth-shell {
     align-items: flex-start;
     padding: calc(env(safe-area-inset-top, 0px) + 20px) 12px max(env(safe-area-inset-bottom, 0px), 18px);
@@ -2498,16 +2477,16 @@ body.home-lock {
     border-radius: 22px;
     padding: 28px 20px 22px;
     background:
-      linear-gradient(180deg, rgba(18, 28, 42, 0.58), rgba(9, 14, 22, 0.36)),
-      rgba(11, 16, 25, 0.28);
+      linear-gradient(180deg, rgba(18, 28, 42, 0.5), rgba(9, 14, 22, 0.28)),
+      rgba(11, 16, 25, 0.2);
   }
 
   .auth-card::before {
-    opacity: 0.38;
+    opacity: 0.26;
   }
 
   .auth-card::after {
-    opacity: 0.52;
+    opacity: 0.42;
   }
 
   .auth-logo-mark {
@@ -4053,24 +4032,42 @@ button, a.button, input[type="button"], input[type="submit"] {
   font-size: 15px;
 }
 
-/* Primary button - solid white */
-button.button-primary,
-.button-primary {
+/* Auth/intake primary — solid white (agent routes use matte .button-primary) */
+.intake-page button.button-primary,
+.intake-page .button-primary,
+.login-page button.button-primary,
+.login-page .button-primary,
+.register-page button.button-primary,
+.register-page .button-primary,
+.reset-password-page button.button-primary,
+.reset-password-page .button-primary {
   background: linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%);
   color: #000000;
   padding: 14px 32px;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
-button.button-primary:hover:not(:disabled),
-.button-primary:hover:not(:disabled) {
+.intake-page button.button-primary:hover:not(:disabled),
+.intake-page .button-primary:hover:not(:disabled),
+.login-page button.button-primary:hover:not(:disabled),
+.login-page .button-primary:hover:not(:disabled),
+.register-page button.button-primary:hover:not(:disabled),
+.register-page .button-primary:hover:not(:disabled),
+.reset-password-page button.button-primary:hover:not(:disabled),
+.reset-password-page .button-primary:hover:not(:disabled) {
   transform: translateY(-3px);
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.9);
   opacity: 0.98;
 }
 
-button.button-primary:active:not(:disabled),
-.button-primary:active:not(:disabled) {
+.intake-page button.button-primary:active:not(:disabled),
+.intake-page .button-primary:active:not(:disabled),
+.login-page button.button-primary:active:not(:disabled),
+.login-page .button-primary:active:not(:disabled),
+.register-page button.button-primary:active:not(:disabled),
+.register-page .button-primary:active:not(:disabled),
+.reset-password-page button.button-primary:active:not(:disabled),
+.reset-password-page .button-primary:active:not(:disabled) {
   transform: translateY(-1px);
 }
 

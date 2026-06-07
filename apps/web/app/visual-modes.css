@@ -737,8 +737,21 @@ html[data-visual-mode='light-outline'] .agent-layout.is-visual-mode-light-outlin
 }
 
 html[data-visual-mode='light-outline'] .agent-layout.is-visual-mode-light-outline > .agent-panel {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
   filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-color: rgba(0, 0, 0, 0.12) !important;
+  box-shadow: none !important;
   transition: none;
+}
+
+html[data-visual-mode='light-outline'] .agent-layout.is-visual-mode-light-outline > .agent-panel .panel-grid {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
 }
 
 html[data-visual-mode='light-outline'] .agent-layout.is-visual-mode-light-outline .agent-chat {
@@ -1488,8 +1501,6 @@ html[data-visual-mode='light-outline'] body.agent-route-active .agent-layout.is-
 }
 
 /* Blanco full — mobile/desktop panel shell white */
-html[data-visual-mode='light-outline'] body.agent-route-active .agent-layout.is-visual-mode-light-outline > .agent-panel,
-html[data-visual-mode='light-outline'] body.agent-route-active .agent-layout.is-visual-mode-light-outline .agent-panel,
 html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-panel,
 html[data-visual-mode='light-outline'] body.agent-route-active .agent-panel:is(.is-mobile-compact, .is-mobile-expanded) {
   background: #ffffff !important;
@@ -1502,7 +1513,7 @@ html[data-visual-mode='light-outline'] body.agent-route-active .agent-panel:is(.
   box-shadow: none !important;
 }
 
-html[data-visual-mode='light-outline'] body.agent-route-active .agent-panel .mobile-panel-handle,
+html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-panel .mobile-panel-handle,
 html[data-visual-mode='light-outline'] body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .mobile-panel-handle,
 html[data-visual-mode='light-outline'] body.agent-route-active .agent-panel.is-mobile-expanded .mobile-panel-handle {
   background: #ffffff !important;
@@ -1512,14 +1523,14 @@ html[data-visual-mode='light-outline'] body.agent-route-active .agent-panel.is-m
   color: #000000 !important;
 }
 
-html[data-visual-mode='light-outline'] body.agent-route-active .agent-panel .mobile-panel-handle-title,
-html[data-visual-mode='light-outline'] body.agent-route-active .agent-panel .mobile-panel-handle-pill,
-html[data-visual-mode='light-outline'] body.agent-route-active .agent-panel .mobile-panel-handle *:not(svg):not(path) {
+html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-panel .mobile-panel-handle-title,
+html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-panel .mobile-panel-handle-pill,
+html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-panel .mobile-panel-handle *:not(svg):not(path) {
   color: #000000 !important;
   -webkit-text-fill-color: #000000 !important;
 }
 
-html[data-visual-mode='light-outline'] body.agent-route-active .agent-panel .panel-grid {
+html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-panel .panel-grid {
   background: #ffffff !important;
   background-color: #ffffff !important;
 }

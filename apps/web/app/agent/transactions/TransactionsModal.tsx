@@ -7,8 +7,6 @@ import { deriveTransactionAuthorizationState } from '@/lib/transactions-authoriz
 
 import {
   ALL_PRODUCT_TEMPLATES,
-  PRODUCT_STACK_PALETTE,
-  PRODUCT_STACK_TEXT_PALETTE,
   TX_CATEGORY_OPTIONS,
 } from './constants';
 import ModalNumbersCanvas from '@/components/agent/ModalNumbersCanvas';
@@ -23,24 +21,28 @@ import { useTxDockTransition } from './use-tx-dock-transition';
 import { useTxModalA11y } from './use-tx-modal-a11y';
 import { useTxModalScrollLock } from './use-tx-modal-scroll';
 import {
-  buildTxStageCta,
   buildTxStages,
-  buildTxStageSummary,
   deriveActiveTxStageIndex,
   deriveCurrentStage,
 } from './tx-wizard.helpers';
-import {
-  NumericDust,
-  confidenceBandLong,
-  formatPercentCompact,
-} from './presentation';
+import { NumericDust } from './presentation';
 import { TxConsentStep } from './TxConsentStep';
+import { TxCloseConfirmDialog } from './TxCloseConfirmDialog';
+import { TxEmptyState } from './TxEmptyState';
+import { TxOperationalLimitsCard } from './TxOperationalLimitsCard';
+import { TxPresetGate } from './TxPresetGate';
 import { movementOverrideKey } from './taxonomy';
 import type {
   BankProduct,
   TransactionsModalProps,
 } from './types';
-import { libraryCardSurface, productVisualPalette } from './visuals';
+import {
+  buildMovementRefinementText,
+  isCardLikeType,
+  RECOMMENDED_TX_PRODUCTS,
+} from './transactions-modal.helpers';
+import { TxLibraryCardStack } from './TxLibraryCardStack';
+import { productVisualPalette } from './visuals';
 
 export function TransactionsModal(props: TransactionsModalProps) {
   const [consentAccepted, setConsentAccepted] = useState(false);
@@ -80,13 +82,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
     props.activeBankProduct?.productType ??
     'credit_card';
 
-  const txCardLikeTypes: Array<BankProduct['productType']> = [
-    'credit_card',
-    'debit_account',
-    'checking_account',
-    'savings_account',
-  ];
-  const isCardLikeProduct = txCardLikeTypes.includes(derivedProductType);
+  const isCardLikeProduct = isCardLikeType(derivedProductType);
   const txVisualStage =
     props.txWizardStep === 'upload' ? 'evidence' : props.txWizardStep === 'dashboard' ? 'analyst' : 'consent';
   const txVisualScale =
@@ -222,12 +218,6 @@ export function TransactionsModal(props: TransactionsModalProps) {
   );
   const canAddMoreProducts = activeProductSlotsLeft > 0 && totalProductCreationsLeft > 0;
   const consentLocked = Boolean(props.activeBankProduct?.connected);
-  const recommendedTxProducts: Array<{ title: string; bank: string; template: string }> = [
-    { title: 'Tarjeta de crédito', bank: 'Banco BICE', template: 'Tarjeta de crédito' },
-    { title: 'Cuenta corriente', bank: 'Banco de Chile', template: 'Cuenta corriente' },
-    { title: 'Cuenta vista', bank: 'BancoEstado', template: 'Cuenta vista' },
-  ];
-
   function handleCreateProduct(seed?: { bank?: string; template?: string; productType?: BankProduct['productType'] }) {
     if (!canAddMoreProducts) return;
     bumpModalMotion();
@@ -457,47 +447,8 @@ export function TransactionsModal(props: TransactionsModalProps) {
     thread.scrollTop = thread.scrollHeight;
   }, [props.isOpen, props.activeBankProduct?.id, assistantMessages.length]);
 
-  const txStageSummary = useMemo(
-    () =>
-      buildTxStageSummary({
-        currentStage,
-        activeProductCreations,
-        maxProducts: props.maxProducts,
-        productsCreatedTotal: props.productsCreatedTotal,
-      }),
-    [activeProductCreations, currentStage, props.maxProducts, props.productsCreatedTotal],
-  );
-  const txStageCta = useMemo(
-    () =>
-      buildTxStageCta({
-        currentStage,
-        analysisAlreadyDone,
-        canContinueAuto,
-        authorizationState,
-      }),
-    [analysisAlreadyDone, authorizationState, canContinueAuto, currentStage],
-  );
-
-  const buildMovementRefinementText = (movement: {
-    label: string;
-    merchant?: string;
-    category?: string;
-    amount: number;
-    date?: string;
-    categoryConfidence?: number;
-  }) =>
-    [
-      `Movimiento: ${movement.label}`,
-      movement.merchant ? `Comercio detectado: ${movement.merchant}` : null,
-      movement.category ? `Categoría actual: ${movement.category}` : null,
-      movement.date ? `Fecha: ${movement.date}` : null,
-      `Monto: ${formatCurrency(movement.amount)}`,
-      movement.categoryConfidence !== undefined
-        ? `Confianza categorización: ${formatPercentCompact(movement.categoryConfidence * 100)} (${confidenceBandLong(movement.categoryConfidence)})`
-        : null,
-    ]
-      .filter(Boolean)
-      .join('. ');
+  const buildMovementRefinementTextForModal = (movement: Parameters<typeof buildMovementRefinementText>[0]) =>
+    buildMovementRefinementText(movement, formatCurrency);
 
   function saveSelectedMovementOverride() {
     if (!selectedMovement) return;
@@ -508,17 +459,17 @@ export function TransactionsModal(props: TransactionsModalProps) {
       label: selectedMovement.label,
     });
     if (!merchant || !category || !matchKey) return;
-    props.upsertTransactionTaxonomyOverride({
-      id: `${matchKey}:${category}`,
-      matchKey,
-      matchLabel: selectedMovement.merchant || selectedMovement.label,
-      merchant,
-      category,
-      updatedAt: new Date().toISOString(),
-    });
+      props.upsertTransactionTaxonomyOverride({
+        id: `${matchKey}:${category}`,
+        matchKey,
+        matchLabel: selectedMovement.merchant || selectedMovement.label,
+        merchant,
+        category,
+        updatedAt: new Date().toISOString(),
+      });
     void refineTransactionSummaryFromFocus(
       'edición manual de categorización',
-      `${buildMovementRefinementText(selectedMovement)}. Ajuste manual solicitado: comercio "${merchant}", categoría "${category}".`,
+      `${buildMovementRefinementTextForModal(selectedMovement)}. Ajuste manual solicitado: comercio "${merchant}", categoría "${category}".`,
     );
   }
 
@@ -527,7 +478,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
     props.removeTransactionTaxonomyOverride(selectedMovement.overrideMatchKey);
     void refineTransactionSummaryFromFocus(
       'limpieza de override',
-      `${buildMovementRefinementText(selectedMovement)}. Se eliminó la clasificación manual y debe reevaluarse la categorización base.`,
+      `${buildMovementRefinementTextForModal(selectedMovement)}. Se eliminó la clasificación manual y debe reevaluarse la categorización base.`,
     );
   }
 
@@ -540,7 +491,6 @@ export function TransactionsModal(props: TransactionsModalProps) {
         role="dialog"
         aria-modal="true"
         aria-labelledby="transactions-modal-title"
-        aria-describedby="transactions-modal-intro"
         tabIndex={-1}
         ref={transactionsModalRef}
         onClick={(e) => e.stopPropagation()}
@@ -576,9 +526,6 @@ export function TransactionsModal(props: TransactionsModalProps) {
           </button>
         </div>
         <div className="tx-scroll-body" ref={txScrollBodyRef}>
-        <p id="transactions-modal-intro" className="agent-modal-intro tx-modal-header-layer">
-          Conecta cada producto, sube cartolas y revisa el resumen analítico. El contexto validado se sincroniza solo.
-        </p>
         <section className="pt-shell tx-stage-shell tx-modal-header-layer">
           <aside className="pt-left tx-panel-surface tx-panel-surface--library">
             <NumericDust scope="library" pulse={transitionPulse} active={!prefersReducedMotion && dockTransitionPhase !== 'idle'} />
@@ -595,6 +542,24 @@ export function TransactionsModal(props: TransactionsModalProps) {
               </button>
               </div>
             </div>
+            <div className="pt-list">
+              {libraryProductCards.length > 0 ? (
+                <TxLibraryCardStack
+                  cards={orderedProductCards}
+                  productCarouselIndex={productCarouselIndex}
+                  recentlyDockedProductId={recentlyDockedProductId}
+                  prefersReducedMotion={prefersReducedMotion}
+                  transitionPulse={transitionPulse}
+                  onSelectAt={selectLibraryProductAt}
+                  onDelete={props.deleteTransactionProduct}
+                />
+              ) : (
+                <div className="tx-library-empty">
+                  <span className="tx-library-empty-kicker">Biblioteca vacía</span>
+                  <p>Tus productos aparecen aquí al autorizarlos o cuando tengan evidencias en curso.</p>
+                </div>
+              )}
+            </div>
             <div className="tx-meta-stack" aria-label="Estado y límites del módulo">
               {props.creationNotice ? (
                 <div className="tx-meta-card is-warning" role="status">
@@ -602,10 +567,14 @@ export function TransactionsModal(props: TransactionsModalProps) {
                   <p>{props.creationNotice}</p>
                 </div>
               ) : null}
-              <div className="tx-meta-card is-neutral">
-                <span className="tx-meta-card-kicker">Límites operativos</span>
-                <p>{activeProductCreations}/{props.maxProducts} activos · {props.productsCreatedTotal}/{MAX_TRANSACTION_PRODUCTS_CREATED_TOTAL} creados · quedan {totalProductCreationsLeft} totales</p>
-              </div>
+              <TxOperationalLimitsCard
+                activeCount={activeProductCreations}
+                maxActive={props.maxProducts}
+                createdTotal={props.productsCreatedTotal}
+                maxCreatedTotal={MAX_TRANSACTION_PRODUCTS_CREATED_TOTAL}
+                canAddMore={canAddMoreProducts}
+                onAddProduct={() => handleCreateProduct()}
+              />
               <div className="tx-batch-recommendation-banner" role="status" aria-live="polite">
                 <div className="tx-batch-recommendation-copy">
                   <span className="tx-batch-recommendation-kicker">Sincronización automática</span>
@@ -615,116 +584,6 @@ export function TransactionsModal(props: TransactionsModalProps) {
                 </div>
               </div>
             </div>
-            <div className="pt-list">
-              {libraryProductCards.length > 0 ? (
-                <div className="tx-library-stack-block">
-                  <div className="pt-stack-carousel tx-library-is-saved">
-                    {orderedProductCards.slice(0, 4).map(({ product, descriptor, intel }, stackIndex) => {
-                      const isTop = stackIndex === 0;
-                      const paletteIndex = (productCarouselIndex + stackIndex) % PRODUCT_STACK_PALETTE.length;
-                      const color = PRODUCT_STACK_PALETTE[paletteIndex];
-                      const textAccent = PRODUCT_STACK_TEXT_PALETTE[(paletteIndex + 1) % PRODUCT_STACK_TEXT_PALETTE.length];
-                      const visualPalette = productVisualPalette(`${product.id}-${product.label}-${product.bank}`);
-                      const cardSurface = libraryCardSurface(visualPalette);
-                      return (
-                        <div
-                          key={product.id}
-                          className={`pt-item pt-item-stack tx-lib-card tx-lib-card-shell ${isTop ? 'is-active is-top' : ''} ${recentlyDockedProductId === product.id ? 'tx-lib-enter' : ''}`}
-                          data-docked={recentlyDockedProductId === product.id ? 'true' : 'false'}
-                          style={{
-                            ['--tx-lib-inline-bg' as any]: cardSurface.background,
-                            ['--tx-lib-inline-edge' as any]: cardSurface.borderColor,
-                            ['--tx-lib-inline-shadow' as any]: cardSurface.boxShadow,
-                            ['--pt-card-active-bg' as any]: color,
-                            ['--pt-card-active-border' as any]: color,
-                            ['--pt-card-active-shadow' as any]: color,
-                            ['--pt-stack-color' as any]: color,
-                            ['--pt-stack-bg' as any]: color,
-                            ['--pt-stack-border' as any]: color,
-                            ['--pt-stack-accent' as any]: textAccent,
-                            ['--pt-stack-idx' as any]: stackIndex,
-                            ['--tx-lib-base' as any]: visualPalette.base,
-                            ['--tx-lib-glow' as any]: visualPalette.glow,
-                            ['--tx-lib-edge' as any]: visualPalette.edge,
-                            ['--tx-lib-tint' as any]: visualPalette.tint,
-                          }}
-                        >
-                          <button
-                            type="button"
-                            className="tx-lib-card-select"
-                            onClick={() => {
-                              selectLibraryProductAt(productCarouselIndex + stackIndex);
-                            }}
-                            aria-current={isTop ? 'true' : undefined}
-                            aria-label={`Seleccionar ${product.label}`}
-                          >
-                            {recentlyDockedProductId === product.id && !prefersReducedMotion ? (
-                              <NumericDust scope="library-card" pulse={transitionPulse} active count={18} />
-                            ) : null}
-                            <div className="tx-lib-card-sheen" aria-hidden="true" />
-                            <div className="pt-item-top tx-lib-card-top">
-                              <div className="tx-lib-card-copy">
-                                <span className="tx-lib-card-eyebrow">
-                                  {product.productType === 'credit_card' ? 'Tarjeta autorizada' : 'Producto conectado'}
-                                </span>
-                                <span className="pt-item-name">{product.label}</span>
-                              </div>
-                              <span className="pt-item-status">{product.connected ? 'Autorizado' : 'Pendiente'}</span>
-                            </div>
-                            <span className="pt-item-bank">{product.bank || 'Institución por definir'}</span>
-                            <div className="pt-item-meta">
-                              <span>{intel.docs} respaldo(s)</span>
-                              <span>{intel.amounts.length} movimiento(s)</span>
-                            </div>
-                            <div className="tx-lib-card-chip" aria-hidden="true" />
-                          </button>
-                          {isTop ? (
-                            <button
-                              type="button"
-                              className="pt-item-delete-mini"
-                              aria-label={`Eliminar ${product.label}`}
-                              onClick={() => {
-                                props.deleteTransactionProduct(product.id);
-                              }}
-                            >
-                              ×
-                            </button>
-                          ) : null}
-                        </div>
-                      );
-                    })}
-                  </div>
-                  {libraryProductCards.length > 1 ? (
-                    <div className="pt-stack-nav">
-                      <button
-                        type="button"
-                        className="continue-ghost"
-                        aria-label="Producto anterior"
-                        onClick={() => selectLibraryProductAt(productCarouselIndex - 1)}
-                      >
-                        ←
-                      </button>
-                      <span className="tx-lib-card-nav-status" aria-live="polite">
-                        {productCarouselIndex + 1} / {libraryProductCards.length}
-                      </span>
-                      <button
-                        type="button"
-                        className="continue-ghost"
-                        aria-label="Producto siguiente"
-                        onClick={() => selectLibraryProductAt(productCarouselIndex + 1)}
-                      >
-                        →
-                      </button>
-                    </div>
-                  ) : null}
-                </div>
-              ) : (
-                <div className="tx-library-empty">
-                  <span className="tx-library-empty-kicker">Biblioteca vacía</span>
-                  <p>Tus productos aparecen aquí al autorizarlos o cuando tengan evidencias en curso.</p>
-                </div>
-              )}
-            </div>
           </aside>
 
           <div className={`pt-right tx-panel-surface tx-panel-surface--workspace ${!props.activeBankProduct || showTxCarousel ? '' : 'tx-only-cta'}`}>
@@ -733,11 +592,6 @@ export function TransactionsModal(props: TransactionsModalProps) {
               pulse={transitionPulse}
               active={!prefersReducedMotion && (dockTransitionPhase !== 'idle' || currentStage !== 'consent')}
             />
-            <div className="tx-meta-card is-neutral tx-flow-status-card" role="status" aria-live="polite">
-              <span className="tx-meta-card-kicker">Estado del flujo</span>
-              <p>{txStageSummary}</p>
-              <p>{txStageCta}</p>
-            </div>
             {props.activeBankProduct && showTxCarousel && activeTxStageIndex >= 0 ? (
               <nav className="tx-wizard-stepper" aria-label="Pasos del flujo de transacciones">
                 <ol className="tx-wizard-stepper-list">
@@ -766,75 +620,16 @@ export function TransactionsModal(props: TransactionsModalProps) {
               </nav>
             ) : null}
             {!props.activeBankProduct ? (
-              <div className="transactions-summary-card pt-empty-state">
-                <div className="pt-empty-head">
-                  <span className="transactions-summary-title">Comienza aquí</span>
-                  <h4>Activa tu primera ficha financiera</h4>
-                  <p>Crea un producto para iniciar un flujo simple y validable.</p>
-                </div>
-                <div className="pt-empty-grid" role="list" aria-label="Capacidades del panel">
-                  <article className="pt-empty-item" role="listitem">
-                    <span>1</span>
-                    <div>
-                      <strong>Configura producto</strong>
-                      <p>Define banco, tipo y alias para organizar tu biblioteca.</p>
-                    </div>
-                  </article>
-                  <article className="pt-empty-item" role="listitem">
-                    <span>2</span>
-                    <div>
-                      <strong>Sube evidencias</strong>
-                      <p>Adjunta cartolas o respaldos y el sistema extrae datos clave.</p>
-                    </div>
-                  </article>
-                  <article className="pt-empty-item" role="listitem">
-                    <span>3</span>
-                    <div>
-                      <strong>Obtén insights</strong>
-                      <p>Recibe indicadores y hallazgos listos para el agente core.</p>
-                    </div>
-                  </article>
-                </div>
-                <div className="agent-modal-actions pt-empty-actions">
-                  <button
-                    type="button"
-                    className="continue-ghost tx-create-product-btn"
-                    onClick={() => handleCreateProduct()}
-                    disabled={!canAddMoreProducts}
-                  >
-                    Crear primer producto
-                  </button>
-                </div>
-              </div>
+              <TxEmptyState canAddMoreProducts={canAddMoreProducts} onCreateProduct={() => handleCreateProduct()} />
             ) : (
               <>
                 {!showTxCarousel ? (
-                  <div className="tx-carousel-gate tx-preset-gate">
-                    <div className="tx-preset-shell">
-                      <p className="tx-preset-title">Agregar movimiento de:</p>
-                      <div className="tx-preset-grid">
-                        {recommendedTxProducts.map((preset) => (
-                          <button
-                            key={preset.title}
-                            type="button"
-                            className="tx-preset-btn"
-                            onClick={() => openAuthorizationWithPreset(preset)}
-                            disabled={!canAddMoreProducts}
-                          >
-                            {preset.title}
-                          </button>
-                        ))}
-                        <button
-                          type="button"
-                          className="tx-preset-btn tx-preset-btn-add"
-                          onClick={() => handleCreateProduct()}
-                          disabled={!canAddMoreProducts}
-                        >
-                          + Agregar otro producto
-                        </button>
-                      </div>
-                    </div>
-                  </div>
+                  <TxPresetGate
+                    canAddMoreProducts={canAddMoreProducts}
+                    presets={RECOMMENDED_TX_PRODUCTS}
+                    onSelectPreset={openAuthorizationWithPreset}
+                    onCreateProduct={() => handleCreateProduct()}
+                  />
                 ) : (
                   <>
                 <div className="tx-content-carousel">
@@ -1011,7 +806,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
                       onAssistantSend={() => void handleAssistantTextSend()}
                       onSaveMovementOverride={saveSelectedMovementOverride}
                       onClearMovementOverride={clearSelectedMovementOverride}
-                      buildMovementRefinementText={buildMovementRefinementText}
+                      buildMovementRefinementText={buildMovementRefinementTextForModal}
                     />
                   )}
                 </div>
@@ -1024,32 +819,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
         </section>
         </div>{/* /tx-scroll-body */}
         {closeConfirmKind ? (
-          <div className="tx-close-confirm-layer" role="presentation">
-            <div
-              className="tx-close-confirm-dialog"
-              role="alertdialog"
-              aria-modal="true"
-              aria-labelledby="tx-close-confirm-title"
-              aria-describedby="tx-close-confirm-body"
-            >
-              <h4 id="tx-close-confirm-title" className="tx-close-confirm-title">
-                {closeConfirmKind === 'busy' ? 'Análisis en curso' : 'Borrador sin enviar'}
-              </h4>
-              <p id="tx-close-confirm-body" className="tx-close-confirm-body">
-                {closeConfirmKind === 'busy'
-                  ? 'Hay un análisis en curso. Si cierras ahora, el proceso puede quedar incompleto.'
-                  : 'Tienes archivos o notas sin enviar. Si cierras, se descartará ese borrador.'}
-              </p>
-              <div className="tx-close-confirm-actions">
-                <button type="button" className="continue-ghost" onClick={dismissCloseConfirm}>
-                  Seguir en el panel
-                </button>
-                <button type="button" className="button-primary" onClick={confirmClose}>
-                  Cerrar igual
-                </button>
-              </div>
-            </div>
-          </div>
+          <TxCloseConfirmDialog kind={closeConfirmKind} onDismiss={dismissCloseConfirm} onConfirm={confirmClose} />
         ) : null}
       </div>
     </div>

@@ -6,11 +6,13 @@
 
 @media (min-width: 768px) {
   html.is-desktop-viewport body.agent-route-active main.agent-layout,
-  html.is-desktop-viewport main.agent-layout {
+  html.is-desktop-viewport main.agent-layout,
+  html.is-tablet-landscape body.agent-route-active main.agent-layout,
+  html.is-tablet-landscape main.agent-layout {
     display: grid !important;
-    grid-template-columns: minmax(0, 1fr) 48px minmax(260px, 340px) !important;
+    grid-template-columns: minmax(0, 1fr) 40px minmax(280px, 380px) !important;
     grid-template-rows: 1fr !important;
-    gap: 10px !important;
+    gap: 4px !important;
     padding: 12px 14px !important;
     width: 100% !important;
     max-width: 100% !important;
@@ -24,25 +26,32 @@
     background: transparent !important;
   }
 
-  html.is-desktop-viewport .agent-layout.is-panel-stage-1 {
-    grid-template-columns: minmax(0, 1fr) 48px 280px !important;
+  html.is-desktop-viewport .agent-layout.is-panel-stage-1,
+  html.is-tablet-landscape .agent-layout.is-panel-stage-1 {
+    grid-template-columns: minmax(0, 1fr) 40px 400px !important;
   }
 
-  html.is-desktop-viewport .agent-layout.is-panel-stage-2 {
-    grid-template-columns: minmax(0, 1fr) 48px 320px !important;
+  html.is-desktop-viewport .agent-layout.is-panel-stage-2,
+  html.is-tablet-landscape .agent-layout.is-panel-stage-2 {
+    grid-template-columns: minmax(0, 1fr) 40px 460px !important;
   }
 
   html.is-desktop-viewport .agent-layout.is-panel-stage-small,
-  html.is-desktop-viewport .agent-layout.is-panel-collapsed {
-    grid-template-columns: minmax(0, 1fr) 48px 0px !important;
+  html.is-desktop-viewport .agent-layout.is-panel-collapsed,
+  html.is-tablet-landscape .agent-layout.is-panel-stage-small,
+  html.is-tablet-landscape .agent-layout.is-panel-collapsed {
+    grid-template-columns: minmax(0, 1fr) 40px 0px !important;
   }
 
   html.is-desktop-viewport .agent-layout.is-panel-stage-small .agent-panel,
-  html.is-desktop-viewport .agent-layout.is-panel-collapsed .agent-panel {
+  html.is-desktop-viewport .agent-layout.is-panel-collapsed .agent-panel,
+  html.is-tablet-landscape .agent-layout.is-panel-stage-small .agent-panel,
+  html.is-tablet-landscape .agent-layout.is-panel-collapsed .agent-panel {
     display: none !important;
   }
 
-  html.is-desktop-viewport .agent-layout > section.agent-chat {
+  html.is-desktop-viewport .agent-layout > section.agent-chat,
+  html.is-tablet-landscape .agent-layout > section.agent-chat {
     grid-column: 1 !important;
     grid-row: 1 !important;
     min-width: 0 !important;
@@ -57,7 +66,8 @@
     position: relative !important;
   }
 
-  html.is-desktop-viewport .agent-layout > aside.agent-divider-rail {
+  html.is-desktop-viewport .agent-layout > aside.agent-divider-rail,
+  html.is-tablet-landscape .agent-layout > aside.agent-divider-rail {
     grid-column: 2 !important;
     grid-row: 1 !important;
     display: flex !important;
@@ -66,7 +76,9 @@
     top: auto !important;
     right: auto !important;
     left: auto !important;
-    width: auto !important;
+    width: 40px !important;
+    min-width: 40px !important;
+    max-width: 40px !important;
     height: 100% !important;
     min-height: 0 !important;
     margin: 0 !important;
@@ -74,13 +86,14 @@
     order: unset !important;
   }
 
-  html.is-desktop-viewport .agent-layout > aside.agent-panel {
+  html.is-desktop-viewport .agent-layout > aside.agent-panel,
+  html.is-tablet-landscape .agent-layout > aside.agent-panel {
     grid-column: 3 !important;
     grid-row: 1 !important;
     display: flex !important;
     flex-direction: column !important;
     position: relative !important;
-    width: auto !important;
+    width: 100% !important;
     min-width: 0 !important;
     height: 100% !important;
     max-height: none !important;
@@ -93,10 +106,67 @@
     align-self: stretch !important;
   }
 
-  html.is-desktop-viewport .agent-panel .panel-grid {
+  /* Cards keep original width; centered inside the wider dark shell. */
+  html.is-desktop-viewport .agent-layout.is-panel-stage-2 .agent-panel .panel-grid,
+  html.is-tablet-landscape .agent-layout.is-panel-stage-2 .agent-panel .panel-grid {
+    width: 100% !important;
+    max-width: 360px !important;
+    margin-inline: auto !important;
+  }
+
+  html.is-desktop-viewport .agent-layout.is-panel-stage-1 .agent-panel .panel-grid,
+  html.is-tablet-landscape .agent-layout.is-panel-stage-1 .agent-panel .panel-grid {
+    width: 100% !important;
+    max-width: 320px !important;
+    margin-inline: auto !important;
+  }
+
+  html.is-desktop-viewport .agent-layout:not(.is-panel-stage-1):not(.is-panel-stage-2):not(.is-panel-collapsed):not(.is-panel-stage-small) .agent-panel .panel-grid,
+  html.is-tablet-landscape .agent-layout:not(.is-panel-stage-1):not(.is-panel-stage-2):not(.is-panel-collapsed):not(.is-panel-stage-small) .agent-panel .panel-grid {
+    width: 100% !important;
+    max-width: 380px !important;
+    margin-inline: auto !important;
+  }
+
+  html.is-desktop-viewport .agent-layout.is-panel-stage-2 .agent-panel .panel-callout,
+  html.is-tablet-landscape .agent-layout.is-panel-stage-2 .agent-panel .panel-callout {
+    width: calc(100% - 16px) !important;
+    max-width: 360px !important;
+    margin-inline: auto !important;
+  }
+
+  html.is-desktop-viewport .agent-layout.is-panel-stage-small > aside.agent-panel,
+  html.is-desktop-viewport .agent-layout.is-panel-collapsed > aside.agent-panel,
+  html.is-tablet-landscape .agent-layout.is-panel-stage-small > aside.agent-panel,
+  html.is-tablet-landscape .agent-layout.is-panel-collapsed > aside.agent-panel {
+    display: flex !important;
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: 0 !important;
+    opacity: 0 !important;
+    overflow: hidden !important;
+    pointer-events: none !important;
+  }
+
+  html.is-desktop-viewport .agent-layout.is-panel-stage-small > aside.agent-divider-rail,
+  html.is-desktop-viewport .agent-layout.is-panel-collapsed > aside.agent-divider-rail,
+  html.is-tablet-landscape .agent-layout.is-panel-stage-small > aside.agent-divider-rail,
+  html.is-tablet-landscape .agent-layout.is-panel-collapsed > aside.agent-divider-rail {
+    width: 40px !important;
+    min-width: 40px !important;
+  }
+
+  html.is-desktop-viewport .agent-panel .panel-grid,
+  html.is-tablet-landscape .agent-panel .panel-grid {
     display: grid !important;
     grid-template-columns: 1fr 1fr !important;
     grid-auto-flow: row !important;
+    grid-auto-columns: unset !important;
+    grid-auto-rows: minmax(min-content, auto) !important;
+    flex: 1 1 auto !important;
     flex-direction: unset !important;
     flex-wrap: unset !important;
     overflow-x: hidden !important;
@@ -105,66 +175,640 @@
     align-content: start !important;
     width: 100% !important;
     max-width: 100% !important;
+    min-height: 0 !important;
+    height: auto !important;
     padding: 8px !important;
     gap: 8px !important;
+    scroll-snap-type: none !important;
+    touch-action: pan-y !important;
+  }
+
+  /* mob-col wrappers must flatten into the grid (mobile portrait MQ leaks otherwise). */
+  html.is-desktop-viewport .agent-panel .mob-col,
+  html.is-desktop-viewport .agent-panel .mob-col-wide,
+  html.is-desktop-viewport .agent-panel .mob-col-narrow,
+  html.is-tablet-landscape .agent-panel .mob-col,
+  html.is-tablet-landscape .agent-panel .mob-col-wide,
+  html.is-tablet-landscape .agent-panel .mob-col-narrow {
+    display: contents !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    flex: unset !important;
+    align-self: stretch !important;
+    order: unset !important;
+    overflow: visible !important;
+  }
+
+  html.is-desktop-viewport .agent-panel .panel-grid > *,
+  html.is-tablet-landscape .agent-panel .panel-grid > * {
+    position: relative !important;
+    inset: auto !important;
+    top: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    left: auto !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    margin: 0 !important;
+    margin-left: 0 !important;
+    flex: unset !important;
+    transform: none !important;
+    opacity: 1 !important;
+    order: unset !important;
+    grid-row: auto !important;
+    scroll-snap-align: unset !important;
+  }
+
+  html.is-desktop-viewport .agent-panel .panel-card,
+  html.is-desktop-viewport .agent-panel .profile-card,
+  html.is-desktop-viewport .agent-panel .panel-feature-card,
+  html.is-desktop-viewport .agent-panel .interview-flow-card,
+  html.is-desktop-viewport .agent-panel .recent-library-card,
+  html.is-desktop-viewport .agent-panel .news-card,
+  html.is-tablet-landscape .agent-panel .panel-card,
+  html.is-tablet-landscape .agent-panel .profile-card,
+  html.is-tablet-landscape .agent-panel .panel-feature-card,
+  html.is-tablet-landscape .agent-panel .interview-flow-card,
+  html.is-tablet-landscape .agent-panel .recent-library-card,
+  html.is-tablet-landscape .agent-panel .news-card {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    justify-content: flex-start !important;
+    align-items: stretch !important;
+    text-align: left !important;
   }
 
   html.is-desktop-viewport .agent-panel .panel-pos-profile,
   html.is-desktop-viewport .agent-panel .panel-pos-objective,
   html.is-desktop-viewport .agent-panel .panel-pos-interview,
   html.is-desktop-viewport .agent-panel .panel-pos-budget,
+  html.is-desktop-viewport .agent-panel .panel-pos-news,
   html.is-desktop-viewport .agent-panel .panel-pos-library,
   html.is-desktop-viewport .agent-panel .panel-pos-recent,
-  html.is-desktop-viewport .agent-panel .panel-pos-aux {
+  html.is-desktop-viewport .agent-panel .panel-pos-aux,
+  html.is-tablet-landscape .agent-panel .panel-pos-profile,
+  html.is-tablet-landscape .agent-panel .panel-pos-objective,
+  html.is-tablet-landscape .agent-panel .panel-pos-interview,
+  html.is-tablet-landscape .agent-panel .panel-pos-budget,
+  html.is-tablet-landscape .agent-panel .panel-pos-news,
+  html.is-tablet-landscape .agent-panel .panel-pos-library,
+  html.is-tablet-landscape .agent-panel .panel-pos-recent,
+  html.is-tablet-landscape .agent-panel .panel-pos-aux {
     grid-column: 1 / -1 !important;
   }
 
-  html.is-desktop-viewport .agent-panel .panel-pos-mode {
+  html.is-desktop-viewport .agent-panel .panel-pos-mode,
+  html.is-tablet-landscape .agent-panel .panel-pos-mode {
     grid-column: 1 !important;
   }
 
   html.is-desktop-viewport .agent-panel .panel-pos-next,
   html.is-desktop-viewport .agent-panel .panel-pos-transactions,
-  html.is-desktop-viewport .agent-panel .panel-pos-news {
+  html.is-tablet-landscape .agent-panel .panel-pos-next,
+  html.is-tablet-landscape .agent-panel .panel-pos-transactions {
     grid-column: 2 !important;
   }
 
+  html.is-desktop-viewport .agent-panel .panel-pos-news .news-link,
+  html.is-desktop-viewport .agent-panel .panel-pos-news .news-image,
+  html.is-tablet-landscape .agent-panel .panel-pos-news .news-link,
+  html.is-tablet-landscape .agent-panel .panel-pos-news .news-image {
+    min-height: 132px !important;
+    max-height: 148px !important;
+  }
+
+  html.is-desktop-viewport .agent-panel .panel-pos-news .news-overlay,
+  html.is-tablet-landscape .agent-panel .panel-pos-news .news-overlay {
+    max-width: none !important;
+  }
+
+  html.is-desktop-viewport .agent-panel .panel-grid .panel-pos-profile,
+  html.is-desktop-viewport .agent-panel .panel-grid .panel-pos-objective,
+  html.is-desktop-viewport .agent-panel .panel-grid .panel-pos-mode,
+  html.is-desktop-viewport .agent-panel .panel-grid .panel-pos-transactions,
+  html.is-desktop-viewport .agent-panel .panel-grid .panel-pos-budget,
+  html.is-desktop-viewport .agent-panel .panel-grid .panel-pos-news,
+  html.is-desktop-viewport .agent-panel .panel-grid .panel-pos-interview,
+  html.is-desktop-viewport .agent-panel .panel-grid .panel-pos-library,
+  html.is-desktop-viewport .agent-panel .panel-grid .panel-pos-recent,
+  html.is-tablet-landscape .agent-panel .panel-grid .panel-pos-profile,
+  html.is-tablet-landscape .agent-panel .panel-grid .panel-pos-objective,
+  html.is-tablet-landscape .agent-panel .panel-grid .panel-pos-mode,
+  html.is-tablet-landscape .agent-panel .panel-grid .panel-pos-transactions,
+  html.is-tablet-landscape .agent-panel .panel-grid .panel-pos-budget,
+  html.is-tablet-landscape .agent-panel .panel-grid .panel-pos-news,
+  html.is-tablet-landscape .agent-panel .panel-grid .panel-pos-interview,
+  html.is-tablet-landscape .agent-panel .panel-grid .panel-pos-library,
+  html.is-tablet-landscape .agent-panel .panel-grid .panel-pos-recent {
+    order: unset !important;
+  }
+
   html.is-desktop-viewport .agent-panel .mobile-panel-handle,
-  html.is-desktop-viewport .agent-panel .mobile-panel-close {
+  html.is-desktop-viewport .agent-panel .mobile-panel-close,
+  html.is-tablet-landscape .agent-panel .mobile-panel-handle,
+  html.is-tablet-landscape .agent-panel .mobile-panel-close {
     display: none !important;
   }
 
-  html.is-desktop-viewport .agent-chat-header.is-mobile {
+  html.is-desktop-viewport .agent-chat-header.is-mobile,
+  html.is-tablet-landscape .agent-chat-header.is-mobile {
     display: none !important;
   }
 
-  html.is-desktop-viewport .agent-chat-header:not(.is-mobile) {
+  html.is-desktop-viewport .agent-chat-header:not(.is-mobile),
+  html.is-tablet-landscape .agent-chat-header:not(.is-mobile) {
     display: grid !important;
   }
 
-  html.is-desktop-viewport .agent-mobile-composer-dock {
+  html.is-desktop-viewport .agent-mobile-composer-dock,
+  html.is-tablet-landscape .agent-mobile-composer-dock {
     display: none !important;
   }
 
-  html.is-desktop-viewport .agent-layout .agent-chat .terminal-composer-shell {
+  html.is-desktop-viewport .agent-layout .agent-chat .terminal-composer-shell,
+  html.is-tablet-landscape .agent-layout .agent-chat .terminal-composer-shell {
     width: 100% !important;
     max-width: 100% !important;
     margin-top: auto !important;
   }
 
-  html.is-desktop-viewport:not(.home-route-active) .mobile-scale-frame {
+  html.is-desktop-viewport:not(.home-route-active) .mobile-scale-frame,
+  html.is-tablet-landscape:not(.home-route-active) .mobile-scale-frame {
     height: 100dvh !important;
     max-height: 100dvh !important;
     overflow: hidden !important;
   }
 
-  html.is-desktop-viewport .chat-sheet-tab {
+  html.is-desktop-viewport .chat-sheet-tab,
+  html.is-tablet-landscape .chat-sheet-tab {
     color: inherit !important;
     font-size: inherit !important;
   }
 
-  html.is-desktop-viewport .chat-sheet-tab::after {
+  html.is-desktop-viewport .chat-sheet-tab::after,
+  html.is-tablet-landscape .chat-sheet-tab::after {
     display: none !important;
     content: none !important;
   }
+
+  /* Desktop: scroll sin barra visible (rueda / trackpad siguen funcionando). */
+  html.is-desktop-viewport .agent-chat .agent-thread,
+  html.is-tablet-landscape .agent-chat .agent-thread,
+  html.is-desktop-viewport .agent-layout > aside.agent-panel,
+  html.is-tablet-landscape .agent-layout > aside.agent-panel,
+  html.is-desktop-viewport .agent-panel .panel-grid,
+  html.is-tablet-landscape .agent-panel .panel-grid {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+  }
+
+  html.is-desktop-viewport .agent-chat .agent-thread::-webkit-scrollbar,
+  html.is-tablet-landscape .agent-chat .agent-thread::-webkit-scrollbar,
+  html.is-desktop-viewport .agent-layout > aside.agent-panel::-webkit-scrollbar,
+  html.is-tablet-landscape .agent-layout > aside.agent-panel::-webkit-scrollbar,
+  html.is-desktop-viewport .agent-panel .panel-grid::-webkit-scrollbar,
+  html.is-tablet-landscape .agent-panel .panel-grid::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+}
+
+/* Blanco full — desktop panel shell must match chat (beats premium panel fill). */
+html.is-desktop-viewport[data-visual-mode='light-outline'] body.agent-route-active .agent-layout.is-visual-mode-light-outline > aside.agent-panel,
+html.is-tablet-landscape[data-visual-mode='light-outline'] body.agent-route-active .agent-layout.is-visual-mode-light-outline > aside.agent-panel {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-color: rgba(0, 0, 0, 0.12) !important;
+  box-shadow: none !important;
+}
+
+html.is-desktop-viewport[data-visual-mode='light-outline'] body.agent-route-active .agent-layout.is-visual-mode-light-outline .agent-panel .panel-grid,
+html.is-tablet-landscape[data-visual-mode='light-outline'] body.agent-route-active .agent-layout.is-visual-mode-light-outline .agent-panel .panel-grid {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+}
+
+/* Chat sobre el wallpaper — sin capa opaca en desktop / tablet landscape. */
+@media (min-width: 768px) {
+  html.agent-route-active .agent-layout:not(.is-mobile-viewport) .agent-chat,
+  html.agent-route-active .agent-layout:not(.is-mobile-viewport) .agent-chat-body,
+  html.agent-route-active .agent-layout:not(.is-mobile-viewport) .agent-thread {
+    background: transparent !important;
+    background-color: transparent !important;
+    background-image: none !important;
+  }
+
+  html.agent-route-active .agent-layout:not(.is-mobile-viewport) .agent-chat {
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  html.is-desktop-viewport .agent-chat-header:not(.is-mobile),
+  html.is-tablet-landscape .agent-chat-header:not(.is-mobile) {
+    background: #000000 !important;
+    background-color: #000000 !important;
+    background-image: none !important;
+    border: 1px solid rgba(190, 220, 245, 0.14) !important;
+    border-top: none !important;
+    border-bottom-color: rgba(190, 220, 245, 0.14) !important;
+    border-radius: 0 0 var(--radius-lg, 16px) var(--radius-lg, 16px) !important;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.16) !important;
+  }
+
+  html.agent-route-active .agent-layout:not(.is-mobile-viewport) .agent-chat-body::before,
+  html.agent-route-active .agent-layout:not(.is-mobile-viewport) .agent-chat-body::after,
+  html.agent-route-active .agent-layout:not(.is-mobile-viewport) .agent-chat::before,
+  html.agent-route-active .agent-layout:not(.is-mobile-viewport) .agent-chat::after {
+    display: none !important;
+    content: none !important;
+  }
+
+  html.agent-route-active .agent-layout:not(.is-mobile-viewport) .agent-chat .agent-input.terminal-composer,
+  html.is-desktop-viewport body.agent-route-active .agent-chat .agent-input.terminal-composer,
+  html.is-tablet-landscape body.agent-route-active .agent-chat .agent-input.terminal-composer {
+    border-color: rgba(255, 255, 255, 0.14) !important;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.08),
+      0 12px 28px rgba(0, 0, 0, 0.36) !important;
+  }
+
+  html.agent-route-active .agent-layout:not(.is-mobile-viewport) .agent-thread > .agent-bubble.assistant.latex-doc,
+  html.agent-route-active .agent-layout:not(.is-mobile-viewport) .agent-thread > .agent-bubble.assistant.latex-doc.is-intro-doc,
+  html.agent-route-active .agent-layout:not(.is-mobile-viewport) .latex-doc,
+  html.is-desktop-viewport body.agent-route-active .agent-thread > .agent-bubble.assistant.latex-doc,
+  html.is-desktop-viewport body.agent-route-active .agent-thread > .agent-bubble.assistant.latex-doc.is-intro-doc,
+  html.is-tablet-landscape body.agent-route-active .agent-thread > .agent-bubble.assistant.latex-doc,
+  html.is-tablet-landscape body.agent-route-active .agent-thread > .agent-bubble.assistant.latex-doc.is-intro-doc {
+    box-shadow:
+      0 30px 72px rgba(0, 0, 0, 0.38),
+      inset 0 1px 0 rgba(255, 255, 255, 0.88) !important;
+  }
+
+  html.agent-route-active .agent-layout:not(.is-mobile-viewport) .agent-thread .agent-inline-panel-action,
+  html.agent-route-active .agent-layout:not(.is-mobile-viewport) .agent-thread .agent-inline-panel-action--intro,
+  html.agent-route-active .agent-layout:not(.is-mobile-viewport) .agent-thread .agent-inline-panel-action--welcome,
+  html.agent-route-active .agent-layout:not(.is-mobile-viewport) .agent-thread .agent-flow-cta,
+  html.is-desktop-viewport body.agent-route-active .agent-thread .agent-inline-panel-action,
+  html.is-desktop-viewport body.agent-route-active .agent-thread .agent-inline-panel-action--intro,
+  html.is-desktop-viewport body.agent-route-active .agent-thread .agent-inline-panel-action--welcome,
+  html.is-tablet-landscape body.agent-route-active .agent-thread .agent-inline-panel-action,
+  html.is-tablet-landscape body.agent-route-active .agent-thread .agent-inline-panel-action--intro,
+  html.is-tablet-landscape body.agent-route-active .agent-thread .agent-inline-panel-action--welcome {
+    background: transparent !important;
+    background-image: none !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+  }
+
+  html.agent-route-active .agent-layout:not(.is-mobile-viewport) .agent-thread .agent-flow-cta,
+  html.is-desktop-viewport body.agent-route-active .agent-thread .agent-flow-cta,
+  html.is-tablet-landscape body.agent-route-active .agent-thread .agent-flow-cta {
+    background: transparent !important;
+    background-image: none !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+  }
+
+  html.agent-route-active .agent-layout:not(.is-mobile-viewport) .agent-chat .chat-sheet-tab,
+  html.is-desktop-viewport body.agent-route-active .agent-chat .chat-sheet-tab,
+  html.is-tablet-landscape body.agent-route-active .agent-chat .chat-sheet-tab {
+    border-color: rgba(255, 255, 255, 0.14) !important;
+    box-shadow:
+      0 8px 20px rgba(3, 10, 18, 0.34),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+  }
+
+  html.agent-route-active .agent-layout:not(.is-mobile-viewport) .agent-chat .chat-sheet-tab.is-active,
+  html.is-desktop-viewport body.agent-route-active .agent-chat .chat-sheet-tab.is-active,
+  html.is-tablet-landscape body.agent-route-active .agent-chat .chat-sheet-tab.is-active {
+    border-color: rgba(255, 255, 255, 0.34) !important;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.04)) !important;
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+  }
+
+  html.agent-route-active .agent-layout:not(.is-mobile-viewport) .agent-chat .chat-sheet-tab.is-active .chat-sheet-tab-index,
+  html.is-desktop-viewport body.agent-route-active .agent-chat .chat-sheet-tab.is-active .chat-sheet-tab-index,
+  html.is-tablet-landscape body.agent-route-active .agent-chat .chat-sheet-tab.is-active .chat-sheet-tab-index {
+    box-shadow: none !important;
+    border-color: rgba(255, 255, 255, 0.18) !important;
+  }
+
+  html.agent-route-active .agent-layout:not(.is-mobile-viewport) .agent-panel,
+  html.is-desktop-viewport body.agent-route-active .agent-panel,
+  html.is-tablet-landscape body.agent-route-active .agent-panel {
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28) !important;
+  }
+}
+
+/* Welcome gradient card — semi-transparent shell + matte nav pills (beats latex-doc paper + button contract) */
+html body.agent-route-active .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc.is-empty-welcome,
+html body.agent-route-active .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc.is-intro-doc.is-empty-welcome,
+html[data-visual-mode='dark-outline'] body.agent-route-active .agent-layout.is-visual-mode-dark-outline .agent-thread > .agent-bubble.assistant.latex-doc.is-empty-welcome,
+html[data-visual-mode='dark-outline'] body.agent-route-active .agent-layout.is-visual-mode-dark-outline .agent-thread > .agent-bubble.assistant.latex-doc.is-intro-doc.is-empty-welcome,
+html[data-visual-mode='light-outline'] body.agent-route-active .agent-layout.is-visual-mode-light-outline .agent-thread > .agent-bubble.assistant.latex-doc.is-empty-welcome,
+html[data-visual-mode='light-outline'] body.agent-route-active .agent-layout.is-visual-mode-light-outline .agent-thread > .agent-bubble.assistant.latex-doc.is-intro-doc.is-empty-welcome {
+  background: rgba(255, 255, 255, 0.1) !important;
+  background-image: none !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.36) !important;
+  box-shadow:
+    0 28px 64px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.28) !important;
+}
+
+html body.agent-route-active .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc.is-empty-welcome::before,
+html body.agent-route-active .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc.is-intro-doc.is-empty-welcome::before {
+  display: none !important;
+  content: none !important;
+  background: none !important;
+  background-image: none !important;
+}
+
+html[data-visual-mode='dark-outline'] body.agent-route-active .agent-layout.is-visual-mode-dark-outline .agent-thread > .agent-bubble.assistant.latex-doc.is-empty-welcome,
+html[data-visual-mode='dark-outline'] body.agent-route-active .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc.is-empty-welcome {
+  background: rgba(255, 255, 255, 0.08) !important;
+  background-image: none !important;
+  border-color: rgba(255, 255, 255, 0.32) !important;
+}
+
+html[data-visual-mode='light-outline'] body.agent-route-active .agent-layout.is-visual-mode-light-outline .agent-thread > .agent-bubble.assistant.latex-doc.is-empty-welcome {
+  background: rgba(255, 255, 255, 0.1) !important;
+  background-image: none !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+html body.agent-route-active .agent-layout .agent-thread .agent-bubble.assistant.latex-doc.is-empty-welcome .gradient-blob-card__line-btn,
+html body.agent-route-active .agent-layout .agent-thread .agent-bubble.assistant.latex-doc.is-empty-welcome .gradient-blob-card__line-btn:hover:not(:disabled),
+html:not([data-visual-mode='light-outline']) body.agent-route-active .agent-layout .agent-thread .agent-bubble.assistant.latex-doc.is-empty-welcome .gradient-blob-card__line-btn {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: inherit !important;
+  -webkit-text-fill-color: inherit !important;
+}
+
+html body.agent-route-active .agent-layout .agent-thread .agent-bubble.assistant.latex-doc.is-empty-welcome .gradient-blob-card__glass {
+  background: rgba(255, 255, 255, 0.08) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  outline-color: rgba(255, 255, 255, 0.22) !important;
+}
+
+html body.agent-route-active .agent-layout .agent-thread .agent-bubble.assistant.latex-doc.is-empty-welcome .gradient-blob-card__page-pill--gold,
+html[data-visual-mode='light-outline'] body.agent-route-active .agent-layout .agent-thread .agent-bubble.assistant.latex-doc.is-empty-welcome .gradient-blob-card__page-pill--gold,
+html[data-visual-mode='dark-outline'] body.agent-route-active .agent-layout .agent-thread .agent-bubble.assistant.latex-doc.is-empty-welcome .gradient-blob-card__page-pill--gold,
+html:not([data-visual-mode='light-outline']) body.agent-route-active .agent-layout .agent-thread .agent-bubble.assistant.latex-doc.is-empty-welcome .gradient-blob-card__page-pill--gold {
+  background: linear-gradient(145deg, rgba(184, 147, 70, 0.9), rgba(152, 119, 54, 0.92)) !important;
+  background-image: linear-gradient(145deg, rgba(184, 147, 70, 0.9), rgba(152, 119, 54, 0.92)) !important;
+  border-color: rgba(235, 218, 179, 0.58) !important;
+  box-shadow: 0 16px 30px rgba(67, 52, 22, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.16) !important;
+  color: #fffaf0 !important;
+}
+
+html body.agent-route-active .agent-layout .agent-thread .agent-bubble.assistant.latex-doc.is-empty-welcome .gradient-blob-card__page-pill--slate,
+html[data-visual-mode='light-outline'] body.agent-route-active .agent-layout .agent-thread .agent-bubble.assistant.latex-doc.is-empty-welcome .gradient-blob-card__page-pill--slate,
+html[data-visual-mode='dark-outline'] body.agent-route-active .agent-layout .agent-thread .agent-bubble.assistant.latex-doc.is-empty-welcome .gradient-blob-card__page-pill--slate,
+html:not([data-visual-mode='light-outline']) body.agent-route-active .agent-layout .agent-thread .agent-bubble.assistant.latex-doc.is-empty-welcome .gradient-blob-card__page-pill--slate,
+html body.agent-route-active .agent-layout .agent-thread .agent-bubble.assistant.latex-doc.is-empty-welcome .gradient-blob-card__page-pill--navy,
+html[data-visual-mode='light-outline'] body.agent-route-active .agent-layout .agent-thread .agent-bubble.assistant.latex-doc.is-empty-welcome .gradient-blob-card__page-pill--navy,
+html[data-visual-mode='dark-outline'] body.agent-route-active .agent-layout .agent-thread .agent-bubble.assistant.latex-doc.is-empty-welcome .gradient-blob-card__page-pill--navy,
+html:not([data-visual-mode='light-outline']) body.agent-route-active .agent-layout .agent-thread .agent-bubble.assistant.latex-doc.is-empty-welcome .gradient-blob-card__page-pill--navy {
+  background: linear-gradient(145deg, rgba(56, 81, 111, 0.82), rgba(37, 57, 79, 0.9)) !important;
+  background-image: linear-gradient(145deg, rgba(56, 81, 111, 0.82), rgba(37, 57, 79, 0.9)) !important;
+  border-color: rgba(200, 212, 227, 0.5) !important;
+  box-shadow: 0 16px 30px rgba(18, 28, 41, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+  color: #f3f8fc !important;
+}
+
+html body.agent-route-active .agent-layout .agent-thread .agent-bubble.assistant.latex-doc.is-empty-welcome .gradient-blob-card__page-pill--terra,
+html[data-visual-mode='light-outline'] body.agent-route-active .agent-layout .agent-thread .agent-bubble.assistant.latex-doc.is-empty-welcome .gradient-blob-card__page-pill--terra,
+html[data-visual-mode='dark-outline'] body.agent-route-active .agent-layout .agent-thread .agent-bubble.assistant.latex-doc.is-empty-welcome .gradient-blob-card__page-pill--terra,
+html:not([data-visual-mode='light-outline']) body.agent-route-active .agent-layout .agent-thread .agent-bubble.assistant.latex-doc.is-empty-welcome .gradient-blob-card__page-pill--terra {
+  background: linear-gradient(145deg, rgba(116, 44, 44, 0.9), rgba(82, 30, 30, 0.94)) !important;
+  background-image: linear-gradient(145deg, rgba(116, 44, 44, 0.9), rgba(82, 30, 30, 0.94)) !important;
+  border-color: rgba(204, 130, 130, 0.52) !important;
+  box-shadow: 0 16px 30px rgba(45, 14, 14, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+  color: #fff1ed !important;
+}
+
+html body.agent-route-active .agent-layout .agent-thread .agent-bubble.assistant.latex-doc.is-empty-welcome .gradient-blob-card__page-pill,
+html body.agent-route-active .agent-layout .agent-thread .agent-bubble.assistant.latex-doc.is-empty-welcome .gradient-blob-card__page-pill:hover,
+html body.agent-route-active .agent-layout .agent-thread .agent-bubble.assistant.latex-doc.is-empty-welcome .gradient-blob-card__page-pill.is-active,
+html:not([data-visual-mode='light-outline']) body.agent-route-active .agent-layout .agent-thread .agent-bubble.assistant.latex-doc.is-empty-welcome .gradient-blob-card__page-pill {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  opacity: 1 !important;
+  cursor: pointer !important;
+}
+
+html body.agent-route-active .agent-layout .agent-thread .agent-bubble.assistant.latex-doc.is-empty-welcome .gradient-blob-card__arrow,
+html body.agent-route-active .agent-layout .agent-thread .agent-bubble.assistant.latex-doc.is-empty-welcome button.gradient-blob-card__arrow,
+html body.agent-route-active .agent-layout .agent-thread .agent-bubble.assistant.latex-doc.is-empty-welcome .gradient-blob-card__arrow:hover:not(:disabled),
+html body.agent-route-active .agent-layout .agent-thread .agent-bubble.assistant.latex-doc.is-empty-welcome button.gradient-blob-card__arrow:hover:not(:disabled),
+html body.agent-route-active .agent-layout .agent-thread .agent-bubble.assistant.latex-doc.is-empty-welcome .gradient-blob-card__arrow:focus-visible,
+html body.agent-route-active .agent-layout .agent-thread .agent-bubble.assistant.latex-doc.is-empty-welcome .gradient-blob-card__arrow:active:not(:disabled),
+html body.agent-route-active .agent-layout .agent-thread .agent-bubble.assistant.latex-doc.is-empty-welcome .gradient-blob-card__arrow--gold,
+html body.agent-route-active .agent-layout .agent-thread .agent-bubble.assistant.latex-doc.is-empty-welcome .gradient-blob-card__arrow--slate,
+html body.agent-route-active .agent-layout .agent-thread .agent-bubble.assistant.latex-doc.is-empty-welcome .gradient-blob-card__arrow--terra,
+html body.agent-route-active .agent-layout .agent-thread .agent-bubble.assistant.latex-doc.is-empty-welcome .gradient-blob-card__arrow--navy,
+html:not([data-visual-mode='light-outline']) body.agent-route-active .agent-layout .agent-thread .agent-bubble.assistant.latex-doc.is-empty-welcome .gradient-blob-card__arrow,
+html:not([data-visual-mode='light-outline']) body.agent-route-active .agent-layout .agent-thread .agent-bubble.assistant.latex-doc.is-empty-welcome button.gradient-blob-card__arrow,
+html:not([data-visual-mode='light-outline']) body.agent-route-active .agent-layout .agent-thread .agent-bubble.assistant.latex-doc.is-empty-welcome .gradient-blob-card__arrow--gold,
+html:not([data-visual-mode='light-outline']) body.agent-route-active .agent-layout .agent-thread .agent-bubble.assistant.latex-doc.is-empty-welcome .gradient-blob-card__arrow--slate,
+html:not([data-visual-mode='light-outline']) body.agent-route-active .agent-layout .agent-thread .agent-bubble.assistant.latex-doc.is-empty-welcome .gradient-blob-card__arrow--terra,
+html:not([data-visual-mode='light-outline']) body.agent-route-active .agent-layout .agent-thread .agent-bubble.assistant.latex-doc.is-empty-welcome .gradient-blob-card__arrow--navy {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: none !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  color: #12100c !important;
+  -webkit-text-fill-color: #12100c !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  width: auto !important;
+  height: auto !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+}
+
+html body.agent-route-active .agent-layout .agent-thread .agent-bubble.assistant.latex-doc.is-empty-welcome .gradient-blob-card__nav-arrows {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  width: 100% !important;
+}
+
+html body.agent-route-active .agent-layout .agent-thread .agent-bubble.assistant.latex-doc.is-empty-welcome .gradient-blob-card__page-pill-roman,
+html body.agent-route-active .agent-layout .agent-thread .agent-bubble.assistant.latex-doc.is-empty-welcome .gradient-blob-card__page-pill-label {
+  color: inherit !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+
+html body.agent-route-active .agent-layout .agent-thread .agent-bubble.assistant.latex-doc.is-empty-welcome .gradient-blob-card__page-pill-label {
+  opacity: 0.82 !important;
+}
+
+html body.agent-route-active .agent-layout .agent-thread .agent-bubble.assistant.latex-doc.is-empty-welcome .gradient-blob-card__arrow svg,
+html body.agent-route-active .agent-layout .agent-thread .agent-bubble.assistant.latex-doc.is-empty-welcome .gradient-blob-card__arrow svg * {
+  stroke: #12100c !important;
+  color: #12100c !important;
+  fill: none !important;
+  stroke-width: 2px !important;
+}
+
+html body.agent-route-active .agent-layout .agent-thread .agent-bubble.assistant.latex-doc.is-empty-welcome .gradient-blob-card__arrow-icon {
+  width: clamp(36px, 5vw, 44px) !important;
+  height: clamp(36px, 5vw, 44px) !important;
+}
+
+/* Panel modal cards (desk): Apple minimalist — no monospace / terminal typography. */
+html.is-desktop-viewport .agent-panel .panel-pos-budget.panel-feature-card,
+html.is-desktop-viewport .agent-panel .panel-pos-budget.panel-feature-card *,
+html.is-desktop-viewport .agent-panel .panel-pos-transactions.panel-feature-card,
+html.is-desktop-viewport .agent-panel .panel-pos-transactions.panel-feature-card *,
+html.is-desktop-viewport .agent-panel .panel-pos-interview.interview-flow-card,
+html.is-desktop-viewport .agent-panel .panel-pos-interview.interview-flow-card *,
+html.is-tablet-landscape .agent-panel .panel-pos-budget.panel-feature-card,
+html.is-tablet-landscape .agent-panel .panel-pos-budget.panel-feature-card *,
+html.is-tablet-landscape .agent-panel .panel-pos-transactions.panel-feature-card,
+html.is-tablet-landscape .agent-panel .panel-pos-transactions.panel-feature-card *,
+html.is-tablet-landscape .agent-panel .panel-pos-interview.interview-flow-card,
+html.is-tablet-landscape .agent-panel .panel-pos-interview.interview-flow-card * {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", "Helvetica Neue", Arial, sans-serif !important;
+}
+
+html.is-desktop-viewport .agent-panel .panel-pos-budget .panel-feature-label,
+html.is-desktop-viewport .agent-panel .panel-pos-transactions .panel-feature-label,
+html.is-desktop-viewport .agent-panel .panel-pos-interview .interview-flow-label,
+html.is-tablet-landscape .agent-panel .panel-pos-budget .panel-feature-label,
+html.is-tablet-landscape .agent-panel .panel-pos-transactions .panel-feature-label,
+html.is-tablet-landscape .agent-panel .panel-pos-interview .interview-flow-label {
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.05em !important;
+  text-transform: uppercase !important;
+}
+
+html.is-desktop-viewport .agent-panel .panel-pos-budget .panel-feature-status,
+html.is-desktop-viewport .agent-panel .panel-pos-transactions .panel-feature-status,
+html.is-desktop-viewport .agent-panel .panel-pos-interview .interview-flow-title,
+html.is-tablet-landscape .agent-panel .panel-pos-budget .panel-feature-status,
+html.is-tablet-landscape .agent-panel .panel-pos-transactions .panel-feature-status,
+html.is-tablet-landscape .agent-panel .panel-pos-interview .interview-flow-title {
+  font-size: 1rem !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.015em !important;
+  text-transform: none !important;
+}
+
+html.is-desktop-viewport .agent-panel .panel-pos-budget .panel-feature-copy,
+html.is-desktop-viewport .agent-panel .panel-pos-budget .panel-feature-copy-secondary,
+html.is-desktop-viewport .agent-panel .panel-pos-transactions .panel-feature-copy,
+html.is-desktop-viewport .agent-panel .panel-pos-transactions .panel-feature-copy-secondary,
+html.is-desktop-viewport .agent-panel .panel-pos-interview .interview-flow-meta,
+html.is-desktop-viewport .agent-panel .panel-pos-interview .interview-flow-submeta,
+html.is-tablet-landscape .agent-panel .panel-pos-budget .panel-feature-copy,
+html.is-tablet-landscape .agent-panel .panel-pos-budget .panel-feature-copy-secondary,
+html.is-tablet-landscape .agent-panel .panel-pos-transactions .panel-feature-copy,
+html.is-tablet-landscape .agent-panel .panel-pos-transactions .panel-feature-copy-secondary,
+html.is-tablet-landscape .agent-panel .panel-pos-interview .interview-flow-meta,
+html.is-tablet-landscape .agent-panel .panel-pos-interview .interview-flow-submeta {
+  font-size: 12px !important;
+  font-weight: 400 !important;
+  letter-spacing: -0.008em !important;
+  line-height: 1.35 !important;
+  text-transform: none !important;
+}
+
+/* Desktop panel — compact grid + content trim (colors stay on budget/transactions contract). */
+html.is-desktop-viewport .agent-panel .panel-grid,
+html.is-tablet-landscape .agent-panel .panel-grid {
+  gap: 6px !important;
+  padding: 6px !important;
+}
+
+html.is-desktop-viewport .agent-panel .panel-feature-card .panel-feature-copy:not(.panel-feature-copy-secondary),
+html.is-desktop-viewport .agent-panel .interview-flow-card .interview-flow-submeta,
+html.is-desktop-viewport .agent-panel .interview-flow-card .panel-feature-copy,
+html.is-desktop-viewport .agent-panel .panel-card-note,
+html.is-desktop-viewport .agent-panel .panel-mode-cognitive .panel-text,
+html.is-desktop-viewport .agent-panel .profile-card-compact .panel-text,
+html.is-tablet-landscape .agent-panel .panel-feature-card .panel-feature-copy:not(.panel-feature-copy-secondary),
+html.is-tablet-landscape .agent-panel .interview-flow-card .interview-flow-submeta,
+html.is-tablet-landscape .agent-panel .interview-flow-card .panel-feature-copy,
+html.is-tablet-landscape .agent-panel .panel-card-note,
+html.is-tablet-landscape .agent-panel .panel-mode-cognitive .panel-text,
+html.is-tablet-landscape .agent-panel .profile-card-compact .panel-text {
+  display: none !important;
+}
+
+html.is-desktop-viewport .agent-panel .panel-centered-content,
+html.is-tablet-landscape .agent-panel .panel-centered-content {
+  align-items: flex-start !important;
+  text-align: left !important;
+  padding-top: 9px !important;
+  padding-bottom: 9px !important;
+  gap: 5px !important;
+}
+
+html.is-desktop-viewport .agent-panel .panel-centered-content .panel-text,
+html.is-desktop-viewport .agent-panel .panel-centered-content .panel-value,
+html.is-desktop-viewport .agent-panel .panel-centered-content .panel-label,
+html.is-tablet-landscape .agent-panel .panel-centered-content .panel-text,
+html.is-tablet-landscape .agent-panel .panel-centered-content .panel-value,
+html.is-tablet-landscape .agent-panel .panel-centered-content .panel-label {
+  text-align: left !important;
+}
+
+html body.agent-route-active .agent-layout .agent-thread .agent-bubble.assistant.latex-doc.is-empty-welcome .gradient-blob-card__masthead-accent--gold {
+  background: linear-gradient(90deg, transparent 0%, #b9a24f 14%, #b9a24f 86%, transparent 100%) !important;
+}
+
+html body.agent-route-active .agent-layout .agent-thread .agent-bubble.assistant.latex-doc.is-empty-welcome .gradient-blob-card__masthead-accent--slate {
+  background: linear-gradient(90deg, transparent 0%, #627d92 14%, #627d92 86%, transparent 100%) !important;
+}
+
+html body.agent-route-active .agent-layout .agent-thread .agent-bubble.assistant.latex-doc.is-empty-welcome .gradient-blob-card__masthead-accent--terra {
+  background: linear-gradient(90deg, transparent 0%, #9e6358 14%, #9e6358 86%, transparent 100%) !important;
+}
+
+html body.agent-route-active .agent-layout .agent-thread .agent-bubble.assistant.latex-doc.is-empty-welcome .gradient-blob-card__masthead-accent--navy {
+  background: linear-gradient(90deg, transparent 0%, #4a6078 14%, #4a6078 86%, transparent 100%) !important;
+}
+
+html body.agent-route-active .agent-layout .agent-thread .agent-bubble.assistant.latex-doc.is-empty-welcome .gradient-blob-card__line--gold {
+  background-color: #b9a24f !important;
+}
+
+html body.agent-route-active .agent-layout .agent-thread .agent-bubble.assistant.latex-doc.is-empty-welcome .gradient-blob-card__line--slate {
+  background-color: #627d92 !important;
+}
+
+html body.agent-route-active .agent-layout .agent-thread .agent-bubble.assistant.latex-doc.is-empty-welcome .gradient-blob-card__line--terra {
+  background-color: #9e6358 !important;
+}
+
+html body.agent-route-active .agent-layout .agent-thread .agent-bubble.assistant.latex-doc.is-empty-welcome .gradient-blob-card__line--navy {
+  background-color: #4a6078 !important;
 }

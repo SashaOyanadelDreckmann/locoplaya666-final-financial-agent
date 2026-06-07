@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { useInterviewStore } from '@/state/interview.store';
@@ -10,21 +10,17 @@ import { getSessionInfo, nextConversationStep } from '@/lib/api';
 import { ApiHttpError } from '@/lib/apiEnvelope';
 import { toUserFacingError } from '@/lib/userError';
 import { AiLoader } from '@/components/ui/ai-loader';
-import { readInterviewVoiceState } from '@/lib/interviewVoiceState';
 import {
   buildInterviewContextHighlights,
   formatBlockLabel,
   type InterviewVoiceSnapshot,
 } from './interview-modal.context';
 import { InterviewVoiceReportBlock, InterviewVoiceSummaryBlock } from './interview-modal.components';
-import {
-  deriveHydratedVoiceState,
-  mergeInterviewIntake,
-  mergeInterviewVoiceSnapshots,
-  type InterviewIntakeWithContext,
-} from './interview-modal.hydration';
+import { type InterviewIntakeWithContext } from './interview-modal.hydration';
 import { formatInterviewClock } from './interview-modal.voice-summary';
 import { useInterviewVoiceRuntime } from './useInterviewVoiceRuntime';
+import { useInterviewModalBootstrap } from './useInterviewModalBootstrap';
+import { useInterviewModalA11y } from './useInterviewModalA11y';
 
 type Props = {
   isOpen: boolean;
@@ -69,15 +65,11 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
       ? lastResponse.summary
       : '';
   const awaitingSummaryValidation = Boolean(currentSummary);
-
-  const interviewTranscriptSnapshot = useMemo(() => {
-    const lines: string[] = [];
-    for (const entry of transcriptEntries) {
-      if (!entry?.answer || !String(entry.answer).trim()) continue;
-      lines.push(`USUARIO [${entry.blockId}]: ${String(entry.answer).trim()}`);
-    }
-    return lines.join('\n').trim();
-  }, [transcriptEntries]);
+  const interviewTranscriptSnapshot = transcriptEntries
+    .filter((entry) => entry?.answer && String(entry.answer).trim())
+    .map((entry) => `USUARIO [${entry.blockId}]: ${String(entry.answer).trim()}`)
+    .join('\n')
+    .trim();
 
   const handleUnauthorized = useCallback(
     (error: unknown) => {
@@ -150,222 +142,50 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
     voiceSupported,
   } = voice;
 
-  function getFocusableElements() {
-    if (!modalRef.current) return [] as HTMLElement[];
-    return Array.from(
-      modalRef.current.querySelectorAll<HTMLElement>(
-        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
-      ),
-    ).filter((element) => !element.hasAttribute('disabled') && element.getAttribute('aria-hidden') !== 'true');
-  }
-
-  useEffect(() => {
-    if (!isOpen) return;
-    let cancelled = false;
-
-    bootedRef.current = false;
-    setIntakeReady(false);
-    setBootError(null);
-    setSessionAlreadyCompleted(false);
-    setSummaryComment('');
-    setSummarySubmitting(false);
-    resetVoiceRuntimeState();
-
-    async function hydrateInterviewContext() {
-      try {
-        const session = await getSessionInfo();
-        const sessionIntake = session?.injectedIntake?.intake;
-        const productsContext = session?.injectedIntake?.productsContext;
-        const budgetContext = session?.injectedIntake?.budgetContext;
-        const sessionVoice = (session?.interviewVoice ?? null) as InterviewVoiceSnapshot | null;
-        const sessionDiagnosticProfileId =
-          typeof session?.latestDiagnosticProfileId === 'string' && session.latestDiagnosticProfileId.length > 0
-            ? session.latestDiagnosticProfileId
-            : null;
-
-        const mergedIntake = mergeInterviewIntake(
-          intake as InterviewIntakeWithContext | null,
-          sessionIntake && typeof sessionIntake === 'object'
-            ? (sessionIntake as Record<string, unknown>)
-            : null,
-          (productsContext as Record<string, unknown> | null | undefined) ?? null,
-          (budgetContext as Record<string, unknown> | null | undefined) ?? null,
-        );
-
-        if (!cancelled && mergedIntake) {
-          setIntake(mergedIntake);
-        } else if (!cancelled && !intake && !sessionIntake) {
-          setBootError(
-            'No se encontró información de perfil. Completa el cuestionario de intake para iniciar la entrevista.',
-          );
-          return;
-        }
-
-        if (!cancelled) {
-          const saved = readInterviewVoiceState();
-          const localSaved = saved && typeof saved === 'object' ? (saved as InterviewVoiceSnapshot) : null;
-          const snapshot = mergeInterviewVoiceSnapshots(localSaved, sessionVoice);
-          const hydrated = deriveHydratedVoiceState({ snapshot, sessionDiagnosticProfileId });
-
-          if (hydrated.sessionAlreadyCompleted) {
-            setSessionAlreadyCompleted(true);
-            if (hydrated.voiceReport) setSessionAlreadyCompletedVoice(hydrated.voiceReport);
-            if (hydrated.latestDiagnosticProfileId) setLatestDiagnosticProfileId(hydrated.latestDiagnosticProfileId);
-            return;
-          }
-
-          applyHydratedVoiceState(hydrated);
-          if (hydrated.latestDiagnosticProfileId) {
-            setLatestDiagnosticProfileId(hydrated.latestDiagnosticProfileId);
-          }
-        }
-      } catch (error) {
-        if (!cancelled && handleUnauthorized(error)) return;
-        if (!cancelled && !intake) {
-          setBootError('Error al cargar la sesión. Verifica tu conexión e intenta de nuevo.');
-          return;
-        }
-      } finally {
-        if (!cancelled) setIntakeReady(true);
-      }
-    }
-
-    void hydrateInterviewContext();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isOpen]);
-
-  useEffect(() => {
-    if (!isOpen || !intakeReady || !intake || bootedRef.current || currentQuestion) {
-      return;
-    }
-    bootedRef.current = true;
-    setBootError(null);
-
-    nextConversationStep({
-      intake,
-      completedBlocks,
-      interviewTranscript: interviewTranscriptSnapshot,
-    })
-      .then(setResponse)
-      .catch((error) => {
-        if (handleUnauthorized(error)) return;
-        setBootError(toUserFacingError(error, 'interview.voice'));
-      });
-  }, [
-    isOpen,
-    intakeReady,
-    intake,
-    completedBlocks,
-    currentQuestion,
-    interviewTranscriptSnapshot,
-    setResponse,
-    handleUnauthorized,
-  ]);
-
-  useEffect(() => {
-    if (!isOpen || voiceFlags.voiceInterviewLocked || lastResponse?.type !== 'block_completed') return;
-
-    const updatedCompleted = lastResponse.completedBlocks ?? completedBlocks;
-
-    nextConversationStep({
-      intake,
-      completedBlocks: updatedCompleted,
-      interviewTranscript: interviewTranscriptSnapshot,
-    })
-      .then((res) => {
-        if (res?.blockId) resetBlock(res.blockId);
-        setResponse(res);
-      })
-      .catch((error) => {
-        if (handleUnauthorized(error)) return;
-        setBootError(toUserFacingError(error, 'interview.voice'));
-      });
-  }, [
-    isOpen,
-    lastResponse,
-    intake,
-    completedBlocks,
-    resetBlock,
-    setResponse,
-    voiceFlags.voiceInterviewLocked,
-    interviewTranscriptSnapshot,
-    handleUnauthorized,
-  ]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-
-    restoreFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-
-    const focusTimer = window.setTimeout(() => {
-      closeButtonRef.current?.focus();
-    }, 0);
-
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        if (isGeneratingDiagnosis || isFinalizingCall || voiceConnecting || (voiceConnected && !voicePaused)) return;
-        event.preventDefault();
-        handleOverlayDismiss();
-        return;
-      }
-      if (event.key !== 'Tab') return;
-
-      const focusable = getFocusableElements();
-      if (focusable.length === 0) {
-        event.preventDefault();
-        modalRef.current?.focus();
-        return;
-      }
-
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      const activeElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-      const insideModal = activeElement ? modalRef.current?.contains(activeElement) : false;
-
-      if (!insideModal) {
-        event.preventDefault();
-        first.focus();
-        return;
-      }
-
-      if (event.shiftKey && activeElement === first) {
-        event.preventDefault();
-        last.focus();
-        return;
-      }
-
-      if (!event.shiftKey && activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    }
-
-    document.addEventListener('keydown', onKeyDown);
-
-    return () => {
-      window.clearTimeout(focusTimer);
-      document.removeEventListener('keydown', onKeyDown);
-      document.body.style.overflow = previousOverflow;
-      if (restoreFocusRef.current && document.contains(restoreFocusRef.current)) {
-        restoreFocusRef.current.focus();
-      }
-    };
-  }, [isOpen, onClose, isGeneratingDiagnosis, isFinalizingCall, voiceConnected, voiceConnecting, voicePaused]);
-
-  if (!isOpen) return null;
-
   const canDismissOverlay = !blockVoiceInteraction;
-
-  function handleOverlayDismiss() {
+  const handleOverlayDismiss = useCallback(() => {
     if (!canDismissOverlay) return;
     cleanupVoiceSession();
     onClose();
-  }
+  }, [canDismissOverlay, cleanupVoiceSession, onClose]);
+
+  useInterviewModalBootstrap({
+    isOpen,
+    intake: intake as InterviewIntakeWithContext | null,
+    transcriptEntries,
+    interviewTranscriptSnapshot,
+    completedBlocks: completedBlocks as Record<string, unknown>,
+    currentQuestion,
+    bootedRef,
+    handleUnauthorized,
+    setIntake,
+    setBootError,
+    setIntakeReady,
+    setSessionAlreadyCompleted,
+    setSummaryComment,
+    setSummarySubmitting,
+    resetVoiceRuntimeState,
+    applyHydratedVoiceState,
+    setSessionAlreadyCompletedVoice,
+    setLatestDiagnosticProfileId,
+    setResponse,
+  });
+
+  useInterviewModalA11y({
+    isOpen,
+    modalRef,
+    closeButtonRef,
+    restoreFocusRef,
+    canDismissOverlay,
+    onDismiss: handleOverlayDismiss,
+    isGeneratingDiagnosis,
+    isFinalizingCall,
+    voiceConnecting,
+    voiceConnected,
+    voicePaused,
+  });
+
+  if (!isOpen) return null;
 
   const stageLabel =
     voiceReport?.executive_report

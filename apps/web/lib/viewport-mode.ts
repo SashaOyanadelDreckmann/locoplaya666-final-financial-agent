@@ -51,8 +51,10 @@ export function shouldUseMobileShell(): boolean {
   const w = window.innerWidth;
   const h = window.innerHeight;
   const minSide = Math.min(w, h);
-  // Phones in landscape exceed 767px width — use shortest side.
-  if (minSide <= 767) return true;
+  const coarse = isCoarsePointer();
+  // Only treat narrow viewports as mobile when the device actually behaves like mobile.
+  // This keeps desktop browsers from falling into the mobile shell just because the window is narrow.
+  if (minSide <= 767) return coarse || isTabletDevice();
   if (isTabletDevice() && isPortraitOrientation() && w <= 1366) return true;
   return false;
 }

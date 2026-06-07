@@ -4,10 +4,10 @@ import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ZodError } from 'zod';
 import { resetPassword } from '@/lib/api';
 import { toUserFacingError } from '@/lib/userError';
 import { ResetPasswordSchema } from '@/lib/validation';
+import { zodFieldErrors } from '@/lib/form-errors';
 
 function ResetPasswordContent() {
   const searchParams = useSearchParams();
@@ -41,14 +41,7 @@ function ResetPasswordContent() {
     try {
       ResetPasswordSchema.parse(form);
     } catch (e) {
-      if (e instanceof ZodError) {
-        const errors: Record<string, string> = {};
-        e.errors.forEach((err) => {
-          const field = err.path[0] as string;
-          if (!errors[field]) errors[field] = err.message;
-        });
-        setFieldErrors(errors);
-      }
+      setFieldErrors(zodFieldErrors(e));
       return;
     }
 

@@ -113,26 +113,7 @@
   transform: translate3d(0, var(--tx-surface-shift, 0px), 0) scale(var(--tx-surface-scale, 1)) !important;
 }
 
-/* ── Flow status + stepper ────────────────────────────────────────────────── */
-.transactions-modal .tx-flow-status-card {
-  margin: 0 0 12px !important;
-  padding: 12px 14px !important;
-  border-radius: 14px !important;
-  border: 1px solid var(--tx-contract-border) !important;
-  background: rgba(14, 22, 32, 0.88) !important;
-}
-
-.transactions-modal .tx-flow-status-card p {
-  margin: 0 !important;
-}
-
-.transactions-modal .tx-flow-status-card p + p {
-  margin-top: 6px !important;
-  color: var(--tx-contract-text-dim) !important;
-  font-size: 0.86rem !important;
-  line-height: 1.45 !important;
-}
-
+/* ── Wizard stepper ───────────────────────────────────────────────────────── */
 .transactions-modal .tx-wizard-stepper {
   margin: 0 0 14px !important;
 }
@@ -385,7 +366,9 @@
 
 .transactions-modal .tx-meta-stack {
   display: grid !important;
+  grid-template-columns: 1fr !important;
   gap: 8px !important;
+  width: 100% !important;
 }
 
 .transactions-modal .tx-meta-card {
@@ -636,15 +619,6 @@
     font-size: 10px !important;
   }
 
-  .transactions-modal .tx-flow-status-card {
-    margin-bottom: 10px !important;
-    padding: 10px 12px !important;
-  }
-
-  .transactions-modal .tx-flow-status-card p + p {
-    font-size: 0.8rem !important;
-  }
-
   /* Stepper: 3 compact pills, no horizontal swipe */
   .transactions-modal .tx-wizard-stepper-list {
     display: grid !important;
@@ -689,14 +663,9 @@
     display: none !important;
   }
 
-  /* Mobile library: one vivid card (no gray deck behind) */
-  .transactions-modal .pt-stack-carousel.tx-library-is-saved .pt-item.pt-item-stack.tx-lib-card:not(.is-top) {
-    display: none !important;
-  }
-
-  .transactions-modal .pt-stack-carousel.tx-library-is-saved .pt-item.pt-item-stack.tx-lib-card.is-top {
-    opacity: 1 !important;
-    transform: translate3d(-50%, -50%, 0) scale(1) rotate(0deg) !important;
+  /* Mobile library: keep messy matte stack visible */
+  .transactions-modal .pt-stack-carousel.tx-library-matte-stack .pt-item.pt-item-stack.tx-lib-card:not(.is-top) {
+    display: flex !important;
   }
 
   .transactions-modal .tx-content-carousel .tx-3d-hero-shell {
@@ -900,5 +869,143 @@
   .transactions-modal[data-reduced-motion='true'] .tx-wizard-step,
   .transactions-modal[data-reduced-motion='true'] .tx-panel-surface {
     transition: none !important;
+  }
+}
+
+/* =============================================================================
+   DESKTOP GUARD — beats diagnostics editorial / grid overrides
+   ============================================================================= */
+@media (min-width: 1101px) {
+  .transactions-modal .pt-left .pt-list {
+    flex: 0 0 auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
+  }
+
+  .transactions-modal .pt-left .tx-meta-stack {
+    flex: 0 0 auto !important;
+    flex-shrink: 0 !important;
+  }
+
+  .transactions-modal .pt-stack-carousel.tx-library-matte-stack,
+  .transactions-modal .pt-stack-carousel.tx-library-is-saved.tx-library-matte-stack {
+    min-height: 248px !important;
+    height: 248px !important;
+    overflow: visible !important;
+  }
+
+  .transactions-modal .tx-library-matte-stack .pt-item.pt-item-stack.tx-lib-card {
+    width: calc(100% - 28px) !important;
+    max-width: calc(100% - 28px) !important;
+    height: calc(100% - 20px) !important;
+    top: 50% !important;
+    left: 50% !important;
+  }
+
+  .transactions-modal .tx-content-card.tx-content-card--agent.is-main-center,
+  .transactions-modal .tx-content-card--agent {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  .transactions-modal .tx-content-card--agent .tx-agent-stage-header,
+  .transactions-modal .tx-content-card--agent .tx-agent-stage-header--compact {
+    display: block !important;
+    grid-template-columns: none !important;
+    grid-template-areas: none !important;
+    column-gap: 0 !important;
+    row-gap: 6px !important;
+    margin-bottom: 14px !important;
+    padding: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .transactions-modal .tx-content-card--agent .tx-agent-stage-header > .pt-stage-eyebrow,
+  .transactions-modal .tx-content-card.tx-content-card--agent.is-main-center .tx-agent-stage-tag,
+  .transactions-modal .tx-content-card--agent .tx-agent-stage-tag {
+    display: block !important;
+    margin: 0 0 8px !important;
+    justify-self: auto !important;
+    align-self: auto !important;
+    color: rgba(84, 145, 214, 0.88) !important;
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.16em !important;
+    text-transform: uppercase !important;
+  }
+
+  .transactions-modal .tx-content-card.tx-content-card--agent.is-main-center .tx-agent-stage-title,
+  .transactions-modal .tx-content-card--agent .tx-agent-stage-title,
+  .transactions-modal .tx-content-card--agent .tx-agent-stage-header > h4,
+  .transactions-modal .tx-agent-stage-header h4 {
+    font-family: Georgia, 'Times New Roman', serif !important;
+    font-size: clamp(2rem, 2.75vw, 2.85rem) !important;
+    font-weight: 400 !important;
+    font-style: normal !important;
+    line-height: 1.02 !important;
+    letter-spacing: -0.04em !important;
+    max-width: none !important;
+    text-wrap: balance !important;
+    text-shadow: 0 16px 48px rgba(0, 0, 0, 0.38) !important;
+    margin: 0 !important;
+    color: #f0f0f5 !important;
+  }
+
+  .transactions-modal .tx-content-card.tx-content-card--agent.is-main-center .tx-agent-stage-title-initial,
+  .transactions-modal .tx-content-card--agent .tx-agent-stage-title-initial {
+    font-family: 'Playfair Display', Georgia, serif !important;
+    font-style: italic !important;
+    display: inline-block !important;
+  }
+
+  .transactions-modal .tx-content-card.tx-content-card--agent.is-main-center .tx-agent-stage-title::first-letter,
+  .transactions-modal .tx-content-card--agent .tx-agent-stage-title::first-letter {
+    font-family: 'Playfair Display', Georgia, serif !important;
+    font-style: italic !important;
+  }
+
+  .transactions-modal .tx-content-card.tx-content-card--agent.is-main-center .tx-agent-stage-note,
+  .transactions-modal .tx-content-card--agent .tx-agent-stage-note {
+    max-width: 52ch !important;
+    margin-top: 8px !important;
+    font-size: clamp(12px, 0.92vw, 14px) !important;
+    line-height: 1.42 !important;
+    letter-spacing: 0.005em !important;
+    color: rgba(238, 242, 247, 0.5) !important;
+  }
+
+  .transactions-modal .tx-format-rail-chip-label {
+    display: inline !important;
+  }
+
+  .transactions-modal .tx-format-rail-chip-label-short {
+    display: none !important;
+    visibility: hidden !important;
+    width: 0 !important;
+    height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .transactions-modal .tx-format-rail-chip {
+    flex-direction: row !important;
+    font-size: 12px !important;
+    min-height: 36px !important;
+  }
+
+  .transactions-modal .tx-wizard-stepper {
+    position: relative !important;
+    z-index: 1 !important;
+  }
+
+  .transactions-modal .tx-content-carousel {
+    position: relative !important;
+    z-index: 0 !important;
+  }
+
+  .transactions-modal .pt-right {
+    overflow: visible !important;
+    min-width: 0 !important;
   }
 }

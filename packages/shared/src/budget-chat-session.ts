@@ -28,7 +28,7 @@ export function isBudgetConfirmationAnswer(answer: string): boolean {
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '');
-  return /^(si|sí|ok|dale|listo|ya|confirmo|confirmar|de acuerdo|perfecto|aplica|aplicar|hazlo|acepto)$/.test(text);
+  return /^(si|sí|sip|ok|dale|listo|ya|confirmo|confirmar|de acuerdo|perfecto|aplica|aplicar|hazlo|acepto|claro)$/.test(text);
 }
 
 export function isBudgetRejectionAnswer(answer: string): boolean {

@@ -1,0 +1,546 @@
+/* Post-intake agent boot — black void → terminal hydrate → circular reveal */
+
+html.agent-boot-active,
+body.agent-boot-active {
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+}
+
+.agent-layout.is-boot-sequence-active {
+  pointer-events: none;
+}
+
+.agent-boot-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483000;
+  display: grid;
+  place-items: center;
+  background: #000;
+  color: rgba(238, 245, 252, 0.98);
+  pointer-events: auto;
+  isolation: isolate;
+}
+
+.agent-boot-overlay.is-void .agent-boot-stage {
+  opacity: 0;
+  transform: translateY(18px) scale(0.968);
+  filter: blur(8px);
+}
+
+.agent-boot-overlay.is-terminal-enter .agent-boot-stage,
+.agent-boot-overlay.is-running .agent-boot-stage {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  filter: blur(0);
+  transition:
+    opacity 720ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 920ms cubic-bezier(0.16, 1, 0.3, 1),
+    filter 820ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.agent-boot-overlay.is-terminal-enter .agent-boot-terminal-shell {
+  animation: agent-boot-shell-rise 980ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.agent-boot-overlay.is-running .agent-boot-terminal-glow {
+  opacity: 0.85;
+}
+
+@keyframes agent-boot-shell-rise {
+  0% {
+    opacity: 0;
+    transform: translateY(22px) scale(0.94);
+    filter: blur(10px);
+  }
+  55% {
+    opacity: 1;
+    filter: blur(2px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+.agent-boot-overlay.is-exit {
+  pointer-events: none;
+}
+
+.agent-boot-overlay.is-exit .agent-boot-stage {
+  opacity: 0;
+  transform: scale(1.02);
+  filter: blur(10px);
+  transition:
+    opacity 420ms cubic-bezier(0.42, 0, 0.58, 1),
+    transform 520ms cubic-bezier(0.42, 0, 0.58, 1),
+    filter 520ms cubic-bezier(0.42, 0, 0.58, 1);
+}
+
+.agent-boot-void {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.agent-boot-void-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 72% 58% at 50% 44%,
+    rgba(255, 255, 255, 0.03) 0%,
+    rgba(0, 0, 0, 0.72) 58%,
+    #000 100%
+  );
+}
+
+.agent-boot-void-pulse {
+  position: absolute;
+  inset: -20%;
+  background: radial-gradient(circle at 50% 42%, rgba(56, 189, 248, 0.08), transparent 52%);
+  animation: agent-boot-void-breathe 3.6s ease-in-out infinite;
+}
+
+@keyframes agent-boot-void-breathe {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.98);
+  }
+  50% {
+    opacity: 0.72;
+    transform: scale(1.04);
+  }
+}
+
+.agent-boot-scanline {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.05) 48%,
+    rgba(125, 211, 252, 0.14) 50%,
+    rgba(255, 255, 255, 0.05) 52%,
+    transparent 100%
+  );
+  transform: translateY(-120%);
+}
+
+.agent-boot-overlay.is-terminal-enter .agent-boot-scanline {
+  animation: agent-boot-scan-sweep 1.1s cubic-bezier(0.22, 1, 0.36, 1) 0.12s both;
+}
+
+@keyframes agent-boot-scan-sweep {
+  0% {
+    opacity: 0;
+    transform: translateY(-120%);
+  }
+  18% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(120%);
+  }
+}
+
+.agent-boot-stage {
+  position: relative;
+  z-index: 2;
+  width: min(920px, calc(100vw - 28px));
+  display: grid;
+  place-items: center;
+  will-change: opacity, transform, filter;
+}
+
+.agent-boot-blob-frame {
+  position: absolute;
+  inset: -12% -8%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.agent-boot-blob {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(420px, 72vw);
+  height: min(420px, 72vw);
+  border-radius: 50%;
+  opacity: 0;
+  filter: blur(18px);
+  background: linear-gradient(120deg, #ec4899 0%, #ef4444 38%, #f59e0b 100%);
+  animation:
+    agent-boot-blob-bloom 1.4s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards,
+    agent-boot-blob-drift 7s linear 1.6s infinite;
+}
+
+@keyframes agent-boot-blob-bloom {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.55);
+  }
+  100% {
+    opacity: 0.42;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+.agent-boot-blob-glass {
+  position: absolute;
+  inset: 8%;
+  border-radius: 22px;
+  background: rgba(0, 0, 0, 0.42);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+@keyframes agent-boot-blob-drift {
+  0% {
+    transform: translate(-50%, -50%) translate(-120%, -120%);
+  }
+  25% {
+    transform: translate(-50%, -50%) translate(0%, -120%);
+  }
+  50% {
+    transform: translate(-50%, -50%) translate(0%, 0%);
+  }
+  75% {
+    transform: translate(-50%, -50%) translate(-120%, 0%);
+  }
+  100% {
+    transform: translate(-50%, -50%) translate(-120%, -120%);
+  }
+}
+
+.agent-boot-terminal-shell {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  gap: 10px !important;
+}
+
+.agent-boot-terminal-glow {
+  position: absolute;
+  inset: -8% -4%;
+  border-radius: 24px;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(
+    ellipse 80% 62% at 50% 38%,
+    rgba(56, 189, 248, 0.22),
+    rgba(167, 139, 250, 0.12) 42%,
+    transparent 72%
+  );
+  transition: opacity 680ms cubic-bezier(0.22, 1, 0.36, 1);
+  filter: blur(8px);
+}
+
+.agent-boot-terminal.agent-input.terminal-composer {
+  min-height: clamp(280px, 52vh, 460px) !important;
+  padding: 12px 14px 10px !important;
+  border-radius: 18px !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  background: linear-gradient(
+    180deg,
+    rgba(2, 8, 14, 0.94),
+    rgba(2, 8, 14, 0.98)
+  ) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 24px 56px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(255, 255, 255, 0.04) !important;
+}
+
+.agent-boot-terminal-head.terminal-composer-head {
+  display: flex !important;
+  align-items: center;
+  gap: 10px;
+  padding: 0 2px 6px !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 4px;
+}
+
+.agent-boot-terminal-prompt {
+  color: rgba(125, 211, 252, 0.95) !important;
+  font-weight: 700;
+}
+
+.agent-boot-terminal-cmd {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: rgba(169, 208, 236, 0.92) !important;
+}
+
+.agent-boot-terminal-badge {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.42);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+.agent-boot-code {
+  flex: 1 1 auto;
+  min-height: clamp(180px, 36vh, 320px);
+  max-height: clamp(220px, 40vh, 360px);
+  margin: 0;
+  padding: 4px 2px 2px;
+  overflow: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace !important;
+  font-size: clamp(11px, 2.8vw, 13px);
+  line-height: 1.55;
+  letter-spacing: 0.01em;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.agent-boot-line {
+  display: block;
+  animation: agent-boot-line-in 340ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes agent-boot-line-in {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+    filter: blur(3px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+.agent-boot-line--comment {
+  color: rgba(134, 168, 198, 0.78);
+}
+
+.agent-boot-line--system {
+  color: rgba(186, 230, 253, 0.92);
+}
+
+.agent-boot-line--keyword {
+  color: rgba(251, 191, 36, 0.95);
+}
+
+.agent-boot-line--string {
+  color: rgba(134, 239, 172, 0.9);
+}
+
+.agent-boot-line--success {
+  color: rgba(110, 231, 183, 0.95);
+}
+
+.agent-boot-line--dim {
+  color: rgba(148, 163, 184, 0.72);
+}
+
+.agent-boot-line--plain {
+  color: rgba(226, 232, 240, 0.88);
+}
+
+.agent-boot-line.is-typing::after {
+  content: '';
+  display: inline-block;
+  width: 7px;
+  height: 1.05em;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  background: rgba(236, 245, 255, 0.88);
+  animation: agent-boot-caret 0.9s step-end infinite;
+}
+
+.agent-boot-cursor {
+  display: inline-block;
+  width: 8px;
+  height: 1.1em;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  background: rgba(236, 245, 255, 0.9);
+  animation: agent-boot-caret 0.9s step-end infinite;
+}
+
+@keyframes agent-boot-caret {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+.agent-boot-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: rgba(169, 208, 236, 0.78);
+}
+
+.agent-boot-status-pct {
+  font-variant-numeric: tabular-nums;
+  color: rgba(125, 211, 252, 0.9);
+}
+
+.agent-boot-progress {
+  margin-top: 8px;
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.agent-boot-progress-fill {
+  position: relative;
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #38bdf8 0%, #a78bfa 52%, #f472b6 100%);
+  transition: width 260ms cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+
+.agent-boot-progress-shimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.55) 46%,
+    transparent 92%
+  );
+  transform: translateX(-120%);
+  animation: agent-boot-progress-sheen 1.8s ease-in-out infinite;
+}
+
+@keyframes agent-boot-progress-sheen {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(220%);
+  }
+}
+
+.agent-boot-controls.terminal-composer-controls {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 0 4px !important;
+}
+
+.agent-boot-controls.terminal-composer-controls > div {
+  display: none !important;
+}
+
+.agent-boot-control-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(248, 113, 113, 0.85);
+  box-shadow: 0 0 10px rgba(248, 113, 113, 0.35);
+}
+
+.agent-boot-control-dot.is-amber {
+  background: rgba(251, 191, 36, 0.9);
+  box-shadow: 0 0 10px rgba(251, 191, 36, 0.28);
+}
+
+.agent-boot-control-dot.is-green {
+  background: rgba(74, 222, 128, 0.9);
+  box-shadow: 0 0 10px rgba(74, 222, 128, 0.28);
+}
+
+.agent-boot-control-caption {
+  margin-left: auto;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(148, 163, 184, 0.62);
+}
+
+@media (max-width: 767px) {
+  .agent-boot-stage {
+    width: calc(100vw - 20px);
+  }
+
+  .agent-boot-terminal.agent-input.terminal-composer {
+    min-height: clamp(300px, 58vh, 420px) !important;
+    border-radius: 16px !important;
+  }
+
+  .agent-boot-code {
+    min-height: clamp(200px, 42vh, 300px);
+    max-height: clamp(240px, 46vh, 340px);
+    font-size: 11px;
+  }
+
+  .agent-boot-blob {
+    width: 78vw;
+    height: 78vw;
+    opacity: 0.34;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .agent-boot-blob {
+    animation: none;
+    opacity: 0.34;
+    transform: translate(-50%, -50%);
+  }
+
+  .agent-boot-void-pulse,
+  .agent-boot-scanline,
+  .agent-boot-progress-shimmer {
+    animation: none !important;
+    opacity: 0 !important;
+  }
+
+  .agent-boot-overlay.is-terminal-enter .agent-boot-terminal-shell,
+  .agent-boot-line {
+    animation: none !important;
+  }
+
+  .agent-boot-overlay.is-terminal-enter .agent-boot-stage,
+  .agent-boot-overlay.is-running .agent-boot-stage,
+  .agent-boot-overlay.is-exit .agent-boot-stage {
+    transition: none;
+  }
+
+  .agent-boot-line.is-typing::after,
+  .agent-boot-cursor {
+    animation: none;
+    opacity: 0;
+  }
+
+  .agent-boot-progress-fill {
+    transition: none;
+  }
+}

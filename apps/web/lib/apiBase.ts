@@ -96,10 +96,7 @@ export function getServerApiBaseUrl(): string {
  * con timeout largo. El API directo cross-origin no recibe la sesión.
  */
 export function getDocumentParseRequestUrl(): string {
-  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
-    return '/api/documents/parse';
-  }
-  return `${getUploadApiBaseUrl()}/api/documents/parse`;
+  return getUploadApiBaseUrl();
 }
 
 /**

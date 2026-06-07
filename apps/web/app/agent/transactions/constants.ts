@@ -77,5 +77,21 @@ export const TX_CATEGORY_OPTIONS = [
 export const TX_MAX_SINGLE_FILE_BYTES = 10 * 1024 * 1024;
 /** Must stay aligned with API DOCUMENT_PARSE_MAX_TOTAL_BYTES and Express JSON limit (~70 MB). */
 export const TX_MAX_TOTAL_FILE_BYTES = 50 * 1024 * 1024;
-export const PRODUCT_STACK_PALETTE = ['#3b5068', '#6e2929', '#9e7228', '#364818', '#111111'] as const;
-export const PRODUCT_STACK_TEXT_PALETTE = ['#8ea7bf', '#c89191', '#d8b266', '#86a06f', '#111111'] as const;
+export const PRODUCT_STACK_PALETTE = [
+  '#3b5068',
+  '#6e2929',
+  '#9e7228',
+  '#364818',
+  '#4a3d6e',
+  '#2d5c5a',
+  '#6b4a2e',
+] as const;
+export const PRODUCT_STACK_TEXT_PALETTE = [
+  '#8ea7bf',
+  '#c89191',
+  '#d8b266',
+  '#86a06f',
+  '#b8a8d8',
+  '#7ec4c0',
+  '#d4b08a',
+] as const;

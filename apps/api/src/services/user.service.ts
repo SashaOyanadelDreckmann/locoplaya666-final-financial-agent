@@ -2,10 +2,12 @@ import type { FinancialDiagnosticProfile } from '../schemas/profile.schema';
 import { USER_ROLES, type UserRole } from '../auth/rbac';
 import { APPROVAL_STATUS, type ApprovalStatus } from '../auth/approval';
 import type { User } from '../schemas/user.schema';
+import type { WelcomeIntroCache } from '@financial-agent/shared';
 import type {
   StoredPanelState,
   StoredSheet,
   StoredKnowledgeEvent,
+  StoredUser,
 } from '../persistence/types';
 import {
   createUserRecord,
@@ -137,9 +139,45 @@ export async function attachIntakeToUser(
     intakeContext?: unknown;
     productsContext?: unknown;
     budgetContext?: unknown;
+    welcomeIntroCache?: WelcomeIntroCache;
   },
+  options?: { replace?: boolean },
 ): Promise<boolean> {
-  const updated = await patchUserRecord(userId, { injectedIntake: intakePayload });
+  let nextEnvelope: Record<string, unknown> = intakePayload as Record<string, unknown>;
+
+  if (!options?.replace) {
+    const user = await getUserById(userId);
+    const existing =
+      user?.injectedIntake && typeof user.injectedIntake === 'object'
+        ? (user.injectedIntake as Record<string, unknown>)
+        : {};
+    nextEnvelope = { ...existing, ...intakePayload };
+  }
+
+  const updated = await patchUserRecord(userId, {
+    injectedIntake: nextEnvelope as StoredUser['injectedIntake'],
+  });
+  return Boolean(updated);
+}
+
+export async function persistWelcomeIntroCache(
+  userId: string,
+  welcomeIntroCache: WelcomeIntroCache,
+): Promise<boolean> {
+  const user = await getUserById(userId);
+  if (!user) return false;
+
+  const existing =
+    user.injectedIntake && typeof user.injectedIntake === 'object'
+      ? (user.injectedIntake as Record<string, unknown>)
+      : {};
+
+  const updated = await patchUserRecord(userId, {
+    injectedIntake: {
+      ...existing,
+      welcomeIntroCache,
+    } as StoredUser['injectedIntake'],
+  });
   return Boolean(updated);
 }
 

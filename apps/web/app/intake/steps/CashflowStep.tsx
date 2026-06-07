@@ -28,7 +28,9 @@ const TRACKING_OPTIONS: { value: IntakeQuestionnaire['tracksExpenses']; label: s
   { value: 'no', label: 'No registro' },
 ];
 
+import { useIntakeQuestionAmbient } from '../useIntakeQuestionAmbient';
 import { IntakeQuestionNav } from './IntakeQuestionNav';
+import { IntakeQuestionTransition } from './IntakeQuestionTransition';
 
 export function CashflowStep({
   form,
@@ -42,6 +44,8 @@ export function CashflowStep({
   const [questionIndex, setQuestionIndex] = useState(0);
   const totalQuestions = 3;
 
+  useIntakeQuestionAmbient(questionIndex, totalQuestions);
+
   const onNextQuestion = () => {
     if (questionIndex >= totalQuestions - 1) {
       onNext();
@@ -54,10 +58,11 @@ export function CashflowStep({
     setQuestionIndex((prev) => Math.max(prev - 1, 0));
   };
 
-  const showForward =
-    (questionIndex === 0 && Boolean(form.incomeBand)) ||
-    (questionIndex === 1 && Boolean(form.expensesCoverage)) ||
-    (questionIndex === 2 && Boolean(form.tracksExpenses));
+  const showForward = true;
+  const forwardDisabled =
+    (questionIndex === 0 && !Boolean(form.incomeBand)) ||
+    (questionIndex === 1 && !Boolean(form.expensesCoverage)) ||
+    (questionIndex === 2 && !Boolean(form.tracksExpenses));
 
   return (
     <div className="intake-step animate-intake-in">
@@ -76,11 +81,13 @@ export function CashflowStep({
         onBack={onBackQuestion}
         onNext={questionIndex === totalQuestions - 1 ? onNext : onNextQuestion}
         showForward={showForward}
+        forwardDisabled={forwardDisabled}
         forwardAriaLabel={questionIndex === totalQuestions - 1 ? 'Siguiente sección' : 'Continuar'}
       />
 
+      <IntakeQuestionTransition questionKey={questionIndex}>
       {questionIndex === 0 && (
-        <div className="intake-question-block intake-question-screen animate-intake-in">
+        <>
           <label className="intake-question-label">¿Cuánto <span className="kw-sky">ingresas</span> al mes, aproximadamente?</label>
           <div className="intake-chips intake-chips-grid" style={{ '--intake-cols': balancedColumns(INCOME_OPTIONS.length) } as CSSProperties}>
             {INCOME_OPTIONS.map((opt) => (
@@ -110,11 +117,11 @@ export function CashflowStep({
               }
             />
           )}
-        </div>
+        </>
       )}
 
       {questionIndex === 1 && (
-        <div className="intake-question-block intake-question-screen animate-intake-in">
+        <>
           <label className="intake-question-label">¿Tus ingresos <span className="kw-sky">cubren</span> tus gastos mensuales?</label>
           <div className="intake-chips">
             {COVERAGE_OPTIONS.map((opt) => (
@@ -132,11 +139,11 @@ export function CashflowStep({
               </button>
             ))}
           </div>
-        </div>
+        </>
       )}
 
       {questionIndex === 2 && (
-        <div className="intake-question-block intake-question-screen animate-intake-in">
+        <>
           <label className="intake-question-label">¿<span className="kw-sky">Registras</span> o monitoreas tus gastos?</label>
           <div className="intake-chips">
             {TRACKING_OPTIONS.map((opt) => (
@@ -153,8 +160,9 @@ export function CashflowStep({
               </button>
             ))}
           </div>
-        </div>
+        </>
       )}
+      </IntakeQuestionTransition>
     </div>
   );
 }

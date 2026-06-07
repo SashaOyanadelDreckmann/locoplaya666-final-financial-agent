@@ -20,11 +20,11 @@
   }
 
   html.is-tablet-landscape .agent-layout.is-panel-stage-1 {
-    grid-template-columns: minmax(0, 1fr) 48px 280px !important;
+    grid-template-columns: minmax(0, 1fr) 48px 340px !important;
   }
 
   html.is-tablet-landscape .agent-layout.is-panel-stage-2 {
-    grid-template-columns: minmax(0, 1fr) 48px 320px !important;
+    grid-template-columns: minmax(0, 1fr) 48px 360px !important;
   }
 
   html.is-tablet-landscape .agent-panel {
@@ -287,6 +287,105 @@ html.is-tablet-device.intake-route-active .intake-photo-bg {
 html.is-tablet-device.intake-route-active .intake-warp-stage {
   width: 100% !important;
   margin-left: 0 !important;
+}
+
+/*
+ * Intake — desktop browser: fondo4 visible with a light matte scrim (no stacked black layers).
+ */
+html.is-desktop-viewport.intake-route-active:not(.is-tablet-device) .global-agent-backdrop {
+  display: none !important;
+}
+
+html.is-desktop-viewport.intake-route-active:not(.is-tablet-device),
+html.is-desktop-viewport.intake-route-active:not(.is-tablet-device) body {
+  background-color: #0a0e14 !important;
+  background-image: none !important;
+}
+
+html.is-desktop-viewport.intake-route-active:not(.is-tablet-device) .app-shell::before,
+html.is-desktop-viewport.intake-route-active:not(.is-tablet-device) .app-shell::after {
+  display: none !important;
+  content: none !important;
+  background-image: none !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+html.is-desktop-viewport.intake-route-active:not(.is-tablet-device) .intake-photo-bg {
+  opacity: 1 !important;
+  visibility: visible !important;
+  background-image:
+    linear-gradient(180deg, rgba(6, 10, 16, 0.44) 0%, rgba(6, 10, 16, 0.60) 100%),
+    url('/fondo4.jpg') !important;
+  background-size: cover, cover !important;
+  background-position: center bottom, center bottom !important;
+  background-repeat: no-repeat, no-repeat !important;
+  filter: brightness(0.24) contrast(0.90) saturate(0.66) grayscale(0.07) !important;
+}
+
+html.is-desktop-viewport.intake-route-active:not(.is-tablet-device) .intake-shell::before {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(0, 0, 0, 0.14) 0%,
+      rgba(0, 0, 0, 0.28) 42%,
+      rgba(0, 0, 0, 0.34) 100%
+    ) !important;
+}
+
+html.is-desktop-viewport.intake-route-active:not(.is-tablet-device) .intake-shell::after {
+  display: none !important;
+  content: none !important;
+}
+
+html.is-desktop-viewport.intake-route-active:not(.is-tablet-device) .intake-bg-orb::before,
+html.is-desktop-viewport.intake-route-active:not(.is-tablet-device) .intake-bg-orb::after {
+  display: block !important;
+  content: '' !important;
+}
+
+html.is-desktop-viewport.intake-route-active:not(.is-tablet-device) .intake-bg-orb {
+  opacity: 0.94;
+  filter: blur(28px) saturate(1.14);
+  transition:
+    background 1.2s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 1s cubic-bezier(0.22, 0.68, 0, 1.2),
+    opacity 0.6s ease,
+    filter 0.6s ease;
+}
+
+html.is-desktop-viewport.intake-route-active:not(.is-tablet-device) .intake-shell[data-step="context"] .intake-bg-orb {
+  transform: translate3d(calc(-50% + var(--intake-q-shift-x, 0px)), var(--intake-q-shift-y, 0%), 0) scale(1.02) rotate(-1deg);
+}
+
+html.is-desktop-viewport.intake-route-active:not(.is-tablet-device) .intake-shell[data-step="cashflow"] .intake-bg-orb {
+  transform: translate3d(calc(-42% + var(--intake-q-shift-x, 0px)), calc(4% + var(--intake-q-shift-y, 0%)), 0) scale(1.12) rotate(2deg);
+}
+
+html.is-desktop-viewport.intake-route-active:not(.is-tablet-device) .intake-shell[data-step="savings"] .intake-bg-orb {
+  transform: translate3d(calc(-58% + var(--intake-q-shift-x, 0px)), calc(7% + var(--intake-q-shift-y, 0%)), 0) scale(0.95) rotate(-2deg);
+}
+
+html.is-desktop-viewport.intake-route-active:not(.is-tablet-device) .intake-shell[data-step="knowledge"] .intake-bg-orb {
+  transform: translate3d(calc(-47% + var(--intake-q-shift-x, 0px)), calc(-3% + var(--intake-q-shift-y, 0%)), 0) scale(1.18) rotate(1.5deg);
+}
+
+html.is-desktop-viewport.intake-route-active:not(.is-tablet-device) .intake-bg-orb::before {
+  opacity: 0.58 !important;
+  animation: intakeOrbMorph 12s ease-in-out infinite alternate !important;
+}
+
+html.is-desktop-viewport.intake-route-active:not(.is-tablet-device) .intake-bg-orb::after {
+  opacity: 1 !important;
+}
+
+html.is-desktop-viewport.intake-route-active .intake-stage-seg.active .intake-stage-seg-pill {
+  box-shadow: 0 0 14px rgba(var(--c-step, var(--c-blue)), 0.42) !important;
+}
+
+html.is-desktop-viewport.intake-route-active .intake-stage-seg.active .intake-stage-seg-pill::after {
+  content: '' !important;
+  animation: stageShimmer 3.2s ease-in-out infinite !important;
 }
 
 /*
@@ -588,7 +687,7 @@ html.is-desktop-viewport
   svg {
   animation: none !important;
   transform: scale(1.68);
-  filter: drop-shadow(0 4px 14px rgba(155, 198, 232, 0.4));
+  filter: none;
 }
 
 html.is-desktop-viewport
@@ -596,7 +695,7 @@ html.is-desktop-viewport
   .composer-send-btn.is-send-ready:not(:disabled):hover
   svg {
   transform: scale(1.78) translateY(-1px);
-  filter: drop-shadow(0 6px 18px rgba(175, 212, 244, 0.52));
+  filter: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

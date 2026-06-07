@@ -143,8 +143,6 @@ export function useAgentShell() {
   useEffect(() => {
     const html = document.documentElement;
     const body = document.body;
-    html.classList.add('agent-route-active');
-    body.classList.add('agent-route-active');
 
     html.style.overflow = 'hidden';
     html.style.overscrollBehavior = 'none';
@@ -206,8 +204,6 @@ export function useAgentShell() {
     document.addEventListener('gestureend', preventGesture as EventListener, { passive: false });
 
     return () => {
-      html.classList.remove('agent-route-active');
-      body.classList.remove('agent-route-active');
       html.style.overflow = '';
       html.style.overscrollBehavior = '';
       body.style.overflow = '';

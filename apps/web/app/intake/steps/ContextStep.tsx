@@ -4,7 +4,9 @@ import type { CSSProperties } from 'react';
 import type { IntakeQuestionnaire } from '@financial-agent/shared/src/intake/intake-questionnaire.types';
 import { balancedColumns } from './grid';
 import { CityMapQuestion } from './CityMapQuestion';
+import { useIntakeQuestionAmbient } from '../useIntakeQuestionAmbient';
 import { IntakeQuestionNav } from './IntakeQuestionNav';
+import { IntakeQuestionTransition } from './IntakeQuestionTransition';
 
 const EMPLOYMENT_OPTIONS: { value: IntakeQuestionnaire['employmentStatus']; label: string; sub: string }[] = [
   { value: 'employed', label: 'Dependiente', sub: 'Empleado con contrato' },
@@ -35,6 +37,8 @@ export function ContextStep({
   const totalQuestions = 4;
   const isLast = questionIndex === totalQuestions - 1;
 
+  useIntakeQuestionAmbient(questionIndex, totalQuestions);
+
   const onNextQuestion = () => {
     if (isLast) {
       onNext();
@@ -48,9 +52,10 @@ export function ContextStep({
   };
 
   const showForward =
-    (questionIndex === 0 && canContinueAge) ||
-    (questionIndex === 1 && canContinueCity) ||
-    questionIndex === 3;
+    questionIndex >= 0;
+  const forwardDisabled =
+    (questionIndex === 0 && !canContinueAge) ||
+    (questionIndex === 1 && !canContinueCity);
 
   return (
     <div className="intake-step intake-step-context animate-intake-in">
@@ -68,11 +73,13 @@ export function ContextStep({
         onBack={onBackQuestion}
         onNext={onNextQuestion}
         showForward={showForward}
+        forwardDisabled={forwardDisabled}
         forwardAriaLabel={isLast ? 'Siguiente sección' : 'Continuar'}
       />
 
+      <IntakeQuestionTransition questionKey={questionIndex}>
       {questionIndex === 0 && (
-        <div className="intake-question-block intake-question-screen animate-intake-in">
+        <>
           <label htmlFor="age-exact" className="intake-question-label">¿Cuál es tu <span className="kw-blue">edad exacta</span>?</label>
           <input
             id="age-exact"
@@ -86,22 +93,22 @@ export function ContextStep({
             onChange={(e) => update('age', Number(e.target.value) || undefined as any)}
             autoFocus
           />
-        </div>
+        </>
       )}
 
       {questionIndex === 1 && (
-        <div className="intake-question-block intake-question-screen animate-intake-in">
+        <>
           <label htmlFor="city" className="intake-question-label">¿De qué <span className="kw-blue">ciudad</span> eres?</label>
           <CityMapQuestion
             city={form.city ?? ''}
             onCityChange={(value) => update('city', value)}
             onGeocodeResolved={setCityGeocoded}
           />
-        </div>
+        </>
       )}
 
       {questionIndex === 2 && (
-        <div className="intake-question-block intake-question-screen animate-intake-in">
+        <>
           <label htmlFor="employment-group" className="intake-question-label">¿Cuál es tu <span className="kw-blue">situación laboral</span>?</label>
           <div className="intake-chips intake-chips-grid" id="employment-group" role="group" aria-labelledby="employment-group" style={{ '--intake-cols': balancedColumns(EMPLOYMENT_OPTIONS.length) } as CSSProperties}>
             {EMPLOYMENT_OPTIONS.map((opt) => (
@@ -121,11 +128,11 @@ export function ContextStep({
               </button>
             ))}
           </div>
-        </div>
+        </>
       )}
 
       {questionIndex === 3 && (
-        <div className="intake-question-block intake-question-screen animate-intake-in">
+        <>
           <label htmlFor="profession" className="intake-question-label">¿A qué te <span className="kw-blue">dedicas</span>? <span className="intake-optional">(opcional)</span></label>
           <input
             id="profession"
@@ -135,8 +142,9 @@ export function ContextStep({
             onChange={(e) => update('profession', e.target.value)}
             aria-label="Tu profesión u ocupación"
           />
-        </div>
+        </>
       )}
+      </IntakeQuestionTransition>
     </div>
   );
 }

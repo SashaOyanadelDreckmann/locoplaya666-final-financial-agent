@@ -38,8 +38,8 @@
 .panel-pos-interview  { grid-column: 1 / -1; }
 .panel-pos-budget     { grid-column: 1 / -1; }
 .panel-pos-transactions { grid-column: 2; }
-/* news + library fill a full row together */
-.panel-pos-news       { grid-column: 1; }
+/* news sits full-width below llamada guiada */
+.panel-pos-news       { grid-column: 1 / -1; }
 .panel-pos-library    { grid-column: 1 / -1; }
 /* recent docs: full width at bottom */
 .panel-pos-recent     { grid-column: 1 / -1; }

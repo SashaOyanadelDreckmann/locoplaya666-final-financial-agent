@@ -16,12 +16,11 @@
     --mobile-shell-mono-size: 28px;
     --mobile-shell-mono-icon: 16px;
     --mobile-shell-radius: 16px;
-    --mobile-shell-border: 1px solid rgba(173, 200, 220, 0.42);
+    --mobile-shell-border: 1px solid rgba(255, 255, 255, 0.14);
     --mobile-shell-bg: linear-gradient(180deg, rgba(2, 8, 14, 0.94), rgba(2, 8, 14, 0.98));
     --mobile-shell-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.1),
-      0 16px 32px rgba(0, 0, 0, 0.4),
-      0 0 0 1px rgba(155, 185, 209, 0.14);
+      inset 0 1px 0 rgba(255, 255, 255, 0.08),
+      0 16px 32px rgba(0, 0, 0, 0.4);
   }
 
   html.pwa-standalone main.agent-layout.is-mobile-viewport,
@@ -1020,7 +1019,7 @@
     animation: composer-send-float-pulse 2.35s ease-in-out infinite;
     transform-origin: center center;
     will-change: transform;
-    filter: drop-shadow(0 5px 14px rgba(155, 198, 232, 0.5));
+    filter: none;
   }
 }
 
@@ -1329,118 +1328,25 @@
   }
 }
 
-/* ─── Send button: morphing blob on composer focus ─────────────────────────── */
+/* ─── Send button — no animated focus glow ─────────────────────────────────── */
 
-/* ── PREMIUM SEND BUTTON — DUAL-LAYER CONIC GLOW ──────────────── */
-
-/* Layer 1: aurora orb breathes in opacity while static on transform */
-@keyframes send-aurora-breathe {
-  0%,  100% { opacity: 0.55; }
-  40%        { opacity: 0.88; }
-  70%        { opacity: 0.62; }
-}
-
-/* Layer 2: halo ring spins continuously */
-@keyframes send-halo-spin {
-  to { transform: rotate(360deg); }
-}
-
-/* Button base */
 .composer-send-btn {
   position: relative;
   overflow: visible;
 }
 
-/* Layer 1 — large diffuse aurora orb */
-.composer-send-btn::before {
-  content: '';
-  position: absolute;
-  inset: -20px;
-  border-radius: 50%;
-  background: conic-gradient(
-    from 0deg at 50% 50%,
-    rgba(59,  130, 246, 0.00)  0deg,
-    rgba(96,  184, 245, 0.90)  72deg,
-    rgba(147, 197, 253, 1.00)  144deg,
-    rgba(167, 139, 250, 0.65)  200deg,
-    rgba(99,  179, 237, 0.85)  280deg,
-    rgba(59,  130, 246, 0.00)  360deg
-  );
-  filter: blur(18px);
-  opacity: 0;
-  transform: scale(0.35);
-  transition: opacity  0.55s cubic-bezier(0.34, 1.56, 0.64, 1),
-              transform 0.55s cubic-bezier(0.34, 1.56, 0.64, 1);
-  pointer-events: none;
-  z-index: 0;
-  will-change: transform, opacity;
-}
-
-/* Layer 2 — tight crisp spinning halo */
+.composer-send-btn::before,
 .composer-send-btn::after {
-  content: '';
-  position: absolute;
-  inset: -6px;
-  border-radius: 50%;
-  background: conic-gradient(
-    from 0deg at 50% 50%,
-    transparent               0deg,
-    rgba(147, 197, 253, 0.85)  48deg,
-    rgba(220, 240, 255, 0.92)  70deg,
-    rgba(96,  184, 245, 0.88)  94deg,
-    transparent               135deg,
-    transparent               265deg,
-    rgba(167, 139, 250, 0.72)  318deg,
-    rgba(210, 215, 255, 0.65)  342deg,
-    transparent               360deg
-  );
-  filter: blur(3.5px);
-  opacity: 0;
-  transform: rotate(0deg);
-  transition: opacity 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
-  pointer-events: none;
-  z-index: 0;
-  will-change: transform, opacity;
+  display: none !important;
+  content: none !important;
 }
 
-/* Focused — activate aurora orb
-   opacity:0.55 matches send-aurora-breathe 0% keyframe for seamless handoff.
-   0.55s animation-delay = entrance transition duration → no flicker. */
-.terminal-composer-shell.composer-focused .composer-send-btn::before,
-.agent-mobile-composer-dock.composer-focused .composer-send-btn::before {
-  opacity: 0.55;
-  transform: scale(1.3);
-  animation: send-aurora-breathe 3.2s ease-in-out infinite 0.55s;
-}
-
-/* Focused — activate spinning halo */
-.terminal-composer-shell.composer-focused .composer-send-btn::after,
-.agent-mobile-composer-dock.composer-focused .composer-send-btn::after {
-  opacity: 0.75;
-  animation: send-halo-spin 2.2s linear infinite;
-}
-
-/* SVG stays above both glow layers */
 .composer-send-btn svg {
   position: relative;
   z-index: 1;
 }
 
-/* Icon gets a crisp double drop-shadow glow when focused */
 .terminal-composer-shell.composer-focused .composer-send-btn svg,
 .agent-mobile-composer-dock.composer-focused .composer-send-btn svg {
-  filter: drop-shadow(0 0 4px rgba(147, 197, 253, 0.90))
-          drop-shadow(0 0 12px rgba(96, 184, 245, 0.50));
-  transition: filter 0.5s ease;
-}
-
-/* Reduced motion: static glow, no spin */
-@media (prefers-reduced-motion: reduce) {
-  .terminal-composer-shell.composer-focused .composer-send-btn::before,
-  .agent-mobile-composer-dock.composer-focused .composer-send-btn::before,
-  .terminal-composer-shell.composer-focused .composer-send-btn::after,
-  .agent-mobile-composer-dock.composer-focused .composer-send-btn::after {
-    animation: none;
-    transform: scale(1);
-  }
+  filter: none !important;
 }

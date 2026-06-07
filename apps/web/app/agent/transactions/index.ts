@@ -15,9 +15,7 @@ export {
   wantsTextEvidenceUpload,
 } from './tx-assistant.helpers';
 export {
-  buildTxStageCta,
   buildTxStages,
-  buildTxStageSummary,
   deriveActiveTxStageIndex,
   deriveCurrentStage,
 } from './tx-wizard.helpers';

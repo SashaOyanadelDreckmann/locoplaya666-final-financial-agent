@@ -1,9 +1,7 @@
 /** @jest-environment node */
 
 import {
-  buildTxStageCta,
   buildTxStages,
-  buildTxStageSummary,
   deriveActiveTxStageIndex,
   deriveCurrentStage,
 } from '../tx-wizard.helpers';
@@ -37,28 +35,4 @@ describe('tx wizard helpers', () => {
     expect(setTxWizardStep).toHaveBeenCalledWith('dashboard');
   });
 
-  it('builds stage summary and CTA copy', () => {
-    expect(
-      buildTxStageSummary({
-        currentStage: 'evidence',
-        activeProductCreations: 1,
-        maxProducts: 7,
-        productsCreatedTotal: 1,
-      }),
-    ).toMatch(/Paso 2 de 3/i);
-
-    expect(
-      buildTxStageCta({
-        currentStage: 'consent',
-        analysisAlreadyDone: false,
-        canContinueAuto: false,
-        authorizationState: {
-          bank: '',
-          label: '',
-          simulationAccepted: false,
-          canContinue: false,
-        },
-      }),
-    ).toMatch(/consentimiento/i);
-  });
 });

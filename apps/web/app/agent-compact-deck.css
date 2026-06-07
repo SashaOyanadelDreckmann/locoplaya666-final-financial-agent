@@ -1239,3 +1239,41 @@ html[data-visual-mode='light-outline'] .floating-card-shell {
     animation: none !important;
   }
 }
+
+/*
+ * Neutral container chrome — no blue outer glow on agent shells (mobile/tablet portrait).
+ */
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-tabs-row .chat-sheet-tab.is-active,
+  body.agent-route-active .agent-chat .chat-switcher .chat-sheet-tab.is-active {
+    border-color: rgba(255, 255, 255, 0.34) !important;
+    background: rgba(0, 0, 0, 0.94) !important;
+    background-image: none !important;
+    box-shadow: none !important;
+  }
+
+  body.agent-route-active .agent-mobile-composer-dock .agent-input.terminal-composer,
+  body.agent-route-active .agent-chat .agent-input.terminal-composer {
+    border-color: rgba(255, 255, 255, 0.14) !important;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.08),
+      0 16px 32px rgba(0, 0, 0, 0.4) !important;
+  }
+
+  body.agent-route-active .agent-thread > .agent-bubble.assistant.latex-doc,
+  body.agent-route-active .agent-thread > .agent-bubble.assistant.latex-doc.is-intro-doc,
+  body.agent-route-active .latex-doc {
+    box-shadow:
+      0 30px 72px rgba(0, 0, 0, 0.38),
+      inset 0 1px 0 rgba(255, 255, 255, 0.88) !important;
+  }
+
+  body.agent-route-active .agent-thread .agent-inline-panel-action,
+  body.agent-route-active .agent-thread .agent-inline-panel-action--intro,
+  body.agent-route-active .agent-thread .agent-flow-cta {
+    background: rgba(0, 0, 0, 0.48) !important;
+    background-image: none !important;
+    border-color: rgba(255, 255, 255, 0.14) !important;
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.22) !important;
+  }
+}

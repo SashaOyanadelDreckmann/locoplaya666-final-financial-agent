@@ -4,13 +4,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 describe('budget modal logic guards', () => {
-  const modalsPath = path.join(process.cwd(), 'app', 'agent', 'modals.tsx');
-  const source = fs.readFileSync(modalsPath, 'utf8');
+  const budgetModalPath = path.join(process.cwd(), 'app', 'agent', 'BudgetModal.tsx');
+  const source = fs.readFileSync(budgetModalPath, 'utf8');
 
-  it('opens in assistant mode on mobile when modal opens', () => {
+  it('opens in mode 1 when modal opens (assistant on mobile, split on desktop)', () => {
     const layoutSource = fs.readFileSync(path.join(process.cwd(), 'app', 'agent', 'use-budget-modal-layout.ts'), 'utf8');
     expect(layoutSource).toContain('useSyncExternalStore');
-    expect(layoutSource).toContain('setBudgetViewMode(mobileShell ? 1 : 2);');
+    expect(layoutSource).toContain('setBudgetViewMode(1);');
   });
 
   it('mounts the budget modal in the agent page again', () => {
@@ -18,12 +18,22 @@ describe('budget modal logic guards', () => {
     expect(pageSource).toContain('<BudgetModal');
     expect(pageSource).toContain('isBudgetModalOpen');
     expect(pageSource).toContain('setIsBudgetModalOpen(true);');
+    expect(pageSource).toMatch(/hasBlockingModalOpen[\s\S]*isBudgetModalOpen/);
   });
 
-  it('keeps desktop->mobile mode fallback to prevent invalid mode 3 on mobile', () => {
+  it('keeps three desktop modes and two mobile modes', () => {
     const layoutSource = fs.readFileSync(path.join(process.cwd(), 'app', 'agent', 'use-budget-modal-layout.ts'), 'utf8');
     expect(layoutSource).toContain('shouldUseMobileShell');
-    expect(layoutSource).toContain('const maxMode = isDesktopLayout ? 3 : 2;');
+    expect(layoutSource).toContain('export type BudgetViewMode = 1 | 2 | 3;');
+    expect(layoutSource).toContain("'table-only'");
+    expect(layoutSource).toContain("'split'");
+    expect(layoutSource).toContain("'agent-front'");
+    const budgetModalSource = fs.readFileSync(path.join(process.cwd(), 'app', 'agent', 'BudgetModal.tsx'), 'utf8');
+    expect(budgetModalSource).toContain('budget-assistant-blur-veil');
+    expect(budgetModalSource).toContain('isAssistantOverlayMode');
+    expect(budgetModalSource).toContain('tableViewMode');
+    expect(budgetModalSource).toContain("onClick={() => setBudgetViewMode(2)}");
+    expect(budgetModalSource).toContain('onClick={() => setBudgetViewMode(tableViewMode)}');
   });
 
   it('auto-applies budget template when modal opens with empty rows', () => {
@@ -39,7 +49,7 @@ describe('budget modal logic guards', () => {
 
   it('prevents duplicate reply submissions while a request is in flight', () => {
     expect(source).toContain('const replySubmitLockRef = useRef(false);');
-    expect(source).toContain('if (!answer || isAskingAI || replySubmitLockRef.current) return;');
+    expect(source).toContain('!props.isOpen || isAskingAI || isInitializing || replySubmitLockRef.current');
     expect(source).toContain('replySubmitLockRef.current = true;');
     expect(source).toContain('replySubmitLockRef.current = false;');
   });
@@ -64,6 +74,38 @@ describe('budget modal logic guards', () => {
     expect(source).toContain('pendingConfirmation: budgetPendingConfirmation');
     expect(source).toContain('requires_confirmation');
     expect(source).toContain('setBudgetPendingConfirmation(null);');
+    expect(source).toContain('BudgetPendingConfirmBanner');
+    expect(source).toContain("handleBudgetAgentReplySubmit('sí')");
+    expect(source).toContain("handleBudgetAgentReplySubmit('no')");
+  });
+
+  it('aborts in-flight budget chat when the modal closes', () => {
+    expect(source).toContain('isOpenRef');
+    expect(source).toContain('initAbortRef.current?.abort()');
+    expect(source).toContain('replyAbortRef.current?.abort()');
+    expect(source).toContain('if (!isOpenRef.current');
+    expect(source).not.toContain('autoSendTimerRef');
+  });
+
+  it('commits chat answers only after a successful assistant reply', () => {
+    expect(source).toContain('props.onChatAnswersChange(newChatAnswers)');
+    expect(source).not.toMatch(
+      /props\.onChatAnswersChange\(newChatAnswers\);\s*\n\s*setBudgetReply\(''\)/,
+    );
+  });
+
+  it('keeps modals barrel free of duplicated budget snapshot helpers', () => {
+    const modalsSource = fs.readFileSync(path.join(process.cwd(), 'app', 'agent', 'modals.tsx'), 'utf8');
+    expect(modalsSource).not.toContain('collectBudgetSnapshotCss');
+    expect(modalsSource).not.toContain('buildBudgetSnapshotHtmlAndCss');
+    expect(modalsSource).toContain("export { BudgetModal } from './BudgetModal'");
+  });
+
+  it('centralizes budget chat API helpers outside the modal component', () => {
+    const apiSource = fs.readFileSync(path.join(process.cwd(), 'app', 'agent', 'budget-modal.chat-api.ts'), 'utf8');
+    expect(apiSource).toContain('export function normalizeBudgetChatPayload');
+    expect(apiSource).toContain('BUDGET_CHAT_WATCHDOG_MS');
+    expect(apiSource).toContain('BUDGET_CHAT_ABORT_MESSAGE');
   });
 
   it('keeps assistant UI minimal with only the current question and input', () => {
@@ -88,17 +130,19 @@ describe('budget modal logic guards', () => {
   });
 
   it('maps auth, rate limit and server failures to explicit assistant error copy', () => {
-    expect(source).toContain("if (message.includes('HTTP 401'))");
-    expect(source).toContain('Sesion expirada o no iniciada. Vuelve a entrar para usar el asistente.');
-    expect(source).toContain("if (message.includes('HTTP 429'))");
-    expect(source).toContain('Demasiadas solicitudes al asistente. Espera un momento e intenta otra vez.');
-    expect(source).toContain("if (message.includes('HTTP 5'))");
-    expect(source).toContain('El servicio del asistente no esta disponible ahora. Intenta nuevamente en unos segundos.');
+    const apiSource = fs.readFileSync(path.join(process.cwd(), 'app', 'agent', 'budget-modal.chat-api.ts'), 'utf8');
+    expect(apiSource).toContain("if (message.includes('HTTP 401'))");
+    expect(apiSource).toContain('Sesión expirada o no iniciada. Vuelve a entrar para usar el asistente.');
+    expect(apiSource).toContain("if (message.includes('HTTP 429'))");
+    expect(apiSource).toContain('Demasiadas solicitudes al asistente. Espera un momento e intenta otra vez.');
+    expect(apiSource).toContain("if (message.includes('HTTP 5'))");
+    expect(apiSource).toContain('El servicio del asistente no está disponible ahora. Intenta nuevamente en unos segundos.');
+    expect(source).toContain('BUDGET_CHAT_ABORT_MESSAGE');
   });
 
   it('wires mobile shell class, hidden cockpit, chat sync, and safe overlay dismiss', () => {
     expect(source).toContain("data-budget-mobile={isMobileShell ? 'true' : undefined}");
-    expect(source).toContain("data-budget-view={budgetViewMode === 2 ? 'table' : 'assistant'}");
+    expect(source).toContain('resolveBudgetViewDataAttr(isDesktopLayout, budgetViewMode)');
     expect(source).toContain('{!isMobileShell && (');
     expect(source).toContain('budget-cockpit-banner');
     expect(source).toContain('bcc-hero-question');
@@ -108,6 +152,18 @@ describe('budget modal logic guards', () => {
     expect(source).toContain('handleOverlayPointerDown');
     expect(source).toContain('role="tablist"');
     expect(source).toContain('aria-selected={budgetViewMode === 1}');
+    expect(source).toContain('useBudgetCloseConfirm');
+    expect(source).toContain('BudgetCloseConfirmDialog');
+    expect(source).toContain('requestClose');
+    expect(source).toContain('forceClose');
+    expect(source).not.toContain('onClick={props.onClose}');
+  });
+
+  it('extracts pdf snapshot helpers into a dedicated module', () => {
+    expect(source).toContain("from './budget-modal.snapshot'");
+    expect(source).not.toContain('function collectBudgetSnapshotCss');
+    const snapshotSource = fs.readFileSync(path.join(process.cwd(), 'app', 'agent', 'budget-modal.snapshot.ts'), 'utf8');
+    expect(snapshotSource).toContain('export function buildBudgetSnapshotHtmlAndCss');
   });
 
   it('measures mobile row slot height for one-row table viewport', () => {

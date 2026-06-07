@@ -35,7 +35,7 @@ describe('transactions modal layout contract css', () => {
     expect(contractCss).toContain('.transactions-modal .tx-wizard-stepper-list');
     expect(contractCss).toContain('.transactions-modal .tx-wizard-step-copy');
     expect(contractCss).toContain('display: none !important');
-    expect(contractCss).toContain('.transactions-modal .tx-flow-status-card');
+    expect(contractCss).not.toContain('.transactions-modal .tx-flow-status-card');
   });
 
   it('neutralizes phantom mobile bottom clearance', () => {
@@ -70,5 +70,15 @@ describe('transactions modal layout contract css', () => {
     expect(contractCss).toContain('flex-direction: column !important');
     expect(contractCss).toContain('html:not(.home-route-active) .transactions-modal .pt-left');
     expect(contractCss).toContain('flex: 0 0 auto !important');
+  });
+
+  it('defines desktop guard for evidence header and library stack', () => {
+    expect(contractCss).toContain('DESKTOP GUARD');
+    expect(contractCss).toContain('@media (min-width: 1101px)');
+    expect(contractCss).toContain('.transactions-modal .tx-content-card.tx-content-card--agent.is-main-center .tx-agent-stage-title');
+    expect(contractCss).toContain("font-family: Georgia, 'Times New Roman', serif !important");
+    expect(contractCss).toContain("font-family: 'Playfair Display', Georgia, serif !important");
+    expect(contractCss).toContain('.transactions-modal .pt-left .pt-list');
+    expect(contractCss).toContain('.transactions-modal .tx-format-rail-chip-label-short');
   });
 });

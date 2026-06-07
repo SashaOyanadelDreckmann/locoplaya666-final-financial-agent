@@ -526,17 +526,6 @@ export default function HomePage() {
   const heroY       = useTransform(heroProgress, [0, 0.6], [0, -55]);
   const lineOpacity = useTransform(heroProgress, [0, 0.18], [1, 0]);
 
-  useEffect(() => {
-    const html = document.documentElement;
-    const body = document.body;
-    html.classList.add('home-route-active');
-    body.classList.add('home-route-active');
-    return () => {
-      html.classList.remove('home-route-active');
-      body.classList.remove('home-route-active');
-    };
-  }, []);
-
   const updatePointer = useCallback((clientX: number, clientY: number) => {
     const vv = window.visualViewport;
     const w = vv?.width ?? window.innerWidth;

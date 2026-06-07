@@ -93,7 +93,7 @@ export async function submitIntake(req: Request, res: Response) {
       const existing = await getUserById(user.id);
       wasUpdated = Boolean(existing?.injectedIntake);
 
-      await attachIntakeToUser(user.id, { intake, llmSummary, intakeContext });
+      await attachIntakeToUser(user.id, { intake, llmSummary, intakeContext }, { replace: true });
       await synchronizeKnowledgeFromIntake(user.id, intake);
       await recordKnowledgeEvent(
         user.id,

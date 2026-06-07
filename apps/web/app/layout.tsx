@@ -5,16 +5,22 @@ import './backdrop-system.css';
 import './tablet-system.css';
 import './mobile-keyboard-viewport.css';
 import './visual-modes.css';
+import './agent-boot-sequence.css';
 import './agent-compact-deck.css';
 import './agent-modals-budget-mobile-authoritative.css';
-import './agent-modals-transactions-contract.css';
+import './agent-modals-budget-desktop-guard.css';
+import './agent-modals-desktop-guard.css';
 import './agent-desktop-shell.css';
+import './agent-modals-transactions-contract.css';
 import MobileInputViewportSync from '@/components/MobileInputViewportSync';
+import RouteShellClassSync from '@/components/RouteShellClassSync';
 import ServiceWorkerReset from '@/components/ServiceWorkerReset';
 import BrowserChromeVignetteSync from '@/components/BrowserChromeVignetteSync';
 import ViewportModeSync from '@/components/ViewportModeSync';
+import { resolveRouteShellClass } from '@/lib/route-shell-classes';
 import { buildRuntimePublicConfigScript } from '@/lib/runtimePublicConfig';
 import type { Viewport } from 'next';
+import { headers } from 'next/headers';
 
 export const metadata = {
   title: 'Financieramente',
@@ -32,11 +38,13 @@ export const viewport: Viewport = {
 };
 
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = (await headers()).get('x-pathname') ?? '';
+  const routeShellClass = resolveRouteShellClass(pathname);
   const runtimeConfigScript = buildRuntimePublicConfigScript();
   const standaloneClassScript = `
 (() => {
@@ -64,73 +72,8 @@ export default function RootLayout({
   } catch (_) {}
 })();
 `;
-  const agentRouteClassScript = `
-(() => {
-  try {
-    const isAgentRoute = /^\\/agent(\\/|$)/.test(window.location.pathname);
-    if (!isAgentRoute) return;
-    const apply = () => {
-      document.documentElement.classList.add('agent-route-active');
-      document.body?.classList.add('agent-route-active');
-    };
-    apply();
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', apply, { once: true });
-    }
-  } catch (_) {}
-})();
-`;
-  const homeRouteClassScript = `
-(() => {
-  try {
-    const isHomeRoute = window.location.pathname === '/';
-    if (!isHomeRoute) return;
-    const apply = () => {
-      document.documentElement.classList.add('home-route-active');
-      document.body?.classList.add('home-route-active');
-    };
-    apply();
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', apply, { once: true });
-    }
-  } catch (_) {}
-})();
-`;
-  const intakeRouteClassScript = `
-(() => {
-  try {
-    const isIntakeRoute = /^\\/intake(\\/|$)/.test(window.location.pathname);
-    if (!isIntakeRoute) return;
-    const apply = () => {
-      document.documentElement.classList.add('intake-route-active');
-      document.body?.classList.add('intake-route-active');
-    };
-    apply();
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', apply, { once: true });
-    }
-  } catch (_) {}
-})();
-`;
-  const authRouteClassScript = `
-(() => {
-  try {
-    const isAuthRoute = /^\\/(login|register|forgot-password|waiting-approval)(\\/|$)/.test(window.location.pathname);
-    if (!isAuthRoute) return;
-    const apply = () => {
-      document.documentElement.classList.add('auth-route-active');
-      document.body?.classList.add('auth-route-active');
-    };
-    apply();
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', apply, { once: true });
-    }
-  } catch (_) {}
-})();
-`;
-
   return (
-    <html lang="es">
+    <html lang="es" className={routeShellClass} suppressHydrationWarning>
       <head>
         <script
           id="fa-runtime-config"
@@ -139,22 +82,6 @@ export default function RootLayout({
         <script
           id="fa-standalone-class"
           dangerouslySetInnerHTML={{ __html: standaloneClassScript }}
-        />
-        <script
-          id="fa-agent-route-class"
-          dangerouslySetInnerHTML={{ __html: agentRouteClassScript }}
-        />
-        <script
-          id="fa-home-route-class"
-          dangerouslySetInnerHTML={{ __html: homeRouteClassScript }}
-        />
-        <script
-          id="fa-intake-route-class"
-          dangerouslySetInnerHTML={{ __html: intakeRouteClassScript }}
-        />
-        <script
-          id="fa-auth-route-class"
-          dangerouslySetInnerHTML={{ __html: authRouteClassScript }}
         />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="theme-color" media="(prefers-color-scheme: light)" content="#050810" />
@@ -169,7 +96,8 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital@1&family=Caveat:wght@600&display=swap" rel="stylesheet" />
       </head>
-      <body>
+      <body className={routeShellClass} suppressHydrationWarning>
+        <RouteShellClassSync />
         <ServiceWorkerReset />
         <BrowserChromeVignetteSync />
         <MobileInputViewportSync />

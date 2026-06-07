@@ -16,11 +16,11 @@ const EVIDENCE_FILE_ACCEPT =
   'image/*,video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm,.m4v,.avi,.png,.jpg,.jpeg,.webp,.gif,.pdf,.xls,.xlsx,.csv,.txt,.md';
 
 const FORMAT_OPTIONS = [
-  ['video', 'Rápido', 'Rápido'],
-  ['photos', 'Fotos', 'Fotos'],
-  ['pdf', 'PDF', 'PDF'],
+  ['video', 'Rápido', 'Video'],
+  ['photos', 'Fotos', 'Img'],
+  ['pdf', 'PDF', 'Doc'],
   ['spreadsheet', 'Excel / CSV', 'Excel'],
-  ['text', 'Texto', 'Texto'],
+  ['text', 'Texto', 'Txt'],
 ] as const;
 
 function SendIcon() {
@@ -169,20 +169,6 @@ export function TxEvidenceStep(props: TxEvidenceStepProps) {
           count={28}
         />
 
-        <div className="tx-evidence-product-bar" aria-label="Producto activo del chat">
-          <div className="tx-evidence-product-copy">
-            <span className="tx-evidence-product-kicker">Chat exclusivo del producto</span>
-            <strong>{p.activeBankProduct.label || 'Producto activo'}</strong>
-            <span>{p.activeBankProduct.bank || 'Institución por definir'}</span>
-          </div>
-          <div className="tx-evidence-product-meta">
-            <span>
-              {messageCount} mensaje{messageCount === 1 ? '' : 's'}
-            </span>
-            <span>{p.summaryRegenerationsLeft} revisiones</span>
-          </div>
-        </div>
-
         <div ref={p.chatThreadRef} className="tx-chat-thread" aria-live="polite" aria-relevant="additions">
           {messageCount === 0 ? (
             <p className="tx-chat-thread-empty">
@@ -320,7 +306,7 @@ export function TxEvidenceStep(props: TxEvidenceStepProps) {
 
           {!p.analysisAlreadyDone && (
             <p className="tx-composer-hint">
-              Enter envía · Shift+Enter nueva línea · Hasta {p.maxEvidenceFilesPerProduct} archivos · 50 MB por envío
+              Hasta {p.maxEvidenceFilesPerProduct} archivos · 50 MB por envío
             </p>
           )}
 

@@ -7,7 +7,7 @@ import Image from 'next/image';
 import { registerUser } from '@/lib/api';
 import { toUserFacingError } from '@/lib/userError';
 import { RegisterSchema, type RegisterInput } from '@/lib/validation';
-import { ZodError } from 'zod';
+import { zodFieldErrors } from '@/lib/form-errors';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -30,16 +30,7 @@ export default function RegisterPage() {
       setFieldErrors({});
       return true;
     } catch (e) {
-      if (e instanceof ZodError) {
-        const errors: Record<string, string> = {};
-        e.errors.forEach((err) => {
-          const field = err.path[0] as string;
-          if (!errors[field]) {
-            errors[field] = err.message;
-          }
-        });
-        setFieldErrors(errors);
-      }
+      setFieldErrors(zodFieldErrors(e));
       return false;
     }
   };

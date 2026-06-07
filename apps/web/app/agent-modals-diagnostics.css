@@ -4497,36 +4497,44 @@ body.agent-route-active .app-shell::before {
 }
 
 /* Buttons inside the modal — matte, tactile, interactive */
-.transactions-modal .continue-ghost {
+.transactions-modal .continue-ghost,
+.transactions-modal .button-primary {
   background: var(--txp-surface-2) !important;
+  background-image: none !important;
   border: 1px solid var(--txp-border-strong) !important;
   color: var(--txp-text) !important;
   box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  filter: none !important;
   transition: transform 0.16s var(--txp-ease), background 0.16s var(--txp-ease),
     border-color 0.16s var(--txp-ease);
 }
-.transactions-modal .continue-ghost:hover:not(:disabled) {
+.transactions-modal .continue-ghost:hover:not(:disabled),
+.transactions-modal .button-primary:hover:not(:disabled) {
   background: var(--txp-surface-2-hover) !important;
   border-color: var(--txp-border-hover) !important;
+  box-shadow: none !important;
+  filter: none !important;
   transform: translateY(-1px);
 }
-.transactions-modal .continue-ghost:active:not(:disabled) { transform: translateY(0) scale(0.98); }
+.transactions-modal .continue-ghost:active:not(:disabled),
+.transactions-modal .button-primary:active:not(:disabled) {
+  transform: translateY(0) scale(0.98);
+}
 
 .transactions-modal .tx-preset-btn,
-.transactions-modal .tx-minimal-launch-btn,
-.transactions-modal .button-primary {
+.transactions-modal .tx-minimal-launch-btn {
   transition: transform 0.16s var(--txp-ease), box-shadow 0.18s var(--txp-ease),
     filter 0.18s var(--txp-ease) !important;
 }
 .transactions-modal .tx-preset-btn:hover:not(:disabled),
-.transactions-modal .tx-minimal-launch-btn:hover:not(:disabled),
-.transactions-modal .button-primary:hover:not(:disabled) {
+.transactions-modal .tx-minimal-launch-btn:hover:not(:disabled) {
   transform: translateY(-2px);
   filter: brightness(1.06);
 }
 .transactions-modal .tx-preset-btn:active:not(:disabled),
-.transactions-modal .tx-minimal-launch-btn:active:not(:disabled),
-.transactions-modal .button-primary:active:not(:disabled) {
+.transactions-modal .tx-minimal-launch-btn:active:not(:disabled) {
   transform: translateY(0) scale(0.985);
 }
 
@@ -5424,20 +5432,18 @@ body.agent-route-active .app-shell::before {
   color: rgba(208, 222, 234, 0.98);
 }
 
-/* Ultra-pro polish layer (desk + mobile) */
+/* Ultra-pro polish layer (desk + mobile) — neutral depth, no blue outer glow */
 .agent-chat-body {
   background:
-    radial-gradient(circle at 18% -12%, rgba(125, 167, 200, 0.08), transparent 34%),
     radial-gradient(circle at 82% 118%, rgba(184, 147, 70, 0.06), transparent 34%),
     linear-gradient(180deg, rgba(6, 10, 16, 0.72), rgba(5, 8, 13, 0.84)) !important;
 }
 
 .agent-chat .agent-input.terminal-composer {
-  border-color: rgba(173, 200, 220, 0.42) !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.1),
-    0 16px 32px rgba(0, 0, 0, 0.4),
-    0 0 0 1px rgba(155, 185, 209, 0.14) !important;
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 16px 32px rgba(0, 0, 0, 0.4) !important;
 }
 
 .agent-chat .composer-send-plain {
@@ -7844,28 +7850,24 @@ body.agent-route-active .app-shell::before {
   line-height: 1 !important;
 }
 
-/* Guardar producto: match ghost style, light teal accent to distinguish */
+/* Guardar producto: matte ghost (same as continue-ghost) */
 .transactions-modal .tx-ap-footer-actions .button-primary:not(.is-saved-product) {
-  background: rgba(125, 200, 230, 0.10) !important;
-  border-color: rgba(125, 200, 230, 0.30) !important;
-  color: rgba(195, 228, 245, 0.92) !important;
-  box-shadow:
-    0 6px 14px rgba(0,0,0,0.22),
-    inset 0 1px 0 rgba(200,230,250,0.12) !important;
+  background: var(--txp-surface-2) !important;
+  border-color: var(--txp-border-strong) !important;
+  color: var(--txp-text) !important;
+  box-shadow: none !important;
 }
 
 .transactions-modal .tx-ap-footer-actions .button-primary:not(.is-saved-product):hover {
-  background: rgba(125, 200, 230, 0.17) !important;
-  border-color: rgba(150, 215, 240, 0.45) !important;
+  background: var(--txp-surface-2-hover) !important;
+  border-color: var(--txp-border-hover) !important;
 }
 
 .transactions-modal .tx-ap-footer-actions .button-primary.is-saved-product {
-  background: rgba(60, 120, 80, 0.18) !important;
+  background: var(--txp-surface-2) !important;
   border-color: rgba(120, 200, 150, 0.28) !important;
   color: rgba(170, 235, 195, 0.9) !important;
-  box-shadow:
-    0 6px 14px rgba(0,0,0,0.22),
-    inset 0 1px 0 rgba(150,220,180,0.10) !important;
+  box-shadow: none !important;
 }
 
 /* Delete button: subtle danger tint */
@@ -10230,24 +10232,25 @@ body.agent-route-active .app-shell::before {
   -webkit-text-fill-color: rgba(232,240,252,0.82) !important;
 }
 
-/* Primary CTA inside agent panel */
+/* Primary CTA inside agent panel — matte ghost */
 .budget-modal .budget-quick-actions .button-primary {
-  background: rgba(219,182,81,0.16) !important;
-  border: 1px solid rgba(219,182,81,0.44) !important;
-  color: rgba(248,212,104,0.97) !important;
-  -webkit-text-fill-color: rgba(248,212,104,0.97) !important;
+  background: #18242f !important;
+  border: 1px solid rgba(152, 186, 212, 0.22) !important;
+  color: #e9f1f8 !important;
+  -webkit-text-fill-color: #e9f1f8 !important;
   border-radius: 999px !important;
   font-size: 11px !important;
   font-weight: 600 !important;
   letter-spacing: 0.06em !important;
   padding: 8px 18px !important;
-  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease !important;
+  box-shadow: none !important;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease !important;
 }
 .budget-modal .budget-quick-actions .button-primary:hover {
-  background: rgba(219,182,81,0.26) !important;
-  border-color: rgba(219,182,81,0.7) !important;
-  transform: translateY(-2px) !important;
-  box-shadow: 0 6px 20px rgba(219,182,81,0.18) !important;
+  background: #1f2d3b !important;
+  border-color: rgba(126, 176, 216, 0.5) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: none !important;
 }
 
 /* ── 20. MODE TABS ───────────────────────────────────────────────────── */
@@ -15151,8 +15154,8 @@ body.agent-route-active .app-shell::before {
   }
 
   /* Panel: tall enough for cards; safe-area only inside grid */
-  .agent-panel,
-  .agent-panel.is-mobile-compact {
+  html.is-mobile-viewport .agent-panel,
+  html.is-mobile-viewport .agent-panel.is-mobile-compact {
     display: flex !important;
     flex-direction: column !important;
     flex: 0 0 var(--mobile-panel-h, 162px) !important;
@@ -15165,23 +15168,23 @@ body.agent-route-active .app-shell::before {
     box-sizing: border-box !important;
   }
 
-  .agent-panel .panel-grid {
+  html.is-mobile-viewport .agent-panel .panel-grid {
     flex: 1 1 auto !important;
     min-height: 0 !important;
     padding: 6px 10px max(8px, env(safe-area-inset-bottom, 0px)) !important;
     align-items: stretch !important;
   }
 
-  .agent-panel .mob-col > * {
+  html.is-mobile-viewport .agent-panel .mob-col > * {
     min-height: 0 !important;
     max-height: 100% !important;
   }
 
-  .agent-layout.mobile-panel-expanded .agent-panel {
+  html.is-mobile-viewport .agent-layout.mobile-panel-expanded .agent-panel {
     --mobile-panel-h: min(50dvh, 430px) !important;
   }
 
-  .mobile-panel-handle {
+  html.is-mobile-viewport .mobile-panel-handle {
     flex: 0 0 auto !important;
     min-height: 18px !important;
     padding: 3px 10px 2px !important;
@@ -18601,15 +18604,15 @@ body.agent-route-active .app-shell > * {
     padding-bottom: 0 !important;
   }
 
-  body.agent-route-active .agent-panel:has(.panel-grid.is-circular-deck),
-  body.agent-route-active .agent-panel.is-mobile-compact:has(.panel-grid.is-circular-deck) {
+  html.is-mobile-viewport body.agent-route-active .agent-panel:has(.panel-grid.is-circular-deck),
+  html.is-mobile-viewport body.agent-route-active .agent-panel.is-mobile-compact:has(.panel-grid.is-circular-deck) {
     flex: 0 0 auto !important;
     max-height: none !important;
     height: auto !important;
   }
 
-  body.agent-route-active .agent-panel,
-  body.agent-route-active .agent-panel.is-mobile-compact {
+  html.is-mobile-viewport body.agent-route-active .agent-panel,
+  html.is-mobile-viewport body.agent-route-active .agent-panel.is-mobile-compact {
     width: 100% !important;
     max-width: 100% !important;
     margin: 0 !important;
@@ -18624,8 +18627,8 @@ body.agent-route-active .app-shell > * {
     max-height: var(--mobile-panel-h, 162px) !important;
   }
 
-  body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel,
-  body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel.is-mobile-expanded {
+  html.is-mobile-viewport body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel,
+  html.is-mobile-viewport body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel.is-mobile-expanded {
     --mobile-panel-h: min(50dvh, 430px) !important;
     flex: 0 0 min(50dvh, 430px) !important;
     max-height: min(50dvh, 430px) !important;
@@ -18637,13 +18640,13 @@ body.agent-route-active .app-shell > * {
     border-radius: 0 !important;
   }
 
-  body.agent-route-active .agent-panel .mobile-panel-handle {
+  html.is-mobile-viewport body.agent-route-active .agent-panel .mobile-panel-handle {
     background: #000000 !important;
     border-color: rgba(255, 255, 255, 0.08) !important;
   }
 
-  body.agent-route-active .agent-panel.is-mobile-compact .panel-grid:not(.is-circular-deck),
-  body.agent-route-active .agent-panel:not(.is-mobile-expanded) .panel-grid:not(.is-circular-deck) {
+  html.is-mobile-viewport body.agent-route-active .agent-panel.is-mobile-compact .panel-grid:not(.is-circular-deck),
+  html.is-mobile-viewport body.agent-route-active .agent-panel:not(.is-mobile-expanded) .panel-grid:not(.is-circular-deck) {
     display: flex !important;
     flex-direction: row !important;
     flex-wrap: nowrap !important;
@@ -18661,12 +18664,12 @@ body.agent-route-active .app-shell > * {
     touch-action: pan-x !important;
   }
 
-  body.agent-route-active .agent-panel.is-mobile-compact .panel-grid:not(.is-circular-deck) .mob-col,
-  body.agent-route-active .agent-panel.is-mobile-compact .panel-grid:not(.is-circular-deck) .mob-col-wide,
-  body.agent-route-active .agent-panel.is-mobile-compact .panel-grid:not(.is-circular-deck) .mob-col-narrow,
-  body.agent-route-active .agent-panel:not(.is-mobile-expanded) .panel-grid:not(.is-circular-deck) .mob-col,
-  body.agent-route-active .agent-panel:not(.is-mobile-expanded) .panel-grid:not(.is-circular-deck) .mob-col-wide,
-  body.agent-route-active .agent-panel:not(.is-mobile-expanded) .panel-grid:not(.is-circular-deck) .mob-col-narrow {
+  html.is-mobile-viewport body.agent-route-active .agent-panel.is-mobile-compact .panel-grid:not(.is-circular-deck) .mob-col,
+  html.is-mobile-viewport body.agent-route-active .agent-panel.is-mobile-compact .panel-grid:not(.is-circular-deck) .mob-col-wide,
+  html.is-mobile-viewport body.agent-route-active .agent-panel.is-mobile-compact .panel-grid:not(.is-circular-deck) .mob-col-narrow,
+  html.is-mobile-viewport body.agent-route-active .agent-panel:not(.is-mobile-expanded) .panel-grid:not(.is-circular-deck) .mob-col,
+  html.is-mobile-viewport body.agent-route-active .agent-panel:not(.is-mobile-expanded) .panel-grid:not(.is-circular-deck) .mob-col-wide,
+  html.is-mobile-viewport body.agent-route-active .agent-panel:not(.is-mobile-expanded) .panel-grid:not(.is-circular-deck) .mob-col-narrow {
     width: min(159px, 55.5vw) !important;
     height: 107px !important;
     max-height: 107px !important;
@@ -18674,15 +18677,15 @@ body.agent-route-active .app-shell > * {
     align-self: flex-start !important;
   }
 
-  body.agent-route-active .agent-panel.is-mobile-compact .panel-grid:not(.is-circular-deck) .mob-col > *,
-  body.agent-route-active .agent-panel:not(.is-mobile-expanded) .panel-grid:not(.is-circular-deck) .mob-col > * {
+  html.is-mobile-viewport body.agent-route-active .agent-panel.is-mobile-compact .panel-grid:not(.is-circular-deck) .mob-col > *,
+  html.is-mobile-viewport body.agent-route-active .agent-panel:not(.is-mobile-expanded) .panel-grid:not(.is-circular-deck) .mob-col > * {
     height: 100% !important;
     max-height: 107px !important;
     flex: 1 1 auto !important;
   }
 
-  body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .panel-grid,
-  body.agent-route-active .agent-panel.is-mobile-expanded .panel-grid {
+  html.is-mobile-viewport body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .panel-grid,
+  html.is-mobile-viewport body.agent-route-active .agent-panel.is-mobile-expanded .panel-grid {
     display: grid !important;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
     grid-auto-flow: row !important;
@@ -18701,17 +18704,17 @@ body.agent-route-active .app-shell > * {
     -webkit-overflow-scrolling: touch !important;
   }
 
-  body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .mob-col,
-  body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .mob-col-wide,
-  body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .mob-col-narrow,
-  body.agent-route-active .agent-panel.is-mobile-expanded .mob-col,
-  body.agent-route-active .agent-panel.is-mobile-expanded .mob-col-wide,
-  body.agent-route-active .agent-panel.is-mobile-expanded .mob-col-narrow {
+  html.is-mobile-viewport body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .mob-col,
+  html.is-mobile-viewport body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .mob-col-wide,
+  html.is-mobile-viewport body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .mob-col-narrow,
+  html.is-mobile-viewport body.agent-route-active .agent-panel.is-mobile-expanded .mob-col,
+  html.is-mobile-viewport body.agent-route-active .agent-panel.is-mobile-expanded .mob-col-wide,
+  html.is-mobile-viewport body.agent-route-active .agent-panel.is-mobile-expanded .mob-col-narrow {
     display: contents !important;
   }
 
-  body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .panel-grid > *,
-  body.agent-route-active .agent-panel.is-mobile-expanded .panel-grid > * {
+  html.is-mobile-viewport body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .panel-grid > *,
+  html.is-mobile-viewport body.agent-route-active .agent-panel.is-mobile-expanded .panel-grid > * {
     min-width: 0 !important;
     width: auto !important;
     height: auto !important;
@@ -18719,13 +18722,13 @@ body.agent-route-active .app-shell > * {
     min-height: 0 !important;
   }
 
-  body.agent-route-active .agent-layout.mobile-panel-expanded .panel-pos-profile,
+  html.is-mobile-viewport body.agent-route-active .agent-layout.mobile-panel-expanded .panel-pos-profile,
   body.agent-route-active .agent-layout.mobile-panel-expanded .panel-pos-objective,
   body.agent-route-active .agent-layout.mobile-panel-expanded .panel-pos-interview,
   body.agent-route-active .agent-layout.mobile-panel-expanded .panel-pos-recent,
   body.agent-route-active .agent-layout.mobile-panel-expanded .panel-pos-aux,
   body.agent-route-active .agent-layout.mobile-panel-expanded .panel-pos-library,
-  body.agent-route-active .agent-panel.is-mobile-expanded .panel-pos-profile,
+  html.is-mobile-viewport body.agent-route-active .agent-panel.is-mobile-expanded .panel-pos-profile,
   body.agent-route-active .agent-panel.is-mobile-expanded .panel-pos-objective,
   body.agent-route-active .agent-panel.is-mobile-expanded .panel-pos-interview,
   body.agent-route-active .agent-panel.is-mobile-expanded .panel-pos-recent,
@@ -19640,3 +19643,33 @@ body.agent-route-active .app-shell > * {
   }
 }
 
+/* button-primary = continue-ghost matte (no black glass) */
+.agent-shell .button-primary,
+.agent-panel .button-primary,
+.agent-modal .button-primary,
+.budget-modal .button-primary,
+.transactions-modal .button-primary,
+.diagnosis-hero-actions .button-primary,
+.transactions-modal .tx-close-confirm-actions .button-primary {
+  background: #18242f !important;
+  background-image: none !important;
+  border: 1px solid rgba(152, 186, 212, 0.22) !important;
+  color: #e9f1f8 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  filter: none !important;
+}
+
+.agent-shell .button-primary:hover:not(:disabled),
+.agent-panel .button-primary:hover:not(:disabled),
+.agent-modal .button-primary:hover:not(:disabled),
+.budget-modal .button-primary:hover:not(:disabled),
+.transactions-modal .button-primary:hover:not(:disabled),
+.diagnosis-hero-actions .button-primary:hover:not(:disabled),
+.transactions-modal .tx-close-confirm-actions .button-primary:hover:not(:disabled) {
+  background: #1f2d3b !important;
+  border-color: rgba(126, 176, 216, 0.5) !important;
+  box-shadow: none !important;
+  filter: none !important;
+}

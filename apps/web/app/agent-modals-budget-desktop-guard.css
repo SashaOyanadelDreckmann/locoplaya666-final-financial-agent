@@ -1,0 +1,130 @@
+/* ================================================= */
+/* BUDGET DESKTOP — GUARD (before transactions EOF)  */
+/* Beats legacy mode-split + portrait media leaks.     */
+/* ================================================= */
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: flex-start !important;
+  gap: 20px !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow: visible !important;
+  transform: none !important;
+  filter: none !important;
+  padding: 8px 24px 18px !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent,
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-table {
+  position: relative !important;
+  inset: auto !important;
+  display: block !important;
+  width: auto !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  margin: 0 !important;
+  opacity: 1 !important;
+  transform: none !important;
+  filter: none !important;
+  pointer-events: auto !important;
+  overflow: visible !important;
+  z-index: 1 !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent {
+  flex: 0 0 320px !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-table {
+  flex: 1 1 0 !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-table-only {
+  display: block !important;
+  height: auto !important;
+  min-height: 0 !important;
+  overflow: visible !important;
+  padding: 8px 24px 18px !important;
+}
+
+/* Tabla ultra pro — full-width intelligence surface (mode 2 desktop) */
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-table-only > .budget-card-table {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-table-only .budget-intel-kpis {
+  display: grid !important;
+  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+  margin: 0 0 14px !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-table-only .budget-pdf-head,
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-table-only .budget-pdf-metrics {
+  display: grid !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-table-only .budget-table-wrap {
+  max-height: min(62vh, 760px) !important;
+  overflow: auto !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-table-only .budget-table.budget-table-pro {
+  min-width: 1240px !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split .budget-intel-kpis {
+  display: grid !important;
+  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+  margin: 0 0 10px !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split .budget-pdf-head,
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split .budget-pdf-metrics {
+  display: grid !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop > .budget-carousel-arrow {
+  display: flex !important;
+}
+
+/* Portrait / phone media queries also match some desktop windows — restore shell when not mobile. */
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+  .budget-modal:not(.is-mobile-shell) {
+    height: auto !important;
+    max-height: 94dvh !important;
+    min-height: 84vh !important;
+    overflow: hidden !important;
+  }
+
+  .agent-modal.budget-modal:not(.is-mobile-shell),
+  .agent-modal-overlay.budget-modal-overlay > .agent-modal.budget-modal:not(.is-mobile-shell) {
+    min-height: 84vh !important;
+    height: auto !important;
+    max-height: 94dvh !important;
+    overflow: hidden !important;
+  }
+
+  .budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding-bottom: 0 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+  }
+
+  .budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-cockpit-banner {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}

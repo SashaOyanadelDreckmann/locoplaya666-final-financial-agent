@@ -1,6 +1,3 @@
-import { buildTransactionAuthorizationBlockMessage } from '@/lib/transactions-authorization.helpers';
-import type { deriveTransactionAuthorizationState } from '@/lib/transactions-authorization.helpers';
-import { MAX_TRANSACTION_PRODUCTS_CREATED_TOTAL } from '../agent-page.constants';
 import type { TxWizardStep } from './types';
 
 export type TxWizardStageKey = 'consent' | 'evidence' | 'analyst';
@@ -66,40 +63,4 @@ export function buildTxStages(params: {
       go: () => hasEvidence && setTxWizardStep('dashboard'),
     },
   ];
-}
-
-export function buildTxStageSummary(params: {
-  currentStage: TxFlowStage;
-  activeProductCreations: number;
-  maxProducts: number;
-  productsCreatedTotal: number;
-}): string {
-  const { currentStage, activeProductCreations, maxProducts, productsCreatedTotal } = params;
-  if (currentStage === 'products' || currentStage === 'consent') {
-    return `Paso 1/3 · ${activeProductCreations}/${maxProducts} activos · ${productsCreatedTotal}/${MAX_TRANSACTION_PRODUCTS_CREATED_TOTAL} creados`;
-  }
-  if (currentStage === 'evidence') {
-    return 'Paso 2 de 3: sube cartolas o respaldos y espera el análisis.';
-  }
-  return 'Paso 3 de 3: revisa el resumen y continúa con el agente principal.';
-}
-
-export function buildTxStageCta(params: {
-  currentStage: TxFlowStage;
-  analysisAlreadyDone: boolean;
-  canContinueAuto: boolean;
-  authorizationState: ReturnType<typeof deriveTransactionAuthorizationState>;
-}): string {
-  const { currentStage, analysisAlreadyDone, canContinueAuto, authorizationState } = params;
-  if (currentStage === 'products') return 'Elige un producto o crea uno nuevo para continuar';
-  if (currentStage === 'consent') {
-    if (canContinueAuto) return 'Autorizar y continuar';
-    return buildTransactionAuthorizationBlockMessage(authorizationState);
-  }
-  if (currentStage === 'evidence') {
-    return analysisAlreadyDone ? 'Resumen listo para revisar' : 'Sube evidencia para desbloquear el resumen';
-  }
-  return analysisAlreadyDone
-    ? 'El contexto validado ya se sincroniza solo'
-    : 'Guarda o analiza un producto para sincronizar contexto';
 }

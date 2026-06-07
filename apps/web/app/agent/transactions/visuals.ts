@@ -35,9 +35,15 @@ export function productVisualPalette(seed: string) {
 }
 
 export function libraryCardSurface(palette: ReturnType<typeof productVisualPalette>) {
+  return matteLibraryCardSurface(palette.base, palette.tint, palette.edge);
+}
+
+export function matteLibraryCardSurface(baseColor: string, accentColor: string, edgeColor?: string) {
   return {
-    background: `radial-gradient(circle at 18% 18%, ${palette.glow}, transparent 34%), linear-gradient(145deg, ${palette.base}, #08111b 100%)`,
-    borderColor: palette.edge,
-    boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 20px 44px rgba(0, 0, 0, 0.38)',
+    background: `linear-gradient(165deg, color-mix(in srgb, ${baseColor} 96%, #101820) 0%, color-mix(in srgb, ${baseColor} 78%, #0a1118) 100%)`,
+    borderColor: edgeColor ?? hexToRgba(accentColor, 0.28),
+    boxShadow:
+      'inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 12px 24px rgba(0, 0, 0, 0.3)',
+    tint: accentColor,
   };
 }

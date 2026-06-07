@@ -15,6 +15,7 @@ describe('transactions modal safeguards', () => {
     const modalA11y = read('app/agent/transactions/use-tx-modal-a11y.ts');
     const dockTransition = read('app/agent/transactions/use-tx-dock-transition.ts');
     const closeConfirm = read('app/agent/transactions/use-tx-close-confirm.ts');
+    const closeConfirmDialog = read('app/agent/transactions/TxCloseConfirmDialog.tsx');
     const constants = read('app/agent/transactions/constants.ts');
     const pageConstants = read('app/agent/agent-page.constants.ts');
 
@@ -33,13 +34,14 @@ describe('transactions modal safeguards', () => {
     expect(modal).toContain('useTxDockTransition');
     expect(modal).toContain("props.txWizardStep === 'products'");
     expect(modal).toContain('setSelectedMovementKey(null);');
-    expect(modal).toContain('aria-describedby="transactions-modal-intro"');
+    expect(modal).not.toContain('transactions-modal-intro');
+    expect(modal).not.toContain('tx-flow-status-card');
     expect(modal).toContain('tabIndex={-1}');
     expect(modal).toContain('tx-batch-recommendation-banner" role="status" aria-live="polite"');
     expect(modal).toContain('Productos y transacciones');
     expect(modal).toContain("props.setTxWizardStep('products');");
     expect(modal).toContain('if (!props.activeBankProduct?.id) return;');
-    expect(modal).toContain('role="alertdialog"');
+    expect(closeConfirmDialog).toContain('role="alertdialog"');
     expect(modal).toContain('tx-wizard-stepper');
 
     expect(actionSession).toContain('const txSessionIdRef = useRef(0);');
@@ -86,10 +88,9 @@ describe('transactions modal safeguards', () => {
   it('keeps the rapid upload mode visible in the evidence step', () => {
     const source = read('app/agent/transactions/TxEvidenceStep.tsx');
 
-    expect(source).toContain("['video', 'Rápido', 'Rápido']");
+    expect(source).toContain("['video', 'Rápido', 'Video']");
     expect(source).toContain('tx-format-rail-chip-label-short');
     expect(source).toContain('video/mp4,video/quicktime,video/webm');
-    expect(source).toContain('Chat exclusivo del producto');
     expect(source).toContain('/generated/transactions-fast-example.mp4');
     expect(source).toContain('Ver ejemplo');
   });

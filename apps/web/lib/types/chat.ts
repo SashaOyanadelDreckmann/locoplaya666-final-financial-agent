@@ -44,6 +44,25 @@ export type AgentBlock =
           required?: boolean;
         }>;
       };
+    }
+  | {
+      type: 'executive_intro';
+      intro: {
+        version: 2;
+        uiVersion?: number;
+        firstName: string;
+        headline: string;
+        wittyHook?: string;
+        personalRead: string;
+        signals: string[];
+        sections: {
+          marco: { title: string; body: string };
+          fintech: { title: string; body: string; benefit: string };
+          metodo: Array<{ step: number; label: string; detail: string }>;
+          resultado: { title: string; body: string };
+        };
+        closingQuestion: string;
+      };
     };
 
 export type UIEvent =

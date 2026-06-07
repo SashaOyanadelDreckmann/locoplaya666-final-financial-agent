@@ -7,6 +7,7 @@ import {
   attachProfileToUser,
   removeInjectedProfileFromUser,
   attachIntakeToUser,
+  persistWelcomeIntroCache,
   removeInjectedIntakeFromUser,
   saveUserSheets,
   loadUserSheets,
@@ -15,6 +16,10 @@ import {
   saveUserMemoryBlob,
 } from '../services/user.service';
 import { complete } from '../services/llm.service';
+import type { WelcomeIntroCache } from '@financial-agent/shared';
+import {
+  resolveWelcomeIntroForUser,
+} from '../agents/welcome/welcome-intro';
 import {
   appendTurnToMemoryRealtime,
   buildAgentMemoryContextRealtime,
@@ -665,13 +670,17 @@ router.post(
     const user = req.authenticatedUser;
     if (!user) throw unauthorized('Invalid session');
 
-    const ok = await attachIntakeToUser(user.id, {
-      intake,
-      llmSummary,
-      intakeContext,
-      productsContext,
-      budgetContext,
-    });
+    const ok = await attachIntakeToUser(
+      user.id,
+      {
+        intake,
+        llmSummary,
+        intakeContext,
+        productsContext,
+        budgetContext,
+      },
+      { replace: true },
+    );
     if (!ok) throw badRequest('Failed to attach intake');
 
     return sendSuccess(res, { updated: true });
@@ -714,6 +723,7 @@ router.post(
       intakeContext: nextEnvelope.intakeContext,
       productsContext: nextEnvelope.productsContext,
       budgetContext: nextEnvelope.budgetContext,
+      welcomeIntroCache: nextEnvelope.welcomeIntroCache as WelcomeIntroCache | undefined,
     });
     if (!ok) throw badRequest('Failed to merge financial context into intake');
 
@@ -1019,57 +1029,28 @@ router.get(
     const injectedIntake = user.injectedIntake;
     const userName = user.name?.split(' ')[0] ?? 'amigo';
 
-    const SYSTEM_ONBOARDING = 'Eres un asesor financiero chileno sobrio, premium y muy claro. Escribes con calidez, precisión y cero tono promocional. Nunca usas emojis ni listas de capacidades. Nunca suenas como onboarding de producto.';
-
     if (!injectedIntake) {
-      return sendSuccess(res, {
-        message: `${userName}, antes de avanzar necesito una base mínima de contexto. Completa tu perfil financiero y partimos con una lectura útil de tu situación.`,
+      const { intro, message } = await resolveWelcomeIntroForUser({
+        userId: user.id,
+        firstName: userName,
+        injectedIntake: null,
+        persistWelcomeIntroCache,
       });
+      return sendSuccess(res, { message, intro, cached: false });
     }
 
-    try {
-      const intakeEnvelope = injectedIntake as IntakeEnvelope;
-      const intakeRaw = (intakeEnvelope.intake ?? intakeEnvelope) as Record<string, unknown>;
-      const ctx = (intakeEnvelope.intakeContext ?? {}) as Record<string, unknown>;
-      const age = intakeRaw.age ?? 'no especificada';
-      const income = intakeRaw.incomeBand ?? 'variable';
-      const hasDebt = intakeRaw.hasDebt ? 'con deudas activas' : 'sin deudas activas';
-      const hasSavings = intakeRaw.hasSavingsOrInvestments
-        ? 'con ahorros o inversiones'
-        : 'sin ahorros actualmente';
-      const literacy = ctx.financialLiteracy ?? 'medium';
-      const stress = intakeRaw.moneyStressLevel ?? 5;
-      const risk = intakeRaw.riskReaction ?? 'hold';
+    const resolved = await resolveWelcomeIntroForUser({
+      userId: user.id,
+      firstName: userName,
+      injectedIntake,
+      persistWelcomeIntroCache,
+    });
 
-      const prompt = `Escribe un mensaje inicial breve para ${userName}, persona chilena de ${age} años, ${String(intakeRaw.employmentStatus ?? 'empleado')}, ingresos en rango ${income}, ${hasSavings}, ${hasDebt}. Nivel financiero: ${literacy}. Estrés financiero: ${stress}/10. Reacción al riesgo: ${risk}.
-
-Reglas:
-- Máximo 3 oraciones y 70 palabras
-- Debe sentirse humano, sobrio y nada prefabricado
-- Reconoce una lectura concreta de su situación sin repetir el intake literalmente
-- Propón como primer paso completar o subir su presupuesto en el panel
-- Cierra con una pregunta corta y natural
-- No menciones desbloqueos, informes, capacidades ni sistema
-- No uses frases como "puedo hacer 3 cosas contigo", "ya tengo tu contexto cargado", "partamos con una acción simple"
-
-Devuelve solo el mensaje final.`;
-
-      const message = await complete(
-        [{ role: 'system', content: SYSTEM_ONBOARDING }, { role: 'user', content: prompt }],
-        { temperature: 0.65 },
-      );
-
-      return sendSuccess(res, {
-        message:
-          message?.trim() ||
-          `${userName}, veo espacio para ordenar mejor tu situación y elegir un primer frente con criterio. El primer paso es completar tu presupuesto en el panel para leer tu flujo real. ¿Lo armamos ahora?`,
-      });
-    } catch (err) {
-      req.logger?.warn({ msg: 'Welcome message error', error: err });
-      return sendSuccess(res, {
-        message: `${userName}, tu perfil financiero está listo. El primer paso es completar tu presupuesto en el panel para ordenar ingresos, gastos y capacidad real de avance. ¿Lo armamos ahora?`,
-      });
-    }
+    return sendSuccess(res, {
+      message: resolved.message,
+      intro: resolved.intro,
+      cached: resolved.cached,
+    });
   }),
 );
 
@@ -1087,6 +1068,7 @@ router.get(
           intakeContext: (user.injectedIntake as IntakeEnvelope).intakeContext,
           productsContext: (user.injectedIntake as IntakeEnvelope).productsContext,
           budgetContext: (user.injectedIntake as IntakeEnvelope).budgetContext,
+          welcomeIntroCache: (user.injectedIntake as IntakeEnvelope).welcomeIntroCache,
         }
       : undefined;
     const memoryBlob =

@@ -49,7 +49,21 @@ describe('apiBase browser', () => {
   });
 
   it('getDocumentParseRequestUrl uses same-origin Next route in production', () => {
+    Object.defineProperty(process.env, 'NODE_ENV', {
+      value: 'production',
+      configurable: true,
+      writable: true,
+    });
     window.__FA_RUNTIME__ = { apiOrigin: 'https://runtime-api.example.com' };
+    expect(getDocumentParseRequestUrl()).toBe('/api/documents/parse');
+  });
+
+  it('getDocumentParseRequestUrl uses same-origin Next route in development', () => {
+    Object.defineProperty(process.env, 'NODE_ENV', {
+      value: 'development',
+      configurable: true,
+      writable: true,
+    });
     expect(getDocumentParseRequestUrl()).toBe('/api/documents/parse');
   });
 });

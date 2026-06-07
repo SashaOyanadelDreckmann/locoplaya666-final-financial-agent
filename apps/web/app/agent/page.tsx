@@ -35,7 +35,6 @@ import {
   loadSheets,
   saveSheets,
   deletePdfArtifact,
-  getWelcomeMessage,
   parseDocuments,
   mergeProductsContextToIntake,
 } from '@/lib/api';
@@ -100,6 +99,9 @@ import {
   sanitizeMessageText,
   resolveActiveActionPlanStage,
 } from './page.utils';
+import { buildWelcomeChatItem } from './welcome-intro.shared';
+import { AgentBootSequence } from './AgentBootSequence';
+import { shouldShowAgentBootSequence } from './agent-boot-sequence.helpers';
 
 import type {
   AgentBlock,
@@ -287,82 +289,8 @@ export default function AgentPage() {
     );
   }
 
-  function isLegacyDiagnosisOpeningMessage(text: string): boolean {
-    const normalized = (text || '').toLowerCase().replace(/\s+/g, ' ').trim();
-    if (!normalized) return false;
-    const isDiagnosisOpening = normalized.includes('informe inicial de diagnóstico');
-    const missingDeepFinanceContext =
-      isDiagnosisOpening && !normalized.includes('las finanzas personales no son solo números');
-    return (
-      missingDeepFinanceContext ||
-      normalized.includes('hoy sin colchón') ||
-      normalized.includes('completa o sube tu presupuesto en el panel') ||
-      normalized.includes('¿te acomoda armarlo por semana o por mes?') ||
-      normalized.includes('ingresos variables y deudas activas') ||
-      normalized.includes('completar o subir tu presupuesto') ||
-      normalized.includes('¿lo armamos con números de este mes o del anterior?') ||
-      normalized.includes('el objetivo del sistema es darte una lectura financiera clara, trazable y accionable') ||
-      normalized.includes('en chile, la ley fintech (ley n° 21.521) impulsa estándares de finanzas abiertas')
-    );
-  }
-
-  function isAnyDiagnosisOpeningMessage(text: string): boolean {
-    const normalized = (text || '').toLowerCase().replace(/\s+/g, ' ').trim();
-    if (!normalized) return false;
-    return normalized.includes('informe inicial de diagnóstico');
-  }
-
-  const buildEditorialWelcome = useCallback((session: { name?: string | null; injectedIntake?: unknown } | null | undefined) => {
-    const firstName = String(session?.name ?? '').split(' ')[0]?.trim() || 'Hola';
-    const intakeRoot =
-      session?.injectedIntake && typeof session.injectedIntake === 'object'
-        ? (session.injectedIntake as Record<string, unknown>)
-        : null;
-    const intake =
-      intakeRoot && typeof intakeRoot.intake === 'object' && intakeRoot.intake
-        ? (intakeRoot.intake as Record<string, unknown>)
-        : intakeRoot;
-
-    const hasSavings =
-      typeof intake?.hasSavingsOrInvestments === 'boolean' ? intake.hasSavingsOrInvestments : null;
-    const hasDebt = typeof intake?.hasDebt === 'boolean' ? intake.hasDebt : null;
-    const incomeBand = typeof intake?.incomeBand === 'string' ? intake.incomeBand : '';
-    const city = typeof intake?.city === 'string' ? intake.city.trim() : '';
-
-    let read = 'hay base para ordenar mejor tu mapa financiero.';
-    if (hasSavings === false && hasDebt === false) {
-      read = 'hoy el foco parece estar en construir base y liquidez, más que en apagar incendios.';
-    } else if (hasDebt === true && hasSavings === false) {
-      read = 'hay presión entre caja corta y deuda, así que conviene priorizar secuencia y oxígeno financiero.';
-    } else if (hasSavings === true) {
-      read = 'ya existe una base sobre la cual conviene decidir mejor cómo asignar flujo y riesgo.';
-    }
-
-    const incomeHint = incomeBand ? ` Tu tramo de ingresos declarado es ${incomeBand}.` : '';
-    const cityHint = city ? ` Estás operando desde ${city}.` : '';
-
-    return [
-      `# Informe inicial de diagnóstico`,
-      ``,
-      `${firstName}, ${read}${cityHint}${incomeHint}`,
-      ``,
-      `## Marco de trabajo`,
-      `Este espacio convierte información financiera dispersa en un diagnóstico claro, verificable y accionable.`,
-      `La lógica es simple: evidencia real primero, recomendaciones después.`,
-      ``,
-      `## Estándar regulatorio`,
-      `Bajo la **Ley Fintech (Ley N° 21.521)**, el intercambio de datos ocurre con consentimiento, trazabilidad y control del usuario.`,
-      ``,
-      `## Método`,
-      `1. **Productos y transacciones** (fuente primaria de evidencia)`,
-      `2. **Presupuesto** (estructura de ingresos, gastos y balance)`,
-      `3. **Entrevista breve** (criterio, prioridad y tolerancia al riesgo)`,
-      ``,
-      `## Resultado`,
-      `Se construye un diagnóstico financiero personal con prioridades concretas y una ruta de decisión.`,
-      ``,
-      `¿Partimos por **Productos y transacciones**?`,
-    ].join('\n');
+  const buildChat1WelcomeItem = useCallback(() => {
+    return buildWelcomeChatItem({});
   }, []);
 
   const buildOpeningMessageByChat = useCallback((
@@ -376,8 +304,8 @@ export default function AgentPage() {
     if (chatId === 'chat-3') {
       return `*"El precio de todo y el valor de nada."* — Oscar Wilde\n\n${firstName}, este espacio no es sobre números. Es sobre lo que los números revelan de ti.\n\nCada peso que ganas, gastas o acumulas es una decisión moral —aunque nunca la hayas pensado así.\n\n**¿Tu dinero trabaja para el mundo que quieres vivir, o para el mundo que te tocó?**`;
     }
-    return buildEditorialWelcome(session);
-  }, [buildEditorialWelcome]);
+    return buildChat1WelcomeItem().content;
+  }, [buildChat1WelcomeItem]);
 
   function makeInitialThread(id: string, label: string, name: string): ChatThread {
     return {
@@ -436,7 +364,7 @@ export default function AgentPage() {
   const [sheetsLoaded, setSheetsLoaded] = useState(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [loading, setLoading] = useState(false);
-  const [panelStage, setPanelStage] = useState(3);
+  const [panelStage, setPanelStage] = useState(2);
   const [mobilePanelExpanded, setMobilePanelExpanded] = useState(false);
   const [isComposerFocused, setIsComposerFocused] = useState(false);
   const {
@@ -531,6 +459,14 @@ export default function AgentPage() {
   const chatComposerRef = useRef<HTMLTextAreaElement | null>(null);
   const composerFocusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const interviewAutoOpenHandledRef = useRef(false);
+  const [bootSequenceActive, setBootSequenceActive] = useState(false);
+
+  useEffect(() => {
+    if (!authBootstrapped || !isAuthenticated) return;
+    if (shouldShowAgentBootSequence()) {
+      setBootSequenceActive(true);
+    }
+  }, [authBootstrapped, isAuthenticated]);
 
   const loadProfileIfNeeded = useProfileStore((s) => s.loadProfileIfNeeded);
   const profile = useProfileStore((s) => s.profile);
@@ -549,7 +485,12 @@ export default function AgentPage() {
   const items = activeThread?.items ?? [];
   const input = activeThread?.draft ?? '';
   const hasBlockingModalOpen =
-    isTransactionsModalOpen || isQuestionnaireModalOpen || isAccountModalOpen || isInterviewModalOpen || isSocialConsciousnessModalOpen;
+    isTransactionsModalOpen ||
+    isBudgetModalOpen ||
+    isQuestionnaireModalOpen ||
+    isAccountModalOpen ||
+    isInterviewModalOpen ||
+    isSocialConsciousnessModalOpen;
   const interviewCompleted =
     savedReports.some((report) => report.group === 'diagnosis') ||
     Boolean(sessionInfo?.latestDiagnosticCompletedAt);
@@ -721,6 +662,11 @@ export default function AgentPage() {
   }, [isMobileViewport]);
 
   useEffect(() => {
+    if (isMobileViewport || !mobilePanelExpanded) return;
+    setMobilePanelExpanded(false);
+  }, [isMobileViewport, mobilePanelExpanded]);
+
+  useEffect(() => {
     if (!isMobileViewport) return;
     const panel = panelScrollRef.current;
     const grid = panelGridRef.current;
@@ -824,39 +770,6 @@ export default function AgentPage() {
     if (!active) return;
     if (welcomeInjectedThreadsRef.current.has(active.id)) return;
     if (hasAssistantMessage(active.items)) {
-      if (active.id === 'chat-1') {
-        const firstAssistantIdx = active.items.findIndex(
-          (it) => it.type === 'message' && it.role === 'assistant'
-        );
-        const firstAssistant =
-          firstAssistantIdx >= 0
-            ? (active.items[firstAssistantIdx] as Extract<ChatItem, { type: 'message'; role: 'assistant' }>)
-            : null;
-        if (
-          firstAssistant &&
-          (isAnyDiagnosisOpeningMessage(String(firstAssistant.content ?? '')) ||
-            isLegacyDiagnosisOpeningMessage(String(firstAssistant.content ?? '')))
-        ) {
-          const replacement = sanitizeMessageText(
-            buildOpeningMessageByChat('chat-1', sessionInfo),
-            FALLBACK_WELCOME
-          );
-          setChatThreads((prev) =>
-            prev.map((t) => {
-              if (t.id !== activeChatId) return t;
-              const cloned = [...t.items];
-              const idx = cloned.findIndex((it) => it.type === 'message' && it.role === 'assistant');
-              if (idx >= 0) {
-                const current = cloned[idx] as Extract<ChatItem, { type: 'message'; role: 'assistant' }>;
-                if (String(current.content ?? '') !== replacement) {
-                  cloned[idx] = { ...current, content: replacement };
-                }
-              }
-              return { ...t, items: cloned };
-            })
-          );
-        }
-      }
       welcomeInjectedThreadsRef.current.add(active.id);
       return;
     }
@@ -868,13 +781,11 @@ export default function AgentPage() {
       firstAssistantIdx >= 0
         ? (active.items[firstAssistantIdx] as Extract<ChatItem, { type: 'message'; role: 'assistant' }>)
         : null;
-    const firstText = String(firstAssistant?.content ?? '').toLowerCase();
-    const userFirstName = String(sessionInfo?.name ?? '').split(' ')[0]?.toLowerCase() ?? '';
     const alreadyPersonalizedWelcome =
       firstAssistantIdx === 0 &&
-      (firstText.includes('soy tu asesor financiero') ||
-        firstText.includes('ya carg') ||
-        (userFirstName.length >= 2 && firstText.includes(userFirstName)));
+      firstAssistant &&
+      active.id === 'chat-1' &&
+      !String(firstAssistant.content ?? '').trim();
 
     if (alreadyPersonalizedWelcome) {
       welcomeInjectedThreadsRef.current.add(active.id);
@@ -907,62 +818,18 @@ export default function AgentPage() {
       return;
     }
 
-    const initialPrimaryPanelAction: AgentResponse['panel_action'] = {
-      section: 'transactions',
-      message: 'Primer paso: abre productos y transacciones para cargar respaldos y activar el siguiente desbloqueo.',
-    };
-
-    getWelcomeMessage().then(() => {
-      const incomingWelcome = sanitizeMessageText(
-        buildOpeningMessageByChat('chat-1', sessionInfo),
-        FALLBACK_WELCOME
-      );
-      setChatThreads((prev) =>
-        prev.map((t) => {
-          if (t.id !== activeChatId) return t;
-          if (hasAssistantMessage(t.items)) return t;
-
-          const hasPersonalizedAsFirst =
-            t.items.length > 0 &&
-            t.items[0]?.type === 'message' &&
-            (t.items[0] as Extract<ChatItem, { type: 'message' }>).role === 'assistant' &&
-            String((t.items[0] as Extract<ChatItem, { type: 'message' }>).content ?? '')
-              .toLowerCase()
-              .includes(userFirstName);
-          if (hasPersonalizedAsFirst) return t;
-
-          const hasAssistantAlready = t.items.some(
-            (it) => it.type === 'message' && it.role === 'assistant'
-          );
-          const shouldSkipGenericWelcome =
-            hasAssistantAlready && isGenericOnboardingMessage(incomingWelcome);
-          const finalWelcome = shouldSkipGenericWelcome
-            ? sanitizeMessageText(
-                buildOpeningMessageByChat('chat-1', sessionInfo),
-                FALLBACK_WELCOME
-              )
-            : incomingWelcome;
-
-          return {
-            ...t,
-            items: [
-              {
-                type: 'message',
-                role: 'assistant',
-                content: finalWelcome,
-                mode: 'information',
-                panel_action: initialPrimaryPanelAction,
-              } as ChatItem,
-              ...t.items,
-            ],
-          };
-        })
-      );
-    }).catch(() => {
-      // allow retry on next render if welcome request fails
-      welcomeInjectedThreadsRef.current.delete(active.id);
-    });
-  }, [buildOpeningMessageByChat, chatThreads, activeChatId, sessionInfo, sheetsLoaded]);
+    const welcomeItem = buildChat1WelcomeItem();
+    setChatThreads((prev) =>
+      prev.map((t) => {
+        if (t.id !== activeChatId) return t;
+        if (hasAssistantMessage(t.items)) return t;
+        return {
+          ...t,
+          items: [welcomeItem as ChatItem, ...t.items],
+        };
+      })
+    );
+  }, [buildChat1WelcomeItem, buildOpeningMessageByChat, chatThreads, activeChatId, sessionInfo, sheetsLoaded]);
 
   // Save sheets to API with debounce whenever they change
   useEffect(() => {
@@ -1638,13 +1505,15 @@ export default function AgentPage() {
       if (rawStage !== null) {
         const parsed = Number(rawStage);
         if (!Number.isNaN(parsed)) {
-          setPanelStage(Math.max(1, Math.min(3, parsed)));
+          const stage = Math.max(1, Math.min(3, parsed));
+          // Stage 3 se persistió como default antes de mostrar el panel en desktop.
+          setPanelStage(stage === 3 ? 2 : stage);
           return;
         }
       }
       // Compat con versiones anteriores (colapsado booleano).
       const rawCollapsed = localStorage.getItem('agent.panel.collapsed.v1');
-      if (rawCollapsed === '1') setPanelStage(3);
+      if (rawCollapsed === '1') setPanelStage(2);
     } catch {}
   }, []);
 
@@ -3453,15 +3322,18 @@ export default function AgentPage() {
   );
 
   return (
-    <main
+    <>
+      <main
       className={`agent-layout ${activeThreadThemeClass} ${
+        bootSequenceActive ? 'is-boot-sequence-active' : ''
+      } ${
         isRailMorphing ? 'is-mode-12-morphing' : ''
       } ${
         isVisualModeActive(visualMode) ? 'is-monochrome' : ''
       } ${
         visualMode !== 'off' ? `is-visual-mode-${visualMode}` : ''
       } ${
-        mobilePanelExpanded ? 'mobile-panel-expanded' : ''
+        isMobileViewport && mobilePanelExpanded ? 'mobile-panel-expanded' : ''
       } ${
         isMobileViewport ? 'is-mobile-viewport' : ''
       } ${
@@ -3470,7 +3342,9 @@ export default function AgentPage() {
         !isMobileViewport
           ? panelStage === 1
             ? 'is-panel-stage-1'
-            : 'is-panel-stage-2'
+            : panelStage === 3
+              ? 'is-panel-collapsed'
+              : 'is-panel-stage-2'
           : ''
       }`}
     >
@@ -3679,7 +3553,6 @@ export default function AgentPage() {
         updateBudgetRow={updateBudgetRow}
         upsertBudgetRow={upsertBudgetRow}
         applyBudgetTemplate={applyBudgetTemplate}
-        coachHint={coachHint}
         addBudgetRow={addBudgetRow}
         addBudgetSubcategory={addBudgetSubcategory}
         deleteBudgetRow={deleteBudgetRow}
@@ -3740,5 +3613,13 @@ export default function AgentPage() {
         onDeleteAccount={handleDeleteAccount}
       />
     </main>
+
+      {bootSequenceActive && sessionInfo ? (
+        <AgentBootSequence
+          session={sessionInfo}
+          onComplete={() => setBootSequenceActive(false)}
+        />
+      ) : null}
+    </>
   );
 }
