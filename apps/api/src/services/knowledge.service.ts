@@ -32,6 +32,7 @@ export interface KnowledgeEvent {
 
 export type KnowledgeAction =
   | 'completed_intake' // +20 — User completed financial intake questionnaire
+  | 'updated_intake' // +5 — User updated their financial intake questionnaire
   | 'completed_profile' // +25 — Financial diagnostic completed
   | 'analyzed_budget' // +15 — Analyzed own presupuesto
   | 'learned_concept' // +5 — Engaged with educational content
@@ -213,6 +214,7 @@ export async function recordKnowledgeEvent(
   // Point values for each action
   const pointsMap: Record<KnowledgeAction, number> = {
     'completed_intake': 20,
+    'updated_intake': 5,
     'completed_profile': 25,
     'analyzed_budget': 15,
     'learned_concept': 5,
