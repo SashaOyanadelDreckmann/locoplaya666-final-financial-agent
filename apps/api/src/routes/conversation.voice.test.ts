@@ -183,4 +183,45 @@ describe('conversation voice routes', () => {
     );
     expect(res.body.data.interview_voice.max_duration_sec).toBe(150);
   }, 15000);
+
+  it('still completes finalize when diagnostic agent fails', async () => {
+    const { runDiagnosticAgent } = await import('../agents/diagnostic/diagnostic.agent');
+    vi.mocked(runDiagnosticAgent).mockRejectedValueOnce(new Error('LLM unavailable'));
+
+    const { agent, csrfToken } = await createAuthedAgent();
+
+    const res = await agent
+      .post('/conversation/voice/finalize')
+      .set('x-csrf-token', csrfToken)
+      .send({
+        intake: {
+          hasDebt: true,
+          tracksExpenses: false,
+          moneyStressLevel: 7,
+        },
+        minuteSummaries: [
+          {
+            minute: 1,
+            summary: 'El usuario describe presión por deuda y poca estructura de seguimiento.',
+            keyFindings: ['Deuda activa', 'Seguimiento irregular'],
+            confidence: 'medium',
+          },
+        ],
+        finalSummary: {
+          summary: 'Síntesis final con tensión entre deuda y falta de control operativo.',
+          keyFindings: ['Presión financiera'],
+          confidence: 'medium',
+          createdAt: new Date().toISOString(),
+        },
+        endedBy: 'timeout',
+        durationSec: 88,
+        callId: 'call-voice-test-fallback',
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.ok).toBe(true);
+    expect(res.body.data.type).toBe('interview_complete');
+    expect(res.body.data.profile.diagnosticNarrative).toContain('Resumen ejecutivo de prueba');
+    expect(res.body.data.voice_summary.diagnostic_fallback_used).toBe(true);
+  }, 15000);
 });

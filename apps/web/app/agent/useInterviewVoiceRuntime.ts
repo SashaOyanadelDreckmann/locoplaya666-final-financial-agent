@@ -39,6 +39,24 @@ import {
 
 const DEFAULT_MAX_CALL_DURATION_SEC = INTERVIEW_TOTAL_LIMIT_SEC;
 
+type PendingFinalizePayload = {
+  endedBy: 'timeout' | 'agent';
+  durationSec: number;
+  minuteSummaryPayload: Array<{
+    minute: number;
+    summary: string;
+    keyFindings: string[];
+    confidence: 'high' | 'medium' | 'low';
+    createdAt: string;
+  }>;
+  fallbackFinalSummary: {
+    summary: string;
+    keyFindings: string[];
+    confidence?: 'high' | 'medium' | 'low';
+    createdAt: string;
+  } | null;
+};
+
 export type InterviewVoiceRuntimeParams = {
   isOpen: boolean;
   intake: InterviewIntakeWithContext | null;
@@ -108,6 +126,7 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
   const summaryDraftRef = useRef('');
   const summaryMinuteAppliedRef = useRef(0);
   const callSecondsRef = useRef(0);
+  const pendingFinalizeRef = useRef<PendingFinalizePayload | null>(null);
 
   const [voiceSupported, setVoiceSupported] = useState(false);
   const [voiceConnecting, setVoiceConnecting] = useState(false);
@@ -133,6 +152,7 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
   const [summaryGenerating, setSummaryGenerating] = useState(false);
   const [voiceSessionReady, setVoiceSessionReady] = useState(false);
   const [isGeneratingDiagnosis, setIsGeneratingDiagnosis] = useState(false);
+  const [canRetryDiagnosis, setCanRetryDiagnosis] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -201,7 +221,9 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
     setLatestDiagnosticProfileId(null);
     setIsFinalizingCall(false);
     setIsGeneratingDiagnosis(false);
+    setCanRetryDiagnosis(false);
     setSyncError(null);
+    pendingFinalizeRef.current = null;
     setVoiceReport(null);
     setMinuteSummaries([]);
     setFinalSummary(null);
@@ -667,149 +689,206 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
     void saveInterviewVoiceState(snapshot).catch(() => {});
   }
 
-  async function finalizeCallAndGenerateReport(
+  function buildFinalizePayload(
     endedBy: 'timeout' | 'agent',
     options?: { durationSecOverride?: number },
-  ) {
-    if (isFinalizingCall || voiceFinalizeTriggeredRef.current) return;
-    voiceFinalizeTriggeredRef.current = true;
-    setIsFinalizingCall(true);
-    setIsGeneratingDiagnosis(true);
-    cleanupVoiceSession();
-    try {
-      const minuteSummaryPayload = minuteSummaries
-        .map((item, index) => ({
-          minute: typeof item.minute === 'number' ? item.minute : index + 1,
-          summary: normalizeSummaryText(item.summary),
-          keyFindings: Array.isArray(item.keyFindings)
-            ? item.keyFindings.map((finding) => normalizeSummaryText(finding)).filter(Boolean)
-            : [],
-          confidence: item.confidence ?? 'medium',
-          createdAt: item.createdAt ?? new Date().toISOString(),
-        }))
-        .filter((item) => item.summary.length > 0);
-      const fallbackFinalSummary =
-        finalSummary?.summary?.trim()
-          ? {
-              summary: normalizeSummaryText(finalSummary.summary),
-              keyFindings: Array.isArray(finalSummary.keyFindings)
-                ? finalSummary.keyFindings.map((item) => normalizeSummaryText(item)).filter(Boolean)
-                : [],
-              confidence: finalSummary.confidence,
-              createdAt: finalSummary.createdAt ?? new Date().toISOString(),
-            }
-          : minuteSummaryPayload.length > 0
-            ? {
-                summary: minuteSummaryPayload[minuteSummaryPayload.length - 1].summary,
-                keyFindings: minuteSummaryPayload[minuteSummaryPayload.length - 1].keyFindings,
-                confidence: minuteSummaryPayload[minuteSummaryPayload.length - 1].confidence,
-                createdAt: new Date().toISOString(),
-              }
-            : null;
-
-      let result: Awaited<ReturnType<typeof finalizeInterviewVoiceCall>> | null = null;
-      let lastError: unknown = null;
-      for (let attempt = 0; attempt < 3; attempt += 1) {
-        try {
-          result = await finalizeInterviewVoiceCall({
-            intake,
-            minuteSummaries: minuteSummaryPayload,
-            finalSummary: fallbackFinalSummary ?? undefined,
-            endedBy,
-            durationSec: Math.max(
-              1,
-              Math.floor(options?.durationSecOverride ?? callSecondsRef.current ?? callSeconds),
-            ),
-            callId: callId ?? undefined,
-          });
-          break;
-        } catch (error) {
-          lastError = error;
-          if (handleUnauthorized(error)) {
-            setIsGeneratingDiagnosis(false);
-            return;
-          }
-          if (attempt < 2) await waitMs(400 * (attempt + 1));
-        }
-      }
-      if (!result) throw lastError ?? new Error('No se pudo finalizar la llamada');
-
-      if (result?.profile) setProfile(result.profile);
-      if (result?.type === 'interview_complete') setResponse(result);
-
-      const interviewVoice = result?.interview_voice;
-      const voiceSummary = result?.voice_summary;
-      if (typeof interviewVoice?.call_id === 'string' && interviewVoice.call_id.length > 0) {
-        setCallId(interviewVoice.call_id);
-      }
-      if (typeof interviewVoice?.remaining_total_sec === 'number') {
-        setRemainingTotalSec(Math.max(0, Math.floor(interviewVoice.remaining_total_sec)));
-      }
-      if (Array.isArray(interviewVoice?.minute_summaries)) {
-        const nextMinuteSummaries = interviewVoice.minute_summaries.map((item: any, index: number) => ({
-          minute: typeof item?.minute === 'number' ? item.minute : index + 1,
-          summary: String(item?.summary ?? '').trim(),
-          keyFindings: Array.isArray(item?.key_findings)
-            ? item.key_findings.map((finding: unknown) => String(finding))
-            : [],
-          confidence:
-            item?.confidence === 'high' || item?.confidence === 'medium' || item?.confidence === 'low'
-              ? item.confidence
-              : undefined,
-          createdAt: new Date().toISOString(),
-        }));
-        setMinuteSummaries(nextMinuteSummaries);
-      }
-      if (typeof interviewVoice?.final_summary === 'string' && interviewVoice.final_summary.trim().length > 0) {
-        const createdAt = new Date().toISOString();
-        setFinalSummary({
-          summary: interviewVoice.final_summary.trim(),
-          keyFindings: voiceSummary?.key_findings ?? [],
-          confidence:
-            voiceSummary?.confidence === 'high' ||
-            voiceSummary?.confidence === 'medium' ||
-            voiceSummary?.confidence === 'low'
-              ? voiceSummary.confidence
-              : undefined,
-          createdAt,
-        });
-      }
-      setCallsStarted((prev) => Math.max(prev, 1));
-
-      const report = voiceSummary;
-      const executiveReport =
-        typeof report?.executive_report === 'string' && report.executive_report.trim().length > 0
-          ? report.executive_report.trim()
-          : typeof result?.profile?.executiveSummary === 'string' && result.profile.executiveSummary.trim().length > 0
-            ? result.profile.executiveSummary.trim()
-            : 'Entrevista finalizada. Tu diagnóstico quedó consolidado y ya puedes revisarlo en detalle.';
-      setVoiceReport({
-        executive_report: executiveReport,
-        key_findings: Array.isArray(report?.key_findings)
-          ? report.key_findings.map((item: unknown) => String(item))
+  ): PendingFinalizePayload {
+    const minuteSummaryPayload = minuteSummaries
+      .map((item, index) => ({
+        minute: typeof item.minute === 'number' ? item.minute : index + 1,
+        summary: normalizeSummaryText(item.summary),
+        keyFindings: Array.isArray(item.keyFindings)
+          ? item.keyFindings.map((finding) => normalizeSummaryText(finding)).filter(Boolean)
           : [],
-        stop_reason: typeof report?.stop_reason === 'string' ? report.stop_reason : endedBy,
-        has_enough_information:
-          typeof report?.has_enough_information === 'boolean' ? report.has_enough_information : undefined,
+        confidence: (item.confidence ?? 'medium') as 'high' | 'medium' | 'low',
+        createdAt: item.createdAt ?? new Date().toISOString(),
+      }))
+      .filter((item) => item.summary.length > 0);
+    const fallbackFinalSummary =
+      finalSummary?.summary?.trim()
+        ? {
+            summary: normalizeSummaryText(finalSummary.summary),
+            keyFindings: Array.isArray(finalSummary.keyFindings)
+              ? finalSummary.keyFindings.map((item) => normalizeSummaryText(item)).filter(Boolean)
+              : [],
+            confidence: finalSummary.confidence,
+            createdAt: finalSummary.createdAt ?? new Date().toISOString(),
+          }
+        : minuteSummaryPayload.length > 0
+          ? {
+              summary: minuteSummaryPayload[minuteSummaryPayload.length - 1].summary,
+              keyFindings: minuteSummaryPayload[minuteSummaryPayload.length - 1].keyFindings,
+              confidence: minuteSummaryPayload[minuteSummaryPayload.length - 1].confidence,
+              createdAt: new Date().toISOString(),
+            }
+          : null;
+
+    return {
+      endedBy,
+      durationSec: Math.max(
+        1,
+        Math.floor(options?.durationSecOverride ?? callSecondsRef.current ?? callSeconds),
+      ),
+      minuteSummaryPayload,
+      fallbackFinalSummary,
+    };
+  }
+
+  async function requestFinalizeInterview(payload: PendingFinalizePayload) {
+    let result: Awaited<ReturnType<typeof finalizeInterviewVoiceCall>> | null = null;
+    let lastError: unknown = null;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      try {
+        result = await finalizeInterviewVoiceCall({
+          intake,
+          minuteSummaries: payload.minuteSummaryPayload,
+          finalSummary: payload.fallbackFinalSummary ?? undefined,
+          endedBy: payload.endedBy,
+          durationSec: payload.durationSec,
+          callId: callId ?? undefined,
+        });
+        break;
+      } catch (error) {
+        lastError = error;
+        if (handleUnauthorized(error)) return null;
+        if (attempt < 2) await waitMs(400 * (attempt + 1));
+      }
+    }
+    if (!result) throw lastError ?? new Error('No se pudo finalizar la llamada');
+    return result;
+  }
+
+  function applyFinalizeSuccess(
+    result: Awaited<ReturnType<typeof finalizeInterviewVoiceCall>>,
+    endedBy: 'timeout' | 'agent',
+  ) {
+    if (result?.profile) setProfile(result.profile);
+    if (result?.type === 'interview_complete') setResponse(result);
+
+    const interviewVoice = result?.interview_voice;
+    const voiceSummary = result?.voice_summary;
+    if (typeof interviewVoice?.call_id === 'string' && interviewVoice.call_id.length > 0) {
+      setCallId(interviewVoice.call_id);
+    }
+    if (typeof interviewVoice?.remaining_total_sec === 'number') {
+      setRemainingTotalSec(Math.max(0, Math.floor(interviewVoice.remaining_total_sec)));
+    }
+    if (Array.isArray(interviewVoice?.minute_summaries)) {
+      const nextMinuteSummaries = interviewVoice.minute_summaries.map((item: any, index: number) => ({
+        minute: typeof item?.minute === 'number' ? item.minute : index + 1,
+        summary: String(item?.summary ?? '').trim(),
+        keyFindings: Array.isArray(item?.key_findings)
+          ? item.key_findings.map((finding: unknown) => String(finding))
+          : [],
         confidence:
-          report?.confidence === 'high' || report?.confidence === 'medium' || report?.confidence === 'low'
-            ? report.confidence
+          item?.confidence === 'high' || item?.confidence === 'medium' || item?.confidence === 'low'
+            ? item.confidence
             : undefined,
+        createdAt: new Date().toISOString(),
+      }));
+      setMinuteSummaries(nextMinuteSummaries);
+    }
+    if (typeof interviewVoice?.final_summary === 'string' && interviewVoice.final_summary.trim().length > 0) {
+      const createdAt = new Date().toISOString();
+      setFinalSummary({
+        summary: interviewVoice.final_summary.trim(),
+        keyFindings: voiceSummary?.key_findings ?? [],
+        confidence:
+          voiceSummary?.confidence === 'high' ||
+          voiceSummary?.confidence === 'medium' ||
+          voiceSummary?.confidence === 'low'
+            ? voiceSummary.confidence
+            : undefined,
+        createdAt,
       });
-      clearInterviewVoiceState();
-      setIsGeneratingDiagnosis(false);
-      onDiagnosisComplete?.();
+    }
+    setCallsStarted((prev) => Math.max(prev, 1));
+
+    const report = voiceSummary;
+    const executiveReport =
+      typeof report?.executive_report === 'string' && report.executive_report.trim().length > 0
+        ? report.executive_report.trim()
+        : typeof result?.profile?.executiveSummary === 'string' && result.profile.executiveSummary.trim().length > 0
+          ? result.profile.executiveSummary.trim()
+          : typeof result?.profile?.diagnosticNarrative === 'string' &&
+              result.profile.diagnosticNarrative.trim().length > 0
+            ? result.profile.diagnosticNarrative.trim()
+            : 'Entrevista finalizada. Tu diagnóstico quedó consolidado y ya puedes revisarlo en detalle.';
+    setVoiceReport({
+      executive_report: executiveReport,
+      key_findings: Array.isArray(report?.key_findings)
+        ? report.key_findings.map((item: unknown) => String(item))
+        : [],
+      stop_reason: typeof report?.stop_reason === 'string' ? report.stop_reason : endedBy,
+      has_enough_information:
+        typeof report?.has_enough_information === 'boolean' ? report.has_enough_information : undefined,
+      confidence:
+        report?.confidence === 'high' || report?.confidence === 'medium' || report?.confidence === 'low'
+          ? report.confidence
+          : undefined,
+    });
+    clearInterviewVoiceState();
+    pendingFinalizeRef.current = null;
+    setCanRetryDiagnosis(false);
+    setVoiceError(null);
+    setIsGeneratingDiagnosis(false);
+    onDiagnosisComplete?.();
+  }
+
+  async function runDiagnosisFinalize(
+    payload: PendingFinalizePayload,
+    options?: { resetFinalizeGuardOnError?: boolean },
+  ) {
+    try {
+      const result = await requestFinalizeInterview(payload);
+      if (!result) {
+        setIsGeneratingDiagnosis(false);
+        return;
+      }
+      applyFinalizeSuccess(result, payload.endedBy);
     } catch (error) {
-      voiceFinalizeTriggeredRef.current = false;
+      if (options?.resetFinalizeGuardOnError) {
+        voiceFinalizeTriggeredRef.current = false;
+      }
       if (handleUnauthorized(error)) {
         setIsGeneratingDiagnosis(false);
         return;
       }
       setIsGeneratingDiagnosis(false);
-      setVoiceError(toUserFacingError(error, 'interview.voice'));
+      setCanRetryDiagnosis(true);
+      setVoiceError(
+        `${toUserFacingError(error, 'interview.voice')} Puedes reintentar sin volver a llamar.`,
+      );
     } finally {
       setIsFinalizingCall(false);
     }
+  }
+
+  async function finalizeCallAndGenerateReport(
+    endedBy: 'timeout' | 'agent',
+    options?: { durationSecOverride?: number },
+  ) {
+    if (isFinalizingCall || voiceFinalizeTriggeredRef.current) return;
+    const payload = buildFinalizePayload(endedBy, options);
+    pendingFinalizeRef.current = payload;
+    voiceFinalizeTriggeredRef.current = true;
+    setCanRetryDiagnosis(false);
+    setVoiceError(null);
+    setIsFinalizingCall(true);
+    setIsGeneratingDiagnosis(true);
+    cleanupVoiceSession();
+    await runDiagnosisFinalize(payload, { resetFinalizeGuardOnError: true });
+  }
+
+  async function retryDiagnosisGeneration() {
+    const payload = pendingFinalizeRef.current;
+    if (!payload || isFinalizingCall || isGeneratingDiagnosis) return;
+    voiceFinalizeTriggeredRef.current = true;
+    setCanRetryDiagnosis(false);
+    setVoiceError(null);
+    setIsFinalizingCall(true);
+    setIsGeneratingDiagnosis(true);
+    await runDiagnosisFinalize(payload);
   }
 
   useEffect(() => {
@@ -823,18 +902,7 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
 
   useEffect(() => {
     if (!isOpen) return;
-    writeInterviewVoiceState({
-      callsStarted,
-      callSeconds,
-      maxCallDurationSec,
-      remainingTotalSec,
-      callId,
-      activeCallId: callId ?? undefined,
-      pauseUsed,
-      minuteSummaries,
-      finalSummary,
-      voiceReport,
-    });
+    writeInterviewVoiceState(buildPersistSnapshot(voiceConnected ? (voicePaused ? 'paused' : 'in_progress') : 'idle'));
   }, [
     isOpen,
     callsStarted,
@@ -846,6 +914,8 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
     minuteSummaries,
     finalSummary,
     voiceReport,
+    voiceConnected,
+    voicePaused,
   ]);
 
   useEffect(() => {
@@ -1033,6 +1103,7 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
     summaryGenerating,
     voiceSessionReady,
     isGeneratingDiagnosis,
+    canRetryDiagnosis,
     syncError,
     voiceFlags,
     blockVoiceInteraction,
@@ -1047,6 +1118,7 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
     cleanupVoiceSession,
     startOrResumeVoiceSession,
     toggleCallPause,
+    retryDiagnosisGeneration,
     applyLatestVoiceSummaryAsAnswer,
     setVoiceUserTranscript,
     setMinuteSummaries,

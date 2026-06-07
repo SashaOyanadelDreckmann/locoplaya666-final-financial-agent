@@ -3,6 +3,7 @@ import type { Request, Response } from 'express';
 
 import { InterviewerAgent } from '../agents/interviewer.agent';
 import { runDiagnosticAgent } from '../agents/diagnostic/diagnostic.agent';
+import { buildVoiceInterviewFallbackProfile } from '../agents/diagnostic/diagnostic.fallback';
 import {
   buildInterviewPlan,
   InterviewBlockId,
@@ -465,10 +466,29 @@ export const finalizeInterviewVoice = asyncHandler(async function finalizeInterv
     ])
   );
 
-  const diagnosticProfile = await runDiagnosticAgent({
-    intake,
-    blocks: syntheticBlocks,
-  });
+  let diagnosticProfile;
+  let diagnosticFallbackUsed = false;
+  try {
+    diagnosticProfile = await runDiagnosticAgent({
+      intake,
+      blocks: syntheticBlocks,
+    });
+  } catch (error) {
+    diagnosticFallbackUsed = true;
+    req.logger?.warn({
+      msg: 'interview.voice.finalize.diagnostic_fallback',
+      userId: user.id,
+      callId: parsed.callId ?? null,
+      error,
+    });
+    diagnosticProfile = buildVoiceInterviewFallbackProfile({
+      intake,
+      blocks: syntheticBlocks,
+      executiveReport,
+      keyFindings,
+      endedBy: parsed.endedBy,
+    });
+  }
   const { profileId } = await saveProfile(user.id, diagnosticProfile);
   await recordKnowledgeEvent(
     user.id,
@@ -580,6 +600,7 @@ export const finalizeInterviewVoice = asyncHandler(async function finalizeInterv
     durationSec: safeDurationSec,
     totalUsedSec: updatedTotalUsedSec,
     remainingTotalSec,
+    diagnosticFallbackUsed,
   });
 
   return sendSuccess(res, {
@@ -600,7 +621,10 @@ export const finalizeInterviewVoice = asyncHandler(async function finalizeInterv
       confidence:
         parsedReport?.confidence === 'high' || parsedReport?.confidence === 'medium' || parsedReport?.confidence === 'low'
           ? parsedReport.confidence
-          : 'high',
+          : diagnosticFallbackUsed
+            ? 'medium'
+            : 'high',
+      diagnostic_fallback_used: diagnosticFallbackUsed,
     },
     interview_voice: {
       total_used_sec: updatedTotalUsedSec,

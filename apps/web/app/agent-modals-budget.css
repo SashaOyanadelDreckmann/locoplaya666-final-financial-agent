@@ -5369,6 +5369,16 @@
   color: #fff0eb !important;
 }
 
+.interview-modal .interview-call-error-panel {
+  display: grid !important;
+  gap: 10px !important;
+  margin-top: 4px !important;
+}
+
+.interview-modal .interview-diagnosis-retry-btn {
+  justify-self: start !important;
+}
+
 .interview-modal .interview-modal-loading {
   margin: 0 24px 24px !important;
   min-height: 320px !important;

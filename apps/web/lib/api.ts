@@ -322,7 +322,7 @@ export async function finalizeInterviewVoiceCall(payload: {
     createdAt?: string;
   };
   transcript?: string;
-  endedBy: 'timeout' | 'agent' | 'user';
+  endedBy: 'timeout' | 'agent';
   durationSec?: number;
   callId?: string;
 }) {

@@ -134,6 +134,7 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
     isFinalizingCall,
     voiceReport,
     isGeneratingDiagnosis,
+    canRetryDiagnosis,
     syncError,
     voiceFlags,
     blockVoiceInteraction,
@@ -144,6 +145,7 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
     cleanupVoiceSession,
     startOrResumeVoiceSession,
     toggleCallPause,
+    retryDiagnosisGeneration,
     applyLatestVoiceSummaryAsAnswer,
     voiceSupported,
   } = voice;
@@ -372,13 +374,15 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
         ? 'Síntesis lista'
         : voiceFlags.voiceCallExhausted
           ? 'Llamada agotada'
-          : voiceConnected
-            ? 'En llamada'
-            : voiceFlags.hasEverStartedVoiceCall
-              ? voiceFlags.hasRemainingInterviewTime
-                ? 'Pausada'
-                : 'Llamada agotada'
-              : 'Lista para iniciar';
+          : voiceConnected && voicePaused
+            ? 'Pausada'
+            : voiceConnected
+              ? 'En llamada'
+              : voiceFlags.hasEverStartedVoiceCall
+                ? voiceFlags.hasRemainingInterviewTime
+                  ? 'Pausada'
+                  : 'Llamada agotada'
+                : 'Lista para iniciar';
   const callTimeLabel = `${Math.floor(callSeconds / 60).toString().padStart(2, '0')}:${(callSeconds % 60).toString().padStart(2, '0')}`;
   const maxCallTimeLabel = `${Math.floor(maxCallDurationSec / 60).toString().padStart(2, '0')}:${(maxCallDurationSec % 60).toString().padStart(2, '0')}`;
 
@@ -847,7 +851,23 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
                       <span className="voice-call-pill">Una sesión por usuario</span>
                     </div>
 
-                    {voiceError ? <p className="voice-call-error interview-call-error-banner">{voiceError}</p> : null}
+                    {voiceError ? (
+                      <div className="interview-call-error-panel">
+                        <p className="voice-call-error interview-call-error-banner">{voiceError}</p>
+                        {canRetryDiagnosis ? (
+                          <button
+                            type="button"
+                            className="summary-action-btn summary-action-accept interview-diagnosis-retry-btn"
+                            onClick={() => void retryDiagnosisGeneration()}
+                            disabled={isFinalizingCall || isGeneratingDiagnosis}
+                          >
+                            {isFinalizingCall || isGeneratingDiagnosis
+                              ? 'Reintentando diagnóstico…'
+                              : 'Reintentar diagnóstico'}
+                          </button>
+                        ) : null}
+                      </div>
+                    ) : null}
 
                     {(voiceConnected || minuteSummaries.length > 0 || finalSummary || voiceAgentTranscript) && (
                       <div className="voice-call-transcripts">

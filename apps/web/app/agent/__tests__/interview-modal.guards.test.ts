@@ -75,6 +75,27 @@ describe('interview modal safeguards', () => {
     expect(runtime).toContain('voiceConnected && !voicePaused');
   });
 
+  it('exposes diagnosis retry without reopening the call', () => {
+    const modalPath = path.join(process.cwd(), 'app', 'agent', 'InterviewModal.tsx');
+    const runtimePath = path.join(process.cwd(), 'app', 'agent', 'useInterviewVoiceRuntime.ts');
+    const modal = fs.readFileSync(modalPath, 'utf8');
+    const runtime = fs.readFileSync(runtimePath, 'utf8');
+
+    expect(modal).toContain('retryDiagnosisGeneration');
+    expect(modal).toContain('Reintentar diagnóstico');
+    expect(modal).toContain('canRetryDiagnosis');
+    expect(runtime).toContain('retryDiagnosisGeneration');
+    expect(runtime).toContain('pendingFinalizeRef');
+  });
+
+  it('labels paused live calls as Pausada in stage status', () => {
+    const modalPath = path.join(process.cwd(), 'app', 'agent', 'InterviewModal.tsx');
+    const modal = fs.readFileSync(modalPath, 'utf8');
+
+    expect(modal).toContain('voiceConnected && voicePaused');
+    expect(modal).toContain("? 'Pausada'");
+  });
+
   it('extracts voice runtime from the modal shell', () => {
     const modalPath = path.join(process.cwd(), 'app', 'agent', 'InterviewModal.tsx');
     const runtimePath = path.join(process.cwd(), 'app', 'agent', 'useInterviewVoiceRuntime.ts');
