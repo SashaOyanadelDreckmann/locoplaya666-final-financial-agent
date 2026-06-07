@@ -298,9 +298,17 @@ html.is-desktop-viewport .agent-chat-header:not(.is-mobile) {
   grid-template-columns: auto minmax(0, 1fr) auto !important;
   align-items: center !important;
   gap: 4px 12px !important;
-  padding: 14px 14px 8px !important;
+  padding: 14px 14px 10px !important;
   flex: 0 0 auto !important;
   min-height: 0 !important;
+  margin: 0 0 6px !important;
+  border-radius: 0 0 var(--radius-lg, 16px) var(--radius-lg, 16px) !important;
+  border: 1px solid rgba(190, 220, 245, 0.14) !important;
+  border-top: none !important;
+  background:
+    linear-gradient(180deg, rgba(10, 15, 22, 0.9), rgba(9, 13, 19, 0.78)) !important;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.16) !important;
+  overflow: hidden !important;
 }
 
 html.is-desktop-viewport .agent-chat-header:not(.is-mobile) .chat-brand-strip {
@@ -405,6 +413,14 @@ html.is-desktop-viewport .agent-chat-header:not(.is-mobile) .chat-monochrome-tog
   flex: 0 0 auto !important;
 }
 
+html.is-desktop-viewport .agent-chat-header:not(.is-mobile) .chat-brand-strip,
+html.is-desktop-viewport .agent-chat-header:not(.is-mobile) .agent-chat-controls-row {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
 html.is-desktop-viewport .agent-chat-header:not(.is-mobile) > .action-plan-funnel-rail,
 html.is-desktop-viewport .agent-chat-header:not(.is-mobile) > .product-flow-banner,
 html.is-desktop-viewport .agent-chat-header:not(.is-mobile) > .muted {
@@ -419,6 +435,10 @@ html.is-desktop-viewport .agent-chat-header:not(.is-mobile) .sheet-context-bar {
 }
 
 @media (min-width: 768px) and (max-width: 1366px) and (orientation: landscape) {
+  html.is-tablet-landscape .agent-chat-header:not(.is-mobile) {
+    border-radius: 0 0 14px 14px !important;
+  }
+
   html.is-tablet-landscape .agent-chat-header:not(.is-mobile) .chat-identity-subtitle {
     max-width: 14ch !important;
   }
@@ -431,6 +451,24 @@ html.is-desktop-viewport .agent-chat-header:not(.is-mobile) .sheet-context-bar {
 
   html.is-tablet-landscape .agent-chat-header:not(.is-mobile) .chat-sheet-tab-title {
     font-size: 0.66rem !important;
+  }
+
+  html.is-tablet-landscape .agent-chat .terminal-composer-controls button.composer-send-btn,
+  html.is-tablet-landscape .agent-chat .terminal-composer-controls button.composer-send-btn:hover:not(:disabled),
+  html.is-tablet-landscape .agent-chat .terminal-composer-controls button.composer-send-btn:focus-visible,
+  html.is-tablet-landscape .agent-chat .terminal-composer-controls button.composer-send-btn:disabled {
+    margin-right: 8px !important;
+    min-width: 0 !important;
+    width: auto !important;
+    height: auto !important;
+    flex-basis: auto !important;
+  }
+
+  html.is-tablet-landscape
+    .terminal-composer-shell.has-composer-text
+    .composer-send-btn.is-send-ready:not(:disabled)
+    svg {
+    transform: scale(1.58);
   }
 }
 
@@ -446,6 +484,14 @@ html.is-desktop-viewport .agent-chat .terminal-composer-shell {
   overflow: visible !important;
   position: relative !important;
   z-index: 4 !important;
+  padding-right: 6px !important;
+  box-sizing: border-box !important;
+}
+
+html.is-desktop-viewport .agent-chat .terminal-composer-controls button.composer-send-btn svg {
+  width: 18px !important;
+  height: 18px !important;
+  display: block !important;
 }
 
 html.is-desktop-viewport .agent-chat .agent-input.terminal-composer {
@@ -456,20 +502,51 @@ html.is-desktop-viewport .agent-chat .terminal-composer-controls {
   justify-content: flex-start !important;
   gap: 12px !important;
   overflow: visible !important;
-  padding: 0 !important;
+  padding: 0 8px 0 0 !important;
 }
 
-html.is-desktop-viewport .agent-chat .terminal-composer-controls button.composer-send-btn {
-  margin-left: auto !important;
-  margin-right: 32px !important;
-  min-width: 44px !important;
-  width: 44px !important;
-  height: 44px !important;
-  flex: 0 0 44px !important;
-  overflow: visible !important;
+html.is-desktop-viewport .agent-chat .terminal-composer-controls button.composer-send-btn,
+html.is-desktop-viewport .agent-chat .terminal-composer-controls button.composer-send-btn:hover:not(:disabled),
+html.is-desktop-viewport .agent-chat .terminal-composer-controls button.composer-send-btn:focus-visible,
+html.is-desktop-viewport .agent-chat .terminal-composer-controls button.composer-send-btn:disabled {
+  all: unset !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
+  box-sizing: border-box !important;
+  flex: 0 0 auto !important;
+  width: auto !important;
+  min-width: 0 !important;
+  height: auto !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  margin-left: auto !important;
+  margin-right: 12px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  color: rgba(231, 239, 247, 0.92) !important;
+  cursor: pointer !important;
+  line-height: 0 !important;
+  overflow: visible !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  outline: none !important;
+  transform: none !important;
+}
+
+html.is-desktop-viewport .agent-chat .terminal-composer-controls button.composer-send-btn:hover:not(:disabled) {
+  color: #ffffff !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+html.is-desktop-viewport .agent-chat .terminal-composer-controls button.composer-send-btn:disabled {
+  color: rgba(231, 239, 247, 0.34) !important;
+  cursor: not-allowed !important;
 }
 
 html.is-desktop-viewport .agent-chat .composer-send-btn svg {
@@ -497,23 +574,6 @@ html.is-desktop-viewport
   svg {
   transform: scale(1.78) translateY(-1px);
   filter: drop-shadow(0 6px 18px rgba(175, 212, 244, 0.52));
-}
-
-@media (min-width: 768px) and (max-width: 1366px) and (orientation: landscape) {
-  html.is-tablet-landscape .agent-chat .terminal-composer-controls button.composer-send-btn {
-    margin-right: 24px !important;
-    min-width: 40px !important;
-    width: 40px !important;
-    height: 40px !important;
-    flex-basis: 40px !important;
-  }
-
-  html.is-tablet-landscape
-    .terminal-composer-shell.has-composer-text
-    .composer-send-btn.is-send-ready:not(:disabled)
-    svg {
-    transform: scale(1.58);
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

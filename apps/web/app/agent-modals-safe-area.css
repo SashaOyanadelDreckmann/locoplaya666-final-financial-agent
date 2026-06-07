@@ -35,7 +35,10 @@
    */
   body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile {
     margin-top: 0 !important;
-    padding-top: var(--mobile-shell-pad-y, 4px) !important;
+    padding-top: var(--mobile-shell-pad-top, 12px) !important;
+    padding-bottom: var(--mobile-shell-pad-y, 4px) !important;
+    padding-left: var(--mobile-shell-pad-x, 10px) !important;
+    padding-right: var(--mobile-shell-pad-x, 10px) !important;
   }
 
   /*

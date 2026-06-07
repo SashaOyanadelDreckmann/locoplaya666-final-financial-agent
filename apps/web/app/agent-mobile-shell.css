@@ -6,6 +6,7 @@
     --mobile-shell-gutter-x: 8px;
     --mobile-shell-pad-x: 10px;
     --mobile-shell-pad-y: 4px;
+    --mobile-shell-pad-top: 12px;
     --mobile-shell-header-row-gap: 6px;
     --mobile-shell-radius: 16px;
     --mobile-shell-border: 1px solid rgba(173, 200, 220, 0.42);
@@ -53,7 +54,7 @@
     width: auto !important;
     max-width: none !important;
     margin: 2px var(--mobile-shell-gutter-x) 2px !important;
-    padding: var(--mobile-shell-pad-y) var(--mobile-shell-pad-x) var(--mobile-shell-pad-y) !important;
+    padding: var(--mobile-shell-pad-top) var(--mobile-shell-pad-x) var(--mobile-shell-pad-y) !important;
     gap: var(--mobile-shell-header-row-gap) !important;
     border-radius: var(--mobile-shell-radius) !important;
     border: none !important;
@@ -279,6 +280,16 @@
     padding: 0 var(--mobile-shell-gutter-x) 4px !important;
     width: 100% !important;
     max-width: 100% !important;
+    position: relative !important;
+    z-index: 24 !important;
+    isolation: isolate !important;
+    overflow: visible !important;
+  }
+
+  main.agent-layout.is-mobile-viewport > aside.agent-panel,
+  main.agent-layout.is-mobile-viewport > aside.agent-divider-rail + aside.agent-panel {
+    position: relative !important;
+    z-index: 8 !important;
   }
 
   main.agent-layout.is-mobile-viewport > aside.agent-panel,
@@ -392,6 +403,9 @@
     gap: 8px !important;
     margin: 0 !important;
     padding: 0 !important;
+    position: relative !important;
+    z-index: 1 !important;
+    overflow: visible !important;
   }
 
   .agent-mobile-composer-dock .agent-input.terminal-composer {
@@ -457,6 +471,9 @@
     border: 0 !important;
     box-shadow: none !important;
     margin: 0 !important;
+    position: relative !important;
+    z-index: 2 !important;
+    overflow: visible !important;
   }
 
   .agent-mobile-composer-dock .terminal-composer-controls > div {
@@ -508,6 +525,9 @@
     outline: none !important;
     transform: none !important;
     cursor: pointer !important;
+    position: relative !important;
+    z-index: 6 !important;
+    overflow: visible !important;
     color: rgba(231, 239, 247, 0.92) !important;
     line-height: 0 !important;
     appearance: none !important;
@@ -517,6 +537,18 @@
   .agent-mobile-composer-dock .terminal-composer-controls button.composer-send-btn:disabled {
     color: rgba(231, 239, 247, 0.34) !important;
     cursor: not-allowed !important;
+  }
+
+  .agent-mobile-composer-dock .terminal-composer-controls button.composer-send-btn svg {
+    position: relative !important;
+    z-index: 1 !important;
+    overflow: visible !important;
+    pointer-events: none !important;
+  }
+
+  .agent-mobile-composer-dock.has-composer-text .terminal-composer-controls button.composer-send-btn.is-send-ready:not(:disabled) {
+    overflow: visible !important;
+    z-index: 8 !important;
   }
 
   /*
