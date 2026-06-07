@@ -125,14 +125,13 @@
 
 @media (max-width: 480px) {
   :root {
-    --modal-safe-top-min: max(48px, 12vmin);
-    --modal-safe-top-gap: 10px;
+    --modal-safe-top-min: max(52px, 13vmin);
+    --modal-safe-top-gap: 12px;
   }
 }
 
 @media (max-width: 767px) and (min-height: 800px) {
   :root {
-    /* Taller phones / dynamic island */
-    --modal-safe-top-min: max(52px, 11vmin);
+    --modal-safe-top-min: max(54px, 12vmin);
   }
 }

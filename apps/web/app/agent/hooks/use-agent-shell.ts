@@ -145,11 +145,20 @@ export function useAgentShell() {
         if (
           target.classList.contains('mobile-panel-handle') ||
           target.closest('.mobile-panel-handle') ||
-          target.closest('.agent-panel.is-dragging') ||
-          target.closest('.agent-panel')
+          target.closest('.agent-panel.is-dragging')
         ) {
           return;
         }
+
+        const expandedPanel = target.closest('.agent-panel.is-mobile-expanded');
+        if (expandedPanel) {
+          return;
+        }
+
+        if (target.closest('.agent-panel.is-mobile-compact')) {
+          return;
+        }
+
         const style = window.getComputedStyle(target);
         const overflowY = style.overflowY;
         const overflowX = style.overflowX;

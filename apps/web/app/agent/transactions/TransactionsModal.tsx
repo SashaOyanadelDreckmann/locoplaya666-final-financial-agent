@@ -816,6 +816,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
     const res = await fetch('/api/transactions-chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken() || '' },
+      credentials: 'include',
       body: JSON.stringify(payload),
     });
     const data = await res.json().catch(() => null);

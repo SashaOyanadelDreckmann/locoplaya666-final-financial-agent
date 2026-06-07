@@ -1,6 +1,19 @@
 /* Mobile agent shell — imported last in agent.css; wins the cascade. */
 
 @media (max-width: 767px) {
+  :root {
+    --mobile-shell-gutter-x: 8px;
+    --mobile-shell-pad-x: 10px;
+    --mobile-shell-pad-y: 8px;
+    --mobile-shell-radius: 16px;
+    --mobile-shell-border: 1px solid rgba(173, 200, 220, 0.42);
+    --mobile-shell-bg: linear-gradient(180deg, rgba(2, 8, 14, 0.94), rgba(2, 8, 14, 0.98));
+    --mobile-shell-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.1),
+      0 16px 32px rgba(0, 0, 0, 0.4),
+      0 0 0 1px rgba(155, 185, 209, 0.14);
+  }
+
   main.agent-layout.is-mobile-viewport {
     display: flex !important;
     flex-direction: column !important;
@@ -31,15 +44,204 @@
     box-shadow: none !important;
   }
 
-  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile {
+  /* Mobile header — solid black shell (matches panel); no visible border */
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile {
+    box-sizing: border-box !important;
+    width: auto !important;
+    max-width: none !important;
+    margin: 4px var(--mobile-shell-gutter-x) 4px !important;
+    padding: var(--mobile-shell-pad-y) var(--mobile-shell-pad-x) 7px !important;
+    gap: 6px !important;
+    border-radius: var(--mobile-shell-radius) !important;
+    border: none !important;
+    background: #000000 !important;
+    background-color: #000000 !important;
+    background-image: none !important;
+    box-shadow: none !important;
+    border-bottom: none !important;
+    overflow: visible !important;
+    min-height: 0 !important;
     flex: 0 0 auto !important;
-    padding: 10px 0 6px !important;
-    margin: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    position: relative !important;
   }
 
-  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .agent-chat-controls-row {
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .agent-chat-controls-row,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .agent-chat-controls-row,
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-brand-strip,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-brand-strip {
+    background: transparent !important;
+    background-color: transparent !important;
+    background-image: none !important;
+    box-shadow: none !important;
+    border: 0 !important;
+    width: 100% !important;
     margin: 0 !important;
-    padding: 4px 0 0 !important;
+    padding: 0 !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .agent-chat-controls-row,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .agent-chat-controls-row {
+    justify-content: center !important;
+    align-items: center !important;
+    gap: 6px !important;
+    margin-bottom: 2px !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-switcher,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-switcher {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    width: 75% !important;
+    max-width: 75% !important;
+    min-width: 0 !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    gap: 4px !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-sheet-tab,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-sheet-tab {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 22px !important;
+    height: 22px !important;
+    max-height: 22px !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    padding: 0 4px !important;
+    border-radius: 8px !important;
+    gap: 3px !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-sheet-tab-subtitle,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-sheet-tab-subtitle {
+    display: none !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-sheet-tab-index,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-sheet-tab-index {
+    width: 12px !important;
+    height: 12px !important;
+    min-width: 12px !important;
+    flex-basis: 12px !important;
+    font-size: 8px !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-sheet-tab-copy,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-sheet-tab-copy {
+    min-width: 0 !important;
+    overflow: hidden !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-sheet-tab-title,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-sheet-tab-title {
+    font-size: 10px !important;
+    line-height: 1.15 !important;
+    letter-spacing: 0 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    max-width: 100% !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-brand-strip,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-brand-strip {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 3px !important;
+    margin-top: 0 !important;
+    min-height: 0 !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-brand-action-row,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-brand-action-row {
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+    min-height: 0 !important;
+    padding: 0 22px !important;
+    box-sizing: border-box !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-monochrome-toggle--inline,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-monochrome-toggle--inline,
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-brand-action-row .chat-monochrome-toggle--inline,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-brand-action-row .chat-monochrome-toggle--inline {
+    position: absolute !important;
+    right: 0 !important;
+    top: 50% !important;
+    bottom: auto !important;
+    left: auto !important;
+    transform: translateY(-50%) !important;
+    width: 18px !important;
+    height: 24px !important;
+    min-width: 18px !important;
+    min-height: 24px !important;
+    max-width: 18px !important;
+    border: 1px solid rgba(255, 255, 255, 0.14) !important;
+    background: rgba(0, 0, 0, 0.92) !important;
+    z-index: 20 !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-monochrome-toggle--inline .mono-toggle-icon,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-monochrome-toggle--inline .mono-toggle-icon {
+    width: 12px !important;
+    height: 12px !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-brand-title-row,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-brand-title-row,
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-brand-strip h1,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-brand-strip h1 {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: auto !important;
+    max-width: 100% !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    gap: 6px !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-brand-logo-mark,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-brand-logo-mark {
+    width: 20px !important;
+    height: 20px !important;
+    flex: 0 0 20px !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-brand-financiera,
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-brand-mente,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-brand-financiera,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-brand-mente {
+    font-size: 13px !important;
+    line-height: 1.1 !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-identity-subtitle,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-identity-subtitle {
+    font-size: 10px !important;
+    line-height: 1.2 !important;
+    text-align: center !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile > p.muted:empty,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile > p.muted:empty {
+    display: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    min-height: 0 !important;
   }
 
   main.agent-layout.is-mobile-viewport .agent-chat-body {
@@ -64,21 +266,106 @@
   main.agent-layout.is-mobile-viewport > .agent-mobile-composer-dock {
     flex: 0 0 auto !important;
     margin: 0 !important;
-    padding: 0 8px 4px !important;
+    padding: 0 var(--mobile-shell-gutter-x) 4px !important;
     width: 100% !important;
     max-width: 100% !important;
   }
 
   main.agent-layout.is-mobile-viewport > aside.agent-panel,
-  main.agent-layout.is-mobile-viewport .agent-panel {
-    flex: 0 0 calc(var(--mobile-panel-h, 162px) + env(safe-area-inset-bottom, 0px)) !important;
-    max-height: calc(var(--mobile-panel-h, 162px) + env(safe-area-inset-bottom, 0px)) !important;
+  main.agent-layout.is-mobile-viewport .agent-panel:not(.is-mobile-expanded) {
+    flex: 0 0 auto !important;
+    height: auto !important;
+    max-height: calc(var(--mobile-panel-h, 126px) + env(safe-area-inset-bottom, 0px)) !important;
     margin: 0 !important;
     margin-top: 0 !important;
     margin-bottom: 0 !important;
     width: 100% !important;
     max-width: 100% !important;
     box-sizing: border-box !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+    overflow: hidden !important;
+  }
+
+  main.agent-layout.is-mobile-viewport.mobile-panel-expanded .agent-panel,
+  main.agent-layout.is-mobile-viewport.mobile-panel-expanded .agent-panel.is-mobile-expanded,
+  body.agent-route-active main.agent-layout.is-mobile-viewport.mobile-panel-expanded .agent-panel {
+    flex: 0 0 calc(min(50dvh, 430px) + env(safe-area-inset-bottom, 0px)) !important;
+    height: calc(min(50dvh, 430px) + env(safe-area-inset-bottom, 0px)) !important;
+    max-height: calc(min(50dvh, 430px) + env(safe-area-inset-bottom, 0px)) !important;
+    min-height: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior: contain !important;
+    touch-action: pan-y !important;
+    transition: none !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-panel .mobile-panel-handle {
+    flex: 0 0 auto !important;
+    min-height: 0 !important;
+    padding: 2px 10px 1px !important;
+    margin: 0 !important;
+    border-bottom: none !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-panel:not(.is-mobile-expanded) .panel-grid {
+    flex: 0 0 auto !important;
+    margin-top: 0 !important;
+    padding: 0 8px max(2px, calc(env(safe-area-inset-bottom, 0px) + var(--mobile-panel-bottom-gap, 4px))) 8px !important;
+    align-items: flex-end !important;
+    align-content: flex-end !important;
+    gap: 8px !important;
+  }
+
+  main.agent-layout.is-mobile-viewport.mobile-panel-expanded .agent-panel .panel-grid,
+  main.agent-layout.is-mobile-viewport .agent-panel.is-mobile-expanded .panel-grid,
+  body.agent-route-active main.agent-layout.is-mobile-viewport.mobile-panel-expanded .agent-panel .panel-grid,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-panel.is-mobile-expanded .panel-grid {
+    flex: none !important;
+    min-height: auto !important;
+    height: auto !important;
+    max-height: none !important;
+    margin-top: 0 !important;
+    overflow: visible !important;
+    touch-action: pan-y !important;
+    align-items: stretch !important;
+    align-content: start !important;
+    padding: 8px 8px max(8px, calc(env(safe-area-inset-bottom, 0px) + 4px)) 8px !important;
+    gap: 8px !important;
+    transition: none !important;
+  }
+
+  main.agent-layout.is-mobile-viewport.mobile-panel-expanded .agent-panel .panel-grid > *,
+  main.agent-layout.is-mobile-viewport .agent-panel.is-mobile-expanded .panel-grid > *,
+  body.agent-route-active main.agent-layout.is-mobile-viewport.mobile-panel-expanded .agent-panel .panel-grid > * {
+    transform: none !important;
+    opacity: 1 !important;
+    margin-left: 0 !important;
+    transition: none !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-panel,
+  main.agent-layout.is-mobile-viewport .agent-panel .mob-col,
+  main.agent-layout.is-mobile-viewport .agent-panel .mob-col > * {
+    transition: none !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .mobile-panel-chevron {
+    transition: transform 0.22s ease, color 0.2s ease !important;
+  }
+
+  main.agent-layout.is-mobile-viewport.mobile-panel-expanded .agent-panel .mobile-panel-handle,
+  main.agent-layout.is-mobile-viewport .agent-panel.is-mobile-expanded .mobile-panel-handle,
+  body.agent-route-active main.agent-layout.is-mobile-viewport.mobile-panel-expanded .agent-panel .mobile-panel-handle {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 4 !important;
+    background: #000000 !important;
   }
 
   main.agent-layout.is-mobile-viewport .agent-divider-rail {
@@ -102,14 +389,11 @@
     flex-direction: column !important;
     min-height: auto !important;
     gap: 4px !important;
-    border-radius: 16px !important;
-    border: 1px solid rgba(173, 200, 220, 0.42) !important;
-    background: linear-gradient(180deg, rgba(2, 8, 14, 0.94), rgba(2, 8, 14, 0.98)) !important;
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.1),
-      0 16px 32px rgba(0, 0, 0, 0.4),
-      0 0 0 1px rgba(155, 185, 209, 0.14) !important;
-    padding: 8px 10px 6px !important;
+    border-radius: var(--mobile-shell-radius) !important;
+    border: var(--mobile-shell-border) !important;
+    background: var(--mobile-shell-bg) !important;
+    box-shadow: var(--mobile-shell-shadow) !important;
+    padding: var(--mobile-shell-pad-y) var(--mobile-shell-pad-x) 6px !important;
     cursor: text !important;
   }
 
@@ -223,5 +507,174 @@
   .agent-mobile-composer-dock .terminal-composer-controls button.composer-send-btn:disabled {
     color: rgba(231, 239, 247, 0.34) !important;
     cursor: not-allowed !important;
+  }
+
+  /*
+   * PWA / Add to Home Screen — tight panel, cards flush to bottom with small margin.
+   */
+  html.pwa-standalone {
+    --mobile-panel-h: 126px;
+    --mobile-panel-bottom-gap: 0px;
+  }
+
+  html.pwa-standalone main.agent-layout.is-mobile-viewport.is-mobile-standalone,
+  body.agent-route-active main.agent-layout.is-mobile-viewport.is-mobile-standalone,
+  html.pwa-standalone body.agent-route-active .agent-layout.is-mobile-standalone,
+  .agent-layout.is-mobile-viewport.is-mobile-standalone {
+    height: var(--fa-app-height, 100lvh) !important;
+    max-height: var(--fa-app-height, 100lvh) !important;
+    min-height: 0 !important;
+    padding-bottom: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  html.pwa-standalone main.agent-layout.is-mobile-viewport.is-mobile-standalone .agent-panel.is-mobile-compact,
+  body.agent-route-active .agent-layout.is-mobile-standalone .agent-panel.is-mobile-compact,
+  .agent-layout.is-mobile-standalone .agent-panel.is-mobile-compact {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+    flex: 0 0 auto !important;
+    height: auto !important;
+    max-height: calc(var(--mobile-panel-h, 126px) + env(safe-area-inset-bottom, 0px)) !important;
+    margin: 0 !important;
+    margin-bottom: 0 !important;
+    padding: 0 !important;
+    padding-bottom: 0 !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+    background: #000000 !important;
+  }
+
+  html.pwa-standalone .agent-layout.is-mobile-standalone.mobile-panel-expanded .agent-panel,
+  body.agent-route-active .agent-layout.is-mobile-standalone.mobile-panel-expanded .agent-panel,
+  body.agent-route-active .agent-layout.is-mobile-standalone.mobile-panel-expanded .agent-panel.is-mobile-expanded {
+    flex: 0 0 calc(min(50dvh, 430px) + env(safe-area-inset-bottom, 0px)) !important;
+    height: calc(min(50dvh, 430px) + env(safe-area-inset-bottom, 0px)) !important;
+    max-height: calc(min(50dvh, 430px) + env(safe-area-inset-bottom, 0px)) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior: contain !important;
+    touch-action: pan-y !important;
+    transition: none !important;
+  }
+
+  html.pwa-standalone .agent-layout.is-mobile-standalone .mobile-panel-handle,
+  body.agent-route-active .agent-layout.is-mobile-standalone .mobile-panel-handle {
+    flex: 0 0 auto !important;
+    margin: 0 !important;
+    padding: 2px 10px 0 !important;
+    min-height: 0 !important;
+    border-bottom: none !important;
+  }
+
+  html.pwa-standalone .agent-layout.is-mobile-standalone .agent-panel .panel-grid,
+  body.agent-route-active .agent-layout.is-mobile-standalone .agent-panel .panel-grid,
+  body.agent-route-active .agent-layout.is-mobile-standalone .agent-panel.is-mobile-compact .panel-grid,
+  body.agent-route-active .agent-layout.is-mobile-standalone .agent-panel:not(.is-mobile-expanded) .panel-grid {
+    flex: 0 0 auto !important;
+    margin-top: 0 !important;
+    min-height: 0 !important;
+    height: auto !important;
+    width: 100% !important;
+    padding: 0 8px max(2px, calc(env(safe-area-inset-bottom, 0px) - 6px)) 8px !important;
+    align-items: flex-end !important;
+    align-content: flex-end !important;
+    justify-content: flex-start !important;
+    box-sizing: border-box !important;
+    gap: 8px !important;
+  }
+
+  html.pwa-standalone .agent-layout.is-mobile-standalone .agent-panel .mob-col,
+  html.pwa-standalone .agent-layout.is-mobile-standalone .agent-panel .mob-col-wide,
+  html.pwa-standalone .agent-layout.is-mobile-standalone .agent-panel .mob-col-narrow,
+  body.agent-route-active .agent-layout.is-mobile-standalone .agent-panel .mob-col,
+  body.agent-route-active .agent-layout.is-mobile-standalone .agent-panel .mob-col-wide,
+  body.agent-route-active .agent-layout.is-mobile-standalone .agent-panel .mob-col-narrow {
+    align-self: flex-end !important;
+  }
+
+  html.pwa-standalone .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile,
+  body.agent-route-active .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile {
+    border: none !important;
+    background: #000000 !important;
+    background-color: #000000 !important;
+    box-shadow: none !important;
+  }
+
+  html.pwa-standalone .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .chat-monochrome-toggle--inline,
+  body.agent-route-active .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .chat-monochrome-toggle--inline {
+    width: 18px !important;
+    height: 24px !important;
+    min-width: 18px !important;
+    min-height: 24px !important;
+    max-width: 18px !important;
+    right: 0 !important;
+  }
+
+  html.pwa-standalone .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .chat-monochrome-toggle--inline .mono-toggle-icon,
+  body.agent-route-active .agent-layout.is-mobile-standalone .agent-chat-header.is-mobile .chat-monochrome-toggle--inline .mono-toggle-icon {
+    width: 12px !important;
+    height: 12px !important;
+  }
+}
+
+@media (display-mode: standalone) and (max-width: 767px) {
+  :root {
+    --mobile-panel-h: 126px;
+    --mobile-panel-bottom-gap: 0px;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-panel,
+  main.agent-layout.is-mobile-viewport .agent-panel.is-mobile-compact {
+    flex: 0 0 auto !important;
+    height: auto !important;
+    max-height: calc(var(--mobile-panel-h, 126px) + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-panel .panel-grid {
+    margin-top: 0 !important;
+    padding: 0 8px max(2px, calc(env(safe-area-inset-bottom, 0px) - 6px)) 8px !important;
+    align-items: flex-end !important;
+    align-content: flex-end !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile {
+    border: none !important;
+    background: #000000 !important;
+    box-shadow: none !important;
+  }
+
+  .agent-mobile-composer-dock.has-composer-text .terminal-composer-controls button.composer-send-btn.is-send-ready:not(:disabled) {
+    overflow: visible !important;
+  }
+}
+
+@keyframes composer-send-float-pulse {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(2);
+  }
+  50% {
+    transform: translate3d(0, -5px, 0) scale(2.16);
+  }
+}
+
+.terminal-composer-shell.has-composer-text .composer-send-btn.is-send-ready:not(:disabled) svg,
+.agent-mobile-composer-dock.has-composer-text .composer-send-btn.is-send-ready:not(:disabled) svg {
+  animation: composer-send-float-pulse 2.35s ease-in-out infinite;
+  transform-origin: center center;
+  will-change: transform;
+  filter: drop-shadow(0 5px 14px rgba(155, 198, 232, 0.5));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .terminal-composer-shell.has-composer-text .composer-send-btn.is-send-ready:not(:disabled) svg,
+  .agent-mobile-composer-dock.has-composer-text .composer-send-btn.is-send-ready:not(:disabled) svg {
+    animation: none;
+    transform: scale(2);
   }
 }

@@ -829,6 +829,26 @@ export default function AgentPage() {
     };
   }, [isMobileViewport, mobilePanelExpanded, haptic]);
 
+  useEffect(() => {
+    if (!isMobileViewport) return;
+    const panel = panelScrollRef.current;
+    const grid = panelGridRef.current;
+    if (!panel) return;
+
+    panel.style.flexBasis = '';
+    panel.style.maxHeight = '';
+    panel.style.removeProperty('--mobile-panel-h');
+    panel.classList.remove('is-dragging');
+    panel.closest('.agent-layout')?.classList.remove('is-panel-dragging');
+
+    if (mobilePanelExpanded) {
+      requestAnimationFrame(() => {
+        panel.scrollTop = 0;
+        if (grid) grid.scrollLeft = 0;
+      });
+    }
+  }, [mobilePanelExpanded, isMobileViewport]);
+
   // Load sheets from API on mount
   useEffect(() => {
     if (!authBootstrapped || !isAuthenticated) return;
@@ -3399,7 +3419,11 @@ export default function AgentPage() {
   }
 
   const terminalComposerShell = (
-    <div className="agent-input-shell terminal-composer-shell">
+    <div
+      className={`agent-input-shell terminal-composer-shell${
+        input.trim() ? ' has-composer-text' : ''
+      }`}
+    >
       <div
         className="agent-input terminal-composer"
         onClick={() => {
@@ -3482,7 +3506,7 @@ export default function AgentPage() {
 
         <button
           type="button"
-          className="composer-send-btn"
+          className={`composer-send-btn${input.trim() ? ' is-send-ready' : ''}`}
           disabled={isActiveChatLocked}
           onClick={() => {
             void onSend(chatComposerRef.current?.value ?? input);
@@ -3602,7 +3626,11 @@ export default function AgentPage() {
       </section>
 
       {isMobileViewport ? (
-        <div className="agent-mobile-composer-dock">{terminalComposerShell}</div>
+        <div
+          className={`agent-mobile-composer-dock${input.trim() ? ' has-composer-text' : ''}`}
+        >
+          {terminalComposerShell}
+        </div>
       ) : null}
 
       <SidePanels

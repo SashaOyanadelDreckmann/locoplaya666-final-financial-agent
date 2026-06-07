@@ -97,6 +97,7 @@ html.pwa-standalone {
     --vp-bg-bleed-bottom: max(env(safe-area-inset-bottom, 0px), 34px);
     --vp-bg-bleed-extra-bottom: max(env(safe-area-inset-bottom, 0px), 18px);
     --vp-bg-photo-extend: 122%;
+    --mobile-panel-bottom-gap: 4px;
     --vp-bg-matte-mobile:
       linear-gradient(
         180deg,
@@ -345,48 +346,213 @@ html.pwa-standalone .global-agent-backdrop {
   }
 
   html.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel,
-  html.agent-route-active main.agent-layout.is-mobile-viewport .agent-panel,
-  html.agent-route-active .agent-panel,
-  body.agent-route-active .agent-panel,
+  html.agent-route-active main.agent-layout.is-mobile-viewport .agent-panel:not(.is-mobile-expanded),
+  html.agent-route-active .agent-panel:not(.is-mobile-expanded),
   body.agent-route-active .agent-panel.is-mobile-compact {
-    flex: 0 0 calc(var(--mobile-panel-h, 162px) + env(safe-area-inset-bottom, 0px)) !important;
-    max-height: calc(var(--mobile-panel-h, 162px) + env(safe-area-inset-bottom, 0px)) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 0 0 auto !important;
+    height: auto !important;
+    max-height: calc(var(--mobile-panel-h, 126px) + env(safe-area-inset-bottom, 0px)) !important;
     margin: 0 !important;
     margin-bottom: 0 !important;
     border-radius: 0 !important;
     align-self: stretch !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+    justify-content: flex-start !important;
+  }
+
+  html.agent-route-active main.agent-layout.is-mobile-viewport.mobile-panel-expanded .agent-panel,
+  html.agent-route-active main.agent-layout.is-mobile-viewport.mobile-panel-expanded .agent-panel.is-mobile-expanded,
+  body.agent-route-active main.agent-layout.is-mobile-viewport.mobile-panel-expanded .agent-panel,
+  body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel,
+  body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel.is-mobile-expanded {
+    flex: 0 0 calc(min(50dvh, 430px) + env(safe-area-inset-bottom, 0px)) !important;
+    height: calc(min(50dvh, 430px) + env(safe-area-inset-bottom, 0px)) !important;
+    max-height: calc(min(50dvh, 430px) + env(safe-area-inset-bottom, 0px)) !important;
+    min-height: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior: contain !important;
+    touch-action: pan-y !important;
+    margin-bottom: 0 !important;
+    transition: none !important;
+  }
+
+  html.agent-route-active .agent-panel .mobile-panel-handle,
+  body.agent-route-active .agent-panel .mobile-panel-handle {
+    flex: 0 0 auto !important;
+    min-height: 0 !important;
+    padding: 2px 10px 1px !important;
+    border-bottom: none !important;
   }
 
   html.agent-route-active .agent-panel .panel-grid,
-  body.agent-route-active .agent-panel .panel-grid {
+  body.agent-route-active .agent-panel .panel-grid,
+  body.agent-route-active .agent-panel.is-mobile-compact .panel-grid,
+  body.agent-route-active .agent-panel:not(.is-mobile-expanded) .panel-grid {
     box-sizing: border-box !important;
+    flex: 0 0 auto !important;
     min-height: 0 !important;
-    height: 100% !important;
-    padding-bottom: max(8px, env(safe-area-inset-bottom, 0px)) !important;
+    height: auto !important;
+    margin-top: 0 !important;
+    padding: 0 8px max(2px, calc(env(safe-area-inset-bottom, 0px) + var(--mobile-panel-bottom-gap, 4px))) 8px !important;
+    align-items: flex-end !important;
+    align-content: flex-end !important;
+    gap: 8px !important;
   }
 
-  html.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel,
-  html.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel.is-mobile-expanded,
-  body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel {
-    flex: 0 0 calc(min(50dvh, 430px) + env(safe-area-inset-bottom, 0px)) !important;
-    max-height: calc(min(50dvh, 430px) + env(safe-area-inset-bottom, 0px)) !important;
-    margin-bottom: 0 !important;
+  html.agent-route-active .agent-panel .mob-col,
+  html.agent-route-active .agent-panel .mob-col-wide,
+  html.agent-route-active .agent-panel .mob-col-narrow,
+  body.agent-route-active .agent-panel .mob-col,
+  body.agent-route-active .agent-panel .mob-col-wide,
+  body.agent-route-active .agent-panel .mob-col-narrow {
+    align-self: flex-end !important;
   }
 
-  /* Modals — full large viewport, no strip below */
+  html.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .panel-grid,
+  html.agent-route-active .agent-panel.is-mobile-expanded .panel-grid,
+  body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .panel-grid,
+  body.agent-route-active .agent-panel.is-mobile-expanded .panel-grid,
+  body.agent-route-active main.agent-layout.is-mobile-viewport.mobile-panel-expanded .agent-panel .panel-grid,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-panel.is-mobile-expanded .panel-grid {
+    flex: none !important;
+    min-height: auto !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    touch-action: pan-y !important;
+    align-items: stretch !important;
+    align-content: start !important;
+    padding: 8px 8px max(8px, calc(env(safe-area-inset-bottom, 0px) + 4px)) 8px !important;
+    gap: 8px !important;
+    transition: none !important;
+  }
+
+  html.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .panel-grid > *,
+  html.agent-route-active .agent-panel.is-mobile-expanded .panel-grid > *,
+  body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .panel-grid > * {
+    transform: none !important;
+    opacity: 1 !important;
+    margin-left: 0 !important;
+    transition: none !important;
+  }
+
+  html.agent-route-active main.agent-layout.is-mobile-viewport .agent-panel,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-panel {
+    transition: none !important;
+  }
+
+  html.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .mobile-panel-handle,
+  html.agent-route-active .agent-panel.is-mobile-expanded .mobile-panel-handle,
+  body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .mobile-panel-handle {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 4 !important;
+    background: #000000 !important;
+  }
+
+  /* Modals — full-bleed backdrop; content starts below status bar */
+  html:not(.home-route-active) {
+    --modal-safe-top-gap: 10px;
+    --modal-safe-top-min: max(48px, 12vmin);
+    --modal-safe-top: calc(max(env(safe-area-inset-top, 0px), var(--modal-safe-top-min)) + var(--modal-safe-top-gap));
+    --modal-safe-bottom: max(env(safe-area-inset-bottom, 0px), 0px);
+  }
+
   html:not(.home-route-active) .agent-modal-overlay,
   html:not(.home-route-active) .agent-modal-overlay.transactions-modal-overlay,
   html:not(.home-route-active) .agent-modal-overlay.budget-modal-overlay,
   html:not(.home-route-active) .agent-modal-overlay.interview-modal-overlay,
   html:not(.home-route-active) .social-modal-overlay,
   html:not(.home-route-active) .modal-overlay {
+    position: fixed !important;
     inset: 0 !important;
     top: 0 !important;
     bottom: 0 !important;
     width: 100% !important;
-    height: var(--fa-app-height) !important;
-    min-height: var(--fa-app-height) !important;
+    height: var(--fa-app-height, 100dvh) !important;
+    min-height: var(--fa-app-height, 100dvh) !important;
     max-height: none !important;
+    margin: 0 !important;
+    padding-top: var(--modal-safe-top) !important;
+    padding-bottom: var(--modal-safe-bottom) !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    box-sizing: border-box !important;
+    display: block !important;
+    align-items: unset !important;
+    justify-content: unset !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  html:not(.home-route-active) .agent-modal-overlay > .agent-modal,
+  html:not(.home-route-active) .agent-modal-overlay > .agent-modal.transactions-modal,
+  html:not(.home-route-active) .agent-modal-overlay > .agent-modal.budget-modal,
+  html:not(.home-route-active) .agent-modal-overlay > .agent-modal.interview-modal,
+  html:not(.home-route-active) .agent-modal-overlay > .agent-modal.questionnaire-modal,
+  html:not(.home-route-active) .agent-modal-overlay > .agent-modal.account-modal,
+  html:not(.home-route-active) .social-modal-overlay > .social-modal,
+  html:not(.home-route-active) .agent-modal,
+  html:not(.home-route-active) .transactions-modal,
+  html:not(.home-route-active) .budget-modal,
+  html:not(.home-route-active) .interview-modal,
+  html:not(.home-route-active) .questionnaire-modal,
+  html:not(.home-route-active) .account-modal,
+  html:not(.home-route-active) .social-modal {
+    position: relative !important;
+    inset: auto !important;
+    width: 100% !important;
+    max-width: none !important;
+    height: auto !important;
+    min-height: calc(var(--fa-app-height, 100dvh) - var(--modal-safe-top) - var(--modal-safe-bottom)) !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding-top: 0 !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+  }
+
+  html:not(.home-route-active) .agent-modal.account-modal,
+  html:not(.home-route-active) .account-modal {
+    min-height: auto !important;
+    max-height: min(calc(var(--fa-app-height, 100dvh) - var(--modal-safe-top) - var(--modal-safe-bottom)), 88dvh) !important;
+  }
+
+  html:not(.home-route-active) .bcc-modal-header,
+  html:not(.home-route-active) .agent-modal-header,
+  html:not(.home-route-active) .social-modal-header,
+  html:not(.home-route-active) .transactions-modal .bcc-modal-header,
+  html:not(.home-route-active) .transactions-modal .bcc-modal-header.tx-modal-header-layer {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 40 !important;
+    padding-top: 8px !important;
+    margin-top: 0 !important;
+  }
+
+  html:not(.home-route-active) .agent-modal-close,
+  html:not(.home-route-active) .transactions-modal .tx-close-minimal,
+  html:not(.home-route-active) .social-modal .social-close-btn {
+    position: relative !important;
+    top: auto !important;
+    right: auto !important;
+    width: 20px !important;
+    height: 26px !important;
+    min-width: 20px !important;
+    min-height: 26px !important;
+    max-width: 20px !important;
+    padding: 0 !important;
+    font-size: 16px !important;
+    line-height: 1 !important;
+    border-radius: 7px !important;
   }
 
   /*
@@ -479,5 +645,60 @@ html.pwa-standalone .global-agent-backdrop {
   html.agent-route-active .agent-chat > .agent-chat-body > .agent-thread,
   html.agent-route-active .agent-chat .agent-chat-body > .agent-thread {
     overscroll-behavior: contain !important;
+  }
+
+  /*
+   * PWA — cards flush to bottom; safe-area only, no extra air below cards.
+   */
+  html.pwa-standalone body.agent-route-active main.agent-layout.is-mobile-viewport .agent-panel,
+  html.pwa-standalone body.agent-route-active main.agent-layout.is-mobile-viewport .agent-panel.is-mobile-compact,
+  html.pwa-standalone body.agent-route-active .agent-layout.is-mobile-standalone .agent-panel,
+  html.pwa-standalone body.agent-route-active .agent-layout.is-mobile-standalone .agent-panel.is-mobile-compact {
+    flex: 0 0 auto !important;
+    height: auto !important;
+    max-height: none !important;
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
+  html.pwa-standalone body.agent-route-active .agent-panel .mobile-panel-handle,
+  html.pwa-standalone body.agent-route-active .agent-layout.is-mobile-standalone .mobile-panel-handle {
+    padding: 2px 10px 0 !important;
+    margin: 0 !important;
+    border-bottom: none !important;
+  }
+
+  html.pwa-standalone body.agent-route-active .agent-panel .panel-grid,
+  html.pwa-standalone body.agent-route-active .agent-panel.is-mobile-compact .panel-grid,
+  html.pwa-standalone body.agent-route-active .agent-layout.is-mobile-standalone .agent-panel .panel-grid {
+    flex: 0 0 auto !important;
+    margin-top: 0 !important;
+    padding: 0 8px max(2px, calc(env(safe-area-inset-bottom, 0px) - 6px)) 8px !important;
+    align-items: flex-end !important;
+    align-content: flex-end !important;
+  }
+
+  html.pwa-standalone body.agent-route-active .agent-layout.is-mobile-standalone.mobile-panel-expanded .agent-panel,
+  html.pwa-standalone body.agent-route-active .agent-panel.is-mobile-expanded,
+  body.agent-route-active main.agent-layout.is-mobile-viewport.mobile-panel-expanded .agent-panel.is-mobile-expanded {
+    display: flex !important;
+    flex-direction: column !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior: contain !important;
+    touch-action: pan-y !important;
+    transition: none !important;
+  }
+}
+
+@media (display-mode: standalone) and (max-width: 767px) {
+  body.agent-route-active .agent-panel .panel-grid,
+  body.agent-route-active .agent-panel.is-mobile-compact .panel-grid {
+    padding: 0 8px max(2px, calc(env(safe-area-inset-bottom, 0px) - 6px)) 8px !important;
+  }
+
+  body.agent-route-active .agent-panel .mobile-panel-handle {
+    padding: 2px 10px 0 !important;
   }
 }
