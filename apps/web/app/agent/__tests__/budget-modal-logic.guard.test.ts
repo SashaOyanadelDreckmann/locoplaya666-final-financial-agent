@@ -51,11 +51,24 @@ describe('budget modal logic guards', () => {
   });
 
   it('guards client-side AI actions against unknown row deletes and blind updates', () => {
-    expect(source).toContain('const existingRowIds = new Set(props.budgetRows.map((row) => normalizeActionRowId(row.id)).filter(Boolean));');
+    expect(source).toContain('mergeBudgetActionIntoRow');
     expect(source).toContain("if (kind === 'delete') {");
     expect(source).toContain('if (!rowExists) return;');
     expect(source).toContain("if (kind === 'update' && !rowExists) return;");
-    expect(source).toContain("if (kind === 'add' && rowExists) kind = 'update';");
+    expect(source).toContain("kind: kind === 'add' && rowExists ? 'update'");
+  });
+
+  it('defers table mutations until the user confirms pending assistant actions', () => {
+    expect(source).toContain('budgetPendingConfirmation');
+    expect(source).toContain('pendingConfirmation: budgetPendingConfirmation');
+    expect(source).toContain('requires_confirmation');
+    expect(source).toContain('setBudgetPendingConfirmation(null);');
+  });
+
+  it('keeps assistant UI minimal with only the current question and input', () => {
+    expect(source).toContain('bcc-hero-question');
+    expect(source).not.toContain('bcc-hero-reply');
+    expect(source).not.toContain('budget-market-strip');
   });
 
   it('opens the budget modal from the panel card instead of leaving dead copy', () => {
@@ -82,9 +95,11 @@ describe('budget modal logic guards', () => {
     expect(source).toContain('El servicio del asistente no esta disponible ahora. Intenta nuevamente en unos segundos.');
   });
 
-  it('wires mobile shell class, compact cockpit, chat sync, and safe overlay dismiss', () => {
+  it('wires mobile shell class, hidden cockpit, chat sync, and safe overlay dismiss', () => {
     expect(source).toContain("isMobileShell ? ' is-mobile-shell' : ''");
-    expect(source).toContain('is-compact');
+    expect(source).toContain('{!isMobileShell && (');
+    expect(source).toContain('budget-cockpit-banner');
+    expect(source).toContain('bcc-hero-question');
     expect(source).toContain('handleSendBudgetToAgent');
     expect(source).toContain('props.sendBudgetToAgent()');
     expect(source).toContain('budget-chat-sync-button');

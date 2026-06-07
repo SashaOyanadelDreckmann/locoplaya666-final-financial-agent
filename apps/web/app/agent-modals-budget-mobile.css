@@ -154,6 +154,13 @@
     min-height: 44px !important;
   }
 
+  .budget-modal.is-mobile-shell .budget-assistant-panel .bcc-hero-reply {
+    margin: 0 0 10px !important;
+    font-size: 0.88rem !important;
+    line-height: 1.45 !important;
+    color: rgba(210, 225, 240, 0.82) !important;
+  }
+
   .budget-modal.is-mobile-shell .budget-chat-sync-button.is-assistant-action {
     width: 100% !important;
     min-height: 44px !important;

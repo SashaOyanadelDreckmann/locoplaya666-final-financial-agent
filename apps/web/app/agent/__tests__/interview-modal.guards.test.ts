@@ -32,12 +32,32 @@ describe('interview modal safeguards', () => {
   });
 
   it('does not wire paid transcription into the interview modal', () => {
-    const sourcePath = path.join(process.cwd(), 'app', 'agent', 'InterviewModal.tsx');
-    const source = fs.readFileSync(sourcePath, 'utf8');
+    const runtimePath = path.join(process.cwd(), 'app', 'agent', 'useInterviewVoiceRuntime.ts');
+    const source = fs.readFileSync(runtimePath, 'utf8');
 
     expect(source).toContain("response.output_text.delta");
     expect(source).not.toContain('input_audio_transcription');
     expect(source).not.toContain('gpt-4o-transcribe');
     expect(source).not.toContain('gpt-realtime-whisper');
+  });
+
+  it('keeps structured context highlights for the sidebar', () => {
+    const sourcePath = path.join(process.cwd(), 'app', 'agent', 'interview-modal.context.ts');
+    const source = fs.readFileSync(sourcePath, 'utf8');
+
+    expect(source).toContain('buildInterviewContextHighlights');
+    expect(source).toContain(".split('\\n')");
+    expect(source).not.toContain(".split('||')");
+  });
+
+  it('extracts voice runtime from the modal shell', () => {
+    const modalPath = path.join(process.cwd(), 'app', 'agent', 'InterviewModal.tsx');
+    const runtimePath = path.join(process.cwd(), 'app', 'agent', 'useInterviewVoiceRuntime.ts');
+    const modal = fs.readFileSync(modalPath, 'utf8');
+    const runtime = fs.readFileSync(runtimePath, 'utf8');
+
+    expect(modal).toContain('useInterviewVoiceRuntime');
+    expect(modal).not.toContain('RTCPeerConnection');
+    expect(runtime).toContain('RTCPeerConnection');
   });
 });

@@ -96,6 +96,13 @@
   40% { opacity: 1; transform: scale(1); }
 }
 
+.bcc-hero-reply {
+  font-size: 0.92rem !important;
+  line-height: 1.45 !important;
+  color: rgba(210, 225, 240, 0.82) !important;
+  margin: 0 0 12px !important;
+}
+
 .bcc-hero-question {
   font-size: 24px !important;
   font-weight: 300 !important;

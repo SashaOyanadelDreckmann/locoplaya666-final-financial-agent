@@ -40,6 +40,7 @@
   min-height: 84vh !important;
   display: flex !important;
   flex-direction: column !important;
+  position: relative !important;
   border-radius: 24px !important;
   background: transparent !important;
   backdrop-filter: none !important;
@@ -16379,11 +16380,13 @@ html:not([data-visual-mode='light-outline']) .agent-panel .panel-feature-card {
 }
 
 .transactions-modal .tx-composer-attachments-count {
-  flex: 1 0 100%;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  color: rgba(186, 204, 220, 0.62);
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(186, 204, 220, 0.56);
+  white-space: nowrap;
 }
 
 .transactions-modal .tx-composer-pro {
@@ -16626,4 +16629,226 @@ html:not([data-visual-mode='light-outline']) .agent-panel .panel-feature-card {
 
 html.mobile-input-engaged .transactions-modal .tx-composer-field {
   scroll-margin-bottom: max(24px, env(safe-area-inset-bottom, 0px)) !important;
+}
+
+/* ── Tx evidence: senior mobile shell + sticky composer (v4) ─────────────── */
+.transactions-modal[data-stage='evidence'] .tx-agent-stage-header--compact {
+  margin-bottom: 10px;
+}
+
+.transactions-modal[data-stage='evidence'] .tx-composer-sticky-host {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.transactions-modal .tx-composer-attachments {
+  align-items: center;
+}
+
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+  .transactions-modal[data-stage='evidence'] .tx-content-card--agent .tx-agent-stage-header--compact {
+    margin-bottom: 8px !important;
+    gap: 4px !important;
+  }
+
+  .transactions-modal[data-stage='evidence'] .tx-content-card--agent .tx-agent-stage-header--compact > h4,
+  .transactions-modal[data-stage='evidence'] .tx-content-card--agent .tx-agent-stage-title {
+    max-width: none !important;
+    font-size: clamp(1.2rem, 4.8vw, 1.5rem) !important;
+    line-height: 1.18 !important;
+    letter-spacing: -0.02em !important;
+  }
+
+  .transactions-modal[data-stage='evidence'] .tx-content-card--agent .tx-agent-stage-note {
+    max-width: none !important;
+    font-size: 0.8rem !important;
+    line-height: 1.42 !important;
+    margin-top: 0 !important;
+    color: rgba(206, 220, 234, 0.62) !important;
+  }
+
+  .transactions-modal[data-stage='evidence'] .tx-hero-shell-spacer {
+    height: 40px !important;
+    margin: 0 0 6px !important;
+  }
+
+  .transactions-modal[data-stage='evidence'] .tx-evidence-product-bar {
+    padding: 10px 12px;
+    border-radius: 12px;
+  }
+
+  .transactions-modal[data-stage='evidence'] .tx-composer-sticky-host {
+    position: sticky;
+    bottom: 0;
+    z-index: 6;
+    padding-top: 10px;
+    padding-bottom: max(6px, env(safe-area-inset-bottom, 0px));
+    background: linear-gradient(
+      180deg,
+      rgba(8, 14, 22, 0) 0%,
+      rgba(8, 14, 22, 0.88) 24%,
+      rgba(8, 14, 22, 0.96) 100%
+    );
+  }
+
+  .transactions-modal[data-stage='evidence'] .tx-meta-card.is-neutral[role='status'] {
+    margin-bottom: 10px !important;
+    padding: 10px 12px !important;
+  }
+
+  .transactions-modal[data-stage='evidence'] .tx-composer-sticky-host .tx-composer-pro {
+    margin-top: 0;
+  }
+}
+
+@media (min-width: 921px) {
+  .transactions-modal[data-stage='evidence'] .tx-agent-stage-header--compact {
+    margin-bottom: 12px;
+  }
+
+  .transactions-modal[data-stage='evidence'] .tx-composer-sticky-host {
+    position: static;
+    background: transparent;
+  }
+}
+
+/* Wizard stepper */
+.transactions-modal .tx-wizard-stepper {
+  margin: 0 0 16px;
+}
+
+.transactions-modal .tx-wizard-stepper-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.transactions-modal .tx-wizard-stepper-item {
+  min-width: 0;
+}
+
+.transactions-modal .tx-wizard-step {
+  width: 100%;
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(8, 14, 22, 0.42);
+  color: rgba(226, 232, 240, 0.92);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.16s ease, background 0.16s ease;
+}
+
+.transactions-modal .tx-wizard-step.is-current {
+  border-color: rgba(96, 165, 250, 0.65);
+  background: rgba(30, 58, 95, 0.55);
+}
+
+.transactions-modal .tx-wizard-step.is-disabled,
+.transactions-modal .tx-wizard-step:disabled {
+  opacity: 0.52;
+  cursor: not-allowed;
+}
+
+.transactions-modal .tx-wizard-step-title {
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+}
+
+.transactions-modal .tx-wizard-step-copy {
+  font-size: 11px;
+  line-height: 1.35;
+  color: rgba(203, 213, 225, 0.78);
+}
+
+/* Close confirmation */
+.transactions-modal .tx-close-confirm-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(2, 6, 12, 0.62);
+  backdrop-filter: blur(4px);
+}
+
+.transactions-modal .tx-close-confirm-dialog {
+  width: min(420px, 100%);
+  padding: 18px 18px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: rgba(10, 16, 24, 0.96);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
+}
+
+.transactions-modal .tx-close-confirm-title {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  font-weight: 650;
+}
+
+.transactions-modal .tx-close-confirm-body {
+  margin: 0 0 14px;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  color: rgba(226, 232, 240, 0.86);
+}
+
+.transactions-modal .tx-close-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Library card shell — valid button + delete sibling */
+.transactions-modal .tx-lib-card-shell {
+  position: relative;
+}
+
+.transactions-modal .tx-lib-card-select {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  display: block;
+}
+
+.transactions-modal .tx-lib-card-select:focus-visible {
+  outline: 2px solid rgba(96, 165, 250, 0.75);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .transactions-modal[data-reduced-motion='true'] .tx-3d-sway-wrap.is-floating,
+  .transactions-modal[data-reduced-motion='true'] .tx-lib-enter,
+  .transactions-modal[data-reduced-motion='true'] .tx-step-reveal,
+  .transactions-modal[data-reduced-motion='true'] .tx-3d-hero.is-docking-out {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .transactions-modal[data-reduced-motion='true'] .tx-3d-hero {
+    transform: none !important;
+  }
+}
+
+@media (max-width: 767px) {
+  .transactions-modal .tx-wizard-stepper-list {
+    grid-template-columns: 1fr;
+  }
 }

@@ -14,17 +14,6 @@ jest.mock('../TxAnalystDashboard', () => ({
   TxAnalystDashboard: () => <div data-testid="tx-analyst-step">Resumen</div>,
 }));
 
-const emptyTransactionIntel: TransactionsModalProps['transactionIntel'] = {
-  docs: 0,
-  rows: 0,
-  amounts: [],
-  summary: '',
-  topKeywords: [],
-  averageDetected: 0,
-  maxDetected: 0,
-  totalDetected: 0,
-};
-
 function buildDescriptor(title: string): TransactionsModalProps['transactionProductCards'][number]['descriptor'] {
   return {
     title,
@@ -73,8 +62,6 @@ function buildProps(products: BankProduct[], selectedId: string): TransactionsMo
     onClose: jest.fn(),
     txWizardStep: 'upload',
     setTxWizardStep: jest.fn(),
-    bankSimulationProductsCount: products.length,
-    transactionIntel: emptyTransactionIntel,
     activeBankProduct: products.find((product) => product.id === selectedId) ?? null,
     transactionProductCards: cards,
     selectedProductId: selectedId,

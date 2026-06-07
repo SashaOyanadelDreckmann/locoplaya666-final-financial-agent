@@ -82,12 +82,8 @@ export function buildBudgetRowSummary(row: BudgetRow) {
     category: row.category,
     type: row.type,
     amount: row.amount,
-    product: row.product ?? null,
-    institution: row.institution ?? null,
     cadence: row.cadence ?? null,
     paymentMethod: row.paymentMethod ?? null,
     movementType: row.movementType ?? null,
-    momentum: row.momentum ?? null,
-    strategy: row.strategy ?? null,
   };
 }

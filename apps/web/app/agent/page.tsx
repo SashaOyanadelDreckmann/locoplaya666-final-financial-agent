@@ -2498,7 +2498,11 @@ export default function AgentPage() {
   }
 
   const openInterviewModal = useCallback(async () => {
-    await syncFinancialContextToIntake().catch(() => {});
+    try {
+      await syncFinancialContextToIntake();
+    } catch {
+      // El modal sigue abriendo con el payload local enriquecido; la llamada no debe bloquearse por un sync tardío.
+    }
     setInterviewIntake(buildInterviewIntakePayload());
     setIsInterviewModalOpen(true);
   }, [buildInterviewIntakePayload, setInterviewIntake, syncFinancialContextToIntake]);
@@ -3501,11 +3505,7 @@ export default function AgentPage() {
               type="button"
               className="summary-action-btn summary-action-accept"
               onClick={() => {
-                const injectedIntake = sessionInfo?.injectedIntake?.intake;
-                if (injectedIntake && typeof injectedIntake === 'object') {
-                  setInterviewIntake(injectedIntake as Parameters<typeof setInterviewIntake>[0]);
-                }
-                openInterviewModal();
+                void openInterviewModal();
               }}
             >
               Retomar
@@ -3630,8 +3630,6 @@ export default function AgentPage() {
         onClose={() => setIsTransactionsModalOpen(false)}
         txWizardStep={txWizardStep}
         setTxWizardStep={setTxWizardStep}
-        bankSimulationProductsCount={bankSimulation.products.length}
-        transactionIntel={transactionIntel}
         activeBankProduct={activeBankProduct}
         transactionProductCards={transactionProductCards}
         selectedProductId={bankSimulation.activeProductId}

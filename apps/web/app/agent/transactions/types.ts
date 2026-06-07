@@ -127,8 +127,6 @@ export type TransactionsModalProps = {
   onClose: () => void;
   txWizardStep: TxWizardStep;
   setTxWizardStep: (step: TxWizardStep) => void;
-  bankSimulationProductsCount: number;
-  transactionIntel: { docs: number; amounts: number[]; summary: string; topKeywords: Array<{ label: string; count: number }>; averageDetected: number; maxDetected: number; totalDetected: number; rows: number };
   activeBankProduct: BankProduct | null;
   transactionProductCards: Array<{ product: BankProduct; descriptor: { title: string; description: string; insights: string[]; themeColor: string }; intel: { docs: number; amounts: number[] } }>;
   selectedProductId: string | null;

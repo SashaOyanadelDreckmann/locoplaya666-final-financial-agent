@@ -3,49 +3,67 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-describe('transactions modal safeguards', () => {
-  it('keeps a11y focus guards and upload limits in place', () => {
-    const sourcePath = path.join(process.cwd(), 'app', 'agent', 'transactions', 'TransactionsModal.tsx');
-    const source = fs.readFileSync(sourcePath, 'utf8');
+function read(relativePath: string): string {
+  return fs.readFileSync(path.join(process.cwd(), relativePath), 'utf8');
+}
 
-    const constantsPath = path.join(process.cwd(), 'app', 'agent', 'transactions', 'constants.ts');
-    const constants = fs.readFileSync(constantsPath, 'utf8');
-    const pageConstantsPath = path.join(process.cwd(), 'app', 'agent', 'agent-page.constants.ts');
-    const pageConstants = fs.readFileSync(pageConstantsPath, 'utf8');
+describe('transactions modal safeguards', () => {
+  it('keeps orchestrator wiring, a11y hooks, and upload limits in place', () => {
+    const modal = read('app/agent/transactions/TransactionsModal.tsx');
+    const assistantChat = read('app/agent/transactions/use-tx-assistant-chat.ts');
+    const actionSession = read('app/agent/transactions/use-tx-action-session.ts');
+    const modalA11y = read('app/agent/transactions/use-tx-modal-a11y.ts');
+    const dockTransition = read('app/agent/transactions/use-tx-dock-transition.ts');
+    const closeConfirm = read('app/agent/transactions/use-tx-close-confirm.ts');
+    const constants = read('app/agent/transactions/constants.ts');
+    const pageConstants = read('app/agent/agent-page.constants.ts');
+
     expect(constants).toContain('TX_MAX_SINGLE_FILE_BYTES = 10 * 1024 * 1024');
     expect(constants).toContain('TX_MAX_TOTAL_FILE_BYTES = 50 * 1024 * 1024');
     expect(pageConstants).toContain('MAX_TRANSACTION_PRODUCTS = 7');
     expect(pageConstants).toContain('MAX_TRANSACTION_PRODUCTS_CREATED_TOTAL = 12');
     expect(pageConstants).toContain('MAX_EVIDENCE_FILES_PER_PRODUCT = 25');
-    expect(source).toContain('const transactionsModalRef = useRef<HTMLDivElement | null>(null);');
-    expect(source).toContain('const txSessionIdRef = useRef(0);');
-    expect(source).toContain('const invalidateTxSession = () => {');
-    expect(source).toContain("props.txWizardStep === 'products'");
-    expect(source).toContain('hasPendingAuthorization');
-    expect(source).toContain('const authorized = props.simulateBankLogin');
-    expect(source).toContain('pendingEvidenceFilesByProduct');
-    expect(source).toContain('txAssistantInputByProduct');
-    expect(source).toContain('txUploadOnboardingStepByProduct');
-    expect(source).toContain('previousActiveProductIdRef');
-    expect(source).toContain('isTxActionStale(sessionId, productId)');
-    expect(source).toContain('txAssistantLoadingByProduct');
-    expect(source).toContain("setSelectedMovementKey(null);");
-    expect(source).toContain("if (event.key !== 'Tab') return;");
-    expect(source).toContain('aria-describedby="transactions-modal-intro"');
-    expect(source).toContain('tabIndex={-1}');
-    expect(source).toContain('tx-batch-recommendation-banner" role="status" aria-live="polite"');
-    expect(source).toContain('Productos y transacciones');
-    expect(source).toContain('const requestClose = useCallback');
-    expect(source).toContain('clearPendingEvidence();');
-    expect(source).toContain('grabaci[oó]n|pantalla|screen');
-    expect(source).toContain("props.setTxWizardStep('products');");
-    expect(source).toContain('if (!props.activeBankProduct?.id) return;');
-    expect(source).toContain('controller.signal');
+
+    expect(modal).toContain('const transactionsModalRef = useRef<HTMLDivElement | null>(null);');
+    expect(modal).toContain('useTxAssistantChat');
+    expect(modal).toContain('useTxCloseConfirm');
+    expect(modal).toContain('useTxModalA11y');
+    expect(modal).toContain('useTxDockTransition');
+    expect(modal).toContain("props.txWizardStep === 'products'");
+    expect(modal).toContain('setSelectedMovementKey(null);');
+    expect(modal).toContain('aria-describedby="transactions-modal-intro"');
+    expect(modal).toContain('tabIndex={-1}');
+    expect(modal).toContain('tx-batch-recommendation-banner" role="status" aria-live="polite"');
+    expect(modal).toContain('Productos y transacciones');
+    expect(modal).toContain("props.setTxWizardStep('products');");
+    expect(modal).toContain('if (!props.activeBankProduct?.id) return;');
+    expect(modal).toContain('role="alertdialog"');
+    expect(modal).toContain('tx-wizard-stepper');
+
+    expect(actionSession).toContain('const txSessionIdRef = useRef(0);');
+    expect(actionSession).toContain('const invalidateTxSession = useCallback');
+    expect(actionSession).toContain('previousActiveProductIdRef');
+    expect(actionSession).toContain('isTxActionStale');
+
+    expect(assistantChat).toContain('pendingEvidenceFilesByProduct');
+    expect(assistantChat).toContain('txAssistantInputByProduct');
+    expect(assistantChat).toContain('txUploadOnboardingStepByProduct');
+    expect(assistantChat).toContain('txAssistantLoadingByProduct');
+    expect(assistantChat).toContain('isTxActionStale(sessionId, productId)');
+    expect(assistantChat).toContain('controller.signal');
+    expect(read('app/agent/transactions/tx-assistant.helpers.ts')).toContain('grabaci[oó]n|pantalla|screen');
+
+    expect(modalA11y).toContain("if (event.key !== 'Tab') return;");
+
+    expect(dockTransition).toContain('hasPendingAuthorization');
+    expect(dockTransition).toContain('simulateBankLogin');
+
+    expect(closeConfirm).toContain('clearDraft');
+    expect(closeConfirm).toContain('const requestClose = useCallback');
   });
 
   it('keeps product upload isolation and canonical document ids', () => {
-    const sourcePath = path.join(process.cwd(), 'app', 'agent', 'page.tsx');
-    const source = fs.readFileSync(sourcePath, 'utf8');
+    const source = read('app/agent/page.tsx');
 
     expect(source).toContain('const targetProductId = activeBankProduct.id;');
     expect(source).toContain('normalizeParsedUploadDocuments');
@@ -58,12 +76,13 @@ describe('transactions modal safeguards', () => {
     expect(source).toContain('getEvidenceUploadCapacity');
     expect(source).toContain('let parsed = await callParseDocuments();');
     expect(source).toContain('await new Promise((resolve) => setTimeout(resolve, 700));');
-    expect(source).not.toContain('const uploadApplied = applyUploadToTargetProduct(prev.products, targetProductId, [], names);');
+    expect(source).not.toContain(
+      'const uploadApplied = applyUploadToTargetProduct(prev.products, targetProductId, [], names);',
+    );
   });
 
   it('keeps the rapid upload mode visible in the evidence step', () => {
-    const sourcePath = path.join(process.cwd(), 'app', 'agent', 'transactions', 'TxEvidenceStep.tsx');
-    const source = fs.readFileSync(sourcePath, 'utf8');
+    const source = read('app/agent/transactions/TxEvidenceStep.tsx');
 
     expect(source).toContain("['video', 'Rápido']");
     expect(source).toContain('video/mp4,video/quicktime,video/webm');

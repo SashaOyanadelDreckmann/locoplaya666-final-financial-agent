@@ -70,7 +70,6 @@ export interface TxEvidenceStepProps {
   txUploadOnboardingStep: 'format' | 'details' | 'upload';
   selectedUploadFormat: 'photos' | 'pdf' | 'spreadsheet' | 'text' | 'video' | null;
   pendingEvidenceFiles: File[];
-  manualEvidenceDraft: string;
   txAssistantInput: string;
   txAssistantLoading: boolean;
   documentsLoading: boolean;
@@ -83,13 +82,11 @@ export interface TxEvidenceStepProps {
   processingPrimaryCopy: string;
   documentsParseProgress?: DocumentsParseProgress | null;
   txAssistantError: string | null;
-  pendingManualEvidence: string;
   onPatchUploadFormat: (format: 'photos' | 'pdf' | 'spreadsheet' | 'text' | 'video') => void;
   onResetUploadFormat: () => void;
   onSetUploadOnboardingStep: (step: 'format' | 'details' | 'upload') => void;
   onBumpTransitionPulse: () => void;
   onAppendPendingEvidence: (files: FileList | null) => void | Promise<void>;
-  onManualEvidenceChange: (value: string) => void;
   onAssistantInputChange: (value: string) => void;
   onAssistantSend: () => void;
   onRefineSummary: (source: string, body: string) => void;
@@ -148,12 +145,11 @@ export function TxEvidenceStep(props: TxEvidenceStepProps) {
 
   return (
     <section className="tx-content-card tx-content-card--agent is-main-center tx-step-reveal">
-      <div className="pt-stage-header tx-agent-stage-header">
+      <div className="pt-stage-header tx-agent-stage-header tx-agent-stage-header--compact">
         <span className="pt-stage-eyebrow tx-agent-stage-tag">Análisis guiado</span>
         <h4 className="tx-agent-stage-title">Sube tus movimientos</h4>
         <p className="tx-agent-stage-note">
-          Adjunta cartola, PDF, Excel, texto o una grabación rápida. El agente ordena la evidencia y devuelve una
-          lectura ejecutiva clara.
+          Adjunta cartola, PDF, Excel, texto o video. El agente extrae movimientos y devuelve un resumen ejecutivo.
         </p>
       </div>
 
@@ -283,47 +279,49 @@ export function TxEvidenceStep(props: TxEvidenceStepProps) {
           </div>
         )}
 
-        <div className="tx-composer-pro" data-analysis-done={p.analysisAlreadyDone ? 'true' : 'false'}>
-          {canAttach ? (
-            <label className="tx-composer-attach" aria-label="Adjuntar archivos o video">
-              <AttachIcon />
-              <input type="file" accept={EVIDENCE_FILE_ACCEPT} multiple onChange={handleAttachChange} />
-            </label>
-          ) : null}
-          <textarea
-            className="tx-composer-field"
-            value={composerValue}
-            onChange={(e) => handleComposerChange(e.target.value)}
-            onKeyDown={handleComposerKeyDown}
-            placeholder={composerPlaceholder}
-            rows={2}
-            aria-label="Mensaje del chat de transacciones"
-          />
-          <button
-            type="button"
-            className="tx-composer-send"
-            onClick={() => p.onAssistantSend()}
-            disabled={sendDisabled}
-            aria-label="Enviar mensaje"
-            title="Enviar"
-          >
-            <SendIcon />
-          </button>
+        <div className="tx-composer-sticky-host">
+          <div className="tx-composer-pro" data-analysis-done={p.analysisAlreadyDone ? 'true' : 'false'}>
+            {canAttach ? (
+              <label className="tx-composer-attach" aria-label="Adjuntar archivos o video">
+                <AttachIcon />
+                <input type="file" accept={EVIDENCE_FILE_ACCEPT} multiple onChange={handleAttachChange} />
+              </label>
+            ) : null}
+            <textarea
+              className="tx-composer-field"
+              value={composerValue}
+              onChange={(e) => handleComposerChange(e.target.value)}
+              onKeyDown={handleComposerKeyDown}
+              placeholder={composerPlaceholder}
+              rows={2}
+              aria-label="Mensaje del chat de transacciones"
+            />
+            <button
+              type="button"
+              className="tx-composer-send"
+              onClick={() => p.onAssistantSend()}
+              disabled={sendDisabled}
+              aria-label="Enviar mensaje"
+              title="Enviar"
+            >
+              <SendIcon />
+            </button>
+          </div>
+
+          {!p.analysisAlreadyDone && (
+            <p className="tx-composer-hint">
+              Enter envía · Shift+Enter nueva línea · Hasta {p.maxEvidenceFilesPerProduct} archivos · 50 MB por envío
+            </p>
+          )}
+
+          {p.analysisAlreadyDone && p.pendingEvidenceFiles.length > 0 && (
+            <p className="manual-evidence-hint">
+              Este producto ya tiene análisis. Para nuevos antecedentes debes recrear el producto.
+            </p>
+          )}
+          {p.txAssistantError && <p className="bcc-hero-error">{p.txAssistantError}</p>}
+          {p.transactionUploadError && <p className="bcc-hero-error">{p.transactionUploadError}</p>}
         </div>
-
-        {!p.analysisAlreadyDone && (
-          <p className="tx-composer-hint">
-            Enter para enviar · Shift+Enter nueva línea · Hasta {p.maxEvidenceFilesPerProduct} archivos · 50 MB por envío
-          </p>
-        )}
-
-        {p.analysisAlreadyDone && p.pendingEvidenceFiles.length > 0 && (
-          <p className="manual-evidence-hint">
-            Este producto ya tiene análisis. Para nuevos antecedentes debes recrear el producto.
-          </p>
-        )}
-        {p.txAssistantError && <p className="bcc-hero-error">{p.txAssistantError}</p>}
-        {p.transactionUploadError && <p className="bcc-hero-error">{p.transactionUploadError}</p>}
         {(p.documentsLoading || p.txAssistantLoading) && (
           <TxParseProgress
             progress={p.documentsParseProgress}

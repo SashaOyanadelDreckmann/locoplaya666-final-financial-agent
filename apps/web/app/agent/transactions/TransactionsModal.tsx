@@ -1,37 +1,35 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { getCsrfToken } from '@/lib/csrf';
 import { CHILE_FINANCIAL_INSTITUTIONS } from '@/lib/financialCatalog';
-import { buildChatDashboardForQuestion, compactDashboardForPrompt } from '@/lib/transactions-chat.helpers';
-import { buildTransactionChatRequest } from '@/lib/transactions-chat.request';
 import { deriveTransactionAuthorizationState } from '@/lib/transactions-authorization.helpers';
-import { buildTransactionAuthorizationBlockMessage } from '@/lib/transactions-authorization.helpers';
-import {
-  buildEvidenceAppendNotice,
-  getEvidenceUploadCapacity,
-  mergeEvidenceFiles,
-  prepareIncomingEvidenceFiles,
-} from '@/lib/transactions-evidence.helpers';
-import { resolveInstantTransactionSummary } from '@/lib/transactions-summary.helpers';
 
 import {
   ALL_PRODUCT_TEMPLATES,
   PRODUCT_STACK_PALETTE,
   PRODUCT_STACK_TEXT_PALETTE,
   TX_CATEGORY_OPTIONS,
-  TX_MAX_SINGLE_FILE_BYTES,
-  TX_MAX_TOTAL_FILE_BYTES,
 } from './constants';
 import ModalNumbersCanvas from '@/components/agent/ModalNumbersCanvas';
 import { MAX_TRANSACTION_PRODUCTS_CREATED_TOTAL } from '../agent-page.constants';
 import { useMovementAnalytics } from './use-movement-analytics';
 import { TxEvidenceStep } from './TxEvidenceStep';
 import { TxAnalystDashboard } from './TxAnalystDashboard';
+import { usePrefersReducedMotion } from './use-prefers-reduced-motion';
+import { useTxAssistantChat } from './use-tx-assistant-chat';
+import { useTxCloseConfirm } from './use-tx-close-confirm';
+import { useTxDockTransition } from './use-tx-dock-transition';
+import { useTxModalA11y } from './use-tx-modal-a11y';
+import {
+  buildTxStageCta,
+  buildTxStages,
+  buildTxStageSummary,
+  deriveActiveTxStageIndex,
+  deriveCurrentStage,
+} from './tx-wizard.helpers';
 import {
   NumericDust,
-  buildUploadGuidance,
   confidenceBandLong,
   formatPercentCompact,
 } from './presentation';
@@ -40,28 +38,15 @@ import { movementOverrideKey } from './taxonomy';
 import type {
   BankProduct,
   TransactionsModalProps,
-  TxUploadOnboardingStep,
-  UploadStatementResult,
 } from './types';
-import type { TxDockTransitionPhase } from './presentation';
 import { productVisualPalette } from './visuals';
 
 export function TransactionsModal(props: TransactionsModalProps) {
-  const [shuffleTrigger, setShuffleTrigger] = useState(0);
-  const [pendingEvidenceFilesByProduct, setPendingEvidenceFilesByProduct] = useState<Record<string, File[]>>({});
-  const [manualEvidenceDraftByProduct, setManualEvidenceDraftByProduct] = useState<Record<string, string>>({});
-  const [txAssistantInputByProduct, setTxAssistantInputByProduct] = useState<Record<string, string>>({});
-  const [txAssistantLoadingByProduct, setTxAssistantLoadingByProduct] = useState<Record<string, boolean>>({});
-  const [txAssistantErrorByProduct, setTxAssistantErrorByProduct] = useState<Record<string, string | null>>({});
   const [consentAccepted, setConsentAccepted] = useState(false);
   const [selectedMovementKey, setSelectedMovementKey] = useState<string | null>(null);
   const [overrideMerchantDraft, setOverrideMerchantDraft] = useState('');
   const [overrideCategoryDraft, setOverrideCategoryDraft] = useState<string>(TX_CATEGORY_OPTIONS[0]);
   const transactionsModalRef = useRef<HTMLDivElement | null>(null);
-  const restoreFocusRef = useRef<HTMLElement | null>(null);
-  const txSendLockRef = useRef(false);
-  const txSessionIdRef = useRef(0);
-  const txActionControllersRef = useRef<Set<AbortController>>(new Set());
   const analytics = useMovementAnalytics(props.activeBankProduct, props.transactionTaxonomyOverrides);
   const {
     formatCurrency,
@@ -81,21 +66,12 @@ export function TransactionsModal(props: TransactionsModalProps) {
   const [showInstitutionCatalog, setShowInstitutionCatalog] = useState(false);
   const [showTemplateCatalog, setShowTemplateCatalog] = useState(false);
   const [showTxCarousel, setShowTxCarousel] = useState(false);
-  const [recentlyDockedProductId, setRecentlyDockedProductId] = useState<string | null>(null);
-  const [isDockingToLibrary, setIsDockingToLibrary] = useState(false);
-  const [dockTransitionPhase, setDockTransitionPhase] = useState<TxDockTransitionPhase>('idle');
-  const [transitionPulse, setTransitionPulse] = useState(0);
   const [txSummaryScrollDepth, setTxSummaryScrollDepth] = useState(0);
-  const [txUploadOnboardingStepByProduct, setTxUploadOnboardingStepByProduct] = useState<
-    Record<string, TxUploadOnboardingStep>
-  >({});
+  const prefersReducedMotion = usePrefersReducedMotion();
   const txChatThreadRef = useRef<HTMLDivElement | null>(null);
-  const previousActiveProductIdRef = useRef<string | null>(null);
   const groupCarouselRef = useRef<HTMLDivElement | null>(null);
   const insightCarouselRef = useRef<HTMLDivElement | null>(null);
   const txSummaryScrollRef = useRef<HTMLDivElement | null>(null);
-  const previousConnectedRef = useRef<Record<string, boolean>>({});
-  const dockTransitionTimersRef = useRef<number[]>([]);
   const selectedTemplate = ALL_PRODUCT_TEMPLATES.find((item) => item.label === productTemplate);
   const derivedProductType: BankProduct['productType'] =
     selectedTemplate?.productType ??
@@ -150,102 +126,9 @@ export function TransactionsModal(props: TransactionsModalProps) {
     `${props.activeBankProduct?.id ?? 'active'}-${resolvedProductLabel || props.activeBankProduct?.label || 'producto'}-${resolvedBank || props.activeBankProduct?.bank || 'bank'}`
   );
   const activeProductId = props.activeBankProduct?.id ?? null;
-  const pendingEvidenceFiles = activeProductId ? pendingEvidenceFilesByProduct[activeProductId] ?? [] : [];
-  const manualEvidenceDraft = activeProductId ? manualEvidenceDraftByProduct[activeProductId] ?? '' : '';
-  const txAssistantInput = activeProductId ? txAssistantInputByProduct[activeProductId] ?? '' : '';
-  const txAssistantLoading = activeProductId ? Boolean(txAssistantLoadingByProduct[activeProductId]) : false;
-  const txAssistantError = activeProductId ? txAssistantErrorByProduct[activeProductId] ?? null : null;
-  const txUploadOnboardingStep: TxUploadOnboardingStep = activeProductId
-    ? txUploadOnboardingStepByProduct[activeProductId] ?? 'format'
-    : 'format';
-  const currentStage: 'products' | 'consent' | 'evidence' | 'analyst' =
-    props.txWizardStep === 'products'
-      ? 'products'
-      : props.txWizardStep === 'upload'
-        ? 'evidence'
-        : props.txWizardStep === 'dashboard'
-          ? 'analyst'
-          : 'consent';
+  const currentStage = deriveCurrentStage(props.txWizardStep);
   const parsedDocumentCount = props.activeBankProduct?.parsedDocuments.length ?? 0;
   const analysisAlreadyDone = parsedDocumentCount > 0;
-
-  const setActivePendingEvidenceFiles = (updater: File[] | ((current: File[]) => File[])) => {
-    if (!activeProductId) return;
-    setPendingEvidenceFilesByProduct((prev) => {
-      const current = prev[activeProductId] ?? [];
-      const next = typeof updater === 'function' ? updater(current) : updater;
-      return { ...prev, [activeProductId]: next };
-    });
-  };
-  const setActiveManualEvidenceDraft = (value: string) => {
-    if (!activeProductId) return;
-    setManualEvidenceDraftByProduct((prev) => ({ ...prev, [activeProductId]: value }));
-  };
-  const setActiveTxAssistantInput = (value: string) => {
-    if (!activeProductId) return;
-    setTxAssistantInputByProduct((prev) => ({ ...prev, [activeProductId]: value }));
-  };
-  const setActiveUploadOnboardingStep = (step: TxUploadOnboardingStep) => {
-    if (!activeProductId) return;
-    setTxUploadOnboardingStepByProduct((prev) => ({ ...prev, [activeProductId]: step }));
-  };
-  const setProductLoading = (productId: string, value: boolean) => {
-    setTxAssistantLoadingByProduct((prev) => ({ ...prev, [productId]: value }));
-  };
-  const setProductError = (productId: string, value: string | null) => {
-    setTxAssistantErrorByProduct((prev) => ({ ...prev, [productId]: value }));
-  };
-  const invalidateTxSession = () => {
-    txSessionIdRef.current += 1;
-    for (const controller of txActionControllersRef.current) {
-      controller.abort();
-    }
-    txActionControllersRef.current.clear();
-    txSendLockRef.current = false;
-  };
-  const beginTxAction = () => {
-    const controller = new AbortController();
-    txActionControllersRef.current.add(controller);
-    return {
-      sessionId: txSessionIdRef.current,
-      controller,
-      finish: () => txActionControllersRef.current.delete(controller),
-    };
-  };
-  const isTxActionStale = (sessionId: number, productId: string) =>
-    sessionId !== txSessionIdRef.current ||
-    !props.isOpen ||
-    props.selectedProductId !== productId;
-  const clearProductDraft = (productId: string) => {
-    setPendingEvidenceFilesByProduct((prev) => ({ ...prev, [productId]: [] }));
-    setManualEvidenceDraftByProduct((prev) => ({ ...prev, [productId]: '' }));
-    setTxAssistantInputByProduct((prev) => ({ ...prev, [productId]: '' }));
-    setTxAssistantErrorByProduct((prev) => ({ ...prev, [productId]: null }));
-  };
-
-  const restoreAssistantMessages = (
-    productId: string,
-    productSnapshot: BankProduct,
-    messages: Array<{ role: 'assistant' | 'user'; text: string; attachments?: string[] }>,
-  ) => {
-    props.updateProductById(productId, {
-      assistant: {
-        messages: messages.map((message, index) => ({
-          id: `${Date.now()}-${index}-${message.role}`,
-          role: message.role,
-          text: message.text,
-          createdAt: new Date().toISOString(),
-          attachments: message.attachments,
-        })),
-        uploadFormat: productSnapshot.assistant?.uploadFormat ?? null,
-        summaryText: productSnapshot.assistant?.summaryText ?? null,
-        summaryModel: productSnapshot.assistant?.summaryModel ?? null,
-        summaryGeneratedAt: productSnapshot.assistant?.summaryGeneratedAt ?? null,
-        summaryRegenerationsUsed: productSnapshot.assistant?.summaryRegenerationsUsed ?? 0,
-        lastSummaryFeedback: productSnapshot.assistant?.lastSummaryFeedback ?? null,
-      },
-    });
-  };
 
   const applyOnboarding = () => {
     if (!props.activeBankProduct) return;
@@ -258,122 +141,69 @@ export function TransactionsModal(props: TransactionsModalProps) {
     });
   };
 
-  const appendPendingEvidence = async (files: FileList | null) => {
-    if (!files || files.length === 0) return;
-    if (!activeProductId) return;
-    if (analysisAlreadyDone) {
-      setProductError(activeProductId, 'Este producto ya fue analizado. Para nuevos antecedentes debes recrear el producto.');
-      return;
-    }
-    const capacity = getEvidenceUploadCapacity(
-      props.maxEvidenceFilesPerProduct,
-      props.activeBankProduct?.uploadedFiles.length ?? 0,
-    );
-    if (capacity <= 0) {
-      setProductError(activeProductId, `Este producto ya alcanzó el límite de ${props.maxEvidenceFilesPerProduct} archivos.`);
-      return;
-    }
-    const optimized = await prepareIncomingEvidenceFiles(files);
-    const mergeResult = mergeEvidenceFiles(pendingEvidenceFiles, optimized, {
-      capacity,
-      maxSingleBytes: TX_MAX_SINGLE_FILE_BYTES,
-      maxTotalBytes: TX_MAX_TOTAL_FILE_BYTES,
-    });
+  const assistant = useTxAssistantChat({
+    isOpen: props.isOpen,
+    txWizardStep: props.txWizardStep,
+    selectedProductId: props.selectedProductId,
+    activeBankProduct: props.activeBankProduct,
+    activeProductId,
+    analysisAlreadyDone,
+    maxEvidenceFilesPerProduct: props.maxEvidenceFilesPerProduct,
+    effectiveDashboard,
+    documentsLoading: props.documentsLoading,
+    updateProductById: props.updateProductById,
+    updateActiveProduct: props.updateActiveProduct,
+    onUploadStatement: props.onUploadStatement,
+    onDocumentsParseProgress: props.onDocumentsParseProgress,
+    setTxWizardStep: props.setTxWizardStep,
+  });
 
-    setActivePendingEvidenceFiles(mergeResult.files);
-    setProductError(
-      activeProductId,
-      buildEvidenceAppendNotice(mergeResult, {
-        maxFilesPerProduct: props.maxEvidenceFilesPerProduct,
-        maxSingleBytes: TX_MAX_SINGLE_FILE_BYTES,
-        maxTotalBytes: TX_MAX_TOTAL_FILE_BYTES,
-      }),
-    );
-  };
+  const {
+    invalidateTxSession,
+    pendingEvidenceFiles,
+    txAssistantInput,
+    txAssistantLoading,
+    txAssistantError,
+    txUploadOnboardingStep,
+    assistantMessages,
+    summaryText,
+    summaryGeneratedAt,
+    summaryModel,
+    summaryRegenerationsLeft,
+    selectedUploadFormat,
+    hasSummary,
+    setActiveTxAssistantInput,
+    setActiveUploadOnboardingStep,
+    patchAssistant,
+    maybeInitAssistant,
+    appendPendingEvidence,
+    clearPendingEvidence,
+    handleAssistantTextSend,
+    refineTransactionSummaryFromFocus,
+    generateTransactionSummary,
+    processingModeLabel,
+    processingMetaLabel,
+    processingPrimaryCopy,
+  } = assistant;
 
-  const clearPendingEvidence = () => {
-    if (!activeProductId) return;
-    clearProductDraft(activeProductId);
-  };
+  const { closeConfirmKind, dismissCloseConfirm, requestClose, confirmClose } = useTxCloseConfirm({
+    isOpen: props.isOpen,
+    onClose: props.onClose,
+    onInvalidateSession: invalidateTxSession,
+    hasPendingDraft: pendingEvidenceFiles.length > 0 || txAssistantInput.trim().length > 0,
+    isBusy: props.documentsLoading || txAssistantLoading,
+    clearDraft: clearPendingEvidence,
+  });
 
-  const assistantMessages = props.activeBankProduct?.assistant?.messages ?? [];
-  const summaryText = props.activeBankProduct?.assistant?.summaryText ?? null;
-  const summaryGeneratedAt = props.activeBankProduct?.assistant?.summaryGeneratedAt ?? null;
-  const summaryModel = props.activeBankProduct?.assistant?.summaryModel ?? null;
-  const summaryRegenerationsUsed = Math.max(0, props.activeBankProduct?.assistant?.summaryRegenerationsUsed ?? 0);
-  const summaryRegenerationsLeft = Math.max(0, 3 - summaryRegenerationsUsed);
-  const selectedUploadFormat = props.activeBankProduct?.assistant?.uploadFormat ?? null;
-  const hasSummary = Boolean(summaryText?.trim());
-  const processingModeLabel = props.documentsLoading ? 'Procesando evidencia' : 'Pensando respuesta';
-  const processingMetaLabel = props.documentsLoading ? 'OCR, normalización y conciliación' : 'Contexto, consistencia y respuesta';
-  const processingPrimaryCopy = props.documentsLoading
-    ? 'Leyendo archivos, detectando montos y consolidando movimientos.'
-    : 'Revisando contexto del producto para responder mejor.';
-  const appendAssistantMessages = (
-    productId: string,
-    productSnapshot: BankProduct,
-    nextMessages: Array<{ role: 'assistant' | 'user'; text: string; attachments?: string[] }>,
-    extraPatch?: Partial<NonNullable<BankProduct['assistant']>>,
-  ) => {
-    if (nextMessages.length === 0) return;
-    const baseMessages = productSnapshot.assistant?.messages ?? [];
-    props.updateProductById(productId, {
-      assistant: {
-        messages: [
-          ...baseMessages,
-          ...nextMessages.map((message, index) => ({
-            id: `${Date.now()}-${index}-${message.role}`,
-            role: message.role,
-            text: message.text,
-            createdAt: new Date().toISOString(),
-            attachments: message.attachments,
-          })),
-        ],
-        uploadFormat: productSnapshot.assistant?.uploadFormat ?? null,
-        summaryText: productSnapshot.assistant?.summaryText ?? null,
-        summaryModel: productSnapshot.assistant?.summaryModel ?? null,
-        summaryGeneratedAt: productSnapshot.assistant?.summaryGeneratedAt ?? null,
-        summaryRegenerationsUsed: productSnapshot.assistant?.summaryRegenerationsUsed ?? 0,
-        lastSummaryFeedback: productSnapshot.assistant?.lastSummaryFeedback ?? null,
-        ...extraPatch,
-      },
-    });
-  };
-  const patchAssistant = (extraPatch: Partial<NonNullable<BankProduct['assistant']>>) => {
-    if (!props.activeBankProduct) return;
-    props.updateActiveProduct({
-      assistant: {
-        messages: props.activeBankProduct.assistant?.messages ?? [],
-        uploadFormat: props.activeBankProduct.assistant?.uploadFormat ?? null,
-        summaryText: props.activeBankProduct.assistant?.summaryText ?? null,
-        summaryModel: props.activeBankProduct.assistant?.summaryModel ?? null,
-        summaryGeneratedAt: props.activeBankProduct.assistant?.summaryGeneratedAt ?? null,
-        summaryRegenerationsUsed: props.activeBankProduct.assistant?.summaryRegenerationsUsed ?? 0,
-        lastSummaryFeedback: props.activeBankProduct.assistant?.lastSummaryFeedback ?? null,
-        ...extraPatch,
-      },
-    });
-  };
+  useTxModalA11y({
+    isOpen: props.isOpen,
+    modalRef: transactionsModalRef,
+    closeConfirmKind,
+    dismissCloseConfirm,
+    requestClose,
+  });
 
-  const buildManualEvidenceFile = (text: string) =>
-    new File([text], `antecedente-manual-${Date.now()}.txt`, { type: 'text/plain' });
-
-  const maybeInitAssistant = () => {
-    const product = props.activeBankProduct;
-    if (!product?.connected) return;
-    if ((product.assistant?.messages ?? []).length > 0) return;
-    appendAssistantMessages(product.id, product, [
-      {
-        role: 'assistant',
-        text: 'Antes de subir movimientos, dime cómo prefieres enviarlos: rápido, fotos, PDF, Excel/CSV o texto. Según eso te recomiendo la mejor forma para que el análisis salga limpio.',
-      },
-    ]);
-  };
-
-  const pendingManualEvidence = manualEvidenceDraft.trim();
-
-  const canContinueAuto =
-    authorizationState.canContinue;
+  const canContinueAuto = authorizationState.canContinue;
   const hasEvidence = Boolean(props.activeBankProduct?.parsedDocuments.length);
   const activeProductCreations = props.transactionProductCards.length;
   const activeProductSlotsLeft = Math.max(0, props.maxProducts - activeProductCreations);
@@ -426,70 +256,6 @@ export function TransactionsModal(props: TransactionsModalProps) {
     setShowTxCarousel(true);
     props.setTxWizardStep('credentials');
   }
-  function clearDockTransitionTimers() {
-    dockTransitionTimersRef.current.forEach((timerId) => window.clearTimeout(timerId));
-    dockTransitionTimersRef.current = [];
-  }
-  function queueDockTransitionTimeout(callback: () => void, delay: number) {
-    const timerId = window.setTimeout(callback, delay);
-    dockTransitionTimersRef.current.push(timerId);
-  }
-  function bumpModalMotion() {
-    setShuffleTrigger((value) => value + 1);
-    setTransitionPulse((value) => value + 1);
-  }
-  function startAuthorizationTransition() {
-    if (!canContinueAuto || isDockingToLibrary || !props.activeBankProduct) return;
-    clearDockTransitionTimers();
-    const productId = props.activeBankProduct.id;
-    setIsDockingToLibrary(true);
-    setDockTransitionPhase('authorizing');
-    bumpModalMotion();
-    queueDockTransitionTimeout(() => setDockTransitionPhase('flood'), 220);
-    queueDockTransitionTimeout(() => {
-      applyOnboarding();
-      const authorized = props.simulateBankLogin({
-        bank: resolvedBank,
-        label: resolvedProductLabel,
-        productType: derivedProductType,
-        simulationAccepted: consentIsGranted,
-      });
-      if (!authorized) {
-        clearDockTransitionTimers();
-        setIsDockingToLibrary(false);
-        setDockTransitionPhase('idle');
-        return;
-      }
-      setRecentlyDockedProductId(productId);
-      queueDockTransitionTimeout(() => {
-        setDockTransitionPhase('library-reveal');
-        setShowTxCarousel(true);
-        setActiveTxCard(1);
-        setShuffleTrigger((value) => value + 1);
-      }, 420);
-      queueDockTransitionTimeout(() => {
-        setDockTransitionPhase('chat-reveal');
-        setShuffleTrigger((value) => value + 1);
-        maybeInitAssistant();
-      }, 800);
-      queueDockTransitionTimeout(() => {
-        setIsDockingToLibrary(false);
-        setRecentlyDockedProductId((current) => (current === productId ? null : current));
-      }, 1440);
-    }, 520);
-  }
-  useEffect(() => {
-    if (!props.isOpen) {
-      clearDockTransitionTimers();
-      setDockTransitionPhase('idle');
-      setIsDockingToLibrary(false);
-      setShowTxCarousel(false);
-      return;
-    }
-    const hasPendingAuthorization =
-      Boolean(props.activeBankProduct) && !props.activeBankProduct?.connected;
-    setShowTxCarousel(props.txWizardStep !== 'products' || hasPendingAuthorization);
-  }, [props.isOpen, props.txWizardStep, props.activeBankProduct?.connected, props.activeBankProduct?.id]);
 
   useEffect(() => {
     if (!props.isOpen || !props.activeBankProduct || props.activeBankProduct.connected) return;
@@ -504,11 +270,6 @@ export function TransactionsModal(props: TransactionsModalProps) {
     props.setTxWizardStep,
   ]);
 
-  useEffect(() => {
-    if (!props.isOpen) return;
-    setDockTransitionPhase('idle');
-    setIsDockingToLibrary(false);
-  }, [props.isOpen, props.activeBankProduct?.id]);
   useEffect(() => {
     if (!props.activeBankProduct?.id) return;
     const currentLabel = String(props.activeBankProduct?.label ?? '').trim();
@@ -541,6 +302,32 @@ export function TransactionsModal(props: TransactionsModalProps) {
 
   const [productCarouselIndex, setProductCarouselIndex] = useState(0);
   const productCards = props.transactionProductCards;
+
+  const {
+    shuffleTrigger,
+    recentlyDockedProductId,
+    isDockingToLibrary,
+    dockTransitionPhase,
+    transitionPulse,
+    bumpModalMotion,
+    bumpTransitionPulse,
+    startAuthorizationTransition,
+  } = useTxDockTransition({
+    isOpen: props.isOpen,
+    txWizardStep: props.txWizardStep,
+    activeBankProduct: props.activeBankProduct,
+    canContinueAuto,
+    resolvedBank,
+    resolvedProductLabel,
+    derivedProductType,
+    consentIsGranted,
+    applyOnboarding,
+    simulateBankLogin: props.simulateBankLogin,
+    maybeInitAssistant,
+    setShowTxCarousel,
+    productCards,
+  });
+
   const libraryProductCards = productCards.filter(
     ({ product }) =>
       product.connected ||
@@ -569,58 +356,21 @@ export function TransactionsModal(props: TransactionsModalProps) {
     setProductCarouselIndex(nextIndex);
     props.selectTransactionProduct(nextProduct.id);
   };
-  const txStages = useMemo(() => [
-    {
-      key: 'consent' as const,
-      title: '1. Autorización',
-      copy: 'Conecta institución y autoriza.',
-      disabled: consentLocked,
-      go: () => props.setTxWizardStep('credentials'),
-    },
-    {
-      key: 'evidence' as const,
-      title: '2. Evidencias',
-      copy: 'Sube cartolas y respaldos.',
-      disabled: !consentLocked,
-      go: () => props.setTxWizardStep('upload'),
-    },
-    {
-      key: 'analyst' as const,
-      title: '3. Resumen',
-      copy: 'Revisa la ficha analítica.',
-      disabled: !consentLocked || !hasEvidence,
-      go: () => hasEvidence && props.setTxWizardStep('dashboard'),
-    },
-  ], [consentLocked, hasEvidence, props.setTxWizardStep]);
-  const [activeTxCard, setActiveTxCard] = useState(0);
-  const currentTxStageIndex =
-    props.txWizardStep === 'credentials'
-      ? 0
-      : props.txWizardStep === 'upload'
-        ? 1
-        : props.txWizardStep === 'dashboard'
-          ? 2
-          : -1;
-  useEffect(() => {
-    if (currentTxStageIndex >= 0) setActiveTxCard(currentTxStageIndex);
-  }, [currentTxStageIndex]);
-  useEffect(() => {
-    if (currentTxStageIndex < 0 || isDockingToLibrary) return;
-    if (props.txWizardStep === 'upload' || props.txWizardStep === 'dashboard') return;
-    const stage = txStages[activeTxCard];
-    if (!stage || stage.disabled) {
-      if (activeTxCard !== currentTxStageIndex) setActiveTxCard(currentTxStageIndex);
-      return;
-    }
-    if (activeTxCard !== currentTxStageIndex) stage.go();
-  }, [activeTxCard, currentTxStageIndex, consentLocked, hasEvidence, isDockingToLibrary, props.txWizardStep, txStages]);
+  const txStages = useMemo(
+    () =>
+      buildTxStages({
+        consentLocked,
+        hasEvidence,
+        setTxWizardStep: props.setTxWizardStep,
+      }),
+    [consentLocked, hasEvidence, props.setTxWizardStep],
+  );
+  const activeTxStageIndex = deriveActiveTxStageIndex(props.txWizardStep);
 
   const goToTxStage = (stageKey: 'consent' | 'evidence' | 'analyst') => {
-    const nextIndex = txStages.findIndex((stage) => stage.key === stageKey);
-    const nextStage = nextIndex >= 0 ? txStages[nextIndex] : null;
+    const nextStage = txStages.find((stage) => stage.key === stageKey);
     if (!nextStage || nextStage.disabled) return;
     setShowTxCarousel(true);
-    setActiveTxCard(nextIndex);
     nextStage.go();
   };
   useEffect(() => {
@@ -631,18 +381,6 @@ export function TransactionsModal(props: TransactionsModalProps) {
     setProductCarouselIndex(activeProductIndex);
   }, [activeProductIndex, libraryProductCards.length]);
   useEffect(() => {
-    const nextMap: Record<string, boolean> = {};
-    productCards.forEach(({ product }) => {
-      nextMap[product.id] = Boolean(product.connected);
-      if (!previousConnectedRef.current[product.id] && product.connected) {
-        setRecentlyDockedProductId(product.id);
-        window.setTimeout(() => setRecentlyDockedProductId((current) => (current === product.id ? null : current)), 900);
-      }
-    });
-    previousConnectedRef.current = nextMap;
-  }, [productCards]);
-  useEffect(() => () => clearDockTransitionTimers(), []);
-  useEffect(() => {
     if (!props.isOpen || props.txWizardStep !== 'upload' || isDockingToLibrary) return;
     maybeInitAssistant();
   }, [
@@ -651,9 +389,10 @@ export function TransactionsModal(props: TransactionsModalProps) {
     props.activeBankProduct?.id,
     props.activeBankProduct?.connected,
     isDockingToLibrary,
+    maybeInitAssistant,
   ]);
   useEffect(() => {
-    if (!props.isOpen || activeTxCard !== 2) return;
+    if (!props.isOpen || activeTxStageIndex !== 2 || prefersReducedMotion) return;
     const tickCarousel = (container: HTMLDivElement | null) => {
       if (!container) return;
       const firstCard = container.firstElementChild as HTMLElement | null;
@@ -672,14 +411,14 @@ export function TransactionsModal(props: TransactionsModalProps) {
       tickCarousel(insightCarouselRef.current);
     }, 10000);
     return () => window.clearInterval(intervalId);
-  }, [props.isOpen, activeTxCard, dashboardClusters.length, alertDetails.length, metricExplanations.length]);
-  useEffect(() => {
-    if (!props.isOpen) {
-      clearDockTransitionTimers();
-      setIsDockingToLibrary(false);
-      setDockTransitionPhase('idle');
-    }
-  }, [props.isOpen]);
+  }, [
+    props.isOpen,
+    activeTxStageIndex,
+    prefersReducedMotion,
+    dashboardClusters.length,
+    alertDetails.length,
+    metricExplanations.length,
+  ]);
   useEffect(() => {
     const el = txSummaryScrollRef.current;
     if (!el || !props.isOpen) return;
@@ -690,7 +429,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
     onScroll();
     el.addEventListener('scroll', onScroll, { passive: true });
     return () => el.removeEventListener('scroll', onScroll);
-  }, [props.isOpen, summaryText, activeTxCard]);
+  }, [props.isOpen, summaryText, activeTxStageIndex]);
   useEffect(() => {
     if (!props.isOpen) return;
     setConsentAccepted(Boolean(props.activeBankProduct?.simulationAccepted));
@@ -706,197 +445,31 @@ export function TransactionsModal(props: TransactionsModalProps) {
     setSelectedMovementKey(null);
   }, [selectedMovementKey, dedupedMovementRows]);
   useEffect(() => {
-    if (!props.isOpen || props.txWizardStep !== 'upload' || !activeProductId) return;
-    setTxUploadOnboardingStepByProduct((prev) => {
-      const current = prev[activeProductId];
-      const nextStep: TxUploadOnboardingStep = analysisAlreadyDone
-        ? 'upload'
-        : selectedUploadFormat
-          ? 'details'
-          : 'format';
-      if (current === nextStep) return prev;
-      return { ...prev, [activeProductId]: nextStep };
-    });
-  }, [
-    props.isOpen,
-    props.txWizardStep,
-    activeProductId,
-    analysisAlreadyDone,
-    selectedUploadFormat,
-  ]);
-
-  useEffect(() => {
-    if (!props.isOpen) return;
-    const nextProductId = props.activeBankProduct?.id ?? null;
-    if (!nextProductId) return;
-    if (
-      previousActiveProductIdRef.current &&
-      previousActiveProductIdRef.current !== nextProductId
-    ) {
-      invalidateTxSession();
-    }
-    previousActiveProductIdRef.current = nextProductId;
-  }, [props.isOpen, props.activeBankProduct?.id]);
-
-  useEffect(() => {
     const thread = txChatThreadRef.current;
     if (!thread || !props.isOpen) return;
     thread.scrollTop = thread.scrollHeight;
   }, [props.isOpen, props.activeBankProduct?.id, assistantMessages.length]);
-  useEffect(() => {
-    if (props.isOpen) return;
-    if (!activeProductId) return;
-    setProductLoading(activeProductId, false);
-    setProductError(activeProductId, null);
-    txSendLockRef.current = false;
-  }, [props.isOpen, activeProductId]);
 
-  const txStageSummary = useMemo(() => {
-    if (currentStage === 'products' || currentStage === 'consent') {
-      return `Paso 1/3 · ${activeProductCreations}/${props.maxProducts} activos · ${props.productsCreatedTotal}/${MAX_TRANSACTION_PRODUCTS_CREATED_TOTAL} creados`;
-    }
-    if (currentStage === 'evidence') {
-      return 'Paso 2 de 3: sube cartolas o respaldos y espera el análisis.';
-    }
-    return 'Paso 3 de 3: revisa el resumen y continúa con el agente principal.';
-  }, [activeProductCreations, currentStage, props.maxProducts, props.productsCreatedTotal]);
-  const txStageCta = useMemo(() => {
-    if (currentStage === 'products') return 'Elige un producto o crea uno nuevo para continuar';
-    if (currentStage === 'consent') {
-      if (canContinueAuto) return 'Autorizar y continuar';
-      return buildTransactionAuthorizationBlockMessage(authorizationState);
-    }
-    if (currentStage === 'evidence') {
-      return analysisAlreadyDone ? 'Resumen listo para revisar' : 'Sube evidencia para desbloquear el resumen';
-    }
-    return analysisAlreadyDone
-      ? 'El contexto validado ya se sincroniza solo'
-      : 'Guarda o analiza un producto para sincronizar contexto';
-  }, [analysisAlreadyDone, authorizationState, canContinueAuto, currentStage]);
-
-  const requestClose = useCallback(() => {
-    const hasPending = pendingEvidenceFiles.length > 0 || manualEvidenceDraft.trim().length > 0;
-    const isBusy = props.documentsLoading || txAssistantLoading;
-    if (isBusy) {
-      const confirmed = window.confirm(
-        'Hay un análisis en curso. Si cierras ahora, el proceso puede quedar incompleto. ¿Cerrar el panel igual?',
-      );
-      if (!confirmed) return;
-      clearPendingEvidence();
-    } else if (hasPending) {
-      const confirmed = window.confirm(
-        'Tienes archivos o notas sin enviar. ¿Cerrar el panel y descartar ese borrador?',
-      );
-      if (!confirmed) return;
-      clearPendingEvidence();
-    }
-    invalidateTxSession();
-    props.onClose();
-  }, [
-    clearPendingEvidence,
-    pendingEvidenceFiles.length,
-    manualEvidenceDraft,
-    props.documentsLoading,
-    props.onClose,
-    txAssistantLoading,
-  ]);
-
-  useEffect(() => {
-    if (!props.isOpen) return;
-
-    restoreFocusRef.current =
-      document.activeElement instanceof HTMLElement ? document.activeElement : null;
-
-    const getFocusableElements = () => {
-      const root = transactionsModalRef.current;
-      if (!root) return [] as HTMLElement[];
-      const selector = [
-        'button:not([disabled])',
-        '[href]',
-        'input:not([disabled]):not([type="hidden"])',
-        'select:not([disabled])',
-        'textarea:not([disabled])',
-        '[tabindex]:not([tabindex="-1"])',
-      ].join(', ');
-      return Array.from(root.querySelectorAll<HTMLElement>(selector)).filter(
-        (node) => !node.hasAttribute('aria-hidden'),
-      );
-    };
-
-    const rafId = window.requestAnimationFrame(() => {
-      const focusables = getFocusableElements();
-      (focusables[0] ?? transactionsModalRef.current)?.focus();
-    });
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        event.stopPropagation();
-        requestClose();
-        return;
-      }
-      if (event.key !== 'Tab') return;
-      const focusables = getFocusableElements();
-      if (focusables.length === 0) {
-        event.preventDefault();
-        transactionsModalRef.current?.focus();
-        return;
-      }
-      const first = focusables[0];
-      const last = focusables[focusables.length - 1];
-      const active = document.activeElement as HTMLElement | null;
-      const inside = Boolean(active && transactionsModalRef.current?.contains(active));
-
-      if (!inside) {
-        event.preventDefault();
-        first.focus();
-        return;
-      }
-      if (event.shiftKey && active === first) {
-        event.preventDefault();
-        last.focus();
-        return;
-      }
-      if (!event.shiftKey && active === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-
-    window.addEventListener('keydown', onKeyDown);
-    return () => {
-      window.cancelAnimationFrame(rafId);
-      window.removeEventListener('keydown', onKeyDown);
-      const elementToRestore = restoreFocusRef.current;
-      if (elementToRestore && document.contains(elementToRestore)) {
-        window.requestAnimationFrame(() => elementToRestore.focus());
-      }
-    };
-  }, [props.isOpen, requestClose]);
-
-  useEffect(() => () => invalidateTxSession(), []);
-
-  async function requestTransactionAssistant(payload: Record<string, unknown>, signal?: AbortSignal) {
-    const res = await fetch('/api/transactions-chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken() || '' },
-      credentials: 'include',
-      signal,
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json().catch(() => null);
-    if (!res.ok || !data?.ok) throw new Error(data?.error || 'No se pudo responder');
-    return data;
-  }
-
-  async function refineTransactionSummaryFromFocus(source: string, focusText: string) {
-    if (!props.activeBankProduct || !summaryText || summaryRegenerationsLeft <= 0 || txAssistantLoading) return;
-    const clippedFocus = focusText.trim().replace(/\s+/g, ' ').slice(0, 320);
-    if (!clippedFocus) return;
-    await generateTransactionSummary({
-      feedback: `Reanaliza con foco en ${source}: "${clippedFocus}". Verifica cálculo, categorización de comercios chilenos y consistencia global del resumen. Corrige el resumen final si detectas desvíos.`,
-      isRegeneration: true,
-    });
-  }
+  const txStageSummary = useMemo(
+    () =>
+      buildTxStageSummary({
+        currentStage,
+        activeProductCreations,
+        maxProducts: props.maxProducts,
+        productsCreatedTotal: props.productsCreatedTotal,
+      }),
+    [activeProductCreations, currentStage, props.maxProducts, props.productsCreatedTotal],
+  );
+  const txStageCta = useMemo(
+    () =>
+      buildTxStageCta({
+        currentStage,
+        analysisAlreadyDone,
+        canContinueAuto,
+        authorizationState,
+      }),
+    [analysisAlreadyDone, authorizationState, canContinueAuto, currentStage],
+  );
 
   const buildMovementRefinementText = (movement: {
     label: string;
@@ -951,340 +524,6 @@ export function TransactionsModal(props: TransactionsModalProps) {
     );
   }
 
-  async function applyInstantTransactionSummary(options?: {
-    uploadResult?: UploadStatementResult | null;
-    feedback?: string;
-    isRegeneration?: boolean;
-    productId?: string;
-    productSnapshot?: BankProduct;
-  }) {
-    const product = options?.productSnapshot ?? props.activeBankProduct;
-    if (!product) return false;
-    const productId = options?.productId ?? product.id;
-    const priorRegenerations = product.assistant?.summaryRegenerationsUsed ?? 0;
-    props.onDocumentsParseProgress?.({
-      stage: 'summarizing',
-      percent: 94,
-      detail: 'Preparando resumen ejecutivo instantáneo.',
-    });
-    const uploadResult = options?.uploadResult ?? null;
-    const dashboard = uploadResult?.dashboard ?? product.dashboard ?? null;
-    const instantSummary = resolveInstantTransactionSummary(dashboard);
-    if (!instantSummary) return false;
-
-    props.updateProductById(productId, {
-      assistant: {
-        messages: [
-          ...(product.assistant?.messages ?? []),
-          {
-            id: `${Date.now()}-assistant-summary`,
-            role: 'assistant',
-            text: options?.isRegeneration
-              ? 'Revisé el producto de nuevo y actualicé el resumen de abajo.'
-              : 'Ya recibí tus antecedentes. Preparé el resumen ejecutivo aquí abajo y puedo responder dudas sobre tus movimientos.',
-            createdAt: new Date().toISOString(),
-          },
-        ],
-        uploadFormat: product.assistant?.uploadFormat ?? null,
-        summaryText: instantSummary,
-        summaryModel: 'instant-heuristic',
-        summaryGeneratedAt: new Date().toISOString(),
-        summaryRegenerationsUsed: options?.isRegeneration ? priorRegenerations + 1 : priorRegenerations,
-        lastSummaryFeedback: options?.feedback ?? null,
-      },
-      label: uploadResult?.product.label ?? product.label,
-      bank: uploadResult?.product.bank ?? product.bank,
-      productType: uploadResult?.product.productType ?? product.productType,
-    });
-    if (!options?.isRegeneration && productId === props.selectedProductId) {
-      setActiveTxCard(2);
-      props.setTxWizardStep('dashboard');
-    }
-    props.onDocumentsParseProgress?.({
-      stage: 'complete',
-      percent: 100,
-      detail: 'Análisis listo.',
-    });
-    window.setTimeout(() => {
-      props.onDocumentsParseProgress?.({
-        stage: 'idle',
-        percent: 0,
-        detail: '',
-      });
-    }, 1400);
-    return true;
-  }
-
-  async function generateTransactionSummary(options?: {
-    feedback?: string;
-    uploadResult?: UploadStatementResult | null;
-    isRegeneration?: boolean;
-    productId?: string;
-    productSnapshot?: BankProduct;
-  }) {
-    const product = options?.productSnapshot ?? props.activeBankProduct;
-    if (!product) return;
-    const productId = options?.productId ?? product.id;
-    const priorMessages = product.assistant?.messages ?? [];
-    const priorRegenerations = product.assistant?.summaryRegenerationsUsed ?? 0;
-    const priorSummary = product.assistant?.summaryText ?? null;
-    const priorUploadFormat = product.assistant?.uploadFormat ?? null;
-    const wantsLlmSummary = Boolean(options?.isRegeneration || options?.feedback?.trim());
-    if (!wantsLlmSummary) {
-      const applied = await applyInstantTransactionSummary({
-        ...options,
-        productId,
-        productSnapshot: product,
-      });
-      if (applied) return;
-    }
-
-    setProductLoading(productId, true);
-    setProductError(productId, null);
-    props.onDocumentsParseProgress?.({
-      stage: 'summarizing',
-      percent: 92,
-      detail: 'Regenerando resumen con el modelo analítico.',
-    });
-    const txAction = beginTxAction();
-    const { sessionId, controller, finish } = txAction;
-    try {
-      const uploadResult = options?.uploadResult ?? null;
-      const response = await requestTransactionAssistant(
-        {
-          mode: 'summary',
-          product: {
-            bank: uploadResult?.product.bank ?? product.bank,
-            label: uploadResult?.product.label ?? product.label,
-            productType: uploadResult?.product.productType ?? product.productType,
-          },
-          parsedDocuments: uploadResult?.documents ?? product.parsedDocuments ?? [],
-          dashboard:
-            uploadResult?.dashboard ??
-            compactDashboardForPrompt(effectiveDashboard, { maxMovements: 80, maxMerchants: 10 }) ??
-            null,
-          currentSummary: priorSummary,
-          feedback: options?.feedback ?? '',
-        },
-        controller.signal,
-      );
-      if (isTxActionStale(sessionId, productId)) return;
-      props.updateProductById(productId, {
-        assistant: {
-          messages: [
-            ...priorMessages,
-            {
-              id: `${Date.now()}-assistant-summary`,
-              role: 'assistant',
-              text: options?.isRegeneration
-                ? 'Revisé el producto de nuevo y actualicé el resumen de abajo.'
-                : 'Ya recibí tus antecedentes. Preparé el resumen ejecutivo aquí abajo y puedo responder dudas sobre tus movimientos.',
-              createdAt: new Date().toISOString(),
-            },
-          ],
-          uploadFormat: priorUploadFormat,
-          summaryText: String(response.summary ?? '').trim(),
-          summaryModel: typeof response.model === 'string' ? response.model : null,
-          summaryGeneratedAt: new Date().toISOString(),
-          summaryRegenerationsUsed: options?.isRegeneration ? priorRegenerations + 1 : priorRegenerations,
-          lastSummaryFeedback: options?.feedback ?? null,
-        },
-        label: uploadResult?.product.label ?? product.label,
-        bank: uploadResult?.product.bank ?? product.bank,
-        productType: uploadResult?.product.productType ?? product.productType,
-      });
-      if (!options?.isRegeneration && productId === props.selectedProductId) {
-        setActiveTxCard(2);
-        props.setTxWizardStep('dashboard');
-      }
-      props.onDocumentsParseProgress?.({
-        stage: 'complete',
-        percent: 100,
-        detail: 'Resumen actualizado.',
-      });
-    } catch (error) {
-      if (error instanceof DOMException && error.name === 'AbortError') return;
-      if (isTxActionStale(sessionId, productId)) return;
-      setProductError(productId, error instanceof Error ? error.message : 'No se pudo generar el resumen.');
-    } finally {
-      finish();
-      if (!isTxActionStale(sessionId, productId)) {
-        setProductLoading(productId, false);
-      }
-    }
-  }
-
-  async function handleAssistantUploadSend(messageText: string, options?: { includeTextAsEvidence?: boolean }) {
-    const product = props.activeBankProduct;
-    if (!product) return;
-    const productId = product.id;
-    const manualText = options?.includeTextAsEvidence ? messageText.trim() : pendingManualEvidence;
-    const manualFile = manualText.length > 0 ? buildManualEvidenceFile(manualText) : null;
-    const filesToUpload = manualFile ? [...pendingEvidenceFiles, manualFile] : pendingEvidenceFiles;
-    if (filesToUpload.length === 0) return;
-    const previousMessages = product.assistant?.messages ?? [];
-
-    setProductLoading(productId, true);
-    setProductError(productId, null);
-    const txAction = beginTxAction();
-    const { sessionId, finish } = txAction;
-    try {
-      appendAssistantMessages(productId, product, [
-        {
-          role: 'user',
-          text: messageText || 'Te envío antecedentes de transacciones.',
-          attachments: filesToUpload.map((file) => file.name),
-        },
-      ]);
-      const result = await props.onUploadStatement(filesToUpload);
-      if (isTxActionStale(sessionId, productId)) return;
-      if (result?.documents?.length) {
-        await generateTransactionSummary({
-          uploadResult: result,
-          isRegeneration: false,
-          productId,
-          productSnapshot: {
-            ...product,
-            parsedDocuments: result.documents,
-            dashboard: result.dashboard ?? product.dashboard,
-            label: result.product.label,
-            bank: result.product.bank,
-            productType: result.product.productType,
-          },
-        });
-      }
-      clearProductDraft(productId);
-    } catch (error) {
-      if (isTxActionStale(sessionId, productId)) return;
-      restoreAssistantMessages(productId, product, previousMessages);
-      setProductError(productId, error instanceof Error ? error.message : 'No se pudo enviar evidencia.');
-    } finally {
-      finish();
-      if (!isTxActionStale(sessionId, productId)) {
-        setProductLoading(productId, false);
-      }
-    }
-  }
-
-  async function handleAssistantTextSend() {
-    if (!props.activeBankProduct || txAssistantLoading || txSendLockRef.current) return;
-    const product = props.activeBankProduct;
-    const productId = product.id;
-    const productSummaryText = product.assistant?.summaryText ?? null;
-    const productRegenerationsUsed = product.assistant?.summaryRegenerationsUsed ?? 0;
-    const productRegenerationsLeft = Math.max(0, 3 - productRegenerationsUsed);
-    const productMessages = product.assistant?.messages ?? [];
-    const text = txAssistantInput.trim();
-    const hasAttachedFiles = pendingEvidenceFiles.length > 0;
-    const wantsTextEvidenceUpload =
-      !analysisAlreadyDone &&
-      product.assistant?.uploadFormat === 'text' &&
-      text.length > 0 &&
-      !hasAttachedFiles;
-    if (!text && !hasAttachedFiles) return;
-    txSendLockRef.current = true;
-    const txAction = beginTxAction();
-    const { sessionId, controller, finish } = txAction;
-    const previousMessages = productMessages;
-    try {
-      const normalized = text.toLowerCase();
-      const chosenFormat =
-        /video|grabaci[oó]n|pantalla|screen/.test(normalized)
-          ? 'video'
-          : /excel|csv|xlsx|planilla/.test(normalized)
-            ? 'spreadsheet'
-            : /\bpdf\b/.test(normalized)
-              ? 'pdf'
-              : /foto|captura|pantallazo|imagen/.test(normalized)
-                ? 'photos'
-                : /texto|manual|escrito/.test(normalized)
-                  ? 'text'
-                  : null;
-
-      if (hasAttachedFiles || wantsTextEvidenceUpload) {
-        await handleAssistantUploadSend(text, { includeTextAsEvidence: wantsTextEvidenceUpload });
-        return;
-      }
-
-      appendAssistantMessages(productId, product, [{ role: 'user', text }]);
-      setTxAssistantInputByProduct((prev) => ({ ...prev, [productId]: '' }));
-      setProductError(productId, null);
-
-      const withUserMessage: BankProduct = {
-        ...product,
-        assistant: {
-          messages: [
-            ...productMessages,
-            {
-              id: `${Date.now()}-user`,
-              role: 'user',
-              text,
-              createdAt: new Date().toISOString(),
-            },
-          ],
-          uploadFormat: product.assistant?.uploadFormat ?? null,
-          summaryText: productSummaryText,
-          summaryModel: product.assistant?.summaryModel ?? null,
-          summaryGeneratedAt: product.assistant?.summaryGeneratedAt ?? null,
-          summaryRegenerationsUsed: productRegenerationsUsed,
-          lastSummaryFeedback: product.assistant?.lastSummaryFeedback ?? null,
-        },
-      };
-
-      if (chosenFormat) {
-        appendAssistantMessages(
-          productId,
-          withUserMessage,
-          [{ role: 'assistant', text: buildUploadGuidance(chosenFormat, product.productType) }],
-          { uploadFormat: chosenFormat },
-        );
-        return;
-      }
-
-      const asksForRegeneration =
-        Boolean(productSummaryText) &&
-        /(error|corrige|corregir|revisa|revisar|regenera|regenerar|rehace|rehacer)/i.test(text);
-      if (asksForRegeneration && productRegenerationsLeft > 0) {
-        await generateTransactionSummary({
-          feedback: text,
-          isRegeneration: true,
-          productId,
-          productSnapshot: withUserMessage,
-        });
-        return;
-      }
-
-      setProductLoading(productId, true);
-      setProductError(productId, null);
-      const response = await requestTransactionAssistant(
-        buildTransactionChatRequest(product, {
-          mode: 'chat',
-          question: text,
-          currentSummary: productSummaryText,
-          dashboard:
-            buildChatDashboardForQuestion(effectiveDashboard, text) ??
-            compactDashboardForPrompt(effectiveDashboard, { maxMovements: 24, maxMerchants: 8 }),
-          messages: [...productMessages, { role: 'user', text }],
-        }),
-        controller.signal,
-      );
-      if (isTxActionStale(sessionId, productId)) return;
-      appendAssistantMessages(productId, withUserMessage, [
-        { role: 'assistant', text: String(response.assistant_text ?? 'Listo.') },
-      ]);
-    } catch (error) {
-      if (error instanceof DOMException && error.name === 'AbortError') return;
-      if (isTxActionStale(sessionId, productId)) return;
-      restoreAssistantMessages(productId, product, previousMessages);
-      setProductError(productId, error instanceof Error ? error.message : 'No se pudo responder.');
-    } finally {
-      finish();
-      if (!isTxActionStale(sessionId, productId)) {
-        setProductLoading(productId, false);
-      }
-      txSendLockRef.current = false;
-    }
-  }
   if (!props.isOpen) return null;
 
   const modalTree = (
@@ -1301,15 +540,20 @@ export function TransactionsModal(props: TransactionsModalProps) {
         data-ui-version="v2"
         data-dock-phase={dockTransitionPhase}
         data-stage={currentStage}
+        data-reduced-motion={prefersReducedMotion ? 'true' : 'false'}
       >
-        <ModalNumbersCanvas
-          shuffleTrigger={shuffleTrigger}
-          transitionPhase={dockTransitionPhase}
-          pulse={transitionPulse}
-        />
-        <div className="tx-transition-flood-layer" aria-hidden="true">
-          <NumericDust scope="flood" pulse={transitionPulse} active={dockTransitionPhase !== 'idle'} count={42} />
-        </div>
+        {!prefersReducedMotion ? (
+          <ModalNumbersCanvas
+            shuffleTrigger={shuffleTrigger}
+            transitionPhase={dockTransitionPhase}
+            pulse={transitionPulse}
+          />
+        ) : null}
+        {!prefersReducedMotion ? (
+          <div className="tx-transition-flood-layer" aria-hidden="true">
+            <NumericDust scope="flood" pulse={transitionPulse} active={dockTransitionPhase !== 'idle'} count={42} />
+          </div>
+        ) : null}
         <div className="bcc-modal-header tx-modal-header-layer">
           <div className="bcc-modal-title-wrap">
             <span className="bcc-modal-eyebrow">Financieramente</span>
@@ -1330,7 +574,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
         </p>
         <section className="pt-shell tx-stage-shell tx-modal-header-layer">
           <aside className="pt-left tx-panel-surface tx-panel-surface--library">
-            <NumericDust scope="library" pulse={transitionPulse} active={dockTransitionPhase !== 'idle'} />
+            <NumericDust scope="library" pulse={transitionPulse} active={!prefersReducedMotion && dockTransitionPhase !== 'idle'} />
             <div className="pt-list-head">
               <h4>Biblioteca de productos</h4>
             <div className="pt-list-head-actions">
@@ -1377,18 +621,8 @@ export function TransactionsModal(props: TransactionsModalProps) {
                       return (
                         <div
                           key={product.id}
-                          role="button"
-                          tabIndex={0}
-                          className={`pt-item pt-item-stack tx-lib-card ${isTop ? 'is-active is-top' : ''} ${recentlyDockedProductId === product.id ? 'tx-lib-enter' : ''}`}
+                          className={`pt-item pt-item-stack tx-lib-card tx-lib-card-shell ${isTop ? 'is-active is-top' : ''} ${recentlyDockedProductId === product.id ? 'tx-lib-enter' : ''}`}
                           data-docked={recentlyDockedProductId === product.id ? 'true' : 'false'}
-                          onClick={() => {
-                            selectLibraryProductAt(productCarouselIndex + stackIndex);
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key !== 'Enter' && e.key !== ' ') return;
-                            e.preventDefault();
-                            selectLibraryProductAt(productCarouselIndex + stackIndex);
-                          }}
                           style={{
                             ['--pt-card-active-bg' as any]: color,
                             ['--pt-card-active-border' as any]: color,
@@ -1404,38 +638,47 @@ export function TransactionsModal(props: TransactionsModalProps) {
                             ['--tx-lib-tint' as any]: visualPalette.tint,
                           }}
                         >
-                          {recentlyDockedProductId === product.id ? (
-                            <NumericDust scope="library-card" pulse={transitionPulse} active count={18} />
-                          ) : null}
+                          <button
+                            type="button"
+                            className="tx-lib-card-select"
+                            onClick={() => {
+                              selectLibraryProductAt(productCarouselIndex + stackIndex);
+                            }}
+                            aria-current={isTop ? 'true' : undefined}
+                            aria-label={`Seleccionar ${product.label}`}
+                          >
+                            {recentlyDockedProductId === product.id && !prefersReducedMotion ? (
+                              <NumericDust scope="library-card" pulse={transitionPulse} active count={18} />
+                            ) : null}
+                            <div className="tx-lib-card-sheen" aria-hidden="true" />
+                            <div className="pt-item-top tx-lib-card-top">
+                              <div className="tx-lib-card-copy">
+                                <span className="tx-lib-card-eyebrow">
+                                  {product.productType === 'credit_card' ? 'Tarjeta autorizada' : 'Producto conectado'}
+                                </span>
+                                <span className="pt-item-name">{product.label}</span>
+                              </div>
+                              <span className="pt-item-status">{product.connected ? 'Autorizado' : 'Pendiente'}</span>
+                            </div>
+                            <span className="pt-item-bank">{product.bank || 'Institución por definir'}</span>
+                            <div className="pt-item-meta">
+                              <span>{intel.docs} respaldo(s)</span>
+                              <span>{intel.amounts.length} movimiento(s)</span>
+                            </div>
+                            <div className="tx-lib-card-chip" aria-hidden="true" />
+                          </button>
                           {isTop ? (
                             <button
                               type="button"
                               className="pt-item-delete-mini"
                               aria-label={`Eliminar ${product.label}`}
-                              onClick={(e) => {
-                                e.stopPropagation();
+                              onClick={() => {
                                 props.deleteTransactionProduct(product.id);
                               }}
                             >
                               ×
                             </button>
                           ) : null}
-                          <div className="tx-lib-card-sheen" aria-hidden="true" />
-                          <div className="pt-item-top tx-lib-card-top">
-                            <div className="tx-lib-card-copy">
-                              <span className="tx-lib-card-eyebrow">
-                                {product.productType === 'credit_card' ? 'Tarjeta autorizada' : 'Producto conectado'}
-                              </span>
-                              <span className="pt-item-name">{product.label}</span>
-                            </div>
-                            <span className="pt-item-status">{product.connected ? 'Autorizado' : 'Pendiente'}</span>
-                          </div>
-                          <span className="pt-item-bank">{product.bank || 'Institución por definir'}</span>
-                          <div className="pt-item-meta">
-                            <span>{intel.docs} respaldo(s)</span>
-                            <span>{intel.amounts.length} movimiento(s)</span>
-                          </div>
-                          <div className="tx-lib-card-chip" aria-hidden="true" />
                         </div>
                       );
                     })}
@@ -1467,19 +710,47 @@ export function TransactionsModal(props: TransactionsModalProps) {
               ) : (
                 <div className="tx-library-empty">
                   <span className="tx-library-empty-kicker">Biblioteca vacía</span>
-                  <p>Las cards aparecen aquí cuando el producto ya quedó guardado en el flujo.</p>
+                  <p>Tus productos aparecen aquí al autorizarlos o cuando tengan evidencias en curso.</p>
                 </div>
               )}
             </div>
           </aside>
 
           <div className={`pt-right tx-panel-surface tx-panel-surface--workspace ${!props.activeBankProduct || showTxCarousel ? '' : 'tx-only-cta'}`}>
-            <NumericDust scope="workspace" pulse={transitionPulse} active={dockTransitionPhase !== 'idle' || currentStage !== 'consent'} />
+            <NumericDust
+              scope="workspace"
+              pulse={transitionPulse}
+              active={!prefersReducedMotion && (dockTransitionPhase !== 'idle' || currentStage !== 'consent')}
+            />
             <div className="tx-meta-card is-neutral" role="status" aria-live="polite" style={{ marginBottom: 14 }}>
               <span className="tx-meta-card-kicker">Estado del flujo</span>
               <p>{txStageSummary}</p>
               <p>{txStageCta}</p>
             </div>
+            {props.activeBankProduct && showTxCarousel && activeTxStageIndex >= 0 ? (
+              <nav className="tx-wizard-stepper" aria-label="Pasos del flujo de transacciones">
+                <ol className="tx-wizard-stepper-list">
+                  {txStages.map((stage, index) => {
+                    const isCurrent = activeTxStageIndex === index;
+                    return (
+                      <li key={stage.key} className="tx-wizard-stepper-item">
+                        <button
+                          type="button"
+                          className={`tx-wizard-step ${isCurrent ? 'is-current' : ''} ${stage.disabled ? 'is-disabled' : ''}`}
+                          onClick={() => goToTxStage(stage.key)}
+                          disabled={stage.disabled}
+                          aria-current={isCurrent ? 'step' : undefined}
+                          title={stage.disabled ? stage.disabledReason : stage.copy}
+                        >
+                          <span className="tx-wizard-step-title">{stage.title}</span>
+                          <span className="tx-wizard-step-copy">{stage.copy}</span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ol>
+              </nav>
+            ) : null}
             {!props.activeBankProduct ? (
               <div className="transactions-summary-card pt-empty-state">
                 <div className="pt-empty-head">
@@ -1553,13 +824,14 @@ export function TransactionsModal(props: TransactionsModalProps) {
                 ) : (
                   <>
                 <div className="tx-content-carousel">
-                  {(activeTxCard === 0 || (activeTxCard === 1 && isDockingToLibrary)) && (
+                  {!prefersReducedMotion &&
+                  (activeTxStageIndex === 0 || (activeTxStageIndex === 1 && isDockingToLibrary)) && (
                   <div className="tx-3d-hero-shell" aria-hidden="true">
                     <div className="relative w-full flex items-center justify-center p-0">
                       <div className="relative w-full py-0">
                       <div className={`tx-3d-sway-wrap${txVisualStage === 'consent' && !isDockingToLibrary ? ' is-floating' : ''}`}>
                       <div
-                        className={`tx-3d-hero ${txVisualTone} ${isCardLikeProduct ? 'is-card-like' : 'is-generic-like'} ${activeTxCard % 2 === 1 ? 'is-solid-step' : 'is-anim-step'} ${isDockingToLibrary ? 'is-docking-out' : ''}`}
+                        className={`tx-3d-hero ${txVisualTone} ${isCardLikeProduct ? 'is-card-like' : 'is-generic-like'} ${activeTxStageIndex % 2 === 1 ? 'is-solid-step' : 'is-anim-step'} ${isDockingToLibrary ? 'is-docking-out' : ''}`}
                         style={{
                           ['--tx-hero-base' as any]: activeProductVisualPalette.base,
                           ['--tx-hero-glow' as any]: activeProductVisualPalette.glow,
@@ -1568,7 +840,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
                           transform: `translate3d(0, ${txVisualY}px, 0) rotateX(${txVisualRotateX}deg) rotateY(${txVisualRotateY}deg) scale(${txVisualScale})`,
                         }}
                       >
-                        <NumericDust scope="hero" pulse={transitionPulse} active={dockTransitionPhase !== 'idle'} />
+                        <NumericDust scope="hero" pulse={transitionPulse} active={!prefersReducedMotion && dockTransitionPhase !== 'idle'} />
                         <div className="tx-3d-hero-sheen" />
                         <div className="tx-3d-hero-core">
                           <span className="tx-3d-hero-eyebrow">
@@ -1584,10 +856,10 @@ export function TransactionsModal(props: TransactionsModalProps) {
                     </div>
                   </div>
                   )}
-                  {activeTxCard === 1 && !isDockingToLibrary && (
+                  {activeTxStageIndex === 1 && !isDockingToLibrary && !prefersReducedMotion && (
                     <div className="tx-hero-shell-spacer" aria-hidden="true" />
                   )}
-                  {activeTxCard === 0 && props.activeBankProduct && (
+                  {activeTxStageIndex === 0 && props.activeBankProduct && (
                     <TxConsentStep
                       quickBank={quickBank}
                       productTemplate={productTemplate}
@@ -1632,7 +904,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
                     />
                   )}
 
-                  {activeTxCard === 1 && props.activeBankProduct && (
+                  {activeTxStageIndex === 1 && props.activeBankProduct && (
                     <TxEvidenceStep
                       key={`tx-evidence-${props.selectedProductId}`}
                       activeBankProduct={props.activeBankProduct}
@@ -1647,7 +919,6 @@ export function TransactionsModal(props: TransactionsModalProps) {
                       txUploadOnboardingStep={txUploadOnboardingStep}
                       selectedUploadFormat={selectedUploadFormat}
                       pendingEvidenceFiles={pendingEvidenceFiles}
-                      manualEvidenceDraft={manualEvidenceDraft}
                       txAssistantInput={txAssistantInput}
                       txAssistantLoading={txAssistantLoading}
                       documentsLoading={props.documentsLoading}
@@ -1660,17 +931,15 @@ export function TransactionsModal(props: TransactionsModalProps) {
                       processingPrimaryCopy={processingPrimaryCopy}
                       documentsParseProgress={props.documentsParseProgress}
                       txAssistantError={txAssistantError}
-                      pendingManualEvidence={pendingManualEvidence}
                       chatThreadRef={txChatThreadRef}
                       onPatchUploadFormat={(format) => patchAssistant({ uploadFormat: format })}
                       onResetUploadFormat={() => patchAssistant({ uploadFormat: null })}
                       onSetUploadOnboardingStep={setActiveUploadOnboardingStep}
-                      onBumpTransitionPulse={() => setTransitionPulse((value) => value + 1)}
+                      onBumpTransitionPulse={bumpTransitionPulse}
                       onAppendPendingEvidence={appendPendingEvidence}
-                      onManualEvidenceChange={setActiveManualEvidenceDraft}
                       onAssistantInputChange={setActiveTxAssistantInput}
                       onAssistantSend={() => void handleAssistantTextSend()}
-                      onRefineSummary={(source, body) => void refineTransactionSummaryFromFocus(source, body)}
+                      onRefineSummary={(source: string, body: string) => void refineTransactionSummaryFromFocus(source, body)}
                       onGoToAnalyst={() => goToTxStage('analyst')}
                       onRegenerateSummary={() =>
                         void generateTransactionSummary({
@@ -1681,7 +950,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
                     />
                   )}
 
-                  {activeTxCard === 2 && props.activeBankProduct && (
+                  {activeTxStageIndex === 2 && props.activeBankProduct && (
                     <TxAnalystDashboard
                       analytics={analytics}
                       activeBankProduct={props.activeBankProduct}
@@ -1718,7 +987,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
                           setShowTxCarousel(false);
                         }
                       }}
-                      onRefineSummary={(source, body) => void refineTransactionSummaryFromFocus(source, body)}
+                      onRefineSummary={(source: string, body: string) => void refineTransactionSummaryFromFocus(source, body)}
                       onRegenerateSummary={() =>
                         void generateTransactionSummary({
                           feedback: 'Revisar nuevamente consistencia de movimientos y resumen.',
@@ -1740,6 +1009,34 @@ export function TransactionsModal(props: TransactionsModalProps) {
           </div>
         </section>
         </div>{/* /tx-scroll-body */}
+        {closeConfirmKind ? (
+          <div className="tx-close-confirm-layer" role="presentation">
+            <div
+              className="tx-close-confirm-dialog"
+              role="alertdialog"
+              aria-modal="true"
+              aria-labelledby="tx-close-confirm-title"
+              aria-describedby="tx-close-confirm-body"
+            >
+              <h4 id="tx-close-confirm-title" className="tx-close-confirm-title">
+                {closeConfirmKind === 'busy' ? 'Análisis en curso' : 'Borrador sin enviar'}
+              </h4>
+              <p id="tx-close-confirm-body" className="tx-close-confirm-body">
+                {closeConfirmKind === 'busy'
+                  ? 'Hay un análisis en curso. Si cierras ahora, el proceso puede quedar incompleto.'
+                  : 'Tienes archivos o notas sin enviar. Si cierras, se descartará ese borrador.'}
+              </p>
+              <div className="tx-close-confirm-actions">
+                <button type="button" className="continue-ghost" onClick={dismissCloseConfirm}>
+                  Seguir en el panel
+                </button>
+                <button type="button" className="button-primary" onClick={confirmClose}>
+                  Cerrar igual
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   );

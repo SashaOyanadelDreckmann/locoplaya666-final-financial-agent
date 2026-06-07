@@ -18,6 +18,7 @@ describe('budget-chat-focus helpers', () => {
     { id: 'income_salary', category: 'Sueldo líquido', type: 'income' as const, amount: 0 },
     { id: 'expense_debt', category: 'Deuda / cuotas', type: 'expense' as const, amount: 0 },
     { id: 'expense_rent', category: 'Arriendo / vivienda', type: 'expense' as const, amount: 0 },
+    { id: 'expense_food', category: 'Alimentación', type: 'expense' as const, amount: 0 },
   ];
 
   it('extracts the last explicit question from combined assistant replies', () => {
@@ -54,5 +55,14 @@ describe('budget-chat-focus helpers', () => {
       activeRow: rows[0],
     });
     expect(target?.id).toBe('expense_rent');
+  });
+
+  it('prioritizes category mentioned in the user answer over stale assistant focus', () => {
+    const rentQuestion = '¿Cuánto pagas al mes en vivienda o dividendo?';
+    const target = resolveBudgetChatTargetRow(rows, rentQuestion, {
+      assistantFocusRowId: 'expense_rent',
+      answer: 'en comida gasto 200 mil al mes',
+    });
+    expect(target?.id).toBe('expense_food');
   });
 });

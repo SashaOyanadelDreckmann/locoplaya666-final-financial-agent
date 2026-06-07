@@ -128,6 +128,119 @@ describe('budget-chat routes', () => {
     });
 
     expect(res.status).toBe(200);
-    expect(res.body.source).not.toBe('deterministic_update');
+    expect(res.body.source).toBe('deterministic_update');
+    expect(res.body.action?.id).toBe('income_salary');
+    expect(res.body.action?.amount).toBe(850000);
+  }, 15000);
+
+  it('routes amount answers to the category mentioned in the reply instead of the stale rent question', async () => {
+    const { agent, csrfToken } = await createAuthedAgent();
+    const budgetRows = [
+      { id: 'income_salary', category: 'Sueldo líquido', type: 'income', amount: 900000 },
+      { id: 'expense_rent', category: 'Arriendo / vivienda', type: 'expense', amount: 0 },
+      { id: 'expense_food', category: 'Alimentación', type: 'expense', amount: 0 },
+    ];
+    const res = await agent.post('/api/budget-chat').set('x-csrf-token', csrfToken).send({
+      intent: 'reply',
+      answer: 'en comida gasto 200 mil al mes',
+      question: '¿Cuánto pagas al mes en vivienda o dividendo?',
+      assistantFocusRowId: 'expense_rent',
+      budgetRows,
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.source).toBe('deterministic_update');
+    expect(res.body.action?.id).toBe('expense_food');
+    expect(res.body.action?.amount).toBe(200000);
+  }, 15000);
+
+  it('advances to the next unfilled row when the user answers off-topic without a category', async () => {
+    const { agent, csrfToken } = await createAuthedAgent();
+    const budgetRows = [
+      { id: 'income_salary', category: 'Sueldo líquido', type: 'income', amount: 900000 },
+      { id: 'expense_rent', category: 'Arriendo / vivienda', type: 'expense', amount: 0 },
+      { id: 'expense_food', category: 'Alimentación', type: 'expense', amount: 0 },
+    ];
+    const res = await agent.post('/api/budget-chat').set('x-csrf-token', csrfToken).send({
+      intent: 'reply',
+      answer: 'prefiero seguir con otra cosa',
+      question: '¿Cuánto pagas al mes en vivienda o dividendo?',
+      assistantFocusRowId: 'expense_rent',
+      budgetRows,
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.source).toBe('deterministic_advance_focus');
+    expect(res.body.focus_row_id).toBe('expense_food');
+    expect(String(res.body.next_question)).toMatch(/comida|supermercado/i);
+  }, 15000);
+
+  it('requests confirmation before deleting a budget row', async () => {
+    const { agent, csrfToken } = await createAuthedAgent();
+    const budgetRows = [
+      { id: 'income_salary', category: 'Sueldo líquido', type: 'income', amount: 900000 },
+      { id: 'expense_other', category: 'Otros gastos', type: 'expense', amount: 50000 },
+    ];
+    const res = await agent.post('/api/budget-chat').set('x-csrf-token', csrfToken).send({
+      intent: 'reply',
+      answer: 'elimina otros gastos',
+      question: '¿Qué otro gasto mensual recurrente quieres agregar?',
+      budgetRows,
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.source).toBe('deterministic_delete_confirm');
+    expect(res.body.requires_confirmation).toBe(true);
+    expect(res.body.pending_confirmation?.actions?.[0]?.kind).toBe('delete');
+    expect(res.body.actions).toEqual([]);
+  }, 15000);
+
+  it('applies pending delete actions after an affirmative confirmation', async () => {
+    const { agent, csrfToken } = await createAuthedAgent();
+    const budgetRows = [
+      { id: 'income_salary', category: 'Sueldo líquido', type: 'income', amount: 900000 },
+      { id: 'expense_other', category: 'Otros gastos', type: 'expense', amount: 50000 },
+    ];
+    const res = await agent.post('/api/budget-chat').set('x-csrf-token', csrfToken).send({
+      intent: 'reply',
+      answer: 'sí',
+      question: '¿Confirmas eliminar Otros gastos de la tabla?',
+      budgetRows,
+      pendingConfirmation: {
+        summary: 'eliminar expense_other',
+        actions: [{ kind: 'delete', id: 'expense_other' }],
+      },
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.source).toBe('deterministic_confirm_apply');
+    expect(res.body.action?.kind).toBe('delete');
+    expect(res.body.action?.id).toBe('expense_other');
+    expect(res.body.requires_confirmation).toBeFalsy();
+  }, 15000);
+
+  it('uses transaction categories to personalize the first budget question on init', async () => {
+    const { agent, csrfToken } = await createAuthedAgent();
+    const res = await agent.post('/api/budget-chat').set('x-csrf-token', csrfToken).send({
+      intent: 'init',
+      budgetRows: [
+        { id: 'income_salary', category: 'Sueldo líquido', type: 'income', amount: 0 },
+        { id: 'expense_food', category: 'Alimentación', type: 'expense', amount: 0 },
+      ],
+      intakeData: { exactMonthlyIncome: 1200000, hasDebt: true },
+      products: [
+        {
+          label: 'Cuenta vista',
+          bank: 'Banco Estado',
+          keyMetrics: { inflows_total: 1180000, outflows_total: 640000 },
+          topCategories: [{ name: 'Supermercado Lider', amount: 210000 }],
+        },
+      ],
+      chatAnswers: [],
+    });
+
+    expect(res.status).toBe(200);
+    expect(String(res.body.next_question)).toMatch(/1\.200\.000|1\.180\.000/);
+    expect(String(res.body.assistant_reply)).toMatch(/movimientos|perfil/i);
   }, 15000);
 });

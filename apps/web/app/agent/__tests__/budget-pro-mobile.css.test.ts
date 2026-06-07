@@ -25,8 +25,16 @@ describe('budget pro mobile css safeguards', () => {
     expect(mobileCss).toContain('touch-action: pan-y !important');
   });
 
-  it('keeps compact cockpit and assistant internal scroll on mobile shell', () => {
-    expect(mobileCss).toContain('.budget-cockpit-banner.is-compact');
+  it('hides cockpit on mobile shell and resets table-front carousel layout', () => {
+    expect(mobileCss).toContain('.budget-modal.is-mobile-shell .budget-cockpit-banner');
+    expect(mobileCss).toContain('display: none !important');
+    expect(mobileCss).toContain('.budget-main-carousel.mode-table-front:not(.is-desktop) > .budget-card-table');
+    expect(mobileCss).toContain('transform: none !important');
+    expect(mobileCss).toContain('flex: 1 1 auto !important');
+    expect(mobileCss).toContain('height: 100% !important');
+  });
+
+  it('keeps assistant internal scroll on mobile shell', () => {
     expect(mobileCss).toContain('.budget-main-carousel.mode-agent-front .budget-assistant-panel .bcc-hero');
     expect(mobileCss).toContain('overflow-y: auto !important');
   });

@@ -15,7 +15,7 @@ type CompletedBlocksMap = Record<
   }
 >;
 
-type InterviewResponse = {
+export type InterviewResponse = {
   type: 'question' | 'block_summary' | 'block_completed' | 'interview_complete';
   blockId?: string;
   question?: string;

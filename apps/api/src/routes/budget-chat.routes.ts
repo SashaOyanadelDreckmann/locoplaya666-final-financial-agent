@@ -6,7 +6,19 @@ import { requireAuth } from '../middleware/auth';
 import { fetchIndicador } from '../mcp/tools/market/mindicadorClient';
 import { getConfig } from '../config';
 import {
+  mapBudgetSourceToWriterTurn,
+  polishBudgetAssistantCopy,
+  type BudgetWriterPolishInput,
+} from '../services/budget-chat-writer.service';
+import { planBudgetAssistantInit, planBudgetAssistantTurn } from '../services/budget-chat-planner.service';
+import {
   DEFAULT_BUDGET_ROWS,
+  buildBudgetAssistantContext,
+  buildBudgetRowSuggestions,
+  buildContextualAdviceReply,
+  buildContextualInitReply,
+  buildContextualQuestion,
+  buildSuggestionFollowUp,
   canonicalBudgetRowId,
   computeBudgetCompletion,
   computeBudgetInsights,
@@ -14,11 +26,23 @@ import {
   computeBudgetTotals,
   extractInferenceQuestionText,
   findBudgetRowByFocusId,
+  formatBudgetClp,
   getEffectiveBudgetRows,
   inferBudgetFocusRowId,
+  isAffirmativeSuggestionAnswer,
   isBareBudgetAmountAnswer,
+  pickContextualFocusRow,
   reconcileBudgetRows,
   resolveBudgetChatTargetRow,
+  summarizeBudgetActionBatch,
+  validateBudgetTableActions,
+  isBudgetConfirmationAnswer,
+  isBudgetRejectionAnswer,
+  buildPendingConfirmation,
+  type BudgetTableAction,
+  type BudgetAssistantContext,
+  type BudgetChatTurn,
+  type BudgetProductSnapshot,
   type BudgetRow,
 } from '@financial-agent/shared';
 
@@ -28,14 +52,7 @@ const BUDGET_CHAT_TEXT_LIMIT = 260;
 const MARKET_SNAPSHOT_CACHE_MS = 5 * 60_000;
 const MARKET_SNAPSHOT_SOFT_TIMEOUT_MS = 2_500;
 
-type BudgetProduct = {
-  label?: string;
-  bank?: string;
-  productType?: string;
-  dashboardSummary?: string;
-  alerts?: string[];
-  topCategories?: Array<{ name?: string; amount?: number }>;
-};
+type BudgetProduct = BudgetProductSnapshot;
 
 const BudgetChatRequestSchema = z.object({
   intent: z.enum(['init', 'reply']),
@@ -52,6 +69,13 @@ const BudgetChatRequestSchema = z.object({
   assistantFocusRowId: z.string().trim().max(120).nullable().optional(),
   intakeContext: z.unknown().nullable().optional(),
   intakeData: z.unknown().nullable().optional(),
+  pendingConfirmation: z
+    .object({
+      actions: z.array(z.record(z.unknown())).max(6),
+      summary: z.string().trim().max(500),
+    })
+    .nullable()
+    .optional(),
 }).passthrough();
 
 type BudgetChatRequest = z.infer<typeof BudgetChatRequestSchema>;
@@ -74,8 +98,10 @@ type BudgetChatResponse = {
   actions: Array<Record<string, unknown>>;
   action: Record<string, unknown> | null;
   source: string;
-  provider: 'deterministic';
+  provider: 'deterministic' | 'hybrid' | 'planner';
   market_snapshot: MarketSnapshot;
+  requires_confirmation?: boolean;
+  pending_confirmation?: { actions: Array<Record<string, unknown>>; summary: string } | null;
 };
 
 function compactText(value: unknown, max = 240): string {
@@ -174,6 +200,10 @@ function sanitizeProducts(value: unknown): BudgetProduct[] {
   if (!Array.isArray(value)) return [];
   return value.slice(0, 4).map((product: unknown) => {
     const raw = (product ?? {}) as Record<string, unknown>;
+    const keyMetricsRaw =
+      raw.keyMetrics && typeof raw.keyMetrics === 'object'
+        ? (raw.keyMetrics as Record<string, unknown>)
+        : null;
     return {
       label: compactText(raw.label, 80),
       bank: compactText(raw.bank, 60),
@@ -187,8 +217,16 @@ function sanitizeProducts(value: unknown): BudgetProduct[] {
               return { name: compactText((item as Record<string, unknown>).name, 40), amount: Number((item as Record<string, unknown>).amount ?? 0) };
             })
             .filter((item): item is { name: string; amount: number } => Boolean(item && item.name))
-            .slice(0, 4)
+            .slice(0, 6)
         : [],
+      keyMetrics: keyMetricsRaw
+        ? {
+            inflows_total: Number(keyMetricsRaw.inflows_total ?? keyMetricsRaw.inflowsTotal ?? 0) || undefined,
+            outflows_total: Number(keyMetricsRaw.outflows_total ?? keyMetricsRaw.outflowsTotal ?? 0) || undefined,
+            net_flow: Number(keyMetricsRaw.net_flow ?? keyMetricsRaw.netFlow ?? 0) || undefined,
+            movement_count: Number(keyMetricsRaw.movement_count ?? keyMetricsRaw.movementCount ?? 0) || undefined,
+          }
+        : undefined,
     };
   });
 }
@@ -260,95 +298,38 @@ async function getMarketSnapshotOptional(timeoutMs = MARKET_SNAPSHOT_SOFT_TIMEOU
 }
 
 function formatClp(value: number): string {
-  return Math.max(0, Math.round(Number(value) || 0)).toLocaleString('es-CL');
+  return formatBudgetClp(value);
 }
 
-function findBudgetFocusRow(rows: BudgetRow[], preferredRowId?: string | null): BudgetRow | null {
-  if (preferredRowId) {
-    const canonical = canonicalBudgetRowId(preferredRowId);
-    const direct = rows.find((row) => canonicalBudgetRowId(row.id) === canonical) ?? null;
-    if (direct) return direct;
-  }
-  return rows.find((row) => Number(row.amount ?? 0) <= 0) ?? rows[0] ?? null;
-}
-
-function findNextUnfilledBudgetRow(rows: BudgetRow[], afterRowId?: string | null): BudgetRow | null {
-  const unfilled = rows.filter((row) => Number(row.amount ?? 0) <= 0);
-  if (unfilled.length === 0) return rows[0] ?? null;
-  if (!afterRowId) return unfilled[0] ?? null;
-  const canonical = canonicalBudgetRowId(afterRowId);
-  const currentIndex = unfilled.findIndex((row) => canonicalBudgetRowId(row.id) === canonical);
-  if (currentIndex >= 0 && currentIndex + 1 < unfilled.length) return unfilled[currentIndex + 1] ?? null;
-  if (currentIndex >= 0) return unfilled[currentIndex] ?? null;
-  return unfilled[0] ?? null;
-}
-
-function buildQuestionForRow(row: BudgetRow | null, intakeData: Record<string, unknown>, products: BudgetProduct[]) {
-  if (!row) return '¿Cuánto es tu ingreso principal mensual?';
-  switch (row.id) {
-    case 'income_salary':
-      return typeof intakeData.exactMonthlyIncome === 'number'
-        ? `En tu perfil hay ~$${formatClp(Number(intakeData.exactMonthlyIncome) || 0)}. ¿Lo dejamos como ingreso principal?`
-        : '¿Cuánto es tu ingreso principal mensual?';
-    case 'income_extra':
-      return '¿Tienes ingresos extra mensuales? Indica monto.';
-    case 'expense_rent':
-      return '¿Cuánto pagas al mes en vivienda o dividendo?';
-    case 'expense_food':
-      return '¿Cuánto gastas al mes en comida y supermercado?';
-    case 'expense_transport':
-      return '¿Cuánto va al mes en transporte y bencina?';
-    case 'expense_services':
-      return '¿Cuánto pagas al mes en servicios e internet?';
-    case 'expense_debt':
-      return '¿Cuánto pagas al mes en cuotas o créditos?';
-    case 'expense_savings':
-      return '¿Cuánto apartas al mes para ahorro o inversión?';
-    default:
-      return row.type === 'income'
-        ? `¿Monto mensual de ${row.category || 'este ingreso'}?`
-        : `¿Monto mensual de ${row.category || 'este gasto'}?`;
-  }
-}
-
-function hasMeaningfulIntake(value: unknown): boolean {
-  if (!value || typeof value !== 'object') return false;
-  const data = value as Record<string, unknown>;
-  return (
-    typeof data.employmentStatus === 'string' ||
-    typeof data.incomeBand === 'string' ||
-    typeof data.exactMonthlyIncome === 'number' ||
-    typeof data.hasDebt === 'boolean' ||
-    typeof data.hasSavingsOrInvestments === 'boolean'
-  );
-}
-
-function summarizeIntakeContext(value: unknown): Record<string, unknown> {
-  if (!hasMeaningfulIntake(value)) return {};
-  const data = value as Record<string, unknown>;
-  return {
-    age: data.age,
-    employmentStatus: data.employmentStatus,
-    exactMonthlyIncome: data.exactMonthlyIncome,
-    incomeBand: data.incomeBand,
-    hasDebt: data.hasDebt,
-    hasSavingsOrInvestments: data.hasSavingsOrInvestments,
-  };
+function createAssistantContext(params: {
+  rows: BudgetRow[];
+  intakeData: unknown;
+  intakeContext?: string | null;
+  products: BudgetProduct[];
+  chatAnswers: BudgetChatTurn[];
+}): BudgetAssistantContext {
+  return buildBudgetAssistantContext({
+    rows: params.rows,
+    intakeData: params.intakeData,
+    intakeContext: params.intakeContext ?? null,
+    products: params.products,
+    chatAnswers: params.chatAnswers,
+  });
 }
 
 function buildBudgetFocusQuestion(
   rows: BudgetRow[],
   activeRow: BudgetRow | null,
-  intakeData: Record<string, unknown>,
-  products: BudgetProduct[],
+  context: BudgetAssistantContext,
   preferredRowId?: string | null,
 ) {
-  const focus = activeRow && rows.some((row) => row.id === activeRow.id)
-    ? activeRow
-    : findBudgetFocusRow(rows, preferredRowId);
+  const focus =
+    activeRow && rows.some((row) => row.id === activeRow.id) && Number(activeRow.amount ?? 0) <= 0
+      ? activeRow
+      : pickContextualFocusRow(rows, context, preferredRowId ?? activeRow?.id ?? null);
   return {
     focus,
-    question: buildQuestionForRow(focus, intakeData, products),
+    question: buildContextualQuestion(focus, context),
   };
 }
 
@@ -442,6 +423,57 @@ function extractClpAmount(text: string): number | null {
   return Math.max(0, Math.round(value * multiplier));
 }
 
+function buildWriterPolishInput(params: {
+  draft: BudgetChatResponse;
+  context: BudgetAssistantContext;
+  rows: BudgetRow[];
+  userAnswer?: string;
+}): BudgetWriterPolishInput | null {
+  if (!params.draft.next_question) return null;
+  const focusRow = params.draft.focus_row_id
+    ? params.rows.find(
+        (row) => canonicalBudgetRowId(row.id) === canonicalBudgetRowId(params.draft.focus_row_id as string),
+      ) ?? null
+    : null;
+  return {
+    turn: mapBudgetSourceToWriterTurn(params.draft.source),
+    deterministicReply: params.draft.assistant_reply,
+    deterministicQuestion: params.draft.next_question,
+    focusRow,
+    context: params.context,
+    userAnswer: params.userAnswer,
+  };
+}
+
+async function finalizeBudgetResponse(
+  draft: BudgetChatResponse,
+  polishInput: BudgetWriterPolishInput | null,
+): Promise<BudgetChatResponse> {
+  if (!polishInput) return draft;
+  const polished = await polishBudgetAssistantCopy(polishInput);
+  if (!polished) return draft;
+  const reply = compactText(polished.reply, BUDGET_CHAT_TEXT_LIMIT);
+  const nextQuestion = sanitizeQuestion(polished.question);
+  if (!reply || !nextQuestion) return draft;
+  return {
+    ...draft,
+    assistant_reply: reply,
+    assistant_text: reply,
+    next_question: nextQuestion,
+    provider: 'hybrid',
+  };
+}
+
+async function sendBudgetChatResponse(
+  res: { json: (body: unknown) => unknown },
+  draft: BudgetChatResponse,
+  polishInput: BudgetWriterPolishInput | null,
+  extras?: Partial<BudgetChatResponse>,
+) {
+  const payload = await finalizeBudgetResponse({ ...draft, ...extras }, polishInput);
+  return res.json(payload);
+}
+
 function buildBudgetReply(input: {
   reply: string;
   followUp?: string | null;
@@ -451,9 +483,15 @@ function buildBudgetReply(input: {
   action?: Record<string, unknown> | null;
   source: string;
   market_snapshot?: MarketSnapshot;
+  provider?: BudgetChatResponse['provider'];
+  requires_confirmation?: boolean;
+  pending_confirmation?: { actions: Array<Record<string, unknown>>; summary: string } | null;
 }): BudgetChatResponse {
   const followUp = sanitizeQuestion(input.followUp ?? null);
   const reply = compactText(input.reply, BUDGET_CHAT_TEXT_LIMIT);
+  const requiresConfirmation = Boolean(input.requires_confirmation);
+  const pending = input.pending_confirmation ?? null;
+  const actions = requiresConfirmation ? [] : input.actions ?? [];
   return {
     ok: true,
     assistant_text: reply,
@@ -462,51 +500,195 @@ function buildBudgetReply(input: {
     focus_row_id: input.focus_row_id ?? null,
     done: Boolean(input.done),
     coach_message: null,
-    actions: input.actions ?? [],
-    action: input.action ?? (input.actions?.[0] ?? null),
+    actions,
+    action: requiresConfirmation ? null : input.action ?? (actions[0] ?? null),
     source: input.source,
-    provider: 'deterministic',
+    provider: input.provider ?? 'deterministic',
     market_snapshot: input.market_snapshot ?? emptyMarketSnapshot(),
+    requires_confirmation: requiresConfirmation,
+    pending_confirmation: requiresConfirmation ? pending : null,
   };
+}
+
+function actionsToRecords(actions: BudgetTableAction[]): Array<Record<string, unknown>> {
+  return actions.map((action) => ({ ...action }));
+}
+
+function buildConfirmationApplyReply(params: {
+  actions: BudgetTableAction[];
+  rows: BudgetRow[];
+  context: BudgetAssistantContext;
+  summary: string;
+}): BudgetChatResponse {
+  const { focus, question } = buildBudgetFocusQuestion(params.rows, null, params.context);
+  return buildBudgetReply({
+    reply: `Listo, quedó aplicado: ${params.summary || summarizeBudgetActionBatch(params.actions)}.`,
+    followUp: question,
+    focus_row_id: focus?.id ?? params.actions[0]?.id ?? null,
+    actions: actionsToRecords(params.actions),
+    action: params.actions[0] ? { ...params.actions[0] } : null,
+    source: 'deterministic_confirm_apply',
+    provider: 'deterministic',
+    market_snapshot: emptyMarketSnapshot(),
+    requires_confirmation: false,
+    pending_confirmation: null,
+  });
+}
+
+function buildConfirmationRejectedReply(params: {
+  rows: BudgetRow[];
+  context: BudgetAssistantContext;
+}): BudgetChatResponse {
+  const { focus, question } = buildBudgetFocusQuestion(params.rows, null, params.context);
+  return buildBudgetReply({
+    reply: 'Sin problema, no aplico esos cambios.',
+    followUp: question,
+    focus_row_id: focus?.id ?? null,
+    source: 'deterministic_confirm_reject',
+    provider: 'deterministic',
+    market_snapshot: emptyMarketSnapshot(),
+    requires_confirmation: false,
+    pending_confirmation: null,
+  });
+}
+
+function buildPlannerChatReply(params: {
+  plan: {
+    next_question: string;
+    focus_row_id: string | null;
+    actions: BudgetTableAction[];
+    requires_confirmation: boolean;
+    pending_summary: string | null;
+    source: string;
+  };
+  rows: BudgetRow[];
+}): BudgetChatResponse {
+  const pending =
+    params.plan.requires_confirmation && params.plan.actions.length > 0
+      ? buildPendingConfirmation(params.plan.actions)
+      : null;
+  return buildBudgetReply({
+    reply: params.plan.pending_summary ?? 'Sigamos afinando tu presupuesto.',
+    followUp: params.plan.next_question,
+    focus_row_id: params.plan.focus_row_id,
+    actions: params.plan.requires_confirmation ? [] : actionsToRecords(params.plan.actions),
+    action: params.plan.requires_confirmation ? null : params.plan.actions[0] ? { ...params.plan.actions[0] } : null,
+    source: params.plan.source,
+    provider: 'planner',
+    market_snapshot: emptyMarketSnapshot(),
+    requires_confirmation: params.plan.requires_confirmation,
+    pending_confirmation: pending,
+  });
+}
+
+function findNextUnfilledBudgetRow(
+  rows: BudgetRow[],
+  context: BudgetAssistantContext,
+  afterRowId?: string | null,
+): BudgetRow | null {
+  const unfilled = getEffectiveBudgetRows(rows).filter((row) => Number(row.amount ?? 0) <= 0);
+  if (unfilled.length === 0) return rows[0] ?? null;
+  if (!afterRowId) return pickContextualFocusRow(rows, context);
+  const canonical = canonicalBudgetRowId(afterRowId);
+  const currentIndex = unfilled.findIndex((row) => canonicalBudgetRowId(row.id) === canonical);
+  const tail = currentIndex >= 0 ? unfilled.slice(currentIndex + 1) : unfilled;
+  if (tail.length === 0) return unfilled[currentIndex] ?? null;
+  return pickContextualFocusRow(tail, context) ?? tail[0] ?? null;
+}
+
+function appendSuggestionTip(
+  rows: BudgetRow[],
+  context: BudgetAssistantContext,
+  reply: string,
+  excludeRowId?: string | null,
+): string {
+  const suggestions = buildBudgetRowSuggestions(rows, context).filter(
+    (item) => !excludeRowId || canonicalBudgetRowId(item.rowId) !== canonicalBudgetRowId(excludeRowId),
+  );
+  const top = suggestions[0];
+  if (!top) return reply;
+  const tip =
+    top.kind === 'add'
+      ? `Tip: podrías sumar ${top.category} (~$${formatClp(top.suggestedAmount)}).`
+      : `Tip: ${top.category} podría quedar cerca de $${formatClp(top.suggestedAmount)} según movimientos.`;
+  return compactText(`${reply} ${tip}`, BUDGET_CHAT_TEXT_LIMIT);
 }
 
 function buildDeterministicUpdate(params: {
   rows: BudgetRow[];
   answer: string;
   question: string;
-  intakeData: Record<string, unknown>;
-  products: BudgetProduct[];
+  context: BudgetAssistantContext;
   assistantFocusRowId?: string | null;
   manualFocusRowId?: string | null;
   activeRow?: BudgetRow | null;
 }) {
-  const targetRow =
+  let targetRow =
     resolveBudgetChatTargetRow(params.rows, extractInferenceQuestionText(params.question) || params.question, {
       manualFocusRowId: params.manualFocusRowId ?? null,
       assistantFocusRowId: params.assistantFocusRowId ?? null,
       activeRow: params.activeRow ?? null,
       answer: params.answer,
-    }) ?? findBudgetFocusRow(params.rows, null);
+    }) ?? pickContextualFocusRow(params.rows, params.context);
+
+  if (!targetRow && params.assistantFocusRowId) {
+    const suggestion = buildBudgetRowSuggestions(params.rows, params.context).find(
+      (item) => canonicalBudgetRowId(item.rowId) === canonicalBudgetRowId(params.assistantFocusRowId as string),
+    );
+    if (suggestion) {
+      targetRow = {
+        id: suggestion.rowId,
+        category: suggestion.category,
+        type: suggestion.type,
+        amount: 0,
+        movementType: suggestion.movementType,
+      };
+    }
+  }
   if (!targetRow) return null;
-  const amount = extractClpAmount(params.answer);
+
+  let amount = extractClpAmount(params.answer);
+  if (amount === null && isAffirmativeSuggestionAnswer(params.answer)) {
+    const hint = params.context.rowHints.get(canonicalBudgetRowId(targetRow.id));
+    const suggestion = buildBudgetRowSuggestions(params.rows, params.context).find(
+      (item) => canonicalBudgetRowId(item.rowId) === canonicalBudgetRowId(targetRow.id),
+    );
+    if (hint && hint.estimatedMonthly > 0) amount = hint.estimatedMonthly;
+    else if (suggestion && suggestion.suggestedAmount > 0) amount = suggestion.suggestedAmount;
+  }
   if (amount === null) return null;
+
+  const rowExists = params.rows.some((row) => row.id === targetRow!.id);
   const action = {
-    kind: 'update',
+    kind: rowExists ? 'update' : 'add',
     id: targetRow.id,
     category: targetRow.category,
     type: targetRow.type,
     amount,
-    note: targetRow.note ?? '',
     cadence: normalizeCadence(targetRow.cadence, targetRow.type),
     payment_method: targetRow.paymentMethod ?? (targetRow.type === 'income' ? 'transfer' : 'debit'),
     movement_type: targetRow.movementType ?? undefined,
   };
   const projectedRows = reconcileBudgetRows(
-    params.rows.map((row) => (row.id === targetRow.id ? { ...row, amount } : row)),
+    rowExists
+      ? params.rows.map((row) => (row.id === targetRow!.id ? { ...row, amount } : row))
+      : [...params.rows, { ...targetRow, amount }],
   );
-  const { focus, question } = buildBudgetFocusQuestion(projectedRows, null, params.intakeData, params.products);
+  const projectedContext = createAssistantContext({
+    rows: projectedRows,
+    intakeData: params.context.intake,
+    intakeContext: params.context.intake.intakeContext ?? null,
+    products: params.context.products,
+    chatAnswers: params.context.chatAnswers,
+  });
+  const { focus, question } = buildBudgetFocusQuestion(projectedRows, null, projectedContext);
   return buildBudgetReply({
-    reply: `Listo: ${targetRow.category} quedó en $${formatClp(amount)}.`,
+    reply: appendSuggestionTip(
+      projectedRows,
+      projectedContext,
+      `Listo: ${targetRow.category} quedó en $${formatClp(amount)}.`,
+      targetRow.id,
+    ),
     followUp: question,
     focus_row_id: focus?.id ?? targetRow.id,
     actions: [action],
@@ -520,10 +702,9 @@ function buildEducationReply(params: {
   answer: string;
   rows: BudgetRow[];
   activeRow: BudgetRow | null;
-  intakeData: Record<string, unknown>;
-  products: BudgetProduct[];
+  context: BudgetAssistantContext;
 }) {
-  const { focus, question } = buildBudgetFocusQuestion(params.rows, params.activeRow, params.intakeData, params.products);
+  const { focus, question } = buildBudgetFocusQuestion(params.rows, params.activeRow, params.context);
   const normalized = normalizeLooseText(params.answer);
   const reply =
     /\b(fijo|fija|fijos)\b/.test(normalized) && /\b(variable|variables)\b/.test(normalized)
@@ -546,12 +727,15 @@ function buildEducationReply(params: {
 function buildGreetingReply(params: {
   rows: BudgetRow[];
   activeRow: BudgetRow | null;
-  intakeData: Record<string, unknown>;
-  products: BudgetProduct[];
+  context: BudgetAssistantContext;
 }) {
-  const { focus, question } = buildBudgetFocusQuestion(params.rows, params.activeRow, params.intakeData, params.products);
+  const { focus, question } = buildBudgetFocusQuestion(params.rows, params.activeRow, params.context);
+  const intro =
+    params.context.products.length > 0
+      ? 'Hola. Ya revisé tus movimientos y perfil para orientar el presupuesto.'
+      : 'Hola. Partamos por tu ingreso principal y luego completamos los gastos base.';
   return buildBudgetReply({
-    reply: 'Hola. Partamos por tu ingreso principal y luego completamos los gastos base.',
+    reply: intro,
     followUp: question,
     focus_row_id: focus?.id ?? params.activeRow?.id ?? 'income_salary',
     source: 'deterministic_greeting',
@@ -559,20 +743,20 @@ function buildGreetingReply(params: {
   });
 }
 
-function buildStatusReply(params: {
-  rows: BudgetRow[];
-  intakeData: Record<string, unknown>;
-  products: BudgetProduct[];
-}) {
+function buildStatusReply(params: { rows: BudgetRow[]; context: BudgetAssistantContext }) {
   const snapshot = buildBudgetSnapshot(params.rows);
   const margin = snapshot.income > 0 ? Math.round((snapshot.balance / Math.max(1, snapshot.income)) * 100) : 0;
   const biggest = snapshot.topExpense
     ? `Mayor gasto: ${snapshot.topExpense.category} ($${formatClp(snapshot.topExpense.amount)}).`
     : '';
   const missing = snapshot.missingCoreRows.length > 0 ? `Faltan: ${snapshot.missingCoreRows.slice(0, 3).join(', ')}.` : '';
-  const { focus, question } = buildBudgetFocusQuestion(params.rows, null, params.intakeData, params.products);
+  const txLine =
+    params.context.totalOutflows > 0
+      ? ` Movimientos: entradas $${formatClp(params.context.totalInflows)}, salidas $${formatClp(params.context.totalOutflows)}.`
+      : '';
+  const { focus, question } = buildBudgetFocusQuestion(params.rows, null, params.context);
   return buildBudgetReply({
-    reply: `Ingresos $${formatClp(snapshot.income)}, gastos $${formatClp(snapshot.expenses)}, margen ${margin}%. ${biggest} ${missing}`.trim(),
+    reply: `Ingresos $${formatClp(snapshot.income)}, gastos $${formatClp(snapshot.expenses)}, margen ${margin}%. ${biggest} ${missing}${txLine}`.trim(),
     followUp: question,
     focus_row_id: focus?.id ?? null,
     source: 'deterministic_status',
@@ -581,17 +765,36 @@ function buildStatusReply(params: {
   });
 }
 
-function buildFallbackInit(params: {
-  rows: BudgetRow[];
-  intakeData: Record<string, unknown>;
-  products: BudgetProduct[];
-}) {
-  const { focus, question } = buildBudgetFocusQuestion(params.rows, null, params.intakeData, params.products, 'income_salary');
+function buildFallbackInit(params: { rows: BudgetRow[]; context: BudgetAssistantContext }) {
+  const { focus, question } = buildBudgetFocusQuestion(params.rows, null, params.context, 'income_salary');
+  const reply = buildContextualInitReply(params.rows, focus, question, params.context);
   return buildBudgetReply({
-    reply: question,
+    reply,
     followUp: question,
     focus_row_id: focus?.id ?? 'income_salary',
     source: 'deterministic_init',
+    market_snapshot: emptyMarketSnapshot(),
+  });
+}
+
+function buildAdviceReply(params: { rows: BudgetRow[]; context: BudgetAssistantContext }) {
+  const suggestions = buildBudgetRowSuggestions(params.rows, params.context);
+  const packaged = buildSuggestionFollowUp(suggestions, params.context, params.rows);
+  if (packaged) {
+    return buildBudgetReply({
+      reply: `${buildContextualAdviceReply(params.context, params.rows)} ${packaged.reply}`.trim(),
+      followUp: packaged.followUp,
+      focus_row_id: packaged.focusRowId,
+      source: 'deterministic_advice',
+      market_snapshot: emptyMarketSnapshot(),
+    });
+  }
+  const { focus, question } = buildBudgetFocusQuestion(params.rows, null, params.context);
+  return buildBudgetReply({
+    reply: buildContextualAdviceReply(params.context, params.rows),
+    followUp: question,
+    focus_row_id: focus?.id ?? null,
+    source: 'deterministic_advice',
     market_snapshot: emptyMarketSnapshot(),
   });
 }
@@ -600,8 +803,7 @@ function buildConversationalFallback(params: {
   answer: string;
   rows: BudgetRow[];
   activeRow: BudgetRow | null;
-  intakeData: Record<string, unknown>;
-  products: BudgetProduct[];
+  context: BudgetAssistantContext;
   question: string;
   assistantFocusRowId?: string | null;
   manualFocusRowId?: string | null;
@@ -615,23 +817,40 @@ function buildConversationalFallback(params: {
         manualFocusRowId: params.manualFocusRowId ?? null,
         assistantFocusRowId: params.assistantFocusRowId ?? null,
         activeRow: params.activeRow ?? null,
-      }) ?? findBudgetFocusRow(params.rows, null);
+        answer: params.answer,
+      }) ?? pickContextualFocusRow(params.rows, params.context);
     if (targetRow) {
-      const { focus, question } = buildBudgetFocusQuestion(params.rows, null, params.intakeData, params.products);
-      return buildBudgetReply({
-        reply: `Si quieres eliminar ${targetRow.category}, lo hacemos desde la tabla para evitar borrar algo útil por accidente.`,
-        followUp: question,
-        focus_row_id: focus?.id ?? targetRow.id,
-        source: 'deterministic_delete_hint',
-        market_snapshot: emptyMarketSnapshot(),
-      });
+      const deleteActions = validateBudgetTableActions([{ kind: 'delete', id: targetRow.id }], params.rows);
+      if (deleteActions.length > 0) {
+        const pending = buildPendingConfirmation(deleteActions);
+        return buildBudgetReply({
+          reply: `Puedo eliminar ${targetRow.category} si confirmas.`,
+          followUp: `¿Confirmas eliminar ${targetRow.category} de la tabla?`,
+          focus_row_id: targetRow.id,
+          source: 'deterministic_delete_confirm',
+          market_snapshot: emptyMarketSnapshot(),
+          requires_confirmation: true,
+          pending_confirmation: pending,
+        });
+      }
     }
   }
 
   if (detectedIntent === 'add_row') {
-    const { focus, question } = buildBudgetFocusQuestion(params.rows, params.activeRow, params.intakeData, params.products);
+    const suggestions = buildBudgetRowSuggestions(params.rows, params.context);
+    const packaged = buildSuggestionFollowUp(suggestions, params.context, params.rows);
+    if (packaged) {
+      return buildBudgetReply({
+        reply: packaged.reply,
+        followUp: packaged.followUp,
+        focus_row_id: packaged.focusRowId,
+        source: 'deterministic_add_suggestion',
+        market_snapshot: emptyMarketSnapshot(),
+      });
+    }
+    const { focus, question } = buildBudgetFocusQuestion(params.rows, params.activeRow, params.context);
     return buildBudgetReply({
-      reply: 'Puedo ayudarte a sumar esa fila, pero necesito que la señales en la tabla para mantener coherencia.',
+      reply: 'Puedo proponerte filas según tus movimientos. Dime la categoría y monto que quieres sumar.',
       followUp: question,
       focus_row_id: focus?.id ?? params.activeRow?.id ?? null,
       source: 'deterministic_add_hint',
@@ -639,13 +858,19 @@ function buildConversationalFallback(params: {
     });
   }
 
-  if (/\d/.test(params.answer) && (isBareBudgetAmountAnswer(params.answer) || detectedIntent === 'update_amount')) {
+  if (detectedIntent === 'advice') {
+    return buildAdviceReply({ rows: params.rows, context: params.context });
+  }
+
+  if (
+    isAffirmativeSuggestionAnswer(params.answer) ||
+    (/\d/.test(params.answer) && (isBareBudgetAmountAnswer(params.answer) || detectedIntent === 'update_amount'))
+  ) {
     const deterministicUpdate = buildDeterministicUpdate({
       rows: params.rows,
       answer: params.answer,
       question: params.question,
-      intakeData: params.intakeData,
-      products: params.products,
+      context: params.context,
       assistantFocusRowId: params.assistantFocusRowId,
       manualFocusRowId: params.manualFocusRowId,
       activeRow: params.activeRow,
@@ -653,14 +878,67 @@ function buildConversationalFallback(params: {
     if (deterministicUpdate) return deterministicUpdate;
   }
 
-  const { focus, question } = buildBudgetFocusQuestion(params.rows, params.activeRow, params.intakeData, params.products);
+  const questionText = extractInferenceQuestionText(params.question) || params.question;
+  const currentTarget =
+    resolveBudgetChatTargetRow(params.rows, questionText, {
+      manualFocusRowId: params.manualFocusRowId ?? null,
+      assistantFocusRowId: params.assistantFocusRowId ?? null,
+      activeRow: params.activeRow ?? null,
+      answer: params.answer,
+    }) ?? pickContextualFocusRow(params.rows, params.context);
+
+  const answerRow = findBudgetRowByFocusId(params.rows, inferBudgetFocusRowId(params.answer));
+  if (answerRow && answerRow.id !== currentTarget?.id) {
+    return buildBudgetReply({
+      reply: `Perfecto, enfoquemos ${answerRow.category.toLowerCase()}.`,
+      followUp: buildContextualQuestion(answerRow, params.context),
+      focus_row_id: answerRow.id,
+      source: 'deterministic_answer_focus',
+      market_snapshot: emptyMarketSnapshot(),
+    });
+  }
+
+  const defaultFocus = buildBudgetFocusQuestion(params.rows, params.activeRow, params.context);
+  const currentQuestion = buildContextualQuestion(currentTarget, params.context);
+
+  if (
+    detectedIntent === 'unclear' &&
+    params.answer.trim() &&
+    defaultFocus.question === currentQuestion &&
+    currentTarget
+  ) {
+    const nextRow = findNextUnfilledBudgetRow(params.rows, params.context, currentTarget.id);
+    if (nextRow && nextRow.id !== currentTarget.id) {
+      return buildBudgetReply({
+        reply: 'Entiendo. Avancemos con otro rubro del presupuesto.',
+        followUp: buildContextualQuestion(nextRow, params.context),
+        focus_row_id: nextRow.id,
+        source: 'deterministic_advance_focus',
+        market_snapshot: emptyMarketSnapshot(),
+      });
+    }
+  }
+
+  const suggestions = buildBudgetRowSuggestions(params.rows, params.context);
+  const packaged = buildSuggestionFollowUp(suggestions, params.context, params.rows);
+  if (packaged && detectedIntent === 'unclear') {
+    return buildBudgetReply({
+      reply: packaged.reply,
+      followUp: packaged.followUp,
+      focus_row_id: packaged.focusRowId,
+      source: 'deterministic_context_suggestion',
+      market_snapshot: emptyMarketSnapshot(),
+    });
+  }
+
+  const { focus, question } = defaultFocus;
   const fallbackReply =
     snapshot.balance < 0
       ? 'Hay un déficit que conviene ordenar con vivienda, deuda y gastos variables.'
       : 'Sigamos afinando la tabla para que el balance quede sólido y accionable.';
 
   return buildBudgetReply({
-    reply: fallbackReply,
+    reply: appendSuggestionTip(params.rows, params.context, fallbackReply),
     followUp: question,
     focus_row_id: focus?.id ?? params.activeRow?.id ?? null,
     source: 'deterministic_fallback',
@@ -688,75 +966,189 @@ router.post(
         ? rows.find((row) => canonicalBudgetRowId(row.id) === canonicalBudgetRowId(body.activeRowId as string)) ?? null
         : null;
     const resolvedActiveRow = activeRow ?? activeRowFromId;
-    const intakeData = summarizeIntakeContext(body.intakeData);
+    const intakeContext = compactText(body.intakeContext, 500) || null;
     const products = sanitizeProducts(body.products);
+    const chatAnswers = (body.chatAnswers ?? []).slice(-20);
+    const context = createAssistantContext({
+      rows,
+      intakeData: body.intakeData,
+      intakeContext,
+      products,
+      chatAnswers,
+    });
     const assistantFocusRowId = compactText(body.assistantFocusRowId, 80) || null;
     const manualFocusRowId = compactText(body.manualFocusRowId, 80) || null;
     const snapshot = buildBudgetSnapshot(rows);
+    const pendingRaw = body.pendingConfirmation ?? null;
+    const pendingActions = pendingRaw
+      ? validateBudgetTableActions((pendingRaw.actions ?? []) as BudgetTableAction[], rows)
+      : [];
 
     if (intent === 'init') {
       const marketSnapshot = await getMarketSnapshotOptional();
-      return res.json({
-        ...buildFallbackInit({ rows, intakeData, products }),
-        market_snapshot: marketSnapshot,
+      const draft = buildFallbackInit({ rows, context });
+      const initFocus =
+        draft.focus_row_id
+          ? rows.find((row) => canonicalBudgetRowId(row.id) === canonicalBudgetRowId(draft.focus_row_id as string)) ??
+            null
+          : null;
+      const planned = await planBudgetAssistantInit({
+        rows,
+        context,
+        deterministicQuestion: draft.next_question ?? '',
+        focusRow: initFocus,
       });
+      const responseDraft = planned ? buildPlannerChatReply({ plan: planned, rows }) : draft;
+      return sendBudgetChatResponse(
+        res,
+        { ...responseDraft, market_snapshot: marketSnapshot },
+        buildWriterPolishInput({
+          draft: responseDraft,
+          context,
+          rows,
+          userAnswer: '',
+        }),
+      );
     }
 
-    if (intent === 'reply' && answer && isBareBudgetAmountAnswer(answer) && /\d/.test(answer)) {
+    if (intent === 'reply' && pendingActions.length > 0) {
+      if (isBudgetConfirmationAnswer(answer)) {
+        const draft = buildConfirmationApplyReply({
+          actions: pendingActions,
+          rows,
+          context,
+          summary: pendingRaw?.summary ?? summarizeBudgetActionBatch(pendingActions),
+        });
+        return sendBudgetChatResponse(
+          res,
+          draft,
+          buildWriterPolishInput({ draft, context, rows, userAnswer: answer }),
+          { market_snapshot: emptyMarketSnapshot() },
+        );
+      }
+      if (isBudgetRejectionAnswer(answer)) {
+        const draft = buildConfirmationRejectedReply({ rows, context });
+        return sendBudgetChatResponse(
+          res,
+          draft,
+          buildWriterPolishInput({ draft, context, rows, userAnswer: answer }),
+          { market_snapshot: emptyMarketSnapshot() },
+        );
+      }
+    }
+
+    if (intent === 'reply' && answer) {
+      const focusRow =
+        resolvedActiveRow ??
+        (assistantFocusRowId
+          ? rows.find((row) => canonicalBudgetRowId(row.id) === canonicalBudgetRowId(assistantFocusRowId)) ?? null
+          : null);
+      const planned = await planBudgetAssistantTurn({
+        rows,
+        context,
+        userAnswer: answer,
+        currentQuestion: question,
+        focusRow,
+        chatAnswers,
+      });
+      if (planned) {
+        const draft = buildPlannerChatReply({ plan: planned, rows });
+        return sendBudgetChatResponse(
+          res,
+          draft,
+          buildWriterPolishInput({ draft, context, rows, userAnswer: answer }),
+          { market_snapshot: emptyMarketSnapshot() },
+        );
+      }
+    }
+
+    if (
+      intent === 'reply' &&
+      answer &&
+      (isAffirmativeSuggestionAnswer(answer) ||
+        (/\d/.test(answer) && (isBareBudgetAmountAnswer(answer) || detectBudgetIntent(answer) === 'update_amount')))
+    ) {
       const deterministicUpdate = buildDeterministicUpdate({
         rows,
         answer,
         question,
-        intakeData,
-        products,
+        context,
         assistantFocusRowId,
         manualFocusRowId,
         activeRow: resolvedActiveRow,
       });
       if (deterministicUpdate) {
-        return res.json({
-          ...deterministicUpdate,
-          market_snapshot: emptyMarketSnapshot(),
-        });
+        return sendBudgetChatResponse(
+          res,
+          deterministicUpdate,
+          buildWriterPolishInput({ draft: deterministicUpdate, context, rows, userAnswer: answer }),
+          { market_snapshot: emptyMarketSnapshot() },
+        );
       }
     }
 
     if (intent === 'reply' && isEducationalBudgetQuestion(answer)) {
-      return res.json({
-        ...buildEducationReply({ answer, rows, activeRow: resolvedActiveRow, intakeData, products }),
-        market_snapshot: emptyMarketSnapshot(),
-      });
+      const draft = buildEducationReply({ answer, rows, activeRow: resolvedActiveRow, context });
+      return sendBudgetChatResponse(
+        res,
+        draft,
+        buildWriterPolishInput({ draft, context, rows, userAnswer: answer }),
+        { market_snapshot: emptyMarketSnapshot() },
+      );
     }
 
     if (intent === 'reply' && detectBudgetIntent(answer) === 'greeting') {
-      return res.json({
-        ...buildGreetingReply({ rows, activeRow: resolvedActiveRow, intakeData, products }),
-        market_snapshot: emptyMarketSnapshot(),
-      });
+      const draft = buildGreetingReply({ rows, activeRow: resolvedActiveRow, context });
+      return sendBudgetChatResponse(
+        res,
+        draft,
+        buildWriterPolishInput({ draft, context, rows, userAnswer: answer }),
+        { market_snapshot: emptyMarketSnapshot() },
+      );
     }
 
     if (intent === 'reply' && detectBudgetIntent(answer) === 'status_review') {
-      return res.json({
-        ...buildStatusReply({ rows, intakeData, products }),
-        market_snapshot: emptyMarketSnapshot(),
-      });
+      const draft = buildStatusReply({ rows, context });
+      return sendBudgetChatResponse(
+        res,
+        draft,
+        buildWriterPolishInput({ draft, context, rows, userAnswer: answer }),
+        { market_snapshot: emptyMarketSnapshot() },
+      );
+    }
+
+    if (intent === 'reply' && detectBudgetIntent(answer) === 'advice') {
+      const draft = buildAdviceReply({ rows, context });
+      return sendBudgetChatResponse(
+        res,
+        draft,
+        buildWriterPolishInput({ draft, context, rows, userAnswer: answer }),
+        { market_snapshot: emptyMarketSnapshot() },
+      );
     }
 
     const marketSnapshot = await getMarketSnapshotOptional();
-    return res.json({
-      ...buildConversationalFallback({
-        answer,
-        rows,
-        activeRow: resolvedActiveRow,
-        intakeData,
-        products,
-        question,
-        assistantFocusRowId,
-        manualFocusRowId,
-      }),
-      market_snapshot: marketSnapshot,
-      source: snapshot.signals.coreFillRate >= 100 ? 'deterministic_fallback_complete' : 'deterministic_fallback',
+    const fallback = buildConversationalFallback({
+      answer,
+      rows,
+      activeRow: resolvedActiveRow,
+      context,
+      question,
+      assistantFocusRowId,
+      manualFocusRowId,
     });
+    return sendBudgetChatResponse(
+      res,
+      {
+        ...fallback,
+        market_snapshot: marketSnapshot,
+        source:
+          fallback.source === 'deterministic_fallback' && snapshot.signals.coreFillRate >= 100
+            ? 'deterministic_fallback_complete'
+            : fallback.source,
+      },
+      buildWriterPolishInput({ draft: fallback, context, rows, userAnswer: answer }),
+    );
   }),
 );
 
