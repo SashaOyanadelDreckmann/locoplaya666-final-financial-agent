@@ -13,6 +13,12 @@ import React, {
 } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion, type PanInfo } from 'framer-motion';
+import {
+  computeSnapDuration,
+  DECK_GESTURE,
+  dragPhaseFromPointer,
+  resolveSwipeTarget,
+} from './mobile-panel-deck-gesture';
 
 export type PanelCardItem = { key: string; node: ReactElement };
 
@@ -41,16 +47,7 @@ const DECK_CLASS_BY_OFFSET: Record<(typeof SLOT_OFFSETS)[number], string> = {
   2: 'is-deck-far-right',
 };
 
-const SWIPE_COMMIT_PX = 6;
-const SWIPE_COMMIT_RATIO = 0.08;
-const SWIPE_VELOCITY_COMMIT = 0.22;
-const FLICK_PROJECTION_MS = 220;
 const DRAG_LOCK_PX = 4;
-const DRAG_SENSITIVITY = 1;
-const SNAP_DURATION_MS = 180;
-const MIN_TWEEN_MS = 70;
-const MAX_SNAP_DURATION_MS = 520;
-const MS_PER_CARD_STEP = 46;
 const PROFILE_HOME_INDEX = 0;
 
 // Cards that expand into a floating overlay when tapped (informative only, no action cards)
@@ -73,42 +70,6 @@ function splitDeckPhase(phase: number, count: number) {
   return { baseIndex: mod(base, count), progress };
 }
 
-function dragPhaseFromPointer(startPhase: number, dx: number, step: number) {
-  if (step <= 0) return startPhase;
-  return startPhase - (dx / step) * DRAG_SENSITIVITY;
-}
-
-function computeSnapDuration(from: number, to: number, velocity = 0) {
-  const steps = Math.abs(to - from);
-  if (steps < 0.05) return SNAP_DURATION_MS;
-  const base = SNAP_DURATION_MS + steps * MS_PER_CARD_STEP;
-  const velocityBoost = Math.min(base * 0.62, Math.abs(velocity) * 130);
-  return Math.max(MIN_TWEEN_MS, Math.min(MAX_SNAP_DURATION_MS, base - velocityBoost));
-}
-
-function resolveSwipeTarget(
-  current: number,
-  startPhase: number,
-  dx: number,
-  velocity: number,
-  step: number
-) {
-  const moved = Math.abs(dx);
-  const ratioMoved = step > 0 ? moved / step : 0;
-  const dragPhase = dragPhaseFromPointer(startPhase, dx, step);
-  const flickCards = step > 0 ? (-velocity / step) * DRAG_SENSITIVITY * FLICK_PROJECTION_MS : 0;
-
-  if (Math.abs(velocity) >= SWIPE_VELOCITY_COMMIT) {
-    return Math.round(current + flickCards);
-  }
-
-  if (moved >= SWIPE_COMMIT_PX || ratioMoved >= SWIPE_COMMIT_RATIO) {
-    return Math.round(dragPhase);
-  }
-
-  return Math.round(startPhase);
-}
-
 function easeOutQuart(t: number): number {
   return 1 - Math.pow(1 - t, 4);
 }
@@ -126,7 +87,10 @@ function runPhaseTween(
   const start = performance.now();
   const distance = to - from;
   const velocityBoost = Math.min(baseDurationMs * 0.72, Math.abs(initialVelocity) * 140);
-  const duration = Math.max(MIN_TWEEN_MS, baseDurationMs - velocityBoost);
+  const duration = Math.max(
+    DECK_GESTURE.MIN_TWEEN_MS,
+    baseDurationMs - velocityBoost
+  );
 
   const cancel = () => {
     done = true;
@@ -583,7 +547,7 @@ export const MobilePanelCircularDeck = forwardRef<
   const onPointerCancel = useCallback(() => {
     pointerRef.current = null;
     setIsDragging(false);
-    animateToPhase(Math.round(deckPhaseRef.current), SNAP_DURATION_MS);
+    animateToPhase(Math.round(deckPhaseRef.current), DECK_GESTURE.SNAP_DURATION_MS);
   }, [animateToPhase]);
 
   const onPeekTap = useCallback(
