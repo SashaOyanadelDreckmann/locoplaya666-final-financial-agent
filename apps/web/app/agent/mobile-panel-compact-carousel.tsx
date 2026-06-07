@@ -11,6 +11,8 @@ import React, {
   type ReactElement,
   type RefObject,
 } from 'react';
+import { createPortal } from 'react-dom';
+import { AnimatePresence, motion, type PanInfo } from 'framer-motion';
 
 export type PanelCardItem = { key: string; node: ReactElement };
 
@@ -39,15 +41,23 @@ const DECK_CLASS_BY_OFFSET: Record<(typeof SLOT_OFFSETS)[number], string> = {
   2: 'is-deck-far-right',
 };
 
-const SWIPE_COMMIT_PX = 2;
+const SWIPE_COMMIT_PX = 1;
 const SWIPE_COMMIT_RATIO = 0.012;
-const SWIPE_VELOCITY_COMMIT = 0.022;
+const SWIPE_VELOCITY_COMMIT = 0.016;
 const DRAG_LOCK_PX = 0;
-const DRAG_SENSITIVITY = 1.62;
-const STEP_DURATION_MS = 68;
-const SNAP_DURATION_MS = 48;
-const MIN_TWEEN_MS = 44;
+const DRAG_SENSITIVITY = 1.78;
+const STEP_DURATION_MS = 52;
+const SNAP_DURATION_MS = 36;
+const MIN_TWEEN_MS = 28;
 const PROFILE_HOME_INDEX = 0;
+
+// Cards that expand into a floating overlay when tapped (informative only, no action cards)
+const FLOATABLE_CARD_KEYS = new Set(['objective', 'mode', 'news', 'library']);
+
+type FloatingState = {
+  card: PanelCardItem;
+  originRect: DOMRect;
+};
 
 function mod(index: number, count: number) {
   return ((index % count) + count) % count;
@@ -61,21 +71,23 @@ function splitDeckPhase(phase: number, count: number) {
   return { baseIndex: mod(base, count), progress };
 }
 
-function rubberBandPhase(phase: number, maxProgress = 0.5) {
+function rubberBandPhase(phase: number, maxProgress = 0.48) {
   const base = Math.floor(phase);
   let progress = phase - base;
   if (progress < 0) progress += 1;
   if (progress <= 1 - maxProgress && progress >= maxProgress) return phase;
   if (progress > 1 - maxProgress) {
     const overflow = progress - (1 - maxProgress);
-    return base + (1 - maxProgress) + overflow * 0.2;
+    return base + (1 - maxProgress) + overflow * 0.15;
   }
   const overflow = maxProgress - progress;
-  return base + maxProgress - overflow * 0.2;
+  return base + maxProgress - overflow * 0.15;
 }
 
-function easeOutClean(t: number) {
-  return 1 - Math.pow(1 - t, 3);
+function easeOutBack(t: number): number {
+  const c1 = 1.18;
+  const c3 = c1 + 1;
+  return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
 }
 
 function runPhaseTween(
@@ -102,7 +114,7 @@ function runPhaseTween(
   const tick = (now: number) => {
     if (done) return;
     const t = Math.min(1, (now - start) / duration);
-    onUpdate(from + distance * easeOutClean(t));
+    onUpdate(from + distance * easeOutBack(t));
     if (t >= 1) {
       onUpdate(to);
       cancel();
@@ -136,6 +148,116 @@ function shortestPhaseDelta(from: number, to: number, count: number) {
   return delta;
 }
 
+// ---------------------------------------------------------------------------
+// Floating card portal — renders the expanded card above everything else
+// ---------------------------------------------------------------------------
+
+const FLOAT_SPRING = { type: 'spring', stiffness: 420, damping: 36, mass: 0.8 } as const;
+const FLOAT_BACKDROP_TRANSITION = { duration: 0.26, ease: 'easeOut' } as const;
+
+function FloatingCardPortal({
+  floating,
+  onClose,
+}: {
+  floating: FloatingState | null;
+  onClose: () => void;
+}) {
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  const handleDragEnd = useCallback(
+    (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+      if (!floating) return;
+      // Return to deck if dragged near the panel area (top ~240px)
+      if (info.point.y < floating.originRect.bottom + 100) {
+        onClose();
+      }
+    },
+    [floating, onClose]
+  );
+
+  if (!isMounted) return null;
+
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const cardW = Math.min(320, vw - 32);
+  const targetX = (vw - cardW) / 2;
+  const targetY = Math.round(vh * 0.2);
+
+  return createPortal(
+    <AnimatePresence>
+      {floating && (
+        <>
+          {/* Backdrop */}
+          <motion.div
+            key="floating-backdrop"
+            className="floating-card-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={FLOAT_BACKDROP_TRANSITION}
+            onTap={onClose}
+          />
+
+          {/* Floating card shell */}
+          <motion.div
+            key="floating-shell"
+            className="floating-card-shell"
+            style={{ position: 'fixed', top: 0, left: 0 }}
+            initial={{
+              x: floating.originRect.left,
+              y: floating.originRect.top,
+              width: floating.originRect.width,
+              opacity: 0.72,
+              scale: 0.94,
+              borderRadius: 14,
+            }}
+            animate={{
+              x: targetX,
+              y: targetY,
+              width: cardW,
+              opacity: 1,
+              scale: 1,
+              borderRadius: 22,
+            }}
+            exit={{
+              x: floating.originRect.left,
+              y: floating.originRect.top,
+              width: floating.originRect.width,
+              opacity: 0,
+              scale: 0.88,
+              borderRadius: 14,
+            }}
+            transition={FLOAT_SPRING}
+            drag
+            dragMomentum={false}
+            dragElastic={0.1}
+            onTap={onClose}
+            onDragEnd={handleDragEnd}
+            whileDrag={{ cursor: 'grabbing' }}
+          >
+            <div className="floating-card-drag-handle" aria-hidden="true" />
+            <div className="floating-card-content">
+              {floating.card.node}
+            </div>
+            <div className="floating-card-return-hint">
+              Toca para volver al panel
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>,
+    document.body
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Main circular deck component
+// ---------------------------------------------------------------------------
+
 export const MobilePanelCircularDeck = forwardRef<
   MobilePanelDeckHandle,
   {
@@ -150,8 +272,10 @@ export const MobilePanelCircularDeck = forwardRef<
   const [isDragging, setIsDragging] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
   const [pulseCenterSlot, setPulseCenterSlot] = useState(false);
+  const [floatingCard, setFloatingCard] = useState<FloatingState | null>(null);
 
   const trackRef = useRef<HTMLDivElement | null>(null);
+  const centerSlotRef = useRef<HTMLDivElement | null>(null);
   const deckPhaseRef = useRef(PROFILE_HOME_INDEX);
   const dragStartPhaseRef = useRef(PROFILE_HOME_INDEX);
   const stepWidthRef = useRef(92);
@@ -342,6 +466,17 @@ export const MobilePanelCircularDeck = forwardRef<
     return props.cards[baseIndex];
   }, [count, deckPhase, props.cards]);
 
+  const openFloating = useCallback((card: PanelCardItem) => {
+    const slotEl = centerSlotRef.current;
+    if (!slotEl) return;
+    const rect = slotEl.getBoundingClientRect();
+    setFloatingCard({ card, originRect: rect });
+  }, []);
+
+  const closeFloating = useCallback(() => {
+    setFloatingCard(null);
+  }, []);
+
   const onPointerDown = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
       if (count <= 1 || isAnimating) return;
@@ -443,61 +578,83 @@ export const MobilePanelCircularDeck = forwardRef<
     [animateToPhase, count, isAnimating, isDragging]
   );
 
+  const onCenterTap = useCallback(() => {
+    if (didDragRef.current || isAnimating) return;
+    const card = centerCard;
+    if (card && FLOATABLE_CARD_KEYS.has(card.key)) {
+      openFloating(card);
+    }
+  }, [centerCard, isAnimating, openFloating]);
+
   return (
-    <div
-      ref={setGridRef}
-      className="panel-grid is-circular-deck"
-      aria-roledescription="carrusel"
-      aria-label={`Panel compacto, ${centerCard?.key ?? 'inicio'}`}
-    >
+    <>
       <div
-        ref={trackRef}
-        className={`mobile-deck-track${isDragging ? ' is-dragging' : ''}${isAnimating ? ' is-animating' : ''}`}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerCancel={onPointerCancel}
-        style={{ touchAction: 'none' }}
+        ref={setGridRef}
+        className="panel-grid is-circular-deck"
+        aria-roledescription="carrusel"
+        aria-label={`Panel compacto, ${centerCard?.key ?? 'inicio'}`}
       >
-        {slots.map(({ offset, slotName, logicalIndex, card, className }) => (
-          <div
-            key={slotName}
-            className={`${className}${offset === 0 && pulseCenterSlot ? ' is-deck-pulse' : ''}`}
-            data-deck-slot={slotName}
-            onClick={
-              offset === -1
-                ? () => onPeekTap(-1)
-                : offset === 1
-                  ? () => onPeekTap(1)
-                  : undefined
-            }
-            onKeyDown={
-              offset === -1 || offset === 1
-                ? (e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      onPeekTap(offset === -1 ? -1 : 1);
+        <div
+          ref={trackRef}
+          className={`mobile-deck-track${isDragging ? ' is-dragging' : ''}${isAnimating ? ' is-animating' : ''}`}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerCancel={onPointerCancel}
+          style={{ touchAction: 'none' }}
+        >
+          {slots.map(({ offset, slotName, logicalIndex, card, className }) => (
+            <div
+              key={slotName}
+              ref={offset === 0 ? centerSlotRef : undefined}
+              className={`${className}${offset === 0 && pulseCenterSlot ? ' is-deck-pulse' : ''}${offset === 0 && card && FLOATABLE_CARD_KEYS.has(card.key) ? ' is-floatable' : ''}`}
+              data-deck-slot={slotName}
+              onClick={
+                offset === -1
+                  ? () => onPeekTap(-1)
+                  : offset === 1
+                    ? () => onPeekTap(1)
+                    : offset === 0
+                      ? onCenterTap
+                      : undefined
+              }
+              onKeyDown={
+                offset === -1 || offset === 1
+                  ? (e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        onPeekTap(offset === -1 ? -1 : 1);
+                      }
                     }
-                  }
-                : undefined
-            }
-            role={offset === -1 || offset === 1 ? 'button' : undefined}
-            tabIndex={offset === -1 || offset === 1 ? 0 : undefined}
-            aria-label={
-              offset === -1
-                ? 'Card anterior'
-                : offset === 1
-                  ? 'Card siguiente'
-                  : undefined
-            }
-          >
-            {card ? renderDeckCard(card, logicalIndex, slotName) : null}
-          </div>
-        ))}
+                  : offset === 0
+                    ? (e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          onCenterTap();
+                        }
+                      }
+                    : undefined
+              }
+              role={offset !== 0 && (offset === -1 || offset === 1) ? 'button' : undefined}
+              tabIndex={offset === -1 || offset === 1 ? 0 : undefined}
+              aria-label={
+                offset === -1
+                  ? 'Card anterior'
+                  : offset === 1
+                    ? 'Card siguiente'
+                    : undefined
+              }
+            >
+              {card ? renderDeckCard(card, logicalIndex, slotName) : null}
+            </div>
+          ))}
+        </div>
+        <span className="mobile-deck-sr-only" aria-live="polite">
+          {centerCard?.key}
+        </span>
       </div>
-      <span className="mobile-deck-sr-only" aria-live="polite">
-        {centerCard?.key}
-      </span>
-    </div>
+
+      <FloatingCardPortal floating={floatingCard} onClose={closeFloating} />
+    </>
   );
 });

@@ -953,3 +953,123 @@ html[data-visual-mode='light-outline'] body.agent-route-active .agent-modal .age
     touch-action: none !important;
   }
 }
+
+/* ============================================================
+   Floating card overlay — informative deck cards that expand
+   on tap into a draggable full-content overlay (mobile only).
+   Rendered via React portal into document.body — lives outside
+   the deck's CSS selector chain.
+   ============================================================ */
+
+/* Subtle cursor hint on floatable center slot */
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+  .mobile-deck-slot.is-mobile-front.is-floatable {
+    cursor: pointer;
+  }
+
+  .mobile-deck-slot.is-mobile-front.is-floatable .mobile-deck-card {
+    transition: box-shadow 0.2s ease, filter 0.2s ease;
+  }
+
+  .mobile-deck-slot.is-mobile-front.is-floatable:active .mobile-deck-card {
+    filter: brightness(1.06);
+    box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.18), 0 8px 28px rgba(0, 0, 0, 0.4);
+  }
+}
+
+/* Backdrop — sits behind the floating card shell */
+.floating-card-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 890;
+  background: rgba(0, 0, 0, 0.54);
+  backdrop-filter: blur(8px) saturate(0.7);
+  -webkit-backdrop-filter: blur(8px) saturate(0.7);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Floating card shell — the expanded card container */
+.floating-card-shell {
+  z-index: 900;
+  overflow: hidden;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  will-change: transform;
+  /* Premium glass look */
+  background: rgba(12, 14, 18, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow:
+    0 2px 0 0 rgba(255, 255, 255, 0.06) inset,
+    0 24px 64px rgba(0, 0, 0, 0.64),
+    0 4px 24px rgba(0, 0, 0, 0.4),
+    0 0 0 0.5px rgba(255, 255, 255, 0.06);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Drag handle pill at the top */
+.floating-card-drag-handle {
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.22);
+  margin: 10px auto 4px;
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+/* Content area — overrides deck-specific sizing constraints */
+.floating-card-content {
+  padding: 6px 14px 14px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* Strip deck track sizing from card internals when floating */
+.floating-card-content .mob-col,
+.floating-card-content .mob-col-wide {
+  width: 100% !important;
+  height: auto !important;
+  max-height: none !important;
+  min-height: 0 !important;
+}
+
+.floating-card-content .panel-card,
+.floating-card-content .panel-card.mobile-deck-card {
+  max-height: none !important;
+  height: auto !important;
+  min-height: 0 !important;
+  width: 100% !important;
+  /* Remove hover/tap lift — card is already floating */
+  transform: none !important;
+  box-shadow: none !important;
+  border: none !important;
+  background: transparent !important;
+  padding: 4px 0 !important;
+}
+
+/* Return hint label at the bottom of the floating card */
+.floating-card-return-hint {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.28);
+  padding: 6px 14px 12px;
+  pointer-events: none;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+/* Visual mode overrides for the floating card */
+html[data-visual-mode='light-outline'] .floating-card-shell {
+  background: rgba(18, 26, 36, 0.9);
+  border-color: rgba(180, 210, 230, 0.2);
+  box-shadow:
+    0 2px 0 0 rgba(255, 255, 255, 0.05) inset,
+    0 24px 64px rgba(0, 0, 0, 0.58),
+    0 4px 24px rgba(0, 0, 0, 0.36),
+    0 0 0 0.5px rgba(255, 255, 255, 0.05);
+}
