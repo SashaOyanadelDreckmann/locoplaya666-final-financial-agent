@@ -52,6 +52,11 @@ html.agent-route-active,
 html.pwa-standalone {
   --vp-bg-photo-url: url('/fondo4.jpg');
   --vp-bg-fallback: #05090f;
+  /* Agent chat photo — less scrim, richer color, still matte */
+  --agent-bg-photo-filter: saturate(1.14) contrast(1.04) brightness(0.91);
+  --agent-bg-scrim: 0.46;
+  --agent-bg-matte-a: rgba(6, 10, 16, 0.08);
+  --agent-bg-matte-b: rgba(6, 10, 16, 0.16);
   --vp-bg-bottom-seam: linear-gradient(
     to bottom,
     rgba(6, 10, 16, 0) 0%,
@@ -191,6 +196,23 @@ html.pwa-standalone .global-agent-backdrop {
   pointer-events: none;
 }
 
+body.agent-route-active .global-agent-backdrop,
+html.agent-route-active .global-agent-backdrop {
+  background-image:
+    linear-gradient(180deg, var(--agent-bg-matte-a), var(--agent-bg-matte-b)),
+    url('/fondo4.jpg') !important;
+  filter: var(--agent-bg-photo-filter) !important;
+  box-shadow: inset 0 0 0 9999px rgba(0, 0, 0, var(--agent-bg-scrim)) !important;
+}
+
+body.agent-route-active .app-shell::before {
+  background-image:
+    linear-gradient(180deg, var(--agent-bg-matte-a), var(--agent-bg-matte-b)),
+    url('/fondo4.jpg') !important;
+  filter: var(--agent-bg-photo-filter) !important;
+  box-shadow: inset 0 0 0 9999px rgba(0, 0, 0, var(--agent-bg-scrim)) !important;
+}
+
 @media (max-width: 767px) {
   html.pwa-standalone .app-shell::before,
   html.pwa-standalone .app-shell::after {
@@ -221,13 +243,44 @@ html.pwa-standalone .global-agent-backdrop {
 
   html.home-route-active,
   html.home-route-active body {
-    height: var(--fa-app-height) !important;
-    max-height: var(--fa-app-height) !important;
-    min-height: var(--fa-app-height) !important;
-    overflow: hidden !important;
+    height: auto !important;
+    min-height: 100dvh !important;
+    max-height: none !important;
+    /* Document scroll — required for swipe, sticky sections, and NumbersCanvas morph */
+    overflow-x: clip !important;
+    overflow-y: visible !important;
     overscroll-behavior: none !important;
     background: #060b18 !important;
     background-color: #060b18 !important;
+  }
+
+  html.home-route-active .app-shell,
+  html.home-route-active .mobile-scale-frame {
+    height: auto !important;
+    min-height: 100dvh !important;
+    max-height: none !important;
+    overflow-x: clip !important;
+    overflow-y: visible !important;
+    overscroll-behavior: none !important;
+  }
+
+  html.home-route-active .home-canvas-layer {
+    position: fixed !important;
+    z-index: 0 !important;
+    pointer-events: none !important;
+    top: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 100dvh !important;
+  }
+
+  html.home-route-active .home-grain-layer {
+    position: fixed !important;
+    z-index: 1 !important;
+    pointer-events: none !important;
   }
 
   html:not(.home-route-active) .app-shell,
@@ -241,27 +294,6 @@ html.pwa-standalone .global-agent-backdrop {
     overflow: hidden !important;
     overscroll-behavior: none !important;
     box-sizing: border-box !important;
-  }
-
-  html.home-route-active .app-shell,
-  html.home-route-active .mobile-scale-frame {
-    height: var(--fa-app-height) !important;
-    max-height: var(--fa-app-height) !important;
-    min-height: var(--fa-app-height) !important;
-    overflow: hidden !important;
-    overscroll-behavior: none !important;
-  }
-
-  html.home-route-active .home-canvas-layer {
-    position: fixed !important;
-    inset: 0 !important;
-    top: 0 !important;
-    right: 0 !important;
-    bottom: 0 !important;
-    left: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
-    min-height: var(--fa-app-height) !important;
   }
 
   /* Body-level photo — never clipped by mobile-scale-frame */
@@ -294,16 +326,64 @@ html.pwa-standalone .global-agent-backdrop {
   }
 
   html.agent-route-active .global-agent-backdrop {
-    box-shadow: inset 0 0 0 9999px rgba(0, 0, 0, 0.74) !important;
+    background-image:
+      linear-gradient(180deg, var(--agent-bg-matte-a), var(--agent-bg-matte-b)),
+      url('/fondo4.jpg') !important;
+    filter: var(--agent-bg-photo-filter) !important;
+    box-shadow: inset 0 0 0 9999px rgba(0, 0, 0, var(--agent-bg-scrim)) !important;
+  }
+
+  html.agent-route-active,
+  html.agent-route-active body {
+    background-color: #0a0e14 !important;
+    background-image:
+      linear-gradient(180deg, rgba(6, 10, 16, 0.10) 0%, rgba(6, 10, 16, 0.18) 100%),
+      url('/fondo4.jpg') !important;
+    background-size: cover, cover !important;
+    background-position: center bottom, center bottom !important;
+    background-repeat: no-repeat !important;
   }
 
   html.intake-route-active .global-agent-backdrop {
     box-shadow: none !important;
     filter: brightness(0.26) contrast(0.92) saturate(0.78) grayscale(0.06) !important;
+    background-size: cover !important;
+    background-position: center bottom !important;
+    background-image:
+      linear-gradient(180deg, rgba(6, 10, 16, 0.24) 0%, rgba(6, 10, 16, 0.48) 100%),
+      url('/fondo4.jpg') !important;
   }
 
-  html:not(.home-route-active),
-  html:not(.home-route-active) body {
+  /* One photo layer only — avoid double fondo4 seam in the middle of the viewport */
+  html.intake-route-active,
+  html.intake-route-active body {
+    background-color: #0a0e14 !important;
+    background-image: none !important;
+  }
+
+  html.intake-route-active .intake-shell::before {
+    background:
+      linear-gradient(
+        180deg,
+        rgba(0, 0, 0, 0.08) 0%,
+        rgba(0, 0, 0, 0.26) 42%,
+        rgba(0, 0, 0, 0.36) 100%
+      ) !important;
+  }
+
+  html.intake-route-active .intake-shell::after {
+    display: none !important;
+    content: none !important;
+  }
+
+  html.intake-route-active .intake-bg-orb::before,
+  html.intake-route-active .intake-bg-orb::after {
+    display: none !important;
+    content: none !important;
+  }
+
+  html:not(.home-route-active):not(.intake-route-active):not(.agent-route-active),
+  html:not(.home-route-active):not(.intake-route-active):not(.agent-route-active) body {
     background-color: #0a0e14 !important;
     background-image:
       linear-gradient(180deg, rgba(0, 0, 0, 0.74) 0%, rgba(0, 0, 0, 0.82) 100%),
@@ -476,14 +556,16 @@ html.pwa-standalone .global-agent-backdrop {
     top: 0 !important;
     bottom: 0 !important;
     width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
     height: var(--fa-app-height, 100dvh) !important;
     min-height: var(--fa-app-height, 100dvh) !important;
     max-height: none !important;
     margin: 0 !important;
     padding-top: var(--modal-safe-top) !important;
     padding-bottom: var(--modal-safe-bottom) !important;
-    padding-left: 0 !important;
-    padding-right: 0 !important;
+    padding-left: max(0px, env(safe-area-inset-left, 0px)) !important;
+    padding-right: max(0px, env(safe-area-inset-right, 0px)) !important;
     box-sizing: border-box !important;
     display: block !important;
     align-items: unset !important;
@@ -510,12 +592,15 @@ html.pwa-standalone .global-agent-backdrop {
     position: relative !important;
     inset: auto !important;
     width: 100% !important;
-    max-width: none !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
     height: auto !important;
     min-height: calc(var(--fa-app-height, 100dvh) - var(--modal-safe-top) - var(--modal-safe-bottom)) !important;
     max-height: none !important;
     margin: 0 !important;
     padding-top: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
     box-sizing: border-box !important;
     overflow-x: hidden !important;
   }
@@ -622,18 +707,21 @@ html.pwa-standalone .global-agent-backdrop {
     background:
       linear-gradient(
         180deg,
-        rgba(0, 0, 0, 0.10) 0%,
-        rgba(0, 0, 0, 0.28) 34%,
-        rgba(0, 0, 0, 0.38) 62%,
-        rgba(0, 0, 0, 0.22) 84%,
-        rgba(0, 0, 0, 0) 100%
-      ) !important,
-      radial-gradient(circle at 50% 18%, rgba(0, 0, 0, 0.02), rgba(0, 0, 0, 0.55) 82%) !important;
+        rgba(0, 0, 0, 0.08) 0%,
+        rgba(0, 0, 0, 0.26) 42%,
+        rgba(0, 0, 0, 0.36) 100%
+      ) !important;
   }
 
   html.intake-route-active .intake-shell::after {
-    inset: -40% !important;
-    bottom: auto !important;
+    display: none !important;
+    content: none !important;
+  }
+
+  html.intake-route-active .intake-bg-orb::before,
+  html.intake-route-active .intake-bg-orb::after {
+    display: none !important;
+    content: none !important;
   }
 
   html.intake-route-active .intake-photo-bg {
@@ -700,5 +788,155 @@ html.pwa-standalone .global-agent-backdrop {
 
   body.agent-route-active .agent-panel .mobile-panel-handle {
     padding: 2px 10px 0 !important;
+  }
+}
+
+/* ================================================= */
+/* MOBILE MODAL DEVICE-WIDTH — authoritative          */
+/* 100% of viewport (not 100vw); no horizontal clip   */
+/* ================================================= */
+
+@media (max-width: 767px) {
+  html:not(.home-route-active) .agent-modal-overlay,
+  html:not(.home-route-active) .agent-modal-overlay.transactions-modal-overlay,
+  html:not(.home-route-active) .agent-modal-overlay.budget-modal-overlay,
+  html:not(.home-route-active) .agent-modal-overlay.interview-modal-overlay,
+  html:not(.home-route-active) .social-modal-overlay,
+  html:not(.home-route-active) .modal-overlay {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+  }
+
+  html:not(.home-route-active) .agent-modal.interview-modal,
+  html:not(.home-route-active) .agent-modal.transactions-modal,
+  html:not(.home-route-active) .agent-modal.budget-modal,
+  html:not(.home-route-active) .agent-modal.questionnaire-modal,
+  html:not(.home-route-active) .transactions-modal,
+  html:not(.home-route-active) .budget-modal,
+  html:not(.home-route-active) .interview-modal,
+  html:not(.home-route-active) .questionnaire-modal {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  html:not(.home-route-active) .transactions-modal .bcc-modal-header,
+  html:not(.home-route-active) .transactions-modal .bcc-modal-header.tx-modal-header-layer,
+  html:not(.home-route-active) .transactions-modal .tx-scroll-body,
+  html:not(.home-route-active) .transactions-modal .agent-modal-intro,
+  html:not(.home-route-active) .transactions-modal .pt-shell,
+  html:not(.home-route-active) .transactions-modal .pt-left,
+  html:not(.home-route-active) .transactions-modal .pt-right,
+  html:not(.home-route-active) .transactions-modal .tx-content-card,
+  html:not(.home-route-active) .budget-modal .budget-modal-body,
+  html:not(.home-route-active) .budget-modal .budget-table-wrap,
+  html:not(.home-route-active) .budget-modal .budget-table-section,
+  html:not(.home-route-active) .interview-modal .interview-shell,
+  html:not(.home-route-active) .questionnaire-modal .questionnaire-shell,
+  html:not(.home-route-active) .agent-modal-body,
+  html:not(.home-route-active) .social-modal-body {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  html:not(.home-route-active) .agent-modal-overlay table,
+  html:not(.home-route-active) .agent-modal-overlay pre,
+  html:not(.home-route-active) .agent-modal-overlay img,
+  html:not(.home-route-active) .agent-modal-overlay video,
+  html:not(.home-route-active) .agent-modal-overlay canvas {
+    max-width: 100% !important;
+  }
+
+  html:not(.home-route-active) .budget-modal .budget-table-wrap,
+  html:not(.home-route-active) .budget-modal .budget-table {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+}
+
+/* ================================================= */
+/* MOBILE MODAL SURFACE CLEANUP — no ghost panels     */
+/* ================================================= */
+
+@media (max-width: 767px) {
+  html:not(.home-route-active) .agent-modal-overlay.transactions-modal-overlay,
+  html:not(.home-route-active) .agent-modal-overlay.budget-modal-overlay,
+  html:not(.home-route-active) .agent-modal-overlay.interview-modal-overlay {
+    padding-left: max(0px, env(safe-area-inset-left, 0px)) !important;
+    padding-right: max(0px, env(safe-area-inset-right, 0px)) !important;
+  }
+
+  html:not(.home-route-active) .transactions-modal,
+  html:not(.home-route-active) .agent-modal.transactions-modal,
+  html:not(.home-route-active) .budget-modal,
+  html:not(.home-route-active) .agent-modal.budget-modal,
+  html:not(.home-route-active) .interview-modal,
+  html:not(.home-route-active) .agent-modal.interview-modal,
+  html:not(.home-route-active) .questionnaire-modal {
+    background: transparent !important;
+    background-image: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+  }
+
+  html:not(.home-route-active) .transactions-modal .pt-left,
+  html:not(.home-route-active) .transactions-modal .pt-right,
+  html:not(.home-route-active) .transactions-modal .tx-content-card,
+  html:not(.home-route-active) .transactions-modal .tx-content-card--agent,
+  html:not(.home-route-active) .transactions-modal .tx-panel-surface,
+  html:not(.home-route-active) .transactions-modal .tx-preset-shell,
+  html:not(.home-route-active) .transactions-modal .transactions-summary-card,
+  html:not(.home-route-active) .transactions-modal .upload-zone,
+  html:not(.home-route-active) .transactions-modal .tx-meta-card,
+  html:not(.home-route-active) .budget-modal .budget-cockpit-banner,
+  html:not(.home-route-active) .budget-modal .budget-card-agent,
+  html:not(.home-route-active) .budget-modal .budget-card-table,
+  html:not(.home-route-active) .interview-modal .interview-shell {
+    background: transparent !important;
+    background-image: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  html:not(.home-route-active) .transactions-modal .tx-panel-surface::after,
+  html:not(.home-route-active) .transactions-modal .pt-right.tx-panel-surface--workspace::after,
+  html:not(.home-route-active) .transactions-modal .tx-content-card::before,
+  html:not(.home-route-active) .transactions-modal .tx-content-card::after,
+  html:not(.home-route-active) .transactions-modal .tx-content-card--agent::before,
+  html:not(.home-route-active) .transactions-modal .tx-content-card--agent::after,
+  html:not(.home-route-active) .transactions-modal .transactions-summary-card.tx-evidence-card::before,
+  html:not(.home-route-active) .transactions-modal .transactions-summary-card.tx-evidence-card::after,
+  html:not(.home-route-active) .transactions-modal .tx-content-card.tx-content-card--agent.is-main-center::before,
+  html:not(.home-route-active) .transactions-modal .tx-content-card.tx-content-card--agent.is-main-center::after {
+    display: none !important;
+    content: none !important;
+  }
+
+  html:not(.home-route-active) .transactions-modal .tx-transition-flood-layer,
+  html:not(.home-route-active) .transactions-modal .tx-digit-dust {
+    display: none !important;
+  }
+
+  html:not(.home-route-active) .transactions-modal .tx-numbers-canvas {
+    opacity: 0.14 !important;
+    mix-blend-mode: normal !important;
+    filter: none !important;
+  }
+
+  html:not(.home-route-active) .budget-modal .bcc-modal-header,
+  html:not(.home-route-active) .budget-modal .agent-modal-header {
+    border-radius: 0 !important;
   }
 }

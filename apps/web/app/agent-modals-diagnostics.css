@@ -1435,12 +1435,13 @@
 body.agent-route-active .app-shell::before {
   background-color: #05090f !important;
   background-image:
-    linear-gradient(180deg, rgba(6, 10, 16, 0.22), rgba(6, 10, 16, 0.28)),
+    linear-gradient(180deg, rgba(6, 10, 16, 0.08), rgba(6, 10, 16, 0.16)),
     url('/fondo4.jpg') !important;
   background-size: cover !important;
   background-position: center bottom !important;
   background-repeat: no-repeat !important;
-  box-shadow: inset 0 0 0 9999px rgba(0, 0, 0, 0.74) !important;
+  filter: saturate(1.14) contrast(1.04) brightness(0.91) !important;
+  box-shadow: inset 0 0 0 9999px rgba(0, 0, 0, 0.46) !important;
 }
 
 .chat-brand-logo-mark {
@@ -15516,12 +15517,13 @@ body.agent-route-active .app-shell::before {
   content: '' !important;
   background-color: #05090f !important;
   background-image:
-    linear-gradient(180deg, rgba(6, 10, 16, 0.22), rgba(6, 10, 16, 0.28)),
+    linear-gradient(180deg, rgba(6, 10, 16, 0.08), rgba(6, 10, 16, 0.16)),
     url('/fondo4.jpg') !important;
   background-size: cover !important;
   background-position: center bottom !important;
   background-repeat: no-repeat !important;
-  box-shadow: inset 0 0 0 9999px rgba(0, 0, 0, 0.74) !important;
+  filter: saturate(1.14) contrast(1.04) brightness(0.91) !important;
+  box-shadow: inset 0 0 0 9999px rgba(0, 0, 0, 0.46) !important;
 }
 
 body.agent-route-active .app-shell > * {
@@ -17762,11 +17764,13 @@ body.agent-route-active .app-shell > * {
     inset: calc(env(safe-area-inset-top, 0px) * -1) 0 0 0;
     background-color: #05090f;
     background-image:
-      linear-gradient(180deg, rgba(6, 10, 16, 0.22), rgba(6, 10, 16, 0.28)),
+      linear-gradient(180deg, rgba(6, 10, 16, 0.08), rgba(6, 10, 16, 0.16)),
       url('/fondo4.jpg');
     background-size: cover;
     background-position: center top;
     background-repeat: no-repeat;
+    filter: saturate(1.14) contrast(1.04) brightness(0.91);
+    box-shadow: inset 0 0 0 9999px rgba(0, 0, 0, 0.46);
   }
 
   .agent-layout.is-mobile-standalone {
@@ -18300,7 +18304,7 @@ body.agent-route-active .app-shell > * {
   body.agent-route-active {
     background-color: #05090f !important;
     background-image:
-      linear-gradient(180deg, rgba(6, 10, 16, 0.18), rgba(6, 10, 16, 0.28)),
+      linear-gradient(180deg, rgba(6, 10, 16, 0.08), rgba(6, 10, 16, 0.16)),
       url('/fondo4.jpg') !important;
     background-size: cover !important;
     background-position: center top !important;
@@ -18323,7 +18327,8 @@ body.agent-route-active .app-shell > * {
     transform: none !important;
     background-position: center top !important;
     background-size: cover !important;
-    box-shadow: inset 0 0 0 9999px rgba(0, 0, 0, 0.42) !important;
+    filter: saturate(1.14) contrast(1.04) brightness(0.91) !important;
+    box-shadow: inset 0 0 0 9999px rgba(0, 0, 0, 0.46) !important;
   }
 
   body.agent-route-active .app-shell::after {

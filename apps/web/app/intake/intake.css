@@ -1286,13 +1286,14 @@ button {
   position: absolute;
   inset: 16% 8%;
   border-radius: 50%;
-  border: 1px solid rgba(238, 244, 247, 0.12);
+  border: none;
   background:
     repeating-conic-gradient(from 12deg, rgba(255,255,255,0.20) 0deg 0.8deg, transparent 0.8deg 7deg),
     conic-gradient(from 110deg, transparent, rgba(var(--c-step, var(--c-blue)), 0.28), rgba(var(--c-yellow), 0.13), transparent 64%);
   mask: radial-gradient(ellipse, transparent 48%, #000 49%, #000 54%, transparent 55%);
   -webkit-mask: radial-gradient(ellipse, transparent 48%, #000 49%, #000 54%, transparent 55%);
   animation: intakeOrbMorph 12s ease-in-out infinite alternate;
+  opacity: 0.42;
 }
 
 @keyframes intakeOrbMorph {

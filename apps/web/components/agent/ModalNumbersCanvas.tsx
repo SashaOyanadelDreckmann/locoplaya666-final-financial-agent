@@ -199,14 +199,15 @@ export default function ModalNumbersCanvas({
 
       ctx.globalAlpha = 1;
 
-      // Vignette
+      // Vignette — lighter on mobile so it doesn't read as a dark panel block
+      const isMobileCanvas = W <= 767;
       const vg = ctx.createRadialGradient(
-        W / 2, H / 2, Math.min(W, H) * 0.14,
-        W / 2, H / 2, Math.max(W, H) * 0.84,
+        W / 2, H / 2, Math.min(W, H) * (isMobileCanvas ? 0.22 : 0.14),
+        W / 2, H / 2, Math.max(W, H) * (isMobileCanvas ? 0.92 : 0.84),
       );
       vg.addColorStop(0, 'rgba(7,16,30,0)');
-      vg.addColorStop(0.55, 'rgba(7,16,30,0.14)');
-      vg.addColorStop(1, 'rgba(7,16,30,0.86)');
+      vg.addColorStop(0.55, isMobileCanvas ? 'rgba(7,16,30,0.04)' : 'rgba(7,16,30,0.14)');
+      vg.addColorStop(1, isMobileCanvas ? 'rgba(7,16,30,0.18)' : 'rgba(7,16,30,0.86)');
       ctx.fillStyle = vg;
       ctx.fillRect(0, 0, W, H);
     }
@@ -235,9 +236,6 @@ export default function ModalNumbersCanvas({
         display: 'block',
         pointerEvents: 'none',
         borderRadius: 'inherit',
-        opacity: 0.98,
-        mixBlendMode: 'screen',
-        filter: 'saturate(1.06) brightness(1.02) contrast(1.01)',
       }}
     />
   );

@@ -12,6 +12,15 @@ type HttpRateLimitPolicy = {
   criticality: 'low' | 'medium' | 'high' | 'critical';
 };
 
+type LimiterOptions = {
+  keyGenerator?: (req: Request) => string;
+  skip?: (req: Request) => boolean;
+};
+
+function isProductionRuntime() {
+  return process.env.NODE_ENV === 'production';
+}
+
 function keyFromRequest(req: Request) {
   const cookieName = getSessionCookieName();
   const sessionToken = req.cookies?.[cookieName];
@@ -22,13 +31,44 @@ function keyFromRequest(req: Request) {
   return `ip:${req.ip}`;
 }
 
-function buildPolicyLimiter(policy: HttpRateLimitPolicy) {
+/** Credential routes get per-email buckets; session probes must not share the login IP pool. */
+export function authKeyFromRequest(req: Request) {
+  if (req.method === 'POST') {
+    const path = req.path || '';
+    if (path === '/login' || path === '/register' || path === '/forgot-password') {
+      const email =
+        typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+      if (email) {
+        return `auth-cred:${email}:${req.ip}`;
+      }
+    }
+  }
+  return keyFromRequest(req);
+}
+
+/** High-frequency session checks (middleware, post-login polling) skip auth brute-force budget. */
+export function shouldSkipAuthRateLimit(req: Request) {
+  return req.method === 'GET' && req.path === '/me';
+}
+
+export function resolveAuthRateLimitMax() {
+  if (process.env.NODE_ENV === 'test') {
+    return Number(process.env.AUTH_RATE_LIMIT_MAX || 200);
+  }
+  if (!isProductionRuntime()) {
+    return Number(process.env.AUTH_RATE_LIMIT_MAX || 2000);
+  }
+  return Number(process.env.AUTH_RATE_LIMIT_MAX || 60);
+}
+
+function buildPolicyLimiter(policy: HttpRateLimitPolicy, options: LimiterOptions = {}) {
   return rateLimit({
     windowMs: policy.windowMs,
     max: policy.max,
     standardHeaders: true,
     legacyHeaders: false,
-    keyGenerator: keyFromRequest,
+    keyGenerator: options.keyGenerator ?? keyFromRequest,
+    skip: options.skip,
     handler: (_req, _res, next) => {
       next(rateLimited(`Rate limit exceeded (${policy.name})`));
     },
@@ -39,17 +79,16 @@ export const HTTP_RATE_LIMIT_POLICIES: HttpRateLimitPolicy[] = [
   {
     name: 'global_default',
     windowMs: 15 * 60 * 1000,
-    max: Number(process.env.GLOBAL_RATE_LIMIT_MAX || 600),
+    max: Number(
+      process.env.GLOBAL_RATE_LIMIT_MAX || (isProductionRuntime() ? 600 : 5000),
+    ),
     scope: 'global',
     criticality: 'medium',
   },
   {
     name: 'auth_sensitive',
     windowMs: 15 * 60 * 1000,
-    max:
-      process.env.NODE_ENV === 'test'
-        ? Number(process.env.AUTH_RATE_LIMIT_MAX || 200)
-        : Number(process.env.AUTH_RATE_LIMIT_MAX || 60),
+    max: resolveAuthRateLimitMax(),
     scope: 'auth',
     criticality: 'critical',
   },
@@ -77,7 +116,10 @@ export const HTTP_RATE_LIMIT_POLICIES: HttpRateLimitPolicy[] = [
 ];
 
 export const globalRateLimiter = buildPolicyLimiter(HTTP_RATE_LIMIT_POLICIES[0]);
-export const authRateLimiter = buildPolicyLimiter(HTTP_RATE_LIMIT_POLICIES[1]);
+export const authRateLimiter = buildPolicyLimiter(HTTP_RATE_LIMIT_POLICIES[1], {
+  keyGenerator: authKeyFromRequest,
+  skip: shouldSkipAuthRateLimit,
+});
 export const chatRateLimiter = buildPolicyLimiter(HTTP_RATE_LIMIT_POLICIES[2]);
 export const documentsRateLimiter = buildPolicyLimiter(HTTP_RATE_LIMIT_POLICIES[3]);
 export const simulationsRateLimiter = buildPolicyLimiter(HTTP_RATE_LIMIT_POLICIES[4]);

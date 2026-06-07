@@ -53,6 +53,8 @@ export function TransactionsModal(props: TransactionsModalProps) {
   const transactionsModalRef = useRef<HTMLDivElement | null>(null);
   const restoreFocusRef = useRef<HTMLElement | null>(null);
   const txSendLockRef = useRef(false);
+  const txSessionIdRef = useRef(0);
+  const txActionControllersRef = useRef<Set<AbortController>>(new Set());
   const analytics = useMovementAnalytics(props.activeBankProduct, props.transactionTaxonomyOverrides);
   const {
     formatCurrency,
@@ -199,6 +201,25 @@ export function TransactionsModal(props: TransactionsModalProps) {
   const setProductError = (productId: string, value: string | null) => {
     setTxAssistantErrorByProduct((prev) => ({ ...prev, [productId]: value }));
   };
+  const invalidateTxSession = () => {
+    txSessionIdRef.current += 1;
+    for (const controller of txActionControllersRef.current) {
+      controller.abort();
+    }
+    txActionControllersRef.current.clear();
+    txSendLockRef.current = false;
+  };
+  const beginTxAction = () => {
+    const controller = new AbortController();
+    txActionControllersRef.current.add(controller);
+    return {
+      sessionId: txSessionIdRef.current,
+      controller,
+      finish: () => txActionControllersRef.current.delete(controller),
+    };
+  };
+  const isTxActionStale = (sessionId: number) =>
+    sessionId !== txSessionIdRef.current || !props.isOpen;
   const clearProductDraft = (productId: string) => {
     setPendingEvidenceFilesByProduct((prev) => ({ ...prev, [productId]: [] }));
     setManualEvidenceDraftByProduct((prev) => ({ ...prev, [productId]: '' }));
@@ -482,6 +503,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
     setShowTxCarousel(props.txWizardStep !== 'products');
   }, [props.isOpen, props.txWizardStep, props.activeBankProduct?.id, props.transactionProductCards]);
   useEffect(() => {
+    if (!props.activeBankProduct?.id) return;
     const currentLabel = String(props.activeBankProduct?.label ?? '').trim();
     const looksLikeGenericLabel = /^producto\s+\d+$/i.test(currentLabel);
     setQuickBank(props.activeBankProduct?.bank ?? '');
@@ -489,7 +511,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
     setSelectedMovementKey(null);
     setShowInstitutionCatalog(true);
     setShowTemplateCatalog(true);
-  }, [props.activeBankProduct?.id, props.activeBankProduct?.bank, props.activeBankProduct?.label]);
+  }, [props.activeBankProduct?.id]);
   useEffect(() => {
     if (!props.isOpen || currentStage !== 'consent' || !showTxCarousel) return;
     setShowInstitutionCatalog(true);
@@ -730,6 +752,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
       if (!confirmed) return;
       clearPendingEvidence();
     }
+    invalidateTxSession();
     props.onClose();
   }, [
     clearPendingEvidence,
@@ -812,11 +835,14 @@ export function TransactionsModal(props: TransactionsModalProps) {
     };
   }, [props.isOpen, requestClose]);
 
-  async function requestTransactionAssistant(payload: Record<string, unknown>) {
+  useEffect(() => () => invalidateTxSession(), []);
+
+  async function requestTransactionAssistant(payload: Record<string, unknown>, signal?: AbortSignal) {
     const res = await fetch('/api/transactions-chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken() || '' },
       credentials: 'include',
+      signal,
       body: JSON.stringify(payload),
     });
     const data = await res.json().catch(() => null);
@@ -982,23 +1008,29 @@ export function TransactionsModal(props: TransactionsModalProps) {
       percent: 92,
       detail: 'Regenerando resumen con el modelo analítico.',
     });
+    const txAction = beginTxAction();
+    const { sessionId, controller, finish } = txAction;
     try {
       const uploadResult = options?.uploadResult ?? null;
-      const response = await requestTransactionAssistant({
-        mode: 'summary',
-        product: {
-          bank: uploadResult?.product.bank ?? product.bank,
-          label: uploadResult?.product.label ?? product.label,
-          productType: uploadResult?.product.productType ?? product.productType,
+      const response = await requestTransactionAssistant(
+        {
+          mode: 'summary',
+          product: {
+            bank: uploadResult?.product.bank ?? product.bank,
+            label: uploadResult?.product.label ?? product.label,
+            productType: uploadResult?.product.productType ?? product.productType,
+          },
+          parsedDocuments: uploadResult?.documents ?? product.parsedDocuments ?? [],
+          dashboard:
+            uploadResult?.dashboard ??
+            compactDashboardForPrompt(effectiveDashboard, { maxMovements: 80, maxMerchants: 10 }) ??
+            null,
+          currentSummary: priorSummary,
+          feedback: options?.feedback ?? '',
         },
-        parsedDocuments: uploadResult?.documents ?? product.parsedDocuments ?? [],
-        dashboard:
-          uploadResult?.dashboard ??
-          compactDashboardForPrompt(effectiveDashboard, { maxMovements: 80, maxMerchants: 10 }) ??
-          null,
-        currentSummary: priorSummary,
-        feedback: options?.feedback ?? '',
-      });
+        controller.signal,
+      );
+      if (isTxActionStale(sessionId)) return;
       props.updateProductById(productId, {
         assistant: {
           messages: [
@@ -1033,9 +1065,14 @@ export function TransactionsModal(props: TransactionsModalProps) {
         detail: 'Resumen actualizado.',
       });
     } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return;
+      if (isTxActionStale(sessionId)) return;
       setProductError(productId, error instanceof Error ? error.message : 'No se pudo generar el resumen.');
     } finally {
-      setProductLoading(productId, false);
+      finish();
+      if (!isTxActionStale(sessionId)) {
+        setProductLoading(productId, false);
+      }
     }
   }
 
@@ -1050,6 +1087,8 @@ export function TransactionsModal(props: TransactionsModalProps) {
 
     setProductLoading(productId, true);
     setProductError(productId, null);
+    const txAction = beginTxAction();
+    const { sessionId, finish } = txAction;
     try {
       appendAssistantMessages(productId, product, [
         {
@@ -1059,6 +1098,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
         },
       ]);
       const result = await props.onUploadStatement(filesToUpload);
+      if (isTxActionStale(sessionId)) return;
       if (result?.documents?.length) {
         await generateTransactionSummary({
           uploadResult: result,
@@ -1076,9 +1116,13 @@ export function TransactionsModal(props: TransactionsModalProps) {
       }
       clearProductDraft(productId);
     } catch (error) {
+      if (isTxActionStale(sessionId)) return;
       setProductError(productId, error instanceof Error ? error.message : 'No se pudo enviar evidencia.');
     } finally {
-      setProductLoading(productId, false);
+      finish();
+      if (!isTxActionStale(sessionId)) {
+        setProductLoading(productId, false);
+      }
     }
   }
 
@@ -1094,6 +1138,8 @@ export function TransactionsModal(props: TransactionsModalProps) {
     const hasFiles = pendingEvidenceFiles.length > 0 || pendingManualEvidence.length > 0;
     if (!text && !hasFiles) return;
     txSendLockRef.current = true;
+    const txAction = beginTxAction();
+    const { sessionId, controller, finish } = txAction;
     try {
       const normalized = text.toLowerCase();
       const chosenFormat =
@@ -1174,14 +1220,21 @@ export function TransactionsModal(props: TransactionsModalProps) {
             compactDashboardForPrompt(effectiveDashboard, { maxMovements: 24, maxMerchants: 8 }),
           messages: [...productMessages, { role: 'user', text }],
         }),
+        controller.signal,
       );
+      if (isTxActionStale(sessionId)) return;
       appendAssistantMessages(productId, withUserMessage, [
         { role: 'assistant', text: String(response.assistant_text ?? 'Listo.') },
       ]);
     } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return;
+      if (isTxActionStale(sessionId)) return;
       setProductError(productId, error instanceof Error ? error.message : 'No se pudo responder.');
     } finally {
-      setProductLoading(productId, false);
+      finish();
+      if (!isTxActionStale(sessionId)) {
+        setProductLoading(productId, false);
+      }
       txSendLockRef.current = false;
     }
   }

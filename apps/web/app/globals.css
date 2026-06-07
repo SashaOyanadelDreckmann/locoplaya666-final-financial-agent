@@ -225,11 +225,13 @@ body.agent-route-active .global-agent-backdrop {
   pointer-events: none;
   background-color: #050810;
   background-image:
-    linear-gradient(180deg, rgba(6, 10, 16, 0.10), rgba(6, 10, 16, 0.24)),
+    linear-gradient(180deg, rgba(6, 10, 16, 0.08), rgba(6, 10, 16, 0.16)),
     url('/fondo4.jpg');
   background-size: cover;
   background-position: center top;
   background-repeat: no-repeat;
+  filter: saturate(1.14) contrast(1.04) brightness(0.91);
+  box-shadow: inset 0 0 0 9999px rgba(0, 0, 0, 0.46);
   display: block;
 }
 
@@ -944,6 +946,59 @@ html.home-route-active .app-shell::after {
   mix-blend-mode: normal;
 }
 
+/* Hidden on desktop / PWA — mobile browser only (see @media below) */
+.home-edge-feather-top,
+.home-edge-feather-bottom {
+  display: none;
+  pointer-events: none;
+}
+
+@media (max-width: 767px) {
+  /* Feather the hard cut where the photo ends and browser chrome begins */
+  html.home-route-active:not(.pwa-standalone) .home-edge-feather-top,
+  html.home-route-active:not(.pwa-standalone) .home-edge-feather-bottom {
+    display: block;
+    position: fixed;
+    left: 0;
+    right: 0;
+    z-index: 1;
+  }
+
+  html.home-route-active:not(.pwa-standalone) .home-edge-feather-top {
+    top: 0;
+    height: calc(env(safe-area-inset-top, 0px) + 76px);
+    background: linear-gradient(
+      to bottom,
+      #060b18 0%,
+      rgba(6, 11, 24, 0.94) 22%,
+      rgba(6, 11, 24, 0.62) 52%,
+      rgba(6, 11, 24, 0.18) 78%,
+      rgba(6, 11, 24, 0) 100%
+    );
+    -webkit-backdrop-filter: blur(16px) saturate(1.08);
+    backdrop-filter: blur(16px) saturate(1.08);
+    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 38%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 0%, #000 38%, transparent 100%);
+  }
+
+  html.home-route-active:not(.pwa-standalone) .home-edge-feather-bottom {
+    bottom: 0;
+    height: calc(max(env(safe-area-inset-bottom, 0px), 12px) + 92px);
+    background: linear-gradient(
+      to top,
+      #060b18 0%,
+      rgba(6, 11, 24, 0.96) 24%,
+      rgba(6, 11, 24, 0.64) 54%,
+      rgba(6, 11, 24, 0.2) 80%,
+      rgba(6, 11, 24, 0) 100%
+    );
+    -webkit-backdrop-filter: blur(18px) saturate(1.08);
+    backdrop-filter: blur(18px) saturate(1.08);
+    -webkit-mask-image: linear-gradient(to top, #000 0%, #000 42%, transparent 100%);
+    mask-image: linear-gradient(to top, #000 0%, #000 42%, transparent 100%);
+  }
+}
+
 @media (max-width: 1024px) {
   .home-grain-layer {
     opacity: 0.4;
@@ -952,18 +1007,16 @@ html.home-route-active .app-shell::after {
 }
 
 @media (max-width: 767px) {
-  /* Home route: window is the scroll container — framer-motion useScroll and sticky
-     sections need window.scrollY to update. height:auto lets html/body grow with content
-     so the document can scroll. overflow-x:clip (NOT hidden) prevents horizontal bleed
-     without creating a scroll mechanism — overflow-x:hidden forces overflow-y to auto
-     per CSS spec, making html/body a scroll container and breaking position:sticky. */
   html.home-route-active,
   html.home-route-active body {
     height: auto;
     min-height: 100dvh;
     overflow-x: clip;
+    overflow-y: visible;
+    touch-action: pan-y;
   }
 
+  html.home-route-active .app-shell,
   html.home-route-active .mobile-scale-frame {
     height: auto;
     min-height: 100dvh;

@@ -106,7 +106,20 @@ describe('conversation voice routes', () => {
         maxDurationSec: INTERVIEW_TOTAL_LIMIT_SEC,
         remainingTotalSec: 83,
         pauseUsed: true,
-        voiceUserTranscript: 'Probando transcripción',
+        minuteSummaries: [
+          {
+            minute: 1,
+            summary: 'Síntesis breve de prueba',
+            keyFindings: ['Hallazgo de prueba'],
+            confidence: 'medium',
+          },
+        ],
+        finalSummary: {
+          summary: 'Síntesis final de prueba',
+          keyFindings: ['Hallazgo final'],
+          confidence: 'high',
+          createdAt: new Date().toISOString(),
+        },
       });
 
     expect(res.status).toBe(200);
@@ -127,6 +140,7 @@ describe('conversation voice routes', () => {
         callId: 'call-voice-test-2',
         activeCallId: 'call-voice-test-2',
         status: 'paused',
+        maxDurationSec: 150,
         callSeconds: 44,
         remainingTotalSec: 76,
       });
@@ -140,7 +154,20 @@ describe('conversation voice routes', () => {
           hasDebt: false,
           hasSavingsOrInvestments: true,
         },
-        transcript: 'AGENTE: Pregunta inicial\nUSUARIO: Respuesta con suficiente detalle.',
+        minuteSummaries: [
+          {
+            minute: 1,
+            summary: 'El usuario confirma estabilidad de ingresos y buena capacidad de ahorro.',
+            keyFindings: ['Ingreso estable', 'Capacidad de ahorro'],
+            confidence: 'high',
+          },
+        ],
+        finalSummary: {
+          summary: 'Síntesis final consolidada sin transcripción.',
+          keyFindings: ['No depende de transcript'],
+          confidence: 'high',
+          createdAt: new Date().toISOString(),
+        },
         endedBy: 'user',
         durationSec: 0,
         callId: 'call-voice-test-2',
@@ -149,10 +176,11 @@ describe('conversation voice routes', () => {
     expect(res.status).toBe(200);
     expect(res.body.ok).toBe(true);
     expect(res.body.data.type).toBe('interview_complete');
-    expect(res.body.data.voice_report.executive_report).toBe('Resumen ejecutivo de prueba');
+    expect(res.body.data.voice_summary.executive_report).toBe('Resumen ejecutivo de prueba');
     expect(res.body.data.interview_voice.total_used_sec).toBe(44);
     expect(res.body.data.interview_voice.remaining_total_sec).toBe(
       INTERVIEW_TOTAL_LIMIT_SEC - 44,
     );
+    expect(res.body.data.interview_voice.max_duration_sec).toBe(150);
   }, 15000);
 });

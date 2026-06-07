@@ -37,7 +37,26 @@ const ConversationBodySchema = z.object({
 
 const VoiceFinalizeSchema = z.object({
   intake: z.record(z.unknown()),
-  transcript: z.string().min(10),
+  minuteSummaries: z
+    .array(
+      z.object({
+        minute: z.number().int().min(1).max(60).optional(),
+        summary: z.string().min(3),
+        keyFindings: z.array(z.string()).optional(),
+        confidence: z.enum(['high', 'medium', 'low']).optional(),
+        createdAt: z.string().optional(),
+      }),
+    )
+    .optional(),
+  finalSummary: z
+    .object({
+      summary: z.string().min(3),
+      keyFindings: z.array(z.string()).optional(),
+      confidence: z.enum(['high', 'medium', 'low']).optional(),
+      createdAt: z.string().optional(),
+    })
+    .optional(),
+  transcript: z.string().optional(),
   endedBy: z.enum(['timeout', 'agent', 'user']).default('user'),
   durationSec: z.number().min(0).max(INTERVIEW_TOTAL_LIMIT_SEC).optional(),
   callId: z.string().optional(),
@@ -52,22 +71,28 @@ const VoiceStateSchema = z.object({
   maxDurationSec: z.number().min(0).max(INTERVIEW_TOTAL_LIMIT_SEC).optional(),
   remainingTotalSec: z.number().min(0).max(INTERVIEW_TOTAL_LIMIT_SEC).nullable().optional(),
   pauseUsed: z.boolean().optional(),
-  voiceAgentTranscript: z.string().max(120_000).optional(),
-  voiceUserTranscript: z.string().max(120_000).optional(),
-  voicePartialTranscript: z.string().max(120_000).optional(),
-  transcript: z.string().max(240_000).optional(),
-  completedAt: z.string().optional(),
-  updatedAt: z.string().optional(),
-  voiceReport: z
+  minuteSummaries: z
+    .array(
+      z.object({
+        minute: z.number().int().min(1).max(60).optional(),
+        summary: z.string().min(3),
+        keyFindings: z.array(z.string()).optional(),
+        confidence: z.enum(['high', 'medium', 'low']).optional(),
+        createdAt: z.string().optional(),
+      }),
+    )
+    .optional(),
+  finalSummary: z
     .object({
-      executive_report: z.string(),
-      key_findings: z.array(z.string()).optional(),
-      stop_reason: z.string().optional(),
-      has_enough_information: z.boolean().optional(),
+      summary: z.string().min(3),
+      keyFindings: z.array(z.string()).optional(),
       confidence: z.enum(['high', 'medium', 'low']).optional(),
+      createdAt: z.string().optional(),
     })
     .nullable()
     .optional(),
+  completedAt: z.string().optional(),
+  updatedAt: z.string().optional(),
 });
 
 export type ConversationNextBody = {
@@ -357,6 +382,7 @@ export const saveInterviewVoiceState = asyncHandler(async function saveInterview
     status: typeof merged.status === 'string' ? merged.status : null,
     callSeconds: typeof merged.callSeconds === 'number' ? merged.callSeconds : null,
     remainingTotalSec: typeof merged.remainingTotalSec === 'number' ? merged.remainingTotalSec : null,
+    minuteSummaries: Array.isArray(merged.minuteSummaries) ? merged.minuteSummaries.length : null,
   });
 
   return sendSuccess(res, { saved: true, interview_voice: merged });
@@ -368,8 +394,18 @@ export const finalizeInterviewVoice = asyncHandler(async function finalizeInterv
   const parsed = parseBody(VoiceFinalizeSchema, req.body);
 
   const intake = parsed.intake as unknown as IntakeQuestionnaire;
-  const transcript = String(parsed.transcript ?? '').trim();
+  const minuteSummaries = Array.isArray(parsed.minuteSummaries) ? parsed.minuteSummaries : [];
+  const finalSummary = parsed.finalSummary ?? null;
   const interviewChatId = `interview:${user.id}`;
+  const condensedSummaries = minuteSummaries
+    .map((item, index) => {
+      const minuteLabel = typeof item.minute === 'number' ? `minuto ${item.minute}` : `minuto ${index + 1}`;
+      const findings = Array.isArray(item.keyFindings) && item.keyFindings.length > 0 ? ` | hallazgos: ${item.keyFindings.join(' ; ')}` : '';
+      const confidence = item.confidence ? ` | confianza: ${item.confidence}` : '';
+      return `- ${minuteLabel}: ${item.summary}${findings}${confidence}`;
+    })
+    .join('\n');
+  const finalSummaryText = finalSummary?.summary?.trim() ?? '';
 
   let parsedReport: any = null;
   try {
@@ -383,13 +419,17 @@ export const finalizeInterviewVoice = asyncHandler(async function finalizeInterv
         '- español chileno profesional',
         '- enfoque diagnóstico senior, ejecutivo y profundo',
         '- hallazgos concretos y bien priorizados',
-        '- integra intake, productos y presupuesto si aparecen en el contexto',
+        '- integra intake, productos, presupuesto y síntesis de llamada',
         '- detecta tensiones entre discurso, flujo real, productos y capacidad financiera',
         '- sin mencionar sistema ni herramientas',
         `Motivo término llamada: ${parsed.endedBy}`,
         `Duración (segundos): ${parsed.durationSec ?? 0}`,
         `Intake usuario: ${JSON.stringify(intake)}`,
-        `Transcripción completa: ${transcript}`,
+        `Síntesis por minuto:\n${condensedSummaries || 'Sin síntesis por minuto.'}`,
+        `Síntesis final de llamada:\n${finalSummaryText || 'Sin síntesis final.'}`,
+        ...(typeof parsed.transcript === 'string' && parsed.transcript.trim().length > 0
+          ? [`Contexto adicional heredado (no depende de transcript): ${parsed.transcript.trim().slice(0, 1000)}`]
+          : []),
       ].join('\n'),
       temperature: 0.2,
       model: process.env.OPENAI_MODEL_INTERVIEW_FINALIZER ?? 'gpt-5-mini',
@@ -455,6 +495,7 @@ export const finalizeInterviewVoice = asyncHandler(async function finalizeInterv
     });
   }
   const previousTotalUsedSec = Math.max(0, Number(interviewVoice.totalUsedSec ?? 0));
+  const persistedMaxDurationSec = Math.max(0, Number(interviewVoice.maxDurationSec ?? 0));
   const requestedDurationSec = Number(parsed.durationSec ?? 0);
   const persistedCallSeconds = Number(interviewVoice.callSeconds ?? 0);
   const effectiveDurationSec =
@@ -464,6 +505,8 @@ export const finalizeInterviewVoice = asyncHandler(async function finalizeInterv
       ? persistedCallSeconds
       : 0;
   const safeDurationSec = Math.max(0, Math.min(INTERVIEW_TOTAL_LIMIT_SEC, effectiveDurationSec));
+  const resolvedMaxDurationSec =
+    persistedMaxDurationSec > 0 ? Math.min(INTERVIEW_TOTAL_LIMIT_SEC, persistedMaxDurationSec) : INTERVIEW_TOTAL_LIMIT_SEC;
   if (requestedDurationSec <= 0 && persistedCallSeconds > 0) {
     req.logger?.info({
       msg: 'interview.voice.finalize.duration_fallback_to_persisted',
@@ -484,18 +527,25 @@ export const finalizeInterviewVoice = asyncHandler(async function finalizeInterv
       status: 'completed',
       activeCallId: null,
       totalUsedSec: updatedTotalUsedSec,
-      maxDurationSec: remainingTotalSec,
+      maxDurationSec: resolvedMaxDurationSec,
       remainingTotalSec: remainingTotalSec,
       lastFinalizedAt: new Date().toISOString(),
-      voiceReport: {
-        executive_report: executiveReport,
-        key_findings: keyFindings,
-        stop_reason: typeof parsedReport?.stop_reason === 'string' ? parsedReport.stop_reason : parsed.endedBy,
-        has_enough_information: hasEnoughInformation,
+      minuteSummaries: minuteSummaries.map((item, index) => ({
+        minute: typeof item.minute === 'number' ? item.minute : index + 1,
+        summary: item.summary,
+        keyFindings: item.keyFindings ?? [],
+        confidence: item.confidence ?? 'medium',
+        createdAt: item.createdAt ?? new Date().toISOString(),
+      })),
+      finalSummary: {
+        summary: finalSummaryText || executiveReport,
+        keyFindings: finalSummary?.keyFindings ?? keyFindings,
         confidence:
-          parsedReport?.confidence === 'high' || parsedReport?.confidence === 'medium' || parsedReport?.confidence === 'low'
+          finalSummary?.confidence ??
+          (parsedReport?.confidence === 'high' || parsedReport?.confidence === 'medium' || parsedReport?.confidence === 'low'
             ? parsedReport.confidence
-            : 'high',
+            : 'high'),
+        createdAt: finalSummary?.createdAt ?? new Date().toISOString(),
       },
       lastReport: {
         executive_report: executiveReport,
@@ -509,10 +559,10 @@ export const finalizeInterviewVoice = asyncHandler(async function finalizeInterv
   appendMemoryTimelineNote({
     userId: user.id,
     chatId: interviewChatId,
-    userMessage: transcript.slice(0, 500),
+    userMessage: finalSummaryText || condensedSummaries.slice(0, 500) || 'Síntesis de llamada',
     agentMessage: executiveReport,
     mode: 'diagnostic_interview',
-    summary: 'Llamada de entrevista finalizada con informe ejecutivo y hallazgos.',
+    summary: 'Llamada de entrevista finalizada con síntesis ejecutiva y hallazgos.',
     facts: keyFindings.map((finding: string) => ({
       type: 'decision' as const,
       key: 'interview_finding',
@@ -526,7 +576,7 @@ export const finalizeInterviewVoice = asyncHandler(async function finalizeInterv
     userId: user.id,
     callId: parsed.callId ?? persistedActiveCallId,
     endedBy: parsed.endedBy,
-    transcriptLength: transcript.length,
+    minuteSummaries: minuteSummaries.length,
     durationSec: safeDurationSec,
     totalUsedSec: updatedTotalUsedSec,
     remainingTotalSec,
@@ -535,7 +585,14 @@ export const finalizeInterviewVoice = asyncHandler(async function finalizeInterv
   return sendSuccess(res, {
     type: 'interview_complete',
     profile: diagnosticProfile,
-    voice_report: {
+    voice_summary: {
+      final_summary: finalSummaryText || executiveReport,
+      minute_summaries: minuteSummaries.map((item, index) => ({
+        minute: typeof item.minute === 'number' ? item.minute : index + 1,
+        summary: item.summary,
+        key_findings: item.keyFindings ?? [],
+        confidence: item.confidence ?? 'medium',
+      })),
       executive_report: executiveReport,
       key_findings: keyFindings,
       has_enough_information: hasEnoughInformation,
@@ -548,7 +605,14 @@ export const finalizeInterviewVoice = asyncHandler(async function finalizeInterv
     interview_voice: {
       total_used_sec: updatedTotalUsedSec,
       remaining_total_sec: remainingTotalSec,
-      max_duration_sec: remainingTotalSec,
+      max_duration_sec: resolvedMaxDurationSec,
+      minute_summaries: minuteSummaries.map((item, index) => ({
+        minute: typeof item.minute === 'number' ? item.minute : index + 1,
+        summary: item.summary,
+        key_findings: item.keyFindings ?? [],
+        confidence: item.confidence ?? 'medium',
+      })),
+      final_summary: finalSummaryText || executiveReport,
     },
   });
 });

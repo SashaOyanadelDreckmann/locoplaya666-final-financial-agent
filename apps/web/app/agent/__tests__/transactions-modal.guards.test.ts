@@ -18,6 +18,8 @@ describe('transactions modal safeguards', () => {
     expect(pageConstants).toContain('MAX_TRANSACTION_PRODUCTS_CREATED_TOTAL = 12');
     expect(pageConstants).toContain('MAX_EVIDENCE_FILES_PER_PRODUCT = 25');
     expect(source).toContain('const transactionsModalRef = useRef<HTMLDivElement | null>(null);');
+    expect(source).toContain('const txSessionIdRef = useRef(0);');
+    expect(source).toContain('const invalidateTxSession = () => {');
     expect(source).toContain("props.txWizardStep === 'products'");
     expect(source).toContain("setShowTxCarousel(props.txWizardStep !== 'products');");
     expect(source).toContain('pendingEvidenceFilesByProduct');
@@ -33,6 +35,8 @@ describe('transactions modal safeguards', () => {
     expect(source).toContain('clearPendingEvidence();');
     expect(source).toContain('grabaci[oó]n|pantalla|screen');
     expect(source).toContain("props.setTxWizardStep('products');");
+    expect(source).toContain('if (!props.activeBankProduct?.id) return;');
+    expect(source).toContain('controller.signal');
   });
 
   it('keeps product upload isolation and canonical document ids', () => {

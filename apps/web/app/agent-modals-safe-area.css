@@ -26,15 +26,17 @@
   .social-modal-overlay {
     position: fixed !important;
     inset: 0 !important;
-    width: 100vw !important;
-    height: 100dvh !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
     min-height: 100dvh !important;
     max-height: none !important;
     margin: 0 !important;
     padding-top: var(--modal-safe-top) !important;
     padding-bottom: var(--modal-safe-bottom) !important;
-    padding-left: 0 !important;
-    padding-right: 0 !important;
+    padding-left: max(0px, env(safe-area-inset-left, 0px)) !important;
+    padding-right: max(0px, env(safe-area-inset-right, 0px)) !important;
+    height: 100dvh !important;
     box-sizing: border-box !important;
     display: block !important;
     align-items: unset !important;
@@ -71,13 +73,14 @@
     inset: auto !important;
     margin: 0 !important;
     width: 100% !important;
-    max-width: none !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
     height: auto !important;
     min-height: calc(100dvh - var(--modal-safe-top) - var(--modal-safe-bottom)) !important;
     max-height: none !important;
     padding-top: 0 !important;
-    padding-left: max(0px, env(safe-area-inset-left, 0px)) !important;
-    padding-right: max(0px, env(safe-area-inset-right, 0px)) !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
     box-sizing: border-box !important;
     overflow-x: hidden !important;
     overflow-y: visible !important;
@@ -120,6 +123,30 @@
     left: auto !important;
     bottom: auto !important;
     flex-shrink: 0 !important;
+  }
+
+  /* Inner stacks — full device width (beats 100vw / min(560px) narrow columns) */
+  .transactions-modal .bcc-modal-header,
+  .transactions-modal .bcc-modal-header.tx-modal-header-layer,
+  .transactions-modal .tx-scroll-body,
+  .transactions-modal .agent-modal-intro,
+  .transactions-modal .pt-shell,
+  .transactions-modal .pt-left,
+  .transactions-modal .pt-right,
+  .transactions-modal .tx-content-card,
+  .budget-modal .budget-modal-body,
+  .budget-modal .budget-table-wrap,
+  .budget-modal .budget-table-section,
+  .interview-modal .interview-shell,
+  .questionnaire-modal .questionnaire-shell,
+  .agent-modal-body,
+  .social-modal-body {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    box-sizing: border-box !important;
   }
 }
 

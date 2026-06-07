@@ -50,9 +50,7 @@ import {
 
 const router = Router();
 const config = getConfig();
-const OPENAI_REALTIME_MODEL = process.env.OPENAI_REALTIME_MODEL?.trim() || 'gpt-4o-mini-realtime-preview';
-const OPENAI_REALTIME_TRANSCRIPTION_MODEL =
-  process.env.OPENAI_REALTIME_TRANSCRIPTION_MODEL?.trim() || 'gpt-4o-transcribe';
+const OPENAI_REALTIME_MODEL = process.env.OPENAI_REALTIME_MODEL?.trim() || 'gpt-realtime-mini';
 const OPENAI_REALTIME_VOICE = (() => {
   const requested = process.env.OPENAI_REALTIME_VOICE?.trim().toLowerCase();
   if (requested && (INTERVIEW_REALTIME_VOICES as readonly string[]).includes(requested)) {
@@ -867,12 +865,11 @@ router.get(
                 type: 'audio/pcm',
                 rate: 24000,
               },
-              transcription: {
-                model: OPENAI_REALTIME_TRANSCRIPTION_MODEL,
-                language: 'es',
-              },
               turn_detection: {
                 type: 'server_vad',
+                threshold: 0.5,
+                prefix_padding_ms: 300,
+                silence_duration_ms: 650,
               },
             },
             output: {

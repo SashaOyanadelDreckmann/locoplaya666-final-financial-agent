@@ -22,324 +22,30 @@ import {
   readInterviewVoiceState,
   writeInterviewVoiceState,
 } from '@/lib/interviewVoiceState';
-import { appendTranscriptChunk } from '@/lib/transcript';
 import {
   INTERVIEW_CLOSEOUT_BUFFER_SEC,
   INTERVIEW_MAX_CALLS_PER_USER,
   INTERVIEW_TOTAL_LIMIT_MINUTES,
   INTERVIEW_TOTAL_LIMIT_SEC,
 } from '@financial-agent/shared';
+import {
+  buildVoiceSessionInstructions,
+  resolveInterviewVoiceStateFlags,
+  formatBlockLabel,
+  formatMoneyCompact,
+  summarizeVoiceInterviewContext,
+  type InterviewVoiceReport,
+  type InterviewVoiceSnapshot,
+  type InterviewVoiceSummaryEntry,
+  type VoiceSessionContext,
+} from './interview-modal.context';
 
 const DEFAULT_MAX_CALL_DURATION_SEC = INTERVIEW_TOTAL_LIMIT_SEC;
-
-type InterviewVoiceReport = {
-  executive_report: string;
-  key_findings: string[];
-  stop_reason?: string;
-  has_enough_information?: boolean;
-  confidence?: 'high' | 'medium' | 'low';
-};
-
-type InterviewVoiceSnapshot = {
-  callId?: string;
-  activeCallId?: string | null;
-  status?: 'idle' | 'in_progress' | 'paused' | 'completed';
-  callSeconds?: number;
-  maxDurationSec?: number;
-  remainingTotalSec?: number | null;
-  pauseUsed?: boolean;
-  voiceAgentTranscript?: string;
-  voiceUserTranscript?: string;
-  voicePartialTranscript?: string;
-  transcript?: string;
-  voiceReport?: InterviewVoiceReport | null;
-  callsStarted?: number;
-  completedAt?: string | null;
-  startedAt?: string | null;
-  lastUpdatedAt?: string | null;
-};
 
 type Props = {
   isOpen: boolean;
   onClose: () => void;
   onDiagnosisComplete?: () => void;
-};
-
-function formatMoneyCompact(value: unknown) {
-  const amount = Number(value ?? 0);
-  if (!Number.isFinite(amount)) return '0';
-  return amount.toLocaleString('es-CL');
-}
-
-function formatBlockLabel(blockId?: string) {
-  if (!blockId) return 'Exploración';
-  const labels: Record<string, string> = {
-    warmup: 'Apertura',
-    cashflow: 'Flujo',
-    resilience: 'Resiliencia',
-    debt: 'Deuda',
-    products: 'Productos',
-    goals: 'Metas',
-    knowledge: 'Comprensión',
-    risk: 'Riesgo',
-    emotional: 'Patrón emocional',
-  };
-  return labels[blockId] ?? blockId;
-}
-
-function formatIntakeFieldLabel(key: string) {
-  const labels: Record<string, string> = {
-    age: 'Edad',
-    profession: 'Profesión',
-    employmentStatus: 'Situación laboral',
-    exactMonthlyIncome: 'Ingreso mensual exacto',
-    incomeBand: 'Rango de ingreso',
-    expensesCoverage: 'Cobertura de gastos',
-    tracksExpenses: 'Registra gastos',
-    hasSavingsOrInvestments: 'Tiene ahorros/inversiones',
-    savingsBand: 'Tramo de ahorro',
-    exactSavingsAmount: 'Ahorro exacto',
-    hasDebt: 'Tiene deuda',
-    moneyStressLevel: 'Estrés financiero',
-    selfRatedUnderstanding: 'Autoevaluación comprensión',
-    riskReaction: 'Reacción al riesgo',
-    financialGoals: 'Metas financieras',
-    mainFinancialConcern: 'Preocupación principal',
-  };
-  return labels[key] ?? key.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').trim();
-}
-
-function buildSeniorVoicePersonaBlock() {
-  return [
-    'IDENTIDAD:',
-    'Eres el entrevistador financiero senior de Financieramente — nivel family office, criterio ejecutivo, calma y precisión.',
-    'VOZ Y TONO:',
-    'Español chileno profesional (Santiago). Claro, sobrio, cálido sin ser informal. Usa tú; nunca voseo ni entonación rioplatense.',
-    'Suenas como un director de diagnóstico con 20 años de experiencia: confiable, directo, nunca condescendiente.',
-    'ESTILO DE ENTREVISTA:',
-    'Una sola pregunta por turno, siempre anclada en datos reales del usuario (intake, presupuesto, cartolas).',
-    'Cada 2-3 turnos entrega una microlectura ejecutiva de una frase — insight concreto, no generalidades.',
-    'No expliques la plataforma ni el sistema. No repitas información que ya tienes.',
-    'Valida cuando el usuario es transparente; repregunta con precisión cuando detectes inconsistencias.',
-  ].join('\n');
-}
-
-function buildVoiceInterviewDossier(
-  intake: unknown,
-  transcriptEntries: Array<{ blockId?: string; answer?: string }>,
-  completedBlocks?: Record<string, { summary?: string; signalsDetected?: string[] }>,
-) {
-  const source = (intake ?? {}) as Record<string, unknown>;
-  const products = source.__productsContext as Record<string, unknown> | undefined;
-  const budget = source.__budgetContext as Record<string, unknown> | undefined;
-  const sections: string[] = [];
-
-  sections.push('=== FICHA MAESTRA DEL USUARIO — FINANCIERAMENTE ===');
-  sections.push(
-    'Tienes acceso completo a 3 fuentes ya cargadas por el usuario en la plataforma. NO pidas datos que ya están abajo. Úsalos para preguntas quirúrgicas.',
-  );
-
-  // INTAKE
-  const intakeLines: string[] = [];
-  const skipKeys = new Set(['__productsContext', '__budgetContext']);
-  for (const [key, value] of Object.entries(source)) {
-    if (skipKeys.has(key) || value === null || value === undefined || value === '') continue;
-    if (key === 'financialKnowledge' && typeof value === 'object') {
-      const known = Object.entries(value as Record<string, unknown>)
-        .filter(([, v]) => v === true)
-        .map(([k]) => k);
-      if (known.length) intakeLines.push(`Temas que domina: ${known.join(', ')}`);
-      continue;
-    }
-    if (typeof value === 'object' && !Array.isArray(value)) continue;
-    const label = formatIntakeFieldLabel(key);
-    if (typeof value === 'boolean') intakeLines.push(`${label}: ${value ? 'sí' : 'no'}`);
-    else if (typeof value === 'number' && /income|amount|savings/i.test(key))
-      intakeLines.push(`${label}: ${formatMoneyCompact(value)} CLP`);
-    else intakeLines.push(`${label}: ${String(value).replace(/_/g, ' ')}`);
-  }
-  sections.push('\n[FUENTE 1 — CUESTIONARIO / INTAKE (modal perfil)]');
-  sections.push(intakeLines.length > 0 ? intakeLines.join('\n') : 'Sin intake detallado.');
-
-  // PRODUCTOS
-  sections.push('\n[FUENTE 2 — MODAL PRODUCTOS Y TRANSACCIONES (cartolas, movimientos reales)]');
-  if (products && typeof products === 'object') {
-    const txSummary =
-      products.transactionSummary && typeof products.transactionSummary === 'object'
-        ? (products.transactionSummary as Record<string, unknown>)
-        : {};
-    sections.push(`Productos enlazados: ${Math.max(0, Number(products.productsCount ?? 0))}`);
-    sections.push(`Producto activo/foco: ${String(products.activeProductLabel ?? 'sin foco definido')}`);
-    if (Array.isArray(products.uploadedFiles) && products.uploadedFiles.length > 0) {
-      sections.push(`Respaldos/cartolas subidos: ${products.uploadedFiles.slice(0, 15).join(', ')}`);
-    }
-    sections.push(
-      `Flujo agregado — entradas: ${formatMoneyCompact(txSummary.inflowsTotal)} CLP | salidas: ${formatMoneyCompact(txSummary.outflowsTotal)} CLP | neto: ${formatMoneyCompact(txSummary.netFlow)} CLP | movimientos: ${Math.round(Number(txSummary.movementCount ?? 0))}`,
-    );
-    const topCategories = Array.isArray(txSummary.topCategories)
-      ? txSummary.topCategories
-          .slice(0, 8)
-          .map((c) => {
-            const item = c as Record<string, unknown>;
-            return `${String(item.name ?? 'cat')}: ${formatMoneyCompact(item.amount)} CLP`;
-          })
-          .join(' | ')
-      : '';
-    if (topCategories) sections.push(`Top categorías en movimientos: ${topCategories}`);
-    const alerts = Array.isArray(txSummary.alerts)
-      ? txSummary.alerts.slice(0, 6).map((a) => String(a)).filter(Boolean)
-      : [];
-    if (alerts.length) sections.push(`Alertas detectadas en productos: ${alerts.join(' | ')}`);
-    const productsIndex = Array.isArray(products.productsIndex) ? products.productsIndex : [];
-    for (const raw of productsIndex.slice(0, 8)) {
-      const p = raw as Record<string, unknown>;
-      sections.push(
-        `  · ${String(p.label ?? 'Producto')} (${String(p.bank ?? '')} ${String(p.productType ?? '')}): ingresos ${formatMoneyCompact(p.inflowsTotal)} | egresos ${formatMoneyCompact(p.outflowsTotal)} | neto ${formatMoneyCompact(p.netFlow)} | ${Math.round(Number(p.movementCount ?? 0))} mov.`,
-      );
-    }
-    const activeProduct = products.activeProduct as Record<string, unknown> | undefined;
-    if (activeProduct && typeof activeProduct === 'object') {
-      const topExp = Array.isArray(activeProduct.topExpenses)
-        ? activeProduct.topExpenses
-            .slice(0, 5)
-            .map((e) => {
-              const item = e as Record<string, unknown>;
-              return `${String(item.label ?? item.category ?? 'gasto')}: ${formatMoneyCompact(item.amount)}`;
-            })
-            .join(' | ')
-        : '';
-      if (topExp) sections.push(`Top gastos producto activo: ${topExp}`);
-      if (typeof activeProduct.dashboardSummary === 'string' && activeProduct.dashboardSummary.trim()) {
-        sections.push(`Resumen dashboard producto activo: ${activeProduct.dashboardSummary.trim().slice(0, 400)}`);
-      }
-    }
-  } else {
-    sections.push('Sin productos/transacciones cargados aún.');
-  }
-
-  // PRESUPUESTO
-  sections.push('\n[FUENTE 3 — MODAL PRESUPUESTO (filas reales del usuario)]');
-  if (budget && typeof budget === 'object') {
-    sections.push(
-      `Totales — ingreso: ${formatMoneyCompact(budget.income)} CLP | gasto: ${formatMoneyCompact(budget.expenses)} CLP | balance: ${formatMoneyCompact(budget.balance)} CLP | filas con monto: ${Math.round(Number(budget.rowsCount ?? 0))}`,
-    );
-    const rows = Array.isArray(budget.rows) ? budget.rows : [];
-    const incomeRows = rows
-      .filter((r) => (r as Record<string, unknown>).type === 'income' && Number((r as Record<string, unknown>).amount ?? 0) > 0)
-      .sort((a, b) => Number((b as Record<string, unknown>).amount ?? 0) - Number((a as Record<string, unknown>).amount ?? 0))
-      .slice(0, 8);
-    const expenseRows = rows
-      .filter((r) => (r as Record<string, unknown>).type === 'expense' && Number((r as Record<string, unknown>).amount ?? 0) > 0)
-      .sort((a, b) => Number((b as Record<string, unknown>).amount ?? 0) - Number((a as Record<string, unknown>).amount ?? 0))
-      .slice(0, 12);
-    if (incomeRows.length) {
-      sections.push('Ingresos presupuesto:');
-      for (const raw of incomeRows) {
-        const row = raw as Record<string, unknown>;
-        sections.push(`  + ${String(row.category ?? 'ingreso')}: ${formatMoneyCompact(row.amount)} CLP`);
-      }
-    }
-    if (expenseRows.length) {
-      sections.push('Gastos presupuesto:');
-      for (const raw of expenseRows) {
-        const row = raw as Record<string, unknown>;
-        const extra = row.product ? ` [${String(row.product)}]` : row.institution ? ` [${String(row.institution)}]` : '';
-        sections.push(`  - ${String(row.category ?? 'gasto')}: ${formatMoneyCompact(row.amount)} CLP${extra}`);
-      }
-    }
-    if (Number(budget.balance ?? 0) < 0) {
-      sections.push('⚠ TENSIÓN: presupuesto en rojo — prioriza preguntas sobre recorte, ingresos extra o deuda.');
-    }
-  } else {
-    sections.push('Sin presupuesto cargado aún.');
-  }
-
-  // Tensiones heurísticas
-  const tensions: string[] = [];
-  if (source.tracksExpenses === false) tensions.push('Dice que no registra gastos pero hay presupuesto/cartolas — pregunta la brecha.');
-  if (source.hasDebt === false && products) {
-    const alerts = ((products.transactionSummary as Record<string, unknown>)?.alerts ?? []) as unknown[];
-    if (Array.isArray(alerts) && alerts.some((a) => /deuda|crédito|credito|tarjeta/i.test(String(a))))
-      tensions.push('Declaró sin deuda pero alertas de productos sugieren crédito — cruza con tacto y precisión.');
-  }
-  if (typeof source.exactMonthlyIncome === 'number' && budget && Number(budget.income ?? 0) > 0) {
-    const diff = Math.abs(Number(source.exactMonthlyIncome) - Number(budget.income));
-    if (diff > Number(source.exactMonthlyIncome) * 0.15)
-      tensions.push(`Ingreso intake (${formatMoneyCompact(source.exactMonthlyIncome)}) vs presupuesto (${formatMoneyCompact(budget.income)}) no calza — pregunta cuál es el real.`);
-  }
-  if (tensions.length) {
-    sections.push('\n[TENSIONES A PROFUNDIZAR (prioridad alta)]');
-    sections.push(tensions.join('\n'));
-  }
-
-  // Entrevista previa
-  const priorAnswers = transcriptEntries.filter((e) => e?.answer && String(e.answer).trim());
-  if (priorAnswers.length > 0) {
-    sections.push('\n[RESPUESTAS PREVIAS EN ESTA ENTREVISTA]');
-    for (const entry of priorAnswers.slice(-8)) {
-      sections.push(`  · ${formatBlockLabel(entry.blockId)}: ${String(entry.answer).trim().slice(0, 220)}`);
-    }
-  }
-  if (completedBlocks && Object.keys(completedBlocks).length > 0) {
-    sections.push('\n[BLOQUES YA CERRADOS]');
-    for (const [id, block] of Object.entries(completedBlocks).slice(0, 6)) {
-      sections.push(`  · ${formatBlockLabel(id)}: ${String(block.summary ?? '').slice(0, 180)}`);
-      if (Array.isArray(block.signalsDetected) && block.signalsDetected.length)
-        sections.push(`    Señales: ${block.signalsDetected.slice(0, 4).join(' | ')}`);
-    }
-  }
-
-  sections.push(
-    '\n[MANDATO DE ENTREVISTA]',
-    'Cruza intake + presupuesto + productos en cada pregunta. Si hay inconsistencias, señálalas con respeto y profundiza.',
-    'Objetivo: elevar el diagnóstico con evidencia, no repetir lo obvio ni sonar a formulario.',
-  );
-
-  return sections.join('\n');
-}
-
-function buildVoiceSessionInstructions(params: {
-  intake: unknown;
-  transcriptEntries: Array<{ blockId?: string; answer?: string }>;
-  completedBlocks?: Record<string, { summary?: string; signalsDetected?: string[] }>;
-  currentQuestion?: string;
-  latestUserSnippet?: string;
-  callPhase?: 'exploration' | 'closeout';
-}) {
-  const dossier = buildVoiceInterviewDossier(
-    params.intake,
-    params.transcriptEntries,
-    params.completedBlocks,
-  );
-  const blocks = [
-    buildSeniorVoicePersonaBlock(),
-    `TIEMPO DE LLAMADA: máximo ${INTERVIEW_TOTAL_LIMIT_MINUTES} minutos. En los últimos ${INTERVIEW_CLOSEOUT_BUFFER_SEC} segundos cierra con <<CALL_COMPLETE>> y síntesis ejecutiva breve.`,
-    'CONCIENCIA DEL SISTEMA: El usuario completó cuestionario (intake), cargó productos/cartolas y armó presupuesto en Financieramente. Toda la evidencia está abajo — cita montos, categorías o alertas concretas; no pidas lo que ya tienes.',
-    dossier,
-  ];
-  if (params.currentQuestion?.trim()) {
-    blocks.push(`PREGUNTA GUÍA DEL BLOQUE ACTIVO (para orientar profundidad, no la leas textual): ${params.currentQuestion.trim()}`);
-  }
-  if (params.latestUserSnippet?.trim()) {
-    blocks.push(`ÚLTIMA RESPUESTA DEL USUARIO (incorpora y repregunta con precisión):\n${params.latestUserSnippet.trim()}`);
-  }
-  if (params.callPhase === 'closeout') {
-    blocks.push(
-      'FASE CIERRE: No abras temas nuevos. Sintetiza hallazgos principales en tono ejecutivo. Cierra con <<CALL_COMPLETE>>.',
-    );
-  } else {
-    blocks.push(
-      'MANDATO: Cada pregunta debe cruzar al menos dos fuentes (intake + presupuesto, presupuesto + cartola, etc.). Mantén estándar senior en todo momento.',
-    );
-  }
-  return blocks.join('\n\n');
-}
-
-type VoiceSessionContext = {
-  intake: unknown;
-  transcriptEntries: Array<{ blockId?: string; answer?: string }>;
-  completedBlocks: Record<string, { summary?: string; signalsDetected?: string[] }>;
-  currentQuestion: string;
 };
 
 function emitVoiceSessionContext(
@@ -359,6 +65,8 @@ function emitVoiceSessionContext(
       instructions: buildVoiceSessionInstructions({
         intake: ctx.intake,
         transcriptEntries: ctx.transcriptEntries,
+        minuteSummaries: ctx.minuteSummaries,
+        finalSummary: ctx.finalSummary,
         completedBlocks: ctx.completedBlocks,
         currentQuestion: ctx.currentQuestion,
         latestUserSnippet: options?.latestUserSnippet,
@@ -385,108 +93,6 @@ function emitVoiceSessionContext(
   });
 }
 
-function summarizeVoiceInterviewContext(intake: unknown, transcriptEntries: Array<{ blockId?: string; answer?: string }>) {
-  const source = (intake ?? {}) as Record<string, unknown>;
-  const products = source.__productsContext as Record<string, unknown> | undefined;
-  const budget = source.__budgetContext as Record<string, unknown> | undefined;
-  const parts: string[] = [];
-  const knowledge =
-    source.financialKnowledge && typeof source.financialKnowledge === 'object'
-      ? (source.financialKnowledge as Record<string, unknown>)
-      : {};
-  const knownTopics = Object.entries(knowledge)
-    .filter(([, value]) => value === true)
-    .slice(0, 5)
-    .map(([key]) => key.replace(/([A-Z])/g, ' $1').trim().toLowerCase());
-
-  parts.push(
-    [
-      typeof source.age === 'number' ? `${source.age} años` : null,
-      source.profession ? `profesión ${String(source.profession)}` : null,
-      source.employmentStatus ? `situación ${String(source.employmentStatus).replace(/_/g, ' ')}` : null,
-      typeof source.exactMonthlyIncome === 'number'
-        ? `ingreso exacto ${formatMoneyCompact(source.exactMonthlyIncome)} CLP`
-        : source.incomeBand
-        ? `ingreso rango ${String(source.incomeBand)}`
-        : null,
-      source.expensesCoverage ? `cobertura ${String(source.expensesCoverage).replace(/_/g, ' ')}` : null,
-      typeof source.tracksExpenses === 'boolean' ? `registra gastos ${source.tracksExpenses ? 'sí' : 'no'}` : null,
-    ]
-      .filter(Boolean)
-      .join(', '),
-  );
-
-  parts.push(
-    [
-      typeof source.hasSavingsOrInvestments === 'boolean'
-        ? `ahorros/inversiones ${source.hasSavingsOrInvestments ? 'sí' : 'no'}`
-        : null,
-      source.savingsBand ? `tramo ahorro ${String(source.savingsBand)}` : null,
-      typeof source.exactSavingsAmount === 'number'
-        ? `ahorro exacto ${formatMoneyCompact(source.exactSavingsAmount)} CLP`
-        : null,
-      typeof source.hasDebt === 'boolean' ? `deuda activa ${source.hasDebt ? 'sí' : 'no'}` : null,
-    ]
-      .filter(Boolean)
-      .join(', '),
-  );
-
-  parts.push(
-    [
-      typeof source.moneyStressLevel === 'number' ? `estrés financiero ${source.moneyStressLevel}/10` : null,
-      source.selfRatedUnderstanding ? `comprensión ${String(source.selfRatedUnderstanding)}` : null,
-      source.riskReaction ? `reacción al riesgo ${String(source.riskReaction)}` : null,
-      knownTopics.length ? `temas dominados ${knownTopics.join(' | ')}` : null,
-    ]
-      .filter(Boolean)
-      .join(', '),
-  );
-
-  if (products && typeof products === 'object') {
-    const transactionSummary =
-      products.transactionSummary && typeof products.transactionSummary === 'object'
-        ? (products.transactionSummary as Record<string, unknown>)
-        : {};
-    const alerts = Array.isArray(transactionSummary.alerts)
-      ? transactionSummary.alerts.slice(0, 3).map((item) => String(item).trim()).filter(Boolean)
-      : [];
-    parts.push(
-      `Productos: ${Math.max(0, Number(products.productsCount ?? 0))}, producto activo: ${String(products.activeProductLabel ?? 'sin foco')}, flujo neto: ${formatMoneyCompact(transactionSummary.netFlow)} CLP, movimientos: ${Math.round(Number(transactionSummary.movementCount ?? 0))}`,
-    );
-    if (alerts.length > 0) {
-      parts.push(`Alertas detectadas: ${alerts.join(' | ')}`);
-    }
-  }
-
-  if (budget && typeof budget === 'object') {
-    const topRows = Array.isArray(budget.rows)
-      ? budget.rows
-          .slice(0, 5)
-          .map((row) => {
-            const item = row as Record<string, unknown>;
-            return `${String(item.category ?? 'item')}: ${formatMoneyCompact(item.amount)}`;
-          })
-          .join(' | ')
-      : '';
-    parts.push(
-      `Presupuesto: ingreso ${formatMoneyCompact(budget.income)} CLP, gasto ${formatMoneyCompact(budget.expenses)} CLP, balance ${formatMoneyCompact(budget.balance)} CLP, filas ${Math.round(Number(budget.rowsCount ?? 0))}`,
-    );
-    if (topRows) {
-      parts.push(`Renglones relevantes: ${topRows}`);
-    }
-  }
-
-  const priorAnswers = transcriptEntries
-    .filter((entry) => entry?.answer && String(entry.answer).trim())
-    .slice(-3)
-    .map((entry) => `${formatBlockLabel(entry.blockId)}: ${String(entry.answer).trim().slice(0, 180)}`);
-  if (priorAnswers.length > 0) {
-    parts.push(`Respuestas previas: ${priorAnswers.join(' | ')}`);
-  }
-
-  return parts.map((item) => item.trim()).filter(Boolean).join(' || ');
-}
-
 function formatClock(totalSeconds: number | null) {
   if (totalSeconds === null) return '—';
   const safe = Math.max(0, Math.floor(totalSeconds));
@@ -495,6 +101,65 @@ function formatClock(totalSeconds: number | null) {
 
 function wait(ms: number) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+function InterviewVoiceSummaryBlock(props: {
+  title: string;
+  items: InterviewVoiceSummaryEntry[];
+  fallbackText: string;
+}) {
+  const { title, items, fallbackText } = props;
+  return (
+    <div className="voice-call-transcript-card">
+      <span className="voice-call-transcript-label">{title}</span>
+      <div>
+        {items.length > 0 ? (
+          items.map((item) => (
+            <p key={`${title}-${item.minute}-${item.createdAt}`}>
+              Minuto {item.minute}: {item.summary}
+              {item.keyFindings.length ? ` | hallazgos: ${item.keyFindings.join(' | ')}` : ''}
+              {item.confidence ? ` | confianza: ${item.confidence}` : ''}
+            </p>
+          ))
+        ) : (
+          <p>{fallbackText}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function InterviewVoiceReportBlock(props: {
+  report: InterviewVoiceReport;
+  onOpenDiagnosis: () => void;
+  onClose: () => void;
+}) {
+  const { report, onOpenDiagnosis, onClose } = props;
+  return (
+    <section className="voice-call-shell interview-report-shell">
+      <div className="voice-call-transcript-card">
+        <p>{report.executive_report}</p>
+      </div>
+      {report.key_findings.length > 0 && (
+        <div className="voice-call-transcript-card">
+          <span className="voice-call-transcript-label">Hallazgos principales</span>
+          <ul>
+            {report.key_findings.map((finding) => (
+              <li key={finding}>{finding}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+      <div className="voice-call-actions">
+        <button type="button" className="summary-action-btn summary-action-accept" onClick={onOpenDiagnosis}>
+          Ver diagnóstico completo
+        </button>
+        <button type="button" className="summary-action-btn" onClick={onClose}>
+          Cerrar
+        </button>
+      </div>
+    </section>
+  );
 }
 
 export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) {
@@ -531,6 +196,8 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
   const [voiceAgentTranscript, setVoiceAgentTranscript] = useState('');
   const [voiceUserTranscript, setVoiceUserTranscript] = useState('');
   const [voicePartialTranscript, setVoicePartialTranscript] = useState('');
+  const [minuteSummaries, setMinuteSummaries] = useState<InterviewVoiceSummaryEntry[]>([]);
+  const [finalSummary, setFinalSummary] = useState<InterviewVoiceSnapshot['finalSummary']>(null);
   const [voicePaused, setVoicePaused] = useState(false);
   const [pauseUsed, setPauseUsed] = useState(false);
   const [callSeconds, setCallSeconds] = useState(0);
@@ -542,9 +209,10 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
   const [isFinalizingCall, setIsFinalizingCall] = useState(false);
   const [voiceReport, setVoiceReport] = useState<InterviewVoiceReport | null>(null);
   const [intakeReady, setIntakeReady] = useState(false);
-  const [microphoneReady, setMicrophoneReady] = useState(false);
   const [summaryComment, setSummaryComment] = useState('');
   const [summarySubmitting, setSummarySubmitting] = useState(false);
+  const [summaryGenerating, setSummaryGenerating] = useState(false);
+  const [voiceSessionReady, setVoiceSessionReady] = useState(false);
   const [isGeneratingDiagnosis, setIsGeneratingDiagnosis] = useState(false);
   const [bootError, setBootError] = useState<string | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
@@ -556,6 +224,8 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
   const voiceSessionContextRef = useRef<VoiceSessionContext>({
     intake: null,
     transcriptEntries: [],
+    minuteSummaries: [],
+    finalSummary: null,
     completedBlocks: {},
     currentQuestion: '',
   });
@@ -564,11 +234,10 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
   const voiceAutoFinalizeRef = useRef(false);
   const voiceFinalizeTriggeredRef = useRef(false);
   const closeoutPromptSentRef = useRef(false);
-  const voiceTranscriptRef = useRef({
-    agent: '',
-    user: '',
-    partial: '',
-  });
+  const pendingInitialResponseRef = useRef<{ question: string; resetTranscript: boolean } | null>(null);
+  const summaryRequestRef = useRef<{ kind: 'minute' | 'final'; minute?: number } | null>(null);
+  const summaryDraftRef = useRef('');
+  const summaryMinuteAppliedRef = useRef(0);
   const callSecondsRef = useRef(0);
 
   const currentQuestion =
@@ -596,28 +265,35 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
     voiceSessionContextRef.current = {
       intake,
       transcriptEntries,
+      minuteSummaries,
+      finalSummary,
       completedBlocks,
       currentQuestion,
     };
-  }, [intake, transcriptEntries, completedBlocks, currentQuestion]);
+  }, [intake, transcriptEntries, minuteSummaries, finalSummary, completedBlocks, currentQuestion]);
 
-  const hasCompletedVoiceInterview =
-    Boolean(latestDiagnosticProfileId) || Boolean(voiceReport?.executive_report);
-  const hasEverStartedVoiceCall =
-    Boolean(callId) || callsStarted > 0 || callSeconds > 0 || Boolean(voiceReport);
-  const hasRemainingInterviewTime =
-    remainingTotalSec === null ? callSeconds < maxCallDurationSec : remainingTotalSec > 0;
-  const hasLiveVoiceCall =
-    Boolean(callId) && !hasCompletedVoiceInterview && hasRemainingInterviewTime;
-  const isClosingWindow =
-    voiceConnected &&
-    hasRemainingInterviewTime &&
-    (remainingTotalSec ?? Math.max(0, maxCallDurationSec - callSeconds)) <= INTERVIEW_CLOSEOUT_BUFFER_SEC;
-  const voiceCallExhausted =
-    !hasCompletedVoiceInterview &&
-    !hasRemainingInterviewTime &&
-    Boolean(callId || callsStarted > 0 || callSeconds > 0 || voiceReport);
-  const voiceInterviewLocked = hasCompletedVoiceInterview || voiceCallExhausted;
+  const {
+    hasCompletedVoiceInterview,
+    hasEverStartedVoiceCall,
+    hasRemainingInterviewTime,
+    hasLiveVoiceCall,
+    isClosingWindow,
+    voiceCallExhausted,
+    voiceInterviewLocked,
+  } = resolveInterviewVoiceStateFlags({
+    latestDiagnosticProfileId,
+    voiceReportExecutiveReport: voiceReport?.executive_report ?? null,
+    callId,
+    callsStarted,
+    callSeconds,
+    minuteSummariesCount: minuteSummaries.length,
+    hasFinalSummary: Boolean(finalSummary),
+    hasVoiceReport: Boolean(voiceReport),
+    remainingTotalSec,
+    maxCallDurationSec,
+    closeoutBufferSec: INTERVIEW_CLOSEOUT_BUFFER_SEC,
+    voiceConnected,
+  });
 
   function handleUnauthorized(error: unknown) {
     if (error instanceof ApiHttpError && error.status === 401) {
@@ -644,10 +320,40 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
     setIntakeReady(false);
     setBootError(null);
     setSessionAlreadyCompleted(false);
+    setVoiceSessionReady(false);
+    setVoiceConnecting(false);
+    setVoiceConnected(false);
+    setVoiceListening(false);
+    setVoiceSpeaking(false);
+    setVoiceError(null);
+    setVoicePaused(false);
+    setPauseUsed(false);
+    setCallSeconds(0);
+    setMaxCallDurationSec(DEFAULT_MAX_CALL_DURATION_SEC);
+    setRemainingTotalSec(null);
+    setCallId(null);
+    setCallsStarted(0);
+    setLatestDiagnosticProfileId(null);
+    setIsFinalizingCall(false);
+    setIsGeneratingDiagnosis(false);
+    setSummaryComment('');
+    setSummarySubmitting(false);
+    setSummaryGenerating(false);
+    setSyncError(null);
+    setVoiceReport(null);
+    setMinuteSummaries([]);
+    setFinalSummary(null);
+    setVoiceAgentTranscript('');
+    setVoiceUserTranscript('');
+    setVoicePartialTranscript('');
     voiceStateHydratedRef.current = false;
     voiceAutoFinalizeRef.current = false;
     voiceFinalizeTriggeredRef.current = false;
     closeoutPromptSentRef.current = false;
+    pendingInitialResponseRef.current = null;
+    summaryRequestRef.current = null;
+    summaryDraftRef.current = '';
+    summaryMinuteAppliedRef.current = 0;
 
     async function hydrateInterviewContext() {
       try {
@@ -690,10 +396,8 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
 
           /**
            * Merge strategy (senior rule):
-           *   - Server (sessionVoice) is the source of truth for quota/timer fields:
-           *     callsStarted, remainingTotalSec, maxDurationSec, status, completedAt, voiceReport, activeCallId.
-           *   - Local sessionStorage wins only for transcript fields (not yet synced to server):
-           *     voiceAgentTranscript, voiceUserTranscript, voicePartialTranscript.
+           *   - Server (sessionVoice) is the source of truth for quota/timer fields and stored summaries.
+           *   - Local sessionStorage may have fresher summaries while sync is pending.
            *   - callSeconds: take the larger of both (most recent progress).
            */
           const snapshot: InterviewVoiceSnapshot | null =
@@ -709,6 +413,8 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
                         status: sessionVoice.status ?? localSaved?.status,
                         completedAt: sessionVoice.completedAt ?? localSaved?.completedAt,
                         voiceReport: sessionVoice.voiceReport ?? localSaved?.voiceReport,
+                        minuteSummaries: sessionVoice.minuteSummaries ?? localSaved?.minuteSummaries,
+                        finalSummary: sessionVoice.finalSummary ?? localSaved?.finalSummary ?? null,
                         callId: sessionVoice.activeCallId ?? sessionVoice.callId ?? localSaved?.callId,
                         callSeconds: Math.max(
                           Number(sessionVoice.callSeconds ?? 0),
@@ -717,19 +423,6 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
                         pauseUsed: sessionVoice.pauseUsed ?? localSaved?.pauseUsed,
                       }
                     : {}),
-                  // --- Local wins for transcripts (more up-to-date before server sync) ---
-                  voiceAgentTranscript:
-                    localSaved?.voiceAgentTranscript ||
-                    sessionVoice?.voiceAgentTranscript ||
-                    undefined,
-                  voiceUserTranscript:
-                    localSaved?.voiceUserTranscript ||
-                    sessionVoice?.voiceUserTranscript ||
-                    undefined,
-                  voicePartialTranscript:
-                    localSaved?.voicePartialTranscript ||
-                    sessionVoice?.voicePartialTranscript ||
-                    undefined,
                 } as InterviewVoiceSnapshot)
               : null;
 
@@ -756,14 +449,20 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
               setCallId(snapshot.activeCallId);
             }
             if (typeof snapshot.pauseUsed === 'boolean') setPauseUsed(snapshot.pauseUsed);
-            if (typeof snapshot.voiceAgentTranscript === 'string') {
-              setVoiceAgentTranscript(snapshot.voiceAgentTranscript);
+            if (Array.isArray(snapshot.minuteSummaries)) {
+              setMinuteSummaries(snapshot.minuteSummaries as InterviewVoiceSummaryEntry[]);
+              summaryMinuteAppliedRef.current = Math.max(
+                summaryMinuteAppliedRef.current,
+                ...(snapshot.minuteSummaries as InterviewVoiceSummaryEntry[]).map((item) => Number(item.minute ?? 0)),
+              );
+              setVoiceUserTranscript(
+                (snapshot.minuteSummaries as InterviewVoiceSummaryEntry[])
+                  .map((item) => `Minuto ${item.minute}: ${item.summary}`)
+                  .join('\n\n'),
+              );
             }
-            if (typeof snapshot.voiceUserTranscript === 'string') {
-              setVoiceUserTranscript(snapshot.voiceUserTranscript);
-            }
-            if (typeof snapshot.voicePartialTranscript === 'string') {
-              setVoicePartialTranscript(snapshot.voicePartialTranscript);
+            if (snapshot.finalSummary) {
+              setFinalSummary(snapshot.finalSummary);
             }
             if (snapshot.voiceReport && typeof snapshot.voiceReport === 'object') {
               setVoiceReport(snapshot.voiceReport);
@@ -809,6 +508,7 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
     if (isOpen) return;
     setIsGeneratingDiagnosis(false);
     setSyncError(null);
+    cleanupVoiceSession();
   }, [isOpen]);
 
   useEffect(() => {
@@ -826,7 +526,7 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
       if (event.key === 'Escape') {
         if (isGeneratingDiagnosis || isFinalizingCall || voiceConnected || voiceConnecting) return;
         event.preventDefault();
-        onClose();
+        handleOverlayDismiss();
         return;
       }
       if (event.key !== 'Tab') return;
@@ -941,9 +641,8 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
       callId,
       activeCallId: callId ?? undefined,
       pauseUsed,
-      voiceAgentTranscript,
-      voiceUserTranscript,
-      voicePartialTranscript,
+      minuteSummaries,
+      finalSummary,
       voiceReport,
       updatedAt: new Date().toISOString(),
     });
@@ -955,19 +654,10 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
     remainingTotalSec,
     callId,
     pauseUsed,
-    voiceAgentTranscript,
-    voiceUserTranscript,
-    voicePartialTranscript,
+    minuteSummaries,
+    finalSummary,
     voiceReport,
   ]);
-
-  useEffect(() => {
-    voiceTranscriptRef.current = {
-      agent: voiceAgentTranscript,
-      user: voiceUserTranscript,
-      partial: voicePartialTranscript,
-    };
-  }, [voiceAgentTranscript, voiceUserTranscript, voicePartialTranscript]);
 
   useEffect(() => {
     callSecondsRef.current = callSeconds;
@@ -979,9 +669,8 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
 
     const hasContent =
       Boolean(callId) ||
-      Boolean(voiceAgentTranscript.trim()) ||
-      Boolean(voiceUserTranscript.trim()) ||
-      Boolean(voicePartialTranscript.trim()) ||
+      minuteSummaries.length > 0 ||
+      Boolean(finalSummary) ||
       Boolean(voiceReport);
     if (!hasContent) return;
 
@@ -1008,17 +697,9 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
             ? null
             : Math.min(DEFAULT_MAX_CALL_DURATION_SEC, remainingTotalSec),
         pauseUsed,
-        voiceAgentTranscript,
-        voiceUserTranscript,
-        voicePartialTranscript,
+        minuteSummaries,
+        finalSummary,
         completedAt: voiceReport ? new Date().toISOString() : undefined,
-        transcript: [
-          voiceAgentTranscript ? `AGENTE:\n${voiceAgentTranscript}` : '',
-          voiceUserTranscript ? `USUARIO:\n${voiceUserTranscript}` : '',
-        ]
-          .filter(Boolean)
-          .join('\n\n')
-          .trim(),
         voiceReport,
       };
 
@@ -1040,9 +721,8 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
     maxCallDurationSec,
     remainingTotalSec,
     pauseUsed,
-    voiceAgentTranscript,
-    voiceUserTranscript,
-    voicePartialTranscript,
+    minuteSummaries,
+    finalSummary,
     voiceReport,
     voiceConnected,
     voicePaused,
@@ -1084,7 +764,6 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
         if (next >= maxCallDurationSec) {
           window.clearInterval(timer);
           setRemainingTotalSec(0);
-          void finalizeCallAndGenerateReport('timeout', { durationSecOverride: next });
         }
         return next;
       });
@@ -1093,26 +772,24 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
   }, [isOpen, voiceConnected, voicePaused, maxCallDurationSec]);
 
   useEffect(() => {
+    if (!isOpen || !voiceConnected || voicePaused || voiceSpeaking || summaryGenerating || isFinalizingCall || voiceCallExhausted) return;
+    const elapsedMinute = Math.max(0, Math.floor(callSeconds / 60));
+    if (elapsedMinute <= 0) return;
+    if (elapsedMinute <= summaryMinuteAppliedRef.current) return;
+    void requestVoiceSummary('minute', elapsedMinute);
+  }, [isOpen, voiceConnected, voicePaused, voiceSpeaking, summaryGenerating, callSeconds, voiceCallExhausted, isFinalizingCall]);
+
+  useEffect(() => {
     if (!isOpen || voiceReport || !voiceCallExhausted || isFinalizingCall) return;
+    if (!finalSummary && !summaryRequestRef.current && !summaryGenerating) {
+      void requestVoiceSummary('final');
+      return;
+    }
     if (voiceAutoFinalizeRef.current) return;
-
-    const persistedState = readInterviewVoiceState();
-    const transcript = [
-      voiceTranscriptRef.current.agent,
-      voiceTranscriptRef.current.user,
-      voiceTranscriptRef.current.partial,
-      typeof persistedState?.transcript === 'string' ? persistedState.transcript : '',
-    ]
-      .map((item) => String(item ?? '').trim())
-      .filter(Boolean)
-      .join('\n\n')
-      .trim();
-
-    if (transcript.length < 10) return;
 
     voiceAutoFinalizeRef.current = true;
     void finalizeCallAndGenerateReport('timeout');
-  }, [isOpen, voiceCallExhausted, voiceReport, isFinalizingCall]);
+  }, [isOpen, voiceCallExhausted, voiceReport, finalSummary, summaryGenerating, isFinalizingCall]);
 
   useEffect(() => {
     if (!isOpen || !isClosingWindow || closeoutPromptSentRef.current) return;
@@ -1127,7 +804,7 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
   // Auto-finalize on agent completion signal
   useEffect(() => {
     const normalized = voiceAgentTranscript.toUpperCase();
-    if (!voiceConnected || isFinalizingCall || voiceFinalizeTriggeredRef.current) return;
+    if (!voiceConnected || isFinalizingCall || voiceFinalizeTriggeredRef.current || summaryRequestRef.current) return;
     if (!normalized.includes('<<CALL_COMPLETE>>')) return;
     voiceFinalizeTriggeredRef.current = true;
     void finalizeCallAndGenerateReport('agent');
@@ -1141,22 +818,17 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
 
   function handleOverlayDismiss() {
     if (!canDismissOverlay) return;
+    cleanupVoiceSession();
     onClose();
   }
 
   const blockId = lastResponse?.blockId;
   const answersInBlock = blockId ? answersByBlock[blockId] ?? [] : [];
-  const hasSavedVoiceState =
-    Boolean(callId) ||
-    callSeconds > 0 ||
-    Boolean(voiceAgentTranscript.trim()) ||
-    Boolean(voiceUserTranscript.trim()) ||
-    Boolean(voicePartialTranscript.trim()) ||
-    Boolean(voiceReport);
-
   const stageLabel =
     voiceReport?.executive_report
       ? 'Diagnóstico listo'
+      : finalSummary
+      ? 'Síntesis lista'
       : voiceCallExhausted
       ? 'Llamada agotada'
       : voiceConnected
@@ -1177,7 +849,6 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
   ].filter(Boolean) as string[];
 
   const interviewContextSummary = summarizeVoiceInterviewContext(intake, transcriptEntries);
-  const voiceKnowledgePacket = buildVoiceInterviewDossier(intake, transcriptEntries, completedBlocks);
   const enrichedIntake = intake as Record<string, unknown> | null;
   const productsContext = enrichedIntake?.__productsContext as Record<string, unknown> | undefined;
   const budgetContext = enrichedIntake?.__budgetContext as Record<string, unknown> | undefined;
@@ -1213,19 +884,162 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
     },
     {
       label: 'Cierre',
-      value: voiceReport ? 'Informe listo' : awaitingSummaryValidation ? 'Validación pendiente' : isClosingWindow ? 'Ventana final' : 'Exploración abierta',
-      tone: isClosingWindow ? 'is-closing' : voiceReport ? 'is-done' : '',
+      value: voiceReport ? 'Informe listo' : finalSummary ? 'Síntesis lista' : awaitingSummaryValidation ? 'Validación pendiente' : isClosingWindow ? 'Ventana final' : 'Exploración abierta',
+      tone: isClosingWindow ? 'is-closing' : voiceReport || finalSummary ? 'is-done' : '',
     },
   ];
   const workspaceCoachNote = awaitingSummaryValidation
     ? 'Puedes validar el bloque en paralelo. La llamada sigue disponible.'
     : voiceConnected
-    ? 'Responde con ejemplos concretos. El entrevistador ya tiene tu intake, presupuesto y cartolas.'
+    ? 'Responde con ejemplos concretos. El entrevistador ya tiene tu intake, presupuesto, cartolas y síntesis de llamada.'
     : hasEverStartedVoiceCall
     ? 'Puedes retomar la llamada donde quedó.'
     : 'Inicia la llamada para una entrevista ejecutiva breve con contexto completo.';
 
   const callProgressPct = Math.max(0, Math.min(100, Math.round((callSeconds / Math.max(1, maxCallDurationSec)) * 100)));
+
+  function normalizeSummaryText(value: unknown) {
+    return String(value ?? '')
+      .trim()
+      .replace(/\s+\n/g, '\n')
+      .replace(/\n{3,}/g, '\n\n');
+  }
+
+  function buildSummaryInstructions(kind: 'minute' | 'final', minute?: number) {
+    const targetMinute = typeof minute === 'number' ? minute : Math.max(1, Math.ceil(callSecondsRef.current / 60));
+    return [
+      'Eres un sintetizador ejecutivo de una entrevista financiera en tiempo real.',
+      'No transcribas literalmente. Resume el contenido con precisión, sin inventar datos.',
+      'Devuelve SOLO JSON válido, sin markdown ni explicación adicional.',
+      'Esquema requerido:',
+      '{"minute":number,"summary":"string","keyFindings":["string"],"confidence":"high|medium|low","nextFocus":"string"}',
+      'Reglas:',
+      '- summary: 2 a 4 frases cortas, chileno profesional, foco ejecutivo.',
+      '- keyFindings: 2 a 5 bullets en formato string.',
+      '- nextFocus: la mejor próxima línea de profundización.',
+      kind === 'minute'
+        ? `Objeto para síntesis intermedia del minuto ${targetMinute}.`
+        : 'Objeto para síntesis final de la llamada completa.',
+      `Contexto activo del bloque: ${currentBlockLabel}.`,
+      currentQuestion ? `Pregunta activa: ${currentQuestion}` : 'Sin pregunta activa concreta.',
+    ].join('\n');
+  }
+
+  function parseSummaryPayload(payload: Record<string, unknown>, fallbackMinute: number) {
+    const text =
+      typeof payload.text === 'string'
+        ? payload.text
+        : typeof payload.delta === 'string'
+        ? payload.delta
+        : typeof payload.content === 'string'
+        ? payload.content
+        : '';
+    const trimmed = normalizeSummaryText(text);
+    if (!trimmed) return null;
+    try {
+      const parsed = JSON.parse(trimmed) as Record<string, unknown>;
+      const summary = normalizeSummaryText(parsed.summary ?? parsed.summaryText ?? trimmed);
+      const keyFindings = Array.isArray(parsed.keyFindings)
+        ? parsed.keyFindings.map((item) => normalizeSummaryText(item)).filter(Boolean).slice(0, 5)
+        : [];
+      const minute = Number.isFinite(Number(parsed.minute)) ? Math.max(1, Math.floor(Number(parsed.minute))) : fallbackMinute;
+      const confidence =
+        parsed.confidence === 'high' || parsed.confidence === 'medium' || parsed.confidence === 'low'
+          ? parsed.confidence
+          : undefined;
+      return {
+        minute,
+        summary,
+        keyFindings,
+        confidence,
+        createdAt: new Date().toISOString(),
+      } satisfies InterviewVoiceSummaryEntry;
+    } catch {
+      return {
+        minute: fallbackMinute,
+        summary: trimmed,
+        keyFindings: [],
+        confidence: undefined,
+        createdAt: new Date().toISOString(),
+      } satisfies InterviewVoiceSummaryEntry;
+    }
+  }
+
+  function commitVoiceSummary(entry: InterviewVoiceSummaryEntry, kind: 'minute' | 'final') {
+    if (!entry.summary.trim()) return;
+    if (kind === 'final') {
+      setFinalSummary({
+        summary: entry.summary,
+        keyFindings: entry.keyFindings,
+        confidence: entry.confidence,
+        createdAt: entry.createdAt,
+      });
+      setVoiceUserTranscript(entry.summary);
+      setVoicePartialTranscript('');
+      return;
+    }
+
+    setMinuteSummaries((prev) => {
+      const merged = [...prev.filter((item) => item.minute !== entry.minute), entry].sort((a, b) => a.minute - b.minute);
+      const latestMinute = merged[merged.length - 1]?.minute ?? 0;
+      summaryMinuteAppliedRef.current = Math.max(summaryMinuteAppliedRef.current, latestMinute);
+      return merged;
+    });
+    setVoiceUserTranscript((prev) => {
+      const nextLine = `Minuto ${entry.minute}: ${entry.summary}`;
+      return prev.trim() ? `${prev.trim()}\n\n${nextLine}` : nextLine;
+    });
+  }
+
+  async function applyLatestVoiceSummaryAsAnswer() {
+    const currentSummaryEntry = minuteSummaries[minuteSummaries.length - 1] ?? null;
+    const clean = normalizeSummaryText(currentSummaryEntry?.summary ?? finalSummary?.summary ?? '');
+    if (!clean || !blockId || awaitingSummaryValidation) return;
+
+    addAnswer(blockId, clean);
+
+    try {
+      const nextInterviewTranscript = [
+        interviewTranscriptSnapshot,
+        `SINTESIS [${blockId}]: ${clean}`,
+      ]
+        .filter(Boolean)
+        .join('\n')
+        .trim();
+
+      const res = await nextConversationStep({
+        intake,
+        blockId,
+        answersInCurrentBlock: [...answersInBlock, clean],
+        completedBlocks,
+        interviewTranscript: nextInterviewTranscript,
+      });
+
+      setResponse(res);
+      if (res?.blockId) resetBlock(res.blockId);
+    } catch (error) {
+      if (handleUnauthorized(error)) return;
+      setBootError(toUserFacingError(error, 'interview.voice'));
+    }
+  }
+
+  async function requestVoiceSummary(kind: 'minute' | 'final', minute?: number) {
+    if (!voiceConnected || voiceConnecting || isFinalizingCall || summaryGenerating) return false;
+    if (!voiceSessionReady) return false;
+    if (summaryRequestRef.current) return false;
+
+    summaryRequestRef.current = { kind, minute };
+    summaryDraftRef.current = '';
+    setSummaryGenerating(true);
+    sendVoiceEvent({
+      type: 'response.create',
+      response: {
+        output_modalities: ['text'],
+        instructions: buildSummaryInstructions(kind, minute),
+      },
+    });
+    return true;
+  }
 
   function nextVoiceEventId() {
     eventIdRef.current += 1;
@@ -1238,9 +1052,13 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
     setVoiceListening(false);
     setVoiceSpeaking(false);
     setVoicePaused(false);
-    setMicrophoneReady(false);
+    setVoiceError(null);
+    setSummaryGenerating(false);
+    setVoiceSessionReady(false);
     voiceResumeModeRef.current = false;
     closeoutPromptSentRef.current = false;
+    summaryRequestRef.current = null;
+    summaryDraftRef.current = '';
     if (dataChannelRef.current && dataChannelRef.current.readyState === 'open') {
       try { dataChannelRef.current.close(); } catch {}
     }
@@ -1280,7 +1098,6 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
       `Profundiza el bloque ${currentBlockLabel.toLowerCase()} cruzando intake, presupuesto y productos.`;
     if (options?.resetTranscript !== false) {
       setVoiceAgentTranscript('');
-      setVoiceUserTranscript('');
       setVoicePartialTranscript('');
     }
     pushVoiceSessionContext({ startingFocus, triggerResponse: true });
@@ -1318,7 +1135,6 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
     stream.getAudioTracks().forEach((track) => {
       track.enabled = true;
     });
-    setMicrophoneReady(true);
     setVoicePaused(false);
     setVoiceConnected(true);
     setVoiceConnecting(false);
@@ -1357,9 +1173,8 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
         !voiceReport &&
         (Boolean(callId) ||
           callSeconds > 0 ||
-          Boolean(voiceAgentTranscript.trim()) ||
-          Boolean(voiceUserTranscript.trim()) ||
-          Boolean(voicePartialTranscript.trim()));
+          minuteSummaries.length > 0 ||
+          Boolean(finalSummary));
       const nextCallId = tokenCallId ?? (hasPersistedCall ? callId : null) ?? null;
       voiceResumeModeRef.current = hasPersistedCall;
       tokenIssuedRef.current = true;
@@ -1385,11 +1200,24 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
         setCallSeconds(0);
         setPauseUsed(false);
         setVoiceReport(null);
+        setMinuteSummaries([]);
+        setFinalSummary(null);
         setVoiceAgentTranscript('');
         setVoiceUserTranscript('');
         setVoicePartialTranscript('');
       } else {
-        setVoiceReport((token?.interview_voice?.voiceReport as InterviewVoiceReport | undefined) ?? voiceReport ?? null);
+        setMinuteSummaries(
+          (token?.interview_voice?.minuteSummaries as InterviewVoiceSummaryEntry[] | undefined) ??
+            minuteSummaries,
+        );
+        setFinalSummary(
+          (token?.interview_voice?.finalSummary as InterviewVoiceSnapshot['finalSummary']) ??
+            finalSummary ??
+            null,
+        );
+        setVoiceReport(
+          (token?.interview_voice?.voiceReport as InterviewVoiceReport | undefined) ?? voiceReport ?? null,
+        );
       }
 
       const pc = new RTCPeerConnection();
@@ -1403,7 +1231,6 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
 
       const stream = localStreamRef.current ?? (await navigator.mediaDevices.getUserMedia({ audio: true }));
       localStreamRef.current = stream;
-      setMicrophoneReady(true);
       stream.getTracks().forEach((track) => pc.addTrack(track, stream));
 
       const dc = pc.createDataChannel('oai-events');
@@ -1414,7 +1241,15 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
         tokenIssuedRef.current = false;
         setVoiceConnected(true);
         setVoiceConnecting(false);
-        primeVoiceQuestion(currentQuestion, { resetTranscript: !hasPersistedCall });
+        pendingInitialResponseRef.current = {
+          question: currentQuestion,
+          resetTranscript: !hasPersistedCall,
+        };
+        emitVoiceSessionContext(sendVoiceEventRef.current, voiceSessionContextRef.current, {
+          startingFocus:
+            currentQuestion || `Profundiza el bloque ${currentBlockLabel.toLowerCase()} cruzando intake, presupuesto y productos.`,
+          triggerResponse: false,
+        });
       });
 
       dc.addEventListener('close', () => { cleanupVoiceSession(); });
@@ -1427,22 +1262,53 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
           if (type === 'input_audio_buffer.speech_started') setVoiceListening(true);
           if (type === 'input_audio_buffer.speech_stopped') setVoiceListening(false);
           if (type === 'response.created') setVoiceSpeaking(true);
-          if (type === 'response.done') setVoiceSpeaking(false);
-          if (type === 'response.audio_transcript.delta' && typeof payload.delta === 'string') {
-            setVoiceAgentTranscript((prev) => appendTranscriptChunk(prev, payload.delta));
+          if (type === 'session.updated') {
+            setVoiceSessionReady(true);
+            const pending = pendingInitialResponseRef.current;
+            if (pending) {
+              pendingInitialResponseRef.current = null;
+              primeVoiceQuestion(pending.question, { resetTranscript: pending.resetTranscript });
+            }
           }
-          if (
-            type === 'conversation.item.input_audio_transcription.completed' &&
-            typeof payload.transcript === 'string'
-          ) {
-            setVoiceUserTranscript((prev) => appendTranscriptChunk(prev, payload.transcript));
-            setVoicePartialTranscript('');
+          if (type === 'response.output_text.delta' || type === 'response.text.delta') {
+            const chunk = normalizeSummaryText(payload.delta ?? payload.text ?? '');
+            if (chunk) {
+              summaryDraftRef.current = summaryDraftRef.current
+                ? `${summaryDraftRef.current} ${chunk}`.trim()
+                : chunk;
+              setVoiceAgentTranscript(summaryDraftRef.current);
+            }
           }
-          if (
-            type === 'conversation.item.input_audio_transcription.delta' &&
-            typeof payload.delta === 'string'
-          ) {
-            setVoicePartialTranscript((prev) => appendTranscriptChunk(prev, payload.delta));
+          if (type === 'response.output_text.done' || type === 'response.text.done') {
+            const doneChunk = normalizeSummaryText(payload.text ?? payload.output_text ?? payload.output ?? '');
+            if (doneChunk && !summaryDraftRef.current) {
+              summaryDraftRef.current = doneChunk;
+              setVoiceAgentTranscript(doneChunk);
+            }
+          }
+          if (type === 'response.done') {
+            setVoiceSpeaking(false);
+            const responseStatus = String(payload?.response?.status ?? '');
+            const activeRequest = summaryRequestRef.current;
+            if (activeRequest) {
+              const parsed = parseSummaryPayload(
+                { ...(payload?.response ?? {}), text: summaryDraftRef.current },
+                activeRequest.minute ?? Math.max(1, Math.ceil(callSecondsRef.current / 60)),
+              );
+              if (responseStatus === 'completed' && parsed) {
+                commitVoiceSummary(parsed, activeRequest.kind);
+              } else if (responseStatus && responseStatus !== 'completed') {
+                setVoiceError(
+                  `No se pudo consolidar la síntesis (${responseStatus}). La llamada sigue activa y se reintentará en el siguiente ciclo.`,
+                );
+              }
+              summaryRequestRef.current = null;
+              summaryDraftRef.current = '';
+              setSummaryGenerating(false);
+            }
+            if (typeof payload?.response?.status === 'string' && payload.response.status !== 'completed') {
+              console.warn('[InterviewModal] Realtime response ended with status:', payload.response.status);
+            }
           }
         } catch (parseErr) {
           console.error('[InterviewModal] DataChannel message parse error:', parseErr);
@@ -1524,42 +1390,31 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
     setIsGeneratingDiagnosis(true);
     cleanupVoiceSession();
     try {
-      const latestTranscript = voiceTranscriptRef.current;
-      const rawTranscript = [
-        latestTranscript.agent ? `AGENTE:\n${latestTranscript.agent}` : '',
-        latestTranscript.user ? `USUARIO:\n${latestTranscript.user}` : '',
-        latestTranscript.partial ? `PARCIAL:\n${latestTranscript.partial}` : '',
-      ]
-        .filter(Boolean)
-        .join('\n\n')
-        .trim();
-      const persistedState = readInterviewVoiceState();
-      const persistedTranscript =
-        typeof persistedState?.transcript === 'string' ? persistedState.transcript.trim() : '';
-      const interviewFlowFallback = [
-        currentQuestion ? `ULTIMA_PREGUNTA_PLANIFICADA:\n${currentQuestion}` : '',
-        currentSummary ? `RESUMEN_ACTIVO:\n${currentSummary}` : '',
-        interviewTranscriptSnapshot ? `HISTORIAL_ENTREVISTA:\n${interviewTranscriptSnapshot}` : '',
-        voiceKnowledgePacket ? `CONTEXTO_USUARIO:\n${voiceKnowledgePacket}` : '',
-        'NOTA: si la transcripción de audio es parcial, igual debes consolidar diagnóstico con el contexto estructurado disponible.',
-      ]
-        .filter(Boolean)
-        .join('\n\n')
-        .trim();
-      const finalTranscript = [rawTranscript, persistedTranscript, interviewFlowFallback]
-        .filter((item) => String(item || '').trim().length > 0)
-        .join('\n\n')
-        .trim();
-      const safeTranscript =
-        finalTranscript.length >= 10
-          ? finalTranscript
-          : [
-              'TRANSCRIPCION_MINIMA:',
-              'La llamada finalizó antes de consolidar suficiente audio limpio.',
-              interviewFlowFallback || 'Se debe diagnosticar con intake y contexto estructurado disponible.',
-            ]
-              .filter(Boolean)
-              .join('\n');
+      const minuteSummaryPayload = minuteSummaries.map((item, index) => ({
+        minute: typeof item.minute === 'number' ? item.minute : index + 1,
+        summary: normalizeSummaryText(item.summary),
+        keyFindings: Array.isArray(item.keyFindings) ? item.keyFindings.map((finding) => normalizeSummaryText(finding)).filter(Boolean) : [],
+        confidence: item.confidence ?? 'medium',
+        createdAt: item.createdAt ?? new Date().toISOString(),
+      })).filter((item) => item.summary.length > 0);
+      const fallbackFinalSummary =
+        finalSummary?.summary?.trim()
+          ? {
+              summary: normalizeSummaryText(finalSummary.summary),
+              keyFindings: Array.isArray(finalSummary.keyFindings)
+                ? finalSummary.keyFindings.map((item) => normalizeSummaryText(item)).filter(Boolean)
+                : [],
+              confidence: finalSummary.confidence,
+              createdAt: finalSummary.createdAt ?? new Date().toISOString(),
+            }
+          : minuteSummaryPayload.length > 0
+          ? {
+              summary: minuteSummaryPayload[minuteSummaryPayload.length - 1].summary,
+              keyFindings: minuteSummaryPayload[minuteSummaryPayload.length - 1].keyFindings,
+              confidence: minuteSummaryPayload[minuteSummaryPayload.length - 1].confidence,
+              createdAt: new Date().toISOString(),
+            }
+          : null;
 
       let result: Awaited<ReturnType<typeof finalizeInterviewVoiceCall>> | null = null;
       let lastError: unknown = null;
@@ -1567,7 +1422,8 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
         try {
           result = await finalizeInterviewVoiceCall({
             intake,
-            transcript: safeTranscript,
+            minuteSummaries: minuteSummaryPayload,
+            finalSummary: fallbackFinalSummary ?? undefined,
             endedBy,
             durationSec: Math.max(
               1,
@@ -1591,15 +1447,43 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
       if (result?.type === 'interview_complete') setResponse(result);
 
       const interviewVoice = result?.interview_voice;
+      const voiceSummary = result?.voice_summary;
       if (typeof interviewVoice?.call_id === 'string' && interviewVoice.call_id.length > 0) {
         setCallId(interviewVoice.call_id);
       }
       if (typeof interviewVoice?.remaining_total_sec === 'number') {
         setRemainingTotalSec(Math.max(0, Math.floor(interviewVoice.remaining_total_sec)));
       }
+      if (Array.isArray(interviewVoice?.minute_summaries)) {
+        const nextMinuteSummaries = interviewVoice.minute_summaries.map((item: any, index: number) => ({
+          minute: typeof item?.minute === 'number' ? item.minute : index + 1,
+          summary: String(item?.summary ?? '').trim(),
+          keyFindings: Array.isArray(item?.key_findings) ? item.key_findings.map((finding: unknown) => String(finding)) : [],
+          confidence:
+            item?.confidence === 'high' || item?.confidence === 'medium' || item?.confidence === 'low'
+              ? item.confidence
+              : undefined,
+          createdAt: new Date().toISOString(),
+        }));
+        setMinuteSummaries(nextMinuteSummaries);
+      }
+      if (typeof interviewVoice?.final_summary === 'string' && interviewVoice.final_summary.trim().length > 0) {
+        const createdAt = new Date().toISOString();
+        setFinalSummary({
+          summary: interviewVoice.final_summary.trim(),
+          keyFindings: voiceSummary?.key_findings ?? [],
+          confidence:
+            voiceSummary?.confidence === 'high' ||
+            voiceSummary?.confidence === 'medium' ||
+            voiceSummary?.confidence === 'low'
+              ? voiceSummary.confidence
+              : undefined,
+          createdAt,
+        });
+      }
       setCallsStarted((prev) => Math.max(prev, 1));
 
-      const report = result?.voice_report;
+      const report = voiceSummary;
       const executiveReport =
         typeof report?.executive_report === 'string' && report.executive_report.trim().length > 0
           ? report.executive_report.trim()
@@ -1636,34 +1520,7 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
   }
 
   async function applyVoiceTranscriptAsAnswer() {
-    const clean = (voiceUserTranscript || voicePartialTranscript).trim();
-    if (!clean || !blockId || awaitingSummaryValidation) return;
-
-    addAnswer(blockId, clean);
-
-    try {
-      const nextInterviewTranscript = [
-        interviewTranscriptSnapshot,
-        `USUARIO [${blockId}]: ${clean}`,
-      ]
-        .filter(Boolean)
-        .join('\n')
-        .trim();
-
-      const res = await nextConversationStep({
-        intake,
-        blockId,
-        answersInCurrentBlock: [...answersInBlock, clean],
-        completedBlocks,
-        interviewTranscript: nextInterviewTranscript,
-      });
-
-      setVoiceUserTranscript('');
-      setVoicePartialTranscript('');
-      setResponse(res);
-    } catch (error) {
-      if (handleUnauthorized(error)) return;
-    }
+    return applyLatestVoiceSummaryAsAnswer();
   }
 
   async function submitSummaryValidation(accepted: boolean) {
@@ -1736,7 +1593,7 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
             type="button"
             className="agent-modal-close"
             ref={closeButtonRef}
-            onClick={canDismissOverlay ? onClose : undefined}
+            onClick={canDismissOverlay ? handleOverlayDismiss : undefined}
             disabled={!canDismissOverlay}
             aria-label="Cerrar entrevista"
           >
@@ -1769,13 +1626,13 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
                 type="button"
                 className="summary-action-btn summary-action-accept"
                 onClick={() => {
-                  onClose();
+                  handleOverlayDismiss();
                   router.push('/diagnosis');
                 }}
               >
                 Ver diagnóstico completo
               </button>
-              <button type="button" className="summary-action-btn" onClick={onClose}>
+              <button type="button" className="summary-action-btn" onClick={handleOverlayDismiss}>
                 Cerrar
               </button>
             </div>
@@ -1989,13 +1846,13 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
                 </div>
 
                 <div className="voice-call-actions interview-call-actions interview-call-actions--secondary">
-                  {(voiceUserTranscript || voicePartialTranscript) && blockId ? (
+                  {(minuteSummaries.length > 0 || finalSummary) && blockId ? (
                     <button
                       type="button"
                       className="summary-action-btn summary-action-reject"
                       onClick={() => void applyVoiceTranscriptAsAnswer()}
                     >
-                      Usar transcripción
+                      Usar síntesis
                     </button>
                   ) : null}
                   {voiceCallExhausted && !showVoiceReport && !voiceConnected && !isFinalizingCall ? (
@@ -2035,63 +1892,35 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
 
                 {voiceError ? <p className="voice-call-error interview-call-error-banner">{voiceError}</p> : null}
 
-                {(voiceConnected || voiceUserTranscript || voicePartialTranscript || voiceAgentTranscript) && (
+                {(voiceConnected || minuteSummaries.length > 0 || finalSummary || voiceAgentTranscript) && (
                   <div className="voice-call-transcripts">
+                    <InterviewVoiceSummaryBlock
+                      title="Síntesis por minuto"
+                      items={minuteSummaries.slice(-2)}
+                      fallbackText="La síntesis acumulada aparecerá aquí."
+                    />
                     <div className="voice-call-transcript-card">
-                      <span className="voice-call-transcript-label">Agente</span>
-                      <p>{voiceAgentTranscript || 'La pregunta hablada aparecerá aquí.'}</p>
-                    </div>
-                    <div className="voice-call-transcript-card">
-                      <span className="voice-call-transcript-label">Tu voz</span>
-                      <p>{voiceUserTranscript || voicePartialTranscript || 'Cuando hables, la transcripción se mostrará aquí.'}</p>
+                      <span className="voice-call-transcript-label">Síntesis final</span>
+                      <p>
+                        {finalSummary?.summary ||
+                          voiceUserTranscript ||
+                          voicePartialTranscript ||
+                          'Cuando cierre la entrevista, verás la síntesis ejecutiva aquí.'}
+                      </p>
                     </div>
                   </div>
                 )}
               </section>
 
               {showVoiceReport && voiceReport && (
-                <section className="voice-call-shell diagnosis-ready-shell">
-                  <div className="voice-call-topbar">
-                    <div>
-                      <span className="voice-call-brand">Financieramente</span>
-                      <span className="voice-call-label">Informe ejecutivo</span>
-          <h1>Entrevista financiera</h1>
-                      <span className="voice-call-subtitle">Cierre consolidado de tu sesión</span>
-                    </div>
-                    <div className="voice-call-status">
-                      <span className="voice-call-status-dot" />
-                      Diagnóstico listo
-                    </div>
-                  </div>
-                  <div className="voice-call-transcript-card">
-                    <p>{voiceReport.executive_report}</p>
-                  </div>
-                  {voiceReport.key_findings.length > 0 && (
-                    <div className="voice-call-transcript-card">
-                      <span className="voice-call-transcript-label">Hallazgos principales</span>
-                      <ul>
-                        {voiceReport.key_findings.map((finding) => (
-                          <li key={finding}>{finding}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                  <div className="voice-call-actions">
-                    <button
-                      type="button"
-                      className="summary-action-btn summary-action-accept"
-                      onClick={() => {
-                        onClose();
-                        router.push('/diagnosis');
-                      }}
-                    >
-                      Ver diagnóstico completo
-                    </button>
-                    <button type="button" className="summary-action-btn" onClick={onClose}>
-                      Cerrar
-                    </button>
-                  </div>
-                </section>
+                <InterviewVoiceReportBlock
+                  report={voiceReport}
+                  onOpenDiagnosis={() => {
+                    handleOverlayDismiss();
+                    router.push('/diagnosis');
+                  }}
+                  onClose={handleOverlayDismiss}
+                />
               )}
               </div>
             </div>

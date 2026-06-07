@@ -99,14 +99,20 @@ export default function NumbersCanvas({
 
     function resize() {
       const layer = canvas.parentElement;
-      const w = layer?.clientWidth ?? window.innerWidth;
-      const h = layer?.clientHeight ?? window.innerHeight;
-      // Cap at 2× to keep mobile GPU load reasonable
+      const vv = window.visualViewport;
+      const baseW = vv?.width ?? window.innerWidth;
+      const baseH = vv?.height ?? window.innerHeight;
+      let w = layer?.clientWidth ?? baseW;
+      let h = layer?.clientHeight ?? baseH;
       dpr = Math.min(window.devicePixelRatio || 1, 2);
-      isMobile = w < 768;
+      isMobile = baseW < 768;
+      if (isMobile) {
+        w = Math.max(w, baseW);
+        h = Math.max(h, baseH);
+      }
       canvas.width  = w * dpr;
       canvas.height = h * dpr;
-      ctx.scale(dpr, dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       sample();
     }
     resize();

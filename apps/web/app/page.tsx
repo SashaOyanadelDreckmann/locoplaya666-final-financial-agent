@@ -597,6 +597,10 @@ export default function HomePage() {
       {/* Grain — dot-pattern matching .app-shell::after */}
       <div aria-hidden className="home-grain-layer" />
 
+      {/* Mobile browser — soft blend where photo meets top/bottom chrome bars */}
+      <div aria-hidden className="home-edge-feather-top" />
+      <div aria-hidden className="home-edge-feather-bottom" />
+
       {/* Rango de scroll para el canvas */}
       <div ref={scrollRangeRef} style={{ position: 'relative', zIndex: 2 }}>
 

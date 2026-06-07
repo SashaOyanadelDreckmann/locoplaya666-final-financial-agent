@@ -4,7 +4,8 @@
   :root {
     --mobile-shell-gutter-x: 8px;
     --mobile-shell-pad-x: 10px;
-    --mobile-shell-pad-y: 8px;
+    --mobile-shell-pad-y: 4px;
+    --mobile-shell-header-row-gap: 6px;
     --mobile-shell-radius: 16px;
     --mobile-shell-border: 1px solid rgba(173, 200, 220, 0.42);
     --mobile-shell-bg: linear-gradient(180deg, rgba(2, 8, 14, 0.94), rgba(2, 8, 14, 0.98));
@@ -50,9 +51,9 @@
     box-sizing: border-box !important;
     width: auto !important;
     max-width: none !important;
-    margin: 4px var(--mobile-shell-gutter-x) 4px !important;
-    padding: var(--mobile-shell-pad-y) var(--mobile-shell-pad-x) 7px !important;
-    gap: 6px !important;
+    margin: 2px var(--mobile-shell-gutter-x) 2px !important;
+    padding: var(--mobile-shell-pad-y) var(--mobile-shell-pad-x) var(--mobile-shell-pad-y) !important;
+    gap: var(--mobile-shell-header-row-gap) !important;
     border-radius: var(--mobile-shell-radius) !important;
     border: none !important;
     background: #000000 !important;
@@ -88,7 +89,10 @@
     justify-content: center !important;
     align-items: center !important;
     gap: 6px !important;
-    margin-bottom: 2px !important;
+    min-height: 0 !important;
+    height: auto !important;
+    padding: 0 !important;
+    margin: 0 !important;
   }
 
   main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-switcher,
@@ -98,9 +102,13 @@
     width: 75% !important;
     max-width: 75% !important;
     min-width: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
     margin: 0 auto !important;
     padding: 0 !important;
     gap: 4px !important;
+    border: none !important;
+    background: transparent !important;
   }
 
   main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-sheet-tab,
@@ -154,8 +162,9 @@
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
-    gap: 3px !important;
-    margin-top: 0 !important;
+    gap: 1px !important;
+    margin: 0 !important;
+    padding: 0 !important;
     min-height: 0 !important;
   }
 
@@ -229,7 +238,7 @@
   main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-identity-subtitle,
   body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-identity-subtitle {
     font-size: 10px !important;
-    line-height: 1.2 !important;
+    line-height: 1.05 !important;
     text-align: center !important;
     margin: 0 !important;
     padding: 0 !important;

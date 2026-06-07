@@ -308,7 +308,20 @@ export async function saveInterviewVoiceState(payload: Record<string, unknown>) 
 
 export async function finalizeInterviewVoiceCall(payload: {
   intake: unknown;
-  transcript: string;
+  minuteSummaries?: Array<{
+    minute?: number;
+    summary: string;
+    keyFindings?: string[];
+    confidence?: 'high' | 'medium' | 'low';
+    createdAt?: string;
+  }>;
+  finalSummary?: {
+    summary: string;
+    keyFindings?: string[];
+    confidence?: 'high' | 'medium' | 'low';
+    createdAt?: string;
+  };
+  transcript?: string;
   endedBy: 'timeout' | 'agent' | 'user';
   durationSec?: number;
   callId?: string;

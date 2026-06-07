@@ -45,6 +45,9 @@ export function createApp() {
   if (config.NODE_ENV === 'production') {
     // Required for secure cookies behind proxies (Heroku/Render/Nginx, etc.)
     app.set('trust proxy', 1);
+  } else {
+    // Dev: Next.js `/backend` proxy — keep req.ip stable for rate-limit keys.
+    app.set('trust proxy', 1);
   }
 
   // Request logging first: correlation ID + trace context for all subsequent middleware.

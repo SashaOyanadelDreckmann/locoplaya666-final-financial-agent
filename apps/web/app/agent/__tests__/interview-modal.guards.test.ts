@@ -20,7 +20,7 @@ describe('interview modal safeguards', () => {
   });
 
   it('keeps financialKnowledge extraction ahead of generic object filtering', () => {
-    const sourcePath = path.join(process.cwd(), 'app', 'agent', 'InterviewModal.tsx');
+    const sourcePath = path.join(process.cwd(), 'app', 'agent', 'interview-modal.context.ts');
     const source = fs.readFileSync(sourcePath, 'utf8');
 
     const financialKnowledgeIndex = source.indexOf("if (key === 'financialKnowledge' && typeof value === 'object') {");
@@ -29,5 +29,15 @@ describe('interview modal safeguards', () => {
     expect(financialKnowledgeIndex).toBeGreaterThanOrEqual(0);
     expect(genericObjectFilterIndex).toBeGreaterThanOrEqual(0);
     expect(financialKnowledgeIndex).toBeLessThan(genericObjectFilterIndex);
+  });
+
+  it('does not wire paid transcription into the interview modal', () => {
+    const sourcePath = path.join(process.cwd(), 'app', 'agent', 'InterviewModal.tsx');
+    const source = fs.readFileSync(sourcePath, 'utf8');
+
+    expect(source).toContain("response.output_text.delta");
+    expect(source).not.toContain('input_audio_transcription');
+    expect(source).not.toContain('gpt-4o-transcribe');
+    expect(source).not.toContain('gpt-realtime-whisper');
   });
 });
