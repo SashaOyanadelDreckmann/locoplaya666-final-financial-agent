@@ -151,7 +151,8 @@
     touch-action: none !important;
     transition: none !important;
     will-change: transform;
-    perspective: 1040px !important;
+    /* Tighter perspective = more dramatic depth on side cards */
+    perspective: 780px !important;
     transform-style: preserve-3d !important;
   }
 
@@ -198,39 +199,51 @@
 
   body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-slot.is-deck-far-left {
     z-index: 1 !important;
-    transform: translateX(calc(-50% - var(--deck-shift-far))) scale(0.88) translate3d(0, 0, -4px) !important;
-    opacity: 0.52 !important;
-    filter: brightness(0.92) saturate(0.94) !important;
+    transform: translateX(calc(-50% - var(--deck-shift-far))) scale(0.86) translate3d(0, 0, -8px) !important;
+    opacity: 0.28 !important;
+    filter: brightness(0.88) saturate(0.82) !important;
   }
 
   body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-slot.is-deck-far-right {
     z-index: 1 !important;
-    transform: translateX(calc(-50% + var(--deck-shift-far))) scale(0.88) translate3d(0, 0, -4px) !important;
-    opacity: 0.52 !important;
-    filter: brightness(0.92) saturate(0.94) !important;
+    transform: translateX(calc(-50% + var(--deck-shift-far))) scale(0.86) translate3d(0, 0, -8px) !important;
+    opacity: 0.28 !important;
+    filter: brightness(0.88) saturate(0.82) !important;
   }
 
   body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-slot.is-deck-near-left {
     z-index: calc(6 + var(--deck-t-prev) * 2) !important;
-    transform: translateX(calc(-50% - var(--deck-shift-near) + var(--deck-t-prev) * 1px)) scale(calc(0.982 + var(--deck-t-prev) * 0.018)) translate3d(0, 0, calc(var(--deck-t-prev) * 2px)) !important;
-    opacity: calc(0.97 + var(--deck-t-prev) * 0.03) !important;
-    filter: brightness(calc(0.99 + var(--deck-t-prev) * 0.01)) saturate(calc(0.99 + var(--deck-t-prev) * 0.01)) !important;
+    transform:
+      translateX(calc(-50% - var(--deck-shift-near) + var(--deck-t-prev) * 2px))
+      scale(calc(0.91 + var(--deck-t-prev) * 0.09))
+      translate3d(0, 0, calc(var(--deck-t-prev) * 4px))
+      rotateY(calc(var(--deck-drag-tilt, 0deg) * 0.5)) !important;
+    opacity: calc(0.72 + var(--deck-t-prev) * 0.28) !important;
+    filter: brightness(calc(0.94 + var(--deck-t-prev) * 0.06)) saturate(calc(0.88 + var(--deck-t-prev) * 0.12)) !important;
     pointer-events: auto !important;
   }
 
   body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-slot.is-deck-near-right {
     z-index: calc(6 + var(--deck-t-next) * 2) !important;
-    transform: translateX(calc(-50% + var(--deck-shift-near) - var(--deck-t-next) * 1px)) scale(calc(0.982 + var(--deck-t-next) * 0.018)) translate3d(0, 0, calc(var(--deck-t-next) * 2px)) !important;
-    opacity: calc(0.97 + var(--deck-t-next) * 0.03) !important;
-    filter: brightness(calc(0.99 + var(--deck-t-next) * 0.01)) saturate(calc(0.99 + var(--deck-t-next) * 0.01)) !important;
+    transform:
+      translateX(calc(-50% + var(--deck-shift-near) - var(--deck-t-next) * 2px))
+      scale(calc(0.91 + var(--deck-t-next) * 0.09))
+      translate3d(0, 0, calc(var(--deck-t-next) * 4px))
+      rotateY(calc(var(--deck-drag-tilt, 0deg) * -0.5)) !important;
+    opacity: calc(0.72 + var(--deck-t-next) * 0.28) !important;
+    filter: brightness(calc(0.94 + var(--deck-t-next) * 0.06)) saturate(calc(0.88 + var(--deck-t-next) * 0.12)) !important;
     pointer-events: auto !important;
   }
 
   body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-slot.is-mobile-front {
     z-index: calc(10 - var(--deck-t-front) * 2) !important;
-    transform: translateX(-50%) scale(calc(1 - var(--deck-t-front) * 0.022)) translate3d(0, 0, calc(var(--deck-t-front) * -3px)) !important;
-    opacity: calc(1 - var(--deck-t-front) * 0.05) !important;
-    filter: brightness(calc(1 - var(--deck-t-front) * 0.02)) saturate(calc(1 - var(--deck-t-front) * 0.015)) !important;
+    transform:
+      translateX(-50%)
+      scale(calc(1 - var(--deck-t-front) * 0.04))
+      translate3d(0, 0, calc(var(--deck-t-front) * -5px))
+      rotateY(var(--deck-drag-tilt, 0deg)) !important;
+    opacity: calc(1 - var(--deck-t-front) * 0.06) !important;
+    filter: brightness(calc(1 - var(--deck-t-front) * 0.025)) saturate(calc(1 - var(--deck-t-front) * 0.02)) !important;
     pointer-events: auto !important;
   }
 
@@ -1138,28 +1151,40 @@ html[data-visual-mode='light-outline'] .floating-card-shell {
   }
 
   html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel:is(.is-mobile-compact, .is-mobile-expanded):not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-slot.is-deck-far-left {
-    transform: translateX(calc(-50% - var(--deck-shift-far))) scale(0.88) !important;
-    opacity: 0.52 !important;
+    transform: translateX(calc(-50% - var(--deck-shift-far))) scale(0.86) translate3d(0, 0, -8px) !important;
+    opacity: 0.28 !important;
   }
 
   html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel:is(.is-mobile-compact, .is-mobile-expanded):not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-slot.is-deck-far-right {
-    transform: translateX(calc(-50% + var(--deck-shift-far))) scale(0.88) !important;
-    opacity: 0.52 !important;
+    transform: translateX(calc(-50% + var(--deck-shift-far))) scale(0.86) translate3d(0, 0, -8px) !important;
+    opacity: 0.28 !important;
   }
 
   html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel:is(.is-mobile-compact, .is-mobile-expanded):not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-slot.is-deck-near-left {
-    transform: translateX(calc(-50% - var(--deck-shift-near) + var(--deck-t-prev) * 1px)) scale(calc(0.982 + var(--deck-t-prev) * 0.018)) !important;
-    opacity: calc(0.97 + var(--deck-t-prev) * 0.03) !important;
+    transform:
+      translateX(calc(-50% - var(--deck-shift-near) + var(--deck-t-prev) * 2px))
+      scale(calc(0.91 + var(--deck-t-prev) * 0.09))
+      translate3d(0, 0, calc(var(--deck-t-prev) * 4px))
+      rotateY(calc(var(--deck-drag-tilt, 0deg) * 0.5)) !important;
+    opacity: calc(0.72 + var(--deck-t-prev) * 0.28) !important;
   }
 
   html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel:is(.is-mobile-compact, .is-mobile-expanded):not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-slot.is-deck-near-right {
-    transform: translateX(calc(-50% + var(--deck-shift-near) - var(--deck-t-next) * 1px)) scale(calc(0.982 + var(--deck-t-next) * 0.018)) !important;
-    opacity: calc(0.97 + var(--deck-t-next) * 0.03) !important;
+    transform:
+      translateX(calc(-50% + var(--deck-shift-near) - var(--deck-t-next) * 2px))
+      scale(calc(0.91 + var(--deck-t-next) * 0.09))
+      translate3d(0, 0, calc(var(--deck-t-next) * 4px))
+      rotateY(calc(var(--deck-drag-tilt, 0deg) * -0.5)) !important;
+    opacity: calc(0.72 + var(--deck-t-next) * 0.28) !important;
   }
 
   html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel:is(.is-mobile-compact, .is-mobile-expanded):not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-slot.is-mobile-front {
-    transform: translateX(-50%) scale(calc(1 - var(--deck-t-front) * 0.022)) !important;
-    opacity: calc(1 - var(--deck-t-front) * 0.05) !important;
+    transform:
+      translateX(-50%)
+      scale(calc(1 - var(--deck-t-front) * 0.04))
+      translate3d(0, 0, calc(var(--deck-t-front) * -5px))
+      rotateY(var(--deck-drag-tilt, 0deg)) !important;
+    opacity: calc(1 - var(--deck-t-front) * 0.06) !important;
   }
 }
 
@@ -1177,25 +1202,25 @@ html[data-visual-mode='light-outline'] .floating-card-shell {
         0 8px 22px rgba(0, 0, 0, 0.26),
         0 1px 0 rgba(255, 255, 255, 0.09) inset;
     }
-    38% {
-      transform: translate3d(0, -3px, 0) scale(1.015);
-      filter: brightness(1.02) saturate(1.025);
+    32% {
+      transform: translate3d(0, -5px, 2px) scale(1.022);
+      filter: brightness(1.032) saturate(1.04);
       box-shadow:
-        0 13px 30px rgba(0, 0, 0, 0.34),
-        0 1px 0 rgba(255, 255, 255, 0.13) inset;
+        0 18px 38px rgba(0, 0, 0, 0.38),
+        0 1px 0 rgba(255, 255, 255, 0.15) inset;
     }
-    72% {
-      transform: translate3d(0, 1.5px, 0) scale(0.993);
-      filter: brightness(0.988) saturate(0.985);
+    66% {
+      transform: translate3d(0, 2px, -1px) scale(0.989);
+      filter: brightness(0.984) saturate(0.978);
       box-shadow:
-        0 6px 18px rgba(0, 0, 0, 0.22),
-        0 1px 0 rgba(255, 255, 255, 0.07) inset;
+        0 5px 14px rgba(0, 0, 0, 0.2),
+        0 1px 0 rgba(255, 255, 255, 0.06) inset;
     }
   }
 
   body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-track:not(.is-dragging):not(.is-animating) .mobile-deck-slot.is-mobile-front.is-deck-settled:not(.is-deck-pulse) > .mobile-deck-card,
   body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-track:not(.is-dragging):not(.is-animating) .mobile-deck-slot.is-mobile-front.is-deck-settled:not(.is-deck-pulse) > * {
-    animation: mobileDeckFrontFloat 6.4s cubic-bezier(0.42, 0, 0.58, 1) infinite !important;
+    animation: mobileDeckFrontFloat 4.2s cubic-bezier(0.37, 0, 0.63, 1) infinite !important;
     transform-origin: 50% 88% !important;
     will-change: transform, filter, box-shadow;
     backface-visibility: hidden;

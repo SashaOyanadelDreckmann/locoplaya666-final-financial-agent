@@ -1,14 +1,14 @@
 export const DECK_GESTURE = {
-  SWIPE_COMMIT_PX: 2,
-  SWIPE_COMMIT_RATIO: 0.018,
-  SWIPE_VELOCITY_COMMIT: 0.06,
-  FLICK_PROJECTION_MS: 520,
-  /** >1 = deck moves farther per finger pixel (hyper-sensitive) */
-  DRAG_SENSITIVITY: 3.35,
-  SNAP_DURATION_MS: 110,
-  MIN_TWEEN_MS: 32,
-  MAX_SNAP_DURATION_MS: 380,
-  MS_PER_CARD_STEP: 28,
+  SWIPE_COMMIT_PX: 3,
+  SWIPE_COMMIT_RATIO: 0.022,
+  SWIPE_VELOCITY_COMMIT: 0.038,
+  FLICK_PROJECTION_MS: 700,
+  /** Natural 1:1 feel — finger-tracked, not hyper-amplified */
+  DRAG_SENSITIVITY: 1.85,
+  SNAP_DURATION_MS: 190,
+  MIN_TWEEN_MS: 58,
+  MAX_SNAP_DURATION_MS: 540,
+  MS_PER_CARD_STEP: 46,
 } as const;
 
 export function dragPhaseFromPointer(startPhase: number, dx: number, step: number) {

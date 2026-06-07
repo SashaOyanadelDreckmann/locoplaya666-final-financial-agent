@@ -72,27 +72,22 @@ function splitDeckPhase(phase: number, count: number) {
   return { baseIndex: mod(base, count), progress };
 }
 
-function easeOutCubic(t: number): number {
-  return 1 - Math.pow(1 - t, 3);
-}
-
-function runPhaseTween(
+// Spring physics simulation — feels alive, natural overshoot, settles organically
+function runSpringTween(
   from: number,
   to: number,
   onUpdate: (value: number) => void,
   onComplete: () => void,
-  baseDurationMs: number,
-  initialVelocity = 0
+  initialVelocity = 0,
+  stiffness = 320,
+  damping = 32
 ) {
   let done = false;
   let raf = 0;
-  const start = performance.now();
-  const distance = to - from;
-  const velocityBoost = Math.min(baseDurationMs * 0.82, Math.abs(initialVelocity) * 200);
-  const duration = Math.max(
-    DECK_GESTURE.MIN_TWEEN_MS,
-    baseDurationMs - velocityBoost
-  );
+  let pos = from;
+  // Convert pointer px/ms velocity to phase/s (negative because swipe-left = phase increase)
+  let vel = -initialVelocity * DECK_GESTURE.DRAG_SENSITIVITY * 0.001 * 60;
+  let lastTime = performance.now();
 
   const cancel = () => {
     done = true;
@@ -102,14 +97,28 @@ function runPhaseTween(
 
   const tick = (now: number) => {
     if (done) return;
-    const t = Math.min(1, (now - start) / duration);
-    onUpdate(from + distance * easeOutCubic(t));
-    if (t >= 1) {
+    const dtRaw = now - lastTime;
+    lastTime = now;
+    // Sub-step for stability at large dt (e.g. tab backgrounded briefly)
+    const steps = Math.ceil(dtRaw / 16);
+    const dt = dtRaw / steps / 1000;
+    for (let i = 0; i < steps; i++) {
+      const force = -stiffness * (pos - to) - damping * vel;
+      vel += force * dt;
+      pos += vel * dt;
+    }
+
+    const settled =
+      Math.abs(pos - to) < 0.0008 && Math.abs(vel) < 0.0015;
+
+    if (settled) {
       onUpdate(to);
       cancel();
       onComplete();
       return;
     }
+
+    onUpdate(pos);
     raf = requestAnimationFrame(tick);
   };
 
@@ -274,6 +283,8 @@ export const MobilePanelCircularDeck = forwardRef<
   const reducedMotionRef = useRef(false);
   const lastCenterRef = useRef(PROFILE_HOME_INDEX);
   const floorPhaseRef = useRef(PROFILE_HOME_INDEX);
+  // Velocity ring buffer — tracks last 80ms of pointer movement for accurate flick detection
+  const velBufferRef = useRef<{ x: number; t: number }[]>([]);
 
   const setGridRef = useCallback(
     (node: HTMLDivElement | null) => {
@@ -295,6 +306,8 @@ export const MobilePanelCircularDeck = forwardRef<
     if (track) {
       track.style.transform = `translate3d(${px}px, 0, 0)`;
       track.style.setProperty('--deck-drag-ratio', ratio.toFixed(4));
+      // Subtle 3D tilt — max ±6deg at full drag, gives depth to near cards
+      track.style.setProperty('--deck-drag-tilt', `${(ratio * 6).toFixed(2)}deg`);
       track.dataset.deckPhase =
         Math.abs(ratio) < 0.012 ? 'idle' : ratio < 0 ? 'next' : 'prev';
     }
@@ -357,7 +370,8 @@ export const MobilePanelCircularDeck = forwardRef<
   );
 
   const animateToPhase = useCallback(
-    (targetPhase: number, durationMs: number, velocity = 0, haptic = true) => {
+    // durationMs kept for API compatibility but spring physics ignores it
+    (targetPhase: number, _durationMs: number, velocity = 0, haptic = true) => {
       stopAnim();
       const from = deckPhaseRef.current;
       if (Math.abs(targetPhase - from) < 0.001) {
@@ -371,7 +385,7 @@ export const MobilePanelCircularDeck = forwardRef<
       }
 
       setIsAnimating(true);
-      animRef.current = runPhaseTween(
+      animRef.current = runSpringTween(
         from,
         targetPhase,
         (phase) => {
@@ -385,7 +399,6 @@ export const MobilePanelCircularDeck = forwardRef<
           }
         },
         () => settleAtPhase(targetPhase, haptic),
-        durationMs,
         velocity
       );
     },
@@ -497,6 +510,7 @@ export const MobilePanelCircularDeck = forwardRef<
       if (event.button !== 0) return;
       stopAnim();
       didDragRef.current = false;
+      velBufferRef.current = [];
       pointerRef.current = {
         x: event.clientX,
         y: event.clientY,
@@ -529,11 +543,25 @@ export const MobilePanelCircularDeck = forwardRef<
         trackRef.current?.classList.add('is-dragging');
       }
 
+      // Velocity ring buffer — keep only last 80ms for accurate flick detection
+      const now = performance.now();
+      velBufferRef.current.push({ x: event.clientX, t: now });
+      velBufferRef.current = velBufferRef.current.filter((p) => now - p.t < 80);
+
       const step = stepWidthRef.current;
-      const phase = dragPhaseFromPointer(dragStartPhaseRef.current, dx, step);
-      syncDragPhase(phase);
+      let rawPhase = dragPhaseFromPointer(dragStartPhaseRef.current, dx, step);
+
+      // Rubber-band resistance beyond first/last card — drag still follows but with friction
+      if (count > 0) {
+        const min = 0;
+        const max = count - 1;
+        if (rawPhase < min) rawPhase = min + (rawPhase - min) * 0.32;
+        else if (rawPhase > max) rawPhase = max + (rawPhase - max) * 0.32;
+      }
+
+      syncDragPhase(rawPhase);
     },
-    [isDragging, syncDragPhase]
+    [count, isDragging, syncDragPhase]
   );
 
   const onPointerUp = useCallback(
@@ -541,9 +569,22 @@ export const MobilePanelCircularDeck = forwardRef<
       const pointer = pointerRef.current;
       if (!pointer) return;
 
+      // Compute velocity from ring buffer (last 80ms window) — more accurate than start→end
+      const buf = velBufferRef.current;
+      let velocity = 0;
+      if (buf.length >= 2) {
+        const oldest = buf[0];
+        const newest = buf[buf.length - 1];
+        const dt = Math.max(1, newest.t - oldest.t);
+        velocity = (newest.x - oldest.x) / dt;
+      } else {
+        const dx = event.clientX - pointer.x;
+        const dt = Math.max(8, performance.now() - pointer.t);
+        velocity = dx / dt;
+      }
+      velBufferRef.current = [];
+
       const dx = event.clientX - pointer.x;
-      const dt = Math.max(8, performance.now() - pointer.t);
-      const velocity = dx / dt;
       pointerRef.current = null;
       setIsDragging(false);
       trackRef.current?.classList.remove('is-dragging');
