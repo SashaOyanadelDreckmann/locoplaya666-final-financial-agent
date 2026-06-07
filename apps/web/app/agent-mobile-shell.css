@@ -674,12 +674,14 @@
   }
 }
 
-.terminal-composer-shell.has-composer-text .composer-send-btn.is-send-ready:not(:disabled) svg,
-.agent-mobile-composer-dock.has-composer-text .composer-send-btn.is-send-ready:not(:disabled) svg {
-  animation: composer-send-float-pulse 2.35s ease-in-out infinite;
-  transform-origin: center center;
-  will-change: transform;
-  filter: drop-shadow(0 5px 14px rgba(155, 198, 232, 0.5));
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+  .terminal-composer-shell.has-composer-text .composer-send-btn.is-send-ready:not(:disabled) svg,
+  .agent-mobile-composer-dock.has-composer-text .composer-send-btn.is-send-ready:not(:disabled) svg {
+    animation: composer-send-float-pulse 2.35s ease-in-out infinite;
+    transform-origin: center center;
+    will-change: transform;
+    filter: drop-shadow(0 5px 14px rgba(155, 198, 232, 0.5));
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

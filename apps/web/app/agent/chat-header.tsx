@@ -154,21 +154,38 @@ export function ChatHeader(props: {
               />
             </button>
           </h1>
+          {!props.isMobileViewport ? (
+            <p
+              className={`chat-identity-subtitle ${
+                activeLabel === '2'
+                  ? 'chat-subtitle-2'
+                  : activeLabel === '3'
+                  ? 'chat-subtitle-3'
+                  : activeLabel === '★'
+                  ? 'chat-subtitle-meta'
+                  : 'chat-subtitle-1'
+              }`}
+            >
+              {activeHandSubtitle}
+            </p>
+          ) : null}
           {props.isMobileViewport ? monochromeToggle : null}
         </div>
-        <p
-          className={`chat-identity-subtitle ${
-            activeLabel === '2'
-              ? 'chat-subtitle-2'
-              : activeLabel === '3'
-              ? 'chat-subtitle-3'
-              : activeLabel === '★'
-              ? 'chat-subtitle-meta'
-              : 'chat-subtitle-1'
-          }`}
-        >
-          {activeHandSubtitle}
-        </p>
+        {props.isMobileViewport ? (
+          <p
+            className={`chat-identity-subtitle ${
+              activeLabel === '2'
+                ? 'chat-subtitle-2'
+                : activeLabel === '3'
+                ? 'chat-subtitle-3'
+                : activeLabel === '★'
+                ? 'chat-subtitle-meta'
+                : 'chat-subtitle-1'
+            }`}
+          >
+            {activeHandSubtitle}
+          </p>
+        ) : null}
       </div>
       <p className="muted" />
       {props.activeChatId === 'chat-2' && !props.isActiveChatLocked && props.actionPlanFunnelStage && (
