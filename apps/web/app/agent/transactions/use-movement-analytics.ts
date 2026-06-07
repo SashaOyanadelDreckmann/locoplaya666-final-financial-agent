@@ -6,6 +6,7 @@ import type { BankProduct, TransactionTaxonomyOverride } from './types';
 export type NormalizedMovementRow = {
   label: string;
   amount: number;
+  signedAmount?: number;
   direction: 'income' | 'expense';
   movementKind: 'income' | 'expense' | 'abono';
   date: string;
@@ -15,6 +16,7 @@ export type NormalizedMovementRow = {
   categoryConfidence: number;
   confidence: number;
   sourceKind: string;
+  directionBasis?: string;
   uiKey: string;
   rawAmount: number;
   directionForTotals: 'income' | 'expense';
@@ -113,9 +115,18 @@ export function useMovementAnalytics(
 
   const dashboardMovements = (activeBankProduct?.dashboard?.movements ?? []).map((movement) => ({
     label: movement.description ?? movement.source_line ?? movement.merchant ?? '',
-    amount: Number(movement.amount) || 0,
-    direction: movement.direction,
-    movementKind: movement.movement_kind ?? (movement.direction === 'income' ? 'income' : 'expense'),
+    amount: Math.abs(Number(movement.amount) || 0),
+    signedAmount:
+      Number.isFinite(Number(movement.amount_signed))
+        ? Number(movement.amount_signed)
+        : (movement.direction === 'expense' ? -Math.abs(Number(movement.amount) || 0) : Math.abs(Number(movement.amount) || 0)),
+    direction:
+      Number.isFinite(Number(movement.amount_signed))
+        ? Number(movement.amount_signed) < 0
+          ? 'expense'
+          : 'income'
+        : movement.direction,
+    movementKind: movement.movement_kind ?? (Number.isFinite(Number(movement.amount_signed)) && Number(movement.amount_signed) < 0 ? 'expense' : 'income'),
     date: movement.date ?? '',
     sourceLine: movement.source_line ?? '',
     category: movement.category ?? '',
@@ -123,10 +134,11 @@ export function useMovementAnalytics(
     categoryConfidence: Number(movement.category_confidence ?? 0) || 0,
     confidence: Number(movement.confidence ?? 0) || 0,
     sourceKind: movement.source_kind ?? 'line',
+    directionBasis: movement.direction_basis ?? '',
   }));
 
   const topMovements = [...dashboardMovements].sort((a, b) => {
-    if (b.amount !== a.amount) return b.amount - a.amount;
+    if (Math.abs(b.signedAmount) !== Math.abs(a.signedAmount)) return Math.abs(b.signedAmount) - Math.abs(a.signedAmount);
     if (a.direction !== b.direction) return a.direction === 'expense' ? -1 : 1;
     return (a.label || '').localeCompare(b.label || '', 'es');
   });
@@ -134,15 +146,13 @@ export function useMovementAnalytics(
   const movementTableRows = dashboardMovements.length > 0 ? dashboardMovements : topMovements;
 
   const normalizedMovementRows = movementTableRows.map((movement, idx) => {
-    const rawAmount = Number(movement.amount) || 0;
-    const hasDeclaredDirection = movement.direction === 'income' || movement.direction === 'expense';
-    const normalizedDirection = hasDeclaredDirection
-      ? movement.direction
-      : rawAmount < 0
-        ? 'expense'
-        : rawAmount > 0
-          ? 'income'
-          : 'expense';
+    const rawAmount =
+      Number.isFinite(Number((movement as { signedAmount?: number }).signedAmount))
+        ? Number((movement as { signedAmount?: number }).signedAmount)
+        : movement.direction === 'expense'
+          ? -Math.abs(Number(movement.amount) || 0)
+          : Math.abs(Number(movement.amount) || 0);
+    const normalizedDirection = rawAmount < 0 ? 'expense' : 'income';
     const baseRow = {
       ...movement,
       uiKey: `${movement.date ?? 'nd'}|${normalizedDirection}|${Math.round(Math.abs(rawAmount))}|${normalizeMovementText(movement.label)}|${idx}`,
@@ -392,8 +402,10 @@ export function useMovementAnalytics(
         date: m.date ?? '',
         description: m.label,
         amount: m.amount,
+        amount_signed: m.rawAmount,
         direction: m.directionForTotals,
         movement_kind: m.movementKind,
+        direction_basis: m.directionBasis ?? '',
         source_line: m.sourceLine ?? '',
         category: m.category ?? 'Consumo general',
         merchant: m.merchant ?? '',

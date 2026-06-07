@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import type { Request, Response } from 'express';
-import OpenAI from 'openai';
 import { z } from 'zod';
 import { requireAuth } from '../middleware/auth';
 import { asyncHandler } from '../middleware/errorHandler';
@@ -15,6 +14,7 @@ import {
   compactTxText,
 } from '@financial-agent/shared';
 import { forbidden, notFound } from '../http/api.errors';
+import { completeStructuredWithSchema } from '../services/llm.service';
 
 type AssistantMessage = {
   role?: 'assistant' | 'user';
@@ -68,14 +68,6 @@ const TransactionChatRequestSchema = z.object({
   feedback: z.string().trim().max(2000).default(''),
   messages: z.array(AssistantMessageSchema).max(50).default([]),
 });
-
-function safeParseJson<T>(raw: string, fallback: T): T {
-  try {
-    return JSON.parse(raw) as T;
-  } catch {
-    return fallback;
-  }
-}
 
 function parseCookieValue(cookieHeader: string | null, name: string): string | null {
   if (!cookieHeader) return null;
@@ -166,17 +158,6 @@ async function resolveCanonicalDocuments(
   return resolved.slice(0, 8);
 }
 
-function extractAssistantText(raw: string): string {
-  const trimmed = raw.trim();
-  if (!trimmed) return 'Listo.';
-  if (trimmed.startsWith('{')) {
-    const parsed = safeParseJson<{ assistant_text?: string }>(trimmed, {});
-    const fromJson = compactTxText(parsed.assistant_text ?? '', 1200);
-    if (fromJson) return fromJson;
-  }
-  return compactTxText(trimmed, 1200);
-}
-
 router.post(
   '/',
   requireAuth,
@@ -210,9 +191,8 @@ router.post(
         ? await resolveCanonicalDocuments(user.id, parsedDocuments)
         : documentsFromClient(parsedDocuments);
 
-    const client = new OpenAI({ apiKey: config.OPENAI_API_KEY });
-    const summaryModel = process.env.TRANSACTIONS_SUMMARY_MODEL || 'gpt-4.1-mini';
-    const chatModel = process.env.TRANSACTIONS_CHAT_MODEL || process.env.OPENAI_MODEL_FAST || 'gpt-4o-mini';
+    const summaryModel = process.env.TRANSACTIONS_SUMMARY_MODEL || 'gpt-5.4-mini';
+    const chatModel = process.env.TRANSACTIONS_CHAT_MODEL || 'gpt-5.4-mini';
 
     if (mode === 'summary') {
       const docsDigest = compactDocumentsForPrompt(canonicalDocuments, { maxDocs: 6, maxText: 1200 });
@@ -221,30 +201,39 @@ router.post(
         'Eres un analista senior de movimientos bancarios del mercado chileno.',
         'Genera un resumen ejecutivo breve, preciso y accionable (máx. 12 líneas).',
         'Prioriza dashboard estructurado sobre texto libre. No inventes datos.',
-        'Devuelve JSON estricto: {"summary":"string"}',
         `Producto=${JSON.stringify(product)}`,
         `Dashboard=${JSON.stringify(dashboardDigest)}`,
         `Resumen actual=${JSON.stringify(currentSummary)}`,
         `Feedback usuario=${JSON.stringify(feedback)}`,
         `Documentos=${JSON.stringify(docsDigest)}`,
       ].join('\n');
-
-      const response = await client.chat.completions.create({
+      const summarySchema = {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          summary: { type: 'string' },
+        },
+        required: ['summary'],
+      } as const;
+      const response = await completeStructuredWithSchema<{ summary?: string }>({
+        name: 'transactions_summary',
+        description: 'Resume el estado analítico de transacciones.',
         model: summaryModel,
-        response_format: { type: 'json_object' },
-        max_completion_tokens: 650,
         temperature: 0.2,
-        messages: [
-          { role: 'system', content: 'Responde solo JSON válido.' },
-          { role: 'user', content: prompt },
+        maxOutputTokens: 650,
+        instructions: 'Responde en español y devuelve solo JSON estricto.',
+        input: [
+          {
+            role: 'user',
+            content: prompt,
+          },
         ],
+        schema: summarySchema,
       });
 
-      const raw = response.choices[0]?.message?.content?.trim() ?? '{}';
-      const parsed = safeParseJson<{ summary?: string }>(raw, {});
       return res.json({
         ok: true,
-        summary: compactTxText(parsed.summary ?? '', 8000),
+        summary: compactTxText(response.summary ?? '', 8000),
         model: summaryModel,
       });
     }
@@ -283,24 +272,37 @@ router.post(
       `Documentos=${JSON.stringify(docsDigest)}`,
     ].join('\n');
 
-    const response = await client.chat.completions.create({
+    const chatSchema = {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        assistant_text: { type: 'string' },
+      },
+      required: ['assistant_text'],
+    } as const;
+    const response = await completeStructuredWithSchema<{ assistant_text?: string }>({
+      name: 'transactions_chat_reply',
+      description: 'Respuesta conversacional para el modal de transacciones.',
       model: chatModel,
-      max_completion_tokens: 180,
+      maxOutputTokens: 180,
       temperature: 0.3,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: contextBlock },
+      instructions: systemPrompt,
+      input: [
+        {
+          role: 'user',
+          content: contextBlock,
+        },
         ...compactHistory.map((message) => ({
           role: message.role as 'assistant' | 'user',
           content: message.text,
         })),
       ],
+      schema: chatSchema,
     });
 
-    const raw = response.choices[0]?.message?.content?.trim() ?? '';
     return res.json({
       ok: true,
-      assistant_text: extractAssistantText(raw),
+      assistant_text: compactTxText(response.assistant_text ?? '', 1200) || 'Listo.',
       model: chatModel,
       retrieval_mode: retrievalMeta?.mode ?? 'overview',
     });

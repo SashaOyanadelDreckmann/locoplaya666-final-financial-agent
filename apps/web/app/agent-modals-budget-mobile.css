@@ -5,11 +5,14 @@
 /* ================================================= */
 
 @media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
-  /* ── 1. Page scroll lock; table rows scroll only ── */
+  /* ── 1. Page scroll lock; modal fills padded overlay (no double safe-area) ── */
   .agent-modal-overlay.budget-modal-overlay,
   html:not(.pwa-standalone):not(.home-route-active) .agent-modal-overlay.budget-modal-overlay,
   html.mobile-input-engaged .agent-modal-overlay.budget-modal-overlay {
+    display: flex !important;
+    flex-direction: column !important;
     overflow: hidden !important;
+    overflow-y: hidden !important;
     overscroll-behavior: none !important;
   }
 
@@ -18,20 +21,26 @@
     display: flex !important;
     flex-direction: column !important;
     overflow: hidden !important;
-    height: calc(100dvh - var(--modal-safe-top) - var(--modal-safe-bottom)) !important;
-    max-height: calc(100dvh - var(--modal-safe-top) - var(--modal-safe-bottom)) !important;
+    flex: 1 1 auto !important;
+    height: 100% !important;
+    max-height: 100% !important;
     min-height: 0 !important;
+    width: 100% !important;
+    border-radius: 20px 20px 0 0 !important;
   }
 
   .budget-modal.is-mobile-shell.keyboard-opening {
-    height: calc(var(--visual-vh, 100dvh) - var(--modal-safe-top) - var(--modal-safe-bottom)) !important;
-    max-height: calc(var(--visual-vh, 100dvh) - var(--modal-safe-top) - var(--modal-safe-bottom)) !important;
+    height: 100% !important;
+    max-height: 100% !important;
   }
 
   .budget-modal.is-mobile-shell .bcc-modal-header,
-  .budget-modal.is-mobile-shell .budget-cockpit-banner,
   .budget-modal.is-mobile-shell .budget-mode-tabs {
     flex-shrink: 0 !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-cockpit-banner {
+    display: none !important;
   }
 
   .budget-modal.is-mobile-shell .budget-modal-body,
@@ -60,62 +69,50 @@
     min-height: 44px !important;
   }
 
-  /* ── 3. Compact cockpit (always visible, denser in table mode) ── */
-  .budget-modal.is-mobile-shell .budget-cockpit-banner.is-compact {
-    display: grid !important;
-    grid-template-columns: 1fr auto !important;
-    gap: 8px !important;
-    align-items: center !important;
-    padding: 10px 12px !important;
-    margin: 0 !important;
-    border-radius: 16px !important;
-  }
-
-  .budget-modal.is-mobile-shell .budget-cockpit-banner.is-compact .budget-cockpit-copy {
-    gap: 2px !important;
-  }
-
-  .budget-modal.is-mobile-shell .budget-cockpit-banner.is-compact .budget-cockpit-copy h4 {
-    font-size: 0.92rem !important;
-    line-height: 1.1 !important;
-    margin: 0 !important;
-  }
-
-  .budget-modal.is-mobile-shell .budget-cockpit-banner.is-compact .budget-cockpit-copy p,
-  .budget-modal.is-mobile-shell .budget-cockpit-banner.is-compact .budget-cockpit-copy strong,
-  .budget-modal.is-mobile-shell .budget-cockpit-banner.is-compact .budget-section-eyebrow {
-    display: none !important;
-  }
-
-  .budget-modal.is-mobile-shell .budget-cockpit-banner.is-compact .budget-cockpit-metrics {
+  /* ── 3. Table tab — reset desktop carousel absolute layout ── */
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) {
     display: flex !important;
     flex-direction: column !important;
-    gap: 2px !important;
-    grid-template-columns: none !important;
-    min-width: 88px !important;
-  }
-
-  .budget-modal.is-mobile-shell .budget-cockpit-banner.is-compact .budget-cockpit-metric {
+    flex: 1 1 auto !important;
     min-height: 0 !important;
+    overflow: hidden !important;
+    position: relative !important;
+    height: auto !important;
     padding: 0 !important;
-    border: 0 !important;
-    background: transparent !important;
-    display: flex !important;
-    flex-direction: row !important;
-    justify-content: space-between !important;
-    gap: 8px !important;
   }
 
-  .budget-modal.is-mobile-shell .budget-cockpit-banner.is-compact .budget-cockpit-metric:not(:first-child):not(:nth-child(3)) {
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) > .budget-card-agent {
     display: none !important;
   }
 
-  .budget-modal.is-mobile-shell .budget-cockpit-banner.is-compact .budget-cockpit-metric span {
-    font-size: 0.58rem !important;
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) > .budget-card-table {
+    position: relative !important;
+    inset: auto !important;
+    transform: none !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    filter: none !important;
+    box-shadow: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    min-height: 0 !important;
+    flex: 1 1 auto !important;
+    padding: 12px 14px !important;
+    order: 1 !important;
   }
 
-  .budget-modal.is-mobile-shell .budget-cockpit-banner.is-compact .budget-cockpit-metric strong {
-    font-size: 0.82rem !important;
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) > .budget-card-table .budget-table-wrap {
+    max-height: none !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-table-wrap {
+    max-height: none !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-table:not(.budget-table-pro) {
+    min-width: 0 !important;
   }
 
   /* ── 4. Assistant mode — internal scroll, no page swipe ── */

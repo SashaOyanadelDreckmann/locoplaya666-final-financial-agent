@@ -93,8 +93,6 @@ import {
   buildProductCardDescriptor,
   buildTransactionIntelligence,
   firstNameOf,
-  inferInstitutionFromText,
-  inferProductTypeFromText,
   dedupeConsecutiveAssistantMessages,
   resolveUnlockedChatIds,
   hasAssistantMessage,
@@ -440,6 +438,7 @@ export default function AgentPage() {
   const [loading, setLoading] = useState(false);
   const [panelStage, setPanelStage] = useState(3);
   const [mobilePanelExpanded, setMobilePanelExpanded] = useState(false);
+  const [isComposerFocused, setIsComposerFocused] = useState(false);
   const {
     sessionInfo,
     setSessionInfo,
@@ -2913,6 +2912,15 @@ export default function AgentPage() {
               service?: string;
               product_type?: BankProduct['productType'];
               product_label?: string;
+              resolved_bank?: string;
+              resolved_product_type?: BankProduct['productType'];
+              document_profile_confidence?: number;
+              document_profile_sign_convention?: string;
+              document_profile_direction_basis?: string;
+              document_profile_warnings?: string[];
+              document_profile_correction_reason?: string | null;
+              document_profile_auto_corrected?: boolean;
+              document_profile_correction_level?: 'auto' | 'suggest' | 'keep';
               period?: { from?: string; to?: string };
               currency?: string;
               key_metrics?: {
@@ -2954,8 +2962,10 @@ export default function AgentPage() {
               date?: string;
               description: string;
               amount: number;
+              amount_signed?: number;
               direction: 'expense' | 'income';
               movement_kind?: 'expense' | 'income' | 'abono';
+              direction_basis?: string;
               source_line?: string;
               category?: string;
               merchant?: string;
@@ -2972,18 +2982,48 @@ export default function AgentPage() {
       );
       const profile = transactionAnalysis?.product_profile;
       const profileInstitution = String(profile?.institution ?? '').trim();
+      const profileResolvedInstitution = String(profile?.resolved_bank ?? profile?.institution ?? '').trim();
       const profileLabel = String(profile?.product_label ?? '').trim();
       const profileType = profile?.product_type;
+      const profileResolvedType = profile?.resolved_product_type || profileType;
+      const profileConfidence = Number(profile?.document_profile_confidence ?? 0) || 0;
+      const profileAutoCorrected = Boolean(profile?.document_profile_auto_corrected);
+      const profileCorrectionLevel = profile?.document_profile_correction_level ?? 'keep';
+      const profileWarnings = Array.isArray(profile?.document_profile_warnings)
+        ? profile?.document_profile_warnings?.filter((item): item is string => Boolean(item && String(item).trim())) ?? []
+        : [];
+      const profileCorrectionReason = String(profile?.document_profile_correction_reason ?? '').trim();
+      const resolutionSuffix = [profileCorrectionReason, profileWarnings[0]].filter(Boolean).join(' ');
       const normalizedBankHint = String(activeBankProduct.bank ?? '')
         .replace(/\s*\(simulacion\)\s*/gi, '')
         .trim();
       const normalizedLabelHint = String(activeBankProduct.label ?? '').trim();
-      const isPlaceholderInstitution =
-        profileInstitution.length === 0 || /instituci[oó]n por confirmar/i.test(profileInstitution);
-      const isGenericLabel =
-        profileLabel.length === 0 ||
-        /^producto(\s+\d+)?$/i.test(profileLabel) ||
-        /producto financiero/i.test(profileLabel);
+      const normalizeComparable = (value: string) =>
+        String(value ?? '')
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/\s+/g, ' ')
+          .trim();
+      const bankMismatch =
+        Boolean(profileResolvedInstitution) &&
+        normalizeComparable(profileResolvedInstitution) !== normalizeComparable(normalizedBankHint);
+      const productMismatch =
+        Boolean(profileResolvedType) && profileResolvedType !== activeBankProduct.productType;
+      const shouldAutoCorrect =
+        profileAutoCorrected ||
+        (profileConfidence >= 0.86 && (bankMismatch || productMismatch || profileCorrectionLevel === 'auto'));
+      const shouldSuggestCorrection =
+        !shouldAutoCorrect && profileConfidence >= 0.6 && (bankMismatch || productMismatch);
+      const finalBank = shouldAutoCorrect
+        ? profileResolvedInstitution || normalizedBankHint || activeBankProduct.bank
+        : normalizedBankHint || activeBankProduct.bank;
+      const finalProductType = shouldAutoCorrect
+        ? (profileResolvedType || activeBankProduct.productType)
+        : activeBankProduct.productType;
+      const finalLabel = shouldAutoCorrect
+        ? `${finalBank} · ${profileLabel || finalProductType}`
+        : normalizedLabelHint || activeBankProduct.label;
       const canonicalMovements = Array.isArray(transactionAnalysis?.movements)
         ? transactionAnalysis.movements
         : [];
@@ -3016,33 +3056,15 @@ export default function AgentPage() {
           ...active,
         };
         const descriptor = buildProductCardDescriptor(provisionalProduct);
-        const inferredInstitution = inferInstitutionFromText(
-          provisionalProduct.parsedDocuments.map((d) => d.text ?? '').join('\n'),
-          active.bank,
-        );
-        const inferredType = inferProductTypeFromText(
-          provisionalProduct.parsedDocuments.map((d) => d.text ?? '').join('\n'),
-        );
-        const generatedLabel =
-          !isPlaceholderInstitution && !isGenericLabel
-            ? `${profileInstitution} · ${profileLabel}`
-            : normalizedBankHint && normalizedLabelHint
-              ? `${normalizedBankHint} · ${normalizedLabelHint}`
-              : inferredInstitution !== 'Institución no identificada'
-                ? `${inferredInstitution} · ${inferredType}`
-                : active.label;
+        const generatedLabel = finalLabel || descriptor.title || active.label;
 
         const products = uploadApplied.products.map((p) =>
           p.id === active.id
             ? {
                 ...p,
                 assistant: normalizeProductAssistantState(p.assistant),
-                bank:
-                  (isPlaceholderInstitution ? '' : profileInstitution) ||
-                  normalizedBankHint ||
-                  p.bank.trim() ||
-                  inferredInstitution,
-                productType: profileType || activeBankProduct.productType || p.productType,
+                bank: finalBank || p.bank.trim() || active.bank,
+                productType: finalProductType || p.productType,
                 label: generatedLabel || descriptor.title || p.label,
                 dashboard: profile
                   ? {
@@ -3077,7 +3099,11 @@ export default function AgentPage() {
         };
       });
       setTxCreationNotice(
-        `${names.length} respaldo(s) procesado(s) para ${normalizedLabelHint || activeBankProduct.label}. Ya puedes revisar el resumen o inyectar el producto al agente.`,
+        shouldAutoCorrect
+          ? `${names.length} respaldo(s) procesado(s) para ${finalLabel}. El producto se ajustó automáticamente según la evidencia.${resolutionSuffix ? ` ${resolutionSuffix}` : ''}`
+          : shouldSuggestCorrection
+            ? `${names.length} respaldo(s) procesado(s) para ${normalizedLabelHint || activeBankProduct.label}. La evidencia sugiere ${profileResolvedInstitution || profileInstitution || finalBank} · ${profileResolvedType || finalProductType}; revisa antes de continuar.${resolutionSuffix ? ` ${resolutionSuffix}` : ''}`
+            : `${names.length} respaldo(s) procesado(s) para ${normalizedLabelHint || activeBankProduct.label}. Ya puedes revisar el resumen o inyectar el producto al agente.${resolutionSuffix ? ` ${resolutionSuffix}` : ''}`,
       );
       return {
         documents: fallbackParsedDocs,
@@ -3101,15 +3127,9 @@ export default function AgentPage() {
             }
           : undefined,
         product: {
-          bank:
-            (isPlaceholderInstitution ? '' : profileInstitution) ||
-            normalizedBankHint ||
-            activeBankProduct.bank,
-          label:
-            !isPlaceholderInstitution && !isGenericLabel
-              ? `${profileInstitution} · ${profileLabel}`
-              : normalizedLabelHint || profileLabel || activeBankProduct.label,
-          productType: profileType || activeBankProduct.productType,
+          bank: finalBank,
+          label: finalLabel || normalizedLabelHint || profileLabel || activeBankProduct.label,
+          productType: finalProductType,
         },
       };
     } catch (error) {
@@ -3321,7 +3341,7 @@ export default function AgentPage() {
     <div
       className={`agent-input-shell terminal-composer-shell${
         input.trim() ? ' has-composer-text' : ''
-      }`}
+      }${isComposerFocused ? ' composer-focused' : ''}`}
     >
       <div
         className="agent-input terminal-composer"
@@ -3354,6 +3374,10 @@ export default function AgentPage() {
           inputMode="text"
           onFocus={() => {
             collapseMobilePanelForComposer();
+            setIsComposerFocused(true);
+          }}
+          onBlur={() => {
+            setIsComposerFocused(false);
           }}
           onChange={(e) => setDraftForActive(e.target.value)}
           onKeyDown={(e) => {
@@ -3535,7 +3559,7 @@ export default function AgentPage() {
 
       {isMobileViewport ? (
         <div
-          className={`agent-mobile-composer-dock${input.trim() ? ' has-composer-text' : ''}`}
+          className={`agent-mobile-composer-dock${input.trim() ? ' has-composer-text' : ''}${isComposerFocused ? ' composer-focused' : ''}`}
         >
           {terminalComposerShell}
         </div>

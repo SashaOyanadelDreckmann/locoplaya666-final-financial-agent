@@ -10,7 +10,7 @@ import path from 'path';
 import PDFParse from 'pdf-parse';
 import ffmpegStatic from 'ffmpeg-static';
 import XLSX from 'xlsx';
-import { getOpenAIClient, withCompatibleTemperature } from './llm.service';
+import { completeStructuredWithSchema } from './llm.service';
 
 const DATA_ROOT = path.join(process.cwd(), 'data', 'transactions');
 const IMAGE_MIME_BY_EXT: Record<string, string> = {
@@ -21,18 +21,44 @@ const IMAGE_MIME_BY_EXT: Record<string, string> = {
   '.gif': 'image/gif',
 };
 const VIDEO_EXTENSIONS = new Set(['.mp4', '.mov', '.webm', '.m4v', '.avi']);
-const VIDEO_MIME_BY_EXT: Record<string, string> = {
-  '.mp4': 'video/mp4',
-  '.mov': 'video/quicktime',
-  '.webm': 'video/webm',
-  '.m4v': 'video/mp4',
-  '.avi': 'video/x-msvideo',
-};
 const MAX_VIDEO_FRAMES = 16;
+const VISION_PRIMARY_MODEL = process.env.TRANSACTIONS_VISION_MODEL?.trim() || 'gpt-5.4-nano';
+const VISION_FALLBACK_MODEL = process.env.TRANSACTIONS_VISION_FALLBACK_MODEL?.trim() || 'gpt-5.4-mini';
+const VISION_OUTPUT_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    summary: { type: 'string' },
+    text: { type: 'string' },
+    tables: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          name: { type: 'string' },
+          headers: { type: 'array', items: { type: 'string' } },
+          rows: {
+            type: 'array',
+            items: { type: 'array', items: { type: 'string' } },
+          },
+        },
+        required: ['name', 'headers', 'rows'],
+      },
+    },
+  },
+  required: ['summary', 'text', 'tables'],
+} as const;
 
-function resolveVisionModel(): string {
-  return process.env.OPENAI_VISION_MODEL?.trim() || 'gpt-5.2';
-}
+type VisionExtractionOutput = {
+  summary?: string;
+  text?: string;
+  tables?: Array<{
+    name?: string;
+    headers?: string[];
+    rows?: string[][];
+  }>;
+};
 
 function visionImageDetail(): 'auto' | 'high' {
   return process.env.TRANSACTIONS_VISION_DETAIL === 'high' ? 'high' : 'auto';
@@ -71,6 +97,170 @@ function cleanupTempDir(dir: string): void {
   try {
     fs.rmSync(dir, { recursive: true, force: true });
   } catch {}
+}
+
+function normalizeVisionTable(
+  table: { name?: string; headers?: string[]; rows?: string[][] },
+  index: number,
+  source: ParsedTable['source'],
+): ParsedTable | null {
+  const headers = Array.isArray(table.headers)
+    ? table.headers.map((cell) => normalizeText(cell)).filter((cell) => cell.length > 0)
+    : [];
+  const rows = Array.isArray(table.rows)
+    ? table.rows
+        .map((row) => (Array.isArray(row) ? row.map((cell) => normalizeText(cell)) : []))
+        .filter((row) => row.some((cell) => cell.length > 0))
+    : [];
+  if (headers.length === 0 && rows.length === 0) return null;
+  const width = Math.max(headers.length, rows.reduce((max, row) => Math.max(max, row.length), 0));
+  const safeHeaders = headers.length > 0 ? Array.from({ length: width }, (_, idx) => headers[idx] ?? `col_${idx + 1}`) : makeGenericHeaders(width);
+  return {
+    name: normalizeText(table.name ?? '') || `Tabla ${index + 1}`,
+    headers: safeHeaders,
+    rows,
+    source,
+  };
+}
+
+function normalizeVisionTables(
+  tables: VisionExtractionOutput['tables'],
+  source: ParsedTable['source'],
+): ParsedTable[] {
+  return Array.isArray(tables)
+    ? tables
+        .map((table, index) => normalizeVisionTable(table ?? {}, index, source))
+        .filter((table): table is ParsedTable => Boolean(table))
+    : [];
+}
+
+function isSparseVisionResult(result: VisionExtractionOutput): boolean {
+  const textBody = normalizeText(result.text || result.summary || '');
+  const tables = Array.isArray(result.tables) ? result.tables : [];
+  const hasUsefulTable = tables.some((table) => Array.isArray(table.rows) && table.rows.length >= 2);
+  return !hasUsefulTable && textBody.length < 160;
+}
+
+function buildVisionArtifact(
+  source: string,
+  result: VisionExtractionOutput,
+  sourceType: ParsedTable['source'],
+  confidence: number,
+  meta: Record<string, unknown> = {},
+): ParsedTransactionArtifact {
+  const tables = normalizeVisionTables(result.tables, sourceType);
+  const textBody = normalizeText(result.text || result.summary || '');
+  const text = textBody
+    ? `--- Documento ${sourceType === 'image' ? 'Imagen' : sourceType === 'pdf' ? 'PDF' : 'Video'}: ${source} ---\n${textBody}\n--- Fin ---`
+    : tables.length > 0
+      ? serializeTablesToText(source, tables, `Documento ${sourceType === 'image' ? 'Imagen' : sourceType === 'pdf' ? 'PDF' : 'Video'}`)
+      : `[${sourceType === 'image' ? 'Imagen' : sourceType === 'pdf' ? 'PDF' : 'Video'} ${source}: sin texto o tablas extraíbles]`;
+  return {
+    source,
+    text,
+    tables,
+    parserMeta: {
+      mode: 'vision_structured',
+      confidence,
+      ...(meta as Record<string, unknown>),
+    } as ParsedTransactionArtifact['parserMeta'],
+  };
+}
+
+async function runVisionExtraction(params: {
+  source: string;
+  sourceType: ParsedTable['source'];
+  instructions: string;
+  userPrompt: string;
+  contents: Array<
+    | { type: 'input_text'; text: string }
+    | { type: 'input_file'; file_data: string; filename: string }
+    | { type: 'input_image'; image_url: string; detail: 'auto' | 'high' | 'low' }
+  >;
+  model: string;
+  maxOutputTokens: number;
+}): Promise<VisionExtractionOutput> {
+  return completeStructuredWithSchema<VisionExtractionOutput>({
+    name: 'transaction_vision_extraction',
+    description: `Extrae texto y tablas de un documento financiero (${params.sourceType}).`,
+    model: params.model,
+    temperature: 0,
+    maxOutputTokens: params.maxOutputTokens,
+    instructions: params.instructions,
+    input: [
+      {
+        role: 'user',
+        content: [
+          { type: 'input_text', text: params.userPrompt },
+          ...params.contents,
+        ],
+      },
+    ],
+    schema: VISION_OUTPUT_SCHEMA,
+  });
+}
+
+async function runVisionExtractionWithRetry(params: {
+  source: string;
+  sourceType: ParsedTable['source'];
+  userPrompt: string;
+  contents: Array<
+    | { type: 'input_text'; text: string }
+    | { type: 'input_file'; file_data: string; filename: string }
+    | { type: 'input_image'; image_url: string; detail: 'auto' | 'high' | 'low' }
+  >;
+}): Promise<ParsedTransactionArtifact> {
+  const primary = await runVisionExtraction({
+    source: params.source,
+    sourceType: params.sourceType,
+    instructions:
+      'Eres un OCR financiero experto. Extrae solo movimientos reales y tablas útiles. No inventes datos. Devuelve JSON estricto.',
+    userPrompt: params.userPrompt,
+    contents: params.contents,
+    model: VISION_PRIMARY_MODEL,
+    maxOutputTokens: 3200,
+  });
+  if (!isSparseVisionResult(primary)) {
+    return buildVisionArtifact(params.source, primary, params.sourceType, primary.tables?.length ? 0.86 : 0.58, {
+      model: VISION_PRIMARY_MODEL,
+      usedRetry: false,
+    });
+  }
+
+  const fallback = await runVisionExtraction({
+    source: params.source,
+    sourceType: params.sourceType,
+    instructions:
+      'Eres un OCR financiero senior. Relee con máximo cuidado y completa filas que faltaron. Prioriza fidelidad sobre cobertura. Devuelve JSON estricto.',
+    userPrompt: `${params.userPrompt}\n\nPrimera pasada insuficiente. Relee con cuidado y recupera filas visibles omitidas.`,
+    contents: params.contents.map((item) =>
+      item.type === 'input_image' ? { ...item, detail: 'high' as const } : item,
+    ),
+    model: VISION_FALLBACK_MODEL,
+    maxOutputTokens: 3600,
+  });
+
+  const primaryScore =
+    (primary.tables?.length ?? 0) * 2 +
+    (normalizeText(primary.text || primary.summary || '').length > 0 ? 1 : 0);
+  const fallbackScore =
+    (fallback.tables?.length ?? 0) * 2 +
+    (normalizeText(fallback.text || fallback.summary || '').length > 0 ? 1 : 0);
+  const chosen = fallbackScore > primaryScore ? fallback : primary;
+  const usedRetry = chosen === fallback;
+  const confidence = chosen.tables?.length
+    ? usedRetry
+      ? 0.9
+      : 0.86
+    : normalizeText(chosen.text || chosen.summary || '').length > 0
+      ? usedRetry
+        ? 0.68
+        : 0.58
+      : 0.18;
+  return buildVisionArtifact(params.source, chosen, params.sourceType, confidence, {
+    model: usedRetry ? VISION_FALLBACK_MODEL : VISION_PRIMARY_MODEL,
+    usedRetry,
+  });
 }
 
 async function parseVideoBufferDetailed(buffer: Buffer, filename: string): Promise<ParsedTransactionArtifact> {
@@ -140,8 +330,6 @@ async function parseVideoBufferDetailed(buffer: Buffer, filename: string): Promi
       };
     }
 
-    const client = getOpenAIClient();
-    const model = resolveVisionModel();
     const framePayloads = frameFiles.map((frameFile, index) => {
       const frameBuffer = fs.readFileSync(path.join(framesDir, frameFile));
       return {
@@ -150,93 +338,19 @@ async function parseVideoBufferDetailed(buffer: Buffer, filename: string): Promi
         label: `Fotograma ${index + 1}`,
       };
     });
-
-    const response = await client.chat.completions.create(
-      withCompatibleTemperature(
-        {
-          model,
-          max_completion_tokens: 4096,
-          response_format: { type: 'json_object' },
-          messages: [
-            {
-              role: 'system',
-              content:
-                'Eres un OCR financiero experto para grabaciones de pantalla de apps bancarias. ' +
-                'Recibes fotogramas ordenados de un mismo scroll continuo hacia abajo. ' +
-                'Tu objetivo es extraer CADA movimiento real visible, sin perder ninguno y sin duplicar.\n\n' +
-                'REGLAS DE DEDUPLICACIÓN (muy importantes):\n' +
-                '- Un movimiento es duplicado SOLO si fecha + monto + primeros 12 caracteres de descripción coinciden exactamente con otro ya incluido.\n' +
-                '- Dos cargos del mismo monto en fechas distintas = movimientos DISTINTOS → incluir ambos.\n' +
-                '- Dos cargos con descripción similar pero monto diferente = movimientos DISTINTOS → incluir ambos.\n' +
-                '- Ante la duda, incluir el movimiento — es mejor incluir un duplicado que perder un movimiento real.\n\n' +
-                'REGLAS DE EXTRACCIÓN:\n' +
-                '- Devuelve SOLO JSON válido: { summary: string, text: string, tables: Array<{name, headers, rows}> }\n' +
-                '- Incluir TODOS los movimientos en orden cronológico tal como aparecen en la app.\n' +
-                '- Columnas preferidas: fecha, descripción, monto, saldo, tipo (cargo/abono).\n' +
-                '- No inventar datos. Si un campo no es legible con certeza, dejarlo vacío.\n' +
-                '- Omitir saldos totales, resúmenes globales y elementos de UI sin valor financiero.',
-            },
-            {
-              role: 'user',
-              content: [
-                {
-                  type: 'text',
-                  text:
-                    `Archivo: ${filename}. Fotogramas: ${framePayloads.length} (scroll continuo hacia abajo).\n` +
-                    'Extrae TODOS los movimientos financieros visibles en los fotogramas. ' +
-                    'Recuerda: el mismo movimiento puede aparecer en 2-4 fotogramas consecutivos mientras el usuario hace scroll — contarlo UNA sola vez. ' +
-                    'Un movimiento nuevo que aparece en la mitad inferior de un fotograma NO es duplicado del que apareció en la mitad superior del anterior si la descripción o monto difieren.',
-                },
-                ...framePayloads.flatMap((frame) => [
-                  { type: 'text', text: frame.label },
-                  { type: 'image_url', image_url: { url: frame.url, detail: 'high' } },
-                ]),
-              ] as any,
-            },
-          ],
-        },
-        model,
-        0,
-      ) as any,
-    );
-
-    const raw = response.choices?.[0]?.message?.content?.trim() ?? '{}';
-    type VisionResult = { summary?: string; text?: string; tables?: Array<{ name?: string; headers?: string[]; rows?: string[][] }> };
-    let result: VisionResult = {};
-    try {
-      result = JSON.parse(raw) as VisionResult;
-    } catch {
-      // JSON truncated by token limit — salvage whatever partial data is readable
-      const textMatch = raw.match(/"text"\s*:\s*"((?:[^"\\]|\\.)*)"/);
-      const summaryMatch = raw.match(/"summary"\s*:\s*"((?:[^"\\]|\\.)*)"/);
-      const salvaged = textMatch?.[1] ?? summaryMatch?.[1] ?? '';
-      result = { text: salvaged };
-    }
-    const tables = Array.isArray(result.tables)
-      ? result.tables
-          .map((table, index) =>
-            rowsToTable(
-              table.name?.trim() || `Video ${index + 1}`,
-              Array.isArray(table.rows) ? table.rows : [],
-              'image',
-            ),
-          )
-          .filter((table): table is ParsedTable => Boolean(table))
-      : [];
-    const textBody = normalizeText(result.text || result.summary || '');
-    return {
+    return await runVisionExtractionWithRetry({
       source: filename,
-      text: textBody
-        ? `--- Video OCR: ${filename} ---\n${textBody}\n--- Fin ---`
-        : tables.length > 0
-          ? serializeTablesToText(filename, tables, 'Video OCR')
-          : `[Video ${filename}: sin texto o tablas extraíbles]`,
-      tables,
-      parserMeta: {
-        mode: 'video_vision',
-        confidence: tables.length > 0 ? 0.83 : textBody ? 0.54 : 0.18,
-      },
-    };
+      sourceType: 'video',
+      userPrompt:
+        `Archivo: ${filename}. Fotogramas: ${framePayloads.length} (scroll continuo hacia abajo).\n` +
+        'Extrae TODOS los movimientos financieros visibles en los fotogramas. ' +
+        'Recuerda: el mismo movimiento puede aparecer en 2-4 fotogramas consecutivos mientras el usuario hace scroll — contarlo UNA sola vez. ' +
+        'Un movimiento nuevo que aparece en la mitad inferior de un fotograma NO es duplicado del que apareció en la mitad superior del anterior si la descripción o monto difieren.',
+      contents: framePayloads.flatMap((frame) => [
+        { type: 'input_text' as const, text: frame.label },
+        { type: 'input_image' as const, image_url: frame.url, detail: 'high' as const },
+      ]),
+    });
   } catch (error) {
     return {
       source: filename,
@@ -256,7 +370,7 @@ export type ParsedTable = {
   name: string;
   headers: string[];
   rows: string[][];
-  source: 'excel' | 'csv' | 'pdf' | 'image';
+  source: 'excel' | 'csv' | 'pdf' | 'image' | 'video';
 };
 
 export type ParsedTransactionArtifact = {
@@ -464,91 +578,27 @@ async function parsePdfWithVisionDetailed(
   filename: string,
   reason: string,
 ): Promise<ParsedTransactionArtifact> {
-  const base64 = buffer.toString('base64');
-  const client = getOpenAIClient();
-  const model = resolveVisionModel();
-
   try {
-    const response = await client.chat.completions.create(
-      withCompatibleTemperature(
-        {
-          model,
-          max_completion_tokens: 2600,
-          response_format: { type: 'json_object' },
-          messages: [
-            {
-              role: 'system',
-              content:
-                'Eres un OCR financiero senior. Lee PDFs bancarios escaneados o con poco texto, extrae movimientos reales con máxima fidelidad y sin inventar filas. Devuelve solo JSON valido con keys: summary, text, tables. Si una tabla es dudosa, omitela.',
-            },
-            {
-              role: 'user',
-              content: [
-                {
-                  type: 'text',
-                  text:
-                    `Archivo: ${filename}\n` +
-                    `Motivo del fallback: ${reason}\n` +
-                    'El PDF puede estar escaneado. Usa OCR visual si hace falta.\n' +
-                    'Devuelve JSON con summary, text y tables.\n' +
-                    'Cada table debe incluir name, headers y rows.\n' +
-                    'Las filas deben ser solo movimientos reales; excluye saldos, subtotales, resúmenes y encabezados repetidos.\n' +
-                    'Si una fila no permite lectura confiable, omítela.',
-                },
-                {
-                  type: 'file',
-                  file: {
-                    filename,
-                    file_data: base64,
-                  },
-                },
-              ] as any,
-            },
-          ],
-        },
-        model,
-        0,
-      ) as any,
-    );
-
-    const raw = response.choices?.[0]?.message?.content?.trim() ?? '{}';
-    type VisionResultPdf = { summary?: string; text?: string; tables?: Array<{ name?: string; headers?: string[]; rows?: string[][] }> };
-    let result: VisionResultPdf = {};
-    try {
-      result = JSON.parse(raw) as VisionResultPdf;
-    } catch {
-      const textMatch = raw.match(/"text"\s*:\s*"((?:[^"\\]|\\.)*)"/);
-      const summaryMatch = raw.match(/"summary"\s*:\s*"((?:[^"\\]|\\.)*)"/);
-      result = { text: textMatch?.[1] ?? summaryMatch?.[1] ?? '' };
-    }
-
-    const tables = Array.isArray(result.tables)
-      ? result.tables
-          .map((table, index) =>
-            rowsToTable(
-              table.name?.trim() || `Tabla OCR ${index + 1}`,
-              Array.isArray(table.rows) ? table.rows : [],
-              'pdf',
-            ),
-          )
-          .filter((table): table is ParsedTable => Boolean(table))
-      : [];
-    const textBody = normalizeText(result.text || result.summary || '');
-
-    return {
+    return await runVisionExtractionWithRetry({
       source: filename,
-      text: textBody
-        ? `--- Documento PDF OCR: ${filename} ---\n${textBody}\n--- Fin ---`
-        : tables.length > 0
-          ? serializeTablesToText(filename, tables, 'Documento PDF OCR')
-          : `[PDF OCR ${filename}: sin texto o tablas extraíbles]`,
-      tables,
-      parserMeta: {
-        mode: 'pdf_vision',
-        confidence: tables.length > 0 ? 0.88 : textBody ? 0.66 : 0.24,
-      },
-    };
-  } catch (error) {
+      sourceType: 'pdf',
+      userPrompt:
+        `Archivo: ${filename}\n` +
+        `Motivo del fallback: ${reason}\n` +
+        'El PDF puede estar escaneado. Usa OCR visual si hace falta.\n' +
+        'Devuelve JSON con summary, text y tables.\n' +
+        'Cada table debe incluir name, headers y rows.\n' +
+        'Las filas deben ser solo movimientos reales; excluye saldos, subtotales, resúmenes y encabezados repetidos.\n' +
+        'Si una fila no permite lectura confiable, omítela.',
+      contents: [
+        {
+          type: 'input_file',
+          file_data: buffer.toString('base64'),
+          filename,
+        },
+      ],
+    });
+  } catch {
     return {
       source: filename,
       text: '',
@@ -812,130 +862,33 @@ export async function parseImageBufferDetailed(buffer: Buffer, filename: string)
     };
   }
 
-  const base64 = buffer.toString('base64');
-  const imageDataUrl = `data:${mime};base64,${base64}`;
-
   try {
-    const client = getOpenAIClient();
-    const model = resolveVisionModel();
-    const response = await client.chat.completions.create(
-      withCompatibleTemperature(
+    return await runVisionExtractionWithRetry({
+      source: filename,
+      sourceType: 'image',
+      userPrompt:
+        `Archivo: ${filename}\n` +
+        'Devuelve JSON con summary, text y tables.\n' +
+        'Cada table debe incluir name, headers y rows.\n' +
+        'Si una fila no es movimiento real y parece saldo/resumen, déjala fuera de rows.',
+      contents: [
         {
-          model,
-          max_completion_tokens: 1500,
-          response_format: { type: 'json_object' },
-          messages: [
-            {
-              role: 'system',
-              content:
-                'Extrae cartolas financieras desde imagen con máxima fidelidad. Responde solo JSON válido con keys: summary, text, tables. Si identificas una tabla de movimientos, copia headers y filas exactas. No inventes celdas.',
-            },
-            {
-              role: 'user',
-              content: [
-                {
-                  type: 'text',
-                  text:
-                    `Archivo: ${filename}\n` +
-                    'Devuelve JSON con summary, text y tables.\n' +
-                    'Cada table debe incluir name, headers y rows.\n' +
-                    'Si una fila no es movimiento real y parece saldo/resumen, déjala fuera de rows.',
-                },
-                { type: 'image_url', image_url: { url: imageDataUrl, detail: visionImageDetail() } },
-              ] as any,
-            },
-          ],
+          type: 'input_image',
+          image_url: `data:${mime};base64,${buffer.toString('base64')}`,
+          detail: visionImageDetail(),
         },
-        model,
-        0,
-      ) as any,
-    );
-    const raw = response.choices?.[0]?.message?.content?.trim() ?? '{}';
-    type VisionResultImg = { summary?: string; text?: string; tables?: Array<{ name?: string; headers?: string[]; rows?: string[][] }> };
-    let result: VisionResultImg = {};
-    try {
-      result = JSON.parse(raw) as VisionResultImg;
-    } catch {
-      const textMatch = raw.match(/"text"\s*:\s*"((?:[^"\\]|\\.)*)"/);
-      const summaryMatch = raw.match(/"summary"\s*:\s*"((?:[^"\\]|\\.)*)"/);
-      result = { text: textMatch?.[1] ?? summaryMatch?.[1] ?? '' };
-    }
-
-    const tables = Array.isArray(result.tables)
-      ? result.tables
-          .map((table, index) =>
-            rowsToTable(
-              table.name?.trim() || `Tabla imagen ${index + 1}`,
-              Array.isArray(table.rows) ? table.rows : [],
-              'image',
-            ),
-          )
-          .filter((table): table is ParsedTable => Boolean(table))
-      : [];
-
-    const textBody = normalizeText(result.text || result.summary || '');
+      ],
+    });
+  } catch {
     return {
       source: filename,
-      text: textBody
-        ? `--- Documento Imagen: ${filename} ---\n${textBody}\n--- Fin ---`
-        : tables.length > 0
-          ? serializeTablesToText(filename, tables, 'Documento Imagen')
-          : `[Imagen ${filename}: sin texto o datos extraíbles]`,
-      tables,
+      text: `[Imagen ${filename}: error al extraer]`,
+      tables: [],
       parserMeta: {
         mode: 'vision_structured',
-        confidence: tables.length > 0 ? 0.78 : textBody ? 0.56 : 0.2,
+        confidence: 0.05,
       },
     };
-  } catch {
-    try {
-      const fallbackClient = getOpenAIClient();
-      const fallbackModel = resolveVisionModel();
-      const response = await fallbackClient.chat.completions.create(
-        withCompatibleTemperature(
-          {
-            model: fallbackModel,
-            max_completion_tokens: 900,
-            messages: [
-              {
-                role: 'system',
-                content:
-                  'Extrae texto y contexto de documentos financieros en imagen. Devuelve SOLO texto claro en español con: (1) resumen, (2) datos detectados, (3) posibles alertas.',
-              },
-              {
-                role: 'user',
-                content: [
-                  { type: 'text', text: `Analiza esta imagen financiera llamada "${filename}" y extrae su contenido.` },
-                  { type: 'image_url', image_url: { url: imageDataUrl, detail: visionImageDetail() } },
-                ] as any,
-              },
-            ],
-          },
-          fallbackModel,
-          0,
-        ) as any,
-      );
-      const extracted = response.choices?.[0]?.message?.content?.trim() ?? '';
-      return {
-        source: filename,
-        text: extracted ? `--- Documento Imagen: ${filename} ---\n${extracted}\n--- Fin ---` : `[Imagen ${filename}: sin texto o datos extraíbles]`,
-        tables: [],
-        parserMeta: {
-          mode: 'vision_structured',
-          confidence: extracted ? 0.42 : 0.18,
-        },
-      };
-    } catch (error) {
-      return {
-        source: filename,
-        text: `[Imagen ${filename}: error al extraer - ${String(error)}]`,
-        tables: [],
-        parserMeta: {
-          mode: 'vision_structured',
-          confidence: 0.05,
-        },
-      };
-    }
   }
 }
 

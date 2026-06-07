@@ -65,10 +65,14 @@ export function resolveBudgetChatTargetRow(
     manualFocusRowId?: string | null;
     assistantFocusRowId?: string | null;
     activeRow?: BudgetRow | null;
+    answer?: string | null;
   },
 ): BudgetRow | null {
   const fromManual = findBudgetRowByFocusId(rows, options?.manualFocusRowId ?? null);
   if (fromManual) return fromManual;
+
+  const fromAnswer = findBudgetRowByFocusId(rows, inferBudgetFocusRowId(options?.answer ?? null));
+  if (fromAnswer) return fromAnswer;
 
   const fromAssistant = findBudgetRowByFocusId(rows, options?.assistantFocusRowId ?? null);
   if (fromAssistant) return fromAssistant;

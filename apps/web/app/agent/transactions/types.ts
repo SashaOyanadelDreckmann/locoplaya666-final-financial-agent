@@ -75,8 +75,10 @@ export type BankProduct = {
       date?: string;
       description: string;
       amount: number;
+      amount_signed?: number;
       direction: 'expense' | 'income';
       movement_kind?: 'expense' | 'income' | 'abono';
+      direction_basis?: string;
       source_line?: string;
       category?: string;
       merchant?: string;

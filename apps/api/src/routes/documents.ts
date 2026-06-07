@@ -7,7 +7,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { ingestUserDocument, searchUserDocumentContext } from '../services/document-intelligence.service';
 import { getUserDocumentsByIds } from '../persistence/repos';
-import { completeStructured } from '../services/llm.service';
+import { completeStructuredWithSchema } from '../services/llm.service';
 import { inferTransactionTaxonomy } from '../services/transactionTaxonomy.service';
 import { requireAuth, requirePermission } from '../middleware/auth';
 import { asyncHandler } from '../middleware/errorHandler';
@@ -74,6 +74,8 @@ type ParsedMovement = {
   description: string;
   amount: number;
   direction: 'expense' | 'income';
+  amount_signed?: number;
+  direction_basis?: string;
   movement_kind?: 'expense' | 'income' | 'abono';
   source_line?: string;
   category?: string;
@@ -979,14 +981,15 @@ function buildTransactionAnalysisFromMovements(
   const cleanedInstitutionHint = hints.institutionHint?.replace(/\s*\(simulaci[oó]n\)\s*/gi, '').trim() || '';
   const cleanedServiceHint = hints.serviceHint?.trim() || '';
   const cleanedProductLabelHint = hints.productLabelHint?.trim() || '';
-  const institution = cleanedInstitutionHint || primaryProfile?.bank || 'Institución por confirmar';
+  const institution = primaryProfile?.resolved_bank || primaryProfile?.bank || cleanedInstitutionHint || 'Institución por confirmar';
   const service = cleanedServiceHint || cleanedProductLabelHint || primaryProfile?.format_family || 'Producto financiero';
   const normalizedProductType =
+    primaryProfile?.resolved_product_type ||
+    primaryProfile?.product_type ||
     normalizeMovementProductType(productType) ||
     normalizeMovementProductType(hints.productTypeHint) ||
     normalizeMovementProductType(cleanedServiceHint) ||
     normalizeMovementProductType(cleanedProductLabelHint) ||
-    primaryProfile?.product_type ||
     'credit_card';
   const productLabel = cleanedProductLabelHint || service;
 
@@ -997,8 +1000,15 @@ function buildTransactionAnalysisFromMovements(
       product_type: normalizedProductType,
       product_label: productLabel,
       format_family: primaryProfile?.format_family,
+      resolved_bank: primaryProfile?.resolved_bank || institution,
+      resolved_product_type: primaryProfile?.resolved_product_type || normalizedProductType,
       document_profile_confidence: primaryProfile?.confidence,
-      document_profile_sign_convention: primaryProfile?.sign_convention,
+      document_profile_sign_convention: primaryProfile?.direction_basis || primaryProfile?.sign_convention,
+      document_profile_direction_basis: primaryProfile?.direction_basis,
+      document_profile_warnings: primaryProfile?.warnings?.slice(0, 8) ?? [],
+      document_profile_correction_reason: primaryProfile?.correction_reason ?? null,
+      document_profile_auto_corrected: primaryProfile?.auto_corrected ?? false,
+      document_profile_correction_level: primaryProfile?.correction_level ?? 'keep',
       period,
       currency: inferCurrency(documents),
       key_metrics: {
@@ -1085,7 +1095,29 @@ async function reconcileMovementsWithLLM(
   if (tablePayload.length === 0) return null;
 
   try {
-    const reconciled = await completeStructured<{
+    const schema = {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        movements: {
+          type: 'array',
+          items: {
+            type: 'object',
+            additionalProperties: false,
+            properties: {
+              date: { type: 'string' },
+              description: { type: 'string' },
+              amount: { type: 'number' },
+              direction: { type: 'string', enum: ['income', 'expense'] },
+              category: { type: 'string' },
+            },
+            required: ['description', 'amount', 'direction'],
+          },
+        },
+      },
+      required: ['movements'],
+    } as const;
+    const reconciled = await completeStructuredWithSchema<{
       movements?: Array<{
         date?: string;
         description: string;
@@ -1094,22 +1126,30 @@ async function reconcileMovementsWithLLM(
         category?: string;
       }>;
     }>({
-      model: process.env.TRANSACTIONS_RECONCILE_MODEL || 'gpt-5.2',
+      name: 'transaction_reconcile_movements',
+      description: 'Reconcilia movimientos desde tablas de cartolas bancarias chilenas.',
+      model: process.env.TRANSACTIONS_RECONCILE_MODEL || 'gpt-5.4-mini',
       temperature: 0,
-      maxCompletionTokens: 1200,
-      system:
+      maxOutputTokens: 1200,
+      instructions:
         'Reconcilia tablas de cartolas bancarias chilenas. Devuelve solo movimientos reales. Excluye saldos, subtotales, resúmenes, cupos, pagos mínimos y encabezados repetidos. Respeta signo, columnas cargo/abono y contexto contable.',
-      user: JSON.stringify({
-        instructions: [
-          'Devuelve solo JSON con movements.',
-          'Cada movement debe incluir date, description, amount absoluto y direction.',
-          'Si una fila tiene signo negativo o está en columna cargo/debito, normalmente es expense.',
-          'Si una fila está en columna abono/credito/haber, normalmente es income.',
-          'No inventes filas faltantes.',
-        ],
-        tables: tablePayload,
-        heuristicSample: heuristicMovements.slice(0, 40),
-      }),
+      input: [
+        {
+          role: 'user',
+          content: JSON.stringify({
+            instructions: [
+              'Devuelve solo JSON con movements.',
+              'Cada movement debe incluir date, description, amount absoluto y direction.',
+              'Si una fila tiene signo negativo o está en columna cargo/debito, normalmente es expense.',
+              'Si una fila está en columna abono/credito/haber, normalmente es income.',
+              'No inventes filas faltantes.',
+            ],
+            tables: tablePayload,
+            heuristicSample: heuristicMovements.slice(0, 40),
+          }),
+        },
+      ],
+      schema,
     });
 
     const candidateMovements = Array.isArray(reconciled.movements) ? reconciled.movements : [];
@@ -1117,12 +1157,18 @@ async function reconcileMovementsWithLLM(
       .map((movement) => {
         const description = cleanMovementDescription(movement.description ?? '');
         const taxonomy = inferTransactionTaxonomy(description);
+        const signedAmount = inferMovementDirection(description, Number(movement.amount) || 0, '', productType) === 'expense'
+          ? -Math.abs(Number(movement.amount) || 0)
+          : Math.abs(Number(movement.amount) || 0);
+        const direction: ParsedMovement['direction'] = signedAmount < 0 ? 'expense' : 'income';
         return {
           date: movement.date ? toIsoDate(movement.date) : undefined,
           description,
           amount: Math.abs(Number(movement.amount) || 0),
-          direction: inferMovementDirection(description, Number(movement.amount) || 0, '', productType),
+          amount_signed: signedAmount,
+          direction,
           movement_kind: inferMovementKind(description, Number(movement.amount) || 0, '', productType),
+          direction_basis: 'llm_reconcile',
           source_line: '',
           category: movement.category ? String(movement.category) : taxonomy.category,
           merchant: taxonomy.merchant,

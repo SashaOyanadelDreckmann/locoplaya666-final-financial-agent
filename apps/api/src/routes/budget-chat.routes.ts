@@ -13,7 +13,9 @@ import {
   computeBudgetSignals,
   computeBudgetTotals,
   extractInferenceQuestionText,
+  findBudgetRowByFocusId,
   getEffectiveBudgetRows,
+  inferBudgetFocusRowId,
   isBareBudgetAmountAnswer,
   reconcileBudgetRows,
   resolveBudgetChatTargetRow,
@@ -270,6 +272,17 @@ function findBudgetFocusRow(rows: BudgetRow[], preferredRowId?: string | null): 
   return rows.find((row) => Number(row.amount ?? 0) <= 0) ?? rows[0] ?? null;
 }
 
+function findNextUnfilledBudgetRow(rows: BudgetRow[], afterRowId?: string | null): BudgetRow | null {
+  const unfilled = rows.filter((row) => Number(row.amount ?? 0) <= 0);
+  if (unfilled.length === 0) return rows[0] ?? null;
+  if (!afterRowId) return unfilled[0] ?? null;
+  const canonical = canonicalBudgetRowId(afterRowId);
+  const currentIndex = unfilled.findIndex((row) => canonicalBudgetRowId(row.id) === canonical);
+  if (currentIndex >= 0 && currentIndex + 1 < unfilled.length) return unfilled[currentIndex + 1] ?? null;
+  if (currentIndex >= 0) return unfilled[currentIndex] ?? null;
+  return unfilled[0] ?? null;
+}
+
 function buildQuestionForRow(row: BudgetRow | null, intakeData: Record<string, unknown>, products: BudgetProduct[]) {
   if (!row) return '¿Cuánto es tu ingreso principal mensual?';
   switch (row.id) {
@@ -472,6 +485,7 @@ function buildDeterministicUpdate(params: {
       manualFocusRowId: params.manualFocusRowId ?? null,
       assistantFocusRowId: params.assistantFocusRowId ?? null,
       activeRow: params.activeRow ?? null,
+      answer: params.answer,
     }) ?? findBudgetFocusRow(params.rows, null);
   if (!targetRow) return null;
   const amount = extractClpAmount(params.answer);

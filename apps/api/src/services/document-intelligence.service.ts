@@ -323,6 +323,16 @@ export async function ingestUserDocument(input: IngestUserDocumentInput) {
   const structuredData = {
     ...extractStructuredFinancialData(extractedText, parsed.tables, parsed.parserMeta),
     documentProfile,
+    documentResolution: {
+      resolved_bank: documentProfile.resolved_bank ?? documentProfile.bank,
+      resolved_product_type: documentProfile.resolved_product_type ?? documentProfile.product_type,
+      sign_convention: documentProfile.sign_convention,
+      confidence: documentProfile.confidence,
+      warnings: documentProfile.warnings ?? [],
+      correction_reason: documentProfile.correction_reason ?? null,
+      auto_corrected: documentProfile.auto_corrected ?? false,
+      correction_level: documentProfile.correction_level ?? 'keep',
+    },
   };
 
   const document = await createDocumentRecord({

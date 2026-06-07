@@ -409,6 +409,14 @@ export function BudgetModal(props: {
     focusMobileInput(el);
   };
   const activeQuestion = assistantNextQuestion ?? assistantQuestion ?? '…';
+  const assistantReplyLine =
+    !isInitializing &&
+    !isAskingAI &&
+    assistantQuestion &&
+    assistantNextQuestion &&
+    assistantQuestion.trim() !== assistantNextQuestion.trim()
+      ? assistantQuestion
+      : null;
   const agentStatusText = isInitializing
     ? 'Preparando asistente…'
     : isAskingAI
@@ -848,6 +856,7 @@ export function BudgetModal(props: {
         manualFocusRowId,
         assistantFocusRowId: assistantBudgetRowId,
         activeRow: activeBudgetRow,
+        answer,
       }) ?? null;
 
     // Call AI to get precise row update + next personalized question
@@ -1198,10 +1207,9 @@ export function BudgetModal(props: {
         ))}
 
         <div className={`budget-modal-body${isDesktopLayout ? ' is-desktop' : ''}`}>
+          {!isMobileShell && (
           <section
-            className={`budget-cockpit-banner ${heroToneClass}${
-              isMobileShell && budgetViewMode === 2 ? ' is-compact' : ''
-            }`}
+            className={`budget-cockpit-banner ${heroToneClass}`}
           >
             <div className="budget-cockpit-copy">
               <span className="budget-section-eyebrow">Cockpit financiero</span>
@@ -1232,6 +1240,7 @@ export function BudgetModal(props: {
               </div>
             </div>
           </section>
+          )}
 
           <div className="budget-mode-tabs" role="tablist" aria-label="Modo de presupuesto">
             <button
@@ -1308,6 +1317,10 @@ export function BudgetModal(props: {
                       </span>
                     )}
                   </div>
+
+                  {assistantReplyLine && (
+                    <p className="bcc-hero-reply">{assistantReplyLine}</p>
+                  )}
 
                   <p className="bcc-hero-question">{agentStatusText}</p>
                   {conversationDone && (

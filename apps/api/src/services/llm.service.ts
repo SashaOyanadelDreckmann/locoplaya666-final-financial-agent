@@ -198,6 +198,53 @@ export async function completeStructured<T>(params: {
   return JSON.parse(jsonStr) as T;
 }
 
+export async function completeStructuredWithSchema<T>(params: {
+  instructions: string;
+  input: string | OpenAI.Responses.ResponseInput;
+  schema: Record<string, unknown>;
+  name: string;
+  description?: string;
+  temperature?: number;
+  model?: string;
+  maxOutputTokens?: number;
+}): Promise<T> {
+  const client = getOpenAIClient();
+  const inputChars = typeof params.input === 'string' ? params.input.length : JSON.stringify(params.input).length;
+  const model = resolveOpenAIModel(inputChars + params.instructions.length, params.model);
+  const envStructuredMaxTokens = Number(
+    process.env.OPENAI_STRUCTURED_MAX_OUTPUT_TOKENS || process.env.OPENAI_STRUCTURED_MAX_COMPLETION_TOKENS || 1536,
+  );
+  const maxOutputTokens = resolveOpenAIMaxTokens(
+    inputChars,
+    params.maxOutputTokens,
+    Number.isFinite(envStructuredMaxTokens) ? envStructuredMaxTokens : 1536,
+  );
+
+  const response = await client.responses.create({
+    model,
+    instructions: params.instructions,
+    input: params.input,
+    max_output_tokens: maxOutputTokens,
+    store: false,
+    temperature: params.temperature ?? 0,
+    text: {
+      format: {
+        type: 'json_schema',
+        name: params.name,
+        schema: params.schema,
+        strict: true,
+        description: params.description,
+      },
+    },
+  });
+
+  const raw = response.output_text?.trim();
+  if (!raw) throw new Error('Respuesta LLM vacía en completeStructuredWithSchema');
+  const codeBlockMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
+  const jsonStr = codeBlockMatch ? codeBlockMatch[1].trim() : raw;
+  return JSON.parse(jsonStr) as T;
+}
+
 export async function completeWithClaude(
   input: string,
   options?: CompleteOptions

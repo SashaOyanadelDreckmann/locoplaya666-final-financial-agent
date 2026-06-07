@@ -1,4 +1,4 @@
-import { completeStructured } from './llm.service';
+import { completeStructuredWithSchema } from './llm.service';
 import {
   getTransactionInstitutionInventorySummary,
   loadTransactionInstitutionInventory,
@@ -15,27 +15,45 @@ export type TransactionDocumentProductType =
   | 'investment_account'
   | 'unknown';
 
+export type TransactionDocumentSignConvention =
+  | 'column_cargo_abono'
+  | 'section_based'
+  | 'keyword_overrides_amount_sign'
+  | 'amount_sign_only'
+  | 'unknown';
+
 export type TransactionDocumentProfile = {
   bank: string;
   product_type: TransactionDocumentProductType;
   format_family: string;
   header_map: Record<string, string>;
-  sign_convention:
-    | 'column_cargo_abono'
-    | 'section_based'
-    | 'keyword_overrides_amount_sign'
-    | 'amount_sign_only'
-    | 'unknown';
+  sign_convention: TransactionDocumentSignConvention;
   needs_rag: boolean;
   confidence: number;
   evidence: string[];
+  resolved_bank?: string;
+  resolved_product_type?: TransactionDocumentProductType;
+  direction_basis?: TransactionDocumentSignConvention;
+  warnings?: string[];
+  correction_reason?: string | null;
+  auto_corrected?: boolean;
+  correction_level?: 'auto' | 'suggest' | 'keep';
 };
 
 type ProfileInput = {
   filename: string;
   text: string;
   tables?: Array<{ headers?: string[]; rows?: string[][] }>;
-  parserMeta?: { mode?: string; confidence?: number } | null;
+  parserMeta?: {
+    mode?: string;
+    confidence?: number;
+    detectedBank?: string;
+    detectedProductType?: string;
+    signConvention?: string;
+    warnings?: string[];
+    model?: string;
+    usedRetry?: boolean;
+  } | null;
   productTypeHint?: string;
   institutionHint?: string;
 };
@@ -98,6 +116,16 @@ function normalizeProfileProductType(value?: string): TransactionDocumentProduct
   return normalizeProductType(source);
 }
 
+function normalizeSignConvention(value?: string): TransactionDocumentSignConvention {
+  const source = normalize(value);
+  if (!source) return 'unknown';
+  if (source.includes('column_cargo_abono') || source.includes('cargo_abono')) return 'column_cargo_abono';
+  if (source.includes('section_based')) return 'section_based';
+  if (source.includes('keyword_overrides_amount_sign') || source.includes('keyword_overrides')) return 'keyword_overrides_amount_sign';
+  if (source.includes('amount_sign_only') || source.includes('sign_only')) return 'amount_sign_only';
+  return 'unknown';
+}
+
 function bankSlug(value: string): string {
   return normalize(value)
     .replace(/\b(banco|de|del|la|los|las|s\.a\.|s a|chile|cl)\b/g, ' ')
@@ -118,7 +146,7 @@ function buildInventoryProfileMatch(input: ProfileInput): InventoryProfileMatch 
     [input.filename, input.text, ...(input.tables?.flatMap((table) => table.headers ?? []) ?? [])].join(' '),
   );
   const filename = normalizeInventoryText(input.filename);
-  const hits: Array<{ bank: string; confidence: number; evidence: string[]; productType?: TransactionDocumentProductType; formatFamily?: string; signConvention?: TransactionDocumentProfile['sign_convention']; needsRag?: boolean }> = [];
+  const hits: Array<{ bank: string; confidence: number; evidence: string[]; productType?: TransactionDocumentProductType; formatFamily?: string; signConvention?: TransactionDocumentSignConvention; needsRag?: boolean }> = [];
 
   for (const institution of inventory.institutions) {
     const institutionName = normalizeInventoryText(institution.name);
@@ -162,7 +190,7 @@ function buildInventoryProfileMatch(input: ProfileInput): InventoryProfileMatch 
     if (productType === 'checking_account') formatFamily = `${bankSlugValue}_cartola_cuenta_corriente`;
     if (productType === 'debit_account') formatFamily = `${bankSlugValue}_cartola_cuenta_vista`;
     if (productType === 'investment_account') formatFamily = `${bankSlugValue}_ledger_fintech`;
-    let signConvention: TransactionDocumentProfile['sign_convention'] = 'unknown';
+    let signConvention: TransactionDocumentSignConvention = 'unknown';
     if (hasCardSignals) {
       signConvention = 'keyword_overrides_amount_sign';
     } else if (hasAccountSignals) {
@@ -315,7 +343,7 @@ function fromText(input: ProfileInput): Partial<TransactionDocumentProfile> {
   let bank = '';
   let productType: TransactionDocumentProductType = 'unknown';
   let formatFamily = '';
-  let signConvention: TransactionDocumentProfile['sign_convention'] = 'unknown';
+  let signConvention: TransactionDocumentSignConvention = 'unknown';
   let confidence = 0.55;
 
   const has = (value: string) => text.includes(value);
@@ -503,29 +531,66 @@ async function refineWithLlm(input: ProfileInput, profile: TransactionDocumentPr
   if (previewLines.length === 0) return profile;
 
   try {
-    const refined = await completeStructured<Partial<TransactionDocumentProfile>>({
-      model: process.env.TRANSACTIONS_PROFILE_MODEL || process.env.OPENAI_MODEL_FAST || 'gpt-4o-mini',
+    const schema = {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        bank: { type: 'string' },
+        product_type: {
+          type: 'string',
+          enum: ['credit_card', 'debit_account', 'checking_account', 'savings_account', 'consumer_loan', 'mortgage', 'investment_account', 'unknown'],
+        },
+        format_family: { type: 'string' },
+        header_map: { type: 'object', additionalProperties: { type: 'string' } },
+        sign_convention: {
+          type: 'string',
+          enum: ['column_cargo_abono', 'section_based', 'keyword_overrides_amount_sign', 'amount_sign_only', 'unknown'],
+        },
+        needs_rag: { type: 'boolean' },
+        confidence: { type: 'number' },
+        evidence: { type: 'array', items: { type: 'string' } },
+        warnings: { type: 'array', items: { type: 'string' } },
+        correction_reason: { type: 'string' },
+        auto_corrected: { type: 'boolean' },
+        correction_level: { type: 'string', enum: ['auto', 'suggest', 'keep'] },
+        direction_basis: {
+          type: 'string',
+          enum: ['column_cargo_abono', 'section_based', 'keyword_overrides_amount_sign', 'amount_sign_only', 'unknown'],
+        },
+      },
+      required: ['bank', 'product_type', 'format_family', 'header_map', 'sign_convention', 'needs_rag', 'confidence', 'evidence'],
+    } as const;
+    const refined = await completeStructuredWithSchema<Partial<TransactionDocumentProfile>>({
+      name: 'transaction_document_profile',
+      description: 'Clasifica el perfil de un documento financiero chileno.',
+      model: process.env.TRANSACTIONS_PROFILE_MODEL || 'gpt-5.4-nano',
       temperature: 0,
-      maxCompletionTokens: 500,
-      system:
+      maxOutputTokens: 600,
+      instructions:
         'Eres un clasificador financiero chileno. No inventes montos, fechas ni saldos. ' +
         'Solo puedes usar evidencia visible. Si falta certeza, responde unknown. ' +
-        'Devuelve solo JSON estricto con bank, product_type, format_family, header_map, sign_convention, needs_rag, confidence y evidence.',
-      user: JSON.stringify({
-        filename: input.filename,
-        preview_lines: previewLines,
-        headers: pickHeaders(input),
-        candidate: profile,
-        allowed_banks: Array.from(
-          new Set([
-            'Banco de Chile',
-            'Banco BICE',
-            ...getTransactionInstitutionInventorySummary().institutions.map((institution) => institution.name),
-            'unknown',
-          ]),
-        ),
-        allowed_sign_conventions: ['column_cargo_abono', 'section_based', 'keyword_overrides_amount_sign', 'amount_sign_only', 'unknown'],
-      }),
+        'Devuelve JSON estricto compatible con el schema.',
+      input: [
+        {
+          role: 'user',
+          content: JSON.stringify({
+            filename: input.filename,
+            preview_lines: previewLines,
+            headers: pickHeaders(input),
+            candidate: profile,
+            allowed_banks: Array.from(
+              new Set([
+                'Banco de Chile',
+                'Banco BICE',
+                ...getTransactionInstitutionInventorySummary().institutions.map((institution) => institution.name),
+                'unknown',
+              ]),
+            ),
+            allowed_sign_conventions: ['column_cargo_abono', 'section_based', 'keyword_overrides_amount_sign', 'amount_sign_only', 'unknown'],
+          }),
+        },
+      ],
+      schema,
     });
 
     const next: TransactionDocumentProfile = {
@@ -537,23 +602,27 @@ async function refineWithLlm(input: ProfileInput, profile: TransactionDocumentPr
         refined.header_map && typeof refined.header_map === 'object'
           ? { ...profile.header_map, ...(refined.header_map as Record<string, string>) }
           : profile.header_map,
-      sign_convention:
-        refined.sign_convention &&
-        ['column_cargo_abono', 'section_based', 'keyword_overrides_amount_sign', 'amount_sign_only', 'unknown'].includes(
-          String(refined.sign_convention),
-        )
-          ? (String(refined.sign_convention) as TransactionDocumentProfile['sign_convention'])
-          : profile.sign_convention,
+      sign_convention: normalizeSignConvention(refined.sign_convention as string) || profile.sign_convention,
       needs_rag: typeof refined.needs_rag === 'boolean' ? refined.needs_rag : profile.needs_rag,
       confidence:
         typeof refined.confidence === 'number' && Number.isFinite(refined.confidence)
           ? Math.max(profile.confidence, Math.min(0.98, Math.max(0.1, refined.confidence)))
           : profile.confidence,
       evidence: Array.isArray(refined.evidence) && refined.evidence.length > 0 ? refined.evidence.map((item) => String(item)) : profile.evidence,
+      warnings: Array.isArray(refined.warnings) && refined.warnings.length > 0 ? refined.warnings.map((item) => String(item)) : profile.warnings,
+      correction_reason: typeof refined.correction_reason === 'string' ? refined.correction_reason : profile.correction_reason ?? null,
+      auto_corrected: typeof refined.auto_corrected === 'boolean' ? refined.auto_corrected : profile.auto_corrected,
+      correction_level:
+        refined.correction_level === 'auto' || refined.correction_level === 'suggest' || refined.correction_level === 'keep'
+          ? refined.correction_level
+          : profile.correction_level,
+      direction_basis: normalizeSignConvention(refined.direction_basis as string) || profile.direction_basis || profile.sign_convention,
     };
     if (next.bank === 'unknown' && profile.bank !== 'unknown') next.bank = profile.bank;
     if (next.format_family === 'generic_document' && profile.format_family !== 'generic_document') next.format_family = profile.format_family;
     if (next.confidence < profile.confidence) next.confidence = profile.confidence;
+    next.resolved_bank = next.bank;
+    next.resolved_product_type = next.product_type;
     next.needs_rag = next.needs_rag || next.confidence < 0.82 || next.bank === 'unknown';
     return next;
   } catch {
@@ -563,19 +632,67 @@ async function refineWithLlm(input: ProfileInput, profile: TransactionDocumentPr
 
 export async function buildTransactionDocumentProfile(input: ProfileInput): Promise<TransactionDocumentProfile> {
   const base = { ...fromFilename(input), ...fromText(input) } as TransactionDocumentProfile;
-  // institutionHint is the caller's explicit declaration — authoritative when heuristics say 'unknown'.
-  const resolvedBank = base.bank && base.bank !== 'unknown'
-    ? base.bank
-    : (input.institutionHint?.trim() || 'unknown');
+  const hintBank = input.institutionHint?.trim() || '';
+  const hintProductType = normalizeProfileProductType(input.productTypeHint);
   const normalized: TransactionDocumentProfile = {
-    bank: resolvedBank,
-    product_type: normalizeProfileProductType(base.product_type) || 'unknown',
+    ...base,
+    bank: base.bank && base.bank !== 'unknown' ? base.bank : (hintBank || 'unknown'),
+    product_type: normalizeProfileProductType(base.product_type) || hintProductType || 'unknown',
     format_family: base.format_family || 'generic_document',
     header_map: base.header_map ?? {},
-    sign_convention: base.sign_convention ?? 'unknown',
+    sign_convention: normalizeSignConvention(base.sign_convention) || 'unknown',
     needs_rag: Boolean(base.needs_rag),
     confidence: Number.isFinite(base.confidence) ? Math.max(0, Math.min(0.99, Number(base.confidence))) : 0.58,
     evidence: Array.isArray(base.evidence) ? base.evidence.slice(0, 12) : [],
   };
-  return refineWithLlm(input, normalized);
+  const refined = await refineWithLlm(input, normalized);
+  const finalBank = refined.bank && refined.bank !== 'unknown' ? refined.bank : normalized.bank;
+  const finalProductType = normalizeProfileProductType(refined.product_type) || normalized.product_type;
+  const finalSignConvention = normalizeSignConvention(refined.sign_convention) || normalized.sign_convention;
+  const finalConfidence = Number.isFinite(refined.confidence)
+    ? Math.max(normalized.confidence, Math.min(0.99, Number(refined.confidence)))
+    : normalized.confidence;
+  const bankMismatch = Boolean(hintBank) && normalize(hintBank) !== normalize(finalBank) && normalized.bank !== 'unknown';
+  const productMismatch = Boolean(hintProductType && hintProductType !== 'unknown') && hintProductType !== finalProductType;
+  const autoCorrected = Boolean((bankMismatch || productMismatch) && finalConfidence >= 0.86);
+  const correctionLevel: TransactionDocumentProfile['correction_level'] = autoCorrected
+    ? 'auto'
+    : bankMismatch || productMismatch
+      ? 'suggest'
+      : 'keep';
+  const warnings = Array.from(
+    new Set([
+      ...(Array.isArray(refined.warnings) ? refined.warnings.map((item) => String(item)) : []),
+      bankMismatch ? `Institución detectada distinta a la sugerida: ${hintBank}` : '',
+      productMismatch ? `Tipo de producto detectado distinto al sugerido: ${hintProductType}` : '',
+    ].filter(Boolean)),
+  );
+  const correctionReason =
+    bankMismatch || productMismatch
+      ? autoCorrected
+        ? 'Se detectó un producto/institución con confianza alta y se priorizó la evidencia del documento.'
+        : 'La evidencia sugiere un producto/institución distinto, pero la confianza no fue suficiente para mutar automáticamente.'
+      : null;
+
+  return {
+    ...refined,
+    bank: finalBank,
+    product_type: finalProductType,
+    format_family: refined.format_family || normalized.format_family,
+    header_map:
+      refined.header_map && typeof refined.header_map === 'object'
+        ? { ...normalized.header_map, ...(refined.header_map as Record<string, string>) }
+        : normalized.header_map,
+    sign_convention: finalSignConvention,
+    needs_rag: refined.needs_rag ?? normalized.needs_rag,
+    confidence: finalConfidence,
+    evidence: Array.isArray(refined.evidence) && refined.evidence.length > 0 ? refined.evidence.map((item) => String(item)) : normalized.evidence,
+    resolved_bank: finalBank,
+    resolved_product_type: finalProductType,
+    direction_basis: finalSignConvention,
+    warnings,
+    correction_reason: correctionReason,
+    auto_corrected: autoCorrected,
+    correction_level: correctionLevel,
+  };
 }
