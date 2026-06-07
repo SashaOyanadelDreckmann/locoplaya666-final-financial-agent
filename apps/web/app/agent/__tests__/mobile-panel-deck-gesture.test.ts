@@ -8,14 +8,14 @@ import {
 describe('mobile-panel-deck-gesture', () => {
   const step = 100;
 
-  it('maps drag distance 1:1 to deck phase', () => {
-    expect(dragPhaseFromPointer(0, 100, step)).toBe(-1);
-    expect(dragPhaseFromPointer(2, -400, step)).toBe(6);
+  it('maps drag distance to deck phase with elevated sensitivity', () => {
+    expect(dragPhaseFromPointer(0, 100, step)).toBeCloseTo(-DECK_GESTURE.DRAG_SENSITIVITY, 5);
+    expect(dragPhaseFromPointer(2, -400, step)).toBeCloseTo(2 + 4 * DECK_GESTURE.DRAG_SENSITIVITY, 5);
   });
 
   it('snaps to the nearest card after a multi-card drag', () => {
     const target = resolveSwipeTarget(3.2, 0, -420, 0, step);
-    expect(target).toBe(4);
+    expect(target).toBe(7);
   });
 
   it('projects fast flicks across several cards', () => {

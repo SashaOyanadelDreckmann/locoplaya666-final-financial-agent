@@ -588,7 +588,7 @@ export const MobilePanelCircularDeck = forwardRef<
             <div
               key={slotName}
               ref={offset === 0 ? centerSlotRef : undefined}
-              className={`${className}${offset === 0 && pulseCenterSlot ? ' is-deck-pulse' : ''}${offset === 0 && card && FLOATABLE_CARD_KEYS.has(card.key) ? ' is-floatable' : ''}`}
+              className={`${className}${offset === 0 && pulseCenterSlot ? ' is-deck-pulse' : ''}${offset === 0 && !isDragging && !isAnimating && !floatingCard ? ' is-deck-settled' : ''}${offset === 0 && card && FLOATABLE_CARD_KEYS.has(card.key) ? ' is-floatable' : ''}`}
               data-deck-slot={slotName}
               onClick={
                 offset === -1

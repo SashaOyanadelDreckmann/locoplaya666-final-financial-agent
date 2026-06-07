@@ -1147,3 +1147,55 @@ html[data-visual-mode='light-outline'] .floating-card-shell {
     opacity: calc(1 - var(--deck-t-front) * 0.05) !important;
   }
 }
+
+/*
+ * Center card — premium idle float (EOF, wins cascade).
+ * Animates inner card only so slot drag transforms stay intact.
+ */
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+  @keyframes mobileDeckFrontFloat {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0) scale(1);
+      filter: brightness(1) saturate(1);
+      box-shadow:
+        0 8px 22px rgba(0, 0, 0, 0.26),
+        0 1px 0 rgba(255, 255, 255, 0.09) inset;
+    }
+    38% {
+      transform: translate3d(0, -3px, 0) scale(1.015);
+      filter: brightness(1.02) saturate(1.025);
+      box-shadow:
+        0 13px 30px rgba(0, 0, 0, 0.34),
+        0 1px 0 rgba(255, 255, 255, 0.13) inset;
+    }
+    72% {
+      transform: translate3d(0, 1.5px, 0) scale(0.993);
+      filter: brightness(0.988) saturate(0.985);
+      box-shadow:
+        0 6px 18px rgba(0, 0, 0, 0.22),
+        0 1px 0 rgba(255, 255, 255, 0.07) inset;
+    }
+  }
+
+  body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-track:not(.is-dragging):not(.is-animating) .mobile-deck-slot.is-mobile-front.is-deck-settled:not(.is-deck-pulse) > .mobile-deck-card,
+  body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-track:not(.is-dragging):not(.is-animating) .mobile-deck-slot.is-mobile-front.is-deck-settled:not(.is-deck-pulse) > * {
+    animation: mobileDeckFrontFloat 6.4s cubic-bezier(0.42, 0, 0.58, 1) infinite !important;
+    transform-origin: 50% 88% !important;
+    will-change: transform, filter, box-shadow;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+
+  body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-slot.is-deck-pulse > .mobile-deck-card,
+  body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-slot.is-deck-pulse > * {
+    animation: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.agent-route-active main.agent-layout.is-mobile-viewport .panel-grid.is-circular-deck .mobile-deck-slot.is-mobile-front.is-deck-settled > .mobile-deck-card,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .panel-grid.is-circular-deck .mobile-deck-slot.is-mobile-front.is-deck-settled > * {
+    animation: none !important;
+  }
+}
