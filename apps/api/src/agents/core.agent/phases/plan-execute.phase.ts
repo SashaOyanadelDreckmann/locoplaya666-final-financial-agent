@@ -47,10 +47,17 @@ function resolveIterationBudget(input: PlanPhaseInput): number {
   return base; // regulation/simulation/decision_support/containment keep full depth
 }
 
+const PURE_CALC_PATTERN =
+  /\b(cuanto es|cu[aá]nto es|calcul[ae]|si aporto|si ahorro|si tengo|en cu[aá]nto tiempo|cuantos meses|cu[aá]ntos meses|a raz[oó]n de|si pago|si invierto)\b/i;
+const MARKET_DATA_PATTERN =
+  /\b(tasa|tpm|uf|utm|d[oó]lar|euro|mercado|hoy|actual|precio|divisa|inflaci[oó]n|rendimiento|retorno|banco central|bcentral|bcch)\b/i;
+
 function shouldAutoWebVerify(userMessage?: string): boolean {
   const msg = String(userMessage ?? '').trim();
   if (!msg) return false;
   if (TRIVIAL_GREETING.test(msg)) return false;
+  // Pure arithmetic queries don't need live web evidence; skip the prefetch to save latency
+  if (PURE_CALC_PATTERN.test(msg) && !MARKET_DATA_PATTERN.test(msg)) return false;
   return true;
 }
 

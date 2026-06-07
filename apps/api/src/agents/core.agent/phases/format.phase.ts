@@ -33,10 +33,9 @@ import {
 export function shouldApplyLatexFormatting(message: string): boolean {
   if (!message || message.length < 120) return false;
   const hasDisplayMath = /\$\$[\s\S]+\$\$/.test(message);
-  const hasInlineMath = /\$[^$\n]+\$/.test(message);
-  const hasLatexEscape = /\\(frac|sum|int|sqrt|cdot|times|left|right|begin|end|\(|\)|\[|\])/i.test(
-    message,
-  );
+  // Require at least one digit or math operator inside $...$ to avoid matching $word$ or $ACRONYM$
+  const hasInlineMath = /\$[^$\n]*[\d+\-*/^=()[\]{}][^$\n]*\$/.test(message);
+  const hasLatexEscape = /\\(frac|sum|int|sqrt|cdot|times|left|right|begin|end|\(|\)|\[|\])/i.test(message);
   const hasEquation = /\b[A-Za-zÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑ0-9_]{1,}\s*=\s*[^=\n]+/.test(message);
 
   return hasDisplayMath || hasInlineMath || hasLatexEscape || hasEquation;
@@ -162,13 +161,28 @@ async function buildFastValuableMessage(input: FormatPhaseInput): Promise<string
     typeof input.context_summary.market_snapshot.summary === 'string'
       ? input.context_summary.market_snapshot.summary
       : '';
-  const recommendationProfile =
+  const profileObj =
     input.context_summary?.recommendation_profile &&
     typeof input.context_summary.recommendation_profile === 'object'
-      ? JSON.stringify(input.context_summary.recommendation_profile)
-      : '';
+      ? (input.context_summary.recommendation_profile as Record<string, unknown>)
+      : null;
+  const recommendationProfile = profileObj ? JSON.stringify(profileObj) : '';
+  const detailLevel = (profileObj?.detail_level as string | undefined) ?? 'medium';
+
   const funnelStage = resolveFormatFunnelStage(input);
   const funnelInstructions = funnelStage ? buildActionPlanFormatInstructions(funnelStage) : '';
+
+  const formatInstructions =
+    funnelStage === 'deliver'
+      ? null
+      : detailLevel === 'basic'
+      ? 'Usa lenguaje claro y directo. Evita tecnicismos. Da una recomendación concreta en 2-3 oraciones: qué hacer, por qué y cuándo.'
+      : [
+          'Entrega valor real al usuario en formato:',
+          '1) tesis ejecutiva clara,',
+          '2) recomendacion accionable con criterio senior,',
+          '3) riesgos/condiciones y siguiente validacion concreta.',
+        ].join('\n');
 
   const prompt = [
     funnelInstructions,
@@ -182,6 +196,7 @@ async function buildFastValuableMessage(input: FormatPhaseInput): Promise<string
     funnelStage === 'deliver'
       ? null
       : 'Si el usuario escribe coloquial o corto, evita una estructura corporativa rígida; usa una explicación natural y concreta.',
+    formatInstructions,
     'No menciones nombres de tools, pipeline interno ni tecnicismos de backend.',
     'Si recomiendas productos, APV, inversiones o instituciones: cruza suitability, explicita riesgos y deja claro que la decision final depende 100% del usuario.',
     '',

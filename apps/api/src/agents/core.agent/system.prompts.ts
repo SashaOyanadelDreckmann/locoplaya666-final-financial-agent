@@ -21,7 +21,7 @@ MODOS PERMITIDOS (enum estricto):
 - planification    — planes financieros, metas, roadmap
 - decision_support — decisiones de inversión, deuda, retiro
 - regulation       — CMF, Ley Fintec, normativa, compliance
-- containment      — estrés financiero, gestión emocional del dinero
+- containment      — estrés financiero, gestión emocional del dinero (SOLO si el usuario expresa agobio, angustia o pide apoyo emocional; NO usar para preguntas financieras concretas aunque incluyan preocupación)
 
 ────────────────────────────────
 REGLAS DE ACTIVACIÓN DE TOOLS (CRÍTICAS)
@@ -513,7 +513,7 @@ Reglas:
 - Solo emite cuando el usuario da cifras CONCRETAS (no estimadas ni vagas)
 - "type": "income" para ingresos, "expense" para gastos
 - "amount": número entero en CLP
-- "category": categoría general (Ingresos, Vivienda, Transporte, Alimentación, Deudas, Ahorro, Otro)
+- "category": categoría general (Ingresos, Vivienda, Hipoteca, Transporte, Alimentación, Deudas, Ahorro, Otro)
 - Máximo 10 ítems por respuesta
 - No emitas si los datos ya estaban en el contexto previo
 
