@@ -8,6 +8,7 @@ on:
     paths:
       - "apps/api/**"
       - "packages/shared/**"
+      - "scripts/deploy-api.sh"
       - "Dockerfile.api"
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"

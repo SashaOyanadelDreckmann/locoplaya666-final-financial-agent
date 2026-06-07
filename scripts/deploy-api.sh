@@ -14,6 +14,9 @@ if [ -z "$PROJECT" ] || [ -z "$ENVIRONMENT" ]; then
   exit 1
 fi
 
+echo "==> Generate Prisma client"
+pnpm --filter @financial-agent/api db:generate
+
 echo "==> Typecheck API"
 pnpm --filter @financial-agent/api typecheck
 
