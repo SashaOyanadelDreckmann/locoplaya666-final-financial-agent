@@ -194,12 +194,17 @@ function isStaleSessionErrorMessage(text: string): boolean {
   );
 }
 
+function containsStaleSessionError(item: ChatItem): boolean {
+  try {
+    return isStaleSessionErrorMessage(JSON.stringify(item));
+  } catch {
+    return false;
+  }
+}
+
 function sanitizeChatThreadItems(items: ChatItem[]): ChatItem[] {
   return dedupeConsecutiveAssistantMessages(
-    sanitizeChatItems(items).filter((item) => {
-      if (item.type !== 'message' || item.role !== 'assistant') return true;
-      return !isStaleSessionErrorMessage(String(item.content ?? ''));
-    }),
+    sanitizeChatItems(items).filter((item) => !containsStaleSessionError(item)),
   );
 }
 
