@@ -160,6 +160,21 @@
     transition: none !important;
   }
 
+  body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-track.is-dragging {
+    will-change: transform !important;
+    contain: layout style;
+  }
+
+  body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-track.is-dragging .mobile-deck-slot {
+    filter: none !important;
+    will-change: transform, opacity;
+  }
+
+  body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-track.is-dragging .mobile-deck-slot.is-mobile-front.is-deck-settled > *,
+  body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-track.is-dragging .mobile-deck-slot.is-mobile-front.is-deck-settled > .mobile-deck-card {
+    animation: none !important;
+  }
+
   body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-slot {
     position: absolute !important;
     left: 50% !important;

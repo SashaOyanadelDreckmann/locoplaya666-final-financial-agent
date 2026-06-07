@@ -8,23 +8,24 @@ import {
 describe('mobile-panel-deck-gesture', () => {
   const step = 100;
 
-  it('maps drag distance to deck phase with elevated sensitivity', () => {
+  it('maps drag distance with hyper sensitivity', () => {
     expect(dragPhaseFromPointer(0, 100, step)).toBeCloseTo(-DECK_GESTURE.DRAG_SENSITIVITY, 5);
     expect(dragPhaseFromPointer(2, -400, step)).toBeCloseTo(2 + 4 * DECK_GESTURE.DRAG_SENSITIVITY, 5);
   });
 
-  it('snaps to the nearest card after a multi-card drag', () => {
-    const target = resolveSwipeTarget(3.2, 0, -420, 0, step);
-    expect(target).toBe(7);
+  it('snaps to finger position after a multi-card drag', () => {
+    const current = dragPhaseFromPointer(0, -430, step);
+    const target = resolveSwipeTarget(current, 0, -430, 0, step);
+    expect(target).toBe(Math.round(current));
   });
 
   it('projects fast flicks across several cards', () => {
     const target = resolveSwipeTarget(0, 0, -40, -1.2, step);
-    expect(target).toBeGreaterThanOrEqual(2);
+    expect(target).toBeGreaterThanOrEqual(3);
   });
 
   it('returns to start on tiny movement', () => {
-    expect(resolveSwipeTarget(0.1, 0, 2, 0, step)).toBe(0);
+    expect(resolveSwipeTarget(0.1, 0, 1, 0, step)).toBe(0);
   });
 
   it('scales settle duration with card distance', () => {

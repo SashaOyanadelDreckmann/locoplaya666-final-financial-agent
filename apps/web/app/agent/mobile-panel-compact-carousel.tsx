@@ -2,6 +2,7 @@
 
 import React, {
   forwardRef,
+  startTransition,
   useCallback,
   useEffect,
   useImperativeHandle,
@@ -47,7 +48,8 @@ const DECK_CLASS_BY_OFFSET: Record<(typeof SLOT_OFFSETS)[number], string> = {
   2: 'is-deck-far-right',
 };
 
-const DRAG_LOCK_PX = 4;
+const DRAG_LOCK_PX = 0;
+const VERTICAL_CANCEL_RATIO = 0.78;
 const PROFILE_HOME_INDEX = 0;
 
 // Cards that expand into a floating overlay when tapped (informative only, no action cards)
@@ -70,8 +72,8 @@ function splitDeckPhase(phase: number, count: number) {
   return { baseIndex: mod(base, count), progress };
 }
 
-function easeOutQuart(t: number): number {
-  return 1 - Math.pow(1 - t, 4);
+function easeOutCubic(t: number): number {
+  return 1 - Math.pow(1 - t, 3);
 }
 
 function runPhaseTween(
@@ -86,7 +88,7 @@ function runPhaseTween(
   let raf = 0;
   const start = performance.now();
   const distance = to - from;
-  const velocityBoost = Math.min(baseDurationMs * 0.72, Math.abs(initialVelocity) * 140);
+  const velocityBoost = Math.min(baseDurationMs * 0.82, Math.abs(initialVelocity) * 200);
   const duration = Math.max(
     DECK_GESTURE.MIN_TWEEN_MS,
     baseDurationMs - velocityBoost
@@ -101,7 +103,7 @@ function runPhaseTween(
   const tick = (now: number) => {
     if (done) return;
     const t = Math.min(1, (now - start) / duration);
-    onUpdate(from + distance * easeOutQuart(t));
+    onUpdate(from + distance * easeOutCubic(t));
     if (t >= 1) {
       onUpdate(to);
       cancel();
@@ -291,7 +293,7 @@ export const MobilePanelCircularDeck = forwardRef<
 
     const track = trackRef.current;
     if (track) {
-      track.style.transform = `translate3d(${px.toFixed(2)}px, 0, 0)`;
+      track.style.transform = `translate3d(${px}px, 0, 0)`;
       track.style.setProperty('--deck-drag-ratio', ratio.toFixed(4));
       track.dataset.deckPhase =
         Math.abs(ratio) < 0.012 ? 'idle' : ratio < 0 ? 'next' : 'prev';
@@ -301,10 +303,26 @@ export const MobilePanelCircularDeck = forwardRef<
       const nextFloor = Math.floor(phase + 1e-6);
       if (forceSync || nextFloor !== floorPhaseRef.current) {
         floorPhaseRef.current = nextFloor;
-        setDeckPhase(phase);
+        startTransition(() => {
+          setDeckPhase(phase);
+        });
       }
     }
   }, [count]);
+
+  const syncDragPhase = useCallback(
+    (phase: number) => {
+      applyDeckPhase(phase, false);
+      const nextFloor = Math.floor(phase + 1e-6);
+      if (nextFloor !== floorPhaseRef.current) {
+        floorPhaseRef.current = nextFloor;
+        startTransition(() => {
+          setDeckPhase(phase);
+        });
+      }
+    },
+    [applyDeckPhase]
+  );
 
   const stopAnim = useCallback(() => {
     animRef.current?.cancel();
@@ -361,7 +379,9 @@ export const MobilePanelCircularDeck = forwardRef<
           const nextFloor = Math.floor(phase + 1e-6);
           if (nextFloor !== floorPhaseRef.current) {
             floorPhaseRef.current = nextFloor;
-            setDeckPhase(phase);
+            startTransition(() => {
+              setDeckPhase(phase);
+            });
           }
         },
         () => settleAtPhase(targetPhase, haptic),
@@ -499,25 +519,21 @@ export const MobilePanelCircularDeck = forwardRef<
 
       if (!isDragging) {
         if (Math.abs(dx) < DRAG_LOCK_PX && Math.abs(dy) < DRAG_LOCK_PX) return;
-        if (Math.abs(dy) > Math.abs(dx) * 0.52) {
+        if (Math.abs(dy) > Math.abs(dx) * VERTICAL_CANCEL_RATIO) {
           pointerRef.current = null;
           return;
         }
         pointer.locked = true;
         didDragRef.current = true;
         setIsDragging(true);
+        trackRef.current?.classList.add('is-dragging');
       }
 
       const step = stepWidthRef.current;
       const phase = dragPhaseFromPointer(dragStartPhaseRef.current, dx, step);
-      applyDeckPhase(phase, false);
-      const nextFloor = Math.floor(phase + 1e-6);
-      if (nextFloor !== floorPhaseRef.current) {
-        floorPhaseRef.current = nextFloor;
-        setDeckPhase(phase);
-      }
+      syncDragPhase(phase);
     },
-    [applyDeckPhase, isDragging]
+    [isDragging, syncDragPhase]
   );
 
   const onPointerUp = useCallback(
@@ -530,6 +546,7 @@ export const MobilePanelCircularDeck = forwardRef<
       const velocity = dx / dt;
       pointerRef.current = null;
       setIsDragging(false);
+      trackRef.current?.classList.remove('is-dragging');
 
       if (!pointer.locked) return;
 
@@ -547,6 +564,7 @@ export const MobilePanelCircularDeck = forwardRef<
   const onPointerCancel = useCallback(() => {
     pointerRef.current = null;
     setIsDragging(false);
+    trackRef.current?.classList.remove('is-dragging');
     animateToPhase(Math.round(deckPhaseRef.current), DECK_GESTURE.SNAP_DURATION_MS);
   }, [animateToPhase]);
 
