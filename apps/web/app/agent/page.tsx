@@ -184,6 +184,25 @@ type ChatSpecialization = {
   subtitle: string;
 };
 
+function isStaleSessionErrorMessage(text: string): boolean {
+  const normalized = text.toLowerCase().replace(/\s+/g, ' ').trim();
+  return (
+    normalized === 'tu sesión expiró. inicia sesión nuevamente para continuar.' ||
+    normalized.includes('tu sesión expiró. inicia sesión nuevamente para continuar.') ||
+    normalized.includes('tu sesión expiró') ||
+    normalized.includes('inicia sesión nuevamente para continuar')
+  );
+}
+
+function sanitizeChatThreadItems(items: ChatItem[]): ChatItem[] {
+  return dedupeConsecutiveAssistantMessages(
+    sanitizeChatItems(items).filter((item) => {
+      if (item.type !== 'message' || item.role !== 'assistant') return true;
+      return !isStaleSessionErrorMessage(String(item.content ?? ''));
+    }),
+  );
+}
+
 export default function AgentPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -865,7 +884,10 @@ export default function AgentPage() {
             ? dedupeConsecutiveAssistantMessages(
                 sanitizeChatItems(
                   (s.items as any[]).filter((it) => it.type !== 'message' || it.content !== undefined)
-                )
+                ).filter((it) => {
+                  if (it.type !== 'message' || it.role !== 'assistant') return true;
+                  return !isStaleSessionErrorMessage(String(it.content ?? ''));
+                })
               )
             : [],
           draft: String(s.draft ?? ''),
@@ -1059,7 +1081,7 @@ export default function AgentPage() {
         label: t.label,
         name: t.name,
         autoNamed: t.autoNamed,
-        items: dedupeConsecutiveAssistantMessages(t.items),
+        items: sanitizeChatThreadItems(t.items),
         draft: t.draft,
         status: t.status,
         contextScore: t.contextScore,
@@ -1747,12 +1769,13 @@ export default function AgentPage() {
           setInterviewResumePending(false);
           return;
         }
-        const hasTranscript =
-          String(saved.voiceAgentTranscript ?? '').trim().length > 0 ||
-          String(saved.voiceUserTranscript ?? '').trim().length > 0;
+        const hasSummary =
+          Array.isArray(saved.minuteSummaries) && saved.minuteSummaries.length > 0
+            ? true
+            : String((saved.finalSummary as { summary?: string } | undefined)?.summary ?? '').trim().length > 0;
         const hasTime = Number(saved.callSeconds ?? 0) > 0;
         const hasReport = Boolean(saved.voiceReport && typeof saved.voiceReport === 'object');
-        setInterviewResumePending((hasTranscript || hasTime) && !hasReport);
+        setInterviewResumePending((hasSummary || hasTime) && !hasReport);
       } catch {
         setInterviewResumePending(false);
       }
