@@ -72,12 +72,10 @@ export function getUploadApiBaseUrl(): string {
 
 /**
  * URL de request para llamadas del agente desde frontend.
- * En browser+prod usamos la ruta interna de Next para preservar sesión/cookies.
+ * En browser siempre usamos el proxy same-origin de Next para preservar sesión/cookies.
  */
 export function getAgentRequestUrl(path = '/api/agent'): string {
-  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
-    const direct = readDirectApiOriginForClient();
-    if (direct) return `${direct}${path}`;
+  if (typeof window !== 'undefined') {
     return path;
   }
   return `${getAgentApiBaseUrl()}${path}`;
