@@ -4,6 +4,7 @@ import { IntakeQuestionnaire } from '@financial-agent/shared/src/intake/intake-q
 import { analyzeIntake } from '../agents/intake/intake-analyzer';
 import { buildIntakeContext } from '../services/intake-context.service';
 import { attachIntakeToUser } from '../services/user.service';
+import { getUserById } from '../persistence/repos';
 import { synchronizeKnowledgeFromIntake, recordKnowledgeEvent } from '../services/knowledge.service';
 import { sendSuccess } from '../http/api.responses';
 import { parseBody } from '../http/parse';
@@ -52,14 +53,14 @@ const IntakeRequestSchema = z.object({
     '>4M',
     'variable',
   ]),
-  exactMonthlyIncome: z.number().optional(),
+  exactMonthlyIncome: z.number().min(0, 'Income cannot be negative').optional(),
   expensesCoverage: z.enum(['surplus', 'tight', 'sometimes', 'no']),
   tracksExpenses: z.enum(['yes', 'sometimes', 'no']),
   hasSavingsOrInvestments: z.boolean(),
   savingsBand: z
     .enum(['none', '<300k', '300k-1M', '1M-3M', '3M-10M', '>10M'])
     .optional(),
-  exactSavingsAmount: z.number().optional(),
+  exactSavingsAmount: z.number().min(0, 'Savings amount cannot be negative').optional(),
   hasDebt: z.boolean(),
   financialKnowledge: FinancialKnowledgeChecklistSchema,
   riskReaction: z.enum(['sell', 'hold', 'buy_more', 'never_invest', 'other']),
@@ -85,15 +86,21 @@ export async function submitIntake(req: Request, res: Response) {
   }
 
   // Auto-inject intake to authenticated user
+  let wasUpdated = false;
   try {
     const user = await getAuthenticatedUser(req, res);
     if (user?.id) {
+      const existing = await getUserById(user.id);
+      wasUpdated = Boolean(existing?.injectedIntake);
+
       await attachIntakeToUser(user.id, { intake, llmSummary, intakeContext });
       await synchronizeKnowledgeFromIntake(user.id, intake);
       await recordKnowledgeEvent(
         user.id,
-        'completed_intake',
-        'User completed financial intake questionnaire',
+        wasUpdated ? 'updated_intake' : 'completed_intake',
+        wasUpdated
+          ? 'User updated their financial intake questionnaire'
+          : 'User completed financial intake questionnaire',
         { source: 'intake_submit' },
       );
     }
@@ -107,5 +114,6 @@ export async function submitIntake(req: Request, res: Response) {
     intakeContext,
     readyForInterview: true,
     llmSummary,
+    wasUpdated,
   });
 }

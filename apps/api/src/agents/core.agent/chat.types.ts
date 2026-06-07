@@ -307,7 +307,7 @@ export const ChatAgentInputSchema = z.object({
   session_id: z.string().optional(),
 
   // SECURITY: Limit message length to prevent DoS via token exhaustion
-  user_message: z.string().max(10000, 'Message must not exceed 10,000 characters (approximately 10KB)'),
+  user_message: z.string().min(1, 'Message cannot be empty').max(10000, 'Message must not exceed 10,000 characters (approximately 10KB)'),
 
   history: z
     .array(

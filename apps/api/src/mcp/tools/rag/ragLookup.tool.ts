@@ -152,7 +152,7 @@ export const ragLookupTool: MCPTool = {
 
       const citations = top.flatMap((h, i) =>
         h.snippets.slice(0, 2).map((snippet, j) => ({
-          doc_id: h.file,
+          doc_id: path.relative(REPO_ROOT, h.file),
           doc_title: h.title,
           chunk_id: `rag_${i}_${j}`,
           supporting_span: snippet,

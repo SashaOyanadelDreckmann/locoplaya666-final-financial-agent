@@ -185,9 +185,29 @@ export function validateAndPrepareDocumentFiles(
         `Archivo "${file.name}" no soportado. Usa PDF, imagen, video, XLS/XLSX, CSV/TSV, TXT/MD, JSON, XML, YAML o LOG.`,
       );
     }
+    const buffer = decodeBase64File(file.base64, file.name);
+    const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
+
+    // PDF magic-bytes check: files claiming to be PDF must start with %PDF
+    if (ext === 'pdf') {
+      const magic = buffer.slice(0, 4).toString('ascii');
+      if (magic !== '%PDF') {
+        throw badRequest(`Archivo "${file.name}" no es un PDF válido.`);
+      }
+    }
+
+    // HTML injection guard: CSV/TXT/TSV/MD/LOG files must not contain HTML markup
+    const textExtensions = new Set(['csv', 'tsv', 'txt', 'md', 'log']);
+    if (textExtensions.has(ext)) {
+      const sample = buffer.slice(0, 512).toString('utf8').toLowerCase();
+      if (/<html[\s>]|<!doctype\s+html|<script[\s>]/i.test(sample)) {
+        throw badRequest(`Archivo "${file.name}" contiene HTML y no es un documento financiero válido.`);
+      }
+    }
+
     return {
       ...file,
-      buffer: decodeBase64File(file.base64, file.name),
+      buffer,
     };
   });
 
@@ -444,7 +464,16 @@ function parseMovementFromTableRow(params: {
   const descriptionIndex = resolveColumnIndex(headers, [/detalle/, /descripcion/, /glosa/, /movimiento/, /concepto/]);
   const expenseIndex = resolveColumnIndex(headers, [/cargo/, /egreso/, /debito/, /debe/, /retiro/, /rescate/]);
   const incomeIndex = resolveColumnIndex(headers, [/abono/, /ingreso/, /credito/, /haber/, /deposito/, /aporte/]);
-  const amountIndex = resolveColumnIndex(headers, [/^monto$/, /^importe$/, /^valor$/]);
+  // "monto cuota" (installment amount) takes priority over "monto total" (full purchase price).
+  // Without this, CMR Falabella rows like "1/3 | 25.667 | 77.000" inflate monthly expenses 3×.
+  const installmentAmountIndex = resolveColumnIndex(headers, [/monto\s*cuota/, /importe\s*cuota/, /valor\s*cuota/]);
+  const amountIndex = installmentAmountIndex >= 0
+    ? installmentAmountIndex
+    : resolveColumnIndex(headers, [/^monto$/, /^importe$/, /^valor$/]);
+  // Treat "monto total" as a non-transactional summary column when "monto cuota" is also present.
+  const montoTotalIndex = installmentAmountIndex >= 0
+    ? resolveColumnIndex(headers, [/monto\s*total/, /importe\s*total/, /valor\s*total/])
+    : -1;
   const balanceIndex = resolveColumnIndex(headers, [/saldo/, /balance/, /disponible/]);
   const typeIndex = resolveColumnIndex(headers, [/^tipo\b/, /^movimiento\b/]);
 
@@ -472,7 +501,11 @@ function parseMovementFromTableRow(params: {
     amountToken = row[expenseIndex];
   } else {
     const fallbackIndexes = [amountIndex, row.length - 1, row.length - 2].filter(
-      (index, position, list) => index >= 0 && list.indexOf(index) === position && index !== balanceIndex,
+      (index, position, list) =>
+        index >= 0 &&
+        list.indexOf(index) === position &&
+        index !== balanceIndex &&
+        index !== montoTotalIndex,
     );
     const picked = pickAmountFromCells(row, fallbackIndexes);
     if (picked.amount === null) return null;
@@ -1134,6 +1167,7 @@ router.post(
             buffer: file.buffer,
             mimeType: file.mimeType,
             skipVectorIndexing: body.fastParse === true,
+            institutionHint: body.institutionHint,
           });
         } catch (firstErr) {
           await new Promise((resolve) => setTimeout(resolve, 600));
@@ -1144,6 +1178,7 @@ router.post(
               buffer: file.buffer,
               mimeType: file.mimeType,
               skipVectorIndexing: body.fastParse === true,
+              institutionHint: body.institutionHint,
             });
           } catch (retryErr) {
             console.error(`[parse] ingestUserDocument failed for "${file.name}" after retry:`, retryErr);

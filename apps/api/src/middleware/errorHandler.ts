@@ -154,7 +154,9 @@ export function errorHandlerMiddleware(
     code: errorCode,
     timestamp: new Date().toISOString(),
     ...(correlationId ? { correlationId } : {}),
-    ...(process.env.NODE_ENV !== 'production' && details ? { details } : {}),
+    // Validation field errors are safe to surface in all environments — they contain no internal state.
+    // Other detail payloads (e.g. 500 stack traces) remain hidden in production.
+    ...(details && (statusCode === 422 || process.env.NODE_ENV !== 'production') ? { details } : {}),
   };
 
   sendProblem(res, response);

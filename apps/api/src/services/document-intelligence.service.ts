@@ -4,6 +4,7 @@ import type { StoredDocumentKind, StoredDocumentSource } from '../persistence/ty
 import {
   createDocumentRecord,
   getUserVectorStoreRecord,
+  listUserDocuments,
   patchDocumentRecord,
   searchUserDocumentsLocal,
   upsertUserVectorStoreRecord,
@@ -28,6 +29,7 @@ type IngestUserDocumentInput = {
   mimeType?: string;
   source?: StoredDocumentSource;
   skipVectorIndexing?: boolean;
+  institutionHint?: string;
 };
 
 const MAX_INDEX_BYTES = Number(process.env.DOCUMENT_INDEX_MAX_BYTES || 24 * 1024 * 1024);
@@ -315,6 +317,7 @@ export async function ingestUserDocument(input: IngestUserDocumentInput) {
     tables: parsed.tables,
     parserMeta: parsed.parserMeta ?? null,
     productTypeHint: kind === 'EXCEL' || kind === 'CSV' ? 'checking_account' : undefined,
+    institutionHint: input.institutionHint,
   });
   const summary = inferDocumentSummary(extractedText, input.name);
   const structuredData = {
@@ -430,6 +433,21 @@ export async function searchUserDocumentContext(
       text: truncate(doc.extractedText ?? doc.textPreview ?? '', 1600),
       score: doc.score,
     });
+  }
+
+  // Neither vector search nor keyword search matched — fall back to the user's most recent
+  // documents so the agent always has access to uploaded financial data even when query
+  // terms don't literally appear in raw CSV content (e.g. "supermercados" vs "COMPRA POS").
+  if (hits.length === 0) {
+    const recentDocs = await listUserDocuments(userId, limit);
+    for (const doc of recentDocs) {
+      hits.push({
+        source: 'local_document_store',
+        documentId: doc.id,
+        title: doc.name,
+        text: truncate(doc.extractedText ?? doc.textPreview ?? '', 1600),
+      });
+    }
   }
 
   return hits.slice(0, limit);

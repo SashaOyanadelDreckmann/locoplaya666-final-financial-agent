@@ -29,6 +29,7 @@ export function analyzeIntake(
       unstableEmploymentStatuses.has(intake.employmentStatus),
 
     hasCashflowStress:
+      intake.expensesCoverage === 'tight' ||
       intake.expensesCoverage === 'sometimes' ||
       intake.expensesCoverage === 'no',
 
@@ -46,6 +47,7 @@ export function analyzeIntake(
       intake.moneyStressLevel >= 6,
 
     avoidsRisk:
+      intake.riskReaction === 'sell' ||
       intake.riskReaction === 'never_invest',
   };
 }

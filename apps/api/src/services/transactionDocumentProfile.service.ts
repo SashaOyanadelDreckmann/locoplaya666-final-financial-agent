@@ -37,6 +37,7 @@ type ProfileInput = {
   tables?: Array<{ headers?: string[]; rows?: string[][] }>;
   parserMeta?: { mode?: string; confidence?: number } | null;
   productTypeHint?: string;
+  institutionHint?: string;
 };
 
 type InventoryProfileMatch = Partial<TransactionDocumentProfile> & {
@@ -419,7 +420,11 @@ function fromText(input: ProfileInput): Partial<TransactionDocumentProfile> {
   }
   if (!formatFamily) {
     formatFamily = headers.length > 0 ? 'generic_tabular_statement' : 'generic_document';
-    confidence = Math.min(confidence, headers.length > 0 ? 0.68 : 0.58);
+    // Only cap confidence to generic-document baseline when the bank is still unknown.
+    // If the inventory or header signals already yielded a higher confidence, preserve it.
+    if (!bank || bank === 'unknown') {
+      confidence = Math.min(confidence, headers.length > 0 ? 0.68 : 0.58);
+    }
   }
 
   if (!bank && input.productTypeHint) {
@@ -558,8 +563,12 @@ async function refineWithLlm(input: ProfileInput, profile: TransactionDocumentPr
 
 export async function buildTransactionDocumentProfile(input: ProfileInput): Promise<TransactionDocumentProfile> {
   const base = { ...fromFilename(input), ...fromText(input) } as TransactionDocumentProfile;
+  // institutionHint is the caller's explicit declaration — authoritative when heuristics say 'unknown'.
+  const resolvedBank = base.bank && base.bank !== 'unknown'
+    ? base.bank
+    : (input.institutionHint?.trim() || 'unknown');
   const normalized: TransactionDocumentProfile = {
-    bank: base.bank || 'unknown',
+    bank: resolvedBank,
     product_type: normalizeProfileProductType(base.product_type) || 'unknown',
     format_family: base.format_family || 'generic_document',
     header_map: base.header_map ?? {},

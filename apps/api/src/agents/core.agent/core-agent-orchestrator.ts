@@ -31,6 +31,20 @@ function clamp01(value: unknown, fallback = 0): number {
   return Math.max(0, Math.min(1, raw));
 }
 
+// Maps each reasoning mode to its inherent regulatory/financial risk level.
+// Lower = safe educational content; higher = direct advice or complex operations.
+const MODE_RISK_SCORE: Record<string, number> = {
+  education:       0.10,
+  information:     0.15,
+  budgeting:       0.25,
+  comparison:      0.40,
+  regulation:      0.45,
+  simulation:      0.50,
+  planification:   0.55,
+  decision_support: 0.70,
+  containment:     0.20,
+};
+
 /**
  * Main entry point: run all phases and return final response
  */
@@ -237,7 +251,7 @@ export async function runCoreAgent(input: ChatAgentInput): Promise<ChatAgentResp
         includes_regulation: classifyOutput.classification.mode === 'regulation',
         missing_information: recommendationProfile.missing_critical_data,
         disclaimers_shown: ['final_decision_user'],
-        risk_score: clamp01(classifyOutput.classification.confidence, 0.6),
+        risk_score: MODE_RISK_SCORE[classifyOutput.classification.mode] ?? 0.30,
         blocked: { is_blocked: false },
       },
       state_updates: {

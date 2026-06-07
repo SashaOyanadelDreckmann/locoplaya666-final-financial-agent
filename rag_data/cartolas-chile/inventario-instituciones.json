@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-06-06",
+  "updatedAt": "2026-06-07",
   "scope": "Chile",
   "families": [
     "cartola de cuenta corriente",
@@ -38,7 +38,11 @@
       "documentPatterns": [
         "Saldo y Retenciones",
         "Fecha / Sucursal / N° Operacion / Descripcion / Cargos / Abonos / Saldo",
-        "estado de cuenta con compras, avances, intereses y cupos"
+        "estado de cuenta con compras, avances, intereses y cupos",
+        "COMPRA POS",
+        "RETIRO CAJERO BEE",
+        "bancoestado",
+        "cuenta_rut"
       ]
     },
     {
@@ -104,7 +108,14 @@
         "cupo avance",
         "cupo super avance",
         "monto facturado",
-        "monto minimo"
+        "monto minimo",
+        "TOTTUS",
+        "FALABELLA.COM",
+        "monto cuota",
+        "monto total",
+        "n cuota",
+        "cmr",
+        "falabella"
       ]
     },
     {
@@ -140,6 +151,17 @@
       "documentPatterns": [
         "historial de movimientos",
         "certificados por cuenta o moneda"
+      ]
+    },
+    {
+      "name": "Coopeuch",
+      "products": ["cuenta_ahorro", "cuenta_corriente"],
+      "documentPatterns": [
+        "Deposito transferencia BancoEstado",
+        "Retiro por cajero automatico",
+        "Abono intereses",
+        "Deposito ahorro meta mensual",
+        "coopeuch"
       ]
     }
   ],
