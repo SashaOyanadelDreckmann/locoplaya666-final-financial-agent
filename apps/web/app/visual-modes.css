@@ -4,6 +4,75 @@ html[data-visual-mode] {
   transition: filter 0.38s ease;
 }
 
+/* ── Reveal cinematográfico al cambiar de modo (View Transitions API) ──
+   El old/new se controlan vía Web Animations en JS (lib/visual-mode.ts);
+   aquí solo neutralizamos el cross-fade por defecto y damos el lienzo. */
+::view-transition-group(root) {
+  animation-duration: 2200ms;
+}
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+::view-transition-new(root) {
+  will-change: clip-path, opacity, filter;
+}
+
+/* Anillo de luz que florece desde el origen del toque (puro adorno). */
+.visual-mode-shimmer {
+  position: fixed;
+  left: var(--vm-x, 50%);
+  top: var(--vm-y, 12%);
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+  z-index: 2147483646;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  mix-blend-mode: screen;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.9) 0%,
+    rgba(186, 230, 255, 0.55) 18%,
+    rgba(160, 196, 255, 0.28) 34%,
+    rgba(255, 255, 255, 0) 62%
+  );
+  animation: visual-mode-shimmer-bloom var(--vm-shimmer-ms, 2600ms)
+    cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes visual-mode-shimmer-bloom {
+  0% {
+    width: 0;
+    height: 0;
+    opacity: 0;
+    filter: blur(2px);
+  }
+  12% {
+    opacity: 0.85;
+  }
+  60% {
+    opacity: 0.4;
+    filter: blur(10px);
+  }
+  100% {
+    width: 320vmax;
+    height: 320vmax;
+    opacity: 0;
+    filter: blur(26px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(root) {
+    animation-duration: 0.01ms;
+  }
+  .visual-mode-shimmer {
+    display: none;
+  }
+}
+
 html[data-visual-mode='grayscale'],
 html.agent-global-monochrome {
   filter: grayscale(1) saturate(0);

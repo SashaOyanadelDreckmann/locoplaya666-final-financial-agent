@@ -49,7 +49,7 @@ export function ChatHeader(props: {
   milestones: Milestone[];
   coachHint: string;
   visualMode: VisualMode;
-  cycleVisualMode: () => void;
+  cycleVisualMode: (origin?: { x: number; y: number }) => void;
   isMobileViewport: boolean;
   actionPlanFunnelStage?: 'brainstorm' | 'converge' | 'deliver' | null;
 }) {
@@ -75,7 +75,13 @@ export function ChatHeader(props: {
         props.isMobileViewport ? 'chat-monochrome-toggle--inline' : 'chat-monochrome-toggle--floating'
       }${isVisualModeOn ? ' is-active' : ''} is-visual-mode-${props.visualMode}`}
       data-visual-mode={props.visualMode}
-      onClick={props.cycleVisualMode}
+      onClick={(event) => {
+        const rect = event.currentTarget.getBoundingClientRect();
+        props.cycleVisualMode({
+          x: rect.left + rect.width / 2,
+          y: rect.top + rect.height / 2,
+        });
+      }}
       aria-label={
         isVisualModeOn
           ? `Modo visual: ${visualModeLabel}. Toca para ${nextVisualModeLabel}.`

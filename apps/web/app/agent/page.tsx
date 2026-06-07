@@ -15,9 +15,11 @@ import {
   cycleVisualMode,
   isVisualModeActive,
   readStoredVisualMode,
+  runVisualModeTransition,
   storeVisualMode,
   type VisualMode,
 } from '@/lib/visual-mode';
+import { flushSync } from 'react-dom';
 import { sendToAgent } from '@/lib/agent';
 import { getSessionId } from '@/lib/session';
 import { useInterviewStore } from '@/state/interview.store';
@@ -444,6 +446,20 @@ export default function AgentPage() {
     isStandaloneDisplayMode,
   } = useAgentShell();
   const [visualMode, setVisualMode] = useState<VisualMode>('off');
+  const visualModeRef = useRef<VisualMode>('off');
+  useEffect(() => {
+    visualModeRef.current = visualMode;
+  }, [visualMode]);
+
+  const handleCycleVisualMode = useCallback((origin?: { x: number; y: number }) => {
+    const next = cycleVisualMode(visualModeRef.current);
+    runVisualModeTransition(origin, () => {
+      flushSync(() => {
+        setVisualMode(next);
+        applyVisualModeToDocument(next);
+      });
+    });
+  }, []);
   const [progressPulse, setProgressPulse] = useState(false);
   const [isRailMorphing] = useState(false);
   const [levelUpText, setLevelUpText] = useState<string | null>(null);
@@ -3446,7 +3462,7 @@ export default function AgentPage() {
           milestones={milestones}
           coachHint={coachHint}
           visualMode={visualMode}
-          cycleVisualMode={() => setVisualMode((current) => cycleVisualMode(current))}
+          cycleVisualMode={handleCycleVisualMode}
           isMobileViewport={isMobileViewport}
           actionPlanFunnelStage={activeActionPlanStage}
         />
