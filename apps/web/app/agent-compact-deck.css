@@ -257,7 +257,7 @@
  */
 @media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   body.agent-route-active {
-    --mobile-chat-header-top-offset: 8px;
+    --mobile-chat-header-top-offset: 3px;
   }
 
   body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile {
