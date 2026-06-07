@@ -125,7 +125,8 @@ const MERCHANT_RULES: MerchantRule[] = [
 const CATEGORY_RULES: CategoryRule[] = [
   // High-priority income categories checked before generic expense rules
   { category: 'Salario e Ingresos', confidence: 0.97, keywords: ['remuneracion', 'remuneraciones', 'sueldo', 'salario', 'nomina', 'payroll', 'honorario', 'honorarios', 'abono remuneracion', 'pago remuneracion'] },
-  { category: 'Vivienda', confidence: 0.95, keywords: ['dividendo hipotecario', 'dividendo', 'hipotecario', 'arriendo', 'arrendamiento', 'renta mensual', 'gastos comunes', 'gasto comun', 'condominio'] },
+  { category: 'Hipoteca', confidence: 0.97, keywords: ['dividendo hipotecario', 'cuota hipotecaria', 'credito hipotecario', 'hipotecario', 'dividendo banco', 'cuota vivienda'] },
+  { category: 'Vivienda', confidence: 0.95, keywords: ['arriendo', 'arrendamiento', 'renta mensual', 'gastos comunes', 'gasto comun', 'condominio'] },
   { category: 'Delivery', confidence: 0.95, keywords: ['delivery', 'pedidos ya', 'pedidosya', 'rappi', 'uber eats', 'cornershop', 'didifood', 'didi food'] },
   { category: 'Supermercado', confidence: 0.95, keywords: ['supermercado', 'supermercad', 'jumbo', 'lider', 'unimarc', 'tottus', 'santa isabel', 'ekono', 'acuenta', 'mayorista 10', 'alvi', 'feria libre'] },
   { category: 'Comida rapida', confidence: 0.93, keywords: ['mcdonalds', 'burger king', 'kfc', 'subway', 'dominos', 'papa johns', 'doggis', 'pizza hut'] },

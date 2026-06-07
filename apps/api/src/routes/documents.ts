@@ -180,12 +180,26 @@ function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+async function mapConcurrently<T, R>(
+  items: T[],
+  fn: (item: T) => Promise<R>,
+  concurrency: number,
+): Promise<R[]> {
+  const results: R[] = [];
+  for (let i = 0; i < items.length; i += concurrency) {
+    const batch = await Promise.all(items.slice(i, i + concurrency).map(fn));
+    results.push(...batch);
+  }
+  return results;
+}
+
 function formatAmount(value: number): string {
   return new Intl.NumberFormat('es-CL', { maximumFractionDigits: 0 }).format(Math.round(value));
 }
 
 function toIsoDate(value: string | null | undefined): string | undefined {
-  const raw = String(value ?? '').trim();
+  // Strip trailing time component (e.g. "15/03/2025 14:23" → "15/03/2025") used by Mach/Tenpo
+  const raw = String(value ?? '').trim().replace(/\s+\d{1,2}:\d{2}(?::\d{2})?(?:\s*[aApP][mM])?$/, '');
   if (!raw) return undefined;
   const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
@@ -378,8 +392,8 @@ function parseMovementFromTableRow(params: {
 
   const dateIndex = resolveColumnIndex(headers, [/^fecha\b/, /^fec\b/, /contable/]);
   const descriptionIndex = resolveColumnIndex(headers, [/detalle/, /descripcion/, /glosa/, /movimiento/, /concepto/]);
-  const expenseIndex = resolveColumnIndex(headers, [/cargo/, /egreso/, /debito/, /debe/]);
-  const incomeIndex = resolveColumnIndex(headers, [/abono/, /ingreso/, /credito/, /haber/]);
+  const expenseIndex = resolveColumnIndex(headers, [/cargo/, /egreso/, /debito/, /debe/, /retiro/, /rescate/]);
+  const incomeIndex = resolveColumnIndex(headers, [/abono/, /ingreso/, /credito/, /haber/, /deposito/, /aporte/]);
   const amountIndex = resolveColumnIndex(headers, [/^monto$/, /^importe$/, /^valor$/]);
   const balanceIndex = resolveColumnIndex(headers, [/saldo/, /balance/, /disponible/]);
 
@@ -782,11 +796,19 @@ function buildTransactionAnalysisFromMovements(
     });
   }
   if (spendClusters.length > 0 && spendClusters[0].share_pct >= 45) {
-    alerts.push(`Alta concentración en ${spendClusters[0].name}.`);
+    const topCluster = spendClusters[0];
+    const isMortgage = topCluster.name === 'Hipoteca';
+    alerts.push(
+      isMortgage
+        ? `Cuota hipotecaria concentra ${topCluster.share_pct.toFixed(1)}% del gasto — normal si es el mayor compromiso fijo.`
+        : `Alta concentración en ${topCluster.name}.`,
+    );
     alertDetails.push({
-      title: 'Concentración de gasto',
-      severity: 'medium',
-      reason: `${spendClusters[0].name} concentra ${spendClusters[0].share_pct.toFixed(1)}% del gasto detectado.`,
+      title: isMortgage ? 'Dividendo hipotecario alto' : 'Concentración de gasto',
+      severity: isMortgage ? 'low' : 'medium',
+      reason: isMortgage
+        ? `${topCluster.name} concentra ${topCluster.share_pct.toFixed(1)}% del gasto. Es un activo que genera patrimonio, pero conviene vigilar el ratio cuota/ingreso (óptimo < 30%).`
+        : `${topCluster.name} concentra ${topCluster.share_pct.toFixed(1)}% del gasto detectado.`,
     });
   }
   if (qualityAverage > 0 && qualityAverage < 0.55) {
@@ -1004,8 +1026,9 @@ router.post(
 
     const decodedFiles = validateAndPrepareDocumentFiles(body.files);
 
-    const documents: ParsedDocumentResponse[] = await Promise.all(
-      decodedFiles.map(async (file) => {
+    const documents: ParsedDocumentResponse[] = await mapConcurrently(
+      decodedFiles,
+      async (file) => {
         try {
           return await ingestUserDocument({
             userId: user.id,
@@ -1029,7 +1052,8 @@ router.post(
             throw retryErr;
           }
         }
-      }),
+      },
+      2,
     );
 
     const heuristicAnalysis = buildTransactionAnalysis(documents, {

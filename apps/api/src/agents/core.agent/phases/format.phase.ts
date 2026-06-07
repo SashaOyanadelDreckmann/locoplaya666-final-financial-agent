@@ -33,7 +33,8 @@ import {
 function shouldApplyLatexFormatting(message: string): boolean {
   if (!message || message.length < 120) return false;
   const hasMathLikeContent =
-    /\$[^$]+\$/.test(message) ||
+    // Only match $...$  when the enclosed content contains digits or math operators (not $word$ or $ACRONYM$)
+    /\$[^$]*[\d+\-*/^=()[\]{}][^$]*\$/.test(message) ||
     /\\(frac|sum|int|sqrt|cdot|times|left|right|begin|end)/.test(message) ||
     /\b(VF|VA|APV|CAE|UF|TPM)\b/i.test(message) ||
     /(?:\d+\s*[%]|=\s*[^=\n]+)/.test(message);
@@ -145,13 +146,28 @@ async function buildFastValuableMessage(input: FormatPhaseInput): Promise<string
     typeof input.context_summary.market_snapshot.summary === 'string'
       ? input.context_summary.market_snapshot.summary
       : '';
-  const recommendationProfile =
+  const profileObj =
     input.context_summary?.recommendation_profile &&
     typeof input.context_summary.recommendation_profile === 'object'
-      ? JSON.stringify(input.context_summary.recommendation_profile)
-      : '';
+      ? (input.context_summary.recommendation_profile as Record<string, unknown>)
+      : null;
+  const recommendationProfile = profileObj ? JSON.stringify(profileObj) : '';
+  const detailLevel = (profileObj?.detail_level as string | undefined) ?? 'medium';
+
   const funnelStage = resolveFormatFunnelStage(input);
   const funnelInstructions = funnelStage ? buildActionPlanFormatInstructions(funnelStage) : '';
+
+  const formatInstructions =
+    funnelStage === 'deliver'
+      ? null
+      : detailLevel === 'basic'
+      ? 'Usa lenguaje claro y directo. Evita tecnicismos. Da una recomendación concreta en 2-3 oraciones: qué hacer, por qué y cuándo.'
+      : [
+          'Entrega valor real al usuario en formato:',
+          '1) tesis ejecutiva clara,',
+          '2) recomendacion accionable con criterio senior,',
+          '3) riesgos/condiciones y siguiente validacion concreta.',
+        ].join('\n');
 
   const prompt = [
     funnelInstructions,
@@ -162,14 +178,7 @@ async function buildFastValuableMessage(input: FormatPhaseInput): Promise<string
       : funnelStage === 'converge'
       ? 'Responde en español (Chile): convergencia senior, max 320 palabras.'
       : 'Responde en español (Chile), breve pero senior.',
-    funnelStage === 'deliver'
-      ? null
-      : [
-          'Entrega valor real al usuario en formato:',
-          '1) tesis ejecutiva clara,',
-          '2) recomendacion accionable con criterio senior,',
-          '3) riesgos/condiciones y siguiente validacion concreta.',
-        ].join('\n'),
+    formatInstructions,
     'No menciones nombres de tools, pipeline interno ni tecnicismos de backend.',
     'Si recomiendas productos, APV, inversiones o instituciones: cruza suitability, explicita riesgos y deja claro que la decision final depende 100% del usuario.',
     '',
