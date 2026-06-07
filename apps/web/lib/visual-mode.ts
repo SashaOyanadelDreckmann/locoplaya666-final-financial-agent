@@ -72,6 +72,19 @@ export function clearStoredVisualMode(): void {
 /** Duración del reveal cinematográfico al cambiar de modo (ms). */
 export const VISUAL_MODE_TRANSITION_MS = 4000;
 const SHIMMER_LINGER_MS = 4600;
+const TRANSITION_ACTIVE_CLASS = 'visual-mode-transition-active';
+
+let visualModeTransitionActive = false;
+
+export function isVisualModeTransitionActive(): boolean {
+  return visualModeTransitionActive;
+}
+
+function setTransitionActive(active: boolean): void {
+  visualModeTransitionActive = active;
+  if (typeof document === 'undefined') return;
+  document.documentElement.classList.toggle(TRANSITION_ACTIVE_CLASS, active);
+}
 
 function prefersReducedMotion(): boolean {
   if (typeof window === 'undefined' || !window.matchMedia) return false;
@@ -110,19 +123,25 @@ type TransitionOrigin = { x: number; y: number } | null | undefined;
 export function runVisualModeTransition(
   origin: TransitionOrigin,
   apply: () => void,
+  onFinished?: () => void,
 ): void {
   if (typeof document === 'undefined') {
     apply();
+    onFinished?.();
     return;
   }
 
   const docAny = document as unknown as {
-    startViewTransition?: (cb: () => void) => { ready: Promise<void> };
+    startViewTransition?: (cb: () => void) => {
+      ready: Promise<void>;
+      finished: Promise<void>;
+    };
   };
   const startViewTransition = docAny.startViewTransition?.bind(document);
 
   if (!startViewTransition || prefersReducedMotion()) {
     apply();
+    onFinished?.();
     return;
   }
 
@@ -136,13 +155,28 @@ export function runVisualModeTransition(
     apply();
   };
 
-  let transition: { ready: Promise<void> };
+  const finishTransition = () => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        window.setTimeout(() => {
+          setTransitionActive(false);
+          onFinished?.();
+        }, 420);
+      });
+    });
+  };
+
+  setTransitionActive(true);
+
+  let transition: { ready: Promise<void>; finished: Promise<void> };
   try {
     transition = startViewTransition(() => {
       applyOnce();
     });
   } catch {
+    setTransitionActive(false);
     applyOnce();
+    onFinished?.();
     return;
   }
 
@@ -156,7 +190,8 @@ export function runVisualModeTransition(
       const revealEasing = 'cubic-bezier(0.12, 0.88, 0.22, 1)';
       const fadeEasing = 'cubic-bezier(0.42, 0, 0.58, 1)';
 
-      // Entrante: círculo que florece con pasos intermedios para un reveal más gradual.
+      // Entrante: solo clip + opacidad — el filter en pseudo-element pelea con el
+      // filter real de <html> y provoca un salto al retirar la capa en mobile.
       root.animate(
         {
           clipPath: [
@@ -166,12 +201,6 @@ export function runVisualModeTransition(
             `circle(${maxRadius}px at ${cx}px ${cy}px)`,
           ],
           opacity: [0.22, 0.48, 0.78, 1],
-          filter: [
-            'saturate(1.38) brightness(1.09)',
-            'saturate(1.22) brightness(1.05)',
-            'saturate(1.08) brightness(1.02)',
-            'saturate(1) brightness(1)',
-          ],
         },
         {
           duration: VISUAL_MODE_TRANSITION_MS,
@@ -180,7 +209,6 @@ export function runVisualModeTransition(
         },
       );
 
-      // Saliente: se desvanece y se desenfoca por debajo (mezcla, no corte).
       root.animate(
         {
           opacity: [1, 0.88, 0.52, 0],
@@ -197,6 +225,11 @@ export function runVisualModeTransition(
       spawnTransitionShimmer(cx, cy);
     })
     .catch(() => {});
+
+  transition.finished.then(finishTransition).catch(() => {
+    setTransitionActive(false);
+    onFinished?.();
+  });
 }
 
 export function applyVisualModeToDocument(mode: VisualMode): void {

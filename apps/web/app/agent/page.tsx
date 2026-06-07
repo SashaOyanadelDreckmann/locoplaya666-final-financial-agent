@@ -14,6 +14,7 @@ import {
   clearStoredVisualMode,
   cycleVisualMode,
   isVisualModeActive,
+  isVisualModeTransitionActive,
   readStoredVisualMode,
   runVisualModeTransition,
   storeVisualMode,
@@ -108,7 +109,7 @@ import type {
   ChatItem,
 } from '@/lib/agent.response.types';
 import { toChatItemsFromAgentResponse } from '@/lib/agent.response.types';
-import { AccountModal, QuestionnaireModal, TransactionsModal } from './modals';
+import { AccountModal, BudgetModal, QuestionnaireModal, TransactionsModal } from './modals';
 import { InterviewModal } from './InterviewModal';
 import { SocialConsciousnessModal } from './SocialConsciousnessModal';
 import { SidePanels } from './side-panels';
@@ -465,6 +466,7 @@ export default function AgentPage() {
   const [levelUpText, setLevelUpText] = useState<string | null>(null);
   const [knowledgePopupOpen, setKnowledgePopupOpen] = useState(false);
   const [isTransactionsModalOpen, setIsTransactionsModalOpen] = useState(false);
+  const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
   const [isQuestionnaireModalOpen, setIsQuestionnaireModalOpen] = useState(false);
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
   const [isInterviewModalOpen, setIsInterviewModalOpen] = useState(false);
@@ -1701,11 +1703,15 @@ export default function AgentPage() {
   }, [visualMode]);
 
   useEffect(() => {
+    if (isVisualModeTransitionActive()) return;
     applyVisualModeToDocument(visualMode);
+  }, [visualMode]);
+
+  useEffect(() => {
     return () => {
       applyVisualModeToDocument('off');
     };
-  }, [visualMode]);
+  }, []);
 
   useEffect(() => {
     if (!authBootstrapped || !isAuthenticated) {
@@ -2496,6 +2502,11 @@ export default function AgentPage() {
     setIsInterviewModalOpen(true);
   }, [buildInterviewIntakePayload, setInterviewIntake, syncFinancialContextToIntake]);
 
+  const openBudgetModal = useCallback(() => {
+    void syncFinancialContextToIntake().catch(() => {});
+    setIsBudgetModalOpen(true);
+  }, [syncFinancialContextToIntake]);
+
   function openDiagnosisView() {
     router.push('/diagnosis');
   }
@@ -2517,10 +2528,8 @@ export default function AgentPage() {
       return;
     }
     if (section === 'budget') {
-      handlePanelAction({
-        section: 'budget',
-        message: 'El modal de presupuesto fue retirado. Usa la tarjeta lateral como resumen.',
-      });
+      void syncFinancialContextToIntake().catch(() => {});
+      setIsBudgetModalOpen(true);
       return;
     }
     if (section === 'interview') {
@@ -3272,6 +3281,7 @@ export default function AgentPage() {
     unlockedPanelBlocks,
     budgetTotals,
     budgetInsights,
+    openBudgetModal,
     openTransactionsPanel,
     openInterviewModal,
     openDiagnosisView,
@@ -3617,6 +3627,51 @@ export default function AgentPage() {
         maxEvidenceFilesPerProduct={MAX_EVIDENCE_FILES_PER_PRODUCT}
         productsCreatedTotal={txProductsCreatedTotal}
         creationNotice={txCreationNotice}
+      />
+
+      <BudgetModal
+        isOpen={isBudgetModalOpen}
+        onClose={() => setIsBudgetModalOpen(false)}
+        budgetTotals={budgetTotals}
+        budgetInsights={budgetInsights}
+        budgetRows={budgetRows}
+        budgetProductOptions={Array.from(
+          new Set(
+            bankSimulation.products
+              .map((product) => String(product.label ?? '').trim())
+              .filter((label) => label.length > 0),
+          ),
+        )}
+        budgetCompletion={budgetCompletion}
+        budgetSignals={budgetSignals}
+        updateBudgetRow={updateBudgetRow}
+        upsertBudgetRow={upsertBudgetRow}
+        applyBudgetTemplate={applyBudgetTemplate}
+        coachHint={coachHint}
+        addBudgetRow={addBudgetRow}
+        addBudgetSubcategory={addBudgetSubcategory}
+        deleteBudgetRow={deleteBudgetRow}
+        sendBudgetToAgent={sendBudgetToAgent}
+        chatAnswers={budgetChatAnswers}
+        onChatAnswersChange={setBudgetChatAnswers}
+        sessionInfo={sessionInfo}
+        bankProducts={bankSimulation.products.map((p) => ({
+          label: p.label,
+          bank: p.bank,
+          productType: p.productType,
+          dashboardSummary: p.dashboard?.summary,
+          keyMetrics: p.dashboard?.keyMetrics
+            ? {
+                inflows_total: p.dashboard.keyMetrics.inflows_total,
+                outflows_total: p.dashboard.keyMetrics.outflows_total,
+                net_flow: p.dashboard.keyMetrics.net_flow,
+                movement_count: p.dashboard.keyMetrics.movement_count,
+              }
+            : undefined,
+          topCategories: p.dashboard?.topCategories?.slice(0, 8),
+          alerts: p.dashboard?.alerts?.slice(0, 8),
+        }))}
+        onBudgetPdfSaved={handleBudgetPdfSaved}
       />
 
       <InterviewModal
