@@ -526,12 +526,13 @@ export const MobilePanelCircularDeck = forwardRef<
   const onPointerMove = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
       const pointer = pointerRef.current;
-      if (!pointer || pointer.locked) return;
+      if (!pointer) return;
 
       const dx = event.clientX - pointer.x;
       const dy = event.clientY - pointer.y;
 
-      if (!isDragging) {
+      // Direction not yet confirmed — detect horizontal vs vertical intent
+      if (!pointer.locked) {
         if (Math.abs(dx) < DRAG_LOCK_PX && Math.abs(dy) < DRAG_LOCK_PX) return;
         if (Math.abs(dy) > Math.abs(dx) * VERTICAL_CANCEL_RATIO) {
           pointerRef.current = null;
@@ -561,7 +562,7 @@ export const MobilePanelCircularDeck = forwardRef<
 
       syncDragPhase(rawPhase);
     },
-    [count, isDragging, syncDragPhase]
+    [count, syncDragPhase]
   );
 
   const onPointerUp = useCallback(

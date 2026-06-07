@@ -3,8 +3,8 @@ export const DECK_GESTURE = {
   SWIPE_COMMIT_RATIO: 0.022,
   SWIPE_VELOCITY_COMMIT: 0.038,
   FLICK_PROJECTION_MS: 700,
-  /** Natural 1:1 feel — finger-tracked, not hyper-amplified */
-  DRAG_SENSITIVITY: 1.85,
+  /** True 1:1 finger tracking — card front moves exactly with finger */
+  DRAG_SENSITIVITY: 1.0,
   SNAP_DURATION_MS: 190,
   MIN_TWEEN_MS: 58,
   MAX_SNAP_DURATION_MS: 540,
