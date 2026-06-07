@@ -49,7 +49,10 @@ export function isPortraitOrientation(): boolean {
 export function shouldUseMobileShell(): boolean {
   if (typeof window === 'undefined') return false;
   const w = window.innerWidth;
-  if (w <= 767) return true;
+  const h = window.innerHeight;
+  const minSide = Math.min(w, h);
+  // Phones in landscape exceed 767px width — use shortest side.
+  if (minSide <= 767) return true;
   if (isTabletDevice() && isPortraitOrientation() && w <= 1366) return true;
   return false;
 }

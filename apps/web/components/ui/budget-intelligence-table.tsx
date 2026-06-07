@@ -8,6 +8,7 @@ import {
   ArrowUpRight,
   ShieldCheck,
   Sparkles,
+  Trash2,
 } from 'lucide-react';
 
 type BudgetCadence = 'fixed' | 'variable';
@@ -429,6 +430,7 @@ export function BudgetIntelligenceTable(props: Props) {
         </div>
       )}
 
+      {!props.compactMobile && (
       <div className="budget-pdf-head">
         <div>
           <span>Financieramente</span>
@@ -436,12 +438,15 @@ export function BudgetIntelligenceTable(props: Props) {
         </div>
         <strong>{props.activeStyleLabel}</strong>
       </div>
+      )}
 
+      {!props.compactMobile && (
       <div className="budget-pdf-metrics">
         <div><span>Ingreso</span><strong>{props.formatBudgetAmount(props.budgetTotals.income)}</strong></div>
         <div><span>Gasto</span><strong>{props.formatBudgetAmount(props.budgetTotals.expenses)}</strong></div>
         <div><span>Balance</span><strong>{props.formatBudgetAmount(props.budgetTotals.balance)}</strong></div>
       </div>
+      )}
 
       <div className="budget-table-wrap budget-table-wrap-pro">
         <table className="budget-table budget-table-pro">
@@ -471,6 +476,7 @@ export function BudgetIntelligenceTable(props: Props) {
                   className={[
                     row.type === 'expense' ? 'budget-row-expense' : 'budget-row-income',
                     props.focusedBudgetRowId === row.id ? 'is-active-row' : '',
+                    props.compactMobile ? 'is-mobile-row-card' : '',
                   ].join(' ')}
                   style={props.rowStyle(row)}
                   onClick={
@@ -600,16 +606,23 @@ export function BudgetIntelligenceTable(props: Props) {
                       <span className="budget-impact-type-label">{MOVEMENT_TYPE_LABEL.get(movementType) ?? 'Ocio/Otros'}</span>
                     </div>
                   </td>
-                  <td data-label="Acciones">
+                  <td data-label="Acciones" className="budget-row-actions-cell">
                     <button
                       type="button"
-                      className="continue-ghost danger"
-                      onClick={() => props.deleteBudgetRow(row.id)}
+                      className={`budget-row-delete${props.compactMobile ? ' is-mobile' : ' continue-ghost danger'}`}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        props.deleteBudgetRow(row.id);
+                      }}
                       aria-label={`Eliminar ${row.category}`}
                     >
-                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-                        <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                      </svg>
+                      {props.compactMobile ? (
+                        <Trash2 size={14} strokeWidth={1.75} aria-hidden="true" />
+                      ) : (
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                          <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                        </svg>
+                      )}
                     </button>
                   </td>
                 </tr>

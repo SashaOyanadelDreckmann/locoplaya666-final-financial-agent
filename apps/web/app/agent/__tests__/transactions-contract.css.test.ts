@@ -5,12 +5,12 @@ import path from 'node:path';
 
 describe('transactions modal layout contract css', () => {
   const contractPath = path.join(process.cwd(), 'app', 'agent-modals-transactions-contract.css');
-  const agentCssPath = path.join(process.cwd(), 'app', 'agent.css');
+  const layoutPath = path.join(process.cwd(), 'app', 'layout.tsx');
   const contractCss = fs.readFileSync(contractPath, 'utf8');
-  const agentCss = fs.readFileSync(agentCssPath, 'utf8');
+  const layoutSource = fs.readFileSync(layoutPath, 'utf8');
 
-  it('loads contract css last in agent.css', () => {
-    const imports = [...agentCss.matchAll(/@import\s+'\.\/([^']+)'/g)].map((match) => match[1]);
+  it('loads contract css last in layout.tsx styles', () => {
+    const imports = [...layoutSource.matchAll(/import\s+'\.\/([^']+\.css)'/g)].map((match) => match[1]);
     expect(imports[imports.length - 1]).toBe('agent-modals-transactions-contract.css');
   });
 
@@ -63,5 +63,12 @@ describe('transactions modal layout contract css', () => {
     expect(contractCss).toContain('overflow-y: hidden !important');
     expect(contractCss).toContain('grid-template-columns: repeat(5, minmax(0, 1fr)) !important');
     expect(contractCss).toContain('.transactions-modal .tx-format-rail-chip-label-short');
+  });
+
+  it('forces single-column mobile stack with html-scoped EOF overrides', () => {
+    expect(contractCss).toContain('html:not(.home-route-active) .transactions-modal .pt-shell');
+    expect(contractCss).toContain('flex-direction: column !important');
+    expect(contractCss).toContain('html:not(.home-route-active) .transactions-modal .pt-left');
+    expect(contractCss).toContain('flex: 0 0 auto !important');
   });
 });

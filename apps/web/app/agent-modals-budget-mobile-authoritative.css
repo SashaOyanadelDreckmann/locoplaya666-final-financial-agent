@@ -1,0 +1,386 @@
+/* ================================================= */
+/* BUDGET MOBILE — AUTHORITATIVE EOF CASCADE          */
+/* Loaded last in layout.tsx. Beats diagnostics EOF.  */
+/* ================================================= */
+
+@media (max-width: 1023px) {
+  /* ── Modal shell: no page scroll / bottom cut ── */
+  html.is-mobile-viewport .budget-modal,
+  .budget-modal[data-budget-mobile='true'],
+  .budget-modal.is-mobile-shell {
+    overflow: hidden !important;
+    overflow-y: hidden !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    display: flex !important;
+    flex-direction: column !important;
+    padding-bottom: 0 !important;
+  }
+
+  html.is-mobile-viewport .budget-modal .budget-modal-body,
+  .budget-modal[data-budget-mobile='true'] .budget-modal-body,
+  .budget-modal.is-mobile-shell .budget-modal-body {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+    padding-bottom: 0 !important;
+  }
+
+  html.is-mobile-viewport .budget-modal .budget-main-carousel,
+  .budget-modal[data-budget-mobile='true'] .budget-main-carousel,
+  .budget-modal.is-mobile-shell .budget-main-carousel {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0 !important;
+    padding: 0 !important;
+    height: auto !important;
+  }
+
+  /* ── TABLE VIEW: hide chrome, compact row, footer pinned ── */
+  .budget-modal[data-budget-view='table'] .budget-modal-body .budget-main-carousel.mode-table-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact .budget-pdf-head,
+  .budget-modal[data-budget-view='table'] .budget-modal-body .budget-main-carousel.mode-table-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact .budget-pdf-metrics,
+  .budget-modal[data-budget-view='table'] .budget-table-section.is-mobile-table-compact .budget-pdf-surface.is-mobile-compact .budget-pdf-head,
+  .budget-modal[data-budget-view='table'] .budget-table-section.is-mobile-table-compact .budget-pdf-surface.is-mobile-compact .budget-pdf-metrics,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-pdf-surface.is-mobile-compact .budget-pdf-head,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-pdf-surface.is-mobile-compact .budget-pdf-metrics,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact .budget-pdf-surface.is-mobile-compact .budget-pdf-head,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact .budget-pdf-surface.is-mobile-compact .budget-pdf-metrics {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    max-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .budget-modal[data-budget-view='table'] .budget-main-carousel.mode-table-front:not(.is-desktop) > .budget-card-agent,
+  .budget-modal[data-budget-mobile='true'] .budget-main-carousel.mode-table-front:not(.is-desktop) > .budget-card-agent {
+    display: none !important;
+  }
+
+  .budget-modal[data-budget-view='table'] .budget-main-carousel.mode-table-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact,
+  .budget-modal[data-budget-mobile='true'] .budget-main-carousel.mode-table-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact,
+  .budget-modal[data-budget-view='table'] .budget-table-section.is-mobile-table-compact {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    height: 100% !important;
+    overflow: hidden !important;
+    padding: 4px 10px 0 !important;
+    padding-bottom: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    gap: 0 !important;
+  }
+
+  .budget-modal[data-budget-view='table'] .budget-table-section.is-mobile-table-compact .budget-table-head,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-table-head {
+    flex-shrink: 0 !important;
+    margin: 0 0 4px !important;
+    padding: 0 !important;
+  }
+
+  .budget-modal[data-budget-view='table'] .budget-table-section.is-mobile-table-compact .budget-table-top-actions .continue-ghost,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-table-top-actions .continue-ghost {
+    height: 28px !important;
+    min-height: 28px !important;
+    font-size: 0.62rem !important;
+  }
+
+  .budget-modal[data-budget-view='table'] .budget-table-section.is-mobile-table-compact .budget-table-scroll-host,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-table-scroll-host {
+    flex: 0 0 auto !important;
+    width: 100% !important;
+    height: var(--budget-mobile-row-slot, 260px) !important;
+    max-height: var(--budget-mobile-row-slot, 260px) !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .budget-modal[data-budget-view='table'] .budget-table-section.is-mobile-table-compact .budget-pdf-surface.is-mobile-compact,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-pdf-surface.is-mobile-compact {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+  }
+
+  .budget-modal[data-budget-view='table'] .budget-table-section.is-mobile-table-compact .budget-table-wrap,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-table-wrap {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    scroll-snap-type: y mandatory !important;
+    scroll-padding: 0 !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior-y: contain !important;
+  }
+
+  .budget-modal[data-budget-view='table'] .budget-table-section.is-mobile-table-compact .budget-table-bottom-actions,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-table-bottom-actions {
+    flex-shrink: 0 !important;
+    order: 99 !important;
+    position: static !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+    gap: 6px !important;
+    margin: auto 0 0 !important;
+    padding: 0 0 calc(max(4px, env(safe-area-inset-bottom, 0px))) !important;
+    width: 100% !important;
+  }
+
+  .budget-modal[data-budget-view='table'] .budget-table-section.is-mobile-table-compact .budget-style-button,
+  .budget-modal[data-budget-view='table'] .budget-table-section.is-mobile-table-compact .budget-pdf-button,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-style-button,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-pdf-button {
+    min-height: 28px !important;
+    height: 28px !important;
+    font-size: 0.6rem !important;
+    border-radius: 8px !important;
+  }
+
+  /* Compact row card — smaller inner controls, full graph visible */
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-table-pro tbody tr.is-mobile-row-card,
+  .budget-modal[data-budget-view='table'] .budget-table-section.is-mobile-table-compact .budget-table-pro tbody tr.is-mobile-row-card,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact .budget-table-pro tbody tr.is-mobile-row-card {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    grid-template-areas:
+      "category category"
+      "type amount"
+      "cadence cadence"
+      "payment movement"
+      "impact impact" !important;
+    gap: 5px !important;
+    padding: 8px 32px 8px 8px !important;
+    margin: 0 !important;
+    position: relative !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+    scroll-snap-align: start !important;
+    scroll-snap-stop: always !important;
+    min-height: var(--budget-mobile-row-slot, 260px) !important;
+    height: var(--budget-mobile-row-slot, 260px) !important;
+  }
+
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-table-pro tbody td::before,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact .budget-table-pro tbody td::before {
+    margin-bottom: 2px !important;
+    font-size: 0.52rem !important;
+    letter-spacing: 0.08em !important;
+  }
+
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-table-pro input,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-table-pro select,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact .budget-table-pro input,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact .budget-table-pro select {
+    min-height: 32px !important;
+    height: 32px !important;
+    font-size: 0.78rem !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-impact-shell,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact .budget-impact-shell {
+    min-height: 0 !important;
+    padding: 2px 0 !important;
+  }
+
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-impact-type-label,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact .budget-impact-type-label {
+    font-size: 0.62rem !important;
+    line-height: 1.1 !important;
+  }
+
+  /* Delete: trash icon top-right */
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-row-actions-cell,
+  .budget-modal[data-budget-view='table'] .budget-table-section.is-mobile-table-compact .budget-row-actions-cell,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact .budget-row-actions-cell {
+    position: absolute !important;
+    top: 6px !important;
+    right: 6px !important;
+    z-index: 5 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: auto !important;
+    min-width: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    grid-area: unset !important;
+  }
+
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-row-actions-cell::before,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact .budget-row-actions-cell::before {
+    display: none !important;
+    content: none !important;
+  }
+
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-row-delete.is-mobile,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact .budget-row-delete.is-mobile {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 26px !important;
+    height: 26px !important;
+    min-width: 26px !important;
+    min-height: 26px !important;
+    padding: 0 !important;
+    border-radius: 7px !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    background: rgba(8, 12, 18, 0.5) !important;
+    color: rgba(235, 190, 190, 0.9) !important;
+    box-shadow: none !important;
+  }
+
+  /* ── ASSISTANT VIEW: blurred live table backdrop + clean chat ── */
+  .budget-modal[data-budget-view='assistant'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop)::after,
+  html.is-mobile-viewport .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop)::after {
+    display: none !important;
+    content: none !important;
+  }
+
+  .budget-modal[data-budget-view='assistant'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact,
+  html.is-mobile-viewport .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact,
+  .budget-modal[data-budget-mobile='true'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact {
+    display: flex !important;
+    flex-direction: column !important;
+    position: absolute !important;
+    inset: 0 !important;
+    z-index: 1 !important;
+    width: 100% !important;
+    height: 100% !important;
+    margin: 0 !important;
+    padding: 0 10px 0 !important;
+    opacity: 1 !important;
+    pointer-events: none !important;
+    overflow: hidden !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    transform: none !important;
+    filter: blur(10px) saturate(1.08) brightness(0.78) !important;
+    -webkit-filter: blur(10px) saturate(1.08) brightness(0.78) !important;
+  }
+
+  .budget-modal[data-budget-view='assistant'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact .budget-table-head,
+  .budget-modal[data-budget-view='assistant'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact .budget-table-bottom-actions,
+  .budget-modal[data-budget-view='assistant'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact .budget-pdf-head,
+  .budget-modal[data-budget-view='assistant'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact .budget-pdf-metrics,
+  html.is-mobile-viewport .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact .budget-table-head,
+  html.is-mobile-viewport .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact .budget-table-bottom-actions {
+    display: none !important;
+  }
+
+  .budget-modal[data-budget-view='assistant'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact .budget-table-scroll-host,
+  html.is-mobile-viewport .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact .budget-table-scroll-host {
+    flex: 1 1 auto !important;
+    width: 100% !important;
+    height: var(--budget-mobile-row-slot, 260px) !important;
+    max-height: var(--budget-mobile-row-slot, 260px) !important;
+    margin: auto 0 !important;
+    overflow: hidden !important;
+    filter: none !important;
+    -webkit-filter: none !important;
+  }
+
+  .budget-modal[data-budget-view='assistant'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact .budget-table-wrap,
+  html.is-mobile-viewport .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact .budget-table-wrap {
+    height: 100% !important;
+    max-height: 100% !important;
+    overflow: hidden !important;
+    pointer-events: none !important;
+  }
+
+  .budget-modal[data-budget-view='assistant'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-agent,
+  html.is-mobile-viewport .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-agent,
+  .budget-modal[data-budget-mobile='true'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-agent {
+    display: flex !important;
+    flex-direction: column !important;
+    position: absolute !important;
+    inset: 0 !important;
+    z-index: 3 !important;
+    width: 100% !important;
+    height: 100% !important;
+    margin: 0 !important;
+    padding: 0 12px calc(max(6px, env(safe-area-inset-bottom, 0px))) !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    overflow: hidden !important;
+    pointer-events: none !important;
+  }
+
+  .budget-modal[data-budget-view='assistant'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-agent .bcc-hero,
+  html.is-mobile-viewport .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-agent .bcc-hero {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-end !important;
+    margin: 0 !important;
+    padding: 0 0 6px !important;
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    overflow: hidden !important;
+    pointer-events: auto !important;
+  }
+
+  .budget-modal[data-budget-view='assistant'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-agent .bcc-hero-top,
+  html.is-mobile-viewport .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-agent .bcc-hero-top {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    margin: 0 0 12px !important;
+    padding: 0 !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  .budget-modal[data-budget-view='assistant'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-agent .bcc-hero-question,
+  html.is-mobile-viewport .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-agent .bcc-hero-question {
+    margin: 0 !important;
+    font-size: clamp(1rem, 4.8vw, 1.28rem) !important;
+    line-height: 1.32 !important;
+    text-shadow: 0 2px 14px rgba(0, 0, 0, 0.65) !important;
+  }
+
+  .budget-modal[data-budget-view='assistant'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-agent .bcc-hero-input-wrap,
+  html.is-mobile-viewport .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-agent .bcc-hero-input-wrap {
+    flex-shrink: 0 !important;
+    margin: 0 !important;
+    padding: 8px 10px !important;
+    border-radius: 14px !important;
+    border: 1px solid rgba(255, 255, 255, 0.14) !important;
+    background: rgba(8, 12, 18, 0.45) !important;
+    backdrop-filter: blur(12px) saturate(1.05) !important;
+    -webkit-backdrop-filter: blur(12px) saturate(1.05) !important;
+  }
+
+  .budget-modal[data-budget-view='assistant'] .budget-assistant-panel,
+  html.is-mobile-viewport .budget-modal .budget-assistant-panel {
+    display: flex !important;
+    background: transparent !important;
+  }
+}

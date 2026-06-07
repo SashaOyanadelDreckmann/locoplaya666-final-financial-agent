@@ -7,9 +7,10 @@ describe('budget modal logic guards', () => {
   const modalsPath = path.join(process.cwd(), 'app', 'agent', 'modals.tsx');
   const source = fs.readFileSync(modalsPath, 'utf8');
 
-  it('opens in split/stack senior mode by default when modal opens', () => {
-    expect(source).toContain('shouldUseMobileShell');
-    expect(source).toContain('setBudgetViewMode(!shouldUseMobileShell() ? 2 : 1);');
+  it('opens in assistant mode on mobile when modal opens', () => {
+    const layoutSource = fs.readFileSync(path.join(process.cwd(), 'app', 'agent', 'use-budget-modal-layout.ts'), 'utf8');
+    expect(layoutSource).toContain('useSyncExternalStore');
+    expect(layoutSource).toContain('setBudgetViewMode(mobileShell ? 1 : 2);');
   });
 
   it('mounts the budget modal in the agent page again', () => {
@@ -22,7 +23,7 @@ describe('budget modal logic guards', () => {
   it('keeps desktop->mobile mode fallback to prevent invalid mode 3 on mobile', () => {
     const layoutSource = fs.readFileSync(path.join(process.cwd(), 'app', 'agent', 'use-budget-modal-layout.ts'), 'utf8');
     expect(layoutSource).toContain('shouldUseMobileShell');
-    expect(layoutSource).toContain("if (!desktop) setBudgetViewMode((prev) => (prev === 3 ? 2 : prev));");
+    expect(layoutSource).toContain('const maxMode = isDesktopLayout ? 3 : 2;');
   });
 
   it('auto-applies budget template when modal opens with empty rows', () => {
@@ -96,7 +97,8 @@ describe('budget modal logic guards', () => {
   });
 
   it('wires mobile shell class, hidden cockpit, chat sync, and safe overlay dismiss', () => {
-    expect(source).toContain("isMobileShell ? ' is-mobile-shell' : ''");
+    expect(source).toContain("data-budget-mobile={isMobileShell ? 'true' : undefined}");
+    expect(source).toContain("data-budget-view={budgetViewMode === 2 ? 'table' : 'assistant'}");
     expect(source).toContain('{!isMobileShell && (');
     expect(source).toContain('budget-cockpit-banner');
     expect(source).toContain('bcc-hero-question');

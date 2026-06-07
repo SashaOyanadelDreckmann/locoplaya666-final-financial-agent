@@ -6309,8 +6309,9 @@
     padding: 12px !important;
   }
 
-  .pt-left {
-    max-height: 34vh !important;
+  .transactions-modal .pt-left {
+    max-height: none !important;
+    overflow: visible !important;
   }
 
   .pt-right {

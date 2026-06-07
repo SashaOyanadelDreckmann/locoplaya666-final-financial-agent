@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { shouldUseMobileShell } from '@/lib/viewport-mode';
 import { focusMobileInput } from '@/lib/mobile-viewport-sync';
 import { getCsrfToken } from '@/lib/csrf';
 import { downloadFile, saveBubbleSnapshotPdfArtifact } from '@/lib/artifacts';
@@ -914,7 +913,6 @@ export function BudgetModal(props: {
   // On open: reset conversation state and fetch first personalized question from AI
   useEffect(() => {
     if (!props.isOpen) return;
-    setBudgetViewMode(!shouldUseMobileShell() ? 2 : 1);
     const budgetRowsForInit = props.budgetRows.slice(0, 30);
     setBudgetReply('');
     setConversationDone(false);
@@ -985,27 +983,52 @@ export function BudgetModal(props: {
       const root = budgetModalRef.current;
       const scrollHost = budgetTableScrollRef.current;
       if (!root || !scrollHost) return;
-      const sampleRow = root.querySelector<HTMLElement>('.budget-table-pro tbody tr');
-      if (!sampleRow) return;
-      const rowStyles = window.getComputedStyle(sampleRow);
-      const marginBlock =
-        (parseFloat(rowStyles.marginTop) || 0) + (parseFloat(rowStyles.marginBottom) || 0);
-      const rowHeight = Math.ceil(sampleRow.getBoundingClientRect().height + marginBlock);
-      if (rowHeight <= 0) return;
-      scrollHost.style.setProperty('--budget-mobile-row-slot', `${rowHeight}px`);
-      root.style.setProperty('--budget-mobile-row-slot', `${rowHeight}px`);
+      const rows = root.querySelectorAll<HTMLElement>('.budget-table-pro tbody tr');
+      if (rows.length === 0) return;
+
+      let maxRowHeight = 0;
+      rows.forEach((row) => {
+        const rowStyles = window.getComputedStyle(row);
+        const marginBlock =
+          (parseFloat(rowStyles.marginTop) || 0) + (parseFloat(rowStyles.marginBottom) || 0);
+        const rowHeight = Math.ceil(row.getBoundingClientRect().height + marginBlock);
+        if (rowHeight > maxRowHeight) maxRowHeight = rowHeight;
+      });
+
+      const tableCard = scrollHost.closest<HTMLElement>('.budget-card-table');
+      const modalBody = root.querySelector<HTMLElement>('.budget-modal-body');
+      const tableHead = tableCard?.querySelector<HTMLElement>('.budget-table-head');
+      const bottomActions = tableCard?.querySelector<HTMLElement>('.budget-table-bottom-actions');
+      const tabs = root.querySelector<HTMLElement>('.budget-mode-tabs');
+      const header = root.querySelector<HTMLElement>('.bcc-modal-header');
+
+      let available = scrollHost.clientHeight;
+      if (modalBody && tableCard) {
+        const chrome =
+          (header?.offsetHeight ?? 0) +
+          (tabs?.offsetHeight ?? 0) +
+          (tableHead?.offsetHeight ?? 0) +
+          (bottomActions?.offsetHeight ?? 0) +
+          12;
+        available = Math.max(180, modalBody.clientHeight - chrome);
+      }
+
+      const slotHeight = Math.max(180, Math.min(maxRowHeight, available));
+      if (slotHeight <= 0) return;
+      scrollHost.style.setProperty('--budget-mobile-row-slot', `${slotHeight}px`);
+      root.style.setProperty('--budget-mobile-row-slot', `${slotHeight}px`);
     };
 
     measureMobileRowSlot();
     const timer = window.setTimeout(measureMobileRowSlot, 120);
     const rafId = window.requestAnimationFrame(measureMobileRowSlot);
 
-    const sampleRow = budgetModalRef.current?.querySelector<HTMLElement>('.budget-table-pro tbody tr');
+    const rows = budgetModalRef.current?.querySelectorAll<HTMLElement>('.budget-table-pro tbody tr');
     const rowObserver =
-      sampleRow && typeof ResizeObserver !== 'undefined'
+      rows && rows.length > 0 && typeof ResizeObserver !== 'undefined'
         ? new ResizeObserver(measureMobileRowSlot)
         : null;
-    rowObserver?.observe(sampleRow!);
+    rows?.forEach((row) => rowObserver?.observe(row));
 
     window.addEventListener('resize', measureMobileRowSlot);
     window.addEventListener('orientationchange', measureMobileRowSlot);
@@ -1020,7 +1043,16 @@ export function BudgetModal(props: {
       window.removeEventListener('resize', measureMobileRowSlot);
       window.removeEventListener('orientationchange', measureMobileRowSlot);
     };
-  }, [props.isOpen, isDesktopLayout, budgetViewMode, props.budgetRows.length, budgetTableStyle]);
+  }, [props.isOpen, isDesktopLayout, budgetViewMode, props.budgetRows.length, budgetTableStyle, focusedBudgetRowId]);
+
+  useEffect(() => {
+    if (!props.isOpen || isDesktopLayout || !focusedBudgetRowId) return;
+    const row = budgetModalRef.current?.querySelector<HTMLElement>(`#budget-row-${focusedBudgetRowId}`);
+    const wrap = budgetTableScrollRef.current?.querySelector<HTMLElement>('.budget-table-wrap');
+    if (!row || !wrap) return;
+    const top = row.offsetTop;
+    wrap.scrollTo({ top, behavior: budgetViewMode === 1 ? 'auto' : 'smooth' });
+  }, [props.isOpen, isDesktopLayout, budgetViewMode, focusedBudgetRowId, props.budgetRows.length]);
 
   const maxExpense = Math.max(
     1,
@@ -1121,6 +1153,8 @@ export function BudgetModal(props: {
     >
       <div
         className={`agent-modal budget-modal${isMobileShell ? ' is-mobile-shell' : ''}`}
+        data-budget-mobile={isMobileShell ? 'true' : undefined}
+        data-budget-view={budgetViewMode === 2 ? 'table' : 'assistant'}
         role="dialog"
         aria-modal="true"
         aria-labelledby="budget-modal-title"

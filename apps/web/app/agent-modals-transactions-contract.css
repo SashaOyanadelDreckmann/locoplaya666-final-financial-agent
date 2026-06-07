@@ -504,23 +504,75 @@
     scroll-behavior: auto !important;
   }
 
-  .transactions-modal .pt-shell {
+  .transactions-modal .pt-shell,
+  .transactions-modal .pt-shell.tx-stage-shell {
     display: flex !important;
     flex-direction: column !important;
+    grid-template-columns: none !important;
+    grid-template-rows: none !important;
     gap: 12px !important;
     width: 100% !important;
     max-width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
     margin: 0 !important;
+    padding: 0 !important;
+    position: relative !important;
   }
 
   .transactions-modal .pt-left,
   .transactions-modal .pt-right {
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    flex: 0 0 auto !important;
     width: 100% !important;
     max-width: 100% !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
     padding: 12px !important;
     background: linear-gradient(180deg, rgba(19, 29, 40, 0.96), rgba(12, 20, 30, 0.98)) !important;
     border: 1px solid var(--tx-contract-border) !important;
     box-shadow: 0 10px 24px rgba(0, 0, 0, 0.24) !important;
+  }
+
+  .transactions-modal .tx-panel-surface {
+    transform: none !important;
+    --tx-surface-shift: 0px !important;
+    --tx-surface-scale: 1 !important;
+    overflow: visible !important;
+  }
+
+  .transactions-modal .tx-panel-surface::after {
+    display: none !important;
+  }
+
+  .transactions-modal .tx-content-card--agent .tx-agent-stage-header {
+    display: block !important;
+    margin-bottom: 12px !important;
+  }
+
+  .transactions-modal .tx-content-card--agent .tx-agent-stage-header > h4,
+  .transactions-modal .tx-agent-stage-header h4,
+  .transactions-modal .tx-agent-stage-title {
+    max-width: none !important;
+    font-family: inherit !important;
+    font-size: clamp(1.25rem, 5.2vw, 1.65rem) !important;
+    font-weight: 650 !important;
+    line-height: 1.15 !important;
+    letter-spacing: -0.02em !important;
+    text-shadow: none !important;
+  }
+
+  .transactions-modal .tx-agent-stage-note {
+    max-width: none !important;
+    margin-top: 6px !important;
+    font-size: 0.84rem !important;
+    line-height: 1.45 !important;
+    color: var(--tx-contract-text-dim) !important;
   }
 
   .transactions-modal .pt-stack-carousel.tx-library-is-saved {
@@ -751,11 +803,96 @@
 /* Tablet / narrow desktop: single column before overlap */
 @media (max-width: 1100px) and (min-width: 768px) {
   .transactions-modal .pt-shell {
-    grid-template-columns: 1fr !important;
+    display: flex !important;
+    flex-direction: column !important;
+    grid-template-columns: none !important;
+    height: auto !important;
   }
 
-  .transactions-modal .pt-left {
+  .transactions-modal .pt-left,
+  .transactions-modal .pt-right {
+    position: relative !important;
+    flex: 0 0 auto !important;
     max-height: none !important;
+    overflow: visible !important;
+  }
+}
+
+/* =============================================================================
+   EOF — beats backdrop-system + diagnostics floating mobile flattening
+   ============================================================================= */
+@media (max-width: 1100px) {
+  html:not(.home-route-active) .agent-modal-overlay.transactions-modal-overlay {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-end !important;
+    overflow: hidden !important;
+    overflow-y: hidden !important;
+  }
+
+  html:not(.home-route-active) .agent-modal.transactions-modal,
+  html:not(.home-route-active) .transactions-modal {
+    display: flex !important;
+    flex-direction: column !important;
+    height: auto !important;
+    max-height: min(96dvh, 96vh) !important;
+    overflow: hidden !important;
+    overflow-y: hidden !important;
+    overflow-x: hidden !important;
+    background: linear-gradient(180deg, var(--tx-contract-panel) 0%, var(--tx-contract-panel-edge) 100%) !important;
+    border-radius: 22px 22px 0 0 !important;
+    box-shadow: 0 -16px 48px rgba(0, 0, 0, 0.42) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  html:not(.home-route-active) .transactions-modal .tx-scroll-body {
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+  }
+
+  html:not(.home-route-active) .transactions-modal .pt-shell {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+    height: auto !important;
+    min-height: 0 !important;
+    width: 100% !important;
+    padding: 0 !important;
+    background: transparent !important;
+  }
+
+  html:not(.home-route-active) .transactions-modal .pt-left,
+  html:not(.home-route-active) .transactions-modal .pt-right,
+  html:not(.home-route-active) .transactions-modal .tx-panel-surface {
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    flex: 0 0 auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 12px !important;
+    overflow: visible !important;
+    transform: none !important;
+    background: linear-gradient(180deg, rgba(19, 29, 40, 0.96), rgba(12, 20, 30, 0.98)) !important;
+    border: 1px solid var(--tx-contract-border) !important;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.24) !important;
+  }
+
+  html:not(.home-route-active) .transactions-modal .tx-content-card,
+  html:not(.home-route-active) .transactions-modal .tx-content-card--agent,
+  html:not(.home-route-active) .transactions-modal .transactions-summary-card,
+  html:not(.home-route-active) .transactions-modal .tx-meta-card {
+    position: relative !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    background: rgba(12, 20, 30, 0.92) !important;
+    border: 1px solid var(--tx-contract-border) !important;
+    box-shadow: none !important;
   }
 }
 

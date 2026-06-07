@@ -117,21 +117,21 @@
   .budget-modal.is-mobile-shell .budget-modal-body .budget-main-carousel:not(.is-desktop).mode-agent-front > .budget-card-table {
     display: block !important;
     opacity: 1 !important;
-    filter: none !important;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
     pointer-events: none !important;
   }
 
   .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-table,
   .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) > .budget-card-agent {
     opacity: 1 !important;
-    filter: none !important;
     transform: none !important;
     max-height: none !important;
     top: auto !important;
     left: auto !important;
     right: auto !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) > .budget-card-agent {
+    filter: none !important;
   }
 
   /* ── 3. Table tab — reset desktop carousel absolute layout ── */
@@ -164,7 +164,7 @@
     max-height: none !important;
     min-height: 0 !important;
     flex: 1 1 auto !important;
-    padding: 12px 14px !important;
+    padding: 4px 10px 0 !important;
     order: 1 !important;
   }
 
@@ -222,6 +222,10 @@
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
+    filter: blur(12px) saturate(1.2) brightness(0.88) !important;
+    -webkit-filter: blur(12px) saturate(1.2) brightness(0.88) !important;
+    transform: translateZ(0) !important;
+    will-change: filter !important;
   }
 
   .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-table .budget-pdf-surface {
@@ -229,6 +233,7 @@
     height: var(--budget-mobile-row-slot, 292px) !important;
     max-height: var(--budget-mobile-row-slot, 292px) !important;
     overflow: hidden !important;
+    pointer-events: none !important;
   }
 
   .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-table .budget-table-wrap {
@@ -337,7 +342,7 @@
     display: flex !important;
     flex-direction: column !important;
     overflow: hidden !important;
-    padding: 6px 10px 0 !important;
+    padding: 4px 10px 0 !important;
     padding-bottom: 0 !important;
     justify-content: flex-start !important;
   }
@@ -369,6 +374,7 @@
     justify-content: flex-start !important;
     height: var(--budget-mobile-row-slot, 292px) !important;
     max-height: var(--budget-mobile-row-slot, 292px) !important;
+    margin-bottom: 0 !important;
   }
 
   .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-scroll-host .budget-pdf-surface {
@@ -390,27 +396,34 @@
     overflow-x: hidden !important;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch !important;
-    overscroll-behavior: contain !important;
+    overscroll-behavior-y: contain !important;
     touch-action: pan-y !important;
     scroll-snap-type: y mandatory !important;
-    scroll-padding-top: 0 !important;
+    scroll-padding: 0 !important;
   }
 
-  .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table.budget-table-pro tbody tr {
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table.budget-table-pro tbody {
+    display: block !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table.budget-table-pro tbody tr.is-mobile-row-card {
     scroll-snap-align: start !important;
     scroll-snap-stop: always !important;
-    margin-bottom: 0 !important;
+    margin: 0 !important;
     box-sizing: border-box !important;
+    min-height: var(--budget-mobile-row-slot, 292px) !important;
+    height: var(--budget-mobile-row-slot, 292px) !important;
+    overflow: hidden !important;
   }
 
   .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-bottom-actions {
     flex-shrink: 0 !important;
     display: grid !important;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
-    gap: 8px !important;
+    gap: 6px !important;
     align-items: center !important;
     margin-top: auto !important;
-    padding: 6px 0 max(2px, env(safe-area-inset-bottom, 0px)) !important;
+    padding: 0 0 calc(max(4px, env(safe-area-inset-bottom, 0px))) !important;
   }
 
   .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-bottom-actions .budget-chat-sync-button:not(.is-assistant-action) {
@@ -440,6 +453,23 @@
   }
 
   /* ── 6. budget-table-pro: authoritative 8-field card grid ── */
+  .budget-modal.is-mobile-shell .budget-table.budget-table-pro tbody tr.is-mobile-row-card {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    grid-template-areas:
+      "category category"
+      "type amount"
+      "cadence cadence"
+      "payment movement"
+      "impact impact" !important;
+    gap: 8px !important;
+    padding: 10px 36px 10px 10px !important;
+    margin: 0 !important;
+    border-radius: 16px !important;
+    overflow: hidden !important;
+    position: relative !important;
+  }
+
   .budget-modal.is-mobile-shell .budget-table.budget-table-pro tbody tr {
     display: grid !important;
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
@@ -448,13 +478,13 @@
       "type amount"
       "cadence cadence"
       "payment movement"
-      "impact impact"
-      "actions actions" !important;
+      "impact impact" !important;
     gap: 8px !important;
-    padding: 10px !important;
+    padding: 10px 36px 10px 10px !important;
     margin: 0 !important;
     border-radius: 16px !important;
-    overflow: visible !important;
+    overflow: hidden !important;
+    position: relative !important;
   }
 
   .budget-modal.is-mobile-shell .budget-table.budget-table-pro tbody td {
@@ -484,16 +514,50 @@
   .budget-modal.is-mobile-shell .budget-table.budget-table-pro tbody td:nth-child(5) { grid-area: payment !important; }
   .budget-modal.is-mobile-shell .budget-table.budget-table-pro tbody td:nth-child(6) { grid-area: movement !important; }
   .budget-modal.is-mobile-shell .budget-table.budget-table-pro tbody td:nth-child(7) { grid-area: impact !important; }
+  .budget-modal.is-mobile-shell .budget-table.budget-table-pro tbody td.budget-row-actions-cell,
   .budget-modal.is-mobile-shell .budget-table.budget-table-pro tbody td:nth-child(8) {
-    grid-area: actions !important;
+    position: absolute !important;
+    top: 8px !important;
+    right: 8px !important;
+    z-index: 4 !important;
     display: flex !important;
     align-items: center !important;
-    justify-content: flex-end !important;
+    justify-content: center !important;
+    width: auto !important;
+    min-width: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    grid-area: unset !important;
   }
 
+  .budget-modal.is-mobile-shell .budget-table.budget-table-pro tbody td.budget-row-actions-cell::before,
   .budget-modal.is-mobile-shell .budget-table.budget-table-pro tbody td:nth-child(8)::before {
-    margin-right: auto !important;
-    margin-bottom: 0 !important;
+    display: none !important;
+    content: none !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-table.budget-table-pro .budget-row-delete.is-mobile {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 28px !important;
+    height: 28px !important;
+    min-width: 28px !important;
+    min-height: 28px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border-radius: 8px !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    background: rgba(8, 12, 18, 0.42) !important;
+    color: rgba(235, 190, 190, 0.88) !important;
+    box-shadow: none !important;
+    opacity: 0.82 !important;
+    transition: opacity 140ms ease, background 140ms ease !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-table.budget-table-pro .budget-row-delete.is-mobile:active {
+    opacity: 1 !important;
+    background: rgba(120, 28, 36, 0.38) !important;
   }
 
   .budget-modal.is-mobile-shell .budget-table.budget-table-pro tbody td:nth-child(n + 5) {
@@ -537,7 +601,6 @@
   .budget-modal.is-mobile-shell .budget-modal-body .budget-main-carousel:not(.is-desktop).mode-agent-front > .budget-card-table {
     display: flex !important;
     opacity: 1 !important;
-    filter: none !important;
     pointer-events: none !important;
   }
 

@@ -17955,7 +17955,6 @@ body.agent-route-active .app-shell > * {
 
   .agent-modal,
   .budget-modal,
-  .transactions-modal,
   .interview-modal,
   .questionnaire-modal,
   .account-modal,
@@ -18077,9 +18076,6 @@ body.agent-route-active .app-shell > * {
   .budget-modal .budget-summary-chip,
   .budget-modal .budget-swipe-metric,
   .budget-modal .budget-guidance-list,
-  .transactions-modal .tx-panel-surface,
-  .transactions-modal .pt-left,
-  .transactions-modal .pt-right,
   .transactions-modal .transactions-summary-card,
   .transactions-modal .transactions-stat-card,
   .transactions-modal .tx-meta-card,
@@ -18123,23 +18119,6 @@ body.agent-route-active .app-shell > * {
     padding: 0 !important;
     background: transparent !important;
     border: none !important;
-  }
-
-  .transactions-modal .pt-shell {
-    padding: 0 14px 14px !important;
-    gap: 12px !important;
-    background: transparent !important;
-  }
-
-  .transactions-modal .pt-premium-intro,
-  .transactions-modal .pt-left,
-  .transactions-modal .pt-right {
-    margin: 0 !important;
-    padding: 0 !important;
-    background: transparent !important;
-    border: none !important;
-    border-radius: 0 !important;
-    box-shadow: none !important;
   }
 
   .transactions-modal .pt-premium-intro {

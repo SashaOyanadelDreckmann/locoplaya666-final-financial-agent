@@ -1071,8 +1071,7 @@ body.agent-route-active .app-shell::before {
     padding-right: max(0px, env(safe-area-inset-right, 0px)) !important;
   }
 
-  html:not(.home-route-active) .transactions-modal,
-  html:not(.home-route-active) .agent-modal.transactions-modal,
+  /* transactions-modal: opaque layout owned by agent-modals-transactions-contract.css */
   html:not(.home-route-active) .budget-modal,
   html:not(.home-route-active) .agent-modal.budget-modal,
   html:not(.home-route-active) .interview-modal,
@@ -1085,15 +1084,6 @@ body.agent-route-active .app-shell::before {
     border-radius: 0 !important;
   }
 
-  html:not(.home-route-active) .transactions-modal .pt-left,
-  html:not(.home-route-active) .transactions-modal .pt-right,
-  html:not(.home-route-active) .transactions-modal .tx-content-card,
-  html:not(.home-route-active) .transactions-modal .tx-content-card--agent,
-  html:not(.home-route-active) .transactions-modal .tx-panel-surface,
-  html:not(.home-route-active) .transactions-modal .tx-preset-shell,
-  html:not(.home-route-active) .transactions-modal .transactions-summary-card,
-  html:not(.home-route-active) .transactions-modal .upload-zone,
-  html:not(.home-route-active) .transactions-modal .tx-meta-card,
   html:not(.home-route-active) .budget-modal .budget-cockpit-banner,
   html:not(.home-route-active) .budget-modal .budget-card-agent,
   html:not(.home-route-active) .budget-modal .budget-card-table,

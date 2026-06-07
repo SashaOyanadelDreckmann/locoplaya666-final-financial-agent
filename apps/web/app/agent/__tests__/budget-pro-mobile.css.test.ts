@@ -8,10 +8,9 @@ describe('budget pro mobile css safeguards', () => {
   const mobileCss = fs.readFileSync(mobileCssPath, 'utf8');
 
   it('defines authoritative budget-table-pro column mapping on mobile', () => {
-    expect(mobileCss).toContain('.budget-modal.is-mobile-shell .budget-table.budget-table-pro tbody td:nth-child(4)');
-    expect(mobileCss).toContain('grid-area: cadence !important;');
     expect(mobileCss).toContain('.budget-modal.is-mobile-shell .budget-table.budget-table-pro tbody td:nth-child(8)');
-    expect(mobileCss).toContain('grid-area: actions !important;');
+    expect(mobileCss).toContain('grid-area: impact !important;');
+    expect(mobileCss).toContain('.budget-row-delete.is-mobile');
     expect(mobileCss).toContain('content: attr(data-label) !important;');
     expect(mobileCss).toContain('text-overflow: ellipsis !important;');
   });
@@ -44,8 +43,22 @@ describe('budget pro mobile css safeguards', () => {
     expect(mobileCss).toContain('--budget-mobile-row-slot');
     expect(mobileCss).toContain('scroll-snap-type: y mandatory');
     expect(mobileCss).toContain('scroll-snap-align: start');
+    expect(mobileCss).toContain('is-mobile-row-card');
     expect(mobileCss).toContain('grid-template-columns: minmax(0, 1fr) minmax(0, 1fr)');
     expect(mobileCss).toContain('.budget-chat-sync-button:not(.is-assistant-action)');
     expect(mobileCss).toContain('display: none !important');
+  });
+
+  it('loads authoritative budget mobile css last in layout', () => {
+    const layoutCss = fs.readFileSync(path.join(process.cwd(), 'app', 'layout.tsx'), 'utf8');
+    expect(layoutCss).toContain("import './agent-modals-budget-mobile-authoritative.css';");
+  });
+
+  it('blurs assistant backdrop table on mobile without hiding live updates', () => {
+    const authCssPath = path.join(process.cwd(), 'app', 'agent-modals-budget-mobile-authoritative.css');
+    const authCss = fs.readFileSync(authCssPath, 'utf8');
+    expect(authCss).toContain('is-mobile-table-compact');
+    expect(authCss).toContain('filter: blur(10px)');
+    expect(authCss).toContain('display: none !important');
   });
 });
