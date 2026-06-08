@@ -195,7 +195,15 @@ function toSparkPath(values: number[], width: number, height: number, padding: n
   return { d, area, zeroY };
 }
 
-function ImpactSparkline({ row, totals }: { row: BudgetRow; totals: { income: number; expenses: number; balance: number } }) {
+function ImpactSparkline({
+  row,
+  totals,
+  compact = false,
+}: {
+  row: BudgetRow;
+  totals: { income: number; expenses: number; balance: number };
+  compact?: boolean;
+}) {
   const series = useMemo(() => buildImpactSeries(row, totals), [row, totals]);
   const baseIncome = Math.max(1, Math.abs(totals.income), Math.abs(totals.expenses), Math.abs(totals.balance));
   const signedImpactPct = ((row.type === 'income' ? row.amount : -row.amount) / baseIncome) * 100;
@@ -206,12 +214,14 @@ function ImpactSparkline({ row, totals }: { row: BudgetRow; totals: { income: nu
       : signedImpactPct <= -6
         ? 'medium'
         : 'low';
-  const { d, area, zeroY } = toSparkPath(series, 104, 30, 2);
+  const width = compact ? 280 : 104;
+  const height = compact ? 54 : 30;
+  const { d, area, zeroY } = toSparkPath(series, width, height, compact ? 3 : 2);
 
   return (
-    <div className={`budget-impact-cell is-${severity}`}>
-      <svg width="104" height="30" viewBox="0 0 104 30" role="img" aria-label="Curva de impacto del movimiento">
-        <line x1="2" y1={zeroY} x2="102" y2={zeroY} className="budget-impact-zero" />
+    <div className={`budget-impact-cell is-${severity}${compact ? ' is-compact' : ''}`}>
+      <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Curva de impacto del movimiento">
+        <line x1="2" y1={zeroY} x2={width - 2} y2={zeroY} className="budget-impact-zero" />
         <path d={area} className="budget-impact-area" />
         <path d={d} className="budget-impact-line" />
       </svg>
@@ -430,23 +440,19 @@ export function BudgetIntelligenceTable(props: Props) {
         </div>
       )}
 
-      {!props.compactMobile && (
-      <div className="budget-pdf-head">
+      <div className={`budget-pdf-head${props.compactMobile ? ' is-mobile-intel-head' : ''}`}>
         <div>
           <span>Financieramente</span>
           <h2>Budget intelligence</h2>
         </div>
         <strong>{props.activeStyleLabel}</strong>
       </div>
-      )}
 
-      {!props.compactMobile && (
-      <div className="budget-pdf-metrics">
+      <div className={`budget-pdf-metrics${props.compactMobile ? ' is-mobile-intel-metrics' : ''}`}>
         <div><span>Ingreso</span><strong>{props.formatBudgetAmount(props.budgetTotals.income)}</strong></div>
         <div><span>Gasto</span><strong>{props.formatBudgetAmount(props.budgetTotals.expenses)}</strong></div>
         <div><span>Balance</span><strong>{props.formatBudgetAmount(props.budgetTotals.balance)}</strong></div>
       </div>
-      )}
 
       <div className="budget-table-wrap budget-table-wrap-pro">
         <table className="budget-table budget-table-pro">
@@ -602,7 +608,7 @@ export function BudgetIntelligenceTable(props: Props) {
                   </td>
                   <td data-label="Impacto">
                     <div className="budget-impact-shell">
-                      <ImpactSparkline row={row} totals={props.budgetTotals} />
+                      <ImpactSparkline row={row} totals={props.budgetTotals} compact={props.compactMobile} />
                       <span className="budget-impact-type-label">{MOVEMENT_TYPE_LABEL.get(movementType) ?? 'Ocio/Otros'}</span>
                     </div>
                   </td>

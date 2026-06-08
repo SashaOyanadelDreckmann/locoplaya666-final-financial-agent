@@ -32,6 +32,7 @@ export type BankSimulation = {
   randomMode: boolean;
   uploadedFiles: string[];
   parsedDocuments: BankProduct['parsedDocuments'];
+  productsModuleSkipped?: boolean;
 };
 
 export const DEFAULT_BANK_SIMULATION: BankSimulation = {
@@ -43,4 +44,5 @@ export const DEFAULT_BANK_SIMULATION: BankSimulation = {
   randomMode: false,
   uploadedFiles: [],
   parsedDocuments: [],
+  productsModuleSkipped: false,
 };

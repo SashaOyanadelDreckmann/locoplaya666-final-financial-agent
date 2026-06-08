@@ -57,4 +57,29 @@ describe('budget-chat-writer.service', () => {
 
     expect(validated).toBeNull();
   });
+
+  it('rejects polished copy that opens with generic affirmations', () => {
+    const context = buildBudgetAssistantContext({
+      rows,
+      intakeData: {},
+      products: [],
+      chatAnswers: [{ q: '¿Cuánto es tu ingreso?', a: '850 mil líquidos' }],
+    });
+    const validated = validateWriterOutput(
+      {
+        turn: 'confirmation',
+        deterministicReply: 'Por “gano mil liquidos”, dejé $850.000 como ingreso principal.',
+        deterministicQuestion: '¿Cuánto pagas al mes en vivienda?',
+        focusRow: rows[0],
+        context,
+        userAnswer: '850 mil líquidos',
+      },
+      {
+        reply: 'Perfecto, dejé tu sueldo en $850.000.',
+        question: '¿Cuánto pagas en vivienda?',
+      },
+    );
+
+    expect(validated).toBeNull();
+  });
 });

@@ -97,19 +97,37 @@
 }
 
 .bcc-hero-reply {
-  font-size: 0.92rem !important;
-  line-height: 1.45 !important;
+  font-size: 0.84rem !important;
+  line-height: 1.42 !important;
   color: rgba(210, 225, 240, 0.82) !important;
-  margin: 0 0 12px !important;
+  margin: 0 0 10px !important;
+  max-width: 100% !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
 }
 
 .bcc-hero-question {
-  font-size: 24px !important;
-  font-weight: 300 !important;
-  line-height: 1.35 !important;
-  letter-spacing: -0.3px !important;
+  font-size: 1rem !important;
+  font-weight: 400 !important;
+  line-height: 1.48 !important;
+  letter-spacing: -0.01em !important;
   color: rgba(255,255,255,0.92) !important;
   margin: 0 !important;
+  display: block !important;
+  max-width: 100% !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
+  text-wrap: pretty !important;
+}
+
+.bcc-hero-question--pending {
+  color: rgba(255, 255, 255, 0.55) !important;
+  font-size: 0.9rem !important;
+}
+
+.bcc-typewriter-cursor {
+  font-weight: 300 !important;
+  opacity: 0.65 !important;
 }
 
 /* Input row */
@@ -1117,11 +1135,11 @@
 }
 
 .budget-modal .budget-assistant-panel .bcc-hero-question {
-  font-size: clamp(1.7rem, 2.15vw, 2.35rem) !important;
-  line-height: 1.1 !important;
-  letter-spacing: -0.05em !important;
-  max-width: 14ch !important;
-  text-wrap: balance !important;
+  font-size: clamp(0.88rem, 1vw, 1rem) !important;
+  line-height: 1.48 !important;
+  letter-spacing: -0.01em !important;
+  max-width: 100% !important;
+  text-wrap: pretty !important;
 }
 
 .budget-modal .budget-assistant-panel .bcc-hero-input-wrap {
@@ -1515,11 +1533,11 @@
 }
 
 .budget-modal .budget-assistant-panel .bcc-hero-question {
-  max-width: 22ch !important;
-  margin: 0 auto !important;
-  font-size: 2rem !important;
-  line-height: 1.12 !important;
-  letter-spacing: 0 !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  font-size: clamp(0.88rem, 1vw, 1rem) !important;
+  line-height: 1.48 !important;
+  letter-spacing: -0.01em !important;
   font-weight: 400 !important;
 }
 
@@ -1605,8 +1623,8 @@
 
 @media (max-width: 780px) {
   .budget-modal .budget-assistant-panel .bcc-hero-question {
-    font-size: 1.55rem !important;
-    max-width: 20ch !important;
+    font-size: clamp(0.84rem, 3.6vw, 0.96rem) !important;
+    max-width: 100% !important;
   }
 
   .budget-modal .budget-assistant-panel .budget-quick-actions {
@@ -4291,9 +4309,9 @@
 }
 
 .budget-modal .budget-modal-body .budget-main-carousel.mode-split > .budget-card-agent .bcc-hero-question {
-  max-width: 22ch !important;
-  font-size: clamp(1.2rem, 1.45vw, 1.55rem) !important;
-  line-height: 1.16 !important;
+  max-width: 100% !important;
+  font-size: clamp(0.88rem, 1vw, 1rem) !important;
+  line-height: 1.48 !important;
 }
 
 .budget-modal .budget-modal-body .budget-main-carousel.mode-split > .budget-card-agent .bcc-hero-input-wrap {
@@ -5737,8 +5755,8 @@
   }
 
   .budget-modal .budget-assistant-panel .bcc-hero-question {
-    font-size: clamp(1.02rem, 5vw, 1.2rem) !important;
-    max-width: none !important;
+    font-size: clamp(0.84rem, 3.6vw, 0.96rem) !important;
+    max-width: 100% !important;
   }
 
   .budget-modal .budget-table-wrap {
@@ -8303,5 +8321,47 @@
 .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-head-actions .latex-doc-save-btn {
   font-size: 0.56rem !important;
   letter-spacing: 0.02em !important;
+}
+
+/* Assistant turn copy: smaller type, edge-to-edge with safe inset, no overflow */
+.budget-modal .budget-assistant-panel .bcc-hero {
+  overflow: hidden !important;
+  min-width: 0 !important;
+}
+
+.budget-modal .budget-assistant-panel .bcc-hero-top {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  align-items: stretch !important;
+  padding-inline: clamp(10px, 2.4vw, 18px) !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+
+.budget-modal .budget-assistant-panel .bcc-hero-reply,
+.budget-modal .budget-assistant-panel .bcc-hero-question,
+.budget-modal .budget-assistant-panel .bcc-hero-question--pending,
+.budget-modal .budget-assistant-panel span.bcc-hero-question {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  margin-inline: 0 !important;
+  box-sizing: border-box !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
+  hyphens: auto !important;
+}
+
+.budget-modal .budget-modal-body .budget-main-carousel.mode-agent-front > .budget-card-agent .bcc-hero,
+.budget-modal .budget-modal-body .budget-main-carousel.mode-split > .budget-card-agent .bcc-hero {
+  padding-inline: clamp(12px, 2.2vw, 20px) !important;
+}
+
+.budget-modal .budget-modal-body .budget-main-carousel.mode-agent-front > .budget-card-agent .bcc-hero-question,
+.budget-modal .budget-modal-body .budget-main-carousel.mode-split > .budget-card-agent .bcc-hero-question,
+.budget-modal .budget-modal-body .budget-main-carousel.mode-agent-front > .budget-card-agent span.bcc-hero-question,
+.budget-modal .budget-modal-body .budget-main-carousel.mode-split > .budget-card-agent span.bcc-hero-question {
+  max-width: 100% !important;
 }
 

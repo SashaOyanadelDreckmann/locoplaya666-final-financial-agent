@@ -16152,36 +16152,6 @@ html:not([data-visual-mode='light-outline']) .agent-panel .panel-feature-card {
   gap: 12px;
 }
 
-.transactions-modal .tx-video-example-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px;
-  margin-top: 12px;
-}
-
-.transactions-modal .tx-video-example-label {
-  font-size: 11px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.35);
-}
-
-.transactions-modal .tx-video-example-shell {
-  margin-top: 12px;
-  overflow: hidden;
-  border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(0, 0, 0, 0.28);
-}
-
-.transactions-modal .tx-video-example-player {
-  display: block;
-  width: 100%;
-  max-height: min(42vh, 360px);
-  background: #000;
-}
-
 .transactions-modal .tx-chat-composer-wrap {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -16580,9 +16550,6 @@ html:not([data-visual-mode='light-outline']) .agent-panel .panel-feature-card {
     align-items: start;
   }
 
-  .transactions-modal .tx-format-guidance .tx-video-example-shell {
-    grid-column: 1 / -1;
-  }
 }
 
 @media (min-width: 768px) and (max-width: 920px) {
@@ -16816,4 +16783,62 @@ html.mobile-input-engaged .transactions-modal .tx-composer-field {
   .transactions-modal[data-reduced-motion='true'] .tx-3d-hero {
     transform: none !important;
   }
+}
+
+/* Evidence fidelity + skip products */
+.transactions-modal .tx-evidence-fidelity-notice {
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(251, 191, 36, 0.28);
+  background: rgba(251, 191, 36, 0.08);
+}
+
+.transactions-modal .tx-evidence-fidelity-notice.is-compact {
+  margin-bottom: 10px;
+  padding: 10px 12px;
+}
+
+.transactions-modal .tx-evidence-fidelity-kicker {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(253, 224, 171, 0.95);
+}
+
+.transactions-modal .tx-evidence-fidelity-notice p {
+  margin: 0;
+  font-size: 0.86rem;
+  line-height: 1.45;
+  color: rgba(254, 243, 199, 0.92);
+}
+
+.transactions-modal .tx-skip-products {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.transactions-modal .tx-skip-products.is-compact {
+  margin-top: 8px;
+}
+
+.transactions-modal .tx-skip-products-btn {
+  justify-self: start;
+}
+
+.transactions-modal .tx-skip-products-note {
+  margin: 0;
+  max-width: 42ch;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: rgba(148, 163, 184, 0.92);
+}
+
+.transactions-modal .tx-ap-dashboard.is-indicative-evidence .tx-ap-hero-numbers,
+.transactions-modal .tx-ex-card.is-indicative-evidence .tx-ex-metrics {
+  opacity: 0.96;
 }

@@ -181,28 +181,101 @@ export function validateBudgetTableAction(
   };
 }
 
+export const MAX_BUDGET_TABLE_ACTIONS = 30;
+
 export function validateBudgetTableActions(actions: BudgetTableAction[], rows: BudgetRow[]): BudgetTableAction[] {
   const validated: BudgetTableAction[] = [];
-  for (const action of actions.slice(0, 6)) {
+  for (const action of actions.slice(0, MAX_BUDGET_TABLE_ACTIONS)) {
     const result = validateBudgetTableAction(action, rows);
     if (result.ok) validated.push(result.action);
   }
   return validated;
 }
 
-export function summarizeBudgetActionBatch(actions: BudgetTableAction[]): string {
+function labelCadence(value: BudgetCadence | undefined): string | null {
+  if (!value) return null;
+  return BUDGET_CADENCE_OPTIONS.find((item) => item.value === value)?.label ?? null;
+}
+
+function labelPayment(value: BudgetPaymentMethod | undefined): string | null {
+  if (!value) return null;
+  return BUDGET_PAYMENT_OPTIONS.find((item) => item.value === value)?.label ?? null;
+}
+
+function labelMovement(value: BudgetMovementType | undefined): string | null {
+  if (!value) return null;
+  return BUDGET_MOVEMENT_TYPE_OPTIONS.find((item) => item.value === value)?.label ?? null;
+}
+
+export function summarizeBudgetActionBatch(actions: BudgetTableAction[], rows: BudgetRow[] = []): string {
   if (actions.length === 0) return '';
+  const rowById = new Map(rows.map((row) => [canonicalBudgetRowId(row.id), row]));
+
+  if (actions.length > 1 && actions.every((action) => action.kind === 'delete')) {
+    return `Eliminar ${actions.length} movimientos de la tabla`;
+  }
+
   return actions
     .map((action) => {
-      if (action.kind === 'delete') return `eliminar ${action.id}`;
+      const row = rowById.get(canonicalBudgetRowId(action.id));
+      const label = row?.category ?? action.category ?? 'Movimiento';
+      if (action.kind === 'delete') return `Eliminar ${label}`;
       const parts = [
-        action.kind === 'add' ? 'agregar' : 'actualizar',
-        action.category ?? action.id,
+        action.kind === 'add' ? 'Agregar' : 'Actualizar',
+        label,
         action.amount != null ? `$${Math.round(action.amount).toLocaleString('es-CL')}` : null,
-        action.cadence ? `(${action.cadence})` : null,
-        action.payment_method ? `[${action.payment_method}]` : null,
+        labelCadence(action.cadence) ? `recurrencia ${labelCadence(action.cadence)}` : null,
+        labelPayment(action.payment_method ?? action.paymentMethod)
+          ? `pago ${labelPayment(action.payment_method ?? action.paymentMethod)}`
+          : null,
+        labelMovement(action.movement_type ?? action.movementType)
+          ? `tipo ${labelMovement(action.movement_type ?? action.movementType)}`
+          : null,
       ].filter(Boolean);
-      return parts.join(' ');
+      return parts.join(' · ');
     })
     .join('; ');
+}
+
+export function parseBudgetCadenceFromAnswer(answer: string): BudgetCadence | null {
+  const text = String(answer ?? '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+  if (/\b(fijo|fija|fijos|siempre igual|mismo monto|recurrente)\b/.test(text)) return 'fixed';
+  if (/\b(variable|variables|cambia|distinto|depende|varia)\b/.test(text)) return 'variable';
+  return null;
+}
+
+export function parseBudgetPaymentFromAnswer(answer: string): BudgetPaymentMethod | null {
+  const text = String(answer ?? '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+  if (/\b(transferencia|transfer|abono|deposito)\b/.test(text)) return 'transfer';
+  if (/\b(debito|redcompra|cuenta corriente|cuenta vista)\b/.test(text)) return 'debit';
+  if (/\b(credito|tarjeta)\b/.test(text)) return 'credit';
+  if (/\b(efectivo|cash|caja)\b/.test(text)) return 'cash';
+  if (/\b(prepago|prepaid)\b/.test(text)) return 'prepaid';
+  return null;
+}
+
+export function parseBudgetMovementFromAnswer(answer: string): BudgetMovementType | null {
+  const text = String(answer ?? '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+  if (/\b(ingreso principal|sueldo|salario|liquido|neto)\b/.test(text)) return 'income_main';
+  if (/\b(ingreso extra|adicional|freelance|honorarios|bono)\b/.test(text)) return 'income_extra';
+  if (/\b(vivienda|arriendo|dividendo|hipoteca|casa|hogar)\b/.test(text)) return 'housing';
+  if (/\b(servicios|internet|luz|agua|gas|hogar)\b/.test(text)) return 'home_services';
+  if (/\b(alimentacion|comida|supermercado|restaurant)\b/.test(text)) return 'food';
+  if (/\b(transporte|bencina|combustible|uber|metro|bus)\b/.test(text)) return 'transport';
+  if (/\b(salud|farmacia|medico|isapre|fonasa)\b/.test(text)) return 'health';
+  if (/\b(educacion|colegio|universidad|curso)\b/.test(text)) return 'education';
+  if (/\b(deuda|cuota|credito|prestamo|hipotecario)\b/.test(text)) return 'debt';
+  if (/\b(ahorro|inversion|fondo|apv|deposito a plazo)\b/.test(text)) return 'savings_investment';
+  if (/\b(impuesto|comision|patente|contribucion)\b/.test(text)) return 'taxes_fees';
+  if (/\b(ocio|entretenimiento|viaje|otros|regalo)\b/.test(text)) return 'leisure_other';
+  return null;
 }

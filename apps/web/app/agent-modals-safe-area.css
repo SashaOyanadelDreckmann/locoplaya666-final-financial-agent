@@ -313,7 +313,6 @@
 .transactions-modal .tx-meta-card-kicker,
 .transactions-modal .tx-ap-eyebrow,
 .transactions-modal .tx-summary-editorial-kicker,
-.transactions-modal .tx-video-example-label,
 .transactions-modal .tx-library-empty-kicker {
   font-family: var(--tx-premium-sans) !important;
   letter-spacing: 0.1em !important;

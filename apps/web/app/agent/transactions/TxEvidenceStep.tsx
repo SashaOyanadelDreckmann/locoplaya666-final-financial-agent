@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type ChangeEvent, type KeyboardEvent, type PointerEvent, type Ref } from 'react';
+import { type ChangeEvent, type KeyboardEvent, type PointerEvent, type Ref } from 'react';
 import {
   NumericDust,
   EditorialSummary,
@@ -9,19 +9,21 @@ import {
   buildUploadGuidance,
 } from './presentation';
 import { TxParseProgress } from './TxParseProgress';
+import { TxIndicativeNotice } from './TxIndicativeNotice';
+import { normalizeUploadFormat } from './tx-assistant.helpers';
+import { readProductEvidenceFidelity } from '@/lib/evidence-fidelity.helpers';
 import type { DocumentsParseProgress } from '@/lib/transactions-parse-progress.helpers';
-import type { BankProduct } from './types';
+import type { BankProduct, TxUploadFormat } from './types';
 
 const EVIDENCE_FILE_ACCEPT =
-  'image/*,video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm,.m4v,.avi,.png,.jpg,.jpeg,.webp,.gif,.pdf,.xls,.xlsx,.csv,.txt,.md';
+  'image/*,.png,.jpg,.jpeg,.webp,.gif,.pdf,.xls,.xlsx,.csv,.txt,.md';
 
 const FORMAT_OPTIONS = [
-  ['video', 'Rápido', 'Video'],
   ['photos', 'Fotos', 'Img'],
   ['pdf', 'PDF', 'Doc'],
   ['spreadsheet', 'Excel / CSV', 'Excel'],
   ['text', 'Texto', 'Txt'],
-] as const;
+] as const satisfies ReadonlyArray<readonly [TxUploadFormat, string, string]>;
 
 function SendIcon() {
   return (
@@ -68,7 +70,7 @@ export interface TxEvidenceStepProps {
   }>;
   analysisAlreadyDone: boolean;
   txUploadOnboardingStep: 'format' | 'details' | 'upload';
-  selectedUploadFormat: 'photos' | 'pdf' | 'spreadsheet' | 'text' | 'video' | null;
+  selectedUploadFormat: TxUploadFormat | null;
   pendingEvidenceFiles: File[];
   txAssistantInput: string;
   txAssistantLoading: boolean;
@@ -82,7 +84,7 @@ export interface TxEvidenceStepProps {
   processingPrimaryCopy: string;
   documentsParseProgress?: DocumentsParseProgress | null;
   txAssistantError: string | null;
-  onPatchUploadFormat: (format: 'photos' | 'pdf' | 'spreadsheet' | 'text' | 'video') => void;
+  onPatchUploadFormat: (format: TxUploadFormat) => void;
   onResetUploadFormat: () => void;
   onSetUploadOnboardingStep: (step: 'format' | 'details' | 'upload') => void;
   onBumpTransitionPulse: () => void;
@@ -96,7 +98,6 @@ export interface TxEvidenceStepProps {
 
 export function TxEvidenceStep(props: TxEvidenceStepProps) {
   const p = props;
-  const [showRapidExample, setShowRapidExample] = useState(false);
   const messageCount = p.assistantMessages.length;
   const composerValue = p.txAssistantInput;
   const canAttach = !p.analysisAlreadyDone;
@@ -106,6 +107,10 @@ export function TxEvidenceStep(props: TxEvidenceStepProps) {
     p.documentsLoading ||
     !hasComposerPayload ||
     (p.analysisAlreadyDone && p.pendingEvidenceFiles.length > 0);
+  const selectedUploadFormat = normalizeUploadFormat(p.selectedUploadFormat);
+  const isIndicativeEvidence = readProductEvidenceFidelity(p.activeBankProduct) === 'indicative';
+  const expectsIndicativeUpload =
+    !p.analysisAlreadyDone && (selectedUploadFormat === 'photos' || selectedUploadFormat === 'text');
 
   const handleComposerChange = (value: string) => {
     p.onAssistantInputChange(value);
@@ -117,7 +122,7 @@ export function TxEvidenceStep(props: TxEvidenceStepProps) {
     if (!sendDisabled) p.onAssistantSend();
   };
 
-  const handleFormatSelect = (value: (typeof FORMAT_OPTIONS)[number][0]) => {
+  const handleFormatSelect = (value: TxUploadFormat) => {
     p.onPatchUploadFormat(value);
     p.onSetUploadOnboardingStep('details');
     p.onBumpTransitionPulse();
@@ -131,12 +136,7 @@ export function TxEvidenceStep(props: TxEvidenceStepProps) {
   const handleAttachChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
-    const hasVideo = Array.from(files).some(
-      (file) => file.type.startsWith('video/') || /\.(mp4|mov|webm|m4v|avi)$/i.test(file.name),
-    );
-    if (hasVideo) {
-      p.onPatchUploadFormat('video');
-    } else if (!p.selectedUploadFormat) {
+    if (!selectedUploadFormat) {
       p.onPatchUploadFormat('photos');
     }
     p.onSetUploadOnboardingStep('upload');
@@ -154,9 +154,23 @@ export function TxEvidenceStep(props: TxEvidenceStepProps) {
         <span className="pt-stage-eyebrow tx-agent-stage-tag">Análisis guiado</span>
         <h4 className="tx-agent-stage-title">Sube tus movimientos</h4>
         <p className="tx-agent-stage-note">
-          Adjunta cartola, PDF, Excel, texto o video. El agente extrae movimientos y devuelve un resumen ejecutivo.
+          Adjunta cartola, PDF, Excel o texto. Excel y CSV entregan cifras exactas; fotos y texto libre generan una
+          lectura orientativa de patrones y gastos principales.
         </p>
       </div>
+
+      {(isIndicativeEvidence || expectsIndicativeUpload) && (
+        <TxIndicativeNotice
+          reason={
+            isIndicativeEvidence
+              ? p.activeBankProduct.dashboard?.evidenceFidelityReason
+              : selectedUploadFormat === 'text'
+                ? 'Texto suelto o pegado: extraemos señales cualitativas, no un cierre contable.'
+                : null
+          }
+          compact
+        />
+      )}
 
       <div
         ref={p.scrollRef}
@@ -203,10 +217,10 @@ export function TxEvidenceStep(props: TxEvidenceStepProps) {
               <button
                 key={value}
                 type="button"
-                className={`tx-format-rail-chip ${p.selectedUploadFormat === value ? 'is-active' : ''}`}
+                className={`tx-format-rail-chip ${selectedUploadFormat === value ? 'is-active' : ''}`}
                 onPointerDown={handleFormatPointerDown}
                 onClick={() => handleFormatSelect(value)}
-                aria-pressed={p.selectedUploadFormat === value}
+                aria-pressed={selectedUploadFormat === value}
                 aria-label={label}
               >
                 <span className="tx-format-rail-chip-icon">{renderFormatIcon(value)}</span>
@@ -219,22 +233,11 @@ export function TxEvidenceStep(props: TxEvidenceStepProps) {
           </div>
         )}
 
-        {!p.analysisAlreadyDone && p.selectedUploadFormat && p.txUploadOnboardingStep !== 'format' && (
+        {!p.analysisAlreadyDone && selectedUploadFormat && p.txUploadOnboardingStep !== 'format' && (
           <div className="tx-format-guidance" role="status">
             <div className="tx-format-guidance-copy">
-              <span className="tx-format-guidance-kicker">{getFormatLabel(p.selectedUploadFormat)}</span>
-              <p>{buildUploadGuidance(p.selectedUploadFormat, p.activeBankProduct.productType)}</p>
-              {p.selectedUploadFormat === 'video' && (
-                <div className="tx-video-example-actions">
-                  <button
-                    type="button"
-                    className="tx-format-guidance-link"
-                    onClick={() => setShowRapidExample((prev) => !prev)}
-                  >
-                    {showRapidExample ? 'Ocultar ejemplo' : 'Ver ejemplo de grabación'}
-                  </button>
-                </div>
-              )}
+              <span className="tx-format-guidance-kicker">{getFormatLabel(selectedUploadFormat)}</span>
+              <p>{buildUploadGuidance(selectedUploadFormat, p.activeBankProduct.productType)}</p>
             </div>
             <button
               type="button"
@@ -246,14 +249,6 @@ export function TxEvidenceStep(props: TxEvidenceStepProps) {
             >
               Cambiar
             </button>
-            {p.selectedUploadFormat === 'video' && showRapidExample && (
-              <div className="tx-video-example-shell">
-                <video controls playsInline preload="metadata" className="tx-video-example-player">
-                  <source src="/generated/transactions-fast-example.mp4" type="video/mp4" />
-                  Tu navegador no soporta reproducción de video.
-                </video>
-              </div>
-            )}
           </div>
         )}
 
@@ -278,7 +273,7 @@ export function TxEvidenceStep(props: TxEvidenceStepProps) {
         <div className="tx-composer-sticky-host">
           <div className="tx-composer-pro" data-analysis-done={p.analysisAlreadyDone ? 'true' : 'false'}>
             {canAttach ? (
-              <label className="tx-composer-attach" aria-label="Adjuntar archivos o video">
+              <label className="tx-composer-attach" aria-label="Adjuntar archivos">
                 <AttachIcon />
                 <input type="file" accept={EVIDENCE_FILE_ACCEPT} multiple onChange={handleAttachChange} />
               </label>

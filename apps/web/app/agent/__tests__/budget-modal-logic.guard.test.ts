@@ -50,12 +50,21 @@ describe('budget modal logic guards', () => {
     expect(source).toContain('activeRow: null,');
   });
 
-  it('renders a visible budget conversation transcript', () => {
-    expect(source).toContain('budgetTranscript');
-    expect(source).toContain('bcc-hero-transcript');
+  it('keeps single-turn assistant UI with typewriter and user echo', () => {
+    expect(source).toContain('AgentHeroText');
+    expect(source).toContain('agent-hero-text');
+    const heroSource = fs.readFileSync(
+      path.join(process.cwd(), 'components', 'ui', 'agent-hero-text.tsx'),
+      'utf8',
+    );
+    expect(heroSource).toContain('gradient-text');
+    expect(heroSource).toContain('agent-hero-highlight.helpers');
+    expect(source).toContain('focusRow={activeBudgetRow}');
+    expect(source).toContain('lastUserAnswer');
+    expect(source).toContain('bcc-hero-reply');
+    expect(source).not.toContain('bcc-hero-transcript');
+    expect(source).not.toContain('budgetTranscript');
     expect(source).toContain('formatBudgetAssistantTurn');
-    expect(source).toContain("role: 'assistant'");
-    expect(source).toContain("role: 'user'");
   });
 
   it('prevents duplicate reply submissions while a request is in flight', () => {
@@ -119,10 +128,11 @@ describe('budget modal logic guards', () => {
     expect(apiSource).toContain('BUDGET_CHAT_ABORT_MESSAGE');
   });
 
-  it('keeps assistant UI minimal with only the current question and input', () => {
+  it('keeps assistant UI minimal with only the current turn and input', () => {
     expect(source).toContain('bcc-hero-question');
-    expect(source).not.toContain('bcc-hero-reply');
+    expect(source).toContain('bcc-hero-reply');
     expect(source).not.toContain('budget-market-strip');
+    expect(source).not.toContain('bcc-hero-transcript');
   });
 
   it('opens the budget modal from the panel card instead of leaving dead copy', () => {

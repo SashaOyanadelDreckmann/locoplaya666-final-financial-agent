@@ -17,6 +17,11 @@ import { parseBody } from '../http/parse';
 import { PERMISSIONS } from '../auth/rbac';
 import { type TransactionDocumentProfile } from '../services/transactionDocumentProfile.service';
 import {
+  buildIndicativeExecutiveSummary,
+  resolveEvidenceFidelity,
+  type EvidenceSourceHint,
+} from '@financial-agent/shared';
+import {
   buildExecutiveSummaryText,
   shouldReconcileMovements,
 } from './documents.parse.helpers';
@@ -48,6 +53,8 @@ const ParseRequestSchema = z.object({
   serviceHint: z.string().trim().max(160).optional(),
   productTypeHint: z.string().trim().max(80).optional(),
   productLabelHint: z.string().trim().max(160).optional(),
+  evidenceSourceHint: z.enum(['photos', 'pdf', 'spreadsheet', 'text']).optional(),
+  looseTextEvidence: z.boolean().optional(),
   fastParse: z.boolean().optional(),
 });
 
@@ -636,6 +643,11 @@ function parseMovementFromTableRow(params: {
     const semantics = inferMovementSemantics(row.join(' '), income, row[incomeIndex], productType);
     direction = semantics.direction;
     movementKind = semantics.kind;
+    if (!isCreditCardProduct(productType) && incomeIndex >= 0) {
+      direction = 'income';
+      movementKind = semantics.kind === 'expense' ? 'income' : semantics.kind;
+      directionBasis = directionBasis ?? 'column_abono';
+    }
     signedAmount = income;
     amount = Math.abs(income);
     amountToken = row[incomeIndex];
@@ -643,6 +655,11 @@ function parseMovementFromTableRow(params: {
     const semantics = inferMovementSemantics(row.join(' '), expense, row[expenseIndex], productType);
     direction = semantics.direction;
     movementKind = semantics.kind;
+    if (!isCreditCardProduct(productType) && expenseIndex >= 0) {
+      direction = 'expense';
+      movementKind = 'expense';
+      directionBasis = directionBasis ?? 'column_cargo';
+    }
     signedAmount = expense;
     amount = Math.abs(expense);
     amountToken = row[expenseIndex];
@@ -897,14 +914,29 @@ export function categorizeTransactionDescription(description: string): string {
   return inferTransactionTaxonomy(description).category;
 }
 
+type TransactionAnalysisHints = {
+  institutionHint?: string;
+  serviceHint?: string;
+  productTypeHint?: string;
+  productLabelHint?: string;
+  evidenceSourceHint?: EvidenceSourceHint;
+  looseTextEvidence?: boolean;
+};
+
+function collectParserSignals(documents: ParsedDocumentResponse[]) {
+  return documents.map((doc) => {
+    const structured = (doc.structuredData as { parserMeta?: { confidence?: unknown; mode?: unknown } } | null | undefined) ?? {};
+    return {
+      name: doc.name,
+      mode: String(structured.parserMeta?.mode ?? ''),
+      confidence: Number(structured.parserMeta?.confidence ?? 0) || 0,
+    };
+  });
+}
+
 function buildTransactionAnalysis(
   documents: ParsedDocumentResponse[],
-  hints: {
-    institutionHint?: string;
-    serviceHint?: string;
-    productTypeHint?: string;
-    productLabelHint?: string;
-  },
+  hints: TransactionAnalysisHints,
 ) {
   const documentProfiles = documents
     .map((doc) => {
@@ -953,12 +985,7 @@ function buildTransactionAnalysis(
 
 function buildTransactionAnalysisFromMovements(
   documents: ParsedDocumentResponse[],
-  hints: {
-    institutionHint?: string;
-    serviceHint?: string;
-    productTypeHint?: string;
-    productLabelHint?: string;
-  },
+  hints: TransactionAnalysisHints,
   documentInsights: Array<{
     name: string;
     format?: string;
@@ -1184,6 +1211,50 @@ function buildTransactionAnalysisFromMovements(
     'credit_card';
   const productLabel = cleanedProductLabelHint || service;
 
+  const parserSignals = collectParserSignals(documents);
+  const tableMovementRatio = movementCount > 0 ? tableBasedMovements / movementCount : 0;
+  const evidenceFidelity = resolveEvidenceFidelity({
+    sourceHint: hints.evidenceSourceHint ?? null,
+    looseTextEvidence: hints.looseTextEvidence === true,
+    fileNames: parserSignals.map((signal) => signal.name),
+    parserModes: parserSignals.map((signal) => signal.mode),
+    parserConfidences: parserSignals.map((signal) => signal.confidence),
+    tableMovementRatio,
+    movementCount,
+  });
+  const indicativeSummary = buildIndicativeExecutiveSummary({
+    productType: normalizedProductType,
+    movementCount,
+    topExpenses,
+    topCategories,
+    topMerchants,
+    spendClusters,
+    period,
+    alerts,
+    formatAmount,
+  });
+  const authoritativeSummary = buildExecutiveSummaryText({
+    movementCount,
+    tableBasedMovements,
+    inflowsTotal,
+    outflowsTotal,
+    netFlow,
+    inflowLabel,
+    topCategories,
+    topMerchants,
+    alerts,
+    period,
+    formatAmount,
+  });
+  const executiveSummary = evidenceFidelity === 'indicative' ? indicativeSummary : authoritativeSummary;
+  const profileAlerts =
+    evidenceFidelity === 'indicative'
+      ? [
+          'Lectura orientativa: usa este resumen para patrones de gasto, no como balance contable.',
+          ...alerts,
+        ]
+      : alerts;
+
   return {
     product_profile: {
       institution,
@@ -1226,23 +1297,16 @@ function buildTransactionAnalysisFromMovements(
       spend_clusters: spendClusters,
       top_expenses: topExpenses,
       top_income: topIncome,
-      alerts,
       alert_details: alertDetails,
       opportunities,
       metric_explanations: metricExplanations,
-      executive_summary: buildExecutiveSummaryText({
-        movementCount,
-        tableBasedMovements,
-        inflowsTotal,
-        outflowsTotal,
-        netFlow,
-        inflowLabel,
-        topCategories,
-        topMerchants,
-        alerts,
-        period,
-        formatAmount,
-      }),
+      evidence_fidelity: evidenceFidelity,
+      evidence_fidelity_reason:
+        evidenceFidelity === 'indicative'
+          ? 'Antecedente visual o texto libre: se prioriza lectura cualitativa sobre totales exactos.'
+          : undefined,
+      executive_summary: executiveSummary,
+      alerts: profileAlerts,
     },
     document_insights: documentInsights.map(({ row_count, ...rest }) => rest),
     document_profiles: documentProfiles,
@@ -1425,12 +1489,15 @@ router.post(
       },
     );
 
-    const heuristicAnalysis = buildTransactionAnalysis(documents, {
+    const analysisHints: TransactionAnalysisHints = {
       institutionHint: body.institutionHint,
       serviceHint: body.serviceHint,
       productTypeHint: body.productTypeHint,
       productLabelHint: body.productLabelHint,
-    });
+      evidenceSourceHint: body.evidenceSourceHint,
+      looseTextEvidence: body.looseTextEvidence,
+    };
+    const heuristicAnalysis = buildTransactionAnalysis(documents, analysisHints);
     const productTypeForAnalysis =
       normalizeMovementProductType(heuristicAnalysis.product_profile?.product_type) ||
       normalizeMovementProductType(body.productTypeHint) ||
@@ -1444,12 +1511,7 @@ router.post(
     const transactionAnalysis = reconciledMovements
       ? buildTransactionAnalysisFromMovements(
           documents,
-          {
-            institutionHint: body.institutionHint,
-            serviceHint: body.serviceHint,
-            productTypeHint: body.productTypeHint,
-            productLabelHint: body.productLabelHint,
-          },
+          analysisHints,
           documents.map((doc) => {
             const structured = (doc.structuredData as {
               rowCount?: unknown;

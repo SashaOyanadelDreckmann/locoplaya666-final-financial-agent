@@ -41,23 +41,7 @@
     height: auto !important;
   }
 
-  /* ── TABLE VIEW: hide chrome, compact row, footer pinned ── */
-  .budget-modal[data-budget-view='table'] .budget-modal-body .budget-main-carousel.mode-table-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact .budget-pdf-head,
-  .budget-modal[data-budget-view='table'] .budget-modal-body .budget-main-carousel.mode-table-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact .budget-pdf-metrics,
-  .budget-modal[data-budget-view='table'] .budget-table-section.is-mobile-table-compact .budget-pdf-surface.is-mobile-compact .budget-pdf-head,
-  .budget-modal[data-budget-view='table'] .budget-table-section.is-mobile-table-compact .budget-pdf-surface.is-mobile-compact .budget-pdf-metrics,
-  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-pdf-surface.is-mobile-compact .budget-pdf-head,
-  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-pdf-surface.is-mobile-compact .budget-pdf-metrics,
-  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact .budget-pdf-surface.is-mobile-compact .budget-pdf-head,
-  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact .budget-pdf-surface.is-mobile-compact .budget-pdf-metrics {
-    display: none !important;
-    visibility: hidden !important;
-    height: 0 !important;
-    max-height: 0 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    overflow: hidden !important;
-  }
+  /* ── TABLE VIEW: compact Budget intelligence header (mobile-adapted) ── */
 
   .budget-modal[data-budget-view='table'] .budget-main-carousel.mode-table-front:not(.is-desktop) > .budget-card-agent,
   .budget-modal[data-budget-mobile='true'] .budget-main-carousel.mode-table-front:not(.is-desktop) > .budget-card-agent {
@@ -157,24 +141,9 @@
   .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-table-pro tbody tr.is-mobile-row-card,
   .budget-modal[data-budget-view='table'] .budget-table-section.is-mobile-table-compact .budget-table-pro tbody tr.is-mobile-row-card,
   html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact .budget-table-pro tbody tr.is-mobile-row-card {
-    display: grid !important;
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    grid-template-areas:
-      "category category"
-      "type amount"
-      "cadence cadence"
-      "payment movement"
-      "impact impact" !important;
-    gap: 5px !important;
-    padding: 8px 32px 8px 8px !important;
-    margin: 0 !important;
-    position: relative !important;
-    overflow: hidden !important;
-    box-sizing: border-box !important;
-    scroll-snap-align: start !important;
-    scroll-snap-stop: always !important;
     min-height: var(--budget-mobile-row-slot, 260px) !important;
     height: var(--budget-mobile-row-slot, 260px) !important;
+    box-sizing: border-box !important;
   }
 
   .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-table-pro tbody td::before,
@@ -212,8 +181,8 @@
   .budget-modal[data-budget-view='table'] .budget-table-section.is-mobile-table-compact .budget-row-actions-cell,
   html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact .budget-row-actions-cell {
     position: absolute !important;
-    top: 6px !important;
-    right: 6px !important;
+    top: 2px !important;
+    right: 2px !important;
     z-index: 5 !important;
     display: flex !important;
     align-items: center !important;
@@ -358,8 +327,8 @@
     -webkit-overflow-scrolling: touch !important;
   }
 
-  .budget-modal[data-budget-view='assistant'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-agent .bcc-hero-question,
-  html.is-mobile-viewport .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-agent .bcc-hero-question {
+  .budget-modal[data-budget-view='assistant'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-agent .bcc-hero-question:not(.bcc-hero-question--gradient-demo),
+  html.is-mobile-viewport .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-agent .bcc-hero-question:not(.bcc-hero-question--gradient-demo) {
     margin: 0 !important;
     font-size: clamp(1rem, 4.8vw, 1.28rem) !important;
     line-height: 1.32 !important;
@@ -382,5 +351,281 @@
   html.is-mobile-viewport .budget-modal .budget-assistant-panel {
     display: flex !important;
     background: transparent !important;
+  }
+
+  /* ── MOBILE TABLE SENIOR: unified row, tight grid, tall chart, corner trash ── */
+  .budget-modal[data-budget-view='table'] .budget-table-section.is-mobile-table-compact .budget-pdf-surface.is-mobile-compact .budget-pdf-head.is-mobile-intel-head,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-pdf-surface.is-mobile-compact .budget-pdf-head.is-mobile-intel-head,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact .budget-pdf-surface.is-mobile-compact .budget-pdf-head.is-mobile-intel-head {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    align-items: center !important;
+    gap: 10px !important;
+    padding: 8px 10px 6px !important;
+    margin: 0 !important;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .budget-modal .budget-table-section.is-mobile-table-compact .budget-pdf-head.is-mobile-intel-head span {
+    font-size: 0.52rem !important;
+    letter-spacing: 0.14em !important;
+    color: rgba(174, 190, 207, 0.72) !important;
+  }
+
+  .budget-modal .budget-table-section.is-mobile-table-compact .budget-pdf-head.is-mobile-intel-head h2 {
+    margin: 2px 0 0 !important;
+    font-size: 1rem !important;
+    line-height: 1.08 !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.02em !important;
+    color: rgba(245, 248, 252, 0.96) !important;
+  }
+
+  .budget-modal .budget-table-section.is-mobile-table-compact .budget-pdf-head.is-mobile-intel-head > strong {
+    font-size: 0.56rem !important;
+    letter-spacing: 0.1em !important;
+    padding: 5px 8px !important;
+    border-radius: 999px !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    background: rgba(255, 255, 255, 0.04) !important;
+    color: rgba(220, 230, 242, 0.86) !important;
+  }
+
+  .budget-modal[data-budget-view='table'] .budget-table-section.is-mobile-table-compact .budget-pdf-metrics.is-mobile-intel-metrics,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-pdf-metrics.is-mobile-intel-metrics,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact .budget-pdf-metrics.is-mobile-intel-metrics {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 4px !important;
+    padding: 0 10px 6px !important;
+    margin: 0 !important;
+  }
+
+  .budget-modal .budget-table-section.is-mobile-table-compact .budget-pdf-metrics.is-mobile-intel-metrics > div {
+    padding: 6px 8px !important;
+    border-radius: 8px !important;
+    border: 1px solid rgba(255, 255, 255, 0.07) !important;
+    background: rgba(255, 255, 255, 0.03) !important;
+  }
+
+  .budget-modal .budget-table-section.is-mobile-table-compact .budget-pdf-metrics.is-mobile-intel-metrics span {
+    font-size: 0.5rem !important;
+    letter-spacing: 0.1em !important;
+    color: rgba(174, 190, 207, 0.7) !important;
+  }
+
+  .budget-modal .budget-table-section.is-mobile-table-compact .budget-pdf-metrics.is-mobile-intel-metrics strong {
+    margin-top: 2px !important;
+    font-size: 0.72rem !important;
+    color: rgba(245, 248, 252, 0.94) !important;
+  }
+
+  .budget-modal .budget-table-section.is-mobile-table-compact .budget-pdf-surface.is-mobile-compact {
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+  }
+
+  .budget-modal .budget-table-section.is-mobile-table-compact .budget-table-wrap,
+  .budget-modal .budget-table-section.is-mobile-table-compact .budget-table-wrap-pro {
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+  }
+
+  .budget-modal .budget-table-section.is-mobile-table-compact .budget-table-pro tbody tr.is-mobile-row-card {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    grid-template-areas:
+      "category category"
+      "type amount"
+      "cadence cadence"
+      "payment movement"
+      "impact impact" !important;
+    grid-template-rows: auto auto auto auto minmax(78px, 1.1fr) !important;
+    gap: 3px !important;
+    padding: 7px 26px 7px 7px !important;
+    margin: 0 !important;
+    border-radius: 14px !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    background: rgba(10, 14, 20, 0.62) !important;
+    box-shadow: none !important;
+    transform: none !important;
+    transition: border-color 160ms ease !important;
+    overflow: hidden !important;
+    position: relative !important;
+    scroll-snap-align: start !important;
+    scroll-snap-stop: normal !important;
+  }
+
+  .budget-modal .budget-table-section.is-mobile-table-compact .budget-table-pro tbody tr.is-mobile-row-card.is-active-row {
+    transform: none !important;
+    outline: none !important;
+    border-color: rgba(136, 167, 188, 0.34) !important;
+    box-shadow: none !important;
+  }
+
+  .budget-modal .budget-table-section.is-mobile-table-compact .budget-table-pro tbody td {
+    display: block !important;
+    min-width: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    transform: none !important;
+  }
+
+  .budget-modal .budget-table-section.is-mobile-table-compact .budget-table-pro tbody td::before {
+    margin-bottom: 1px !important;
+    font-size: 0.5rem !important;
+    letter-spacing: 0.09em !important;
+    line-height: 1.1 !important;
+  }
+
+  .budget-modal .budget-table-section.is-mobile-table-compact .budget-table-pro input,
+  .budget-modal .budget-table-section.is-mobile-table-compact .budget-table-pro select {
+    min-height: 34px !important;
+    height: 34px !important;
+    font-size: 0.8rem !important;
+    box-shadow: none !important;
+  }
+
+  .budget-modal .budget-table-section.is-mobile-table-compact .budget-table-pro .budget-pill-group {
+    padding: 2px !important;
+    gap: 2px !important;
+    border-radius: 999px !important;
+    background: rgba(255, 255, 255, 0.04) !important;
+    border: 1px solid rgba(255, 255, 255, 0.07) !important;
+    box-shadow: none !important;
+  }
+
+  .budget-modal .budget-table-section.is-mobile-table-compact .budget-table-pro .budget-pill-button {
+    min-height: 32px !important;
+    height: 32px !important;
+    border-radius: 999px !important;
+    box-shadow: none !important;
+  }
+
+  .budget-modal .budget-table-section.is-mobile-table-compact .budget-table-pro tbody td[data-label='Impacto'] {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: stretch !important;
+    min-height: 0 !important;
+  }
+
+  .budget-modal .budget-table-section.is-mobile-table-compact .budget-impact-shell {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-end !important;
+    gap: 2px !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  .budget-modal .budget-table-section.is-mobile-table-compact .budget-impact-cell.is-compact {
+    width: 100% !important;
+    min-height: 58px !important;
+    display: flex !important;
+    align-items: flex-end !important;
+    justify-content: space-between !important;
+    gap: 8px !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  .budget-modal .budget-table-section.is-mobile-table-compact .budget-impact-cell.is-compact svg {
+    flex: 1 1 auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 54px !important;
+    min-height: 54px !important;
+  }
+
+  .budget-modal .budget-table-section.is-mobile-table-compact .budget-impact-type-label {
+    font-size: 0.58rem !important;
+    line-height: 1.1 !important;
+    color: rgba(174, 190, 207, 0.76) !important;
+  }
+
+  .budget-modal .budget-table-section.is-mobile-table-compact .budget-row-actions-cell {
+    position: absolute !important;
+    top: 2px !important;
+    right: 2px !important;
+    left: auto !important;
+    bottom: auto !important;
+    z-index: 6 !important;
+    width: auto !important;
+    min-width: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    grid-area: unset !important;
+  }
+
+  .budget-modal .budget-table-section.is-mobile-table-compact .budget-row-delete.is-mobile {
+    width: 24px !important;
+    height: 24px !important;
+    min-width: 24px !important;
+    min-height: 24px !important;
+    border-radius: 6px !important;
+    opacity: 0.9 !important;
+  }
+
+  .budget-modal[data-budget-view='table'] .budget-table-section.is-mobile-table-compact,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact {
+    padding: 2px 8px 0 !important;
+    gap: 0 !important;
+  }
+
+  .budget-modal .budget-table-section.is-mobile-table-compact .budget-table-scroll-host {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    height: auto !important;
+    max-height: none !important;
+  }
+
+  .budget-modal .budget-table-section.is-mobile-table-compact .budget-table-bottom-actions {
+    flex-shrink: 0 !important;
+    order: 99 !important;
+    margin-top: auto !important;
+    padding: 10px 0 calc(env(safe-area-inset-bottom, 0px) + 14px) !important;
+    gap: 8px !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    transform: none !important;
+  }
+
+  .budget-modal .budget-table-section.is-mobile-table-compact .budget-style-button,
+  .budget-modal .budget-table-section.is-mobile-table-compact .budget-pdf-button {
+    min-height: 36px !important;
+    height: 36px !important;
+    font-size: 0.64rem !important;
+    border-radius: 10px !important;
+  }
+
+  .budget-modal[data-budget-view='assistant'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact .budget-pdf-head.is-mobile-intel-head,
+  .budget-modal[data-budget-view='assistant'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact .budget-pdf-metrics.is-mobile-intel-metrics,
+  html.is-mobile-viewport .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact .budget-pdf-head.is-mobile-intel-head,
+  html.is-mobile-viewport .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact .budget-pdf-metrics.is-mobile-intel-metrics {
+    display: none !important;
+  }
+
+  .budget-modal[data-budget-view='assistant'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact .budget-table-pro tbody tr.is-mobile-row-card.is-active-row,
+  html.is-mobile-viewport .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact .budget-table-pro tbody tr.is-mobile-row-card.is-active-row {
+    transform: none !important;
+    outline: none !important;
+    box-shadow: none !important;
   }
 }

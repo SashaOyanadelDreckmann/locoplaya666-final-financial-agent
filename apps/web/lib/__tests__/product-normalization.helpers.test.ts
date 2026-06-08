@@ -1,9 +1,9 @@
 import { normalizeProductAssistantState } from '../product-normalization.helpers';
 
 describe('product-normalization.helpers', () => {
-  it('preserves video upload format in assistant state', () => {
+  it('clears legacy video upload format from assistant state', () => {
     const assistant = normalizeProductAssistantState({
-      uploadFormat: 'video',
+      uploadFormat: 'video' as never,
       messages: [],
       summaryText: null,
       summaryModel: null,
@@ -12,6 +12,6 @@ describe('product-normalization.helpers', () => {
       lastSummaryFeedback: null,
     });
 
-    expect(assistant.uploadFormat).toBe('video');
+    expect(assistant.uploadFormat).toBeNull();
   });
 });

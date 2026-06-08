@@ -12,16 +12,25 @@ import {
 } from '../services/budget-chat-writer.service';
 import { planBudgetAssistantInit, planBudgetAssistantTurn } from '../services/budget-chat-planner.service';
 import {
+  BUDGET_MOVEMENT_TYPE_OPTIONS,
   DEFAULT_BUDGET_ROWS,
   buildBudgetAssistantContext,
   buildBudgetRowSuggestions,
   buildBudgetAcknowledgmentReply,
   buildCategoryClarificationReply,
+  extractUserAnswerCue,
   buildContextualAdviceReply,
   buildContextualInitReply,
   buildContextualQuestion,
   buildReflectiveFallbackReply,
   buildSuggestionFollowUp,
+  inferBudgetFieldFromQuestion,
+  isBulkDeleteRequest,
+  isBudgetSkipAnswer,
+  parseBudgetCadenceFromAnswer,
+  parseBudgetMovementFromAnswer,
+  parseBudgetPaymentFromAnswer,
+  pickNextBudgetRowFieldGap,
   canonicalBudgetRowId,
   computeBudgetCompletion,
   computeBudgetInsights,
@@ -326,9 +335,13 @@ function buildBudgetFocusQuestion(
   context: BudgetAssistantContext,
   preferredRowId?: string | null,
 ) {
+  const activeFromRows =
+    activeRow && rows.some((row) => row.id === activeRow.id)
+      ? rows.find((row) => row.id === activeRow.id) ?? activeRow
+      : null;
   const focus =
-    activeRow && rows.some((row) => row.id === activeRow.id) && Number(activeRow.amount ?? 0) <= 0
-      ? activeRow
+    activeFromRows && pickNextBudgetRowFieldGap(activeFromRows)
+      ? activeFromRows
       : pickContextualFocusRow(rows, context, preferredRowId ?? activeRow?.id ?? null);
   return {
     focus,
@@ -373,7 +386,9 @@ function detectBudgetIntent(answer: string) {
   if (/\b(fijo|fija|variable|ingreso|gasto|balance|presupuesto|monto|sueldo|salario)\b/.test(text)) {
     if (/\b(que es|que significa|explica|explicame|diferencia|como funciona)\b/.test(text)) return 'education';
   }
-  if (/\b(elimina|eliminar|borra|borrar|quita|quitar|remove|delete)\b/.test(text)) return 'delete_row';
+  if (/\b(elimina|eliminar|borra|borrar|quita|quitar|remove|delete)\b/.test(text)) {
+    return isBulkDeleteRequest(answer) ? 'delete_all' : 'delete_row';
+  }
   if (/\b(resumen|status|estado|como voy|balance|diagnostico|review)\b/.test(text)) return 'status_review';
   if (/\b(recomiendas|recomendar|conviene|mejor|optimizar|ahorrar|consejo)\b/.test(text)) return 'advice';
   if (/\b(agrega|agregar|anade|añade|incluye|incorpora|nuevo|nueva|create|add)\b/.test(text)) return 'add_row';
@@ -385,8 +400,15 @@ function detectBudgetIntent(answer: string) {
   ) {
     return 'update_amount';
   }
-  if (/\?$/.test(answer.trim()) || /\b(que|como|por que|cual|cuanto)\b/.test(text)) return 'question';
   if (/\d/.test(text)) return 'update_amount';
+  if (
+    parseBudgetCadenceFromAnswer(answer) ||
+    parseBudgetPaymentFromAnswer(answer) ||
+    parseBudgetMovementFromAnswer(answer)
+  ) {
+    return 'update_field';
+  }
+  if (/\?$/.test(answer.trim()) || /\b(que|como|por que|cual|cuanto)\b/.test(text)) return 'question';
   if (/^(hola|buenas|hello|hi|ola)\b/.test(text)) return 'greeting';
   return 'unclear';
 }
@@ -533,7 +555,7 @@ function buildConfirmationApplyReply(params: {
 }): BudgetChatResponse {
   const { focus, question } = buildBudgetFocusQuestion(params.rows, null, params.context);
   return buildBudgetReply({
-    reply: `Listo, quedó aplicado: ${params.summary || summarizeBudgetActionBatch(params.actions)}.`,
+    reply: `Quedó aplicado: ${params.summary || summarizeBudgetActionBatch(params.actions)}.`,
     followUp: question,
     focus_row_id: focus?.id ?? params.actions[0]?.id ?? null,
     actions: actionsToRecords(params.actions),
@@ -576,14 +598,14 @@ function buildPlannerChatReply(params: {
 }): BudgetChatResponse {
   const pending =
     params.plan.requires_confirmation && params.plan.actions.length > 0
-      ? buildPendingConfirmation(params.plan.actions)
+      ? buildPendingConfirmation(params.plan.actions, params.rows)
       : null;
   const appliedSummary =
     !params.plan.requires_confirmation && params.plan.actions.length > 0
       ? summarizeBudgetActionBatch(params.plan.actions)
       : null;
   return buildBudgetReply({
-    reply: params.plan.pending_summary ?? appliedSummary ?? 'Te entendí. Sigamos con el siguiente rubro.',
+    reply: params.plan.pending_summary ?? appliedSummary ?? 'Sigamos con el siguiente rubro del presupuesto.',
     followUp: params.plan.next_question,
     focus_row_id: params.plan.focus_row_id,
     actions: params.plan.requires_confirmation ? [] : actionsToRecords(params.plan.actions),
@@ -712,6 +734,168 @@ function buildDeterministicUpdate(params: {
   });
 }
 
+function buildDeterministicFieldUpdate(params: {
+  rows: BudgetRow[];
+  answer: string;
+  question: string;
+  context: BudgetAssistantContext;
+  assistantFocusRowId?: string | null;
+  manualFocusRowId?: string | null;
+  activeRow?: BudgetRow | null;
+}) {
+  const targetRow =
+    resolveBudgetChatTargetRow(params.rows, extractInferenceQuestionText(params.question) || params.question, {
+      manualFocusRowId: params.manualFocusRowId ?? null,
+      assistantFocusRowId: params.assistantFocusRowId ?? null,
+      activeRow: params.activeRow ?? null,
+      answer: params.answer,
+    }) ?? params.activeRow;
+  if (!targetRow || Number(targetRow.amount ?? 0) <= 0) return null;
+
+  const askedField = inferBudgetFieldFromQuestion(params.question);
+  const cadence = parseBudgetCadenceFromAnswer(params.answer);
+  const payment = parseBudgetPaymentFromAnswer(params.answer);
+  const movement = parseBudgetMovementFromAnswer(params.answer);
+  const patch: Partial<BudgetTableAction> = {};
+
+  if (cadence && (!askedField || askedField === 'cadence')) patch.cadence = cadence;
+  if (payment && (!askedField || askedField === 'paymentMethod')) {
+    patch.payment_method = payment;
+  }
+  if (movement && (!askedField || askedField === 'movementType')) {
+    patch.movement_type = movement;
+  }
+  if (Object.keys(patch).length === 0) return null;
+
+  const action: BudgetTableAction = {
+    kind: 'update',
+    id: targetRow.id,
+    category: targetRow.category,
+    type: targetRow.type,
+    amount: Math.max(0, Math.round(Number(targetRow.amount ?? 0))),
+    cadence: patch.cadence ?? normalizeCadence(targetRow.cadence, targetRow.type),
+    payment_method:
+      patch.payment_method ??
+      targetRow.paymentMethod ??
+      (targetRow.type === 'income' ? 'transfer' : 'debit'),
+    movement_type: patch.movement_type ?? targetRow.movementType ?? undefined,
+  };
+
+  const projectedRows = reconcileBudgetRows(
+    params.rows.map((row) =>
+      row.id === targetRow.id
+        ? {
+            ...row,
+            cadence: action.cadence,
+            paymentMethod: action.payment_method,
+            movementType: action.movement_type,
+          }
+        : row,
+    ),
+  );
+  const projectedContext = createAssistantContext({
+    rows: projectedRows,
+    intakeData: params.context.intake,
+    intakeContext: params.context.intake.intakeContext ?? null,
+    products: params.context.products,
+    chatAnswers: params.context.chatAnswers,
+  });
+  const updatedRow = projectedRows.find((row) => row.id === targetRow.id) ?? targetRow;
+  const { focus, question } = buildBudgetFocusQuestion(projectedRows, updatedRow, projectedContext);
+  const paymentLabel =
+    patch.payment_method === 'transfer'
+      ? 'transferencia'
+      : patch.payment_method === 'debit'
+        ? 'débito'
+        : patch.payment_method === 'credit'
+          ? 'crédito'
+          : patch.payment_method === 'cash'
+            ? 'efectivo'
+            : patch.payment_method === 'prepaid'
+              ? 'prepago'
+              : null;
+  const movementLabel = patch.movement_type
+    ? BUDGET_MOVEMENT_TYPE_OPTIONS.find((item) => item.value === patch.movement_type)?.label?.toLowerCase()
+    : null;
+  const detail =
+    patch.cadence === 'fixed'
+      ? 'recurrencia fija'
+      : patch.cadence === 'variable'
+        ? 'recurrencia variable'
+        : paymentLabel
+          ? `pago con ${paymentLabel}`
+          : movementLabel
+            ? `tipo ${movementLabel}`
+            : 'detalle';
+  const cue = extractUserAnswerCue(params.answer);
+  const reply = cue
+    ? `Para ${updatedRow.category.toLowerCase()}, dejé ${detail} según “${cue}”.`
+    : `Para ${updatedRow.category}, actualicé ${detail}.`;
+
+  return buildBudgetReply({
+    reply,
+    followUp: question,
+    focus_row_id: focus?.id ?? targetRow.id,
+    actions: [action],
+    action,
+    source: 'deterministic_field_update',
+    market_snapshot: emptyMarketSnapshot(),
+  });
+}
+
+function buildBulkDeleteConfirmReply(params: { rows: BudgetRow[]; answer: string }) {
+  const effectiveRows = getEffectiveBudgetRows(params.rows);
+  const deleteActions = validateBudgetTableActions(
+    effectiveRows.map((row) => ({ kind: 'delete' as const, id: row.id })),
+    params.rows,
+  );
+  if (deleteActions.length === 0) return null;
+  const pending = buildPendingConfirmation(deleteActions, params.rows);
+  const cue = extractUserAnswerCue(params.answer);
+  return buildBudgetReply({
+    reply: cue
+      ? `Puedo vaciar la tabla (${deleteActions.length} movimientos) como pediste en “${cue}”.`
+      : `Puedo eliminar los ${deleteActions.length} movimientos actuales de la tabla.`,
+    followUp: '¿Confirmas vaciar la tabla para empezar de cero?',
+    focus_row_id: deleteActions[0]?.id ?? null,
+    source: 'deterministic_delete_all_confirm',
+    market_snapshot: emptyMarketSnapshot(),
+    requires_confirmation: true,
+    pending_confirmation: pending,
+  });
+}
+
+function buildSingleDeleteConfirmReply(params: {
+  rows: BudgetRow[];
+  answer: string;
+  question: string;
+  context: BudgetAssistantContext;
+  assistantFocusRowId?: string | null;
+  manualFocusRowId?: string | null;
+  activeRow?: BudgetRow | null;
+}) {
+  const targetRow =
+    resolveBudgetChatTargetRow(params.rows, extractInferenceQuestionText(params.question) || params.question, {
+      manualFocusRowId: params.manualFocusRowId ?? null,
+      assistantFocusRowId: params.assistantFocusRowId ?? null,
+      activeRow: params.activeRow ?? null,
+      answer: params.answer,
+    }) ?? pickContextualFocusRow(params.rows, params.context);
+  if (!targetRow) return null;
+  const deleteActions = validateBudgetTableActions([{ kind: 'delete', id: targetRow.id }], params.rows);
+  if (deleteActions.length === 0) return null;
+  const pending = buildPendingConfirmation(deleteActions, params.rows);
+  return buildBudgetReply({
+    reply: `Puedo eliminar ${targetRow.category} de la tabla.`,
+    followUp: `¿Confirmas eliminar ${targetRow.category}?`,
+    focus_row_id: targetRow.id,
+    source: 'deterministic_delete_confirm',
+    market_snapshot: emptyMarketSnapshot(),
+    requires_confirmation: true,
+    pending_confirmation: pending,
+  });
+}
+
 function buildEducationReply(params: {
   answer: string;
   rows: BudgetRow[];
@@ -825,29 +1009,14 @@ function buildConversationalFallback(params: {
   const detectedIntent = detectBudgetIntent(params.answer);
   const snapshot = buildBudgetSnapshot(params.rows);
 
+  if (detectedIntent === 'delete_all') {
+    const bulk = buildBulkDeleteConfirmReply({ rows: params.rows, answer: params.answer });
+    if (bulk) return bulk;
+  }
+
   if (detectedIntent === 'delete_row') {
-    const targetRow =
-      resolveBudgetChatTargetRow(params.rows, extractInferenceQuestionText(params.question) || params.question, {
-        manualFocusRowId: params.manualFocusRowId ?? null,
-        assistantFocusRowId: params.assistantFocusRowId ?? null,
-        activeRow: params.activeRow ?? null,
-        answer: params.answer,
-      }) ?? pickContextualFocusRow(params.rows, params.context);
-    if (targetRow) {
-      const deleteActions = validateBudgetTableActions([{ kind: 'delete', id: targetRow.id }], params.rows);
-      if (deleteActions.length > 0) {
-        const pending = buildPendingConfirmation(deleteActions);
-        return buildBudgetReply({
-          reply: `Puedo eliminar ${targetRow.category} si confirmas.`,
-          followUp: `¿Confirmas eliminar ${targetRow.category} de la tabla?`,
-          focus_row_id: targetRow.id,
-          source: 'deterministic_delete_confirm',
-          market_snapshot: emptyMarketSnapshot(),
-          requires_confirmation: true,
-          pending_confirmation: pending,
-        });
-      }
-    }
+    const single = buildSingleDeleteConfirmReply(params);
+    if (single) return single;
   }
 
   if (detectedIntent === 'add_row') {
@@ -904,7 +1073,7 @@ function buildConversationalFallback(params: {
   const answerRow = findBudgetRowByFocusId(params.rows, inferBudgetFocusRowId(params.answer));
   if (answerRow && answerRow.id !== currentTarget?.id) {
     return buildBudgetReply({
-      reply: `Perfecto, enfoquemos ${answerRow.category.toLowerCase()}.`,
+      reply: `Pasemos a ${answerRow.category.toLowerCase()}.`,
       followUp: buildContextualQuestion(answerRow, params.context),
       focus_row_id: answerRow.id,
       source: 'deterministic_answer_focus',
@@ -914,12 +1083,16 @@ function buildConversationalFallback(params: {
 
   const defaultFocus = buildBudgetFocusQuestion(params.rows, params.activeRow, params.context);
   const currentQuestion = buildContextualQuestion(currentTarget, params.context);
+  const askedQuestion = sanitizeQuestion(params.question) ?? '';
+  const questionsAlign =
+    (askedQuestion.length > 0 && askedQuestion === currentQuestion) ||
+    defaultFocus.question === currentQuestion;
 
   if (
     detectedIntent === 'unclear' &&
     params.answer.trim() &&
-    defaultFocus.question === currentQuestion &&
-    currentTarget
+    currentTarget &&
+    (questionsAlign || isBudgetSkipAnswer(params.answer))
   ) {
     const nextRow = findNextUnfilledBudgetRow(params.rows, params.context, currentTarget.id);
     if (nextRow && nextRow.id !== currentTarget.id) {
@@ -1051,6 +1224,38 @@ router.post(
       }
     }
 
+    if (intent === 'reply' && answer && isBulkDeleteRequest(answer)) {
+      const draft = buildBulkDeleteConfirmReply({ rows, answer });
+      if (draft) {
+        return sendBudgetChatResponse(
+          res,
+          draft,
+          buildWriterPolishInput({ draft, context, rows, userAnswer: answer }),
+          { market_snapshot: emptyMarketSnapshot() },
+        );
+      }
+    }
+
+    if (intent === 'reply' && answer && detectBudgetIntent(answer) === 'update_field') {
+      const fieldUpdate = buildDeterministicFieldUpdate({
+        rows,
+        answer,
+        question,
+        context,
+        assistantFocusRowId,
+        manualFocusRowId,
+        activeRow: resolvedActiveRow,
+      });
+      if (fieldUpdate) {
+        return sendBudgetChatResponse(
+          res,
+          fieldUpdate,
+          buildWriterPolishInput({ draft: fieldUpdate, context, rows, userAnswer: answer }),
+          { market_snapshot: emptyMarketSnapshot() },
+        );
+      }
+    }
+
     if (intent === 'reply' && answer && !extractClpAmount(answer) && !isEducationalBudgetQuestion(answer)) {
       const answerIntent = detectBudgetIntent(answer);
       const clarifyIntent =
@@ -1161,6 +1366,26 @@ router.post(
         buildWriterPolishInput({ draft, context, rows, userAnswer: answer }),
         { market_snapshot: emptyMarketSnapshot() },
       );
+    }
+
+    if (intent === 'reply' && detectBudgetIntent(answer) === 'delete_row') {
+      const draft = buildSingleDeleteConfirmReply({
+        rows,
+        answer,
+        question,
+        context,
+        assistantFocusRowId,
+        manualFocusRowId,
+        activeRow: resolvedActiveRow,
+      });
+      if (draft) {
+        return sendBudgetChatResponse(
+          res,
+          draft,
+          buildWriterPolishInput({ draft, context, rows, userAnswer: answer }),
+          { market_snapshot: emptyMarketSnapshot() },
+        );
+      }
     }
 
     if (intent === 'reply' && detectBudgetIntent(answer) === 'advice') {

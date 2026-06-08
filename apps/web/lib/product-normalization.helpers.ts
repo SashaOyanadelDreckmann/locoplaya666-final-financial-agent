@@ -1,3 +1,4 @@
+import { normalizeUploadFormat } from '@/app/agent/transactions/tx-assistant.helpers';
 import type { BankProduct, TransactionTaxonomyOverride } from '@/app/agent/transactions/types';
 import { normalizeTaxonomyKey } from '@/app/agent/transactions/taxonomy';
 
@@ -6,14 +7,7 @@ export function normalizeProductAssistantState(
 ): NonNullable<BankProduct['assistant']> {
   return {
     messages: Array.isArray(raw?.messages) ? raw!.messages : [],
-    uploadFormat:
-      raw?.uploadFormat === 'photos' ||
-      raw?.uploadFormat === 'pdf' ||
-      raw?.uploadFormat === 'spreadsheet' ||
-      raw?.uploadFormat === 'text' ||
-      raw?.uploadFormat === 'video'
-        ? raw.uploadFormat
-        : null,
+    uploadFormat: normalizeUploadFormat(raw?.uploadFormat as never),
     summaryText: typeof raw?.summaryText === 'string' ? raw.summaryText : null,
     summaryModel: typeof raw?.summaryModel === 'string' ? raw.summaryModel : null,
     summaryGeneratedAt: typeof raw?.summaryGeneratedAt === 'string' ? raw.summaryGeneratedAt : null,

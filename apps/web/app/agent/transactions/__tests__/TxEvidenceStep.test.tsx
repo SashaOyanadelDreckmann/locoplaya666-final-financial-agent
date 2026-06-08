@@ -69,9 +69,9 @@ describe('TxEvidenceStep', () => {
   it('renders unified composer with attach control and format chips', () => {
     render(<TxEvidenceStep {...buildProps()} />);
 
-    expect(screen.getByLabelText(/adjuntar archivos o video/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/adjuntar archivos/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/mensaje del chat de transacciones/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Rápido' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Rápido' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'PDF' })).toBeInTheDocument();
   });
 
@@ -120,7 +120,7 @@ describe('TxEvidenceStep', () => {
       />,
     );
 
-    expect(screen.queryByLabelText(/adjuntar archivos o video/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/adjuntar archivos/i)).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Rápido' })).not.toBeInTheDocument();
   });
 });

@@ -304,9 +304,38 @@
 
   .budget-modal.is-mobile-shell .budget-assistant-panel .bcc-hero-reply {
     margin: 0 0 10px !important;
-    font-size: 0.88rem !important;
-    line-height: 1.45 !important;
+    font-size: clamp(0.74rem, 3.2vw, 0.82rem) !important;
+    line-height: 1.42 !important;
     color: rgba(210, 225, 240, 0.82) !important;
+    max-width: 100% !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-assistant-panel .bcc-hero-top {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    padding-inline: clamp(12px, 4vw, 20px) !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-assistant-panel .bcc-hero-question:not(.bcc-hero-question--gradient-demo),
+  .budget-modal.is-mobile-shell .budget-assistant-panel span.bcc-hero-question:not(.bcc-hero-question--gradient-demo),
+  .budget-modal.is-mobile-shell .budget-assistant-panel .bcc-hero-question--pending {
+    max-width: 100% !important;
+    width: 100% !important;
+    font-size: clamp(0.84rem, 3.8vw, 0.94rem) !important;
+    line-height: 1.46 !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+    text-wrap: pretty !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front .budget-assistant-panel .bcc-hero {
+    padding-inline: clamp(10px, 3.5vw, 16px) !important;
+    overflow: hidden !important;
   }
 
   .budget-modal.is-mobile-shell .budget-chat-sync-button.is-assistant-action {
@@ -462,8 +491,8 @@
       "cadence cadence"
       "payment movement"
       "impact impact" !important;
-    gap: 8px !important;
-    padding: 10px 36px 10px 10px !important;
+    gap: 3px !important;
+    padding: 7px 26px 7px 7px !important;
     margin: 0 !important;
     border-radius: 16px !important;
     overflow: hidden !important;
@@ -479,8 +508,8 @@
       "cadence cadence"
       "payment movement"
       "impact impact" !important;
-    gap: 8px !important;
-    padding: 10px 36px 10px 10px !important;
+    gap: 3px !important;
+    padding: 7px 26px 7px 7px !important;
     margin: 0 !important;
     border-radius: 16px !important;
     overflow: hidden !important;
@@ -517,8 +546,8 @@
   .budget-modal.is-mobile-shell .budget-table.budget-table-pro tbody td.budget-row-actions-cell,
   .budget-modal.is-mobile-shell .budget-table.budget-table-pro tbody td:nth-child(8) {
     position: absolute !important;
-    top: 8px !important;
-    right: 8px !important;
+    top: 2px !important;
+    right: 2px !important;
     z-index: 4 !important;
     display: flex !important;
     align-items: center !important;
@@ -580,8 +609,6 @@
     height: 44px !important;
   }
 
-  .budget-modal.is-mobile-shell .budget-pdf-head,
-  .budget-modal.is-mobile-shell .budget-pdf-metrics,
   .budget-modal.is-mobile-shell .budget-intel-kpis {
     display: none !important;
   }

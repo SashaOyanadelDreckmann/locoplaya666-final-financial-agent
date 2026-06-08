@@ -1,6 +1,7 @@
 'use client';
 
 import type { CSSProperties } from 'react';
+import type { TxUploadFormat } from './types';
 
 export type TxDockTransitionPhase = 'idle' | 'authorizing' | 'flood' | 'library-reveal' | 'chat-reveal';
 
@@ -91,11 +92,10 @@ export function EditorialSummary({
   );
 }
 
-export function getFormatLabel(format: 'photos' | 'pdf' | 'spreadsheet' | 'text' | 'video'): string {
+export function getFormatLabel(format: TxUploadFormat): string {
   if (format === 'photos') return 'Fotos';
   if (format === 'pdf') return 'PDF';
   if (format === 'spreadsheet') return 'Excel / CSV';
-  if (format === 'video') return 'Rápido';
   return 'Texto';
 }
 
@@ -123,22 +123,18 @@ export function movementSourceLabel(value?: string | null) {
   return value === 'table' ? 'Tabla' : 'Texto';
 }
 
-export function getFormatMicrocopy(format: 'photos' | 'pdf' | 'spreadsheet' | 'text' | 'video'): string {
+export function getFormatMicrocopy(format: TxUploadFormat): string {
   if (format === 'photos') return 'capturas limpias';
   if (format === 'pdf') return 'cartola completa';
   if (format === 'spreadsheet') return 'filas estructuradas';
-  if (format === 'video') return 'grabación de pantalla';
   return 'entrada manual';
 }
 
 export function buildUploadGuidance(
-  format: 'photos' | 'pdf' | 'spreadsheet' | 'text' | 'video',
+  format: TxUploadFormat,
   productType: import('./types').BankProduct['productType'],
 ) {
   const productLabel = productType === 'credit_card' ? 'tu tarjeta' : 'tu producto';
-  if (format === 'video') {
-    return `Perfecto. Usa el modo Rápido con una grabación de pantalla de ${productLabel}: abre la app, entra a movimientos, baja despacio de arriba hacia abajo una sola vez y evita zoom, cortes o ediciones. Si el banco muestra filtros por fechas, deja el rango visible antes de grabar.`;
-  }
   if (format === 'photos') {
     return `Perfecto. Para fotos de ${productLabel}: 1) usa capturas nítidas, 2) no repitas un movimiento en dos pantallazos, 3) el siguiente pantallazo debe partir mostrando el último movimiento visible abajo en el anterior, 4) la última captura puede cortar al final. Cuando las tengas, súbelas y presiona Enviar.`;
   }
@@ -151,7 +147,7 @@ export function buildUploadGuidance(
   return `Puedes pegar texto manual si no tienes archivo. Incluye fecha, detalle y monto por línea. Si luego consigues PDF o Excel, mejor aún. Cuando estés listo, usa Enviar.`;
 }
 
-export function renderFormatIcon(format: 'photos' | 'pdf' | 'spreadsheet' | 'text' | 'video') {
+export function renderFormatIcon(format: TxUploadFormat) {
   if (format === 'photos') {
     return (
       <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -174,15 +170,6 @@ export function renderFormatIcon(format: 'photos' | 'pdf' | 'spreadsheet' | 'tex
       <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
         <rect x="5" y="5.5" width="14" height="13" rx="2.5" stroke="currentColor" strokeWidth="1.4" />
         <path d="M10 5.5v13M14.5 5.5v13M5 10h14M5 14h14" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-      </svg>
-    );
-  }
-  if (format === 'video') {
-    return (
-      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <rect x="4.5" y="5.5" width="12" height="13" rx="3" stroke="currentColor" strokeWidth="1.4" />
-        <path d="M10 9l4 3-4 3V9z" fill="currentColor" />
-        <path d="M18 9.5l1.5-1v6l-1.5-1" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     );
   }

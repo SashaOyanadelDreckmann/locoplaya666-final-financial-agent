@@ -8,6 +8,7 @@ export * from './budget-chat-context';
 export * from './budget-table-schema';
 export * from './budget-chat-session';
 export * from './transactions-chat';
+export * from './evidence-fidelity';
 export type {
     IntakeQuestionnaire,
     FinancialKnowledgeChecklist,

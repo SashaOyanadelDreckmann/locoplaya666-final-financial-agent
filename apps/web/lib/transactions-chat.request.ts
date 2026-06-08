@@ -1,3 +1,4 @@
+import { alignProductDashboard } from '@/app/agent/transactions/align-product-dashboard';
 import type { BankProduct } from '@/app/agent/transactions/types';
 import { buildChatDashboardForQuestion, compactDashboardForPrompt } from '@/lib/transactions-chat.helpers';
 
@@ -27,10 +28,11 @@ export function buildTransactionChatRequest(
     messages?: Array<{ role?: 'assistant' | 'user'; text?: string }>;
   },
 ): TransactionChatAssistantRequest {
+  const alignedDashboard = alignProductDashboard(product) ?? product.dashboard ?? null;
   const dashboard =
     params.dashboard ??
-    buildChatDashboardForQuestion(product.dashboard ?? null, params.question ?? '') ??
-    compactDashboardForPrompt(product.dashboard ?? null, { maxMovements: 24, maxMerchants: 8 }) ??
+    buildChatDashboardForQuestion(alignedDashboard, params.question ?? '') ??
+    compactDashboardForPrompt(alignedDashboard, { maxMovements: 24, maxMerchants: 8 }) ??
     null;
 
   return {

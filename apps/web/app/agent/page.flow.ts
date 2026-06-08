@@ -7,19 +7,22 @@ import {
 import { normalizeProductAssistantState } from '@/lib/product-normalization.helpers';
 import { normalizeTransactionTaxonomyOverride } from './transactions/taxonomy';
 import type { BankProduct, TransactionTaxonomyOverride } from './transactions/types';
+import type { BankSimulation } from './agent-page.constants';
 import { hasMeaningfulPanelState } from '@/lib/panel-state.helpers';
 
 export function buildPanelSnapshotPayload(params: {
   budgetRows: BudgetRow[];
   budgetChatAnswers: Array<{ q: string; a: string }>;
-  bankSimulation: {
-    products: BankProduct[];
-    taxonomyOverrides: TransactionTaxonomyOverride[];
-    activeProductId: string | null;
-    lockedMonth: string | null;
-    connected: boolean;
-    randomMode: boolean;
-  };
+  bankSimulation: Pick<
+    BankSimulation,
+    | 'products'
+    | 'taxonomyOverrides'
+    | 'activeProductId'
+    | 'lockedMonth'
+    | 'connected'
+    | 'randomMode'
+    | 'productsModuleSkipped'
+  >;
   txProductsCreatedTotal: number;
   savedReports: Array<{ id: string; title: string; group: string; fileUrl: string; createdAt: string }>;
 }) {
@@ -33,6 +36,7 @@ export function buildPanelSnapshotPayload(params: {
       lockedMonth: params.bankSimulation.lockedMonth,
       connected: params.bankSimulation.connected,
       randomMode: params.bankSimulation.randomMode,
+      productsModuleSkipped: Boolean(params.bankSimulation.productsModuleSkipped),
       uploadedFiles: aggregateUploadedFiles(params.bankSimulation.products),
       parsedDocuments: aggregateParsedDocuments(params.bankSimulation.products),
     },
@@ -49,16 +53,7 @@ export function restorePanelStateFromPayload(
     budgetChatAnswers: Array<{ q: string; a: string }>;
     savedReports: Array<{ id: string; title: string; fileUrl: string; previewImageUrl?: string; group?: string; createdAt?: string }>;
     txProductsCreatedTotal: number;
-    bankSimulation: {
-      products: BankProduct[];
-      taxonomyOverrides: TransactionTaxonomyOverride[];
-      activeProductId: string | null;
-      lockedMonth: string | null;
-      connected: boolean;
-      randomMode: boolean;
-      uploadedFiles: string[];
-      parsedDocuments: BankProduct['parsedDocuments'];
-    };
+    bankSimulation: BankSimulation;
   }
 ) {
   if (!hasMeaningfulPanelState(panelState)) return null;
@@ -136,6 +131,10 @@ export function restorePanelStateFromPayload(
       lockedMonth: typeof bank.lockedMonth === 'string' ? bank.lockedMonth : prev.bankSimulation.lockedMonth,
       connected: snapshot.connected,
       randomMode: snapshot.randomMode,
+      productsModuleSkipped:
+        typeof bank.productsModuleSkipped === 'boolean'
+          ? bank.productsModuleSkipped
+          : prev.bankSimulation.productsModuleSkipped,
       uploadedFiles: snapshot.uploadedFiles,
       parsedDocuments: snapshot.parsedDocuments,
     };

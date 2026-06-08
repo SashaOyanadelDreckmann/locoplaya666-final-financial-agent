@@ -11,12 +11,14 @@ import {
   prepareIncomingEvidenceFiles,
 } from '@/lib/transactions-evidence.helpers';
 import { resolveInstantTransactionSummary } from '@/lib/transactions-summary.helpers';
+import { alignProductDashboard } from './align-product-dashboard';
 import { buildUploadGuidance } from './presentation';
 import { TX_MAX_SINGLE_FILE_BYTES, TX_MAX_TOTAL_FILE_BYTES } from './constants';
 import {
   asksForSummaryRegeneration,
   buildManualEvidenceFile,
   inferUploadFormatFromMessage,
+  normalizeUploadFormat,
   wantsTextEvidenceUpload,
 } from './tx-assistant.helpers';
 import { useTxActionSession } from './use-tx-action-session';
@@ -84,7 +86,7 @@ export function useTxAssistantChat(params: {
   const summaryModel = activeBankProduct?.assistant?.summaryModel ?? null;
   const summaryRegenerationsUsed = Math.max(0, activeBankProduct?.assistant?.summaryRegenerationsUsed ?? 0);
   const summaryRegenerationsLeft = Math.max(0, 3 - summaryRegenerationsUsed);
-  const selectedUploadFormat = activeBankProduct?.assistant?.uploadFormat ?? null;
+  const selectedUploadFormat = normalizeUploadFormat(activeBankProduct?.assistant?.uploadFormat);
   const hasSummary = Boolean(summaryText?.trim());
 
   const setActivePendingEvidenceFiles = useCallback(
@@ -257,7 +259,15 @@ export function useTxAssistantChat(params: {
         detail: 'Preparando resumen ejecutivo instantáneo.',
       });
       const uploadResult = options?.uploadResult ?? null;
-      const dashboard = uploadResult?.dashboard ?? product.dashboard ?? null;
+      const rawDashboard = uploadResult?.dashboard ?? product.dashboard ?? null;
+      const dashboard =
+        alignProductDashboard(
+          {
+            dashboard: rawDashboard ?? undefined,
+            productType: uploadResult?.product.productType ?? product.productType,
+          },
+          [],
+        ) ?? rawDashboard;
       const instantSummary = resolveInstantTransactionSummary(dashboard);
       if (!instantSummary) return false;
 

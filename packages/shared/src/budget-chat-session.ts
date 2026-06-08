@@ -1,3 +1,4 @@
+import type { BudgetRow } from './budget-rows';
 import type { BudgetTableAction } from './budget-table-schema';
 import { summarizeBudgetActionBatch } from './budget-table-schema';
 
@@ -14,11 +15,14 @@ export function emptyBudgetChatSession(): BudgetChatSessionState {
   return { pendingConfirmation: null };
 }
 
-export function buildPendingConfirmation(actions: BudgetTableAction[]): BudgetPendingConfirmation | null {
+export function buildPendingConfirmation(
+  actions: BudgetTableAction[],
+  rows: BudgetRow[] = [],
+): BudgetPendingConfirmation | null {
   if (actions.length === 0) return null;
   return {
     actions,
-    summary: summarizeBudgetActionBatch(actions),
+    summary: summarizeBudgetActionBatch(actions, rows),
   };
 }
 

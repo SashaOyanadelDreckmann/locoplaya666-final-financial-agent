@@ -11,7 +11,37 @@
 /* PREMIUM ANIMATIONS FIRST                          */
 /* ================================================= */
 @import './animations.css';
+@import './agent-gradient-text.css';
 @import "maplibre-gl/dist/maplibre-gl.css";
+
+@theme {
+  --color-color-1: hsl(var(--color-1));
+  --color-color-2: hsl(var(--color-2));
+  --color-color-3: hsl(var(--color-3));
+  --color-color-4: hsl(var(--color-4));
+  --color-color-5: hsl(var(--color-5));
+}
+
+@layer base {
+  :root {
+    /* GradientText — rojo, azul y amarillo mates opacos */
+    --color-1: 4 42% 44%;
+    --color-2: 208 34% 40%;
+    --color-3: 46 46% 46%;
+    --color-4: 208 34% 40%;
+    --color-5: 46 46% 46%;
+    --brand: 46 46% 46%;
+  }
+
+  .dark {
+    --color-1: 4 42% 44%;
+    --color-2: 208 34% 40%;
+    --color-3: 46 46% 46%;
+    --color-4: 208 34% 40%;
+    --color-5: 46 46% 46%;
+    --brand: 46 46% 46%;
+  }
+}
 
 /* ================================================= */
 /* DESIGN SYSTEM — Apple Minimalist                  */

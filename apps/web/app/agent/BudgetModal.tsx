@@ -5,6 +5,7 @@ import { focusMobileInput } from '@/lib/mobile-viewport-sync';
 import { getCsrfToken } from '@/lib/csrf';
 import { downloadFile, saveBubbleSnapshotPdfArtifact } from '@/lib/artifacts';
 import { BudgetIntelligenceTable } from '@/components/ui/budget-intelligence-table';
+import { AgentHeroText } from '@/components/ui/agent-hero-text';
 
 import type { BudgetRow } from '@/lib/budget-rows.helpers';
 import { inferBudgetFocusRowId, extractInferenceQuestionText, resolveBudgetChatTargetRow } from '@/lib/budget-rows.helpers';
@@ -16,7 +17,6 @@ import {
   getAssistantMessage,
   getBudgetQuestionForId,
   getNextQuestion,
-  type BudgetTranscriptEntry,
   normalizeActionRowId,
   sanitizeBudgetQuestion,
 } from './budget-modal.helpers';
@@ -97,8 +97,8 @@ export function BudgetModal(props: {
   const [activeBudgetRowId, setActiveBudgetRowId] = useState<string | null>(null);
   const [assistantBudgetRowId, setAssistantBudgetRowId] = useState<string | null>(null);
   const [assistantNextQuestion, setAssistantNextQuestion] = useState<string | null>(null);
-  const [budgetTranscript, setBudgetTranscript] = useState<BudgetTranscriptEntry[]>([]);
-  const budgetTranscriptRef = useRef<HTMLDivElement | null>(null);
+  const [lastUserAnswer, setLastUserAnswer] = useState<string | null>(null);
+  const [typewriterTurnKey, setTypewriterTurnKey] = useState(0);
   const {
     isDesktopLayout,
     budgetViewMode,
@@ -144,15 +144,10 @@ export function BudgetModal(props: {
     focusMobileInput(el);
   };
   const activeQuestion = assistantNextQuestion ?? assistantQuestion ?? '…';
-  const latestAssistantTurn = formatBudgetAssistantTurn({
+  const agentTypewriterText = formatBudgetAssistantTurn({
     assistant_reply: assistantQuestion ?? undefined,
     next_question: assistantNextQuestion,
-  });
-  const agentStatusText = isInitializing
-    ? 'Preparando asistente…'
-    : isAskingAI
-      ? 'Analizando lo que dijiste…'
-      : latestAssistantTurn || activeQuestion;
+  }) || activeQuestion;
   const activeStyleIndex = BUDGET_TABLE_STYLES.findIndex((style) => style.id === budgetTableStyle);
   const activeStyleLabel = BUDGET_TABLE_STYLES[Math.max(0, activeStyleIndex)]?.label ?? 'Nocturno';
   const heroToneClass =
@@ -180,27 +175,14 @@ export function BudgetModal(props: {
 
   const orderedBudgetRows = props.budgetRows;
 
-  function appendBudgetTranscript(entries: BudgetTranscriptEntry[]) {
-    const normalized = entries
-      .map((entry) => ({ ...entry, text: entry.text.trim() }))
-      .filter((entry) => entry.text.length > 0);
-    if (normalized.length === 0) return;
-    setBudgetTranscript((prev) => [...prev, ...normalized]);
-  }
-
   function applyAssistantTurn(payload: BudgetChatApiPayload, previousQuestion: string) {
     const reply = getAssistantMessage(payload);
     setAssistantQuestion(reply || previousQuestion);
     const nextQuestion = sanitizeBudgetQuestion(getNextQuestion(payload, ''));
     setAssistantNextQuestion(nextQuestion || null);
-    appendBudgetTranscript([{ role: 'assistant', text: formatBudgetAssistantTurn(payload) }]);
+    setLastUserAnswer(null);
+    setTypewriterTurnKey((prev) => prev + 1);
   }
-
-  useEffect(() => {
-    const node = budgetTranscriptRef.current;
-    if (!node) return;
-    node.scrollTop = node.scrollHeight;
-  }, [budgetTranscript, isAskingAI]);
 
   useEffect(() => {
     if (activeBudgetRowId && !props.budgetRows.some((row) => row.id === activeBudgetRowId)) {
@@ -422,7 +404,7 @@ export function BudgetModal(props: {
     const newChatAnswers = [...props.chatAnswers, { q: questionForTurn, a: answer }];
     if (!forcedAnswer) setBudgetReply('');
     setAiError(null);
-    appendBudgetTranscript([{ role: 'user', text: answer }]);
+    setLastUserAnswer(answer);
 
     const chatTargetRow =
       resolveBudgetChatTargetRow(props.budgetRows, questionForTurn, {
@@ -536,7 +518,8 @@ export function BudgetModal(props: {
     setBudgetPendingConfirmation(null);
     setAssistantQuestion(null);
     setAssistantNextQuestion(null);
-    setBudgetTranscript([]);
+    setLastUserAnswer(null);
+    setTypewriterTurnKey(0);
     setIsInitializing(true);
     setActiveBudgetRowId(null);
     setAssistantBudgetRowId(null);
@@ -974,47 +957,35 @@ export function BudgetModal(props: {
               style={cardStyle('agent')}
             >
               <div className="bcc-hero">
-                {budgetTranscript.length > 0 ? (
-                  <div
-                    ref={budgetTranscriptRef}
-                    className="bcc-hero-log bcc-hero-transcript"
-                    aria-live="polite"
-                    aria-relevant="additions text"
-                  >
-                    {budgetTranscript.map((entry, index) => (
-                      <div
-                        key={`${entry.role}-${index}-${entry.text.slice(0, 24)}`}
-                        className={`bcc-transcript-row is-${entry.role}`}
-                      >
-                        <span className="bcc-transcript-label">
-                          {entry.role === 'assistant' ? 'Asistente' : 'Tú'}
-                        </span>
-                        <p className="bcc-transcript-text">{entry.text}</p>
-                      </div>
-                    ))}
-                    {isAskingAI ? (
-                      <div className="bcc-transcript-row is-assistant is-thinking">
-                        <span className="bcc-transcript-label">Asistente</span>
-                        <span className="bcc-hero-thinking" aria-hidden="true">
-                          <span className="bcc-dot-pulse" />
-                          <span className="bcc-dot-pulse" />
-                          <span className="bcc-dot-pulse" />
-                        </span>
-                      </div>
-                    ) : null}
-                  </div>
-                ) : (
-                  <div className="bcc-hero-top">
-                    {isAskingAI && (
-                      <span className="bcc-hero-thinking" aria-hidden="true">
-                        <span className="bcc-dot-pulse" />
-                        <span className="bcc-dot-pulse" />
-                        <span className="bcc-dot-pulse" />
-                      </span>
-                    )}
-                    <p className="bcc-hero-question">{agentStatusText}</p>
-                  </div>
-                )}
+                <div className="bcc-hero-top" aria-live="polite" aria-relevant="additions text">
+                  {lastUserAnswer ? (
+                    <p className="bcc-hero-reply">{lastUserAnswer}</p>
+                  ) : null}
+                  {isAskingAI || isInitializing ? (
+                    <span className="bcc-hero-thinking" aria-hidden="true">
+                      <span className="bcc-dot-pulse" />
+                      <span className="bcc-dot-pulse" />
+                      <span className="bcc-dot-pulse" />
+                    </span>
+                  ) : null}
+                  {isInitializing ? (
+                    <p className="bcc-hero-question">Preparando asistente…</p>
+                  ) : isAskingAI ? (
+                    <p className="bcc-hero-question bcc-hero-question--pending">
+                      {lastUserAnswer ? 'Analizando lo que dijiste…' : 'Un momento…'}
+                    </p>
+                  ) : (
+                    <AgentHeroText
+                      turnKey={typewriterTurnKey}
+                      text={agentTypewriterText}
+                      speed={isDesktopLayout ? 28 : 34}
+                      focusRow={activeBudgetRow}
+                      budgetRows={props.budgetRows}
+                      question={assistantNextQuestion ?? assistantQuestion}
+                    />
+                  )}
+                  <span className="sr-only">{agentTypewriterText}</span>
+                </div>
                 {conversationDone && (
                   <p className="bcc-hero-done">Presupuesto completo. Puedes seguir ajustando la tabla.</p>
                 )}

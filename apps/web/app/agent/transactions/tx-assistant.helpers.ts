@@ -1,6 +1,15 @@
-import type { BankProduct } from './types';
+import type { TxUploadFormat } from './types';
 
-export type TxUploadFormat = NonNullable<NonNullable<BankProduct['assistant']>['uploadFormat']>;
+export type { TxUploadFormat } from './types';
+
+const LEGACY_VIDEO_FORMAT = 'video';
+
+export function normalizeUploadFormat(
+  format: TxUploadFormat | typeof LEGACY_VIDEO_FORMAT | null | undefined,
+): TxUploadFormat | null {
+  if (!format || format === LEGACY_VIDEO_FORMAT) return null;
+  return format;
+}
 
 export function buildManualEvidenceFile(text: string): File {
   return new File([text], `antecedente-manual-${Date.now()}.txt`, { type: 'text/plain' });
@@ -9,7 +18,7 @@ export function buildManualEvidenceFile(text: string): File {
 export function inferUploadFormatFromMessage(text: string): TxUploadFormat | null {
   const normalized = text.trim().toLowerCase();
   if (!normalized) return null;
-  if (/video|grabaci[oó]n|pantalla|screen/.test(normalized)) return 'video';
+  if (/video|grabaci[oó]n|pantalla|screen/.test(normalized)) return 'photos';
   if (/excel|csv|xlsx|planilla/.test(normalized)) return 'spreadsheet';
   if (/\bpdf\b/.test(normalized)) return 'pdf';
   if (/foto|captura|pantallazo|imagen/.test(normalized)) return 'photos';

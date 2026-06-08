@@ -1,4 +1,6 @@
-import type { BankProduct } from '@/app/agent/transactions/types';
+import { alignProductDashboard } from '@/app/agent/transactions/align-product-dashboard';
+import { readProductEvidenceFidelity } from '@/lib/evidence-fidelity.helpers';
+import type { BankProduct, TransactionTaxonomyOverride } from '@/app/agent/transactions/types';
 
 type ParsedBankDocument = BankProduct['parsedDocuments'][number];
 
@@ -38,40 +40,78 @@ export function aggregateCanonicalMovements(products: BankProduct[]): CanonicalM
   return Array.from(dedup.values());
 }
 
-export function buildScopedTransactionsContext(products: BankProduct[], activeProductId: string | null) {
-  const activeProduct = activeProductId
-    ? products.find((product) => product.id === activeProductId) ?? null
-    : null;
-
-  const productsIndex = products.slice(0, 20).map((product) => ({
-    id: product.id,
-    label: product.label,
-    bank: product.bank,
-    productType: product.productType,
-    connected: product.connected,
-    uploadedFilesCount: product.uploadedFiles?.length ?? 0,
-    parsedDocumentsCount: product.parsedDocuments?.length ?? 0,
-    movementCount: product.dashboard?.keyMetrics?.movement_count ?? 0,
-    inflowsTotal: product.dashboard?.keyMetrics?.inflows_total ?? 0,
-    outflowsTotal: product.dashboard?.keyMetrics?.outflows_total ?? 0,
-    netFlow: product.dashboard?.keyMetrics?.net_flow ?? 0,
-  }));
-
+function readAlignedMetrics(product: BankProduct) {
+  const dashboard = alignProductDashboard(product) ?? product.dashboard;
+  const metrics = dashboard?.keyMetrics;
   return {
-    activeProduct,
-    productsIndex,
-    scopedUploadedDocuments: (activeProduct?.parsedDocuments ?? []).slice(-3),
-    scopedUploadedEvidenceFiles: (activeProduct?.uploadedFiles ?? []).slice(-6),
+    dashboard,
+    movementCount: metrics?.movement_count ?? 0,
+    inflowsTotal: metrics?.inflows_total ?? 0,
+    outflowsTotal: metrics?.outflows_total ?? 0,
+    netFlow: metrics?.net_flow ?? 0,
   };
 }
 
-export function buildPersistableProductsContext(products: BankProduct[], activeProductId: string | null) {
+export function buildScopedTransactionsContext(
+  products: BankProduct[],
+  activeProductId: string | null,
+  taxonomyOverrides: TransactionTaxonomyOverride[] = [],
+) {
+  const activeProduct = activeProductId
+    ? products.find((product) => product.id === activeProductId) ?? null
+    : null;
+  const alignedActive = activeProduct
+    ? {
+        ...activeProduct,
+        dashboard: alignProductDashboard(activeProduct, taxonomyOverrides) ?? activeProduct.dashboard,
+      }
+    : null;
+
+  const productsIndex = products.slice(0, 20).map((product) => {
+    const aligned = readAlignedMetrics({
+      ...product,
+      dashboard: alignProductDashboard(product, taxonomyOverrides) ?? product.dashboard,
+    });
+    return {
+      id: product.id,
+      label: product.label,
+      bank: product.bank,
+      productType: product.productType,
+      connected: product.connected,
+      evidenceFidelity: readProductEvidenceFidelity(product),
+      uploadedFilesCount: product.uploadedFiles?.length ?? 0,
+      parsedDocumentsCount: product.parsedDocuments?.length ?? 0,
+      movementCount: aligned.movementCount,
+      inflowsTotal: aligned.inflowsTotal,
+      outflowsTotal: aligned.outflowsTotal,
+      netFlow: aligned.netFlow,
+    };
+  });
+
+  return {
+    activeProduct: alignedActive,
+    productsIndex,
+    scopedUploadedDocuments: (alignedActive?.parsedDocuments ?? []).slice(-3),
+    scopedUploadedEvidenceFiles: (alignedActive?.uploadedFiles ?? []).slice(-6),
+  };
+}
+
+export function buildPersistableProductsContext(
+  products: BankProduct[],
+  activeProductId: string | null,
+  taxonomyOverrides: TransactionTaxonomyOverride[] = [],
+) {
   const activeProduct = activeProductId
     ? products.find((product) => product.id === activeProductId) ?? null
     : products.find((product) => product.connected) ?? products[0] ?? null;
   const allMovements = aggregateCanonicalMovements(products);
   const uploadedFiles = aggregateUploadedFiles(products).slice(0, 50);
-  const productsPayload = products.slice(0, 20).map((product) => ({
+  const alignedProducts = products.map((product) => ({
+    ...product,
+    dashboard: alignProductDashboard(product, taxonomyOverrides) ?? product.dashboard,
+  }));
+
+  const productsPayload = alignedProducts.slice(0, 20).map((product) => ({
     id: product.id,
     label: product.label,
     bank: product.bank,
@@ -98,9 +138,11 @@ export function buildPersistableProductsContext(products: BankProduct[], activeP
     topIncome: product.dashboard?.topIncome?.slice(0, 10),
     topExpenses: product.dashboard?.topExpenses?.slice(0, 10),
     alerts: product.dashboard?.alerts?.slice(0, 10),
+    evidenceFidelity: product.dashboard?.evidenceFidelity ?? readProductEvidenceFidelity(product),
+    evidenceFidelityReason: product.dashboard?.evidenceFidelityReason ?? null,
     movements: product.dashboard?.movements?.slice(0, 80) ?? [],
   }));
-  const topCategories = products
+  const topCategories = alignedProducts
     .flatMap((product) => product.dashboard?.topCategories ?? [])
     .reduce<Array<{ name: string; amount: number }>>((acc, category) => {
       const existing = acc.find((item) => item.name.toLowerCase() === category.name.toLowerCase());
@@ -111,20 +153,23 @@ export function buildPersistableProductsContext(products: BankProduct[], activeP
     .sort((left, right) => right.amount - left.amount)
     .slice(0, 12);
   const alerts = Array.from(
-    new Set(products.flatMap((product) => product.dashboard?.alerts ?? []).filter(Boolean)),
+    new Set(alignedProducts.flatMap((product) => product.dashboard?.alerts ?? []).filter(Boolean)),
   ).slice(0, 12);
-  const inflowsTotal = products.reduce(
+  const inflowsTotal = alignedProducts.reduce(
     (sum, product) => sum + Math.max(0, Number(product.dashboard?.keyMetrics?.inflows_total ?? 0) || 0),
     0,
   );
-  const outflowsTotal = products.reduce(
+  const outflowsTotal = alignedProducts.reduce(
     (sum, product) => sum + Math.max(0, Number(product.dashboard?.keyMetrics?.outflows_total ?? 0) || 0),
     0,
   );
-  const movementCount = products.reduce(
+  const movementCount = alignedProducts.reduce(
     (sum, product) => sum + Math.max(0, Number(product.dashboard?.keyMetrics?.movement_count ?? 0) || 0),
     0,
   );
+  const indicativeProductsCount = alignedProducts.filter(
+    (product) => readProductEvidenceFidelity(product) === 'indicative',
+  ).length;
 
   return {
     scope: 'all_products' as const,
@@ -133,12 +178,13 @@ export function buildPersistableProductsContext(products: BankProduct[], activeP
     productsCount: products.length,
     uploadedFiles,
     activeProduct: productsPayload.find((product) => product.id === activeProduct?.id),
-    productsIndex: products.slice(0, 20).map((product) => ({
+    productsIndex: alignedProducts.slice(0, 20).map((product) => ({
       id: product.id,
       label: product.label,
       bank: product.bank,
       productType: product.productType,
       connected: product.connected,
+      evidenceFidelity: readProductEvidenceFidelity(product),
       uploadedFilesCount: product.uploadedFiles?.length ?? 0,
       parsedDocumentsCount: product.parsedDocuments?.length ?? 0,
       movementCount: product.dashboard?.keyMetrics?.movement_count ?? 0,
@@ -152,6 +198,8 @@ export function buildPersistableProductsContext(products: BankProduct[], activeP
       outflowsTotal: Math.round(outflowsTotal),
       netFlow: Math.round(inflowsTotal - outflowsTotal),
       movementCount: Math.round(movementCount || allMovements.length),
+      indicativeProductsCount,
+      hasIndicativeEvidence: indicativeProductsCount > 0,
       topCategories,
       alerts,
     },

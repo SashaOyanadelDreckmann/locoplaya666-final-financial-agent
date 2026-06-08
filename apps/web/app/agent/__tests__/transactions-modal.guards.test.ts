@@ -85,13 +85,12 @@ describe('transactions modal safeguards', () => {
     );
   });
 
-  it('keeps the rapid upload mode visible in the evidence step', () => {
+  it('does not expose rapid video upload in the evidence step', () => {
     const source = read('app/agent/transactions/TxEvidenceStep.tsx');
 
-    expect(source).toContain("['video', 'Rápido', 'Video']");
+    expect(source).not.toContain("['video', 'Rápido', 'Video']");
+    expect(source).not.toContain('video/mp4,video/quicktime,video/webm');
+    expect(source).not.toContain('/generated/transactions-fast-example.mp4');
     expect(source).toContain('tx-format-rail-chip-label-short');
-    expect(source).toContain('video/mp4,video/quicktime,video/webm');
-    expect(source).toContain('/generated/transactions-fast-example.mp4');
-    expect(source).toContain('Ver ejemplo');
   });
 });

@@ -5,11 +5,13 @@ import {
   buildEditorialSummaryBlocks,
   formatPercentCompact,
 } from './presentation';
+import { TxIndicativeNotice } from './TxIndicativeNotice';
 
 type TxExecutiveSummaryProps = {
   hasSummary: boolean;
   summaryText: string | null;
   summaryFromTable: string | null;
+  alignedExecutiveSummary?: string | null;
   summaryGeneratedAt: string | null;
   summaryModel: string | null;
   summaryRegenerationsLeft: number;
@@ -33,6 +35,8 @@ type TxExecutiveSummaryProps = {
   derivedTopMerchants: Array<{ merchant: string }>;
   enrichedCategoryData: Array<{ name: string }>;
   dashboardClusters: Array<{ name: string }>;
+  isIndicativeEvidence?: boolean;
+  evidenceFidelityReason?: string | null;
 };
 
 export function TxExecutiveSummary(props: TxExecutiveSummaryProps) {
@@ -62,13 +66,27 @@ export function TxExecutiveSummary(props: TxExecutiveSummaryProps) {
     }
   };
 
-  const execBlocks = buildEditorialSummaryBlocks(props.hasSummary ? props.summaryText : props.summaryFromTable).slice(0, 2);
+  const executiveText =
+    props.alignedExecutiveSummary?.trim() ||
+    props.summaryFromTable?.trim() ||
+    (props.hasSummary ? props.summaryText : null);
+  const execBlocks = buildEditorialSummaryBlocks(executiveText).slice(0, 2);
   const topMerchantLabel = props.derivedTopMerchants[0]?.merchant || props.enrichedCategoryData[0]?.name || props.dashboardClusters[0]?.name || '—';
   const fidelityPct = props.movementCount > 0 ? (props.verifiedTableRows / props.movementCount) * 100 : 0;
   const confPct = props.movementCount > 0 ? (props.highConfidenceMovementCount / props.movementCount) * 100 : 0;
 
+  const formatApproxCurrency = (value: number) =>
+    props.isIndicativeEvidence ? `~${value.toLocaleString('es-CL')}` : value.toLocaleString('es-CL');
+
   return (
-    <div className="tx-ex-card" role="region" aria-label="Resumen ejecutivo">
+    <div
+      className={`tx-ex-card${props.isIndicativeEvidence ? ' is-indicative-evidence' : ''}`}
+      role="region"
+      aria-label="Resumen ejecutivo"
+    >
+      {props.isIndicativeEvidence ? (
+        <TxIndicativeNotice reason={props.evidenceFidelityReason} compact />
+      ) : null}
       <div className="tx-ex-header">
         <div className="tx-ex-header-left">
           <span className="tx-ex-eyebrow">Resumen ejecutivo</span>
@@ -130,9 +148,11 @@ export function TxExecutiveSummary(props: TxExecutiveSummaryProps) {
       {props.execTab === 'metrics' && (
         <div className="tx-ex-metrics" role="tabpanel" id={metricsPanelId} aria-labelledby={metricsTabId}>
           <article className="tx-ex-kpi" style={{ '--card-idx': 0 } as CSSProperties}>
-            <span className="tx-ex-kpi-label">Pulso de caja</span>
+            <span className="tx-ex-kpi-label">
+              {props.isIndicativeEvidence ? 'Patrón de caja (aprox.)' : 'Pulso de caja'}
+            </span>
             <strong className={`tx-ex-kpi-value${props.netFlowFromTable >= 0 ? ' is-pos' : ' is-neg'}`}>
-              {props.netFlowFromTable.toLocaleString('es-CL')}
+              {formatApproxCurrency(props.netFlowFromTable)}
             </strong>
             <p className="tx-ex-kpi-note">{props.txNarrative.cashAngle}</p>
           </article>

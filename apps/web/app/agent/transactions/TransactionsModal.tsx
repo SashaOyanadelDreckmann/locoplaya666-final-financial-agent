@@ -28,6 +28,7 @@ import {
 import { NumericDust } from './presentation';
 import { TxConsentStep } from './TxConsentStep';
 import { TxCloseConfirmDialog } from './TxCloseConfirmDialog';
+import { TxContinueWithoutProducts } from './TxContinueWithoutProducts';
 import { TxEmptyState } from './TxEmptyState';
 import { TxOperationalLimitsCard } from './TxOperationalLimitsCard';
 import { TxPresetGate } from './TxPresetGate';
@@ -45,6 +46,9 @@ import { TxLibraryCardStack } from './TxLibraryCardStack';
 import { productVisualPalette } from './visuals';
 
 export function TransactionsModal(props: TransactionsModalProps) {
+  const onContinueWithoutProducts = props.productsModuleSkipped
+    ? undefined
+    : props.onContinueWithoutProducts;
   const [consentAccepted, setConsentAccepted] = useState(false);
   const [selectedMovementKey, setSelectedMovementKey] = useState<string | null>(null);
   const [overrideMerchantDraft, setOverrideMerchantDraft] = useState('');
@@ -557,6 +561,9 @@ export function TransactionsModal(props: TransactionsModalProps) {
                 <div className="tx-library-empty">
                   <span className="tx-library-empty-kicker">Biblioteca vacía</span>
                   <p>Tus productos aparecen aquí al autorizarlos o cuando tengan evidencias en curso.</p>
+                  {onContinueWithoutProducts ? (
+                    <TxContinueWithoutProducts onContinue={onContinueWithoutProducts} compact />
+                  ) : null}
                 </div>
               )}
             </div>
@@ -620,7 +627,11 @@ export function TransactionsModal(props: TransactionsModalProps) {
               </nav>
             ) : null}
             {!props.activeBankProduct ? (
-              <TxEmptyState canAddMoreProducts={canAddMoreProducts} onCreateProduct={() => handleCreateProduct()} />
+              <TxEmptyState
+                canAddMoreProducts={canAddMoreProducts}
+                onCreateProduct={() => handleCreateProduct()}
+                onContinueWithoutProducts={onContinueWithoutProducts}
+              />
             ) : (
               <>
                 {!showTxCarousel ? (
@@ -629,6 +640,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
                     presets={RECOMMENDED_TX_PRODUCTS}
                     onSelectPreset={openAuthorizationWithPreset}
                     onCreateProduct={() => handleCreateProduct()}
+                    onContinueWithoutProducts={onContinueWithoutProducts}
                   />
                 ) : (
                   <>

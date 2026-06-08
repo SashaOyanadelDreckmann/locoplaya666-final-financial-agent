@@ -79,6 +79,7 @@ import {
   PRIMARY_CHAT_ID,
   type BankSimulation,
 } from './agent-page.constants';
+import { alignProductDashboard } from './transactions/align-product-dashboard';
 import type { BankProduct, TransactionTaxonomyOverride, UploadStatementResult } from './transactions/types';
 import type { TxWizardStep } from '@/lib/transactions-flow.helpers';
 import { normalizeTaxonomyKey, normalizeTransactionTaxonomyOverride } from './transactions/taxonomy';
@@ -126,6 +127,7 @@ import { useAgentShell } from './hooks/use-agent-shell';
 import { mergeBankProductPatch } from './transactions/state.helpers';
 import { TX_MAX_TOTAL_FILE_BYTES } from './transactions/constants';
 import { getEvidenceUploadCapacity } from '@/lib/transactions-evidence.helpers';
+import { resolveUploadEvidenceSourceHint } from '@/lib/evidence-fidelity.helpers';
 import { buildPanelSnapshotPayload } from './page.flow';
 import { clearPanelStateBackups, hydratePanelState, persistPanelState } from './panel-state.service';
 
@@ -1197,9 +1199,10 @@ export default function AgentPage() {
   const unlockedPanelBlocks = useMemo(() => {
     const hasAnalyzedMovements = productsHaveAnalyzedMovements(bankSimulation.products);
     const aggregateDocs = aggregateParsedDocuments(bankSimulation.products);
+    const skippedProductsModule = Boolean(bankSimulation.productsModuleSkipped);
     const hasTransactionsData =
-      bankSimulation.products.length > 0 &&
-      (hasAnalyzedMovements || aggregateDocs.length > 0);
+      skippedProductsModule ||
+      (bankSimulation.products.length > 0 && (hasAnalyzedMovements || aggregateDocs.length > 0));
     const budgetUnlocked = hasTransactionsData;
     // Productos y transacciones debe estar disponible desde el inicio.
     const transactionsUnlocked = true;
@@ -1214,9 +1217,11 @@ export default function AgentPage() {
   }, [bankSimulation.products, budgetRows, interviewCompleted]);
 
   function getFlowStatus() {
-    const productsCompleted = bankSimulation.products.length > 0;
+    const skippedProductsModule = Boolean(bankSimulation.productsModuleSkipped);
+    const productsCompleted = bankSimulation.products.length > 0 || skippedProductsModule;
     const transactionsCompleted =
-      productsCompleted && productsHaveAnalyzedMovements(bankSimulation.products);
+      productsCompleted &&
+      (skippedProductsModule || productsHaveAnalyzedMovements(bankSimulation.products));
     const budgetRowsCompleted = budgetRows.filter((row) => row.amount > 0).length;
     const budgetCompleted = transactionsCompleted && budgetRowsCompleted >= 3;
     return {
@@ -1235,7 +1240,9 @@ export default function AgentPage() {
     if (!flow.transactionsCompleted) {
       return {
         section: 'transactions',
-        message: 'Siguiente desbloqueo: agrega productos y respaldos para activar el presupuesto.',
+        message: bankSimulation.productsModuleSkipped
+          ? 'Sube respaldos en un producto o continúa con el presupuesto cuando quieras.'
+          : 'Siguiente desbloqueo: agrega productos y respaldos, o continúa sin productos para avanzar.',
       };
     }
     if (!flow.budgetCompleted) {
@@ -1483,8 +1490,12 @@ export default function AgentPage() {
     if (knowledgeScore < 20) {
       return 'Tip: completa tu intake para calibrar lenguaje, riesgo y desbloqueos del panel.';
     }
-    if (aggregateParsedDocuments(bankSimulation.products).length === 0 && aggregateUploadedFiles(bankSimulation.products).length === 0) {
-      return 'Tip: agrega un producto y sube respaldos para que el presupuesto nazca de evidencia real.';
+    if (
+      !bankSimulation.productsModuleSkipped &&
+      aggregateParsedDocuments(bankSimulation.products).length === 0 &&
+      aggregateUploadedFiles(bankSimulation.products).length === 0
+    ) {
+      return 'Tip: agrega un producto y sube respaldos, o continúa sin productos si prefieres avanzar ya.';
     }
     if (!unlockedPanelBlocks.budgetUnlocked) {
       return 'Tip: cuentame ingresos y gastos para desbloquear Presupuesto.';
@@ -1654,11 +1665,12 @@ export default function AgentPage() {
     await mergeProductsContextToIntake({
       productsContext: buildPersistableProductsContext(
         bankSimulation.products,
-        bankSimulation.activeProductId
+        bankSimulation.activeProductId,
+        bankSimulation.taxonomyOverrides,
       ),
       budgetContext: buildPersistableBudgetContext(),
     });
-  }, [bankSimulation.activeProductId, bankSimulation.products, buildPersistableBudgetContext]);
+  }, [bankSimulation.activeProductId, bankSimulation.products, bankSimulation.taxonomyOverrides, buildPersistableBudgetContext]);
 
   useEffect(() => {
     if (!isAuthenticated || !panelStateLoaded) return;
@@ -1873,6 +1885,7 @@ export default function AgentPage() {
       const scopedTxContext = buildScopedTransactionsContext(
         bankSimulation.products,
         bankSimulation.activeProductId,
+        bankSimulation.taxonomyOverrides,
       );
       const res = (await sendToAgent({
         user_message: enrichedUserMessage,
@@ -2117,11 +2130,6 @@ export default function AgentPage() {
       'jpeg',
       'webp',
       'gif',
-      'mp4',
-      'mov',
-      'webm',
-      'm4v',
-      'avi',
       'pdf',
       'xls',
       'xlsx',
@@ -2179,14 +2187,25 @@ export default function AgentPage() {
       ]);
     }
 
-    const topNameHints = activeBankProduct
-      ? {
-          institutionHint: activeBankProduct.bank,
-          serviceHint: activeBankProduct.label,
-          productTypeHint: activeBankProduct.productType,
-          productLabelHint: activeBankProduct.label,
-        }
-      : undefined;
+    const evidenceSourceHint = resolveUploadEvidenceSourceHint({
+      uploadFormat: activeBankProduct?.assistant?.uploadFormat ?? null,
+      files: accepted,
+    });
+    const looseTextEvidence =
+      evidenceSourceHint === 'text' ||
+      accepted.every((file) => /\.(txt|md|log)$/i.test(file.name));
+    const topNameHints = {
+      ...(activeBankProduct
+        ? {
+            institutionHint: activeBankProduct.bank,
+            serviceHint: activeBankProduct.label,
+            productTypeHint: activeBankProduct.productType,
+            productLabelHint: activeBankProduct.label,
+          }
+        : {}),
+      evidenceSourceHint,
+      looseTextEvidence,
+    };
     const uploadFiles = accepted.map((file) => ({
       name: file.name,
       mime: file.type || undefined,
@@ -2274,7 +2293,8 @@ export default function AgentPage() {
       ...baseIntake,
       __productsContext: buildPersistableProductsContext(
         bankSimulation.products,
-        bankSimulation.activeProductId
+        bankSimulation.activeProductId,
+        bankSimulation.taxonomyOverrides,
       ),
       __budgetContext: buildPersistableBudgetContext(),
     };
@@ -2361,6 +2381,14 @@ export default function AgentPage() {
         'Configurando presupuesto con Financieramente… construyendo informe ejecutivo premium con gráficos.',
       hideUserMessage: true,
     });
+  }
+
+  function continueWithoutProducts() {
+    setBankSimulation((prev) => ({ ...prev, productsModuleSkipped: true }));
+    setTxCreationNotice(
+      'Continuaste sin conectar productos. Puedes usar el agente y el presupuesto; vuelve cuando quieras a subir antecedentes.',
+    );
+    setIsTransactionsModalOpen(false);
   }
 
   function openTransactionsPanel() {
@@ -2661,11 +2689,6 @@ export default function AgentPage() {
       'jpeg',
       'webp',
       'gif',
-      'mp4',
-      'mov',
-      'webm',
-      'm4v',
-      'avi',
       'pdf',
       'xls',
       'xlsx',
@@ -2679,13 +2702,22 @@ export default function AgentPage() {
       'yml',
       'log',
     ]);
+    const videoFiles = fileArray.filter(
+      (file) => file.type.startsWith('video/') || /\.(mp4|mov|webm|m4v|avi)$/i.test(file.name),
+    );
+    if (videoFiles.length > 0) {
+      setTransactionUploadError(
+        'El formato video ya no está disponible. Usa capturas, PDF, Excel o texto.',
+      );
+      return null;
+    }
     const selectedFiles = fileArray.filter((file) => {
       const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
-      return file.type.startsWith('image/') || file.type.startsWith('video/') || file.type === 'application/pdf' || allowedExt.has(ext);
+      return file.type.startsWith('image/') || file.type === 'application/pdf' || allowedExt.has(ext);
     });
     if (selectedFiles.length === 0) {
       setTransactionUploadError(
-        'Formato no soportado. Usa imagen, video, PDF, XLS/XLSX, CSV/TSV, TXT/MD, JSON, XML, YAML o LOG.',
+        'Formato no soportado. Usa imagen, PDF, XLS/XLSX, CSV/TSV, TXT/MD, JSON, XML, YAML o LOG.',
       );
       return null;
     }
@@ -2704,26 +2736,6 @@ export default function AgentPage() {
     const cappedFiles = selectedFiles.slice(0, availableSlots);
     if (cappedFiles.length < selectedFiles.length) {
       setTxCreationNotice(`Se cargaron ${cappedFiles.length} archivos. Límite por producto: ${MAX_EVIDENCE_FILES_PER_PRODUCT}.`);
-    }
-
-    // Validate video duration before starting the upload
-    for (const file of cappedFiles) {
-      if (file.type.startsWith('video/') || /\.(mp4|mov|webm|m4v|avi)$/i.test(file.name)) {
-        const duration = await new Promise<number>((resolve) => {
-          const video = document.createElement('video');
-          video.preload = 'metadata';
-          const url = URL.createObjectURL(file);
-          video.onloadedmetadata = () => { URL.revokeObjectURL(url); resolve(video.duration); };
-          video.onerror = () => { URL.revokeObjectURL(url); resolve(0); };
-          video.src = url;
-        });
-        if (duration > 40) {
-          setTransactionUploadError(
-            `El video "${file.name}" dura ${Math.round(duration)} s. El máximo es 40 segundos — recorta la grabación antes de subirla.`,
-          );
-          return null;
-        }
-      }
     }
 
     const names = cappedFiles.map((f) => f.name);
@@ -2758,12 +2770,22 @@ export default function AgentPage() {
         detail: 'Enviando respaldos al analizador.',
       });
 
+      const evidenceSourceHint = resolveUploadEvidenceSourceHint({
+        uploadFormat: activeBankProduct.assistant?.uploadFormat ?? null,
+        files: cappedFiles,
+      });
+      const looseTextEvidence =
+        evidenceSourceHint === 'text' ||
+        cappedFiles.every((file) => /\.(txt|md|log)$/i.test(file.name));
+
       const callParseDocuments = async () =>
         parseDocuments(encodedFiles, {
           institutionHint: activeBankProduct.bank,
           serviceHint: activeBankProduct.label,
           productTypeHint: activeBankProduct.productType,
           productLabelHint: activeBankProduct.label,
+          evidenceSourceHint,
+          looseTextEvidence,
           fastParse: true,
         });
       setDocumentsParseProgress({
@@ -2829,6 +2851,8 @@ export default function AgentPage() {
               opportunities?: string[];
               metric_explanations?: Array<{ metric: string; value: string; explanation: string }>;
               executive_summary?: string;
+              evidence_fidelity?: 'authoritative' | 'indicative';
+              evidence_fidelity_reason?: string | null;
             };
             document_insights?: Array<{
               name: string;
@@ -2927,6 +2951,29 @@ export default function AgentPage() {
         return null;
       }
 
+      const buildParsedDashboard = () =>
+        profile
+          ? {
+              period: profile.period,
+              currency: profile.currency,
+              keyMetrics: profile.key_metrics,
+              topCategories: profile.top_categories,
+              topMerchants: profile.top_merchants,
+              categoryExamples: profile.category_examples,
+              spendClusters: profile.spend_clusters,
+              topExpenses: profile.top_expenses,
+              topIncome: profile.top_income,
+              alerts: profile.alerts,
+              alertDetails: profile.alert_details,
+              opportunities: profile.opportunities,
+              metricExplanations: profile.metric_explanations,
+              movements: canonicalMovements,
+              summary: profile.executive_summary,
+              evidenceFidelity: profile.evidence_fidelity,
+              evidenceFidelityReason: profile.evidence_fidelity_reason ?? null,
+            }
+          : undefined;
+
       setBankSimulation((prev) => {
         const uploadApplied = applyUploadToTargetProduct(prev.products, targetProductId, fallbackParsedDocs, names);
         const active = uploadApplied.targetProduct;
@@ -2936,6 +2983,13 @@ export default function AgentPage() {
         };
         const descriptor = buildProductCardDescriptor(provisionalProduct);
         const generatedLabel = finalLabel || descriptor.title || active.label;
+        const parsedDashboard = buildParsedDashboard();
+        const alignedDashboard =
+          parsedDashboard &&
+          alignProductDashboard(
+            { dashboard: parsedDashboard, productType: finalProductType || active.productType },
+            prev.taxonomyOverrides,
+          );
 
         const products = uploadApplied.products.map((p) =>
           p.id === active.id
@@ -2945,25 +2999,7 @@ export default function AgentPage() {
                 bank: finalBank || p.bank.trim() || active.bank,
                 productType: finalProductType || p.productType,
                 label: generatedLabel || descriptor.title || p.label,
-                dashboard: profile
-                  ? {
-                      period: profile.period,
-                      currency: profile.currency,
-                      keyMetrics: profile.key_metrics,
-                      topCategories: profile.top_categories,
-                      topMerchants: profile.top_merchants,
-                      categoryExamples: profile.category_examples,
-                      spendClusters: profile.spend_clusters,
-                      topExpenses: profile.top_expenses,
-                      topIncome: profile.top_income,
-                      alerts: profile.alerts,
-                      alertDetails: profile.alert_details,
-                      opportunities: profile.opportunities,
-                      metricExplanations: profile.metric_explanations,
-                      movements: canonicalMovements,
-                      summary: profile.executive_summary,
-                    }
-                  : p.dashboard,
+                dashboard: alignedDashboard ?? parsedDashboard ?? p.dashboard,
               }
             : p
         );
@@ -2984,27 +3020,17 @@ export default function AgentPage() {
             ? `${names.length} respaldo(s) procesado(s) para ${normalizedLabelHint || activeBankProduct.label}. La evidencia sugiere ${profileResolvedInstitution || profileInstitution || finalBank} · ${profileResolvedType || finalProductType}; revisa antes de continuar.${resolutionSuffix ? ` ${resolutionSuffix}` : ''}`
             : `${names.length} respaldo(s) procesado(s) para ${normalizedLabelHint || activeBankProduct.label}. Ya puedes revisar el resumen o inyectar el producto al agente.${resolutionSuffix ? ` ${resolutionSuffix}` : ''}`,
       );
+      const parsedDashboardForReturn = buildParsedDashboard();
+      const alignedDashboardForReturn =
+        parsedDashboardForReturn &&
+        alignProductDashboard(
+          { dashboard: parsedDashboardForReturn, productType: finalProductType || activeBankProduct.productType },
+          bankSimulation.taxonomyOverrides,
+        );
+
       return {
         documents: fallbackParsedDocs,
-        dashboard: transactionAnalysis?.product_profile
-          ? {
-              period: transactionAnalysis.product_profile.period,
-              currency: transactionAnalysis.product_profile.currency,
-              keyMetrics: transactionAnalysis.product_profile.key_metrics,
-              topCategories: transactionAnalysis.product_profile.top_categories,
-              topMerchants: transactionAnalysis.product_profile.top_merchants,
-              categoryExamples: transactionAnalysis.product_profile.category_examples,
-              spendClusters: transactionAnalysis.product_profile.spend_clusters,
-              topExpenses: transactionAnalysis.product_profile.top_expenses,
-              topIncome: transactionAnalysis.product_profile.top_income,
-              alerts: transactionAnalysis.product_profile.alerts,
-              alertDetails: transactionAnalysis.product_profile.alert_details,
-              opportunities: transactionAnalysis.product_profile.opportunities,
-              metricExplanations: transactionAnalysis.product_profile.metric_explanations,
-              movements: canonicalMovements,
-              summary: transactionAnalysis.product_profile.executive_summary,
-            }
-          : undefined,
+        dashboard: alignedDashboardForReturn ?? parsedDashboardForReturn,
         product: {
           bank: finalBank,
           label: finalLabel || normalizedLabelHint || profileLabel || activeBankProduct.label,
@@ -3539,6 +3565,8 @@ export default function AgentPage() {
         maxEvidenceFilesPerProduct={MAX_EVIDENCE_FILES_PER_PRODUCT}
         productsCreatedTotal={txProductsCreatedTotal}
         creationNotice={txCreationNotice}
+        productsModuleSkipped={bankSimulation.productsModuleSkipped}
+        onContinueWithoutProducts={continueWithoutProducts}
       />
 
       <BudgetModal

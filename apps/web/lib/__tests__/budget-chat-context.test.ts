@@ -77,12 +77,14 @@ describe('budget-chat-context', () => {
     });
     expect(incomeReply).toMatch(/850\.000/);
     expect(incomeReply).toMatch(/líquido|ingreso/i);
+    expect(incomeReply).not.toMatch(/^perfecto/i);
 
     const foodClarify = buildCategoryClarificationReply({
       userAnswer: 'gasto harto en comida fuera',
       row: rows[2],
     });
-    expect(foodClarify.reply).toMatch(/comida|Te leí/i);
+    expect(foodClarify.reply).toMatch(/comida/i);
+    expect(foodClarify.reply).not.toMatch(/^entendido|^perfecto|^claro/i);
     expect(foodClarify.followUp).toMatch(/\?/);
   });
 

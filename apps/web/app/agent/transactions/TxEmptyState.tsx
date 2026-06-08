@@ -1,11 +1,18 @@
 'use client';
 
+import { TxContinueWithoutProducts } from './TxContinueWithoutProducts';
+
 type TxEmptyStateProps = {
   canAddMoreProducts: boolean;
   onCreateProduct: () => void;
+  onContinueWithoutProducts?: () => void;
 };
 
-export function TxEmptyState({ canAddMoreProducts, onCreateProduct }: TxEmptyStateProps) {
+export function TxEmptyState({
+  canAddMoreProducts,
+  onCreateProduct,
+  onContinueWithoutProducts,
+}: TxEmptyStateProps) {
   return (
     <div className="transactions-summary-card pt-empty-state">
       <div className="pt-empty-head">
@@ -39,12 +46,15 @@ export function TxEmptyState({ canAddMoreProducts, onCreateProduct }: TxEmptySta
       <div className="agent-modal-actions pt-empty-actions">
         <button
           type="button"
-          className="continue-ghost tx-create-product-btn"
+          className="button-primary tx-create-product-btn"
           onClick={onCreateProduct}
           disabled={!canAddMoreProducts}
         >
           Crear primer producto
         </button>
+        {onContinueWithoutProducts ? (
+          <TxContinueWithoutProducts onContinue={onContinueWithoutProducts} />
+        ) : null}
       </div>
     </div>
   );

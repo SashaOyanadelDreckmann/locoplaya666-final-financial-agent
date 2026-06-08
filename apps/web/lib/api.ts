@@ -152,6 +152,8 @@ export async function parseDocuments(
     serviceHint?: string;
     productTypeHint?: string;
     productLabelHint?: string;
+    evidenceSourceHint?: 'photos' | 'pdf' | 'spreadsheet' | 'text';
+    looseTextEvidence?: boolean;
     fastParse?: boolean;
   }
 ) {

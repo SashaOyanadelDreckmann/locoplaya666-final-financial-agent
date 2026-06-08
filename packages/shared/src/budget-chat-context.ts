@@ -277,8 +277,76 @@ function intakeSnippet(context: BudgetAssistantContext): string | null {
   return parts.length > 0 ? `En tu perfil ${parts.slice(0, 2).join(' y ')}.` : null;
 }
 
+export type BudgetRowFieldGap = 'amount' | 'cadence' | 'paymentMethod' | 'movementType';
+
+export function isBulkDeleteRequest(answer: string): boolean {
+  const text = String(answer ?? '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+  if (/\b(limpiar|vaciar|resetear|borrar todo|eliminar todo|quitar todo)\b/.test(text)) return true;
+  if (
+    /\b(todas?|todo el|toda la|completa?|entera?|cada una)\b/.test(text) &&
+    /\b(filas?|tabla|presupuesto|movimientos?|rubros?|categorias?|gastos?|ingresos?)\b/.test(text)
+  ) {
+    return true;
+  }
+  return /\b(elimina|eliminar|borra|borrar|quita|quitar)\b/.test(text) && /\b(todas?|todo)\b/.test(text);
+}
+
+export function isBudgetSkipAnswer(answer: string): boolean {
+  const text = String(answer ?? '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+  if (!text.trim()) return false;
+  return /\b(prefiero|siguiente|saltar|skip|pasar|dejemos|otra cosa|otro rubro|continuemos con otro|avancemos|luego|mas tarde|no se|no lo se|no tengo|no aplica)\b/.test(
+    text,
+  );
+}
+
+export function pickNextBudgetRowFieldGap(row: BudgetRow): BudgetRowFieldGap | null {
+  if (Number(row.amount ?? 0) <= 0) return 'amount';
+  const cadence = row.cadence;
+  if (!cadence || cadence === 'oneoff') return 'cadence';
+  if (!row.paymentMethod) return 'paymentMethod';
+  if (!row.movementType) return 'movementType';
+  return null;
+}
+
+export function buildBudgetRowDetailQuestion(row: BudgetRow, field: Exclude<BudgetRowFieldGap, 'amount'>): string {
+  const category = row.category.trim() || 'este movimiento';
+  switch (field) {
+    case 'cadence':
+      return `¿${category} es un monto fijo cada mes o varía mes a mes?`;
+    case 'paymentMethod':
+      return `¿Cómo pagas ${category.toLowerCase()} normalmente: transferencia, débito, crédito o efectivo?`;
+    case 'movementType':
+      return `¿Qué tipo de movimiento describe mejor ${category}? (vivienda, alimentación, transporte, deuda, ahorro, otros)`;
+    default:
+      return `¿Qué dato falta completar para ${category.toLowerCase()}?`;
+  }
+}
+
+export function inferBudgetFieldFromQuestion(question: string): BudgetRowFieldGap | null {
+  const q = String(question ?? '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+  if (/fijo|variable|var[ií]a mes a mes|recurrente/.test(q)) return 'cadence';
+  if (/transferencia|d[eé]bito|cr[eé]dito|efectivo|c[oó]mo pagas|medio de pago/.test(q)) return 'paymentMethod';
+  if (/tipo de movimiento|describe mejor/.test(q)) return 'movementType';
+  if (/monto|cu[aá]nto|pesos/.test(q)) return 'amount';
+  return null;
+}
+
 export function buildContextualQuestion(row: BudgetRow | null, context: BudgetAssistantContext): string {
   if (!row) return '¿Cuánto es tu ingreso principal mensual?';
+
+  const metadataGap = pickNextBudgetRowFieldGap(row);
+  if (metadataGap && metadataGap !== 'amount') {
+    return buildBudgetRowDetailQuestion(row, metadataGap);
+  }
 
   const hint = rowHintFor(context, row.id);
   const memory = getChatMemoryForRow(context, row.id);
@@ -380,7 +448,21 @@ export function pickContextualFocusRow(
   if (preferredRowId) {
     const canonical = canonicalBudgetRowId(preferredRowId);
     const direct = rows.find((row) => canonicalBudgetRowId(row.id) === canonical) ?? null;
-    if (direct && Number(direct.amount ?? 0) <= 0) return direct;
+    if (direct) {
+      const gap = pickNextBudgetRowFieldGap(direct);
+      if (gap) return direct;
+    }
+  }
+
+  const metadataIncomplete = getEffectiveBudgetRows(rows).filter((row) => {
+    const gap = pickNextBudgetRowFieldGap(row);
+    return gap != null && gap !== 'amount';
+  });
+  if (metadataIncomplete.length > 0) {
+    const ranked = [...metadataIncomplete].sort(
+      (a, b) => rowPriorityScore(b, context) - rowPriorityScore(a, context),
+    );
+    return ranked[0] ?? metadataIncomplete[0] ?? null;
   }
 
   const unfilled = getEffectiveBudgetRows(rows).filter((row) => Number(row.amount ?? 0) <= 0);
@@ -553,6 +635,29 @@ function normalizeAnswerEcho(answer: string): string {
     .slice(0, 90);
 }
 
+/** Fragmento semántico del mensaje del usuario, sin montos ni muletillas. */
+export function extractUserAnswerCue(answer: string): string | null {
+  let text = normalizeAnswerEcho(answer)
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+  text = text
+    .replace(/\$|\bclp\b/gi, ' ')
+    .replace(/[+-]?\d[\d.,\s]{0,18}(?:\s*(?:k|mil|m|mm|millones?))?/gi, ' ')
+    .replace(/\b(si|sí|no|ok|ya|mm|ah|bueno|dale|claro|perfecto)\b/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (text.length < 6) return null;
+  return text.slice(0, 56);
+}
+
+export const BUDGET_GENERIC_OPENER_RE =
+  /^(perfecto|claro|listo|entendido|genial|excelente|buen[ií]simo|dale|ok|va|bien|de acuerdo)[,.\s!¡—-]+/i;
+
+export function startsWithBudgetGenericOpener(text: string): boolean {
+  return BUDGET_GENERIC_OPENER_RE.test(String(text ?? '').trim());
+}
+
 export function buildBudgetAcknowledgmentReply(input: {
   userAnswer: string;
   row: BudgetRow;
@@ -560,39 +665,47 @@ export function buildBudgetAcknowledgmentReply(input: {
 }): string {
   const amountLabel = `$${formatBudgetClp(input.amount)}`;
   const category = input.row.category.trim() || 'ese rubro';
-  const answer = String(input.userAnswer ?? '')
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '');
+  const categoryLower = category.toLowerCase();
+  const cue = extractUserAnswerCue(input.userAnswer);
 
-  if (input.row.id === 'income_salary' && /liquido|neto|sueldo|salario|haberes|gano/.test(answer)) {
-    return `Perfecto — dejé tu ingreso líquido en ${amountLabel} mensual.`;
+  if (cue) {
+    if (input.row.id === 'income_salary') {
+      return `Por “${cue}”, dejé ${amountLabel} como ingreso principal.`;
+    }
+    if (input.row.id === 'expense_food') {
+      return `Según “${cue}”, ${categoryLower} queda en ${amountLabel} al mes.`;
+    }
+    if (input.row.id === 'expense_rent') {
+      return `Con “${cue}”, vivienda quedó en ${amountLabel} mensuales.`;
+    }
+    if (input.row.id === 'expense_transport') {
+      return `Por “${cue}”, transporte quedó en ${amountLabel} al mes.`;
+    }
+    if (input.row.id === 'expense_debt') {
+      return `Según “${cue}”, deudas o cuotas quedaron en ${amountLabel} mensuales.`;
+    }
+    return `Con “${cue}”, ${categoryLower} quedó en ${amountLabel}.`;
   }
-  if (input.row.id === 'expense_food' && /comida|aliment|super|restaurant|delivery|picoteo/.test(answer)) {
-    return `Entendido: en alimentación van ${amountLabel} al mes. Ya quedó en la tabla.`;
-  }
-  if (input.row.id === 'expense_rent' && /arriendo|vivienda|dividendo|hipoteca|dormi/.test(answer)) {
-    return `Listo — ${amountLabel} mensuales para vivienda.`;
-  }
-  if (input.row.id === 'expense_transport' && /transporte|bencina|metro|uber|tag|peaje/.test(answer)) {
-    return `Anotado: ${amountLabel} al mes en transporte.`;
-  }
-  if (input.row.id === 'expense_debt' && /deuda|cuota|credito/.test(answer)) {
-    return `Quedó registrado: ${amountLabel} mensuales en deudas o cuotas.`;
-  }
-  if (input.row.type === 'income') {
-    return `Anoté ${amountLabel} mensuales en ${category}.`;
-  }
-  return `Listo — ${category} quedó en ${amountLabel}.`;
+
+  const factual = [
+    `${category} quedó en ${amountLabel}.`,
+    `En la tabla, ${categoryLower} muestra ${amountLabel}.`,
+    `${amountLabel} mensuales en ${categoryLower}.`,
+  ];
+  const idx = Math.abs(input.amount + category.length) % factual.length;
+  return factual[idx];
 }
 
 export function buildCategoryClarificationReply(input: {
   userAnswer: string;
   row: BudgetRow;
 }): { reply: string; followUp: string } {
-  const echo = normalizeAnswerEcho(input.userAnswer);
+  const cue = extractUserAnswerCue(input.userAnswer) ?? normalizeAnswerEcho(input.userAnswer);
   const category = input.row.category.toLowerCase();
-  const reply = echo.length > 8 ? `Te leí: “${echo}”.` : `Entiendo que hablamos de ${category}.`;
+  const reply =
+    cue.length >= 8
+      ? `Sobre “${cue}”, me falta el monto mensual para ${category}.`
+      : `Para ${category} necesito un monto mensual antes de anotarlo.`;
   const followUp = `¿Cuánto destinas al mes a ${category}, en pesos chilenos?`;
   return { reply, followUp };
 }
@@ -601,12 +714,11 @@ export function buildReflectiveFallbackReply(input: {
   userAnswer: string;
   row: BudgetRow | null;
 }): { reply: string; followUp: string } {
-  const echo = normalizeAnswerEcho(input.userAnswer);
+  const cue = extractUserAnswerCue(input.userAnswer);
   const category = input.row?.category?.toLowerCase() ?? 'ese rubro';
-  const reply =
-    echo.length > 10
-      ? `Te entiendo — dijiste “${echo}”. Para dejarlo en la tabla necesito un monto claro.`
-      : 'Para seguir necesito un monto o categoría concreta.';
+  const reply = cue
+    ? `Con “${cue}” todavía me falta el monto en pesos para ${category}.`
+    : `Para ${category} necesito un monto mensual concreto.`;
   const followUp = `¿Cuánto sería al mes para ${category}?`;
   return { reply, followUp };
 }

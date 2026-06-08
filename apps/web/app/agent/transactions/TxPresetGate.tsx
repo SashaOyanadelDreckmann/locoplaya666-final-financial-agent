@@ -1,5 +1,7 @@
 'use client';
 
+import { TxContinueWithoutProducts } from './TxContinueWithoutProducts';
+
 type Preset = {
   title: string;
   bank: string;
@@ -11,9 +13,16 @@ type TxPresetGateProps = {
   presets: readonly Preset[];
   onSelectPreset: (preset: Preset) => void;
   onCreateProduct: () => void;
+  onContinueWithoutProducts?: () => void;
 };
 
-export function TxPresetGate({ canAddMoreProducts, presets, onSelectPreset, onCreateProduct }: TxPresetGateProps) {
+export function TxPresetGate({
+  canAddMoreProducts,
+  presets,
+  onSelectPreset,
+  onCreateProduct,
+  onContinueWithoutProducts,
+}: TxPresetGateProps) {
   return (
     <div className="tx-carousel-gate tx-preset-gate">
       <div className="tx-preset-shell">
@@ -39,6 +48,9 @@ export function TxPresetGate({ canAddMoreProducts, presets, onSelectPreset, onCr
             + Agregar otro producto
           </button>
         </div>
+        {onContinueWithoutProducts ? (
+          <TxContinueWithoutProducts onContinue={onContinueWithoutProducts} compact />
+        ) : null}
       </div>
     </div>
   );

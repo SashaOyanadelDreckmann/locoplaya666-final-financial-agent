@@ -33,6 +33,7 @@ import { TX_CATEGORY_OPTIONS } from './constants';
 import type { useMovementAnalytics } from './use-movement-analytics';
 import type { BankProduct } from './types';
 import { TxExecutiveSummary } from './TxExecutiveSummary';
+import { TxIndicativeNotice } from './TxIndicativeNotice';
 
 type MovementAnalytics = ReturnType<typeof useMovementAnalytics>;
 
@@ -131,6 +132,7 @@ export function TxAnalystDashboard({
     flowRatioFromTable,
     tablePeriod,
     summaryFromTable,
+    alignedExecutiveSummary,
     inflowLabel,
     verifiedTableRows,
     highConfidenceMovementCount,
@@ -140,6 +142,8 @@ export function TxAnalystDashboard({
     categoryChartData,
     derivedTopMerchants,
     merchantConfidenceRows,
+    isIndicativeEvidence,
+    evidenceFidelityReason,
   } = analytics;
   const movementTypeLabel = (movement: MovementAnalytics['dedupedMovementRows'][number]) =>
     movement.movementKind === 'abono'
@@ -155,9 +159,12 @@ export function TxAnalystDashboard({
         : 'Ingresos';
 
   return (
-                  <section className="tx-content-card is-main-center tx-summary-stage tx-step-reveal tx-ap-dashboard">
+                  <section
+                    className={`tx-content-card is-main-center tx-summary-stage tx-step-reveal tx-ap-dashboard${isIndicativeEvidence ? ' is-indicative-evidence' : ''}`}
+                  >
 
                     {/* ── Editorial Masthead ── */}
+                    {isIndicativeEvidence ? <TxIndicativeNotice reason={evidenceFidelityReason} /> : null}
                     <div className="tx-ap-masthead">
                       <div className="tx-ap-masthead-top">
                         <div className="tx-ap-masthead-meta">
@@ -182,19 +189,31 @@ export function TxAnalystDashboard({
                       </div>
                       <div className="tx-ap-hero-numbers">
                         <div className="tx-ap-hero-primary">
-                          <span className="tx-ap-hero-label">{`${inflowSectionLabel} totales`}</span>
-                          <strong className="tx-ap-hero-value tx-ap-value-income">{formatCurrency(tableDerivedMetrics.inflowsTotal)}</strong>
+                          <span className="tx-ap-hero-label">
+                            {isIndicativeEvidence
+                              ? `${inflowSectionLabel} estimados`
+                              : `${inflowSectionLabel} totales`}
+                          </span>
+                          <strong className="tx-ap-hero-value tx-ap-value-income">
+                            {isIndicativeEvidence ? `~${formatCurrency(tableDerivedMetrics.inflowsTotal)}` : formatCurrency(tableDerivedMetrics.inflowsTotal)}
+                          </strong>
                         </div>
                         <div className="tx-ap-hero-divider" aria-hidden="true" />
                         <div className="tx-ap-hero-secondary">
                           <div className="tx-ap-hero-pair">
-                            <span>Egresos</span>
-                            <strong className="tx-ap-value-expense">{formatCurrency(tableDerivedMetrics.outflowsTotal)}</strong>
+                            <span>{isIndicativeEvidence ? 'Egresos est.' : 'Egresos'}</span>
+                            <strong className="tx-ap-value-expense">
+                              {isIndicativeEvidence
+                                ? `~${formatCurrency(tableDerivedMetrics.outflowsTotal)}`
+                                : formatCurrency(tableDerivedMetrics.outflowsTotal)}
+                            </strong>
                           </div>
                           <div className="tx-ap-hero-pair">
-                            <span>Flujo neto</span>
+                            <span>{isIndicativeEvidence ? 'Flujo neto est.' : 'Flujo neto'}</span>
                             <strong className={netFlowFromTable >= 0 ? 'tx-ap-value-positive' : 'tx-ap-value-negative'}>
-                              {formatCurrency(netFlowFromTable)}
+                              {isIndicativeEvidence
+                                ? `~${formatCurrency(netFlowFromTable)}`
+                                : formatCurrency(netFlowFromTable)}
                             </strong>
                           </div>
                           <div className="tx-ap-hero-pair">
@@ -202,8 +221,12 @@ export function TxAnalystDashboard({
                             <strong>{movementCount.toLocaleString('es-CL')}</strong>
                           </div>
                           <div className="tx-ap-hero-pair">
-                            <span>Ticket medio</span>
-                            <strong>{formatCurrency(avgMovementFromTable)}</strong>
+                            <span>{isIndicativeEvidence ? 'Ticket medio est.' : 'Ticket medio'}</span>
+                            <strong>
+                              {isIndicativeEvidence
+                                ? `~${formatCurrency(avgMovementFromTable)}`
+                                : formatCurrency(avgMovementFromTable)}
+                            </strong>
                           </div>
                         </div>
                       </div>
@@ -463,6 +486,7 @@ export function TxAnalystDashboard({
                       hasSummary={hasSummary}
                       summaryText={summaryText}
                       summaryFromTable={summaryFromTable}
+                      alignedExecutiveSummary={alignedExecutiveSummary}
                       summaryGeneratedAt={summaryGeneratedAt}
                       summaryModel={summaryModel}
                       summaryRegenerationsLeft={summaryRegenerationsLeft}
@@ -481,6 +505,8 @@ export function TxAnalystDashboard({
                       derivedTopMerchants={derivedTopMerchants}
                       enrichedCategoryData={enrichedCategoryData}
                       dashboardClusters={dashboardClusters}
+                      isIndicativeEvidence={isIndicativeEvidence}
+                      evidenceFidelityReason={evidenceFidelityReason}
                     />
 
                     {/* ── Charts ── */}

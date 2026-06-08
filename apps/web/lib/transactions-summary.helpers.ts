@@ -1,4 +1,5 @@
 import type { BankProduct } from '@/app/agent/transactions/types';
+import { buildProductInstantSummary, isIndicativeEvidenceProduct } from '@/lib/evidence-fidelity.helpers';
 
 function formatClp(value: number): string {
   return new Intl.NumberFormat('es-CL', {
@@ -8,13 +9,23 @@ function formatClp(value: number): string {
   }).format(Number.isFinite(value) ? value : 0);
 }
 
-export function resolveInstantTransactionSummary(dashboard: BankProduct['dashboard'] | null | undefined): string | null {
+export function resolveInstantTransactionSummary(
+  dashboard: BankProduct['dashboard'] | null | undefined,
+  productType?: BankProduct['productType'],
+): string | null {
   const existing = typeof dashboard?.summary === 'string' ? dashboard.summary.trim() : '';
   if (existing.length >= 40) return existing;
 
   const metrics = dashboard?.keyMetrics;
   const movementCount = Number(metrics?.movement_count ?? 0) || 0;
   if (movementCount <= 0) return existing || null;
+
+  if (
+    dashboard?.evidenceFidelity === 'indicative' ||
+    (dashboard ? isIndicativeEvidenceProduct({ dashboard, parsedDocuments: [] }) : false)
+  ) {
+    return (buildProductInstantSummary(dashboard, productType) ?? existing) || null;
+  }
 
   const inflows = Number(metrics?.inflows_total ?? 0) || 0;
   const outflows = Number(metrics?.outflows_total ?? 0) || 0;

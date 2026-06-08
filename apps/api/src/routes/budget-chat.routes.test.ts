@@ -171,7 +171,8 @@ describe('budget-chat routes', () => {
     expect(res.status).toBe(200);
     expect(res.body.source).toBe('deterministic_category_clarify');
     expect(res.body.focus_row_id).toBe('expense_food');
-    expect(String(res.body.assistant_reply)).toMatch(/comida|Te leí/i);
+    expect(String(res.body.assistant_reply)).toMatch(/comida/i);
+    expect(String(res.body.assistant_reply)).not.toMatch(/^perfecto|^claro|^listo|^entendido/i);
     expect(String(res.body.next_question)).toMatch(/\?/);
   }, 15000);
 
@@ -196,6 +197,28 @@ describe('budget-chat routes', () => {
     expect(String(res.body.next_question)).toMatch(/comida|supermercado/i);
   }, 15000);
 
+  it('requests confirmation before deleting all rows when asked in bulk', async () => {
+    const { agent, csrfToken } = await createAuthedAgent();
+    const budgetRows = [
+      { id: 'income_salary', category: 'Sueldo líquido', type: 'income', amount: 900000 },
+      { id: 'expense_food', category: 'Alimentación', type: 'expense', amount: 200000 },
+      { id: 'expense_other', category: 'Otros gastos', type: 'expense', amount: 50000 },
+    ];
+    const res = await agent.post('/api/budget-chat').set('x-csrf-token', csrfToken).send({
+      intent: 'reply',
+      answer: 'elimina todas las filas',
+      question: '¿Cuánto gastas al mes en comida y supermercado?',
+      budgetRows,
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.source).toBe('deterministic_delete_all_confirm');
+    expect(res.body.requires_confirmation).toBe(true);
+    expect(res.body.pending_confirmation?.actions?.length).toBe(3);
+    expect(String(res.body.pending_confirmation?.summary)).toMatch(/Eliminar 3 movimientos/i);
+    expect(String(res.body.pending_confirmation?.summary)).not.toContain('expense_');
+  }, 15000);
+
   it('requests confirmation before deleting a budget row', async () => {
     const { agent, csrfToken } = await createAuthedAgent();
     const budgetRows = [
@@ -214,6 +237,27 @@ describe('budget-chat routes', () => {
     expect(res.body.requires_confirmation).toBe(true);
     expect(res.body.pending_confirmation?.actions?.[0]?.kind).toBe('delete');
     expect(res.body.actions).toEqual([]);
+  }, 15000);
+
+  it('updates cadence and payment fields after amount is set', async () => {
+    const { agent, csrfToken } = await createAuthedAgent();
+    const budgetRows = [
+      { id: 'income_salary', category: 'Sueldo líquido', type: 'income', amount: 900000 },
+      { id: 'expense_food', category: 'Alimentación', type: 'expense', amount: 250000 },
+    ];
+    const res = await agent.post('/api/budget-chat').set('x-csrf-token', csrfToken).send({
+      intent: 'reply',
+      answer: 'es fijo, pago con débito',
+      question: '¿Alimentación es un monto fijo cada mes o varía mes a mes?',
+      assistantFocusRowId: 'expense_food',
+      budgetRows,
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.source).toBe('deterministic_field_update');
+    expect(res.body.action?.cadence).toBe('fixed');
+    expect(res.body.action?.payment_method).toBe('debit');
+    expect(String(res.body.next_question)).toMatch(/tipo de movimiento|describe mejor/i);
   }, 15000);
 
   it('applies pending delete actions after an affirmative confirmation', async () => {

@@ -1,5 +1,5 @@
 import type { BudgetAssistantContext, BudgetRow, BudgetWriterTurn } from '@financial-agent/shared';
-import { buildBudgetWriterDigest } from '@financial-agent/shared';
+import { buildBudgetWriterDigest, startsWithBudgetGenericOpener } from '@financial-agent/shared';
 import { completeStructuredWithSchema } from './llm.service';
 
 const WRITER_TIMEOUT_MS = Number(process.env.BUDGET_CHAT_WRITER_TIMEOUT_MS ?? 4500);
@@ -78,6 +78,8 @@ export function validateWriterOutput(
   const reply = compactCopy(output.reply ?? '', WRITER_MAX_REPLY_CHARS);
   const question = compactCopy(output.question ?? '', WRITER_MAX_QUESTION_CHARS);
   if (!reply || !question || !question.includes('?')) return null;
+  if (startsWithBudgetGenericOpener(reply)) return null;
+  if (startsWithBudgetGenericOpener(question)) return null;
 
   const allowedAmounts = new Set<number>([
     ...extractNumericTokens(input.deterministicReply),
@@ -111,17 +113,18 @@ export function validateWriterOutput(
 function buildWriterInstructions(turn: BudgetWriterTurn): string {
   return [
     'Eres la voz conversacional del asistente de presupuesto de Financieramente (Chile).',
-    'Tu único trabajo es REESCRIBIR con tono humano, cálido y profesional — buena onda, sin exagerar.',
-    'Demuestra que ESCUCHASTE al usuario: refleja con tus palabras lo que dijo (sin copiar textualmente todo).',
+    'Tu único trabajo es REESCRIBIR con tono humano y natural — sin sonar a bot ni a vendedor.',
+    'PROHIBIDO empezar reply o question con muletillas afirmativas: Perfecto, Claro, Listo, Entendido, Genial, Excelente, Dale, Ok.',
+    'Si hay USER_ANSWER, el reply DEBE mencionar un detalle concreto de lo que dijo (palabras clave, rubro, contexto) antes de hablar del monto.',
     'NO cambies la intención, NO inventes montos ni categorías, NO agregues recomendaciones nuevas.',
     'Conserva exactamente los mismos números en pesos chilenos del brief (puedes cambiar formato $950.000 vs 950 mil).',
     'Responde SOLO JSON estricto con keys reply y question.',
-    'reply: máximo 2 frases cortas — primero reconoce lo que el usuario dijo o lo que acabas de registrar; luego transición suave.',
+    'reply: máximo 2 frases cortas, directas y específicas — sin relleno ni entusiasmo vacío.',
     'question: UNA sola pregunta clara terminada en "?", conectada con el hilo de la conversación.',
     turn === 'init'
       ? 'En init, reply puede contextualizar con perfil/movimientos; question debe pedir el dato faltante.'
       : turn === 'confirmation'
-        ? 'En confirmation, celebra brevemente el avance sin ser cursi.'
+        ? 'En confirmation, describe qué registraste y por qué, citando el contexto del usuario.'
         : turn === 'suggestion'
           ? 'En suggestion, presenta la idea como invitación suave, no orden.'
           : 'Mantén continuidad con la conversación reciente.',
@@ -158,7 +161,7 @@ async function callBudgetWriterModel(input: BudgetWriterPolishInput): Promise<Wr
     name: 'budget_chat_writer',
     description: 'Humaniza copy del asistente de presupuesto sin alterar datos.',
     model,
-    temperature: 0.72,
+    temperature: input.turn === 'confirmation' ? 0.45 : 0.58,
     maxOutputTokens: 220,
     instructions: buildWriterInstructions(input.turn),
     input: [{ role: 'user', content: prompt }],

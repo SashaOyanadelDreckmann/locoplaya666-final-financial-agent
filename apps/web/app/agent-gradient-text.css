@@ -1,0 +1,190 @@
+/* GradientText — keyframes + agent hero layout (Tailwind v4, no tailwind.config.js) */
+
+@keyframes gradient-border {
+  0%,
+  100% {
+    border-radius: 37% 29% 27% 27% / 28% 25% 41% 37%;
+  }
+  25% {
+    border-radius: 47% 29% 39% 49% / 61% 19% 66% 26%;
+  }
+  50% {
+    border-radius: 57% 23% 47% 72% / 63% 17% 66% 33%;
+  }
+  75% {
+    border-radius: 28% 49% 29% 100% / 93% 20% 64% 25%;
+  }
+}
+
+@keyframes gradient-1 {
+  0%,
+  100% {
+    top: 0;
+    right: 0;
+  }
+  50% {
+    top: 50%;
+    right: 25%;
+  }
+  75% {
+    top: 25%;
+    right: 50%;
+  }
+}
+
+@keyframes gradient-2 {
+  0%,
+  100% {
+    top: 0;
+    left: 0;
+  }
+  60% {
+    top: 75%;
+    left: 25%;
+  }
+  85% {
+    top: 50%;
+    left: 50%;
+  }
+}
+
+@keyframes gradient-3 {
+  0%,
+  100% {
+    bottom: 0;
+    left: 0;
+  }
+  40% {
+    bottom: 50%;
+    left: 25%;
+  }
+  65% {
+    bottom: 25%;
+    left: 50%;
+  }
+}
+
+@keyframes gradient-4 {
+  0%,
+  100% {
+    bottom: 0;
+    right: 0;
+  }
+  50% {
+    bottom: 25%;
+    right: 40%;
+  }
+  90% {
+    bottom: 50%;
+    right: 25%;
+  }
+}
+
+/* Demo typography: text-4xl font-bold tracking-tighter md:text-5xl lg:text-7xl */
+.budget-modal .bcc-hero-question--gradient-demo {
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0.15rem 0 0.35rem !important;
+  display: block !important;
+  text-align: center !important;
+  font-size: 2.25rem !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.05em !important;
+  line-height: 1.1 !important;
+  color: #ffffff !important;
+  text-wrap: pretty !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
+}
+
+@media (min-width: 768px) {
+  .budget-modal .bcc-hero-question--gradient-demo {
+    font-size: 3rem !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  .budget-modal .bcc-hero-question--gradient-demo {
+    font-size: 4.5rem !important;
+  }
+}
+
+.budget-modal .bcc-hero-question--gradient-demo.bcc-hero-question--pending {
+  font-size: 1.05rem !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.02em !important;
+  line-height: 1.4 !important;
+  color: rgba(255, 255, 255, 0.55) !important;
+}
+
+@media (max-width: 1023px) {
+  .budget-modal[data-budget-view='assistant'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-agent .bcc-hero-question--gradient-demo,
+  html.is-mobile-viewport .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-agent .bcc-hero-question--gradient-demo,
+  .budget-modal.is-mobile-shell .budget-assistant-panel .bcc-hero-question--gradient-demo {
+    font-size: clamp(1.45rem, 6.2vw, 1.85rem) !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.045em !important;
+    line-height: 1.14 !important;
+    text-align: center !important;
+    text-shadow: 0 2px 18px rgba(0, 0, 0, 0.55) !important;
+    overflow: visible !important;
+  }
+
+  .budget-modal .bcc-hero-question--gradient-demo .gradient-text--agent-bleed {
+    overflow: visible !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .budget-modal .bcc-hero-question--gradient-demo:not(.bcc-hero-question--pending) {
+    font-size: clamp(1.35rem, 6.8vw, 1.72rem) !important;
+    line-height: 1.15 !important;
+  }
+}
+
+/* Sangrado: el aura toca la 1ª/última letra de palabras vecinas */
+.gradient-text--agent-bleed {
+  overflow: visible !important;
+  padding-inline: 0.16em !important;
+  margin-inline: -0.12em !important;
+  position: relative !important;
+  z-index: 1 !important;
+  vertical-align: baseline !important;
+}
+
+.gradient-text--agent-bleed .gradient-text__aurora {
+  inset: -95% -58% !important;
+  opacity: 0.92 !important;
+}
+
+.gradient-text--agent-bleed .gradient-text__blob {
+  opacity: 0.78 !important;
+  filter: blur(1.15rem) saturate(0.72) !important;
+}
+
+.gradient-text--agent-bleed .gradient-text__blob--red {
+  background: hsl(var(--color-1) / 0.92) !important;
+}
+
+.gradient-text--agent-bleed .gradient-text__blob--blue {
+  background: hsl(var(--color-2) / 0.9) !important;
+}
+
+.gradient-text--agent-bleed .gradient-text__blob--yellow {
+  background: hsl(var(--color-3) / 0.9) !important;
+}
+
+.budget-modal .bcc-hero-question--gradient-demo {
+  overflow: visible !important;
+}
+
+.budget-modal .bcc-hero-plain-chunk {
+  position: relative;
+  z-index: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .budget-modal .bcc-hero-question--gradient-demo [class*='animate-[gradient'] {
+    animation: none !important;
+  }
+}

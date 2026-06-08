@@ -70,7 +70,7 @@ function buildPlannerInstructions(): string {
     '- Para add/update incluye solo campos mencionados o inferibles con evidencia.',
     '- Si propones cambios materiales (delete, add, o montos/categorías nuevas), requires_confirmation=true.',
     '- Si solo falta un dato para completar una fila, requires_confirmation=false y actions=[].',
-    '- pending_summary: 1-2 frases que demuestren que entendiste al usuario (reconocimiento + qué cambiarás).',
+    '- pending_summary: 1-2 frases citando un detalle concreto del USER_ANSWER + qué cambiarás; prohibido empezar con Perfecto/Claro/Listo/Entendido/Genial.',
     '- next_question: UNA pregunta clara en español chileno, tono humano y buena onda, terminada en "?".',
     '- NO inventes montos: solo usa números del mensaje, historial o evidencia del contexto.',
     '- Devuelve JSON estricto.',

@@ -1,33 +1,11 @@
 import { useCallback, useMemo } from 'react';
-import {
-  resolveMovementDirectionForTotals,
-  resolveMovementKind,
-  resolveSignedAmount,
-} from './movement-direction.helpers';
+import { readProductEvidenceFidelity } from '@/lib/evidence-fidelity.helpers';
+import { resolveInstantTransactionSummary } from '@/lib/transactions-summary.helpers';
+import { computeMovementAnalytics } from './compute-movement-analytics';
 import { formatPercentCompact } from './presentation';
-import { movementOverrideKey, normalizeTaxonomyKey, resolveTransactionOverride } from './taxonomy';
 import type { BankProduct, TransactionTaxonomyOverride } from './types';
 
-export type NormalizedMovementRow = {
-  label: string;
-  amount: number;
-  signedAmount?: number;
-  direction: 'income' | 'expense';
-  movementKind: 'income' | 'expense' | 'abono';
-  date: string;
-  sourceLine: string;
-  category: string;
-  merchant: string;
-  categoryConfidence: number;
-  confidence: number;
-  sourceKind: string;
-  directionBasis?: string;
-  uiKey: string;
-  rawAmount: number;
-  directionForTotals: 'income' | 'expense';
-  overrideApplied: boolean;
-  overrideMatchKey: string;
-};
+export type { NormalizedMovementRow } from './compute-movement-analytics';
 
 export function useMovementAnalytics(
   activeBankProduct: BankProduct | null,
@@ -44,12 +22,7 @@ export function useMovementAnalytics(
     [currency],
   );
 
-  const dashboardMetrics = activeBankProduct?.dashboard?.keyMetrics;
-  const isCreditCardProduct = activeBankProduct?.productType === 'credit_card';
   const dashboardCategories = activeBankProduct?.dashboard?.topCategories ?? [];
-  const alertDetails = activeBankProduct?.dashboard?.alertDetails ?? [];
-  const metricExplanations = activeBankProduct?.dashboard?.metricExplanations ?? [];
-  const dashboardPeriod = activeBankProduct?.dashboard?.period;
 
   const documentQualityRows = (activeBankProduct?.parsedDocuments ?? [])
     .filter((doc) => doc.insight)
@@ -80,234 +53,73 @@ export function useMovementAnalytics(
     rows: row.extractedRows,
   }));
 
-  const normalizeMovementText = (value: string | null | undefined) =>
-    String(value ?? '')
-      .toUpperCase()
-      .replace(/\b\d{4}-\d{2}-\d{2}\b/g, ' ')
-      .replace(/\b\d{2}[/-]\d{2}(?:[/-]\d{2,4})?\b/g, ' ')
-      .replace(/\b(?:INTERNET|CENTRAL)\b/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
-
-  const isMissingDate = (value?: string | null) => {
-    const normalized = String(value ?? '').trim().toUpperCase();
-    return normalized.length === 0 || normalized === 'N/D' || normalized === 'ND';
-  };
-
-  const extractDateTokens = (value: string): string[] => {
-    const source = String(value ?? '').trim();
-    if (!source) return [];
-    const tokens = new Set<string>();
-    const isoMatch = source.match(/\b(\d{4})-(\d{2})-(\d{2})\b/);
-    if (isoMatch) {
-      tokens.add(`${isoMatch[3]}/${isoMatch[2]}`);
-      tokens.add(`${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`);
-    }
-    const dmMatch = source.match(/\b(\d{2})[/-](\d{2})(?:[/-](\d{2,4}))?\b/);
-    if (dmMatch) {
-      tokens.add(`${dmMatch[1]}/${dmMatch[2]}`);
-      if (dmMatch[3]) {
-        const yyyy = dmMatch[3].length === 2 ? `20${dmMatch[3]}` : dmMatch[3];
-        tokens.add(`${yyyy}-${dmMatch[2]}-${dmMatch[1]}`);
-      }
-    }
-    return Array.from(tokens);
-  };
-
-  const buildDedupKey = (dateToken: string, direction: 'income' | 'expense', amountAbs: number, label: string) =>
-    `${dateToken}|${direction}|${Math.round(amountAbs)}|${normalizeMovementText(label)}`;
-
-  const dashboardMovements = (activeBankProduct?.dashboard?.movements ?? []).map((movement) => {
-    const signedAmount = resolveSignedAmount({
-      amount: Number(movement.amount) || 0,
-      amountSigned: Number.isFinite(Number(movement.amount_signed)) ? Number(movement.amount_signed) : undefined,
-      direction: movement.direction,
-    });
-    const direction = resolveMovementDirectionForTotals({
-      apiDirection: movement.direction,
-      movementKind: movement.movement_kind,
-      signedAmount,
-      isCreditCardProduct,
-    });
-    return {
-      label: movement.description ?? movement.source_line ?? movement.merchant ?? '',
-      amount: Math.abs(Number(movement.amount) || 0),
-      signedAmount,
-      direction,
-      movementKind: resolveMovementKind({
-        apiKind: movement.movement_kind,
-        directionForTotals: direction,
-        signedAmount,
-        isCreditCardProduct,
+  const computed = useMemo(
+    () =>
+      computeMovementAnalytics({
+        dashboard: activeBankProduct?.dashboard,
+        productType: activeBankProduct?.productType ?? 'credit_card',
+        taxonomyOverrides: transactionTaxonomyOverrides,
       }),
-      date: movement.date ?? '',
-      sourceLine: movement.source_line ?? '',
-      category: movement.category ?? '',
-      merchant: movement.merchant ?? '',
-      categoryConfidence: Number(movement.category_confidence ?? 0) || 0,
-      confidence: Number(movement.confidence ?? 0) || 0,
-      sourceKind: movement.source_kind ?? 'line',
-      directionBasis: movement.direction_basis ?? '',
-    };
-  });
-
-  const topMovements = [...dashboardMovements].sort((a, b) => {
-    if (Math.abs(b.signedAmount) !== Math.abs(a.signedAmount)) return Math.abs(b.signedAmount) - Math.abs(a.signedAmount);
-    if (a.direction !== b.direction) return a.direction === 'expense' ? -1 : 1;
-    return (a.label || '').localeCompare(b.label || '', 'es');
-  });
-
-  const movementTableRows = dashboardMovements.length > 0 ? dashboardMovements : topMovements;
-
-  const normalizedMovementRows = movementTableRows.map((movement, idx) => {
-    const rawAmount = resolveSignedAmount({
-      amount: Number(movement.amount) || 0,
-      amountSigned: Number.isFinite(Number(movement.signedAmount)) ? Number(movement.signedAmount) : undefined,
-      direction: movement.direction,
-    });
-    const normalizedDirection = resolveMovementDirectionForTotals({
-      apiDirection: movement.direction,
-      movementKind: movement.movementKind,
-      signedAmount: rawAmount,
-      isCreditCardProduct,
-    });
-    const movementKind = resolveMovementKind({
-      apiKind: movement.movementKind,
-      directionForTotals: normalizedDirection,
-      signedAmount: rawAmount,
-      isCreditCardProduct,
-    });
-    const baseRow = {
-      ...movement,
-      uiKey: `${movement.date ?? 'nd'}|${normalizedDirection}|${Math.round(Math.abs(rawAmount))}|${normalizeMovementText(movement.label)}|${idx}`,
-      rawAmount,
-      directionForTotals: normalizedDirection,
-      amount: Math.abs(rawAmount),
-      movementKind,
-    };
-    const manualOverride = resolveTransactionOverride(baseRow, transactionTaxonomyOverrides);
-    return manualOverride
-      ? {
-          ...baseRow,
-          merchant: manualOverride.merchant,
-          category: manualOverride.category,
-          categoryConfidence: 0.999,
-          overrideApplied: true,
-          overrideMatchKey: manualOverride.matchKey,
-        }
-      : {
-          ...baseRow,
-          overrideApplied: false,
-          overrideMatchKey: movementOverrideKey(baseRow),
-        };
-  });
-
-  const datedMovementKeys = new Set<string>();
-  normalizedMovementRows.forEach((movement) => {
-    if (isMissingDate(movement.date)) return;
-    extractDateTokens(movement.date).forEach((token) => {
-      datedMovementKeys.add(buildDedupKey(token, movement.directionForTotals, movement.amount, movement.label));
-    });
-  });
-
-  const dedupedMovementRows = normalizedMovementRows.filter((movement) => {
-    if (!isMissingDate(movement.date)) return true;
-    const embeddedDateTokens = extractDateTokens(movement.label);
-    if (embeddedDateTokens.length === 0) return true;
-    return !embeddedDateTokens.some((token) =>
-      datedMovementKeys.has(buildDedupKey(token, movement.directionForTotals, movement.amount, movement.label)),
-    );
-  }) as NormalizedMovementRow[];
-
-  const incomeOrAbonoRows = dedupedMovementRows.filter((m) => m.directionForTotals === 'income');
-  const expenseRows = dedupedMovementRows.filter((m) => m.directionForTotals === 'expense');
-  const hasAbonoRows = incomeOrAbonoRows.some((m) => m.movementKind === 'abono');
-  const hasIncomeRows = incomeOrAbonoRows.some((m) => m.movementKind === 'income');
-  const inflowLabel = hasAbonoRows
-    ? hasIncomeRows
-      ? 'abonos e ingresos'
-      : 'abonos'
-    : 'ingresos';
-  const incomeOrAbonoTotal = incomeOrAbonoRows.reduce((acc, m) => acc + m.amount, 0);
-  const expenseTotal = expenseRows.reduce((acc, m) => acc + m.amount, 0);
-
-  const tableDerivedMetrics = dedupedMovementRows.reduce(
-    (acc, movement) => {
-      if (movement.directionForTotals === 'income') acc.inflowsTotal += movement.amount;
-      else acc.outflowsTotal += movement.amount;
-      return acc;
-    },
-    { inflowsTotal: 0, outflowsTotal: 0 },
+    [activeBankProduct?.dashboard, activeBankProduct?.productType, transactionTaxonomyOverrides],
   );
 
-  const movementCount = dedupedMovementRows.length;
-  const netFlowFromTable = tableDerivedMetrics.inflowsTotal - tableDerivedMetrics.outflowsTotal;
-  const avgMovementFromTable =
-    movementCount > 0
-      ? (tableDerivedMetrics.inflowsTotal + tableDerivedMetrics.outflowsTotal) / movementCount
-      : 0;
-  const flowRatioFromTable =
-    tableDerivedMetrics.inflowsTotal > 0
-      ? tableDerivedMetrics.outflowsTotal / tableDerivedMetrics.inflowsTotal
-      : 0;
+  const {
+    dedupedMovementRows,
+    incomeOrAbonoRows,
+    expenseRows,
+    tableDerivedMetrics,
+    movementCount,
+    netFlowFromTable,
+    avgMovementFromTable,
+    flowRatioFromTable,
+    tablePeriod,
+    summaryFromTable,
+    inflowLabel,
+    verifiedTableRows,
+    highConfidenceMovementCount,
+    movementCoverageDisplay,
+    enrichedCategoryData,
+    derivedTopMerchants,
+    merchantConfidenceRows,
+    effectiveDashboard,
+    alertDetails,
+    metricExplanations,
+  } = computed;
 
-  const datedRows = dedupedMovementRows
-    .map((m) => m.date?.trim() ?? '')
-    .filter((d) => d.length > 0)
-    .sort((a, b) => a.localeCompare(b, 'es'));
+  const isCreditCardProduct = activeBankProduct?.productType === 'credit_card';
+  const isIndicativeEvidence = readProductEvidenceFidelity(activeBankProduct) === 'indicative';
+  const evidenceFidelityReason = activeBankProduct?.dashboard?.evidenceFidelityReason ?? null;
+  const dashboardClusters = effectiveDashboard.spendClusters ?? [];
 
-  const tablePeriod = {
-    from: datedRows[0] || dashboardPeriod?.from || 'N/D',
-    to: datedRows[datedRows.length - 1] || dashboardPeriod?.to || 'N/D',
-  };
-
-  const summaryFromTable =
-    movementCount > 0
-      ? `Se analizaron ${movementCount.toLocaleString('es-CL')} movimientos sobre cartola de ${isCreditCardProduct ? 'tarjeta' : 'producto'}. Totales detectados desde tabla extraída: ${formatCurrency(tableDerivedMetrics.outflowsTotal)} en egresos y ${formatCurrency(tableDerivedMetrics.inflowsTotal)} en ${inflowLabel}; flujo neto ${formatCurrency(netFlowFromTable)}.`
-      : 'Aún no hay suficientes filas extraídas para construir un resumen analítico confiable.';
-
-  const verifiedTableRows =
-    Number(dashboardMetrics?.table_rows_verified ?? 0) ||
-    dedupedMovementRows.filter((m) => m.sourceKind === 'table').length;
-
-  const highConfidenceMovementCount =
-    Number(dashboardMetrics?.high_confidence_movement_count ?? 0) ||
-    dedupedMovementRows.filter((m) => (m.confidence ?? 0) >= 0.85).length;
-
-  const movementCoverageDisplay =
-    Number(dashboardMetrics?.movement_coverage_pct ?? 0) > 0
-      ? Number(dashboardMetrics?.movement_coverage_pct ?? 0)
-      : movementCount > 0 && dashboardMetrics?.table_rows_processed && dashboardMetrics.table_rows_processed > 0
-        ? Math.min(100, (movementCount / dashboardMetrics.table_rows_processed) * 100)
-        : 0;
-
-  const enrichedCategoryData = useMemo(() => {
-    const byCategory = new Map<string, { amount: number; count: number }>();
-    dedupedMovementRows
-      .filter((m) => m.directionForTotals === 'expense')
-      .forEach((m) => {
-        const key = m.category?.trim() || 'Otros';
-        const current = byCategory.get(key) ?? { amount: 0, count: 0 };
-        current.amount += m.amount;
-        current.count += 1;
-        byCategory.set(key, current);
-      });
-    return Array.from(byCategory.entries())
-      .map(([name, data]) => ({
-        name,
-        amount: data.amount,
-        count: data.count,
-        share: expenseTotal > 0 ? (data.amount / expenseTotal) * 100 : 0,
-      }))
-      .sort((a, b) => b.amount - a.amount)
-      .slice(0, 6);
-  }, [dedupedMovementRows, expenseTotal]);
+  const incomeOrAbonoTotal = tableDerivedMetrics.inflowsTotal;
+  const expenseTotal = tableDerivedMetrics.outflowsTotal;
 
   const txNarrative = useMemo(() => {
     const dominantCategory = enrichedCategoryData[0];
     const concentration = dominantCategory?.share ?? 0;
     const fidelityPct = movementCount > 0 ? (verifiedTableRows / movementCount) * 100 : 0;
     const confidencePct = movementCount > 0 ? (highConfidenceMovementCount / movementCount) * 100 : 0;
+
+    if (isIndicativeEvidence) {
+      return {
+        marketAngle:
+          dominantCategory && concentration >= 20
+            ? `Patrón visible: ${dominantCategory.name} aparece entre los rubros más relevantes del antecedente.`
+            : 'El gasto parece repartido; no hay un solo rubro dominante en esta lectura orientativa.',
+        fidelityAngle:
+          'Antecedente visual o texto libre: priorizamos patrones, categorías y cargos visibles sobre totales exactos.',
+        confidenceAngle:
+          confidencePct >= 60
+            ? `Señales legibles en ${formatPercentCompact(confidencePct)} de los movimientos; aun así es una estimación, no un cierre contable.`
+            : 'La muestra es parcial; úsala para orientarte, no para cerrar cifras.',
+        cashAngle:
+          netFlowFromTable >= 0
+            ? `Flujo neto estimado ~${formatCurrency(netFlowFromTable)}; no lo uses como saldo oficial.`
+            : `Presión de caja estimada ~${formatCurrency(Math.abs(netFlowFromTable))}; confirma con un archivo estructurado si necesitas exactitud.`,
+        anchors: [expenseRows[0]?.label, incomeOrAbonoRows[0]?.label].filter(Boolean) as string[],
+      };
+    }
+
     return {
       marketAngle:
         dominantCategory && concentration >= 28
@@ -336,6 +148,7 @@ export function useMovementAnalytics(
     incomeOrAbonoRows,
     netFlowFromTable,
     formatCurrency,
+    isIndicativeEvidence,
   ]);
 
   const categoryChartData =
@@ -347,145 +160,17 @@ export function useMovementAnalytics(
         }))
       : categoryShareData;
 
-  const derivedTopMerchants = useMemo(() => {
-    const buckets = new Map<string, { merchant: string; category: string; amount: number; tx_count: number }>();
-    dedupedMovementRows
-      .filter((m) => m.directionForTotals === 'expense')
-      .forEach((m) => {
-        const merchant = String(m.merchant || m.label || '').trim();
-        if (!merchant) return;
-        const key = normalizeTaxonomyKey(merchant);
-        const current = buckets.get(key) ?? {
-          merchant,
-          category: m.category || 'Consumo general',
-          amount: 0,
-          tx_count: 0,
-        };
-        current.amount += m.amount;
-        current.tx_count += 1;
-        current.category = m.category || current.category;
-        current.merchant = m.merchant || current.merchant;
-        buckets.set(key, current);
-      });
-    return Array.from(buckets.values())
-      .sort((a, b) => b.amount - a.amount)
-      .slice(0, 8);
-  }, [dedupedMovementRows]);
-
-  const merchantConfidenceRows = useMemo(() => {
-    const buckets = new Map<
-      string,
-      { merchant: string; avgConfidence: number; count: number; manual: boolean; category: string }
-    >();
-    dedupedMovementRows
-      .filter((m) => m.directionForTotals === 'expense')
-      .forEach((m) => {
-      const merchant = String(m.merchant || m.label || '').trim();
-      if (!merchant) return;
-      const key = normalizeTaxonomyKey(merchant);
-      const current = buckets.get(key) ?? {
-        merchant,
-        avgConfidence: 0,
-        count: 0,
-        manual: false,
-        category: m.category || 'Consumo general',
-      };
-      current.avgConfidence += Number(m.categoryConfidence ?? m.confidence ?? 0) || 0;
-      current.count += 1;
-      current.manual = current.manual || Boolean(m.overrideApplied);
-      current.category = m.category || current.category;
-      buckets.set(key, current);
-    });
-    return Array.from(buckets.values())
-      .map((item) => ({
-        merchant: item.merchant,
-        category: item.category,
-        count: item.count,
-        manual: item.manual,
-        avgConfidence: item.count > 0 ? item.avgConfidence / item.count : 0,
-      }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 6);
-  }, [dedupedMovementRows]);
-
-  const effectiveDashboard = useMemo(
-    () => ({
-      ...(activeBankProduct?.dashboard ?? {}),
-      topCategories: enrichedCategoryData.map((item) => ({ name: item.name, amount: Math.round(item.amount) })),
-      topMerchants: derivedTopMerchants,
-      spendClusters: enrichedCategoryData.map((item) => ({
-        name: item.name,
-        amount: Math.round(item.amount),
-        tx_count: item.count,
-        avg_ticket: item.count > 0 ? Math.round(item.amount / item.count) : 0,
-        share_pct: Number(item.share.toFixed(2)),
-        examples: dedupedMovementRows
-          .filter((m) => m.directionForTotals === 'expense' && (m.category || 'Otros') === item.name)
-          .slice(0, 3)
-          .map((m) => m.merchant || m.label),
-      })),
-      movements: dedupedMovementRows.map((m) => ({
-        date: m.date ?? '',
-        description: m.label,
-        amount: m.amount,
-        amount_signed: m.rawAmount,
-        direction: m.directionForTotals,
-        movement_kind: m.movementKind,
-        direction_basis: m.directionBasis ?? '',
-        source_line: m.sourceLine ?? '',
-        category: m.category ?? 'Consumo general',
-        merchant: m.merchant ?? '',
-        category_confidence: m.categoryConfidence ?? m.confidence ?? 0,
-        confidence: m.confidence ?? 0,
-        source_kind: m.sourceKind ?? 'line',
-      })),
-    }),
-    [activeBankProduct?.dashboard, enrichedCategoryData, derivedTopMerchants, dedupedMovementRows],
-  );
-
-  const dashboardClusters = effectiveDashboard.spendClusters ?? [];
-
-  const metricExplanationsFromTable = useMemo(() => {
-    if (movementCount === 0) return metricExplanations;
-    return [
-      {
-        metric: 'Flujo neto',
-        value: formatCurrency(netFlowFromTable),
-        explanation: 'Diferencia entre ingresos detectados y egresos detectados del periodo.',
-      },
-      {
-        metric: 'Ratio gasto/ingreso',
-        value: flowRatioFromTable > 0 ? `${(flowRatioFromTable * 100).toFixed(1)}%` : 'N/D',
-        explanation: 'Mide presión de gasto: sobre 100% implica déficit operativo.',
-      },
-      {
-        metric: 'Cobertura tabular',
-        value: formatPercentCompact(movementCoverageDisplay),
-        explanation: 'Proporción de movimientos estructurados sobre filas procesadas.',
-      },
-      {
-        metric: 'Filas fieles de tabla',
-        value: formatPercentCompact(movementCount > 0 ? (verifiedTableRows / movementCount) * 100 : 0),
-        explanation:
-          'Porcentaje de movimientos reconstruidos desde tablas detectadas, no solo desde texto libre.',
-      },
-    ];
-  }, [
-    movementCount,
-    metricExplanations,
-    formatCurrency,
-    netFlowFromTable,
-    flowRatioFromTable,
-    movementCoverageDisplay,
-    verifiedTableRows,
-  ]);
+  const alignedExecutiveSummary =
+    movementCount > 0
+      ? resolveInstantTransactionSummary(effectiveDashboard) ?? summaryFromTable
+      : null;
 
   return {
     formatCurrency,
     isCreditCardProduct,
     dashboardClusters,
-    alertDetails,
-    metricExplanations: metricExplanationsFromTable,
+    alertDetails: alertDetails ?? [],
+    metricExplanations: metricExplanations ?? [],
     documentQualityRows,
     qualityAverage,
     categoryShareData,
@@ -502,6 +187,7 @@ export function useMovementAnalytics(
     flowRatioFromTable,
     tablePeriod,
     summaryFromTable,
+    alignedExecutiveSummary,
     inflowLabel,
     verifiedTableRows,
     highConfidenceMovementCount,
@@ -509,8 +195,10 @@ export function useMovementAnalytics(
     enrichedCategoryData,
     txNarrative,
     categoryChartData,
-    derivedTopMerchants,
+    derivedTopMerchants: derivedTopMerchants ?? [],
     merchantConfidenceRows,
     effectiveDashboard,
+    isIndicativeEvidence,
+    evidenceFidelityReason,
   };
 }

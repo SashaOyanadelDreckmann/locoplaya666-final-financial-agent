@@ -1,5 +1,6 @@
 export type TxWizardStep = 'products' | 'credentials' | 'upload' | 'dashboard';
 export type TxUploadOnboardingStep = 'format' | 'details' | 'upload';
+export type TxUploadFormat = 'photos' | 'pdf' | 'spreadsheet' | 'text';
 export type BankProduct = {
   id: string; label: string; bank: string; simulationAccepted: boolean; connected: boolean; randomMode: boolean;
   assistant?: {
@@ -10,7 +11,7 @@ export type BankProduct = {
       createdAt: string;
       attachments?: string[];
     }>;
-    uploadFormat?: 'photos' | 'pdf' | 'spreadsheet' | 'text' | 'video' | null;
+    uploadFormat?: TxUploadFormat | null;
     summaryText?: string | null;
     summaryModel?: string | null;
     summaryGeneratedAt?: string | null;
@@ -87,6 +88,8 @@ export type BankProduct = {
       source_kind?: 'table' | 'line';
     }>;
     summary?: string;
+    evidenceFidelity?: 'authoritative' | 'indicative';
+    evidenceFidelityReason?: string | null;
   };
 };
 
@@ -157,4 +160,6 @@ export type TransactionsModalProps = {
   maxEvidenceFilesPerProduct: number;
   productsCreatedTotal: number;
   creationNotice?: string | null;
+  productsModuleSkipped?: boolean;
+  onContinueWithoutProducts?: () => void;
 };
