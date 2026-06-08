@@ -8286,11 +8286,9 @@
   }
 }
 
-/* Match INFORMATION pill and Guardar PDF button size exactly */
+/* Match INFORMATION pill size in chat bubbles */
 .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-head-actions .latex-doc-mode,
-.agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-head-actions .latex-doc-save-btn,
-.agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-head-actions .latex-doc-mode,
-.agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-head-actions .latex-doc-save-btn {
+.agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-head-actions .latex-doc-mode {
   inline-size: 80px !important;
   min-inline-size: 80px !important;
   max-inline-size: 80px !important;
@@ -8309,6 +8307,22 @@
   letter-spacing: 0.02em !important;
   box-sizing: border-box !important;
   border-radius: 999px !important;
+}
+
+.agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-head-actions .latex-doc-save-btn,
+.agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-head-actions .latex-doc-save-btn {
+  inline-size: auto !important;
+  min-inline-size: 92px !important;
+  max-inline-size: none !important;
+  block-size: 28px !important;
+  min-block-size: 28px !important;
+  max-block-size: none !important;
+  padding: 0 12px !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  font-size: 0.62rem !important;
+  letter-spacing: 0.02em !important;
+  white-space: nowrap !important;
 }
 
 .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-head-actions .latex-doc-mode,

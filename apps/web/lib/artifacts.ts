@@ -2,8 +2,6 @@ import type { Artifact } from './agent.response.types';
 import { getCsrfToken } from './csrf';
 
 export async function savePdfArtifact(artifact: Artifact) {
-  // Guardado "real" (self-host): Next route escribe en /public/pdfs/simulaciones.
-  // Si estás en Vercel u otro FS read-only, este endpoint debe migrar a storage (S3/R2).
   const res = await fetch('/api/artifacts/save', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -102,4 +100,18 @@ export async function downloadBlobFile(blob: Blob, filename: string) {
   const fileUrl = URL.createObjectURL(blob);
   downloadFile(fileUrl, filename);
   return fileUrl;
+}
+
+/** Fetch artifact bytes (auth-aware) and deliver via share sheet on mobile or download on desktop. */
+export async function downloadArtifactFile(fileUrl: string, filename: string) {
+  const needsAuth = fileUrl.startsWith('/api/');
+  const res = await fetch(fileUrl, {
+    credentials: needsAuth ? 'include' : 'same-origin',
+    cache: 'no-store',
+  });
+  if (!res.ok) {
+    throw new Error('No se pudo descargar el PDF generado');
+  }
+  const blob = await res.blob();
+  return downloadBlobFile(blob, filename);
 }

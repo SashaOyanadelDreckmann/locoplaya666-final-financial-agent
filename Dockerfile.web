@@ -28,14 +28,17 @@ FROM base AS runner
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV CHROME_PATH=/usr/bin/chromium
+ENV DATA_DIR=/app/data
 WORKDIR /app
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends \
     chromium \
+    fonts-dejavu-core \
     fonts-liberation \
     fonts-noto-color-emoji \
-  && rm -rf /var/lib/apt/lists/*
+  && rm -rf /var/lib/apt/lists/* \
+  && mkdir -p /app/data
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=build /app/apps/web ./apps/web

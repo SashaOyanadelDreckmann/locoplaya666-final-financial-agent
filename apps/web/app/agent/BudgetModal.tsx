@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { focusMobileInput } from '@/lib/mobile-viewport-sync';
 import { getCsrfToken } from '@/lib/csrf';
-import { downloadFile, saveBubbleSnapshotPdfArtifact } from '@/lib/artifacts';
+import { downloadArtifactFile, saveBubbleSnapshotPdfArtifact } from '@/lib/artifacts';
 import { BudgetIntelligenceTable } from '@/components/ui/budget-intelligence-table';
 import { AgentHeroText } from '@/components/ui/agent-hero-text';
 
@@ -347,7 +347,7 @@ export function BudgetModal(props: {
       });
       const artifact = result.artifact;
       if (artifact.fileUrl) {
-        downloadFile(artifact.fileUrl, 'presupuesto-financieramente.pdf');
+        await downloadArtifactFile(artifact.fileUrl, 'presupuesto-financieramente.pdf');
       }
       props.onBudgetPdfSaved?.({
         title: artifact.title || `Presupuesto mensual · ${activeStyleLabel}`,

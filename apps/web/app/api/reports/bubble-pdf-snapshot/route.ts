@@ -3,6 +3,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import crypto from 'crypto';
 
+import { getBubbleReportsDir, buildBubbleReportPublicUrls } from '@/lib/bubble-pdf-storage';
 import { requireBackendSession } from '@/lib/serverAuth';
 import { checkRateLimit } from '@/lib/rateLimit';
 import { launchBubblePdfBrowser, readKatexCss } from '@/lib/bubble-pdf-browser';
@@ -98,7 +99,7 @@ export async function POST(req: Request) {
   <body>${body.html}</body>
 </html>`;
 
-      await page.setContent(documentHtml, { waitUntil: 'networkidle' });
+      await page.setContent(documentHtml, { waitUntil: 'load', timeout: 45_000 });
       await page.emulateMedia({ media: 'screen' });
       await page.evaluate(async () => {
         if ('fonts' in document) {
@@ -109,14 +110,13 @@ export async function POST(req: Request) {
 
       const slug = safeSlug(title);
       const suffix = `${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
-      const relativeDir = path.join('generated', 'reports', safeSlug(session.userId));
-      const publicDir = path.join(process.cwd(), 'public', relativeDir);
-      await fs.mkdir(publicDir, { recursive: true });
+      const outDir = getBubbleReportsDir(session.userId);
+      await fs.mkdir(outDir, { recursive: true });
 
       const pdfFileName = `${slug}-${suffix}.pdf`;
       const pngFileName = `${slug}-${suffix}.png`;
-      const pdfPath = path.join(publicDir, pdfFileName);
-      const pngPath = path.join(publicDir, pngFileName);
+      const pdfPath = path.join(outDir, pdfFileName);
+      const pngPath = path.join(outDir, pngFileName);
 
       await page.pdf({
         path: pdfPath,
@@ -130,13 +130,15 @@ export async function POST(req: Request) {
         type: 'png',
       });
 
+      const urls = buildBubbleReportPublicUrls(session.userId, pdfFileName, pngFileName);
+
       const artifact = {
         id: `${slug}-${suffix}`,
         type: 'pdf' as const,
         title,
         description: subtitle,
-        fileUrl: `/${relativeDir}/${pdfFileName}`,
-        previewImageUrl: `/${relativeDir}/${pngFileName}`,
+        fileUrl: urls.fileUrl,
+        previewImageUrl: urls.previewImageUrl,
         source: 'diagnostic' as const,
         createdAt: new Date().toISOString(),
       };

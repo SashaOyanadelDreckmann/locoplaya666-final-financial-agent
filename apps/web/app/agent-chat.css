@@ -347,6 +347,28 @@
     font-weight: 700 !important;
   }
 
+  .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-head {
+    flex-wrap: wrap !important;
+    align-items: flex-start !important;
+    gap: 10px !important;
+  }
+
+  .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-head-actions {
+    width: 100% !important;
+    justify-content: flex-end !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+
+  .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-save-btn {
+    min-inline-size: 108px !important;
+    block-size: 32px !important;
+    min-block-size: 32px !important;
+    padding: 0 14px !important;
+    font-size: 0.68rem !important;
+    touch-action: manipulation !important;
+  }
+
   .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-body,
   .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-body *,
   .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .premium-markdown,

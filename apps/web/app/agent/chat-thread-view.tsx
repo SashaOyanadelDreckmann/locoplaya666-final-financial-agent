@@ -3,7 +3,7 @@ import React, { memo, useState, type ReactNode } from 'react';
 import { DocumentBubble } from '@/components/conversation/DocumentBubble';
 import { CitationBubble } from '@/components/conversation/CitationBubble';
 import { AgentBlocksRenderer } from '@/components/agent/AgentBlocksRenderer';
-import { saveBubbleSnapshotPdfArtifact, savePdfArtifact, downloadFile } from '@/lib/artifacts';
+import { saveBubbleSnapshotPdfArtifact, savePdfArtifact, downloadArtifactFile } from '@/lib/artifacts';
 import { buildBubbleSnapshotHtmlAndCss } from './bubble-chat.snapshot';
 import type { ChatItem } from '@/lib/agent.response.types';
 import type { VisualMode } from '@/lib/visual-mode';
@@ -308,11 +308,9 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
                               css: snapshot.css,
                             });
                             const artifact = result.artifact;
+                            const pdfFilename = `${docMeta.title.replace(/\s+/g, '-').slice(0, 48)}.pdf`;
                             if (artifact.fileUrl) {
-                              downloadFile(
-                                artifact.fileUrl,
-                                `${docMeta.title.replace(/\s+/g, '-').slice(0, 48)}.pdf`,
-                              );
+                              await downloadArtifactFile(artifact.fileUrl, pdfFilename);
                             }
                             const reportId = `${artifact.id}-${Date.now()}`;
                             const report: SavedReport = {

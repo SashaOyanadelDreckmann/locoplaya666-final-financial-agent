@@ -228,7 +228,7 @@ export function sanitizeChatItems(items: ChatItem[]): ChatItem[] {
       if (!content && item.role !== 'assistant') return null;
       return { ...item, content };
     })
-    .filter((item): item is ChatItem => Boolean(item));
+    .filter((item): item is ChatItem => item !== null);
 }
 
 export function hasAssistantMessage(items: ChatItem[]): boolean {
