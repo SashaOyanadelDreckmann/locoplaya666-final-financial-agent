@@ -365,7 +365,7 @@
 
   .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact,
   .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-section {
-    flex: 1 1 auto !important;
+    flex: 1 1 0 !important;
     min-height: 0 !important;
     height: 100% !important;
     display: flex !important;
@@ -373,6 +373,7 @@
     overflow: hidden !important;
     padding: 4px 10px 0 !important;
     padding-bottom: 0 !important;
+    gap: 0 !important;
     justify-content: flex-start !important;
   }
 
@@ -394,16 +395,16 @@
   }
 
   .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-scroll-host {
-    flex: 0 0 auto !important;
+    flex: 1 1 0 !important;
     width: 100% !important;
     min-height: 0 !important;
+    height: 0 !important;
+    max-height: none !important;
     overflow: hidden !important;
     display: flex !important;
     flex-direction: column !important;
     justify-content: flex-start !important;
-    height: var(--budget-mobile-row-slot, 292px) !important;
-    max-height: var(--budget-mobile-row-slot, 292px) !important;
-    margin-bottom: 0 !important;
+    margin-bottom: 6px !important;
   }
 
   .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-scroll-host .budget-pdf-surface {
@@ -451,8 +452,8 @@
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
     gap: 6px !important;
     align-items: center !important;
-    margin-top: auto !important;
-    padding: 0 0 calc(max(4px, env(safe-area-inset-bottom, 0px))) !important;
+    margin: 0 !important;
+    padding: 0 0 calc(env(safe-area-inset-bottom, 0px) + 18px) !important;
   }
 
   .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-bottom-actions .budget-chat-sync-button:not(.is-assistant-action) {
@@ -645,5 +646,17 @@
     backdrop-filter: blur(20px) saturate(1.12) !important;
     -webkit-backdrop-filter: blur(20px) saturate(1.12) !important;
     opacity: 1 !important;
+  }
+
+  /* Table tab — row fills viewport; footer pinned lower (beats diagnostics legacy) */
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact,
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact {
+    padding-bottom: 0 !important;
+    gap: 0 !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact .budget-table-bottom-actions {
+    margin: 0 !important;
+    padding: 0 0 calc(env(safe-area-inset-bottom, 0px) + 18px) !important;
   }
 }

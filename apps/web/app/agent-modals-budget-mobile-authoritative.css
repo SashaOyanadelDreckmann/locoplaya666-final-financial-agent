@@ -81,12 +81,13 @@
 
   .budget-modal[data-budget-view='table'] .budget-table-section.is-mobile-table-compact .budget-table-scroll-host,
   .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-table-scroll-host {
-    flex: 0 0 auto !important;
+    flex: 1 1 0 !important;
     width: 100% !important;
-    height: var(--budget-mobile-row-slot, 260px) !important;
-    max-height: var(--budget-mobile-row-slot, 260px) !important;
+    height: 0 !important;
+    max-height: none !important;
     min-height: 0 !important;
     overflow: hidden !important;
+    margin-bottom: 6px !important;
   }
 
   .budget-modal[data-budget-view='table'] .budget-table-section.is-mobile-table-compact .budget-pdf-surface.is-mobile-compact,
@@ -122,8 +123,8 @@
     display: grid !important;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
     gap: 6px !important;
-    margin: auto 0 0 !important;
-    padding: 0 0 calc(max(4px, env(safe-area-inset-bottom, 0px))) !important;
+    margin: 0 !important;
+    padding: 0 0 calc(env(safe-area-inset-bottom, 0px) + 18px) !important;
     width: 100% !important;
   }
 

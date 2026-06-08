@@ -593,34 +593,27 @@ export function BudgetModal(props: {
       const rows = root.querySelectorAll<HTMLElement>('.budget-table-pro tbody tr');
       if (rows.length === 0) return;
 
-      let maxRowHeight = 0;
-      rows.forEach((row) => {
-        const rowStyles = window.getComputedStyle(row);
-        const marginBlock =
-          (parseFloat(rowStyles.marginTop) || 0) + (parseFloat(rowStyles.marginBottom) || 0);
-        const rowHeight = Math.ceil(row.getBoundingClientRect().height + marginBlock);
-        if (rowHeight > maxRowHeight) maxRowHeight = rowHeight;
-      });
-
       const tableCard = scrollHost.closest<HTMLElement>('.budget-card-table');
       const modalBody = root.querySelector<HTMLElement>('.budget-modal-body');
       const tableHead = tableCard?.querySelector<HTMLElement>('.budget-table-head');
       const bottomActions = tableCard?.querySelector<HTMLElement>('.budget-table-bottom-actions');
       const tabs = root.querySelector<HTMLElement>('.budget-mode-tabs');
       const header = root.querySelector<HTMLElement>('.bcc-modal-header');
+      const rowButtonGap = 6;
 
-      let available = scrollHost.clientHeight;
-      if (modalBody && tableCard) {
+      let slotHeight = scrollHost.clientHeight;
+      if (slotHeight < 180 && modalBody && tableCard) {
         const chrome =
           (header?.offsetHeight ?? 0) +
           (tabs?.offsetHeight ?? 0) +
           (tableHead?.offsetHeight ?? 0) +
           (bottomActions?.offsetHeight ?? 0) +
-          12;
-        available = Math.max(180, modalBody.clientHeight - chrome);
+          rowButtonGap;
+        slotHeight = Math.max(180, modalBody.clientHeight - chrome);
+      } else {
+        slotHeight = Math.max(180, slotHeight - rowButtonGap);
       }
 
-      const slotHeight = Math.max(180, Math.min(maxRowHeight, available));
       if (slotHeight <= 0) return;
       scrollHost.style.setProperty('--budget-mobile-row-slot', `${slotHeight}px`);
       root.style.setProperty('--budget-mobile-row-slot', `${slotHeight}px`);
@@ -630,12 +623,15 @@ export function BudgetModal(props: {
     const timer = window.setTimeout(measureMobileRowSlot, 120);
     const rafId = window.requestAnimationFrame(measureMobileRowSlot);
 
-    const rows = budgetModalRef.current?.querySelectorAll<HTMLElement>('.budget-table-pro tbody tr');
-    const rowObserver =
-      rows && rows.length > 0 && typeof ResizeObserver !== 'undefined'
+    const scrollHost = budgetTableScrollRef.current;
+    const tableCard = scrollHost?.closest<HTMLElement>('.budget-card-table') ?? null;
+    const layoutObserver =
+      scrollHost && typeof ResizeObserver !== 'undefined'
         ? new ResizeObserver(measureMobileRowSlot)
         : null;
-    rows?.forEach((row) => rowObserver?.observe(row));
+    layoutObserver?.observe(scrollHost);
+    if (tableCard) layoutObserver?.observe(tableCard);
+    if (budgetModalRef.current) layoutObserver?.observe(budgetModalRef.current);
 
     window.addEventListener('resize', measureMobileRowSlot);
     window.addEventListener('orientationchange', measureMobileRowSlot);
@@ -646,7 +642,7 @@ export function BudgetModal(props: {
     return () => {
       window.clearTimeout(timer);
       window.cancelAnimationFrame(rafId);
-      rowObserver?.disconnect();
+      layoutObserver?.disconnect();
       window.removeEventListener('resize', measureMobileRowSlot);
       window.removeEventListener('orientationchange', measureMobileRowSlot);
     };
