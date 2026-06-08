@@ -8,6 +8,8 @@ export type TxAssistantRetrievalMeta = {
   signalsUsed: string[];
 };
 
+export type { TxChatStarterChip } from '@financial-agent/shared';
+
 export type TxAssistantMessage = {
   id: string;
   role: 'assistant' | 'user';

@@ -43,6 +43,7 @@ type EffectiveDashboard = Parameters<typeof compactDashboardForPrompt>[0];
 
 type TransactionChatApiResponse = {
   assistant_text?: string;
+  summary?: string;
   suggested_followups?: string[];
   referenced_movement_keys?: string[];
   signals_used?: string[];
