@@ -66,6 +66,12 @@ export type CardStackProps<T extends CardStackItem> = {
   intervalMs?: number;
   pauseOnHover?: boolean;
 
+  /** Swipe / drag sensitivity on the active card */
+  dragTravelRatio?: number;
+  dragTravelMaxPx?: number;
+  dragVelocityThreshold?: number;
+  dragElastic?: number;
+
   /** UI */
   showDots?: boolean;
   showSpotlight?: boolean;
@@ -126,6 +132,11 @@ export function CardStack<T extends CardStackItem>({
   autoAdvance = false,
   intervalMs = 2800,
   pauseOnHover = true,
+
+  dragTravelRatio = 0.22,
+  dragTravelMaxPx = 160,
+  dragVelocityThreshold = 650,
+  dragElastic = 0.18,
 
   showDots = true,
   showSpotlight = true,
@@ -284,7 +295,7 @@ export function CardStack<T extends CardStackItem>({
                 ? {
                     drag: "x" as const,
                     dragConstraints: { left: 0, right: 0 },
-                    dragElastic: 0.18,
+                    dragElastic,
                     onDragEnd: (
                       _e: MouseEvent | TouchEvent | PointerEvent,
                       info: { offset: { x: number }; velocity: { x: number } },
@@ -292,10 +303,13 @@ export function CardStack<T extends CardStackItem>({
                       if (reduceMotion) return;
                       const travel = info.offset.x;
                       const v = info.velocity.x;
-                      const threshold = Math.min(160, cardWidth * 0.22);
+                      const threshold = Math.min(
+                        dragTravelMaxPx,
+                        cardWidth * dragTravelRatio,
+                      );
 
-                      if (travel > threshold || v > 650) prev();
-                      else if (travel < -threshold || v < -650) next();
+                      if (travel > threshold || v > dragVelocityThreshold) prev();
+                      else if (travel < -threshold || v < -dragVelocityThreshold) next();
                     },
                   }
                 : {};

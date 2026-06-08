@@ -313,6 +313,10 @@ export const MobilePanelCircularDeck = forwardRef<
           springStiffness={300}
           springDamping={30}
           loop
+          dragTravelRatio={0.11}
+          dragTravelMaxPx={72}
+          dragVelocityThreshold={280}
+          dragElastic={0.3}
           showDots={false}
           showSpotlight={false}
           className="mobile-panel-card-stack"
