@@ -1,13 +1,13 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 
 import { cn } from '@/lib/utils';
-import { GradientText } from '@/components/ui/gradient-text';
 import {
   applyHighlightNeighborBleed,
   buildAgentHighlightTerms,
   parseAgentHeroSegments,
+  type AgentHeroTextSegment,
 } from '@/app/agent/agent-hero-highlight.helpers';
 import type { BudgetRow } from '@/lib/budget-rows.helpers';
 
@@ -22,6 +22,38 @@ type AgentHeroTextProps = {
   question?: string | null;
 };
 
+function renderStableTypewriterNodes(
+  segments: AgentHeroTextSegment[],
+  visibleLength: number,
+): ReactNode[] {
+  let offset = 0;
+  const nodes: React.ReactNode[] = [];
+
+  for (let index = 0; index < segments.length; index += 1) {
+    const segment = segments[index];
+    const segmentEnd = offset + segment.text.length;
+    if (visibleLength <= offset) break;
+
+    const visibleSlice = segment.text.slice(0, Math.min(segment.text.length, visibleLength - offset));
+    offset = segmentEnd;
+    if (!visibleSlice) continue;
+
+    nodes.push(
+      segment.highlight ? (
+        <span key={`kw-${index}`} className="agent-keyword-gradient">
+          {visibleSlice}
+        </span>
+      ) : (
+        <span key={`plain-${index}`} className="bcc-hero-plain-chunk">
+          {visibleSlice}
+        </span>
+      ),
+    );
+  }
+
+  return nodes;
+}
+
 function HighlightedTypewriter({
   text,
   speed,
@@ -31,46 +63,29 @@ function HighlightedTypewriter({
   speed: number;
   terms: string[];
 }) {
-  const [displayText, setDisplayText] = useState('');
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [visibleLength, setVisibleLength] = useState(0);
+
+  const segments = useMemo(
+    () => applyHighlightNeighborBleed(parseAgentHeroSegments(text, terms), 1),
+    [text, terms],
+  );
 
   useEffect(() => {
-    setDisplayText('');
-    setCurrentIndex(0);
+    setVisibleLength(0);
   }, [text]);
 
   useEffect(() => {
     if (!text) return;
-    if (currentIndex >= text.length) return;
+    if (visibleLength >= text.length) return;
 
     const timeout = window.setTimeout(() => {
-      setDisplayText((prev) => prev + text[currentIndex]);
-      setCurrentIndex((prev) => prev + 1);
+      setVisibleLength((prev) => Math.min(text.length, prev + 1));
     }, speed);
 
     return () => window.clearTimeout(timeout);
-  }, [currentIndex, speed, text]);
+  }, [speed, text, visibleLength]);
 
-  const segments = useMemo(
-    () => applyHighlightNeighborBleed(parseAgentHeroSegments(displayText, terms), 1),
-    [displayText, terms],
-  );
-
-  return (
-    <>
-      {segments.map((segment, index) =>
-        segment.highlight ? (
-          <GradientText key={`${index}-${segment.text}`} className="gradient-text--agent-bleed">
-            {segment.text}
-          </GradientText>
-        ) : (
-          <span key={`${index}-${segment.text}`} className="bcc-hero-plain-chunk">
-            {segment.text}
-          </span>
-        ),
-      )}
-    </>
-  );
+  return <>{renderStableTypewriterNodes(segments, visibleLength)}</>;
 }
 
 export function AgentHeroText({

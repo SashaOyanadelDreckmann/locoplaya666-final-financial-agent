@@ -1,86 +1,15 @@
-/* GradientText — keyframes + agent hero layout (Tailwind v4, no tailwind.config.js) */
+/* Agent hero — keyword gradient + typewriter (no blob overlays) */
 
-@keyframes gradient-border {
+@keyframes agent-keyword-gradient-shift {
   0%,
   100% {
-    border-radius: 37% 29% 27% 27% / 28% 25% 41% 37%;
-  }
-  25% {
-    border-radius: 47% 29% 39% 49% / 61% 19% 66% 26%;
+    background-position: 0% 50%;
   }
   50% {
-    border-radius: 57% 23% 47% 72% / 63% 17% 66% 33%;
-  }
-  75% {
-    border-radius: 28% 49% 29% 100% / 93% 20% 64% 25%;
+    background-position: 100% 50%;
   }
 }
 
-@keyframes gradient-1 {
-  0%,
-  100% {
-    top: 0;
-    right: 0;
-  }
-  50% {
-    top: 50%;
-    right: 25%;
-  }
-  75% {
-    top: 25%;
-    right: 50%;
-  }
-}
-
-@keyframes gradient-2 {
-  0%,
-  100% {
-    top: 0;
-    left: 0;
-  }
-  60% {
-    top: 75%;
-    left: 25%;
-  }
-  85% {
-    top: 50%;
-    left: 50%;
-  }
-}
-
-@keyframes gradient-3 {
-  0%,
-  100% {
-    bottom: 0;
-    left: 0;
-  }
-  40% {
-    bottom: 50%;
-    left: 25%;
-  }
-  65% {
-    bottom: 25%;
-    left: 50%;
-  }
-}
-
-@keyframes gradient-4 {
-  0%,
-  100% {
-    bottom: 0;
-    right: 0;
-  }
-  50% {
-    bottom: 25%;
-    right: 40%;
-  }
-  90% {
-    bottom: 50%;
-    right: 25%;
-  }
-}
-
-/* Demo typography: text-4xl font-bold tracking-tighter md:text-5xl lg:text-7xl */
 .budget-modal .bcc-hero-question--gradient-demo {
   width: 100% !important;
   margin: 0 !important;
@@ -95,6 +24,8 @@
   text-wrap: pretty !important;
   overflow-wrap: anywhere !important;
   word-break: break-word !important;
+  overflow: hidden !important;
+  position: relative !important;
 }
 
 @media (min-width: 768px) {
@@ -127,11 +58,6 @@
     line-height: 1.14 !important;
     text-align: center !important;
     text-shadow: 0 2px 18px rgba(0, 0, 0, 0.55) !important;
-    overflow: visible !important;
-  }
-
-  .budget-modal .bcc-hero-question--gradient-demo .gradient-text--agent-bleed {
-    overflow: visible !important;
   }
 }
 
@@ -142,49 +68,43 @@
   }
 }
 
-/* Sangrado: el aura toca la 1ª/última letra de palabras vecinas */
-.gradient-text--agent-bleed {
-  overflow: visible !important;
-  padding-inline: 0.16em !important;
-  margin-inline: -0.12em !important;
-  position: relative !important;
-  z-index: 1 !important;
+.budget-modal .bcc-hero-question--gradient-demo .bcc-hero-plain-chunk,
+.budget-modal .bcc-hero-question--gradient-demo .agent-keyword-gradient {
+  display: inline !important;
+  position: static !important;
   vertical-align: baseline !important;
-}
-
-.gradient-text--agent-bleed .gradient-text__aurora {
-  inset: -95% -58% !important;
-  opacity: 0.92 !important;
-}
-
-.gradient-text--agent-bleed .gradient-text__blob {
-  opacity: 0.78 !important;
-  filter: blur(1.15rem) saturate(0.72) !important;
-}
-
-.gradient-text--agent-bleed .gradient-text__blob--red {
-  background: hsl(var(--color-1) / 0.92) !important;
-}
-
-.gradient-text--agent-bleed .gradient-text__blob--blue {
-  background: hsl(var(--color-2) / 0.9) !important;
-}
-
-.gradient-text--agent-bleed .gradient-text__blob--yellow {
-  background: hsl(var(--color-3) / 0.9) !important;
-}
-
-.budget-modal .bcc-hero-question--gradient-demo {
-  overflow: visible !important;
+  white-space: pre-wrap !important;
 }
 
 .budget-modal .bcc-hero-plain-chunk {
-  position: relative;
-  z-index: 0;
+  color: inherit !important;
+}
+
+/* Palabras clave: gradiente mate recortado al texto, sin cajas ni blobs */
+.agent-keyword-gradient {
+  display: inline !important;
+  position: static !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  background-image: linear-gradient(
+    100deg,
+    hsl(var(--color-1) / 0.95) 0%,
+    hsl(var(--color-3) / 0.92) 42%,
+    hsl(var(--color-2) / 0.94) 100%
+  ) !important;
+  background-size: 200% auto !important;
+  background-clip: text !important;
+  -webkit-background-clip: text !important;
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+  animation: agent-keyword-gradient-shift 9s ease-in-out infinite alternate !important;
+  filter: saturate(0.82) !important;
+  text-shadow: none !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .budget-modal .bcc-hero-question--gradient-demo [class*='animate-[gradient'] {
+  .agent-keyword-gradient {
     animation: none !important;
+    background-position: 50% 50% !important;
   }
 }

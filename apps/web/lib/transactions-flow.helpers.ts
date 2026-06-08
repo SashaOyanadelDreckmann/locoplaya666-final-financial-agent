@@ -29,6 +29,20 @@ export function productsHaveAnalyzedMovements(products: TxProductSlice[]): boole
   return products.some(productHasAnalyzedMovements);
 }
 
+export function isProductsStepSatisfied(
+  products: TxProductSlice[],
+  productsModuleSkipped?: boolean,
+): boolean {
+  return products.length > 0 || Boolean(productsModuleSkipped);
+}
+
+export function isTransactionsEvidenceSatisfied(
+  products: TxProductSlice[],
+  productsModuleSkipped?: boolean,
+): boolean {
+  return Boolean(productsModuleSkipped) || productsHaveAnalyzedMovements(products);
+}
+
 export function countProductsWithAnalyzedMovements(products: TxProductSlice[]): number {
   return products.filter(productHasAnalyzedMovements).length;
 }

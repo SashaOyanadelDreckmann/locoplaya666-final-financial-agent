@@ -183,6 +183,11 @@ export function TxEvidenceStep(props: TxEvidenceStepProps) {
           count={28}
         />
 
+        <div className="tx-chat-product-context" aria-label="Producto activo del chat">
+          <span className="tx-chat-product-context-kicker">Producto activo</span>
+          <strong>{p.activeBankProduct.label || p.activeBankProduct.bank || 'Sin nombre'}</strong>
+        </div>
+
         <div ref={p.chatThreadRef} className="tx-chat-thread" aria-live="polite" aria-relevant="additions">
           {messageCount === 0 ? (
             <p className="tx-chat-thread-empty">

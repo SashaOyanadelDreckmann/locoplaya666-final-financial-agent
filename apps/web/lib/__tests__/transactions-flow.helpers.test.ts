@@ -2,6 +2,8 @@
 
 import {
   countProductsWithAnalyzedMovements,
+  isProductsStepSatisfied,
+  isTransactionsEvidenceSatisfied,
   productHasAnalyzedMovements,
   productsHaveAnalyzedMovements,
   resolveTxWizardStep,
@@ -35,6 +37,13 @@ describe('transactions-flow helpers', () => {
         dashboard: { movements: [{ description: 'x', amount: 1, direction: 'expense' }] },
       }),
     ).toBe(true);
+  });
+
+  it('treats skipped products module as flow-complete without analyzed movements', () => {
+    const products: Parameters<typeof isTransactionsEvidenceSatisfied>[0] = [];
+    expect(isProductsStepSatisfied(products, true)).toBe(true);
+    expect(isTransactionsEvidenceSatisfied(products, true)).toBe(true);
+    expect(isTransactionsEvidenceSatisfied(products, false)).toBe(false);
   });
 
   it('aggregates analyzed products across a library', () => {

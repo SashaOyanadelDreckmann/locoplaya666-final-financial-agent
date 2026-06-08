@@ -516,6 +516,12 @@
     transition: none !important;
   }
 
+  /* Compositor hint — panel snap uses JS FLIP transform animation */
+  main.agent-layout.is-mobile-viewport .agent-panel {
+    will-change: transform;
+    transform-origin: bottom center;
+  }
+
   main.agent-layout.is-mobile-viewport .mobile-panel-chevron {
     transition: transform 0.22s ease, color 0.2s ease !important;
   }

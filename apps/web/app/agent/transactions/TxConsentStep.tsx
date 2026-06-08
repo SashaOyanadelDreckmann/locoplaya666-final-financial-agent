@@ -9,6 +9,7 @@ type TxConsentStepProps = {
   filteredTemplates: Array<{ label: string }>;
   consentAccepted: boolean;
   canContinueAuto: boolean;
+  consentGuidance?: string | null;
   isDockingToLibrary: boolean;
   transactionUploadError?: string | null;
   onBankChange: (value: string) => void;
@@ -117,6 +118,11 @@ export function TxConsentStep(props: TxConsentStepProps) {
           </button>
           <div className="tx-consent-inline-actions" />
         </div>
+        {!props.canContinueAuto && props.consentGuidance ? (
+          <p className="tx-consent-guidance" role="status">
+            {props.consentGuidance}
+          </p>
+        ) : null}
         {props.transactionUploadError ? (
           <p className="bcc-hero-error" role="alert">
             {props.transactionUploadError}

@@ -71,4 +71,14 @@ describe('transactions-authorization.helpers', () => {
     expect(result.canContinue).toBe(false);
     expect(buildTransactionAuthorizationBlockMessage(result)).toContain('plantilla de producto');
   });
+
+  it('lists every missing authorization prerequisite in consent guidance', () => {
+    expect(
+      buildTransactionAuthorizationBlockMessage({
+        bank: '',
+        label: '',
+        simulationAccepted: false,
+      }),
+    ).toBe('Completa institución, plantilla de producto, consentimiento simulado para autorizar.');
+  });
 });

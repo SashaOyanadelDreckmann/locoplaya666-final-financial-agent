@@ -41,6 +41,8 @@ import {
 import { ApiHttpError } from '@/lib/apiEnvelope';
 import { toUserFacingError } from '@/lib/userError';
 import {
+  isProductsStepSatisfied,
+  isTransactionsEvidenceSatisfied,
   productsHaveAnalyzedMovements,
   resolveTxWizardStep,
 } from '@/lib/transactions-flow.helpers';
@@ -600,11 +602,23 @@ export default function AgentPage() {
     const snapClosed = () => Math.round(Math.min(162, viewportH() * 0.19));
     const snapOpen = () => Math.round(viewportH() * 0.46);
 
+    // Velocity ring buffer for momentum-aware snap
+    let velSamples: Array<{ y: number; t: number }> = [];
+    let snapAnimRaf = 0;
+
     const onTouchStart = (e: TouchEvent) => {
       const touch = e.touches[0];
       if (!touch) return;
+      // Cancel any in-progress snap animation
+      if (snapAnimRaf) {
+        cancelAnimationFrame(snapAnimRaf);
+        snapAnimRaf = 0;
+        panel.style.removeProperty('transition');
+        panel.style.removeProperty('transform');
+      }
       const currentH = panel.getBoundingClientRect().height;
       panelDragRef.current = { startY: touch.clientY, startH: currentH, moved: false };
+      velSamples = [];
       panel.classList.add('is-dragging');
       layout?.classList.add('is-panel-dragging');
     };
@@ -616,6 +630,12 @@ export default function AgentPage() {
       e.preventDefault();
       const dy = panelDragRef.current.startY - touch.clientY;
       if (Math.abs(dy) > 6) panelDragRef.current.moved = true;
+
+      // Track velocity (last 80ms window)
+      const now = performance.now();
+      velSamples.push({ y: touch.clientY, t: now });
+      velSamples = velSamples.filter((s) => now - s.t < 80);
+
       const openMax = snapOpen() + 24;
       const newH = Math.max(72, Math.min(openMax, panelDragRef.current.startH + dy));
       panel.style.setProperty('--mobile-panel-h', `${newH}px`);
@@ -627,22 +647,77 @@ export default function AgentPage() {
       if (!panelDragRef.current) return;
       const closed = snapClosed();
       const open = snapOpen();
-      const currentH = panel.getBoundingClientRect().height;
+      const beforeH = panel.getBoundingClientRect().height;
       const dragged = panelDragRef.current.moved;
-      const snapToOpen = dragged
-        ? currentH > (closed + open) / 2
-        : !mobilePanelExpanded;
-      if (!dragged) {
-        haptic(10);
+
+      // Determine snap direction — velocity can override the midpoint threshold
+      let velY = 0;
+      if (velSamples.length >= 2) {
+        const oldest = velSamples[0];
+        const newest = velSamples[velSamples.length - 1];
+        const dt = Math.max(1, newest.t - oldest.t);
+        velY = (newest.y - oldest.y) / dt; // px/ms — positive = finger moving down
       }
+      velSamples = [];
+
+      let snapToOpen: boolean;
+      if (dragged) {
+        const mid = (closed + open) / 2;
+        if (Math.abs(velY) > 0.5) {
+          // Velocity dominant: flick up (negative velY) → open, flick down → close
+          snapToOpen = velY < -0.5;
+        } else {
+          snapToOpen = beforeH > mid;
+        }
+      } else {
+        snapToOpen = !mobilePanelExpanded;
+      }
+
+      if (!dragged) haptic(10);
+
+      // Clear drag inline styles
       panel.style.flexBasis = '';
       panel.style.maxHeight = '';
       panel.style.removeProperty('--mobile-panel-h');
       panel.classList.remove('is-dragging');
       layout?.classList.remove('is-panel-dragging');
+
+      // Apply new expanded/collapsed state
       setMobilePanelExpanded(snapToOpen);
       layout?.classList.toggle('mobile-panel-expanded', snapToOpen);
       panelDragRef.current = null;
+
+      // FLIP animation: compute delta between current visual and new layout position,
+      // apply inverse transform, then spring-animate to zero. No layout reflow during animation.
+      // We use setProperty('...', '...', 'important') to win over the CSS's transition: none !important
+      snapAnimRaf = requestAnimationFrame(() => {
+        const afterH = panel.getBoundingClientRect().height;
+        const delta = beforeH - afterH; // positive = was taller (shrinks); negative = was shorter (grows)
+        if (Math.abs(delta) < 3) { snapAnimRaf = 0; return; }
+
+        // Hold visual at the drag-released position via transform
+        panel.style.setProperty('transition', 'none', 'important');
+        panel.style.setProperty('transform', `translateY(${delta}px)`, 'important');
+
+        snapAnimRaf = requestAnimationFrame(() => {
+          // Spring-like cubic-bezier — bouncy on expand, snappy on collapse
+          const ease = snapToOpen
+            ? 'cubic-bezier(0.34, 1.42, 0.64, 1)'
+            : 'cubic-bezier(0.32, 0, 0.67, 0)';
+          const duration = snapToOpen ? 440 : 300;
+          panel.style.setProperty('transition', `transform ${duration}ms ${ease}`, 'important');
+          panel.style.removeProperty('transform');
+
+          const cleanup = () => {
+            panel.style.removeProperty('transition');
+            panel.style.removeProperty('transform');
+            snapAnimRaf = 0;
+          };
+          panel.addEventListener('transitionend', cleanup, { once: true });
+          // Fallback in case transitionend doesn't fire
+          snapAnimRaf = window.setTimeout(cleanup, duration + 60) as unknown as number;
+        });
+      });
     };
 
     handle.addEventListener('touchstart', onTouchStart, { passive: true });
@@ -654,6 +729,9 @@ export default function AgentPage() {
       handle.removeEventListener('touchmove', onTouchMove);
       handle.removeEventListener('touchend', onTouchEnd);
       handle.removeEventListener('touchcancel', onTouchEnd);
+      if (snapAnimRaf) cancelAnimationFrame(snapAnimRaf);
+      panel.style.removeProperty('transition');
+      panel.style.removeProperty('transform');
       panel.classList.remove('is-dragging');
       layout?.classList.remove('is-panel-dragging');
     };
@@ -1199,16 +1277,15 @@ export default function AgentPage() {
   const unlockedPanelBlocks = useMemo(() => {
     const hasAnalyzedMovements = productsHaveAnalyzedMovements(bankSimulation.products);
     const aggregateDocs = aggregateParsedDocuments(bankSimulation.products);
-    const skippedProductsModule = Boolean(bankSimulation.productsModuleSkipped);
     const hasTransactionsData =
-      skippedProductsModule ||
-      (bankSimulation.products.length > 0 && (hasAnalyzedMovements || aggregateDocs.length > 0));
+      isTransactionsEvidenceSatisfied(bankSimulation.products, bankSimulation.productsModuleSkipped) ||
+      (bankSimulation.products.length > 0 && aggregateDocs.length > 0);
     const budgetUnlocked = hasTransactionsData;
     // Productos y transacciones debe estar disponible desde el inicio.
     const transactionsUnlocked = true;
 
     return { budgetUnlocked, transactionsUnlocked };
-  }, [bankSimulation.products]);
+  }, [bankSimulation.products, bankSimulation.productsModuleSkipped]);
 
   const canOpenInterview = useMemo(() => {
     const hasBudgetData = budgetRows.filter((row) => row.amount > 0).length >= 3;
@@ -1217,11 +1294,13 @@ export default function AgentPage() {
   }, [bankSimulation.products, budgetRows, interviewCompleted]);
 
   function getFlowStatus() {
-    const skippedProductsModule = Boolean(bankSimulation.productsModuleSkipped);
-    const productsCompleted = bankSimulation.products.length > 0 || skippedProductsModule;
+    const productsCompleted = isProductsStepSatisfied(
+      bankSimulation.products,
+      bankSimulation.productsModuleSkipped,
+    );
     const transactionsCompleted =
       productsCompleted &&
-      (skippedProductsModule || productsHaveAnalyzedMovements(bankSimulation.products));
+      isTransactionsEvidenceSatisfied(bankSimulation.products, bankSimulation.productsModuleSkipped);
     const budgetRowsCompleted = budgetRows.filter((row) => row.amount > 0).length;
     const budgetCompleted = transactionsCompleted && budgetRowsCompleted >= 3;
     return {

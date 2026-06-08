@@ -87,22 +87,10 @@ export function buildAgentHighlightTerms(params: {
   question?: string | null;
 }): string[] {
   const terms = new Set<string>();
-  const haystack = params.text.toLocaleLowerCase('es-CL');
 
   if (params.focusRow) {
     addCategoryTerms(terms, params.focusRow.category);
     for (const alias of ROW_ALIASES[params.focusRow.id] ?? []) terms.add(alias);
-  }
-
-  for (const row of params.budgetRows ?? []) {
-    addCategoryTerms(terms, row.category);
-    const categoryKey = row.category?.toLocaleLowerCase('es-CL') ?? '';
-    if (categoryKey && haystack.includes(categoryKey.slice(0, Math.min(6, categoryKey.length)))) {
-      terms.add(row.category);
-    }
-    for (const alias of ROW_ALIASES[row.id] ?? []) {
-      if (haystack.includes(alias)) terms.add(alias);
-    }
   }
 
   addAmountTerms(terms, params.text);

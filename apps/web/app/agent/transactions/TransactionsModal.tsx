@@ -3,7 +3,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { CHILE_FINANCIAL_INSTITUTIONS } from '@/lib/financialCatalog';
-import { deriveTransactionAuthorizationState } from '@/lib/transactions-authorization.helpers';
+import {
+  buildTransactionAuthorizationBlockMessage,
+  deriveTransactionAuthorizationState,
+} from '@/lib/transactions-authorization.helpers';
 
 import {
   ALL_PRODUCT_TEMPLATES,
@@ -211,6 +214,9 @@ export function TransactionsModal(props: TransactionsModalProps) {
   });
 
   const canContinueAuto = authorizationState.canContinue;
+  const consentGuidance = canContinueAuto
+    ? null
+    : buildTransactionAuthorizationBlockMessage(authorizationState);
   const hasEvidence = Boolean(props.activeBankProduct?.parsedDocuments.length);
   const activeProductCreations = props.transactionProductCards.length;
   const activeProductSlotsLeft = Math.max(0, props.maxProducts - activeProductCreations);
@@ -690,6 +696,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
                       filteredTemplates={filteredTemplates}
                       consentAccepted={consentAccepted}
                       canContinueAuto={canContinueAuto}
+                      consentGuidance={consentGuidance}
                       isDockingToLibrary={isDockingToLibrary}
                       transactionUploadError={props.transactionUploadError}
                       onBankChange={(value) => {

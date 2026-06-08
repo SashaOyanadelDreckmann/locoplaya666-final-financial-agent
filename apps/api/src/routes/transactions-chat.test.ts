@@ -12,6 +12,7 @@ vi.mock('openai', () => ({
   __esModule: true,
   default: vi.fn().mockImplementation(() => ({
     chat: { completions: { create: mockCreate } },
+    responses: { create: mockCreate },
   })),
 }));
 
@@ -60,7 +61,7 @@ describe('transactions-chat api route', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockCreate.mockResolvedValue({
-      choices: [{ message: { content: JSON.stringify({ summary: 'resumen ok' }) } }],
+      output_text: JSON.stringify({ summary: 'resumen ok' }),
     });
   });
 
@@ -80,7 +81,7 @@ describe('transactions-chat api route', () => {
 
   it('returns chat payload', async () => {
     mockCreate.mockResolvedValueOnce({
-      choices: [{ message: { content: 'respuesta corta' } }],
+      output_text: JSON.stringify({ assistant_text: 'respuesta corta' }),
     });
     const { agent, csrfToken } = await createAuthedAgent();
     const res = await agent.post('/api/transactions-chat').set('x-csrf-token', csrfToken).send({
@@ -99,7 +100,7 @@ describe('transactions-chat api route', () => {
 
   it('keeps parsed documents in chat context', async () => {
     mockCreate.mockResolvedValueOnce({
-      choices: [{ message: { content: 'respuesta corta' } }],
+      output_text: JSON.stringify({ assistant_text: 'respuesta corta' }),
     });
     const { agent, csrfToken } = await createAuthedAgent();
     await agent.post('/api/transactions-chat').set('x-csrf-token', csrfToken).send({
@@ -115,8 +116,10 @@ describe('transactions-chat api route', () => {
       ],
     });
 
-    const callArgs = mockCreate.mock.calls[0]?.[0];
-    const userMessage = Array.isArray(callArgs?.messages) ? callArgs.messages.find((msg: { role?: string; content?: string }) => msg.role === 'user') : null;
+    const callArgs = mockCreate.mock.calls[0]?.[0] as { input?: Array<{ role?: string; content?: string }> } | undefined;
+    const userMessage = Array.isArray(callArgs?.input)
+      ? callArgs.input.find((msg) => msg.role === 'user')
+      : null;
 
     expect(String(userMessage?.content ?? '')).toContain('Documentos=');
     expect(String(userMessage?.content ?? '')).toContain('cartola.csv');
@@ -145,7 +148,7 @@ describe('transactions-chat api route', () => {
 
   it('keeps valid canonical documents when one referenced id is stale', async () => {
     mockCreate.mockResolvedValueOnce({
-      choices: [{ message: { content: 'respuesta corta' } }],
+      output_text: JSON.stringify({ assistant_text: 'respuesta corta' }),
     });
     const { agent, csrfToken, userId } = await createAuthedAgent();
     const validDoc = await createDocumentRecord({
@@ -183,7 +186,7 @@ describe('transactions-chat api route', () => {
 
   it('accepts long chat histories without rejecting the request', async () => {
     mockCreate.mockResolvedValueOnce({
-      choices: [{ message: { content: 'respuesta corta' } }],
+      output_text: JSON.stringify({ assistant_text: 'respuesta corta' }),
     });
     const { agent, csrfToken } = await createAuthedAgent();
     const messages = Array.from({ length: 18 }, (_, index) => ({

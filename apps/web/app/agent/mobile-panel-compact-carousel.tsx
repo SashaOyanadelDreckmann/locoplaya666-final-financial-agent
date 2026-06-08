@@ -79,8 +79,8 @@ function runSpringTween(
   onUpdate: (value: number) => void,
   onComplete: () => void,
   initialVelocity = 0,
-  stiffness = 320,
-  damping = 32
+  stiffness = 420,
+  damping = 38
 ) {
   let done = false;
   let raf = 0;
@@ -353,13 +353,14 @@ export const MobilePanelCircularDeck = forwardRef<
 
   const settleAtPhase = useCallback(
     (targetPhase: number, haptic = true) => {
-      const rounded = Math.round(targetPhase);
-      deckPhaseRef.current = rounded;
-      floorPhaseRef.current = Math.floor(rounded);
-      applyDeckPhase(rounded, true, true);
+      // Normalize to [0, count) to prevent phase drift over repeated swipes
+      const normalized = count > 0 ? mod(Math.round(targetPhase), count) : 0;
+      deckPhaseRef.current = normalized;
+      floorPhaseRef.current = normalized;
+      applyDeckPhase(normalized, true, true);
       setIsAnimating(false);
 
-      const center = mod(rounded, count);
+      const center = normalized;
       if (center !== lastCenterRef.current) {
         lastCenterRef.current = center;
         if (haptic) props.haptic?.(6);
@@ -506,8 +507,9 @@ export const MobilePanelCircularDeck = forwardRef<
 
   const onPointerDown = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
-      if (count <= 1 || isAnimating) return;
+      if (count <= 1) return;
       if (event.button !== 0) return;
+      // Interrupt any ongoing snap immediately — iOS-style: finger always wins
       stopAnim();
       didDragRef.current = false;
       velBufferRef.current = [];
@@ -520,7 +522,7 @@ export const MobilePanelCircularDeck = forwardRef<
       dragStartPhaseRef.current = deckPhaseRef.current;
       event.currentTarget.setPointerCapture(event.pointerId);
     },
-    [count, isAnimating, stopAnim]
+    [count, stopAnim]
   );
 
   const onPointerMove = useCallback(
@@ -550,19 +552,12 @@ export const MobilePanelCircularDeck = forwardRef<
       velBufferRef.current = velBufferRef.current.filter((p) => now - p.t < 80);
 
       const step = stepWidthRef.current;
-      let rawPhase = dragPhaseFromPointer(dragStartPhaseRef.current, dx, step);
-
-      // Rubber-band resistance beyond first/last card — drag still follows but with friction
-      if (count > 0) {
-        const min = 0;
-        const max = count - 1;
-        if (rawPhase < min) rawPhase = min + (rawPhase - min) * 0.32;
-        else if (rawPhase > max) rawPhase = max + (rawPhase - max) * 0.32;
-      }
+      // True circular deck — no rubber-band, wraps seamlessly in both directions
+      const rawPhase = dragPhaseFromPointer(dragStartPhaseRef.current, dx, step);
 
       syncDragPhase(rawPhase);
     },
-    [count, syncDragPhase]
+    [syncDragPhase]
   );
 
   const onPointerUp = useCallback(

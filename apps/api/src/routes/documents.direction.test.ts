@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { inferMovementDirection, inferMovementKind, toIsoDate } from './documents';
+import { extractMovements, inferMovementDirection, inferMovementKind, toIsoDate } from './documents';
 
 describe('documents movement direction', () => {
   it('keeps credit card abonos semantically separate from income', () => {
@@ -58,5 +58,31 @@ describe('documents movement direction', () => {
   it('classifies BICE card payments as abonos', () => {
     expect(inferMovementDirection('Pago Pesos TEF', 186446, '186446', 'credit_card')).toBe('income');
     expect(inferMovementKind('Pago Pesos TEF PAGO NORMAL', -40000, '-40000', 'credit_card')).toBe('abono');
+  });
+
+  it('forces cargo column semantics for checking transfers even when keywords look like income', () => {
+    const movements = extractMovements(
+      [
+        {
+          name: 'cartola.csv',
+          text: '',
+          summary: null,
+          structuredData: {
+            tables: [
+              {
+                headers: ['Fecha', 'Descripción', 'Cargo', 'Abono'],
+                rows: [['01/06/2026', 'TRASPASO A CUENTA AHORRO', '50000', '']],
+              },
+            ],
+          },
+        },
+      ],
+      'checking_account',
+    );
+
+    expect(movements).toHaveLength(1);
+    expect(movements[0]?.direction).toBe('expense');
+    expect(movements[0]?.direction_basis).toBe('column_cargo');
+    expect(movements[0]?.amount).toBe(50000);
   });
 });
