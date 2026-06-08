@@ -615,9 +615,9 @@
     --deck-overlap: clamp(22px, 5.8vw, 38px) !important;
     --deck-usable-w: calc(100vw + 48px) !important;
     --deck-card-w: min(180px, calc(100vw * 0.39)) !important;
-    --deck-card-h-min: 40px !important;
-    --deck-card-h-max: 52px !important;
-    --deck-card-aspect: 0.28 !important;
+    --deck-card-h-min: 53px !important;
+    --deck-card-h-max: 69px !important;
+    --deck-card-aspect: 0.37 !important;
     --deck-card-h: clamp(
       var(--deck-card-h-min),
       calc(var(--deck-card-w) * var(--deck-card-aspect)),
