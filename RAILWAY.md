@@ -61,13 +61,24 @@ Variables mínimas:
 - `TRANSACTIONS_CHAT_MODEL=gpt-4o-mini`
 - `DATA_DIR=/app/data`
 
-## 4. Orden recomendado
+Notas:
 
-1. Despliega Postgres.
-2. Despliega API.
-3. Copia la URL pública de API.
-4. Configura y despliega Web.
-5. Vuelve a API y actualiza `WEB_ORIGIN` con la URL final de Web si cambió.
+- Montar un **volume persistente** en `/app/data` (5 GB recomendado) para PDFs de burbuja, biblioteca y artefactos del agente.
+- En Railway: `railway link -s keen-magic` → `railway volume add --mount-path /app/data` (repetir para el servicio API).
+
+## 4. Volúmenes persistentes (producción)
+
+| Servicio | Volume | Mount |
+|---|---|---|
+| keen-magic (web) | `keen-magic-volume` | `/app/data` |
+| locoplaya666-final-financial-agent (api) | `locoplaya666-final-financial-agent-volume` | `/app/data` |
+| Postgres | `postgres-volume` | `/var/lib/postgresql/data` |
+
+Rutas con `DATA_DIR=/app/data`:
+
+- Web: `bubble-reports/{userId}/` — PDFs desde burbujas de chat
+- Web: `pdfs/{userId}/` — biblioteca local del frontend
+- API: `pdfs/{userId}/` — artefactos servidos por `/api/pdfs/serve`
 
 ## 5. Smoke test
 
