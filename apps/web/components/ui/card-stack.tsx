@@ -37,6 +37,9 @@ export type CardStackProps<T extends CardStackItem> = {
   stageMinHeight?: number;
   stagePaddingPx?: number;
 
+  /** Horizontal nudge for the whole fan (px, positive = right) */
+  stageOffsetX?: number;
+
   /** How much cards overlap each other (0..0.8). Higher = more overlap */
   overlap?: number;
 
@@ -103,6 +106,7 @@ export function CardStack<T extends CardStackItem>({
 
   stageMinHeight = 380,
   stagePaddingPx = 80,
+  stageOffsetX = 0,
 
   overlap = 0.48,
   spreadDeg = 48,
@@ -251,6 +255,7 @@ export function CardStack<T extends CardStackItem>({
           className="absolute inset-0 flex items-end justify-center"
           style={{
             perspective: `${perspectivePx}px`,
+            transform: stageOffsetX ? `translateX(${stageOffsetX}px)` : undefined,
           }}
         >
           <AnimatePresence initial={false}>
