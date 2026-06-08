@@ -599,15 +599,21 @@ export function BudgetModal(props: {
       const bottomActions = tableCard?.querySelector<HTMLElement>('.budget-table-bottom-actions');
       const tabs = root.querySelector<HTMLElement>('.budget-mode-tabs');
       const header = root.querySelector<HTMLElement>('.bcc-modal-header');
+      const intelHead = scrollHost.querySelector<HTMLElement>('.budget-pdf-head.is-mobile-intel-head');
+      const intelMetrics = scrollHost.querySelector<HTMLElement>('.budget-pdf-metrics.is-mobile-intel-metrics');
+      const tableWrap = scrollHost.querySelector<HTMLElement>('.budget-table-wrap');
       const rowButtonGap = 6;
 
-      let slotHeight = scrollHost.clientHeight;
+      const intelChrome = (intelHead?.offsetHeight ?? 0) + (intelMetrics?.offsetHeight ?? 0);
+      let slotHeight = tableWrap?.clientHeight ?? 0;
+
       if (slotHeight < 180 && modalBody && tableCard) {
         const chrome =
           (header?.offsetHeight ?? 0) +
           (tabs?.offsetHeight ?? 0) +
           (tableHead?.offsetHeight ?? 0) +
           (bottomActions?.offsetHeight ?? 0) +
+          intelChrome +
           rowButtonGap;
         slotHeight = Math.max(180, modalBody.clientHeight - chrome);
       } else {

@@ -1065,10 +1065,11 @@
       83px
     );
     --mobile-panel-deck-lift: 6px;
+    --deck-bg-top-extra: 14px;
     --mobile-panel-bottom-gap: 18px;
     --mobile-panel-shell-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--mobile-panel-bottom-gap));
     --mobile-panel-h: calc(
-      var(--deck-handle-h) + var(--deck-card-h-est) + var(--mobile-panel-deck-lift) + 4px
+      var(--deck-handle-h) + var(--deck-card-h-est) + var(--mobile-panel-deck-lift) + var(--deck-bg-top-extra, 0px) + 4px
     );
   }
 
@@ -1111,7 +1112,8 @@
     padding-inline: 0 !important;
     padding-top: 2px !important;
     padding-bottom: var(--mobile-panel-deck-lift, 6px) !important;
-    min-height: var(--deck-card-h) !important;
+    justify-content: flex-end !important;
+    min-height: calc(var(--deck-card-h) + var(--deck-bg-top-extra, 0px)) !important;
     flex: 0 0 auto !important;
     box-sizing: border-box !important;
   }
@@ -1250,7 +1252,7 @@
       calc(var(--deck-card-w-est) * 0.44),
       var(--deck-card-h-max)
     );
-    --mobile-panel-h: calc(var(--deck-handle-h) + var(--deck-card-h-est) + 6px);
+    --mobile-panel-h: calc(var(--deck-handle-h) + var(--deck-card-h-est) + var(--deck-bg-top-extra, 0px) + 6px);
   }
 
   html.is-tablet-portrait body.agent-route-active .agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-card-stack,

@@ -83,18 +83,18 @@
   .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-table-scroll-host {
     flex: 1 1 0 !important;
     width: 100% !important;
-    height: 0 !important;
-    max-height: none !important;
     min-height: 0 !important;
+    max-height: none !important;
+    display: flex !important;
+    flex-direction: column !important;
     overflow: hidden !important;
     margin-bottom: 6px !important;
   }
 
   .budget-modal[data-budget-view='table'] .budget-table-section.is-mobile-table-compact .budget-pdf-surface.is-mobile-compact,
   .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-pdf-surface.is-mobile-compact {
-    flex: 1 1 auto !important;
+    flex: 1 1 0 !important;
     min-height: 0 !important;
-    height: 100% !important;
     display: flex !important;
     flex-direction: column !important;
     overflow: hidden !important;
@@ -103,16 +103,15 @@
 
   .budget-modal[data-budget-view='table'] .budget-table-section.is-mobile-table-compact .budget-table-wrap,
   .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-table-wrap {
-    flex: 1 1 auto !important;
+    flex: 1 1 0 !important;
     min-height: 0 !important;
-    height: 100% !important;
-    max-height: 100% !important;
     overflow-x: hidden !important;
     overflow-y: auto !important;
     scroll-snap-type: y mandatory !important;
     scroll-padding: 0 !important;
     -webkit-overflow-scrolling: touch !important;
     overscroll-behavior-y: contain !important;
+    touch-action: pan-y !important;
   }
 
   .budget-modal[data-budget-view='table'] .budget-table-section.is-mobile-table-compact .budget-table-bottom-actions,
@@ -359,6 +358,9 @@
   .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-pdf-surface.is-mobile-compact .budget-pdf-head.is-mobile-intel-head,
   html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact .budget-pdf-surface.is-mobile-compact .budget-pdf-head.is-mobile-intel-head {
     display: grid !important;
+    flex-shrink: 0 !important;
+    visibility: visible !important;
+    opacity: 1 !important;
     grid-template-columns: minmax(0, 1fr) auto !important;
     align-items: center !important;
     gap: 10px !important;
@@ -398,6 +400,9 @@
   .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-pdf-metrics.is-mobile-intel-metrics,
   html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact .budget-pdf-metrics.is-mobile-intel-metrics {
     display: grid !important;
+    flex-shrink: 0 !important;
+    visibility: visible !important;
+    opacity: 1 !important;
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
     gap: 4px !important;
     padding: 0 10px 6px !important;
@@ -587,11 +592,13 @@
     gap: 0 !important;
   }
 
-  .budget-modal .budget-table-section.is-mobile-table-compact .budget-table-scroll-host {
-    flex: 1 1 auto !important;
+  .budget-modal[data-budget-view='table'] .budget-table-section.is-mobile-table-compact .budget-table-scroll-host,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-table-scroll-host {
+    flex: 1 1 0 !important;
     min-height: 0 !important;
-    height: auto !important;
     max-height: none !important;
+    display: flex !important;
+    flex-direction: column !important;
   }
 
   .budget-modal .budget-table-section.is-mobile-table-compact .budget-table-bottom-actions {
@@ -628,5 +635,24 @@
     transform: none !important;
     outline: none !important;
     box-shadow: none !important;
+  }
+
+  /* EOF — beat diagnostics legacy hide + collapsed scroll hosts on table tab */
+  .budget-modal.is-mobile-shell[data-budget-view='table'] .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-pdf-head.is-mobile-intel-head,
+  .budget-modal.is-mobile-shell[data-budget-view='table'] .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-pdf-metrics.is-mobile-intel-metrics,
+  .budget-modal.is-mobile-shell[data-budget-mobile='true'] .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-pdf-head.is-mobile-intel-head,
+  .budget-modal.is-mobile-shell[data-budget-mobile='true'] .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-pdf-metrics.is-mobile-intel-metrics {
+    display: grid !important;
+    flex-shrink: 0 !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  .budget-modal.is-mobile-shell[data-budget-view='table'] .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-pro tbody tr.is-mobile-row-card,
+  .budget-modal.is-mobile-shell[data-budget-mobile='true'] .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-pro tbody tr.is-mobile-row-card {
+    display: grid !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    min-height: min(var(--budget-mobile-row-slot, 240px), 100%) !important;
   }
 }
