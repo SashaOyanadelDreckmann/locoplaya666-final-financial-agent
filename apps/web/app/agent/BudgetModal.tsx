@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { focusMobileInput } from '@/lib/mobile-viewport-sync';
 import { getCsrfToken } from '@/lib/csrf';
 import { downloadArtifactFile, saveBubbleSnapshotPdfArtifact } from '@/lib/artifacts';
-import { BudgetIntelligenceTable } from '@/components/ui/budget-intelligence-table';
+import { BudgetIntelligenceTable, BudgetMobileIntelSummary } from '@/components/ui/budget-intelligence-table';
 import { AgentHeroText } from '@/components/ui/agent-hero-text';
 
 import type { BudgetRow } from '@/lib/budget-rows.helpers';
@@ -599,12 +599,11 @@ export function BudgetModal(props: {
       const bottomActions = tableCard?.querySelector<HTMLElement>('.budget-table-bottom-actions');
       const tabs = root.querySelector<HTMLElement>('.budget-mode-tabs');
       const header = root.querySelector<HTMLElement>('.bcc-modal-header');
-      const intelHead = scrollHost.querySelector<HTMLElement>('.budget-pdf-head.is-mobile-intel-head');
-      const intelMetrics = scrollHost.querySelector<HTMLElement>('.budget-pdf-metrics.is-mobile-intel-metrics');
+      const mobileSummary = tableCard?.querySelector<HTMLElement>('.budget-mobile-intel-summary');
       const tableWrap = scrollHost.querySelector<HTMLElement>('.budget-table-wrap');
       const rowButtonGap = 6;
 
-      const intelChrome = (intelHead?.offsetHeight ?? 0) + (intelMetrics?.offsetHeight ?? 0);
+      const intelChrome = mobileSummary?.offsetHeight ?? 0;
       let slotHeight = tableWrap?.clientHeight ?? 0;
 
       if (slotHeight < 180 && modalBody && tableCard) {
@@ -898,6 +897,14 @@ export function BudgetModal(props: {
                 </div>
               </div>
 
+              {!isDesktopLayout && budgetViewMode === tableViewMode ? (
+                <BudgetMobileIntelSummary
+                  budgetTotals={props.budgetTotals}
+                  activeStyleLabel={activeStyleLabel}
+                  formatBudgetAmount={formatBudgetAmount}
+                />
+              ) : null}
+
               <div
                 ref={budgetTableScrollRef}
                 className={isDesktopLayout ? 'budget-table-scroll-host budget-table-scroll-host--desktop' : 'budget-table-scroll-host'}
@@ -919,6 +926,7 @@ export function BudgetModal(props: {
                   updateBudgetRow={props.updateBudgetRow}
                   deleteBudgetRow={props.deleteBudgetRow}
                   compactMobile={!isDesktopLayout}
+                  suppressInlineSummary={!isDesktopLayout && budgetViewMode === tableViewMode}
                 />
               ) : (
                 <div className="budget-empty-state">

@@ -397,8 +397,7 @@
   .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-scroll-host {
     flex: 1 1 0 !important;
     width: 100% !important;
-    min-height: 0 !important;
-    height: 0 !important;
+    min-height: 180px !important;
     max-height: none !important;
     overflow: hidden !important;
     display: flex !important;
@@ -413,16 +412,16 @@
     overflow: hidden !important;
     display: flex !important;
     flex-direction: column !important;
-    height: 100% !important;
-    max-height: 100% !important;
+    height: auto !important;
+    max-height: none !important;
   }
 
   .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-scroll-host .budget-table-wrap,
   .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-wrap {
     flex: 1 1 auto !important;
     min-height: 0 !important;
-    height: 100% !important;
-    max-height: 100% !important;
+    height: auto !important;
+    max-height: none !important;
     overflow-x: hidden !important;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch !important;
