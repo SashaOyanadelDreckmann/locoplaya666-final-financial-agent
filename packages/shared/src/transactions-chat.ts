@@ -57,8 +57,12 @@ function movementDirection(row: MovementRow): 'expense' | 'income' {
   return 'expense';
 }
 
-function movementKey(row: MovementRow): string {
+export function buildMovementPromptKey(row: MovementRow): string {
   return [String(row.date ?? ''), String(row.merchant ?? row.description ?? row.label ?? ''), String(row.amount ?? '')].join('|');
+}
+
+function movementKey(row: MovementRow): string {
+  return buildMovementPromptKey(row);
 }
 
 export function selectMovementsForPrompt(movements: MovementRow[], maxMovements: number): MovementRow[] {

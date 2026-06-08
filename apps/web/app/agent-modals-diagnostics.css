@@ -17636,21 +17636,21 @@ body.agent-route-active .app-shell > * {
     margin-top: 0 !important;
   }
 
-  .agent-panel.is-mobile-compact .panel-grid:not(.is-circular-deck) {
+  .agent-panel.is-mobile-compact .panel-grid:not(.is-card-stack) {
     gap: 8px !important;
     padding: 8px 12px calc(10px + env(safe-area-inset-bottom)) !important;
   }
 
-  .agent-panel.is-mobile-compact .panel-grid:not(.is-circular-deck) .mob-col,
-  .agent-panel.is-mobile-compact .panel-grid:not(.is-circular-deck) .mob-col-wide,
-  .agent-panel.is-mobile-compact .panel-grid:not(.is-circular-deck) .mob-col-narrow {
+  .agent-panel.is-mobile-compact .panel-grid:not(.is-card-stack) .mob-col,
+  .agent-panel.is-mobile-compact .panel-grid:not(.is-card-stack) .mob-col-wide,
+  .agent-panel.is-mobile-compact .panel-grid:not(.is-card-stack) .mob-col-narrow {
     width: min(212px, 74vw) !important;
     min-width: min(212px, 74vw) !important;
     max-width: min(212px, 74vw) !important;
     flex: 0 0 min(212px, 74vw) !important;
   }
 
-  .agent-panel.is-mobile-compact .panel-grid:not(.is-circular-deck) .mob-col > * {
+  .agent-panel.is-mobile-compact .panel-grid:not(.is-card-stack) .mob-col > * {
     min-height: 0 !important;
     height: 100% !important;
     flex: 1 1 0 !important;
@@ -18583,8 +18583,8 @@ body.agent-route-active .app-shell > * {
     padding-bottom: 0 !important;
   }
 
-  html.is-mobile-viewport body.agent-route-active .agent-panel:has(.panel-grid.is-circular-deck),
-  html.is-mobile-viewport body.agent-route-active .agent-panel.is-mobile-compact:has(.panel-grid.is-circular-deck) {
+  html.is-mobile-viewport body.agent-route-active .agent-panel:has(.panel-grid.is-card-stack),
+  html.is-mobile-viewport body.agent-route-active .agent-panel.is-mobile-compact:has(.panel-grid.is-card-stack) {
     flex: 0 0 auto !important;
     max-height: none !important;
     height: auto !important;
@@ -18624,8 +18624,8 @@ body.agent-route-active .app-shell > * {
     border-color: rgba(255, 255, 255, 0.08) !important;
   }
 
-  html.is-mobile-viewport body.agent-route-active .agent-panel.is-mobile-compact .panel-grid:not(.is-circular-deck),
-  html.is-mobile-viewport body.agent-route-active .agent-panel:not(.is-mobile-expanded) .panel-grid:not(.is-circular-deck) {
+  html.is-mobile-viewport body.agent-route-active .agent-panel.is-mobile-compact .panel-grid:not(.is-card-stack),
+  html.is-mobile-viewport body.agent-route-active .agent-panel:not(.is-mobile-expanded) .panel-grid:not(.is-card-stack) {
     display: flex !important;
     flex-direction: row !important;
     flex-wrap: nowrap !important;
@@ -18643,12 +18643,12 @@ body.agent-route-active .app-shell > * {
     touch-action: pan-x !important;
   }
 
-  html.is-mobile-viewport body.agent-route-active .agent-panel.is-mobile-compact .panel-grid:not(.is-circular-deck) .mob-col,
-  html.is-mobile-viewport body.agent-route-active .agent-panel.is-mobile-compact .panel-grid:not(.is-circular-deck) .mob-col-wide,
-  html.is-mobile-viewport body.agent-route-active .agent-panel.is-mobile-compact .panel-grid:not(.is-circular-deck) .mob-col-narrow,
-  html.is-mobile-viewport body.agent-route-active .agent-panel:not(.is-mobile-expanded) .panel-grid:not(.is-circular-deck) .mob-col,
-  html.is-mobile-viewport body.agent-route-active .agent-panel:not(.is-mobile-expanded) .panel-grid:not(.is-circular-deck) .mob-col-wide,
-  html.is-mobile-viewport body.agent-route-active .agent-panel:not(.is-mobile-expanded) .panel-grid:not(.is-circular-deck) .mob-col-narrow {
+  html.is-mobile-viewport body.agent-route-active .agent-panel.is-mobile-compact .panel-grid:not(.is-card-stack) .mob-col,
+  html.is-mobile-viewport body.agent-route-active .agent-panel.is-mobile-compact .panel-grid:not(.is-card-stack) .mob-col-wide,
+  html.is-mobile-viewport body.agent-route-active .agent-panel.is-mobile-compact .panel-grid:not(.is-card-stack) .mob-col-narrow,
+  html.is-mobile-viewport body.agent-route-active .agent-panel:not(.is-mobile-expanded) .panel-grid:not(.is-card-stack) .mob-col,
+  html.is-mobile-viewport body.agent-route-active .agent-panel:not(.is-mobile-expanded) .panel-grid:not(.is-card-stack) .mob-col-wide,
+  html.is-mobile-viewport body.agent-route-active .agent-panel:not(.is-mobile-expanded) .panel-grid:not(.is-card-stack) .mob-col-narrow {
     width: min(159px, 55.5vw) !important;
     height: 107px !important;
     max-height: 107px !important;
@@ -18656,8 +18656,8 @@ body.agent-route-active .app-shell > * {
     align-self: flex-start !important;
   }
 
-  html.is-mobile-viewport body.agent-route-active .agent-panel.is-mobile-compact .panel-grid:not(.is-circular-deck) .mob-col > *,
-  html.is-mobile-viewport body.agent-route-active .agent-panel:not(.is-mobile-expanded) .panel-grid:not(.is-circular-deck) .mob-col > * {
+  html.is-mobile-viewport body.agent-route-active .agent-panel.is-mobile-compact .panel-grid:not(.is-card-stack) .mob-col > *,
+  html.is-mobile-viewport body.agent-route-active .agent-panel:not(.is-mobile-expanded) .panel-grid:not(.is-card-stack) .mob-col > * {
     height: 100% !important;
     max-height: 107px !important;
     flex: 1 1 auto !important;
@@ -19565,7 +19565,7 @@ body.agent-route-active .app-shell > * {
     box-shadow: none !important;
   }
 
-  body.agent-route-active main.agent-layout > aside.agent-panel:has(.panel-grid.is-circular-deck) {
+  body.agent-route-active main.agent-layout > aside.agent-panel:has(.panel-grid.is-card-stack) {
     flex: 0 0 auto !important;
     max-height: none !important;
     height: auto !important;
@@ -19651,4 +19651,59 @@ body.agent-route-active .app-shell > * {
   border-color: rgba(126, 176, 216, 0.5) !important;
   box-shadow: none !important;
   filter: none !important;
+}
+
+/* Interview modal → diagnosis mode */
+.interview-modal.interview-modal--diagnosis {
+  max-width: min(1120px, 96vw);
+}
+
+.interview-modal.interview-modal--diagnosis .interview-modal-body,
+.interview-modal.interview-modal--diagnosis .interview-diagnosis-panel {
+  max-height: min(78vh, 920px);
+  overflow: auto;
+}
+
+.interview-diagnosis-panel {
+  display: grid;
+  gap: 22px;
+  padding: 4px 2px 8px;
+}
+
+.interview-diagnosis-panel--compact .diagnosis-hero h1 {
+  font-size: clamp(1.55rem, 2.4vw, 2.15rem);
+}
+
+.interview-diagnosis-bridge {
+  padding: 16px 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(168, 198, 224, 0.14);
+  background: rgba(10, 18, 28, 0.42);
+}
+
+.interview-diagnosis-grid {
+  display: grid;
+  gap: 18px;
+}
+
+.interview-diagnosis-grid--lead {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.interview-diagnosis-grid--secondary {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.interview-diagnosis-actions {
+  position: sticky;
+  bottom: 0;
+  padding-top: 8px;
+  background: linear-gradient(180deg, rgba(8, 13, 20, 0), rgba(8, 13, 20, 0.92) 28%);
+}
+
+@media (max-width: 960px) {
+  .interview-diagnosis-grid--lead,
+  .interview-diagnosis-grid--secondary {
+    grid-template-columns: 1fr;
+  }
 }

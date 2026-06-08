@@ -15966,10 +15966,10 @@ html:not([data-visual-mode='light-outline']) .agent-panel .panel-feature-card {
 }
 
 .transactions-modal .tx-agent-stage-tag {
-  color: rgba(84, 145, 214, 0.88);
+  color: var(--tx-contract-accent, #b5a48c);
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
 }
 
@@ -15999,9 +15999,10 @@ html:not([data-visual-mode='light-outline']) .agent-panel .panel-feature-card {
   gap: 12px;
   margin-bottom: 14px;
   padding: 12px 14px;
-  border-radius: 16px;
-  border: 1px solid rgba(205, 219, 236, 0.12);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.015));
+  border-radius: 12px;
+  border: 1px solid var(--tx-contract-border, rgba(176, 186, 198, 0.1));
+  background: var(--tx-contract-surface-raised, #1a212a);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
   min-width: 0;
 }
 
@@ -16173,26 +16174,27 @@ html:not([data-visual-mode='light-outline']) .agent-panel .panel-feature-card {
   flex: 0 0 auto;
   min-height: 36px;
   padding: 0 12px;
-  border-radius: 999px;
-  border: 1px solid rgba(186, 206, 226, 0.22);
-  background: rgba(12, 20, 31, 0.62);
-  color: rgba(236, 244, 252, 0.9);
+  border-radius: 10px;
+  border: 1px solid var(--tx-contract-border, rgba(176, 186, 198, 0.1));
+  background: var(--tx-contract-surface-inset, #121820);
+  color: var(--tx-contract-text, #eef2f6);
   font-size: 12px;
   font-weight: 600;
-  letter-spacing: -0.01em;
+  letter-spacing: 0.01em;
   cursor: pointer;
-  transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+  transition: border-color 160ms ease, background 160ms ease;
 }
 
 .transactions-modal .tx-format-rail-chip:hover {
-  border-color: rgba(210, 226, 242, 0.42);
-  background: rgba(18, 30, 44, 0.78);
+  border-color: var(--tx-contract-border-strong, rgba(176, 186, 198, 0.16));
+  background: var(--tx-contract-surface-raised, #1a212a);
 }
 
 .transactions-modal .tx-format-rail-chip.is-active {
-  border-color: rgba(184, 147, 70, 0.62);
-  background: rgba(184, 147, 70, 0.14);
-  color: rgba(255, 248, 236, 0.98);
+  border-color: var(--tx-contract-accent-edge, rgba(181, 164, 140, 0.38));
+  background: var(--tx-contract-accent-soft, rgba(181, 164, 140, 0.14));
+  color: var(--tx-contract-text, #eef2f6);
 }
 
 .transactions-modal .tx-format-rail-chip-icon {
@@ -16287,20 +16289,18 @@ html:not([data-visual-mode='light-outline']) .agent-panel .panel-feature-card {
   gap: 10px;
   margin-top: 12px;
   padding: 8px 10px 8px 12px;
-  border-radius: 16px;
-  border: 1px solid rgba(186, 206, 226, 0.2);
-  background: rgba(8, 14, 22, 0.72);
-  box-shadow:
-    0 14px 28px rgba(0, 0, 0, 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  border-radius: 14px;
+  border: 1px solid var(--tx-contract-border, rgba(176, 186, 198, 0.1));
+  background: var(--tx-contract-surface-inset, #121820);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
   transition: border-color 180ms ease, box-shadow 180ms ease;
 }
 
 .transactions-modal .tx-composer-pro:focus-within {
-  border-color: rgba(184, 147, 70, 0.52);
+  border-color: var(--tx-contract-accent-edge, rgba(181, 164, 140, 0.38));
   box-shadow:
-    0 16px 30px rgba(0, 0, 0, 0.22),
-    0 0 0 3px rgba(184, 147, 70, 0.12);
+    inset 0 1px 0 rgba(255, 255, 255, 0.035),
+    0 0 0 2px var(--tx-contract-accent-soft, rgba(181, 164, 140, 0.14));
 }
 
 .transactions-modal .tx-composer-pro[data-analysis-done='true'] {
@@ -16806,9 +16806,10 @@ html.mobile-input-engaged .transactions-modal .tx-composer-field {
   gap: 8px;
   margin: 0 0 10px;
   padding: 8px 10px;
-  border-radius: 10px;
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  background: rgba(15, 23, 42, 0.42);
+  border-radius: 11px;
+  border: 1px solid var(--tx-contract-border, rgba(176, 186, 198, 0.1));
+  background: var(--tx-contract-surface-raised, #1a212a);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
 }
 
 .transactions-modal .tx-chat-product-context-kicker {

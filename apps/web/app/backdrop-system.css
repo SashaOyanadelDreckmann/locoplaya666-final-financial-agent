@@ -479,9 +479,9 @@ body.agent-route-active .app-shell::before {
     overflow: hidden !important;
   }
 
-  html.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel:has(.panel-grid.is-circular-deck),
-  html.agent-route-active main.agent-layout.is-mobile-viewport .agent-panel.is-mobile-compact:has(.panel-grid.is-circular-deck),
-  body.agent-route-active .agent-panel.is-mobile-compact:has(.panel-grid.is-circular-deck) {
+  html.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel:has(.panel-grid.is-card-stack),
+  html.agent-route-active main.agent-layout.is-mobile-viewport .agent-panel.is-mobile-compact:has(.panel-grid.is-card-stack),
+  body.agent-route-active .agent-panel.is-mobile-compact:has(.panel-grid.is-card-stack) {
     flex: 0 0 auto !important;
     height: auto !important;
     max-height: none !important;

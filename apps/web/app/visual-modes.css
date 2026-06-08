@@ -1596,8 +1596,8 @@ html[data-visual-mode='light-outline'] body.agent-route-active .agent-layout.is-
     box-shadow: none !important;
   }
 
-  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel:is(.is-mobile-compact, .is-mobile-expanded):not(.is-mobile-expanded) .panel-grid.is-circular-deck,
-  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-panel:is(.is-mobile-compact, .is-mobile-expanded):not(.is-mobile-expanded) .panel-grid.is-circular-deck {
+  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel:is(.is-mobile-compact, .is-mobile-expanded):not(.is-mobile-expanded) .panel-grid.is-card-stack,
+  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-panel:is(.is-mobile-compact, .is-mobile-expanded):not(.is-mobile-expanded) .panel-grid.is-card-stack {
     background: #ffffff !important;
     background-color: #ffffff !important;
     background-image: none !important;
@@ -1721,14 +1721,14 @@ html[data-visual-mode='light-outline'] body.agent-route-active .panel-callout-cl
 
 /* Blanco full — deck: flat 2D (no black corner bleed from 3D + dark shell) */
 @media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
-  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel:is(.is-mobile-compact, .is-mobile-expanded):not(.is-mobile-expanded) .panel-grid.is-circular-deck > .mobile-deck-track {
+  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel:is(.is-mobile-compact, .is-mobile-expanded):not(.is-mobile-expanded) .panel-grid.is-card-stack > .mobile-deck-track {
     perspective: none !important;
     transform-style: flat !important;
     background: #ffffff !important;
     background-color: #ffffff !important;
   }
 
-  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel:is(.is-mobile-compact, .is-mobile-expanded):not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-slot {
+  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel:is(.is-mobile-compact, .is-mobile-expanded):not(.is-mobile-expanded) .panel-grid.is-card-stack .mobile-deck-slot {
     transform-style: flat !important;
     overflow: hidden !important;
     border-radius: 20px !important;
@@ -1736,23 +1736,23 @@ html[data-visual-mode='light-outline'] body.agent-route-active .panel-callout-cl
     background-color: #ffffff !important;
   }
 
-  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel:is(.is-mobile-compact, .is-mobile-expanded):not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-slot.is-deck-far-left {
+  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel:is(.is-mobile-compact, .is-mobile-expanded):not(.is-mobile-expanded) .panel-grid.is-card-stack .mobile-deck-slot.is-deck-far-left {
     transform: translateX(calc(-50% - var(--deck-shift-far))) scale(0.94) !important;
   }
 
-  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel:is(.is-mobile-compact, .is-mobile-expanded):not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-slot.is-deck-far-right {
+  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel:is(.is-mobile-compact, .is-mobile-expanded):not(.is-mobile-expanded) .panel-grid.is-card-stack .mobile-deck-slot.is-deck-far-right {
     transform: translateX(calc(-50% + var(--deck-shift-far))) scale(0.94) !important;
   }
 
-  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel:is(.is-mobile-compact, .is-mobile-expanded):not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-slot.is-deck-near-left {
+  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel:is(.is-mobile-compact, .is-mobile-expanded):not(.is-mobile-expanded) .panel-grid.is-card-stack .mobile-deck-slot.is-deck-near-left {
     transform: translateX(calc(-50% - var(--deck-shift-near))) scale(0.99) !important;
   }
 
-  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel:is(.is-mobile-compact, .is-mobile-expanded):not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-slot.is-deck-near-right {
+  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel:is(.is-mobile-compact, .is-mobile-expanded):not(.is-mobile-expanded) .panel-grid.is-card-stack .mobile-deck-slot.is-deck-near-right {
     transform: translateX(calc(-50% + var(--deck-shift-near))) scale(0.99) !important;
   }
 
-  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel:is(.is-mobile-compact, .is-mobile-expanded):not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-slot.is-mobile-front {
+  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel:is(.is-mobile-compact, .is-mobile-expanded):not(.is-mobile-expanded) .panel-grid.is-card-stack .mobile-deck-slot.is-mobile-front {
     transform: translateX(-50%) scale(1) !important;
   }
 

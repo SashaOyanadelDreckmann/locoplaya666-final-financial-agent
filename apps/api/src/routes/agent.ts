@@ -41,6 +41,7 @@ import { sendSuccess } from '../http/api.responses';
 import { parseBody } from '../http/parse';
 import { hasPermission, PERMISSIONS, type UserRole } from '../auth/rbac';
 import { listAdminUsersFullDump } from '../services/admin.service';
+import { loadProfile } from '../services/storage.service';
 import { getConfig } from '../config';
 import { fetchIndicador } from '../mcp/tools/market/mindicadorClient';
 import {
@@ -1149,10 +1150,16 @@ router.post(
 
     normalizedInput.user_name = normalizedInput.user_name ?? authedUser.name;
 
-    if (authedUser.injectedProfile) {
+    const resolvedDiagnosticProfile =
+      authedUser.injectedProfile ??
+      (authedUser.latestDiagnosticProfileId
+        ? await loadProfile(authedUser.latestDiagnosticProfileId)
+        : null);
+
+    if (resolvedDiagnosticProfile) {
       normalizedInput.context = {
         ...((normalizedInput.context as Record<string, unknown>) ?? {}),
-        injected_profile: authedUser.injectedProfile,
+        injected_profile: resolvedDiagnosticProfile,
       };
     }
 

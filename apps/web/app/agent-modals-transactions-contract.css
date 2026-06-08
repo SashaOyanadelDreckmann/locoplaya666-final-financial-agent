@@ -5,14 +5,22 @@
    ============================================================================= */
 
 .transactions-modal {
-  --tx-contract-panel: #0d141d;
-  --tx-contract-panel-edge: #0a1019;
-  --tx-contract-surface: #131d28;
-  --tx-contract-border: rgba(150, 180, 205, 0.14);
-  --tx-contract-text: #e9f1f8;
-  --tx-contract-text-dim: #9fb3c4;
-  --tx-contract-accent: #5b8cc0;
-  --tx-contract-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --tx-contract-panel: #10151b;
+  --tx-contract-panel-edge: #0b0f14;
+  --tx-contract-surface: #151b23;
+  --tx-contract-surface-raised: #1a212a;
+  --tx-contract-surface-inset: #121820;
+  --tx-contract-border: rgba(176, 186, 198, 0.1);
+  --tx-contract-border-strong: rgba(176, 186, 198, 0.16);
+  --tx-contract-text: #eef2f6;
+  --tx-contract-text-dim: #96a3b0;
+  --tx-contract-text-mute: #7a8794;
+  --tx-contract-accent: #b5a48c;
+  --tx-contract-accent-soft: rgba(181, 164, 140, 0.14);
+  --tx-contract-accent-edge: rgba(181, 164, 140, 0.38);
+  --tx-contract-ease: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --tx-contract-shadow-soft: 0 20px 56px rgba(0, 0, 0, 0.34);
+  --tx-contract-inset: inset 0 1px 0 rgba(255, 255, 255, 0.035);
 }
 
 /* ── Shell: one scroll host, opaque premium panel ─────────────────────────── */
@@ -21,10 +29,10 @@
   justify-content: center !important;
   padding: clamp(12px, 2.5vw, 28px) !important;
   background:
-    radial-gradient(120% 90% at 50% -10%, rgba(36, 58, 80, 0.34), transparent 60%),
-    rgba(6, 11, 18, 0.78) !important;
-  backdrop-filter: blur(12px) saturate(0.92) !important;
-  -webkit-backdrop-filter: blur(12px) saturate(0.92) !important;
+    radial-gradient(110% 80% at 50% -8%, rgba(28, 36, 46, 0.22), transparent 58%),
+    rgba(7, 10, 14, 0.84) !important;
+  backdrop-filter: blur(8px) saturate(0.82) brightness(0.72) !important;
+  -webkit-backdrop-filter: blur(8px) saturate(0.82) brightness(0.72) !important;
 }
 
 .agent-modal.transactions-modal,
@@ -39,12 +47,11 @@
   padding: 0 0 12px !important;
   overflow: hidden !important;
   border-radius: 24px !important;
-  border: 1px solid rgba(152, 186, 212, 0.18) !important;
+  border: 1px solid var(--tx-contract-border-strong) !important;
   background: linear-gradient(180deg, var(--tx-contract-panel) 0%, var(--tx-contract-panel-edge) 100%) !important;
   box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.05) inset,
-    0 40px 120px rgba(0, 0, 0, 0.55),
-    0 12px 36px rgba(0, 0, 0, 0.42) !important;
+    var(--tx-contract-inset),
+    var(--tx-contract-shadow-soft) !important;
 }
 
 .transactions-modal .tx-scroll-body {
@@ -86,10 +93,10 @@
 .transactions-modal .pt-right {
   min-width: 0 !important;
   max-width: 100% !important;
-  border-radius: 20px !important;
+  border-radius: 18px !important;
   border: 1px solid var(--tx-contract-border) !important;
-  background: linear-gradient(180deg, rgba(19, 29, 40, 0.94), rgba(12, 20, 30, 0.98)) !important;
-  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.28) !important;
+  background: var(--tx-contract-surface) !important;
+  box-shadow: var(--tx-contract-inset) !important;
 }
 
 .transactions-modal .pt-left {
@@ -133,9 +140,9 @@
   display: grid !important;
   gap: 3px !important;
   padding: 10px 12px !important;
-  border-radius: 12px !important;
-  border: 1px solid rgba(148, 163, 184, 0.22) !important;
-  background: rgba(8, 14, 22, 0.5) !important;
+  border-radius: 11px !important;
+  border: 1px solid var(--tx-contract-border) !important;
+  background: var(--tx-contract-surface-inset) !important;
   color: var(--tx-contract-text) !important;
   text-align: left !important;
   cursor: pointer !important;
@@ -146,8 +153,8 @@
 }
 
 .transactions-modal .tx-wizard-step.is-current {
-  border-color: rgba(96, 165, 250, 0.62) !important;
-  background: rgba(30, 58, 95, 0.55) !important;
+  border-color: var(--tx-contract-accent-edge) !important;
+  background: var(--tx-contract-accent-soft) !important;
 }
 
 .transactions-modal .tx-wizard-step.is-disabled,
@@ -374,7 +381,8 @@
 .transactions-modal .tx-meta-card {
   border-radius: 12px !important;
   border: 1px solid var(--tx-contract-border) !important;
-  background: rgba(12, 20, 30, 0.92) !important;
+  background: var(--tx-contract-surface-raised) !important;
+  box-shadow: var(--tx-contract-inset) !important;
 }
 
 /* ── Evidence chat ──────────────────────────────────────────────────────────── */
@@ -449,7 +457,7 @@
     border-bottom: none !important;
     overflow: hidden !important;
     background: linear-gradient(180deg, var(--tx-contract-panel) 0%, var(--tx-contract-panel-edge) 100%) !important;
-    box-shadow: 0 -16px 48px rgba(0, 0, 0, 0.42) !important;
+    box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.32) !important;
   }
 
   .transactions-modal .bcc-modal-header.tx-modal-header-layer {
@@ -459,8 +467,8 @@
   .transactions-modal .bcc-modal-header,
   .transactions-modal .bcc-modal-header.tx-modal-header-layer {
     padding: calc(10px + env(safe-area-inset-top, 0px)) 14px 10px !important;
-    background: linear-gradient(180deg, rgba(13, 20, 29, 0.98), rgba(13, 20, 29, 0.9)) !important;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+    background: var(--tx-contract-panel) !important;
+    border-bottom: 1px solid var(--tx-contract-border) !important;
   }
 
   .transactions-modal .agent-modal-close,
@@ -517,9 +525,9 @@
     max-height: none !important;
     overflow: visible !important;
     padding: 12px !important;
-    background: linear-gradient(180deg, rgba(19, 29, 40, 0.96), rgba(12, 20, 30, 0.98)) !important;
+    background: var(--tx-contract-surface) !important;
     border: 1px solid var(--tx-contract-border) !important;
-    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.24) !important;
+    box-shadow: var(--tx-contract-inset) !important;
   }
 
   .transactions-modal .tx-panel-surface {
@@ -810,7 +818,7 @@
     overflow-x: hidden !important;
     background: linear-gradient(180deg, var(--tx-contract-panel) 0%, var(--tx-contract-panel-edge) 100%) !important;
     border-radius: 22px 22px 0 0 !important;
-    box-shadow: 0 -16px 48px rgba(0, 0, 0, 0.42) !important;
+    box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.32) !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
   }
@@ -847,9 +855,9 @@
     padding: 12px !important;
     overflow: visible !important;
     transform: none !important;
-    background: linear-gradient(180deg, rgba(19, 29, 40, 0.96), rgba(12, 20, 30, 0.98)) !important;
+    background: var(--tx-contract-surface) !important;
     border: 1px solid var(--tx-contract-border) !important;
-    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.24) !important;
+    box-shadow: var(--tx-contract-inset) !important;
   }
 
   html:not(.home-route-active) .transactions-modal .tx-content-card,
@@ -859,9 +867,9 @@
     position: relative !important;
     width: 100% !important;
     max-width: 100% !important;
-    background: rgba(12, 20, 30, 0.92) !important;
+    background: var(--tx-contract-surface-raised) !important;
     border: 1px solid var(--tx-contract-border) !important;
-    box-shadow: none !important;
+    box-shadow: var(--tx-contract-inset) !important;
   }
 }
 
@@ -929,10 +937,10 @@
     margin: 0 0 8px !important;
     justify-self: auto !important;
     align-self: auto !important;
-    color: rgba(84, 145, 214, 0.88) !important;
+    color: var(--tx-contract-accent) !important;
     font-size: 10px !important;
     font-weight: 700 !important;
-    letter-spacing: 0.16em !important;
+    letter-spacing: 0.18em !important;
     text-transform: uppercase !important;
   }
 
@@ -948,9 +956,9 @@
     letter-spacing: -0.04em !important;
     max-width: none !important;
     text-wrap: balance !important;
-    text-shadow: 0 16px 48px rgba(0, 0, 0, 0.38) !important;
+    text-shadow: none !important;
     margin: 0 !important;
-    color: #f0f0f5 !important;
+    color: var(--tx-contract-text) !important;
   }
 
   .transactions-modal .tx-content-card.tx-content-card--agent.is-main-center .tx-agent-stage-title-initial,
@@ -973,7 +981,7 @@
     font-size: clamp(12px, 0.92vw, 14px) !important;
     line-height: 1.42 !important;
     letter-spacing: 0.005em !important;
-    color: rgba(238, 242, 247, 0.5) !important;
+    color: var(--tx-contract-text-dim) !important;
   }
 
   .transactions-modal .tx-format-rail-chip-label {
@@ -1008,4 +1016,703 @@
     overflow: visible !important;
     min-width: 0 !important;
   }
+}
+
+/* =============================================================================
+   MATTE SENIOR REFINEMENT — unified mobile · tablet · desktop
+   Opaque surfaces, warm accent, editorial hierarchy, no glass glow.
+   ============================================================================= */
+
+.transactions-modal .bcc-modal-header {
+  padding: clamp(18px, 2.2vw, 26px) clamp(16px, 2.4vw, 28px) 0 !important;
+}
+
+.transactions-modal .bcc-modal-eyebrow {
+  color: var(--tx-contract-accent) !important;
+  letter-spacing: 0.28em !important;
+  font-weight: 600 !important;
+  opacity: 0.92 !important;
+}
+
+.transactions-modal .bcc-modal-title {
+  color: var(--tx-contract-text) !important;
+  font-weight: 650 !important;
+  letter-spacing: -0.025em !important;
+}
+
+.transactions-modal .agent-modal-intro {
+  color: var(--tx-contract-text-dim) !important;
+}
+
+.transactions-modal .agent-modal-close,
+.transactions-modal .tx-close-minimal {
+  color: var(--tx-contract-text-dim) !important;
+  background: var(--tx-contract-surface-raised) !important;
+  border: 1px solid var(--tx-contract-border) !important;
+  border-radius: 11px !important;
+  box-shadow: var(--tx-contract-inset) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  transition:
+    color 0.16s var(--tx-contract-ease),
+    background 0.16s var(--tx-contract-ease),
+    border-color 0.16s var(--tx-contract-ease),
+    transform 0.16s var(--tx-contract-ease) !important;
+}
+
+.transactions-modal .agent-modal-close:hover,
+.transactions-modal .tx-close-minimal:hover {
+  color: var(--tx-contract-text) !important;
+  background: color-mix(in srgb, var(--tx-contract-surface-raised) 88%, #ffffff 12%) !important;
+  border-color: var(--tx-contract-border-strong) !important;
+}
+
+.transactions-modal .tx-wizard-step-title {
+  letter-spacing: 0.03em !important;
+}
+
+.transactions-modal .tx-wizard-step-copy {
+  color: var(--tx-contract-text-mute) !important;
+}
+
+.transactions-modal .tx-agent-stage-tag {
+  color: var(--tx-contract-accent) !important;
+  letter-spacing: 0.18em !important;
+}
+
+.transactions-modal .tx-agent-stage-title {
+  color: var(--tx-contract-text) !important;
+  text-shadow: none !important;
+}
+
+.transactions-modal .tx-agent-stage-note {
+  color: var(--tx-contract-text-dim) !important;
+}
+
+.transactions-modal .tx-evidence-product-bar,
+.transactions-modal .tx-chat-product-context {
+  border-radius: 12px !important;
+  border: 1px solid var(--tx-contract-border) !important;
+  background: var(--tx-contract-surface-raised) !important;
+  box-shadow: var(--tx-contract-inset) !important;
+}
+
+.transactions-modal .tx-evidence-product-kicker,
+.transactions-modal .tx-chat-product-context-kicker {
+  color: var(--tx-contract-text-mute) !important;
+  letter-spacing: 0.14em !important;
+}
+
+.transactions-modal .tx-evidence-product-copy strong,
+.transactions-modal .tx-chat-product-context strong {
+  color: var(--tx-contract-text) !important;
+}
+
+.transactions-modal .tx-evidence-product-copy span,
+.transactions-modal .tx-evidence-product-meta span {
+  color: var(--tx-contract-text-dim) !important;
+}
+
+.transactions-modal .tx-format-rail-chip {
+  border-radius: 10px !important;
+  border: 1px solid var(--tx-contract-border) !important;
+  background: var(--tx-contract-surface-inset) !important;
+  color: var(--tx-contract-text) !important;
+  box-shadow: var(--tx-contract-inset) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.transactions-modal .tx-format-rail-chip:hover {
+  border-color: var(--tx-contract-border-strong) !important;
+  background: var(--tx-contract-surface-raised) !important;
+}
+
+.transactions-modal .tx-format-rail-chip.is-active {
+  border-color: var(--tx-contract-accent-edge) !important;
+  background: var(--tx-contract-accent-soft) !important;
+  color: var(--tx-contract-text) !important;
+}
+
+.transactions-modal .tx-format-rail-chip.is-active .tx-format-rail-chip-icon {
+  color: var(--tx-contract-accent) !important;
+}
+
+.transactions-modal .tx-format-guidance {
+  border-radius: 12px !important;
+  border: 1px solid var(--tx-contract-border) !important;
+  background: var(--tx-contract-surface-inset) !important;
+  box-shadow: var(--tx-contract-inset) !important;
+}
+
+.transactions-modal .tx-format-guidance-copy p {
+  color: var(--tx-contract-text-dim) !important;
+}
+
+.transactions-modal .tx-format-guidance-kicker {
+  border-color: var(--tx-contract-border) !important;
+  background: var(--tx-contract-surface-raised) !important;
+  color: var(--tx-contract-text-mute) !important;
+}
+
+.transactions-modal .tx-format-guidance-link {
+  color: var(--tx-contract-accent) !important;
+}
+
+.transactions-modal .tx-composer-pro {
+  border-radius: 14px !important;
+  border: 1px solid var(--tx-contract-border) !important;
+  background: var(--tx-contract-surface-inset) !important;
+  box-shadow: var(--tx-contract-inset) !important;
+}
+
+.transactions-modal .tx-composer-pro:focus-within {
+  border-color: var(--tx-contract-accent-edge) !important;
+  box-shadow:
+    var(--tx-contract-inset),
+    0 0 0 2px var(--tx-contract-accent-soft) !important;
+}
+
+.transactions-modal .tx-composer-attach,
+.transactions-modal .tx-composer-send {
+  border-radius: 10px !important;
+  border: 1px solid var(--tx-contract-border) !important;
+  background: var(--tx-contract-surface-raised) !important;
+  color: var(--tx-contract-text) !important;
+  box-shadow: var(--tx-contract-inset) !important;
+}
+
+.transactions-modal .tx-composer-attach:hover,
+.transactions-modal .tx-composer-send:hover:not(:disabled) {
+  border-color: var(--tx-contract-border-strong) !important;
+  background: color-mix(in srgb, var(--tx-contract-surface-raised) 90%, #ffffff 10%) !important;
+}
+
+.transactions-modal .tx-chat-bubble {
+  border: 1px solid var(--tx-contract-border) !important;
+  background: var(--tx-contract-surface-raised) !important;
+  box-shadow: var(--tx-contract-inset) !important;
+}
+
+.transactions-modal .tx-chat-bubble.is-user {
+  border-color: var(--tx-contract-accent-edge) !important;
+  background: color-mix(in srgb, var(--tx-contract-accent-soft) 72%, var(--tx-contract-surface-raised) 28%) !important;
+}
+
+.transactions-modal .upload-zone,
+.transactions-modal .tx-upload-zone-premium--rail .upload-zone {
+  border-radius: 14px !important;
+  border: 1px dashed var(--tx-contract-border-strong) !important;
+  background: var(--tx-contract-surface-inset) !important;
+  box-shadow: var(--tx-contract-inset) !important;
+}
+
+.transactions-modal .transactions-summary-card,
+.transactions-modal .transactions-summary-card.tx-consent-card,
+.transactions-modal .transactions-summary-card.tx-evidence-card,
+.transactions-modal .tx-evidence-card--premium {
+  border-radius: 14px !important;
+  border: 1px solid var(--tx-contract-border) !important;
+  background: var(--tx-contract-surface) !important;
+  box-shadow: var(--tx-contract-inset) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.transactions-modal .bank-sim-grid input:not([type='checkbox']),
+.transactions-modal .bank-sim-grid select,
+.transactions-modal .bank-sim-grid textarea,
+.transactions-modal .tx-composer-field,
+.transactions-modal textarea.tx-composer-field {
+  border-radius: 11px !important;
+  border: 1px solid var(--tx-contract-border) !important;
+  background: var(--tx-contract-surface-inset) !important;
+  color: var(--tx-contract-text) !important;
+  box-shadow: var(--tx-contract-inset) !important;
+}
+
+.transactions-modal .bank-sim-grid input:not([type='checkbox']):focus,
+.transactions-modal .bank-sim-grid select:focus,
+.transactions-modal .bank-sim-grid textarea:focus,
+.transactions-modal .tx-composer-field:focus {
+  border-color: var(--tx-contract-accent-edge) !important;
+  box-shadow:
+    var(--tx-contract-inset),
+    0 0 0 2px var(--tx-contract-accent-soft) !important;
+}
+
+.transactions-modal .continue-ghost,
+.transactions-modal .button-primary,
+.transactions-modal .tx-preset-btn,
+.transactions-modal .tx-minimal-launch-btn {
+  border-radius: 11px !important;
+  border: 1px solid var(--tx-contract-border-strong) !important;
+  background: var(--tx-contract-surface-raised) !important;
+  color: var(--tx-contract-text) !important;
+  box-shadow: var(--tx-contract-inset) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  filter: none !important;
+}
+
+.transactions-modal .button-primary:not(:disabled),
+.transactions-modal .tx-preset-btn.tx-preset-btn--primary {
+  border-color: color-mix(in srgb, var(--tx-contract-accent) 48%, var(--tx-contract-border-strong) 52%) !important;
+  background: color-mix(in srgb, var(--tx-contract-accent-soft) 55%, var(--tx-contract-surface-raised) 45%) !important;
+}
+
+.transactions-modal .continue-ghost:hover:not(:disabled),
+.transactions-modal .button-primary:hover:not(:disabled),
+.transactions-modal .tx-preset-btn:hover:not(:disabled) {
+  border-color: var(--tx-contract-accent-edge) !important;
+  background: color-mix(in srgb, var(--tx-contract-surface-raised) 86%, #ffffff 14%) !important;
+  box-shadow: var(--tx-contract-inset) !important;
+  filter: none !important;
+}
+
+.transactions-modal .tx-evidence-fidelity-notice {
+  border-radius: 11px !important;
+  border: 1px solid color-mix(in srgb, var(--tx-contract-accent) 34%, transparent) !important;
+  background: color-mix(in srgb, var(--tx-contract-accent-soft) 80%, var(--tx-contract-surface-inset) 20%) !important;
+}
+
+.transactions-modal .tx-evidence-fidelity-kicker {
+  color: var(--tx-contract-accent) !important;
+}
+
+.transactions-modal .tx-evidence-fidelity-notice p {
+  color: var(--tx-contract-text-dim) !important;
+}
+
+.transactions-modal .tx-skip-products-note,
+.transactions-modal .tx-consent-guidance {
+  color: var(--tx-contract-text-mute) !important;
+}
+
+.transactions-modal .tx-close-confirm-layer .tx-close-confirm-dialog {
+  border-radius: 14px !important;
+  border: 1px solid var(--tx-contract-border-strong) !important;
+  background: var(--tx-contract-surface) !important;
+  box-shadow: var(--tx-contract-shadow-soft) !important;
+}
+
+.transactions-modal .tx-close-confirm-body {
+  color: var(--tx-contract-text-dim) !important;
+}
+
+.transactions-modal .pt-kpi,
+.transactions-modal .pt-empty-item,
+.transactions-modal .pt-premium-intro,
+.transactions-modal .tx-preset-shell {
+  background: var(--tx-contract-surface-raised) !important;
+  border: 1px solid var(--tx-contract-border) !important;
+  box-shadow: var(--tx-contract-inset) !important;
+}
+
+.transactions-modal .tx-meta-card-kicker,
+.transactions-modal .pt-kpi span {
+  color: var(--tx-contract-text-mute) !important;
+}
+
+.transactions-modal .tx-numbers-canvas,
+.transactions-modal .tx-transition-flood-layer {
+  opacity: 0.42 !important;
+}
+
+.transactions-modal[data-stage='evidence'] .tx-composer-sticky-host {
+  background: linear-gradient(
+    180deg,
+    rgba(16, 21, 27, 0) 0%,
+    rgba(16, 21, 27, 0.94) 30%,
+    var(--tx-contract-panel) 100%
+  ) !important;
+}
+
+@media (min-width: 768px) and (max-width: 1100px) {
+  .transactions-modal .pt-left,
+  .transactions-modal .pt-right {
+    border-radius: 16px !important;
+  }
+}
+
+@media (min-width: 1101px) {
+  .transactions-modal .tx-format-rail-chip {
+    border-radius: 10px !important;
+    min-height: 38px !important;
+    padding-inline: 12px !important;
+  }
+
+  .transactions-modal .tx-wizard-step {
+    min-height: 56px !important;
+    padding: 11px 13px !important;
+  }
+}
+
+/* =============================================================================
+   MOBILE HARMONY — single scroll, flat sections, breathable spacing
+   ============================================================================= */
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+  .agent-modal-overlay.transactions-modal-overlay {
+    padding: 0 !important;
+  }
+
+  .agent-modal.transactions-modal,
+  .transactions-modal {
+    min-height: min(92dvh, 92vh) !important;
+    max-height: min(96dvh, 96vh) !important;
+    height: auto !important;
+    padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  .transactions-modal .bcc-modal-header,
+  .transactions-modal .bcc-modal-header.tx-modal-header-layer {
+    display: flex !important;
+    align-items: flex-start !important;
+    gap: 10px !important;
+    padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 12px !important;
+    background: var(--tx-contract-panel) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border-bottom: 1px solid var(--tx-contract-border) !important;
+  }
+
+  .transactions-modal .bcc-modal-title-wrap {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    padding-right: 2px !important;
+  }
+
+  .transactions-modal .bcc-modal-eyebrow {
+    font-size: 9px !important;
+    letter-spacing: 0.24em !important;
+    margin-bottom: 2px !important;
+  }
+
+  .transactions-modal .bcc-modal-title {
+    font-size: clamp(15px, 4.4vw, 17px) !important;
+    line-height: 1.22 !important;
+    max-width: 100% !important;
+    text-wrap: balance !important;
+  }
+
+  .transactions-modal .agent-modal-close,
+  .transactions-modal .tx-close-minimal {
+    position: relative !important;
+    top: auto !important;
+    right: auto !important;
+    flex: 0 0 44px !important;
+    margin-top: 2px !important;
+  }
+
+  .transactions-modal .tx-scroll-body {
+    padding: 12px 16px calc(16px + env(safe-area-inset-bottom, 0px)) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0 !important;
+  }
+
+  .transactions-modal .pt-shell,
+  .transactions-modal .pt-shell.tx-stage-shell {
+    gap: 20px !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  /* Flat sections — one visual plane, divider instead of nested cards */
+  .transactions-modal .pt-left,
+  .transactions-modal .pt-right {
+    padding: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    gap: 14px !important;
+  }
+
+  .transactions-modal .pt-left {
+    padding-bottom: 18px !important;
+    border-bottom: 1px solid var(--tx-contract-border) !important;
+  }
+
+  .transactions-modal .pt-right {
+    padding-top: 2px !important;
+  }
+
+  .transactions-modal .pt-list-head {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    align-items: center !important;
+    gap: 8px 10px !important;
+    margin: 0 0 4px !important;
+  }
+
+  .transactions-modal .pt-list-head h4 {
+    margin: 0 !important;
+    font-size: 0.88rem !important;
+    font-weight: 650 !important;
+    letter-spacing: 0.01em !important;
+    color: var(--tx-contract-text) !important;
+    min-width: 0 !important;
+  }
+
+  .transactions-modal .pt-list-head-actions {
+    display: flex !important;
+    justify-content: flex-end !important;
+  }
+
+  .transactions-modal .tx-create-product-btn {
+    min-height: 40px !important;
+    padding: 0 12px !important;
+    font-size: 0.74rem !important;
+    white-space: nowrap !important;
+  }
+
+  .transactions-modal .tx-library-stack-block {
+    gap: 10px !important;
+    width: 100% !important;
+  }
+
+  .transactions-modal .pt-stack-carousel.tx-library-is-saved {
+    min-height: 220px !important;
+    height: 220px !important;
+    padding: 4px 0 6px !important;
+  }
+
+  .transactions-modal .tx-lib-card-select {
+    padding: 12px 48px 12px 12px !important;
+  }
+
+  .transactions-modal .pt-item-delete-mini {
+    top: 8px !important;
+    right: 8px !important;
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+  }
+
+  .transactions-modal .pt-stack-nav {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 12px !important;
+    margin: 2px 0 0 !important;
+    padding: 0 !important;
+  }
+
+  .transactions-modal .tx-meta-stack {
+    gap: 10px !important;
+    margin-top: 4px !important;
+  }
+
+  .transactions-modal .tx-meta-stack .tx-limits-card,
+  .transactions-modal .tx-meta-stack .tx-meta-card {
+    padding: 12px !important;
+    border-radius: 12px !important;
+    box-shadow: var(--tx-contract-inset) !important;
+  }
+
+  .transactions-modal .tx-limits-detail-panel {
+    display: none !important;
+  }
+
+  .transactions-modal .tx-limits-card.is-expanded .tx-limits-detail-panel {
+    display: block !important;
+  }
+
+  .transactions-modal .tx-limits-card-foot {
+    flex-wrap: nowrap !important;
+    gap: 10px !important;
+    margin-top: 10px !important;
+  }
+
+  .transactions-modal .tx-limits-add-btn {
+    display: none !important;
+  }
+
+  .transactions-modal .tx-limits-expand-btn {
+    flex: 1 1 auto !important;
+    min-height: 40px !important;
+    justify-content: center !important;
+  }
+
+  .transactions-modal .tx-batch-recommendation-banner {
+    display: none !important;
+  }
+
+  .transactions-modal .tx-wizard-stepper {
+    margin: 0 0 14px !important;
+  }
+
+  .transactions-modal .tx-wizard-stepper-list {
+    gap: 8px !important;
+  }
+
+  .transactions-modal .tx-wizard-step {
+    min-height: 40px !important;
+    padding: 6px 4px !important;
+  }
+
+  .transactions-modal .tx-content-carousel {
+    gap: 12px !important;
+  }
+
+  .transactions-modal .tx-content-card,
+  .transactions-modal .tx-content-card--agent,
+  .transactions-modal .transactions-summary-card.tx-consent-card,
+  .transactions-modal .transactions-summary-card.tx-evidence-card,
+  .transactions-modal .tx-evidence-card--premium {
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .transactions-modal .pt-empty-state {
+    padding: 14px !important;
+    border-radius: 12px !important;
+    border: 1px solid var(--tx-contract-border) !important;
+    background: var(--tx-contract-surface-raised) !important;
+    box-shadow: var(--tx-contract-inset) !important;
+  }
+
+  .transactions-modal .tx-agent-stage-header,
+  .transactions-modal .tx-content-card--agent .tx-agent-stage-header {
+    margin-bottom: 14px !important;
+  }
+
+  .transactions-modal .tx-format-rail,
+  .transactions-modal .tx-evidence-card--premium .tx-format-rail,
+  .transactions-modal .tx-content-card--agent .tx-format-rail {
+    gap: 6px !important;
+    margin-top: 8px !important;
+    margin-bottom: 4px !important;
+  }
+
+  .transactions-modal .tx-format-rail-chip {
+    min-height: 50px !important;
+    padding: 5px 3px !important;
+    gap: 3px !important;
+  }
+
+  .transactions-modal .tx-format-guidance {
+    margin-top: 10px !important;
+    padding: 12px !important;
+  }
+
+  .transactions-modal .tx-evidence-product-bar,
+  .transactions-modal .tx-chat-product-context {
+    margin-bottom: 12px !important;
+    padding: 10px 12px !important;
+  }
+
+  .transactions-modal .tx-evidence-card--premium .tx-chat-thread,
+  .transactions-modal .tx-chat-thread {
+    max-height: min(30vh, 240px) !important;
+    margin-bottom: 8px !important;
+  }
+
+  .transactions-modal .tx-composer-pro {
+    margin-top: 10px !important;
+    padding: 8px 8px 8px 10px !important;
+    gap: 8px !important;
+  }
+
+  .transactions-modal[data-stage='evidence'] .tx-composer-sticky-host {
+    margin-top: 10px !important;
+    padding-top: 12px !important;
+    padding-bottom: max(8px, env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  .transactions-modal .agent-modal-actions,
+  .transactions-modal .transactions-summary-card .agent-modal-actions,
+  .transactions-modal .tx-consent-actions-row {
+    display: grid !important;
+    gap: 10px !important;
+    margin-top: 14px !important;
+    padding-top: 14px !important;
+    border-top: 1px solid var(--tx-contract-border) !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .transactions-modal .agent-modal-actions .button-primary,
+  .transactions-modal .agent-modal-actions .continue-ghost,
+  .transactions-modal .tx-consent-actions-row .button-primary,
+  .transactions-modal .tx-consent-actions-row .continue-ghost {
+    width: 100% !important;
+    min-height: 46px !important;
+    justify-content: center !important;
+  }
+
+  .transactions-modal .tx-preset-shell,
+  .transactions-modal .pt-premium-intro {
+    padding: 14px !important;
+    border-radius: 12px !important;
+    border: 1px solid var(--tx-contract-border) !important;
+    background: var(--tx-contract-surface-raised) !important;
+    box-shadow: var(--tx-contract-inset) !important;
+  }
+
+  .transactions-modal .tx-skip-products {
+    margin-top: 12px !important;
+  }
+
+  .transactions-modal .tx-numbers-canvas,
+  .transactions-modal .tx-transition-flood-layer {
+    opacity: 0.28 !important;
+  }
+}
+
+@media (max-width: 380px) {
+  .transactions-modal .pt-list-head {
+    grid-template-columns: 1fr !important;
+  }
+
+  .transactions-modal .pt-list-head-actions,
+  .transactions-modal .tx-create-product-btn {
+    width: 100% !important;
+  }
+
+  .transactions-modal .tx-create-product-btn {
+    justify-content: center !important;
+  }
+}
+
+/* =============================================================================
+   MOVEMENT TABLES — amount heat map (parity with budget table)
+   Higher expense → deeper red; higher income → deeper green.
+   ============================================================================= */
+
+.transactions-modal .tx-movements-table--pro tbody tr.tx-row-income,
+.transactions-modal .tx-movements-table--pro tbody tr.tx-row-expense {
+  background: transparent !important;
+}
+
+.transactions-modal .tx-movements-table--pro tbody tr.tx-row-income td,
+.transactions-modal .tx-movements-table--pro tbody tr.tx-row-expense td {
+  background: var(--row-bg, transparent) !important;
+  transition: filter 140ms ease, box-shadow 140ms ease;
+}
+
+.transactions-modal .tx-movements-table--pro tbody tr.tx-row-income:hover td,
+.transactions-modal .tx-movements-table--pro tbody tr.tx-row-expense:hover td {
+  filter: brightness(1.14);
+}
+
+.transactions-modal .tx-movements-table--pro tbody tr.tx-row-income.is-selected td,
+.transactions-modal .tx-movements-table--pro tbody tr.tx-row-expense.is-selected td {
+  filter: brightness(1.2);
+  box-shadow: inset 0 0 0 1px rgba(198, 160, 82, 0.34);
+}
+
+.transactions-modal .tx-movements-table--pro tbody tr.tx-row-income:hover,
+.transactions-modal .tx-movements-table--pro tbody tr.tx-row-expense:hover,
+.transactions-modal .tx-movements-table--pro tbody tr.tx-row-income.is-selected,
+.transactions-modal .tx-movements-table--pro tbody tr.tx-row-expense.is-selected,
+.transactions-modal .tx-movements-table--pro tbody tr.tx-row-income:nth-child(even),
+.transactions-modal .tx-movements-table--pro tbody tr.tx-row-expense:nth-child(even) {
+  background: transparent !important;
 }

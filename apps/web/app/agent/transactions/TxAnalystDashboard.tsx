@@ -1,6 +1,6 @@
 'use client';
 
-import type { Ref } from 'react';
+import { useMemo, type CSSProperties, type Ref } from 'react';
 import {
   RETRO_CHART_COLORS,
   RETRO_CHART_NEGATIVE,
@@ -34,6 +34,12 @@ import type { useMovementAnalytics } from './use-movement-analytics';
 import type { BankProduct } from './types';
 import { TxExecutiveSummary } from './TxExecutiveSummary';
 import { TxIndicativeNotice } from './TxIndicativeNotice';
+import {
+  maxMovementHeatAmount,
+  movementRowHeatClass,
+  movementTableRowHeatStyle,
+  type MovementHeatKind,
+} from './transactions-modal.helpers';
 
 type MovementAnalytics = ReturnType<typeof useMovementAnalytics>;
 
@@ -158,6 +164,27 @@ export function TxAnalystDashboard({
         ? 'Abonos'
         : 'Ingresos';
 
+  const maxIncomeHeat = useMemo(
+    () => maxMovementHeatAmount(incomeOrAbonoRows.map((movement) => movement.amount)),
+    [incomeOrAbonoRows],
+  );
+  const maxExpenseHeat = useMemo(
+    () => maxMovementHeatAmount(expenseRows.map((movement) => movement.amount)),
+    [expenseRows],
+  );
+
+  const movementHeatProps = (amount: number, kind: MovementHeatKind) => {
+    const style = movementTableRowHeatStyle(
+      amount,
+      kind,
+      kind === 'income' ? maxIncomeHeat : maxExpenseHeat,
+    );
+    return {
+      className: movementRowHeatClass(kind),
+      style: style as CSSProperties,
+    };
+  };
+
   return (
                   <section
                     className={`tx-content-card is-main-center tx-summary-stage tx-step-reveal tx-ap-dashboard${isIndicativeEvidence ? ' is-indicative-evidence' : ''}`}
@@ -263,10 +290,15 @@ export function TxAnalystDashboard({
                                     <td colSpan={7}>No hay movimientos detectados aún. Sube una cartola más nítida o archivo XLSX/PDF.</td>
                                   </tr>
                                 ) : (
-                                  dedupedMovementRows.map((movement, idx) => (
+                                  dedupedMovementRows.map((movement, idx) => {
+                                    const heatKind: MovementHeatKind =
+                                      movement.directionForTotals === 'income' ? 'income' : 'expense';
+                                    const heat = movementHeatProps(movement.amount, heatKind);
+                                    return (
                                     <tr
                                       key={`mv-all-${idx}-${movement.directionForTotals}-${movement.label}-${movement.amount}`}
-                                      className={`tx-refinable-block${selectedMovementKey === movement.uiKey ? ' is-selected' : ''}`}
+                                      className={`tx-refinable-block ${heat.className}${selectedMovementKey === movement.uiKey ? ' is-selected' : ''}`}
+                                      style={heat.style}
                                       onClick={() => onSelectMovementKey(movement.uiKey)}
                                       onDoubleClick={() =>
                                         onRefineSummary(
@@ -293,7 +325,8 @@ export function TxAnalystDashboard({
                                       <td>{movementSourceLabel(movement.sourceKind)}</td>
                                       <td>{movement.categoryConfidence ? formatPercentCompact(movement.categoryConfidence * 100) : movement.confidence ? formatPercentCompact(movement.confidence * 100) : 'N/D'}</td>
                                     </tr>
-                                  ))
+                                    );
+                                  })
                                 )}
                               </tbody>
                             </table>
@@ -319,10 +352,13 @@ export function TxAnalystDashboard({
                                       <td colSpan={5}>No hay ingresos/abonos detectados.</td>
                                     </tr>
                                   ) : (
-                                    incomeOrAbonoRows.map((movement, idx) => (
+                                    incomeOrAbonoRows.map((movement, idx) => {
+                                      const heat = movementHeatProps(movement.amount, 'income');
+                                      return (
                                       <tr
                                         key={`mv-in-${idx}-${movement.directionForTotals}-${movement.label}-${movement.amount}`}
-                                        className={`tx-refinable-block${selectedMovementKey === movement.uiKey ? ' is-selected' : ''}`}
+                                        className={`tx-refinable-block ${heat.className}${selectedMovementKey === movement.uiKey ? ' is-selected' : ''}`}
+                                        style={heat.style}
                                         onClick={() => onSelectMovementKey(movement.uiKey)}
                                         onDoubleClick={() =>
                                           onRefineSummary(
@@ -341,7 +377,8 @@ export function TxAnalystDashboard({
                                         </td>
                                         <td>{formatCurrency(movement.amount)}</td>
                                       </tr>
-                                    ))
+                                      );
+                                    })
                                   )}
                                 </tbody>
                               </table>
@@ -370,10 +407,13 @@ export function TxAnalystDashboard({
                                       <td colSpan={5}>No hay egresos detectados.</td>
                                     </tr>
                                   ) : (
-                                    expenseRows.map((movement, idx) => (
+                                    expenseRows.map((movement, idx) => {
+                                      const heat = movementHeatProps(movement.amount, 'expense');
+                                      return (
                                       <tr
                                         key={`mv-out-${idx}-${movement.directionForTotals}-${movement.label}-${movement.amount}`}
-                                        className={`tx-refinable-block${selectedMovementKey === movement.uiKey ? ' is-selected' : ''}`}
+                                        className={`tx-refinable-block ${heat.className}${selectedMovementKey === movement.uiKey ? ' is-selected' : ''}`}
+                                        style={heat.style}
                                         onClick={() => onSelectMovementKey(movement.uiKey)}
                                         onDoubleClick={() =>
                                           onRefineSummary(
@@ -392,7 +432,8 @@ export function TxAnalystDashboard({
                                         </td>
                                         <td>{formatCurrency(movement.amount)}</td>
                                       </tr>
-                                    ))
+                                      );
+                                    })
                                   )}
                                 </tbody>
                               </table>

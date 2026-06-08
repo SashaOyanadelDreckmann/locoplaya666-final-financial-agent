@@ -24,6 +24,7 @@ export default function DiagnosisPage() {
     profile,
     loading,
     error,
+    hasDiagnosis,
     loadProfileIfNeeded,
   } = useProfileStore();
 
@@ -32,16 +33,14 @@ export default function DiagnosisPage() {
   /* ────────────────────────────── */
 
   useEffect(() => {
-    if (!profile) {
-      loadProfileIfNeeded();
-    }
-  }, [profile, loadProfileIfNeeded]);
+    void loadProfileIfNeeded();
+  }, [loadProfileIfNeeded]);
 
   useEffect(() => {
-    if (!loading && !profile && !error) {
+    if (!loading && !hasDiagnosis && !error) {
       router.replace('/intake');
     }
-  }, [loading, profile, error, router]);
+  }, [loading, hasDiagnosis, error, router]);
 
   /* ────────────────────────────── */
   /* Estados                        */

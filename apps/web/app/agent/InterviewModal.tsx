@@ -15,7 +15,8 @@ import {
   formatBlockLabel,
   type InterviewVoiceSnapshot,
 } from './interview-modal.context';
-import { InterviewVoiceReportBlock, InterviewVoiceSummaryBlock } from './interview-modal.components';
+import { InterviewVoiceSummaryBlock } from './interview-modal.components';
+import { InterviewDiagnosisPanel } from './InterviewDiagnosisPanel';
 import { type InterviewIntakeWithContext } from './interview-modal.hydration';
 import { formatInterviewClock } from './interview-modal.voice-summary';
 import { useInterviewVoiceRuntime } from './useInterviewVoiceRuntime';
@@ -49,7 +50,11 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
     setResponse,
   } = useInterviewStore();
 
-  const { setProfile } = useProfileStore();
+  const profile = useProfileStore((s) => s.profile);
+  const profileLoading = useProfileStore((s) => s.loading);
+  const profileError = useProfileStore((s) => s.error);
+  const hasDiagnosis = useProfileStore((s) => s.hasDiagnosis);
+  const { setProfile, refreshProfile } = useProfileStore();
   const [intakeReady, setIntakeReady] = useState(false);
   const [summaryComment, setSummaryComment] = useState('');
   const [summarySubmitting, setSummarySubmitting] = useState(false);
@@ -185,6 +190,17 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
     voicePaused,
   });
 
+  const showVoiceReport = Boolean(voiceReport?.executive_report);
+  const isDiagnosisMode =
+    !isGeneratingDiagnosis &&
+    !isFinalizingCall &&
+    (sessionAlreadyCompleted || showVoiceReport || hasDiagnosis);
+
+  useEffect(() => {
+    if (!isOpen || !isDiagnosisMode || profile || profileLoading) return;
+    void refreshProfile();
+  }, [isDiagnosisMode, isOpen, profile, profileLoading, refreshProfile]);
+
   if (!isOpen) return null;
 
   const stageLabel =
@@ -307,7 +323,11 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
   }
 
   const isLoading = !intakeReady || !intake;
-  const showVoiceReport = Boolean(voiceReport?.executive_report);
+  const modalTitle = isDiagnosisMode ? 'Diagnóstico financiero' : 'Entrevista estratégica';
+  const modalEyebrow = isDiagnosisMode ? 'Diagnóstico final' : 'Financieramente';
+  const modalIntro = isDiagnosisMode
+    ? 'Tu entrevista quedó consolidada en un informe accionable. Revisa el diagnóstico, expórtalo o profundízalo en chat.'
+    : 'Llamada breve con contexto integrado de presupuesto y productos. El diagnóstico se genera automáticamente al terminar la entrevista; no hace falta finalizarla manualmente.';
   const voiceFocusHint = currentQuestion
     ? currentQuestion
     : `Explorar ${currentBlockLabel.toLowerCase()} con el contexto financiero disponible.`;
@@ -337,7 +357,7 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
         </div>
       ) : (
         <div
-          className="agent-modal interview-modal"
+          className={`agent-modal interview-modal${isDiagnosisMode ? ' interview-modal--diagnosis' : ''}`}
           ref={modalRef}
           tabIndex={-1}
           onClick={(e) => e.stopPropagation()}
@@ -346,9 +366,9 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
         >
           <div className="bcc-modal-header interview-modal-header">
             <div className="bcc-modal-title-wrap">
-              <span className="bcc-modal-eyebrow">Financieramente</span>
+              <span className="bcc-modal-eyebrow">{modalEyebrow}</span>
               <h3 id={titleId} className="bcc-modal-title">
-                Entrevista estratégica
+                {modalTitle}
               </h3>
             </div>
             <button
@@ -370,8 +390,7 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
           </div>
 
           <p id={descriptionId} className="agent-modal-intro interview-modal-intro">
-            Llamada breve con contexto integrado de presupuesto y productos. El diagnóstico se genera automáticamente
-            al terminar la entrevista; no hace falta finalizarla manualmente.
+            {modalIntro}
           </p>
 
           <p className="sr-only" aria-live="polite" aria-atomic="true">
@@ -388,28 +407,50 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
             <div className="interview-modal-loading">
               <span>Cargando sesión…</span>
             </div>
-          ) : sessionAlreadyCompleted && !showVoiceReport ? (
-            <div className="interview-modal-completed">
-              <div className="voice-call-transcript-card">
-                <span className="voice-call-transcript-label">Entrevista completada</span>
-                <p>Ya consolidamos tu diagnóstico final. Puedes revisarlo en detalle o exportarlo.</p>
+          ) : isDiagnosisMode ? (
+            profile ? (
+              <InterviewDiagnosisPanel
+                profile={profile}
+                voiceReport={voiceReport}
+                onClose={handleOverlayDismiss}
+              />
+            ) : profileError ? (
+              <div className="interview-modal-completed">
+                <div className="voice-call-transcript-card">
+                  <span className="voice-call-transcript-label">No se pudo cargar el diagnóstico</span>
+                  <p>{profileError}</p>
+                </div>
+                <div className="voice-call-actions">
+                  <button
+                    type="button"
+                    className="summary-action-btn summary-action-accept"
+                    onClick={() => void refreshProfile()}
+                    disabled={profileLoading}
+                  >
+                    {profileLoading ? 'Reintentando…' : 'Reintentar carga'}
+                  </button>
+                  {voiceReport ? (
+                    <button
+                      type="button"
+                      className="summary-action-btn"
+                      onClick={() => {
+                        handleOverlayDismiss();
+                        router.push('/diagnosis');
+                      }}
+                    >
+                      Abrir informe completo
+                    </button>
+                  ) : null}
+                  <button type="button" className="summary-action-btn" onClick={handleOverlayDismiss}>
+                    Cerrar
+                  </button>
+                </div>
               </div>
-              <div className="voice-call-actions">
-                <button
-                  type="button"
-                  className="summary-action-btn summary-action-accept"
-                  onClick={() => {
-                    handleOverlayDismiss();
-                    router.push('/diagnosis');
-                  }}
-                >
-                  Ver diagnóstico completo
-                </button>
-                <button type="button" className="summary-action-btn" onClick={handleOverlayDismiss}>
-                  Cerrar
-                </button>
+            ) : (
+              <div className="interview-modal-loading">
+                <span>{profileLoading ? 'Cargando diagnóstico…' : 'Preparando informe…'}</span>
               </div>
-            </div>
+            )
           ) : (
             <div className="interview-shell pro-interview-shell interview-modal-body">
               <div className="interview-stage-shell">
@@ -709,16 +750,6 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
                     )}
                   </section>
 
-                  {showVoiceReport && voiceReport && (
-                    <InterviewVoiceReportBlock
-                      report={voiceReport}
-                      onOpenDiagnosis={() => {
-                        handleOverlayDismiss();
-                        router.push('/diagnosis');
-                      }}
-                      onClose={handleOverlayDismiss}
-                    />
-                  )}
                 </div>
               </div>
             </div>

@@ -145,6 +145,17 @@ export async function getSessionInfo() {
   return parseApiResponse<any>(res);
 }
 
+export async function fetchLatestDiagnosis() {
+  const API_URL = getSessionApiBaseUrl();
+  const res = await fetch(`${API_URL}/diagnosis/latest`, {
+    method: 'GET',
+    credentials: 'include',
+    cache: 'no-store',
+  });
+
+  return parseApiResponse<Record<string, unknown>>(res);
+}
+
 export async function parseDocuments(
   files: Array<{ name: string; base64: string }>,
   hints?: {

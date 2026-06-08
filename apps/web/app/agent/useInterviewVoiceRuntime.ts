@@ -451,7 +451,7 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
   async function startVoiceSession() {
     if (!voiceSupported || voiceConnecting || voiceConnected) return;
     if (voiceFlags.voiceCallExhausted && !voiceFlags.hasLiveVoiceCall) {
-      setVoiceError('El tiempo de la entrevista se agotó. Genera el informe con el botón inferior.');
+      setVoiceError('El tiempo de la entrevista se agotó. Estamos consolidando tu diagnóstico automáticamente.');
       return;
     }
     if (voiceFlags.voiceInterviewLocked && !voiceFlags.hasLiveVoiceCall) {
@@ -1016,15 +1016,36 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
 
   useEffect(() => {
     if (!isOpen || voiceReport || !voiceFlags.voiceCallExhausted || isFinalizingCall) return;
+
     if (!finalSummary && !summaryRequestRef.current && !summaryGenerating) {
       void requestVoiceSummary('final');
-      return;
     }
+
     if (voiceAutoFinalizeRef.current) return;
 
-    voiceAutoFinalizeRef.current = true;
-    void finalizeCallAndGenerateReport('timeout');
-  }, [isOpen, voiceFlags.voiceCallExhausted, voiceReport, finalSummary, summaryGenerating, isFinalizingCall]);
+    const hasSummarySignal =
+      Boolean(finalSummary?.summary?.trim()) ||
+      minuteSummaries.some((item) => String(item.summary ?? '').trim().length > 0);
+
+    if (!hasSummarySignal && (summaryGenerating || summaryRequestRef.current)) return;
+
+    const delayMs = hasSummarySignal ? 500 : 5200;
+    const timer = window.setTimeout(() => {
+      if (voiceAutoFinalizeRef.current || isFinalizingCall) return;
+      voiceAutoFinalizeRef.current = true;
+      void finalizeCallAndGenerateReport('timeout');
+    }, delayMs);
+
+    return () => window.clearTimeout(timer);
+  }, [
+    isOpen,
+    voiceFlags.voiceCallExhausted,
+    voiceReport,
+    finalSummary,
+    summaryGenerating,
+    isFinalizingCall,
+    minuteSummaries,
+  ]);
 
   useEffect(() => {
     if (!isOpen || !voiceFlags.isClosingWindow || closeoutPromptSentRef.current) return;

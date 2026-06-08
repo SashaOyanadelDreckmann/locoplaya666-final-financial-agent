@@ -19,6 +19,41 @@ export const RECOMMENDED_TX_PRODUCTS = [
   { title: 'Cuenta vista', bank: 'BancoEstado', template: 'Cuenta vista' },
 ] as const;
 
+export type MovementHeatKind = 'income' | 'expense';
+
+export type MovementRowHeatVars = {
+  '--row-bg': string;
+};
+
+/** Max absolute amount for heat-map normalization (matches budget table logic). */
+export function maxMovementHeatAmount(amounts: number[]): number {
+  const values = amounts
+    .map((value) => Math.abs(Number(value) || 0))
+    .filter((value) => value > 0);
+  return values.length > 0 ? Math.max(...values) : 1;
+}
+
+/** Row background intensity: higher amounts → stronger red (expense) or green (income). */
+export function movementTableRowHeatStyle(
+  amount: number,
+  kind: MovementHeatKind,
+  maxAmount: number,
+): MovementRowHeatVars {
+  const normalized = Math.abs(Number(amount) || 0);
+  const cap = Math.max(1, maxAmount);
+  const t = Math.max(0, Math.min(1, normalized / cap));
+  const alpha = kind === 'expense' ? 0.16 + t * 0.6 : 0.14 + t * 0.56;
+  const bg =
+    kind === 'expense'
+      ? `rgba(118, 26, 36, ${alpha.toFixed(2)})`
+      : `rgba(62, 84, 22, ${alpha.toFixed(2)})`;
+  return { '--row-bg': bg };
+}
+
+export function movementRowHeatClass(kind: MovementHeatKind): string {
+  return kind === 'expense' ? 'tx-row-expense' : 'tx-row-income';
+}
+
 export function buildMovementRefinementText(movement: {
   label: string;
   merchant?: string;

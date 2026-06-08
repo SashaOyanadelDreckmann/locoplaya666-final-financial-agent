@@ -504,9 +504,7 @@ export default function AgentPage() {
     isAccountModalOpen ||
     isInterviewModalOpen ||
     isSocialConsciousnessModalOpen;
-  const interviewCompleted =
-    savedReports.some((report) => report.group === 'diagnosis') ||
-    Boolean(sessionInfo?.latestDiagnosticCompletedAt);
+  const interviewCompleted = Boolean(sessionInfo?.latestDiagnosticCompletedAt);
   const activeThreadThemeClass =
     activeThread?.id === 'chat-2'
       ? 'chat-theme-2'
@@ -1294,9 +1292,12 @@ export default function AgentPage() {
 
   const canOpenInterview = useMemo(() => {
     const hasBudgetData = budgetRows.filter((row) => row.amount > 0).length >= 3;
-    const hasTransactionsData = productsHaveAnalyzedMovements(bankSimulation.products);
+    const hasTransactionsData = isTransactionsEvidenceSatisfied(
+      bankSimulation.products,
+      bankSimulation.productsModuleSkipped,
+    );
     return interviewCompleted || (hasTransactionsData && hasBudgetData);
-  }, [bankSimulation.products, budgetRows, interviewCompleted]);
+  }, [bankSimulation.products, bankSimulation.productsModuleSkipped, budgetRows, interviewCompleted]);
 
   function getFlowStatus() {
     const productsCompleted = isProductsStepSatisfied(
@@ -2551,9 +2552,12 @@ export default function AgentPage() {
     } catch {
       // El modal sigue abriendo con el payload local enriquecido; la llamada no debe bloquearse por un sync tardío.
     }
+    if (interviewCompleted) {
+      await useProfileStore.getState().refreshProfile().catch(() => {});
+    }
     setInterviewIntake(buildInterviewIntakePayload());
     setIsInterviewModalOpen(true);
-  }, [buildInterviewIntakePayload, setInterviewIntake, syncFinancialContextToIntake]);
+  }, [buildInterviewIntakePayload, interviewCompleted, setInterviewIntake, syncFinancialContextToIntake]);
 
   const openBudgetModal = useCallback(() => {
     void syncFinancialContextToIntake().catch(() => {});
@@ -2561,6 +2565,10 @@ export default function AgentPage() {
   }, [syncFinancialContextToIntake]);
 
   function openDiagnosisView() {
+    if (interviewCompleted) {
+      void openInterviewModal();
+      return;
+    }
     router.push('/diagnosis');
   }
 
@@ -3762,7 +3770,8 @@ export default function AgentPage() {
         isOpen={isInterviewModalOpen}
         onClose={() => setIsInterviewModalOpen(false)}
         onDiagnosisComplete={() => {
-          void loadProfileIfNeeded();
+          const refreshProfile = useProfileStore.getState().refreshProfile;
+          void refreshProfile();
           void getSessionInfo()
             .then((info) => {
               if (info) setSessionInfo(info);

@@ -96,6 +96,18 @@ describe('interview modal safeguards', () => {
     expect(modal).toContain("? 'Pausada'");
   });
 
+  it('transforms the interview shell into diagnosis mode after completion', () => {
+    const modalPath = path.join(process.cwd(), 'app', 'agent', 'InterviewModal.tsx');
+    const panelPath = path.join(process.cwd(), 'app', 'agent', 'InterviewDiagnosisPanel.tsx');
+    const modal = fs.readFileSync(modalPath, 'utf8');
+    const panel = fs.readFileSync(panelPath, 'utf8');
+
+    expect(modal).toContain('interview-modal--diagnosis');
+    expect(modal).toContain('InterviewDiagnosisPanel');
+    expect(modal).toContain("isDiagnosisMode ? 'Diagnóstico financiero' : 'Entrevista estratégica'");
+    expect(panel).toContain('Ver informe completo');
+  });
+
   it('extracts voice runtime from the modal shell', () => {
     const modalPath = path.join(process.cwd(), 'app', 'agent', 'InterviewModal.tsx');
     const runtimePath = path.join(process.cwd(), 'app', 'agent', 'useInterviewVoiceRuntime.ts');

@@ -59,9 +59,9 @@
     --deck-overlap: clamp(22px, 5.8vw, 38px);
     --deck-card-w-est: calc(((100vw + 48px + 4 * var(--deck-overlap)) / 5) * 1.25);
     --deck-card-h-est: clamp(
-      96px,
+      140px,
       calc(var(--deck-card-w-est) * 0.66),
-      128px
+      200px
     );
     --agent-mobile-notify-bottom: calc(
       env(safe-area-inset-bottom, 0px) + var(--deck-handle-h) + var(--deck-card-h-est) + var(--mobile-panel-deck-lift) + 76px + 10px
@@ -97,7 +97,7 @@
     z-index: 8 !important;
   }
 
-  body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-circular-deck {
+  body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-card-stack {
     order: 1 !important;
     display: flex !important;
     flex-direction: column !important;
@@ -108,8 +108,8 @@
     max-width: 100vw !important;
     margin-left: calc(50% - 50vw) !important;
     margin-right: calc(50% - 50vw) !important;
-    min-height: calc(var(--deck-card-h) + var(--mobile-panel-deck-lift) + 8px) !important;
-    padding: 8px 0 var(--mobile-panel-deck-lift) 0 !important;
+    min-height: calc(var(--deck-card-h-est) + var(--mobile-panel-deck-lift) + 36px) !important;
+    padding: 4px 0 var(--mobile-panel-deck-lift) 0 !important;
     overflow: visible !important;
     overflow-x: visible !important;
     overflow-y: visible !important;
@@ -119,158 +119,64 @@
     background: #000000 !important;
     scroll-snap-type: none !important;
     touch-action: pan-y pinch-zoom !important;
-    /* All deck tokens local — agent-mobile-shell sets smaller overlap on .agent-panel */
     --deck-overlap: clamp(22px, 5.8vw, 38px) !important;
     --deck-usable-w: calc(100vw + 48px) !important;
     --deck-card-w: calc(((var(--deck-usable-w) + 4 * var(--deck-overlap)) / 5) * 1.25) !important;
-    --deck-card-h-min: 96px !important;
-    --deck-card-h-max: 128px !important;
+    --deck-card-h-min: 140px !important;
+    --deck-card-h-max: 200px !important;
     --deck-card-aspect: 0.66 !important;
     --deck-card-h: clamp(
       var(--deck-card-h-min),
       calc(var(--deck-card-w) * var(--deck-card-aspect)),
       var(--deck-card-h-max)
     ) !important;
-    --deck-shift-near: calc(var(--deck-card-w) - var(--deck-overlap)) !important;
-    --deck-shift-far: calc(2 * var(--deck-card-w) - 2 * var(--deck-overlap)) !important;
   }
 
-  body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-circular-deck > .mobile-deck-track {
-    position: relative !important;
-    display: block !important;
+  body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-card-stack .mobile-panel-card-stack {
     width: 100% !important;
-    height: var(--deck-card-h) !important;
-    min-height: var(--deck-card-h) !important;
-    max-height: var(--deck-card-h) !important;
-    margin: 0 !important;
-    flex: 0 0 auto !important;
-    overflow: visible !important;
-    scroll-snap-align: none !important;
-    --mobile-deck-step: var(--deck-shift-near);
-    --mobile-deck-card-w: var(--deck-card-w);
-    touch-action: none !important;
-    transition: none !important;
-    will-change: transform;
-    /* Tighter perspective = more dramatic depth on side cards */
-    perspective: 780px !important;
-    transform-style: preserve-3d !important;
+    touch-action: pan-x pinch-zoom !important;
   }
 
-  body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-track.is-dragging,
-  body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-track.is-animating {
-    transition: none !important;
+  body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-card-stack .mobile-panel-stack-shell {
+    border: none !important;
+    border-radius: 14px !important;
+    box-shadow:
+      0 10px 28px rgba(0, 0, 0, 0.42),
+      0 1px 0 rgba(255, 255, 255, 0.08) inset !important;
+    background: transparent !important;
+    overflow: hidden !important;
   }
 
-  body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-track.is-dragging {
-    will-change: transform !important;
-    contain: layout style;
-  }
-
-  body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-track.is-dragging .mobile-deck-slot {
-    filter: none !important;
-    will-change: transform, opacity;
-  }
-
-  body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-track.is-dragging .mobile-deck-slot.is-mobile-front.is-deck-settled > *,
-  body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-track.is-dragging .mobile-deck-slot.is-mobile-front.is-deck-settled > .mobile-deck-card {
-    animation: none !important;
-  }
-
-  body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-slot {
-    position: absolute !important;
-    left: 50% !important;
-    bottom: 0 !important;
-    margin: 0 !important;
-    width: var(--deck-card-w) !important;
-    min-width: var(--deck-card-w) !important;
-    max-width: var(--deck-card-w) !important;
-    height: var(--deck-card-h) !important;
-    max-height: var(--deck-card-h) !important;
-    transform-origin: center bottom !important;
-    transform-style: preserve-3d !important;
-    transition: none !important;
-    will-change: transform, opacity, filter;
-    pointer-events: none !important;
-    box-sizing: border-box !important;
-    --deck-t-front: abs(var(--deck-drag-ratio, 0));
-    --deck-t-prev: max(0, var(--deck-drag-ratio, 0));
-    --deck-t-next: max(0, calc(var(--deck-drag-ratio, 0) * -1));
-  }
-
-  body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-slot.is-deck-far-left {
-    z-index: 1 !important;
-    transform: translateX(calc(-50% - var(--deck-shift-far))) scale(0.86) translate3d(0, 0, -8px) !important;
-    opacity: 0.28 !important;
-    filter: brightness(0.88) saturate(0.82) !important;
-  }
-
-  body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-slot.is-deck-far-right {
-    z-index: 1 !important;
-    transform: translateX(calc(-50% + var(--deck-shift-far))) scale(0.86) translate3d(0, 0, -8px) !important;
-    opacity: 0.28 !important;
-    filter: brightness(0.88) saturate(0.82) !important;
-  }
-
-  body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-slot.is-deck-near-left {
-    z-index: calc(6 + var(--deck-t-prev) * 2) !important;
-    transform:
-      translateX(calc(-50% - var(--deck-shift-near) + var(--deck-t-prev) * 2px))
-      scale(calc(0.91 + var(--deck-t-prev) * 0.09))
-      translate3d(0, 0, calc(var(--deck-t-prev) * 4px))
-      rotateY(calc(var(--deck-drag-tilt, 0deg) * 0.5)) !important;
-    opacity: calc(0.72 + var(--deck-t-prev) * 0.28) !important;
-    filter: brightness(calc(0.94 + var(--deck-t-prev) * 0.06)) saturate(calc(0.88 + var(--deck-t-prev) * 0.12)) !important;
-    pointer-events: auto !important;
-  }
-
-  body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-slot.is-deck-near-right {
-    z-index: calc(6 + var(--deck-t-next) * 2) !important;
-    transform:
-      translateX(calc(-50% + var(--deck-shift-near) - var(--deck-t-next) * 2px))
-      scale(calc(0.91 + var(--deck-t-next) * 0.09))
-      translate3d(0, 0, calc(var(--deck-t-next) * 4px))
-      rotateY(calc(var(--deck-drag-tilt, 0deg) * -0.5)) !important;
-    opacity: calc(0.72 + var(--deck-t-next) * 0.28) !important;
-    filter: brightness(calc(0.94 + var(--deck-t-next) * 0.06)) saturate(calc(0.88 + var(--deck-t-next) * 0.12)) !important;
-    pointer-events: auto !important;
-  }
-
-  body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-slot.is-mobile-front {
-    z-index: calc(10 - var(--deck-t-front) * 2) !important;
-    transform:
-      translateX(-50%)
-      scale(calc(1 - var(--deck-t-front) * 0.04))
-      translate3d(0, 0, calc(var(--deck-t-front) * -5px))
-      rotateY(var(--deck-drag-tilt, 0deg)) !important;
-    opacity: calc(1 - var(--deck-t-front) * 0.06) !important;
-    filter: brightness(calc(1 - var(--deck-t-front) * 0.025)) saturate(calc(1 - var(--deck-t-front) * 0.02)) !important;
-    pointer-events: auto !important;
-  }
-
-  body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-slot.is-deck-pulse {
-    animation: mobileDeckPulse 0.34s cubic-bezier(0.22, 1, 0.36, 1) !important;
-  }
-
-  body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-circular-deck .mob-col,
-  body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-circular-deck .mob-col-wide,
-  body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-circular-deck .mob-col-narrow {
+  body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-card-stack .mobile-panel-stack-card,
+  body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-card-stack .mobile-panel-stack-card .mob-col,
+  body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-card-stack .mobile-panel-stack-card .mob-col-wide,
+  body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-card-stack .mobile-panel-stack-card .mob-col-narrow {
     width: 100% !important;
     min-width: 0 !important;
     max-width: none !important;
     height: 100% !important;
-    max-height: var(--deck-card-h) !important;
     flex: none !important;
-    align-self: stretch !important;
   }
 
-  body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-circular-deck .mob-col > *,
-  body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-slot > * {
+  body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-card-stack .mobile-panel-stack-card .mob-col > *,
+  body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-card-stack .mobile-stack-card-inner {
     width: 100% !important;
     height: 100% !important;
-    max-height: var(--deck-card-h) !important;
     min-width: 0 !important;
     max-width: none !important;
     transform: none !important;
+  }
+
+  body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-card-stack .mobile-panel-card-stack > div:last-child {
+    margin-top: 10px !important;
+  }
+
+  body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-card-stack .mobile-panel-card-stack button.h-2.w-2 {
+    background: rgba(255, 255, 255, 0.28) !important;
+  }
+
+  body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-card-stack .mobile-panel-card-stack button.h-2.w-2.bg-foreground {
+    background: rgba(255, 255, 255, 0.92) !important;
   }
 
   body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .mobile-panel-handle {
@@ -366,7 +272,7 @@
   }
 }
 @media (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
-  html.is-tablet-portrait body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-circular-deck {
+  html.is-tablet-portrait body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-card-stack {
     width: 100vw !important;
     max-width: 100vw !important;
     margin-left: calc(50% - 50vw) !important;
@@ -722,7 +628,7 @@
   body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded),
   html.pwa-standalone body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded),
   html:not(.pwa-standalone) body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded),
-  html:not(.pwa-standalone) body.agent-route-active main.agent-layout.is-mobile-viewport .agent-panel.is-mobile-compact:has(.panel-grid.is-circular-deck) {
+  html:not(.pwa-standalone) body.agent-route-active main.agent-layout.is-mobile-viewport .agent-panel.is-mobile-compact:has(.panel-grid.is-card-stack) {
     --mobile-panel-shell-bottom: 0px !important;
     --pwa-panel-bottom-inset: 0px !important;
     --mobile-panel-bottom-gap: 0px !important;
@@ -730,7 +636,7 @@
     margin-bottom: 0 !important;
   }
 
-  body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-circular-deck {
+  body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-card-stack {
     padding-bottom: var(--mobile-panel-deck-lift) !important;
   }
 
@@ -740,7 +646,7 @@
   }
 
   body.agent-route-active main.agent-layout.is-mobile-viewport.mobile-panel-expanded .agent-panel.is-mobile-expanded .panel-grid,
-  body.agent-route-active main.agent-layout.is-mobile-viewport.mobile-panel-expanded .agent-panel .panel-grid:not(.is-circular-deck) {
+  body.agent-route-active main.agent-layout.is-mobile-viewport.mobile-panel-expanded .agent-panel .panel-grid:not(.is-card-stack) {
     align-items: stretch !important;
     align-content: start !important;
     justify-content: flex-start !important;
@@ -1001,9 +907,9 @@ html[data-visual-mode='light-outline'] body.agent-route-active .agent-modal .age
     -webkit-backdrop-filter: blur(20px) saturate(0.72) brightness(0.62) !important;
   }
 
-  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-circular-deck,
-  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-track {
-    touch-action: none !important;
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-card-stack,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-card-stack .mobile-panel-card-stack {
+    touch-action: pan-x pinch-zoom !important;
   }
 }
 
@@ -1016,15 +922,15 @@ html[data-visual-mode='light-outline'] body.agent-route-active .agent-modal .age
 
 /* Subtle cursor hint on floatable center slot */
 @media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
-  .mobile-deck-slot.is-mobile-front.is-floatable {
+  .mobile-panel-stack-card.is-floatable {
     cursor: pointer;
   }
 
-  .mobile-deck-slot.is-mobile-front.is-floatable .mobile-deck-card {
+  .mobile-panel-stack-card.is-floatable .mobile-stack-card-inner {
     transition: box-shadow 0.2s ease, filter 0.2s ease;
   }
 
-  .mobile-deck-slot.is-mobile-front.is-floatable:active .mobile-deck-card {
+  .mobile-panel-stack-card.is-floatable:active .mobile-stack-card-inner {
     filter: brightness(1.06);
     box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.18), 0 8px 28px rgba(0, 0, 0, 0.4);
   }
@@ -1088,7 +994,7 @@ html[data-visual-mode='light-outline'] body.agent-route-active .agent-modal .age
 }
 
 .floating-card-content .panel-card,
-.floating-card-content .panel-card.mobile-deck-card {
+.floating-card-content .panel-card.mobile-stack-card-inner {
   max-height: none !important;
   height: auto !important;
   min-height: 0 !important;
@@ -1123,121 +1029,6 @@ html[data-visual-mode='light-outline'] .floating-card-shell {
     0 24px 64px rgba(0, 0, 0, 0.58),
     0 4px 24px rgba(0, 0, 0, 0.36),
     0 0 0 0.5px rgba(255, 255, 255, 0.05);
-}
-
-@keyframes mobileDeckPulse {
-  0% {
-    transform: translateX(-50%) scale(calc(1 - var(--deck-t-front, 0) * 0.022));
-    filter: brightness(calc(1 - var(--deck-t-front, 0) * 0.02));
-  }
-  45% {
-    transform: translateX(-50%) scale(calc(1.01 - var(--deck-t-front, 0) * 0.022));
-    filter: brightness(calc(1.03 - var(--deck-t-front, 0) * 0.02));
-  }
-  100% {
-    transform: translateX(-50%) scale(calc(1 - var(--deck-t-front, 0) * 0.022));
-    filter: brightness(calc(1 - var(--deck-t-front, 0) * 0.02));
-  }
-}
-
-/*
- * Light-outline — restore premium deck drag interpolation (beats visual-modes static transforms).
- */
-@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
-  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel:is(.is-mobile-compact, .is-mobile-expanded):not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-slot {
-    --deck-t-front: abs(var(--deck-drag-ratio, 0));
-    --deck-t-prev: max(0, var(--deck-drag-ratio, 0));
-    --deck-t-next: max(0, calc(var(--deck-drag-ratio, 0) * -1));
-  }
-
-  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel:is(.is-mobile-compact, .is-mobile-expanded):not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-slot.is-deck-far-left {
-    transform: translateX(calc(-50% - var(--deck-shift-far))) scale(0.86) translate3d(0, 0, -8px) !important;
-    opacity: 0.28 !important;
-  }
-
-  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel:is(.is-mobile-compact, .is-mobile-expanded):not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-slot.is-deck-far-right {
-    transform: translateX(calc(-50% + var(--deck-shift-far))) scale(0.86) translate3d(0, 0, -8px) !important;
-    opacity: 0.28 !important;
-  }
-
-  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel:is(.is-mobile-compact, .is-mobile-expanded):not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-slot.is-deck-near-left {
-    transform:
-      translateX(calc(-50% - var(--deck-shift-near) + var(--deck-t-prev) * 2px))
-      scale(calc(0.91 + var(--deck-t-prev) * 0.09))
-      translate3d(0, 0, calc(var(--deck-t-prev) * 4px))
-      rotateY(calc(var(--deck-drag-tilt, 0deg) * 0.5)) !important;
-    opacity: calc(0.72 + var(--deck-t-prev) * 0.28) !important;
-  }
-
-  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel:is(.is-mobile-compact, .is-mobile-expanded):not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-slot.is-deck-near-right {
-    transform:
-      translateX(calc(-50% + var(--deck-shift-near) - var(--deck-t-next) * 2px))
-      scale(calc(0.91 + var(--deck-t-next) * 0.09))
-      translate3d(0, 0, calc(var(--deck-t-next) * 4px))
-      rotateY(calc(var(--deck-drag-tilt, 0deg) * -0.5)) !important;
-    opacity: calc(0.72 + var(--deck-t-next) * 0.28) !important;
-  }
-
-  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel:is(.is-mobile-compact, .is-mobile-expanded):not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-slot.is-mobile-front {
-    transform:
-      translateX(-50%)
-      scale(calc(1 - var(--deck-t-front) * 0.04))
-      translate3d(0, 0, calc(var(--deck-t-front) * -5px))
-      rotateY(var(--deck-drag-tilt, 0deg)) !important;
-    opacity: calc(1 - var(--deck-t-front) * 0.06) !important;
-  }
-}
-
-/*
- * Center card — premium idle float (EOF, wins cascade).
- * Animates inner card only so slot drag transforms stay intact.
- */
-@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
-  @keyframes mobileDeckFrontFloat {
-    0%,
-    100% {
-      transform: translate3d(0, 0, 0) scale(1);
-      filter: brightness(1) saturate(1);
-      box-shadow:
-        0 8px 22px rgba(0, 0, 0, 0.26),
-        0 1px 0 rgba(255, 255, 255, 0.09) inset;
-    }
-    32% {
-      transform: translate3d(0, -5px, 2px) scale(1.022);
-      filter: brightness(1.032) saturate(1.04);
-      box-shadow:
-        0 18px 38px rgba(0, 0, 0, 0.38),
-        0 1px 0 rgba(255, 255, 255, 0.15) inset;
-    }
-    66% {
-      transform: translate3d(0, 2px, -1px) scale(0.989);
-      filter: brightness(0.984) saturate(0.978);
-      box-shadow:
-        0 5px 14px rgba(0, 0, 0, 0.2),
-        0 1px 0 rgba(255, 255, 255, 0.06) inset;
-    }
-  }
-
-  body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-track:not(.is-dragging):not(.is-animating) .mobile-deck-slot.is-mobile-front.is-deck-settled:not(.is-deck-pulse) > .mobile-deck-card,
-  body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-track:not(.is-dragging):not(.is-animating) .mobile-deck-slot.is-mobile-front.is-deck-settled:not(.is-deck-pulse) > * {
-    animation: mobileDeckFrontFloat 4.2s cubic-bezier(0.37, 0, 0.63, 1) infinite !important;
-    transform-origin: 50% 88% !important;
-    will-change: transform, filter, box-shadow;
-    backface-visibility: hidden;
-    -webkit-backface-visibility: hidden;
-  }
-
-  body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-slot.is-deck-pulse > .mobile-deck-card,
-  body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-circular-deck .mobile-deck-slot.is-deck-pulse > * {
-    animation: none !important;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  body.agent-route-active main.agent-layout.is-mobile-viewport .panel-grid.is-circular-deck .mobile-deck-slot.is-mobile-front.is-deck-settled > .mobile-deck-card,
-  body.agent-route-active main.agent-layout.is-mobile-viewport .panel-grid.is-circular-deck .mobile-deck-slot.is-mobile-front.is-deck-settled > * {
-    animation: none !important;
-  }
 }
 
 /*

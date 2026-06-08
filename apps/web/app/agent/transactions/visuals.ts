@@ -40,10 +40,10 @@ export function libraryCardSurface(palette: ReturnType<typeof productVisualPalet
 
 export function matteLibraryCardSurface(baseColor: string, accentColor: string, edgeColor?: string) {
   return {
-    background: `linear-gradient(165deg, color-mix(in srgb, ${baseColor} 96%, #101820) 0%, color-mix(in srgb, ${baseColor} 78%, #0a1118) 100%)`,
-    borderColor: edgeColor ?? hexToRgba(accentColor, 0.28),
+    background: `linear-gradient(168deg, color-mix(in srgb, ${baseColor} 94%, #121820) 0%, color-mix(in srgb, ${baseColor} 82%, #0c1218) 100%)`,
+    borderColor: edgeColor ?? hexToRgba(accentColor, 0.22),
     boxShadow:
-      'inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 12px 24px rgba(0, 0, 0, 0.3)',
+      'inset 0 1px 0 rgba(255, 255, 255, 0.045), 0 10px 22px rgba(0, 0, 0, 0.22)',
     tint: accentColor,
   };
 }

@@ -35,6 +35,7 @@ export async function saveProfile(
         data: {
           latestDiagnosticProfileId: profileId,
           latestDiagnosticCompletedAt: new Date(),
+          injectedProfile: profile as any,
         },
       }),
     ]);
@@ -47,6 +48,7 @@ export async function saveProfile(
     const updated = await patchUserRecord(userId, {
       latestDiagnosticProfileId: profileId,
       latestDiagnosticCompletedAt: new Date().toISOString(),
+      injectedProfile: profile,
     });
     if (!updated) {
       await deleteFinancialProfile(profileId);
