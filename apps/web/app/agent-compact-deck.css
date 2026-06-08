@@ -228,7 +228,8 @@
  */
 @media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   body.agent-route-active {
-    --mobile-chat-header-top-offset: 1px;
+    --mobile-chat-header-top-offset: 8px;
+    --mobile-shell-tab-width-scale: 0.75;
   }
 
   body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile {
@@ -243,6 +244,12 @@
   body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-tabs-row {
     min-height: 24px !important;
     padding-block: 1px !important;
+  }
+
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-tabs-row .chat-switcher {
+    width: calc(100% * var(--mobile-shell-tab-width-scale, 0.75)) !important;
+    max-width: calc(100% * var(--mobile-shell-tab-width-scale, 0.75)) !important;
+    margin-inline: auto !important;
   }
 
   body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-meta-row {
