@@ -47,6 +47,7 @@ import {
   reconcileBudgetRows,
   resolveBudgetChatTargetRow,
   summarizeBudgetActionBatch,
+  normalizeBudgetCadence,
   validateBudgetTableActions,
   isBudgetConfirmationAnswer,
   isBudgetRejectionAnswer,
@@ -758,7 +759,9 @@ function buildDeterministicFieldUpdate(params: {
   const movement = parseBudgetMovementFromAnswer(params.answer);
   const patch: Partial<BudgetTableAction> = {};
 
-  if (cadence && (!askedField || askedField === 'cadence')) patch.cadence = cadence;
+  if (cadence && (!askedField || askedField === 'cadence')) {
+    patch.cadence = normalizeBudgetCadence(cadence, targetRow.type);
+  }
   if (payment && (!askedField || askedField === 'paymentMethod')) {
     patch.payment_method = payment;
   }
@@ -773,7 +776,7 @@ function buildDeterministicFieldUpdate(params: {
     category: targetRow.category,
     type: targetRow.type,
     amount: Math.max(0, Math.round(Number(targetRow.amount ?? 0))),
-    cadence: patch.cadence ?? normalizeCadence(targetRow.cadence, targetRow.type),
+    cadence: normalizeBudgetCadence(patch.cadence ?? targetRow.cadence, targetRow.type),
     payment_method:
       patch.payment_method ??
       targetRow.paymentMethod ??

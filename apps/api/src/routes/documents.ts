@@ -884,7 +884,6 @@ export function extractMovements(documents: ParsedDocumentResponse[], productTyp
           finalizeCreditCardMovement(movement, {
             productType: normalizedProductType,
             line: movement.description,
-            description: movement.description,
             signedAmount: movement.amount_signed,
             amountToken: movement.amount_signed !== undefined ? String(movement.amount_signed) : undefined,
           }),
