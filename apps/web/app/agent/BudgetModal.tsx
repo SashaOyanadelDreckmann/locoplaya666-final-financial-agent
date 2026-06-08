@@ -629,9 +629,12 @@ export function BudgetModal(props: {
       scrollHost && typeof ResizeObserver !== 'undefined'
         ? new ResizeObserver(measureMobileRowSlot)
         : null;
-    layoutObserver?.observe(scrollHost);
-    if (tableCard) layoutObserver?.observe(tableCard);
-    if (budgetModalRef.current) layoutObserver?.observe(budgetModalRef.current);
+    if (layoutObserver && scrollHost) {
+      layoutObserver.observe(scrollHost);
+      if (tableCard) layoutObserver.observe(tableCard);
+      const modalRoot = budgetModalRef.current;
+      if (modalRoot) layoutObserver.observe(modalRoot);
+    }
 
     window.addEventListener('resize', measureMobileRowSlot);
     window.addEventListener('orientationchange', measureMobileRowSlot);
