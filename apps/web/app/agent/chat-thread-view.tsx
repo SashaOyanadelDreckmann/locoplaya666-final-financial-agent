@@ -9,6 +9,8 @@ import type { VisualMode } from '@/lib/visual-mode';
 import { sanitizeMessageText } from './page.utils';
 import { renderLatexDocMessage } from './message-renderer';
 import { GradientBlobCard } from '@/components/ui/gradient-bold-card';
+import { UserUploadBubble } from './user-upload-bubble';
+import { MAX_CHAT_UPLOAD_FILES } from './agent-page.constants';
 import { isWelcomeShellMessageContent } from './welcome-intro.shared';
 
 type PanelAction = NonNullable<
@@ -538,19 +540,17 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
     if (it.type === 'upload') {
       return (
         <div key={i} className="agent-bubble user upload-bubble">
-          <div className="agent-upload-list">
-            {it.files.map((file, idx) => (
-              <div key={`${file.name}-${idx}`} className="agent-upload-item">
-                {file.previewUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={file.previewUrl} alt={file.name} className="agent-upload-thumb" />
-                ) : (
-                  <div className="agent-upload-fileicon" aria-hidden="true">📄</div>
-                )}
-                <span className="agent-upload-name">{file.name}</span>
-              </div>
-            ))}
-          </div>
+          <UserUploadBubble
+            files={it.files.map((file) => ({
+              name: file.name,
+              mime: file.mime,
+              kind: file.kind ?? 'document',
+              sizeLabel: file.sizeLabel,
+              previewUrl: file.previewUrl,
+            }))}
+            status={it.status}
+            maxFiles={MAX_CHAT_UPLOAD_FILES}
+          />
         </div>
       );
     }
