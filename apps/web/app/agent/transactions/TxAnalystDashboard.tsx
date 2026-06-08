@@ -136,6 +136,10 @@ export function TxAnalystDashboard({
   const isMovementChatHighlighted = (promptKey: string) => highlightedMovementKeys.includes(promptKey);
 
   const chatBusy = txAssistantLoading || documentsLoading;
+  const latestAssistantMessageId = [...assistantMessages].reverse().find((message) => message.role === 'assistant')?.id;
+  const showStarterShortcuts =
+    starterChips.length > 0 &&
+    (assistantMessages.length === 0 || assistantMessages[assistantMessages.length - 1]?.role === 'user');
 
   const renderMovementAskButton = (movement: MovementAnalytics['dedupedMovementRows'][number]) => (
     <TxAskChatButton
@@ -647,19 +651,11 @@ export function TxAnalystDashboard({
                                   labelStyle={{ color: '#ffffff' }}
                                   itemStyle={{ color: '#ffffff' }}
                                 />
-                                <Bar
-                                  dataKey="amount"
-                                  shape={<RetroBarShape />}
-                                  onClick={(data) => {
-                                    const category = String((data as { category?: string } | null)?.category ?? '').trim();
-                                    if (category) onAskSuggestedQuestion(buildCategoryAskQuestion(category));
-                                  }}
-                                >
+                                <Bar dataKey="amount" shape={<RetroBarShape />}>
                                   {categoryChartData.map((entry, idx) => (
                                     <Cell
                                       key={`cat-bar-${entry.category}`}
                                       fill={RETRO_CHART_COLORS[idx % RETRO_CHART_COLORS.length]}
-                                      className="tx-click-to-ask-cell"
                                     />
                                   ))}
                                 </Bar>
@@ -876,12 +872,13 @@ export function TxAnalystDashboard({
                                 highlightedMovementKeys={highlightedMovementKeys}
                                 followupsDisabled={chatBusy}
                                 onFollowupSelect={onAskSuggestedQuestion}
+                                showFollowups={message.role !== 'assistant' || message.id === latestAssistantMessageId}
                               />
                             </div>
                           ))}
                         </div>
                       )}
-                      {starterChips.length > 0 ? (
+                      {showStarterShortcuts ? (
                         <div className="tx-chat-shortcuts">
                           <span className="tx-chat-shortcuts-kicker">Atajos analíticos</span>
                           <TxChatStarterChips

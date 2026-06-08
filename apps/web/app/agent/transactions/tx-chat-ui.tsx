@@ -40,11 +40,15 @@ function sourceLabel(source: TxAssistantMessage['source']): string | null {
 function buildRetrievalBadgeLabel(message: TxAssistantMessage): string | null {
   const meta = message.retrievalMeta;
   if (!meta) return null;
-  if (meta.mode === 'overview') return 'Vista general del periodo';
-  const signals = meta.signalsUsed.length > 0 ? ` · ${meta.signalsUsed.join(', ')}` : '';
-  return meta.matchedCount > 0
-    ? `Búsqueda focalizada · ${meta.matchedCount} movimiento${meta.matchedCount === 1 ? '' : 's'}${signals}`
-    : `Búsqueda focalizada${signals}`;
+  if (meta.mode === 'overview') return 'Muestra representativa del periodo';
+  const signals = meta.signalsUsed.length > 0 ? meta.signalsUsed.slice(0, 3).join(', ') : '';
+  if (meta.matchedCount > 0 && signals) {
+    return `${meta.matchedCount} movimiento${meta.matchedCount === 1 ? '' : 's'} · ${signals}`;
+  }
+  if (meta.matchedCount > 0) {
+    return `${meta.matchedCount} movimiento${meta.matchedCount === 1 ? '' : 's'} relevantes`;
+  }
+  return signals || null;
 }
 
 export function TxAskChatButton(props: {
@@ -148,12 +152,15 @@ export function TxChatMessageBubble(props: {
   highlightedMovementKeys?: string[];
   onFollowupSelect?: (question: string) => void;
   followupsDisabled?: boolean;
+  showFollowups?: boolean;
 }) {
   const highlighted =
     props.message.role === 'assistant' &&
     (props.message.referencedMovementKeys ?? []).some((key) => props.highlightedMovementKeys?.includes(key));
   const followups =
-    props.message.role === 'assistant' ? (props.message.suggestedFollowups ?? []).slice(0, 3) : [];
+    props.message.role === 'assistant' && props.showFollowups !== false
+      ? (props.message.suggestedFollowups ?? []).slice(0, 3)
+      : [];
 
   return (
     <div className="tx-chat-message-stack">

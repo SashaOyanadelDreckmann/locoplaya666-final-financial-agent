@@ -98,6 +98,10 @@ export interface TxEvidenceStepProps {
 export function TxEvidenceStep(props: TxEvidenceStepProps) {
   const p = props;
   const messageCount = p.assistantMessages.length;
+  const latestAssistantMessageId = [...p.assistantMessages].reverse().find((message) => message.role === 'assistant')?.id;
+  const showStarterShortcuts =
+    p.analysisAlreadyDone &&
+    (messageCount === 0 || p.assistantMessages[messageCount - 1]?.role === 'user');
   const composerValue = p.txAssistantInput;
   const canAttach = !p.analysisAlreadyDone;
   const hasComposerPayload = Boolean(composerValue.trim()) || p.pendingEvidenceFiles.length > 0;
@@ -201,6 +205,7 @@ export function TxEvidenceStep(props: TxEvidenceStepProps) {
                 highlightedMovementKeys={p.highlightedMovementKeys}
                 followupsDisabled={p.txAssistantLoading || p.documentsLoading}
                 onFollowupSelect={p.onAskSuggestedQuestion}
+                showFollowups={message.role !== 'assistant' || message.id === latestAssistantMessageId}
               />
             ))
           )}
@@ -266,7 +271,7 @@ export function TxEvidenceStep(props: TxEvidenceStepProps) {
         )}
 
         <div className="tx-composer-sticky-host">
-          {p.analysisAlreadyDone && p.starterChips && p.starterChips.length > 0 ? (
+          {showStarterShortcuts && p.starterChips && p.starterChips.length > 0 ? (
             <div className="tx-chat-shortcuts">
               <span className="tx-chat-shortcuts-kicker">Atajos analíticos</span>
               <TxChatStarterChips

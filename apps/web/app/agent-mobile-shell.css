@@ -1053,14 +1053,14 @@
     --deck-overlap: clamp(22px, 5.8vw, 38px);
     --deck-pad-inline: 0px;
     --deck-handle-h: 18px;
-    --deck-card-h-min: 96px;
-    --deck-card-h-max: 128px;
-    --deck-card-aspect: 0.66;
-    --deck-card-w-est: calc(((100vw + 48px + 4 * var(--deck-overlap)) / 5) * 1.25);
+    --deck-card-h-min: 84px;
+    --deck-card-h-max: 100px;
+    --deck-card-aspect: 0.3;
+    --deck-card-w-est: min(360px, calc(100vw * 0.78));
     --deck-card-h-est: clamp(
-      var(--deck-card-h-min),
-      calc(var(--deck-card-w-est) * var(--deck-card-aspect)),
-      var(--deck-card-h-max)
+      84px,
+      calc(var(--deck-card-w-est) * 0.3),
+      100px
     );
     --mobile-panel-deck-lift: 18px;
     --mobile-panel-bottom-gap: 18px;

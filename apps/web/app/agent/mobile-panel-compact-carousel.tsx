@@ -50,15 +50,14 @@ function mod(index: number, count: number) {
 }
 
 function useMobileCardStackSize() {
-  const [size, setSize] = useState({ width: 220, height: 96 });
+  const [size, setSize] = useState({ width: 300, height: 92 });
 
   useEffect(() => {
     const compute = () => {
       const vw = window.innerWidth;
-      const overlap = Math.min(38, Math.max(22, vw * 0.058));
-      // Compact deck footprint: smaller than prior stack, wider aspect (less tall).
-      const cardW = Math.round((((vw + 48 + 4 * overlap) / 5) * 1.08));
-      const cardH = Math.round(Math.min(104, Math.max(76, cardW * 0.46)));
+      // Wide landscape tiles — most of the viewport width, low height.
+      const cardW = Math.round(Math.min(360, Math.max(260, vw * 0.78)));
+      const cardH = Math.round(Math.min(100, Math.max(84, cardW * 0.3)));
       setSize({ width: cardW, height: cardH });
     };
 
@@ -303,11 +302,11 @@ export const MobilePanelCircularDeck = forwardRef<
           cardHeight={cardSize.height}
           stageMinHeight={cardSize.height}
           stagePaddingPx={0}
-          overlap={0.58}
-          spreadDeg={34}
-          perspectivePx={820}
-          depthPx={48}
-          tiltXDeg={6}
+          overlap={0.78}
+          spreadDeg={18}
+          perspectivePx={900}
+          depthPx={36}
+          tiltXDeg={3}
           activeLiftPx={8}
           activeScale={1.015}
           inactiveScale={0.88}
