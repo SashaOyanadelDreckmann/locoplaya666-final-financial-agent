@@ -57,11 +57,11 @@
     --pwa-panel-bottom-inset: 0px;
     --deck-handle-h: 14px;
     --deck-overlap: clamp(22px, 5.8vw, 38px);
-    --deck-card-w-est: min(360px, calc(100vw * 0.78));
+    --deck-card-w-est: min(180px, calc(100vw * 0.39));
     --deck-card-h-est: clamp(
-      76px,
+      40px,
       calc(var(--deck-card-w-est) * 0.28),
-      92px
+      52px
     );
     --agent-mobile-notify-bottom: calc(
       env(safe-area-inset-bottom, 0px) + var(--deck-handle-h) + var(--deck-card-h-est) + var(--mobile-panel-deck-lift) + 76px + 10px
@@ -121,9 +121,9 @@
     touch-action: pan-y pinch-zoom !important;
     --deck-overlap: clamp(22px, 5.8vw, 38px) !important;
     --deck-usable-w: calc(100vw + 48px) !important;
-    --deck-card-w: min(360px, calc(100vw * 0.78)) !important;
-    --deck-card-h-min: 76px !important;
-    --deck-card-h-max: 92px !important;
+    --deck-card-w: min(180px, calc(100vw * 0.39)) !important;
+    --deck-card-h-min: 40px !important;
+    --deck-card-h-max: 52px !important;
     --deck-card-aspect: 0.28 !important;
     --deck-card-h: clamp(
       var(--deck-card-h-min),
@@ -302,7 +302,7 @@
     margin-right: calc(50% - 50vw) !important;
     --deck-overlap: clamp(22px, 5.8vw, 38px) !important;
     --deck-usable-w: calc(100vw + 48px) !important;
-    --deck-card-w: min(360px, calc(100vw * 0.78)) !important;
+    --deck-card-w: min(180px, calc(100vw * 0.39)) !important;
     overflow: visible !important;
     overflow-x: visible !important;
   }
