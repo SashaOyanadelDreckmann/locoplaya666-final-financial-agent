@@ -3,7 +3,8 @@ import React, { memo, useState, type ReactNode } from 'react';
 import { DocumentBubble } from '@/components/conversation/DocumentBubble';
 import { CitationBubble } from '@/components/conversation/CitationBubble';
 import { AgentBlocksRenderer } from '@/components/agent/AgentBlocksRenderer';
-import { saveBubbleSnapshotPdfArtifact, savePdfArtifact } from '@/lib/artifacts';
+import { saveBubbleSnapshotPdfArtifact, savePdfArtifact, downloadFile } from '@/lib/artifacts';
+import { buildBubbleSnapshotHtmlAndCss } from './bubble-chat.snapshot';
 import type { ChatItem } from '@/lib/agent.response.types';
 import type { VisualMode } from '@/lib/visual-mode';
 import { sanitizeMessageText } from './page.utils';
@@ -95,362 +96,6 @@ function shouldEnableBubbleScroll(content: string) {
     return acc + Math.max(1, Math.ceil(length / 72));
   }, 0);
   return estimatedWrappedLines > 2;
-}
-
-function collectBubbleSnapshotCss(bubbleEl: HTMLElement) {
-  const cssParts: string[] = [];
-  const addRule = (text: string) => {
-    if (!text || cssParts.includes(text)) return;
-    cssParts.push(text);
-  };
-
-  const classes = Array.from(bubbleEl.classList)
-    .map((c) => `.${c}`)
-    .concat([
-      '.agent-bubble',
-      '.assistant',
-      '.latex-doc',
-      '.latex-doc-head',
-      '.latex-doc-heading',
-      '.latex-doc-kicker',
-      '.latex-doc-title',
-      '.latex-doc-subtitle',
-      '.latex-doc-mode',
-      '.latex-doc-body',
-      '.latex-inline-annex',
-      '.latex-inline-annex-head',
-      '.citation-stack',
-      '.citation-bubble',
-      '.citation-link',
-      '.premium-markdown',
-      '.academic-paper',
-      '.md-h1',
-      '.md-h2',
-      '.md-h3',
-      '.md-h4',
-      '.md-h5',
-      '.md-h6',
-      '.md-paragraph',
-      '.md-list',
-      '.md-list-ordered',
-      '.md-list-item',
-      '.md-table',
-      '.katex',
-      '.katex-display',
-      '.katex-inline',
-      '.md-math-block',
-      '.agent-chart-card',
-      '.agent-chart-head',
-      '.agent-chart-title',
-      '.agent-chart-subtitle',
-      '.agent-chart-canvas',
-      'svg',
-      'table',
-      'th',
-      'td',
-      'a',
-      'p',
-      'ul',
-      'ol',
-      'li',
-      ':root',
-      'body',
-      'html',
-    ]);
-
-  for (const sheet of Array.from(document.styleSheets)) {
-    let rules: CSSRuleList;
-    try {
-      rules = sheet.cssRules;
-    } catch {
-      continue;
-    }
-    for (const rule of Array.from(rules)) {
-      if (rule instanceof CSSStyleRule) {
-        const selector = rule.selectorText || '';
-        if (classes.some((s) => selector.includes(s))) addRule(rule.cssText);
-        continue;
-      }
-      if (rule instanceof CSSMediaRule) {
-        const nested: string[] = [];
-        for (const nestedRule of Array.from(rule.cssRules)) {
-          if (
-            nestedRule instanceof CSSStyleRule &&
-            classes.some((s) => (nestedRule.selectorText || '').includes(s))
-          ) {
-            nested.push(nestedRule.cssText);
-          }
-        }
-        if (nested.length > 0) addRule(`@media ${rule.conditionText}{${nested.join('\n')}}`);
-        continue;
-      }
-      if (rule instanceof CSSKeyframesRule) {
-        addRule(rule.cssText);
-      }
-    }
-  }
-
-  return cssParts.join('\n');
-}
-
-function buildBubbleSnapshotHtmlAndCss(bubbleEl: HTMLElement) {
-  const escapeHtml = (value: string) =>
-    value
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-
-  const clonedBubble = bubbleEl.cloneNode(true) as HTMLElement;
-  clonedBubble.classList.add('bubble-pdf-paper');
-  clonedBubble.classList.remove('is-scrollable-bubble');
-
-  // Remove all interactive controls from exported PDF snapshot.
-  clonedBubble.querySelectorAll('button, input, textarea, select, [role="button"]').forEach((el) => {
-    el.remove();
-  });
-
-  // Avoid preserving scroll clipping in PDF; render full content instead.
-  clonedBubble
-    .querySelectorAll('.is-scrollable-bubble, .is-scrollable-content')
-    .forEach((el) => el.classList.remove('is-scrollable-bubble', 'is-scrollable-content'));
-
-  const kickerText =
-    clonedBubble.querySelector('.latex-doc-kicker')?.textContent?.trim() ||
-    clonedBubble.querySelector('.chat-sheet-tab-title')?.textContent?.trim() ||
-    'CHAT GENERAL';
-  const titleText =
-    clonedBubble.querySelector('.latex-doc-title, .latex-doc-h1, .md-h1')?.textContent?.trim() || 'Chat general';
-  const subtitleText =
-    clonedBubble.querySelector('.latex-doc-subtitle, .latex-doc-mode')?.textContent?.trim() ||
-    'Síntesis profesional del contexto, evidencia disponible y próximos pasos.';
-  const badgeText =
-    clonedBubble.querySelector('.latex-doc-mode')?.textContent?.trim() || 'EDUCATION';
-
-  const exportCss = `
-@page {
-  size: A4;
-  margin: 0;
-}
-
-html, body, .bubble-pdf-snapshot {
-  margin: 0 !important;
-  padding: 0 !important;
-  background: #f5f1e8 !important;
-}
-
-.bubble-pdf-snapshot .agent-bubble.assistant.latex-doc,
-.bubble-pdf-snapshot .agent-bubble.assistant.latex-doc * {
-  color: #1c3145 !important;
-  -webkit-text-fill-color: #1c3145 !important;
-  text-shadow: none !important;
-}
-
-.bubble-pdf-snapshot {
-  width: 100% !important;
-  min-height: auto !important;
-  box-sizing: border-box !important;
-  padding: 12mm 12mm 14mm 12mm !important;
-  -webkit-box-decoration-break: clone !important;
-  box-decoration-break: clone !important;
-}
-
-.bubble-pdf-snapshot,
-.bubble-pdf-snapshot * {
-  opacity: 1 !important;
-  filter: none !important;
-  mix-blend-mode: normal !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-}
-
-.bubble-pdf-snapshot,
-.bubble-pdf-snapshot .bubble-pdf-paper,
-.bubble-pdf-snapshot .bubble-pdf-paper * {
-  background-color: #f5f1e8 !important;
-}
-
-.bubble-pdf-running-brand {
-  position: static;
-  display: block;
-  margin: 0 0 3mm 0;
-  text-align: center;
-  font-size: 10px;
-  line-height: 1;
-  letter-spacing: 0;
-  text-transform: none;
-  color: #1a3047;
-  font-weight: 600;
-  font-family: "Times New Roman", Times, Georgia, serif;
-}
-
-.bubble-pdf-running-header {
-  position: static;
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 14px;
-  margin: 0 0 10mm 0;
-  padding: 0 2px 4px 2px;
-  border-bottom: 1px solid rgba(28, 49, 69, 0.1);
-  background: #f5f1e8 !important;
-}
-
-.bubble-pdf-running-header-copy {
-  min-width: 0;
-  color: #1b3046 !important;
-}
-
-.bubble-pdf-running-kicker {
-  margin: 0 0 3mm 0;
-  font-size: 9px;
-  letter-spacing: .18em;
-  text-transform: uppercase;
-  color: #46698f !important;
-  font-weight: 700;
-}
-
-.bubble-pdf-running-title {
-  margin: 0 0 1.5mm 0;
-  font-size: 21px;
-  line-height: 1.1;
-  color: #132b40 !important;
-  font-weight: 700;
-}
-
-.bubble-pdf-running-subtitle {
-  margin: 0;
-  font-size: 10px;
-  line-height: 1.25;
-  color: #2b3f53 !important;
-  max-width: 70ch;
-}
-
-.bubble-pdf-running-badge {
-  border: 1px solid rgba(53, 94, 137, 0.9);
-  border-radius: 999px;
-  padding: 1.4mm 3.4mm;
-  font-size: 9px;
-  letter-spacing: .16em;
-  text-transform: uppercase;
-  color: #355f89 !important;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.bubble-pdf-snapshot .bubble-pdf-paper {
-  width: 100% !important;
-  max-width: none !important;
-  min-width: 0 !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  box-sizing: border-box !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-  border: 0 !important;
-  background: #f5f1e8 !important;
-  overflow: visible !important;
-  break-inside: auto !important;
-  page-break-inside: auto !important;
-}
-
-.bubble-pdf-snapshot .bubble-pdf-paper > :first-child {
-  margin-top: 0 !important;
-  padding-top: 0 !important;
-}
-
-.bubble-pdf-snapshot .bubble-pdf-paper .latex-doc-body,
-.bubble-pdf-snapshot .bubble-pdf-paper .premium-markdown,
-.bubble-pdf-snapshot .bubble-pdf-paper .academic-paper,
-.bubble-pdf-snapshot .bubble-pdf-paper .latex-inline-annex {
-  max-height: none !important;
-  height: auto !important;
-  overflow: visible !important;
-  break-inside: auto !important;
-  page-break-inside: auto !important;
-}
-
-.bubble-pdf-snapshot .bubble-pdf-paper .latex-doc-head,
-.bubble-pdf-snapshot .bubble-pdf-paper .latex-doc-title,
-.bubble-pdf-snapshot .bubble-pdf-paper .latex-doc-subtitle,
-.bubble-pdf-snapshot .bubble-pdf-paper .md-h1,
-.bubble-pdf-snapshot .bubble-pdf-paper .md-h2,
-.bubble-pdf-snapshot .bubble-pdf-paper .md-h3 {
-  break-after: avoid-page !important;
-  page-break-after: avoid !important;
-}
-
-.bubble-pdf-snapshot .bubble-pdf-paper .latex-doc-head {
-  display: none !important;
-}
-
-.bubble-pdf-snapshot .bubble-pdf-paper p,
-.bubble-pdf-snapshot .bubble-pdf-paper li,
-.bubble-pdf-snapshot .bubble-pdf-paper blockquote {
-  orphans: 3;
-  widows: 3;
-  break-inside: auto !important;
-  page-break-inside: auto !important;
-}
-
-.bubble-pdf-snapshot .bubble-pdf-paper pre,
-.bubble-pdf-snapshot .bubble-pdf-paper code,
-.bubble-pdf-snapshot .bubble-pdf-paper .latex-block,
-.bubble-pdf-snapshot .bubble-pdf-paper .latex-doc-section,
-.bubble-pdf-snapshot .bubble-pdf-paper .md-list,
-.bubble-pdf-snapshot .bubble-pdf-paper .md-li {
-  break-inside: auto !important;
-  page-break-inside: auto !important;
-}
-
-.bubble-pdf-snapshot .bubble-pdf-paper pre,
-.bubble-pdf-snapshot .bubble-pdf-paper code {
-  white-space: pre-wrap !important;
-  overflow-wrap: anywhere !important;
-  word-break: break-word !important;
-}
-
-.bubble-pdf-snapshot .agent-bubble.assistant.latex-doc .latex-doc-kicker {
-  color: #3a648b !important;
-  -webkit-text-fill-color: #3a648b !important;
-}
-
-.bubble-pdf-snapshot .agent-bubble.assistant.latex-doc .latex-doc-title,
-.bubble-pdf-snapshot .agent-bubble.assistant.latex-doc .latex-doc-h1,
-.bubble-pdf-snapshot .agent-bubble.assistant.latex-doc .md-h1,
-.bubble-pdf-snapshot .agent-bubble.assistant.latex-doc .md-h2,
-.bubble-pdf-snapshot .agent-bubble.assistant.latex-doc .md-h3 {
-  color: #10283d !important;
-  -webkit-text-fill-color: #10283d !important;
-}
-
-.bubble-pdf-snapshot .agent-bubble.assistant.latex-doc a {
-  color: #225b8e !important;
-  -webkit-text-fill-color: #225b8e !important;
-}
-
-.bubble-pdf-snapshot .agent-bubble.assistant.latex-doc .latex-doc-mode {
-  color: #2b547b !important;
-  -webkit-text-fill-color: #2b547b !important;
-}
-`;
-
-  return {
-    html: `<div class="bubble-pdf-snapshot">
-      <div class="bubble-pdf-running-brand">Financieramente</div>
-      <header class="bubble-pdf-running-header">
-        <div class="bubble-pdf-running-header-copy">
-          <p class="bubble-pdf-running-kicker">${escapeHtml(kickerText)}</p>
-          <h1 class="bubble-pdf-running-title">${escapeHtml(titleText)}</h1>
-          <p class="bubble-pdf-running-subtitle">${escapeHtml(subtitleText)}</p>
-        </div>
-        <div class="bubble-pdf-running-badge">${escapeHtml(badgeText)}</div>
-      </header>
-      ${clonedBubble.outerHTML}
-    </div>`,
-    css: `${collectBubbleSnapshotCss(bubbleEl)}\n${exportCss}`,
-  };
 }
 
 function isWelcomeCarouselShellItem(
@@ -644,7 +289,18 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
                         void (async () => {
                           try {
                             if (!bubbleEl) throw new Error('Bubble not found');
-                            const snapshot = buildBubbleSnapshotHtmlAndCss(bubbleEl);
+                            const externalCitations = attachedCitations.filter(isExternalCitation);
+                            const snapshot = buildBubbleSnapshotHtmlAndCss(bubbleEl, {
+                              kicker: docMeta.kicker,
+                              title: docMeta.title,
+                              subtitle: docMeta.subtitle,
+                              badge: (it.mode ?? 'analysis').toString().replaceAll('_', ' '),
+                              citations: externalCitations.map((citation) => ({
+                                title: citation.title,
+                                source: citation.source,
+                                url: citation.url,
+                              })),
+                            });
                             const result = await saveBubbleSnapshotPdfArtifact({
                               title: docMeta.title,
                               subtitle: docMeta.subtitle,
@@ -652,6 +308,12 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
                               css: snapshot.css,
                             });
                             const artifact = result.artifact;
+                            if (artifact.fileUrl) {
+                              downloadFile(
+                                artifact.fileUrl,
+                                `${docMeta.title.replace(/\s+/g, '-').slice(0, 48)}.pdf`,
+                              );
+                            }
                             const reportId = `${artifact.id}-${Date.now()}`;
                             const report: SavedReport = {
                               id: reportId,
@@ -670,14 +332,17 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
                               artifact.previewImageUrl ?? artifact.fileUrl ?? '',
                               reportId
                             );
-                          } catch {
+                          } catch (error) {
+                            const detail =
+                              error instanceof Error && error.message
+                                ? error.message
+                                : 'Error desconocido';
                             props.setItemsForActive((prev) => [
                               ...prev,
                               {
                                 type: 'message',
                                 role: 'assistant',
-                                content:
-                                  'No pude guardar el PDF de esta burbuja en biblioteca. Reintenta en unos segundos.',
+                                content: `No pude guardar el PDF de esta burbuja. ${detail}`,
                                 mode: 'information',
                               } as ChatItem,
                             ]);

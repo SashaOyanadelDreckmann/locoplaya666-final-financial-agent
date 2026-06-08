@@ -687,6 +687,213 @@
   word-wrap: break-word;
 }
 
+/* User upload pack — premium attachment cards (mirrors doc-bubble preview language) */
+.agent-bubble.user.upload-bubble {
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  max-width: min(92vw, 380px);
+}
+
+.user-upload-pack {
+  width: 100%;
+  border-radius: 16px;
+  overflow: hidden;
+  background: linear-gradient(145deg, rgba(126, 198, 255, 0.22), rgba(205, 232, 255, 0.1));
+  border: 1px solid rgba(186, 226, 255, 0.52);
+  box-shadow:
+    0 12px 28px rgba(53, 125, 178, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.24);
+}
+
+.user-upload-pack-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px 8px;
+}
+
+.user-upload-pack-kicker {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.user-upload-pack-count {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.86);
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.user-upload-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 0 10px 10px;
+}
+
+.user-upload-grid.is-single {
+  grid-template-columns: 1fr;
+}
+
+.user-upload-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(8, 16, 30, 0.42);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.user-upload-card-preview {
+  position: relative;
+  height: 96px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.04);
+  overflow: hidden;
+}
+
+.user-upload-grid.is-single .user-upload-card-preview {
+  height: 168px;
+}
+
+.user-upload-card.is-compact .user-upload-card-preview {
+  height: 88px;
+}
+
+.user-upload-card-preview--image {
+  padding: 0;
+}
+
+.user-upload-card-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  display: block;
+}
+
+.user-upload-card-preview--pdf {
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0.05) 0,
+      rgba(255, 255, 255, 0.05) 1px,
+      transparent 1px,
+      transparent 9px
+    ),
+    rgba(255, 255, 255, 0.03);
+  background-position: 14px 14px;
+  background-size: calc(100% - 28px) 9px, 100% 100%;
+  background-repeat: repeat-y, no-repeat;
+}
+
+.user-upload-pdf-lines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.user-upload-type-badge {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0.92);
+  background: rgba(0, 0, 0, 0.38);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.user-upload-type-badge--pdf {
+  color: #ffd8d3;
+  background: rgba(120, 24, 24, 0.55);
+  border-color: rgba(255, 120, 100, 0.35);
+}
+
+.user-upload-type-badge--spreadsheet {
+  color: #d7f5df;
+  background: rgba(18, 88, 48, 0.58);
+  border-color: rgba(96, 220, 140, 0.35);
+}
+
+.user-upload-type-badge--document {
+  color: #dce9ff;
+  background: rgba(24, 56, 110, 0.55);
+  border-color: rgba(120, 170, 255, 0.32);
+}
+
+.user-upload-card-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px 10px;
+  min-width: 0;
+}
+
+.user-upload-card-name {
+  font-size: 12px;
+  line-height: 1.35;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.94);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-upload-card-size {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.52);
+}
+
+.user-upload-pack-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.68);
+}
+
+.user-upload-pack-footer.is-processing {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.user-upload-pack-footer.is-error {
+  color: #ffb4b4;
+}
+
+.user-upload-pack-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  border-top-color: rgba(255, 255, 255, 0.78);
+  border-radius: 50%;
+  animation: spin 0.85s linear infinite;
+  flex-shrink: 0;
+}
+
 /* Assistant — transparent wrapper */
 .agent-bubble.assistant {
   align-self: flex-start;

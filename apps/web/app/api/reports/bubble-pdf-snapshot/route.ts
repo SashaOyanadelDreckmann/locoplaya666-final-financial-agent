@@ -2,12 +2,13 @@ import { NextResponse } from 'next/server';
 import fs from 'fs/promises';
 import path from 'path';
 import crypto from 'crypto';
-import { chromium } from 'playwright-core';
 
 import { requireBackendSession } from '@/lib/serverAuth';
 import { checkRateLimit } from '@/lib/rateLimit';
+import { launchBubblePdfBrowser, readKatexCss } from '@/lib/bubble-pdf-browser';
 
 export const runtime = 'nodejs';
+export const maxDuration = 60;
 
 type Body = {
   title?: string;
@@ -27,30 +28,6 @@ function safeSlug(value: string) {
     .slice(0, 80) || 'report';
 }
 
-function getChromeExecutablePathCandidates() {
-  return [
-    process.env.CHROME_PATH,
-    process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH,
-    '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-    '/Applications/Google Chrome Canary.app/Contents/MacOS/Google Chrome Canary',
-    '/Applications/Chromium.app/Contents/MacOS/Chromium',
-    '/usr/bin/google-chrome',
-    '/usr/bin/google-chrome-stable',
-    '/usr/bin/chromium',
-    '/usr/bin/chromium-browser',
-    '/snap/bin/chromium',
-  ].filter(Boolean) as string[];
-}
-
-async function pathExists(filePath: string) {
-  try {
-    await fs.access(filePath);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 function escapeHtml(value: string) {
   return String(value)
     .replace(/&/g, '&amp;')
@@ -66,14 +43,14 @@ export async function POST(req: Request) {
     const rl = checkRateLimit(`bubble-pdf:${session.userId}`, 8, 60_000);
     if (!rl.ok) {
       return NextResponse.json(
-        { error: 'Too many requests' },
-        { status: 429, headers: { 'Retry-After': String(rl.retryAfter) } }
+        { error: 'Demasiadas solicitudes. Espera un momento e intenta de nuevo.' },
+        { status: 429, headers: { 'Retry-After': String(rl.retryAfter) } },
       );
     }
 
     const body = (await req.json()) as Body;
     if (!body?.html || !body?.css) {
-      return NextResponse.json({ error: 'Missing html/css' }, { status: 400 });
+      return NextResponse.json({ error: 'Faltan html/css para generar el PDF' }, { status: 400 });
     }
 
     const title = String(body.title ?? 'Informe diagnóstico financiero').trim() || 'Informe diagnóstico financiero';
@@ -81,29 +58,25 @@ export async function POST(req: Request) {
       String(body.subtitle ?? 'Síntesis profesional del contexto, evidencia disponible y próximos pasos.').trim() ||
       'Síntesis profesional del contexto, evidencia disponible y próximos pasos.';
 
-    const chromePath =
-      (await (async () => {
-        for (const candidate of getChromeExecutablePathCandidates()) {
-          if (await pathExists(candidate)) return candidate;
-        }
-        return '';
-      })()) || '';
-    if (!chromePath) {
+    let browser;
+    try {
+      browser = await launchBubblePdfBrowser();
+    } catch {
       return NextResponse.json(
-        { error: 'No se encontró Google Chrome para generar el PDF' },
-        { status: 500 }
+        {
+          error:
+            'No hay navegador headless disponible para generar el PDF. En producción debe existir Chromium (CHROME_PATH).',
+        },
+        { status: 503 },
       );
     }
 
-    const browser = await chromium.launch({
-      executablePath: chromePath,
-      headless: true,
-    });
+    const katexCss = await readKatexCss();
 
     try {
       const page = await browser.newPage({
         viewport: { width: 1440, height: 2200 },
-        deviceScaleFactor: 1,
+        deviceScaleFactor: 2,
       });
 
       const documentHtml = `<!doctype html>
@@ -113,6 +86,7 @@ export async function POST(req: Request) {
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>${escapeHtml(title)}</title>
     <style>
+      ${katexCss}
       ${body.css}
       html, body {
         margin: 0;
@@ -124,9 +98,12 @@ export async function POST(req: Request) {
   <body>${body.html}</body>
 </html>`;
 
-      await page.setContent(documentHtml, { waitUntil: 'load' });
+      await page.setContent(documentHtml, { waitUntil: 'networkidle' });
       await page.emulateMedia({ media: 'screen' });
       await page.evaluate(async () => {
+        if ('fonts' in document) {
+          await document.fonts.ready;
+        }
         await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
       });
 
@@ -170,6 +147,12 @@ export async function POST(req: Request) {
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Snapshot PDF error';
+    if (message === 'UNAUTHENTICATED') {
+      return NextResponse.json(
+        { error: 'Inicia sesión para guardar el PDF en biblioteca.' },
+        { status: 401 },
+      );
+    }
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

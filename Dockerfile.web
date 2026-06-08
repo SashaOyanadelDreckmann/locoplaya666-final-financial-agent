@@ -27,7 +27,15 @@ RUN pnpm --filter @financial-agent/web build
 FROM base AS runner
 ENV NODE_ENV=production
 ENV PORT=3000
+ENV CHROME_PATH=/usr/bin/chromium
 WORKDIR /app
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
+    chromium \
+    fonts-liberation \
+    fonts-noto-color-emoji \
+  && rm -rf /var/lib/apt/lists/*
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=build /app/apps/web ./apps/web

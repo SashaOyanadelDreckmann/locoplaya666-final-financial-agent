@@ -76,6 +76,7 @@ import {
   FALLBACK_WELCOME,
   KNOWLEDGE_MILESTONE_DEFS,
   MAX_EVIDENCE_FILES_PER_PRODUCT,
+  MAX_CHAT_UPLOAD_FILES,
   MAX_TRANSACTION_PRODUCTS,
   MAX_TRANSACTION_PRODUCTS_CREATED_TOTAL,
   PRIMARY_CHAT_ID,
@@ -130,6 +131,10 @@ import { mergeBankProductPatch } from './transactions/state.helpers';
 import { TX_MAX_TOTAL_FILE_BYTES } from './transactions/constants';
 import { getEvidenceUploadCapacity } from '@/lib/transactions-evidence.helpers';
 import { resolveUploadEvidenceSourceHint } from '@/lib/evidence-fidelity.helpers';
+import {
+  buildChatUploadAgentPrompt,
+  buildChatUploadFiles,
+} from './chat-upload.helpers';
 import { buildPanelSnapshotPayload } from './page.flow';
 import { clearPanelStateBackups, hydratePanelState, persistPanelState } from './panel-state.service';
 
@@ -1834,15 +1839,16 @@ export default function AgentPage() {
       agentPayload?: string;
       assistantPendingLabel?: string;
       hideUserMessage?: boolean;
+      ignoreLoadingGuard?: boolean;
     }
-  ) {
+  ): Promise<boolean> {
     if (!isAuthenticated) {
       router.replace('/login');
-      return;
+      return false;
     }
     const liveComposerText = chatComposerRef.current?.value ?? '';
     const outgoingText = String(messageOverride ?? liveComposerText ?? input ?? '').trim();
-    if (!outgoingText || loading) return;
+    if (!outgoingText || (loading && !options?.ignoreLoadingGuard)) return false;
     if (isActiveChatLocked) {
       setItemsForActive((prev) => [
         ...prev,
@@ -1854,7 +1860,7 @@ export default function AgentPage() {
           mode: 'information',
         },
       ]);
-      return;
+      return false;
     }
     haptic(8); // feedback al enviar mensaje
 
@@ -2198,11 +2204,40 @@ export default function AgentPage() {
     } finally {
       setLoading(false);
     }
+    return true;
+  }
+
+  function patchUploadItem(
+    uploadId: string,
+    patch: Partial<Extract<ChatItem, { type: 'upload' }>>
+  ) {
+    setItemsForActive((prev) =>
+      prev.map((item) =>
+        item.type === 'upload' && item.uploadId === uploadId ? { ...item, ...patch } : item
+      )
+    );
   }
 
   async function onUploadFromChat(files: FileList | null) {
     if (!files || files.length === 0) return;
-    const selected = Array.from(files);
+    if (!isAuthenticated) {
+      router.replace('/login');
+      return;
+    }
+    if (isActiveChatLocked) return;
+
+    let selected = Array.from(files);
+    if (selected.length > MAX_CHAT_UPLOAD_FILES) {
+      setItemsForActive((prev) => [
+        ...prev,
+        {
+          type: 'message',
+          role: 'assistant',
+          content: `Solo puedes adjuntar hasta ${MAX_CHAT_UPLOAD_FILES} archivos por envío. Tomé los primeros ${MAX_CHAT_UPLOAD_FILES}.`,
+        },
+      ]);
+      selected = selected.slice(0, MAX_CHAT_UPLOAD_FILES);
+    }
     const allowedExt = new Set([
       'png',
       'jpg',
@@ -2285,31 +2320,42 @@ export default function AgentPage() {
       evidenceSourceHint,
       looseTextEvidence,
     };
-    const uploadFiles = accepted.map((file) => ({
-      name: file.name,
-      mime: file.type || undefined,
-      previewUrl: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined,
-    }));
+    const uploadId = `upload-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const uploadFiles = buildChatUploadFiles(accepted);
     setItemsForActive((prev) => [
       ...prev,
-      { type: 'upload', role: 'user', files: uploadFiles },
+      { type: 'upload', role: 'user', uploadId, status: 'processing', files: uploadFiles },
     ]);
 
-    const encodedFiles = await Promise.all(
-      accepted.map(
-        (file) =>
-          new Promise<{ name: string; base64: string; mimeType?: string }>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => {
-              const raw = typeof reader.result === 'string' ? reader.result : '';
-              const base64 = raw.includes(',') ? raw.split(',')[1] ?? '' : raw;
-              resolve({ name: file.name, base64, mimeType: file.type || undefined });
-            };
-            reader.onerror = () => reject(reader.error ?? new Error('No se pudo leer el archivo'));
-            reader.readAsDataURL(file);
-          })
-      )
-    );
+    let encodedFiles: Array<{ name: string; base64: string; mimeType?: string }>;
+    try {
+      encodedFiles = await Promise.all(
+        accepted.map(
+          (file) =>
+            new Promise<{ name: string; base64: string; mimeType?: string }>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => {
+                const raw = typeof reader.result === 'string' ? reader.result : '';
+                const base64 = raw.includes(',') ? raw.split(',')[1] ?? '' : raw;
+                resolve({ name: file.name, base64, mimeType: file.type || undefined });
+              };
+              reader.onerror = () => reject(reader.error ?? new Error('No se pudo leer el archivo'));
+              reader.readAsDataURL(file);
+            })
+        )
+      );
+    } catch {
+      patchUploadItem(uploadId, { status: 'error' });
+      setItemsForActive((prev) => [
+        ...prev,
+        {
+          type: 'message',
+          role: 'assistant',
+          content: 'No pude leer uno o más archivos en el dispositivo. Vuelve a intentar.',
+        },
+      ]);
+      return;
+    }
 
     let parsed: { documents?: ParsedUploadDocument[]; transactionAnalysis?: unknown } | null = null;
     try {
@@ -2324,6 +2370,7 @@ export default function AgentPage() {
     const names = accepted.map((f) => f.name);
     const parsedDocs = Array.isArray(parsed?.documents) ? parsed.documents : [];
     if (parsedDocs.length === 0) {
+      patchUploadItem(uploadId, { status: 'error' });
       setItemsForActive((prev) => [
         ...prev,
         {
@@ -2335,6 +2382,8 @@ export default function AgentPage() {
       ]);
       return;
     }
+
+    patchUploadItem(uploadId, { status: 'ready' });
 
     const docsSummary = parsedDocs.map((doc) => {
       const format = String(doc.insight?.format ?? '').toLowerCase() || (doc.name.split('.').pop()?.toLowerCase() ?? 'unknown');
@@ -2354,12 +2403,29 @@ export default function AgentPage() {
       parsed?.transactionAnalysis && typeof parsed.transactionAnalysis === 'object'
         ? parsed.transactionAnalysis
         : undefined;
-    const message = `Cargué y procesé estos archivos para analizarlos contigo: ${names.join(
-      ', '
-    )}. Analiza este paquete documental con enfoque profesional, detecta inconsistencias y oportunidades, y cita evidencia exacta por archivo. DOCUMENTOS_JSON=${JSON.stringify(
-      docsSummary
-    )}${analysisEnvelope ? ` ANALISIS_TRANSACCIONAL_JSON=${JSON.stringify(analysisEnvelope)}` : ''}`;
-    void onSend(message);
+    const agentPayload = buildChatUploadAgentPrompt({
+      fileNames: names,
+      docsSummary,
+      analysisEnvelope,
+    });
+    const dispatched = await onSend(`Analiza los archivos adjuntos (${names.join(', ')})`, {
+      agentPayload,
+      hideUserMessage: true,
+      ignoreLoadingGuard: true,
+      assistantPendingLabel: 'Escaneando y analizando tus archivos…',
+    });
+    if (!dispatched) {
+      patchUploadItem(uploadId, { status: 'error' });
+      setItemsForActive((prev) => [
+        ...prev,
+        {
+          type: 'message',
+          role: 'assistant',
+          content:
+            'Procesé los archivos, pero el chat estaba ocupado. Envía un mensaje corto para que analice lo adjunto.',
+        },
+      ]);
+    }
   }
 
   const buildInterviewIntakePayload = useCallback(() => {
@@ -3390,8 +3456,8 @@ export default function AgentPage() {
           className="continue-button composer-icon-btn"
           disabled={isActiveChatLocked}
           onClick={() => chatUploadInputRef.current?.click()}
-          title="Adjuntar archivos (PDF, imagen, Excel, texto y más)"
-          aria-label="Adjuntar archivo"
+          title={`Adjuntar archivos (máx. ${MAX_CHAT_UPLOAD_FILES}: PDF, imagen, Excel, texto y más)`}
+          aria-label={`Adjuntar archivo, hasta ${MAX_CHAT_UPLOAD_FILES} por envío`}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path d="M15.5 7.5L9 14a3 3 0 104.24 4.24l7.07-7.07a5 5 0 10-7.07-7.07L5.46 11.9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>

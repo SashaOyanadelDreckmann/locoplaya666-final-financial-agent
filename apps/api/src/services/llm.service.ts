@@ -198,6 +198,31 @@ export async function completeStructured<T>(params: {
   return JSON.parse(jsonStr) as T;
 }
 
+export function parseStructuredResponsePayload(
+  response: Pick<OpenAI.Responses.Response, 'output' | 'output_text' | 'status'>,
+): string {
+  for (const item of response.output ?? []) {
+    if (item.type !== 'message') continue;
+    for (const part of item.content ?? []) {
+      if (part.type === 'refusal') {
+        const refusal = 'refusal' in part ? String(part.refusal ?? '').trim() : '';
+        throw new Error(
+          refusal ? `Modelo rechazó la solicitud: ${refusal}` : 'Modelo rechazó la solicitud por políticas de seguridad.',
+        );
+      }
+    }
+  }
+
+  if (response.status === 'incomplete') {
+    throw new Error('Respuesta LLM incompleta (límite de tokens o interrupción).');
+  }
+
+  const raw = response.output_text?.trim();
+  if (!raw) throw new Error('Respuesta LLM vacía en completeStructuredWithSchema');
+  const codeBlockMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
+  return codeBlockMatch ? codeBlockMatch[1].trim() : raw;
+}
+
 export async function completeStructuredWithSchema<T>(params: {
   instructions: string;
   input: string | OpenAI.Responses.ResponseInput;
@@ -238,10 +263,7 @@ export async function completeStructuredWithSchema<T>(params: {
     },
   });
 
-  const raw = response.output_text?.trim();
-  if (!raw) throw new Error('Respuesta LLM vacía en completeStructuredWithSchema');
-  const codeBlockMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
-  const jsonStr = codeBlockMatch ? codeBlockMatch[1].trim() : raw;
+  const jsonStr = parseStructuredResponsePayload(response);
   return JSON.parse(jsonStr) as T;
 }
 

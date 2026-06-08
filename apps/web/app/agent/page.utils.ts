@@ -205,6 +205,20 @@ function stripEditorialFormatting(input: string): string {
 export function sanitizeChatItems(items: ChatItem[]): ChatItem[] {
   return items
     .map((item) => {
+      if (item.type === 'upload') {
+        const nextItem: Extract<ChatItem, { type: 'upload' }> = {
+          ...item,
+          status: item.status === 'processing' ? 'ready' : item.status,
+          files: item.files.map((file) => ({
+            ...file,
+            previewUrl:
+              typeof file.previewUrl === 'string' && file.previewUrl.startsWith('blob:')
+                ? undefined
+                : file.previewUrl,
+          })),
+        };
+        return nextItem;
+      }
       if (item.type !== 'message') return item;
       const raw = String(item.content ?? '');
       if (item.role === 'assistant' && !raw.trim()) {

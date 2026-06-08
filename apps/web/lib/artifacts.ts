@@ -44,7 +44,14 @@ export async function saveBubbleSnapshotPdfArtifact(payload: {
   });
 
   if (!res.ok) {
-    throw new Error(`No se pudo generar snapshot PDF (${res.status})`);
+    let msg = `No se pudo generar snapshot PDF (${res.status})`;
+    try {
+      const data = (await res.json()) as { error?: string };
+      if (data?.error) msg = data.error;
+    } catch {
+      // ignore parse errors
+    }
+    throw new Error(msg);
   }
 
   return res.json() as Promise<{ ok: true; artifact: Artifact }>;

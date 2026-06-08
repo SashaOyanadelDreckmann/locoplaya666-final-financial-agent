@@ -185,6 +185,10 @@ describe('budget modal logic guards', () => {
     expect(source).not.toContain('function collectBudgetSnapshotCss');
     const snapshotSource = fs.readFileSync(path.join(process.cwd(), 'app', 'agent', 'budget-modal.snapshot.ts'), 'utf8');
     expect(snapshotSource).toContain('export function buildBudgetSnapshotHtmlAndCss');
+    const chatThreadSource = fs.readFileSync(path.join(process.cwd(), 'app', 'agent', 'chat-thread-view.tsx'), 'utf8');
+    expect(chatThreadSource).toContain("from './bubble-chat.snapshot'");
+    const bubbleSnapshotSource = fs.readFileSync(path.join(process.cwd(), 'app', 'agent', 'bubble-chat.snapshot.ts'), 'utf8');
+    expect(bubbleSnapshotSource).toContain('export function buildBubbleSnapshotHtmlAndCss');
   });
 
   it('measures mobile row slot height for one-row table viewport', () => {

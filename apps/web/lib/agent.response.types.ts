@@ -94,14 +94,22 @@ export type AgentResponse = {
   };
 };
 
+export type ChatUploadFileKind = 'image' | 'pdf' | 'spreadsheet' | 'document';
+
+export type ChatUploadStatus = 'processing' | 'ready' | 'error';
+
 export type ChatItem =
   | { type: 'message'; role: 'user'; content: string }
   | {
       type: 'upload';
       role: 'user';
+      uploadId?: string;
+      status?: ChatUploadStatus;
       files: Array<{
         name: string;
         mime?: string;
+        kind?: ChatUploadFileKind;
+        sizeLabel?: string;
         previewUrl?: string;
       }>;
     }

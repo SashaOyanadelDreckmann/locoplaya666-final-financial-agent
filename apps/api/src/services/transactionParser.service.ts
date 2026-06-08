@@ -60,8 +60,17 @@ type VisionExtractionOutput = {
   }>;
 };
 
-function visionImageDetail(): 'auto' | 'high' {
-  return process.env.TRANSACTIONS_VISION_DETAIL === 'high' ? 'high' : 'auto';
+function visionImageDetail(): 'auto' | 'high' | 'low' {
+  const configured = process.env.TRANSACTIONS_VISION_DETAIL?.trim().toLowerCase();
+  if (configured === 'high' || configured === 'low' || configured === 'auto') {
+    return configured;
+  }
+  if (configured === 'original') {
+    // OpenAI "original" tier: map to high until SDK typings expose it uniformly.
+    return 'high';
+  }
+  // OpenAI vision guide: use high for small text (cartolas, capturas bancarias).
+  return 'high';
 }
 
 function resolveFfmpegBinary(): string | null {
