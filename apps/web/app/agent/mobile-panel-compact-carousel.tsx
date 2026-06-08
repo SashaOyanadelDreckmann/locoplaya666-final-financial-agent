@@ -50,13 +50,13 @@ function mod(index: number, count: number) {
 }
 
 function useMobileCardStackSize() {
-  const [size, setSize] = useState({ width: 150, height: 56 });
+  const [size, setSize] = useState({ width: 150, height: 67 });
 
   useEffect(() => {
     const compute = () => {
       const vw = window.innerWidth;
       const cardW = Math.round(Math.min(180, Math.max(130, vw * 0.39)));
-      const cardH = Math.round(Math.min(69, Math.max(53, cardW * 0.37)));
+      const cardH = Math.round(Math.min(83, Math.max(64, cardW * 0.44)));
       setSize({ width: cardW, height: cardH });
     };
 
@@ -301,7 +301,7 @@ export const MobilePanelCircularDeck = forwardRef<
           cardHeight={cardSize.height}
           stageMinHeight={cardSize.height}
           stagePaddingPx={0}
-          stageOffsetX={82}
+          stageOffsetX={112}
           overlap={0.48}
           spreadDeg={20}
           perspectivePx={900}

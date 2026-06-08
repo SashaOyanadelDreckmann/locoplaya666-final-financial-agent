@@ -59,9 +59,9 @@
     --deck-overlap: clamp(22px, 5.8vw, 38px);
     --deck-card-w-est: min(180px, calc(100vw * 0.39));
     --deck-card-h-est: clamp(
-      53px,
-      calc(var(--deck-card-w-est) * 0.37),
-      69px
+      64px,
+      calc(var(--deck-card-w-est) * 0.44),
+      83px
     );
     --agent-mobile-notify-bottom: calc(
       env(safe-area-inset-bottom, 0px) + var(--deck-handle-h) + var(--deck-card-h-est) + var(--mobile-panel-deck-lift) + 76px + 10px
@@ -122,9 +122,9 @@
     --deck-overlap: clamp(22px, 5.8vw, 38px) !important;
     --deck-usable-w: calc(100vw + 48px) !important;
     --deck-card-w: min(180px, calc(100vw * 0.39)) !important;
-    --deck-card-h-min: 53px !important;
-    --deck-card-h-max: 69px !important;
-    --deck-card-aspect: 0.37 !important;
+    --deck-card-h-min: 64px !important;
+    --deck-card-h-max: 83px !important;
+    --deck-card-aspect: 0.44 !important;
     --deck-card-h: clamp(
       var(--deck-card-h-min),
       calc(var(--deck-card-w) * var(--deck-card-aspect)),
