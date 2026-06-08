@@ -145,7 +145,18 @@ export async function attachIntakeToUser(
 ): Promise<boolean> {
   let nextEnvelope: Record<string, unknown> = intakePayload as Record<string, unknown>;
 
-  if (!options?.replace) {
+  if (options?.replace) {
+    const user = await getUserById(userId);
+    const existing =
+      user?.injectedIntake && typeof user.injectedIntake === 'object'
+        ? (user.injectedIntake as Record<string, unknown>)
+        : {};
+    nextEnvelope = {
+      ...intakePayload,
+      welcomeIntroCache:
+        intakePayload.welcomeIntroCache ?? existing.welcomeIntroCache,
+    };
+  } else {
     const user = await getUserById(userId);
     const existing =
       user?.injectedIntake && typeof user.injectedIntake === 'object'

@@ -5,11 +5,14 @@ import {
 } from './welcome-intro.copy';
 import {
   EXECUTIVE_INTRO_UI_VERSION,
+  WELCOME_INTRO_MAX_LLM_GENERATIONS,
   type InjectedIntakeEnvelope,
   type WelcomeIntroCache,
   type WelcomeIntroPayload,
   type WelcomeIntroSection,
 } from './welcome-intro.types';
+
+export { WELCOME_INTRO_MAX_LLM_GENERATIONS };
 
 export function stableStringify(value: unknown): string {
   if (value === null) return 'null';
@@ -96,14 +99,34 @@ export function readWelcomeIntroCache(injectedIntake: unknown): WelcomeIntroCach
   return record;
 }
 
+export function readWelcomeIntroGenerationCount(
+  cache: WelcomeIntroCache | null | undefined,
+): number {
+  if (!cache?.intro) return 0;
+  if (
+    typeof cache.llmGenerationCount === 'number' &&
+    Number.isFinite(cache.llmGenerationCount)
+  ) {
+    return Math.max(
+      0,
+      Math.min(WELCOME_INTRO_MAX_LLM_GENERATIONS, Math.floor(cache.llmGenerationCount)),
+    );
+  }
+  return 1;
+}
+
+export function canGenerateWelcomeIntroWithLlm(
+  cache: WelcomeIntroCache | null | undefined,
+): boolean {
+  return readWelcomeIntroGenerationCount(cache) < WELCOME_INTRO_MAX_LLM_GENERATIONS;
+}
+
 export function isValidWelcomeIntroCache(
   cache: WelcomeIntroCache | null | undefined,
   fingerprint: string,
-  uiVersion: number = EXECUTIVE_INTRO_UI_VERSION,
 ): cache is WelcomeIntroCache {
   if (!cache) return false;
   if (cache.fingerprint !== fingerprint) return false;
-  if (cache.uiVersion !== uiVersion) return false;
   if (cache.intro.version !== 2) return false;
   if (typeof cache.intro.headline !== 'string' || !cache.intro.headline.trim()) return false;
   if (typeof cache.intro.personalRead !== 'string' || !cache.intro.personalRead.trim()) return false;

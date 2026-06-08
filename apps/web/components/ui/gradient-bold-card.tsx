@@ -17,7 +17,7 @@ import { getWelcomeMessage } from "@/lib/api";
 import { CornerFrameScrambleText } from "@/components/ui/corner-frame-scramble-text";
 import {
   buildFallbackWelcomeIntro,
-  readCachedWelcomeIntro,
+  readHydratedWelcomeIntro,
   resolveWelcomeIntro,
   type WelcomeIntroPayload,
 } from "@/app/agent/welcome-intro.shared";
@@ -212,35 +212,39 @@ export function GradientBlobCard({
   );
 
   const scrambleLines = useMemo(() => buildIntakeScrambleLines(session), [session]);
-  const cachedIntro = useMemo(() => readCachedWelcomeIntro(session), [session]);
+  const hydratedIntro = useMemo(() => readHydratedWelcomeIntro(session), [session]);
 
   const [intro, setIntro] = useState<WelcomeIntroPayload>(
-    () => cachedIntro ?? buildFallbackWelcomeIntro(session),
+    () => hydratedIntro ?? buildFallbackWelcomeIntro(session),
   );
-  const [introLoading, setIntroLoading] = useState(() => !cachedIntro);
+  const [introLoading, setIntroLoading] = useState(() => !hydratedIntro);
   const [active, setActive] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [scrambleDone, setScrambleDone] = useState(() => Boolean(cachedIntro));
+  const [scrambleDone, setScrambleDone] = useState(() => Boolean(hydratedIntro));
 
   useEffect(() => {
-    if (!cachedIntro) return;
-    setIntro(cachedIntro);
+    if (!hydratedIntro) return;
+    setIntro(hydratedIntro);
     setIntroLoading(false);
     setScrambleDone(true);
-  }, [cachedIntro]);
+  }, [hydratedIntro]);
 
   useEffect(() => {
+    if (hydratedIntro) return;
+
     let cancelled = false;
-    if (!cachedIntro) setIntroLoading(true);
+    setIntroLoading(true);
 
     getWelcomeMessage()
       .then((response) => {
         if (cancelled) return;
         setIntro(resolveWelcomeIntro(response, session));
+        setScrambleDone(true);
       })
       .catch(() => {
         if (cancelled) return;
-        setIntro(readCachedWelcomeIntro(session) ?? buildFallbackWelcomeIntro(session));
+        setIntro(readHydratedWelcomeIntro(session) ?? buildFallbackWelcomeIntro(session));
+        setScrambleDone(true);
       })
       .finally(() => {
         if (!cancelled) setIntroLoading(false);
@@ -249,7 +253,7 @@ export function GradientBlobCard({
     return () => {
       cancelled = true;
     };
-  }, [session, cachedIntro]);
+  }, [session, hydratedIntro]);
 
   const handleChange = (index: number) => {
     if (index === active || isTransitioning || index < 0 || index >= WELCOME_PAGES.length) return;

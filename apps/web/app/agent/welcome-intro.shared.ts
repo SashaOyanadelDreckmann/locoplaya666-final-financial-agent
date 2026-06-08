@@ -2,6 +2,8 @@ import type { AgentBlock } from '@/lib/types/chat';
 import type { ChatItem } from '@/lib/agent.response.types';
 import {
   EXECUTIVE_INTRO_UI_VERSION,
+  buildWelcomeIntroFingerprint,
+  extractIntakeEnvelope,
   normalizeWelcomeIntroPayload,
   readCachedWelcomeIntro,
   WELCOME_FINTECH_DEFAULT_BENEFIT,
@@ -21,6 +23,32 @@ export type WelcomeApiResponse = {
 };
 
 export const EXECUTIVE_INTRO_MARKER = 'informe inicial de diagnóstico';
+
+/** Empty welcome shell, including legacy "—" placeholder from sheet sanitization. */
+export function isWelcomeShellMessageContent(content: unknown): boolean {
+  const raw = String(content ?? '').trim();
+  if (!raw) return true;
+  return raw === '—' || raw === '-' || raw === '–';
+}
+
+export function normalizeWelcomeShellContent(content: unknown): string {
+  return isWelcomeShellMessageContent(content) ? '' : String(content ?? '');
+}
+
+export function normalizeChat1WelcomeShellItems(items: ChatItem[]): ChatItem[] {
+  const firstAssistantIdx = items.findIndex(
+    (it) => it.type === 'message' && it.role === 'assistant',
+  );
+  if (firstAssistantIdx !== 0) return items;
+  const item = items[firstAssistantIdx];
+  if (item.type !== 'message' || item.role !== 'assistant') return items;
+  if (!isWelcomeShellMessageContent(item.content)) return items;
+  const normalized = normalizeWelcomeShellContent(item.content);
+  if (normalized === String(item.content ?? '')) return items;
+  return items.map((it, idx) =>
+    idx === firstAssistantIdx && it.type === 'message' ? { ...it, content: normalized } : it,
+  );
+}
 
 function buildFallbackWittyHook(firstName: string, intake: Record<string, unknown>): string {
   const city = typeof intake.city === 'string' ? intake.city.trim() : '';
@@ -215,16 +243,60 @@ export function resolveWelcomeIntro(
   session: { name?: string | null; injectedIntake?: unknown } | null | undefined,
 ): WelcomeIntroPayload {
   if (api?.intro?.version === 2) {
-    return normalizeWelcomeIntroPayload({
+    const intro = normalizeWelcomeIntroPayload({
       ...api.intro,
       uiVersion: api.intro.uiVersion ?? EXECUTIVE_INTRO_UI_VERSION,
     });
+    rememberHydratedWelcomeIntro(session, intro);
+    return intro;
   }
 
-  const cached = readCachedWelcomeIntro(session);
+  const cached = readHydratedWelcomeIntro(session);
   if (cached) return cached;
 
   return buildFallbackWelcomeIntro(session ?? {});
+}
+
+let clientWelcomeIntro: { fingerprint: string; intro: WelcomeIntroPayload } | null = null;
+
+function resolveWelcomeIntroFingerprint(
+  session: { injectedIntake?: unknown } | null | undefined,
+): string | null {
+  if (!session?.injectedIntake) return null;
+  const { intake, llmSummary } = extractIntakeEnvelope(session.injectedIntake);
+  return buildWelcomeIntroFingerprint(intake, llmSummary);
+}
+
+export function readHydratedWelcomeIntro(
+  session: { name?: string | null; injectedIntake?: unknown } | null | undefined,
+): WelcomeIntroPayload | null {
+  const fromSession = readCachedWelcomeIntro(session);
+  if (fromSession) {
+    const fingerprint = resolveWelcomeIntroFingerprint(session);
+    if (fingerprint) {
+      clientWelcomeIntro = { fingerprint, intro: fromSession };
+    }
+    return fromSession;
+  }
+
+  const fingerprint = resolveWelcomeIntroFingerprint(session);
+  if (fingerprint && clientWelcomeIntro?.fingerprint === fingerprint) {
+    return clientWelcomeIntro.intro;
+  }
+
+  return null;
+}
+
+export function rememberHydratedWelcomeIntro(
+  session: { name?: string | null; injectedIntake?: unknown } | null | undefined,
+  intro: WelcomeIntroPayload,
+): void {
+  const fingerprint = resolveWelcomeIntroFingerprint(session);
+  if (!fingerprint) return;
+  clientWelcomeIntro = {
+    fingerprint,
+    intro: normalizeWelcomeIntroPayload(intro),
+  };
 }
 
 export { readCachedWelcomeIntro };

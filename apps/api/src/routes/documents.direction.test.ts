@@ -54,4 +54,9 @@ describe('documents movement direction', () => {
     expect(inferMovementDirection(cargoRow, 1300, '1,300', 'credit_card')).toBe('expense');
     expect(inferMovementKind(cargoRow, 1300, '1,300', 'credit_card')).toBe('expense');
   });
+
+  it('classifies BICE card payments as abonos', () => {
+    expect(inferMovementDirection('Pago Pesos TEF', 186446, '186446', 'credit_card')).toBe('income');
+    expect(inferMovementKind('Pago Pesos TEF PAGO NORMAL', -40000, '-40000', 'credit_card')).toBe('abono');
+  });
 });

@@ -28,8 +28,8 @@ export function getBudgetTableViewMode(isDesktopLayout: boolean): BudgetViewMode
 
 export function resolveBudgetModeClass(isDesktopLayout: boolean, budgetViewMode: BudgetViewMode): string {
   if (isDesktopLayout) {
-    if (budgetViewMode === 1) return 'split';
-    if (budgetViewMode === 2) return 'agent-front';
+    if (budgetViewMode === 1) return 'agent-front';
+    if (budgetViewMode === 2) return 'split';
     return 'table-only';
   }
   return budgetViewMode === 2 ? 'table-front' : 'agent-front';
@@ -37,11 +37,19 @@ export function resolveBudgetModeClass(isDesktopLayout: boolean, budgetViewMode:
 
 export function resolveBudgetViewDataAttr(isDesktopLayout: boolean, budgetViewMode: BudgetViewMode): string {
   if (isDesktopLayout) {
-    if (budgetViewMode === 1) return 'split';
-    if (budgetViewMode === 2) return 'assistant';
+    if (budgetViewMode === 1) return 'assistant';
+    if (budgetViewMode === 2) return 'split';
     return 'table';
   }
   return budgetViewMode === 2 ? 'table' : 'assistant';
+}
+
+export function isBudgetAssistantOverlayMode(isDesktopLayout: boolean, budgetViewMode: BudgetViewMode): boolean {
+  return isDesktopLayout && budgetViewMode === 1;
+}
+
+export function isBudgetSplitMode(isDesktopLayout: boolean, budgetViewMode: BudgetViewMode): boolean {
+  return isDesktopLayout && budgetViewMode === 2;
 }
 
 export function useBudgetModalLayout(isOpen: boolean) {
@@ -58,16 +66,6 @@ export function useBudgetModalLayout(isOpen: boolean) {
     setBudgetViewMode(1);
   }, [isOpen, mobileShell]);
 
-  function moveBudgetView(direction: 'next' | 'prev') {
-    setBudgetViewMode((prev) => {
-      const maxMode: BudgetViewMode = isDesktopLayout ? 3 : 2;
-      if (direction === 'next') {
-        return prev >= maxMode ? 1 : ((prev + 1) as BudgetViewMode);
-      }
-      return prev <= 1 ? maxMode : ((prev - 1) as BudgetViewMode);
-    });
-  }
-
   function cardStyle(card: 'agent' | 'table'): CSSProperties {
     if (!isDesktopLayout) return {};
     if (budgetViewMode === 3 && card === 'agent') {
@@ -82,7 +80,6 @@ export function useBudgetModalLayout(isOpen: boolean) {
     isDesktopLayout,
     budgetViewMode,
     setBudgetViewMode,
-    moveBudgetView,
     cardStyle,
     budgetModeClass,
     tableViewMode: getBudgetTableViewMode(isDesktopLayout),

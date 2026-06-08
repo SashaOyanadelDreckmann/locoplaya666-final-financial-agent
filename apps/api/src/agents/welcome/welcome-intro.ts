@@ -5,12 +5,14 @@ import {
   WELCOME_FINTECH_DEFAULT_BODY,
   WELCOME_FINTECH_DEFAULT_TITLE,
   buildWelcomeIntroFingerprint,
+  canGenerateWelcomeIntroWithLlm,
   extractIntakeEnvelope,
-  isValidWelcomeIntroCache,
   normalizeWelcomeIntroPayload,
   readWelcomeIntroCache,
+  readWelcomeIntroGenerationCount,
   withWelcomeIntroFirstName,
   EXECUTIVE_INTRO_UI_VERSION,
+  WELCOME_INTRO_MAX_LLM_GENERATIONS,
   type WelcomeIntroCache,
   type WelcomeIntroPayload,
   type WelcomeIntroSection,
@@ -23,12 +25,15 @@ export type {
 } from '@financial-agent/shared';
 export {
   buildWelcomeIntroFingerprint,
+  canGenerateWelcomeIntroWithLlm,
   extractIntakeEnvelope,
   isValidWelcomeIntroCache,
   normalizeWelcomeIntroPayload,
   readWelcomeIntroCache,
+  readWelcomeIntroGenerationCount,
   withWelcomeIntroFirstName,
   EXECUTIVE_INTRO_UI_VERSION,
+  WELCOME_INTRO_MAX_LLM_GENERATIONS,
 } from '@financial-agent/shared';
 
 type WelcomeIntroLLM = {
@@ -299,11 +304,25 @@ export async function resolveWelcomeIntroForUser(params: {
   const envelope = extractIntakeEnvelope(params.injectedIntake);
   const fingerprint = buildWelcomeIntroFingerprint(envelope.intake, envelope.llmSummary);
   const cached = readWelcomeIntroCache(params.injectedIntake);
+  const generationCount = readWelcomeIntroGenerationCount(cached);
 
-  if (isValidWelcomeIntroCache(cached, fingerprint)) {
-    const intro = normalizeWelcomeIntroPayload(
-      withWelcomeIntroFirstName(cached.intro, params.firstName),
-    );
+  const finalizeIntro = (intro: WelcomeIntroPayload) =>
+    normalizeWelcomeIntroPayload(withWelcomeIntroFirstName(intro, params.firstName));
+
+  const persistResolvedCache = async (entry: WelcomeIntroCache) => {
+    await params.persistWelcomeIntroCache(params.userId, entry);
+  };
+
+  if (cached?.fingerprint === fingerprint && cached.intro) {
+    const intro = finalizeIntro(cached.intro);
+    if (cached.uiVersion !== EXECUTIVE_INTRO_UI_VERSION) {
+      await persistResolvedCache({
+        ...cached,
+        uiVersion: EXECUTIVE_INTRO_UI_VERSION,
+        intro,
+        llmGenerationCount: generationCount,
+      });
+    }
     return {
       intro,
       message: welcomeIntroToMarkdown(intro),
@@ -311,23 +330,55 @@ export async function resolveWelcomeIntroForUser(params: {
     };
   }
 
-  const intro = normalizeWelcomeIntroPayload(
-    await buildWelcomeIntroWithLLM({
-      firstName: params.firstName,
-      intake: envelope.intake,
-      intakeContext: envelope.intakeContext,
-      llmSummary: envelope.llmSummary,
-    }),
-  );
+  if (cached?.intro && !canGenerateWelcomeIntroWithLlm(cached)) {
+    const intro = finalizeIntro(cached.intro);
+    await persistResolvedCache({
+      fingerprint,
+      uiVersion: EXECUTIVE_INTRO_UI_VERSION,
+      intro,
+      createdAt: cached.createdAt,
+      llmGenerationCount: generationCount,
+    });
+    return {
+      intro,
+      message: welcomeIntroToMarkdown(intro),
+      cached: true,
+    };
+  }
 
-  const cacheEntry: WelcomeIntroCache = {
-    fingerprint,
-    uiVersion: EXECUTIVE_INTRO_UI_VERSION,
-    intro,
-    createdAt: new Date().toISOString(),
-  };
+  if (canGenerateWelcomeIntroWithLlm(cached)) {
+    const intro = finalizeIntro(
+      await buildWelcomeIntroWithLLM({
+        firstName: params.firstName,
+        intake: envelope.intake,
+        intakeContext: envelope.intakeContext,
+        llmSummary: envelope.llmSummary,
+      }),
+    );
 
-  await params.persistWelcomeIntroCache(params.userId, cacheEntry);
+    const cacheEntry: WelcomeIntroCache = {
+      fingerprint,
+      uiVersion: EXECUTIVE_INTRO_UI_VERSION,
+      intro,
+      createdAt: new Date().toISOString(),
+      llmGenerationCount: generationCount + 1,
+    };
+
+    await persistResolvedCache(cacheEntry);
+
+    return {
+      intro,
+      message: welcomeIntroToMarkdown(intro),
+      cached: false,
+    };
+  }
+
+  const intro = buildFallbackWelcomeIntro({
+    firstName: params.firstName,
+    intake: envelope.intake,
+    intakeContext: envelope.intakeContext,
+    llmSummary: envelope.llmSummary,
+  });
 
   return {
     intro,

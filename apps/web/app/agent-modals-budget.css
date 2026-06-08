@@ -277,6 +277,62 @@
   line-height: 1.4 !important;
 }
 
+.bcc-hero-transcript {
+  max-height: min(42vh, 360px) !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  width: 100% !important;
+  padding-right: 4px !important;
+  scroll-behavior: smooth !important;
+}
+
+.bcc-transcript-row {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+  align-items: flex-start !important;
+  max-width: 92% !important;
+}
+
+.bcc-transcript-row.is-user {
+  align-self: flex-end !important;
+  align-items: flex-end !important;
+  text-align: right !important;
+}
+
+.bcc-transcript-label {
+  font-size: 10px !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  color: rgba(255, 255, 255, 0.38) !important;
+  font-weight: 600 !important;
+}
+
+.bcc-transcript-text {
+  margin: 0 !important;
+  padding: 10px 14px !important;
+  border-radius: 14px !important;
+  font-size: 14px !important;
+  line-height: 1.45 !important;
+  font-weight: 500 !important;
+}
+
+.bcc-transcript-row.is-assistant .bcc-transcript-text {
+  color: rgba(248, 250, 252, 0.94) !important;
+  background: rgba(255, 255, 255, 0.07) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.bcc-transcript-row.is-user .bcc-transcript-text {
+  color: rgba(15, 23, 42, 0.95) !important;
+  background: rgba(214, 245, 196, 0.92) !important;
+  border: 1px solid rgba(168, 214, 138, 0.45) !important;
+}
+
+.bcc-transcript-row.is-thinking {
+  padding: 4px 0 0 !important;
+}
+
 .bcc-hero-complete {
   margin-top: 20px !important;
   font-size: 13px !important;
@@ -1114,6 +1170,20 @@
   max-width: 760px !important;
   width: 100% !important;
   align-self: center !important;
+}
+
+.budget-modal .budget-assistant-panel .bcc-hero-transcript {
+  max-height: min(48vh, 420px) !important;
+  text-align: left !important;
+}
+
+.budget-modal .budget-assistant-panel .bcc-hero:has(.bcc-hero-transcript) {
+  justify-content: flex-start !important;
+  padding-top: 28px !important;
+}
+
+.budget-modal .budget-assistant-panel .bcc-transcript-text {
+  font-size: clamp(0.92rem, 1.05vw, 1rem) !important;
 }
 
 .budget-modal .budget-insights-panel {
@@ -6945,70 +7015,96 @@
   margin: 0 !important;
 }
 
-/* ── Mode 2: Solo asistente — tabla viva detrás con velo blur ───── */
-.budget-modal .budget-main-carousel.is-desktop.mode-agent-front {
+/* ── Mode 1 desktop: Solo asistente — tabla completa detrás + velo blur ── */
+.budget-modal .budget-modal-body .budget-main-carousel.is-desktop.mode-agent-front {
   display: block !important;
   position: relative !important;
-  height: min(680px, calc(100vh - 220px)) !important;
-  min-height: 520px !important;
+  height: min(720px, calc(100vh - 200px)) !important;
+  min-height: 560px !important;
   overflow: hidden !important;
   perspective: none !important;
-  padding: 8px 24px 18px !important;
+  padding: 8px 20px 16px !important;
   isolation: isolate !important;
 }
 
-.budget-modal .budget-main-carousel.is-desktop.mode-agent-front > .budget-card-table {
+.budget-modal .budget-modal-body .budget-main-carousel.is-desktop.mode-agent-front > .budget-card-table {
   position: absolute !important;
   inset: 0 !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
   width: 100% !important;
   max-width: 100% !important;
   min-width: 0 !important;
   height: 100% !important;
   margin: 0 !important;
+  padding: 10px 14px 12px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
   opacity: 1 !important;
   transform: none !important;
   pointer-events: none !important;
-  filter: blur(1.5px) saturate(0.96) brightness(0.9) !important;
+  filter: none !important;
   overflow: hidden !important;
   z-index: 1 !important;
   box-shadow: none !important;
   border: none !important;
   background: transparent !important;
+  box-sizing: border-box !important;
 }
 
-.budget-modal .budget-main-carousel.is-desktop.mode-agent-front > .budget-assistant-blur-veil {
+.budget-modal .budget-modal-body .budget-main-carousel.is-desktop.mode-agent-front > .budget-card-table .budget-table-head {
+  flex: 0 0 auto !important;
+  opacity: 0.92 !important;
+}
+
+.budget-modal .budget-modal-body .budget-main-carousel.is-desktop.mode-agent-front > .budget-card-table .budget-table-help {
+  display: none !important;
+}
+
+.budget-modal .budget-modal-body .budget-main-carousel.is-desktop.mode-agent-front > .budget-card-table .budget-table-scroll-host,
+.budget-modal .budget-modal-body .budget-main-carousel.is-desktop.mode-agent-front > .budget-card-table .budget-table-scroll-host--desktop {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  height: auto !important;
+  overflow: visible !important;
+}
+
+.budget-modal .budget-modal-body .budget-main-carousel.is-desktop.mode-agent-front > .budget-card-table .budget-table-wrap {
+  max-height: none !important;
+  height: auto !important;
+  overflow: visible !important;
+}
+
+.budget-modal .budget-modal-body .budget-main-carousel.is-desktop.mode-agent-front > .budget-card-table .budget-table-bottom-actions {
+  flex: 0 0 auto !important;
+  opacity: 0.88 !important;
+}
+
+.budget-modal .budget-modal-body .budget-main-carousel.is-desktop.mode-agent-front > .budget-assistant-blur-veil {
   position: absolute !important;
   inset: 0 !important;
   z-index: 2 !important;
   pointer-events: none !important;
   background: linear-gradient(
     180deg,
-    rgba(8, 14, 22, 0.18) 0%,
-    rgba(8, 14, 22, 0.34) 48%,
-    rgba(8, 14, 22, 0.22) 100%
+    rgba(8, 14, 22, 0.06) 0%,
+    rgba(8, 14, 22, 0.14) 46%,
+    rgba(8, 14, 22, 0.08) 100%
   ) !important;
-  backdrop-filter: blur(12px) saturate(1.08) !important;
-  -webkit-backdrop-filter: blur(12px) saturate(1.08) !important;
+  backdrop-filter: blur(5px) saturate(1.02) !important;
+  -webkit-backdrop-filter: blur(5px) saturate(1.02) !important;
 }
 
-.budget-modal .budget-main-carousel.is-desktop.mode-agent-front > .budget-card-agent {
+.budget-modal .budget-modal-body .budget-main-carousel.is-desktop.mode-agent-front > .budget-card-agent {
   position: absolute !important;
   inset: 0 !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
   width: 100% !important;
   max-width: 100% !important;
   height: 100% !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  padding: 28px 32px !important;
+  padding: 24px 28px !important;
   margin: 0 !important;
   opacity: 1 !important;
   transform: none !important;
@@ -7020,23 +7116,18 @@
   box-shadow: none !important;
 }
 
-.budget-modal .budget-main-carousel.is-desktop.mode-agent-front > .budget-card-agent .bcc-hero {
+.budget-modal .budget-modal-body .budget-main-carousel.is-desktop.mode-agent-front > .budget-card-agent .bcc-hero {
   pointer-events: auto !important;
-  width: min(680px, calc(100% - 48px)) !important;
-  max-width: 680px !important;
+  width: min(620px, calc(100% - 40px)) !important;
+  max-width: 620px !important;
   margin: 0 auto !important;
-  padding: 28px 26px !important;
+  padding: 24px 22px !important;
   border-radius: 22px !important;
-  border: 1px solid rgba(210, 225, 240, 0.16) !important;
-  background: rgba(10, 16, 24, 0.46) !important;
-  backdrop-filter: blur(14px) saturate(1.08) !important;
-  -webkit-backdrop-filter: blur(14px) saturate(1.08) !important;
-  box-shadow: 0 28px 72px rgba(0, 0, 0, 0.38) !important;
-}
-
-.budget-modal .budget-main-carousel.is-desktop.mode-agent-front > .budget-card-table .budget-table-wrap {
-  max-height: 100% !important;
-  overflow: hidden !important;
+  border: 1px solid rgba(210, 225, 240, 0.18) !important;
+  background: rgba(10, 16, 24, 0.52) !important;
+  backdrop-filter: blur(10px) saturate(1.06) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(1.06) !important;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.34) !important;
 }
 
 /* ── Mode 3: Solo tabla full-width ──────────────────────────────── */

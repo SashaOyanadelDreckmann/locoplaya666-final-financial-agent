@@ -268,8 +268,22 @@ function normalizeTextToken(value: string): string {
     .trim();
 }
 
+function isCuotaNotationToken(token: string): boolean {
+  const raw = String(token ?? '').trim();
+  if (!raw) return false;
+  if (/^\d{1,2}\s*\/\s*\d{1,2}$/.test(raw)) return true;
+  if (/^\d{1,2}\s+de\s+\d{1,2}$/i.test(raw)) return true;
+  return /^\d{1,2}\/\d{1,2}$/.test(raw);
+}
+
+function isSectionSummaryCategory(value: string): boolean {
+  const normalized = normalizeTextToken(value);
+  return /\btotal\b/.test(normalized);
+}
+
 function parseAmountToken(token: string): number | null {
   if (!token) return null;
+  if (isCuotaNotationToken(token)) return null;
   if (/\b\d{4}-\d{2}-\d{2}\b|\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b/.test(token)) return null;
   if (/[A-Za-zÁÉÍÓÚÑáéíóúñ]/.test(token) && !/\b(?:clp|usd|uf|eur|\$)\b/i.test(token)) return null;
   const raw = token.trim();
@@ -317,6 +331,7 @@ function isCreditCardProduct(productType?: string): boolean {
 function resolveCreditCardCategoryDirection(
   categoryToken: string,
 ): { direction: 'income' | 'expense'; kind: 'abono' | 'expense'; basis: string } | null {
+  if (isSectionSummaryCategory(categoryToken)) return null;
   const normalized = normalizeTextToken(categoryToken);
   if (!normalized) return null;
   if (/\babonos?\b/.test(normalized)) {
@@ -452,7 +467,7 @@ function inferMovementSemantics(
   ).length;
   const abonoHits = (
     normalized.match(
-      /\b(abonos?|pago\s+recibido|pago\s+(?:minimo|mínimo|tarjeta|a\s+la\s+tarjeta|de\s+tarjeta)|transferencia\s+recibida|dep[oó]sito|reintegro|reembolso|devoluci[oó]n|monto\s+cancelado|dev\s+intereses)\b/g,
+      /\b(abonos?|pago\s+recibido|pago\s+pesos(?:\s+(?:tef|tar|pago(?:\s+normal)?))?|pago\s+(?:minimo|mínimo|tarjeta|a\s+la\s+tarjeta|de\s+tarjeta)|transferencia\s+recibida|dep[oó]sito|reintegro|reembolso|devoluci[oó]n|monto\s+cancelado|dev\s+intereses)\b/g,
     ) ?? []
   ).length;
 
@@ -544,16 +559,22 @@ function isBlankLikeCell(value: string | null | undefined): boolean {
 }
 
 function pickAmountFromCells(cells: string[], preferredIndexes: number[]): { amount: number | null; token: string; index: number } {
+  const tryCell = (index: number) => {
+    if (index < 0 || index >= cells.length) return null;
+    const token = cells[index];
+    const amount = parseAmountToken(token);
+    if (amount === null) return null;
+    return { amount, token, index };
+  };
+
   for (const index of preferredIndexes) {
-    if (index < 0 || index >= cells.length) continue;
-    const token = cells[index];
-    const amount = parseAmountToken(token);
-    if (amount !== null) return { amount, token, index };
+    const picked = tryCell(index);
+    if (picked) return picked;
   }
+
   for (let index = cells.length - 1; index >= 0; index -= 1) {
-    const token = cells[index];
-    const amount = parseAmountToken(token);
-    if (amount !== null) return { amount, token, index };
+    const picked = tryCell(index);
+    if (picked) return picked;
   }
   return { amount: null, token: '', index: -1 };
 }
@@ -596,7 +617,8 @@ function parseMovementFromTableRow(params: {
 
   const dateSource = dateIndex >= 0 ? row[dateIndex] : row.join(' ');
   const date = toIsoDate(dateSource) ?? parseDateFromLine(dateSource);
-  const categoryToken = categoryIndex >= 0 ? row[categoryIndex] ?? '' : '';
+  const rawCategoryToken = categoryIndex >= 0 ? row[categoryIndex] ?? '' : '';
+  const categoryToken = isSectionSummaryCategory(rawCategoryToken) ? '' : rawCategoryToken;
   const categoryDirection = isCreditCardProduct(productType)
     ? resolveCreditCardCategoryDirection(categoryToken)
     : null;
@@ -636,8 +658,11 @@ function parseMovementFromTableRow(params: {
     if (picked.amount === null) return null;
     if (picked.index === balanceIndex) return null;
     const typeToken = typeIndex >= 0 ? row[typeIndex] ?? '' : '';
+    const semanticsSource = isSectionSummaryCategory(rawCategoryToken)
+      ? row.filter((_, index) => index !== categoryIndex).join(' ')
+      : [row.join(' '), typeToken, categoryToken].filter(Boolean).join(' ');
     const semantics = inferMovementSemantics(
-      [row.join(' '), typeToken, categoryToken].filter(Boolean).join(' '),
+      semanticsSource,
       picked.amount,
       picked.token,
       productType,
@@ -666,7 +691,12 @@ function parseMovementFromTableRow(params: {
 
   if (!description || isNonMovementDescription(description) || !date || !amount || amount <= 0) return null;
   const taxonomy = inferTransactionTaxonomy(description);
-  const sourceLine = row.join(' | ').slice(0, 260);
+  const sourceLine = (isSectionSummaryCategory(rawCategoryToken)
+    ? row.filter((_, index) => index !== categoryIndex)
+    : row
+  )
+    .join(' | ')
+    .slice(0, 260);
 
   return finalizeCreditCardMovement(
     {
@@ -836,7 +866,8 @@ export function extractMovements(documents: ParsedDocumentResponse[], productTyp
       ? movements.map((movement) =>
           finalizeCreditCardMovement(movement, {
             productType: normalizedProductType,
-            line: movement.source_line ?? movement.description,
+            line: movement.description,
+            description: movement.description,
             signedAmount: movement.amount_signed,
             amountToken: movement.amount_signed !== undefined ? String(movement.amount_signed) : undefined,
           }),

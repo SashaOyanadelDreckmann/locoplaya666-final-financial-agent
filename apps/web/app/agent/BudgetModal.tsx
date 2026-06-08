@@ -12,9 +12,11 @@ import { mergeBudgetActionIntoRow, type BudgetPendingConfirmation, type BudgetTa
 import {
   BUDGET_TABLE_STYLES,
   buildBudgetRowSummary,
+  formatBudgetAssistantTurn,
   getAssistantMessage,
   getBudgetQuestionForId,
   getNextQuestion,
+  type BudgetTranscriptEntry,
   normalizeActionRowId,
   sanitizeBudgetQuestion,
 } from './budget-modal.helpers';
@@ -24,7 +26,12 @@ import {
   type BudgetSignals,
   colorForBudgetRow,
 } from './budget-modal.shared';
-import { resolveBudgetViewDataAttr, useBudgetModalLayout } from './use-budget-modal-layout';
+import {
+  isBudgetAssistantOverlayMode,
+  isBudgetSplitMode,
+  resolveBudgetViewDataAttr,
+  useBudgetModalLayout,
+} from './use-budget-modal-layout';
 import { BudgetCloseConfirmDialog } from './BudgetCloseConfirmDialog';
 import { BudgetPendingConfirmBanner } from './BudgetPendingConfirmBanner';
 import {
@@ -90,16 +97,18 @@ export function BudgetModal(props: {
   const [activeBudgetRowId, setActiveBudgetRowId] = useState<string | null>(null);
   const [assistantBudgetRowId, setAssistantBudgetRowId] = useState<string | null>(null);
   const [assistantNextQuestion, setAssistantNextQuestion] = useState<string | null>(null);
+  const [budgetTranscript, setBudgetTranscript] = useState<BudgetTranscriptEntry[]>([]);
+  const budgetTranscriptRef = useRef<HTMLDivElement | null>(null);
   const {
     isDesktopLayout,
     budgetViewMode,
     setBudgetViewMode,
-    moveBudgetView,
     cardStyle,
     budgetModeClass,
     tableViewMode,
   } = useBudgetModalLayout(props.isOpen);
-  const isAssistantOverlayMode = isDesktopLayout && budgetViewMode === 2;
+  const isAssistantOverlayMode = isBudgetAssistantOverlayMode(isDesktopLayout, budgetViewMode);
+  const isSplitMode = isBudgetSplitMode(isDesktopLayout, budgetViewMode);
   const [budgetTableStyle, setBudgetTableStyle] = useState<'midnight' | 'ledger' | 'atelier' | 'terminal' | 'carbon'>('terminal');
   const [isGeneratingBudgetPdf, setIsGeneratingBudgetPdf] = useState(false);
   const budgetPdfRef = useRef<HTMLDivElement | null>(null);
@@ -135,11 +144,15 @@ export function BudgetModal(props: {
     focusMobileInput(el);
   };
   const activeQuestion = assistantNextQuestion ?? assistantQuestion ?? '…';
+  const latestAssistantTurn = formatBudgetAssistantTurn({
+    assistant_reply: assistantQuestion ?? undefined,
+    next_question: assistantNextQuestion,
+  });
   const agentStatusText = isInitializing
     ? 'Preparando asistente…'
     : isAskingAI
-      ? 'Analizando…'
-      : activeQuestion;
+      ? 'Analizando lo que dijiste…'
+      : latestAssistantTurn || activeQuestion;
   const activeStyleIndex = BUDGET_TABLE_STYLES.findIndex((style) => style.id === budgetTableStyle);
   const activeStyleLabel = BUDGET_TABLE_STYLES[Math.max(0, activeStyleIndex)]?.label ?? 'Nocturno';
   const heroToneClass =
@@ -167,12 +180,27 @@ export function BudgetModal(props: {
 
   const orderedBudgetRows = props.budgetRows;
 
+  function appendBudgetTranscript(entries: BudgetTranscriptEntry[]) {
+    const normalized = entries
+      .map((entry) => ({ ...entry, text: entry.text.trim() }))
+      .filter((entry) => entry.text.length > 0);
+    if (normalized.length === 0) return;
+    setBudgetTranscript((prev) => [...prev, ...normalized]);
+  }
+
   function applyAssistantTurn(payload: BudgetChatApiPayload, previousQuestion: string) {
     const reply = getAssistantMessage(payload);
     setAssistantQuestion(reply || previousQuestion);
     const nextQuestion = sanitizeBudgetQuestion(getNextQuestion(payload, ''));
     setAssistantNextQuestion(nextQuestion || null);
+    appendBudgetTranscript([{ role: 'assistant', text: formatBudgetAssistantTurn(payload) }]);
   }
+
+  useEffect(() => {
+    const node = budgetTranscriptRef.current;
+    if (!node) return;
+    node.scrollTop = node.scrollHeight;
+  }, [budgetTranscript, isAskingAI]);
 
   useEffect(() => {
     if (activeBudgetRowId && !props.budgetRows.some((row) => row.id === activeBudgetRowId)) {
@@ -394,6 +422,7 @@ export function BudgetModal(props: {
     const newChatAnswers = [...props.chatAnswers, { q: questionForTurn, a: answer }];
     if (!forcedAnswer) setBudgetReply('');
     setAiError(null);
+    appendBudgetTranscript([{ role: 'user', text: answer }]);
 
     const chatTargetRow =
       resolveBudgetChatTargetRow(props.budgetRows, questionForTurn, {
@@ -507,6 +536,7 @@ export function BudgetModal(props: {
     setBudgetPendingConfirmation(null);
     setAssistantQuestion(null);
     setAssistantNextQuestion(null);
+    setBudgetTranscript([]);
     setIsInitializing(true);
     setActiveBudgetRowId(null);
     setAssistantBudgetRowId(null);
@@ -645,7 +675,11 @@ export function BudgetModal(props: {
     const wrap = budgetTableScrollRef.current?.querySelector<HTMLElement>('.budget-table-wrap');
     if (!row || !wrap) return;
     const top = row.offsetTop;
-    wrap.scrollTo({ top, behavior: budgetViewMode === 1 || isAssistantOverlayMode ? 'auto' : 'smooth' });
+    const useAutoTableScroll =
+      isAssistantOverlayMode ||
+      (isDesktopLayout && budgetViewMode === 2) ||
+      (!isDesktopLayout && budgetViewMode === 1);
+    wrap.scrollTo({ top, behavior: useAutoTableScroll ? 'auto' : 'smooth' });
   }, [isAssistantOverlayMode, props.isOpen, isDesktopLayout, budgetViewMode, focusedBudgetRowId, props.budgetRows.length]);
 
   const maxExpense = Math.max(
@@ -828,7 +862,7 @@ export function BudgetModal(props: {
               className={`budget-mode-tab${budgetViewMode === 1 ? ' is-active' : ''}`}
               onClick={() => setBudgetViewMode(1)}
             >
-              {isDesktopLayout ? 'Asistente + Tabla' : 'Asistente'}
+              Asistente
             </button>
             {isDesktopLayout ? (
               <button
@@ -838,7 +872,7 @@ export function BudgetModal(props: {
                 className={`budget-mode-tab${budgetViewMode === 2 ? ' is-active' : ''}`}
                 onClick={() => setBudgetViewMode(2)}
               >
-                Asistente
+                Asistente + Tabla
               </button>
             ) : null}
             <button
@@ -855,106 +889,6 @@ export function BudgetModal(props: {
           <div
             className={`budget-executive-grid budget-main-carousel mode-${budgetModeClass}${isDesktopLayout ? ' is-desktop' : ' is-mobile-budget'}`}
           >
-            {isDesktopLayout && (
-              <>
-                <button
-                  type="button"
-                  className="budget-carousel-arrow is-left"
-                  aria-label="Vista anterior"
-                  onClick={() => moveBudgetView('prev')}
-                >
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-                    <path d="M9 2L4 7l5 5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </button>
-                <button
-                  type="button"
-                  className="budget-carousel-arrow is-right"
-                  aria-label="Vista siguiente"
-                  onClick={() => moveBudgetView('next')}
-                >
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-                    <path d="M5 2l5 5-5 5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </button>
-              </>
-            )}
-            <section
-              data-main-card="agent"
-              className="budget-assistant-panel budget-card-agent"
-              style={cardStyle('agent')}
-            >
-              <div className="bcc-hero">
-                <div className="bcc-hero-top">
-                  {isAskingAI && (
-                    <span className="bcc-hero-thinking" aria-hidden="true">
-                      <span className="bcc-dot-pulse" />
-                      <span className="bcc-dot-pulse" />
-                      <span className="bcc-dot-pulse" />
-                    </span>
-                  )}
-
-                  <p className="bcc-hero-question">{agentStatusText}</p>
-                  {conversationDone && (
-                    <p className="bcc-hero-done">Presupuesto completo. Puedes seguir ajustando la tabla.</p>
-                  )}
-                </div>
-
-                <div className="bcc-hero-input-wrap">
-                  <input
-                    ref={budgetReplyInputRef}
-                    className="bcc-hero-input"
-                    value={budgetReply}
-                    onChange={(e) => setBudgetReply(e.target.value)}
-                    placeholder="Escribe tu respuesta…"
-                    onMouseDownCapture={(e) => focusBudgetField(e.currentTarget)}
-                    onPointerDownCapture={(e) => focusBudgetField(e.currentTarget)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') void handleBudgetAgentReplySubmit();
-                    }}
-                  />
-                  <button
-                    type="button"
-                    className="bcc-hero-send"
-                    onClick={() => void handleBudgetAgentReplySubmit()}
-                    disabled={isInitializing || isAskingAI || !budgetReply.trim()}
-                    aria-label="Enviar mensaje"
-                    title="Enviar mensaje"
-                  >
-                    <svg className="bcc-hero-send-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                      <path d="M2 8h10M9 4l5 4-5 4" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </button>
-                </div>
-
-                {budgetPendingConfirmation ? (
-                  <BudgetPendingConfirmBanner
-                    summary={budgetPendingConfirmation.summary}
-                    disabled={isAskingAI || isInitializing}
-                    onConfirm={() => void handleBudgetAgentReplySubmit('sí')}
-                    onReject={() => void handleBudgetAgentReplySubmit('no')}
-                  />
-                ) : null}
-
-                {aiError ? <p className="bcc-hero-error">{aiError}</p> : null}
-
-                {isDesktopLayout && (
-                  <button
-                    type="button"
-                    className="budget-chat-sync-button is-assistant-action"
-                    onClick={handleSendBudgetToAgent}
-                    disabled={props.budgetRows.length === 0}
-                  >
-                    Generar informe en chat
-                  </button>
-                )}
-              </div>
-            </section>
-
-            {isAssistantOverlayMode ? (
-              <div className="budget-assistant-blur-veil" aria-hidden="true" />
-            ) : null}
-
             <section
               data-main-card="table"
               className={`budget-table-section budget-card-table${isDesktopLayout ? '' : ' is-mobile-table-compact'}`}
@@ -1017,7 +951,7 @@ export function BudgetModal(props: {
                 >
                   {isGeneratingBudgetPdf ? 'Preparando PDF…' : 'Guardar como PDF'}
                 </button>
-                {isDesktopLayout && (
+                {isSplitMode ? (
                   <button
                     type="button"
                     className="budget-chat-sync-button"
@@ -1026,7 +960,113 @@ export function BudgetModal(props: {
                   >
                     Informe en chat
                   </button>
+                ) : null}
+              </div>
+            </section>
+
+            {isAssistantOverlayMode ? (
+              <div className="budget-assistant-blur-veil" aria-hidden="true" />
+            ) : null}
+
+            <section
+              data-main-card="agent"
+              className="budget-assistant-panel budget-card-agent"
+              style={cardStyle('agent')}
+            >
+              <div className="bcc-hero">
+                {budgetTranscript.length > 0 ? (
+                  <div
+                    ref={budgetTranscriptRef}
+                    className="bcc-hero-log bcc-hero-transcript"
+                    aria-live="polite"
+                    aria-relevant="additions text"
+                  >
+                    {budgetTranscript.map((entry, index) => (
+                      <div
+                        key={`${entry.role}-${index}-${entry.text.slice(0, 24)}`}
+                        className={`bcc-transcript-row is-${entry.role}`}
+                      >
+                        <span className="bcc-transcript-label">
+                          {entry.role === 'assistant' ? 'Asistente' : 'Tú'}
+                        </span>
+                        <p className="bcc-transcript-text">{entry.text}</p>
+                      </div>
+                    ))}
+                    {isAskingAI ? (
+                      <div className="bcc-transcript-row is-assistant is-thinking">
+                        <span className="bcc-transcript-label">Asistente</span>
+                        <span className="bcc-hero-thinking" aria-hidden="true">
+                          <span className="bcc-dot-pulse" />
+                          <span className="bcc-dot-pulse" />
+                          <span className="bcc-dot-pulse" />
+                        </span>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : (
+                  <div className="bcc-hero-top">
+                    {isAskingAI && (
+                      <span className="bcc-hero-thinking" aria-hidden="true">
+                        <span className="bcc-dot-pulse" />
+                        <span className="bcc-dot-pulse" />
+                        <span className="bcc-dot-pulse" />
+                      </span>
+                    )}
+                    <p className="bcc-hero-question">{agentStatusText}</p>
+                  </div>
                 )}
+                {conversationDone && (
+                  <p className="bcc-hero-done">Presupuesto completo. Puedes seguir ajustando la tabla.</p>
+                )}
+
+                <div className="bcc-hero-input-wrap">
+                  <input
+                    ref={budgetReplyInputRef}
+                    className="bcc-hero-input"
+                    value={budgetReply}
+                    onChange={(e) => setBudgetReply(e.target.value)}
+                    placeholder="Escribe tu respuesta…"
+                    onMouseDownCapture={(e) => focusBudgetField(e.currentTarget)}
+                    onPointerDownCapture={(e) => focusBudgetField(e.currentTarget)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') void handleBudgetAgentReplySubmit();
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="bcc-hero-send"
+                    onClick={() => void handleBudgetAgentReplySubmit()}
+                    disabled={isInitializing || isAskingAI || !budgetReply.trim()}
+                    aria-label="Enviar mensaje"
+                    title="Enviar mensaje"
+                  >
+                    <svg className="bcc-hero-send-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                      <path d="M2 8h10M9 4l5 4-5 4" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </button>
+                </div>
+
+                {budgetPendingConfirmation ? (
+                  <BudgetPendingConfirmBanner
+                    summary={budgetPendingConfirmation.summary}
+                    disabled={isAskingAI || isInitializing}
+                    onConfirm={() => void handleBudgetAgentReplySubmit('sí')}
+                    onReject={() => void handleBudgetAgentReplySubmit('no')}
+                  />
+                ) : null}
+
+                {aiError ? <p className="bcc-hero-error">{aiError}</p> : null}
+
+                {isSplitMode ? (
+                  <button
+                    type="button"
+                    className="budget-chat-sync-button is-assistant-action"
+                    onClick={handleSendBudgetToAgent}
+                    disabled={props.budgetRows.length === 0}
+                  >
+                    Generar informe en chat
+                  </button>
+                ) : null}
               </div>
             </section>
 

@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest';
 
 import {
   buildWelcomeIntroFingerprint,
+  canGenerateWelcomeIntroWithLlm,
   EXECUTIVE_INTRO_UI_VERSION,
   isValidWelcomeIntroCache,
   readWelcomeIntroCache,
+  readWelcomeIntroGenerationCount,
   stableStringify,
   type WelcomeIntroCache,
   type WelcomeIntroPayload,
@@ -49,10 +51,31 @@ describe('shared welcome intro cache helpers', () => {
       uiVersion: EXECUTIVE_INTRO_UI_VERSION,
       intro: sampleIntro(),
       createdAt: '2026-06-07T00:00:00.000Z',
+      llmGenerationCount: 1,
     };
     const envelope = { intake, welcomeIntroCache: cache };
     const parsed = readWelcomeIntroCache(envelope);
     expect(isValidWelcomeIntroCache(parsed, fingerprint)).toBe(true);
     expect(isValidWelcomeIntroCache(parsed, 'other-fingerprint')).toBe(false);
+    expect(isValidWelcomeIntroCache(parsed, fingerprint)).toBe(true);
+  });
+
+  it('tracks welcome intro LLM generation count with a hard cap', () => {
+    const cache: WelcomeIntroCache = {
+      fingerprint: 'abc',
+      uiVersion: EXECUTIVE_INTRO_UI_VERSION,
+      intro: sampleIntro(),
+      createdAt: '2026-06-07T00:00:00.000Z',
+    };
+
+    expect(readWelcomeIntroGenerationCount(null)).toBe(0);
+    expect(readWelcomeIntroGenerationCount(cache)).toBe(1);
+    expect(canGenerateWelcomeIntroWithLlm(cache)).toBe(true);
+    expect(
+      canGenerateWelcomeIntroWithLlm({
+        ...cache,
+        llmGenerationCount: 2,
+      }),
+    ).toBe(false);
   });
 });

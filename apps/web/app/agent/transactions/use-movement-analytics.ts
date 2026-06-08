@@ -1,4 +1,9 @@
 import { useCallback, useMemo } from 'react';
+import {
+  resolveMovementDirectionForTotals,
+  resolveMovementKind,
+  resolveSignedAmount,
+} from './movement-direction.helpers';
 import { formatPercentCompact } from './presentation';
 import { movementOverrideKey, normalizeTaxonomyKey, resolveTransactionOverride } from './taxonomy';
 import type { BankProduct, TransactionTaxonomyOverride } from './types';
@@ -42,7 +47,6 @@ export function useMovementAnalytics(
   const dashboardMetrics = activeBankProduct?.dashboard?.keyMetrics;
   const isCreditCardProduct = activeBankProduct?.productType === 'credit_card';
   const dashboardCategories = activeBankProduct?.dashboard?.topCategories ?? [];
-  const dashboardClusters = activeBankProduct?.dashboard?.spendClusters ?? [];
   const alertDetails = activeBankProduct?.dashboard?.alertDetails ?? [];
   const metricExplanations = activeBankProduct?.dashboard?.metricExplanations ?? [];
   const dashboardPeriod = activeBankProduct?.dashboard?.period;
@@ -113,29 +117,39 @@ export function useMovementAnalytics(
   const buildDedupKey = (dateToken: string, direction: 'income' | 'expense', amountAbs: number, label: string) =>
     `${dateToken}|${direction}|${Math.round(amountAbs)}|${normalizeMovementText(label)}`;
 
-  const dashboardMovements = (activeBankProduct?.dashboard?.movements ?? []).map((movement) => ({
-    label: movement.description ?? movement.source_line ?? movement.merchant ?? '',
-    amount: Math.abs(Number(movement.amount) || 0),
-    signedAmount:
-      Number.isFinite(Number(movement.amount_signed))
-        ? Number(movement.amount_signed)
-        : (movement.direction === 'expense' ? -Math.abs(Number(movement.amount) || 0) : Math.abs(Number(movement.amount) || 0)),
-    direction:
-      Number.isFinite(Number(movement.amount_signed))
-        ? Number(movement.amount_signed) < 0
-          ? 'expense'
-          : 'income'
-        : movement.direction,
-    movementKind: movement.movement_kind ?? (Number.isFinite(Number(movement.amount_signed)) && Number(movement.amount_signed) < 0 ? 'expense' : 'income'),
-    date: movement.date ?? '',
-    sourceLine: movement.source_line ?? '',
-    category: movement.category ?? '',
-    merchant: movement.merchant ?? '',
-    categoryConfidence: Number(movement.category_confidence ?? 0) || 0,
-    confidence: Number(movement.confidence ?? 0) || 0,
-    sourceKind: movement.source_kind ?? 'line',
-    directionBasis: movement.direction_basis ?? '',
-  }));
+  const dashboardMovements = (activeBankProduct?.dashboard?.movements ?? []).map((movement) => {
+    const signedAmount = resolveSignedAmount({
+      amount: Number(movement.amount) || 0,
+      amountSigned: Number.isFinite(Number(movement.amount_signed)) ? Number(movement.amount_signed) : undefined,
+      direction: movement.direction,
+    });
+    const direction = resolveMovementDirectionForTotals({
+      apiDirection: movement.direction,
+      movementKind: movement.movement_kind,
+      signedAmount,
+      isCreditCardProduct,
+    });
+    return {
+      label: movement.description ?? movement.source_line ?? movement.merchant ?? '',
+      amount: Math.abs(Number(movement.amount) || 0),
+      signedAmount,
+      direction,
+      movementKind: resolveMovementKind({
+        apiKind: movement.movement_kind,
+        directionForTotals: direction,
+        signedAmount,
+        isCreditCardProduct,
+      }),
+      date: movement.date ?? '',
+      sourceLine: movement.source_line ?? '',
+      category: movement.category ?? '',
+      merchant: movement.merchant ?? '',
+      categoryConfidence: Number(movement.category_confidence ?? 0) || 0,
+      confidence: Number(movement.confidence ?? 0) || 0,
+      sourceKind: movement.source_kind ?? 'line',
+      directionBasis: movement.direction_basis ?? '',
+    };
+  });
 
   const topMovements = [...dashboardMovements].sort((a, b) => {
     if (Math.abs(b.signedAmount) !== Math.abs(a.signedAmount)) return Math.abs(b.signedAmount) - Math.abs(a.signedAmount);
@@ -146,20 +160,30 @@ export function useMovementAnalytics(
   const movementTableRows = dashboardMovements.length > 0 ? dashboardMovements : topMovements;
 
   const normalizedMovementRows = movementTableRows.map((movement, idx) => {
-    const rawAmount =
-      Number.isFinite(Number((movement as { signedAmount?: number }).signedAmount))
-        ? Number((movement as { signedAmount?: number }).signedAmount)
-        : movement.direction === 'expense'
-          ? -Math.abs(Number(movement.amount) || 0)
-          : Math.abs(Number(movement.amount) || 0);
-    const normalizedDirection = rawAmount < 0 ? 'expense' : 'income';
+    const rawAmount = resolveSignedAmount({
+      amount: Number(movement.amount) || 0,
+      amountSigned: Number.isFinite(Number(movement.signedAmount)) ? Number(movement.signedAmount) : undefined,
+      direction: movement.direction,
+    });
+    const normalizedDirection = resolveMovementDirectionForTotals({
+      apiDirection: movement.direction,
+      movementKind: movement.movementKind,
+      signedAmount: rawAmount,
+      isCreditCardProduct,
+    });
+    const movementKind = resolveMovementKind({
+      apiKind: movement.movementKind,
+      directionForTotals: normalizedDirection,
+      signedAmount: rawAmount,
+      isCreditCardProduct,
+    });
     const baseRow = {
       ...movement,
       uiKey: `${movement.date ?? 'nd'}|${normalizedDirection}|${Math.round(Math.abs(rawAmount))}|${normalizeMovementText(movement.label)}|${idx}`,
       rawAmount,
-      directionForTotals: normalizedDirection as 'income' | 'expense',
+      directionForTotals: normalizedDirection,
       amount: Math.abs(rawAmount),
-      movementKind: movement.movementKind,
+      movementKind,
     };
     const manualOverride = resolveTransactionOverride(baseRow, transactionTaxonomyOverrides);
     return manualOverride
@@ -353,7 +377,9 @@ export function useMovementAnalytics(
       string,
       { merchant: string; avgConfidence: number; count: number; manual: boolean; category: string }
     >();
-    dedupedMovementRows.forEach((m) => {
+    dedupedMovementRows
+      .filter((m) => m.directionForTotals === 'expense')
+      .forEach((m) => {
       const merchant = String(m.merchant || m.label || '').trim();
       if (!merchant) return;
       const key = normalizeTaxonomyKey(merchant);
@@ -417,12 +443,49 @@ export function useMovementAnalytics(
     [activeBankProduct?.dashboard, enrichedCategoryData, derivedTopMerchants, dedupedMovementRows],
   );
 
+  const dashboardClusters = effectiveDashboard.spendClusters ?? [];
+
+  const metricExplanationsFromTable = useMemo(() => {
+    if (movementCount === 0) return metricExplanations;
+    return [
+      {
+        metric: 'Flujo neto',
+        value: formatCurrency(netFlowFromTable),
+        explanation: 'Diferencia entre ingresos detectados y egresos detectados del periodo.',
+      },
+      {
+        metric: 'Ratio gasto/ingreso',
+        value: flowRatioFromTable > 0 ? `${(flowRatioFromTable * 100).toFixed(1)}%` : 'N/D',
+        explanation: 'Mide presión de gasto: sobre 100% implica déficit operativo.',
+      },
+      {
+        metric: 'Cobertura tabular',
+        value: formatPercentCompact(movementCoverageDisplay),
+        explanation: 'Proporción de movimientos estructurados sobre filas procesadas.',
+      },
+      {
+        metric: 'Filas fieles de tabla',
+        value: formatPercentCompact(movementCount > 0 ? (verifiedTableRows / movementCount) * 100 : 0),
+        explanation:
+          'Porcentaje de movimientos reconstruidos desde tablas detectadas, no solo desde texto libre.',
+      },
+    ];
+  }, [
+    movementCount,
+    metricExplanations,
+    formatCurrency,
+    netFlowFromTable,
+    flowRatioFromTable,
+    movementCoverageDisplay,
+    verifiedTableRows,
+  ]);
+
   return {
     formatCurrency,
     isCreditCardProduct,
     dashboardClusters,
     alertDetails,
-    metricExplanations,
+    metricExplanations: metricExplanationsFromTable,
     documentQualityRows,
     qualityAverage,
     categoryShareData,

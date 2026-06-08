@@ -2,7 +2,7 @@ import type { BudgetAssistantContext, BudgetRow, BudgetWriterTurn } from '@finan
 import { buildBudgetWriterDigest } from '@financial-agent/shared';
 import { completeStructuredWithSchema } from './llm.service';
 
-const WRITER_TIMEOUT_MS = Number(process.env.BUDGET_CHAT_WRITER_TIMEOUT_MS ?? 2800);
+const WRITER_TIMEOUT_MS = Number(process.env.BUDGET_CHAT_WRITER_TIMEOUT_MS ?? 4500);
 const WRITER_MAX_REPLY_CHARS = 240;
 const WRITER_MAX_QUESTION_CHARS = 240;
 
@@ -112,11 +112,12 @@ function buildWriterInstructions(turn: BudgetWriterTurn): string {
   return [
     'Eres la voz conversacional del asistente de presupuesto de Financieramente (Chile).',
     'Tu único trabajo es REESCRIBIR con tono humano, cálido y profesional — buena onda, sin exagerar.',
+    'Demuestra que ESCUCHASTE al usuario: refleja con tus palabras lo que dijo (sin copiar textualmente todo).',
     'NO cambies la intención, NO inventes montos ni categorías, NO agregues recomendaciones nuevas.',
     'Conserva exactamente los mismos números en pesos chilenos del brief (puedes cambiar formato $950.000 vs 950 mil).',
     'Responde SOLO JSON estricto con keys reply y question.',
-    'reply: máximo 2 frases cortas (confirmación, contexto o empatía).',
-    'question: UNA sola pregunta clara terminada en "?".',
+    'reply: máximo 2 frases cortas — primero reconoce lo que el usuario dijo o lo que acabas de registrar; luego transición suave.',
+    'question: UNA sola pregunta clara terminada en "?", conectada con el hilo de la conversación.',
     turn === 'init'
       ? 'En init, reply puede contextualizar con perfil/movimientos; question debe pedir el dato faltante.'
       : turn === 'confirmation'
@@ -139,10 +140,16 @@ async function callBudgetWriterModel(input: BudgetWriterPolishInput): Promise<Wr
     required: ['reply', 'question'],
   } as const;
 
+  const recentChat = input.context.chatAnswers.slice(-4).map((turn) => ({
+    q: turn.q.slice(0, 120),
+    a: turn.a.slice(0, 120),
+  }));
   const prompt = [
     `TURNO=${input.turn}`,
+    `USER_ANSWER=${JSON.stringify(input.userAnswer ?? '')}`,
     `DRAFT_REPLY=${JSON.stringify(input.deterministicReply)}`,
     `DRAFT_QUESTION=${JSON.stringify(input.deterministicQuestion ?? '')}`,
+    `RECENT_CHAT=${JSON.stringify(recentChat)}`,
     `CONTEXT=${JSON.stringify(digest)}`,
   ].join('\n');
 

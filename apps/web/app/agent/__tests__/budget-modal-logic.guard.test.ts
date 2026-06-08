@@ -30,8 +30,11 @@ describe('budget modal logic guards', () => {
     expect(layoutSource).toContain("'agent-front'");
     const budgetModalSource = fs.readFileSync(path.join(process.cwd(), 'app', 'agent', 'BudgetModal.tsx'), 'utf8');
     expect(budgetModalSource).toContain('budget-assistant-blur-veil');
-    expect(budgetModalSource).toContain('isAssistantOverlayMode');
+    expect(layoutSource).toContain('isBudgetAssistantOverlayMode');
+    expect(layoutSource).toContain('isBudgetSplitMode');
+    expect(budgetModalSource).toContain('isBudgetAssistantOverlayMode');
     expect(budgetModalSource).toContain('tableViewMode');
+    expect(budgetModalSource).toContain('Asistente + Tabla');
     expect(budgetModalSource).toContain("onClick={() => setBudgetViewMode(2)}");
     expect(budgetModalSource).toContain('onClick={() => setBudgetViewMode(tableViewMode)}');
   });
@@ -45,6 +48,14 @@ describe('budget modal logic guards', () => {
   it('opens budget init without stale active row context', () => {
     expect(source).toContain('activeRowId: null,');
     expect(source).toContain('activeRow: null,');
+  });
+
+  it('renders a visible budget conversation transcript', () => {
+    expect(source).toContain('budgetTranscript');
+    expect(source).toContain('bcc-hero-transcript');
+    expect(source).toContain('formatBudgetAssistantTurn');
+    expect(source).toContain("role: 'assistant'");
+    expect(source).toContain("role: 'user'");
   });
 
   it('prevents duplicate reply submissions while a request is in flight', () => {
@@ -171,9 +182,13 @@ describe('budget modal logic guards', () => {
     expect(source).toContain('measureMobileRowSlot');
   });
 
-  it('hides table informe button on mobile while keeping desktop copy', () => {
-    expect(source).toContain('{isDesktopLayout && (');
+  it('shows informe button only in desktop split mode', () => {
+    expect(source).toContain('isSplitMode');
+    expect(source).toContain('isBudgetSplitMode');
+    expect(source).toContain('{isSplitMode ? (');
+    expect(source).toContain('Generar informe en chat');
     expect(source).toContain('Informe en chat');
+    expect(source).not.toContain('isDesktopLayout && (\n                  <button\n                    type="button"\n                    className="budget-chat-sync-button is-assistant-action"');
   });
 
   it('scopes legacy table column hiding away from budget-table-pro', () => {

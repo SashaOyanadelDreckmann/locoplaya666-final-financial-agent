@@ -73,6 +73,9 @@ export function clearStoredVisualMode(): void {
 export const VISUAL_MODE_TRANSITION_MS = 4000;
 const SHIMMER_LINGER_MS = 4600;
 const TRANSITION_ACTIVE_CLASS = 'visual-mode-transition-active';
+const SETTLING_CLASS = 'visual-mode-settling';
+/** Breve ventana tras el reveal para que el panel no re-anime fondos/filtros. */
+const PANEL_SETTLE_MS = 320;
 
 let visualModeTransitionActive = false;
 
@@ -84,6 +87,20 @@ function setTransitionActive(active: boolean): void {
   visualModeTransitionActive = active;
   if (typeof document === 'undefined') return;
   document.documentElement.classList.toggle(TRANSITION_ACTIVE_CLASS, active);
+}
+
+function setPanelSettling(active: boolean): void {
+  if (typeof document === 'undefined') return;
+  document.documentElement.classList.toggle(SETTLING_CLASS, active);
+}
+
+function finishInstantModeChange(apply: () => void, onFinished?: () => void): void {
+  setPanelSettling(true);
+  apply();
+  window.setTimeout(() => {
+    setPanelSettling(false);
+    onFinished?.();
+  }, PANEL_SETTLE_MS);
 }
 
 function prefersReducedMotion(): boolean {
@@ -140,8 +157,7 @@ export function runVisualModeTransition(
   const startViewTransition = docAny.startViewTransition?.bind(document);
 
   if (!startViewTransition || prefersReducedMotion()) {
-    apply();
-    onFinished?.();
+    finishInstantModeChange(apply, onFinished);
     return;
   }
 
@@ -156,17 +172,21 @@ export function runVisualModeTransition(
   };
 
   const finishTransition = () => {
+    // Commit paint before lifting the view-transition guard.
+    void document.documentElement.offsetHeight;
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
+        setTransitionActive(false);
         window.setTimeout(() => {
-          setTransitionActive(false);
+          setPanelSettling(false);
           onFinished?.();
-        }, 420);
+        }, PANEL_SETTLE_MS);
       });
     });
   };
 
   setTransitionActive(true);
+  setPanelSettling(true);
 
   let transition: { ready: Promise<void>; finished: Promise<void> };
   try {
@@ -175,6 +195,7 @@ export function runVisualModeTransition(
     });
   } catch {
     setTransitionActive(false);
+    setPanelSettling(false);
     applyOnce();
     onFinished?.();
     return;
@@ -228,6 +249,7 @@ export function runVisualModeTransition(
 
   transition.finished.then(finishTransition).catch(() => {
     setTransitionActive(false);
+    setPanelSettling(false);
     onFinished?.();
   });
 }

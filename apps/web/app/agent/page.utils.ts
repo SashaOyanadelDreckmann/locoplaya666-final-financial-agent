@@ -206,6 +206,10 @@ export function sanitizeChatItems(items: ChatItem[]): ChatItem[] {
   return items
     .map((item) => {
       if (item.type !== 'message') return item;
+      const raw = String(item.content ?? '');
+      if (item.role === 'assistant' && !raw.trim()) {
+        return { ...item, content: '' };
+      }
       const content = sanitizeMessageText(item.content, item.role === 'assistant' ? '—' : '');
       if (!content && item.role !== 'assistant') return null;
       return { ...item, content };

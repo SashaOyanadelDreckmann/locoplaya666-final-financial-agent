@@ -15,9 +15,12 @@ import {
   DEFAULT_BUDGET_ROWS,
   buildBudgetAssistantContext,
   buildBudgetRowSuggestions,
+  buildBudgetAcknowledgmentReply,
+  buildCategoryClarificationReply,
   buildContextualAdviceReply,
   buildContextualInitReply,
   buildContextualQuestion,
+  buildReflectiveFallbackReply,
   buildSuggestionFollowUp,
   canonicalBudgetRowId,
   computeBudgetCompletion,
@@ -374,6 +377,14 @@ function detectBudgetIntent(answer: string) {
   if (/\b(resumen|status|estado|como voy|balance|diagnostico|review)\b/.test(text)) return 'status_review';
   if (/\b(recomiendas|recomendar|conviene|mejor|optimizar|ahorrar|consejo)\b/.test(text)) return 'advice';
   if (/\b(agrega|agregar|anade|añade|incluye|incorpora|nuevo|nueva|create|add)\b/.test(text)) return 'add_row';
+  if (
+    /\b(gasto|gastos|gastamos|pago|pagamos|destino|destinan|sale|van|va|cobra|cobra|cobran)\b/.test(text) &&
+    /\b(comida|aliment|arriendo|vivienda|transporte|bencina|servicio|deuda|cuota|sueldo|salario|liquido|neto)\b/.test(
+      text,
+    )
+  ) {
+    return 'update_amount';
+  }
   if (/\?$/.test(answer.trim()) || /\b(que|como|por que|cual|cuanto)\b/.test(text)) return 'question';
   if (/\d/.test(text)) return 'update_amount';
   if (/^(hola|buenas|hello|hi|ola)\b/.test(text)) return 'greeting';
@@ -567,8 +578,12 @@ function buildPlannerChatReply(params: {
     params.plan.requires_confirmation && params.plan.actions.length > 0
       ? buildPendingConfirmation(params.plan.actions)
       : null;
+  const appliedSummary =
+    !params.plan.requires_confirmation && params.plan.actions.length > 0
+      ? summarizeBudgetActionBatch(params.plan.actions)
+      : null;
   return buildBudgetReply({
-    reply: params.plan.pending_summary ?? 'Sigamos afinando tu presupuesto.',
+    reply: params.plan.pending_summary ?? appliedSummary ?? 'Te entendí. Sigamos con el siguiente rubro.',
     followUp: params.plan.next_question,
     focus_row_id: params.plan.focus_row_id,
     actions: params.plan.requires_confirmation ? [] : actionsToRecords(params.plan.actions),
@@ -683,12 +698,11 @@ function buildDeterministicUpdate(params: {
   });
   const { focus, question } = buildBudgetFocusQuestion(projectedRows, null, projectedContext);
   return buildBudgetReply({
-    reply: appendSuggestionTip(
-      projectedRows,
-      projectedContext,
-      `Listo: ${targetRow.category} quedó en $${formatClp(amount)}.`,
-      targetRow.id,
-    ),
+    reply: buildBudgetAcknowledgmentReply({
+      userAnswer: params.answer,
+      row: targetRow,
+      amount,
+    }),
     followUp: question,
     focus_row_id: focus?.id ?? targetRow.id,
     actions: [action],
@@ -932,15 +946,15 @@ function buildConversationalFallback(params: {
   }
 
   const { focus, question } = defaultFocus;
-  const fallbackReply =
-    snapshot.balance < 0
-      ? 'Hay un déficit que conviene ordenar con vivienda, deuda y gastos variables.'
-      : 'Sigamos afinando la tabla para que el balance quede sólido y accionable.';
+  const reflective = buildReflectiveFallbackReply({
+    userAnswer: params.answer,
+    row: currentTarget ?? focus,
+  });
 
   return buildBudgetReply({
-    reply: appendSuggestionTip(params.rows, params.context, fallbackReply),
-    followUp: question,
-    focus_row_id: focus?.id ?? params.activeRow?.id ?? null,
+    reply: reflective.reply,
+    followUp: reflective.followUp || question,
+    focus_row_id: focus?.id ?? currentTarget?.id ?? params.activeRow?.id ?? null,
     source: 'deterministic_fallback',
     market_snapshot: emptyMarketSnapshot(),
   });
@@ -1028,6 +1042,38 @@ router.post(
       }
       if (isBudgetRejectionAnswer(answer)) {
         const draft = buildConfirmationRejectedReply({ rows, context });
+        return sendBudgetChatResponse(
+          res,
+          draft,
+          buildWriterPolishInput({ draft, context, rows, userAnswer: answer }),
+          { market_snapshot: emptyMarketSnapshot() },
+        );
+      }
+    }
+
+    if (intent === 'reply' && answer && !extractClpAmount(answer) && !isEducationalBudgetQuestion(answer)) {
+      const answerIntent = detectBudgetIntent(answer);
+      const clarifyIntent =
+        answerIntent === 'update_amount' ||
+        answerIntent === 'unclear' ||
+        /\b(gasto|gastos|pago|pagamos|destino|sale|van)\b/.test(normalizeLooseText(answer));
+      const categoryTarget =
+        resolveBudgetChatTargetRow(rows, question, {
+          manualFocusRowId,
+          assistantFocusRowId,
+          activeRow: resolvedActiveRow,
+          answer,
+        }) ?? null;
+      const answerFocusId = inferBudgetFocusRowId(answer);
+      if (clarifyIntent && categoryTarget && answerFocusId && Number(categoryTarget.amount ?? 0) <= 0) {
+        const clarified = buildCategoryClarificationReply({ userAnswer: answer, row: categoryTarget });
+        const draft = buildBudgetReply({
+          reply: clarified.reply,
+          followUp: clarified.followUp,
+          focus_row_id: categoryTarget.id,
+          source: 'deterministic_category_clarify',
+          market_snapshot: emptyMarketSnapshot(),
+        });
         return sendBudgetChatResponse(
           res,
           draft,

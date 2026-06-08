@@ -85,6 +85,76 @@ describe('resolveWelcomeIntroForUser', () => {
     expect(persist.mock.calls[0]?.[1]).toMatchObject({
       fingerprint: buildWelcomeIntroFingerprint(intake, null),
       uiVersion: EXECUTIVE_INTRO_UI_VERSION,
+      llmGenerationCount: 1,
+    });
+  });
+
+  it('does not call LLM after generation cap is reached', async () => {
+    const { completeStructured } = await import('../../services/llm.service');
+    vi.mocked(completeStructured).mockClear();
+
+    const intakeA = { incomeBand: '300k-600k' };
+    const intakeB = { incomeBand: '600k-1M' };
+    const fingerprintA = buildWelcomeIntroFingerprint(intakeA, null);
+    const injectedIntake = {
+      intake: intakeB,
+      welcomeIntroCache: {
+        fingerprint: fingerprintA,
+        uiVersion: EXECUTIVE_INTRO_UI_VERSION,
+        intro: sampleIntro(),
+        createdAt: '2026-06-07T00:00:00.000Z',
+        llmGenerationCount: 2,
+      },
+    };
+    const persist = vi.fn().mockResolvedValue(true);
+
+    const result = await resolveWelcomeIntroForUser({
+      userId: 'user-3',
+      firstName: 'Ana',
+      injectedIntake,
+      persistWelcomeIntroCache: persist,
+    });
+
+    expect(completeStructured).not.toHaveBeenCalled();
+    expect(result.cached).toBe(true);
+    expect(result.intro.headline).toBe('Ana, lectura personalizada.');
+    expect(persist).toHaveBeenCalledTimes(1);
+    expect(persist.mock.calls[0]?.[1]).toMatchObject({
+      fingerprint: buildWelcomeIntroFingerprint(intakeB, null),
+      llmGenerationCount: 2,
+    });
+  });
+
+  it('migrates uiVersion without calling LLM when fingerprint matches', async () => {
+    const { completeStructured } = await import('../../services/llm.service');
+    vi.mocked(completeStructured).mockClear();
+
+    const intake = { incomeBand: '300k-600k' };
+    const fingerprint = buildWelcomeIntroFingerprint(intake, null);
+    const persist = vi.fn().mockResolvedValue(true);
+
+    const result = await resolveWelcomeIntroForUser({
+      userId: 'user-4',
+      firstName: 'Ana',
+      injectedIntake: {
+        intake,
+        welcomeIntroCache: {
+          fingerprint,
+          uiVersion: EXECUTIVE_INTRO_UI_VERSION - 1,
+          intro: sampleIntro(),
+          createdAt: '2026-06-07T00:00:00.000Z',
+          llmGenerationCount: 1,
+        },
+      },
+      persistWelcomeIntroCache: persist,
+    });
+
+    expect(completeStructured).not.toHaveBeenCalled();
+    expect(result.cached).toBe(true);
+    expect(persist).toHaveBeenCalledTimes(1);
+    expect(persist.mock.calls[0]?.[1]).toMatchObject({
+      uiVersion: EXECUTIVE_INTRO_UI_VERSION,
+      llmGenerationCount: 1,
     });
   });
 });

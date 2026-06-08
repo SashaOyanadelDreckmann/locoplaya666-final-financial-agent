@@ -23,6 +23,26 @@ html.visual-mode-transition-active .agent-layout * {
   transition: none !important;
 }
 
+/* Tras el reveal: el panel asienta sin re-animar fondos ni filtros. */
+html.visual-mode-settling .agent-layout .agent-panel,
+html.visual-mode-settling .agent-layout .agent-panel * {
+  transition: none !important;
+}
+
+/* Cualquier modo activo: cards solo animan hover, no fondos/filtros. */
+html[data-visual-mode] .agent-layout .agent-panel :is(
+  .panel-card,
+  .profile-card,
+  .panel-feature-card,
+  .interview-flow-card,
+  .recent-library-card,
+  .news-card,
+  .glass-card,
+  .panel-callout
+) {
+  transition-property: transform, box-shadow !important;
+}
+
 /* Anillo de luz que florece desde el origen del toque (puro adorno). */
 .visual-mode-shimmer {
   position: fixed;
@@ -160,10 +180,31 @@ html[data-visual-mode='dark-outline'] .agent-layout.is-visual-mode-dark-outline 
   background: #000000 !important;
 }
 
-html[data-visual-mode='dark-outline'] .agent-layout.is-visual-mode-dark-outline > .agent-divider-rail,
-html[data-visual-mode='dark-outline'] .agent-layout.is-visual-mode-dark-outline > .agent-panel,
-html[data-visual-mode='dark-outline'] .agent-layout.is-visual-mode-dark-outline > .agent-mobile-composer-dock {
+html[data-visual-mode='dark-outline'] .agent-layout.is-visual-mode-dark-outline > .agent-divider-rail {
   filter: grayscale(1) saturate(0) contrast(1.16) brightness(0.84) !important;
+  transition: none;
+}
+
+html[data-visual-mode='dark-outline'] .agent-layout.is-visual-mode-dark-outline > .agent-panel {
+  background: #000000 !important;
+  background-color: #000000 !important;
+  background-image: none !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-color: rgba(255, 255, 255, 0.16) !important;
+  box-shadow: none !important;
+  transition: none;
+}
+
+html[data-visual-mode='dark-outline'] .agent-layout.is-visual-mode-dark-outline > .agent-panel .panel-grid {
+  background: #000000 !important;
+  background-color: #000000 !important;
+  background-image: none !important;
+}
+
+html[data-visual-mode='dark-outline'] .agent-layout.is-visual-mode-dark-outline > .agent-mobile-composer-dock {
+  filter: none !important;
   transition: none;
 }
 

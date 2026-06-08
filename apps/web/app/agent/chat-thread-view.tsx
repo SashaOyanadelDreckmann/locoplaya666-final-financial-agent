@@ -9,6 +9,7 @@ import type { VisualMode } from '@/lib/visual-mode';
 import { sanitizeMessageText } from './page.utils';
 import { renderLatexDocMessage } from './message-renderer';
 import { GradientBlobCard } from '@/components/ui/gradient-bold-card';
+import { isWelcomeShellMessageContent } from './welcome-intro.shared';
 
 type PanelAction = NonNullable<
   Extract<ChatItem, { type: 'message'; role: 'assistant' }>['panel_action']
@@ -462,7 +463,7 @@ function isWelcomeCarouselShellItem(
   const isFirstAssistant = !items
     .slice(0, index)
     .some((prior) => prior.type === 'message' && prior.role === 'assistant');
-  return isFirstAssistant && !String(item.content ?? '').trim();
+  return isFirstAssistant && isWelcomeShellMessageContent(item.content);
 }
 
 function isExternalCitation(citation: Extract<ChatItem, { type: 'citation' }>['citation']) {

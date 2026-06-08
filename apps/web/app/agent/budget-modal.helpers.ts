@@ -39,6 +39,25 @@ export function normalizeActionRowId(rawId: unknown): string | null {
   return rowId.replace(/^expense[-_]custom[-_]?/i, 'expense-custom-');
 }
 
+export type BudgetTranscriptEntry = {
+  role: 'assistant' | 'user';
+  text: string;
+};
+
+export function formatBudgetAssistantTurn(payload: {
+  assistant_reply?: string;
+  assistant_text?: string;
+  source?: string;
+  next_question?: string | null;
+}): string {
+  const reply = getAssistantMessage(payload);
+  const nextQuestion = getNextQuestion(payload, '');
+  if (reply && nextQuestion && !reply.includes(nextQuestion)) {
+    return `${reply} ${nextQuestion}`.trim();
+  }
+  return reply || nextQuestion || '';
+}
+
 export function getAssistantMessage(payload: {
   assistant_reply?: string;
   assistant_text?: string;

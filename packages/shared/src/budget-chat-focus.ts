@@ -35,15 +35,20 @@ export function extractInferenceQuestionText(text: string | null | undefined): s
 export function inferBudgetFocusRowId(question: string | null | undefined): string | null {
   const q = extractInferenceQuestionText(question).toLowerCase();
   if (!q || q === '…') return null;
-  if (/ingreso|sueldo/.test(q)) return 'income_salary';
-  if (/arriendo|vivienda|hogar/.test(q)) return 'expense_rent';
+  if (/liquido|l[ií]quido|neto|sueldo|salario|sueldos|haberes|renta principal|ingreso principal|mi sueldo|gano/.test(q)) {
+    return 'income_salary';
+  }
+  if (/ingreso/.test(q)) return 'income_salary';
+  if (/arriendo|vivienda|hogar|dividendo|hipoteca|dormi|departamento|pie\b/.test(q)) return 'expense_rent';
   if (/delivery|pedidos\s*ya|pedidosya|rappi|uber\s*eats|ubereats|comida\s*rapida/.test(q)) return 'expense_food';
   if (/supermerc|lider|jumbo|unimarc|tottus|santa\s*isabel|acuenta|ekono|alvi|mayorista\s*10/.test(q)) {
     return 'expense_food';
   }
-  if (/aliment|comida|restaurante|food|restaurant|caf[eé]|delivery/.test(q)) return 'expense_food';
+  if (/aliment|comida|restaurante|food|restaurant|caf[eé]|delivery|supermerc|super\b|almuerzo|cena|desayuno|picoteo/.test(q)) {
+    return 'expense_food';
+  }
   if (/retail|falabella|ripley|paris|hites|mercadolibre|shein|temu|amazon/.test(q)) return 'expense_other';
-  if (/transporte|bencina|metro|uber/.test(q)) return 'expense_transport';
+  if (/transporte|bencina|metro|uber|colectivo|bus\b|tag\b|estacionamiento|peaje/.test(q)) return 'expense_transport';
   if (/servicios|luz|agua|internet|telefon/.test(q)) return 'expense_services';
   if (/movistar|entel|claro|wom|telefon[ií]a|celular|m[oó]vil/.test(q)) return 'expense_services';
   if (/deuda|cuota|cr[eé]dito/.test(q)) return 'expense_debt';

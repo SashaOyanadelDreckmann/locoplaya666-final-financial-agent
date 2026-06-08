@@ -1,8 +1,10 @@
 /** @jest-environment node */
 
 import {
+  buildBudgetAcknowledgmentReply,
   buildBudgetAssistantContext,
   buildBudgetRowSuggestions,
+  buildCategoryClarificationReply,
   buildContextualQuestion,
   pickContextualFocusRow,
 } from '@financial-agent/shared';
@@ -65,6 +67,23 @@ describe('budget-chat-context', () => {
     const question = buildContextualQuestion(rows[1], context);
     expect(question).toMatch(/550\.000/i);
     expect(question).toMatch(/confirm/i);
+  });
+
+  it('builds conversational acknowledgments that mirror user phrasing', () => {
+    const incomeReply = buildBudgetAcknowledgmentReply({
+      userAnswer: 'gano 850 mil líquidos',
+      row: rows[0],
+      amount: 850000,
+    });
+    expect(incomeReply).toMatch(/850\.000/);
+    expect(incomeReply).toMatch(/líquido|ingreso/i);
+
+    const foodClarify = buildCategoryClarificationReply({
+      userAnswer: 'gasto harto en comida fuera',
+      row: rows[2],
+    });
+    expect(foodClarify.reply).toMatch(/comida|Te leí/i);
+    expect(foodClarify.followUp).toMatch(/\?/);
   });
 
   it('suggests adding unmapped transaction categories as new rows', () => {

@@ -99,7 +99,11 @@ import {
   sanitizeMessageText,
   resolveActiveActionPlanStage,
 } from './page.utils';
-import { buildWelcomeChatItem } from './welcome-intro.shared';
+import {
+  buildWelcomeChatItem,
+  isWelcomeShellMessageContent,
+  normalizeChat1WelcomeShellItems,
+} from './welcome-intro.shared';
 import { AgentBootSequence } from './AgentBootSequence';
 import { shouldShowAgentBootSequence } from './agent-boot-sequence.helpers';
 
@@ -721,13 +725,15 @@ export default function AgentPage() {
           name: String(s.name ?? 'Conversación'),
           autoNamed: Boolean(s.autoNamed ?? false),
           items: Array.isArray(s.items)
-            ? dedupeConsecutiveAssistantMessages(
-                sanitizeChatItems(
-                  (s.items as any[]).filter((it) => it.type !== 'message' || it.content !== undefined)
-                ).filter((it) => {
-                  if (it.type !== 'message' || it.role !== 'assistant') return true;
-                  return !isStaleSessionErrorMessage(String(it.content ?? ''));
-                })
+            ? normalizeChat1WelcomeShellItems(
+                dedupeConsecutiveAssistantMessages(
+                  sanitizeChatItems(
+                    (s.items as any[]).filter((it) => it.type !== 'message' || it.content !== undefined)
+                  ).filter((it) => {
+                    if (it.type !== 'message' || it.role !== 'assistant') return true;
+                    return !isStaleSessionErrorMessage(String(it.content ?? ''));
+                  })
+                ),
               )
             : [],
           draft: String(s.draft ?? ''),
@@ -785,7 +791,7 @@ export default function AgentPage() {
       firstAssistantIdx === 0 &&
       firstAssistant &&
       active.id === 'chat-1' &&
-      !String(firstAssistant.content ?? '').trim();
+      isWelcomeShellMessageContent(firstAssistant.content);
 
     if (alreadyPersonalizedWelcome) {
       welcomeInjectedThreadsRef.current.add(active.id);

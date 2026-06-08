@@ -154,6 +154,27 @@ describe('budget-chat routes', () => {
     expect(res.body.action?.amount).toBe(200000);
   }, 15000);
 
+  it('asks for a concrete amount when the user mentions a category without numbers', async () => {
+    const { agent, csrfToken } = await createAuthedAgent();
+    const budgetRows = [
+      { id: 'income_salary', category: 'Sueldo líquido', type: 'income', amount: 900000 },
+      { id: 'expense_food', category: 'Alimentación', type: 'expense', amount: 0 },
+    ];
+    const res = await agent.post('/api/budget-chat').set('x-csrf-token', csrfToken).send({
+      intent: 'reply',
+      answer: 'gasto harto en comida fuera',
+      question: '¿Cuánto pagas al mes en vivienda o dividendo?',
+      assistantFocusRowId: 'expense_rent',
+      budgetRows,
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.source).toBe('deterministic_category_clarify');
+    expect(res.body.focus_row_id).toBe('expense_food');
+    expect(String(res.body.assistant_reply)).toMatch(/comida|Te leí/i);
+    expect(String(res.body.next_question)).toMatch(/\?/);
+  }, 15000);
+
   it('advances to the next unfilled row when the user answers off-topic without a category', async () => {
     const { agent, csrfToken } = await createAuthedAgent();
     const budgetRows = [

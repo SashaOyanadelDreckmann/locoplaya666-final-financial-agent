@@ -546,6 +546,71 @@ export type BudgetWriterTurn =
   | 'status'
   | 'advice';
 
+function normalizeAnswerEcho(answer: string): string {
+  return String(answer ?? '')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .slice(0, 90);
+}
+
+export function buildBudgetAcknowledgmentReply(input: {
+  userAnswer: string;
+  row: BudgetRow;
+  amount: number;
+}): string {
+  const amountLabel = `$${formatBudgetClp(input.amount)}`;
+  const category = input.row.category.trim() || 'ese rubro';
+  const answer = String(input.userAnswer ?? '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+
+  if (input.row.id === 'income_salary' && /liquido|neto|sueldo|salario|haberes|gano/.test(answer)) {
+    return `Perfecto — dejé tu ingreso líquido en ${amountLabel} mensual.`;
+  }
+  if (input.row.id === 'expense_food' && /comida|aliment|super|restaurant|delivery|picoteo/.test(answer)) {
+    return `Entendido: en alimentación van ${amountLabel} al mes. Ya quedó en la tabla.`;
+  }
+  if (input.row.id === 'expense_rent' && /arriendo|vivienda|dividendo|hipoteca|dormi/.test(answer)) {
+    return `Listo — ${amountLabel} mensuales para vivienda.`;
+  }
+  if (input.row.id === 'expense_transport' && /transporte|bencina|metro|uber|tag|peaje/.test(answer)) {
+    return `Anotado: ${amountLabel} al mes en transporte.`;
+  }
+  if (input.row.id === 'expense_debt' && /deuda|cuota|credito/.test(answer)) {
+    return `Quedó registrado: ${amountLabel} mensuales en deudas o cuotas.`;
+  }
+  if (input.row.type === 'income') {
+    return `Anoté ${amountLabel} mensuales en ${category}.`;
+  }
+  return `Listo — ${category} quedó en ${amountLabel}.`;
+}
+
+export function buildCategoryClarificationReply(input: {
+  userAnswer: string;
+  row: BudgetRow;
+}): { reply: string; followUp: string } {
+  const echo = normalizeAnswerEcho(input.userAnswer);
+  const category = input.row.category.toLowerCase();
+  const reply = echo.length > 8 ? `Te leí: “${echo}”.` : `Entiendo que hablamos de ${category}.`;
+  const followUp = `¿Cuánto destinas al mes a ${category}, en pesos chilenos?`;
+  return { reply, followUp };
+}
+
+export function buildReflectiveFallbackReply(input: {
+  userAnswer: string;
+  row: BudgetRow | null;
+}): { reply: string; followUp: string } {
+  const echo = normalizeAnswerEcho(input.userAnswer);
+  const category = input.row?.category?.toLowerCase() ?? 'ese rubro';
+  const reply =
+    echo.length > 10
+      ? `Te entiendo — dijiste “${echo}”. Para dejarlo en la tabla necesito un monto claro.`
+      : 'Para seguir necesito un monto o categoría concreta.';
+  const followUp = `¿Cuánto sería al mes para ${category}?`;
+  return { reply, followUp };
+}
+
 export function buildBudgetWriterDigest(
   context: BudgetAssistantContext,
   focusRow: BudgetRow | null,

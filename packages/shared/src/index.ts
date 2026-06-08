@@ -28,11 +28,13 @@ export {
 } from './welcome/welcome-intro.copy';
 export {
   buildWelcomeIntroFingerprint,
+  canGenerateWelcomeIntroWithLlm,
   extractIntakeEnvelope,
   isValidWelcomeIntroCache,
   normalizeWelcomeIntroPayload,
   readCachedWelcomeIntro,
   readWelcomeIntroCache,
+  readWelcomeIntroGenerationCount,
   stableStringify,
   withWelcomeIntroFirstName,
 } from './welcome/welcome-intro.cache';
