@@ -16890,3 +16890,157 @@ html.mobile-input-engaged .transactions-modal .tx-composer-field {
 .transactions-modal .tx-click-to-ask-cell {
   cursor: pointer;
 }
+
+.transactions-modal .tx-chat-message-stack {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.transactions-modal .tx-chat-bubble-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.transactions-modal .tx-chat-source-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.transactions-modal .tx-chat-source-badge.is-verified {
+  background: rgba(34, 197, 94, 0.14);
+  color: rgba(187, 247, 208, 0.95);
+  border: 1px solid rgba(74, 222, 128, 0.28);
+}
+
+.transactions-modal .tx-chat-source-badge.is-llm {
+  background: rgba(148, 163, 184, 0.12);
+  color: rgba(226, 232, 240, 0.86);
+  border: 1px solid rgba(148, 163, 184, 0.24);
+}
+
+.transactions-modal .tx-chat-followups.is-inline {
+  padding: 0 0 0 4px;
+  max-width: 100%;
+}
+
+.transactions-modal .tx-chat-shortcuts {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.transactions-modal .tx-chat-shortcuts-kicker {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: rgba(148, 163, 184, 0.9);
+}
+
+.transactions-modal .tx-ask-chat-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(96, 165, 250, 0.35);
+  background: rgba(59, 130, 246, 0.12);
+  color: rgba(191, 219, 254, 0.96);
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+  white-space: nowrap;
+}
+
+.transactions-modal .tx-ask-chat-btn.is-compact {
+  padding: 5px 8px;
+}
+
+.transactions-modal .tx-ask-chat-btn:hover:not(:disabled) {
+  background: rgba(59, 130, 246, 0.22);
+  border-color: rgba(147, 197, 253, 0.55);
+  transform: translateY(-1px);
+}
+
+.transactions-modal .tx-ask-chat-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.transactions-modal .tx-movement-chat-action {
+  width: 1%;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.transactions-modal .tx-merchant-quality-metrics {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.transactions-modal .tx-ap-insight-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.transactions-modal .tx-ap-insight-row-copy {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.transactions-modal .tx-category-ask-rail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.transactions-modal .tx-category-ask-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(15, 23, 42, 0.28);
+  color: rgba(226, 232, 240, 0.92);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.transactions-modal .tx-category-ask-chip-action {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(147, 197, 253, 0.95);
+}
+
+.transactions-modal .tx-category-ask-chip:hover:not(:disabled) {
+  border-color: rgba(96, 165, 250, 0.45);
+  background: rgba(59, 130, 246, 0.12);
+}
+
+.transactions-modal .tx-category-ask-chip:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}

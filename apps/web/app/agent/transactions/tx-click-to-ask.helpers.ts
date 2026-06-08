@@ -10,6 +10,17 @@ export function buildCategoryAskQuestion(category: string): string {
   return `¿Cuánto gasté en la categoría ${label}?`;
 }
 
+export function buildAlertAskQuestion(title: string, reason?: string): string {
+  const headline = title.trim();
+  const detail = reason?.trim();
+  if (detail) return `¿Qué significa la alerta "${headline}" (${detail})?`;
+  return `¿Qué significa la alerta "${headline}"?`;
+}
+
+export function buildMetricAskQuestion(metric: string, value: string): string {
+  return `¿Cómo interpretas la métrica ${metric} con valor ${value}?`;
+}
+
 export function buildMovementAskQuestion(input: {
   date?: string;
   merchant?: string;

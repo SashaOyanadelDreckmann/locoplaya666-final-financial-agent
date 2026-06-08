@@ -146,10 +146,6 @@ export function useTxAssistantChat(params: {
     if (!analysisAlreadyDone || !effectiveDashboard) return [];
     return buildTransactionStarterChips(effectiveDashboard, 6);
   }, [analysisAlreadyDone, effectiveDashboard]);
-  const activeFollowups = useMemo(() => {
-    const lastAssistant = [...assistantMessages].reverse().find((message) => message.role === 'assistant');
-    return lastAssistant?.suggestedFollowups ?? [];
-  }, [assistantMessages]);
   const summaryText = activeBankProduct?.assistant?.summaryText ?? null;
   const summaryGeneratedAt = activeBankProduct?.assistant?.summaryGeneratedAt ?? null;
   const summaryModel = activeBankProduct?.assistant?.summaryModel ?? null;
@@ -837,7 +833,6 @@ export function useTxAssistantChat(params: {
     txUploadOnboardingStep,
     assistantMessages,
     starterChips,
-    activeFollowups,
     highlightedMovementKeys,
     summaryText,
     summaryGeneratedAt,

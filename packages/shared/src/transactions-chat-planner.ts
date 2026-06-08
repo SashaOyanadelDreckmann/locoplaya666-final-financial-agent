@@ -118,14 +118,14 @@ const METRIC_INTENTS = {
     'outflows',
   ],
   inflows: ['ingreso', 'ingresos', 'abono', 'abonos', 'inflow', 'inflows', 'recibi', 'recibí', 'entrada', 'entradas'],
-  netFlow: ['flujo neto', 'neto', 'balance', 'saldo neto', 'resultado', 'quedo', 'quedó', 'queda'],
+  netFlow: ['flujo neto', 'saldo neto', 'balance del periodo', 'resultado del periodo', 'cuanto me quedo', 'cuánto me quedó', 'cuanto queda', 'cuánto queda'],
   movementCount: ['cuantos movimientos', 'cuántos movimientos', 'cantidad de movimientos', 'numero de movimientos', 'número de movimientos', 'cuantas transacciones', 'cuántas transacciones'],
   avgTicket: ['ticket promedio', 'promedio por movimiento', 'monto promedio', 'gasto promedio'],
   topMerchants: ['top comercios', 'principales comercios', 'comercios destacados', 'donde gaste mas', 'donde gasté más', 'donde gasto mas', 'donde gasto más'],
   topCategories: ['top categorias', 'top categorías', 'principales categorias', 'principales categorías', 'categorias principales', 'categorías principales', 'en que gaste', 'en qué gasté', 'en que gasto', 'en qué gasto'],
   spendRatio: ['ratio', 'porcentaje gasto', 'gasto ingreso', 'gasto/ingreso', 'gasto sobre ingreso'],
   period: ['periodo', 'rango', 'desde cuando', 'desde cuándo', 'entre que fechas', 'entre qué fechas', 'fechas'],
-  alerts: ['alerta', 'alertas', 'anomalia', 'anomalía', 'anomalias', 'anomalías', 'duplicado', 'duplicados', 'revisar'],
+  alerts: ['alerta', 'alertas', 'anomalia', 'anomalía', 'anomalias', 'anomalías', 'duplicado', 'duplicados', 'cargo duplicado', 'cargos duplicados'],
 } as const;
 
 function detectMetricIntent(blob: string): keyof typeof METRIC_INTENTS | null {

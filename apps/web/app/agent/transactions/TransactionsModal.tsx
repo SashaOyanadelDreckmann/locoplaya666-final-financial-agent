@@ -172,7 +172,6 @@ export function TransactionsModal(props: TransactionsModalProps) {
     txUploadOnboardingStep,
     assistantMessages,
     starterChips,
-    activeFollowups,
     highlightedMovementKeys,
     submitAssistantQuestion,
     summaryText,
@@ -194,6 +193,14 @@ export function TransactionsModal(props: TransactionsModalProps) {
     processingMetaLabel,
     processingPrimaryCopy,
   } = assistant;
+
+  const handleAskSuggestedQuestion = (question: string) => {
+    const chatAnchor =
+      txChatThreadRef.current ??
+      txScrollBodyRef.current?.querySelector<HTMLElement>('.tx-ap-chat-dock, .tx-composer-sticky-host');
+    chatAnchor?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    void submitAssistantQuestion(question);
+  };
 
   const { closeConfirmKind, dismissCloseConfirm, requestClose, confirmClose } = useTxCloseConfirm({
     isOpen: props.isOpen,
@@ -754,7 +761,6 @@ export function TransactionsModal(props: TransactionsModalProps) {
                       scrollRef={txSummaryScrollRef}
                       assistantMessages={assistantMessages}
                       starterChips={starterChips}
-                      activeFollowups={activeFollowups}
                       highlightedMovementKeys={highlightedMovementKeys}
                       analysisAlreadyDone={analysisAlreadyDone}
                       txUploadOnboardingStep={txUploadOnboardingStep}
@@ -780,7 +786,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
                       onAppendPendingEvidence={appendPendingEvidence}
                       onAssistantInputChange={setActiveTxAssistantInput}
                       onAssistantSend={() => void handleAssistantTextSend()}
-                      onAskSuggestedQuestion={(question) => void submitAssistantQuestion(question)}
+                      onAskSuggestedQuestion={handleAskSuggestedQuestion}
                       onRefineSummary={(source: string, body: string) => void refineTransactionSummaryFromFocus(source, body)}
                       onGoToAnalyst={() => goToTxStage('analyst')}
                       onRegenerateSummary={() =>
@@ -816,13 +822,12 @@ export function TransactionsModal(props: TransactionsModalProps) {
                       insightCarouselRef={insightCarouselRef}
                       assistantMessages={assistantMessages}
                       starterChips={starterChips}
-                      activeFollowups={activeFollowups}
                       highlightedMovementKeys={highlightedMovementKeys}
                       txAssistantInput={txAssistantInput}
                       onAssistantInputChange={setActiveTxAssistantInput}
                       txAssistantLoading={txAssistantLoading}
                       documentsLoading={props.documentsLoading}
-                      onAskSuggestedQuestion={(question) => void submitAssistantQuestion(question)}
+                      onAskSuggestedQuestion={handleAskSuggestedQuestion}
                       isSavedForBatch={isSavedForBatch}
                       onDeleteProduct={() => props.deleteTransactionProduct(props.activeBankProduct!.id)}
                       onGoToEvidence={() => goToTxStage('evidence')}

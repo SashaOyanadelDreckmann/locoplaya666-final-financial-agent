@@ -1,6 +1,8 @@
 import {
+  buildAlertAskQuestion,
   buildCategoryAskQuestion,
   buildMerchantAskQuestion,
+  buildMetricAskQuestion,
   buildMovementAskQuestion,
   mapPromptKeysToUiKeys,
 } from '../tx-click-to-ask.helpers';
@@ -19,6 +21,11 @@ describe('tx-click-to-ask.helpers', () => {
         category: 'Supermercado',
       }),
     ).toContain('Jumbo');
+  });
+
+  it('builds alert and metric questions', () => {
+    expect(buildAlertAskQuestion('Cargo duplicado', 'Uber x2')).toContain('Cargo duplicado');
+    expect(buildMetricAskQuestion('Flujo neto', '$120.000')).toContain('Flujo neto');
   });
 
   it('maps prompt keys to ui keys', () => {

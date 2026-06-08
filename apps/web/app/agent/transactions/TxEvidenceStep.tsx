@@ -11,7 +11,7 @@ import {
 import { TxParseProgress } from './TxParseProgress';
 import { TxIndicativeNotice } from './TxIndicativeNotice';
 import { normalizeUploadFormat } from './tx-assistant.helpers';
-import { TxChatFollowupChips, TxChatMessageBubble, TxChatStarterChips } from './tx-chat-ui';
+import { TxChatMessageBubble, TxChatStarterChips } from './tx-chat-ui';
 import { readProductEvidenceFidelity } from '@/lib/evidence-fidelity.helpers';
 import type { DocumentsParseProgress } from '@/lib/transactions-parse-progress.helpers';
 import type { BankProduct, TxAssistantMessage, TxChatStarterChip, TxUploadFormat } from './types';
@@ -65,7 +65,6 @@ export interface TxEvidenceStepProps {
   chatThreadRef?: Ref<HTMLDivElement>;
   assistantMessages: TxAssistantMessage[];
   starterChips?: TxChatStarterChip[];
-  activeFollowups?: string[];
   highlightedMovementKeys?: string[];
   analysisAlreadyDone: boolean;
   txUploadOnboardingStep: 'format' | 'details' | 'upload';
@@ -200,26 +199,12 @@ export function TxEvidenceStep(props: TxEvidenceStepProps) {
                 key={message.id}
                 message={message}
                 highlightedMovementKeys={p.highlightedMovementKeys}
+                followupsDisabled={p.txAssistantLoading || p.documentsLoading}
+                onFollowupSelect={p.onAskSuggestedQuestion}
               />
             ))
           )}
         </div>
-
-        {p.analysisAlreadyDone && p.starterChips && p.starterChips.length > 0 ? (
-          <TxChatStarterChips
-            chips={p.starterChips}
-            disabled={p.txAssistantLoading || p.documentsLoading}
-            onSelect={(question) => p.onAskSuggestedQuestion?.(question)}
-          />
-        ) : null}
-
-        {p.analysisAlreadyDone && p.activeFollowups && p.activeFollowups.length > 0 ? (
-          <TxChatFollowupChips
-            followups={p.activeFollowups}
-            disabled={p.txAssistantLoading || p.documentsLoading}
-            onSelect={(question) => p.onAskSuggestedQuestion?.(question)}
-          />
-        ) : null}
 
         {!p.analysisAlreadyDone && (
           <div className="tx-format-rail" role="group" aria-label="Formato de evidencia">
@@ -281,6 +266,16 @@ export function TxEvidenceStep(props: TxEvidenceStepProps) {
         )}
 
         <div className="tx-composer-sticky-host">
+          {p.analysisAlreadyDone && p.starterChips && p.starterChips.length > 0 ? (
+            <div className="tx-chat-shortcuts">
+              <span className="tx-chat-shortcuts-kicker">Atajos analíticos</span>
+              <TxChatStarterChips
+                chips={p.starterChips}
+                disabled={p.txAssistantLoading || p.documentsLoading}
+                onSelect={(question) => p.onAskSuggestedQuestion?.(question)}
+              />
+            </div>
+          ) : null}
           <div className="tx-composer-pro" data-analysis-done={p.analysisAlreadyDone ? 'true' : 'false'}>
             {canAttach ? (
               <label className="tx-composer-attach" aria-label="Adjuntar archivos">

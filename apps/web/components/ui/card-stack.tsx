@@ -65,6 +65,7 @@ export type CardStackProps<T extends CardStackItem> = {
 
   /** UI */
   showDots?: boolean;
+  showSpotlight?: boolean;
   className?: string;
   cardClassName?: string;
 
@@ -123,6 +124,7 @@ export function CardStack<T extends CardStackItem>({
   pauseOnHover = true,
 
   showDots = true,
+  showSpotlight = true,
   className,
   cardClassName,
 
@@ -232,14 +234,18 @@ export function CardStack<T extends CardStackItem>({
         tabIndex={0}
         onKeyDown={onKeyDown}
       >
-        <div
-          className="pointer-events-none absolute inset-x-0 top-6 mx-auto h-48 w-[70%] rounded-full bg-black/5 blur-3xl dark:bg-white/5"
-          aria-hidden="true"
-        />
-        <div
-          className="pointer-events-none absolute inset-x-0 bottom-0 mx-auto h-40 w-[76%] rounded-full bg-black/10 blur-3xl dark:bg-black/30"
-          aria-hidden="true"
-        />
+        {showSpotlight ? (
+          <>
+            <div
+              className="pointer-events-none absolute inset-x-0 top-6 mx-auto h-48 w-[70%] rounded-full bg-black/5 blur-3xl dark:bg-white/5"
+              aria-hidden="true"
+            />
+            <div
+              className="pointer-events-none absolute inset-x-0 bottom-0 mx-auto h-40 w-[76%] rounded-full bg-black/10 blur-3xl dark:bg-black/30"
+              aria-hidden="true"
+            />
+          </>
+        ) : null}
 
         <div
           className="absolute inset-0 flex items-end justify-center"

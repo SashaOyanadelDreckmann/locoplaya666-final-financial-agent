@@ -50,15 +50,16 @@ function mod(index: number, count: number) {
 }
 
 function useMobileCardStackSize() {
-  const [size, setSize] = useState({ width: 300, height: 168 });
+  const [size, setSize] = useState({ width: 220, height: 96 });
 
   useEffect(() => {
     const compute = () => {
       const vw = window.innerWidth;
       const overlap = Math.min(38, Math.max(22, vw * 0.058));
-      const cardW = Math.min(340, ((vw + 48 + 4 * overlap) / 5) * 1.25);
-      const cardH = Math.min(200, Math.max(140, cardW * 0.66));
-      setSize({ width: Math.round(cardW), height: Math.round(cardH) });
+      // Compact deck footprint: smaller than prior stack, wider aspect (less tall).
+      const cardW = Math.round((((vw + 48 + 4 * overlap) / 5) * 1.08));
+      const cardH = Math.round(Math.min(104, Math.max(76, cardW * 0.46)));
+      setSize({ width: cardW, height: cardH });
     };
 
     compute();
@@ -300,20 +301,21 @@ export const MobilePanelCircularDeck = forwardRef<
           maxVisible={5}
           cardWidth={cardSize.width}
           cardHeight={cardSize.height}
-          stageMinHeight={cardSize.height + 28}
-          stagePaddingPx={20}
-          overlap={0.52}
-          spreadDeg={38}
-          perspectivePx={900}
-          depthPx={72}
-          tiltXDeg={8}
-          activeLiftPx={12}
-          activeScale={1.02}
-          inactiveScale={0.9}
+          stageMinHeight={cardSize.height}
+          stagePaddingPx={0}
+          overlap={0.58}
+          spreadDeg={34}
+          perspectivePx={820}
+          depthPx={48}
+          tiltXDeg={6}
+          activeLiftPx={8}
+          activeScale={1.015}
+          inactiveScale={0.88}
           springStiffness={300}
           springDamping={30}
           loop
-          showDots
+          showDots={false}
+          showSpotlight={false}
           className="mobile-panel-card-stack"
           cardClassName="mobile-panel-stack-shell"
           renderCard={(item, state) => {
