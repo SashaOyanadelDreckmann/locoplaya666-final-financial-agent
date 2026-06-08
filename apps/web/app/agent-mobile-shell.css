@@ -1053,16 +1053,16 @@
     --deck-overlap: clamp(22px, 5.8vw, 38px);
     --deck-pad-inline: 0px;
     --deck-handle-h: 18px;
-    --deck-card-h-min: 84px;
-    --deck-card-h-max: 100px;
-    --deck-card-aspect: 0.3;
+    --deck-card-h-min: 76px;
+    --deck-card-h-max: 92px;
+    --deck-card-aspect: 0.28;
     --deck-card-w-est: min(360px, calc(100vw * 0.78));
     --deck-card-h-est: clamp(
-      84px,
-      calc(var(--deck-card-w-est) * 0.3),
-      100px
+      76px,
+      calc(var(--deck-card-w-est) * 0.28),
+      92px
     );
-    --mobile-panel-deck-lift: 18px;
+    --mobile-panel-deck-lift: 6px;
     --mobile-panel-bottom-gap: 18px;
     --mobile-panel-shell-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--mobile-panel-bottom-gap));
     --mobile-panel-h: calc(
@@ -1107,8 +1107,8 @@
     touch-action: pan-y pinch-zoom !important;
     gap: 0 !important;
     padding-inline: 0 !important;
-    padding-top: 8px !important;
-    padding-bottom: var(--mobile-panel-deck-lift, 18px) !important;
+    padding-top: 2px !important;
+    padding-bottom: var(--mobile-panel-deck-lift, 6px) !important;
     min-height: var(--deck-card-h) !important;
     flex: 0 0 auto !important;
     box-sizing: border-box !important;

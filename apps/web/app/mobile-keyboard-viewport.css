@@ -608,16 +608,16 @@
     order: 1 !important;
     flex: 0 0 auto !important;
     flex-shrink: 0 !important;
-    min-height: calc(var(--deck-card-h) + var(--mobile-panel-deck-lift, 18px) + 8px) !important;
-    padding: 8px 0 var(--mobile-panel-deck-lift, 18px) 0 !important;
+    min-height: calc(var(--deck-card-h) + var(--mobile-panel-deck-lift, 6px) + 2px) !important;
+    padding: 2px 0 var(--mobile-panel-deck-lift, 6px) 0 !important;
     overflow: visible !important;
     overflow-x: visible !important;
     --deck-overlap: clamp(22px, 5.8vw, 38px) !important;
     --deck-usable-w: calc(100vw + 48px) !important;
     --deck-card-w: min(360px, calc(100vw * 0.78)) !important;
-    --deck-card-h-min: 84px !important;
-    --deck-card-h-max: 100px !important;
-    --deck-card-aspect: 0.3 !important;
+    --deck-card-h-min: 76px !important;
+    --deck-card-h-max: 92px !important;
+    --deck-card-aspect: 0.28 !important;
     --deck-card-h: clamp(
       var(--deck-card-h-min),
       calc(var(--deck-card-w) * var(--deck-card-aspect)),

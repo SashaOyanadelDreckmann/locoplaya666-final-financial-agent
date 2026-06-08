@@ -57,7 +57,7 @@ function useMobileCardStackSize() {
       const vw = window.innerWidth;
       // Wide landscape tiles — most of the viewport width, low height.
       const cardW = Math.round(Math.min(360, Math.max(260, vw * 0.78)));
-      const cardH = Math.round(Math.min(100, Math.max(84, cardW * 0.3)));
+      const cardH = Math.round(Math.min(92, Math.max(76, cardW * 0.28)));
       setSize({ width: cardW, height: cardH });
     };
 
@@ -302,7 +302,7 @@ export const MobilePanelCircularDeck = forwardRef<
           cardHeight={cardSize.height}
           stageMinHeight={cardSize.height}
           stagePaddingPx={0}
-          stageOffsetX={36}
+          stageOffsetX={54}
           overlap={0.48}
           spreadDeg={20}
           perspectivePx={900}
