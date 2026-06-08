@@ -7,7 +7,7 @@ import { saveBubbleSnapshotPdfArtifact, savePdfArtifact, downloadArtifactFile } 
 import { buildBubbleSnapshotHtmlAndCss } from './bubble-chat.snapshot';
 import type { ChatItem } from '@/lib/agent.response.types';
 import type { VisualMode } from '@/lib/visual-mode';
-import { sanitizeMessageText } from './page.utils';
+import { sanitizeMessageText, getChat1UxCopy, resolveChat1UxState } from './page.utils';
 import { renderLatexDocMessage } from './message-renderer';
 import { GradientBlobCard } from '@/components/ui/gradient-bold-card';
 import { UserUploadBubble } from './user-upload-bubble';
@@ -134,6 +134,7 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
   sessionUserName?: string;
   activeThreadId?: string;
   activeThreadLabel?: string;
+  canOpenInterview: boolean;
   expandedCitationsByMessage: Record<number, boolean>;
   setExpandedCitationsByMessage: React.Dispatch<React.SetStateAction<Record<number, boolean>>>;
   onSend: (messageOverride?: string) => void;
@@ -155,6 +156,12 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
   const EMPTY_THREAD_FALLBACK =
     'Estoy listo para iniciar tu entrevista financiera. Cuéntame tu objetivo principal y partimos con el primer paso accionable.';
   const userTag = String(props.sessionUserName ?? 'USER').trim().split(' ')[0] || 'USER';
+  const chat1Ux = resolveChat1UxState({
+    chatId: props.activeThreadId,
+    diagnosisCompleted: props.diagnosisUnlocked,
+    canOpenInterview: props.canOpenInterview,
+  });
+  const chat1Copy = getChat1UxCopy(chat1Ux);
   const welcomeFlowAction =
     props.activeThreadId === 'chat-1' && !props.diagnosisUnlocked
       ? props.flowPanelAction
@@ -234,17 +241,17 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
                   'Lectura filosófica, responsabilidad social y prudencia normativa aplicada.',
               }
             : {
-                kicker: props.diagnosisUnlocked ? 'Chat general' : isFirstAssistantCard ? 'Punto de partida' : 'Entrevista',
+                kicker: isFirstAssistantCard ? 'Punto de partida' : chat1Copy.threadKicker,
                 title: props.diagnosisUnlocked
                   ? 'Chat general'
                   : isFirstAssistantCard
                   ? 'Informe inicial de diagnóstico'
-                  : 'Entrevista financiera en curso',
+                  : chat1Copy.threadTitle,
                 subtitle: props.diagnosisUnlocked
                   ? 'Síntesis profesional del contexto, evidencia disponible y próximos pasos.'
                   : isFirstAssistantCard
                   ? 'Introducción ejecutiva personalizada — evidencia real, simulación normativa y ruta de decisión.'
-                  : 'Reunimos contexto, presupuesto y señales del caso antes del diagnóstico final.',
+                  : chat1Copy.threadSubtitle,
               };
         const isScrollable = shouldEnableBubbleScroll(it.content ?? '');
         const blocks = Array.isArray(it.agent_blocks) ? it.agent_blocks : [];
@@ -572,7 +579,7 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
           <div className="agent-bubble assistant latex-doc is-intro-doc">
             <div className="latex-doc-head">
               <div className="latex-doc-heading">
-                <span className="latex-doc-kicker">Punto de partida</span>
+              <span className="latex-doc-kicker">{chat1Copy.threadKicker}</span>
                 <span className="latex-doc-title">Inicio de conversación</span>
                 <span className="latex-doc-subtitle">Contexto base y siguiente acción</span>
               </div>

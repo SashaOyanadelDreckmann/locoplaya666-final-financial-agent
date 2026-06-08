@@ -69,6 +69,7 @@ model User {
   profiles FinancialProfile[]
   documents UserDocument[]
   vectorStore UserVectorStore?
+  conversationTurns ConversationTurn[]
 
   @@index([createdAt])
   @@index([knowledgeScore])
@@ -131,4 +132,25 @@ model FinancialProfile {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt(sort: Desc)])
+}
+
+model ConversationTurn {
+  id              String   @id @db.VarChar(200)
+  userId          String   @db.VarChar(128)
+  sessionId       String?  @db.VarChar(200)
+  chatId          String   @db.VarChar(80)
+  clientMessageId String   @db.VarChar(200)
+  userMessage     String   @db.Text
+  assistantMessage String  @db.Text
+  history         Json?
+  inputPayload    Json?
+  responsePayload Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, chatId, clientMessageId])
+  @@index([userId, sessionId, createdAt(sort: Desc)])
+  @@index([userId, chatId, createdAt(sort: Desc)])
 }

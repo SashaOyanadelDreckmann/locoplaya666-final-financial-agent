@@ -98,10 +98,12 @@ import {
   buildTransactionIntelligence,
   firstNameOf,
   dedupeConsecutiveAssistantMessages,
+  getChat1UxCopy,
   resolveUnlockedChatIds,
   hasAssistantMessage,
   sanitizeChatItems,
   sanitizeMessageText,
+  resolveChat1UxState,
   resolveActiveActionPlanStage,
 } from './page.utils';
 import {
@@ -338,11 +340,17 @@ export default function AgentPage() {
 
   function getThreadSpecialization(threadId: string): ChatSpecialization {
     if (threadId === 'chat-1') {
+      const chat1Ux = resolveChat1UxState({
+        chatId: threadId,
+        diagnosisCompleted: interviewCompleted,
+        canOpenInterview,
+      });
+      const copy = getChat1UxCopy(chat1Ux);
       return {
-        title: interviewCompleted ? 'General' : 'Diagnóstico',
-        shortTitle: interviewCompleted ? 'Gen' : 'Diag',
+        title: copy.title,
+        shortTitle: chat1Ux === 'diagnosisCompleted' ? 'Gen' : chat1Ux === 'interviewAvailable' ? 'Disp' : 'Base',
         accentClass: 'chat-specialization-1',
-        subtitle: interviewCompleted ? 'chat general' : 'Entrevista en curso',
+        subtitle: copy.subtitle,
       };
     }
     if (threadId === 'chat-2') {
@@ -1415,18 +1423,25 @@ export default function AgentPage() {
       };
     }
 
+    const interviewState = resolveChat1UxState({
+      chatId: 'chat-1',
+      diagnosisCompleted: interviewCompleted,
+      canOpenInterview,
+    });
+    const copy = getChat1UxCopy(interviewState);
+
     return {
-      badge: intakeData ? 'Llamada guiada' : 'Activación',
+      badge: copy.label,
       title: intakeData
-        ? `Entrevista estratégica para ${name}`
-        : 'Entrevista diagnóstica inicial',
+        ? `${copy.threadTitle} para ${name}`
+        : copy.threadTitle,
       meta: prompt,
       detail:
         stress !== null && understanding !== null
           ? `Prioridad actual: estrés ${stress}/10 y comprensión ${understanding}/10.`
-          : 'Usa esta capa para transformar contexto disperso en diagnóstico accionable.',
+          : copy.threadSubtitle,
     };
-  }, [intakeData, sessionInfo?.name, interviewCompleted]);
+  }, [intakeData, sessionInfo?.name, interviewCompleted, canOpenInterview]);
 
   const transactionIntel = useMemo(
     () =>
@@ -1867,6 +1882,8 @@ export default function AgentPage() {
     haptic(8); // feedback al enviar mensaje
 
     const userMessage = outgoingText;
+    const clientMessageId =
+      globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
     const agentMessage = String(options?.agentPayload ?? userMessage).trim();
     const pendingLabel = String(
       options?.assistantPendingLabel ?? 'Financieramente está analizando tu mensaje…'
@@ -1977,6 +1994,7 @@ export default function AgentPage() {
       const res = (await sendToAgent({
         user_message: enrichedUserMessage,
         session_id: getSessionId(),
+        client_message_id: clientMessageId,
         history: historySnapshot,
         context: {
           recent_artifacts: recentArtifacts,
@@ -3586,6 +3604,7 @@ export default function AgentPage() {
             items={items}
             loading={loading}
             diagnosisUnlocked={interviewCompleted}
+            canOpenInterview={canOpenInterview}
             isMobileViewport={isMobileViewport}
             sessionUserName={sessionInfo?.name}
             activeThreadId={activeThread?.id}

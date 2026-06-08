@@ -39,6 +39,52 @@ export function resolveActiveActionPlanStage(params: {
   });
 }
 
+export type Chat1UxState = 'baseReading' | 'interviewAvailable' | 'diagnosisCompleted';
+
+export function resolveChat1UxState(params: {
+  chatId?: string;
+  diagnosisCompleted?: boolean;
+  canOpenInterview?: boolean;
+}): Chat1UxState {
+  if (params.chatId === 'chat-1' && params.diagnosisCompleted) return 'diagnosisCompleted';
+  if (params.chatId === 'chat-1' && params.canOpenInterview) return 'interviewAvailable';
+  return 'baseReading';
+}
+
+export function getChat1UxCopy(state: Chat1UxState) {
+  if (state === 'diagnosisCompleted') {
+    return {
+      title: 'Chat general',
+      subtitle: 'chat general',
+      kicker: 'Chat general',
+      label: 'General',
+      threadTitle: 'Chat general',
+      threadSubtitle: 'Síntesis profesional del contexto, evidencia disponible y próximos pasos.',
+      threadKicker: 'Chat general',
+    };
+  }
+  if (state === 'interviewAvailable') {
+    return {
+      title: 'Diagnóstico',
+      subtitle: 'Entrevista disponible',
+      kicker: 'Lectura base',
+      label: 'Llamada guiada',
+      threadTitle: 'Lectura base en curso',
+      threadSubtitle: 'Reunimos contexto y señales del caso antes de abrir la entrevista.',
+      threadKicker: 'Lectura base',
+    };
+  }
+  return {
+    title: 'Diagnóstico',
+    subtitle: 'Lectura base',
+    kicker: 'Lectura base',
+    label: 'Activación',
+    threadTitle: 'Lectura base en curso',
+    threadSubtitle: 'Reunimos contexto y señales del caso antes de abrir la entrevista.',
+    threadKicker: 'Lectura base',
+  };
+}
+
 type ParsedDocument = {
   name: string;
   text: string;

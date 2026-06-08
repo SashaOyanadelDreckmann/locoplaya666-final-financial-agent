@@ -265,13 +265,15 @@ export function buildPanelBaseCards(props: PanelCardsProps): PanelCard[] {
               props.interviewCompleted
                 ? 'Ver diagnóstico'
                 : props.canOpenInterview
-                ? 'Abrir entrevista'
+                ? 'Entrevista disponible'
                 : 'Bloqueado: completa Productos/Transacciones y Presupuesto'
             }
           >
-            <span className="interview-flow-label">{props.interviewCard.badge}</span>
+            <span className="interview-flow-label">
+              {props.interviewCompleted ? props.interviewCard.badge : props.canOpenInterview ? 'Entrevista disponible' : props.interviewCard.badge}
+            </span>
             <span className="panel-feature-status">
-              {props.interviewCompleted || props.canOpenInterview ? '● Activo' : '○ Bloqueado'}
+              {props.interviewCompleted ? '● Activo' : props.canOpenInterview ? '● Disponible' : '○ Bloqueado'}
             </span>
             <span className="interview-flow-title">{props.interviewCard.title}</span>
             <span className="interview-flow-meta">{props.interviewCard.meta}</span>

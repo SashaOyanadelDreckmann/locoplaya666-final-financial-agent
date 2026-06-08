@@ -145,6 +145,20 @@ export async function getSessionInfo() {
   return parseApiResponse<any>(res);
 }
 
+export async function loadAgentConversationHistory(params?: { chatId?: string; sessionId?: string; limit?: number }) {
+  const API_URL = getSessionApiBaseUrl();
+  const search = new URLSearchParams();
+  if (params?.chatId) search.set('chatId', params.chatId);
+  if (params?.sessionId) search.set('sessionId', params.sessionId);
+  if (params?.limit) search.set('limit', String(params.limit));
+  const res = await fetch(`${API_URL}/api/agent/history${search.toString() ? `?${search.toString()}` : ''}`, {
+    method: 'GET',
+    credentials: 'include',
+  });
+
+  return parseApiResponse<any>(res);
+}
+
 export async function fetchLatestDiagnosis() {
   const API_URL = getSessionApiBaseUrl();
   const res = await fetch(`${API_URL}/diagnosis/latest`, {

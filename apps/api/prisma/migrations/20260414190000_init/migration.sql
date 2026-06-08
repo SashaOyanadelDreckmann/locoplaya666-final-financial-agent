@@ -51,6 +51,26 @@ CREATE TABLE "FinancialProfile" (
 
 CREATE INDEX "FinancialProfile_userId_createdAt_idx" ON "FinancialProfile" ("userId", "createdAt" DESC);
 
+CREATE TABLE "ConversationTurn" (
+  "id" VARCHAR(200) PRIMARY KEY,
+  "userId" VARCHAR(128) NOT NULL,
+  "sessionId" VARCHAR(200),
+  "chatId" VARCHAR(80) NOT NULL,
+  "clientMessageId" VARCHAR(200) NOT NULL,
+  "userMessage" TEXT NOT NULL,
+  "assistantMessage" TEXT NOT NULL,
+  "history" JSONB,
+  "inputPayload" JSONB,
+  "responsePayload" JSONB,
+  "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT "ConversationTurn_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE
+);
+
+CREATE UNIQUE INDEX "ConversationTurn_userId_chatId_clientMessageId_key" ON "ConversationTurn" ("userId", "chatId", "clientMessageId");
+CREATE INDEX "ConversationTurn_userId_sessionId_createdAt_idx" ON "ConversationTurn" ("userId", "sessionId", "createdAt" DESC);
+CREATE INDEX "ConversationTurn_userId_chatId_createdAt_idx" ON "ConversationTurn" ("userId", "chatId", "createdAt" DESC);
+
 -- Keep updatedAt current on every user update
 CREATE OR REPLACE FUNCTION set_user_updated_at()
 RETURNS TRIGGER AS $$
@@ -64,3 +84,16 @@ CREATE TRIGGER trigger_set_user_updated_at
 BEFORE UPDATE ON "User"
 FOR EACH ROW
 EXECUTE FUNCTION set_user_updated_at();
+
+CREATE OR REPLACE FUNCTION set_conversation_turn_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW."updatedAt" = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_set_conversation_turn_updated_at
+BEFORE UPDATE ON "ConversationTurn"
+FOR EACH ROW
+EXECUTE FUNCTION set_conversation_turn_updated_at();

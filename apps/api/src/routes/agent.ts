@@ -15,6 +15,10 @@ import {
   saveUserPanelState,
   saveUserMemoryBlob,
 } from '../services/user.service';
+import {
+  listConversationTurns,
+  upsertConversationTurnRecord,
+} from '../persistence/repos';
 import { complete } from '../services/llm.service';
 import type { WelcomeIntroCache } from '@financial-agent/shared';
 import {
@@ -38,7 +42,7 @@ import { asyncHandler } from '../middleware/errorHandler';
 import { requireAuth, requirePermission } from '../middleware/auth';
 import { badRequest, forbidden, unauthorized } from '../http/api.errors';
 import { sendSuccess } from '../http/api.responses';
-import { parseBody } from '../http/parse';
+import { parseBody, parseQuery } from '../http/parse';
 import { hasPermission, PERMISSIONS, type UserRole } from '../auth/rbac';
 import { listAdminUsersFullDump } from '../services/admin.service';
 import { resolveUserDiagnosticProfile } from '../services/diagnostic-profile.service';
@@ -513,6 +517,12 @@ const PersistedAssistantMessageSchema = z
     attachments: z.array(z.string()).optional(),
   })
   .passthrough();
+
+const ConversationHistoryQuerySchema = z.object({
+  chatId: z.string().trim().min(1).max(80).optional(),
+  sessionId: z.string().trim().min(1).max(200).optional(),
+  limit: z.coerce.number().int().min(1).max(200).optional(),
+});
 
 const PersistedDashboardSchema = z
   .object({
@@ -1103,6 +1113,24 @@ router.get(
 );
 
 router.get(
+  '/agent/history',
+  requireAuth,
+  requirePermission(PERMISSIONS.AGENT_CHAT_SELF),
+  asyncHandler(async (req, res) => {
+    const user = req.authenticatedUser;
+    if (!user) throw unauthorized('Not authenticated');
+    const query = parseQuery(ConversationHistoryQuerySchema, req.query);
+    const turns = await listConversationTurns({
+      userId: user.id,
+      chatId: query.chatId,
+      sessionId: query.sessionId,
+      limit: query.limit ?? 100,
+    });
+    return sendSuccess(res, { turns });
+  }),
+);
+
+router.get(
   '/admin/users/full',
   requireAuth,
   requirePermission(PERMISSIONS.DEV_INJECT),
@@ -1137,11 +1165,18 @@ router.post(
     }
 
     const body = (req.body ?? {}) as Record<string, unknown>;
+    const clientMessageId =
+      typeof body.client_message_id === 'string' && body.client_message_id.trim().length > 0
+        ? body.client_message_id.trim()
+        : typeof body.clientMessageId === 'string' && body.clientMessageId.trim().length > 0
+          ? body.clientMessageId.trim()
+          : `msg_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
 
     const normalizedInput: Record<string, unknown> = {
       user_id: authedUser.id,
       user_name: body.user_name,
       session_id: body.session_id,
+      client_message_id: clientMessageId,
       user_message: body.user_message ?? body.message,
       history: body.history ?? [],
       context: body.context,
@@ -1428,6 +1463,26 @@ router.post(
         ...((response.meta as Record<string, unknown>) ?? {}),
         ...lifecycleMeta(lifecycleDecision.state, lifecycleDecision.activeChatId),
       };
+    }
+
+    try {
+      const userMessage = String(input.user_message ?? '');
+      const assistantMessage = String(response.message ?? '');
+      if (userMessage.trim().length > 0 || assistantMessage.trim().length > 0) {
+        await upsertConversationTurnRecord({
+          userId: authedUser.id,
+          sessionId: typeof input.session_id === 'string' ? input.session_id : undefined,
+          chatId: String(lifecycleDecision.activeChatId ?? 'chat-1'),
+          clientMessageId,
+          userMessage,
+          assistantMessage,
+          history: Array.isArray(input.history) ? input.history : [],
+          inputPayload: input,
+          responsePayload: response,
+        });
+      }
+    } catch (historyErr) {
+      req.logger?.warn({ msg: 'Error persisting conversation turn', error: historyErr, userId: authedUser.id });
     }
 
     if (response.budget_updates && response.budget_updates.length > 0 && input.user_id) {

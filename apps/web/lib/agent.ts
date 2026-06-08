@@ -9,6 +9,7 @@ import { getCsrfToken } from './csrf';
 export async function sendToAgent(payload: {
   user_message: string;
   session_id?: string;
+  client_message_id?: string;
   history?: { role: 'user' | 'assistant'; content: string }[];
   profile?: unknown;
   user_info?: { name?: string };

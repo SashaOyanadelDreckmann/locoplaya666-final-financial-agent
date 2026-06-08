@@ -272,4 +272,70 @@ describe('/api/agent budget_summary → injected_budget', () => {
     const message = String(res.body?.data?.message ?? res.body?.message ?? '');
     expect(message).toContain('Ya tengo tus movimientos/cartolas integrados');
   }, 15000);
+
+  it('persists and rehydrates the full chat turn history', async () => {
+    runCoreAgentMock.mockReset();
+    runCoreAgentMock.mockResolvedValue({
+      message: 'respuesta persistida',
+      mode: 'information',
+      tool_calls: [],
+      agent_blocks: [],
+      artifacts: [],
+      citations: [],
+      compliance: {
+        mode: 'information',
+        no_auto_execution: true,
+        includes_recommendation: false,
+        includes_simulation: false,
+        includes_regulation: false,
+        missing_information: [],
+        disclaimers_shown: [],
+        risk_score: 0,
+        blocked: { is_blocked: false },
+      },
+      state_updates: {},
+      suggested_replies: [],
+      budget_updates: [],
+      knowledge_score: 0,
+      knowledge_event_detected: false,
+      meta: {},
+    });
+
+    const { agent, userId, csrfToken } = await createAuthedAgent();
+    const intakeOk = await attachIntakeToUser(userId, {
+      intake: { profession: 'Ingeniera' },
+      intakeContext: { financialLiteracy: 'high' },
+    });
+    expect(intakeOk).toBe(true);
+
+    const sessionId = 'session-persist-1';
+    const clientMessageId = 'client-msg-1';
+    const sendRes = await agent
+      .post('/api/agent')
+      .set('x-csrf-token', csrfToken)
+      .send({
+        user_message: 'Hola agente',
+        session_id: sessionId,
+        client_message_id: clientMessageId,
+        history: [{ role: 'user', content: 'Hola agente' }],
+        context: {},
+        ui_state: {
+          active_chat: { id: 'chat-1' },
+        },
+      });
+
+    expect(sendRes.status).toBe(200);
+
+    const historyRes = await agent
+      .get('/api/agent/history')
+      .query({ chatId: 'chat-1', sessionId, limit: 10 })
+      .set('x-csrf-token', csrfToken);
+
+    expect(historyRes.status).toBe(200);
+    expect(historyRes.body.ok).toBe(true);
+    const turns = historyRes.body.data.turns as Array<{ userMessage?: string; assistantMessage?: string }>;
+    expect(turns).toHaveLength(1);
+    expect(turns[0]?.userMessage).toBe('Hola agente');
+    expect(turns[0]?.assistantMessage).toBe('respuesta persistida');
+  }, 15000);
 });
