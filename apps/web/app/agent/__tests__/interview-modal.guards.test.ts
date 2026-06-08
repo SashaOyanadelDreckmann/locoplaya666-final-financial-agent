@@ -5,18 +5,23 @@ import path from 'node:path';
 
 describe('interview modal safeguards', () => {
   it('keeps keyboard accessibility and focus restoration in place', () => {
-    const sourcePath = path.join(process.cwd(), 'app', 'agent', 'InterviewModal.tsx');
-    const source = fs.readFileSync(sourcePath, 'utf8');
+    const modalPath = path.join(process.cwd(), 'app', 'agent', 'InterviewModal.tsx');
+    const a11yPath = path.join(process.cwd(), 'app', 'agent', 'useInterviewModalA11y.ts');
+    const modal = fs.readFileSync(modalPath, 'utf8');
+    const a11y = fs.readFileSync(a11yPath, 'utf8');
 
-    expect(source).toContain("role=\"dialog\"");
-    expect(source).toContain('aria-modal="true"');
-    expect(source).toContain('tabIndex={-1}');
-    expect(source).toContain("if (event.key === 'Escape')");
-    expect(source).toContain('isGeneratingDiagnosis || isFinalizingCall');
-    expect(source).toContain("if (event.key !== 'Tab') return;");
-    expect(source).toContain('restoreFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;');
-    expect(source).toContain('restoreFocusRef.current.focus();');
-    expect(source).toContain("document.body.style.overflow = 'hidden';");
+    expect(modal).toContain("role=\"dialog\"");
+    expect(modal).toContain('aria-modal="true"');
+    expect(modal).toContain('tabIndex={-1}');
+    expect(modal).toContain('useInterviewModalA11y');
+    expect(a11y).toContain("if (event.key === 'Escape')");
+    expect(a11y).toContain('isGeneratingDiagnosis || isFinalizingCall');
+    expect(a11y).toContain("if (event.key !== 'Tab') return;");
+    expect(a11y).toContain(
+      'restoreFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;',
+    );
+    expect(a11y).toContain('restoreFocusRef.current.focus();');
+    expect(a11y).toContain("document.body.style.overflow = 'hidden';");
   });
 
   it('keeps financialKnowledge extraction ahead of generic object filtering', () => {
@@ -94,6 +99,17 @@ describe('interview modal safeguards', () => {
 
     expect(modal).toContain('voiceConnected && voicePaused');
     expect(modal).toContain("? 'Pausada'");
+  });
+
+  it('preserves diagnosis signals when reopening a completed interview session', () => {
+    const bootstrapPath = path.join(process.cwd(), 'app', 'agent', 'useInterviewModalBootstrap.ts');
+    const runtimePath = path.join(process.cwd(), 'app', 'agent', 'useInterviewVoiceRuntime.ts');
+    const bootstrap = fs.readFileSync(bootstrapPath, 'utf8');
+    const runtime = fs.readFileSync(runtimePath, 'utf8');
+
+    expect(bootstrap).toContain('preserveDiagnosisSignals: diagnosisOnly');
+    expect(bootstrap).toContain('onDiagnosisOnlyOpen');
+    expect(runtime).toContain('preserveDiagnosisSignals');
   });
 
   it('transforms the interview shell into diagnosis mode after completion', () => {

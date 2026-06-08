@@ -16825,3 +16825,68 @@ html.mobile-input-engaged .transactions-modal .tx-composer-field {
   font-weight: 650;
   color: rgba(226, 232, 240, 0.96);
 }
+
+.transactions-modal .tx-chat-suggestions,
+.transactions-modal .tx-chat-followups {
+  padding: 8px 0 2px;
+  max-width: 100%;
+}
+
+.transactions-modal .tx-chat-retrieval-badge {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.transactions-modal .tx-chat-retrieval-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.transactions-modal .tx-chat-retrieval-badge-pill.is-targeted {
+  background: rgba(59, 130, 246, 0.18);
+  color: rgba(191, 219, 254, 0.95);
+  border: 1px solid rgba(96, 165, 250, 0.35);
+}
+
+.transactions-modal .tx-chat-retrieval-badge-pill.is-overview {
+  background: rgba(148, 163, 184, 0.14);
+  color: rgba(226, 232, 240, 0.88);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+}
+
+.transactions-modal .tx-chat-retrieval-badge-copy {
+  font-size: 11px;
+  color: rgba(148, 163, 184, 0.92);
+  line-height: 1.35;
+}
+
+.transactions-modal .tx-chat-bubble.has-linked-movements {
+  box-shadow: inset 0 0 0 1px rgba(96, 165, 250, 0.28);
+}
+
+.transactions-modal .tx-movements-table tr.is-chat-highlighted td {
+  box-shadow: inset 0 0 0 1px rgba(96, 165, 250, 0.45);
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.transactions-modal .tx-click-to-ask-row {
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.transactions-modal .tx-click-to-ask-row:hover {
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.transactions-modal .tx-click-to-ask-cell {
+  cursor: pointer;
+}

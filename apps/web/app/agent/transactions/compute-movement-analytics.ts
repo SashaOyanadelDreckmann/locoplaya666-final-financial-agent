@@ -1,3 +1,4 @@
+import { buildMovementPromptKey } from '@/lib/transactions-chat.helpers';
 import {
   resolveMovementDirectionForTotals,
   resolveMovementKind,
@@ -22,6 +23,7 @@ export type NormalizedMovementRow = {
   sourceKind: string;
   directionBasis?: string;
   uiKey: string;
+  promptKey: string;
   rawAmount: number;
   directionForTotals: 'income' | 'expense';
   overrideApplied: boolean;
@@ -189,6 +191,13 @@ export function computeMovementAnalytics(input: ComputeMovementAnalyticsInput): 
     const baseRow = {
       ...movement,
       uiKey: `${movement.date ?? 'nd'}|${normalizedDirection}|${Math.round(Math.abs(rawAmount))}|${normalizeMovementText(movement.label)}|${idx}`,
+      promptKey: buildMovementPromptKey({
+        date: movement.date,
+        merchant: movement.merchant,
+        description: movement.label,
+        label: movement.label,
+        amount: rawAmount,
+      }),
       rawAmount,
       directionForTotals: normalizedDirection,
       amount: Math.abs(rawAmount),

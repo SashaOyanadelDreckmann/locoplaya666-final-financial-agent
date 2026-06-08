@@ -34,6 +34,13 @@ import type { useMovementAnalytics } from './use-movement-analytics';
 import type { BankProduct } from './types';
 import { TxExecutiveSummary } from './TxExecutiveSummary';
 import { TxIndicativeNotice } from './TxIndicativeNotice';
+import { TxChatFollowupChips, TxChatMessageBubble, TxChatStarterChips } from './tx-chat-ui';
+import {
+  buildCategoryAskQuestion,
+  buildMerchantAskQuestion,
+  buildMovementAskQuestion,
+} from './tx-click-to-ask.helpers';
+import type { TxAssistantMessage, TxChatStarterChip } from './types';
 import {
   maxMovementHeatAmount,
   movementRowHeatClass,
@@ -64,11 +71,15 @@ export interface TxAnalystDashboardProps {
   onOverrideCategoryDraftChange: (value: string) => void;
   groupCarouselRef: Ref<HTMLDivElement>;
   insightCarouselRef: Ref<HTMLDivElement>;
-  assistantMessages: Array<{ id: string; role: 'assistant' | 'user'; text: string }>;
+  assistantMessages: TxAssistantMessage[];
+  starterChips: TxChatStarterChip[];
+  activeFollowups: string[];
+  highlightedMovementKeys: string[];
   txAssistantInput: string;
   onAssistantInputChange: (value: string) => void;
   txAssistantLoading: boolean;
   documentsLoading: boolean;
+  onAskSuggestedQuestion: (question: string) => void;
   isSavedForBatch: boolean;
   onDeleteProduct: () => void;
   onGoToEvidence: () => void;
@@ -103,10 +114,14 @@ export function TxAnalystDashboard({
   groupCarouselRef,
   insightCarouselRef,
   assistantMessages,
+  starterChips,
+  activeFollowups,
+  highlightedMovementKeys,
   txAssistantInput,
   onAssistantInputChange,
   txAssistantLoading,
   documentsLoading,
+  onAskSuggestedQuestion,
   isSavedForBatch,
   onDeleteProduct,
   onGoToEvidence,
@@ -118,6 +133,19 @@ export function TxAnalystDashboard({
   onClearMovementOverride,
   buildMovementRefinementText,
 }: TxAnalystDashboardProps) {
+  const isMovementChatHighlighted = (promptKey: string) => highlightedMovementKeys.includes(promptKey);
+
+  const handleMovementRowClick = (
+    movement: MovementAnalytics['dedupedMovementRows'][number],
+    event: { altKey: boolean },
+  ) => {
+    if (event.altKey) {
+      onAskSuggestedQuestion(buildMovementAskQuestion(movement));
+      return;
+    }
+    onSelectMovementKey(movement.uiKey);
+  };
+
   const {
     formatCurrency,
     isCreditCardProduct,
@@ -297,16 +325,16 @@ export function TxAnalystDashboard({
                                     return (
                                     <tr
                                       key={`mv-all-${idx}-${movement.directionForTotals}-${movement.label}-${movement.amount}`}
-                                      className={`tx-refinable-block ${heat.className}${selectedMovementKey === movement.uiKey ? ' is-selected' : ''}`}
+                                      className={`tx-refinable-block ${heat.className}${selectedMovementKey === movement.uiKey ? ' is-selected' : ''}${isMovementChatHighlighted(movement.promptKey) ? ' is-chat-highlighted' : ''}`}
                                       style={heat.style}
-                                      onClick={() => onSelectMovementKey(movement.uiKey)}
+                                      onClick={(event) => handleMovementRowClick(movement, event)}
                                       onDoubleClick={() =>
                                         onRefineSummary(
                                           'movimiento completo',
                                           buildMovementRefinementText(movement),
                                         )
                                       }
-                                      title="Doble clic para revisar esta categorización"
+                                      title="Clic para seleccionar · Alt+clic para preguntar al chat · Doble clic para revisar categorización"
                                     >
                                       <td>
                                         <span className={movement.directionForTotals === 'income' ? 'tx-type-income' : 'tx-type-expense'}>
@@ -357,16 +385,16 @@ export function TxAnalystDashboard({
                                       return (
                                       <tr
                                         key={`mv-in-${idx}-${movement.directionForTotals}-${movement.label}-${movement.amount}`}
-                                        className={`tx-refinable-block ${heat.className}${selectedMovementKey === movement.uiKey ? ' is-selected' : ''}`}
+                                        className={`tx-refinable-block ${heat.className}${selectedMovementKey === movement.uiKey ? ' is-selected' : ''}${isMovementChatHighlighted(movement.promptKey) ? ' is-chat-highlighted' : ''}`}
                                         style={heat.style}
-                                        onClick={() => onSelectMovementKey(movement.uiKey)}
+                                        onClick={(event) => handleMovementRowClick(movement, event)}
                                         onDoubleClick={() =>
                                           onRefineSummary(
                                             isCreditCardProduct ? 'abono' : 'ingreso',
                                             buildMovementRefinementText(movement),
                                           )
                                         }
-                                        title="Doble clic para revisar esta categorización"
+                                        title="Clic para seleccionar · Alt+clic para preguntar al chat · Doble clic para revisar categorización"
                                       >
                                         <td><span className="tx-type-income">{movementTypeLabel(movement)}</span></td>
                                         <td>{movement.date || 'N/D'}</td>
@@ -412,16 +440,16 @@ export function TxAnalystDashboard({
                                       return (
                                       <tr
                                         key={`mv-out-${idx}-${movement.directionForTotals}-${movement.label}-${movement.amount}`}
-                                        className={`tx-refinable-block ${heat.className}${selectedMovementKey === movement.uiKey ? ' is-selected' : ''}`}
+                                        className={`tx-refinable-block ${heat.className}${selectedMovementKey === movement.uiKey ? ' is-selected' : ''}${isMovementChatHighlighted(movement.promptKey) ? ' is-chat-highlighted' : ''}`}
                                         style={heat.style}
-                                        onClick={() => onSelectMovementKey(movement.uiKey)}
+                                        onClick={(event) => handleMovementRowClick(movement, event)}
                                         onDoubleClick={() =>
                                           onRefineSummary(
                                             'egreso',
                                             buildMovementRefinementText(movement),
                                           )
                                         }
-                                        title="Doble clic para revisar esta categorización"
+                                        title="Clic para seleccionar · Alt+clic para preguntar al chat · Doble clic para revisar categorización"
                                       >
                                         <td><span className="tx-type-expense">Egreso</span></td>
                                         <td>{movement.date || 'N/D'}</td>
@@ -508,7 +536,20 @@ export function TxAnalystDashboard({
                         </div>
                         <div className="tx-merchant-quality-list">
                           {merchantConfidenceRows.map((row) => (
-                            <article key={`${row.merchant}-${row.category}`} className="tx-merchant-quality-row">
+                            <article
+                              key={`${row.merchant}-${row.category}`}
+                              className="tx-merchant-quality-row tx-click-to-ask-row"
+                              role="button"
+                              tabIndex={0}
+                              onClick={() => onAskSuggestedQuestion(buildMerchantAskQuestion(row.merchant))}
+                              onKeyDown={(event) => {
+                                if (event.key === 'Enter' || event.key === ' ') {
+                                  event.preventDefault();
+                                  onAskSuggestedQuestion(buildMerchantAskQuestion(row.merchant));
+                                }
+                              }}
+                              title={`Preguntar al chat sobre ${row.merchant}`}
+                            >
                               <div>
                                 <strong>{row.merchant}</strong>
                                 <p>{row.category} · {row.count} mov.</p>
@@ -607,9 +648,20 @@ export function TxAnalystDashboard({
                                   labelStyle={{ color: '#ffffff' }}
                                   itemStyle={{ color: '#ffffff' }}
                                 />
-                                <Bar dataKey="amount" shape={<RetroBarShape />}>
+                                <Bar
+                                  dataKey="amount"
+                                  shape={<RetroBarShape />}
+                                  onClick={(data) => {
+                                    const category = String((data as { category?: string } | null)?.category ?? '').trim();
+                                    if (category) onAskSuggestedQuestion(buildCategoryAskQuestion(category));
+                                  }}
+                                >
                                   {categoryChartData.map((entry, idx) => (
-                                    <Cell key={`cat-bar-${entry.category}`} fill={RETRO_CHART_COLORS[idx % RETRO_CHART_COLORS.length]} />
+                                    <Cell
+                                      key={`cat-bar-${entry.category}`}
+                                      fill={RETRO_CHART_COLORS[idx % RETRO_CHART_COLORS.length]}
+                                      className="tx-click-to-ask-cell"
+                                    />
                                   ))}
                                 </Bar>
                               </BarChart>
@@ -778,24 +830,38 @@ export function TxAnalystDashboard({
                       <span className="tx-ap-section-label">Seguir conversación</span>
                       {assistantMessages.length > 0 && (
                         <div className="tx-chat-thread tx-summary-chat-thread">
-                          {assistantMessages.slice(-2).map((message) => (
+                          {assistantMessages.slice(-6).map((message) => (
                             <div
                               key={`summary-${message.id}`}
-                              className={`tx-chat-bubble ${message.role === 'user' ? 'is-user' : 'is-assistant'}${message.role === 'assistant' ? ' tx-refinable-block' : ''}`}
+                              className={message.role === 'assistant' ? 'tx-refinable-block' : undefined}
                               onDoubleClick={() => {
                                 if (message.role !== 'assistant') return;
                                 onRefineSummary('respuesta del chat', message.text);
                               }}
                               title={message.role === 'assistant' ? 'Doble clic para reanalizar esta respuesta' : undefined}
                             >
-                              <div className="tx-chat-bubble-role">
-                                {message.role === 'user' ? 'Tú' : 'Asistente'}
-                              </div>
-                              <div className="tx-chat-bubble-text">{message.text}</div>
+                              <TxChatMessageBubble
+                                message={message}
+                                highlightedMovementKeys={highlightedMovementKeys}
+                              />
                             </div>
                           ))}
                         </div>
                       )}
+                      {starterChips.length > 0 ? (
+                        <TxChatStarterChips
+                          chips={starterChips}
+                          disabled={txAssistantLoading || documentsLoading}
+                          onSelect={onAskSuggestedQuestion}
+                        />
+                      ) : null}
+                      {activeFollowups.length > 0 ? (
+                        <TxChatFollowupChips
+                          followups={activeFollowups}
+                          disabled={txAssistantLoading || documentsLoading}
+                          onSelect={onAskSuggestedQuestion}
+                        />
+                      ) : null}
                       <div className="tx-composer-pro tx-composer-pro--summary">
                         <textarea
                           className="tx-composer-field"

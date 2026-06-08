@@ -2,6 +2,7 @@
 
 import { create } from 'zustand';
 import { fetchLatestDiagnosis, getSessionInfo } from '@/lib/api';
+import { ApiHttpError } from '@/lib/apiEnvelope';
 
 export type FinancialProfileTraits = {
   financialClarity: 'low' | 'medium' | 'high';
@@ -52,6 +53,16 @@ function isDiagnosisProfile(value: unknown): value is DiagnosisProfile {
   );
 }
 
+function diagnosisLoadErrorMessage(error: unknown): string {
+  if (error instanceof ApiHttpError) {
+    if (error.status === 404) {
+      return 'Aún no encontramos un diagnóstico guardado para esta cuenta.';
+    }
+    return error.message || 'No se pudo cargar el diagnóstico.';
+  }
+  return error instanceof Error ? error.message : 'No se pudo cargar el diagnóstico.';
+}
+
 async function resolveDiagnosisProfile(options?: { forceRemote?: boolean }): Promise<DiagnosisProfile | null> {
   const session = await getSessionInfo();
   const injected = session?.injectedProfile;
@@ -72,8 +83,9 @@ async function resolveDiagnosisProfile(options?: { forceRemote?: boolean }): Pro
     try {
       const remote = await fetchLatestDiagnosis();
       if (isDiagnosisProfile(remote)) return remote;
-    } catch {
+    } catch (error) {
       if (isDiagnosisProfile(injected)) return injected;
+      throw error;
     }
   }
 
@@ -98,7 +110,7 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
     }),
 
   loadProfileIfNeeded: async () => {
-    if (get().profile && get().hasDiagnosis) return;
+    if (get().hasDiagnosis && get().profile) return;
 
     set({ loading: true, error: null });
     try {
@@ -106,13 +118,13 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
       set({
         profile,
         loading: false,
-        error: null,
+        error: profile ? null : null,
         hasDiagnosis: Boolean(profile),
       });
     } catch (err) {
       set({
         loading: false,
-        error: err instanceof Error ? err.message : 'No se pudo cargar el perfil',
+        error: diagnosisLoadErrorMessage(err),
         hasDiagnosis: false,
       });
     }
@@ -132,7 +144,7 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
     } catch (err) {
       set({
         loading: false,
-        error: err instanceof Error ? err.message : 'No se pudo cargar el diagnóstico',
+        error: diagnosisLoadErrorMessage(err),
         hasDiagnosis: false,
       });
       return null;

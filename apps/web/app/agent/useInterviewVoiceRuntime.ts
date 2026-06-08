@@ -205,28 +205,31 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
     return snapshot;
   }
 
-  function resetVoiceRuntimeState() {
+  function resetVoiceRuntimeState(options?: { preserveDiagnosisSignals?: boolean }) {
+    const preserveDiagnosisSignals = options?.preserveDiagnosisSignals === true;
     setVoiceConnecting(false);
     setVoiceConnected(false);
     setVoiceListening(false);
     setVoiceSpeaking(false);
     setVoiceError(null);
     setVoicePaused(false);
-    setPauseUsed(false);
-    setCallSeconds(0);
-    setMaxCallDurationSec(DEFAULT_MAX_CALL_DURATION_SEC);
-    setRemainingTotalSec(null);
-    setCallId(null);
-    setCallsStarted(0);
-    setLatestDiagnosticProfileId(null);
+    if (!preserveDiagnosisSignals) {
+      setPauseUsed(false);
+      setCallSeconds(0);
+      setMaxCallDurationSec(DEFAULT_MAX_CALL_DURATION_SEC);
+      setRemainingTotalSec(null);
+      setCallId(null);
+      setCallsStarted(0);
+      setLatestDiagnosticProfileId(null);
+      setVoiceReport(null);
+      setMinuteSummaries([]);
+      setFinalSummary(null);
+    }
     setIsFinalizingCall(false);
     setIsGeneratingDiagnosis(false);
     setCanRetryDiagnosis(false);
     setSyncError(null);
     pendingFinalizeRef.current = null;
-    setVoiceReport(null);
-    setMinuteSummaries([]);
-    setFinalSummary(null);
     setVoiceAgentTranscript('');
     setVoiceUserTranscript('');
     setVoicePartialTranscript('');

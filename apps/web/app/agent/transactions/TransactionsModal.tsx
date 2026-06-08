@@ -171,6 +171,10 @@ export function TransactionsModal(props: TransactionsModalProps) {
     txAssistantError,
     txUploadOnboardingStep,
     assistantMessages,
+    starterChips,
+    activeFollowups,
+    highlightedMovementKeys,
+    submitAssistantQuestion,
     summaryText,
     summaryGeneratedAt,
     summaryModel,
@@ -456,6 +460,12 @@ export function TransactionsModal(props: TransactionsModalProps) {
     if (!thread || !props.isOpen) return;
     thread.scrollTop = thread.scrollHeight;
   }, [props.isOpen, props.activeBankProduct?.id, assistantMessages.length]);
+
+  useEffect(() => {
+    if (!highlightedMovementKeys.length) return;
+    const match = dedupedMovementRows.find((row) => highlightedMovementKeys.includes(row.promptKey));
+    if (match) setSelectedMovementKey(match.uiKey);
+  }, [highlightedMovementKeys, dedupedMovementRows]);
 
   const buildMovementRefinementTextForModal = (movement: Parameters<typeof buildMovementRefinementText>[0]) =>
     buildMovementRefinementText(movement, formatCurrency);
@@ -743,6 +753,9 @@ export function TransactionsModal(props: TransactionsModalProps) {
                       currentStage={currentStage}
                       scrollRef={txSummaryScrollRef}
                       assistantMessages={assistantMessages}
+                      starterChips={starterChips}
+                      activeFollowups={activeFollowups}
+                      highlightedMovementKeys={highlightedMovementKeys}
                       analysisAlreadyDone={analysisAlreadyDone}
                       txUploadOnboardingStep={txUploadOnboardingStep}
                       selectedUploadFormat={selectedUploadFormat}
@@ -767,6 +780,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
                       onAppendPendingEvidence={appendPendingEvidence}
                       onAssistantInputChange={setActiveTxAssistantInput}
                       onAssistantSend={() => void handleAssistantTextSend()}
+                      onAskSuggestedQuestion={(question) => void submitAssistantQuestion(question)}
                       onRefineSummary={(source: string, body: string) => void refineTransactionSummaryFromFocus(source, body)}
                       onGoToAnalyst={() => goToTxStage('analyst')}
                       onRegenerateSummary={() =>
@@ -801,10 +815,14 @@ export function TransactionsModal(props: TransactionsModalProps) {
                       groupCarouselRef={groupCarouselRef}
                       insightCarouselRef={insightCarouselRef}
                       assistantMessages={assistantMessages}
+                      starterChips={starterChips}
+                      activeFollowups={activeFollowups}
+                      highlightedMovementKeys={highlightedMovementKeys}
                       txAssistantInput={txAssistantInput}
                       onAssistantInputChange={setActiveTxAssistantInput}
                       txAssistantLoading={txAssistantLoading}
                       documentsLoading={props.documentsLoading}
+                      onAskSuggestedQuestion={(question) => void submitAssistantQuestion(question)}
                       isSavedForBatch={isSavedForBatch}
                       onDeleteProduct={() => props.deleteTransactionProduct(props.activeBankProduct!.id)}
                       onGoToEvidence={() => goToTxStage('evidence')}

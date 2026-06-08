@@ -79,9 +79,33 @@ describe('transactions-chat api route', () => {
     expect(mockCreate).toHaveBeenCalledTimes(1);
   }, 15000);
 
+  it('returns deterministic chat payload without calling the model for metric questions', async () => {
+    const { agent, csrfToken } = await createAuthedAgent();
+    const res = await agent.post('/api/transactions-chat').set('x-csrf-token', csrfToken).send({
+      mode: 'chat',
+      question: '¿Cuánto fueron mis egresos totales?',
+      messages: [{ role: 'user', text: '¿Cuánto fueron mis egresos totales?' }],
+      dashboard: {
+        keyMetrics: { outflows_total: 450000, movement_count: 12 },
+        movements: [],
+      },
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.ok).toBe(true);
+    expect(String(res.body.assistant_text)).toContain('$450.000');
+    expect(res.body.source).toBe('deterministic');
+    expect(Array.isArray(res.body.suggested_followups)).toBe(true);
+    expect(mockCreate).not.toHaveBeenCalled();
+  }, 15000);
+
   it('returns chat payload', async () => {
     mockCreate.mockResolvedValueOnce({
-      output_text: JSON.stringify({ assistant_text: 'respuesta corta' }),
+      output_text: JSON.stringify({
+        assistant_text: 'respuesta corta',
+        suggested_followups: ['¿Cuánto fueron mis egresos?'],
+        referenced_movement_keys: [],
+      }),
     });
     const { agent, csrfToken } = await createAuthedAgent();
     const res = await agent.post('/api/transactions-chat').set('x-csrf-token', csrfToken).send({
@@ -95,12 +119,18 @@ describe('transactions-chat api route', () => {
     expect(res.body.ok).toBe(true);
     expect(res.body.assistant_text).toBe('respuesta corta');
     expect(res.body.retrieval_mode).toBe('overview');
+    expect(res.body.suggested_followups).toEqual(['¿Cuánto fueron mis egresos?']);
+    expect(res.body.source).toBe('llm');
     expect(mockCreate).toHaveBeenCalledTimes(1);
   }, 15000);
 
   it('keeps parsed documents in chat context', async () => {
     mockCreate.mockResolvedValueOnce({
-      output_text: JSON.stringify({ assistant_text: 'respuesta corta' }),
+      output_text: JSON.stringify({
+        assistant_text: 'respuesta corta',
+        suggested_followups: [],
+        referenced_movement_keys: [],
+      }),
     });
     const { agent, csrfToken } = await createAuthedAgent();
     await agent.post('/api/transactions-chat').set('x-csrf-token', csrfToken).send({
@@ -148,7 +178,11 @@ describe('transactions-chat api route', () => {
 
   it('keeps valid canonical documents when one referenced id is stale', async () => {
     mockCreate.mockResolvedValueOnce({
-      output_text: JSON.stringify({ assistant_text: 'respuesta corta' }),
+      output_text: JSON.stringify({
+        assistant_text: 'respuesta corta',
+        suggested_followups: [],
+        referenced_movement_keys: [],
+      }),
     });
     const { agent, csrfToken, userId } = await createAuthedAgent();
     const validDoc = await createDocumentRecord({
@@ -186,7 +220,11 @@ describe('transactions-chat api route', () => {
 
   it('accepts long chat histories without rejecting the request', async () => {
     mockCreate.mockResolvedValueOnce({
-      output_text: JSON.stringify({ assistant_text: 'respuesta corta' }),
+      output_text: JSON.stringify({
+        assistant_text: 'respuesta corta',
+        suggested_followups: [],
+        referenced_movement_keys: [],
+      }),
     });
     const { agent, csrfToken } = await createAuthedAgent();
     const messages = Array.from({ length: 18 }, (_, index) => ({

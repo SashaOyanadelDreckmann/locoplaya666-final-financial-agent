@@ -1,8 +1,16 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getCsrfToken } from '@/lib/csrf';
-import { buildChatDashboardForQuestion, compactDashboardForPrompt } from '@/lib/transactions-chat.helpers';
+import {
+  buildChatDashboardForQuestion,
+  buildMovementPromptKey,
+  buildTransactionStarterChips,
+  collectRetrievalSignalsUsed,
+  compactDashboardForPrompt,
+  planDeterministicTransactionAnswer,
+  retrieveMovementsForQuestion,
+} from '@/lib/transactions-chat.helpers';
 import { buildTransactionChatRequest } from '@/lib/transactions-chat.request';
 import {
   buildEvidenceAppendNotice,
@@ -22,9 +30,55 @@ import {
   wantsTextEvidenceUpload,
 } from './tx-assistant.helpers';
 import { useTxActionSession } from './use-tx-action-session';
-import type { BankProduct, TransactionsModalProps, TxUploadOnboardingStep, UploadStatementResult } from './types';
+import type {
+  BankProduct,
+  TransactionsModalProps,
+  TxAssistantMessage,
+  TxChatStarterChip,
+  TxUploadOnboardingStep,
+  UploadStatementResult,
+} from './types';
 
 type EffectiveDashboard = Parameters<typeof compactDashboardForPrompt>[0];
+
+type TransactionChatApiResponse = {
+  assistant_text?: string;
+  suggested_followups?: string[];
+  referenced_movement_keys?: string[];
+  signals_used?: string[];
+  retrieval_mode?: 'targeted' | 'overview';
+  matched_count?: number;
+  source?: TxAssistantMessage['source'];
+  model?: string;
+};
+
+function buildAssistantMetaFromResponse(
+  question: string,
+  dashboard: unknown,
+  response?: TransactionChatApiResponse | null,
+): Pick<TxAssistantMessage, 'retrievalMeta' | 'suggestedFollowups' | 'referencedMovementKeys' | 'source'> {
+  const movements = Array.isArray((dashboard as { movements?: unknown[] } | null)?.movements)
+    ? ((dashboard as { movements: unknown[] }).movements ?? [])
+    : [];
+  const retrieval = retrieveMovementsForQuestion(question, movements as Parameters<typeof retrieveMovementsForQuestion>[1]);
+  return {
+    retrievalMeta: {
+      mode: response?.retrieval_mode ?? retrieval.mode,
+      matchedCount: response?.matched_count ?? retrieval.matchedCount,
+      signalsUsed:
+        Array.isArray(response?.signals_used) && response.signals_used.length > 0
+          ? response.signals_used
+          : collectRetrievalSignalsUsed(retrieval.signals),
+    },
+    suggestedFollowups: Array.isArray(response?.suggested_followups)
+      ? response.suggested_followups.map((item) => String(item).trim()).filter(Boolean).slice(0, 3)
+      : [],
+    referencedMovementKeys: Array.isArray(response?.referenced_movement_keys)
+      ? response.referenced_movement_keys.map((item) => String(item).trim()).filter(Boolean).slice(0, 12)
+      : retrieval.movements.map((row) => buildMovementPromptKey(row)),
+    source: response?.source ?? 'llm',
+  };
+}
 
 export function useTxAssistantChat(params: {
   isOpen: boolean;
@@ -66,6 +120,9 @@ export function useTxAssistantChat(params: {
   const [txUploadOnboardingStepByProduct, setTxUploadOnboardingStepByProduct] = useState<
     Record<string, TxUploadOnboardingStep>
   >({});
+  const [highlightedMovementKeysByProduct, setHighlightedMovementKeysByProduct] = useState<
+    Record<string, string[]>
+  >({});
 
   const { txSendLockRef, invalidateTxSession, beginTxAction, isTxActionStale } = useTxActionSession(
     isOpen,
@@ -81,6 +138,17 @@ export function useTxAssistantChat(params: {
     : 'format';
 
   const assistantMessages = activeBankProduct?.assistant?.messages ?? [];
+  const highlightedMovementKeys = activeProductId
+    ? highlightedMovementKeysByProduct[activeProductId] ?? []
+    : [];
+  const starterChips: TxChatStarterChip[] = useMemo(() => {
+    if (!analysisAlreadyDone || !effectiveDashboard) return [];
+    return buildTransactionStarterChips(effectiveDashboard, 6);
+  }, [analysisAlreadyDone, effectiveDashboard]);
+  const activeFollowups = useMemo(() => {
+    const lastAssistant = [...assistantMessages].reverse().find((message) => message.role === 'assistant');
+    return lastAssistant?.suggestedFollowups ?? [];
+  }, [assistantMessages]);
   const summaryText = activeBankProduct?.assistant?.summaryText ?? null;
   const summaryGeneratedAt = activeBankProduct?.assistant?.summaryGeneratedAt ?? null;
   const summaryModel = activeBankProduct?.assistant?.summaryModel ?? null;
@@ -136,21 +204,22 @@ export function useTxAssistantChat(params: {
     clearProductDraft(activeProductId);
   }, [activeProductId, clearProductDraft]);
 
+  const setHighlightedMovementKeys = useCallback(
+    (productId: string, keys: string[]) => {
+      setHighlightedMovementKeysByProduct((prev) => ({ ...prev, [productId]: keys }));
+    },
+    [],
+  );
+
   const restoreAssistantMessages = useCallback(
     (
       productId: string,
       productSnapshot: BankProduct,
-      messages: Array<{ role: 'assistant' | 'user'; text: string; attachments?: string[] }>,
+      messages: TxAssistantMessage[],
     ) => {
       updateProductById(productId, {
         assistant: {
-          messages: messages.map((message, index) => ({
-            id: `${Date.now()}-${index}-${message.role}`,
-            role: message.role,
-            text: message.text,
-            createdAt: new Date().toISOString(),
-            attachments: message.attachments,
-          })),
+          messages,
           uploadFormat: productSnapshot.assistant?.uploadFormat ?? null,
           summaryText: productSnapshot.assistant?.summaryText ?? null,
           summaryModel: productSnapshot.assistant?.summaryModel ?? null,
@@ -167,7 +236,9 @@ export function useTxAssistantChat(params: {
     (
       productId: string,
       productSnapshot: BankProduct,
-      nextMessages: Array<{ role: 'assistant' | 'user'; text: string; attachments?: string[] }>,
+      nextMessages: Array<
+        Pick<TxAssistantMessage, 'role' | 'text' | 'attachments' | 'retrievalMeta' | 'suggestedFollowups' | 'referencedMovementKeys' | 'source'>
+      >,
       extraPatch?: Partial<NonNullable<BankProduct['assistant']>>,
     ) => {
       if (nextMessages.length === 0) return;
@@ -182,6 +253,10 @@ export function useTxAssistantChat(params: {
               text: message.text,
               createdAt: new Date().toISOString(),
               attachments: message.attachments,
+              retrievalMeta: message.retrievalMeta,
+              suggestedFollowups: message.suggestedFollowups,
+              referencedMovementKeys: message.referencedMovementKeys,
+              source: message.source,
             })),
           ],
           uploadFormat: productSnapshot.assistant?.uploadFormat ?? null,
@@ -236,7 +311,7 @@ export function useTxAssistantChat(params: {
       signal,
       body: JSON.stringify(payload),
     });
-    const data = await res.json().catch(() => null);
+    const data = (await res.json().catch(() => null)) as TransactionChatApiResponse & { ok?: boolean; error?: string };
     if (!res.ok || !data?.ok) throw new Error(data?.error || 'No se pudo responder');
     return data;
   }, []);
@@ -496,127 +571,176 @@ export function useTxAssistantChat(params: {
     ],
   );
 
+  const submitAssistantQuestion = useCallback(
+    async (rawText: string, options?: { preserveComposer?: boolean }) => {
+      if (!activeBankProduct || txAssistantLoading || txSendLockRef.current) return;
+      const product = activeBankProduct;
+      const productId = product.id;
+      const productSummaryText = product.assistant?.summaryText ?? null;
+      const productRegenerationsUsed = product.assistant?.summaryRegenerationsUsed ?? 0;
+      const productRegenerationsLeft = Math.max(0, 3 - productRegenerationsUsed);
+      const productMessages = product.assistant?.messages ?? [];
+      const text = rawText.trim();
+      const hasAttachedFiles = pendingEvidenceFiles.length > 0;
+      const shouldUploadTextEvidence = wantsTextEvidenceUpload({
+        analysisAlreadyDone,
+        uploadFormat: product.assistant?.uploadFormat,
+        text,
+        hasAttachedFiles,
+      });
+      if (!text && !hasAttachedFiles) return;
+
+      if (!options?.preserveComposer) {
+        setTxAssistantInputByProduct((prev) => ({ ...prev, [productId]: '' }));
+      }
+
+      txSendLockRef.current = true;
+      const txAction = beginTxAction();
+      const { sessionId, controller, finish } = txAction;
+      const previousMessages = productMessages;
+      try {
+        if (hasAttachedFiles || shouldUploadTextEvidence) {
+          await handleAssistantUploadSend(text, { includeTextAsEvidence: shouldUploadTextEvidence });
+          return;
+        }
+
+        appendAssistantMessages(productId, product, [{ role: 'user', text }]);
+        setProductError(productId, null);
+
+        const withUserMessage: BankProduct = {
+          ...product,
+          assistant: {
+            messages: [
+              ...productMessages,
+              {
+                id: `${Date.now()}-user`,
+                role: 'user',
+                text,
+                createdAt: new Date().toISOString(),
+              },
+            ],
+            uploadFormat: product.assistant?.uploadFormat ?? null,
+            summaryText: productSummaryText,
+            summaryModel: product.assistant?.summaryModel ?? null,
+            summaryGeneratedAt: product.assistant?.summaryGeneratedAt ?? null,
+            summaryRegenerationsUsed: productRegenerationsUsed,
+            lastSummaryFeedback: product.assistant?.lastSummaryFeedback ?? null,
+          },
+        };
+
+        const chosenFormat = inferUploadFormatFromMessage(text);
+        if (chosenFormat) {
+          appendAssistantMessages(
+            productId,
+            withUserMessage,
+            [{ role: 'assistant', text: buildUploadGuidance(chosenFormat, product.productType) }],
+            { uploadFormat: chosenFormat },
+          );
+          return;
+        }
+
+        if (asksForSummaryRegeneration(text, Boolean(productSummaryText)) && productRegenerationsLeft > 0) {
+          await generateTransactionSummary({
+            feedback: text,
+            isRegeneration: true,
+            productId,
+            productSnapshot: withUserMessage,
+          });
+          return;
+        }
+
+        if (analysisAlreadyDone) {
+          const deterministic = planDeterministicTransactionAnswer(text, effectiveDashboard);
+          if (deterministic) {
+            const movements = Array.isArray((effectiveDashboard as { movements?: unknown[] } | null)?.movements)
+              ? ((effectiveDashboard as { movements: unknown[] }).movements ?? [])
+              : [];
+            const retrieval = retrieveMovementsForQuestion(
+              text,
+              movements as Parameters<typeof retrieveMovementsForQuestion>[1],
+            );
+            appendAssistantMessages(productId, withUserMessage, [
+              {
+                role: 'assistant',
+                text: deterministic.reply,
+                retrievalMeta: {
+                  mode: retrieval.mode,
+                  matchedCount: retrieval.matchedCount,
+                  signalsUsed: collectRetrievalSignalsUsed(retrieval.signals),
+                },
+                suggestedFollowups: deterministic.suggestedFollowups,
+                referencedMovementKeys: deterministic.referencedMovementKeys,
+                source: 'client-deterministic',
+              },
+            ]);
+            setHighlightedMovementKeys(productId, deterministic.referencedMovementKeys);
+            return;
+          }
+        }
+
+        setProductLoading(productId, true);
+        setProductError(productId, null);
+        const response = await requestTransactionAssistant(
+          buildTransactionChatRequest(product, {
+            mode: 'chat',
+            question: text,
+            currentSummary: productSummaryText,
+            dashboard:
+              buildChatDashboardForQuestion(effectiveDashboard, text) ??
+              compactDashboardForPrompt(effectiveDashboard, { maxMovements: 24, maxMerchants: 8 }),
+            messages: [...productMessages, { role: 'user', text }],
+          }),
+          controller.signal,
+        );
+        if (isTxActionStale(sessionId, productId)) return;
+        const meta = buildAssistantMetaFromResponse(text, effectiveDashboard, response);
+        appendAssistantMessages(productId, withUserMessage, [
+          {
+            role: 'assistant',
+            text: String(response.assistant_text ?? 'Listo.'),
+            ...meta,
+          },
+        ]);
+        setHighlightedMovementKeys(productId, meta.referencedMovementKeys ?? []);
+      } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') return;
+        if (isTxActionStale(sessionId, productId)) return;
+        restoreAssistantMessages(productId, product, previousMessages);
+        setProductError(productId, error instanceof Error ? error.message : 'No se pudo responder.');
+      } finally {
+        finish();
+        if (!isTxActionStale(sessionId, productId)) {
+          setProductLoading(productId, false);
+        }
+        txSendLockRef.current = false;
+      }
+    },
+    [
+      activeBankProduct,
+      analysisAlreadyDone,
+      appendAssistantMessages,
+      beginTxAction,
+      effectiveDashboard,
+      generateTransactionSummary,
+      handleAssistantUploadSend,
+      isTxActionStale,
+      pendingEvidenceFiles.length,
+      requestTransactionAssistant,
+      restoreAssistantMessages,
+      setHighlightedMovementKeys,
+      setProductError,
+      setProductLoading,
+      txAssistantLoading,
+      txSendLockRef,
+    ],
+  );
+
   const handleAssistantTextSend = useCallback(async () => {
     if (!activeBankProduct || txAssistantLoading || txSendLockRef.current) return;
-    const product = activeBankProduct;
-    const productId = product.id;
-    const productSummaryText = product.assistant?.summaryText ?? null;
-    const productRegenerationsUsed = product.assistant?.summaryRegenerationsUsed ?? 0;
-    const productRegenerationsLeft = Math.max(0, 3 - productRegenerationsUsed);
-    const productMessages = product.assistant?.messages ?? [];
     const text = txAssistantInput.trim();
-    const hasAttachedFiles = pendingEvidenceFiles.length > 0;
-    const shouldUploadTextEvidence = wantsTextEvidenceUpload({
-      analysisAlreadyDone,
-      uploadFormat: product.assistant?.uploadFormat,
-      text,
-      hasAttachedFiles,
-    });
-    if (!text && !hasAttachedFiles) return;
-    txSendLockRef.current = true;
-    const txAction = beginTxAction();
-    const { sessionId, controller, finish } = txAction;
-    const previousMessages = productMessages;
-    try {
-      if (hasAttachedFiles || shouldUploadTextEvidence) {
-        await handleAssistantUploadSend(text, { includeTextAsEvidence: shouldUploadTextEvidence });
-        return;
-      }
-
-      appendAssistantMessages(productId, product, [{ role: 'user', text }]);
-      setTxAssistantInputByProduct((prev) => ({ ...prev, [productId]: '' }));
-      setProductError(productId, null);
-
-      const withUserMessage: BankProduct = {
-        ...product,
-        assistant: {
-          messages: [
-            ...productMessages,
-            {
-              id: `${Date.now()}-user`,
-              role: 'user',
-              text,
-              createdAt: new Date().toISOString(),
-            },
-          ],
-          uploadFormat: product.assistant?.uploadFormat ?? null,
-          summaryText: productSummaryText,
-          summaryModel: product.assistant?.summaryModel ?? null,
-          summaryGeneratedAt: product.assistant?.summaryGeneratedAt ?? null,
-          summaryRegenerationsUsed: productRegenerationsUsed,
-          lastSummaryFeedback: product.assistant?.lastSummaryFeedback ?? null,
-        },
-      };
-
-      const chosenFormat = inferUploadFormatFromMessage(text);
-      if (chosenFormat) {
-        appendAssistantMessages(
-          productId,
-          withUserMessage,
-          [{ role: 'assistant', text: buildUploadGuidance(chosenFormat, product.productType) }],
-          { uploadFormat: chosenFormat },
-        );
-        return;
-      }
-
-      if (asksForSummaryRegeneration(text, Boolean(productSummaryText)) && productRegenerationsLeft > 0) {
-        await generateTransactionSummary({
-          feedback: text,
-          isRegeneration: true,
-          productId,
-          productSnapshot: withUserMessage,
-        });
-        return;
-      }
-
-      setProductLoading(productId, true);
-      setProductError(productId, null);
-      const response = await requestTransactionAssistant(
-        buildTransactionChatRequest(product, {
-          mode: 'chat',
-          question: text,
-          currentSummary: productSummaryText,
-          dashboard:
-            buildChatDashboardForQuestion(effectiveDashboard, text) ??
-            compactDashboardForPrompt(effectiveDashboard, { maxMovements: 24, maxMerchants: 8 }),
-          messages: [...productMessages, { role: 'user', text }],
-        }),
-        controller.signal,
-      );
-      if (isTxActionStale(sessionId, productId)) return;
-      appendAssistantMessages(productId, withUserMessage, [
-        { role: 'assistant', text: String(response.assistant_text ?? 'Listo.') },
-      ]);
-    } catch (error) {
-      if (error instanceof DOMException && error.name === 'AbortError') return;
-      if (isTxActionStale(sessionId, productId)) return;
-      restoreAssistantMessages(productId, product, previousMessages);
-      setProductError(productId, error instanceof Error ? error.message : 'No se pudo responder.');
-    } finally {
-      finish();
-      if (!isTxActionStale(sessionId, productId)) {
-        setProductLoading(productId, false);
-      }
-      txSendLockRef.current = false;
-    }
-  }, [
-    activeBankProduct,
-    analysisAlreadyDone,
-    appendAssistantMessages,
-    beginTxAction,
-    effectiveDashboard,
-    generateTransactionSummary,
-    handleAssistantUploadSend,
-    isTxActionStale,
-    pendingEvidenceFiles.length,
-    requestTransactionAssistant,
-    restoreAssistantMessages,
-    setProductError,
-    setProductLoading,
-    txAssistantInput,
-    txAssistantLoading,
-    txSendLockRef,
-  ]);
+    if (!text && pendingEvidenceFiles.length === 0) return;
+    await submitAssistantQuestion(text);
+  }, [activeBankProduct, pendingEvidenceFiles.length, submitAssistantQuestion, txAssistantInput, txAssistantLoading, txSendLockRef]);
 
   const refineTransactionSummaryFromFocus = useCallback(
     async (source: string, focusText: string) => {
@@ -711,6 +835,9 @@ export function useTxAssistantChat(params: {
     txAssistantError,
     txUploadOnboardingStep,
     assistantMessages,
+    starterChips,
+    activeFollowups,
+    highlightedMovementKeys,
     summaryText,
     summaryGeneratedAt,
     summaryModel,
@@ -724,6 +851,7 @@ export function useTxAssistantChat(params: {
     appendPendingEvidence,
     clearPendingEvidence,
     handleAssistantTextSend,
+    submitAssistantQuestion,
     refineTransactionSummaryFromFocus,
     generateTransactionSummary,
     processingModeLabel: documentsLoading ? 'Procesando evidencia' : 'Pensando respuesta',

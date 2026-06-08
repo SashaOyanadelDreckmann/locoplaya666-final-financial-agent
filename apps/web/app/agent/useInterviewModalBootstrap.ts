@@ -28,11 +28,12 @@ type Params = {
   setSessionAlreadyCompleted: (value: boolean) => void;
   setSummaryComment: (value: string) => void;
   setSummarySubmitting: (value: boolean) => void;
-  resetVoiceRuntimeState: () => void;
+  resetVoiceRuntimeState: (options?: { preserveDiagnosisSignals?: boolean }) => void;
   applyHydratedVoiceState: (value: ReturnType<typeof deriveHydratedVoiceState>) => void;
   setSessionAlreadyCompletedVoice: (value: any) => void;
   setLatestDiagnosticProfileId: (value: string | null) => void;
   setResponse: (value: any) => void;
+  onDiagnosisOnlyOpen?: () => void;
 };
 
 export function useInterviewModalBootstrap(params: Params) {
@@ -56,6 +57,7 @@ export function useInterviewModalBootstrap(params: Params) {
     setSessionAlreadyCompletedVoice,
     setLatestDiagnosticProfileId,
     setResponse,
+    onDiagnosisOnlyOpen,
   } = params;
 
   useEffect(() => {
@@ -68,7 +70,6 @@ export function useInterviewModalBootstrap(params: Params) {
     setSessionAlreadyCompleted(false);
     setSummaryComment('');
     setSummarySubmitting(false);
-    resetVoiceRuntimeState();
 
     async function hydrateInterviewContext() {
       try {
@@ -81,6 +82,15 @@ export function useInterviewModalBootstrap(params: Params) {
           typeof session?.latestDiagnosticProfileId === 'string' && session.latestDiagnosticProfileId.length > 0
             ? session.latestDiagnosticProfileId
             : null;
+        const diagnosisOnly = Boolean(
+          sessionDiagnosticProfileId ||
+            (typeof session?.latestDiagnosticCompletedAt === 'string' &&
+              session.latestDiagnosticCompletedAt.length > 0),
+        );
+
+        if (!cancelled) {
+          resetVoiceRuntimeState({ preserveDiagnosisSignals: diagnosisOnly });
+        }
 
         const mergedIntake = mergeInterviewIntake(
           intake,
@@ -104,10 +114,12 @@ export function useInterviewModalBootstrap(params: Params) {
           const snapshot = mergeInterviewVoiceSnapshots(localSaved, sessionVoice);
           const hydrated = deriveHydratedVoiceState({ snapshot, sessionDiagnosticProfileId });
 
-          if (hydrated.sessionAlreadyCompleted) {
+          if (hydrated.sessionAlreadyCompleted || diagnosisOnly) {
             setSessionAlreadyCompleted(true);
+            bootedRef.current = true;
             if (hydrated.voiceReport) setSessionAlreadyCompletedVoice(hydrated.voiceReport);
             if (hydrated.latestDiagnosticProfileId) setLatestDiagnosticProfileId(hydrated.latestDiagnosticProfileId);
+            onDiagnosisOnlyOpen?.();
             return;
           }
 
@@ -146,6 +158,7 @@ export function useInterviewModalBootstrap(params: Params) {
     setSessionAlreadyCompletedVoice,
     setSummaryComment,
     setSummarySubmitting,
+    onDiagnosisOnlyOpen,
   ]);
 
   useEffect(() => {

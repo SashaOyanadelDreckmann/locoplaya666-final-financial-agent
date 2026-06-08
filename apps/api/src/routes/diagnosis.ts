@@ -1,7 +1,6 @@
 import { Router } from 'express';
 import type { Request, Response } from 'express';
-import { loadProfile } from '../services/storage.service';
-import { loadUserById } from '../services/user.service';
+import { resolveUserDiagnosticProfile } from '../services/diagnostic-profile.service';
 import { notFound } from '../http/api.errors';
 import { sendSuccess } from '../http/api.responses';
 import { asyncHandler } from '../middleware/errorHandler';
@@ -16,19 +15,9 @@ async function loadLatestDiagnosis(req: Request, res: Response) {
     throw notFound('User not found');
   }
 
-  const hydratedUser = await loadUserById(user.id);
-  if (!hydratedUser) {
-    throw notFound('User not found');
-  }
-
-  const latestProfileId = hydratedUser.latestDiagnosticProfileId;
-  if (!latestProfileId) {
-    throw notFound('No diagnosis found for this user');
-  }
-
-  const profile = await loadProfile(latestProfileId);
+  const profile = await resolveUserDiagnosticProfile(user);
   if (!profile) {
-    throw notFound('Stored diagnosis could not be loaded');
+    throw notFound('No diagnosis found for this user');
   }
 
   return sendSuccess(res, profile);

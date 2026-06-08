@@ -26,6 +26,7 @@ export default function DiagnosisPage() {
     error,
     hasDiagnosis,
     loadProfileIfNeeded,
+    refreshProfile,
   } = useProfileStore();
 
   /* ────────────────────────────── */
@@ -62,9 +63,20 @@ export default function DiagnosisPage() {
     return (
       <div>
         <div className="app-content">
-          <p style={{ color: 'rgba(255,120,120,0.9)' }}>
-            {error}
-          </p>
+          <p style={{ color: 'rgba(255,120,120,0.9)' }}>{error}</p>
+          <div className="diagnosis-hero-actions" style={{ marginTop: 16 }}>
+            <button
+              type="button"
+              className="button-primary"
+              onClick={() => void refreshProfile()}
+              disabled={loading}
+            >
+              {loading ? 'Reintentando…' : 'Reintentar carga'}
+            </button>
+            <button type="button" className="continue-ghost" onClick={() => router.push('/agent')}>
+              Volver al agente
+            </button>
+          </div>
         </div>
       </div>
     );

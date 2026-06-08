@@ -8,13 +8,22 @@ import { parseBody } from '../http/parse';
 import { getUserDocumentsByIds } from '../persistence/repos';
 import {
   buildChatDashboardForQuestion,
+  buildTransactionSuggestedFollowups,
+  collectRetrievalSignalsUsed,
   compactChatHistory,
   compactDashboardForPrompt,
   compactDocumentsForPrompt,
   compactTxText,
+  extractQuestionSignals,
+  type MovementRow,
 } from '@financial-agent/shared';
 import { forbidden, notFound } from '../http/api.errors';
 import { completeStructuredWithSchema } from '../services/llm.service';
+import {
+  movementKeysFromRetrieval,
+  planTransactionsAssistantTurn,
+} from '../services/transactions-chat-planner.service';
+import { polishTransactionsAssistantCopy } from '../services/transactions-chat-writer.service';
 
 type AssistantMessage = {
   role?: 'assistant' | 'user';
@@ -250,20 +259,60 @@ router.post(
       typeof dashboardDigest === 'object' &&
       dashboardDigest !== null &&
       'retrieval' in dashboardDigest
-        ? (dashboardDigest as { retrieval?: { mode?: string; matchedCount?: number } }).retrieval
+        ? (dashboardDigest as {
+            retrieval?: {
+              mode?: 'targeted' | 'overview';
+              matchedCount?: number;
+              signals?: ReturnType<typeof extractQuestionSignals>;
+            };
+          }).retrieval
         : null;
+    const retrievalMode = retrievalMeta?.mode ?? 'overview';
+    const matchedCount = retrievalMeta?.matchedCount ?? 0;
+    const retrievalSignals = retrievalMeta?.signals ?? extractQuestionSignals(retrievalQuestion);
+    const signalsUsed = collectRetrievalSignalsUsed(retrievalSignals);
+    const allMovements = Array.isArray((dashboard as { movements?: MovementRow[] } | null)?.movements)
+      ? ((dashboard as { movements: MovementRow[] }).movements ?? [])
+      : [];
+
+    const deterministicPlan = planTransactionsAssistantTurn({
+      question: retrievalQuestion,
+      dashboard,
+    });
+
+    if (deterministicPlan) {
+      const polished = await polishTransactionsAssistantCopy({
+        deterministicReply: deterministicPlan.assistant_text,
+        question: retrievalQuestion,
+        retrievalMode: deterministicPlan.retrieval_mode,
+        signals: retrievalSignals,
+        matchedCount: deterministicPlan.matched_count,
+      });
+      return res.json({
+        ok: true,
+        assistant_text: compactTxText(polished?.reply ?? deterministicPlan.assistant_text, 1200),
+        suggested_followups: deterministicPlan.suggested_followups.slice(0, 3),
+        referenced_movement_keys: deterministicPlan.referenced_movement_keys.slice(0, 12),
+        signals_used: deterministicPlan.signals_used,
+        retrieval_mode: deterministicPlan.retrieval_mode,
+        matched_count: deterministicPlan.matched_count,
+        source: polished ? 'deterministic+writer' : 'deterministic',
+        model: polished?.model ?? 'deterministic',
+      });
+    }
 
     const systemPrompt = [
       'Eres un asistente de transacciones financiero para Chile.',
-      'Responde en español, tono profesional, máximo 4 oraciones.',
+      'Responde en español, tono profesional, máximo 5 oraciones.',
       'Usa el resumen, métricas agregadas y los movimientos recuperados.',
-      retrievalMeta?.mode === 'targeted'
-        ? `Los movimientos incluidos fueron recuperados por relevancia a la pregunta (${retrievalMeta.matchedCount ?? 0} coincidencias). Priorízalos.`
+      retrievalMode === 'targeted'
+        ? `Los movimientos incluidos fueron recuperados por relevancia a la pregunta (${matchedCount} coincidencias). Priorízalos.`
         : 'Los movimientos incluidos son una muestra representativa para preguntas generales.',
       'Si falta un dato puntual, dilo y pide el detalle exacto.',
+      'Incluye hasta 3 preguntas de seguimiento útiles en suggested_followups.',
     ].join(' ');
 
-    const docsDigest = compactDocumentsForPrompt(canonicalDocuments, { maxDocs: mode === 'chat' ? 4 : 6, maxText: mode === 'chat' ? 600 : 1200 });
+    const docsDigest = compactDocumentsForPrompt(canonicalDocuments, { maxDocs: 4, maxText: 600 });
     const contextBlock = [
       `Producto=${JSON.stringify(product)}`,
       `Pregunta=${JSON.stringify(retrievalQuestion)}`,
@@ -277,14 +326,26 @@ router.post(
       additionalProperties: false,
       properties: {
         assistant_text: { type: 'string' },
+        suggested_followups: {
+          type: 'array',
+          items: { type: 'string' },
+        },
+        referenced_movement_keys: {
+          type: 'array',
+          items: { type: 'string' },
+        },
       },
-      required: ['assistant_text'],
+      required: ['assistant_text', 'suggested_followups', 'referenced_movement_keys'],
     } as const;
-    const response = await completeStructuredWithSchema<{ assistant_text?: string }>({
+    const response = await completeStructuredWithSchema<{
+      assistant_text?: string;
+      suggested_followups?: string[];
+      referenced_movement_keys?: string[];
+    }>({
       name: 'transactions_chat_reply',
       description: 'Respuesta conversacional para el modal de transacciones.',
       model: chatModel,
-      maxOutputTokens: 180,
+      maxOutputTokens: 360,
       temperature: 0.3,
       instructions: systemPrompt,
       input: [
@@ -300,11 +361,26 @@ router.post(
       schema: chatSchema,
     });
 
+    const llmFollowups = Array.isArray(response.suggested_followups)
+      ? response.suggested_followups.map((item) => compactTxText(item, 120)).filter(Boolean)
+      : [];
+    const fallbackFollowups = buildTransactionSuggestedFollowups(retrievalQuestion, dashboard, {
+      retrievalMode,
+    });
+    const referencedKeys = Array.isArray(response.referenced_movement_keys)
+      ? response.referenced_movement_keys.map((item) => compactTxText(item, 180)).filter(Boolean)
+      : movementKeysFromRetrieval(retrievalQuestion, allMovements);
+
     return res.json({
       ok: true,
       assistant_text: compactTxText(response.assistant_text ?? '', 1200) || 'Listo.',
+      suggested_followups: (llmFollowups.length > 0 ? llmFollowups : fallbackFollowups).slice(0, 3),
+      referenced_movement_keys: referencedKeys.slice(0, 12),
+      signals_used: signalsUsed,
+      retrieval_mode: retrievalMode,
+      matched_count: matchedCount,
+      source: 'llm',
       model: chatModel,
-      retrieval_mode: retrievalMeta?.mode ?? 'overview',
     });
   }),
 );

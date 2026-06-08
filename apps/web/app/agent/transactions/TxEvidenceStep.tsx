@@ -11,9 +11,10 @@ import {
 import { TxParseProgress } from './TxParseProgress';
 import { TxIndicativeNotice } from './TxIndicativeNotice';
 import { normalizeUploadFormat } from './tx-assistant.helpers';
+import { TxChatFollowupChips, TxChatMessageBubble, TxChatStarterChips } from './tx-chat-ui';
 import { readProductEvidenceFidelity } from '@/lib/evidence-fidelity.helpers';
 import type { DocumentsParseProgress } from '@/lib/transactions-parse-progress.helpers';
-import type { BankProduct, TxUploadFormat } from './types';
+import type { BankProduct, TxAssistantMessage, TxChatStarterChip, TxUploadFormat } from './types';
 
 const EVIDENCE_FILE_ACCEPT =
   'image/*,.png,.jpg,.jpeg,.webp,.gif,.pdf,.xls,.xlsx,.csv,.txt,.md';
@@ -62,12 +63,10 @@ export interface TxEvidenceStepProps {
   currentStage: string;
   scrollRef: Ref<HTMLDivElement>;
   chatThreadRef?: Ref<HTMLDivElement>;
-  assistantMessages: Array<{
-    id: string;
-    role: 'assistant' | 'user';
-    text: string;
-    attachments?: string[];
-  }>;
+  assistantMessages: TxAssistantMessage[];
+  starterChips?: TxChatStarterChip[];
+  activeFollowups?: string[];
+  highlightedMovementKeys?: string[];
   analysisAlreadyDone: boolean;
   txUploadOnboardingStep: 'format' | 'details' | 'upload';
   selectedUploadFormat: TxUploadFormat | null;
@@ -91,6 +90,7 @@ export interface TxEvidenceStepProps {
   onAppendPendingEvidence: (files: FileList | null) => void | Promise<void>;
   onAssistantInputChange: (value: string) => void;
   onAssistantSend: () => void;
+  onAskSuggestedQuestion?: (question: string) => void;
   onRefineSummary: (source: string, body: string) => void;
   onGoToAnalyst: () => void;
   onRegenerateSummary: () => void;
@@ -196,25 +196,30 @@ export function TxEvidenceStep(props: TxEvidenceStepProps) {
             </p>
           ) : (
             p.assistantMessages.map((message) => (
-              <div
+              <TxChatMessageBubble
                 key={message.id}
-                className={`tx-chat-bubble ${message.role === 'user' ? 'is-user' : 'is-assistant'}`}
-              >
-                <div className="tx-chat-bubble-role">{message.role === 'user' ? 'Tú' : 'Asistente'}</div>
-                <div className="tx-chat-bubble-text">{message.text}</div>
-                {message.attachments && message.attachments.length > 0 && (
-                  <div className="tx-chat-bubble-attachments">
-                    {message.attachments.map((attachment) => (
-                      <span key={attachment} className="upload-file-pill" title={attachment}>
-                        {attachment}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
+                message={message}
+                highlightedMovementKeys={p.highlightedMovementKeys}
+              />
             ))
           )}
         </div>
+
+        {p.analysisAlreadyDone && p.starterChips && p.starterChips.length > 0 ? (
+          <TxChatStarterChips
+            chips={p.starterChips}
+            disabled={p.txAssistantLoading || p.documentsLoading}
+            onSelect={(question) => p.onAskSuggestedQuestion?.(question)}
+          />
+        ) : null}
+
+        {p.analysisAlreadyDone && p.activeFollowups && p.activeFollowups.length > 0 ? (
+          <TxChatFollowupChips
+            followups={p.activeFollowups}
+            disabled={p.txAssistantLoading || p.documentsLoading}
+            onSelect={(question) => p.onAskSuggestedQuestion?.(question)}
+          />
+        ) : null}
 
         {!p.analysisAlreadyDone && (
           <div className="tx-format-rail" role="group" aria-label="Formato de evidencia">

@@ -54,7 +54,7 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
   const profileLoading = useProfileStore((s) => s.loading);
   const profileError = useProfileStore((s) => s.error);
   const hasDiagnosis = useProfileStore((s) => s.hasDiagnosis);
-  const { setProfile, refreshProfile } = useProfileStore();
+  const { setProfile, refreshProfile, loadProfileIfNeeded } = useProfileStore();
   const [intakeReady, setIntakeReady] = useState(false);
   const [summaryComment, setSummaryComment] = useState('');
   const [summarySubmitting, setSummarySubmitting] = useState(false);
@@ -174,6 +174,10 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
     setSessionAlreadyCompletedVoice,
     setLatestDiagnosticProfileId,
     setResponse,
+    onDiagnosisOnlyOpen: () => {
+      void loadProfileIfNeeded();
+      void refreshProfile();
+    },
   });
 
   useInterviewModalA11y({

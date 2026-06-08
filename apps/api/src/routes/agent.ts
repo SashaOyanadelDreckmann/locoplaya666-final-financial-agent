@@ -41,7 +41,7 @@ import { sendSuccess } from '../http/api.responses';
 import { parseBody } from '../http/parse';
 import { hasPermission, PERMISSIONS, type UserRole } from '../auth/rbac';
 import { listAdminUsersFullDump } from '../services/admin.service';
-import { loadProfile } from '../services/storage.service';
+import { resolveUserDiagnosticProfile } from '../services/diagnostic-profile.service';
 import { getConfig } from '../config';
 import { fetchIndicador } from '../mcp/tools/market/mindicadorClient';
 import {
@@ -1082,13 +1082,14 @@ router.get(
         : null;
 
     const lifecycleState = getLifecycleFromMemory(user.memoryBlob);
+    const resolvedDiagnosticProfile = await resolveUserDiagnosticProfile(user);
 
     return sendSuccess(res, {
       id: user.id,
       name: user.name,
       email: user.email,
       role: user.role,
-      injectedProfile: user.injectedProfile,
+      injectedProfile: resolvedDiagnosticProfile ?? user.injectedProfile,
       injectedIntake,
       interviewVoice,
       latestDiagnosticProfileId: user.latestDiagnosticProfileId,
@@ -1150,11 +1151,7 @@ router.post(
 
     normalizedInput.user_name = normalizedInput.user_name ?? authedUser.name;
 
-    const resolvedDiagnosticProfile =
-      authedUser.injectedProfile ??
-      (authedUser.latestDiagnosticProfileId
-        ? await loadProfile(authedUser.latestDiagnosticProfileId)
-        : null);
+    const resolvedDiagnosticProfile = await resolveUserDiagnosticProfile(authedUser);
 
     if (resolvedDiagnosticProfile) {
       normalizedInput.context = {

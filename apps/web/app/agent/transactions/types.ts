@@ -1,16 +1,28 @@
 export type TxWizardStep = 'products' | 'credentials' | 'upload' | 'dashboard';
 export type TxUploadOnboardingStep = 'format' | 'details' | 'upload';
 export type TxUploadFormat = 'photos' | 'pdf' | 'spreadsheet' | 'text';
+
+export type TxAssistantRetrievalMeta = {
+  mode: 'targeted' | 'overview';
+  matchedCount: number;
+  signalsUsed: string[];
+};
+
+export type TxAssistantMessage = {
+  id: string;
+  role: 'assistant' | 'user';
+  text: string;
+  createdAt: string;
+  attachments?: string[];
+  retrievalMeta?: TxAssistantRetrievalMeta;
+  suggestedFollowups?: string[];
+  referencedMovementKeys?: string[];
+  source?: 'deterministic' | 'llm' | 'deterministic+writer' | 'client-deterministic';
+};
 export type BankProduct = {
   id: string; label: string; bank: string; simulationAccepted: boolean; connected: boolean; randomMode: boolean;
   assistant?: {
-    messages: Array<{
-      id: string;
-      role: 'assistant' | 'user';
-      text: string;
-      createdAt: string;
-      attachments?: string[];
-    }>;
+    messages: Array<TxAssistantMessage>;
     uploadFormat?: TxUploadFormat | null;
     summaryText?: string | null;
     summaryModel?: string | null;
