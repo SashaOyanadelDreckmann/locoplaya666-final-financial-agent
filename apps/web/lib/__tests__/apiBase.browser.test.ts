@@ -5,6 +5,7 @@ import {
   getDocumentParseRequestUrl,
   getSessionApiBaseUrl,
   getUploadApiBaseUrl,
+  resolveDocumentUrl,
 } from '../apiBase';
 
 describe('apiBase browser', () => {
@@ -65,5 +66,21 @@ describe('apiBase browser', () => {
       writable: true,
     });
     expect(getDocumentParseRequestUrl()).toBe('/api/documents/parse');
+  });
+
+  it('resolveDocumentUrl keeps bubble PDF routes on the web app origin', () => {
+    Object.defineProperty(window, 'location', {
+      value: { origin: 'https://financieramente.up.railway.app' },
+      configurable: true,
+    });
+    expect(
+      resolveDocumentUrl('/api/reports/bubble-pdf-file?file=report.pdf')
+    ).toBe('https://financieramente.up.railway.app/api/reports/bubble-pdf-file?file=report.pdf');
+  });
+
+  it('resolveDocumentUrl routes API PDFs through /backend proxy', () => {
+    expect(resolveDocumentUrl('/api/pdfs/serve?file=report.pdf')).toBe(
+      '/backend/api/pdfs/serve?file=report.pdf'
+    );
   });
 });

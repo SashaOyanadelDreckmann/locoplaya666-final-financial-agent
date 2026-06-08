@@ -66,7 +66,7 @@ function HighlightedTypewriter({
   const [visibleLength, setVisibleLength] = useState(0);
 
   const segments = useMemo(
-    () => applyHighlightNeighborBleed(parseAgentHeroSegments(text, terms), 1),
+    () => applyHighlightNeighborBleed(parseAgentHeroSegments(text, terms), 0),
     [text, terms],
   );
 
@@ -112,7 +112,7 @@ export function AgentHeroText({
   return (
     <h1
       className={cn(
-        'bcc-hero-question bcc-hero-question--gradient-demo text-center text-4xl font-bold tracking-tighter md:text-5xl lg:text-7xl',
+        'bcc-hero-question bcc-hero-question--gradient-demo text-center text-4xl font-bold md:text-5xl lg:text-7xl',
         pending && 'bcc-hero-question--pending',
         className,
       )}

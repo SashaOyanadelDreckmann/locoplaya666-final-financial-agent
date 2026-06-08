@@ -188,20 +188,27 @@ export function applyHighlightNeighborBleed(
     if (!result[i]?.highlight) continue;
 
     if (i > 0 && result[i - 1] && !result[i - 1].highlight) {
-      const { peeled, remainder } = peelTrailingWordChars(result[i - 1].text, bleedChars);
-      if (peeled) {
-        result[i - 1].text = remainder;
-        result[i].text = peeled + result[i].text;
+      const prevText = result[i - 1].text;
+      // Solo sangrar dentro de la misma palabra; no robar letras antes de un espacio.
+      if (!/\s$/.test(prevText)) {
+        const { peeled, remainder } = peelTrailingWordChars(prevText, bleedChars);
+        if (peeled) {
+          result[i - 1].text = remainder;
+          result[i].text = peeled + result[i].text;
+        }
       }
     }
 
     if (i < result.length - 1 && result[i + 1] && !result[i + 1].highlight) {
       const nextText = result[i + 1].text;
       const leadingSpaces = nextText.match(/^[ \t]+/)?.[0] ?? '';
-      const { peeled, remainder } = peelLeadingWordChars(nextText, bleedChars);
-      if (peeled) {
-        result[i + 1].text = remainder;
-        result[i].text = result[i].text + (leadingSpaces ? ' ' : '') + peeled;
+      // Solo sangrar si el siguiente tramo empieza en la misma palabra (sin espacio).
+      if (!leadingSpaces) {
+        const { peeled, remainder } = peelLeadingWordChars(nextText, bleedChars);
+        if (peeled) {
+          result[i + 1].text = remainder;
+          result[i].text = result[i].text + peeled;
+        }
       }
     }
   }

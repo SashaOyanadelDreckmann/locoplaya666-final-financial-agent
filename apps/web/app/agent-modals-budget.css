@@ -110,13 +110,14 @@
   font-size: 1rem !important;
   font-weight: 400 !important;
   line-height: 1.48 !important;
-  letter-spacing: -0.01em !important;
+  letter-spacing: 0 !important;
   color: rgba(255,255,255,0.92) !important;
   margin: 0 !important;
   display: block !important;
   max-width: 100% !important;
-  overflow-wrap: anywhere !important;
-  word-break: break-word !important;
+  overflow-wrap: break-word !important;
+  word-break: normal !important;
+  hyphens: none !important;
   text-wrap: pretty !important;
 }
 
@@ -8362,9 +8363,9 @@
   min-width: 0 !important;
   margin-inline: 0 !important;
   box-sizing: border-box !important;
-  overflow-wrap: anywhere !important;
-  word-break: break-word !important;
-  hyphens: auto !important;
+  overflow-wrap: break-word !important;
+  word-break: normal !important;
+  hyphens: none !important;
 }
 
 .budget-modal .budget-modal-body .budget-main-carousel.mode-agent-front > .budget-card-agent .bcc-hero,

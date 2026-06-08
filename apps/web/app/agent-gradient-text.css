@@ -1,13 +1,9 @@
 /* Agent hero — keyword gradient + typewriter (no blob overlays) */
 
-@keyframes agent-keyword-gradient-shift {
-  0%,
-  100% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
+.budget-modal {
+  --color-1: 6 84% 58%;
+  --color-2: 196 80% 52%;
+  --color-3: 40 94% 56%;
 }
 
 .budget-modal .bcc-hero-question--gradient-demo {
@@ -16,14 +12,16 @@
   padding: 0.15rem 0 0.35rem !important;
   display: block !important;
   text-align: center !important;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif !important;
   font-size: 2.25rem !important;
   font-weight: 700 !important;
-  letter-spacing: -0.05em !important;
-  line-height: 1.1 !important;
-  color: #ffffff !important;
+  letter-spacing: 0 !important;
+  line-height: 1.18 !important;
+  color: #f4f4f5 !important;
   text-wrap: pretty !important;
-  overflow-wrap: anywhere !important;
-  word-break: break-word !important;
+  overflow-wrap: break-word !important;
+  word-break: normal !important;
+  hyphens: none !important;
   overflow: hidden !important;
   position: relative !important;
 }
@@ -43,9 +41,9 @@
 .budget-modal .bcc-hero-question--gradient-demo.bcc-hero-question--pending {
   font-size: 1.05rem !important;
   font-weight: 500 !important;
-  letter-spacing: -0.02em !important;
+  letter-spacing: 0 !important;
   line-height: 1.4 !important;
-  color: rgba(255, 255, 255, 0.55) !important;
+  color: rgba(244, 244, 245, 0.62) !important;
 }
 
 @media (max-width: 1023px) {
@@ -54,7 +52,7 @@
   .budget-modal.is-mobile-shell .budget-assistant-panel .bcc-hero-question--gradient-demo {
     font-size: clamp(1.45rem, 6.2vw, 1.85rem) !important;
     font-weight: 700 !important;
-    letter-spacing: -0.045em !important;
+    letter-spacing: 0 !important;
     line-height: 1.14 !important;
     text-align: center !important;
     text-shadow: 0 2px 18px rgba(0, 0, 0, 0.55) !important;
@@ -73,38 +71,31 @@
   display: inline !important;
   position: static !important;
   vertical-align: baseline !important;
-  white-space: pre-wrap !important;
+  white-space: normal !important;
 }
 
 .budget-modal .bcc-hero-plain-chunk {
   color: inherit !important;
 }
 
-/* Palabras clave: gradiente mate recortado al texto, sin cajas ni blobs */
-.agent-keyword-gradient {
+/* Palabras clave: gradiente mate opaco recortado al texto, sin cajas ni blobs */
+.budget-modal .agent-keyword-gradient {
   display: inline !important;
   position: static !important;
   padding: 0 !important;
   margin: 0 !important;
   background-image: linear-gradient(
     100deg,
-    hsl(var(--color-1) / 0.95) 0%,
-    hsl(var(--color-3) / 0.92) 42%,
-    hsl(var(--color-2) / 0.94) 100%
+    hsl(var(--color-1)) 0%,
+    hsl(var(--color-3)) 46%,
+    hsl(var(--color-2)) 100%
   ) !important;
-  background-size: 200% auto !important;
+  background-size: 100% auto !important;
   background-clip: text !important;
   -webkit-background-clip: text !important;
   color: transparent !important;
   -webkit-text-fill-color: transparent !important;
-  animation: agent-keyword-gradient-shift 9s ease-in-out infinite alternate !important;
-  filter: saturate(0.82) !important;
+  animation: none !important;
+  filter: none !important;
   text-shadow: none !important;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .agent-keyword-gradient {
-    animation: none !important;
-    background-position: 50% 50% !important;
-  }
 }

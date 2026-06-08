@@ -2,6 +2,7 @@ import React, { type ReactElement } from 'react';
 
 import { AnimatedPanelCard } from '../../components/AnimatedPanelCard';
 import ProfileCard from '../../components/ProfileCard';
+import { resolvePanelDiagnosisProfile } from '@/lib/diagnosis-session';
 import { resolveDocumentUrl } from './page.utils';
 
 type PanelCard = { key: string; node: ReactElement };
@@ -78,6 +79,11 @@ function RecentDocumentPreview(props: { title: string; previewImageUrl?: string 
 }
 
 export function buildPanelBaseCards(props: PanelCardsProps): PanelCard[] {
+  const resolvedDiagnosisProfile = resolvePanelDiagnosisProfile(
+    props.sessionInfo?.injectedProfile,
+    props.profile,
+  );
+
   return [
     {
       key: 'profile',
@@ -88,17 +94,13 @@ export function buildPanelBaseCards(props: PanelCardsProps): PanelCard[] {
             data-panel-section="profile"
             userName={props.sessionInfo?.name ?? undefined}
             intake={props.sessionInfo?.injectedIntake}
-            profile={
-              props.sessionInfo?.injectedProfile
-                ? { profile: props.sessionInfo.injectedProfile }
-                : props.profile
-            }
-            injected={Boolean(props.sessionInfo?.injectedProfile)}
+            profile={resolvedDiagnosisProfile ?? props.profile}
+            injected={Boolean(resolvedDiagnosisProfile)}
             compactQuestionnaireCta
             onOpenQuestionnaire={() => props.setIsQuestionnaireModalOpen(true)}
             onCardClick={() => props.setIsAccountModalOpen(true)}
             actions={
-              props.sessionInfo?.injectedProfile || props.sessionInfo?.injectedIntake ? (
+              resolvedDiagnosisProfile || props.sessionInfo?.injectedIntake ? (
                 <>
                   {props.sessionInfo?.injectedIntake ? (
                     <button
@@ -111,7 +113,7 @@ export function buildPanelBaseCards(props: PanelCardsProps): PanelCard[] {
                       Remover intake inyectado
                     </button>
                   ) : null}
-                  {props.sessionInfo?.injectedProfile ? (
+                  {resolvedDiagnosisProfile ? (
                     <button
                       className="continue-ghost profile-inline-action"
                       onClick={async () => {

@@ -34,12 +34,12 @@ describe('agent-hero-highlight.helpers', () => {
     ]);
   });
 
-  it('bleeds one neighbor letter into highlighted arcade words', () => {
+  it('does not steal letters across word boundaries when bleeding gradient neighbors', () => {
     const base = parseAgentHeroSegments('Para Alimentación dejé ', ['Alimentación']);
     expect(applyHighlightNeighborBleed(base, 1)).toEqual([
-      { text: 'Par ', highlight: false },
-      { text: 'aAlimentación d', highlight: true },
-      { text: ' ejé ', highlight: false },
+      { text: 'Para ', highlight: false },
+      { text: 'Alimentación', highlight: true },
+      { text: ' dejé ', highlight: false },
     ]);
   });
 

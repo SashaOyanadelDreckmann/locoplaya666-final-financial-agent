@@ -1,4 +1,4 @@
-import { getApiBaseUrl, getAppBaseUrl } from '@/lib/apiBase';
+import { resolveDocumentUrl as resolveDocumentUrlFromApiBase } from '@/lib/apiBase';
 export {
   hasCompletedIntakeAccess,
   hasMeaningfulIntake,
@@ -301,12 +301,7 @@ export function getChatDisplayTitle(params: {
 }
 
 export function resolveDocumentUrl(raw: string): string {
-  if (!raw) return '#';
-  if (/^(https?:\/\/|blob:|data:)/i.test(raw)) return raw;
-  const isLocalAsset = raw.startsWith('/generated/') || raw.startsWith('/planes/');
-  const base = isLocalAsset ? getAppBaseUrl() : getApiBaseUrl();
-  if (raw.startsWith('/')) return `${base}${raw}`;
-  return `${base}/${raw.replace(/^\/+/, '')}`;
+  return resolveDocumentUrlFromApiBase(raw);
 }
 
 export function firstNameOf(value: unknown): string {

@@ -209,4 +209,50 @@ describe('diagnosis persistence integration', () => {
       'Diagnóstico persistido de integración',
     );
   }, 20000);
+
+  it('exposes resolved profile through GET /api/session after finalize', async () => {
+    const request = (await import('supertest')).default;
+    const { createApp } = await import('../app');
+    const { createApprovalToken } = await import('./approval.service');
+    const app = createApp();
+    const agent = request.agent(app);
+    const suffix = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    const email = `session-${suffix}@example.com`;
+
+    const registerRes = await agent.post('/auth/register').send({
+      name: 'Session Diagnosis',
+      email,
+      password: 'Secret123',
+    });
+    const userId = String(registerRes.body?.data?.user?.id ?? '');
+    const token = createApprovalToken({
+      userId,
+      adminEmail: 'sasha.oyanadel@ug.uchile.cl',
+    });
+    await request(app).get(`/auth/approve?token=${encodeURIComponent(token)}`);
+    await agent.post('/auth/login').send({ email, password: 'Secret123' });
+
+    const sessionBefore = await agent.get('/api/session');
+    expect(sessionBefore.body.data.injectedProfile).toBeFalsy();
+
+    const csrfToken = String(sessionBefore.headers['x-csrf-token']);
+    const finalizeRes = await agent
+      .post('/conversation/voice/finalize')
+      .set('x-csrf-token', csrfToken)
+      .send({
+        intake: { hasDebt: true },
+        minuteSummaries: [{ minute: 1, summary: 'Sesión integrada', keyFindings: ['Sesión'] }],
+        finalSummary: { summary: 'Sesión final', keyFindings: ['Sesión'] },
+        endedBy: 'agent',
+        durationSec: 20,
+        callId: `session-${suffix}`,
+      });
+    expect(finalizeRes.status).toBe(200);
+
+    const sessionAfter = await agent.get('/api/session');
+    expect(sessionAfter.body.data.latestDiagnosticCompletedAt).toBeTruthy();
+    expect(sessionAfter.body.data.injectedProfile?.diagnosticNarrative).toBe(
+      'Diagnóstico persistido de integración',
+    );
+  }, 20000);
 });

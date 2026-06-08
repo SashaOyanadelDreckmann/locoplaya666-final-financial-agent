@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useInterviewStore } from '@/state/interview.store';
 import { useProfileStore } from '@/state/profile.store';
 
+import { syncDiagnosisSession } from '@/lib/diagnosis-session';
 import { getSessionInfo, nextConversationStep } from '@/lib/api';
 import { ApiHttpError } from '@/lib/apiEnvelope';
 import { toUserFacingError } from '@/lib/userError';
@@ -54,7 +55,7 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
   const profileLoading = useProfileStore((s) => s.loading);
   const profileError = useProfileStore((s) => s.error);
   const hasDiagnosis = useProfileStore((s) => s.hasDiagnosis);
-  const { setProfile, refreshProfile, loadProfileIfNeeded } = useProfileStore();
+  const { setProfile, refreshProfile } = useProfileStore();
   const [intakeReady, setIntakeReady] = useState(false);
   const [summaryComment, setSummaryComment] = useState('');
   const [summarySubmitting, setSummarySubmitting] = useState(false);
@@ -175,8 +176,7 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
     setLatestDiagnosticProfileId,
     setResponse,
     onDiagnosisOnlyOpen: () => {
-      void loadProfileIfNeeded();
-      void refreshProfile();
+      void syncDiagnosisSession();
     },
   });
 

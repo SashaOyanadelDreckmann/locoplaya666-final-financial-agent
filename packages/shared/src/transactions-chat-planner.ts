@@ -101,7 +101,22 @@ function matchesAny(blob: string, tokens: string[]): boolean {
 }
 
 const METRIC_INTENTS = {
-  outflows: ['egreso', 'egresos', 'gasto', 'gastos', 'cargo', 'cargos', 'outflow', 'outflows', 'gaste', 'gastado', 'gasté'],
+  outflows: [
+    'egreso total',
+    'egresos totales',
+    'total egresos',
+    'total de egresos',
+    'gasto total',
+    'gastos totales',
+    'total gastos',
+    'total de gastos',
+    'cuanto gaste en total',
+    'cuánto gasté en total',
+    'cuanto gaste total',
+    'cuánto gasté total',
+    'outflow',
+    'outflows',
+  ],
   inflows: ['ingreso', 'ingresos', 'abono', 'abonos', 'inflow', 'inflows', 'recibi', 'recibí', 'entrada', 'entradas'],
   netFlow: ['flujo neto', 'neto', 'balance', 'saldo neto', 'resultado', 'quedo', 'quedó', 'queda'],
   movementCount: ['cuantos movimientos', 'cuántos movimientos', 'cantidad de movimientos', 'numero de movimientos', 'número de movimientos', 'cuantas transacciones', 'cuántas transacciones'],
@@ -237,6 +252,33 @@ export function planDeterministicTransactionAnswer(
       exclude: [question],
     });
 
+  const keywordHits = topKeywordMatches(blob, signals.keywords);
+  if (keywordHits.length > 0 && movements.length > 0) {
+    const matched = movements.filter((row) => keywordHits.some((keyword) => movementSearchBlob(row).includes(keyword)));
+    if (matched.length > 0) {
+      const expenseTotal = sumMovements(matched, 'expense');
+      const incomeTotal = sumMovements(matched, 'income');
+      const label = keywordHits[0];
+      const dominant =
+        expenseTotal >= incomeTotal
+          ? `gastos por ${formatTxClp(expenseTotal, currency)}`
+          : `abonos por ${formatTxClp(incomeTotal, currency)}`;
+      const sample = matched
+        .slice(0, 2)
+        .map((row) => `${row.date ?? 's/f'} · ${row.merchant ?? row.description ?? row.label ?? 'Movimiento'} · ${formatTxClp(movementAmount(row), currency)}`)
+        .join(' | ');
+      return {
+        reply: `Encontré ${matched.length} movimiento${matched.length === 1 ? '' : 's'} relacionados con "${label}" (${dominant}). Ejemplos: ${sample}.`,
+        suggestedFollowups: buildTransactionSuggestedFollowups(question, digest, {
+          retrievalMode: 'targeted',
+          exclude: [question],
+        }),
+        referencedMovementKeys: matched.map((row) => buildMovementPromptKey(row)),
+        source: 'deterministic',
+      };
+    }
+  }
+
   const intent = detectMetricIntent(blob);
   const period = periodLabel(digest.period);
 
@@ -364,30 +406,6 @@ export function planDeterministicTransactionAnswer(
       referencedMovementKeys,
       source: 'deterministic',
     };
-  }
-
-  const keywordHits = topKeywordMatches(blob, signals.keywords);
-  if (keywordHits.length > 0 && movements.length > 0) {
-    const matched = movements.filter((row) => keywordHits.some((keyword) => movementSearchBlob(row).includes(keyword)));
-    if (matched.length > 0) {
-      const expenseTotal = sumMovements(matched, 'expense');
-      const incomeTotal = sumMovements(matched, 'income');
-      const label = keywordHits[0];
-      const dominant =
-        expenseTotal >= incomeTotal
-          ? `gastos por ${formatTxClp(expenseTotal, currency)}`
-          : `abonos por ${formatTxClp(incomeTotal, currency)}`;
-      const sample = matched
-        .slice(0, 2)
-        .map((row) => `${row.date ?? 's/f'} · ${row.merchant ?? row.description ?? row.label ?? 'Movimiento'} · ${formatTxClp(movementAmount(row), currency)}`)
-        .join(' | ');
-      return {
-        reply: `Encontré ${matched.length} movimiento${matched.length === 1 ? '' : 's'} relacionados con "${label}" (${dominant}). Ejemplos: ${sample}.`,
-        suggestedFollowups: followups(),
-        referencedMovementKeys: matched.map((row) => buildMovementPromptKey(row)),
-        source: 'deterministic',
-      };
-    }
   }
 
   return null;

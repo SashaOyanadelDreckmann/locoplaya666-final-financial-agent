@@ -1,7 +1,7 @@
 'use client';
 
 import type { Artifact } from '@/lib/agent.response.types';
-import { getApiBaseUrl, getAppBaseUrl } from '@/lib/apiBase';
+import { resolveDocumentUrl } from '@/lib/apiBase';
 
 type DocumentBubbleProps = {
   artifact: Artifact;
@@ -9,16 +9,7 @@ type DocumentBubbleProps = {
 };
 
 export function DocumentBubble({ artifact, onSaved }: DocumentBubbleProps) {
-  const resolveArtifactUrl = (raw?: string) => {
-    if (!raw) return '#';
-    if (/^https?:\/\//i.test(raw)) return raw;
-    const isLocalAsset = raw.startsWith('/generated/') || raw.startsWith('/planes/');
-    const base = isLocalAsset ? getAppBaseUrl() : getApiBaseUrl();
-    if (raw.startsWith('/')) return `${base}${raw}`;
-    return `${base}/${raw.replace(/^\/+/, '')}`;
-  };
-
-  const url = resolveArtifactUrl(artifact.fileUrl ?? artifact.previewImageUrl);
+  const url = resolveDocumentUrl(artifact.fileUrl ?? artifact.previewImageUrl ?? '');
   const documentTitle = artifact.title || 'Documento';
 
   return (

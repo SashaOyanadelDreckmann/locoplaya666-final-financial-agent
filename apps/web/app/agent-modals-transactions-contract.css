@@ -21,6 +21,26 @@
   --tx-contract-ease: cubic-bezier(0.25, 0.46, 0.45, 0.94);
   --tx-contract-shadow-soft: 0 20px 56px rgba(0, 0, 0, 0.34);
   --tx-contract-inset: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+  /* Panel sidebar tones (mirrors agent-modals-budget panel-pos-*) */
+  --tx-panel-mustard-bg: linear-gradient(145deg, rgba(184, 147, 70, 0.9), rgba(152, 119, 54, 0.92));
+  --tx-panel-mustard-border: rgba(235, 218, 179, 0.58);
+  --tx-panel-mustard-text: #fffaf0;
+  --tx-panel-mustard-kicker: rgba(255, 248, 234, 0.82);
+  --tx-panel-mustard-shadow: 0 16px 30px rgba(67, 52, 22, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  --tx-panel-blue-bg: linear-gradient(145deg, rgba(56, 81, 111, 0.82), rgba(37, 57, 79, 0.9));
+  --tx-panel-blue-border: rgba(200, 212, 227, 0.5);
+  --tx-panel-blue-text: #f3f8fc;
+  --tx-panel-blue-kicker: rgba(214, 226, 238, 0.78);
+  --tx-panel-blue-shadow: 0 16px 30px rgba(18, 28, 41, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  --tx-panel-burgundy-bg: linear-gradient(145deg, rgba(116, 44, 44, 0.9), rgba(82, 30, 30, 0.94));
+  --tx-panel-burgundy-border: rgba(204, 130, 130, 0.52);
+  --tx-panel-burgundy-text: #fff1ed;
+  --tx-panel-burgundy-kicker: rgba(255, 225, 218, 0.78);
+  --tx-panel-burgundy-shadow: 0 16px 30px rgba(45, 14, 14, 0.38), inset 0 1px 0 rgba(255, 220, 220, 0.12);
+  --tx-panel-ice-bg: linear-gradient(145deg, rgba(200, 212, 227, 0.92), rgba(173, 191, 212, 0.92));
+  --tx-panel-ice-border: rgba(222, 232, 242, 0.8);
+  --tx-panel-ice-text: #102131;
+  --tx-panel-ice-kicker: rgba(16, 33, 49, 0.62);
 }
 
 /* ── Shell: one scroll host, opaque premium panel ─────────────────────────── */
@@ -1715,4 +1735,266 @@
 .transactions-modal .tx-movements-table--pro tbody tr.tx-row-income:nth-child(even),
 .transactions-modal .tx-movements-table--pro tbody tr.tx-row-expense:nth-child(even) {
   background: transparent !important;
+}
+
+/* =============================================================================
+   PANEL TONE TRANSFER — sidebar card palette into transactions modal
+   Mustard (productos), blue (presupuesto), burgundy (perfil), ice (diagnóstico)
+   ============================================================================= */
+
+/* Biblioteca lateral — azul profundo como card Presupuesto del panel */
+.transactions-modal .pt-left.tx-panel-surface--library {
+  background: var(--tx-panel-blue-bg) !important;
+  border-color: var(--tx-panel-blue-border) !important;
+  box-shadow: var(--tx-panel-blue-shadow) !important;
+  color: var(--tx-panel-blue-text) !important;
+}
+
+.transactions-modal .pt-left.tx-panel-surface--library .pt-list-head h4,
+.transactions-modal .pt-left.tx-panel-surface--library .tx-library-empty-kicker,
+.transactions-modal .pt-left.tx-panel-surface--library .tx-library-empty p {
+  color: var(--tx-panel-blue-text) !important;
+}
+
+.transactions-modal .pt-left.tx-panel-surface--library .tx-library-empty-kicker {
+  color: var(--tx-panel-blue-kicker) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 11px;
+}
+
+/* Límites operativos — mismo azul del panel */
+.transactions-modal .tx-meta-stack .tx-limits-card {
+  background: var(--tx-panel-blue-bg) !important;
+  border-color: var(--tx-panel-blue-border) !important;
+  box-shadow: var(--tx-panel-blue-shadow) !important;
+  color: var(--tx-panel-blue-text) !important;
+}
+
+.transactions-modal .tx-limits-card-kicker,
+.transactions-modal .tx-limits-card-headline,
+.transactions-modal .tx-limits-card-title-wrap,
+.transactions-modal .tx-limits-status-pill,
+.transactions-modal .tx-limits-metric-label,
+.transactions-modal .tx-limits-metric-value,
+.transactions-modal .tx-limits-metric-sub,
+.transactions-modal .tx-limits-detail-kicker,
+.transactions-modal .tx-limits-detail-copy,
+.transactions-modal .tx-limits-expand-btn,
+.transactions-modal .tx-limits-ring-core,
+.transactions-modal .tx-limits-ring-core strong,
+.transactions-modal .tx-limits-expanded-label,
+.transactions-modal .tx-limits-expanded-item strong,
+.transactions-modal .tx-limits-expanded-item p {
+  color: var(--tx-panel-blue-text) !important;
+}
+
+.transactions-modal .tx-limits-card-kicker {
+  color: var(--tx-panel-blue-kicker) !important;
+}
+
+/* Avisos de creación — burdeos como card Perfil */
+.transactions-modal .tx-meta-card.is-warning {
+  background: var(--tx-panel-burgundy-bg) !important;
+  border-color: var(--tx-panel-burgundy-border) !important;
+  box-shadow: var(--tx-panel-burgundy-shadow) !important;
+  color: var(--tx-panel-burgundy-text) !important;
+}
+
+.transactions-modal .tx-meta-card.is-warning .tx-meta-card-kicker,
+.transactions-modal .tx-meta-card.is-warning p {
+  color: var(--tx-panel-burgundy-text) !important;
+}
+
+.transactions-modal .tx-meta-card.is-warning .tx-meta-card-kicker {
+  color: var(--tx-panel-burgundy-kicker) !important;
+}
+
+/* Banner de sincronización — celeste hielo como Diagnóstico */
+.transactions-modal .tx-batch-recommendation-banner {
+  background: var(--tx-panel-ice-bg) !important;
+  border-color: var(--tx-panel-ice-border) !important;
+  box-shadow: 0 12px 24px rgba(33, 50, 70, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.72) !important;
+  color: var(--tx-panel-ice-text) !important;
+}
+
+.transactions-modal .tx-batch-recommendation-kicker,
+.transactions-modal .tx-batch-recommendation-banner p {
+  color: var(--tx-panel-ice-text) !important;
+}
+
+.transactions-modal .tx-batch-recommendation-kicker {
+  color: var(--tx-panel-ice-kicker) !important;
+  border-color: rgba(16, 33, 49, 0.14) !important;
+  background: rgba(255, 255, 255, 0.42) !important;
+}
+
+/* Cards de workspace — mostaza como Productos y transacciones del panel */
+.transactions-modal .transactions-summary-card:not(.tx-consent-card),
+.transactions-modal .pt-empty-state,
+.transactions-modal .pt-premium-intro,
+.transactions-modal .tx-preset-shell {
+  background: var(--tx-panel-mustard-bg) !important;
+  border-color: var(--tx-panel-mustard-border) !important;
+  box-shadow: var(--tx-panel-mustard-shadow) !important;
+  color: var(--tx-panel-mustard-text) !important;
+}
+
+.transactions-modal .transactions-summary-card:not(.tx-consent-card) .transactions-summary-title,
+.transactions-modal .pt-empty-state .transactions-summary-title,
+.transactions-modal .pt-premium-intro-main,
+.transactions-modal .tx-preset-shell h4,
+.transactions-modal .tx-preset-shell p {
+  color: var(--tx-panel-mustard-text) !important;
+}
+
+.transactions-modal .transactions-summary-card:not(.tx-consent-card) .transactions-summary-title,
+.transactions-modal .pt-empty-state .transactions-summary-title {
+  color: var(--tx-panel-mustard-kicker) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 11px;
+}
+
+/* Sub-cards del análisis — rotación de los 3 tonos del panel */
+.transactions-modal .tx-premium-sheet,
+.transactions-modal .tx-doc-intel-grid,
+.transactions-modal .tx-premium-chart-shell,
+.transactions-modal .tx-intel-sections,
+.transactions-modal .tx-chart-card {
+  border-radius: 14px !important;
+  box-shadow: var(--tx-contract-inset) !important;
+}
+
+.transactions-modal .tx-premium-sheet,
+.transactions-modal .tx-doc-intel-grid:nth-child(4n + 1),
+.transactions-modal .tx-chart-card:nth-child(4n + 1) {
+  background: var(--tx-panel-blue-bg) !important;
+  border-color: var(--tx-panel-blue-border) !important;
+  color: var(--tx-panel-blue-text) !important;
+}
+
+.transactions-modal .tx-premium-chart-shell,
+.transactions-modal .tx-doc-intel-grid:nth-child(4n + 2),
+.transactions-modal .tx-chart-card:nth-child(4n + 2) {
+  background: var(--tx-panel-burgundy-bg) !important;
+  border-color: var(--tx-panel-burgundy-border) !important;
+  color: var(--tx-panel-burgundy-text) !important;
+}
+
+.transactions-modal .tx-intel-sections,
+.transactions-modal .tx-doc-intel-grid:nth-child(4n + 3),
+.transactions-modal .tx-chart-card:nth-child(4n + 3) {
+  background: var(--tx-panel-mustard-bg) !important;
+  border-color: var(--tx-panel-mustard-border) !important;
+  color: var(--tx-panel-mustard-text) !important;
+}
+
+.transactions-modal .tx-doc-intel-grid:nth-child(4n),
+.transactions-modal .tx-chart-card:nth-child(4n) {
+  background: var(--tx-panel-ice-bg) !important;
+  border-color: var(--tx-panel-ice-border) !important;
+  color: var(--tx-panel-ice-text) !important;
+}
+
+/* KPIs — paleta rotativa del panel */
+.transactions-modal .pt-kpi:nth-child(4n + 1) {
+  background: var(--tx-panel-blue-bg) !important;
+  border-color: var(--tx-panel-blue-border) !important;
+  color: var(--tx-panel-blue-text) !important;
+  box-shadow: var(--tx-panel-blue-shadow) !important;
+}
+
+.transactions-modal .pt-kpi:nth-child(4n + 2) {
+  background: var(--tx-panel-ice-bg) !important;
+  border-color: var(--tx-panel-ice-border) !important;
+  color: var(--tx-panel-ice-text) !important;
+  box-shadow: 0 12px 24px rgba(33, 50, 70, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.72) !important;
+}
+
+.transactions-modal .pt-kpi:nth-child(4n + 3) {
+  background: var(--tx-panel-burgundy-bg) !important;
+  border-color: var(--tx-panel-burgundy-border) !important;
+  color: var(--tx-panel-burgundy-text) !important;
+  box-shadow: var(--tx-panel-burgundy-shadow) !important;
+}
+
+.transactions-modal .pt-kpi:nth-child(4n) {
+  background: var(--tx-panel-mustard-bg) !important;
+  border-color: var(--tx-panel-mustard-border) !important;
+  color: var(--tx-panel-mustard-text) !important;
+  box-shadow: var(--tx-panel-mustard-shadow) !important;
+}
+
+.transactions-modal .pt-kpi:nth-child(4n + 1) span,
+.transactions-modal .pt-kpi:nth-child(4n + 1) strong {
+  color: var(--tx-panel-blue-text) !important;
+}
+
+.transactions-modal .pt-kpi:nth-child(4n + 2) span,
+.transactions-modal .pt-kpi:nth-child(4n + 2) strong {
+  color: var(--tx-panel-ice-text) !important;
+}
+
+.transactions-modal .pt-kpi:nth-child(4n + 3) span,
+.transactions-modal .pt-kpi:nth-child(4n + 3) strong {
+  color: var(--tx-panel-burgundy-text) !important;
+}
+
+.transactions-modal .pt-kpi:nth-child(4n) span,
+.transactions-modal .pt-kpi:nth-child(4n) strong {
+  color: var(--tx-panel-mustard-text) !important;
+}
+
+/* Paso activo del wizard — acento mostaza */
+.transactions-modal .tx-wizard-step.is-current {
+  background: color-mix(in srgb, rgba(184, 147, 70, 0.42) 55%, var(--tx-contract-surface-inset) 45%) !important;
+  border-color: var(--tx-panel-mustard-border) !important;
+  box-shadow: 0 0 0 1px rgba(235, 218, 179, 0.22) inset !important;
+}
+
+.transactions-modal .tx-wizard-step.is-current .tx-wizard-step-title {
+  color: var(--tx-panel-mustard-text) !important;
+}
+
+/* Chat y formularios dentro de cards mostaza — mantener superficie oscura legible */
+.transactions-modal .transactions-summary-card.tx-evidence-card .tx-chat-thread,
+.transactions-modal .transactions-summary-card.tx-evidence-card .tx-composer-pro,
+.transactions-modal .transactions-summary-card.tx-evidence-card .tx-format-rail,
+.transactions-modal .transactions-summary-card.tx-evidence-card .upload-zone,
+.transactions-modal .transactions-summary-card.tx-evidence-card .tx-evidence-product-bar,
+.transactions-modal .transactions-summary-card.tx-evidence-card .tx-chat-product-context {
+  background: var(--tx-contract-surface-inset) !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+  color: var(--tx-contract-text) !important;
+}
+
+/* Mobile: conservar tonos en cards que siguen siendo superficie visible */
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+  html:not(.home-route-active) .transactions-modal .pt-left.tx-panel-surface--library {
+    background: var(--tx-panel-blue-bg) !important;
+    border-color: var(--tx-panel-blue-border) !important;
+    box-shadow: var(--tx-panel-blue-shadow) !important;
+  }
+
+  .transactions-modal .pt-empty-state {
+    background: var(--tx-panel-mustard-bg) !important;
+    border-color: var(--tx-panel-mustard-border) !important;
+    box-shadow: var(--tx-panel-mustard-shadow) !important;
+    color: var(--tx-panel-mustard-text) !important;
+  }
+
+  .transactions-modal .tx-meta-stack .tx-limits-card {
+    background: var(--tx-panel-blue-bg) !important;
+    border-color: var(--tx-panel-blue-border) !important;
+    box-shadow: var(--tx-panel-blue-shadow) !important;
+    color: var(--tx-panel-blue-text) !important;
+  }
+
+  .transactions-modal .tx-meta-card.is-warning {
+    background: var(--tx-panel-burgundy-bg) !important;
+    border-color: var(--tx-panel-burgundy-border) !important;
+    box-shadow: var(--tx-panel-burgundy-shadow) !important;
+    color: var(--tx-panel-burgundy-text) !important;
+  }
 }

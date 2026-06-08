@@ -24,6 +24,7 @@ import { flushSync } from 'react-dom';
 import { sendToAgent } from '@/lib/agent';
 import { getSessionId } from '@/lib/session';
 import { useInterviewStore } from '@/state/interview.store';
+import { syncDiagnosisSession } from '@/lib/diagnosis-session';
 import { useProfileStore } from '@/state/profile.store';
 import { useSessionStore } from '@/state/session.store';
 import {
@@ -2553,11 +2554,13 @@ export default function AgentPage() {
       // El modal sigue abriendo con el payload local enriquecido; la llamada no debe bloquearse por un sync tardío.
     }
     if (interviewCompleted) {
-      await useProfileStore.getState().refreshProfile().catch(() => {});
+      await syncDiagnosisSession({
+        onSession: (info) => setSessionInfo(info),
+      }).catch(() => {});
     }
     setInterviewIntake(buildInterviewIntakePayload());
     setIsInterviewModalOpen(true);
-  }, [buildInterviewIntakePayload, interviewCompleted, setInterviewIntake, syncFinancialContextToIntake]);
+  }, [buildInterviewIntakePayload, interviewCompleted, setInterviewIntake, setSessionInfo, syncFinancialContextToIntake]);
 
   const openBudgetModal = useCallback(() => {
     void syncFinancialContextToIntake().catch(() => {});
@@ -3770,13 +3773,9 @@ export default function AgentPage() {
         isOpen={isInterviewModalOpen}
         onClose={() => setIsInterviewModalOpen(false)}
         onDiagnosisComplete={() => {
-          const refreshProfile = useProfileStore.getState().refreshProfile;
-          void refreshProfile();
-          void getSessionInfo()
-            .then((info) => {
-              if (info) setSessionInfo(info);
-            })
-            .catch(() => {});
+          void syncDiagnosisSession({
+            onSession: (info) => setSessionInfo(info),
+          });
         }}
       />
 

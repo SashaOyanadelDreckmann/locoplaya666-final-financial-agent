@@ -41,6 +41,24 @@ export function getAppBaseUrl(): string {
   return 'http://localhost:3000';
 }
 
+/** Relative paths served by Next.js (must not be prefixed with /backend). */
+export function isWebAppServedPath(path: string): boolean {
+  return (
+    path.startsWith('/generated/') ||
+    path.startsWith('/planes/') ||
+    path.startsWith('/api/reports/')
+  );
+}
+
+/** Resolve a stored artifact URL for browser navigation (library links, previews). */
+export function resolveDocumentUrl(raw: string): string {
+  if (!raw) return '#';
+  if (/^(https?:\/\/|blob:|data:)/i.test(raw)) return raw;
+  const base = isWebAppServedPath(raw) ? getAppBaseUrl() : getApiBaseUrl();
+  if (raw.startsWith('/')) return `${base}${raw}`;
+  return `${base}/${raw.replace(/^\/+/, '')}`;
+}
+
 /**
  * URL base directa del API para requests largos del agente.
  *
