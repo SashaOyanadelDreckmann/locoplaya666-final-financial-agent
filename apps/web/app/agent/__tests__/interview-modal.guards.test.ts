@@ -104,6 +104,8 @@ describe('interview modal safeguards', () => {
     expect(runtime).toContain('syncActiveQuota');
     expect(runtime).not.toContain('if (pauseUsed) return');
     expect(runtime).toContain("finalizeCallAndGenerateReport('timeout'");
+    expect(runtime).toContain('flushInterviewVoiceStateOnPageHide');
+    expect(runtime).toContain("addEventListener('pagehide'");
   });
 
   it('labels paused live calls as Pausada in stage status', () => {

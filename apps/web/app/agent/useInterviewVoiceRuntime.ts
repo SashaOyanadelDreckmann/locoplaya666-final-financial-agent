@@ -14,6 +14,7 @@ import type { DiagnosisProfile } from '@/state/profile.store';
 import type { InterviewResponse } from '@/state/interview.store';
 import {
   clearInterviewVoiceState,
+  flushInterviewVoiceStateOnPageHide,
   writeInterviewVoiceState,
 } from '@/lib/interviewVoiceState';
 import {
@@ -128,6 +129,7 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
   const summaryMinuteAppliedRef = useRef(0);
   const callSecondsRef = useRef(0);
   const pendingFinalizeRef = useRef<PendingFinalizePayload | null>(null);
+  const latestVoiceSnapshotRef = useRef<InterviewVoiceSnapshot | null>(null);
 
   const [voiceSupported, setVoiceSupported] = useState(false);
   const [voiceConnecting, setVoiceConnecting] = useState(false);
@@ -943,6 +945,54 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
   useEffect(() => {
     callSecondsRef.current = callSeconds;
   }, [callSeconds]);
+
+  useEffect(() => {
+    const hasContent =
+      Boolean(callId) || minuteSummaries.length > 0 || Boolean(finalSummary) || Boolean(voiceReport);
+    if (!hasContent || voiceReport) {
+      latestVoiceSnapshotRef.current = null;
+      return;
+    }
+
+    latestVoiceSnapshotRef.current = buildPersistSnapshot(
+      voiceConnected
+        ? voicePaused
+          ? 'paused'
+          : 'in_progress'
+        : callId
+          ? 'paused'
+          : 'idle',
+    );
+  }, [
+    callId,
+    callSeconds,
+    callsStarted,
+    finalSummary,
+    minuteSummaries,
+    pauseUsed,
+    voiceConnected,
+    voicePaused,
+    voiceReport,
+  ]);
+
+  useEffect(() => {
+    function handlePageHide() {
+      const base = latestVoiceSnapshotRef.current;
+      if (!base) return;
+
+      const quota = resolveInterviewActiveQuota(callSecondsRef.current);
+      flushInterviewVoiceStateOnPageHide({
+        ...base,
+        callSeconds: quota.activeSeconds,
+        remainingTotalSec: quota.remainingSeconds,
+        maxDurationSec: INTERVIEW_TOTAL_LIMIT_SEC,
+        status: base.callId || base.activeCallId ? 'paused' : base.status ?? 'idle',
+      });
+    }
+
+    window.addEventListener('pagehide', handlePageHide);
+    return () => window.removeEventListener('pagehide', handlePageHide);
+  }, []);
 
   useEffect(() => {
     if (!isOpen || !voiceStateHydratedRef.current) return;
