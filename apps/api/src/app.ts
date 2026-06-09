@@ -6,7 +6,7 @@ import helmet from 'helmet';
 
 import { simulationsRouter } from './routes/simulations.routes';
 import diagnosisRouter from './routes/diagnosis';
-import conversationNext, { finalizeInterviewVoice, saveInterviewVoiceState } from './routes/conversation';
+import { finalizeInterviewVoice, saveInterviewVoiceState } from './routes/conversation';
 import { submitIntake } from './routes/intake';
 import { authRouter } from './routes/auth';
 import agentRouter from './routes/agent';
@@ -115,13 +115,7 @@ export function createApp() {
     return sendSuccess(res, { status: 'ok', dod: getDodCoverage() });
   });
 
-  // CONVERSATION (legacy / flujo anterior)
-  app.post(
-    '/conversation/next',
-    requireAuth,
-    requirePermission(PERMISSIONS.AGENT_CHAT_SELF),
-    conversationNext,
-  );
+  // INTERVIEW VOICE
   app.post(
     '/conversation/voice/state',
     requireAuth,

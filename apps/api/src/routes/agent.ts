@@ -40,7 +40,14 @@ import {
 } from '../services/document-intelligence.service';
 import { asyncHandler } from '../middleware/errorHandler';
 import { requireAuth, requirePermission } from '../middleware/auth';
-import { badRequest, forbidden, unauthorized } from '../http/api.errors';
+import { badRequest, fincoinsDepleted, forbidden, unauthorized } from '../http/api.errors';
+import {
+  canAffordOperation,
+  chargeFincoinOperation,
+  ensureFincoinDepletionHandled,
+  fincoinUsagePayload,
+  getFincoinUsageForUser,
+} from '../services/fincoin.service';
 import { sendSuccess } from '../http/api.responses';
 import { parseBody, parseQuery } from '../http/parse';
 import { hasPermission, PERMISSIONS, type UserRole } from '../auth/rbac';
@@ -850,6 +857,21 @@ router.get(
       typeof interviewVoice.activeCallId === 'string' && interviewVoice.activeCallId.length > 0
         ? interviewVoice.activeCallId
         : null;
+    const isResumeToken = Boolean(activeCallId);
+
+    if (!isResumeToken) {
+      const usage = getFincoinUsageForUser(user);
+      if (usage.depleted || !canAffordOperation(usage, 'voice.realtime')) {
+        const summaries = await ensureFincoinDepletionHandled(user.id);
+        throw fincoinsDepleted(
+          'Tus Fincoins se agotaron. El agente queda en pausa y ya no se realizan llamadas con costo.',
+          {
+            usage: fincoinUsagePayload(usage),
+            closure_summaries: summaries,
+          },
+        );
+      }
+    }
     const hasCompletedVoiceInterview =
       Boolean(user.latestDiagnosticProfileId) ||
       interviewVoice.status === 'completed' ||
@@ -953,11 +975,16 @@ router.get(
       },
     });
 
+    const voiceCharge = isResumeToken
+      ? null
+      : await chargeFincoinOperation(user.id, 'voice.realtime');
+
     return sendSuccess(res, {
       value,
       expires_at: expiresAt,
       session_id: typeof data?.id === 'string' ? data.id : undefined,
       call_id: callId,
+      resumed: isResumeToken,
       calls_used: nextCallsStarted,
       calls_left: Math.max(0, INTERVIEW_MAX_CALLS_PER_USER - nextCallsStarted),
       max_duration_sec: remainingSec,
@@ -965,6 +992,7 @@ router.get(
       remaining_total_sec: remainingSec,
       voice: OPENAI_REALTIME_VOICE,
       voice_speed: INTERVIEW_REALTIME_VOICE_SPEED,
+      fincoin_usage: voiceCharge ? fincoinUsagePayload(voiceCharge.usage) : undefined,
     });
   }),
 );
@@ -1000,7 +1028,11 @@ router.post(
       typeof interviewVoice.activeCallId === 'string' && interviewVoice.activeCallId.length > 0
         ? interviewVoice.activeCallId
         : null;
-    const totalUsedSec = Number(interviewVoice.totalUsedSec ?? 0);
+    const totalUsedSec = Math.max(
+      0,
+      Number(interviewVoice.totalUsedSec ?? 0),
+      Number(interviewVoice.callSeconds ?? 0),
+    );
 
     // Only roll back if a pending call exists and no time was actually consumed
     if (!activeCallId || callsStarted <= 0 || totalUsedSec > 0) {
@@ -1065,6 +1097,26 @@ router.get(
 );
 
 router.get(
+  '/usage',
+  requireAuth,
+  requirePermission(PERMISSIONS.AUTH_READ_SELF),
+  asyncHandler(async (req, res) => {
+    const user = req.authenticatedUser;
+    if (!user) throw unauthorized('Invalid session');
+
+    const usage = getFincoinUsageForUser(user);
+    const closureSummaries = usage.depleted
+      ? await ensureFincoinDepletionHandled(user.id)
+      : undefined;
+
+    return sendSuccess(res, {
+      usage: fincoinUsagePayload(usage),
+      closure_summaries: closureSummaries,
+    });
+  }),
+);
+
+router.get(
   '/session',
   requireAuth,
   requirePermission(PERMISSIONS.AUTH_READ_SELF),
@@ -1093,6 +1145,8 @@ router.get(
     const lifecycleState = getLifecycleFromMemory(user.memoryBlob);
     const resolvedDiagnosticProfile = await resolveUserDiagnosticProfile(user);
 
+    const fincoinUsage = getFincoinUsageForUser(user);
+
     return sendSuccess(res, {
       id: user.id,
       name: user.name,
@@ -1107,6 +1161,7 @@ router.get(
       knowledgeScore: user.knowledgeScore ?? 0,
       knowledgeLastUpdated: user.knowledgeLastUpdated,
       productLifecycle: lifecycleState,
+      fincoinUsage: fincoinUsagePayload(fincoinUsage),
     });
   }),
 );
@@ -1150,6 +1205,43 @@ router.post(
     }
     if (!authedUser.injectedIntake) {
       throw forbidden('INTAKE_REQUIRED');
+    }
+
+    const fincoinBefore = getFincoinUsageForUser(authedUser);
+    if (fincoinBefore.depleted || !canAffordOperation(fincoinBefore, 'agent.chat')) {
+      const closureSummaries = await ensureFincoinDepletionHandled(authedUser.id);
+      const lifecycleState = getLifecycleFromMemory(authedUser.memoryBlob);
+      return sendSuccess(res, {
+        message:
+          'Tus Fincoins se agotaron. El agente queda en pausa: puedes revisar los resúmenes finales de cada chat desbloqueado, pero no se procesan nuevas solicitudes con costo.',
+        mode: 'information',
+        tool_calls: [],
+        agent_blocks: [],
+        artifacts: [],
+        citations: [],
+        suggested_replies: [],
+        compliance: {
+          mode: 'information',
+          no_auto_execution: true,
+          includes_recommendation: false,
+          includes_simulation: false,
+          includes_regulation: false,
+          missing_information: [],
+          disclaimers_shown: [],
+          risk_score: 0,
+          blocked: { is_blocked: true, reason: 'FINCOINS_DEPLETED' },
+        },
+        state_updates: {},
+        meta: {
+          fincoin_usage: fincoinUsagePayload(fincoinBefore),
+          closure_summaries: closureSummaries,
+          product_lifecycle: {
+            phase: lifecycleState.phase,
+            unlocked_chats: lifecycleState.unlockedChats,
+            closed_chats: lifecycleState.closedChats,
+          },
+        },
+      });
     }
 
     if (process.env.NODE_ENV !== 'production') {
@@ -1584,6 +1676,25 @@ router.post(
           error: persistErr,
         });
       }
+    }
+
+    try {
+      const charge = await chargeFincoinOperation(authedUser.id, 'agent.chat');
+      response.meta = {
+        ...((response.meta as Record<string, unknown>) ?? {}),
+        fincoin_usage: fincoinUsagePayload(charge.usage),
+        ...(charge.closureSummaries ? { closure_summaries: charge.closureSummaries } : {}),
+      };
+      if (charge.justDepleted) {
+        response.message =
+          `${String(response.message ?? '').trim()}\n\n—\nTus Fincoins se agotaron. El agente queda en pausa; revisa los resúmenes finales en cada chat.`.trim();
+      }
+    } catch (fincoinErr) {
+      req.logger?.warn({ msg: 'Error charging fincoins for agent chat', error: fincoinErr, userId: authedUser.id });
+      response.meta = {
+        ...((response.meta as Record<string, unknown>) ?? {}),
+        fincoin_usage: fincoinUsagePayload(fincoinBefore),
+      };
     }
 
     return sendSuccess(res, response);

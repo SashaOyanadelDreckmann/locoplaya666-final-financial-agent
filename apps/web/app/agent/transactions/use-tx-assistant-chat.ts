@@ -7,6 +7,7 @@ import {
   selectAssistantMessagesForThread,
 } from './tx-assistant-thread.helpers';
 import { getCsrfToken } from '@/lib/csrf';
+import { FINCOIN_SPEND_BLOCKED_MESSAGE } from '@/lib/fincoin-gate';
 import {
   buildChatDashboardForQuestion,
   buildMovementPromptKey,
@@ -91,6 +92,7 @@ function buildAssistantMetaFromResponse(
 
 export function useTxAssistantChat(params: {
   isOpen: boolean;
+  fincoinSpendBlocked?: boolean;
   txWizardStep: TransactionsModalProps['txWizardStep'];
   selectedProductId: string | null;
   activeBankProduct: BankProduct | null;
@@ -107,6 +109,7 @@ export function useTxAssistantChat(params: {
 }) {
   const {
     isOpen,
+    fincoinSpendBlocked,
     txWizardStep,
     selectedProductId,
     activeBankProduct,
@@ -336,6 +339,9 @@ export function useTxAssistantChat(params: {
   }, [activeBankProduct, appendAssistantMessages]);
 
   const requestTransactionAssistant = useCallback(async (payload: Record<string, unknown>, signal?: AbortSignal) => {
+    if (fincoinSpendBlocked) {
+      throw new Error(FINCOIN_SPEND_BLOCKED_MESSAGE);
+    }
     const res = await fetch('/api/transactions-chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken() || '' },
@@ -346,7 +352,7 @@ export function useTxAssistantChat(params: {
     const data = (await res.json().catch(() => null)) as TransactionChatApiResponse & { ok?: boolean; error?: string };
     if (!res.ok || !data?.ok) throw new Error(data?.error || 'No se pudo responder');
     return data;
-  }, []);
+  }, [fincoinSpendBlocked]);
 
   const applyInstantTransactionSummary = useCallback(
     async (options?: {

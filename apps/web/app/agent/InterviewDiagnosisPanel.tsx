@@ -51,6 +51,16 @@ export function InterviewDiagnosisPanel({ profile, voiceReport, onClose, compact
     <div className={`interview-diagnosis-panel${compact ? ' interview-diagnosis-panel--compact' : ''}`}>
       <DiagnosisHero headline={headline} dek={dek} keySignals={profile.editorial?.keySignals} />
 
+      {voiceReport?.coverage_tier === 'minimal' || voiceReport?.coverage_tier === 'partial' ? (
+        <p className="interview-inline-note interview-diagnosis-coverage-note">
+          Diagnóstico generado con cobertura{' '}
+          {voiceReport.coverage_tier === 'minimal' ? 'preliminar' : 'parcial'} según el avance de la llamada.
+          {voiceReport.has_enough_information === false
+            ? ' Conviene profundizar en chat para completar el mapa financiero.'
+            : null}
+        </p>
+      ) : null}
+
       {voiceReport?.key_findings?.length ? (
         <section className="interview-diagnosis-bridge">
           <span className="interview-surface-eyebrow">Síntesis de entrevista</span>

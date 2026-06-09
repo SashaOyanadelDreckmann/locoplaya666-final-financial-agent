@@ -36,6 +36,7 @@ type PanelCardsProps = {
   budgetInsights: { healthScore?: number } | null;
   openBudgetModal: () => void;
   openTransactionsPanel: () => void;
+  fincoinSpendBlocked?: boolean;
   transactionIntel: { docs: number; rows: number; amounts: number[] };
   reportsByGroup: Record<string, any[]>;
   librarySummary: string;
@@ -182,10 +183,21 @@ export function buildPanelBaseCards(props: PanelCardsProps): PanelCard[] {
           <button
             type="button"
             data-panel-section="transactions"
-            className={`panel-feature-card panel-pos-transactions ${props.unlockedPanelBlocks.transactionsUnlocked ? '' : 'is-locked'}${props.highlightedSection === 'transactions' ? ' is-panel-highlighted' : ''}`}
-            onClick={props.openTransactionsPanel}
+            className={`panel-feature-card panel-pos-transactions ${props.fincoinSpendBlocked || !props.unlockedPanelBlocks.transactionsUnlocked ? 'is-locked' : ''}${props.highlightedSection === 'transactions' ? ' is-panel-highlighted' : ''}`}
+            onClick={() => {
+              if (props.fincoinSpendBlocked) {
+                props.setPanelCallout({
+                  section: 'transactions',
+                  message: 'Sin Fincoins no puedes abrir transacciones ni análisis con IA.',
+                });
+                return;
+              }
+              props.openTransactionsPanel();
+            }}
             title={
-              props.unlockedPanelBlocks.transactionsUnlocked
+              props.fincoinSpendBlocked
+                ? 'Sin Fincoins: herramienta en pausa'
+                : props.unlockedPanelBlocks.transactionsUnlocked
                 ? 'Abrir productos y transacciones'
                 : 'Bloqueado: conversa sobre productos, cartolas y banco'
             }
@@ -213,8 +225,15 @@ export function buildPanelBaseCards(props: PanelCardsProps): PanelCard[] {
           <button
             type="button"
             data-panel-section="budget"
-            className={`panel-feature-card panel-pos-budget ${props.unlockedPanelBlocks.budgetUnlocked ? '' : 'is-locked'}${props.highlightedSection === 'budget' ? ' is-panel-highlighted' : ''}`}
+            className={`panel-feature-card panel-pos-budget ${props.fincoinSpendBlocked || !props.unlockedPanelBlocks.budgetUnlocked ? 'is-locked' : ''}${props.highlightedSection === 'budget' ? ' is-panel-highlighted' : ''}`}
             onClick={() => {
+              if (props.fincoinSpendBlocked) {
+                props.setPanelCallout({
+                  section: 'budget',
+                  message: 'Sin Fincoins no puedes abrir el presupuesto asistido por IA.',
+                });
+                return;
+              }
               if (!props.unlockedPanelBlocks.budgetUnlocked) {
                 props.setPanelCallout({
                   section: 'budget',
@@ -225,7 +244,9 @@ export function buildPanelBaseCards(props: PanelCardsProps): PanelCard[] {
               props.openBudgetModal();
             }}
             title={
-              props.unlockedPanelBlocks.budgetUnlocked
+              props.fincoinSpendBlocked
+                ? 'Sin Fincoins: herramienta en pausa'
+                : props.unlockedPanelBlocks.budgetUnlocked
                 ? 'Presupuesto resumido'
                 : 'Bloqueado: conversa sobre ingresos y gastos'
             }
@@ -252,17 +273,26 @@ export function buildPanelBaseCards(props: PanelCardsProps): PanelCard[] {
         <div className="mob-col mob-col-wide">
           <button
             type="button"
-            className={`interview-flow-card panel-pos-interview glass-card${!props.interviewCompleted && !props.canOpenInterview ? ' is-locked' : ''}`}
+            className={`interview-flow-card panel-pos-interview glass-card${!props.interviewCompleted && (props.fincoinSpendBlocked || !props.canOpenInterview) ? ' is-locked' : ''}`}
             onClick={() => {
               if (props.interviewCompleted) {
                 props.openDiagnosisView?.();
+                return;
+              }
+              if (props.fincoinSpendBlocked) {
+                props.setPanelCallout({
+                  section: 'interview',
+                  message: 'Sin Fincoins no puedes iniciar la entrevista por voz.',
+                });
                 return;
               }
               if (!props.canOpenInterview) return;
               props.openInterviewModal();
             }}
             title={
-              props.interviewCompleted
+              props.fincoinSpendBlocked && !props.interviewCompleted
+                ? 'Sin Fincoins: entrevista en pausa'
+                : props.interviewCompleted
                 ? 'Ver diagnóstico'
                 : props.canOpenInterview
                 ? 'Entrevista disponible'

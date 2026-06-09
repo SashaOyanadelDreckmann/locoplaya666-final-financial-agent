@@ -1,4 +1,10 @@
 import type { BudgetRow } from '@/lib/budget-rows.helpers';
+import {
+  buildBudgetAssistantContext,
+  buildContextualQuestion,
+  type BudgetChatTurn,
+  type BudgetProductSnapshot,
+} from '@financial-agent/shared';
 
 export type BudgetTableStyleId = 'midnight' | 'ledger' | 'atelier' | 'terminal' | 'carbon';
 
@@ -10,26 +16,86 @@ export const BUDGET_TABLE_STYLES: Array<{ id: BudgetTableStyleId; label: string 
   { id: 'carbon', label: 'Carbono' },
 ];
 
-export function getBudgetQuestionForId(rowId: string | null) {
+export function buildBudgetModalAssistantContext(input: {
+  budgetRows: BudgetRow[];
+  chatAnswers: Array<{ q: string; a: string }>;
+  bankProducts?: Array<{
+    label: string;
+    bank: string;
+    productType: string;
+    dashboardSummary?: string;
+    keyMetrics?: {
+      inflows_total?: number;
+      outflows_total?: number;
+      net_flow?: number;
+      movement_count?: number;
+    };
+    topCategories?: Array<{ name: string; amount: number }>;
+    alerts?: string[];
+  }>;
+  sessionInfo?: {
+    injectedIntake?: { intake?: Record<string, unknown>; intakeContext?: string } | null;
+  } | null;
+}) {
+  const products: BudgetProductSnapshot[] = (input.bankProducts ?? []).map((product) => ({
+    label: product.label,
+    bank: product.bank,
+    productType: product.productType,
+    dashboardSummary: product.dashboardSummary,
+    keyMetrics: product.keyMetrics,
+    topCategories: product.topCategories,
+    alerts: product.alerts,
+  }));
+  const chatAnswers: BudgetChatTurn[] = input.chatAnswers.slice(-20);
+  return buildBudgetAssistantContext({
+    rows: input.budgetRows,
+    intakeData: input.sessionInfo?.injectedIntake?.intake ?? null,
+    intakeContext: input.sessionInfo?.injectedIntake?.intakeContext ?? null,
+    products,
+    chatAnswers,
+  });
+}
+
+/** Resolves the assistant question for a row using the same gap logic as the API. */
+export function getBudgetQuestionForRow(
+  row: BudgetRow | null,
+  contextInput: Parameters<typeof buildBudgetModalAssistantContext>[0],
+  fallbackRowId?: string | null,
+): string {
+  const context = buildBudgetModalAssistantContext(contextInput);
+  const resolvedRow =
+    row ??
+    contextInput.budgetRows.find((item) => item.id === fallbackRowId) ??
+    contextInput.budgetRows[0] ??
+    null;
+  return buildContextualQuestion(resolvedRow, context);
+}
+
+/** @deprecated Use getBudgetQuestionForRow — kept for guard tests and legacy call sites. */
+export function getBudgetQuestionForId(rowId: string | null, contextInput?: Parameters<typeof buildBudgetModalAssistantContext>[0]) {
+  if (contextInput) {
+    const row = contextInput.budgetRows.find((item) => item.id === rowId) ?? null;
+    return getBudgetQuestionForRow(row, contextInput, rowId);
+  }
   switch (rowId) {
     case 'income_salary':
-      return '¿Cuál es tu ingreso mensual promedio en pesos?';
+      return 'En la tabla aparece «Sueldo líquido» como ingreso. ¿Confirmas ese nombre o cómo quieres llamar este movimiento?';
     case 'expense_rent':
-      return '¿Cuánto pagas al mes en vivienda o arriendo?';
+      return 'En la tabla aparece «Arriendo / vivienda» como gasto. ¿Confirmas ese nombre o cómo quieres llamar este movimiento?';
     case 'expense_food':
-      return '¿Cuánto gastas mensualmente en alimentación?';
+      return 'En la tabla aparece «Alimentación» como gasto. ¿Confirmas ese nombre o cómo quieres llamar este movimiento?';
     case 'expense_services':
-      return '¿Cuánto pagas al mes en servicios básicos o telefonía?';
+      return 'En la tabla aparece «Servicios básicos» como gasto. ¿Confirmas ese nombre o cómo quieres llamar este movimiento?';
     case 'expense_transport':
-      return '¿Cuánto gastas mensualmente en transporte?';
+      return 'En la tabla aparece «Transporte» como gasto. ¿Confirmas ese nombre o cómo quieres llamar este movimiento?';
     case 'expense_debt':
-      return '¿Cuánto pagas al mes en deudas o cuotas?';
+      return 'En la tabla aparece «Deuda / cuotas» como gasto. ¿Confirmas ese nombre o cómo quieres llamar este movimiento?';
     case 'expense_savings':
-      return '¿Cuánto ahorras o inviertes mensualmente?';
+      return 'En la tabla aparece «Ahorro / inversión» como gasto. ¿Confirmas ese nombre o cómo quieres llamar este movimiento?';
     case 'expense_other':
-      return '¿Qué otro gasto mensual recurrente quieres agregar?';
+      return 'En la tabla aparece «Otros gastos» como gasto. ¿Confirmas ese nombre o cómo quieres llamar este movimiento?';
     default:
-      return '¿Cuál es tu ingreso mensual promedio en pesos?';
+      return 'En la tabla aparece este movimiento. ¿Confirmas ese nombre o cómo quieres llamarlo?';
   }
 }
 

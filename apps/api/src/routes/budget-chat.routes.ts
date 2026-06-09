@@ -3,6 +3,8 @@ import { z } from 'zod';
 
 import { asyncHandler } from '../middleware/errorHandler';
 import { requireAuth } from '../middleware/auth';
+import { requireSpendableFincoins } from '../middleware/fincoin-guard';
+import { chargeFincoinOperation } from '../services/fincoin.service';
 import { fetchIndicador } from '../mcp/tools/market/mindicadorClient';
 import { getConfig } from '../config';
 import {
@@ -32,6 +34,8 @@ import {
   isBulkDeleteRequest,
   isBudgetSkipAnswer,
   parseBudgetCadenceFromAnswer,
+  parseBudgetCategoryFromAnswer,
+  parseBudgetCategoryRenameFromAnswer,
   parseBudgetFieldPatchFromAnswer,
   parseBudgetMovementFromAnswer,
   parseBudgetPaymentFromAnswer,
@@ -351,7 +355,7 @@ function buildBudgetFocusQuestion(
       ? rows.find((row) => row.id === activeRow.id) ?? activeRow
       : null;
   const focus =
-    activeFromRows && pickNextBudgetRowFieldGap(activeFromRows)
+    activeFromRows && pickNextBudgetRowFieldGap(activeFromRows, context)
       ? activeFromRows
       : pickContextualFocusRow(rows, context, preferredRowId ?? activeRow?.id ?? null);
   return {
@@ -705,7 +709,7 @@ function buildDeterministicUpdate(params: {
   }
   if (amount === null) return null;
 
-  const fieldPatch = parseBudgetFieldPatchFromAnswer(params.answer);
+  const fieldPatch = parseBudgetFieldPatchFromAnswer(params.answer, { currentCategory: targetRow.category });
   const rowExists = params.rows.some((row) => row.id === targetRow!.id);
   const category = fieldPatch.category ?? targetRow.category;
   const action: BudgetTableAction = {
@@ -779,6 +783,98 @@ function buildDeterministicUpdate(params: {
   });
 }
 
+function buildDeterministicCategoryUpdate(params: {
+  rows: BudgetRow[];
+  answer: string;
+  question: string;
+  context: BudgetAssistantContext;
+  assistantFocusRowId?: string | null;
+  manualFocusRowId?: string | null;
+  activeRow?: BudgetRow | null;
+}) {
+  const targetRow =
+    resolveBudgetChatTargetRow(params.rows, extractInferenceQuestionText(params.question) || params.question, {
+      manualFocusRowId: params.manualFocusRowId ?? null,
+      assistantFocusRowId: params.assistantFocusRowId ?? null,
+      activeRow: params.activeRow ?? null,
+      answer: params.answer,
+    }) ?? params.activeRow;
+  if (!targetRow) return null;
+  if (pickNextBudgetRowFieldGap(targetRow, params.context) !== 'category') return null;
+  if (isBudgetOffTopicAnswer(params.answer) || isBudgetEducationalQuestion(params.answer) || isBudgetSkipAnswer(params.answer)) {
+    return null;
+  }
+  if (/\?\s*$/.test(String(params.answer ?? '').trim())) return null;
+
+  const renamed = parseBudgetCategoryRenameFromAnswer(params.answer);
+  const isAffirmative = isAffirmativeSuggestionAnswer(params.answer);
+  const parsedCategory = parseBudgetCategoryFromAnswer(params.answer, { currentCategory: targetRow.category });
+  if (!isAffirmative && !renamed && !parsedCategory) return null;
+  if (!isAffirmative && !renamed && /\b(gasto|gastos|gastamos|pago|pagamos|destino|salen|van)\b/i.test(params.answer)) {
+    return null;
+  }
+
+  const fieldPatch = parseBudgetFieldPatchFromAnswer(params.answer, { currentCategory: targetRow.category });
+  const rowType = fieldPatch.type === 'income' || fieldPatch.type === 'expense' ? fieldPatch.type : targetRow.type;
+  const resolvedCategory = renamed ?? parsedCategory ?? targetRow.category;
+  const action: BudgetTableAction = {
+    kind: 'update',
+    id: targetRow.id,
+    category: resolvedCategory,
+    type: rowType,
+    amount: Math.max(0, Math.round(Number(targetRow.amount ?? 0))),
+    ...(fieldPatch.cadence ? { cadence: fieldPatch.cadence } : {}),
+    ...(fieldPatch.payment_method ? { payment_method: fieldPatch.payment_method } : {}),
+    ...(fieldPatch.movement_type ? { movement_type: fieldPatch.movement_type } : {}),
+  };
+
+  const projectedRows = reconcileBudgetRows(
+    params.rows.map((row) =>
+      row.id === targetRow.id
+        ? {
+            ...row,
+            category: resolvedCategory,
+            type: rowType,
+            ...(action.cadence ? { cadence: action.cadence } : {}),
+            ...(action.payment_method ? { paymentMethod: action.payment_method } : {}),
+            ...(action.movement_type ? { movementType: action.movement_type } : {}),
+          }
+        : row,
+    ),
+  );
+  const projectedContext = createAssistantContext({
+    rows: projectedRows,
+    intakeData: params.context.intake,
+    intakeContext: params.context.intake.intakeContext ?? null,
+    products: params.context.products,
+    chatAnswers: [
+      ...params.context.chatAnswers,
+      {
+        q: params.question,
+        a: params.answer,
+      },
+    ],
+  });
+  const updatedRow = projectedRows.find((row) => row.id === targetRow.id) ?? targetRow;
+  const { focus, question } = buildBudgetFocusQuestion(projectedRows, updatedRow, projectedContext);
+  const categoryChanged = resolvedCategory.trim() !== targetRow.category.trim();
+  const typeChanged = rowType !== targetRow.type;
+  const replyParts = [
+    categoryChanged ? `Dejé «${resolvedCategory}» como nombre del movimiento.` : `Perfecto, mantenemos «${resolvedCategory}».`,
+    typeChanged ? `Lo marqué como ${rowType === 'income' ? 'ingreso' : 'gasto'}.` : '',
+  ].filter(Boolean);
+
+  return buildBudgetReply({
+    reply: replyParts.join(' '),
+    followUp: question,
+    focus_row_id: focus?.id ?? targetRow.id,
+    actions: [action],
+    action,
+    source: 'deterministic_category_update',
+    market_snapshot: emptyMarketSnapshot(),
+  });
+}
+
 function buildDeterministicFieldUpdate(params: {
   rows: BudgetRow[];
   answer: string;
@@ -795,19 +891,24 @@ function buildDeterministicFieldUpdate(params: {
       activeRow: params.activeRow ?? null,
       answer: params.answer,
     }) ?? params.activeRow;
-  if (!targetRow || Number(targetRow.amount ?? 0) <= 0) return null;
+  if (!targetRow) return null;
 
-  const fieldPatch = parseBudgetFieldPatchFromAnswer(params.answer);
-  if (!fieldPatch.cadence && !fieldPatch.payment_method && !fieldPatch.movement_type && !fieldPatch.category) {
+  const fieldPatch = parseBudgetFieldPatchFromAnswer(params.answer, { currentCategory: targetRow.category });
+  if (!fieldPatch.cadence && !fieldPatch.payment_method && !fieldPatch.movement_type && !fieldPatch.category && !fieldPatch.type) {
     return null;
   }
 
+  const gap = pickNextBudgetRowFieldGap(targetRow, params.context);
+  if (gap === 'category' || gap === 'amount') return null;
+  if (Number(targetRow.amount ?? 0) <= 0) return null;
+
   const category = fieldPatch.category ?? targetRow.category;
+  const rowType = fieldPatch.type === 'income' || fieldPatch.type === 'expense' ? fieldPatch.type : targetRow.type;
   const action: BudgetTableAction = {
     kind: 'update',
     id: targetRow.id,
     category,
-    type: targetRow.type,
+    type: rowType,
     amount: Math.max(0, Math.round(Number(targetRow.amount ?? 0))),
     cadence: normalizeBudgetCadence(fieldPatch.cadence ?? targetRow.cadence, targetRow.type),
     payment_method:
@@ -823,6 +924,7 @@ function buildDeterministicFieldUpdate(params: {
         ? {
             ...row,
             category,
+            type: rowType,
             cadence: action.cadence,
             paymentMethod: action.payment_method,
             movementType: action.movement_type,
@@ -863,6 +965,7 @@ function buildDeterministicFieldUpdate(params: {
     if (movementLabel) changedParts.push(`tipo ${movementLabel.toLowerCase()}`);
   }
   if (fieldPatch.category) changedParts.push(`nombre ${fieldPatch.category}`);
+  if (fieldPatch.type) changedParts.push(fieldPatch.type === 'income' ? 'tipo ingreso' : 'tipo gasto');
   const detail = changedParts.length > 0 ? changedParts.join(', ') : 'detalle';
   const cue = extractUserAnswerCue(params.answer);
   const reply = cue
@@ -1118,6 +1221,19 @@ function buildConversationalFallback(params: {
     });
   }
 
+  if (params.answer.trim() && currentTarget && isBudgetSkipAnswer(params.answer)) {
+    const nextRow = findNextUnfilledBudgetRow(params.rows, params.context, currentTarget.id);
+    if (nextRow && nextRow.id !== currentTarget.id) {
+      return buildBudgetReply({
+        reply: 'Entiendo. Avancemos con otro rubro del presupuesto.',
+        followUp: buildContextualQuestion(nextRow, params.context),
+        focus_row_id: nextRow.id,
+        source: 'deterministic_advance_focus',
+        market_snapshot: emptyMarketSnapshot(),
+      });
+    }
+  }
+
   const defaultFocus = buildBudgetFocusQuestion(params.rows, params.activeRow, params.context);
   const currentQuestion = buildContextualQuestion(currentTarget, params.context);
   const askedQuestion = sanitizeQuestion(params.question) ?? '';
@@ -1173,8 +1289,13 @@ function buildConversationalFallback(params: {
 router.post(
   '/',
   requireAuth,
+  requireSpendableFincoins('budget.chat'),
   asyncHandler(async (req, res) => {
     const _config = getConfig();
+    const user = req.authenticatedUser;
+    if (user) {
+      await chargeFincoinOperation(user.id, 'budget.chat');
+    }
     const body = BudgetChatRequestSchema.parse(req.body) as BudgetChatRequest;
 
     const intent = body.intent;
@@ -1270,6 +1391,35 @@ router.post(
           buildWriterPolishInput({ draft, context, rows, userAnswer: answer }),
           { market_snapshot: emptyMarketSnapshot() },
         );
+      }
+    }
+
+    if (intent === 'reply' && answer) {
+      const categoryTarget =
+        resolveBudgetChatTargetRow(rows, question, {
+          manualFocusRowId,
+          assistantFocusRowId,
+          activeRow: resolvedActiveRow,
+          answer,
+        }) ?? resolvedActiveRow;
+      if (categoryTarget && pickNextBudgetRowFieldGap(categoryTarget, context) === 'category') {
+        const categoryUpdate = buildDeterministicCategoryUpdate({
+          rows,
+          answer,
+          question,
+          context,
+          assistantFocusRowId,
+          manualFocusRowId,
+          activeRow: resolvedActiveRow,
+        });
+        if (categoryUpdate) {
+          return sendBudgetChatResponse(
+            res,
+            categoryUpdate,
+            buildWriterPolishInput({ draft: categoryUpdate, context, rows, userAnswer: answer }),
+            { market_snapshot: emptyMarketSnapshot() },
+          );
+        }
       }
     }
 

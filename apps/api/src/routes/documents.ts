@@ -10,6 +10,8 @@ import { getUserDocumentsByIds } from '../persistence/repos';
 import { completeStructuredWithSchema } from '../services/llm.service';
 import { inferTransactionTaxonomy } from '../services/transactionTaxonomy.service';
 import { requireAuth, requirePermission } from '../middleware/auth';
+import { requireSpendableFincoins } from '../middleware/fincoin-guard';
+import { chargeFincoinOperation } from '../services/fincoin.service';
 import { asyncHandler } from '../middleware/errorHandler';
 import { badRequest, unauthorized } from '../http/api.errors';
 import { sendSuccess } from '../http/api.responses';
@@ -1555,9 +1557,11 @@ router.post(
   '/parse',
   requireAuth,
   requirePermission(PERMISSIONS.DOCUMENT_PARSE_SELF),
+  requireSpendableFincoins('document.parse'),
   asyncHandler(async (req, res) => {
     const user = req.authenticatedUser;
     if (!user) throw unauthorized('Authentication required');
+    await chargeFincoinOperation(user.id, 'document.parse');
 
     const body = parseBody(ParseRequestSchema, req.body);
 

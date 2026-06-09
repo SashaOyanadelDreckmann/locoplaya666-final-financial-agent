@@ -37,6 +37,13 @@ vi.mock('../services/memory.service', () => ({
   appendMemoryTimelineNote: vi.fn(),
 }));
 
+vi.mock('../services/diagnostic-profile.service', () => ({
+  resolveUserDiagnosticProfile: vi.fn(async () => ({
+    diagnosticNarrative: 'Diagnóstico de prueba',
+    profile: { timeHorizon: 'medium' },
+  })),
+}));
+
 let dataDir: string;
 
 beforeAll(() => {
@@ -186,6 +193,51 @@ describe('conversation voice routes', () => {
     expect(res.body.data.interview_voice.max_duration_sec).toBe(INTERVIEW_TOTAL_LIMIT_SEC);
   }, 15000);
 
+  it('returns idempotent finalize payload for duplicate callId without re-running diagnostic agent', async () => {
+    const { runDiagnosticAgent } = await import('../agents/diagnostic/diagnostic.agent');
+    const { agent, csrfToken } = await createAuthedAgent();
+    const payload = {
+      intake: {
+        hasDebt: false,
+        hasSavingsOrInvestments: true,
+      },
+      minuteSummaries: [
+        {
+          minute: 1,
+          summary: 'El usuario confirma estabilidad de ingresos y buena capacidad de ahorro.',
+          keyFindings: ['Ingreso estable'],
+          confidence: 'high',
+        },
+      ],
+      finalSummary: {
+        summary: 'Síntesis final consolidada.',
+        keyFindings: ['Capacidad de ahorro'],
+        confidence: 'high',
+        createdAt: new Date().toISOString(),
+      },
+      endedBy: 'timeout',
+      durationSec: 61,
+      callId: 'call-voice-test-idempotent',
+    };
+
+    const first = await agent
+      .post('/conversation/voice/finalize')
+      .set('x-csrf-token', csrfToken)
+      .send(payload);
+    expect(first.status).toBe(200);
+    expect(first.body.data.type).toBe('interview_complete');
+    expect(runDiagnosticAgent).toHaveBeenCalledTimes(1);
+
+    const second = await agent
+      .post('/conversation/voice/finalize')
+      .set('x-csrf-token', csrfToken)
+      .send(payload);
+    expect(second.status).toBe(200);
+    expect(second.body.data.idempotent).toBe(true);
+    expect(second.body.data.voice_summary.executive_report).toBe('Resumen ejecutivo de prueba');
+    expect(runDiagnosticAgent).toHaveBeenCalledTimes(1);
+  }, 15000);
+
   it('still completes finalize when diagnostic agent fails', async () => {
     const { runDiagnosticAgent } = await import('../agents/diagnostic/diagnostic.agent');
     vi.mocked(runDiagnosticAgent).mockRejectedValueOnce(new Error('LLM unavailable'));
@@ -225,5 +277,35 @@ describe('conversation voice routes', () => {
     expect(res.body.data.type).toBe('interview_complete');
     expect(res.body.data.profile.diagnosticNarrative).toContain('Resumen ejecutivo de prueba');
     expect(res.body.data.voice_summary.diagnostic_fallback_used).toBe(true);
+  }, 15000);
+
+  it('finalizes early user closures with proportional coverage metadata', async () => {
+    const { completeStructured } = await import('../services/llm.service');
+    const { agent, csrfToken } = await createAuthedAgent();
+
+    const res = await agent
+      .post('/conversation/voice/finalize')
+      .set('x-csrf-token', csrfToken)
+      .send({
+        intake: {
+          hasDebt: true,
+          hasSavingsOrInvestments: false,
+        },
+        minuteSummaries: [],
+        endedBy: 'user',
+        durationSec: 18,
+        callId: 'call-voice-test-early-user',
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.ok).toBe(true);
+    expect(res.body.data.voice_summary.coverage_tier).toBe('minimal');
+    expect(res.body.data.voice_summary.has_enough_information).toBe(false);
+    expect(res.body.data.interview_voice.total_used_sec).toBe(18);
+    expect(completeStructured).toHaveBeenCalledWith(
+      expect.objectContaining({
+        maxCompletionTokens: 180,
+      }),
+    );
   }, 15000);
 });

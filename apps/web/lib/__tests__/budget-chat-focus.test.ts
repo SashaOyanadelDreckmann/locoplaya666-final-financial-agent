@@ -2,6 +2,7 @@
 
 import {
   extractInferenceQuestionText,
+  inferBudgetFieldFromQuestion,
   inferBudgetFocusRowId,
   isBareBudgetAmountAnswer,
   resolveBudgetChatTargetRow,
@@ -55,6 +56,13 @@ describe('budget-chat-focus helpers', () => {
       activeRow: rows[0],
     });
     expect(target?.id).toBe('expense_rent');
+  });
+
+  it('infers row and field from category validation questions', () => {
+    const categoryQuestion =
+      'En la tabla aparece «Sueldo líquido» como ingreso. ¿Confirmas ese nombre o cómo quieres llamar este movimiento?';
+    expect(inferBudgetFocusRowId(categoryQuestion)).toBe('income_salary');
+    expect(inferBudgetFieldFromQuestion(categoryQuestion)).toBe('category');
   });
 
   it('prioritizes category mentioned in the user answer over stale assistant focus', () => {

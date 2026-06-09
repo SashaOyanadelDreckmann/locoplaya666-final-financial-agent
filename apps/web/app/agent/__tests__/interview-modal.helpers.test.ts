@@ -1,11 +1,48 @@
 import {
+  canEndInterviewCallEarly,
+  measureActiveCallSeconds,
   resolveInterviewActiveQuota,
   resolveInterviewModalLoadingState,
   resolveInterviewVoiceStateFlags,
+  resolveUsedSecondsFromSources,
 } from '../interview-modal.helpers';
-import { INTERVIEW_TOTAL_LIMIT_SEC } from '@financial-agent/shared';
+import { INTERVIEW_MIN_EARLY_END_SEC, INTERVIEW_TOTAL_LIMIT_SEC } from '@financial-agent/shared';
 
 describe('interview modal helpers', () => {
+  it('resolves used seconds from server and client sources', () => {
+    expect(resolveUsedSecondsFromSources({ total_used_sec: 42 })).toBe(42);
+    expect(resolveUsedSecondsFromSources({ callSeconds: 55 }, { totalUsedSec: 48 })).toBe(55);
+    expect(resolveUsedSecondsFromSources({ remaining_total_sec: 120 })).toBe(60);
+  });
+
+  it('measures active call seconds with wall-clock segments', () => {
+    const now = 1_700_000_000_000;
+    expect(
+      measureActiveCallSeconds({
+        accumulatedSec: 40,
+        segmentStartedAtMs: now - 7_500,
+        segmentLive: true,
+        nowMs: now,
+      }),
+    ).toBe(47);
+
+    expect(
+      measureActiveCallSeconds({
+        accumulatedSec: 40,
+        segmentStartedAtMs: now - 7_500,
+        segmentLive: false,
+        nowMs: now,
+      }),
+    ).toBe(40);
+  });
+
+  it('requires at least 30 active seconds before early call end', () => {
+    expect(INTERVIEW_MIN_EARLY_END_SEC).toBe(30);
+    expect(canEndInterviewCallEarly(29)).toBe(false);
+    expect(canEndInterviewCallEarly(30)).toBe(true);
+    expect(canEndInterviewCallEarly(90)).toBe(true);
+  });
+
   it('derives remaining quota from active seconds only', () => {
     expect(resolveInterviewActiveQuota(0)).toEqual({
       activeSeconds: 0,

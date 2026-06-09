@@ -115,6 +115,10 @@ export function toUserFacingError(error: unknown, context: ErrorContext = 'gener
       return 'Hay demasiadas solicitudes en este momento. Intenta nuevamente en unos segundos.';
     }
 
+    if (code === 'fincoins_depleted') {
+      return 'Tus Fincoins se agotaron. El agente quedó en pausa y no se procesan nuevas solicitudes con costo.';
+    }
+
     if (error.status === 413 || joinedLower.includes('payload too large')) {
       return 'El archivo es demasiado grande para procesarlo. Sube uno más liviano o divídelo en partes.';
     }

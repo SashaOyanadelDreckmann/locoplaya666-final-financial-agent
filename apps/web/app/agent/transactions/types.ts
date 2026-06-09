@@ -145,6 +145,7 @@ export type UploadStatementResult = {
 
 export type TransactionsModalProps = {
   isOpen: boolean;
+  fincoinSpendBlocked?: boolean;
   onClose: () => void;
   txWizardStep: TxWizardStep;
   setTxWizardStep: (step: TxWizardStep) => void;

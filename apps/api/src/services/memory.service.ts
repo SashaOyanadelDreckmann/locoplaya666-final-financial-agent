@@ -494,7 +494,6 @@ function buildSystemMemoryPayload(): SystemMemory {
       '/api/welcome',
       '/api/session',
       '/api/sheets',
-      '/conversation/next',
       '/intake/submit',
       '/simulations',
       '/health',

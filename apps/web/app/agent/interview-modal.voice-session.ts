@@ -1,5 +1,6 @@
 import {
   buildVoiceSessionInstructions,
+  INTERVIEW_VOICE_OPENING_FOCUS,
   type VoiceSessionContext,
 } from './interview-modal.context';
 
@@ -19,21 +20,15 @@ export function emitVoiceSessionContext(
     session: {
       instructions: buildVoiceSessionInstructions({
         intake: ctx.intake,
-        transcriptEntries: ctx.transcriptEntries,
         minuteSummaries: ctx.minuteSummaries,
         finalSummary: ctx.finalSummary,
-        completedBlocks: ctx.completedBlocks,
-        currentQuestion: ctx.currentQuestion,
         latestUserSnippet: options?.latestUserSnippet,
         callPhase: options?.callPhase ?? 'exploration',
       }),
     },
   });
   if (!options?.triggerResponse) return;
-  const focus =
-    options.startingFocus ||
-    ctx.currentQuestion ||
-    'Profundiza la tensión más relevante entre intake, presupuesto y cartolas.';
+  const focus = options.startingFocus || INTERVIEW_VOICE_OPENING_FOCUS;
   sendVoiceEvent({
     type: 'response.create',
     response: {
@@ -53,5 +48,40 @@ export function resolveVoiceCapabilityIssue() {
   if (!window.isSecureContext) {
     return 'La llamada en tiempo real requiere un contexto seguro (HTTPS o localhost).';
   }
+  if (!navigator.mediaDevices?.getUserMedia) {
+    return 'Tu navegador no soporta captura de micrófono para esta entrevista.';
+  }
   return null;
+}
+
+export async function ensureMicrophoneAccess(existingStream: MediaStream | null): Promise<MediaStream> {
+  const liveTrack = existingStream?.getAudioTracks().find((track) => track.readyState === 'live');
+  if (liveTrack) {
+    liveTrack.enabled = true;
+    return existingStream as MediaStream;
+  }
+
+  return navigator.mediaDevices.getUserMedia({
+    audio: {
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true,
+    },
+  });
+}
+
+export function mapMicrophoneAccessError(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error ?? '');
+  if (
+    /microphone is not allowed in this document/i.test(message) ||
+    /Permission denied/i.test(message) ||
+    /Permission dismissed/i.test(message) ||
+    /NotAllowedError/i.test(message)
+  ) {
+    return 'El navegador bloqueó el micrófono. Actívalo en el banner o en los permisos del sitio y vuelve a intentar.';
+  }
+  if (/NotFoundError|DevicesNotFoundError/i.test(message)) {
+    return 'No detectamos un micrófono disponible. Conecta uno e intenta de nuevo.';
+  }
+  return 'No se pudo acceder al micrófono. Verifica permisos del navegador e intenta de nuevo.';
 }

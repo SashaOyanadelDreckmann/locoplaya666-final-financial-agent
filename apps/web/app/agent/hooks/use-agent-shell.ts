@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { ApiHttpError } from '@/lib/apiEnvelope';
-import { getSessionInfo } from '@/lib/api';
+import { getSessionInfo, type FincoinUsageApiPayload } from '@/lib/api';
 import { syncViewportModeClasses } from '@/lib/viewport-mode';
 import { applyMobileViewportTokens } from '@/lib/mobile-viewport-sync';
 import { hasCompletedIntakeAccess, resolveAuthRedirectPath } from '../page.utils';
@@ -30,6 +30,7 @@ export type AgentSessionInfo = {
   userId?: string;
   email?: string;
   latestDiagnosticCompletedAt?: string | null;
+  fincoinUsage?: FincoinUsageApiPayload | null;
 } | null;
 
 export function useAgentShell() {

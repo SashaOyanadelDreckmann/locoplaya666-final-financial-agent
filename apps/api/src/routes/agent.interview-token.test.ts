@@ -123,7 +123,38 @@ describe('GET /api/interview/realtime/token', () => {
     expect(res.body.data.max_duration_sec).toBe(15);
     expect(res.body.data.remaining_total_sec).toBe(15);
     expect(res.body.data.total_used_sec).toBe(INTERVIEW_TOTAL_LIMIT_SEC - 15);
+    expect(res.body.data.resumed).toBe(true);
+    expect(res.body.data.call_id).toBe('call_resume_test');
+    expect(res.body.data.fincoin_usage).toBeUndefined();
     expect(fetchSpy).toHaveBeenCalledTimes(1);
+  }, 15000);
+
+  it('marks fresh tokens as not resumed and resume tokens as resumed', async () => {
+    const fetchSpy = mockRealtimeClientSecretFetch();
+    const { agent, userId } = await createAuthedAgent();
+    const { saveUserMemoryBlob } = await import('../services/user.service');
+
+    const fresh = await agent.get('/api/interview/realtime/token');
+    expect(fresh.status).toBe(200);
+    expect(fresh.body.data.resumed).toBe(false);
+    expect(typeof fresh.body.data.fincoin_usage).toBe('object');
+
+    await saveUserMemoryBlob(userId, {
+      interviewVoice: {
+        totalUsedSec: 30,
+        callsStarted: 1,
+        activeCallId: fresh.body.data.call_id,
+        status: 'paused',
+      },
+    });
+
+    const resumed = await agent.get('/api/interview/realtime/token');
+    expect(resumed.status).toBe(200);
+    expect(resumed.body.data.resumed).toBe(true);
+    expect(resumed.body.data.call_id).toBe(fresh.body.data.call_id);
+    expect(resumed.body.data.calls_used).toBe(1);
+    expect(resumed.body.data.fincoin_usage).toBeUndefined();
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
   }, 15000);
 
   it('blocks token creation when total interview time is exhausted', async () => {

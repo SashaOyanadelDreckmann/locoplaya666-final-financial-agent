@@ -130,6 +130,10 @@ import type {
 import { toChatItemsFromAgentResponse } from '@/lib/agent.response.types';
 import { AccountModal, BudgetModal, QuestionnaireModal, TransactionsModal } from './modals';
 import { InterviewModal } from './InterviewModal';
+import { FincoinUsageModal } from './FincoinUsageModal';
+import { useFincoinUsage } from './use-fincoin-usage';
+import { useFincoinSpendGate } from './use-fincoin-spend-gate';
+import type { FincoinUsageApiPayload } from '@/lib/api';
 import { SocialConsciousnessModal } from './SocialConsciousnessModal';
 import { SidePanels } from './side-panels';
 import { PanelCalloutBanner } from './panel-callout-banner';
@@ -428,6 +432,25 @@ export default function AgentPage() {
   const [isRailMorphing] = useState(false);
   const [levelUpText, setLevelUpText] = useState<string | null>(null);
   const [knowledgePopupOpen, setKnowledgePopupOpen] = useState(false);
+  const [fincoinUsageOpen, setFincoinUsageOpen] = useState(false);
+  const {
+    usage: fincoinUsage,
+    loading: fincoinUsageLoading,
+    refresh: refreshFincoinUsage,
+    applyUsagePayload,
+    isDepleted: fincoinDepleted,
+    isLowBalance: fincoinLowBalance,
+  } = useFincoinUsage(isAuthenticated);
+  const { blockSpend: blockFincoinSpend, spendBlocked: fincoinSpendBlocked } = useFincoinSpendGate({
+    depleted: fincoinDepleted,
+    onOpenUsage: () => {
+      setFincoinUsageOpen(true);
+      void refreshFincoinUsage();
+    },
+    onNotify: (message) => {
+      setPanelCallout({ section: 'chat', message });
+    },
+  });
   const [isTransactionsModalOpen, setIsTransactionsModalOpen] = useState(false);
   const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
   const [isQuestionnaireModalOpen, setIsQuestionnaireModalOpen] = useState(false);
@@ -1034,6 +1057,7 @@ export default function AgentPage() {
         userMessageCount: t.userMessageCount,
         createdAt: t.createdAt,
         completedAt: t.completedAt,
+        closureSummary: t.closureSummary ?? null,
       }));
       saveSheets(toSave).catch(() => {});
     }, 1500);
@@ -1973,6 +1997,38 @@ export default function AgentPage() {
   }, [sessionInfo?.productLifecycle]);
 
   useEffect(() => {
+    if (sessionInfo?.fincoinUsage) {
+      applyUsagePayload(sessionInfo.fincoinUsage as FincoinUsageApiPayload);
+    }
+  }, [sessionInfo?.fincoinUsage, applyUsagePayload]);
+
+  useEffect(() => {
+    if (!fincoinSpendBlocked) return;
+    setIsBudgetModalOpen(false);
+    setIsTransactionsModalOpen(false);
+    setIsInterviewModalOpen(false);
+  }, [fincoinSpendBlocked]);
+
+  const applyFincoinClosureSummaries = useCallback(
+    (summaries?: Record<string, unknown> | null) => {
+      if (!summaries || typeof summaries !== 'object') return;
+      setChatThreads((prev) =>
+        prev.map((thread) => {
+          const candidate = summaries[thread.id];
+          if (!candidate || typeof candidate !== 'object') return thread;
+          if (!('title' in candidate) || !('sections' in candidate)) return thread;
+          return {
+            ...thread,
+            closureSummary: candidate as ChatClosureSummary,
+            status: 'context' as const,
+          };
+        }),
+      );
+    },
+    [],
+  );
+
+  useEffect(() => {
     if (!isAuthenticated) return;
     loadProfileIfNeeded().catch(() => {});
   }, [isAuthenticated, loadProfileIfNeeded]);
@@ -2017,6 +2073,20 @@ export default function AgentPage() {
           role: 'assistant',
           content:
           'Este chat todavía está bloqueado. Terminemos primero el flujo base en el Chat 1: productos/transacciones, presupuesto y entrevista breve para construir el diagnóstico final.',
+          mode: 'information',
+        },
+      ]);
+      return false;
+    }
+    if (fincoinSpendBlocked) {
+      blockFincoinSpend({ context: 'chat', silent: true });
+      setItemsForActive((prev) => [
+        ...prev,
+        {
+          type: 'message',
+          role: 'assistant',
+          content:
+            'Tus Fincoins se agotaron. El agente quedó en pausa: puedes revisar los resúmenes finales, pero no se procesan nuevas solicitudes con costo.',
           mode: 'information',
         },
       ]);
@@ -2262,6 +2332,18 @@ export default function AgentPage() {
           );
         }
       }
+      const fincoinMeta = res?.meta as
+        | {
+            fincoin_usage?: FincoinUsageApiPayload;
+            closure_summaries?: Record<string, unknown>;
+          }
+        | undefined;
+      if (fincoinMeta?.fincoin_usage) {
+        applyUsagePayload(fincoinMeta.fincoin_usage);
+      }
+      if (fincoinMeta?.closure_summaries) {
+        applyFincoinClosureSummaries(fincoinMeta.closure_summaries);
+      }
       forceRender((x) => x + 1);
 
       res.panel_action = normalizePanelActionForCurrentFlow(res.panel_action);
@@ -2401,6 +2483,7 @@ export default function AgentPage() {
       router.replace('/login');
       return;
     }
+    if (blockFincoinSpend({ context: 'upload' })) return;
     if (isActiveChatLocked) return;
 
     let selected = Array.from(files);
@@ -2714,6 +2797,7 @@ export default function AgentPage() {
   }
 
   function openTransactionsPanel() {
+    if (blockFincoinSpend({ context: 'modal' })) return;
     if (!unlockedPanelBlocks.transactionsUnlocked) return;
     const activeProduct =
       bankSimulation.products.find((product) => product.id === bankSimulation.activeProductId) ?? null;
@@ -2723,6 +2807,7 @@ export default function AgentPage() {
   }
 
   const openInterviewModal = useCallback(async () => {
+    if (blockFincoinSpend({ context: 'modal' })) return;
     try {
       await syncFinancialContextToIntake();
     } catch {
@@ -2735,12 +2820,13 @@ export default function AgentPage() {
     }
     setInterviewIntake(buildInterviewIntakePayload());
     setIsInterviewModalOpen(true);
-  }, [buildInterviewIntakePayload, interviewCompleted, setInterviewIntake, setSessionInfo, syncFinancialContextToIntake]);
+  }, [blockFincoinSpend, buildInterviewIntakePayload, interviewCompleted, setInterviewIntake, setSessionInfo, syncFinancialContextToIntake]);
 
   const openBudgetModal = useCallback(() => {
+    if (blockFincoinSpend({ context: 'modal' })) return;
     void syncFinancialContextToIntake().catch(() => {});
     setIsBudgetModalOpen(true);
-  }, [syncFinancialContextToIntake]);
+  }, [blockFincoinSpend, syncFinancialContextToIntake]);
 
   function openDiagnosisView() {
     if (interviewCompleted) {
@@ -2767,8 +2853,7 @@ export default function AgentPage() {
       return;
     }
     if (section === 'budget') {
-      void syncFinancialContextToIntake().catch(() => {});
-      setIsBudgetModalOpen(true);
+      openBudgetModal();
       return;
     }
     if (section === 'interview') {
@@ -3026,6 +3111,7 @@ export default function AgentPage() {
       router.replace('/login');
       return null;
     }
+    if (blockFincoinSpend({ context: 'upload' })) return null;
     if (!files) return null;
     const fileArray = Array.isArray(files) ? files : Array.from(files);
     if (fileArray.length === 0) return null;
@@ -3590,6 +3676,7 @@ export default function AgentPage() {
     openTransactionsPanel,
     openInterviewModal,
     openDiagnosisView,
+    fincoinSpendBlocked,
     transactionIntel,
     reportsByGroup,
     librarySummary,
@@ -3668,9 +3755,15 @@ export default function AgentPage() {
         <textarea
           ref={chatComposerRef}
           className="terminal-composer-input"
-          placeholder={isActiveChatLocked ? 'Chat bloqueado hasta completar la entrevista' : ''}
+          placeholder={
+            fincoinSpendBlocked
+              ? 'Fincoins agotados · agente en pausa'
+              : isActiveChatLocked
+                ? 'Chat bloqueado hasta completar la entrevista'
+                : ''
+          }
           value={input}
-          disabled={isActiveChatLocked}
+          disabled={isActiveChatLocked || fincoinSpendBlocked}
           autoFocus={!hasBlockingModalOpen && !isMobileViewport}
           enterKeyHint="send"
           inputMode="text"
@@ -3706,7 +3799,7 @@ export default function AgentPage() {
         <button
           type="button"
           className="continue-button composer-icon-btn"
-          disabled={isActiveChatLocked}
+          disabled={isActiveChatLocked || fincoinSpendBlocked}
           onClick={() => chatUploadInputRef.current?.click()}
           title={`Adjuntar archivos (máx. ${MAX_CHAT_UPLOAD_FILES}: PDF, imagen, Excel, texto y más)`}
           aria-label={`Adjuntar archivo, hasta ${MAX_CHAT_UPLOAD_FILES} por envío`}
@@ -3738,7 +3831,7 @@ export default function AgentPage() {
         <button
           type="button"
           className={`composer-send-btn${input.trim() ? ' is-send-ready' : ''}`}
-          disabled={isActiveChatLocked}
+          disabled={isActiveChatLocked || fincoinSpendBlocked}
           onClick={() => {
             void onSend(chatComposerRef.current?.value ?? input);
           }}
@@ -3814,8 +3907,15 @@ export default function AgentPage() {
           cycleVisualMode={handleCycleVisualMode}
           isMobileViewport={isMobileViewport}
           actionPlanFunnelStage={activeActionPlanStage}
+          fincoinRemaining={fincoinUsage.remainingFincoins}
+          fincoinDepleted={fincoinSpendBlocked}
+          fincoinLowBalance={fincoinLowBalance}
+          onOpenFincoinUsage={() => {
+            setFincoinUsageOpen(true);
+            void refreshFincoinUsage();
+          }}
         />
-        {interviewResumePending && canOpenInterview && !interviewCompleted ? (
+        {interviewResumePending && canOpenInterview && !interviewCompleted && !fincoinSpendBlocked ? (
           <div className="interview-resume-banner">
             <div className="interview-resume-copy">
               <strong>Entrevista pendiente</strong>
@@ -3983,6 +4083,7 @@ export default function AgentPage() {
 
       <TransactionsModal
         isOpen={isTransactionsModalOpen}
+        fincoinSpendBlocked={fincoinSpendBlocked}
         onClose={() => setIsTransactionsModalOpen(false)}
         txWizardStep={txWizardStep}
         setTxWizardStep={setTxWizardStep}
@@ -4017,6 +4118,7 @@ export default function AgentPage() {
 
       <BudgetModal
         isOpen={isBudgetModalOpen}
+        fincoinSpendBlocked={fincoinSpendBlocked}
         onClose={() => setIsBudgetModalOpen(false)}
         budgetTotals={budgetTotals}
         budgetInsights={budgetInsights}
@@ -4061,6 +4163,7 @@ export default function AgentPage() {
 
       <InterviewModal
         isOpen={isInterviewModalOpen}
+        fincoinSpendBlocked={fincoinSpendBlocked}
         onClose={() => setIsInterviewModalOpen(false)}
         onDiagnosisComplete={() => {
           void syncDiagnosisSession({
@@ -4077,6 +4180,13 @@ export default function AgentPage() {
           void onSend(message);
         }}
         sessionUserName={sessionInfo?.name}
+      />
+
+      <FincoinUsageModal
+        isOpen={fincoinUsageOpen}
+        onClose={() => setFincoinUsageOpen(false)}
+        usage={fincoinUsage}
+        loading={fincoinUsageLoading}
       />
 
       <AccountModal

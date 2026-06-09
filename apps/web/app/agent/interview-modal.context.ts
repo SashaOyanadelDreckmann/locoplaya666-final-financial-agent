@@ -4,6 +4,7 @@ export type InterviewVoiceReport = {
   stop_reason?: string;
   has_enough_information?: boolean;
   confidence?: 'high' | 'medium' | 'low';
+  coverage_tier?: 'minimal' | 'partial' | 'substantial' | 'complete';
 };
 
 export type InterviewVoiceSummaryEntry = {
@@ -19,6 +20,7 @@ export type InterviewVoiceSnapshot = {
   activeCallId?: string | null;
   status?: 'idle' | 'in_progress' | 'paused' | 'completed';
   callSeconds?: number;
+  totalUsedSec?: number;
   maxDurationSec?: number;
   remainingTotalSec?: number | null;
   pauseUsed?: boolean;
@@ -42,26 +44,13 @@ export {
   type InterviewVoiceStateInput,
 } from './interview-modal.helpers';
 
+export const INTERVIEW_VOICE_OPENING_FOCUS =
+  'Abre con una observación concreta del intake, presupuesto o productos y formula una sola pregunta ejecutiva de alto valor.';
+
 export function formatMoneyCompact(value: unknown) {
   const amount = Number(value ?? 0);
   if (!Number.isFinite(amount)) return '0';
   return amount.toLocaleString('es-CL');
-}
-
-export function formatBlockLabel(blockId?: string) {
-  if (!blockId) return 'Exploración';
-  const labels: Record<string, string> = {
-    warmup: 'Apertura',
-    cashflow: 'Flujo',
-    resilience: 'Resiliencia',
-    debt: 'Deuda',
-    products: 'Productos',
-    goals: 'Metas',
-    knowledge: 'Comprensión',
-    risk: 'Riesgo',
-    emotional: 'Patrón emocional',
-  };
-  return labels[blockId] ?? blockId;
 }
 
 function formatIntakeFieldLabel(key: string) {
@@ -103,10 +92,8 @@ function buildSeniorVoicePersonaBlock() {
 
 export function buildVoiceInterviewDossier(
   intake: unknown,
-  transcriptEntries: Array<{ blockId?: string; answer?: string }>,
   minuteSummaries: InterviewVoiceSummaryEntry[] = [],
   finalSummary?: InterviewVoiceSnapshot['finalSummary'],
-  completedBlocks?: Record<string, { summary?: string; signalsDetected?: string[] }>,
 ) {
   const source = (intake ?? {}) as Record<string, unknown>;
   const products = source.__productsContext as Record<string, unknown> | undefined;
@@ -262,22 +249,6 @@ export function buildVoiceInterviewDossier(
       sections.push(`    Hallazgos: ${finalSummary.keyFindings.slice(0, 5).join(' | ')}`);
     }
   }
-  const priorAnswers = transcriptEntries.filter((e) => e?.answer && String(e.answer).trim());
-  if (priorAnswers.length > 0) {
-    sections.push('\n[RESPUESTAS PREVIAS EN ESTA ENTREVISTA]');
-    for (const entry of priorAnswers.slice(-8)) {
-      sections.push(`  · ${formatBlockLabel(entry.blockId)}: ${String(entry.answer).trim().slice(0, 220)}`);
-    }
-  }
-  if (completedBlocks && Object.keys(completedBlocks).length > 0) {
-    sections.push('\n[BLOQUES YA CERRADOS]');
-    for (const [id, block] of Object.entries(completedBlocks).slice(0, 6)) {
-      sections.push(`  · ${formatBlockLabel(id)}: ${String(block.summary ?? '').slice(0, 180)}`);
-      if (Array.isArray(block.signalsDetected) && block.signalsDetected.length)
-        sections.push(`    Señales: ${block.signalsDetected.slice(0, 4).join(' | ')}`);
-    }
-  }
-
   sections.push(
     '\n[MANDATO DE ENTREVISTA]',
     'Cruza intake + presupuesto + productos en cada pregunta. Si hay inconsistencias, señálalas con respeto y profundiza.',
@@ -289,31 +260,20 @@ export function buildVoiceInterviewDossier(
 
 export function buildVoiceSessionInstructions(params: {
   intake: unknown;
-  transcriptEntries: Array<{ blockId?: string; answer?: string }>;
   minuteSummaries?: InterviewVoiceSummaryEntry[];
   finalSummary?: InterviewVoiceSnapshot['finalSummary'];
-  completedBlocks?: Record<string, { summary?: string; signalsDetected?: string[] }>;
-  currentQuestion?: string;
   latestUserSnippet?: string;
   callPhase?: 'exploration' | 'closeout';
 }) {
-  const dossier = buildVoiceInterviewDossier(
-    params.intake,
-    params.transcriptEntries,
-    params.minuteSummaries ?? [],
-    params.finalSummary,
-    params.completedBlocks,
-  );
+  const dossier = buildVoiceInterviewDossier(params.intake, params.minuteSummaries ?? [], params.finalSummary);
   const blocks = [
     buildSeniorVoicePersonaBlock(),
     `TIEMPO DE LLAMADA: máximo 3 minutos. En los últimos 25 segundos cierra con <<CALL_COMPLETE>> y síntesis ejecutiva breve.`,
     'CONCIENCIA DEL SISTEMA: El usuario completó cuestionario (intake), cargó productos/cartolas y armó presupuesto en Financieramente. Toda la evidencia está abajo — cita montos, categorías o alertas concretas; no pidas lo que ya tienes.',
     'SÍNTESIS OBJETIVO: Si se solicita una síntesis, responde solo con texto estructurado y conciso. No uses transcripción literal ni repitas audio.',
+    `FOCO INICIAL DE LA LLAMADA: ${INTERVIEW_VOICE_OPENING_FOCUS}`,
     dossier,
   ];
-  if (params.currentQuestion?.trim()) {
-    blocks.push(`PREGUNTA GUÍA DEL BLOQUE ACTIVO (para orientar profundidad, no la leas textual): ${params.currentQuestion.trim()}`);
-  }
   if (params.latestUserSnippet?.trim()) {
     blocks.push(`ÚLTIMA RESPUESTA DEL USUARIO (incorpora y repregunta con precisión):\n${params.latestUserSnippet.trim()}`);
   }
@@ -331,14 +291,11 @@ export function buildVoiceSessionInstructions(params: {
 
 export type VoiceSessionContext = {
   intake: unknown;
-  transcriptEntries: Array<{ blockId?: string; answer?: string }>;
   minuteSummaries: InterviewVoiceSummaryEntry[];
   finalSummary: InterviewVoiceSnapshot['finalSummary'];
-  completedBlocks: Record<string, { summary?: string; signalsDetected?: string[] }>;
-  currentQuestion: string;
 };
 
-export function summarizeVoiceInterviewContext(intake: unknown, transcriptEntries: Array<{ blockId?: string; answer?: string }>) {
+export function summarizeVoiceInterviewContext(intake: unknown) {
   const source = (intake ?? {}) as Record<string, unknown>;
   const products = source.__productsContext as Record<string, unknown> | undefined;
   const budget = source.__budgetContext as Record<string, unknown> | undefined;
@@ -429,24 +386,12 @@ export function summarizeVoiceInterviewContext(intake: unknown, transcriptEntrie
     }
   }
 
-  const priorAnswers = transcriptEntries
-    .filter((entry) => entry?.answer && String(entry.answer).trim())
-    .slice(-3)
-    .map((entry) => `${formatBlockLabel(entry.blockId)}: ${String(entry.answer).trim().slice(0, 180)}`);
-  if (priorAnswers.length > 0) {
-    parts.push(`Respuestas previas: ${priorAnswers.join(' | ')}`);
-  }
-
   return parts.filter(Boolean).join('\n');
 }
 
 /** Highlights estructurados para el panel lateral — una línea por bloque de contexto. */
-export function buildInterviewContextHighlights(
-  intake: unknown,
-  transcriptEntries: Array<{ blockId?: string; answer?: string }>,
-  maxItems = 4,
-) {
-  return summarizeVoiceInterviewContext(intake, transcriptEntries)
+export function buildInterviewContextHighlights(intake: unknown, maxItems = 4) {
+  return summarizeVoiceInterviewContext(intake)
     .split('\n')
     .map((item) => item.trim())
     .filter(Boolean)

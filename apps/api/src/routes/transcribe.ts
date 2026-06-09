@@ -3,6 +3,8 @@ import OpenAI, { toFile } from 'openai';
 import { z } from 'zod';
 import { asyncHandler } from '../middleware/errorHandler';
 import { requireAuth } from '../middleware/auth';
+import { requireSpendableFincoins } from '../middleware/fincoin-guard';
+import { chargeFincoinOperation } from '../services/fincoin.service';
 import { getConfig } from '../config';
 
 const router = Router();
@@ -37,7 +39,12 @@ function decodeBase64File(base64: string): Buffer {
 router.post(
   '/',
   requireAuth,
+  requireSpendableFincoins('transcribe'),
   asyncHandler(async (req, res) => {
+    const user = req.authenticatedUser;
+    if (user) {
+      await chargeFincoinOperation(user.id, 'transcribe');
+    }
     const config = getConfig();
     const parsed = transcribePayloadSchema.safeParse(req.body ?? {});
     if (!parsed.success) {

@@ -42,3 +42,4 @@ export {
   withWelcomeIntroFirstName,
 } from './welcome/welcome-intro.cache';
 export * from './ui-events';
+export * from './fincoin.constants';

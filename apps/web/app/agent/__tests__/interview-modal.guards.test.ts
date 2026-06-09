@@ -55,7 +55,7 @@ describe('interview modal safeguards', () => {
     expect(source).not.toContain(".split('||')");
   });
 
-  it('does not expose manual interview finalization in the modal shell', () => {
+  it('exposes guarded early-call finalization without legacy manual report buttons', () => {
     const modalPath = path.join(process.cwd(), 'app', 'agent', 'InterviewModal.tsx');
     const runtimePath = path.join(process.cwd(), 'app', 'agent', 'useInterviewVoiceRuntime.ts');
     const modal = fs.readFileSync(modalPath, 'utf8');
@@ -63,11 +63,15 @@ describe('interview modal safeguards', () => {
 
     expect(modal).not.toContain('Finalizar y generar informe');
     expect(modal).not.toContain('Generar informe con contexto disponible');
-    expect(modal).not.toContain("finalizeCallAndGenerateReport('user')");
     expect(modal).not.toContain("finalizeCallAndGenerateReport('timeout')");
+    expect(modal).toContain('endCallEarly');
+    expect(modal).toContain('Finalizar llamada');
+    expect(modal).toContain('Confirmar y generar diagnóstico');
+    expect(runtime).toContain('endCallEarly');
+    expect(runtime).toContain('canEndInterviewCallEarly');
+    expect(runtime).toContain("finalizeCallAndGenerateReport('user'");
     expect(runtime).toContain("finalizeCallAndGenerateReport('timeout')");
     expect(runtime).toContain("finalizeCallAndGenerateReport('agent')");
-    expect(runtime).not.toContain("finalizeCallAndGenerateReport('user')");
   });
 
   it('allows closing the modal anytime except while connecting or finalizing', () => {

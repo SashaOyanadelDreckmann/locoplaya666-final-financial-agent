@@ -8,18 +8,6 @@ function withCsrf(headers: Record<string, string> = {}): Record<string, string> 
   return { ...headers, 'X-CSRF-Token': token };
 }
 
-export async function nextConversationStep(payload: unknown) {
-  const API_URL = getSessionApiBaseUrl();
-  const res = await fetch(`${API_URL}/conversation/next`, {
-    method: 'POST',
-    headers: withCsrf({ 'Content-Type': 'application/json' }),
-    credentials: 'include',
-    body: JSON.stringify(payload),
-  });
-
-  return parseApiResponse<any>(res);
-}
-
 export async function registerUser(payload: {
   name: string;
   email: string;
@@ -135,6 +123,19 @@ export async function removeInjectedIntake() {
   return parseApiResponse<{ updated: boolean }>(res);
 }
 
+export type FincoinUsageApiPayload = {
+  initial_fincoins?: number;
+  remaining_fincoins?: number;
+  spent_fincoins?: number;
+  budget_usd?: number;
+  max_usd_spend?: number;
+  usd_spent?: number;
+  usd_remaining?: number;
+  depleted?: boolean;
+  low_balance?: boolean;
+  warning_threshold?: number;
+};
+
 export async function getSessionInfo() {
   const API_URL = getSessionApiBaseUrl();
   const res = await fetch(`${API_URL}/api/session`, {
@@ -143,6 +144,19 @@ export async function getSessionInfo() {
   });
 
   return parseApiResponse<any>(res);
+}
+
+export async function fetchFincoinUsage() {
+  const API_URL = getSessionApiBaseUrl();
+  const res = await fetch(`${API_URL}/api/usage`, {
+    method: 'GET',
+    credentials: 'include',
+  });
+
+  return parseApiResponse<{
+    usage: FincoinUsageApiPayload;
+    closure_summaries?: Record<string, unknown>;
+  }>(res);
 }
 
 export async function loadAgentConversationHistory(params?: { chatId?: string; sessionId?: string; limit?: number }) {
@@ -320,6 +334,7 @@ export async function getInterviewRealtimeToken() {
     expires_at?: number;
     session_id?: string;
     call_id?: string;
+    resumed?: boolean;
     calls_used?: number;
     calls_left?: number;
     max_duration_sec?: number;
@@ -368,7 +383,7 @@ export async function finalizeInterviewVoiceCall(payload: {
     createdAt?: string;
   };
   transcript?: string;
-  endedBy: 'timeout' | 'agent';
+  endedBy: 'timeout' | 'agent' | 'user';
   durationSec?: number;
   callId?: string;
 }) {

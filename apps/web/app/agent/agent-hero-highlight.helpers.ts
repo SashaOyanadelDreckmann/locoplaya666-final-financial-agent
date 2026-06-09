@@ -13,6 +13,7 @@ export type AgentHeroTextSegment = {
 };
 
 const COLUMN_PHRASES: Record<Exclude<BudgetRowFieldGap, never>, string[]> = {
+  category: ['categoría', 'categoria', 'rubro', 'concepto', 'partida'],
   amount: ['monto mensual', 'monto', 'cuánto', 'cuanto', 'pesos', 'dividendo'],
   cadence: ['recurrencia', 'cada mes', 'mes a mes', 'fijo', 'fija', 'variable'],
   paymentMethod: ['medio de pago', 'transferencia', 'débito', 'debito', 'crédito', 'credito', 'efectivo', 'prepago'],

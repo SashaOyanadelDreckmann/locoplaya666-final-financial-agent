@@ -5509,24 +5509,6 @@
   transform: translateY(0) scale(0.985) !important;
 }
 
-.interview-modal .agent-textarea {
-  width: 100% !important;
-  min-height: 96px !important;
-  resize: vertical !important;
-  border-radius: 16px !important;
-  border: 1px solid rgba(214, 225, 236, 0.16) !important;
-  background: rgba(255,255,255,0.04) !important;
-  color: rgba(242, 247, 252, 0.94) !important;
-  padding: 14px 16px !important;
-  margin: 12px 0 14px !important;
-}
-
-.interview-modal .agent-textarea:focus {
-  outline: none !important;
-  border-color: rgba(214, 225, 236, 0.34) !important;
-  box-shadow: 0 0 0 3px rgba(170, 194, 218, 0.08) !important;
-}
-
 .interview-modal .interview-call-error-banner {
   border-radius: 16px !important;
   border: 1px solid rgba(211, 145, 145, 0.22) !important;

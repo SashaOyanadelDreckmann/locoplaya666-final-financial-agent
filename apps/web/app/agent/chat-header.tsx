@@ -1,4 +1,5 @@
 import React from 'react';
+import { Coins } from 'lucide-react';
 import {
   formatRemainingInteractions,
   getClosingInteractionThreshold,
@@ -52,6 +53,10 @@ export function ChatHeader(props: {
   cycleVisualMode: (origin?: { x: number; y: number }) => void;
   isMobileViewport: boolean;
   actionPlanFunnelStage?: 'brainstorm' | 'converge' | 'deliver' | null;
+  fincoinRemaining?: number;
+  fincoinDepleted?: boolean;
+  fincoinLowBalance?: boolean;
+  onOpenFincoinUsage?: () => void;
 }) {
   const activeLabel = props.activeThread?.label;
   const activeSpecialization = props.activeThread
@@ -71,7 +76,7 @@ export function ChatHeader(props: {
   const nextVisualModeLabel = VISUAL_MODE_LABELS[nextVisualMode];
   const isVisualModeOn = isVisualModeActive(props.visualMode);
 
-  const monochromeToggle = (
+  const monochromeToggleInner = (
     <button
       type="button"
       className={`chat-monochrome-toggle ${
@@ -105,6 +110,36 @@ export function ChatHeader(props: {
       </svg>
       <span className="mono-toggle-mode-dot" aria-hidden="true" />
     </button>
+  );
+
+  const fincoinToggle = (
+    <button
+      type="button"
+      className={`chat-fincoin-toggle${
+        props.fincoinDepleted ? ' is-depleted' : props.fincoinLowBalance ? ' is-low' : ''
+      }`}
+      onClick={() => props.onOpenFincoinUsage?.()}
+      aria-label={
+        props.fincoinDepleted
+          ? 'Fincoins agotados. Abrir detalle de uso.'
+          : `Fincoins disponibles: ${props.fincoinRemaining ?? 0}. Abrir detalle de uso.`
+      }
+      title={
+        props.fincoinDepleted
+          ? 'Fincoins agotados · agente en pausa'
+          : `Fincoins: ${props.fincoinRemaining ?? 0} disponibles`
+      }
+    >
+      <Coins size={14} aria-hidden="true" />
+      <span className="chat-fincoin-toggle-dot" aria-hidden="true" />
+    </button>
+  );
+
+  const monochromeToggle = (
+    <div className="chat-header-toggle-group">
+      {fincoinToggle}
+      {monochromeToggleInner}
+    </div>
   );
 
   const chatSwitcher = (compact = false) => (
@@ -249,6 +284,15 @@ export function ChatHeader(props: {
           <span className="action-plan-funnel-stage-pill">{funnelStageLabel(props.actionPlanFunnelStage)}</span>
         </div>
       )}
+      {props.fincoinDepleted ? (
+        <div className="fincoin-depleted-banner" role="status">
+          Fincoins agotados: el agente quedó en pausa. Puedes revisar los resúmenes finales, pero no se procesan nuevas solicitudes con costo.
+        </div>
+      ) : props.fincoinLowBalance ? (
+        <div className="fincoin-low-balance-banner" role="status">
+          Te quedan {props.fincoinRemaining ?? 0} Fincoins. Prioriza preguntas clave para no interrumpir el flujo.
+        </div>
+      ) : null}
       {props.isActiveChatLocked && (
         <div className="product-flow-banner" role="status">
           Este chat se desbloquea después de cerrar la entrevista. Sigue en el Chat 1 con presupuesto, cartolas y entrevista breve.

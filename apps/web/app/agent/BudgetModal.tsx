@@ -15,7 +15,7 @@ import {
   buildBudgetRowSummary,
   formatBudgetAssistantTurn,
   getAssistantMessage,
-  getBudgetQuestionForId,
+  getBudgetQuestionForRow,
   getNextQuestion,
   normalizeActionRowId,
   sanitizeBudgetQuestion,
@@ -57,8 +57,11 @@ function BudgetCarouselStage({ mobile, children }: { mobile: boolean; children: 
   return <>{children}</>;
 }
 
+import { FINCOIN_SPEND_BLOCKED_MESSAGE } from '@/lib/fincoin-gate';
+
 export function BudgetModal(props: {
   isOpen: boolean;
+  fincoinSpendBlocked?: boolean;
   onClose: () => void;
   budgetTotals: { income: number; expenses: number; balance: number };
   budgetInsights: BudgetInsights;
@@ -182,6 +185,20 @@ export function BudgetModal(props: {
         ? 'is-negative'
         : 'is-neutral';
   const templateAppliedRef = useRef(false);
+  const budgetInitStartedRef = useRef(false);
+
+  const budgetAssistantContextInput = {
+    budgetRows: props.budgetRows,
+    chatAnswers: props.chatAnswers,
+    bankProducts: props.bankProducts,
+    sessionInfo: props.sessionInfo,
+  };
+
+  function resolveLocalBudgetQuestion(rowId: string | null) {
+    const row = rowId ? props.budgetRows.find((item) => item.id === rowId) ?? null : null;
+    return getBudgetQuestionForRow(row, budgetAssistantContextInput, rowId);
+  }
+
   useEffect(() => {
     if (!props.isOpen) {
       templateAppliedRef.current = false;
@@ -258,7 +275,7 @@ export function BudgetModal(props: {
     setActiveBudgetRowId(rowId);
     if (isMobileManualTable) return;
     setAssistantBudgetRowId(rowId);
-    setAssistantNextQuestion(getBudgetQuestionForId(rowId));
+    setAssistantNextQuestion(resolveLocalBudgetQuestion(rowId));
   }
 
   function applyBudgetAction(action: Record<string, unknown> | null | undefined) {
@@ -423,15 +440,22 @@ export function BudgetModal(props: {
     }
   }
 
+  function rejectFincoinSpend(): boolean {
+    if (!props.fincoinSpendBlocked) return false;
+    setAiError(FINCOIN_SPEND_BLOCKED_MESSAGE);
+    return true;
+  }
+
   async function handleBudgetAgentReplySubmit(forcedAnswer?: string) {
     const answer = (forcedAnswer ?? budgetReply).trim();
+    if (rejectFincoinSpend()) return;
     if (!answer || !props.isOpen || isAskingAI || isInitializing || replySubmitLockRef.current) return;
     replySubmitLockRef.current = true;
 
     const manualFocusRowId = activeBudgetRowId;
     const questionForTurn =
-      (manualFocusRowId ? getBudgetQuestionForId(manualFocusRowId) : null) ??
       assistantNextQuestion ??
+      (manualFocusRowId ? resolveLocalBudgetQuestion(manualFocusRowId) : null) ??
       extractInferenceQuestionText(assistantQuestion ?? '') ??
       assistantQuestion ??
       activeQuestion;
@@ -544,9 +568,20 @@ export function BudgetModal(props: {
     [],
   );
 
-  // On open: reset conversation state and fetch first personalized question from AI
+  // On open: wait for template rows, then reset conversation and fetch first question from AI
   useEffect(() => {
-    if (!props.isOpen) return;
+    if (!props.isOpen) {
+      budgetInitStartedRef.current = false;
+      return;
+    }
+    if (props.fincoinSpendBlocked) {
+      setAiError(FINCOIN_SPEND_BLOCKED_MESSAGE);
+      setIsInitializing(false);
+      return;
+    }
+    if (props.budgetRows.length === 0) return;
+    if (budgetInitStartedRef.current) return;
+    budgetInitStartedRef.current = true;
 
     const budgetRowsForInit = props.budgetRows.slice(0, 30);
     setBudgetReply('');
@@ -594,19 +629,21 @@ export function BudgetModal(props: {
 
         const payload = normalizeBudgetChatPayload(unwrapApiData<BudgetChatApiPayload>(raw));
         if (payload) {
-          applyAssistantTurn(payload, getBudgetQuestionForId('income_salary'));
+          applyAssistantTurn(payload, resolveLocalBudgetQuestion('income_salary'));
           const nextQuestion = sanitizeBudgetQuestion(getNextQuestion(payload, ''));
           setAssistantNextQuestion(nextQuestion || null);
           setAssistantBudgetRowId(payload.focus_row_id ?? inferBudgetFocusRowId(nextQuestion));
         } else {
-          setAssistantQuestion(getBudgetQuestionForId('income_salary'));
-          setAssistantNextQuestion(getBudgetQuestionForId('income_salary'));
+          const fallbackQuestion = resolveLocalBudgetQuestion('income_salary');
+          setAssistantQuestion(fallbackQuestion);
+          setAssistantNextQuestion(fallbackQuestion);
           setAssistantBudgetRowId('income_salary');
         }
       } catch (err) {
         if (isBudgetChatAbortError(err) || !isOpenRef.current) return;
-        setAssistantQuestion(getBudgetQuestionForId('income_salary'));
-        setAssistantNextQuestion(getBudgetQuestionForId('income_salary'));
+        const fallbackQuestion = resolveLocalBudgetQuestion('income_salary');
+        setAssistantQuestion(fallbackQuestion);
+        setAssistantNextQuestion(fallbackQuestion);
         setAssistantBudgetRowId('income_salary');
         setAiError(budgetChatErrorMessage(err));
       } finally {
@@ -617,8 +654,7 @@ export function BudgetModal(props: {
     return () => {
       initController.abort();
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [props.isOpen]);
+  }, [props.isOpen, props.budgetRows.length, props.fincoinSpendBlocked]);
 
   useEffect(() => {
     if (!props.isOpen || isDesktopLayout) return;
@@ -812,58 +848,20 @@ export function BudgetModal(props: {
     }
 
     if (previousMode === tableViewMode && budgetViewMode === 1) {
-      resumeAbortRef.current?.abort();
-      const resumeController = new AbortController();
-      resumeAbortRef.current = resumeController;
-      const resumeSignal = resumeController.signal;
-
-      void (async () => {
-        setIsInitializing(true);
-        setAiError(null);
-        try {
-          const csrfToken = getCsrfToken();
-          const res = await fetch('/api/budget-chat', {
-            method: 'POST',
-            signal: resumeSignal,
-            headers: {
-              'Content-Type': 'application/json',
-              ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}),
-            },
-            credentials: 'include',
-            body: JSON.stringify({
-              intent: 'init',
-              budgetRows: props.budgetRows.slice(0, 30),
-              chatAnswers: props.chatAnswers.slice(-20),
-              products: props.bankProducts ?? [],
-              activeRowId: null,
-              activeRow: null,
-              intakeContext: props.sessionInfo?.injectedIntake?.intakeContext ?? null,
-              intakeData: props.sessionInfo?.injectedIntake?.intake ?? null,
-            }),
-          });
-          const raw = await res.json();
-          if (!res.ok) throw createBudgetChatHttpError(res.status, normalizeBudgetChatPayload(raw));
-          if (!isOpenRef.current || resumeSignal.aborted) return;
-
-          const payload = normalizeBudgetChatPayload(unwrapApiData<BudgetChatApiPayload>(raw));
-          if (payload) {
-            applyAssistantTurn(payload, assistantQuestion ?? getBudgetQuestionForId('income_salary'));
-            const nextQuestion = sanitizeBudgetQuestion(getNextQuestion(payload, ''));
-            setAssistantNextQuestion(nextQuestion || null);
-            const focusId = payload.focus_row_id ?? inferBudgetFocusRowId(nextQuestion);
-            setAssistantBudgetRowId(focusId);
-            setActiveBudgetRowId(focusId);
-          }
-        } catch (err) {
-          if (isBudgetChatAbortError(err) || !isOpenRef.current) return;
-          setAiError(budgetChatErrorMessage(err));
-        } finally {
-          if (!resumeSignal.aborted && isOpenRef.current) setIsInitializing(false);
-        }
-      })();
+      if (props.fincoinSpendBlocked) {
+        setAiError(FINCOIN_SPEND_BLOCKED_MESSAGE);
+        return;
+      }
+      const focusId = assistantBudgetRowId ?? activeBudgetRowId ?? inferBudgetFocusRowId(assistantNextQuestion ?? '');
+      if (focusId) {
+        setActiveBudgetRowId(focusId);
+        setAssistantBudgetRowId(focusId);
+        const localQuestion = resolveLocalBudgetQuestion(focusId);
+        setAssistantNextQuestion(localQuestion);
+        if (!assistantQuestion) setAssistantQuestion(localQuestion);
+      }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [budgetViewMode, props.isOpen, isDesktopLayout, tableViewMode, props.budgetRows.length]);
+  }, [budgetViewMode, props.isOpen, isDesktopLayout, tableViewMode, props.fincoinSpendBlocked]);
 
   const maxExpense = Math.max(
     1,

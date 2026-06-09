@@ -260,6 +260,12 @@ export function buildInterviewPlan(
   });
 
   decisions.push({
+    blockId: 'products',
+    include: true,
+    reason: 'Productos y cartolas son críticos para alinear diagnóstico y uso real.',
+  });
+
+  decisions.push({
     blockId: 'goals',
     include: true,
     reason: 'Metas siempre relevantes.',

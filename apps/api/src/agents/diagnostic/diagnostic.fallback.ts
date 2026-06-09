@@ -117,7 +117,9 @@ function buildFallbackNarrative(executiveReport: string, keyFindings: string[], 
       ? ' La entrevista cerró al agotar el tiempo disponible.'
       : endedBy === 'agent'
         ? ' La entrevista cerró cuando el entrevistador consolidó el contexto suficiente.'
-        : ' La entrevista cerró con el contexto disponible en ese momento.';
+        : endedBy === 'user'
+          ? ' La entrevista cerró de forma anticipada por el usuario; el diagnóstico refleja solo el avance logrado.'
+          : ' La entrevista cerró con el contexto disponible en ese momento.';
 
   return `${executiveReport.trim()}${findingsBlock}${closeNote}`.slice(0, 2400);
 }

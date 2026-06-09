@@ -33,9 +33,21 @@ export function extractInferenceQuestionText(text: string | null | undefined): s
 }
 
 export function inferBudgetFocusRowId(question: string | null | undefined): string | null {
-  const q = extractInferenceQuestionText(question).toLowerCase();
-  if (!q || q === '…') return null;
-  if (/liquido|l[ií]quido|neto|sueldo|salario|sueldos|haberes|renta principal|ingreso principal|mi sueldo|gano/.test(q)) {
+  const raw = String(question ?? '').trim();
+  if (!raw || raw === '…') return null;
+  const normalize = (value: string) =>
+    value
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+  const fromTail = inferBudgetFocusRowIdFromNormalizedText(normalize(extractInferenceQuestionText(raw)));
+  if (fromTail) return fromTail;
+  return inferBudgetFocusRowIdFromNormalizedText(normalize(raw));
+}
+
+function inferBudgetFocusRowIdFromNormalizedText(q: string): string | null {
+  if (!q) return null;
+  if (/liquido|neto|sueldo|salario|sueldos|haberes|renta principal|ingreso principal|mi sueldo|gano/.test(q)) {
     return 'income_salary';
   }
   if (/ingreso/.test(q)) return 'income_salary';
@@ -51,7 +63,7 @@ export function inferBudgetFocusRowId(question: string | null | undefined): stri
   if (/transporte|bencina|metro|uber|colectivo|bus\b|tag\b|estacionamiento|peaje/.test(q)) return 'expense_transport';
   if (/servicios|luz|agua|internet|telefon/.test(q)) return 'expense_services';
   if (/movistar|entel|claro|wom|telefon[ií]a|celular|m[oó]vil/.test(q)) return 'expense_services';
-  if (/deuda|cuota|cr[eé]dito/.test(q)) return 'expense_debt';
+  if (/deuda|cuota|credito/.test(q)) return 'expense_debt';
   if (/ahorr|inviert/.test(q)) return 'expense_savings';
   if (/otros?|gasto adicional|variab/.test(q)) return 'expense_other';
   return null;

@@ -39,6 +39,9 @@ export const UserSchema = z.object({
   knowledgeLastUpdated: z.string().default(new Date().toISOString()),
   updatedAt: z.string(),
   memoryBlob: z.record(z.unknown()).optional(),
+  usdSpentTotal: z.number().min(0).default(0),
+  fincoinDepletedAt: z.string().optional(),
+  fincoinDepletionHandled: z.boolean().default(false),
 });
 
 export type User = z.infer<typeof UserSchema> & {

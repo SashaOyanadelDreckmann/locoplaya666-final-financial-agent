@@ -1,6 +1,7 @@
 import type { BudgetRow } from './budget-rows';
 import { canonicalBudgetRowId, getEffectiveBudgetRows } from './budget-rows';
 import { extractInferenceQuestionText, inferBudgetFocusRowId } from './budget-chat-focus';
+import { BUDGET_MOVEMENT_TYPE_OPTIONS } from './budget-table-schema';
 
 export type BudgetChatTurn = { q: string; a: string };
 
@@ -247,7 +248,10 @@ export function getChatMemoryForRow(context: BudgetAssistantContext, rowId: stri
   const canonical = canonicalBudgetRowId(rowId);
   for (let index = context.chatAnswers.length - 1; index >= 0; index -= 1) {
     const turn = context.chatAnswers[index];
-    const inferred = inferBudgetFocusRowId(extractInferenceQuestionText(turn.q) || turn.q);
+    const inferred =
+      inferBudgetFocusRowId(turn.q) ??
+      inferBudgetFocusRowId(extractInferenceQuestionText(turn.q)) ??
+      inferBudgetFocusRowId(turn.a);
     if (inferred && canonicalBudgetRowId(inferred) === canonical) return turn;
   }
   return null;
@@ -277,7 +281,153 @@ function intakeSnippet(context: BudgetAssistantContext): string | null {
   return parts.length > 0 ? `En tu perfil ${parts.slice(0, 2).join(' y ')}.` : null;
 }
 
-export type BudgetRowFieldGap = 'amount' | 'cadence' | 'paymentMethod' | 'movementType';
+export type BudgetRowFieldGap = 'category' | 'amount' | 'cadence' | 'paymentMethod' | 'movementType';
+
+function movementTypeLabel(value: BudgetRow['movementType']): string | null {
+  if (!value) return null;
+  return BUDGET_MOVEMENT_TYPE_OPTIONS.find((item) => item.value === value)?.label ?? null;
+}
+
+function cadenceLabel(value: BudgetRow['cadence']): string | null {
+  if (value === 'fixed') return 'fijo';
+  if (value === 'variable') return 'variable';
+  return null;
+}
+
+function paymentMethodLabel(value: BudgetRow['paymentMethod']): string | null {
+  if (!value) return null;
+  const labels: Record<string, string> = {
+    transfer: 'transferencia',
+    debit: 'débito',
+    credit: 'crédito',
+    cash: 'efectivo',
+    prepaid: 'prepago',
+    other: 'otro',
+  };
+  return labels[value] ?? null;
+}
+
+export function getChatTurnFieldForRow(
+  context: BudgetAssistantContext,
+  rowId: string,
+  field: BudgetRowFieldGap,
+): BudgetChatTurn | null {
+  const canonical = canonicalBudgetRowId(rowId);
+  for (let index = context.chatAnswers.length - 1; index >= 0; index -= 1) {
+    const turn = context.chatAnswers[index];
+    const inferred =
+      inferBudgetFocusRowId(turn.q) ??
+      inferBudgetFocusRowId(extractInferenceQuestionText(turn.q)) ??
+      inferBudgetFocusRowId(turn.a);
+    if (!inferred || canonicalBudgetRowId(inferred) !== canonical) continue;
+    const fieldFromQuestion =
+      inferBudgetFieldFromQuestion(turn.q) ?? inferBudgetFieldFromQuestion(extractInferenceQuestionText(turn.q));
+    if (fieldFromQuestion === field) return turn;
+  }
+  return null;
+}
+
+/** Category is confirmed once the user answered a category-validation turn, or the row already has a monthly amount. */
+export function isBudgetRowCategoryConfirmed(row: BudgetRow, context: BudgetAssistantContext): boolean {
+  if (getChatTurnFieldForRow(context, row.id, 'category')) return true;
+  if (Number(row.amount ?? 0) > 0) return true;
+  return false;
+}
+
+export function buildBudgetCategoryValidationQuestion(row: BudgetRow): string {
+  const category = row.category.trim() || 'sin nombre';
+  const typeLabel = row.type === 'income' ? 'ingreso' : 'gasto';
+  const tableHints: string[] = [`«${category}» como ${typeLabel}`];
+  const movement = movementTypeLabel(row.movementType);
+  const cadence = cadenceLabel(row.cadence);
+  const payment = paymentMethodLabel(row.paymentMethod);
+  if (movement) tableHints.push(`tipo de movimiento: ${movement}`);
+  if (cadence) tableHints.push(`recurrencia: ${cadence}`);
+  if (payment) tableHints.push(`medio de pago: ${payment}`);
+  return `En la tabla aparece ${tableHints.join(', ')}. ¿Confirmas ese nombre o cómo quieres llamar este movimiento?`;
+}
+
+export function buildBudgetAmountQuestion(row: BudgetRow, context: BudgetAssistantContext): string {
+  const hint = rowHintFor(context, row.id);
+  const memory = getChatMemoryForRow(context, row.id);
+  const memoryAmount = memory ? extractAmountFromText(memory.a) : null;
+  const category = row.category.trim() || 'este movimiento';
+
+  if (memory && memoryAmount && Number(row.amount ?? 0) <= 0) {
+    return `Para «${category}», antes mencionaste $${formatBudgetClp(memoryAmount)}. ¿Confirmamos ese monto mensual?`;
+  }
+
+  switch (row.id) {
+    case 'income_salary': {
+      const intakeAmount = context.intake.exactMonthlyIncome;
+      const txAmount = hint?.estimatedMonthly ?? (context.totalInflows > 0 ? context.totalInflows : null);
+      const bandAmount = incomeBandHint(context.intake.incomeBand);
+      const reference = intakeAmount ?? txAmount ?? bandAmount;
+      if (reference && reference > 0) {
+        const source =
+          intakeAmount != null
+            ? 'tu perfil'
+            : txAmount != null
+              ? `tus movimientos${hint?.sourceLabels[0] ? ` (${hint.sourceLabels[0]})` : ''}`
+              : 'tu banda de ingreso';
+        return `Para «${category}», según ${source} ronda $${formatBudgetClp(reference)}. ¿Cuál es el monto mensual?`;
+      }
+      break;
+    }
+    case 'expense_rent':
+      if (hint && hint.estimatedMonthly > 0) {
+        return `Para «${category}», en movimientos aparece ~$${formatBudgetClp(hint.estimatedMonthly)}. ¿Cuál es el monto mensual?`;
+      }
+      break;
+    case 'expense_food':
+      if (hint && hint.estimatedMonthly > 0) {
+        return `Para «${category}», tus cartolas muestran ~$${formatBudgetClp(hint.estimatedMonthly)}. ¿Cuál es el monto mensual?`;
+      }
+      break;
+    case 'expense_transport':
+      if (hint && hint.estimatedMonthly > 0) {
+        return `Para «${category}», veo ~$${formatBudgetClp(hint.estimatedMonthly)} en transporte. ¿Cuál es el monto mensual?`;
+      }
+      break;
+    case 'expense_services':
+      if (hint && hint.estimatedMonthly > 0) {
+        return `Para «${category}», en servicios suman ~$${formatBudgetClp(hint.estimatedMonthly)}. ¿Cuál es el monto mensual?`;
+      }
+      break;
+    case 'expense_debt':
+      if (hint && hint.estimatedMonthly > 0) {
+        return `Para «${category}», detecté ~$${formatBudgetClp(hint.estimatedMonthly)} en cuotas. ¿Cuál es el monto mensual?`;
+      }
+      break;
+    case 'expense_other':
+      if (context.unmappedCategories.length > 0) {
+        const top = [...context.unmappedCategories].sort((a, b) => b.amount - a.amount)[0];
+        return `Para «${category}», en movimientos hay ~$${formatBudgetClp(top.amount)} en ${top.name}. ¿Cuál es el monto mensual?`;
+      }
+      break;
+    default:
+      if (hint && hint.estimatedMonthly > 0) {
+        return `Para «${category}», tus movimientos sugieren ~$${formatBudgetClp(hint.estimatedMonthly)}. ¿Cuál es el monto mensual?`;
+      }
+  }
+
+  return row.type === 'income'
+    ? `¿Cuál es el monto mensual de «${category}»?`
+    : `¿Cuál es el monto mensual de «${category}»?`;
+}
+
+export function pickNextBudgetRowFieldGap(
+  row: BudgetRow,
+  context?: BudgetAssistantContext,
+): BudgetRowFieldGap | null {
+  if (context && !isBudgetRowCategoryConfirmed(row, context)) return 'category';
+  if (Number(row.amount ?? 0) <= 0) return 'amount';
+  const cadence = row.cadence;
+  if (!cadence || cadence === 'oneoff') return 'cadence';
+  if (!row.paymentMethod) return 'paymentMethod';
+  if (!row.movementType) return 'movementType';
+  return null;
+}
 
 export function isBulkDeleteRequest(answer: string): boolean {
   const text = String(answer ?? '')
@@ -305,26 +455,20 @@ export function isBudgetSkipAnswer(answer: string): boolean {
   );
 }
 
-export function pickNextBudgetRowFieldGap(row: BudgetRow): BudgetRowFieldGap | null {
-  if (Number(row.amount ?? 0) <= 0) return 'amount';
-  const cadence = row.cadence;
-  if (!cadence || cadence === 'oneoff') return 'cadence';
-  if (!row.paymentMethod) return 'paymentMethod';
-  if (!row.movementType) return 'movementType';
-  return null;
-}
-
-export function buildBudgetRowDetailQuestion(row: BudgetRow, field: Exclude<BudgetRowFieldGap, 'amount'>): string {
+export function buildBudgetRowDetailQuestion(
+  row: BudgetRow,
+  field: Exclude<BudgetRowFieldGap, 'amount' | 'category'>,
+): string {
   const category = row.category.trim() || 'este movimiento';
   switch (field) {
     case 'cadence':
-      return `¿${category} es un monto fijo cada mes o varía mes a mes?`;
+      return `Para «${category}», ¿el monto es fijo cada mes o varía mes a mes?`;
     case 'paymentMethod':
-      return `¿Cómo pagas ${category.toLowerCase()} normalmente: transferencia, débito, crédito o efectivo?`;
+      return `Para «${category}», ¿cómo lo pagas normalmente: transferencia, débito, crédito o efectivo?`;
     case 'movementType':
-      return `¿Qué tipo de movimiento describe mejor ${category}? (vivienda, alimentación, transporte, deuda, ahorro, otros)`;
+      return `Para «${category}», ¿qué tipo de movimiento describe mejor la fila? (vivienda, alimentación, transporte, deuda, ahorro, otros)`;
     default:
-      return `¿Qué dato falta completar para ${category.toLowerCase()}?`;
+      return `¿Qué dato falta completar para «${category}»?`;
   }
 }
 
@@ -333,97 +477,32 @@ export function inferBudgetFieldFromQuestion(question: string): BudgetRowFieldGa
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '');
+  if (/confirmas ese nombre|c[oó]mo quieres llamar|en la tabla aparece/.test(q)) return 'category';
   if (/fijo|variable|var[ií]a mes a mes|recurrente/.test(q)) return 'cadence';
-  if (/transferencia|d[eé]bito|cr[eé]dito|efectivo|c[oó]mo pagas|medio de pago/.test(q)) return 'paymentMethod';
+  if (/transferencia|d[eé]bito|cr[eé]dito|efectivo|c[oó]mo pagas|medio de pago|c[oó]mo lo pagas/.test(q)) {
+    return 'paymentMethod';
+  }
   if (/tipo de movimiento|describe mejor/.test(q)) return 'movementType';
-  if (/monto|cu[aá]nto|pesos/.test(q)) return 'amount';
+  if (/monto mensual|monto|cu[aá]nto|pesos/.test(q)) return 'amount';
   return null;
 }
 
 export function buildContextualQuestion(row: BudgetRow | null, context: BudgetAssistantContext): string {
-  if (!row) return '¿Cuánto es tu ingreso principal mensual?';
+  if (!row) return buildBudgetCategoryValidationQuestion({
+    id: 'income_salary',
+    category: 'Sueldo líquido',
+    type: 'income',
+    amount: 0,
+  });
 
-  const metadataGap = pickNextBudgetRowFieldGap(row);
-  if (metadataGap && metadataGap !== 'amount') {
-    return buildBudgetRowDetailQuestion(row, metadataGap);
+  const gap = pickNextBudgetRowFieldGap(row, context);
+  if (gap === 'category') return buildBudgetCategoryValidationQuestion(row);
+  if (gap === 'amount') return buildBudgetAmountQuestion(row, context);
+  if (gap === 'cadence' || gap === 'paymentMethod' || gap === 'movementType') {
+    return buildBudgetRowDetailQuestion(row, gap);
   }
 
-  const hint = rowHintFor(context, row.id);
-  const memory = getChatMemoryForRow(context, row.id);
-  const memoryAmount = memory ? extractAmountFromText(memory.a) : null;
-
-  if (memory && memoryAmount && Number(row.amount ?? 0) <= 0) {
-    return `Antes mencionaste $${formatBudgetClp(memoryAmount)} para ${row.category.toLowerCase()}. ¿Lo confirmamos en la tabla?`;
-  }
-
-  switch (row.id) {
-    case 'income_salary': {
-      const intakeAmount = context.intake.exactMonthlyIncome;
-      const txAmount = hint?.estimatedMonthly ?? (context.totalInflows > 0 ? context.totalInflows : null);
-      const bandAmount = incomeBandHint(context.intake.incomeBand);
-      const reference = intakeAmount ?? txAmount ?? bandAmount;
-      if (reference && reference > 0) {
-        const source =
-          intakeAmount != null
-            ? 'tu perfil'
-            : txAmount != null
-              ? `tus movimientos${hint?.sourceLabels[0] ? ` (${hint.sourceLabels[0]})` : ''}`
-              : 'tu banda de ingreso';
-        return `Según ${source}, tu ingreso principal ronda $${formatBudgetClp(reference)}. ¿Lo dejamos así?`;
-      }
-      return '¿Cuánto es tu ingreso principal mensual?';
-    }
-    case 'expense_rent':
-      if (hint && hint.estimatedMonthly > 0) {
-        return `En movimientos aparece ~$${formatBudgetClp(hint.estimatedMonthly)} en ${hint.matchedCategories.slice(0, 2).join(' / ')}. ¿Cuánto destinas al mes a vivienda o dividendo?`;
-      }
-      return '¿Cuánto pagas al mes en vivienda o dividendo?';
-    case 'expense_food':
-      if (hint && hint.estimatedMonthly > 0) {
-        return `Tus cartolas muestran ~$${formatBudgetClp(hint.estimatedMonthly)} en ${hint.matchedCategories.slice(0, 2).join(' / ')}. ¿Lo tomamos como referencia de alimentación mensual?`;
-      }
-      return '¿Cuánto gastas al mes en comida y supermercado?';
-    case 'expense_transport':
-      if (hint && hint.estimatedMonthly > 0) {
-        return `Veo ~$${formatBudgetClp(hint.estimatedMonthly)} en transporte/bencina en tus movimientos. ¿Cuánto presupuestas al mes?`;
-      }
-      return '¿Cuánto va al mes en transporte y bencina?';
-    case 'expense_services':
-      if (hint && hint.estimatedMonthly > 0) {
-        return `En servicios e internet tus movimientos suman ~$${formatBudgetClp(hint.estimatedMonthly)}. ¿Confirmamos ese monto mensual?`;
-      }
-      return '¿Cuánto pagas al mes en servicios e internet?';
-    case 'expense_debt': {
-      if (context.intake.hasDebt && hint && hint.estimatedMonthly > 0) {
-        return `Tu perfil indica deuda y en movimientos hay ~$${formatBudgetClp(hint.estimatedMonthly)} en cuotas/créditos. ¿Cuánto pagas al mes?`;
-      }
-      if (context.intake.hasDebt) {
-        return 'Tu perfil indica deuda. ¿Cuánto pagas al mes en cuotas o créditos?';
-      }
-      if (hint && hint.estimatedMonthly > 0) {
-        return `Detecté ~$${formatBudgetClp(hint.estimatedMonthly)} en cuotas/créditos. ¿Lo registramos como deuda mensual?`;
-      }
-      return '¿Cuánto pagas al mes en cuotas o créditos?';
-    }
-    case 'expense_savings':
-      if (context.intake.hasSavingsOrInvestments) {
-        return 'Tu perfil menciona ahorro o inversiones. ¿Cuánto apartas al mes de forma recurrente?';
-      }
-      return '¿Cuánto apartas al mes para ahorro o inversión?';
-    case 'expense_other':
-      if (context.unmappedCategories.length > 0) {
-        const top = [...context.unmappedCategories].sort((a, b) => b.amount - a.amount)[0];
-        return `En movimientos hay ~$${formatBudgetClp(top.amount)} en ${top.name}. ¿Quieres crear o ajustar una fila para eso?`;
-      }
-      return '¿Qué otro gasto mensual recurrente quieres reflejar en la tabla?';
-    default:
-      if (hint && hint.estimatedMonthly > 0) {
-        return `Para ${row.category}, tus movimientos sugieren ~$${formatBudgetClp(hint.estimatedMonthly)}. ¿Confirmamos ese monto mensual?`;
-      }
-      return row.type === 'income'
-        ? `¿Monto mensual de ${row.category || 'este ingreso'}?`
-        : `¿Monto mensual de ${row.category || 'este gasto'}?`;
-  }
+  return '¿Qué rubro quieres completar o ajustar en la tabla?';
 }
 
 function rowPriorityScore(row: BudgetRow, context: BudgetAssistantContext): number {
@@ -449,14 +528,22 @@ export function pickContextualFocusRow(
     const canonical = canonicalBudgetRowId(preferredRowId);
     const direct = rows.find((row) => canonicalBudgetRowId(row.id) === canonical) ?? null;
     if (direct) {
-      const gap = pickNextBudgetRowFieldGap(direct);
+      const gap = pickNextBudgetRowFieldGap(direct, context);
       if (gap) return direct;
     }
   }
 
+  const categoryPending = getEffectiveBudgetRows(rows).filter(
+    (row) => pickNextBudgetRowFieldGap(row, context) === 'category',
+  );
+  if (categoryPending.length > 0) {
+    const ranked = [...categoryPending].sort((a, b) => rowPriorityScore(b, context) - rowPriorityScore(a, context));
+    return ranked[0] ?? categoryPending[0] ?? null;
+  }
+
   const metadataIncomplete = getEffectiveBudgetRows(rows).filter((row) => {
-    const gap = pickNextBudgetRowFieldGap(row);
-    return gap != null && gap !== 'amount';
+    const gap = pickNextBudgetRowFieldGap(row, context);
+    return gap != null && gap !== 'amount' && gap !== 'category';
   });
   if (metadataIncomplete.length > 0) {
     const ranked = [...metadataIncomplete].sort(
@@ -848,12 +935,12 @@ export function buildCategoryClarificationReply(input: {
   row: BudgetRow;
 }): { reply: string; followUp: string } {
   const cue = extractUserAnswerCue(input.userAnswer) ?? normalizeAnswerEcho(input.userAnswer);
-  const category = input.row.category.toLowerCase();
+  const category = input.row.category.trim() || 'este movimiento';
   const reply =
     cue.length >= 8
-      ? `Sobre “${cue}”, me falta el monto mensual para ${category}.`
-      : `Para ${category} necesito un monto mensual antes de anotarlo.`;
-  const followUp = `¿Cuánto destinas al mes a ${category}, en pesos chilenos?`;
+      ? `Entendí “${cue}” para «${category}».`
+      : `Ajustemos «${category}» en la tabla.`;
+  const followUp = buildBudgetCategoryValidationQuestion(input.row);
   return { reply, followUp };
 }
 

@@ -1,4 +1,10 @@
 import { completeStructured } from '../../services/llm.service';
+import { getUserById } from '../../persistence/repos';
+import {
+  canAffordOperation,
+  chargeFincoinOperation,
+  getFincoinUsageForUser,
+} from '../../services/fincoin.service';
 import type { IntakeQuestionnaire } from '@financial-agent/shared/src/intake/intake-questionnaire.types';
 import {
   WELCOME_FINTECH_DEFAULT_BENEFIT,
@@ -347,6 +353,29 @@ export async function resolveWelcomeIntroForUser(params: {
   }
 
   if (canGenerateWelcomeIntroWithLlm(cached)) {
+    const userRecord = await getUserById(params.userId);
+    const fincoinUsage = userRecord ? getFincoinUsageForUser(userRecord) : null;
+    if (
+      fincoinUsage &&
+      (fincoinUsage.depleted || !canAffordOperation(fincoinUsage, 'welcome.llm'))
+    ) {
+      const intro = finalizeIntro(
+        cached?.intro
+          ? cached.intro
+          : buildFallbackWelcomeIntro({
+              firstName: params.firstName,
+              intake: envelope.intake,
+              intakeContext: envelope.intakeContext,
+              llmSummary: envelope.llmSummary,
+            }),
+      );
+      return {
+        intro,
+        message: welcomeIntroToMarkdown(intro),
+        cached: Boolean(cached?.intro),
+      };
+    }
+
     const intro = finalizeIntro(
       await buildWelcomeIntroWithLLM({
         firstName: params.firstName,
@@ -355,6 +384,9 @@ export async function resolveWelcomeIntroForUser(params: {
         llmSummary: envelope.llmSummary,
       }),
     );
+    if (userRecord) {
+      await chargeFincoinOperation(params.userId, 'welcome.llm');
+    }
 
     const cacheEntry: WelcomeIntroCache = {
       fingerprint,

@@ -1,6 +1,6 @@
 import { INTERVIEW_TOTAL_LIMIT_SEC } from '@financial-agent/shared';
 import type { InterviewVoiceReport, InterviewVoiceSnapshot, InterviewVoiceSummaryEntry } from './interview-modal.context';
-import { resolveInterviewActiveQuota } from './interview-modal.helpers';
+import { resolveInterviewActiveQuota, resolveUsedSecondsFromSources } from './interview-modal.helpers';
 
 export const DEFAULT_MAX_CALL_DURATION_SEC = INTERVIEW_TOTAL_LIMIT_SEC;
 
@@ -45,7 +45,8 @@ export function mergeInterviewVoiceSnapshots(
           minuteSummaries: sessionVoice.minuteSummaries ?? localSaved?.minuteSummaries,
           finalSummary: sessionVoice.finalSummary ?? localSaved?.finalSummary ?? null,
           callId: sessionVoice.activeCallId ?? sessionVoice.callId ?? localSaved?.callId,
-          callSeconds: Math.max(Number(sessionVoice.callSeconds ?? 0), Number(localSaved?.callSeconds ?? 0)),
+          callSeconds: resolveUsedSecondsFromSources(sessionVoice, localSaved),
+          totalUsedSec: resolveUsedSecondsFromSources(sessionVoice, localSaved),
           pauseUsed: sessionVoice.pauseUsed ?? localSaved?.pauseUsed,
         }
       : {}),
@@ -99,8 +100,7 @@ export function deriveHydratedVoiceState(input: {
       Boolean(snapshot.voiceReport),
   );
 
-  const activeCallSeconds =
-    typeof snapshot.callSeconds === 'number' ? Math.max(0, Math.floor(snapshot.callSeconds)) : 0;
+  const activeCallSeconds = resolveUsedSecondsFromSources(snapshot);
   const activeQuota = resolveInterviewActiveQuota(activeCallSeconds);
 
   return {

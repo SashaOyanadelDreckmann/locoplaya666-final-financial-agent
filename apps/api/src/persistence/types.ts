@@ -13,6 +13,7 @@ export type StoredSheet = {
   userMessageCount: number;
   createdAt: string;
   completedAt?: string;
+  closureSummary?: Record<string, unknown> | null;
 };
 
 export type StoredReport = {
@@ -123,6 +124,9 @@ export type StoredUser = {
   knowledgeHistory: StoredKnowledgeEvent[];
   knowledgeLastUpdated: string;
   memoryBlob?: Record<string, unknown>;
+  usdSpentTotal?: number;
+  fincoinDepletedAt?: string;
+  fincoinDepletionHandled?: boolean;
   createdAt: string;
   updatedAt: string;
 };

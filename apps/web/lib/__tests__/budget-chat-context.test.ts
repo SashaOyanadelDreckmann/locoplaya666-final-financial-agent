@@ -7,6 +7,8 @@ import {
   buildCategoryClarificationReply,
   buildContextualQuestion,
   buildOffTopicBriefReply,
+  getChatTurnFieldForRow,
+  isBudgetRowCategoryConfirmed,
   isBudgetEducationalQuestion,
   isBudgetOffTopicAnswer,
   pickContextualFocusRow,
@@ -21,6 +23,38 @@ describe('budget-chat-context', () => {
     { id: 'expense_food', category: 'Alimentación', type: 'expense' as const, amount: 0 },
   ];
 
+  it('asks category validation before amount for unfilled rows', () => {
+    const context = buildBudgetAssistantContext({
+      rows,
+      intakeData: {},
+      products: [],
+      chatAnswers: [],
+    });
+
+    const question = buildContextualQuestion(rows[0], context);
+    expect(question).toMatch(/En la tabla aparece/i);
+    expect(question).toMatch(/Confirmas ese nombre/i);
+    expect(question).not.toMatch(/950\.000/);
+  });
+
+  it('asks monthly amount after category is confirmed in chat history', () => {
+    const categoryQuestion =
+      'En la tabla aparece «Sueldo líquido» como ingreso. ¿Confirmas ese nombre o cómo quieres llamar este movimiento?';
+    const context = buildBudgetAssistantContext({
+      rows,
+      intakeData: { exactMonthlyIncome: 950000 },
+      products: [],
+      chatAnswers: [{ q: categoryQuestion, a: 'sí' }],
+    });
+
+    expect(getChatTurnFieldForRow(context, 'income_salary', 'category')).not.toBeNull();
+    expect(isBudgetRowCategoryConfirmed(rows[0], context)).toBe(true);
+
+    const question = buildContextualQuestion(rows[0], context);
+    expect(question).toMatch(/monto mensual/i);
+    expect(question).toMatch(/950\.000/);
+  });
+
   it('builds contextual income question from intake and transaction inflows', () => {
     const context = buildBudgetAssistantContext({
       rows,
@@ -33,12 +67,17 @@ describe('budget-chat-context', () => {
           topCategories: [{ name: 'Supermercado Lider', amount: 180000 }],
         },
       ],
-      chatAnswers: [],
+      chatAnswers: [
+        {
+          q: 'En la tabla aparece «Sueldo líquido» como ingreso. ¿Confirmas ese nombre o cómo quieres llamar este movimiento?',
+          a: 'confirmo',
+        },
+      ],
     });
 
     const question = buildContextualQuestion(rows[0], context);
     expect(question).toMatch(/950\.000|980\.000/);
-    expect(question).toMatch(/ingreso principal/i);
+    expect(question).toMatch(/monto mensual/i);
   });
 
   it('prioritizes expense rows with stronger transaction signals', () => {
@@ -66,7 +105,13 @@ describe('budget-chat-context', () => {
       rows,
       intakeData: {},
       products: [],
-      chatAnswers: [{ q: '¿Cuánto pagas al mes en vivienda o dividendo?', a: '550 mil' }],
+      chatAnswers: [
+        {
+          q: 'En la tabla aparece «Arriendo / vivienda» como gasto. ¿Confirmas ese nombre o cómo quieres llamar este movimiento?',
+          a: 'sí',
+        },
+        { q: '¿Cuánto pagas al mes en vivienda o dividendo?', a: '550 mil' },
+      ],
     });
 
     const question = buildContextualQuestion(rows[1], context);

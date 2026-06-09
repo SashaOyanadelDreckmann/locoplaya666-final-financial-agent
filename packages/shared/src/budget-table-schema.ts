@@ -327,7 +327,7 @@ export function parseBudgetCategoryRenameFromAnswer(answer: string): string | nu
   const raw = String(answer ?? '').trim();
   if (!raw) return null;
   const renameMatch = raw.match(
-    /(?:renombra(?:\s+a)?|llama(?:\s+a)?|cambia(?:\s+el)?\s+nombre(?:\s+a)?|deja(?:r)?\s+como)\s+["'«]?([^"'»?.!]{2,48})/i,
+    /(?:renombra(?:\s+a)?|llama(?:\s+a)?|cambia(?:\s+el)?\s+nombre(?:\s+a)?|deja(?:r)?\s+como|ponle(?:\s+nombre)?|nombra(?:\s+lo)?(?:\s+como)?)\s+["'«]?([^"'»?.!]{2,48})/i,
   );
   const candidate = renameMatch?.[1]?.trim();
   if (!candidate) return null;
@@ -336,27 +336,77 @@ export function parseBudgetCategoryRenameFromAnswer(answer: string): string | nu
   return candidate.charAt(0).toUpperCase() + candidate.slice(1);
 }
 
+export function parseBudgetTypeFromAnswer(answer: string): 'income' | 'expense' | null {
+  const text = normalizeBudgetParseText(answer);
+  if (/\b(ingreso|ingresos|entrada|entradas|abono|abonos|sueldo|salario|liquido|neto)\b/.test(text)) {
+    return 'income';
+  }
+  if (/\b(gasto|gastos|egreso|egresos|salida|salidas|cargo|cargos)\b/.test(text)) {
+    return 'expense';
+  }
+  return null;
+}
+
+export function parseBudgetCategoryFromAnswer(
+  answer: string,
+  options?: { currentCategory?: string; allowAffirmative?: boolean },
+): string | null {
+  const renamed = parseBudgetCategoryRenameFromAnswer(answer);
+  if (renamed) return renamed;
+
+  const text = normalizeBudgetParseText(answer).trim();
+  if (!text) return null;
+
+  if (options?.allowAffirmative !== false) {
+    if (
+      /^(si|sí|ok|dale|confirmo|confirmar|correcto|as[ií] est[aá]|esta bien|est[aá] bien|dejalo|dejala|dejemos|ese|esa|exacto|perfecto|listo)$/.test(
+        text,
+      )
+    ) {
+      const current = String(options?.currentCategory ?? '').trim();
+      return current.length > 0 ? current : null;
+    }
+  }
+
+  if (/\d/.test(text)) return null;
+  if (parseBudgetCadenceFromAnswer(answer) || parseBudgetPaymentFromAnswer(answer) || parseBudgetMovementFromAnswer(answer)) {
+    return null;
+  }
+
+  const raw = String(answer ?? '').trim();
+  if (raw.length >= 2 && raw.length <= 48 && !/^\d/.test(raw)) {
+    return raw.charAt(0).toUpperCase() + raw.slice(1);
+  }
+
+  return null;
+}
+
 export type BudgetFieldPatch = {
   cadence?: BudgetCadence;
   payment_method?: BudgetPaymentMethod;
   movement_type?: BudgetMovementType;
   category?: string;
+  type?: 'income' | 'expense';
 };
 
-export function parseBudgetFieldPatchFromAnswer(answer: string): BudgetFieldPatch {
+export function parseBudgetFieldPatchFromAnswer(answer: string, options?: { currentCategory?: string }): BudgetFieldPatch {
   const patch: BudgetFieldPatch = {};
   const cadence = parseBudgetCadenceFromAnswer(answer);
   const payment = parseBudgetPaymentFromAnswer(answer);
   const movement = parseBudgetMovementFromAnswer(answer);
-  const category = parseBudgetCategoryRenameFromAnswer(answer);
+  const category =
+    parseBudgetCategoryRenameFromAnswer(answer) ??
+    parseBudgetCategoryFromAnswer(answer, { currentCategory: options?.currentCategory, allowAffirmative: false });
+  const type = parseBudgetTypeFromAnswer(answer);
   if (cadence) patch.cadence = cadence;
   if (payment) patch.payment_method = payment;
   if (movement) patch.movement_type = movement;
   if (category) patch.category = category;
+  if (type) patch.type = type;
   return patch;
 }
 
-export function hasBudgetFieldSignals(answer: string): boolean {
-  const patch = parseBudgetFieldPatchFromAnswer(answer);
-  return Boolean(patch.cadence || patch.payment_method || patch.movement_type || patch.category);
+export function hasBudgetFieldSignals(answer: string, options?: { currentCategory?: string }): boolean {
+  const patch = parseBudgetFieldPatchFromAnswer(answer, options);
+  return Boolean(patch.cadence || patch.payment_method || patch.movement_type || patch.category || patch.type);
 }

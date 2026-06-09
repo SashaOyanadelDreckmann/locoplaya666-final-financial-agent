@@ -1,0 +1,81 @@
+export const FINCOIN_INITIAL_BALANCE = 250;
+export const FINCOIN_WARNING_THRESHOLD = 50;
+/** Display budget: 250 fincoins represent this USD value. */
+export const FINCOIN_BUDGET_USD = 1.6;
+/** Hard per-user spend ceiling (backend enforced). */
+export const FINCOIN_MAX_USD_SPEND = 2.0;
+
+export const FINCOIN_USD_PER_COIN = FINCOIN_BUDGET_USD / FINCOIN_INITIAL_BALANCE;
+
+export type FincoinOperation =
+  | 'agent.chat'
+  | 'budget.chat'
+  | 'transactions.chat'
+  | 'transcribe'
+  | 'voice.realtime'
+  | 'document.parse'
+  | 'simulation'
+  | 'welcome.llm'
+  | 'pdf.generate'
+  | 'conversation.voice';
+
+export const FINCOIN_OPERATION_COST_USD: Record<FincoinOperation, number> = {
+  'agent.chat': 0.04,
+  'budget.chat': 0.03,
+  'transactions.chat': 0.03,
+  transcribe: 0.04,
+  'voice.realtime': 0.12,
+  'document.parse': 0.06,
+  simulation: 0.05,
+  'welcome.llm': 0.02,
+  'pdf.generate': 0.05,
+  'conversation.voice': 0.08,
+};
+
+export type FincoinUsageStatus = {
+  initialFincoins: number;
+  remainingFincoins: number;
+  spentFincoins: number;
+  budgetUsd: number;
+  maxUsdSpend: number;
+  usdSpent: number;
+  usdRemaining: number;
+  depleted: boolean;
+  lowBalance: boolean;
+  warningThreshold: number;
+};
+
+export function fincoinsFromUsd(usd: number): number {
+  if (!Number.isFinite(usd) || usd <= 0) return 0;
+  return Math.ceil(usd / FINCOIN_USD_PER_COIN);
+}
+
+export function usdFromFincoins(coins: number): number {
+  if (!Number.isFinite(coins) || coins <= 0) return 0;
+  return coins * FINCOIN_USD_PER_COIN;
+}
+
+export function computeFincoinUsage(usdSpentRaw: number): FincoinUsageStatus {
+  const usdSpent = Math.max(0, Number(usdSpentRaw) || 0);
+  const usdRemaining = Math.max(0, FINCOIN_MAX_USD_SPEND - usdSpent);
+  const remainingFincoins = Math.min(
+    FINCOIN_INITIAL_BALANCE,
+    Math.floor(usdRemaining / FINCOIN_USD_PER_COIN),
+  );
+  const spentFincoins = Math.max(0, FINCOIN_INITIAL_BALANCE - remainingFincoins);
+  const depleted = remainingFincoins <= 0 || usdSpent >= FINCOIN_MAX_USD_SPEND - 1e-9;
+  const lowBalance = !depleted && remainingFincoins <= FINCOIN_WARNING_THRESHOLD;
+
+  return {
+    initialFincoins: FINCOIN_INITIAL_BALANCE,
+    remainingFincoins,
+    spentFincoins,
+    budgetUsd: FINCOIN_BUDGET_USD,
+    maxUsdSpend: FINCOIN_MAX_USD_SPEND,
+    usdSpent: Math.min(usdSpent, FINCOIN_MAX_USD_SPEND),
+    usdRemaining,
+    depleted,
+    lowBalance,
+    warningThreshold: FINCOIN_WARNING_THRESHOLD,
+  };
+}

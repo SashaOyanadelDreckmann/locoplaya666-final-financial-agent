@@ -37,6 +37,8 @@ function buildDefaultUser(input: CreateUserInput): StoredUser {
     knowledgeScore: 0,
     knowledgeHistory: [],
     knowledgeLastUpdated: timestamp,
+    usdSpentTotal: 0,
+    fincoinDepletionHandled: false,
     createdAt: timestamp,
     updatedAt: timestamp,
   };
@@ -69,6 +71,11 @@ function toStoredUser(record: Record<string, unknown>): StoredUser {
       ? new Date(record.knowledgeLastUpdated as string | number | Date).toISOString()
       : nowIso(),
     memoryBlob: (record.memoryBlob ?? undefined) as Record<string, unknown> | undefined,
+    usdSpentTotal: Number(record.usdSpentTotal ?? 0),
+    fincoinDepletedAt: record.fincoinDepletedAt
+      ? new Date(record.fincoinDepletedAt as string | number | Date).toISOString()
+      : undefined,
+    fincoinDepletionHandled: Boolean(record.fincoinDepletionHandled ?? false),
     createdAt: record.createdAt
       ? new Date(record.createdAt as string | number | Date).toISOString()
       : nowIso(),
@@ -210,6 +217,13 @@ export async function patchUserRecord(
     ...(patch.knowledgeHistory !== undefined ? { knowledgeHistory: patch.knowledgeHistory as any } : {}),
     ...(patch.knowledgeLastUpdated !== undefined ? { knowledgeLastUpdated: new Date(patch.knowledgeLastUpdated) } : {}),
     ...(patch.memoryBlob !== undefined ? { memoryBlob: patch.memoryBlob as any } : {}),
+    ...(patch.usdSpentTotal !== undefined ? { usdSpentTotal: patch.usdSpentTotal } : {}),
+    ...(patch.fincoinDepletedAt !== undefined
+      ? { fincoinDepletedAt: patch.fincoinDepletedAt ? new Date(patch.fincoinDepletedAt) : null }
+      : {}),
+    ...(patch.fincoinDepletionHandled !== undefined
+      ? { fincoinDepletionHandled: patch.fincoinDepletionHandled }
+      : {}),
   } as any;
 
   if (options?.expectedUpdatedAt) {

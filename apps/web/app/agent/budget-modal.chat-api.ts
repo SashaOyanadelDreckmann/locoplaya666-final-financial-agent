@@ -171,6 +171,12 @@ export function budgetChatErrorMessage(error: unknown): string {
   if (message.includes('HTTP 401')) {
     return 'Sesión expirada o no iniciada. Vuelve a entrar para usar el asistente.';
   }
+  if (
+    message.includes('HTTP 403') &&
+    (message.toLowerCase().includes('fincoin') || message.toLowerCase().includes('agotaron'))
+  ) {
+    return 'Tus Fincoins se agotaron. El agente quedó en pausa y no se procesan nuevas solicitudes con costo.';
+  }
   if (message.includes('HTTP 429')) {
     return 'Demasiadas solicitudes al asistente. Espera un momento e intenta otra vez.';
   }

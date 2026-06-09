@@ -11,8 +11,6 @@ export function buildSummaryInstructions(
   kind: 'minute' | 'final',
   options: {
     callSeconds: number;
-    currentBlockLabel: string;
-    currentQuestion: string;
     minute?: number;
   },
 ) {
@@ -31,8 +29,7 @@ export function buildSummaryInstructions(
     kind === 'minute'
       ? `Objeto para síntesis intermedia del minuto ${targetMinute}.`
       : 'Objeto para síntesis final de la llamada completa.',
-    `Contexto activo del bloque: ${options.currentBlockLabel}.`,
-    options.currentQuestion ? `Pregunta activa: ${options.currentQuestion}` : 'Sin pregunta activa concreta.',
+    'Contexto activo: entrevista financiera ejecutiva por voz con intake, presupuesto y productos ya cargados.',
   ].join('\n');
 }
 

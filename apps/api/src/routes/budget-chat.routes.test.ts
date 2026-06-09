@@ -70,7 +70,7 @@ describe('budget-chat routes', () => {
     expect(res.status).toBe(200);
     expect(res.body.ok).toBe(true);
     expect(res.body.source).toBe('deterministic_init');
-    expect(String(res.body.next_question || res.body.assistant_reply)).toMatch(/ingreso|sueldo/i);
+    expect(String(res.body.next_question || res.body.assistant_reply)).toMatch(/En la tabla aparece|ingreso|sueldo/i);
     expect(res.body.focus_row_id).toBe('income_salary');
   }, 15000);
 
@@ -139,9 +139,15 @@ describe('budget-chat routes', () => {
     const res = await agent.post('/api/budget-chat').set('x-csrf-token', csrfToken).send({
       intent: 'reply',
       answer: '850000',
-      question: '¿Cuál es tu ingreso mensual promedio en pesos?',
+      question: '¿Cuál es el monto mensual de «Sueldo líquido»?',
       assistantFocusRowId: 'income_salary',
       budgetRows,
+      chatAnswers: [
+        {
+          q: 'En la tabla aparece «Sueldo líquido» como ingreso. ¿Confirmas ese nombre o cómo quieres llamar este movimiento?',
+          a: 'sí',
+        },
+      ],
       activeRow: {
         id: 'expense_rent',
         category: 'Arriendo / vivienda',
@@ -162,8 +168,14 @@ describe('budget-chat routes', () => {
     const res = await agent.post('/api/budget-chat').set('x-csrf-token', csrfToken).send({
       intent: 'reply',
       answer: 'son 850 mil liquidos al mes',
-      question: '¿Cuánto es tu ingreso principal mensual?',
+      question: '¿Cuál es el monto mensual de «Sueldo líquido»?',
       budgetRows: [{ id: 'income_salary', category: 'Sueldo líquido', type: 'income', amount: 0, note: '' }],
+      chatAnswers: [
+        {
+          q: 'En la tabla aparece «Sueldo líquido» como ingreso. ¿Confirmas ese nombre o cómo quieres llamar este movimiento?',
+          a: 'sí',
+        },
+      ],
     });
 
     expect(res.status).toBe(200);
@@ -212,7 +224,7 @@ describe('budget-chat routes', () => {
     expect(res.body.focus_row_id).toBe('expense_food');
     expect(String(res.body.assistant_reply)).toMatch(/comida/i);
     expect(String(res.body.assistant_reply)).not.toMatch(/^perfecto|^claro|^listo|^entendido/i);
-    expect(String(res.body.next_question)).toMatch(/\?/);
+    expect(String(res.body.next_question)).toMatch(/En la tabla aparece|Confirmas ese nombre/i);
   }, 15000);
 
   it('advances to the next unfilled row when the user answers off-topic without a category', async () => {
@@ -225,7 +237,8 @@ describe('budget-chat routes', () => {
     const res = await agent.post('/api/budget-chat').set('x-csrf-token', csrfToken).send({
       intent: 'reply',
       answer: 'prefiero seguir con otra cosa',
-      question: '¿Cuánto pagas al mes en vivienda o dividendo?',
+      question:
+        'En la tabla aparece «Arriendo / vivienda» como gasto. ¿Confirmas ese nombre o cómo quieres llamar este movimiento?',
       assistantFocusRowId: 'expense_rent',
       budgetRows,
     });
@@ -233,7 +246,7 @@ describe('budget-chat routes', () => {
     expect(res.status).toBe(200);
     expect(res.body.source).toBe('deterministic_advance_focus');
     expect(res.body.focus_row_id).toBe('expense_food');
-    expect(String(res.body.next_question)).toMatch(/comida|supermercado/i);
+    expect(String(res.body.next_question)).toMatch(/En la tabla aparece|Alimentación/i);
   }, 15000);
 
   it('requests confirmation before deleting all rows when asked in bulk', async () => {
@@ -287,7 +300,7 @@ describe('budget-chat routes', () => {
     const res = await agent.post('/api/budget-chat').set('x-csrf-token', csrfToken).send({
       intent: 'reply',
       answer: 'es fijo, pago con débito',
-      question: '¿Alimentación es un monto fijo cada mes o varía mes a mes?',
+      question: 'Para «Alimentación», ¿el monto es fijo cada mes o varía mes a mes?',
       assistantFocusRowId: 'expense_food',
       budgetRows,
     });
@@ -352,9 +365,15 @@ describe('budget-chat routes', () => {
     const res = await agent.post('/api/budget-chat').set('x-csrf-token', csrfToken).send({
       intent: 'reply',
       answer: 'transporte 120 mil fijo con débito',
-      question: '¿Cuánto va al mes en transporte?',
+      question: '¿Cuál es el monto mensual de «Transporte»?',
       assistantFocusRowId: 'expense_transport',
       budgetRows,
+      chatAnswers: [
+        {
+          q: 'En la tabla aparece «Transporte» como gasto. ¿Confirmas ese nombre o cómo quieres llamar este movimiento?',
+          a: 'sí',
+        },
+      ],
     });
 
     expect(res.status).toBe(200);
@@ -374,15 +393,47 @@ describe('budget-chat routes', () => {
     const res = await agent.post('/api/budget-chat').set('x-csrf-token', csrfToken).send({
       intent: 'reply',
       answer: '200000',
-      question: '¿Cuánto gastas al mes en comida y supermercado?',
+      question: '¿Cuál es el monto mensual de «Alimentación»?',
       assistantFocusRowId: 'expense_food',
       budgetRows,
+      chatAnswers: [
+        {
+          q: 'En la tabla aparece «Alimentación» como gasto. ¿Confirmas ese nombre o cómo quieres llamar este movimiento?',
+          a: 'sí',
+        },
+      ],
     });
 
     expect(res.status).toBe(200);
     expect(res.body.action?.amount).toBe(200000);
     expect(String(res.body.next_question)).toMatch(/fijo|variable|mes a mes/i);
     expect(res.body.focus_row_id).toBe('expense_food');
+  }, 15000);
+
+  it('confirms category before asking for monthly amount', async () => {
+    const { agent, csrfToken } = await createAuthedAgent();
+    const budgetRows = [
+      { id: 'expense_food', category: 'Alimentación', type: 'expense', amount: 0 },
+    ];
+    const initRes = await agent.post('/api/budget-chat').set('x-csrf-token', csrfToken).send({
+      intent: 'init',
+      budgetRows,
+      chatAnswers: [],
+    });
+    expect(initRes.status).toBe(200);
+    expect(String(initRes.body.next_question)).toMatch(/En la tabla aparece/i);
+
+    const confirmRes = await agent.post('/api/budget-chat').set('x-csrf-token', csrfToken).send({
+      intent: 'reply',
+      answer: 'sí',
+      question: initRes.body.next_question,
+      assistantFocusRowId: 'expense_food',
+      budgetRows,
+      chatAnswers: [],
+    });
+    expect(confirmRes.status).toBe(200);
+    expect(confirmRes.body.source).toBe('deterministic_category_update');
+    expect(String(confirmRes.body.next_question)).toMatch(/monto mensual/i);
   }, 15000);
 
   it('updates movement type category from chat like the table selector', async () => {
@@ -408,7 +459,7 @@ describe('budget-chat routes', () => {
     const { agent, csrfToken } = await createAuthedAgent();
     const budgetRows = [{ id: 'income_salary', category: 'Sueldo líquido', type: 'income', amount: 0 }];
     const question =
-      'Según tu perfil, tu ingreso principal ronda $1.450.000. ¿Lo dejamos así?';
+      'Para «Sueldo líquido», según tu perfil ronda $1.450.000. ¿Cuál es el monto mensual?';
 
     const res = await agent.post('/api/budget-chat').set('x-csrf-token', csrfToken).send({
       intent: 'reply',
@@ -416,6 +467,12 @@ describe('budget-chat routes', () => {
       question,
       assistantFocusRowId: 'income_salary',
       budgetRows,
+      chatAnswers: [
+        {
+          q: 'En la tabla aparece «Sueldo líquido» como ingreso. ¿Confirmas ese nombre o cómo quieres llamar este movimiento?',
+          a: 'sí',
+        },
+      ],
       intakeData: { exactMonthlyIncome: 1_450_000 },
       products: [
         {
@@ -453,7 +510,7 @@ describe('budget-chat routes', () => {
     });
 
     expect(res.status).toBe(200);
-    expect(String(res.body.next_question)).toMatch(/1\.200\.000|1\.180\.000/);
+    expect(String(res.body.next_question)).toMatch(/En la tabla aparece|Sueldo/i);
     expect(String(res.body.assistant_reply)).toMatch(/movimientos|perfil/i);
   }, 15000);
 });

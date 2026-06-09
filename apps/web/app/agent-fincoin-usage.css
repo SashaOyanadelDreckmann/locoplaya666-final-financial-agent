@@ -1,0 +1,243 @@
+/* Fincoin usage modal + header control */
+
+.chat-fincoin-toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.38);
+  color: rgba(255, 255, 255, 0.88);
+  transition: background 160ms ease, border-color 160ms ease, transform 120ms ease;
+}
+
+.chat-fincoin-toggle:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.24);
+}
+
+.chat-fincoin-toggle.is-low {
+  border-color: rgba(251, 191, 36, 0.45);
+  color: #fde68a;
+}
+
+.chat-fincoin-toggle.is-depleted {
+  border-color: rgba(251, 113, 133, 0.5);
+  color: #fecdd3;
+}
+
+.chat-fincoin-toggle-dot {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #34d399;
+}
+
+.chat-fincoin-toggle.is-low .chat-fincoin-toggle-dot {
+  background: #fbbf24;
+}
+
+.chat-fincoin-toggle.is-depleted .chat-fincoin-toggle-dot {
+  background: #fb7185;
+}
+
+.chat-header-toggle-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+}
+
+.agent-chat-controls-row .chat-header-toggle-group .chat-monochrome-toggle--floating {
+  position: static;
+  top: auto;
+  right: auto;
+  transform: none;
+}
+
+.fincoin-usage-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(3, 7, 18, 0.62);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.fincoin-usage-dialog {
+  position: relative;
+  width: min(100%, 420px);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: linear-gradient(180deg, rgba(17, 24, 39, 0.96), rgba(8, 12, 22, 0.98));
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.45);
+  padding: 18px;
+  color: #f8fafc;
+}
+
+.fincoin-usage-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.8);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fincoin-usage-head {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 14px;
+  padding-right: 28px;
+}
+
+.fincoin-usage-head h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.fincoin-usage-head p {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.fincoin-usage-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(16, 185, 129, 0.14);
+  color: #6ee7b7;
+}
+
+.fincoin-usage-pill {
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.fincoin-usage-pill.is-healthy {
+  color: #6ee7b7;
+  border-color: rgba(16, 185, 129, 0.35);
+}
+
+.fincoin-usage-pill.is-warning {
+  color: #fde68a;
+  border-color: rgba(251, 191, 36, 0.35);
+}
+
+.fincoin-usage-pill.is-depleted {
+  color: #fecdd3;
+  border-color: rgba(251, 113, 133, 0.35);
+}
+
+.fincoin-usage-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.fincoin-usage-metrics div {
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 10px;
+}
+
+.fincoin-usage-metrics span {
+  display: block;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.fincoin-usage-metrics strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 14px;
+}
+
+.fincoin-usage-loading {
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.45);
+  text-align: center;
+}
+
+.fincoin-low-balance-banner,
+.fincoin-depleted-banner {
+  margin: 0 20px 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.fincoin-low-balance-banner {
+  border: 1px solid rgba(251, 191, 36, 0.28);
+  background: rgba(251, 191, 36, 0.08);
+  color: #fde68a;
+}
+
+.fincoin-depleted-banner {
+  border: 1px solid rgba(251, 113, 133, 0.28);
+  background: rgba(251, 113, 133, 0.08);
+  color: #fecdd3;
+}
+
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+  .agent-chat-header.is-mobile .chat-header-toggle-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .agent-chat-header.is-mobile .chat-fincoin-toggle,
+  .agent-chat-header.is-mobile .chat-monochrome-toggle--inline {
+    width: 24px;
+    height: 24px;
+  }
+
+  .fincoin-usage-overlay {
+    padding: 14px;
+    align-items: flex-end;
+  }
+
+  .fincoin-usage-dialog {
+    width: 100%;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  .fincoin-low-balance-banner,
+  .fincoin-depleted-banner {
+    margin: 0 10px 6px;
+  }
+}

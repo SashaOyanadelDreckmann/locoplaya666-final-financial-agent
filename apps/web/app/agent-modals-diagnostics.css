@@ -14833,11 +14833,6 @@ body.agent-route-active .app-shell::before {
   gap: 20px !important;
 }
 
-.agent-modal.interview-modal .interview-validation-card {
-  margin-top: 12px !important;
-  opacity: 0.92 !important;
-}
-
 .agent-modal.interview-modal .agent-modal-close:disabled {
   opacity: 0.35 !important;
   cursor: not-allowed !important;
@@ -16128,12 +16123,6 @@ body.agent-route-active .app-shell > * {
   color: var(--iv-text-muted) !important;
   margin-top: 5px !important;
 }
-.agent-modal.interview-modal .interview-validation-card {
-  border-left: 2px solid rgba(147,197,253,.28) !important;
-  border-radius: 0 var(--iv-radius) var(--iv-radius) 0 !important;
-  background: rgba(147,197,253,.025) !important;
-}
-
 .agent-modal.interview-modal .interview-call-error-banner,
 .agent-modal.interview-modal .voice-call-error {
   font-size: .74rem !important;
@@ -16191,22 +16180,6 @@ body.agent-route-active .app-shell > * {
   display: flex !important; flex-wrap: wrap !important; gap: 8px !important;
   background: transparent !important; padding: 0 !important;
 }
-
-.agent-modal.interview-modal .agent-textarea {
-  background: rgba(255,255,255,.03) !important;
-  border: 1px solid var(--iv-border-mid) !important;
-  border-radius: var(--iv-radius) !important;
-  color: var(--iv-text) !important;
-  font-size: .8rem !important;
-  line-height: 1.6 !important;
-  padding: 10px 12px !important;
-  width: 100% !important;
-  resize: vertical !important;
-  outline: none !important;
-  transition: border-color .15s !important;
-}
-.agent-modal.interview-modal .agent-textarea:focus { border-color: rgba(255,255,255,.22) !important; }
-.agent-modal.interview-modal .agent-textarea::placeholder { color: var(--iv-text-muted) !important; }
 
 .agent-modal.interview-modal .interview-modal-completed {
   padding: 30px 26px !important; display: flex !important; flex-direction: column !important; gap: 16px !important;
@@ -16621,10 +16594,6 @@ body.agent-route-active .app-shell > * {
   border-radius: 50% !important;
 }
 .agent-modal.interview-modal .interview-focus-card,
-.agent-modal.interview-modal .interview-validation-card {
-  border-radius: 0 2px 2px 0 !important;
-}
-
 /* Kill ALL gradients & heavy backgrounds on voice-call-shell descendants */
 .agent-modal.interview-modal .voice-call-shell,
 .agent-modal.interview-modal .voice-call-shell.interview-live-shell,
@@ -16783,15 +16752,6 @@ body.agent-route-active .app-shell > * {
 }
 
 /* Validation card — left accent in blue */
-.agent-modal.interview-modal .interview-validation-card {
-  background: transparent !important;
-  border-top: none !important;
-  border-right: none !important;
-  border-bottom: none !important;
-  border-left: 2px solid rgba(147,197,253,.3) !important;
-  padding-left: 14px !important;
-}
-
 /* Action buttons — clean */
 .agent-modal.interview-modal .summary-action-btn,
 .agent-modal.interview-modal button.summary-action-btn {

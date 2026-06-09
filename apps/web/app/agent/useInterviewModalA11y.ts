@@ -11,6 +11,7 @@ type Params = {
   onDismiss: () => void;
   isGeneratingDiagnosis: boolean;
   isFinalizingCall: boolean;
+  voiceAwaitingMic?: boolean;
   voiceConnecting: boolean;
   voiceConnected: boolean;
   voicePaused: boolean;
@@ -26,6 +27,7 @@ export function useInterviewModalA11y(params: Params) {
     onDismiss,
     isGeneratingDiagnosis,
     isFinalizingCall,
+    voiceAwaitingMic,
     voiceConnecting,
     voiceConnected,
     voicePaused,
@@ -53,7 +55,7 @@ export function useInterviewModalA11y(params: Params) {
 
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') {
-        if (isGeneratingDiagnosis || isFinalizingCall || voiceConnecting) return;
+        if (isGeneratingDiagnosis || isFinalizingCall || voiceAwaitingMic || voiceConnecting) return;
         event.preventDefault();
         if (canDismissOverlay) onDismiss();
         return;
@@ -108,6 +110,7 @@ export function useInterviewModalA11y(params: Params) {
     modalRef,
     onDismiss,
     restoreFocusRef,
+    voiceAwaitingMic,
     voiceConnected,
     voiceConnecting,
     voicePaused,

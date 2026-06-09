@@ -40,6 +40,9 @@ function toUser(record: Awaited<ReturnType<typeof getUserById>>): User | null {
     knowledgeLastUpdated: record.knowledgeLastUpdated,
     updatedAt: record.updatedAt,
     memoryBlob: record.memoryBlob,
+    usdSpentTotal: record.usdSpentTotal ?? 0,
+    fincoinDepletedAt: record.fincoinDepletedAt,
+    fincoinDepletionHandled: record.fincoinDepletionHandled ?? false,
   };
 }
 

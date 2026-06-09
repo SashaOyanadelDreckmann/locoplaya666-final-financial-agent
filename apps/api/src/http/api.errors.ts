@@ -8,6 +8,7 @@ export const API_ERROR_CODES = {
   NOT_FOUND: 'NOT_FOUND',
   CONFLICT: 'CONFLICT',
   RATE_LIMITED: 'RATE_LIMITED',
+  FINCOINS_DEPLETED: 'FINCOINS_DEPLETED',
   INTERNAL_ERROR: 'INTERNAL_ERROR',
   ACCOUNT_PENDING_APPROVAL: 'ACCOUNT_PENDING_APPROVAL',
   ACCOUNT_REJECTED: 'ACCOUNT_REJECTED',
@@ -55,6 +56,13 @@ export function conflict(message: string): AppError {
 
 export function rateLimited(message = 'Too many requests'): AppError {
   return new AppError(429, API_ERROR_CODES.RATE_LIMITED, message);
+}
+
+export function fincoinsDepleted(
+  message = 'Fincoins agotados: el agente queda en pausa.',
+  details?: unknown,
+): AppError {
+  return new AppError(403, API_ERROR_CODES.FINCOINS_DEPLETED, message, details);
 }
 
 export function internalError(message = 'Internal server error', details?: unknown): AppError {

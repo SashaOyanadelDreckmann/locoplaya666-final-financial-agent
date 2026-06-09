@@ -1,9 +1,7 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useRef } from 'react';
-import { getSessionInfo, nextConversationStep } from '@/lib/api';
-import { ApiHttpError } from '@/lib/apiEnvelope';
-import { toUserFacingError } from '@/lib/userError';
+import { useEffect, useLayoutEffect } from 'react';
+import { getSessionInfo } from '@/lib/api';
 import { readInterviewVoiceState } from '@/lib/interviewVoiceState';
 import {
   deriveHydratedVoiceState,
@@ -17,23 +15,15 @@ type Params = {
   isOpen: boolean;
   bootstrapAttempt: number;
   intake: InterviewIntakeWithContext | null;
-  transcriptEntries: Array<{ blockId?: string; answer?: string }>;
-  interviewTranscriptSnapshot: string;
-  completedBlocks: Record<string, unknown>;
-  currentQuestion: string;
-  bootedRef: React.MutableRefObject<boolean>;
   handleUnauthorized: (error: unknown) => boolean;
   setIntake: (value: InterviewIntakeWithContext) => void;
   setBootError: (value: string | null) => void;
   setIntakeReady: (value: boolean) => void;
   setSessionAlreadyCompleted: (value: boolean) => void;
-  setSummaryComment: (value: string) => void;
-  setSummarySubmitting: (value: boolean) => void;
   resetVoiceRuntimeState: (options?: { preserveDiagnosisSignals?: boolean }) => void;
   applyHydratedVoiceState: (value: ReturnType<typeof deriveHydratedVoiceState>) => void;
   setSessionAlreadyCompletedVoice: (value: any) => void;
   setLatestDiagnosticProfileId: (value: string | null) => void;
-  setResponse: (value: any) => void;
   onDiagnosisOnlyOpen?: () => void;
 };
 
@@ -42,51 +32,30 @@ export function useInterviewModalBootstrap(params: Params) {
     isOpen,
     bootstrapAttempt,
     intake,
-    transcriptEntries,
-    interviewTranscriptSnapshot,
-    completedBlocks,
-    currentQuestion,
-    bootedRef,
     handleUnauthorized,
     setIntake,
     setBootError,
     setIntakeReady,
     setSessionAlreadyCompleted,
-    setSummaryComment,
-    setSummarySubmitting,
     resetVoiceRuntimeState,
     applyHydratedVoiceState,
     setSessionAlreadyCompletedVoice,
     setLatestDiagnosticProfileId,
-    setResponse,
     onDiagnosisOnlyOpen,
   } = params;
 
   useLayoutEffect(() => {
     if (!isOpen) {
-      bootedRef.current = false;
       setIntakeReady(false);
       setBootError(null);
       setSessionAlreadyCompleted(false);
       return;
     }
 
-    bootedRef.current = false;
     setIntakeReady(false);
     setBootError(null);
     setSessionAlreadyCompleted(false);
-    setSummaryComment('');
-    setSummarySubmitting(false);
-  }, [
-    bootedRef,
-    isOpen,
-    bootstrapAttempt,
-    setBootError,
-    setIntakeReady,
-    setSessionAlreadyCompleted,
-    setSummaryComment,
-    setSummarySubmitting,
-  ]);
+  }, [isOpen, bootstrapAttempt, setBootError, setIntakeReady, setSessionAlreadyCompleted]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -137,7 +106,6 @@ export function useInterviewModalBootstrap(params: Params) {
 
           if (hydrated.sessionAlreadyCompleted || diagnosisOnly) {
             setSessionAlreadyCompleted(true);
-            bootedRef.current = true;
             if (hydrated.voiceReport) setSessionAlreadyCompletedVoice(hydrated.voiceReport);
             if (hydrated.latestDiagnosticProfileId) setLatestDiagnosticProfileId(hydrated.latestDiagnosticProfileId);
             onDiagnosisOnlyOpen?.();
@@ -179,33 +147,4 @@ export function useInterviewModalBootstrap(params: Params) {
     bootstrapAttempt,
     onDiagnosisOnlyOpen,
   ]);
-
-  useEffect(() => {
-    if (!isOpen || !intake || bootedRef.current || currentQuestion) return;
-    bootedRef.current = true;
-    setBootError(null);
-
-    nextConversationStep({
-      intake,
-      completedBlocks,
-      interviewTranscript: interviewTranscriptSnapshot,
-    })
-      .then(setResponse)
-      .catch((error) => {
-        if (handleUnauthorized(error)) return;
-        setBootError(toUserFacingError(error, 'interview.voice'));
-      });
-  }, [
-    bootedRef,
-    completedBlocks,
-    currentQuestion,
-    handleUnauthorized,
-    interviewTranscriptSnapshot,
-    intake,
-    isOpen,
-    setBootError,
-    setResponse,
-  ]);
-
-  return { interviewTranscriptSnapshot };
 }

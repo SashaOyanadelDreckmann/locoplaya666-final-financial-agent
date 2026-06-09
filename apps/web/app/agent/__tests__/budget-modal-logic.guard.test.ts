@@ -50,9 +50,20 @@ describe('budget modal logic guards', () => {
     expect(source).toContain('props.applyBudgetTemplate();');
   });
 
-  it('opens budget init without stale active row context', () => {
-    expect(source).toContain('activeRowId: null,');
-    expect(source).toContain('activeRow: null,');
+  it('waits for budget rows before starting chat init', () => {
+    expect(source).toContain('if (props.budgetRows.length === 0) return;');
+    expect(source).toContain('budgetInitStartedRef');
+  });
+
+  it('avoids duplicate budget init when switching back from mobile table mode', () => {
+    expect(source).toContain('resolveLocalBudgetQuestion');
+    expect(source).not.toMatch(/previousMode === tableViewMode[\s\S]{0,400}intent: 'init'/);
+  });
+
+  it('delegates assistant questions to shared contextual builders', () => {
+    const helperSource = fs.readFileSync(path.join(process.cwd(), 'app', 'agent', 'budget-modal.helpers.ts'), 'utf8');
+    expect(helperSource).toContain('buildContextualQuestion');
+    expect(helperSource).toContain('getBudgetQuestionForRow');
   });
 
   it('keeps single-turn assistant UI with typewriter and user echo', () => {

@@ -145,6 +145,7 @@ export function useTransactionsModalOrchestrator(props: TransactionsModalProps) 
 
   const assistant = useTxAssistantChat({
     isOpen: props.isOpen,
+    fincoinSpendBlocked: props.fincoinSpendBlocked,
     txWizardStep: props.txWizardStep,
     selectedProductId: props.selectedProductId,
     activeBankProduct: props.activeBankProduct,
