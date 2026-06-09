@@ -37,6 +37,9 @@ describe('budget modal logic guards', () => {
     expect(budgetModalSource).toContain('Asistente + Tabla');
     expect(budgetModalSource).toContain("onClick={() => setBudgetViewMode(2)}");
     expect(budgetModalSource).toContain('onClick={() => setBudgetViewMode(tableViewMode)}');
+    expect(budgetModalSource).toContain('BudgetCarouselStage');
+    expect(budgetModalSource).toContain('budget-mobile-stage');
+    expect(budgetModalSource).not.toContain('budget-desktop-stage');
   });
 
   it('auto-applies budget template when modal opens with empty rows', () => {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { focusMobileInput } from '@/lib/mobile-viewport-sync';
 import { getCsrfToken } from '@/lib/csrf';
 import { downloadArtifactFile, saveBubbleSnapshotPdfArtifact } from '@/lib/artifacts';
@@ -46,6 +46,11 @@ import {
 } from './budget-modal.chat-api';
 import { buildBudgetSnapshotHtmlAndCss } from './budget-modal.snapshot';
 import { useBudgetCloseConfirm } from './use-budget-close-confirm';
+
+function BudgetCarouselStage({ mobile, children }: { mobile: boolean; children: ReactNode }) {
+  if (mobile) return <div className="budget-mobile-stage">{children}</div>;
+  return <>{children}</>;
+}
 
 export function BudgetModal(props: {
   isOpen: boolean;
@@ -1012,7 +1017,7 @@ export function BudgetModal(props: {
           <div
             className={`budget-executive-grid budget-main-carousel mode-${budgetModeClass}${isDesktopLayout ? ' is-desktop' : ' is-mobile-budget'}`}
           >
-            <div className={isMobileShell ? 'budget-mobile-stage' : 'budget-desktop-stage'}>
+            <BudgetCarouselStage mobile={isMobileShell}>
             <section
               data-main-card="table"
               className={`budget-table-section budget-card-table${isDesktopLayout ? '' : ' is-mobile-table-compact'}${isMobileManualTable ? ' is-mobile-manual-table' : ''}`}
@@ -1169,7 +1174,7 @@ export function BudgetModal(props: {
                 ) : null}
               </div>
             </section>
-            </div>
+            </BudgetCarouselStage>
 
             {isMobileShell ? budgetTableBottomActions : null}
           </div>
