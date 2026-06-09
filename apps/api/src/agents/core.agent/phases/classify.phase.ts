@@ -5,10 +5,11 @@
  * Detect user intent, mode, and whether tools are needed
  */
 
-import { completeStructured } from '../../../services/llm.service';
+import { completeStructuredWithClaude } from '../../../services/llm.service';
 import { CORE_CLASSIFIER_SYSTEM } from '../system.prompts';
 import { ReasoningModeSchema } from '../chat.types';
 import { inferUserModel, shouldAskPdfFormat } from '../helpers/user-model.helpers';
+import { resolveCoreAgentClaudeModel } from '../helpers/model-policy.helpers';
 import { compactCoreAgentHistory, shouldBoostFreshEvidenceTools } from '@financial-agent/shared';
 import type {
   Classification,
@@ -75,7 +76,7 @@ export async function runClassifyPhase(input: ClassifyPhaseInput): Promise<Class
   try {
     input.stream?.phase('classify', 'start');
     // Step 1: Call LLM classifier
-    const classificationRawMaybe = await completeStructured<{
+    const classificationRawMaybe = await completeStructuredWithClaude<{
       mode?: unknown;
       intent?: string;
       requires_tools?: boolean;
@@ -85,6 +86,7 @@ export async function runClassifyPhase(input: ClassifyPhaseInput): Promise<Class
       system: CORE_CLASSIFIER_SYSTEM,
       user: buildClassifierUserInput({ userMessage: user_message, history }),
       temperature: 0,
+      model: resolveCoreAgentClaudeModel(),
     });
 
     // Backward-compatible shape for older tests/mocks.

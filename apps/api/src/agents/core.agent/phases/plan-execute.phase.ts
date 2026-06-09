@@ -22,6 +22,7 @@ import {
   shouldPrefetchTrustedWeb,
 } from '@financial-agent/shared';
 import { extractChartBlocksFromToolOutput } from '../helpers/chart-extraction.helpers';
+import { resolvePlanExecuteModel } from '../helpers/model-policy.helpers';
 import { isArtifactLike } from '../helpers/validation.helpers';
 import type { ExecutionResult, PlanPhaseInput, PlanPhaseOutput } from '../agent-types';
 import type { ToolCall, Citation, Artifact, AgentBlock } from '../chat.types';
@@ -322,8 +323,12 @@ export async function runPlanExecutePhase(input: PlanPhaseInput): Promise<PlanPh
       });
       const planMaxTokens = Number(process.env.OPENAI_PLAN_MAX_COMPLETION_TOKENS || 1024);
 
-      // Call OpenAI with tool calling
-      const model = process.env.OPENAI_MODEL || 'gpt-4.1';
+      const model = resolvePlanExecuteModel({
+        userMessage: input.user_message ?? '',
+        mode: input.classification.mode,
+        requiresTools: input.classification.requires_tools,
+        preferredOutput: input.inferred_user_model?.preferred_output,
+      });
       const response = await client.chat.completions.create(
         withCompatibleTemperature(
           {

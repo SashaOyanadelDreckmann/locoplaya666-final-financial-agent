@@ -24,8 +24,8 @@ const configSchema = z.object({
   OPENAI_API_KEY: z.string().default('test-openai-key'),
   OPENAI_MODEL: z
     .string()
-    .default('gpt-4.1')
-    .describe('OpenAI model ID for core agent reasoning and tool use'),
+    .default('gpt-5.2')
+    .describe('OpenAI model for core agent chart/table MCP tool loop'),
   OPENAI_TEMPERATURE: z
     .string()
     .optional()
@@ -245,8 +245,8 @@ export function formatConfigSummary(config: Config): string {
     '📋 Configuration Summary',
     '━'.repeat(60),
     `  Environment: ${config.NODE_ENV}`,
-    `  Core Brain (OpenAI): ${config.OPENAI_MODEL}`,
-    `  Front Report (Claude): ${config.ANTHROPIC_MODEL}`,
+    `  Core Brain (OpenAI): ${config.OPENAI_MODEL} (charts/tables MCP only)`,
+    `  Core Agent (Claude Haiku): ${config.ANTHROPIC_MODEL_FAST}`,
     `  Budget Chat (Claude fast): ${config.ANTHROPIC_MODEL_FAST}`,
     `  Port: ${config.PORT}`,
     `  Web Origin: ${config.WEB_ORIGIN}`,

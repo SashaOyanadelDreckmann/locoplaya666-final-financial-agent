@@ -17,8 +17,8 @@ import type { ExecutionResult } from '../agent-types';
 
 // Mock dependencies
 vi.mock('../../../services/llm.service', () => ({
-  complete: vi.fn(),
   completeWithClaude: vi.fn(),
+  completeWithClaudeStream: vi.fn(),
 }));
 
 vi.mock('../../../services/knowledge.service', () => ({
@@ -31,7 +31,7 @@ vi.mock('../knowledge-detector', () => ({
   detectKnowledgeEvent: vi.fn(() => ({ detected: false })),
 }));
 
-import { complete, completeWithClaude } from '../../../services/llm.service';
+import { completeWithClaude } from '../../../services/llm.service';
 import { recordKnowledgeEvent, getMilestones } from '../../../services/knowledge.service';
 
 describe('runFormatPhase', () => {
@@ -233,10 +233,8 @@ invalid json
     expect(result).not.toMatch(/decision final/i);
   });
 
-  it('should prefer fast format for low-complexity turns outside test mode', async () => {
-    const previousNodeEnv = process.env.NODE_ENV;
-    process.env.NODE_ENV = 'development';
-    (complete as any).mockResolvedValueOnce('Respuesta ejecutiva breve');
+  it('should always use Claude for formatting, even for low-complexity turns', async () => {
+    (completeWithClaude as any).mockResolvedValueOnce('Respuesta ejecutiva breve');
 
     const result = await runFormatPhase({
       mode: 'information',
@@ -248,10 +246,8 @@ invalid json
       context_summary: {},
     });
 
-    expect(complete).toHaveBeenCalled();
-    expect(completeWithClaude).not.toHaveBeenCalled();
+    expect(completeWithClaude).toHaveBeenCalled();
     expect(result.formatted_response.message).not.toContain('Fuentes:');
-    process.env.NODE_ENV = previousNodeEnv;
   });
 });
 

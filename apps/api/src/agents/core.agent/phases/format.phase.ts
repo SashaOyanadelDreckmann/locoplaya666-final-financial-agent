@@ -5,8 +5,9 @@
  * Generate final response, parse special tags, detect knowledge events
  */
 
-import { complete, completeStream, completeWithClaude, completeWithClaudeStream } from '../../../services/llm.service';
+import { completeWithClaude, completeWithClaudeStream } from '../../../services/llm.service';
 import { CORE_RESPONSE_SYSTEM } from '../system.prompts';
+import { resolveCoreAgentClaudeModel } from '../helpers/model-policy.helpers';
 import { detectKnowledgeEvent } from '../knowledge-detector';
 import { recordKnowledgeEvent, getMilestones, KNOWLEDGE_MILESTONES } from '../../../services/knowledge.service';
 import {
@@ -90,23 +91,6 @@ function buildUserFinancialProfileBlock(intake: unknown): string {
   );
 }
 
-function compactToolOutputs(input: FormatPhaseInput): string {
-  const outputs = input.execution_result?.tool_outputs ?? [];
-  if (outputs.length === 0) return 'Sin tool_outputs.';
-
-  return outputs
-    .slice(-3)
-    .map((entry, idx) => {
-      const raw =
-        typeof entry?.data === 'string'
-          ? entry.data
-          : JSON.stringify(entry?.data ?? {}, null, 2);
-      const trimmed = String(raw).replace(/\s+/g, ' ').trim().slice(0, 800);
-      return `#${idx + 1} tool=${entry?.tool ?? 'unknown'} output=${trimmed}`;
-    })
-    .join('\n');
-}
-
 function shouldEnforceDecisionDisclaimer(input: FormatPhaseInput): boolean {
   const activeChatId = String(input.ui_state?.active_chat?.id ?? '');
   return (
@@ -131,87 +115,6 @@ function hasRecentDecisionDisclaimer(input: FormatPhaseInput): boolean {
   );
 }
 
-function shouldUseFastFormat(input: FormatPhaseInput): boolean {
-  if (process.env.NODE_ENV === 'test') return false;
-  if (process.env.AGENT_FAST_FORMAT === 'true') return true;
-  // Always keep premium depth for the most complex modes.
-  if (input.mode === 'regulation' || input.mode === 'simulation') return false;
-  const toolCalls = input.execution_result?.tool_calls?.length ?? 0;
-  const citations = input.execution_result?.citations?.length ?? 0;
-  return toolCalls <= 2 && citations <= 4;
-}
-
-const EXECUTIVE_STRUCTURE_MODES = new Set([
-  'decision_support',
-  'comparison',
-  'planification',
-]);
-
-function isColloquialOrOffTopicMessage(userMessage: string): boolean {
-  const text = String(userMessage ?? '').trim();
-  if (!text) return false;
-  const normalized = text.toLowerCase();
-  if (text.length <= 90) return true;
-  return (
-    /\b(quien es|quién es|por que me|porqué me|y por que|y porqué|que es|qué es|porque me)\b/i.test(
-      normalized,
-    ) ||
-    /^(hola|buenas|hey|oye|ok|dale|gracias)\b/i.test(normalized)
-  );
-}
-
-function resolveDetailLevel(input: FormatPhaseInput): 'standard' | 'high' {
-  const fromModel = input.inferred_user_model?.detail_level;
-  if (fromModel === 'high' || fromModel === 'standard') return fromModel;
-  const profileObj =
-    input.context_summary?.recommendation_profile &&
-    typeof input.context_summary.recommendation_profile === 'object'
-      ? (input.context_summary.recommendation_profile as Record<string, unknown>)
-      : null;
-  const fromProfile = profileObj?.detail_level;
-  if (fromProfile === 'high' || fromProfile === 'standard') return fromProfile;
-  return 'standard';
-}
-
-function shouldUseConversationalFormat(
-  input: FormatPhaseInput,
-  funnelStage: ActionPlanFunnelStage | null,
-): boolean {
-  if (funnelStage) return false;
-  if (EXECUTIVE_STRUCTURE_MODES.has(input.mode)) return false;
-  if (input.mode === 'information' || input.mode === 'containment') return true;
-  if (isColloquialOrOffTopicMessage(input.user_message)) return true;
-  if (input.mode === 'education' && isColloquialOrOffTopicMessage(input.user_message)) return true;
-  return false;
-}
-
-function buildFormatInstructions(
-  input: FormatPhaseInput,
-  funnelStage: ActionPlanFunnelStage | null,
-  detailLevel: 'standard' | 'high',
-): string | null {
-  if (funnelStage === 'deliver') return null;
-
-  if (shouldUseConversationalFormat(input, funnelStage)) {
-    return [
-      'Responde en 2-4 oraciones naturales, como un amigo experto en finanzas en Chile.',
-      'Sin encabezados corporativos, sin numeración tipo memo ni labels como "tesis ejecutiva".',
-      'Responde primero lo que el usuario preguntó. Solo conecta con presupuesto, cartolas o entrevista si el usuario lo pide o la pregunta es financiera.',
-    ].join(' ');
-  }
-
-  if (detailLevel === 'high' || EXECUTIVE_STRUCTURE_MODES.has(input.mode)) {
-    return [
-      'Entrega valor real al usuario en formato:',
-      '1) tesis ejecutiva clara,',
-      '2) recomendacion accionable con criterio senior,',
-      '3) riesgos/condiciones y siguiente validacion concreta.',
-    ].join('\n');
-  }
-
-  return 'Usa lenguaje claro y directo. Evita tecnicismos innecesarios. Da una recomendación concreta en 2-3 oraciones: qué hacer, por qué y cuándo.';
-}
-
 function resolveFormatFunnelStage(input: FormatPhaseInput): ActionPlanFunnelStage | null {
   const profile = input.context_summary?.recommendation_profile as
     | { action_plan_funnel_stage?: ActionPlanFunnelStage | null }
@@ -225,21 +128,6 @@ function resolveFormatFunnelStage(input: FormatPhaseInput): ActionPlanFunnelStag
     closingMode: ui.product_closing_mode === true,
     userMessage: input.user_message,
   });
-}
-
-function resolveCloseoutWindow(input: FormatPhaseInput): {
-  turnsRemaining: number | null;
-  isCloseoutWindow: boolean;
-} {
-  const turnsRemainingRaw = input.ui_state?.product_turns_remaining;
-  const turnsRemaining =
-    typeof turnsRemainingRaw === 'number' && Number.isFinite(turnsRemainingRaw)
-      ? Math.max(0, Math.floor(turnsRemainingRaw))
-      : null;
-  return {
-    turnsRemaining,
-    isCloseoutWindow: turnsRemaining !== null ? turnsRemaining <= 2 && turnsRemaining > 0 : false,
-  };
 }
 
 export function ensureDecisionDisclaimer(message: string, input: FormatPhaseInput): string {
@@ -256,134 +144,13 @@ export function ensureDecisionDisclaimer(message: string, input: FormatPhaseInpu
   return `${message}\n\nDecision final: debe tomarla el usuario de forma 100% informada. Esta recomendacion orienta, no sustituye su criterio ni su validacion final.`;
 }
 
-async function buildFastValuableMessage(
-  input: FormatPhaseInput,
-  onDelta?: (delta: string) => void,
-): Promise<string> {
-  const toolsUsed = input.execution_result?.tool_calls?.map((tc) => tc.tool).slice(0, 4) ?? [];
-  const artifacts = input.execution_result?.artifacts?.slice(0, 2) ?? [];
-  const toolContext = compactToolOutputs(input);
-  const productDirective =
-    typeof input.context_summary?.product_directive === 'string'
-      ? input.context_summary.product_directive
-      : '';
-  const recentThreadContext =
-    typeof input.context_summary?.recent_thread_context === 'string' &&
-    input.context_summary.recent_thread_context.length > 0
-      ? input.context_summary.recent_thread_context
-      : '';
-  const marketSnapshot =
-    input.context_summary?.market_snapshot?.summary &&
-    typeof input.context_summary.market_snapshot.summary === 'string'
-      ? input.context_summary.market_snapshot.summary
-      : '';
-  const profileObj =
-    input.context_summary?.recommendation_profile &&
-    typeof input.context_summary.recommendation_profile === 'object'
-      ? (input.context_summary.recommendation_profile as Record<string, unknown>)
-      : null;
-  const recommendationProfile = profileObj ? JSON.stringify(profileObj) : '';
-  const funnelStage = resolveFormatFunnelStage(input);
-  const detailLevel = resolveDetailLevel(input);
-  const conversational = shouldUseConversationalFormat(input, funnelStage);
-  const closeoutWindow = resolveCloseoutWindow(input);
-  const userFinancialProfile = buildUserFinancialProfileBlock(
-    input.injected_intake ?? input.context_summary?.intake
-  );
-  const funnelInstructions = funnelStage ? buildActionPlanFormatInstructions(funnelStage) : '';
-
-  const formatInstructions = buildFormatInstructions(input, funnelStage, detailLevel);
-
-  const prompt = [
-    funnelInstructions,
-    closeoutWindow.isCloseoutWindow
-      ? 'Quedan 2 interacciones o menos: prepara un cierre elegante, no abras subtemas nuevos innecesarios y deja el hilo listo para cerrarse en la siguiente vuelta.'
-      : '',
-    funnelStage === 'deliver'
-      ? 'Responde en español (Chile) con documento ejecutivo completo; secciones ## obligatorias; minimo 900 palabras si hay contexto.'
-      : funnelStage === 'brainstorm'
-      ? 'Responde en español (Chile): lluvia de ideas senior, bullets densos, max 220 palabras.'
-      : funnelStage === 'converge'
-      ? 'Responde en español (Chile): convergencia senior, max 320 palabras.'
-      : 'Responde en español (Chile) con tono claro, cercano y natural; breve pero útil.',
-    conversational
-      ? 'Prioriza naturalidad y brevedad; no empujes onboarding si la pregunta no lo requiere.'
-      : funnelStage === 'deliver'
-        ? null
-        : 'Si el usuario escribe coloquial o corto, evita una estructura corporativa rígida; usa una explicación natural y concreta.',
-    formatInstructions,
-    'No menciones nombres de tools, pipeline interno ni tecnicismos de backend.',
-    'Si recomiendas productos, APV, inversiones o instituciones: cruza suitability, explicita riesgos y deja claro que la decision final depende 100% del usuario.',
-    '',
-    userFinancialProfile,
-    `Pregunta del usuario: ${input.user_message}`,
-    recentThreadContext ? `Hilo reciente:\n${recentThreadContext}` : '',
-    `Modo: ${input.mode}`,
-    typeof input.context_summary?.reference_date === 'string'
-      ? `Fecha de referencia: ${input.context_summary.reference_date} (Chile)`
-      : '',
-    `Arquitectura del producto: ${productDirective || 'sin directiva especial'}`,
-    marketSnapshot ? `Mercado vivo: ${marketSnapshot}` : '',
-    recommendationProfile ? `Suitability: ${recommendationProfile}` : '',
-    closeoutWindow.turnsRemaining !== null
-      ? `Turnos restantes reales del chat: ${closeoutWindow.turnsRemaining}`
-      : '',
-    `Herramientas usadas: ${toolsUsed.join(', ') || 'ninguna'}`,
-    `Artefactos: ${artifacts.map((a) => a.title).join(' | ') || 'ninguno'}`,
-    '',
-    'Regla: no escribas fuentes ni citas dentro del cuerpo; la UI las mostrará aparte en el bloque de citas.',
-    'Evidencia resumida:',
-    toolContext,
-  ]
-    .filter((line): line is string => line != null && line !== '')
-    .join('\n');
-
-  const formatOptions = {
-    systemPrompt: CORE_RESPONSE_SYSTEM,
-    temperature: funnelStage === 'deliver' ? 0.25 : conversational ? 0.35 : 0.2,
-    maxCompletionTokens: funnelStage === 'deliver' ? 1400 : conversational ? 380 : 520,
-  };
-  const raw = onDelta
-    ? await completeStream(prompt, formatOptions, onDelta)
-    : await complete(prompt, formatOptions);
-
-  let cleaned = stripEmojis(cleanSpecialTags(raw)).trim();
-  cleaned = sanitizeFormulaContent(cleaned);
-  if (funnelStage === 'deliver') cleaned = enforceDeliverPlanStructure(cleaned);
-  cleaned = ensureDecisionDisclaimer(cleaned, input);
-  return cleaned.length > 0
-    ? cleaned
-    : 'Aquí va una lectura rápida: con la evidencia disponible, conviene confirmar contexto clave y ejecutar 2-3 pasos de control antes de decidir.';
-}
-
 export async function runFormatPhase(input: FormatPhaseInput): Promise<FormatPhaseOutput> {
   const logger = getLogger();
   const startTime = Date.now();
-  const fastFormatEnabled = shouldUseFastFormat(input);
   const onDelta = input.stream ? (delta: string) => input.stream?.messageDelta(delta) : undefined;
 
   try {
     input.stream?.phase('format', 'start');
-    if (fastFormatEnabled) {
-      const ensuredCitations = await ensureEvidenceCitations(input);
-      const message = await buildFastValuableMessage(input, onDelta);
-
-      const formatted_response: FormattedResponse = {
-        message: stripInlineSourcesBlock(message),
-        agent_blocks: input.execution_result?.agent_blocks || [],
-        artifacts: input.execution_result?.artifacts || [],
-        citations: ensuredCitations,
-        suggested_replies: [],
-        panel_action: undefined,
-        context_score: undefined,
-        budget_updates: [],
-      };
-
-      logger.info({ msg: '[Format] Fast format applied', latency_ms: Date.now() - startTime });
-      input.stream?.phase('format', 'done');
-      return { formatted_response };
-    }
-
     const executionSummary = JSON.stringify(
       {
         mode: input.mode,
@@ -450,6 +217,8 @@ export async function runFormatPhase(input: FormatPhaseInput): Promise<FormatPha
     const fullFormatOptions = {
       systemPrompt: CORE_RESPONSE_SYSTEM,
       temperature: 0.4,
+      model: resolveCoreAgentClaudeModel(),
+      allowOpenAIFallback: false as const,
     };
     const rawResponse = onDelta
       ? await completeWithClaudeStream(formatterInput, fullFormatOptions, onDelta)

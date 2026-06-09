@@ -11,10 +11,10 @@ import * as testUtils from '../../../test/mocks';
 
 // Mock the LLM service
 vi.mock('../../../services/llm.service', () => ({
-  completeStructured: vi.fn(),
+  completeStructuredWithClaude: vi.fn(),
 }));
 
-import { completeStructured } from '../../../services/llm.service';
+import { completeStructuredWithClaude } from '../../../services/llm.service';
 
 describe('runClassifyPhase', () => {
   beforeEach(() => {
@@ -23,7 +23,7 @@ describe('runClassifyPhase', () => {
 
   it('should classify decision_support mode correctly', async () => {
     const mockResponse = testUtils.createMockClassifierResponse('decision_support');
-    (completeStructured as any).mockResolvedValueOnce(
+    (completeStructuredWithClaude as any).mockResolvedValueOnce(
       testUtils.mockCompleteStructured(mockResponse),
     );
 
@@ -38,7 +38,7 @@ describe('runClassifyPhase', () => {
 
   it('should classify information mode for general questions', async () => {
     const mockResponse = testUtils.createMockClassifierResponse('information');
-    (completeStructured as any).mockResolvedValueOnce(
+    (completeStructuredWithClaude as any).mockResolvedValueOnce(
       testUtils.mockCompleteStructured(mockResponse),
     );
 
@@ -52,7 +52,7 @@ describe('runClassifyPhase', () => {
 
   it('should classify simulation mode for "what-if" questions', async () => {
     const mockResponse = testUtils.createMockClassifierResponse('simulation');
-    (completeStructured as any).mockResolvedValueOnce(
+    (completeStructuredWithClaude as any).mockResolvedValueOnce(
       testUtils.mockCompleteStructured(mockResponse),
     );
 
@@ -65,7 +65,7 @@ describe('runClassifyPhase', () => {
 
   it('should classify budgeting mode for budget-related questions', async () => {
     const mockResponse = testUtils.createMockClassifierResponse('budgeting');
-    (completeStructured as any).mockResolvedValueOnce(
+    (completeStructuredWithClaude as any).mockResolvedValueOnce(
       testUtils.mockCompleteStructured(mockResponse),
     );
 
@@ -84,7 +84,7 @@ describe('runClassifyPhase', () => {
       requires_rag: false,
       confidence: 0.9,
     });
-    (completeStructured as any).mockResolvedValueOnce(
+    (completeStructuredWithClaude as any).mockResolvedValueOnce(
       testUtils.mockCompleteStructured(mockResponse),
     );
 
@@ -103,7 +103,7 @@ describe('runClassifyPhase', () => {
       requires_rag: true,
       confidence: 0.85,
     });
-    (completeStructured as any).mockResolvedValueOnce(
+    (completeStructuredWithClaude as any).mockResolvedValueOnce(
       testUtils.mockCompleteStructured(mockResponse),
     );
 
@@ -116,7 +116,7 @@ describe('runClassifyPhase', () => {
 
   it('should include conversation history in classification', async () => {
     const mockResponse = testUtils.createMockClassifierResponse('decision_support');
-    (completeStructured as any).mockResolvedValueOnce(
+    (completeStructuredWithClaude as any).mockResolvedValueOnce(
       testUtils.mockCompleteStructured(mockResponse),
     );
 
@@ -131,15 +131,15 @@ describe('runClassifyPhase', () => {
     });
 
     expect(result.classification).toBeDefined();
-    expect(completeStructured).toHaveBeenCalled();
-    const calledWith = (completeStructured as any).mock.calls[0]?.[0] ?? {};
+    expect(completeStructuredWithClaude).toHaveBeenCalled();
+    const calledWith = (completeStructuredWithClaude as any).mock.calls[0]?.[0] ?? {};
     expect(String(calledWith.user ?? '')).toContain('Historial reciente');
     expect(String(calledWith.user ?? '')).toContain('¿Cuál es el riesgo?');
   });
 
   it('should return valid inferred_user_model', async () => {
     const mockResponse = testUtils.createMockClassifierResponse('decision_support');
-    (completeStructured as any).mockResolvedValueOnce(
+    (completeStructuredWithClaude as any).mockResolvedValueOnce(
       testUtils.mockCompleteStructured(mockResponse),
     );
 
@@ -162,7 +162,7 @@ describe('runClassifyPhase', () => {
       requires_rag: false,
       confidence: 0.6,
     });
-    (completeStructured as any).mockResolvedValueOnce(
+    (completeStructuredWithClaude as any).mockResolvedValueOnce(
       testUtils.mockCompleteStructured(mockResponse),
     );
 
@@ -181,7 +181,7 @@ describe('runClassifyPhase', () => {
       requires_rag: false,
       confidence: 80,
     });
-    (completeStructured as any).mockResolvedValueOnce(
+    (completeStructuredWithClaude as any).mockResolvedValueOnce(
       testUtils.mockCompleteStructured(mockResponse),
     );
 
@@ -201,7 +201,7 @@ describe('runClassifyPhase', () => {
       requires_rag: false,
       confidence: 0.9,
     });
-    (completeStructured as any).mockResolvedValueOnce(
+    (completeStructuredWithClaude as any).mockResolvedValueOnce(
       testUtils.mockCompleteStructured(mockResponse),
     );
 
@@ -213,7 +213,7 @@ describe('runClassifyPhase', () => {
   });
 
   it('should throw on invalid JSON response', async () => {
-    (completeStructured as any).mockResolvedValueOnce({
+    (completeStructuredWithClaude as any).mockResolvedValueOnce({
       safeParse: () => ({
         success: false,
         error: new Error('Invalid JSON'),

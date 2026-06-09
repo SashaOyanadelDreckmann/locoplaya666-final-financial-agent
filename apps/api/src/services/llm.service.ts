@@ -39,6 +39,8 @@ type CompleteOptions = {
   temperature?: number;
   model?: string;
   maxCompletionTokens?: number;
+  /** When false (default), Anthropic errors propagate instead of falling back to OpenAI. */
+  allowOpenAIFallback?: boolean;
 };
 
 type LLMBudgetMode = 'balanced' | 'fast' | 'quality';
@@ -57,7 +59,7 @@ function estimateInputChars(input: string | LLMMessage[]): number {
 function resolveOpenAIModel(inputChars: number, explicitModel?: string): string {
   if (explicitModel && explicitModel.trim().length > 0) return explicitModel;
 
-  const primary = (process.env.OPENAI_MODEL ?? 'gpt-4.1').trim();
+  const primary = (process.env.OPENAI_MODEL ?? 'gpt-5.2').trim();
   const fast = (process.env.OPENAI_MODEL_FAST ?? primary).trim();
   const quality = (process.env.OPENAI_MODEL_QUALITY ?? primary).trim();
   const mode = getBudgetMode();
@@ -267,23 +269,48 @@ export async function completeStructuredWithSchema<T>(params: {
   return JSON.parse(jsonStr) as T;
 }
 
+function resolveAnthropicModel(inputChars: number, explicitModel?: string): string {
+  if (explicitModel && explicitModel.trim().length > 0) return explicitModel.trim();
+
+  const primaryModel = process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-4-6';
+  const fastModel = process.env.ANTHROPIC_MODEL_FAST?.trim() || 'claude-haiku-4-5';
+  const qualityModel = process.env.ANTHROPIC_MODEL_QUALITY?.trim();
+  const mode = getBudgetMode();
+
+  if (mode === 'quality') return qualityModel || primaryModel;
+  if (mode === 'fast') return fastModel;
+  return inputChars <= 1200 ? fastModel : primaryModel;
+}
+
+export async function completeStructuredWithClaude<T>(params: {
+  system: string;
+  user: string;
+  temperature?: number;
+  model?: string;
+  maxCompletionTokens?: number;
+}): Promise<T> {
+  const inputChars = params.system.length + params.user.length;
+  const model = resolveAnthropicModel(inputChars, params.model);
+  const raw = await completeWithClaude(params.user, {
+    systemPrompt: `${params.system}\n\nIMPORTANTE: Responde ÚNICAMENTE con JSON válido. Sin texto adicional, sin markdown, sin bloques de código.`,
+    temperature: params.temperature ?? 0,
+    model,
+    maxCompletionTokens: params.maxCompletionTokens,
+    allowOpenAIFallback: false,
+  });
+
+  const codeBlockMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
+  const jsonStr = codeBlockMatch ? codeBlockMatch[1].trim() : raw;
+  if (!jsonStr) throw new Error('Respuesta LLM vacía en completeStructuredWithClaude');
+  return JSON.parse(jsonStr) as T;
+}
+
 export async function completeWithClaude(
   input: string,
   options?: CompleteOptions
 ): Promise<string> {
-  const mode = getBudgetMode();
   const inputChars = input.length;
-  const primaryModel = options?.model ?? process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-4-6';
-  const fastModel = process.env.ANTHROPIC_MODEL_FAST?.trim();
-  const qualityModel = process.env.ANTHROPIC_MODEL_QUALITY?.trim();
-  const model =
-    mode === 'quality'
-      ? qualityModel || primaryModel
-      : mode === 'fast'
-        ? fastModel || primaryModel
-        : inputChars <= 1200
-          ? fastModel || primaryModel
-          : primaryModel;
+  const model = resolveAnthropicModel(inputChars, options?.model);
   const envTemp = process.env.ANTHROPIC_TEMPERATURE
     ? Number(process.env.ANTHROPIC_TEMPERATURE)
     : undefined;
@@ -295,34 +322,28 @@ export async function completeWithClaude(
     Number.isFinite(envAnthropicMaxTokens) ? envAnthropicMaxTokens : 2048,
   );
 
-  // Defensive fallback: if env accidentally points to an OpenAI model, avoid Anthropic call.
   if (/^(gpt-|o\d|text-embedding|omni)/i.test(model)) {
-    return complete(input, {
-      systemPrompt: options?.systemPrompt,
-      temperature,
-      model,
-    });
+    if (options?.allowOpenAIFallback === true) {
+      return complete(input, {
+        systemPrompt: options?.systemPrompt,
+        temperature,
+        model,
+      });
+    }
+    throw new Error(`Modelo Anthropic inválido configurado: ${model}`);
   }
 
-  try {
-    const client = getAnthropicClient();
-    const response = await client.messages.create({
-      model,
-      max_tokens: anthropicMaxTokens,
-      temperature,
-      system: options?.systemPrompt ?? 'Eres un asistente profesional.',
-      messages: [{ role: 'user', content: input }],
-    });
+  const client = getAnthropicClient();
+  const response = await client.messages.create({
+    model,
+    max_tokens: anthropicMaxTokens,
+    temperature,
+    system: options?.systemPrompt ?? 'Eres un asistente profesional.',
+    messages: [{ role: 'user', content: input }],
+  });
 
-    const textBlock = response.content.find((b): b is Anthropic.TextBlock => b.type === 'text');
-    return textBlock?.text?.trim() ?? '';
-  } catch {
-    // Non-blocking fallback to OpenAI brain to keep /api/agent responsive.
-    return complete(input, {
-      systemPrompt: options?.systemPrompt,
-      temperature,
-    });
-  }
+  const textBlock = response.content.find((b): b is Anthropic.TextBlock => b.type === 'text');
+  return textBlock?.text?.trim() ?? '';
 }
 
 type StreamDeltaHandler = (delta: string) => void;
@@ -380,56 +401,44 @@ export async function completeWithClaudeStream(
   options: CompleteOptions | undefined,
   onDelta: StreamDeltaHandler,
 ): Promise<string> {
-  const mode = getBudgetMode();
   const inputChars = input.length;
-  const primaryModel = options?.model ?? process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-4-6';
-  const fastModel = process.env.ANTHROPIC_MODEL_FAST?.trim();
-  const qualityModel = process.env.ANTHROPIC_MODEL_QUALITY?.trim();
-  const model =
-    mode === 'quality'
-      ? qualityModel || primaryModel
-      : mode === 'fast'
-        ? fastModel || primaryModel
-        : inputChars <= 1200
-          ? fastModel || primaryModel
-          : primaryModel;
+  const model = resolveAnthropicModel(inputChars, options?.model);
 
   if (/^(gpt-|o\d|text-embedding|omni)/i.test(model)) {
-    return completeStream(input, options, onDelta);
-  }
-
-  try {
-    const client = getAnthropicClient();
-    const envTemp = process.env.ANTHROPIC_TEMPERATURE
-      ? Number(process.env.ANTHROPIC_TEMPERATURE)
-      : undefined;
-    const temperature = options?.temperature ?? (Number.isFinite(envTemp) ? envTemp : 0.6);
-    const envAnthropicMaxTokens = Number(process.env.ANTHROPIC_MAX_TOKENS || 2048);
-    const anthropicMaxTokens = resolveOpenAIMaxTokens(
-      inputChars,
-      options?.maxCompletionTokens,
-      Number.isFinite(envAnthropicMaxTokens) ? envAnthropicMaxTokens : 2048,
-    );
-
-    const stream = client.messages.stream({
-      model,
-      max_tokens: anthropicMaxTokens,
-      temperature,
-      system: options?.systemPrompt ?? 'Eres un asistente profesional.',
-      messages: [{ role: 'user', content: input }],
-    });
-
-    let full = '';
-    for await (const event of stream) {
-      if (event.type !== 'content_block_delta') continue;
-      if (event.delta.type !== 'text_delta') continue;
-      const delta = event.delta.text ?? '';
-      if (!delta) continue;
-      full += delta;
-      onDelta(delta);
+    if (options?.allowOpenAIFallback === true) {
+      return completeStream(input, options, onDelta);
     }
-    return full.trim();
-  } catch {
-    return completeStream(input, options, onDelta);
+    throw new Error(`Modelo Anthropic inválido configurado: ${model}`);
   }
+
+  const client = getAnthropicClient();
+  const envTemp = process.env.ANTHROPIC_TEMPERATURE
+    ? Number(process.env.ANTHROPIC_TEMPERATURE)
+    : undefined;
+  const temperature = options?.temperature ?? (Number.isFinite(envTemp) ? envTemp : 0.6);
+  const envAnthropicMaxTokens = Number(process.env.ANTHROPIC_MAX_TOKENS || 2048);
+  const anthropicMaxTokens = resolveOpenAIMaxTokens(
+    inputChars,
+    options?.maxCompletionTokens,
+    Number.isFinite(envAnthropicMaxTokens) ? envAnthropicMaxTokens : 2048,
+  );
+
+  const stream = client.messages.stream({
+    model,
+    max_tokens: anthropicMaxTokens,
+    temperature,
+    system: options?.systemPrompt ?? 'Eres un asistente profesional.',
+    messages: [{ role: 'user', content: input }],
+  });
+
+  let full = '';
+  for await (const event of stream) {
+    if (event.type !== 'content_block_delta') continue;
+    if (event.delta.type !== 'text_delta') continue;
+    const delta = event.delta.text ?? '';
+    if (!delta) continue;
+    full += delta;
+    onDelta(delta);
+  }
+  return full.trim();
 }
