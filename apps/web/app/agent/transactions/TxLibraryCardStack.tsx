@@ -47,6 +47,8 @@ export function TxLibraryCardStack({
         activeIndex={productCarouselIndex}
         onActiveIndexChange={onSelectAt}
         prefersReducedMotion={prefersReducedMotion}
+        quietMode
+        cardWidthRatio={0.82}
         renderCard={(entry, stackIndex, isFocused) => {
           const { product, intel } = entry;
           const paletteIndex = paletteIndices[stackIndex] ?? stackIndex;

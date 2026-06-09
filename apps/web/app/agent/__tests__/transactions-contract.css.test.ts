@@ -44,12 +44,12 @@ describe('transactions modal layout contract css', () => {
   });
 
   it('locks mobile library card layout and premium palette', () => {
-    expect(contractCss).toContain('.transactions-modal .tx-lib-card-select');
-    expect(contractCss).toContain('flex-direction: row !important');
-    expect(contractCss).toContain('.transactions-modal .pt-item.pt-item-stack.tx-lib-card');
+    expect(contractCss).toContain('.transactions-modal .tx-scanner-lib-card.tx-lib-card');
     expect(contractCss).toContain('var(--tx-lib-inline-bg)');
-    expect(contractCss).toContain('min-height: 232px !important');
     expect(contractCss).toContain('-webkit-line-clamp: 2 !important');
+    expect(contractCss).toContain('.transactions-modal .pt-left.tx-panel-surface--library');
+    expect(contractCss).toContain('var(--tx-panel-mustard-bg)');
+    expect(contractCss).toContain('.transactions-modal .tx-scanner-stream-root.is-quiet');
   });
 
   it('fits mobile wizard stepper in one row without swipe', () => {

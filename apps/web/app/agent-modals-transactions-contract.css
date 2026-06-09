@@ -509,8 +509,21 @@
   flex-shrink: 0 !important;
 }
 
+.transactions-modal .tx-scanner-stream-root.is-quiet .tx-scanner-card-line {
+  touch-action: pan-x !important;
+  cursor: grab !important;
+}
+
+.transactions-modal .tx-scanner-stream-root.is-quiet .tx-scanner-card-line:active {
+  cursor: grabbing !important;
+}
+
+.transactions-modal .tx-scanner-stream-root.is-quiet .tx-scanner-stage {
+  overflow: visible !important;
+}
+
 .transactions-modal .tx-lib-card .tx-lib-card-top,
-.transactions-modal .tx-lib-card-select .pt-item-top {
+.transactions-modal .tx-lib-card .pt-item-top {
   flex-direction: row !important;
   align-items: flex-start !important;
   justify-content: space-between !important;
@@ -795,11 +808,6 @@
   .transactions-modal .tx-scanner-lib-card.tx-lib-card {
     padding: 9px 38px 9px 9px !important;
     gap: 3px !important;
-  }
-
-  .transactions-modal .tx-lib-card-select {
-    padding: 12px 42px 12px 12px !important;
-    gap: 5px !important;
   }
 
   .transactions-modal .tx-lib-card .pt-item-name {
@@ -1706,10 +1714,6 @@
     font-size: 8px !important;
   }
 
-  .transactions-modal .tx-lib-card-select {
-    padding: 12px 48px 12px 12px !important;
-  }
-
   .transactions-modal .pt-item-delete-mini {
     top: 8px !important;
     right: 8px !important;
@@ -1948,22 +1952,22 @@
    Mustard (productos), blue (presupuesto), burgundy (perfil), ice (diagnóstico)
    ============================================================================= */
 
-/* Biblioteca lateral — azul profundo como card Presupuesto del panel */
+/* Biblioteca lateral — mostaza como card Productos del panel */
 .transactions-modal .pt-left.tx-panel-surface--library {
-  background: var(--tx-panel-blue-bg) !important;
-  border-color: var(--tx-panel-blue-border) !important;
-  box-shadow: var(--tx-panel-blue-shadow) !important;
-  color: var(--tx-panel-blue-text) !important;
+  background: var(--tx-panel-mustard-bg) !important;
+  border-color: var(--tx-panel-mustard-border) !important;
+  box-shadow: var(--tx-panel-mustard-shadow) !important;
+  color: var(--tx-panel-mustard-text) !important;
 }
 
 .transactions-modal .pt-left.tx-panel-surface--library .pt-list-head h4,
 .transactions-modal .pt-left.tx-panel-surface--library .tx-library-empty-kicker,
 .transactions-modal .pt-left.tx-panel-surface--library .tx-library-empty p {
-  color: var(--tx-panel-blue-text) !important;
+  color: var(--tx-panel-mustard-text) !important;
 }
 
 .transactions-modal .pt-left.tx-panel-surface--library .tx-library-empty-kicker {
-  color: var(--tx-panel-blue-kicker) !important;
+  color: var(--tx-panel-mustard-kicker) !important;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   font-size: 11px;
@@ -2178,9 +2182,9 @@
 /* Mobile: conservar tonos en cards que siguen siendo superficie visible */
 @media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   html:not(.home-route-active) .transactions-modal .pt-left.tx-panel-surface--library {
-    background: var(--tx-panel-blue-bg) !important;
-    border-color: var(--tx-panel-blue-border) !important;
-    box-shadow: var(--tx-panel-blue-shadow) !important;
+    background: var(--tx-panel-mustard-bg) !important;
+    border-color: var(--tx-panel-mustard-border) !important;
+    box-shadow: var(--tx-panel-mustard-shadow) !important;
   }
 
   .transactions-modal .pt-empty-state {

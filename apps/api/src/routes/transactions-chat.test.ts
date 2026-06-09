@@ -155,6 +155,46 @@ describe('transactions-chat api route', () => {
     expect(String(userMessage?.content ?? '')).toContain('cartola.csv');
   }, 15000);
 
+  it('expands document context for indicative evidence so the prompt keeps more extracted text', async () => {
+    mockCreate.mockResolvedValueOnce({
+      output_text: JSON.stringify({
+        assistant_text: 'respuesta corta',
+        suggested_followups: [],
+        referenced_movement_keys: [],
+      }),
+    });
+    const { agent, csrfToken } = await createAuthedAgent();
+    const longText = Array.from({ length: 80 }, (_, index) => `movimiento-${index + 1}`).join(' | ');
+
+    await agent.post('/api/transactions-chat').set('x-csrf-token', csrfToken).send({
+      mode: 'chat',
+      question: 'qué ves',
+      messages: [{ role: 'user', text: 'qué ves' }],
+      dashboard: {
+        keyMetrics: { movement_count: 0 },
+        evidenceFidelity: 'indicative',
+        retrieval: { mode: 'overview', matchedCount: 0 },
+        movements: [],
+      },
+      parsedDocuments: [
+        {
+          name: 'foto-transacciones.txt',
+          text: longText,
+          structuredData: {
+            documentProfile: { needs_rag: true, confidence: 0.6 },
+          },
+        },
+      ],
+    });
+
+    const callArgs = mockCreate.mock.calls[0]?.[0] as { input?: Array<{ role?: string; content?: string }> } | undefined;
+    const userMessage = Array.isArray(callArgs?.input)
+      ? callArgs.input.find((msg) => msg.role === 'user')
+      : null;
+
+    expect(String(userMessage?.content ?? '')).toContain('movimiento-80');
+  }, 15000);
+
   it('rejects foreign document ids with a not found response', async () => {
     const { agent, csrfToken } = await createAuthedAgent();
     const res = await agent.post('/api/transactions-chat').set('x-csrf-token', csrfToken).send({

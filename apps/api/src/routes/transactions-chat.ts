@@ -67,6 +67,26 @@ const ParsedDocumentSchema = z.object({
   documentProfile: z.unknown().optional(),
 });
 
+function isIndicativeOrUnstructuredEvidence(
+  dashboard: unknown,
+  documents: Array<{ structuredData?: unknown; documentProfile?: unknown; summary?: unknown; text?: string }>,
+) {
+  const evidenceFidelity = (dashboard as { evidenceFidelity?: unknown } | null | undefined)?.evidenceFidelity;
+  if (evidenceFidelity === 'indicative') return true;
+  return documents.some((doc) => {
+    const structured = (doc.structuredData as {
+      tables?: unknown[];
+      documentProfile?: { needs_rag?: boolean; confidence?: number };
+    } | null | undefined) ?? null;
+    const profile = doc.documentProfile as { needs_rag?: boolean; confidence?: number } | null | undefined;
+    const hasTables = Array.isArray(structured?.tables) && structured.tables.length > 0;
+    const needsRag = Boolean(profile?.needs_rag ?? structured?.documentProfile?.needs_rag);
+    const lowConfidence = Number(profile?.confidence ?? structured?.documentProfile?.confidence ?? 0) < 0.9;
+    const hasLongText = String(doc.text ?? '').trim().length > 0;
+    return hasLongText && (!hasTables || needsRag || lowConfidence);
+  });
+}
+
 const TransactionChatRequestSchema = z.object({
   mode: z.enum(['summary', 'chat']).default('chat'),
   product: z.record(z.unknown()).default({}),
@@ -199,6 +219,7 @@ router.post(
       hasDocumentIds
         ? await resolveCanonicalDocuments(user.id, parsedDocuments)
         : documentsFromClient(parsedDocuments);
+    const expandDocumentContext = isIndicativeOrUnstructuredEvidence(dashboard, canonicalDocuments);
 
     const summaryModel = process.env.TRANSACTIONS_SUMMARY_MODEL || 'gpt-5.4-mini';
     const chatModel = process.env.TRANSACTIONS_CHAT_MODEL || 'gpt-5.4-mini';
@@ -312,7 +333,10 @@ router.post(
       'Incluye hasta 3 preguntas de seguimiento útiles en suggested_followups.',
     ].join(' ');
 
-    const docsDigest = compactDocumentsForPrompt(canonicalDocuments, { maxDocs: 4, maxText: 600 });
+    const docsDigest = compactDocumentsForPrompt(
+      canonicalDocuments,
+      expandDocumentContext ? { maxDocs: 8, maxText: 2400 } : { maxDocs: 4, maxText: 600 },
+    );
     const contextBlock = [
       `Producto=${JSON.stringify(product)}`,
       `Pregunta=${JSON.stringify(retrievalQuestion)}`,

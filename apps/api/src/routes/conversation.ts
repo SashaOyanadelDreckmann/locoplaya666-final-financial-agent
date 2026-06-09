@@ -111,7 +111,34 @@ type ConversationUser = {
   id: string;
   name?: string;
   injectedProfile?: unknown;
+  injectedIntake?: unknown;
 };
+
+function resolveDiagnosticIntake(
+  intake: IntakeQuestionnaire,
+  user: ConversationUser,
+): IntakeQuestionnaire & Record<string, unknown> {
+  const source = intake as IntakeQuestionnaire & Record<string, unknown>;
+  const injectedIntake =
+    user.injectedIntake && typeof user.injectedIntake === 'object'
+      ? (user.injectedIntake as Record<string, unknown>)
+      : null;
+  const productsContext =
+    injectedIntake?.productsContext && typeof injectedIntake.productsContext === 'object'
+      ? (injectedIntake.productsContext as Record<string, unknown>)
+      : null;
+  const budgetContext =
+    injectedIntake?.budgetContext && typeof injectedIntake.budgetContext === 'object'
+      ? (injectedIntake.budgetContext as Record<string, unknown>)
+      : null;
+
+  return {
+    ...source,
+    __productsContext:
+      (source.__productsContext as Record<string, unknown> | null | undefined) ?? productsContext ?? null,
+    __budgetContext: (source.__budgetContext as Record<string, unknown> | null | undefined) ?? budgetContext ?? null,
+  } as IntakeQuestionnaire & Record<string, unknown>;
+}
 
 export async function conversationNextCore(
   body: ConversationNextBody,
@@ -124,6 +151,7 @@ export async function conversationNextCore(
     summaryValidation,
     blockId: explicitBlockId,
   } = body;
+  const diagnosticIntake = resolveDiagnosticIntake(intake, user);
 
   if (!intake) {
     throw badRequest('Missing intake');
@@ -144,7 +172,7 @@ export async function conversationNextCore(
       )
     : completedBlocks;
 
-  const plan = buildInterviewPlan(intake);
+  const plan = buildInterviewPlan(diagnosticIntake);
   const completedBlockIds = Object.keys(normalizedCompletedBlocks) as InterviewBlockId[];
 
   const currentBlockId =
@@ -157,7 +185,7 @@ export async function conversationNextCore(
 
   if (!currentBlockId) {
     const diagnosticProfile = await runDiagnosticAgent({
-      intake,
+      intake: diagnosticIntake,
       blocks: normalizedCompletedBlocks,
     });
 
@@ -340,6 +368,7 @@ export default asyncHandler(async function conversationNext(req: Request, res: R
     id: user.id,
     name: user.name,
     injectedProfile: user.injectedProfile,
+    injectedIntake: user.injectedIntake,
   });
 
   return sendSuccess(res, response);
@@ -395,6 +424,7 @@ export const finalizeInterviewVoice = asyncHandler(async function finalizeInterv
   const parsed = parseBody(VoiceFinalizeSchema, req.body);
 
   const intake = parsed.intake as unknown as IntakeQuestionnaire;
+  const diagnosticIntake = resolveDiagnosticIntake(intake, user);
   const minuteSummaries = Array.isArray(parsed.minuteSummaries) ? parsed.minuteSummaries : [];
   const finalSummary = parsed.finalSummary ?? null;
   const interviewChatId = `interview:${user.id}`;
@@ -425,7 +455,7 @@ export const finalizeInterviewVoice = asyncHandler(async function finalizeInterv
         '- sin mencionar sistema ni herramientas',
         `Motivo término llamada: ${parsed.endedBy}`,
         `Duración (segundos): ${parsed.durationSec ?? 0}`,
-        `Intake usuario: ${JSON.stringify(intake)}`,
+        `Intake usuario: ${JSON.stringify(diagnosticIntake)}`,
         `Síntesis por minuto:\n${condensedSummaries || 'Sin síntesis por minuto.'}`,
         `Síntesis final de llamada:\n${finalSummaryText || 'Sin síntesis final.'}`,
         ...(typeof parsed.transcript === 'string' && parsed.transcript.trim().length > 0
@@ -452,7 +482,7 @@ export const finalizeInterviewVoice = asyncHandler(async function finalizeInterv
     : [];
   const hasEnoughInformation = Boolean(parsedReport?.has_enough_information ?? true);
 
-  const plan = buildInterviewPlan(intake);
+  const plan = buildInterviewPlan(diagnosticIntake);
   const syntheticBlocks: Partial<Record<InterviewBlockId, InterviewBlockEvidence>> = Object.fromEntries(
     plan.blocksToExplore.map((blockId) => [
       blockId,
@@ -470,7 +500,7 @@ export const finalizeInterviewVoice = asyncHandler(async function finalizeInterv
   let diagnosticFallbackUsed = false;
   try {
     diagnosticProfile = await runDiagnosticAgent({
-      intake,
+      intake: diagnosticIntake,
       blocks: syntheticBlocks,
     });
   } catch (error) {
@@ -482,7 +512,7 @@ export const finalizeInterviewVoice = asyncHandler(async function finalizeInterv
       error,
     });
     diagnosticProfile = buildVoiceInterviewFallbackProfile({
-      intake,
+      intake: diagnosticIntake,
       blocks: syntheticBlocks,
       executiveReport,
       keyFindings,

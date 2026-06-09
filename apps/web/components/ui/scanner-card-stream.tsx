@@ -47,6 +47,10 @@ export type ScannerCardStreamProps<T extends ScannerStreamCard> = {
   scanEffect?: 'clip' | 'scramble';
   showNav?: boolean;
   navStatusLabel?: (active: number, total: number) => string;
+  /** Matte carousel: no scanner FX, no auto-scroll, stable at rest */
+  quietMode?: boolean;
+  /** Fraction of container width used for card width (default 0.58) */
+  cardWidthRatio?: number;
 };
 
 type ScannerMetrics = {
@@ -67,11 +71,11 @@ function canUseWebGl(): boolean {
   }
 }
 
-function deriveMetrics(containerWidth: number): ScannerMetrics {
+function deriveMetrics(containerWidth: number, cardWidthRatio = 0.58): ScannerMetrics {
   const safeWidth = Math.max(240, containerWidth);
-  const cardWidth = Math.min(220, Math.max(168, Math.round(safeWidth * 0.58)));
+  const cardWidth = Math.max(168, Math.min(safeWidth - 24, Math.round(safeWidth * cardWidthRatio)));
   const cardHeight = Math.round(cardWidth * 0.625);
-  const cardGap = Math.max(16, Math.round(cardWidth * 0.14));
+  const cardGap = Math.max(12, Math.round(cardWidth * 0.1));
   const stageHeight = cardHeight + 28;
   return { containerWidth: safeWidth, cardWidth, cardHeight, stageHeight, cardGap };
 }
@@ -90,6 +94,8 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
   scanEffect = 'scramble',
   showNav = true,
   navStatusLabel,
+  quietMode = false,
+  cardWidthRatio = 0.58,
 }: ScannerCardStreamProps<T>) {
   const rootRef = useRef<HTMLDivElement>(null);
   const cardLineRef = useRef<HTMLDivElement>(null);
@@ -98,7 +104,7 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
   const originalAscii = useRef(new Map<number, string>());
   const streamId = useId().replace(/:/g, '');
 
-  const [metrics, setMetrics] = useState<ScannerMetrics>(() => deriveMetrics(320));
+  const [metrics, setMetrics] = useState<ScannerMetrics>(() => deriveMetrics(320, cardWidthRatio));
   const [isScanning, setIsScanning] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState(activeIndex);
 
@@ -120,14 +126,13 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
 
   const cardStreamState = useRef({
     position: 0,
-    velocity: initialSpeed,
+    velocity: 0,
     direction,
     isDragging: false,
     lastMouseX: 0,
     lastTime: performance.now(),
     cardLineWidth: 0,
     friction,
-    minVelocity: 18,
     metricsKey: '',
   });
 
@@ -157,7 +162,7 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
       const nextPosition = scannerX - cardCenter;
 
       cardStreamState.current.position = nextPosition;
-      cardStreamState.current.velocity = immediate ? 0 : Math.max(initialSpeed, cardStreamState.current.minVelocity);
+      cardStreamState.current.velocity = 0;
       cardLine.style.transform = `translateX(${nextPosition}px)`;
       setFocusedIndex(baseIndex);
     },
@@ -205,7 +210,7 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
     const updateMetrics = () => {
       const width = node.offsetWidth;
       if (width <= 0) return;
-      setMetrics(deriveMetrics(width));
+      setMetrics(deriveMetrics(width, cardWidthRatio));
     };
 
     updateMetrics();
@@ -218,7 +223,7 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
 
     window.addEventListener('resize', updateMetrics);
     return () => window.removeEventListener('resize', updateMetrics);
-  }, []);
+  }, [cardWidthRatio]);
 
   useEffect(() => {
     if (itemCount === 0) return;
@@ -227,10 +232,8 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
 
   useEffect(() => {
     const cardLine = cardLineRef.current;
-    const particleCanvas = particleCanvasRef.current;
-    const scannerCanvas = scannerCanvasRef.current;
     const container = rootRef.current;
-    if (!cardLine || !scannerCanvas || !container || itemCount === 0) return undefined;
+    if (!cardLine || !container || itemCount === 0) return undefined;
 
     streamCards.forEach((card) => originalAscii.current.set(card.streamId, card.ascii));
 
@@ -240,6 +243,153 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
       cardStreamState.current.cardLineWidth = getCardStep() * streamCards.length;
       centerOnSourceIndex(activeIndex, true);
     }
+
+    const runScrambleEffect = (element: HTMLElement, cardId: number) => {
+      if (prefersReducedMotion || element.dataset.scrambling === 'true') return;
+      element.dataset.scrambling = 'true';
+      const originalText = originalAscii.current.get(cardId) || '';
+      const asciiWidth = Math.max(18, Math.floor(metrics.cardWidth / 6.5));
+      const asciiHeight = Math.max(10, Math.floor(metrics.cardHeight / 13));
+      let scrambleCount = 0;
+      const maxScrambles = 8;
+      const interval = window.setInterval(() => {
+        element.textContent = generateCode(asciiWidth, asciiHeight);
+        scrambleCount += 1;
+        if (scrambleCount >= maxScrambles) {
+          window.clearInterval(interval);
+          element.textContent = originalText;
+          delete element.dataset.scrambling;
+        }
+      }, 30);
+    };
+
+    const updateCardEffects = () => {
+      if (quietMode) {
+        const nextIndex = resolveFocusedSourceIndex();
+        setFocusedIndex(nextIndex);
+        return;
+      }
+
+      const scannerX = getScannerX();
+      const scannerWidth = 6;
+      const scannerLeft = scannerX - scannerWidth / 2;
+      const scannerRight = scannerX + scannerWidth / 2;
+      let anyCardIsScanning = false;
+
+      cardLine.querySelectorAll<HTMLElement>('.tx-scanner-card-wrapper').forEach((wrapper) => {
+        const rect = wrapper.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+        const cardLeft = rect.left - containerRect.left;
+        const cardRight = rect.right - containerRect.left;
+        const cardWidth = rect.width;
+        const normalCard = wrapper.querySelector<HTMLElement>('.tx-scanner-card-normal');
+        const asciiCard = wrapper.querySelector<HTMLElement>('.tx-scanner-card-ascii');
+        const asciiContent = asciiCard?.querySelector<HTMLElement>('pre');
+        if (!normalCard || !asciiCard || !asciiContent) return;
+
+        if (cardLeft < scannerRight && cardRight > scannerLeft) {
+          anyCardIsScanning = true;
+          const streamId = Number(wrapper.dataset.streamId || '0');
+          if (scanEffect === 'scramble' && wrapper.dataset.scanned !== 'true') {
+            runScrambleEffect(asciiContent, streamId);
+          }
+          wrapper.dataset.scanned = 'true';
+          const intersectLeft = Math.max(scannerLeft - cardLeft, 0);
+          const intersectRight = Math.min(scannerRight - cardLeft, cardWidth);
+          normalCard.style.setProperty('--clip-right', `${(intersectLeft / cardWidth) * 100}%`);
+          asciiCard.style.setProperty('--clip-left', `${(intersectRight / cardWidth) * 100}%`);
+        } else {
+          delete wrapper.dataset.scanned;
+          if (cardRight < scannerLeft) {
+            normalCard.style.setProperty('--clip-right', '100%');
+            asciiCard.style.setProperty('--clip-left', '100%');
+          } else {
+            normalCard.style.setProperty('--clip-right', '0%');
+            asciiCard.style.setProperty('--clip-left', '0%');
+          }
+        }
+      });
+
+      setIsScanning(anyCardIsScanning);
+      scannerState.current.isScanning = anyCardIsScanning;
+      setFocusedIndex(resolveFocusedSourceIndex());
+    };
+
+    const handleMouseDown = (event: MouseEvent | TouchEvent) => {
+      if ('button' in event && event.button !== 0) return;
+      event.preventDefault();
+      const clientX = 'touches' in event ? event.touches[0].clientX : event.clientX;
+      cardStreamState.current.isDragging = true;
+      cardStreamState.current.lastMouseX = clientX;
+      cardStreamState.current.lastTime = performance.now();
+      const transform = window.getComputedStyle(cardLine).transform;
+      if (transform !== 'none') {
+        const matrix = new DOMMatrix(transform);
+        cardStreamState.current.position = matrix.m41;
+      }
+    };
+
+    const handleMouseMove = (event: MouseEvent | TouchEvent) => {
+      if (!cardStreamState.current.isDragging) return;
+      event.preventDefault();
+      const clientX = 'touches' in event ? event.touches[0].clientX : event.clientX;
+      const deltaX = clientX - cardStreamState.current.lastMouseX;
+      cardStreamState.current.position += deltaX;
+      cardStreamState.current.lastMouseX = clientX;
+      cardLine.style.transform = `translateX(${cardStreamState.current.position}px)`;
+      updateCardEffects();
+    };
+
+    const snapToFocusedCard = () => {
+      const nextIndex = resolveFocusedSourceIndex();
+      centerOnSourceIndex(nextIndex, true);
+      setFocusedIndex(nextIndex);
+      onActiveIndexChange?.(nextIndex);
+    };
+
+    const handleMouseUp = () => {
+      if (!cardStreamState.current.isDragging) return;
+      cardStreamState.current.isDragging = false;
+      cardStreamState.current.velocity = 0;
+      snapToFocusedCard();
+    };
+
+    const handleWheel = (event: WheelEvent) => {
+      event.preventDefault();
+      const scrollSpeed = 16;
+      const delta = event.deltaY > 0 ? scrollSpeed : -scrollSpeed;
+      cardStreamState.current.position += delta;
+      cardLine.style.transform = `translateX(${cardStreamState.current.position}px)`;
+      updateCardEffects();
+      const nextIndex = resolveFocusedSourceIndex();
+      setFocusedIndex(nextIndex);
+      onActiveIndexChange?.(nextIndex);
+    };
+
+    cardLine.addEventListener('mousedown', handleMouseDown);
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    cardLine.addEventListener('touchstart', handleMouseDown, { passive: false });
+    window.addEventListener('touchmove', handleMouseMove, { passive: false });
+    window.addEventListener('touchend', handleMouseUp);
+    cardLine.addEventListener('wheel', handleWheel, { passive: false });
+
+    if (quietMode) {
+      updateCardEffects();
+      return () => {
+        cardLine.removeEventListener('mousedown', handleMouseDown);
+        window.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('mouseup', handleMouseUp);
+        cardLine.removeEventListener('touchstart', handleMouseDown);
+        window.removeEventListener('touchmove', handleMouseMove);
+        window.removeEventListener('touchend', handleMouseUp);
+        cardLine.removeEventListener('wheel', handleWheel);
+      };
+    }
+
+    const particleCanvas = particleCanvasRef.current;
+    const scannerCanvas = scannerCanvasRef.current;
+    if (!scannerCanvas) return undefined;
 
     let animationFrameId = 0;
     let renderer: THREE.WebGLRenderer | null = null;
@@ -368,136 +518,8 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
 
     for (let i = 0; i < baseMaxParticles; i += 1) scannerParticles.push(createScannerParticle());
 
-    const runScrambleEffect = (element: HTMLElement, cardId: number) => {
-      if (prefersReducedMotion || element.dataset.scrambling === 'true') return;
-      element.dataset.scrambling = 'true';
-      const originalText = originalAscii.current.get(cardId) || '';
-      const asciiWidth = Math.max(18, Math.floor(metrics.cardWidth / 6.5));
-      const asciiHeight = Math.max(10, Math.floor(metrics.cardHeight / 13));
-      let scrambleCount = 0;
-      const maxScrambles = 8;
-      const interval = window.setInterval(() => {
-        element.textContent = generateCode(asciiWidth, asciiHeight);
-        scrambleCount += 1;
-        if (scrambleCount >= maxScrambles) {
-          window.clearInterval(interval);
-          element.textContent = originalText;
-          delete element.dataset.scrambling;
-        }
-      }, 30);
-    };
-
-    const updateCardEffects = () => {
-      const scannerX = getScannerX();
-      const scannerWidth = 6;
-      const scannerLeft = scannerX - scannerWidth / 2;
-      const scannerRight = scannerX + scannerWidth / 2;
-      let anyCardIsScanning = false;
-
-      cardLine.querySelectorAll<HTMLElement>('.tx-scanner-card-wrapper').forEach((wrapper) => {
-        const rect = wrapper.getBoundingClientRect();
-        const containerRect = container.getBoundingClientRect();
-        const cardLeft = rect.left - containerRect.left;
-        const cardRight = rect.right - containerRect.left;
-        const cardWidth = rect.width;
-        const normalCard = wrapper.querySelector<HTMLElement>('.tx-scanner-card-normal');
-        const asciiCard = wrapper.querySelector<HTMLElement>('.tx-scanner-card-ascii');
-        const asciiContent = asciiCard?.querySelector<HTMLElement>('pre');
-        if (!normalCard || !asciiCard || !asciiContent) return;
-
-        if (cardLeft < scannerRight && cardRight > scannerLeft) {
-          anyCardIsScanning = true;
-          const streamId = Number(wrapper.dataset.streamId || '0');
-          if (scanEffect === 'scramble' && wrapper.dataset.scanned !== 'true') {
-            runScrambleEffect(asciiContent, streamId);
-          }
-          wrapper.dataset.scanned = 'true';
-          const intersectLeft = Math.max(scannerLeft - cardLeft, 0);
-          const intersectRight = Math.min(scannerRight - cardLeft, cardWidth);
-          normalCard.style.setProperty('--clip-right', `${(intersectLeft / cardWidth) * 100}%`);
-          asciiCard.style.setProperty('--clip-left', `${(intersectRight / cardWidth) * 100}%`);
-        } else {
-          delete wrapper.dataset.scanned;
-          if (cardRight < scannerLeft) {
-            normalCard.style.setProperty('--clip-right', '100%');
-            asciiCard.style.setProperty('--clip-left', '100%');
-          } else {
-            normalCard.style.setProperty('--clip-right', '0%');
-            asciiCard.style.setProperty('--clip-left', '0%');
-          }
-        }
-      });
-
-      setIsScanning(anyCardIsScanning);
-      scannerState.current.isScanning = anyCardIsScanning;
-      setFocusedIndex(resolveFocusedSourceIndex());
-    };
-
-    const handleMouseDown = (event: MouseEvent | TouchEvent) => {
-      if ('button' in event && event.button !== 0) return;
-      event.preventDefault();
-      const clientX = 'touches' in event ? event.touches[0].clientX : event.clientX;
-      cardStreamState.current.isDragging = true;
-      cardStreamState.current.lastMouseX = clientX;
-      cardStreamState.current.lastTime = performance.now();
-      const transform = window.getComputedStyle(cardLine).transform;
-      if (transform !== 'none') {
-        const matrix = new DOMMatrix(transform);
-        cardStreamState.current.position = matrix.m41;
-      }
-    };
-
-    const handleMouseMove = (event: MouseEvent | TouchEvent) => {
-      if (!cardStreamState.current.isDragging) return;
-      event.preventDefault();
-      const clientX = 'touches' in event ? event.touches[0].clientX : event.clientX;
-      const deltaX = clientX - cardStreamState.current.lastMouseX;
-      cardStreamState.current.position += deltaX;
-      cardStreamState.current.lastMouseX = clientX;
-      cardLine.style.transform = `translateX(${cardStreamState.current.position}px)`;
-      updateCardEffects();
-    };
-
-    const handleMouseUp = () => {
-      if (!cardStreamState.current.isDragging) return;
-      cardStreamState.current.isDragging = false;
-      cardStreamState.current.velocity = Math.max(initialSpeed, cardStreamState.current.minVelocity);
-      const nextIndex = resolveFocusedSourceIndex();
-      setFocusedIndex(nextIndex);
-      onActiveIndexChange?.(nextIndex);
-    };
-
-    const handleWheel = (event: WheelEvent) => {
-      event.preventDefault();
-      const scrollSpeed = 16;
-      const delta = event.deltaY > 0 ? scrollSpeed : -scrollSpeed;
-      cardStreamState.current.position += delta;
-      cardLine.style.transform = `translateX(${cardStreamState.current.position}px)`;
-      updateCardEffects();
-      const nextIndex = resolveFocusedSourceIndex();
-      setFocusedIndex(nextIndex);
-      onActiveIndexChange?.(nextIndex);
-    };
-
-    cardLine.addEventListener('mousedown', handleMouseDown);
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
-    cardLine.addEventListener('touchstart', handleMouseDown, { passive: false });
-    window.addEventListener('touchmove', handleMouseMove, { passive: false });
-    window.addEventListener('touchend', handleMouseUp);
-    cardLine.addEventListener('wheel', handleWheel, { passive: false });
-
     const animate = (currentTime: number) => {
-      const deltaTime = (currentTime - cardStreamState.current.lastTime) / 1000;
       cardStreamState.current.lastTime = currentTime;
-
-      if (!prefersReducedMotion && !cardStreamState.current.isDragging) {
-        if (cardStreamState.current.velocity > cardStreamState.current.minVelocity) {
-          cardStreamState.current.velocity *= cardStreamState.current.friction;
-        }
-        cardStreamState.current.position +=
-          cardStreamState.current.velocity * cardStreamState.current.direction * deltaTime;
-      }
 
       const { position, cardLineWidth } = cardStreamState.current;
       const containerWidth = container.offsetWidth;
@@ -537,6 +559,8 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
       cardLine.removeEventListener('touchstart', handleMouseDown);
+      window.removeEventListener('touchmove', handleMouseMove);
+      window.removeEventListener('touchend', handleMouseUp);
       cardLine.removeEventListener('wheel', handleWheel);
       geometry?.dispose();
       material?.dispose();
@@ -549,7 +573,6 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
     friction,
     getCardStep,
     getScannerX,
-    initialSpeed,
     itemCount,
     metrics.cardGap,
     metrics.cardHeight,
@@ -557,6 +580,7 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
     metrics.stageHeight,
     onActiveIndexChange,
     prefersReducedMotion,
+    quietMode,
     resolveFocusedSourceIndex,
     scanEffect,
     streamCards,
@@ -570,16 +594,17 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
   return (
     <div
       ref={rootRef}
-      className={cn('tx-scanner-stream-root', className)}
+      className={cn('tx-scanner-stream-root', quietMode && 'is-quiet', className)}
       data-scanner-id={streamId}
+      data-quiet={quietMode ? 'true' : 'false'}
       style={{ ['--tx-scanner-stage-height' as string]: `${metrics.stageHeight}px` }}
     >
       <div
         className="tx-scanner-stage"
         style={{ height: metrics.stageHeight }}
-        aria-label="Biblioteca de productos en escaneo"
+        aria-label={quietMode ? 'Biblioteca de productos' : 'Biblioteca de productos en escaneo'}
       >
-        {!prefersReducedMotion ? (
+        {!quietMode && !prefersReducedMotion ? (
           <canvas
             ref={particleCanvasRef}
             className="tx-scanner-particle-canvas"
@@ -587,21 +612,25 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
             aria-hidden="true"
           />
         ) : null}
-        <canvas
-          ref={scannerCanvasRef}
-          className="tx-scanner-fx-canvas"
-          style={{ height: metrics.stageHeight }}
-          aria-hidden="true"
-        />
-        <div
-          className={cn(
-            'tx-scanner-line',
-            isScanning ? 'is-active' : '',
-            prefersReducedMotion ? 'is-reduced' : 'animate-scan-pulse',
-          )}
-          style={{ height: metrics.cardHeight + 12 }}
-          aria-hidden="true"
-        />
+        {!quietMode ? (
+          <canvas
+            ref={scannerCanvasRef}
+            className="tx-scanner-fx-canvas"
+            style={{ height: metrics.stageHeight }}
+            aria-hidden="true"
+          />
+        ) : null}
+        {!quietMode ? (
+          <div
+            className={cn(
+              'tx-scanner-line',
+              isScanning ? 'is-active' : '',
+              prefersReducedMotion ? 'is-reduced' : 'animate-scan-pulse',
+            )}
+            style={{ height: metrics.cardHeight + 12 }}
+            aria-hidden="true"
+          />
+        ) : null}
         <div className="tx-scanner-track" style={{ height: metrics.cardHeight }}>
           <div
             ref={cardLineRef}
@@ -638,9 +667,11 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
                     <div className="tx-scanner-card-normal">
                       {renderCard(card.item, card.sourceIndex, isFocused)}
                     </div>
-                    <div className="tx-scanner-card-ascii" aria-hidden="true">
-                      <pre className="tx-scanner-ascii-content">{card.ascii}</pre>
-                    </div>
+                    {!quietMode ? (
+                      <div className="tx-scanner-card-ascii" aria-hidden="true">
+                        <pre className="tx-scanner-ascii-content">{card.ascii}</pre>
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               );
