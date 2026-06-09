@@ -866,27 +866,57 @@
   .budget-modal.is-mobile-shell[data-budget-view='table'] .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-scroll-host,
   .budget-modal.is-mobile-shell[data-budget-mobile='true'] .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-scroll-host {
     flex: 1 1 0 !important;
-    min-height: 180px !important;
+    min-height: var(--budget-mobile-scroll-host-height, 0) !important;
     height: auto !important;
     overflow: hidden !important;
-  }
-
-  .budget-modal.is-mobile-shell[data-budget-view='table'] .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-scroll-host .budget-pdf-surface.is-mobile-compact,
-  .budget-modal.is-mobile-shell[data-budget-mobile='true'] .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-scroll-host .budget-pdf-surface.is-mobile-compact {
-    flex: 1 1 auto !important;
-    min-height: 0 !important;
-    height: auto !important;
     display: flex !important;
     flex-direction: column !important;
   }
 
+  .budget-modal.is-mobile-shell[data-budget-view='table'] .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-scroll-host .budget-pdf-surface.is-mobile-compact,
+  .budget-modal.is-mobile-shell[data-budget-mobile='true'] .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-scroll-host .budget-pdf-surface.is-mobile-compact {
+    flex: 1 1 0 !important;
+    min-height: 100% !important;
+    height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+  }
+
   .budget-modal.is-mobile-shell[data-budget-view='table'] .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-scroll-host .budget-table-wrap,
   .budget-modal.is-mobile-shell[data-budget-mobile='true'] .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-scroll-host .budget-table-wrap {
-    flex: 1 1 auto !important;
-    min-height: 0 !important;
-    height: auto !important;
+    flex: 1 1 0 !important;
+    min-height: 100% !important;
+    height: 100% !important;
     max-height: none !important;
     overflow-y: auto !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  .budget-modal.is-mobile-shell[data-budget-view='table'] .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-pro tbody,
+  .budget-modal.is-mobile-shell[data-budget-mobile='true'] .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-pro tbody {
+    flex: 1 1 0 !important;
+    min-height: 100% !important;
+    height: 100% !important;
+    display: block !important;
+  }
+
+  .budget-modal.is-mobile-shell[data-budget-view='table'] .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-pro,
+  .budget-modal.is-mobile-shell[data-budget-mobile='true'] .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-pro {
+    flex: 1 1 0 !important;
+    min-height: 100% !important;
+    height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  .budget-modal.is-mobile-shell[data-budget-view='table'] .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-pro tbody tr.is-mobile-row-card,
+  .budget-modal.is-mobile-shell[data-budget-mobile='true'] .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-pro tbody tr.is-mobile-row-card {
+    flex: 1 1 0 !important;
+    min-height: var(--budget-mobile-row-slot, 100%) !important;
+    height: var(--budget-mobile-row-slot, 100%) !important;
+    box-sizing: border-box !important;
   }
 
   /* EOF — assistant: tabla nítida detrás, glass del asistente borra texto */
@@ -1079,8 +1109,19 @@
   .budget-modal.is-mobile-shell[data-budget-view='table'] .budget-table-section.is-mobile-manual-table .budget-table-scroll-host,
   .budget-modal.is-mobile-shell[data-budget-mobile='true'] .budget-table-section.is-mobile-manual-table .budget-table-scroll-host {
     flex: 1 1 0 !important;
-    min-height: 0 !important;
+    min-height: var(--budget-mobile-scroll-host-height, 0) !important;
     margin: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-mode-tabs {
+    flex-shrink: 0 !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-modal-body .budget-main-carousel.is-mobile-budget:not(.is-desktop) {
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
   }
 
   .budget-modal.is-mobile-shell[data-budget-view='table'] .budget-table-section.is-mobile-manual-table .budget-table-pro tbody tr.is-mobile-row-card.is-active-row,

@@ -624,27 +624,41 @@ export function BudgetModal(props: {
       const rowButtonGap = 6;
 
       const intelChrome = mobileSummary?.offsetHeight ?? 0;
-      const chrome = (tableHead?.offsetHeight ?? 0) + intelChrome + rowButtonGap;
-      const hostHeight = stage?.clientHeight ?? scrollHost.clientHeight ?? 0;
-      const scrollHostHeight = scrollHost.clientHeight;
-      const slotHeight = scrollHostHeight > 96
-        ? Math.max(240, scrollHostHeight - 2)
-        : hostHeight > 0
-          ? Math.max(240, hostHeight - chrome)
-          : Math.max(240, (tableWrap?.clientHeight ?? 0) - rowButtonGap);
+      const tableChrome = (tableHead?.offsetHeight ?? 0) + intelChrome + rowButtonGap;
+      const carousel = root.querySelector<HTMLElement>('.budget-main-carousel');
+      const footerHeight = bottomActions?.offsetHeight ?? 0;
+      const stageHeight = stage?.clientHeight ?? 0;
+      const carouselHeight = carousel?.clientHeight ?? 0;
+      const stageScrollBudget = stageHeight > 0
+        ? stageHeight - tableChrome
+        : carouselHeight > 0
+          ? carouselHeight - footerHeight - tableChrome
+          : 0;
+      const measuredScrollHost = scrollHost.clientHeight;
+      const scrollAreaHeight = Math.max(
+        200,
+        stageScrollBudget,
+        measuredScrollHost,
+      );
+      const slotHeight = Math.max(240, scrollAreaHeight - 2);
 
       if (slotHeight <= 0) return;
+      scrollHost.style.setProperty('--budget-mobile-scroll-host-height', `${scrollAreaHeight}px`);
+      scrollHost.style.minHeight = `${scrollAreaHeight}px`;
       scrollHost.style.setProperty('--budget-mobile-row-slot', `${slotHeight}px`);
       root.style.setProperty('--budget-mobile-row-slot', `${slotHeight}px`);
     };
 
     measureMobileRowSlot();
     const timer = window.setTimeout(measureMobileRowSlot, 120);
+    const timerLate = window.setTimeout(measureMobileRowSlot, 320);
     const rafId = window.requestAnimationFrame(measureMobileRowSlot);
 
     const scrollHost = budgetTableScrollRef.current;
     const tableCard = scrollHost?.closest<HTMLElement>('.budget-card-table') ?? null;
     const stage = budgetModalRef.current?.querySelector<HTMLElement>('.budget-mobile-stage') ?? null;
+    const carousel = budgetModalRef.current?.querySelector<HTMLElement>('.budget-main-carousel') ?? null;
+    const modeTabs = budgetModalRef.current?.querySelector<HTMLElement>('.budget-mode-tabs') ?? null;
     const layoutObserver =
       scrollHost && typeof ResizeObserver !== 'undefined'
         ? new ResizeObserver(measureMobileRowSlot)
@@ -653,6 +667,8 @@ export function BudgetModal(props: {
       layoutObserver.observe(scrollHost);
       if (tableCard) layoutObserver.observe(tableCard);
       if (stage) layoutObserver.observe(stage);
+      if (carousel) layoutObserver.observe(carousel);
+      if (modeTabs) layoutObserver.observe(modeTabs);
       const footer = budgetModalRef.current?.querySelector<HTMLElement>('[data-budget-mobile-footer="true"]');
       if (footer) layoutObserver.observe(footer);
       const modalRoot = budgetModalRef.current;
@@ -667,6 +683,7 @@ export function BudgetModal(props: {
 
     return () => {
       window.clearTimeout(timer);
+      window.clearTimeout(timerLate);
       window.cancelAnimationFrame(rafId);
       layoutObserver?.disconnect();
       window.removeEventListener('resize', measureMobileRowSlot);
