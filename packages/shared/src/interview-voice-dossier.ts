@@ -71,6 +71,28 @@ export function countInterviewVoiceSourcesLoaded(intake: Record<string, unknown>
   };
 }
 
+export function normalizeInterviewVoiceFinalSummary(source: unknown): InterviewVoiceFinalSummary {
+  if (!source || typeof source !== 'object') return null;
+  const row = source as Record<string, unknown>;
+  const summary = String(row.summary ?? '').trim();
+  if (!summary) return null;
+  const entry: NonNullable<InterviewVoiceFinalSummary> = {
+    summary,
+    keyFindings: Array.isArray(row.keyFindings)
+      ? row.keyFindings.map((finding) => String(finding)).filter(Boolean)
+      : Array.isArray(row.key_findings)
+        ? row.key_findings.map((finding) => String(finding)).filter(Boolean)
+        : [],
+  };
+  if (row.confidence === 'high' || row.confidence === 'medium' || row.confidence === 'low') {
+    entry.confidence = row.confidence;
+  }
+  if (typeof row.createdAt === 'string') {
+    entry.createdAt = row.createdAt;
+  }
+  return entry;
+}
+
 export function normalizeInterviewVoiceMinuteSummaries(source: unknown): InterviewVoiceSummaryEntry[] {
   if (!Array.isArray(source)) return [];
   const normalized: InterviewVoiceSummaryEntry[] = [];

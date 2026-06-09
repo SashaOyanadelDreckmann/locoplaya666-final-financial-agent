@@ -70,6 +70,7 @@ import {
   INTERVIEW_REALTIME_VOICE_SPEED,
   buildVoiceSessionInstructions,
   countInterviewVoiceSourcesLoaded,
+  normalizeInterviewVoiceFinalSummary,
   normalizeInterviewVoiceMinuteSummaries,
   resolveInterviewVoiceIntakeContext,
   getRemainingChatTurns,
@@ -904,17 +905,7 @@ router.get(
 
     const serverIntake = resolveInterviewVoiceIntakeContext(user.injectedIntake);
     const persistedMinuteSummaries = normalizeInterviewVoiceMinuteSummaries(interviewVoice.minuteSummaries);
-    const persistedFinalSummary =
-      interviewVoice.finalSummary && typeof interviewVoice.finalSummary === 'object'
-        ? {
-            summary: String((interviewVoice.finalSummary as { summary?: unknown }).summary ?? ''),
-            keyFindings: Array.isArray((interviewVoice.finalSummary as { keyFindings?: unknown }).keyFindings)
-              ? ((interviewVoice.finalSummary as { keyFindings: string[] }).keyFindings ?? [])
-              : [],
-            confidence: (interviewVoice.finalSummary as { confidence?: 'high' | 'medium' | 'low' }).confidence,
-            createdAt: (interviewVoice.finalSummary as { createdAt?: string }).createdAt,
-          }
-        : undefined;
+    const persistedFinalSummary = normalizeInterviewVoiceFinalSummary(interviewVoice.finalSummary);
     const sessionInstructions = buildVoiceSessionInstructions({
       intake: serverIntake,
       minuteSummaries: persistedMinuteSummaries,
