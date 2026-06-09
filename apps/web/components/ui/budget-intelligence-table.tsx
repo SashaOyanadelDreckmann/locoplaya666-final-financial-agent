@@ -72,10 +72,14 @@ type Props = {
 export function BudgetMobileIntelSummary(props: {
   budgetTotals: { income: number; expenses: number; balance: number };
   activeStyleLabel: string;
+  tableStyle: string;
   formatBudgetAmount: (value: number) => string;
 }) {
   return (
-    <div className="budget-mobile-intel-summary" aria-label="Resumen de presupuesto">
+    <div
+      className={`budget-mobile-intel-summary budget-mobile-intel-summary--${props.tableStyle}`}
+      aria-label="Resumen de presupuesto"
+    >
       <div className="budget-mobile-intel-summary-head">
         <div>
           <span>Financieramente</span>

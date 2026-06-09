@@ -29,16 +29,12 @@ function computeMobileDeckDockTargetAtIndex(
   const maxOffset = Math.max(0, Math.floor(maxVisible / 2));
   const cardSpacing = Math.max(10, Math.round(cardW * (1 - overlap)));
   const stepDeg = maxOffset > 0 ? spreadDeg / maxOffset : 0;
-  const stageOffsetX = 132;
   const activeScale = 1.015;
   const inactiveScale = 0.88;
   const activeLiftPx = 8;
 
   const stageRect = stageEl?.getBoundingClientRect();
-  const centerX =
-    (stageRect?.left ?? window.innerWidth / 2) +
-    (stageRect?.width ?? window.innerWidth) / 2 +
-    stageOffsetX;
+  const centerX = (stageRect?.left ?? 0) + (stageRect?.width ?? window.innerWidth) / 2;
   const bottomY = stageRect?.bottom ?? window.innerHeight * 0.92;
 
   let off = signedOffset(index, 0, cardCount);

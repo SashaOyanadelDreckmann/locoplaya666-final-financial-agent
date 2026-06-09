@@ -124,7 +124,7 @@ export function ChatHeader(props: {
               if (locked) {
                 props.setActiveChatId('chat-1');
                 props.setPanelCallout({
-                  section: 'budget',
+                  section: 'chat',
                   message: 'Completa presupuesto, cartolas y entrevista para desbloquear este chat.',
                 });
                 return;

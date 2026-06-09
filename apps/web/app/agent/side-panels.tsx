@@ -5,6 +5,7 @@ import {
   type MobilePanelDeckHandle,
   type PanelCardItem,
 } from './mobile-panel-compact-carousel';
+import { PanelCalloutBanner } from './panel-callout-banner';
 
 type Milestone = { id: string; label: string; done: boolean };
 
@@ -40,8 +41,7 @@ export function SidePanels(props: {
   const useMobileDeck =
     props.isMobileViewport &&
     !props.mobilePanelExpanded &&
-    Boolean(props.compactPanelCards) &&
-    (!props.panelIntroActive || props.panelIntroPhase === 'dock');
+    Boolean(props.compactPanelCards);
 
   return (
     <>
@@ -86,22 +86,9 @@ export function SidePanels(props: {
           <span className="mobile-panel-close-title">Panel</span>
         </div>
 
-        {props.panelCallout && (
-          <div className={`panel-callout panel-callout-${props.panelCallout.section}`}>
-            <div className="panel-callout-icon">
-              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8">
-                <circle cx="10" cy="10" r="8" />
-                <path d="M10 6v4l2.5 2.5" strokeLinecap="round" />
-              </svg>
-            </div>
-            <div className="panel-callout-content">
-              <span className="panel-callout-tag">Agente</span>
-              <p className="panel-callout-msg">{props.panelCallout.message}</p>
-            </div>
-            <button type="button" className="panel-callout-close" onClick={() => props.setPanelCallout(null)} aria-label="Cerrar">×</button>
-            <div className="panel-callout-progress" />
-          </div>
-        )}
+        {props.panelCallout && (props.mobilePanelExpanded || !props.isMobileViewport) ? (
+          <PanelCalloutBanner callout={props.panelCallout} onClose={() => props.setPanelCallout(null)} />
+        ) : null}
 
         {useMobileDeck ? (
           <MobilePanelCircularDeck

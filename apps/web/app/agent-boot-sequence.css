@@ -16,10 +16,50 @@ body.agent-boot-active {
   z-index: 2147483000;
   display: grid;
   place-items: center;
-  background: #000;
+  background: #030508;
   color: rgba(238, 245, 252, 0.98);
   pointer-events: auto;
   isolation: isolate;
+}
+
+.agent-boot-skip {
+  position: fixed;
+  top: max(14px, env(safe-area-inset-top, 0px));
+  right: max(14px, env(safe-area-inset-right, 0px));
+  z-index: 2147483010;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(6, 10, 16, 0.72);
+  color: rgba(236, 244, 252, 0.88);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.agent-boot-skip:hover {
+  border-color: rgba(183, 166, 106, 0.38);
+  background: rgba(10, 14, 22, 0.86);
+}
+
+.agent-boot-skip__hint {
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  color: rgba(176, 196, 214, 0.58);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 2px 5px;
+}
+
+.agent-boot-overlay.is-exit .agent-boot-skip {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .agent-boot-overlay.is-void .agent-boot-stage {

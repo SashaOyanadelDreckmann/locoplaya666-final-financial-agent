@@ -119,6 +119,7 @@ import { PanelCardsIntroSequence } from './PanelCardsIntroSequence';
 import { PanelIntroGridSlot } from './PanelIntroGridSlot';
 import { PanelIntroLayoutGroup } from './PanelIntroLayoutGroup';
 import { shouldShowAgentBootSequence } from './agent-boot-sequence.helpers';
+import { hasCompletedPanelIntro } from './panel-intro.prefs';
 
 import type {
   AgentBlock,
@@ -130,6 +131,7 @@ import { AccountModal, BudgetModal, QuestionnaireModal, TransactionsModal } from
 import { InterviewModal } from './InterviewModal';
 import { SocialConsciousnessModal } from './SocialConsciousnessModal';
 import { SidePanels } from './side-panels';
+import { PanelCalloutBanner } from './panel-callout-banner';
 import type { MobilePanelDeckHandle } from './mobile-panel-compact-carousel';
 import { ChatThreadView } from './chat-thread-view';
 import { ChatHeader } from './chat-header';
@@ -496,6 +498,7 @@ export default function AgentPage() {
     x: number;
     y: number;
   } | null>(null);
+  const pendingPanelIntroRef = useRef(false);
 
   useEffect(() => {
     if (!authBootstrapped || !isAuthenticated) return;
@@ -3813,11 +3816,20 @@ export default function AgentPage() {
 
       {isMobileViewport ? (
         !isActiveChatClosed ? (
-          <div
-            className={`agent-mobile-composer-dock${input.trim() ? ' has-composer-text' : ''}${isComposerFocused ? ' composer-focused' : ''}`}
-          >
-            {terminalComposerShell}
-          </div>
+          <>
+            {panelCallout && !mobilePanelExpanded ? (
+              <PanelCalloutBanner
+                callout={panelCallout}
+                onClose={() => setPanelCallout(null)}
+                variant="mobile-composer"
+              />
+            ) : null}
+            <div
+              className={`agent-mobile-composer-dock${input.trim() ? ' has-composer-text' : ''}${isComposerFocused ? ' composer-focused' : ''}`}
+            >
+              {terminalComposerShell}
+            </div>
+          </>
         ) : null
       ) : null}
 
@@ -3997,12 +4009,18 @@ export default function AgentPage() {
           session={sessionInfo}
           onHandoff={(origin) => {
             setPanelIntroHandoffOrigin(origin);
-            setPanelIntroPhase('morph');
-            setPanelIntroSettled(false);
-            setPanelIntroActive(true);
+            if (!hasCompletedPanelIntro()) {
+              pendingPanelIntroRef.current = true;
+              setPanelIntroPhase('morph');
+              setPanelIntroSettled(false);
+            }
           }}
           onComplete={() => {
             setBootSequenceActive(false);
+            if (pendingPanelIntroRef.current) {
+              pendingPanelIntroRef.current = false;
+              setPanelIntroActive(true);
+            }
           }}
         />
       ) : null}

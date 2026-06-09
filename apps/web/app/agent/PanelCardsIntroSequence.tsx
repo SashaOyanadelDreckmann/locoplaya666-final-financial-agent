@@ -20,11 +20,14 @@ import {
 import { markPanelIntroCompleted } from './panel-intro.prefs';
 import type { PanelIntroHandoffOrigin, PanelIntroPhase } from './panel-intro.types';
 
-const DOCK_MS = 920;
-const SETTLE_MS = 580;
-const FADE_OUT_MS = 360;
+const ENTER_MS = 380;
+const DOCK_MS = 720;
+const SETTLE_MS = 420;
+const FADE_OUT_MS = 280;
 
 export type { PanelIntroPhase };
+
+const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
 function prefersReducedMotion(): boolean {
   if (typeof window === 'undefined' || !window.matchMedia) return false;
@@ -35,10 +38,15 @@ function prefersReducedMotion(): boolean {
   }
 }
 
-function spotlightDurationForIndex(index: number): number {
-  if (index <= 2) return 3000;
-  if (index <= 5) return 2600;
-  return 2200;
+function spotlightDurationForIndex(index: number, isMobile: boolean): number {
+  if (isMobile) {
+    if (index <= 2) return 1800;
+    if (index <= 5) return 1500;
+    return 1300;
+  }
+  if (index <= 2) return 2200;
+  if (index <= 5) return 1900;
+  return 1600;
 }
 
 function measureGridDockTargets(
@@ -134,7 +142,7 @@ export function PanelCardsIntroSequence(props: {
   onHaptic?: (ms?: number) => void;
 }) {
   const reducedMotion = prefersReducedMotion();
-  const [phase, setPhase] = useState<PanelMorphPhase>(reducedMotion ? 'spotlight' : 'scatter');
+  const [phase, setPhase] = useState<PanelMorphPhase>(reducedMotion ? 'spotlight' : 'enter');
   const [activeIndex, setActiveIndex] = useState(0);
   const [dockTargets, setDockTargets] = useState<PanelDockTarget[] | null>(null);
   const [naturalSizes, setNaturalSizes] = useState<Record<string, PanelCardNaturalSize>>({});
@@ -143,7 +151,7 @@ export function PanelCardsIntroSequence(props: {
   const skipStartedRef = useRef(false);
   const spotlightTimerRef = useRef<number | null>(null);
   const totalCards = PANEL_INTRO_CARD_ORDER.length;
-  const spotlightDurationMs = spotlightDurationForIndex(activeIndex);
+  const spotlightDurationMs = spotlightDurationForIndex(activeIndex, props.isMobileViewport);
 
   const orderedPanelCards = useMemo(
     () =>
@@ -164,16 +172,10 @@ export function PanelCardsIntroSequence(props: {
     const panel = props.panelGridRef.current?.closest('.agent-panel');
     if (panel instanceof HTMLElement) panel.scrollTop = 0;
 
-    const measureDelay = props.isMobileViewport ? 96 : 0;
-
     window.requestAnimationFrame(() => {
-      window.requestAnimationFrame(() => {
-        window.setTimeout(() => {
-          refreshMeasurements();
-          setDockTargets(measureDockTargets(props.panelGridRef, props.isMobileViewport));
-          setPhase('dock');
-        }, measureDelay);
-      });
+      refreshMeasurements();
+      setDockTargets(measureDockTargets(props.panelGridRef, props.isMobileViewport));
+      setPhase('dock');
     });
   }, [props, refreshMeasurements]);
 
@@ -202,7 +204,7 @@ export function PanelCardsIntroSequence(props: {
 
   const scheduleSpotlightStep = useCallback(() => {
     clearSpotlightTimer();
-    const duration = spotlightDurationForIndex(activeIndex);
+    const duration = spotlightDurationForIndex(activeIndex, props.isMobileViewport);
 
     spotlightTimerRef.current = window.setTimeout(() => {
       if (activeIndex >= totalCards - 1) {
@@ -248,8 +250,8 @@ export function PanelCardsIntroSequence(props: {
       panel.scrollTop = 0;
     }
 
-    const measureTimer = window.setTimeout(() => refreshMeasurements(), 64);
-    const remeasureTimer = window.setTimeout(() => refreshMeasurements(), 280);
+    const measureTimer = window.setTimeout(() => refreshMeasurements(), 48);
+    const remeasureTimer = window.setTimeout(() => refreshMeasurements(), 220);
 
     return () => {
       window.clearTimeout(measureTimer);
@@ -262,19 +264,11 @@ export function PanelCardsIntroSequence(props: {
 
   useEffect(() => {
     if (reducedMotion) return;
-
-    const tLine = window.setTimeout(() => setPhase('line'), 200);
-    const tCircle = window.setTimeout(() => setPhase('circle'), 760);
-    const tSpotlight = window.setTimeout(() => {
+    const timer = window.setTimeout(() => {
       setPhase('spotlight');
       props.onHaptic?.(6);
-    }, 1380);
-
-    return () => {
-      window.clearTimeout(tLine);
-      window.clearTimeout(tCircle);
-      window.clearTimeout(tSpotlight);
-    };
+    }, ENTER_MS);
+    return () => window.clearTimeout(timer);
   }, [props, reducedMotion]);
 
   useEffect(() => {
@@ -297,7 +291,7 @@ export function PanelCardsIntroSequence(props: {
 
   useEffect(() => {
     if (!reducedMotion || phase !== 'spotlight') return;
-    const timer = window.setTimeout(() => beginDock(), 420);
+    const timer = window.setTimeout(() => beginDock(), 320);
     return () => window.clearTimeout(timer);
   }, [reducedMotion, phase, beginDock]);
 
@@ -327,17 +321,16 @@ export function PanelCardsIntroSequence(props: {
     <motion.div
       className={`panel-intro-overlay${exiting ? ' is-exiting' : ''}${
         phase === 'dock' || phase === 'settle' ? ' is-docking' : ''
-      }${phase === 'spotlight' ? ' is-spotlight-stage' : ''}${props.handoffOrigin ? ' has-handoff' : ''}`}
+      }${phase === 'spotlight' || phase === 'enter' ? ' is-spotlight-stage' : ''}`}
       role="dialog"
       aria-modal="true"
       aria-label="Presentación del panel financiero"
       aria-busy={!exiting}
-      initial={{ opacity: props.handoffOrigin ? 1 : 0 }}
+      initial={{ opacity: 0 }}
       animate={{ opacity: exiting ? 0 : 1 }}
-      transition={{ duration: props.handoffOrigin ? 0.12 : 0.42, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: 0.36, ease: EASE }}
     >
       <div className="panel-intro-overlay__backdrop" aria-hidden="true" />
-      <div className="panel-intro-overlay__aurora" aria-hidden="true" />
 
       <button
         type="button"
@@ -346,7 +339,9 @@ export function PanelCardsIntroSequence(props: {
         aria-label="Entrar al panel sin ver la presentación completa"
       >
         <span className="panel-intro-skip__label">Entrar al panel</span>
-        <span className="panel-intro-skip__hint">Esc</span>
+        {!props.isMobileViewport ? (
+          <span className="panel-intro-skip__hint">Esc</span>
+        ) : null}
       </button>
 
       <PanelCardsMorphIntro

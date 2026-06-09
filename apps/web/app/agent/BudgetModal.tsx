@@ -1100,6 +1100,7 @@ export function BudgetModal(props: {
             <BudgetCarouselStage mobile={isMobileShell}>
             <section
               data-main-card="table"
+              data-budget-table-style={budgetTableStyle}
               className={`budget-table-section budget-card-table${isDesktopLayout ? '' : ' is-mobile-table-compact'}${isMobileManualTable ? ' is-mobile-manual-table' : ''}`}
               style={cardStyle('table')}
             >
@@ -1123,6 +1124,7 @@ export function BudgetModal(props: {
                 <BudgetMobileIntelSummary
                   budgetTotals={props.budgetTotals}
                   activeStyleLabel={activeStyleLabel}
+                  tableStyle={budgetTableStyle}
                   formatBudgetAmount={formatBudgetAmount}
                 />
               ) : null}

@@ -48,6 +48,7 @@ export function AgentBootSequence(props: {
   const terminalRef = useRef<HTMLDivElement | null>(null);
   const codeRef = useRef<HTMLPreElement | null>(null);
   const exitStartedRef = useRef(false);
+  const skipStartedRef = useRef(false);
   const firstName =
     String(props.session?.name ?? '')
       .split(' ')[0]
@@ -77,7 +78,7 @@ export function AgentBootSequence(props: {
 
     const overlay = overlayRef.current;
     const stage = overlay?.querySelector<HTMLElement>('.agent-boot-stage');
-    const handoffMs = 720;
+    const handoffMs = 560;
     const easing = 'cubic-bezier(0.22, 1, 0.36, 1)';
 
     const animations: Promise<unknown>[] = [];
@@ -88,8 +89,7 @@ export function AgentBootSequence(props: {
           .animate(
             {
               opacity: [1, 0],
-              transform: ['translateY(0px) scale(1)', 'translateY(-10px) scale(0.9)'],
-              filter: ['blur(0px)', 'blur(8px)'],
+              transform: ['translateY(0px) scale(1)', 'translateY(-6px) scale(0.96)'],
             },
             { duration: handoffMs, easing, fill: 'forwards' },
           )
@@ -118,6 +118,28 @@ export function AgentBootSequence(props: {
 
     window.setTimeout(finish, handoffMs + 180);
   }, [props, reducedMotion]);
+
+  const skipToAgent = useCallback(() => {
+    if (skipStartedRef.current || exitStartedRef.current) return;
+    skipStartedRef.current = true;
+    setVisibleCount(lines.length);
+    setProgress(100);
+    runExit();
+  }, [lines.length, runExit]);
+
+  useEffect(() => {
+    if (phase === 'exit') return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        skipToAgent();
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [phase, skipToAgent]);
 
   useEffect(() => {
     document.documentElement.classList.add('agent-boot-active');
@@ -200,6 +222,18 @@ export function AgentBootSequence(props: {
       aria-label="Inicializando agente financiero"
       aria-busy={phase !== 'exit'}
     >
+      {phase !== 'exit' ? (
+        <button
+          type="button"
+          className="agent-boot-skip"
+          onClick={skipToAgent}
+          aria-label="Entrar al agente sin esperar la sincronización completa"
+        >
+          <span className="agent-boot-skip__label">Entrar</span>
+          <span className="agent-boot-skip__hint">Esc</span>
+        </button>
+      ) : null}
+
       <div className="agent-boot-void" aria-hidden="true">
         <div className="agent-boot-void-vignette" />
         <div className="agent-boot-void-pulse" />
