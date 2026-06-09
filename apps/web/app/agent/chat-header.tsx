@@ -183,14 +183,21 @@ export function ChatHeader(props: {
     <header className={`agent-chat-header${props.isMobileViewport ? ' is-mobile' : ''}`}>
       {props.isMobileViewport ? (
         <>
-          <div className="chat-mobile-tabs-row">{chatSwitcher}</div>
           <div className="chat-mobile-meta-row">
             <div className="chat-mobile-brand-cluster">
               <h1 className="chat-mobile-brand-heading">{brandTitleButton}</h1>
-              <p className={subtitleClassName}>{activeHandSubtitle}</p>
+              <p className={subtitleClassName}>
+                <span className="chat-mobile-active-pill" aria-hidden="true">
+                  {activeLabel ?? '1'}
+                </span>
+                {activeHandSubtitle}
+              </p>
             </div>
             {monochromeToggle}
           </div>
+          <span className="chat-mobile-swipe-hint" aria-hidden="true">
+            Desliza para cambiar de chat
+          </span>
         </>
       ) : (
         <>

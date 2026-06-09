@@ -63,6 +63,14 @@ body.panel-intro-active {
   }
 }
 
+/* Flatten intro wrapper on desktop so panel-pos-* grid spans stay intact */
+html.is-desktop-viewport .agent-panel .panel-intro-grid-slot,
+html.is-tablet-landscape .agent-panel .panel-intro-grid-slot {
+  display: contents !important;
+  width: auto !important;
+  min-width: 0 !important;
+}
+
 .panel-intro-grid-slot {
   min-width: 0;
   width: 100%;

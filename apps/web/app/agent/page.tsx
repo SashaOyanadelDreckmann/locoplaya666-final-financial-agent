@@ -3475,18 +3475,27 @@ export default function AgentPage() {
     panelIntroActive &&
     (panelIntroPhase === 'dock' || panelIntroPhase === 'settle' || panelIntroSettled);
 
-  const panelRenderedCards = compactPanelCards.map((card, index) => (
-    <PanelIntroGridSlot
-      key={`real-${card.key}-${index}`}
-      cardKey={card.key}
-      syncLayout={panelIntroLayoutSync}
-    >
-      {React.cloneElement(card.node as ReactElement<Record<string, unknown>>, {
-        'data-loop-segment': 'real',
-        'data-loop-origin': String(index),
-      })}
-    </PanelIntroGridSlot>
-  ));
+  const panelRenderedCards = compactPanelCards.map((card, index) => {
+    const cloned = React.cloneElement(card.node as ReactElement<Record<string, unknown>>, {
+      'data-loop-segment': 'real',
+      'data-loop-origin': String(index),
+      ...(panelIntroActive ? {} : { 'data-panel-intro-slot': card.key }),
+    });
+
+    if (!panelIntroActive) {
+      return React.cloneElement(cloned, { key: `real-${card.key}-${index}` });
+    }
+
+    return (
+      <PanelIntroGridSlot
+        key={`real-${card.key}-${index}`}
+        cardKey={card.key}
+        syncLayout={panelIntroLayoutSync}
+      >
+        {cloned}
+      </PanelIntroGridSlot>
+    );
+  });
 
   if (!authBootstrapped || !isAuthenticated) {
     return null;

@@ -185,6 +185,7 @@ export const MobilePanelCircularDeck = forwardRef<
     gridRef: RefObject<HTMLDivElement | null>;
     resetKey: number;
     haptic?: (ms?: number) => void;
+    onActiveCardKeyChange?: (key: string) => void;
   }
 >(function MobilePanelCircularDeck(props, ref) {
   const count = props.cards.length;
@@ -263,6 +264,8 @@ export const MobilePanelCircularDeck = forwardRef<
   const handleChangeIndex = useCallback(
     (index: number) => {
       setActiveIndex(index);
+      const key = props.cards[index]?.key;
+      if (key) props.onActiveCardKeyChange?.(key);
       if (index !== lastCenterRef.current) {
         lastCenterRef.current = index;
         props.haptic?.(6);
@@ -270,6 +273,11 @@ export const MobilePanelCircularDeck = forwardRef<
     },
     [props]
   );
+
+  useEffect(() => {
+    const key = props.cards[activeIndex]?.key;
+    if (key) props.onActiveCardKeyChange?.(key);
+  }, [activeIndex, props.cards, props.onActiveCardKeyChange]);
 
   const handleCardActivate = useCallback(
     (_index: number, item: CardStackItem, wasAlreadyActive: boolean) => {
