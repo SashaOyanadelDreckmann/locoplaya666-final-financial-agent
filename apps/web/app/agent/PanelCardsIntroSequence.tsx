@@ -9,17 +9,20 @@ import {
   type PanelDockTarget,
   type PanelMorphPhase,
 } from '@/components/ui/panel-cards-morph-intro';
-import { PANEL_INTRO_CARD_ORDER } from './panel-cards-intro.copy';
+import {
+  PANEL_INTRO_CARD_ORDER,
+  PANEL_INTRO_CARD_SIZE_FALLBACKS,
+} from './panel-cards-intro.copy';
 import {
   computeMobileDeckDockTargets,
   getMobileDeckCardNaturalSize,
 } from './panel-cards-intro.mobile-dock';
+import { markPanelIntroCompleted } from './panel-intro.prefs';
 import type { PanelIntroHandoffOrigin, PanelIntroPhase } from './panel-intro.types';
 
-const SPOTLIGHT_MS = 4000;
-const DOCK_MS = 1040;
-const SETTLE_MS = 640;
-const FADE_OUT_MS = 320;
+const DOCK_MS = 920;
+const SETTLE_MS = 580;
+const FADE_OUT_MS = 360;
 
 export type { PanelIntroPhase };
 
@@ -30,6 +33,12 @@ function prefersReducedMotion(): boolean {
   } catch {
     return false;
   }
+}
+
+function spotlightDurationForIndex(index: number): number {
+  if (index <= 2) return 3000;
+  if (index <= 5) return 2600;
+  return 2200;
 }
 
 function measureGridDockTargets(
@@ -56,31 +65,45 @@ function measureGridDockTargets(
   });
 }
 
+function readMeasuredCardSize(node: HTMLElement | null): PanelCardNaturalSize | null {
+  if (!node) return null;
+
+  const width = Math.max(node.offsetWidth, node.getBoundingClientRect().width);
+  const height = Math.max(node.offsetHeight, node.getBoundingClientRect().height);
+  if (width < 24 || height < 24) return null;
+
+  return { width, height };
+}
+
 function measureCardNaturalSizes(
   panelGridRef: React.RefObject<HTMLDivElement | null>,
   isMobileViewport: boolean,
 ): Record<string, PanelCardNaturalSize> {
   const grid = panelGridRef.current;
-  if (!grid) return {};
-
   const sizes: Record<string, PanelCardNaturalSize> = {};
 
   PANEL_INTRO_CARD_ORDER.forEach((card) => {
+    const fallback = PANEL_INTRO_CARD_SIZE_FALLBACKS[card.key];
+    if (!grid) {
+      if (fallback) sizes[card.key] = fallback;
+      return;
+    }
+
     const slot =
       grid.querySelector<HTMLElement>(`[data-panel-card-key="${card.key}"]`) ??
       grid.querySelector<HTMLElement>(`[data-panel-intro-slot="${card.key}"]`) ??
       grid.querySelector<HTMLElement>(`[data-panel-section="${card.key}"]`);
 
-    if (!slot) return;
+    const leaf =
+      slot?.querySelector<HTMLElement>(
+        '.profile-card, .panel-card, .panel-feature-card, .interview-flow-card, .recent-library-card, .news-card, article.panel-card',
+      ) ?? slot;
 
-    const rect = (slot.closest('.mobile-panel-stack-card') ?? slot).getBoundingClientRect();
-    sizes[card.key] = {
-      width: Math.max(rect.width, 1),
-      height: Math.max(rect.height, 1),
-    };
+    const measured = readMeasuredCardSize((leaf?.closest('.mobile-panel-stack-card') ?? leaf) as HTMLElement | null);
+    sizes[card.key] = measured ?? fallback ?? { width: 168, height: 88 };
   });
 
-  if (isMobileViewport && Object.keys(sizes).length === 0) {
+  if (isMobileViewport && Object.values(sizes).every((size) => size.width < 48)) {
     const mobileSize = getMobileDeckCardNaturalSize();
     PANEL_INTRO_CARD_ORDER.forEach((card) => {
       sizes[card.key] = mobileSize;
@@ -108,6 +131,7 @@ export function PanelCardsIntroSequence(props: {
   onPhaseChange?: (phase: PanelIntroPhase) => void;
   onSettled?: () => void;
   onComplete: () => void;
+  onHaptic?: (ms?: number) => void;
 }) {
   const reducedMotion = prefersReducedMotion();
   const [phase, setPhase] = useState<PanelMorphPhase>(reducedMotion ? 'spotlight' : 'scatter');
@@ -116,7 +140,10 @@ export function PanelCardsIntroSequence(props: {
   const [naturalSizes, setNaturalSizes] = useState<Record<string, PanelCardNaturalSize>>({});
   const [exiting, setExiting] = useState(false);
   const exitStartedRef = useRef(false);
+  const skipStartedRef = useRef(false);
+  const spotlightTimerRef = useRef<number | null>(null);
   const totalCards = PANEL_INTRO_CARD_ORDER.length;
+  const spotlightDurationMs = spotlightDurationForIndex(activeIndex);
 
   const orderedPanelCards = useMemo(
     () =>
@@ -137,7 +164,7 @@ export function PanelCardsIntroSequence(props: {
     const panel = props.panelGridRef.current?.closest('.agent-panel');
     if (panel instanceof HTMLElement) panel.scrollTop = 0;
 
-    const measureDelay = props.isMobileViewport ? 128 : 0;
+    const measureDelay = props.isMobileViewport ? 96 : 0;
 
     window.requestAnimationFrame(() => {
       window.requestAnimationFrame(() => {
@@ -161,9 +188,52 @@ export function PanelCardsIntroSequence(props: {
   const finish = useCallback(() => {
     if (exitStartedRef.current) return;
     exitStartedRef.current = true;
+    markPanelIntroCompleted();
     setExiting(true);
     window.setTimeout(() => props.onComplete(), FADE_OUT_MS);
   }, [props]);
+
+  const clearSpotlightTimer = useCallback(() => {
+    if (spotlightTimerRef.current != null) {
+      window.clearTimeout(spotlightTimerRef.current);
+      spotlightTimerRef.current = null;
+    }
+  }, []);
+
+  const scheduleSpotlightStep = useCallback(() => {
+    clearSpotlightTimer();
+    const duration = spotlightDurationForIndex(activeIndex);
+
+    spotlightTimerRef.current = window.setTimeout(() => {
+      if (activeIndex >= totalCards - 1) {
+        beginDock();
+        return;
+      }
+      setActiveIndex((index) => Math.min(index + 1, totalCards - 1));
+      props.onHaptic?.(5);
+    }, duration);
+  }, [activeIndex, beginDock, clearSpotlightTimer, props, totalCards]);
+
+  const advanceSpotlight = useCallback(() => {
+    if (phase !== 'spotlight' || exiting) return;
+    clearSpotlightTimer();
+    props.onHaptic?.(4);
+
+    if (activeIndex >= totalCards - 1) {
+      beginDock();
+      return;
+    }
+
+    setActiveIndex((index) => Math.min(index + 1, totalCards - 1));
+  }, [activeIndex, beginDock, clearSpotlightTimer, exiting, phase, props, totalCards]);
+
+  const skipToPanel = useCallback(() => {
+    if (skipStartedRef.current || exitStartedRef.current) return;
+    skipStartedRef.current = true;
+    clearSpotlightTimer();
+    props.onHaptic?.(8);
+    beginDock();
+  }, [beginDock, clearSpotlightTimer, props]);
 
   useEffect(() => {
     props.onPhaseChange?.('morph');
@@ -179,42 +249,39 @@ export function PanelCardsIntroSequence(props: {
     }
 
     const measureTimer = window.setTimeout(() => refreshMeasurements(), 64);
+    const remeasureTimer = window.setTimeout(() => refreshMeasurements(), 280);
 
     return () => {
       window.clearTimeout(measureTimer);
+      window.clearTimeout(remeasureTimer);
+      clearSpotlightTimer();
       document.documentElement.classList.remove('panel-intro-active');
       document.body.classList.remove('panel-intro-active');
     };
-  }, [props.panelGridRef, refreshMeasurements]);
+  }, [clearSpotlightTimer, props.panelGridRef, refreshMeasurements]);
 
   useEffect(() => {
     if (reducedMotion) return;
 
-    const tLine = window.setTimeout(() => setPhase('line'), 240);
-    const tCircle = window.setTimeout(() => setPhase('circle'), 920);
-    const tSpotlight = window.setTimeout(() => setPhase('spotlight'), 1680);
+    const tLine = window.setTimeout(() => setPhase('line'), 200);
+    const tCircle = window.setTimeout(() => setPhase('circle'), 760);
+    const tSpotlight = window.setTimeout(() => {
+      setPhase('spotlight');
+      props.onHaptic?.(6);
+    }, 1380);
 
     return () => {
       window.clearTimeout(tLine);
       window.clearTimeout(tCircle);
       window.clearTimeout(tSpotlight);
     };
-  }, [reducedMotion]);
+  }, [props, reducedMotion]);
 
   useEffect(() => {
     if (phase !== 'spotlight') return;
-
-    if (activeIndex >= totalCards - 1) {
-      const dockTimer = window.setTimeout(() => beginDock(), SPOTLIGHT_MS);
-      return () => window.clearTimeout(dockTimer);
-    }
-
-    const timer = window.setTimeout(() => {
-      setActiveIndex((index) => Math.min(index + 1, totalCards - 1));
-    }, SPOTLIGHT_MS);
-
-    return () => window.clearTimeout(timer);
-  }, [phase, activeIndex, totalCards, beginDock]);
+    scheduleSpotlightStep();
+    return clearSpotlightTimer;
+  }, [phase, activeIndex, scheduleSpotlightStep, clearSpotlightTimer]);
 
   useEffect(() => {
     if (phase !== 'dock') return;
@@ -230,15 +297,37 @@ export function PanelCardsIntroSequence(props: {
 
   useEffect(() => {
     if (!reducedMotion || phase !== 'spotlight') return;
-    const timer = window.setTimeout(() => beginDock(), 520);
+    const timer = window.setTimeout(() => beginDock(), 420);
     return () => window.clearTimeout(timer);
   }, [reducedMotion, phase, beginDock]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (exiting) return;
+
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        skipToPanel();
+        return;
+      }
+
+      if (phase !== 'spotlight') return;
+
+      if (event.key === 'ArrowRight' || event.key === ' ' || event.key === 'Enter') {
+        event.preventDefault();
+        advanceSpotlight();
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [advanceSpotlight, exiting, phase, skipToPanel]);
 
   return (
     <motion.div
       className={`panel-intro-overlay${exiting ? ' is-exiting' : ''}${
         phase === 'dock' || phase === 'settle' ? ' is-docking' : ''
-      }${props.handoffOrigin ? ' has-handoff' : ''}`}
+      }${phase === 'spotlight' ? ' is-spotlight-stage' : ''}${props.handoffOrigin ? ' has-handoff' : ''}`}
       role="dialog"
       aria-modal="true"
       aria-label="Presentación del panel financiero"
@@ -248,6 +337,18 @@ export function PanelCardsIntroSequence(props: {
       transition={{ duration: props.handoffOrigin ? 0.12 : 0.42, ease: [0.22, 1, 0.36, 1] }}
     >
       <div className="panel-intro-overlay__backdrop" aria-hidden="true" />
+      <div className="panel-intro-overlay__aurora" aria-hidden="true" />
+
+      <button
+        type="button"
+        className="panel-intro-skip"
+        onClick={skipToPanel}
+        aria-label="Entrar al panel sin ver la presentación completa"
+      >
+        <span className="panel-intro-skip__label">Entrar al panel</span>
+        <span className="panel-intro-skip__hint">Esc</span>
+      </button>
+
       <PanelCardsMorphIntro
         phase={phase}
         activeIndex={activeIndex}
@@ -257,6 +358,8 @@ export function PanelCardsIntroSequence(props: {
         handoffOrigin={props.handoffOrigin}
         isMobileViewport={props.isMobileViewport}
         reducedMotion={reducedMotion}
+        spotlightDurationMs={spotlightDurationMs}
+        onAdvance={advanceSpotlight}
       />
     </motion.div>
   );

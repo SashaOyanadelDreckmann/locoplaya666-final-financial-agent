@@ -4,7 +4,10 @@ import React, { useEffect, useMemo, useRef, useState, type ReactElement } from "
 import { AnimatePresence, motion } from "framer-motion";
 
 import { cn } from "@/lib/utils";
-import { PANEL_INTRO_CARD_ORDER } from "@/app/agent/panel-cards-intro.copy";
+import {
+  PANEL_INTRO_CARD_ORDER,
+  PANEL_INTRO_CARD_SIZE_FALLBACKS,
+} from "@/app/agent/panel-cards-intro.copy";
 import type { PanelIntroHandoffOrigin } from "@/app/agent/panel-intro.types";
 
 export type PanelMorphPhase = "scatter" | "line" | "circle" | "spotlight" | "dock" | "settle";
@@ -46,6 +49,33 @@ const MORPH_SPRING = { type: "spring" as const, stiffness: 50, damping: 19, mass
 const DOCK_SPRING = { type: "spring" as const, stiffness: 60, damping: 21, mass: 0.86 };
 const SPOTLIGHT_SPRING = { type: "spring" as const, stiffness: 56, damping: 20, mass: 0.9 };
 const SETTLE_SPRING = { type: "spring" as const, stiffness: 72, damping: 24, mass: 0.82 };
+
+function extractPanelCardLeaf(node: ReactElement): ReactElement {
+  const props = node.props as { children?: React.ReactNode; className?: string };
+  if (
+    node.type === "div" &&
+    typeof props.className === "string" &&
+    /\bmob-col\b/.test(props.className)
+  ) {
+    const child = React.Children.toArray(props.children).find(React.isValidElement);
+    if (child && React.isValidElement(child)) {
+      return child;
+    }
+  }
+  return node;
+}
+
+function resolveIntroCardSize(
+  cardKey: string,
+  naturalSizes: Record<string, PanelCardNaturalSize>,
+  defaultNatural: PanelCardNaturalSize,
+): PanelCardNaturalSize {
+  const measured = naturalSizes[cardKey];
+  if (measured && measured.width > 24 && measured.height > 24) {
+    return measured;
+  }
+  return defaultNatural;
+}
 
 function useContainerMetrics(ref: React.RefObject<HTMLDivElement | null>) {
   const [metrics, setMetrics] = useState({
@@ -126,7 +156,9 @@ function IntroPanelCard({
 }) {
   const isDocking = phase === "dock" || phase === "settle";
   const syncLayout = isDocking;
+  const leafNode = extractPanelCardLeaf(cardNode);
   const fitScale = Math.min(
+    1,
     layout.width / Math.max(naturalSize.width, 1),
     layout.height / Math.max(naturalSize.height, 1),
   );
@@ -166,7 +198,7 @@ function IntroPanelCard({
         zIndex: isDocking ? 2147482800 + index : active ? 6 : 2,
       }}
     >
-      <div className="panel-morph-card__shell">
+      <div className={cn("panel-morph-card__shell", active && phase === "spotlight" && "is-hero")}>
         <div
           className="panel-morph-card__scale"
           style={{
@@ -175,14 +207,18 @@ function IntroPanelCard({
             transform: `scale(${fitScale})`,
           }}
         >
-          {React.cloneElement(cardNode, {
-            className: cn(
-              (cardNode.props as { className?: string }).className,
-              "panel-morph-card__slot",
-            ),
-            "aria-hidden": true,
-            tabIndex: -1,
-          } as Record<string, unknown>)}
+          <div className="agent-panel panel-morph-card__agent-skin" aria-hidden="true">
+            {React.cloneElement(leafNode, {
+              className: cn(
+                (leafNode.props as { className?: string }).className,
+                "panel-morph-card__slot",
+              ),
+              "aria-hidden": true,
+              tabIndex: -1,
+              initial: false,
+              animate: { opacity: 1, scale: 1, y: 0 },
+            } as Record<string, unknown>)}
+          </div>
         </div>
       </div>
     </motion.div>
@@ -198,6 +234,8 @@ export function PanelCardsMorphIntro(props: {
   handoffOrigin?: PanelIntroHandoffOrigin | null;
   isMobileViewport?: boolean;
   reducedMotion?: boolean;
+  spotlightDurationMs?: number;
+  onAdvance?: () => void;
   className?: string;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -215,26 +253,48 @@ export function PanelCardsMorphIntro(props: {
   const isMobile = props.isMobileViewport ?? containerMetrics.width < 768;
   const introAnchor = getIntroAnchor(props.phase, props.handoffOrigin, containerMetrics);
 
+  const resolveNatural = (cardKey: string) =>
+    resolveIntroCardSize(
+      cardKey,
+      props.naturalSizes,
+      PANEL_INTRO_CARD_SIZE_FALLBACKS[cardKey] ?? defaultNatural,
+    );
+
   const scatterPositions = useMemo(
     () =>
-      cards.map(() => ({
-        x: (Math.random() - 0.5) * 720,
-        y: (Math.random() - 0.5) * 480,
-        rotation: (Math.random() - 0.5) * 72,
-        scale: 0.76,
-        opacity: 0,
-        width: props.reducedMotion ? 148 : 124,
-        height: props.reducedMotion ? 82 : 68,
-      })),
-    [cards.length, props.reducedMotion],
+      cards.map((_, i) => {
+        const angle = (i / total) * Math.PI * 2 - Math.PI / 2;
+        const radius = 220 + (i % 3) * 36;
+        const aspect =
+          (PANEL_INTRO_CARD_SIZE_FALLBACKS[cards[i]?.key ?? "profile"]?.width ?? 168) /
+          Math.max(PANEL_INTRO_CARD_SIZE_FALLBACKS[cards[i]?.key ?? "profile"]?.height ?? 88, 1);
+        const width = props.reducedMotion ? 148 : isMobile ? 148 : 168;
+        return {
+          x: Math.cos(angle) * radius,
+          y: Math.sin(angle) * radius * 0.58,
+          rotation: (i - total / 2) * 7,
+          scale: 0.88,
+          opacity: 0.94,
+          width,
+          height: Math.round(width / aspect),
+        };
+      }),
+    [cards, isMobile, props.reducedMotion, total],
   );
 
-  const baseCardW = isMobile ? 128 : 148;
-  const activeCardW = isMobile ? 248 : 292;
+  const baseCardW = isMobile ? 168 : 196;
 
   const targets = cards.map((meta, i) => {
-    const natural = props.naturalSizes[meta.key] ?? defaultNatural;
+    const natural = resolveNatural(meta.key);
     const aspect = natural.width / Math.max(natural.height, 1);
+    const activeCardW = Math.min(
+      isMobile ? Math.min(containerMetrics.width - 40, 360) : Math.min(containerMetrics.width - 72, 440),
+      Math.max(natural.width * 0.96, baseCardW * 1.42),
+    );
+    const formingCardW = Math.min(
+      isMobile ? Math.min(containerMetrics.width - 56, 280) : Math.min(containerMetrics.width - 96, 320),
+      Math.max(natural.width * 0.72, baseCardW * 1.08),
+    );
     let target: MorphCardTarget = {
       x: 0,
       y: 0,
@@ -248,7 +308,7 @@ export function PanelCardsMorphIntro(props: {
     if (props.phase === "scatter") {
       target = scatterPositions[i];
     } else if (props.phase === "line") {
-      const spacing = baseCardW + (isMobile ? 10 : 14);
+      const spacing = formingCardW + (isMobile ? 12 : 16);
       const lineWidth = total * spacing;
       target = {
         x: i * spacing - lineWidth / 2 + spacing / 2,
@@ -256,12 +316,12 @@ export function PanelCardsMorphIntro(props: {
         rotation: 0,
         scale: 1,
         opacity: 1,
-        width: baseCardW,
-        height: Math.round(baseCardW / aspect),
+        width: formingCardW,
+        height: Math.round(formingCardW / aspect),
       };
     } else if (props.phase === "circle") {
       const radius =
-        Math.min(containerMetrics.width, containerMetrics.height) * (isMobile ? 0.26 : 0.3);
+        Math.min(containerMetrics.width, containerMetrics.height) * (isMobile ? 0.28 : 0.32);
       const angle = (i / total) * 360;
       const rad = (angle * Math.PI) / 180;
       target = {
@@ -270,13 +330,13 @@ export function PanelCardsMorphIntro(props: {
         rotation: angle + 90,
         scale: 1,
         opacity: 1,
-        width: baseCardW,
-        height: Math.round(baseCardW / aspect),
+        width: formingCardW,
+        height: Math.round(formingCardW / aspect),
       };
     } else if (props.phase === "spotlight") {
-      const spread = isMobile ? 84 : 108;
-      const arcRadius = isMobile ? 210 : 268;
-      const arcCenterY = isMobile ? 72 : 92;
+      const spread = isMobile ? 78 : 96;
+      const arcRadius = isMobile ? 196 : 248;
+      const arcCenterY = isMobile ? 88 : 108;
       const offset = i - props.activeIndex;
       const normalized = ((offset % total) + total) % total;
       const signed = normalized > total / 2 ? normalized - total : normalized;
@@ -288,8 +348,8 @@ export function PanelCardsMorphIntro(props: {
         x: Math.cos(arcRad) * arcRadius,
         y: Math.sin(arcRad) * arcRadius + arcCenterY,
         rotation: isActive ? 0 : arcAngle + 90,
-        scale: isActive ? 1 : 0.86,
-        opacity: isActive ? 1 : Math.max(0.28, 0.78 - Math.abs(signed) * 0.12),
+        scale: isActive ? 1 : 0.84,
+        opacity: isActive ? 1 : Math.max(0.34, 0.82 - Math.abs(signed) * 0.11),
         width: isActive ? activeCardW : baseCardW,
         height: isActive ? Math.round(activeCardW / aspect) : Math.round(baseCardW / aspect),
       };
@@ -339,18 +399,27 @@ export function PanelCardsMorphIntro(props: {
   const activeMeta = cards[props.activeIndex] ?? cards[0];
   const isDockStage = props.phase === "dock" || props.phase === "settle";
 
+  const spotlightMs = props.spotlightDurationMs ?? 2800;
+
   return (
     <div
       ref={containerRef}
       className={cn(
         "panel-morph-intro",
+        props.phase === "spotlight" && "is-spotlight-stage",
+        props.phase === "scatter" && "is-scatter-stage",
         isDockStage && "is-dock-stage",
         props.phase === "settle" && "is-settle-stage",
         props.className,
       )}
+      style={{ "--panel-intro-spotlight-ms": `${spotlightMs}ms` } as React.CSSProperties}
     >
       <div className="panel-morph-intro__vignette" aria-hidden="true" />
       <div className="panel-morph-intro__grain" aria-hidden="true" />
+      <div className="panel-morph-intro__brand" aria-hidden="true">
+        <span className="panel-morph-intro__brand-mark">Financieramente</span>
+        <span className="panel-morph-intro__brand-sub">Private briefing</span>
+      </div>
 
       <div className="panel-morph-intro__copy">
         <AnimatePresence mode="wait">
@@ -364,7 +433,8 @@ export function PanelCardsMorphIntro(props: {
               transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
             >
               <span className="panel-morph-intro__caption-kicker">
-                {String(props.activeIndex + 1).padStart(2, "0")} / {String(total).padStart(2, "0")}
+                {activeMeta.tag ?? "Módulo"} · {String(props.activeIndex + 1).padStart(2, "0")} /{" "}
+                {String(total).padStart(2, "0")}
               </span>
               <h2 className="panel-morph-intro__caption-title">{activeMeta.label}</h2>
               <p className="panel-morph-intro__caption-text">{activeMeta.caption}</p>
@@ -378,10 +448,10 @@ export function PanelCardsMorphIntro(props: {
               exit={{ opacity: 0, y: -6 }}
               transition={{ duration: 0.36, ease: [0.22, 1, 0.36, 1] }}
             >
-              <span className="panel-morph-intro__caption-kicker">Panel financiero</span>
+              <span className="panel-morph-intro__caption-kicker">Acceso privado</span>
               <h2 className="panel-morph-intro__caption-title">Tu centro de control</h2>
               <p className="panel-morph-intro__caption-text">
-                Nueve bloques. Una sola vista de tu operación financiera.
+                Nueve módulos. Una sola vista de tu operación financiera.
               </p>
             </motion.div>
           ) : props.phase === "dock" || props.phase === "settle" ? (
@@ -393,14 +463,32 @@ export function PanelCardsMorphIntro(props: {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.28 }}
             >
-              <span className="panel-morph-intro__caption-kicker">Desplegando</span>
-              <h2 className="panel-morph-intro__caption-title">Panel listo</h2>
+              <span className="panel-morph-intro__caption-kicker">Aterrizaje</span>
+              <h2 className="panel-morph-intro__caption-title">Panel desplegado</h2>
             </motion.div>
           ) : null}
         </AnimatePresence>
       </div>
 
-      <div className="panel-morph-intro__stage">
+      <div
+        className="panel-morph-intro__stage"
+        onClick={() => {
+          if (props.phase === "spotlight") props.onAdvance?.();
+        }}
+        onKeyDown={(event) => {
+          if (props.phase !== "spotlight") return;
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            props.onAdvance?.();
+          }
+        }}
+        role={props.phase === "spotlight" ? "button" : undefined}
+        tabIndex={props.phase === "spotlight" ? 0 : undefined}
+        aria-label={props.phase === "spotlight" ? "Avanzar al siguiente módulo" : undefined}
+      >
+        {props.phase === "spotlight" ? (
+          <div className="panel-morph-intro__spotlight-halo" aria-hidden="true" />
+        ) : null}
         {cards.map((meta, i) => {
           const cardNode = cardNodeByKey.get(meta.key);
           if (!cardNode) return null;
@@ -410,7 +498,7 @@ export function PanelCardsMorphIntro(props: {
               key={meta.key}
               cardKey={meta.key}
               cardNode={cardNode}
-              naturalSize={props.naturalSizes[meta.key] ?? defaultNatural}
+              naturalSize={resolveNatural(meta.key)}
               layout={layouts[i]}
               active={i === props.activeIndex}
               phase={props.phase}
@@ -421,18 +509,23 @@ export function PanelCardsMorphIntro(props: {
       </div>
 
       {props.phase === "spotlight" ? (
-        <div className="panel-morph-intro__progress" aria-hidden="true">
-          {cards.map((card, i) => (
-            <span
-              key={card.key}
-              className={cn(
-                "panel-morph-intro__progress-dot",
-                i === props.activeIndex && "is-active",
-                i < props.activeIndex && "is-done",
-              )}
-            />
-          ))}
-        </div>
+        <>
+          <div className="panel-morph-intro__progress" aria-hidden="true">
+            {cards.map((card, i) => (
+              <span
+                key={card.key}
+                className={cn(
+                  "panel-morph-intro__progress-dot",
+                  i === props.activeIndex && "is-active",
+                  i < props.activeIndex && "is-done",
+                )}
+              />
+            ))}
+          </div>
+          <p className="panel-morph-intro__tap-hint" aria-hidden="true">
+            Toca o pulsa → para continuar
+          </p>
+        </>
       ) : null}
     </div>
   );

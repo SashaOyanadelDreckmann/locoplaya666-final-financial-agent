@@ -3959,6 +3959,7 @@ export default function AgentPage() {
           handoffOrigin={panelIntroHandoffOrigin}
           onPhaseChange={setPanelIntroPhase}
           onSettled={() => setPanelIntroSettled(true)}
+          onHaptic={haptic}
           onComplete={() => {
             setPanelIntroActive(false);
             setPanelIntroPhase('morph');
