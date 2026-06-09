@@ -135,14 +135,15 @@
   }
 
   /* ── 3. Table tab — reset desktop carousel absolute layout ── */
-  .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) {
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop),
+  .budget-modal.is-mobile-shell .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) {
     display: flex !important;
     flex-direction: column !important;
-    flex: 1 1 auto !important;
+    flex: 1 1 0 !important;
     min-height: 0 !important;
     overflow: hidden !important;
     position: relative !important;
-    height: auto !important;
+    height: 100% !important;
     padding: 0 !important;
   }
 
@@ -150,8 +151,16 @@
     display: none !important;
   }
 
-  .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) > .budget-card-table {
+  .budget-modal.is-mobile-shell .budget-mobile-stage {
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    height: 100% !important;
     position: relative !important;
+    overflow: hidden !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-mobile-stage > .budget-card-table {
+    position: static !important;
     inset: auto !important;
     transform: none !important;
     opacity: 1 !important;
@@ -160,15 +169,17 @@
     box-shadow: none !important;
     width: 100% !important;
     max-width: 100% !important;
-    height: auto !important;
+    height: 100% !important;
     max-height: none !important;
     min-height: 0 !important;
-    flex: 1 1 auto !important;
+    flex: 1 1 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
     padding: 4px 10px 0 !important;
     order: 1 !important;
   }
 
-  .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) > .budget-card-table .budget-table-wrap {
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-mobile-stage > .budget-card-table .budget-table-wrap {
     max-height: none !important;
   }
 
@@ -191,8 +202,8 @@
     height: 100% !important;
   }
 
-  .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact,
-  .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) > section[data-main-card="table"].is-mobile-table-compact {
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-mobile-stage > .budget-card-table.is-mobile-table-compact,
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-mobile-stage > section[data-main-card="table"].is-mobile-table-compact {
     display: flex !important;
     flex-direction: column !important;
     position: absolute !important;
@@ -210,15 +221,15 @@
     background: transparent !important;
   }
 
-  .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact .budget-table-scroll-host {
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-mobile-stage > .budget-card-table.is-mobile-table-compact .budget-table-scroll-host {
     flex: 1 1 0 !important;
     min-height: 180px !important;
     filter: none !important;
     -webkit-filter: none !important;
   }
 
-  .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-agent.is-mobile-assistant-glass,
-  .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) > section[data-main-card="agent"].is-mobile-assistant-glass {
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-mobile-stage > .budget-card-agent.is-mobile-assistant-glass,
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-mobile-stage > section[data-main-card="agent"].is-mobile-assistant-glass {
     position: absolute !important;
     inset: 0 !important;
     z-index: 3 !important;
@@ -228,27 +239,35 @@
     min-height: 0 !important;
     width: 100% !important;
     height: 100% !important;
-    padding: 4px 10px calc(env(safe-area-inset-bottom, 0px) + 10px) !important;
+    padding: 4px 10px 10px !important;
     overflow: hidden !important;
     pointer-events: none !important;
-    background: transparent !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    background: rgba(9, 14, 22, 0.42) !important;
+    border: 1px solid rgba(255, 255, 255, 0.14) !important;
     border-radius: 18px !important;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
     isolation: isolate !important;
   }
 
-  .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-agent.is-mobile-assistant-glass::before,
-  .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) > section[data-main-card="agent"].is-mobile-assistant-glass::before {
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-mobile-stage > .budget-card-agent.is-mobile-assistant-glass::before,
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-mobile-stage > section[data-main-card="agent"].is-mobile-assistant-glass::before {
     content: '' !important;
     position: absolute !important;
     inset: 0 !important;
     z-index: 0 !important;
     border-radius: inherit !important;
     pointer-events: none !important;
-    background: rgba(6, 10, 16, 0.3) !important;
-    backdrop-filter: blur(52px) saturate(1.12) brightness(0.78) contrast(0.88) !important;
-    -webkit-backdrop-filter: blur(52px) saturate(1.12) brightness(0.78) contrast(0.88) !important;
+    background: rgba(7, 11, 18, 0.58) !important;
+    backdrop-filter: blur(60px) saturate(1.06) brightness(0.68) contrast(0.9) !important;
+    -webkit-backdrop-filter: blur(60px) saturate(1.06) brightness(0.68) contrast(0.9) !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-mobile-stage > .budget-card-agent .bcc-hero {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
   }
 
   .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-agent .bcc-hero,
