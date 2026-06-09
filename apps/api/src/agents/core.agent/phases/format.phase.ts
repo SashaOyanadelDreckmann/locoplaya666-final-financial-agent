@@ -211,7 +211,7 @@ export async function runFormatPhase(input: FormatPhaseInput): Promise<FormatPha
       'Contexto de ejecucion (tools, outputs, artifacts, citations):',
       executionSummary,
       '',
-      'Instruccion: responde en espanol, limpio, sin XML, sin tags de tools, y alineado a la evidencia.',
+      'Instruccion: responde en espanol, limpio, sin nombres de tools ni XML interno. Si hay datos numericos comparables, emite bloques <CHART> y/o <TABLE> JSON validos (obligatorio cuando aplique) antes de SUGERENCIAS.',
     ].join('\n');
 
     const fullFormatOptions = {
