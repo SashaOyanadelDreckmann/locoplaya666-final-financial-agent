@@ -119,7 +119,7 @@ import { PanelCardsIntroSequence } from './PanelCardsIntroSequence';
 import { PanelIntroGridSlot } from './PanelIntroGridSlot';
 import { PanelIntroLayoutGroup } from './PanelIntroLayoutGroup';
 import { shouldShowAgentBootSequence } from './agent-boot-sequence.helpers';
-import { hasCompletedPanelIntro } from './panel-intro.prefs';
+import { shouldPresentPanelIntro } from './panel-intro.prefs';
 
 import type {
   AgentBlock,
@@ -498,7 +498,7 @@ export default function AgentPage() {
     x: number;
     y: number;
   } | null>(null);
-  const pendingPanelIntroRef = useRef(false);
+  const panelIntroStartRef = useRef(false);
 
   useEffect(() => {
     if (!authBootstrapped || !isAuthenticated) return;
@@ -509,18 +509,27 @@ export default function AgentPage() {
 
   useEffect(() => {
     if (!authBootstrapped || !isAuthenticated) return;
-    if (bootSequenceActive || panelIntroActive || pendingPanelIntroRef.current) return;
-    if (hasCompletedPanelIntro()) return;
-    if (shouldShowAgentBootSequence()) return;
+    if (bootSequenceActive || panelIntroActive) return;
+    if (!shouldPresentPanelIntro()) return;
+    if (panelIntroStartRef.current) return;
 
+    const delay = panelIntroHandoffOrigin ? 120 : 280;
     const timer = window.setTimeout(() => {
+      if (!shouldPresentPanelIntro() || panelIntroStartRef.current) return;
+      panelIntroStartRef.current = true;
       setPanelIntroPhase('morph');
       setPanelIntroSettled(false);
       setPanelIntroActive(true);
-    }, 160);
+    }, delay);
 
     return () => window.clearTimeout(timer);
-  }, [authBootstrapped, isAuthenticated, bootSequenceActive, panelIntroActive]);
+  }, [
+    authBootstrapped,
+    isAuthenticated,
+    bootSequenceActive,
+    panelIntroActive,
+    panelIntroHandoffOrigin,
+  ]);
 
   const loadProfileIfNeeded = useProfileStore((s) => s.loadProfileIfNeeded);
   const profile = useProfileStore((s) => s.profile);
@@ -3687,7 +3696,7 @@ export default function AgentPage() {
   );
 
   return (
-    <PanelIntroLayoutGroup active={panelIntroActive}>
+    <PanelIntroLayoutGroup>
     <>
       <main
       className={`agent-layout ${activeThreadThemeClass} ${
@@ -4026,18 +4035,9 @@ export default function AgentPage() {
           session={sessionInfo}
           onHandoff={(origin) => {
             setPanelIntroHandoffOrigin(origin);
-            if (!hasCompletedPanelIntro()) {
-              pendingPanelIntroRef.current = true;
-              setPanelIntroPhase('morph');
-              setPanelIntroSettled(false);
-            }
           }}
           onComplete={() => {
             setBootSequenceActive(false);
-            if (pendingPanelIntroRef.current) {
-              pendingPanelIntroRef.current = false;
-              setPanelIntroActive(true);
-            }
           }}
         />
       ) : null}
@@ -4059,6 +4059,7 @@ export default function AgentPage() {
           }}
           onHaptic={haptic}
           onComplete={() => {
+            panelIntroStartRef.current = false;
             setPanelIntroActive(false);
             setPanelIntroPhase('morph');
             setPanelIntroSettled(false);

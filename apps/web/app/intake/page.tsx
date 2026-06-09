@@ -10,6 +10,7 @@ import { getSessionInfo } from '@/lib/api';
 import { toUserFacingError } from '@/lib/userError';
 import { hasCompletedIntakeAccess, resolveAuthRedirectPath } from '@/lib/sessionAccess';
 import { markAgentBootFromIntake } from '../agent/agent-boot-sequence.helpers';
+import { markPanelIntroPendingFromIntake } from '../agent/panel-intro.prefs';
 
 import type { IntakeQuestionnaire } from '@financial-agent/shared/src/intake/intake-questionnaire.types';
 
@@ -117,6 +118,7 @@ function IntakeContent() {
       const res = await submitIntake(form);
       setIntake(res.intake);
       markAgentBootFromIntake();
+      markPanelIntroPendingFromIntake();
       router.push('/agent');
     } catch (e: any) {
       setError(toUserFacingError(e, 'intake.submit'));

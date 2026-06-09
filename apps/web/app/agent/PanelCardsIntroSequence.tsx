@@ -20,7 +20,7 @@ import {
   computeMobileDeckDockTargets,
   getMobileDeckCardNaturalSize,
 } from './panel-cards-intro.mobile-dock';
-import { markPanelIntroCompleted } from './panel-intro.prefs';
+import { markPanelIntroCompleted, clearPendingPanelIntroFromIntake } from './panel-intro.prefs';
 import type { PanelIntroHandoffOrigin, PanelIntroPhase } from './panel-intro.types';
 
 const ENTER_MS = 360;
@@ -151,7 +151,7 @@ export function PanelCardsIntroSequence(props: {
   const skipStartedRef = useRef(false);
   const activeIndexRef = useRef(activeIndex);
   activeIndexRef.current = activeIndex;
-  const [portalReady, setPortalReady] = useState(false);
+  const [portalReady, setPortalReady] = useState(() => typeof document !== 'undefined');
   const propsRef = useRef(props);
   propsRef.current = props;
   const totalCards = PANEL_INTRO_CARD_ORDER.length;
@@ -237,12 +237,10 @@ export function PanelCardsIntroSequence(props: {
   }, [beginDock]);
 
   useEffect(() => {
-    setPortalReady(true);
-  }, []);
-
-  useEffect(() => {
+    if (!portalReady) setPortalReady(true);
+    clearPendingPanelIntroFromIntake();
     propsRef.current.onPhaseChange?.('morph');
-  }, []);
+  }, [portalReady]);
 
   useEffect(() => {
     document.documentElement.classList.add('panel-intro-active');
@@ -305,7 +303,7 @@ export function PanelCardsIntroSequence(props: {
 
   useEffect(() => {
     if (!reducedMotion || phase !== 'spotlight') return;
-    const timer = window.setTimeout(() => beginDock(), 280);
+    const timer = window.setTimeout(() => beginDock(), 2200);
     return () => window.clearTimeout(timer);
   }, [reducedMotion, phase, beginDock]);
 
