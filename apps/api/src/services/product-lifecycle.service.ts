@@ -1,6 +1,7 @@
 import type { ChatAgentInput, ChatAgentResponse } from '../agents/core.agent/chat.types';
 import { buildActionPlanFunnelDirective } from '../agents/core.agent/helpers/action-plan-funnel.helpers';
 import {
+  buildChatClosureSummary,
   closingTurnForChat,
   maxTurnsForChat,
   resolveActionPlanFunnelStage,
@@ -283,8 +284,16 @@ export function applyLifecycleAfterResponse(params: {
   return next;
 }
 
-export function lifecycleMeta(state: ProductLifecycleState, activeChatId: ProductChatId) {
+export function lifecycleMeta(
+  state: ProductLifecycleState,
+  activeChatId: ProductChatId,
+  params?: {
+    userMessage?: string;
+    assistantMessage?: string;
+  },
+) {
   const turns = state.chatTurns[activeChatId] ?? 0;
+  const turnsRemaining = Math.max(0, maxTurnsForChat(activeChatId) - turns);
   return {
     product_lifecycle: {
       phase: state.phase,
@@ -292,7 +301,7 @@ export function lifecycleMeta(state: ProductLifecycleState, activeChatId: Produc
       unlocked_chats: state.unlockedChats,
       closed_chats: state.closedChats,
       turn_count: turns,
-      turns_remaining: Math.max(0, maxTurnsForChat(activeChatId) - turns),
+      turns_remaining: turnsRemaining,
       closing_mode: turns >= closingTurnForChat(activeChatId),
       reports_count: state.reports.length,
       action_plan_funnel_stage: resolveActionPlanFunnelStage({
@@ -300,6 +309,15 @@ export function lifecycleMeta(state: ProductLifecycleState, activeChatId: Produc
         turnCount: turns,
         closingMode: turns >= closingTurnForChat(activeChatId),
       }) ?? 'brainstorm',
+      closing_summary:
+        turnsRemaining <= 0
+          ? buildChatClosureSummary({
+              chatId: activeChatId,
+              userMessage: params?.userMessage,
+              assistantMessage: params?.assistantMessage,
+              turnsRemaining,
+            })
+          : undefined,
     },
   };
 }

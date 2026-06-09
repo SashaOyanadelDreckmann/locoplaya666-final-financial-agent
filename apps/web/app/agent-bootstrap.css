@@ -85,49 +85,7 @@
   margin-bottom: 2px;
 }
 
-/* Library stack: matte blur, messy offsets, interactive peek */
-.transactions-modal .tx-library-matte-stack {
-  min-height: 248px !important;
-  height: 248px !important;
-  overflow: visible !important;
-  padding: 12px 0 16px !important;
-}
-
-.transactions-modal .tx-library-matte-stack .pt-item.pt-item-stack.tx-lib-card {
-  pointer-events: auto !important;
-  transform: translate3d(
-    calc(-50% + var(--tx-stack-x, 0px)),
-    calc(-50% + var(--tx-stack-y, 0px)),
-    0
-  )
-  scale(var(--tx-stack-scale, 1))
-  rotate(var(--tx-stack-rotate, 0deg)) !important;
-  opacity: calc(1 - (var(--pt-stack-idx, 0) * 0.06)) !important;
-  backdrop-filter: blur(12px) saturate(118%) !important;
-  -webkit-backdrop-filter: blur(12px) saturate(118%) !important;
-  border-radius: 18px !important;
-  transition:
-    transform 220ms cubic-bezier(0.22, 0.82, 0.2, 1),
-    box-shadow 220ms ease,
-    opacity 220ms ease,
-    filter 220ms ease !important;
-}
-
-.transactions-modal .tx-library-matte-stack .pt-item.pt-item-stack.tx-lib-card:not(.is-top) .pt-item-name,
-.transactions-modal .tx-library-matte-stack .pt-item.pt-item-stack.tx-lib-card:not(.is-top) .pt-item-bank,
-.transactions-modal .tx-library-matte-stack .pt-item.pt-item-stack.tx-lib-card:not(.is-top) .pt-item-status,
-.transactions-modal .tx-library-matte-stack .pt-item.pt-item-stack.tx-lib-card:not(.is-top) .pt-item-meta,
-.transactions-modal .tx-library-matte-stack .pt-item.pt-item-stack.tx-lib-card:not(.is-top) .pt-item-meta span,
-.transactions-modal .tx-library-matte-stack .pt-item.pt-item-stack.tx-lib-card:not(.is-top) .pt-item-top,
-.transactions-modal .tx-library-matte-stack .pt-item.pt-item-stack.tx-lib-card:not(.is-top) .tx-lib-card-eyebrow {
-  opacity: 0.88 !important;
-  filter: none !important;
-}
-
-.transactions-modal .tx-library-matte-stack .pt-item.pt-item-stack.tx-lib-card:not(.is-top)::after {
-  display: none !important;
-}
-
+/* Library scanner stream: matte product cards */
 .transactions-modal .tx-lib-card-matte-veil {
   position: absolute;
   inset: 0;
@@ -136,77 +94,35 @@
   pointer-events: none;
 }
 
-.transactions-modal .tx-library-matte-stack .tx-lib-card-sheen {
-  display: none !important;
-}
-
-.transactions-modal .tx-library-matte-stack .tx-lib-card-chip {
+.transactions-modal .tx-scanner-lib-card .tx-lib-card-chip {
   background: color-mix(in srgb, var(--pt-stack-accent) 24%, rgba(255, 255, 255, 0.08)) !important;
   border-color: color-mix(in srgb, var(--pt-stack-accent) 36%, rgba(255, 255, 255, 0.16)) !important;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
 }
 
-.transactions-modal .tx-library-matte-stack .pt-item.pt-item-stack.tx-lib-card:hover,
-.transactions-modal .tx-library-matte-stack .pt-item.pt-item-stack.tx-lib-card.is-peek,
-.transactions-modal .tx-library-matte-stack .pt-item.pt-item-stack.tx-lib-card:focus-within {
-  z-index: 48 !important;
-  opacity: 1 !important;
+.transactions-modal .tx-scanner-lib-card.is-top:hover,
+.transactions-modal .tx-scanner-lib-card.is-top:focus-within {
   filter: brightness(1.04) !important;
-  transform: translate3d(
-    calc(-50% + var(--tx-stack-x, 0px)),
-    calc(-50% + var(--tx-stack-y, -8px)),
-    0
-  )
-  scale(calc(var(--tx-stack-scale, 1) * 1.04))
-  rotate(var(--tx-stack-rotate, 0deg)) !important;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.12),
-    0 20px 36px rgba(0, 0, 0, 0.36),
-    0 0 0 1px rgba(255, 255, 255, 0.08) !important;
 }
 
-.transactions-modal .tx-library-matte-stack .pt-item.pt-item-stack.tx-lib-card:hover .pt-item-name,
-.transactions-modal .tx-library-matte-stack .pt-item.pt-item-stack.tx-lib-card.is-peek .pt-item-name,
-.transactions-modal .tx-library-matte-stack .pt-item.pt-item-stack.tx-lib-card:focus-within .pt-item-name,
-.transactions-modal .tx-library-matte-stack .pt-item.pt-item-stack.tx-lib-card:hover .pt-item-bank,
-.transactions-modal .tx-library-matte-stack .pt-item.pt-item-stack.tx-lib-card.is-peek .pt-item-bank,
-.transactions-modal .tx-library-matte-stack .pt-item.pt-item-stack.tx-lib-card:focus-within .pt-item-bank,
-.transactions-modal .tx-library-matte-stack .pt-item.pt-item-stack.tx-lib-card:hover .pt-item-status,
-.transactions-modal .tx-library-matte-stack .pt-item.pt-item-stack.tx-lib-card.is-peek .pt-item-status,
-.transactions-modal .tx-library-matte-stack .pt-item.pt-item-stack.tx-lib-card:focus-within .pt-item-status,
-.transactions-modal .tx-library-matte-stack .pt-item.pt-item-stack.tx-lib-card:hover .pt-item-meta,
-.transactions-modal .tx-library-matte-stack .pt-item.pt-item-stack.tx-lib-card.is-peek .pt-item-meta,
-.transactions-modal .tx-library-matte-stack .pt-item.pt-item-stack.tx-lib-card:focus-within .pt-item-meta,
-.transactions-modal .tx-library-matte-stack .pt-item.pt-item-stack.tx-lib-card:hover .pt-item-meta span,
-.transactions-modal .tx-library-matte-stack .pt-item.pt-item-stack.tx-lib-card.is-peek .pt-item-meta span,
-.transactions-modal .tx-library-matte-stack .pt-item.pt-item-stack.tx-lib-card:focus-within .pt-item-meta span,
-.transactions-modal .tx-library-matte-stack .pt-item.pt-item-stack.tx-lib-card:hover .tx-lib-card-eyebrow,
-.transactions-modal .tx-library-matte-stack .pt-item.pt-item-stack.tx-lib-card.is-peek .tx-lib-card-eyebrow,
-.transactions-modal .tx-library-matte-stack .pt-item.pt-item-stack.tx-lib-card:focus-within .tx-lib-card-eyebrow {
+.transactions-modal .tx-scanner-lib-card.is-top:hover .pt-item-name,
+.transactions-modal .tx-scanner-lib-card.is-top:hover .pt-item-bank,
+.transactions-modal .tx-scanner-lib-card.is-top:hover .pt-item-status,
+.transactions-modal .tx-scanner-lib-card.is-top:hover .pt-item-meta,
+.transactions-modal .tx-scanner-lib-card.is-top:hover .pt-item-meta span,
+.transactions-modal .tx-scanner-lib-card.is-top:hover .tx-lib-card-eyebrow,
+.transactions-modal .tx-scanner-lib-card.is-top:focus-within .pt-item-name,
+.transactions-modal .tx-scanner-lib-card.is-top:focus-within .pt-item-bank,
+.transactions-modal .tx-scanner-lib-card.is-top:focus-within .pt-item-status,
+.transactions-modal .tx-scanner-lib-card.is-top:focus-within .pt-item-meta,
+.transactions-modal .tx-scanner-lib-card.is-top:focus-within .pt-item-meta span,
+.transactions-modal .tx-scanner-lib-card.is-top:focus-within .tx-lib-card-eyebrow {
   opacity: 1 !important;
   filter: none !important;
 }
 
-.transactions-modal .tx-library-matte-stack .tx-lib-card-select:active {
+.transactions-modal .tx-scanner-card-hit:active .tx-scanner-lib-card {
   transform: scale(0.985);
-}
-
-@media (max-width: 980px) {
-  .transactions-modal .tx-library-matte-stack {
-    min-height: 236px !important;
-    height: 236px !important;
-  }
-
-  .transactions-modal .tx-library-matte-stack .pt-item.pt-item-stack.tx-lib-card:active,
-  .transactions-modal .tx-library-matte-stack .pt-item.pt-item-stack.tx-lib-card.is-peek {
-    transform: translate3d(
-      calc(-50% + var(--tx-stack-x, 0px)),
-      calc(-50% + var(--tx-stack-y, -10px)),
-      0
-    )
-    scale(calc(var(--tx-stack-scale, 1) * 1.05))
-    rotate(var(--tx-stack-rotate, 0deg)) !important;
-  }
 }
 
 /* ── Operational limits card (interactive capacity panel) ─────────────────── */

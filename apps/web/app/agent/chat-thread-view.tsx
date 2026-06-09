@@ -7,7 +7,13 @@ import { saveBubbleSnapshotPdfArtifact, savePdfArtifact, downloadArtifactFile } 
 import { buildBubbleSnapshotHtmlAndCss } from './bubble-chat.snapshot';
 import type { ChatItem } from '@/lib/agent.response.types';
 import type { VisualMode } from '@/lib/visual-mode';
-import { sanitizeMessageText, getChat1UxCopy, resolveChat1UxState } from './page.utils';
+import {
+  buildChatClosureSummary,
+  sanitizeMessageText,
+  getChat1UxCopy,
+  resolveChat1UxState,
+  type ChatClosureSummary,
+} from './page.utils';
 import { renderLatexDocMessage } from './message-renderer';
 import { GradientBlobCard } from '@/components/ui/gradient-bold-card';
 import { UserUploadBubble } from './user-upload-bubble';
@@ -150,6 +156,9 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
   onPanelAction: (action: NonNullable<Extract<ChatItem, { type: 'message'; role: 'assistant' }>['panel_action']>) => void;
   flowPanelAction?: NonNullable<Extract<ChatItem, { type: 'message'; role: 'assistant' }>['panel_action']>;
   visualMode?: VisualMode;
+  compactClosedView?: boolean;
+  showFullChat?: boolean;
+  closingSummary?: ChatClosureSummary | null;
 }) {
   const docModePillStyle = getDocModePillStyle(props.visualMode);
   const [savingBubblePdf, setSavingBubblePdf] = useState<Record<number, boolean>>({});
@@ -163,9 +172,44 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
   });
   const chat1Copy = getChat1UxCopy(chat1Ux);
   const welcomeFlowAction =
-    props.activeThreadId === 'chat-1' && !props.diagnosisUnlocked
+    props.activeThreadId === 'chat-1' && !props.diagnosisUnlocked && !(props.compactClosedView && !props.showFullChat)
       ? props.flowPanelAction
       : undefined;
+  const itemsToRender =
+    props.compactClosedView && !props.showFullChat
+      ? (() => {
+          for (let index = props.items.length - 1; index >= 0; index -= 1) {
+            const item = props.items[index];
+            if (item.type === 'message' && item.role === 'user') return props.items.slice(index);
+          }
+          return props.items.slice(-2);
+        })()
+      : props.items;
+  const effectiveClosingSummary =
+    props.closingSummary ??
+    (props.compactClosedView && !props.showFullChat
+      ? buildChatClosureSummary({
+          chatId:
+            props.activeThreadId === 'chat-2'
+              ? 'chat-2'
+              : props.activeThreadId === 'chat-3'
+                ? 'chat-3'
+                : 'chat-1',
+          userMessage:
+            [...itemsToRender]
+              .reverse()
+              .find((item): item is Extract<ChatItem, { type: 'message'; role: 'user' }> =>
+                item.type === 'message' && item.role === 'user',
+              )?.content ?? '',
+          assistantMessage:
+            [...itemsToRender]
+              .reverse()
+              .find((item): item is Extract<ChatItem, { type: 'message'; role: 'assistant' }> =>
+                item.type === 'message' && item.role === 'assistant',
+              )?.content ?? '',
+          turnsRemaining: 0,
+        })
+      : null);
   const hasWelcomeEmptyBubble = props.items.some((entry, idx) =>
     isWelcomeCarouselShellItem(
       entry,
@@ -209,7 +253,7 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
 
     if (it.type === 'message') {
       if (it.role === 'assistant') {
-        const isFirstAssistantCard = !props.items.slice(0, i).some(
+        const isFirstAssistantCard = !itemsToRender.slice(0, i).some(
           (entry) => entry.type === 'message' && entry.role === 'assistant'
         );
         const funnelStage = props.activeThreadId === 'chat-2' ? props.actionPlanFunnelStage : null;
@@ -258,7 +302,7 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
         const isEmptyWelcomeShell = isWelcomeCarouselShellItem(
           it,
           i,
-          props.items,
+          itemsToRender,
           props.activeThreadId,
           props.diagnosisUnlocked,
         );
@@ -544,13 +588,13 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
   }
 
   const rendered: ReactNode[] = [];
-  for (let idx = 0; idx < props.items.length; idx += 1) {
-    const it = props.items[idx];
+  for (let idx = 0; idx < itemsToRender.length; idx += 1) {
+    const it = itemsToRender[idx];
     if (it.type === 'message' && it.role === 'assistant') {
       const citations: Array<Extract<ChatItem, { type: 'citation' }>['citation']> = [];
       let j = idx + 1;
-      while (j < props.items.length && props.items[j].type === 'citation') {
-        citations.push((props.items[j] as Extract<ChatItem, { type: 'citation' }>).citation);
+      while (j < itemsToRender.length && itemsToRender[j].type === 'citation') {
+        citations.push((itemsToRender[j] as Extract<ChatItem, { type: 'citation' }>).citation);
         j += 1;
       }
       rendered.push(renderChatItem(it, idx, citations));
@@ -558,7 +602,7 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
       continue;
     }
     if (it.type === 'citation') {
-      const prev = idx > 0 ? props.items[idx - 1] : null;
+      const prev = idx > 0 ? itemsToRender[idx - 1] : null;
       const groupedWithPrevious = prev && prev.type === 'message' && prev.role === 'assistant';
       if (groupedWithPrevious) continue;
     }
@@ -566,7 +610,7 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
   }
 
   const flowPanelAction =
-    props.activeThreadId === 'chat-1' && !props.diagnosisUnlocked
+    props.activeThreadId === 'chat-1' && !props.diagnosisUnlocked && !(props.compactClosedView && !props.showFullChat)
       ? props.flowPanelAction
       : undefined;
 
@@ -591,6 +635,32 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
           </div>
         )}
         {rendered}
+
+        {effectiveClosingSummary && !props.showFullChat ? (
+          <div className="agent-bubble assistant latex-doc is-intro-doc is-closing-summary">
+            <div className="latex-doc-head">
+              <div className="latex-doc-heading">
+                <span className="latex-doc-kicker">{effectiveClosingSummary.kicker}</span>
+                <span className="latex-doc-title">{effectiveClosingSummary.title}</span>
+                <span className="latex-doc-subtitle">{effectiveClosingSummary.subtitle}</span>
+              </div>
+              <span className="latex-doc-mode" style={docModePillStyle}>
+                cierre
+              </span>
+            </div>
+            <div className="latex-doc-body">
+              <div className="closing-summary-grid">
+                {effectiveClosingSummary.sections.map((section) => (
+                  <section key={section.label} className="closing-summary-card">
+                    <span className="closing-summary-card-label">{section.label}</span>
+                    <p className="closing-summary-card-body">{section.body}</p>
+                  </section>
+                ))}
+              </div>
+              <p className="closing-summary-footer">{effectiveClosingSummary.footer}</p>
+            </div>
+          </div>
+        ) : null}
 
         {flowPanelAction?.section && !hasWelcomeEmptyBubble ? (
           <div className="agent-flow-cta agent-flow-cta--thread">

@@ -17,6 +17,8 @@ type RecommendationProfile = {
   missing_critical_data: string[];
   suitability_note: string;
   final_decision_disclaimer: string;
+  turns_remaining: number | null;
+  closing_window: boolean;
 };
 
 function toNumber(value: unknown): number | null {
@@ -53,6 +55,7 @@ export function buildRecommendationProfile(params: {
   inferredUserModel?: InferredUserModel | null;
   userMessage?: string;
   turnCount?: number;
+  turnsRemaining?: number;
   closingMode?: boolean;
 }): RecommendationProfile {
   const activeChatId = String(params.activeChatId ?? 'chat-1');
@@ -66,6 +69,9 @@ export function buildRecommendationProfile(params: {
   const intake = params.intake ?? {};
   const inferredRisk = params.inferredUserModel?.risk_profile ?? 'balanced';
   const userMessage = String(params.userMessage ?? '').toLowerCase();
+  const turnsRemaining = Number.isFinite(Number(params.turnsRemaining))
+    ? Math.max(0, Math.floor(Number(params.turnsRemaining)))
+    : null;
 
   const income = inferMonthlyIncome({ budget, intake });
   const expenses = toNumber(budget.expenses) ?? 0;
@@ -123,6 +129,7 @@ export function buildRecommendationProfile(params: {
     `Capacidad de ahorro: ${savings_capacity}`,
     `Horizonte: ${horizon_bucket}`,
     `Perfil de riesgo: ${inferredRisk}`,
+    turnsRemaining !== null ? `Turnos restantes: ${turnsRemaining}` : null,
   ].join(' | ');
 
   return {
@@ -139,5 +146,7 @@ export function buildRecommendationProfile(params: {
     suitability_note,
     final_decision_disclaimer:
       'La decision final debe tomarla el usuario de forma 100% informada; el agente recomienda, no decide por el usuario.',
+    turns_remaining: turnsRemaining,
+    closing_window: turnsRemaining !== null ? turnsRemaining <= 2 : false,
   };
 }

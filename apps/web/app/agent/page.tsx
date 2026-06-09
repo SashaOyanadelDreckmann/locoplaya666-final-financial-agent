@@ -96,8 +96,10 @@ import {
 import {
   buildProductCardDescriptor,
   buildTransactionIntelligence,
+  buildChatClosureSummary,
   firstNameOf,
   dedupeConsecutiveAssistantMessages,
+  getMaxChatInteractions,
   getChat1UxCopy,
   resolveUnlockedChatIds,
   hasAssistantMessage,
@@ -105,6 +107,7 @@ import {
   sanitizeMessageText,
   resolveChat1UxState,
   resolveActiveActionPlanStage,
+  type ChatClosureSummary,
 } from './page.utils';
 import {
   buildWelcomeChatItem,
@@ -204,6 +207,7 @@ type ChatThread = {
   userMessageCount: number;  // local counter for UX telemetry
   createdAt: string;
   completedAt?: string;
+  closureSummary?: ChatClosureSummary | null;
 };
 
 type ProductLifecycle = {
@@ -531,6 +535,32 @@ export default function AgentPage() {
     productLifecycle?.chatTurns?.[activeChatId] ??
     activeThread?.userMessageCount ??
     0;
+  const activeMaxTurns = getMaxChatInteractions(activeChatId);
+  const activeTurnsRemaining = Math.max(0, activeMaxTurns - activeTurnCount);
+  const isActiveChatClosed =
+    closedChatIds.includes(activeChatId) || activeTurnsRemaining === 0;
+  const isActiveChatCloseoutWindow = activeTurnsRemaining > 0 && activeTurnsRemaining <= 2;
+  const activeThreadClosureSummary =
+    activeThread?.closureSummary ??
+    (isActiveChatClosed
+      ? buildChatClosureSummary({
+          chatId: activeChatId as 'chat-1' | 'chat-2' | 'chat-3',
+          userMessage:
+            [...items]
+              .reverse()
+              .find((item): item is Extract<ChatItem, { type: 'message'; role: 'user' }> =>
+                item.type === 'message' && item.role === 'user',
+              )?.content,
+          assistantMessage:
+            [...items]
+              .reverse()
+              .find((item): item is Extract<ChatItem, { type: 'message'; role: 'assistant' }> =>
+                item.type === 'message' && item.role === 'assistant',
+              )?.content,
+          turnsRemaining: activeTurnsRemaining,
+        })
+      : null);
+  const [showFullClosedChat, setShowFullClosedChat] = useState(false);
   const activeActionPlanStage = useMemo(() => {
     if (activeChatId !== 'chat-2') return null;
     return (
@@ -552,6 +582,10 @@ export default function AgentPage() {
     activeChatId === PRIMARY_CHAT_ID
       ? false
       : !unlockedChatIds.includes(activeChatId) || closedChatIds.includes(activeChatId);
+
+  useEffect(() => {
+    setShowFullClosedChat(false);
+  }, [activeChatId, isActiveChatClosed]);
 
   function clearComposerFocusTimer() {
     if (composerFocusTimerRef.current) {
@@ -834,6 +868,15 @@ export default function AgentPage() {
           userMessageCount: Number(s.userMessageCount ?? 0),
           createdAt: String(s.createdAt ?? new Date().toISOString()),
           completedAt: s.completedAt == null ? undefined : String(s.completedAt),
+          closureSummary:
+            s.closureSummary &&
+            typeof s.closureSummary === 'object' &&
+            'kicker' in s.closureSummary &&
+            'title' in s.closureSummary &&
+            'subtitle' in s.closureSummary &&
+            'sections' in s.closureSummary
+              ? (s.closureSummary as ChatClosureSummary)
+              : null,
         }));
         const baseDefs = [
           { id: 'chat-1', label: '1', name: 'Diagnóstico financiero' },
@@ -2076,7 +2119,14 @@ export default function AgentPage() {
         setLevelUpText(`Hito desbloqueado: ${res.milestone_unlocked.feature}`);
       }
       if (res?.meta?.product_lifecycle) {
-        const metaLifecycle = res.meta.product_lifecycle;
+        const metaLifecycle = res.meta.product_lifecycle as typeof res.meta.product_lifecycle & {
+          closing_summary?: ChatClosureSummary | null;
+        };
+        const closureSummary =
+          metaLifecycle.closing_summary &&
+          typeof metaLifecycle.closing_summary === 'object'
+            ? (metaLifecycle.closing_summary as ChatClosureSummary)
+            : null;
         setProductLifecycle((prev) => ({
           ...(prev ?? {}),
           phase: typeof metaLifecycle.phase === 'string' ? metaLifecycle.phase : prev?.phase,
@@ -2104,6 +2154,13 @@ export default function AgentPage() {
               ? metaLifecycle.closing_mode
               : prev?.closingMode,
         }));
+        if (closureSummary) {
+          setChatThreads((prev) =>
+            prev.map((thread) =>
+              thread.id === activeChatId ? { ...thread, closureSummary } : thread,
+            ),
+          );
+        }
       }
       forceRender((x) => x + 1);
 
@@ -3599,6 +3656,24 @@ export default function AgentPage() {
           </div>
         ) : null}
 
+        {isActiveChatClosed ? (
+          <div className="agent-chat-closure-bar">
+            <button
+              type="button"
+              className="agent-chat-closure-toggle"
+              onClick={() => setShowFullClosedChat((prev) => !prev)}
+            >
+              {showFullClosedChat ? 'Volver al cierre' : 'Ver chat completo'}
+            </button>
+          </div>
+        ) : isActiveChatCloseoutWindow ? (
+          <div className="agent-chat-closure-bar">
+            <span className="agent-chat-closure-hint">
+              Quedan {activeTurnsRemaining} interacciones. Vamos a cerrar con precisión.
+            </span>
+          </div>
+        ) : null}
+
         <div className="agent-chat-body">
           <ChatThreadView
             items={items}
@@ -3624,6 +3699,9 @@ export default function AgentPage() {
             onPanelAction={openPanelSectionFromChat}
             flowPanelAction={getNextFlowPanelAction()}
             visualMode={visualMode}
+            compactClosedView={isActiveChatClosed}
+            showFullChat={showFullClosedChat}
+            closingSummary={activeThreadClosureSummary}
           />
 
           {activeChatId === 'chat-3' && (
@@ -3640,16 +3718,18 @@ export default function AgentPage() {
             </div>
           )}
 
-          {!isMobileViewport ? terminalComposerShell : null}
+          {!isMobileViewport && !isActiveChatClosed ? terminalComposerShell : null}
         </div>
       </section>
 
       {isMobileViewport ? (
-        <div
-          className={`agent-mobile-composer-dock${input.trim() ? ' has-composer-text' : ''}${isComposerFocused ? ' composer-focused' : ''}`}
-        >
-          {terminalComposerShell}
-        </div>
+        !isActiveChatClosed ? (
+          <div
+            className={`agent-mobile-composer-dock${input.trim() ? ' has-composer-text' : ''}${isComposerFocused ? ' composer-focused' : ''}`}
+          >
+            {terminalComposerShell}
+          </div>
+        ) : null
       ) : null}
 
       <SidePanels

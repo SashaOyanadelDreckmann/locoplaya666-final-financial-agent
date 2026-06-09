@@ -357,13 +357,6 @@ export function TransactionsModal(props: TransactionsModalProps) {
     0,
     libraryProductCards.findIndex((entry) => entry.product.id === props.selectedProductId),
   );
-  const orderedProductCards =
-    libraryProductCards.length === 0
-      ? []
-      : Array.from(
-          { length: libraryProductCards.length },
-          (_, offset) => libraryProductCards[(productCarouselIndex + offset) % libraryProductCards.length]
-        );
   const selectLibraryProductAt = (index: number) => {
     if (libraryProductCards.length === 0) return;
     const nextIndex = ((index % libraryProductCards.length) + libraryProductCards.length) % libraryProductCards.length;
@@ -572,7 +565,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
             <div className="pt-list">
               {libraryProductCards.length > 0 ? (
                 <TxLibraryCardStack
-                  cards={orderedProductCards}
+                  cards={libraryProductCards}
                   productCarouselIndex={productCarouselIndex}
                   recentlyDockedProductId={recentlyDockedProductId}
                   prefersReducedMotion={prefersReducedMotion}

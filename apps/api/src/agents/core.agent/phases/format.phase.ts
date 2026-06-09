@@ -129,6 +129,21 @@ function resolveFormatFunnelStage(input: FormatPhaseInput): ActionPlanFunnelStag
   });
 }
 
+function resolveCloseoutWindow(input: FormatPhaseInput): {
+  turnsRemaining: number | null;
+  isCloseoutWindow: boolean;
+} {
+  const turnsRemainingRaw = input.ui_state?.product_turns_remaining;
+  const turnsRemaining =
+    typeof turnsRemainingRaw === 'number' && Number.isFinite(turnsRemainingRaw)
+      ? Math.max(0, Math.floor(turnsRemainingRaw))
+      : null;
+  return {
+    turnsRemaining,
+    isCloseoutWindow: turnsRemaining !== null ? turnsRemaining <= 2 && turnsRemaining > 0 : false,
+  };
+}
+
 export function ensureDecisionDisclaimer(message: string, input: FormatPhaseInput): string {
   if (!shouldEnforceDecisionDisclaimer(input)) return message;
   if (hasRecentDecisionDisclaimer(input)) return message;
@@ -168,6 +183,7 @@ async function buildFastValuableMessage(input: FormatPhaseInput): Promise<string
       : null;
   const recommendationProfile = profileObj ? JSON.stringify(profileObj) : '';
   const detailLevel = (profileObj?.detail_level as string | undefined) ?? 'medium';
+  const closeoutWindow = resolveCloseoutWindow(input);
 
   const funnelStage = resolveFormatFunnelStage(input);
   const funnelInstructions = funnelStage ? buildActionPlanFormatInstructions(funnelStage) : '';
@@ -186,6 +202,9 @@ async function buildFastValuableMessage(input: FormatPhaseInput): Promise<string
 
   const prompt = [
     funnelInstructions,
+    closeoutWindow.isCloseoutWindow
+      ? 'Quedan 2 interacciones o menos: prepara un cierre elegante, no abras subtemas nuevos innecesarios y deja el hilo listo para cerrarse en la siguiente vuelta.'
+      : '',
     funnelStage === 'deliver'
       ? 'Responde en español (Chile) con documento ejecutivo completo; secciones ## obligatorias; minimo 900 palabras si hay contexto.'
       : funnelStage === 'brainstorm'
@@ -206,6 +225,9 @@ async function buildFastValuableMessage(input: FormatPhaseInput): Promise<string
     `Arquitectura del producto: ${productDirective || 'sin directiva especial'}`,
     marketSnapshot ? `Mercado vivo: ${marketSnapshot}` : '',
     recommendationProfile ? `Suitability: ${recommendationProfile}` : '',
+    closeoutWindow.turnsRemaining !== null
+      ? `Turnos restantes reales del chat: ${closeoutWindow.turnsRemaining}`
+      : '',
     `Herramientas usadas: ${toolsUsed.join(', ') || 'ninguna'}`,
     `Artefactos: ${artifacts.map((a) => a.title).join(' | ') || 'ninguno'}`,
     '',

@@ -7,9 +7,11 @@ export {
 import { humanizeDiagnosticText } from '@/lib/diagnosticText';
 import type { ChatItem } from '@/lib/agent.response.types';
 import {
+  buildChatClosureSummary,
   getClosingModeTurn,
   MAX_CHAT_TURNS_BY_CHAT,
   resolveActionPlanFunnelStage,
+  type ChatClosureSummary,
 } from '@financial-agent/shared';
 
 export const MAX_CHAT_INTERACTIONS: Record<string, number> = {
@@ -38,6 +40,9 @@ export function resolveActiveActionPlanStage(params: {
     closingMode: params.closingMode,
   });
 }
+
+export { buildChatClosureSummary };
+export type { ChatClosureSummary };
 
 export type Chat1UxState = 'baseReading' | 'interviewAvailable' | 'diagnosisCompleted';
 

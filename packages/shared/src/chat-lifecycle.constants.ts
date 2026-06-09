@@ -16,3 +16,7 @@ export function getClosingModeTurn(chatId: ProductChatId): number {
   const maxTurns = getMaxChatTurns(chatId);
   return Math.max(4, maxTurns - 6);
 }
+
+export function getRemainingChatTurns(chatId: ProductChatId, turnCount: number): number {
+  return Math.max(0, getMaxChatTurns(chatId) - Math.max(0, Math.floor(Number(turnCount ?? 0))));
+}

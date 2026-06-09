@@ -56,6 +56,7 @@ import {
   INTERVIEW_REALTIME_VOICES,
   INTERVIEW_REALTIME_VOICE_DEFAULT,
   INTERVIEW_REALTIME_VOICE_SPEED,
+  getRemainingChatTurns,
 } from '@financial-agent/shared';
 
 const router = Router();
@@ -1360,6 +1361,10 @@ router.post(
         ...(input.ui_state ?? {}),
         product_phase: lifecycleDecision.state.phase,
         product_turn_count: lifecycleDecision.state.chatTurns[lifecycleDecision.activeChatId] ?? 0,
+        product_turns_remaining: getRemainingChatTurns(
+          lifecycleDecision.activeChatId,
+          lifecycleDecision.state.chatTurns[lifecycleDecision.activeChatId] ?? 0,
+        ),
         product_closing_mode: lifecycleDecision.closingMode,
       },
     };
@@ -1455,7 +1460,10 @@ router.post(
       });
       response.meta = {
         ...((response.meta as Record<string, unknown>) ?? {}),
-        ...lifecycleMeta(nextLifecycle, lifecycleDecision.activeChatId),
+        ...lifecycleMeta(nextLifecycle, lifecycleDecision.activeChatId, {
+          userMessage: String(input.user_message ?? ''),
+          assistantMessage: String(response.message ?? ''),
+        }),
       };
     } catch (lifecycleErr) {
       req.logger?.warn({ msg: 'Error persisting product lifecycle', error: lifecycleErr });

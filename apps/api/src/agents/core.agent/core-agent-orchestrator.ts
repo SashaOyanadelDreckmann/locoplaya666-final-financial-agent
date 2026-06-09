@@ -113,6 +113,10 @@ export async function runCoreAgent(input: ChatAgentInput): Promise<ChatAgentResp
         typeof inputUiState.product_turn_count === 'number'
           ? inputUiState.product_turn_count
           : undefined,
+      turnsRemaining:
+        typeof inputUiState.product_turns_remaining === 'number'
+          ? inputUiState.product_turns_remaining
+          : undefined,
       closingMode: inputUiState.product_closing_mode === true,
     });
 
@@ -138,6 +142,8 @@ export async function runCoreAgent(input: ChatAgentInput): Promise<ChatAgentResp
         budget_summary: inputUiState.budget_summary || null,
         milestone_details: inputUiState.milestone_details || [],
         flow_status: inputUiState.flow_status || null,
+        product_turns_remaining: inputUiState.product_turns_remaining ?? null,
+        product_closing_mode: inputUiState.product_closing_mode === true,
       },
       recommendation_profile: recommendationProfile,
     };

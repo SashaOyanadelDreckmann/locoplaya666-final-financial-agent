@@ -251,19 +251,22 @@
   margin: 0 !important;
 }
 
-/* ── Library stack ────────────────────────────────────────────────────────── */
-.transactions-modal .tx-library-stack-block {
-  width: 100% !important;
-  gap: 12px !important;
+/* ── Library scanner stream ───────────────────────────────────────────────── */
+@keyframes tx-scanner-glitch {
+  0%, 16%, 50%, 100% { opacity: 1; }
+  15%, 99% { opacity: 0.9; }
+  49% { opacity: 0.8; }
 }
 
-.transactions-modal .pt-stack-carousel.tx-library-is-saved {
-  position: relative !important;
+@keyframes tx-scanner-pulse {
+  0% { opacity: 0.75; transform: translate(-50%, -50%) scaleY(1); }
+  100% { opacity: 1; transform: translate(-50%, -50%) scaleY(1.03); }
+}
+
+.transactions-modal .tx-library-stack-block {
   width: 100% !important;
-  min-height: 220px !important;
-  height: 220px !important;
+  gap: 8px !important;
   overflow: visible !important;
-  padding: 8px 0 10px !important;
 }
 
 .transactions-modal .pt-list {
@@ -271,27 +274,239 @@
   overflow: visible !important;
 }
 
-/* Library card shell: valid button + corner delete — stretch content, left-aligned copy */
-.transactions-modal .pt-stack-carousel.tx-library-is-saved .pt-item.pt-item-stack.tx-lib-card {
+.transactions-modal .tx-scanner-stream-root {
+  width: 100% !important;
   display: flex !important;
   flex-direction: column !important;
   align-items: stretch !important;
-  justify-content: stretch !important;
-  text-align: left !important;
-  padding: 0 !important;
+  gap: 8px !important;
+  overflow: visible !important;
 }
 
-.transactions-modal .tx-lib-card-select {
-  flex: 1 1 auto !important;
-  min-height: 0 !important;
+.transactions-modal .tx-scanner-stage {
+  position: relative !important;
+  width: 100% !important;
+  min-height: var(--tx-scanner-stage-height, 168px) !important;
+  height: var(--tx-scanner-stage-height, 168px) !important;
+  overflow: hidden !important;
+  isolation: isolate !important;
+  border-radius: 14px !important;
+}
+
+.transactions-modal .tx-scanner-particle-canvas,
+.transactions-modal .tx-scanner-fx-canvas {
+  position: absolute !important;
+  top: 50% !important;
+  left: 0 !important;
+  width: 100% !important;
+  transform: translateY(-50%) !important;
+  pointer-events: none !important;
+}
+
+.transactions-modal .tx-scanner-particle-canvas {
+  z-index: 0 !important;
+}
+
+.transactions-modal .tx-scanner-fx-canvas {
+  z-index: 2 !important;
+}
+
+.transactions-modal .tx-scanner-line {
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  width: 2px !important;
+  transform: translate(-50%, -50%) !important;
+  border-radius: 999px !important;
+  background: linear-gradient(to bottom, transparent, #a78bfa, transparent) !important;
+  opacity: 0 !important;
+  transition: opacity 0.28s ease !important;
+  z-index: 4 !important;
+  pointer-events: none !important;
+  box-shadow:
+    0 0 8px #a78bfa,
+    0 0 16px #8b5cf6,
+    0 0 28px #6366f1 !important;
+}
+
+.transactions-modal .tx-scanner-line.is-active,
+.transactions-modal .tx-scanner-line.is-reduced {
+  opacity: 0.92 !important;
+}
+
+.transactions-modal .tx-scanner-line.animate-scan-pulse {
+  animation: tx-scanner-pulse 1.5s infinite alternate ease-in-out !important;
+}
+
+.transactions-modal .tx-scanner-track {
+  position: absolute !important;
+  inset: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  overflow: hidden !important;
+  z-index: 3 !important;
+}
+
+.transactions-modal .tx-scanner-card-line {
+  display: flex !important;
+  align-items: center !important;
+  white-space: nowrap !important;
+  cursor: grab !important;
+  user-select: none !important;
+  will-change: transform !important;
+  touch-action: pan-y !important;
+}
+
+.transactions-modal .tx-scanner-card-line:active {
+  cursor: grabbing !important;
+}
+
+.transactions-modal .tx-scanner-card-wrapper {
+  position: relative !important;
+  flex-shrink: 0 !important;
+  overflow: visible !important;
+}
+
+.transactions-modal .tx-scanner-card-hit {
+  position: relative !important;
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  cursor: grab !important;
+  text-align: left !important;
+}
+
+.transactions-modal .tx-scanner-card-normal,
+.transactions-modal .tx-scanner-card-ascii {
+  position: absolute !important;
+  inset: 0 !important;
+  border-radius: 14px !important;
+  overflow: hidden !important;
+}
+
+.transactions-modal .tx-scanner-card-normal {
+  z-index: 2 !important;
+  clip-path: inset(0 0 0 var(--clip-right, 0%)) !important;
+}
+
+.transactions-modal .tx-scanner-card-ascii {
+  z-index: 1 !important;
+  clip-path: inset(0 calc(100% - var(--clip-left, 0%)) 0 0) !important;
+  pointer-events: none !important;
+}
+
+.transactions-modal .tx-scanner-ascii-content {
+  position: absolute !important;
+  inset: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  color: rgba(220, 210, 255, 0.58) !important;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+  font-size: 8px !important;
+  line-height: 10px !important;
+  overflow: hidden !important;
+  white-space: pre !important;
+  text-align: left !important;
+  mask-image: linear-gradient(
+    to right,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 0.8) 30%,
+    rgba(0, 0, 0, 0.6) 50%,
+    rgba(0, 0, 0, 0.4) 80%,
+    rgba(0, 0, 0, 0.2) 100%
+  ) !important;
+  animation: tx-scanner-glitch 0.1s infinite linear alternate-reverse !important;
+}
+
+.transactions-modal .tx-scanner-lib-card.tx-lib-card {
+  position: relative !important;
+  width: 100% !important;
+  height: 100% !important;
   display: flex !important;
   flex-direction: column !important;
   align-items: stretch !important;
   justify-content: flex-start !important;
-  gap: 6px !important;
-  padding: 14px 46px 14px 14px !important;
-  box-sizing: border-box !important;
   text-align: left !important;
+  padding: 10px 40px 10px 10px !important;
+  gap: 4px !important;
+  box-sizing: border-box !important;
+  border-radius: 14px !important;
+  overflow: hidden !important;
+  backdrop-filter: blur(10px) saturate(118%) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(118%) !important;
+}
+
+.transactions-modal .tx-scanner-nav {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  min-height: 34px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.transactions-modal .tx-scanner-nav-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 34px !important;
+  height: 34px !important;
+  min-width: 34px !important;
+  border-radius: 999px !important;
+  border: 1px solid var(--tx-contract-border) !important;
+  background: color-mix(in srgb, var(--tx-contract-surface-raised) 88%, transparent) !important;
+  color: var(--tx-contract-text) !important;
+  cursor: pointer !important;
+  transition: background 0.18s ease, transform 0.18s ease !important;
+}
+
+.transactions-modal .tx-scanner-nav-btn:hover {
+  background: color-mix(in srgb, var(--tx-contract-surface-raised) 96%, white 4%) !important;
+  transform: scale(1.04) !important;
+}
+
+.transactions-modal .tx-scanner-nav-icon {
+  width: 16px !important;
+  height: 16px !important;
+}
+
+.transactions-modal .tx-scanner-dots {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 5px !important;
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  max-width: 180px !important;
+  flex-wrap: wrap !important;
+}
+
+.transactions-modal .tx-scanner-dot {
+  width: 6px !important;
+  height: 6px !important;
+  min-width: 6px !important;
+  border-radius: 999px !important;
+  border: none !important;
+  padding: 0 !important;
+  background: color-mix(in srgb, var(--tx-contract-text) 28%, transparent) !important;
+  cursor: pointer !important;
+  transition: width 0.22s ease, background 0.22s ease !important;
+}
+
+.transactions-modal .tx-scanner-dot.is-active {
+  width: 22px !important;
+  background: var(--tx-contract-text) !important;
+}
+
+.transactions-modal .tx-scanner-nav-status {
+  font-size: 10px !important;
+  letter-spacing: 0.08em !important;
+  color: var(--tx-contract-text-dim) !important;
+  flex-shrink: 0 !important;
 }
 
 .transactions-modal .tx-lib-card .tx-lib-card-top,
@@ -343,9 +558,8 @@
 }
 
 /* Premium palette: inline --tx-lib-inline-* vars (set per product in JSX) */
-.transactions-modal .pt-item.pt-item-stack.tx-lib-card,
-.transactions-modal .pt-item.pt-item-stack.tx-lib-card.is-top,
-.transactions-modal .pt-item.pt-item-stack.tx-lib-card:not(.is-top) {
+.transactions-modal .tx-scanner-lib-card.tx-lib-card,
+.transactions-modal .tx-scanner-lib-card.tx-lib-card.is-top {
   background: var(--tx-lib-inline-bg) !important;
   background-image: var(--tx-lib-inline-bg) !important;
   border: 1px solid var(--tx-lib-inline-edge, var(--tx-lib-edge)) !important;
@@ -353,27 +567,15 @@
   box-shadow: var(--tx-lib-inline-shadow) !important;
 }
 
-.transactions-modal .pt-item.pt-item-stack.tx-lib-card.is-top {
-  opacity: 1 !important;
-}
-
-.transactions-modal .pt-item.pt-item-stack.tx-lib-card:not(.is-top) {
-  opacity: calc(1 - (var(--pt-stack-idx, 0) * 0.08)) !important;
-}
-
-.transactions-modal .pt-item.pt-item-stack.tx-lib-card:not(.is-top) .pt-item-name,
-.transactions-modal .pt-item.pt-item-stack.tx-lib-card:not(.is-top) .pt-item-bank,
-.transactions-modal .pt-item.pt-item-stack.tx-lib-card:not(.is-top) .pt-item-status,
-.transactions-modal .pt-item.pt-item-stack.tx-lib-card:not(.is-top) .pt-item-meta,
-.transactions-modal .pt-item.pt-item-stack.tx-lib-card:not(.is-top) .pt-item-meta span,
-.transactions-modal .pt-item.pt-item-stack.tx-lib-card:not(.is-top) .pt-item-top,
-.transactions-modal .pt-item.pt-item-stack.tx-lib-card:not(.is-top) .tx-lib-card-eyebrow {
-  opacity: 0.72 !important;
+.transactions-modal .tx-scanner-lib-card.tx-lib-card:not(.is-top) .pt-item-name,
+.transactions-modal .tx-scanner-lib-card.tx-lib-card:not(.is-top) .pt-item-bank,
+.transactions-modal .tx-scanner-lib-card.tx-lib-card:not(.is-top) .pt-item-status,
+.transactions-modal .tx-scanner-lib-card.tx-lib-card:not(.is-top) .pt-item-meta,
+.transactions-modal .tx-scanner-lib-card.tx-lib-card:not(.is-top) .pt-item-meta span,
+.transactions-modal .tx-scanner-lib-card.tx-lib-card:not(.is-top) .pt-item-top,
+.transactions-modal .tx-scanner-lib-card.tx-lib-card:not(.is-top) .tx-lib-card-eyebrow {
+  opacity: 0.84 !important;
   filter: none !important;
-}
-
-.transactions-modal .pt-item.pt-item-stack.tx-lib-card:not(.is-top)::after {
-  display: none !important;
 }
 
 .transactions-modal .pt-item-delete-mini {
@@ -586,18 +788,13 @@
     color: var(--tx-contract-text-dim) !important;
   }
 
-  .transactions-modal .pt-stack-carousel.tx-library-is-saved {
-    min-height: 232px !important;
-    height: 232px !important;
-    padding: 6px 0 8px !important;
+  .transactions-modal .tx-scanner-stage {
+    border-radius: 12px !important;
   }
 
-  .transactions-modal .pt-stack-carousel.tx-library-is-saved .pt-item.pt-item-stack.tx-lib-card,
-  .transactions-modal .pt-stack-carousel.tx-library-is-saved .pt-item.pt-item-stack.tx-lib-card.is-top,
-  .transactions-modal .pt-stack-carousel.tx-library-is-saved .pt-item.pt-item-stack.tx-lib-card:not(.is-top) {
-    width: calc(100% - 24px) !important;
-    max-width: calc(100% - 24px) !important;
-    height: calc(100% - 16px) !important;
+  .transactions-modal .tx-scanner-lib-card.tx-lib-card {
+    padding: 9px 38px 9px 9px !important;
+    gap: 3px !important;
   }
 
   .transactions-modal .tx-lib-card-select {
@@ -691,9 +888,10 @@
     display: none !important;
   }
 
-  /* Mobile library: keep messy matte stack visible */
-  .transactions-modal .pt-stack-carousel.tx-library-matte-stack .pt-item.pt-item-stack.tx-lib-card:not(.is-top) {
-    display: flex !important;
+  .transactions-modal .tx-scanner-nav-btn {
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
   }
 
   .transactions-modal .tx-content-carousel .tx-3d-hero-shell {
@@ -898,6 +1096,14 @@
   .transactions-modal[data-reduced-motion='true'] .tx-panel-surface {
     transition: none !important;
   }
+
+  .transactions-modal[data-reduced-motion='true'] .tx-scanner-ascii-content {
+    animation: none !important;
+  }
+
+  .transactions-modal[data-reduced-motion='true'] .tx-scanner-line.animate-scan-pulse {
+    animation: none !important;
+  }
 }
 
 /* =============================================================================
@@ -915,19 +1121,12 @@
     flex-shrink: 0 !important;
   }
 
-  .transactions-modal .pt-stack-carousel.tx-library-matte-stack,
-  .transactions-modal .pt-stack-carousel.tx-library-is-saved.tx-library-matte-stack {
-    min-height: 248px !important;
-    height: 248px !important;
-    overflow: visible !important;
+  .transactions-modal .tx-library-stack-block {
+    gap: 8px !important;
   }
 
-  .transactions-modal .tx-library-matte-stack .pt-item.pt-item-stack.tx-lib-card {
-    width: calc(100% - 28px) !important;
-    max-width: calc(100% - 28px) !important;
-    height: calc(100% - 20px) !important;
-    top: 50% !important;
-    left: 50% !important;
+  .transactions-modal .tx-scanner-stage {
+    border-radius: 14px !important;
   }
 
   .transactions-modal .tx-content-card.tx-content-card--agent.is-main-center,
@@ -1494,10 +1693,17 @@
     width: 100% !important;
   }
 
-  .transactions-modal .pt-stack-carousel.tx-library-is-saved {
-    min-height: 220px !important;
-    height: 220px !important;
-    padding: 4px 0 6px !important;
+  .transactions-modal .tx-scanner-lib-card .pt-item-name {
+    font-size: clamp(15px, 4.2vw, 19px) !important;
+    line-height: 1.12 !important;
+  }
+
+  .transactions-modal .tx-scanner-lib-card .pt-item-bank {
+    font-size: 9px !important;
+  }
+
+  .transactions-modal .tx-scanner-lib-card .pt-item-meta {
+    font-size: 8px !important;
   }
 
   .transactions-modal .tx-lib-card-select {
