@@ -48,7 +48,7 @@ describe('transactions modal layout contract css', () => {
     expect(contractCss).toContain('var(--tx-lib-inline-bg)');
     expect(contractCss).toContain('-webkit-line-clamp: 2 !important');
     expect(contractCss).toContain('.transactions-modal .pt-left.tx-panel-surface--library');
-    expect(contractCss).toContain('var(--tx-panel-mustard-bg)');
+    expect(contractCss).toContain('var(--tx-panel-library-bg)');
     expect(contractCss).toContain('.transactions-modal .tx-scanner-stream-root.is-quiet');
   });
 

@@ -40,8 +40,19 @@ export function TxLibraryCardStack({
     [cards],
   );
 
+  const focusedPaletteIndex = paletteIndices[productCarouselIndex] ?? productCarouselIndex;
+  const focusedCardColor = PRODUCT_STACK_PALETTE[focusedPaletteIndex] ?? PRODUCT_STACK_PALETTE[0];
+  const focusedCardAccent =
+    PRODUCT_STACK_TEXT_PALETTE[focusedPaletteIndex] ?? PRODUCT_STACK_TEXT_PALETTE[0];
+
   return (
-    <div className="tx-library-stack-block">
+    <div
+      className="tx-library-stack-block"
+      style={{
+        ['--tx-lib-nav-accent' as string]: focusedCardColor,
+        ['--tx-lib-nav-accent-edge' as string]: focusedCardAccent,
+      }}
+    >
       <ScannerCardStream
         items={cards.map((entry) => ({ ...entry, id: entry.product.id }))}
         activeIndex={productCarouselIndex}

@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils';
 
 const ASCII_CHARS =
   'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789(){}[]<>;:,._-+=!@#$%^&*|\\/\"\'`~?';
+const ASCII_LINE_HEIGHT = 10;
 
 function generateCode(width: number, height: number): string {
   let text = '';
@@ -72,13 +73,23 @@ function canUseWebGl(): boolean {
   }
 }
 
-function deriveMetrics(containerWidth: number, cardWidthRatio = 0.58): ScannerMetrics {
+function deriveMetrics(
+  containerWidth: number,
+  cardWidthRatio = 0.58,
+  compactStage = false,
+): ScannerMetrics {
   const safeWidth = Math.max(240, containerWidth);
   const cardWidth = Math.max(168, Math.min(safeWidth - 24, Math.round(safeWidth * cardWidthRatio)));
   const cardHeight = Math.round(cardWidth * 0.625);
   const cardGap = Math.max(12, Math.round(cardWidth * 0.1));
-  const stageHeight = cardHeight + 28;
+  const stageHeight = compactStage ? cardHeight : cardHeight + 28;
   return { containerWidth: safeWidth, cardWidth, cardHeight, stageHeight, cardGap };
+}
+
+function deriveAsciiGrid(cardWidth: number, cardHeight: number) {
+  const asciiWidth = Math.max(18, Math.floor(cardWidth / 6.5));
+  const asciiHeight = Math.max(10, Math.ceil(cardHeight / ASCII_LINE_HEIGHT));
+  return { asciiWidth, asciiHeight };
 }
 
 export function ScannerCardStream<T extends ScannerStreamCard>({
@@ -105,7 +116,9 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
   const originalAscii = useRef(new Map<number, string>());
   const streamId = useId().replace(/:/g, '');
 
-  const [metrics, setMetrics] = useState<ScannerMetrics>(() => deriveMetrics(320, cardWidthRatio));
+  const [metrics, setMetrics] = useState<ScannerMetrics>(() =>
+    deriveMetrics(320, cardWidthRatio, quietMode),
+  );
   const [isScanning, setIsScanning] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState(activeIndex);
@@ -118,8 +131,7 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
   const streamCards = useMemo(() => {
     if (itemCount === 0) return [];
     const totalCards = itemCount * loopRepeat;
-    const asciiWidth = Math.max(18, Math.floor(metrics.cardWidth / 6.5));
-    const asciiHeight = Math.max(10, Math.floor(metrics.cardHeight / 13));
+    const { asciiWidth, asciiHeight } = deriveAsciiGrid(metrics.cardWidth, metrics.cardHeight);
     return Array.from({ length: totalCards }, (_, i) => ({
       streamId: i,
       sourceIndex: i % itemCount,
@@ -257,7 +269,7 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
     const updateMetrics = () => {
       const width = node.offsetWidth;
       if (width <= 0) return;
-      setMetrics(deriveMetrics(width, cardWidthRatio));
+      setMetrics(deriveMetrics(width, cardWidthRatio, quietMode));
     };
 
     updateMetrics();
@@ -270,7 +282,7 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
 
     window.addEventListener('resize', updateMetrics);
     return () => window.removeEventListener('resize', updateMetrics);
-  }, [cardWidthRatio]);
+  }, [cardWidthRatio, quietMode]);
 
   useLayoutEffect(() => {
     if (!quietMode || itemCount === 0) return;
@@ -326,8 +338,7 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
       if (prefersReducedMotion || element.dataset.scrambling === 'true') return;
       element.dataset.scrambling = 'true';
       const originalText = originalAscii.current.get(cardId) || '';
-      const asciiWidth = Math.max(18, Math.floor(metrics.cardWidth / 6.5));
-      const asciiHeight = Math.max(10, Math.floor(metrics.cardHeight / 13));
+      const { asciiWidth, asciiHeight } = deriveAsciiGrid(metrics.cardWidth, metrics.cardHeight);
       let scrambleCount = 0;
       const maxScrambles = 8;
       const interval = window.setInterval(() => {
@@ -798,7 +809,7 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
               'is-matte',
               isScanning ? 'is-active' : 'is-settled',
             )}
-            style={{ height: metrics.cardHeight + 12 }}
+            style={{ height: metrics.cardHeight }}
             aria-hidden="true"
           />
         ) : !quietMode && !prefersReducedMotion ? (
@@ -808,7 +819,7 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
               isScanning ? 'is-active' : '',
               prefersReducedMotion ? 'is-reduced' : 'animate-scan-pulse',
             )}
-            style={{ height: metrics.cardHeight + 12 }}
+            style={{ height: metrics.cardHeight }}
             aria-hidden="true"
           />
         ) : null}
@@ -826,7 +837,14 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
                   className="tx-scanner-card-wrapper"
                   data-stream-id={card.streamId}
                   data-source-index={card.sourceIndex}
-                  style={{ width: metrics.cardWidth, height: metrics.cardHeight }}
+                  style={{
+                    width: metrics.cardWidth,
+                    height: metrics.cardHeight,
+                    ['--tx-scanner-card-height' as string]: `${metrics.cardHeight}px`,
+                    ['--tx-scanner-ascii-lines' as string]: String(
+                      deriveAsciiGrid(metrics.cardWidth, metrics.cardHeight).asciiHeight,
+                    ),
+                  }}
                 >
                   <div
                     role="button"
