@@ -47,7 +47,7 @@ export type ScannerCardStreamProps<T extends ScannerStreamCard> = {
   scanEffect?: 'clip' | 'scramble';
   showNav?: boolean;
   navStatusLabel?: (active: number, total: number) => string;
-  /** Matte carousel: no scanner FX, no auto-scroll, stable at rest */
+  /** Stable carousel: no auto-scroll or heavy particles; scanner clip on transitions only */
   quietMode?: boolean;
   /** Fraction of container width used for card width (default 0.58) */
   cardWidthRatio?: number;
@@ -137,6 +137,17 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
   });
 
   const scannerState = useRef({ isScanning: false });
+  const transitionRef = useRef({ isAnimating: false, snapFrameId: 0 });
+  const animateToIndexRef = useRef<(sourceIndex: number, onComplete?: () => void) => void>(() => {});
+  const updateCardEffectsRef = useRef<(() => void) | null>(null);
+
+  const cancelSnapAnimation = useCallback(() => {
+    if (transitionRef.current.snapFrameId) {
+      window.cancelAnimationFrame(transitionRef.current.snapFrameId);
+      transitionRef.current.snapFrameId = 0;
+    }
+    transitionRef.current.isAnimating = false;
+  }, []);
 
   const getScannerX = useCallback(() => {
     const width = rootRef.current?.offsetWidth ?? metrics.containerWidth;
@@ -148,25 +159,39 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
     [metrics.cardGap, metrics.cardWidth],
   );
 
-  const centerOnSourceIndex = useCallback(
-    (sourceIndex: number, immediate = false) => {
-      const cardLine = cardLineRef.current;
+  const getTargetPositionForIndex = useCallback(
+    (sourceIndex: number) => {
       const container = rootRef.current;
-      if (!cardLine || !container || itemCount === 0) return;
-
+      if (!container || itemCount === 0) return 0;
       const cardStep = getCardStep();
       const scannerX = container.offsetWidth / 2;
       const baseIndex = Math.max(0, Math.min(itemCount - 1, sourceIndex));
       const targetStreamIndex = itemCount + baseIndex;
       const cardCenter = targetStreamIndex * cardStep + metrics.cardWidth / 2;
-      const nextPosition = scannerX - cardCenter;
+      return scannerX - cardCenter;
+    },
+    [getCardStep, itemCount, metrics.cardWidth],
+  );
 
+  const centerOnSourceIndex = useCallback(
+    (sourceIndex: number, immediate = false) => {
+      const cardLine = cardLineRef.current;
+      if (!cardLine || itemCount === 0) return;
+
+      const baseIndex = Math.max(0, Math.min(itemCount - 1, sourceIndex));
+      if (quietMode && !immediate && !prefersReducedMotion) {
+        animateToIndexRef.current(baseIndex);
+        return;
+      }
+
+      const nextPosition = getTargetPositionForIndex(baseIndex);
       cardStreamState.current.position = nextPosition;
       cardStreamState.current.velocity = 0;
       cardLine.style.transform = `translateX(${nextPosition}px)`;
       setFocusedIndex(baseIndex);
+      window.requestAnimationFrame(() => updateCardEffectsRef.current?.());
     },
-    [getCardStep, initialSpeed, itemCount, metrics.cardWidth],
+    [getTargetPositionForIndex, itemCount, prefersReducedMotion, quietMode],
   );
 
   const resolveFocusedSourceIndex = useCallback(() => {
@@ -197,10 +222,14 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
     (delta: number) => {
       if (itemCount === 0) return;
       const nextIndex = (focusedIndex + delta + itemCount) % itemCount;
+      if (quietMode && !prefersReducedMotion) {
+        animateToIndexRef.current(nextIndex, () => onActiveIndexChange?.(nextIndex));
+        return;
+      }
       centerOnSourceIndex(nextIndex, true);
       onActiveIndexChange?.(nextIndex);
     },
-    [centerOnSourceIndex, focusedIndex, itemCount, onActiveIndexChange],
+    [centerOnSourceIndex, focusedIndex, itemCount, onActiveIndexChange, prefersReducedMotion, quietMode],
   );
 
   useEffect(() => {
@@ -244,6 +273,23 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
       centerOnSourceIndex(activeIndex, true);
     }
 
+    const resetCardClipsToNormal = () => {
+      cardLine.querySelectorAll<HTMLElement>('.tx-scanner-card-wrapper').forEach((wrapper) => {
+        const normalCard = wrapper.querySelector<HTMLElement>('.tx-scanner-card-normal');
+        const asciiCard = wrapper.querySelector<HTMLElement>('.tx-scanner-card-ascii');
+        if (!normalCard || !asciiCard) return;
+        normalCard.style.setProperty('--clip-right', '0%');
+        asciiCard.style.setProperty('--clip-left', '0%');
+        delete wrapper.dataset.scanned;
+      });
+    };
+
+    const settleQuietCarousel = () => {
+      resetCardClipsToNormal();
+      setIsScanning(false);
+      scannerState.current.isScanning = false;
+    };
+
     const runScrambleEffect = (element: HTMLElement, cardId: number) => {
       if (prefersReducedMotion || element.dataset.scrambling === 'true') return;
       element.dataset.scrambling = 'true';
@@ -264,14 +310,19 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
     };
 
     const updateCardEffects = () => {
-      if (quietMode) {
-        const nextIndex = resolveFocusedSourceIndex();
-        setFocusedIndex(nextIndex);
+      const nextIndex = resolveFocusedSourceIndex();
+      setFocusedIndex(nextIndex);
+
+      const isTransitioning =
+        cardStreamState.current.isDragging || transitionRef.current.isAnimating;
+
+      if (quietMode && !isTransitioning) {
+        settleQuietCarousel();
         return;
       }
 
       const scannerX = getScannerX();
-      const scannerWidth = 6;
+      const scannerWidth = quietMode ? 8 : 6;
       const scannerLeft = scannerX - scannerWidth / 2;
       const scannerRight = scannerX + scannerWidth / 2;
       let anyCardIsScanning = false;
@@ -310,14 +361,62 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
         }
       });
 
-      setIsScanning(anyCardIsScanning);
-      scannerState.current.isScanning = anyCardIsScanning;
-      setFocusedIndex(resolveFocusedSourceIndex());
+      const showScanLine = quietMode ? isTransitioning : anyCardIsScanning;
+      setIsScanning(showScanLine);
+      scannerState.current.isScanning = showScanLine;
+    };
+
+    updateCardEffectsRef.current = updateCardEffects;
+
+    animateToIndexRef.current = (sourceIndex: number, onComplete?: () => void) => {
+      cancelSnapAnimation();
+      const baseIndex = Math.max(0, Math.min(itemCount - 1, sourceIndex));
+      const targetPosition = getTargetPositionForIndex(baseIndex);
+
+      if (prefersReducedMotion) {
+        cardStreamState.current.position = targetPosition;
+        cardLine.style.transform = `translateX(${targetPosition}px)`;
+        setFocusedIndex(baseIndex);
+        settleQuietCarousel();
+        onComplete?.();
+        return;
+      }
+
+      const start = cardStreamState.current.position;
+      const startTime = performance.now();
+      const duration = 480;
+      transitionRef.current.isAnimating = true;
+      setIsScanning(true);
+
+      const tick = (now: number) => {
+        const progress = Math.min(1, (now - startTime) / duration);
+        const eased = 1 - (1 - progress) ** 3;
+        const nextPosition = start + (targetPosition - start) * eased;
+        cardStreamState.current.position = nextPosition;
+        cardLine.style.transform = `translateX(${nextPosition}px)`;
+        updateCardEffects();
+
+        if (progress < 1) {
+          transitionRef.current.snapFrameId = window.requestAnimationFrame(tick);
+          return;
+        }
+
+        transitionRef.current.snapFrameId = 0;
+        transitionRef.current.isAnimating = false;
+        cardStreamState.current.position = targetPosition;
+        cardLine.style.transform = `translateX(${targetPosition}px)`;
+        setFocusedIndex(baseIndex);
+        settleQuietCarousel();
+        onComplete?.();
+      };
+
+      transitionRef.current.snapFrameId = window.requestAnimationFrame(tick);
     };
 
     const handleMouseDown = (event: MouseEvent | TouchEvent) => {
       if ('button' in event && event.button !== 0) return;
       event.preventDefault();
+      cancelSnapAnimation();
       const clientX = 'touches' in event ? event.touches[0].clientX : event.clientX;
       cardStreamState.current.isDragging = true;
       cardStreamState.current.lastMouseX = clientX;
@@ -327,6 +426,7 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
         const matrix = new DOMMatrix(transform);
         cardStreamState.current.position = matrix.m41;
       }
+      setIsScanning(true);
     };
 
     const handleMouseMove = (event: MouseEvent | TouchEvent) => {
@@ -340,30 +440,41 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
       updateCardEffects();
     };
 
-    const snapToFocusedCard = () => {
-      const nextIndex = resolveFocusedSourceIndex();
-      centerOnSourceIndex(nextIndex, true);
-      setFocusedIndex(nextIndex);
-      onActiveIndexChange?.(nextIndex);
-    };
-
     const handleMouseUp = () => {
       if (!cardStreamState.current.isDragging) return;
       cardStreamState.current.isDragging = false;
       cardStreamState.current.velocity = 0;
-      snapToFocusedCard();
+      const nextIndex = resolveFocusedSourceIndex();
+      if (quietMode && !prefersReducedMotion) {
+        animateToIndexRef.current(nextIndex, () => onActiveIndexChange?.(nextIndex));
+        return;
+      }
+      centerOnSourceIndex(nextIndex, true);
+      onActiveIndexChange?.(nextIndex);
     };
+
+    let wheelSnapTimer: number | null = null;
 
     const handleWheel = (event: WheelEvent) => {
       event.preventDefault();
+      cancelSnapAnimation();
       const scrollSpeed = 16;
       const delta = event.deltaY > 0 ? scrollSpeed : -scrollSpeed;
       cardStreamState.current.position += delta;
       cardLine.style.transform = `translateX(${cardStreamState.current.position}px)`;
       updateCardEffects();
-      const nextIndex = resolveFocusedSourceIndex();
-      setFocusedIndex(nextIndex);
-      onActiveIndexChange?.(nextIndex);
+      setIsScanning(true);
+      if (wheelSnapTimer !== null) window.clearTimeout(wheelSnapTimer);
+      wheelSnapTimer = window.setTimeout(() => {
+        wheelSnapTimer = null;
+        const nextIndex = resolveFocusedSourceIndex();
+        if (quietMode && !prefersReducedMotion) {
+          animateToIndexRef.current(nextIndex, () => onActiveIndexChange?.(nextIndex));
+          return;
+        }
+        setFocusedIndex(nextIndex);
+        onActiveIndexChange?.(nextIndex);
+      }, 140);
     };
 
     cardLine.addEventListener('mousedown', handleMouseDown);
@@ -377,6 +488,10 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
     if (quietMode) {
       updateCardEffects();
       return () => {
+        if (wheelSnapTimer !== null) window.clearTimeout(wheelSnapTimer);
+        cancelSnapAnimation();
+        updateCardEffectsRef.current = null;
+        animateToIndexRef.current = () => {};
         cardLine.removeEventListener('mousedown', handleMouseDown);
         window.removeEventListener('mousemove', handleMouseMove);
         window.removeEventListener('mouseup', handleMouseUp);
@@ -554,6 +669,7 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
     animationFrameId = window.requestAnimationFrame(animate);
 
     return () => {
+      if (wheelSnapTimer !== null) window.clearTimeout(wheelSnapTimer);
       window.cancelAnimationFrame(animationFrameId);
       cardLine.removeEventListener('mousedown', handleMouseDown);
       window.removeEventListener('mousemove', handleMouseMove);
@@ -569,10 +685,12 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
     };
   }, [
     activeIndex,
+    cancelSnapAnimation,
     centerOnSourceIndex,
     friction,
     getCardStep,
     getScannerX,
+    getTargetPositionForIndex,
     itemCount,
     metrics.cardGap,
     metrics.cardHeight,
@@ -620,12 +738,14 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
             aria-hidden="true"
           />
         ) : null}
-        {!quietMode ? (
+        {!prefersReducedMotion ? (
           <div
             className={cn(
               'tx-scanner-line',
-              isScanning ? 'is-active' : '',
-              prefersReducedMotion ? 'is-reduced' : 'animate-scan-pulse',
+              quietMode && 'is-matte',
+              isScanning ? 'is-active' : 'is-settled',
+              !quietMode && prefersReducedMotion ? 'is-reduced' : '',
+              !quietMode && !prefersReducedMotion ? 'animate-scan-pulse' : '',
             )}
             style={{ height: metrics.cardHeight + 12 }}
             aria-hidden="true"
@@ -654,12 +774,25 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
                     aria-label={`Seleccionar producto ${card.sourceIndex + 1}`}
                     aria-current={isFocused ? 'true' : undefined}
                     onClick={() => {
+                      if (card.sourceIndex === focusedIndex) return;
+                      if (quietMode && !prefersReducedMotion) {
+                        animateToIndexRef.current(card.sourceIndex, () =>
+                          onActiveIndexChange?.(card.sourceIndex),
+                        );
+                        return;
+                      }
                       centerOnSourceIndex(card.sourceIndex, true);
                       onActiveIndexChange?.(card.sourceIndex);
                     }}
                     onKeyDown={(event) => {
                       if (event.key !== 'Enter' && event.key !== ' ') return;
                       event.preventDefault();
+                      if (quietMode && !prefersReducedMotion) {
+                        animateToIndexRef.current(card.sourceIndex, () =>
+                          onActiveIndexChange?.(card.sourceIndex),
+                        );
+                        return;
+                      }
                       centerOnSourceIndex(card.sourceIndex, true);
                       onActiveIndexChange?.(card.sourceIndex);
                     }}
@@ -667,7 +800,7 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
                     <div className="tx-scanner-card-normal">
                       {renderCard(card.item, card.sourceIndex, isFocused)}
                     </div>
-                    {!quietMode ? (
+                    {!prefersReducedMotion ? (
                       <div className="tx-scanner-card-ascii" aria-hidden="true">
                         <pre className="tx-scanner-ascii-content">{card.ascii}</pre>
                       </div>
@@ -698,6 +831,11 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
                 className={cn('tx-scanner-dot', index === focusedIndex && 'is-active')}
                 aria-label={`Ir al producto ${index + 1}`}
                 onClick={() => {
+                  if (index === focusedIndex) return;
+                  if (quietMode && !prefersReducedMotion) {
+                    animateToIndexRef.current(index, () => onActiveIndexChange?.(index));
+                    return;
+                  }
                   centerOnSourceIndex(index, true);
                   onActiveIndexChange?.(index);
                 }}

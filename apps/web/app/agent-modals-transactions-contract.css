@@ -329,8 +329,36 @@
     0 0 28px #6366f1 !important;
 }
 
-.transactions-modal .tx-scanner-line.is-active,
-.transactions-modal .tx-scanner-line.is-reduced {
+.transactions-modal .tx-scanner-line.is-matte {
+  width: 3px !important;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(228, 218, 198, 0.06) 16%,
+    rgba(235, 228, 214, 0.34) 50%,
+    rgba(228, 218, 198, 0.06) 84%,
+    transparent 100%
+  ) !important;
+  filter: blur(1.35px) !important;
+  box-shadow:
+    0 0 16px rgba(235, 228, 214, 0.07),
+    0 0 28px rgba(200, 190, 170, 0.05) !important;
+  transition:
+    opacity 0.52s cubic-bezier(0.22, 0.82, 0.2, 1),
+    filter 0.52s cubic-bezier(0.22, 0.82, 0.2, 1) !important;
+}
+
+.transactions-modal .tx-scanner-line.is-matte.is-active {
+  opacity: 0.46 !important;
+}
+
+.transactions-modal .tx-scanner-line.is-matte.is-settled {
+  opacity: 0 !important;
+  filter: blur(2px) !important;
+}
+
+.transactions-modal .tx-scanner-line.is-active:not(.is-matte),
+.transactions-modal .tx-scanner-line.is-reduced:not(.is-matte) {
   opacity: 0.92 !important;
 }
 
@@ -519,7 +547,16 @@
 }
 
 .transactions-modal .tx-scanner-stream-root.is-quiet .tx-scanner-stage {
-  overflow: visible !important;
+  overflow: hidden !important;
+}
+
+.transactions-modal .tx-scanner-stream-root.is-quiet .tx-scanner-ascii-content {
+  color: rgba(210, 200, 188, 0.38) !important;
+  animation: none !important;
+}
+
+.transactions-modal .tx-scanner-stream-root.is-quiet .tx-scanner-card-normal {
+  transition: clip-path 0.18s ease !important;
 }
 
 .transactions-modal .tx-lib-card .tx-lib-card-top,
@@ -1109,7 +1146,7 @@
     animation: none !important;
   }
 
-  .transactions-modal[data-reduced-motion='true'] .tx-scanner-line.animate-scan-pulse {
+  .transactions-modal[data-reduced-motion='true'] .tx-scanner-line.is-matte {
     animation: none !important;
   }
 }
