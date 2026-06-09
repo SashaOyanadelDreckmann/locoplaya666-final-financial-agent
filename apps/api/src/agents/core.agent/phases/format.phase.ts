@@ -62,6 +62,49 @@ async function ensureMinimumCitations(input: FormatPhaseInput): Promise<Citation
   }
 }
 
+/**
+ * Serialize key intake numbers into a compact, grounded block so the LLM
+ * uses verified figures instead of hallucinating from user messages.
+ */
+function buildUserFinancialProfileBlock(intake: unknown): string {
+  if (!intake || typeof intake !== 'object') return '';
+  const env = intake as Record<string, unknown>;
+  // Handle both raw IntakeQuestionnaire and IntakeEnvelope shapes
+  const raw = (env.intake && typeof env.intake === 'object'
+    ? env.intake
+    : env) as Record<string, unknown>;
+
+  const parts: string[] = [];
+  if (typeof raw.age === 'number') parts.push(`Edad: ${raw.age} años`);
+  if (typeof raw.city === 'string' && raw.city) parts.push(`Ciudad: ${raw.city}`);
+  if (typeof raw.profession === 'string' && raw.profession) parts.push(`Profesión: ${raw.profession}`);
+
+  if (typeof raw.exactMonthlyIncome === 'number') {
+    parts.push(`Ingreso mensual exacto: $${raw.exactMonthlyIncome.toLocaleString('es-CL')} CLP`);
+  } else if (typeof raw.incomeBand === 'string') {
+    parts.push(`Rango de ingreso: ${raw.incomeBand}`);
+  }
+
+  if (typeof raw.exactSavingsAmount === 'number') {
+    parts.push(`Ahorros/inversiones exactos: $${raw.exactSavingsAmount.toLocaleString('es-CL')} CLP`);
+  } else if (raw.hasSavingsOrInvestments) {
+    if (typeof raw.savingsBand === 'string') parts.push(`Rango de ahorros: ${raw.savingsBand}`);
+    else parts.push('Tiene ahorros/inversiones: sí');
+  }
+
+  if (raw.hasDebt !== undefined) parts.push(`Tiene deuda: ${raw.hasDebt ? 'sí' : 'no'}`);
+  if (typeof raw.moneyStressLevel === 'number') parts.push(`Estrés financiero: ${raw.moneyStressLevel}/10`);
+  if (typeof raw.selfRatedUnderstanding === 'number') {
+    parts.push(`Conocimiento financiero auto-evaluado: ${raw.selfRatedUnderstanding}/10`);
+  }
+
+  if (parts.length === 0) return '';
+  return (
+    'DATOS FINANCIEROS VERIFICADOS DEL USUARIO (usa estos números, no inferas otros):\n' +
+    parts.map((p) => `- ${p}`).join('\n')
+  );
+}
+
 function compactToolOutputs(input: FormatPhaseInput): string {
   const outputs = input.execution_result?.tool_outputs ?? [];
   if (outputs.length === 0) return 'Sin tool_outputs.';
@@ -184,6 +227,9 @@ async function buildFastValuableMessage(input: FormatPhaseInput): Promise<string
   const recommendationProfile = profileObj ? JSON.stringify(profileObj) : '';
   const detailLevel = (profileObj?.detail_level as string | undefined) ?? 'medium';
   const closeoutWindow = resolveCloseoutWindow(input);
+  const userFinancialProfile = buildUserFinancialProfileBlock(
+    input.injected_intake ?? input.context_summary?.intake
+  );
 
   const funnelStage = resolveFormatFunnelStage(input);
   const funnelInstructions = funnelStage ? buildActionPlanFormatInstructions(funnelStage) : '';
@@ -219,6 +265,7 @@ async function buildFastValuableMessage(input: FormatPhaseInput): Promise<string
     'No menciones nombres de tools, pipeline interno ni tecnicismos de backend.',
     'Si recomiendas productos, APV, inversiones o instituciones: cruza suitability, explicita riesgos y deja claro que la decision final depende 100% del usuario.',
     '',
+    userFinancialProfile,
     `Pregunta del usuario: ${input.user_message}`,
     recentThreadContext ? `Hilo reciente:\n${recentThreadContext}` : '',
     `Modo: ${input.mode}`,
@@ -312,6 +359,9 @@ export async function runFormatPhase(input: FormatPhaseInput): Promise<FormatPha
 
     const funnelStage = resolveFormatFunnelStage(input);
     const funnelInstructions = funnelStage ? buildActionPlanFormatInstructions(funnelStage) : '';
+    const userFinancialProfileFull = buildUserFinancialProfileBlock(
+      input.injected_intake ?? input.context_summary?.intake
+    );
 
     const formatterInput = [
       funnelInstructions,
@@ -327,6 +377,7 @@ export async function runFormatPhase(input: FormatPhaseInput): Promise<FormatPha
       input.context_summary?.recommendation_profile
         ? `Suitability: ${JSON.stringify(input.context_summary.recommendation_profile)}`
         : '',
+      userFinancialProfileFull ? `\n${userFinancialProfileFull}\n` : '',
       ...(snowballCtx ? [`\n${snowballCtx}\n`] : []),
       ...(recentThreadContext ? [`\n${recentThreadContext}\n`] : []),
       'Mensaje del usuario:',

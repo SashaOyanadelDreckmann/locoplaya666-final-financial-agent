@@ -1268,6 +1268,33 @@ router.post(
       req.logger?.warn({ msg: 'Error loading persistent memory', error: memoryErr });
     }
 
+    // Auto-hydrate conversation history from DB when the client sends an empty array
+    // but a session_id is present. This preserves multi-turn context without requiring
+    // the client to track and resend the full history on every request.
+    const clientSentHistory =
+      Array.isArray(body.history) && (body.history as unknown[]).length > 0;
+    if (!clientSentHistory) {
+      const sessionIdForHistory =
+        typeof normalizedInput.session_id === 'string' ? normalizedInput.session_id : undefined;
+      if (sessionIdForHistory) {
+        try {
+          const recentTurns = await listConversationTurns({
+            userId: authedUser.id,
+            sessionId: sessionIdForHistory,
+            limit: 6,
+          });
+          if (recentTurns.length > 0) {
+            normalizedInput.history = recentTurns.flatMap((turn) => [
+              { role: 'user' as const, content: turn.userMessage },
+              { role: 'assistant' as const, content: turn.assistantMessage },
+            ]);
+          }
+        } catch (historyErr) {
+          req.logger?.warn({ msg: 'Error auto-hydrating conversation history', error: historyErr });
+        }
+      }
+    }
+
     try {
       const userMessage = String(normalizedInput.user_message ?? '');
       if (userMessage.trim().length > 0) {
