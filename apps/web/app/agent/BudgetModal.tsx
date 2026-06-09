@@ -643,12 +643,16 @@ export function BudgetModal(props: {
       const tableChrome = (tableHead?.offsetHeight ?? 0) + intelChrome + rowButtonGap;
       const carousel = root.querySelector<HTMLElement>('.budget-main-carousel');
       const footerHeight = bottomActions?.offsetHeight ?? 0;
+      const footerInsideTable = Boolean(bottomActions?.closest('.budget-card-table'));
+      const footerGap = 18;
+      const footerChrome = footerInsideTable ? footerHeight + footerGap : 0;
+      const tableChromeWithFooter = tableChrome + footerChrome;
       const stageHeight = stage?.clientHeight ?? 0;
       const carouselHeight = carousel?.clientHeight ?? 0;
       const stageScrollBudget = stageHeight > 0
-        ? stageHeight - tableChrome
+        ? stageHeight - tableChromeWithFooter
         : carouselHeight > 0
-          ? carouselHeight - footerHeight - tableChrome
+          ? carouselHeight - (footerInsideTable ? 0 : footerHeight) - tableChromeWithFooter
           : 0;
       const measuredScrollHost = scrollHost.clientHeight;
       const scrollAreaHeight = Math.max(
@@ -1160,7 +1164,9 @@ export function BudgetModal(props: {
                 </div>
               )}
               </div>
-              {isDesktopLayout ? budgetTableBottomActions : null}
+              {isDesktopLayout || (isMobileShell && budgetViewMode === tableViewMode)
+                ? budgetTableBottomActions
+                : null}
             </section>
 
             {isAssistantOverlayMode ? (
@@ -1258,7 +1264,7 @@ export function BudgetModal(props: {
             </section>
             </BudgetCarouselStage>
 
-            {isMobileShell ? budgetTableBottomActions : null}
+            {isMobileShell && budgetViewMode !== tableViewMode ? budgetTableBottomActions : null}
           </div>
         </div>{/* /budget-modal-body */}
 

@@ -43,7 +43,8 @@ describe('budget pro mobile css safeguards', () => {
     expect(mobileCss).toContain('--budget-mobile-row-slot');
     expect(mobileCss).toContain('is-mobile-row-card');
     expect(mobileCss).toContain('is-mobile-row-card');
-    expect(mobileCss).toContain('grid-template-columns: minmax(0, 1fr) minmax(0, 1fr)');
+    expect(mobileCss).toContain('mode-table-front:not(.is-desktop) .budget-table-section.is-mobile-table-compact .budget-table-bottom-actions');
+    expect(mobileCss).toContain('mode-table-front:not(.is-desktop) > [data-budget-mobile-footer=\'true\']');
     expect(mobileCss).toContain('.budget-chat-sync-button:not(.is-assistant-action)');
     expect(mobileCss).toContain('display: none !important');
   });

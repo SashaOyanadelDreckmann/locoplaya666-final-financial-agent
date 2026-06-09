@@ -154,7 +154,8 @@
   .budget-modal.is-mobile-shell .budget-mobile-stage {
     flex: 1 1 0 !important;
     min-height: 0 !important;
-    height: 100% !important;
+    height: auto !important;
+    max-height: 100% !important;
     position: relative !important;
     overflow: hidden !important;
   }
@@ -169,8 +170,8 @@
     box-shadow: none !important;
     width: 100% !important;
     max-width: 100% !important;
-    height: 100% !important;
-    max-height: none !important;
+    height: auto !important;
+    max-height: 100% !important;
     min-height: 0 !important;
     flex: 1 1 0 !important;
     display: flex !important;
@@ -671,12 +672,19 @@
     gap: 0 !important;
   }
 
-  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact .budget-table-bottom-actions {
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-section.is-mobile-table-compact .budget-table-bottom-actions {
+    display: flex !important;
+    margin: 18px 0 0 !important;
+    padding: 0 8px calc(env(safe-area-inset-bottom, 0px) + 10px) !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) > [data-budget-mobile-footer='true'],
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) > .budget-mobile-bottom-actions {
     display: none !important;
   }
 
-  .budget-modal.is-mobile-shell .budget-main-carousel:not(.is-desktop) > [data-budget-mobile-footer='true'],
-  .budget-modal.is-mobile-shell .budget-main-carousel:not(.is-desktop) > .budget-mobile-bottom-actions {
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) > [data-budget-mobile-footer='true'],
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-mobile-bottom-actions {
     margin: 18px 0 0 !important;
     padding: 0 18px calc(env(safe-area-inset-bottom, 0px) + 14px) !important;
   }

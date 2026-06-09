@@ -61,7 +61,8 @@
     flex: 1 1 0 !important;
     min-height: 0 !important;
     width: 100% !important;
-    height: 100% !important;
+    height: auto !important;
+    max-height: 100% !important;
     position: relative !important;
     display: block !important;
     overflow: hidden !important;
@@ -130,7 +131,8 @@
     flex-direction: column !important;
     flex: 1 1 0 !important;
     min-height: 0 !important;
-    height: 100% !important;
+    height: auto !important;
+    max-height: 100% !important;
     position: static !important;
     pointer-events: auto !important;
     overflow: hidden !important;
@@ -248,8 +250,10 @@
 
   .budget-modal[data-budget-view='table'] .budget-table-section.is-mobile-table-compact .budget-pdf-surface.is-mobile-compact,
   .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-pdf-surface.is-mobile-compact {
-    flex: 1 1 0 !important;
+    flex: 0 0 auto !important;
     min-height: 0 !important;
+    height: auto !important;
+    max-height: 100% !important;
     display: flex !important;
     flex-direction: column !important;
     overflow: hidden !important;
@@ -258,8 +262,9 @@
 
   .budget-modal[data-budget-view='table'] .budget-table-section.is-mobile-table-compact .budget-table-wrap,
   .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-table-wrap {
-    flex: 1 1 0 !important;
+    flex: 0 0 auto !important;
     min-height: 0 !important;
+    height: auto !important;
     overflow-x: hidden !important;
     overflow-y: auto !important;
     scroll-snap-type: none !important;
@@ -269,9 +274,31 @@
     touch-action: auto !important;
   }
 
-  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact .budget-table-bottom-actions,
+  .budget-modal[data-budget-view='table'] .budget-table-section.is-mobile-table-compact .budget-table-bottom-actions,
   .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-table-bottom-actions,
-  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact .budget-table-bottom-actions {
+  .budget-modal.is-mobile-shell[data-budget-view='table'] .budget-table-section.is-mobile-table-compact .budget-table-bottom-actions,
+  .budget-modal.is-mobile-shell[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-table-bottom-actions {
+    flex-shrink: 0 !important;
+    order: 99 !important;
+    position: relative !important;
+    z-index: 6 !important;
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: center !important;
+    align-items: center !important;
+    gap: 12px !important;
+    margin: 18px 0 0 !important;
+    padding: 0 8px calc(env(safe-area-inset-bottom, 0px) + 10px) !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    pointer-events: auto !important;
+  }
+
+  .budget-modal[data-budget-view='assistant'] .budget-table-section.is-mobile-table-compact .budget-table-bottom-actions,
+  .budget-modal.is-mobile-shell[data-budget-view='assistant'] .budget-table-section.is-mobile-table-compact .budget-table-bottom-actions {
     display: none !important;
     visibility: hidden !important;
     pointer-events: none !important;
@@ -1099,10 +1126,18 @@
     pointer-events: none !important;
   }
 
-  /* EOF — footer unificado: misma posición/tamaño en Asistente y Tabla */
-  .budget-modal.is-mobile-shell .budget-main-carousel:not(.is-desktop) > [data-budget-mobile-footer='true'],
-  .budget-modal.is-mobile-shell .budget-main-carousel:not(.is-desktop) > .budget-mobile-bottom-actions,
-  .budget-modal[data-budget-mobile='true'] .budget-main-carousel:not(.is-desktop) > [data-budget-mobile-footer='true'] {
+  /* EOF — Tabla: footer dentro de la sección; Asistente: footer en carrusel */
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) > [data-budget-mobile-footer='true'],
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) > .budget-mobile-bottom-actions,
+  .budget-modal[data-budget-mobile='true'] .budget-main-carousel.mode-table-front:not(.is-desktop) > [data-budget-mobile-footer='true'] {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) > [data-budget-mobile-footer='true'],
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-mobile-bottom-actions,
+  .budget-modal[data-budget-mobile='true'] .budget-main-carousel.mode-agent-front:not(.is-desktop) > [data-budget-mobile-footer='true'] {
     position: relative !important;
     display: flex !important;
     flex-direction: row !important;
@@ -1118,10 +1153,14 @@
     box-shadow: none !important;
   }
 
-  .budget-modal.is-mobile-shell .budget-main-carousel:not(.is-desktop) > [data-budget-mobile-footer='true'] .budget-style-button,
-  .budget-modal.is-mobile-shell .budget-main-carousel:not(.is-desktop) > [data-budget-mobile-footer='true'] .budget-pdf-button,
-  .budget-modal[data-budget-mobile='true'] .budget-main-carousel:not(.is-desktop) > [data-budget-mobile-footer='true'] .budget-style-button,
-  .budget-modal[data-budget-mobile='true'] .budget-main-carousel:not(.is-desktop) > [data-budget-mobile-footer='true'] .budget-pdf-button {
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact .budget-table-bottom-actions .budget-style-button,
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact .budget-table-bottom-actions .budget-pdf-button,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-table-bottom-actions .budget-style-button,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-table-bottom-actions .budget-pdf-button,
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) > [data-budget-mobile-footer='true'] .budget-style-button,
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) > [data-budget-mobile-footer='true'] .budget-pdf-button,
+  .budget-modal[data-budget-mobile='true'] .budget-main-carousel.mode-agent-front:not(.is-desktop) > [data-budget-mobile-footer='true'] .budget-style-button,
+  .budget-modal[data-budget-mobile='true'] .budget-main-carousel.mode-agent-front:not(.is-desktop) > [data-budget-mobile-footer='true'] .budget-pdf-button {
     flex: 0 0 auto !important;
     width: min(132px, 36vw) !important;
     max-width: 132px !important;
