@@ -584,24 +584,24 @@
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
-    width: 28px !important;
-    height: 28px !important;
-    min-width: 28px !important;
-    min-height: 28px !important;
-    padding: 0 !important;
+    width: auto !important;
+    height: auto !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    padding: 2px !important;
     margin: 0 !important;
-    border-radius: 8px !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    background: rgba(8, 12, 18, 0.42) !important;
+    border: none !important;
+    border-radius: 0 !important;
+    background: transparent !important;
     color: rgba(235, 190, 190, 0.88) !important;
     box-shadow: none !important;
     opacity: 0.82 !important;
-    transition: opacity 140ms ease, background 140ms ease !important;
+    transition: opacity 140ms ease !important;
   }
 
   .budget-modal.is-mobile-shell .budget-table.budget-table-pro .budget-row-delete.is-mobile:active {
     opacity: 1 !important;
-    background: rgba(120, 28, 36, 0.38) !important;
+    background: transparent !important;
   }
 
   .budget-modal.is-mobile-shell .budget-table.budget-table-pro tbody td:nth-child(n + 5) {

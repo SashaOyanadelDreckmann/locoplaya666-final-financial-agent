@@ -91,6 +91,10 @@ describe('budget pro mobile css safeguards', () => {
     expect(stylesCss).toContain('budget-table-style-carbon');
     expect(stylesCss).toContain('--mb-input-text');
     expect(stylesCss).toContain('--mb-label');
+    expect(stylesCss).toContain('min-height: 22px !important');
+    expect(stylesCss).toContain('budget-mobile-intel-summary--ledger');
+    expect(stylesCss).toContain('background: transparent !important');
+    expect(stylesCss).toContain('--mb-input-text, #1a1714');
   });
 
   it('uses transparent frosted glass on mobile assistant overlay (blur only, no tint)', () => {

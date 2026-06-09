@@ -385,4 +385,188 @@
     --mb-income-chip-bg: rgba(30, 58, 24, 0.42);
     --mb-expense-chip-bg: rgba(58, 18, 24, 0.42);
   }
+
+  /* ── Compact Fijo / Variable pills (mobile) ── */
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact .budget-table-pro .budget-pill-group,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-table-pro .budget-pill-group,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact .budget-table-pro .budget-pill-group {
+    padding: 1px !important;
+    gap: 1px !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact .budget-table-pro .budget-pill-button,
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact .budget-table-pro tr.is-mobile-row-card .budget-pill-button,
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact .budget-table-pro tr.is-active-row .budget-pill-button,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-table-pro .budget-pill-button,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-table-pro tr.is-mobile-row-card .budget-pill-button,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-table-pro tr.is-active-row .budget-pill-button,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact .budget-table-pro .budget-pill-button,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact .budget-table-pro tr.is-mobile-row-card .budget-pill-button,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact .budget-table-pro tr.is-active-row .budget-pill-button {
+    min-height: 22px !important;
+    height: 22px !important;
+    padding: 0 8px !important;
+    font-size: 0.58rem !important;
+    line-height: 1 !important;
+    border-radius: 999px !important;
+    box-shadow: none !important;
+  }
+
+  /* ── Trash icon: no chip/container in any style ── */
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact .budget-row-delete.is-mobile,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-row-delete.is-mobile,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact .budget-row-delete.is-mobile,
+  .budget-modal.is-mobile-shell .budget-pdf-surface.is-mobile-compact[class*='budget-table-style-'] .budget-row-delete.is-mobile,
+  .budget-modal[data-budget-mobile='true'] .budget-pdf-surface.is-mobile-compact[class*='budget-table-style-'] .budget-row-delete.is-mobile,
+  html.is-mobile-viewport .budget-modal .budget-pdf-surface.is-mobile-compact[class*='budget-table-style-'] .budget-row-delete.is-mobile {
+    width: auto !important;
+    height: auto !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    padding: 2px !important;
+    margin: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    opacity: 0.82 !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact .budget-row-delete.is-mobile:active,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-row-delete.is-mobile:active,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact .budget-row-delete.is-mobile:active {
+    background: transparent !important;
+    opacity: 1 !important;
+  }
+
+  /* ── Editorial (ledger): light surface → dark ink (beats diagnostics) ── */
+  .budget-modal.is-mobile-shell .budget-mobile-intel-summary--ledger .budget-mobile-intel-summary-head span,
+  .budget-modal.is-mobile-shell .budget-mobile-intel-summary--ledger .budget-mobile-intel-summary-head h2,
+  .budget-modal.is-mobile-shell .budget-mobile-intel-summary--ledger .budget-mobile-intel-summary-head > strong,
+  .budget-modal.is-mobile-shell .budget-mobile-intel-summary--ledger .budget-mobile-intel-summary-metrics span,
+  .budget-modal.is-mobile-shell .budget-mobile-intel-summary--ledger .budget-mobile-intel-summary-metrics strong,
+  .budget-modal[data-budget-mobile='true'] .budget-mobile-intel-summary--ledger .budget-mobile-intel-summary-head span,
+  .budget-modal[data-budget-mobile='true'] .budget-mobile-intel-summary--ledger .budget-mobile-intel-summary-head h2,
+  .budget-modal[data-budget-mobile='true'] .budget-mobile-intel-summary--ledger .budget-mobile-intel-summary-head > strong,
+  .budget-modal[data-budget-mobile='true'] .budget-mobile-intel-summary--ledger .budget-mobile-intel-summary-metrics span,
+  .budget-modal[data-budget-mobile='true'] .budget-mobile-intel-summary--ledger .budget-mobile-intel-summary-metrics strong,
+  html.is-mobile-viewport .budget-modal .budget-mobile-intel-summary--ledger .budget-mobile-intel-summary-head span,
+  html.is-mobile-viewport .budget-modal .budget-mobile-intel-summary--ledger .budget-mobile-intel-summary-head h2,
+  html.is-mobile-viewport .budget-modal .budget-mobile-intel-summary--ledger .budget-mobile-intel-summary-head > strong,
+  html.is-mobile-viewport .budget-modal .budget-mobile-intel-summary--ledger .budget-mobile-intel-summary-metrics span,
+  html.is-mobile-viewport .budget-modal .budget-mobile-intel-summary--ledger .budget-mobile-intel-summary-metrics strong {
+    color: var(--mb-text, #1a1714) !important;
+    -webkit-text-fill-color: var(--mb-text, #1a1714) !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-mobile-intel-summary--ledger .budget-mobile-intel-summary-metrics > div:nth-child(1) strong,
+  .budget-modal[data-budget-mobile='true'] .budget-mobile-intel-summary--ledger .budget-mobile-intel-summary-metrics > div:nth-child(1) strong,
+  html.is-mobile-viewport .budget-modal .budget-mobile-intel-summary--ledger .budget-mobile-intel-summary-metrics > div:nth-child(1) strong {
+    color: var(--mb-income, #2f6b42) !important;
+    -webkit-text-fill-color: var(--mb-income, #2f6b42) !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-mobile-intel-summary--ledger .budget-mobile-intel-summary-metrics > div:nth-child(2) strong,
+  .budget-modal[data-budget-mobile='true'] .budget-mobile-intel-summary--ledger .budget-mobile-intel-summary-metrics > div:nth-child(2) strong,
+  html.is-mobile-viewport .budget-modal .budget-mobile-intel-summary--ledger .budget-mobile-intel-summary-metrics > div:nth-child(2) strong {
+    color: var(--mb-expense, #8f3f3f) !important;
+    -webkit-text-fill-color: var(--mb-expense, #8f3f3f) !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro tbody tr.is-mobile-row-card td,
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro tbody tr.is-mobile-row-card td *,
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro tbody tr.is-mobile-row-card.is-active-row td,
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro tbody tr.is-mobile-row-card.is-active-row td *,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro tbody tr.is-mobile-row-card td,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro tbody tr.is-mobile-row-card td *,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro tbody tr.is-mobile-row-card.is-active-row td,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro tbody tr.is-mobile-row-card.is-active-row td *,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro tbody tr.is-mobile-row-card td,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro tbody tr.is-mobile-row-card td *,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro tbody tr.is-mobile-row-card.is-active-row td,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro tbody tr.is-mobile-row-card.is-active-row td * {
+    color: var(--mb-text, #1a1714) !important;
+    -webkit-text-fill-color: var(--mb-text, #1a1714) !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro tbody tr.is-mobile-row-card td::before,
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro tbody tr.is-mobile-row-card.is-active-row td::before,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro tbody tr.is-mobile-row-card td::before,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro tbody tr.is-mobile-row-card.is-active-row td::before,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro tbody tr.is-mobile-row-card td::before,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro tbody tr.is-mobile-row-card.is-active-row td::before {
+    color: var(--mb-label, rgba(88, 68, 48, 0.78)) !important;
+    -webkit-text-fill-color: var(--mb-label, rgba(88, 68, 48, 0.78)) !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro input,
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro select,
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro tbody tr.is-active-row input,
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro tbody tr.is-active-row select,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro input,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro select,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro tbody tr.is-active-row input,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro tbody tr.is-active-row select,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro input,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro select,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro tbody tr.is-active-row input,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro tbody tr.is-active-row select {
+    background: var(--mb-input-bg, rgba(255, 252, 246, 0.98)) !important;
+    border-color: var(--mb-input-border, rgba(120, 96, 68, 0.32)) !important;
+    color: var(--mb-input-text, #1a1714) !important;
+    -webkit-text-fill-color: var(--mb-input-text, #1a1714) !important;
+    caret-color: var(--mb-input-text, #1a1714) !important;
+    box-shadow: none !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro input::placeholder,
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro tbody tr.is-active-row input::placeholder,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro input::placeholder,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro tbody tr.is-active-row input::placeholder,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro input::placeholder,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro tbody tr.is-active-row input::placeholder {
+    color: var(--mb-placeholder, rgba(88, 68, 48, 0.46)) !important;
+    -webkit-text-fill-color: var(--mb-placeholder, rgba(88, 68, 48, 0.46)) !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro tbody tr.is-mobile-row-card.is-active-row,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro tbody tr.is-mobile-row-card.is-active-row,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro tbody tr.is-mobile-row-card.is-active-row {
+    background: var(--mb-row-bg, rgba(255, 251, 244, 0.96)) !important;
+    border-color: var(--mb-row-active-border, rgba(120, 96, 68, 0.46)) !important;
+    box-shadow: var(--mb-row-active-shadow, 0 0 0 1px rgba(120, 96, 68, 0.14)) !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro .budget-pill-button:not(.is-active),
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro .budget-pill-button:not(.is-active),
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro .budget-pill-button:not(.is-active) {
+    color: rgba(26, 23, 20, 0.44) !important;
+    -webkit-text-fill-color: rgba(26, 23, 20, 0.44) !important;
+    background: transparent !important;
+    border: 1px solid rgba(120, 96, 68, 0.18) !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro .budget-pill-button.is-active,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro .budget-pill-button.is-active,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro .budget-pill-button.is-active {
+    background: rgba(26, 23, 20, 0.88) !important;
+    color: #faf5ed !important;
+    -webkit-text-fill-color: #faf5ed !important;
+    border-color: rgba(26, 23, 20, 0.34) !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro .budget-pill-group.is-income .budget-pill-button.is-active,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro .budget-pill-group.is-income .budget-pill-button.is-active,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro .budget-pill-group.is-income .budget-pill-button.is-active {
+    background: rgba(47, 107, 66, 0.88) !important;
+    color: #f4faf6 !important;
+    -webkit-text-fill-color: #f4faf6 !important;
+    border-color: rgba(47, 107, 66, 0.34) !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-row-delete.is-mobile,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-row-delete.is-mobile,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-row-delete.is-mobile {
+    color: rgba(143, 63, 63, 0.78) !important;
+  }
 }
