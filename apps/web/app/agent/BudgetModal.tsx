@@ -637,15 +637,16 @@ export function BudgetModal(props: {
 
     const scrollHost = budgetTableScrollRef.current;
     const tableCard = scrollHost?.closest<HTMLElement>('.budget-card-table') ?? null;
+    const stage = budgetModalRef.current?.querySelector<HTMLElement>('.budget-mobile-stage') ?? null;
     const layoutObserver =
       scrollHost && typeof ResizeObserver !== 'undefined'
         ? new ResizeObserver(measureMobileRowSlot)
         : null;
-      if (layoutObserver && scrollHost) {
+    if (layoutObserver && scrollHost) {
       layoutObserver.observe(scrollHost);
       if (tableCard) layoutObserver.observe(tableCard);
       if (stage) layoutObserver.observe(stage);
-      const footer = root.querySelector<HTMLElement>('[data-budget-mobile-footer="true"]');
+      const footer = budgetModalRef.current?.querySelector<HTMLElement>('[data-budget-mobile-footer="true"]');
       if (footer) layoutObserver.observe(footer);
       const modalRoot = budgetModalRef.current;
       if (modalRoot) layoutObserver.observe(modalRoot);
