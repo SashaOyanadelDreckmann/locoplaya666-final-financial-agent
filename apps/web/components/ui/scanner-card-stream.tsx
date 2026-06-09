@@ -106,6 +106,7 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
 
   const [metrics, setMetrics] = useState<ScannerMetrics>(() => deriveMetrics(320, cardWidthRatio));
   const [isScanning, setIsScanning] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState(activeIndex);
 
   const itemCount = items.length;
@@ -277,9 +278,8 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
       cardLine.querySelectorAll<HTMLElement>('.tx-scanner-card-wrapper').forEach((wrapper) => {
         const normalCard = wrapper.querySelector<HTMLElement>('.tx-scanner-card-normal');
         const asciiCard = wrapper.querySelector<HTMLElement>('.tx-scanner-card-ascii');
-        if (!normalCard || !asciiCard) return;
-        normalCard.style.setProperty('--clip-right', '0%');
-        asciiCard.style.setProperty('--clip-left', '0%');
+        if (normalCard) normalCard.style.removeProperty('--clip-right');
+        if (asciiCard) asciiCard.style.removeProperty('--clip-left');
         delete wrapper.dataset.scanned;
       });
     };
@@ -287,7 +287,14 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
     const settleQuietCarousel = () => {
       resetCardClipsToNormal();
       setIsScanning(false);
+      setIsTransitioning(false);
       scannerState.current.isScanning = false;
+    };
+
+    const beginQuietTransition = () => {
+      if (!quietMode) return;
+      setIsTransitioning(true);
+      setIsScanning(true);
     };
 
     const runScrambleEffect = (element: HTMLElement, cardId: number) => {
@@ -313,12 +320,16 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
       const nextIndex = resolveFocusedSourceIndex();
       setFocusedIndex(nextIndex);
 
-      const isTransitioning =
+      const draggingOrAnimating =
         cardStreamState.current.isDragging || transitionRef.current.isAnimating;
 
-      if (quietMode && !isTransitioning) {
+      if (quietMode && !draggingOrAnimating) {
         settleQuietCarousel();
         return;
+      }
+
+      if (quietMode) {
+        setIsTransitioning(true);
       }
 
       const scannerX = getScannerX();
@@ -336,7 +347,15 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
         const normalCard = wrapper.querySelector<HTMLElement>('.tx-scanner-card-normal');
         const asciiCard = wrapper.querySelector<HTMLElement>('.tx-scanner-card-ascii');
         const asciiContent = asciiCard?.querySelector<HTMLElement>('pre');
-        if (!normalCard || !asciiCard || !asciiContent) return;
+
+        if (!normalCard) return;
+
+        if (quietMode && (!asciiCard || !asciiContent)) {
+          normalCard.style.setProperty('--clip-right', '0%');
+          return;
+        }
+
+        if (!asciiCard || !asciiContent) return;
 
         if (cardLeft < scannerRight && cardRight > scannerLeft) {
           anyCardIsScanning = true;
@@ -361,7 +380,7 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
         }
       });
 
-      const showScanLine = quietMode ? isTransitioning : anyCardIsScanning;
+      const showScanLine = quietMode ? draggingOrAnimating : anyCardIsScanning;
       setIsScanning(showScanLine);
       scannerState.current.isScanning = showScanLine;
     };
@@ -386,7 +405,7 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
       const startTime = performance.now();
       const duration = 480;
       transitionRef.current.isAnimating = true;
-      setIsScanning(true);
+      beginQuietTransition();
 
       const tick = (now: number) => {
         const progress = Math.min(1, (now - startTime) / duration);
@@ -417,6 +436,7 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
       if ('button' in event && event.button !== 0) return;
       event.preventDefault();
       cancelSnapAnimation();
+      if (quietMode) beginQuietTransition();
       const clientX = 'touches' in event ? event.touches[0].clientX : event.clientX;
       cardStreamState.current.isDragging = true;
       cardStreamState.current.lastMouseX = clientX;
@@ -426,7 +446,6 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
         const matrix = new DOMMatrix(transform);
         cardStreamState.current.position = matrix.m41;
       }
-      setIsScanning(true);
     };
 
     const handleMouseMove = (event: MouseEvent | TouchEvent) => {
@@ -458,12 +477,12 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
     const handleWheel = (event: WheelEvent) => {
       event.preventDefault();
       cancelSnapAnimation();
+      if (quietMode) beginQuietTransition();
       const scrollSpeed = 16;
       const delta = event.deltaY > 0 ? scrollSpeed : -scrollSpeed;
       cardStreamState.current.position += delta;
       cardLine.style.transform = `translateX(${cardStreamState.current.position}px)`;
       updateCardEffects();
-      setIsScanning(true);
       if (wheelSnapTimer !== null) window.clearTimeout(wheelSnapTimer);
       wheelSnapTimer = window.setTimeout(() => {
         wheelSnapTimer = null;
@@ -486,7 +505,10 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
     cardLine.addEventListener('wheel', handleWheel, { passive: false });
 
     if (quietMode) {
-      updateCardEffects();
+      window.requestAnimationFrame(() => {
+        settleQuietCarousel();
+        updateCardEffects();
+      });
       return () => {
         if (wheelSnapTimer !== null) window.clearTimeout(wheelSnapTimer);
         cancelSnapAnimation();
@@ -712,9 +734,15 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
   return (
     <div
       ref={rootRef}
-      className={cn('tx-scanner-stream-root', quietMode && 'is-quiet', className)}
+      className={cn(
+        'tx-scanner-stream-root',
+        quietMode && 'is-quiet',
+        isTransitioning && 'is-transitioning',
+        className,
+      )}
       data-scanner-id={streamId}
       data-quiet={quietMode ? 'true' : 'false'}
+      data-transitioning={isTransitioning ? 'true' : 'false'}
       style={{ ['--tx-scanner-stage-height' as string]: `${metrics.stageHeight}px` }}
     >
       <div
@@ -738,14 +766,22 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
             aria-hidden="true"
           />
         ) : null}
-        {!prefersReducedMotion ? (
+        {quietMode && isTransitioning && !prefersReducedMotion ? (
           <div
             className={cn(
               'tx-scanner-line',
-              quietMode && 'is-matte',
+              'is-matte',
               isScanning ? 'is-active' : 'is-settled',
-              !quietMode && prefersReducedMotion ? 'is-reduced' : '',
-              !quietMode && !prefersReducedMotion ? 'animate-scan-pulse' : '',
+            )}
+            style={{ height: metrics.cardHeight + 12 }}
+            aria-hidden="true"
+          />
+        ) : !quietMode && !prefersReducedMotion ? (
+          <div
+            className={cn(
+              'tx-scanner-line',
+              isScanning ? 'is-active' : '',
+              prefersReducedMotion ? 'is-reduced' : 'animate-scan-pulse',
             )}
             style={{ height: metrics.cardHeight + 12 }}
             aria-hidden="true"
@@ -800,7 +836,7 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
                     <div className="tx-scanner-card-normal">
                       {renderCard(card.item, card.sourceIndex, isFocused)}
                     </div>
-                    {!prefersReducedMotion ? (
+                    {(!quietMode || isTransitioning) && !prefersReducedMotion ? (
                       <div className="tx-scanner-card-ascii" aria-hidden="true">
                         <pre className="tx-scanner-ascii-content">{card.ascii}</pre>
                       </div>

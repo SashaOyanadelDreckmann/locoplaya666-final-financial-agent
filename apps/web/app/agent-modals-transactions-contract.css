@@ -555,8 +555,16 @@
   animation: none !important;
 }
 
-.transactions-modal .tx-scanner-stream-root.is-quiet .tx-scanner-card-normal {
-  transition: clip-path 0.18s ease !important;
+.transactions-modal .tx-scanner-stream-root.is-quiet:not(.is-transitioning) .tx-scanner-card-normal {
+  clip-path: none !important;
+}
+
+.transactions-modal .tx-scanner-stream-root.is-quiet:not(.is-transitioning) .tx-scanner-card-ascii {
+  display: none !important;
+}
+
+.transactions-modal .tx-scanner-stream-root.is-quiet.is-transitioning .tx-scanner-card-normal {
+  transition: clip-path 0.16s ease !important;
 }
 
 .transactions-modal .tx-lib-card .tx-lib-card-top,
