@@ -22,7 +22,18 @@ export function resolveInterviewFinalizeDepth(input: {
   const hasFinalSummary = input.hasFinalSummary === true;
 
   if (input.endedBy === 'timeout' || input.endedBy === 'agent') {
-    if (durationSec < 45 && minuteSummariesCount === 0 && !hasFinalSummary) {
+    if (durationSec < 25 && minuteSummariesCount === 0 && !hasFinalSummary) {
+      return {
+        tier: 'minimal',
+        maxKeyFindings: 2,
+        maxCompletionTokens: 180,
+        maxBlocks: 2,
+        confidenceCeiling: 'low',
+        defaultHasEnoughInformation: false,
+      };
+    }
+
+    if (durationSec < 75 || minuteSummariesCount < 2) {
       return {
         tier: 'partial',
         maxKeyFindings: 3,
@@ -30,6 +41,17 @@ export function resolveInterviewFinalizeDepth(input: {
         maxBlocks: 4,
         confidenceCeiling: 'medium',
         defaultHasEnoughInformation: false,
+      };
+    }
+
+    if (durationSec < 140 || minuteSummariesCount < 3 || !hasFinalSummary) {
+      return {
+        tier: 'substantial',
+        maxKeyFindings: 4,
+        maxCompletionTokens: 360,
+        maxBlocks: 6,
+        confidenceCeiling: 'medium',
+        defaultHasEnoughInformation: minuteSummariesCount >= 2,
       };
     }
 
@@ -110,7 +132,10 @@ export function buildInterviewFinalizePromptLines(input: {
     endedByRule,
     `- máximo ${input.depth.maxKeyFindings} hallazgos`,
     `- confianza máxima permitida: ${input.depth.confidenceCeiling}`,
-    '- integra intake, productos, presupuesto y síntesis disponibles',
+    '- integra SOLO intake, productos, presupuesto y síntesis provistas abajo',
+    '- PROHIBIDO inventar montos, productos, deudas, categorías o hechos no presentes en el material',
+    '- las síntesis por minuto son orientativas; prioriza intake y contexto estructurado ante contradicciones',
+    '- si la evidencia es insuficiente, decláralo explícitamente en executive_report y has_enough_information=false',
     '- sin mencionar sistema ni herramientas',
     `Motivo término llamada: ${input.endedBy}`,
     `Cobertura estimada: ${input.depth.tier}`,
@@ -122,6 +147,42 @@ export function buildInterviewFinalizePromptLines(input: {
       ? [`Fragmentos de conversación disponibles:\n${input.transcriptSnippet}`]
       : []),
   ];
+}
+
+export function buildVoiceInterviewSyntheticBlocks(input: {
+  blockIds: string[];
+  depth: InterviewFinalizeDepth;
+  executiveReport: string;
+  keyFindings: string[];
+  confidence: 'high' | 'medium' | 'low';
+}): Record<
+  string,
+  {
+    blockId: string;
+    summary: string;
+    signalsDetected: string[];
+    confidence: 'high' | 'medium' | 'low';
+    userValidated: boolean;
+  }
+> {
+  const cappedConfidence = clampInterviewConfidence(input.confidence, input.depth.confidenceCeiling);
+  return Object.fromEntries(
+    input.blockIds.map((blockId, index) => {
+      const finding = input.keyFindings[index] ?? input.keyFindings[0] ?? '';
+      return [
+        blockId,
+        {
+          blockId,
+          summary:
+            finding ||
+            `Cobertura ${input.depth.tier} en entrevista voz; sin validación explícita bloque a bloque.`,
+          signalsDetected: finding ? [finding] : input.keyFindings.slice(0, 2),
+          confidence: cappedConfidence,
+          userValidated: false,
+        },
+      ];
+    }),
+  );
 }
 
 export function clampInterviewConfidence(

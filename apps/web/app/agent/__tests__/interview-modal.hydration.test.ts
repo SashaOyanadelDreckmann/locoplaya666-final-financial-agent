@@ -46,7 +46,7 @@ describe('interview modal hydration', () => {
     expect(hydrated.latestDiagnosticProfileId).toBe('profile-1');
   });
 
-  it('merges intake contexts without dropping existing enriched fields', () => {
+  it('prefers fresher server product and budget context over stale local cache', () => {
     const merged = mergeInterviewIntake(
       {
         profession: 'Abogado',
@@ -59,7 +59,7 @@ describe('interview modal hydration', () => {
     );
 
     expect(merged?.profession).toBe('Abogado');
-    expect(merged?.__productsContext).toEqual({ productsCount: 1 });
+    expect(merged?.__productsContext).toEqual({ productsCount: 2 });
     expect(merged?.__budgetContext).toEqual({ rowsCount: 5, balance: 1000 });
   });
 

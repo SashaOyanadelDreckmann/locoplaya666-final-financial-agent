@@ -336,7 +336,14 @@ export async function getInterviewRealtimeToken() {
     max_duration_sec?: number;
     total_used_sec?: number;
     remaining_total_sec?: number;
-    pause_limit?: number;
+    server_dossier_attached?: boolean;
+    session_instructions?: string;
+    sources_loaded?: {
+      intake: boolean;
+      products: boolean;
+      budget: boolean;
+      total: number;
+    };
     interview_voice?: Record<string, unknown>;
   }>(res);
 }

@@ -179,7 +179,8 @@ A continuación se presenta información estructurada de un usuario.
 ### 1. Intake inicial
 ${JSON.stringify(intake, null, 2)}
 
-### 2. Evidencia validada por bloques
+### 2. Evidencia de entrevista por bloques
+(userValidated=true solo si el usuario confirmó explícitamente ese bloque; de lo contrario trátalo como orientativo)
 ${JSON.stringify(blocks, null, 2)}
 
 ### 3. Contexto financiero derivado

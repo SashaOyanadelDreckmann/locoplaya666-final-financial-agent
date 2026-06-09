@@ -12,19 +12,24 @@ export function emitVoiceSessionContext(
     callPhase?: 'exploration' | 'closeout';
     startingFocus?: string;
     triggerResponse?: boolean;
+    instructionsOverride?: string | null;
   },
 ) {
   if (!sendVoiceEvent) return;
+  const instructions =
+    typeof options?.instructionsOverride === 'string' && options.instructionsOverride.trim().length > 0
+      ? options.instructionsOverride
+      : buildVoiceSessionInstructions({
+          intake: ctx.intake,
+          minuteSummaries: ctx.minuteSummaries,
+          finalSummary: ctx.finalSummary,
+          latestUserSnippet: options?.latestUserSnippet,
+          callPhase: options?.callPhase ?? 'exploration',
+        });
   sendVoiceEvent({
     type: 'session.update',
     session: {
-      instructions: buildVoiceSessionInstructions({
-        intake: ctx.intake,
-        minuteSummaries: ctx.minuteSummaries,
-        finalSummary: ctx.finalSummary,
-        latestUserSnippet: options?.latestUserSnippet,
-        callPhase: options?.callPhase ?? 'exploration',
-      }),
+      instructions,
     },
   });
   if (!options?.triggerResponse) return;
@@ -89,7 +94,11 @@ export function sendRealtimeCallPauseEvents(
     sendVoiceEvent({
       type: 'session.update',
       session: {
-        turn_detection: null,
+        audio: {
+          input: {
+            turn_detection: null,
+          },
+        },
       },
     });
     return;
@@ -98,7 +107,11 @@ export function sendRealtimeCallPauseEvents(
   sendVoiceEvent({
     type: 'session.update',
     session: {
-      turn_detection: INTERVIEW_REALTIME_TURN_DETECTION,
+      audio: {
+        input: {
+          turn_detection: INTERVIEW_REALTIME_TURN_DETECTION,
+        },
+      },
     },
   });
 }

@@ -18,7 +18,8 @@ export function buildSummaryInstructions(
     typeof options.minute === 'number' ? options.minute : Math.max(1, Math.ceil(options.callSeconds / 60));
   return [
     'Eres un sintetizador ejecutivo de una entrevista financiera en tiempo real.',
-    'No transcribas literalmente. Resume el contenido con precisión, sin inventar datos.',
+    'No transcribas literalmente. Resume el contenido con precisión, sin inventar datos ni montos no mencionados.',
+    'Solo incluye hechos presentes en intake, presupuesto o productos ya cargados; si no hay evidencia, dilo explícitamente.',
     'Devuelve SOLO JSON válido, sin markdown ni explicación adicional.',
     'Esquema requerido:',
     '{"minute":number,"summary":"string","keyFindings":["string"],"confidence":"high|medium|low","nextFocus":"string"}',

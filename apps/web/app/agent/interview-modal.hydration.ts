@@ -10,7 +10,6 @@ export type HydratedInterviewVoiceState = {
   maxCallDurationSec: number;
   remainingTotalSec: number | null;
   callId: string | null;
-  pauseUsed: boolean;
   minuteSummaries: InterviewVoiceSummaryEntry[];
   finalSummary: InterviewVoiceSnapshot['finalSummary'];
   voiceReport: InterviewVoiceReport | null;
@@ -47,7 +46,6 @@ export function mergeInterviewVoiceSnapshots(
           callId: sessionVoice.activeCallId ?? sessionVoice.callId ?? localSaved?.callId,
           callSeconds: resolveUsedSecondsFromSources(sessionVoice, localSaved),
           totalUsedSec: resolveUsedSecondsFromSources(sessionVoice, localSaved),
-          pauseUsed: sessionVoice.pauseUsed ?? localSaved?.pauseUsed,
         }
       : {}),
   } as InterviewVoiceSnapshot;
@@ -64,7 +62,6 @@ export function deriveHydratedVoiceState(input: {
     maxCallDurationSec: DEFAULT_MAX_CALL_DURATION_SEC,
     remainingTotalSec: null,
     callId: null,
-    pauseUsed: false,
     minuteSummaries: [],
     finalSummary: null,
     voiceReport: null,
@@ -115,7 +112,6 @@ export function deriveHydratedVoiceState(input: {
         : typeof snapshot.activeCallId === 'string' && snapshot.activeCallId.length > 0
           ? snapshot.activeCallId
           : null,
-    pauseUsed: typeof snapshot.pauseUsed === 'boolean' ? snapshot.pauseUsed : false,
     minuteSummaries,
     finalSummary: snapshot.finalSummary ?? null,
     voiceReport,
@@ -147,8 +143,8 @@ export function mergeInterviewIntake(
     }
     return {
       ...currentIntake,
-      __productsContext: currentIntake.__productsContext ?? productsContext ?? null,
-      __budgetContext: currentIntake.__budgetContext ?? budgetContext ?? null,
+      __productsContext: productsContext ?? currentIntake.__productsContext ?? null,
+      __budgetContext: budgetContext ?? currentIntake.__budgetContext ?? null,
     };
   }
   return currentIntake;

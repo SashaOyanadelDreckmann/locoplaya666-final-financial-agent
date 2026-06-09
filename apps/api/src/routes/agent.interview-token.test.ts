@@ -100,6 +100,15 @@ describe('GET /api/interview/realtime/token', () => {
     const requestBody = JSON.parse(String(fetchSpy.mock.calls[0]?.[1]?.body ?? '{}'));
     expect(typeof requestBody?.session?.model).toBe('string');
     expect(String(requestBody.session.model)).toContain('realtime');
+    expect(res.body.data.server_dossier_attached).toBe(true);
+    expect(typeof res.body.data.session_instructions).toBe('string');
+    expect(res.body.data.session_instructions).toContain('FICHA MAESTRA DEL USUARIO');
+    expect(typeof requestBody?.session?.instructions).toBe('string');
+    expect(String(requestBody.session.instructions)).toContain('FICHA MAESTRA DEL USUARIO');
+    expect(res.body.data.interview_voice).toMatchObject({
+      activeCallId: res.body.data.call_id,
+      status: 'in_progress',
+    });
   }, 15000);
 
   it('returns exact remaining time after prior consumption', async () => {

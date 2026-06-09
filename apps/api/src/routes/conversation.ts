@@ -6,11 +6,12 @@ import { buildVoiceInterviewFallbackProfile } from '../agents/diagnostic/diagnos
 import { buildInterviewPlan, InterviewBlockId } from '../orchestrator/interview.flow';
 import {
   buildInterviewFinalizePromptLines,
+  buildVoiceInterviewSyntheticBlocks,
   clampInterviewConfidence,
   resolveInterviewFinalizeDepth,
 } from '../orchestrator/interview-voice-finalize';
 import { IntakeQuestionnaire } from '@financial-agent/shared/src/intake/intake-questionnaire.types';
-import { INTERVIEW_TOTAL_LIMIT_SEC } from '@financial-agent/shared';
+import { INTERVIEW_MIN_EARLY_END_SEC, INTERVIEW_TOTAL_LIMIT_SEC } from '@financial-agent/shared';
 import { InterviewBlockEvidence } from '../schemas/profile.schema';
 import type { FinancialDiagnosticProfile } from '../schemas/profile.schema';
 import { saveProfile } from '../services/storage.service';
@@ -21,7 +22,7 @@ import { loadUserMemoryBlob, saveUserMemoryBlob } from '../services/user.service
 import { resolveUserDiagnosticProfile } from '../services/diagnostic-profile.service';
 import { sendSuccess } from '../http/api.responses';
 import { parseBody } from '../http/parse';
-import { fincoinsDepleted, unauthorized } from '../http/api.errors';
+import { badRequest, fincoinsDepleted, unauthorized } from '../http/api.errors';
 import { asyncHandler } from '../middleware/errorHandler';
 import {
   canAffordOperation,
@@ -67,7 +68,6 @@ const VoiceStateSchema = z.object({
   totalUsedSec: z.number().min(0).max(INTERVIEW_TOTAL_LIMIT_SEC).optional(),
   maxDurationSec: z.number().min(0).max(INTERVIEW_TOTAL_LIMIT_SEC).optional(),
   remainingTotalSec: z.number().min(0).max(INTERVIEW_TOTAL_LIMIT_SEC).nullable().optional(),
-  pauseUsed: z.boolean().optional(),
   minuteSummaries: z
     .array(
       z.object({
@@ -104,10 +104,14 @@ function resolveDiagnosticIntake(
   intake: IntakeQuestionnaire,
   user: ConversationUser,
 ): IntakeQuestionnaire & Record<string, unknown> {
-  const source = intake as IntakeQuestionnaire & Record<string, unknown>;
+  const clientSource = intake as IntakeQuestionnaire & Record<string, unknown>;
   const injectedIntake =
     user.injectedIntake && typeof user.injectedIntake === 'object'
       ? (user.injectedIntake as Record<string, unknown>)
+      : null;
+  const serverQuestionnaire =
+    injectedIntake?.intake && typeof injectedIntake.intake === 'object'
+      ? (injectedIntake.intake as IntakeQuestionnaire & Record<string, unknown>)
       : null;
   const productsContext =
     injectedIntake?.productsContext && typeof injectedIntake.productsContext === 'object'
@@ -118,11 +122,18 @@ function resolveDiagnosticIntake(
       ? (injectedIntake.budgetContext as Record<string, unknown>)
       : null;
 
+  const mergedQuestionnaire = serverQuestionnaire
+    ? { ...clientSource, ...serverQuestionnaire }
+    : clientSource;
+
   return {
-    ...source,
+    ...mergedQuestionnaire,
     __productsContext:
-      (source.__productsContext as Record<string, unknown> | null | undefined) ?? productsContext ?? null,
-    __budgetContext: (source.__budgetContext as Record<string, unknown> | null | undefined) ?? budgetContext ?? null,
+      productsContext ??
+      (clientSource.__productsContext as Record<string, unknown> | null | undefined) ??
+      null,
+    __budgetContext:
+      budgetContext ?? (clientSource.__budgetContext as Record<string, unknown> | null | undefined) ?? null,
   } as IntakeQuestionnaire & Record<string, unknown>;
 }
 
@@ -382,6 +393,11 @@ export const finalizeInterviewVoice = asyncHandler(async function finalizeInterv
           : previousTotalUsedSec,
     ),
   );
+  if (parsed.endedBy === 'user' && safeDurationSec < INTERVIEW_MIN_EARLY_END_SEC) {
+    throw badRequest(
+      `La entrevista requiere al menos ${INTERVIEW_MIN_EARLY_END_SEC} segundos activos antes de un cierre anticipado.`,
+    );
+  }
   const finalizeDepth = resolveInterviewFinalizeDepth({
     endedBy: parsed.endedBy ?? 'user',
     durationSec: safeDurationSec,
@@ -440,18 +456,13 @@ export const finalizeInterviewVoice = asyncHandler(async function finalizeInterv
   );
 
   const plan = buildInterviewPlan(diagnosticIntake);
-  const syntheticBlocks: Partial<Record<InterviewBlockId, InterviewBlockEvidence>> = Object.fromEntries(
-    plan.blocksToExplore.slice(0, finalizeDepth.maxBlocks).map((blockId) => [
-      blockId,
-      {
-        blockId,
-        summary: executiveReport.slice(0, 400),
-        signalsDetected: keyFindings,
-        confidence: 'high' as const,
-        userValidated: true,
-      },
-    ]),
-  );
+  const syntheticBlocks = buildVoiceInterviewSyntheticBlocks({
+    blockIds: plan.blocksToExplore.slice(0, finalizeDepth.maxBlocks),
+    depth: finalizeDepth,
+    executiveReport,
+    keyFindings,
+    confidence: resolvedConfidence,
+  }) as Partial<Record<InterviewBlockId, InterviewBlockEvidence>>;
 
   let diagnosticProfile: FinancialDiagnosticProfile;
   let diagnosticFallbackUsed = false;

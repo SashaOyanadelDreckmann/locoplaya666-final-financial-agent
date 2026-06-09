@@ -63,6 +63,10 @@ import {
   INTERVIEW_REALTIME_VOICES,
   INTERVIEW_REALTIME_VOICE_DEFAULT,
   INTERVIEW_REALTIME_VOICE_SPEED,
+  buildVoiceSessionInstructions,
+  countInterviewVoiceSourcesLoaded,
+  normalizeInterviewVoiceMinuteSummaries,
+  resolveInterviewVoiceIntakeContext,
   getRemainingChatTurns,
 } from '@financial-agent/shared';
 
@@ -893,6 +897,25 @@ router.get(
     const callId = activeCallId ?? `call_${Date.now()}`;
     const nextCallsStarted = activeCallId ? Math.max(1, callsStarted) : callsStarted + 1;
 
+    const serverIntake = resolveInterviewVoiceIntakeContext(user.injectedIntake);
+    const persistedMinuteSummaries = normalizeInterviewVoiceMinuteSummaries(interviewVoice.minuteSummaries);
+    const persistedFinalSummary =
+      interviewVoice.finalSummary && typeof interviewVoice.finalSummary === 'object'
+        ? (interviewVoice.finalSummary as {
+            summary: string;
+            keyFindings?: string[];
+            confidence?: 'high' | 'medium' | 'low';
+            createdAt?: string;
+          })
+        : null;
+    const sessionInstructions = buildVoiceSessionInstructions({
+      intake: serverIntake,
+      minuteSummaries: persistedMinuteSummaries,
+      finalSummary: persistedFinalSummary,
+      callPhase: 'exploration',
+    });
+    const sourcesLoaded = countInterviewVoiceSourcesLoaded(serverIntake);
+
     const response = await fetch('https://api.openai.com/v1/realtime/client_secrets', {
       method: 'POST',
       headers: {
@@ -921,14 +944,7 @@ router.get(
               speed: INTERVIEW_REALTIME_VOICE_SPEED,
             },
           },
-          instructions:
-            [
-              'Eres el entrevistador financiero senior de Financieramente — nivel family office, criterio ejecutivo.',
-              'Habla en español chileno profesional: claro, sobrio, cálido. Usa tú; nunca voseo ni tono rioplatense.',
-              'Conoces el intake, presupuesto y cartolas del usuario. Cita cifras y categorías reales; no pidas lo que ya tienes.',
-              'Una pregunta precisa por turno. Microlecturas ejecutivas cada pocos turnos.',
-              `Máximo ${INTERVIEW_TOTAL_LIMIT_MINUTES} minutos; cierra ${INTERVIEW_CLOSEOUT_BUFFER_SEC}s antes con <<CALL_COMPLETE>> y síntesis breve.`,
-            ].join(' '),
+          instructions: sessionInstructions,
         },
       }),
     });
@@ -992,6 +1008,20 @@ router.get(
       remaining_total_sec: remainingSec,
       voice: OPENAI_REALTIME_VOICE,
       voice_speed: INTERVIEW_REALTIME_VOICE_SPEED,
+      server_dossier_attached: true,
+      session_instructions: sessionInstructions,
+      sources_loaded: sourcesLoaded,
+      interview_voice: {
+        callsStarted: nextCallsStarted,
+        activeCallId: callId,
+        callId,
+        status: 'in_progress',
+        totalUsedSec,
+        remainingTotalSec: remainingSec,
+        maxDurationSec: INTERVIEW_TOTAL_LIMIT_SEC,
+        minuteSummaries: persistedMinuteSummaries,
+        finalSummary: persistedFinalSummary,
+      },
       fincoin_usage: voiceCharge ? fincoinUsagePayload(voiceCharge.usage) : undefined,
     });
   }),

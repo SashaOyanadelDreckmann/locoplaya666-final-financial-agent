@@ -1,5 +1,6 @@
 // packages/shared/src/index.ts
 export * from './interview.constants';
+export * from './interview-voice-dossier';
 export * from './chat-lifecycle.constants';
 export * from './chat-closure-summary';
 export * from './action-plan-funnel';

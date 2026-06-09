@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildInterviewFinalizePromptLines,
+  buildVoiceInterviewSyntheticBlocks,
   clampInterviewConfidence,
   resolveInterviewFinalizeDepth,
 } from './interview-voice-finalize';
@@ -31,7 +32,19 @@ describe('interview voice finalize depth', () => {
     expect(depth.maxBlocks).toBe(6);
   });
 
-  it('keeps complete coverage for timeout and agent closures', () => {
+  it('downgrades timeout coverage when evidence is thin', () => {
+    const depth = resolveInterviewFinalizeDepth({
+      endedBy: 'timeout',
+      durationSec: 180,
+      minuteSummariesCount: 0,
+      hasFinalSummary: false,
+    });
+
+    expect(depth.tier).toBe('partial');
+    expect(depth.defaultHasEnoughInformation).toBe(false);
+  });
+
+  it('keeps complete coverage for timeout and agent closures with strong evidence', () => {
     const depth = resolveInterviewFinalizeDepth({
       endedBy: 'timeout',
       durationSec: 180,
@@ -61,6 +74,24 @@ describe('interview voice finalize depth', () => {
 
     expect(lines.join('\n')).toContain('finalizó la llamada antes de tiempo');
     expect(lines.join('\n')).toContain('cobertura parcial');
+  });
+
+  it('marks synthetic interview blocks as not user-validated', () => {
+    const blocks = buildVoiceInterviewSyntheticBlocks({
+      blockIds: ['income', 'expenses'],
+      depth: resolveInterviewFinalizeDepth({
+        endedBy: 'user',
+        durationSec: 40,
+        minuteSummariesCount: 1,
+        hasFinalSummary: false,
+      }),
+      executiveReport: 'Informe',
+      keyFindings: ['Hallazgo 1'],
+      confidence: 'high',
+    });
+
+    expect(Object.values(blocks).every((block) => block.userValidated === false)).toBe(true);
+    expect(Object.values(blocks).every((block) => block.confidence !== 'high')).toBe(true);
   });
 
   it('clamps confidence to the configured ceiling', () => {

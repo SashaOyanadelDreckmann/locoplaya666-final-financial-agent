@@ -25,7 +25,7 @@ describe('interview modal safeguards', () => {
   });
 
   it('keeps financialKnowledge extraction ahead of generic object filtering', () => {
-    const sourcePath = path.join(process.cwd(), 'app', 'agent', 'interview-modal.context.ts');
+    const sourcePath = path.join(process.cwd(), '..', '..', 'packages', 'shared', 'src', 'interview-voice-dossier.ts');
     const source = fs.readFileSync(sourcePath, 'utf8');
 
     const financialKnowledgeIndex = source.indexOf("if (key === 'financialKnowledge' && typeof value === 'object') {");
@@ -41,6 +41,7 @@ describe('interview modal safeguards', () => {
     const source = fs.readFileSync(runtimePath, 'utf8');
 
     expect(source).toContain("response.output_text.delta");
+    expect(source).toContain('response.audio_transcript.delta');
     expect(source).not.toContain('input_audio_transcription');
     expect(source).not.toContain('gpt-4o-transcribe');
     expect(source).not.toContain('gpt-realtime-whisper');
@@ -106,10 +107,19 @@ describe('interview modal safeguards', () => {
 
     expect(helpers).toContain('resolveInterviewActiveQuota');
     expect(runtime).toContain('syncActiveQuota');
-    expect(runtime).not.toContain('if (pauseUsed) return');
+    expect(runtime).not.toContain('pauseUsed');
+    expect(runtime).toContain('serverSessionInstructionsRef');
     expect(runtime).toContain("finalizeCallAndGenerateReport('timeout'");
     expect(runtime).toContain('flushInterviewVoiceStateOnPageHide');
     expect(runtime).toContain("addEventListener('pagehide'");
+  });
+
+  it('uses server session instructions from the realtime token on connect', () => {
+    const runtimePath = path.join(process.cwd(), 'app', 'agent', 'useInterviewVoiceRuntime.ts');
+    const runtime = fs.readFileSync(runtimePath, 'utf8');
+
+    expect(runtime).toContain('token?.session_instructions');
+    expect(runtime).toContain('instructionsOverride: serverSessionInstructionsRef.current');
   });
 
   it('applies a hard realtime pause instead of only muting the local mic', () => {

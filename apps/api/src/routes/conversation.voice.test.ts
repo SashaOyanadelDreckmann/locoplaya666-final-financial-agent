@@ -112,7 +112,6 @@ describe('conversation voice routes', () => {
         callSeconds: 37,
         maxDurationSec: INTERVIEW_TOTAL_LIMIT_SEC,
         remainingTotalSec: 83,
-        pauseUsed: true,
         minuteSummaries: [
           {
             minute: 1,
@@ -279,8 +278,7 @@ describe('conversation voice routes', () => {
     expect(res.body.data.voice_summary.diagnostic_fallback_used).toBe(true);
   }, 15000);
 
-  it('finalizes early user closures with proportional coverage metadata', async () => {
-    const { completeStructured } = await import('../services/llm.service');
+  it('rejects early user finalize before the minimum active-call threshold', async () => {
     const { agent, csrfToken } = await createAuthedAgent();
 
     const res = await agent
@@ -297,14 +295,36 @@ describe('conversation voice routes', () => {
         callId: 'call-voice-test-early-user',
       });
 
+    expect(res.status).toBe(400);
+    expect(String(res.body.detail ?? res.body.title ?? '')).toContain('30');
+  }, 15000);
+
+  it('finalizes user closures after the minimum active-call threshold', async () => {
+    const { completeStructured } = await import('../services/llm.service');
+    const { agent, csrfToken } = await createAuthedAgent();
+
+    const res = await agent
+      .post('/conversation/voice/finalize')
+      .set('x-csrf-token', csrfToken)
+      .send({
+        intake: {
+          hasDebt: true,
+          hasSavingsOrInvestments: false,
+        },
+        minuteSummaries: [],
+        endedBy: 'user',
+        durationSec: 42,
+        callId: 'call-voice-test-early-user-ok',
+      });
+
     expect(res.status).toBe(200);
     expect(res.body.ok).toBe(true);
-    expect(res.body.data.voice_summary.coverage_tier).toBe('minimal');
+    expect(res.body.data.voice_summary.coverage_tier).toBe('partial');
     expect(res.body.data.voice_summary.has_enough_information).toBe(false);
-    expect(res.body.data.interview_voice.total_used_sec).toBe(18);
+    expect(res.body.data.interview_voice.total_used_sec).toBe(42);
     expect(completeStructured).toHaveBeenCalledWith(
       expect.objectContaining({
-        maxCompletionTokens: 180,
+        maxCompletionTokens: 280,
       }),
     );
   }, 15000);
