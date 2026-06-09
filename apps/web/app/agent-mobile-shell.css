@@ -1599,4 +1599,195 @@
   body.agent-route-active .panel-callout-chat {
     --callout-color: #94a3b8;
   }
+
+  /* Welcome intro bubble — auto height, no clipping, no horizontal swipe */
+  main.agent-layout.is-mobile-viewport .agent-thread > .agent-bubble.assistant.latex-doc.is-empty-welcome,
+  main.agent-layout.is-mobile-viewport .agent-thread > .agent-bubble.assistant.latex-doc.is-intro-doc.is-empty-welcome {
+    min-height: 0 !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    max-inline-size: 100% !important;
+    touch-action: pan-y !important;
+    overscroll-behavior-x: none !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-thread > .agent-bubble.assistant.latex-doc.is-empty-welcome .latex-doc-body.is-empty-welcome-body {
+    min-height: 0 !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    padding: 10px 8px 12px !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-thread .gradient-blob-card,
+  main.agent-layout.is-mobile-viewport .agent-thread .gradient-blob-card--welcome {
+    min-height: 0 !important;
+    height: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-thread .gradient-blob-card__frame {
+    min-height: 0 !important;
+    height: auto !important;
+    padding: 3px !important;
+    overflow: hidden !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-thread .gradient-blob-card__blob--a,
+  main.agent-layout.is-mobile-viewport .agent-thread .gradient-blob-card__blob--b {
+    width: 115% !important;
+    height: 115% !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-thread .gradient-blob-card__glass,
+  main.agent-layout.is-mobile-viewport .agent-thread .gradient-blob-card__editorial {
+    min-height: 0 !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-thread .gradient-blob-card__editorial {
+    grid-template-rows: auto auto auto !important;
+    padding: 12px 10px 10px !important;
+    gap: 0 !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-thread .gradient-blob-card__masthead {
+    padding-bottom: 8px !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-thread .gradient-blob-card__masthead-accent {
+    width: min(180px, 58%) !important;
+    margin-bottom: 8px !important;
+    height: 2px !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-thread .gradient-blob-card__masthead-brand {
+    margin-bottom: 4px !important;
+    font-size: 9px !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-thread .gradient-blob-card__masthead-title {
+    font-size: 1rem !important;
+    max-width: none !important;
+    line-height: 1.22 !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-thread .gradient-blob-card__masthead-rule {
+    margin-top: 8px !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-thread .gradient-blob-card__stage {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 6px !important;
+    min-height: 0 !important;
+    padding-top: 8px !important;
+    overflow: visible !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-thread .gradient-blob-card__index {
+    font-size: 1.75rem !important;
+    line-height: 1 !important;
+    padding-top: 0 !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-thread .gradient-blob-card__copy {
+    gap: 6px !important;
+    padding-top: 0 !important;
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-thread .gradient-blob-card__slide-body {
+    gap: 8px !important;
+    padding-bottom: 4px !important;
+    overflow: visible !important;
+    touch-action: pan-y !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-thread .gradient-blob-card__lectura-stage,
+  main.agent-layout.is-mobile-viewport .agent-thread .welcome-intake-scramble {
+    min-height: 0 !important;
+    gap: 8px !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-thread .gradient-blob-card__diagnosis {
+    gap: 8px !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-thread .gradient-blob-card__headline {
+    font-size: 0.98rem !important;
+    line-height: 1.3 !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-thread .gradient-blob-card__body-text,
+  main.agent-layout.is-mobile-viewport .agent-thread .gradient-blob-card__dek-text,
+  main.agent-layout.is-mobile-viewport .agent-thread .gradient-blob-card__kicker {
+    font-size: 0.86rem !important;
+    line-height: 1.44 !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-thread .gradient-blob-card__signal-strip {
+    gap: 6px !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-thread .gradient-blob-card__signal-pill {
+    padding: 5px 8px !important;
+    font-size: 9px !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-thread .gradient-blob-card__nav {
+    margin-top: 8px !important;
+    padding-top: 8px !important;
+    gap: 6px !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-thread .gradient-blob-card__page-pills {
+    gap: 4px !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-thread .gradient-blob-card__page-pill {
+    padding: 6px 2px !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-thread .gradient-blob-card__page-pill-roman {
+    font-size: 0.82rem !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-thread .gradient-blob-card__nav-bottom {
+    gap: 10px !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-thread .gradient-blob-card__nav-arrows {
+    gap: 14px !important;
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-thread .gradient-blob-card__method-list,
+  main.agent-layout.is-mobile-viewport .agent-thread .gradient-blob-card__unlock-list {
+    gap: 6px !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-thread .gradient-blob-card__unlock-card {
+    padding: 8px 10px !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-thread .gradient-blob-card__next-chats {
+    margin-top: 8px !important;
+    padding-top: 8px !important;
+    gap: 6px !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-thread > .agent-bubble.assistant.latex-doc.is-empty-welcome + .agent-inline-panel-action--welcome {
+    margin-top: 6px !important;
+    margin-bottom: 8px !important;
+    padding: 8px 10px !important;
+  }
 }

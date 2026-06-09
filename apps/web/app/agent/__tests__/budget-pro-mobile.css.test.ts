@@ -85,6 +85,15 @@ describe('budget pro mobile css safeguards', () => {
     expect(authCss).toContain('display: none !important');
   });
 
+  it('keeps table footer visible and removes diagnostics phantom safe-area padding', () => {
+    const authCssPath = path.join(process.cwd(), 'app', 'agent-modals-budget-mobile-authoritative.css');
+    const authCss = fs.readFileSync(authCssPath, 'utf8');
+    expect(authCss).toContain('padding-bottom: 0 !important');
+    expect(authCss).toContain('footer siempre visible');
+    expect(authCss).toContain('visibility: visible !important');
+    expect(authCss).toContain('margin: 22px 0 0 !important');
+  });
+
   it('keeps cadence pills separated from payment and movement labels on mobile', () => {
     const authCssPath = path.join(process.cwd(), 'app', 'agent-modals-budget-mobile-authoritative.css');
     const authCss = fs.readFileSync(authCssPath, 'utf8');

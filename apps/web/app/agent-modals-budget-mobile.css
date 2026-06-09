@@ -675,9 +675,10 @@
 
   .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-section.is-mobile-table-compact .budget-table-bottom-actions {
     display: flex !important;
-    margin-top: auto !important;
-    margin-bottom: 0 !important;
-    padding: 12px 8px calc(env(safe-area-inset-bottom, 0px) + 12px) !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    margin: 22px 0 0 !important;
+    padding: 0 8px calc(env(safe-area-inset-bottom, 0px) + 10px) !important;
   }
 
   .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) > [data-budget-mobile-footer='true'],

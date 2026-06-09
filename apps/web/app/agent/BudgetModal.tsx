@@ -654,22 +654,12 @@ export function BudgetModal(props: {
         : carouselHeight > 0
           ? carouselHeight - (footerInsideTable ? 0 : footerHeight) - tableChromeWithFooter
           : 0;
-      const measuredScrollHost = scrollHost.clientHeight;
-      const activeRow =
-        scrollHost.querySelector<HTMLElement>('tr.is-mobile-row-card.is-active-row') ??
-        scrollHost.querySelector<HTMLElement>('tr.is-mobile-row-card');
-      const rowContentHeight = activeRow?.scrollHeight ?? 0;
-      const scrollAreaHeight = Math.max(
-        200,
-        stageScrollBudget,
-        measuredScrollHost,
-        rowContentHeight > 0 ? rowContentHeight + 6 : 0,
-      );
+      const scrollAreaHeight = Math.max(200, stageScrollBudget);
       const slotHeight = Math.max(240, scrollAreaHeight - 2);
 
       if (slotHeight <= 0) return;
       scrollHost.style.setProperty('--budget-mobile-scroll-host-height', `${scrollAreaHeight}px`);
-      scrollHost.style.minHeight = `${scrollAreaHeight}px`;
+      scrollHost.style.removeProperty('min-height');
       scrollHost.style.setProperty('--budget-mobile-row-slot', `${slotHeight}px`);
       root.style.setProperty('--budget-mobile-row-slot', `${slotHeight}px`);
     };

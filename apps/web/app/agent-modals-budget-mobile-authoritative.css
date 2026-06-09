@@ -287,15 +287,16 @@
     justify-content: center !important;
     align-items: center !important;
     gap: 12px !important;
-    margin-top: auto !important;
-    margin-bottom: 0 !important;
-    padding: 12px 8px calc(env(safe-area-inset-bottom, 0px) + 12px) !important;
+    margin: 22px 0 0 !important;
+    padding: 0 8px calc(env(safe-area-inset-bottom, 0px) + 10px) !important;
     width: 100% !important;
     box-sizing: border-box !important;
     background: transparent !important;
     border: none !important;
     box-shadow: none !important;
     pointer-events: auto !important;
+    visibility: visible !important;
+    opacity: 1 !important;
   }
 
   .budget-modal[data-budget-view='assistant'] .budget-table-section.is-mobile-table-compact .budget-table-bottom-actions,
@@ -835,8 +836,8 @@
   .budget-modal .budget-table-section.is-mobile-table-compact .budget-table-bottom-actions {
     flex-shrink: 0 !important;
     order: 99 !important;
-    margin-top: auto !important;
-    padding: 10px 0 calc(env(safe-area-inset-bottom, 0px) + 14px) !important;
+    margin: 22px 0 0 !important;
+    padding: 0 8px calc(env(safe-area-inset-bottom, 0px) + 10px) !important;
     gap: 8px !important;
     display: grid !important;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
@@ -1291,29 +1292,63 @@
     height: auto !important;
   }
 
-  /* Tabla: más alto el scroll host; footer pegado abajo */
+  /* Tabla: sin padding fantasma de diagnostics; scroll host flex; footer siempre visible */
+  .budget-modal.is-mobile-shell[data-budget-view='table'] .budget-main-carousel.mode-table-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact,
+  .budget-modal.is-mobile-shell[data-budget-mobile='true'] .budget-main-carousel.mode-table-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact,
+  .budget-modal.is-mobile-shell[data-budget-view='table'] .budget-table-section.is-mobile-table-compact,
+  .budget-modal.is-mobile-shell[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact {
+    padding-bottom: 0 !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+
   .budget-modal.is-mobile-shell[data-budget-view='table'] .budget-table-section.is-mobile-table-compact .budget-table-scroll-host,
   .budget-modal.is-mobile-shell[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-table-scroll-host,
   .budget-modal[data-budget-view='table'] .budget-table-section.is-mobile-table-compact .budget-table-scroll-host,
   .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-table-scroll-host {
     flex: 1 1 0 !important;
-    min-height: var(--budget-mobile-scroll-host-height, 0) !important;
-    overflow: visible !important;
+    min-height: 0 !important;
+    height: 0 !important;
+    max-height: none !important;
+    overflow: hidden !important;
   }
 
   .budget-modal.is-mobile-shell[data-budget-view='table'] .budget-table-section.is-mobile-table-compact .budget-table-scroll-host .budget-pdf-surface.is-mobile-compact,
   .budget-modal.is-mobile-shell[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-table-scroll-host .budget-pdf-surface.is-mobile-compact,
   .budget-modal[data-budget-view='table'] .budget-table-section.is-mobile-table-compact .budget-table-scroll-host .budget-pdf-surface.is-mobile-compact,
   .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-table-scroll-host .budget-pdf-surface.is-mobile-compact {
-    max-height: none !important;
-    overflow: visible !important;
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    overflow: hidden !important;
   }
 
   .budget-modal.is-mobile-shell[data-budget-view='table'] .budget-table-section.is-mobile-table-compact .budget-table-scroll-host .budget-table-wrap,
   .budget-modal.is-mobile-shell[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-table-scroll-host .budget-table-wrap,
   .budget-modal[data-budget-view='table'] .budget-table-section.is-mobile-table-compact .budget-table-scroll-host .budget-table-wrap,
   .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-table-scroll-host .budget-table-wrap {
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    height: 0 !important;
     max-height: none !important;
-    overflow-y: visible !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  .budget-modal.is-mobile-shell[data-budget-view='table'] .budget-table-section.is-mobile-table-compact .budget-table-bottom-actions,
+  .budget-modal.is-mobile-shell[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-table-bottom-actions,
+  .budget-modal[data-budget-view='table'] .budget-table-section.is-mobile-table-compact .budget-table-bottom-actions,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-table-bottom-actions {
+    flex-shrink: 0 !important;
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    position: relative !important;
+    z-index: 8 !important;
+    margin: 22px 0 0 !important;
+    padding: 0 8px calc(env(safe-area-inset-bottom, 0px) + 10px) !important;
   }
 }
