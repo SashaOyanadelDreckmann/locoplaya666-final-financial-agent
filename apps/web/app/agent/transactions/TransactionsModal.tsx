@@ -143,6 +143,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
     shouldUseMinimalSummaryChat({
       selectedUploadFormat,
       evidenceFidelity: props.activeBankProduct?.dashboard?.evidenceFidelity ?? null,
+      parsedDocuments: props.activeBankProduct?.parsedDocuments ?? [],
     });
 
   const applyOnboarding = () => {

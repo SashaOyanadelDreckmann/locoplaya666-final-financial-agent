@@ -109,4 +109,14 @@ describe('transactions modal safeguards', () => {
     expect(minimalStep).not.toContain('TxChatStarterChips');
     expect(minimalStep).not.toContain('TxAskChatButton');
   });
+
+  it('keeps pdf cartolas and table-backed documents on the full dashboard path', () => {
+    const helpers = read('app/agent/transactions/transactions-modal.helpers.ts');
+    expect(helpers).toContain("selectedUploadFormat !== 'pdf'");
+    expect(helpers).toContain("mode === 'csv_exact'");
+    expect(helpers).toContain("mode === 'exact_sheet'");
+    expect(helpers).toContain("family.includes('cartola')");
+    expect(helpers).toContain("family.includes('estado_cuenta')");
+    expect(helpers).toContain("Array.isArray(structured.tables)");
+  });
 });

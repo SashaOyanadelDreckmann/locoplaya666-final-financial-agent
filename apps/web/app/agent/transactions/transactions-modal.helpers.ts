@@ -16,12 +16,37 @@ export function isCardLikeType(value: string): value is TxCardLikeType {
 export function shouldUseMinimalSummaryChat(params: {
   selectedUploadFormat: string | null;
   evidenceFidelity?: 'authoritative' | 'indicative' | null;
+  parsedDocuments?: Array<{
+    structuredData?: unknown;
+    documentProfile?: unknown;
+  }>;
 }) {
-  return (
-    params.evidenceFidelity === 'indicative' ||
-    params.selectedUploadFormat === 'photos' ||
-    params.selectedUploadFormat === 'text'
-  );
+  if (params.selectedUploadFormat === 'photos' || params.selectedUploadFormat === 'text') return true;
+  if (params.evidenceFidelity === 'indicative') return true;
+
+  if (params.selectedUploadFormat !== 'pdf') return false;
+
+  return !params.parsedDocuments?.some((doc) => {
+    const structured = (doc.structuredData ?? {}) as {
+      parserMeta?: { mode?: string; confidence?: number };
+      documentProfile?: { format_family?: string; confidence?: number; needs_rag?: boolean };
+      tables?: unknown[];
+    };
+    const mode = String(structured.parserMeta?.mode ?? '').toLowerCase();
+    const family = String(structured.documentProfile?.format_family ?? '').toLowerCase();
+    const profileConfidence = Number(structured.documentProfile?.confidence ?? 0) || 0;
+    const hasTableSignal =
+      mode === 'csv_exact' ||
+      mode === 'exact_sheet' ||
+      mode === 'table' ||
+      family.includes('cartola') ||
+      family.includes('estado_cuenta') ||
+      family.includes('ledger') ||
+      family.includes('visa_signature') ||
+      profileConfidence >= 0.92 ||
+      (Array.isArray(structured.tables) && structured.tables.length > 0);
+    return hasTableSignal;
+  });
 }
 
 export const RECOMMENDED_TX_PRODUCTS = [
