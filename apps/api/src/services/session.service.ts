@@ -63,24 +63,48 @@ export function getSessionCookieName() {
   return getCookieName();
 }
 
-export function getSessionCookieOptions(): CookieOptions {
-  const isProd = process.env.NODE_ENV === 'production';
+export function resolveCookieSameSite(): CookieOptions['sameSite'] {
   const sameSiteRaw = process.env.SESSION_COOKIE_SAME_SITE?.trim().toLowerCase();
-  const sameSite: CookieOptions['sameSite'] =
-    sameSiteRaw === 'strict' || sameSiteRaw === 'none' || sameSiteRaw === 'lax'
-      ? sameSiteRaw
-      : 'lax';
+  if (sameSiteRaw === 'strict' || sameSiteRaw === 'none' || sameSiteRaw === 'lax') {
+    return sameSiteRaw;
+  }
+  return 'lax';
+}
+
+export function resolveCookieSecure(sameSite: CookieOptions['sameSite']): boolean {
+  const isProd = process.env.NODE_ENV === 'production';
+  return isProd || sameSite === 'none';
+}
+
+export function getSharedCookieDomain(): string | undefined {
+  const domain = process.env.SESSION_COOKIE_DOMAIN?.trim();
+  return domain || undefined;
+}
+
+export function getSessionCookieOptions(): CookieOptions {
+  const sameSite = resolveCookieSameSite();
   const ttlMs = getSessionTtlMs();
 
   return {
     httpOnly: true,
-    secure: isProd || sameSite === 'none',
+    secure: resolveCookieSecure(sameSite),
     sameSite,
     // Keep the browser session persistent across restarts for the configured TTL.
     maxAge: ttlMs,
     expires: new Date(Date.now() + ttlMs),
     path: '/',
-    ...(process.env.SESSION_COOKIE_DOMAIN ? { domain: process.env.SESSION_COOKIE_DOMAIN } : {}),
+    ...(getSharedCookieDomain() ? { domain: getSharedCookieDomain() } : {}),
+  };
+}
+
+export function getCsrfCookieOptions(): CookieOptions {
+  const sameSite = resolveCookieSameSite();
+  return {
+    httpOnly: false,
+    secure: resolveCookieSecure(sameSite),
+    sameSite,
+    path: '/',
+    ...(getSharedCookieDomain() ? { domain: getSharedCookieDomain() } : {}),
   };
 }
 

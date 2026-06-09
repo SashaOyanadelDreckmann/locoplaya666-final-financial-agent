@@ -11,6 +11,7 @@
 import { timingSafeEqual, randomBytes } from 'crypto';
 import { Request, Response, NextFunction } from 'express';
 import { forbidden } from '../http/api.errors';
+import { getCsrfCookieOptions } from '../services/session.service';
 
 const CSRF_TOKEN_HEADER = 'x-csrf-token';
 const CSRF_COOKIE_NAME = process.env.CSRF_COOKIE_NAME?.trim() || 'csrf-token';
@@ -95,12 +96,7 @@ export function attachCsrfToken(req: Request, res: Response, next: NextFunction)
   // We attach on every request so flows that start with POST (e.g. login) still receive a token.
   if (hasSessionCookie(req)) {
     const token = getCsrfTokenFromCookie(req) ?? generateCsrfToken();
-    res.cookie(CSRF_COOKIE_NAME, token, {
-      httpOnly: false,
-      sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production',
-      path: '/',
-    });
+    res.cookie(CSRF_COOKIE_NAME, token, getCsrfCookieOptions());
     res.set(CSRF_TOKEN_HEADER, token);
   }
   next();

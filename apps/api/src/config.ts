@@ -253,10 +253,16 @@ export function formatConfigSummary(config: Config): string {
     `  Data Dir: ${config.DATA_DIR}`,
     `  Persistence: ${config.DATABASE_URL ? 'postgres' : 'memory'}`,
     `  Dev Injection: ${config.ENABLE_DEV_INJECTION ? '🔓 ENABLED' : '🔒 disabled'}`,
+    `  Approval Email: ${config.RESEND_API_KEY?.trim() ? '✅ Resend configured' : '⚠️  RESEND_API_KEY missing'}`,
+    `  Approval Links: ${config.APPROVAL_LINK_BASE_URL}`,
   ];
 
   if (config.ENABLE_DEV_INJECTION && config.NODE_ENV === 'production') {
     lines.push('  ⚠️  WARNING: Dev injection enabled in production!');
+  }
+
+  if (config.NODE_ENV === 'production' && !config.RESEND_API_KEY?.trim()) {
+    lines.push('  ⚠️  WARNING: Approval emails disabled — manual approval required');
   }
 
   lines.push('━'.repeat(60));

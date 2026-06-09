@@ -7,6 +7,7 @@
     "deploy:api": "bash scripts/deploy-api.sh",
     "deploy:web": "bash scripts/deploy-web.sh",
     "qa:smoke": "pnpm --filter @financial-agent/api qa:smoke",
+    "prod:smoke": "node scripts/prod-smoke.mjs",
     "sync:latest": "bash scripts/sync-latest.sh"
   },
   "dependencies": {

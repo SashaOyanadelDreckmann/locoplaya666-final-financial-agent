@@ -9,6 +9,8 @@ on:
       - "apps/api/**"
       - "packages/shared/**"
       - "scripts/deploy-api.sh"
+      - "scripts/lib/**"
+      - "scripts/prod-smoke.mjs"
       - "Dockerfile.api"
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
@@ -28,6 +30,8 @@ jobs:
       RAILWAY_PROJECT_ID: 6a535ffc-9224-4db3-b385-adf8f2bf0218
       RAILWAY_ENVIRONMENT_ID: 240cefd8-f924-4b76-a890-771db0a45a91
       RAILWAY_API_SERVICE_ID: 203d29a0-15ce-4cad-8014-2ea06d3008ed
+      API_HEALTH_URL: https://locoplaya666-final-financial-agent-production.up.railway.app
+      WEB_HEALTH_URL: https://financieramente.up.railway.app
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -40,7 +44,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: "24"
+          node-version: "20"
           cache: "pnpm"
 
       - name: Install deps
@@ -51,3 +55,6 @@ jobs:
 
       - name: Deploy API
         run: bash scripts/deploy-api.sh
+
+      - name: Production smoke (API + stack readiness)
+        run: node scripts/prod-smoke.mjs

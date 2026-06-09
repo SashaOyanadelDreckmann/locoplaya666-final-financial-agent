@@ -8,6 +8,9 @@ on:
     paths:
       - "apps/web/**"
       - "packages/shared/**"
+      - "scripts/deploy-web.sh"
+      - "scripts/lib/**"
+      - "scripts/prod-smoke.mjs"
       - "Dockerfile.web"
       - ".dockerignore"
       - ".railwayignore"
@@ -30,6 +33,8 @@ jobs:
       RAILWAY_ENVIRONMENT_ID: 240cefd8-f924-4b76-a890-771db0a45a91
       RAILWAY_WEB_SERVICE_ID: 304ec087-4411-4ced-a42c-e00d451fcf4e
       WEB_URL: https://financieramente.up.railway.app
+      API_HEALTH_URL: https://locoplaya666-final-financial-agent-production.up.railway.app
+      WEB_HEALTH_URL: https://financieramente.up.railway.app
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -42,7 +47,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: "24"
+          node-version: "20"
           cache: "pnpm"
 
       - name: Install deps
@@ -53,3 +58,6 @@ jobs:
 
       - name: Deploy web
         run: bash scripts/deploy-web.sh
+
+      - name: Production smoke (web + API readiness)
+        run: node scripts/prod-smoke.mjs

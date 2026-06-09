@@ -82,7 +82,23 @@ Rutas con `DATA_DIR=/app/data`:
 
 ## 5. Smoke test
 
-- `GET https://TU-API.up.railway.app/health`
+Healthchecks (usar en deploy y monitoreo):
+
+- `GET https://TU-API.up.railway.app/health/live` — liveness (proceso arriba)
+- `GET https://TU-API.up.railway.app/health/ready` — readiness (Postgres + MCP; **503** si DB caída)
+- `GET https://TU-WEB.up.railway.app/health` — liveness web
+- `GET https://TU-WEB.up.railway.app/health/ready` — readiness full-stack (web → API)
+
+Script automatizado:
+
+```bash
+API_HEALTH_URL=https://TU-API.up.railway.app \
+WEB_HEALTH_URL=https://TU-WEB.up.railway.app \
+pnpm prod:smoke
+```
+
+Manual:
+
 - Abre `https://TU-WEB.up.railway.app`
 - Registra usuario
 - Inicia sesión

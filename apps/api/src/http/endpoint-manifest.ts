@@ -36,7 +36,9 @@ export const ENDPOINT_MANIFEST: EndpointDefinition[] = [
   { method: 'DELETE', path: '/api/pdfs/delete', hasSchemaValidation: true, hasTests: true, hasDocs: true, hasObservability: true },
   { method: 'GET', path: '/simulations', hasSchemaValidation: true, hasTests: false, hasDocs: true, hasObservability: true },
   { method: 'POST', path: '/simulations/:id/save', hasSchemaValidation: true, hasTests: false, hasDocs: true, hasObservability: true },
-  { method: 'GET', path: '/health', hasSchemaValidation: true, hasTests: false, hasDocs: true, hasObservability: true },
+  { method: 'GET', path: '/health', hasSchemaValidation: true, hasTests: true, hasDocs: true, hasObservability: true },
+  { method: 'GET', path: '/health/live', hasSchemaValidation: true, hasTests: true, hasDocs: true, hasObservability: true },
+  { method: 'GET', path: '/health/ready', hasSchemaValidation: true, hasTests: true, hasDocs: true, hasObservability: true },
 ];
 
 export function getDodCoverage() {

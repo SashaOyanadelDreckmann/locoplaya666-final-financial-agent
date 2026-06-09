@@ -4,11 +4,15 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
+# shellcheck source=scripts/lib/http-health.sh
+source "$ROOT_DIR/scripts/lib/http-health.sh"
+
 RAILWAY_BIN="${RAILWAY_BIN:-railway}"
 SERVICE="${RAILWAY_WEB_SERVICE_ID:-304ec087-4411-4ced-a42c-e00d451fcf4e}"
 PROJECT="${RAILWAY_PROJECT_ID:-}"
 ENVIRONMENT="${RAILWAY_ENVIRONMENT_ID:-}"
 WEB_URL="${WEB_URL:-https://financieramente.up.railway.app}"
+API_HEALTH_URL="${API_HEALTH_URL:-https://locoplaya666-final-financial-agent-production.up.railway.app}"
 
 if [ -z "$PROJECT" ] || [ -z "$ENVIRONMENT" ]; then
   echo "Faltan variables: RAILWAY_PROJECT_ID, RAILWAY_ENVIRONMENT_ID"
@@ -36,25 +40,24 @@ while [ "$attempt" -le "$max_attempts" ]; do
     echo "railway up devolvió error/intermitencia; sigo validando el deployment"
   fi
 
-  for _ in $(seq 1 30); do
-    payload="$("$RAILWAY_BIN" deployment list --service "$SERVICE" --limit 1 --json 2>/dev/null || echo '[]')"
-    status="$(echo "$payload" | jq -r '.[0].status // "UNKNOWN"')"
-    id="$(echo "$payload" | jq -r '.[0].id // "none"')"
-    echo "status=${status} id=${id}"
+  if wait_railway_deployment_success "$RAILWAY_BIN" "$SERVICE" 30 10; then
+    WEB_BASE="${WEB_URL%/}"
+    API_BASE="${API_HEALTH_URL%/}"
 
-    if [ "$status" = "SUCCESS" ]; then
-      "$RAILWAY_BIN" deployment list --service "$SERVICE" --limit 1 --json
-      "$RAILWAY_BIN" status
-      curl -I -m 20 "$WEB_URL"
-      echo "==> Deploy OK"
-      exit 0
-    fi
+    echo "==> Healthcheck web liveness (${WEB_BASE}/health)"
+    wait_http_2xx "${WEB_BASE}/health" 24 5
 
-    if [ "$status" = "FAILED" ] || [ "$status" = "CRASHED" ] || [ "$status" = "REMOVED" ]; then
-      break
-    fi
-    sleep 10
-  done
+    echo "==> Healthcheck web readiness (${WEB_BASE}/health/ready)"
+    wait_http_2xx "${WEB_BASE}/health/ready" 24 5
+
+    echo "==> Healthcheck API readiness (${API_BASE}/health/ready)"
+    wait_api_ready "${API_BASE}/health/ready" 24 5
+
+    "$RAILWAY_BIN" deployment list --service "$SERVICE" --limit 1 --json
+    "$RAILWAY_BIN" status
+    echo "==> Deploy web OK"
+    exit 0
+  fi
 
   attempt=$((attempt + 1))
 done

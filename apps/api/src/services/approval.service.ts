@@ -132,6 +132,12 @@ export function verifyApprovalToken(
 async function sendEmail(params: { to: string; subject: string; html: string }) {
   const config = getConfig();
   if (!config.RESEND_API_KEY) {
+    const { getLogger } = await import('../logger');
+    getLogger().warn({
+      msg: 'Skipping transactional email: RESEND_API_KEY not configured',
+      to: params.to,
+      subject: params.subject,
+    });
     return;
   }
 

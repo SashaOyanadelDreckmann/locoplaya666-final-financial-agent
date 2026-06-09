@@ -17,12 +17,11 @@ import internalRouter from './routes/internal.routes';
 import transactionsChatRouter from './routes/transactions-chat';
 import transcribeRouter from './routes/transcribe';
 import analyticsRouter from './routes/analytics';
+import { healthRouter } from './routes/health.routes';
 import { requestLoggerMiddleware } from './middleware/requestLogger';
 import { asyncHandler, errorHandlerMiddleware } from './middleware/errorHandler';
 import { attachCsrfToken, isAllowedOrigin, validateCsrfToken } from './middleware/csrf';
 import { getConfig } from './config';
-import { sendSuccess } from './http/api.responses';
-import { getDodCoverage } from './http/endpoint-manifest';
 import { requireAuth, requirePermission } from './middleware/auth';
 import { PERMISSIONS } from './auth/rbac';
 import {
@@ -110,10 +109,8 @@ export function createApp() {
   app.use('/api/pdfs', pdfsRouter);
   app.use('/internal', internalRouter);
 
-  // HEALTH
-  app.get('/health', (_req, res) => {
-    return sendSuccess(res, { status: 'ok', dod: getDodCoverage() });
-  });
+  // HEALTH — /health, /health/live (liveness), /health/ready (readiness + DB ping)
+  app.use('/health', healthRouter);
 
   // INTERVIEW VOICE
   app.post(
