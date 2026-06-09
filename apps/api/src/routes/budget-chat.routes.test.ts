@@ -74,6 +74,45 @@ describe('budget-chat routes', () => {
     expect(res.body.focus_row_id).toBe('income_salary');
   }, 15000);
 
+  it('answers off-topic questions briefly and pivots back to the budget table', async () => {
+    const { agent, csrfToken } = await createAuthedAgent();
+    const budgetRows = [
+      { id: 'income_salary', category: 'Sueldo líquido', type: 'income', amount: 0 },
+      { id: 'expense_rent', category: 'Arriendo / vivienda', type: 'expense', amount: 0 },
+    ];
+    const res = await agent.post('/api/budget-chat').set('x-csrf-token', csrfToken).send({
+      intent: 'reply',
+      answer: 'cuantos satelites tiene la nasa en orbita?',
+      question: '¿Cuál es tu ingreso mensual promedio en pesos?',
+      assistantFocusRowId: 'income_salary',
+      budgetRows,
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.source).toBe('deterministic_off_topic');
+    expect(String(res.body.assistant_reply)).toMatch(/nasa|satelite/i);
+    expect(String(res.body.assistant_reply)).toMatch(/presupuesto/i);
+    expect(String(res.body.next_question)).toMatch(/\?/);
+    expect(res.body.action).toBeNull();
+  }, 15000);
+
+  it('routes general inflation questions through off-topic instead of budget education', async () => {
+    const { agent, csrfToken } = await createAuthedAgent();
+    const res = await agent.post('/api/budget-chat').set('x-csrf-token', csrfToken).send({
+      intent: 'reply',
+      answer: 'que es la inflacion en chile',
+      question: '¿Cuál es tu ingreso mensual promedio en pesos?',
+      assistantFocusRowId: 'income_salary',
+      budgetRows: [{ id: 'income_salary', category: 'Sueldo líquido', type: 'income', amount: 0 }],
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.source).toBe('deterministic_off_topic');
+    expect(String(res.body.assistant_reply)).toMatch(/inflaci[oó]n|precios|banco central/i);
+    expect(String(res.body.assistant_reply)).not.toMatch(/ingreso fijo se repite/i);
+    expect(String(res.body.next_question)).toMatch(/\?/);
+  }, 15000);
+
   it('answers education questions about fixed vs variable income', async () => {
     const { agent, csrfToken } = await createAuthedAgent();
     const res = await agent.post('/api/budget-chat').set('x-csrf-token', csrfToken).send({

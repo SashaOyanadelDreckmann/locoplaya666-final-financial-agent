@@ -656,7 +656,124 @@ export type BudgetWriterTurn =
   | 'suggestion'
   | 'education'
   | 'status'
-  | 'advice';
+  | 'advice'
+  | 'off_topic';
+
+export function normalizeBudgetLooseText(value: unknown): string {
+  return String(value ?? '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s$.,/+%-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+const BUDGET_DOMAIN_RE =
+  /\b(presupuesto|ingreso|ingresos|gasto|gastos|arriendo|vivienda|comida|aliment|transporte|deuda|cuota|cuotas|sueldo|salario|liquido|neto|fijo|fija|variable|monto|balance|cartola|movimiento|movimientos|rubro|filas?|tabla|categoria|recurrencia|cadencia|debito|credito|transferencia|efectivo|elimina|borrar|agregar|agrega|ajusta|confirmo|confirmar|dividendo|servicios?|ahorro|bencina|supermercado)\b/;
+
+/** Pregunta educativa acotada al dominio presupuesto (fijo/variable, rubros, etc.). */
+export function isBudgetEducationalQuestion(answer: string): boolean {
+  const text = normalizeBudgetLooseText(answer);
+  if (!text) return false;
+  const financialConcept =
+    /\b(fijo|fija|variable|fijos|variables|ingreso|ingresos|gasto|gastos|recurrencia|cadencia|balance|presupuesto|monto|sueldo|salario)\b/.test(
+      text,
+    );
+  const definitional =
+    /\b(que es|que era|que son|que significa|explicame|explicar|explicas|explica|define|definicion|diferencia|como funciona)\b/.test(
+      text,
+    );
+  const confusion = /\b(no entiendo|no comprendo|ayuda)\b/.test(text) && financialConcept;
+  return (definitional && financialConcept) || confusion;
+}
+
+/** Mensaje claramente fuera del dominio de edición de la tabla presupuesto. */
+export function isBudgetOffTopicAnswer(answer: string): boolean {
+  const text = normalizeBudgetLooseText(answer);
+  if (!text || text.length < 8) return false;
+  if (isBudgetEducationalQuestion(answer)) return false;
+  if (isBudgetSkipAnswer(answer)) return false;
+  if (extractAmountFromText(answer)) return false;
+  if (BUDGET_DOMAIN_RE.test(text)) return false;
+  if (
+    /\b(elimina|eliminar|borra|borrar|quita|quitar|agrega|agregar|ajusta|ajustar|ponlo|dejalo|dejemos|confirmo|confirmar)\b/.test(
+      text,
+    )
+  ) {
+    return false;
+  }
+  if (/^(hola|buenas|hello|hi|ola)\b/.test(text)) return false;
+
+  const looksLikeQuestion =
+    /\?$/.test(answer.trim()) ||
+    /\b(que|cual|como|porque|por que|cuando|donde|quien|cuantos|cuantas|cuanto|cuanta|oye|cuentame|hablame)\b/.test(
+      text,
+    );
+  const topicShift = /\b(hablemos|prefiero|cambiemos|otra cosa|da lata|aburrido|aburre|cansado)\b/.test(text);
+  const unrelatedCue =
+    /\b(nasa|spacex|satelite|orbita|futbol|madrid|barcelona|japon|viaje|viajar|fisica|cuantica|cuerdas|partido|pelicula|serie|universo|marte|luna|clima|politica|presidente|bitcoin|crypto|iphone|android|receta|cocina|mascota|perro|gato|inflacion)\b/.test(
+      text,
+    );
+
+  return looksLikeQuestion || topicShift || unrelatedCue;
+}
+
+const OFF_TOPIC_BRIEF_PATTERNS: Array<{ test: RegExp; brief: string }> = [
+  {
+    test: /\bnasa\b|\bsatelite|\borbita\b/,
+    brief:
+      'La NASA opera cientos de satélites activos entre científicos, de comunicaciones y de observación terrestre.',
+  },
+  {
+    test: /\binflacion\b/,
+    brief:
+      'La inflación mide cuánto suben los precios en el tiempo; en Chile el Banco Central la vigila con una meta cercana al 3% anual.',
+  },
+  {
+    test: /\b(teoria de cuerdas|fisica cuantica|cuantica)\b/,
+    brief:
+      'La física cuántica describe partículas muy pequeñas; la teoría de cuerdas es un marco aún no confirmado que busca unificar fuerzas.',
+  },
+  {
+    test: /\b(real madrid|barcelona|futbol|partido)\b/,
+    brief:
+      'En fútbol, el resultado depende de forma, plantel y contexto del partido; no tengo el detalle del encuentro que mencionas.',
+  },
+  {
+    test: /\b(japon|viaje|viajar)\b/,
+    brief:
+      'Japón es un destino con alta demanda turística; un viaje así conviene planificarlo con vuelos, alojamiento y gastos diarios.',
+  },
+  {
+    test: /\bspacex\b/,
+    brief: 'SpaceX es una empresa aeroespacial conocida por cohetes reutilizables y lanzamientos comerciales.',
+  },
+];
+
+/** Respuesta breve determinística (1 frase) para temas fuera del presupuesto. */
+export function resolveOffTopicBriefAnswer(answer: string): string {
+  const text = normalizeBudgetLooseText(answer);
+  for (const pattern of OFF_TOPIC_BRIEF_PATTERNS) {
+    if (pattern.test.test(text)) return pattern.brief;
+  }
+  const cue = extractUserAnswerCue(answer);
+  if (cue) return `Sobre "${cue.slice(0, 48)}", no tengo aquí un dato preciso.`;
+  return 'Entiendo tu pregunta, aunque este chat está enfocado en tu presupuesto.';
+}
+
+export function buildOffTopicBriefReply(input: {
+  rows: BudgetRow[];
+  focusRow: BudgetRow | null;
+  context: BudgetAssistantContext;
+  briefAnswer: string;
+}): { reply: string; followUp: string; focusRowId: string | null } {
+  const focus = input.focusRow ?? pickContextualFocusRow(input.rows, input.context);
+  const brief = input.briefAnswer.trim();
+  const reply = `${brief} Volvamos a tu presupuesto.`;
+  const followUp = buildContextualQuestion(focus, input.context);
+  return { reply, followUp, focusRowId: focus?.id ?? null };
+}
 
 function normalizeAnswerEcho(answer: string): string {
   return String(answer ?? '')

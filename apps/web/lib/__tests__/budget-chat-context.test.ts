@@ -6,8 +6,12 @@ import {
   buildBudgetRowSuggestions,
   buildCategoryClarificationReply,
   buildContextualQuestion,
+  buildOffTopicBriefReply,
+  isBudgetEducationalQuestion,
+  isBudgetOffTopicAnswer,
   pickContextualFocusRow,
   resolveBudgetAffirmativeAmount,
+  resolveOffTopicBriefAnswer,
 } from '@financial-agent/shared';
 
 describe('budget-chat-context', () => {
@@ -151,5 +155,32 @@ describe('budget-chat-context', () => {
 
     const suggestions = buildBudgetRowSuggestions(rows, context);
     expect(suggestions.some((item) => item.kind === 'add' && item.category.includes('Colegio'))).toBe(true);
+  });
+
+  it('treats only budget concepts as educational questions', () => {
+    expect(isBudgetEducationalQuestion('que es un ingreso fijo y variable')).toBe(true);
+    expect(isBudgetEducationalQuestion('que es la inflacion en chile')).toBe(false);
+  });
+
+  it('detects off-topic questions outside the budget domain', () => {
+    expect(isBudgetOffTopicAnswer('cuantos satelites tiene la nasa en orbita?')).toBe(true);
+    expect(isBudgetOffTopicAnswer('gasto 200 mil en comida')).toBe(false);
+    expect(isBudgetOffTopicAnswer('900000')).toBe(false);
+  });
+
+  it('builds a brief off-topic answer and pivots back to the active row', () => {
+    const context = buildBudgetAssistantContext({ rows, intakeData: {}, products: [], chatAnswers: [] });
+    const brief = resolveOffTopicBriefAnswer('cuantos satelites tiene la nasa?');
+    expect(brief).toMatch(/nasa|satelite/i);
+
+    const packaged = buildOffTopicBriefReply({
+      rows,
+      focusRow: rows[0],
+      context,
+      briefAnswer: brief,
+    });
+    expect(packaged.reply).toMatch(/presupuesto/i);
+    expect(packaged.followUp).toMatch(/\?/);
+    expect(packaged.focusRowId).toBe('income_salary');
   });
 });

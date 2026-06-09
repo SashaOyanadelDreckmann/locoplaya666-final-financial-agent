@@ -127,7 +127,9 @@ function buildWriterInstructions(turn: BudgetWriterTurn): string {
         ? 'En confirmation, describe qué registraste y por qué, citando el contexto del usuario.'
         : turn === 'suggestion'
           ? 'En suggestion, presenta la idea como invitación suave, no orden.'
-          : 'Mantén continuidad con la conversación reciente.',
+          : turn === 'off_topic'
+            ? 'En off_topic, reply = 1 frase que responde lo preguntado + 1 frase corta que vuelve al presupuesto; question pide el dato de la tabla activa.'
+            : 'Mantén continuidad con la conversación reciente.',
   ].join(' ');
 }
 
@@ -197,6 +199,7 @@ export async function polishBudgetAssistantCopy(
 
 export function mapBudgetSourceToWriterTurn(source: string): BudgetWriterTurn {
   if (source.includes('init')) return 'init';
+  if (source.includes('off_topic')) return 'off_topic';
   if (source.includes('update')) return 'confirmation';
   if (source.includes('suggestion') || source.includes('advice') || source.includes('add')) return 'suggestion';
   if (source.includes('education')) return 'education';

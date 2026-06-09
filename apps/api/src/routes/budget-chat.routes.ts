@@ -11,6 +11,7 @@ import {
   type BudgetWriterPolishInput,
 } from '../services/budget-chat-writer.service';
 import { planBudgetAssistantInit, planBudgetAssistantTurn } from '../services/budget-chat-planner.service';
+import { generateOffTopicBriefAnswer } from '../services/budget-chat-offtopic.service';
 import {
   BUDGET_MOVEMENT_TYPE_OPTIONS,
   DEFAULT_BUDGET_ROWS,
@@ -23,6 +24,9 @@ import {
   buildContextualInitReply,
   buildContextualQuestion,
   buildReflectiveFallbackReply,
+  buildOffTopicBriefReply,
+  isBudgetEducationalQuestion,
+  isBudgetOffTopicAnswer,
   buildSuggestionFollowUp,
   inferBudgetFieldFromQuestion,
   isBulkDeleteRequest,
@@ -422,15 +426,6 @@ function detectBudgetIntent(answer: string) {
   if (/\?$/.test(answer.trim()) || /\b(que|como|por que|cual|cuanto)\b/.test(text)) return 'question';
   if (/^(hola|buenas|hello|hi|ola)\b/.test(text)) return 'greeting';
   return 'unclear';
-}
-
-function isEducationalBudgetQuestion(answer: string) {
-  const text = normalizeLooseText(answer);
-  if (!text) return false;
-  const financialConcept = /\b(fijo|fija|variable|fijos|variables|ingreso|ingresos|gasto|gastos|recurrencia|cadencia|balance|presupuesto|monto|sueldo|salario)\b/.test(text);
-  const definitional = /\b(que es|que era|que son|que significa|explicame|explicar|explicas|explica|define|definicion|diferencia|como funciona)\b/.test(text);
-  const confusion = /\b(no entiendo|no comprendo|ayuda)\b/.test(text) && financialConcept;
-  return definitional || confusion;
 }
 
 function sanitizeQuestion(text: string | null | undefined): string | null {
@@ -1322,7 +1317,7 @@ router.post(
       }
     }
 
-    if (intent === 'reply' && answer && !extractClpAmount(answer) && !isEducationalBudgetQuestion(answer)) {
+    if (intent === 'reply' && answer && !extractClpAmount(answer) && !isBudgetEducationalQuestion(answer)) {
       const answerIntent = detectBudgetIntent(answer);
       const clarifyIntent =
         answerIntent === 'update_amount' ||
@@ -1352,6 +1347,34 @@ router.post(
           { market_snapshot: emptyMarketSnapshot() },
         );
       }
+    }
+
+    if (intent === 'reply' && answer && isBudgetOffTopicAnswer(answer)) {
+      const focusRow =
+        resolvedActiveRow ??
+        (assistantFocusRowId
+          ? rows.find((row) => canonicalBudgetRowId(row.id) === canonicalBudgetRowId(assistantFocusRowId)) ?? null
+          : null);
+      const briefAnswer = await generateOffTopicBriefAnswer(answer);
+      const packaged = buildOffTopicBriefReply({
+        rows,
+        focusRow,
+        context,
+        briefAnswer,
+      });
+      const draft = buildBudgetReply({
+        reply: packaged.reply,
+        followUp: packaged.followUp,
+        focus_row_id: packaged.focusRowId,
+        source: 'deterministic_off_topic',
+        market_snapshot: emptyMarketSnapshot(),
+      });
+      return sendBudgetChatResponse(
+        res,
+        draft,
+        buildWriterPolishInput({ draft, context, rows, userAnswer: answer }),
+        { market_snapshot: emptyMarketSnapshot() },
+      );
     }
 
     if (intent === 'reply' && answer) {
@@ -1404,7 +1427,7 @@ router.post(
       }
     }
 
-    if (intent === 'reply' && isEducationalBudgetQuestion(answer)) {
+    if (intent === 'reply' && isBudgetEducationalQuestion(answer)) {
       const draft = buildEducationReply({ answer, rows, activeRow: resolvedActiveRow, context });
       return sendBudgetChatResponse(
         res,
