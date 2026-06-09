@@ -28,18 +28,48 @@ function readStageRect(stageEl: HTMLElement | null) {
   return { centerX, bottom, width };
 }
 
-/** Where the active mobile deck card sits — used to align spotlight with real panel chrome */
-export function getMobileSpotlightAnchor(stageEl: HTMLElement | null) {
-  const { width: cardW, height: cardH } = getMobileDeckCardNaturalSize();
-  const { centerX, bottom } = readStageRect(stageEl);
-  const scale = 1.015;
-  const w = cardW * scale;
-  const h = cardH * scale;
+export type MobileSpotlightLayoutInput = {
+  viewportWidth: number;
+  viewportHeight: number;
+  naturalWidth: number;
+  naturalHeight: number;
+  phase: 'enter' | 'spotlight';
+  handoffOrigin?: { x: number; y: number } | null;
+};
+
+/** Centered spotlight card on mobile — independent of deck offset */
+export function getMobileSpotlightLayout(input: MobileSpotlightLayoutInput) {
+  const padX = 20;
+  const headerReserve = 128;
+  const footerReserve = 88;
+  const availW = input.viewportWidth - padX * 2;
+  const availH = input.viewportHeight - headerReserve - footerReserve;
+  const aspect = input.naturalWidth / Math.max(input.naturalHeight, 1);
+
+  let cardW = Math.min(input.naturalWidth * 1.06, availW, 360);
+  let cardH = Math.round(cardW / aspect);
+
+  if (cardH > availH) {
+    cardH = availH;
+    cardW = Math.round(cardH * aspect);
+  }
+
+  if (input.phase === 'enter' && input.handoffOrigin) {
+    const enterW = cardW * 0.92;
+    const enterH = Math.round(enterW / aspect);
+    return {
+      left: input.handoffOrigin.x - enterW / 2,
+      top: input.handoffOrigin.y - enterH / 2,
+      width: enterW,
+      height: enterH,
+    };
+  }
+
   return {
-    left: centerX - w / 2,
-    top: bottom - h - 8,
-    width: w,
-    height: h,
+    left: (input.viewportWidth - cardW) / 2,
+    top: headerReserve + Math.max(0, (availH - cardH) / 2),
+    width: cardW,
+    height: cardH,
   };
 }
 

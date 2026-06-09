@@ -5,8 +5,10 @@ import { motion } from 'framer-motion';
 
 import {
   PanelCardsMorphIntro,
+  computeSpotlightLayoutForCard,
   type PanelCardNaturalSize,
   type PanelDockTarget,
+  type PanelIntroCardLayout,
   type PanelMorphPhase,
 } from '@/components/ui/panel-cards-morph-intro';
 import {
@@ -21,9 +23,10 @@ import { markPanelIntroCompleted } from './panel-intro.prefs';
 import type { PanelIntroHandoffOrigin, PanelIntroPhase } from './panel-intro.types';
 
 const ENTER_MS = 360;
-const DOCK_MS = 820;
-const SETTLE_MS = 480;
-const FADE_OUT_MS = 320;
+const SPOTLIGHT_MS = 4000;
+const DOCK_MS = 1180;
+const SETTLE_MS = 680;
+const FADE_OUT_MS = 420;
 
 export type { PanelIntroPhase };
 
@@ -38,17 +41,8 @@ function prefersReducedMotion(): boolean {
   }
 }
 
-function spotlightDurationForIndex(index: number, isMobile: boolean, total: number): number {
-  const isLast = index >= total - 1;
-  if (isLast) return isMobile ? 2200 : 2600;
-  if (isMobile) {
-    if (index <= 2) return 1600;
-    if (index <= 5) return 1300;
-    return 1100;
-  }
-  if (index <= 2) return 2000;
-  if (index <= 5) return 1700;
-  return 1400;
+function spotlightDurationForIndex(): number {
+  return SPOTLIGHT_MS;
 }
 
 function measureGridDockTargets(
@@ -148,15 +142,18 @@ export function PanelCardsIntroSequence(props: {
   const [phase, setPhase] = useState<PanelMorphPhase>(reducedMotion ? 'spotlight' : 'enter');
   const [activeIndex, setActiveIndex] = useState(0);
   const [dockTargets, setDockTargets] = useState<PanelDockTarget[] | null>(null);
+  const [dockOrigin, setDockOrigin] = useState<PanelIntroCardLayout | null>(null);
   const [naturalSizes, setNaturalSizes] = useState<Record<string, PanelCardNaturalSize>>({});
   const [exiting, setExiting] = useState(false);
   const exitStartedRef = useRef(false);
   const dockStartedRef = useRef(false);
   const skipStartedRef = useRef(false);
+  const activeIndexRef = useRef(activeIndex);
+  activeIndexRef.current = activeIndex;
   const propsRef = useRef(props);
   propsRef.current = props;
   const totalCards = PANEL_INTRO_CARD_ORDER.length;
-  const spotlightDurationMs = spotlightDurationForIndex(activeIndex, props.isMobileViewport, totalCards);
+  const spotlightDurationMs = spotlightDurationForIndex();
 
   const orderedPanelCards = useMemo(
     () =>
@@ -182,9 +179,29 @@ export function PanelCardsIntroSequence(props: {
 
     window.requestAnimationFrame(() => {
       window.requestAnimationFrame(() => {
-        setNaturalSizes(
-          measureCardNaturalSizes(propsRef.current.panelGridRef, propsRef.current.isMobileViewport),
+        const nextNaturalSizes = measureCardNaturalSizes(
+          propsRef.current.panelGridRef,
+          propsRef.current.isMobileViewport,
         );
+        const currentIndex = activeIndexRef.current;
+        const activeMeta = PANEL_INTRO_CARD_ORDER[currentIndex] ?? PANEL_INTRO_CARD_ORDER[0];
+        const viewport = {
+          x: window.innerWidth / 2,
+          y: window.innerHeight / 2,
+          width: window.innerWidth,
+          height: window.innerHeight,
+        };
+        const origin = computeSpotlightLayoutForCard({
+          cardKey: activeMeta.key,
+          phase: 'spotlight',
+          naturalSizes: nextNaturalSizes,
+          handoffOrigin: propsRef.current.handoffOrigin,
+          isMobile: propsRef.current.isMobileViewport,
+          viewport,
+        });
+
+        setNaturalSizes(nextNaturalSizes);
+        setDockOrigin(origin);
         setDockTargets(
           measureDockTargets(propsRef.current.panelGridRef, propsRef.current.isMobileViewport),
         );
@@ -254,7 +271,7 @@ export function PanelCardsIntroSequence(props: {
   useEffect(() => {
     if (phase !== 'spotlight' || exiting) return;
 
-    const duration = spotlightDurationForIndex(activeIndex, props.isMobileViewport, totalCards);
+    const duration = spotlightDurationForIndex();
     const timer = window.setTimeout(() => {
       if (activeIndex >= totalCards - 1) {
         beginDock();
@@ -269,7 +286,8 @@ export function PanelCardsIntroSequence(props: {
 
   useEffect(() => {
     if (phase !== 'dock') return;
-    const settleTimer = window.setTimeout(() => beginSettle(), DOCK_MS);
+    const settleLeadMs = Math.round(DOCK_MS * 0.62);
+    const settleTimer = window.setTimeout(() => beginSettle(), settleLeadMs);
     return () => window.clearTimeout(settleTimer);
   }, [phase, beginSettle]);
 
@@ -329,6 +347,7 @@ export function PanelCardsIntroSequence(props: {
         phase={phase}
         activeIndex={activeIndex}
         dockTargets={dockTargets}
+        dockOrigin={dockOrigin}
         panelCards={orderedPanelCards}
         naturalSizes={naturalSizes}
         handoffOrigin={props.handoffOrigin}
