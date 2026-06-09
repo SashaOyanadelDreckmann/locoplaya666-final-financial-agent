@@ -2,6 +2,9 @@ import type { PanelDockTarget } from '@/components/ui/panel-cards-morph-intro';
 
 import { PANEL_INTRO_CARD_ORDER } from './panel-cards-intro.copy';
 
+/** Must match MobilePanelCircularDeck / CardStack stageOffsetX */
+const MOBILE_DECK_STAGE_OFFSET_X = 132;
+
 function signedOffset(i: number, active: number, len: number) {
   const raw = i - active;
   if (len <= 1) return raw;
@@ -14,6 +17,30 @@ export function getMobileDeckCardNaturalSize() {
   const cardW = Math.round(Math.min(180, Math.max(130, vw * 0.39)));
   const cardH = Math.round(Math.min(83, Math.max(64, cardW * 0.44)));
   return { width: cardW, height: cardH };
+}
+
+function readStageRect(stageEl: HTMLElement | null) {
+  const stageRect = stageEl?.getBoundingClientRect();
+  const width = stageRect?.width ?? (typeof window !== 'undefined' ? window.innerWidth : 390);
+  const left = stageRect?.left ?? 0;
+  const bottom = stageRect?.bottom ?? (typeof window !== 'undefined' ? window.innerHeight * 0.92 : 700);
+  const centerX = left + width / 2 + MOBILE_DECK_STAGE_OFFSET_X;
+  return { centerX, bottom, width };
+}
+
+/** Where the active mobile deck card sits — used to align spotlight with real panel chrome */
+export function getMobileSpotlightAnchor(stageEl: HTMLElement | null) {
+  const { width: cardW, height: cardH } = getMobileDeckCardNaturalSize();
+  const { centerX, bottom } = readStageRect(stageEl);
+  const scale = 1.015;
+  const w = cardW * scale;
+  const h = cardH * scale;
+  return {
+    left: centerX - w / 2,
+    top: bottom - h - 8,
+    width: w,
+    height: h,
+  };
 }
 
 function computeMobileDeckDockTargetAtIndex(
@@ -33,9 +60,7 @@ function computeMobileDeckDockTargetAtIndex(
   const inactiveScale = 0.88;
   const activeLiftPx = 8;
 
-  const stageRect = stageEl?.getBoundingClientRect();
-  const centerX = (stageRect?.left ?? 0) + (stageRect?.width ?? window.innerWidth) / 2;
-  const bottomY = stageRect?.bottom ?? window.innerHeight * 0.92;
+  const { centerX, bottom: bottomY } = readStageRect(stageEl);
 
   let off = signedOffset(index, 0, cardCount);
   if (Math.abs(off) > maxOffset) {
@@ -101,10 +126,8 @@ function readLiveDeckCardTarget(
 export function computeMobileDeckDockTargets(
   stageEl: HTMLElement | null,
 ): PanelDockTarget[] {
-  const computed = PANEL_INTRO_CARD_ORDER.map((card, index) => {
+  return PANEL_INTRO_CARD_ORDER.map((card, index) => {
     const live = readLiveDeckCardTarget(stageEl, card.key);
     return live ?? computeMobileDeckDockTargetAtIndex(stageEl, index);
   });
-
-  return computed;
 }

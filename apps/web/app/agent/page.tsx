@@ -3680,6 +3680,8 @@ export default function AgentPage() {
       } ${
         panelIntroActive ? 'is-panel-intro-active' : ''
       } ${
+        panelIntroPhase === 'dock' || panelIntroPhase === 'settle' ? 'is-panel-intro-docking' : ''
+      } ${
         panelIntroSettled ? 'is-panel-intro-settled' : ''
       } ${
         isRailMorphing ? 'is-mode-12-morphing' : ''
@@ -4033,12 +4035,22 @@ export default function AgentPage() {
           handoffOrigin={panelIntroHandoffOrigin}
           onPhaseChange={setPanelIntroPhase}
           onSettled={() => setPanelIntroSettled(true)}
+          onPanelReveal={() => {
+            if (isMobileViewport) {
+              compactPanelDeckRef.current?.resetHome();
+            } else {
+              panelScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+          }}
           onHaptic={haptic}
           onComplete={() => {
             setPanelIntroActive(false);
             setPanelIntroPhase('morph');
             setPanelIntroSettled(false);
             setPanelIntroHandoffOrigin(null);
+            if (isMobileViewport) {
+              compactPanelDeckRef.current?.resetHome();
+            }
           }}
         />
       ) : null}

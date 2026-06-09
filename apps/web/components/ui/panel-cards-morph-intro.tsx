@@ -8,6 +8,7 @@ import {
   PANEL_INTRO_CARD_ORDER,
   PANEL_INTRO_CARD_SIZE_FALLBACKS,
 } from "@/app/agent/panel-cards-intro.copy";
+import { getMobileSpotlightAnchor } from "@/app/agent/panel-cards-intro.mobile-dock";
 import type { PanelIntroHandoffOrigin } from "@/app/agent/panel-intro.types";
 
 export type PanelMorphPhase = "enter" | "spotlight" | "dock" | "settle";
@@ -35,9 +36,9 @@ type CardLayout = {
 };
 
 const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
-const SPOTLIGHT_SPRING = { type: "spring" as const, stiffness: 62, damping: 22, mass: 0.82 };
-const DOCK_SPRING = { type: "spring" as const, stiffness: 68, damping: 22, mass: 0.8 };
-const SETTLE_SPRING = { type: "spring" as const, stiffness: 78, damping: 26, mass: 0.78 };
+const SPOTLIGHT_SPRING = { type: "spring" as const, stiffness: 58, damping: 21, mass: 0.84 };
+const DOCK_SPRING = { type: "spring" as const, stiffness: 64, damping: 22, mass: 0.82 };
+const SETTLE_SPRING = { type: "spring" as const, stiffness: 72, damping: 24, mass: 0.8 };
 
 function extractPanelCardLeaf(node: ReactElement): ReactElement {
   const props = node.props as { children?: React.ReactNode; className?: string };
@@ -93,6 +94,9 @@ function IntroPanelCard({
   layout,
   phase,
   index,
+  isActive,
+  isMobile,
+  dockFromSpotlight,
 }: {
   cardKey: string;
   cardNode: ReactElement;
@@ -100,8 +104,12 @@ function IntroPanelCard({
   layout: CardLayout;
   phase: PanelMorphPhase;
   index: number;
+  isActive: boolean;
+  isMobile: boolean;
+  dockFromSpotlight?: boolean;
 }) {
   const isDocking = phase === "dock" || phase === "settle";
+  const isSpotlight = phase === "spotlight" || phase === "enter";
   const leafNode = extractPanelCardLeaf(cardNode);
   const fitScale = Math.min(
     1,
@@ -109,28 +117,52 @@ function IntroPanelCard({
     layout.height / Math.max(naturalSize.height, 1),
   );
 
+  const shareLayout =
+    isDocking || (isSpotlight && isActive);
+
   const transition =
-    phase === "settle" ? SETTLE_SPRING : phase === "dock" ? DOCK_SPRING : SPOTLIGHT_SPRING;
+    phase === "settle"
+      ? SETTLE_SPRING
+      : phase === "dock"
+        ? DOCK_SPRING
+        : SPOTLIGHT_SPRING;
+
+  const dockDelay = isDocking && !dockFromSpotlight && !isActive ? index * 0.028 : 0;
 
   return (
     <motion.div
-      layoutId={isDocking ? `panel-intro-card-${cardKey}` : undefined}
-      className={cn("panel-morph-card", isDocking && "is-docking", phase === "settle" && "is-settling")}
+      layoutId={shareLayout ? `panel-intro-card-${cardKey}` : undefined}
+      className={cn(
+        "panel-morph-card",
+        isSpotlight && isActive && "is-spotlight-active",
+        isDocking && "is-docking",
+        phase === "settle" && "is-settling",
+        isMobile && "is-mobile",
+      )}
+      initial={
+        isDocking && !dockFromSpotlight && !isActive
+          ? { opacity: 0, scale: 0.94 }
+          : false
+      }
       animate={{
         left: layout.left,
         top: layout.top,
         rotate: layout.rotation,
         opacity: phase === "settle" ? 0 : layout.opacity,
+        scale: 1,
         width: layout.width,
         height: layout.height,
       }}
-      transition={transition}
+      transition={{
+        ...transition,
+        delay: dockDelay,
+      }}
       style={{
         position: "fixed",
-        zIndex: isDocking ? 2147482800 + index : 5,
+        zIndex: isDocking ? 2147482800 + index : isActive ? 6 : 2,
       }}
     >
-      <div className="panel-morph-card__frame">
+      <div className={cn("panel-morph-card__frame", isSpotlight && isActive && "is-spotlight")}>
         <div
           className="panel-morph-card__content"
           style={{
@@ -139,14 +171,16 @@ function IntroPanelCard({
             transform: `scale(${fitScale})`,
           }}
         >
-          {React.cloneElement(leafNode, {
-            className: cn(
-              (leafNode.props as { className?: string }).className,
-              "panel-morph-card__slot",
-            ),
-            "aria-hidden": true,
-            tabIndex: -1,
-          } as Record<string, unknown>)}
+          <div className="agent-panel panel-morph-card__skin" aria-hidden="true">
+            {React.cloneElement(leafNode, {
+              className: cn(
+                (leafNode.props as { className?: string }).className,
+                "panel-morph-card__slot",
+              ),
+              "aria-hidden": true,
+              tabIndex: -1,
+            } as Record<string, unknown>)}
+          </div>
         </div>
       </div>
     </motion.div>
@@ -161,8 +195,10 @@ export function PanelCardsMorphIntro(props: {
   naturalSizes: Record<string, PanelCardNaturalSize>;
   handoffOrigin?: PanelIntroHandoffOrigin | null;
   isMobileViewport?: boolean;
+  panelGridRef?: React.RefObject<HTMLDivElement | null>;
   reducedMotion?: boolean;
   spotlightDurationMs?: number;
+  autoPlay?: boolean;
   onAdvance?: () => void;
   className?: string;
 }) {
@@ -173,6 +209,8 @@ export function PanelCardsMorphIntro(props: {
   const activeMeta = cards[props.activeIndex] ?? cards[0];
   const isDockStage = props.phase === "dock" || props.phase === "settle";
   const spotlightMs = props.spotlightDurationMs ?? 2200;
+  const isLastSpotlight = props.phase === "spotlight" && props.activeIndex >= total - 1;
+  const autoPlay = props.autoPlay ?? false;
 
   const cardNodeByKey = useMemo(() => {
     const map = new Map<string, ReactElement>();
@@ -189,22 +227,36 @@ export function PanelCardsMorphIntro(props: {
 
     const natural = resolveNatural(activeMeta.key);
     const aspect = natural.width / Math.max(natural.height, 1);
+
+    if (isMobile && props.panelGridRef?.current) {
+      const anchor = getMobileSpotlightAnchor(props.panelGridRef.current);
+      const boost = props.phase === "enter" ? 0.92 : 1.08;
+      return {
+        left: anchor.left,
+        top: anchor.top - (props.phase === "enter" ? 8 : 0),
+        width: anchor.width * boost,
+        height: anchor.height * boost,
+        rotation: 0,
+        opacity: props.phase === "enter" ? 0.78 : 1,
+      };
+    }
+
+    const scale = props.phase === "enter" ? 0.9 : isMobile ? 1.06 : 1.1;
     const cardW = Math.min(
-      isMobile ? viewport.width - 48 : viewport.width - 120,
-      isMobile ? 340 : 420,
-      Math.max(natural.width, isMobile ? 280 : 320),
+      natural.width * scale,
+      isMobile ? viewport.width - 40 : Math.min(viewport.width * 0.44, 400),
     );
     const cardH = Math.round(cardW / aspect);
-    const centerY = viewport.y + (isMobile ? 24 : 32);
+    const centerY = viewport.y + (isMobile ? viewport.height * 0.1 : 28);
 
     if (props.phase === "enter" && props.handoffOrigin) {
       return {
         left: props.handoffOrigin.x - cardW / 2,
         top: props.handoffOrigin.y - cardH / 2,
-        width: cardW * 0.88,
-        height: Math.round(cardH * 0.88),
+        width: cardW,
+        height: cardH,
         rotation: 0,
-        opacity: 0.72,
+        opacity: 0.76,
       };
     }
 
@@ -216,7 +268,15 @@ export function PanelCardsMorphIntro(props: {
       rotation: 0,
       opacity: 1,
     };
-  }, [activeMeta.key, isMobile, props.handoffOrigin, props.phase, viewport, props.naturalSizes]);
+  }, [
+    activeMeta.key,
+    isMobile,
+    props.handoffOrigin,
+    props.panelGridRef,
+    props.phase,
+    viewport,
+    props.naturalSizes,
+  ]);
 
   const dockLayouts = useMemo((): CardLayout[] | null => {
     if (!isDockStage || !props.dockTargets) return null;
@@ -234,10 +294,12 @@ export function PanelCardsMorphIntro(props: {
     <div
       className={cn(
         "panel-morph-intro",
+        isMobile && "is-mobile",
         props.phase === "spotlight" && "is-spotlight-stage",
         props.phase === "enter" && "is-enter-stage",
         isDockStage && "is-dock-stage",
         props.phase === "settle" && "is-settle-stage",
+        isLastSpotlight && "is-final-spotlight",
         props.className,
       )}
       style={{ "--panel-intro-spotlight-ms": `${spotlightMs}ms` } as React.CSSProperties}
@@ -274,27 +336,15 @@ export function PanelCardsMorphIntro(props: {
               </span>
               <h2 className="panel-morph-intro__title">{activeMeta.label}</h2>
               <p className="panel-morph-intro__lede">{activeMeta.caption}</p>
+              {isLastSpotlight ? (
+                <p className="panel-morph-intro__finale-hint">Desplegando panel…</p>
+              ) : null}
             </motion.div>
           ) : null}
         </AnimatePresence>
       </header>
 
-      <div
-        className="panel-morph-intro__stage"
-        onClick={() => {
-          if (props.phase === "spotlight") props.onAdvance?.();
-        }}
-        onKeyDown={(event) => {
-          if (props.phase !== "spotlight") return;
-          if (event.key === "Enter" || event.key === " ") {
-            event.preventDefault();
-            props.onAdvance?.();
-          }
-        }}
-        role={props.phase === "spotlight" ? "button" : undefined}
-        tabIndex={props.phase === "spotlight" ? 0 : undefined}
-        aria-label={props.phase === "spotlight" ? "Avanzar al siguiente módulo" : undefined}
-      >
+      <div className="panel-morph-intro__stage">
         {(props.phase === "spotlight" || props.phase === "enter") && spotlightLayout ? (
           (() => {
             const cardNode = cardNodeByKey.get(activeMeta.key);
@@ -308,6 +358,8 @@ export function PanelCardsMorphIntro(props: {
                 layout={spotlightLayout}
                 phase={props.phase === "enter" ? "spotlight" : props.phase}
                 index={props.activeIndex}
+                isActive
+                isMobile={isMobile}
               />
             );
           })()
@@ -327,6 +379,9 @@ export function PanelCardsMorphIntro(props: {
                   layout={layout}
                   phase={props.phase}
                   index={i}
+                  isActive={i === props.activeIndex}
+                  isMobile={isMobile}
+                  dockFromSpotlight={i === props.activeIndex}
                 />
               );
             })
@@ -347,9 +402,19 @@ export function PanelCardsMorphIntro(props: {
               />
             ))}
           </div>
-          <p className="panel-morph-intro__tap-hint" aria-hidden="true">
-            {isMobile ? "Toca para continuar" : "Clic o → para continuar"}
-          </p>
+          {!isLastSpotlight ? (
+            <p className="panel-morph-intro__tap-hint" aria-hidden="true">
+              {autoPlay
+                ? "Reproducción automática"
+                : isMobile
+                  ? "Toca para continuar"
+                  : "Clic o → para continuar"}
+            </p>
+          ) : (
+            <p className="panel-morph-intro__tap-hint is-finale" aria-hidden="true">
+              Aterrizando en tu panel
+            </p>
+          )}
         </footer>
       ) : null}
 

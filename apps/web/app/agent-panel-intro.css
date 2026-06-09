@@ -1,4 +1,4 @@
-/* Panel intro — premium, minimal, performant */
+/* Panel intro — pixel-faithful to agent-panel chrome */
 
 html.panel-intro-active,
 body.panel-intro-active {
@@ -10,15 +10,22 @@ body.panel-intro-active {
   pointer-events: none;
 }
 
-.agent-layout.is-panel-intro-active:not(.is-panel-intro-settled) > aside.agent-panel,
-.agent-layout.is-panel-intro-active:not(.is-panel-intro-settled) > aside.agent-divider-rail {
-  visibility: hidden !important;
+/* Keep panel in layout tree for shared-layout + measurement; hide until dock */
+.agent-layout.is-panel-intro-active:not(.is-panel-intro-docking):not(.is-panel-intro-settled)
+  > aside.agent-panel,
+.agent-layout.is-panel-intro-active:not(.is-panel-intro-docking):not(.is-panel-intro-settled)
+  > aside.agent-divider-rail {
   opacity: 0 !important;
   pointer-events: none !important;
 }
 
+.agent-layout.is-panel-intro-docking:not(.is-panel-intro-settled) > aside.agent-panel,
+.agent-layout.is-panel-intro-docking:not(.is-panel-intro-settled) > aside.agent-divider-rail {
+  opacity: 0.04 !important;
+  pointer-events: none !important;
+}
+
 .agent-layout.is-panel-intro-active .agent-panel.is-panel-intro-measure {
-  visibility: hidden !important;
   opacity: 0 !important;
   pointer-events: none !important;
 }
@@ -36,17 +43,17 @@ html.is-tablet-landscape .agent-panel .panel-intro-grid-slot {
 }
 
 .agent-layout.is-panel-intro-settled > aside.agent-panel {
-  animation: panel-intro-shell-reveal 480ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: panel-intro-shell-reveal 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .agent-layout.is-panel-intro-settled > aside.agent-divider-rail {
-  animation: panel-intro-rail-reveal 380ms cubic-bezier(0.22, 1, 0.36, 1) 60ms both;
+  animation: panel-intro-rail-reveal 420ms cubic-bezier(0.22, 1, 0.36, 1) 70ms both;
 }
 
 @keyframes panel-intro-shell-reveal {
   0% {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(6px);
   }
   100% {
     opacity: 1;
@@ -90,7 +97,7 @@ html.is-tablet-landscape .agent-panel .panel-intro-grid-slot {
 .panel-intro-overlay.is-docking .panel-intro-overlay__backdrop,
 .panel-intro-overlay.is-exiting .panel-intro-overlay__backdrop {
   opacity: 0;
-  transition: opacity 360ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: opacity 400ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .panel-intro-overlay.is-docking .panel-intro-skip,
@@ -107,10 +114,10 @@ html.is-tablet-landscape .agent-panel .panel-intro-grid-slot {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse 55% 42% at 50% 38%, rgba(183, 166, 106, 0.09), transparent 62%),
-    radial-gradient(ellipse 80% 60% at 50% 100%, rgba(56, 189, 248, 0.05), transparent 68%),
+    radial-gradient(ellipse 55% 42% at 50% 38%, rgba(183, 166, 106, 0.08), transparent 62%),
+    radial-gradient(ellipse 80% 60% at 50% 100%, rgba(56, 189, 248, 0.04), transparent 68%),
     #030508;
-  transition: opacity 360ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: opacity 400ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .panel-intro-skip {
@@ -175,6 +182,7 @@ html.is-tablet-landscape .agent-panel .panel-intro-grid-slot {
 .panel-morph-intro.is-settle-stage .panel-morph-intro__brand {
   opacity: 0;
   pointer-events: none;
+  transition: opacity 280ms ease;
 }
 
 .panel-morph-intro__header {
@@ -186,6 +194,11 @@ html.is-tablet-landscape .agent-panel .panel-intro-grid-slot {
   width: min(560px, calc(100% - 40px));
   text-align: center;
   pointer-events: none;
+}
+
+.panel-morph-intro.is-mobile .panel-morph-intro__header {
+  top: max(12px, env(safe-area-inset-top, 0px));
+  width: calc(100% - 28px);
 }
 
 .panel-morph-intro__eyebrow {
@@ -210,6 +223,10 @@ html.is-tablet-landscape .agent-panel .panel-intro-grid-slot {
   color: rgba(248, 250, 252, 0.98);
 }
 
+.panel-morph-intro.is-mobile .panel-morph-intro__title {
+  font-size: clamp(1.35rem, 5.5vw, 1.85rem);
+}
+
 .panel-morph-intro__lede {
   margin: 12px 0 0;
   font-size: clamp(0.84rem, 2vw, 0.98rem);
@@ -219,14 +236,33 @@ html.is-tablet-landscape .agent-panel .panel-intro-grid-slot {
   margin-inline: auto;
 }
 
+.panel-morph-intro__finale-hint {
+  margin: 14px 0 0;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(183, 166, 106, 0.72);
+  animation: panel-intro-finale-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes panel-intro-finale-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
 .panel-morph-intro__stage {
   position: absolute;
   inset: 0;
   z-index: 2;
 }
 
-.panel-morph-intro.is-spotlight-stage .panel-morph-intro__stage {
-  cursor: pointer;
+.panel-morph-intro.is-spotlight-stage:not(.is-final-spotlight) .panel-morph-intro__stage {
+  cursor: default;
 }
 
 .panel-morph-intro__footer {
@@ -240,6 +276,10 @@ html.is-tablet-landscape .agent-panel .panel-intro-grid-slot {
   align-items: center;
   gap: 10px;
   pointer-events: none;
+}
+
+.panel-morph-intro.is-mobile .panel-morph-intro__footer {
+  bottom: max(10px, env(safe-area-inset-bottom, 0px));
 }
 
 .panel-morph-intro__brand {
@@ -258,33 +298,71 @@ html.is-tablet-landscape .agent-panel .panel-intro-grid-slot {
   color: rgba(183, 166, 106, 0.72);
 }
 
-/* ── Card (single frame, no nested shells) ── */
+/* ── Cards: inherit real panel chrome via .agent-panel skin ── */
 
 .panel-morph-card {
-  overflow: hidden;
+  overflow: visible;
   will-change: transform, opacity, width, height;
+}
+
+.panel-morph-card.is-spotlight-active {
+  filter: drop-shadow(0 28px 56px rgba(0, 0, 0, 0.52));
 }
 
 .panel-morph-card__frame {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  border-radius: 16px;
-  background: rgba(8, 12, 18, 0.4);
-  box-shadow:
-    0 0 0 1px rgba(183, 166, 106, 0.18),
-    0 24px 56px rgba(0, 0, 0, 0.45);
+  border-radius: var(--radius-md, 12px);
+  background: transparent;
+  box-shadow: none;
+}
+
+.panel-morph-card__frame.is-spotlight {
+  border-radius: 24px;
+}
+
+.panel-morph-card.is-mobile .panel-morph-card__frame.is-spotlight {
+  border-radius: 14px;
 }
 
 .panel-morph-card.is-docking .panel-morph-card__frame {
-  box-shadow: none;
-  border-radius: var(--radius-md, 12px);
+  border-radius: inherit;
   background: transparent;
+  box-shadow: none;
 }
 
 .panel-morph-card__content {
   transform-origin: top left;
   will-change: transform;
+}
+
+/* Panel skin — same selectors as real panel cards */
+.panel-morph-card__skin.agent-panel {
+  min-height: 0 !important;
+  height: auto !important;
+  width: 100% !important;
+  overflow: visible !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  padding: 0 !important;
+  pointer-events: none !important;
+}
+
+.panel-morph-card__skin.agent-panel .panel-card,
+.panel-morph-card__skin.agent-panel .profile-card,
+.panel-morph-card__skin.agent-panel .panel-feature-card,
+.panel-morph-card__skin.agent-panel .interview-flow-card,
+.panel-morph-card__skin.agent-panel .recent-library-card,
+.panel-morph-card__skin.agent-panel .news-card,
+.panel-morph-card__skin.agent-panel article.panel-card {
+  opacity: 1 !important;
+  transform: none !important;
+  animation: none !important;
 }
 
 .panel-morph-card__slot,
@@ -305,18 +383,6 @@ html.is-tablet-landscape .agent-panel .panel-intro-grid-slot {
   pointer-events: none !important;
 }
 
-.panel-morph-card__slot .panel-card,
-.panel-morph-card__slot .profile-card,
-.panel-morph-card__slot .panel-feature-card,
-.panel-morph-card__slot .interview-flow-card,
-.panel-morph-card__slot .recent-library-card,
-.panel-morph-card__slot .news-card,
-.panel-morph-card__slot article {
-  opacity: 1 !important;
-  transform: none !important;
-  animation: none !important;
-}
-
 .panel-morph-card__slot .profile-inline-action,
 .panel-morph-card__slot .profile-questionnaire-btn,
 .panel-morph-card__slot .report-delete-button,
@@ -324,12 +390,24 @@ html.is-tablet-landscape .agent-panel .panel-intro-grid-slot {
   display: none !important;
 }
 
-.panel-morph-card__slot .report-list,
-.panel-morph-card__slot .recent-library-grid {
+.panel-morph-card.is-spotlight-active .panel-morph-card__slot .report-list,
+.panel-morph-card.is-spotlight-active .panel-morph-card__slot .recent-library-grid {
   max-height: 4.5rem;
   overflow: hidden;
   mask-image: linear-gradient(180deg, #000 68%, transparent 100%);
   -webkit-mask-image: linear-gradient(180deg, #000 68%, transparent 100%);
+}
+
+.panel-morph-card.is-spotlight-active .panel-morph-card__slot .news-link,
+.panel-morph-card.is-spotlight-active .panel-morph-card__slot .news-image {
+  min-height: 96px !important;
+  display: block !important;
+}
+
+.panel-morph-card.is-spotlight-active .panel-morph-card__slot .news-media {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
 }
 
 /* ── Progress ── */
@@ -385,21 +463,15 @@ html.is-tablet-landscape .agent-panel .panel-intro-grid-slot {
   color: rgba(176, 196, 214, 0.4);
 }
 
-@media (max-width: 767px) {
-  .panel-morph-intro__header {
-    top: max(14px, env(safe-area-inset-top, 0px));
-    width: calc(100% - 28px);
-  }
-
-  .panel-morph-card__frame {
-    border-radius: 14px;
-  }
+.panel-morph-intro__tap-hint.is-finale {
+  color: rgba(183, 166, 106, 0.62);
 }
 
 @media (prefers-reduced-motion: reduce) {
   .panel-morph-card,
   .panel-morph-card__content,
   .panel-morph-intro__progress-dot.is-active::after,
+  .panel-morph-intro__finale-hint,
   .agent-layout.is-panel-intro-settled > aside.agent-panel,
   .agent-layout.is-panel-intro-settled > aside.agent-divider-rail {
     transition: none !important;
