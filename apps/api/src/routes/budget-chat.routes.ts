@@ -39,6 +39,7 @@ import {
   isBudgetSkipAnswer,
   parseBudgetCadenceFromAnswer,
   parseBudgetCategoryFromAnswer,
+  parseBudgetTypeFromAnswer,
   parseBudgetCategoryRenameFromAnswer,
   parseBudgetFieldPatchFromAnswer,
   parseBudgetMovementFromAnswer,
@@ -1281,6 +1282,74 @@ function buildAdviceReply(params: { rows: BudgetRow[]; context: BudgetAssistantC
   });
 }
 
+function slugifyBudgetCategory(value: string): string {
+  return normalizeLooseText(value)
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 24);
+}
+
+function extractAddRowCategoryFromAnswer(answer: string): string | null {
+  const renamed = parseBudgetCategoryRenameFromAnswer(answer);
+  if (renamed) return renamed;
+
+  const addMatch = String(answer ?? '').match(
+    /(?:agrega(?:r)?|anade(?:r)?|añade(?:r)?|incluye(?:r)?|incorpora(?:r)?|suma(?:r)?|crea(?:r)?)\s+(?:una?\s+fila\s+(?:de\s+)?)?([^,.!?$\d]{2,48})/i,
+  );
+  const candidate = addMatch?.[1]?.trim();
+  if (candidate) {
+    const normalized = normalizeLooseText(candidate);
+    if (!/\b(gasto|gastos|ingreso|ingresos|expense|income)\b/.test(normalized)) {
+      return candidate.charAt(0).toUpperCase() + candidate.slice(1);
+    }
+  }
+
+  const withoutAmount = String(answer ?? '')
+    .replace(/\$?\d[\d.,\s]*(k|mil|m|mm|millones?)?/gi, ' ')
+    .trim();
+  return parseBudgetCategoryFromAnswer(withoutAmount, { allowAffirmative: false });
+}
+
+function buildDeterministicAddFromAnswer(params: {
+  rows: BudgetRow[];
+  answer: string;
+  context: BudgetAssistantContext;
+}): BudgetChatResponse | null {
+  const category = extractAddRowCategoryFromAnswer(params.answer);
+  if (!category) return null;
+
+  const rowType = parseBudgetTypeFromAnswer(params.answer) ?? 'expense';
+  const amount = extractClpAmount(params.answer);
+  const slug = slugifyBudgetCategory(category) || String(Date.now());
+  let id = `${rowType}-custom-${slug}`;
+  if (params.rows.some((row) => canonicalBudgetRowId(row.id) === canonicalBudgetRowId(id))) {
+    id = `${rowType}-custom-${slug}-${Date.now().toString(36).slice(-4)}`;
+  }
+
+  const fieldPatch = parseBudgetFieldPatchFromAnswer(params.answer);
+  const action: BudgetTableAction = {
+    kind: 'add',
+    id,
+    category,
+    type: rowType,
+    ...(amount !== null ? { amount } : {}),
+    ...(fieldPatch.cadence ? { cadence: fieldPatch.cadence } : {}),
+    ...(fieldPatch.payment_method ? { payment_method: fieldPatch.payment_method } : {}),
+    ...(fieldPatch.movement_type ? { movement_type: fieldPatch.movement_type } : {}),
+  };
+
+  const { focus, question } = buildBudgetFocusQuestion(params.rows, null, params.context, id);
+  return buildBudgetReply({
+    reply: `Agrego ${category.toLowerCase()}${amount !== null ? ` por $${formatClp(amount)}` : ''} a la tabla.`,
+    followUp: question,
+    focus_row_id: focus?.id ?? id,
+    actions: [action],
+    action,
+    source: 'deterministic_add',
+    market_snapshot: emptyMarketSnapshot(),
+  });
+}
+
 function buildConversationalFallback(params: {
   answer: string;
   rows: BudgetRow[];
@@ -1304,6 +1373,13 @@ function buildConversationalFallback(params: {
   }
 
   if (detectedIntent === 'add_row') {
+    const deterministicAdd = buildDeterministicAddFromAnswer({
+      rows: params.rows,
+      answer: params.answer,
+      context: params.context,
+    });
+    if (deterministicAdd) return deterministicAdd;
+
     const suggestions = buildBudgetRowSuggestions(params.rows, params.context);
     const packaged = buildSuggestionFollowUp(suggestions, params.context, params.rows);
     if (packaged) {
