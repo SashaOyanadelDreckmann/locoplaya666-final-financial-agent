@@ -174,7 +174,7 @@
     display: block !important;
     flex-shrink: 0 !important;
     width: 100% !important;
-    margin: 0 0 18px !important;
+    margin: 0 0 10px !important;
     padding: 2px 4px 4px !important;
     visibility: visible !important;
     opacity: 1 !important;
@@ -279,8 +279,8 @@
     justify-content: center !important;
     align-items: center !important;
     gap: 12px !important;
-    margin: 8px 0 0 !important;
-    padding: 0 8px calc(env(safe-area-inset-bottom, 0px) + 10px) !important;
+    margin: 4px 0 0 !important;
+    padding: 0 8px calc(env(safe-area-inset-bottom, 0px) + 4px) !important;
     width: 100% !important;
     box-sizing: border-box !important;
     background: transparent !important;
@@ -457,7 +457,7 @@
     width: 100% !important;
     height: 100% !important;
     margin: 0 !important;
-    padding: 4px 10px 10px !important;
+    padding: 4px 10px 4px !important;
     box-sizing: border-box !important;
     overflow: hidden !important;
     pointer-events: none !important;
@@ -882,7 +882,7 @@
   .budget-modal.is-mobile-shell[data-budget-view='table'] .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-scroll-host,
   .budget-modal.is-mobile-shell[data-budget-mobile='true'] .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-scroll-host {
     flex: 1 1 0 !important;
-    min-height: var(--budget-mobile-scroll-host-height, 0) !important;
+    min-height: 0 !important;
     height: auto !important;
     overflow: hidden !important;
     display: flex !important;
@@ -891,10 +891,10 @@
 
   .budget-modal.is-mobile-shell[data-budget-view='table'] .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-scroll-host .budget-pdf-surface.is-mobile-compact,
   .budget-modal.is-mobile-shell[data-budget-mobile='true'] .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-scroll-host .budget-pdf-surface.is-mobile-compact {
-    flex: 0 1 auto !important;
+    flex: 1 1 0 !important;
     min-height: 0 !important;
-    height: auto !important;
-    max-height: 100% !important;
+    height: 100% !important;
+    max-height: none !important;
     display: flex !important;
     flex-direction: column !important;
     overflow: hidden !important;
@@ -902,10 +902,10 @@
 
   .budget-modal.is-mobile-shell[data-budget-view='table'] .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-scroll-host .budget-table-wrap,
   .budget-modal.is-mobile-shell[data-budget-mobile='true'] .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-scroll-host .budget-table-wrap {
-    flex: 0 1 auto !important;
+    flex: 1 1 0 !important;
     min-height: 0 !important;
-    height: auto !important;
-    max-height: 100% !important;
+    height: 100% !important;
+    max-height: none !important;
     overflow-y: auto !important;
     display: flex !important;
     flex-direction: column !important;
@@ -1138,8 +1138,9 @@
     justify-content: center !important;
     align-items: center !important;
     gap: 12px !important;
-    margin: 0 !important;
-    padding: 0 18px calc(env(safe-area-inset-bottom, 0px) + 12px) !important;
+    flex-shrink: 0 !important;
+    margin: 4px 0 0 !important;
+    padding: 0 18px calc(env(safe-area-inset-bottom, 0px) + 4px) !important;
     width: 100% !important;
     box-sizing: border-box !important;
     background: transparent !important;
@@ -1177,9 +1178,19 @@
     gap: 0 !important;
   }
 
-  .budget-modal.is-mobile-shell .budget-mobile-stage,
-  .budget-modal[data-budget-mobile='true'] .budget-mobile-stage,
-  html.is-mobile-viewport .budget-modal .budget-mobile-stage {
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-mobile-stage,
+  .budget-modal[data-budget-mobile='true'] .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-mobile-stage {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-mobile-stage,
+  .budget-modal[data-budget-mobile='true'] .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-mobile-stage {
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
     padding-bottom: 0 !important;
   }
 

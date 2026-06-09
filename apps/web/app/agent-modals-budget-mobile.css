@@ -422,12 +422,12 @@
   }
 
   .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-scroll-host .budget-pdf-surface {
-    flex: 1 1 auto !important;
+    flex: 1 1 0 !important;
     min-height: 0 !important;
     overflow: hidden !important;
     display: flex !important;
     flex-direction: column !important;
-    height: auto !important;
+    height: 100% !important;
     max-height: none !important;
   }
 
@@ -670,7 +670,7 @@
   }
 
   .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact .budget-table-bottom-actions {
-    margin: 8px 0 0 !important;
-    padding: 0 8px calc(env(safe-area-inset-bottom, 0px) + 10px) !important;
+    margin: 4px 0 0 !important;
+    padding: 0 8px calc(env(safe-area-inset-bottom, 0px) + 4px) !important;
   }
 }

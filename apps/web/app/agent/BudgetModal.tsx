@@ -644,7 +644,7 @@ export function BudgetModal(props: {
       const carousel = root.querySelector<HTMLElement>('.budget-main-carousel');
       const footerHeight = bottomActions?.offsetHeight ?? 0;
       const footerInsideTable = Boolean(bottomActions?.closest('.budget-card-table'));
-      const footerChrome = footerInsideTable ? footerHeight + 8 : 0;
+      const footerChrome = footerInsideTable ? footerHeight + 4 : 0;
       const stageHeight = stage?.clientHeight ?? 0;
       const carouselHeight = carousel?.clientHeight ?? 0;
       const stageScrollBudget = stageHeight > 0
@@ -658,11 +658,11 @@ export function BudgetModal(props: {
         stageScrollBudget,
         measuredScrollHost,
       );
-      const slotHeight = Math.max(240, scrollAreaHeight - 2);
+      const slotHeight = Math.max(240, scrollAreaHeight - 4);
 
       if (slotHeight <= 0) return;
       scrollHost.style.setProperty('--budget-mobile-scroll-host-height', `${scrollAreaHeight}px`);
-      scrollHost.style.minHeight = `${scrollAreaHeight}px`;
+      scrollHost.style.removeProperty('min-height');
       scrollHost.style.setProperty('--budget-mobile-row-slot', `${slotHeight}px`);
       root.style.setProperty('--budget-mobile-row-slot', `${slotHeight}px`);
     };
