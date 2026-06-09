@@ -1107,7 +1107,7 @@ export function BudgetModal(props: {
                     <AgentHeroText
                       turnKey={typewriterTurnKey}
                       text={agentTypewriterText}
-                      speed={isDesktopLayout ? 28 : 34}
+                      speed={isDesktopLayout ? 8 : 12}
                       focusRow={activeBudgetRow}
                       budgetRows={props.budgetRows}
                       question={assistantNextQuestion ?? assistantQuestion}

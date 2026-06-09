@@ -112,7 +112,7 @@ export function AgentHeroText({
   return (
     <h1
       className={cn(
-        'bcc-hero-question bcc-hero-question--gradient-demo text-center text-4xl font-bold md:text-5xl lg:text-7xl',
+        'bcc-hero-question bcc-hero-question--gradient-demo text-center',
         pending && 'bcc-hero-question--pending',
         className,
       )}

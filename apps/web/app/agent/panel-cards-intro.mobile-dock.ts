@@ -9,17 +9,18 @@ function signedOffset(i: number, active: number, len: number) {
   return Math.abs(alt) < Math.abs(raw) ? alt : raw;
 }
 
-function mobileDeckCardSize() {
+export function getMobileDeckCardNaturalSize() {
   const vw = typeof window !== 'undefined' ? window.innerWidth : 390;
   const cardW = Math.round(Math.min(180, Math.max(130, vw * 0.39)));
   const cardH = Math.round(Math.min(83, Math.max(64, cardW * 0.44)));
-  return { cardW, cardH };
+  return { width: cardW, height: cardH };
 }
 
-export function computeMobileDeckDockTargets(
+function computeMobileDeckDockTargetAtIndex(
   stageEl: HTMLElement | null,
-): PanelDockTarget[] {
-  const { cardW, cardH } = mobileDeckCardSize();
+  index: number,
+): PanelDockTarget {
+  const { width: cardW, height: cardH } = getMobileDeckCardNaturalSize();
   const cardCount = PANEL_INTRO_CARD_ORDER.length;
 
   const overlap = 0.48;
@@ -40,28 +41,74 @@ export function computeMobileDeckDockTargets(
     stageOffsetX;
   const bottomY = stageRect?.bottom ?? window.innerHeight * 0.92;
 
-  return PANEL_INTRO_CARD_ORDER.map((_, index) => {
-    let off = signedOffset(index, 0, cardCount);
-    if (Math.abs(off) > maxOffset) {
-      off = off > 0 ? maxOffset : -maxOffset;
-    }
+  let off = signedOffset(index, 0, cardCount);
+  if (Math.abs(off) > maxOffset) {
+    off = off > 0 ? maxOffset : -maxOffset;
+  }
 
-    const abs = Math.abs(off);
-    const isActive = off === 0;
-    const x = off * cardSpacing;
-    const y = abs * 10 + (isActive ? -activeLiftPx : 0);
-    const scale = isActive ? activeScale : inactiveScale;
-    const width = cardW * scale;
-    const height = cardH * scale;
-    const left = centerX + x - width / 2;
-    const top = bottomY - height + y;
+  const abs = Math.abs(off);
+  const isActive = off === 0;
+  const x = off * cardSpacing;
+  const y = abs * 10 + (isActive ? -activeLiftPx : 0);
+  const scale = isActive ? activeScale : inactiveScale;
+  const width = cardW * scale;
+  const height = cardH * scale;
+  const left = centerX + x - width / 2;
+  const top = bottomY - height + y;
 
-    return {
-      x: left,
-      y: top,
-      width,
-      height,
-      rotation: off * stepDeg,
-    };
+  return {
+    x: left,
+    y: top,
+    width,
+    height,
+    rotation: off * stepDeg,
+  };
+}
+
+function readLiveDeckCardTarget(
+  stageEl: HTMLElement | null,
+  cardKey: string,
+): PanelDockTarget | null {
+  if (!stageEl) return null;
+
+  const shell =
+    stageEl.querySelector<HTMLElement>(`[data-panel-card-key="${cardKey}"]`) ??
+    stageEl.querySelector<HTMLElement>(`[data-panel-intro-slot="${cardKey}"]`);
+
+  if (!shell) return null;
+
+  const motionHost =
+    shell.closest<HTMLElement>('[style*="transform"]') ??
+    shell.parentElement ??
+    shell;
+
+  const rect = (motionHost ?? shell).getBoundingClientRect();
+  if (rect.width < 2 || rect.height < 2) return null;
+
+  let rotation = 0;
+  try {
+    const matrix = new DOMMatrixReadOnly(getComputedStyle(motionHost ?? shell).transform);
+    rotation = Math.atan2(matrix.b, matrix.a) * (180 / Math.PI);
+  } catch {
+    rotation = 0;
+  }
+
+  return {
+    x: rect.left,
+    y: rect.top,
+    width: rect.width,
+    height: rect.height,
+    rotation: Number.isFinite(rotation) ? rotation : 0,
+  };
+}
+
+export function computeMobileDeckDockTargets(
+  stageEl: HTMLElement | null,
+): PanelDockTarget[] {
+  const computed = PANEL_INTRO_CARD_ORDER.map((card, index) => {
+    const live = readLiveDeckCardTarget(stageEl, card.key);
+    return live ?? computeMobileDeckDockTargetAtIndex(stageEl, index);
   });
+
+  return computed;
 }

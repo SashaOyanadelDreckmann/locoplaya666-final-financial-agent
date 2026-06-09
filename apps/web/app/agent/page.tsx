@@ -116,6 +116,8 @@ import {
 } from './welcome-intro.shared';
 import { AgentBootSequence } from './AgentBootSequence';
 import { PanelCardsIntroSequence } from './PanelCardsIntroSequence';
+import { PanelIntroGridSlot } from './PanelIntroGridSlot';
+import { PanelIntroLayoutGroup } from './PanelIntroLayoutGroup';
 import { shouldShowAgentBootSequence } from './agent-boot-sequence.helpers';
 
 import type {
@@ -488,7 +490,12 @@ export default function AgentPage() {
   const interviewAutoOpenHandledRef = useRef(false);
   const [bootSequenceActive, setBootSequenceActive] = useState(false);
   const [panelIntroActive, setPanelIntroActive] = useState(false);
-  const [panelIntroPhase, setPanelIntroPhase] = useState<'morph' | 'dock'>('morph');
+  const [panelIntroPhase, setPanelIntroPhase] = useState<'morph' | 'dock' | 'settle'>('morph');
+  const [panelIntroSettled, setPanelIntroSettled] = useState(false);
+  const [panelIntroHandoffOrigin, setPanelIntroHandoffOrigin] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
 
   useEffect(() => {
     if (!authBootstrapped || !isAuthenticated) return;
@@ -3464,14 +3471,22 @@ export default function AgentPage() {
   const compactPanelCards = panelBaseCards;
   const compactPanelLoopResetKey =
     (isMobileViewport ? 1 : 0) * 10000 + panelStage * 1000 + savedReports.length;
-  const panelRenderedCards = compactPanelCards.map((card, index) =>
-    React.cloneElement(card.node as ReactElement<Record<string, unknown>>, {
-      key: `real-${card.key}-${index}`,
-      'data-loop-segment': 'real',
-      'data-loop-origin': String(index),
-      'data-panel-intro-slot': card.key,
-    })
-  );
+  const panelIntroLayoutSync =
+    panelIntroActive &&
+    (panelIntroPhase === 'dock' || panelIntroPhase === 'settle' || panelIntroSettled);
+
+  const panelRenderedCards = compactPanelCards.map((card, index) => (
+    <PanelIntroGridSlot
+      key={`real-${card.key}-${index}`}
+      cardKey={card.key}
+      syncLayout={panelIntroLayoutSync}
+    >
+      {React.cloneElement(card.node as ReactElement<Record<string, unknown>>, {
+        'data-loop-segment': 'real',
+        'data-loop-origin': String(index),
+      })}
+    </PanelIntroGridSlot>
+  ));
 
   if (!authBootstrapped || !isAuthenticated) {
     return null;
@@ -3589,12 +3604,15 @@ export default function AgentPage() {
   );
 
   return (
+    <PanelIntroLayoutGroup active={panelIntroActive}>
     <>
       <main
       className={`agent-layout ${activeThreadThemeClass} ${
         bootSequenceActive ? 'is-boot-sequence-active' : ''
       } ${
         panelIntroActive ? 'is-panel-intro-active' : ''
+      } ${
+        panelIntroSettled ? 'is-panel-intro-settled' : ''
       } ${
         isRailMorphing ? 'is-mode-12-morphing' : ''
       } ${
@@ -3765,6 +3783,7 @@ export default function AgentPage() {
         panelRenderedCards={panelRenderedCards}
         panelIntroActive={panelIntroActive}
         panelIntroPhase={panelIntroPhase}
+        panelIntroSettled={panelIntroSettled}
       />
 
       {docFlight && (
@@ -3911,10 +3930,14 @@ export default function AgentPage() {
       {bootSequenceActive && sessionInfo ? (
         <AgentBootSequence
           session={sessionInfo}
+          onHandoff={(origin) => {
+            setPanelIntroHandoffOrigin(origin);
+            setPanelIntroPhase('morph');
+            setPanelIntroSettled(false);
+            setPanelIntroActive(true);
+          }}
           onComplete={() => {
             setBootSequenceActive(false);
-            setPanelIntroPhase('morph');
-            setPanelIntroActive(true);
           }}
         />
       ) : null}
@@ -3922,14 +3945,20 @@ export default function AgentPage() {
       {panelIntroActive ? (
         <PanelCardsIntroSequence
           panelGridRef={panelGridRef}
+          panelCards={compactPanelCards}
           isMobileViewport={isMobileViewport}
+          handoffOrigin={panelIntroHandoffOrigin}
           onPhaseChange={setPanelIntroPhase}
+          onSettled={() => setPanelIntroSettled(true)}
           onComplete={() => {
             setPanelIntroActive(false);
             setPanelIntroPhase('morph');
+            setPanelIntroSettled(false);
+            setPanelIntroHandoffOrigin(null);
           }}
         />
       ) : null}
     </>
+    </PanelIntroLayoutGroup>
   );
 }

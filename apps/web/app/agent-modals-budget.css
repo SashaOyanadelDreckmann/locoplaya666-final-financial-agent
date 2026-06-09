@@ -2872,9 +2872,7 @@
   color: #edf4fb !important;
 }
 
-/* Biblioteca de documentos + Documentos recientes: mismo tratamiento */
-.agent-panel .panel-pos-library,
-.agent-layout.mobile-panel-expanded .agent-panel .panel-pos-library,
+/* Documentos recientes: tratamiento rojo */
 .agent-panel .recent-library-card.panel-pos-recent,
 .agent-layout.mobile-panel-expanded .agent-panel .recent-library-card.panel-pos-recent {
   background: linear-gradient(145deg, rgba(116, 44, 44, 0.9), rgba(82, 30, 30, 0.94)) !important;
@@ -2883,8 +2881,6 @@
   box-shadow: 0 16px 30px rgba(45, 14, 14, 0.36), inset 0 1px 0 rgba(255, 220, 220, 0.11) !important;
 }
 
-.agent-panel .panel-pos-library:hover,
-.agent-panel .panel-pos-library.is-panel-highlighted,
 .agent-panel .recent-library-card.panel-pos-recent:hover,
 .agent-panel .recent-library-card.panel-pos-recent.is-panel-highlighted {
   background: linear-gradient(145deg, rgba(132, 50, 50, 0.92), rgba(92, 34, 34, 0.96)) !important;
@@ -2901,9 +2897,13 @@
   color: #e8f0f8 !important;
 }
 
-.agent-panel .panel-pos-library .report-group-count,
+.agent-panel .panel-pos-library .report-group-count {
+  color: #f5f8fc !important;
+  -webkit-text-fill-color: #f5f8fc !important;
+}
+
 .agent-panel .recent-library-count {
-  color: #fbecc7 !important; /* mostaza */
+  color: #fbecc7 !important;
   -webkit-text-fill-color: #fbecc7 !important;
 }
 
@@ -2917,16 +2917,16 @@
 }
 
 .agent-panel .panel-pos-library .report-tag {
-  color: #fff6e4 !important;
-  background: rgba(184, 147, 70, 0.32) !important; /* mostaza */
-  border: 1px solid rgba(236, 212, 160, 0.5) !important;
+  color: rgba(236, 242, 247, 0.88) !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
 }
 
 .agent-panel .recent-library-title,
 .agent-panel .recent-empty,
 .agent-panel .panel-pos-library .report-empty,
 .agent-panel .panel-pos-library .panel-card-note-library {
-  color: #ffece7 !important;
+  color: rgba(215, 227, 238, 0.78) !important;
 }
 
 .agent-panel .recent-item-preview-wrap {
@@ -2940,25 +2940,27 @@
   -webkit-text-fill-color: #fbecc7 !important;
 }
 
-/* Biblioteca: fondo amarillo vela */
+/* Biblioteca: negro mate */
 .agent-panel .panel-pos-library,
 .agent-layout.mobile-panel-expanded .agent-panel .panel-pos-library {
-  background: linear-gradient(145deg, rgba(184, 147, 70, 0.92), rgba(154, 122, 58, 0.95)) !important;
-  border: 1px solid rgba(238, 216, 170, 0.7) !important;
-  color: #fff8ea !important;
-  box-shadow: 0 16px 30px rgba(74, 56, 20, 0.36), inset 0 1px 0 rgba(255, 242, 212, 0.24) !important;
+  background: #0a0a0a !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: rgba(236, 242, 247, 0.94) !important;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
 .agent-panel .panel-pos-library:hover,
 .agent-panel .panel-pos-library.is-panel-highlighted {
-  background: linear-gradient(145deg, rgba(198, 160, 82, 0.95), rgba(166, 132, 64, 0.97)) !important;
-  border-color: rgba(246, 226, 188, 0.82) !important;
+  background: #101010 !important;
+  border-color: rgba(255, 255, 255, 0.16) !important;
 }
 
 .agent-panel .panel-pos-library .panel-label,
 .agent-panel .panel-pos-library .panel-card-note-library,
 .agent-panel .panel-pos-library .report-empty {
-  color: #fff7e6 !important;
+  color: rgba(215, 227, 238, 0.84) !important;
 }
 
 /* Biblioteca: cards internas en negro */
@@ -2973,7 +2975,7 @@
 }
 
 .agent-layout .agent-panel [data-panel-section="library"].panel-pos-library .report-group-count {
-  color: #fbecc7 !important;
+  color: #f5f8fc !important;
 }
 
 /* HARD FINAL: elementos en burbujas del agente con misma paleta de panel (4 secundarios) */
@@ -3169,21 +3171,23 @@
   background: linear-gradient(145deg, rgba(198, 160, 82, 0.95), rgba(166, 132, 64, 0.98)) !important;
 }
 
-/* HARD OVERRIDE: Biblioteca siempre amarilla (gana a reglas previas) */
+/* HARD OVERRIDE: Biblioteca siempre negro mate (gana a reglas previas) */
 .agent-layout .agent-panel [data-panel-section="library"].panel-pos-library,
 .agent-layout.mobile-panel-expanded .agent-panel [data-panel-section="library"].panel-pos-library,
 .agent-layout .agent-panel .mob-col .panel-pos-library[data-panel-section="library"] {
-  background-color: rgba(184, 147, 70, 0.96) !important;
-  background-image: linear-gradient(145deg, rgba(184, 147, 70, 0.96), rgba(154, 122, 58, 0.98)) !important;
-  border: 1px solid rgba(238, 216, 170, 0.78) !important;
-  color: #fff8ea !important;
+  background-color: #0a0a0a !important;
+  background-image: none !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: rgba(236, 242, 247, 0.94) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
 .agent-layout .agent-panel [data-panel-section="library"].panel-pos-library.is-panel-highlighted,
 .agent-layout .agent-panel [data-panel-section="library"].panel-pos-library:hover {
-  background-color: rgba(198, 160, 82, 0.98) !important;
-  background-image: linear-gradient(145deg, rgba(198, 160, 82, 0.98), rgba(166, 132, 64, 0.99)) !important;
-  border-color: rgba(246, 226, 188, 0.88) !important;
+  background-color: #101010 !important;
+  background-image: none !important;
+  border-color: rgba(255, 255, 255, 0.16) !important;
 }
 
 /* Chat tabs top: izquierda azul, medio rojo, derecha amarillo */

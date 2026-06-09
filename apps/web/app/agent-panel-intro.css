@@ -10,20 +10,74 @@ body.panel-intro-active {
   pointer-events: none;
 }
 
-.agent-layout.is-panel-intro-active .agent-panel.is-panel-intro-measure {
-  opacity: 1 !important;
-  visibility: visible !important;
+/* Panel stays fully hidden until cards settle into final positions */
+.agent-layout.is-panel-intro-active:not(.is-panel-intro-settled) > aside.agent-panel,
+.agent-layout.is-panel-intro-active:not(.is-panel-intro-settled) > aside.agent-divider-rail {
+  visibility: hidden !important;
+  opacity: 0 !important;
   pointer-events: none !important;
 }
 
-.agent-layout.is-panel-intro-active .agent-panel.is-panel-intro-measure .panel-grid > * {
+/* Measurement layout: in DOM for rects, never visible */
+.agent-layout.is-panel-intro-active .agent-panel.is-panel-intro-measure {
+  visibility: hidden !important;
   opacity: 0 !important;
+  pointer-events: none !important;
 }
 
+.agent-layout.is-panel-intro-active .agent-panel.is-panel-intro-measure .panel-grid > *,
 .agent-layout.is-panel-intro-active .agent-panel.is-panel-intro-measure .panel-grid.is-card-stack,
 .agent-layout.is-panel-intro-active .agent-panel.is-panel-intro-measure .panel-grid.is-card-stack * {
+  visibility: hidden !important;
   opacity: 0 !important;
   pointer-events: none !important;
+}
+
+.agent-layout.is-panel-intro-settled > aside.agent-panel {
+  animation: panel-intro-shell-reveal 560ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.agent-layout.is-panel-intro-settled > aside.agent-divider-rail {
+  animation: panel-intro-rail-reveal 480ms cubic-bezier(0.22, 1, 0.36, 1) 80ms both;
+}
+
+@keyframes panel-intro-shell-reveal {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+    filter: blur(4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes panel-intro-rail-reveal {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.panel-intro-grid-slot {
+  min-width: 0;
+  width: 100%;
+}
+
+.agent-layout.is-panel-intro-settled .panel-card,
+.agent-layout.is-panel-intro-settled .profile-card,
+.agent-layout.is-panel-intro-settled .panel-feature-card,
+.agent-layout.is-panel-intro-settled .interview-flow-card,
+.agent-layout.is-panel-intro-settled .recent-library-card,
+.agent-layout.is-panel-intro-settled .news-card,
+.agent-layout.is-panel-intro-settled article.panel-card {
+  opacity: 1 !important;
+  transform: none !important;
+  animation: none !important;
 }
 
 .panel-intro-overlay {
@@ -36,6 +90,16 @@ body.panel-intro-active {
   isolation: isolate;
 }
 
+.panel-intro-overlay.has-handoff {
+  background: #000;
+}
+
+.panel-intro-overlay.is-docking .panel-intro-overlay__backdrop,
+.panel-intro-overlay.is-exiting .panel-intro-overlay__backdrop {
+  opacity: 0;
+  transition: opacity 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 .panel-intro-overlay.is-exiting {
   pointer-events: none;
 }
@@ -46,10 +110,12 @@ body.panel-intro-active {
   background:
     radial-gradient(ellipse 68% 54% at 50% 42%, rgba(56, 189, 248, 0.08), transparent 58%),
     radial-gradient(ellipse 90% 72% at 50% 100%, rgba(167, 139, 250, 0.06), transparent 62%),
-    rgba(0, 0, 0, 0.94);
+    rgba(0, 0, 0, 0.96);
+  transition: opacity 420ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.panel-morph-intro.is-dock-stage {
+.panel-morph-intro.is-dock-stage,
+.panel-morph-intro.is-settle-stage {
   position: fixed;
   inset: 0;
   width: 100vw;
@@ -66,7 +132,11 @@ body.panel-intro-active {
 .panel-morph-intro.is-dock-stage .panel-morph-intro__copy,
 .panel-morph-intro.is-dock-stage .panel-morph-intro__vignette,
 .panel-morph-intro.is-dock-stage .panel-morph-intro__grain,
-.panel-morph-intro.is-dock-stage .panel-morph-intro__progress {
+.panel-morph-intro.is-dock-stage .panel-morph-intro__progress,
+.panel-morph-intro.is-settle-stage .panel-morph-intro__copy,
+.panel-morph-intro.is-settle-stage .panel-morph-intro__vignette,
+.panel-morph-intro.is-settle-stage .panel-morph-intro__grain,
+.panel-morph-intro.is-settle-stage .panel-morph-intro__progress {
   opacity: 0;
   pointer-events: none;
 }
@@ -159,104 +229,73 @@ body.panel-intro-active {
 .panel-morph-card {
   z-index: 1;
   will-change: transform, opacity, width, height;
+  overflow: visible;
 }
 
 .panel-morph-card.is-spotlight-active {
   z-index: 4;
-  filter: drop-shadow(0 18px 36px rgba(0, 0, 0, 0.42));
+  filter: drop-shadow(0 16px 34px rgba(0, 0, 0, 0.38));
 }
 
 .panel-morph-card.is-docking {
   z-index: 2;
+  filter: none;
 }
 
-.panel-morph-card__flip {
+.panel-morph-card.is-settling {
+  pointer-events: none;
+}
+
+.panel-morph-card__shell {
   position: relative;
   width: 100%;
   height: 100%;
-}
-
-.panel-morph-card__face {
-  position: absolute;
-  inset: 0;
   overflow: hidden;
-  border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.12),
-    0 14px 30px rgba(0, 0, 0, 0.34);
-  backface-visibility: hidden;
+  border-radius: var(--radius-md, 12px);
+  display: grid;
+  place-items: center;
 }
 
-.panel-morph-card__face--back {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 12px;
-  text-align: center;
-  background: linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(2, 6, 23, 0.98));
-  transform: rotateY(180deg);
+.panel-morph-card__scale {
+  transform-origin: center center;
+  will-change: transform;
 }
 
-.panel-morph-card__image,
-.panel-morph-card__accent {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+.panel-morph-card__slot,
+.panel-morph-card__slot.mob-col,
+.panel-morph-card__slot.mob-col-wide,
+.panel-morph-card__slot.mob-col-narrow {
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  pointer-events: none !important;
+  display: block !important;
 }
 
-.panel-morph-card__shade {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.62));
+.panel-morph-card__slot > * {
+  width: 100% !important;
+  min-height: 100% !important;
+  pointer-events: none !important;
 }
 
-.panel-morph-card__meta {
-  position: absolute;
-  left: 10px;
-  right: 10px;
-  bottom: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+.panel-morph-card__slot .panel-card,
+.panel-morph-card__slot .profile-card,
+.panel-morph-card__slot .panel-feature-card,
+.panel-morph-card__slot .interview-flow-card,
+.panel-morph-card__slot .recent-library-card,
+.panel-morph-card__slot .news-card,
+.panel-morph-card__slot article {
+  opacity: 1 !important;
+  transform: none !important;
+  animation: none !important;
+  box-shadow: var(--shadow-md, 0 8px 24px rgba(0, 0, 0, 0.18)) !important;
 }
 
-.panel-morph-card__index {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 9px;
-  letter-spacing: 0.14em;
-  color: rgba(255, 255, 255, 0.58);
-}
-
-.panel-morph-card__label {
-  font-size: clamp(11px, 2.4vw, 13px);
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  color: rgba(248, 250, 252, 0.96);
-}
-
-.panel-morph-card__back-kicker {
-  font-size: 9px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: rgba(125, 211, 252, 0.78);
-}
-
-.panel-morph-card__back-label {
-  font-size: 14px;
-  font-weight: 600;
-  color: rgba(248, 250, 252, 0.96);
-}
-
-.panel-morph-card__back-caption {
-  margin: 0;
-  font-size: 11px;
-  line-height: 1.45;
-  color: rgba(186, 208, 226, 0.82);
+.panel-morph-card__slot .profile-inline-action,
+.panel-morph-card__slot .report-delete-button,
+.panel-morph-card__slot .recent-item-delete-button {
+  display: none !important;
 }
 
 .panel-morph-intro__progress {
@@ -271,13 +310,13 @@ body.panel-intro-active {
 }
 
 .panel-morph-intro__progress-dot {
+  position: relative;
   width: 18px;
   height: 3px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.14);
-  transition:
-    width 280ms cubic-bezier(0.22, 1, 0.36, 1),
-    background 280ms cubic-bezier(0.22, 1, 0.36, 1);
+  overflow: hidden;
+  transition: width 320ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .panel-morph-intro__progress-dot.is-done {
@@ -285,8 +324,27 @@ body.panel-intro-active {
 }
 
 .panel-morph-intro__progress-dot.is-active {
-  width: 30px;
+  width: 34px;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.panel-morph-intro__progress-dot.is-active::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
   background: linear-gradient(90deg, #38bdf8, #a78bfa);
+  transform-origin: left center;
+  animation: panel-intro-progress-fill 4s linear forwards;
+}
+
+@keyframes panel-intro-progress-fill {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
 }
 
 @media (max-width: 767px) {
@@ -305,15 +363,18 @@ body.panel-intro-active {
     font-size: 0.8rem;
   }
 
-  .panel-morph-card__face {
+  .panel-morph-card__shell {
     border-radius: 12px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .panel-morph-card,
-  .panel-morph-card__flip,
-  .panel-morph-intro__progress-dot {
+  .panel-morph-card__scale,
+  .panel-morph-intro__progress-dot,
+  .panel-morph-intro__progress-dot.is-active::after,
+  .agent-layout.is-panel-intro-settled > aside.agent-panel,
+  .agent-layout.is-panel-intro-settled > aside.agent-divider-rail {
     transition: none !important;
     animation: none !important;
   }

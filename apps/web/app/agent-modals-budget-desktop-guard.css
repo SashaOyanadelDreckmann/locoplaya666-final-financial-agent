@@ -128,3 +128,74 @@
     max-width: 100% !important;
   }
 }
+
+/* ================================================= */
+/* BUDGET DESKTOP — assistant hero (Apple minimal)   */
+/* Beats diagnostics editorial scale (v4/v4.1).    */
+/* ================================================= */
+
+.budget-modal:not(.is-mobile-shell) {
+  --hero-plain: rgba(228, 239, 248, 0.9);
+  --hero-keyword-blue: #88a7bc;
+  --hero-keyword-gold: #b7a66a;
+  --hero-keyword-slate: #6f8fa6;
+}
+
+.budget-modal:not(.is-mobile-shell) .bcc-hero-question--gradient-demo,
+.budget-modal:not(.is-mobile-shell) .budget-assistant-panel .bcc-hero-question--gradient-demo,
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop .bcc-hero-question--gradient-demo {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif !important;
+  font-size: clamp(0.8rem, 0.88vw, 0.92rem) !important;
+  font-weight: 500 !important;
+  line-height: 1.45 !important;
+  letter-spacing: -0.022em !important;
+  color: var(--hero-plain) !important;
+  -webkit-text-fill-color: unset !important;
+  background: none !important;
+  -webkit-background-clip: unset !important;
+  background-clip: unset !important;
+  max-width: 100% !important;
+  text-wrap: pretty !important;
+  text-shadow: none !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-assistant-panel .bcc-hero-question:not(.bcc-hero-question--gradient-demo),
+.budget-modal:not(.is-mobile-shell) .budget-assistant-panel .bcc-hero-question--pending,
+.budget-modal:not(.is-mobile-shell) .budget-assistant-panel p.bcc-hero-question {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif !important;
+  font-size: clamp(0.76rem, 0.82vw, 0.86rem) !important;
+  font-weight: 500 !important;
+  line-height: 1.42 !important;
+  letter-spacing: -0.02em !important;
+  color: rgba(210, 225, 240, 0.72) !important;
+  -webkit-text-fill-color: rgba(210, 225, 240, 0.72) !important;
+  background: none !important;
+  max-width: 100% !important;
+  text-wrap: pretty !important;
+  text-shadow: none !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .bcc-hero-plain-chunk {
+  color: var(--hero-plain) !important;
+  -webkit-text-fill-color: var(--hero-plain) !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .agent-keyword-gradient {
+  display: inline !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  background-image: linear-gradient(
+    102deg,
+    var(--hero-keyword-blue) 0%,
+    var(--hero-keyword-gold) 46%,
+    var(--hero-keyword-slate) 100%
+  ) !important;
+  background-size: 100% auto !important;
+  background-clip: text !important;
+  -webkit-background-clip: text !important;
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+  animation: none !important;
+  filter: none !important;
+  text-shadow: none !important;
+}

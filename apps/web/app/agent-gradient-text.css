@@ -1,69 +1,50 @@
-/* Agent hero — keyword gradient + typewriter (no blob overlays) */
+/* Agent hero — Apple-minimal typewriter + panel-matched keyword gradient */
 
 .budget-modal {
-  --color-1: 14 18% 62%;
-  --color-2: 208 14% 58%;
-  --color-3: 38 16% 60%;
+  /* Main chat panel tokens (--accent / --accent-2 + welcome cards) */
+  --hero-plain: rgba(228, 239, 248, 0.9);
+  --hero-keyword-blue: #88a7bc;
+  --hero-keyword-gold: #b7a66a;
+  --hero-keyword-slate: #6f8fa6;
+  --hero-keyword-mist: #dce8f2;
 }
 
 .budget-modal .bcc-hero-question--gradient-demo {
   width: 100% !important;
   margin: 0 !important;
-  padding: 0.15rem 0 0.35rem !important;
+  padding: 0 !important;
   display: block !important;
   text-align: center !important;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif !important;
-  font-size: 2.25rem !important;
-  font-weight: 700 !important;
-  letter-spacing: 0 !important;
-  line-height: 1.18 !important;
-  color: #f4f4f5 !important;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif !important;
+  font-size: clamp(0.76rem, 3.1vw, 0.86rem) !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.022em !important;
+  line-height: 1.45 !important;
+  color: var(--hero-plain) !important;
   text-wrap: pretty !important;
   overflow-wrap: break-word !important;
   word-break: normal !important;
   hyphens: none !important;
   overflow: hidden !important;
   position: relative !important;
-}
-
-@media (min-width: 768px) {
-  .budget-modal .bcc-hero-question--gradient-demo {
-    font-size: 3rem !important;
-  }
+  text-shadow: none !important;
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
 }
 
 @media (min-width: 1024px) {
   .budget-modal .bcc-hero-question--gradient-demo {
-    font-size: 4.5rem !important;
+    font-size: clamp(0.82rem, 0.95vw, 0.94rem) !important;
+    line-height: 1.42 !important;
   }
 }
 
 .budget-modal .bcc-hero-question--gradient-demo.bcc-hero-question--pending {
-  font-size: 1.05rem !important;
+  font-size: clamp(0.72rem, 2.9vw, 0.8rem) !important;
   font-weight: 500 !important;
-  letter-spacing: 0 !important;
+  letter-spacing: -0.018em !important;
   line-height: 1.4 !important;
-  color: rgba(244, 244, 245, 0.62) !important;
-}
-
-@media (max-width: 1023px) {
-  .budget-modal[data-budget-view='assistant'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-agent .bcc-hero-question--gradient-demo,
-  html.is-mobile-viewport .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-agent .bcc-hero-question--gradient-demo,
-  .budget-modal.is-mobile-shell .budget-assistant-panel .bcc-hero-question--gradient-demo {
-    font-size: clamp(1.45rem, 6.2vw, 1.85rem) !important;
-    font-weight: 700 !important;
-    letter-spacing: 0 !important;
-    line-height: 1.14 !important;
-    text-align: center !important;
-    text-shadow: 0 2px 18px rgba(0, 0, 0, 0.55) !important;
-  }
-}
-
-@media (max-width: 640px) {
-  .budget-modal .bcc-hero-question--gradient-demo:not(.bcc-hero-question--pending) {
-    font-size: clamp(1.35rem, 6.8vw, 1.72rem) !important;
-    line-height: 1.15 !important;
-  }
+  color: rgba(210, 225, 240, 0.62) !important;
 }
 
 .budget-modal .bcc-hero-question--gradient-demo .bcc-hero-plain-chunk,
@@ -75,20 +56,20 @@
 }
 
 .budget-modal .bcc-hero-plain-chunk {
-  color: inherit !important;
+  color: var(--hero-plain) !important;
 }
 
-/* Palabras clave: gradiente mate opaco recortado al texto, sin cajas ni blobs */
+/* Keywords — same blue/gold family as main chat panel cards */
 .budget-modal .agent-keyword-gradient {
   display: inline !important;
   position: static !important;
   padding: 0 !important;
   margin: 0 !important;
   background-image: linear-gradient(
-    100deg,
-    hsl(var(--color-1)) 0%,
-    hsl(var(--color-3)) 46%,
-    hsl(var(--color-2)) 100%
+    102deg,
+    var(--hero-keyword-blue) 0%,
+    var(--hero-keyword-gold) 46%,
+    var(--hero-keyword-slate) 100%
   ) !important;
   background-size: 100% auto !important;
   background-clip: text !important;
@@ -98,4 +79,17 @@
   animation: none !important;
   filter: none !important;
   text-shadow: none !important;
+}
+
+@media (max-width: 1023px) {
+  .budget-modal[data-budget-view='assistant'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-agent .bcc-hero-question--gradient-demo,
+  html.is-mobile-viewport .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-agent .bcc-hero-question--gradient-demo,
+  .budget-modal.is-mobile-shell .budget-assistant-panel .bcc-hero-question--gradient-demo {
+    font-size: clamp(0.76rem, 3.1vw, 0.84rem) !important;
+    font-weight: 500 !important;
+    letter-spacing: -0.022em !important;
+    line-height: 1.45 !important;
+    text-align: center !important;
+    text-shadow: none !important;
+  }
 }

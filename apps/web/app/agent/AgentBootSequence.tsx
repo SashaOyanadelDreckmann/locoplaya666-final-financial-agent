@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useInterviewStore } from '@/state/interview.store';
-import { runVisualModeTransition } from '@/lib/visual-mode';
 import {
   buildBootScriptLines,
   clearAgentBootFromIntake,
@@ -24,8 +23,11 @@ function toneClass(tone: BootScriptLine['tone']): string {
   return `agent-boot-line--${tone}`;
 }
 
+export type AgentBootHandoffOrigin = { x: number; y: number };
+
 export function AgentBootSequence(props: {
   session: { name?: string | null; injectedIntake?: unknown };
+  onHandoff?: (origin: AgentBootHandoffOrigin) => void;
   onComplete: () => void;
 }) {
   const reducedMotion = useMemo(() => prefersReducedMotion(), []);
@@ -61,6 +63,8 @@ export function AgentBootSequence(props: {
       ? { x: rect.left + rect.width / 2, y: rect.top + rect.height * 0.42 }
       : { x: window.innerWidth / 2, y: window.innerHeight * 0.38 };
 
+    props.onHandoff?.(origin);
+
     const finish = () => {
       clearAgentBootFromIntake();
       props.onComplete();
@@ -71,42 +75,48 @@ export function AgentBootSequence(props: {
       return;
     }
 
-    const hasViewTransition =
-      typeof (document as Document & { startViewTransition?: unknown }).startViewTransition ===
-      'function';
+    const overlay = overlayRef.current;
+    const stage = overlay?.querySelector<HTMLElement>('.agent-boot-stage');
+    const handoffMs = 720;
+    const easing = 'cubic-bezier(0.22, 1, 0.36, 1)';
 
-    if (!hasViewTransition) {
-      const overlay = overlayRef.current;
-      const maxRadius = Math.hypot(
-        Math.max(origin.x, window.innerWidth - origin.x),
-        Math.max(origin.y, window.innerHeight - origin.y),
+    const animations: Promise<unknown>[] = [];
+
+    if (stage && typeof stage.animate === 'function') {
+      animations.push(
+        stage
+          .animate(
+            {
+              opacity: [1, 0],
+              transform: ['translateY(0px) scale(1)', 'translateY(-10px) scale(0.9)'],
+              filter: ['blur(0px)', 'blur(8px)'],
+            },
+            { duration: handoffMs, easing, fill: 'forwards' },
+          )
+          .finished,
       );
-      const revealMs = 1480;
-      const easing = 'cubic-bezier(0.12, 0.88, 0.22, 1)';
+    }
 
-      if (overlay && typeof overlay.animate === 'function') {
+    if (overlay && typeof overlay.animate === 'function') {
+      animations.push(
         overlay
           .animate(
             {
-              clipPath: [
-                `circle(140% at ${origin.x}px ${origin.y}px)`,
-                `circle(${maxRadius * 0.18}px at ${origin.x}px ${origin.y}px)`,
-                `circle(0px at ${origin.x}px ${origin.y}px)`,
-              ],
-              opacity: [1, 0.72, 0],
+              opacity: [1, 0],
+              backgroundColor: ['rgba(0,0,0,1)', 'rgba(0,0,0,0)'],
             },
-            { duration: revealMs, easing, fill: 'forwards' },
+            { duration: handoffMs + 180, easing, fill: 'forwards' },
           )
-          .finished.then(finish)
-          .catch(finish);
-        return;
-      }
+          .finished,
+      );
+    }
 
-      window.setTimeout(finish, revealMs);
+    if (animations.length > 0) {
+      Promise.all(animations).then(finish).catch(finish);
       return;
     }
 
-    runVisualModeTransition(origin, finish, finish);
+    window.setTimeout(finish, handoffMs + 180);
   }, [props, reducedMotion]);
 
   useEffect(() => {

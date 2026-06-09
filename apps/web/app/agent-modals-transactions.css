@@ -5201,7 +5201,13 @@
   max-width: 24ch;
 }
 
-.agent-panel .panel-pos-library,
+.agent-panel .panel-pos-library {
+  background: #0a0a0a !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
 .agent-panel .recent-library-card {
   background:
     linear-gradient(180deg, rgba(14, 21, 30, 0.92), rgba(10, 14, 20, 0.86)) !important;

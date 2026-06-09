@@ -62,11 +62,29 @@ describe('budget pro mobile css safeguards', () => {
     expect(txIdx).toBeGreaterThan(deskIdx);
   });
 
+  it('locks desktop assistant hero to minimal panel-matched typewriter styles', () => {
+    const deskCssPath = path.join(process.cwd(), 'app', 'agent-modals-budget-desktop-guard.css');
+    const deskCss = fs.readFileSync(deskCssPath, 'utf8');
+    expect(deskCss).toContain('BUDGET DESKTOP — assistant hero (Apple minimal)');
+    expect(deskCss).toContain('.bcc-hero-question--gradient-demo');
+    expect(deskCss).toContain('.agent-keyword-gradient');
+    expect(deskCss).toContain('--hero-keyword-blue: #88a7bc');
+  });
+
   it('blurs assistant backdrop table on mobile without hiding live updates', () => {
     const authCssPath = path.join(process.cwd(), 'app', 'agent-modals-budget-mobile-authoritative.css');
     const authCss = fs.readFileSync(authCssPath, 'utf8');
     expect(authCss).toContain('is-mobile-table-compact');
     expect(authCss).toContain('filter: blur(10px)');
     expect(authCss).toContain('display: none !important');
+  });
+
+  it('uses transparent frosted glass on mobile assistant overlay (blur only, no tint)', () => {
+    const authCssPath = path.join(process.cwd(), 'app', 'agent-modals-budget-mobile-authoritative.css');
+    const authCss = fs.readFileSync(authCssPath, 'utf8');
+    expect(authCss).toContain('is-mobile-assistant-glass::before');
+    expect(authCss).toContain('background: transparent !important');
+    expect(authCss).toContain('backdrop-filter: blur(80px) saturate(1.05) !important');
+    expect(authCss).not.toContain('brightness(0.58)');
   });
 });

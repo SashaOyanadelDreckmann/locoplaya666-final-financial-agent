@@ -1,15 +1,13 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState, type ReactElement } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 
 import { cn } from "@/lib/utils";
-import {
-  PANEL_INTRO_CARD_ORDER,
-  type PanelIntroCardMeta,
-} from "@/app/agent/panel-cards-intro.copy";
+import { PANEL_INTRO_CARD_ORDER } from "@/app/agent/panel-cards-intro.copy";
+import type { PanelIntroHandoffOrigin } from "@/app/agent/panel-intro.types";
 
-export type PanelMorphPhase = "scatter" | "line" | "circle" | "spotlight" | "dock";
+export type PanelMorphPhase = "scatter" | "line" | "circle" | "spotlight" | "dock" | "settle";
 
 export type PanelDockTarget = {
   x: number;
@@ -17,6 +15,11 @@ export type PanelDockTarget = {
   width: number;
   height: number;
   rotation?: number;
+};
+
+export type PanelCardNaturalSize = {
+  width: number;
+  height: number;
 };
 
 type MorphCardTarget = {
@@ -29,8 +32,20 @@ type MorphCardTarget = {
   height: number;
 };
 
-const INTRO_SPRING = { type: "spring" as const, stiffness: 42, damping: 16 };
-const DOCK_SPRING = { type: "spring" as const, stiffness: 58, damping: 18 };
+type CardLayout = {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  rotation: number;
+  scale: number;
+  opacity: number;
+};
+
+const MORPH_SPRING = { type: "spring" as const, stiffness: 50, damping: 19, mass: 0.88 };
+const DOCK_SPRING = { type: "spring" as const, stiffness: 60, damping: 21, mass: 0.86 };
+const SPOTLIGHT_SPRING = { type: "spring" as const, stiffness: 56, damping: 20, mass: 0.9 };
+const SETTLE_SPRING = { type: "spring" as const, stiffness: 72, damping: 24, mass: 0.82 };
 
 function useContainerMetrics(ref: React.RefObject<HTMLDivElement | null>) {
   const [metrics, setMetrics] = useState({
@@ -69,76 +84,107 @@ function useContainerMetrics(ref: React.RefObject<HTMLDivElement | null>) {
   return metrics;
 }
 
-function IntroFlipCard({
-  meta,
-  index,
+function getIntroAnchor(
+  phase: PanelMorphPhase,
+  handoffOrigin: PanelIntroHandoffOrigin | null | undefined,
+  metrics: { centerX: number; centerY: number },
+) {
+  if (!handoffOrigin) {
+    return { x: metrics.centerX, y: metrics.centerY };
+  }
+
+  if (phase === "scatter" || phase === "line") {
+    return { x: handoffOrigin.x, y: handoffOrigin.y };
+  }
+
+  if (phase === "circle") {
+    return {
+      x: handoffOrigin.x * 0.28 + metrics.centerX * 0.72,
+      y: handoffOrigin.y * 0.28 + metrics.centerY * 0.72,
+    };
+  }
+
+  return { x: metrics.centerX, y: metrics.centerY };
+}
+
+function IntroPanelCard({
+  cardKey,
+  cardNode,
+  naturalSize,
   layout,
   active,
   phase,
+  index,
 }: {
-  meta: PanelIntroCardMeta;
-  index: number;
-  layout: { left: number; top: number; width: number; height: number; rotation: number; scale: number; opacity: number };
+  cardKey: string;
+  cardNode: ReactElement;
+  naturalSize: PanelCardNaturalSize;
+  layout: CardLayout;
   active: boolean;
   phase: PanelMorphPhase;
+  index: number;
 }) {
-  const showBack = phase === "spotlight" && active;
-  const isDocking = phase === "dock";
+  const isDocking = phase === "dock" || phase === "settle";
+  const syncLayout = isDocking;
+  const fitScale = Math.min(
+    layout.width / Math.max(naturalSize.width, 1),
+    layout.height / Math.max(naturalSize.height, 1),
+  );
+
+  const transition =
+    phase === "settle"
+      ? SETTLE_SPRING
+      : phase === "dock"
+        ? DOCK_SPRING
+        : phase === "spotlight"
+          ? SPOTLIGHT_SPRING
+          : MORPH_SPRING;
+
+  const shellOpacity = phase === "settle" ? 0 : 1;
 
   return (
     <motion.div
+      layoutId={syncLayout ? `panel-intro-card-${cardKey}` : undefined}
       className={cn(
         "panel-morph-card",
         active && phase === "spotlight" && "is-spotlight-active",
         isDocking && "is-docking",
+        phase === "settle" && "is-settling",
       )}
       animate={{
         left: layout.left,
         top: layout.top,
         rotate: layout.rotation,
         scale: layout.scale,
-        opacity: layout.opacity,
+        opacity: layout.opacity * shellOpacity,
         width: layout.width,
         height: layout.height,
       }}
-      transition={isDocking ? DOCK_SPRING : INTRO_SPRING}
+      transition={transition}
       style={{
         position: "fixed",
-        transformStyle: "preserve-3d",
         zIndex: isDocking ? 2147482800 + index : active ? 6 : 2,
       }}
     >
-      <motion.div
-        className="panel-morph-card__flip"
-        animate={{ rotateY: showBack ? 180 : 0 }}
-        transition={{ duration: 0.55, type: "spring", stiffness: 220, damping: 22 }}
-        style={{ transformStyle: "preserve-3d" }}
-      >
-        <div className="panel-morph-card__face panel-morph-card__face--front">
-          {meta.image ? (
-            <img src={meta.image} alt="" className="panel-morph-card__image" />
-          ) : (
-            <div
-              className="panel-morph-card__accent"
-              style={{ background: meta.accent }}
-              aria-hidden="true"
-            />
-          )}
-          <div className="panel-morph-card__shade" aria-hidden="true" />
-          <div className="panel-morph-card__meta">
-            <span className="panel-morph-card__index">
-              {String(index + 1).padStart(2, "0")}
-            </span>
-            <span className="panel-morph-card__label">{meta.label}</span>
-          </div>
+      <div className="panel-morph-card__shell">
+        <div
+          className="panel-morph-card__scale"
+          style={{
+            width: naturalSize.width,
+            height: naturalSize.height,
+            transform: `scale(${fitScale})`,
+          }}
+        >
+          {React.cloneElement(cardNode, {
+            className: cn(
+              (cardNode.props as { className?: string }).className,
+              "panel-morph-card__slot",
+            ),
+            "aria-hidden": true,
+            tabIndex: -1,
+          } as Record<string, unknown>)}
         </div>
-
-        <div className="panel-morph-card__face panel-morph-card__face--back">
-          <span className="panel-morph-card__back-kicker">Panel</span>
-          <span className="panel-morph-card__back-label">{meta.label}</span>
-          <p className="panel-morph-card__back-caption">{meta.caption}</p>
-        </div>
-      </motion.div>
+      </div>
     </motion.div>
   );
 }
@@ -147,6 +193,10 @@ export function PanelCardsMorphIntro(props: {
   phase: PanelMorphPhase;
   activeIndex: number;
   dockTargets?: PanelDockTarget[] | null;
+  panelCards: Array<{ key: string; node: ReactElement }>;
+  naturalSizes: Record<string, PanelCardNaturalSize>;
+  handoffOrigin?: PanelIntroHandoffOrigin | null;
+  isMobileViewport?: boolean;
   reducedMotion?: boolean;
   className?: string;
 }) {
@@ -155,27 +205,36 @@ export function PanelCardsMorphIntro(props: {
   const cards = PANEL_INTRO_CARD_ORDER;
   const total = cards.length;
 
+  const cardNodeByKey = useMemo(() => {
+    const map = new Map<string, ReactElement>();
+    props.panelCards.forEach((card) => map.set(card.key, card.node));
+    return map;
+  }, [props.panelCards]);
+
+  const defaultNatural = { width: 168, height: 88 };
+  const isMobile = props.isMobileViewport ?? containerMetrics.width < 768;
+  const introAnchor = getIntroAnchor(props.phase, props.handoffOrigin, containerMetrics);
+
   const scatterPositions = useMemo(
     () =>
-      cards.map((_, i) => ({
-        x: (Math.random() - 0.5) * 1200,
-        y: (Math.random() - 0.5) * 760,
-        rotation: (Math.random() - 0.5) * 140,
-        scale: 0.55,
+      cards.map(() => ({
+        x: (Math.random() - 0.5) * 720,
+        y: (Math.random() - 0.5) * 480,
+        rotation: (Math.random() - 0.5) * 72,
+        scale: 0.76,
         opacity: 0,
-        width: props.reducedMotion ? 132 : 108,
-        height: props.reducedMotion ? 78 : 64,
+        width: props.reducedMotion ? 148 : 124,
+        height: props.reducedMotion ? 82 : 68,
       })),
     [cards.length, props.reducedMotion],
   );
 
-  const isMobile = containerMetrics.width > 0 && containerMetrics.width < 768;
-  const baseCardW = isMobile ? 118 : 132;
-  const baseCardH = isMobile ? 68 : 76;
-  const activeCardW = isMobile ? 196 : 228;
-  const activeCardH = isMobile ? 112 : 128;
+  const baseCardW = isMobile ? 128 : 148;
+  const activeCardW = isMobile ? 248 : 292;
 
-  const targets = cards.map((_, i) => {
+  const targets = cards.map((meta, i) => {
+    const natural = props.naturalSizes[meta.key] ?? defaultNatural;
+    const aspect = natural.width / Math.max(natural.height, 1);
     let target: MorphCardTarget = {
       x: 0,
       y: 0,
@@ -183,13 +242,13 @@ export function PanelCardsMorphIntro(props: {
       scale: 1,
       opacity: 1,
       width: baseCardW,
-      height: baseCardH,
+      height: Math.round(baseCardW / aspect),
     };
 
     if (props.phase === "scatter") {
       target = scatterPositions[i];
     } else if (props.phase === "line") {
-      const spacing = baseCardW + (isMobile ? 8 : 12);
+      const spacing = baseCardW + (isMobile ? 10 : 14);
       const lineWidth = total * spacing;
       target = {
         x: i * spacing - lineWidth / 2 + spacing / 2,
@@ -198,10 +257,11 @@ export function PanelCardsMorphIntro(props: {
         scale: 1,
         opacity: 1,
         width: baseCardW,
-        height: baseCardH,
+        height: Math.round(baseCardW / aspect),
       };
     } else if (props.phase === "circle") {
-      const radius = Math.min(containerMetrics.width, containerMetrics.height) * (isMobile ? 0.28 : 0.32);
+      const radius =
+        Math.min(containerMetrics.width, containerMetrics.height) * (isMobile ? 0.26 : 0.3);
       const angle = (i / total) * 360;
       const rad = (angle * Math.PI) / 180;
       target = {
@@ -211,16 +271,15 @@ export function PanelCardsMorphIntro(props: {
         scale: 1,
         opacity: 1,
         width: baseCardW,
-        height: baseCardH,
+        height: Math.round(baseCardW / aspect),
       };
     } else if (props.phase === "spotlight") {
-      const spread = isMobile ? 92 : 118;
-      const arcRadius = isMobile ? 220 : 280;
-      const arcCenterY = isMobile ? 88 : 108;
+      const spread = isMobile ? 84 : 108;
+      const arcRadius = isMobile ? 210 : 268;
+      const arcCenterY = isMobile ? 72 : 92;
       const offset = i - props.activeIndex;
       const normalized = ((offset % total) + total) % total;
-      const signed =
-        normalized > total / 2 ? normalized - total : normalized;
+      const signed = normalized > total / 2 ? normalized - total : normalized;
       const arcAngle = -90 + signed * (spread / Math.max(total - 1, 1));
       const arcRad = (arcAngle * Math.PI) / 180;
       const isActive = i === props.activeIndex;
@@ -229,12 +288,15 @@ export function PanelCardsMorphIntro(props: {
         x: Math.cos(arcRad) * arcRadius,
         y: Math.sin(arcRad) * arcRadius + arcCenterY,
         rotation: isActive ? 0 : arcAngle + 90,
-        scale: isActive ? 1 : 0.82,
-        opacity: isActive ? 1 : Math.max(0.22, 0.72 - Math.abs(signed) * 0.14),
+        scale: isActive ? 1 : 0.86,
+        opacity: isActive ? 1 : Math.max(0.28, 0.78 - Math.abs(signed) * 0.12),
         width: isActive ? activeCardW : baseCardW,
-        height: isActive ? activeCardH : baseCardH,
+        height: isActive ? Math.round(activeCardW / aspect) : Math.round(baseCardW / aspect),
       };
-    } else if (props.phase === "dock" && props.dockTargets?.[i]) {
+    } else if (
+      (props.phase === "dock" || props.phase === "settle") &&
+      props.dockTargets?.[i]
+    ) {
       const dock = props.dockTargets[i]!;
       target = {
         x: dock.x,
@@ -251,7 +313,7 @@ export function PanelCardsMorphIntro(props: {
   });
 
   const layouts = targets.map((target) => {
-    if (props.phase === "dock") {
+    if (props.phase === "dock" || props.phase === "settle") {
       return {
         left: target.x,
         top: target.y,
@@ -264,8 +326,8 @@ export function PanelCardsMorphIntro(props: {
     }
 
     return {
-      left: containerMetrics.centerX + target.x - target.width / 2,
-      top: containerMetrics.centerY + target.y - target.height / 2,
+      left: introAnchor.x + target.x - target.width / 2,
+      top: introAnchor.y + target.y - target.height / 2,
       width: target.width,
       height: target.height,
       rotation: target.rotation,
@@ -275,13 +337,15 @@ export function PanelCardsMorphIntro(props: {
   });
 
   const activeMeta = cards[props.activeIndex] ?? cards[0];
+  const isDockStage = props.phase === "dock" || props.phase === "settle";
 
   return (
     <div
       ref={containerRef}
       className={cn(
         "panel-morph-intro",
-        props.phase === "dock" && "is-dock-stage",
+        isDockStage && "is-dock-stage",
+        props.phase === "settle" && "is-settle-stage",
         props.className,
       )}
     >
@@ -294,10 +358,10 @@ export function PanelCardsMorphIntro(props: {
             <motion.div
               key={`spotlight-${activeMeta.key}`}
               className="panel-morph-intro__caption"
-              initial={{ opacity: 0, y: 14, filter: "blur(8px)" }}
+              initial={{ opacity: 0, y: 10, filter: "blur(6px)" }}
               animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-              exit={{ opacity: 0, y: -10, filter: "blur(6px)" }}
-              transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+              exit={{ opacity: 0, y: -8, filter: "blur(4px)" }}
+              transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
             >
               <span className="panel-morph-intro__caption-kicker">
                 {String(props.activeIndex + 1).padStart(2, "0")} / {String(total).padStart(2, "0")}
@@ -309,10 +373,10 @@ export function PanelCardsMorphIntro(props: {
             <motion.div
               key="forming"
               className="panel-morph-intro__caption is-forming"
-              initial={{ opacity: 0, y: 12 }}
+              initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.5 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.36, ease: [0.22, 1, 0.36, 1] }}
             >
               <span className="panel-morph-intro__caption-kicker">Panel financiero</span>
               <h2 className="panel-morph-intro__caption-title">Tu centro de control</h2>
@@ -320,13 +384,14 @@ export function PanelCardsMorphIntro(props: {
                 Nueve bloques. Una sola vista de tu operación financiera.
               </p>
             </motion.div>
-          ) : props.phase === "dock" ? (
+          ) : props.phase === "dock" || props.phase === "settle" ? (
             <motion.div
               key="dock"
               className="panel-morph-intro__caption is-docking"
               initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
+              animate={{ opacity: props.phase === "settle" ? 0 : 1 }}
               exit={{ opacity: 0 }}
+              transition={{ duration: 0.28 }}
             >
               <span className="panel-morph-intro__caption-kicker">Desplegando</span>
               <h2 className="panel-morph-intro__caption-title">Panel listo</h2>
@@ -336,16 +401,23 @@ export function PanelCardsMorphIntro(props: {
       </div>
 
       <div className="panel-morph-intro__stage">
-        {cards.map((meta, i) => (
-          <IntroFlipCard
-            key={meta.key}
-            meta={meta}
-            index={i}
-            layout={layouts[i]}
-            active={i === props.activeIndex}
-            phase={props.phase}
-          />
-        ))}
+        {cards.map((meta, i) => {
+          const cardNode = cardNodeByKey.get(meta.key);
+          if (!cardNode) return null;
+
+          return (
+            <IntroPanelCard
+              key={meta.key}
+              cardKey={meta.key}
+              cardNode={cardNode}
+              naturalSize={props.naturalSizes[meta.key] ?? defaultNatural}
+              layout={layouts[i]}
+              active={i === props.activeIndex}
+              phase={props.phase}
+              index={i}
+            />
+          );
+        })}
       </div>
 
       {props.phase === "spotlight" ? (

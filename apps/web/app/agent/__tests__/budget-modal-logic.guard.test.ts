@@ -57,7 +57,7 @@ describe('budget modal logic guards', () => {
       path.join(process.cwd(), 'components', 'ui', 'agent-hero-text.tsx'),
       'utf8',
     );
-    expect(heroSource).toContain('gradient-text');
+    expect(heroSource).toContain('agent-keyword-gradient');
     expect(heroSource).toContain('agent-hero-highlight.helpers');
     expect(source).toContain('focusRow={activeBudgetRow}');
     expect(source).toContain('lastUserAnswer');

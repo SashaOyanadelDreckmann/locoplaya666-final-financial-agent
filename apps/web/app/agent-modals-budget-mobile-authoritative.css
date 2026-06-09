@@ -453,12 +453,10 @@
     box-sizing: border-box !important;
     overflow: hidden !important;
     pointer-events: none !important;
-    background: rgba(9, 14, 22, 0.48) !important;
-    border: 1px solid rgba(255, 255, 255, 0.14) !important;
+    background: transparent !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
     border-radius: 18px !important;
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.07),
-      0 12px 40px rgba(0, 0, 0, 0.22) !important;
+    box-shadow: none !important;
     isolation: isolate !important;
   }
 
@@ -471,9 +469,9 @@
     z-index: 0 !important;
     border-radius: inherit !important;
     pointer-events: none !important;
-    background: rgba(7, 11, 18, 0.68) !important;
-    backdrop-filter: blur(80px) saturate(1.02) brightness(0.58) contrast(0.86) !important;
-    -webkit-backdrop-filter: blur(80px) saturate(1.02) brightness(0.58) contrast(0.86) !important;
+    background: transparent !important;
+    backdrop-filter: blur(80px) saturate(1.05) !important;
+    -webkit-backdrop-filter: blur(80px) saturate(1.05) !important;
   }
 
   .budget-modal[data-budget-view='assistant'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) .budget-mobile-stage > .budget-card-agent.is-mobile-assistant-glass .bcc-hero,
@@ -524,15 +522,18 @@
     text-shadow: none !important;
   }
 
-  .budget-modal[data-budget-view='assistant'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) .budget-mobile-stage > .budget-card-agent.is-mobile-assistant-glass .bcc-hero-question:not(.bcc-hero-question--gradient-demo),
-  html.is-mobile-viewport .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) .budget-mobile-stage > .budget-card-agent.is-mobile-assistant-glass .bcc-hero-question:not(.bcc-hero-question--gradient-demo) {
+  .budget-modal[data-budget-view='assistant'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) .budget-mobile-stage > .budget-card-agent.is-mobile-assistant-glass .bcc-hero-question,
+  html.is-mobile-viewport .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) .budget-mobile-stage > .budget-card-agent.is-mobile-assistant-glass .bcc-hero-question,
+  .budget-modal[data-budget-view='assistant'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) .budget-mobile-stage > .budget-card-agent.is-mobile-assistant-glass .bcc-hero-question--gradient-demo,
+  html.is-mobile-viewport .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) .budget-mobile-stage > .budget-card-agent.is-mobile-assistant-glass .bcc-hero-question--gradient-demo {
     margin: 0 !important;
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif !important;
-    font-size: clamp(0.78rem, 3.4vw, 0.86rem) !important;
+    font-size: clamp(0.76rem, 3.1vw, 0.84rem) !important;
     font-weight: 500 !important;
-    line-height: 1.42 !important;
-    letter-spacing: -0.02em !important;
+    line-height: 1.45 !important;
+    letter-spacing: -0.022em !important;
     text-shadow: none !important;
+    color: rgba(228, 239, 248, 0.9) !important;
   }
 
   .budget-modal[data-budget-view='assistant'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) .budget-mobile-stage > .budget-card-agent.is-mobile-assistant-glass .bcc-hero-input-wrap,
@@ -974,7 +975,7 @@
     z-index: 3 !important;
     width: 100% !important;
     height: 100% !important;
-    background: rgba(9, 14, 22, 0.48) !important;
+    background: transparent !important;
     pointer-events: none !important;
   }
 
@@ -987,9 +988,9 @@
     z-index: 0 !important;
     border-radius: inherit !important;
     pointer-events: none !important;
-    background: rgba(7, 11, 18, 0.68) !important;
-    backdrop-filter: blur(80px) saturate(1.02) brightness(0.58) contrast(0.86) !important;
-    -webkit-backdrop-filter: blur(80px) saturate(1.02) brightness(0.58) contrast(0.86) !important;
+    background: transparent !important;
+    backdrop-filter: blur(80px) saturate(1.05) !important;
+    -webkit-backdrop-filter: blur(80px) saturate(1.05) !important;
   }
 
   .budget-modal.is-mobile-shell[data-budget-view='assistant'] .budget-modal-body .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-mobile-stage > .budget-card-agent .bcc-hero,
