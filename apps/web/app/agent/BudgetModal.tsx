@@ -609,7 +609,7 @@ export function BudgetModal(props: {
       const intelChrome = mobileSummary?.offsetHeight ?? 0;
       const chrome = (tableHead?.offsetHeight ?? 0) + intelChrome + rowButtonGap;
       const hostHeight = stage?.clientHeight ?? scrollHost.clientHeight ?? 0;
-      let slotHeight = hostHeight > 0
+      const slotHeight = hostHeight > 0
         ? Math.max(240, hostHeight - chrome)
         : Math.max(240, (tableWrap?.clientHeight ?? 0) - rowButtonGap);
 
