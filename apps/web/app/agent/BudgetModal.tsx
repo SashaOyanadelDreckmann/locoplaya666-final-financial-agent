@@ -76,6 +76,7 @@ export function BudgetModal(props: {
   budgetSignals: BudgetSignals;
   updateBudgetRow: (id: string, field: keyof BudgetRow, value: string | number) => void;
   upsertBudgetRow: (row: BudgetRow) => void;
+  applyBudgetTableActions: (actions: BudgetTableAction[]) => void;
   applyBudgetTemplate: () => void;
   addBudgetRow: (type: 'income' | 'expense') => void;
   addBudgetSubcategory?: (parentId: string) => void;
@@ -283,26 +284,22 @@ export function BudgetModal(props: {
     setAssistantNextQuestion(resolveLocalBudgetQuestion(rowId));
   }
 
-  function applyBudgetAction(action: Record<string, unknown> | null | undefined) {
-    if (!isOpenRef.current || !action || typeof action !== 'object') return;
+  function parseBudgetTableAction(
+    action: Record<string, unknown>,
+    existingRow: BudgetRow | null,
+    rowExists: boolean,
+  ): BudgetTableAction | null {
     const kind = String(action.kind ?? '');
     const rowId = normalizeActionRowId(action.id);
-    if (!rowId) return;
-
-    const existingRow =
-      props.budgetRows.find((row) => normalizeActionRowId(row.id) === rowId) ?? null;
-    const rowExists = Boolean(existingRow);
-
+    if (!rowId) return null;
     if (kind === 'delete') {
-      if (!rowExists) return;
-      props.deleteBudgetRow(rowId);
-      if (activeBudgetRowId === rowId) setActiveBudgetRowId(null);
-      return;
+      if (!rowExists) return null;
+      return { kind: 'delete', id: rowId };
     }
-    if (kind !== 'add' && kind !== 'update') return;
-    if (kind === 'update' && !rowExists) return;
+    if (kind !== 'add' && kind !== 'update') return null;
+    if (kind === 'update' && !rowExists) return null;
 
-    const tableAction: BudgetTableAction = {
+    return {
       kind: kind === 'add' && rowExists ? 'update' : (kind as BudgetTableAction['kind']),
       id: rowId,
       category: typeof action.category === 'string' ? action.category : undefined,
@@ -337,16 +334,48 @@ export function BudgetModal(props: {
       movementType:
         typeof action.movementType === 'string' ? (action.movementType as BudgetTableAction['movementType']) : undefined,
     };
+  }
 
-    const merged = mergeBudgetActionIntoRow(existingRow, tableAction);
-    if (!merged) return;
+  function applyBudgetAction(action: Record<string, unknown> | null | undefined) {
+    if (!isOpenRef.current || !action || typeof action !== 'object') return;
+    const rowId = normalizeActionRowId(action.id);
+    if (String(action.kind ?? '') === 'delete' && rowId && activeBudgetRowId === rowId) {
+      setActiveBudgetRowId(null);
+    }
+    applyBudgetActions([action]);
+  }
 
-    props.upsertBudgetRow(merged);
+  function applyBudgetActions(actions: Array<Record<string, unknown>>): string | null {
+    if (!isOpenRef.current || !Array.isArray(actions)) return null;
+
+    const tableActions: BudgetTableAction[] = [];
+    let lastTouchedRow: BudgetRow | null = null;
+
+    actions.forEach((action) => {
+      const rowId = normalizeActionRowId(action?.id);
+      if (!rowId) return;
+      const existingRow =
+        props.budgetRows.find((row) => normalizeActionRowId(row.id) === rowId) ?? null;
+      const parsed = parseBudgetTableAction(action, existingRow, Boolean(existingRow));
+      if (!parsed) return;
+      tableActions.push(parsed);
+      if (parsed.kind === 'delete') {
+        if (activeBudgetRowId === rowId) setActiveBudgetRowId(null);
+        return;
+      }
+      const merged = mergeBudgetActionIntoRow(existingRow, parsed);
+      if (merged) lastTouchedRow = merged;
+    });
+
+    if (tableActions.length === 0) return null;
+    props.applyBudgetTableActions(tableActions);
+
+    const lastTouchedRowId = lastTouchedRow?.id ?? normalizeActionRowId(tableActions.at(-1)?.id) ?? null;
     const skipAssistantTableFx = !isDesktopLayout && budgetViewModeRef.current === tableViewMode;
-    if (!skipAssistantTableFx) {
+    if (lastTouchedRow && !skipAssistantTableFx) {
       budgetActionTimersRef.current.push(
         window.setTimeout(() => {
-          const el = document.getElementById(`budget-row-${merged.id}`);
+          const el = document.getElementById(`budget-row-${lastTouchedRow!.id}`);
           if (el) {
             el.scrollIntoView({ behavior: 'auto', block: 'center' });
             el.animate(
@@ -360,24 +389,11 @@ export function BudgetModal(props: {
         }, 80),
       );
       const dotId = ++flyingDotCounter.current;
-      setFlyingDots((prev) => [...prev, { id: dotId, type: merged.type }]);
+      setFlyingDots((prev) => [...prev, { id: dotId, type: lastTouchedRow!.type }]);
       budgetDotTimersRef.current.push(
         window.setTimeout(() => setFlyingDots((prev) => prev.filter((d) => d.id !== dotId)), 750),
       );
     }
-  }
-
-  function applyBudgetActions(actions: Array<Record<string, unknown>>): string | null {
-    if (!isOpenRef.current || !Array.isArray(actions)) return null;
-    let lastTouchedRowId: string | null = null;
-    actions.forEach((a) => {
-      const kind = String(a?.kind ?? '');
-      if (kind === 'add' || kind === 'update') {
-        const normalizedId = normalizeActionRowId(a?.id);
-        if (normalizedId) lastTouchedRowId = normalizedId;
-      }
-      applyBudgetAction(a);
-    });
     return lastTouchedRowId;
   }
 

@@ -13,6 +13,11 @@ import {
   reconcileBudgetRows,
   type BudgetRow,
 } from '@/lib/budget-rows.helpers';
+import {
+  mergeBudgetActionIntoRow,
+  normalizeBudgetActionRowId,
+  type BudgetTableAction,
+} from '@financial-agent/shared';
 
 export function useBudgetRows(initialRows: BudgetRow[] = []) {
   const [budgetRows, setBudgetRows] = useState<BudgetRow[]>(initialRows);
@@ -118,6 +123,43 @@ export function useBudgetRows(initialRows: BudgetRow[] = []) {
     });
   }, []);
 
+  const applyBudgetTableActions = useCallback((actions: BudgetTableAction[]) => {
+    if (!Array.isArray(actions) || actions.length === 0) return;
+    setBudgetRows((rows) => {
+      let next = [...rows];
+      for (const action of actions) {
+        const rowId = normalizeBudgetActionRowId(action.id);
+        if (!rowId) continue;
+        if (action.kind === 'delete') {
+          const deleteSet = new Set([rowId]);
+          let changed = true;
+          while (changed) {
+            changed = false;
+            next.forEach((row) => {
+              if (row.parentId && deleteSet.has(row.parentId) && !deleteSet.has(row.id)) {
+                deleteSet.add(row.id);
+                changed = true;
+              }
+            });
+          }
+          next = next.filter((row) => !deleteSet.has(row.id));
+          continue;
+        }
+        const existing =
+          next.find((row) => normalizeBudgetActionRowId(row.id) === rowId) ?? null;
+        const merged = mergeBudgetActionIntoRow(existing, { ...action, id: rowId });
+        if (!merged) continue;
+        const idx = next.findIndex((row) => normalizeBudgetActionRowId(row.id) === rowId);
+        if (idx >= 0) {
+          next[idx] = { ...next[idx], ...merged };
+        } else if (next.length < MAX_BUDGET_ROWS) {
+          next.push(merged);
+        }
+      }
+      return reconcileBudgetRows(next);
+    });
+  }, []);
+
   const buildPersistableBudgetContextFn = useCallback(
     () => buildPersistableBudgetContext(budgetRows, budgetTotals),
     [budgetRows, budgetTotals],
@@ -145,6 +187,7 @@ export function useBudgetRows(initialRows: BudgetRow[] = []) {
     addBudgetSubcategory,
     deleteBudgetRow,
     upsertBudgetRow,
+    applyBudgetTableActions,
     buildPersistableBudgetContext: buildPersistableBudgetContextFn,
     applyStarterIfEmpty,
   };

@@ -15,6 +15,7 @@ import {
 import { completeStructuredWithSchema } from './llm.service';
 
 const AGENT_TIMEOUT_MS = Number(process.env.BUDGET_CHAT_AGENT_TIMEOUT_MS ?? 12_000);
+const AGENT_DEFAULT_FOLLOW_UP = '¿Qué más quieres hacer con la tabla?';
 
 export type BudgetAgentInput = {
   rows: BudgetRow[];
@@ -195,10 +196,17 @@ async function callBudgetAgentModel(input: BudgetAgentInput): Promise<AgentModel
   });
 }
 
-function normalizeAgentResult(input: BudgetAgentInput, raw: AgentModelOutput): BudgetAgentResult | null {
+function normalizeAgentFollowUp(raw: AgentModelOutput): string {
   const nextQuestion = String(raw.next_question ?? '').trim();
-  if (!nextQuestion.includes('?')) return null;
+  if (nextQuestion.includes('?')) return nextQuestion;
+  return AGENT_DEFAULT_FOLLOW_UP;
+}
 
+export function isBudgetAgentUnavailableResult(result: Pick<BudgetAgentResult, 'source'>): boolean {
+  return result.source === 'budget_agent_unavailable';
+}
+
+function normalizeAgentResult(input: BudgetAgentInput, raw: AgentModelOutput): BudgetAgentResult | null {
   const actions = validateBudgetTableActions(raw.actions ?? [], input.rows);
   const requiresConfirmation = inferRequiresConfirmation(actions, Boolean(raw.requires_confirmation));
   const assistantReply = String(raw.assistant_reply ?? '').trim() || buildDefaultReply(input, actions);
@@ -206,7 +214,7 @@ function normalizeAgentResult(input: BudgetAgentInput, raw: AgentModelOutput): B
 
   return {
     assistant_reply: assistantReply,
-    next_question: nextQuestion,
+    next_question: normalizeAgentFollowUp(raw),
     focus_row_id: raw.focus_row_id ?? actions[0]?.id ?? input.focusRow?.id ?? null,
     actions,
     requires_confirmation: requiresConfirmation,

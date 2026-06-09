@@ -77,4 +77,30 @@ describe('budget-chat-agent.service', () => {
     expect(result.requires_confirmation).toBe(false);
     expect(result.actions[0]?.amount).toBe(180000);
   });
+
+  it('keeps validated actions when the model omits a question mark', async () => {
+    completeStructuredWithSchema.mockResolvedValueOnce({
+      assistant_reply: 'Listo, actualicé alimentación.',
+      next_question: 'Dime si quieres otro ajuste',
+      focus_row_id: 'expense_food',
+      requires_confirmation: false,
+      pending_summary: null,
+      actions: [{ kind: 'update', id: 'expense_food', category: 'Alimentación', type: 'expense', amount: 150000 }],
+    });
+
+    const context = buildBudgetAssistantContext({ rows, intakeData: {}, products: [], chatAnswers: [] });
+    const result = await runBudgetChatAgent({
+      rows,
+      context,
+      userAnswer: 'deja comida en 150 mil',
+      currentQuestion: '¿Qué más quieres hacer con la tabla?',
+      focusRow: rows[1],
+      chatAnswers: [],
+      mode: 'reply',
+    });
+
+    expect(result.source).toBe('budget_agent');
+    expect(result.actions[0]?.amount).toBe(150000);
+    expect(result.next_question).toMatch(/\?/);
+  });
 });

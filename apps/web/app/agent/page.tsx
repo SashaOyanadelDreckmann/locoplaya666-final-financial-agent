@@ -462,6 +462,7 @@ export default function AgentPage() {
     addBudgetSubcategory,
     deleteBudgetRow,
     upsertBudgetRow,
+    applyBudgetTableActions,
     buildPersistableBudgetContext,
   } = useBudgetRows();
   const [budgetChatAnswers, setBudgetChatAnswers] = useState<Array<{ q: string; a: string }>>([]);
@@ -3923,6 +3924,7 @@ export default function AgentPage() {
         budgetSignals={budgetSignals}
         updateBudgetRow={updateBudgetRow}
         upsertBudgetRow={upsertBudgetRow}
+        applyBudgetTableActions={applyBudgetTableActions}
         applyBudgetTemplate={applyBudgetTemplate}
         addBudgetRow={addBudgetRow}
         addBudgetSubcategory={addBudgetSubcategory}

@@ -12,7 +12,7 @@ import {
   polishBudgetAssistantCopy,
   type BudgetWriterPolishInput,
 } from '../services/budget-chat-writer.service';
-import { runBudgetChatAgent } from '../services/budget-chat-agent.service';
+import { runBudgetChatAgent, isBudgetAgentUnavailableResult } from '../services/budget-chat-agent.service';
 import { CHAT_PIPELINES } from '@financial-agent/shared';
 
 // Pipeline: see CHAT_PIPELINES.budget — structured budget panel assistant (not CoreAgent).
@@ -65,6 +65,7 @@ import {
   summarizeBudgetActionBatch,
   normalizeBudgetCadence,
   validateBudgetTableActions,
+  MAX_BUDGET_TABLE_ACTIONS,
   isBudgetConfirmationAnswer,
   isBudgetRejectionAnswer,
   buildPendingConfirmation,
@@ -100,7 +101,7 @@ const BudgetChatRequestSchema = z.object({
   intakeData: z.unknown().nullable().optional(),
   pendingConfirmation: z
     .object({
-      actions: z.array(z.record(z.unknown())).max(6),
+      actions: z.array(z.record(z.unknown())).max(MAX_BUDGET_TABLE_ACTIONS),
       summary: z.string().trim().max(500),
     })
     .nullable()
@@ -1429,6 +1430,65 @@ function buildConversationalFallback(params: {
   });
 }
 
+function shouldUseDeterministicTableFallback(params: {
+  agent: {
+    source: string;
+    actions: BudgetTableAction[];
+    requires_confirmation: boolean;
+  };
+  answer: string;
+}): boolean {
+  if (isBudgetAgentUnavailableResult(params.agent)) return true;
+  if (params.agent.requires_confirmation) return false;
+  if (params.agent.actions.length > 0) return false;
+  const intent = detectBudgetIntent(params.answer);
+  return (
+    intent === 'update_amount' ||
+    intent === 'update_field' ||
+    intent === 'update_combined' ||
+    intent === 'delete_row' ||
+    intent === 'delete_all'
+  );
+}
+
+function resolveHybridBudgetChatDraft(params: {
+  agent: {
+    assistant_reply: string;
+    next_question: string;
+    focus_row_id: string | null;
+    actions: BudgetTableAction[];
+    requires_confirmation: boolean;
+    pending_summary: string | null;
+    source: string;
+  };
+  rows: BudgetRow[];
+  answer: string;
+  question: string;
+  context: BudgetAssistantContext;
+  activeRow: BudgetRow | null;
+  assistantFocusRowId?: string | null;
+  manualFocusRowId?: string | null;
+}): BudgetChatResponse {
+  const agentDraft = buildAgentChatReply({ agent: params.agent, rows: params.rows });
+  if (!shouldUseDeterministicTableFallback({ agent: params.agent, answer: params.answer })) {
+    return agentDraft;
+  }
+
+  const deterministicDraft = buildConversationalFallback({
+    answer: params.answer,
+    rows: params.rows,
+    activeRow: params.activeRow,
+    context: params.context,
+    question: params.question,
+    assistantFocusRowId: params.assistantFocusRowId,
+    manualFocusRowId: params.manualFocusRowId,
+  });
+
+  const deterministicHasActions = (deterministicDraft.actions?.length ?? 0) > 0;
+  if (deterministicHasActions) return deterministicDraft;
+  return agentDraft;
+}
+
 router.post(
   '/',
   requireAuth,
@@ -1485,7 +1545,9 @@ router.post(
         chatAnswers: [],
         mode: 'init',
       });
-      const draft = buildAgentChatReply({ agent: agentResult, rows });
+      const draft = isBudgetAgentUnavailableResult(agentResult)
+        ? buildFallbackInit({ rows, context })
+        : buildAgentChatReply({ agent: agentResult, rows });
       return sendBudgetChatResponse(
         res,
         { ...draft, market_snapshot: marketSnapshot },
@@ -1532,7 +1594,16 @@ router.post(
         chatAnswers,
         mode: 'reply',
       });
-      const draft = buildAgentChatReply({ agent: agentResult, rows });
+      const draft = resolveHybridBudgetChatDraft({
+        agent: agentResult,
+        rows,
+        answer,
+        question,
+        context,
+        activeRow: focusRow,
+        assistantFocusRowId,
+        manualFocusRowId,
+      });
       const marketSnapshot = await getMarketSnapshotOptional();
       return sendBudgetChatResponse(
         res,

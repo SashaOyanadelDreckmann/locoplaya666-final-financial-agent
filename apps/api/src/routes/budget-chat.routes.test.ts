@@ -6,11 +6,15 @@ import path from 'path';
 
 import { createApprovalToken } from '../services/approval.service';
 
-const runBudgetChatAgent = vi.fn();
+import { runBudgetChatAgent } from '../services/budget-chat-agent.service';
 
-vi.mock('../services/budget-chat-agent.service', () => ({
-  runBudgetChatAgent: (...args: unknown[]) => runBudgetChatAgent(...args),
-}));
+vi.mock('../services/budget-chat-agent.service', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../services/budget-chat-agent.service')>();
+  return {
+    ...actual,
+    runBudgetChatAgent: vi.fn(),
+  };
+});
 
 let dataDir: string;
 
@@ -59,7 +63,7 @@ describe('budget-chat routes (agent-first)', () => {
   }
 
   beforeEach(() => {
-    runBudgetChatAgent.mockReset();
+    vi.mocked(runBudgetChatAgent).mockReset();
   });
 
   it('returns agent init payload', async () => {
@@ -163,5 +167,34 @@ describe('budget-chat routes (agent-first)', () => {
     expect(res.body.source).toBe('budget_agent_confirm_apply');
     expect(res.body.action?.kind).toBe('delete');
     expect(runBudgetChatAgent).not.toHaveBeenCalled();
+  });
+
+  it('falls back to deterministic amount update when the agent is unavailable', async () => {
+    runBudgetChatAgent.mockResolvedValueOnce({
+      assistant_reply: 'No pude procesar tu mensaje ahora. Intenta de nuevo en unos segundos.',
+      next_question: '¿Quieres reintentar con tu pedido sobre la tabla?',
+      focus_row_id: null,
+      actions: [],
+      requires_confirmation: false,
+      pending_summary: null,
+      source: 'budget_agent_unavailable',
+    });
+
+    const { agent, csrfToken } = await createAuthedAgent();
+    const res = await agent.post('/api/budget-chat').set('x-csrf-token', csrfToken).send({
+      intent: 'reply',
+      answer: 'en comida gasto 200 mil',
+      question: '¿Cuánto destinas a alimentación?',
+      nextQuestion: '¿Cuánto destinas a alimentación?',
+      budgetRows: [
+        { id: 'income_salary', category: 'Sueldo líquido', type: 'income', amount: 900000 },
+        { id: 'expense_food', category: 'Alimentación', type: 'expense', amount: 0 },
+      ],
+      assistantFocusRowId: 'expense_food',
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.source).toBe('deterministic_update');
+    expect(res.body.action?.amount).toBe(200000);
   });
 });

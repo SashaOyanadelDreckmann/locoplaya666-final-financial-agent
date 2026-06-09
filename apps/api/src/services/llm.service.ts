@@ -247,23 +247,28 @@ export async function completeStructuredWithSchema<T>(params: {
     Number.isFinite(envStructuredMaxTokens) ? envStructuredMaxTokens : 1536,
   );
 
-  const response = await client.responses.create({
-    model,
-    instructions: params.instructions,
-    input: params.input,
-    max_output_tokens: maxOutputTokens,
-    store: false,
-    temperature: params.temperature ?? 0,
-    text: {
-      format: {
-        type: 'json_schema',
-        name: params.name,
-        schema: params.schema,
-        strict: true,
-        description: params.description,
+  const response = await client.responses.create(
+    withCompatibleTemperature(
+      {
+        model,
+        instructions: params.instructions,
+        input: params.input,
+        max_output_tokens: maxOutputTokens,
+        store: false,
+        text: {
+          format: {
+            type: 'json_schema',
+            name: params.name,
+            schema: params.schema,
+            strict: true,
+            description: params.description,
+          },
+        },
       },
-    },
-  });
+      model,
+      params.temperature ?? 0,
+    ) as OpenAI.Responses.ResponseCreateParamsNonStreaming,
+  );
 
   const jsonStr = parseStructuredResponsePayload(response);
   return JSON.parse(jsonStr) as T;

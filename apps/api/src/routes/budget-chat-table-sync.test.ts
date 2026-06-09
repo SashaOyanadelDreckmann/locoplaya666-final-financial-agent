@@ -15,11 +15,15 @@ import {
   type BudgetTableAction,
 } from '@financial-agent/shared';
 
-const runBudgetChatAgent = vi.fn();
+import { runBudgetChatAgent } from '../services/budget-chat-agent.service';
 
-vi.mock('../services/budget-chat-agent.service', () => ({
-  runBudgetChatAgent: (...args: unknown[]) => runBudgetChatAgent(...args),
-}));
+vi.mock('../services/budget-chat-agent.service', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../services/budget-chat-agent.service')>();
+  return {
+    ...actual,
+    runBudgetChatAgent: vi.fn(),
+  };
+});
 
 let dataDir: string;
 
