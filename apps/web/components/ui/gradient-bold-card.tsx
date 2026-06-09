@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import {
   WELCOME_FINTECH_SIMULATION_BADGE,
   WELCOME_FINTECH_SIMULATION_CONTEXT,
@@ -14,6 +13,10 @@ import {
 } from "@financial-agent/shared";
 import { cn } from "@/lib/utils";
 import { getWelcomeMessage } from "@/lib/api";
+import {
+  ExecutiveBlobCarouselShell,
+  useExecutiveBlobCarousel,
+} from "@/components/ui/executive-blob-carousel";
 import { CornerFrameScrambleText } from "@/components/ui/corner-frame-scramble-text";
 import {
   buildFallbackWelcomeIntro,
@@ -33,8 +36,6 @@ const WELCOME_PAGES = [
 const SCRAMBLE_DURATION = 0.32;
 const SCRAMBLE_SPEED = 0.022;
 const SCRAMBLE_GAP_MS = 48;
-
-type WelcomeSlideTone = (typeof WELCOME_PAGES)[number]["tone"];
 
 type GradientBlobCardProps = {
   className?: string;
@@ -218,9 +219,10 @@ export function GradientBlobCard({
     () => hydratedIntro ?? buildFallbackWelcomeIntro(session),
   );
   const [introLoading, setIntroLoading] = useState(() => !hydratedIntro);
-  const [active, setActive] = useState(0);
-  const [isTransitioning, setIsTransitioning] = useState(false);
   const [scrambleDone, setScrambleDone] = useState(() => Boolean(hydratedIntro));
+  const { active, transition, handleChange, handlePrev, handleNext } = useExecutiveBlobCarousel(
+    WELCOME_PAGES,
+  );
 
   useEffect(() => {
     if (!hydratedIntro) return;
@@ -255,26 +257,6 @@ export function GradientBlobCard({
     };
   }, [session, hydratedIntro]);
 
-  const handleChange = (index: number) => {
-    if (index === active || isTransitioning || index < 0 || index >= WELCOME_PAGES.length) return;
-    if (index !== 0) setScrambleDone(true);
-    setIsTransitioning(true);
-    window.setTimeout(() => {
-      setActive(index);
-      window.setTimeout(() => setIsTransitioning(false), 60);
-    }, 280);
-  };
-
-  const handlePrev = () => {
-    handleChange(active === 0 ? WELCOME_PAGES.length - 1 : active - 1);
-  };
-
-  const handleNext = () => {
-    handleChange(active === WELCOME_PAGES.length - 1 ? 0 : active + 1);
-  };
-
-  const current = WELCOME_PAGES[active];
-  const transition = isTransitioning ? " is-transitioning" : "";
   const showScramble = active === 0 && !scrambleDone;
   const showDiagnosis = active === 0 && scrambleDone;
 
@@ -316,118 +298,41 @@ export function GradientBlobCard({
     );
   };
 
+  const current = WELCOME_PAGES[active];
+
   return (
-    <div className={cn("gradient-blob-card", className)}>
-      <div className="gradient-blob-card__frame">
-        <div className="gradient-blob-card__blob gradient-blob-card__blob--a" aria-hidden="true" />
-        <div className="gradient-blob-card__blob gradient-blob-card__blob--b" aria-hidden="true" />
-        <div className="gradient-blob-card__glass">
-          <div className="gradient-blob-card__editorial">
-            <header className="gradient-blob-card__masthead">
-              <div
-                className={`gradient-blob-card__masthead-accent gradient-blob-card__masthead-accent--${current.tone}${transition}`}
-                aria-hidden="true"
-              />
-              <p className="gradient-blob-card__masthead-brand">Financieramente</p>
-              <h2 className="gradient-blob-card__masthead-title">Informe inicial de diagnóstico</h2>
-              <div className="gradient-blob-card__masthead-rule" aria-hidden="true" />
-            </header>
-
-            <div className="gradient-blob-card__stage">
-              <span className="gradient-blob-card__index" style={{ fontFeatureSettings: '"tnum"' }}>
-                {String(active + 1).padStart(2, "0")}
-              </span>
-
-              <div className="gradient-blob-card__copy">
-                {active !== 0 ? (
-                  <p className={`gradient-blob-card__slide-label${transition}`}>{current.label}</p>
-                ) : (
-                  <p className="gradient-blob-card__slide-label">Tu lectura</p>
-                )}
-                <div className="gradient-blob-card__slide-body">
-                  {renderSlideBody()}
-                </div>
-              </div>
-            </div>
-
-            <nav className="gradient-blob-card__nav" aria-label="Secciones del informe">
-              <div className="gradient-blob-card__nav-top">
-                <div className="gradient-blob-card__page-pills" role="tablist">
-                  {WELCOME_PAGES.map((page, index) => (
-                    <div
-                      key={page.id}
-                      role="tab"
-                      tabIndex={0}
-                      aria-selected={index === active}
-                      aria-label={page.label}
-                      className={`gradient-blob-card__page-pill gradient-blob-card__page-pill--${page.tone}${index === active ? " is-active" : ""}`}
-                      onClick={() => handleChange(index)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
-                          handleChange(index);
-                        }
-                      }}
-                    >
-                      <span className="gradient-blob-card__page-pill-roman">{page.roman}</span>
-                      <span className="gradient-blob-card__page-pill-label">{page.label}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="gradient-blob-card__nav-bottom">
-                <div className="gradient-blob-card__lines">
-                  {WELCOME_PAGES.map((page, index) => (
-                    <div
-                      key={`line-${page.id}`}
-                      role="tab"
-                      tabIndex={0}
-                      aria-label={page.label}
-                      aria-selected={index === active}
-                      className="gradient-blob-card__line-btn"
-                      onClick={() => handleChange(index)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
-                          handleChange(index);
-                        }
-                      }}
-                    >
-                      <span
-                        className={`gradient-blob-card__line gradient-blob-card__line--${page.tone as WelcomeSlideTone}${index === active ? " is-active" : ""}`}
-                      />
-                    </div>
-                  ))}
-                </div>
-                <span className="gradient-blob-card__counter">
-                  {String(active + 1).padStart(2, "0")} / {String(WELCOME_PAGES.length).padStart(2, "0")}
-                </span>
-              </div>
-
-              <div className="gradient-blob-card__nav-arrows" aria-label="Navegar secciones">
-                <button
-                  type="button"
-                  className={`gradient-blob-card__arrow gradient-blob-card__arrow--${current.tone}`}
-                  onClick={handlePrev}
-                  aria-label="Sección anterior"
-                >
-                  <ChevronLeft className="gradient-blob-card__arrow-icon" strokeWidth={2} aria-hidden />
-                </button>
-                <button
-                  type="button"
-                  className={`gradient-blob-card__arrow gradient-blob-card__arrow--${current.tone}`}
-                  onClick={handleNext}
-                  aria-label="Sección siguiente"
-                >
-                  <ChevronRight className="gradient-blob-card__arrow-icon" strokeWidth={2} aria-hidden />
-                </button>
-              </div>
-            </nav>
-          </div>
-        </div>
-      </div>
-    </div>
+    <ExecutiveBlobCarouselShell
+      className={className}
+      pages={WELCOME_PAGES}
+      active={active}
+      transition={transition}
+      navAriaLabel="Secciones del informe"
+      masthead={
+        <>
+          <p className="gradient-blob-card__masthead-brand">Financieramente</p>
+          <h2 className="gradient-blob-card__masthead-title">Informe inicial de diagnóstico</h2>
+          <div className="gradient-blob-card__masthead-rule" aria-hidden="true" />
+        </>
+      }
+      slideLabel={
+        active !== 0 ? (
+          <p className={`gradient-blob-card__slide-label${transition}`}>{current.label}</p>
+        ) : (
+          <p className="gradient-blob-card__slide-label">Tu lectura</p>
+        )
+      }
+      onChange={(index) =>
+        handleChange(index, {
+          beforeChange: (nextIndex) => {
+            if (nextIndex !== 0) setScrambleDone(true);
+          },
+        })
+      }
+      onPrev={handlePrev}
+      onNext={handleNext}
+    >
+      {renderSlideBody()}
+    </ExecutiveBlobCarouselShell>
   );
 }
 

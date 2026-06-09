@@ -791,7 +791,7 @@ PRINCIPIOS DE USO DE HERRAMIENTAS
 2. Encadena herramientas cuando los resultados de una alimentan a otra (ReAct).
 3. Prioriza herramientas de mercado chileno (UF, TPM, USD/CLP) ante consultas de valores actuales.
 4. Para análisis financiero personal usa SIEMPRE las tools de finance.* con los datos del usuario.
-5. PROHIBIDO usar tools pdf.* en esta fase.
+5. Las tools pdf.* no existen en CoreAgent. La exportación PDF es solo desde la UI.
    - El agente NO genera PDF automáticamente.
    - Entrega contenido estructurado listo para exportar.
    - La exportación final a PDF ocurre cuando el usuario presiona el botón en la burbuja del chat.

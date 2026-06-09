@@ -1,13 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+import {
+  CORE_AGENT_PROXY_RETRY_DELAY_MS,
+  resolveCoreAgentProxyTimeoutMs,
+} from '@financial-agent/shared';
+
 import { getAgentApiBaseUrl } from '@/lib/apiBase';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const FORWARD_TIMEOUT_MS = 85_000;
+const FORWARD_TIMEOUT_MS = resolveCoreAgentProxyTimeoutMs(
+  process.env.NEXT_PUBLIC_AGENT_TIMEOUT_MS,
+);
 const RETRYABLE_STATUS = new Set([502, 503, 504]);
-const RETRY_DELAY_MS = 450;
+const RETRY_DELAY_MS = CORE_AGENT_PROXY_RETRY_DELAY_MS;
 
 function pickHeader(request: NextRequest, name: string): string | null {
   const value = request.headers.get(name);

@@ -8,6 +8,11 @@ import { chargeFincoinOperation } from '../services/fincoin.service';
 import { getConfig } from '../config';
 import { parseBody } from '../http/parse';
 import { getUserDocumentsByIds } from '../persistence/repos';
+import { CHAT_PIPELINES } from '@financial-agent/shared';
+
+// Pipeline: see CHAT_PIPELINES.transactions — product-scoped movement analyst (not CoreAgent).
+void CHAT_PIPELINES.transactions.id;
+
 import {
   buildChatDashboardForQuestion,
   buildTransactionSuggestedFollowups,

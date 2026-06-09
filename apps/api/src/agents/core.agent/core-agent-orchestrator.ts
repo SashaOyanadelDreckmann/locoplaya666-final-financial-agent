@@ -22,6 +22,7 @@ import { runPlanExecutePhase } from './phases/plan-execute.phase';
 import { runFormatPhase, detectAndRecordKnowledge } from './phases/format.phase';
 import { runValidatePhase } from './phases/validate.phase';
 import { buildRecommendationProfile } from './helpers/recommendation-profile.helpers';
+import { buildReferenceDateContext } from './helpers/evidence.helpers';
 import { getLogger } from '../../logger';
 
 function clamp01(value: unknown, fallback = 0): number {
@@ -129,6 +130,7 @@ export async function runCoreAgent(
 
     // Build context summary
     const context_summary = {
+      ...buildReferenceDateContext(),
       profile: ctx.injected_profile,
       intake: ctx.injected_intake,
       budget: ctx.injected_budget,

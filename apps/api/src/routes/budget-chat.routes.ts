@@ -14,6 +14,11 @@ import {
 } from '../services/budget-chat-writer.service';
 import { planBudgetAssistantInit, planBudgetAssistantTurn } from '../services/budget-chat-planner.service';
 import { generateOffTopicBriefAnswer } from '../services/budget-chat-offtopic.service';
+import { CHAT_PIPELINES } from '@financial-agent/shared';
+
+// Pipeline: see CHAT_PIPELINES.budget — structured budget panel assistant (not CoreAgent).
+void CHAT_PIPELINES.budget.id;
+
 import {
   BUDGET_MOVEMENT_TYPE_OPTIONS,
   DEFAULT_BUDGET_ROWS,

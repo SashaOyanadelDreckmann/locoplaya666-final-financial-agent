@@ -74,6 +74,8 @@ import {
   normalizeInterviewVoiceMinuteSummaries,
   resolveInterviewVoiceIntakeContext,
   getRemainingChatTurns,
+  CORE_AGENT_HISTORY_TURN_LIMIT,
+  shouldAttachLiveMarketSnapshot,
 } from '@financial-agent/shared';
 
 const router = Router();
@@ -88,13 +90,14 @@ const OPENAI_REALTIME_VOICE = (() => {
 })();
 
 function shouldAttachLiveMarketContext(params: { userMessage: string; activeChatId?: unknown }) {
-  const userMessage = String(params.userMessage ?? '').toLowerCase();
-  const activeChatId = String(params.activeChatId ?? 'chat-1');
-  if (activeChatId === 'chat-2') return true;
-  return /\b(apv|inversion|invertir|fondo|etf|acciones|banco|institucion|tasa|mercado|uf|tpm|dolar|credito|hipotec)/.test(
-    userMessage,
-  );
+  void params.activeChatId;
+  return shouldAttachLiveMarketSnapshot(params.userMessage);
 }
+
+const MARKET_SNAPSHOT_CACHE_MS = 5 * 60_000;
+let cachedMarketSnapshot:
+  | { ts: number; snapshot: Awaited<ReturnType<typeof buildLiveMarketContext>> }
+  | null = null;
 
 async function buildLiveMarketContext() {
   const [ufResult, tpmResult, usdResult] = await Promise.allSettled([
@@ -129,6 +132,16 @@ async function buildLiveMarketContext() {
       .filter(Boolean)
       .join(' · '),
   };
+}
+
+async function getLiveMarketContextCached() {
+  const now = Date.now();
+  if (cachedMarketSnapshot && now - cachedMarketSnapshot.ts < MARKET_SNAPSHOT_CACHE_MS) {
+    return cachedMarketSnapshot.snapshot;
+  }
+  const snapshot = await buildLiveMarketContext();
+  cachedMarketSnapshot = { ts: now, snapshot };
+  return snapshot;
 }
 
 export function normalizeForSimilarity(text: string) {
@@ -1364,7 +1377,7 @@ router.post(
         : undefined;
       const userMessage = String(normalizedInput.user_message ?? '');
       if (shouldAttachLiveMarketContext({ userMessage, activeChatId })) {
-        const marketSnapshot = await buildLiveMarketContext();
+        const marketSnapshot = await getLiveMarketContextCached();
         normalizedInput.context = {
           ...((normalizedInput.context as Record<string, unknown>) ?? {}),
           market_snapshot: marketSnapshot,
@@ -1414,7 +1427,7 @@ router.post(
           const recentTurns = await listConversationTurns({
             userId: authedUser.id,
             sessionId: sessionIdForHistory,
-            limit: 6,
+            limit: CORE_AGENT_HISTORY_TURN_LIMIT,
           });
           if (recentTurns.length > 0) {
             normalizedInput.history = recentTurns.flatMap((turn) => [

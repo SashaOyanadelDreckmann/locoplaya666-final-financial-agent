@@ -3,6 +3,8 @@ import React, { memo, useState, type ReactNode } from 'react';
 import { DocumentBubble } from '@/components/conversation/DocumentBubble';
 import { CitationBubble } from '@/components/conversation/CitationBubble';
 import { AgentBlocksRenderer } from '@/components/agent/AgentBlocksRenderer';
+import { AgentStreamRail } from '@/components/agent/AgentStreamRail';
+import '@/app/agent-stream.css';
 import { saveBubbleSnapshotPdfArtifact, savePdfArtifact, downloadArtifactFile } from '@/lib/artifacts';
 import { buildBubbleSnapshotHtmlAndCss } from './bubble-chat.snapshot';
 import type { ChatItem } from '@/lib/agent.response.types';
@@ -16,6 +18,7 @@ import {
 } from './page.utils';
 import { renderLatexDocMessage } from './message-renderer';
 import { GradientBlobCard } from '@/components/ui/gradient-bold-card';
+import { ClosureGradientBlobCard } from '@/components/ui/closure-gradient-card';
 import { UserUploadBubble } from './user-upload-bubble';
 import { MAX_CHAT_UPLOAD_FILES } from './agent-page.constants';
 import { isWelcomeShellMessageContent } from './welcome-intro.shared';
@@ -297,6 +300,7 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
                   ? 'Introducción ejecutiva personalizada — evidencia real, simulación normativa y ruta de decisión.'
                   : chat1Copy.threadSubtitle,
               };
+        const isStreaming = Boolean(it.stream?.streaming);
         const isScrollable = shouldEnableBubbleScroll(it.content ?? '');
         const blocks = Array.isArray(it.agent_blocks) ? it.agent_blocks : [];
         const isEmptyWelcomeShell = isWelcomeCarouselShellItem(
@@ -316,7 +320,7 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
         return (
           <React.Fragment key={i}>
             <div
-              className={`agent-bubble assistant latex-doc ${isScrollable ? 'is-scrollable-bubble' : ''}${isFirstAssistantCard ? ' is-intro-doc' : ''}${isEmptyWelcomeShell ? ' is-empty-welcome' : ''}${funnelStage === 'deliver' ? ' is-action-plan-deliver' : funnelStage ? ` is-action-plan-${funnelStage}` : ''}`}
+              className={`agent-bubble assistant latex-doc ${isScrollable ? 'is-scrollable-bubble' : ''}${isFirstAssistantCard ? ' is-intro-doc' : ''}${isEmptyWelcomeShell ? ' is-empty-welcome' : ''}${isStreaming ? ' is-streaming' : ''}${funnelStage === 'deliver' ? ' is-action-plan-deliver' : funnelStage ? ` is-action-plan-${funnelStage}` : ''}`}
             >
               {!isEmptyWelcomeShell ? (
                 <div className="latex-doc-head">
@@ -414,9 +418,14 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
                     sessionInjectedIntake={props.sessionInjectedIntake}
                   />
                 ) : (
-                  <div className="premium-markdown">
-                    {renderLatexDocMessage(sanitizeMessageText(it.content ?? ''))}
-                  </div>
+                  <>
+                    {it.stream?.streaming ? <AgentStreamRail state={it.stream} /> : null}
+                    {(it.content ?? '').trim().length > 0 ? (
+                      <div className="premium-markdown">
+                        {renderLatexDocMessage(sanitizeMessageText(it.content ?? ''))}
+                      </div>
+                    ) : null}
+                  </>
                 )}
                 {questionnaireBlocks.length > 0 && (
                   <div className="latex-inline-questionnaire">
@@ -637,27 +646,12 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
         {rendered}
 
         {effectiveClosingSummary && !props.showFullChat ? (
-          <div className="agent-bubble assistant latex-doc is-intro-doc is-closing-summary">
-            <div className="latex-doc-head">
-              <div className="latex-doc-heading">
-                <span className="latex-doc-kicker">{effectiveClosingSummary.kicker}</span>
-                <span className="latex-doc-title">{effectiveClosingSummary.title}</span>
-                <span className="latex-doc-subtitle">{effectiveClosingSummary.subtitle}</span>
-              </div>
-              <span className="latex-doc-mode" style={docModePillStyle}>
-                cierre
-              </span>
-            </div>
-            <div className="latex-doc-body">
-              <div className="closing-summary-grid">
-                {effectiveClosingSummary.sections.map((section) => (
-                  <section key={section.label} className="closing-summary-card">
-                    <span className="closing-summary-card-label">{section.label}</span>
-                    <p className="closing-summary-card-body">{section.body}</p>
-                  </section>
-                ))}
-              </div>
-              <p className="closing-summary-footer">{effectiveClosingSummary.footer}</p>
+          <div className="agent-bubble assistant latex-doc is-intro-doc is-empty-welcome is-closure-welcome">
+            <div className="latex-doc-body is-empty-welcome-body">
+              <ClosureGradientBlobCard
+                className="gradient-blob-card--welcome gradient-blob-card--closure"
+                summary={effectiveClosingSummary}
+              />
             </div>
           </div>
         ) : null}

@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import type { ChatAgentInput, ChatAgentResponse } from '../agents/core.agent/chat.types';
 import { listTools } from '../mcp/tools/registry';
+import { filterCoreAgentTools } from '../mcp/core-agent-tools';
 import { getLogger } from '../logger';
 import { loadUserMemoryBlob, saveUserMemoryBlob } from './user.service';
 
@@ -468,14 +469,15 @@ function buildTimelineSummary(userMessage: string, response: ChatAgentResponse):
 
 function buildSystemMemoryPayload(): SystemMemory {
   const now = new Date().toISOString();
-  const tools = listTools().map((tool) => tool.name).sort();
+  const tools = filterCoreAgentTools(listTools()).map((tool) => tool.name).sort();
 
   return {
     version: 'v1',
     updatedAt: now,
     capabilities: [
       'Chat financiero persistente para Chile',
-      'Simulaciones, presupuesto, deuda, APV, metas y PDFs',
+      'Simulaciones, presupuesto, deuda, APV y metas',
+      'Exportación PDF desde la UI de la burbuja de chat',
       'RAG regulatorio y glosario financiero',
       'Persistencia de contexto, sheets, artefactos y aprendizaje',
     ],

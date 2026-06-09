@@ -6,10 +6,21 @@
  */
 
 import { getOpenAIClient, withCompatibleTemperature } from '../../../services/llm.service';
-import { buildOpenAITools, getOriginalToolName } from '../../../mcp/openai-bridge';
+import {
+  buildCoreAgentOpenAITools,
+  getOriginalToolName,
+  isCoreAgentExcludedTool,
+  CORE_AGENT_PDF_HANDOFF_MESSAGE,
+} from '../../../mcp/openai-bridge';
 import { runMCPTool } from '../../../mcp/tools/runMCPTool';
 import { retrieveRAGContext } from '../../../services/rag.service';
 import { CORE_TOOL_AGENT_SYSTEM } from '../system.prompts';
+import {
+  buildTrustedWebQuery,
+  isFactualInfoMode,
+  shouldBypassWebEvidenceCache,
+  shouldPrefetchTrustedWeb,
+} from '@financial-agent/shared';
 import { extractChartBlocksFromToolOutput } from '../helpers/chart-extraction.helpers';
 import { isArtifactLike } from '../helpers/validation.helpers';
 import type { ExecutionResult, PlanPhaseInput, PlanPhaseOutput } from '../agent-types';
@@ -56,13 +67,8 @@ function shouldAutoWebVerify(userMessage?: string): boolean {
   const msg = String(userMessage ?? '').trim();
   if (!msg) return false;
   if (TRIVIAL_GREETING.test(msg)) return false;
-  // Pure arithmetic queries don't need live web evidence; skip the prefetch to save latency
   if (PURE_CALC_PATTERN.test(msg) && !MARKET_DATA_PATTERN.test(msg)) return false;
   return true;
-}
-
-function buildTrustedWebQuery(userMessage: string): string {
-  return `${userMessage} (site:cmfchile.cl OR site:cmfeduca.cl OR site:leychile.cl OR site:bcentral.cl OR site:hacienda.cl)`;
 }
 
 function normalizeForSemanticCache(text: string): string[] {
@@ -127,7 +133,7 @@ export async function runPlanExecutePhase(input: PlanPhaseInput): Promise<PlanPh
     const client = getOpenAIClient();
 
     // Build tool definitions for OpenAI
-    const openaiTools = buildOpenAITools();
+    const openaiTools = buildCoreAgentOpenAITools();
 
     // Initialize accumulators
     const tool_calls: ToolCall[] = [];
@@ -138,15 +144,27 @@ export async function runPlanExecutePhase(input: PlanPhaseInput): Promise<PlanPh
     const react_trace: Array<{ iteration: number; decision: string; result: string }> = [];
     const shouldRunTools =
       input.classification.requires_tools === true || input.classification.requires_rag === true;
+    const shouldGroundWithWeb =
+      AUTO_WEB_VERIFY_ENABLED &&
+      shouldAutoWebVerify(input.user_message) &&
+      shouldPrefetchTrustedWeb({
+        userMessage: input.user_message,
+        mode: input.classification.mode,
+        requiresTools: input.classification.requires_tools,
+        requiresRag: input.classification.requires_rag,
+      });
+    const bypassWebCache = shouldBypassWebEvidenceCache(input.user_message);
     const iterationBudget = resolveIterationBudget(input);
     const isRegulatoryRequest =
       input.classification.mode === 'regulation' ||
       input.classification.requires_rag === true ||
       REGULATORY_KEYWORDS.test(input.classification.intent) ||
       REGULATORY_KEYWORDS.test(input.user_message ?? '');
+    const shouldPrefetchRag =
+      isRegulatoryRequest || isFactualInfoMode(input.classification.mode);
 
     // Warm up regulatory/knowledge citations early to reduce unsupported claims.
-    if (isRegulatoryRequest) {
+    if (shouldPrefetchRag) {
       try {
         const ragQuery = `${input.user_message ?? input.classification.intent} Ley 21.521 CMF glosario financiero`;
         const ragCitations = await retrieveRAGContext(ragQuery, {
@@ -182,11 +200,11 @@ export async function runPlanExecutePhase(input: PlanPhaseInput): Promise<PlanPh
     }
 
     // Cheap-by-design web grounding: one trusted search per meaningful turn.
-    if (shouldRunTools && AUTO_WEB_VERIFY_ENABLED && shouldAutoWebVerify(input.user_message)) {
+    if (shouldGroundWithWeb) {
       try {
         const cacheUserId = input.user_id || 'unknown';
         const webQuery = buildTrustedWebQuery(String(input.user_message ?? input.classification.intent));
-        const cached = findCachedWebEvidence(cacheUserId, webQuery);
+        const cached = !bypassWebCache ? findCachedWebEvidence(cacheUserId, webQuery) : null;
 
         if (cached) {
           input.stream?.tool('web.search', 'start', { iteration: 0 });
@@ -366,6 +384,26 @@ export async function runPlanExecutePhase(input: PlanPhaseInput): Promise<PlanPh
           decision: `Use tool: ${originalName}`,
           result: 'pending',
         });
+        if (isCoreAgentExcludedTool(originalName)) {
+          tool_calls.push({
+            id: toolUse.id,
+            tool: originalName,
+            args: parsedArgs,
+            status: 'error',
+          });
+          loopMessages.push({
+            role: 'tool',
+            tool_call_id: toolUse.id,
+            content: JSON.stringify({
+              ok: false,
+              error: 'tool_not_available_in_core_agent',
+              message: CORE_AGENT_PDF_HANDOFF_MESSAGE,
+            }),
+          });
+          react_trace[react_trace.length - 1].result = 'blocked_pdf_handoff';
+          continue;
+        }
+
         input.stream?.tool(originalName, 'start', { iteration: iterations });
 
         try {
@@ -520,7 +558,13 @@ function buildExecutionPrompt(input: PlanPhaseInput): string {
   const uploadedDocuments = Array.isArray(input.context_summary?.uploaded_documents)
     ? input.context_summary.uploaded_documents
     : [];
+  const referenceDate =
+    typeof input.context_summary?.reference_date === 'string'
+      ? input.context_summary.reference_date
+      : new Date().toISOString().slice(0, 10);
+
   return `
+Reference date (Chile): ${referenceDate}
 User intent: ${input.classification.intent}
 Mode: ${input.classification.mode}
 

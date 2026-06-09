@@ -21,8 +21,10 @@ import {
   type VisualMode,
 } from '@/lib/visual-mode';
 import { flushSync } from 'react-dom';
-import { sendToAgent } from '@/lib/agent';
 import { getSessionId } from '@/lib/session';
+import type { CoreAgentResponseSideEffects } from '@/lib/agent/applyCoreAgentResponse';
+import type { CoreAgentRequestContext } from '@/lib/agent/buildCoreAgentContext';
+import { useCoreAgentSend } from './hooks/useCoreAgentSend';
 import { useInterviewStore } from '@/state/interview.store';
 import { syncDiagnosisSession } from '@/lib/diagnosis-session';
 import { useProfileStore } from '@/state/profile.store';
@@ -57,7 +59,6 @@ import {
   aggregateParsedDocuments,
   aggregateUploadedFiles,
   buildPersistableProductsContext,
-  buildScopedTransactionsContext,
   getSimulationSnapshot,
 } from '@/lib/products-context.helpers';
 import {
@@ -123,11 +124,9 @@ import { shouldShowAgentBootSequence } from './agent-boot-sequence.helpers';
 import { shouldPresentPanelIntro } from './panel-intro.prefs';
 
 import type {
-  AgentBlock,
   AgentResponse,
   ChatItem,
 } from '@/lib/agent.response.types';
-import { toChatItemsFromAgentResponse } from '@/lib/agent.response.types';
 import { AccountModal, BudgetModal, QuestionnaireModal, TransactionsModal } from './modals';
 import { InterviewModal } from './InterviewModal';
 import { FincoinUsageModal } from './FincoinUsageModal';
@@ -307,20 +306,6 @@ export default function AgentPage() {
     return 'other';
   }
 
-  function isGenericOnboardingMessage(text: string): boolean {
-    const normalized = (text || '').toLowerCase().replace(/\s+/g, ' ').trim();
-    if (!normalized) return false;
-    return (
-      normalized.includes('hola, bienvenido. soy tu agente financiero personal en chile') ||
-      normalized.includes('aquí podemos hacer tres cosas concretas juntos') ||
-      normalized.includes('puedo hacer 3 cosas contigo') ||
-      normalized.includes('en el panel lateral vas a ver herramientas') ||
-      normalized.includes('se van desbloqueando a medida que avanzamos') ||
-      normalized.includes('generar informes') ||
-      normalized.includes('partamos con una acción simple')
-    );
-  }
-
   const buildChat1WelcomeItem = useCallback(() => {
     return buildWelcomeChatItem({});
   }, []);
@@ -401,7 +386,6 @@ export default function AgentPage() {
   const [activeChatId, setActiveChatId] = useState(PRIMARY_CHAT_ID);
   const [sheetsLoaded, setSheetsLoaded] = useState(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [loading, setLoading] = useState(false);
   const [panelStage, setPanelStage] = useState(2);
   const [mobilePanelExpanded, setMobilePanelExpanded] = useState(false);
   const [isComposerFocused, setIsComposerFocused] = useState(false);
@@ -1721,6 +1705,201 @@ export default function AgentPage() {
 
   const isPanelCollapsed = panelStage === 3;
 
+  const applyFincoinClosureSummaries = useCallback(
+    (summaries?: Record<string, unknown> | null) => {
+      if (!summaries || typeof summaries !== 'object') return;
+      setChatThreads((prev) =>
+        prev.map((thread) => {
+          const candidate = summaries[thread.id];
+          if (!candidate || typeof candidate !== 'object') return thread;
+          if (!('title' in candidate) || !('sections' in candidate)) return thread;
+          return {
+            ...thread,
+            closureSummary: candidate as ChatClosureSummary,
+            status: 'context' as const,
+          };
+        }),
+      );
+    },
+    [],
+  );
+
+  const buildCoreAgentRequestContext = useCallback((): CoreAgentRequestContext => ({
+    items,
+    activeChatId,
+    activeThread: activeThread
+      ? { id: activeThread.id, label: activeThread.label, name: activeThread.name }
+      : undefined,
+    panelStage,
+    isPanelCollapsed,
+    products: bankSimulation.products,
+    activeProductId: bankSimulation.activeProductId,
+    taxonomyOverrides: bankSimulation.taxonomyOverrides,
+    budgetRows,
+    budgetTotals,
+    unlockedPanelBlocks,
+    canOpenInterview,
+    interviewCompleted,
+    knowledgeScore,
+    engagementScore,
+    completedMilestones,
+    milestones,
+    savedReportsCount: savedReports.length,
+    hasProfile: Boolean(sessionInfo?.injectedProfile || profile),
+    hasIntake: Boolean(sessionInfo?.injectedIntake),
+    flowStatus: getFlowStatus(),
+  }), [
+    items,
+    activeChatId,
+    activeThread,
+    panelStage,
+    isPanelCollapsed,
+    bankSimulation.products,
+    bankSimulation.activeProductId,
+    bankSimulation.taxonomyOverrides,
+    budgetRows,
+    budgetTotals,
+    unlockedPanelBlocks,
+    canOpenInterview,
+    interviewCompleted,
+    knowledgeScore,
+    engagementScore,
+    completedMilestones,
+    milestones,
+    savedReports.length,
+    sessionInfo?.injectedProfile,
+    sessionInfo?.injectedIntake,
+    profile,
+  ]);
+
+  const applyCoreAgentSideEffects = useCallback((
+    effects: CoreAgentResponseSideEffects,
+    res: AgentResponse,
+  ) => {
+    if (effects.agentMeta?.objective) {
+      agentMetaRef.current.objective = effects.agentMeta.objective;
+    }
+    if (effects.agentMeta?.mode) {
+      agentMetaRef.current.mode = effects.agentMeta.mode;
+    }
+    if (typeof effects.knowledgeScore === 'number') {
+      setPersistentKnowledgeScore(effects.knowledgeScore);
+    }
+    if (effects.milestoneUnlocked) {
+      setLevelUpText(`Hito desbloqueado: ${effects.milestoneUnlocked}`);
+    }
+    if (effects.productLifecyclePatch) {
+      setProductLifecycle((prev) => ({
+        ...(prev ?? {}),
+        ...effects.productLifecyclePatch,
+        chatTurns: {
+          ...(prev?.chatTurns ?? {}),
+          ...(effects.productLifecyclePatch?.chatTurns ?? {}),
+        },
+      }));
+    }
+    if (effects.closureSummary) {
+      setChatThreads((prev) =>
+        prev.map((thread) =>
+          thread.id === activeChatId
+            ? { ...thread, closureSummary: effects.closureSummary ?? null }
+            : thread,
+        ),
+      );
+    }
+    if (effects.fincoinUsage) {
+      applyUsagePayload(effects.fincoinUsage);
+    }
+    if (effects.closureSummaries) {
+      applyFincoinClosureSummaries(effects.closureSummaries);
+    }
+    forceRender((x) => x + 1);
+
+    if (effects.panelAction && (effects.panelAction.section || effects.panelAction.message)) {
+      handlePanelAction(effects.panelAction);
+    }
+
+    if (effects.budgetUpdates && effects.budgetUpdates.length > 0) {
+      setBudgetRows((prev) => {
+        const updated = [...prev];
+        const normalizeBudgetKey = (value: string) =>
+          String(value ?? '')
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^\w\s]/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+        for (const upd of effects.budgetUpdates!) {
+          const normalizedLabel = normalizeBudgetKey(upd.label);
+          const normalizedCategory = normalizeBudgetKey(
+            upd.category ?? (upd.type === 'income' ? 'Ingresos' : 'Gastos'),
+          );
+          const existingIdx = updated.findIndex((row) => {
+            if (row.type !== upd.type) return false;
+            const rowCategory = normalizeBudgetKey(row.category);
+            const rowNote = normalizeBudgetKey(row.note ?? '');
+            return (
+              rowCategory === normalizedCategory ||
+              rowCategory === normalizedLabel ||
+              rowNote === normalizedLabel ||
+              rowNote.includes(normalizedLabel)
+            );
+          });
+          if (existingIdx >= 0) {
+            updated[existingIdx] = { ...updated[existingIdx], amount: upd.amount };
+          } else if (updated.length < MAX_BUDGET_ROWS) {
+            updated.push({
+              id: `agent-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+              category: upd.category ?? (upd.type === 'income' ? 'Ingresos' : 'Gastos'),
+              type: upd.type,
+              amount: upd.amount,
+              note: upd.label,
+            });
+          }
+        }
+        return updated.slice(0, MAX_BUDGET_ROWS);
+      });
+    }
+
+    if (typeof effects.contextScore === 'number') {
+      setChatThreads((prev) =>
+        prev.map((thread) => {
+          if (thread.id !== activeChatId) return thread;
+          return {
+            ...thread,
+            contextScore: Math.max(thread.contextScore, effects.contextScore!),
+          };
+        }),
+      );
+    }
+
+    void res;
+  }, [
+    activeChatId,
+    applyFincoinClosureSummaries,
+    applyUsagePayload,
+    setBudgetRows,
+  ]);
+
+  const { loading, sendCoreAgentMessage } = useCoreAgentSend({
+    setItemsForActive,
+    incrementUserMessageCount: () => {
+      setChatThreads((prev) =>
+        prev.map((thread) =>
+          thread.id === activeChatId
+            ? { ...thread, userMessageCount: thread.userMessageCount + 1 }
+            : thread,
+        ),
+      );
+    },
+    clearDraft: () => setDraftForActive(''),
+    buildRequestContext: buildCoreAgentRequestContext,
+    getSessionId,
+    onSideEffects: applyCoreAgentSideEffects,
+    normalizePanelAction: normalizePanelActionForCurrentFlow,
+  });
+
   useEffect(() => {
     try {
       const rawStage = localStorage.getItem('agent.panel.stage.v3');
@@ -2009,25 +2188,6 @@ export default function AgentPage() {
     setIsInterviewModalOpen(false);
   }, [fincoinSpendBlocked]);
 
-  const applyFincoinClosureSummaries = useCallback(
-    (summaries?: Record<string, unknown> | null) => {
-      if (!summaries || typeof summaries !== 'object') return;
-      setChatThreads((prev) =>
-        prev.map((thread) => {
-          const candidate = summaries[thread.id];
-          if (!candidate || typeof candidate !== 'object') return thread;
-          if (!('title' in candidate) || !('sections' in candidate)) return thread;
-          return {
-            ...thread,
-            closureSummary: candidate as ChatClosureSummary,
-            status: 'context' as const,
-          };
-        }),
-      );
-    },
-    [],
-  );
-
   useEffect(() => {
     if (!isAuthenticated) return;
     loadProfileIfNeeded().catch(() => {});
@@ -2092,378 +2252,14 @@ export default function AgentPage() {
       ]);
       return false;
     }
-    haptic(8); // feedback al enviar mensaje
+    haptic(8);
 
-    const userMessage = outgoingText;
-    const clientMessageId =
-      globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    const agentMessage = String(options?.agentPayload ?? userMessage).trim();
-    const pendingLabel = String(
-      options?.assistantPendingLabel ?? 'Financieramente está analizando tu mensaje…'
-    ).trim();
-    const hideUserMessage = options?.hideUserMessage === true;
-
-    const removePendingAssistantMessage = (list: ChatItem[]): ChatItem[] => {
-      if (!pendingLabel) return list;
-      for (let i = list.length - 1; i >= 0; i--) {
-        const item = list[i];
-        if (
-          item.type === 'message' &&
-          item.role === 'assistant' &&
-          String(item.content ?? '').trim() === pendingLabel
-        ) {
-          return [...list.slice(0, i), ...list.slice(i + 1)];
-        }
-      }
-      return list;
-    };
-    setDraftForActive('');
-    setLoading(true);
-
-    const historySnapshot = items
-      .filter((it) => it.type === 'message')
-      .map((m) => ({
-        role: (m as Extract<ChatItem, { type: 'message' }>).role,
-        content: (m as Extract<ChatItem, { type: 'message' }>).content,
-      }))
-      .slice(-8);
-    const recentArtifacts = items
-      .filter((it) => it.type === 'artifact')
-      .slice(-4)
-      .map((it) => {
-        const artifact = (it as Extract<ChatItem, { type: 'artifact' }>).artifact;
-        return {
-          id: artifact.id,
-          title: artifact.title,
-          description: artifact.description,
-          source: artifact.source,
-          createdAt: artifact.createdAt,
-          meta: artifact.meta,
-        };
-      });
-    const recentChartSummaries = items
-      .filter((it) => it.type === 'message' && it.role === 'assistant')
-      .slice(-6)
-      .flatMap((it) => {
-        const blocks = (it as Extract<ChatItem, { type: 'message'; role: 'assistant' }>).agent_blocks ?? [];
-        return blocks
-          .filter((b): b is AgentBlock & { type: 'chart' } => b.type === 'chart')
-          .map((b) => ({
-            title: b.chart.title,
-            subtitle: b.chart.subtitle,
-            kind: b.chart.kind,
-            xKey: b.chart.xKey,
-            yKey: b.chart.yKey,
-            points: Array.isArray(b.chart.data) ? b.chart.data.length : 0,
-            lastValue:
-              Array.isArray(b.chart.data) && b.chart.data.length > 0
-                ? Number(
-                    b.chart.data[b.chart.data.length - 1]?.[
-                      b.chart.yKey as keyof (typeof b.chart.data)[number]
-                    ] ?? 0
-                  )
-                : undefined,
-          }));
-      })
-      .slice(-4);
-
-    const asksToExplainChart =
-      /\b(explica|explicar|interpreta|interpretar|lee|analiza|comenta|desglosa)\b[\s\S]*\b(gr[aá]fic(?:o|os)|chart(?:s)?)\b/i.test(
-        agentMessage
-      ) ||
-      /\b(gr[aá]fic(?:o|os)|chart(?:s)?)\b/i.test(agentMessage);
-    const enrichedUserMessage =
-      asksToExplainChart && recentChartSummaries.length > 0
-        ? `${agentMessage}\n\nContexto del último gráfico en chat: ${JSON.stringify(
-            recentChartSummaries.slice(-1)[0]
-          )}`
-        : agentMessage;
-
-    if (!hideUserMessage) {
-      setItemsForActive((prev) => [
-        ...prev,
-        { type: 'message', role: 'user', content: userMessage },
-      ]);
-    }
-    setItemsForActive((prev) => [
-      ...prev,
-      { type: 'message', role: 'assistant', content: pendingLabel, mode: 'information' },
-    ]);
-    // Increment user message count for sheet cycling
-    setChatThreads((prev) =>
-      prev.map((t) =>
-        t.id === activeChatId
-          ? { ...t, userMessageCount: t.userMessageCount + 1 }
-          : t
-      )
-    );
-
-    try {
-      const scopedTxContext = buildScopedTransactionsContext(
-        bankSimulation.products,
-        bankSimulation.activeProductId,
-        bankSimulation.taxonomyOverrides,
-      );
-      const res = (await sendToAgent({
-        user_message: enrichedUserMessage,
-        session_id: getSessionId(),
-        client_message_id: clientMessageId,
-        history: historySnapshot,
-        context: {
-          recent_artifacts: recentArtifacts,
-          recent_chart_summaries: recentChartSummaries,
-          uploaded_documents: scopedTxContext.scopedUploadedDocuments,
-          uploaded_evidence_files: scopedTxContext.scopedUploadedEvidenceFiles,
-          consolidated_context: {
-            transactions: {
-              scope: 'active_product',
-              activeProductId: scopedTxContext.activeProduct?.id ?? null,
-              activeProductLabel: scopedTxContext.activeProduct?.label ?? null,
-              activeProductBank: scopedTxContext.activeProduct?.bank ?? null,
-              activeProductType: scopedTxContext.activeProduct?.productType ?? null,
-              connected: Boolean(scopedTxContext.activeProduct?.connected),
-              productsCount: bankSimulation.products.length,
-              uploadedFiles: scopedTxContext.scopedUploadedEvidenceFiles,
-              productsIndex: scopedTxContext.productsIndex,
-              activeProduct: scopedTxContext.activeProduct
-                ? {
-                    id: scopedTxContext.activeProduct.id,
-                    label: scopedTxContext.activeProduct.label,
-                    bank: scopedTxContext.activeProduct.bank,
-                    productType: scopedTxContext.activeProduct.productType,
-                    dashboardSummary: scopedTxContext.activeProduct.dashboard?.summary ?? '',
-                    keyMetrics: scopedTxContext.activeProduct.dashboard?.keyMetrics ?? null,
-                    movements: scopedTxContext.activeProduct.dashboard?.movements?.slice(0, 40) ?? [],
-                  }
-                : null,
-            },
-          },
-        },
-        ui_state: {
-          panel_stage: panelStage,
-          panel_collapsed: isPanelCollapsed,
-          active_chat: {
-            id: activeThread?.id ?? activeChatId,
-            label: activeThread?.label ?? 'Core',
-            name: activeThread?.name ?? 'Diagnóstico financiero',
-          },
-          unlocked_modules: {
-            budget: unlockedPanelBlocks.budgetUnlocked,
-            transactions: unlockedPanelBlocks.transactionsUnlocked,
-            interview: canOpenInterview,
-            post_diagnosis_chats: interviewCompleted,
-          },
-          knowledge_score: knowledgeScore,
-          engagement_score: engagementScore,
-          completed_milestones: completedMilestones,
-          total_milestones: milestones.length,
-          milestone_details: milestones.map((m) => ({ id: m.id, label: m.label, done: m.done })),
-          reports_count: savedReports.length,
-          has_profile: Boolean(sessionInfo?.injectedProfile || profile),
-          has_intake: Boolean(sessionInfo?.injectedIntake),
-          budget_summary: {
-            income: budgetTotals.income,
-            expenses: budgetTotals.expenses,
-            balance: budgetTotals.balance,
-            rows_count: budgetRows.filter((r) => r.amount > 0).length,
-          },
-          budget_rows: budgetRows
-            .filter((r) => r.amount > 0 || r.category.trim().length > 0)
-            .slice(0, 20)
-            .map((r) => ({ category: r.category, type: r.type, amount: r.amount, note: r.note })),
-          flow_status: getFlowStatus(),
-        },
-        preferences: {
-          response_style: 'professional',
-          language: 'es-CL',
-        },
-      })) as AgentResponse;
-
-      agentMetaRef.current.objective =
-        res?.react?.objective ?? agentMetaRef.current.objective;
-      agentMetaRef.current.mode = res?.mode ?? agentMetaRef.current.mode;
-      if (typeof res?.knowledge_score === 'number') {
-        setPersistentKnowledgeScore(res.knowledge_score);
-      }
-      if (res?.milestone_unlocked?.feature) {
-        setLevelUpText(`Hito desbloqueado: ${res.milestone_unlocked.feature}`);
-      }
-      if (res?.meta?.product_lifecycle) {
-        const metaLifecycle = res.meta.product_lifecycle as typeof res.meta.product_lifecycle & {
-          closing_summary?: ChatClosureSummary | null;
-        };
-        const closureSummary =
-          metaLifecycle.closing_summary &&
-          typeof metaLifecycle.closing_summary === 'object'
-            ? (metaLifecycle.closing_summary as ChatClosureSummary)
-            : null;
-        setProductLifecycle((prev) => ({
-          ...(prev ?? {}),
-          phase: typeof metaLifecycle.phase === 'string' ? metaLifecycle.phase : prev?.phase,
-          unlockedChats: Array.isArray(metaLifecycle.unlocked_chats)
-            ? metaLifecycle.unlocked_chats
-            : prev?.unlockedChats,
-          closedChats: Array.isArray(metaLifecycle.closed_chats)
-            ? metaLifecycle.closed_chats
-            : prev?.closedChats,
-          chatTurns: {
-            ...(prev?.chatTurns ?? {}),
-            ...(typeof metaLifecycle.active_chat_id === 'string' &&
-            typeof metaLifecycle.turn_count === 'number'
-              ? { [metaLifecycle.active_chat_id]: metaLifecycle.turn_count }
-              : {}),
-          },
-          actionPlanFunnelStage:
-            metaLifecycle.action_plan_funnel_stage === 'brainstorm' ||
-            metaLifecycle.action_plan_funnel_stage === 'converge' ||
-            metaLifecycle.action_plan_funnel_stage === 'deliver'
-              ? metaLifecycle.action_plan_funnel_stage
-              : prev?.actionPlanFunnelStage,
-          closingMode:
-            typeof metaLifecycle.closing_mode === 'boolean'
-              ? metaLifecycle.closing_mode
-              : prev?.closingMode,
-        }));
-        if (closureSummary) {
-          setChatThreads((prev) =>
-            prev.map((thread) =>
-              thread.id === activeChatId ? { ...thread, closureSummary } : thread,
-            ),
-          );
-        }
-      }
-      const fincoinMeta = res?.meta as
-        | {
-            fincoin_usage?: FincoinUsageApiPayload;
-            closure_summaries?: Record<string, unknown>;
-          }
-        | undefined;
-      if (fincoinMeta?.fincoin_usage) {
-        applyUsagePayload(fincoinMeta.fincoin_usage);
-      }
-      if (fincoinMeta?.closure_summaries) {
-        applyFincoinClosureSummaries(fincoinMeta.closure_summaries);
-      }
-      forceRender((x) => x + 1);
-
-      res.panel_action = normalizePanelActionForCurrentFlow(res.panel_action);
-
-      // Handle panel action from agent
-      if (res?.panel_action && (res.panel_action.section || res.panel_action.message)) {
-        handlePanelAction(res.panel_action);
-      }
-
-      // Handle budget updates inferred by agent from conversation
-      if (Array.isArray(res?.budget_updates) && res.budget_updates.length > 0) {
-        setBudgetRows((prev) => {
-          const updated = [...prev];
-          const normalizeBudgetKey = (value: string) =>
-            String(value ?? '')
-              .toLowerCase()
-              .normalize('NFD')
-              .replace(/[\u0300-\u036f]/g, '')
-              .replace(/[^\w\s]/g, ' ')
-              .replace(/\s+/g, ' ')
-              .trim();
-          for (const upd of res.budget_updates!) {
-            const normalizedLabel = normalizeBudgetKey(upd.label);
-            const normalizedCategory = normalizeBudgetKey(
-              upd.category ?? (upd.type === 'income' ? 'Ingresos' : 'Gastos')
-            );
-            // Match by type + category/label against category and note (stable, avoids duplicates).
-            const existingIdx = updated.findIndex(
-              (r) => {
-                if (r.type !== upd.type) return false;
-                const rowCategory = normalizeBudgetKey(r.category);
-                const rowNote = normalizeBudgetKey(r.note ?? '');
-                return (
-                  rowCategory === normalizedCategory ||
-                  rowCategory === normalizedLabel ||
-                  rowNote === normalizedLabel ||
-                  rowNote.includes(normalizedLabel)
-                );
-              }
-            );
-            if (existingIdx >= 0) {
-              // Update existing row amount
-              updated[existingIdx] = { ...updated[existingIdx], amount: upd.amount };
-            } else {
-              if (updated.length >= MAX_BUDGET_ROWS) continue;
-              // Add new row
-              updated.push({
-                id: `agent-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-                category: upd.category ?? (upd.type === 'income' ? 'Ingresos' : 'Gastos'),
-                type: upd.type,
-                amount: upd.amount,
-                note: upd.label,
-              });
-            }
-          }
-          return updated.slice(0, MAX_BUDGET_ROWS);
-        });
-      }
-
-      // Update context score + check sheet cycling (50-message limit per sheet)
-      if (typeof res?.context_score === 'number') {
-        setChatThreads((prev) => {
-          const updated = prev.map((t) => {
-            if (t.id !== activeChatId) return t;
-            const newScore = Math.max(t.contextScore, res.context_score!);
-            return { ...t, contextScore: newScore };
-          });
-          return updated;
-        });
-      }
-
-      const next = sanitizeChatItems(toChatItemsFromAgentResponse(res));
-      const hasAssistantInHistory = items.some(
-        (it) => it.type === 'message' && it.role === 'assistant'
-      );
-      const nextFiltered =
-        hasAssistantInHistory
-          ? next.filter((it) => {
-              if (it.type !== 'message' || it.role !== 'assistant') return true;
-              return !isGenericOnboardingMessage(it.content);
-            })
-          : next;
-      if (nextFiltered.length === 0) {
-        setItemsForActive((prev) => {
-          const base = removePendingAssistantMessage(prev);
-          return [
-            ...base,
-            {
-              type: 'message',
-              role: 'assistant',
-              content: sanitizeMessageText(res.message, '—'),
-              mode: res.mode ?? res.reasoning_mode,
-              objective: res.react?.objective,
-              agent_blocks: res.agent_blocks,
-            },
-          ];
-        });
-      } else {
-        setItemsForActive((prev) => {
-          const base = removePendingAssistantMessage(prev);
-          return [...base, ...nextFiltered];
-        });
-      }
-    } catch (err) {
-      const errorText = toUserFacingError(err, 'chat.send');
-      setItemsForActive((prev) => {
-        const base = removePendingAssistantMessage(prev);
-        return [
-          ...base,
-          {
-            type: 'message',
-            role: 'assistant',
-            content: errorText,
-          },
-        ];
-      });
-    } finally {
-      setLoading(false);
-    }
-    return true;
+    const result = await sendCoreAgentMessage(outgoingText, {
+      agentPayload: options?.agentPayload,
+      hideUserMessage: options?.hideUserMessage,
+      ignoreLoadingGuard: options?.ignoreLoadingGuard,
+    });
+    return result.ok;
   }
 
   function patchUploadItem(

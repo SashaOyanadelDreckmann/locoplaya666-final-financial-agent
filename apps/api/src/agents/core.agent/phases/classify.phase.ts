@@ -9,6 +9,7 @@ import { completeStructured } from '../../../services/llm.service';
 import { CORE_CLASSIFIER_SYSTEM } from '../system.prompts';
 import { ReasoningModeSchema } from '../chat.types';
 import { inferUserModel, shouldAskPdfFormat } from '../helpers/user-model.helpers';
+import { compactCoreAgentHistory, shouldBoostFreshEvidenceTools } from '@financial-agent/shared';
 import type {
   Classification,
   ClassifyPhaseInput,
@@ -48,22 +49,7 @@ function buildClassifierUserInput(params: {
   history?: Array<{ role: string; content: string }>;
 }): string {
   const trimmedMessage = String(params.userMessage ?? '').trim();
-  const compactHistory = Array.isArray(params.history)
-    ? params.history
-        .filter(
-          (h) =>
-            h &&
-            typeof h === 'object' &&
-            typeof h.role === 'string' &&
-            typeof h.content === 'string' &&
-            h.content.trim().length > 0
-        )
-        .slice(-6)
-        .map((h) => ({
-          role: h.role === 'system' ? 'assistant' : h.role,
-          content: h.content.trim().slice(0, 280),
-        }))
-    : [];
+  const compactHistory = compactCoreAgentHistory(params.history);
 
   if (compactHistory.length === 0) return trimmedMessage;
 
@@ -146,6 +132,15 @@ export async function runClassifyPhase(input: ClassifyPhaseInput): Promise<Class
     if (classification.mode === 'containment' && !hasContainmentSignals(normalizedMessage)) {
       classification.mode = looksLikeBudgetPressure(normalizedMessage) ? 'budgeting' : 'information';
     }
+
+    const evidenceBoost = shouldBoostFreshEvidenceTools({
+      mode: classification.mode,
+      userMessage: user_message,
+      requiresTools: classification.requires_tools,
+      requiresRag: classification.requires_rag,
+    });
+    classification.requires_tools = evidenceBoost.requires_tools;
+    classification.requires_rag = evidenceBoost.requires_rag;
 
     // Step 3: Infer user model
     const inferredUserModel = inferUserModel({

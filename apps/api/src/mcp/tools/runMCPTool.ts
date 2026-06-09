@@ -2,6 +2,7 @@ import type { ToolResult, ToolContext } from './types';
 import type { ToolCall } from './toolcall.types';
 import { getTool, listTools } from './registry';
 import { bootstrapMCP } from '../bootstrap';
+import { isCoreAgentExcludedTool } from '../core-agent-tools';
 
 export async function runMCPTool(input: {
   tool: string;
@@ -16,7 +17,6 @@ export async function runMCPTool(input: {
   bootstrapMCP();
 
   const toolName = String(input.tool || '');
-  const pdfViaMcpBlocked = (process.env.BLOCK_PDF_MCP ?? 'true').toLowerCase() !== 'false';
   const baseCall: ToolCall = {
     id: `${input.turn_id}:${toolName}`,
     tool: toolName,
@@ -24,19 +24,19 @@ export async function runMCPTool(input: {
     status: 'pending',
   };
 
-  if (pdfViaMcpBlocked && /^pdf\./i.test(toolName)) {
+  if (isCoreAgentExcludedTool(toolName)) {
     return {
       tool_call: {
         ...baseCall,
         status: 'error',
-        error_message: 'pdf_mcp_blocked: PDF generation must be delegated to Haiku report worker',
+        error_message: 'tool_not_available_in_core_agent: PDF export is UI-only',
         latency_ms: Date.now() - startedAt,
       },
       data: {
         ok: false,
-        error: 'pdf_mcp_blocked',
+        error: 'tool_not_available_in_core_agent',
         tool: toolName,
-        handoff: 'haiku_pdf_worker',
+        handoff: 'ui_pdf_export',
       },
     };
   }

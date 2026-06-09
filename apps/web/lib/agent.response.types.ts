@@ -12,6 +12,7 @@ export type Artifact = {
 };
 export type { AgentBlock } from './types/chat';
 import type { AgentBlock, UIEvent } from './types/chat';
+import type { AgentStreamUiState } from '@financial-agent/shared';
 
 export type ToolCall = {
   id: string;
@@ -135,6 +136,7 @@ export type ChatItem =
           | 'interview';
         message?: string;
       };
+      stream?: AgentStreamUiState;
     }
   | { type: 'artifact'; role: 'assistant'; artifact: Artifact }
   | { type: 'citation'; role: 'assistant'; citation: Citation };

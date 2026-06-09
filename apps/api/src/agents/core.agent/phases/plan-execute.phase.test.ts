@@ -17,10 +17,13 @@ vi.mock('../../../services/llm.service', () => ({
   withCompatibleTemperature: vi.fn((payload: unknown) => payload),
 }));
 
-vi.mock('../../../mcp/openai-bridge', () => ({
-  buildOpenAITools: vi.fn(() => []),
-  getOriginalToolName: vi.fn((name: string) => name),
-}));
+vi.mock('../../../mcp/openai-bridge', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../../mcp/openai-bridge')>();
+  return {
+    ...actual,
+    buildCoreAgentOpenAITools: vi.fn(() => []),
+  };
+});
 
 vi.mock('../../../mcp/tools/runMCPTool', () => ({
   runMCPTool: (...args: unknown[]) => mockRunMCPTool(...args),
@@ -36,6 +39,8 @@ describe('runPlanExecutePhase', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockCreate.mockReset();
+    mockRunMCPTool.mockReset();
     mockClassification = testUtils.createMockClassification({
       mode: 'decision_support',
       requires_tools: true,
@@ -191,14 +196,14 @@ describe('runPlanExecutePhase', () => {
         choices: [{
           message: {
             content: '',
-            tool_calls: [{ id: 'tool-1', function: { name: 'pdf.gen', arguments: '{}' } }],
+            tool_calls: [{ id: 'tool-1', function: { name: 'finance__simulate', arguments: '{}' } }],
           },
         }],
       })
       .mockResolvedValueOnce({ choices: [{ message: { content: 'done', tool_calls: [] } }] });
     mockRunMCPTool.mockResolvedValue({
       tool_call: { status: 'success' },
-      data: { artifact: { id: 'a1', type: 'pdf', title: 'Informe', url: '/x.pdf' } },
+      data: { artifact: { id: 'a1', type: 'chart', title: 'Simulación', createdAt: '2026-01-01T00:00:00.000Z' } },
     });
 
     const result = await runPlanExecutePhase({
@@ -211,6 +216,35 @@ describe('runPlanExecutePhase', () => {
 
     expect(result.execution_result.artifacts).toBeInstanceOf(Array);
     expect(result.execution_result.artifacts.length).toBeGreaterThan(0);
+  });
+
+  it('should block pdf tool requests without invoking MCP', async () => {
+    mockCreate
+      .mockResolvedValueOnce({
+        choices: [{
+          message: {
+            content: '',
+            tool_calls: [{ id: 'tool-pdf', function: { name: 'pdf__generate_report', arguments: '{}' } }],
+          },
+        }],
+      })
+      .mockResolvedValueOnce({ choices: [{ message: { content: 'done', tool_calls: [] } }] });
+
+    const result = await runPlanExecutePhase({
+      classification: mockClassification,
+      inferred_user_model: mockUserModel,
+      context_summary: {},
+      user_message: 'hola',
+      injected_profile: null,
+      injected_intake: null,
+    });
+
+    const pdfMcpCalls = mockRunMCPTool.mock.calls.filter(([arg]) =>
+      String((arg as { tool?: string }).tool ?? '').startsWith('pdf.'),
+    );
+    expect(pdfMcpCalls).toHaveLength(0);
+    expect(result.execution_result.tool_calls.some((call) => call.tool.startsWith('pdf.'))).toBe(true);
+    expect(result.execution_result.tool_calls.find((call) => call.tool.startsWith('pdf.'))?.status).toBe('error');
   });
 
   it('should handle tool errors gracefully', async () => {

@@ -21,7 +21,7 @@ import { stripEmojis } from '../helpers/format.helpers';
 import { sanitizeFormulaContent } from '../helpers/formula-sanitizer';
 import type { FormatPhaseInput, FormatPhaseOutput, FormattedResponse } from '../agent-types';
 import type { Citation } from '../chat.types';
-import { retrieveRAGContext } from '../../../services/rag.service';
+import { ensureEvidenceCitations } from '../helpers/evidence.helpers';
 import { getLogger } from '../../../logger';
 import {
   buildActionPlanFormatInstructions,
@@ -45,21 +45,6 @@ function stripInlineSourcesBlock(message: string): string {
   return message
     .replace(/\n{0,2}#{0,3}\s*fuentes\s*:?[ \t]*\n[\s\S]*$/i, '')
     .trim();
-}
-
-async function ensureMinimumCitations(input: FormatPhaseInput): Promise<Citation[]> {
-  const existing = input.execution_result?.citations ?? [];
-  if (existing.length > 0) return existing;
-
-  try {
-    const fallback = await retrieveRAGContext(
-      `${input.user_message} CMF Ley 21.521 glosario financiero`,
-      { mode: input.mode, intent: input.user_message },
-    );
-    return fallback;
-  } catch {
-    return existing;
-  }
 }
 
 /**
@@ -272,6 +257,9 @@ async function buildFastValuableMessage(
     `Pregunta del usuario: ${input.user_message}`,
     recentThreadContext ? `Hilo reciente:\n${recentThreadContext}` : '',
     `Modo: ${input.mode}`,
+    typeof input.context_summary?.reference_date === 'string'
+      ? `Fecha de referencia: ${input.context_summary.reference_date} (Chile)`
+      : '',
     `Arquitectura del producto: ${productDirective || 'sin directiva especial'}`,
     marketSnapshot ? `Mercado vivo: ${marketSnapshot}` : '',
     recommendationProfile ? `Suitability: ${recommendationProfile}` : '',
@@ -316,7 +304,7 @@ export async function runFormatPhase(input: FormatPhaseInput): Promise<FormatPha
   try {
     input.stream?.phase('format', 'start');
     if (fastFormatEnabled) {
-      const ensuredCitations = await ensureMinimumCitations(input);
+      const ensuredCitations = await ensureEvidenceCitations(input);
       const message = await buildFastValuableMessage(input, onDelta);
 
       const formatted_response: FormattedResponse = {
@@ -436,7 +424,7 @@ export async function runFormatPhase(input: FormatPhaseInput): Promise<FormatPha
 
     const contextScoreMatch = rawResponse.match(/<CONTEXT_SCORE>(\d+)<\/CONTEXT_SCORE>/);
     const context_score = contextScoreMatch ? parseInt(contextScoreMatch[1], 10) : undefined;
-    const ensuredCitations = await ensureMinimumCitations(input);
+    const ensuredCitations = await ensureEvidenceCitations(input);
     message = stripInlineSourcesBlock(message);
 
     const hasQuestionnaireBlock = [...(input.execution_result?.agent_blocks || []), ...responseChartBlocks]
@@ -480,7 +468,7 @@ export async function runFormatPhase(input: FormatPhaseInput): Promise<FormatPha
       'Preparé una respuesta base con los resultados disponibles. Si quieres, la refinamos en el siguiente mensaje.';
     fallbackMessage = sanitizeFormulaContent(fallbackMessage);
     fallbackMessage = ensureDecisionDisclaimer(fallbackMessage, input);
-    const ensuredCitations = await ensureMinimumCitations(input);
+    const ensuredCitations = await ensureEvidenceCitations(input);
     fallbackMessage = stripInlineSourcesBlock(fallbackMessage);
 
     const formatted_response: FormattedResponse = {

@@ -1,3 +1,8 @@
+import {
+  TRANSACTIONS_CHAT_HISTORY_CHAR_LIMIT,
+  TRANSACTIONS_CHAT_HISTORY_MESSAGE_LIMIT,
+} from './chat-history';
+
 type LooseRecord = Record<string, unknown>;
 
 export type MovementRow = {
@@ -203,6 +208,10 @@ export function compactDocumentsForPrompt(docs: Array<{ documentId?: string; nam
   }));
 }
 
-export function compactChatHistory(messages: Array<{ role?: string; text?: string }>, maxMessages = 8, maxText = 600) {
+export function compactChatHistory(
+  messages: Array<{ role?: string; text?: string }>,
+  maxMessages = TRANSACTIONS_CHAT_HISTORY_MESSAGE_LIMIT,
+  maxText = TRANSACTIONS_CHAT_HISTORY_CHAR_LIMIT,
+) {
   return messages.slice(-maxMessages).map((message) => ({ role: message.role === 'assistant' ? 'assistant' : 'user', text: compactTxText(message.text ?? '', maxText) }));
 }

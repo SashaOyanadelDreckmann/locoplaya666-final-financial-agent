@@ -1,4 +1,5 @@
 import type { BudgetAssistantContext, BudgetRow } from '@financial-agent/shared';
+import { compactBudgetChatAnswers } from '@financial-agent/shared';
 import {
   BUDGET_CADENCE_OPTIONS,
   BUDGET_MOVEMENT_TYPE_OPTIONS,
@@ -133,7 +134,7 @@ async function callPlannerModel(input: BudgetPlannerInput): Promise<PlannerModel
     `USER_ANSWER=${JSON.stringify(input.userAnswer)}`,
     `TABLE_ROWS=${JSON.stringify(buildBudgetTableSnapshot(input.rows))}`,
     `CONTEXT=${JSON.stringify(digest)}`,
-    `RECENT_CHAT=${JSON.stringify(input.chatAnswers.slice(-8))}`,
+    `RECENT_CHAT=${JSON.stringify(compactBudgetChatAnswers(input.chatAnswers))}`,
   ].join('\n');
 
   return completeStructuredWithSchema<PlannerModelOutput>({

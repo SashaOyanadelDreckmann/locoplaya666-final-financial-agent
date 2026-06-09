@@ -7,6 +7,9 @@
 import { listTools } from './tools/registry';
 import { bootstrapMCP } from './bootstrap';
 import type { MCPTool } from './tools/types';
+import { filterCoreAgentTools } from './core-agent-tools';
+
+export { isCoreAgentExcludedTool, CORE_AGENT_PDF_HANDOFF_MESSAGE } from './core-agent-tools';
 
 /** "math.calc" → "math__calc" */
 export function sanitizeToolName(name: string): string {
@@ -47,9 +50,10 @@ function buildParameters(tool: MCPTool): Record<string, any> {
   return { type: 'object', properties: {}, additionalProperties: false };
 }
 
-export function buildOpenAITools() {
-  bootstrapMCP();
-  return listTools().map((tool) => ({
+type OpenAIToolAudience = 'core' | 'all';
+
+function mapToolsToOpenAI(tools: MCPTool[]) {
+  return tools.map((tool) => ({
     type: 'function' as const,
     function: {
       name: sanitizeToolName(tool.name),
@@ -57,4 +61,16 @@ export function buildOpenAITools() {
       parameters: buildParameters(tool),
     },
   }));
+}
+
+export function buildOpenAITools(options?: { audience?: OpenAIToolAudience }) {
+  bootstrapMCP();
+  const tools = listTools();
+  const audience = options?.audience ?? 'all';
+  const scopedTools = audience === 'core' ? filterCoreAgentTools(tools) : tools;
+  return mapToolsToOpenAI(scopedTools);
+}
+
+export function buildCoreAgentOpenAITools() {
+  return buildOpenAITools({ audience: 'core' });
 }

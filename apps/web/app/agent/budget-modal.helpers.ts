@@ -2,6 +2,7 @@ import type { BudgetRow } from '@/lib/budget-rows.helpers';
 import {
   buildBudgetAssistantContext,
   buildContextualQuestion,
+  compactBudgetChatAnswers,
   type BudgetChatTurn,
   type BudgetProductSnapshot,
 } from '@financial-agent/shared';
@@ -46,7 +47,7 @@ export function buildBudgetModalAssistantContext(input: {
     topCategories: product.topCategories,
     alerts: product.alerts,
   }));
-  const chatAnswers: BudgetChatTurn[] = input.chatAnswers.slice(-20);
+  const chatAnswers: BudgetChatTurn[] = compactBudgetChatAnswers(input.chatAnswers, { maxTurns: 20 });
   return buildBudgetAssistantContext({
     rows: input.budgetRows,
     intakeData: input.sessionInfo?.injectedIntake?.intake ?? null,

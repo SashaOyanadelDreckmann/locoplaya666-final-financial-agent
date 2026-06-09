@@ -1119,15 +1119,18 @@
   max-height: min(65vh, 700px);
 }
 
-.agent-bubble.assistant.latex-doc.is-empty-welcome {
+.agent-bubble.assistant.latex-doc.is-empty-welcome,
+.agent-bubble.assistant.latex-doc.is-closure-welcome {
   min-height: clamp(720px, 92vh, 980px);
 }
 
-.agent-bubble.assistant.latex-doc.is-empty-welcome .latex-doc-head {
+.agent-bubble.assistant.latex-doc.is-empty-welcome .latex-doc-head,
+.agent-bubble.assistant.latex-doc.is-closure-welcome .latex-doc-head {
   display: none;
 }
 
-.agent-bubble.assistant.latex-doc.is-empty-welcome .latex-doc-body.is-empty-welcome-body {
+.agent-bubble.assistant.latex-doc.is-empty-welcome .latex-doc-body.is-empty-welcome-body,
+.agent-bubble.assistant.latex-doc.is-closure-welcome .latex-doc-body.is-empty-welcome-body {
   min-height: clamp(700px, 90vh, 960px);
   max-height: none;
   overflow: visible;
@@ -1347,6 +1350,17 @@
   line-height: 1.18;
   letter-spacing: -0.028em;
   color: #1d1d1f;
+}
+
+.gradient-blob-card__masthead-dek {
+  margin: 10px 0 0;
+  max-width: 34ch;
+  font-family: var(--welcome-font-sans);
+  font-size: clamp(0.92rem, 1.8vw, 1.02rem);
+  font-weight: 500;
+  line-height: 1.45;
+  letter-spacing: -0.01em;
+  color: rgba(29, 29, 31, 0.62);
 }
 
 .gradient-blob-card__masthead-rule {

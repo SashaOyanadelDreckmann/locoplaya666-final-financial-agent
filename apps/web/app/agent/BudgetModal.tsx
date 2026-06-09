@@ -9,7 +9,12 @@ import { AgentHeroText } from '@/components/ui/agent-hero-text';
 
 import type { BudgetRow } from '@/lib/budget-rows.helpers';
 import { inferBudgetFocusRowId, extractInferenceQuestionText, resolveBudgetChatTargetRow } from '@/lib/budget-rows.helpers';
-import { mergeBudgetActionIntoRow, type BudgetPendingConfirmation, type BudgetTableAction } from '@financial-agent/shared';
+import {
+  compactBudgetChatAnswers,
+  mergeBudgetActionIntoRow,
+  type BudgetPendingConfirmation,
+  type BudgetTableAction,
+} from '@financial-agent/shared';
 import {
   BUDGET_TABLE_STYLES,
   buildBudgetRowSummary,
@@ -615,7 +620,7 @@ export function BudgetModal(props: {
           body: JSON.stringify({
             intent: 'init',
             budgetRows: budgetRowsForInit,
-            chatAnswers: props.chatAnswers.slice(-20),
+            chatAnswers: compactBudgetChatAnswers(props.chatAnswers, { maxTurns: 20 }),
             products: props.bankProducts ?? [],
             activeRowId: null,
             activeRow: null,
