@@ -240,6 +240,19 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
   const productCount = Math.max(0, Number(productsContext?.productsCount ?? 0));
   const budgetBalance = Math.round(Number(budgetContext?.balance ?? 0));
   const budgetRowsCount = Math.max(0, Number(budgetContext?.rowsCount ?? 0));
+  const callStateLabel = voiceReport
+    ? 'Diagnóstico consolidado'
+    : isFinalizingCall || isGeneratingDiagnosis
+      ? 'Cerrando entrevista'
+      : voiceConnected && voicePaused
+        ? 'Entrevista en pausa'
+        : voiceConnected
+          ? 'Entrevista en vivo'
+          : voiceFlags.voiceCallExhausted
+            ? 'Entrevista cerrada'
+            : voiceFlags.hasEverStartedVoiceCall
+              ? 'Entrevista pausada'
+              : 'Lista para iniciar';
   const interviewBriefPoints = [
     productCount > 0 ? `${productCount} producto${productCount === 1 ? '' : 's'} enlazado${productCount === 1 ? '' : 's'}` : null,
     budgetRowsCount > 0 ? `${budgetRowsCount} fila${budgetRowsCount === 1 ? '' : 's'} reales de presupuesto` : null,
@@ -251,7 +264,7 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
   const sessionStatusItems = [
     {
       label: 'Estado',
-      value: stageLabel,
+      value: callStateLabel,
       tone: voiceConnected ? 'is-live' : voiceReport ? 'is-done' : '',
     },
     {
@@ -301,6 +314,20 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
             ? 'Entrevistador hablando'
             : 'Conversación activa'
       : stageLabel;
+
+  const callStateDescription = voiceReport
+    ? 'El informe ya está consolidado y puedes revisar el diagnóstico final.'
+    : isFinalizingCall || isGeneratingDiagnosis
+      ? 'Estamos cerrando la llamada y consolidando el diagnóstico con la evidencia disponible.'
+      : voiceConnected && voicePaused
+        ? 'La llamada quedó en pausa y puedes retomarla sin perder contexto.'
+        : voiceConnected
+          ? 'La entrevista está activa y continúa con contexto integrado.'
+          : voiceFlags.voiceCallExhausted
+            ? 'La entrevista terminó y el diagnóstico se está consolidando o ya quedó listo.'
+            : voiceFlags.hasEverStartedVoiceCall
+              ? 'La llamada puede retomarse cuando quieras, sin reiniciar el contexto.'
+              : 'Aún estamos preparando la sesión y cargando el contexto inicial.';
 
   async function submitSummaryValidation(accepted: boolean) {
     if (!blockId || !currentSummary || summarySubmitting) return;
@@ -409,7 +436,13 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
 
           {isLoading ? (
             <div className="interview-modal-loading">
-              <span>Cargando sesión…</span>
+              <AiLoader
+                text="Preparando entrevista"
+                subtitle="Estamos cargando tu contexto, perfil y diagnóstico para abrir la conversación con continuidad."
+              />
+              <p className="interview-inline-note" style={{ marginTop: 12, textAlign: 'center' }}>
+                Si el perfil tarda unos segundos, es normal: estamos cruzando intake, productos y presupuesto.
+              </p>
             </div>
           ) : isDiagnosisMode ? (
             profile ? (
@@ -423,6 +456,9 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
                 <div className="voice-call-transcript-card">
                   <span className="voice-call-transcript-label">No se pudo cargar el diagnóstico</span>
                   <p>{profileError}</p>
+                  <p className="interview-inline-note">
+                    La entrevista quedó consolidada, pero este panel no pudo cargar el detalle completo en este momento.
+                  </p>
                 </div>
                 <div className="voice-call-actions">
                   <button
@@ -433,18 +469,16 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
                   >
                     {profileLoading ? 'Reintentando…' : 'Reintentar carga'}
                   </button>
-                  {voiceReport ? (
-                    <button
-                      type="button"
-                      className="summary-action-btn"
-                      onClick={() => {
-                        handleOverlayDismiss();
-                        router.push('/diagnosis');
-                      }}
-                    >
-                      Abrir informe completo
-                    </button>
-                  ) : null}
+                  <button
+                    type="button"
+                    className="summary-action-btn"
+                    onClick={() => {
+                      handleOverlayDismiss();
+                      router.push('/diagnosis');
+                    }}
+                  >
+                    Abrir informe completo
+                  </button>
                   <button type="button" className="summary-action-btn" onClick={handleOverlayDismiss}>
                     Cerrar
                   </button>
@@ -452,7 +486,15 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
               </div>
             ) : (
               <div className="interview-modal-loading">
-                <span>{profileLoading ? 'Cargando diagnóstico…' : 'Preparando informe…'}</span>
+                <AiLoader
+                  text={profileLoading ? 'Cargando diagnóstico' : 'Preparando informe'}
+                  subtitle="Estamos ensamblando la vista ejecutiva del diagnóstico final."
+                />
+                <p className="interview-inline-note" style={{ marginTop: 12, textAlign: 'center' }}>
+                  {profileLoading
+                    ? 'Esto suele durar unos segundos mientras traemos el perfil consolidado.'
+                    : 'Apenas esté listo, verás el diagnóstico completo sin perder contexto.'}
+                </p>
               </div>
             )
           ) : (
@@ -468,7 +510,7 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
                       <span
                         className={`interview-brief-status${voiceConnected ? ' is-live' : voiceReport ? ' is-done' : ''}`}
                       >
-                        {voiceConnected ? 'En vivo' : voiceReport ? 'Listo' : stageLabel}
+                        {voiceConnected ? 'En vivo' : voiceReport ? 'Listo' : callStateLabel}
                       </span>
                     </div>
                     <p>
@@ -580,8 +622,14 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
                                 : voiceSpeaking
                                   ? 'Hablando'
                                   : 'En llamada'
-                            : stageLabel}
+                            : callStateLabel}
                       </div>
+                    </div>
+
+                    <div className="voice-call-transcript-card interview-focus-card">
+                      <span className="voice-call-transcript-label">Estado actual</span>
+                      <p>{callStateLabel}</p>
+                      <small className="interview-inline-note">{callStateDescription}</small>
                     </div>
 
                     <div className="voice-call-transcript-card interview-focus-card">
@@ -649,6 +697,7 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
                         className="summary-action-btn summary-action-accept interview-call-start-btn"
                         onClick={() => void startOrResumeVoiceSession()}
                         disabled={
+                          !intakeReady ||
                           !voiceSupported ||
                           voiceConnecting ||
                           voiceConnected ||
@@ -664,8 +713,8 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
                             ? 'Diagnóstico listo'
                             : voiceConnected
                               ? 'Llamada activa'
-                              : voiceFlags.voiceCallExhausted && !showVoiceReport
-                                ? 'Tiempo agotado'
+                          : voiceFlags.voiceCallExhausted && !showVoiceReport
+                                ? 'Entrevista cerrada'
                                 : voiceFlags.hasEverStartedVoiceCall && voiceFlags.hasRemainingInterviewTime
                                   ? 'Reanudar llamada'
                                   : 'Iniciar llamada'}
@@ -719,6 +768,13 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
                     {voiceError ? (
                       <div className="interview-call-error-panel">
                         <p className="voice-call-error interview-call-error-banner">{voiceError}</p>
+                        <p className="interview-inline-note">
+                          {voiceConnected
+                            ? 'La llamada sigue viva: este error suele ser recuperable.'
+                            : voiceFlags.voiceInterviewLocked || voiceFlags.voiceCallExhausted
+                              ? 'Este estado es terminal para la llamada actual.'
+                              : 'Puedes reintentar cuando el contexto termine de estabilizarse.'}
+                        </p>
                         {canRetryDiagnosis ? (
                           <button
                             type="button"
