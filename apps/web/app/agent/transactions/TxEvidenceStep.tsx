@@ -13,11 +13,10 @@ import { TxIndicativeNotice } from './TxIndicativeNotice';
 import { normalizeUploadFormat } from './tx-assistant.helpers';
 import { TxChatMessageBubble, TxChatStarterChips } from './tx-chat-ui';
 import { readProductEvidenceFidelity } from '@/lib/evidence-fidelity.helpers';
+import { getEvidenceFileAccept } from '@/lib/evidence-format.helpers';
+import { shouldSurfaceTxFeedback } from './tx-feedback.helpers';
 import type { DocumentsParseProgress } from '@/lib/transactions-parse-progress.helpers';
 import type { BankProduct, TxAssistantMessage, TxChatStarterChip, TxUploadFormat } from './types';
-
-const EVIDENCE_FILE_ACCEPT =
-  'image/*,.png,.jpg,.jpeg,.webp,.gif,.pdf,.xls,.xlsx,.csv,.txt,.md';
 
 const FORMAT_OPTIONS = [
   ['photos', 'Fotos', 'Img'],
@@ -82,6 +81,7 @@ export interface TxEvidenceStepProps {
   processingPrimaryCopy: string;
   documentsParseProgress?: DocumentsParseProgress | null;
   txAssistantError: string | null;
+  txAssistantNotice?: string | null;
   onPatchUploadFormat: (format: TxUploadFormat) => void;
   onResetUploadFormat: () => void;
   onSetUploadOnboardingStep: (step: 'format' | 'details' | 'upload') => void;
@@ -93,6 +93,10 @@ export interface TxEvidenceStepProps {
   onRefineSummary: (source: string, body: string) => void;
   onGoToAnalyst: () => void;
   onRegenerateSummary: () => void;
+  evidenceResetsLeft?: number;
+  onRequestEvidenceReset?: () => void;
+  analystContinueLabel?: string;
+  analystContinueDisabled?: boolean;
 }
 
 export function TxEvidenceStep(props: TxEvidenceStepProps) {
@@ -139,13 +143,31 @@ export function TxEvidenceStep(props: TxEvidenceStepProps) {
   const handleAttachChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
-    if (!selectedUploadFormat) {
-      p.onPatchUploadFormat('photos');
-    }
     p.onSetUploadOnboardingStep('upload');
     await p.onAppendPendingEvidence(files);
     event.target.value = '';
   };
+
+  const evidenceFileAccept = getEvidenceFileAccept(selectedUploadFormat);
+
+  const showAssistantError = shouldSurfaceTxFeedback({
+    message: p.txAssistantError,
+    documentsLoading: p.documentsLoading,
+    txAssistantLoading: p.txAssistantLoading,
+    kind: 'error',
+  });
+  const showUploadError = shouldSurfaceTxFeedback({
+    message: p.transactionUploadError,
+    documentsLoading: p.documentsLoading,
+    txAssistantLoading: p.txAssistantLoading,
+    kind: 'error',
+  });
+  const showAssistantNotice = shouldSurfaceTxFeedback({
+    message: p.txAssistantNotice,
+    documentsLoading: p.documentsLoading,
+    txAssistantLoading: p.txAssistantLoading,
+    kind: 'notice',
+  });
 
   const composerPlaceholder = p.analysisAlreadyDone
     ? 'Pregúntame sobre tus movimientos o pide revisar el resumen'
@@ -154,12 +176,21 @@ export function TxEvidenceStep(props: TxEvidenceStepProps) {
   return (
     <section className="tx-content-card tx-content-card--agent is-main-center tx-step-reveal">
       <div className="pt-stage-header tx-agent-stage-header tx-agent-stage-header--compact">
-        <span className="pt-stage-eyebrow tx-agent-stage-tag">Análisis guiado</span>
-        <h4 className="tx-agent-stage-title">Sube tus movimientos</h4>
-        <p className="tx-agent-stage-note">
-          Adjunta cartola, PDF, Excel o texto. Excel y CSV entregan cifras exactas; fotos y texto libre generan una
-          lectura orientativa de patrones y gastos principales.
-        </p>
+        <div className="tx-agent-stage-header-row">
+          <div>
+            <span className="pt-stage-eyebrow tx-agent-stage-tag">Análisis guiado</span>
+            <h4 className="tx-agent-stage-title">Sube tus movimientos</h4>
+            <p className="tx-agent-stage-note">
+              Adjunta cartola, PDF, Excel o texto. Excel y CSV entregan cifras exactas; fotos y texto libre generan una
+              lectura orientativa de patrones y gastos principales.
+            </p>
+          </div>
+          {p.analysisAlreadyDone && p.onRequestEvidenceReset && (p.evidenceResetsLeft ?? 0) > 0 ? (
+            <button type="button" className="continue-ghost" onClick={p.onRequestEvidenceReset}>
+              Reiniciar evidencia ({p.evidenceResetsLeft})
+            </button>
+          ) : null}
+        </div>
       </div>
 
       {(isIndicativeEvidence || expectsIndicativeUpload) && (
@@ -285,7 +316,7 @@ export function TxEvidenceStep(props: TxEvidenceStepProps) {
             {canAttach ? (
               <label className="tx-composer-attach" aria-label="Adjuntar archivos">
                 <AttachIcon />
-                <input type="file" accept={EVIDENCE_FILE_ACCEPT} multiple onChange={handleAttachChange} />
+                <input type="file" accept={evidenceFileAccept} multiple onChange={handleAttachChange} />
               </label>
             ) : null}
             <textarea
@@ -311,17 +342,35 @@ export function TxEvidenceStep(props: TxEvidenceStepProps) {
 
           {!p.analysisAlreadyDone && (
             <p className="tx-composer-hint">
-              Hasta {p.maxEvidenceFilesPerProduct} archivos · 50 MB por envío
+              {selectedUploadFormat
+                ? `Solo archivos de ${getFormatLabel(selectedUploadFormat).toLowerCase()} · hasta ${p.maxEvidenceFilesPerProduct} · 50 MB por envío`
+                : `Elige un formato arriba o adjunta y lo detectamos automáticamente · hasta ${p.maxEvidenceFilesPerProduct} · 50 MB`}
             </p>
           )}
 
           {p.analysisAlreadyDone && p.pendingEvidenceFiles.length > 0 && (
             <p className="manual-evidence-hint">
-              Este producto ya tiene análisis. Para nuevos antecedentes debes recrear el producto.
+              Este producto ya tiene análisis.
+              {(p.evidenceResetsLeft ?? 0) > 0
+                ? ' Usa «Reiniciar evidencia» para subir antecedentes nuevos.'
+                : ' Ya no quedan reinicios disponibles para este producto.'}
             </p>
           )}
-          {p.txAssistantError && <p className="bcc-hero-error">{p.txAssistantError}</p>}
-          {p.transactionUploadError && <p className="bcc-hero-error">{p.transactionUploadError}</p>}
+          {showAssistantNotice ? (
+            <p className="tx-feedback-notice" role="status">
+              {p.txAssistantNotice}
+            </p>
+          ) : null}
+          {showAssistantError ? (
+            <p className="tx-feedback-error" role="alert">
+              {p.txAssistantError}
+            </p>
+          ) : null}
+          {showUploadError ? (
+            <p className="tx-feedback-error" role="alert">
+              {p.transactionUploadError}
+            </p>
+          ) : null}
         </div>
         {(p.documentsLoading || p.txAssistantLoading) && (
           <TxParseProgress
@@ -357,8 +406,13 @@ export function TxEvidenceStep(props: TxEvidenceStepProps) {
               </div>
             </div>
             <div className="agent-modal-actions tx-flow-inline-actions">
-              <button type="button" className="continue-ghost" onClick={() => p.onGoToAnalyst()}>
-                Ver resumen completo
+              <button
+                type="button"
+                className="continue-ghost"
+                onClick={() => p.onGoToAnalyst()}
+                disabled={p.analystContinueDisabled}
+              >
+                {p.analystContinueLabel ?? 'Continuar al resumen'}
               </button>
               <button
                 type="button"

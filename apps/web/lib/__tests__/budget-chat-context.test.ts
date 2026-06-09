@@ -7,6 +7,7 @@ import {
   buildCategoryClarificationReply,
   buildContextualQuestion,
   pickContextualFocusRow,
+  resolveBudgetAffirmativeAmount,
 } from '@financial-agent/shared';
 
 describe('budget-chat-context', () => {
@@ -86,6 +87,53 @@ describe('budget-chat-context', () => {
     expect(foodClarify.reply).toMatch(/comida/i);
     expect(foodClarify.reply).not.toMatch(/^entendido|^perfecto|^claro/i);
     expect(foodClarify.followUp).toMatch(/\?/);
+  });
+
+  it('resolves affirmative confirmation from question amount before small transaction hints', () => {
+    const context = buildBudgetAssistantContext({
+      rows,
+      intakeData: { exactMonthlyIncome: 1_450_000 },
+      products: [
+        {
+          label: 'Cuenta demo',
+          bank: 'Banco Demo',
+          keyMetrics: { inflows_total: 1000, outflows_total: 0 },
+        },
+      ],
+      chatAnswers: [],
+    });
+
+    const amount = resolveBudgetAffirmativeAmount({
+      row: rows[0],
+      context,
+      question:
+        'Tu ingreso principal es de $1.450.000 según lo que tenemos registrado. ¿Confirmas que ese es el monto?',
+    });
+
+    expect(amount).toBe(1_450_000);
+  });
+
+  it('falls back to intake income when affirmative answer has no explicit amount in question', () => {
+    const context = buildBudgetAssistantContext({
+      rows,
+      intakeData: { exactMonthlyIncome: 1_450_000 },
+      products: [
+        {
+          label: 'Cuenta demo',
+          bank: 'Banco Demo',
+          keyMetrics: { inflows_total: 1000, outflows_total: 0 },
+        },
+      ],
+      chatAnswers: [],
+    });
+
+    const amount = resolveBudgetAffirmativeAmount({
+      row: rows[0],
+      context,
+      question: '¿Confirmamos ese ingreso principal?',
+    });
+
+    expect(amount).toBe(1_450_000);
   });
 
   it('suggests adding unmapped transaction categories as new rows', () => {

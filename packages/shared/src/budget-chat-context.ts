@@ -604,6 +604,36 @@ export function isAffirmativeSuggestionAnswer(answer: string): boolean {
   return /^(si|sí|ok|dale|listo|ya|confirmo|confirmar|de acuerdo|perfecto|usemos|dejalo|dejemos|ajusta|ajustalo)$/.test(text);
 }
 
+/** Resuelve el monto implícito cuando el usuario confirma con "sí" u otra respuesta afirmativa. */
+export function resolveBudgetAffirmativeAmount(input: {
+  row: BudgetRow;
+  context: BudgetAssistantContext;
+  question?: string | null;
+  suggestionAmount?: number | null;
+}): number | null {
+  const questionAmount = input.question ? extractAmountFromText(input.question) : null;
+  if (questionAmount && questionAmount > 0) return questionAmount;
+
+  const canonicalId = canonicalBudgetRowId(input.row.id);
+  const memory = getChatMemoryForRow(input.context, canonicalId);
+  const memoryAmount = memory ? extractAmountFromText(memory.a) : null;
+  if (memoryAmount && memoryAmount > 0) return memoryAmount;
+
+  if (canonicalId === 'income_salary') {
+    const intakeAmount = input.context.intake.exactMonthlyIncome;
+    if (intakeAmount && intakeAmount > 0) return intakeAmount;
+    const bandAmount = incomeBandHint(input.context.intake.incomeBand);
+    if (bandAmount && bandAmount > 0) return bandAmount;
+  }
+
+  const hint = rowHintFor(input.context, canonicalId);
+  if (hint && hint.estimatedMonthly > 0) return hint.estimatedMonthly;
+
+  if (input.suggestionAmount && input.suggestionAmount > 0) return input.suggestionAmount;
+
+  return null;
+}
+
 export function buildContextualAdviceReply(context: BudgetAssistantContext, rows: BudgetRow[]): string {
   const suggestions = buildBudgetRowSuggestions(rows, context);
   if (suggestions.length > 0) {

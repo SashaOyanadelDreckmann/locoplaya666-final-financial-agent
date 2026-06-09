@@ -1,6 +1,10 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  resolveAssistantMessageThread,
+  selectAssistantMessagesForThread,
+} from './tx-assistant-thread.helpers';
 import { getCsrfToken } from '@/lib/csrf';
 import {
   buildChatDashboardForQuestion,
@@ -18,6 +22,7 @@ import {
   mergeEvidenceFiles,
   prepareIncomingEvidenceFiles,
 } from '@/lib/transactions-evidence.helpers';
+import { alignEvidenceUploadFormat } from '@/lib/evidence-format.helpers';
 import { resolveInstantTransactionSummary } from '@/lib/transactions-summary.helpers';
 import { alignProductDashboard } from './align-product-dashboard';
 import { buildUploadGuidance } from './presentation';
@@ -118,6 +123,7 @@ export function useTxAssistantChat(params: {
   const [txAssistantInputByProduct, setTxAssistantInputByProduct] = useState<Record<string, string>>({});
   const [txAssistantLoadingByProduct, setTxAssistantLoadingByProduct] = useState<Record<string, boolean>>({});
   const [txAssistantErrorByProduct, setTxAssistantErrorByProduct] = useState<Record<string, string | null>>({});
+  const [txAssistantNoticeByProduct, setTxAssistantNoticeByProduct] = useState<Record<string, string | null>>({});
   const [txUploadOnboardingStepByProduct, setTxUploadOnboardingStepByProduct] = useState<
     Record<string, TxUploadOnboardingStep>
   >({});
@@ -134,11 +140,20 @@ export function useTxAssistantChat(params: {
   const txAssistantInput = activeProductId ? txAssistantInputByProduct[activeProductId] ?? '' : '';
   const txAssistantLoading = activeProductId ? Boolean(txAssistantLoadingByProduct[activeProductId]) : false;
   const txAssistantError = activeProductId ? txAssistantErrorByProduct[activeProductId] ?? null : null;
+  const txAssistantNotice = activeProductId ? txAssistantNoticeByProduct[activeProductId] ?? null : null;
   const txUploadOnboardingStep: TxUploadOnboardingStep = activeProductId
     ? txUploadOnboardingStepByProduct[activeProductId] ?? 'format'
     : 'format';
 
   const assistantMessages = activeBankProduct?.assistant?.messages ?? [];
+  const evidenceAssistantMessages = useMemo(
+    () => selectAssistantMessagesForThread(assistantMessages, 'evidence'),
+    [assistantMessages],
+  );
+  const summaryAssistantMessages = useMemo(
+    () => selectAssistantMessagesForThread(assistantMessages, 'summary'),
+    [assistantMessages],
+  );
   const highlightedMovementKeys = activeProductId
     ? highlightedMovementKeysByProduct[activeProductId] ?? []
     : [];
@@ -190,10 +205,15 @@ export function useTxAssistantChat(params: {
     setTxAssistantErrorByProduct((prev) => ({ ...prev, [productId]: value }));
   }, []);
 
+  const setProductNotice = useCallback((productId: string, value: string | null) => {
+    setTxAssistantNoticeByProduct((prev) => ({ ...prev, [productId]: value }));
+  }, []);
+
   const clearProductDraft = useCallback((productId: string) => {
     setPendingEvidenceFilesByProduct((prev) => ({ ...prev, [productId]: [] }));
     setTxAssistantInputByProduct((prev) => ({ ...prev, [productId]: '' }));
     setTxAssistantErrorByProduct((prev) => ({ ...prev, [productId]: null }));
+    setTxAssistantNoticeByProduct((prev) => ({ ...prev, [productId]: null }));
   }, []);
 
   const clearPendingEvidence = useCallback(() => {
@@ -234,7 +254,17 @@ export function useTxAssistantChat(params: {
       productId: string,
       productSnapshot: BankProduct,
       nextMessages: Array<
-        Pick<TxAssistantMessage, 'role' | 'text' | 'attachments' | 'retrievalMeta' | 'suggestedFollowups' | 'referencedMovementKeys' | 'source'>
+        Pick<
+          TxAssistantMessage,
+          | 'role'
+          | 'text'
+          | 'thread'
+          | 'attachments'
+          | 'retrievalMeta'
+          | 'suggestedFollowups'
+          | 'referencedMovementKeys'
+          | 'source'
+        >
       >,
       extraPatch?: Partial<NonNullable<BankProduct['assistant']>>,
     ) => {
@@ -249,6 +279,7 @@ export function useTxAssistantChat(params: {
               role: message.role,
               text: message.text,
               createdAt: new Date().toISOString(),
+              thread: message.thread ?? 'evidence',
               attachments: message.attachments,
               retrievalMeta: message.retrievalMeta,
               suggestedFollowups: message.suggestedFollowups,
@@ -295,6 +326,7 @@ export function useTxAssistantChat(params: {
     appendAssistantMessages(product.id, product, [
       {
         role: 'assistant',
+        thread: 'evidence',
         text: 'Antes de subir movimientos, dime cómo prefieres enviarlos: rápido, fotos, PDF, Excel/CSV o texto. Según eso te recomiendo la mejor forma para que el análisis salga limpio.',
       },
     ]);
@@ -350,6 +382,7 @@ export function useTxAssistantChat(params: {
             {
               id: `${Date.now()}-assistant-summary`,
               role: 'assistant',
+              thread: 'evidence',
               text: options?.isRegeneration
                 ? 'Revisé el producto de nuevo y actualicé el resumen de abajo.'
                 : 'Ya recibí tus antecedentes. Preparé el resumen ejecutivo aquí abajo y puedo responder dudas sobre tus movimientos.',
@@ -449,6 +482,7 @@ export function useTxAssistantChat(params: {
               {
                 id: `${Date.now()}-assistant-summary`,
                 role: 'assistant',
+                thread: 'evidence',
                 text: options?.isRegeneration
                   ? 'Revisé el producto de nuevo y actualicé el resumen de abajo.'
                   : 'Ya recibí tus antecedentes. Preparé el resumen ejecutivo aquí abajo y puedo responder dudas sobre tus movimientos.',
@@ -520,6 +554,7 @@ export function useTxAssistantChat(params: {
         appendAssistantMessages(productId, product, [
           {
             role: 'user',
+            thread: 'evidence',
             text: messageText || 'Te envío antecedentes de transacciones.',
             attachments: filesToUpload.map((file) => file.name),
           },
@@ -577,6 +612,8 @@ export function useTxAssistantChat(params: {
       const productRegenerationsUsed = product.assistant?.summaryRegenerationsUsed ?? 0;
       const productRegenerationsLeft = Math.max(0, 3 - productRegenerationsUsed);
       const productMessages = product.assistant?.messages ?? [];
+      const messageThread = resolveAssistantMessageThread({ txWizardStep, analysisAlreadyDone });
+      const threadMessages = selectAssistantMessagesForThread(productMessages, messageThread);
       const text = rawText.trim();
       const hasAttachedFiles = pendingEvidenceFiles.length > 0;
       const shouldUploadTextEvidence = wantsTextEvidenceUpload({
@@ -601,7 +638,7 @@ export function useTxAssistantChat(params: {
           return;
         }
 
-        appendAssistantMessages(productId, product, [{ role: 'user', text }]);
+        appendAssistantMessages(productId, product, [{ role: 'user', thread: messageThread, text }]);
         setProductError(productId, null);
 
         const withUserMessage: BankProduct = {
@@ -612,6 +649,7 @@ export function useTxAssistantChat(params: {
               {
                 id: `${Date.now()}-user`,
                 role: 'user',
+                thread: messageThread,
                 text,
                 createdAt: new Date().toISOString(),
               },
@@ -630,7 +668,7 @@ export function useTxAssistantChat(params: {
           appendAssistantMessages(
             productId,
             withUserMessage,
-            [{ role: 'assistant', text: buildUploadGuidance(chosenFormat, product.productType) }],
+            [{ role: 'assistant', thread: messageThread, text: buildUploadGuidance(chosenFormat, product.productType) }],
             { uploadFormat: chosenFormat },
           );
           return;
@@ -659,6 +697,7 @@ export function useTxAssistantChat(params: {
             appendAssistantMessages(productId, withUserMessage, [
               {
                 role: 'assistant',
+                thread: messageThread,
                 text: deterministic.reply,
                 retrievalMeta: {
                   mode: retrieval.mode,
@@ -685,7 +724,7 @@ export function useTxAssistantChat(params: {
             dashboard:
               buildChatDashboardForQuestion(effectiveDashboard, text) ??
               compactDashboardForPrompt(effectiveDashboard, { maxMovements: 24, maxMerchants: 8 }),
-            messages: [...productMessages, { role: 'user', text }],
+            messages: [...threadMessages, { role: 'user', text }],
           }),
           controller.signal,
         );
@@ -694,6 +733,7 @@ export function useTxAssistantChat(params: {
         appendAssistantMessages(productId, withUserMessage, [
           {
             role: 'assistant',
+            thread: messageThread,
             text: String(response.assistant_text ?? 'Listo.'),
             ...meta,
           },
@@ -729,6 +769,7 @@ export function useTxAssistantChat(params: {
       setProductLoading,
       txAssistantLoading,
       txSendLockRef,
+      txWizardStep,
     ],
   );
 
@@ -775,6 +816,19 @@ export function useTxAssistantChat(params: {
         return;
       }
       const optimized = await prepareIncomingEvidenceFiles(files);
+      const candidateBatch = [...pendingEvidenceFiles, ...optimized];
+      const alignment = alignEvidenceUploadFormat({
+        uploadFormat: selectedUploadFormat,
+        files: candidateBatch,
+      });
+      if (!alignment.ok) {
+        setProductError(activeProductId, alignment.error);
+        return;
+      }
+      if (alignment.realigned || (!selectedUploadFormat && alignment.effectiveFormat)) {
+        patchAssistant({ uploadFormat: alignment.effectiveFormat });
+      }
+
       const mergeResult = mergeEvidenceFiles(pendingEvidenceFiles, optimized, {
         capacity,
         maxSingleBytes: TX_MAX_SINGLE_FILE_BYTES,
@@ -782,23 +836,25 @@ export function useTxAssistantChat(params: {
       });
 
       setActivePendingEvidenceFiles(mergeResult.files);
-      setProductError(
-        activeProductId,
-        buildEvidenceAppendNotice(mergeResult, {
-          maxFilesPerProduct: maxEvidenceFilesPerProduct,
-          maxSingleBytes: TX_MAX_SINGLE_FILE_BYTES,
-          maxTotalBytes: TX_MAX_TOTAL_FILE_BYTES,
-        }),
-      );
+      const appendNotice = buildEvidenceAppendNotice(mergeResult, {
+        maxFilesPerProduct: maxEvidenceFilesPerProduct,
+        maxSingleBytes: TX_MAX_SINGLE_FILE_BYTES,
+        maxTotalBytes: TX_MAX_TOTAL_FILE_BYTES,
+      });
+      const notices = [alignment.notice, appendNotice].filter((value): value is string => Boolean(value?.trim()));
+      setProductNotice(activeProductId, notices.length > 0 ? notices.join(' ') : null);
     },
     [
       activeBankProduct?.uploadedFiles.length,
       activeProductId,
       analysisAlreadyDone,
       maxEvidenceFilesPerProduct,
+      patchAssistant,
       pendingEvidenceFiles,
+      selectedUploadFormat,
       setActivePendingEvidenceFiles,
       setProductError,
+      setProductNotice,
     ],
   );
 
@@ -807,8 +863,16 @@ export function useTxAssistantChat(params: {
     if (!activeProductId) return;
     setProductLoading(activeProductId, false);
     setProductError(activeProductId, null);
+    setProductNotice(activeProductId, null);
     txSendLockRef.current = false;
-  }, [activeProductId, isOpen, setProductError, setProductLoading, txSendLockRef]);
+  }, [activeProductId, isOpen, setProductError, setProductLoading, setProductNotice, txSendLockRef]);
+
+  useEffect(() => {
+    if (!activeProductId) return;
+    if (!documentsLoading && !txAssistantLoading) return;
+    setProductError(activeProductId, null);
+    setProductNotice(activeProductId, null);
+  }, [activeProductId, documentsLoading, txAssistantLoading, setProductError, setProductNotice]);
 
   useEffect(() => {
     if (!isOpen || txWizardStep !== 'upload' || !activeProductId) return;
@@ -830,8 +894,11 @@ export function useTxAssistantChat(params: {
     txAssistantInput,
     txAssistantLoading,
     txAssistantError,
+    txAssistantNotice,
     txUploadOnboardingStep,
     assistantMessages,
+    evidenceAssistantMessages,
+    summaryAssistantMessages,
     starterChips,
     highlightedMovementKeys,
     summaryText,

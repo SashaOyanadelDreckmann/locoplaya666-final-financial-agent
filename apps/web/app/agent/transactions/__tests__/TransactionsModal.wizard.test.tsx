@@ -38,6 +38,22 @@ function buildProduct(overrides: Partial<BankProduct> = {}): BankProduct {
     randomMode: false,
     uploadedFiles: ['cartola.pdf'],
     parsedDocuments: [{ name: 'cartola.pdf', text: 'movimiento 1000' }],
+    dashboard: {
+      evidenceFidelity: 'authoritative',
+      keyMetrics: {
+        inflows_total: 0,
+        outflows_total: 5000,
+        net_flow: -5000,
+        avg_movement: 1000,
+        movement_count: 5,
+      },
+      movements: Array.from({ length: 5 }, (_, index) => ({
+        description: `Movimiento ${index + 1}`,
+        amount: 1000,
+        direction: 'expense' as const,
+        source_kind: 'line' as const,
+      })),
+    },
     ...overrides,
   };
 }

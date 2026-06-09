@@ -1,5 +1,7 @@
 import {
+  hasBudgetFieldSignals,
   mergeBudgetActionIntoRow,
+  parseBudgetFieldPatchFromAnswer,
   summarizeBudgetActionBatch,
   validateBudgetTableAction,
   validateBudgetTableActions,
@@ -45,12 +47,27 @@ describe('budget-table-schema', () => {
     expect(validated[0]).toMatchObject({ kind: 'update', id: 'expense_rent', amount: 420000 });
   });
 
+  it('parses cadence, payment and movement patches from natural chat answers', () => {
+    expect(parseBudgetFieldPatchFromAnswer('alimentación es variable, pago con tarjeta de crédito')).toMatchObject({
+      cadence: 'variable',
+      payment_method: 'credit',
+    });
+    expect(hasBudgetFieldSignals('250 mil fijo con débito')).toBe(true);
+    expect(parseBudgetFieldPatchFromAnswer('pon categoría transporte')).toMatchObject({
+      movement_type: 'transport',
+    });
+    expect(parseBudgetFieldPatchFromAnswer('alimentación es variable')).toMatchObject({
+      cadence: 'variable',
+    });
+    expect(parseBudgetFieldPatchFromAnswer('alimentación es variable').movement_type).toBeUndefined();
+  });
+
   it('summarizes action batches for confirmation copy', () => {
     const summary = summarizeBudgetActionBatch([
       { kind: 'update', id: 'expense_rent', category: 'Arriendo / vivienda', amount: 420000, cadence: 'fixed' },
       { kind: 'delete', id: 'expense_other' },
     ]);
-    expect(summary).toContain('actualizar');
-    expect(summary).toContain('eliminar expense_other');
+    expect(summary.toLowerCase()).toContain('actualizar');
+    expect(summary.toLowerCase()).toContain('eliminar');
   });
 });

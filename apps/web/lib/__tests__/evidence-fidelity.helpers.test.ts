@@ -43,6 +43,21 @@ describe('evidence fidelity helpers', () => {
     expect(resolveUploadEvidenceSourceHint({ looseTextEvidence: true })).toBe('text');
   });
 
+  it('prefers detected file format over mismatched user selection', () => {
+    expect(
+      resolveUploadEvidenceSourceHint({
+        uploadFormat: 'photos',
+        files: [{ name: 'movimientos.xlsx', type: 'application/vnd.ms-excel' } as File],
+      }),
+    ).toBe('spreadsheet');
+    expect(
+      resolveUploadEvidenceSourceHint({
+        uploadFormat: 'pdf',
+        files: [{ name: 'captura.png', type: 'image/png' } as File],
+      }),
+    ).toBe('photos');
+  });
+
   it('reads indicative fidelity from dashboard and builds qualitative summary', () => {
     const product = {
       dashboard: {

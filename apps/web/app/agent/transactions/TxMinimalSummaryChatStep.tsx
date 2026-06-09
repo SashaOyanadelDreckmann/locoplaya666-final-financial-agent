@@ -10,6 +10,8 @@ export function TxMinimalSummaryChatStep(props: {
   summaryGeneratedAt: string | null;
   summaryModel: string | null;
   summaryRegenerationsLeft: number;
+  experienceNote?: string | null;
+  isSummaryPending?: boolean;
   assistantMessages: TxAssistantMessage[];
   highlightedMovementKeys: string[];
   txAssistantInput: string;
@@ -32,6 +34,11 @@ export function TxMinimalSummaryChatStep(props: {
       <div className="tx-minimal-summary-card" role="region" aria-label="Resumen ejecutivo mínimo">
         <div className="tx-minimal-summary-head">
           <span className="tx-minimal-summary-kicker">Resumen ejecutivo</span>
+          {props.experienceNote ? (
+            <p className="tx-minimal-summary-note" role="status">
+              {props.experienceNote}
+            </p>
+          ) : null}
           <div className="tx-minimal-summary-meta">
             {props.summaryGeneratedAt ? <span>Actualizado {new Date(props.summaryGeneratedAt).toLocaleString('es-CL')}</span> : <span>En preparación</span>}
             {props.summaryModel ? <span>Modelo {props.summaryModel}</span> : null}
@@ -40,17 +47,23 @@ export function TxMinimalSummaryChatStep(props: {
         {props.summaryText ? (
           <EditorialSummary text={props.summaryText} compact />
         ) : (
-          <p className="tx-minimal-summary-empty">Estoy preparando el resumen.</p>
+          <p className="tx-minimal-summary-empty" role="status" aria-live="polite">
+            {props.isSummaryPending ? 'Estoy preparando el resumen con tus antecedentes…' : 'Estoy preparando el resumen.'}
+          </p>
         )}
         <div className="tx-minimal-summary-foot">
           <span>Revisiones restantes: {props.summaryRegenerationsLeft}</span>
         </div>
       </div>
 
-      <div className="tx-minimal-chat-card" role="region" aria-label="Continuar conversación">
+      <div className="tx-minimal-chat-card" role="region" aria-label="Chat del resumen">
+        <div className="tx-minimal-chat-head">
+          <span className="tx-minimal-chat-kicker">Chat del resumen</span>
+          <p className="tx-minimal-chat-intro">Pregunta solo sobre este resumen. El historial de subida quedó en evidencias.</p>
+        </div>
         <div className="tx-minimal-chat-thread" aria-live="polite" aria-relevant="additions">
           {props.assistantMessages.length === 0 ? (
-            <p className="tx-minimal-chat-empty">Haz una pregunta para continuar el análisis.</p>
+            <p className="tx-minimal-chat-empty">Haz tu primera pregunta sobre el resumen.</p>
           ) : (
             props.assistantMessages.map((message) => (
               <TxChatMessageBubble

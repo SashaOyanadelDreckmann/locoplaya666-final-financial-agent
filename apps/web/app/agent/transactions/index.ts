@@ -1,4 +1,8 @@
 export { TransactionsModal } from './TransactionsModal';
+export { useTransactionsModalOrchestrator } from './use-transactions-modal-orchestrator';
+export { TxMovementTable } from './TxMovementTable';
+export { TxMovementEditor } from './TxMovementEditor';
+export { TxMetricsCharts } from './TxMetricsCharts';
 export { TxEvidenceStep } from './TxEvidenceStep';
 export { TxAnalystDashboard } from './TxAnalystDashboard';
 export { useMovementAnalytics } from './use-movement-analytics';

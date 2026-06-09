@@ -15,6 +15,8 @@ export type TxAssistantMessage = {
   role: 'assistant' | 'user';
   text: string;
   createdAt: string;
+  /** evidence = paso 2 (subida/guía). summary = paso 3 (chat del resumen). */
+  thread?: 'evidence' | 'summary';
   attachments?: string[];
   retrievalMeta?: TxAssistantRetrievalMeta;
   suggestedFollowups?: string[];
@@ -34,6 +36,8 @@ export type BankProduct = {
   };
   productType: 'credit_card' | 'debit_account' | 'checking_account' | 'savings_account' | 'consumer_loan' | 'mortgage' | 'investment_account';
   uploadedFiles: string[];
+  /** How many times evidence was reset to allow a new analysis on this product. */
+  evidenceResetsUsed?: number;
     parsedDocuments: Array<{
       documentId?: string;
       name: string;
@@ -176,4 +180,6 @@ export type TransactionsModalProps = {
   creationNotice?: string | null;
   productsModuleSkipped?: boolean;
   onContinueWithoutProducts?: () => void;
+  resetTransactionProductEvidence?: () => boolean;
+  maxEvidenceResets?: number;
 };

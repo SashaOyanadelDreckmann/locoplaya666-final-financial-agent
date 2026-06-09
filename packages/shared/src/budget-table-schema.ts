@@ -134,14 +134,33 @@ export function mergeBudgetActionIntoRow(existing: BudgetRow | null, action: Bud
   const paymentRaw = action.payment_method ?? action.paymentMethod ?? existing?.paymentMethod;
   const movementRaw = action.movement_type ?? action.movementType ?? existing?.movementType;
 
+  const cadence =
+    action.cadence !== undefined
+      ? normalizeBudgetCadence(action.cadence, rowType)
+      : existing?.cadence
+        ? normalizeBudgetCadence(existing.cadence, rowType)
+        : undefined;
+  const paymentMethod =
+    paymentRaw !== undefined
+      ? normalizeBudgetPaymentMethod(paymentRaw, rowType)
+      : existing?.paymentMethod
+        ? normalizeBudgetPaymentMethod(existing.paymentMethod, rowType)
+        : undefined;
+  const movementType =
+    movementRaw !== undefined
+      ? normalizeBudgetMovementType(movementRaw, rowType)
+      : existing?.movementType
+        ? normalizeBudgetMovementType(existing.movementType, rowType)
+        : undefined;
+
   return {
     id,
     category,
     type: rowType,
     amount,
-    cadence: normalizeBudgetCadence(action.cadence ?? existing?.cadence, rowType),
-    paymentMethod: normalizeBudgetPaymentMethod(paymentRaw, rowType),
-    movementType: normalizeBudgetMovementType(movementRaw, rowType),
+    cadence,
+    paymentMethod,
+    movementType,
     parentId: existing?.parentId,
   };
 }
@@ -237,45 +256,107 @@ export function summarizeBudgetActionBatch(actions: BudgetTableAction[], rows: B
     .join('; ');
 }
 
-export function parseBudgetCadenceFromAnswer(answer: string): BudgetCadence | null {
-  const text = String(answer ?? '')
+function normalizeBudgetParseText(answer: string): string {
+  return String(answer ?? '')
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '');
-  if (/\b(fijo|fija|fijos|siempre igual|mismo monto|recurrente)\b/.test(text)) return 'fixed';
-  if (/\b(variable|variables|cambia|distinto|depende|varia)\b/.test(text)) return 'variable';
+}
+
+export function parseBudgetCadenceFromAnswer(answer: string): BudgetCadence | null {
+  const text = normalizeBudgetParseText(answer);
+  if (/\b(fijo|fija|fijos|siempre igual|mismo monto|recurrente|dejalo fijo|dejala fija|ponlo fijo|ponla fija)\b/.test(text)) {
+    return 'fixed';
+  }
+  if (/\b(variable|variables|cambia|distinto|depende|varia|dejalo variable|dejala variable|ponlo variable|ponla variable)\b/.test(text)) {
+    return 'variable';
+  }
   return null;
 }
 
 export function parseBudgetPaymentFromAnswer(answer: string): BudgetPaymentMethod | null {
-  const text = String(answer ?? '')
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '');
-  if (/\b(transferencia|transfer|abono|deposito)\b/.test(text)) return 'transfer';
-  if (/\b(debito|redcompra|cuenta corriente|cuenta vista)\b/.test(text)) return 'debit';
-  if (/\b(credito|tarjeta)\b/.test(text)) return 'credit';
+  const text = normalizeBudgetParseText(answer);
+  if (/\b(transferencia|transfer|abono|deposito|cuenta rut|rut\b)\b/.test(text)) return 'transfer';
+  if (/\b(debito|débito|redcompra|cuenta corriente|cuenta vista|tarjeta de debito|tarjeta debito)\b/.test(text)) {
+    return 'debit';
+  }
+  if (/\b(credito|crédito|tarjeta de credito|tarjeta credito|visa|mastercard|tc\b)\b/.test(text)) return 'credit';
   if (/\b(efectivo|cash|caja)\b/.test(text)) return 'cash';
-  if (/\b(prepago|prepaid)\b/.test(text)) return 'prepaid';
+  if (/\b(prepago|prepaid|tarjeta prepago)\b/.test(text)) return 'prepaid';
+  if (/\b(otro medio|otro metodo|otro método)\b/.test(text)) return 'other';
+  if (/\b(pago con|medio de pago|forma de pago)\b/.test(text) && /\bdebito\b/.test(text)) return 'debit';
+  if (/\b(pago con|medio de pago|forma de pago)\b/.test(text) && /\bcredito\b/.test(text)) return 'credit';
+  if (/\b(pago con|medio de pago|forma de pago)\b/.test(text) && /\btransfer/.test(text)) return 'transfer';
   return null;
 }
 
 export function parseBudgetMovementFromAnswer(answer: string): BudgetMovementType | null {
-  const text = String(answer ?? '')
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '');
+  const text = normalizeBudgetParseText(answer);
+  const explicitMovementIntent =
+    /\b(categor[ií]a|tipo de movimiento|tipo movimiento|clasifica|clasificar|etiqueta|ponle tipo|pon tipo|dejalo como|dejala como)\b/.test(
+      text,
+    ) ||
+    (/\bcomo\b/.test(text) &&
+      /\b(ingreso|vivienda|servicios|alimentaci|transporte|salud|educaci|deuda|ahorro|impuesto|ocio)\b/.test(text));
+
+  if (!explicitMovementIntent) return null;
+
+  for (const option of BUDGET_MOVEMENT_TYPE_OPTIONS) {
+    const label = normalizeBudgetParseText(option.label);
+    if (label && new RegExp(`\\b${label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`).test(text)) {
+      return option.value;
+    }
+  }
+
   if (/\b(ingreso principal|sueldo|salario|liquido|neto)\b/.test(text)) return 'income_main';
   if (/\b(ingreso extra|adicional|freelance|honorarios|bono)\b/.test(text)) return 'income_extra';
   if (/\b(vivienda|arriendo|dividendo|hipoteca|casa|hogar)\b/.test(text)) return 'housing';
-  if (/\b(servicios|internet|luz|agua|gas|hogar)\b/.test(text)) return 'home_services';
+  if (/\b(servicios|internet|luz|agua|gas)\b/.test(text)) return 'home_services';
   if (/\b(alimentacion|comida|supermercado|restaurant)\b/.test(text)) return 'food';
   if (/\b(transporte|bencina|combustible|uber|metro|bus)\b/.test(text)) return 'transport';
   if (/\b(salud|farmacia|medico|isapre|fonasa)\b/.test(text)) return 'health';
   if (/\b(educacion|colegio|universidad|curso)\b/.test(text)) return 'education';
-  if (/\b(deuda|cuota|credito|prestamo|hipotecario)\b/.test(text)) return 'debt';
+  if (/\b(deuda|cuota|prestamo|hipotecario)\b/.test(text)) return 'debt';
   if (/\b(ahorro|inversion|fondo|apv|deposito a plazo)\b/.test(text)) return 'savings_investment';
   if (/\b(impuesto|comision|patente|contribucion)\b/.test(text)) return 'taxes_fees';
   if (/\b(ocio|entretenimiento|viaje|otros|regalo)\b/.test(text)) return 'leisure_other';
   return null;
+}
+
+export function parseBudgetCategoryRenameFromAnswer(answer: string): string | null {
+  const raw = String(answer ?? '').trim();
+  if (!raw) return null;
+  const renameMatch = raw.match(
+    /(?:renombra(?:\s+a)?|llama(?:\s+a)?|cambia(?:\s+el)?\s+nombre(?:\s+a)?|deja(?:r)?\s+como)\s+["'«]?([^"'»?.!]{2,48})/i,
+  );
+  const candidate = renameMatch?.[1]?.trim();
+  if (!candidate) return null;
+  const normalized = normalizeBudgetParseText(candidate);
+  if (/\b(fijo|variable|debito|credito|transferencia|efectivo)\b/.test(normalized)) return null;
+  return candidate.charAt(0).toUpperCase() + candidate.slice(1);
+}
+
+export type BudgetFieldPatch = {
+  cadence?: BudgetCadence;
+  payment_method?: BudgetPaymentMethod;
+  movement_type?: BudgetMovementType;
+  category?: string;
+};
+
+export function parseBudgetFieldPatchFromAnswer(answer: string): BudgetFieldPatch {
+  const patch: BudgetFieldPatch = {};
+  const cadence = parseBudgetCadenceFromAnswer(answer);
+  const payment = parseBudgetPaymentFromAnswer(answer);
+  const movement = parseBudgetMovementFromAnswer(answer);
+  const category = parseBudgetCategoryRenameFromAnswer(answer);
+  if (cadence) patch.cadence = cadence;
+  if (payment) patch.payment_method = payment;
+  if (movement) patch.movement_type = movement;
+  if (category) patch.category = category;
+  return patch;
+}
+
+export function hasBudgetFieldSignals(answer: string): boolean {
+  const patch = parseBudgetFieldPatchFromAnswer(answer);
+  return Boolean(patch.cadence || patch.payment_method || patch.movement_type || patch.category);
 }

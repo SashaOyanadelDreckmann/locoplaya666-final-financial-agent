@@ -80,6 +80,7 @@ import {
   MAX_CHAT_UPLOAD_FILES,
   MAX_TRANSACTION_PRODUCTS,
   MAX_TRANSACTION_PRODUCTS_CREATED_TOTAL,
+  MAX_TRANSACTION_EVIDENCE_RESETS,
   PRIMARY_CHAT_ID,
   type BankSimulation,
 } from './agent-page.constants';
@@ -138,10 +139,12 @@ import { ChatHeader } from './chat-header';
 import { buildPanelBaseCards } from './panel-cards';
 import { useBudgetRows } from './hooks/use-budget-rows';
 import { useAgentShell } from './hooks/use-agent-shell';
-import { mergeBankProductPatch } from './transactions/state.helpers';
+import { buildEvidenceResetPatch, mergeBankProductPatch } from './transactions/state.helpers';
 import { TX_MAX_TOTAL_FILE_BYTES } from './transactions/constants';
 import { getEvidenceUploadCapacity } from '@/lib/transactions-evidence.helpers';
 import { resolveUploadEvidenceSourceHint } from '@/lib/evidence-fidelity.helpers';
+import { alignEvidenceUploadFormat } from '@/lib/evidence-format.helpers';
+import { normalizeUploadFormat } from './transactions/tx-assistant.helpers';
 import {
   buildChatUploadAgentPrompt,
   buildChatUploadFiles,
@@ -2857,6 +2860,28 @@ export default function AgentPage() {
     return true;
   }
 
+  function resetTransactionProductEvidence(): boolean {
+    if (!activeBankProduct) return false;
+    if ((activeBankProduct.parsedDocuments?.length ?? 0) === 0) return false;
+
+    const resetsUsed = activeBankProduct.evidenceResetsUsed ?? 0;
+    if (resetsUsed >= MAX_TRANSACTION_EVIDENCE_RESETS) {
+      setTransactionUploadError(
+        `Alcanzaste el límite de ${MAX_TRANSACTION_EVIDENCE_RESETS} reinicios de evidencia para este producto.`,
+      );
+      return false;
+    }
+
+    const productId = activeBankProduct.id;
+    updateProductById(productId, buildEvidenceResetPatch(resetsUsed + 1));
+    setSavedProductsForBatch((prev) => prev.filter((id) => id !== productId));
+    setTxWizardStep('upload');
+    setTransactionUploadError(null);
+    setDocumentsParseProgress({ stage: 'idle', percent: 0, detail: '' });
+    setDocumentsLoading(false);
+    return true;
+  }
+
   function selectTransactionProduct(productId: string) {
     const selectedProduct = bankSimulation.products.find((p) => p.id === productId) ?? null;
     if (!selectedProduct) return;
@@ -3064,6 +3089,29 @@ export default function AgentPage() {
     const cappedFiles = selectedFiles.slice(0, availableSlots);
     if (cappedFiles.length < selectedFiles.length) {
       setTxCreationNotice(`Se cargaron ${cappedFiles.length} archivos. Límite por producto: ${MAX_EVIDENCE_FILES_PER_PRODUCT}.`);
+    }
+
+    const uploadAlignment = alignEvidenceUploadFormat({
+      uploadFormat: normalizeUploadFormat(activeBankProduct.assistant?.uploadFormat ?? null),
+      files: cappedFiles,
+    });
+    if (!uploadAlignment.ok) {
+      setTransactionUploadError(uploadAlignment.error);
+      return null;
+    }
+    if (
+      uploadAlignment.realigned ||
+      !normalizeUploadFormat(activeBankProduct.assistant?.uploadFormat ?? null)
+    ) {
+      updateProductById(targetProductId, {
+        assistant: {
+          ...normalizeProductAssistantState(activeBankProduct.assistant),
+          uploadFormat: uploadAlignment.effectiveFormat,
+        },
+      });
+    }
+    if (uploadAlignment.notice) {
+      setTxCreationNotice(uploadAlignment.notice);
     }
 
     const names = cappedFiles.map((f) => f.name);
@@ -3963,6 +4011,8 @@ export default function AgentPage() {
         creationNotice={txCreationNotice}
         productsModuleSkipped={bankSimulation.productsModuleSkipped}
         onContinueWithoutProducts={continueWithoutProducts}
+        resetTransactionProductEvidence={resetTransactionProductEvidence}
+        maxEvidenceResets={MAX_TRANSACTION_EVIDENCE_RESETS}
       />
 
       <BudgetModal

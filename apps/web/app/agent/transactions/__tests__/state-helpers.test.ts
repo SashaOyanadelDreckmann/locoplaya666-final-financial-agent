@@ -47,6 +47,23 @@ describe('transactions state helpers', () => {
     expect(merged.assistant?.summaryRegenerationsUsed).toBe(1);
   });
 
+  it('replaces assistant messages when patch explicitly passes an empty array', () => {
+    const merged = mergeBankProductPatch(baseProduct, {
+      assistant: {
+        messages: [],
+        summaryText: null,
+        summaryModel: null,
+        summaryGeneratedAt: null,
+        summaryRegenerationsUsed: 0,
+        lastSummaryFeedback: null,
+        uploadFormat: null,
+      },
+    });
+
+    expect(merged.assistant?.messages).toEqual([]);
+    expect(merged.assistant?.summaryText).toBeNull();
+  });
+
   it('returns an assistant shell when only patch data exists', () => {
     expect(
       mergeAssistantState(undefined, {

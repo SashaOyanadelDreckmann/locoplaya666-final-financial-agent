@@ -284,6 +284,115 @@ describe('budget-chat routes', () => {
     expect(res.body.requires_confirmation).toBeFalsy();
   }, 15000);
 
+  it('updates cadence and payment from a free-form chat command mentioning the row', async () => {
+    const { agent, csrfToken } = await createAuthedAgent();
+    const budgetRows = [
+      { id: 'income_salary', category: 'Sueldo líquido', type: 'income', amount: 900000 },
+      { id: 'expense_food', category: 'Alimentación', type: 'expense', amount: 250000 },
+    ];
+    const res = await agent.post('/api/budget-chat').set('x-csrf-token', csrfToken).send({
+      intent: 'reply',
+      answer: 'alimentación es variable y la pago con tarjeta de crédito',
+      question: '¿Qué otro gasto quieres revisar?',
+      budgetRows,
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.source).toBe('deterministic_field_update');
+    expect(res.body.action?.id).toBe('expense_food');
+    expect(res.body.action?.cadence).toBe('variable');
+    expect(res.body.action?.payment_method).toBe('credit');
+  }, 15000);
+
+  it('applies amount and metadata together in one chat turn', async () => {
+    const { agent, csrfToken } = await createAuthedAgent();
+    const budgetRows = [
+      { id: 'income_salary', category: 'Sueldo líquido', type: 'income', amount: 900000 },
+      { id: 'expense_transport', category: 'Transporte', type: 'expense', amount: 0 },
+    ];
+    const res = await agent.post('/api/budget-chat').set('x-csrf-token', csrfToken).send({
+      intent: 'reply',
+      answer: 'transporte 120 mil fijo con débito',
+      question: '¿Cuánto va al mes en transporte?',
+      assistantFocusRowId: 'expense_transport',
+      budgetRows,
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.source).toBe('deterministic_update');
+    expect(res.body.action?.id).toBe('expense_transport');
+    expect(res.body.action?.amount).toBe(120000);
+    expect(res.body.action?.cadence).toBe('fixed');
+    expect(res.body.action?.payment_method).toBe('debit');
+  }, 15000);
+
+  it('asks cadence on the same row right after setting its amount', async () => {
+    const { agent, csrfToken } = await createAuthedAgent();
+    const budgetRows = [
+      { id: 'income_salary', category: 'Sueldo líquido', type: 'income', amount: 900000 },
+      { id: 'expense_food', category: 'Alimentación', type: 'expense', amount: 0 },
+    ];
+    const res = await agent.post('/api/budget-chat').set('x-csrf-token', csrfToken).send({
+      intent: 'reply',
+      answer: '200000',
+      question: '¿Cuánto gastas al mes en comida y supermercado?',
+      assistantFocusRowId: 'expense_food',
+      budgetRows,
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.action?.amount).toBe(200000);
+    expect(String(res.body.next_question)).toMatch(/fijo|variable|mes a mes/i);
+    expect(res.body.focus_row_id).toBe('expense_food');
+  }, 15000);
+
+  it('updates movement type category from chat like the table selector', async () => {
+    const { agent, csrfToken } = await createAuthedAgent();
+    const budgetRows = [
+      { id: 'income_salary', category: 'Sueldo líquido', type: 'income', amount: 900000 },
+      { id: 'expense_other', category: 'Otros gastos', type: 'expense', amount: 80000 },
+    ];
+    const res = await agent.post('/api/budget-chat').set('x-csrf-token', csrfToken).send({
+      intent: 'reply',
+      answer: 'pon categoría alimentación',
+      question: '¿Qué dato falta completar para otros gastos?',
+      assistantFocusRowId: 'expense_other',
+      budgetRows,
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.source).toBe('deterministic_field_update');
+    expect(res.body.action?.movement_type).toBe('food');
+  }, 15000);
+
+  it('applies intake income when user confirms with sí on a profile-based question', async () => {
+    const { agent, csrfToken } = await createAuthedAgent();
+    const budgetRows = [{ id: 'income_salary', category: 'Sueldo líquido', type: 'income', amount: 0 }];
+    const question =
+      'Según tu perfil, tu ingreso principal ronda $1.450.000. ¿Lo dejamos así?';
+
+    const res = await agent.post('/api/budget-chat').set('x-csrf-token', csrfToken).send({
+      intent: 'reply',
+      answer: 'sí',
+      question,
+      assistantFocusRowId: 'income_salary',
+      budgetRows,
+      intakeData: { exactMonthlyIncome: 1_450_000 },
+      products: [
+        {
+          label: 'Cuenta demo',
+          bank: 'Banco Demo',
+          keyMetrics: { inflows_total: 1000, outflows_total: 0 },
+        },
+      ],
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.source).toBe('deterministic_update');
+    expect(res.body.action?.id).toBe('income_salary');
+    expect(res.body.action?.amount).toBe(1_450_000);
+  }, 15000);
+
   it('uses transaction categories to personalize the first budget question on init', async () => {
     const { agent, csrfToken } = await createAuthedAgent();
     const res = await agent.post('/api/budget-chat').set('x-csrf-token', csrfToken).send({

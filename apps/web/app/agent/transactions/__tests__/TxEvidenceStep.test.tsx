@@ -107,6 +107,47 @@ describe('TxEvidenceStep', () => {
     expect(onAssistantSend).not.toHaveBeenCalled();
   });
 
+  it('hides stale errors while documents are loading', () => {
+    render(
+      <TxEvidenceStep
+        {...buildProps({
+          transactionUploadError: 'Error viejo',
+          documentsLoading: true,
+        })}
+      />,
+    );
+
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('renders informational notices separately from errors', () => {
+    render(
+      <TxEvidenceStep
+        {...buildProps({
+          txAssistantNotice: 'Detectamos Excel / CSV en tus archivos.',
+          txAssistantError: 'Error real',
+        })}
+      />,
+    );
+
+    expect(screen.getByRole('status')).toHaveTextContent(/detectamos excel/i);
+    expect(screen.getByRole('alert')).toHaveTextContent(/error real/i);
+  });
+
+  it('uses format-specific accept when a format is selected', () => {
+    const { container } = render(
+      <TxEvidenceStep
+        {...buildProps({
+          selectedUploadFormat: 'spreadsheet',
+        })}
+      />,
+    );
+
+    const input = container.querySelector('input[type="file"]');
+    expect(input).toHaveAttribute('accept', expect.stringContaining('.xlsx'));
+    expect(input?.getAttribute('accept')).not.toContain('image/*');
+  });
+
   it('hides attach when analysis is already done', () => {
     render(
       <TxEvidenceStep

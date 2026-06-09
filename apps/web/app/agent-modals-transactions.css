@@ -153,6 +153,13 @@
   color: rgba(198, 218, 234, 0.72);
 }
 
+.transactions-modal .tx-minimal-summary-note {
+  margin: 8px 0 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: rgba(203, 220, 233, 0.78);
+}
+
 .transactions-modal .tx-minimal-summary-meta,
 .transactions-modal .tx-minimal-summary-foot {
   display: flex;
@@ -177,6 +184,26 @@
   padding: 16px;
   display: grid;
   gap: 14px;
+}
+
+.transactions-modal .tx-minimal-chat-head {
+  display: grid;
+  gap: 6px;
+}
+
+.transactions-modal .tx-minimal-chat-kicker {
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(198, 218, 234, 0.72);
+}
+
+.transactions-modal .tx-minimal-chat-intro,
+.transactions-modal .tx-ap-chat-intro {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: rgba(203, 220, 233, 0.68);
 }
 
 .transactions-modal .tx-minimal-chat-thread {
@@ -236,6 +263,92 @@
 
 .transactions-modal .tx-minimal-send-btn:disabled {
   opacity: 0.48;
+}
+
+.transactions-modal .tx-feedback-error,
+.transactions-modal .tx-feedback-notice {
+  margin: 8px 2px 0;
+  padding: 10px 12px;
+  border-radius: 14px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.transactions-modal .tx-feedback-error {
+  color: rgba(255, 214, 214, 0.96);
+  background: rgba(88, 24, 32, 0.34);
+  border: 1px solid rgba(214, 108, 118, 0.34);
+}
+
+.transactions-modal .tx-feedback-notice {
+  color: rgba(214, 232, 246, 0.92);
+  background: rgba(34, 58, 78, 0.42);
+  border: 1px solid rgba(146, 178, 204, 0.24);
+}
+
+.transactions-modal .tx-analyst-pending-shell {
+  display: grid;
+  gap: 14px;
+  padding: 8px 0 12px;
+}
+
+.transactions-modal .tx-analyst-pending-card {
+  padding: 20px;
+  border-radius: 24px;
+  border: 1px solid rgba(193, 215, 233, 0.18);
+  background: linear-gradient(180deg, rgba(19, 31, 44, 0.86), rgba(10, 18, 28, 0.9));
+  box-shadow:
+    0 22px 50px rgba(4, 12, 20, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.transactions-modal .tx-analyst-pending-kicker {
+  display: block;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(198, 218, 234, 0.72);
+}
+
+.transactions-modal .tx-analyst-pending-copy {
+  margin: 10px 0 0;
+  font-size: 16px;
+  line-height: 1.45;
+  color: rgba(242, 248, 252, 0.95);
+}
+
+.transactions-modal .tx-analyst-pending-subcopy {
+  margin: 8px 0 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: rgba(203, 220, 233, 0.76);
+}
+
+.transactions-modal .tx-analyst-pending-skeleton {
+  display: grid;
+  gap: 10px;
+}
+
+.transactions-modal .tx-analyst-pending-skeleton span {
+  display: block;
+  height: 12px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.05));
+  background-size: 200% 100%;
+  animation: txPendingShimmer 1.4s ease-in-out infinite;
+}
+
+.transactions-modal .tx-analyst-pending-skeleton span:nth-child(2) {
+  width: 88%;
+}
+
+.transactions-modal .tx-analyst-pending-skeleton span:nth-child(3) {
+  width: 72%;
+}
+
+@keyframes txPendingShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 @keyframes modalIn {
@@ -16652,6 +16765,62 @@ html:not([data-visual-mode='light-outline']) .agent-panel .panel-feature-card {
 
   .transactions-modal .tx-evidence-product-bar {
     gap: 8px;
+  }
+
+  .transactions-modal .tx-minimal-summary-shell {
+    gap: 12px;
+    padding-bottom: max(8px, env(safe-area-inset-bottom, 0px));
+  }
+
+  .transactions-modal .tx-minimal-summary-card,
+  .transactions-modal .tx-minimal-chat-card {
+    border-radius: 18px;
+    padding: 16px;
+  }
+
+  .transactions-modal .tx-minimal-summary-head,
+  .transactions-modal .tx-minimal-chat-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .transactions-modal .tx-minimal-chat-intro,
+  .transactions-modal .tx-ap-chat-intro {
+    font-size: 11px;
+  }
+
+  .transactions-modal .tx-minimal-chat-thread {
+    max-height: min(38vh, 320px);
+  }
+
+  .transactions-modal .tx-minimal-composer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .transactions-modal .tx-minimal-composer-input {
+    min-height: 56px;
+    font-size: 16px !important;
+  }
+
+  .transactions-modal .tx-minimal-send-btn {
+    width: 100%;
+    min-height: 48px;
+  }
+
+  .transactions-modal .tx-analyst-pending-card {
+    padding: 16px;
+    border-radius: 18px;
+  }
+
+  .transactions-modal .tx-analyst-pending-copy {
+    font-size: 15px;
+  }
+
+  .transactions-modal .tx-feedback-error,
+  .transactions-modal .tx-feedback-notice {
+    font-size: 12px;
+    padding: 9px 11px;
   }
 }
 

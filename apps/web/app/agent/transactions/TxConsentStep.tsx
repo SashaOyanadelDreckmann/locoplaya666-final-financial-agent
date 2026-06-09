@@ -8,6 +8,7 @@ type TxConsentStepProps = {
   filteredInstitutions: string[];
   filteredTemplates: Array<{ label: string }>;
   consentAccepted: boolean;
+  consentLocked?: boolean;
   canContinueAuto: boolean;
   consentGuidance?: string | null;
   isDockingToLibrary: boolean;
@@ -40,22 +41,28 @@ export function TxConsentStep(props: TxConsentStepProps) {
             Institución (sugerida)
             <div className="tx-picker-field">
               <input
+                id="tx-institution-input"
                 value={props.quickBank}
                 onChange={(e) => {
                   props.onBankChange(e.target.value);
                 }}
                 onFocus={props.onOpenInstitutionCatalog}
                 placeholder="Busca o escribe una institución"
+                aria-controls="tx-institution-catalog"
+                aria-expanded={props.showInstitutionCatalog}
+                aria-autocomplete="list"
               />
               <button
                 type="button"
                 className="tx-picker-toggle"
                 onClick={props.onToggleInstitutionCatalog}
+                aria-expanded={props.showInstitutionCatalog}
+                aria-controls="tx-institution-catalog"
               >
                 {props.showInstitutionCatalog ? 'Ocultar catálogo' : 'Ver catálogo'}
               </button>
               {props.showInstitutionCatalog && (
-                <div className="tx-picker-catalog">
+                <div id="tx-institution-catalog" className="tx-picker-catalog" role="listbox" aria-label="Instituciones sugeridas">
                   {props.filteredInstitutions.map((institution) => (
                     <button
                       key={institution}
@@ -74,22 +81,28 @@ export function TxConsentStep(props: TxConsentStepProps) {
             Plantilla de producto o servicio
             <div className="tx-picker-field">
               <input
+                id="tx-template-input"
                 value={props.productTemplate}
                 onChange={(e) => {
                   props.onTemplateChange(e.target.value);
                 }}
                 onFocus={props.onOpenTemplateCatalog}
                 placeholder="Busca o escribe una plantilla"
+                aria-controls="tx-template-catalog"
+                aria-expanded={props.showTemplateCatalog}
+                aria-autocomplete="list"
               />
               <button
                 type="button"
                 className="tx-picker-toggle"
                 onClick={props.onToggleTemplateCatalog}
+                aria-expanded={props.showTemplateCatalog}
+                aria-controls="tx-template-catalog"
               >
                 {props.showTemplateCatalog ? 'Ocultar catálogo' : 'Ver catálogo'}
               </button>
               {props.showTemplateCatalog && (
-                <div className="tx-picker-catalog">
+                <div id="tx-template-catalog" className="tx-picker-catalog" role="listbox" aria-label="Plantillas de producto">
                   {props.filteredTemplates.map((template) => (
                     <button
                       key={template.label}
@@ -106,9 +119,16 @@ export function TxConsentStep(props: TxConsentStepProps) {
           </label>
           <button
             type="button"
-            className={`tx-consent-toggle ${props.consentAccepted ? 'is-checked' : ''}`}
+            className={`tx-consent-toggle ${props.consentAccepted ? 'is-checked' : ''}${props.consentLocked ? ' is-locked' : ''}`}
             role="checkbox"
             aria-checked={props.consentAccepted}
+            aria-disabled={props.consentLocked || undefined}
+            disabled={props.consentLocked}
+            title={
+              props.consentLocked
+                ? 'El consentimiento queda bloqueado mientras el producto esté autorizado.'
+                : undefined
+            }
             onClick={props.onToggleConsent}
           >
             <span className="tx-consent-toggle-box" aria-hidden="true" />

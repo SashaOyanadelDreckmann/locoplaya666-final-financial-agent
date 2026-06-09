@@ -28,8 +28,10 @@ import {
   isBulkDeleteRequest,
   isBudgetSkipAnswer,
   parseBudgetCadenceFromAnswer,
+  parseBudgetFieldPatchFromAnswer,
   parseBudgetMovementFromAnswer,
   parseBudgetPaymentFromAnswer,
+  hasBudgetFieldSignals,
   pickNextBudgetRowFieldGap,
   canonicalBudgetRowId,
   computeBudgetCompletion,
@@ -42,6 +44,7 @@ import {
   getEffectiveBudgetRows,
   inferBudgetFocusRowId,
   isAffirmativeSuggestionAnswer,
+  resolveBudgetAffirmativeAmount,
   isBareBudgetAmountAnswer,
   pickContextualFocusRow,
   reconcileBudgetRows,
@@ -185,7 +188,10 @@ function sanitizeBudgetRow(raw: unknown): BudgetRow | null {
     product: compactText(item.product, 80) || undefined,
     institution: compactText(item.institution, 60) || undefined,
     note: compactText(item.note, 160) || undefined,
-    cadence: normalizeCadence(item.cadence, type),
+    cadence:
+      item.cadence === 'fixed' || item.cadence === 'variable' || item.cadence === 'oneoff'
+        ? normalizeCadence(item.cadence, type)
+        : undefined,
     paymentMethod: normalizePaymentMethod(item.paymentMethod),
     movementType: normalizeMovementType(item.movementType),
     momentum:
@@ -402,10 +408,14 @@ function detectBudgetIntent(answer: string) {
     return 'update_amount';
   }
   if (/\d/.test(text)) return 'update_amount';
+  const hasFields = hasBudgetFieldSignals(answer);
+  const hasAmount = extractClpAmount(answer) !== null;
+  if (hasAmount && hasFields) return 'update_combined';
   if (
-    parseBudgetCadenceFromAnswer(answer) ||
-    parseBudgetPaymentFromAnswer(answer) ||
-    parseBudgetMovementFromAnswer(answer)
+    hasFields ||
+    /\b(medio de pago|forma de pago|pago con|recurrencia|dejalo fijo|dejalo variable|ponlo fijo|ponlo variable)\b/.test(
+      text,
+    )
   ) {
     return 'update_field';
   }
@@ -687,30 +697,67 @@ function buildDeterministicUpdate(params: {
 
   let amount = extractClpAmount(params.answer);
   if (amount === null && isAffirmativeSuggestionAnswer(params.answer)) {
-    const hint = params.context.rowHints.get(canonicalBudgetRowId(targetRow.id));
+    const questionText = extractInferenceQuestionText(params.question) || params.question;
     const suggestion = buildBudgetRowSuggestions(params.rows, params.context).find(
       (item) => canonicalBudgetRowId(item.rowId) === canonicalBudgetRowId(targetRow.id),
     );
-    if (hint && hint.estimatedMonthly > 0) amount = hint.estimatedMonthly;
-    else if (suggestion && suggestion.suggestedAmount > 0) amount = suggestion.suggestedAmount;
+    amount = resolveBudgetAffirmativeAmount({
+      row: targetRow,
+      context: params.context,
+      question: questionText,
+      suggestionAmount: suggestion?.suggestedAmount ?? null,
+    });
   }
   if (amount === null) return null;
 
+  const fieldPatch = parseBudgetFieldPatchFromAnswer(params.answer);
   const rowExists = params.rows.some((row) => row.id === targetRow!.id);
-  const action = {
+  const action: BudgetTableAction = {
     kind: rowExists ? 'update' : 'add',
     id: targetRow.id,
-    category: targetRow.category,
+    category: fieldPatch.category ?? targetRow.category,
     type: targetRow.type,
     amount,
-    cadence: normalizeCadence(targetRow.cadence, targetRow.type),
-    payment_method: targetRow.paymentMethod ?? (targetRow.type === 'income' ? 'transfer' : 'debit'),
-    movement_type: targetRow.movementType ?? undefined,
+    ...(fieldPatch.cadence || targetRow.cadence
+      ? { cadence: normalizeCadence(fieldPatch.cadence ?? targetRow.cadence, targetRow.type) }
+      : {}),
+    ...(fieldPatch.payment_method || targetRow.paymentMethod
+      ? {
+          payment_method:
+            fieldPatch.payment_method ??
+            targetRow.paymentMethod ??
+            (targetRow.type === 'income' ? 'transfer' : 'debit'),
+        }
+      : {}),
+    ...(fieldPatch.movement_type || targetRow.movementType
+      ? { movement_type: fieldPatch.movement_type ?? targetRow.movementType }
+      : {}),
   };
   const projectedRows = reconcileBudgetRows(
     rowExists
-      ? params.rows.map((row) => (row.id === targetRow!.id ? { ...row, amount } : row))
-      : [...params.rows, { ...targetRow, amount }],
+      ? params.rows.map((row) =>
+          row.id === targetRow!.id
+            ? {
+                ...row,
+                amount,
+                category: action.category ?? row.category,
+                ...(action.cadence ? { cadence: action.cadence } : {}),
+                ...(action.payment_method ? { paymentMethod: action.payment_method } : {}),
+                ...(action.movement_type ? { movementType: action.movement_type } : {}),
+              }
+            : row,
+        )
+      : [
+          ...params.rows,
+          {
+            ...targetRow,
+            amount,
+            category: action.category ?? targetRow.category,
+            ...(action.cadence ? { cadence: action.cadence } : {}),
+            ...(action.payment_method ? { paymentMethod: action.payment_method } : {}),
+            ...(action.movement_type ? { movementType: action.movement_type } : {}),
+          },
+        ],
   );
   const projectedContext = createAssistantContext({
     rows: projectedRows,
@@ -719,7 +766,8 @@ function buildDeterministicUpdate(params: {
     products: params.context.products,
     chatAnswers: params.context.chatAnswers,
   });
-  const { focus, question } = buildBudgetFocusQuestion(projectedRows, null, projectedContext);
+  const updatedRow = projectedRows.find((row) => row.id === targetRow!.id) ?? targetRow;
+  const { focus, question } = buildBudgetFocusQuestion(projectedRows, updatedRow, projectedContext);
   return buildBudgetReply({
     reply: buildBudgetAcknowledgmentReply({
       userAnswer: params.answer,
@@ -753,35 +801,23 @@ function buildDeterministicFieldUpdate(params: {
     }) ?? params.activeRow;
   if (!targetRow || Number(targetRow.amount ?? 0) <= 0) return null;
 
-  const askedField = inferBudgetFieldFromQuestion(params.question);
-  const cadence = parseBudgetCadenceFromAnswer(params.answer);
-  const payment = parseBudgetPaymentFromAnswer(params.answer);
-  const movement = parseBudgetMovementFromAnswer(params.answer);
-  const patch: Partial<BudgetTableAction> = {};
-
-  if (cadence && (!askedField || askedField === 'cadence')) {
-    patch.cadence = normalizeBudgetCadence(cadence, targetRow.type);
+  const fieldPatch = parseBudgetFieldPatchFromAnswer(params.answer);
+  if (!fieldPatch.cadence && !fieldPatch.payment_method && !fieldPatch.movement_type && !fieldPatch.category) {
+    return null;
   }
-  if (payment && (!askedField || askedField === 'paymentMethod')) {
-    patch.payment_method = payment;
-  }
-  if (movement && (!askedField || askedField === 'movementType')) {
-    patch.movement_type = movement;
-  }
-  if (Object.keys(patch).length === 0) return null;
 
   const action: BudgetTableAction = {
     kind: 'update',
     id: targetRow.id,
-    category: targetRow.category,
+    category: fieldPatch.category ?? targetRow.category,
     type: targetRow.type,
     amount: Math.max(0, Math.round(Number(targetRow.amount ?? 0))),
-    cadence: normalizeBudgetCadence(patch.cadence ?? targetRow.cadence, targetRow.type),
+    cadence: normalizeBudgetCadence(fieldPatch.cadence ?? targetRow.cadence, targetRow.type),
     payment_method:
-      patch.payment_method ??
+      fieldPatch.payment_method ??
       targetRow.paymentMethod ??
       (targetRow.type === 'income' ? 'transfer' : 'debit'),
-    movement_type: patch.movement_type ?? targetRow.movementType ?? undefined,
+    movement_type: fieldPatch.movement_type ?? targetRow.movementType ?? undefined,
   };
 
   const projectedRows = reconcileBudgetRows(
@@ -789,6 +825,7 @@ function buildDeterministicFieldUpdate(params: {
       row.id === targetRow.id
         ? {
             ...row,
+            category: action.category,
             cadence: action.cadence,
             paymentMethod: action.payment_method,
             movementType: action.movement_type,
@@ -805,31 +842,31 @@ function buildDeterministicFieldUpdate(params: {
   });
   const updatedRow = projectedRows.find((row) => row.id === targetRow.id) ?? targetRow;
   const { focus, question } = buildBudgetFocusQuestion(projectedRows, updatedRow, projectedContext);
-  const paymentLabel =
-    patch.payment_method === 'transfer'
-      ? 'transferencia'
-      : patch.payment_method === 'debit'
-        ? 'débito'
-        : patch.payment_method === 'credit'
-          ? 'crédito'
-          : patch.payment_method === 'cash'
-            ? 'efectivo'
-            : patch.payment_method === 'prepaid'
-              ? 'prepago'
-              : null;
-  const movementLabel = patch.movement_type
-    ? BUDGET_MOVEMENT_TYPE_OPTIONS.find((item) => item.value === patch.movement_type)?.label?.toLowerCase()
-    : null;
-  const detail =
-    patch.cadence === 'fixed'
-      ? 'recurrencia fija'
-      : patch.cadence === 'variable'
-        ? 'recurrencia variable'
-        : paymentLabel
-          ? `pago con ${paymentLabel}`
-          : movementLabel
-            ? `tipo ${movementLabel}`
-            : 'detalle';
+  const changedParts: string[] = [];
+  if (fieldPatch.cadence) {
+    changedParts.push(fieldPatch.cadence === 'fixed' ? 'recurrencia fija' : 'recurrencia variable');
+  }
+  if (fieldPatch.payment_method) {
+    const paymentLabel =
+      fieldPatch.payment_method === 'transfer'
+        ? 'transferencia'
+        : fieldPatch.payment_method === 'debit'
+          ? 'débito'
+          : fieldPatch.payment_method === 'credit'
+            ? 'crédito'
+            : fieldPatch.payment_method === 'cash'
+              ? 'efectivo'
+              : fieldPatch.payment_method === 'prepaid'
+                ? 'prepago'
+                : 'otro medio';
+    changedParts.push(`pago con ${paymentLabel}`);
+  }
+  if (fieldPatch.movement_type) {
+    const movementLabel = BUDGET_MOVEMENT_TYPE_OPTIONS.find((item) => item.value === fieldPatch.movement_type)?.label;
+    if (movementLabel) changedParts.push(`tipo ${movementLabel.toLowerCase()}`);
+  }
+  if (fieldPatch.category) changedParts.push(`nombre ${fieldPatch.category}`);
+  const detail = changedParts.length > 0 ? changedParts.join(', ') : 'detalle';
   const cue = extractUserAnswerCue(params.answer);
   const reply = cue
     ? `Para ${updatedRow.category.toLowerCase()}, dejé ${detail} según “${cue}”.`
@@ -1239,7 +1276,11 @@ router.post(
       }
     }
 
-    if (intent === 'reply' && answer && detectBudgetIntent(answer) === 'update_field') {
+    if (
+      intent === 'reply' &&
+      answer &&
+      (detectBudgetIntent(answer) === 'update_field' || detectBudgetIntent(answer) === 'update_combined')
+    ) {
       const fieldUpdate = buildDeterministicFieldUpdate({
         rows,
         answer,
@@ -1256,6 +1297,26 @@ router.post(
           buildWriterPolishInput({ draft: fieldUpdate, context, rows, userAnswer: answer }),
           { market_snapshot: emptyMarketSnapshot() },
         );
+      }
+
+      if (detectBudgetIntent(answer) === 'update_combined' || /\d/.test(answer)) {
+        const combinedUpdate = buildDeterministicUpdate({
+          rows,
+          answer,
+          question,
+          context,
+          assistantFocusRowId,
+          manualFocusRowId,
+          activeRow: resolvedActiveRow,
+        });
+        if (combinedUpdate) {
+          return sendBudgetChatResponse(
+            res,
+            combinedUpdate,
+            buildWriterPolishInput({ draft: combinedUpdate, context, rows, userAnswer: answer }),
+            { market_snapshot: emptyMarketSnapshot() },
+          );
+        }
       }
     }
 

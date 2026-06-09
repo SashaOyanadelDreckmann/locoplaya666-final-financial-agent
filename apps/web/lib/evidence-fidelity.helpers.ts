@@ -7,6 +7,7 @@ import {
 } from '@financial-agent/shared';
 import type { BankProduct, TxUploadFormat } from '@/app/agent/transactions/types';
 import { normalizeUploadFormat } from '@/app/agent/transactions/tx-assistant.helpers';
+import { alignEvidenceUploadFormat } from '@/lib/evidence-format.helpers';
 
 export type { EvidenceFidelity, EvidenceSourceHint };
 
@@ -26,10 +27,24 @@ export function resolveUploadEvidenceSourceHint(params: {
   files?: File[];
   looseTextEvidence?: boolean;
 }): EvidenceSourceHint | undefined {
+  const files = params.files ?? [];
   const normalizedFormat = normalizeUploadFormat(params.uploadFormat);
+
+  if (params.looseTextEvidence && files.length === 0) return 'text';
+
+  if (files.length > 0) {
+    const aligned = alignEvidenceUploadFormat({
+      uploadFormat: normalizedFormat,
+      files,
+      looseTextEvidence: params.looseTextEvidence,
+    });
+    if (aligned.ok) return aligned.sourceHint;
+    return inferEvidenceSourceFromFiles(files);
+  }
+
   if (normalizedFormat) return normalizedFormat;
   if (params.looseTextEvidence) return 'text';
-  return inferEvidenceSourceFromFiles(params.files ?? []);
+  return undefined;
 }
 
 export function readProductEvidenceFidelity(

@@ -19,14 +19,21 @@ export function mergeAssistantState(
   patch: Partial<AssistantState> | undefined,
 ): AssistantState | undefined {
   if (!current && !patch) return undefined;
+  const hasPatch = Boolean(patch);
+  const messages =
+    hasPatch && patch && 'messages' in patch
+      ? (patch.messages ?? [])
+      : mergeUniqueMessages(current?.messages, patch?.messages);
+  const pick = <K extends keyof AssistantState>(key: K, fallback: AssistantState[K]): AssistantState[K] =>
+    hasPatch && patch && key in patch ? ((patch[key] ?? fallback) as AssistantState[K]) : (patch?.[key] ?? current?.[key] ?? fallback);
   return {
-    messages: mergeUniqueMessages(current?.messages, patch?.messages),
-    uploadFormat: patch?.uploadFormat ?? current?.uploadFormat ?? null,
-    summaryText: patch?.summaryText ?? current?.summaryText ?? null,
-    summaryModel: patch?.summaryModel ?? current?.summaryModel ?? null,
-    summaryGeneratedAt: patch?.summaryGeneratedAt ?? current?.summaryGeneratedAt ?? null,
-    summaryRegenerationsUsed: patch?.summaryRegenerationsUsed ?? current?.summaryRegenerationsUsed ?? 0,
-    lastSummaryFeedback: patch?.lastSummaryFeedback ?? current?.lastSummaryFeedback ?? null,
+    messages,
+    uploadFormat: pick('uploadFormat', null),
+    summaryText: pick('summaryText', null),
+    summaryModel: pick('summaryModel', null),
+    summaryGeneratedAt: pick('summaryGeneratedAt', null),
+    summaryRegenerationsUsed: pick('summaryRegenerationsUsed', 0),
+    lastSummaryFeedback: pick('lastSummaryFeedback', null),
   };
 }
 
@@ -36,5 +43,23 @@ export function mergeBankProductPatch(product: BankProduct, updates: Partial<Ban
     ...product,
     ...updates,
     assistant: nextAssistant,
+  };
+}
+
+export function buildEvidenceResetPatch(nextResetsUsed: number): Partial<BankProduct> {
+  return {
+    parsedDocuments: [],
+    uploadedFiles: [],
+    dashboard: undefined,
+    evidenceResetsUsed: nextResetsUsed,
+    assistant: {
+      messages: [],
+      uploadFormat: null,
+      summaryText: null,
+      summaryModel: null,
+      summaryGeneratedAt: null,
+      summaryRegenerationsUsed: 0,
+      lastSummaryFeedback: null,
+    },
   };
 }
