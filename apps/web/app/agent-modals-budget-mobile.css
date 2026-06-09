@@ -670,7 +670,7 @@
   }
 
   .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact .budget-table-bottom-actions {
-    margin: 0 !important;
-    padding: 0 0 calc(env(safe-area-inset-bottom, 0px) + 18px) !important;
+    margin: 8px 0 0 !important;
+    padding: 0 8px calc(env(safe-area-inset-bottom, 0px) + 10px) !important;
   }
 }
