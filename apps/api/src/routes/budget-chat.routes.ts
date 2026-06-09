@@ -12,8 +12,7 @@ import {
   polishBudgetAssistantCopy,
   type BudgetWriterPolishInput,
 } from '../services/budget-chat-writer.service';
-import { planBudgetAssistantInit, planBudgetAssistantTurn } from '../services/budget-chat-planner.service';
-import { generateOffTopicBriefAnswer } from '../services/budget-chat-offtopic.service';
+import { runBudgetChatAgent } from '../services/budget-chat-agent.service';
 import { CHAT_PIPELINES } from '@financial-agent/shared';
 
 // Pipeline: see CHAT_PIPELINES.budget — structured budget panel assistant (not CoreAgent).
@@ -128,7 +127,7 @@ type BudgetChatResponse = {
   actions: Array<Record<string, unknown>>;
   action: Record<string, unknown> | null;
   source: string;
-  provider: 'deterministic' | 'hybrid' | 'planner';
+  provider: 'agent' | 'hybrid' | 'deterministic';
   market_snapshot: MarketSnapshot;
   requires_confirmation?: boolean;
   pending_confirmation?: { actions: Array<Record<string, unknown>>; summary: string } | null;
@@ -563,46 +562,42 @@ function actionsToRecords(actions: BudgetTableAction[]): Array<Record<string, un
   return actions.map((action) => ({ ...action }));
 }
 
+const BUDGET_AGENT_FOLLOW_UP = '¿Qué más quieres hacer con la tabla?';
+
 function buildConfirmationApplyReply(params: {
   actions: BudgetTableAction[];
-  rows: BudgetRow[];
-  context: BudgetAssistantContext;
   summary: string;
 }): BudgetChatResponse {
-  const { focus, question } = buildBudgetFocusQuestion(params.rows, null, params.context);
   return buildBudgetReply({
     reply: `Quedó aplicado: ${params.summary || summarizeBudgetActionBatch(params.actions)}.`,
-    followUp: question,
-    focus_row_id: focus?.id ?? params.actions[0]?.id ?? null,
+    followUp: BUDGET_AGENT_FOLLOW_UP,
+    focus_row_id: params.actions[0]?.id ?? null,
     actions: actionsToRecords(params.actions),
     action: params.actions[0] ? { ...params.actions[0] } : null,
-    source: 'deterministic_confirm_apply',
-    provider: 'deterministic',
+    source: 'budget_agent_confirm_apply',
+    provider: 'agent',
     market_snapshot: emptyMarketSnapshot(),
     requires_confirmation: false,
     pending_confirmation: null,
   });
 }
 
-function buildConfirmationRejectedReply(params: {
-  rows: BudgetRow[];
-  context: BudgetAssistantContext;
-}): BudgetChatResponse {
-  const { focus, question } = buildBudgetFocusQuestion(params.rows, null, params.context);
+function buildConfirmationRejectedReply(): BudgetChatResponse {
   return buildBudgetReply({
     reply: 'Sin problema, no aplico esos cambios.',
-    followUp: question,
-    focus_row_id: focus?.id ?? null,
-    source: 'deterministic_confirm_reject',
-    provider: 'deterministic',
+    followUp: BUDGET_AGENT_FOLLOW_UP,
+    focus_row_id: null,
+    source: 'budget_agent_confirm_reject',
+    provider: 'agent',
     market_snapshot: emptyMarketSnapshot(),
     requires_confirmation: false,
     pending_confirmation: null,
   });
 }
 
-function buildPlannerChatReply(params: {
-  plan: {
+function buildAgentChatReply(params: {
+  agent: {
+    assistant_reply: string;
     next_question: string;
     focus_row_id: string | null;
     actions: BudgetTableAction[];
@@ -613,23 +608,28 @@ function buildPlannerChatReply(params: {
   rows: BudgetRow[];
 }): BudgetChatResponse {
   const pending =
-    params.plan.requires_confirmation && params.plan.actions.length > 0
-      ? buildPendingConfirmation(params.plan.actions, params.rows)
+    params.agent.requires_confirmation && params.agent.actions.length > 0
+      ? buildPendingConfirmation(params.agent.actions, params.rows)
       : null;
   const appliedSummary =
-    !params.plan.requires_confirmation && params.plan.actions.length > 0
-      ? summarizeBudgetActionBatch(params.plan.actions)
+    !params.agent.requires_confirmation && params.agent.actions.length > 0
+      ? summarizeBudgetActionBatch(params.agent.actions, params.rows)
       : null;
+  const reply =
+    params.agent.pending_summary ??
+    appliedSummary ??
+    params.agent.assistant_reply ??
+    'Listo.';
   return buildBudgetReply({
-    reply: params.plan.pending_summary ?? appliedSummary ?? 'Sigamos con el siguiente rubro del presupuesto.',
-    followUp: params.plan.next_question,
-    focus_row_id: params.plan.focus_row_id,
-    actions: params.plan.requires_confirmation ? [] : actionsToRecords(params.plan.actions),
-    action: params.plan.requires_confirmation ? null : params.plan.actions[0] ? { ...params.plan.actions[0] } : null,
-    source: params.plan.source,
-    provider: 'planner',
+    reply,
+    followUp: params.agent.next_question,
+    focus_row_id: params.agent.focus_row_id,
+    actions: params.agent.requires_confirmation ? [] : actionsToRecords(params.agent.actions),
+    action: params.agent.requires_confirmation ? null : params.agent.actions[0] ? { ...params.agent.actions[0] } : null,
+    source: params.agent.source,
+    provider: 'agent',
     market_snapshot: emptyMarketSnapshot(),
-    requires_confirmation: params.plan.requires_confirmation,
+    requires_confirmation: params.agent.requires_confirmation,
     pending_confirmation: pending,
   });
 }
@@ -1474,28 +1474,22 @@ router.post(
 
     if (intent === 'init') {
       const marketSnapshot = await getMarketSnapshotOptional();
-      const draft = buildFallbackInit({ rows, context });
-      const initFocus =
-        draft.focus_row_id
-          ? rows.find((row) => canonicalBudgetRowId(row.id) === canonicalBudgetRowId(draft.focus_row_id as string)) ??
-            null
-          : null;
-      const planned = await planBudgetAssistantInit({
+      const focusRow =
+        rows.find((row) => canonicalBudgetRowId(row.id) === canonicalBudgetRowId('income_salary')) ?? rows[0] ?? null;
+      const agentResult = await runBudgetChatAgent({
         rows,
         context,
-        deterministicQuestion: draft.next_question ?? '',
-        focusRow: initFocus,
+        userAnswer: '',
+        currentQuestion: '',
+        focusRow,
+        chatAnswers: [],
+        mode: 'init',
       });
-      const responseDraft = planned ? buildPlannerChatReply({ plan: planned, rows }) : draft;
+      const draft = buildAgentChatReply({ agent: agentResult, rows });
       return sendBudgetChatResponse(
         res,
-        { ...responseDraft, market_snapshot: marketSnapshot },
-        buildWriterPolishInput({
-          draft: responseDraft,
-          context,
-          rows,
-          userAnswer: '',
-        }),
+        { ...draft, market_snapshot: marketSnapshot },
+        buildWriterPolishInput({ draft, context, rows, userAnswer: '' }),
       );
     }
 
@@ -1503,9 +1497,7 @@ router.post(
       if (isBudgetConfirmationAnswer(answer)) {
         const draft = buildConfirmationApplyReply({
           actions: pendingActions,
-          rows,
-          context,
-          summary: pendingRaw?.summary ?? summarizeBudgetActionBatch(pendingActions),
+          summary: pendingRaw?.summary ?? summarizeBudgetActionBatch(pendingActions, rows),
         });
         return sendBudgetChatResponse(
           res,
@@ -1515,19 +1507,7 @@ router.post(
         );
       }
       if (isBudgetRejectionAnswer(answer)) {
-        const draft = buildConfirmationRejectedReply({ rows, context });
-        return sendBudgetChatResponse(
-          res,
-          draft,
-          buildWriterPolishInput({ draft, context, rows, userAnswer: answer }),
-          { market_snapshot: emptyMarketSnapshot() },
-        );
-      }
-    }
-
-    if (intent === 'reply' && answer && isBulkDeleteRequest(answer)) {
-      const draft = buildBulkDeleteConfirmReply({ rows, answer });
-      if (draft) {
+        const draft = buildConfirmationRejectedReply();
         return sendBudgetChatResponse(
           res,
           draft,
@@ -1538,291 +1518,41 @@ router.post(
     }
 
     if (intent === 'reply' && answer) {
-      const categoryTarget =
-        resolveBudgetChatTargetRow(rows, question, {
-          manualFocusRowId,
-          assistantFocusRowId,
-          activeRow: resolvedActiveRow,
-          answer,
-        }) ?? resolvedActiveRow;
-      if (categoryTarget) {
-        const focusGap = pickNextBudgetRowFieldGap(categoryTarget, context);
-        if (focusGap === 'movementType') {
-          const movementTypeUpdate = buildDeterministicMovementTypeUpdate({
-            rows,
-            answer,
-            question,
-            context,
-            assistantFocusRowId,
-            manualFocusRowId,
-            activeRow: resolvedActiveRow,
-          });
-          if (movementTypeUpdate) {
-            return sendBudgetChatResponse(
-              res,
-              movementTypeUpdate,
-              buildWriterPolishInput({ draft: movementTypeUpdate, context, rows, userAnswer: answer }),
-              { market_snapshot: emptyMarketSnapshot() },
-            );
-          }
-        }
-        if (focusGap === 'category') {
-          const categoryUpdate = buildDeterministicCategoryUpdate({
-            rows,
-            answer,
-            question,
-            context,
-            assistantFocusRowId,
-            manualFocusRowId,
-            activeRow: resolvedActiveRow,
-          });
-          if (categoryUpdate) {
-            return sendBudgetChatResponse(
-              res,
-              categoryUpdate,
-              buildWriterPolishInput({ draft: categoryUpdate, context, rows, userAnswer: answer }),
-              { market_snapshot: emptyMarketSnapshot() },
-            );
-          }
-        }
-      }
-    }
-
-    if (
-      intent === 'reply' &&
-      answer &&
-      (detectBudgetIntent(answer) === 'update_field' || detectBudgetIntent(answer) === 'update_combined')
-    ) {
-      const fieldUpdate = buildDeterministicFieldUpdate({
-        rows,
-        answer,
-        question,
-        context,
-        assistantFocusRowId,
-        manualFocusRowId,
-        activeRow: resolvedActiveRow,
-      });
-      if (fieldUpdate) {
-        return sendBudgetChatResponse(
-          res,
-          fieldUpdate,
-          buildWriterPolishInput({ draft: fieldUpdate, context, rows, userAnswer: answer }),
-          { market_snapshot: emptyMarketSnapshot() },
-        );
-      }
-
-      if (detectBudgetIntent(answer) === 'update_combined' || /\d/.test(answer)) {
-        const combinedUpdate = buildDeterministicUpdate({
-          rows,
-          answer,
-          question,
-          context,
-          assistantFocusRowId,
-          manualFocusRowId,
-          activeRow: resolvedActiveRow,
-        });
-        if (combinedUpdate) {
-          return sendBudgetChatResponse(
-            res,
-            combinedUpdate,
-            buildWriterPolishInput({ draft: combinedUpdate, context, rows, userAnswer: answer }),
-            { market_snapshot: emptyMarketSnapshot() },
-          );
-        }
-      }
-    }
-
-    if (intent === 'reply' && answer && !extractClpAmount(answer) && !isBudgetEducationalQuestion(answer)) {
-      const answerIntent = detectBudgetIntent(answer);
-      const clarifyIntent =
-        answerIntent === 'update_amount' ||
-        answerIntent === 'unclear' ||
-        /\b(gasto|gastos|pago|pagamos|destino|sale|van)\b/.test(normalizeLooseText(answer));
-      const categoryTarget =
-        resolveBudgetChatTargetRow(rows, question, {
-          manualFocusRowId,
-          assistantFocusRowId,
-          activeRow: resolvedActiveRow,
-          answer,
-        }) ?? null;
-      const answerFocusId = inferBudgetFocusRowId(answer);
-      if (clarifyIntent && categoryTarget && answerFocusId && Number(categoryTarget.amount ?? 0) <= 0) {
-        const clarified = buildCategoryClarificationReply({ userAnswer: answer, row: categoryTarget });
-        const draft = buildBudgetReply({
-          reply: clarified.reply,
-          followUp: clarified.followUp,
-          focus_row_id: categoryTarget.id,
-          source: 'deterministic_category_clarify',
-          market_snapshot: emptyMarketSnapshot(),
-        });
-        return sendBudgetChatResponse(
-          res,
-          draft,
-          buildWriterPolishInput({ draft, context, rows, userAnswer: answer }),
-          { market_snapshot: emptyMarketSnapshot() },
-        );
-      }
-    }
-
-    if (intent === 'reply' && answer && isBudgetOffTopicAnswer(answer)) {
       const focusRow =
         resolvedActiveRow ??
         (assistantFocusRowId
           ? rows.find((row) => canonicalBudgetRowId(row.id) === canonicalBudgetRowId(assistantFocusRowId)) ?? null
           : null);
-      const briefAnswer = await generateOffTopicBriefAnswer(answer);
-      const packaged = buildOffTopicBriefReply({
-        rows,
-        focusRow,
-        context,
-        briefAnswer,
-      });
-      const draft = buildBudgetReply({
-        reply: packaged.reply,
-        followUp: packaged.followUp,
-        focus_row_id: packaged.focusRowId,
-        source: 'deterministic_off_topic',
-        market_snapshot: emptyMarketSnapshot(),
-      });
-      return sendBudgetChatResponse(
-        res,
-        draft,
-        buildWriterPolishInput({ draft, context, rows, userAnswer: answer }),
-        { market_snapshot: emptyMarketSnapshot() },
-      );
-    }
-
-    if (intent === 'reply' && answer) {
-      const focusRow =
-        resolvedActiveRow ??
-        (assistantFocusRowId
-          ? rows.find((row) => canonicalBudgetRowId(row.id) === canonicalBudgetRowId(assistantFocusRowId)) ?? null
-          : null);
-      const planned = await planBudgetAssistantTurn({
+      const agentResult = await runBudgetChatAgent({
         rows,
         context,
         userAnswer: answer,
         currentQuestion: question,
         focusRow,
         chatAnswers,
+        mode: 'reply',
       });
-      if (planned) {
-        const draft = buildPlannerChatReply({ plan: planned, rows });
-        return sendBudgetChatResponse(
-          res,
-          draft,
-          buildWriterPolishInput({ draft, context, rows, userAnswer: answer }),
-          { market_snapshot: emptyMarketSnapshot() },
-        );
-      }
-    }
-
-    if (
-      intent === 'reply' &&
-      answer &&
-      (isAffirmativeSuggestionAnswer(answer) ||
-        (/\d/.test(answer) && (isBareBudgetAmountAnswer(answer) || detectBudgetIntent(answer) === 'update_amount')))
-    ) {
-      const deterministicUpdate = buildDeterministicUpdate({
-        rows,
-        answer,
-        question,
-        context,
-        assistantFocusRowId,
-        manualFocusRowId,
-        activeRow: resolvedActiveRow,
-      });
-      if (deterministicUpdate) {
-        return sendBudgetChatResponse(
-          res,
-          deterministicUpdate,
-          buildWriterPolishInput({ draft: deterministicUpdate, context, rows, userAnswer: answer }),
-          { market_snapshot: emptyMarketSnapshot() },
-        );
-      }
-    }
-
-    if (intent === 'reply' && isBudgetEducationalQuestion(answer)) {
-      const draft = buildEducationReply({ answer, rows, activeRow: resolvedActiveRow, context });
+      const draft = buildAgentChatReply({ agent: agentResult, rows });
+      const marketSnapshot = await getMarketSnapshotOptional();
       return sendBudgetChatResponse(
         res,
-        draft,
+        { ...draft, market_snapshot: marketSnapshot },
         buildWriterPolishInput({ draft, context, rows, userAnswer: answer }),
-        { market_snapshot: emptyMarketSnapshot() },
       );
     }
 
-    if (intent === 'reply' && detectBudgetIntent(answer) === 'greeting') {
-      const draft = buildGreetingReply({ rows, activeRow: resolvedActiveRow, context });
-      return sendBudgetChatResponse(
-        res,
-        draft,
-        buildWriterPolishInput({ draft, context, rows, userAnswer: answer }),
-        { market_snapshot: emptyMarketSnapshot() },
-      );
-    }
-
-    if (intent === 'reply' && detectBudgetIntent(answer) === 'status_review') {
-      const draft = buildStatusReply({ rows, context });
-      return sendBudgetChatResponse(
-        res,
-        draft,
-        buildWriterPolishInput({ draft, context, rows, userAnswer: answer }),
-        { market_snapshot: emptyMarketSnapshot() },
-      );
-    }
-
-    if (intent === 'reply' && detectBudgetIntent(answer) === 'delete_row') {
-      const draft = buildSingleDeleteConfirmReply({
-        rows,
-        answer,
-        question,
-        context,
-        assistantFocusRowId,
-        manualFocusRowId,
-        activeRow: resolvedActiveRow,
-      });
-      if (draft) {
-        return sendBudgetChatResponse(
-          res,
-          draft,
-          buildWriterPolishInput({ draft, context, rows, userAnswer: answer }),
-          { market_snapshot: emptyMarketSnapshot() },
-        );
-      }
-    }
-
-    if (intent === 'reply' && detectBudgetIntent(answer) === 'advice') {
-      const draft = buildAdviceReply({ rows, context });
-      return sendBudgetChatResponse(
-        res,
-        draft,
-        buildWriterPolishInput({ draft, context, rows, userAnswer: answer }),
-        { market_snapshot: emptyMarketSnapshot() },
-      );
-    }
-
-    const marketSnapshot = await getMarketSnapshotOptional();
-    const fallback = buildConversationalFallback({
-      answer,
-      rows,
-      activeRow: resolvedActiveRow,
-      context,
-      question,
-      assistantFocusRowId,
-      manualFocusRowId,
+    const draft = buildBudgetReply({
+      reply: 'Cuéntame qué quieres cambiar en la tabla.',
+      followUp: BUDGET_AGENT_FOLLOW_UP,
+      focus_row_id: null,
+      source: 'budget_agent_empty',
+      provider: 'agent',
+      market_snapshot: emptyMarketSnapshot(),
     });
     return sendBudgetChatResponse(
       res,
-      {
-        ...fallback,
-        market_snapshot: marketSnapshot,
-        source:
-          fallback.source === 'deterministic_fallback' && snapshot.signals.coreFillRate >= 100
-            ? 'deterministic_fallback_complete'
-            : fallback.source,
-      },
-      buildWriterPolishInput({ draft: fallback, context, rows, userAnswer: answer }),
+      draft,
+      buildWriterPolishInput({ draft, context, rows, userAnswer: answer }),
     );
   }),
 );

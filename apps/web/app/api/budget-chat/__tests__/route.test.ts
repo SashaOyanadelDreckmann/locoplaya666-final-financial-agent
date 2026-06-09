@@ -17,7 +17,7 @@ describe('budget-chat route proxy', () => {
     jest.clearAllMocks();
     mockedRequireBackendSession.mockResolvedValue({ userId: 'u-1' });
     fetchMock.mockResolvedValue(
-      new Response(JSON.stringify({ ok: true, assistant_text: 'ok', source: 'deterministic_init' }), {
+      new Response(JSON.stringify({ ok: true, assistant_text: 'ok', source: 'budget_agent_init' }), {
         status: 200,
         headers: { 'content-type': 'application/json' },
       }),

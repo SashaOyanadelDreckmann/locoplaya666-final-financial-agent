@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# E2E producción: budget-chat → acciones → estado de fila esperado
+# E2E producción: agente de presupuesto con herramientas de tabla
 set -euo pipefail
 
 API="${API:-https://locoplaya666-final-financial-agent-production.up.railway.app}"
@@ -44,93 +44,51 @@ apply_action() {
     if (!merged) { console.error('merge failed'); process.exit(1); }
     const out = existing ? rows.map(r => r.id === merged.id ? merged : r) : [...rows, merged];
     console.log(JSON.stringify(out));
-  " "$rows_json" "$action_json" 2>/dev/null || node - <<NODE
-const rows = $rows_json;
-const action = $action_json;
-function merge(existing, action) {
-  const id = action.id;
-  const rowType = action.type || existing?.type;
-  const category = String(action.category ?? existing?.category ?? '').trim();
-  const amount = action.amount === undefined ? (existing?.amount ?? 0) : action.amount;
-  const cadence = action.cadence ?? existing?.cadence;
-  const paymentMethod = action.payment_method ?? action.paymentMethod ?? existing?.paymentMethod;
-  const movementType = action.movement_type ?? action.movementType ?? existing?.movementType;
-  return { id, category, type: rowType, amount, cadence, paymentMethod, movementType };
-}
-const existing = rows.find(r => r.id === action.id) ?? null;
-const merged = merge(existing, action);
-const out = existing ? rows.map(r => r.id === merged.id ? merged : r) : [...rows, merged];
-console.log(JSON.stringify(out));
-NODE
-}
-
-assert_eq() {
-  local label="$1" expected="$2" actual="$3"
-  if [ "$expected" != "$actual" ]; then
-    echo "FAIL [$label] expected=$expected actual=$actual"
-    exit 1
-  fi
-  echo "OK  [$label] = $actual"
+  " "$rows_json" "$action_json"
 }
 
 login
 echo "==> Logged in as $EMAIL"
 
-ROWS='[{"id":"expense_food","category":"Alimentación","type":"expense","amount":0}]'
+ROWS='[{"id":"income_salary","category":"Sueldo líquido","type":"income","amount":900000}]'
 CHAT='[]'
 
 init=$(budget_chat "{\"intent\":\"init\",\"budgetRows\":$ROWS,\"chatAnswers\":$CHAT}")
 echo "$init" | jq -e '.ok == true' >/dev/null
-Q1=$(echo "$init" | jq -r '.next_question // .data.next_question // empty')
-SRC=$(echo "$init" | jq -r '.source // empty')
-FOCUS=$(echo "$init" | jq -r '.focus_row_id // empty')
-echo "INIT source=$SRC focus=$FOCUS"
+echo "$init" | jq -e '.source | test("budget_agent")' >/dev/null
+Q1=$(echo "$init" | jq -r '.next_question // empty')
+echo "INIT source=$(echo "$init" | jq -r '.source')"
 echo "Q1: $Q1"
-echo "$Q1" | grep -Eiq 'tipo de movimiento|categoría' || { echo "FAIL: init question not movement-type first"; exit 1; }
+echo "$Q1" | grep -Eiq '\?' || { echo "FAIL: init without question"; exit 1; }
 
-r1=$(budget_chat "$(jq -nc --arg q "$Q1" '{intent:"reply",answer:"transporte",question:$q,assistantFocusRowId:"expense_food",budgetRows:'"$ROWS"',chatAnswers:'"$CHAT"'}')")
+r1=$(budget_chat "$(jq -nc --arg q "$Q1" '{intent:"reply",answer:"agrega gym, streaming, mascotas y colegio como gastos",question:$q,budgetRows:'"$ROWS"',chatAnswers:'"$CHAT"'}')")
 echo "$r1" | jq -e '.ok == true' >/dev/null
-echo "$r1" | jq -e '.source == "deterministic_movement_type_update"' >/dev/null
-ACTION1=$(echo "$r1" | jq -c '.action')
-echo "$ACTION1" | jq -e '.movement_type == "transport"' >/dev/null
-ROWS=$(apply_action "$ROWS" "$ACTION1")
-assert_eq movementType transport "$(echo "$ROWS" | jq -r '.[0].movementType // empty')"
-assert_eq amount_unchanged 0 "$(echo "$ROWS" | jq -r '.[0].amount')"
-Q2=$(echo "$r1" | jq -r '.next_question // empty')
-echo "Q2: $Q2"
-echo "$Q2" | grep -Eiq 'llamar este movimiento' || { echo "FAIL: expected name question"; exit 1; }
+echo "$r1" | jq -e '.source | test("budget_agent")' >/dev/null
 
-CHAT=$(echo "$CHAT" | jq -c --arg q "$Q1" '[{q:$q,a:"transporte"}]')
-r2=$(budget_chat "$(jq -nc --arg q "$Q2" '{intent:"reply",answer:"Supermercado",question:$q,assistantFocusRowId:"expense_food",budgetRows:'"$ROWS"',chatAnswers:'"$CHAT"'}')")
-echo "$r2" | jq -e '.source == "deterministic_category_update"' >/dev/null
-ACTION2=$(echo "$r2" | jq -c '.action')
-ROWS=$(apply_action "$ROWS" "$ACTION2")
-assert_eq category Supermercado "$(echo "$ROWS" | jq -r '.[0].category')"
-assert_eq movementType_preserved transport "$(echo "$ROWS" | jq -r '.[0].movementType')"
-Q3=$(echo "$r2" | jq -r '.next_question // empty')
-echo "Q3: $Q3"
-echo "$Q3" | grep -Eiq 'monto mensual' || { echo "FAIL: expected amount question"; exit 1; }
+if [ "$(echo "$r1" | jq -r '.requires_confirmation // false')" = "true" ]; then
+  ACTIONS=$(echo "$r1" | jq -c '.pending_confirmation.actions // []')
+  echo "Bulk add requires confirmation ($(echo "$ACTIONS" | jq 'length') actions)"
+  r1=$(budget_chat "$(jq -nc --arg q "$(echo "$r1" | jq -r '.next_question')" --argjson pending "$(echo "$r1" | jq -c '.pending_confirmation')" '{intent:"reply",answer:"sí",question:$q,budgetRows:'"$ROWS"',chatAnswers:'"$CHAT"',pendingConfirmation:$pending}')")
+  echo "$r1" | jq -e '.source == "budget_agent_confirm_apply"' >/dev/null
+  ACTIONS=$(echo "$r1" | jq -c '.actions // []')
+else
+  ACTIONS=$(echo "$r1" | jq -c '.actions // (.action // null | if . == null then [] else [.] end)')
+fi
 
-CHAT=$(echo "$CHAT" | jq -c --arg q "$Q2" '. + [{q:$q,a:"Supermercado"}]')
-r3=$(budget_chat "$(jq -nc --arg q "$Q3" '{intent:"reply",answer:"180000",question:$q,assistantFocusRowId:"expense_food",budgetRows:'"$ROWS"',chatAnswers:'"$CHAT"'}')")
-echo "$r3" | jq -e '.source == "deterministic_update"' >/dev/null
-ACTION3=$(echo "$r3" | jq -c '.action')
-ROWS=$(apply_action "$ROWS" "$ACTION3")
-assert_eq amount 180000 "$(echo "$ROWS" | jq -r '.[0].amount')"
-Q4=$(echo "$r3" | jq -r '.next_question // empty')
-echo "Q4: $Q4"
-echo "$Q4" | grep -Eiq 'fijo|variable' || { echo "FAIL: expected cadence question"; exit 1; }
+COUNT=$(echo "$ACTIONS" | jq 'length')
+echo "ACTIONS count: $COUNT"
+[ "$COUNT" -ge 3 ] || { echo "FAIL: expected at least 3 add actions"; echo "$ACTIONS" | jq .; exit 1; }
 
-CHAT=$(echo "$CHAT" | jq -c --arg q "$Q3" '. + [{q:$q,a:"180000"}]')
-r4=$(budget_chat "$(jq -nc --arg q "$Q4" '{intent:"reply",answer:"fijo, pago con débito",question:$q,assistantFocusRowId:"expense_food",budgetRows:'"$ROWS"',chatAnswers:'"$CHAT"'}')")
-echo "$r4" | jq -e '.source == "deterministic_field_update"' >/dev/null
-ACTION4=$(echo "$r4" | jq -c '.action')
-ROWS=$(apply_action "$ROWS" "$ACTION4")
-assert_eq cadence fixed "$(echo "$ROWS" | jq -r '.[0].cadence')"
-assert_eq paymentMethod debit "$(echo "$ROWS" | jq -r '.[0].paymentMethod')"
+for row in $(echo "$ACTIONS" | jq -r '.[].id'); do
+  action=$(echo "$ACTIONS" | jq -c --arg id "$row" '.[] | select(.id == $id)')
+  ROWS=$(apply_action "$ROWS" "$action")
+done
+
+FINAL_COUNT=$(echo "$ROWS" | jq 'length')
+[ "$FINAL_COUNT" -ge 4 ] || { echo "FAIL: expected >=4 rows after bulk add, got $FINAL_COUNT"; exit 1; }
 
 echo ""
-echo "FINAL ROW:"
+echo "FINAL TABLE ($FINAL_COUNT rows):"
 echo "$ROWS" | jq .
 echo ""
-echo "PASS: production budget flow updates all expected table fields in order."
+echo "PASS: production budget agent applies bulk table changes."

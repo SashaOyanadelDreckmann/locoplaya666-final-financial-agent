@@ -60,10 +60,10 @@ describe('budget modal logic guards', () => {
     expect(source).not.toMatch(/previousMode === tableViewMode[\s\S]{0,400}intent: 'init'/);
   });
 
-  it('delegates assistant questions to shared contextual builders', () => {
+  it('uses lightweight local fallbacks while agent round-trip is pending', () => {
     const helperSource = fs.readFileSync(path.join(process.cwd(), 'app', 'agent', 'budget-modal.helpers.ts'), 'utf8');
-    expect(helperSource).toContain('buildContextualQuestion');
     expect(helperSource).toContain('getBudgetQuestionForRow');
+    expect(helperSource).toContain('¿Qué quieres cambiar en tu presupuesto?');
   });
 
   it('keeps single-turn assistant UI with typewriter and user echo', () => {

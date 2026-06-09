@@ -1,7 +1,6 @@
 import type { BudgetRow } from '@/lib/budget-rows.helpers';
 import {
   buildBudgetAssistantContext,
-  buildContextualQuestion,
   compactBudgetChatAnswers,
   type BudgetChatTurn,
   type BudgetProductSnapshot,
@@ -57,19 +56,21 @@ export function buildBudgetModalAssistantContext(input: {
   });
 }
 
-/** Resolves the assistant question for a row using the same gap logic as the API. */
+/** Local fallback while the agent round-trip is in flight. */
 export function getBudgetQuestionForRow(
   row: BudgetRow | null,
   contextInput: Parameters<typeof buildBudgetModalAssistantContext>[0],
   fallbackRowId?: string | null,
 ): string {
-  const context = buildBudgetModalAssistantContext(contextInput);
   const resolvedRow =
     row ??
     contextInput.budgetRows.find((item) => item.id === fallbackRowId) ??
     contextInput.budgetRows[0] ??
     null;
-  return buildContextualQuestion(resolvedRow, context);
+  if (resolvedRow?.category?.trim()) {
+    return `¿Qué quieres hacer con «${resolvedRow.category.trim()}» en la tabla?`;
+  }
+  return '¿Qué quieres cambiar en tu presupuesto?';
 }
 
 /** @deprecated Use getBudgetQuestionForRow — kept for guard tests and legacy call sites. */
@@ -78,26 +79,11 @@ export function getBudgetQuestionForId(rowId: string | null, contextInput?: Para
     const row = contextInput.budgetRows.find((item) => item.id === rowId) ?? null;
     return getBudgetQuestionForRow(row, contextInput, rowId);
   }
-  switch (rowId) {
-    case 'income_salary':
-      return 'En la tabla, «Sueldo líquido» tiene categoría «Ingreso principal» (tipo de movimiento). ¿Confirmas o cuál corresponde?';
-    case 'expense_rent':
-      return 'En la tabla, «Arriendo / vivienda» tiene categoría «Vivienda» (tipo de movimiento). ¿Confirmas o cuál corresponde?';
-    case 'expense_food':
-      return 'En la tabla, «Alimentación» tiene categoría «Alimentación» (tipo de movimiento). ¿Confirmas o cuál corresponde?';
-    case 'expense_services':
-      return 'En la tabla, «Servicios básicos» tiene categoría «Servicios hogar» (tipo de movimiento). ¿Confirmas o cuál corresponde?';
-    case 'expense_transport':
-      return 'En la tabla, «Transporte» tiene categoría «Transporte» (tipo de movimiento). ¿Confirmas o cuál corresponde?';
-    case 'expense_debt':
-      return 'En la tabla, «Deuda / cuotas» tiene categoría «Deudas» (tipo de movimiento). ¿Confirmas o cuál corresponde?';
-    case 'expense_savings':
-      return 'En la tabla, «Ahorro / inversión» tiene categoría «Ahorro/Inversión» (tipo de movimiento). ¿Confirmas o cuál corresponde?';
-    case 'expense_other':
-      return 'En la tabla, «Otros gastos» tiene categoría «Ocio/Otros» (tipo de movimiento). ¿Confirmas o cuál corresponde?';
-    default:
-      return 'En la tabla, este movimiento tiene una categoría (tipo de movimiento). ¿Confirmas o cuál corresponde?';
-  }
+  return getBudgetQuestionForRow(
+    contextInput?.budgetRows.find((item) => item.id === rowId) ?? null,
+    contextInput ?? { budgetRows: [], chatAnswers: [] },
+    rowId,
+  );
 }
 
 export function normalizeActionRowId(rawId: unknown): string | null {

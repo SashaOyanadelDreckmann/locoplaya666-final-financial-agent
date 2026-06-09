@@ -1,5 +1,9 @@
 import type { BudgetAssistantContext, BudgetRow, BudgetWriterTurn } from '@financial-agent/shared';
-import { buildBudgetWriterDigest, startsWithBudgetGenericOpener } from '@financial-agent/shared';
+import {
+  buildBudgetWriterDigest,
+  inferBudgetFieldFromQuestion,
+  startsWithBudgetGenericOpener,
+} from '@financial-agent/shared';
 import { completeStructuredWithSchema } from './llm.service';
 
 const WRITER_TIMEOUT_MS = Number(process.env.BUDGET_CHAT_WRITER_TIMEOUT_MS ?? 4500);
@@ -80,6 +84,10 @@ export function validateWriterOutput(
   if (!reply || !question || !question.includes('?')) return null;
   if (startsWithBudgetGenericOpener(reply)) return null;
   if (startsWithBudgetGenericOpener(question)) return null;
+
+  const deterministicField = inferBudgetFieldFromQuestion(input.deterministicQuestion ?? '');
+  const polishedField = inferBudgetFieldFromQuestion(question);
+  if (deterministicField && polishedField !== deterministicField) return null;
 
   const allowedAmounts = new Set<number>([
     ...extractNumericTokens(input.deterministicReply),
