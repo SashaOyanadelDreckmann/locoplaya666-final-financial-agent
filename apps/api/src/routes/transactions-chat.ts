@@ -2,9 +2,7 @@ import { Router } from 'express';
 import type { Request, Response } from 'express';
 import { z } from 'zod';
 import { requireAuth } from '../middleware/auth';
-import { requireSpendableFincoins } from '../middleware/fincoin-guard';
 import { asyncHandler } from '../middleware/errorHandler';
-import { chargeFincoinOperation } from '../services/fincoin.service';
 import { getConfig } from '../config';
 import { parseBody } from '../http/parse';
 import { getUserDocumentsByIds } from '../persistence/repos';
@@ -205,13 +203,11 @@ async function resolveCanonicalDocuments(
 router.post(
   '/',
   requireAuth,
-  requireSpendableFincoins('transactions.chat'),
   asyncHandler(async (req: Request, res: Response) => {
     const user = req.authenticatedUser;
     if (!user) {
       return res.status(401).json({ ok: false, error: 'Not authenticated' });
     }
-    await chargeFincoinOperation(user.id, 'transactions.chat');
     const config = getConfig();
     assertCsrf(req);
 
