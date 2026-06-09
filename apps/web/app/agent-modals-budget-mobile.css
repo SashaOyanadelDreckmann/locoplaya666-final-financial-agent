@@ -114,12 +114,6 @@
     padding-bottom: 0 !important;
   }
 
-  .budget-modal.is-mobile-shell .budget-modal-body .budget-main-carousel:not(.is-desktop).mode-agent-front > .budget-card-table {
-    display: block !important;
-    opacity: 1 !important;
-    pointer-events: none !important;
-  }
-
   .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-table,
   .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) > .budget-card-agent {
     opacity: 1 !important;
@@ -180,85 +174,75 @@
     min-width: 0 !important;
   }
 
-  /* ── 4. Assistant mode — tabla visible detrás + glass solo en el chat ── */
+  /* ── 4. Assistant mode — tabla viva detrás + glass borra texto ── */
   .budget-modal.is-mobile-shell .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) {
-    flex: 1 1 auto !important;
+    flex: 1 1 0 !important;
     min-height: 0 !important;
     overflow: hidden !important;
-    display: block !important;
+    display: flex !important;
+    flex-direction: column !important;
     position: relative !important;
     height: 100% !important;
   }
 
-  .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-table,
-  .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) > section[data-main-card="table"] {
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact,
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) > section[data-main-card="table"].is-mobile-table-compact {
     display: flex !important;
     flex-direction: column !important;
     position: absolute !important;
     inset: 0 !important;
     z-index: 1 !important;
-    pointer-events: none !important;
-    opacity: 1 !important;
-    filter: none !important;
-    transform: none !important;
-    overflow: hidden !important;
-    padding: 6px 10px 0 !important;
-    margin: 0 !important;
-    border: none !important;
-    box-shadow: none !important;
-    background: transparent !important;
-    justify-content: center !important;
-  }
-
-  .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-table .budget-table-head,
-  .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-table .budget-table-bottom-actions {
-    display: none !important;
-  }
-
-  .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-table .budget-table-scroll-host {
-    flex: 0 0 auto !important;
     width: 100% !important;
-    overflow: hidden !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    filter: blur(12px) saturate(1.2) brightness(0.88) !important;
-    -webkit-filter: blur(12px) saturate(1.2) brightness(0.88) !important;
-    transform: translateZ(0) !important;
-    will-change: filter !important;
-  }
-
-  .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-table .budget-pdf-surface {
-    width: 100% !important;
-    height: var(--budget-mobile-row-slot, 292px) !important;
-    max-height: var(--budget-mobile-row-slot, 292px) !important;
-    overflow: hidden !important;
-    pointer-events: none !important;
-  }
-
-  .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-table .budget-table-wrap {
-    overflow: hidden !important;
-    max-height: 100% !important;
     height: 100% !important;
+    padding: 4px 10px 0 !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: none !important;
+    overflow: hidden !important;
+    filter: none !important;
+    -webkit-filter: none !important;
+    background: transparent !important;
   }
 
-  .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-agent,
-  .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) > section[data-main-card="agent"] {
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact .budget-table-scroll-host {
+    flex: 1 1 0 !important;
+    min-height: 180px !important;
+    filter: none !important;
+    -webkit-filter: none !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-agent.is-mobile-assistant-glass,
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) > section[data-main-card="agent"].is-mobile-assistant-glass {
     position: absolute !important;
     inset: 0 !important;
     z-index: 3 !important;
     display: flex !important;
     flex-direction: column !important;
-    justify-content: center !important;
     align-items: stretch !important;
     min-height: 0 !important;
+    width: 100% !important;
     height: 100% !important;
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-    padding: 12px !important;
+    padding: 4px 10px calc(env(safe-area-inset-bottom, 0px) + 10px) !important;
     overflow: hidden !important;
     pointer-events: none !important;
+    background: transparent !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 18px !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07) !important;
+    isolation: isolate !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-agent.is-mobile-assistant-glass::before,
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) > section[data-main-card="agent"].is-mobile-assistant-glass::before {
+    content: '' !important;
+    position: absolute !important;
+    inset: 0 !important;
+    z-index: 0 !important;
+    border-radius: inherit !important;
+    pointer-events: none !important;
+    background: rgba(6, 10, 16, 0.3) !important;
+    backdrop-filter: blur(52px) saturate(1.12) brightness(0.78) contrast(0.88) !important;
+    -webkit-backdrop-filter: blur(52px) saturate(1.12) brightness(0.78) contrast(0.88) !important;
   }
 
   .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-agent .bcc-hero,
@@ -268,22 +252,22 @@
     pointer-events: auto !important;
   }
 
-  .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front .budget-assistant-panel .bcc-hero {
-    flex: 0 1 auto !important;
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front .budget-assistant-panel.is-mobile-assistant-glass .bcc-hero {
+    flex: 1 1 auto !important;
     min-height: 0 !important;
-    max-height: min(72vh, 100%) !important;
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
+    max-height: none !important;
+    height: 100% !important;
+    overflow: hidden !important;
     overscroll-behavior: contain !important;
     -webkit-overflow-scrolling: touch !important;
     touch-action: pan-y !important;
-    padding: 16px 14px !important;
+    padding: 10px 4px 4px !important;
     margin: 0 !important;
     background: transparent !important;
-    backdrop-filter: blur(20px) saturate(1.12) !important;
-    -webkit-backdrop-filter: blur(20px) saturate(1.12) !important;
-    border: 1px solid rgba(255, 255, 255, 0.12) !important;
-    border-radius: 18px !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border: none !important;
+    border-radius: 0 !important;
     box-shadow: none !important;
   }
 
@@ -304,9 +288,12 @@
 
   .budget-modal.is-mobile-shell .budget-assistant-panel .bcc-hero-reply {
     margin: 0 0 10px !important;
-    font-size: clamp(0.74rem, 3.2vw, 0.82rem) !important;
-    line-height: 1.42 !important;
-    color: rgba(210, 225, 240, 0.82) !important;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif !important;
+    font-size: clamp(0.68rem, 2.9vw, 0.74rem) !important;
+    font-weight: 500 !important;
+    line-height: 1.4 !important;
+    letter-spacing: -0.018em !important;
+    color: rgba(210, 225, 240, 0.76) !important;
     max-width: 100% !important;
     overflow-wrap: anywhere !important;
     word-break: break-word !important;
@@ -326,15 +313,18 @@
   .budget-modal.is-mobile-shell .budget-assistant-panel .bcc-hero-question--pending {
     max-width: 100% !important;
     width: 100% !important;
-    font-size: clamp(0.84rem, 3.8vw, 0.94rem) !important;
-    line-height: 1.46 !important;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif !important;
+    font-size: clamp(0.78rem, 3.4vw, 0.86rem) !important;
+    font-weight: 500 !important;
+    line-height: 1.42 !important;
+    letter-spacing: -0.02em !important;
     overflow-wrap: anywhere !important;
     word-break: break-word !important;
     text-wrap: pretty !important;
   }
 
-  .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front .budget-assistant-panel .bcc-hero {
-    padding-inline: clamp(10px, 3.5vw, 16px) !important;
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front .budget-assistant-panel.is-mobile-assistant-glass .bcc-hero {
+    padding-inline: 4px !important;
     overflow: hidden !important;
   }
 
@@ -438,7 +428,7 @@
   .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table.budget-table-pro tbody tr.is-mobile-row-card {
     scroll-snap-align: start !important;
     scroll-snap-stop: always !important;
-    margin: 0 !important;
+    margin: 0 0 14px !important;
     box-sizing: border-box !important;
     min-height: var(--budget-mobile-row-slot, 292px) !important;
     height: var(--budget-mobile-row-slot, 292px) !important;
@@ -491,9 +481,9 @@
       "cadence cadence"
       "payment movement"
       "impact impact" !important;
-    gap: 3px !important;
-    padding: 7px 26px 7px 7px !important;
-    margin: 0 !important;
+    gap: 6px !important;
+    padding: 10px 28px 10px 10px !important;
+    margin: 0 0 14px !important;
     border-radius: 16px !important;
     overflow: hidden !important;
     position: relative !important;
@@ -619,32 +609,32 @@
     overflow-x: hidden !important;
   }
 
-  .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-table .budget-table-wrap {
-    overflow: hidden !important;
-    max-height: 100% !important;
-  }
 
-  /* Override diagnostics legacy hide on agent tab */
-  .budget-modal.is-mobile-shell .budget-modal-body .budget-main-carousel:not(.is-desktop).mode-agent-front > .budget-card-table {
+  /* Assistant tab: tabla visible detrás, glass encima */
+  .budget-modal.is-mobile-shell .budget-modal-body .budget-main-carousel:not(.is-desktop).mode-agent-front > .budget-card-table.is-mobile-table-compact {
     display: flex !important;
     opacity: 1 !important;
+    filter: none !important;
+    -webkit-filter: none !important;
     pointer-events: none !important;
   }
 
-  .budget-modal.is-mobile-shell .budget-modal-body .budget-main-carousel:not(.is-desktop).mode-agent-front > .budget-card-agent {
+  .budget-modal.is-mobile-shell .budget-modal-body .budget-main-carousel:not(.is-desktop).mode-agent-front > .budget-card-agent.is-mobile-assistant-glass {
     display: flex !important;
     position: absolute !important;
     inset: 0 !important;
     opacity: 1 !important;
     pointer-events: none !important;
     z-index: 3 !important;
+    background: transparent !important;
   }
 
-  .budget-modal.is-mobile-shell .budget-modal-body .budget-main-carousel:not(.is-desktop).mode-agent-front > .budget-card-agent .bcc-hero {
+  .budget-modal.is-mobile-shell .budget-modal-body .budget-main-carousel:not(.is-desktop).mode-agent-front > .budget-card-agent.is-mobile-assistant-glass .bcc-hero {
     background: transparent !important;
-    backdrop-filter: blur(20px) saturate(1.12) !important;
-    -webkit-backdrop-filter: blur(20px) saturate(1.12) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
     opacity: 1 !important;
+    pointer-events: auto !important;
   }
 
   /* Table tab — row fills viewport; footer pinned lower (beats diagnostics legacy) */

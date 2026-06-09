@@ -897,7 +897,7 @@ export function BudgetModal(props: {
                 </div>
               </div>
 
-              {!isDesktopLayout && budgetViewMode === tableViewMode ? (
+              {!isDesktopLayout ? (
                 <BudgetMobileIntelSummary
                   budgetTotals={props.budgetTotals}
                   activeStyleLabel={activeStyleLabel}
@@ -926,7 +926,7 @@ export function BudgetModal(props: {
                   updateBudgetRow={props.updateBudgetRow}
                   deleteBudgetRow={props.deleteBudgetRow}
                   compactMobile={!isDesktopLayout}
-                  suppressInlineSummary={!isDesktopLayout && budgetViewMode === tableViewMode}
+                  suppressInlineSummary={!isDesktopLayout}
                 />
               ) : (
                 <div className="budget-empty-state">
@@ -966,7 +966,7 @@ export function BudgetModal(props: {
 
             <section
               data-main-card="agent"
-              className="budget-assistant-panel budget-card-agent"
+              className={`budget-assistant-panel budget-card-agent${!isDesktopLayout && budgetViewMode !== tableViewMode ? ' is-mobile-assistant-glass' : ''}`}
               style={cardStyle('agent')}
             >
               <div className="bcc-hero">

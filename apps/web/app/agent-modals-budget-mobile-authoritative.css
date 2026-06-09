@@ -68,7 +68,7 @@
   .budget-modal[data-budget-view='table'] .budget-table-section.is-mobile-table-compact .budget-table-head,
   .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-table-head {
     flex-shrink: 0 !important;
-    margin: 0 0 4px !important;
+    margin: 0 0 10px !important;
     padding: 0 !important;
   }
 
@@ -88,7 +88,7 @@
     display: flex !important;
     flex-direction: column !important;
     overflow: hidden !important;
-    margin-bottom: 6px !important;
+    margin: 4px 0 8px !important;
   }
 
   .budget-modal.is-mobile-shell .budget-mobile-intel-summary,
@@ -97,8 +97,8 @@
     display: block !important;
     flex-shrink: 0 !important;
     width: 100% !important;
-    margin: 0 0 6px !important;
-    padding: 0 2px !important;
+    margin: 0 0 18px !important;
+    padding: 2px 4px 4px !important;
     visibility: visible !important;
     opacity: 1 !important;
   }
@@ -107,30 +107,30 @@
     display: grid !important;
     grid-template-columns: minmax(0, 1fr) auto !important;
     align-items: center !important;
-    gap: 8px !important;
-    padding: 4px 4px 6px !important;
+    gap: 10px !important;
+    padding: 8px 6px 12px !important;
   }
 
   .budget-modal .budget-mobile-intel-summary-head span {
     display: block !important;
-    font-size: 0.52rem !important;
+    font-size: 0.56rem !important;
     letter-spacing: 0.12em !important;
     text-transform: uppercase !important;
     color: rgba(174, 190, 207, 0.78) !important;
   }
 
   .budget-modal .budget-mobile-intel-summary-head h2 {
-    margin: 2px 0 0 !important;
-    font-size: 0.95rem !important;
-    line-height: 1.1 !important;
+    margin: 4px 0 0 !important;
+    font-size: 1.02rem !important;
+    line-height: 1.15 !important;
     font-weight: 700 !important;
     color: rgba(245, 248, 252, 0.96) !important;
   }
 
   .budget-modal .budget-mobile-intel-summary-head > strong {
-    font-size: 0.56rem !important;
+    font-size: 0.58rem !important;
     letter-spacing: 0.08em !important;
-    padding: 4px 8px !important;
+    padding: 6px 10px !important;
     border-radius: 999px !important;
     border: 1px solid rgba(255, 255, 255, 0.12) !important;
     background: rgba(255, 255, 255, 0.05) !important;
@@ -141,20 +141,21 @@
   .budget-modal .budget-mobile-intel-summary-metrics {
     display: grid !important;
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-    gap: 4px !important;
-    padding: 0 2px 6px !important;
+    gap: 8px !important;
+    padding: 4px 4px 8px !important;
   }
 
   .budget-modal .budget-mobile-intel-summary-metrics > div {
-    padding: 6px 8px !important;
-    border-radius: 8px !important;
+    min-height: 54px !important;
+    padding: 10px 10px !important;
+    border-radius: 10px !important;
     border: 1px solid rgba(255, 255, 255, 0.08) !important;
     background: rgba(255, 255, 255, 0.04) !important;
   }
 
   .budget-modal .budget-mobile-intel-summary-metrics span {
     display: block !important;
-    font-size: 0.5rem !important;
+    font-size: 0.54rem !important;
     letter-spacing: 0.1em !important;
     text-transform: uppercase !important;
     color: rgba(174, 190, 207, 0.72) !important;
@@ -162,8 +163,9 @@
 
   .budget-modal .budget-mobile-intel-summary-metrics strong {
     display: block !important;
-    margin-top: 2px !important;
-    font-size: 0.72rem !important;
+    margin-top: 4px !important;
+    font-size: 0.78rem !important;
+    line-height: 1.15 !important;
     color: rgba(245, 248, 252, 0.94) !important;
   }
 
@@ -293,16 +295,22 @@
     box-shadow: none !important;
   }
 
-  /* ── ASSISTANT VIEW: blurred live table backdrop + clean chat ── */
-  .budget-modal[data-budget-view='assistant'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop)::after,
-  html.is-mobile-viewport .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop)::after {
-    display: none !important;
-    content: none !important;
+  /* ── ASSISTANT VIEW: Tabla viva detrás + glass encima (formas sí, texto no) ── */
+  .budget-modal[data-budget-view='assistant'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop),
+  .budget-modal[data-budget-mobile='true'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop),
+  html.is-mobile-viewport .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) {
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    position: relative !important;
+    overflow: hidden !important;
   }
 
   .budget-modal[data-budget-view='assistant'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact,
-  html.is-mobile-viewport .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact,
-  .budget-modal[data-budget-mobile='true'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact {
+  .budget-modal[data-budget-mobile='true'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact,
+  html.is-mobile-viewport .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact {
     display: flex !important;
     flex-direction: column !important;
     position: absolute !important;
@@ -311,50 +319,54 @@
     width: 100% !important;
     height: 100% !important;
     margin: 0 !important;
-    padding: 0 10px 0 !important;
+    padding: 4px 10px 0 !important;
     opacity: 1 !important;
+    visibility: visible !important;
     pointer-events: none !important;
     overflow: hidden !important;
+    filter: none !important;
+    -webkit-filter: none !important;
+    transform: none !important;
     background: transparent !important;
     border: none !important;
     box-shadow: none !important;
-    transform: none !important;
-    filter: blur(10px) saturate(1.08) brightness(0.78) !important;
-    -webkit-filter: blur(10px) saturate(1.08) brightness(0.78) !important;
+    gap: 0 !important;
   }
 
   .budget-modal[data-budget-view='assistant'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact .budget-table-head,
-  .budget-modal[data-budget-view='assistant'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact .budget-table-bottom-actions,
-  .budget-modal[data-budget-view='assistant'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact .budget-pdf-head,
-  .budget-modal[data-budget-view='assistant'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact .budget-pdf-metrics,
-  html.is-mobile-viewport .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact .budget-table-head,
-  html.is-mobile-viewport .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact .budget-table-bottom-actions {
-    display: none !important;
+  .budget-modal[data-budget-mobile='true'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact .budget-table-head {
+    flex-shrink: 0 !important;
+    margin: 0 0 10px !important;
+  }
+
+  .budget-modal[data-budget-view='assistant'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact .budget-mobile-intel-summary,
+  .budget-modal[data-budget-mobile='true'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact .budget-mobile-intel-summary {
+    display: block !important;
+    flex-shrink: 0 !important;
+    margin: 0 0 18px !important;
   }
 
   .budget-modal[data-budget-view='assistant'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact .budget-table-scroll-host,
-  html.is-mobile-viewport .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact .budget-table-scroll-host {
-    flex: 1 1 auto !important;
+  .budget-modal[data-budget-mobile='true'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact .budget-table-scroll-host {
+    flex: 1 1 0 !important;
+    min-height: 180px !important;
     width: 100% !important;
-    height: var(--budget-mobile-row-slot, 260px) !important;
-    max-height: var(--budget-mobile-row-slot, 260px) !important;
-    margin: auto 0 !important;
+    margin: 4px 0 8px !important;
     overflow: hidden !important;
     filter: none !important;
     -webkit-filter: none !important;
   }
 
-  .budget-modal[data-budget-view='assistant'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact .budget-table-wrap,
-  html.is-mobile-viewport .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact .budget-table-wrap {
-    height: 100% !important;
-    max-height: 100% !important;
-    overflow: hidden !important;
+  .budget-modal[data-budget-view='assistant'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact .budget-table-bottom-actions,
+  .budget-modal[data-budget-mobile='true'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact .budget-table-bottom-actions {
+    display: grid !important;
+    flex-shrink: 0 !important;
     pointer-events: none !important;
   }
 
-  .budget-modal[data-budget-view='assistant'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-agent,
-  html.is-mobile-viewport .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-agent,
-  .budget-modal[data-budget-mobile='true'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-agent {
+  .budget-modal[data-budget-view='assistant'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-agent.is-mobile-assistant-glass,
+  .budget-modal[data-budget-mobile='true'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-agent.is-mobile-assistant-glass,
+  html.is-mobile-viewport .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-agent.is-mobile-assistant-glass {
     display: flex !important;
     flex-direction: column !important;
     position: absolute !important;
@@ -363,23 +375,47 @@
     width: 100% !important;
     height: 100% !important;
     margin: 0 !important;
-    padding: 0 12px calc(max(6px, env(safe-area-inset-bottom, 0px))) !important;
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
+    padding: 4px 10px calc(env(safe-area-inset-bottom, 0px) + 10px) !important;
+    box-sizing: border-box !important;
     overflow: hidden !important;
     pointer-events: none !important;
+    background: transparent !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 18px !important;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.07),
+      0 12px 40px rgba(0, 0, 0, 0.22) !important;
+    isolation: isolate !important;
   }
 
-  .budget-modal[data-budget-view='assistant'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-agent .bcc-hero,
-  html.is-mobile-viewport .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-agent .bcc-hero {
+  .budget-modal[data-budget-view='assistant'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-agent.is-mobile-assistant-glass::before,
+  .budget-modal[data-budget-mobile='true'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-agent.is-mobile-assistant-glass::before,
+  html.is-mobile-viewport .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-agent.is-mobile-assistant-glass::before {
+    content: '' !important;
+    position: absolute !important;
+    inset: 0 !important;
+    z-index: 0 !important;
+    border-radius: inherit !important;
+    pointer-events: none !important;
+    background: rgba(6, 10, 16, 0.3) !important;
+    backdrop-filter: blur(52px) saturate(1.12) brightness(0.78) contrast(0.88) !important;
+    -webkit-backdrop-filter: blur(52px) saturate(1.12) brightness(0.78) contrast(0.88) !important;
+  }
+
+  .budget-modal[data-budget-view='assistant'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-agent.is-mobile-assistant-glass .bcc-hero,
+  .budget-modal[data-budget-mobile='true'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-agent.is-mobile-assistant-glass .bcc-hero,
+  html.is-mobile-viewport .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-agent.is-mobile-assistant-glass .bcc-hero {
+    position: relative !important;
+    z-index: 1 !important;
     flex: 1 1 auto !important;
     min-height: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
     display: flex !important;
     flex-direction: column !important;
     justify-content: flex-end !important;
     margin: 0 !important;
-    padding: 0 0 6px !important;
+    padding: 10px 4px 4px !important;
     background: transparent !important;
     border: none !important;
     border-radius: 0 !important;
@@ -390,41 +426,55 @@
     pointer-events: auto !important;
   }
 
-  .budget-modal[data-budget-view='assistant'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-agent .bcc-hero-top,
-  html.is-mobile-viewport .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-agent .bcc-hero-top {
+  .budget-modal[data-budget-view='assistant'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-agent.is-mobile-assistant-glass .bcc-hero-top,
+  html.is-mobile-viewport .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-agent.is-mobile-assistant-glass .bcc-hero-top {
     flex: 1 1 auto !important;
     min-height: 0 !important;
     display: flex !important;
     flex-direction: column !important;
     justify-content: center !important;
-    margin: 0 0 12px !important;
-    padding: 0 !important;
+    margin: 0 0 14px !important;
+    padding: 8px 4px !important;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch !important;
   }
 
-  .budget-modal[data-budget-view='assistant'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-agent .bcc-hero-question:not(.bcc-hero-question--gradient-demo),
-  html.is-mobile-viewport .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-agent .bcc-hero-question:not(.bcc-hero-question--gradient-demo) {
-    margin: 0 !important;
-    font-size: clamp(1rem, 4.8vw, 1.28rem) !important;
-    line-height: 1.32 !important;
-    text-shadow: 0 2px 14px rgba(0, 0, 0, 0.65) !important;
+  .budget-modal[data-budget-view='assistant'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-agent.is-mobile-assistant-glass .bcc-hero-reply,
+  html.is-mobile-viewport .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-agent.is-mobile-assistant-glass .bcc-hero-reply {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif !important;
+    font-size: clamp(0.68rem, 2.9vw, 0.74rem) !important;
+    font-weight: 500 !important;
+    line-height: 1.4 !important;
+    letter-spacing: -0.018em !important;
+    color: rgba(210, 225, 240, 0.76) !important;
+    text-shadow: none !important;
   }
 
-  .budget-modal[data-budget-view='assistant'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-agent .bcc-hero-input-wrap,
-  html.is-mobile-viewport .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-agent .bcc-hero-input-wrap {
+  .budget-modal[data-budget-view='assistant'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-agent.is-mobile-assistant-glass .bcc-hero-question:not(.bcc-hero-question--gradient-demo),
+  html.is-mobile-viewport .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-agent.is-mobile-assistant-glass .bcc-hero-question:not(.bcc-hero-question--gradient-demo) {
+    margin: 0 !important;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif !important;
+    font-size: clamp(0.78rem, 3.4vw, 0.86rem) !important;
+    font-weight: 500 !important;
+    line-height: 1.42 !important;
+    letter-spacing: -0.02em !important;
+    text-shadow: none !important;
+  }
+
+  .budget-modal[data-budget-view='assistant'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-agent.is-mobile-assistant-glass .bcc-hero-input-wrap,
+  html.is-mobile-viewport .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop) > .budget-card-agent.is-mobile-assistant-glass .bcc-hero-input-wrap {
     flex-shrink: 0 !important;
     margin: 0 !important;
     padding: 8px 10px !important;
     border-radius: 14px !important;
-    border: 1px solid rgba(255, 255, 255, 0.14) !important;
-    background: rgba(8, 12, 18, 0.45) !important;
-    backdrop-filter: blur(12px) saturate(1.05) !important;
-    -webkit-backdrop-filter: blur(12px) saturate(1.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.16) !important;
+    background: rgba(8, 12, 18, 0.28) !important;
+    backdrop-filter: blur(10px) saturate(1.08) !important;
+    -webkit-backdrop-filter: blur(10px) saturate(1.08) !important;
   }
 
-  .budget-modal[data-budget-view='assistant'] .budget-assistant-panel,
-  html.is-mobile-viewport .budget-modal .budget-assistant-panel {
+  .budget-modal[data-budget-view='assistant'] .budget-assistant-panel.is-mobile-assistant-glass,
+  html.is-mobile-viewport .budget-modal .budget-assistant-panel.is-mobile-assistant-glass {
     display: flex !important;
     background: transparent !important;
   }
@@ -516,6 +566,12 @@
     border: none !important;
     box-shadow: none !important;
     background: transparent !important;
+    padding-top: 4px !important;
+  }
+
+  .budget-modal .budget-table-section.is-mobile-table-compact .budget-table-pro tbody {
+    display: block !important;
+    padding-top: 2px !important;
   }
 
   .budget-modal .budget-table-section.is-mobile-table-compact .budget-table-pro tbody tr.is-mobile-row-card {
@@ -528,9 +584,9 @@
       "payment movement"
       "impact impact" !important;
     grid-template-rows: auto auto auto auto minmax(78px, 1.1fr) !important;
-    gap: 3px !important;
-    padding: 7px 26px 7px 7px !important;
-    margin: 0 !important;
+    gap: 6px !important;
+    padding: 10px 28px 10px 10px !important;
+    margin: 0 0 14px !important;
     border-radius: 14px !important;
     border: 1px solid rgba(255, 255, 255, 0.08) !important;
     background: rgba(10, 14, 20, 0.62) !important;
@@ -562,7 +618,7 @@
   }
 
   .budget-modal .budget-table-section.is-mobile-table-compact .budget-table-pro tbody td::before {
-    margin-bottom: 1px !important;
+    margin-bottom: 3px !important;
     font-size: 0.5rem !important;
     letter-spacing: 0.09em !important;
     line-height: 1.1 !important;
@@ -756,5 +812,68 @@
     height: auto !important;
     max-height: none !important;
     overflow-y: auto !important;
+  }
+
+  /* EOF — assistant: tabla nítida detrás, glass del asistente borra texto */
+  .budget-modal.is-mobile-shell[data-budget-view='assistant'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop)::after,
+  .budget-modal.is-mobile-shell[data-budget-mobile='true'] .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop)::after,
+  html.is-mobile-viewport .budget-modal .budget-main-carousel.is-mobile-budget.mode-agent-front:not(.is-desktop)::after {
+    display: none !important;
+    content: none !important;
+  }
+
+  .budget-modal.is-mobile-shell[data-budget-view='assistant'] .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact,
+  .budget-modal.is-mobile-shell[data-budget-mobile='true'] .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    position: absolute !important;
+    inset: 0 !important;
+    z-index: 1 !important;
+    filter: none !important;
+    -webkit-filter: none !important;
+    pointer-events: none !important;
+  }
+
+  .budget-modal.is-mobile-shell[data-budget-view='assistant'] .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact .budget-table-head,
+  .budget-modal.is-mobile-shell[data-budget-view='assistant'] .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact .budget-mobile-intel-summary,
+  .budget-modal.is-mobile-shell[data-budget-view='assistant'] .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact .budget-table-scroll-host,
+  .budget-modal.is-mobile-shell[data-budget-view='assistant'] .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact .budget-table-bottom-actions,
+  .budget-modal.is-mobile-shell[data-budget-mobile='true'] .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact .budget-table-head,
+  .budget-modal.is-mobile-shell[data-budget-mobile='true'] .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact .budget-mobile-intel-summary,
+  .budget-modal.is-mobile-shell[data-budget-mobile='true'] .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact .budget-table-scroll-host,
+  .budget-modal.is-mobile-shell[data-budget-mobile='true'] .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact .budget-table-bottom-actions {
+    display: flex !important;
+  }
+
+  .budget-modal.is-mobile-shell[data-budget-view='assistant'] .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact .budget-mobile-intel-summary,
+  .budget-modal.is-mobile-shell[data-budget-mobile='true'] .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact .budget-mobile-intel-summary {
+    display: block !important;
+  }
+
+  .budget-modal.is-mobile-shell[data-budget-view='assistant'] .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact .budget-table-bottom-actions,
+  .budget-modal.is-mobile-shell[data-budget-mobile='true'] .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact .budget-table-bottom-actions {
+    display: grid !important;
+  }
+
+  .budget-modal.is-mobile-shell[data-budget-view='assistant'] .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact .budget-table-pro tbody tr.is-mobile-row-card,
+  .budget-modal.is-mobile-shell[data-budget-mobile='true'] .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact .budget-table-pro tbody tr.is-mobile-row-card {
+    display: grid !important;
+  }
+
+  .budget-modal.is-mobile-shell[data-budget-view='assistant'] .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-agent.is-mobile-assistant-glass,
+  .budget-modal.is-mobile-shell[data-budget-mobile='true'] .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-agent.is-mobile-assistant-glass {
+    position: absolute !important;
+    inset: 0 !important;
+    z-index: 3 !important;
+    width: 100% !important;
+    height: 100% !important;
+    background: transparent !important;
+  }
+
+  .budget-modal.is-mobile-shell[data-budget-view='assistant'] .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-agent.is-mobile-assistant-glass::before,
+  .budget-modal.is-mobile-shell[data-budget-mobile='true'] .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-agent.is-mobile-assistant-glass::before {
+    backdrop-filter: blur(52px) saturate(1.12) brightness(0.78) contrast(0.88) !important;
+    -webkit-backdrop-filter: blur(52px) saturate(1.12) brightness(0.78) contrast(0.88) !important;
   }
 }
