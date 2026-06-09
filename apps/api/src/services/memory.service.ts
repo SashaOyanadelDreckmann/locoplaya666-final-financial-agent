@@ -110,7 +110,7 @@ const FACT_TTL_MS: Record<MemoryFactType, number> = {
 };
 
 function sessionStoreKey(userId: string, sessionId: string) {
-  return `${userId}::${sessionId}`;
+  return `${encodeURIComponent(userId)}|${encodeURIComponent(sessionId)}`;
 }
 
 function defaultSessionWorkingMemory(userId: string, sessionId: string): SessionWorkingMemory {

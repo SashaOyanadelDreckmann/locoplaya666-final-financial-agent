@@ -82,12 +82,13 @@ export function buildRecommendationProfile(params: {
 
   const specialization =
     activeChatId === 'chat-2' ? 'strategy' : activeChatId === 'chat-3' ? 'social' : 'general';
+  const incomeThreshold = income > 0 ? income * 0.1 : 0;
   const liquidity_status =
-    balance < 0 ? 'fragile' : balance <= income * 0.1 ? 'stable' : 'strong';
+    balance < 0 ? 'fragile' : balance <= incomeThreshold ? 'stable' : 'strong';
   const debt_pressure =
-    debt && balance < income * 0.1 ? 'high' : debt ? 'medium' : 'low';
+    debt && balance < incomeThreshold ? 'high' : debt ? 'medium' : 'low';
   const savings_capacity =
-    balance < 0 ? 'negative' : balance <= income * 0.1 ? 'limited' : 'positive';
+    balance < 0 ? 'negative' : balance <= incomeThreshold ? 'limited' : 'positive';
   const horizon_bucket =
     horizonMonths === null
       ? 'unknown'

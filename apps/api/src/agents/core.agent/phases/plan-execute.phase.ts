@@ -108,6 +108,11 @@ function storeCachedWebEvidence(userId: string, evidence: CachedWebEvidence): vo
   const current = webEvidenceCacheByUser.get(userId) ?? [];
   const next = [evidence, ...current].slice(0, 8); // keep cache cheap and bounded
   webEvidenceCacheByUser.set(userId, next);
+  // Prevent unbounded global growth: max 256 users * 8 entries = 2048 total
+  if (webEvidenceCacheByUser.size > 256) {
+    const firstKey = webEvidenceCacheByUser.keys().next().value;
+    if (firstKey) webEvidenceCacheByUser.delete(firstKey);
+  }
 }
 
 /**
@@ -307,9 +312,11 @@ export async function runPlanExecutePhase(input: PlanPhaseInput): Promise<PlanPh
         ) as any,
       );
 
-      const assistantMessage = response.choices[0]?.message;
+      const assistantMessage = response.choices?.[0]?.message;
       if (!assistantMessage) {
-        react_trace[react_trace.length - 1].result = 'no_message';
+        if (react_trace.length > 0) {
+          react_trace[react_trace.length - 1].result = 'no_message';
+        }
         is_complete = true;
         break;
       }
@@ -320,15 +327,19 @@ export async function runPlanExecutePhase(input: PlanPhaseInput): Promise<PlanPh
 
       // Check if model is done without tool calls
       if (!assistantMessage.tool_calls || assistantMessage.tool_calls.length === 0) {
-        react_trace[react_trace.length - 1].decision = 'Complete without tool calls';
-        react_trace[react_trace.length - 1].result = 'complete';
+        if (react_trace.length > 0) {
+          react_trace[react_trace.length - 1].decision = 'Complete without tool calls';
+          react_trace[react_trace.length - 1].result = 'complete';
+        }
         is_complete = true;
         if (assistantText) loopMessages.push({ role: 'assistant', content: assistantText });
         break;
       }
 
-      react_trace[react_trace.length - 1].decision = `Requested ${assistantMessage.tool_calls.length} tool call(s)`;
-      react_trace[react_trace.length - 1].result = 'tool_calls_requested';
+      if (react_trace.length > 0) {
+        react_trace[react_trace.length - 1].decision = `Requested ${assistantMessage.tool_calls.length} tool call(s)`;
+        react_trace[react_trace.length - 1].result = 'tool_calls_requested';
+      }
 
       // Add assistant message with requested tool calls
       loopMessages.push({
