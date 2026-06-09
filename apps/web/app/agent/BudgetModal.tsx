@@ -119,6 +119,10 @@ export function BudgetModal(props: {
   } = useBudgetModalLayout(props.isOpen);
   const isAssistantOverlayMode = isBudgetAssistantOverlayMode(isDesktopLayout, budgetViewMode);
   const isSplitMode = isBudgetSplitMode(isDesktopLayout, budgetViewMode);
+  const showAssistantInformeAction =
+    isAssistantOverlayMode ||
+    isSplitMode ||
+    (!isDesktopLayout && budgetViewMode !== tableViewMode);
   const isMobileShell = !isDesktopLayout;
   const isMobileManualTable = isMobileShell && budgetViewMode === tableViewMode;
   const [budgetTableStyle, setBudgetTableStyle] = useState<'midnight' | 'ledger' | 'atelier' | 'terminal' | 'carbon'>('terminal');
@@ -1207,31 +1211,44 @@ export function BudgetModal(props: {
                   <p className="bcc-hero-done">Presupuesto completo. Puedes seguir ajustando la tabla.</p>
                 )}
 
-                <div className="bcc-hero-input-wrap">
-                  <input
-                    ref={budgetReplyInputRef}
-                    className="bcc-hero-input"
-                    value={budgetReply}
-                    onChange={(e) => setBudgetReply(e.target.value)}
-                    placeholder="Escribe tu respuesta…"
-                    onMouseDownCapture={(e) => focusBudgetField(e.currentTarget)}
-                    onPointerDownCapture={(e) => focusBudgetField(e.currentTarget)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') void handleBudgetAgentReplySubmit();
-                    }}
-                  />
-                  <button
-                    type="button"
-                    className="bcc-hero-send"
-                    onClick={() => void handleBudgetAgentReplySubmit()}
-                    disabled={isInitializing || isAskingAI || !budgetReply.trim()}
-                    aria-label="Enviar mensaje"
-                    title="Enviar mensaje"
-                  >
-                    <svg className="bcc-hero-send-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                      <path d="M2 8h10M9 4l5 4-5 4" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </button>
+                <div className="bcc-hero-compose">
+                  <div className="bcc-hero-input-wrap">
+                    <input
+                      ref={budgetReplyInputRef}
+                      className="bcc-hero-input"
+                      value={budgetReply}
+                      onChange={(e) => setBudgetReply(e.target.value)}
+                      placeholder="Escribe tu respuesta…"
+                      onMouseDownCapture={(e) => focusBudgetField(e.currentTarget)}
+                      onPointerDownCapture={(e) => focusBudgetField(e.currentTarget)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') void handleBudgetAgentReplySubmit();
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="bcc-hero-send"
+                      onClick={() => void handleBudgetAgentReplySubmit()}
+                      disabled={isInitializing || isAskingAI || !budgetReply.trim()}
+                      aria-label="Enviar mensaje"
+                      title="Enviar mensaje"
+                    >
+                      <svg className="bcc-hero-send-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                        <path d="M2 8h10M9 4l5 4-5 4" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </button>
+                  </div>
+
+                  {showAssistantInformeAction ? (
+                    <button
+                      type="button"
+                      className="budget-chat-sync-button is-assistant-action"
+                      onClick={handleSendBudgetToAgent}
+                      disabled={props.budgetRows.length === 0}
+                    >
+                      Generar informe en chat
+                    </button>
+                  ) : null}
                 </div>
 
                 {budgetPendingConfirmation ? (
@@ -1244,17 +1261,6 @@ export function BudgetModal(props: {
                 ) : null}
 
                 {aiError ? <p className="bcc-hero-error">{aiError}</p> : null}
-
-                {isSplitMode ? (
-                  <button
-                    type="button"
-                    className="budget-chat-sync-button is-assistant-action"
-                    onClick={handleSendBudgetToAgent}
-                    disabled={props.budgetRows.length === 0}
-                  >
-                    Generar informe en chat
-                  </button>
-                ) : null}
               </div>
             </section>
             </BudgetCarouselStage>

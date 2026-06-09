@@ -97,8 +97,8 @@
 }
 
 .bcc-hero-reply {
-  font-size: 0.84rem !important;
-  line-height: 1.42 !important;
+  font-size: 0.96rem !important;
+  line-height: 1.44 !important;
   color: rgba(210, 225, 240, 0.82) !important;
   margin: 0 0 10px !important;
   max-width: 100% !important;
@@ -107,9 +107,9 @@
 }
 
 .bcc-hero-question {
-  font-size: 1rem !important;
+  font-size: 1.12rem !important;
   font-weight: 400 !important;
-  line-height: 1.48 !important;
+  line-height: 1.5 !important;
   letter-spacing: 0 !important;
   color: rgba(255,255,255,0.92) !important;
   margin: 0 !important;

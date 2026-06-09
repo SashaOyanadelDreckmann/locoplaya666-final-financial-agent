@@ -1,15 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type MutableRefObject } from 'react';
-import { motion } from 'framer-motion';
-import {
-  Activity,
-  ArrowDownRight,
-  ArrowUpRight,
-  ShieldCheck,
-  Sparkles,
-  Trash2,
-} from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 
 type BudgetCadence = 'fixed' | 'variable';
 type BudgetPaymentMethod = 'transfer' | 'debit' | 'credit' | 'cash' | 'prepaid' | 'other';
@@ -168,22 +160,16 @@ function normalizeMovementType(value: BudgetRow['movementType'], rowType: Budget
   return rowType === 'income' ? 'income_main' : 'leisure_other';
 }
 
-function hashString(value: string): number {
-  let hash = 0;
-  for (let i = 0; i < value.length; i += 1) {
-    hash = (hash << 5) - hash + value.charCodeAt(i);
-    hash |= 0;
-  }
-  return Math.abs(hash);
+function getBalanceBase(balance: number): number {
+  return Math.max(1, Math.abs(balance));
 }
 
-function seededNoise(seed: number, offset: number): number {
-  const n = Math.sin(seed * 12.9898 + offset * 78.233) * 43758.5453;
-  return n - Math.floor(n);
+function getSignedMovementAmount(row: BudgetRow): number {
+  return row.type === 'income' ? row.amount : -row.amount;
 }
 
-function clamp(value: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, value));
+function buildImpactPct(row: BudgetRow, balance: number): number {
+  return (getSignedMovementAmount(row) / getBalanceBase(balance)) * 100;
 }
 
 function getEffectiveBudgetRows(rows: BudgetRow[]): BudgetRow[] {
@@ -191,20 +177,65 @@ function getEffectiveBudgetRows(rows: BudgetRow[]): BudgetRow[] {
   return rows.filter((row) => !parentIds.has(row.id));
 }
 
-function buildImpactSeries(row: BudgetRow, totals: { income: number; expenses: number; balance: number }): number[] {
-  const baseIncome = Math.max(1, Math.abs(totals.income), Math.abs(totals.expenses), Math.abs(totals.balance));
-  const signedShare = (row.type === 'income' ? 1 : -1) * (Math.abs(row.amount) / baseIncome);
-  const target = clamp(signedShare * 1.4, -0.95, 0.95);
-  const variability = normalizeCadence(row.cadence, row.type) === 'fixed' ? 0.1 : 0.32;
-  const seed = hashString(row.id || `${row.category}-${row.amount}`);
-  const phase = (seed % 360) * (Math.PI / 180);
+const IMPACT_SERIES_POINTS = 12;
 
-  return Array.from({ length: 12 }, (_, month) => {
-    const progress = month / 11;
-    const seasonal = Math.sin(progress * Math.PI * 2 + phase) * variability * (0.7 - progress * 0.2);
-    const noise = (seededNoise(seed, month + 3) - 0.5) * variability * 0.34;
-    const trend = target * (0.52 + progress * 0.48);
-    return clamp(trend + seasonal + noise, -1, 1);
+function smoothstep(u: number): number {
+  return u * u * (3 - 2 * u);
+}
+
+function impactSeriesNoise(seed: string, index: number): number {
+  let hash = 0;
+  const key = `${seed}:${index}`;
+  for (let i = 0; i < key.length; i += 1) {
+    hash = (hash * 31 + key.charCodeAt(i)) | 0;
+  }
+  return ((hash & 0xffff) / 0x7fff) - 1;
+}
+
+/** 0–1: peso del monto en el presupuesto (tamaño relativo + % sobre balance). */
+function getBudgetImpactIntensity(
+  amount: number,
+  signedDelta: number,
+  totals: { income: number; expenses: number; balance: number },
+): number {
+  const { income, expenses, balance } = totals;
+  const context = Math.max(income + expenses + Math.abs(balance), 1);
+  const sizeWeight = amount / context;
+  const balanceWeight = Math.abs(signedDelta) / getBalanceBase(balance);
+  return Math.min(1, Math.max(0, sizeWeight * 2.4 + balanceWeight * 0.75));
+}
+
+function buildImpactSeries(
+  row: BudgetRow,
+  totals: { income: number; expenses: number; balance: number },
+): number[] {
+  const delta = getSignedMovementAmount(row);
+  const { balance } = totals;
+  const amount = row.amount;
+
+  if (amount === 0) {
+    return Array.from({ length: IMPACT_SERIES_POINTS }, () => balance);
+  }
+
+  const impactIntensity = getBudgetImpactIntensity(amount, delta, totals);
+  const target = balance + delta;
+
+  return Array.from({ length: IMPACT_SERIES_POINTS }, (_, index) => {
+    if (index === 0) return balance;
+    if (index === IMPACT_SERIES_POINTS - 1) return target;
+
+    // Eje X: fracción del monto aplicada (0% → 100% de la columna Monto).
+    const appliedFraction = index / (IMPACT_SERIES_POINTS - 1);
+    const base = balance + delta * smoothstep(appliedFraction);
+
+    if (impactIntensity < 0.05) {
+      return base;
+    }
+
+    const edgeFade = Math.sin(appliedFraction * Math.PI);
+    const wobbleAmplitude = Math.abs(delta) * (0.22 + impactIntensity * 0.42);
+    const wobble = impactSeriesNoise(row.id, index) * wobbleAmplitude * edgeFade;
+    return base + wobble;
   });
 }
 
@@ -242,9 +273,11 @@ function ImpactSparkline({
   totals: { income: number; expenses: number; balance: number };
   compact?: boolean;
 }) {
-  const series = useMemo(() => buildImpactSeries(row, totals), [row, totals]);
-  const baseIncome = Math.max(1, Math.abs(totals.income), Math.abs(totals.expenses), Math.abs(totals.balance));
-  const signedImpactPct = ((row.type === 'income' ? row.amount : -row.amount) / baseIncome) * 100;
+  const series = useMemo(
+    () => buildImpactSeries(row, totals),
+    [row.amount, row.id, row.type, totals.balance, totals.expenses, totals.income],
+  );
+  const signedImpactPct = buildImpactPct(row, totals.balance);
   const severity = row.type === 'income'
     ? 'positive'
     : signedImpactPct <= -15
@@ -258,7 +291,13 @@ function ImpactSparkline({
 
   return (
     <div className={`budget-impact-cell is-${severity}${compact ? ' is-compact' : ''}`}>
-      <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Curva de impacto del movimiento">
+      <svg
+        width={width}
+        height={height}
+        viewBox={`0 0 ${width} ${height}`}
+        role="img"
+        aria-label={`Impacto del monto: de ${totals.balance.toFixed(0)} a ${(totals.balance + getSignedMovementAmount(row)).toFixed(0)}`}
+      >
         <line x1="2" y1={zeroY} x2={width - 2} y2={zeroY} className="budget-impact-zero" />
         <path d={area} className="budget-impact-area" />
         <path d={d} className="budget-impact-line" />
@@ -400,55 +439,6 @@ export function BudgetIntelligenceTable(props: Props) {
     () => new Set(props.budgetRows.filter((row) => row.parentId).map((row) => row.parentId as string)),
     [props.budgetRows],
   );
-  const savingsPct =
-    props.budgetTotals.income > 0
-      ? Math.round((props.budgetTotals.balance / props.budgetTotals.income) * 100)
-      : 0;
-  const nonZeroRows = effectiveRows.filter((row) => row.amount > 0);
-  const fixedFlow = nonZeroRows
-    .filter((row) => normalizeCadence(row.cadence, row.type) === 'fixed')
-    .reduce((sum, row) => sum + row.amount, 0);
-  const variableRows = nonZeroRows.filter((row) => normalizeCadence(row.cadence, row.type) === 'variable');
-  const highImpactRows = nonZeroRows.filter((row) => {
-    if (row.type !== 'expense') return false;
-    const incomeBase = Math.max(1, Math.abs(props.budgetTotals.income), Math.abs(props.budgetTotals.expenses));
-    return row.amount / incomeBase >= 0.15;
-  });
-  const typedRows = nonZeroRows.filter((row) => normalizeMovementType(row.movementType, row.type) !== 'leisure_other').length;
-
-  const metricCards = [
-    {
-      label: 'Ingresos',
-      value: props.formatBudgetAmount(props.budgetTotals.income),
-      meta: 'Flujo de entrada',
-      icon: <ArrowUpRight size={16} />,
-    },
-    {
-      label: 'Gastos',
-      value: props.formatBudgetAmount(props.budgetTotals.expenses),
-      meta: `${highImpactRows.length} focos de alto impacto`,
-      icon: <ArrowDownRight size={16} />,
-    },
-    {
-      label: 'Balance',
-      value: props.formatBudgetAmount(props.budgetTotals.balance),
-      meta: `${savingsPct}% de margen`,
-      icon: <ShieldCheck size={16} />,
-    },
-    {
-      label: 'Flujo fijo',
-      value: props.formatBudgetAmount(fixedFlow),
-      meta: `${variableRows.length} movimientos variables`,
-      icon: <Activity size={16} />,
-    },
-    {
-      label: 'Clasificación',
-      value: `${typedRows}/${nonZeroRows.length || 0}`,
-      meta: 'Movimientos etiquetados',
-      icon: <Sparkles size={16} />,
-    },
-  ];
-
   const surfaceClassName = [
     'budget-pdf-surface',
     `budget-table-style-${props.budgetTableStyle}`,
@@ -459,25 +449,6 @@ export function BudgetIntelligenceTable(props: Props) {
 
   return (
     <div ref={props.budgetPdfRef} className={surfaceClassName}>
-      {!props.compactMobile && (
-        <div className="budget-intel-kpis">
-          {metricCards.map((metric, index) => (
-            <motion.article
-              key={metric.label}
-              className="budget-intel-kpi"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.22, delay: index * 0.04 }}
-            >
-              <span className="budget-intel-kpi-icon">{metric.icon}</span>
-              <span className="budget-intel-kpi-label">{metric.label}</span>
-              <strong>{metric.value}</strong>
-              <small>{metric.meta}</small>
-            </motion.article>
-          ))}
-        </div>
-      )}
-
       {!props.suppressInlineSummary ? (
         <>
           <div className={`budget-pdf-head${props.compactMobile ? ' is-mobile-intel-head' : ''}`}>

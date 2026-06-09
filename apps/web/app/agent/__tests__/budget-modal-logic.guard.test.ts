@@ -203,13 +203,13 @@ describe('budget modal logic guards', () => {
     expect(source).toContain('readMobileBudgetRowSnapCandidates');
   });
 
-  it('shows informe button only in desktop split mode', () => {
+  it('shows informe action below assistant compose on assistant and split views', () => {
+    expect(source).toContain('showAssistantInformeAction');
+    expect(source).toContain('isAssistantOverlayMode');
     expect(source).toContain('isSplitMode');
-    expect(source).toContain('isBudgetSplitMode');
-    expect(source).toContain('{isSplitMode ? (');
+    expect(source).toContain('bcc-hero-compose');
     expect(source).toContain('Generar informe en chat');
     expect(source).toContain('Informe en chat');
-    expect(source).not.toContain('isDesktopLayout && (\n                  <button\n                    type="button"\n                    className="budget-chat-sync-button is-assistant-action"');
   });
 
   it('scopes legacy table column hiding away from budget-table-pro', () => {

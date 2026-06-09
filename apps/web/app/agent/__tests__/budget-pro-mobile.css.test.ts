@@ -75,6 +75,27 @@ describe('budget pro mobile css safeguards', () => {
     expect(deskCss).toContain('.bcc-hero-question--gradient-demo');
     expect(deskCss).toContain('.agent-keyword-gradient');
     expect(deskCss).toContain('--hero-keyword-blue: #88a7bc');
+    expect(deskCss).toContain('.bcc-hero-compose');
+    expect(deskCss).toContain('.budget-chat-sync-button.is-assistant-action');
+  });
+
+  it('keeps desktop header and mode tabs compact and centered', () => {
+    const deskCssPath = path.join(process.cwd(), 'app', 'agent-modals-budget-desktop-guard.css');
+    const deskCss = fs.readFileSync(deskCssPath, 'utf8');
+    expect(deskCss).toContain('BUDGET DESKTOP — compact header + tabs stack');
+    expect(deskCss).toContain('.budget-modal-body.is-desktop > .budget-mode-tabs');
+    expect(deskCss).toContain('justify-content: center !important');
+    expect(deskCss).toContain('padding: 14px 28px 4px !important');
+  });
+
+  it('fits split desktop table without horizontal clipping', () => {
+    const deskCssPath = path.join(process.cwd(), 'app', 'agent-modals-budget-desktop-guard.css');
+    const deskCss = fs.readFileSync(deskCssPath, 'utf8');
+    expect(deskCss).toContain('BUDGET DESKTOP — split: tabla compacta sin recorte');
+    expect(deskCss).toContain('.mode-split .budget-table.budget-table-pro');
+    expect(deskCss).toContain('table-layout: fixed !important');
+    expect(deskCss).toContain('min-width: 0 !important');
+    expect(deskCss).toContain('overflow-x: hidden !important');
   });
 
   it('blurs assistant backdrop table on mobile without hiding live updates', () => {
@@ -97,11 +118,13 @@ describe('budget pro mobile css safeguards', () => {
   it('keeps cadence pills separated from payment and movement labels on mobile', () => {
     const authCssPath = path.join(process.cwd(), 'app', 'agent-modals-budget-mobile-authoritative.css');
     const authCss = fs.readFileSync(authCssPath, 'utf8');
-    expect(authCss).toContain('row-gap: 12px !important');
+    expect(authCss).toContain('row-gap: 10px !important');
     expect(authCss).toContain("td[data-label='Recurrencia']");
     expect(authCss).toContain('padding-bottom: 6px !important');
     expect(authCss).toContain('tr.is-active-row .budget-pill-button');
-    expect(authCss).toContain('height: 22px !important');
+    expect(authCss).toContain('height: 20px !important');
+    expect(authCss).toContain('tr.is-mobile-row-card input');
+    expect(authCss).toContain('height: 36px !important');
   });
 
   it('defines premium mobile themes for all budget table styles', () => {
@@ -114,7 +137,7 @@ describe('budget pro mobile css safeguards', () => {
     expect(stylesCss).toContain('budget-table-style-carbon');
     expect(stylesCss).toContain('--mb-input-text');
     expect(stylesCss).toContain('--mb-label');
-    expect(stylesCss).toContain('min-height: 22px !important');
+    expect(stylesCss).toContain('min-height: 20px !important');
     expect(stylesCss).toContain('budget-mobile-intel-summary--ledger');
     expect(stylesCss).toContain('background: transparent !important');
     expect(stylesCss).toContain('--mb-input-text, #1a1714');

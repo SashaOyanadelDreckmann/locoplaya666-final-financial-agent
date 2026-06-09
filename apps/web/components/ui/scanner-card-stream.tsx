@@ -470,8 +470,8 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
       const inMorphZone = morphState === 'split';
       const morphWave = Math.sin((clampedSplit / 100) * Math.PI);
       const velocity = cardStreamState.current.morphVelocity ?? 0;
-      const softness = Math.min(26, 14 + velocity * 0.2);
-      const softHalf = softness * 0.48;
+      const softness = Math.min(8, 4 + velocity * 0.06);
+      const softHalf = softness * 0.42;
       const cardCenter = cardLeft + cardWidth / 2;
       const distNorm = Math.abs(cardCenter - scannerX) / Math.max(cardWidth, 1);
       const focusScale = morphState === 'normal' ? Math.max(0.968, 1 - distNorm * 0.025) : morphState === 'code' ? 0.962 : Math.max(0.952, 1 - distNorm * 0.05);

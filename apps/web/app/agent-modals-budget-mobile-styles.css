@@ -406,10 +406,10 @@
   html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact .budget-table-pro .budget-pill-button,
   html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact .budget-table-pro tr.is-mobile-row-card .budget-pill-button,
   html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact .budget-table-pro tr.is-active-row .budget-pill-button {
-    min-height: 22px !important;
-    height: 22px !important;
-    padding: 0 8px !important;
-    font-size: 0.58rem !important;
+    min-height: 20px !important;
+    height: 20px !important;
+    padding: 0 7px !important;
+    font-size: 0.54rem !important;
     line-height: 1 !important;
     border-radius: 999px !important;
     box-shadow: none !important;
@@ -540,31 +540,96 @@
     box-shadow: var(--mb-row-active-shadow, 0 0 0 1px rgba(120, 96, 68, 0.14)) !important;
   }
 
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro .budget-pill-group,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro .budget-pill-group,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro .budget-pill-group,
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro tbody tr.is-active-row .budget-pill-group,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro tbody tr.is-active-row .budget-pill-group,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro tbody tr.is-active-row .budget-pill-group {
+    padding: 1px !important;
+    background: var(--mb-pill-bg, rgba(120, 96, 68, 0.08)) !important;
+    border: 1px solid var(--mb-pill-border, rgba(120, 96, 68, 0.2)) !important;
+    border-radius: 999px !important;
+    box-shadow: none !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro .budget-pill-button,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro .budget-pill-button,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro .budget-pill-button,
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro tbody tr.is-active-row .budget-pill-button,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro tbody tr.is-active-row .budget-pill-button,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro tbody tr.is-active-row .budget-pill-button {
+    min-height: 20px !important;
+    height: 20px !important;
+    border-radius: 999px !important;
+    box-shadow: none !important;
+  }
+
   .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro .budget-pill-button:not(.is-active),
   .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro .budget-pill-button:not(.is-active),
-  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro .budget-pill-button:not(.is-active) {
-    color: rgba(26, 23, 20, 0.44) !important;
-    -webkit-text-fill-color: rgba(26, 23, 20, 0.44) !important;
-    background: transparent !important;
-    border: 1px solid rgba(120, 96, 68, 0.18) !important;
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro .budget-pill-button:not(.is-active),
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro tbody tr.is-active-row .budget-pill-button:not(.is-active),
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro tbody tr.is-active-row .budget-pill-button:not(.is-active),
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro tbody tr.is-active-row .budget-pill-button:not(.is-active) {
+    color: rgba(88, 68, 48, 0.58) !important;
+    -webkit-text-fill-color: rgba(88, 68, 48, 0.58) !important;
+    background: rgba(255, 252, 246, 0.94) !important;
+    border: 1px solid rgba(120, 96, 68, 0.2) !important;
   }
 
   .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro .budget-pill-button.is-active,
   .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro .budget-pill-button.is-active,
-  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro .budget-pill-button.is-active {
-    background: rgba(26, 23, 20, 0.88) !important;
-    color: #faf5ed !important;
-    -webkit-text-fill-color: #faf5ed !important;
-    border-color: rgba(26, 23, 20, 0.34) !important;
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro .budget-pill-button.is-active,
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro tbody tr.is-active-row .budget-pill-button.is-active,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro tbody tr.is-active-row .budget-pill-button.is-active,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro tbody tr.is-active-row .budget-pill-button.is-active {
+    background: rgba(120, 96, 68, 0.16) !important;
+    color: #1a1714 !important;
+    -webkit-text-fill-color: #1a1714 !important;
+    border-color: rgba(120, 96, 68, 0.34) !important;
   }
 
   .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro .budget-pill-group.is-income .budget-pill-button.is-active,
   .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro .budget-pill-group.is-income .budget-pill-button.is-active,
-  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro .budget-pill-group.is-income .budget-pill-button.is-active {
-    background: rgba(47, 107, 66, 0.88) !important;
-    color: #f4faf6 !important;
-    -webkit-text-fill-color: #f4faf6 !important;
-    border-color: rgba(47, 107, 66, 0.34) !important;
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro .budget-pill-group.is-income .budget-pill-button.is-active,
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro tbody tr.is-active-row .budget-pill-group.is-income .budget-pill-button.is-active,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro tbody tr.is-active-row .budget-pill-group.is-income .budget-pill-button.is-active,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro tbody tr.is-active-row .budget-pill-group.is-income .budget-pill-button.is-active {
+    background: rgba(47, 107, 66, 0.14) !important;
+    color: #2f6b42 !important;
+    -webkit-text-fill-color: #2f6b42 !important;
+    border-color: rgba(47, 107, 66, 0.3) !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro .budget-pill-group.is-expense .budget-pill-button.is-active,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro .budget-pill-group.is-expense .budget-pill-button.is-active,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro .budget-pill-group.is-expense .budget-pill-button.is-active,
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro tbody tr.is-active-row .budget-pill-group.is-expense .budget-pill-button.is-active,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro tbody tr.is-active-row .budget-pill-group.is-expense .budget-pill-button.is-active,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro tbody tr.is-active-row .budget-pill-group.is-expense .budget-pill-button.is-active {
+    background: rgba(143, 63, 63, 0.12) !important;
+    color: #8f3f3f !important;
+    -webkit-text-fill-color: #8f3f3f !important;
+    border-color: rgba(143, 63, 63, 0.28) !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro tbody tr.is-active-row .budget-impact-shell,
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro tbody tr.is-active-row .budget-impact-cell,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro tbody tr.is-active-row .budget-impact-shell,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro tbody tr.is-active-row .budget-impact-cell,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro tbody tr.is-active-row .budget-impact-shell,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro tbody tr.is-active-row .budget-impact-cell {
+    background: rgba(120, 96, 68, 0.06) !important;
+    border: 1px solid rgba(120, 96, 68, 0.14) !important;
+    border-radius: 10px !important;
+    box-shadow: none !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro tbody tr.is-active-row .budget-impact-cell small,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro tbody tr.is-active-row .budget-impact-cell small,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-table-pro tbody tr.is-active-row .budget-impact-cell small {
+    color: #1a1714 !important;
+    -webkit-text-fill-color: #1a1714 !important;
   }
 
   .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-row-delete.is-mobile,
