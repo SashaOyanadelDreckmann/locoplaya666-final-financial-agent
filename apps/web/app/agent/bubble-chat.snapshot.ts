@@ -414,6 +414,12 @@ html, body, .bubble-pdf-snapshot {
   overflow: visible !important;
 }
 
+.bubble-pdf-snapshot .chat-table-scroll-hint,
+.bubble-pdf-snapshot .chat-table-scroll-host::before,
+.bubble-pdf-snapshot .chat-table-scroll-host::after {
+  display: none !important;
+}
+
 .bubble-pdf-snapshot .agent-table th,
 .bubble-pdf-snapshot .agent-table td {
   color: #1c3145 !important;

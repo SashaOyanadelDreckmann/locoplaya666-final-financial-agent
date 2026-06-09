@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import type { AgentBlock } from '@/lib/types/chat';
+import { ChatTableScrollHost } from '@/components/agent/ChatTableScrollHost';
 import {
   ResponsiveContainer,
   LineChart,
@@ -295,7 +296,7 @@ export function AgentBlocksRenderer({ blocks = [], onQuestionnaireSubmit }: Agen
           return (
             <section key={idx} className="agent-block agent-table-block" role="region" aria-label={`Tabla: ${block.table.title}`}>
               <h4 id={`table-title-${idx}`}>{block.table.title}</h4>
-              <div className="agent-table-wrap">
+              <ChatTableScrollHost wrapClassName="agent-table-wrap">
               <table className="agent-table" aria-labelledby={`table-title-${idx}`}>
                 <thead>
                   <tr>
@@ -314,7 +315,7 @@ export function AgentBlocksRenderer({ blocks = [], onQuestionnaireSubmit }: Agen
                   ))}
                 </tbody>
               </table>
-              </div>
+              </ChatTableScrollHost>
               {block.table.note ? <p className="agent-table-note">{block.table.note}</p> : null}
             </section>
           );

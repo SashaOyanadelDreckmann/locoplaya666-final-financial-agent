@@ -3,6 +3,7 @@ import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import { BlockMath } from 'react-katex';
+import { ChatTableScrollHost } from '@/components/agent/ChatTableScrollHost';
 
 export function renderLatexDocMessage(content: string): ReactNode {
   const sanitized = content
@@ -226,11 +227,11 @@ export function renderLatexDocMessage(content: string): ReactNode {
     li: (props) => <li className="md-list-item" {...props} />,
     blockquote: (props) => <blockquote className="md-blockquote" {...props} />,
     table: ({ children, ...props }) => (
-      <div className="md-table-wrap">
+      <ChatTableScrollHost wrapClassName="md-table-wrap">
         <table className="md-table" {...props}>
           {children}
         </table>
-      </div>
+      </ChatTableScrollHost>
     ),
   };
   const hasBlockMath = /\$\$[\s\S]+?\$\$/.test(refinedMarkdown);
