@@ -40,6 +40,8 @@ describe('budget modal logic guards', () => {
     expect(budgetModalSource).toContain('BudgetCarouselStage');
     expect(budgetModalSource).toContain('budget-mobile-stage');
     expect(budgetModalSource).not.toContain('budget-desktop-stage');
+    expect(budgetModalSource).toContain('data-budget-table-style={budgetTableStyle}');
+    expect(budgetModalSource).toContain('tableStyle={budgetTableStyle}');
   });
 
   it('auto-applies budget template when modal opens with empty rows', () => {

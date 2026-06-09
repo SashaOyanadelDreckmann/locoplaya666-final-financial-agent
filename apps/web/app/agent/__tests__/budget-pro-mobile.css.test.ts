@@ -39,10 +39,9 @@ describe('budget pro mobile css safeguards', () => {
     expect(mobileCss).toContain('Diagnostics reset');
   });
 
-  it('uses one-row scroll snap viewport on mobile table tab', () => {
+  it('uses one-row scroll viewport on mobile table tab', () => {
     expect(mobileCss).toContain('--budget-mobile-row-slot');
-    expect(mobileCss).toContain('scroll-snap-type: y mandatory');
-    expect(mobileCss).toContain('scroll-snap-align: start');
+    expect(mobileCss).toContain('is-mobile-row-card');
     expect(mobileCss).toContain('is-mobile-row-card');
     expect(mobileCss).toContain('grid-template-columns: minmax(0, 1fr) minmax(0, 1fr)');
     expect(mobileCss).toContain('.budget-chat-sync-button:not(.is-assistant-action)');
@@ -52,13 +51,16 @@ describe('budget pro mobile css safeguards', () => {
   it('loads budget mobile authoritative and desktop guard before transactions contract', () => {
     const layoutCss = fs.readFileSync(path.join(process.cwd(), 'app', 'layout.tsx'), 'utf8');
     expect(layoutCss).toContain("import './agent-modals-budget-mobile-authoritative.css';");
+    expect(layoutCss).toContain("import './agent-modals-budget-mobile-styles.css';");
     expect(layoutCss).toContain("import './agent-modals-budget-desktop-guard.css';");
     const imports = [...layoutCss.matchAll(/import\s+'\.\/([^']+\.css)'/g)].map((match) => match[1]);
     const authIdx = imports.indexOf('agent-modals-budget-mobile-authoritative.css');
+    const stylesIdx = imports.indexOf('agent-modals-budget-mobile-styles.css');
     const deskIdx = imports.indexOf('agent-modals-budget-desktop-guard.css');
     const txIdx = imports.indexOf('agent-modals-transactions-contract.css');
     expect(authIdx).toBeGreaterThanOrEqual(0);
-    expect(deskIdx).toBeGreaterThan(authIdx);
+    expect(stylesIdx).toBeGreaterThan(authIdx);
+    expect(deskIdx).toBeGreaterThan(stylesIdx);
     expect(txIdx).toBeGreaterThan(deskIdx);
   });
 
@@ -77,6 +79,18 @@ describe('budget pro mobile css safeguards', () => {
     expect(authCss).toContain('is-mobile-table-compact');
     expect(authCss).toContain('filter: blur(10px)');
     expect(authCss).toContain('display: none !important');
+  });
+
+  it('defines premium mobile themes for all budget table styles', () => {
+    const stylesCssPath = path.join(process.cwd(), 'app', 'agent-modals-budget-mobile-styles.css');
+    const stylesCss = fs.readFileSync(stylesCssPath, 'utf8');
+    expect(stylesCss).toContain('budget-mobile-intel-summary--midnight');
+    expect(stylesCss).toContain('budget-table-style-ledger');
+    expect(stylesCss).toContain('budget-table-style-atelier');
+    expect(stylesCss).toContain('budget-table-style-terminal');
+    expect(stylesCss).toContain('budget-table-style-carbon');
+    expect(stylesCss).toContain('--mb-input-text');
+    expect(stylesCss).toContain('--mb-label');
   });
 
   it('uses transparent frosted glass on mobile assistant overlay (blur only, no tint)', () => {
