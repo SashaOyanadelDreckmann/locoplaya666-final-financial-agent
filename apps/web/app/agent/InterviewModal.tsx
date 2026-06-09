@@ -381,6 +381,9 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
     ? currentQuestion
     : `Explorar ${currentBlockLabel.toLowerCase()} con el contexto financiero disponible.`;
 
+  const showBootstrapLoader = isLoading;
+  const showGeneratingLoader = isGeneratingDiagnosis;
+
   return (
     <div
       className="agent-modal-overlay interview-modal-overlay"
@@ -390,7 +393,7 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
       aria-describedby={descriptionId}
       onClick={canDismissOverlay ? handleOverlayDismiss : undefined}
     >
-      {isGeneratingDiagnosis ? (
+      {showGeneratingLoader || showBootstrapLoader ? (
         <div
           className="agent-modal interview-modal interview-modal--generating"
           ref={modalRef}
@@ -399,10 +402,17 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
           onMouseDown={(e) => e.stopPropagation()}
           onPointerDown={(e) => e.stopPropagation()}
         >
-          <InterviewModalLoader
-            title="Generando diagnóstico final"
-            subtitle="Estamos consolidando el diagnóstico profesional con toda la evidencia disponible."
-          />
+          {showGeneratingLoader ? (
+            <InterviewModalLoader
+              title="Generando diagnóstico final"
+              subtitle="Estamos consolidando el diagnóstico profesional con toda la evidencia disponible."
+            />
+          ) : (
+            <InterviewModalLoader
+              animateSteps
+              note="Si el perfil tarda unos segundos, es normal: estamos cruzando intake, productos y presupuesto."
+            />
+          )}
         </div>
       ) : (
         <div
@@ -459,13 +469,6 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
               onClose={handleOverlayDismiss}
               retrying={!intakeReady}
             />
-          ) : isLoading ? (
-            <div className="interview-modal-loading">
-              <InterviewModalLoader
-                animateSteps
-                note="Si el perfil tarda unos segundos, es normal: estamos cruzando intake, productos y presupuesto."
-              />
-            </div>
           ) : isDiagnosisMode ? (
             profile ? (
               <InterviewDiagnosisPanel

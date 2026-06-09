@@ -101,6 +101,19 @@ describe('interview modal safeguards', () => {
     expect(modal).toContain("? 'Pausada'");
   });
 
+  it('resets bootstrap state before paint when reopening the interview modal', () => {
+    const bootstrapPath = path.join(process.cwd(), 'app', 'agent', 'useInterviewModalBootstrap.ts');
+    const modalPath = path.join(process.cwd(), 'app', 'agent', 'InterviewModal.tsx');
+    const bootstrap = fs.readFileSync(bootstrapPath, 'utf8');
+    const modal = fs.readFileSync(modalPath, 'utf8');
+
+    expect(bootstrap).toContain('useLayoutEffect');
+    expect(bootstrap).toContain('if (!isOpen) {');
+    expect(bootstrap).toContain('setIntakeReady(false);');
+    expect(modal).toContain('showBootstrapLoader');
+    expect(modal).toContain('interview-modal--generating');
+  });
+
   it('preserves diagnosis signals when reopening a completed interview session', () => {
     const bootstrapPath = path.join(process.cwd(), 'app', 'agent', 'useInterviewModalBootstrap.ts');
     const runtimePath = path.join(process.cwd(), 'app', 'agent', 'useInterviewVoiceRuntime.ts');

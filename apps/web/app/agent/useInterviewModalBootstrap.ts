@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 import { getSessionInfo, nextConversationStep } from '@/lib/api';
 import { ApiHttpError } from '@/lib/apiEnvelope';
 import { toUserFacingError } from '@/lib/userError';
@@ -62,9 +62,14 @@ export function useInterviewModalBootstrap(params: Params) {
     onDiagnosisOnlyOpen,
   } = params;
 
-  useEffect(() => {
-    if (!isOpen) return;
-    let cancelled = false;
+  useLayoutEffect(() => {
+    if (!isOpen) {
+      bootedRef.current = false;
+      setIntakeReady(false);
+      setBootError(null);
+      setSessionAlreadyCompleted(false);
+      return;
+    }
 
     bootedRef.current = false;
     setIntakeReady(false);
@@ -72,6 +77,20 @@ export function useInterviewModalBootstrap(params: Params) {
     setSessionAlreadyCompleted(false);
     setSummaryComment('');
     setSummarySubmitting(false);
+  }, [
+    bootedRef,
+    isOpen,
+    bootstrapAttempt,
+    setBootError,
+    setIntakeReady,
+    setSessionAlreadyCompleted,
+    setSummaryComment,
+    setSummarySubmitting,
+  ]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
 
     async function hydrateInterviewContext() {
       try {
@@ -147,7 +166,6 @@ export function useInterviewModalBootstrap(params: Params) {
     };
   }, [
     applyHydratedVoiceState,
-    bootedRef,
     handleUnauthorized,
     intake,
     isOpen,
@@ -158,8 +176,6 @@ export function useInterviewModalBootstrap(params: Params) {
     setLatestDiagnosticProfileId,
     setSessionAlreadyCompleted,
     setSessionAlreadyCompletedVoice,
-    setSummaryComment,
-    setSummarySubmitting,
     bootstrapAttempt,
     onDiagnosisOnlyOpen,
   ]);
