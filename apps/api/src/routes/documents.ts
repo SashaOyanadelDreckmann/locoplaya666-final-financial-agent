@@ -260,9 +260,101 @@ export function toIsoDate(value: string | null | undefined): string | undefined 
   return `${yy}-${mm}-${dd}`;
 }
 
+const SPANISH_MONTHS: Record<string, string> = {
+  enero: '01',
+  febrero: '02',
+  marzo: '03',
+  abril: '04',
+  mayo: '05',
+  junio: '06',
+  julio: '07',
+  agosto: '08',
+  septiembre: '09',
+  setiembre: '09',
+  octubre: '10',
+  noviembre: '11',
+  diciembre: '12',
+};
+
+function parseSpanishLongDate(value: string): string | undefined {
+  const raw = String(value ?? '').trim();
+  if (!raw) return undefined;
+  const match = raw.match(
+    /\b(\d{1,2})\s+de\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre)(?:\s+de(?:l)?\s+(\d{4}))?\b/i,
+  );
+  if (!match) return undefined;
+  const dd = match[1].padStart(2, '0');
+  const mm = SPANISH_MONTHS[match[2].toLowerCase()];
+  const yy = match[3] ?? new Date().getFullYear().toString();
+  return `${yy}-${mm}-${dd}`;
+}
+
 function parseDateFromLine(line: string): string | undefined {
+  const spanish = parseSpanishLongDate(line);
+  if (spanish) return spanish;
   const match = line.match(/\b(\d{4}-\d{2}-\d{2}|\d{1,2}[/-]\d{1,2}(?:[/-]\d{2,4})?)\b/);
   return toIsoDate(match?.[1]);
+}
+
+function lineLooksLikeDateHeader(line: string): boolean {
+  const trimmed = String(line ?? '').trim();
+  if (!trimmed) return false;
+  if (parseDateFromLine(trimmed)) {
+    const withoutDate = trimmed
+      .replace(/\b\d{4}-\d{2}-\d{2}\b/g, '')
+      .replace(/\b\d{1,2}[/-]\d{1,2}(?:[/-]\d{2,4})?\b/g, '')
+      .replace(
+        /\b\d{1,2}\s+de\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre)(?:\s+de(?:l)?\s+\d{4})?\b/gi,
+        '',
+      )
+      .replace(/[^\w]+/g, '')
+      .trim();
+    return withoutDate.length <= 12;
+  }
+  return false;
+}
+
+function extractSpanishDatesFromText(text: string): string[] {
+  const source = String(text ?? '');
+  const matches = source.matchAll(
+    /\b(\d{1,2})\s+de\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre)(?:\s+de(?:l)?\s+(\d{4}))?\b/gi,
+  );
+  const dates: string[] = [];
+  for (const match of matches) {
+    const parsed = parseSpanishLongDate(match[0]);
+    if (parsed) dates.push(parsed);
+  }
+  return dates;
+}
+
+function resolveDocumentFallbackDate(text: string): string | undefined {
+  const source = String(text ?? '');
+  const sectionDates = source
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0 && lineLooksLikeDateHeader(line))
+    .map((line) => parseDateFromLine(line))
+    .filter((value): value is string => Boolean(value));
+  if (sectionDates.length > 0) {
+    return sectionDates[sectionDates.length - 1];
+  }
+  const inlineDates = extractSpanishDatesFromText(source);
+  if (inlineDates.length > 0) {
+    return inlineDates[inlineDates.length - 1];
+  }
+  const initiated = source.match(
+    /\biniciado\s+el\s+(\d{1,2}\s+de\s+(?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre)(?:\s+de(?:l)?\s+\d{4})?)\b/i,
+  );
+  if (initiated?.[1]) {
+    return parseSpanishLongDate(initiated[1]);
+  }
+  const period = source.match(
+    /\bperiodo\s+iniciado\s+el\s+(\d{1,2}\s+de\s+(?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre)(?:\s+de(?:l)?\s+\d{4})?)\b/i,
+  );
+  if (period?.[1]) {
+    return parseSpanishLongDate(period[1]);
+  }
+  return undefined;
 }
 
 function normalizeTextToken(value: string): string {
@@ -600,8 +692,9 @@ function parseMovementFromTableRow(params: {
   headers: string[];
   row: string[];
   productType?: string;
+  fallbackDate?: string;
 }): ParsedMovement | null {
-  const { headers, row, productType } = params;
+  const { headers, row, productType, fallbackDate } = params;
   if (!Array.isArray(row) || row.length === 0) return null;
 
   const dateIndex = resolveColumnIndex(headers, [/^fecha\b/, /^fec\b/, /contable/]);
@@ -623,7 +716,7 @@ function parseMovementFromTableRow(params: {
   const typeIndex = resolveColumnIndex(headers, [/^tipo\b/, /^movimiento\b/]);
 
   const dateSource = dateIndex >= 0 ? row[dateIndex] : row.join(' ');
-  const date = toIsoDate(dateSource) ?? parseDateFromLine(dateSource);
+  const date = toIsoDate(dateSource) ?? parseDateFromLine(dateSource) ?? fallbackDate;
   const rawCategoryToken = categoryIndex >= 0 ? row[categoryIndex] ?? '' : '';
   const categoryToken = isSectionSummaryCategory(rawCategoryToken) ? '' : rawCategoryToken;
   const categoryDirection = isCreditCardProduct(productType)
@@ -728,7 +821,14 @@ function parseMovementFromTableRow(params: {
       category: taxonomy.category,
       merchant: taxonomy.merchant,
       category_confidence: taxonomy.categoryConfidence,
-      confidence: descriptionIndex >= 0 && (expenseIndex >= 0 || incomeIndex >= 0 || amountIndex >= 0) ? 0.98 : 0.86,
+      confidence:
+        dateIndex >= 0 && descriptionIndex >= 0 && (expenseIndex >= 0 || incomeIndex >= 0 || amountIndex >= 0)
+          ? 0.98
+          : dateIndex >= 0
+            ? 0.86
+            : fallbackDate
+              ? 0.74
+              : 0.86,
       source_kind: 'table',
     },
     {
@@ -741,7 +841,11 @@ function parseMovementFromTableRow(params: {
   );
 }
 
-function parseMovementFromLooseLine(line: string, productType?: string): ParsedMovement | null {
+function parseMovementFromLooseLine(
+  line: string,
+  productType?: string,
+  fallbackDate?: string,
+): ParsedMovement | null {
   if (!line || isNonMovementDescription(line)) return null;
   const cells = splitCandidateCells(line);
   const amountTokens =
@@ -755,7 +859,7 @@ function parseMovementFromLooseLine(line: string, productType?: string): ParsedM
     pickedToken = token;
   }
   if (signedAmount === null) return null;
-  const date = parseDateFromLine(line);
+  const date = parseDateFromLine(line) ?? fallbackDate;
   if (!date) return null;
   const direction = inferMovementDirection(line, signedAmount, pickedToken, productType);
   const movementKind = inferMovementKind(line, signedAmount, pickedToken, productType);
@@ -776,7 +880,7 @@ function parseMovementFromLooseLine(line: string, productType?: string): ParsedM
     category: taxonomy.category,
     merchant: taxonomy.merchant,
     category_confidence: taxonomy.categoryConfidence,
-    confidence: cells.length >= 3 ? 0.8 : 0.68,
+    confidence: parseDateFromLine(line) ? (cells.length >= 3 ? 0.8 : 0.68) : fallbackDate ? 0.62 : 0.68,
     source_kind: 'line',
   };
 }
@@ -825,6 +929,7 @@ export function extractMovements(documents: ParsedDocumentResponse[], productTyp
   const movements: ParsedMovement[] = [];
 
   for (const doc of documents) {
+    const docFallbackDate = resolveDocumentFallbackDate(doc.text ?? '');
     const structured = (doc.structuredData as {
       possibleTransactions?: unknown;
       tables?: unknown;
@@ -842,6 +947,7 @@ export function extractMovements(documents: ParsedDocumentResponse[], productTyp
           headers,
           row: Array.isArray(row) ? row.map((cell) => String(cell ?? '')) : [],
           productType,
+          fallbackDate: docFallbackDate,
         });
         if (!parsed) continue;
         const key = buildMovementKey(parsed);
@@ -867,8 +973,13 @@ export function extractMovements(documents: ParsedDocumentResponse[], productTyp
             .filter((line) => line.length > 0 && !line.startsWith('---') && !line.startsWith('['))
             .slice(0, 220);
 
+      let sectionDate = docFallbackDate;
       for (const line of candidateLines) {
-        const parsed = parseMovementFromLooseLine(line, productType);
+        if (lineLooksLikeDateHeader(line)) {
+          sectionDate = parseDateFromLine(line) ?? sectionDate;
+          continue;
+        }
+        const parsed = parseMovementFromLooseLine(line, productType, sectionDate);
         if (!parsed) continue;
         const key = buildMovementKey(parsed);
         if (dedup.has(key)) continue;

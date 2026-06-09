@@ -258,19 +258,25 @@ def run(report: Report) -> int:
                     ),
                 },
                 "parsedDocuments": batch.get("data", {}).get("documents", [])[:5],
-                "history": [],
+                "messages": [],
             },
             timeout=120,
         )
         if chat.get("_http_status"):
             report.fail(f"transactions-chat → HTTP {chat['_http_status']}")
         else:
-            answer = str(chat.get("data", {}).get("answer") or chat.get("data", {}).get("text") or "")
+            answer = str(
+                chat.get("assistant_text")
+                or chat.get("data", {}).get("assistant_text")
+                or chat.get("data", {}).get("answer")
+                or chat.get("data", {}).get("text")
+                or ""
+            )
             if len(answer) < 30:
                 report.fail("transactions-chat devolvió respuesta vacía")
             else:
                 report.ok(f"transactions-chat respondió ({len(answer)} chars)")
-            followups = chat.get("data", {}).get("suggestedFollowups") or []
+            followups = chat.get("suggested_followups") or chat.get("data", {}).get("suggestedFollowups") or []
             if followups:
                 report.ok(f"transactions-chat sugiere {len(followups)} follow-ups")
 

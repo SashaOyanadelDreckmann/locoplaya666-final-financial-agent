@@ -85,4 +85,64 @@ describe('documents movement direction', () => {
     expect(movements[0]?.direction_basis).toBe('column_cargo');
     expect(movements[0]?.amount).toBe(50000);
   });
+
+  it('parses vision OCR tables without fecha using section dates from screenshot text', () => {
+    const movements = extractMovements(
+      [
+        {
+          name: 'movimientos-no-facturados.png',
+          text: [
+            '--- Documento Imagen: movimientos-no-facturados.png ---',
+            'Movimientos no facturados Iniciado el 27 de mayo de 2026',
+            '31 de mayo de 2026',
+            '--- Fin ---',
+          ].join('\n'),
+          summary: null,
+          structuredData: {
+            tables: [
+              {
+                headers: ['Descripción', 'Monto'],
+                rows: [
+                  ['Copec Nunoa Compras', '$5.500'],
+                  ['Monto Cancelado', '$-10.000'],
+                ],
+              },
+            ],
+            parserMeta: { mode: 'vision_structured', confidence: 0.86 },
+          },
+        },
+      ],
+      'credit_card',
+    );
+
+    expect(movements.length).toBeGreaterThanOrEqual(2);
+    expect(movements.some((movement) => movement.description.includes('Copec'))).toBe(true);
+    expect(movements.every((movement) => Boolean(movement.date))).toBe(true);
+    expect(movements[0]?.date).toBe('2026-05-31');
+  });
+
+  it('parses vision OCR tables when fecha appears inline in a single OCR blob', () => {
+    const movements = extractMovements(
+      [
+        {
+          name: 'movimientos-no-facturados.png',
+          text: 'Movimientos no facturados Iniciado el 27 de mayo de 2026 Copec Nunoa Compras $5.500 31 de mayo de 2026 Pedidosyalocal Burger Compras $6.000',
+          summary: null,
+          structuredData: {
+            tables: [
+              {
+                headers: ['Descripción', 'Monto'],
+                rows: [['Copec Nunoa Compras', '$5.500']],
+              },
+            ],
+            parserMeta: { mode: 'vision_structured', confidence: 0.86 },
+          },
+        },
+      ],
+      'credit_card',
+    );
+
+    expect(movements.some((movement) => movement.description.includes('Copec'))).toBe(true);
+    expect(movements.every((movement) => Boolean(movement.date))).toBe(true);
+  });
 });

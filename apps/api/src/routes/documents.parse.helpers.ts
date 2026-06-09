@@ -42,6 +42,14 @@ export function shouldReconcileMovements(
         Number(structured.rowCount ?? 0) || 0,
         Number(structured.possibleTransactionCount ?? 0) || 0,
       );
+      const visionTableRows = Array.isArray(structured.tables)
+        ? structured.tables.reduce<number>((total, table) => {
+            const rows = (table as { rows?: unknown }).rows;
+            return total + (Array.isArray(rows) ? rows.length : 0);
+          }, 0)
+        : 0;
+      const parserMode = String(structured.parserMeta?.mode ?? '').toLowerCase();
+      if (visionTableRows >= 3 && parserMode.includes('vision')) return true;
       return rowCount >= 8;
     });
   }
