@@ -11,7 +11,10 @@ import {
 import {
   ALL_PRODUCT_TEMPLATES,
   TX_CATEGORY_OPTIONS,
+  PRODUCT_STACK_PALETTE,
+  PRODUCT_STACK_TEXT_PALETTE,
 } from './constants';
+import { assignUniquePaletteIndices } from './library-stack.helpers';
 import ModalNumbersCanvas from '@/components/agent/ModalNumbersCanvas';
 import { MAX_TRANSACTION_PRODUCTS_CREATED_TOTAL } from '../agent-page.constants';
 import { useMovementAnalytics } from './use-movement-analytics';
@@ -413,6 +416,31 @@ export function TransactionsModal(props: TransactionsModalProps) {
     }
     setProductCarouselIndex(activeProductIndex);
   }, [activeProductIndex, libraryProductCards, recentlyDockedProductId]);
+
+  const libraryPaletteIndices = useMemo(
+    () => assignUniquePaletteIndices(libraryProductCards.map(({ product }) => product.id)),
+    [libraryProductCards],
+  );
+  const activeLibraryTheme = useMemo(() => {
+    if (libraryProductCards.length === 0) {
+      return {
+        color: activeProductVisualPalette.base,
+        edge: activeProductVisualPalette.tint,
+      };
+    }
+    const paletteIndex = libraryPaletteIndices[productCarouselIndex] ?? productCarouselIndex;
+    return {
+      color: PRODUCT_STACK_PALETTE[paletteIndex] ?? PRODUCT_STACK_PALETTE[0],
+      edge: PRODUCT_STACK_TEXT_PALETTE[paletteIndex] ?? PRODUCT_STACK_TEXT_PALETTE[0],
+    };
+  }, [
+    activeProductVisualPalette.base,
+    activeProductVisualPalette.tint,
+    libraryPaletteIndices,
+    libraryProductCards.length,
+    productCarouselIndex,
+  ]);
+
   useEffect(() => {
     if (!props.isOpen || props.txWizardStep !== 'upload' || isDockingToLibrary) return;
     maybeInitAssistant();
@@ -540,6 +568,10 @@ export function TransactionsModal(props: TransactionsModalProps) {
         data-dock-phase={dockTransitionPhase}
         data-stage={currentStage}
         data-reduced-motion={prefersReducedMotion ? 'true' : 'false'}
+        style={{
+          ['--tx-active-card-accent' as string]: activeLibraryTheme.color,
+          ['--tx-active-card-accent-edge' as string]: activeLibraryTheme.edge,
+        }}
       >
         {!prefersReducedMotion ? (
           <ModalNumbersCanvas

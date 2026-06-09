@@ -21,6 +21,8 @@
   --tx-contract-ease: cubic-bezier(0.25, 0.46, 0.45, 0.94);
   --tx-contract-shadow-soft: 0 20px 56px rgba(0, 0, 0, 0.34);
   --tx-contract-inset: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+  --tx-active-card-accent: var(--tx-contract-accent);
+  --tx-active-card-accent-edge: var(--tx-contract-text);
   /* Panel sidebar tones (mirrors agent-modals-budget panel-pos-*) */
   --tx-panel-mustard-bg: linear-gradient(145deg, rgba(184, 147, 70, 0.9), rgba(152, 119, 54, 0.92));
   --tx-panel-mustard-border: rgba(235, 218, 179, 0.58);
@@ -163,11 +165,17 @@
   width: 100% !important;
   min-height: 52px !important;
   display: grid !important;
-  gap: 3px !important;
+  grid-template-columns: auto 1fr !important;
+  grid-template-areas:
+    'idx title'
+    'idx copy' !important;
+  column-gap: 10px !important;
+  row-gap: 3px !important;
+  align-items: center !important;
   padding: 10px 12px !important;
   border-radius: 11px !important;
-  border: 1px solid var(--tx-contract-border) !important;
-  background: var(--tx-contract-surface-inset) !important;
+  border: 1px solid color-mix(in srgb, var(--tx-active-card-accent) 34%, var(--tx-contract-border)) !important;
+  background: color-mix(in srgb, var(--tx-active-card-accent) 10%, var(--tx-contract-surface-inset)) !important;
   color: var(--tx-contract-text) !important;
   text-align: left !important;
   cursor: pointer !important;
@@ -178,8 +186,9 @@
 }
 
 .transactions-modal .tx-wizard-step.is-current {
-  border-color: var(--tx-contract-accent-edge) !important;
-  background: var(--tx-contract-accent-soft) !important;
+  border-color: color-mix(in srgb, var(--tx-active-card-accent) 62%, transparent) !important;
+  background: color-mix(in srgb, var(--tx-active-card-accent) 24%, var(--tx-contract-surface-inset)) !important;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--tx-active-card-accent) 30%, transparent) inset !important;
 }
 
 .transactions-modal .tx-wizard-step.is-disabled,
@@ -189,19 +198,43 @@
 }
 
 .transactions-modal .tx-wizard-step-title {
+  grid-area: title !important;
   font-size: 12px !important;
   font-weight: 650 !important;
   letter-spacing: 0.02em !important;
+  color: color-mix(in srgb, var(--tx-active-card-accent-edge, var(--tx-contract-text)) 88%, white) !important;
 }
 
 .transactions-modal .tx-wizard-step-copy {
+  grid-area: copy !important;
   font-size: 11px !important;
   line-height: 1.35 !important;
-  color: rgba(203, 213, 225, 0.76) !important;
+  color: color-mix(in srgb, var(--tx-active-card-accent-edge, var(--tx-contract-text)) 62%, var(--tx-contract-text-dim)) !important;
 }
 
 .transactions-modal .tx-wizard-step-idx {
-  display: none !important;
+  grid-area: idx !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  border-radius: 999px !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0 !important;
+  line-height: 1 !important;
+  color: var(--tx-active-card-accent-edge, var(--tx-contract-text)) !important;
+  background: color-mix(in srgb, var(--tx-active-card-accent) 24%, var(--tx-contract-surface-raised)) !important;
+  border: 1px solid color-mix(in srgb, var(--tx-active-card-accent) 48%, transparent) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+}
+
+.transactions-modal .tx-wizard-step.is-current .tx-wizard-step-idx {
+  background: var(--tx-active-card-accent) !important;
+  color: color-mix(in srgb, var(--tx-active-card-accent-edge, #fff) 18%, #081018) !important;
+  border-color: color-mix(in srgb, var(--tx-active-card-accent) 72%, white) !important;
 }
 
 /* ── Content carousel: in-flow stack (no absolute hero overlap) ───────────── */
@@ -616,8 +649,42 @@
   mask-image: none !important;
 }
 
-.transactions-modal .tx-scanner-stream-root.is-quiet:not(.is-transitioning) .tx-scanner-card-ascii {
+.transactions-modal .tx-scanner-stream-root.is-quiet:not(.is-transitioning) .tx-scanner-card-ascii,
+.transactions-modal .tx-scanner-stream-root.is-quiet .tx-scanner-card-ascii.is-dormant {
   display: none !important;
+}
+
+.transactions-modal .tx-scanner-stream-root.is-quiet.is-transitioning .tx-scanner-card-wrapper[data-morph-state='code'] .tx-scanner-card-normal {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+.transactions-modal .tx-scanner-stream-root.is-quiet.is-transitioning .tx-scanner-card-wrapper[data-morph-state='code'] .tx-scanner-card-ascii {
+  opacity: 1 !important;
+  -webkit-mask-image: none !important;
+  mask-image: none !important;
+}
+
+.transactions-modal .tx-scanner-stream-root.is-quiet.is-transitioning .tx-scanner-card-wrapper[data-morph-state='normal'] .tx-scanner-card-ascii {
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+.transactions-modal .tx-scanner-stream-root.is-quiet.is-transitioning .tx-scanner-stage::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  bottom: 0 !important;
+  width: var(--scanner-center-x, 50%) !important;
+  z-index: 2 !important;
+  pointer-events: none !important;
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    color-mix(in srgb, var(--tx-active-card-accent, #334) 4%, transparent) 100%
+  ) !important;
 }
 
 .transactions-modal .tx-scanner-stream-root.is-quiet.is-transitioning .tx-scanner-card-hit {
@@ -2330,15 +2397,9 @@
   color: var(--tx-panel-mustard-text) !important;
 }
 
-/* Paso activo del wizard — acento mostaza */
-.transactions-modal .tx-wizard-step.is-current {
-  background: color-mix(in srgb, rgba(184, 147, 70, 0.42) 55%, var(--tx-contract-surface-inset) 45%) !important;
-  border-color: var(--tx-panel-mustard-border) !important;
-  box-shadow: 0 0 0 1px rgba(235, 218, 179, 0.22) inset !important;
-}
-
+/* Paso activo del wizard — acento de la card activa en biblioteca */
 .transactions-modal .tx-wizard-step.is-current .tx-wizard-step-title {
-  color: var(--tx-panel-mustard-text) !important;
+  color: color-mix(in srgb, var(--tx-active-card-accent-edge, var(--tx-contract-text)) 96%, white) !important;
 }
 
 /* Chat y formularios dentro de cards mostaza — mantener superficie oscura legible */

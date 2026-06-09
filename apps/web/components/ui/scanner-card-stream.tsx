@@ -389,11 +389,13 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
         wrapper.style.removeProperty('--scan-soft-half');
         wrapper.style.removeProperty('--card-focus-scale');
         wrapper.style.removeProperty('--morph-beam-opacity');
+        delete wrapper.dataset.morphState;
         if (normalCard) {
           normalCard.style.removeProperty('--clip-right');
           normalCard.style.removeProperty('--scan-split');
           normalCard.style.removeProperty('--morph-blur');
           normalCard.style.removeProperty('opacity');
+          normalCard.style.removeProperty('visibility');
         }
         if (asciiCard) {
           asciiCard.style.removeProperty('--clip-left');
@@ -407,6 +409,7 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
         }
         delete wrapper.dataset.scanned;
       });
+      container.style.removeProperty('--scanner-center-x');
     };
 
     const settleQuietCarousel = () => {
@@ -449,19 +452,32 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
       cardWidth: number,
       scannerX: number,
     ) => {
-      const scanPosOnCard = ((scannerX - cardLeft) / cardWidth) * 100;
-      const clampedSplit = Math.max(0, Math.min(100, scanPosOnCard));
-      const inMorphZone = clampedSplit > 2 && clampedSplit < 98;
+      const cardRight = cardLeft + cardWidth;
+      let clampedSplit: number;
+      if (cardRight <= scannerX + 0.5) {
+        clampedSplit = 100;
+      } else if (cardLeft >= scannerX - 0.5) {
+        clampedSplit = 0;
+      } else {
+        clampedSplit = ((scannerX - cardLeft) / cardWidth) * 100;
+      }
+      clampedSplit = Math.max(0, Math.min(100, clampedSplit));
+
+      const morphState =
+        clampedSplit >= 99.5 ? 'code' : clampedSplit <= 0.5 ? 'normal' : 'split';
+      wrapper.dataset.morphState = morphState;
+
+      const inMorphZone = morphState === 'split';
       const morphWave = Math.sin((clampedSplit / 100) * Math.PI);
       const velocity = cardStreamState.current.morphVelocity ?? 0;
-      const softness = Math.min(24, 13 + velocity * 0.18);
-      const softHalf = softness * 0.46;
+      const softness = Math.min(26, 14 + velocity * 0.2);
+      const softHalf = softness * 0.48;
       const cardCenter = cardLeft + cardWidth / 2;
       const distNorm = Math.abs(cardCenter - scannerX) / Math.max(cardWidth, 1);
-      const focusScale = Math.max(0.952, 1 - distNorm * 0.05);
-      const morphBlur = inMorphZone ? 0.18 + morphWave * 0.72 + velocity * 0.025 : 0;
-      const beamOpacity = inMorphZone ? 0.1 + morphWave * 0.42 : 0;
-      const codeMix = clampedSplit >= 98 ? 1 : inMorphZone ? 0.78 + morphWave * 0.22 : clampedSplit <= 2 ? 0 : 0.65;
+      const focusScale = morphState === 'normal' ? Math.max(0.968, 1 - distNorm * 0.025) : morphState === 'code' ? 0.962 : Math.max(0.952, 1 - distNorm * 0.05);
+      const morphBlur = inMorphZone ? 0.22 + morphWave * 0.65 + velocity * 0.02 : 0;
+      const beamOpacity = inMorphZone ? 0.08 + morphWave * 0.36 : 0;
+      const codeMix = morphState === 'code' ? 1 : morphState === 'normal' ? 0 : 0.72 + morphWave * 0.28;
 
       wrapper.style.setProperty('--scan-split', `${clampedSplit}%`);
       wrapper.style.setProperty('--scan-softness', `${softness.toFixed(1)}%`);
@@ -470,6 +486,15 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
       wrapper.style.setProperty('--morph-beam-opacity', beamOpacity.toFixed(3));
       normalCard.style.setProperty('--scan-split', `${clampedSplit}%`);
       normalCard.style.setProperty('--morph-blur', morphBlur.toFixed(3));
+
+      if (morphState === 'code') {
+        normalCard.style.setProperty('opacity', '0');
+        normalCard.style.setProperty('visibility', 'hidden');
+      } else {
+        normalCard.style.removeProperty('opacity');
+        normalCard.style.removeProperty('visibility');
+      }
+
       if (asciiCard) {
         asciiCard.style.setProperty('--scan-split', `${clampedSplit}%`);
         asciiCard.style.setProperty('--code-mix', codeMix.toFixed(3));
@@ -478,12 +503,14 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
       if (!asciiCard || !asciiContent) return clampedSplit;
 
       const streamId = Number(wrapper.dataset.streamId || '0');
-      if (inMorphZone) {
+      if (morphState === 'code') {
+        asciiContent.textContent = originalAscii.current.get(streamId) || '';
+      } else if (inMorphZone) {
         morphFrameTick += 1;
         if (morphFrameTick % 2 === 0) {
           mutateAsciiAtSplit(asciiContent, clampedSplit, streamId, originalAscii.current);
         }
-      } else if (clampedSplit <= 2) {
+      } else if (morphState === 'normal') {
         asciiContent.textContent = originalAscii.current.get(streamId) || '';
       }
 
@@ -507,6 +534,10 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
       }
 
       const scannerX = getScannerX();
+      if (quietMode) {
+        container.style.setProperty('--scanner-center-x', `${scannerX}px`);
+      }
+
       const scannerWidth = quietMode ? 0 : 6;
       const scannerLeft = scannerX - scannerWidth / 2;
       const scannerRight = scannerX + scannerWidth / 2;
@@ -535,6 +566,9 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
             scannerX,
           );
           if (split > 6 && split < 94) anyCardIsScanning = true;
+          if (wrapper.dataset.morphState === 'code' || wrapper.dataset.morphState === 'split') {
+            anyCardIsScanning = true;
+          }
           return;
         }
 
@@ -1022,8 +1056,14 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
                     <div className="tx-scanner-card-normal">
                       {renderCard(card.item, card.sourceIndex, isFocused)}
                     </div>
-                    {(!quietMode || isTransitioning) && !prefersReducedMotion ? (
-                      <div className="tx-scanner-card-ascii" aria-hidden="true">
+                    {!prefersReducedMotion ? (
+                      <div
+                        className={cn(
+                          'tx-scanner-card-ascii',
+                          quietMode && !isTransitioning && 'is-dormant',
+                        )}
+                        aria-hidden="true"
+                      >
                         <pre className="tx-scanner-ascii-content">{card.ascii}</pre>
                       </div>
                     ) : null}
