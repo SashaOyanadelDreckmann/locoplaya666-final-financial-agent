@@ -197,6 +197,8 @@ describe('budget modal logic guards', () => {
   it('measures mobile row slot height for one-row table viewport', () => {
     expect(source).toContain('--budget-mobile-row-slot');
     expect(source).toContain('measureMobileRowSlot');
+    expect(source).toContain('resolveDominantMobileBudgetRowScrollTop');
+    expect(source).toContain('readMobileBudgetRowSnapCandidates');
   });
 
   it('shows informe button only in desktop split mode', () => {

@@ -45,6 +45,11 @@ import {
   type BudgetChatApiPayload,
 } from './budget-modal.chat-api';
 import { buildBudgetSnapshotHtmlAndCss } from './budget-modal.snapshot';
+import {
+  readMobileBudgetRowSnapCandidates,
+  resolveDominantMobileBudgetRowScrollTop,
+  shouldSkipMobileBudgetRowSnap,
+} from './budget-modal.mobile-table-snap';
 import { useBudgetCloseConfirm } from './use-budget-close-confirm';
 
 function BudgetCarouselStage({ mobile, children }: { mobile: boolean; children: ReactNode }) {
@@ -134,6 +139,7 @@ export function BudgetModal(props: {
   const budgetViewModeRef = useRef(budgetViewMode);
   const prevMobileViewModeRef = useRef(budgetViewMode);
   const budgetReplyInputRef = useRef<HTMLInputElement | null>(null);
+  const mobileTableSnapSuppressedRef = useRef(false);
   const isBudgetChatBusy = isAskingAI || isInitializing;
   const {
     closeConfirmKind,
@@ -711,8 +717,82 @@ export function BudgetModal(props: {
       isAssistantOverlayMode ||
       (isDesktopLayout && budgetViewMode === 2) ||
       (!isDesktopLayout && budgetViewMode === 1);
+    mobileTableSnapSuppressedRef.current = true;
     wrap.scrollTo({ top, behavior: useAutoTableScroll ? 'auto' : 'smooth' });
+    window.setTimeout(() => {
+      mobileTableSnapSuppressedRef.current = false;
+    }, 420);
   }, [isAssistantOverlayMode, isMobileManualTable, props.isOpen, isDesktopLayout, budgetViewMode, focusedBudgetRowId, props.budgetRows.length]);
+
+  useEffect(() => {
+    if (!props.isOpen || isDesktopLayout) return;
+
+    const wrap = budgetTableScrollRef.current?.querySelector<HTMLElement>('.budget-table-wrap');
+    if (!wrap) return;
+
+    let isTouching = false;
+    let snapTimer: number | null = null;
+    let snapFrame: number | null = null;
+
+    const snapToDominantRow = () => {
+      if (mobileTableSnapSuppressedRef.current || isTouching) return;
+      if (shouldSkipMobileBudgetRowSnap(wrap)) return;
+
+      const candidates = readMobileBudgetRowSnapCandidates(wrap);
+      const targetTop = resolveDominantMobileBudgetRowScrollTop(
+        wrap.scrollTop,
+        wrap.clientHeight,
+        candidates,
+      );
+      if (targetTop === null) return;
+      if (Math.abs(wrap.scrollTop - targetTop) < 2) return;
+
+      mobileTableSnapSuppressedRef.current = true;
+      wrap.scrollTo({ top: targetTop, behavior: 'smooth' });
+      window.setTimeout(() => {
+        mobileTableSnapSuppressedRef.current = false;
+      }, 360);
+    };
+
+    const scheduleSnap = () => {
+      if (snapTimer) window.clearTimeout(snapTimer);
+      snapTimer = window.setTimeout(snapToDominantRow, 90);
+    };
+
+    const onTouchStart = () => {
+      isTouching = true;
+      if (snapTimer) window.clearTimeout(snapTimer);
+      if (snapFrame !== null) window.cancelAnimationFrame(snapFrame);
+    };
+
+    const onTouchEnd = () => {
+      isTouching = false;
+      snapFrame = window.requestAnimationFrame(() => {
+        snapFrame = window.requestAnimationFrame(scheduleSnap);
+      });
+    };
+
+    const onScroll = () => {
+      if (isTouching) return;
+      scheduleSnap();
+    };
+
+    wrap.addEventListener('touchstart', onTouchStart, { passive: true });
+    wrap.addEventListener('touchend', onTouchEnd, { passive: true });
+    wrap.addEventListener('touchcancel', onTouchEnd, { passive: true });
+    wrap.addEventListener('scroll', onScroll, { passive: true });
+    wrap.addEventListener('scrollend', snapToDominantRow, { passive: true });
+
+    return () => {
+      if (snapTimer) window.clearTimeout(snapTimer);
+      if (snapFrame !== null) window.cancelAnimationFrame(snapFrame);
+      wrap.removeEventListener('touchstart', onTouchStart);
+      wrap.removeEventListener('touchend', onTouchEnd);
+      wrap.removeEventListener('touchcancel', onTouchEnd);
+      wrap.removeEventListener('scroll', onScroll);
+      wrap.removeEventListener('scrollend', snapToDominantRow);
+    };
+  }, [props.isOpen, isDesktopLayout, budgetViewMode, props.budgetRows.length]);
 
   useEffect(() => {
     if (!props.isOpen || isDesktopLayout) {
