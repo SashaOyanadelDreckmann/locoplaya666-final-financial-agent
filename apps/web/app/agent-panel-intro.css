@@ -225,6 +225,185 @@ html.panel-intro-active main.agent-layout.is-mobile-viewport > .agent-mobile-com
   max-height: calc(100dvh - 200px);
 }
 
+/* ── Mobile: pixel-match compact deck cards (portal is outside .agent-layout) ── */
+
+.panel-morph-intro.is-mobile {
+  --deck-card-w: min(180px, calc(100vw * 0.39));
+  --deck-card-h: clamp(64px, calc(var(--deck-card-w) * 0.44), 83px);
+  --panel-bg: var(--bg-secondary, rgba(11, 18, 27, 0.94));
+  --border: rgba(148, 163, 184, 0.18);
+  --border-strong: rgba(148, 163, 184, 0.28);
+  --fg: rgba(248, 250, 252, 0.96);
+  --fg-secondary: rgba(186, 208, 226, 0.78);
+  --fg-tertiary: rgba(148, 163, 184, 0.62);
+  --bg-secondary: rgba(11, 18, 27, 0.94);
+  --radius-md: 12px;
+  --accent: rgba(111, 143, 166, 0.88);
+  --accent-fg: rgba(248, 250, 252, 0.96);
+}
+
+.panel-morph-intro.is-mobile .panel-morph-card__frame.is-mobile-deck {
+  overflow: hidden;
+  border-radius: 12px;
+  background: transparent;
+  box-shadow:
+    0 10px 28px rgba(0, 0, 0, 0.42),
+    0 1px 0 rgba(255, 255, 255, 0.08) inset;
+}
+
+.panel-morph-intro.is-mobile .panel-morph-card__deck-chrome.mobile-panel-stack-shell {
+  width: 100%;
+  height: 100%;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  overflow: hidden;
+  box-shadow: none;
+}
+
+.panel-morph-intro.is-mobile .panel-morph-card__deck-chrome .mobile-panel-stack-card,
+.panel-morph-intro.is-mobile .panel-morph-card__deck-chrome .mobile-stack-card-inner,
+.panel-morph-intro.is-mobile .panel-morph-card__deck-chrome .mob-col,
+.panel-morph-intro.is-mobile .panel-morph-card__deck-chrome .mob-col-wide,
+.panel-morph-intro.is-mobile .panel-morph-card__deck-chrome .mob-col-narrow {
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  margin: 0 !important;
+  flex: none !important;
+  overflow: hidden !important;
+}
+
+.panel-morph-intro.is-mobile .panel-morph-card__deck-chrome .mobile-stack-card-inner > *,
+.panel-morph-intro.is-mobile .panel-morph-card__deck-chrome .mob-col > * {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: 100% !important;
+  transform: none !important;
+  box-sizing: border-box !important;
+}
+
+.panel-morph-intro.is-mobile .panel-morph-card__deck-chrome .panel-card,
+.panel-morph-intro.is-mobile .panel-morph-card__deck-chrome .profile-card,
+.panel-morph-intro.is-mobile .panel-morph-card__deck-chrome .panel-feature-card,
+.panel-morph-intro.is-mobile .panel-morph-card__deck-chrome .interview-flow-card,
+.panel-morph-intro.is-mobile .panel-morph-card__deck-chrome .recent-library-card,
+.panel-morph-intro.is-mobile .panel-morph-card__deck-chrome .news-card,
+.panel-morph-intro.is-mobile .panel-morph-card__deck-chrome article.panel-card,
+.panel-morph-intro.is-mobile .panel-morph-card__deck-chrome .panel-intro-showcase {
+  background: var(--panel-bg) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 12px !important;
+  color: var(--fg) !important;
+  opacity: 1 !important;
+  filter: none !important;
+  box-shadow: none !important;
+  overflow: hidden !important;
+  text-align: left !important;
+}
+
+.panel-morph-intro.is-mobile .panel-morph-card__deck-chrome .interview-flow-card.glass-card {
+  background:
+    radial-gradient(circle at top left, rgba(111, 143, 166, 0.12), transparent 38%),
+    var(--panel-bg) !important;
+}
+
+.panel-morph-intro.is-mobile .panel-morph-card__deck-chrome .profile-card {
+  padding: 8px 10px !important;
+  gap: 4px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+}
+
+.panel-morph-intro.is-mobile .panel-morph-card__deck-chrome .profile-header {
+  gap: 8px !important;
+}
+
+.panel-morph-intro.is-mobile .panel-morph-card__deck-chrome .profile-avatar {
+  width: 28px !important;
+  height: 28px !important;
+  font-size: 11px !important;
+}
+
+.panel-morph-intro.is-mobile .panel-morph-card__deck-chrome .profile-name {
+  font-size: 12px !important;
+}
+
+.panel-morph-intro.is-mobile .panel-morph-card__deck-chrome .profile-subtitle,
+.panel-morph-intro.is-mobile .panel-morph-card__deck-chrome .profile-meta,
+.panel-morph-intro.is-mobile .panel-morph-card__deck-chrome .profile-actions,
+.panel-morph-intro.is-mobile .panel-morph-card__deck-chrome .profile-inline-action,
+.panel-morph-intro.is-mobile .panel-morph-card__deck-chrome .profile-questionnaire-btn {
+  display: none !important;
+}
+
+.panel-morph-intro.is-mobile .panel-morph-card__deck-chrome .panel-feature-card,
+.panel-morph-intro.is-mobile .panel-morph-card__deck-chrome .interview-flow-card {
+  padding: 8px 10px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  gap: 2px !important;
+}
+
+.panel-morph-intro.is-mobile .panel-morph-card__deck-chrome .panel-feature-label,
+.panel-morph-intro.is-mobile .panel-morph-card__deck-chrome .interview-flow-label {
+  font-size: 9px !important;
+  line-height: 1.1 !important;
+  margin: 0 !important;
+}
+
+.panel-morph-intro.is-mobile .panel-morph-card__deck-chrome .panel-feature-status,
+.panel-morph-intro.is-mobile .panel-morph-card__deck-chrome .interview-flow-meta {
+  font-size: 11px !important;
+  line-height: 1.15 !important;
+}
+
+.panel-morph-intro.is-mobile .panel-morph-card__deck-chrome .panel-feature-copy,
+.panel-morph-intro.is-mobile .panel-morph-card__deck-chrome .panel-feature-copy-secondary,
+.panel-morph-intro.is-mobile .panel-morph-card__deck-chrome .interview-flow-title,
+.panel-morph-intro.is-mobile .panel-morph-card__deck-chrome .interview-flow-submeta,
+.panel-morph-intro.is-mobile .panel-morph-card__deck-chrome .panel-text,
+.panel-morph-intro.is-mobile .panel-morph-card__deck-chrome .recent-library-grid,
+.panel-morph-intro.is-mobile .panel-morph-card__deck-chrome .report-list,
+.panel-morph-intro.is-mobile .panel-morph-card__deck-chrome .news-image,
+.panel-morph-intro.is-mobile .panel-morph-card__deck-chrome .news-media {
+  display: none !important;
+}
+
+.panel-morph-intro.is-mobile .panel-morph-card__deck-chrome .panel-card {
+  padding: 8px 10px !important;
+}
+
+.panel-morph-intro.is-mobile .panel-morph-card__deck-chrome .panel-label {
+  font-size: 9px !important;
+  margin-bottom: 2px !important;
+}
+
+.panel-morph-intro.is-mobile .panel-morph-card__deck-chrome .panel-value {
+  font-size: 12px !important;
+  line-height: 1.15 !important;
+}
+
+.panel-morph-intro.is-mobile .panel-morph-card__deck-chrome .panel-mode-cognitive .panel-value {
+  font-size: clamp(16px, 4.8vw, 22px) !important;
+  line-height: 1 !important;
+}
+
+.panel-morph-intro.is-mobile .panel-morph-card.is-docking .panel-morph-card__frame.is-mobile-deck {
+  border-radius: inherit;
+  box-shadow: none;
+}
+
+.panel-morph-intro.is-mobile .panel-morph-card__skin.agent-panel .panel-feature-card.panel-intro-showcase,
+.panel-morph-intro.is-mobile .panel-morph-card__skin.agent-panel .interview-flow-card.panel-intro-showcase {
+  border-color: var(--border) !important;
+  background: var(--panel-bg) !important;
+}
+
 .panel-morph-intro__eyebrow {
   display: inline-block;
   margin-bottom: 12px;

@@ -46,8 +46,21 @@ export function getMobileSpotlightLayout(input: MobileSpotlightLayoutInput) {
   const availH = input.viewportHeight - headerReserve - footerReserve;
   const aspect = input.naturalWidth / Math.max(input.naturalHeight, 1);
 
-  let cardW = Math.min(input.naturalWidth * 1.06, availW, 360);
-  let cardH = Math.round(cardW / aspect);
+  let cardW = input.naturalWidth;
+  let cardH = input.naturalHeight;
+
+  if (input.phase === 'spotlight') {
+    const boost = Math.min(
+      2.35,
+      (availW * 0.9) / Math.max(input.naturalWidth, 1),
+      (availH * 0.72) / Math.max(input.naturalHeight, 1),
+    );
+    cardW = Math.round(input.naturalWidth * boost);
+    cardH = Math.round(input.naturalHeight * boost);
+  } else if (input.phase === 'enter') {
+    cardW = Math.round(input.naturalWidth * 0.92);
+    cardH = Math.round(input.naturalHeight * 0.92);
+  }
 
   if (cardH > availH) {
     cardH = availH;

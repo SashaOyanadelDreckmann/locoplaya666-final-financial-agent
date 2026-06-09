@@ -108,11 +108,12 @@ function measureCardNaturalSizes(
     sizes[card.key] = measured ?? fallback ?? { width: 168, height: 88 };
   });
 
-  if (isMobileViewport && Object.values(sizes).every((size) => size.width < 48)) {
+  if (isMobileViewport) {
     const mobileSize = getMobileDeckCardNaturalSize();
     PANEL_INTRO_CARD_ORDER.forEach((card) => {
       sizes[card.key] = mobileSize;
     });
+    return sizes;
   }
 
   return sizes;

@@ -8,8 +8,8 @@ import {
   PANEL_INTRO_CARD_ORDER,
   PANEL_INTRO_CARD_SIZE_FALLBACKS,
 } from "@/app/agent/panel-cards-intro.copy";
-import { getMobileSpotlightLayout } from "@/app/agent/panel-cards-intro.mobile-dock";
-import { presentPanelCardForIntro } from "@/app/agent/panel-cards-intro.present";
+import { getMobileSpotlightLayout, getMobileDeckCardNaturalSize } from "@/app/agent/panel-cards-intro.mobile-dock";
+import { presentPanelCardForIntro, wrapMobileDeckIntroCard } from "@/app/agent/panel-cards-intro.present";
 import type { PanelIntroHandoffOrigin } from "@/app/agent/panel-intro.types";
 
 export type PanelMorphPhase = "enter" | "spotlight" | "dock" | "settle";
@@ -81,15 +81,16 @@ function resolveSpotlightNaturalSize(
     return resolveIntroCardSize(cardKey, naturalSizes, defaultNatural);
   }
 
-  const fallback = PANEL_INTRO_CARD_SIZE_FALLBACKS[cardKey] ?? defaultNatural;
-  const vw = typeof window !== "undefined" ? window.innerWidth : 390;
-  const maxW = Math.min(fallback.width, vw - 40);
-  const scale = maxW / Math.max(fallback.width, 1);
+  const measured = naturalSizes[cardKey];
+  if (measured && measured.width >= 48 && measured.height >= 40) {
+    const deck = getMobileDeckCardNaturalSize();
+    const wRatio = measured.width / deck.width;
+    if (wRatio >= 0.85 && wRatio <= 1.2) {
+      return measured;
+    }
+  }
 
-  return {
-    width: Math.round(maxW),
-    height: Math.round(fallback.height * scale),
-  };
+  return getMobileDeckCardNaturalSize();
 }
 
 function readViewportCenter() {
@@ -234,11 +235,16 @@ function IntroPanelCard({
   const isDocking = phase === "dock" || phase === "settle";
   const isSpotlight = phase === "spotlight" || phase === "enter";
   const leafNode = extractPanelCardLeaf(cardNode);
-  const showcaseNode = presentPanelCardForIntro(leafNode);
+  const showcaseNode = isMobile ? null : presentPanelCardForIntro(leafNode);
+  const mobileDeckNatural = isMobile ? getMobileDeckCardNaturalSize() : null;
+  const renderNatural =
+    isMobile && (isSpotlight || isDocking)
+      ? mobileDeckNatural ?? naturalSize
+      : naturalSize;
   const fitScale = Math.min(
     1,
-    layout.width / Math.max(naturalSize.width, 1),
-    layout.height / Math.max(naturalSize.height, 1),
+    layout.width / Math.max(renderNatural.width, 1),
+    layout.height / Math.max(renderNatural.height, 1),
   );
 
   const shareLayout = isDocking || (isSpotlight && isActive);
@@ -301,25 +307,29 @@ function IntroPanelCard({
         zIndex: isDocking ? 2147482800 + index : isActive ? 6 : 2,
       }}
     >
-      <div className={cn("panel-morph-card__frame", isSpotlight && isActive && "is-spotlight")}>
+      <div className={cn("panel-morph-card__frame", isSpotlight && isActive && "is-spotlight", isMobile && "is-mobile-deck")}>
         <div
           className="panel-morph-card__content"
           style={{
-            width: naturalSize.width,
-            height: naturalSize.height,
-            transform: `scale(${fitScale})`,
+            width: renderNatural.width,
+            height: renderNatural.height,
+            transform: fitScale < 0.999 ? `scale(${fitScale})` : undefined,
           }}
         >
-          <div className="agent-panel panel-morph-card__skin" aria-hidden="true">
-            {React.cloneElement(showcaseNode, {
-              className: cn(
-                (showcaseNode.props as { className?: string }).className,
-                "panel-morph-card__slot",
-              ),
-              "aria-hidden": true,
-              tabIndex: -1,
-            } as Record<string, unknown>)}
-          </div>
+          {isMobile ? (
+            wrapMobileDeckIntroCard(cardNode, cardKey)
+          ) : (
+            <div className="agent-panel panel-morph-card__skin" aria-hidden="true">
+              {React.cloneElement(showcaseNode!, {
+                className: cn(
+                  (showcaseNode!.props as { className?: string }).className,
+                  "panel-morph-card__slot",
+                ),
+                "aria-hidden": true,
+                tabIndex: -1,
+              } as Record<string, unknown>)}
+            </div>
+          )}
         </div>
       </div>
     </motion.div>
