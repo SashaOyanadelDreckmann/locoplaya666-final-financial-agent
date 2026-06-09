@@ -607,24 +607,11 @@ export function BudgetModal(props: {
       const rowButtonGap = 6;
 
       const intelChrome = mobileSummary?.offsetHeight ?? 0;
-      let slotHeight = tableWrap?.clientHeight ?? 0;
-
-      if (slotHeight < 180 && (stage || modalBody)) {
-        const chrome = (tableHead?.offsetHeight ?? 0) + intelChrome + rowButtonGap;
-        const hostHeight = stage?.clientHeight ?? modalBody!.clientHeight;
-        slotHeight = Math.max(180, hostHeight - chrome);
-      } else if (slotHeight < 180 && modalBody && tableCard) {
-        const chrome =
-          (header?.offsetHeight ?? 0) +
-          (tabs?.offsetHeight ?? 0) +
-          (tableHead?.offsetHeight ?? 0) +
-          (bottomActions?.offsetHeight ?? 0) +
-          intelChrome +
-          rowButtonGap;
-        slotHeight = Math.max(180, modalBody.clientHeight - chrome);
-      } else {
-        slotHeight = Math.max(180, slotHeight - rowButtonGap);
-      }
+      const chrome = (tableHead?.offsetHeight ?? 0) + intelChrome + rowButtonGap;
+      const hostHeight = stage?.clientHeight ?? scrollHost.clientHeight ?? 0;
+      let slotHeight = hostHeight > 0
+        ? Math.max(240, hostHeight - chrome)
+        : Math.max(240, (tableWrap?.clientHeight ?? 0) - rowButtonGap);
 
       if (slotHeight <= 0) return;
       scrollHost.style.setProperty('--budget-mobile-row-slot', `${slotHeight}px`);

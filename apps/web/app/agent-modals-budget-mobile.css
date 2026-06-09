@@ -257,9 +257,9 @@
     z-index: 0 !important;
     border-radius: inherit !important;
     pointer-events: none !important;
-    background: rgba(7, 11, 18, 0.58) !important;
-    backdrop-filter: blur(60px) saturate(1.06) brightness(0.68) contrast(0.9) !important;
-    -webkit-backdrop-filter: blur(60px) saturate(1.06) brightness(0.68) contrast(0.9) !important;
+    background: rgba(7, 11, 18, 0.68) !important;
+    backdrop-filter: blur(80px) saturate(1.02) brightness(0.58) contrast(0.86) !important;
+    -webkit-backdrop-filter: blur(80px) saturate(1.02) brightness(0.58) contrast(0.86) !important;
   }
 
   .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-mobile-stage > .budget-card-agent .bcc-hero {
@@ -474,8 +474,8 @@
     display: none !important;
   }
 
-  .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-style-button,
-  .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-pdf-button {
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-section .budget-style-button,
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-section .budget-pdf-button {
     min-height: 30px !important;
     height: 30px !important;
     width: 100% !important;
@@ -485,9 +485,9 @@
     border-radius: 9px !important;
   }
 
-  .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-style-button,
-  .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-pdf-button,
-  .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-chat-sync-button {
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-section .budget-style-button,
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-section .budget-pdf-button,
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-section .budget-chat-sync-button {
     min-height: 30px !important;
     width: 100% !important;
   }
@@ -506,9 +506,9 @@
       "cadence cadence"
       "payment movement"
       "impact impact" !important;
-    gap: 6px !important;
-    padding: 10px 28px 10px 10px !important;
-    margin: 0 0 14px !important;
+    gap: 8px !important;
+    padding: 12px 30px 12px 12px !important;
+    margin: 0 0 12px !important;
     border-radius: 16px !important;
     overflow: hidden !important;
     position: relative !important;
