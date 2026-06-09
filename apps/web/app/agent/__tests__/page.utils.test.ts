@@ -24,6 +24,8 @@ describe('chat 1 UX state', () => {
     expect(state).toBe('interviewAvailable');
     expect(getChat1UxCopy(state).subtitle).toBe('Entrevista disponible');
     expect(getChat1UxCopy(state).title).toBe('Diagnóstico');
+    expect(getChat1UxCopy(state).threadTitle).toBe('Entrevista estratégica');
+    expect(getChat1UxCopy(state).threadKicker).toBe('Entrevista');
   });
 
   it('promotes to general only when the diagnosis is completed', () => {

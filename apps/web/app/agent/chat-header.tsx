@@ -54,6 +54,9 @@ export function ChatHeader(props: {
   actionPlanFunnelStage?: 'brainstorm' | 'converge' | 'deliver' | null;
 }) {
   const activeLabel = props.activeThread?.label;
+  const activeSpecialization = props.activeThread
+    ? props.getThreadSpecialization(props.activeThread.id)
+    : null;
   const activeHandSubtitle =
     activeLabel === '2'
       ? 'asesoria ejecutiva · plan de accion'
@@ -61,7 +64,7 @@ export function ChatHeader(props: {
       ? 'conciencia social'
       : activeLabel === '★'
       ? 'sintesis maestra'
-      : 'lectura base';
+      : activeSpecialization?.subtitle ?? 'lectura base';
 
   const nextVisualMode = cycleVisualMode(props.visualMode);
   const visualModeLabel = VISUAL_MODE_LABELS[props.visualMode];
@@ -104,8 +107,11 @@ export function ChatHeader(props: {
     </button>
   );
 
-  const chatSwitcher = (
-    <div className="chat-switcher" aria-label="Selector de chats">
+  const chatSwitcher = (compact = false) => (
+    <div
+      className={`chat-switcher${compact ? ' chat-switcher--mobile-index' : ''}`}
+      aria-label="Selector de chats"
+    >
       {props.chatThreads.map((thread) => {
         const specialization = props.getThreadSpecialization(thread.id);
         const locked = props.isThreadLocked(thread.id);
@@ -113,7 +119,7 @@ export function ChatHeader(props: {
           <button
             key={thread.id}
             type="button"
-            className={`chat-sheet-tab ${specialization.accentClass}${thread.id === props.activeChatId ? ' is-active' : ''}${thread.status === 'context' ? ' is-context' : ''}${locked ? ' is-locked' : ''}`}
+            className={`chat-sheet-tab ${specialization.accentClass}${thread.id === props.activeChatId ? ' is-active' : ''}${thread.status === 'context' ? ' is-context' : ''}${locked ? ' is-locked' : ''}${compact ? ' chat-sheet-tab--mobile-index' : ''}`}
             onClick={() => {
               if (locked) {
                 props.setActiveChatId('chat-1');
@@ -126,16 +132,25 @@ export function ChatHeader(props: {
               props.setActiveChatId(thread.id);
             }}
             title={locked ? 'Bloqueado hasta completar la entrevista' : thread.status === 'context' ? `Contexto: ${thread.name}` : `Chat ${thread.label}: ${thread.name}`}
+            aria-label={
+              locked
+                ? `Chat ${thread.label} bloqueado`
+                : thread.id === props.activeChatId
+                  ? `Chat ${thread.label} activo`
+                  : `Ir al chat ${thread.label}`
+            }
           >
             <span className="chat-sheet-tab-index">{thread.label}</span>
-            <span className="chat-sheet-tab-copy">
-              <span className="chat-sheet-tab-title">
-                {locked ? 'Bloqueado' : thread.status === 'context' ? 'Síntesis' : specialization.title}
+            {!compact ? (
+              <span className="chat-sheet-tab-copy">
+                <span className="chat-sheet-tab-title">
+                  {locked ? 'Bloqueado' : thread.status === 'context' ? 'Síntesis' : specialization.title}
+                </span>
+                <span className="chat-sheet-tab-subtitle">
+                  {locked ? 'Completa entrevista' : thread.status === 'context' ? 'Contexto consolidado' : specialization.subtitle}
+                </span>
               </span>
-              <span className="chat-sheet-tab-subtitle">
-                {locked ? 'Completa entrevista' : thread.status === 'context' ? 'Contexto consolidado' : specialization.subtitle}
-              </span>
-            </span>
+            ) : null}
           </button>
         );
       })}
@@ -180,29 +195,21 @@ export function ChatHeader(props: {
   }`;
 
   return (
-    <header className={`agent-chat-header${props.isMobileViewport ? ' is-mobile' : ''}`}>
+    <header
+      className={`agent-chat-header${props.isMobileViewport ? ' is-mobile is-mobile-single-row' : ''}`}
+    >
       {props.isMobileViewport ? (
-        <>
-          <div className="chat-mobile-meta-row">
-            <div className="chat-mobile-brand-cluster">
-              <h1 className="chat-mobile-brand-heading">{brandTitleButton}</h1>
-              <p className={subtitleClassName}>
-                <span className="chat-mobile-active-pill" aria-hidden="true">
-                  {activeLabel ?? '1'}
-                </span>
-                {activeHandSubtitle}
-              </p>
-            </div>
+        <div className="chat-mobile-toolbar-row">
+          <h1 className="chat-mobile-brand-heading chat-mobile-brand-heading--compact">{brandTitleButton}</h1>
+          <div className="chat-mobile-toolbar-actions">
+            {chatSwitcher(true)}
             {monochromeToggle}
           </div>
-          <span className="chat-mobile-swipe-hint" aria-hidden="true">
-            Desliza para cambiar de chat
-          </span>
-        </>
+        </div>
       ) : (
         <>
           <div className="agent-chat-controls-row">
-            {chatSwitcher}
+            {chatSwitcher()}
             {monochromeToggle}
             {props.activeThread && props.activeThread.contextScore > 0 && (
               <div className="sheet-context-bar" title={`Contexto: ${props.activeThread.contextScore}%`}>

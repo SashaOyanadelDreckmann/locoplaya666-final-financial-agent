@@ -72,11 +72,11 @@ export function getChat1UxCopy(state: Chat1UxState) {
     return {
       title: 'Diagnóstico',
       subtitle: 'Entrevista disponible',
-      kicker: 'Lectura base',
+      kicker: 'Entrevista',
       label: 'Llamada guiada',
-      threadTitle: 'Lectura base en curso',
-      threadSubtitle: 'Reunimos contexto y señales del caso antes de abrir la entrevista.',
-      threadKicker: 'Lectura base',
+      threadTitle: 'Entrevista estratégica',
+      threadSubtitle: 'Contexto integrado de presupuesto y productos. Inicia la llamada para cerrar el diagnóstico.',
+      threadKicker: 'Entrevista',
     };
   }
   return {

@@ -1360,3 +1360,181 @@
 .agent-mobile-composer-dock.composer-focused .composer-send-btn svg {
   filter: none !important;
 }
+
+/* ─── Mobile header: single row + compact chat index squares ───────────────── */
+
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row,
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: stretch !important;
+    gap: 8px !important;
+    padding-top: 6px !important;
+    padding-bottom: 6px !important;
+    min-height: 0 !important;
+  }
+
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-mobile-toolbar-row,
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-mobile-toolbar-row {
+    display: flex !important;
+    flex: 1 1 auto !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 8px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: var(--mobile-shell-mono-size) !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-mobile-brand-heading--compact,
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-mobile-brand-heading--compact {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+  }
+
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-mobile-brand-heading--compact .chat-brand-title-row,
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-mobile-brand-heading--compact .chat-brand-title-row {
+    justify-content: flex-start !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+  }
+
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-mobile-toolbar-actions,
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-mobile-toolbar-actions {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 6px !important;
+    flex: 0 0 auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-switcher--mobile-index,
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-switcher--mobile-index {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 4px !important;
+    width: auto !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+  }
+
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-sheet-tab--mobile-index,
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-sheet-tab--mobile-index {
+    width: var(--mobile-shell-mono-size) !important;
+    height: var(--mobile-shell-mono-size) !important;
+    min-width: var(--mobile-shell-mono-size) !important;
+    max-width: var(--mobile-shell-mono-size) !important;
+    min-height: var(--mobile-shell-mono-size) !important;
+    max-height: var(--mobile-shell-mono-size) !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border-radius: 8px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0 !important;
+    transform: none !important;
+    box-sizing: border-box !important;
+  }
+
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-sheet-tab--mobile-index .chat-sheet-tab-index,
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-sheet-tab--mobile-index .chat-sheet-tab-index {
+    width: auto !important;
+    height: auto !important;
+    min-width: 0 !important;
+    flex: none !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    line-height: 1 !important;
+    letter-spacing: 0 !important;
+    color: inherit !important;
+  }
+
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-sheet-tab--mobile-index.is-locked .chat-sheet-tab-index::before,
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-sheet-tab--mobile-index.is-locked .chat-sheet-tab-index::before {
+    display: none !important;
+    content: none !important;
+  }
+
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-sheet-tab--mobile-index:nth-child(1),
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-sheet-tab--mobile-index:nth-child(1) {
+    background: linear-gradient(145deg, rgba(56, 81, 111, 0.72), rgba(36, 57, 79, 0.82)) !important;
+    border: 1px solid rgba(200, 212, 227, 0.56) !important;
+    color: #edf4fb !important;
+  }
+
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-sheet-tab--mobile-index:nth-child(2),
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-sheet-tab--mobile-index:nth-child(2) {
+    background: linear-gradient(145deg, rgba(116, 44, 44, 0.76), rgba(82, 30, 30, 0.86)) !important;
+    border: 1px solid rgba(211, 145, 145, 0.58) !important;
+    color: #fff0eb !important;
+  }
+
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-sheet-tab--mobile-index:nth-child(3),
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-sheet-tab--mobile-index:nth-child(3) {
+    background: linear-gradient(145deg, rgba(184, 147, 70, 0.78), rgba(154, 122, 58, 0.88)) !important;
+    border: 1px solid rgba(238, 216, 170, 0.64) !important;
+    color: #fff7e8 !important;
+  }
+
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-sheet-tab--mobile-index:nth-child(1).is-active,
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-sheet-tab--mobile-index:nth-child(1).is-active {
+    background: linear-gradient(145deg, rgba(66, 93, 125, 0.86), rgba(40, 63, 87, 0.94)) !important;
+  }
+
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-sheet-tab--mobile-index:nth-child(2).is-active,
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-sheet-tab--mobile-index:nth-child(2).is-active {
+    background: linear-gradient(145deg, rgba(130, 50, 50, 0.88), rgba(92, 34, 34, 0.96)) !important;
+  }
+
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-sheet-tab--mobile-index:nth-child(3).is-active,
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-sheet-tab--mobile-index:nth-child(3).is-active {
+    background: linear-gradient(145deg, rgba(198, 160, 82, 0.9), rgba(166, 132, 64, 0.97)) !important;
+  }
+
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-mobile-toolbar-actions .chat-monochrome-toggle--inline,
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-mobile-toolbar-actions .chat-monochrome-toggle--inline {
+    position: static !important;
+    flex: 0 0 var(--mobile-shell-mono-size) !important;
+    width: var(--mobile-shell-mono-size) !important;
+    height: var(--mobile-shell-mono-size) !important;
+    min-width: var(--mobile-shell-mono-size) !important;
+    min-height: var(--mobile-shell-mono-size) !important;
+    max-width: var(--mobile-shell-mono-size) !important;
+    margin: 0 !important;
+    border-radius: 999px !important;
+  }
+
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-mobile-meta-row,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-mobile-tabs-row,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-mobile-swipe-hint,
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-mobile-meta-row,
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-mobile-tabs-row,
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-mobile-swipe-hint {
+    display: none !important;
+  }
+
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat.is-chat-swipe-locked .agent-chat-body,
+  main.agent-layout.is-mobile-viewport .agent-chat.is-chat-swipe-locked .agent-chat-body {
+    touch-action: pan-y !important;
+    overscroll-behavior-x: none !important;
+  }
+}

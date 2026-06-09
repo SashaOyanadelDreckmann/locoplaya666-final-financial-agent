@@ -467,7 +467,7 @@ export default function AgentPage() {
   const [productLifecycle, setProductLifecycle] = useState<ProductLifecycle | null>(null);
   const agentMetaRef = useRef<AgentMeta>({});
   const [, forceRender] = useState(0);
-  const [chatSlideDir] = useState<'left' | 'right' | null>(null);
+  const [chatSlideDir, setChatSlideDir] = useState<'left' | 'right' | null>(null);
   const previousKnowledgeScoreRef = useRef(0);
   const previousMilestoneDoneIdsRef = useRef<Set<string>>(new Set());
   const recentLibraryRef = useRef<HTMLDivElement | null>(null);
@@ -1476,23 +1476,16 @@ export default function AgentPage() {
       };
     }
 
-    const interviewState = resolveChat1UxState({
-      chatId: 'chat-1',
-      diagnosisCompleted: interviewCompleted,
-      canOpenInterview,
-    });
-    const copy = getChat1UxCopy(interviewState);
-
     return {
-      badge: copy.label,
-      title: intakeData
-        ? `${copy.threadTitle} para ${name}`
-        : copy.threadTitle,
+      badge: canOpenInterview ? 'Llamada guiada' : 'En espera',
+      title: intakeData ? `Entrevista estratégica para ${name}` : 'Entrevista estratégica',
       meta: prompt,
       detail:
         stress !== null && understanding !== null
           ? `Prioridad actual: estrés ${stress}/10 y comprensión ${understanding}/10.`
-          : copy.threadSubtitle,
+          : canOpenInterview
+            ? 'Contexto integrado de presupuesto y productos. Inicia la llamada para cerrar el diagnóstico.'
+            : 'Completa productos, transacciones y presupuesto para desbloquear la entrevista.',
     };
   }, [intakeData, sessionInfo?.name, interviewCompleted, canOpenInterview]);
 
@@ -1738,6 +1731,69 @@ export default function AgentPage() {
       el.scrollTop = el.scrollHeight;
     });
   }, [items.length, activeChatId, loading]);
+
+  useEffect(() => {
+    if (!isMobileViewport || !interviewCompleted) return;
+    const el = chatBodyRef.current;
+    if (!el) return;
+
+    let startX = 0;
+    let startY = 0;
+    let tracking = false;
+
+    const onTouchStart = (event: TouchEvent) => {
+      if (event.touches.length !== 1) return;
+      startX = event.touches[0].clientX;
+      startY = event.touches[0].clientY;
+      tracking = true;
+    };
+
+    const onTouchEnd = (event: TouchEvent) => {
+      if (!tracking) return;
+      tracking = false;
+      const touch = event.changedTouches[0];
+      if (!touch) return;
+
+      const deltaX = touch.clientX - startX;
+      const deltaY = touch.clientY - startY;
+      if (Math.abs(deltaX) < 56 || Math.abs(deltaX) <= Math.abs(deltaY)) return;
+
+      const unlockedIds = chatThreads
+        .map((thread) => thread.id)
+        .filter(
+          (threadId) =>
+            threadId === PRIMARY_CHAT_ID ||
+            (unlockedChatIds.includes(threadId) && !closedChatIds.includes(threadId)),
+        );
+      const currentIndex = unlockedIds.indexOf(activeChatId);
+      if (currentIndex < 0) return;
+
+      if (deltaX < 0 && currentIndex < unlockedIds.length - 1) {
+        setChatSlideDir('left');
+        setActiveChatId(unlockedIds[currentIndex + 1]);
+        return;
+      }
+      if (deltaX > 0 && currentIndex > 0) {
+        setChatSlideDir('right');
+        setActiveChatId(unlockedIds[currentIndex - 1]);
+      }
+    };
+
+    el.addEventListener('touchstart', onTouchStart, { passive: true });
+    el.addEventListener('touchend', onTouchEnd, { passive: true });
+    el.addEventListener('touchcancel', onTouchEnd, { passive: true });
+    return () => {
+      el.removeEventListener('touchstart', onTouchStart);
+      el.removeEventListener('touchend', onTouchEnd);
+      el.removeEventListener('touchcancel', onTouchEnd);
+    };
+  }, [activeChatId, chatThreads, closedChatIds, interviewCompleted, isMobileViewport, unlockedChatIds]);
+
+  useEffect(() => {
+    if (!chatSlideDir) return;
+    const timer = window.setTimeout(() => setChatSlideDir(null), 320);
+    return () => window.clearTimeout(timer);
+  }, [activeChatId, chatSlideDir]);
 
   useEffect(() => {
     storeVisualMode(visualMode);
@@ -3646,7 +3702,7 @@ export default function AgentPage() {
     >
       <section
         ref={chatBodyRef as React.RefObject<HTMLElement>}
-        className={`agent-chat active-chat-${activeThread?.label ?? '1'}${chatSlideDir ? ` chat-slide-${chatSlideDir}` : ''}`}
+        className={`agent-chat active-chat-${activeThread?.label ?? '1'}${chatSlideDir ? ` chat-slide-${chatSlideDir}` : ''}${isMobileViewport && !interviewCompleted ? ' is-chat-swipe-locked' : ''}`}
       >
         <ChatHeader
           chatThreads={chatThreads}

@@ -53,7 +53,7 @@ export const PANEL_INTRO_CARD_ORDER: PanelIntroCardMeta[] = [
     key: 'interview',
     tag: 'Diagnóstico',
     label: 'Entrevista',
-    caption: 'Lectura profunda al completar el camino.',
+    caption: 'Llamada guiada para cerrar tu diagnóstico.',
   },
   {
     key: 'news',
