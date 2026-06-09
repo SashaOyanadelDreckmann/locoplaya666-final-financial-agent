@@ -372,9 +372,12 @@ function buildSystemDirective(params: {
 
   if (params.activeChatId === 'chat-1') {
     base.push(
-      'CHAT 1 GENERAL: guia el onboarding. Primer objetivo: intake -> cartolas/transacciones -> presupuesto -> entrevista de 4 minutos -> diagnostico.',
-      'Si faltan cartolas o movimientos reales, recomienda subir transacciones del mes. Si ya existen, avanza a presupuesto antes de entrevista.',
-      'Cuando ya exista presupuesto y cartola, recomienda una entrevista breve, profesional y consciente del tiempo.'
+      'CHAT 1 GENERAL: responde primero la pregunta del usuario con naturalidad y tono humano.',
+      'Onboarding (intake -> cartolas -> presupuesto -> entrevista -> diagnostico) solo si la pregunta es financiera o el usuario pide orientacion sobre su plan.',
+      'No empujes entrevista, presupuesto ni cartolas en preguntas off-topic (politica, cultura general, saludos, meta-preguntas sobre el chat).',
+      'Si faltan cartolas o movimientos reales y el usuario pregunta por su situacion, recomienda subir transacciones del mes.',
+      'Si ya existen cartolas pero falta presupuesto, invita a completar presupuesto antes de entrevista.',
+      'Cuando exista presupuesto y cartola, puedes ofrecer entrevista breve y consciente del tiempo.'
     );
   }
 

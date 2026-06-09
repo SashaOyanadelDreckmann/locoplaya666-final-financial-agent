@@ -859,7 +859,7 @@ router.post(
   }),
 );
 
-router.get(
+router.post(
   '/interview/realtime/token',
   requireAuth,
   requirePermission(PERMISSIONS.AGENT_CHAT_SELF),

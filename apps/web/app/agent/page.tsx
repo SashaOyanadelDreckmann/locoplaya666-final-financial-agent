@@ -25,6 +25,7 @@ import { getSessionId } from '@/lib/session';
 import type { CoreAgentResponseSideEffects } from '@/lib/agent/applyCoreAgentResponse';
 import type { CoreAgentRequestContext } from '@/lib/agent/buildCoreAgentContext';
 import { useCoreAgentSend } from './hooks/useCoreAgentSend';
+import { buildOnboardingFlowCta } from './onboarding-flow.helpers';
 import { useInterviewStore } from '@/state/interview.store';
 import { syncDiagnosisSession } from '@/lib/diagnosis-session';
 import { useProfileStore } from '@/state/profile.store';
@@ -1424,29 +1425,20 @@ export default function AgentPage() {
     };
   }
 
+  const onboardingFlowStatus = useMemo(() => getFlowStatus(), [
+    bankSimulation.products,
+    bankSimulation.productsModuleSkipped,
+    budgetRows,
+    interviewCompleted,
+  ]);
+
   function getNextFlowPanelAction(): AgentResponse['panel_action'] | undefined {
-    const flow = getFlowStatus();
-    if (!flow.transactionsCompleted) {
-      return {
-        section: 'transactions',
-        message: bankSimulation.productsModuleSkipped
-          ? 'Sube respaldos en un producto o continúa con el presupuesto cuando quieras.'
-          : 'Siguiente desbloqueo: agrega productos y respaldos, o continúa sin productos para avanzar.',
-      };
-    }
-    if (!flow.budgetCompleted) {
-      return {
-        section: 'budget',
-        message: 'Ya hay evidencia. Completa al menos 3 filas reales de presupuesto para abrir entrevista.',
-      };
-    }
-    if (!flow.diagnosisCompleted) {
-      return {
-        section: 'interview',
-        message: 'Presupuesto listo. Cierra la entrevista breve para desbloquear los chats superiores.',
-      };
-    }
-    return undefined;
+    const cta = buildOnboardingFlowCta(onboardingFlowStatus, sessionInfo?.name);
+    if (!cta) return undefined;
+    return {
+      section: cta.section,
+      message: `${cta.headline}. ${cta.body}`,
+    };
   }
 
   function normalizePanelActionForCurrentFlow(
@@ -3771,6 +3763,7 @@ export default function AgentPage() {
             launchDocToLibraryAnimation={launchDocToLibraryAnimation}
             onPanelAction={openPanelSectionFromChat}
             flowPanelAction={getNextFlowPanelAction()}
+            onboardingFlowStatus={onboardingFlowStatus}
             visualMode={visualMode}
             compactClosedView={isActiveChatClosed}
             showFullChat={showFullClosedChat}

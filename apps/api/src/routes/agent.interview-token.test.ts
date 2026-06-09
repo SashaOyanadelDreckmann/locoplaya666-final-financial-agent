@@ -81,15 +81,19 @@ async function createAuthedAgent() {
   expect(sessionRes.status).toBe(200);
   expect(String(sessionRes.body?.data?.id ?? '').length).toBeGreaterThan(0);
 
-  return { agent, userId };
+  const sessionAfterLogin = await agent.get('/api/session');
+  const csrfToken = String(sessionAfterLogin.headers['x-csrf-token'] ?? '');
+  expect(csrfToken.length).toBeGreaterThan(0);
+
+  return { agent, userId, csrfToken };
 }
 
-describe('GET /api/interview/realtime/token', () => {
+describe('POST /api/interview/realtime/token', () => {
   it('returns full remaining time for fresh users', async () => {
     const fetchSpy = mockRealtimeClientSecretFetch();
-    const { agent } = await createAuthedAgent();
+    const { agent, csrfToken } = await createAuthedAgent();
 
-    const res = await agent.get('/api/interview/realtime/token');
+    const res = await agent.post('/api/interview/realtime/token').set('x-csrf-token', csrfToken);
 
     expect(res.status).toBe(200);
     expect(res.body.ok).toBe(true);
@@ -113,7 +117,7 @@ describe('GET /api/interview/realtime/token', () => {
 
   it('returns exact remaining time after prior consumption', async () => {
     const fetchSpy = mockRealtimeClientSecretFetch();
-    const { agent, userId } = await createAuthedAgent();
+    const { agent, userId, csrfToken } = await createAuthedAgent();
     const { saveUserMemoryBlob } = await import('../services/user.service');
 
     await saveUserMemoryBlob(userId, {
@@ -125,7 +129,7 @@ describe('GET /api/interview/realtime/token', () => {
       },
     });
 
-    const res = await agent.get('/api/interview/realtime/token');
+    const res = await agent.post('/api/interview/realtime/token').set('x-csrf-token', csrfToken);
 
     expect(res.status).toBe(200);
     expect(res.body.ok).toBe(true);
@@ -140,10 +144,10 @@ describe('GET /api/interview/realtime/token', () => {
 
   it('marks fresh tokens as not resumed and resume tokens as resumed', async () => {
     const fetchSpy = mockRealtimeClientSecretFetch();
-    const { agent, userId } = await createAuthedAgent();
+    const { agent, userId, csrfToken } = await createAuthedAgent();
     const { saveUserMemoryBlob } = await import('../services/user.service');
 
-    const fresh = await agent.get('/api/interview/realtime/token');
+    const fresh = await agent.post('/api/interview/realtime/token').set('x-csrf-token', csrfToken);
     expect(fresh.status).toBe(200);
     expect(fresh.body.data.resumed).toBe(false);
     expect(typeof fresh.body.data.fincoin_usage).toBe('object');
@@ -157,7 +161,7 @@ describe('GET /api/interview/realtime/token', () => {
       },
     });
 
-    const resumed = await agent.get('/api/interview/realtime/token');
+    const resumed = await agent.post('/api/interview/realtime/token').set('x-csrf-token', csrfToken);
     expect(resumed.status).toBe(200);
     expect(resumed.body.data.resumed).toBe(true);
     expect(resumed.body.data.call_id).toBe(fresh.body.data.call_id);
@@ -168,7 +172,7 @@ describe('GET /api/interview/realtime/token', () => {
 
   it('blocks token creation when total interview time is exhausted', async () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch');
-    const { agent, userId } = await createAuthedAgent();
+    const { agent, userId, csrfToken } = await createAuthedAgent();
     const { saveUserMemoryBlob } = await import('../services/user.service');
 
     await saveUserMemoryBlob(userId, {
@@ -178,7 +182,7 @@ describe('GET /api/interview/realtime/token', () => {
       },
     });
 
-    const res = await agent.get('/api/interview/realtime/token');
+    const res = await agent.post('/api/interview/realtime/token').set('x-csrf-token', csrfToken);
 
     expect(res.status).toBe(403);
     expect(String(res.body?.detail ?? '')).toContain(
@@ -189,7 +193,7 @@ describe('GET /api/interview/realtime/token', () => {
 
   it('blocks a second fresh call for the same user', async () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch');
-    const { agent, userId } = await createAuthedAgent();
+    const { agent, userId, csrfToken } = await createAuthedAgent();
     const { saveUserMemoryBlob } = await import('../services/user.service');
 
     await saveUserMemoryBlob(userId, {
@@ -201,7 +205,7 @@ describe('GET /api/interview/realtime/token', () => {
       },
     });
 
-    const res = await agent.get('/api/interview/realtime/token');
+    const res = await agent.post('/api/interview/realtime/token').set('x-csrf-token', csrfToken);
 
     expect(res.status).toBe(403);
     expect(String(res.body?.detail ?? '')).toContain('una sola llamada por usuario');

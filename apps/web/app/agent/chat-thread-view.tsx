@@ -22,6 +22,11 @@ import { ClosureGradientBlobCard } from '@/components/ui/closure-gradient-card';
 import { UserUploadBubble } from './user-upload-bubble';
 import { MAX_CHAT_UPLOAD_FILES } from './agent-page.constants';
 import { isWelcomeShellMessageContent } from './welcome-intro.shared';
+import { OnboardingFlowCta } from './OnboardingFlowCta';
+import {
+  buildOnboardingFlowCta,
+  type OnboardingFlowStatus,
+} from './onboarding-flow.helpers';
 
 type PanelAction = NonNullable<
   Extract<ChatItem, { type: 'message'; role: 'assistant' }>['panel_action']
@@ -36,22 +41,30 @@ function getFlowPanelActionLabel(section: PanelAction['section']): string {
   return 'Abrir panel';
 }
 
-function renderFlowPanelActionRow(
-  action: PanelAction,
-  onClick: () => void,
-  variant: 'intro' | 'welcome' = 'intro',
-) {
-  const variantClass =
-    variant === 'welcome'
-      ? 'agent-inline-panel-action--welcome'
-      : 'agent-inline-panel-action--intro';
+function renderAgentPanelActionRow(action: PanelAction, onClick: () => void) {
   return (
-    <div className={`agent-inline-panel-action ${variantClass}`}>
+    <div className="agent-inline-panel-action agent-inline-panel-action--intro">
       <button type="button" className="agent-inline-panel-button" onClick={onClick}>
         {getFlowPanelActionLabel(action.section)}
       </button>
       {action.message ? <span className="agent-inline-panel-note">{action.message}</span> : null}
     </div>
+  );
+}
+
+function renderInlineOnboardingCta(
+  status: OnboardingFlowStatus,
+  userName: string | undefined,
+  onAction: (section: PanelAction['section']) => void,
+) {
+  const model = buildOnboardingFlowCta(status, userName);
+  if (!model) return null;
+  return (
+    <OnboardingFlowCta
+      model={model}
+      variant="inline"
+      onAction={() => onAction(model.section)}
+    />
   );
 }
 
@@ -158,6 +171,7 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
   launchDocToLibraryAnimation: (title: string, sourceRect: DOMRect, previewUrl: string, reportId: string) => void;
   onPanelAction: (action: NonNullable<Extract<ChatItem, { type: 'message'; role: 'assistant' }>['panel_action']>) => void;
   flowPanelAction?: NonNullable<Extract<ChatItem, { type: 'message'; role: 'assistant' }>['panel_action']>;
+  onboardingFlowStatus?: OnboardingFlowStatus;
   visualMode?: VisualMode;
   compactClosedView?: boolean;
   showFullChat?: boolean;
@@ -174,10 +188,14 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
     canOpenInterview: props.canOpenInterview,
   });
   const chat1Copy = getChat1UxCopy(chat1Ux);
-  const welcomeFlowAction =
-    props.activeThreadId === 'chat-1' && !props.diagnosisUnlocked && !(props.compactClosedView && !props.showFullChat)
-      ? props.flowPanelAction
-      : undefined;
+  const showOnboardingFlow =
+    props.activeThreadId === 'chat-1' &&
+    !props.diagnosisUnlocked &&
+    !(props.compactClosedView && !props.showFullChat);
+  const onboardingFlowModel =
+    showOnboardingFlow && props.onboardingFlowStatus
+      ? buildOnboardingFlowCta(props.onboardingFlowStatus, props.sessionUserName)
+      : null;
   const itemsToRender =
     props.compactClosedView && !props.showFullChat
       ? (() => {
@@ -232,9 +250,9 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
       it.type === 'message' && it.role === 'assistant' ? it.panel_action : undefined;
     const shouldHidePrimaryFlowAction =
       props.activeThreadId === 'chat-1' &&
-      Boolean(props.flowPanelAction?.section) &&
+      Boolean(onboardingFlowModel) &&
       Boolean(messagePanelAction?.section) &&
-      props.flowPanelAction?.section === messagePanelAction?.section;
+      onboardingFlowModel?.section === messagePanelAction?.section;
 
     if (it.type === 'upload') {
       return (
@@ -503,11 +521,11 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
                 })()}
               </div>
             </div>
-            {isEmptyWelcomeShell && welcomeFlowAction?.section
-              ? renderFlowPanelActionRow(
-                  welcomeFlowAction,
-                  () => props.onPanelAction(welcomeFlowAction),
-                  'welcome',
+            {isEmptyWelcomeShell && props.onboardingFlowStatus
+              ? renderInlineOnboardingCta(
+                  props.onboardingFlowStatus,
+                  props.sessionUserName,
+                  (section) => props.onPanelAction({ section, message: '' }),
                 )
               : null}
             {messagePanelAction?.section &&
@@ -518,7 +536,7 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
               (messagePanelAction.section === 'transactions' || messagePanelAction.section === 'products_transactions')
             ) &&
             !shouldHidePrimaryFlowAction && (
-              renderFlowPanelActionRow(messagePanelAction, () =>
+              renderAgentPanelActionRow(messagePanelAction, () =>
                 props.onPanelAction(messagePanelAction!),
               )
             )}
@@ -618,11 +636,6 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
     rendered.push(renderChatItem(it, idx));
   }
 
-  const flowPanelAction =
-    props.activeThreadId === 'chat-1' && !props.diagnosisUnlocked && !(props.compactClosedView && !props.showFullChat)
-      ? props.flowPanelAction
-      : undefined;
-
   // UX decision: hide suggested-reply chips from thread top area to keep the
   // opening flow focused and avoid visual noise before/after first turns.
 
@@ -656,19 +669,17 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
           </div>
         ) : null}
 
-        {flowPanelAction?.section && !hasWelcomeEmptyBubble ? (
-          <div className="agent-flow-cta agent-flow-cta--thread">
-            <button
-              type="button"
-              className="agent-flow-cta-button"
-              onClick={() => props.onPanelAction(flowPanelAction)}
-            >
-              {getFlowPanelActionLabel(flowPanelAction.section)}
-            </button>
-            {flowPanelAction.message ? (
-              <span className="agent-flow-cta-copy">{flowPanelAction.message}</span>
-            ) : null}
-          </div>
+        {onboardingFlowModel ? (
+          <OnboardingFlowCta
+            model={onboardingFlowModel}
+            variant="thread"
+            onAction={() =>
+              props.onPanelAction({
+                section: onboardingFlowModel.section,
+                message: onboardingFlowModel.body,
+              })
+            }
+          />
         ) : null}
     </div>
   );

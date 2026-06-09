@@ -138,8 +138,78 @@ function shouldUseFastFormat(input: FormatPhaseInput): boolean {
   if (input.mode === 'regulation' || input.mode === 'simulation') return false;
   const toolCalls = input.execution_result?.tool_calls?.length ?? 0;
   const citations = input.execution_result?.citations?.length ?? 0;
-  // Cheap path for low-complexity turns while preserving senior tone.
   return toolCalls <= 2 && citations <= 4;
+}
+
+const EXECUTIVE_STRUCTURE_MODES = new Set([
+  'decision_support',
+  'comparison',
+  'planification',
+]);
+
+function isColloquialOrOffTopicMessage(userMessage: string): boolean {
+  const text = String(userMessage ?? '').trim();
+  if (!text) return false;
+  const normalized = text.toLowerCase();
+  if (text.length <= 90) return true;
+  return (
+    /\b(quien es|quién es|por que me|porqué me|y por que|y porqué|que es|qué es|porque me)\b/i.test(
+      normalized,
+    ) ||
+    /^(hola|buenas|hey|oye|ok|dale|gracias)\b/i.test(normalized)
+  );
+}
+
+function resolveDetailLevel(input: FormatPhaseInput): 'standard' | 'high' {
+  const fromModel = input.inferred_user_model?.detail_level;
+  if (fromModel === 'high' || fromModel === 'standard') return fromModel;
+  const profileObj =
+    input.context_summary?.recommendation_profile &&
+    typeof input.context_summary.recommendation_profile === 'object'
+      ? (input.context_summary.recommendation_profile as Record<string, unknown>)
+      : null;
+  const fromProfile = profileObj?.detail_level;
+  if (fromProfile === 'high' || fromProfile === 'standard') return fromProfile;
+  return 'standard';
+}
+
+function shouldUseConversationalFormat(
+  input: FormatPhaseInput,
+  funnelStage: ActionPlanFunnelStage | null,
+): boolean {
+  if (funnelStage) return false;
+  if (EXECUTIVE_STRUCTURE_MODES.has(input.mode)) return false;
+  if (input.mode === 'information' || input.mode === 'containment') return true;
+  if (isColloquialOrOffTopicMessage(input.user_message)) return true;
+  if (input.mode === 'education' && isColloquialOrOffTopicMessage(input.user_message)) return true;
+  return false;
+}
+
+function buildFormatInstructions(
+  input: FormatPhaseInput,
+  funnelStage: ActionPlanFunnelStage | null,
+  detailLevel: 'standard' | 'high',
+): string | null {
+  if (funnelStage === 'deliver') return null;
+
+  if (shouldUseConversationalFormat(input, funnelStage)) {
+    return [
+      'Responde en 2-4 oraciones naturales, como un amigo experto en finanzas en Chile.',
+      'Sin encabezados corporativos, sin numeración tipo memo ni labels como "tesis ejecutiva".',
+      'Responde primero lo que el usuario preguntó. Solo conecta con presupuesto, cartolas o entrevista si el usuario lo pide o la pregunta es financiera.',
+    ].join(' ');
+  }
+
+  if (detailLevel === 'high' || EXECUTIVE_STRUCTURE_MODES.has(input.mode)) {
+    return [
+      'Entrega valor real al usuario en formato:',
+      '1) tesis ejecutiva clara,',
+      '2) recomendacion accionable con criterio senior,',
+      '3) riesgos/condiciones y siguiente validacion concreta.',
+    ].join('\n');
+  }
+
+  return 'Usa lenguaje claro y directo. Evita tecnicismos innecesarios. Da una recomendación concreta en 2-3 oraciones: qué hacer, por qué y cuándo.';
 }
 
 function resolveFormatFunnelStage(input: FormatPhaseInput): ActionPlanFunnelStage | null {
@@ -213,26 +283,16 @@ async function buildFastValuableMessage(
       ? (input.context_summary.recommendation_profile as Record<string, unknown>)
       : null;
   const recommendationProfile = profileObj ? JSON.stringify(profileObj) : '';
-  const detailLevel = (profileObj?.detail_level as string | undefined) ?? 'medium';
+  const funnelStage = resolveFormatFunnelStage(input);
+  const detailLevel = resolveDetailLevel(input);
+  const conversational = shouldUseConversationalFormat(input, funnelStage);
   const closeoutWindow = resolveCloseoutWindow(input);
   const userFinancialProfile = buildUserFinancialProfileBlock(
     input.injected_intake ?? input.context_summary?.intake
   );
-
-  const funnelStage = resolveFormatFunnelStage(input);
   const funnelInstructions = funnelStage ? buildActionPlanFormatInstructions(funnelStage) : '';
 
-  const formatInstructions =
-    funnelStage === 'deliver'
-      ? null
-      : detailLevel === 'basic'
-      ? 'Usa lenguaje claro y directo. Evita tecnicismos. Da una recomendación concreta en 2-3 oraciones: qué hacer, por qué y cuándo.'
-      : [
-          'Entrega valor real al usuario en formato:',
-          '1) tesis ejecutiva clara,',
-          '2) recomendacion accionable con criterio senior,',
-          '3) riesgos/condiciones y siguiente validacion concreta.',
-        ].join('\n');
+  const formatInstructions = buildFormatInstructions(input, funnelStage, detailLevel);
 
   const prompt = [
     funnelInstructions,
@@ -246,9 +306,11 @@ async function buildFastValuableMessage(
       : funnelStage === 'converge'
       ? 'Responde en español (Chile): convergencia senior, max 320 palabras.'
       : 'Responde en español (Chile) con tono claro, cercano y natural; breve pero útil.',
-    funnelStage === 'deliver'
-      ? null
-      : 'Si el usuario escribe coloquial o corto, evita una estructura corporativa rígida; usa una explicación natural y concreta.',
+    conversational
+      ? 'Prioriza naturalidad y brevedad; no empujes onboarding si la pregunta no lo requiere.'
+      : funnelStage === 'deliver'
+        ? null
+        : 'Si el usuario escribe coloquial o corto, evita una estructura corporativa rígida; usa una explicación natural y concreta.',
     formatInstructions,
     'No menciones nombres de tools, pipeline interno ni tecnicismos de backend.',
     'Si recomiendas productos, APV, inversiones o instituciones: cruza suitability, explicita riesgos y deja claro que la decision final depende 100% del usuario.',
@@ -277,10 +339,9 @@ async function buildFastValuableMessage(
     .join('\n');
 
   const formatOptions = {
-    systemPrompt:
-      'Eres un asesor financiero senior estilo wealth advisory. Tu prioridad es claridad ejecutiva, utilidad inmediata, precision y criterio de riesgo.',
-    temperature: funnelStage === 'deliver' ? 0.25 : 0.2,
-    maxCompletionTokens: funnelStage === 'deliver' ? 1400 : 520,
+    systemPrompt: CORE_RESPONSE_SYSTEM,
+    temperature: funnelStage === 'deliver' ? 0.25 : conversational ? 0.35 : 0.2,
+    maxCompletionTokens: funnelStage === 'deliver' ? 1400 : conversational ? 380 : 520,
   };
   const raw = onDelta
     ? await completeStream(prompt, formatOptions, onDelta)

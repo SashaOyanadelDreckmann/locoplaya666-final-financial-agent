@@ -144,21 +144,13 @@ function formatIntakeFieldLabel(key: string) {
 
 function buildSeniorVoicePersonaBlock() {
   return [
-    'IDENTIDAD:',
-    'Eres el entrevistador financiero senior de Financieramente — nivel family office, criterio ejecutivo, calma y precisión.',
-    'VOZ Y TONO:',
-    'Español chileno profesional (Santiago). Claro, sobrio, cálido sin ser informal. Usa tú; nunca voseo ni entonación rioplatense.',
-    'Suenas como un director de diagnóstico con 20 años de experiencia: confiable, directo, nunca condescendiente.',
-    'ESTILO DE ENTREVISTA:',
-    'Una sola pregunta por turno, siempre anclada en datos reales del usuario (intake, presupuesto, cartolas).',
-    'Cada 2-3 turnos entrega una microlectura ejecutiva de una frase — insight concreto, no generalidades.',
-    'No expliques la plataforma ni el sistema. No repitas información que ya tienes.',
-    'Valida cuando el usuario es transparente; repregunta con precisión cuando detectes inconsistencias.',
-    'REGLA DE VERACIDAD (obligatoria):',
-    'Solo puedes citar montos, categorías, productos, deudas o hechos que aparezcan literalmente en el dossier de abajo.',
-    'Si una sección dice "Sin X cargado", NO inventes, NO asumas ni completes X.',
-    'Si el usuario contradice el dossier en voz, repregunta sin tomar ninguna versión como verdad hasta aclararlo.',
-    'Nunca extrapoles totales ni porcentajes que no estén escritos en las fuentes.',
+    'IDENTIDAD: entrevistador financiero senior de Financieramente.',
+    'TONO: español chileno profesional, sobrio y directo.',
+    'Una pregunta por turno, anclada en datos reales del usuario.',
+    'No expliques el sistema ni repitas lo obvio.',
+    'Si detectas inconsistencias, repregunta con precisión.',
+    'Solo puedes citar hechos que aparezcan literalmente en el dossier.',
+    'No inventes, no completes vacíos y no extrapoles cifras.',
   ].join('\n');
 }
 
@@ -215,10 +207,10 @@ export function buildVoiceInterviewDossier(
     else intakeLines.push(`${label}: ${String(value).replace(/_/g, ' ')}`);
   }
   sections.push(`\n${buildSourceAvailabilityBlock(intakeLines, products, budget)}`);
-  sections.push('\n[FUENTE 1 — CUESTIONARIO / INTAKE (modal perfil)]');
-  sections.push(intakeLines.length > 0 ? intakeLines.join('\n') : 'Sin intake detallado.');
+  sections.push('\n[FUENTE 1 — INTAKE]');
+  sections.push(intakeLines.length > 0 ? intakeLines.slice(0, 12).join('\n') : 'Sin intake detallado.');
 
-  sections.push('\n[FUENTE 2 — MODAL PRODUCTOS Y TRANSACCIONES (cartolas, movimientos reales)]');
+  sections.push('\n[FUENTE 2 — PRODUCTOS/TRANSACCIONES]');
   if (products && typeof products === 'object') {
     const txSummary =
       products.transactionSummary && typeof products.transactionSummary === 'object'
@@ -226,33 +218,13 @@ export function buildVoiceInterviewDossier(
         : {};
     sections.push(`Productos enlazados: ${Math.max(0, Number(products.productsCount ?? 0))}`);
     sections.push(`Producto activo/foco: ${String(products.activeProductLabel ?? 'sin foco definido')}`);
-    if (Array.isArray(products.uploadedFiles) && products.uploadedFiles.length > 0) {
-      sections.push(`Respaldos/cartolas subidos: ${products.uploadedFiles.slice(0, 15).join(', ')}`);
-    }
     sections.push(
-      `Flujo agregado — entradas: ${formatMoneyCompact(txSummary.inflowsTotal)} CLP | salidas: ${formatMoneyCompact(txSummary.outflowsTotal)} CLP | neto: ${formatMoneyCompact(txSummary.netFlow)} CLP | movimientos: ${Math.round(Number(txSummary.movementCount ?? 0))}`,
+      `Flujo: entradas ${formatMoneyCompact(txSummary.inflowsTotal)} | salidas ${formatMoneyCompact(txSummary.outflowsTotal)} | neto ${formatMoneyCompact(txSummary.netFlow)} | movs ${Math.round(Number(txSummary.movementCount ?? 0))}`,
     );
-    const topCategories = Array.isArray(txSummary.topCategories)
-      ? txSummary.topCategories
-          .slice(0, 8)
-          .map((c) => {
-            const item = c as Record<string, unknown>;
-            return `${String(item.name ?? 'cat')}: ${formatMoneyCompact(item.amount)} CLP`;
-          })
-          .join(' | ')
-      : '';
-    if (topCategories) sections.push(`Top categorías en movimientos: ${topCategories}`);
     const alerts = Array.isArray(txSummary.alerts)
       ? txSummary.alerts.slice(0, 6).map((a) => String(a)).filter(Boolean)
       : [];
     if (alerts.length) sections.push(`Alertas detectadas en productos: ${alerts.join(' | ')}`);
-    const productsIndex = Array.isArray(products.productsIndex) ? products.productsIndex : [];
-    for (const raw of productsIndex.slice(0, 8)) {
-      const p = raw as Record<string, unknown>;
-      sections.push(
-        `  · ${String(p.label ?? 'Producto')} (${String(p.bank ?? '')} ${String(p.productType ?? '')}): ingresos ${formatMoneyCompact(p.inflowsTotal)} | egresos ${formatMoneyCompact(p.outflowsTotal)} | neto ${formatMoneyCompact(p.netFlow)} | ${Math.round(Number(p.movementCount ?? 0))} mov.`,
-      );
-    }
     const activeProduct = products.activeProduct as Record<string, unknown> | undefined;
     if (activeProduct && typeof activeProduct === 'object') {
       const topExp = Array.isArray(activeProduct.topExpenses)
@@ -275,37 +247,22 @@ export function buildVoiceInterviewDossier(
     sections.push('Sin productos/transacciones cargados aún.');
   }
 
-  sections.push('\n[FUENTE 3 — MODAL PRESUPUESTO (filas reales del usuario)]');
+  sections.push('\n[FUENTE 3 — PRESUPUESTO]');
   if (budget && typeof budget === 'object') {
     sections.push(
-      `Totales — ingreso: ${formatMoneyCompact(budget.income)} CLP | gasto: ${formatMoneyCompact(budget.expenses)} CLP | balance: ${formatMoneyCompact(budget.balance)} CLP | filas con monto: ${Math.round(Number(budget.rowsCount ?? 0))}`,
+      `Totales: ingreso ${formatMoneyCompact(budget.income)} | gasto ${formatMoneyCompact(budget.expenses)} | balance ${formatMoneyCompact(budget.balance)} | filas ${Math.round(Number(budget.rowsCount ?? 0))}`,
     );
     const rows = Array.isArray(budget.rows) ? budget.rows : [];
-    const incomeRows = rows
-      .filter((r) => (r as Record<string, unknown>).type === 'income' && Number((r as Record<string, unknown>).amount ?? 0) > 0)
-      .sort((a, b) => Number((b as Record<string, unknown>).amount ?? 0) - Number((a as Record<string, unknown>).amount ?? 0))
-      .slice(0, 8);
     const expenseRows = rows
       .filter((r) => (r as Record<string, unknown>).type === 'expense' && Number((r as Record<string, unknown>).amount ?? 0) > 0)
       .sort((a, b) => Number((b as Record<string, unknown>).amount ?? 0) - Number((a as Record<string, unknown>).amount ?? 0))
-      .slice(0, 12);
-    if (incomeRows.length) {
-      sections.push('Ingresos presupuesto:');
-      for (const raw of incomeRows) {
-        const row = raw as Record<string, unknown>;
-        sections.push(`  + ${String(row.category ?? 'ingreso')}: ${formatMoneyCompact(row.amount)} CLP`);
-      }
-    }
+      .slice(0, 5);
     if (expenseRows.length) {
-      sections.push('Gastos presupuesto:');
       for (const raw of expenseRows) {
         const row = raw as Record<string, unknown>;
         const extra = row.product ? ` [${String(row.product)}]` : row.institution ? ` [${String(row.institution)}]` : '';
-        sections.push(`  - ${String(row.category ?? 'gasto')}: ${formatMoneyCompact(row.amount)} CLP${extra}`);
+        sections.push(`  - ${String(row.category ?? 'gasto')}: ${formatMoneyCompact(row.amount)}${extra}`);
       }
-    }
-    if (Number(budget.balance ?? 0) < 0) {
-      sections.push('⚠ TENSIÓN: presupuesto en rojo — prioriza preguntas sobre recorte, ingresos extra o deuda.');
     }
   } else {
     sections.push('Sin presupuesto cargado aún.');
@@ -324,13 +281,13 @@ export function buildVoiceInterviewDossier(
       tensions.push(`Ingreso intake (${formatMoneyCompact(source.exactMonthlyIncome)}) vs presupuesto (${formatMoneyCompact(budget.income)}) no calza — pregunta cuál es el real.`);
   }
   if (tensions.length) {
-    sections.push('\n[TENSIONES A PROFUNDIZAR (prioridad alta)]');
-    sections.push(tensions.join('\n'));
+    sections.push('\n[TENSIONES]');
+    sections.push(tensions.slice(0, 4).join('\n'));
   }
 
   if (minuteSummaries.length > 0) {
-    sections.push('\n[SÍNTESIS INTERMEDIA — ORIENTATIVA, NO VERIFICADA]');
-    sections.push('Usa estas notas solo como guía; ante contradicción con las fuentes 1-3, prevalecen las fuentes verificadas.');
+    sections.push('\n[SÍNTESIS INTERMEDIA]');
+    sections.push('Usa estas notas solo como guía; si contradicen las fuentes verificadas, ignóralas.');
     for (const summary of minuteSummaries.slice(-6)) {
       sections.push(
         `  · Minuto ${summary.minute}: ${summary.summary}${summary.keyFindings.length ? ` | hallazgos: ${summary.keyFindings.join(' | ')}` : ''}${summary.confidence ? ` | confianza: ${summary.confidence}` : ''}`,
@@ -338,7 +295,7 @@ export function buildVoiceInterviewDossier(
     }
   }
   if (finalSummary?.summary) {
-    sections.push('\n[SÍNTESIS FINAL — ORIENTATIVA, NO VERIFICADA]');
+    sections.push('\n[SÍNTESIS FINAL]');
     sections.push(`  · ${finalSummary.summary}`);
     if (Array.isArray(finalSummary.keyFindings) && finalSummary.keyFindings.length) {
       sections.push(`    Hallazgos: ${finalSummary.keyFindings.slice(0, 5).join(' | ')}`);
@@ -346,8 +303,8 @@ export function buildVoiceInterviewDossier(
   }
   sections.push(
     '\n[MANDATO DE ENTREVISTA]',
-    'Cruza intake + presupuesto + productos en cada pregunta. Si hay inconsistencias, señálalas con respeto y profundiza.',
-    'Objetivo: elevar el diagnóstico con evidencia, no repetir lo obvio ni sonar a formulario.',
+    'Cruza intake, presupuesto y productos solo cuando aporte valor.',
+    'Objetivo: diagnóstico con evidencia, sin relleno.',
   );
 
   return sections.join('\n');

@@ -320,8 +320,10 @@ export async function removeInjectedProfile() {
 
 export async function getInterviewRealtimeToken() {
   const API_URL = getSessionApiBaseUrl();
+  const csrfToken = getCsrfToken();
   const res = await fetch(`${API_URL}/api/interview/realtime/token`, {
-    method: 'GET',
+    method: 'POST',
+    headers: withCsrf(csrfToken ? { 'Content-Type': 'application/json' } : {}),
     credentials: 'include',
   });
 

@@ -79,11 +79,7 @@ export function getBudgetQuestionForId(rowId: string | null, contextInput?: Para
     const row = contextInput.budgetRows.find((item) => item.id === rowId) ?? null;
     return getBudgetQuestionForRow(row, contextInput, rowId);
   }
-  return getBudgetQuestionForRow(
-    contextInput?.budgetRows.find((item) => item.id === rowId) ?? null,
-    contextInput ?? { budgetRows: [], chatAnswers: [] },
-    rowId,
-  );
+  return getBudgetQuestionForRow(null, { budgetRows: [], chatAnswers: [] }, rowId);
 }
 
 export function normalizeActionRowId(rawId: unknown): string | null {
