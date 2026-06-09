@@ -65,6 +65,14 @@ describe('budget-chat-focus helpers', () => {
     expect(inferBudgetFieldFromQuestion(movementTypeQuestion)).toBe('movementType');
   });
 
+  it('infers row and field from writer-polished movement and name questions', () => {
+    const movementTypeQuestion =
+      '¿Confirmas que la categoría y tipo de movimiento para "Alimentación" son ambos "Alimentación", o prefieres otro?';
+    const nameQuestion = "¿Quieres mantener el nombre 'Alimentación' para este movimiento o prefieres otro?";
+    expect(inferBudgetFieldFromQuestion(movementTypeQuestion)).toBe('movementType');
+    expect(inferBudgetFieldFromQuestion(nameQuestion)).toBe('category');
+  });
+
   it('infers row and field from movement name questions', () => {
     const nameQuestion =
       '¿Cómo quieres llamar este movimiento? En la tabla aparece «Sueldo líquido» como ingreso.';

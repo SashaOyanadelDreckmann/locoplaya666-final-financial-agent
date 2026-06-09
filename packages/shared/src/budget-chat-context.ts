@@ -498,13 +498,25 @@ export function inferBudgetFieldFromQuestion(question: string): BudgetRowFieldGa
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '');
-  if (/tipo de movimiento|categor[ií]a «|confirmas o cu[aá]l corresponde/.test(q)) return 'movementType';
-  if (/c[oó]mo quieres llamar este movimiento|confirmas el nombre/.test(q)) return 'category';
+  if (
+    /tipo de movimiento|categor[ií]a.*movimiento|movimiento.*categor[ií]a|confirmas o cu[aá]l corresponde|mantenga la categor[ií]a|prefieres cambiarla|categor[ií]a y tipo/.test(
+      q,
+    )
+  ) {
+    return 'movementType';
+  }
+  if (
+    /llamar este movimiento|confirmas el nombre|mantener el nombre|qu[eé] nombre|nombre para este movimiento|nombre.*movimiento|prefieres otro.*nombre/.test(
+      q,
+    )
+  ) {
+    return 'category';
+  }
   if (/fijo|variable|var[ií]a mes a mes|recurrente/.test(q)) return 'cadence';
   if (/transferencia|d[eé]bito|cr[eé]dito|efectivo|c[oó]mo pagas|medio de pago|c[oó]mo lo pagas/.test(q)) {
     return 'paymentMethod';
   }
-  if (/monto mensual|monto|cu[aá]nto|pesos/.test(q)) return 'amount';
+  if (/monto mensual|monto.*mes|cu[aá]nto.*mes|\bmonto\b|cu[aá]nto.*pesos/.test(q)) return 'amount';
   return null;
 }
 
