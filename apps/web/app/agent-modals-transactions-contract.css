@@ -268,6 +268,11 @@
   100% { opacity: 1; transform: translate(-50%, -50%) scaleY(1.03); }
 }
 
+@keyframes tx-scanner-code-shimmer {
+  0%, 100% { opacity: 0.82; }
+  50% { opacity: 0.96; }
+}
+
 .transactions-modal .tx-library-stack-block {
   width: 100% !important;
   gap: 8px !important;
@@ -561,18 +566,26 @@
 }
 
 .transactions-modal .tx-scanner-stream-root.is-quiet {
-  --scan-feather: 18%;
+  --scan-feather: 20%;
+}
+
+.transactions-modal .tx-scanner-stream-root.is-quiet.is-transitioning .tx-scanner-card-line {
+  will-change: transform !important;
 }
 
 .transactions-modal .tx-scanner-stream-root.is-quiet .tx-scanner-ascii-content {
-  color: color-mix(in srgb, var(--tx-lib-nav-accent, #d8d0c4) 52%, rgba(255, 255, 255, 0.34)) !important;
-  animation: none !important;
+  color: color-mix(in srgb, var(--tx-lib-code-tint, var(--tx-lib-nav-accent, #d8d0c4)) 62%, rgba(255, 255, 255, 0.42)) !important;
+  animation: tx-scanner-code-shimmer 1.8s ease-in-out infinite !important;
   line-height: calc(var(--tx-scanner-card-height, 164px) / var(--tx-scanner-ascii-lines, 16)) !important;
   max-height: var(--tx-scanner-card-height, 164px) !important;
   mask-image: none !important;
   -webkit-mask-image: none !important;
-  opacity: 0.92 !important;
-  mix-blend-mode: soft-light !important;
+  opacity: var(--code-mix, 0.88) !important;
+  mix-blend-mode: normal !important;
+  text-shadow:
+    0 0 10px color-mix(in srgb, var(--pt-stack-bg, #334) 24%, transparent),
+    0 0 1px rgba(255, 255, 255, 0.12) !important;
+  letter-spacing: 0.02em !important;
 }
 
 .transactions-modal .tx-library-stack-block .tx-scanner-dot {
@@ -611,25 +624,52 @@
   isolation: isolate !important;
 }
 
+.transactions-modal .tx-scanner-stream-root.is-quiet.is-transitioning .tx-scanner-card-wrapper {
+  transform: scale(var(--card-focus-scale, 1)) !important;
+  transition: transform 0.36s cubic-bezier(0.22, 1, 0.36, 1) !important;
+}
+
+.transactions-modal .tx-scanner-stream-root.is-quiet.is-transitioning .tx-scanner-card-wrapper::after {
+  content: '' !important;
+  position: absolute !important;
+  top: 7% !important;
+  bottom: 7% !important;
+  left: var(--scan-split, 50%) !important;
+  width: 2px !important;
+  transform: translateX(-50%) !important;
+  border-radius: 999px !important;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    color-mix(in srgb, var(--pt-stack-bg, #fff) 28%, white) 48%,
+    transparent 100%
+  ) !important;
+  opacity: var(--morph-beam-opacity, 0) !important;
+  filter: blur(1.1px) !important;
+  pointer-events: none !important;
+  z-index: 6 !important;
+  mix-blend-mode: screen !important;
+}
+
 .transactions-modal .tx-scanner-stream-root.is-quiet.is-transitioning .tx-scanner-card-normal {
   clip-path: none !important;
+  filter: blur(calc(var(--morph-blur, 0) * 1px)) saturate(1.04) !important;
   -webkit-mask-image: linear-gradient(
     to right,
     transparent 0%,
-    transparent calc(var(--scan-split, 0%) - var(--scan-feather, 18%)),
-    #000 calc(var(--scan-split, 0%) + var(--scan-feather, 18%)),
+    transparent calc(var(--scan-split, 0%) - var(--scan-softness, 20%)),
+    rgba(0, 0, 0, 0.16) calc(var(--scan-split, 0%) - var(--scan-soft-half, 9%)),
+    #000 calc(var(--scan-split, 0%) + var(--scan-soft-half, 9%)),
     #000 100%
   ) !important;
   mask-image: linear-gradient(
     to right,
     transparent 0%,
-    transparent calc(var(--scan-split, 0%) - var(--scan-feather, 18%)),
-    #000 calc(var(--scan-split, 0%) + var(--scan-feather, 18%)),
+    transparent calc(var(--scan-split, 0%) - var(--scan-softness, 20%)),
+    rgba(0, 0, 0, 0.16) calc(var(--scan-split, 0%) - var(--scan-soft-half, 9%)),
+    #000 calc(var(--scan-split, 0%) + var(--scan-soft-half, 9%)),
     #000 100%
   ) !important;
-  transition:
-    -webkit-mask-image 0.14s linear,
-    mask-image 0.14s linear !important;
 }
 
 .transactions-modal .tx-scanner-stream-root.is-quiet.is-transitioning .tx-scanner-card-ascii {
@@ -639,23 +679,21 @@
   border: 1px solid var(--tx-lib-card-edge, rgba(255, 255, 255, 0.08)) !important;
   box-shadow: var(--tx-lib-card-shadow, none) !important;
   clip-path: none !important;
+  opacity: var(--code-mix, 0.9) !important;
   -webkit-mask-image: linear-gradient(
     to right,
     #000 0%,
-    #000 calc(var(--scan-split, 100%) - var(--scan-feather, 18%)),
-    transparent calc(var(--scan-split, 100%) + var(--scan-feather, 18%)),
+    #000 calc(var(--scan-split, 100%) - var(--scan-soft-half, 9%)),
+    transparent calc(var(--scan-split, 100%) + var(--scan-softness, 20%)),
     transparent 100%
   ) !important;
   mask-image: linear-gradient(
     to right,
     #000 0%,
-    #000 calc(var(--scan-split, 100%) - var(--scan-feather, 18%)),
-    transparent calc(var(--scan-split, 100%) + var(--scan-feather, 18%)),
+    #000 calc(var(--scan-split, 100%) - var(--scan-soft-half, 9%)),
+    transparent calc(var(--scan-split, 100%) + var(--scan-softness, 20%)),
     transparent 100%
   ) !important;
-  transition:
-    -webkit-mask-image 0.14s linear,
-    mask-image 0.14s linear !important;
 }
 
 .transactions-modal .tx-lib-card .tx-lib-card-top,

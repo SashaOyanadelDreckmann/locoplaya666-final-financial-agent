@@ -59,8 +59,10 @@ export function TxLibraryCardStack({
             '--tx-lib-card-surface': cardSurface.background,
             '--tx-lib-card-edge': cardSurface.borderColor,
             '--tx-lib-card-shadow': cardSurface.boxShadow,
+            '--tx-lib-code-tint': textAccent,
             '--pt-stack-bg': color,
           },
+          codeSeed: `${entry.product.label}|${entry.product.bank}|${entry.product.id}`,
         };
       }),
     [cards, paletteIndices],
