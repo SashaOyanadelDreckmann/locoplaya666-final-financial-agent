@@ -594,9 +594,12 @@ export function BudgetModal(props: {
       if (rows.length === 0) return;
 
       const tableCard = scrollHost.closest<HTMLElement>('.budget-card-table');
+      const stage = root.querySelector<HTMLElement>('.budget-mobile-stage');
       const modalBody = root.querySelector<HTMLElement>('.budget-modal-body');
       const tableHead = tableCard?.querySelector<HTMLElement>('.budget-table-head');
-      const bottomActions = tableCard?.querySelector<HTMLElement>('.budget-table-bottom-actions');
+      const bottomActions =
+        root.querySelector<HTMLElement>('[data-budget-mobile-footer="true"]') ??
+        tableCard?.querySelector<HTMLElement>('.budget-table-bottom-actions');
       const tabs = root.querySelector<HTMLElement>('.budget-mode-tabs');
       const header = root.querySelector<HTMLElement>('.bcc-modal-header');
       const mobileSummary = tableCard?.querySelector<HTMLElement>('.budget-mobile-intel-summary');
@@ -606,7 +609,11 @@ export function BudgetModal(props: {
       const intelChrome = mobileSummary?.offsetHeight ?? 0;
       let slotHeight = tableWrap?.clientHeight ?? 0;
 
-      if (slotHeight < 180 && modalBody && tableCard) {
+      if (slotHeight < 180 && (stage || modalBody)) {
+        const chrome = (tableHead?.offsetHeight ?? 0) + intelChrome + rowButtonGap;
+        const hostHeight = stage?.clientHeight ?? modalBody!.clientHeight;
+        slotHeight = Math.max(180, hostHeight - chrome);
+      } else if (slotHeight < 180 && modalBody && tableCard) {
         const chrome =
           (header?.offsetHeight ?? 0) +
           (tabs?.offsetHeight ?? 0) +
@@ -634,9 +641,12 @@ export function BudgetModal(props: {
       scrollHost && typeof ResizeObserver !== 'undefined'
         ? new ResizeObserver(measureMobileRowSlot)
         : null;
-    if (layoutObserver && scrollHost) {
+      if (layoutObserver && scrollHost) {
       layoutObserver.observe(scrollHost);
       if (tableCard) layoutObserver.observe(tableCard);
+      if (stage) layoutObserver.observe(stage);
+      const footer = root.querySelector<HTMLElement>('[data-budget-mobile-footer="true"]');
+      if (footer) layoutObserver.observe(footer);
       const modalRoot = budgetModalRef.current;
       if (modalRoot) layoutObserver.observe(modalRoot);
     }
@@ -760,6 +770,35 @@ export function BudgetModal(props: {
     };
   }, [closeConfirmKind, dismissCloseConfirm, isOpen, requestClose]);
 
+  const budgetTableBottomActions = (
+    <div
+      className={`budget-table-bottom-actions${isMobileShell ? ' budget-mobile-bottom-actions' : ''}`}
+      data-budget-mobile-footer={isMobileShell ? 'true' : undefined}
+    >
+      <button type="button" className="budget-style-button" onClick={cycleBudgetTableStyle}>
+        Estilos · {activeStyleLabel}
+      </button>
+      <button
+        type="button"
+        className="budget-pdf-button"
+        onClick={() => void downloadBudgetPdf()}
+        disabled={isGeneratingBudgetPdf || props.budgetRows.length === 0}
+      >
+        {isGeneratingBudgetPdf ? 'Preparando PDF…' : 'Guardar como PDF'}
+      </button>
+      {isSplitMode ? (
+        <button
+          type="button"
+          className="budget-chat-sync-button"
+          onClick={handleSendBudgetToAgent}
+          disabled={props.budgetRows.length === 0}
+        >
+          Informe en chat
+        </button>
+      ) : null}
+    </div>
+  );
+
   if (!isOpen) return null;
 
   return (
@@ -876,6 +915,7 @@ export function BudgetModal(props: {
           <div
             className={`budget-executive-grid budget-main-carousel mode-${budgetModeClass}${isDesktopLayout ? ' is-desktop' : ' is-mobile-budget'}`}
           >
+            <div className={isMobileShell ? 'budget-mobile-stage' : 'budget-desktop-stage'}>
             <section
               data-main-card="table"
               className={`budget-table-section budget-card-table${isDesktopLayout ? '' : ' is-mobile-table-compact'}`}
@@ -935,29 +975,7 @@ export function BudgetModal(props: {
                 </div>
               )}
               </div>
-              <div className="budget-table-bottom-actions">
-                <button type="button" className="budget-style-button" onClick={cycleBudgetTableStyle}>
-                  Estilos · {activeStyleLabel}
-                </button>
-                <button
-                  type="button"
-                  className="budget-pdf-button"
-                  onClick={() => void downloadBudgetPdf()}
-                  disabled={isGeneratingBudgetPdf || props.budgetRows.length === 0}
-                >
-                  {isGeneratingBudgetPdf ? 'Preparando PDF…' : 'Guardar como PDF'}
-                </button>
-                {isSplitMode ? (
-                  <button
-                    type="button"
-                    className="budget-chat-sync-button"
-                    onClick={handleSendBudgetToAgent}
-                    disabled={props.budgetRows.length === 0}
-                  >
-                    Informe en chat
-                  </button>
-                ) : null}
-              </div>
+              {isDesktopLayout ? budgetTableBottomActions : null}
             </section>
 
             {isAssistantOverlayMode ? (
@@ -1053,7 +1071,9 @@ export function BudgetModal(props: {
                 ) : null}
               </div>
             </section>
+            </div>
 
+            {isMobileShell ? budgetTableBottomActions : null}
           </div>
         </div>{/* /budget-modal-body */}
 
