@@ -712,14 +712,15 @@ function buildDeterministicUpdate(params: {
 
   const fieldPatch = parseBudgetFieldPatchFromAnswer(params.answer);
   const rowExists = params.rows.some((row) => row.id === targetRow!.id);
+  const category = fieldPatch.category ?? targetRow.category;
   const action: BudgetTableAction = {
     kind: rowExists ? 'update' : 'add',
     id: targetRow.id,
-    category: fieldPatch.category ?? targetRow.category,
+    category,
     type: targetRow.type,
     amount,
     ...(fieldPatch.cadence || targetRow.cadence
-      ? { cadence: normalizeCadence(fieldPatch.cadence ?? targetRow.cadence, targetRow.type) }
+      ? { cadence: normalizeBudgetCadence(fieldPatch.cadence ?? targetRow.cadence, targetRow.type) }
       : {}),
     ...(fieldPatch.payment_method || targetRow.paymentMethod
       ? {
@@ -740,7 +741,7 @@ function buildDeterministicUpdate(params: {
             ? {
                 ...row,
                 amount,
-                category: action.category ?? row.category,
+                category,
                 ...(action.cadence ? { cadence: action.cadence } : {}),
                 ...(action.payment_method ? { paymentMethod: action.payment_method } : {}),
                 ...(action.movement_type ? { movementType: action.movement_type } : {}),
@@ -752,7 +753,7 @@ function buildDeterministicUpdate(params: {
           {
             ...targetRow,
             amount,
-            category: action.category ?? targetRow.category,
+            category,
             ...(action.cadence ? { cadence: action.cadence } : {}),
             ...(action.payment_method ? { paymentMethod: action.payment_method } : {}),
             ...(action.movement_type ? { movementType: action.movement_type } : {}),
@@ -806,10 +807,11 @@ function buildDeterministicFieldUpdate(params: {
     return null;
   }
 
+  const category = fieldPatch.category ?? targetRow.category;
   const action: BudgetTableAction = {
     kind: 'update',
     id: targetRow.id,
-    category: fieldPatch.category ?? targetRow.category,
+    category,
     type: targetRow.type,
     amount: Math.max(0, Math.round(Number(targetRow.amount ?? 0))),
     cadence: normalizeBudgetCadence(fieldPatch.cadence ?? targetRow.cadence, targetRow.type),
@@ -825,7 +827,7 @@ function buildDeterministicFieldUpdate(params: {
       row.id === targetRow.id
         ? {
             ...row,
-            category: action.category,
+            category,
             cadence: action.cadence,
             paymentMethod: action.payment_method,
             movementType: action.movement_type,
