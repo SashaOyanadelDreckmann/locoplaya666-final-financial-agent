@@ -146,6 +146,11 @@ export function BudgetModal(props: {
   const formatBudgetAmount = (value: number) => `$${Math.round(value).toLocaleString('es-CL')}`;
   const focusBudgetField = (target: EventTarget | null) => {
     const el = target as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | null;
+    if (!el || typeof el.focus !== 'function') return;
+    if (isMobileShell) {
+      el.focus({ preventScroll: true });
+      return;
+    }
     focusMobileInput(el);
   };
   const activeQuestion = assistantNextQuestion ?? assistantQuestion ?? '…';
@@ -1059,6 +1064,7 @@ export function BudgetModal(props: {
                   deleteBudgetRow={props.deleteBudgetRow}
                   compactMobile={!isDesktopLayout}
                   suppressInlineSummary={!isDesktopLayout}
+                  suppressRowClickFocus={isMobileManualTable}
                 />
               ) : (
                 <div className="budget-empty-state">

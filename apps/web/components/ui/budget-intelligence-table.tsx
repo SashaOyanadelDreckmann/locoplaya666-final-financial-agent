@@ -66,6 +66,7 @@ type Props = {
   deleteBudgetRow: (id: string) => void;
   compactMobile?: boolean;
   suppressInlineSummary?: boolean;
+  suppressRowClickFocus?: boolean;
 };
 
 export function BudgetMobileIntelSummary(props: {
@@ -290,10 +291,10 @@ function BudgetTextInput(props: {
       value={draft}
       placeholder={props.placeholder}
       style={props.style}
-      onFocus={() => {
+      onFocus={(event) => {
         isEditingRef.current = true;
         props.onFocus();
-        props.onFocusField(null);
+        props.onFocusField(event.currentTarget);
       }}
       onMouseDownCapture={(event) => props.onFocusField(event.currentTarget)}
       onPointerDownCapture={(event) => props.onFocusField(event.currentTarget)}
@@ -343,10 +344,10 @@ function BudgetAmountInput(props: {
       pattern="[0-9]*"
       value={draft}
       placeholder="0"
-      onFocus={() => {
+      onFocus={(event) => {
         isEditingRef.current = true;
         props.onFocus();
-        props.onFocusField(null);
+        props.onFocusField(event.currentTarget);
       }}
       onMouseDownCapture={(event) => props.onFocusField(event.currentTarget)}
       onPointerDownCapture={(event) => props.onFocusField(event.currentTarget)}
@@ -523,7 +524,7 @@ export function BudgetIntelligenceTable(props: Props) {
                   ].join(' ')}
                   style={props.rowStyle(row)}
                   onClick={
-                    props.compactMobile
+                    props.compactMobile && !props.suppressRowClickFocus
                       ? (event) => {
                           const target = event.target;
                           if (
