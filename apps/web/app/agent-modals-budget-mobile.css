@@ -124,7 +124,13 @@
     right: auto !important;
   }
 
-  .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) > .budget-card-agent {
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) > .budget-card-agent,
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-mobile-stage > .budget-card-agent,
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-assistant-panel {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
     filter: none !important;
   }
 

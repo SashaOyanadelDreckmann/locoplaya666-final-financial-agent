@@ -44,8 +44,15 @@
   /* ── TABLE VIEW: compact Budget intelligence header (mobile-adapted) ── */
 
   .budget-modal[data-budget-view='table'] .budget-main-carousel.mode-table-front:not(.is-desktop) > .budget-card-agent,
-  .budget-modal[data-budget-mobile='true'] .budget-main-carousel.mode-table-front:not(.is-desktop) > .budget-card-agent {
+  .budget-modal[data-budget-mobile='true'] .budget-main-carousel.mode-table-front:not(.is-desktop) > .budget-card-agent,
+  .budget-modal[data-budget-view='table'] .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-mobile-stage > .budget-card-agent,
+  .budget-modal[data-budget-mobile='true'] .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-mobile-stage > .budget-card-agent,
+  .budget-modal[data-budget-view='table'] .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-assistant-panel,
+  .budget-modal[data-budget-mobile='true'] .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-assistant-panel {
     display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
   }
 
   .budget-modal[data-budget-view='table'] .budget-main-carousel.mode-table-front:not(.is-desktop) > .budget-card-table.is-mobile-table-compact,
@@ -871,9 +878,13 @@
     background: transparent !important;
   }
 
-  .budget-modal.is-mobile-shell[data-budget-view='assistant'] .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-agent.is-mobile-assistant-glass::before,
-  .budget-modal.is-mobile-shell[data-budget-mobile='true'] .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-card-agent.is-mobile-assistant-glass::before {
-    backdrop-filter: blur(52px) saturate(1.12) brightness(0.78) contrast(0.88) !important;
-    -webkit-backdrop-filter: blur(52px) saturate(1.12) brightness(0.78) contrast(0.88) !important;
+  .budget-modal.is-mobile-shell[data-budget-view='table'] .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-mobile-stage > .budget-card-agent,
+  .budget-modal.is-mobile-shell[data-budget-mobile='true'] .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-mobile-stage > .budget-card-agent,
+  .budget-modal.is-mobile-shell[data-budget-view='table'] .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-assistant-panel,
+  .budget-modal.is-mobile-shell[data-budget-mobile='true'] .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-assistant-panel {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
   }
 }
