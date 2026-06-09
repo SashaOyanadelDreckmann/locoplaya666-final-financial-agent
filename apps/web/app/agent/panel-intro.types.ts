@@ -3,4 +3,4 @@ export type PanelIntroHandoffOrigin = {
   y: number;
 };
 
-export type PanelIntroPhase = 'morph' | 'dock' | 'settle';
+export type PanelIntroPhase = 'morph' | 'shell' | 'assemble' | 'settle';

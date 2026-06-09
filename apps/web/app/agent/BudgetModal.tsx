@@ -637,14 +637,14 @@ export function BudgetModal(props: {
       const header = root.querySelector<HTMLElement>('.bcc-modal-header');
       const mobileSummary = tableCard?.querySelector<HTMLElement>('.budget-mobile-intel-summary');
       const tableWrap = scrollHost.querySelector<HTMLElement>('.budget-table-wrap');
-      const rowButtonGap = 6;
+      const rowButtonGap = 4;
 
       const intelChrome = mobileSummary?.offsetHeight ?? 0;
       const tableChrome = (tableHead?.offsetHeight ?? 0) + intelChrome + rowButtonGap;
       const carousel = root.querySelector<HTMLElement>('.budget-main-carousel');
       const footerHeight = bottomActions?.offsetHeight ?? 0;
       const footerInsideTable = Boolean(bottomActions?.closest('.budget-card-table'));
-      const footerGap = 18;
+      const footerGap = 12;
       const footerChrome = footerInsideTable ? footerHeight + footerGap : 0;
       const tableChromeWithFooter = tableChrome + footerChrome;
       const stageHeight = stage?.clientHeight ?? 0;
@@ -655,10 +655,15 @@ export function BudgetModal(props: {
           ? carouselHeight - (footerInsideTable ? 0 : footerHeight) - tableChromeWithFooter
           : 0;
       const measuredScrollHost = scrollHost.clientHeight;
+      const activeRow =
+        scrollHost.querySelector<HTMLElement>('tr.is-mobile-row-card.is-active-row') ??
+        scrollHost.querySelector<HTMLElement>('tr.is-mobile-row-card');
+      const rowContentHeight = activeRow?.scrollHeight ?? 0;
       const scrollAreaHeight = Math.max(
         200,
         stageScrollBudget,
         measuredScrollHost,
+        rowContentHeight > 0 ? rowContentHeight + 6 : 0,
       );
       const slotHeight = Math.max(240, scrollAreaHeight - 2);
 

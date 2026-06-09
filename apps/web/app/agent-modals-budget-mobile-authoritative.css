@@ -147,7 +147,7 @@
   .budget-modal[data-budget-view='table'] .budget-table-section.is-mobile-table-compact .budget-table-head,
   .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-table-head {
     flex-shrink: 0 !important;
-    margin: 0 0 10px !important;
+    margin: 0 0 8px !important;
     padding: 0 !important;
   }
 
@@ -176,7 +176,7 @@
     display: block !important;
     flex-shrink: 0 !important;
     width: 100% !important;
-    margin: 0 0 18px !important;
+    margin: 0 0 12px !important;
     padding: 2px 4px 4px !important;
     visibility: visible !important;
     opacity: 1 !important;
@@ -287,8 +287,9 @@
     justify-content: center !important;
     align-items: center !important;
     gap: 12px !important;
-    margin: 18px 0 0 !important;
-    padding: 0 8px calc(env(safe-area-inset-bottom, 0px) + 10px) !important;
+    margin-top: auto !important;
+    margin-bottom: 0 !important;
+    padding: 12px 8px calc(env(safe-area-inset-bottom, 0px) + 12px) !important;
     width: 100% !important;
     box-sizing: border-box !important;
     background: transparent !important;
@@ -671,8 +672,10 @@
       "cadence cadence"
       "payment movement"
       "impact impact" !important;
-    grid-template-rows: auto auto auto auto minmax(96px, 1.28fr) !important;
-    gap: 8px !important;
+    grid-template-rows: auto auto minmax(42px, auto) auto minmax(54px, auto) !important;
+    align-content: start !important;
+    gap: 8px 8px !important;
+    row-gap: 12px !important;
     padding: 12px 30px 12px 12px !important;
     margin: 0 0 12px !important;
     border-radius: 14px !important;
@@ -748,11 +751,11 @@
   }
 
   .budget-modal .budget-table-section.is-mobile-table-compact .budget-impact-shell {
-    flex: 1 1 auto !important;
+    flex: 0 0 auto !important;
     min-height: 0 !important;
     display: flex !important;
     flex-direction: column !important;
-    justify-content: flex-end !important;
+    justify-content: flex-start !important;
     gap: 2px !important;
     padding: 0 !important;
     background: transparent !important;
@@ -1232,5 +1235,85 @@
   .budget-modal.is-mobile-shell[data-budget-mobile='true'] .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-mobile-stage > .budget-card-table.is-mobile-table-compact {
     filter: blur(14px) brightness(0.66) saturate(0.88) !important;
     -webkit-filter: blur(14px) brightness(0.66) saturate(0.88) !important;
+  }
+
+  /* Recurrencia → Medio de pago / Tipo de movimiento: evitar solapamiento */
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact .budget-table-pro tbody td:nth-child(4),
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact .budget-table-pro tbody td[data-label='Recurrencia'],
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-table-pro tbody td:nth-child(4),
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-table-pro tbody td[data-label='Recurrencia'],
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact .budget-table-pro tbody td:nth-child(4),
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact .budget-table-pro tbody td[data-label='Recurrencia'] {
+    padding-bottom: 6px !important;
+    margin-bottom: 2px !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact .budget-table-pro tbody td:nth-child(5),
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact .budget-table-pro tbody td:nth-child(6),
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-table-pro tbody td:nth-child(5),
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-table-pro tbody td:nth-child(6),
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact .budget-table-pro tbody td:nth-child(5),
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact .budget-table-pro tbody td:nth-child(6) {
+    padding-top: 4px !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact .budget-table-pro tbody tr.is-active-row .budget-pill-group,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-table-pro tbody tr.is-active-row .budget-pill-group,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact .budget-table-pro tbody tr.is-active-row .budget-pill-group {
+    padding: 1px !important;
+    border-radius: 999px !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact .budget-table-pro tbody tr.is-active-row .budget-pill-button,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-table-pro tbody tr.is-active-row .budget-pill-button,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact .budget-table-pro tbody tr.is-active-row .budget-pill-button {
+    min-height: 22px !important;
+    height: 22px !important;
+    border-radius: 999px !important;
+  }
+
+  /* Tabla: fila al alto del contenido (sin hueco verde bajo Impacto) */
+  .budget-modal.is-mobile-shell[data-budget-view='table'] .budget-table-section.is-mobile-table-compact .budget-table-pro tbody tr.is-mobile-row-card,
+  .budget-modal.is-mobile-shell[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-table-pro tbody tr.is-mobile-row-card,
+  .budget-modal[data-budget-view='table'] .budget-table-section.is-mobile-table-compact .budget-table-pro tbody tr.is-mobile-row-card,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-table-pro tbody tr.is-mobile-row-card,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact .budget-table-pro tbody tr.is-mobile-row-card {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+  }
+
+  .budget-modal.is-mobile-shell[data-budget-view='table'] .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-pro tbody,
+  .budget-modal.is-mobile-shell[data-budget-mobile='true'] .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-pro tbody,
+  .budget-modal.is-mobile-shell[data-budget-view='table'] .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-pro,
+  .budget-modal.is-mobile-shell[data-budget-mobile='true'] .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-pro {
+    min-height: 0 !important;
+    height: auto !important;
+  }
+
+  /* Tabla: más alto el scroll host; footer pegado abajo */
+  .budget-modal.is-mobile-shell[data-budget-view='table'] .budget-table-section.is-mobile-table-compact .budget-table-scroll-host,
+  .budget-modal.is-mobile-shell[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-table-scroll-host,
+  .budget-modal[data-budget-view='table'] .budget-table-section.is-mobile-table-compact .budget-table-scroll-host,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-table-scroll-host {
+    flex: 1 1 0 !important;
+    min-height: var(--budget-mobile-scroll-host-height, 0) !important;
+    overflow: visible !important;
+  }
+
+  .budget-modal.is-mobile-shell[data-budget-view='table'] .budget-table-section.is-mobile-table-compact .budget-table-scroll-host .budget-pdf-surface.is-mobile-compact,
+  .budget-modal.is-mobile-shell[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-table-scroll-host .budget-pdf-surface.is-mobile-compact,
+  .budget-modal[data-budget-view='table'] .budget-table-section.is-mobile-table-compact .budget-table-scroll-host .budget-pdf-surface.is-mobile-compact,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-table-scroll-host .budget-pdf-surface.is-mobile-compact {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .budget-modal.is-mobile-shell[data-budget-view='table'] .budget-table-section.is-mobile-table-compact .budget-table-scroll-host .budget-table-wrap,
+  .budget-modal.is-mobile-shell[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-table-scroll-host .budget-table-wrap,
+  .budget-modal[data-budget-view='table'] .budget-table-section.is-mobile-table-compact .budget-table-scroll-host .budget-table-wrap,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-table-scroll-host .budget-table-wrap {
+    max-height: none !important;
+    overflow-y: visible !important;
   }
 }

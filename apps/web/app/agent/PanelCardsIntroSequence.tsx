@@ -6,10 +6,8 @@ import { motion } from 'framer-motion';
 
 import {
   PanelCardsMorphIntro,
-  computeSpotlightLayoutForCard,
   type PanelCardNaturalSize,
   type PanelDockTarget,
-  type PanelIntroCardLayout,
   type PanelMorphPhase,
 } from '@/components/ui/panel-cards-morph-intro';
 import {
@@ -24,10 +22,13 @@ import { markPanelIntroCompleted, clearPendingPanelIntroFromIntake } from './pan
 import type { PanelIntroHandoffOrigin, PanelIntroPhase } from './panel-intro.types';
 
 const ENTER_MS = 360;
-const SPOTLIGHT_MS = 4000;
-const DOCK_MS = 1180;
-const SETTLE_MS = 680;
-const FADE_OUT_MS = 420;
+const SPOTLIGHT_MS = 2000;
+const SHELL_MS = 440;
+const CARD_ASSEMBLE_STAGGER_MS = 128;
+const ASSEMBLE_FIRST_CARD_MS = 72;
+const ASSEMBLE_TAIL_MS = 500;
+const SETTLE_MS = 360;
+const FADE_OUT_MS = 380;
 
 export type { PanelIntroPhase };
 
@@ -40,10 +41,6 @@ function prefersReducedMotion(): boolean {
   } catch {
     return false;
   }
-}
-
-function spotlightDurationForIndex(): number {
-  return SPOTLIGHT_MS;
 }
 
 function measureGridDockTargets(
@@ -135,6 +132,7 @@ export function PanelCardsIntroSequence(props: {
   isMobileViewport: boolean;
   handoffOrigin?: PanelIntroHandoffOrigin | null;
   onPhaseChange?: (phase: PanelIntroPhase) => void;
+  onRevealCountChange?: (count: number) => void;
   onSettled?: () => void;
   onComplete: () => void;
   onPanelReveal?: () => void;
@@ -144,11 +142,12 @@ export function PanelCardsIntroSequence(props: {
   const [phase, setPhase] = useState<PanelMorphPhase>(reducedMotion ? 'spotlight' : 'enter');
   const [activeIndex, setActiveIndex] = useState(0);
   const [dockTargets, setDockTargets] = useState<PanelDockTarget[] | null>(null);
-  const [dockOrigin, setDockOrigin] = useState<PanelIntroCardLayout | null>(null);
   const [naturalSizes, setNaturalSizes] = useState<Record<string, PanelCardNaturalSize>>({});
+  const [revealedCount, setRevealedCount] = useState(0);
   const [exiting, setExiting] = useState(false);
   const exitStartedRef = useRef(false);
-  const dockStartedRef = useRef(false);
+  const shellStartedRef = useRef(false);
+  const assembleStartedRef = useRef(false);
   const skipStartedRef = useRef(false);
   const activeIndexRef = useRef(activeIndex);
   activeIndexRef.current = activeIndex;
@@ -156,7 +155,6 @@ export function PanelCardsIntroSequence(props: {
   const propsRef = useRef(props);
   propsRef.current = props;
   const totalCards = PANEL_INTRO_CARD_ORDER.length;
-  const spotlightDurationMs = spotlightDurationForIndex();
 
   const orderedPanelCards = useMemo(
     () =>
@@ -171,46 +169,42 @@ export function PanelCardsIntroSequence(props: {
     setNaturalSizes(measureCardNaturalSizes(props.panelGridRef, props.isMobileViewport));
   }, [props.panelGridRef, props.isMobileViewport]);
 
-  const beginDock = useCallback(() => {
-    if (dockStartedRef.current) return;
-    dockStartedRef.current = true;
+  const refreshAssemblyTargets = useCallback(() => {
+    const nextNaturalSizes = measureCardNaturalSizes(
+      propsRef.current.panelGridRef,
+      propsRef.current.isMobileViewport,
+    );
+    setNaturalSizes(nextNaturalSizes);
+    setDockTargets(
+      measureDockTargets(propsRef.current.panelGridRef, propsRef.current.isMobileViewport),
+    );
+  }, []);
 
-    propsRef.current.onPhaseChange?.('dock');
+  const beginShellReveal = useCallback(() => {
+    if (shellStartedRef.current) return;
+    shellStartedRef.current = true;
+
+    propsRef.current.onPhaseChange?.('shell');
+    setPhase('shell');
 
     const panel = propsRef.current.panelGridRef.current?.closest('.agent-panel');
     if (panel instanceof HTMLElement) panel.scrollTop = 0;
 
     window.requestAnimationFrame(() => {
       window.requestAnimationFrame(() => {
-        const nextNaturalSizes = measureCardNaturalSizes(
-          propsRef.current.panelGridRef,
-          propsRef.current.isMobileViewport,
-        );
-        const currentIndex = activeIndexRef.current;
-        const activeMeta = PANEL_INTRO_CARD_ORDER[currentIndex] ?? PANEL_INTRO_CARD_ORDER[0];
-        const viewport = {
-          x: window.innerWidth / 2,
-          y: window.innerHeight / 2,
-          width: window.innerWidth,
-          height: window.innerHeight,
-        };
-        const origin = computeSpotlightLayoutForCard({
-          cardKey: activeMeta.key,
-          phase: 'spotlight',
-          naturalSizes: nextNaturalSizes,
-          handoffOrigin: propsRef.current.handoffOrigin,
-          isMobile: propsRef.current.isMobileViewport,
-          viewport,
-        });
-
-        setNaturalSizes(nextNaturalSizes);
-        setDockOrigin(origin);
-        setDockTargets(
-          measureDockTargets(propsRef.current.panelGridRef, propsRef.current.isMobileViewport),
-        );
-        setPhase('dock');
+        refreshAssemblyTargets();
       });
     });
+  }, [refreshAssemblyTargets]);
+
+  const beginAssemble = useCallback(() => {
+    if (assembleStartedRef.current) return;
+    assembleStartedRef.current = true;
+
+    propsRef.current.onPhaseChange?.('assemble');
+    setPhase('assemble');
+    setRevealedCount(0);
+    propsRef.current.onRevealCountChange?.(0);
   }, []);
 
   const beginSettle = useCallback(() => {
@@ -231,11 +225,20 @@ export function PanelCardsIntroSequence(props: {
   }, []);
 
   const skipToPanel = useCallback(() => {
-    if (skipStartedRef.current || exitStartedRef.current || dockStartedRef.current) return;
+    if (skipStartedRef.current || exitStartedRef.current) return;
     skipStartedRef.current = true;
+    shellStartedRef.current = true;
+    assembleStartedRef.current = true;
     propsRef.current.onHaptic?.(8);
-    beginDock();
-  }, [beginDock]);
+
+    refreshAssemblyTargets();
+    propsRef.current.onPhaseChange?.('assemble');
+    setPhase('assemble');
+    setRevealedCount(totalCards);
+    propsRef.current.onRevealCountChange?.(totalCards);
+
+    window.setTimeout(() => beginSettle(), reducedMotion ? 120 : 280);
+  }, [beginSettle, refreshAssemblyTargets, reducedMotion, totalCards]);
 
   useEffect(() => {
     if (!portalReady) setPortalReady(true);
@@ -272,29 +275,45 @@ export function PanelCardsIntroSequence(props: {
     return () => window.clearTimeout(timer);
   }, [reducedMotion]);
 
-  /* Auto-play spotlight: timer only resets when activeIndex changes, not on parent re-renders */
   useEffect(() => {
     if (phase !== 'spotlight' || exiting) return;
 
-    const duration = spotlightDurationForIndex();
     const timer = window.setTimeout(() => {
       if (activeIndex >= totalCards - 1) {
-        beginDock();
+        beginShellReveal();
         return;
       }
       setActiveIndex((index) => Math.min(index + 1, totalCards - 1));
       propsRef.current.onHaptic?.(5);
-    }, duration);
+    }, SPOTLIGHT_MS);
 
     return () => window.clearTimeout(timer);
-  }, [phase, activeIndex, exiting, props.isMobileViewport, totalCards, beginDock]);
+  }, [phase, activeIndex, exiting, totalCards, beginShellReveal]);
 
   useEffect(() => {
-    if (phase !== 'dock') return;
-    const settleLeadMs = Math.round(DOCK_MS * 0.62);
-    const settleTimer = window.setTimeout(() => beginSettle(), settleLeadMs);
-    return () => window.clearTimeout(settleTimer);
-  }, [phase, beginSettle]);
+    if (phase !== 'shell') return;
+    const timer = window.setTimeout(() => beginAssemble(), SHELL_MS);
+    return () => window.clearTimeout(timer);
+  }, [phase, beginAssemble]);
+
+  useEffect(() => {
+    if (phase !== 'assemble' || exiting) return;
+
+    if (revealedCount >= totalCards) {
+      const timer = window.setTimeout(() => beginSettle(), ASSEMBLE_TAIL_MS);
+      return () => window.clearTimeout(timer);
+    }
+
+    const delay = revealedCount === 0 ? ASSEMBLE_FIRST_CARD_MS : CARD_ASSEMBLE_STAGGER_MS;
+    const timer = window.setTimeout(() => {
+      const next = Math.min(revealedCount + 1, totalCards);
+      setRevealedCount(next);
+      propsRef.current.onRevealCountChange?.(next);
+      propsRef.current.onHaptic?.(4);
+    }, delay);
+
+    return () => window.clearTimeout(timer);
+  }, [phase, revealedCount, exiting, totalCards, beginSettle]);
 
   useEffect(() => {
     if (phase !== 'settle') return;
@@ -304,9 +323,9 @@ export function PanelCardsIntroSequence(props: {
 
   useEffect(() => {
     if (!reducedMotion || phase !== 'spotlight') return;
-    const timer = window.setTimeout(() => beginDock(), 2200);
+    const timer = window.setTimeout(() => beginShellReveal(), 1200);
     return () => window.clearTimeout(timer);
-  }, [reducedMotion, phase, beginDock]);
+  }, [reducedMotion, phase, beginShellReveal]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -323,11 +342,18 @@ export function PanelCardsIntroSequence(props: {
 
   if (!portalReady) return null;
 
+  const overlayPhaseClass =
+    phase === 'shell'
+      ? ' is-shell-reveal'
+      : phase === 'assemble' || phase === 'settle'
+        ? ' is-assembling'
+        : phase === 'spotlight' || phase === 'enter'
+          ? ' is-spotlight-stage'
+          : '';
+
   return createPortal(
     <motion.div
-      className={`panel-intro-overlay${exiting ? ' is-exiting' : ''}${
-        phase === 'dock' || phase === 'settle' ? ' is-docking' : ''
-      }${phase === 'spotlight' || phase === 'enter' ? ' is-spotlight-stage' : ''}${
+      className={`panel-intro-overlay${exiting ? ' is-exiting' : ''}${overlayPhaseClass}${
         props.isMobileViewport ? ' is-mobile' : ''
       }`}
       role="dialog"
@@ -356,14 +382,14 @@ export function PanelCardsIntroSequence(props: {
         phase={phase}
         activeIndex={activeIndex}
         dockTargets={dockTargets}
-        dockOrigin={dockOrigin}
         panelCards={orderedPanelCards}
         naturalSizes={naturalSizes}
         handoffOrigin={props.handoffOrigin}
         isMobileViewport={props.isMobileViewport}
         panelGridRef={props.panelGridRef}
         reducedMotion={reducedMotion}
-        spotlightDurationMs={spotlightDurationMs}
+        spotlightDurationMs={SPOTLIGHT_MS}
+        revealedCount={revealedCount}
         autoPlay
       />
     </motion.div>,

@@ -40,7 +40,10 @@ describe('budget pro mobile css safeguards', () => {
   });
 
   it('uses one-row scroll viewport on mobile table tab', () => {
-    expect(mobileCss).toContain('--budget-mobile-row-slot');
+    const authCssPath = path.join(process.cwd(), 'app', 'agent-modals-budget-mobile-authoritative.css');
+    const authCss = fs.readFileSync(authCssPath, 'utf8');
+    expect(authCss).toContain('--budget-mobile-row-slot');
+    expect(authCss).toContain('height: auto !important');
     expect(mobileCss).toContain('is-mobile-row-card');
     expect(mobileCss).toContain('is-mobile-row-card');
     expect(mobileCss).toContain('mode-table-front:not(.is-desktop) .budget-table-section.is-mobile-table-compact .budget-table-bottom-actions');
@@ -80,6 +83,16 @@ describe('budget pro mobile css safeguards', () => {
     expect(authCss).toContain('is-mobile-table-compact');
     expect(authCss).toContain('filter: blur(10px)');
     expect(authCss).toContain('display: none !important');
+  });
+
+  it('keeps cadence pills separated from payment and movement labels on mobile', () => {
+    const authCssPath = path.join(process.cwd(), 'app', 'agent-modals-budget-mobile-authoritative.css');
+    const authCss = fs.readFileSync(authCssPath, 'utf8');
+    expect(authCss).toContain('row-gap: 12px !important');
+    expect(authCss).toContain("td[data-label='Recurrencia']");
+    expect(authCss).toContain('padding-bottom: 6px !important');
+    expect(authCss).toContain('tr.is-active-row .budget-pill-button');
+    expect(authCss).toContain('height: 22px !important');
   });
 
   it('defines premium mobile themes for all budget table styles', () => {

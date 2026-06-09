@@ -492,7 +492,10 @@ export default function AgentPage() {
   const interviewAutoOpenHandledRef = useRef(false);
   const [bootSequenceActive, setBootSequenceActive] = useState(false);
   const [panelIntroActive, setPanelIntroActive] = useState(false);
-  const [panelIntroPhase, setPanelIntroPhase] = useState<'morph' | 'dock' | 'settle'>('morph');
+  const [panelIntroPhase, setPanelIntroPhase] = useState<
+    'morph' | 'shell' | 'assemble' | 'settle'
+  >('morph');
+  const [panelIntroRevealedCount, setPanelIntroRevealedCount] = useState(0);
   const [panelIntroSettled, setPanelIntroSettled] = useState(false);
   const [panelIntroHandoffOrigin, setPanelIntroHandoffOrigin] = useState<{
     x: number;
@@ -518,6 +521,7 @@ export default function AgentPage() {
       if (!shouldPresentPanelIntro() || panelIntroStartRef.current) return;
       panelIntroStartRef.current = true;
       setPanelIntroPhase('morph');
+      setPanelIntroRevealedCount(0);
       setPanelIntroSettled(false);
       setPanelIntroActive(true);
     }, delay);
@@ -3556,7 +3560,7 @@ export default function AgentPage() {
     (isMobileViewport ? 1 : 0) * 10000 + panelStage * 1000 + savedReports.length;
   const panelIntroLayoutSync =
     panelIntroActive &&
-    (panelIntroPhase === 'dock' || panelIntroPhase === 'settle' || panelIntroSettled);
+    (panelIntroPhase === 'assemble' || panelIntroPhase === 'settle' || panelIntroSettled);
 
   const panelRenderedCards = compactPanelCards.map((card, index) => {
     const cloned = React.cloneElement(card.node as ReactElement<Record<string, unknown>>, {
@@ -3573,6 +3577,9 @@ export default function AgentPage() {
       <PanelIntroGridSlot
         key={`real-${card.key}-${index}`}
         cardKey={card.key}
+        cardIndex={index}
+        introPhase={panelIntroPhase}
+        revealedCount={panelIntroRevealedCount}
         syncLayout={panelIntroLayoutSync}
       >
         {cloned}
@@ -3704,7 +3711,11 @@ export default function AgentPage() {
       } ${
         panelIntroActive ? 'is-panel-intro-active' : ''
       } ${
-        panelIntroPhase === 'dock' || panelIntroPhase === 'settle' ? 'is-panel-intro-docking' : ''
+        panelIntroPhase === 'shell' ? 'is-panel-intro-shell' : ''
+      } ${
+        panelIntroPhase === 'assemble' || panelIntroPhase === 'settle'
+          ? 'is-panel-intro-assemble'
+          : ''
       } ${
         panelIntroSettled ? 'is-panel-intro-settled' : ''
       } ${
@@ -4049,6 +4060,7 @@ export default function AgentPage() {
           isMobileViewport={isMobileViewport}
           handoffOrigin={panelIntroHandoffOrigin}
           onPhaseChange={setPanelIntroPhase}
+          onRevealCountChange={setPanelIntroRevealedCount}
           onSettled={() => setPanelIntroSettled(true)}
           onPanelReveal={() => {
             if (isMobileViewport) {
@@ -4062,6 +4074,7 @@ export default function AgentPage() {
             panelIntroStartRef.current = false;
             setPanelIntroActive(false);
             setPanelIntroPhase('morph');
+            setPanelIntroRevealedCount(0);
             setPanelIntroSettled(false);
             setPanelIntroHandoffOrigin(null);
             if (isMobileViewport) {

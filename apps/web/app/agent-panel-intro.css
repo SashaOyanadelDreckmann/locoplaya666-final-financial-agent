@@ -10,24 +10,57 @@ body.panel-intro-active {
   pointer-events: none;
 }
 
-/* Keep panel in layout tree for shared-layout + measurement; hide until dock */
-.agent-layout.is-panel-intro-active:not(.is-panel-intro-docking):not(.is-panel-intro-settled)
+/* Keep panel in layout tree for measurement; hide until shell reveal */
+.agent-layout.is-panel-intro-active:not(.is-panel-intro-shell):not(.is-panel-intro-assemble):not(.is-panel-intro-settled)
   > aside.agent-panel,
-.agent-layout.is-panel-intro-active:not(.is-panel-intro-docking):not(.is-panel-intro-settled)
+.agent-layout.is-panel-intro-active:not(.is-panel-intro-shell):not(.is-panel-intro-assemble):not(.is-panel-intro-settled)
   > aside.agent-divider-rail {
   opacity: 0 !important;
   pointer-events: none !important;
 }
 
-.agent-layout.is-panel-intro-docking:not(.is-panel-intro-settled) > aside.agent-panel,
-.agent-layout.is-panel-intro-docking:not(.is-panel-intro-settled) > aside.agent-divider-rail {
-  opacity: 0.04 !important;
+/* Shell: empty black panel chrome visible before cards assemble */
+.agent-layout.is-panel-intro-shell > aside.agent-panel,
+.agent-layout.is-panel-intro-assemble > aside.agent-panel {
+  opacity: 1 !important;
+  pointer-events: none !important;
+  animation: panel-intro-shell-reveal 480ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.agent-layout.is-panel-intro-shell > aside.agent-divider-rail,
+.agent-layout.is-panel-intro-assemble > aside.agent-divider-rail {
+  opacity: 1 !important;
+  pointer-events: none !important;
+  animation: panel-intro-rail-reveal 420ms cubic-bezier(0.22, 1, 0.36, 1) 60ms both;
+}
+
+.agent-layout.is-panel-intro-active:not(.is-panel-intro-shell):not(.is-panel-intro-assemble):not(.is-panel-intro-settled)
+  .agent-panel.is-panel-intro-measure {
+  opacity: 0 !important;
   pointer-events: none !important;
 }
 
-.agent-layout.is-panel-intro-active .agent-panel.is-panel-intro-measure {
+/* Mobile: hide real deck during overlay assemble; show empty shell */
+.agent-layout.is-panel-intro-shell.is-mobile-viewport .mobile-panel-card-stack,
+.agent-layout.is-panel-intro-assemble.is-mobile-viewport .mobile-panel-card-stack {
   opacity: 0 !important;
+  visibility: hidden !important;
   pointer-events: none !important;
+}
+
+.agent-layout.is-panel-intro-settled.is-mobile-viewport .mobile-panel-card-stack {
+  animation: panel-intro-deck-reveal 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes panel-intro-deck-reveal {
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 html.is-desktop-viewport .agent-panel .panel-intro-grid-slot,
@@ -114,12 +147,18 @@ html.panel-intro-active main.agent-layout.is-mobile-viewport > .agent-mobile-com
   transition: opacity 420ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.panel-intro-overlay.is-docking .panel-intro-overlay__backdrop {
-  opacity: 0.14;
-  transition: opacity 680ms cubic-bezier(0.22, 1, 0.36, 1);
+.panel-intro-overlay.is-shell-reveal .panel-intro-overlay__backdrop {
+  opacity: 0.1;
+  transition: opacity 520ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.panel-intro-overlay.is-docking .panel-intro-skip,
+.panel-intro-overlay.is-assembling .panel-intro-overlay__backdrop {
+  opacity: 0.04;
+  transition: opacity 640ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.panel-intro-overlay.is-shell-reveal .panel-intro-skip,
+.panel-intro-overlay.is-assembling .panel-intro-skip,
 .panel-intro-overlay.is-exiting .panel-intro-skip {
   opacity: 0;
   pointer-events: none;
@@ -188,20 +227,27 @@ html.panel-intro-active main.agent-layout.is-mobile-viewport > .agent-mobile-com
   background: transparent;
 }
 
-.panel-morph-intro.is-dock-stage,
+.panel-morph-intro.is-shell-stage,
+.panel-morph-intro.is-assemble-stage,
 .panel-morph-intro.is-settle-stage {
   pointer-events: none;
 }
 
-.panel-morph-intro.is-dock-stage .panel-morph-intro__header,
-.panel-morph-intro.is-dock-stage .panel-morph-intro__footer,
-.panel-morph-intro.is-dock-stage .panel-morph-intro__brand,
+.panel-morph-intro.is-shell-stage .panel-morph-intro__footer,
+.panel-morph-intro.is-shell-stage .panel-morph-intro__brand,
+.panel-morph-intro.is-assemble-stage .panel-morph-intro__header,
+.panel-morph-intro.is-assemble-stage .panel-morph-intro__footer,
+.panel-morph-intro.is-assemble-stage .panel-morph-intro__brand,
 .panel-morph-intro.is-settle-stage .panel-morph-intro__header,
 .panel-morph-intro.is-settle-stage .panel-morph-intro__footer,
 .panel-morph-intro.is-settle-stage .panel-morph-intro__brand {
   opacity: 0;
   pointer-events: none;
   transition: opacity 280ms ease;
+}
+
+.panel-morph-intro__caption.is-shell-caption {
+  opacity: 0.92;
 }
 
 .panel-morph-intro__header {
@@ -393,6 +439,7 @@ html.panel-intro-active main.agent-layout.is-mobile-viewport > .agent-mobile-com
   line-height: 1 !important;
 }
 
+.panel-morph-intro.is-mobile .panel-morph-card.is-assembling .panel-morph-card__frame.is-mobile-deck,
 .panel-morph-intro.is-mobile .panel-morph-card.is-docking .panel-morph-card__frame.is-mobile-deck {
   border-radius: inherit;
   box-shadow: none;
@@ -529,6 +576,7 @@ html.panel-intro-active main.agent-layout.is-mobile-viewport > .agent-mobile-com
   border-radius: 14px;
 }
 
+.panel-morph-card.is-assembling .panel-morph-card__frame,
 .panel-morph-card.is-docking .panel-morph-card__frame {
   border-radius: inherit;
   background: transparent;
@@ -588,8 +636,13 @@ html.panel-intro-active main.agent-layout.is-mobile-viewport > .agent-mobile-com
   max-height: calc(100dvh - 220px);
 }
 
+.panel-morph-card.is-assembling,
 .panel-morph-card.is-docking {
   filter: drop-shadow(0 12px 28px rgba(0, 0, 0, 0.28));
+}
+
+.panel-morph-card.is-spotlight-exiting {
+  filter: drop-shadow(0 16px 36px rgba(0, 0, 0, 0.36));
 }
 
 .panel-morph-card__skin.agent-panel .panel-card,

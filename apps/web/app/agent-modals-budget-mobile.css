@@ -456,8 +456,8 @@
     scroll-snap-stop: always !important;
     margin: 0 0 14px !important;
     box-sizing: border-box !important;
-    min-height: var(--budget-mobile-row-slot, 292px) !important;
-    height: var(--budget-mobile-row-slot, 292px) !important;
+    min-height: 0 !important;
+    height: auto !important;
     overflow: hidden !important;
   }
 
@@ -509,7 +509,8 @@
       "cadence cadence"
       "payment movement"
       "impact impact" !important;
-    gap: 8px !important;
+    gap: 8px 8px !important;
+    row-gap: 12px !important;
     padding: 12px 30px 12px 12px !important;
     margin: 0 0 12px !important;
     border-radius: 16px !important;
@@ -674,8 +675,9 @@
 
   .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-section.is-mobile-table-compact .budget-table-bottom-actions {
     display: flex !important;
-    margin: 18px 0 0 !important;
-    padding: 0 8px calc(env(safe-area-inset-bottom, 0px) + 10px) !important;
+    margin-top: auto !important;
+    margin-bottom: 0 !important;
+    padding: 12px 8px calc(env(safe-area-inset-bottom, 0px) + 12px) !important;
   }
 
   .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) > [data-budget-mobile-footer='true'],

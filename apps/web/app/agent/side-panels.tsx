@@ -35,7 +35,7 @@ export function SidePanels(props: {
   compactPanelDeckRef?: React.Ref<MobilePanelDeckHandle>;
   panelRenderedCards: ReactNode;
   panelIntroActive?: boolean;
-  panelIntroPhase?: 'morph' | 'dock' | 'settle';
+  panelIntroPhase?: 'morph' | 'shell' | 'assemble' | 'settle';
   panelIntroSettled?: boolean;
 }) {
   const useMobileDeck =

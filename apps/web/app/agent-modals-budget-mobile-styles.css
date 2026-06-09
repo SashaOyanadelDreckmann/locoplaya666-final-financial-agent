@@ -388,8 +388,11 @@
 
   /* ── Compact Fijo / Variable pills (mobile) ── */
   .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact .budget-table-pro .budget-pill-group,
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact .budget-table-pro tbody tr.is-active-row .budget-pill-group,
   .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-table-pro .budget-pill-group,
-  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact .budget-table-pro .budget-pill-group {
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-table-pro tbody tr.is-active-row .budget-pill-group,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact .budget-table-pro .budget-pill-group,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact .budget-table-pro tbody tr.is-active-row .budget-pill-group {
     padding: 1px !important;
     gap: 1px !important;
   }
