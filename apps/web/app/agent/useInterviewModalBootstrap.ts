@@ -15,6 +15,7 @@ import type { InterviewVoiceSnapshot } from './interview-modal.context';
 
 type Params = {
   isOpen: boolean;
+  bootstrapAttempt: number;
   intake: InterviewIntakeWithContext | null;
   transcriptEntries: Array<{ blockId?: string; answer?: string }>;
   interviewTranscriptSnapshot: string;
@@ -39,6 +40,7 @@ type Params = {
 export function useInterviewModalBootstrap(params: Params) {
   const {
     isOpen,
+    bootstrapAttempt,
     intake,
     transcriptEntries,
     interviewTranscriptSnapshot,
@@ -158,6 +160,7 @@ export function useInterviewModalBootstrap(params: Params) {
     setSessionAlreadyCompletedVoice,
     setSummaryComment,
     setSummarySubmitting,
+    bootstrapAttempt,
     onDiagnosisOnlyOpen,
   ]);
 

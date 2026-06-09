@@ -2580,6 +2580,7 @@
 .panel-callout-news         { --callout-color: #ef4444; }
 .panel-callout-objective    { --callout-color: #06b6d4; }
 .panel-callout-mode         { --callout-color: #8b5cf6; }
+.panel-callout-chat         { --callout-color: #94a3b8; }
 
 .panel-callout-icon {
   width: 20px;
@@ -3524,8 +3525,9 @@
 /* Tables (for data presentation) */
 .academic-paper .md-table-wrap {
   margin: 1.4rem 0 1.7rem;
-  overflow-x: auto;
+  overflow: auto;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
   border-radius: 12px;
 }
 
@@ -3730,8 +3732,9 @@
 }
 
 .agent-table-wrap {
-  overflow-x: auto;
+  overflow: auto;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
   border-radius: 12px;
 }
 
@@ -11107,17 +11110,29 @@ input[type="radio"]:checked {
 }
 
 .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-body .md-table-wrap,
-.agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .agent-table-wrap {
-  overflow-x: auto !important;
-  -webkit-overflow-scrolling: touch;
+.agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .agent-table-wrap,
+.agent-layout .agent-thread > .agent-bubble.assistant .md-table-wrap,
+.agent-layout .agent-thread > .agent-bubble.assistant .agent-table-wrap {
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  max-height: min(52vh, 480px) !important;
+  overflow: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  overscroll-behavior: contain !important;
+  touch-action: pan-x pan-y pinch-zoom !important;
   margin: 0.82rem 0 !important;
   border: 1px solid rgba(118, 146, 172, 0.24) !important;
   border-radius: 12px !important;
+  scrollbar-width: thin;
 }
 
 .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-body .md-table-wrap > .md-table,
 .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-body table.md-table,
-.agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .agent-table-wrap > .agent-table {
+.agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .agent-table-wrap > .agent-table,
+.agent-layout .agent-thread > .agent-bubble.assistant .md-table-wrap > .md-table,
+.agent-layout .agent-thread > .agent-bubble.assistant .agent-table-wrap > .agent-table {
   border-collapse: separate !important;
   border-spacing: 0 !important;
   width: max-content !important;
@@ -11128,6 +11143,13 @@ input[type="radio"]:checked {
   overflow: visible !important;
   box-shadow: none !important;
   background: transparent !important;
+}
+
+.agent-layout .agent-thread > .agent-bubble.assistant .md-table-wrap thead th,
+.agent-layout .agent-thread > .agent-bubble.assistant .agent-table-wrap thead th {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 1 !important;
 }
 
 .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-body th,

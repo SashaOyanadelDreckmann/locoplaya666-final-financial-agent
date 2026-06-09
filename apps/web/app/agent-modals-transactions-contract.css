@@ -2443,3 +2443,46 @@
     color: var(--tx-panel-burgundy-text) !important;
   }
 }
+
+/* =============================================================================
+   CHAT THREAD TABLE SCROLL — authoritative (markdown + agent annex tables)
+   Large tables stay inside the bubble and scroll on both axes (swipe on mobile).
+   ============================================================================= */
+
+html body.agent-route-active .agent-layout .agent-thread .md-table-wrap,
+html body.agent-route-active .agent-layout .agent-thread .agent-table-wrap {
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  max-height: min(52vh, 480px) !important;
+  overflow: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  overscroll-behavior: contain !important;
+  touch-action: pan-x pan-y pinch-zoom !important;
+  scrollbar-width: thin;
+}
+
+html body.agent-route-active .agent-layout .agent-thread .md-table-wrap > .md-table,
+html body.agent-route-active .agent-layout .agent-thread .agent-table-wrap > .agent-table,
+html body.agent-route-active .agent-layout .agent-thread .agent-table-wrap > table {
+  width: max-content !important;
+  min-width: 100% !important;
+  margin: 0 !important;
+  overflow: visible !important;
+}
+
+html body.agent-route-active .agent-layout .agent-thread .md-table-wrap thead th,
+html body.agent-route-active .agent-layout .agent-thread .agent-table-wrap thead th {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 1 !important;
+}
+
+html body.agent-route-active .agent-layout .agent-thread > .agent-bubble .md-table-wrap,
+html body.agent-route-active .agent-layout .agent-thread > .agent-bubble .agent-table-wrap,
+html body.agent-route-active .agent-layout .agent-thread > .agent-bubble .md-table-wrap *,
+html body.agent-route-active .agent-layout .agent-thread > .agent-bubble .agent-table-wrap * {
+  touch-action: pan-x pan-y pinch-zoom !important;
+  overscroll-behavior-x: contain !important;
+}

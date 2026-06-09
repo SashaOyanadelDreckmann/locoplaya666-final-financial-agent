@@ -1,6 +1,41 @@
-import { resolveInterviewVoiceStateFlags } from '../interview-modal.helpers';
+import {
+  resolveInterviewModalLoadingState,
+  resolveInterviewVoiceStateFlags,
+} from '../interview-modal.helpers';
 
 describe('interview modal helpers', () => {
+  it('keeps the modal in loading until intake is ready or no longer required', () => {
+    expect(
+      resolveInterviewModalLoadingState({
+        intakeReady: false,
+        hasIntake: false,
+        bootError: null,
+        sessionAlreadyCompleted: false,
+        hasDiagnosis: false,
+      }),
+    ).toBe(true);
+
+    expect(
+      resolveInterviewModalLoadingState({
+        intakeReady: true,
+        hasIntake: false,
+        bootError: 'No se encontró información de perfil.',
+        sessionAlreadyCompleted: false,
+        hasDiagnosis: false,
+      }),
+    ).toBe(false);
+
+    expect(
+      resolveInterviewModalLoadingState({
+        intakeReady: true,
+        hasIntake: false,
+        bootError: null,
+        sessionAlreadyCompleted: true,
+        hasDiagnosis: false,
+      }),
+    ).toBe(false);
+  });
+
   it('marks an interview as locked only when it is actually completed or exhausted', () => {
     const active = resolveInterviewVoiceStateFlags({
       callId: 'call-1',

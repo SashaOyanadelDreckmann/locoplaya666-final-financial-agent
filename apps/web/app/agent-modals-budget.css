@@ -5555,8 +5555,8 @@
   border: 1px solid rgba(214, 225, 236, 0.08) !important;
   background: linear-gradient(180deg, rgba(13, 18, 25, 0.95), rgba(8, 12, 18, 0.98)) !important;
   color: rgba(241, 246, 252, 0.82) !important;
-  letter-spacing: 0.08em !important;
-  text-transform: uppercase !important;
+  letter-spacing: normal !important;
+  text-transform: none !important;
   font-size: 12px !important;
 }
 

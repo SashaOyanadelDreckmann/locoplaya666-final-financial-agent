@@ -124,6 +124,18 @@ describe('interview modal safeguards', () => {
     expect(panel).toContain('Ver informe completo');
   });
 
+  it('uses the compact interview loader instead of the full-page ai loader', () => {
+    const modalPath = path.join(process.cwd(), 'app', 'agent', 'InterviewModal.tsx');
+    const componentsPath = path.join(process.cwd(), 'app', 'agent', 'interview-modal.components.tsx');
+    const modal = fs.readFileSync(modalPath, 'utf8');
+    const components = fs.readFileSync(componentsPath, 'utf8');
+
+    expect(modal).toContain('InterviewModalLoader');
+    expect(modal).not.toContain('AiLoader');
+    expect(components).toContain('interview-modal-loader');
+    expect(components).toContain('InterviewModalBootError');
+  });
+
   it('extracts voice runtime from the modal shell', () => {
     const modalPath = path.join(process.cwd(), 'app', 'agent', 'InterviewModal.tsx');
     const runtimePath = path.join(process.cwd(), 'app', 'agent', 'useInterviewVoiceRuntime.ts');

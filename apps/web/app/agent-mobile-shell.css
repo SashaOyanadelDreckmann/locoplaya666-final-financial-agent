@@ -1477,28 +1477,27 @@
 
   body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-sheet-tab--mobile-index.is-locked .chat-sheet-tab-index,
   main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-sheet-tab--mobile-index.is-locked .chat-sheet-tab-index {
-    opacity: 0.55 !important;
-    text-decoration: line-through !important;
-    text-decoration-color: rgba(255, 255, 255, 0.42) !important;
-    text-decoration-thickness: 1px !important;
+    opacity: 0.38 !important;
+    position: relative !important;
+    z-index: 0 !important;
   }
 
-  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-sheet-tab--mobile-index.is-locked .chat-sheet-tab-index::before,
-  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-sheet-tab--mobile-index.is-locked .chat-sheet-tab-index::before {
-    display: block !important;
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-sheet-tab--mobile-index.is-locked::before,
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-sheet-tab--mobile-index.is-locked::before {
     content: "" !important;
     position: absolute !important;
     left: 50% !important;
-    top: 50% !important;
-    width: 7px !important;
-    height: 9px !important;
-    margin: 0 !important;
-    transform: translate(-50%, -22%) !important;
-    border: 1.5px solid rgba(255, 255, 255, 0.88) !important;
+    top: 56% !important;
+    width: 8px !important;
+    height: 10px !important;
+    transform: translate(-50%, -50%) !important;
+    border: 1.5px solid rgba(255, 255, 255, 0.92) !important;
     border-radius: 2px !important;
-    box-shadow: 0 -5px 0 -2px rgba(255, 255, 255, 0.88) !important;
+    box-shadow: 0 -6px 0 -2px rgba(255, 255, 255, 0.92) !important;
     background: transparent !important;
     box-sizing: border-box !important;
+    z-index: 2 !important;
+    pointer-events: none !important;
   }
 
   body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-sheet-tab--mobile-index .chat-sheet-tab-index,
@@ -1515,17 +1514,6 @@
     line-height: 1 !important;
     letter-spacing: 0 !important;
     color: inherit !important;
-  }
-
-  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-sheet-tab--mobile-index.is-locked .chat-sheet-tab-index::before,
-  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-sheet-tab--mobile-index.is-locked .chat-sheet-tab-index::before {
-    display: block !important;
-    content: "" !important;
-  }
-
-  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-sheet-tab--mobile-index.is-locked .chat-sheet-tab-index,
-  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-sheet-tab--mobile-index.is-locked .chat-sheet-tab-index {
-    position: relative !important;
   }
 
   body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-sheet-tab--mobile-index:nth-child(1),
@@ -1590,5 +1578,25 @@
   main.agent-layout.is-mobile-viewport .agent-chat.is-chat-swipe-locked .agent-chat-body {
     touch-action: pan-y !important;
     overscroll-behavior-x: none !important;
+  }
+
+  body.agent-route-active main.agent-layout.is-mobile-viewport > .panel-callout--mobile-composer,
+  main.agent-layout.is-mobile-viewport > .panel-callout--mobile-composer {
+    position: fixed !important;
+    left: max(10px, env(safe-area-inset-left, 0px)) !important;
+    right: max(10px, env(safe-area-inset-right, 0px)) !important;
+    bottom: var(--agent-mobile-notify-bottom, calc(env(safe-area-inset-bottom, 0px) + 210px)) !important;
+    margin: 0 !important;
+    z-index: 32 !important;
+    pointer-events: auto !important;
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.52) !important;
+    background: rgba(8, 12, 18, 0.96) !important;
+    border: 1px solid rgba(255, 255, 255, 0.14) !important;
+    backdrop-filter: blur(14px) saturate(1.05) !important;
+    -webkit-backdrop-filter: blur(14px) saturate(1.05) !important;
+  }
+
+  body.agent-route-active .panel-callout-chat {
+    --callout-color: #94a3b8;
   }
 }

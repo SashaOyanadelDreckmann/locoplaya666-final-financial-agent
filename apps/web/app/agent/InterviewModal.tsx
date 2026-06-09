@@ -10,13 +10,17 @@ import { syncDiagnosisSession } from '@/lib/diagnosis-session';
 import { getSessionInfo, nextConversationStep } from '@/lib/api';
 import { ApiHttpError } from '@/lib/apiEnvelope';
 import { toUserFacingError } from '@/lib/userError';
-import { AiLoader } from '@/components/ui/ai-loader';
 import {
   buildInterviewContextHighlights,
   formatBlockLabel,
   type InterviewVoiceSnapshot,
 } from './interview-modal.context';
-import { InterviewVoiceSummaryBlock } from './interview-modal.components';
+import {
+  InterviewModalBootError,
+  InterviewModalLoader,
+  InterviewVoiceSummaryBlock,
+} from './interview-modal.components';
+import { resolveInterviewModalLoadingState } from './interview-modal.helpers';
 import { InterviewDiagnosisPanel } from './InterviewDiagnosisPanel';
 import { type InterviewIntakeWithContext } from './interview-modal.hydration';
 import { formatInterviewClock } from './interview-modal.voice-summary';
@@ -61,6 +65,7 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
   const [summarySubmitting, setSummarySubmitting] = useState(false);
   const [bootError, setBootError] = useState<string | null>(null);
   const [sessionAlreadyCompleted, setSessionAlreadyCompleted] = useState(false);
+  const [bootstrapAttempt, setBootstrapAttempt] = useState(0);
 
   const currentQuestion =
     lastResponse?.type === 'question' && typeof lastResponse.question === 'string'
@@ -157,6 +162,7 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
 
   useInterviewModalBootstrap({
     isOpen,
+    bootstrapAttempt,
     intake: intake as InterviewIntakeWithContext | null,
     transcriptEntries,
     interviewTranscriptSnapshot,
@@ -204,6 +210,19 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
     if (!isOpen || !isDiagnosisMode || profile || profileLoading) return;
     void refreshProfile();
   }, [isDiagnosisMode, isOpen, profile, profileLoading, refreshProfile]);
+
+  const handleRetryBootstrap = useCallback(() => {
+    setBootError(null);
+    setBootstrapAttempt((attempt) => attempt + 1);
+  }, []);
+
+  const isLoading = resolveInterviewModalLoadingState({
+    intakeReady,
+    hasIntake: Boolean(intake),
+    bootError,
+    sessionAlreadyCompleted,
+    hasDiagnosis,
+  });
 
   if (!isOpen) return null;
 
@@ -353,7 +372,6 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
     }
   }
 
-  const isLoading = !intakeReady || !intake;
   const modalTitle = isDiagnosisMode ? 'Diagnóstico financiero' : 'Entrevista estratégica';
   const modalEyebrow = isDiagnosisMode ? 'Diagnóstico final' : 'Financieramente';
   const modalIntro = isDiagnosisMode
@@ -381,8 +399,8 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
           onMouseDown={(e) => e.stopPropagation()}
           onPointerDown={(e) => e.stopPropagation()}
         >
-          <AiLoader
-            text="Generando diagnóstico final"
+          <InterviewModalLoader
+            title="Generando diagnóstico final"
             subtitle="Estamos consolidando el diagnóstico profesional con toda la evidencia disponible."
           />
         </div>
@@ -434,15 +452,19 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
             </div>
           ) : null}
 
-          {isLoading ? (
+          {bootError && !intake ? (
+            <InterviewModalBootError
+              message={bootError}
+              onRetry={handleRetryBootstrap}
+              onClose={handleOverlayDismiss}
+              retrying={!intakeReady}
+            />
+          ) : isLoading ? (
             <div className="interview-modal-loading">
-              <AiLoader
-                text="Preparando entrevista"
-                subtitle="Estamos cargando tu contexto, perfil y diagnóstico para abrir la conversación con continuidad."
+              <InterviewModalLoader
+                animateSteps
+                note="Si el perfil tarda unos segundos, es normal: estamos cruzando intake, productos y presupuesto."
               />
-              <p className="interview-inline-note" style={{ marginTop: 12, textAlign: 'center' }}>
-                Si el perfil tarda unos segundos, es normal: estamos cruzando intake, productos y presupuesto.
-              </p>
             </div>
           ) : isDiagnosisMode ? (
             profile ? (
@@ -486,15 +508,14 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
               </div>
             ) : (
               <div className="interview-modal-loading">
-                <AiLoader
-                  text={profileLoading ? 'Cargando diagnóstico' : 'Preparando informe'}
-                  subtitle="Estamos ensamblando la vista ejecutiva del diagnóstico final."
+                <InterviewModalLoader
+                  title={profileLoading ? 'Cargando diagnóstico' : 'Preparando informe'}
+                  subtitle={
+                    profileLoading
+                      ? 'Esto suele durar unos segundos mientras traemos el perfil consolidado.'
+                      : 'Estamos ensamblando la vista ejecutiva del diagnóstico final.'
+                  }
                 />
-                <p className="interview-inline-note" style={{ marginTop: 12, textAlign: 'center' }}>
-                  {profileLoading
-                    ? 'Esto suele durar unos segundos mientras traemos el perfil consolidado.'
-                    : 'Apenas esté listo, verás el diagnóstico completo sin perder contexto.'}
-                </p>
               </div>
             )
           ) : (

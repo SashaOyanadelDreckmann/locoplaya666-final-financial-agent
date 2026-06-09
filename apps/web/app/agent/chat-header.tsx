@@ -132,6 +132,7 @@ export function ChatHeader(props: {
               props.setActiveChatId(thread.id);
             }}
             title={locked ? 'Bloqueado hasta completar la entrevista' : thread.status === 'context' ? `Contexto: ${thread.name}` : `Chat ${thread.label}: ${thread.name}`}
+            aria-disabled={locked ? true : undefined}
             aria-label={
               locked
                 ? `Chat ${thread.label} bloqueado`

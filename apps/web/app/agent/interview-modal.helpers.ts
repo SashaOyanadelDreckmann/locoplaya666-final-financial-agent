@@ -23,6 +23,22 @@ export type InterviewVoiceStateFlags = {
   voiceInterviewLocked: boolean;
 };
 
+export type InterviewModalLoadingInput = {
+  intakeReady: boolean;
+  hasIntake: boolean;
+  bootError: string | null;
+  sessionAlreadyCompleted: boolean;
+  hasDiagnosis: boolean;
+};
+
+export function resolveInterviewModalLoadingState(input: InterviewModalLoadingInput): boolean {
+  if (!input.intakeReady) return true;
+  if (input.bootError) return false;
+  if (input.hasIntake) return false;
+  if (input.sessionAlreadyCompleted || input.hasDiagnosis) return false;
+  return true;
+}
+
 export function resolveInterviewVoiceStateFlags(input: InterviewVoiceStateInput): InterviewVoiceStateFlags {
   const hasCompletedVoiceInterview = Boolean(input.latestDiagnosticProfileId) || Boolean(input.voiceReportExecutiveReport);
   const hasEverStartedVoiceCall =
