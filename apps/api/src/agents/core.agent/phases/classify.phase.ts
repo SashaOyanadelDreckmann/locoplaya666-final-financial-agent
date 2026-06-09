@@ -87,6 +87,7 @@ export async function runClassifyPhase(input: ClassifyPhaseInput): Promise<Class
   const startClassify = Date.now();
 
   try {
+    input.stream?.phase('classify', 'start');
     // Step 1: Call LLM classifier
     const classificationRawMaybe = await completeStructured<{
       mode?: unknown;
@@ -165,6 +166,11 @@ export async function runClassifyPhase(input: ClassifyPhaseInput): Promise<Class
       confidence: classification.confidence,
       requires_tools: classification.requires_tools,
       latency_ms: Date.now() - startClassify,
+    });
+
+    input.stream?.phase('classify', 'done', {
+      mode: classification.mode,
+      detail: classification.intent,
     });
 
     return {

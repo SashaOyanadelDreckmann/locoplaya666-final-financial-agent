@@ -16,7 +16,7 @@ import type {
 } from './chat.types';
 import { ChatAgentResponseSchema } from './chat.types';
 import { randomUUID } from 'crypto';
-import type { CoreAgentContext } from './agent-types';
+import type { CoreAgentContext, RunCoreAgentOptions } from './agent-types';
 import { runClassifyPhase } from './phases/classify.phase';
 import { runPlanExecutePhase } from './phases/plan-execute.phase';
 import { runFormatPhase, detectAndRecordKnowledge } from './phases/format.phase';
@@ -48,10 +48,14 @@ const MODE_RISK_SCORE: Record<string, number> = {
 /**
  * Main entry point: run all phases and return final response
  */
-export async function runCoreAgent(input: ChatAgentInput): Promise<ChatAgentResponse> {
+export async function runCoreAgent(
+  input: ChatAgentInput,
+  options?: RunCoreAgentOptions,
+): Promise<ChatAgentResponse> {
   const logger = getLogger();
   const turn_id = randomUUID();
   const started_at = Date.now();
+  const stream = options?.stream;
 
   // Extract injected context from input.context (set by route handler)
   const inputContext = input.context as Record<string, any> || {};
@@ -86,12 +90,15 @@ export async function runCoreAgent(input: ChatAgentInput): Promise<ChatAgentResp
       mode: 'unknown', // Will be set after classify
     });
 
+    stream?.emit({ type: 'run.start', turn_id, ts: Date.now() });
+
     // ────────────────────────────────────────────────
     // PHASE 1: CLASSIFY
     // ────────────────────────────────────────────────
     const classifyOutput = await runClassifyPhase({
       user_message: input.user_message,
       history: input.history,
+      stream,
     });
 
     ctx.classification = classifyOutput.classification;
@@ -160,6 +167,7 @@ export async function runCoreAgent(input: ChatAgentInput): Promise<ChatAgentResp
       injected_intake: ctx.injected_intake,
       user_id: input.user_id,
       turn_id,
+      stream,
     });
 
     ctx.execution_result = executeOutput.execution_result;
@@ -182,6 +190,7 @@ export async function runCoreAgent(input: ChatAgentInput): Promise<ChatAgentResp
       inferred_user_model: classifyOutput.inferred_user_model,
       injected_profile: ctx.injected_profile,
       injected_intake: ctx.injected_intake,
+      stream,
     });
 
     ctx.formatted_response = formatOutput.formatted_response;
@@ -196,6 +205,7 @@ export async function runCoreAgent(input: ChatAgentInput): Promise<ChatAgentResp
       injected_intake: ctx.injected_intake,
       injected_budget: ctx.injected_budget,
       history: input.history,
+      stream,
     });
 
     ctx.coherence_check = validateOutput.coherence_check;
@@ -214,6 +224,7 @@ export async function runCoreAgent(input: ChatAgentInput): Promise<ChatAgentResp
     // ────────────────────────────────────────────────
     // PHASE 5: KNOWLEDGE DETECTION & RECORDING
     // ────────────────────────────────────────────────
+    stream?.phase('knowledge', 'start');
     const knowledge = await detectAndRecordKnowledge({
       user_id: input.user_id,
       user_message: input.user_message,
@@ -223,6 +234,7 @@ export async function runCoreAgent(input: ChatAgentInput): Promise<ChatAgentResp
       previous_score: ctx.injected_ui_state?.knowledge_score || 0,
       user_profile: ctx.injected_profile,
     });
+    stream?.phase('knowledge', 'done');
 
     // ────────────────────────────────────────────────
     // BUILD FINAL RESPONSE

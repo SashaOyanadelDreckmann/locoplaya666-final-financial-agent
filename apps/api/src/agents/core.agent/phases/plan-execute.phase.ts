@@ -123,6 +123,7 @@ export async function runPlanExecutePhase(input: PlanPhaseInput): Promise<PlanPh
   const startTime = Date.now();
 
   try {
+    input.stream?.phase('execute', 'start');
     const client = getOpenAIClient();
 
     // Build tool definitions for OpenAI
@@ -153,6 +154,7 @@ export async function runPlanExecutePhase(input: PlanPhaseInput): Promise<PlanPh
           intent: input.classification.intent,
         });
         if (ragCitations.length > 0) {
+          input.stream?.tool('rag.lookup', 'start', { iteration: 0 });
           citations.push(...ragCitations);
           tool_outputs.push({
             tool: 'rag.lookup',
@@ -169,6 +171,7 @@ export async function runPlanExecutePhase(input: PlanPhaseInput): Promise<PlanPh
             decision: 'Prefetch RAG regulatorio',
             result: 'success',
           });
+          input.stream?.tool('rag.lookup', 'done', { iteration: 0 });
         }
       } catch (err) {
         logger.warn({
@@ -186,6 +189,7 @@ export async function runPlanExecutePhase(input: PlanPhaseInput): Promise<PlanPh
         const cached = findCachedWebEvidence(cacheUserId, webQuery);
 
         if (cached) {
+          input.stream?.tool('web.search', 'start', { iteration: 0 });
           citations.push(...cached.citations);
           tool_outputs.push({
             tool: 'web.search',
@@ -202,7 +206,9 @@ export async function runPlanExecutePhase(input: PlanPhaseInput): Promise<PlanPh
             decision: 'Prefetch web confiable (cache)',
             result: 'cache_hit',
           });
+          input.stream?.tool('web.search', 'done', { iteration: 0 });
         } else {
+          input.stream?.tool('web.search', 'start', { iteration: 0 });
           const webResult = await runMCPTool({
             tool: 'web.search',
             args: { query: webQuery, limit: 3 },
@@ -237,6 +243,7 @@ export async function runPlanExecutePhase(input: PlanPhaseInput): Promise<PlanPh
               results: webResult.data,
               citations: gatheredCitations,
             });
+            input.stream?.tool('web.search', 'done', { iteration: 0 });
           }
         }
       } catch (err) {
@@ -257,6 +264,7 @@ export async function runPlanExecutePhase(input: PlanPhaseInput): Promise<PlanPh
         msg: '[Execute] Skipping tool loop by classifier decision',
         mode: input.classification.mode,
       });
+      input.stream?.phase('execute', 'done');
       return {
         execution_result: {
           tool_calls,
@@ -358,6 +366,7 @@ export async function runPlanExecutePhase(input: PlanPhaseInput): Promise<PlanPh
           decision: `Use tool: ${originalName}`,
           result: 'pending',
         });
+        input.stream?.tool(originalName, 'start', { iteration: iterations });
 
         try {
           let result: any;
@@ -423,12 +432,14 @@ export async function runPlanExecutePhase(input: PlanPhaseInput): Promise<PlanPh
           });
 
           react_trace[react_trace.length - 1].result = 'success';
+          input.stream?.tool(originalName, 'done', { iteration: iterations });
         } catch (err) {
           logger.warn({
             msg: '[Execute] Tool failed',
             tool: originalName,
             error: err,
           });
+          input.stream?.tool(originalName, 'done', { iteration: iterations });
 
           tool_calls.push({
             id: toolUse.id,
@@ -471,6 +482,7 @@ export async function runPlanExecutePhase(input: PlanPhaseInput): Promise<PlanPh
       latency_ms: Date.now() - startTime,
     });
 
+    input.stream?.phase('execute', 'done');
     return {
       execution_result,
       plan_objective: input.classification.intent,

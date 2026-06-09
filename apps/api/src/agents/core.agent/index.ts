@@ -6,6 +6,8 @@
  */
 
 export { runCoreAgent } from './core-agent-orchestrator';
+export type { RunCoreAgentOptions } from './agent-types';
+export type { AgentProgressReporter } from './agent-stream.reporter';
 
 export type { ChatAgentInput, ChatAgentResponse } from './chat.types';
 export type {

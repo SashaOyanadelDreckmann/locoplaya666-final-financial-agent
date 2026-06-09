@@ -21,6 +21,7 @@ import type {
 import type { FinancialDiagnosticProfile } from '../../schemas/profile.schema';
 import type { IntakeQuestionnaire } from '@financial-agent/shared/src/intake/intake-questionnaire.types';
 import type { BudgetSummary } from '../../services/panel-state.service';
+import type { AgentProgressReporter } from './agent-stream.reporter';
 
 /**
  * PHASE 1: Classification Result
@@ -140,6 +141,7 @@ export interface CoreAgentContext {
 export interface ClassifyPhaseInput {
   user_message: string;
   history?: Array<{ role: string; content: string }>;
+  stream?: AgentProgressReporter;
 }
 
 export interface ClassifyPhaseOutput {
@@ -160,6 +162,7 @@ export interface PlanPhaseInput {
   injected_intake: IntakeQuestionnaire | null;
   user_id?: string;
   turn_id?: string;
+  stream?: AgentProgressReporter;
 }
 
 export interface PlanPhaseOutput {
@@ -179,6 +182,7 @@ export interface FormatPhaseInput {
   inferred_user_model?: InferredUserModel;
   injected_profile?: FinancialDiagnosticProfile | null;
   injected_intake?: IntakeQuestionnaire | null;
+  stream?: AgentProgressReporter;
 }
 
 export interface FormatPhaseOutput {
@@ -195,6 +199,11 @@ export interface ValidatePhaseInput {
   injected_intake: IntakeQuestionnaire | null;
   injected_budget: BudgetSummary;
   history?: Array<{ role: string; content: string }>;
+  stream?: AgentProgressReporter;
+}
+
+export interface RunCoreAgentOptions {
+  stream?: AgentProgressReporter;
 }
 
 export interface ValidatePhaseOutput {

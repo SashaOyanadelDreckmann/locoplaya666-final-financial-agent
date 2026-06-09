@@ -324,3 +324,112 @@ export async function completeWithClaude(
     });
   }
 }
+
+type StreamDeltaHandler = (delta: string) => void;
+
+export async function completeStream(
+  input: string,
+  options: CompleteOptions | undefined,
+  onDelta: StreamDeltaHandler,
+): Promise<string> {
+  const client = getOpenAIClient();
+  const inputChars = input.length;
+  const model = resolveOpenAIModel(inputChars, options?.model);
+  const envTemp = process.env.OPENAI_TEMPERATURE
+    ? Number(process.env.OPENAI_TEMPERATURE)
+    : undefined;
+  const temperature = options?.temperature ?? (Number.isFinite(envTemp) ? envTemp : 0.6);
+  const envMaxCompletionTokens = Number(process.env.OPENAI_MAX_COMPLETION_TOKENS || 2048);
+  const maxCompletionTokens = resolveOpenAIMaxTokens(
+    inputChars,
+    options?.maxCompletionTokens,
+    Number.isFinite(envMaxCompletionTokens) ? envMaxCompletionTokens : 2048,
+  );
+
+  const stream = await client.chat.completions.create(
+    withCompatibleTemperature(
+      {
+        model,
+        max_completion_tokens: maxCompletionTokens,
+        stream: true,
+        messages: [
+          {
+            role: 'system',
+            content: options?.systemPrompt ?? 'Eres un asistente profesional.',
+          },
+          { role: 'user', content: input },
+        ],
+      },
+      model,
+      temperature,
+    ) as OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming,
+  );
+
+  let full = '';
+  for await (const chunk of stream) {
+    const delta = chunk.choices[0]?.delta?.content ?? '';
+    if (!delta) continue;
+    full += delta;
+    onDelta(delta);
+  }
+  return full.trim();
+}
+
+export async function completeWithClaudeStream(
+  input: string,
+  options: CompleteOptions | undefined,
+  onDelta: StreamDeltaHandler,
+): Promise<string> {
+  const mode = getBudgetMode();
+  const inputChars = input.length;
+  const primaryModel = options?.model ?? process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-4-6';
+  const fastModel = process.env.ANTHROPIC_MODEL_FAST?.trim();
+  const qualityModel = process.env.ANTHROPIC_MODEL_QUALITY?.trim();
+  const model =
+    mode === 'quality'
+      ? qualityModel || primaryModel
+      : mode === 'fast'
+        ? fastModel || primaryModel
+        : inputChars <= 1200
+          ? fastModel || primaryModel
+          : primaryModel;
+
+  if (/^(gpt-|o\d|text-embedding|omni)/i.test(model)) {
+    return completeStream(input, options, onDelta);
+  }
+
+  try {
+    const client = getAnthropicClient();
+    const envTemp = process.env.ANTHROPIC_TEMPERATURE
+      ? Number(process.env.ANTHROPIC_TEMPERATURE)
+      : undefined;
+    const temperature = options?.temperature ?? (Number.isFinite(envTemp) ? envTemp : 0.6);
+    const envAnthropicMaxTokens = Number(process.env.ANTHROPIC_MAX_TOKENS || 2048);
+    const anthropicMaxTokens = resolveOpenAIMaxTokens(
+      inputChars,
+      options?.maxCompletionTokens,
+      Number.isFinite(envAnthropicMaxTokens) ? envAnthropicMaxTokens : 2048,
+    );
+
+    const stream = client.messages.stream({
+      model,
+      max_tokens: anthropicMaxTokens,
+      temperature,
+      system: options?.systemPrompt ?? 'Eres un asistente profesional.',
+      messages: [{ role: 'user', content: input }],
+    });
+
+    let full = '';
+    for await (const event of stream) {
+      if (event.type !== 'content_block_delta') continue;
+      if (event.delta.type !== 'text_delta') continue;
+      const delta = event.delta.text ?? '';
+      if (!delta) continue;
+      full += delta;
+      onDelta(delta);
+    }
+    return full.trim();
+  } catch {
+    return completeStream(input, options, onDelta);
+  }
+}

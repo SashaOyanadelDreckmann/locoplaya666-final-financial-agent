@@ -5,7 +5,7 @@
  * Generate final response, parse special tags, detect knowledge events
  */
 
-import { complete, completeWithClaude } from '../../../services/llm.service';
+import { complete, completeStream, completeWithClaude, completeWithClaudeStream } from '../../../services/llm.service';
 import { CORE_RESPONSE_SYSTEM } from '../system.prompts';
 import { detectKnowledgeEvent } from '../knowledge-detector';
 import { recordKnowledgeEvent, getMilestones, KNOWLEDGE_MILESTONES } from '../../../services/knowledge.service';
@@ -201,7 +201,10 @@ export function ensureDecisionDisclaimer(message: string, input: FormatPhaseInpu
   return `${message}\n\nDecision final: debe tomarla el usuario de forma 100% informada. Esta recomendacion orienta, no sustituye su criterio ni su validacion final.`;
 }
 
-async function buildFastValuableMessage(input: FormatPhaseInput): Promise<string> {
+async function buildFastValuableMessage(
+  input: FormatPhaseInput,
+  onDelta?: (delta: string) => void,
+): Promise<string> {
   const toolsUsed = input.execution_result?.tool_calls?.map((tc) => tc.tool).slice(0, 4) ?? [];
   const artifacts = input.execution_result?.artifacts?.slice(0, 2) ?? [];
   const toolContext = compactToolOutputs(input);
@@ -285,12 +288,15 @@ async function buildFastValuableMessage(input: FormatPhaseInput): Promise<string
     .filter((line): line is string => line != null && line !== '')
     .join('\n');
 
-  const raw = await complete(prompt, {
+  const formatOptions = {
     systemPrompt:
       'Eres un asesor financiero senior estilo wealth advisory. Tu prioridad es claridad ejecutiva, utilidad inmediata, precision y criterio de riesgo.',
     temperature: funnelStage === 'deliver' ? 0.25 : 0.2,
     maxCompletionTokens: funnelStage === 'deliver' ? 1400 : 520,
-  });
+  };
+  const raw = onDelta
+    ? await completeStream(prompt, formatOptions, onDelta)
+    : await complete(prompt, formatOptions);
 
   let cleaned = stripEmojis(cleanSpecialTags(raw)).trim();
   cleaned = sanitizeFormulaContent(cleaned);
@@ -305,11 +311,13 @@ export async function runFormatPhase(input: FormatPhaseInput): Promise<FormatPha
   const logger = getLogger();
   const startTime = Date.now();
   const fastFormatEnabled = shouldUseFastFormat(input);
+  const onDelta = input.stream ? (delta: string) => input.stream?.messageDelta(delta) : undefined;
 
   try {
+    input.stream?.phase('format', 'start');
     if (fastFormatEnabled) {
       const ensuredCitations = await ensureMinimumCitations(input);
-      const message = await buildFastValuableMessage(input);
+      const message = await buildFastValuableMessage(input, onDelta);
 
       const formatted_response: FormattedResponse = {
         message: stripInlineSourcesBlock(message),
@@ -323,6 +331,7 @@ export async function runFormatPhase(input: FormatPhaseInput): Promise<FormatPha
       };
 
       logger.info({ msg: '[Format] Fast format applied', latency_ms: Date.now() - startTime });
+      input.stream?.phase('format', 'done');
       return { formatted_response };
     }
 
@@ -389,10 +398,13 @@ export async function runFormatPhase(input: FormatPhaseInput): Promise<FormatPha
       'Instruccion: responde en espanol, limpio, sin XML, sin tags de tools, y alineado a la evidencia.',
     ].join('\n');
 
-    const rawResponse = await completeWithClaude(formatterInput, {
+    const fullFormatOptions = {
       systemPrompt: CORE_RESPONSE_SYSTEM,
       temperature: 0.4,
-    });
+    };
+    const rawResponse = onDelta
+      ? await completeWithClaudeStream(formatterInput, fullFormatOptions, onDelta)
+      : await completeWithClaude(formatterInput, fullFormatOptions);
 
     const suggested_replies = extractSuggestedReplies(rawResponse);
     const panel_action = extractPanelAction(rawResponse);
@@ -459,6 +471,7 @@ export async function runFormatPhase(input: FormatPhaseInput): Promise<FormatPha
       latency_ms: Date.now() - startTime,
     });
 
+    input.stream?.phase('format', 'done');
     return { formatted_response };
   } catch (err) {
     logger.warn({ msg: '[Format] Phase failed, using safe fallback', error: err, latency_ms: Date.now() - startTime });

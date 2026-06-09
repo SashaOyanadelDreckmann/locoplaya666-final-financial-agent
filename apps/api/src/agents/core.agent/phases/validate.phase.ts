@@ -21,6 +21,7 @@ export async function runValidatePhase(input: ValidatePhaseInput): Promise<Valid
   const startTime = Date.now();
 
   try {
+    input.stream?.phase('validate', 'start');
     // Determine if validation is needed for this mode
     const shouldValidate =
       [
@@ -47,6 +48,7 @@ export async function runValidatePhase(input: ValidatePhaseInput): Promise<Valid
         mode: input.mode,
       });
 
+      input.stream?.phase('validate', 'done');
       return { coherence_check };
     }
 
@@ -93,6 +95,7 @@ export async function runValidatePhase(input: ValidatePhaseInput): Promise<Valid
       latency_ms: Date.now() - startTime,
     });
 
+    input.stream?.phase('validate', 'done');
     return { coherence_check };
   } catch (err) {
     logger.warn({
