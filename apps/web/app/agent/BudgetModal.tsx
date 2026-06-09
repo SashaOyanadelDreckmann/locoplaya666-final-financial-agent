@@ -642,13 +642,14 @@ export function BudgetModal(props: {
       const intelChrome = mobileSummary?.offsetHeight ?? 0;
       const tableChrome = (tableHead?.offsetHeight ?? 0) + intelChrome + rowButtonGap;
       const carousel = root.querySelector<HTMLElement>('.budget-main-carousel');
-      const footerHeight = bottomActions?.offsetHeight ?? 0;
+      const footerButtonHeight = bottomActions?.querySelector('button')?.offsetHeight ?? 30;
+      const footerOverlayReserve = footerButtonHeight + 6;
       const stageHeight = stage?.clientHeight ?? 0;
       const carouselHeight = carousel?.clientHeight ?? 0;
       const stageScrollBudget = stageHeight > 0
-        ? stageHeight - tableChrome
+        ? stageHeight - tableChrome - footerOverlayReserve
         : carouselHeight > 0
-          ? carouselHeight - footerHeight - tableChrome
+          ? carouselHeight - footerOverlayReserve - tableChrome
           : 0;
       const measuredScrollHost = scrollHost.clientHeight;
       const scrollAreaHeight = Math.max(

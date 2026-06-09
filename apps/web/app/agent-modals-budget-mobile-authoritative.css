@@ -39,6 +39,7 @@
     gap: 0 !important;
     padding: 0 !important;
     height: 100% !important;
+    position: relative !important;
   }
 
   .budget-modal.is-mobile-shell .budget-modal-body,
@@ -72,15 +73,18 @@
   html.is-mobile-viewport .budget-modal [data-budget-mobile-footer='true'] {
     flex-shrink: 0 !important;
     order: 99 !important;
-    position: relative !important;
-    z-index: 8 !important;
+    position: absolute !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    z-index: 12 !important;
     display: flex !important;
     flex-direction: row !important;
     justify-content: center !important;
     align-items: center !important;
     gap: 12px !important;
     margin: 0 !important;
-    padding: 2px 18px calc(env(safe-area-inset-bottom, 0px) + 8px) !important;
+    padding: 0 18px calc(env(safe-area-inset-bottom, 0px) + 24px) !important;
     width: 100% !important;
     box-sizing: border-box !important;
     pointer-events: auto !important;
@@ -1119,13 +1123,17 @@
   .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-mobile-bottom-actions,
   .budget-modal[data-budget-mobile='true'] .budget-main-carousel.mode-table-front:not(.is-desktop) > [data-budget-mobile-footer='true'],
   .budget-modal[data-budget-mobile='true'] .budget-main-carousel.mode-agent-front:not(.is-desktop) > [data-budget-mobile-footer='true'] {
+    position: absolute !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
     display: flex !important;
     flex-direction: row !important;
     justify-content: center !important;
     align-items: center !important;
     gap: 12px !important;
     margin: 0 !important;
-    padding: 2px 18px calc(env(safe-area-inset-bottom, 0px) + 8px) !important;
+    padding: 0 18px calc(env(safe-area-inset-bottom, 0px) + 24px) !important;
     width: 100% !important;
     box-sizing: border-box !important;
     background: transparent !important;
@@ -1160,7 +1168,13 @@
   }
 
   .budget-modal.is-mobile-shell .budget-main-carousel.is-mobile-budget:not(.is-desktop) {
-    gap: 6px !important;
+    gap: 0 !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-mobile-stage,
+  .budget-modal[data-budget-mobile='true'] .budget-mobile-stage,
+  html.is-mobile-viewport .budget-modal .budget-mobile-stage {
+    padding-bottom: 0 !important;
   }
 
   .budget-modal.is-mobile-shell[data-budget-view='table'] .budget-table-section.is-mobile-table-compact.is-mobile-manual-table,

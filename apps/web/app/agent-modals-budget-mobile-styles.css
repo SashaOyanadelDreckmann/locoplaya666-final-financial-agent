@@ -352,7 +352,7 @@
   html.is-mobile-viewport .budget-modal .budget-mobile-intel-summary--carbon,
   .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact[data-budget-table-style='carbon'],
   .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact[data-budget-table-style='carbon'] {
-    --mb-surface: linear-gradient(165deg, #080a0e, #030407);
+    --mb-surface: #000000;
     --mb-surface-shadow: 0 18px 40px rgba(0, 0, 0, 0.5);
     --mb-border: rgba(184, 202, 230, 0.18);
     --mb-summary-bg: linear-gradient(155deg, #0c0e12, #050608);
@@ -367,7 +367,7 @@
     --mb-income: #a8e8b0;
     --mb-expense: #f0a0a8;
     --mb-balance: #f4f8ff;
-    --mb-row-bg: #050608;
+    --mb-row-bg: #08090c;
     --mb-row-border: rgba(184, 202, 230, 0.14);
     --mb-row-active-border: rgba(184, 202, 230, 0.38);
     --mb-row-income-bg: linear-gradient(160deg, rgba(30, 58, 24, 0.96), rgba(8, 12, 8, 0.98));
@@ -568,5 +568,79 @@
   .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-row-delete.is-mobile,
   html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact .budget-row-delete.is-mobile {
     color: rgba(143, 63, 63, 0.78) !important;
+  }
+
+  /* ── Carbon mobile: black table shell, green/red row cards only ── */
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact[data-budget-table-style='carbon'] .budget-pdf-surface.budget-table-style-carbon.is-mobile-compact,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact[data-budget-table-style='carbon'] .budget-pdf-surface.budget-table-style-carbon.is-mobile-compact,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='carbon'] .budget-pdf-surface.budget-table-style-carbon.is-mobile-compact {
+    background: #000000 !important;
+    border-color: rgba(184, 202, 230, 0.16) !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact[data-budget-table-style='carbon'] .budget-pdf-surface.budget-table-style-carbon.is-mobile-compact .budget-table-wrap,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact[data-budget-table-style='carbon'] .budget-pdf-surface.budget-table-style-carbon.is-mobile-compact .budget-table-wrap,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='carbon'] .budget-pdf-surface.budget-table-style-carbon.is-mobile-compact .budget-table-wrap,
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact[data-budget-table-style='carbon'] .budget-pdf-surface.budget-table-style-carbon.is-mobile-compact .budget-table-pro tbody,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact[data-budget-table-style='carbon'] .budget-pdf-surface.budget-table-style-carbon.is-mobile-compact .budget-table-pro tbody,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='carbon'] .budget-pdf-surface.budget-table-style-carbon.is-mobile-compact .budget-table-pro tbody {
+    background: #000000 !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact[data-budget-table-style='carbon'] .budget-pdf-surface.budget-table-style-carbon.is-mobile-compact .budget-table-pro tbody tr.is-mobile-row-card,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact[data-budget-table-style='carbon'] .budget-pdf-surface.budget-table-style-carbon.is-mobile-compact .budget-table-pro tbody tr.is-mobile-row-card,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='carbon'] .budget-pdf-surface.budget-table-style-carbon.is-mobile-compact .budget-table-pro tbody tr.is-mobile-row-card {
+    background: #08090c !important;
+    border-color: rgba(184, 202, 230, 0.14) !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact[data-budget-table-style='carbon'] .budget-pdf-surface.budget-table-style-carbon.is-mobile-compact .budget-table-pro tbody tr.budget-row-income.is-mobile-row-card,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact[data-budget-table-style='carbon'] .budget-pdf-surface.budget-table-style-carbon.is-mobile-compact .budget-table-pro tbody tr.budget-row-income.is-mobile-row-card,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='carbon'] .budget-pdf-surface.budget-table-style-carbon.is-mobile-compact .budget-table-pro tbody tr.budget-row-income.is-mobile-row-card {
+    background: linear-gradient(160deg, rgba(30, 58, 24, 0.96), rgba(12, 22, 10, 0.98)) !important;
+    border-color: rgba(168, 232, 176, 0.28) !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact[data-budget-table-style='carbon'] .budget-pdf-surface.budget-table-style-carbon.is-mobile-compact .budget-table-pro tbody tr.budget-row-expense.is-mobile-row-card,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact[data-budget-table-style='carbon'] .budget-pdf-surface.budget-table-style-carbon.is-mobile-compact .budget-table-pro tbody tr.budget-row-expense.is-mobile-row-card,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='carbon'] .budget-pdf-surface.budget-table-style-carbon.is-mobile-compact .budget-table-pro tbody tr.budget-row-expense.is-mobile-row-card {
+    background: linear-gradient(160deg, rgba(58, 18, 24, 0.96), rgba(22, 8, 12, 0.98)) !important;
+    border-color: rgba(240, 160, 168, 0.28) !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact[data-budget-table-style='carbon'] .budget-pdf-surface.budget-table-style-carbon.is-mobile-compact .budget-table-pro tbody tr.is-mobile-row-card td,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact[data-budget-table-style='carbon'] .budget-pdf-surface.budget-table-style-carbon.is-mobile-compact .budget-table-pro tbody tr.is-mobile-row-card td,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='carbon'] .budget-pdf-surface.budget-table-style-carbon.is-mobile-compact .budget-table-pro tbody tr.is-mobile-row-card td {
+    background: transparent !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact[data-budget-table-style='carbon'] .budget-pdf-surface.budget-table-style-carbon.is-mobile-compact .budget-table-pro tbody tr.budget-row-income.is-mobile-row-card input,
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact[data-budget-table-style='carbon'] .budget-pdf-surface.budget-table-style-carbon.is-mobile-compact .budget-table-pro tbody tr.budget-row-income.is-mobile-row-card select,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact[data-budget-table-style='carbon'] .budget-pdf-surface.budget-table-style-carbon.is-mobile-compact .budget-table-pro tbody tr.budget-row-income.is-mobile-row-card input,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact[data-budget-table-style='carbon'] .budget-pdf-surface.budget-table-style-carbon.is-mobile-compact .budget-table-pro tbody tr.budget-row-income.is-mobile-row-card select,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='carbon'] .budget-pdf-surface.budget-table-style-carbon.is-mobile-compact .budget-table-pro tbody tr.budget-row-income.is-mobile-row-card input,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='carbon'] .budget-pdf-surface.budget-table-style-carbon.is-mobile-compact .budget-table-pro tbody tr.budget-row-income.is-mobile-row-card select {
+    background: rgba(18, 36, 14, 0.92) !important;
+    border-color: rgba(168, 232, 176, 0.34) !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact[data-budget-table-style='carbon'] .budget-pdf-surface.budget-table-style-carbon.is-mobile-compact .budget-table-pro tbody tr.budget-row-expense.is-mobile-row-card input,
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact[data-budget-table-style='carbon'] .budget-pdf-surface.budget-table-style-carbon.is-mobile-compact .budget-table-pro tbody tr.budget-row-expense.is-mobile-row-card select,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact[data-budget-table-style='carbon'] .budget-pdf-surface.budget-table-style-carbon.is-mobile-compact .budget-table-pro tbody tr.budget-row-expense.is-mobile-row-card input,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact[data-budget-table-style='carbon'] .budget-pdf-surface.budget-table-style-carbon.is-mobile-compact .budget-table-pro tbody tr.budget-row-expense.is-mobile-row-card select,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='carbon'] .budget-pdf-surface.budget-table-style-carbon.is-mobile-compact .budget-table-pro tbody tr.budget-row-expense.is-mobile-row-card input,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='carbon'] .budget-pdf-surface.budget-table-style-carbon.is-mobile-compact .budget-table-pro tbody tr.budget-row-expense.is-mobile-row-card select {
+    background: rgba(42, 12, 18, 0.92) !important;
+    border-color: rgba(240, 160, 168, 0.34) !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact[data-budget-table-style='carbon'] .budget-pdf-surface.budget-table-style-carbon.is-mobile-compact .budget-table-pro tbody tr.is-mobile-row-card:not(.budget-row-income):not(.budget-row-expense) input,
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact[data-budget-table-style='carbon'] .budget-pdf-surface.budget-table-style-carbon.is-mobile-compact .budget-table-pro tbody tr.is-mobile-row-card:not(.budget-row-income):not(.budget-row-expense) select,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact[data-budget-table-style='carbon'] .budget-pdf-surface.budget-table-style-carbon.is-mobile-compact .budget-table-pro tbody tr.is-mobile-row-card:not(.budget-row-income):not(.budget-row-expense) input,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact[data-budget-table-style='carbon'] .budget-pdf-surface.budget-table-style-carbon.is-mobile-compact .budget-table-pro tbody tr.is-mobile-row-card:not(.budget-row-income):not(.budget-row-expense) select,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='carbon'] .budget-pdf-surface.budget-table-style-carbon.is-mobile-compact .budget-table-pro tbody tr.is-mobile-row-card:not(.budget-row-income):not(.budget-row-expense) input,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='carbon'] .budget-pdf-surface.budget-table-style-carbon.is-mobile-compact .budget-table-pro tbody tr.is-mobile-row-card:not(.budget-row-income):not(.budget-row-expense) select {
+    background: #000000 !important;
+    border-color: rgba(184, 202, 230, 0.34) !important;
   }
 }
