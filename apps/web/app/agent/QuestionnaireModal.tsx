@@ -25,16 +25,22 @@ export function QuestionnaireModal(props: {
   };
   return (
     <div className="agent-modal-overlay" onClick={props.onClose}>
-      <div className="agent-modal questionnaire-modal" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="agent-modal questionnaire-modal"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="questionnaire-modal-title"
+      >
         <div className="bcc-modal-header">
           <div className="bcc-modal-title-wrap">
             <span className="bcc-modal-eyebrow">Financieramente</span>
-            <h3 className="bcc-modal-title">Cuestionario y lectura ejecutiva</h3>
+            <h3 id="questionnaire-modal-title" className="bcc-modal-title">Cuestionario y lectura ejecutiva</h3>
             {userName ? <p className="questionnaire-user-name">{userName}</p> : null}
           </div>
           <button type="button" className="agent-modal-close" onClick={props.onClose}>×</button>
         </div>
-        <p className="agent-modal-intro">Resumen de respuestas del intake con una lectura breve para decisiones tácticas.</p>
+        <p className="agent-modal-intro">Vista de solo lectura con tus respuestas del intake y una lectura breve de contexto.</p>
         <div className="questionnaire-dashboard">
           <div className="questionnaire-kpi-grid">
             <article className="questionnaire-kpi"><span className="questionnaire-kpi-label">Preparación</span><strong>{props.questionnaireDashboard.readinessScore}%</strong></article>

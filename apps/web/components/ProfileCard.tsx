@@ -126,16 +126,18 @@ export default function ProfileCard({
         <div className="panel-text">
           Perfil base cargado. Revisa respuestas e insights para alinear próximas recomendaciones.
         </div>
-        <button
-          type="button"
-          className="button-primary profile-questionnaire-btn"
-          onClick={(event) => {
-            event.stopPropagation();
-            onOpenQuestionnaire?.();
-          }}
-        >
-          Ver respuestas cuestionario
-        </button>
+        {onOpenQuestionnaire ? (
+          <button
+            type="button"
+            className="button-primary profile-questionnaire-btn"
+            onClick={(event) => {
+              event.stopPropagation();
+              onOpenQuestionnaire();
+            }}
+          >
+            Ver respuestas cuestionario
+          </button>
+        ) : null}
       </article>
     );
   }

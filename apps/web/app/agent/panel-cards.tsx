@@ -97,7 +97,7 @@ export function buildPanelBaseCards(props: PanelCardsProps): PanelCard[] {
             profile={resolvedDiagnosisProfile ?? props.profile}
             injected={Boolean(resolvedDiagnosisProfile)}
             compactQuestionnaireCta
-            onOpenQuestionnaire={() => props.setIsQuestionnaireModalOpen(true)}
+            onOpenQuestionnaire={props.sessionInfo?.injectedIntake ? () => props.setIsQuestionnaireModalOpen(true) : undefined}
             onCardClick={() => props.setIsAccountModalOpen(true)}
             actions={
               resolvedDiagnosisProfile || props.sessionInfo?.injectedIntake ? (
