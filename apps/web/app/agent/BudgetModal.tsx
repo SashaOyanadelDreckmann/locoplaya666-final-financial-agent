@@ -349,33 +349,34 @@ export function BudgetModal(props: {
     if (!isOpenRef.current || !Array.isArray(actions)) return null;
 
     const tableActions: BudgetTableAction[] = [];
-    let lastTouchedRow: BudgetRow | null = null;
+    let lastMergedRow: BudgetRow | null = null;
 
-    actions.forEach((action) => {
+    for (const action of actions) {
       const rowId = normalizeActionRowId(action?.id);
-      if (!rowId) return;
+      if (!rowId) continue;
       const existingRow =
         props.budgetRows.find((row) => normalizeActionRowId(row.id) === rowId) ?? null;
       const parsed = parseBudgetTableAction(action, existingRow, Boolean(existingRow));
-      if (!parsed) return;
+      if (!parsed) continue;
       tableActions.push(parsed);
       if (parsed.kind === 'delete') {
         if (activeBudgetRowId === rowId) setActiveBudgetRowId(null);
-        return;
+        continue;
       }
       const merged = mergeBudgetActionIntoRow(existingRow, parsed);
-      if (merged) lastTouchedRow = merged;
-    });
+      if (merged) lastMergedRow = merged;
+    }
 
     if (tableActions.length === 0) return null;
     props.applyBudgetTableActions(tableActions);
 
-    const lastTouchedRowId = lastTouchedRow?.id ?? normalizeActionRowId(tableActions.at(-1)?.id) ?? null;
+    const lastAction = tableActions[tableActions.length - 1];
+    const lastTouchedRowId = lastMergedRow?.id ?? normalizeActionRowId(lastAction?.id) ?? null;
     const skipAssistantTableFx = !isDesktopLayout && budgetViewModeRef.current === tableViewMode;
-    if (lastTouchedRow && !skipAssistantTableFx) {
+    if (lastMergedRow && !skipAssistantTableFx) {
       budgetActionTimersRef.current.push(
         window.setTimeout(() => {
-          const el = document.getElementById(`budget-row-${lastTouchedRow!.id}`);
+          const el = document.getElementById(`budget-row-${lastMergedRow!.id}`);
           if (el) {
             el.scrollIntoView({ behavior: 'auto', block: 'center' });
             el.animate(
@@ -389,7 +390,7 @@ export function BudgetModal(props: {
         }, 80),
       );
       const dotId = ++flyingDotCounter.current;
-      setFlyingDots((prev) => [...prev, { id: dotId, type: lastTouchedRow!.type }]);
+      setFlyingDots((prev) => [...prev, { id: dotId, type: lastMergedRow!.type }]);
       budgetDotTimersRef.current.push(
         window.setTimeout(() => setFlyingDots((prev) => prev.filter((d) => d.id !== dotId)), 750),
       );
