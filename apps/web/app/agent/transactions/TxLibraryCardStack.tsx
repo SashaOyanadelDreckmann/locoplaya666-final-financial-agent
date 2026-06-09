@@ -45,6 +45,27 @@ export function TxLibraryCardStack({
   const focusedCardAccent =
     PRODUCT_STACK_TEXT_PALETTE[focusedPaletteIndex] ?? PRODUCT_STACK_TEXT_PALETTE[0];
 
+  const streamItems = useMemo(
+    () =>
+      cards.map((entry, stackIndex) => {
+        const paletteIndex = paletteIndices[stackIndex] ?? stackIndex;
+        const color = PRODUCT_STACK_PALETTE[paletteIndex];
+        const textAccent = PRODUCT_STACK_TEXT_PALETTE[paletteIndex];
+        const cardSurface = matteLibraryCardSurface(color, textAccent);
+        return {
+          ...entry,
+          id: entry.product.id,
+          surfaceStyle: {
+            '--tx-lib-card-surface': cardSurface.background,
+            '--tx-lib-card-edge': cardSurface.borderColor,
+            '--tx-lib-card-shadow': cardSurface.boxShadow,
+            '--pt-stack-bg': color,
+          },
+        };
+      }),
+    [cards, paletteIndices],
+  );
+
   return (
     <div
       className="tx-library-stack-block"
@@ -54,7 +75,7 @@ export function TxLibraryCardStack({
       }}
     >
       <ScannerCardStream
-        items={cards.map((entry) => ({ ...entry, id: entry.product.id }))}
+        items={streamItems}
         activeIndex={productCarouselIndex}
         onActiveIndexChange={onSelectAt}
         prefersReducedMotion={prefersReducedMotion}

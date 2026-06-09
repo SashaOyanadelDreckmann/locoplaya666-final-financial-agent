@@ -555,16 +555,24 @@
 
 .transactions-modal .tx-scanner-stream-root.is-quiet .tx-scanner-stage {
   overflow: hidden !important;
-  background: rgba(0, 0, 0, 0.34) !important;
-  border: 1px solid rgba(255, 255, 255, 0.05) !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03) !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.transactions-modal .tx-scanner-stream-root.is-quiet {
+  --scan-feather: 18%;
 }
 
 .transactions-modal .tx-scanner-stream-root.is-quiet .tx-scanner-ascii-content {
-  color: color-mix(in srgb, var(--tx-lib-nav-accent, #d8d0c4) 42%, rgba(255, 255, 255, 0.18)) !important;
+  color: color-mix(in srgb, var(--tx-lib-nav-accent, #d8d0c4) 52%, rgba(255, 255, 255, 0.34)) !important;
   animation: none !important;
   line-height: calc(var(--tx-scanner-card-height, 164px) / var(--tx-scanner-ascii-lines, 16)) !important;
   max-height: var(--tx-scanner-card-height, 164px) !important;
+  mask-image: none !important;
+  -webkit-mask-image: none !important;
+  opacity: 0.92 !important;
+  mix-blend-mode: soft-light !important;
 }
 
 .transactions-modal .tx-library-stack-block .tx-scanner-dot {
@@ -591,14 +599,63 @@
 
 .transactions-modal .tx-scanner-stream-root.is-quiet:not(.is-transitioning) .tx-scanner-card-normal {
   clip-path: none !important;
+  -webkit-mask-image: none !important;
+  mask-image: none !important;
 }
 
 .transactions-modal .tx-scanner-stream-root.is-quiet:not(.is-transitioning) .tx-scanner-card-ascii {
   display: none !important;
 }
 
+.transactions-modal .tx-scanner-stream-root.is-quiet.is-transitioning .tx-scanner-card-hit {
+  isolation: isolate !important;
+}
+
 .transactions-modal .tx-scanner-stream-root.is-quiet.is-transitioning .tx-scanner-card-normal {
-  transition: clip-path 0.16s ease !important;
+  clip-path: none !important;
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    transparent calc(var(--scan-split, 0%) - var(--scan-feather, 18%)),
+    #000 calc(var(--scan-split, 0%) + var(--scan-feather, 18%)),
+    #000 100%
+  ) !important;
+  mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    transparent calc(var(--scan-split, 0%) - var(--scan-feather, 18%)),
+    #000 calc(var(--scan-split, 0%) + var(--scan-feather, 18%)),
+    #000 100%
+  ) !important;
+  transition:
+    -webkit-mask-image 0.14s linear,
+    mask-image 0.14s linear !important;
+}
+
+.transactions-modal .tx-scanner-stream-root.is-quiet.is-transitioning .tx-scanner-card-ascii {
+  display: block !important;
+  background: var(--tx-lib-card-surface, var(--pt-stack-bg, var(--tx-contract-surface-raised))) !important;
+  background-image: var(--tx-lib-card-surface, var(--pt-stack-bg)) !important;
+  border: 1px solid var(--tx-lib-card-edge, rgba(255, 255, 255, 0.08)) !important;
+  box-shadow: var(--tx-lib-card-shadow, none) !important;
+  clip-path: none !important;
+  -webkit-mask-image: linear-gradient(
+    to right,
+    #000 0%,
+    #000 calc(var(--scan-split, 100%) - var(--scan-feather, 18%)),
+    transparent calc(var(--scan-split, 100%) + var(--scan-feather, 18%)),
+    transparent 100%
+  ) !important;
+  mask-image: linear-gradient(
+    to right,
+    #000 0%,
+    #000 calc(var(--scan-split, 100%) - var(--scan-feather, 18%)),
+    transparent calc(var(--scan-split, 100%) + var(--scan-feather, 18%)),
+    transparent 100%
+  ) !important;
+  transition:
+    -webkit-mask-image 0.14s linear,
+    mask-image 0.14s linear !important;
 }
 
 .transactions-modal .tx-lib-card .tx-lib-card-top,

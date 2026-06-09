@@ -33,6 +33,7 @@ function generateCode(width: number, height: number): string {
 
 export type ScannerStreamCard = {
   id: string | number;
+  surfaceStyle?: Record<string, string>;
 };
 
 export type ScannerCardStreamProps<T extends ScannerStreamCard> = {
@@ -315,8 +316,16 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
       cardLine.querySelectorAll<HTMLElement>('.tx-scanner-card-wrapper').forEach((wrapper) => {
         const normalCard = wrapper.querySelector<HTMLElement>('.tx-scanner-card-normal');
         const asciiCard = wrapper.querySelector<HTMLElement>('.tx-scanner-card-ascii');
-        if (normalCard) normalCard.style.removeProperty('--clip-right');
-        if (asciiCard) asciiCard.style.removeProperty('--clip-left');
+        if (normalCard) {
+          normalCard.style.removeProperty('--clip-right');
+          normalCard.style.removeProperty('--scan-split');
+          normalCard.style.removeProperty('opacity');
+        }
+        if (asciiCard) {
+          asciiCard.style.removeProperty('--clip-left');
+          asciiCard.style.removeProperty('--scan-split');
+          asciiCard.style.removeProperty('opacity');
+        }
         delete wrapper.dataset.scanned;
       });
     };
@@ -340,7 +349,7 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
       const originalText = originalAscii.current.get(cardId) || '';
       const { asciiWidth, asciiHeight } = deriveAsciiGrid(metrics.cardWidth, metrics.cardHeight);
       let scrambleCount = 0;
-      const maxScrambles = 8;
+      const maxScrambles = quietMode ? 5 : 8;
       const interval = window.setInterval(() => {
         element.textContent = generateCode(asciiWidth, asciiHeight);
         scrambleCount += 1;
@@ -349,7 +358,37 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
           element.textContent = originalText;
           delete element.dataset.scrambling;
         }
-      }, 30);
+      }, quietMode ? 42 : 30);
+    };
+
+    const applyQuietMorph = (
+      wrapper: HTMLElement,
+      normalCard: HTMLElement,
+      asciiCard: HTMLElement | null,
+      asciiContent: HTMLElement | null,
+      cardLeft: number,
+      cardWidth: number,
+      scannerX: number,
+    ) => {
+      const scanPosOnCard = ((scannerX - cardLeft) / cardWidth) * 100;
+      const clampedSplit = Math.max(0, Math.min(100, scanPosOnCard));
+      normalCard.style.setProperty('--scan-split', `${clampedSplit}%`);
+      if (asciiCard) asciiCard.style.setProperty('--scan-split', `${clampedSplit}%`);
+
+      if (!asciiCard || !asciiContent) return clampedSplit;
+
+      const streamId = Number(wrapper.dataset.streamId || '0');
+      const inMorphZone = clampedSplit > 4 && clampedSplit < 96;
+      if (scanEffect === 'scramble' && inMorphZone) {
+        if (wrapper.dataset.scanned !== 'true') {
+          runScrambleEffect(asciiContent, streamId);
+          wrapper.dataset.scanned = 'true';
+        }
+      } else {
+        delete wrapper.dataset.scanned;
+      }
+
+      return clampedSplit;
     };
 
     const updateCardEffects = () => {
@@ -369,7 +408,7 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
       }
 
       const scannerX = getScannerX();
-      const scannerWidth = quietMode ? 8 : 6;
+      const scannerWidth = quietMode ? 0 : 6;
       const scannerLeft = scannerX - scannerWidth / 2;
       const scannerRight = scannerX + scannerWidth / 2;
       let anyCardIsScanning = false;
@@ -386,8 +425,17 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
 
         if (!normalCard) return;
 
-        if (quietMode && (!asciiCard || !asciiContent)) {
-          normalCard.style.setProperty('--clip-right', '0%');
+        if (quietMode) {
+          const split = applyQuietMorph(
+            wrapper,
+            normalCard,
+            asciiCard,
+            asciiContent ?? null,
+            cardLeft,
+            cardWidth,
+            scannerX,
+          );
+          if (split > 6 && split < 94) anyCardIsScanning = true;
           return;
         }
 
@@ -416,7 +464,7 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
         }
       });
 
-      const showScanLine = quietMode ? draggingOrAnimating : anyCardIsScanning;
+      const showScanLine = quietMode ? false : anyCardIsScanning;
       setIsScanning(showScanLine);
       scannerState.current.isScanning = showScanLine;
     };
@@ -439,13 +487,18 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
 
       const start = cardStreamState.current.position;
       const startTime = performance.now();
-      const duration = 480;
+      const duration = quietMode ? 620 : 480;
       transitionRef.current.isAnimating = true;
       beginQuietTransition();
 
       const tick = (now: number) => {
         const progress = Math.min(1, (now - startTime) / duration);
-        const eased = 1 - (1 - progress) ** 3;
+        const eased =
+          quietMode && progress < 1
+            ? progress < 0.5
+              ? 4 * progress ** 3
+              : 1 - (-2 * progress + 2) ** 3 / 2
+            : 1 - (1 - progress) ** 3;
         const nextPosition = start + (targetPosition - start) * eased;
         cardStreamState.current.position = nextPosition;
         cardLine.style.transform = `translateX(${nextPosition}px)`;
@@ -802,17 +855,7 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
             aria-hidden="true"
           />
         ) : null}
-        {quietMode && isTransitioning && !prefersReducedMotion ? (
-          <div
-            className={cn(
-              'tx-scanner-line',
-              'is-matte',
-              isScanning ? 'is-active' : 'is-settled',
-            )}
-            style={{ height: metrics.cardHeight }}
-            aria-hidden="true"
-          />
-        ) : !quietMode && !prefersReducedMotion ? (
+        {!quietMode && !prefersReducedMotion ? (
           <div
             className={cn(
               'tx-scanner-line',
@@ -838,6 +881,7 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
                   data-stream-id={card.streamId}
                   data-source-index={card.sourceIndex}
                   style={{
+                    ...(card.item.surfaceStyle ?? {}),
                     width: metrics.cardWidth,
                     height: metrics.cardHeight,
                     ['--tx-scanner-card-height' as string]: `${metrics.cardHeight}px`,
