@@ -87,11 +87,26 @@ html.is-tablet-landscape .agent-panel .panel-intro-grid-slot {
 .panel-intro-overlay {
   position: fixed;
   inset: 0;
-  z-index: 2147482900;
+  z-index: 2147483640;
   display: grid;
   place-items: center;
   pointer-events: auto;
   isolation: isolate;
+  touch-action: none;
+}
+
+.panel-intro-overlay.is-mobile {
+  padding:
+    max(0px, env(safe-area-inset-top, 0px))
+    max(0px, env(safe-area-inset-right, 0px))
+    max(0px, env(safe-area-inset-bottom, 0px))
+    max(0px, env(safe-area-inset-left, 0px));
+}
+
+html.panel-intro-active .agent-mobile-composer-dock,
+html.panel-intro-active main.agent-layout.is-mobile-viewport > .agent-mobile-composer-dock {
+  visibility: hidden !important;
+  pointer-events: none !important;
 }
 
 .panel-intro-overlay.is-exiting .panel-intro-overlay__backdrop {
@@ -201,8 +216,13 @@ html.is-tablet-landscape .agent-panel .panel-intro-grid-slot {
 }
 
 .panel-morph-intro.is-mobile .panel-morph-intro__header {
-  top: max(12px, env(safe-area-inset-top, 0px));
-  width: calc(100% - 28px);
+  top: max(16px, env(safe-area-inset-top, 0px));
+  width: calc(100% - 32px);
+}
+
+.panel-morph-intro.is-mobile .panel-morph-card.is-spotlight-active {
+  max-width: calc(100vw - 32px);
+  max-height: calc(100dvh - 200px);
 }
 
 .panel-morph-intro__eyebrow {
@@ -379,9 +399,6 @@ html.is-tablet-landscape .agent-panel .panel-intro-grid-slot {
   color: var(--fg, rgba(248, 250, 252, 0.96)) !important;
 }
 
-.panel-morph-card.is-mobile.is-spotlight-active {
-  max-width: calc(100vw - 24px);
-}
 
 .panel-morph-intro.is-mobile .panel-morph-card.is-spotlight-active .panel-morph-card__frame.is-spotlight {
   overflow: hidden;

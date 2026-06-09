@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from 'react';
+import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
 
 import {
@@ -150,6 +151,7 @@ export function PanelCardsIntroSequence(props: {
   const skipStartedRef = useRef(false);
   const activeIndexRef = useRef(activeIndex);
   activeIndexRef.current = activeIndex;
+  const [portalReady, setPortalReady] = useState(false);
   const propsRef = useRef(props);
   propsRef.current = props;
   const totalCards = PANEL_INTRO_CARD_ORDER.length;
@@ -235,6 +237,10 @@ export function PanelCardsIntroSequence(props: {
   }, [beginDock]);
 
   useEffect(() => {
+    setPortalReady(true);
+  }, []);
+
+  useEffect(() => {
     propsRef.current.onPhaseChange?.('morph');
   }, []);
 
@@ -316,11 +322,15 @@ export function PanelCardsIntroSequence(props: {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [exiting, skipToPanel]);
 
-  return (
+  if (!portalReady) return null;
+
+  return createPortal(
     <motion.div
       className={`panel-intro-overlay${exiting ? ' is-exiting' : ''}${
         phase === 'dock' || phase === 'settle' ? ' is-docking' : ''
-      }${phase === 'spotlight' || phase === 'enter' ? ' is-spotlight-stage' : ''}`}
+      }${phase === 'spotlight' || phase === 'enter' ? ' is-spotlight-stage' : ''}${
+        props.isMobileViewport ? ' is-mobile' : ''
+      }`}
       role="dialog"
       aria-modal="true"
       aria-label="Presentación del panel financiero"
@@ -357,6 +367,7 @@ export function PanelCardsIntroSequence(props: {
         spotlightDurationMs={spotlightDurationMs}
         autoPlay
       />
-    </motion.div>
+    </motion.div>,
+    document.body,
   );
 }

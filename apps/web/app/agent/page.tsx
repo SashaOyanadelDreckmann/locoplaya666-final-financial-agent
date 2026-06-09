@@ -507,6 +507,21 @@ export default function AgentPage() {
     }
   }, [authBootstrapped, isAuthenticated]);
 
+  useEffect(() => {
+    if (!authBootstrapped || !isAuthenticated) return;
+    if (bootSequenceActive || panelIntroActive || pendingPanelIntroRef.current) return;
+    if (hasCompletedPanelIntro()) return;
+    if (shouldShowAgentBootSequence()) return;
+
+    const timer = window.setTimeout(() => {
+      setPanelIntroPhase('morph');
+      setPanelIntroSettled(false);
+      setPanelIntroActive(true);
+    }, 160);
+
+    return () => window.clearTimeout(timer);
+  }, [authBootstrapped, isAuthenticated, bootSequenceActive, panelIntroActive]);
+
   const loadProfileIfNeeded = useProfileStore((s) => s.loadProfileIfNeeded);
   const profile = useProfileStore((s) => s.profile);
   const clearAuthenticated = useSessionStore((s) => s.clearAuthenticated);

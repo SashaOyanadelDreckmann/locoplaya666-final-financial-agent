@@ -70,21 +70,52 @@ function resolveIntroCardSize(
   return PANEL_INTRO_CARD_SIZE_FALLBACKS[cardKey] ?? defaultNatural;
 }
 
+/** Mobile spotlight uses full card fallbacks — not compact deck chip measurements. */
+function resolveSpotlightNaturalSize(
+  cardKey: string,
+  naturalSizes: Record<string, PanelCardNaturalSize>,
+  isMobile: boolean,
+  defaultNatural: PanelCardNaturalSize,
+): PanelCardNaturalSize {
+  if (!isMobile) {
+    return resolveIntroCardSize(cardKey, naturalSizes, defaultNatural);
+  }
+
+  const fallback = PANEL_INTRO_CARD_SIZE_FALLBACKS[cardKey] ?? defaultNatural;
+  const vw = typeof window !== "undefined" ? window.innerWidth : 390;
+  const maxW = Math.min(fallback.width, vw - 40);
+  const scale = maxW / Math.max(fallback.width, 1);
+
+  return {
+    width: Math.round(maxW),
+    height: Math.round(fallback.height * scale),
+  };
+}
+
+function readViewportCenter() {
+  if (typeof window === "undefined") {
+    return { x: 0, y: 0, width: 0, height: 0 };
+  }
+  return {
+    x: window.innerWidth / 2,
+    y: window.innerHeight / 2,
+    width: window.innerWidth,
+    height: window.innerHeight,
+  };
+}
+
 function useViewportCenter() {
-  const [center, setCenter] = useState({ x: 0, y: 0, width: 0, height: 0 });
+  const [center, setCenter] = useState(readViewportCenter);
 
   useEffect(() => {
-    const update = () => {
-      setCenter({
-        x: window.innerWidth / 2,
-        y: window.innerHeight / 2,
-        width: window.innerWidth,
-        height: window.innerHeight,
-      });
-    };
+    const update = () => setCenter(readViewportCenter());
     update();
     window.addEventListener("resize", update);
-    return () => window.removeEventListener("resize", update);
+    window.visualViewport?.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("resize", update);
+      window.visualViewport?.removeEventListener("resize", update);
+    };
   }, []);
 
   return center;
@@ -120,7 +151,12 @@ export function computeSpotlightLayoutForCard(input: {
   viewport: { x: number; y: number; width: number; height: number };
 }): CardLayout {
   const defaultNatural = { width: 168, height: 88 };
-  const natural = resolveIntroCardSize(input.cardKey, input.naturalSizes, defaultNatural);
+  const natural = resolveSpotlightNaturalSize(
+    input.cardKey,
+    input.naturalSizes,
+    input.isMobile,
+    defaultNatural,
+  );
   const aspect = natural.width / Math.max(natural.height, 1);
 
   if (input.isMobile) {
@@ -326,6 +362,8 @@ export function PanelCardsMorphIntro(props: {
   const defaultNatural = { width: 168, height: 88 };
   const resolveNatural = (cardKey: string) =>
     resolveIntroCardSize(cardKey, props.naturalSizes, defaultNatural);
+  const resolveSpotlightNatural = (cardKey: string) =>
+    resolveSpotlightNaturalSize(cardKey, props.naturalSizes, isMobile, defaultNatural);
 
   const spotlightLayout = useMemo((): CardLayout | null => {
     if (props.phase !== "spotlight" && props.phase !== "enter") return null;
@@ -423,7 +461,7 @@ export function PanelCardsMorphIntro(props: {
                 key={activeMeta.key}
                 cardKey={activeMeta.key}
                 cardNode={cardNode}
-                naturalSize={resolveNatural(activeMeta.key)}
+                naturalSize={resolveSpotlightNatural(activeMeta.key)}
                 layout={spotlightLayout}
                 phase={props.phase === "enter" ? "spotlight" : props.phase}
                 index={props.activeIndex}
