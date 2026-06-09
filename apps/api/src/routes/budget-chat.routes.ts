@@ -53,6 +53,7 @@ import {
   inferBudgetFocusRowId,
   isAffirmativeSuggestionAnswer,
   resolveBudgetAffirmativeAmount,
+  resolveBudgetRowDisplayMovementType,
   isBareBudgetAmountAnswer,
   pickContextualFocusRow,
   reconcileBudgetRows,
@@ -661,6 +662,49 @@ function appendSuggestionTip(
   return compactText(`${reply} ${tip}`, BUDGET_CHAT_TEXT_LIMIT);
 }
 
+function allowsDeterministicAmountWrite(
+  targetRow: BudgetRow,
+  context: BudgetAssistantContext,
+  answer: string,
+  question: string,
+): boolean {
+  const gap = pickNextBudgetRowFieldGap(targetRow, context);
+  if (gap === 'amount' || gap === 'cadence' || gap === 'paymentMethod' || gap === null) return true;
+  if (gap !== 'movementType' && gap !== 'category') return true;
+
+  if (detectBudgetIntent(answer) === 'update_combined') return true;
+
+  const focusFromAnswer = inferBudgetFocusRowId(answer);
+  if (
+    focusFromAnswer &&
+    canonicalBudgetRowId(focusFromAnswer) !== canonicalBudgetRowId(targetRow.id)
+  ) {
+    return true;
+  }
+
+  const questionFocus = inferBudgetFocusRowId(
+    extractInferenceQuestionText(question) || question,
+  );
+  if (
+    extractClpAmount(answer) !== null &&
+    !isBareBudgetAmountAnswer(answer) &&
+    questionFocus &&
+    canonicalBudgetRowId(questionFocus) !== canonicalBudgetRowId(targetRow.id)
+  ) {
+    return true;
+  }
+
+  if (
+    extractClpAmount(answer) !== null &&
+    !isBareBudgetAmountAnswer(answer) &&
+    (focusFromAnswer || /\b(gasto|gastamos|pago|pagamos)\b/i.test(answer))
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
 function buildDeterministicUpdate(params: {
   rows: BudgetRow[];
   answer: string;
@@ -693,6 +737,8 @@ function buildDeterministicUpdate(params: {
     }
   }
   if (!targetRow) return null;
+
+  if (!allowsDeterministicAmountWrite(targetRow, params.context, params.answer, params.question)) return null;
 
   let amount = extractClpAmount(params.answer);
   if (amount === null && isAffirmativeSuggestionAnswer(params.answer)) {
@@ -779,6 +825,98 @@ function buildDeterministicUpdate(params: {
     actions: [action],
     action,
     source: 'deterministic_update',
+    market_snapshot: emptyMarketSnapshot(),
+  });
+}
+
+function buildDeterministicMovementTypeUpdate(params: {
+  rows: BudgetRow[];
+  answer: string;
+  question: string;
+  context: BudgetAssistantContext;
+  assistantFocusRowId?: string | null;
+  manualFocusRowId?: string | null;
+  activeRow?: BudgetRow | null;
+}) {
+  const targetRow =
+    resolveBudgetChatTargetRow(params.rows, extractInferenceQuestionText(params.question) || params.question, {
+      manualFocusRowId: params.manualFocusRowId ?? null,
+      assistantFocusRowId: params.assistantFocusRowId ?? null,
+      activeRow: params.activeRow ?? null,
+      answer: params.answer,
+    }) ?? params.activeRow;
+  if (!targetRow) return null;
+  if (pickNextBudgetRowFieldGap(targetRow, params.context) !== 'movementType') return null;
+  if (isBudgetOffTopicAnswer(params.answer) || isBudgetEducationalQuestion(params.answer) || isBudgetSkipAnswer(params.answer)) {
+    return null;
+  }
+  if (/\?\s*$/.test(String(params.answer ?? '').trim())) return null;
+
+  const isAffirmative = isAffirmativeSuggestionAnswer(params.answer);
+  if (extractClpAmount(params.answer) !== null) return null;
+  if (/\d/.test(params.answer) && !isAffirmative) return null;
+  const answerIntent = detectBudgetIntent(params.answer);
+  if (answerIntent === 'update_amount' || answerIntent === 'update_combined') return null;
+  if (!isAffirmative && /\b(gasto|gastamos|pago|pagamos|gasto harto|harto en|mucho en)\b/i.test(params.answer)) {
+    return null;
+  }
+
+  const parsedMovement = parseBudgetMovementFromAnswer(params.answer, { directAnswer: true });
+  if (!isAffirmative && !parsedMovement) return null;
+  if (!isAffirmative && !parsedMovement && /\b(gasto|gastos|gastamos|pago|pagamos|destino|salen|van)\b/i.test(params.answer)) {
+    return null;
+  }
+
+  const displayType = resolveBudgetRowDisplayMovementType(targetRow);
+  const resolvedMovement = parsedMovement ?? displayType;
+  const action: BudgetTableAction = {
+    kind: 'update',
+    id: targetRow.id,
+    category: targetRow.category,
+    type: targetRow.type,
+    amount: Math.max(0, Math.round(Number(targetRow.amount ?? 0))),
+    movement_type: resolvedMovement,
+  };
+
+  const projectedRows = reconcileBudgetRows(
+    params.rows.map((row) =>
+      row.id === targetRow.id
+        ? {
+            ...row,
+            movementType: resolvedMovement,
+          }
+        : row,
+    ),
+  );
+  const projectedContext = createAssistantContext({
+    rows: projectedRows,
+    intakeData: params.context.intake,
+    intakeContext: params.context.intake.intakeContext ?? null,
+    products: params.context.products,
+    chatAnswers: [
+      ...params.context.chatAnswers,
+      {
+        q: params.question,
+        a: params.answer,
+      },
+    ],
+  });
+  const updatedRow = projectedRows.find((row) => row.id === targetRow.id) ?? targetRow;
+  const { focus, question } = buildBudgetFocusQuestion(projectedRows, updatedRow, projectedContext);
+  const movementChanged = resolvedMovement !== (targetRow.movementType ?? displayType);
+  const label =
+    BUDGET_MOVEMENT_TYPE_OPTIONS.find((item) => item.value === resolvedMovement)?.label ?? resolvedMovement;
+  const replyParts = [
+    movementChanged ? `Dejé la categoría en «${label}».` : `Perfecto, mantenemos «${label}» como categoría.`,
+  ];
+
+  return buildBudgetReply({
+    reply: replyParts.join(' '),
+    followUp: question,
+    focus_row_id: focus?.id ?? targetRow.id,
+    actions: [action],
+    action,
+    source: 'deterministic_movement_type_update',
     market_snapshot: emptyMarketSnapshot(),
   });
 }
@@ -899,7 +1037,7 @@ function buildDeterministicFieldUpdate(params: {
   }
 
   const gap = pickNextBudgetRowFieldGap(targetRow, params.context);
-  if (gap === 'category' || gap === 'amount') return null;
+  if (gap === 'movementType' || gap === 'category' || gap === 'amount') return null;
   if (Number(targetRow.amount ?? 0) <= 0) return null;
 
   const category = fieldPatch.category ?? targetRow.category;
@@ -1402,23 +1540,45 @@ router.post(
           activeRow: resolvedActiveRow,
           answer,
         }) ?? resolvedActiveRow;
-      if (categoryTarget && pickNextBudgetRowFieldGap(categoryTarget, context) === 'category') {
-        const categoryUpdate = buildDeterministicCategoryUpdate({
-          rows,
-          answer,
-          question,
-          context,
-          assistantFocusRowId,
-          manualFocusRowId,
-          activeRow: resolvedActiveRow,
-        });
-        if (categoryUpdate) {
-          return sendBudgetChatResponse(
-            res,
-            categoryUpdate,
-            buildWriterPolishInput({ draft: categoryUpdate, context, rows, userAnswer: answer }),
-            { market_snapshot: emptyMarketSnapshot() },
-          );
+      if (categoryTarget) {
+        const focusGap = pickNextBudgetRowFieldGap(categoryTarget, context);
+        if (focusGap === 'movementType') {
+          const movementTypeUpdate = buildDeterministicMovementTypeUpdate({
+            rows,
+            answer,
+            question,
+            context,
+            assistantFocusRowId,
+            manualFocusRowId,
+            activeRow: resolvedActiveRow,
+          });
+          if (movementTypeUpdate) {
+            return sendBudgetChatResponse(
+              res,
+              movementTypeUpdate,
+              buildWriterPolishInput({ draft: movementTypeUpdate, context, rows, userAnswer: answer }),
+              { market_snapshot: emptyMarketSnapshot() },
+            );
+          }
+        }
+        if (focusGap === 'category') {
+          const categoryUpdate = buildDeterministicCategoryUpdate({
+            rows,
+            answer,
+            question,
+            context,
+            assistantFocusRowId,
+            manualFocusRowId,
+            activeRow: resolvedActiveRow,
+          });
+          if (categoryUpdate) {
+            return sendBudgetChatResponse(
+              res,
+              categoryUpdate,
+              buildWriterPolishInput({ draft: categoryUpdate, context, rows, userAnswer: answer }),
+              { market_snapshot: emptyMarketSnapshot() },
+            );
+          }
         }
       }
     }

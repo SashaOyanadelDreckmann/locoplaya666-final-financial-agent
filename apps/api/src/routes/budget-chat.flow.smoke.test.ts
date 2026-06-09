@@ -79,13 +79,38 @@ describe('budget-chat assistant flow smoke', () => {
     expect(String(init.body.next_question)).toMatch(/\?/);
     expect(init.body.requires_confirmation).toBeFalsy();
 
-    const income = await agent.post('/api/budget-chat').set(headers).send({
+    const typeConfirm = await agent.post('/api/budget-chat').set(headers).send({
       intent: 'reply',
-      answer: '900000',
+      answer: 'sí',
       question: init.body.next_question,
       assistantFocusRowId: init.body.focus_row_id,
       budgetRows: baseRows(),
-      chatAnswers: [{ q: init.body.next_question, a: '900000' }],
+      chatAnswers: [],
+    });
+    expect(typeConfirm.status).toBe(200);
+    expect(typeConfirm.body.source).toBe('deterministic_movement_type_update');
+
+    const nameConfirm = await agent.post('/api/budget-chat').set(headers).send({
+      intent: 'reply',
+      answer: 'sí',
+      question: typeConfirm.body.next_question,
+      assistantFocusRowId: 'income_salary',
+      budgetRows: baseRows(),
+      chatAnswers: [{ q: init.body.next_question, a: 'sí' }],
+    });
+    expect(nameConfirm.status).toBe(200);
+    expect(nameConfirm.body.source).toBe('deterministic_category_update');
+
+    const income = await agent.post('/api/budget-chat').set(headers).send({
+      intent: 'reply',
+      answer: '900000',
+      question: nameConfirm.body.next_question,
+      assistantFocusRowId: 'income_salary',
+      budgetRows: baseRows(),
+      chatAnswers: [
+        { q: init.body.next_question, a: 'sí' },
+        { q: typeConfirm.body.next_question, a: 'sí' },
+      ],
     });
     expect(income.status).toBe(200);
     expect(income.body.action?.id).toBe('income_salary');
@@ -102,7 +127,9 @@ describe('budget-chat assistant flow smoke', () => {
       question: income.body.next_question,
       budgetRows: rowsAfterIncome,
       chatAnswers: [
-        { q: init.body.next_question, a: '900000' },
+        { q: init.body.next_question, a: 'sí' },
+        { q: typeConfirm.body.next_question, a: 'sí' },
+        { q: nameConfirm.body.next_question, a: '900000' },
         { q: income.body.next_question, a: 'elimina otros gastos' },
       ],
     });
@@ -119,7 +146,9 @@ describe('budget-chat assistant flow smoke', () => {
       budgetRows: rowsAfterIncome,
       pendingConfirmation: deleteAsk.body.pending_confirmation,
       chatAnswers: [
-        { q: init.body.next_question, a: '900000' },
+        { q: init.body.next_question, a: 'sí' },
+        { q: typeConfirm.body.next_question, a: 'sí' },
+        { q: nameConfirm.body.next_question, a: '900000' },
         { q: income.body.next_question, a: 'elimina otros gastos' },
         { q: deleteAsk.body.next_question, a: 'no' },
       ],
@@ -154,12 +183,37 @@ describe('budget-chat assistant flow smoke', () => {
 
   it('returns schema-safe actions without legacy note/product/institution fields', async () => {
     const { agent, csrfToken } = await createAuthedAgent();
+    const rows = [{ id: 'expense_rent', category: 'Arriendo / vivienda', type: 'expense', amount: 0 }];
+    const init = await agent.post('/api/budget-chat').set('x-csrf-token', csrfToken).send({
+      intent: 'init',
+      budgetRows: rows,
+      chatAnswers: [],
+    });
+    const typeConfirm = await agent.post('/api/budget-chat').set('x-csrf-token', csrfToken).send({
+      intent: 'reply',
+      answer: 'sí',
+      question: init.body.next_question,
+      assistantFocusRowId: 'expense_rent',
+      budgetRows: rows,
+    });
+    const nameConfirm = await agent.post('/api/budget-chat').set('x-csrf-token', csrfToken).send({
+      intent: 'reply',
+      answer: 'sí',
+      question: typeConfirm.body.next_question,
+      assistantFocusRowId: 'expense_rent',
+      budgetRows: rows,
+      chatAnswers: [{ q: init.body.next_question, a: 'sí' }],
+    });
     const res = await agent.post('/api/budget-chat').set('x-csrf-token', csrfToken).send({
       intent: 'reply',
       answer: '450000',
-      question: '¿Cuánto pagas al mes en vivienda o arriendo?',
+      question: nameConfirm.body.next_question,
       assistantFocusRowId: 'expense_rent',
-      budgetRows: baseRows(),
+      budgetRows: rows,
+      chatAnswers: [
+        { q: init.body.next_question, a: 'sí' },
+        { q: typeConfirm.body.next_question, a: 'sí' },
+      ],
     });
 
     expect(res.status).toBe(200);

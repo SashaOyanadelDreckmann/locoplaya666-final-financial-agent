@@ -1,7 +1,11 @@
 import type { BudgetRow } from './budget-rows';
 import { canonicalBudgetRowId, getEffectiveBudgetRows } from './budget-rows';
 import { extractInferenceQuestionText, inferBudgetFocusRowId } from './budget-chat-focus';
-import { BUDGET_MOVEMENT_TYPE_OPTIONS } from './budget-table-schema';
+import {
+  BUDGET_MOVEMENT_TYPE_OPTIONS,
+  normalizeBudgetMovementType,
+  type BudgetMovementType,
+} from './budget-table-schema';
 
 export type BudgetChatTurn = { q: string; a: string };
 
@@ -327,24 +331,43 @@ export function getChatTurnFieldForRow(
   return null;
 }
 
-/** Category is confirmed once the user answered a category-validation turn, or the row already has a monthly amount. */
+/** Tipo de movimiento (categoría en la UI) confirmado por chat o fila con monto. */
+export function isBudgetRowMovementTypeConfirmed(row: BudgetRow, context: BudgetAssistantContext): boolean {
+  if (getChatTurnFieldForRow(context, row.id, 'movementType')) return true;
+  if (Number(row.amount ?? 0) > 0) return true;
+  return false;
+}
+
+/** Nombre del movimiento (columna Movimiento) confirmado por chat o fila con monto. */
 export function isBudgetRowCategoryConfirmed(row: BudgetRow, context: BudgetAssistantContext): boolean {
   if (getChatTurnFieldForRow(context, row.id, 'category')) return true;
   if (Number(row.amount ?? 0) > 0) return true;
   return false;
 }
 
-export function buildBudgetCategoryValidationQuestion(row: BudgetRow): string {
+export function resolveBudgetRowDisplayMovementType(row: BudgetRow): BudgetMovementType {
+  const hinted = row.movementType ?? ROW_MOVEMENT_TYPES[row.id];
+  return normalizeBudgetMovementType(hinted, row.type) ?? (row.type === 'income' ? 'income_main' : 'leisure_other');
+}
+
+/** Primera pregunta: validar categoría = tipo de movimiento (celda del select). */
+export function buildBudgetMovementTypeValidationQuestion(row: BudgetRow): string {
+  const movementType = resolveBudgetRowDisplayMovementType(row);
+  const label = movementTypeLabel(movementType) ?? 'Sin clasificar';
+  const category = row.category.trim() || 'este movimiento';
+  return `En la tabla, «${category}» tiene categoría «${label}» (tipo de movimiento). ¿Confirmas o cuál corresponde?`;
+}
+
+/** Segunda pregunta: nombre del movimiento (columna Movimiento). */
+export function buildBudgetMovementNameQuestion(row: BudgetRow): string {
   const category = row.category.trim() || 'sin nombre';
   const typeLabel = row.type === 'income' ? 'ingreso' : 'gasto';
-  const tableHints: string[] = [`«${category}» como ${typeLabel}`];
-  const movement = movementTypeLabel(row.movementType);
-  const cadence = cadenceLabel(row.cadence);
-  const payment = paymentMethodLabel(row.paymentMethod);
-  if (movement) tableHints.push(`tipo de movimiento: ${movement}`);
-  if (cadence) tableHints.push(`recurrencia: ${cadence}`);
-  if (payment) tableHints.push(`medio de pago: ${payment}`);
-  return `En la tabla aparece ${tableHints.join(', ')}. ¿Confirmas ese nombre o cómo quieres llamar este movimiento?`;
+  return `¿Cómo quieres llamar este movimiento? En la tabla aparece «${category}» como ${typeLabel}.`;
+}
+
+/** @deprecated Use buildBudgetMovementTypeValidationQuestion — "categoría" = tipo de movimiento. */
+export function buildBudgetCategoryValidationQuestion(row: BudgetRow): string {
+  return buildBudgetMovementTypeValidationQuestion(row);
 }
 
 export function buildBudgetAmountQuestion(row: BudgetRow, context: BudgetAssistantContext): string {
@@ -420,12 +443,12 @@ export function pickNextBudgetRowFieldGap(
   row: BudgetRow,
   context?: BudgetAssistantContext,
 ): BudgetRowFieldGap | null {
+  if (context && !isBudgetRowMovementTypeConfirmed(row, context)) return 'movementType';
   if (context && !isBudgetRowCategoryConfirmed(row, context)) return 'category';
   if (Number(row.amount ?? 0) <= 0) return 'amount';
   const cadence = row.cadence;
   if (!cadence || cadence === 'oneoff') return 'cadence';
   if (!row.paymentMethod) return 'paymentMethod';
-  if (!row.movementType) return 'movementType';
   return null;
 }
 
@@ -457,7 +480,7 @@ export function isBudgetSkipAnswer(answer: string): boolean {
 
 export function buildBudgetRowDetailQuestion(
   row: BudgetRow,
-  field: Exclude<BudgetRowFieldGap, 'amount' | 'category'>,
+  field: Exclude<BudgetRowFieldGap, 'amount' | 'category' | 'movementType'>,
 ): string {
   const category = row.category.trim() || 'este movimiento';
   switch (field) {
@@ -465,8 +488,6 @@ export function buildBudgetRowDetailQuestion(
       return `Para «${category}», ¿el monto es fijo cada mes o varía mes a mes?`;
     case 'paymentMethod':
       return `Para «${category}», ¿cómo lo pagas normalmente: transferencia, débito, crédito o efectivo?`;
-    case 'movementType':
-      return `Para «${category}», ¿qué tipo de movimiento describe mejor la fila? (vivienda, alimentación, transporte, deuda, ahorro, otros)`;
     default:
       return `¿Qué dato falta completar para «${category}»?`;
   }
@@ -477,28 +498,31 @@ export function inferBudgetFieldFromQuestion(question: string): BudgetRowFieldGa
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '');
-  if (/confirmas ese nombre|c[oó]mo quieres llamar|en la tabla aparece/.test(q)) return 'category';
+  if (/tipo de movimiento|categor[ií]a «|confirmas o cu[aá]l corresponde/.test(q)) return 'movementType';
+  if (/c[oó]mo quieres llamar este movimiento|confirmas el nombre/.test(q)) return 'category';
   if (/fijo|variable|var[ií]a mes a mes|recurrente/.test(q)) return 'cadence';
   if (/transferencia|d[eé]bito|cr[eé]dito|efectivo|c[oó]mo pagas|medio de pago|c[oó]mo lo pagas/.test(q)) {
     return 'paymentMethod';
   }
-  if (/tipo de movimiento|describe mejor/.test(q)) return 'movementType';
   if (/monto mensual|monto|cu[aá]nto|pesos/.test(q)) return 'amount';
   return null;
 }
 
 export function buildContextualQuestion(row: BudgetRow | null, context: BudgetAssistantContext): string {
-  if (!row) return buildBudgetCategoryValidationQuestion({
-    id: 'income_salary',
-    category: 'Sueldo líquido',
-    type: 'income',
-    amount: 0,
-  });
+  if (!row) {
+    return buildBudgetMovementTypeValidationQuestion({
+      id: 'income_salary',
+      category: 'Sueldo líquido',
+      type: 'income',
+      amount: 0,
+    });
+  }
 
   const gap = pickNextBudgetRowFieldGap(row, context);
-  if (gap === 'category') return buildBudgetCategoryValidationQuestion(row);
+  if (gap === 'movementType') return buildBudgetMovementTypeValidationQuestion(row);
+  if (gap === 'category') return buildBudgetMovementNameQuestion(row);
   if (gap === 'amount') return buildBudgetAmountQuestion(row, context);
-  if (gap === 'cadence' || gap === 'paymentMethod' || gap === 'movementType') {
+  if (gap === 'cadence' || gap === 'paymentMethod') {
     return buildBudgetRowDetailQuestion(row, gap);
   }
 
@@ -533,17 +557,27 @@ export function pickContextualFocusRow(
     }
   }
 
-  const categoryPending = getEffectiveBudgetRows(rows).filter(
+  const movementTypePending = getEffectiveBudgetRows(rows).filter(
+    (row) => pickNextBudgetRowFieldGap(row, context) === 'movementType',
+  );
+  if (movementTypePending.length > 0) {
+    const ranked = [...movementTypePending].sort(
+      (a, b) => rowPriorityScore(b, context) - rowPriorityScore(a, context),
+    );
+    return ranked[0] ?? movementTypePending[0] ?? null;
+  }
+
+  const namePending = getEffectiveBudgetRows(rows).filter(
     (row) => pickNextBudgetRowFieldGap(row, context) === 'category',
   );
-  if (categoryPending.length > 0) {
-    const ranked = [...categoryPending].sort((a, b) => rowPriorityScore(b, context) - rowPriorityScore(a, context));
-    return ranked[0] ?? categoryPending[0] ?? null;
+  if (namePending.length > 0) {
+    const ranked = [...namePending].sort((a, b) => rowPriorityScore(b, context) - rowPriorityScore(a, context));
+    return ranked[0] ?? namePending[0] ?? null;
   }
 
   const metadataIncomplete = getEffectiveBudgetRows(rows).filter((row) => {
     const gap = pickNextBudgetRowFieldGap(row, context);
-    return gap != null && gap !== 'amount' && gap !== 'category';
+    return gap != null && gap !== 'amount' && gap !== 'category' && gap !== 'movementType';
   });
   if (metadataIncomplete.length > 0) {
     const ranked = [...metadataIncomplete].sort(
@@ -940,7 +974,7 @@ export function buildCategoryClarificationReply(input: {
     cue.length >= 8
       ? `Entendí “${cue}” para «${category}».`
       : `Ajustemos «${category}» en la tabla.`;
-  const followUp = buildBudgetCategoryValidationQuestion(input.row);
+  const followUp = buildBudgetMovementTypeValidationQuestion(input.row);
   return { reply, followUp };
 }
 

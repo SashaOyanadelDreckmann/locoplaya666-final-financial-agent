@@ -9,6 +9,7 @@ import {
   buildOffTopicBriefReply,
   getChatTurnFieldForRow,
   isBudgetRowCategoryConfirmed,
+  isBudgetRowMovementTypeConfirmed,
   isBudgetEducationalQuestion,
   isBudgetOffTopicAnswer,
   pickContextualFocusRow,
@@ -23,7 +24,7 @@ describe('budget-chat-context', () => {
     { id: 'expense_food', category: 'Alimentación', type: 'expense' as const, amount: 0 },
   ];
 
-  it('asks category validation before amount for unfilled rows', () => {
+  it('asks movement type (categoría) validation before name and amount for unfilled rows', () => {
     const context = buildBudgetAssistantContext({
       rows,
       intakeData: {},
@@ -32,19 +33,43 @@ describe('budget-chat-context', () => {
     });
 
     const question = buildContextualQuestion(rows[0], context);
-    expect(question).toMatch(/En la tabla aparece/i);
-    expect(question).toMatch(/Confirmas ese nombre/i);
+    expect(question).toMatch(/tipo de movimiento|categoría/i);
+    expect(question).toMatch(/Ingreso principal/i);
     expect(question).not.toMatch(/950\.000/);
   });
 
-  it('asks monthly amount after category is confirmed in chat history', () => {
-    const categoryQuestion =
-      'En la tabla aparece «Sueldo líquido» como ingreso. ¿Confirmas ese nombre o cómo quieres llamar este movimiento?';
+  it('asks movement name after movement type is confirmed in chat history', () => {
+    const movementTypeQuestion =
+      'En la tabla, «Sueldo líquido» tiene categoría «Ingreso principal» (tipo de movimiento). ¿Confirmas o cuál corresponde?';
     const context = buildBudgetAssistantContext({
       rows,
       intakeData: { exactMonthlyIncome: 950000 },
       products: [],
-      chatAnswers: [{ q: categoryQuestion, a: 'sí' }],
+      chatAnswers: [{ q: movementTypeQuestion, a: 'sí' }],
+    });
+
+    expect(getChatTurnFieldForRow(context, 'income_salary', 'movementType')).not.toBeNull();
+    expect(isBudgetRowMovementTypeConfirmed(rows[0], context)).toBe(true);
+    expect(isBudgetRowCategoryConfirmed(rows[0], context)).toBe(false);
+
+    const question = buildContextualQuestion(rows[0], context);
+    expect(question).toMatch(/llamar este movimiento/i);
+    expect(question).not.toMatch(/950\.000/);
+  });
+
+  it('asks monthly amount after movement type and name are confirmed', () => {
+    const movementTypeQuestion =
+      'En la tabla, «Sueldo líquido» tiene categoría «Ingreso principal» (tipo de movimiento). ¿Confirmas o cuál corresponde?';
+    const nameQuestion =
+      '¿Cómo quieres llamar este movimiento? En la tabla aparece «Sueldo líquido» como ingreso.';
+    const context = buildBudgetAssistantContext({
+      rows,
+      intakeData: { exactMonthlyIncome: 950000 },
+      products: [],
+      chatAnswers: [
+        { q: movementTypeQuestion, a: 'sí' },
+        { q: nameQuestion, a: 'sí' },
+      ],
     });
 
     expect(getChatTurnFieldForRow(context, 'income_salary', 'category')).not.toBeNull();
@@ -56,6 +81,10 @@ describe('budget-chat-context', () => {
   });
 
   it('builds contextual income question from intake and transaction inflows', () => {
+    const movementTypeQuestion =
+      'En la tabla, «Sueldo líquido» tiene categoría «Ingreso principal» (tipo de movimiento). ¿Confirmas o cuál corresponde?';
+    const nameQuestion =
+      '¿Cómo quieres llamar este movimiento? En la tabla aparece «Sueldo líquido» como ingreso.';
     const context = buildBudgetAssistantContext({
       rows,
       intakeData: { exactMonthlyIncome: 950000, hasDebt: true },
@@ -68,10 +97,8 @@ describe('budget-chat-context', () => {
         },
       ],
       chatAnswers: [
-        {
-          q: 'En la tabla aparece «Sueldo líquido» como ingreso. ¿Confirmas ese nombre o cómo quieres llamar este movimiento?',
-          a: 'confirmo',
-        },
+        { q: movementTypeQuestion, a: 'confirmo' },
+        { q: nameQuestion, a: 'confirmo' },
       ],
     });
 
@@ -101,15 +128,17 @@ describe('budget-chat-context', () => {
   });
 
   it('remembers prior chat answers when asking again', () => {
+    const movementTypeQuestion =
+      'En la tabla, «Arriendo / vivienda» tiene categoría «Vivienda» (tipo de movimiento). ¿Confirmas o cuál corresponde?';
+    const nameQuestion =
+      '¿Cómo quieres llamar este movimiento? En la tabla aparece «Arriendo / vivienda» como gasto.';
     const context = buildBudgetAssistantContext({
       rows,
       intakeData: {},
       products: [],
       chatAnswers: [
-        {
-          q: 'En la tabla aparece «Arriendo / vivienda» como gasto. ¿Confirmas ese nombre o cómo quieres llamar este movimiento?',
-          a: 'sí',
-        },
+        { q: movementTypeQuestion, a: 'sí' },
+        { q: nameQuestion, a: 'sí' },
         { q: '¿Cuánto pagas al mes en vivienda o dividendo?', a: '550 mil' },
       ],
     });

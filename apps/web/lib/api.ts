@@ -127,10 +127,6 @@ export type FincoinUsageApiPayload = {
   initial_fincoins?: number;
   remaining_fincoins?: number;
   spent_fincoins?: number;
-  budget_usd?: number;
-  max_usd_spend?: number;
-  usd_spent?: number;
-  usd_remaining?: number;
   depleted?: boolean;
   low_balance?: boolean;
   warning_threshold?: number;

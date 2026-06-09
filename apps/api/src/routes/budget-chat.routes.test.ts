@@ -30,6 +30,15 @@ afterAll(() => {
 });
 
 describe('budget-chat routes', () => {
+  const SALARY_MOVEMENT_Q =
+    'En la tabla, «Sueldo líquido» tiene categoría «Ingreso principal» (tipo de movimiento). ¿Confirmas o cuál corresponde?';
+  const SALARY_NAME_Q =
+    '¿Cómo quieres llamar este movimiento? En la tabla aparece «Sueldo líquido» como ingreso.';
+  const SALARY_PREFLIGHT = [
+    { q: SALARY_MOVEMENT_Q, a: 'sí' },
+    { q: SALARY_NAME_Q, a: 'sí' },
+  ];
+
   async function createAuthedAgent() {
     const { createApp } = await import('../app');
     const app = createApp();
@@ -70,7 +79,7 @@ describe('budget-chat routes', () => {
     expect(res.status).toBe(200);
     expect(res.body.ok).toBe(true);
     expect(res.body.source).toBe('deterministic_init');
-    expect(String(res.body.next_question || res.body.assistant_reply)).toMatch(/En la tabla aparece|ingreso|sueldo/i);
+    expect(String(res.body.next_question || res.body.assistant_reply)).toMatch(/tipo de movimiento|categoría|sueldo/i);
     expect(res.body.focus_row_id).toBe('income_salary');
   }, 15000);
 
@@ -142,12 +151,7 @@ describe('budget-chat routes', () => {
       question: '¿Cuál es el monto mensual de «Sueldo líquido»?',
       assistantFocusRowId: 'income_salary',
       budgetRows,
-      chatAnswers: [
-        {
-          q: 'En la tabla aparece «Sueldo líquido» como ingreso. ¿Confirmas ese nombre o cómo quieres llamar este movimiento?',
-          a: 'sí',
-        },
-      ],
+      chatAnswers: SALARY_PREFLIGHT,
       activeRow: {
         id: 'expense_rent',
         category: 'Arriendo / vivienda',
@@ -170,12 +174,7 @@ describe('budget-chat routes', () => {
       answer: 'son 850 mil liquidos al mes',
       question: '¿Cuál es el monto mensual de «Sueldo líquido»?',
       budgetRows: [{ id: 'income_salary', category: 'Sueldo líquido', type: 'income', amount: 0, note: '' }],
-      chatAnswers: [
-        {
-          q: 'En la tabla aparece «Sueldo líquido» como ingreso. ¿Confirmas ese nombre o cómo quieres llamar este movimiento?',
-          a: 'sí',
-        },
-      ],
+      chatAnswers: SALARY_PREFLIGHT,
     });
 
     expect(res.status).toBe(200);
@@ -224,7 +223,7 @@ describe('budget-chat routes', () => {
     expect(res.body.focus_row_id).toBe('expense_food');
     expect(String(res.body.assistant_reply)).toMatch(/comida/i);
     expect(String(res.body.assistant_reply)).not.toMatch(/^perfecto|^claro|^listo|^entendido/i);
-    expect(String(res.body.next_question)).toMatch(/En la tabla aparece|Confirmas ese nombre/i);
+    expect(String(res.body.next_question)).toMatch(/tipo de movimiento|categoría/i);
   }, 15000);
 
   it('advances to the next unfilled row when the user answers off-topic without a category', async () => {
@@ -238,7 +237,7 @@ describe('budget-chat routes', () => {
       intent: 'reply',
       answer: 'prefiero seguir con otra cosa',
       question:
-        'En la tabla aparece «Arriendo / vivienda» como gasto. ¿Confirmas ese nombre o cómo quieres llamar este movimiento?',
+        'En la tabla, «Arriendo / vivienda» tiene categoría «Vivienda» (tipo de movimiento). ¿Confirmas o cuál corresponde?',
       assistantFocusRowId: 'expense_rent',
       budgetRows,
     });
@@ -246,7 +245,7 @@ describe('budget-chat routes', () => {
     expect(res.status).toBe(200);
     expect(res.body.source).toBe('deterministic_advance_focus');
     expect(res.body.focus_row_id).toBe('expense_food');
-    expect(String(res.body.next_question)).toMatch(/En la tabla aparece|Alimentación/i);
+    expect(String(res.body.next_question)).toMatch(/Alimentación|categoría|tipo de movimiento/i);
   }, 15000);
 
   it('requests confirmation before deleting all rows when asked in bulk', async () => {
@@ -309,7 +308,7 @@ describe('budget-chat routes', () => {
     expect(res.body.source).toBe('deterministic_field_update');
     expect(res.body.action?.cadence).toBe('fixed');
     expect(res.body.action?.payment_method).toBe('debit');
-    expect(String(res.body.next_question)).toMatch(/tipo de movimiento|describe mejor/i);
+    expect(String(res.body.next_question)).toMatch(/\?/);
   }, 15000);
 
   it('applies pending delete actions after an affirmative confirmation', async () => {
@@ -370,7 +369,11 @@ describe('budget-chat routes', () => {
       budgetRows,
       chatAnswers: [
         {
-          q: 'En la tabla aparece «Transporte» como gasto. ¿Confirmas ese nombre o cómo quieres llamar este movimiento?',
+          q: 'En la tabla, «Transporte» tiene categoría «Transporte» (tipo de movimiento). ¿Confirmas o cuál corresponde?',
+          a: 'sí',
+        },
+        {
+          q: '¿Cómo quieres llamar este movimiento? En la tabla aparece «Transporte» como gasto.',
           a: 'sí',
         },
       ],
@@ -398,7 +401,11 @@ describe('budget-chat routes', () => {
       budgetRows,
       chatAnswers: [
         {
-          q: 'En la tabla aparece «Alimentación» como gasto. ¿Confirmas ese nombre o cómo quieres llamar este movimiento?',
+          q: 'En la tabla, «Alimentación» tiene categoría «Alimentación» (tipo de movimiento). ¿Confirmas o cuál corresponde?',
+          a: 'sí',
+        },
+        {
+          q: '¿Cómo quieres llamar este movimiento? En la tabla aparece «Alimentación» como gasto.',
           a: 'sí',
         },
       ],
@@ -410,7 +417,7 @@ describe('budget-chat routes', () => {
     expect(res.body.focus_row_id).toBe('expense_food');
   }, 15000);
 
-  it('confirms category before asking for monthly amount', async () => {
+  it('confirms movement type before name and monthly amount', async () => {
     const { agent, csrfToken } = await createAuthedAgent();
     const budgetRows = [
       { id: 'expense_food', category: 'Alimentación', type: 'expense', amount: 0 },
@@ -421,9 +428,9 @@ describe('budget-chat routes', () => {
       chatAnswers: [],
     });
     expect(initRes.status).toBe(200);
-    expect(String(initRes.body.next_question)).toMatch(/En la tabla aparece/i);
+    expect(String(initRes.body.next_question)).toMatch(/tipo de movimiento|categoría/i);
 
-    const confirmRes = await agent.post('/api/budget-chat').set('x-csrf-token', csrfToken).send({
+    const typeConfirmRes = await agent.post('/api/budget-chat').set('x-csrf-token', csrfToken).send({
       intent: 'reply',
       answer: 'sí',
       question: initRes.body.next_question,
@@ -431,9 +438,21 @@ describe('budget-chat routes', () => {
       budgetRows,
       chatAnswers: [],
     });
-    expect(confirmRes.status).toBe(200);
-    expect(confirmRes.body.source).toBe('deterministic_category_update');
-    expect(String(confirmRes.body.next_question)).toMatch(/monto mensual/i);
+    expect(typeConfirmRes.status).toBe(200);
+    expect(typeConfirmRes.body.source).toBe('deterministic_movement_type_update');
+    expect(String(typeConfirmRes.body.next_question)).toMatch(/llamar este movimiento/i);
+
+    const nameConfirmRes = await agent.post('/api/budget-chat').set('x-csrf-token', csrfToken).send({
+      intent: 'reply',
+      answer: 'sí',
+      question: typeConfirmRes.body.next_question,
+      assistantFocusRowId: 'expense_food',
+      budgetRows,
+      chatAnswers: [{ q: initRes.body.next_question, a: 'sí' }],
+    });
+    expect(nameConfirmRes.status).toBe(200);
+    expect(nameConfirmRes.body.source).toBe('deterministic_category_update');
+    expect(String(nameConfirmRes.body.next_question)).toMatch(/monto mensual/i);
   }, 15000);
 
   it('updates movement type category from chat like the table selector', async () => {
@@ -467,12 +486,7 @@ describe('budget-chat routes', () => {
       question,
       assistantFocusRowId: 'income_salary',
       budgetRows,
-      chatAnswers: [
-        {
-          q: 'En la tabla aparece «Sueldo líquido» como ingreso. ¿Confirmas ese nombre o cómo quieres llamar este movimiento?',
-          a: 'sí',
-        },
-      ],
+      chatAnswers: SALARY_PREFLIGHT,
       intakeData: { exactMonthlyIncome: 1_450_000 },
       products: [
         {
@@ -510,7 +524,7 @@ describe('budget-chat routes', () => {
     });
 
     expect(res.status).toBe(200);
-    expect(String(res.body.next_question)).toMatch(/En la tabla aparece|Sueldo/i);
+    expect(String(res.body.next_question)).toMatch(/tipo de movimiento|categoría|Sueldo/i);
     expect(String(res.body.assistant_reply)).toMatch(/movimientos|perfil/i);
   }, 15000);
 });

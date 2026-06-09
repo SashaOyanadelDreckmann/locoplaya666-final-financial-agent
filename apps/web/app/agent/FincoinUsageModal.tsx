@@ -66,7 +66,7 @@ export function FincoinUsageModal(props: {
 
         <SpendingLimitCard
           title="Consumo de sesión"
-          dateRange={`250 FC ≈ US$${usage.budgetUsd.toFixed(2)} · tope total US$${usage.maxUsdSpend.toFixed(2)}`}
+          dateRange={`${usage.initialFincoins} Fincoins incluidos en tu cuenta`}
           currentSpending={usage.spentFincoins}
           limit={usage.initialFincoins}
           currency="FC"
@@ -94,12 +94,8 @@ export function FincoinUsageModal(props: {
             <strong>{usage.remainingFincoins} FC</strong>
           </div>
           <div>
-            <span>Equivalente</span>
-            <strong>US${usage.usdRemaining.toFixed(2)}</strong>
-          </div>
-          <div>
-            <span>Gastado</span>
-            <strong>US${usage.usdSpent.toFixed(2)}</strong>
+            <span>Consumidos</span>
+            <strong>{usage.spentFincoins} FC</strong>
           </div>
         </div>
 

@@ -670,6 +670,8 @@ export function InterviewModal({ isOpen, fincoinSpendBlocked, onClose, onDiagnos
                           ? 'Conectando llamada…'
                           : showVoiceReport
                             ? 'Diagnóstico listo'
+                            : voiceConnected && voicePaused
+                              ? 'Llamada en pausa'
                             : voiceConnected
                               ? 'Llamada activa'
                           : voiceFlags.voiceCallExhausted && !showVoiceReport

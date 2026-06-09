@@ -120,6 +120,22 @@ describe('interview modal helpers', () => {
     expect(active.voiceCallExhausted).toBe(false);
     expect(active.voiceInterviewLocked).toBe(false);
 
+    const pausedNearCloseout = resolveInterviewVoiceStateFlags({
+      callId: 'call-paused',
+      callsStarted: 1,
+      callSeconds: 160,
+      minuteSummariesCount: 1,
+      hasFinalSummary: false,
+      hasVoiceReport: false,
+      remainingTotalSec: 20,
+      maxCallDurationSec: 180,
+      closeoutBufferSec: 25,
+      voiceConnected: true,
+      voicePaused: true,
+    } as unknown as Parameters<typeof resolveInterviewVoiceStateFlags>[0]);
+
+    expect(pausedNearCloseout.isClosingWindow).toBe(false);
+
     const exhausted = resolveInterviewVoiceStateFlags({
       callId: 'call-2',
       callsStarted: 1,

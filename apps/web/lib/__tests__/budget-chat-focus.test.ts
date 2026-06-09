@@ -58,11 +58,18 @@ describe('budget-chat-focus helpers', () => {
     expect(target?.id).toBe('expense_rent');
   });
 
-  it('infers row and field from category validation questions', () => {
-    const categoryQuestion =
-      'En la tabla aparece «Sueldo líquido» como ingreso. ¿Confirmas ese nombre o cómo quieres llamar este movimiento?';
-    expect(inferBudgetFocusRowId(categoryQuestion)).toBe('income_salary');
-    expect(inferBudgetFieldFromQuestion(categoryQuestion)).toBe('category');
+  it('infers row and field from movement type validation questions', () => {
+    const movementTypeQuestion =
+      'En la tabla, «Sueldo líquido» tiene categoría «Ingreso principal» (tipo de movimiento). ¿Confirmas o cuál corresponde?';
+    expect(inferBudgetFocusRowId(movementTypeQuestion)).toBe('income_salary');
+    expect(inferBudgetFieldFromQuestion(movementTypeQuestion)).toBe('movementType');
+  });
+
+  it('infers row and field from movement name questions', () => {
+    const nameQuestion =
+      '¿Cómo quieres llamar este movimiento? En la tabla aparece «Sueldo líquido» como ingreso.';
+    expect(inferBudgetFocusRowId(nameQuestion)).toBe('income_salary');
+    expect(inferBudgetFieldFromQuestion(nameQuestion)).toBe('category');
   });
 
   it('prioritizes category mentioned in the user answer over stale assistant focus', () => {

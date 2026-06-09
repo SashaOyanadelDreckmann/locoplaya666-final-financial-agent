@@ -79,6 +79,7 @@ export type InterviewVoiceStateInput = {
   maxCallDurationSec?: number;
   closeoutBufferSec: number;
   voiceConnected?: boolean;
+  voicePaused?: boolean;
 };
 
 export type InterviewVoiceStateFlags = {
@@ -119,8 +120,9 @@ export function resolveInterviewVoiceStateFlags(input: InterviewVoiceStateInput)
     Boolean(input.hasVoiceReport);
   const hasRemainingInterviewTime = !quota.isExhausted;
   const hasLiveVoiceCall = Boolean(input.callId) && !hasCompletedVoiceInterview && hasRemainingInterviewTime;
+  const isCallActivelyRunning = Boolean(input.voiceConnected) && input.voicePaused !== true;
   const isClosingWindow =
-    Boolean(input.voiceConnected) &&
+    isCallActivelyRunning &&
     hasRemainingInterviewTime &&
     quota.remainingSeconds <= input.closeoutBufferSec;
   const voiceCallExhausted =

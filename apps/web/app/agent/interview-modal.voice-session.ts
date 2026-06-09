@@ -70,6 +70,62 @@ export async function ensureMicrophoneAccess(existingStream: MediaStream | null)
   });
 }
 
+export const INTERVIEW_REALTIME_TURN_DETECTION = {
+  type: 'server_vad' as const,
+  threshold: 0.5,
+  prefix_padding_ms: 300,
+  silence_duration_ms: 650,
+};
+
+export function sendRealtimeCallPauseEvents(
+  sendVoiceEvent: ((payload: Record<string, unknown>) => void) | null,
+  paused: boolean,
+) {
+  if (!sendVoiceEvent) return;
+  if (paused) {
+    sendVoiceEvent({ type: 'response.cancel' });
+    sendVoiceEvent({ type: 'output_audio_buffer.clear' });
+    sendVoiceEvent({ type: 'input_audio_buffer.clear' });
+    sendVoiceEvent({
+      type: 'session.update',
+      session: {
+        turn_detection: null,
+      },
+    });
+    return;
+  }
+
+  sendVoiceEvent({
+    type: 'session.update',
+    session: {
+      turn_detection: INTERVIEW_REALTIME_TURN_DETECTION,
+    },
+  });
+}
+
+export function setRemotePlaybackPaused(audio: HTMLAudioElement | null, paused: boolean) {
+  if (!audio) return;
+  audio.muted = paused;
+  if (paused) {
+    audio.pause();
+    return;
+  }
+  void audio.play().catch(() => {});
+}
+
+export function setPeerConnectionAudioPaused(
+  peerConnection: RTCPeerConnection | null,
+  paused: boolean,
+) {
+  if (!peerConnection) return;
+  for (const sender of peerConnection.getSenders()) {
+    if (sender.track?.kind === 'audio') sender.track.enabled = !paused;
+  }
+  for (const receiver of peerConnection.getReceivers()) {
+    if (receiver.track?.kind === 'audio') receiver.track.enabled = !paused;
+  }
+}
+
 export function mapMicrophoneAccessError(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error ?? '');
   if (

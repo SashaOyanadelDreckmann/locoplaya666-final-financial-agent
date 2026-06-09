@@ -79,23 +79,23 @@ export function getBudgetQuestionForId(rowId: string | null, contextInput?: Para
   }
   switch (rowId) {
     case 'income_salary':
-      return 'En la tabla aparece «Sueldo líquido» como ingreso. ¿Confirmas ese nombre o cómo quieres llamar este movimiento?';
+      return 'En la tabla, «Sueldo líquido» tiene categoría «Ingreso principal» (tipo de movimiento). ¿Confirmas o cuál corresponde?';
     case 'expense_rent':
-      return 'En la tabla aparece «Arriendo / vivienda» como gasto. ¿Confirmas ese nombre o cómo quieres llamar este movimiento?';
+      return 'En la tabla, «Arriendo / vivienda» tiene categoría «Vivienda» (tipo de movimiento). ¿Confirmas o cuál corresponde?';
     case 'expense_food':
-      return 'En la tabla aparece «Alimentación» como gasto. ¿Confirmas ese nombre o cómo quieres llamar este movimiento?';
+      return 'En la tabla, «Alimentación» tiene categoría «Alimentación» (tipo de movimiento). ¿Confirmas o cuál corresponde?';
     case 'expense_services':
-      return 'En la tabla aparece «Servicios básicos» como gasto. ¿Confirmas ese nombre o cómo quieres llamar este movimiento?';
+      return 'En la tabla, «Servicios básicos» tiene categoría «Servicios hogar» (tipo de movimiento). ¿Confirmas o cuál corresponde?';
     case 'expense_transport':
-      return 'En la tabla aparece «Transporte» como gasto. ¿Confirmas ese nombre o cómo quieres llamar este movimiento?';
+      return 'En la tabla, «Transporte» tiene categoría «Transporte» (tipo de movimiento). ¿Confirmas o cuál corresponde?';
     case 'expense_debt':
-      return 'En la tabla aparece «Deuda / cuotas» como gasto. ¿Confirmas ese nombre o cómo quieres llamar este movimiento?';
+      return 'En la tabla, «Deuda / cuotas» tiene categoría «Deudas» (tipo de movimiento). ¿Confirmas o cuál corresponde?';
     case 'expense_savings':
-      return 'En la tabla aparece «Ahorro / inversión» como gasto. ¿Confirmas ese nombre o cómo quieres llamar este movimiento?';
+      return 'En la tabla, «Ahorro / inversión» tiene categoría «Ahorro/Inversión» (tipo de movimiento). ¿Confirmas o cuál corresponde?';
     case 'expense_other':
-      return 'En la tabla aparece «Otros gastos» como gasto. ¿Confirmas ese nombre o cómo quieres llamar este movimiento?';
+      return 'En la tabla, «Otros gastos» tiene categoría «Ocio/Otros» (tipo de movimiento). ¿Confirmas o cuál corresponde?';
     default:
-      return 'En la tabla aparece este movimiento. ¿Confirmas ese nombre o cómo quieres llamarlo?';
+      return 'En la tabla, este movimiento tiene una categoría (tipo de movimiento). ¿Confirmas o cuál corresponde?';
   }
 }
 

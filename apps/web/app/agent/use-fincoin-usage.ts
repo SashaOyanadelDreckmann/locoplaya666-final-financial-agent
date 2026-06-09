@@ -4,27 +4,36 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   FINCOIN_INITIAL_BALANCE,
   FINCOIN_WARNING_THRESHOLD,
-  type FincoinUsageStatus,
   computeFincoinUsage,
 } from '@financial-agent/shared';
 import { fetchFincoinUsage, type FincoinUsageApiPayload } from '@/lib/api';
 
-export type FincoinUsageState = FincoinUsageStatus & {
+export type FincoinUsageState = {
+  initialFincoins: number;
+  remainingFincoins: number;
+  spentFincoins: number;
+  depleted: boolean;
+  lowBalance: boolean;
+  warningThreshold: number;
   closureSummaries?: Record<string, unknown>;
 };
 
 function mapApiUsage(payload?: FincoinUsageApiPayload | null): FincoinUsageState {
   if (!payload) {
-    return computeFincoinUsage(0);
+    const defaults = computeFincoinUsage(0);
+    return {
+      initialFincoins: defaults.initialFincoins,
+      remainingFincoins: defaults.remainingFincoins,
+      spentFincoins: defaults.spentFincoins,
+      depleted: defaults.depleted,
+      lowBalance: defaults.lowBalance,
+      warningThreshold: defaults.warningThreshold,
+    };
   }
   return {
     initialFincoins: payload.initial_fincoins ?? FINCOIN_INITIAL_BALANCE,
     remainingFincoins: payload.remaining_fincoins ?? FINCOIN_INITIAL_BALANCE,
     spentFincoins: payload.spent_fincoins ?? 0,
-    budgetUsd: payload.budget_usd ?? 1.6,
-    maxUsdSpend: payload.max_usd_spend ?? 2,
-    usdSpent: payload.usd_spent ?? 0,
-    usdRemaining: payload.usd_remaining ?? 2,
     depleted: Boolean(payload.depleted),
     lowBalance: Boolean(payload.low_balance),
     warningThreshold: payload.warning_threshold ?? FINCOIN_WARNING_THRESHOLD,
@@ -32,7 +41,7 @@ function mapApiUsage(payload?: FincoinUsageApiPayload | null): FincoinUsageState
 }
 
 export function useFincoinUsage(enabled: boolean) {
-  const [usage, setUsage] = useState<FincoinUsageState>(() => computeFincoinUsage(0));
+  const [usage, setUsage] = useState<FincoinUsageState>(() => mapApiUsage());
   const [loading, setLoading] = useState(false);
 
   const refresh = useCallback(async () => {

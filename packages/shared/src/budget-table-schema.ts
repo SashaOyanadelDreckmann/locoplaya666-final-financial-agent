@@ -290,9 +290,13 @@ export function parseBudgetPaymentFromAnswer(answer: string): BudgetPaymentMetho
   return null;
 }
 
-export function parseBudgetMovementFromAnswer(answer: string): BudgetMovementType | null {
+export function parseBudgetMovementFromAnswer(
+  answer: string,
+  options?: { directAnswer?: boolean },
+): BudgetMovementType | null {
   const text = normalizeBudgetParseText(answer);
   const explicitMovementIntent =
+    options?.directAnswer === true ||
     /\b(categor[ií]a|tipo de movimiento|tipo movimiento|clasifica|clasificar|etiqueta|ponle tipo|pon tipo|dejalo como|dejala como)\b/.test(
       text,
     ) ||

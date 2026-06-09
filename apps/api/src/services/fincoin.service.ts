@@ -190,15 +190,12 @@ function readClosureSummariesFromSheets(
   return out;
 }
 
+/** Client-safe payload: Fincoins only (USD economics stay server-side). */
 export function fincoinUsagePayload(usage: FincoinUsageStatus) {
   return {
     initial_fincoins: usage.initialFincoins,
     remaining_fincoins: usage.remainingFincoins,
     spent_fincoins: usage.spentFincoins,
-    budget_usd: usage.budgetUsd,
-    max_usd_spend: usage.maxUsdSpend,
-    usd_spent: usage.usdSpent,
-    usd_remaining: usage.usdRemaining,
     depleted: usage.depleted,
     low_balance: usage.lowBalance,
     warning_threshold: usage.warningThreshold,

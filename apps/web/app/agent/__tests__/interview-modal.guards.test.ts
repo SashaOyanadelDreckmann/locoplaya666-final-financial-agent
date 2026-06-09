@@ -112,6 +112,22 @@ describe('interview modal safeguards', () => {
     expect(runtime).toContain("addEventListener('pagehide'");
   });
 
+  it('applies a hard realtime pause instead of only muting the local mic', () => {
+    const runtimePath = path.join(process.cwd(), 'app', 'agent', 'useInterviewVoiceRuntime.ts');
+    const voiceSessionPath = path.join(process.cwd(), 'app', 'agent', 'interview-modal.voice-session.ts');
+    const runtime = fs.readFileSync(runtimePath, 'utf8');
+    const voiceSession = fs.readFileSync(voiceSessionPath, 'utf8');
+
+    expect(runtime).toContain('applyCallPauseState');
+    expect(runtime).toContain('sendRealtimeCallPauseEvents');
+    expect(runtime).toContain('setPeerConnectionAudioPaused');
+    expect(runtime).toContain('setRemotePlaybackPaused');
+    expect(runtime).toContain('voicePausedRef.current');
+    expect(voiceSession).toContain("type: 'response.cancel'");
+    expect(voiceSession).toContain("type: 'output_audio_buffer.clear'");
+    expect(voiceSession).toContain('turn_detection: null');
+  });
+
   it('labels paused live calls as Pausada in stage status', () => {
     const modalPath = path.join(process.cwd(), 'app', 'agent', 'InterviewModal.tsx');
     const modal = fs.readFileSync(modalPath, 'utf8');

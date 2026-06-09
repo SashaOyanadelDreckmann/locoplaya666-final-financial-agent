@@ -35,6 +35,9 @@ import {
   emitVoiceSessionContext,
   mapMicrophoneAccessError,
   resolveVoiceCapabilityIssue,
+  sendRealtimeCallPauseEvents,
+  setPeerConnectionAudioPaused,
+  setRemotePlaybackPaused,
 } from './interview-modal.voice-session';
 import {
   canEndInterviewCallEarly,
@@ -117,6 +120,7 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
   const liveSegmentStartedAtRef = useRef<number | null>(null);
   const pendingFinalizeRef = useRef<PendingFinalizePayload | null>(null);
   const latestVoiceSnapshotRef = useRef<InterviewVoiceSnapshot | null>(null);
+  const voicePausedRef = useRef(false);
 
   const [voiceSupported, setVoiceSupported] = useState(false);
   const [voiceAwaitingMic, setVoiceAwaitingMic] = useState(false);
@@ -167,7 +171,12 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
     maxCallDurationSec,
     closeoutBufferSec: INTERVIEW_CLOSEOUT_BUFFER_SEC,
     voiceConnected,
+    voicePaused,
   });
+
+  useEffect(() => {
+    voicePausedRef.current = voicePaused;
+  }, [voicePaused]);
 
   function flushLiveSegment() {
     if (liveSegmentStartedAtRef.current == null) return;
@@ -250,6 +259,7 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
     setVoiceSpeaking(false);
     setVoiceError(null);
     setVoicePaused(false);
+    voicePausedRef.current = false;
     if (!preserveDiagnosisSignals) {
       setPauseUsed(false);
       setCallSeconds(0);
@@ -322,6 +332,7 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
     setVoiceListening(false);
     setVoiceSpeaking(false);
     setVoicePaused(false);
+    voicePausedRef.current = false;
     setVoiceError(null);
     setSummaryGenerating(false);
     setVoiceSessionReady(false);
@@ -447,10 +458,7 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
     }
 
     setVoiceError(null);
-    stream.getAudioTracks().forEach((track) => {
-      track.enabled = true;
-    });
-    setVoicePaused(false);
+    applyCallPauseState(false);
     setVoiceConnected(true);
     setVoiceConnecting(false);
     startLiveSegment();
@@ -594,6 +602,19 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
         try {
           const payload = JSON.parse(event.data);
           const type = String(payload?.type ?? '');
+          if (voicePausedRef.current) {
+            const blockedWhilePaused = new Set([
+              'input_audio_buffer.speech_started',
+              'input_audio_buffer.speech_stopped',
+              'response.created',
+              'response.output_text.delta',
+              'response.text.delta',
+              'response.output_text.done',
+              'response.text.done',
+              'response.done',
+            ]);
+            if (blockedWhilePaused.has(type)) return;
+          }
 
           if (type === 'input_audio_buffer.speech_started') setVoiceListening(true);
           if (type === 'input_audio_buffer.speech_stopped') setVoiceListening(false);
@@ -700,6 +721,25 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
     await startVoiceSession();
   }
 
+  function applyCallPauseState(paused: boolean) {
+    voicePausedRef.current = paused;
+    setVoicePaused(paused);
+    localStreamRef.current?.getAudioTracks().forEach((track) => {
+      track.enabled = !paused;
+    });
+    setPeerConnectionAudioPaused(peerConnectionRef.current, paused);
+    setRemotePlaybackPaused(remoteAudioRef.current, paused);
+    sendRealtimeCallPauseEvents(sendVoiceEventRef.current, paused);
+    if (paused) {
+      setVoiceListening(false);
+      setVoiceSpeaking(false);
+      summaryRequestRef.current = null;
+      summaryDraftRef.current = '';
+      setSummaryGenerating(false);
+      return;
+    }
+  }
+
   function toggleCallPause() {
     if (!voiceConnected) return;
     if (voicePaused) {
@@ -707,20 +747,14 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
         void finalizeCallAndGenerateReport('timeout', { durationSecOverride: accumulatedActiveSecRef.current });
         return;
       }
-      localStreamRef.current?.getAudioTracks().forEach((track) => {
-        track.enabled = true;
-      });
-      setVoicePaused(false);
+      applyCallPauseState(false);
       startLiveSegment();
       const snapshot = persistVoiceSnapshot('in_progress');
       void saveInterviewVoiceState(snapshot).catch(() => {});
       return;
     }
     flushLiveSegment();
-    localStreamRef.current?.getAudioTracks().forEach((track) => {
-      track.enabled = false;
-    });
-    setVoicePaused(true);
+    applyCallPauseState(true);
     const snapshot = persistVoiceSnapshot('paused');
     writeInterviewVoiceState(snapshot);
     void saveInterviewVoiceState(snapshot).catch(() => {});
@@ -1219,7 +1253,7 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
   }, [callSeconds, voiceReport, isFinalizingCall, isGeneratingDiagnosis, intake]);
 
   useEffect(() => {
-    if (!isOpen || !voiceFlags.isClosingWindow || closeoutPromptSentRef.current) return;
+    if (!isOpen || !voiceFlags.isClosingWindow || closeoutPromptSentRef.current || voicePaused) return;
     closeoutPromptSentRef.current = true;
     emitVoiceSessionContext(sendVoiceEventRef.current, voiceSessionContextRef.current, {
       callPhase: 'closeout',
@@ -1230,7 +1264,15 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
 
   useEffect(() => {
     const normalized = voiceAgentTranscript.toUpperCase();
-    if (!voiceConnected || isFinalizingCall || voiceFinalizeTriggeredRef.current || summaryRequestRef.current) return;
+    if (
+      !voiceConnected ||
+      voicePaused ||
+      isFinalizingCall ||
+      voiceFinalizeTriggeredRef.current ||
+      summaryRequestRef.current
+    ) {
+      return;
+    }
     if (!normalized.includes('<<CALL_COMPLETE>>')) return;
     voiceFinalizeTriggeredRef.current = true;
     void finalizeCallAndGenerateReport('agent');
