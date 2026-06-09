@@ -2,6 +2,11 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { timingSafeEqual } from 'crypto';
 import { runCoreAgent } from '../agents/core.agent/core-agent-orchestrator';
+import {
+  initAgentSseResponse,
+  wantsAgentStream,
+  type AgentProgressReporter,
+} from '../agents/core.agent/agent-stream.reporter';
 import { ChatAgentInputSchema } from '../agents/core.agent/chat.types';
 import {
   attachProfileToUser,
@@ -901,13 +906,15 @@ router.get(
     const persistedMinuteSummaries = normalizeInterviewVoiceMinuteSummaries(interviewVoice.minuteSummaries);
     const persistedFinalSummary =
       interviewVoice.finalSummary && typeof interviewVoice.finalSummary === 'object'
-        ? (interviewVoice.finalSummary as {
-            summary: string;
-            keyFindings?: string[];
-            confidence?: 'high' | 'medium' | 'low';
-            createdAt?: string;
-          })
-        : null;
+        ? {
+            summary: String((interviewVoice.finalSummary as { summary?: unknown }).summary ?? ''),
+            keyFindings: Array.isArray((interviewVoice.finalSummary as { keyFindings?: unknown }).keyFindings)
+              ? ((interviewVoice.finalSummary as { keyFindings: string[] }).keyFindings ?? [])
+              : [],
+            confidence: (interviewVoice.finalSummary as { confidence?: 'high' | 'medium' | 'low' }).confidence,
+            createdAt: (interviewVoice.finalSummary as { createdAt?: string }).createdAt,
+          }
+        : undefined;
     const sessionInstructions = buildVoiceSessionInstructions({
       intake: serverIntake,
       minuteSummaries: persistedMinuteSummaries,
@@ -1224,6 +1231,18 @@ router.get(
   }),
 );
 
+function returnAgentChatPayload(
+  res: import('express').Response,
+  payload: Record<string, unknown>,
+  streamReporter?: AgentProgressReporter | null,
+) {
+  if (streamReporter) {
+    streamReporter.complete(payload);
+    return;
+  }
+  return sendSuccess(res, payload);
+}
+
 router.post(
   '/agent',
   requireAuth,
@@ -1237,11 +1256,15 @@ router.post(
       throw forbidden('INTAKE_REQUIRED');
     }
 
+    const body = (req.body ?? {}) as Record<string, unknown>;
+    const useStream = wantsAgentStream({ query: req.query as Record<string, unknown>, headers: req.headers as Record<string, unknown>, body });
+    const streamReporter = useStream ? initAgentSseResponse(res) : null;
+
     const fincoinBefore = getFincoinUsageForUser(authedUser);
     if (fincoinBefore.depleted || !canAffordOperation(fincoinBefore, 'agent.chat')) {
       const closureSummaries = await ensureFincoinDepletionHandled(authedUser.id);
       const lifecycleState = getLifecycleFromMemory(authedUser.memoryBlob);
-      return sendSuccess(res, {
+      return returnAgentChatPayload(res, {
         message:
           'Tus Fincoins se agotaron. El agente queda en pausa: puedes revisar los resúmenes finales de cada chat desbloqueado, pero no se procesan nuevas solicitudes con costo.',
         mode: 'information',
@@ -1271,7 +1294,7 @@ router.post(
             closed_chats: lifecycleState.closedChats,
           },
         },
-      });
+      }, streamReporter);
     }
 
     if (process.env.NODE_ENV !== 'production') {
@@ -1285,7 +1308,6 @@ router.post(
       }
     }
 
-    const body = (req.body ?? {}) as Record<string, unknown>;
     const clientMessageId =
       typeof body.client_message_id === 'string' && body.client_message_id.trim().length > 0
         ? body.client_message_id.trim()
@@ -1456,7 +1478,7 @@ router.post(
     });
 
     if (lifecycleDecision.blocked) {
-      return sendSuccess(res, {
+      return returnAgentChatPayload(res, {
         message:
           lifecycleDecision.reason ??
           buildResilientFallbackMessage({
@@ -1494,7 +1516,7 @@ router.post(
         },
         state_updates: {},
         meta: lifecycleMeta(lifecycleDecision.state, lifecycleDecision.activeChatId),
-      });
+      }, streamReporter);
     }
 
     input = {
@@ -1517,8 +1539,20 @@ router.post(
     };
     let response: any;
     try {
-      response = await runCoreAgent(input);
+      response = await runCoreAgent(input, streamReporter ? { stream: streamReporter } : undefined);
     } catch (agentErr) {
+      if (streamReporter) {
+        req.logger?.error({
+          msg: 'Core agent failed during stream',
+          error: agentErr,
+          userId: authedUser.id,
+        });
+        streamReporter.error(
+          'No pude completar la respuesta en este intento. Intenta de nuevo en unos segundos.',
+          'AGENT_FAILED',
+        );
+        return;
+      }
       req.logger?.error({
         msg: 'Core agent failed; returning conversational fallback',
         error: agentErr,
@@ -1727,7 +1761,7 @@ router.post(
       };
     }
 
-    return sendSuccess(res, response);
+    return returnAgentChatPayload(res, response as Record<string, unknown>, streamReporter);
   }),
 );
 
