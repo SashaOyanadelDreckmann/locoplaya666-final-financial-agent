@@ -4,6 +4,7 @@ import React, {
   useCallback,
   useEffect,
   useId,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -110,7 +111,9 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
   const [focusedIndex, setFocusedIndex] = useState(activeIndex);
 
   const itemCount = items.length;
-  const loopRepeat = repeat ?? (itemCount <= 1 ? 1 : itemCount <= 4 ? 3 : 2);
+  const loopRepeat = quietMode
+    ? 1
+    : (repeat ?? (itemCount <= 1 ? 1 : itemCount <= 4 ? 3 : 2));
 
   const streamCards = useMemo(() => {
     if (itemCount === 0) return [];
@@ -167,17 +170,29 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
       const cardStep = getCardStep();
       const scannerX = container.offsetWidth / 2;
       const baseIndex = Math.max(0, Math.min(itemCount - 1, sourceIndex));
-      const targetStreamIndex = itemCount + baseIndex;
+      const targetStreamIndex = quietMode ? baseIndex : itemCount + baseIndex;
       const cardCenter = targetStreamIndex * cardStep + metrics.cardWidth / 2;
       return scannerX - cardCenter;
     },
-    [getCardStep, itemCount, metrics.cardWidth],
+    [getCardStep, itemCount, metrics.cardWidth, quietMode],
+  );
+
+  const applyCarouselPosition = useCallback(
+    (sourceIndex: number) => {
+      const cardLine = cardLineRef.current;
+      if (!cardLine || itemCount === 0) return;
+      const nextPosition = getTargetPositionForIndex(sourceIndex);
+      cardStreamState.current.position = nextPosition;
+      cardStreamState.current.velocity = 0;
+      cardLine.style.transform = `translateX(${nextPosition}px)`;
+      setFocusedIndex(Math.max(0, Math.min(itemCount - 1, sourceIndex)));
+    },
+    [getTargetPositionForIndex, itemCount],
   );
 
   const centerOnSourceIndex = useCallback(
     (sourceIndex: number, immediate = false) => {
-      const cardLine = cardLineRef.current;
-      if (!cardLine || itemCount === 0) return;
+      if (itemCount === 0) return;
 
       const baseIndex = Math.max(0, Math.min(itemCount - 1, sourceIndex));
       if (quietMode && !immediate && !prefersReducedMotion) {
@@ -185,14 +200,10 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
         return;
       }
 
-      const nextPosition = getTargetPositionForIndex(baseIndex);
-      cardStreamState.current.position = nextPosition;
-      cardStreamState.current.velocity = 0;
-      cardLine.style.transform = `translateX(${nextPosition}px)`;
-      setFocusedIndex(baseIndex);
+      applyCarouselPosition(baseIndex);
       window.requestAnimationFrame(() => updateCardEffectsRef.current?.());
     },
-    [getTargetPositionForIndex, itemCount, prefersReducedMotion, quietMode],
+    [applyCarouselPosition, itemCount, prefersReducedMotion, quietMode],
   );
 
   const resolveFocusedSourceIndex = useCallback(() => {
@@ -203,6 +214,12 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
     const scannerX = container.offsetWidth / 2;
     const cardStep = getCardStep();
     const position = cardStreamState.current.position;
+
+    if (quietMode) {
+      const raw = (scannerX - position - metrics.cardWidth / 2) / cardStep;
+      return Math.max(0, Math.min(itemCount - 1, Math.round(raw)));
+    }
+
     let closestIndex = 0;
     let closestDistance = Number.POSITIVE_INFINITY;
 
@@ -217,7 +234,7 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
     });
 
     return closestIndex;
-  }, [getCardStep, itemCount, metrics.cardWidth, streamCards]);
+  }, [getCardStep, itemCount, metrics.cardWidth, quietMode, streamCards]);
 
   const goToRelative = useCallback(
     (delta: number) => {
@@ -255,10 +272,18 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
     return () => window.removeEventListener('resize', updateMetrics);
   }, [cardWidthRatio]);
 
+  useLayoutEffect(() => {
+    if (!quietMode || itemCount === 0) return;
+    const container = rootRef.current;
+    if (!container || container.offsetWidth <= 0) return;
+    applyCarouselPosition(activeIndex);
+    updateCardEffectsRef.current?.();
+  }, [activeIndex, applyCarouselPosition, itemCount, metrics.cardGap, metrics.cardWidth, metrics.containerWidth, metrics.stageHeight, quietMode]);
+
   useEffect(() => {
-    if (itemCount === 0) return;
+    if (itemCount === 0 || quietMode) return;
     centerOnSourceIndex(activeIndex, true);
-  }, [activeIndex, centerOnSourceIndex, itemCount, metrics.cardWidth, metrics.cardGap]);
+  }, [activeIndex, centerOnSourceIndex, itemCount, metrics.cardGap, metrics.cardWidth, quietMode]);
 
   useEffect(() => {
     const cardLine = cardLineRef.current;
