@@ -115,6 +115,7 @@ import {
   normalizeChat1WelcomeShellItems,
 } from './welcome-intro.shared';
 import { AgentBootSequence } from './AgentBootSequence';
+import { PanelCardsIntroSequence } from './PanelCardsIntroSequence';
 import { shouldShowAgentBootSequence } from './agent-boot-sequence.helpers';
 
 import type {
@@ -486,6 +487,8 @@ export default function AgentPage() {
   const composerFocusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const interviewAutoOpenHandledRef = useRef(false);
   const [bootSequenceActive, setBootSequenceActive] = useState(false);
+  const [panelIntroActive, setPanelIntroActive] = useState(false);
+  const [panelIntroPhase, setPanelIntroPhase] = useState<'morph' | 'dock'>('morph');
 
   useEffect(() => {
     if (!authBootstrapped || !isAuthenticated) return;
@@ -3466,6 +3469,7 @@ export default function AgentPage() {
       key: `real-${card.key}-${index}`,
       'data-loop-segment': 'real',
       'data-loop-origin': String(index),
+      'data-panel-intro-slot': card.key,
     })
   );
 
@@ -3589,6 +3593,8 @@ export default function AgentPage() {
       <main
       className={`agent-layout ${activeThreadThemeClass} ${
         bootSequenceActive ? 'is-boot-sequence-active' : ''
+      } ${
+        panelIntroActive ? 'is-panel-intro-active' : ''
       } ${
         isRailMorphing ? 'is-mode-12-morphing' : ''
       } ${
@@ -3757,6 +3763,8 @@ export default function AgentPage() {
         compactPanelLoopResetKey={compactPanelLoopResetKey}
         compactPanelDeckRef={compactPanelDeckRef}
         panelRenderedCards={panelRenderedCards}
+        panelIntroActive={panelIntroActive}
+        panelIntroPhase={panelIntroPhase}
       />
 
       {docFlight && (
@@ -3903,7 +3911,23 @@ export default function AgentPage() {
       {bootSequenceActive && sessionInfo ? (
         <AgentBootSequence
           session={sessionInfo}
-          onComplete={() => setBootSequenceActive(false)}
+          onComplete={() => {
+            setBootSequenceActive(false);
+            setPanelIntroPhase('morph');
+            setPanelIntroActive(true);
+          }}
+        />
+      ) : null}
+
+      {panelIntroActive ? (
+        <PanelCardsIntroSequence
+          panelGridRef={panelGridRef}
+          isMobileViewport={isMobileViewport}
+          onPhaseChange={setPanelIntroPhase}
+          onComplete={() => {
+            setPanelIntroActive(false);
+            setPanelIntroPhase('morph');
+          }}
         />
       ) : null}
     </>

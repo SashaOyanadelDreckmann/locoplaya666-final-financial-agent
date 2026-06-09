@@ -1,0 +1,320 @@
+/* Post-boot panel cards morph intro */
+
+html.panel-intro-active,
+body.panel-intro-active {
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+}
+
+.agent-layout.is-panel-intro-active {
+  pointer-events: none;
+}
+
+.agent-layout.is-panel-intro-active .agent-panel.is-panel-intro-measure {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: none !important;
+}
+
+.agent-layout.is-panel-intro-active .agent-panel.is-panel-intro-measure .panel-grid > * {
+  opacity: 0 !important;
+}
+
+.agent-layout.is-panel-intro-active .agent-panel.is-panel-intro-measure .panel-grid.is-card-stack,
+.agent-layout.is-panel-intro-active .agent-panel.is-panel-intro-measure .panel-grid.is-card-stack * {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+.panel-intro-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2147482900;
+  display: grid;
+  place-items: center;
+  pointer-events: auto;
+  isolation: isolate;
+}
+
+.panel-intro-overlay.is-exiting {
+  pointer-events: none;
+}
+
+.panel-intro-overlay__backdrop {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 68% 54% at 50% 42%, rgba(56, 189, 248, 0.08), transparent 58%),
+    radial-gradient(ellipse 90% 72% at 50% 100%, rgba(167, 139, 250, 0.06), transparent 62%),
+    rgba(0, 0, 0, 0.94);
+}
+
+.panel-morph-intro.is-dock-stage {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  max-width: none;
+  max-height: none;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  pointer-events: none;
+}
+
+.panel-morph-intro.is-dock-stage .panel-morph-intro__copy,
+.panel-morph-intro.is-dock-stage .panel-morph-intro__vignette,
+.panel-morph-intro.is-dock-stage .panel-morph-intro__grain,
+.panel-morph-intro.is-dock-stage .panel-morph-intro__progress {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.panel-morph-intro {
+  position: relative;
+  width: min(1080px, calc(100vw - 20px));
+  height: min(760px, calc(100vh - 24px));
+  overflow: hidden;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(180deg, rgba(8, 12, 18, 0.82), rgba(2, 6, 12, 0.94));
+  box-shadow:
+    0 30px 90px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.panel-morph-intro__vignette,
+.panel-morph-intro__grain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.panel-morph-intro__vignette {
+  background: radial-gradient(
+    ellipse 72% 58% at 50% 46%,
+    transparent 0%,
+    rgba(0, 0, 0, 0.42) 72%,
+    rgba(0, 0, 0, 0.72) 100%
+  );
+}
+
+.panel-morph-intro__grain {
+  opacity: 0.16;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.8) 0.6px, transparent 0.6px);
+  background-size: 3px 3px;
+  mix-blend-mode: soft-light;
+}
+
+.panel-morph-intro__copy {
+  position: absolute;
+  top: clamp(18px, 4vh, 34px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  width: min(640px, calc(100% - 32px));
+  text-align: center;
+  pointer-events: none;
+}
+
+.panel-morph-intro__caption-kicker {
+  display: inline-block;
+  margin-bottom: 8px;
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(125, 211, 252, 0.82);
+}
+
+.panel-morph-intro__caption-title {
+  margin: 0;
+  font-size: clamp(1.35rem, 3.4vw, 2.2rem);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  color: rgba(248, 250, 252, 0.98);
+}
+
+.panel-morph-intro__caption-text {
+  margin: 10px 0 0;
+  font-size: clamp(0.82rem, 2.1vw, 0.98rem);
+  line-height: 1.55;
+  color: rgba(186, 208, 226, 0.84);
+}
+
+.panel-morph-intro__caption.is-forming .panel-morph-intro__caption-title,
+.panel-morph-intro__caption.is-docking .panel-morph-intro__caption-title {
+  font-size: clamp(1.2rem, 3vw, 1.8rem);
+}
+
+.panel-morph-intro__stage {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  perspective: 1200px;
+  z-index: 2;
+}
+
+.panel-morph-card {
+  z-index: 1;
+  will-change: transform, opacity, width, height;
+}
+
+.panel-morph-card.is-spotlight-active {
+  z-index: 4;
+  filter: drop-shadow(0 18px 36px rgba(0, 0, 0, 0.42));
+}
+
+.panel-morph-card.is-docking {
+  z-index: 2;
+}
+
+.panel-morph-card__flip {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.panel-morph-card__face {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 14px 30px rgba(0, 0, 0, 0.34);
+  backface-visibility: hidden;
+}
+
+.panel-morph-card__face--back {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px;
+  text-align: center;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(2, 6, 23, 0.98));
+  transform: rotateY(180deg);
+}
+
+.panel-morph-card__image,
+.panel-morph-card__accent {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.panel-morph-card__shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.62));
+}
+
+.panel-morph-card__meta {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.panel-morph-card__index {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  color: rgba(255, 255, 255, 0.58);
+}
+
+.panel-morph-card__label {
+  font-size: clamp(11px, 2.4vw, 13px);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: rgba(248, 250, 252, 0.96);
+}
+
+.panel-morph-card__back-kicker {
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(125, 211, 252, 0.78);
+}
+
+.panel-morph-card__back-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(248, 250, 252, 0.96);
+}
+
+.panel-morph-card__back-caption {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.45;
+  color: rgba(186, 208, 226, 0.82);
+}
+
+.panel-morph-intro__progress {
+  position: absolute;
+  left: 50%;
+  bottom: clamp(16px, 3.5vh, 28px);
+  transform: translateX(-50%);
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.panel-morph-intro__progress-dot {
+  width: 18px;
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  transition:
+    width 280ms cubic-bezier(0.22, 1, 0.36, 1),
+    background 280ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.panel-morph-intro__progress-dot.is-done {
+  background: rgba(125, 211, 252, 0.42);
+}
+
+.panel-morph-intro__progress-dot.is-active {
+  width: 30px;
+  background: linear-gradient(90deg, #38bdf8, #a78bfa);
+}
+
+@media (max-width: 767px) {
+  .panel-morph-intro {
+    width: calc(100vw - 12px);
+    height: calc(100dvh - 12px);
+    border-radius: 18px;
+  }
+
+  .panel-morph-intro__copy {
+    top: 14px;
+    width: calc(100% - 24px);
+  }
+
+  .panel-morph-intro__caption-text {
+    font-size: 0.8rem;
+  }
+
+  .panel-morph-card__face {
+    border-radius: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel-morph-card,
+  .panel-morph-card__flip,
+  .panel-morph-intro__progress-dot {
+    transition: none !important;
+    animation: none !important;
+  }
+}

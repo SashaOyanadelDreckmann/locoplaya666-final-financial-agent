@@ -6,6 +6,7 @@ import './tablet-system.css';
 import './mobile-keyboard-viewport.css';
 import './visual-modes.css';
 import './agent-boot-sequence.css';
+import './agent-panel-intro.css';
 import './agent-compact-deck.css';
 import './agent-modals-budget-mobile-authoritative.css';
 import './agent-modals-budget-desktop-guard.css';

@@ -33,7 +33,15 @@ export function SidePanels(props: {
   compactPanelLoopResetKey?: number;
   compactPanelDeckRef?: React.Ref<MobilePanelDeckHandle>;
   panelRenderedCards: ReactNode;
+  panelIntroActive?: boolean;
+  panelIntroPhase?: 'morph' | 'dock';
 }) {
+  const useMobileDeck =
+    props.isMobileViewport &&
+    !props.mobilePanelExpanded &&
+    Boolean(props.compactPanelCards) &&
+    (!props.panelIntroActive || props.panelIntroPhase === 'dock');
+
   return (
     <>
       <aside className="agent-divider-rail" aria-label="Estado del usuario">
@@ -51,7 +59,7 @@ export function SidePanels(props: {
               ? ' is-mobile-expanded'
               : ' is-mobile-compact'
             : ''
-        }`}
+        }${props.panelIntroActive ? ' is-panel-intro-measure' : ''}`}
         ref={props.panelScrollRef}
       >
         <div
@@ -94,16 +102,19 @@ export function SidePanels(props: {
           </div>
         )}
 
-        {props.isMobileViewport && !props.mobilePanelExpanded && props.compactPanelCards ? (
+        {useMobileDeck ? (
           <MobilePanelCircularDeck
             ref={props.compactPanelDeckRef}
-            cards={props.compactPanelCards}
+            cards={props.compactPanelCards!}
             gridRef={props.panelGridRef}
-            resetKey={props.compactPanelLoopResetKey ?? props.compactPanelCards.length}
+            resetKey={props.compactPanelLoopResetKey ?? props.compactPanelCards!.length}
             haptic={props.haptic}
           />
         ) : (
-          <div ref={props.panelGridRef} className="panel-grid">
+          <div
+            ref={props.panelGridRef}
+            className={`panel-grid${props.panelIntroActive ? ' is-panel-intro-measure' : ''}`}
+          >
             {props.panelRenderedCards}
           </div>
         )}
