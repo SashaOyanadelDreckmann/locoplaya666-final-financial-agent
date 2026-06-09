@@ -225,7 +225,13 @@ export function renderLatexDocMessage(content: string): ReactNode {
     ol: (props) => <ol className="md-list-ordered" {...props} />,
     li: (props) => <li className="md-list-item" {...props} />,
     blockquote: (props) => <blockquote className="md-blockquote" {...props} />,
-    table: (props) => <table className="md-table" {...props} />,
+    table: ({ children, ...props }) => (
+      <div className="md-table-wrap">
+        <table className="md-table" {...props}>
+          {children}
+        </table>
+      </div>
+    ),
   };
   const hasBlockMath = /\$\$[\s\S]+?\$\$/.test(refinedMarkdown);
   if (hasBlockMath) {

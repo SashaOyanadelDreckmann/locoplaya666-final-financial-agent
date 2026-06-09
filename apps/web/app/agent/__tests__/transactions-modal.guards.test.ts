@@ -93,4 +93,20 @@ describe('transactions modal safeguards', () => {
     expect(source).not.toContain('/generated/transactions-fast-example.mp4');
     expect(source).toContain('tx-format-rail-chip-label-short');
   });
+
+  it('routes indicative and photo/text evidence into the minimal summary chat', () => {
+    const helpers = read('app/agent/transactions/transactions-modal.helpers.ts');
+    const modal = read('app/agent/transactions/TransactionsModal.tsx');
+    const minimalStep = read('app/agent/transactions/TxMinimalSummaryChatStep.tsx');
+
+    expect(helpers).toContain('shouldUseMinimalSummaryChat');
+    expect(helpers).toContain("evidenceFidelity === 'indicative'");
+    expect(helpers).toContain("selectedUploadFormat === 'photos'");
+    expect(helpers).toContain("selectedUploadFormat === 'text'");
+    expect(modal).toContain('isMinimalSummaryChatStep');
+    expect(modal).toContain('TxMinimalSummaryChatStep');
+    expect(minimalStep).toContain('tx-minimal-send-btn');
+    expect(minimalStep).not.toContain('TxChatStarterChips');
+    expect(minimalStep).not.toContain('TxAskChatButton');
+  });
 });

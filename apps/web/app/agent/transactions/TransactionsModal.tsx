@@ -44,9 +44,12 @@ import {
   buildMovementRefinementText,
   isCardLikeType,
   RECOMMENDED_TX_PRODUCTS,
+  shouldUseMinimalSummaryChat,
 } from './transactions-modal.helpers';
 import { TxLibraryCardStack } from './TxLibraryCardStack';
 import { productVisualPalette } from './visuals';
+import { TxMinimalSummaryChatStep } from './TxMinimalSummaryChatStep';
+import { normalizeUploadFormat } from './tx-assistant.helpers';
 
 export function TransactionsModal(props: TransactionsModalProps) {
   const onContinueWithoutProducts = props.productsModuleSkipped
@@ -127,6 +130,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
   const resolvedBank = authorizationState.bank;
   const resolvedProductLabel = authorizationState.label;
   const consentIsGranted = authorizationState.simulationAccepted;
+  const selectedUploadFormat = normalizeUploadFormat(props.activeBankProduct?.assistant?.uploadFormat);
   const activeProductVisualPalette = productVisualPalette(
     `${props.activeBankProduct?.id ?? 'active'}-${resolvedProductLabel || props.activeBankProduct?.label || 'producto'}-${resolvedBank || props.activeBankProduct?.bank || 'bank'}`
   );
@@ -134,6 +138,12 @@ export function TransactionsModal(props: TransactionsModalProps) {
   const currentStage = deriveCurrentStage(props.txWizardStep);
   const parsedDocumentCount = props.activeBankProduct?.parsedDocuments.length ?? 0;
   const analysisAlreadyDone = parsedDocumentCount > 0;
+  const isMinimalSummaryChatStep =
+    props.txWizardStep === 'dashboard' &&
+    shouldUseMinimalSummaryChat({
+      selectedUploadFormat,
+      evidenceFidelity: props.activeBankProduct?.dashboard?.evidenceFidelity ?? null,
+    });
 
   const applyOnboarding = () => {
     if (!props.activeBankProduct) return;
@@ -178,7 +188,6 @@ export function TransactionsModal(props: TransactionsModalProps) {
     summaryGeneratedAt,
     summaryModel,
     summaryRegenerationsLeft,
-    selectedUploadFormat,
     hasSummary,
     setActiveTxAssistantInput,
     setActiveUploadOnboardingStep,
@@ -297,7 +306,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
     setSelectedMovementKey(null);
     setShowInstitutionCatalog(true);
     setShowTemplateCatalog(true);
-  }, [props.activeBankProduct?.id]);
+  }, [props.activeBankProduct?.bank, props.activeBankProduct?.id, props.activeBankProduct?.label]);
   useEffect(() => {
     if (!props.isOpen || currentStage !== 'consent' || !showTxCarousel) return;
     setShowInstitutionCatalog(true);
@@ -791,7 +800,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
                     />
                   )}
 
-                  {activeTxStageIndex === 2 && props.activeBankProduct && (
+                  {activeTxStageIndex === 2 && props.activeBankProduct && !isMinimalSummaryChatStep && (
                     <TxAnalystDashboard
                       analytics={analytics}
                       activeBankProduct={props.activeBankProduct}
@@ -842,6 +851,22 @@ export function TransactionsModal(props: TransactionsModalProps) {
                       onSaveMovementOverride={saveSelectedMovementOverride}
                       onClearMovementOverride={clearSelectedMovementOverride}
                       buildMovementRefinementText={buildMovementRefinementTextForModal}
+                    />
+                  )}
+
+                  {activeTxStageIndex === 2 && props.activeBankProduct && isMinimalSummaryChatStep && (
+                    <TxMinimalSummaryChatStep
+                      summaryText={summaryText}
+                      summaryGeneratedAt={summaryGeneratedAt}
+                      summaryModel={summaryModel}
+                      summaryRegenerationsLeft={summaryRegenerationsLeft}
+                      assistantMessages={assistantMessages}
+                      highlightedMovementKeys={highlightedMovementKeys}
+                      txAssistantInput={txAssistantInput}
+                      txAssistantLoading={txAssistantLoading}
+                      documentsLoading={props.documentsLoading}
+                      onAssistantInputChange={setActiveTxAssistantInput}
+                      onAssistantSend={() => void handleAssistantTextSend()}
                     />
                   )}
                 </div>

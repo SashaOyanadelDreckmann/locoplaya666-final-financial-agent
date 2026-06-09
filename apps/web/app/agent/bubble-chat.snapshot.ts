@@ -64,6 +64,7 @@ function collectBubbleSnapshotCss(rootEl: HTMLElement) {
     '.md-list',
     '.md-list-ordered',
     '.md-list-item',
+    '.md-table-wrap',
     '.md-table',
     '.katex',
     '.katex-display',
@@ -408,6 +409,7 @@ html, body, .bubble-pdf-snapshot {
   word-break: break-all !important;
 }
 
+.bubble-pdf-snapshot .md-table-wrap,
 .bubble-pdf-snapshot .agent-table-wrap {
   overflow: visible !important;
 }

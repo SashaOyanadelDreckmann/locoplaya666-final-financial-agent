@@ -13,6 +13,17 @@ export function isCardLikeType(value: string): value is TxCardLikeType {
   return (TX_CARD_LIKE_TYPES as readonly string[]).includes(value);
 }
 
+export function shouldUseMinimalSummaryChat(params: {
+  selectedUploadFormat: string | null;
+  evidenceFidelity?: 'authoritative' | 'indicative' | null;
+}) {
+  return (
+    params.evidenceFidelity === 'indicative' ||
+    params.selectedUploadFormat === 'photos' ||
+    params.selectedUploadFormat === 'text'
+  );
+}
+
 export const RECOMMENDED_TX_PRODUCTS = [
   { title: 'Tarjeta de crédito', bank: 'Banco BICE', template: 'Tarjeta de crédito' },
   { title: 'Cuenta corriente', bank: 'Banco de Chile', template: 'Cuenta corriente' },

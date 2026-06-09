@@ -117,6 +117,127 @@
     0 10px 24px rgba(2, 10, 18, 0.4);
 }
 
+.transactions-modal .tx-minimal-summary-shell {
+  display: grid;
+  gap: 14px;
+  padding: 6px 0 10px;
+}
+
+.transactions-modal .tx-minimal-summary-card,
+.transactions-modal .tx-minimal-chat-card {
+  background: linear-gradient(180deg, rgba(19, 31, 44, 0.86), rgba(10, 18, 28, 0.9));
+  border: 1px solid rgba(193, 215, 233, 0.18);
+  border-radius: 24px;
+  box-shadow:
+    0 22px 50px rgba(4, 12, 20, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.transactions-modal .tx-minimal-summary-card {
+  padding: 20px;
+  display: grid;
+  gap: 12px;
+}
+
+.transactions-modal .tx-minimal-summary-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.transactions-modal .tx-minimal-summary-kicker {
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(198, 218, 234, 0.72);
+}
+
+.transactions-modal .tx-minimal-summary-meta,
+.transactions-modal .tx-minimal-summary-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 12px;
+  color: rgba(203, 220, 233, 0.7);
+}
+
+.transactions-modal .tx-minimal-summary-card .tx-editorial-summary {
+  margin-top: 0;
+}
+
+.transactions-modal .tx-minimal-summary-empty,
+.transactions-modal .tx-minimal-chat-empty {
+  color: rgba(221, 234, 243, 0.72);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.transactions-modal .tx-minimal-chat-card {
+  padding: 16px;
+  display: grid;
+  gap: 14px;
+}
+
+.transactions-modal .tx-minimal-chat-thread {
+  display: grid;
+  gap: 10px;
+  max-height: min(50vh, 560px);
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.transactions-modal .tx-minimal-chat-thread .tx-chat-bubble {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.transactions-modal .tx-minimal-composer {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  border-top: 1px solid rgba(193, 215, 233, 0.12);
+  padding-top: 14px;
+}
+
+.transactions-modal .tx-minimal-composer-input {
+  flex: 1;
+  min-height: 72px;
+  resize: none;
+  border-radius: 18px;
+  border: 1px solid rgba(146, 173, 194, 0.22);
+  background: rgba(8, 15, 24, 0.86);
+  color: rgba(242, 248, 252, 0.95);
+  padding: 14px 16px;
+  outline: none;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.transactions-modal .tx-minimal-composer-input::placeholder {
+  color: rgba(200, 215, 228, 0.54);
+}
+
+.transactions-modal .tx-minimal-composer-input:focus {
+  border-color: rgba(154, 183, 205, 0.5);
+  box-shadow:
+    0 0 0 3px rgba(133, 164, 189, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.transactions-modal .tx-minimal-send-btn {
+  min-width: 102px;
+  height: 48px;
+  border-radius: 16px;
+  border: 1px solid rgba(218, 233, 243, 0.28);
+  background: linear-gradient(180deg, rgba(244, 248, 252, 0.96), rgba(210, 223, 234, 0.92));
+  color: #07121c;
+  font-weight: 600;
+  box-shadow: 0 16px 30px rgba(4, 12, 20, 0.18);
+}
+
+.transactions-modal .tx-minimal-send-btn:disabled {
+  opacity: 0.48;
+}
+
 @keyframes modalIn {
   from { opacity: 0; transform: scale(0.96) translateY(8px); }
   to   { opacity: 1; transform: scale(1) translateY(0); }
@@ -3401,6 +3522,20 @@
 }
 
 /* Tables (for data presentation) */
+.academic-paper .md-table-wrap {
+  margin: 1.4rem 0 1.7rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 12px;
+}
+
+.academic-paper .md-table-wrap > .md-table {
+  margin: 0;
+  width: max-content;
+  min-width: 100%;
+  overflow: visible;
+}
+
 .academic-paper .md-table {
   width: 100%;
   border-collapse: separate;
@@ -3596,10 +3731,13 @@
 
 .agent-table-wrap {
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 12px;
 }
 
 .agent-table {
-  width: 100%;
+  width: max-content;
+  min-width: 100%;
   border-collapse: collapse;
   font-size: 12px;
 }
@@ -10962,15 +11100,28 @@ input[type="radio"]:checked {
   overflow-x: auto !important;
 }
 
-.agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-body table,
-.agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-body .md-table {
-  border-collapse: separate !important;
-  border-spacing: 0 !important;
-  width: 100% !important;
+.agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-body .md-table-wrap,
+.agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .agent-table-wrap {
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch;
   margin: 0.82rem 0 !important;
   border: 1px solid rgba(118, 146, 172, 0.24) !important;
   border-radius: 12px !important;
-  overflow: hidden !important;
+}
+
+.agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-body .md-table-wrap > .md-table,
+.agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-body table.md-table,
+.agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .agent-table-wrap > .agent-table {
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  width: max-content !important;
+  min-width: 100% !important;
+  margin: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  overflow: visible !important;
+  box-shadow: none !important;
+  background: transparent !important;
 }
 
 .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-body th,
@@ -11031,6 +11182,20 @@ input[type="radio"]:checked {
   .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-body li {
     font-size: 0.92rem !important;
     line-height: 1.5 !important;
+  }
+
+  .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-body th,
+  .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-body td {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif !important;
+  }
+
+  .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-body th {
+    font-size: 0.68rem !important;
+    white-space: nowrap;
+  }
+
+  .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-body td {
+    font-size: 0.86rem !important;
   }
 }
 

@@ -50,11 +50,16 @@ export function useTxDockTransition(params: {
   const [dockTransitionPhase, setDockTransitionPhase] = useState<TxDockTransitionPhase>('idle');
   const [transitionPulse, setTransitionPulse] = useState(0);
   const dockTransitionTimersRef = useRef<number[]>([]);
+  const recentlyDockedResetTimerRef = useRef<number | null>(null);
   const previousConnectedRef = useRef<Record<string, boolean>>({});
 
   const clearDockTransitionTimers = useCallback(() => {
     dockTransitionTimersRef.current.forEach((timerId) => window.clearTimeout(timerId));
     dockTransitionTimersRef.current = [];
+    if (recentlyDockedResetTimerRef.current !== null) {
+      window.clearTimeout(recentlyDockedResetTimerRef.current);
+      recentlyDockedResetTimerRef.current = null;
+    }
   }, []);
 
   const queueDockTransitionTimeout = useCallback((callback: () => void, delay: number) => {
@@ -150,10 +155,13 @@ export function useTxDockTransition(params: {
       nextMap[product.id] = Boolean(product.connected);
       if (!previousConnectedRef.current[product.id] && product.connected) {
         setRecentlyDockedProductId(product.id);
-        window.setTimeout(
-          () => setRecentlyDockedProductId((current) => (current === product.id ? null : current)),
-          900,
-        );
+        if (recentlyDockedResetTimerRef.current !== null) {
+          window.clearTimeout(recentlyDockedResetTimerRef.current);
+        }
+        recentlyDockedResetTimerRef.current = window.setTimeout(() => {
+          setRecentlyDockedProductId((current) => (current === product.id ? null : current));
+          recentlyDockedResetTimerRef.current = null;
+        }, 900);
       }
     });
     previousConnectedRef.current = nextMap;
