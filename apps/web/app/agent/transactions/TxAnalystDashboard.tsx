@@ -504,7 +504,9 @@ export function TxAnalystDashboard({
 
       <div className="tx-ap-chat-dock">
         <span className="tx-ap-section-label">Chat del resumen</span>
-        <p className="tx-ap-chat-intro">Conversación nueva enfocada en este análisis. El historial de subida sigue en evidencias.</p>
+        <p className="tx-ap-chat-intro">
+          Pregunta sobre movimientos, métricas o el análisis. El paso 2 quedó solo para subir archivos.
+        </p>
         {assistantMessages.length > 0 && (
           <div className="tx-chat-thread tx-summary-chat-thread">
             {assistantMessages.slice(-6).map((message) => (
@@ -539,9 +541,9 @@ export function TxAnalystDashboard({
             className="tx-composer-field"
             value={txAssistantInput}
             onChange={(e) => onAssistantInputChange(e.target.value)}
-            placeholder="Pregúntame algo sobre este resumen"
+            placeholder="Pregunta sobre movimientos, categorías o el análisis"
             rows={2}
-            aria-label="Pregunta sobre el resumen"
+            aria-label="Mensaje del chat analítico"
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();

@@ -99,6 +99,23 @@ describe('transactions-chat api route', () => {
     expect(mockCreate).not.toHaveBeenCalled();
   }, 15000);
 
+  it('redirects analytical questions when chatContext is evidence_upload', async () => {
+    const { agent, csrfToken } = await createAuthedAgent();
+    const res = await agent.post('/api/transactions-chat').set('x-csrf-token', csrfToken).send({
+      mode: 'chat',
+      chatContext: 'evidence_upload',
+      question: '¿Cuánto gasté en PedidosYa?',
+      messages: [{ role: 'user', text: '¿Cuánto gasté en PedidosYa?' }],
+      dashboard: { keyMetrics: { movement_count: 0 }, movements: [] },
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.ok).toBe(true);
+    expect(String(res.body.assistant_text)).toContain('solo para subir archivos');
+    expect(res.body.source).toBe('context-guard');
+    expect(mockCreate).not.toHaveBeenCalled();
+  }, 15000);
+
   it('returns chat payload', async () => {
     mockCreate.mockResolvedValueOnce({
       output_text: JSON.stringify({

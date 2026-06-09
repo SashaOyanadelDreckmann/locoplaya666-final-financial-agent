@@ -229,13 +229,13 @@ export function useTransactionsModalOrchestrator(props: TransactionsModalProps) 
 
   const handleAskSuggestedQuestion = useCallback(
     (question: string) => {
+      if (props.txWizardStep !== 'dashboard') return;
       const chatAnchor =
-        txChatThreadRef.current ??
-        txScrollBodyRef.current?.querySelector<HTMLElement>('.tx-ap-chat-dock, .tx-composer-sticky-host');
+        txScrollBodyRef.current?.querySelector<HTMLElement>('.tx-ap-chat-dock, .tx-minimal-chat-card');
       chatAnchor?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       void submitAssistantQuestion(question);
     },
-    [submitAssistantQuestion],
+    [props.txWizardStep, submitAssistantQuestion],
   );
 
   const { closeConfirmKind, dismissCloseConfirm, requestClose, confirmClose } = useTxCloseConfirm({

@@ -11,12 +11,12 @@ import {
 import { TxParseProgress } from './TxParseProgress';
 import { TxIndicativeNotice } from './TxIndicativeNotice';
 import { normalizeUploadFormat } from './tx-assistant.helpers';
-import { TxChatMessageBubble, TxChatStarterChips } from './tx-chat-ui';
+import { TxChatMessageBubble } from './tx-chat-ui';
 import { readProductEvidenceFidelity } from '@/lib/evidence-fidelity.helpers';
 import { getEvidenceFileAccept } from '@/lib/evidence-format.helpers';
 import { shouldSurfaceTxFeedback } from './tx-feedback.helpers';
 import type { DocumentsParseProgress } from '@/lib/transactions-parse-progress.helpers';
-import type { BankProduct, TxAssistantMessage, TxChatStarterChip, TxUploadFormat } from './types';
+import type { BankProduct, TxAssistantMessage, TxUploadFormat } from './types';
 
 const FORMAT_OPTIONS = [
   ['photos', 'Fotos', 'Img'],
@@ -63,7 +63,6 @@ export interface TxEvidenceStepProps {
   scrollRef: Ref<HTMLDivElement>;
   chatThreadRef?: Ref<HTMLDivElement>;
   assistantMessages: TxAssistantMessage[];
-  starterChips?: TxChatStarterChip[];
   highlightedMovementKeys?: string[];
   analysisAlreadyDone: boolean;
   txUploadOnboardingStep: 'format' | 'details' | 'upload';
@@ -89,8 +88,7 @@ export interface TxEvidenceStepProps {
   onAppendPendingEvidence: (files: FileList | null) => void | Promise<void>;
   onAssistantInputChange: (value: string) => void;
   onAssistantSend: () => void;
-  onAskSuggestedQuestion?: (question: string) => void;
-  onRefineSummary: (source: string, body: string) => void;
+  onRefineSummary?: (source: string, body: string) => void;
   onGoToAnalyst: () => void;
   onRegenerateSummary: () => void;
   evidenceResetsLeft?: number;
@@ -102,12 +100,9 @@ export interface TxEvidenceStepProps {
 export function TxEvidenceStep(props: TxEvidenceStepProps) {
   const p = props;
   const messageCount = p.assistantMessages.length;
-  const latestAssistantMessageId = [...p.assistantMessages].reverse().find((message) => message.role === 'assistant')?.id;
-  const showStarterShortcuts =
-    p.analysisAlreadyDone &&
-    (messageCount === 0 || p.assistantMessages[messageCount - 1]?.role === 'user');
   const composerValue = p.txAssistantInput;
   const canAttach = !p.analysisAlreadyDone;
+  const showUploadComposer = !p.analysisAlreadyDone;
   const hasComposerPayload = Boolean(composerValue.trim()) || p.pendingEvidenceFiles.length > 0;
   const sendDisabled =
     p.txAssistantLoading ||
@@ -169,9 +164,10 @@ export function TxEvidenceStep(props: TxEvidenceStepProps) {
     kind: 'notice',
   });
 
-  const composerPlaceholder = p.analysisAlreadyDone
-    ? 'Pregúntame sobre tus movimientos o pide revisar el resumen'
-    : 'Escribe, pega movimientos o adjunta cartolas…';
+  const composerPlaceholder =
+    selectedUploadFormat === 'text'
+      ? 'Pega movimientos o texto libre y envía para analizar…'
+      : 'Adjunta archivos o pregunta cómo subir tu evidencia…';
 
   return (
     <section className="tx-content-card tx-content-card--agent is-main-center tx-step-reveal">
@@ -225,8 +221,8 @@ export function TxEvidenceStep(props: TxEvidenceStepProps) {
         <div ref={p.chatThreadRef} className="tx-chat-thread" aria-live="polite" aria-relevant="additions">
           {messageCount === 0 ? (
             <p className="tx-chat-thread-empty">
-              Este chat es solo para <strong>{p.activeBankProduct.label || 'este producto'}</strong>. Cuando autorices y
-              envíes antecedentes, la conversación queda guardada al volver.
+              Este paso es solo para subir antecedentes de <strong>{p.activeBankProduct.label || 'este producto'}</strong>.
+              Las preguntas sobre movimientos y el análisis se responden en el paso 3.
             </p>
           ) : (
             p.assistantMessages.map((message) => (
@@ -235,8 +231,7 @@ export function TxEvidenceStep(props: TxEvidenceStepProps) {
                 message={message}
                 highlightedMovementKeys={p.highlightedMovementKeys}
                 followupsDisabled={p.txAssistantLoading || p.documentsLoading}
-                onFollowupSelect={p.onAskSuggestedQuestion}
-                showFollowups={message.role !== 'assistant' || message.id === latestAssistantMessageId}
+                showFollowups={false}
               />
             ))
           )}
@@ -302,60 +297,42 @@ export function TxEvidenceStep(props: TxEvidenceStepProps) {
         )}
 
         <div className="tx-composer-sticky-host">
-          {showStarterShortcuts && p.starterChips && p.starterChips.length > 0 ? (
-            <div className="tx-chat-shortcuts">
-              <span className="tx-chat-shortcuts-kicker">Atajos analíticos</span>
-              <TxChatStarterChips
-                chips={p.starterChips}
-                disabled={p.txAssistantLoading || p.documentsLoading}
-                onSelect={(question) => p.onAskSuggestedQuestion?.(question)}
-              />
-            </div>
+          {showUploadComposer ? (
+            <>
+              <div className="tx-composer-pro" data-analysis-done="false">
+                {canAttach ? (
+                  <label className="tx-composer-attach" aria-label="Adjuntar archivos">
+                    <AttachIcon />
+                    <input type="file" accept={evidenceFileAccept} multiple onChange={handleAttachChange} />
+                  </label>
+                ) : null}
+                <textarea
+                  className="tx-composer-field"
+                  value={composerValue}
+                  onChange={(e) => handleComposerChange(e.target.value)}
+                  onKeyDown={handleComposerKeyDown}
+                  placeholder={composerPlaceholder}
+                  rows={2}
+                  aria-label="Mensaje del chat de subida de evidencia"
+                />
+                <button
+                  type="button"
+                  className="tx-composer-send"
+                  onClick={() => p.onAssistantSend()}
+                  disabled={sendDisabled}
+                  aria-label="Enviar evidencia"
+                  title="Enviar"
+                >
+                  <SendIcon />
+                </button>
+              </div>
+              <p className="tx-composer-hint">
+                {selectedUploadFormat
+                  ? `Solo archivos de ${getFormatLabel(selectedUploadFormat).toLowerCase()} · hasta ${p.maxEvidenceFilesPerProduct} · 50 MB por envío`
+                  : `Elige un formato arriba o adjunta y lo detectamos automáticamente · hasta ${p.maxEvidenceFilesPerProduct} · 50 MB`}
+              </p>
+            </>
           ) : null}
-          <div className="tx-composer-pro" data-analysis-done={p.analysisAlreadyDone ? 'true' : 'false'}>
-            {canAttach ? (
-              <label className="tx-composer-attach" aria-label="Adjuntar archivos">
-                <AttachIcon />
-                <input type="file" accept={evidenceFileAccept} multiple onChange={handleAttachChange} />
-              </label>
-            ) : null}
-            <textarea
-              className="tx-composer-field"
-              value={composerValue}
-              onChange={(e) => handleComposerChange(e.target.value)}
-              onKeyDown={handleComposerKeyDown}
-              placeholder={composerPlaceholder}
-              rows={2}
-              aria-label="Mensaje del chat de transacciones"
-            />
-            <button
-              type="button"
-              className="tx-composer-send"
-              onClick={() => p.onAssistantSend()}
-              disabled={sendDisabled}
-              aria-label="Enviar mensaje"
-              title="Enviar"
-            >
-              <SendIcon />
-            </button>
-          </div>
-
-          {!p.analysisAlreadyDone && (
-            <p className="tx-composer-hint">
-              {selectedUploadFormat
-                ? `Solo archivos de ${getFormatLabel(selectedUploadFormat).toLowerCase()} · hasta ${p.maxEvidenceFilesPerProduct} · 50 MB por envío`
-                : `Elige un formato arriba o adjunta y lo detectamos automáticamente · hasta ${p.maxEvidenceFilesPerProduct} · 50 MB`}
-            </p>
-          )}
-
-          {p.analysisAlreadyDone && p.pendingEvidenceFiles.length > 0 && (
-            <p className="manual-evidence-hint">
-              Este producto ya tiene análisis.
-              {(p.evidenceResetsLeft ?? 0) > 0
-                ? ' Usa «Reiniciar evidencia» para subir antecedentes nuevos.'
-                : ' Ya no quedan reinicios disponibles para este producto.'}
-            </p>
-          )}
           {showAssistantNotice ? (
             <p className="tx-feedback-notice" role="status">
               {p.txAssistantNotice}
@@ -387,13 +364,7 @@ export function TxEvidenceStep(props: TxEvidenceStepProps) {
             <div className="tx-chat-summary-bridge-head">
               <div>
                 <span className="transactions-summary-title">Resumen listo</span>
-                <EditorialSummary
-                  text={p.summaryText}
-                  compact
-                  onBlockDoubleClick={({ kicker, body }) =>
-                    p.onRefineSummary(kicker ? `hallazgo "${kicker}"` : 'hallazgo del resumen', body)
-                  }
-                />
+                <EditorialSummary text={p.summaryText} compact />
               </div>
               <div className="tx-chat-summary-meta">
                 <span className="tx-meta-card-kicker">

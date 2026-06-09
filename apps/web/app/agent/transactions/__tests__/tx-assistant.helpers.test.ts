@@ -3,6 +3,8 @@
 import {
   asksForSummaryRegeneration,
   inferUploadFormatFromMessage,
+  isUploadAssistanceMessage,
+  shouldBlockEvidenceStepAnalysisChat,
   wantsTextEvidenceUpload,
 } from '../tx-assistant.helpers';
 
@@ -34,6 +36,37 @@ describe('tx assistant helpers', () => {
         uploadFormat: 'pdf',
         text: 'movimiento 1000',
         hasAttachedFiles: false,
+      }),
+    ).toBe(false);
+  });
+
+  it('allows upload assistance and blocks analytical questions on evidence step', () => {
+    expect(isUploadAssistanceMessage('¿Cómo subo un PDF?')).toBe(true);
+    expect(
+      shouldBlockEvidenceStepAnalysisChat({
+        txWizardStep: 'upload',
+        analysisAlreadyDone: false,
+        text: '¿Cuánto gasté en PedidosYa?',
+        hasAttachedFiles: false,
+        shouldUploadTextEvidence: false,
+      }),
+    ).toBe(true);
+    expect(
+      shouldBlockEvidenceStepAnalysisChat({
+        txWizardStep: 'upload',
+        analysisAlreadyDone: true,
+        text: '¿Cuánto gasté?',
+        hasAttachedFiles: false,
+        shouldUploadTextEvidence: false,
+      }),
+    ).toBe(true);
+    expect(
+      shouldBlockEvidenceStepAnalysisChat({
+        txWizardStep: 'dashboard',
+        analysisAlreadyDone: true,
+        text: '¿Cuánto gasté?',
+        hasAttachedFiles: false,
+        shouldUploadTextEvidence: false,
       }),
     ).toBe(false);
   });

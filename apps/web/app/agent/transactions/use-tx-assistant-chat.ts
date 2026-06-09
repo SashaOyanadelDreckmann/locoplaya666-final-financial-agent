@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  isSummaryAnalysisChatStep,
   resolveAssistantMessageThread,
   selectAssistantMessagesForThread,
 } from './tx-assistant-thread.helpers';
@@ -30,8 +31,10 @@ import { TX_MAX_SINGLE_FILE_BYTES, TX_MAX_TOTAL_FILE_BYTES } from './constants';
 import {
   asksForSummaryRegeneration,
   buildManualEvidenceFile,
+  EVIDENCE_STEP_ANALYSIS_REDIRECT,
   inferUploadFormatFromMessage,
   normalizeUploadFormat,
+  shouldBlockEvidenceStepAnalysisChat,
   wantsTextEvidenceUpload,
 } from './tx-assistant.helpers';
 import { useTxActionSession } from './use-tx-action-session';
@@ -158,9 +161,9 @@ export function useTxAssistantChat(params: {
     ? highlightedMovementKeysByProduct[activeProductId] ?? []
     : [];
   const starterChips: TxChatStarterChip[] = useMemo(() => {
-    if (!analysisAlreadyDone || !effectiveDashboard) return [];
+    if (!isSummaryAnalysisChatStep({ txWizardStep, analysisAlreadyDone }) || !effectiveDashboard) return [];
     return buildTransactionStarterChips(effectiveDashboard, 6);
-  }, [analysisAlreadyDone, effectiveDashboard]);
+  }, [analysisAlreadyDone, effectiveDashboard, txWizardStep]);
   const summaryText = activeBankProduct?.assistant?.summaryText ?? null;
   const summaryGeneratedAt = activeBankProduct?.assistant?.summaryGeneratedAt ?? null;
   const summaryModel = activeBankProduct?.assistant?.summaryModel ?? null;
@@ -624,6 +627,30 @@ export function useTxAssistantChat(params: {
       });
       if (!text && !hasAttachedFiles) return;
 
+      if (
+        shouldBlockEvidenceStepAnalysisChat({
+          txWizardStep,
+          analysisAlreadyDone,
+          text,
+          hasAttachedFiles,
+          shouldUploadTextEvidence,
+        })
+      ) {
+        if (!options?.preserveComposer) {
+          setTxAssistantInputByProduct((prev) => ({ ...prev, [productId]: '' }));
+        }
+        appendAssistantMessages(productId, product, [
+          ...(text ? [{ role: 'user' as const, thread: 'evidence' as const, text }] : []),
+          {
+            role: 'assistant',
+            thread: 'evidence',
+            text: EVIDENCE_STEP_ANALYSIS_REDIRECT,
+            source: 'client-deterministic',
+          },
+        ]);
+        return;
+      }
+
       if (!options?.preserveComposer) {
         setTxAssistantInputByProduct((prev) => ({ ...prev, [productId]: '' }));
       }
@@ -674,7 +701,11 @@ export function useTxAssistantChat(params: {
           return;
         }
 
-        if (asksForSummaryRegeneration(text, Boolean(productSummaryText)) && productRegenerationsLeft > 0) {
+        if (
+          asksForSummaryRegeneration(text, Boolean(productSummaryText)) &&
+          productRegenerationsLeft > 0 &&
+          isSummaryAnalysisChatStep({ txWizardStep, analysisAlreadyDone })
+        ) {
           await generateTransactionSummary({
             feedback: text,
             isRegeneration: true,
@@ -684,7 +715,7 @@ export function useTxAssistantChat(params: {
           return;
         }
 
-        if (analysisAlreadyDone) {
+        if (isSummaryAnalysisChatStep({ txWizardStep, analysisAlreadyDone })) {
           const deterministic = planDeterministicTransactionAnswer(text, effectiveDashboard);
           if (deterministic) {
             const movements = Array.isArray((effectiveDashboard as { movements?: unknown[] } | null)?.movements)
@@ -719,6 +750,9 @@ export function useTxAssistantChat(params: {
         const response = await requestTransactionAssistant(
           buildTransactionChatRequest(product, {
             mode: 'chat',
+            chatContext: isSummaryAnalysisChatStep({ txWizardStep, analysisAlreadyDone })
+              ? 'summary_analysis'
+              : 'evidence_upload',
             question: text,
             currentSummary: productSummaryText,
             dashboard:

@@ -58,7 +58,6 @@ function buildProps(overrides: Partial<Parameters<typeof TxEvidenceStep>[0]> = {
     onAppendPendingEvidence: jest.fn(),
     onAssistantInputChange: jest.fn(),
     onAssistantSend: jest.fn(),
-    onRefineSummary: jest.fn(),
     onGoToAnalyst: jest.fn(),
     onRegenerateSummary: jest.fn(),
     ...overrides,
@@ -70,7 +69,7 @@ describe('TxEvidenceStep', () => {
     render(<TxEvidenceStep {...buildProps()} />);
 
     expect(screen.getByLabelText(/adjuntar archivos/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/mensaje del chat de transacciones/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/mensaje del chat de subida de evidencia/i)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Rápido' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'PDF' })).toBeInTheDocument();
   });
@@ -86,7 +85,7 @@ describe('TxEvidenceStep', () => {
       />,
     );
 
-    const composer = screen.getByLabelText(/mensaje del chat de transacciones/i);
+    const composer = screen.getByLabelText(/mensaje del chat de subida de evidencia/i);
     fireEvent.keyDown(composer, { key: 'Enter' });
     expect(onAssistantSend).toHaveBeenCalledTimes(1);
   });
@@ -102,7 +101,7 @@ describe('TxEvidenceStep', () => {
       />,
     );
 
-    const composer = screen.getByLabelText(/mensaje del chat de transacciones/i);
+    const composer = screen.getByLabelText(/mensaje del chat de subida de evidencia/i);
     fireEvent.keyDown(composer, { key: 'Enter', shiftKey: true });
     expect(onAssistantSend).not.toHaveBeenCalled();
   });
@@ -148,11 +147,12 @@ describe('TxEvidenceStep', () => {
     expect(input?.getAttribute('accept')).not.toContain('image/*');
   });
 
-  it('hides attach when analysis is already done', () => {
+  it('hides upload composer when analysis is already done', () => {
     render(
       <TxEvidenceStep
         {...buildProps({
           analysisAlreadyDone: true,
+          summaryText: 'Resumen listo para revisar.',
           activeBankProduct: {
             ...buildProduct(),
             parsedDocuments: [{ name: 'cartola.pdf', text: 'mov' }],
@@ -162,6 +162,7 @@ describe('TxEvidenceStep', () => {
     );
 
     expect(screen.queryByLabelText(/adjuntar archivos/i)).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Rápido' })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/mensaje del chat de subida de evidencia/i)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /continuar al resumen/i })).toBeInTheDocument();
   });
 });

@@ -1,6 +1,7 @@
 /** @jest-environment node */
 
 import {
+  isSummaryAnalysisChatStep,
   resolveAssistantMessageThread,
   selectAssistantMessagesForThread,
 } from '../tx-assistant-thread.helpers';
@@ -17,6 +18,12 @@ function message(id: string, thread?: TxAssistantMessage['thread']): TxAssistant
 }
 
 describe('tx-assistant-thread.helpers', () => {
+  it('enables summary chat only on dashboard after analysis', () => {
+    expect(isSummaryAnalysisChatStep({ txWizardStep: 'dashboard', analysisAlreadyDone: true })).toBe(true);
+    expect(isSummaryAnalysisChatStep({ txWizardStep: 'upload', analysisAlreadyDone: true })).toBe(false);
+    expect(isSummaryAnalysisChatStep({ txWizardStep: 'dashboard', analysisAlreadyDone: false })).toBe(false);
+  });
+
   it('routes dashboard step to summary thread and upload step to evidence thread', () => {
     expect(
       resolveAssistantMessageThread({ txWizardStep: 'dashboard', analysisAlreadyDone: true }),

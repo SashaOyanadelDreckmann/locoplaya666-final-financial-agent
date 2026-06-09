@@ -1,6 +1,9 @@
-import type { TxUploadFormat } from './types';
+import type { TxUploadFormat, TxWizardStep } from './types';
 
 export type { TxUploadFormat } from './types';
+
+export const EVIDENCE_STEP_ANALYSIS_REDIRECT =
+  'Este paso es solo para subir archivos. Cuando veas el resumen, continúa al paso 3 para preguntar sobre movimientos y el análisis.';
 
 const LEGACY_VIDEO_FORMAT = 'video';
 
@@ -43,4 +46,29 @@ export function wantsTextEvidenceUpload(params: {
     params.text.trim().length > 0 &&
     !params.hasAttachedFiles
   );
+}
+
+export function isUploadAssistanceMessage(text: string): boolean {
+  const normalized = text.trim().toLowerCase();
+  if (!normalized) return false;
+  if (inferUploadFormatFromMessage(text)) return true;
+  return /(subir|adjunt|archiv|cartola|evidencia|formato|peg|pegar|manual|captura|pantallazo|planilla|limite|l[ií]mite|cuantos archivos|cuántos archivos)/i.test(
+    normalized,
+  );
+}
+
+export function shouldBlockEvidenceStepAnalysisChat(params: {
+  txWizardStep: TxWizardStep;
+  analysisAlreadyDone: boolean;
+  text: string;
+  hasAttachedFiles: boolean;
+  shouldUploadTextEvidence: boolean;
+}): boolean {
+  if (params.txWizardStep !== 'upload') return false;
+  if (params.hasAttachedFiles || params.shouldUploadTextEvidence) return false;
+  if (inferUploadFormatFromMessage(params.text)) return false;
+  const trimmed = params.text.trim();
+  if (!trimmed) return params.analysisAlreadyDone;
+  if (params.analysisAlreadyDone) return true;
+  return !isUploadAssistanceMessage(trimmed);
 }

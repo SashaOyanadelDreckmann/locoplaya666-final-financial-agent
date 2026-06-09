@@ -2,8 +2,11 @@ import { alignProductDashboard } from '@/app/agent/transactions/align-product-da
 import type { BankProduct } from '@/app/agent/transactions/types';
 import { buildChatDashboardForQuestion, compactDashboardForPrompt } from '@/lib/transactions-chat.helpers';
 
+export type TransactionChatContext = 'evidence_upload' | 'summary_analysis';
+
 export type TransactionChatAssistantRequest = {
   mode: 'summary' | 'chat';
+  chatContext?: TransactionChatContext;
   product: {
     bank: string;
     label: string;
@@ -21,6 +24,7 @@ export function buildTransactionChatRequest(
   product: BankProduct,
   params: {
     mode: 'summary' | 'chat';
+    chatContext?: TransactionChatContext;
     question?: string;
     currentSummary?: string | null;
     feedback?: string;
@@ -37,6 +41,7 @@ export function buildTransactionChatRequest(
 
   return {
     mode: params.mode,
+    chatContext: params.chatContext ?? 'summary_analysis',
     product: {
       bank: product.bank,
       label: product.label,

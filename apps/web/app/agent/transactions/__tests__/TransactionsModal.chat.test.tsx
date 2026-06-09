@@ -27,6 +27,7 @@ function buildProduct(
   id: string,
   label: string,
   messages: NonNullable<BankProduct['assistant']>['messages'] = [],
+  options?: { parsedDocuments?: BankProduct['parsedDocuments'] },
 ): BankProduct {
   return {
     id,
@@ -46,7 +47,7 @@ function buildProduct(
     connected: true,
     randomMode: false,
     uploadedFiles: [],
-    parsedDocuments: [{ name: 'cartola.pdf', text: 'movimiento 1000' }],
+    parsedDocuments: options?.parsedDocuments ?? [{ name: 'cartola.pdf', text: 'movimiento 1000' }],
   };
 }
 
@@ -158,24 +159,52 @@ describe('TransactionsModal chat isolation', () => {
     expect(screen.getByLabelText(/producto activo del chat/i)).toHaveTextContent('Cuenta B');
   });
 
-  it('keeps separate composer drafts per product while switching', () => {
-    render(<SwitchableChatHarness />);
+  it('keeps separate upload composer drafts per product while switching', () => {
+    function SwitchableUploadHarness() {
+      const products = useMemo(
+        () => [
+          buildProduct('prod-a', 'Cuenta A', [], { parsedDocuments: [] }),
+          buildProduct('prod-b', 'Cuenta B', [], { parsedDocuments: [] }),
+        ],
+        [],
+      );
+      const [selectedId, setSelectedId] = useState('prod-a');
 
-    const composer = screen.getByLabelText(/mensaje del chat de transacciones/i) as HTMLTextAreaElement;
+      return (
+        <>
+          <button type="button" onClick={() => setSelectedId('prod-a')}>
+            Seleccionar A
+          </button>
+          <button type="button" onClick={() => setSelectedId('prod-b')}>
+            Seleccionar B
+          </button>
+          <TransactionsModal
+            {...buildProps(products, selectedId)}
+            activeBankProduct={products.find((product) => product.id === selectedId) ?? null}
+            selectedProductId={selectedId}
+            selectTransactionProduct={setSelectedId}
+          />
+        </>
+      );
+    }
+
+    render(<SwitchableUploadHarness />);
+
+    const composer = screen.getByLabelText(/mensaje del chat de subida de evidencia/i) as HTMLTextAreaElement;
 
     fireEvent.change(composer, { target: { value: 'borrador A' } });
     expect(composer.value).toBe('borrador A');
 
     fireEvent.click(screen.getByRole('button', { name: 'Seleccionar B' }));
-    fireEvent.change(screen.getByLabelText(/mensaje del chat de transacciones/i), {
+    fireEvent.change(screen.getByLabelText(/mensaje del chat de subida de evidencia/i), {
       target: { value: 'borrador B' },
     });
-    expect((screen.getByLabelText(/mensaje del chat de transacciones/i) as HTMLTextAreaElement).value).toBe(
+    expect((screen.getByLabelText(/mensaje del chat de subida de evidencia/i) as HTMLTextAreaElement).value).toBe(
       'borrador B',
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'Seleccionar A' }));
-    expect((screen.getByLabelText(/mensaje del chat de transacciones/i) as HTMLTextAreaElement).value).toBe(
+    expect((screen.getByLabelText(/mensaje del chat de subida de evidencia/i) as HTMLTextAreaElement).value).toBe(
       'borrador A',
     );
   });

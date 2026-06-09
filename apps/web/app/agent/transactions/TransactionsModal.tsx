@@ -311,7 +311,6 @@ export function TransactionsModal(props: TransactionsModalProps) {
                           currentStage={vm.currentStage}
                           scrollRef={vm.txSummaryScrollRef}
                           assistantMessages={assistant.evidenceAssistantMessages}
-                          starterChips={assistant.starterChips}
                           highlightedMovementKeys={assistant.highlightedMovementKeys}
                           analysisAlreadyDone={vm.analysisAlreadyDone}
                           txUploadOnboardingStep={assistant.txUploadOnboardingStep}
@@ -340,10 +339,6 @@ export function TransactionsModal(props: TransactionsModalProps) {
                           onAppendPendingEvidence={assistant.appendPendingEvidence}
                           onAssistantInputChange={assistant.setActiveTxAssistantInput}
                           onAssistantSend={() => void assistant.handleAssistantTextSend()}
-                          onAskSuggestedQuestion={vm.handleAskSuggestedQuestion}
-                          onRefineSummary={(source, body) =>
-                            void assistant.refineTransactionSummaryFromFocus(source, body)
-                          }
                           analystContinueLabel={vm.analystContinueLabel}
                           analystContinueDisabled={vm.isAnalystExperiencePending}
                           onGoToAnalyst={() => vm.goToTxStage('analyst')}
@@ -437,12 +432,14 @@ export function TransactionsModal(props: TransactionsModalProps) {
                           experienceNote={vm.analystExperienceReason}
                           isSummaryPending={props.documentsLoading || assistant.txAssistantLoading}
                           assistantMessages={assistant.summaryAssistantMessages}
+                          starterChips={assistant.starterChips}
                           highlightedMovementKeys={assistant.highlightedMovementKeys}
                           txAssistantInput={assistant.txAssistantInput}
                           txAssistantLoading={assistant.txAssistantLoading}
                           documentsLoading={props.documentsLoading}
                           onAssistantInputChange={assistant.setActiveTxAssistantInput}
                           onAssistantSend={() => void assistant.handleAssistantTextSend()}
+                          onAskSuggestedQuestion={vm.handleAskSuggestedQuestion}
                         />
                       )}
                     </div>

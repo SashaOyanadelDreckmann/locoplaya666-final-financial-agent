@@ -2,7 +2,9 @@ import { Router } from 'express';
 import type { Request, Response } from 'express';
 import { z } from 'zod';
 import { requireAuth } from '../middleware/auth';
+import { requireSpendableFincoins } from '../middleware/fincoin-guard';
 import { asyncHandler } from '../middleware/errorHandler';
+import { chargeFincoinOperation } from '../services/fincoin.service';
 import { getConfig } from '../config';
 import { parseBody } from '../http/parse';
 import { getUserDocumentsByIds } from '../persistence/repos';
@@ -87,8 +89,21 @@ function isIndicativeOrUnstructuredEvidence(
   });
 }
 
+const EVIDENCE_UPLOAD_CHAT_REDIRECT =
+  'Este paso es solo para subir archivos. Cuando veas el resumen, continúa al paso 3 para preguntar sobre movimientos y el análisis.';
+
+function isUploadAssistanceQuestion(question: string): boolean {
+  const normalized = question.trim().toLowerCase();
+  if (!normalized) return false;
+  if (/\b(pdf|excel|csv|xlsx|foto|captura|imagen|texto|planilla)\b/.test(normalized)) return true;
+  return /(subir|adjunt|archiv|cartola|evidencia|formato|peg|pegar|manual|captura|pantallazo|limite|l[ií]mite)/i.test(
+    normalized,
+  );
+}
+
 const TransactionChatRequestSchema = z.object({
   mode: z.enum(['summary', 'chat']).default('chat'),
+  chatContext: z.enum(['evidence_upload', 'summary_analysis']).default('summary_analysis'),
   product: z.record(z.unknown()).default({}),
   parsedDocuments: z.array(ParsedDocumentSchema).max(20).default([]),
   dashboard: z.unknown().optional().nullable(),
@@ -190,11 +205,13 @@ async function resolveCanonicalDocuments(
 router.post(
   '/',
   requireAuth,
+  requireSpendableFincoins('transactions.chat'),
   asyncHandler(async (req: Request, res: Response) => {
     const user = req.authenticatedUser;
     if (!user) {
       return res.status(401).json({ ok: false, error: 'Not authenticated' });
     }
+    await chargeFincoinOperation(user.id, 'transactions.chat');
     const config = getConfig();
     assertCsrf(req);
 
@@ -204,6 +221,7 @@ router.post(
 
     const body = parseBody(TransactionChatRequestSchema, req.body);
     const mode = body.mode;
+    const chatContext = body.chatContext;
     const product = body.product;
     const parsedDocuments = body.parsedDocuments as ClientParsedDocument[];
     const dashboard = body.dashboard ?? null;
@@ -270,6 +288,23 @@ router.post(
 
     const lastUserMessage = [...messages].reverse().find((message) => message.role === 'user');
     const retrievalQuestion = question || compactTxText(lastUserMessage?.text ?? '', 600);
+
+    if (chatContext === 'evidence_upload' && mode === 'chat' && retrievalQuestion && !isUploadAssistanceQuestion(retrievalQuestion)) {
+      return res.json({
+        ok: true,
+        assistant_text: EVIDENCE_UPLOAD_CHAT_REDIRECT,
+        suggested_followups: [
+          '¿Qué formatos puedo subir?',
+          '¿Cuántos archivos admite este producto?',
+        ],
+        referenced_movement_keys: [],
+        signals_used: [],
+        retrieval_mode: 'overview',
+        matched_count: 0,
+        source: 'context-guard',
+        model: 'deterministic',
+      });
+    }
     const dashboardDigest =
       buildChatDashboardForQuestion(dashboard, retrievalQuestion) ??
       compactDashboardForPrompt(dashboard, { maxMovements: 24, maxMerchants: 8 });
