@@ -87,6 +87,7 @@ export async function runClassifyPhase(input: ClassifyPhaseInput): Promise<Class
       user: buildClassifierUserInput({ userMessage: user_message, history }),
       temperature: 0,
       model: resolveCoreAgentClaudeModel(),
+      allowOpenAIFallback: true,
     });
 
     // Backward-compatible shape for older tests/mocks.

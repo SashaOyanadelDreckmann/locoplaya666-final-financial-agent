@@ -182,7 +182,7 @@ function fallbackMerchant(normalized: string): string | undefined {
   if (!normalized) return undefined;
   const cleaned = normalized
     .replace(
-      /\b(compra|pago|cargo|abono|transferencia|transfer|debito|credito|webpay|pos|pac|pat|tef|nacional|internacional|trx|visa|mastercard|tarjeta|cuota|cuotas|sucursal|chile|cl|www|com|enviada|recibida|emitida|rechazada|autorizada|anulada|reversa|devolucion|deposito|giro|retiro|rojo|red|internet)\b/g,
+      /\b(compra|pago|cargo|abono|transferencia|transfer|debito|credito|webpay|pos|pac|pat|tef|nacional|internacional|trx|visa|mastercard|tarjeta|cuota|cuotas|sucursal|chile|cl|www|com|enviada|recibida|emitida|rechazada|autorizada|anulada|reversa|devolucion|deposito|giro|retiro|rojo|red|internet|a|de|del|el|la|los|las|en|por|para|con|sin|al)\b/g,
       ' ',
     )
     .replace(/\b\d{2,}\b/g, ' ')

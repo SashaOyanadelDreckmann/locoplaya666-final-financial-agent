@@ -293,21 +293,33 @@ export async function completeStructuredWithClaude<T>(params: {
   temperature?: number;
   model?: string;
   maxCompletionTokens?: number;
+  allowOpenAIFallback?: boolean;
 }): Promise<T> {
   const inputChars = params.system.length + params.user.length;
   const model = resolveAnthropicModel(inputChars, params.model);
-  const raw = await completeWithClaude(params.user, {
-    systemPrompt: `${params.system}\n\nIMPORTANTE: Responde ÚNICAMENTE con JSON válido. Sin texto adicional, sin markdown, sin bloques de código.`,
-    temperature: params.temperature ?? 0,
-    model,
-    maxCompletionTokens: params.maxCompletionTokens,
-    allowOpenAIFallback: false,
-  });
+  try {
+    const raw = await completeWithClaude(params.user, {
+      systemPrompt: `${params.system}\n\nIMPORTANTE: Responde ÚNICAMENTE con JSON válido. Sin texto adicional, sin markdown, sin bloques de código.`,
+      temperature: params.temperature ?? 0,
+      model,
+      maxCompletionTokens: params.maxCompletionTokens,
+      allowOpenAIFallback: false,
+    });
 
-  const codeBlockMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
-  const jsonStr = codeBlockMatch ? codeBlockMatch[1].trim() : raw;
-  if (!jsonStr) throw new Error('Respuesta LLM vacía en completeStructuredWithClaude');
-  return JSON.parse(jsonStr) as T;
+    const codeBlockMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
+    const jsonStr = codeBlockMatch ? codeBlockMatch[1].trim() : raw;
+    if (!jsonStr) throw new Error('Respuesta LLM vacía en completeStructuredWithClaude');
+    return JSON.parse(jsonStr) as T;
+  } catch (err) {
+    if (params.allowOpenAIFallback !== true) throw err;
+    return completeStructured<T>({
+      system: params.system,
+      user: params.user,
+      temperature: params.temperature,
+      model: params.model,
+      maxCompletionTokens: params.maxCompletionTokens,
+    });
+  }
 }
 
 export async function completeWithClaude(
@@ -338,17 +350,24 @@ export async function completeWithClaude(
     throw new Error(`Modelo Anthropic inválido configurado: ${model}`);
   }
 
-  const client = getAnthropicClient();
-  const response = await client.messages.create({
-    model,
-    max_tokens: anthropicMaxTokens,
-    temperature,
-    system: options?.systemPrompt ?? 'Eres un asistente profesional.',
-    messages: [{ role: 'user', content: input }],
-  });
-
-  const textBlock = response.content.find((b): b is Anthropic.TextBlock => b.type === 'text');
-  return textBlock?.text?.trim() ?? '';
+  try {
+    const client = getAnthropicClient();
+    const response = await client.messages.create({
+      model,
+      max_tokens: anthropicMaxTokens,
+      temperature,
+      system: options?.systemPrompt ?? 'Eres un asistente profesional.',
+      messages: [{ role: 'user', content: input }],
+    });
+    const textBlock = response.content.find((b): b is Anthropic.TextBlock => b.type === 'text');
+    return textBlock?.text?.trim() ?? '';
+  } catch (err) {
+    if (options?.allowOpenAIFallback !== true) throw err;
+    return complete(input, {
+      systemPrompt: options?.systemPrompt,
+      temperature,
+    });
+  }
 }
 
 type StreamDeltaHandler = (delta: string) => void;
@@ -416,7 +435,6 @@ export async function completeWithClaudeStream(
     throw new Error(`Modelo Anthropic inválido configurado: ${model}`);
   }
 
-  const client = getAnthropicClient();
   const envTemp = process.env.ANTHROPIC_TEMPERATURE
     ? Number(process.env.ANTHROPIC_TEMPERATURE)
     : undefined;
@@ -428,22 +446,35 @@ export async function completeWithClaudeStream(
     Number.isFinite(envAnthropicMaxTokens) ? envAnthropicMaxTokens : 2048,
   );
 
-  const stream = client.messages.stream({
-    model,
-    max_tokens: anthropicMaxTokens,
-    temperature,
-    system: options?.systemPrompt ?? 'Eres un asistente profesional.',
-    messages: [{ role: 'user', content: input }],
-  });
-
-  let full = '';
-  for await (const event of stream) {
-    if (event.type !== 'content_block_delta') continue;
-    if (event.delta.type !== 'text_delta') continue;
-    const delta = event.delta.text ?? '';
-    if (!delta) continue;
-    full += delta;
-    onDelta(delta);
+  let anthropicClient: Anthropic;
+  try {
+    anthropicClient = getAnthropicClient();
+  } catch (err) {
+    if (options?.allowOpenAIFallback !== true) throw err;
+    return completeStream(input, options, onDelta);
   }
-  return full.trim();
+
+  try {
+    const stream = anthropicClient.messages.stream({
+      model,
+      max_tokens: anthropicMaxTokens,
+      temperature,
+      system: options?.systemPrompt ?? 'Eres un asistente profesional.',
+      messages: [{ role: 'user', content: input }],
+    });
+
+    let full = '';
+    for await (const event of stream) {
+      if (event.type !== 'content_block_delta') continue;
+      if (event.delta.type !== 'text_delta') continue;
+      const delta = event.delta.text ?? '';
+      if (!delta) continue;
+      full += delta;
+      onDelta(delta);
+    }
+    return full.trim();
+  } catch (err) {
+    if (options?.allowOpenAIFallback !== true) throw err;
+    return completeStream(input, options, onDelta);
+  }
 }

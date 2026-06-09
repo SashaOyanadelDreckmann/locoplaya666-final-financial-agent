@@ -19,7 +19,7 @@ function collectFiles(root: string): string[] {
     const p = path.join(root, entry);
     const stat = fs.statSync(p);
     if (stat.isDirectory()) out.push(...collectFiles(p));
-    else if (/\.(md|json|txt|ts)$/i.test(entry)) out.push(p);
+    else if (/\.(md|json|txt)$/i.test(entry)) out.push(p);
   }
   return out;
 }

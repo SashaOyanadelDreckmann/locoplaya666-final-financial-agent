@@ -6,7 +6,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { ingestUserDocument, searchUserDocumentContext } from '../services/document-intelligence.service';
-import { getUserDocumentsByIds } from '../persistence/repos';
+import { getUserDocumentsByIds, listUserDocuments } from '../persistence/repos';
 import { completeStructuredWithSchema } from '../services/llm.service';
 import { inferTransactionTaxonomy } from '../services/transactionTaxonomy.service';
 import { requireAuth, requirePermission } from '../middleware/auth';
@@ -1552,6 +1552,32 @@ async function reconcileMovementsWithLLM(
     return null;
   }
 }
+
+router.get(
+  '/',
+  requireAuth,
+  requirePermission(PERMISSIONS.DOCUMENT_PARSE_SELF),
+  asyncHandler(async (req, res) => {
+    const user = req.authenticatedUser;
+    if (!user) throw unauthorized('Authentication required');
+
+    const limitParam = Number(req.query.limit ?? 20);
+    const limit = Number.isFinite(limitParam) && limitParam > 0 ? Math.min(limitParam, 100) : 20;
+    const docs = await listUserDocuments(user.id, limit);
+
+    return sendSuccess(res, {
+      documents: docs.map((doc) => ({
+        documentId: doc.id,
+        name: doc.name,
+        status: doc.status,
+        indexed: doc.status === 'INDEXED',
+        summary: doc.summary ?? null,
+        createdAt: doc.createdAt,
+      })),
+      total: docs.length,
+    });
+  }),
+);
 
 router.post(
   '/parse',

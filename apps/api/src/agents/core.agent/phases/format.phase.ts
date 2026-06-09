@@ -218,7 +218,7 @@ export async function runFormatPhase(input: FormatPhaseInput): Promise<FormatPha
       systemPrompt: CORE_RESPONSE_SYSTEM,
       temperature: 0.4,
       model: resolveCoreAgentClaudeModel(),
-      allowOpenAIFallback: false as const,
+      allowOpenAIFallback: true as const,
     };
     const rawResponse = onDelta
       ? await completeWithClaudeStream(formatterInput, fullFormatOptions, onDelta)

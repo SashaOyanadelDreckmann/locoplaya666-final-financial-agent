@@ -179,7 +179,7 @@ function extractStructuredTables(text: string) {
 
 function inferDocumentSummary(text: string, filename: string): Record<string, unknown> {
   const compact = compactWhitespace(text);
-  const moneyMatches = compact.match(/(?:\$|CLP|USD|UF)?\s?-?\d{1,3}(?:[.\s]\d{3})*(?:,\d+)?/gi) ?? [];
+  const moneyMatches = compact.match(/(?:\$|CLP|USD|UF)?\s?-?\d{1,3}(?:[.,]\d{3})*(?:[.,]\d+)?/gi) ?? [];
   const dateMatches = compact.match(/\b(?:\d{1,2}[/-]\d{1,2}[/-]\d{2,4}|\d{4}-\d{2}-\d{2})\b/g) ?? [];
   const lower = compact.toLowerCase();
   const signals = [

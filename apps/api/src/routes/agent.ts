@@ -1333,6 +1333,11 @@ router.post(
 
     normalizedInput.user_name = normalizedInput.user_name ?? authedUser.name;
 
+    const rawMessage = typeof normalizedInput.user_message === 'string' ? normalizedInput.user_message : '';
+    if (rawMessage.length > 8000) {
+      throw badRequest('El mensaje supera el límite de 8000 caracteres.');
+    }
+
     const resolvedDiagnosticProfile = await resolveUserDiagnosticProfile(authedUser);
 
     if (resolvedDiagnosticProfile) {
