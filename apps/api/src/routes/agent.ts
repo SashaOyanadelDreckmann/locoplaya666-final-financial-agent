@@ -946,7 +946,6 @@ router.get(
         ...interviewVoice,
         callsStarted: nextCallsStarted,
         activeCallId: callId,
-        pauseLimit: 1,
         maxDurationSec: remainingSec,
         totalUsedSec,
         status: 'in_progress',
@@ -964,7 +963,6 @@ router.get(
       max_duration_sec: remainingSec,
       total_used_sec: totalUsedSec,
       remaining_total_sec: remainingSec,
-      pause_limit: 1,
       voice: OPENAI_REALTIME_VOICE,
       voice_speed: INTERVIEW_REALTIME_VOICE_SPEED,
     });

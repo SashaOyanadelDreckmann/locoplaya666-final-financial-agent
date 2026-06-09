@@ -128,6 +128,8 @@ describe('conversation voice routes', () => {
     expect(res.body.data.interview_voice.callId).toBe('call-voice-test-1');
     expect(res.body.data.interview_voice.activeCallId).toBe('call-voice-test-1');
     expect(res.body.data.interview_voice.status).toBe('paused');
+    expect(res.body.data.interview_voice.totalUsedSec).toBe(37);
+    expect(res.body.data.interview_voice.remainingTotalSec).toBe(INTERVIEW_TOTAL_LIMIT_SEC - 37);
   }, 15000);
 
   it('accepts durationSec=0 when finalizing voice call', async () => {
@@ -181,7 +183,7 @@ describe('conversation voice routes', () => {
     expect(res.body.data.interview_voice.remaining_total_sec).toBe(
       INTERVIEW_TOTAL_LIMIT_SEC - 44,
     );
-    expect(res.body.data.interview_voice.max_duration_sec).toBe(150);
+    expect(res.body.data.interview_voice.max_duration_sec).toBe(INTERVIEW_TOTAL_LIMIT_SEC);
   }, 15000);
 
   it('still completes finalize when diagnostic agent fails', async () => {

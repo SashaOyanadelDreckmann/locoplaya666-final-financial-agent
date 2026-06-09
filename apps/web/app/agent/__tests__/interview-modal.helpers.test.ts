@@ -1,9 +1,34 @@
 import {
+  resolveInterviewActiveQuota,
   resolveInterviewModalLoadingState,
   resolveInterviewVoiceStateFlags,
 } from '../interview-modal.helpers';
+import { INTERVIEW_TOTAL_LIMIT_SEC } from '@financial-agent/shared';
 
 describe('interview modal helpers', () => {
+  it('derives remaining quota from active seconds only', () => {
+    expect(resolveInterviewActiveQuota(0)).toEqual({
+      activeSeconds: 0,
+      remainingSeconds: INTERVIEW_TOTAL_LIMIT_SEC,
+      isExhausted: false,
+    });
+    expect(resolveInterviewActiveQuota(179)).toEqual({
+      activeSeconds: 179,
+      remainingSeconds: 1,
+      isExhausted: false,
+    });
+    expect(resolveInterviewActiveQuota(180)).toEqual({
+      activeSeconds: 180,
+      remainingSeconds: 0,
+      isExhausted: true,
+    });
+    expect(resolveInterviewActiveQuota(999)).toEqual({
+      activeSeconds: 180,
+      remainingSeconds: 0,
+      isExhausted: true,
+    });
+  });
+
   it('keeps the modal in loading until intake is ready or no longer required', () => {
     expect(
       resolveInterviewModalLoadingState({

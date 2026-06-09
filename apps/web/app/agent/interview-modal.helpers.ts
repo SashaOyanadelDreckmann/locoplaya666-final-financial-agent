@@ -1,3 +1,23 @@
+import { INTERVIEW_TOTAL_LIMIT_SEC } from '@financial-agent/shared';
+
+export type InterviewActiveQuota = {
+  activeSeconds: number;
+  remainingSeconds: number;
+  isExhausted: boolean;
+};
+
+export function resolveInterviewActiveQuota(activeSeconds: number): InterviewActiveQuota {
+  const used = Math.min(
+    INTERVIEW_TOTAL_LIMIT_SEC,
+    Math.max(0, Math.floor(Number.isFinite(activeSeconds) ? activeSeconds : 0)),
+  );
+  return {
+    activeSeconds: used,
+    remainingSeconds: Math.max(0, INTERVIEW_TOTAL_LIMIT_SEC - used),
+    isExhausted: used >= INTERVIEW_TOTAL_LIMIT_SEC,
+  };
+}
+
 export type InterviewVoiceStateInput = {
   latestDiagnosticProfileId?: string | null;
   voiceReportExecutiveReport?: string | null;
@@ -40,31 +60,28 @@ export function resolveInterviewModalLoadingState(input: InterviewModalLoadingIn
 }
 
 export function resolveInterviewVoiceStateFlags(input: InterviewVoiceStateInput): InterviewVoiceStateFlags {
+  const quota = resolveInterviewActiveQuota(Number(input.callSeconds ?? 0));
   const hasCompletedVoiceInterview = Boolean(input.latestDiagnosticProfileId) || Boolean(input.voiceReportExecutiveReport);
   const hasEverStartedVoiceCall =
     Boolean(input.callId) ||
     Number(input.callsStarted ?? 0) > 0 ||
-    Number(input.callSeconds ?? 0) > 0 ||
+    quota.activeSeconds > 0 ||
     Number(input.minuteSummariesCount ?? 0) > 0 ||
     Boolean(input.hasFinalSummary) ||
     Boolean(input.hasVoiceReport);
-  const hasRemainingInterviewTime =
-    input.remainingTotalSec === null
-      ? Number(input.callSeconds ?? 0) < Number(input.maxCallDurationSec ?? 0)
-      : Number(input.remainingTotalSec ?? 0) > 0;
+  const hasRemainingInterviewTime = !quota.isExhausted;
   const hasLiveVoiceCall = Boolean(input.callId) && !hasCompletedVoiceInterview && hasRemainingInterviewTime;
   const isClosingWindow =
     Boolean(input.voiceConnected) &&
     hasRemainingInterviewTime &&
-    (input.remainingTotalSec ?? Math.max(0, Number(input.maxCallDurationSec ?? 0) - Number(input.callSeconds ?? 0))) <=
-      input.closeoutBufferSec;
+    quota.remainingSeconds <= input.closeoutBufferSec;
   const voiceCallExhausted =
     !hasCompletedVoiceInterview &&
-    !hasRemainingInterviewTime &&
+    quota.isExhausted &&
     Boolean(
       input.callId ||
         Number(input.callsStarted ?? 0) > 0 ||
-        Number(input.callSeconds ?? 0) > 0 ||
+        quota.activeSeconds > 0 ||
         Number(input.minuteSummariesCount ?? 0) > 0 ||
         input.hasFinalSummary ||
         input.hasVoiceReport,

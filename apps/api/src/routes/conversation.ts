@@ -385,9 +385,21 @@ export const saveInterviewVoiceState = asyncHandler(async function saveInterview
       ? (memoryBlob.interviewVoice as Record<string, unknown>)
       : {};
 
+  const persistedCallSeconds = Math.max(
+    0,
+    Number(interviewVoice.callSeconds ?? 0),
+    Number(parsed.callSeconds ?? 0),
+  );
+  const totalUsedSec = Math.min(INTERVIEW_TOTAL_LIMIT_SEC, persistedCallSeconds);
+  const remainingTotalSec = Math.max(0, INTERVIEW_TOTAL_LIMIT_SEC - totalUsedSec);
+
   const merged: Record<string, unknown> = {
     ...interviewVoice,
     ...parsed,
+    callSeconds: persistedCallSeconds,
+    totalUsedSec,
+    remainingTotalSec,
+    maxDurationSec: INTERVIEW_TOTAL_LIMIT_SEC,
     activeCallId:
       parsed.activeCallId === null
         ? null
@@ -567,7 +579,7 @@ export const finalizeInterviewVoice = asyncHandler(async function finalizeInterv
   }
   const updatedTotalUsedSec = Math.min(
     INTERVIEW_TOTAL_LIMIT_SEC,
-    previousTotalUsedSec + safeDurationSec,
+    Math.max(previousTotalUsedSec, safeDurationSec, persistedCallSeconds),
   );
   const remainingTotalSec = Math.max(0, INTERVIEW_TOTAL_LIMIT_SEC - updatedTotalUsedSec);
   await saveUserMemoryBlob(user.id, {

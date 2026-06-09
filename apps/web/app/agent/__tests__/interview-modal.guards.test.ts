@@ -70,14 +70,15 @@ describe('interview modal safeguards', () => {
     expect(runtime).not.toContain("finalizeCallAndGenerateReport('user')");
   });
 
-  it('allows closing the modal while the call is paused', () => {
+  it('allows closing the modal anytime except while connecting or finalizing', () => {
     const modalPath = path.join(process.cwd(), 'app', 'agent', 'InterviewModal.tsx');
     const runtimePath = path.join(process.cwd(), 'app', 'agent', 'useInterviewVoiceRuntime.ts');
     const modal = fs.readFileSync(modalPath, 'utf8');
     const runtime = fs.readFileSync(runtimePath, 'utf8');
 
-    expect(modal).toContain('voiceConnected && !voicePaused');
-    expect(runtime).toContain('voiceConnected && !voicePaused');
+    expect(runtime).toContain('voiceConnecting || isFinalizingCall || isGeneratingDiagnosis');
+    expect(runtime).not.toMatch(/blockVoiceInteraction[\s\S]*voiceConnected && !voicePaused/);
+    expect(modal).toContain('Cerrar y guardar progreso');
   });
 
   it('exposes diagnosis retry without reopening the call', () => {
@@ -91,6 +92,18 @@ describe('interview modal safeguards', () => {
     expect(modal).toContain('canRetryDiagnosis');
     expect(runtime).toContain('retryDiagnosisGeneration');
     expect(runtime).toContain('pendingFinalizeRef');
+  });
+
+  it('enforces the hard interview quota and unlimited pause/resume', () => {
+    const runtimePath = path.join(process.cwd(), 'app', 'agent', 'useInterviewVoiceRuntime.ts');
+    const helpersPath = path.join(process.cwd(), 'app', 'agent', 'interview-modal.helpers.ts');
+    const runtime = fs.readFileSync(runtimePath, 'utf8');
+    const helpers = fs.readFileSync(helpersPath, 'utf8');
+
+    expect(helpers).toContain('resolveInterviewActiveQuota');
+    expect(runtime).toContain('syncActiveQuota');
+    expect(runtime).not.toContain('if (pauseUsed) return');
+    expect(runtime).toContain("finalizeCallAndGenerateReport('timeout'");
   });
 
   it('labels paused live calls as Pausada in stage status', () => {

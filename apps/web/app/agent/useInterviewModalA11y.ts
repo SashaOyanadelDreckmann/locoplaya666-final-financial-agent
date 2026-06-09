@@ -53,7 +53,7 @@ export function useInterviewModalA11y(params: Params) {
 
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') {
-        if (isGeneratingDiagnosis || isFinalizingCall || voiceConnecting || (voiceConnected && !voicePaused)) return;
+        if (isGeneratingDiagnosis || isFinalizingCall || voiceConnecting) return;
         event.preventDefault();
         if (canDismissOverlay) onDismiss();
         return;

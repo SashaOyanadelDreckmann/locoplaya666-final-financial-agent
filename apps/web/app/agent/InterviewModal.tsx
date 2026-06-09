@@ -27,6 +27,7 @@ import { formatInterviewClock } from './interview-modal.voice-summary';
 import { useInterviewVoiceRuntime } from './useInterviewVoiceRuntime';
 import { useInterviewModalBootstrap } from './useInterviewModalBootstrap';
 import { useInterviewModalA11y } from './useInterviewModalA11y';
+import { INTERVIEW_TOTAL_LIMIT_SEC } from '@financial-agent/shared';
 
 type Props = {
   isOpen: boolean;
@@ -130,7 +131,6 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
     minuteSummaries,
     finalSummary,
     voicePaused,
-    pauseUsed,
     callSeconds,
     maxCallDurationSec,
     remainingTotalSec,
@@ -145,7 +145,6 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
     applyHydratedVoiceState,
     setLatestDiagnosticProfileId,
     setSessionAlreadyCompletedVoice,
-    cleanupVoiceSession,
     startOrResumeVoiceSession,
     toggleCallPause,
     retryDiagnosisGeneration,
@@ -156,9 +155,8 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
   const canDismissOverlay = !blockVoiceInteraction;
   const handleOverlayDismiss = useCallback(() => {
     if (!canDismissOverlay) return;
-    cleanupVoiceSession();
     onClose();
-  }, [canDismissOverlay, cleanupVoiceSession, onClose]);
+  }, [canDismissOverlay, onClose]);
 
   useInterviewModalBootstrap({
     isOpen,
@@ -314,14 +312,17 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
     : voiceConnected && voiceFlags.isClosingWindow
       ? 'Cierre de entrevista en curso. El diagnóstico se generará automáticamente al terminar.'
     : voiceConnected
-      ? 'El diagnóstico se genera solo al cerrar la entrevista. Puedes pausar una vez y retomar con el contexto guardado.'
+      ? 'El diagnóstico se genera solo al cerrar la entrevista. Puedes pausar o cerrar el modal cuando quieras y retomar con el contexto guardado.'
       : voiceFlags.voiceCallExhausted && (isFinalizingCall || isGeneratingDiagnosis)
         ? 'Entrevista finalizada. Estamos consolidando tu diagnóstico automáticamente.'
       : voiceFlags.hasEverStartedVoiceCall
         ? 'Puedes retomar la llamada donde quedó. El progreso y las síntesis siguen guardados.'
         : 'Inicia la llamada para una entrevista ejecutiva breve. El diagnóstico se entrega al terminar el tiempo o el cierre del entrevistador.';
 
-  const callProgressPct = Math.max(0, Math.min(100, Math.round((callSeconds / Math.max(1, maxCallDurationSec)) * 100)));
+  const callProgressPct = Math.max(
+    0,
+    Math.min(100, Math.round((callSeconds / Math.max(1, INTERVIEW_TOTAL_LIMIT_SEC)) * 100)),
+  );
   const voiceStatusAnnouncement = voiceConnecting
     ? 'Conectando llamada'
     : voiceConnected
@@ -438,10 +439,12 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
               disabled={!canDismissOverlay}
               aria-label={
               canDismissOverlay
-                ? voicePaused
+                ? voiceConnected && voicePaused
                   ? 'Cerrar entrevista en pausa'
-                  : 'Cerrar entrevista'
-                : 'Cerrar bloqueado mientras la llamada está activa'
+                  : voiceConnected
+                    ? 'Cerrar y guardar progreso'
+                    : 'Cerrar entrevista'
+                : 'Cerrar bloqueado mientras la llamada se conecta o cierra'
             }
             >
               ×
@@ -573,7 +576,7 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
                     </article>
                     <article className="interview-metric-card">
                       <span>Pausa</span>
-                      <strong>{pauseUsed ? (voicePaused ? 'Activa' : 'Usada') : 'Disponible'}</strong>
+                      <strong>{voicePaused ? 'Activa' : voiceConnected ? 'Lista' : '—'}</strong>
                     </article>
                   </div>
 
@@ -747,10 +750,10 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
                         type="button"
                         className="summary-action-btn"
                         onClick={toggleCallPause}
-                        disabled={!voiceConnected || showVoiceReport || (pauseUsed && !voicePaused)}
-                        title={pauseUsed ? 'Ya usaste la pausa única de esta llamada' : 'Pausar una vez'}
+                        disabled={!voiceConnected || showVoiceReport}
+                        title={voicePaused ? 'Reanudar la llamada' : 'Pausar la llamada'}
                       >
-                        {voicePaused ? 'Reanudar' : pauseUsed ? 'Pausa usada' : 'Pausar (1 vez)'}
+                        {voicePaused ? 'Reanudar' : 'Pausar'}
                       </button>
                     </div>
 
@@ -781,12 +784,12 @@ export function InterviewModal({ isOpen, onClose, onDiagnosisComplete }: Props) 
                         Tiempo {callTimeLabel} / {maxCallTimeLabel}
                       </span>
                       <span className="voice-call-pill">
-                        Pausa: {pauseUsed ? (voicePaused ? 'en uso' : 'usada') : 'disponible'}
+                        Pausa: {voicePaused ? 'activa' : voiceConnected ? 'disponible' : '—'}
                       </span>
                       <span className="voice-call-pill">
                         Restante: {formatInterviewClock(remainingTotalSec)}
                       </span>
-                      <span className="voice-call-pill">Una sesión por usuario</span>
+                      <span className="voice-call-pill">Hasta 3 min activos</span>
                     </div>
 
                     {voiceError ? (

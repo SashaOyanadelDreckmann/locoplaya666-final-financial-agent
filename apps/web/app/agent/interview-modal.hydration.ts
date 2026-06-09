@@ -1,5 +1,6 @@
 import { INTERVIEW_TOTAL_LIMIT_SEC } from '@financial-agent/shared';
 import type { InterviewVoiceReport, InterviewVoiceSnapshot, InterviewVoiceSummaryEntry } from './interview-modal.context';
+import { resolveInterviewActiveQuota } from './interview-modal.helpers';
 
 export const DEFAULT_MAX_CALL_DURATION_SEC = INTERVIEW_TOTAL_LIMIT_SEC;
 
@@ -98,19 +99,16 @@ export function deriveHydratedVoiceState(input: {
       Boolean(snapshot.voiceReport),
   );
 
+  const activeCallSeconds =
+    typeof snapshot.callSeconds === 'number' ? Math.max(0, Math.floor(snapshot.callSeconds)) : 0;
+  const activeQuota = resolveInterviewActiveQuota(activeCallSeconds);
+
   return {
     callsStarted:
       typeof snapshot.callsStarted === 'number' ? Math.max(0, Math.floor(snapshot.callsStarted)) : 0,
-    callSeconds:
-      typeof snapshot.callSeconds === 'number' ? Math.max(0, Math.floor(snapshot.callSeconds)) : 0,
-    maxCallDurationSec:
-      typeof snapshot.maxDurationSec === 'number' && snapshot.maxDurationSec > 0
-        ? Math.min(DEFAULT_MAX_CALL_DURATION_SEC, Math.max(1, Math.floor(snapshot.maxDurationSec)))
-        : DEFAULT_MAX_CALL_DURATION_SEC,
-    remainingTotalSec:
-      typeof snapshot.remainingTotalSec === 'number'
-        ? Math.min(DEFAULT_MAX_CALL_DURATION_SEC, Math.max(0, Math.floor(snapshot.remainingTotalSec)))
-        : null,
+    callSeconds: activeQuota.activeSeconds,
+    maxCallDurationSec: DEFAULT_MAX_CALL_DURATION_SEC,
+    remainingTotalSec: activeQuota.remainingSeconds,
     callId:
       typeof snapshot.callId === 'string' && snapshot.callId.length > 0
         ? snapshot.callId

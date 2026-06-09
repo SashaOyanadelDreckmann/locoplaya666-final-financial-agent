@@ -30,6 +30,7 @@ import {
   type VoiceSessionContext,
 } from './interview-modal.context';
 import { emitVoiceSessionContext, resolveVoiceCapabilityIssue } from './interview-modal.voice-session';
+import { resolveInterviewActiveQuota } from './interview-modal.helpers';
 import {
   buildSummaryInstructions,
   normalizeSummaryText,
@@ -181,16 +182,25 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
     voiceConnected,
   });
 
+  function syncActiveQuota(activeSeconds: number) {
+    const quota = resolveInterviewActiveQuota(activeSeconds);
+    callSecondsRef.current = quota.activeSeconds;
+    setCallSeconds(quota.activeSeconds);
+    setRemainingTotalSec(quota.remainingSeconds);
+    setMaxCallDurationSec(INTERVIEW_TOTAL_LIMIT_SEC);
+    return quota;
+  }
+
   function buildPersistSnapshot(status: InterviewVoiceSnapshot['status']): InterviewVoiceSnapshot {
+    const quota = resolveInterviewActiveQuota(callSecondsRef.current || callSeconds);
     return {
       callsStarted,
       callId: callId ?? undefined,
       activeCallId: callId ?? undefined,
       status,
-      callSeconds,
-      maxDurationSec: Math.min(DEFAULT_MAX_CALL_DURATION_SEC, maxCallDurationSec),
-      remainingTotalSec:
-        remainingTotalSec === null ? null : Math.min(DEFAULT_MAX_CALL_DURATION_SEC, remainingTotalSec),
+      callSeconds: quota.activeSeconds,
+      maxDurationSec: INTERVIEW_TOTAL_LIMIT_SEC,
+      remainingTotalSec: quota.remainingSeconds,
       pauseUsed,
       minuteSummaries,
       finalSummary,
@@ -271,6 +281,7 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
     if (state.latestDiagnosticProfileId) setLatestDiagnosticProfileId(state.latestDiagnosticProfileId);
     summaryMinuteAppliedRef.current = state.summaryMinuteApplied;
     if (state.voiceUserTranscript) setVoiceUserTranscript(state.voiceUserTranscript);
+    syncActiveQuota(state.callSeconds);
     voiceStateHydratedRef.current = true;
   }
 
@@ -453,6 +464,11 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
 
   async function startVoiceSession() {
     if (!voiceSupported || voiceConnecting || voiceConnected) return;
+    const activeQuota = resolveInterviewActiveQuota(callSecondsRef.current || callSeconds);
+    if (activeQuota.isExhausted) {
+      void finalizeCallAndGenerateReport('timeout', { durationSecOverride: activeQuota.activeSeconds });
+      return;
+    }
     if (voiceFlags.voiceCallExhausted && !voiceFlags.hasLiveVoiceCall) {
       setVoiceError('El tiempo de la entrevista se agotó. Estamos consolidando tu diagnóstico automáticamente.');
       return;
@@ -495,18 +511,8 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
       } else {
         setCallsStarted(1);
       }
-      if (typeof token?.max_duration_sec === 'number' && token.max_duration_sec > 0) {
-        setMaxCallDurationSec(Math.max(1, Math.floor(token.max_duration_sec)));
-      } else {
-        setMaxCallDurationSec(DEFAULT_MAX_CALL_DURATION_SEC);
-      }
-      if (typeof token?.remaining_total_sec === 'number') {
-        setRemainingTotalSec(Math.max(0, Math.floor(token.remaining_total_sec)));
-      } else {
-        setRemainingTotalSec(null);
-      }
       if (!hasPersistedCall) {
-        setCallSeconds(0);
+        syncActiveQuota(0);
         setPauseUsed(false);
         setVoiceReport(null);
         setMinuteSummaries([]);
@@ -515,6 +521,11 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
         setVoiceUserTranscript('');
         setVoicePartialTranscript('');
       } else {
+        const fromToken =
+          typeof token?.remaining_total_sec === 'number'
+            ? INTERVIEW_TOTAL_LIMIT_SEC - Math.max(0, Math.floor(token.remaining_total_sec))
+            : 0;
+        syncActiveQuota(Math.max(callSecondsRef.current || callSeconds, fromToken));
         setMinuteSummaries(
           (token?.interview_voice?.minuteSummaries as InterviewVoiceSummaryEntry[] | undefined) ?? minuteSummaries,
         );
@@ -522,6 +533,12 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
           (token?.interview_voice?.finalSummary as InterviewVoiceSnapshot['finalSummary']) ?? finalSummary ?? null,
         );
         setVoiceReport((token?.interview_voice?.voiceReport as InterviewVoiceReport | undefined) ?? voiceReport ?? null);
+      }
+      if (resolveInterviewActiveQuota(callSecondsRef.current).isExhausted) {
+        cleanupVoiceSession();
+        setVoiceConnecting(false);
+        void finalizeCallAndGenerateReport('timeout', { durationSecOverride: callSecondsRef.current });
+        return;
       }
 
       const pc = new RTCPeerConnection();
@@ -673,6 +690,10 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
   function toggleCallPause() {
     if (!voiceConnected) return;
     if (voicePaused) {
+      if (resolveInterviewActiveQuota(callSecondsRef.current).isExhausted) {
+        void finalizeCallAndGenerateReport('timeout', { durationSecOverride: callSecondsRef.current });
+        return;
+      }
       localStreamRef.current?.getAudioTracks().forEach((track) => {
         track.enabled = true;
       });
@@ -681,12 +702,10 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
       void saveInterviewVoiceState(snapshot).catch(() => {});
       return;
     }
-    if (pauseUsed) return;
     localStreamRef.current?.getAudioTracks().forEach((track) => {
       track.enabled = false;
     });
     setVoicePaused(true);
-    setPauseUsed(true);
     const snapshot = persistVoiceSnapshot('paused');
     writeInterviewVoiceState(snapshot);
     void saveInterviewVoiceState(snapshot).catch(() => {});
@@ -728,9 +747,9 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
 
     return {
       endedBy,
-      durationSec: Math.max(
-        1,
-        Math.floor(options?.durationSecOverride ?? callSecondsRef.current ?? callSeconds),
+      durationSec: Math.min(
+        INTERVIEW_TOTAL_LIMIT_SEC,
+        Math.max(1, Math.floor(options?.durationSecOverride ?? callSecondsRef.current ?? callSeconds)),
       ),
       minuteSummaryPayload,
       fallbackFinalSummary,
@@ -970,30 +989,22 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
   ]);
 
   useEffect(() => {
-    if (!isOpen || remainingTotalSec !== null) return;
-    setRemainingTotalSec(Math.max(0, maxCallDurationSec - callSeconds));
-  }, [isOpen, callSeconds, maxCallDurationSec, remainingTotalSec]);
-
-  useEffect(() => {
-    if (!isOpen || !voiceConnected || voicePaused) return;
+    if (!voiceConnected || voicePaused || voiceReport || isFinalizingCall || isGeneratingDiagnosis) return;
     const timer = window.setInterval(() => {
-      setCallSeconds((prev) => {
-        const next = prev + 1;
-        const nextRemaining = Math.max(0, maxCallDurationSec - next);
-        setRemainingTotalSec(nextRemaining);
-        if (next >= maxCallDurationSec) {
-          window.clearInterval(timer);
-          setRemainingTotalSec(0);
-        }
-        return next;
-      });
+      const quota = resolveInterviewActiveQuota(callSecondsRef.current + 1);
+      callSecondsRef.current = quota.activeSeconds;
+      setCallSeconds(quota.activeSeconds);
+      setRemainingTotalSec(quota.remainingSeconds);
+      if (quota.isExhausted) {
+        window.clearInterval(timer);
+        void finalizeCallAndGenerateReport('timeout', { durationSecOverride: quota.activeSeconds });
+      }
     }, 1000);
     return () => window.clearInterval(timer);
-  }, [isOpen, voiceConnected, voicePaused, maxCallDurationSec]);
+  }, [voiceConnected, voicePaused, voiceReport, isFinalizingCall, isGeneratingDiagnosis]);
 
   useEffect(() => {
     if (
-      !isOpen ||
       !voiceConnected ||
       voicePaused ||
       voiceSpeaking ||
@@ -1007,7 +1018,6 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
     if (elapsedMinute <= summaryMinuteAppliedRef.current) return;
     void requestVoiceSummary('minute', elapsedMinute);
   }, [
-    isOpen,
     voiceConnected,
     voicePaused,
     voiceSpeaking,
@@ -1018,7 +1028,7 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
   ]);
 
   useEffect(() => {
-    if (!isOpen || voiceReport || !voiceFlags.voiceCallExhausted || isFinalizingCall) return;
+    if (voiceReport || !voiceFlags.voiceCallExhausted || isFinalizingCall || isGeneratingDiagnosis) return;
 
     if (!finalSummary && !summaryRequestRef.current && !summaryGenerating) {
       void requestVoiceSummary('final');
@@ -1041,14 +1051,20 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
 
     return () => window.clearTimeout(timer);
   }, [
-    isOpen,
     voiceFlags.voiceCallExhausted,
     voiceReport,
     finalSummary,
     summaryGenerating,
     isFinalizingCall,
+    isGeneratingDiagnosis,
     minuteSummaries,
   ]);
+
+  useEffect(() => {
+    if (!voiceStateHydratedRef.current || voiceReport || isFinalizingCall || isGeneratingDiagnosis || !intake) return;
+    if (!resolveInterviewActiveQuota(callSeconds).isExhausted) return;
+    void finalizeCallAndGenerateReport('timeout', { durationSecOverride: callSeconds });
+  }, [callSeconds, voiceReport, isFinalizingCall, isGeneratingDiagnosis, intake]);
 
   useEffect(() => {
     if (!isOpen || !voiceFlags.isClosingWindow || closeoutPromptSentRef.current) return;
@@ -1071,8 +1087,20 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
   useEffect(() => {
     if (isOpen) return;
 
+    const quota = resolveInterviewActiveQuota(callSecondsRef.current);
     const hasContent =
       Boolean(callId) || minuteSummaries.length > 0 || Boolean(finalSummary) || Boolean(voiceReport);
+    if (
+      quota.isExhausted &&
+      hasContent &&
+      !voiceReport &&
+      !isFinalizingCall &&
+      !isGeneratingDiagnosis
+    ) {
+      void finalizeCallAndGenerateReport('timeout', { durationSecOverride: quota.activeSeconds });
+      return;
+    }
+
     if (hasContent && !voiceReport) {
       const snapshot = buildPersistSnapshot(callId ? 'paused' : 'idle');
       writeInterviewVoiceState(snapshot);
@@ -1099,8 +1127,7 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
     };
   }, []);
 
-  const blockVoiceInteraction =
-    (voiceConnected && !voicePaused) || voiceConnecting || isFinalizingCall || isGeneratingDiagnosis;
+  const blockVoiceInteraction = voiceConnecting || isFinalizingCall || isGeneratingDiagnosis;
 
   return {
     voiceSupported,
