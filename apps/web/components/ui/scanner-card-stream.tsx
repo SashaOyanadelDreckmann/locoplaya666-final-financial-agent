@@ -343,7 +343,7 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
 
     const baseMaxParticles = prefersReducedMotion ? 0 : 280;
     const scanTargetMaxParticles = 900;
-    let scannerParticles: Array<{
+    const scannerParticles: Array<{
       x: number;
       y: number;
       vx: number;
