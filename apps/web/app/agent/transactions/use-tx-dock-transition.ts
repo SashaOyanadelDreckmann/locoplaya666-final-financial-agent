@@ -80,40 +80,39 @@ export function useTxDockTransition(params: {
     if (!canContinueAuto || isDockingToLibrary || !activeBankProduct) return;
     clearDockTransitionTimers();
     const productId = activeBankProduct.id;
+
+    applyOnboarding();
+    const authorized = simulateBankLogin({
+      bank: resolvedBank,
+      label: resolvedProductLabel,
+      productType: derivedProductType,
+      simulationAccepted: consentIsGranted,
+    });
+    if (!authorized) {
+      setIsDockingToLibrary(false);
+      setDockTransitionPhase('idle');
+      return;
+    }
+
+    setRecentlyDockedProductId(productId);
     setIsDockingToLibrary(true);
     setDockTransitionPhase('authorizing');
     bumpModalMotion();
+    setShowTxCarousel(true);
     queueDockTransitionTimeout(() => setDockTransitionPhase('flood'), 220);
     queueDockTransitionTimeout(() => {
-      applyOnboarding();
-      const authorized = simulateBankLogin({
-        bank: resolvedBank,
-        label: resolvedProductLabel,
-        productType: derivedProductType,
-        simulationAccepted: consentIsGranted,
-      });
-      if (!authorized) {
-        clearDockTransitionTimers();
-        setIsDockingToLibrary(false);
-        setDockTransitionPhase('idle');
-        return;
-      }
-      setRecentlyDockedProductId(productId);
-      queueDockTransitionTimeout(() => {
-        setDockTransitionPhase('library-reveal');
-        setShowTxCarousel(true);
-        setShuffleTrigger((value) => value + 1);
-      }, 420);
-      queueDockTransitionTimeout(() => {
-        setDockTransitionPhase('chat-reveal');
-        setShuffleTrigger((value) => value + 1);
-        maybeInitAssistant();
-      }, 800);
-      queueDockTransitionTimeout(() => {
-        setIsDockingToLibrary(false);
-        setRecentlyDockedProductId((current) => (current === productId ? null : current));
-      }, 1440);
+      setDockTransitionPhase('library-reveal');
+      setShuffleTrigger((value) => value + 1);
     }, 520);
+    queueDockTransitionTimeout(() => {
+      setDockTransitionPhase('chat-reveal');
+      setShuffleTrigger((value) => value + 1);
+      maybeInitAssistant();
+    }, 800);
+    queueDockTransitionTimeout(() => {
+      setIsDockingToLibrary(false);
+      setRecentlyDockedProductId((current) => (current === productId ? null : current));
+    }, 1440);
   }, [
     activeBankProduct,
     applyOnboarding,

@@ -356,12 +356,15 @@ export function TransactionsModal(props: TransactionsModalProps) {
     productCards,
   });
 
-  const libraryProductCards = productCards.filter(
-    ({ product }) =>
-      product.connected ||
-      product.uploadedFiles.length > 0 ||
-      product.parsedDocuments.length > 0 ||
-      product.id === props.selectedProductId,
+  const libraryProductCards = useMemo(
+    () =>
+      productCards.filter(
+        ({ product }) =>
+          product.connected ||
+          product.uploadedFiles.length > 0 ||
+          product.parsedDocuments.length > 0,
+      ),
+    [productCards],
   );
   const activeProductIndex = Math.max(
     0,
@@ -399,8 +402,17 @@ export function TransactionsModal(props: TransactionsModalProps) {
       setProductCarouselIndex(0);
       return;
     }
+    if (recentlyDockedProductId) {
+      const dockedIndex = libraryProductCards.findIndex(
+        (entry) => entry.product.id === recentlyDockedProductId,
+      );
+      if (dockedIndex >= 0) {
+        setProductCarouselIndex(dockedIndex);
+        return;
+      }
+    }
     setProductCarouselIndex(activeProductIndex);
-  }, [activeProductIndex, libraryProductCards.length]);
+  }, [activeProductIndex, libraryProductCards, recentlyDockedProductId]);
   useEffect(() => {
     if (!props.isOpen || props.txWizardStep !== 'upload' || isDockingToLibrary) return;
     maybeInitAssistant();

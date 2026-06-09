@@ -1,7 +1,7 @@
 /** @jest-environment jsdom */
 
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { TransactionsModal } from '../TransactionsModal';
 import type { BankProduct, TransactionsModalProps, TxWizardStep } from '../types';
 
@@ -91,10 +91,14 @@ function TransactionsModalHarness({
   const [product, setProduct] = useState(buildProduct());
   const [txWizardStep, setTxWizardStep] = useState<TxWizardStep>('credentials');
   const [transactionUploadError, setTransactionUploadError] = useState<string | null>(null);
+  const transactionProductCards = useMemo(
+    () => [{ product, descriptor: buildDescriptor('draft'), intel: { docs: 0, amounts: [] } }],
+    [product],
+  );
 
   const props = buildBaseProps({
     activeBankProduct: product,
-    transactionProductCards: [{ product, descriptor: buildDescriptor('draft'), intel: { docs: 0, amounts: [] } }],
+    transactionProductCards,
     txWizardStep,
     setTxWizardStep,
     transactionUploadError,
@@ -142,6 +146,31 @@ describe('TransactionsModal consent UX', () => {
       screen.getByText('Completa institución, plantilla de producto, consentimiento simulado para autorizar.'),
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Autorizar y continuar' })).toBeDisabled();
+  });
+
+  it('reveals the authorized product in the library as soon as authorization succeeds', async () => {
+    render(<TransactionsModalHarness />);
+
+    fireEvent.change(screen.getAllByRole('textbox')[0], {
+      target: { value: 'Banco de Chile (simulacion)' },
+    });
+    fireEvent.change(screen.getAllByRole('textbox')[1], {
+      target: { value: 'Cuenta corriente' },
+    });
+    fireEvent.click(screen.getByRole('checkbox'));
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Autorizar y continuar' }));
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByText('Biblioteca vacía')).not.toBeInTheDocument();
+    });
+
+    const library = document.querySelector('.pt-list');
+    expect(library).not.toBeNull();
+    expect(library).toHaveTextContent('Cuenta corriente');
+    expect(library).toHaveTextContent('Autorizado');
   });
 
   it('authorizes and advances to evidence when the form is complete', async () => {
