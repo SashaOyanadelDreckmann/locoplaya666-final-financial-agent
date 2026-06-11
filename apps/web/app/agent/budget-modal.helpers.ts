@@ -73,15 +73,6 @@ export function getBudgetQuestionForRow(
   return '¿Qué quieres cambiar en tu presupuesto?';
 }
 
-/** @deprecated Use getBudgetQuestionForRow — kept for guard tests and legacy call sites. */
-export function getBudgetQuestionForId(rowId: string | null, contextInput?: Parameters<typeof buildBudgetModalAssistantContext>[0]) {
-  if (contextInput) {
-    const row = contextInput.budgetRows.find((item) => item.id === rowId) ?? null;
-    return getBudgetQuestionForRow(row, contextInput, rowId);
-  }
-  return getBudgetQuestionForRow(null, { budgetRows: [], chatAnswers: [] }, rowId);
-}
-
 export function normalizeActionRowId(rawId: unknown): string | null {
   const rowId = String(rawId ?? '').trim();
   if (!rowId) return null;
