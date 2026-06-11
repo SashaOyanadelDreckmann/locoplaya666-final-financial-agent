@@ -66,6 +66,41 @@ Root directory: repo root. Dockerfile: `Dockerfile.api`.
 
 **Producción:** no habilitar `ENABLE_DEV_INJECTION`.
 
+### Budget chat — ReAct (solo servicio API)
+
+El asistente de presupuesto (`POST /api/budget-chat`) puede usar un loop ReAct antes del agente structured legacy. Detalle de producto en [`docs/FLUJO_END_TO_END.md`](./FLUJO_END_TO_END.md) (§ presupuesto).
+
+| Variable | Comportamiento |
+|----------|----------------|
+| `BUDGET_CHAT_AGENT_ENABLED` | Si es `false`, desactiva todo el agente de presupuesto (ReAct y structured). |
+| `BUDGET_CHAT_REACT_ENABLED` | Controla el loop ReAct dentro del agente. |
+
+**Defaults en código (sin variable explícita):**
+
+| Entorno | ReAct |
+|---------|-------|
+| `NODE_ENV=test` | **OFF** salvo `BUDGET_CHAT_REACT_ENABLED=true` |
+| dev / prod | **ON** salvo `BUDGET_CHAT_REACT_ENABLED=false` o `BUDGET_CHAT_AGENT_ENABLED=false` |
+
+**Recomendación Railway / producción (rollout conservador):**
+
+```text
+BUDGET_CHAT_REACT_ENABLED=false
+```
+
+Mantiene el agente structured legacy. Para activar ReAct en prod, setear explícitamente:
+
+```text
+BUDGET_CHAT_REACT_ENABLED=true
+```
+
+**Operación:**
+
+- ReAct puede aumentar **latencia** y **costo de infra** (hasta 2 iteraciones LLM por defecto, `BUDGET_CHAT_REACT_MAX_ITERATIONS`; herramientas MCP opcionales como `finance.budget_analyzer`). Si ReAct falla o hace timeout, el sistema cae al structured legacy.
+- **Fincoins:** sigue **un cargo** `budget.chat` por request (`requireSpendableFincoins` + `chargeFincoinOperation` antes del agente); ReAct no añade operación Fincoin extra por iteración.
+
+Variables opcionales (no obligatorias en Railway): `BUDGET_CHAT_REACT_MAX_ITERATIONS`, `BUDGET_CHAT_REACT_TIMEOUT_MS`, `BUDGET_CHAT_AGENT_TIMEOUT_MS`, `BUDGET_CHAT_AGENT_MODEL`.
+
 ## 3. Variables de entorno — Web
 
 Root directory: repo root. Dockerfile: `Dockerfile.web`.
