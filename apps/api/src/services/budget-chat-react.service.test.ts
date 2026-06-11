@@ -179,6 +179,31 @@ describe('executeBudgetReactTool finance.budget_analyzer', () => {
     expect(runMCPTool).not.toHaveBeenCalled();
   });
 
+  it('returns no_income_rows without calling MCP when fractional income rounds to 0', async () => {
+    const fractionalIncomeRows = [
+      { id: 'income_micro', category: 'Micro ingreso', type: 'income' as const, amount: 0.4 },
+      { id: 'expense_food', category: 'Comida', type: 'expense' as const, amount: 200_000 },
+    ];
+    const context = buildBudgetAssistantContext({
+      rows: fractionalIncomeRows,
+      intakeData: {},
+      products: [],
+      chatAnswers: [],
+    });
+
+    const result = await executeBudgetReactTool({
+      tool: 'finance.budget_analyzer',
+      rows: fractionalIncomeRows,
+      context,
+      userId: 'user-test',
+      turnId: 'turn-fractional-income',
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toBe('no_income_rows');
+    expect(runMCPTool).not.toHaveBeenCalled();
+  });
+
   it('calls MCP with real income when income rows exist', async () => {
     const incomeRows = [
       { id: 'income_salary', category: 'Sueldo', type: 'income' as const, amount: 1_000_000 },
