@@ -96,6 +96,8 @@ railway volume add --mount-path /app/data
 | API | `pdfs/{userId}/` servidos por `/api/pdfs/serve` |
 | Postgres | volumen propio en `/var/lib/postgresql/data` |
 
+> **Nombres heredados (ejemplo histórico, no mandato universal):** en entornos ya desplegados pueden existir volúmenes como `keen-magic-volume` (web), `locoplaya666-final-financial-agent-volume` (API) o `postgres-volume` (Postgres), todos montados en `/app/data` salvo Postgres (`/var/lib/postgresql/data`). Confirmar en Railway antes de renombrar o recrear.
+
 ## 5. Healthchecks
 
 Configurados en `railway.api.toml` y `railway.web.toml` (`healthcheckPath = "/health/ready"`).
@@ -133,7 +135,11 @@ Si falla el login en producción, revisar en **API**:
 - `SESSION_COOKIE_SAME_SITE=none`
 - Railway expone HTTPS público en ambos servicios
 
-## 7. Checklist deploy manual
+## 7. Automatización (GitHub Actions)
+
+El deploy manual de este runbook convive con workflows de GitHub Actions. Revisar `.github/workflows/deploy-*.yml` (p. ej. `deploy-keen-magic.yml`, `deploy-api.yml`) como alternativa o complemento operativo. Este documento no modifica esos workflows.
+
+## 8. Checklist deploy manual
 
 - [ ] Postgres creado y `DATABASE_URL` en API
 - [ ] `pnpm --filter @financial-agent/api db:migrate` ejecutado

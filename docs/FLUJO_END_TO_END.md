@@ -12,7 +12,7 @@ Documento de referencia del recorrido completo del usuario, desde registro hasta
 
 Cuando UI y API difieren, este doc marca ambos comportamientos.
 
-**Límites del sistema:** el agente entrega orientación y análisis; no ejecuta transacciones ni sustituye asesoría financiera personalizada. Las herramientas MCP son lectura/simulación auditables, sin ejecución automática de acciones externas.
+**Límites del sistema (MCP):** el agente entrega orientación y análisis mediante herramientas MCP de lectura, consulta y simulación controlada. No ejecuta transacciones ni reemplaza asesoría profesional. Cuando aplique, preferir fuentes oficiales y citar evidencia en las respuestas.
 
 ---
 
