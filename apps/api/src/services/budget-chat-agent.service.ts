@@ -13,6 +13,7 @@ import {
   validateBudgetTableActions,
 } from '@financial-agent/shared';
 import { completeStructuredWithSchema } from './llm.service';
+import { isBudgetReactEnabled, runBudgetChatReactLoop, type BudgetReactTraceStep } from './budget-chat-react.service';
 
 const AGENT_TIMEOUT_MS = Number(process.env.BUDGET_CHAT_AGENT_TIMEOUT_MS ?? 12_000);
 const AGENT_DEFAULT_FOLLOW_UP = '¿Qué más quieres hacer con la tabla?';
@@ -25,6 +26,7 @@ export type BudgetAgentInput = {
   focusRow: BudgetRow | null;
   chatAnswers: Array<{ q: string; a: string }>;
   mode: 'init' | 'reply';
+  userId?: string;
 };
 
 export type BudgetAgentResult = {
@@ -35,6 +37,7 @@ export type BudgetAgentResult = {
   requires_confirmation: boolean;
   pending_summary: string | null;
   source: string;
+  react_trace?: BudgetReactTraceStep[];
 };
 
 type AgentModelOutput = {
@@ -206,11 +209,16 @@ export function isBudgetAgentUnavailableResult(result: Pick<BudgetAgentResult, '
   return result.source === 'budget_agent_unavailable';
 }
 
-function normalizeAgentResult(input: BudgetAgentInput, raw: AgentModelOutput): BudgetAgentResult | null {
+function normalizeAgentResult(
+  input: BudgetAgentInput,
+  raw: AgentModelOutput,
+  options?: { source?: string; react_trace?: BudgetReactTraceStep[] },
+): BudgetAgentResult | null {
   const actions = validateBudgetTableActions(raw.actions ?? [], input.rows);
   const requiresConfirmation = inferRequiresConfirmation(actions, Boolean(raw.requires_confirmation));
   const assistantReply = String(raw.assistant_reply ?? '').trim() || buildDefaultReply(input, actions);
   const pendingSummary = String(raw.pending_summary ?? '').trim() || null;
+  const defaultSource = input.mode === 'init' ? 'budget_agent_init' : 'budget_agent';
 
   return {
     assistant_reply: assistantReply,
@@ -219,7 +227,8 @@ function normalizeAgentResult(input: BudgetAgentInput, raw: AgentModelOutput): B
     actions,
     requires_confirmation: requiresConfirmation,
     pending_summary: pendingSummary,
-    source: input.mode === 'init' ? 'budget_agent_init' : 'budget_agent',
+    source: options?.source ?? defaultSource,
+    react_trace: options?.react_trace,
   };
 }
 
@@ -238,19 +247,42 @@ export function buildBudgetAgentUnavailableResult(mode: 'init' | 'reply'): Budge
   };
 }
 
+async function runBudgetStructuredAgent(input: BudgetAgentInput): Promise<BudgetAgentResult | null> {
+  const raw = await Promise.race([
+    callBudgetAgentModel(input),
+    new Promise<null>((resolve) => {
+      setTimeout(() => resolve(null), Number.isFinite(AGENT_TIMEOUT_MS) ? AGENT_TIMEOUT_MS : 12_000);
+    }),
+  ]);
+  if (!raw) return null;
+  return normalizeAgentResult(input, raw);
+}
+
 export async function runBudgetChatAgent(input: BudgetAgentInput): Promise<BudgetAgentResult> {
   if (!isAgentEnabled()) return buildBudgetAgentUnavailableResult(input.mode);
 
+  const userId = String(input.userId ?? '').trim() || 'budget-chat';
+
   try {
-    const raw = await Promise.race([
-      callBudgetAgentModel(input),
-      new Promise<null>((resolve) => {
-        setTimeout(() => resolve(null), Number.isFinite(AGENT_TIMEOUT_MS) ? AGENT_TIMEOUT_MS : 12_000);
-      }),
-    ]);
-    if (!raw) return buildBudgetAgentUnavailableResult(input.mode);
-    const normalized = normalizeAgentResult(input, raw);
-    return normalized ?? buildBudgetAgentUnavailableResult(input.mode);
+    if (isBudgetReactEnabled()) {
+      const react = await Promise.race([
+        runBudgetChatReactLoop(input, userId),
+        new Promise<null>((resolve) => {
+          setTimeout(() => resolve(null), Number.isFinite(AGENT_TIMEOUT_MS) ? AGENT_TIMEOUT_MS : 12_000);
+        }),
+      ]);
+      if (react?.complete) {
+        const normalized = normalizeAgentResult(input, react.complete, {
+          source: input.mode === 'init' ? 'budget_agent_react_init' : 'budget_agent_react',
+          react_trace: react.trace,
+        });
+        if (normalized) return normalized;
+      }
+    }
+
+    const structured = await runBudgetStructuredAgent(input);
+    if (structured) return structured;
+    return buildBudgetAgentUnavailableResult(input.mode);
   } catch {
     return buildBudgetAgentUnavailableResult(input.mode);
   }

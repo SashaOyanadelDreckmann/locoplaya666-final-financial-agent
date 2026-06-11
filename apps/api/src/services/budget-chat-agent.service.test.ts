@@ -20,6 +20,7 @@ describe('budget-chat-agent.service', () => {
     process.env.NODE_ENV = 'development';
     process.env.OPENAI_API_KEY = 'sk-live-test';
     process.env.BUDGET_CHAT_AGENT_ENABLED = 'true';
+    process.env.BUDGET_CHAT_REACT_ENABLED = 'false';
   });
 
   it('maps bulk add instructions into validated actions', async () => {

@@ -1620,6 +1620,7 @@ router.post(
         focusRow,
         chatAnswers: [],
         mode: 'init',
+        userId: user?.id,
       });
       const draft = isBudgetAgentUnavailableResult(agentResult)
         ? buildFallbackInit({ rows, context })
@@ -1669,6 +1670,7 @@ router.post(
         focusRow,
         chatAnswers,
         mode: 'reply',
+        userId: user?.id,
       });
       const draft = resolveHybridBudgetChatDraft({
         agent: agentResult,

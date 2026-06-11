@@ -35,7 +35,7 @@ export const CHAT_PIPELINES = {
     historyTurnLimit: BUDGET_CHAT_QA_TURN_LIMIT,
     historyMessageLimit: BUDGET_CHAT_QA_TURN_LIMIT,
     purpose:
-      'Entrevista estructurada del panel presupuesto; mutaciones de tabla con confirmación. Sin bloque de citas en UI.',
+      'Asistente del panel presupuesto con ReAct básico (snapshot/análisis/MCP budget_analyzer) y mutaciones de tabla vía complete_turn. Sin citas en UI.',
   },
   transactions: {
     id: 'transactions',
