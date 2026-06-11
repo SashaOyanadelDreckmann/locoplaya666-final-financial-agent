@@ -1,10 +1,12 @@
 'use client';
 
-import { useEffect, useLayoutEffect } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 import { getSessionInfo } from '@/lib/api';
 import { readInterviewVoiceState } from '@/lib/interviewVoiceState';
+import { useInterviewStore } from '@/state/interview.store';
 import {
   deriveHydratedVoiceState,
+  interviewIntakeContextsEqual,
   mergeInterviewIntake,
   mergeInterviewVoiceSnapshots,
   type InterviewIntakeWithContext,
@@ -31,7 +33,6 @@ export function useInterviewModalBootstrap(params: Params) {
   const {
     isOpen,
     bootstrapAttempt,
-    intake,
     handleUnauthorized,
     setIntake,
     setBootError,
@@ -43,6 +44,9 @@ export function useInterviewModalBootstrap(params: Params) {
     setLatestDiagnosticProfileId,
     onDiagnosisOnlyOpen,
   } = params;
+
+  const paramsRef = useRef(params);
+  paramsRef.current = params;
 
   useLayoutEffect(() => {
     if (!isOpen) {
@@ -62,6 +66,19 @@ export function useInterviewModalBootstrap(params: Params) {
     let cancelled = false;
 
     async function hydrateInterviewContext() {
+      const {
+        handleUnauthorized,
+        resetVoiceRuntimeState,
+        setIntake,
+        setBootError,
+        setIntakeReady,
+        setSessionAlreadyCompleted,
+        applyHydratedVoiceState,
+        setSessionAlreadyCompletedVoice,
+        setLatestDiagnosticProfileId,
+        onDiagnosisOnlyOpen,
+      } = paramsRef.current;
+
       try {
         const session = await getSessionInfo();
         const sessionIntake = session?.injectedIntake?.intake;
@@ -82,16 +99,19 @@ export function useInterviewModalBootstrap(params: Params) {
           resetVoiceRuntimeState({ preserveDiagnosisSignals: diagnosisOnly });
         }
 
+        const currentIntake = useInterviewStore.getState().intake as InterviewIntakeWithContext | null;
         const mergedIntake = mergeInterviewIntake(
-          intake,
+          currentIntake,
           sessionIntake && typeof sessionIntake === 'object' ? (sessionIntake as Record<string, unknown>) : null,
           (productsContext as Record<string, unknown> | null | undefined) ?? null,
           (budgetContext as Record<string, unknown> | null | undefined) ?? null,
         );
 
         if (!cancelled && mergedIntake) {
-          setIntake(mergedIntake);
-        } else if (!cancelled && !intake && !sessionIntake) {
+          if (!interviewIntakeContextsEqual(currentIntake, mergedIntake)) {
+            setIntake(mergedIntake);
+          }
+        } else if (!cancelled && !currentIntake && !sessionIntake) {
           setBootError(
             'No se encontró información de perfil. Completa el cuestionario de intake para iniciar la entrevista.',
           );
@@ -118,8 +138,9 @@ export function useInterviewModalBootstrap(params: Params) {
           }
         }
       } catch (error) {
+        const currentIntake = useInterviewStore.getState().intake;
         if (!cancelled && handleUnauthorized(error)) return;
-        if (!cancelled && !intake) {
+        if (!cancelled && !currentIntake) {
           setBootError('Error al cargar la sesión. Verifica tu conexión e intenta de nuevo.');
           return;
         }
@@ -132,19 +153,5 @@ export function useInterviewModalBootstrap(params: Params) {
     return () => {
       cancelled = true;
     };
-  }, [
-    applyHydratedVoiceState,
-    handleUnauthorized,
-    intake,
-    isOpen,
-    resetVoiceRuntimeState,
-    setBootError,
-    setIntake,
-    setIntakeReady,
-    setLatestDiagnosticProfileId,
-    setSessionAlreadyCompleted,
-    setSessionAlreadyCompletedVoice,
-    bootstrapAttempt,
-    onDiagnosisOnlyOpen,
-  ]);
+  }, [isOpen, bootstrapAttempt]);
 }

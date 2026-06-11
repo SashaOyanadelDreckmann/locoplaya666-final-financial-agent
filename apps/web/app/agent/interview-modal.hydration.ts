@@ -149,3 +149,15 @@ export function mergeInterviewIntake(
   }
   return currentIntake;
 }
+
+export function interviewIntakeContextsEqual(
+  left: InterviewIntakeWithContext | null | undefined,
+  right: InterviewIntakeWithContext | null | undefined,
+): boolean {
+  if (left === right) return true;
+  if (!left || !right) return false;
+  return (
+    JSON.stringify(left.__productsContext ?? null) === JSON.stringify(right.__productsContext ?? null) &&
+    JSON.stringify(left.__budgetContext ?? null) === JSON.stringify(right.__budgetContext ?? null)
+  );
+}

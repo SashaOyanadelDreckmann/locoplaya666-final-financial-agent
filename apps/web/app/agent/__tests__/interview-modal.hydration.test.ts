@@ -1,5 +1,6 @@
 import {
   deriveHydratedVoiceState,
+  interviewIntakeContextsEqual,
   mergeInterviewIntake,
   mergeInterviewVoiceSnapshots,
 } from '../interview-modal.hydration';
@@ -61,6 +62,22 @@ describe('interview modal hydration', () => {
     expect(merged?.profession).toBe('Abogado');
     expect(merged?.__productsContext).toEqual({ productsCount: 2 });
     expect(merged?.__budgetContext).toEqual({ rowsCount: 5, balance: 1000 });
+  });
+
+  it('treats equivalent interview intake contexts as unchanged', () => {
+    const base = {
+      profession: 'Abogado',
+      __productsContext: { productsCount: 2 },
+      __budgetContext: { rowsCount: 5, balance: 1000 },
+    };
+    const merged = mergeInterviewIntake(
+      base,
+      { age: 40, profession: 'Abogado' },
+      { productsCount: 2 },
+      { rowsCount: 5, balance: 1000 },
+    );
+
+    expect(interviewIntakeContextsEqual(base, merged)).toBe(true);
   });
 
   it('hydrates a fresh intake object when the store is still empty', () => {
