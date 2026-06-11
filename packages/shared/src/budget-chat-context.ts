@@ -365,11 +365,6 @@ export function buildBudgetMovementNameQuestion(row: BudgetRow): string {
   return `¿Cómo quieres llamar este movimiento? En la tabla aparece «${category}» como ${typeLabel}.`;
 }
 
-/** @deprecated Use buildBudgetMovementTypeValidationQuestion — "categoría" = tipo de movimiento. */
-export function buildBudgetCategoryValidationQuestion(row: BudgetRow): string {
-  return buildBudgetMovementTypeValidationQuestion(row);
-}
-
 export function buildBudgetAmountQuestion(row: BudgetRow, context: BudgetAssistantContext): string {
   const hint = rowHintFor(context, row.id);
   const memory = getChatMemoryForRow(context, row.id);
