@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { confidenceBand, formatPercentCompact, movementSourceLabel } from './presentation';
+import { formatPercentCompact, movementSourceLabel } from './presentation';
 import { TxAskChatButton } from './tx-chat-ui';
 import { buildMovementAskQuestion } from './tx-click-to-ask.helpers';
 import type { MovementHeatKind } from './transactions-modal.helpers';

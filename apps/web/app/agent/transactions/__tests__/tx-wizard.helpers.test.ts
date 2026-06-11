@@ -5,8 +5,6 @@ import {
   deriveActiveTxStageIndex,
   deriveCurrentStage,
 } from '../tx-wizard.helpers';
-import type { TxWizardStep } from '../types';
-
 describe('tx wizard helpers', () => {
   it('maps wizard steps to stage index and flow stage', () => {
     expect(deriveActiveTxStageIndex('credentials')).toBe(0);

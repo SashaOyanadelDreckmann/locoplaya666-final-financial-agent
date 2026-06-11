@@ -98,11 +98,14 @@ describe('budget modal logic guards', () => {
   });
 
   it('guards client-side AI actions against unknown row deletes and blind updates', () => {
+    expect(source).toContain('function parseBudgetTableAction(');
     expect(source).toContain('mergeBudgetActionIntoRow');
     expect(source).toContain("if (kind === 'delete') {");
-    expect(source).toContain('if (!rowExists) return;');
-    expect(source).toContain("if (kind === 'update' && !rowExists) return;");
+    expect(source).toContain('if (!rowExists) return null;');
+    expect(source).toContain("if (kind === 'update' && !rowExists) return null;");
     expect(source).toContain("kind: kind === 'add' && rowExists ? 'update'");
+    expect(source).toContain('const parsed = parseBudgetTableAction(action, existingRow, Boolean(existingRow));');
+    expect(source).toContain('if (!parsed) continue;');
   });
 
   it('defers table mutations until the user confirms pending assistant actions', () => {

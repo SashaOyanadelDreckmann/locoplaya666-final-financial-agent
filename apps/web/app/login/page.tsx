@@ -4,7 +4,7 @@ import { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
-import { getSessionInfo, loginUser } from '@/lib/api';
+import { loginUser } from '@/lib/api';
 import { ApiHttpError } from '@/lib/apiEnvelope';
 import { toUserFacingError } from '@/lib/userError';
 import { useSessionStore } from '@/state/session.store';

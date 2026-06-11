@@ -37,9 +37,14 @@ recopilar.todo.txt
 .claude/worktrees/
 /financial-agent/
 
-.claude/worktrees/
+.claude/
 .codex/
 .codex-tmp/
+.recovery/
+
+# Python
+__pycache__/
+*.pyc
 
 # Runtime / local previews (no versionar)
 apps/web/public/generated/

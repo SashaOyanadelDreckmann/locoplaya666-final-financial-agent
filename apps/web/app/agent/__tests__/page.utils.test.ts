@@ -1,6 +1,6 @@
 /** @jest-environment node */
 
-import { getChat1UxCopy, resolveChat1UxState } from '../page.utils';
+import { getChat1UxCopy, resolveChat1UxState, resolveUnlockedChatIds } from '../page.utils';
 
 describe('chat 1 UX state', () => {
   it('keeps base reading until interview is actually available', () => {
@@ -38,5 +38,34 @@ describe('chat 1 UX state', () => {
     expect(state).toBe('diagnosisCompleted');
     expect(getChat1UxCopy(state).title).toBe('Chat general');
     expect(getChat1UxCopy(state).subtitle).toBe('chat general');
+  });
+});
+
+describe('unlocked chat ids', () => {
+  it('keeps only chat 1 before diagnosis completes', () => {
+    expect(
+      resolveUnlockedChatIds({
+        interviewCompleted: false,
+        unlockedChats: ['chat-1'],
+      }),
+    ).toEqual(['chat-1']);
+  });
+
+  it('unlocks chats 2 and 3 after diagnosis completes', () => {
+    expect(
+      resolveUnlockedChatIds({
+        interviewCompleted: true,
+        unlockedChats: ['chat-1'],
+      }),
+    ).toEqual(['chat-1', 'chat-2', 'chat-3']);
+  });
+
+  it('preserves chat 1 when upstream payload omits it', () => {
+    expect(
+      resolveUnlockedChatIds({
+        interviewCompleted: false,
+        unlockedChats: ['chat-2'],
+      }),
+    ).toEqual(['chat-1', 'chat-2']);
   });
 });

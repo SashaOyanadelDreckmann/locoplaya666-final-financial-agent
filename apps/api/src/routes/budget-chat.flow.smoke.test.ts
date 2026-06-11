@@ -6,11 +6,15 @@ import path from 'path';
 
 import { createApprovalToken } from '../services/approval.service';
 
-const runBudgetChatAgent = vi.fn();
+import { runBudgetChatAgent } from '../services/budget-chat-agent.service';
 
-vi.mock('../services/budget-chat-agent.service', () => ({
-  runBudgetChatAgent: (...args: unknown[]) => runBudgetChatAgent(...args),
-}));
+vi.mock('../services/budget-chat-agent.service', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../services/budget-chat-agent.service')>();
+  return {
+    ...actual,
+    runBudgetChatAgent: vi.fn(),
+  };
+});
 
 let dataDir: string;
 
@@ -62,14 +66,14 @@ describe('budget-chat assistant flow smoke', () => {
   ];
 
   beforeEach(() => {
-    runBudgetChatAgent.mockReset();
+    vi.mocked(runBudgetChatAgent).mockReset();
   });
 
   it('runs init → agent update → delete confirm → reject → confirm apply', async () => {
     const { agent, csrfToken } = await createAuthedAgent();
     const headers = { 'x-csrf-token': csrfToken };
 
-    runBudgetChatAgent.mockResolvedValueOnce({
+    vi.mocked(runBudgetChatAgent).mockResolvedValueOnce({
       assistant_reply: 'Partamos.',
       next_question: '¿Qué quieres cambiar?',
       focus_row_id: 'income_salary',
@@ -88,7 +92,7 @@ describe('budget-chat assistant flow smoke', () => {
     expect(init.status).toBe(200);
     expect(init.body.source).toBe('budget_agent_init');
 
-    runBudgetChatAgent.mockResolvedValueOnce({
+    vi.mocked(runBudgetChatAgent).mockResolvedValueOnce({
       assistant_reply: 'Actualizo sueldo.',
       next_question: '¿Qué más quieres hacer con la tabla?',
       focus_row_id: 'income_salary',
@@ -109,7 +113,7 @@ describe('budget-chat assistant flow smoke', () => {
     expect(income.status).toBe(200);
     expect(income.body.action?.amount).toBe(850000);
 
-    runBudgetChatAgent.mockResolvedValueOnce({
+    vi.mocked(runBudgetChatAgent).mockResolvedValueOnce({
       assistant_reply: 'Puedo borrar otros gastos.',
       next_question: '¿Confirmas?',
       focus_row_id: 'expense_other',

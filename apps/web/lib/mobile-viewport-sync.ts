@@ -1,6 +1,6 @@
 /** Shared visual/layout viewport tokens for mobile browser keyboard handling. */
 
-import { detectPwaStandalone, MOBILE_SHELL_MEDIA, syncPwaStandaloneClass } from '@/lib/viewport-mode';
+import { MOBILE_SHELL_MEDIA, syncPwaStandaloneClass } from '@/lib/viewport-mode';
 
 const PWA_BROWSER_CLASS_BLOCKLIST = [
   'browser-keyboard-open',

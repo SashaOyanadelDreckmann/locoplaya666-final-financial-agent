@@ -12,7 +12,13 @@ const customJestConfig = {
     '^canvas$': '<rootDir>/test/canvasMock.js',
   },
   modulePathIgnorePatterns: ['<rootDir>/.next/', '<rootDir>/coverage/'],
-  testPathIgnorePatterns: ['<rootDir>/.next/', '<rootDir>/coverage/'],
+  testPathIgnorePatterns: [
+    '<rootDir>/.next/',
+    '<rootDir>/coverage/',
+    // Playwright e2e — require @playwright/test; run separately, not in Jest CI
+    '<rootDir>/app/intake/__tests__/intake-e2e.ts',
+    '\\.e2e\\.test\\.[jt]sx?$',
+  ],
   watchPathIgnorePatterns: ['<rootDir>/.next/', '<rootDir>/coverage/'],
   testMatch: [
     '**/__tests__/**/*.[jt]s?(x)',
