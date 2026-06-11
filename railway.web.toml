@@ -1,0 +1,26 @@
+# Config for keen-magic (web).
+# In Railway: Service → Settings → Config file path → /railway.web.toml
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile.web"
+watchPatterns = [
+  "apps/web/**",
+  "packages/shared/**",
+  "scripts/deploy-web.sh",
+  "scripts/lib/**",
+  "scripts/prod-smoke.mjs",
+  "Dockerfile.web",
+  ".dockerignore",
+  ".railwayignore",
+  "pnpm-lock.yaml",
+  "pnpm-workspace.yaml",
+  "package.json",
+  "railway.web.toml",
+]
+
+[deploy]
+healthcheckPath = "/health/ready"
+healthcheckTimeout = 300
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 5
