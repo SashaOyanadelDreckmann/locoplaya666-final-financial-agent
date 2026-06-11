@@ -62,13 +62,3 @@ export function resolvePlanExecuteModel(params: {
 export function resolveCoreAgentClaudeModel(): string {
   return (process.env.ANTHROPIC_MODEL_FAST ?? 'claude-haiku-4-5').trim();
 }
-
-/** @deprecated alias — classify always uses Haiku */
-export function resolveClassifierModel(): string {
-  return resolveCoreAgentClaudeModel();
-}
-
-/** @deprecated alias — format always uses Haiku */
-export function resolveFormatterModel(_inputChars?: number): string {
-  return resolveCoreAgentClaudeModel();
-}

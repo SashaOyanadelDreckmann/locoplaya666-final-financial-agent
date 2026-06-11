@@ -1,9 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
   needsChartsOrTablesMcp,
+  resolveCoreAgentClaudeModel,
   resolvePlanExecuteModel,
-  resolveClassifierModel,
-  resolveFormatterModel,
 } from './model-policy.helpers';
 
 describe('model-policy.helpers', () => {
@@ -58,9 +57,7 @@ describe('model-policy.helpers', () => {
     ).toBe('gpt-4.1-mini');
   });
 
-  it('always uses Haiku for classifier and formatter', () => {
-    expect(resolveClassifierModel()).toBe('claude-haiku-4-5');
-    expect(resolveFormatterModel(500)).toBe('claude-haiku-4-5');
-    expect(resolveFormatterModel(5000)).toBe('claude-haiku-4-5');
+  it('always uses Haiku for core agent Claude calls', () => {
+    expect(resolveCoreAgentClaudeModel()).toBe('claude-haiku-4-5');
   });
 });
