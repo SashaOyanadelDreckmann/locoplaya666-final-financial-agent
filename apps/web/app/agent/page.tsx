@@ -55,6 +55,7 @@ import {
   buildTransactionAuthorizationBlockMessage,
 } from '@/lib/transactions-authorization.helpers';
 import { MAX_BUDGET_ROWS } from '@/lib/budget-rows.helpers';
+import { canOpenInterview as computeCanOpenInterview } from './interview-gate.helpers';
 import {
   aggregateCanonicalMovements,
   aggregateParsedDocuments,
@@ -1396,14 +1397,16 @@ export default function AgentPage() {
     return { budgetUnlocked, transactionsUnlocked };
   }, [bankSimulation.products, bankSimulation.productsModuleSkipped]);
 
-  const canOpenInterview = useMemo(() => {
-    const hasBudgetData = budgetRows.filter((row) => row.amount > 0).length >= 3;
-    const hasTransactionsData = isTransactionsEvidenceSatisfied(
-      bankSimulation.products,
-      bankSimulation.productsModuleSkipped,
-    );
-    return interviewCompleted || (hasTransactionsData && hasBudgetData);
-  }, [bankSimulation.products, bankSimulation.productsModuleSkipped, budgetRows, interviewCompleted]);
+  const canOpenInterview = useMemo(
+    () =>
+      computeCanOpenInterview({
+        products: bankSimulation.products,
+        productsModuleSkipped: bankSimulation.productsModuleSkipped,
+        budgetRows,
+        interviewCompleted,
+      }),
+    [bankSimulation.products, bankSimulation.productsModuleSkipped, budgetRows, interviewCompleted],
+  );
 
   function getFlowStatus() {
     const productsCompleted = isProductsStepSatisfied(
