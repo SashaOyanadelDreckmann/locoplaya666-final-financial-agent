@@ -37,6 +37,7 @@ import {
   resolveBudgetViewDataAttr,
   useBudgetModalLayout,
 } from './use-budget-modal-layout';
+import { AgentModalCloseButton } from './AgentModalCloseButton';
 import { BudgetCloseConfirmDialog } from './BudgetCloseConfirmDialog';
 import { BudgetPendingConfirmBanner } from './BudgetPendingConfirmBanner';
 import {
@@ -1029,16 +1030,7 @@ export function BudgetModal(props: {
             <span className="bcc-modal-eyebrow">Financieramente</span>
             <h3 id="budget-modal-title" className="bcc-modal-title">Presupuesto</h3>
           </div>
-          <button
-            type="button"
-            className="agent-modal-close"
-            onClick={requestClose}
-            aria-label="Cerrar"
-          >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-              <path d="M2 2l12 12M14 2L2 14" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round"/>
-            </svg>
-          </button>
+          <AgentModalCloseButton onClick={requestClose} />
         </div>
 
         {/* Flying dot animations */}

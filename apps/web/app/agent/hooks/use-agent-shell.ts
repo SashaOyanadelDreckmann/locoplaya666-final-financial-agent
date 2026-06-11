@@ -30,6 +30,7 @@ export type AgentSessionInfo = {
   userId?: string;
   email?: string;
   latestDiagnosticCompletedAt?: string | null;
+  interviewVoice?: Record<string, unknown> | null;
   fincoinUsage?: FincoinUsageApiPayload | null;
 } | null;
 

@@ -1,5 +1,9 @@
 import { loadPanelState, savePanelState } from '@/lib/api';
-import { hasMeaningfulPanelState, clearAllPanelStateBackups } from '@/lib/panel-state.helpers';
+import {
+  hasMeaningfulPanelState,
+  clearAllPanelStateBackups,
+  sanitizePanelSnapshotForSave,
+} from '@/lib/panel-state.helpers';
 import type { BankProduct, TransactionTaxonomyOverride } from './transactions/types';
 import type { BudgetRow } from '@/lib/budget-rows.helpers';
 import { buildPanelSnapshotPayload, restorePanelStateFromPayload } from './page.flow';
@@ -72,7 +76,7 @@ export async function persistPanelState(params: {
     }
   }
   try {
-    await savePanelState(params.snapshot);
+    await savePanelState(sanitizePanelSnapshotForSave(params.snapshot as Record<string, unknown>));
     return { ok: true as const };
   } catch {
     return { ok: false as const };

@@ -31,6 +31,62 @@ export function isWelcomeShellMessageContent(content: unknown): boolean {
   return raw === '—' || raw === '-' || raw === '–';
 }
 
+/** Transient agent failures that must not replace the executive welcome shell. */
+export function isRecoverableChatErrorMessage(text: string): boolean {
+  const normalized = text.toLowerCase().replace(/\s+/g, ' ').trim();
+  if (!normalized) return false;
+  return (
+    normalized.includes('no pude procesar tu mensaje') ||
+    normalized.includes('no pude conectar con el servidor') ||
+    normalized.includes('tuvimos un problema interno') ||
+    normalized.includes('la solicitud tardó demasiado') ||
+    normalized.includes('no se pudo completar la solicitud') ||
+    normalized.includes('ocurrió un error inesperado')
+  );
+}
+
+export function shouldSeedWelcomeMessage(threadId: string, items: ChatItem[]): boolean {
+  const assistants = items.filter(
+    (item): item is Extract<ChatItem, { type: 'message'; role: 'assistant' }> =>
+      item.type === 'message' && item.role === 'assistant',
+  );
+
+  if (assistants.length === 0) return true;
+
+  if (threadId === 'chat-1') {
+    const hasWelcomeShell = assistants.some((item) => isWelcomeShellMessageContent(item.content));
+    if (hasWelcomeShell) return false;
+    if (assistants.every((item) => isRecoverableChatErrorMessage(String(item.content ?? '')))) {
+      return true;
+    }
+    return (
+      assistants.length === 1 &&
+      isRecoverableChatErrorMessage(String(assistants[0]?.content ?? ''))
+    );
+  }
+
+  return false;
+}
+
+export function repairChat1WelcomeItems(items: ChatItem[]): ChatItem[] {
+  const withoutRecoverableErrors = items.filter((item) => {
+    if (item.type !== 'message' || item.role !== 'assistant') return true;
+    return !isRecoverableChatErrorMessage(String(item.content ?? ''));
+  });
+
+  const hasWelcomeShell = withoutRecoverableErrors.some(
+    (item) =>
+      item.type === 'message' &&
+      item.role === 'assistant' &&
+      isWelcomeShellMessageContent(item.content),
+  );
+  if (hasWelcomeShell) return withoutRecoverableErrors;
+
+  if (!shouldSeedWelcomeMessage('chat-1', items)) return items;
+
+  return [buildWelcomeChatItem({}) as ChatItem, ...withoutRecoverableErrors];
+}
+
 export function normalizeWelcomeShellContent(content: unknown): string {
   return isWelcomeShellMessageContent(content) ? '' : String(content ?? '');
 }

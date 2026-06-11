@@ -91,7 +91,14 @@ function LoginContent() {
         <h1 className="auth-title">Bienvenido de vuelta</h1>
         <p className="auth-subtitle">Accede a tu sesión y retoma donde lo dejaste.</p>
 
-        <div className="auth-fields">
+        <form
+          className="auth-fields"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void onSubmit();
+          }}
+          noValidate
+        >
           <div className="auth-field">
             <label className="auth-label" htmlFor="login-email">Email</label>
             <input
@@ -102,7 +109,6 @@ function LoginContent() {
               placeholder="tu@correo.com"
               value={form.email}
               onChange={(e) => update('email', e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && onSubmit()}
               autoComplete="email"
               aria-invalid={Boolean(fieldErrors.email)}
               aria-describedby={fieldErrors.email ? 'email-error' : undefined}
@@ -124,7 +130,6 @@ function LoginContent() {
               placeholder="Tu clave"
               value={form.password}
               onChange={(e) => update('password', e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && onSubmit()}
               autoComplete="current-password"
               aria-invalid={Boolean(fieldErrors.password)}
               aria-describedby={fieldErrors.password ? 'password-error' : undefined}
@@ -137,11 +142,11 @@ function LoginContent() {
           </div>
 
           {error && <p className="auth-error">{error}</p>}
-        </div>
 
-        <button className="auth-submit" onClick={onSubmit} disabled={loading}>
-          {loading ? 'Entrando…' : 'Continuar'}
-        </button>
+          <button type="submit" className="auth-submit" disabled={loading}>
+            {loading ? 'Entrando…' : 'Continuar'}
+          </button>
+        </form>
 
         <div className="auth-footer">
           <span className="auth-footer-text">¿Primera vez?</span>

@@ -48,6 +48,16 @@ const nextConfig = {
         destination: '/register',
         permanent: false,
       },
+      {
+        source: '/budgetpreview',
+        destination: '/agent',
+        permanent: false,
+      },
+      {
+        source: '/budgetpreview/:path*',
+        destination: '/agent',
+        permanent: false,
+      },
     ];
   },
   async rewrites() {

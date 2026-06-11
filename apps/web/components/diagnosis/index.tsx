@@ -20,34 +20,47 @@ type EditorialScore = {
 
 type EditorialDatum = { label: string; value: number };
 
+export function DiagnosisSignalStrip({ keySignals }: { keySignals?: string[] }) {
+  const signals = (keySignals ?? []).filter(Boolean).slice(0, 4);
+  if (!signals.length) return null;
+  return (
+    <div className="diagnosis-signal-strip diagnosis-signal-strip--inline">
+      {signals.map((signal) => (
+        <span key={signal} className="diagnosis-signal-pill">
+          {signal}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 export function DiagnosisHero({
   headline,
   dek,
   keySignals,
+  variant = 'page',
 }: {
   headline?: string;
   dek?: string;
   keySignals?: string[];
+  variant?: 'page' | 'embedded';
 }) {
   const signals = (keySignals ?? []).filter(Boolean).slice(0, 4);
+  if (variant === 'embedded') {
+    return signals.length > 0 ? <DiagnosisSignalStrip keySignals={signals} /> : null;
+  }
+
   return (
     <section className="app-section animate-fade-in diagnosis-hero diagnosis-hero--editorial">
       <div className="diagnosis-hero-copy">
         <span className="diagnosis-hero-eyebrow">Financieramente</span>
-        <h1>{headline || 'Diagnostico financiero premium'}</h1>
+        <h1>{headline || 'Diagnóstico financiero'}</h1>
         <p className="diagnosis-hero-text">
-          {dek || 'Lectura integrada y editorial de la estructura financiera actual, cruzando relato, presupuesto, productos y tensiones operativas.'}
+          {dek ||
+            'Lectura integrada de tu estructura financiera: relato, presupuesto, productos y tensiones operativas.'}
         </p>
       </div>
-      {signals.length > 0 ? (
-        <div className="diagnosis-signal-strip">
-          {signals.map((signal) => (
-            <span key={signal} className="diagnosis-signal-pill">
-              {signal}
-            </span>
-          ))}
-        </div>
-      ) : null}
+      {signals.length > 0 ? <DiagnosisSignalStrip keySignals={signals} /> : null}
     </section>
   );
 }
@@ -70,7 +83,7 @@ export function ScorecardGrid({ items }: { items?: EditorialScore[] }) {
 
 export function DiagnosticNarrative({ narrative }: { narrative?: string }) {
   return (
-    <Card title="Narrativa diagnostica" eyebrow="Narrative">
+    <Card title="Narrativa diagnóstica" eyebrow="Lectura">
       <p className="diagnosis-prose">{narrative ?? 'Sin narrativa disponible.'}</p>
     </Card>
   );
@@ -81,7 +94,7 @@ export function FinancialProfileCard({ profile }: { profile?: Record<string, unk
     ? Object.entries(profile).filter(([, value]) => value !== null && value !== undefined && value !== '')
     : [];
   return (
-    <Card title="Perfil financiero" eyebrow="Profile">
+    <Card title="Perfil financiero" eyebrow="Estructura">
       {entries.length > 0 ? (
         <div className="diagnosis-definition-grid">
           {entries.map(([key, value]) => (
@@ -112,7 +125,7 @@ export function DiagnosticCharts({
   return (
     <section className="app-section diagnosis-grid diagnosis-grid--charts">
       {cash.length > 0 ? (
-        <ChartCard title="Arquitectura financiera" eyebrow="Cashflow map">
+        <ChartCard title="Arquitectura financiera" eyebrow="Flujo de caja">
           <div className="diagnosis-chart-shell">
             <ResponsiveContainer width="100%" height={260}>
               <BarChart data={cash}>
@@ -142,7 +155,7 @@ export function DiagnosticCharts({
         </ChartCard>
       ) : null}
       {pressure.length > 0 ? (
-        <ChartCard title="Focos de presion" eyebrow="Pressure points">
+        <ChartCard title="Focos de presión" eyebrow="Puntos críticos">
           <div className="diagnosis-chart-shell">
             <ResponsiveContainer width="100%" height={260}>
               <BarChart layout="vertical" data={pressure} margin={{ left: 12 }}>
@@ -176,15 +189,15 @@ export function DiagnosticCharts({
 }
 
 export function TensionsList({ tensions }: { tensions?: string[] }) {
-  return <ListCard title="Tensiones" eyebrow="Tensions" items={tensions} />;
+  return <ListCard title="Tensiones" eyebrow="Fricciones" items={tensions} />;
 }
 
 export function HypothesesList({ hypotheses }: { hypotheses?: string[] }) {
-  return <ListCard title="Hipotesis" eyebrow="Hypotheses" items={hypotheses} />;
+  return <ListCard title="Hipótesis" eyebrow="Lectura" items={hypotheses} />;
 }
 
 export function OpenQuestionsCard({ questions }: { questions?: string[] }) {
-  return <ListCard title="Preguntas abiertas" eyebrow="Open questions" items={questions} />;
+  return <ListCard title="Preguntas abiertas" eyebrow="Siguiente paso" items={questions} />;
 }
 
 function Card({ title, eyebrow, children }: { title: string; eyebrow?: string; children: ReactNode }) {
@@ -238,7 +251,7 @@ function humanizeKey(value: string) {
 
 function formatValue(value: unknown): string {
   if (Array.isArray(value)) return value.map((item) => formatValue(item)).join(' · ');
-  if (typeof value === 'boolean') return value ? 'Si' : 'No';
+  if (typeof value === 'boolean') return value ? 'Sí' : 'No';
   if (typeof value === 'number') return Number.isInteger(value) ? value.toLocaleString('es-CL') : value.toFixed(2);
   return String(value);
 }

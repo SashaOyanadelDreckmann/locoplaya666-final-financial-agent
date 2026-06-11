@@ -13504,6 +13504,12 @@ body.agent-route-active .app-shell::before {
     grid-template-columns: repeat(4, 1fr) !important;
   }
 
+  @media (max-width: 480px) {
+    .agent-modal.interview-modal .interview-metrics-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+  }
+
   .agent-modal.interview-modal .interview-status-rail {
     display: none !important;
   }
@@ -14869,7 +14875,17 @@ body.agent-route-active .app-shell::before {
     z-index: 6 !important;
     margin-top: auto !important;
     padding-top: 12px !important;
+    padding-bottom: max(12px, env(safe-area-inset-bottom, 0px)) !important;
     background: linear-gradient(180deg, rgba(5, 7, 12, 0) 0%, rgba(5, 7, 12, 0.94) 28%, rgba(5, 7, 12, 0.98) 100%) !important;
+  }
+
+  .agent-modal.interview-modal .interview-call-controls .summary-action-btn,
+  .agent-modal.interview-modal .interview-call-controls .interview-call-pause-btn,
+  .agent-modal.interview-modal .interview-call-controls .interview-call-end-btn,
+  .agent-modal.interview-modal .interview-call-controls .interview-call-start-btn,
+  .agent-modal.interview-modal .interview-call-controls .interview-call-end-confirm-btn {
+    min-height: 44px !important;
+    height: auto !important;
   }
 }
 
@@ -19764,6 +19780,43 @@ body.agent-route-active .app-shell > * {
 .interview-modal.interview-modal--diagnosis .interview-diagnosis-panel {
   max-height: min(78vh, 920px);
   overflow: auto;
+}
+
+.agent-modal.interview-modal.interview-modal--diagnosis .interview-modal-intro.interview-modal-intro--diagnosis {
+  display: block !important;
+  margin: 0 24px 14px !important;
+  padding: 0 !important;
+  font-size: 0.94rem !important;
+  line-height: 1.55 !important;
+  color: rgba(206, 220, 231, 0.82) !important;
+  max-height: none !important;
+  -webkit-line-clamp: unset !important;
+  overflow: visible !important;
+}
+
+.interview-modal.interview-modal--diagnosis .interview-diagnosis-panel {
+  padding: 0 22px 12px !important;
+  gap: 18px !important;
+}
+
+@media (max-width: 767px) {
+  .agent-modal.interview-modal.interview-modal--diagnosis .interview-modal-intro.interview-modal-intro--diagnosis {
+    margin: 0 16px 12px !important;
+    font-size: 0.9rem !important;
+  }
+
+  .interview-modal.interview-modal--diagnosis .interview-diagnosis-panel {
+    padding: 0 14px 10px !important;
+    gap: 14px !important;
+  }
+
+  .interview-diagnosis-actions {
+    padding-bottom: max(8px, env(safe-area-inset-bottom, 0px)) !important;
+  }
+}
+
+.diagnosis-signal-strip--inline {
+  margin: 0 0 4px;
 }
 
 .interview-diagnosis-panel {

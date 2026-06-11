@@ -92,7 +92,7 @@ export default function DiagnosisPage() {
     <div className="diagnosis-page-shell">
       <div className="app-content diagnosis-report pro-report diagnosis-premium-report">
         <DiagnosisHero
-          headline={profile.editorial?.headline ?? 'Diagnostico financiero premium'}
+          headline={profile.editorial?.headline ?? 'Diagnóstico financiero'}
           dek={profile.editorial?.dek}
           keySignals={profile.editorial?.keySignals}
         />

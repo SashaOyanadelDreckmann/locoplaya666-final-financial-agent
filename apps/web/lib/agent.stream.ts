@@ -10,7 +10,8 @@ import {
 
 import { sendToAgent } from './agent';
 import { getAgentRequestUrl } from './apiBase';
-import { getCsrfToken } from './csrf';
+import { ApiHttpError, parseApiResponse } from './apiEnvelope';
+import { getCsrfToken, setCsrfToken } from './csrf';
 import type { AgentResponse } from './agent.response.types';
 import {
   buildCoreAgentRequestBody,
@@ -24,6 +25,24 @@ export type AgentStreamCallbacks = {
   onDelta?: (delta: string, fullText: string) => void;
   onUiState?: (state: AgentStreamUiState) => void;
 };
+
+function captureCsrfFromResponse(res: Response): void {
+  const token = res.headers.get('x-csrf-token');
+  if (token) setCsrfToken(token);
+}
+
+function isRecoverableStreamTransportError(error: unknown): boolean {
+  if (error instanceof ApiHttpError) return false;
+  if (error instanceof DOMException && error.name === 'AbortError') return false;
+  if (!(error instanceof Error)) return true;
+  const msg = error.message.toLowerCase();
+  return (
+    msg.includes('failed to fetch') ||
+    msg.includes('load failed') ||
+    msg.includes('networkerror') ||
+    msg.includes('network request failed')
+  );
+}
 
 export async function sendToAgentStream(
   payload: CoreAgentRequestPayload,
@@ -61,7 +80,17 @@ export async function sendToAgentStream(
       signal: controller.signal,
     });
 
-    if (!res.ok || !res.body) {
+    captureCsrfFromResponse(res);
+
+    if (!res.ok) {
+      const contentType = res.headers.get('content-type') ?? '';
+      if (contentType.includes('application/json')) {
+        return parseApiResponse<AgentResponse>(res);
+      }
+      return sendToAgent(payload) as Promise<AgentResponse>;
+    }
+
+    if (!res.body) {
       return sendToAgent(payload) as Promise<AgentResponse>;
     }
 
@@ -107,6 +136,9 @@ export async function sendToAgentStream(
       throw new Error('Agent timeout: la respuesta tardó demasiado');
     }
     if (finalResponse) return finalResponse;
+    if (!isRecoverableStreamTransportError(error)) {
+      throw error;
+    }
     return sendToAgent(payload) as Promise<AgentResponse>;
   } finally {
     clearTimeout(timeoutId);

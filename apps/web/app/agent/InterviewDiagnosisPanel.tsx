@@ -23,13 +23,6 @@ type Props = {
 
 export function InterviewDiagnosisPanel({ profile, voiceReport, onClose, compact = true }: Props) {
   const router = useRouter();
-  const headline =
-    profile.editorial?.headline ??
-    (voiceReport?.executive_report ? 'Diagnóstico financiero consolidado' : 'Diagnóstico financiero');
-  const dek =
-    profile.editorial?.dek ??
-    voiceReport?.executive_report ??
-    profile.diagnosticNarrative?.slice(0, 220);
 
   function openFullReport() {
     onClose();
@@ -49,7 +42,7 @@ export function InterviewDiagnosisPanel({ profile, voiceReport, onClose, compact
 
   return (
     <div className={`interview-diagnosis-panel${compact ? ' interview-diagnosis-panel--compact' : ''}`}>
-      <DiagnosisHero headline={headline} dek={dek} keySignals={profile.editorial?.keySignals} />
+      <DiagnosisHero variant="embedded" keySignals={profile.editorial?.keySignals} />
 
       {voiceReport?.coverage_tier === 'minimal' || voiceReport?.coverage_tier === 'partial' ? (
         <p className="interview-inline-note interview-diagnosis-coverage-note">
@@ -86,14 +79,11 @@ export function InterviewDiagnosisPanel({ profile, voiceReport, onClose, compact
       </section>
 
       <div className="voice-call-actions interview-diagnosis-actions">
-        <button type="button" className="summary-action-btn summary-action-accept" onClick={openFullReport}>
-          Ver informe completo
-        </button>
         <button type="button" className="button-primary interview-diagnosis-deepen-btn" onClick={deepenInChat}>
           Profundizar en chat
         </button>
-        <button type="button" className="summary-action-btn" onClick={onClose}>
-          Cerrar
+        <button type="button" className="summary-action-btn summary-action-accept" onClick={openFullReport}>
+          Ver informe completo
         </button>
       </div>
     </div>

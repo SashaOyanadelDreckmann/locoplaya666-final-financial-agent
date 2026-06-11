@@ -43,11 +43,7 @@ export function getAppBaseUrl(): string {
 
 /** Relative paths served by Next.js (must not be prefixed with /backend). */
 export function isWebAppServedPath(path: string): boolean {
-  return (
-    path.startsWith('/generated/') ||
-    path.startsWith('/planes/') ||
-    path.startsWith('/api/reports/')
-  );
+  return path.startsWith('/generated/') || path.startsWith('/api/reports/');
 }
 
 /** Resolve a stored artifact URL for browser navigation (library links, previews). */

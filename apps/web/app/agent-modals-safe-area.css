@@ -60,7 +60,8 @@
   .agent-modal-overlay:has(> .agent-modal.questionnaire-modal),
   .agent-modal-overlay:has(> .agent-modal.account-modal),
   .agent-modal-overlay.account-modal-overlay,
-  .social-modal-overlay {
+  .social-modal-overlay,
+  .fincoin-usage-overlay {
     position: fixed !important;
     inset: 0 !important;
     width: 100% !important;

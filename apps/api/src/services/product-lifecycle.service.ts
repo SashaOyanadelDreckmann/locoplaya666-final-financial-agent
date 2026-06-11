@@ -150,7 +150,7 @@ export function detectOnboardingSignals(input: ChatAgentInput): OnboardingSignal
           consolidatedTransactions.uploadedFiles.length > 0) ||
     hasPersistedTransactionContext(productsContext);
   const interviewCompleted =
-    unlocked.interview === true ||
+    unlocked.post_diagnosis_chats === true ||
     (context.product_lifecycle &&
       typeof context.product_lifecycle === 'object' &&
       (context.product_lifecycle as Record<string, unknown>).interviewCompleted === true);

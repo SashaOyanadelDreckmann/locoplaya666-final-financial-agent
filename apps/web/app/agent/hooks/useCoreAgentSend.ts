@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 
 import { sendToAgentStream } from '@/lib/agent.stream';
 import {
@@ -33,6 +33,7 @@ export type UseCoreAgentSendParams = {
   buildRequestContext: () => CoreAgentRequestContext;
   getSessionId: () => string;
   onSideEffects: (effects: CoreAgentResponseSideEffects, response: AgentResponse) => void;
+  onTransientError?: (message: string) => void;
   normalizePanelAction?: (
     action: AgentResponse['panel_action'],
   ) => AgentResponse['panel_action'];
@@ -40,12 +41,13 @@ export type UseCoreAgentSendParams = {
 
 export function useCoreAgentSend(params: UseCoreAgentSendParams) {
   const [loading, setLoading] = useState(false);
+  const sendGuardRef = useRef(false);
 
   const sendCoreAgentMessage = useCallback(async (
     userMessage: string,
     options?: CoreAgentSendOptions,
   ): Promise<{ ok: true; response: AgentResponse } | { ok: false; reason: 'busy' | 'error' }> => {
-      if (loading && !options?.ignoreLoadingGuard) {
+      if ((loading || sendGuardRef.current) && !options?.ignoreLoadingGuard) {
         return { ok: false, reason: 'busy' };
       }
 
@@ -55,6 +57,7 @@ export function useCoreAgentSend(params: UseCoreAgentSendParams) {
         globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
       params.clearDraft();
+      sendGuardRef.current = true;
       setLoading(true);
 
       params.setItemsForActive((prev) =>
@@ -109,10 +112,22 @@ export function useCoreAgentSend(params: UseCoreAgentSendParams) {
 
         return { ok: true, response: res };
       } catch (error: unknown) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.error('[chat.send] failed', error);
+        }
         const errorText = toUserFacingError(error, 'chat.send');
-        params.setItemsForActive((prev) => applyCoreAgentErrorItems(prev, errorText));
+        let transientError: string | undefined;
+        params.setItemsForActive((prev) => {
+          const next = applyCoreAgentErrorItems(prev, errorText);
+          transientError = next.transientError;
+          return next.items;
+        });
+        if (transientError) {
+          params.onTransientError?.(transientError);
+        }
         return { ok: false, reason: 'error' };
       } finally {
+        sendGuardRef.current = false;
         setLoading(false);
       }
     },
@@ -124,6 +139,7 @@ export function useCoreAgentSend(params: UseCoreAgentSendParams) {
       params.buildRequestContext,
       params.getSessionId,
       params.onSideEffects,
+      params.onTransientError,
       params.normalizePanelAction,
     ],
   );

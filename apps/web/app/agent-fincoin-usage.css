@@ -7,6 +7,8 @@
   justify-content: center;
   width: 28px;
   height: 28px;
+  min-width: 44px;
+  min-height: 44px;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.14);
   background: rgba(0, 0, 0, 0.38);
@@ -81,23 +83,20 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: linear-gradient(180deg, rgba(17, 24, 39, 0.96), rgba(8, 12, 22, 0.98));
   box-shadow: 0 28px 80px rgba(0, 0, 0, 0.45);
-  padding: 18px;
+  padding: 0 18px 18px;
   color: #f8fafc;
+  overflow: hidden;
 }
 
-.fincoin-usage-close {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  width: 30px;
-  height: 30px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.04);
-  color: rgba(255, 255, 255, 0.8);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+.fincoin-usage-header.bcc-modal-header {
+  margin: 0 -18px 12px;
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.fincoin-usage-header .bcc-modal-title {
+  font-size: 1.05rem;
 }
 
 .fincoin-usage-head {
@@ -106,19 +105,13 @@
   gap: 10px;
   align-items: center;
   margin-bottom: 14px;
-  padding-right: 28px;
 }
 
-.fincoin-usage-head h2 {
+.fincoin-usage-subtitle {
   margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.fincoin-usage-head p {
-  margin: 2px 0 0;
   font-size: 12px;
   color: rgba(255, 255, 255, 0.55);
+  line-height: 1.35;
 }
 
 .fincoin-usage-icon {

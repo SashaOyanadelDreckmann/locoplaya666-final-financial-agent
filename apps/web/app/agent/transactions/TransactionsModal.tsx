@@ -7,6 +7,7 @@ import { TxEvidenceStep } from './TxEvidenceStep';
 import { TxAnalystDashboard } from './TxAnalystDashboard';
 import { NumericDust } from './presentation';
 import { TxConsentStep } from './TxConsentStep';
+import { AgentModalCloseButton } from '../AgentModalCloseButton';
 import { TxCloseConfirmDialog } from './TxCloseConfirmDialog';
 import { TxEvidenceResetConfirmDialog } from './TxEvidenceResetConfirmDialog';
 import { TxContinueWithoutProducts } from './TxContinueWithoutProducts';
@@ -68,14 +69,10 @@ export function TransactionsModal(props: TransactionsModalProps) {
               Productos y transacciones
             </h3>
           </div>
-          <button
-            type="button"
-            className="agent-modal-close tx-close-minimal"
+          <AgentModalCloseButton
             onClick={vm.requestClose}
             aria-label="Cerrar panel de productos y transacciones"
-          >
-            ×
-          </button>
+          />
         </div>
         <div className="tx-scroll-body" ref={vm.txScrollBodyRef}>
           <section className="pt-shell tx-stage-shell tx-modal-header-layer">

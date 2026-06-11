@@ -314,6 +314,39 @@ export function dedupeConsecutiveAssistantMessages(items: ChatItem[]): ChatItem[
   });
 }
 
+export function dedupeConsecutiveUserMessages(items: ChatItem[]): ChatItem[] {
+  let lastUserContent = '';
+  return items.filter((item) => {
+    if (item.type !== 'message' || item.role !== 'user') return true;
+    const content = String(item.content ?? '').trim();
+    if (!content) return true;
+    if (content === lastUserContent) return false;
+    lastUserContent = content;
+    return true;
+  });
+}
+
+/** Removes duplicate assistant bubbles anywhere in the thread (keeps first occurrence). */
+export function dedupeDuplicateAssistantMessages(items: ChatItem[]): ChatItem[] {
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    if (item.type !== 'message' || item.role !== 'assistant') return true;
+    const normalized = normalizeAssistantMessageContent(item);
+    if (!normalized) return true;
+    if (seen.has(normalized)) return false;
+    seen.add(normalized);
+    return true;
+  });
+}
+
+export function sanitizeChatThreadMessages(items: ChatItem[]): ChatItem[] {
+  return dedupeDuplicateAssistantMessages(
+    dedupeConsecutiveAssistantMessages(
+      dedupeConsecutiveUserMessages(sanitizeChatItems(items)),
+    ),
+  );
+}
+
 export function resolveUnlockedChatIds(params: {
   unlockedChats?: string[] | null;
   interviewCompleted?: boolean;
@@ -324,9 +357,10 @@ export function resolveUnlockedChatIds(params: {
 
   const unlocked = (params.unlockedChats ?? [])
     .map((id) => String(id ?? '').trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    .filter((id) => id === 'chat-1');
 
-  return unlocked.includes('chat-1') ? unlocked : ['chat-1', ...unlocked];
+  return unlocked.length > 0 ? unlocked : ['chat-1'];
 }
 
 export function formatRemainingInteractions(usedInteractions: number, chatId?: string): string {

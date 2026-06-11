@@ -115,7 +115,7 @@ describe('product lifecycle ordering', () => {
         },
         ui_state: {
           active_chat: { id: 'chat-2', label: 'Plan', name: 'Plan' },
-          unlocked_modules: { interview: true },
+          unlocked_modules: { interview: true, post_diagnosis_chats: true },
           budget_summary: { income: 1800000, expenses: 1200000, balance: 600000 },
         },
       }),
@@ -126,5 +126,27 @@ describe('product lifecycle ordering', () => {
     expect(decision.state.phase).toBe('diagnosis_ready');
     expect(decision.state.unlockedChats).toEqual(['chat-1', 'chat-2', 'chat-3']);
     expect(decision.blocked).toBe(false);
+  });
+
+  it('does not treat interview availability as diagnosis completion', () => {
+    const decision = buildLifecycleDecision({
+      input: makeInput({
+        context: {
+          uploaded_documents: [{ name: 'cartola.csv', text: 'Fecha;Detalle;Cargo;Abono;Saldo' }],
+          injected_budget: { income: 1800000, expenses: 1200000, balance: 600000 },
+        },
+        ui_state: {
+          active_chat: { id: 'chat-2', label: 'Plan', name: 'Plan' },
+          unlocked_modules: { interview: true },
+          budget_summary: { income: 1800000, expenses: 1200000, balance: 600000 },
+        },
+      }),
+      memoryBlob: null,
+      hasIntake: true,
+    });
+
+    expect(decision.state.phase).toBe('interview_needed');
+    expect(decision.state.unlockedChats).toEqual(['chat-1']);
+    expect(decision.blocked).toBe(true);
   });
 });

@@ -35,10 +35,6 @@ export function sendSuccess<T>(res: Response, data: T, statusCode = 200) {
   return res.status(statusCode).json(payload);
 }
 
-export function toLegacyErrorShape(body: ApiErrorBody): string {
-  return body.detail;
-}
-
 export function sendProblem(res: Response, problem: ApiErrorBody) {
   return res
     .status(problem.status)

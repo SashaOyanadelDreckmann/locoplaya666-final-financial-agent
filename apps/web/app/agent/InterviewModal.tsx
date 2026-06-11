@@ -22,6 +22,7 @@ import {
 } from './interview-modal.components';
 import { canEndInterviewCallEarly, resolveInterviewModalLoadingState } from './interview-modal.helpers';
 import { INTERVIEW_MIN_EARLY_END_SEC } from '@financial-agent/shared';
+import { AgentModalCloseButton } from './AgentModalCloseButton';
 import { InterviewDiagnosisPanel } from './InterviewDiagnosisPanel';
 import { type InterviewIntakeWithContext } from './interview-modal.hydration';
 import { formatInterviewClock } from './interview-modal.voice-summary';
@@ -331,10 +332,19 @@ export function InterviewModal({ isOpen, fincoinSpendBlocked, onClose, onDiagnos
               ? 'La llamada puede retomarse cuando quieras, sin reiniciar el contexto.'
               : 'Aún estamos preparando la sesión y cargando el contexto inicial.';
 
-  const modalTitle = isDiagnosisMode ? 'Diagnóstico financiero' : 'Entrevista estratégica';
-  const modalEyebrow = isDiagnosisMode ? 'Diagnóstico final' : 'Financieramente';
+  const diagnosisHeadline =
+    profile?.editorial?.headline ??
+    (voiceReport?.executive_report ? 'Diagnóstico consolidado' : 'Diagnóstico financiero');
+  const diagnosisDek =
+    profile?.editorial?.dek ??
+    voiceReport?.executive_report ??
+    profile?.diagnosticNarrative?.slice(0, 280) ??
+    'Tu entrevista quedó consolidada. Revisa el informe, expórtalo o profundízalo en chat.';
+
+  const modalTitle = isDiagnosisMode ? diagnosisHeadline : 'Entrevista estratégica';
+  const modalEyebrow = isDiagnosisMode ? 'Diagnóstico' : 'Financieramente';
   const modalIntro = isDiagnosisMode
-    ? 'Tu entrevista quedó consolidada en un informe accionable. Revisa el diagnóstico, expórtalo o profundízalo en chat.'
+    ? diagnosisDek
     : 'Llamada breve con contexto integrado de presupuesto y productos. Puedes finalizarla antes si ya tienes lo necesario; el diagnóstico se ajustará al avance real.';
   const voiceFocusHint = INTERVIEW_VOICE_OPENING_FOCUS;
 
@@ -387,27 +397,28 @@ export function InterviewModal({ isOpen, fincoinSpendBlocked, onClose, onDiagnos
                 {modalTitle}
               </h3>
             </div>
-            <button
-              type="button"
-              className="agent-modal-close"
+            <AgentModalCloseButton
               ref={closeButtonRef}
               onClick={canDismissOverlay ? handleOverlayDismiss : undefined}
               disabled={!canDismissOverlay}
               aria-label={
-              canDismissOverlay
-                ? voiceConnected && voicePaused
-                  ? 'Cerrar entrevista en pausa'
-                  : voiceConnected
-                    ? 'Cerrar y guardar progreso'
-                    : 'Cerrar entrevista'
-                : 'Cerrar bloqueado mientras la llamada se conecta o cierra'
-            }
-            >
-              ×
-            </button>
+                canDismissOverlay
+                  ? isDiagnosisMode
+                    ? 'Cerrar diagnóstico'
+                    : voiceConnected && voicePaused
+                      ? 'Cerrar entrevista en pausa'
+                      : voiceConnected
+                        ? 'Cerrar y guardar progreso'
+                        : 'Cerrar entrevista'
+                  : 'Cerrar bloqueado mientras la llamada se conecta o cierra'
+              }
+            />
           </div>
 
-          <p id={descriptionId} className="agent-modal-intro interview-modal-intro">
+          <p
+            id={descriptionId}
+            className={`agent-modal-intro interview-modal-intro${isDiagnosisMode ? ' interview-modal-intro--diagnosis' : ''}`}
+          >
             {modalIntro}
           </p>
 

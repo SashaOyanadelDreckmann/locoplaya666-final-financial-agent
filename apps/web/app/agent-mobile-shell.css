@@ -14,6 +14,7 @@
     --mobile-shell-brand-logo: 18px;
     --mobile-shell-brand-font: 11px;
     --mobile-shell-mono-size: 28px;
+    --mobile-shell-touch-min: 44px;
     --mobile-shell-mono-icon: 16px;
     --mobile-shell-tab-width-scale: 0.75;
     --mobile-shell-radius: 16px;
@@ -1789,5 +1790,14 @@
     margin-top: 6px !important;
     margin-bottom: 8px !important;
     padding: 8px 10px !important;
+  }
+
+  /* HIG 44px touch targets — visual size stays compact */
+  .agent-chat-header.is-mobile button,
+  .agent-chat-header.is-mobile [role='button'],
+  .agent-chat-header.is-mobile .chat-thread-tab,
+  .agent-chat-header.is-mobile .chat-fincoin-toggle {
+    min-width: var(--mobile-shell-touch-min) !important;
+    min-height: var(--mobile-shell-touch-min) !important;
   }
 }

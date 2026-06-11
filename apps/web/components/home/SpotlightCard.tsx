@@ -48,7 +48,7 @@ export default function SpotlightCard({
       onTouchMove={handleTouchMove}
       onTouchEnd={() => setActive(false)}
       onTouchCancel={() => setActive(false)}
-      className={`group relative overflow-hidden rounded-xl border border-white/[0.06] bg-white/[0.015] transition-colors duration-500 hover:border-white/[0.12] ${className}`}
+      className={`group relative overflow-hidden rounded-2xl border border-white/[0.07] bg-white/[0.025] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-[2px] transition-[border-color,background-color,box-shadow] duration-500 hover:border-white/[0.14] hover:bg-white/[0.04] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.10),0_20px_50px_-30px_rgba(0,0,0,0.85)] ${className}`}
     >
       {/* Glow que sigue al cursor */}
       <div

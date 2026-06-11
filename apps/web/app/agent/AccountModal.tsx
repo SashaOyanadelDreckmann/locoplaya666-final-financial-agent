@@ -1,5 +1,7 @@
 'use client';
 
+import { AgentModalCloseButton } from './AgentModalCloseButton';
+
 export function AccountModal(props: {
   isOpen: boolean;
   sessionUserName?: string | null;
@@ -16,16 +18,20 @@ export function AccountModal(props: {
 
   return (
     <div className="agent-modal-overlay account-modal-overlay" onClick={props.onClose}>
-      <div className="agent-modal account-modal" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="agent-modal account-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="account-modal-title"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="bcc-modal-header">
           <div className="bcc-modal-title-wrap">
             <span className="bcc-modal-eyebrow">Financieramente</span>
-            <h3 className="bcc-modal-title">Cuenta</h3>
+            <h3 id="account-modal-title" className="bcc-modal-title">Cuenta</h3>
             {userName ? <p className="questionnaire-user-name">{userName}</p> : null}
           </div>
-          <button type="button" className="agent-modal-close" onClick={props.onClose} aria-label="Cerrar">
-            ×
-          </button>
+          <AgentModalCloseButton onClick={props.onClose} />
         </div>
         <p className="agent-modal-intro account-modal-intro">
           Gestiona tu sesión actual. Cerrar sesión te devuelve al acceso; borrar cuenta elimina tus datos de forma permanente.

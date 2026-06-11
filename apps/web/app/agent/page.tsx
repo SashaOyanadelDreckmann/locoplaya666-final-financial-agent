@@ -103,6 +103,7 @@ import {
   buildChatClosureSummary,
   firstNameOf,
   dedupeConsecutiveAssistantMessages,
+  sanitizeChatThreadMessages,
   getMaxChatInteractions,
   getChat1UxCopy,
   resolveUnlockedChatIds,
@@ -117,6 +118,8 @@ import {
   buildWelcomeChatItem,
   isWelcomeShellMessageContent,
   normalizeChat1WelcomeShellItems,
+  repairChat1WelcomeItems,
+  shouldSeedWelcomeMessage,
 } from './welcome-intro.shared';
 import { AgentBootSequence } from './AgentBootSequence';
 import { PanelCardsIntroSequence } from './PanelCardsIntroSequence';
@@ -258,9 +261,7 @@ function containsStaleSessionError(item: ChatItem): boolean {
 }
 
 function sanitizeChatThreadItems(items: ChatItem[]): ChatItem[] {
-  return dedupeConsecutiveAssistantMessages(
-    sanitizeChatItems(items).filter((item) => !containsStaleSessionError(item)),
-  );
+  return sanitizeChatThreadMessages(items).filter((item) => !containsStaleSessionError(item));
 }
 
 export default function AgentPage() {
@@ -388,6 +389,7 @@ export default function AgentPage() {
   const [activeChatId, setActiveChatId] = useState(PRIMARY_CHAT_ID);
   const [sheetsLoaded, setSheetsLoaded] = useState(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const welcomeInjectedThreadsRef = useRef<Set<string>>(new Set());
   const [panelStage, setPanelStage] = useState(2);
   const [mobilePanelExpanded, setMobilePanelExpanded] = useState(false);
   const [isComposerFocused, setIsComposerFocused] = useState(false);
@@ -905,16 +907,17 @@ export default function AgentPage() {
           name: String(s.name ?? 'Conversación'),
           autoNamed: Boolean(s.autoNamed ?? false),
           items: Array.isArray(s.items)
-            ? normalizeChat1WelcomeShellItems(
-                dedupeConsecutiveAssistantMessages(
-                  sanitizeChatItems(
-                    (s.items as any[]).filter((it) => it.type !== 'message' || it.content !== undefined)
+            ? (() => {
+                const sanitized = normalizeChat1WelcomeShellItems(
+                  sanitizeChatThreadMessages(
+                    (s.items as any[]).filter((it) => it.type !== 'message' || it.content !== undefined),
                   ).filter((it) => {
                     if (it.type !== 'message' || it.role !== 'assistant') return true;
                     return !isStaleSessionErrorMessage(String(it.content ?? ''));
-                  })
-                ),
-              )
+                  }),
+                );
+                return String(s.id) === 'chat-1' ? repairChat1WelcomeItems(sanitized) : sanitized;
+              })()
             : [],
           draft: String(s.draft ?? ''),
           status: (String(s.status ?? 'active') as ChatThread['status']),
@@ -950,6 +953,11 @@ export default function AgentPage() {
             status: 'active' as const,
           };
         });
+        normalized.forEach((thread) => {
+          if (!shouldSeedWelcomeMessage(thread.id, thread.items)) {
+            welcomeInjectedThreadsRef.current.add(thread.id);
+          }
+        });
         setChatThreads(normalized);
         setActiveChatId(PRIMARY_CHAT_ID);
       }
@@ -957,74 +965,67 @@ export default function AgentPage() {
     }).catch(() => setSheetsLoaded(true));
   }, [authBootstrapped, isAuthenticated]);
 
-  // Ensure each thread starts with a personalized welcome as the first assistant message.
-  const welcomeInjectedThreadsRef = useRef<Set<string>>(new Set());
+  // Seed welcome openings for every thread that still has no assistant message.
   useEffect(() => {
     if (!sheetsLoaded) return;
-    const active = chatThreads.find((t) => t.id === activeChatId);
-    if (!active) return;
-    if (welcomeInjectedThreadsRef.current.has(active.id)) return;
-    if (hasAssistantMessage(active.items)) {
-      welcomeInjectedThreadsRef.current.add(active.id);
-      return;
-    }
 
-    const firstAssistantIdx = active.items.findIndex(
-      (it) => it.type === 'message' && it.role === 'assistant'
-    );
-    const firstAssistant =
-      firstAssistantIdx >= 0
-        ? (active.items[firstAssistantIdx] as Extract<ChatItem, { type: 'message'; role: 'assistant' }>)
-        : null;
-    const alreadyPersonalizedWelcome =
-      firstAssistantIdx === 0 &&
-      firstAssistant &&
-      active.id === 'chat-1' &&
-      isWelcomeShellMessageContent(firstAssistant.content);
+    setChatThreads((prev) => {
+      let changed = false;
+      const next = prev.map((thread) => {
+        if (welcomeInjectedThreadsRef.current.has(thread.id)) return thread;
+        if (!shouldSeedWelcomeMessage(thread.id, thread.items)) {
+          welcomeInjectedThreadsRef.current.add(thread.id);
+          return thread;
+        }
 
-    if (alreadyPersonalizedWelcome) {
-      welcomeInjectedThreadsRef.current.add(active.id);
-      return;
-    }
+        const firstAssistantIdx = thread.items.findIndex(
+          (it) => it.type === 'message' && it.role === 'assistant',
+        );
+        const firstAssistant =
+          firstAssistantIdx >= 0
+            ? (thread.items[firstAssistantIdx] as Extract<ChatItem, { type: 'message'; role: 'assistant' }>)
+            : null;
+        const alreadyPersonalizedWelcome =
+          firstAssistantIdx === 0 &&
+          firstAssistant &&
+          thread.id === 'chat-1' &&
+          isWelcomeShellMessageContent(firstAssistant.content);
 
-    welcomeInjectedThreadsRef.current.add(active.id);
-    if (active.id !== 'chat-1') {
-      const opening = sanitizeMessageText(
-        buildOpeningMessageByChat(active.id, sessionInfo),
-        FALLBACK_WELCOME
-      );
-      setChatThreads((prev) =>
-        prev.map((t) => {
-          if (t.id !== activeChatId) return t;
+        if (alreadyPersonalizedWelcome) {
+          welcomeInjectedThreadsRef.current.add(thread.id);
+          return thread;
+        }
+
+        welcomeInjectedThreadsRef.current.add(thread.id);
+        changed = true;
+
+        if (thread.id !== 'chat-1') {
+          const opening = sanitizeMessageText(
+            buildOpeningMessageByChat(thread.id, sessionInfo),
+            FALLBACK_WELCOME,
+          );
           return {
-            ...t,
-            items: [
+            ...thread,
+            items: sanitizeChatThreadMessages([
               {
                 type: 'message',
                 role: 'assistant',
                 content: opening,
                 mode: 'information',
               } as ChatItem,
-              ...t.items,
-            ],
+              ...thread.items,
+            ]),
           };
-        })
-      );
-      return;
-    }
+        }
 
-    const welcomeItem = buildChat1WelcomeItem();
-    setChatThreads((prev) =>
-      prev.map((t) => {
-        if (t.id !== activeChatId) return t;
-        if (hasAssistantMessage(t.items)) return t;
         return {
-          ...t,
-          items: [welcomeItem as ChatItem, ...t.items],
+          ...thread,
+          items: repairChat1WelcomeItems(thread.items),
         };
-      })
-    );
-  }, [buildChat1WelcomeItem, buildOpeningMessageByChat, chatThreads, activeChatId, sessionInfo, sheetsLoaded]);
+      });
+      return changed ? next : prev;
+    });
+  }, [buildChat1WelcomeItem, buildOpeningMessageByChat, sessionInfo, sheetsLoaded]);
 
   // Save sheets to API with debounce whenever they change
   useEffect(() => {
@@ -1893,6 +1894,9 @@ export default function AgentPage() {
     buildRequestContext: buildCoreAgentRequestContext,
     getSessionId,
     onSideEffects: applyCoreAgentSideEffects,
+    onTransientError: (message) => {
+      setPanelCallout({ section: 'chat', message });
+    },
     normalizePanelAction: normalizePanelActionForCurrentFlow,
   });
 
@@ -1921,17 +1925,41 @@ export default function AgentPage() {
   useEffect(() => {
     const syncInterviewResume = () => {
       try {
-        const saved = readInterviewVoiceState();
-        if (!saved) {
+        if (interviewCompleted) {
           setInterviewResumePending(false);
           return;
         }
+
+        const saved = readInterviewVoiceState();
+        const serverVoice = sessionInfo?.interviewVoice as Record<string, unknown> | null | undefined;
+        const voiceSnapshot =
+          saved && typeof saved === 'object'
+            ? saved
+            : serverVoice && typeof serverVoice === 'object'
+              ? serverVoice
+              : null;
+
+        if (!voiceSnapshot) {
+          setInterviewResumePending(false);
+          return;
+        }
+
+        const status = String(voiceSnapshot.status ?? '');
+        if (status === 'completed') {
+          setInterviewResumePending(false);
+          return;
+        }
+
         const hasSummary =
-          Array.isArray(saved.minuteSummaries) && saved.minuteSummaries.length > 0
+          Array.isArray(voiceSnapshot.minuteSummaries) && voiceSnapshot.minuteSummaries.length > 0
             ? true
-            : String((saved.finalSummary as { summary?: string } | undefined)?.summary ?? '').trim().length > 0;
-        const hasTime = Number(saved.callSeconds ?? 0) > 0;
-        const hasReport = Boolean(saved.voiceReport && typeof saved.voiceReport === 'object');
+            : String(
+                (voiceSnapshot.finalSummary as { summary?: string } | undefined)?.summary ?? '',
+              ).trim().length > 0;
+        const hasTime = Number(voiceSnapshot.callSeconds ?? voiceSnapshot.totalUsedSec ?? 0) > 0;
+        const hasReport =
+          Boolean(voiceSnapshot.voiceReport && typeof voiceSnapshot.voiceReport === 'object') ||
+          Boolean(voiceSnapshot.lastReport);
         setInterviewResumePending((hasSummary || hasTime) && !hasReport);
       } catch {
         setInterviewResumePending(false);
@@ -1944,7 +1972,7 @@ export default function AgentPage() {
       window.removeEventListener('focus', syncInterviewResume);
       window.removeEventListener('storage', syncInterviewResume);
     };
-  }, []);
+  }, [interviewCompleted, sessionInfo?.interviewVoice]);
 
   useEffect(() => {
     try {

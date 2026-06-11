@@ -6,6 +6,10 @@ import {
   type AgentResponse,
   type ChatItem,
 } from '@/lib/agent.response.types';
+import {
+  isRecoverableChatErrorMessage,
+  isWelcomeShellMessageContent,
+} from '@/app/agent/welcome-intro.shared';
 import { sanitizeChatItems, sanitizeMessageText } from '@/app/agent/page.utils';
 import { removeStreamingAssistantMessage } from '@/lib/agent/stream-session';
 
@@ -178,13 +182,35 @@ export function applyCoreAgentResponse(params: {
   };
 }
 
-export function applyCoreAgentErrorItems(currentItems: ChatItem[], errorText: string): ChatItem[] {
-  return [
-    ...removeStreamingAssistantMessage(currentItems),
-    {
-      type: 'message',
-      role: 'assistant',
-      content: errorText,
-    },
-  ];
+export function applyCoreAgentErrorItems(
+  currentItems: ChatItem[],
+  errorText: string,
+): { items: ChatItem[]; transientError?: string } {
+  const base = removeStreamingAssistantMessage(currentItems).filter((item) => {
+    if (item.type !== 'message' || item.role !== 'assistant') return true;
+    return !isRecoverableChatErrorMessage(String(item.content ?? ''));
+  });
+
+  const hasWelcomeShell = base.some(
+    (item) =>
+      item.type === 'message' &&
+      item.role === 'assistant' &&
+      isWelcomeShellMessageContent(item.content),
+  );
+
+  if (hasWelcomeShell) {
+    return { items: base, transientError: errorText };
+  }
+
+  return {
+    items: [
+      ...base,
+      {
+        type: 'message',
+        role: 'assistant',
+        content: errorText,
+        mode: 'information',
+      },
+    ],
+  };
 }

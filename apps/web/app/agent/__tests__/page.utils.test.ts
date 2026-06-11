@@ -1,6 +1,55 @@
 /** @jest-environment node */
 
-import { getChat1UxCopy, resolveChat1UxState, resolveUnlockedChatIds } from '../page.utils';
+import {
+  dedupeConsecutiveAssistantMessages,
+  dedupeConsecutiveUserMessages,
+  dedupeDuplicateAssistantMessages,
+  getChat1UxCopy,
+  resolveChat1UxState,
+  resolveUnlockedChatIds,
+  sanitizeChatThreadMessages,
+} from '../page.utils';
+import type { ChatItem } from '@/lib/agent.response.types';
+
+const assistant = (content: string): ChatItem => ({
+  type: 'message',
+  role: 'assistant',
+  content,
+  mode: 'information',
+});
+
+const user = (content: string): ChatItem => ({
+  type: 'message',
+  role: 'user',
+  content,
+});
+
+describe('chat message dedupe', () => {
+  it('removes consecutive duplicate assistant messages', () => {
+    const items = [assistant('Hola'), assistant('Hola'), user('ok'), assistant('Siguiente')];
+    expect(dedupeConsecutiveAssistantMessages(items)).toHaveLength(3);
+  });
+
+  it('removes consecutive duplicate user messages', () => {
+    const items = [user('Hola'), user('Hola'), assistant('ok')];
+    expect(dedupeConsecutiveUserMessages(items)).toHaveLength(2);
+  });
+
+  it('removes non-consecutive duplicate assistant messages', () => {
+    const items = [assistant('Bienvenida'), user('hola'), assistant('Bienvenida')];
+    expect(dedupeDuplicateAssistantMessages(items)).toHaveLength(2);
+  });
+
+  it('sanitizes thread messages with both dedupe passes', () => {
+    const items = [
+      assistant('**Bienvenida**'),
+      assistant('Bienvenida'),
+      user('hola'),
+      assistant('Bienvenida'),
+    ];
+    expect(sanitizeChatThreadMessages(items)).toHaveLength(2);
+  });
+});
 
 describe('chat 1 UX state', () => {
   it('keeps base reading until interview is actually available', () => {
@@ -66,6 +115,15 @@ describe('unlocked chat ids', () => {
         interviewCompleted: false,
         unlockedChats: ['chat-2'],
       }),
-    ).toEqual(['chat-1', 'chat-2']);
+    ).toEqual(['chat-1']);
+  });
+
+  it('ignores premature chat 2/3 unlocks before diagnosis completes', () => {
+    expect(
+      resolveUnlockedChatIds({
+        interviewCompleted: false,
+        unlockedChats: ['chat-1', 'chat-2', 'chat-3'],
+      }),
+    ).toEqual(['chat-1']);
   });
 });

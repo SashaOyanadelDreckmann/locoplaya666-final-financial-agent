@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import { Coins, X } from 'lucide-react';
+import { Coins } from 'lucide-react';
+import { AgentModalCloseButton } from './AgentModalCloseButton';
 import { SpendingLimitCard } from '@/components/ui/spending-limit-card';
 import type { FincoinUsageState } from './use-fincoin-usage';
 
@@ -44,23 +45,19 @@ export function FincoinUsageModal(props: {
         aria-labelledby="fincoin-usage-title"
         onClick={(event) => event.stopPropagation()}
       >
-        <button
-          type="button"
-          className="fincoin-usage-close"
-          onClick={props.onClose}
-          aria-label="Cerrar uso de Fincoins"
-        >
-          <X size={16} aria-hidden="true" />
-        </button>
+        <div className="bcc-modal-header fincoin-usage-header">
+          <div className="bcc-modal-title-wrap">
+            <span className="bcc-modal-eyebrow">Financieramente</span>
+            <h2 id="fincoin-usage-title" className="bcc-modal-title">Fincoins</h2>
+          </div>
+          <AgentModalCloseButton onClick={props.onClose} aria-label="Cerrar uso de Fincoins" />
+        </div>
 
         <div className="fincoin-usage-head">
           <span className="fincoin-usage-icon" aria-hidden="true">
             <Coins size={18} />
           </span>
-          <div>
-            <h2 id="fincoin-usage-title">Fincoins</h2>
-            <p>Presupuesto incluido para usar el agente</p>
-          </div>
+          <p className="fincoin-usage-subtitle">Presupuesto incluido para usar el agente</p>
           <span className={`fincoin-usage-pill ${statusClass}`}>{statusLabel}</span>
         </div>
 

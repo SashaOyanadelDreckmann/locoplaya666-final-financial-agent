@@ -2,7 +2,7 @@
   "name": "Financieramente",
   "short_name": "FinMente",
   "description": "Claridad financiera, antes de decidir.",
-  "start_url": "/agent",
+  "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#050810",

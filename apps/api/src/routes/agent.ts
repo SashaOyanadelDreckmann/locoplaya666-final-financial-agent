@@ -24,6 +24,7 @@ import {
   listConversationTurns,
   upsertConversationTurnRecord,
 } from '../persistence/repos';
+import type { StoredPanelState } from '../persistence/types';
 import { complete } from '../services/llm.service';
 import type { WelcomeIntroCache } from '@financial-agent/shared';
 import {
@@ -579,9 +580,9 @@ const PersistedDashboardSchema = z
 const PersistedBankProductSchema = z
   .object({
     id: z.string(),
-    label: z.string(),
-    bank: z.string(),
-    productType: z.string(),
+    label: z.string().optional().default(''),
+    bank: z.string().optional().default(''),
+    productType: z.string().optional().default('checking_account'),
     simulationAccepted: z.boolean().optional(),
     connected: z.boolean().optional(),
     randomMode: z.boolean().optional(),
@@ -603,6 +604,8 @@ const PersistedBankProductSchema = z
   })
   .passthrough();
 
+const SavedReportGroupSchema = z.enum(['plan_action', 'simulation', 'budget', 'diagnosis', 'other']);
+
 const SavePanelStateSchema = z.object({
   panelState: z.object({
     budgetRows: z.array(
@@ -611,17 +614,19 @@ const SavePanelStateSchema = z.object({
         category: z.string(),
         type: z.enum(['income', 'expense']),
         amount: z.number(),
-        note: z.string(),
+        note: z.string().default(''),
       }).passthrough(),
     ),
     budgetChatAnswers: z.array(z.object({ q: z.string(), a: z.string() })).optional(),
     bankSimulation: z
       .object({
         products: z.array(PersistedBankProductSchema).optional(),
+        taxonomyOverrides: z.array(z.record(z.string(), z.unknown())).optional(),
         activeProductId: z.string().nullable().optional(),
         lockedMonth: z.string().nullable().optional(),
         connected: z.boolean().optional(),
         randomMode: z.boolean().optional(),
+        productsModuleSkipped: z.boolean().optional(),
         uploadedFiles: z.array(z.string()).optional(),
         parsedDocuments: z.array(PersistedDocumentSchema).optional(),
       })
@@ -630,14 +635,49 @@ const SavePanelStateSchema = z.object({
       z.object({
         id: z.string(),
         title: z.string(),
-        group: z.enum(['plan_action', 'simulation', 'budget', 'diagnosis', 'other']),
         fileUrl: z.string(),
         createdAt: z.string(),
+        group: SavedReportGroupSchema.optional().default('other'),
       }).passthrough(),
     ),
+    txProductsCreatedTotal: z.number().optional(),
     updatedAt: z.string(),
   }).passthrough(),
 });
+
+function normalizePanelStateForStore(
+  panelState: z.input<typeof SavePanelStateSchema>['panelState'],
+): StoredPanelState {
+  return {
+    ...panelState,
+    budgetRows: panelState.budgetRows.map((row) => ({
+      id: row.id,
+      category: row.category,
+      type: row.type,
+      amount: row.amount,
+      note: row.note ?? '',
+    })),
+    savedReports: panelState.savedReports.map((report) => {
+      const group = report.group ?? 'other';
+      return {
+        id: report.id,
+        title: report.title,
+        fileUrl: report.fileUrl,
+        createdAt: report.createdAt,
+        group:
+          group === 'plan_action' ||
+          group === 'simulation' ||
+          group === 'budget' ||
+          group === 'diagnosis'
+            ? group
+            : 'other',
+      };
+    }),
+    bankSimulation: panelState.bankSimulation,
+    budgetChatAnswers: panelState.budgetChatAnswers,
+    updatedAt: panelState.updatedAt,
+  } as StoredPanelState;
+}
 
 type IntakeEnvelope = {
   intake?: Record<string, unknown>;
@@ -854,7 +894,7 @@ router.post(
     if (!user) throw unauthorized('Not authenticated');
 
     const { panelState } = parseBody(SavePanelStateSchema, req.body);
-    const ok = await saveUserPanelState(user.id, panelState);
+    const ok = await saveUserPanelState(user.id, normalizePanelStateForStore(panelState));
     return sendSuccess(res, { saved: ok });
   }),
 );

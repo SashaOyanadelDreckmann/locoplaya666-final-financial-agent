@@ -117,6 +117,13 @@ describe('interview modal safeguards', () => {
     expect(runtime).toContain("finalizeCallAndGenerateReport('timeout'");
     expect(runtime).toContain('flushInterviewVoiceStateOnPageHide');
     expect(runtime).toContain("addEventListener('pagehide'");
+    expect(runtime).toContain('function startQuotaClock()');
+    expect(runtime).toContain('quotaIntervalRef');
+    expect(runtime).toContain('// Optimistic: quota timer must not wait on session.updated');
+    expect(runtime).toMatch(
+      /function buildPersistSnapshot[\s\S]*?resolveInterviewActiveQuota\(getMeasuredActiveSeconds\(\)\)/,
+    );
+    expect(runtime).toMatch(/if \(status !== 'in_progress'\) \{\s*flushLiveSegment\(\);/);
   });
 
   it('uses server session instructions from the realtime token on connect', () => {

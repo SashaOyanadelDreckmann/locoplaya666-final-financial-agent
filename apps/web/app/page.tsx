@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useCallback, useEffect, useRef, type RefObject } from 'react';
+import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowRight } from 'lucide-react';
 import {
@@ -505,6 +505,7 @@ export default function HomePage() {
   const springCfg = { damping: 28, stiffness: 180, mass: 0.8 };
   const rotX = useSpring(useTransform(heroMY, [0, 1], [4, -4]), springCfg);
   const rotY = useSpring(useTransform(heroMX, [0, 1], [-4, 4]), springCfg);
+  const [heroTiltEnabled, setHeroTiltEnabled] = useState(false);
 
   const featureSectionRef = useRef<HTMLElement>(null);
 
@@ -539,6 +540,14 @@ export default function HomePage() {
     mousePosRef.current.x = nx;
     mousePosRef.current.y = ny;
   }, [heroMX, heroMY]);
+
+  useEffect(() => {
+    const tiltMq = window.matchMedia('(pointer: fine) and (min-width: 768px)');
+    const applyTilt = () => setHeroTiltEnabled(tiltMq.matches);
+    applyTilt();
+    tiltMq.addEventListener('change', applyTilt);
+    return () => tiltMq.removeEventListener('change', applyTilt);
+  }, []);
 
   useEffect(() => {
     const resetPointer = () => {
@@ -643,10 +652,10 @@ export default function HomePage() {
 
           {/* Contenido */}
           <div style={{ position: 'relative', zIndex: 10, height: '100%' }}>
-            <motion.div style={{ display: 'flex', height: '100%', flexDirection: 'column', rotateX: rotX, rotateY: rotY }}>
+            <motion.div style={{ display: 'flex', height: '100%', flexDirection: 'column', rotateX: heroTiltEnabled ? rotX : 0, rotateY: heroTiltEnabled ? rotY : 0 }}>
 
               {/* Header */}
-              <div className="home-page-header" style={{ paddingTop: 'clamp(56px,9vh,88px)' }}>
+              <div className="home-page-header">
                 <MotionLink
                   href="/"
                   aria-label="Financieramente"
@@ -671,7 +680,7 @@ export default function HomePage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.08, ease: SILK }}
                   whileHover={{ opacity: 0.72 }}
-                  style={{ background: 'none', border: '1px solid rgba(255,255,255,0.20)', borderRadius: 999, padding: '7px 16px', fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.68)', cursor: 'pointer', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', minHeight: 44 }}
+                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.14)', borderRadius: 999, padding: '7px 18px', fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.78)', cursor: 'pointer', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', minHeight: 44, boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08)' }}
                 >
                   Entrar
                 </MotionLink>

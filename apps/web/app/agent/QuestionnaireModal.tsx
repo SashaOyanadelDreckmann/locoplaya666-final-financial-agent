@@ -1,5 +1,7 @@
 'use client';
 
+import { AgentModalCloseButton } from './AgentModalCloseButton';
+
 type QuestionnaireDashboard = {
   readinessScore: number;
   understanding: number | null;
@@ -38,7 +40,7 @@ export function QuestionnaireModal(props: {
             <h3 id="questionnaire-modal-title" className="bcc-modal-title">Cuestionario y lectura ejecutiva</h3>
             {userName ? <p className="questionnaire-user-name">{userName}</p> : null}
           </div>
-          <button type="button" className="agent-modal-close" onClick={props.onClose}>×</button>
+          <AgentModalCloseButton onClick={props.onClose} />
         </div>
         <p className="agent-modal-intro">Vista de solo lectura con tus respuestas del intake y una lectura breve de contexto.</p>
         <div className="questionnaire-dashboard">

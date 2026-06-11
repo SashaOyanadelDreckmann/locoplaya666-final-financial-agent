@@ -99,6 +99,7 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
   const eventIdRef = useRef(0);
   const voiceSyncTimerRef = useRef<number | null>(null);
+  const quotaIntervalRef = useRef<number | null>(null);
   const tokenIssuedRef = useRef(false);
   const voiceStateHydratedRef = useRef(false);
   const voiceSessionContextRef = useRef<VoiceSessionContext>({
@@ -234,9 +235,33 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
     return publishActiveQuota(getMeasuredActiveSeconds());
   }
 
+  function stopQuotaClock(options?: { flush?: boolean }) {
+    if (quotaIntervalRef.current != null) {
+      window.clearInterval(quotaIntervalRef.current);
+      quotaIntervalRef.current = null;
+    }
+    if (options?.flush) {
+      flushLiveSegment();
+    }
+  }
+
+  function startQuotaClock() {
+    if (quotaIntervalRef.current != null) return;
+    startLiveSegment();
+    quotaIntervalRef.current = window.setInterval(() => {
+      if (voicePausedRef.current) return;
+      const quota = tickActiveQuota();
+      if (quota.isExhausted) {
+        stopQuotaClock({ flush: true });
+        void finalizeCallAndGenerateReport('timeout', { durationSecOverride: quota.activeSeconds });
+      }
+    }, 250);
+  }
+
+
   function buildPersistSnapshot(status: InterviewVoiceSnapshot['status']): InterviewVoiceSnapshot {
-    flushLiveSegment();
-    const quota = resolveInterviewActiveQuota(accumulatedActiveSecRef.current);
+    // Read-only: never flush here — callers that need a stable boundary (pause/close) flush first.
+    const quota = resolveInterviewActiveQuota(getMeasuredActiveSeconds());
     return {
       callsStarted,
       callId: callId ?? undefined,
@@ -254,6 +279,9 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
   }
 
   function persistVoiceSnapshot(status: InterviewVoiceSnapshot['status']) {
+    if (status !== 'in_progress') {
+      flushLiveSegment();
+    }
     const snapshot = buildPersistSnapshot(status);
     writeInterviewVoiceState(snapshot);
     return snapshot;
@@ -282,7 +310,7 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
 
   function resetVoiceRuntimeState(options?: { preserveDiagnosisSignals?: boolean }) {
     const preserveDiagnosisSignals = options?.preserveDiagnosisSignals === true;
-    flushLiveSegment();
+    stopQuotaClock({ flush: true });
     cleanupVoiceTransport();
     setVoiceAwaitingMic(false);
     setVoiceConnecting(false);
@@ -358,7 +386,7 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
   }
 
   function cleanupVoiceSession() {
-    flushLiveSegment();
+    stopQuotaClock({ flush: true });
     setVoiceAwaitingMic(false);
     setVoiceConnected(false);
     setVoiceConnecting(false);
@@ -490,7 +518,7 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
     setVoiceConnected(true);
     setVoiceConnecting(false);
     setVoiceSessionReady(true);
-    startLiveSegment();
+    startQuotaClock();
     primeVoiceOpening({ resetTranscript: false });
     return true;
   }
@@ -617,6 +645,8 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
         tokenIssuedRef.current = false;
         setVoiceConnected(true);
         setVoiceConnecting(false);
+        // Optimistic: quota timer must not wait on session.updated (can be delayed or omitted).
+        setVoiceSessionReady(true);
         pendingInitialResponseRef.current = {
           resetTranscript: !hasPersistedCall,
         };
@@ -625,6 +655,7 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
           triggerResponse: false,
           instructionsOverride: serverSessionInstructionsRef.current,
         });
+        startQuotaClock();
       });
 
       dc.addEventListener('close', () => {
@@ -810,12 +841,12 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
       if (dataChannelRef.current?.readyState === 'open') {
         setVoiceSessionReady(true);
       }
-      startLiveSegment();
+      startQuotaClock();
       const snapshot = persistVoiceSnapshot('in_progress');
       void saveInterviewVoiceState(snapshot).catch(() => {});
       return;
     }
-    flushLiveSegment();
+    stopQuotaClock({ flush: true });
     applyCallPauseState(true);
     const snapshot = persistVoiceSnapshot('paused');
     writeInterviewVoiceState(snapshot);
@@ -1214,39 +1245,19 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
     if (
       !voiceConnected ||
       voicePaused ||
-      !voiceSessionReady ||
       voiceReport ||
       isFinalizingCall ||
       isGeneratingDiagnosis
     ) {
-      if (!voiceConnected || voicePaused || !voiceSessionReady) {
-        flushLiveSegment();
-      }
+      stopQuotaClock({ flush: !voiceConnected || voicePaused });
       return;
     }
 
-    startLiveSegment();
-    const timer = window.setInterval(() => {
-      const quota = tickActiveQuota();
-      if (quota.isExhausted) {
-        flushLiveSegment();
-        window.clearInterval(timer);
-        void finalizeCallAndGenerateReport('timeout', { durationSecOverride: quota.activeSeconds });
-      }
-    }, 500);
-
+    startQuotaClock();
     return () => {
-      flushLiveSegment();
-      window.clearInterval(timer);
+      stopQuotaClock({ flush: false });
     };
-  }, [
-    voiceConnected,
-    voicePaused,
-    voiceSessionReady,
-    voiceReport,
-    isFinalizingCall,
-    isGeneratingDiagnosis,
-  ]);
+  }, [voiceConnected, voicePaused, voiceReport, isFinalizingCall, isGeneratingDiagnosis]);
 
   useEffect(() => {
     if (
@@ -1376,6 +1387,7 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
   useEffect(() => {
     return () => {
       if (voiceSyncTimerRef.current) window.clearTimeout(voiceSyncTimerRef.current);
+      stopQuotaClock({ flush: true });
       cleanupVoiceSession();
     };
   }, []);

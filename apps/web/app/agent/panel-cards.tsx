@@ -286,7 +286,14 @@ export function buildPanelBaseCards(props: PanelCardsProps): PanelCard[] {
                 });
                 return;
               }
-              if (!props.canOpenInterview) return;
+              if (!props.canOpenInterview) {
+                props.setPanelCallout({
+                  section: 'interview',
+                  message:
+                    'La entrevista se desbloquea al completar cartolas y al menos 3 filas de presupuesto con monto.',
+                });
+                return;
+              }
               props.openInterviewModal();
             }}
             title={
@@ -303,7 +310,7 @@ export function buildPanelBaseCards(props: PanelCardsProps): PanelCard[] {
               {props.interviewCompleted ? props.interviewCard.badge : props.canOpenInterview ? 'Entrevista disponible' : props.interviewCard.badge}
             </span>
             <span className="panel-feature-status">
-              {props.interviewCompleted ? '● Activo' : props.canOpenInterview ? '● Disponible' : '○ Bloqueado'}
+              {props.interviewCompleted ? '● Completado' : props.canOpenInterview ? '● Disponible' : '○ Bloqueado'}
             </span>
             <span className="interview-flow-title">{props.interviewCard.title}</span>
             <span className="interview-flow-meta">{props.interviewCard.meta}</span>

@@ -73,7 +73,14 @@ export default function RegisterPage() {
         <h1 className="auth-title">Crear cuenta</h1>
         <p className="auth-subtitle">Un primer paso breve. Luego, conversamos con calma.</p>
 
-        <div className="auth-fields">
+        <form
+          className="auth-fields"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void onSubmit();
+          }}
+          noValidate
+        >
           <div className="auth-field">
             <label className="auth-label" htmlFor="register-name">Nombre</label>
             <input
@@ -126,7 +133,6 @@ export default function RegisterPage() {
               placeholder="Una clave simple, solo para ti"
               value={form.password}
               onChange={(e) => update('password', e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && onSubmit()}
               autoComplete="new-password"
               aria-invalid={Boolean(fieldErrors.password)}
               aria-describedby={fieldErrors.password ? 'password-error' : undefined}
@@ -140,11 +146,11 @@ export default function RegisterPage() {
           </div>
 
           {error && <p className="auth-error">{error}</p>}
-        </div>
 
-        <button className="auth-submit" onClick={onSubmit} disabled={loading}>
-          {loading ? 'Creando…' : 'Continuar'}
-        </button>
+          <button type="submit" className="auth-submit" disabled={loading}>
+            {loading ? 'Creando…' : 'Continuar'}
+          </button>
+        </form>
 
         <div className="auth-footer">
           <span className="auth-footer-text">¿Ya tienes cuenta?</span>

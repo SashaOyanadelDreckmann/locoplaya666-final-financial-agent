@@ -58,8 +58,7 @@ export function useInterviewModalBootstrap(params: Params) {
 
     setIntakeReady(false);
     setBootError(null);
-    setSessionAlreadyCompleted(false);
-  }, [isOpen, bootstrapAttempt, setBootError, setIntakeReady, setSessionAlreadyCompleted]);
+  }, [isOpen, bootstrapAttempt, setBootError, setIntakeReady]);
 
   useEffect(() => {
     if (!isOpen) return;

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { AgentModalCloseButton } from './AgentModalCloseButton';
 
 type PhilosophicalQuestion = {
   id: string;
@@ -220,16 +221,7 @@ export function SocialConsciousnessModal({
               <h2 className="social-header-title">Filosofía del dinero</h2>
             </div>
           </div>
-          <button
-            type="button"
-            className="social-close-btn"
-            onClick={onClose}
-            aria-label="Cerrar"
-          >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-              <path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-            </svg>
-          </button>
+          <AgentModalCloseButton className="social-close-btn agent-modal-close" onClick={onClose} />
         </header>
 
         {/* Rotating quote */}

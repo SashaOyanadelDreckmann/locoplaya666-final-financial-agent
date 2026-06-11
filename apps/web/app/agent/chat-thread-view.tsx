@@ -21,7 +21,10 @@ import { GradientBlobCard } from '@/components/ui/gradient-bold-card';
 import { ClosureGradientBlobCard } from '@/components/ui/closure-gradient-card';
 import { UserUploadBubble } from './user-upload-bubble';
 import { MAX_CHAT_UPLOAD_FILES } from './agent-page.constants';
-import { isWelcomeShellMessageContent } from './welcome-intro.shared';
+import {
+  isRecoverableChatErrorMessage,
+  isWelcomeShellMessageContent,
+} from './welcome-intro.shared';
 import { OnboardingFlowCta } from './OnboardingFlowCta';
 import {
   buildOnboardingFlowCta,
@@ -132,7 +135,9 @@ function isWelcomeCarouselShellItem(
   const isFirstAssistant = !items
     .slice(0, index)
     .some((prior) => prior.type === 'message' && prior.role === 'assistant');
-  return isFirstAssistant && isWelcomeShellMessageContent(item.content);
+  if (!isFirstAssistant) return false;
+  if (isWelcomeShellMessageContent(item.content)) return true;
+  return isRecoverableChatErrorMessage(String(item.content ?? ''));
 }
 
 function isExternalCitation(citation: Extract<ChatItem, { type: 'citation' }>['citation']) {

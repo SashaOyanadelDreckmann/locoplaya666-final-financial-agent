@@ -1,6 +1,7 @@
 /** @jest-environment node */
 
 import {
+  applyCoreAgentErrorItems,
   applyCoreAgentResponseToItems,
   extractCoreAgentSideEffects,
 } from '@/lib/agent/applyCoreAgentResponse';
@@ -62,5 +63,27 @@ describe('applyCoreAgentResponse', () => {
       true,
     );
     expect(items.some((item) => item.type === 'citation')).toBe(true);
+  });
+
+  it('keeps welcome shell and surfaces transient chat errors separately', () => {
+    const result = applyCoreAgentErrorItems(
+      [
+        { type: 'message', role: 'assistant', content: '', mode: 'information' },
+        { type: 'message', role: 'user', content: 'Hola' },
+        {
+          type: 'message',
+          role: 'assistant',
+          content: 'parcial',
+          stream: { tools: [], streaming: true, startedAt: 1 },
+        },
+      ],
+      'No pude procesar tu mensaje ahora. Inténtalo nuevamente en unos segundos.',
+    );
+
+    expect(result.transientError).toContain('No pude procesar');
+    expect(result.items).toHaveLength(2);
+    expect(result.items.some((item) => item.type === 'message' && item.role === 'assistant' && item.content?.includes('No pude'))).toBe(
+      false,
+    );
   });
 });

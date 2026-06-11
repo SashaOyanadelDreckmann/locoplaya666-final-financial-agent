@@ -4,9 +4,14 @@
  */
 import { mergeBudgetActionIntoRow, type BudgetRow, type BudgetTableAction } from '@financial-agent/shared';
 
-const API = process.env.API ?? 'https://locoplaya666-final-financial-agent-production.up.railway.app';
-const EMAIL = process.env.EMAIL ?? 'cursor.modal.1781008149@ug.uchile.cl';
-const PASS = process.env.PASS ?? 'CursorModal2026!';
+const API = process.env.API?.trim();
+const EMAIL = process.env.EMAIL?.trim();
+const PASS = process.env.PASS?.trim();
+
+if (!API || !EMAIL || !PASS) {
+  console.error('Set API, EMAIL, and PASS env vars for prod budget E2E.');
+  process.exit(1);
+}
 
 const jar = new Map<string, string>();
 
