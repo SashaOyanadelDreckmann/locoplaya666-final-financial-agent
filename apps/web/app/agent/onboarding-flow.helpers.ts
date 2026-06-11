@@ -81,7 +81,7 @@ export function buildOnboardingFlowCta(
   return {
     section: 'interview',
     headline: 'Presupuesto listo',
-    body: 'Cierra con una entrevista breve (~4 min) para tu diagnóstico premium y desbloquear los chats superiores.',
+    body: 'Cierra con una entrevista breve (máx. 3 min) para tu diagnóstico premium y desbloquear los chats superiores.',
     buttonLabel: 'Iniciar entrevista',
     steps,
   };

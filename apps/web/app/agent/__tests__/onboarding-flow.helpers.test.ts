@@ -54,6 +54,8 @@ describe('buildOnboardingFlowCta', () => {
     );
     expect(model?.section).toBe('interview');
     expect(model?.buttonLabel).toBe('Iniciar entrevista');
+    expect(model?.body).toContain('máx. 3 min');
+    expect(model?.body).not.toContain('~4 min');
     expect(model?.steps.find((step) => step.id === 'interview')?.current).toBe(true);
   });
 
