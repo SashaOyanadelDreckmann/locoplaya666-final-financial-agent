@@ -171,14 +171,15 @@ export async function executeBudgetReactTool(params: {
   }
 
   if (tool === 'finance.budget_analyzer') {
-    const monthlyIncome = Math.max(1, Math.round(totals.income));
-    if (monthlyIncome <= 0) {
+    const rawIncome = Math.round(Number(totals.income) || 0);
+    if (rawIncome <= 0) {
       return {
         ok: false,
         error: 'no_income_rows',
         data: { message: 'No hay ingresos en la tabla para analizar con MCP.' },
       };
     }
+    const monthlyIncome = Math.max(1, rawIncome);
     const expenses = buildMcpExpenses(rows);
     const debtPayments = expenses
       .filter((row) => row.type === 'debt')

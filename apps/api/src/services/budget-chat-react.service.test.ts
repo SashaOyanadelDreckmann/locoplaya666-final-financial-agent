@@ -1,8 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { buildBudgetAssistantContext } from '@financial-agent/shared';
+import { runMCPTool } from '../mcp/tools/runMCPTool';
 import { runBudgetChatAgent } from './budget-chat-agent.service';
 import { isBudgetReactEnabled } from './budget-chat-react.service';
+import { executeBudgetReactTool } from './budget-chat-react.tools';
 
 const chatCompletionsCreate = vi.fn();
 const completeStructuredWithSchema = vi.fn();
@@ -143,6 +145,67 @@ describe('budget-chat-react.service', () => {
     expect(result.actions[0]?.amount).toBe(210000);
     expect(result.react_trace).toBeUndefined();
     expect(completeStructuredWithSchema).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('executeBudgetReactTool finance.budget_analyzer', () => {
+  const expenseOnlyRows = [
+    { id: 'expense_food', category: 'Comida', type: 'expense' as const, amount: 200_000 },
+  ];
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('returns no_income_rows without calling MCP when totals.income <= 0', async () => {
+    const context = buildBudgetAssistantContext({
+      rows: expenseOnlyRows,
+      intakeData: {},
+      products: [],
+      chatAnswers: [],
+    });
+
+    const result = await executeBudgetReactTool({
+      tool: 'finance.budget_analyzer',
+      rows: expenseOnlyRows,
+      context,
+      userId: 'user-test',
+      turnId: 'turn-no-income',
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toBe('no_income_rows');
+    expect(result.data).toEqual({ message: 'No hay ingresos en la tabla para analizar con MCP.' });
+    expect(runMCPTool).not.toHaveBeenCalled();
+  });
+
+  it('calls MCP with real income when income rows exist', async () => {
+    const incomeRows = [
+      { id: 'income_salary', category: 'Sueldo', type: 'income' as const, amount: 1_000_000 },
+      { id: 'expense_food', category: 'Comida', type: 'expense' as const, amount: 200_000 },
+    ];
+    const context = buildBudgetAssistantContext({
+      rows: incomeRows,
+      intakeData: {},
+      products: [],
+      chatAnswers: [],
+    });
+
+    const result = await executeBudgetReactTool({
+      tool: 'finance.budget_analyzer',
+      rows: incomeRows,
+      context,
+      userId: 'user-test',
+      turnId: 'turn-with-income',
+    });
+
+    expect(result.ok).toBe(true);
+    expect(runMCPTool).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tool: 'finance.budget_analyzer',
+        args: expect.objectContaining({ monthlyIncome: 1_000_000 }),
+      }),
+    );
   });
 });
 
