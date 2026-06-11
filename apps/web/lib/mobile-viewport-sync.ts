@@ -92,9 +92,6 @@ function resolveKeyboardLikelyOpen(
   return false;
 }
 
-/** @deprecated Use setMobileInputEngaged */
-export const isAgentComposerEngaged = isMobileInputEngaged;
-
 export function setMobileInputEngaged(
   engaged: boolean,
   root: HTMLElement = document.documentElement
@@ -107,9 +104,6 @@ export function setMobileInputEngaged(
   }
   applyMobileViewportTokens(root);
 }
-
-/** @deprecated Use setMobileInputEngaged */
-export const setAgentComposerEngaged = setMobileInputEngaged;
 
 export function isComposerDockElement(el: Element | null): boolean {
   if (!el || !(el instanceof HTMLElement)) return false;
