@@ -196,6 +196,18 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
     showOnboardingFlow && props.onboardingFlowStatus
       ? buildOnboardingFlowCta(props.onboardingFlowStatus, props.sessionUserName)
       : null;
+  const hasInlineOnboardingCta =
+    showOnboardingFlow &&
+    Boolean(props.onboardingFlowStatus) &&
+    props.items.some((item, index) =>
+      isWelcomeCarouselShellItem(
+        item,
+        index,
+        props.items,
+        props.activeThreadId,
+        props.diagnosisUnlocked,
+      ),
+    );
   const itemsToRender =
     props.compactClosedView && !props.showFullChat
       ? (() => {
@@ -669,7 +681,7 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
           </div>
         ) : null}
 
-        {onboardingFlowModel ? (
+        {onboardingFlowModel && !hasInlineOnboardingCta ? (
           <OnboardingFlowCta
             model={onboardingFlowModel}
             variant="thread"
