@@ -1,10 +1,11 @@
 /** @jest-environment node */
 
+import type { BudgetRow } from '@/lib/budget-rows.helpers';
+import { isTransactionsEvidenceSatisfied } from '@/lib/transactions-flow.helpers';
+import { canOpenInterview } from '../interview-gate.helpers';
 import { BUDGET_ROWS_TARGET } from '../onboarding-flow.helpers';
 import { resolveChat1UxState } from '../page.utils';
-import { isTransactionsEvidenceSatisfied } from '@/lib/transactions-flow.helpers';
 
-type BudgetRowSlice = { amount: number };
 type ProductSlice = Parameters<typeof isTransactionsEvidenceSatisfied>[0][number];
 
 const productWithMovements: ProductSlice = {
@@ -13,34 +14,20 @@ const productWithMovements: ProductSlice = {
   dashboard: { keyMetrics: { movement_count: 2 }, movements: [{ id: 'm1' }] },
 };
 
-function rowsWithPositiveAmounts(count: number): BudgetRowSlice[] {
-  return Array.from({ length: count }, (_, index) => ({ amount: (index + 1) * 1000 }));
+function budgetRow(amount: number, id: string): BudgetRow {
+  return { id, category: 'test', type: 'expense', amount };
 }
 
-/**
- * Mirrors `canOpenInterview` in page.tsx until it is extracted to a shared helper.
- * Keep aligned manually with that useMemo.
- */
-function resolveCanOpenInterview(params: {
-  products: ProductSlice[];
-  productsModuleSkipped?: boolean;
-  budgetRows: BudgetRowSlice[];
-  interviewCompleted?: boolean;
-}): boolean {
-  const hasBudgetData = params.budgetRows.filter((row) => row.amount > 0).length >= BUDGET_ROWS_TARGET;
-  const hasTransactionsData = isTransactionsEvidenceSatisfied(
-    params.products,
-    params.productsModuleSkipped,
-  );
-  return Boolean(params.interviewCompleted) || (hasTransactionsData && hasBudgetData);
+function rowsWithPositiveAmounts(count: number): BudgetRow[] {
+  return Array.from({ length: count }, (_, index) => budgetRow((index + 1) * 1000, `row-${index}`));
 }
 
 function expectInterviewBlocked(params: {
   products: ProductSlice[];
   productsModuleSkipped?: boolean;
-  budgetRows: BudgetRowSlice[];
+  budgetRows: BudgetRow[];
 }) {
-  expect(resolveCanOpenInterview(params)).toBe(false);
+  expect(canOpenInterview(params)).toBe(false);
   expect(
     resolveChat1UxState({
       chatId: 'chat-1',
@@ -53,9 +40,9 @@ function expectInterviewBlocked(params: {
 function expectInterviewAvailable(params: {
   products: ProductSlice[];
   productsModuleSkipped?: boolean;
-  budgetRows: BudgetRowSlice[];
+  budgetRows: BudgetRow[];
 }) {
-  expect(resolveCanOpenInterview(params)).toBe(true);
+  expect(canOpenInterview(params)).toBe(true);
   expect(
     resolveChat1UxState({
       chatId: 'chat-1',
