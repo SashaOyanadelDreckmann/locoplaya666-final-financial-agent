@@ -67,6 +67,11 @@ describe('interview modal safeguards', () => {
     expect(modal).not.toContain("finalizeCallAndGenerateReport('timeout')");
     expect(modal).toContain('endCallEarly');
     expect(modal).toContain('Finalizar llamada');
+    expect(modal).toContain('interview-call-pause-btn');
+    expect(modal).toContain('interview-call-actions--live');
+    expect(modal).toContain('interview-call-end-btn--pending');
+    expect(modal).toContain('interview-call-end-confirm-btn');
+    expect(modal).toContain('Finalizar en');
     expect(modal).toContain('Confirmar y generar diagnóstico');
     expect(runtime).toContain('endCallEarly');
     expect(runtime).toContain('canEndInterviewCallEarly');

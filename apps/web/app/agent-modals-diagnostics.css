@@ -13433,15 +13433,15 @@ body.agent-route-active .app-shell::before {
   -webkit-text-fill-color: rgba(248, 248, 252, 0.97) !important;
 }
 
-/* Primary CTA — green accent (first .summary-action-btn in primary actions) */
-.agent-modal.interview-modal .interview-call-actions--primary .summary-action-btn:first-child {
+/* Primary CTA — start / resume only (idle state) */
+.agent-modal.interview-modal .interview-call-actions--idle .interview-call-start-btn {
   background: rgba(74, 222, 128, 0.12) !important;
   border-color: rgba(74, 222, 128, 0.28) !important;
   color: rgba(74, 222, 128, 0.92) !important;
   -webkit-text-fill-color: rgba(74, 222, 128, 0.92) !important;
 }
 
-.agent-modal.interview-modal .interview-call-actions--primary .summary-action-btn:first-child:hover {
+.agent-modal.interview-modal .interview-call-actions--idle .interview-call-start-btn:hover:not(:disabled) {
   background: rgba(74, 222, 128, 0.20) !important;
   border-color: rgba(74, 222, 128, 0.45) !important;
   color: rgba(74, 222, 128, 1.0) !important;
@@ -13609,105 +13609,105 @@ body.agent-route-active .app-shell::before {
   white-space: nowrap !important;
 }
 
-/* ── 7. PRIMARY ACTION BUTTONS — visual hierarchy ────────────────────────── */
-.agent-modal.interview-modal .interview-call-actions--primary {
+/* ── 7. PRIMARY ACTION BUTTONS — semantic classes (idle + live) ─────────── */
+.agent-modal.interview-modal .interview-call-controls {
   display: flex !important;
-  align-items: center !important;
-  gap: 8px !important;
-  flex-wrap: nowrap !important;
+  flex-direction: column !important;
+  gap: 10px !important;
   margin-bottom: 10px !important;
 }
 
-/* Button 1: Activar micrófono — support/prerequisite role, muted ghost */
-.agent-modal.interview-modal .interview-call-actions--primary .summary-action-btn:nth-child(1) {
-  flex-shrink: 0 !important;
-  min-width: auto !important;
-  height: 36px !important;
-  min-height: 36px !important;
-  padding: 0 14px !important;
-  font-size: 11px !important;
-  font-weight: 400 !important;
-  letter-spacing: 0 !important;
-  text-transform: none !important;
-  background: rgba(255, 255, 255, 0.04) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  color: rgba(170, 190, 225, 0.50) !important;
-  -webkit-text-fill-color: rgba(170, 190, 225, 0.50) !important;
-}
-.agent-modal.interview-modal .interview-call-actions--primary .summary-action-btn:nth-child(1):hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.07) !important;
-  border-color: rgba(255, 255, 255, 0.13) !important;
-  color: rgba(210, 225, 248, 0.75) !important;
-  -webkit-text-fill-color: rgba(210, 225, 248, 0.75) !important;
-}
-.agent-modal.interview-modal .interview-call-actions--primary .summary-action-btn:nth-child(1):disabled {
-  opacity: 0.4 !important;
+.agent-modal.interview-modal .interview-call-actions--primary {
+  display: flex !important;
+  align-items: stretch !important;
+  gap: 8px !important;
+  flex-wrap: wrap !important;
+  width: 100% !important;
+  margin-bottom: 0 !important;
 }
 
-/* Button 2: Iniciar / Reanudar / Llamada agotada — DOMINANT primary CTA */
-.agent-modal.interview-modal .interview-call-actions--primary .summary-action-btn:nth-child(2) {
-  flex: 1 !important;
-  height: 46px !important;
+.agent-modal.interview-modal .interview-call-actions--idle .interview-call-start-btn {
+  flex: 1 1 100% !important;
+  width: 100% !important;
   min-height: 46px !important;
-  min-width: 0 !important;
+  height: 46px !important;
   padding: 0 20px !important;
   font-size: 13px !important;
   font-weight: 500 !important;
   letter-spacing: -0.012em !important;
   text-transform: none !important;
-  background: rgba(74, 222, 128, 0.10) !important;
-  border: 1px solid rgba(74, 222, 128, 0.24) !important;
-  color: rgba(74, 222, 128, 0.95) !important;
-  -webkit-text-fill-color: rgba(74, 222, 128, 0.95) !important;
-  box-shadow: 0 0 0 0 rgba(74, 222, 128, 0) !important;
-  transition:
-    background 0.20s ease,
-    border-color 0.20s ease,
-    box-shadow 0.25s ease,
-    color 0.20s ease !important;
-}
-.agent-modal.interview-modal .interview-call-actions--primary .summary-action-btn:nth-child(2):hover:not(:disabled) {
-  background: rgba(74, 222, 128, 0.17) !important;
-  border-color: rgba(74, 222, 128, 0.42) !important;
-  color: rgba(74, 222, 128, 1.0) !important;
-  -webkit-text-fill-color: rgba(74, 222, 128, 1.0) !important;
-  box-shadow: 0 0 22px rgba(74, 222, 128, 0.12) !important;
-}
-.agent-modal.interview-modal .interview-call-actions--primary .summary-action-btn:nth-child(2):active:not(:disabled) {
-  transform: scale(0.98) !important;
-}
-.agent-modal.interview-modal .interview-call-actions--primary .summary-action-btn:nth-child(2):disabled {
-  background: rgba(255, 255, 255, 0.04) !important;
-  border-color: rgba(255, 255, 255, 0.07) !important;
-  color: rgba(180, 200, 230, 0.25) !important;
-  -webkit-text-fill-color: rgba(180, 200, 230, 0.25) !important;
-  box-shadow: none !important;
 }
 
-/* Button 3: Pausar — tertiary, smallest */
-.agent-modal.interview-modal .interview-call-actions--primary .summary-action-btn:nth-child(3) {
-  flex-shrink: 0 !important;
-  min-width: auto !important;
-  height: 36px !important;
-  min-height: 36px !important;
-  padding: 0 12px !important;
-  font-size: 10.5px !important;
-  font-weight: 400 !important;
-  letter-spacing: 0 !important;
+.agent-modal.interview-modal .interview-call-actions--live .interview-call-pause-btn,
+.agent-modal.interview-modal .interview-call-actions--live .interview-call-end-btn {
+  flex: 1 1 calc(50% - 4px) !important;
+  min-width: 0 !important;
+  min-height: 46px !important;
+  height: 46px !important;
+  padding: 0 16px !important;
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.01em !important;
   text-transform: none !important;
-  background: rgba(255, 255, 255, 0.03) !important;
-  border: 1px solid rgba(255, 255, 255, 0.07) !important;
-  color: rgba(150, 170, 205, 0.42) !important;
-  -webkit-text-fill-color: rgba(150, 170, 205, 0.42) !important;
+  border-radius: 12px !important;
 }
-.agent-modal.interview-modal .interview-call-actions--primary .summary-action-btn:nth-child(3):hover:not(:disabled) {
+
+.agent-modal.interview-modal .interview-call-pause-btn {
   background: rgba(255, 255, 255, 0.06) !important;
-  border-color: rgba(255, 255, 255, 0.11) !important;
-  color: rgba(180, 200, 230, 0.68) !important;
-  -webkit-text-fill-color: rgba(180, 200, 230, 0.68) !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  color: rgba(230, 238, 252, 0.92) !important;
+  -webkit-text-fill-color: rgba(230, 238, 252, 0.92) !important;
 }
-.agent-modal.interview-modal .interview-call-actions--primary .summary-action-btn:nth-child(3):disabled {
-  opacity: 0.30 !important;
+
+.agent-modal.interview-modal .interview-call-pause-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.10) !important;
+  border-color: rgba(255, 255, 255, 0.22) !important;
+  color: rgba(248, 250, 255, 1) !important;
+  -webkit-text-fill-color: rgba(248, 250, 255, 1) !important;
+}
+
+.agent-modal.interview-modal .interview-call-pause-btn.is-paused {
+  background: rgba(74, 222, 128, 0.12) !important;
+  border-color: rgba(74, 222, 128, 0.30) !important;
+  color: rgba(74, 222, 128, 0.98) !important;
+  -webkit-text-fill-color: rgba(74, 222, 128, 0.98) !important;
+}
+
+.agent-modal.interview-modal .interview-call-end-btn {
+  background: rgba(248, 113, 113, 0.12) !important;
+  border: 1px solid rgba(248, 113, 113, 0.34) !important;
+  color: rgba(252, 165, 165, 0.98) !important;
+  -webkit-text-fill-color: rgba(252, 165, 165, 0.98) !important;
+}
+
+.agent-modal.interview-modal .interview-call-end-btn:hover:not(:disabled) {
+  background: rgba(248, 113, 113, 0.20) !important;
+  border-color: rgba(248, 113, 113, 0.50) !important;
+  color: rgba(254, 202, 202, 1) !important;
+  -webkit-text-fill-color: rgba(254, 202, 202, 1) !important;
+}
+
+.agent-modal.interview-modal .interview-call-end-btn.is-armed {
+  background: rgba(248, 113, 113, 0.24) !important;
+  border-color: rgba(248, 113, 113, 0.55) !important;
+  color: rgba(255, 228, 228, 1) !important;
+  -webkit-text-fill-color: rgba(255, 228, 228, 1) !important;
+}
+
+.agent-modal.interview-modal .interview-call-end-btn--pending {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border: 1px dashed rgba(255, 255, 255, 0.12) !important;
+  color: rgba(170, 188, 220, 0.55) !important;
+  -webkit-text-fill-color: rgba(170, 188, 220, 0.55) !important;
+  opacity: 1 !important;
+  cursor: not-allowed !important;
+}
+
+.agent-modal.interview-modal .interview-call-hint {
+  margin: 0 !important;
+  font-size: 11.5px !important;
+  line-height: 1.45 !important;
+  color: rgba(160, 180, 210, 0.62) !important;
 }
 
 /* ── 8. SECONDARY ACTIONS — compact ghost row ────────────────────────────── */
@@ -14857,8 +14857,19 @@ body.agent-route-active .app-shell::before {
     overflow-y: auto !important;
   }
 
-  .agent-modal.interview-modal .interview-call-actions--primary .interview-call-start-btn {
+  .agent-modal.interview-modal .interview-call-actions--live .interview-call-pause-btn,
+  .agent-modal.interview-modal .interview-call-actions--live .interview-call-end-btn {
+    flex: 1 1 100% !important;
     width: 100% !important;
+  }
+
+  .agent-modal.interview-modal .interview-call-controls.is-live {
+    position: sticky !important;
+    bottom: 0 !important;
+    z-index: 6 !important;
+    margin-top: auto !important;
+    padding-top: 12px !important;
+    background: linear-gradient(180deg, rgba(5, 7, 12, 0) 0%, rgba(5, 7, 12, 0.94) 28%, rgba(5, 7, 12, 0.98) 100%) !important;
   }
 }
 
@@ -19797,4 +19808,56 @@ body.agent-route-active .app-shell > * {
   .interview-diagnosis-grid--secondary {
     grid-template-columns: 1fr;
   }
+}
+
+/* === INTERVIEW CALL CONTROLS — authoritative overrides (v2) === */
+.agent-modal.interview-modal .voice-call-shell.interview-live-shell {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 14px !important;
+  min-height: 0 !important;
+}
+
+.agent-modal.interview-modal .interview-call-controls.is-live {
+  margin-top: 4px !important;
+}
+
+.agent-modal.interview-modal .interview-call-controls .interview-call-pause-btn,
+.agent-modal.interview-modal .interview-call-controls .interview-call-end-btn,
+.agent-modal.interview-modal .interview-call-controls .interview-call-start-btn,
+.agent-modal.interview-modal .interview-call-controls .interview-call-end-confirm-btn {
+  letter-spacing: -0.01em !important;
+  text-transform: none !important;
+  font-weight: 500 !important;
+  box-shadow: none !important;
+  background-image: none !important;
+}
+
+.agent-modal.interview-modal .interview-call-controls .interview-call-start-btn.summary-action-accept {
+  background: rgba(74, 222, 128, 0.12) !important;
+  border: 1px solid rgba(74, 222, 128, 0.28) !important;
+  color: rgba(74, 222, 128, 0.96) !important;
+  -webkit-text-fill-color: rgba(74, 222, 128, 0.96) !important;
+}
+
+.agent-modal.interview-modal .interview-call-controls .interview-call-start-btn.summary-action-accept:hover:not(:disabled) {
+  background: rgba(74, 222, 128, 0.20) !important;
+  border-color: rgba(74, 222, 128, 0.45) !important;
+  color: rgba(74, 222, 128, 1) !important;
+  -webkit-text-fill-color: rgba(74, 222, 128, 1) !important;
+}
+
+.agent-modal.interview-modal .interview-call-controls .interview-call-end-confirm-btn.summary-action-accept {
+  background: rgba(248, 113, 113, 0.18) !important;
+  border: 1px solid rgba(248, 113, 113, 0.42) !important;
+  color: rgba(255, 228, 228, 1) !important;
+  -webkit-text-fill-color: rgba(255, 228, 228, 1) !important;
+}
+
+.agent-modal.interview-modal .interview-call-controls .summary-action-btn:disabled {
+  opacity: 0.72 !important;
+}
+
+.agent-modal.interview-modal .interview-call-controls .interview-call-end-btn--pending:disabled {
+  opacity: 1 !important;
 }

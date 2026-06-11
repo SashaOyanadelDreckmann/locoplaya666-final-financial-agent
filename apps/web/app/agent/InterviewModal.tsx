@@ -299,6 +299,8 @@ export function InterviewModal({ isOpen, fincoinSpendBlocked, onClose, onDiagnos
     0,
     Math.min(100, Math.round((callSeconds / Math.max(1, INTERVIEW_TOTAL_LIMIT_SEC)) * 100)),
   );
+  const earlyEndSecondsRemaining = Math.max(0, INTERVIEW_MIN_EARLY_END_SEC - callSeconds);
+  const showInCallControls = voiceConnected && !showVoiceReport && !isFinalizingCall && !isGeneratingDiagnosis;
   const voiceStatusAnnouncement = voiceAwaitingMic
     ? 'Esperando permiso de micrófono'
     : voiceConnecting
@@ -647,100 +649,111 @@ export function InterviewModal({ isOpen, fincoinSpendBlocked, onClose, onDiagnos
                       ))}
                     </div>
 
-                    <div className="voice-call-actions interview-call-actions interview-call-actions--primary">
-                      <button
-                        type="button"
-                        className="summary-action-btn summary-action-accept interview-call-start-btn"
-                        onClick={() => void startOrResumeVoiceSession()}
-                        disabled={
-                          !intakeReady ||
-                          !voiceSupported ||
-                          voiceAwaitingMic ||
-                          voiceConnecting ||
-                          voiceConnected ||
-                          isFinalizingCall ||
-                          showVoiceReport ||
-                          (!voiceConnected && voiceFlags.voiceCallExhausted && !voiceFlags.hasLiveVoiceCall) ||
-                          (!voiceConnected && voiceFlags.voiceInterviewLocked && !voiceFlags.hasLiveVoiceCall)
-                        }
-                      >
-                        {voiceAwaitingMic
-                          ? 'Activa el micrófono en el navegador…'
-                          : voiceConnecting
-                          ? 'Conectando llamada…'
-                          : showVoiceReport
-                            ? 'Diagnóstico listo'
-                            : voiceConnected && voicePaused
-                              ? 'Llamada en pausa'
-                            : voiceConnected
-                              ? 'Llamada activa'
-                          : voiceFlags.voiceCallExhausted && !showVoiceReport
-                                ? 'Entrevista cerrada'
-                                : voiceFlags.hasEverStartedVoiceCall && voiceFlags.hasRemainingInterviewTime
-                                  ? 'Reanudar llamada'
-                                  : 'Iniciar llamada'}
-                      </button>
-                      <button
-                        type="button"
-                        className="summary-action-btn"
-                        onClick={toggleCallPause}
-                        disabled={!voiceConnected || showVoiceReport}
-                        title={voicePaused ? 'Reanudar la llamada' : 'Pausar la llamada'}
-                      >
-                        {voicePaused ? 'Reanudar' : 'Pausar'}
-                      </button>
-                      {canEndCallEarly ? (
-                        <button
-                          type="button"
-                          className="summary-action-btn interview-call-end-btn"
-                          onClick={() => setConfirmEndCall((prev) => !prev)}
-                          disabled={blockVoiceInteraction}
-                          title="Finalizar la llamada y generar diagnóstico con el avance actual"
-                        >
-                          {confirmEndCall ? 'Cancelar cierre' : 'Finalizar llamada'}
-                        </button>
-                      ) : null}
-                    </div>
-
-                    {confirmEndCall && canEndCallEarly ? (
-                      <div className="voice-call-transcript-card interview-flow-notice interview-end-call-confirm">
-                        <span className="voice-call-transcript-label">Cierre anticipado</span>
-                        <p>
-                          Generaremos el diagnóstico con el tiempo y las síntesis acumuladas hasta ahora. Si la llamada
-                          fue breve, el informe será más preliminar y no podrás reanudar esta entrevista.
-                        </p>
-                        <div className="interview-call-actions interview-call-actions--secondary">
+                    <div
+                      className={`interview-call-controls${showInCallControls ? ' is-live' : ''}`}
+                      aria-label={showInCallControls ? 'Controles de llamada en curso' : 'Iniciar entrevista por voz'}
+                    >
+                      {showInCallControls ? (
+                        <div className="voice-call-actions interview-call-actions interview-call-actions--primary interview-call-actions--live">
                           <button
                             type="button"
-                            className="summary-action-btn summary-action-accept"
-                            onClick={() => {
-                              setConfirmEndCall(false);
-                              void endCallEarly();
-                            }}
+                            className={`summary-action-btn interview-call-pause-btn${voicePaused ? ' is-paused' : ''}`}
+                            onClick={toggleCallPause}
                             disabled={blockVoiceInteraction}
+                            title={voicePaused ? 'Reanudar la llamada' : 'Pausar la llamada'}
                           >
-                            Confirmar y generar diagnóstico
+                            {voicePaused ? 'Reanudar llamada' : 'Pausar llamada'}
                           </button>
+                          {canEndCallEarly ? (
+                            <button
+                              type="button"
+                              className={`summary-action-btn interview-call-end-btn${confirmEndCall ? ' is-armed' : ''}`}
+                              onClick={() => setConfirmEndCall((prev) => !prev)}
+                              disabled={blockVoiceInteraction}
+                              title="Finalizar la llamada y generar diagnóstico con el avance actual"
+                            >
+                              {confirmEndCall ? 'Cancelar cierre' : 'Finalizar llamada'}
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              className="summary-action-btn interview-call-end-btn interview-call-end-btn--pending"
+                              disabled
+                              aria-disabled="true"
+                              title={`Podrás finalizar tras ${INTERVIEW_MIN_EARLY_END_SEC} segundos activos de entrevista`}
+                            >
+                              Finalizar en {earlyEndSecondsRemaining}s
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="voice-call-actions interview-call-actions interview-call-actions--primary interview-call-actions--idle">
                           <button
                             type="button"
-                            className="summary-action-btn"
-                            onClick={() => setConfirmEndCall(false)}
-                            disabled={blockVoiceInteraction}
+                            className="summary-action-btn summary-action-accept interview-call-start-btn"
+                            onClick={() => void startOrResumeVoiceSession()}
+                            disabled={
+                              !intakeReady ||
+                              !voiceSupported ||
+                              voiceAwaitingMic ||
+                              voiceConnecting ||
+                              isFinalizingCall ||
+                              showVoiceReport ||
+                              (voiceFlags.voiceCallExhausted && !voiceFlags.hasLiveVoiceCall) ||
+                              (voiceFlags.voiceInterviewLocked && !voiceFlags.hasLiveVoiceCall)
+                            }
                           >
-                            Seguir en llamada
+                            {voiceAwaitingMic
+                              ? 'Activa el micrófono en el navegador…'
+                              : voiceConnecting
+                                ? 'Conectando llamada…'
+                                : showVoiceReport
+                                  ? 'Diagnóstico listo'
+                                  : voiceFlags.voiceCallExhausted && !showVoiceReport
+                                    ? 'Entrevista cerrada'
+                                    : voiceFlags.hasEverStartedVoiceCall && voiceFlags.hasRemainingInterviewTime
+                                      ? 'Reanudar llamada'
+                                      : 'Iniciar llamada'}
                           </button>
                         </div>
-                      </div>
-                    ) : voiceConnected && !voicePaused ? (
-                      <div className="voice-call-transcript-card interview-flow-notice">
-                        <span className="voice-call-transcript-label">Flujo de cierre</span>
-                        <p>
-                          La entrevista también puede cerrar sola al terminar el tiempo o cuando el entrevistador
-                          concluye. Tras {INTERVIEW_MIN_EARLY_END_SEC} segundos activos podrás usar &quot;Finalizar
-                          llamada&quot;.
+                      )}
+
+                      {confirmEndCall && canEndCallEarly ? (
+                        <div className="voice-call-transcript-card interview-flow-notice interview-end-call-confirm">
+                          <span className="voice-call-transcript-label">Cierre anticipado</span>
+                          <p>
+                            Generaremos el diagnóstico con el tiempo y las síntesis acumuladas hasta ahora. Si la
+                            llamada fue breve, el informe será más preliminar y no podrás reanudar esta entrevista.
+                          </p>
+                          <div className="interview-call-actions interview-call-actions--secondary">
+                            <button
+                              type="button"
+                              className="summary-action-btn summary-action-accept interview-call-end-confirm-btn"
+                              onClick={() => {
+                                setConfirmEndCall(false);
+                                void endCallEarly();
+                              }}
+                              disabled={blockVoiceInteraction}
+                            >
+                              Confirmar y generar diagnóstico
+                            </button>
+                            <button
+                              type="button"
+                              className="summary-action-btn"
+                              onClick={() => setConfirmEndCall(false)}
+                              disabled={blockVoiceInteraction}
+                            >
+                              Seguir en llamada
+                            </button>
+                          </div>
+                        </div>
+                      ) : showInCallControls && !canEndCallEarly && !voicePaused ? (
+                        <p className="interview-call-hint">
+                          Tras {INTERVIEW_MIN_EARLY_END_SEC} segundos activos podrás finalizar la llamada y generar el
+                          diagnóstico.
                         </p>
-                      </div>
-                    ) : null}
+                      ) : null}
+                    </div>
 
                     <div className="voice-call-context interview-call-meta">
                       <span className="voice-call-pill">
