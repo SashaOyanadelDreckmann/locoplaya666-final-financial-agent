@@ -259,9 +259,31 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
     return snapshot;
   }
 
+  function cleanupVoiceTransport() {
+    if (dataChannelRef.current && dataChannelRef.current.readyState === 'open') {
+      try {
+        dataChannelRef.current.close();
+      } catch {}
+    }
+    if (peerConnectionRef.current) {
+      try {
+        peerConnectionRef.current.close();
+      } catch {}
+    }
+    localStreamRef.current?.getTracks().forEach((track) => track.stop());
+    localStreamRef.current = null;
+    peerConnectionRef.current = null;
+    dataChannelRef.current = null;
+    if (remoteAudioRef.current) {
+      remoteAudioRef.current.pause();
+      remoteAudioRef.current.srcObject = null;
+    }
+  }
+
   function resetVoiceRuntimeState(options?: { preserveDiagnosisSignals?: boolean }) {
     const preserveDiagnosisSignals = options?.preserveDiagnosisSignals === true;
     flushLiveSegment();
+    cleanupVoiceTransport();
     setVoiceAwaitingMic(false);
     setVoiceConnecting(false);
     setVoiceConnected(false);
@@ -351,24 +373,7 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
     closeoutPromptSentRef.current = false;
     summaryRequestRef.current = null;
     summaryDraftRef.current = '';
-    if (dataChannelRef.current && dataChannelRef.current.readyState === 'open') {
-      try {
-        dataChannelRef.current.close();
-      } catch {}
-    }
-    if (peerConnectionRef.current) {
-      try {
-        peerConnectionRef.current.close();
-      } catch {}
-    }
-    localStreamRef.current?.getTracks().forEach((track) => track.stop());
-    localStreamRef.current = null;
-    peerConnectionRef.current = null;
-    dataChannelRef.current = null;
-    if (remoteAudioRef.current) {
-      remoteAudioRef.current.pause();
-      remoteAudioRef.current.srcObject = null;
-    }
+    cleanupVoiceTransport();
   }
 
   function nextVoiceEventId() {
@@ -452,12 +457,14 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
 
   function canResumeExistingVoiceSession() {
     const pc = peerConnectionRef.current;
+    const dc = dataChannelRef.current;
     const stream = localStreamRef.current;
     return Boolean(
       callId &&
         pc &&
         stream &&
-        pc.connectionState !== 'closed' &&
+        dc?.readyState === 'open' &&
+        pc.connectionState === 'connected' &&
         pc.signalingState !== 'closed' &&
         (voicePaused || !voiceConnected),
     );
@@ -465,8 +472,16 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
 
   function resumeExistingVoiceSession() {
     const pc = peerConnectionRef.current;
+    const dc = dataChannelRef.current;
     const stream = localStreamRef.current;
-    if (!pc || !stream || pc.connectionState === 'closed' || pc.signalingState === 'closed') {
+    if (
+      !pc ||
+      !stream ||
+      !dc ||
+      dc.readyState !== 'open' ||
+      pc.connectionState !== 'connected' ||
+      pc.signalingState === 'closed'
+    ) {
       return false;
     }
 
@@ -474,6 +489,7 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
     applyCallPauseState(false);
     setVoiceConnected(true);
     setVoiceConnecting(false);
+    setVoiceSessionReady(true);
     startLiveSegment();
     primeVoiceOpening({ resetTranscript: false });
     return true;
@@ -791,6 +807,9 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
         return;
       }
       applyCallPauseState(false);
+      if (dataChannelRef.current?.readyState === 'open') {
+        setVoiceSessionReady(true);
+      }
       startLiveSegment();
       const snapshot = persistVoiceSnapshot('in_progress');
       void saveInterviewVoiceState(snapshot).catch(() => {});
