@@ -1,6 +1,6 @@
 // apps/api/src/schemas/profile.schema.ts
 
-import { InterviewBlockId } from '../orchestrator/interview.flow';
+import { InterviewBlockId } from '../orquestador/interview.flow';
 
 /* ────────────────────────────── */
 /* Evidencia por bloque           */

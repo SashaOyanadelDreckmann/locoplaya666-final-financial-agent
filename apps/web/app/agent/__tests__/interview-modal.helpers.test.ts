@@ -5,7 +5,7 @@ import {
   resolveInterviewModalLoadingState,
   resolveInterviewVoiceStateFlags,
   resolveUsedSecondsFromSources,
-} from '../interview-modal.helpers';
+} from '../modales/entrevista/interview-modal.helpers';
 import { INTERVIEW_MIN_EARLY_END_SEC, INTERVIEW_TOTAL_LIMIT_SEC } from '@financial-agent/shared';
 
 describe('interview modal helpers', () => {

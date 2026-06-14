@@ -7,7 +7,7 @@ import {
   extractQuestionSignals,
   retrieveMovementsForQuestion,
   selectMovementsForPrompt,
-} from '../transactions-chat.helpers';
+} from '../transacciones/chat.helpers';
 
 const sampleMovements = [
   {

@@ -1,7 +1,7 @@
 import {
   hasMeaningfulIntake,
   resolveServerBackendBase,
-} from '@/lib/sessionAccess';
+} from '@/lib/sesion/sessionAccess';
 
 describe('sessionAccess server helpers', () => {
   it('prefers configured API origin for backend base', () => {

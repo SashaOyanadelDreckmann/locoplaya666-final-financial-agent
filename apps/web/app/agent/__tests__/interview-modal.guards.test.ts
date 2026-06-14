@@ -5,8 +5,8 @@ import path from 'node:path';
 
 describe('interview modal safeguards', () => {
   it('keeps keyboard accessibility and focus restoration in place', () => {
-    const modalPath = path.join(process.cwd(), 'app', 'agent', 'InterviewModal.tsx');
-    const a11yPath = path.join(process.cwd(), 'app', 'agent', 'useInterviewModalA11y.ts');
+    const modalPath = path.join(process.cwd(), 'app', 'agent', 'modales', 'entrevista', 'InterviewModal.tsx');
+    const a11yPath = path.join(process.cwd(), 'app', 'agent', 'modales', 'entrevista', 'useInterviewModalA11y.ts');
     const modal = fs.readFileSync(modalPath, 'utf8');
     const a11y = fs.readFileSync(a11yPath, 'utf8');
 
@@ -25,7 +25,7 @@ describe('interview modal safeguards', () => {
   });
 
   it('keeps financialKnowledge extraction ahead of generic object filtering', () => {
-    const sourcePath = path.join(process.cwd(), '..', '..', 'packages', 'shared', 'src', 'interview-voice-dossier.ts');
+    const sourcePath = path.join(process.cwd(), '..', '..', 'packages', 'shared', 'src', 'entrevista', 'interview-voice-dossier.ts');
     const source = fs.readFileSync(sourcePath, 'utf8');
 
     const financialKnowledgeIndex = source.indexOf("if (key === 'financialKnowledge' && typeof value === 'object') {");
@@ -37,7 +37,7 @@ describe('interview modal safeguards', () => {
   });
 
   it('does not wire paid transcription into the interview modal', () => {
-    const runtimePath = path.join(process.cwd(), 'app', 'agent', 'useInterviewVoiceRuntime.ts');
+    const runtimePath = path.join(process.cwd(), 'app', 'agent', 'modales', 'entrevista', 'useInterviewVoiceRuntime.ts');
     const source = fs.readFileSync(runtimePath, 'utf8');
 
     expect(source).toContain("response.output_text.delta");
@@ -48,7 +48,7 @@ describe('interview modal safeguards', () => {
   });
 
   it('keeps structured context highlights for the sidebar', () => {
-    const sourcePath = path.join(process.cwd(), 'app', 'agent', 'interview-modal.context.ts');
+    const sourcePath = path.join(process.cwd(), 'app', 'agent', 'modales', 'entrevista', 'interview-modal.context.ts');
     const source = fs.readFileSync(sourcePath, 'utf8');
 
     expect(source).toContain('buildInterviewContextHighlights');
@@ -57,8 +57,8 @@ describe('interview modal safeguards', () => {
   });
 
   it('exposes guarded early-call finalization without legacy manual report buttons', () => {
-    const modalPath = path.join(process.cwd(), 'app', 'agent', 'InterviewModal.tsx');
-    const runtimePath = path.join(process.cwd(), 'app', 'agent', 'useInterviewVoiceRuntime.ts');
+    const modalPath = path.join(process.cwd(), 'app', 'agent', 'modales', 'entrevista', 'InterviewModal.tsx');
+    const runtimePath = path.join(process.cwd(), 'app', 'agent', 'modales', 'entrevista', 'useInterviewVoiceRuntime.ts');
     const modal = fs.readFileSync(modalPath, 'utf8');
     const runtime = fs.readFileSync(runtimePath, 'utf8');
 
@@ -81,8 +81,8 @@ describe('interview modal safeguards', () => {
   });
 
   it('allows closing the modal anytime except while connecting or finalizing', () => {
-    const modalPath = path.join(process.cwd(), 'app', 'agent', 'InterviewModal.tsx');
-    const runtimePath = path.join(process.cwd(), 'app', 'agent', 'useInterviewVoiceRuntime.ts');
+    const modalPath = path.join(process.cwd(), 'app', 'agent', 'modales', 'entrevista', 'InterviewModal.tsx');
+    const runtimePath = path.join(process.cwd(), 'app', 'agent', 'modales', 'entrevista', 'useInterviewVoiceRuntime.ts');
     const modal = fs.readFileSync(modalPath, 'utf8');
     const runtime = fs.readFileSync(runtimePath, 'utf8');
 
@@ -92,8 +92,8 @@ describe('interview modal safeguards', () => {
   });
 
   it('exposes diagnosis retry without reopening the call', () => {
-    const modalPath = path.join(process.cwd(), 'app', 'agent', 'InterviewModal.tsx');
-    const runtimePath = path.join(process.cwd(), 'app', 'agent', 'useInterviewVoiceRuntime.ts');
+    const modalPath = path.join(process.cwd(), 'app', 'agent', 'modales', 'entrevista', 'InterviewModal.tsx');
+    const runtimePath = path.join(process.cwd(), 'app', 'agent', 'modales', 'entrevista', 'useInterviewVoiceRuntime.ts');
     const modal = fs.readFileSync(modalPath, 'utf8');
     const runtime = fs.readFileSync(runtimePath, 'utf8');
 
@@ -105,8 +105,8 @@ describe('interview modal safeguards', () => {
   });
 
   it('enforces the hard interview quota and unlimited pause/resume', () => {
-    const runtimePath = path.join(process.cwd(), 'app', 'agent', 'useInterviewVoiceRuntime.ts');
-    const helpersPath = path.join(process.cwd(), 'app', 'agent', 'interview-modal.helpers.ts');
+    const runtimePath = path.join(process.cwd(), 'app', 'agent', 'modales', 'entrevista', 'useInterviewVoiceRuntime.ts');
+    const helpersPath = path.join(process.cwd(), 'app', 'agent', 'modales', 'entrevista', 'interview-modal.helpers.ts');
     const runtime = fs.readFileSync(runtimePath, 'utf8');
     const helpers = fs.readFileSync(helpersPath, 'utf8');
 
@@ -127,7 +127,7 @@ describe('interview modal safeguards', () => {
   });
 
   it('uses server session instructions from the realtime token on connect', () => {
-    const runtimePath = path.join(process.cwd(), 'app', 'agent', 'useInterviewVoiceRuntime.ts');
+    const runtimePath = path.join(process.cwd(), 'app', 'agent', 'modales', 'entrevista', 'useInterviewVoiceRuntime.ts');
     const runtime = fs.readFileSync(runtimePath, 'utf8');
 
     expect(runtime).toContain('token?.session_instructions');
@@ -135,8 +135,8 @@ describe('interview modal safeguards', () => {
   });
 
   it('applies a hard realtime pause instead of only muting the local mic', () => {
-    const runtimePath = path.join(process.cwd(), 'app', 'agent', 'useInterviewVoiceRuntime.ts');
-    const voiceSessionPath = path.join(process.cwd(), 'app', 'agent', 'interview-modal.voice-session.ts');
+    const runtimePath = path.join(process.cwd(), 'app', 'agent', 'modales', 'entrevista', 'useInterviewVoiceRuntime.ts');
+    const voiceSessionPath = path.join(process.cwd(), 'app', 'agent', 'modales', 'entrevista', 'interview-modal.voice-session.ts');
     const runtime = fs.readFileSync(runtimePath, 'utf8');
     const voiceSession = fs.readFileSync(voiceSessionPath, 'utf8');
 
@@ -151,7 +151,7 @@ describe('interview modal safeguards', () => {
   });
 
   it('labels paused live calls as Pausada in stage status', () => {
-    const modalPath = path.join(process.cwd(), 'app', 'agent', 'InterviewModal.tsx');
+    const modalPath = path.join(process.cwd(), 'app', 'agent', 'modales', 'entrevista', 'InterviewModal.tsx');
     const modal = fs.readFileSync(modalPath, 'utf8');
 
     expect(modal).toContain('voiceConnected && voicePaused');
@@ -159,8 +159,8 @@ describe('interview modal safeguards', () => {
   });
 
   it('resets bootstrap state before paint when reopening the interview modal', () => {
-    const bootstrapPath = path.join(process.cwd(), 'app', 'agent', 'useInterviewModalBootstrap.ts');
-    const modalPath = path.join(process.cwd(), 'app', 'agent', 'InterviewModal.tsx');
+    const bootstrapPath = path.join(process.cwd(), 'app', 'agent', 'modales', 'entrevista', 'useInterviewModalBootstrap.ts');
+    const modalPath = path.join(process.cwd(), 'app', 'agent', 'modales', 'entrevista', 'InterviewModal.tsx');
     const bootstrap = fs.readFileSync(bootstrapPath, 'utf8');
     const modal = fs.readFileSync(modalPath, 'utf8');
 
@@ -172,8 +172,8 @@ describe('interview modal safeguards', () => {
   });
 
   it('preserves diagnosis signals when reopening a completed interview session', () => {
-    const bootstrapPath = path.join(process.cwd(), 'app', 'agent', 'useInterviewModalBootstrap.ts');
-    const runtimePath = path.join(process.cwd(), 'app', 'agent', 'useInterviewVoiceRuntime.ts');
+    const bootstrapPath = path.join(process.cwd(), 'app', 'agent', 'modales', 'entrevista', 'useInterviewModalBootstrap.ts');
+    const runtimePath = path.join(process.cwd(), 'app', 'agent', 'modales', 'entrevista', 'useInterviewVoiceRuntime.ts');
     const bootstrap = fs.readFileSync(bootstrapPath, 'utf8');
     const runtime = fs.readFileSync(runtimePath, 'utf8');
 
@@ -183,20 +183,20 @@ describe('interview modal safeguards', () => {
   });
 
   it('transforms the interview shell into diagnosis mode after completion', () => {
-    const modalPath = path.join(process.cwd(), 'app', 'agent', 'InterviewModal.tsx');
-    const panelPath = path.join(process.cwd(), 'app', 'agent', 'InterviewDiagnosisPanel.tsx');
+    const modalPath = path.join(process.cwd(), 'app', 'agent', 'modales', 'entrevista', 'InterviewModal.tsx');
+    const panelPath = path.join(process.cwd(), 'app', 'agent', 'modales', 'entrevista', 'InterviewDiagnosisPanel.tsx');
     const modal = fs.readFileSync(modalPath, 'utf8');
     const panel = fs.readFileSync(panelPath, 'utf8');
 
     expect(modal).toContain('interview-modal--diagnosis');
     expect(modal).toContain('InterviewDiagnosisPanel');
-    expect(modal).toContain("isDiagnosisMode ? 'Diagnóstico financiero' : 'Entrevista estratégica'");
+    expect(modal).toContain("const modalTitle = isDiagnosisMode ? diagnosisHeadline : 'Entrevista estratégica'");
     expect(panel).toContain('Ver informe completo');
   });
 
   it('uses the compact interview loader instead of the full-page ai loader', () => {
-    const modalPath = path.join(process.cwd(), 'app', 'agent', 'InterviewModal.tsx');
-    const componentsPath = path.join(process.cwd(), 'app', 'agent', 'interview-modal.components.tsx');
+    const modalPath = path.join(process.cwd(), 'app', 'agent', 'modales', 'entrevista', 'InterviewModal.tsx');
+    const componentsPath = path.join(process.cwd(), 'app', 'agent', 'modales', 'entrevista', 'interview-modal.components.tsx');
     const modal = fs.readFileSync(modalPath, 'utf8');
     const components = fs.readFileSync(componentsPath, 'utf8');
 
@@ -207,8 +207,8 @@ describe('interview modal safeguards', () => {
   });
 
   it('extracts voice runtime from the modal shell', () => {
-    const modalPath = path.join(process.cwd(), 'app', 'agent', 'InterviewModal.tsx');
-    const runtimePath = path.join(process.cwd(), 'app', 'agent', 'useInterviewVoiceRuntime.ts');
+    const modalPath = path.join(process.cwd(), 'app', 'agent', 'modales', 'entrevista', 'InterviewModal.tsx');
+    const runtimePath = path.join(process.cwd(), 'app', 'agent', 'modales', 'entrevista', 'useInterviewVoiceRuntime.ts');
     const modal = fs.readFileSync(modalPath, 'utf8');
     const runtime = fs.readFileSync(runtimePath, 'utf8');
 

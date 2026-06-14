@@ -7,7 +7,7 @@ import {
   productHasAnalyzedMovements,
   productsHaveAnalyzedMovements,
   resolveTxWizardStep,
-} from '../transactions-flow.helpers';
+} from '../transacciones/flujo.helpers';
 
 describe('transactions-flow helpers', () => {
   it('resolves wizard steps from product state', () => {

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { memoryStore } from '../persistence/provider';
+import { memoryStore } from '../persistencia/provider';
 import { listResearchAnalytics } from './analytics.service';
 
 beforeEach(() => {

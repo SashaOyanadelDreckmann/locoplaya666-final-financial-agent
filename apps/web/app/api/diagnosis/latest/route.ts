@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { getServerApiBaseUrl } from '@/lib/apiBase';
-import { requireBackendSession } from '@/lib/serverAuth';
+import { getServerApiBaseUrl } from '@/lib/api/base';
+import { requireBackendSession } from '@/lib/sesion/serverAuth';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

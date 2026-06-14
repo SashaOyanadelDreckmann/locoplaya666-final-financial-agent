@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 describe('budget pro mobile css safeguards', () => {
-  const mobileCssPath = path.join(process.cwd(), 'app', 'agent-modals-budget-mobile.css');
+  const mobileCssPath = path.join(process.cwd(), 'app', 'estilos', 'modales', 'presupuesto', 'agent-modals-budget-mobile.css');
   const mobileCss = fs.readFileSync(mobileCssPath, 'utf8');
 
   it('defines authoritative budget-table-pro column mapping on mobile', () => {
@@ -40,7 +40,7 @@ describe('budget pro mobile css safeguards', () => {
   });
 
   it('uses one-row scroll viewport on mobile table tab', () => {
-    const authCssPath = path.join(process.cwd(), 'app', 'agent-modals-budget-mobile-authoritative.css');
+    const authCssPath = path.join(process.cwd(), 'app', 'estilos', 'modales', 'presupuesto', 'agent-modals-budget-mobile-authoritative.css');
     const authCss = fs.readFileSync(authCssPath, 'utf8');
     expect(authCss).toContain('--budget-mobile-row-slot');
     expect(authCss).toContain('height: auto !important');
@@ -54,14 +54,14 @@ describe('budget pro mobile css safeguards', () => {
 
   it('loads budget mobile authoritative and desktop guard before transactions contract', () => {
     const layoutCss = fs.readFileSync(path.join(process.cwd(), 'app', 'layout.tsx'), 'utf8');
-    expect(layoutCss).toContain("import './agent-modals-budget-mobile-authoritative.css';");
-    expect(layoutCss).toContain("import './agent-modals-budget-mobile-styles.css';");
-    expect(layoutCss).toContain("import './agent-modals-budget-desktop-guard.css';");
+    expect(layoutCss).toContain("import './estilos/modales/presupuesto/agent-modals-budget-mobile-authoritative.css';");
+    expect(layoutCss).toContain("import './estilos/modales/presupuesto/agent-modals-budget-mobile-styles.css';");
+    expect(layoutCss).toContain("import './estilos/modales/presupuesto/agent-modals-budget-desktop-guard.css';");
     const imports = [...layoutCss.matchAll(/import\s+'\.\/([^']+\.css)'/g)].map((match) => match[1]);
-    const authIdx = imports.indexOf('agent-modals-budget-mobile-authoritative.css');
-    const stylesIdx = imports.indexOf('agent-modals-budget-mobile-styles.css');
-    const deskIdx = imports.indexOf('agent-modals-budget-desktop-guard.css');
-    const txIdx = imports.indexOf('agent-modals-transactions-contract.css');
+    const authIdx = imports.indexOf('estilos/modales/presupuesto/agent-modals-budget-mobile-authoritative.css');
+    const stylesIdx = imports.indexOf('estilos/modales/presupuesto/agent-modals-budget-mobile-styles.css');
+    const deskIdx = imports.indexOf('estilos/modales/presupuesto/agent-modals-budget-desktop-guard.css');
+    const txIdx = imports.indexOf('estilos/modales/transacciones/agent-modals-transactions-contract.css');
     expect(authIdx).toBeGreaterThanOrEqual(0);
     expect(stylesIdx).toBeGreaterThan(authIdx);
     expect(deskIdx).toBeGreaterThan(stylesIdx);
@@ -69,7 +69,7 @@ describe('budget pro mobile css safeguards', () => {
   });
 
   it('locks desktop assistant hero to minimal panel-matched typewriter styles', () => {
-    const deskCssPath = path.join(process.cwd(), 'app', 'agent-modals-budget-desktop-guard.css');
+    const deskCssPath = path.join(process.cwd(), 'app', 'estilos', 'modales', 'presupuesto', 'agent-modals-budget-desktop-guard.css');
     const deskCss = fs.readFileSync(deskCssPath, 'utf8');
     expect(deskCss).toContain('BUDGET DESKTOP — assistant hero (Apple minimal)');
     expect(deskCss).toContain('.bcc-hero-question--gradient-demo');
@@ -80,7 +80,7 @@ describe('budget pro mobile css safeguards', () => {
   });
 
   it('keeps desktop header and mode tabs compact and centered', () => {
-    const deskCssPath = path.join(process.cwd(), 'app', 'agent-modals-budget-desktop-guard.css');
+    const deskCssPath = path.join(process.cwd(), 'app', 'estilos', 'modales', 'presupuesto', 'agent-modals-budget-desktop-guard.css');
     const deskCss = fs.readFileSync(deskCssPath, 'utf8');
     expect(deskCss).toContain('BUDGET DESKTOP — compact header + tabs stack');
     expect(deskCss).toContain('.budget-modal-body.is-desktop > .budget-mode-tabs');
@@ -89,7 +89,7 @@ describe('budget pro mobile css safeguards', () => {
   });
 
   it('fits split desktop table without horizontal clipping', () => {
-    const deskCssPath = path.join(process.cwd(), 'app', 'agent-modals-budget-desktop-guard.css');
+    const deskCssPath = path.join(process.cwd(), 'app', 'estilos', 'modales', 'presupuesto', 'agent-modals-budget-desktop-guard.css');
     const deskCss = fs.readFileSync(deskCssPath, 'utf8');
     expect(deskCss).toContain('BUDGET DESKTOP — split: tabla compacta sin recorte');
     expect(deskCss).toContain('.mode-split .budget-table.budget-table-pro');
@@ -99,7 +99,7 @@ describe('budget pro mobile css safeguards', () => {
   });
 
   it('blurs assistant backdrop table on mobile without hiding live updates', () => {
-    const authCssPath = path.join(process.cwd(), 'app', 'agent-modals-budget-mobile-authoritative.css');
+    const authCssPath = path.join(process.cwd(), 'app', 'estilos', 'modales', 'presupuesto', 'agent-modals-budget-mobile-authoritative.css');
     const authCss = fs.readFileSync(authCssPath, 'utf8');
     expect(authCss).toContain('is-mobile-table-compact');
     expect(authCss).toContain('filter: blur(10px)');
@@ -107,7 +107,7 @@ describe('budget pro mobile css safeguards', () => {
   });
 
   it('keeps table footer visible and removes diagnostics phantom safe-area padding', () => {
-    const authCssPath = path.join(process.cwd(), 'app', 'agent-modals-budget-mobile-authoritative.css');
+    const authCssPath = path.join(process.cwd(), 'app', 'estilos', 'modales', 'presupuesto', 'agent-modals-budget-mobile-authoritative.css');
     const authCss = fs.readFileSync(authCssPath, 'utf8');
     expect(authCss).toContain('padding-bottom: 0 !important');
     expect(authCss).toContain('footer siempre visible');
@@ -116,7 +116,7 @@ describe('budget pro mobile css safeguards', () => {
   });
 
   it('keeps cadence pills separated from payment and movement labels on mobile', () => {
-    const authCssPath = path.join(process.cwd(), 'app', 'agent-modals-budget-mobile-authoritative.css');
+    const authCssPath = path.join(process.cwd(), 'app', 'estilos', 'modales', 'presupuesto', 'agent-modals-budget-mobile-authoritative.css');
     const authCss = fs.readFileSync(authCssPath, 'utf8');
     expect(authCss).toContain('row-gap: 10px !important');
     expect(authCss).toContain("td[data-label='Recurrencia']");
@@ -128,7 +128,7 @@ describe('budget pro mobile css safeguards', () => {
   });
 
   it('defines premium mobile themes for all budget table styles', () => {
-    const stylesCssPath = path.join(process.cwd(), 'app', 'agent-modals-budget-mobile-styles.css');
+    const stylesCssPath = path.join(process.cwd(), 'app', 'estilos', 'modales', 'presupuesto', 'agent-modals-budget-mobile-styles.css');
     const stylesCss = fs.readFileSync(stylesCssPath, 'utf8');
     expect(stylesCss).toContain('budget-mobile-intel-summary--midnight');
     expect(stylesCss).toContain('budget-table-style-ledger');
@@ -146,7 +146,7 @@ describe('budget pro mobile css safeguards', () => {
   });
 
   it('uses transparent frosted glass on mobile assistant overlay (blur only, no tint)', () => {
-    const authCssPath = path.join(process.cwd(), 'app', 'agent-modals-budget-mobile-authoritative.css');
+    const authCssPath = path.join(process.cwd(), 'app', 'estilos', 'modales', 'presupuesto', 'agent-modals-budget-mobile-authoritative.css');
     const authCss = fs.readFileSync(authCssPath, 'utf8');
     expect(authCss).toContain('is-mobile-assistant-glass::before');
     expect(authCss).toContain('background: transparent !important');

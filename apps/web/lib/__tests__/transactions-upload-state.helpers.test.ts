@@ -4,7 +4,7 @@ import {
   applyUploadToTargetProduct,
   mergeParsedDocumentsByIdentity,
   normalizeParsedUploadDocuments,
-} from '../transactions-upload-state.helpers';
+} from '../transacciones/estado-upload.helpers';
 
 describe('transactions upload state helpers', () => {
   it('normalizes parsed documents preserving canonical documentId', () => {

@@ -2,14 +2,14 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 
-import { cn } from '@/lib/utils';
+import { cn } from '@/lib/compartido/utils';
 import {
   applyHighlightNeighborBleed,
   buildAgentHighlightTerms,
   parseAgentHeroSegments,
   type AgentHeroTextSegment,
-} from '@/app/agent/agent-hero-highlight.helpers';
-import type { BudgetRow } from '@/lib/budget-rows.helpers';
+} from '@/app/agent/utilidades/agent-hero-highlight.helpers';
+import type { BudgetRow } from '@/lib/presupuesto/filas.helpers';
 
 type AgentHeroTextProps = {
   text: string;

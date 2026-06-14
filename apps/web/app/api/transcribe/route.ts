@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { requireBackendSession } from '@/lib/serverAuth';
-import { getApiBaseUrl } from '@/lib/apiBase';
+import { requireBackendSession } from '@/lib/sesion/serverAuth';
+import { getApiBaseUrl } from '@/lib/api/base';
 
 const MAX_AUDIO_BYTES = 10 * 1024 * 1024; // 10 MB
 const ALLOWED_MIME = new Set(['audio/webm', 'audio/mp4', 'audio/mpeg', 'audio/wav', 'audio/ogg']);

@@ -3,14 +3,14 @@
 import React, { useEffect, useMemo, useState, type ReactElement } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/compartido/utils";
 import {
   PANEL_INTRO_CARD_ORDER,
   PANEL_INTRO_CARD_SIZE_FALLBACKS,
-} from "@/app/agent/panel-cards-intro.copy";
-import { getMobileSpotlightLayout, getMobileDeckCardNaturalSize } from "@/app/agent/panel-cards-intro.mobile-dock";
-import { presentPanelCardForIntro, wrapMobileDeckIntroCard } from "@/app/agent/panel-cards-intro.present";
-import type { PanelIntroHandoffOrigin } from "@/app/agent/panel-intro.types";
+} from "@/app/agent/paneles/panel-cards-intro.copy";
+import { getMobileSpotlightLayout, getMobileDeckCardNaturalSize } from "@/app/agent/paneles/panel-cards-intro.mobile-dock";
+import { presentPanelCardForIntro, wrapMobileDeckIntroCard } from "@/app/agent/paneles/panel-cards-intro.present";
+import type { PanelIntroHandoffOrigin } from "@/app/agent/paneles/panel-intro.types";
 
 export type PanelMorphPhase = "enter" | "spotlight" | "shell" | "assemble" | "settle";
 

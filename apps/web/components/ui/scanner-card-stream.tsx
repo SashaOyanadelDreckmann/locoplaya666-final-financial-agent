@@ -13,7 +13,7 @@ import React, {
 import * as THREE from 'three';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
-import { cn } from '@/lib/utils';
+import { cn } from '@/lib/compartido/utils';
 
 const ASCII_CHARS =
   'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789(){}[]<>;:,._-+=!@#$%^&*|\\/\"\'`~?';

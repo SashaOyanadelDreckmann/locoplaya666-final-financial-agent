@@ -8,9 +8,9 @@ on:
     paths:
       - "apps/web/**"
       - "packages/shared/**"
-      - "scripts/deploy-web.sh"
-      - "scripts/lib/**"
-      - "scripts/prod-smoke.mjs"
+      - "scripts/despliegue/deploy-web.sh"
+      - "scripts/despliegue/lib/**"
+      - "scripts/qa/prod-smoke.mjs"
       - "Dockerfile.web"
       - ".dockerignore"
       - ".railwayignore"
@@ -57,7 +57,7 @@ jobs:
         run: npm i -g @railway/cli
 
       - name: Deploy web
-        run: bash scripts/deploy-web.sh
+        run: bash scripts/despliegue/deploy-web.sh
 
       - name: Production smoke (web + API readiness)
-        run: node scripts/prod-smoke.mjs
+        run: node scripts/qa/prod-smoke.mjs

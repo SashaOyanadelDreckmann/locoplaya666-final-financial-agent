@@ -1,0 +1,1115 @@
+/* ================================================= */
+/* VIEWPORT BACKDROP SYSTEM                          */
+/* Loaded after agent.css — authoritative edge bleed */
+/* for every full-screen photo / scrim layer.        */
+/* Do not use inset:0 on these layers elsewhere.     */
+/* ================================================= */
+
+:root{
+  --vp-bg-fallback: #050810;
+  --fa-app-height: 100lvh;
+  --fa-app-height-fallback: 100dvh;
+  --vp-bg-seam-overlap: 28px;
+  /* Bottom: soft vignette over the photo — never a solid strip that hides the image */
+  --vp-bg-seam-fade-band: 11vh;
+  --vp-bg-solid-band: 0px;
+  --vp-bg-seam-band: var(--vp-bg-seam-fade-band);
+  --vp-bg-bottom-seam-height: var(--vp-bg-seam-fade-band);
+  --vp-bg-photo-extend: 118%;
+  --vp-bg-bottom-seam: linear-gradient(
+    to bottom,
+    rgba(5, 8, 16, 0) 0%,
+    rgba(5, 8, 16, 0.03) 22%,
+    rgba(5, 8, 16, 0.08) 38%,
+    rgba(5, 8, 16, 0.14) 52%,
+    rgba(5, 8, 16, 0.20) 64%,
+    rgba(5, 8, 16, 0.26) 74%,
+    rgba(5, 8, 16, 0.30) 84%,
+    rgba(5, 8, 16, 0.28) 92%,
+    rgba(5, 8, 16, 0) 100%
+  );
+  --vp-bg-mobile-stack:
+    var(--vp-bg-bottom-seam),
+    var(--vp-bg-matte-mobile),
+    var(--vp-bg-photo-url);
+  /* Top seam — soft vignette on top of full photo (home-style), not a black bar */
+  --vp-bg-top-seam-band: 14vh;
+  --vp-bg-top-seam-height: calc(max(env(safe-area-inset-top, 0px), 20px) + var(--vp-bg-top-seam-band));
+  --vp-bg-top-seam: linear-gradient(
+    to bottom,
+    rgba(5, 8, 16, 0.62) 0%,
+    rgba(5, 8, 16, 0.42) 14%,
+    rgba(5, 8, 16, 0.26) 28%,
+    rgba(5, 8, 16, 0.14) 42%,
+    rgba(5, 8, 16, 0.07) 56%,
+    rgba(5, 8, 16, 0.03) 70%,
+    rgba(5, 8, 16, 0.01) 84%,
+    rgba(5, 8, 16, 0) 100%
+  );
+  /* Mobile browser chrome — one letterbox black everywhere (vignette + nav bars) */
+  --browser-chrome-color: #050810;
+  --browser-chrome-rgb: 5, 8, 16;
+  --browser-vv-offset-top: 0px;
+  --browser-vv-offset-bottom: 0px;
+  --browser-chrome-fade-band: 76px;
+}
+
+html.agent-route-active,
+html.pwa-standalone{
+  --vp-bg-photo-url: url('/fondo4.jpg');
+  --vp-bg-fallback: #05090f;
+  /* Agent chat photo — less scrim, richer color, still matte */
+  --agent-bg-photo-filter: saturate(1.14) contrast(1.04) brightness(0.91);
+  --agent-bg-scrim: 0.46;
+  --agent-bg-matte-a: rgba(6, 10, 16, 0.08);
+  --agent-bg-matte-b: rgba(6, 10, 16, 0.16);
+  --vp-bg-bottom-seam: linear-gradient(
+    to bottom,
+    rgba(6, 10, 16, 0) 0%,
+    rgba(6, 10, 16, 0.03) 22%,
+    rgba(6, 10, 16, 0.08) 38%,
+    rgba(6, 10, 16, 0.14) 52%,
+    rgba(6, 10, 16, 0.20) 64%,
+    rgba(6, 10, 16, 0.26) 74%,
+    rgba(6, 10, 16, 0.30) 84%,
+    rgba(6, 10, 16, 0.28) 92%,
+    rgba(6, 10, 16, 0) 100%
+  );
+  --vp-bg-mobile-stack:
+    var(--vp-bg-bottom-seam),
+    var(--vp-bg-matte-mobile),
+    var(--vp-bg-photo-url);
+  --vp-bg-top-seam: linear-gradient(
+    to bottom,
+    rgba(6, 10, 16, 0.62) 0%,
+    rgba(6, 10, 16, 0.42) 14%,
+    rgba(6, 10, 16, 0.26) 28%,
+    rgba(6, 10, 16, 0.14) 42%,
+    rgba(6, 10, 16, 0.07) 56%,
+    rgba(6, 10, 16, 0.03) 70%,
+    rgba(6, 10, 16, 0.01) 84%,
+    rgba(6, 10, 16, 0) 100%
+  );
+  --vp-bg-matte-mobile:
+    linear-gradient(
+      180deg,
+      rgba(6, 10, 16, 0.10) 0%,
+      rgba(6, 10, 16, 0.16) 14%,
+      rgba(6, 10, 16, 0.28) 48%,
+      rgba(6, 10, 16, 0.24) 72%,
+      rgba(6, 10, 16, 0.18) 88%,
+      rgba(6, 10, 16, 0.10) 100%
+    );
+}
+
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+  :root{
+    --vp-bg-bleed-top: max(env(safe-area-inset-top, 0px), 32px);
+    --vp-bg-bleed-bottom: max(env(safe-area-inset-bottom, 0px), 34px);
+    --vp-bg-bleed-extra-bottom: max(env(safe-area-inset-bottom, 0px), 18px);
+    --vp-bg-photo-extend: 122%;
+    --mobile-panel-bottom-gap: 4px;
+    --vp-bg-matte-mobile:
+      linear-gradient(
+        180deg,
+        rgba(0, 0, 0, 0.10) 0%,
+        rgba(0, 0, 0, 0.24) 12%,
+        rgba(0, 0, 0, 0.60) 44%,
+        rgba(0, 0, 0, 0.58) 100%
+      );
+  }
+}
+
+@media (max-width: 480px) {
+  :root{
+    --vp-bg-bleed-top: max(env(safe-area-inset-top, 0px), 44px);
+    --vp-bg-bleed-bottom: max(env(safe-area-inset-bottom, 0px), 34px);
+    --vp-bg-bleed-extra-bottom: max(env(safe-area-inset-bottom, 0px), 22px);
+    --vp-bg-seam-fade-band: 12vh;
+    --vp-bg-seam-band: var(--vp-bg-seam-fade-band);
+    --vp-bg-top-seam-band: 16vh;
+    --vp-bg-photo-extend: 126%;
+  }
+}
+
+/* Photo + matte layers — global-agent-backdrop is configured in the mobile block */
+.app-shell::before,
+body.agent-route-active .app-shell::before,
+body.agent-route-standalone .app-shell::before,
+.home-canvas-layer{
+  top: var(--vp-bg-inset-top) !important;
+  right: var(--vp-bg-inset-x) !important;
+  bottom: var(--vp-bg-inset-bottom) !important;
+  left: var(--vp-bg-inset-x) !important;
+  width: auto !important;
+  height: auto !important;
+  min-height: auto !important;
+  max-height: none !important;
+}
+
+html.pwa-standalone .global-agent-backdrop,
+body.agent-route-standalone .global-agent-backdrop{
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  width: auto !important;
+  height: auto !important;
+  min-height: auto !important;
+  max-height: none !important;
+}
+
+.intake-photo-bg,
+.animated-bg{
+  top: calc(-1 * max(var(--vp-bg-bleed-top), 90px)) !important;
+  right: calc(-1 * max(var(--vp-bg-bleed-x), 90px)) !important;
+  bottom: calc(-1 * max(var(--vp-bg-bleed-bottom), 90px) - var(--vp-bg-bleed-extra-bottom)) !important;
+  left: calc(-1 * max(var(--vp-bg-bleed-x), 90px)) !important;
+  width: auto !important;
+  height: auto !important;
+  min-height: auto !important;
+  max-height: none !important;
+}
+
+.agent-modal-overlay,
+.agent-modal-overlay.transactions-modal-overlay,
+.agent-modal-overlay.interview-modal-overlay,
+.agent-modal-overlay.budget-modal-overlay,
+.social-modal-overlay,
+.modal-overlay,
+.intake-page::before,
+.register-page::before,
+.login-page::before{
+  top: var(--vp-bg-inset-top) !important;
+  right: var(--vp-bg-inset-x) !important;
+  bottom: var(--vp-bg-inset-bottom) !important;
+  left: var(--vp-bg-inset-x) !important;
+  width: auto !important;
+  height: auto !important;
+  min-height: auto !important;
+  max-height: none !important;
+}
+
+/* Desktop / tablet: agent backdrop follows bleed tokens (not PWA — full bleed) */
+body.agent-route-active .global-agent-backdrop{
+  top: var(--vp-bg-inset-top) !important;
+  right: var(--vp-bg-inset-x) !important;
+  bottom: var(--vp-bg-inset-bottom) !important;
+  left: var(--vp-bg-inset-x) !important;
+  width: auto !important;
+  height: auto !important;
+  min-height: auto !important;
+  max-height: none !important;
+}
+
+.viewport-backdrop-feather{
+  display: none !important;
+}
+
+.viewport-backdrop-seam-top{
+  display: none;
+  pointer-events: none;
+}
+
+.browser-chrome-vignette-top,
+.browser-chrome-vignette-bottom{
+  display: none;
+  pointer-events: none;
+}
+
+body.agent-route-active .global-agent-backdrop,
+html.agent-route-active .global-agent-backdrop{
+  background-image:
+    linear-gradient(180deg, var(--agent-bg-matte-a), var(--agent-bg-matte-b)),
+    url('/fondo4.jpg') !important;
+  filter: var(--agent-bg-photo-filter) !important;
+  box-shadow: inset 0 0 0 9999px rgba(0, 0, 0, var(--agent-bg-scrim)) !important;
+}
+
+body.agent-route-active .app-shell::before{
+  background-image:
+    linear-gradient(180deg, var(--agent-bg-matte-a), var(--agent-bg-matte-b)),
+    url('/fondo4.jpg') !important;
+  filter: var(--agent-bg-photo-filter) !important;
+  box-shadow: inset 0 0 0 9999px rgba(0, 0, 0, var(--agent-bg-scrim)) !important;
+}
+
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+  html.pwa-standalone .app-shell::before,
+html.pwa-standalone .app-shell::after{
+    display: none !important;
+    content: none !important;
+  }
+
+  /*
+   * VIEWPORT FILL CONTRACT (mobile)
+   * One height everywhere — large viewport includes home-indicator band.
+   * No document scroll; no gap below panel or modals.
+   */
+  html:not(.home-route-active):not(.pwa-standalone),
+html:not(.home-route-active):not(.pwa-standalone) body,
+html.agent-route-active:not(.pwa-standalone),
+html.agent-route-active:not(.pwa-standalone) body,
+body.agent-route-active:not(.pwa-standalone),
+html.intake-route-active:not(.pwa-standalone),
+html.intake-route-active:not(.pwa-standalone) body{
+    height: var(--fa-app-height) !important;
+    max-height: var(--fa-app-height) !important;
+    min-height: var(--fa-app-height) !important;
+    overflow: hidden !important;
+    overscroll-behavior: none !important;
+  }
+
+  /* Agent in mobile browser — stack ends at visual viewport (above URL bar) */
+  html:not(.pwa-standalone).agent-route-active,
+html:not(.pwa-standalone).agent-route-active body,
+html:not(.pwa-standalone) body.agent-route-active{
+    height: var(--visual-vh, 100dvh) !important;
+    max-height: var(--visual-vh, 100dvh) !important;
+    min-height: 0 !important;
+  }
+
+  html:not(.pwa-standalone) body.agent-route-active .app-shell,
+html:not(.pwa-standalone) body.agent-route-active .mobile-scale-frame{
+    height: 100% !important;
+    max-height: 100% !important;
+    min-height: 0 !important;
+  }
+
+  html.home-route-active,
+  html.home-route-active body {
+    height: auto !important;
+    min-height: 100dvh !important;
+    max-height: none !important;
+    overflow-x: clip !important;
+    overscroll-behavior-y: auto !important;
+    touch-action: pan-y pinch-zoom;
+    -webkit-overflow-scrolling: touch;
+    background: var(--browser-chrome-color) !important;
+    background-color: var(--browser-chrome-color) !important;
+  }
+
+  html.home-route-active .app-shell {
+    height: auto !important;
+    min-height: 100dvh !important;
+    max-height: none !important;
+    overflow: visible !important;
+    overscroll-behavior: auto !important;
+  }
+
+  html.home-route-active .mobile-scale-frame {
+    height: auto !important;
+    min-height: 100dvh !important;
+    max-height: none !important;
+    overflow-x: clip !important;
+    overflow-y: visible !important;
+    overscroll-behavior: auto !important;
+  }
+
+  html.home-route-active .home-canvas-layer{
+    position: fixed !important;
+    z-index: 1 !important;
+    pointer-events: none !important;
+    top: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 100dvh !important;
+  }
+
+  html.home-route-active .home-grain-layer{
+    position: fixed !important;
+    z-index: 1 !important;
+    pointer-events: none !important;
+  }
+
+  html:not(.home-route-active):not(.pwa-standalone) .app-shell,
+html:not(.home-route-active):not(.pwa-standalone) .mobile-scale-frame,
+html.agent-route-active:not(.pwa-standalone) .app-shell,
+html.agent-route-active:not(.pwa-standalone) .mobile-scale-frame,
+body.agent-route-active:not(.pwa-standalone) .app-shell{
+    height: var(--fa-app-height) !important;
+    max-height: var(--fa-app-height) !important;
+    min-height: var(--fa-app-height) !important;
+    overflow: hidden !important;
+    overscroll-behavior: none !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Body-level photo — never clipped by mobile-scale-frame */
+  html:not(.home-route-active) .global-agent-backdrop{
+    display: block !important;
+    position: fixed !important;
+    z-index: 0 !important;
+    pointer-events: none !important;
+    inset: 0 !important;
+    top: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: var(--fa-app-height) !important;
+    max-height: none !important;
+    background-color: #0a0e14 !important;
+    background-image:
+      linear-gradient(180deg, rgba(6, 10, 16, 0.22) 0%, rgba(6, 10, 16, 0.32) 100%),
+      url('/fondo4.jpg') !important;
+    background-size: 100% 100%, cover !important;
+    background-position: center, center bottom !important;
+    background-repeat: no-repeat !important;
+    transform: none !important;
+    box-shadow: inset 0 0 0 9999px rgba(0, 0, 0, 0.55) !important;
+    filter: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  html.agent-route-active .global-agent-backdrop{
+    background-image:
+      linear-gradient(180deg, var(--agent-bg-matte-a), var(--agent-bg-matte-b)),
+      url('/fondo4.jpg') !important;
+    filter: var(--agent-bg-photo-filter) !important;
+    box-shadow: inset 0 0 0 9999px rgba(0, 0, 0, var(--agent-bg-scrim)) !important;
+  }
+
+  html.agent-route-active,
+html.agent-route-active body{
+    background-color: #0a0e14 !important;
+    background-image:
+      linear-gradient(180deg, rgba(6, 10, 16, 0.10) 0%, rgba(6, 10, 16, 0.18) 100%),
+      url('/fondo4.jpg') !important;
+    background-size: cover, cover !important;
+    background-position: center bottom, center bottom !important;
+    background-repeat: no-repeat !important;
+  }
+
+  html.intake-route-active .global-agent-backdrop{
+    box-shadow: none !important;
+    filter: brightness(0.26) contrast(0.92) saturate(0.78) grayscale(0.06) !important;
+    background-size: cover !important;
+    background-position: center bottom !important;
+    background-image:
+      linear-gradient(180deg, rgba(6, 10, 16, 0.24) 0%, rgba(6, 10, 16, 0.48) 100%),
+      url('/fondo4.jpg') !important;
+  }
+
+  /* One photo layer only — avoid double fondo4 seam in the middle of the viewport */
+  html.intake-route-active,
+html.intake-route-active body{
+    background-color: #0a0e14 !important;
+    background-image: none !important;
+  }
+
+  html.intake-route-active .intake-shell::before{
+    background:
+      linear-gradient(
+        180deg,
+        rgba(0, 0, 0, 0.08) 0%,
+        rgba(0, 0, 0, 0.26) 42%,
+        rgba(0, 0, 0, 0.36) 100%
+      ) !important;
+  }
+
+  html.intake-route-active .intake-shell::after{
+    display: none !important;
+    content: none !important;
+  }
+
+  html.intake-route-active .intake-bg-orb::before,
+html.intake-route-active .intake-bg-orb::after{
+    display: none !important;
+    content: none !important;
+  }
+
+  html:not(.home-route-active):not(.intake-route-active):not(.agent-route-active),
+html:not(.home-route-active):not(.intake-route-active):not(.agent-route-active) body{
+    background-color: #0a0e14 !important;
+    background-image:
+      linear-gradient(180deg, rgba(0, 0, 0, 0.74) 0%, rgba(0, 0, 0, 0.82) 100%),
+      url('/fondo4.jpg') !important;
+    background-size: cover, cover !important;
+    background-position: center bottom, center bottom !important;
+    background-repeat: no-repeat !important;
+  }
+
+  html:not(.home-route-active) .app-shell::before,
+html:not(.home-route-active) .app-shell::after,
+body.agent-route-active .app-shell::before,
+body.agent-route-standalone .app-shell::before{
+    background-image: none !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+    top: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    transform: none !important;
+    filter: none !important;
+    -webkit-mask-image: none !important;
+    mask-image: none !important;
+  }
+
+  /* Agent mobile shell — panel flush to physical bottom */
+  html.agent-route-active main.agent-layout,
+html.agent-route-active main.agent-layout.is-mobile-viewport,
+body.agent-route-active main.agent-layout,
+body.agent-route-active main.agent-layout.is-mobile-viewport{
+    height: var(--fa-app-height) !important;
+    max-height: var(--fa-app-height) !important;
+    min-height: 0 !important;
+    padding-top: env(safe-area-inset-top, 0px) !important;
+    padding-bottom: 0 !important;
+    margin-bottom: 0 !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+  }
+
+  html.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel:has(.panel-grid.is-card-stack),
+html.agent-route-active main.agent-layout.is-mobile-viewport .agent-panel.is-mobile-compact:has(.panel-grid.is-card-stack),
+body.agent-route-active .agent-panel.is-mobile-compact:has(.panel-grid.is-card-stack){
+    flex: 0 0 auto !important;
+    height: auto !important;
+    max-height: none !important;
+  }
+
+  html.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel,
+html.agent-route-active main.agent-layout.is-mobile-viewport .agent-panel:not(.is-mobile-expanded),
+html.agent-route-active .agent-panel:not(.is-mobile-expanded),
+body.agent-route-active .agent-panel.is-mobile-compact{
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 0 0 auto !important;
+    height: auto !important;
+    max-height: calc(var(--mobile-panel-h, 96px) + env(safe-area-inset-bottom, 0px)) !important;
+    margin: 0 !important;
+    margin-bottom: 0 !important;
+    border-radius: 0 !important;
+    align-self: stretch !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+    justify-content: flex-start !important;
+  }
+
+  html.agent-route-active main.agent-layout.is-mobile-viewport.mobile-panel-expanded .agent-panel,
+html.agent-route-active main.agent-layout.is-mobile-viewport.mobile-panel-expanded .agent-panel.is-mobile-expanded,
+body.agent-route-active main.agent-layout.is-mobile-viewport.mobile-panel-expanded .agent-panel,
+body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel,
+body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel.is-mobile-expanded{
+    flex: 0 0 calc(min(50dvh, 430px) + env(safe-area-inset-bottom, 0px)) !important;
+    height: calc(min(50dvh, 430px) + env(safe-area-inset-bottom, 0px)) !important;
+    max-height: calc(min(50dvh, 430px) + env(safe-area-inset-bottom, 0px)) !important;
+    min-height: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior: contain !important;
+    touch-action: pan-y !important;
+    margin-bottom: 0 !important;
+    transition: none !important;
+  }
+
+  html.agent-route-active .agent-panel .mobile-panel-handle,
+body.agent-route-active .agent-panel .mobile-panel-handle{
+    flex: 0 0 auto !important;
+    min-height: 0 !important;
+    padding: 2px 10px 1px !important;
+    border-bottom: none !important;
+  }
+
+  html.agent-route-active .agent-panel .panel-grid,
+body.agent-route-active .agent-panel .panel-grid,
+body.agent-route-active .agent-panel.is-mobile-compact .panel-grid,
+body.agent-route-active .agent-panel:not(.is-mobile-expanded) .panel-grid{
+    box-sizing: border-box !important;
+    flex: 0 0 auto !important;
+    min-height: 0 !important;
+    height: auto !important;
+    margin-top: 0 !important;
+    padding: 0 8px max(2px, calc(env(safe-area-inset-bottom, 0px) + var(--mobile-panel-bottom-gap, 4px))) 8px !important;
+    align-items: flex-end !important;
+    align-content: flex-end !important;
+    gap: 8px !important;
+  }
+
+  html.agent-route-active .agent-panel .mob-col,
+html.agent-route-active .agent-panel .mob-col-wide,
+html.agent-route-active .agent-panel .mob-col-narrow,
+body.agent-route-active .agent-panel .mob-col,
+body.agent-route-active .agent-panel .mob-col-wide,
+body.agent-route-active .agent-panel .mob-col-narrow{
+    align-self: flex-end !important;
+  }
+
+  html.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .panel-grid,
+html.agent-route-active .agent-panel.is-mobile-expanded .panel-grid,
+body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .panel-grid,
+body.agent-route-active .agent-panel.is-mobile-expanded .panel-grid,
+body.agent-route-active main.agent-layout.is-mobile-viewport.mobile-panel-expanded .agent-panel .panel-grid,
+body.agent-route-active main.agent-layout.is-mobile-viewport .agent-panel.is-mobile-expanded .panel-grid{
+    flex: none !important;
+    min-height: auto !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    touch-action: pan-y !important;
+    align-items: stretch !important;
+    align-content: start !important;
+    padding: 8px 8px max(8px, calc(env(safe-area-inset-bottom, 0px) + 4px)) 8px !important;
+    gap: 8px !important;
+    transition: none !important;
+  }
+
+  html.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .panel-grid > *,
+html.agent-route-active .agent-panel.is-mobile-expanded .panel-grid > *,
+body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .panel-grid > *{
+    transform: none !important;
+    opacity: 1 !important;
+    margin-left: 0 !important;
+    transition: none !important;
+  }
+
+  html.agent-route-active main.agent-layout.is-mobile-viewport .agent-panel,
+body.agent-route-active main.agent-layout.is-mobile-viewport .agent-panel{
+    transition: none !important;
+  }
+
+  html.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .mobile-panel-handle,
+html.agent-route-active .agent-panel.is-mobile-expanded .mobile-panel-handle,
+body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .mobile-panel-handle{
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 4 !important;
+    background: #000000 !important;
+  }
+
+  /* Modals — full-bleed backdrop; content starts below status bar */
+  html:not(.home-route-active){
+    --modal-safe-top-gap: 4px;
+    --modal-safe-top-min: max(22px, 5.5vmin);
+    --modal-safe-top: calc(max(env(safe-area-inset-top, 0px), var(--modal-safe-top-min)) + var(--modal-safe-top-gap));
+    --modal-safe-bottom: max(env(safe-area-inset-bottom, 0px), 0px);
+  }
+
+  html:not(.home-route-active) .agent-modal-overlay,
+html:not(.home-route-active) .agent-modal-overlay.transactions-modal-overlay,
+html:not(.home-route-active) .agent-modal-overlay.budget-modal-overlay,
+html:not(.home-route-active) .agent-modal-overlay.interview-modal-overlay,
+html:not(.home-route-active) .social-modal-overlay,
+html:not(.home-route-active) .modal-overlay{
+    position: fixed !important;
+    inset: 0 !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    height: var(--fa-app-height, 100dvh) !important;
+    min-height: var(--fa-app-height, 100dvh) !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding-top: var(--modal-safe-top) !important;
+    padding-bottom: var(--modal-safe-bottom) !important;
+    padding-left: max(0px, env(safe-area-inset-left, 0px)) !important;
+    padding-right: max(0px, env(safe-area-inset-right, 0px)) !important;
+    box-sizing: border-box !important;
+    display: block !important;
+    align-items: unset !important;
+    justify-content: unset !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  html:not(.home-route-active) .agent-modal-overlay > .agent-modal,
+html:not(.home-route-active) .agent-modal-overlay > .agent-modal.transactions-modal,
+html:not(.home-route-active) .agent-modal-overlay > .agent-modal.budget-modal,
+html:not(.home-route-active) .agent-modal-overlay > .agent-modal.interview-modal,
+html:not(.home-route-active) .agent-modal-overlay > .agent-modal.questionnaire-modal,
+html:not(.home-route-active) .agent-modal-overlay > .agent-modal.account-modal,
+html:not(.home-route-active) .social-modal-overlay > .social-modal,
+html:not(.home-route-active) .agent-modal,
+html:not(.home-route-active) .transactions-modal,
+html:not(.home-route-active) .budget-modal,
+html:not(.home-route-active) .interview-modal,
+html:not(.home-route-active) .questionnaire-modal,
+html:not(.home-route-active) .account-modal,
+html:not(.home-route-active) .social-modal{
+    position: relative !important;
+    inset: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    height: auto !important;
+    min-height: calc(var(--fa-app-height, 100dvh) - var(--modal-safe-top) - var(--modal-safe-bottom)) !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding-top: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+  }
+
+  html:not(.home-route-active) .agent-modal.account-modal,
+html:not(.home-route-active) .account-modal{
+    min-height: auto !important;
+    max-height: min(calc(var(--fa-app-height, 100dvh) - var(--modal-safe-top) - var(--modal-safe-bottom)), 88dvh) !important;
+  }
+
+  html:not(.home-route-active) .bcc-modal-header,
+html:not(.home-route-active) .agent-modal-header,
+html:not(.home-route-active) .social-modal-header,
+html:not(.home-route-active) .transactions-modal .bcc-modal-header,
+html:not(.home-route-active) .transactions-modal .bcc-modal-header.tx-modal-header-layer{
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 40 !important;
+    padding-top: 8px !important;
+    margin-top: 0 !important;
+  }
+
+  html:not(.home-route-active) .agent-modal-close,
+html:not(.home-route-active) .social-modal .social-close-btn{
+    position: relative !important;
+    top: auto !important;
+    right: auto !important;
+    width: 20px !important;
+    height: 26px !important;
+    min-width: 20px !important;
+    min-height: 26px !important;
+    max-width: 20px !important;
+    padding: 0 !important;
+    font-size: 16px !important;
+    line-height: 1 !important;
+    border-radius: 7px !important;
+  }
+
+  /*
+   * Browser chrome vignettes — mobile web only (not PWA).
+   * Background layer: below .app-shell UI (non-home) or below main content (home).
+   * Suspended while the on-screen keyboard is open.
+   */
+  html:not(.pwa-standalone){
+    --browser-chrome-color: #050810;
+    --browser-chrome-rgb: 5, 8, 16;
+    --vp-bg-fallback: #050810;
+    background-color: var(--browser-chrome-color) !important;
+  }
+
+  html:not(.pwa-standalone) body{
+    background-color: var(--browser-chrome-color) !important;
+  }
+
+  html:not(.pwa-standalone).home-route-active,
+html:not(.pwa-standalone).home-route-active body{
+    background: var(--browser-chrome-color) !important;
+    background-color: var(--browser-chrome-color) !important;
+    background-image: none !important;
+  }
+
+  html:not(.pwa-standalone).agent-route-active,
+html:not(.pwa-standalone).agent-route-active body,
+html:not(.pwa-standalone).intake-route-active,
+html:not(.pwa-standalone).intake-route-active body{
+    background-color: transparent !important;
+  }
+
+  /* Modal letterbox — solid chrome black (beats semi-transparent scrim shorthands) */
+  html:not(.pwa-standalone) .agent-modal-overlay,
+html:not(.pwa-standalone) .agent-modal-overlay.transactions-modal-overlay,
+html:not(.pwa-standalone) .agent-modal-overlay.budget-modal-overlay,
+html:not(.pwa-standalone) .agent-modal-overlay.interview-modal-overlay,
+html:not(.pwa-standalone) .social-modal-overlay,
+html:not(.pwa-standalone) .modal-overlay,
+html:not(.pwa-standalone) .transactions-modal-overlay,
+html:not(.pwa-standalone) .budget-modal-overlay,
+html:not(.pwa-standalone) .interview-modal-overlay{
+    background: var(--browser-chrome-color) !important;
+    background-color: var(--browser-chrome-color) !important;
+  }
+
+  html:not(.pwa-standalone):not(.home-route-active) .app-shell{
+    position: relative;
+    z-index: 2;
+    isolation: isolate;
+  }
+
+  html.home-route-active body > .browser-chrome-vignette-top,
+html.home-route-active body > .browser-chrome-vignette-bottom{
+    display: none !important;
+  }
+
+  html.browser-chrome-vignette-suspended body > .browser-chrome-vignette-top,
+html.browser-chrome-vignette-suspended body > .browser-chrome-vignette-bottom,
+html.browser-chrome-vignette-suspended main > .browser-chrome-vignette-top,
+html.browser-chrome-vignette-suspended main > .browser-chrome-vignette-bottom{
+    opacity: 0 !important;
+    visibility: hidden !important;
+  }
+
+  /*
+   * On-screen keyboard — see mobile-keyboard-viewport.css (authoritative).
+   * Keep only backdrop-layer guard here so legacy keyboard-opening toggles
+   * cannot animate or detach the photo stack mid-focus.
+   */
+  html:not(.pwa-standalone).browser-keyboard-open .global-agent-backdrop,
+html:not(.pwa-standalone).keyboard-opening .global-agent-backdrop{
+    height: var(--screen-h, 100lvh) !important;
+    min-height: var(--screen-h, 100lvh) !important;
+  }
+
+  html:not(.pwa-standalone):not(.home-route-active) body > .browser-chrome-vignette-top,
+html:not(.pwa-standalone):not(.home-route-active) body > .browser-chrome-vignette-bottom,
+html.home-route-active:not(.pwa-standalone) main > .browser-chrome-vignette-top,
+html.home-route-active:not(.pwa-standalone) main > .browser-chrome-vignette-bottom{
+    display: block;
+    position: fixed;
+    left: 0;
+    right: 0;
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  html:not(.pwa-standalone):not(.home-route-active) body > .browser-chrome-vignette-top,
+html.home-route-active:not(.pwa-standalone) main > .browser-chrome-vignette-top{
+    top: 0;
+    height: calc(
+      var(--browser-vv-offset-top, 0px) +
+      env(safe-area-inset-top, 0px) +
+      var(--browser-chrome-fade-band)
+    );
+    background: linear-gradient(
+      to bottom,
+      var(--browser-chrome-color) 0%,
+      var(--browser-chrome-color) calc(var(--browser-vv-offset-top, 0px) + env(safe-area-inset-top, 0px)),
+      rgba(var(--browser-chrome-rgb), 0.92) calc(var(--browser-vv-offset-top, 0px) + env(safe-area-inset-top, 0px) + 18px),
+      rgba(var(--browser-chrome-rgb), 0.68) calc(var(--browser-vv-offset-top, 0px) + env(safe-area-inset-top, 0px) + 36px),
+      rgba(var(--browser-chrome-rgb), 0.38) calc(var(--browser-vv-offset-top, 0px) + env(safe-area-inset-top, 0px) + 54px),
+      rgba(var(--browser-chrome-rgb), 0.12) calc(var(--browser-vv-offset-top, 0px) + env(safe-area-inset-top, 0px) + 68px),
+      rgba(var(--browser-chrome-rgb), 0) 100%
+    );
+  }
+
+  html:not(.pwa-standalone):not(.home-route-active) body > .browser-chrome-vignette-bottom,
+html.home-route-active:not(.pwa-standalone) main > .browser-chrome-vignette-bottom{
+    bottom: var(--browser-vv-offset-bottom, 0px);
+    height: calc(
+      max(env(safe-area-inset-bottom, 0px), 8px) +
+      var(--browser-chrome-fade-band)
+    );
+    background: linear-gradient(
+      to top,
+      var(--browser-chrome-color) 0%,
+      var(--browser-chrome-color) max(env(safe-area-inset-bottom, 0px), 8px),
+      rgba(var(--browser-chrome-rgb), 0.94) calc(max(env(safe-area-inset-bottom, 0px), 8px) + 20px),
+      rgba(var(--browser-chrome-rgb), 0.72) calc(max(env(safe-area-inset-bottom, 0px), 8px) + 38px),
+      rgba(var(--browser-chrome-rgb), 0.42) calc(max(env(safe-area-inset-bottom, 0px), 8px) + 56px),
+      rgba(var(--browser-chrome-rgb), 0.14) calc(max(env(safe-area-inset-bottom, 0px), 8px) + 70px),
+      rgba(var(--browser-chrome-rgb), 0) 100%
+    );
+  }
+
+  /*
+   * Bottom seam lives inside the unified background stack (html + ::before).
+   * No separate ::after layer — avoids the visible gap at the viewport bottom.
+   */
+  html:not(.home-route-active) .app-shell::after{
+    display: none !important;
+    content: none !important;
+  }
+
+  html:not(.home-route-active) .app-shell::before{
+    animation: appShellBackdropEntranceMobile 850ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  /*
+   * iPad / tablet portrait in mobile browser — no chrome fade bands (phones keep them).
+   */
+  html:not(.pwa-standalone).is-tablet-portrait body > .browser-chrome-vignette-top,
+html:not(.pwa-standalone).is-tablet-portrait body > .browser-chrome-vignette-bottom,
+html:not(.pwa-standalone).is-tablet-portrait .app-shell > .browser-chrome-vignette-top,
+html:not(.pwa-standalone).is-tablet-portrait .app-shell > .browser-chrome-vignette-bottom,
+html:not(.pwa-standalone).browser-chrome-vignette-tablet-off body > .browser-chrome-vignette-top,
+html:not(.pwa-standalone).browser-chrome-vignette-tablet-off body > .browser-chrome-vignette-bottom,
+html:not(.pwa-standalone).browser-chrome-vignette-tablet-off .app-shell > .browser-chrome-vignette-top,
+html:not(.pwa-standalone).browser-chrome-vignette-tablet-off .app-shell > .browser-chrome-vignette-bottom,
+html:not(.pwa-standalone).is-tablet-portrait.home-route-active main > .browser-chrome-vignette-top,
+html:not(.pwa-standalone).is-tablet-portrait.home-route-active main > .browser-chrome-vignette-bottom,
+html:not(.pwa-standalone).browser-chrome-vignette-tablet-off.home-route-active main > .browser-chrome-vignette-top,
+html:not(.pwa-standalone).browser-chrome-vignette-tablet-off.home-route-active main > .browser-chrome-vignette-bottom{
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    height: 0 !important;
+    max-height: 0 !important;
+    pointer-events: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell::before{
+    animation: none !important;
+  }
+}
+
+/* ================================================= */
+/* INTAKE — route tweaks (backdrop is global-agent)   */
+/* ================================================= */
+
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+  html:not(.pwa-standalone).intake-route-active .intake-shell{
+    height: var(--screen-h, var(--fa-app-height, 100lvh)) !important;
+    max-height: var(--screen-h, var(--fa-app-height, 100lvh)) !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    overscroll-behavior: none !important;
+  }
+
+  html.pwa-standalone.intake-route-active .intake-shell{
+    flex: 1 1 auto !important;
+    height: auto !important;
+    max-height: none !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    overscroll-behavior: none !important;
+  }
+
+  html.intake-route-active .intake-main.intake-main-immersive{
+    flex: 1 1 auto !important;
+    height: auto !important;
+    max-height: none !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    overscroll-behavior: contain !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  html.intake-route-active .intake-shell::before{
+    background:
+      linear-gradient(
+        180deg,
+        rgba(0, 0, 0, 0.08) 0%,
+        rgba(0, 0, 0, 0.26) 42%,
+        rgba(0, 0, 0, 0.36) 100%
+      ) !important;
+  }
+
+  html.intake-route-active .intake-shell::after{
+    display: none !important;
+    content: none !important;
+  }
+
+  html.intake-route-active .intake-bg-orb::before,
+html.intake-route-active .intake-bg-orb::after{
+    display: none !important;
+    content: none !important;
+  }
+
+  html.intake-route-active .intake-photo-bg{
+    background-image: none !important;
+    filter: none !important;
+    opacity: 0 !important;
+  }
+
+  html.agent-route-active .agent-chat > .agent-chat-body > .agent-thread,
+html.agent-route-active .agent-chat .agent-chat-body > .agent-thread{
+    overscroll-behavior: contain !important;
+  }
+
+  /*
+   * PWA — panel black bg to bottom; cards keep bottom air via --pwa-panel-bottom-inset.
+   */
+  html.pwa-standalone body.agent-route-active main.agent-layout.is-mobile-viewport .agent-panel,
+html.pwa-standalone body.agent-route-active main.agent-layout.is-mobile-viewport .agent-panel.is-mobile-compact,
+html.pwa-standalone body.agent-route-active .agent-layout.is-mobile-standalone .agent-panel,
+html.pwa-standalone body.agent-route-active .agent-layout.is-mobile-standalone .agent-panel.is-mobile-compact{
+    flex: 0 0 auto !important;
+    height: auto !important;
+    max-height: none !important;
+    margin-bottom: 0 !important;
+  }
+
+  html.pwa-standalone body.agent-route-active .agent-panel .panel-grid,
+html.pwa-standalone body.agent-route-active .agent-panel.is-mobile-compact .panel-grid,
+html.pwa-standalone body.agent-route-active .agent-layout.is-mobile-standalone .agent-panel .panel-grid{
+    flex: 0 0 auto !important;
+    margin-top: 0 !important;
+    align-items: flex-end !important;
+    align-content: flex-end !important;
+  }
+
+  html.pwa-standalone body.agent-route-active .agent-layout.is-mobile-standalone.mobile-panel-expanded .agent-panel,
+html.pwa-standalone body.agent-route-active .agent-panel.is-mobile-expanded,
+body.agent-route-active main.agent-layout.is-mobile-viewport.mobile-panel-expanded .agent-panel.is-mobile-expanded{
+    display: flex !important;
+    flex-direction: column !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior: contain !important;
+    touch-action: pan-y !important;
+    transition: none !important;
+  }
+}
+
+@media (display-mode: standalone) and (max-width: 767px) {
+  body.agent-route-active .agent-panel.is-mobile-compact:not(.is-mobile-expanded){
+    padding-bottom: var(--pwa-panel-bottom-inset, calc(env(safe-area-inset-bottom, 0px) + 12px)) !important;
+    max-height: none !important;
+  }
+
+  body.agent-route-active .agent-panel .panel-grid,
+body.agent-route-active .agent-panel.is-mobile-compact .panel-grid{
+    padding: 0 var(--deck-pad-inline, 8px) 0 var(--deck-pad-inline, 8px) !important;
+  }
+
+  body.agent-route-active .agent-panel .mobile-panel-handle{
+    padding: 2px 10px 0 !important;
+  }
+}
+
+/* ================================================= */
+/* MOBILE MODAL DEVICE-WIDTH — authoritative          */
+/* 100% of viewport (not 100vw); no horizontal clip   */
+/* ================================================= */
+
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+  html:not(.home-route-active) .agent-modal-overlay,
+html:not(.home-route-active) .agent-modal-overlay.transactions-modal-overlay,
+html:not(.home-route-active) .agent-modal-overlay.budget-modal-overlay,
+html:not(.home-route-active) .agent-modal-overlay.interview-modal-overlay,
+html:not(.home-route-active) .social-modal-overlay,
+html:not(.home-route-active) .modal-overlay{
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+  }
+
+  html:not(.home-route-active) .agent-modal.interview-modal,
+html:not(.home-route-active) .agent-modal.transactions-modal,
+html:not(.home-route-active) .agent-modal.budget-modal,
+html:not(.home-route-active) .agent-modal.questionnaire-modal,
+html:not(.home-route-active) .transactions-modal,
+html:not(.home-route-active) .budget-modal,
+html:not(.home-route-active) .interview-modal,
+html:not(.home-route-active) .questionnaire-modal{
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  html:not(.home-route-active) .transactions-modal .bcc-modal-header,
+html:not(.home-route-active) .transactions-modal .bcc-modal-header.tx-modal-header-layer,
+html:not(.home-route-active) .transactions-modal .tx-scroll-body,
+html:not(.home-route-active) .transactions-modal .agent-modal-intro,
+html:not(.home-route-active) .transactions-modal .pt-shell,
+html:not(.home-route-active) .transactions-modal .pt-left,
+html:not(.home-route-active) .transactions-modal .pt-right,
+html:not(.home-route-active) .transactions-modal .tx-content-card,
+html:not(.home-route-active) .budget-modal .budget-modal-body,
+html:not(.home-route-active) .budget-modal .budget-table-wrap,
+html:not(.home-route-active) .budget-modal .budget-table-section,
+html:not(.home-route-active) .interview-modal .interview-shell,
+html:not(.home-route-active) .questionnaire-modal .questionnaire-shell,
+html:not(.home-route-active) .agent-modal-body,
+html:not(.home-route-active) .social-modal-body{
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  html:not(.home-route-active) .agent-modal-overlay table,
+html:not(.home-route-active) .agent-modal-overlay pre,
+html:not(.home-route-active) .agent-modal-overlay img,
+html:not(.home-route-active) .agent-modal-overlay video,
+html:not(.home-route-active) .agent-modal-overlay canvas{
+    max-width: 100% !important;
+  }
+
+  html:not(.home-route-active) .budget-modal .budget-table-wrap,
+html:not(.home-route-active) .budget-modal .budget-table{
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+}
+
+/* ================================================= */
+/* MOBILE MODAL SURFACE CLEANUP — no ghost panels     */
+/* ================================================= */
+
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+  html:not(.home-route-active) .agent-modal-overlay.transactions-modal-overlay,
+html:not(.home-route-active) .agent-modal-overlay.budget-modal-overlay,
+html:not(.home-route-active) .agent-modal-overlay.interview-modal-overlay{
+    padding-left: max(0px, env(safe-area-inset-left, 0px)) !important;
+    padding-right: max(0px, env(safe-area-inset-right, 0px)) !important;
+  }
+
+  /* transactions-modal: opaque layout owned by agent-modals-transactions-contract.css */
+  html:not(.home-route-active) .budget-modal,
+html:not(.home-route-active) .agent-modal.budget-modal,
+html:not(.home-route-active) .interview-modal,
+html:not(.home-route-active) .agent-modal.interview-modal,
+html:not(.home-route-active) .questionnaire-modal{
+    background: transparent !important;
+    background-image: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+  }
+
+  html:not(.home-route-active) .budget-modal .budget-cockpit-banner,
+html:not(.home-route-active) .budget-modal .budget-card-agent,
+html:not(.home-route-active) .budget-modal .budget-card-table,
+html:not(.home-route-active) .interview-modal .interview-shell{
+    background: transparent !important;
+    background-image: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  html:not(.home-route-active) .transactions-modal .tx-panel-surface::after,
+html:not(.home-route-active) .transactions-modal .pt-right.tx-panel-surface--workspace::after,
+html:not(.home-route-active) .transactions-modal .tx-content-card::before,
+html:not(.home-route-active) .transactions-modal .tx-content-card::after,
+html:not(.home-route-active) .transactions-modal .tx-content-card--agent::before,
+html:not(.home-route-active) .transactions-modal .tx-content-card--agent::after,
+html:not(.home-route-active) .transactions-modal .transactions-summary-card.tx-evidence-card::before,
+html:not(.home-route-active) .transactions-modal .transactions-summary-card.tx-evidence-card::after,
+html:not(.home-route-active) .transactions-modal .tx-content-card.tx-content-card--agent.is-main-center::before,
+html:not(.home-route-active) .transactions-modal .tx-content-card.tx-content-card--agent.is-main-center::after{
+    display: none !important;
+    content: none !important;
+  }
+
+  html:not(.home-route-active) .transactions-modal .tx-transition-flood-layer,
+html:not(.home-route-active) .transactions-modal .tx-digit-dust{
+    display: none !important;
+  }
+
+  html:not(.home-route-active) .transactions-modal .tx-numbers-canvas{
+    opacity: 0.14 !important;
+    mix-blend-mode: normal !important;
+    filter: none !important;
+  }
+
+  html:not(.home-route-active) .budget-modal .bcc-modal-header,
+html:not(.home-route-active) .budget-modal .agent-modal-header{
+    border-radius: 0 !important;
+  }
+}

@@ -6,8 +6,8 @@ import {
   type FincoinUsageStatus,
   type ProductChatId,
 } from '@financial-agent/shared';
-import { getUserById, patchUserRecord } from '../persistence/repos';
-import { listConversationTurns } from '../persistence/repos/conversation.repository';
+import { getUserById, patchUserRecord } from '../persistencia/repos';
+import { listConversationTurns } from '../persistencia/repos/conversation.repository';
 import { loadUserSheets, saveUserSheets } from './user.service';
 import {
   defaultProductLifecycleState,

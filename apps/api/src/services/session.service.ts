@@ -6,7 +6,7 @@ import {
   deleteSessionsByUserId,
   getSessionByTokenHash,
   purgeExpiredSessions,
-} from '../persistence/repos';
+} from '../persistencia/repos';
 
 export type SessionRecord = {
   token: string;

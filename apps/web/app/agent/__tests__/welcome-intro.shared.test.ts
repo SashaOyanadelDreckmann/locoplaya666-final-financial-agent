@@ -4,8 +4,8 @@ import {
   isRecoverableChatErrorMessage,
   repairChat1WelcomeItems,
   shouldSeedWelcomeMessage,
-} from '../welcome-intro.shared';
-import type { ChatItem } from '@/lib/agent.response.types';
+} from '../flujo/welcome-intro.shared';
+import type { ChatItem } from '@/lib/agente/agent.response.types';
 
 const errorItem = (content: string): ChatItem => ({
   type: 'message',

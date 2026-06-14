@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import type { UserRole } from '../auth/rbac';
 import { getConfig } from '../config';
-import { getPersistenceMode, getPrismaClient, memoryStore } from '../persistence/provider';
+import { getPersistenceMode, getPrismaClient, memoryStore } from '../persistencia/provider';
 
 type SortOrder = 'asc' | 'desc';
 type UserSortBy = 'createdAt' | 'interactions' | 'lastInteractionAt' | 'knowledgeScore' | 'documents';

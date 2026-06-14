@@ -12,7 +12,7 @@ import {
   getEffectiveBudgetRows,
   normalizeBudgetRow,
   reconcileBudgetRows,
-} from '../budget-rows.helpers';
+} from '../presupuesto/filas.helpers';
 
 describe('budget-rows helpers', () => {
   it('maps legacy hyphen ids to canonical snake_case ids', () => {

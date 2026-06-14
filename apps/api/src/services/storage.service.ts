@@ -5,9 +5,9 @@ import {
   deleteFinancialProfile,
   getFinancialProfileById,
   listFinancialProfiles,
-} from '../persistence/repos';
-import { getPersistenceMode, getPrismaClient } from '../persistence/provider';
-import { patchUserRecord } from '../persistence/repos';
+} from '../persistencia/repos';
+import { getPersistenceMode, getPrismaClient } from '../persistencia/provider';
+import { patchUserRecord } from '../persistencia/repos';
 
 function generateProfileId(): string {
   const ts = new Date().toISOString().replace(/[:.]/g, '-');

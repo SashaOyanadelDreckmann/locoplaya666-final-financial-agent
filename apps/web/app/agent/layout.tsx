@@ -5,7 +5,7 @@ import {
   fetchServerSession,
   hasCompletedIntakeAccess,
   resolveServerBackendBase,
-} from '@/lib/sessionAccess';
+} from '@/lib/sesion/sessionAccess';
 
 export const dynamic = 'force-dynamic';
 

@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 describe('chat table scroll css contract', () => {
-  const contractPath = path.join(process.cwd(), 'app', 'agent-modals-transactions-contract.css');
+  const contractPath = path.join(process.cwd(), 'app', 'estilos', 'modales', 'transacciones', 'agent-modals-transactions-contract.css');
   const contractCss = fs.readFileSync(contractPath, 'utf8');
 
   it('keeps large chat tables inside a bidirectional scroll host', () => {

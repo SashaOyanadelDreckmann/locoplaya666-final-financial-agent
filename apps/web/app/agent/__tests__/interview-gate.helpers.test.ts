@@ -1,8 +1,8 @@
 /** @jest-environment node */
 
-import type { BudgetRow } from '@/lib/budget-rows.helpers';
-import { canOpenInterview } from '../interview-gate.helpers';
-import { isTransactionsEvidenceSatisfied } from '@/lib/transactions-flow.helpers';
+import type { BudgetRow } from '@/lib/presupuesto/filas.helpers';
+import { canOpenInterview } from '../flujo/interview-gate.helpers';
+import { isTransactionsEvidenceSatisfied } from '@/lib/transacciones/flujo.helpers';
 
 type ProductSlice = Parameters<typeof isTransactionsEvidenceSatisfied>[0][number];
 

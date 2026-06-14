@@ -1,12 +1,12 @@
 /** @jest-environment node */
 
-jest.mock('@/lib/api', () => ({
+jest.mock('@/lib/api/cliente', () => ({
   getSessionInfo: jest.fn(),
   fetchLatestDiagnosis: jest.fn(),
 }));
 
-import { getSessionInfo, fetchLatestDiagnosis } from '@/lib/api';
-import { ApiHttpError } from '@/lib/apiEnvelope';
+import { getSessionInfo, fetchLatestDiagnosis } from '@/lib/api/cliente';
+import { ApiHttpError } from '@/lib/api/envelope';
 import { useProfileStore } from '../profile.store';
 
 const mockedGetSessionInfo = getSessionInfo as jest.MockedFunction<typeof getSessionInfo>;

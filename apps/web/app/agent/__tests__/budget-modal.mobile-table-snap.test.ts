@@ -2,7 +2,7 @@
 
 import {
   resolveDominantMobileBudgetRowScrollTop,
-} from '../budget-modal.mobile-table-snap';
+} from '../modales/presupuesto/budget-modal.mobile-table-snap';
 
 describe('budget modal mobile table snap', () => {
   const slot = 300;

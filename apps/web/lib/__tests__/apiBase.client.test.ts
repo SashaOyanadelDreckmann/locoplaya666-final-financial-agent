@@ -1,6 +1,6 @@
 /** @jest-environment jsdom */
 
-import { getAgentRequestUrl } from '../apiBase';
+import { getAgentRequestUrl } from '../api/base';
 
 describe('apiBase client', () => {
   const env = process.env as Record<string, string | undefined>;

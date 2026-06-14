@@ -7,7 +7,7 @@ describe('interview storage safeguards', () => {
   it('keeps browser persistence scoped to session storage only', () => {
     const storePath = path.join(process.cwd(), 'state', 'interview.store.ts');
     const storeSource = fs.readFileSync(storePath, 'utf8');
-    const voiceStatePath = path.join(process.cwd(), 'lib', 'interviewVoiceState.ts');
+    const voiceStatePath = path.join(process.cwd(), 'lib', 'sesion', 'interviewVoiceState.ts');
     const voiceStateSource = fs.readFileSync(voiceStatePath, 'utf8');
 
     expect(storeSource).toContain('storage: createJSONStorage(() => sessionStorage)');

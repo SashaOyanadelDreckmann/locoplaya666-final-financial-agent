@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerApiBaseUrl } from '@/lib/apiBase';
+import { getServerApiBaseUrl } from '@/lib/api/base';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

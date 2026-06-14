@@ -4,7 +4,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { createApprovalToken } from '../services/approval.service';
-import { patchUserRecord } from '../persistence/repos';
+import { patchUserRecord } from '../persistencia/repos';
 import { FINCOIN_MAX_USD_SPEND } from '@financial-agent/shared';
 
 let dataDir: string;

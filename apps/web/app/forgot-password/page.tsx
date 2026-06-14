@@ -4,9 +4,9 @@ import { Suspense, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { ZodError } from 'zod';
-import { forgotPassword } from '@/lib/api';
-import { toUserFacingError } from '@/lib/userError';
-import { ForgotPasswordSchema } from '@/lib/validation';
+import { forgotPassword } from '@/lib/api/cliente';
+import { toUserFacingError } from '@/lib/compartido/userError';
+import { ForgotPasswordSchema } from '@/lib/compartido/validation';
 
 function ForgotPasswordContent() {
   const [email, setEmail] = useState('');

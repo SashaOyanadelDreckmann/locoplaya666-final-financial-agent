@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { getSessionInfo } from '@/lib/api';
+import { getSessionInfo } from '@/lib/api/cliente';
 import {
   downloadAnalyticsInteractionsCsv,
   downloadAnalyticsUsersCsv,
@@ -11,8 +11,8 @@ import {
   type AnalyticsInteraction,
   type AnalyticsRole,
   type AnalyticsUser,
-} from '@/lib/analytics';
-import { toUserFacingError } from '@/lib/userError';
+} from '@/lib/api/analytics';
+import { toUserFacingError } from '@/lib/compartido/userError';
 
 type FilterState = {
   search: string;

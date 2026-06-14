@@ -4,12 +4,12 @@ import { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
-import { loginUser } from '@/lib/api';
-import { ApiHttpError } from '@/lib/apiEnvelope';
-import { toUserFacingError } from '@/lib/userError';
+import { loginUser } from '@/lib/api/cliente';
+import { ApiHttpError } from '@/lib/api/envelope';
+import { toUserFacingError } from '@/lib/compartido/userError';
 import { useSessionStore } from '@/state/session.store';
-import { LoginSchema, type LoginInput } from '@/lib/validation';
-import { resolveLoginFallbackRoute, waitForSessionReady } from '@/lib/auth-redirect';
+import { LoginSchema, type LoginInput } from '@/lib/compartido/validation';
+import { resolveLoginFallbackRoute, waitForSessionReady } from '@/lib/sesion/auth-redirect';
 import { ZodError } from 'zod';
 
 function LoginContent() {

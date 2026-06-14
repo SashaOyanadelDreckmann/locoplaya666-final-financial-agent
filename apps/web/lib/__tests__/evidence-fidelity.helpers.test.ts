@@ -9,7 +9,7 @@ import {
   isIndicativeEvidenceProduct,
   readProductEvidenceFidelity,
   resolveUploadEvidenceSourceHint,
-} from '../evidence-fidelity.helpers';
+} from '../compartido/evidence-fidelity.helpers';
 
 describe('evidence fidelity helpers', () => {
   it('marks photos and loose text as indicative', () => {

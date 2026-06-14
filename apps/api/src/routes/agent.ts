@@ -23,8 +23,8 @@ import {
 import {
   listConversationTurns,
   upsertConversationTurnRecord,
-} from '../persistence/repos';
-import type { StoredPanelState } from '../persistence/types';
+} from '../persistencia/repos';
+import type { StoredPanelState } from '../persistencia/types';
 import { complete } from '../services/llm.service';
 import type { WelcomeIntroCache } from '@financial-agent/shared';
 import {

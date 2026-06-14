@@ -4,14 +4,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 describe('transactions modal layout contract css', () => {
-  const contractPath = path.join(process.cwd(), 'app', 'agent-modals-transactions-contract.css');
+  const contractPath = path.join(process.cwd(), 'app', 'estilos', 'modales', 'transacciones', 'agent-modals-transactions-contract.css');
   const layoutPath = path.join(process.cwd(), 'app', 'layout.tsx');
   const contractCss = fs.readFileSync(contractPath, 'utf8');
   const layoutSource = fs.readFileSync(layoutPath, 'utf8');
 
   it('loads contract css last in layout.tsx styles', () => {
     const imports = [...layoutSource.matchAll(/import\s+'\.\/([^']+\.css)'/g)].map((match) => match[1]);
-    expect(imports[imports.length - 1]).toBe('agent-modals-transactions-contract.css');
+    expect(imports[imports.length - 1]).toBe('estilos/modales/transacciones/agent-modals-transactions-contract.css');
   });
 
   it('defines authoritative opaque panel and single scroll host', () => {

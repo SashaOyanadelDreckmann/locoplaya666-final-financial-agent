@@ -8,14 +8,14 @@ import type {
   StoredSheet,
   StoredKnowledgeEvent,
   StoredUser,
-} from '../persistence/types';
+} from '../persistencia/types';
 import {
   createUserRecord,
   deleteUserRecord,
   getUserByEmail,
   getUserById,
   patchUserRecord,
-} from '../persistence/repos';
+} from '../persistencia/repos';
 
 function toUser(record: Awaited<ReturnType<typeof getUserById>>): User | null {
   if (!record) return null;

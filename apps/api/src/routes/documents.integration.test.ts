@@ -6,7 +6,7 @@ import { createApprovalToken } from '../services/approval.service';
 async function buildAuthenticatedAgent() {
   vi.resetModules();
   const { createApp } = await import('../app');
-  const { listUserDocuments } = await import('../persistence/repos');
+  const { listUserDocuments } = await import('../persistencia/repos');
   const app = createApp();
   const agent = request.agent(app);
 

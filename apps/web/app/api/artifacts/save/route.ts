@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import path from 'path';
 import fs from 'fs/promises';
-import { requireBackendSession } from '@/lib/serverAuth';
-import { checkRateLimit } from '@/lib/rateLimit';
+import { requireBackendSession } from '@/lib/sesion/serverAuth';
+import { checkRateLimit } from '@/lib/compartido/rateLimit';
 
 type Body = {
   id: string;

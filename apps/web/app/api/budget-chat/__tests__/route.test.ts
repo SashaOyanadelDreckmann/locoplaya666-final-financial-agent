@@ -1,9 +1,9 @@
 /** @jest-environment node */
 
-import { requireBackendSession } from '@/lib/serverAuth';
+import { requireBackendSession } from '@/lib/sesion/serverAuth';
 import { POST } from '../route';
 
-jest.mock('@/lib/serverAuth', () => ({
+jest.mock('@/lib/sesion/serverAuth', () => ({
   requireBackendSession: jest.fn(),
 }));
 

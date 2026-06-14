@@ -1,0 +1,23 @@
+/* ================================================= */
+/* AGENT PAGE — Apple Minimalist                     */
+/* ================================================= */
+
+/* Bootstrap module: layout, budget, and early stability rules. */
+@import './nucleo/agent-bootstrap.css';
+/* Chat module */
+@import './chat/agent-chat.css';
+@import './fincoins/agent-fincoin-usage.css';
+/* Knowledge rail module */
+@import './conocimiento/agent-knowledge.css';
+/* Panel module */
+@import './paneles/agent-panel.css';
+/* Artifacts module */
+@import './artefactos/agent-artifacts.css';
+/* Modals module */
+@import '../modales/agent-modals.css';
+/* Mobile shell */
+@import './shell/agent-mobile-shell.css';
+/* Modal safe-area — must win over diagnostics + mobile sheet rules */
+@import '../modales/comunes/agent-modals-safe-area.css';
+/* Budget mobile shell — EOF wins safe-area scroll defaults */
+@import '../modales/presupuesto/agent-modals-budget-mobile.css';

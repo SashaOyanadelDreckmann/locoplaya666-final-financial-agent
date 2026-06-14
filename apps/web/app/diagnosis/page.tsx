@@ -13,7 +13,7 @@ import {
   TensionsList,
   HypothesesList,
   OpenQuestionsCard,
-} from '@/components/diagnosis';
+} from '@/components/diagnostico';
 
 import { useProfileStore } from '@/state/profile.store';
 

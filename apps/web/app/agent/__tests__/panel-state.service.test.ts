@@ -1,14 +1,14 @@
 /** @jest-environment jsdom */
 
-jest.mock('@/lib/api', () => ({
+jest.mock('@/lib/api/cliente', () => ({
   loadPanelState: jest.fn(),
   savePanelState: jest.fn(),
 }));
 
-import { loadPanelState, savePanelState } from '@/lib/api';
-import { clearAllPanelStateBackups } from '@/lib/panel-state.helpers';
+import { loadPanelState, savePanelState } from '@/lib/api/cliente';
+import { clearAllPanelStateBackups } from '@/lib/compartido/panel-state.helpers';
 import { buildPanelSnapshotPayload } from '../page.flow';
-import { clearPanelStateBackups, hydratePanelState, persistPanelState } from '../panel-state.service';
+import { clearPanelStateBackups, hydratePanelState, persistPanelState } from '../utilidades/panel-state.service';
 
 const mockLoadPanelState = loadPanelState as jest.MockedFunction<typeof loadPanelState>;
 const mockSavePanelState = savePanelState as jest.MockedFunction<typeof savePanelState>;

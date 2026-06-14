@@ -2,7 +2,7 @@ import {
   buildEvidenceAppendNotice,
   getEvidenceUploadCapacity,
   mergeEvidenceFiles,
-} from '../transactions-evidence.helpers';
+} from '../transacciones/evidencia.helpers';
 
 function file(name: string, size: number): File {
   return new File([new Uint8Array(size)], name, { type: 'image/jpeg' });

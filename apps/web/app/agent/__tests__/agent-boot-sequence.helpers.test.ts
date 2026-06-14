@@ -3,7 +3,7 @@
 import {
   buildBootScriptLines,
   AGENT_BOOT_FROM_INTAKE_KEY,
-} from '../agent-boot-sequence.helpers';
+} from '../arranque/agent-boot-sequence.helpers';
 
 describe('agent boot sequence helpers', () => {
   it('builds script lines from real intake session data', () => {

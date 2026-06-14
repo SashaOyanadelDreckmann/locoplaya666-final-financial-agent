@@ -1,7 +1,7 @@
 import {
   buildTransactionAuthorizationBlockMessage,
   deriveTransactionAuthorizationState,
-} from '../transactions-authorization.helpers';
+} from '../transacciones/autorizacion.helpers';
 
 describe('transactions-authorization.helpers', () => {
   it('derives authorization from local draft first and falls back to product state', () => {

@@ -8,8 +8,8 @@ import {
   resolveChat1UxState,
   resolveUnlockedChatIds,
   sanitizeChatThreadMessages,
-} from '../page.utils';
-import type { ChatItem } from '@/lib/agent.response.types';
+} from '../utilidades/page.utils';
+import type { ChatItem } from '@/lib/agente/agent.response.types';
 
 const assistant = (content: string): ChatItem => ({
   type: 'message',

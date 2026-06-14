@@ -5,7 +5,7 @@ import {
   buildRuntimePublicConfigScript,
   normalizeApiOrigin,
   readApiOriginFromProcessEnv,
-} from '../runtimePublicConfig';
+} from '../compartido/runtimePublicConfig';
 
 describe('runtimePublicConfig', () => {
   const originalEnv = process.env;

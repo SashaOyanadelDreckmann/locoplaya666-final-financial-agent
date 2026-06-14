@@ -1,10 +1,10 @@
 /** @jest-environment node */
 
-import type { BudgetRow } from '@/lib/budget-rows.helpers';
-import { isTransactionsEvidenceSatisfied } from '@/lib/transactions-flow.helpers';
-import { canOpenInterview } from '../interview-gate.helpers';
-import { BUDGET_ROWS_TARGET } from '../onboarding-flow.helpers';
-import { resolveChat1UxState } from '../page.utils';
+import type { BudgetRow } from '@/lib/presupuesto/filas.helpers';
+import { isTransactionsEvidenceSatisfied } from '@/lib/transacciones/flujo.helpers';
+import { canOpenInterview } from '../flujo/interview-gate.helpers';
+import { BUDGET_ROWS_TARGET } from '../flujo/onboarding-flow.helpers';
+import { resolveChat1UxState } from '../utilidades/page.utils';
 
 type ProductSlice = Parameters<typeof isTransactionsEvidenceSatisfied>[0][number];
 

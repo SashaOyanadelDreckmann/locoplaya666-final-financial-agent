@@ -1,4 +1,4 @@
-import { buildIntakeScrambleLines } from '../welcome-intake-scramble.helpers';
+import { buildIntakeScrambleLines } from '../flujo/welcome-intake-scramble.helpers';
 
 describe('buildIntakeScrambleLines', () => {
   it('starts with first name and includes intake fields', () => {

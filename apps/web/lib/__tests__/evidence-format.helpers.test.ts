@@ -7,7 +7,7 @@ import {
   fileMatchesUploadFormat,
   getEvidenceFileAccept,
   inferUploadFormatFromEvidenceFiles,
-} from '../evidence-format.helpers';
+} from '../compartido/evidence-format.helpers';
 
 function mockFile(name: string, type = ''): File {
   return { name, type } as File;

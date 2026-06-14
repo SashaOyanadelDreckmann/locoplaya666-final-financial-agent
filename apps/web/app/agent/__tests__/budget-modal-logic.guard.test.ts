@@ -4,11 +4,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 describe('budget modal logic guards', () => {
-  const budgetModalPath = path.join(process.cwd(), 'app', 'agent', 'BudgetModal.tsx');
+  const budgetModalPath = path.join(process.cwd(), 'app', 'agent', 'modales', 'presupuesto', 'BudgetModal.tsx');
   const source = fs.readFileSync(budgetModalPath, 'utf8');
 
   it('opens in mode 1 when modal opens (assistant on mobile, split on desktop)', () => {
-    const layoutSource = fs.readFileSync(path.join(process.cwd(), 'app', 'agent', 'use-budget-modal-layout.ts'), 'utf8');
+    const layoutSource = fs.readFileSync(path.join(process.cwd(), 'app', 'agent', 'modales', 'presupuesto', 'use-budget-modal-layout.ts'), 'utf8');
     expect(layoutSource).toContain('useSyncExternalStore');
     expect(layoutSource).toContain('setBudgetViewMode(1);');
   });
@@ -22,13 +22,13 @@ describe('budget modal logic guards', () => {
   });
 
   it('keeps three desktop modes and two mobile modes', () => {
-    const layoutSource = fs.readFileSync(path.join(process.cwd(), 'app', 'agent', 'use-budget-modal-layout.ts'), 'utf8');
+    const layoutSource = fs.readFileSync(path.join(process.cwd(), 'app', 'agent', 'modales', 'presupuesto', 'use-budget-modal-layout.ts'), 'utf8');
     expect(layoutSource).toContain('shouldUseMobileShell');
     expect(layoutSource).toContain('export type BudgetViewMode = 1 | 2 | 3;');
     expect(layoutSource).toContain("'table-only'");
     expect(layoutSource).toContain("'split'");
     expect(layoutSource).toContain("'agent-front'");
-    const budgetModalSource = fs.readFileSync(path.join(process.cwd(), 'app', 'agent', 'BudgetModal.tsx'), 'utf8');
+    const budgetModalSource = fs.readFileSync(path.join(process.cwd(), 'app', 'agent', 'modales', 'presupuesto', 'BudgetModal.tsx'), 'utf8');
     expect(budgetModalSource).toContain('budget-assistant-blur-veil');
     expect(layoutSource).toContain('isBudgetAssistantOverlayMode');
     expect(layoutSource).toContain('isBudgetSplitMode');
@@ -61,7 +61,7 @@ describe('budget modal logic guards', () => {
   });
 
   it('uses lightweight local fallbacks while agent round-trip is pending', () => {
-    const helperSource = fs.readFileSync(path.join(process.cwd(), 'app', 'agent', 'budget-modal.helpers.ts'), 'utf8');
+    const helperSource = fs.readFileSync(path.join(process.cwd(), 'app', 'agent', 'modales', 'presupuesto', 'budget-modal.helpers.ts'), 'utf8');
     expect(helperSource).toContain('getBudgetQuestionForRow');
     expect(helperSource).toContain('¿Qué quieres cambiar en tu presupuesto?');
   });
@@ -134,14 +134,14 @@ describe('budget modal logic guards', () => {
   });
 
   it('keeps modals barrel free of duplicated budget snapshot helpers', () => {
-    const modalsSource = fs.readFileSync(path.join(process.cwd(), 'app', 'agent', 'modals.tsx'), 'utf8');
+    const modalsSource = fs.readFileSync(path.join(process.cwd(), 'app', 'agent', 'modales', 'index.ts'), 'utf8');
     expect(modalsSource).not.toContain('collectBudgetSnapshotCss');
     expect(modalsSource).not.toContain('buildBudgetSnapshotHtmlAndCss');
-    expect(modalsSource).toContain("export { BudgetModal } from './BudgetModal'");
+    expect(modalsSource).toContain("export { BudgetModal } from './presupuesto/BudgetModal'");
   });
 
   it('centralizes budget chat API helpers outside the modal component', () => {
-    const apiSource = fs.readFileSync(path.join(process.cwd(), 'app', 'agent', 'budget-modal.chat-api.ts'), 'utf8');
+    const apiSource = fs.readFileSync(path.join(process.cwd(), 'app', 'agent', 'modales', 'presupuesto', 'budget-modal.chat-api.ts'), 'utf8');
     expect(apiSource).toContain('export function normalizeBudgetChatPayload');
     expect(apiSource).toContain('BUDGET_CHAT_WATCHDOG_MS');
     expect(apiSource).toContain('BUDGET_CHAT_ABORT_MESSAGE');
@@ -155,14 +155,14 @@ describe('budget modal logic guards', () => {
   });
 
   it('opens the budget modal from the panel card instead of leaving dead copy', () => {
-    const panelCardsSource = fs.readFileSync(path.join(process.cwd(), 'app', 'agent', 'panel-cards.tsx'), 'utf8');
+    const panelCardsSource = fs.readFileSync(path.join(process.cwd(), 'app', 'agent', 'paneles', 'panel-cards.tsx'), 'utf8');
     expect(panelCardsSource).toContain('openBudgetModal');
     expect(panelCardsSource).toContain('Presupuesto está bloqueado: primero completa Productos y Transacciones.');
     expect(panelCardsSource).not.toContain('modal de presupuesto fue retirado');
   });
 
   it('prioritizes assistant_reply and suppresses next step for education turns', () => {
-    const helperSource = fs.readFileSync(path.join(process.cwd(), 'app', 'agent', 'budget-modal.helpers.ts'), 'utf8');
+    const helperSource = fs.readFileSync(path.join(process.cwd(), 'app', 'agent', 'modales', 'presupuesto', 'budget-modal.helpers.ts'), 'utf8');
     expect(helperSource).toContain('export function getAssistantMessage(payload:');
     expect(helperSource).toContain('payload.assistant_reply');
     expect(helperSource).toContain("payload.source === 'deterministic_education'");
@@ -170,7 +170,7 @@ describe('budget modal logic guards', () => {
   });
 
   it('maps auth, rate limit and server failures to explicit assistant error copy', () => {
-    const apiSource = fs.readFileSync(path.join(process.cwd(), 'app', 'agent', 'budget-modal.chat-api.ts'), 'utf8');
+    const apiSource = fs.readFileSync(path.join(process.cwd(), 'app', 'agent', 'modales', 'presupuesto', 'budget-modal.chat-api.ts'), 'utf8');
     expect(apiSource).toContain("if (message.includes('HTTP 401'))");
     expect(apiSource).toContain('Sesión expirada o no iniciada. Vuelve a entrar para usar el asistente.');
     expect(apiSource).toContain("if (message.includes('HTTP 429'))");
@@ -202,11 +202,11 @@ describe('budget modal logic guards', () => {
   it('extracts pdf snapshot helpers into a dedicated module', () => {
     expect(source).toContain("from './budget-modal.snapshot'");
     expect(source).not.toContain('function collectBudgetSnapshotCss');
-    const snapshotSource = fs.readFileSync(path.join(process.cwd(), 'app', 'agent', 'budget-modal.snapshot.ts'), 'utf8');
+    const snapshotSource = fs.readFileSync(path.join(process.cwd(), 'app', 'agent', 'modales', 'presupuesto', 'budget-modal.snapshot.ts'), 'utf8');
     expect(snapshotSource).toContain('export function buildBudgetSnapshotHtmlAndCss');
-    const chatThreadSource = fs.readFileSync(path.join(process.cwd(), 'app', 'agent', 'chat-thread-view.tsx'), 'utf8');
+    const chatThreadSource = fs.readFileSync(path.join(process.cwd(), 'app', 'agent', 'chat', 'chat-thread-view.tsx'), 'utf8');
     expect(chatThreadSource).toContain("from './bubble-chat.snapshot'");
-    const bubbleSnapshotSource = fs.readFileSync(path.join(process.cwd(), 'app', 'agent', 'bubble-chat.snapshot.ts'), 'utf8');
+    const bubbleSnapshotSource = fs.readFileSync(path.join(process.cwd(), 'app', 'agent', 'chat', 'bubble-chat.snapshot.ts'), 'utf8');
     expect(bubbleSnapshotSource).toContain('export function buildBubbleSnapshotHtmlAndCss');
   });
 
@@ -227,7 +227,7 @@ describe('budget modal logic guards', () => {
   });
 
   it('scopes legacy table column hiding away from budget-table-pro', () => {
-    const budgetCssPath = path.join(process.cwd(), 'app', 'agent-modals-budget.css');
+    const budgetCssPath = path.join(process.cwd(), 'app', 'estilos', 'modales', 'presupuesto', 'agent-modals-budget.css');
     const budgetCss = fs.readFileSync(budgetCssPath, 'utf8');
     expect(budgetCss).toContain('.budget-table:not(.budget-table-pro) th:nth-child(n+5)');
     expect(budgetCss).toContain('.budget-modal-body.is-desktop .budget-table-wrap');

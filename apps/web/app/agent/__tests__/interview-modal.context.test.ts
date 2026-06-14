@@ -1,4 +1,4 @@
-import { buildInterviewContextHighlights } from '../interview-modal.context';
+import { buildInterviewContextHighlights } from '../modales/entrevista/interview-modal.context';
 
 describe('interview modal context', () => {
   it('builds sidebar highlights as discrete lines from intake context only', () => {

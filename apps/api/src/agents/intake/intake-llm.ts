@@ -1,5 +1,5 @@
 import { completeStructured } from '../../services/llm.service';
-import { InterviewBlockId, buildInterviewPlan } from '../../orchestrator/interview.flow';
+import { InterviewBlockId, buildInterviewPlan } from '../../orquestador/interview.flow';
 import type { IntakeQuestionnaire } from '@financial-agent/shared/src/intake/intake-questionnaire.types';
 
 /**

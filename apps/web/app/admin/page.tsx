@@ -1,15 +1,15 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { getSessionInfo } from '@/lib/api';
+import { getSessionInfo } from '@/lib/api/cliente';
 import {
   fetchResearchAnalyticsReport,
   type ResearchAnalyticsCohort,
   type ResearchAnalyticsReport,
   type ResearchAnalyticsStage,
   type ResearchAnalyticsUser,
-} from '@/lib/admin';
-import { toUserFacingError } from '@/lib/userError';
+} from '@/lib/api/admin';
+import { toUserFacingError } from '@/lib/compartido/userError';
 
 type SessionInfo = {
   role?: string;

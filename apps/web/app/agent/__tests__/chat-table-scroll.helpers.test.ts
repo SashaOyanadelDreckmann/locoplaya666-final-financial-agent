@@ -2,7 +2,7 @@ import {
   buildChatTableScrollHint,
   buildChatTableScrollHostClassName,
   readChatTableScrollState,
-} from '@/components/agent/chat-table-scroll.helpers';
+} from '@/components/agente/chat-table-scroll.helpers';
 
 describe('chat table scroll helpers', () => {
   it('detects horizontal and vertical overflow', () => {

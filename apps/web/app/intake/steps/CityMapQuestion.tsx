@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { MOBILE_SHELL_MEDIA } from "@/lib/viewport-mode";
+import { MOBILE_SHELL_MEDIA } from "@/lib/interfaz/viewport-mode";
 import { Map as ArcMap, MapControls, MapMarker, MarkerContent, MarkerLabel } from "@/components/ui/mapcn-map-arc";
 
 type CityGeo = {

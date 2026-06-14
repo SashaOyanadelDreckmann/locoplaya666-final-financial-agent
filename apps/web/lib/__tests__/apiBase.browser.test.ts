@@ -4,9 +4,8 @@ import {
   getApiBaseUrl,
   getDocumentParseRequestUrl,
   getSessionApiBaseUrl,
-  getUploadApiBaseUrl,
   resolveDocumentUrl,
-} from '../apiBase';
+} from '../api/base';
 
 describe('apiBase browser', () => {
   const originalNodeEnv = process.env.NODE_ENV;
@@ -41,7 +40,7 @@ describe('apiBase browser', () => {
     });
     window.__FA_RUNTIME__ = { apiOrigin: 'https://runtime-api.example.com' };
     expect(getApiBaseUrl()).toBe('/backend');
-    expect(getUploadApiBaseUrl()).toBe('/api/documents/parse');
+    expect(getDocumentParseRequestUrl()).toBe('/api/documents/parse');
   });
 
   it('getSessionApiBaseUrl always uses same-origin /backend for auth cookies', () => {

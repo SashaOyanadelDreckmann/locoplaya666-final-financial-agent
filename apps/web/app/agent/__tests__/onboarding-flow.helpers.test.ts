@@ -1,6 +1,6 @@
 /** @jest-environment node */
 
-import { buildOnboardingFlowCta, BUDGET_ROWS_TARGET } from '../onboarding-flow.helpers';
+import { buildOnboardingFlowCta, BUDGET_ROWS_TARGET } from '../flujo/onboarding-flow.helpers';
 
 describe('buildOnboardingFlowCta', () => {
   it('prompts for transactions when evidence is missing', () => {

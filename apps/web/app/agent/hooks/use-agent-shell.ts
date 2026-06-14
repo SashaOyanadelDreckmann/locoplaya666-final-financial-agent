@@ -3,11 +3,11 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-import { ApiHttpError } from '@/lib/apiEnvelope';
-import { getSessionInfo, type FincoinUsageApiPayload } from '@/lib/api';
-import { syncViewportModeClasses } from '@/lib/viewport-mode';
-import { applyMobileViewportTokens } from '@/lib/mobile-viewport-sync';
-import { hasCompletedIntakeAccess, resolveAuthRedirectPath } from '../page.utils';
+import { ApiHttpError } from '@/lib/api/envelope';
+import { getSessionInfo, type FincoinUsageApiPayload } from '@/lib/api/cliente';
+import { syncViewportModeClasses } from '@/lib/interfaz/viewport-mode';
+import { applyMobileViewportTokens } from '@/lib/interfaz/mobile-viewport-sync';
+import { hasCompletedIntakeAccess, resolveAuthRedirectPath } from '../utilidades/page.utils';
 
 export type AgentSessionInfo = {
   id?: string;

@@ -3,7 +3,7 @@ import {
   buildChatUploadFiles,
   formatUploadFileSize,
   inferChatUploadFileKind,
-} from '../chat-upload.helpers';
+} from '../chat/chat-upload.helpers';
 
 describe('chat-upload.helpers', () => {
   it('infers file kinds from mime and extension', () => {

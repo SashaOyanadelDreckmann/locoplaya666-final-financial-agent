@@ -1,7 +1,7 @@
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
-import { resolveServerBackendBase, validateBackendSession } from '@/lib/sessionAccess';
+import { resolveServerBackendBase, validateBackendSession } from '@/lib/sesion/sessionAccess';
 
 const PROTECTED_PATHS = ['/agent', '/interview', '/diagnosis', '/intake', '/analytics', '/admin'];
 const GUEST_ONLY_PATHS = ['/login', '/register'];

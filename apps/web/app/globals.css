@@ -10,8 +10,8 @@
 /* ================================================= */
 /* PREMIUM ANIMATIONS FIRST                          */
 /* ================================================= */
-@import './animations.css';
-@import './agent-gradient-text.css';
+@import './estilos/sistema/animations.css';
+@import './estilos/tipografia/agent-gradient-text.css';
 @import "maplibre-gl/dist/maplibre-gl.css";
 
 @theme {
@@ -837,7 +837,7 @@ button {
 }
 
 @media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
-  .mobile-scale-frame {
+  html:not(.home-route-active) .mobile-scale-frame {
     transform: none;
     width: 100%;
     max-width: 100%;
@@ -916,12 +916,38 @@ button {
 html.home-route-active {
   background: var(--browser-chrome-color);
   background-color: var(--browser-chrome-color);
+  background-image: none;
+}
+
+html.pwa-standalone.home-route-active,
+html.pwa-standalone.home-route-active body {
+  background: var(--browser-chrome-color) !important;
+  background-color: var(--browser-chrome-color) !important;
+  background-image: none !important;
+}
+
+html.home-route-active .global-agent-backdrop,
+html.pwa-standalone.home-route-active .global-agent-backdrop {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+html.home-route-active .app-shell,
+html.home-route-active .mobile-scale-frame {
+  background: transparent !important;
 }
 
 html.home-route-active .app-shell::before,
 html.home-route-active .app-shell::after {
   display: none;
   content: none;
+}
+
+html.home-route-active .app-shell {
+  position: relative;
+  z-index: 2;
 }
 
 .home-canvas-layer {
@@ -956,15 +982,37 @@ html.home-route-active .app-shell::after {
 }
 
 @media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+  /* Home: window is the scroll container — useScroll + sticky need window.scrollY.
+     height:auto lets html/body grow; overflow-x:clip avoids horizontal bleed without
+     forcing overflow-y:auto on html (which would break position:sticky). */
   html.home-route-active,
   html.home-route-active body {
     height: auto;
     min-height: 100dvh;
     overflow-x: clip;
-    overflow-y: auto;
     overscroll-behavior-y: auto;
     touch-action: pan-y pinch-zoom;
     -webkit-overflow-scrolling: touch;
+  }
+
+  html.home-route-active .home-canvas-layer {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    min-height: 100dvh;
+    contain: strict;
+  }
+
+  html.home-route-active .home-grain-layer {
+    display: none;
+  }
+
+  .home-hero-orbs {
+    display: none;
   }
 
   html.home-route-active .app-shell {
@@ -974,24 +1022,27 @@ html.home-route-active .app-shell::after {
     overflow: visible;
   }
 
-  /* Explicit scroll root — Framer useScroll container on phone + iPad portrait */
-  html.home-route-active .mobile-scale-frame.home-scroll-root {
-    height: var(--fa-app-height, 100dvh) !important;
-    max-height: var(--fa-app-height, 100dvh) !important;
-    min-height: 0 !important;
-    overflow-x: clip !important;
-    overflow-y: auto !important;
-    overscroll-behavior-y: contain;
-    -webkit-overflow-scrolling: touch;
-    touch-action: pan-y pinch-zoom;
-  }
-
-  html.home-route-active .mobile-scale-frame:not(.home-scroll-root) {
+  html.home-route-active .mobile-scale-frame {
     height: auto;
     min-height: 100dvh;
     max-height: none;
     overflow-x: clip;
     overflow-y: visible;
+  }
+
+  html.home-route-active .home-canvas-layer,
+  html.home-route-active .home-grain-layer {
+    transform: translate3d(0, 0, 0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+  }
+
+  .home-problem-sticky {
+    transform: translateZ(0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    -webkit-mask-image: none;
+    mask-image: none;
   }
 }
 
@@ -1269,16 +1320,6 @@ html.home-route-active .app-shell::after {
   align-items: center;
   justify-content: space-between;
   padding: calc(env(safe-area-inset-top, 0px) + clamp(12px, 2.5vh, 20px)) 20px 0;
-  margin: 0 clamp(12px, 3vw, 28px);
-  margin-top: clamp(8px, 1.5vh, 16px);
-  border-radius: 999px;
-  background: linear-gradient(180deg, rgba(8, 12, 22, 0.62) 0%, rgba(8, 12, 22, 0.28) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.06),
-    0 18px 40px -28px rgba(0, 0, 0, 0.9);
-  backdrop-filter: blur(14px) saturate(1.2);
-  -webkit-backdrop-filter: blur(14px) saturate(1.2);
 }
 
 .home-page-hero {
@@ -1314,8 +1355,6 @@ html.home-route-active .app-shell::after {
   }
   .home-page-header {
     padding: calc(env(safe-area-inset-top, 0px) + 18px) 40px 0;
-    margin: 0 clamp(24px, 5vw, 56px);
-    margin-top: clamp(12px, 2vh, 20px);
   }
   .home-page-hero {
     padding: 0 56px 64px;
@@ -3627,48 +3666,6 @@ html {
   color: #ffffff;
 }
 
-/* ===== Premium Home v2 ===== */
-.home-premium { background: #070b13; color: #eaf0ff; }
-.home-hero2 { position: relative; min-height: 92dvh; padding: 24px clamp(20px, 5vw, 64px) 56px; background-image: url('/B629C581-B254-4C93-9522-9BF4C2F48E11.jpg'); background-size: cover; background-position: center; }
-.hero-overlay { position: absolute; inset: 0; background: radial-gradient(circle at 65% 20%, rgba(134,162,220,.35), transparent 45%), linear-gradient(120deg, rgba(2,8,20,.86), rgba(8,17,36,.45)); }
-.hero-nav, .hero-grid { position: relative; z-index: 2; }
-.hero-nav { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 6px 0; }
-.hero-brand { font-size: 1.05rem; font-weight: 700; letter-spacing: .04em; }
-.hero-links { display: flex; gap: 24px; }
-.hero-links a, .hero-login { color: rgba(236,243,255,.92); text-decoration: none; }
-.hero-login { border: 1px solid rgba(228,240,255,.4); border-radius: 999px; padding: 8px 16px; backdrop-filter: blur(4px); }
-.hero-grid { margin-top: clamp(40px, 10vh, 120px); display: grid; grid-template-columns: 1.1fr .9fr; gap: 28px; align-items: end; }
-.hero-kicker { font-size: .78rem; text-transform: uppercase; letter-spacing: .18em; opacity: .9; }
-.hero-copy h1 { font-size: clamp(2.2rem, 7vw, 5.8rem); line-height: .95; letter-spacing: -.03em; max-width: 12ch; }
-.hero-sub { margin-top: 16px; font-size: clamp(1rem, 1.65vw, 1.35rem); max-width: 45ch; color: rgba(227,236,255,.88); }
-.hero-actions { margin-top: 24px; display: flex; gap: 12px; flex-wrap: wrap; }
-.hero-cta-main, .hero-cta-ghost2 { text-decoration: none; border-radius: 14px; padding: 12px 18px; font-weight: 600; }
-.hero-cta-main { background: linear-gradient(135deg, #89a7d7, #6b88c7); color: #021021; }
-.hero-cta-ghost2 { border: 1px solid rgba(234,242,255,.36); color: #eff5ff; background: rgba(14,23,39,.33); }
-.hero-card { justify-self: end; width: min(380px, 100%); border: 1px solid rgba(201,221,255,.26); border-radius: 20px; padding: 22px; background: rgba(7,16,29,.5); backdrop-filter: blur(10px); }
-.hero-card-title { font-weight: 700; margin-bottom: 8px; }
-.hero-card ul { padding-left: 20px; display: grid; gap: 8px; color: rgba(230,238,255,.9); }
-.metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; max-width: 1100px; margin: -28px auto 20px; padding: 0 20px; position: relative; z-index: 3; }
-.metric { border: 1px solid rgba(179,206,255,.24); border-radius: 16px; background: #0a1528; padding: 18px; }
-.metric strong { display: block; font-size: clamp(1.35rem, 3vw, 2rem); }
-.metric span { color: rgba(229,239,255,.72); font-size: .93rem; }
-.premium-section { max-width: 1100px; margin: 52px auto; padding: 0 20px; }
-.premium-section h2 { font-size: clamp(1.6rem, 3.6vw, 2.8rem); margin-bottom: 18px; }
-.pill-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-.pill { padding: 14px 16px; border-radius: 999px; border: 1px solid rgba(158,191,251,.28); background: rgba(13,27,51,.7); text-align: center; }
-.steps-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-.steps-grid article { border: 1px solid rgba(162,192,252,.22); border-radius: 16px; background: #0a1425; padding: 18px; }
-.steps-grid span { font-size: .75rem; letter-spacing: .18em; opacity: .65; }
-.steps-grid p { margin-top: 8px; font-size: 1.02rem; }
-.cta-bottom { text-align: center; padding-bottom: 72px; }
-
-@media (max-width: 920px) {
-  .hero-links { display: none; }
-  .hero-grid { grid-template-columns: 1fr; margin-top: 52px; }
-  .hero-card { justify-self: start; }
-  .metrics, .pill-grid, .steps-grid { grid-template-columns: 1fr; }
-  .home-hero2 { min-height: auto; padding-bottom: 42px; }
-}
 
 /* ── Home feature rows — responsive 3→2 column grid ── */
 .home-feature-row {

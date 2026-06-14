@@ -3,13 +3,13 @@ import type { Request, Response } from 'express';
 
 import { runDiagnosticAgent } from '../agents/diagnostic/diagnostic.agent';
 import { buildVoiceInterviewFallbackProfile } from '../agents/diagnostic/diagnostic.fallback';
-import { buildInterviewPlan, InterviewBlockId } from '../orchestrator/interview.flow';
+import { buildInterviewPlan, InterviewBlockId } from '../orquestador/interview.flow';
 import {
   buildInterviewFinalizePromptLines,
   buildVoiceInterviewSyntheticBlocks,
   clampInterviewConfidence,
   resolveInterviewFinalizeDepth,
-} from '../orchestrator/interview-voice-finalize';
+} from '../orquestador/interview-voice-finalize';
 import { IntakeQuestionnaire } from '@financial-agent/shared/src/intake/intake-questionnaire.types';
 import { INTERVIEW_MIN_EARLY_END_SEC, INTERVIEW_TOTAL_LIMIT_SEC } from '@financial-agent/shared';
 import { InterviewBlockEvidence } from '../schemas/profile.schema';

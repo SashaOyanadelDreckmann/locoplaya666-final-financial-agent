@@ -5,7 +5,7 @@ import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { SquareArrowOutUpRight } from "lucide-react";
 import Link from "next/link";
 
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/compartido/utils";
 
 export type CardStackItem = {
   id: string | number;

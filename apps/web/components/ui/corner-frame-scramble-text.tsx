@@ -2,7 +2,7 @@
 
 import type { ElementType, HTMLAttributes } from 'react';
 import { TextScramble } from '@/components/ui/text-scramble';
-import { cn } from '@/lib/utils';
+import { cn } from '@/lib/compartido/utils';
 
 type CornerFrameScrambleTextProps = {
   value: string | number;

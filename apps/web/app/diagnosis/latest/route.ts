@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getApiBaseUrl } from '@/lib/apiBase';
-import { parseApiResponse } from '@/lib/apiEnvelope';
+import { getApiBaseUrl } from '@/lib/api/base';
+import { parseApiResponse } from '@/lib/api/envelope';
 
 export async function GET(request: Request) {
   try {

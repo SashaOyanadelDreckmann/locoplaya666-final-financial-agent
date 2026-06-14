@@ -1,8 +1,8 @@
 'use client';
 
 import { create } from 'zustand';
-import { fetchLatestDiagnosis, getSessionInfo } from '@/lib/api';
-import { ApiHttpError } from '@/lib/apiEnvelope';
+import { fetchLatestDiagnosis, getSessionInfo } from '@/lib/api/cliente';
+import { ApiHttpError } from '@/lib/api/envelope';
 
 export type FinancialProfileTraits = {
   financialClarity: 'low' | 'medium' | 'high';

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { resolveCoreAgentProxyTimeoutMs } from '@financial-agent/shared';
 
-import { getAgentApiBaseUrl } from '@/lib/apiBase';
+import { getAgentApiBaseUrl } from '@/lib/api/base';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

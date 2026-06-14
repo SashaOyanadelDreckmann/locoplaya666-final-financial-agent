@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
-import { getApiBaseUrl } from '@/lib/apiBase';
-import { requireBackendSession } from '@/lib/serverAuth';
+import { getApiBaseUrl } from '@/lib/api/base';
+import { requireBackendSession } from '@/lib/sesion/serverAuth';
 
 export async function POST(req: Request) {
   try {

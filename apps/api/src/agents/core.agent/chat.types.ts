@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { UIEvent as SharedUIEvent } from '@financial-agent/shared/src/ui-events';
+import type { UIEvent as SharedUIEvent } from '@financial-agent/shared/src/interfaz/ui-events';
 
 /* ────────────────────────────────────────────── */
 /* Reasoning Modes                                */

@@ -1,6 +1,6 @@
 import type { UserRole } from '../auth/rbac';
 import type { ApprovalStatus } from '../auth/approval';
-import { getPersistenceMode, getPrismaClient, memoryStore } from '../persistence/provider';
+import { getPersistenceMode, getPrismaClient, memoryStore } from '../persistencia/provider';
 
 type AdminSessionSnapshot = {
   createdAt: string;

@@ -1,6 +1,6 @@
 /** @jest-environment node */
 
-import { getServerApiBaseUrl, getUploadApiBaseUrl } from '../apiBase';
+import { getServerApiBaseUrl, getDocumentParseRequestUrl } from '../api/base';
 
 describe('apiBase server', () => {
   const originalApiUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -18,9 +18,9 @@ describe('apiBase server', () => {
     expect(getServerApiBaseUrl()).toBe('https://api.example.com');
   });
 
-  it('getUploadApiBaseUrl points to documents parse on server', () => {
+  it('getDocumentParseRequestUrl points to documents parse on server', () => {
     delete process.env.NEXT_PUBLIC_API_URL;
     process.env.NEXT_PUBLIC_API_ORIGIN = 'https://api-origin.example.com';
-    expect(getUploadApiBaseUrl()).toBe('https://api-origin.example.com/api/documents/parse');
+    expect(getDocumentParseRequestUrl()).toBe('https://api-origin.example.com/api/documents/parse');
   });
 });

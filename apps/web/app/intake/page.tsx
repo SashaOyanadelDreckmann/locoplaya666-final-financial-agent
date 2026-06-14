@@ -5,12 +5,12 @@ import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Suspense, useEffect, useState } from 'react';
 import { useInterviewStore } from '@/state/interview.store';
-import { submitIntake } from '@/lib/intake';
-import { getSessionInfo } from '@/lib/api';
-import { toUserFacingError } from '@/lib/userError';
-import { hasCompletedIntakeAccess, resolveAuthRedirectPath } from '@/lib/sessionAccess';
-import { markAgentBootFromIntake } from '../agent/agent-boot-sequence.helpers';
-import { markPanelIntroPendingFromIntake } from '../agent/panel-intro.prefs';
+import { submitIntake } from '@/lib/sesion/intake';
+import { getSessionInfo } from '@/lib/api/cliente';
+import { toUserFacingError } from '@/lib/compartido/userError';
+import { hasCompletedIntakeAccess, resolveAuthRedirectPath } from '@/lib/sesion/sessionAccess';
+import { markAgentBootFromIntake } from '../agent/arranque/agent-boot-sequence.helpers';
+import { markPanelIntroPendingFromIntake } from '../agent/paneles/panel-intro.prefs';
 
 import type { IntakeQuestionnaire } from '@financial-agent/shared/src/intake/intake-questionnaire.types';
 

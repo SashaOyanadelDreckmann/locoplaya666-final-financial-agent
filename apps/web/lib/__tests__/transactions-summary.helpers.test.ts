@@ -1,4 +1,4 @@
-import { resolveInstantTransactionSummary } from '../transactions-summary.helpers';
+import { resolveInstantTransactionSummary } from '../transacciones/resumen.helpers';
 
 describe('transactions-summary.helpers', () => {
   it('returns the existing executive summary when it is already rich enough', () => {

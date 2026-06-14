@@ -1,6 +1,6 @@
 import { getConfig } from '../config';
 import { isBootstrapped } from '../mcp/tools/registry';
-import { getPersistenceMode, getPrismaClient } from '../persistence/provider';
+import { getPersistenceMode, getPrismaClient } from '../persistencia/provider';
 
 const DB_PING_TIMEOUT_MS = 5_000;
 

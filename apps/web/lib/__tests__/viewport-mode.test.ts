@@ -1,4 +1,4 @@
-import { shouldUseMobileShell } from '../viewport-mode';
+import { shouldUseMobileShell } from '../interfaz/viewport-mode';
 
 function setViewport(width: number, height: number, coarse = false, touchPoints = 0) {
   Object.defineProperty(window, 'innerWidth', { configurable: true, value: width });

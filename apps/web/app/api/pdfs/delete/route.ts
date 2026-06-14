@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { requireBackendSession } from '@/lib/serverAuth';
-import { getApiBaseUrl } from '@/lib/apiBase';
+import { requireBackendSession } from '@/lib/sesion/serverAuth';
+import { getApiBaseUrl } from '@/lib/api/base';
 
 export async function DELETE(req: Request) {
   try {

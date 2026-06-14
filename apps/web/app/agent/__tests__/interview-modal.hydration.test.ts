@@ -3,7 +3,7 @@ import {
   interviewIntakeContextsEqual,
   mergeInterviewIntake,
   mergeInterviewVoiceSnapshots,
-} from '../interview-modal.hydration';
+} from '../modales/entrevista/interview-modal.hydration';
 
 describe('interview modal hydration', () => {
   it('prefers server quota fields while keeping the highest callSeconds progress', () => {

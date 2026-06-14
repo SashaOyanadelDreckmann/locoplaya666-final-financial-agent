@@ -1,8 +1,8 @@
-import { ApiHttpError } from '../apiEnvelope';
+import { ApiHttpError } from '../api/envelope';
 import {
   hasMeaningfulIntake,
   resolveAuthRedirectPath,
-} from '@/lib/sessionAccess';
+} from '@/lib/sesion/sessionAccess';
 
 describe('intake access helpers', () => {
   it('rejects empty or partial intake envelopes', () => {

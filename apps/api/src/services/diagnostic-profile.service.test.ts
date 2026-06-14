@@ -149,7 +149,7 @@ describe('diagnosis persistence integration', () => {
     const request = (await import('supertest')).default;
     const { createApp } = await import('../app');
     const { createApprovalToken } = await import('./approval.service');
-    const { patchUserRecord } = await import('../persistence/repos');
+    const { patchUserRecord } = await import('../persistencia/repos');
     const { loadUserById } = await import('./user.service');
     const { resolveUserDiagnosticProfile } = await import('./diagnostic-profile.service');
 

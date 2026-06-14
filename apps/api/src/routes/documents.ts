@@ -6,7 +6,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { ingestUserDocument, searchUserDocumentContext } from '../services/document-intelligence.service';
-import { getUserDocumentsByIds } from '../persistence/repos';
+import { getUserDocumentsByIds } from '../persistencia/repos';
 import { completeStructuredWithSchema } from '../services/llm.service';
 import { inferTransactionTaxonomy } from '../services/transactionTaxonomy.service';
 import { requireAuth, requirePermission } from '../middleware/auth';

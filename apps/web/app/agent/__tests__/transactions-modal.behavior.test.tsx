@@ -1,19 +1,19 @@
 /** @jest-environment jsdom */
 
 import { fireEvent, render, screen } from '@testing-library/react';
-import { TransactionsModal } from '../transactions/TransactionsModal';
-import { TxConsentStep } from '../transactions/TxConsentStep';
-import { TxEvidenceStep } from '../transactions/TxEvidenceStep';
-import { buildEvidenceResetPatch } from '../transactions/state.helpers';
-import { MAX_TRANSACTION_EVIDENCE_RESETS } from '../agent-page.constants';
-import type { BankProduct, TransactionsModalProps } from '../transactions/types';
+import { TransactionsModal } from '../modales/transacciones/TransactionsModal';
+import { TxConsentStep } from '../modales/transacciones/TxConsentStep';
+import { TxEvidenceStep } from '../modales/transacciones/TxEvidenceStep';
+import { buildEvidenceResetPatch } from '../modales/transacciones/state.helpers';
+import { MAX_TRANSACTION_EVIDENCE_RESETS } from '../utilidades/agent-page.constants';
+import type { BankProduct, TransactionsModalProps } from '../modales/transacciones/types';
 
-jest.mock('@/components/agent/ModalNumbersCanvas', () => ({
+jest.mock('@/components/agente/ModalNumbersCanvas', () => ({
   __esModule: true,
   default: () => null,
 }));
 
-jest.mock('../transactions/TxAnalystDashboard', () => ({
+jest.mock('../modales/transacciones/TxAnalystDashboard', () => ({
   TxAnalystDashboard: ({
     onCarouselPause,
     onCarouselResume,

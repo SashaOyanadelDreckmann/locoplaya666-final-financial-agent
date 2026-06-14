@@ -3,7 +3,7 @@
 import {
   buildCoreAgentRequestBody,
   sanitizeCoreAgentHistory,
-} from '@/lib/agent/buildCoreAgentRequest';
+} from '@/lib/agente/nucleo/buildCoreAgentRequest';
 
 describe('buildCoreAgentRequest', () => {
   it('compacts history and merges profile into context', () => {

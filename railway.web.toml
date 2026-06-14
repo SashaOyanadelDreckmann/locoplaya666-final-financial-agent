@@ -7,9 +7,9 @@ dockerfilePath = "Dockerfile.web"
 watchPatterns = [
   "apps/web/**",
   "packages/shared/**",
-  "scripts/deploy-web.sh",
-  "scripts/lib/**",
-  "scripts/prod-smoke.mjs",
+  "scripts/despliegue/deploy-web.sh",
+  "scripts/despliegue/lib/**",
+  "scripts/qa/prod-smoke.mjs",
   "Dockerfile.web",
   ".dockerignore",
   ".railwayignore",

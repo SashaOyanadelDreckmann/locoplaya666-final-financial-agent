@@ -1,18 +1,18 @@
 // packages/shared/src/index.ts
-export * from './interview.constants';
-export * from './interview-voice-dossier';
-export * from './chat-lifecycle.constants';
-export * from './chat-closure-summary';
-export * from './chat-closure-carousel';
-export * from './action-plan-funnel';
-export * from './budget-rows';
-export * from './budget-chat-focus';
-export * from './budget-chat-context';
-export * from './budget-table-schema';
-export * from './budget-chat-session';
-export * from './transactions-chat';
-export * from './transactions-chat-planner';
-export * from './evidence-fidelity';
+export * from './entrevista/interview.constants';
+export * from './entrevista/interview-voice-dossier';
+export * from './chat/chat-lifecycle.constants';
+export * from './chat/chat-closure-summary';
+export * from './chat/chat-closure-carousel';
+export * from './flujo/action-plan-funnel';
+export * from './presupuesto/budget-rows';
+export * from './presupuesto/budget-chat-focus';
+export * from './presupuesto/budget-chat-context';
+export * from './presupuesto/budget-table-schema';
+export * from './presupuesto/budget-chat-session';
+export * from './transacciones/transactions-chat';
+export * from './transacciones/transactions-chat-planner';
+export * from './transacciones/evidence-fidelity';
 export type {
     IntakeQuestionnaire,
     FinancialKnowledgeChecklist,
@@ -43,11 +43,11 @@ export {
   stableStringify,
   withWelcomeIntroFirstName,
 } from './welcome/welcome-intro.cache';
-export * from './ui-events';
-export * from './fincoin.constants';
-export * from './agent-stream';
-export * from './agent-stream-ui';
-export * from './agent-timeouts';
-export * from './chat-history';
-export * from './chat-pipelines';
-export * from './evidence-policy';
+export * from './interfaz/ui-events';
+export * from './fincoins/fincoin.constants';
+export * from './agente/agent-stream';
+export * from './agente/agent-stream-ui';
+export * from './agente/agent-timeouts';
+export * from './chat/chat-history';
+export * from './chat/chat-pipelines';
+export * from './transacciones/evidence-policy';

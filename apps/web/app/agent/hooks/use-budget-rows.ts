@@ -12,7 +12,7 @@ import {
   mergeBudgetTemplate,
   reconcileBudgetRows,
   type BudgetRow,
-} from '@/lib/budget-rows.helpers';
+} from '@/lib/presupuesto/filas.helpers';
 import {
   mergeBudgetActionIntoRow,
   normalizeBudgetActionRowId,

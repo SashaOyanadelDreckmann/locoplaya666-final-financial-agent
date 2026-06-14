@@ -2,7 +2,7 @@ import {
   advanceParseProgressTick,
   buildParseProgressLabels,
   resolveStepState,
-} from '../transactions-parse-progress.helpers';
+} from '../transacciones/progreso-parse.helpers';
 
 describe('transactions-parse-progress.helpers', () => {
   it('advances percent while extracting', () => {

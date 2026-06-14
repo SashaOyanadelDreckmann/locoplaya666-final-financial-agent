@@ -1,7 +1,7 @@
 /** @jest-environment node */
 
-import type { ChatItem } from '@/lib/agent.response.types';
-import { sanitizeChatItems } from '../page.utils';
+import type { ChatItem } from '@/lib/agente/agent.response.types';
+import { sanitizeChatItems } from '../utilidades/page.utils';
 
 describe('sanitizeChatItems upload persistence', () => {
   it('strips ephemeral blob previews and normalizes processing status', () => {

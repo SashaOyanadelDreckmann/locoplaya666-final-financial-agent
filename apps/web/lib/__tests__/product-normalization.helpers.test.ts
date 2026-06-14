@@ -1,4 +1,4 @@
-import { normalizeProductAssistantState } from '../product-normalization.helpers';
+import { normalizeProductAssistantState } from '../compartido/product-normalization.helpers';
 
 describe('product-normalization.helpers', () => {
   it('clears legacy video upload format from assistant state', () => {

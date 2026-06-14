@@ -1,6 +1,6 @@
 import path from 'path';
 import { toFile } from 'openai';
-import type { StoredDocumentKind, StoredDocumentSource } from '../persistence/types';
+import type { StoredDocumentKind, StoredDocumentSource } from '../persistencia/types';
 import {
   createDocumentRecord,
   getUserVectorStoreRecord,
@@ -8,7 +8,7 @@ import {
   patchDocumentRecord,
   searchUserDocumentsLocal,
   upsertUserVectorStoreRecord,
-} from '../persistence/repos';
+} from '../persistencia/repos';
 import { parseTransactionFileDetailed, type ParsedTable } from './transactionParser.service';
 import { getOpenAIClient } from './llm.service';
 import { buildTransactionDocumentProfile } from './transactionDocumentProfile.service';

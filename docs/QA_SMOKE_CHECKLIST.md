@@ -85,4 +85,6 @@ pnpm --filter @financial-agent/api test
 pnpm verify   # si falla build, probar: rm -rf apps/web/.next && pnpm verify
 pnpm prod:smoke
 pnpm qa:smoke
+pnpm qa:budget-e2e   # requiere API, EMAIL, PASS por env
+pnpm qa:tx-modal     # smoke Playwright del modal transacciones (web local)
 ```

@@ -2,7 +2,7 @@ import {
   resolveRouteShellClass,
   ROUTE_SHELL_CLASS_NAMES,
   syncRouteShellClasses,
-} from '../route-shell-classes';
+} from '../interfaz/route-shell-classes';
 
 describe('resolveRouteShellClass', () => {
   it('maps known routes to shell classes', () => {

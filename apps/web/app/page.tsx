@@ -8,16 +8,17 @@ import { ArrowRight } from 'lucide-react';
 import {
   motion,
   useMotionValue,
+  useScroll,
   useSpring,
   useTransform,
 } from 'framer-motion';
-import { HomeScrollRoot, useHomeScroll } from '@/lib/home-scroll-context';
-import SpotlightCard from '../components/home/SpotlightCard';
-import Counter from '../components/home/Counter';
-import NumbersCanvas from '../components/home/NumbersCanvas';
-import BrandWordmark from '../components/brand/BrandWordmark';
+import SpotlightCard from '@/components/inicio/SpotlightCard';
+import Counter from '@/components/inicio/Counter';
+import NumbersCanvas, { type MousePos } from '@/components/inicio/NumbersCanvas';
+import BrandWordmark from '@/components/marca/BrandWordmark';
 import { useSessionStore } from '@/state/session.store';
 import { getSessionInfo } from '@/lib/api';
+import { MOBILE_SHELL_MEDIA } from '@/lib/interfaz/viewport-mode';
 
 const MotionLink = motion(Link);
 
@@ -68,33 +69,36 @@ const PROBLEM_LINES = [
 ];
 
 // ── Problem Section — sticky scroll con 3 fases ────────────────────────────────
-function ProblemSection() {
-  const ref = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useHomeScroll({ target: ref, offset: ['start start', 'end end'] });
+function ProblemSection({
+  sectionRef,
+  mobileShell,
+}: {
+  sectionRef: RefObject<HTMLDivElement | null>;
+  mobileShell: boolean;
+}) {
+  const { scrollYProgress } = useScroll({ target: sectionRef, offset: ['start start', 'end end'] });
 
   const sp = scrollYProgress;
 
-  // Cada línea se activa en su tercio
-  const c0 = useTransform(sp, [0, 0.08, 0.30, 0.42], [0.12, 1, 1, 0.15]);
-  const c1 = useTransform(sp, [0.33, 0.42, 0.62, 0.72], [0.12, 1, 1, 0.15]);
-  const c2 = useTransform(sp, [0.65, 0.74, 0.98, 1.0], [0.12, 1, 1, 0.90]);
+  const c0 = useTransform(sp, mobileShell ? [0, 0.12, 0.34, 0.48] : [0, 0.08, 0.30, 0.42], mobileShell ? [0.35, 1, 1, 0.35] : [0.12, 1, 1, 0.15]);
+  const c1 = useTransform(sp, mobileShell ? [0.30, 0.40, 0.64, 0.76] : [0.33, 0.42, 0.62, 0.72], mobileShell ? [0.35, 1, 1, 0.35] : [0.12, 1, 1, 0.15]);
+  const c2 = useTransform(sp, mobileShell ? [0.58, 0.68, 0.96, 1.0] : [0.65, 0.74, 0.98, 1.0], mobileShell ? [0.35, 1, 1, 0.85] : [0.12, 1, 1, 0.90]);
 
-  const y0 = useTransform(sp, [0, 0.4], ['6px', '-6px']);
-  const y1 = useTransform(sp, [0.1, 0.6], ['10px', '-10px']);
-  const y2 = useTransform(sp, [0.3, 1.0], ['14px', '-6px']);
+  const y0 = useTransform(sp, [0, 0.4], mobileShell ? ['0px', '0px'] : ['6px', '-6px']);
+  const y1 = useTransform(sp, [0.1, 0.6], mobileShell ? ['0px', '0px'] : ['10px', '-10px']);
+  const y2 = useTransform(sp, [0.3, 1.0], mobileShell ? ['0px', '0px'] : ['14px', '-6px']);
 
-  // Barra de progreso lateral
   const barH = useTransform(sp, [0, 1], ['0%', '100%']);
-
-  // Fondo cambia de color con el scroll
-  const overlayOpacity = useTransform(sp, [0, 0.5, 1], [0, 0.22, 0]);
+  const overlayOpacity = useTransform(sp, [0, 0.5, 1], mobileShell ? [0, 0.12, 0] : [0, 0.22, 0]);
 
   const colors = [c0, c1, c2];
   const ys = [y0, y1, y2];
 
   return (
-    <div ref={ref} className="home-problem-wrapper" style={{ position: 'relative' }}>
-      <div style={{
+    <div ref={sectionRef as React.RefObject<HTMLDivElement>} className="home-problem-wrapper" style={{ position: 'relative' }}>
+      <div
+        className="home-problem-sticky"
+        style={{
         position: 'sticky',
         top: 0,
         height: '100dvh',
@@ -168,14 +172,14 @@ function ProblemSection() {
 }
 
 // ── Features Section ───────────────────────────────────────────────────────────
-function FeaturesSection({ sectionRef }: { sectionRef: RefObject<HTMLElement> }) {
-  const { scrollYProgress } = useHomeScroll({ target: sectionRef, offset: ['start end', 'end start'] });
+function FeaturesSection({ sectionRef }: { sectionRef: RefObject<HTMLElement | null> }) {
+  const { scrollYProgress } = useScroll({ target: sectionRef, offset: ['start end', 'end start'] });
 
   const headY = useTransform(scrollYProgress, [0, 0.5, 1], [40, 0, -30]);
   const headO = useTransform(scrollYProgress, [0, 0.15, 0.75, 1], [0, 1, 1, 0.3]);
 
   return (
-    <section ref={sectionRef} className="home-content-section" style={{
+    <section ref={sectionRef as React.RefObject<HTMLElement>} className="home-content-section" style={{
       position: 'relative',
       overflow: 'hidden',
       background: 'transparent',
@@ -239,7 +243,7 @@ function FeaturesSection({ sectionRef }: { sectionRef: RefObject<HTMLElement> })
 // ── Stats Section ──────────────────────────────────────────────────────────────
 function StatsSection() {
   const ref = useRef<HTMLElement>(null);
-  const { scrollYProgress } = useHomeScroll({ target: ref, offset: ['start end', 'end start'] });
+  const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end start'] });
 
   const headY = useTransform(scrollYProgress, [0, 0.4, 1], [30, 0, -20]);
   const headO = useTransform(scrollYProgress, [0, 0.2, 0.8, 1], [0, 1, 1, 0.4]);
@@ -295,10 +299,10 @@ function StatsSection() {
 
 // ── Steps Section ──────────────────────────────────────────────────────────────
 function StepsSection() {
+  const sectionRef = useRef<HTMLElement>(null);
   const router = useRouter();
   const isAuthenticated = useSessionStore((s) => s.isAuthenticated);
-  const ref = useRef<HTMLElement>(null);
-  const { scrollYProgress } = useHomeScroll({ target: ref, offset: ['start end', 'end start'] });
+  const { scrollYProgress } = useScroll({ target: sectionRef, offset: ['start end', 'end start'] });
 
   const headY = useTransform(scrollYProgress, [0, 0.4, 1], [40, 0, -25]);
   const headO = useTransform(scrollYProgress, [0, 0.2, 0.85, 1], [0, 1, 1, 0.3]);
@@ -318,7 +322,7 @@ function StepsSection() {
   };
 
   return (
-    <section ref={ref} className="home-content-section" style={{
+    <section ref={sectionRef as React.RefObject<HTMLElement>} className="home-content-section" style={{
       background: 'transparent',
       padding: 'clamp(52px,12vw,160px) clamp(24px,8vw,120px)',
       position: 'relative',
@@ -412,10 +416,10 @@ function StepsSection() {
 
 // ── CTA Section ────────────────────────────────────────────────────────────────
 function CtaSection() {
+  const sectionRef = useRef<HTMLElement>(null);
   const router = useRouter();
   const isAuthenticated = useSessionStore((s) => s.isAuthenticated);
-  const ref = useRef<HTMLElement>(null);
-  const { scrollYProgress } = useHomeScroll({ target: ref, offset: ['start end', 'end start'] });
+  const { scrollYProgress } = useScroll({ target: sectionRef, offset: ['start end', 'end start'] });
   const headY = useTransform(scrollYProgress, [0, 0.5, 1], [60, 0, -40]);
   const headO = useTransform(scrollYProgress, [0, 0.2, 0.85, 1], [0, 1, 1, 0.2]);
 
@@ -433,7 +437,7 @@ function CtaSection() {
   };
 
   return (
-    <section ref={ref} className="home-content-section" style={{
+    <section ref={sectionRef as React.RefObject<HTMLElement>} className="home-content-section" style={{
       background: 'transparent',
       padding: 'clamp(72px,16vw,220px) clamp(24px,8vw,120px)',
       position: 'relative',
@@ -506,25 +510,31 @@ export default function HomePage() {
   const rotX = useSpring(useTransform(heroMY, [0, 1], [4, -4]), springCfg);
   const rotY = useSpring(useTransform(heroMX, [0, 1], [-4, 4]), springCfg);
   const [heroTiltEnabled, setHeroTiltEnabled] = useState(false);
+  const [mobileShell, setMobileShell] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia(MOBILE_SHELL_MEDIA).matches,
+  );
 
   const featureSectionRef = useRef<HTMLElement>(null);
+  const problemSectionRef = useRef<HTMLDivElement>(null);
 
-  const { scrollYProgress: canvasProgress } = useHomeScroll({
+  const { scrollYProgress: canvasProgress } = useScroll({
     target: scrollRangeRef,
     offset: ['start start', 'end end'],
   });
-  const { scrollYProgress: heroProgress } = useHomeScroll({
+  const { scrollYProgress: heroProgress } = useScroll({
     target: heroSectionRef,
     offset: ['start start', 'end end'],
   });
-  const { scrollYProgress: featureRawP } = useHomeScroll({
+  const { scrollYProgress: featureRawP } = useScroll({
     target: featureSectionRef,
     offset: ['start end', 'end start'],
   });
-  // featureDip: 0 fuera de vista → 1 centrada → 0 al salir
+  // featureDip: desktop only — on mobile it pulses the canvas mid-scroll and feels unstable.
   const featureDip = useTransform(featureRawP, [0, 0.22, 0.72, 1], [0, 1, 1, 0]);
+  const canvasFeatureDip = useTransform(featureDip, (v) => (mobileShell ? 0 : v));
 
-  const heroY       = useTransform(heroProgress, [0, 0.6], [0, -55]);
+  const heroYRaw = useTransform(heroProgress, [0, 0.6], [0, -55]);
+  const heroY = useTransform(heroYRaw, (v) => (mobileShell ? 0 : v));
   const lineOpacity = useTransform(heroProgress, [0, 0.18], [1, 0]);
 
   const updatePointer = useCallback((clientX: number, clientY: number) => {
@@ -542,6 +552,14 @@ export default function HomePage() {
   }, [heroMX, heroMY]);
 
   useEffect(() => {
+    const shellMq = window.matchMedia(MOBILE_SHELL_MEDIA);
+    const applyShell = () => setMobileShell(shellMq.matches);
+    applyShell();
+    shellMq.addEventListener('change', applyShell);
+    return () => shellMq.removeEventListener('change', applyShell);
+  }, []);
+
+  useEffect(() => {
     const tiltMq = window.matchMedia('(pointer: fine) and (min-width: 768px)');
     const applyTilt = () => setHeroTiltEnabled(tiltMq.matches);
     applyTilt();
@@ -550,6 +568,7 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
+    if (mobileShell) return;
     const resetPointer = () => {
       heroMX.set(0.5);
       heroMY.set(0.5);
@@ -569,7 +588,7 @@ export default function HomePage() {
       window.removeEventListener('touchend', resetPointer);
       window.removeEventListener('touchcancel', resetPointer);
     };
-  }, [heroMX, heroMY, updatePointer]);
+  }, [heroMX, heroMY, updatePointer, mobileShell]);
 
   const handleStartDiagnosis = async () => {
     if (isAuthenticated) {
@@ -585,15 +604,11 @@ export default function HomePage() {
   };
 
   return (
-    <HomeScrollRoot>
     <main style={{ background: 'var(--browser-chrome-color, #050810)', color: 'white', position: 'relative' }}>
 
-      {/* Canvas fijo */}
       <div className="home-canvas-layer">
-        <NumbersCanvas progress={canvasProgress} mouseRef={mousePosRef} featureDip={featureDip} />
+        <NumbersCanvas progress={canvasProgress} mouseRef={mousePosRef} featureDip={canvasFeatureDip} />
       </div>
-
-      {/* Grain — dot-pattern matching .app-shell::after */}
       <div aria-hidden className="home-grain-layer" />
 
       {/* Chrome vignettes — sobre canvas, bajo contenido (home) */}
@@ -615,13 +630,13 @@ export default function HomePage() {
             mousePosRef.current.x = 0.5;
             mousePosRef.current.y = 0.5;
           }}
-          onTouchStart={(e) => {
+          onTouchStart={mobileShell ? undefined : (e) => {
             const touch = e.touches[0];
             if (touch) updatePointer(touch.clientX, touch.clientY);
           }}
         >
           {/* Ambient orbs */}
-          <div style={{ position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none', overflow: 'hidden' }}>
+          <div className="home-hero-orbs" style={{ position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none', overflow: 'hidden' }}>
             <motion.div
               style={{ position: 'absolute', left: '6%', top: '15%', width: 560, height: 560, borderRadius: '50%', background: 'radial-gradient(circle, rgba(111,143,166,0.16) 0%, transparent 68%)', filter: 'blur(80px)' }}
               animate={{ scale: [1, 1.20, 1], x: [0, 28, 0] }}
@@ -643,12 +658,6 @@ export default function HomePage() {
               transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut', delay: 1.5 }}
             />
           </div>
-
-          {/* Gradiente — visible desde el primer frame */}
-          <div style={{
-            position: 'absolute', inset: 0, zIndex: 2, pointerEvents: 'none',
-            background: 'linear-gradient(to bottom, rgba(6,11,24,0.78) 0%, rgba(6,11,24,0.25) 22%, rgba(6,11,24,0.06) 44%, rgba(6,11,24,0.04) 72%, rgba(6,11,24,0) 100%)',
-          }} />
 
           {/* Contenido */}
           <div style={{ position: 'relative', zIndex: 10, height: '100%' }}>
@@ -771,7 +780,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        <ProblemSection />
+        <ProblemSection sectionRef={problemSectionRef} mobileShell={mobileShell} />
         <FeaturesSection sectionRef={featureSectionRef} />
         <StatsSection />
         <StepsSection />
@@ -780,6 +789,5 @@ export default function HomePage() {
       </div>
 
     </main>
-    </HomeScrollRoot>
   );
 }

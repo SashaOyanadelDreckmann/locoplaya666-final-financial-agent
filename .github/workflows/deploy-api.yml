@@ -8,9 +8,9 @@ on:
     paths:
       - "apps/api/**"
       - "packages/shared/**"
-      - "scripts/deploy-api.sh"
-      - "scripts/lib/**"
-      - "scripts/prod-smoke.mjs"
+      - "scripts/despliegue/deploy-api.sh"
+      - "scripts/despliegue/lib/**"
+      - "scripts/qa/prod-smoke.mjs"
       - "Dockerfile.api"
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
@@ -54,7 +54,7 @@ jobs:
         run: npm i -g @railway/cli
 
       - name: Deploy API
-        run: bash scripts/deploy-api.sh
+        run: bash scripts/despliegue/deploy-api.sh
 
       - name: Production smoke (API + stack readiness)
-        run: node scripts/prod-smoke.mjs
+        run: node scripts/qa/prod-smoke.mjs

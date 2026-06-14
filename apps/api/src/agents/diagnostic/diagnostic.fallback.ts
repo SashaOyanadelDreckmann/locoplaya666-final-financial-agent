@@ -1,6 +1,6 @@
 import { IntakeQuestionnaire } from '@financial-agent/shared/src/intake/intake-questionnaire.types';
 
-import { InterviewBlockId } from '../../orchestrator/interview.flow';
+import { InterviewBlockId } from '../../orquestador/interview.flow';
 import {
   DiagnosticEditorialLayer,
   FinancialDiagnosticProfile,

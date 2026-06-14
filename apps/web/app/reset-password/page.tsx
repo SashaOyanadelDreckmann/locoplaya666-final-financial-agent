@@ -4,10 +4,10 @@ import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { resetPassword } from '@/lib/api';
-import { toUserFacingError } from '@/lib/userError';
-import { ResetPasswordSchema } from '@/lib/validation';
-import { zodFieldErrors } from '@/lib/form-errors';
+import { resetPassword } from '@/lib/api/cliente';
+import { toUserFacingError } from '@/lib/compartido/userError';
+import { ResetPasswordSchema } from '@/lib/compartido/validation';
+import { zodFieldErrors } from '@/lib/compartido/form-errors';
 
 function ResetPasswordContent() {
   const searchParams = useSearchParams();

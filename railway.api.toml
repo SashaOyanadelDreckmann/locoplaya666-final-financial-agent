@@ -7,9 +7,9 @@ dockerfilePath = "Dockerfile.api"
 watchPatterns = [
   "apps/api/**",
   "packages/shared/**",
-  "scripts/deploy-api.sh",
-  "scripts/lib/**",
-  "scripts/prod-smoke.mjs",
+  "scripts/despliegue/deploy-api.sh",
+  "scripts/despliegue/lib/**",
+  "scripts/qa/prod-smoke.mjs",
   "Dockerfile.api",
   "pnpm-lock.yaml",
   "pnpm-workspace.yaml",

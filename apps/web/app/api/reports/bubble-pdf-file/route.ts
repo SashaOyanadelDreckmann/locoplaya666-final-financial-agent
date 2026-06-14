@@ -2,9 +2,9 @@ import { NextResponse } from 'next/server';
 import fs from 'fs/promises';
 import path from 'path';
 
-import { requireBackendSession } from '@/lib/serverAuth';
-import { checkRateLimit } from '@/lib/rateLimit';
-import { getBubbleReportFilePath, safeBubbleReportFilename } from '@/lib/bubble-pdf-storage';
+import { requireBackendSession } from '@/lib/sesion/serverAuth';
+import { checkRateLimit } from '@/lib/compartido/rateLimit';
+import { getBubbleReportFilePath, safeBubbleReportFilename } from '@/lib/compartido/bubble-pdf-storage';
 
 export const runtime = 'nodejs';
 

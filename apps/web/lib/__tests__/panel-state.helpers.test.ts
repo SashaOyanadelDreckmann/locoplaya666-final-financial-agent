@@ -5,7 +5,7 @@ import {
   normalizeBackupUserKey,
   panelStateBackupKeyForUser,
   sanitizePanelSnapshotForSave,
-} from '../panel-state.helpers';
+} from '../compartido/panel-state.helpers';
 
 describe('panel-state helpers', () => {
   it('normalizes backup user keys safely', () => {

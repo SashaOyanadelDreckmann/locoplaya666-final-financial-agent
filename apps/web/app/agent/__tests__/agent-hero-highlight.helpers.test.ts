@@ -2,7 +2,7 @@ import {
   applyHighlightNeighborBleed,
   buildAgentHighlightTerms,
   parseAgentHeroSegments,
-} from '../agent-hero-highlight.helpers';
+} from '../utilidades/agent-hero-highlight.helpers';
 
 describe('agent-hero-highlight.helpers', () => {
   it('collects movement, amount and column terms from focus context', () => {

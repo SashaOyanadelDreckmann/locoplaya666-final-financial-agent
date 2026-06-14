@@ -5,7 +5,7 @@ import {
   flushInterviewVoiceStateOnPageHide,
   readInterviewVoiceState,
   writeInterviewVoiceState,
-} from '../interviewVoiceState';
+} from '../sesion/interviewVoiceState';
 
 describe('interviewVoiceState unload persistence', () => {
   beforeEach(() => {

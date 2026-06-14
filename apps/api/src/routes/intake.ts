@@ -4,7 +4,7 @@ import { IntakeQuestionnaire } from '@financial-agent/shared/src/intake/intake-q
 import { analyzeIntake } from '../agents/intake/intake-analyzer';
 import { buildIntakeContext } from '../services/intake-context.service';
 import { attachIntakeToUser } from '../services/user.service';
-import { getUserById } from '../persistence/repos';
+import { getUserById } from '../persistencia/repos';
 import { synchronizeKnowledgeFromIntake, recordKnowledgeEvent } from '../services/knowledge.service';
 import { sendSuccess } from '../http/api.responses';
 import { parseBody } from '../http/parse';

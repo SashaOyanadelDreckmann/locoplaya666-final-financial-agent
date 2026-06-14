@@ -1,0 +1,335 @@
+/* ================================================= */
+/* MOBILE MODAL SAFE-AREA CONTRACT                   */
+/* Overlay/backdrop bleeds edge-to-edge (bg covers   */
+/* padding). Modal chrome starts below status bar.  */
+/* Loaded last in agent.css — wins the cascade.     */
+/* ================================================= */
+
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+  :root{
+    --modal-safe-top-gap: 4px;
+    /* env() is often 0 in mobile browser — reserve status bar on all brands */
+    --modal-safe-top-min: max(22px, 5.5vmin);
+    --modal-safe-top: calc(max(env(safe-area-inset-top, 0px), var(--modal-safe-top-min)) + var(--modal-safe-top-gap));
+    --modal-safe-bottom: max(env(safe-area-inset-bottom, 0px), 0px);
+    /* Agent mobile shell — trust env(safe-area); light fallback in mobile browser */
+    --agent-shell-safe-top-gap: 2px;
+    --agent-shell-safe-top-min: 16px;
+    --agent-shell-safe-top: calc(max(env(safe-area-inset-top, 0px), var(--agent-shell-safe-top-min)) + var(--agent-shell-safe-top-gap));
+  }
+
+  html.pwa-standalone{
+    --agent-shell-safe-top-min: 0px;
+    --agent-shell-safe-top-gap: 2px;
+    --agent-shell-safe-top: calc(env(safe-area-inset-top, 0px) + var(--agent-shell-safe-top-gap));
+  }
+
+  body.agent-route-active main.agent-layout.is-mobile-viewport{
+    padding-top: var(--agent-shell-safe-top) !important;
+    box-sizing: border-box !important;
+  }
+
+  /*
+   * Safe band is on the layout — header must not duplicate inset (avoids double gap
+   * or, worse, zero inset when diagnostics zeroes header padding).
+   */
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile{
+    margin-top: 0 !important;
+    padding-top: 2px !important;
+    padding-bottom: 2px !important;
+    padding-left: var(--mobile-shell-pad-x, 10px) !important;
+    padding-right: var(--mobile-shell-pad-x, 10px) !important;
+  }
+
+  /* Mobile brand h1 must stay visible (transactions.css hides all header h1 on mobile) */
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-brand-heading,
+body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-meta-row h1{
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  /*
+   * Overlay: full-bleed backdrop + padding pushes ALL modal content below
+   * the status bar. Background paints the padding box (still edge-to-edge).
+   */
+  .agent-modal-overlay,
+.agent-modal-overlay.transactions-modal-overlay,
+.agent-modal-overlay.budget-modal-overlay,
+.agent-modal-overlay.interview-modal-overlay,
+.agent-modal-overlay:has(> .agent-modal.questionnaire-modal),
+.agent-modal-overlay:has(> .agent-modal.account-modal),
+.agent-modal-overlay.account-modal-overlay,
+.social-modal-overlay,
+.fincoin-usage-overlay{
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    min-height: 100dvh !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding-top: var(--modal-safe-top) !important;
+    padding-bottom: var(--modal-safe-bottom) !important;
+    padding-left: max(0px, env(safe-area-inset-left, 0px)) !important;
+    padding-right: max(0px, env(safe-area-inset-right, 0px)) !important;
+    height: 100dvh !important;
+    box-sizing: border-box !important;
+    display: block !important;
+    align-items: unset !important;
+    justify-content: unset !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  /*
+   * Modal shells — never own 100dvh; they live inside the padded overlay.
+   * Beats diagnostics.css margin:0 / height:100dvh overrides.
+   */
+  .agent-modal-overlay > .agent-modal,
+.agent-modal-overlay > .agent-modal.transactions-modal,
+.agent-modal-overlay > .agent-modal.budget-modal,
+.agent-modal-overlay > .agent-modal.interview-modal,
+.agent-modal-overlay > .agent-modal.questionnaire-modal,
+.agent-modal-overlay > .agent-modal.account-modal,
+.social-modal-overlay > .social-modal,
+.agent-modal,
+.agent-modal.transactions-modal,
+.agent-modal.budget-modal,
+.agent-modal.interview-modal,
+.agent-modal.questionnaire-modal,
+.agent-modal.account-modal,
+.transactions-modal,
+.budget-modal,
+.interview-modal,
+.questionnaire-modal,
+.account-modal,
+.social-modal{
+    position: relative !important;
+    inset: auto !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    height: auto !important;
+    min-height: calc(100dvh - var(--modal-safe-top) - var(--modal-safe-bottom)) !important;
+    max-height: none !important;
+    padding-top: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+    overflow-y: visible !important;
+  }
+
+  .agent-modal.account-modal,
+.account-modal{
+    min-height: auto !important;
+    max-height: min(calc(100dvh - var(--modal-safe-top) - var(--modal-safe-bottom)), 88dvh) !important;
+  }
+
+  /* Header row — top of modal shell (already below safe band); no duplicate inset */
+  .bcc-modal-header,
+.agent-modal-header,
+.social-modal-header,
+.transactions-modal .bcc-modal-header,
+.transactions-modal .bcc-modal-header.tx-modal-header-layer,
+.interview-modal .bcc-modal-header.interview-modal-header{
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 40 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 8px max(12px, env(safe-area-inset-right, 0px)) 6px max(12px, env(safe-area-inset-left, 0px)) !important;
+    flex-shrink: 0 !important;
+  }
+
+  /* Close — always in header flex row, never viewport-absolute */
+  .agent-modal-close,
+.transactions-modal .agent-modal-close,
+.budget-modal .agent-modal-close,
+.interview-modal .agent-modal-close,
+.agent-modal.questionnaire-modal .agent-modal-close,
+.agent-modal.account-modal .agent-modal-close,
+.social-modal .social-close-btn{
+    position: relative !important;
+    top: auto !important;
+    right: auto !important;
+    left: auto !important;
+    bottom: auto !important;
+    flex-shrink: 0 !important;
+  }
+
+  /* Inner stacks — full device width (beats 100vw / min(560px) narrow columns) */
+  .transactions-modal .bcc-modal-header,
+.transactions-modal .bcc-modal-header.tx-modal-header-layer,
+.transactions-modal .tx-scroll-body,
+.transactions-modal .agent-modal-intro,
+.transactions-modal .pt-shell,
+.transactions-modal .pt-left,
+.transactions-modal .pt-right,
+.transactions-modal .tx-content-card,
+.budget-modal .budget-modal-body,
+.budget-modal .budget-table-wrap,
+.budget-modal .budget-table-section,
+.interview-modal .interview-shell,
+.questionnaire-modal .questionnaire-shell,
+.account-modal .account-modal-dashboard,
+.account-modal .questionnaire-dashboard,
+.agent-modal-body,
+.social-modal-body{
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    box-sizing: border-box !important;
+  }
+}
+
+@media (max-width: 767px) and (min-height: 800px),
+       (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) and (min-height: 800px) {
+  :root{
+    --modal-safe-top-min: max(27px, 6vmin);
+  }
+}
+
+/*
+ * Mobile browser (not PWA) — bottom panel flush above URL/toolbar band.
+ * Layout height tracks visualViewport (--visual-vh from use-agent-shell).
+ */
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+  html:not(.pwa-standalone){
+    --mobile-panel-bottom-inset: 0px;
+  }
+
+  html.pwa-standalone{
+    --mobile-panel-bottom-inset: env(safe-area-inset-bottom, 0px);
+  }
+
+  html:not(.pwa-standalone) body.agent-route-active main.agent-layout.is-mobile-viewport,
+html:not(.pwa-standalone) body.agent-route-active .agent-layout.is-mobile-viewport{
+    height: 100% !important;
+    max-height: 100% !important;
+    min-height: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
+  html:not(.pwa-standalone) body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel:has(.panel-grid.is-card-stack),
+html:not(.pwa-standalone) body.agent-route-active main.agent-layout.is-mobile-viewport .agent-panel.is-mobile-compact:has(.panel-grid.is-card-stack){
+    flex: 0 0 auto !important;
+    height: auto !important;
+    max-height: none !important;
+    padding-bottom: 0 !important;
+  }
+
+  html:not(.pwa-standalone) body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel,
+html:not(.pwa-standalone) body.agent-route-active main.agent-layout.is-mobile-viewport .agent-panel,
+html:not(.pwa-standalone) body.agent-route-active main.agent-layout.is-mobile-viewport .agent-panel.is-mobile-compact{
+    flex: 0 0 auto !important;
+    height: auto !important;
+    max-height: var(--mobile-panel-h, 96px) !important;
+    margin: 0 !important;
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
+  html:not(.pwa-standalone) body.agent-route-active main.agent-layout.is-mobile-viewport.mobile-panel-expanded .agent-panel,
+html:not(.pwa-standalone) body.agent-route-active main.agent-layout.is-mobile-viewport.mobile-panel-expanded .agent-panel.is-mobile-expanded,
+html:not(.pwa-standalone) body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel,
+html:not(.pwa-standalone) body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel.is-mobile-expanded{
+    flex: 0 0 min(50dvh, 430px) !important;
+    height: min(50dvh, 430px) !important;
+    max-height: min(50dvh, 430px) !important;
+    margin-bottom: 0 !important;
+  }
+
+  html:not(.pwa-standalone) body.agent-route-active main.agent-layout.is-mobile-viewport .agent-panel:not(.is-mobile-expanded) .panel-grid,
+html:not(.pwa-standalone) body.agent-route-active .agent-panel:not(.is-mobile-expanded) .panel-grid{
+    padding-bottom: max(2px, var(--mobile-panel-bottom-gap, 4px)) !important;
+  }
+
+  html:not(.pwa-standalone) body.agent-route-active main.agent-layout.is-mobile-viewport.mobile-panel-expanded .agent-panel .panel-grid,
+html:not(.pwa-standalone) body.agent-route-active main.agent-layout.is-mobile-viewport .agent-panel.is-mobile-expanded .panel-grid{
+    padding-bottom: 8px !important;
+  }
+}
+
+/*
+ * Keyboard open — keep agent stack aligned to visible viewport (agent.css EOF).
+ */
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+  html:not(.pwa-standalone) body.agent-route-active.keyboard-opening main.agent-layout.is-mobile-viewport,
+html:not(.pwa-standalone) body.agent-route-active.browser-keyboard-open main.agent-layout.is-mobile-viewport{
+    height: var(--visual-vh, 100%) !important;
+    max-height: var(--visual-vh, 100%) !important;
+    min-height: 0 !important;
+  }
+}
+
+/* =====================================================================
+   TRANSACTIONS MODAL — PREMIUM SANS TYPOGRAPHY LOCK
+   Wins over diagnostics mono/serif overrides. No code or editorial serif.
+   ===================================================================== */
+.transactions-modal{
+  --tx-premium-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --tx-premium-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --txp-mono: var(--tx-premium-sans);
+  --mh-eyebrow-font: var(--tx-premium-sans);
+}
+
+.transactions-modal,
+.transactions-modal *{
+  font-family: var(--tx-premium-sans) !important;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+.transactions-modal h1,
+.transactions-modal h2,
+.transactions-modal h3,
+.transactions-modal h4,
+.transactions-modal h5,
+.transactions-modal h6,
+.transactions-modal .agent-modal-header h3,
+.transactions-modal .bcc-modal-title,
+.transactions-modal .transactions-summary-title,
+.transactions-modal .pt-stage-header h4,
+.transactions-modal .pt-empty-head h4,
+.transactions-modal .pt-list-head h4,
+.transactions-modal .tx-ap-hero-value,
+.transactions-modal .tx-3d-hero-core strong,
+.transactions-modal .pt-premium-intro-main strong,
+.transactions-modal .tx-summary-editorial-block.is-lead .tx-summary-editorial-body,
+.transactions-modal .tx-ap-executive-prose .tx-summary-editorial-block.is-lead .tx-summary-editorial-body{
+  font-family: var(--tx-premium-display) !important;
+  letter-spacing: -0.022em !important;
+}
+
+.transactions-modal .bcc-modal-eyebrow,
+.transactions-modal .pt-stage-eyebrow,
+.transactions-modal .tx-meta-card-kicker,
+.transactions-modal .tx-ap-eyebrow,
+.transactions-modal .tx-summary-editorial-kicker,
+.transactions-modal .tx-library-empty-kicker{
+  font-family: var(--tx-premium-sans) !important;
+  letter-spacing: 0.1em !important;
+  text-transform: uppercase;
+  font-weight: 500 !important;
+}
+
+.transactions-modal code,
+.transactions-modal pre,
+.transactions-modal kbd,
+.transactions-modal samp,
+.transactions-modal .md-code,
+.transactions-modal .premium-markdown .md-code,
+.transactions-modal .premium-markdown pre,
+.transactions-modal .terminal-composer-head,
+.transactions-modal .tx-digit-dust{
+  font-family: var(--tx-premium-sans) !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.008em !important;
+}

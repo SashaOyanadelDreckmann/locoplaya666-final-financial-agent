@@ -11,7 +11,7 @@ import {
   WELCOME_RUTA_UNLOCK_CHATS,
   WELCOME_RUTA_UNLOCK_INTRO,
 } from "@financial-agent/shared";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/compartido/utils";
 import { getWelcomeMessage } from "@/lib/api";
 import {
   ExecutiveBlobCarouselShell,
@@ -23,8 +23,8 @@ import {
   readHydratedWelcomeIntro,
   resolveWelcomeIntro,
   type WelcomeIntroPayload,
-} from "@/app/agent/welcome-intro.shared";
-import { buildIntakeScrambleLines } from "@/app/agent/welcome-intake-scramble.helpers";
+} from "@/app/agent/flujo/welcome-intro.shared";
+import { buildIntakeScrambleLines } from "@/app/agent/flujo/welcome-intake-scramble.helpers";
 
 const WELCOME_PAGES = [
   { id: "lectura", label: "Lectura", roman: "I", tone: "gold" as const }, // panel: transacciones

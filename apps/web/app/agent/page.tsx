@@ -8,7 +8,7 @@ import 'katex/dist/katex.min.css';
 import {
   clearComposerTypingVisual,
   focusMobileInput,
-} from '@/lib/mobile-viewport-sync';
+} from '@/lib/interfaz/mobile-viewport-sync';
 import {
   applyVisualModeToDocument,
   clearStoredVisualMode,
@@ -19,15 +19,15 @@ import {
   runVisualModeTransition,
   storeVisualMode,
   type VisualMode,
-} from '@/lib/visual-mode';
+} from '@/lib/interfaz/visual-mode';
 import { flushSync } from 'react-dom';
-import { getSessionId } from '@/lib/session';
-import type { CoreAgentResponseSideEffects } from '@/lib/agent/applyCoreAgentResponse';
-import type { CoreAgentRequestContext } from '@/lib/agent/buildCoreAgentContext';
+import { getSessionId } from '@/lib/sesion/session';
+import type { CoreAgentResponseSideEffects } from '@/lib/agente/nucleo/applyCoreAgentResponse';
+import type { CoreAgentRequestContext } from '@/lib/agente/nucleo/buildCoreAgentContext';
 import { useCoreAgentSend } from './hooks/useCoreAgentSend';
-import { buildOnboardingFlowCta } from './onboarding-flow.helpers';
+import { buildOnboardingFlowCta } from './flujo/onboarding-flow.helpers';
 import { useInterviewStore } from '@/state/interview.store';
-import { syncDiagnosisSession } from '@/lib/diagnosis-session';
+import { syncDiagnosisSession } from '@/lib/diagnostico/sesion';
 import { useProfileStore } from '@/state/profile.store';
 import { useSessionStore } from '@/state/session.store';
 import {
@@ -41,40 +41,40 @@ import {
   deletePdfArtifact,
   parseDocuments,
   mergeProductsContextToIntake,
-} from '@/lib/api';
-import { ApiHttpError } from '@/lib/apiEnvelope';
-import { toUserFacingError } from '@/lib/userError';
+} from '@/lib/api/cliente';
+import { ApiHttpError } from '@/lib/api/envelope';
+import { toUserFacingError } from '@/lib/compartido/userError';
 import {
   isProductsStepSatisfied,
   isTransactionsEvidenceSatisfied,
   productsHaveAnalyzedMovements,
   resolveTxWizardStep,
-} from '@/lib/transactions-flow.helpers';
+} from '@/lib/transacciones/flujo.helpers';
 import {
   deriveTransactionAuthorizationState,
   buildTransactionAuthorizationBlockMessage,
-} from '@/lib/transactions-authorization.helpers';
-import { MAX_BUDGET_ROWS } from '@/lib/budget-rows.helpers';
-import { canOpenInterview as computeCanOpenInterview } from './interview-gate.helpers';
+} from '@/lib/transacciones/autorizacion.helpers';
+import { MAX_BUDGET_ROWS } from '@/lib/presupuesto/filas.helpers';
+import { canOpenInterview as computeCanOpenInterview } from './flujo/interview-gate.helpers';
 import {
   aggregateCanonicalMovements,
   aggregateParsedDocuments,
   aggregateUploadedFiles,
   buildPersistableProductsContext,
   getSimulationSnapshot,
-} from '@/lib/products-context.helpers';
+} from '@/lib/compartido/products-context.helpers';
 import {
   applyUploadToTargetProduct,
   normalizeParsedUploadDocuments,
-} from '@/lib/transactions-upload-state.helpers';
+} from '@/lib/transacciones/estado-upload.helpers';
 import {
   panelStateBackupKeyForUser,
-} from '@/lib/panel-state.helpers';
-import { normalizeProductAssistantState } from '@/lib/product-normalization.helpers';
+} from '@/lib/compartido/panel-state.helpers';
+import { normalizeProductAssistantState } from '@/lib/compartido/product-normalization.helpers';
 import {
   IDLE_PARSE_PROGRESS,
   type DocumentsParseProgress,
-} from '@/lib/transactions-parse-progress.helpers';
+} from '@/lib/transacciones/progreso-parse.helpers';
 import {
   DEFAULT_BANK_SIMULATION,
   FALLBACK_WELCOME,
@@ -86,17 +86,17 @@ import {
   MAX_TRANSACTION_EVIDENCE_RESETS,
   PRIMARY_CHAT_ID,
   type BankSimulation,
-} from './agent-page.constants';
-import { alignProductDashboard } from './transactions/align-product-dashboard';
-import type { BankProduct, TransactionTaxonomyOverride, UploadStatementResult } from './transactions/types';
-import type { TxWizardStep } from '@/lib/transactions-flow.helpers';
-import { normalizeTaxonomyKey, normalizeTransactionTaxonomyOverride } from './transactions/taxonomy';
-import secureStorage from '@/lib/secureStorage';
-import { clearCsrfToken } from '@/lib/csrf';
+} from './utilidades/agent-page.constants';
+import { alignProductDashboard } from './modales/transacciones/align-product-dashboard';
+import type { BankProduct, TransactionTaxonomyOverride, UploadStatementResult } from './modales/transacciones/types';
+import type { TxWizardStep } from '@/lib/transacciones/flujo.helpers';
+import { normalizeTaxonomyKey, normalizeTransactionTaxonomyOverride } from './modales/transacciones/taxonomy';
+import secureStorage from '@/lib/compartido/secureStorage';
+import { clearCsrfToken } from '@/lib/sesion/csrf';
 import {
   clearInterviewVoiceState,
   readInterviewVoiceState,
-} from '@/lib/interviewVoiceState';
+} from '@/lib/sesion/interviewVoiceState';
 import {
   buildProductCardDescriptor,
   buildTransactionIntelligence,
@@ -113,52 +113,52 @@ import {
   resolveChat1UxState,
   resolveActiveActionPlanStage,
   type ChatClosureSummary,
-} from './page.utils';
+} from './utilidades/page.utils';
 import {
   buildWelcomeChatItem,
   isWelcomeShellMessageContent,
   normalizeChat1WelcomeShellItems,
   repairChat1WelcomeItems,
   shouldSeedWelcomeMessage,
-} from './welcome-intro.shared';
-import { AgentBootSequence } from './AgentBootSequence';
-import { PanelCardsIntroSequence } from './PanelCardsIntroSequence';
-import { PanelIntroGridSlot } from './PanelIntroGridSlot';
-import { PanelIntroLayoutGroup } from './PanelIntroLayoutGroup';
-import { shouldShowAgentBootSequence } from './agent-boot-sequence.helpers';
-import { shouldPresentPanelIntro } from './panel-intro.prefs';
+} from './flujo/welcome-intro.shared';
+import { AgentBootSequence } from './arranque/AgentBootSequence';
+import { PanelCardsIntroSequence } from './paneles/PanelCardsIntroSequence';
+import { PanelIntroGridSlot } from './paneles/PanelIntroGridSlot';
+import { PanelIntroLayoutGroup } from './paneles/PanelIntroLayoutGroup';
+import { shouldShowAgentBootSequence } from './arranque/agent-boot-sequence.helpers';
+import { shouldPresentPanelIntro } from './paneles/panel-intro.prefs';
 
 import type {
   AgentResponse,
   ChatItem,
-} from '@/lib/agent.response.types';
-import { AccountModal, BudgetModal, QuestionnaireModal, TransactionsModal } from './modals';
-import { InterviewModal } from './InterviewModal';
-import { FincoinUsageModal } from './FincoinUsageModal';
-import { useFincoinUsage } from './use-fincoin-usage';
-import { useFincoinSpendGate } from './use-fincoin-spend-gate';
-import type { FincoinUsageApiPayload } from '@/lib/api';
-import { SocialConsciousnessModal } from './SocialConsciousnessModal';
-import { SidePanels } from './side-panels';
-import { PanelCalloutBanner } from './panel-callout-banner';
-import type { MobilePanelDeckHandle } from './mobile-panel-compact-carousel';
-import { ChatThreadView } from './chat-thread-view';
-import { ChatHeader } from './chat-header';
-import { buildPanelBaseCards } from './panel-cards';
+} from '@/lib/agente/agent.response.types';
+import { AccountModal, BudgetModal, QuestionnaireModal, TransactionsModal } from './modales';
+import { InterviewModal } from './modales/entrevista/InterviewModal';
+import { FincoinUsageModal } from './modales/fincoins/FincoinUsageModal';
+import { useFincoinUsage } from './modales/fincoins/use-fincoin-usage';
+import { useFincoinSpendGate } from './modales/fincoins/use-fincoin-spend-gate';
+import type { FincoinUsageApiPayload } from '@/lib/api/cliente';
+import { SocialConsciousnessModal } from './modales/conciencia-social/SocialConsciousnessModal';
+import { SidePanels } from './paneles/side-panels';
+import { PanelCalloutBanner } from './paneles/panel-callout-banner';
+import type { MobilePanelDeckHandle } from './paneles/mobile-panel-compact-carousel';
+import { ChatThreadView } from './chat/chat-thread-view';
+import { ChatHeader } from './chat/chat-header';
+import { buildPanelBaseCards } from './paneles/panel-cards';
 import { useBudgetRows } from './hooks/use-budget-rows';
 import { useAgentShell } from './hooks/use-agent-shell';
-import { buildEvidenceResetPatch, mergeBankProductPatch } from './transactions/state.helpers';
-import { TX_MAX_TOTAL_FILE_BYTES } from './transactions/constants';
-import { getEvidenceUploadCapacity } from '@/lib/transactions-evidence.helpers';
-import { resolveUploadEvidenceSourceHint } from '@/lib/evidence-fidelity.helpers';
-import { alignEvidenceUploadFormat } from '@/lib/evidence-format.helpers';
-import { normalizeUploadFormat } from './transactions/tx-assistant.helpers';
+import { buildEvidenceResetPatch, mergeBankProductPatch } from './modales/transacciones/state.helpers';
+import { TX_MAX_TOTAL_FILE_BYTES } from './modales/transacciones/constants';
+import { getEvidenceUploadCapacity } from '@/lib/transacciones/evidencia.helpers';
+import { resolveUploadEvidenceSourceHint } from '@/lib/compartido/evidence-fidelity.helpers';
+import { alignEvidenceUploadFormat } from '@/lib/compartido/evidence-format.helpers';
+import { normalizeUploadFormat } from './modales/transacciones/tx-assistant.helpers';
 import {
   buildChatUploadAgentPrompt,
   buildChatUploadFiles,
-} from './chat-upload.helpers';
+} from './chat/chat-upload.helpers';
 import { buildPanelSnapshotPayload } from './page.flow';
-import { clearPanelStateBackups, hydratePanelState, persistPanelState } from './panel-state.service';
+import { clearPanelStateBackups, hydratePanelState, persistPanelState } from './utilidades/panel-state.service';
 
 type AgentMeta = {
   objective?: string;

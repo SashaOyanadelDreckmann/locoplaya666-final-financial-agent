@@ -4,8 +4,8 @@ import {
   aggregateCanonicalMovements,
   buildPersistableProductsContext,
   getSimulationSnapshot,
-} from '../products-context.helpers';
-import type { BankProduct } from '@/app/agent/transactions/types';
+} from '../compartido/products-context.helpers';
+import type { BankProduct } from '@/app/agent/modales/transacciones/types';
 
 function product(partial: Partial<BankProduct> & Pick<BankProduct, 'id'>): BankProduct {
   return {

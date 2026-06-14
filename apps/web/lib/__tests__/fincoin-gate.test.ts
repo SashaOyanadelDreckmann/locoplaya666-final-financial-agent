@@ -1,4 +1,4 @@
-import { FINCOIN_SPEND_BLOCKED_MESSAGE, isFincoinSpendBlocked } from '../fincoin-gate';
+import { FINCOIN_SPEND_BLOCKED_MESSAGE, isFincoinSpendBlocked } from '../compartido/fincoin-gate';
 
 describe('fincoin-gate', () => {
   it('blocks spend only when depleted', () => {

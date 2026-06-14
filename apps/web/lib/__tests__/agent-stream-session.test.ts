@@ -4,8 +4,8 @@ import {
   appendOptimisticCoreAgentTurn,
   patchStreamingAssistantMessage,
   removeStreamingAssistantMessage,
-} from '@/lib/agent/stream-session';
-import type { ChatItem } from '@/lib/agent.response.types';
+} from '@/lib/agente/nucleo/stream-session';
+import type { ChatItem } from '@/lib/agente/agent.response.types';
 
 describe('stream-session helpers', () => {
   it('appends user bubble and streaming assistant placeholder', () => {

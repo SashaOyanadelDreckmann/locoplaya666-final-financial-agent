@@ -4,7 +4,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { createApprovalToken } from '../services/approval.service';
-import { createDocumentRecord } from '../persistence/repos';
+import { createDocumentRecord } from '../persistencia/repos';
 
 const mockCreate = vi.fn();
 

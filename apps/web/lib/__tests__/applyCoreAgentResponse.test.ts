@@ -4,8 +4,8 @@ import {
   applyCoreAgentErrorItems,
   applyCoreAgentResponseToItems,
   extractCoreAgentSideEffects,
-} from '@/lib/agent/applyCoreAgentResponse';
-import type { AgentResponse } from '@/lib/agent.response.types';
+} from '@/lib/agente/nucleo/applyCoreAgentResponse';
+import type { AgentResponse } from '@/lib/agente/agent.response.types';
 
 describe('applyCoreAgentResponse', () => {
   it('extracts lifecycle and fincoin side effects', () => {

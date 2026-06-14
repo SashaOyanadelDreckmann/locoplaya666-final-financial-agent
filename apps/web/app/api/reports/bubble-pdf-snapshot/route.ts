@@ -3,10 +3,10 @@ import fs from 'fs/promises';
 import path from 'path';
 import crypto from 'crypto';
 
-import { getBubbleReportsDir, buildBubbleReportPublicUrls } from '@/lib/bubble-pdf-storage';
-import { requireBackendSession } from '@/lib/serverAuth';
-import { checkRateLimit } from '@/lib/rateLimit';
-import { launchBubblePdfBrowser, readKatexCss } from '@/lib/bubble-pdf-browser';
+import { getBubbleReportsDir, buildBubbleReportPublicUrls } from '@/lib/compartido/bubble-pdf-storage';
+import { requireBackendSession } from '@/lib/sesion/serverAuth';
+import { checkRateLimit } from '@/lib/compartido/rateLimit';
+import { launchBubblePdfBrowser, readKatexCss } from '@/lib/compartido/bubble-pdf-browser';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;

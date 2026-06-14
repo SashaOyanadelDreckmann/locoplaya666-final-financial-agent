@@ -1,14 +1,14 @@
-import { normalizeBudgetRow, type BudgetRow } from '@/lib/budget-rows.helpers';
+import { normalizeBudgetRow, type BudgetRow } from '@/lib/presupuesto/filas.helpers';
 import {
   aggregateParsedDocuments,
   aggregateUploadedFiles,
   getSimulationSnapshot,
-} from '@/lib/products-context.helpers';
-import { normalizeProductAssistantState } from '@/lib/product-normalization.helpers';
-import { normalizeTransactionTaxonomyOverride } from './transactions/taxonomy';
-import type { BankProduct, TransactionTaxonomyOverride } from './transactions/types';
-import type { BankSimulation } from './agent-page.constants';
-import { hasMeaningfulPanelState } from '@/lib/panel-state.helpers';
+} from '@/lib/compartido/products-context.helpers';
+import { normalizeProductAssistantState } from '@/lib/compartido/product-normalization.helpers';
+import { normalizeTransactionTaxonomyOverride } from './modales/transacciones/taxonomy';
+import type { BankProduct, TransactionTaxonomyOverride } from './modales/transacciones/types';
+import type { BankSimulation } from './utilidades/agent-page.constants';
+import { hasMeaningfulPanelState } from '@/lib/compartido/panel-state.helpers';
 
 export function buildPanelSnapshotPayload(params: {
   budgetRows: BudgetRow[];

@@ -2,8 +2,8 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useRouter } from 'next/navigation';
 import LoginPage from '../page';
-import { getSessionInfo, loginUser } from '@/lib/api';
-import { ApiHttpError } from '@/lib/apiEnvelope';
+import { getSessionInfo, loginUser } from '@/lib/api/cliente';
+import { ApiHttpError } from '@/lib/api/envelope';
 
 // Mock next/navigation
 jest.mock('next/navigation', () => ({
@@ -12,7 +12,7 @@ jest.mock('next/navigation', () => ({
 }));
 
 // Mock API
-jest.mock('@/lib/api', () => ({
+jest.mock('@/lib/api/cliente', () => ({
   loginUser: jest.fn(),
   getSessionInfo: jest.fn(),
 }));

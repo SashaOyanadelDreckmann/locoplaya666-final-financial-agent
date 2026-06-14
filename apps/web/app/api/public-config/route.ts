@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { buildRuntimePublicConfig } from '@/lib/runtimePublicConfig';
+import { buildRuntimePublicConfig } from '@/lib/compartido/runtimePublicConfig';
 
 export const dynamic = 'force-dynamic';
 

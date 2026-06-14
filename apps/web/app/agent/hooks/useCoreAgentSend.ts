@@ -2,23 +2,23 @@
 
 import { useCallback, useRef, useState } from 'react';
 
-import { sendToAgentStream } from '@/lib/agent.stream';
+import { sendToAgentStream } from '@/lib/agente/agent.stream';
 import {
   applyCoreAgentErrorItems,
   applyCoreAgentResponseToItems,
   extractCoreAgentSideEffects,
   type CoreAgentResponseSideEffects,
-} from '@/lib/agent/applyCoreAgentResponse';
+} from '@/lib/agente/nucleo/applyCoreAgentResponse';
 import {
   buildCoreAgentSendPayload,
   type CoreAgentRequestContext,
-} from '@/lib/agent/buildCoreAgentContext';
+} from '@/lib/agente/nucleo/buildCoreAgentContext';
 import {
   appendOptimisticCoreAgentTurn,
   patchStreamingAssistantMessage,
-} from '@/lib/agent/stream-session';
-import type { AgentResponse, ChatItem } from '@/lib/agent.response.types';
-import { toUserFacingError } from '@/lib/userError';
+} from '@/lib/agente/nucleo/stream-session';
+import type { AgentResponse, ChatItem } from '@/lib/agente/agent.response.types';
+import { toUserFacingError } from '@/lib/compartido/userError';
 
 export type CoreAgentSendOptions = {
   agentPayload?: string;

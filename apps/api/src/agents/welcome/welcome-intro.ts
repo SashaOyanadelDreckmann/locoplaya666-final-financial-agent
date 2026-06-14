@@ -1,5 +1,5 @@
 import { completeStructured } from '../../services/llm.service';
-import { getUserById } from '../../persistence/repos';
+import { getUserById } from '../../persistencia/repos';
 import {
   canAffordOperation,
   chargeFincoinOperation,

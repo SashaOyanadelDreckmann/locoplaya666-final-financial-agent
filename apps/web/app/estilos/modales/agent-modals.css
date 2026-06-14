@@ -1,0 +1,10 @@
+/* ================================================= */
+/* MODALS                                            */
+/* ================================================= */
+
+/* Core modal shells and transaction workflows. */
+@import './transacciones/agent-modals-transactions.css';
+/* Budget, interview, and modal-heavy editorial sections. */
+@import './presupuesto/agent-modals-budget.css';
+/* Diagnostic and mobile parity overlays. */
+@import './diagnostico/agent-modals-diagnostics.css';

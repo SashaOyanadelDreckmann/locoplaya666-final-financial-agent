@@ -1,6 +1,6 @@
 /** @jest-environment node */
 
-import { resolvePanelDiagnosisProfile } from '../diagnosis-session';
+import { resolvePanelDiagnosisProfile } from '../diagnostico/sesion';
 
 describe('resolvePanelDiagnosisProfile', () => {
   it('prefers session profile when available', () => {

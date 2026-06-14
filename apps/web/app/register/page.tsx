@@ -4,10 +4,10 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { registerUser } from '@/lib/api';
-import { toUserFacingError } from '@/lib/userError';
-import { RegisterSchema, type RegisterInput } from '@/lib/validation';
-import { zodFieldErrors } from '@/lib/form-errors';
+import { registerUser } from '@/lib/api/cliente';
+import { toUserFacingError } from '@/lib/compartido/userError';
+import { RegisterSchema, type RegisterInput } from '@/lib/compartido/validation';
+import { zodFieldErrors } from '@/lib/compartido/form-errors';
 
 export default function RegisterPage() {
   const router = useRouter();
