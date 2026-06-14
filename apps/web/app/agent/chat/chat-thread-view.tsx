@@ -18,13 +18,22 @@ import {
 } from '../utilidades/page.utils';
 import { renderLatexDocMessage } from './message-renderer';
 import { GradientBlobCard } from '@/components/ui/gradient-bold-card';
+import { ChatIntroGradientCard } from '@/components/ui/chat-intro-gradient-card';
 import { ClosureGradientBlobCard } from '@/components/ui/closure-gradient-card';
 import { UserUploadBubble } from './user-upload-bubble';
 import { MAX_CHAT_UPLOAD_FILES } from '../utilidades/agent-page.constants';
 import {
+  isLegacyWelcomeAssistantItem,
   isRecoverableChatErrorMessage,
   isWelcomeShellMessageContent,
 } from '../flujo/welcome-intro.shared';
+import {
+  isChatIntroShellItem,
+  isCompactChatIntroShell,
+  type ChatIntroId,
+  usesExecutiveWelcomeCarousel,
+} from '../flujo/chat-intro.shared';
+import type { DiagnosisProfile } from '@/state/profile.store';
 import { OnboardingFlowCta } from '../flujo/OnboardingFlowCta';
 import {
   buildOnboardingFlowCta,
@@ -130,14 +139,103 @@ function isWelcomeCarouselShellItem(
   activeThreadId: string | undefined,
   diagnosisUnlocked: boolean,
 ): boolean {
-  if (activeThreadId !== 'chat-1' || diagnosisUnlocked) return false;
-  if (item.type !== 'message' || item.role !== 'assistant') return false;
-  const isFirstAssistant = !items
-    .slice(0, index)
-    .some((prior) => prior.type === 'message' && prior.role === 'assistant');
-  if (!isFirstAssistant) return false;
-  if (isWelcomeShellMessageContent(item.content)) return true;
-  return isRecoverableChatErrorMessage(String(item.content ?? ''));
+  return isChatIntroShellItem({
+    item,
+    index,
+    items,
+    activeThreadId,
+    diagnosisUnlocked,
+    isLegacyWelcomeAssistantItem,
+  });
+}
+
+function renderChatIntroCard(props: {
+  activeThreadId?: string;
+  diagnosisUnlocked: boolean;
+  sessionUserName?: string;
+  sessionInjectedIntake?: unknown;
+  diagnosisProfile?: DiagnosisProfile | null;
+  className?: string;
+}) {
+  const chatId = (props.activeThreadId ?? 'chat-1') as ChatIntroId;
+  if (
+    usesExecutiveWelcomeCarousel({
+      activeThreadId: props.activeThreadId,
+      diagnosisUnlocked: props.diagnosisUnlocked,
+    })
+  ) {
+    return (
+      <GradientBlobCard
+        className={props.className ?? 'gradient-blob-card--welcome'}
+        sessionUserName={props.sessionUserName}
+        sessionInjectedIntake={props.sessionInjectedIntake}
+      />
+    );
+  }
+
+  return (
+    <ChatIntroGradientCard
+      className={props.className ?? 'gradient-blob-card--chat-intro'}
+      chatId={chatId}
+      sessionUserName={props.sessionUserName}
+      sessionInjectedIntake={props.sessionInjectedIntake}
+      diagnosisProfile={props.diagnosisProfile}
+      diagnosisUnlocked={props.diagnosisUnlocked}
+    />
+  );
+}
+
+function welcomeShellBubbleClasses(params: {
+  isEmptyWelcomeShell: boolean;
+  activeThreadId?: string;
+  diagnosisUnlocked: boolean;
+  isScrollable: boolean;
+  isFirstAssistantCard: boolean;
+  isStreaming: boolean;
+  funnelStage?: 'brainstorm' | 'converge' | 'deliver' | null;
+}): string {
+  const compactIntro =
+    params.isEmptyWelcomeShell &&
+    isCompactChatIntroShell({
+      activeThreadId: params.activeThreadId,
+      diagnosisUnlocked: params.diagnosisUnlocked,
+    });
+
+  return [
+    'agent-bubble assistant latex-doc',
+    params.isScrollable ? 'is-scrollable-bubble' : '',
+    params.isFirstAssistantCard ? 'is-intro-doc' : '',
+    params.isEmptyWelcomeShell && !compactIntro ? 'is-empty-welcome' : '',
+    compactIntro ? 'is-chat-intro-shell' : '',
+    params.isStreaming ? 'is-streaming' : '',
+    params.funnelStage === 'deliver' ? 'is-action-plan-deliver' : '',
+    params.funnelStage ? `is-action-plan-${params.funnelStage}` : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+}
+
+function welcomeShellBodyClasses(params: {
+  isEmptyWelcomeShell: boolean;
+  activeThreadId?: string;
+  diagnosisUnlocked: boolean;
+  isScrollable: boolean;
+}): string {
+  const compactIntro =
+    params.isEmptyWelcomeShell &&
+    isCompactChatIntroShell({
+      activeThreadId: params.activeThreadId,
+      diagnosisUnlocked: params.diagnosisUnlocked,
+    });
+
+  return [
+    'latex-doc-body',
+    params.isScrollable ? 'is-scrollable-content' : '',
+    params.isEmptyWelcomeShell && !compactIntro ? 'is-empty-welcome-body' : '',
+    compactIntro ? 'is-chat-intro-body' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
 }
 
 function isExternalCitation(citation: Extract<ChatItem, { type: 'citation' }>['citation']) {
@@ -167,6 +265,7 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
   onSend: (messageOverride?: string) => void;
   setDraftForActive: (value: string) => void;
   sessionInjectedIntake?: unknown;
+  diagnosisProfile?: DiagnosisProfile | null;
   chatThreadRef: React.RefObject<HTMLDivElement>;
   activeChatId: string;
   actionPlanFunnelStage?: 'brainstorm' | 'converge' | 'deliver' | null;
@@ -184,8 +283,6 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
 }) {
   const docModePillStyle = getDocModePillStyle(props.visualMode);
   const [savingBubblePdf, setSavingBubblePdf] = useState<Record<number, boolean>>({});
-  const EMPTY_THREAD_FALLBACK =
-    'Estoy listo para iniciar tu entrevista financiera. Cuéntame tu objetivo principal y partimos con el primer paso accionable.';
   const userTag = String(props.sessionUserName ?? 'USER').trim().split(' ')[0] || 'USER';
   const chat1Ux = resolveChat1UxState({
     chatId: props.activeThreadId,
@@ -355,7 +452,15 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
         return (
           <React.Fragment key={i}>
             <div
-              className={`agent-bubble assistant latex-doc ${isScrollable ? 'is-scrollable-bubble' : ''}${isFirstAssistantCard ? ' is-intro-doc' : ''}${isEmptyWelcomeShell ? ' is-empty-welcome' : ''}${isStreaming ? ' is-streaming' : ''}${funnelStage === 'deliver' ? ' is-action-plan-deliver' : funnelStage ? ` is-action-plan-${funnelStage}` : ''}`}
+              className={welcomeShellBubbleClasses({
+                isEmptyWelcomeShell,
+                activeThreadId: props.activeThreadId,
+                diagnosisUnlocked: props.diagnosisUnlocked,
+                isScrollable,
+                isFirstAssistantCard,
+                isStreaming,
+                funnelStage,
+              })}
             >
               {!isEmptyWelcomeShell ? (
                 <div className="latex-doc-head">
@@ -445,13 +550,22 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
                   </div>
                 </div>
               ) : null}
-              <div className={`latex-doc-body ${isScrollable ? 'is-scrollable-content' : ''}${isEmptyWelcomeShell ? ' is-empty-welcome-body' : ''}`}>
+              <div
+                className={welcomeShellBodyClasses({
+                  isEmptyWelcomeShell,
+                  activeThreadId: props.activeThreadId,
+                  diagnosisUnlocked: props.diagnosisUnlocked,
+                  isScrollable,
+                })}
+              >
                 {isEmptyWelcomeShell ? (
-                  <GradientBlobCard
-                    className="gradient-blob-card--welcome"
-                    sessionUserName={props.sessionUserName}
-                    sessionInjectedIntake={props.sessionInjectedIntake}
-                  />
+                  renderChatIntroCard({
+                    activeThreadId: props.activeThreadId,
+                    diagnosisUnlocked: props.diagnosisUnlocked,
+                    sessionUserName: props.sessionUserName,
+                    sessionInjectedIntake: props.sessionInjectedIntake,
+                    diagnosisProfile: props.diagnosisProfile,
+                  })
                 ) : (
                   <>
                     {it.stream?.streaming ? <AgentStreamRail state={it.stream} /> : null}
@@ -658,21 +772,37 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
 
   return (
     <div ref={props.chatThreadRef} className="agent-thread">
-        {rendered.length === 0 && !props.loading && (
-          <div className="agent-bubble assistant latex-doc is-intro-doc">
-            <div className="latex-doc-head">
-              <div className="latex-doc-heading">
-              <span className="latex-doc-kicker">{chat1Copy.threadKicker}</span>
-                <span className="latex-doc-title">Inicio de conversación</span>
-                <span className="latex-doc-subtitle">Contexto base y siguiente acción</span>
-              </div>
-              <span className="latex-doc-mode" style={docModePillStyle}>information</span>
-            </div>
-            <div className="latex-doc-body">
-              {renderLatexDocMessage(EMPTY_THREAD_FALLBACK)}
+        {rendered.length === 0 && !props.loading ? (
+          <div
+            className={`agent-bubble assistant latex-doc is-intro-doc${
+              isCompactChatIntroShell({
+                activeThreadId: props.activeThreadId,
+                diagnosisUnlocked: props.diagnosisUnlocked,
+              })
+                ? ' is-chat-intro-shell'
+                : ' is-empty-welcome'
+            }`}
+          >
+            <div
+              className={
+                isCompactChatIntroShell({
+                  activeThreadId: props.activeThreadId,
+                  diagnosisUnlocked: props.diagnosisUnlocked,
+                })
+                  ? 'latex-doc-body is-chat-intro-body'
+                  : 'latex-doc-body is-empty-welcome-body'
+              }
+            >
+              {renderChatIntroCard({
+                activeThreadId: props.activeThreadId,
+                diagnosisUnlocked: props.diagnosisUnlocked,
+                sessionUserName: props.sessionUserName,
+                sessionInjectedIntake: props.sessionInjectedIntake,
+                diagnosisProfile: props.diagnosisProfile,
+              })}
             </div>
           </div>
-        )}
+        ) : null}
         {rendered}
 
         {effectiveClosingSummary && !props.showFullChat ? (

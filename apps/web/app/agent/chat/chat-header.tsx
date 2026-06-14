@@ -1,5 +1,4 @@
 import React from 'react';
-import { Coins } from 'lucide-react';
 import {
   formatRemainingInteractions,
   getClosingInteractionThreshold,
@@ -7,6 +6,7 @@ import {
 } from '../utilidades/page.utils';
 import { funnelStageLabel, funnelStageStepIndex } from '@financial-agent/shared';
 import BrandWordmark from '@/components/marca/BrandWordmark';
+import { FincoinIcon } from '@/components/marca/FincoinIcon';
 import {
   cycleVisualMode,
   isVisualModeActive,
@@ -130,7 +130,7 @@ export function ChatHeader(props: {
           : `Fincoins: ${props.fincoinRemaining ?? 0} disponibles`
       }
     >
-      <Coins size={14} aria-hidden="true" />
+      <FincoinIcon size="sm" />
       <span className="chat-fincoin-toggle-dot" aria-hidden="true" />
     </button>
   );

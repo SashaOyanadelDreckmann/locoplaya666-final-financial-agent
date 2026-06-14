@@ -96,7 +96,12 @@ export function createApp() {
   app.use('/auth', authRateLimiter, authRouter);
 
   // INTAKE
-  app.post('/intake/submit', asyncHandler(submitIntake));
+  app.post(
+    '/intake/submit',
+    requireAuth,
+    requirePermission(PERMISSIONS.AGENT_CHAT_SELF),
+    asyncHandler(submitIntake),
+  );
 
   // AGENT CORE
   app.use('/api/agent', chatRateLimiter);

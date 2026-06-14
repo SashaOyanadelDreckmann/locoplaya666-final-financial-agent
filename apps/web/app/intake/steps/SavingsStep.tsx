@@ -40,14 +40,7 @@ export function SavingsStep({
     setQuestionIndex((prev) => Math.max(prev - 1, 0));
   };
 
-  const canContinueSavings =
-    form.hasSavingsOrInvestments === false ||
-    (form.hasSavingsOrInvestments === true && Boolean(form.savingsBand));
-
-  const showForward = true;
-  const forwardDisabled =
-    (questionIndex === 0 && !canContinueSavings) ||
-    (questionIndex === 1 && typeof form.hasDebt !== 'boolean');
+  const showForward = false;
 
   return (
     <div className="intake-step animate-intake-in">
@@ -66,7 +59,6 @@ export function SavingsStep({
         onBack={onBackQuestion}
         onNext={questionIndex === totalQuestions - 1 ? onNext : onNextQuestion}
         showForward={showForward}
-        forwardDisabled={forwardDisabled}
         forwardAriaLabel={questionIndex === totalQuestions - 1 ? 'Siguiente sección' : 'Continuar'}
       />
 

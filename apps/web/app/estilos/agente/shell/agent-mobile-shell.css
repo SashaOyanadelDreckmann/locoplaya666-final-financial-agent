@@ -1603,7 +1603,9 @@
 
   /* Welcome intro bubble — auto height, no clipping, no horizontal swipe */
   main.agent-layout.is-mobile-viewport .agent-thread > .agent-bubble.assistant.latex-doc.is-empty-welcome,
-  main.agent-layout.is-mobile-viewport .agent-thread > .agent-bubble.assistant.latex-doc.is-intro-doc.is-empty-welcome {
+  main.agent-layout.is-mobile-viewport .agent-thread > .agent-bubble.assistant.latex-doc.is-intro-doc.is-empty-welcome,
+  main.agent-layout.is-mobile-viewport .agent-thread > .agent-bubble.assistant.latex-doc.is-chat-intro-shell,
+  main.agent-layout.is-mobile-viewport .agent-thread > .agent-bubble.assistant.latex-doc.is-intro-doc.is-chat-intro-shell {
     min-height: 0 !important;
     height: auto !important;
     max-height: none !important;
@@ -1615,7 +1617,8 @@
     overscroll-behavior-x: none !important;
   }
 
-  main.agent-layout.is-mobile-viewport .agent-thread > .agent-bubble.assistant.latex-doc.is-empty-welcome .latex-doc-body.is-empty-welcome-body {
+  main.agent-layout.is-mobile-viewport .agent-thread > .agent-bubble.assistant.latex-doc.is-empty-welcome .latex-doc-body.is-empty-welcome-body,
+  main.agent-layout.is-mobile-viewport .agent-thread > .agent-bubble.assistant.latex-doc.is-chat-intro-shell .latex-doc-body.is-chat-intro-body {
     min-height: 0 !important;
     height: auto !important;
     max-height: none !important;
@@ -1623,8 +1626,13 @@
     padding: 10px 8px 12px !important;
   }
 
+  main.agent-layout.is-mobile-viewport .agent-thread > .agent-bubble.assistant.latex-doc.is-chat-intro-shell .latex-doc-body.is-chat-intro-body {
+    padding: 8px 6px 10px !important;
+  }
+
   main.agent-layout.is-mobile-viewport .agent-thread .gradient-blob-card,
-  main.agent-layout.is-mobile-viewport .agent-thread .gradient-blob-card--welcome {
+  main.agent-layout.is-mobile-viewport .agent-thread .gradient-blob-card--welcome,
+  main.agent-layout.is-mobile-viewport .agent-thread .gradient-blob-card--chat-intro {
     min-height: 0 !important;
     height: auto !important;
     width: 100% !important;

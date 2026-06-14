@@ -151,6 +151,8 @@ test.describe('Intake Form Complete Flow', () => {
     const understandingValue = await setSliderByArrowKeys(page, 'slider-understanding-slider', 3);
     expect(parseInt(understandingValue, 10)).toBe(3);
 
+    await clickNextArrow(page);
+
     // Stress level → 7
     await page.waitForTimeout(500);
     const stressValue = await setSliderByArrowKeys(page, 'slider-stress-slider', 7);

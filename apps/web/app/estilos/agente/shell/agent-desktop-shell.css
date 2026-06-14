@@ -515,10 +515,14 @@ html.is-tablet-landscape[data-visual-mode='light-outline'] body.agent-route-acti
 /* Welcome gradient card — semi-transparent shell + matte nav pills (beats latex-doc paper + button contract) */
 html body.agent-route-active .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc.is-empty-welcome,
 html body.agent-route-active .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc.is-intro-doc.is-empty-welcome,
+html body.agent-route-active .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc.is-chat-intro-shell,
+html body.agent-route-active .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc.is-intro-doc.is-chat-intro-shell,
 html[data-visual-mode='dark-outline'] body.agent-route-active .agent-layout.is-visual-mode-dark-outline .agent-thread > .agent-bubble.assistant.latex-doc.is-empty-welcome,
 html[data-visual-mode='dark-outline'] body.agent-route-active .agent-layout.is-visual-mode-dark-outline .agent-thread > .agent-bubble.assistant.latex-doc.is-intro-doc.is-empty-welcome,
+html[data-visual-mode='dark-outline'] body.agent-route-active .agent-layout.is-visual-mode-dark-outline .agent-thread > .agent-bubble.assistant.latex-doc.is-chat-intro-shell,
 html[data-visual-mode='light-outline'] body.agent-route-active .agent-layout.is-visual-mode-light-outline .agent-thread > .agent-bubble.assistant.latex-doc.is-empty-welcome,
-html[data-visual-mode='light-outline'] body.agent-route-active .agent-layout.is-visual-mode-light-outline .agent-thread > .agent-bubble.assistant.latex-doc.is-intro-doc.is-empty-welcome {
+html[data-visual-mode='light-outline'] body.agent-route-active .agent-layout.is-visual-mode-light-outline .agent-thread > .agent-bubble.assistant.latex-doc.is-intro-doc.is-empty-welcome,
+html[data-visual-mode='light-outline'] body.agent-route-active .agent-layout.is-visual-mode-light-outline .agent-thread > .agent-bubble.assistant.latex-doc.is-chat-intro-shell {
   background: rgba(255, 255, 255, 0.1) !important;
   background-image: none !important;
   backdrop-filter: blur(12px) !important;
@@ -530,7 +534,9 @@ html[data-visual-mode='light-outline'] body.agent-route-active .agent-layout.is-
 }
 
 html body.agent-route-active .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc.is-empty-welcome::before,
-html body.agent-route-active .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc.is-intro-doc.is-empty-welcome::before {
+html body.agent-route-active .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc.is-intro-doc.is-empty-welcome::before,
+html body.agent-route-active .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc.is-chat-intro-shell::before,
+html body.agent-route-active .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc.is-intro-doc.is-chat-intro-shell::before {
   display: none !important;
   content: none !important;
   background: none !important;

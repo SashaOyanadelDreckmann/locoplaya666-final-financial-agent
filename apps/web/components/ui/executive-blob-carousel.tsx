@@ -61,6 +61,8 @@ type ExecutiveBlobCarouselShellProps = {
   masthead: ReactNode;
   slideLabel: ReactNode;
   children: ReactNode;
+  hideNav?: boolean;
+  hideStageChrome?: boolean;
   onChange: (index: number) => void;
   onPrev: () => void;
   onNext: () => void;
@@ -76,6 +78,8 @@ export function ExecutiveBlobCarouselShell(props: ExecutiveBlobCarouselShellProp
     masthead,
     slideLabel,
     children,
+    hideNav = false,
+    hideStageChrome = false,
     onChange,
     onPrev,
     onNext,
@@ -84,9 +88,10 @@ export function ExecutiveBlobCarouselShell(props: ExecutiveBlobCarouselShellProp
   if (pages.length === 0) return null;
 
   const current = pages[active] ?? pages[0];
+  const shouldHideNav = hideNav || pages.length <= 1;
 
   return (
-    <div className={cn('gradient-blob-card', className)}>
+    <div className={cn('gradient-blob-card', shouldHideNav && 'gradient-blob-card--single', className)}>
       <div className="gradient-blob-card__frame">
         <div className="gradient-blob-card__blob gradient-blob-card__blob--a" aria-hidden="true" />
         <div className="gradient-blob-card__blob gradient-blob-card__blob--b" aria-hidden="true" />
@@ -100,17 +105,30 @@ export function ExecutiveBlobCarouselShell(props: ExecutiveBlobCarouselShellProp
               {masthead}
             </header>
 
-            <div className="gradient-blob-card__stage">
-              <span className="gradient-blob-card__index" style={{ fontFeatureSettings: '"tnum"' }}>
-                {String(active + 1).padStart(2, '0')}
-              </span>
+            <div
+              className={cn(
+                'gradient-blob-card__stage',
+                hideStageChrome && 'gradient-blob-card__stage--compact',
+              )}
+            >
+              {!hideStageChrome ? (
+                <span className="gradient-blob-card__index" style={{ fontFeatureSettings: '"tnum"' }}>
+                  {String(active + 1).padStart(2, '0')}
+                </span>
+              ) : null}
 
-              <div className="gradient-blob-card__copy">
-                {slideLabel}
+              <div
+                className={cn(
+                  'gradient-blob-card__copy',
+                  hideStageChrome && 'gradient-blob-card__copy--full',
+                )}
+              >
+                {!hideStageChrome ? slideLabel : null}
                 <div className="gradient-blob-card__slide-body">{children}</div>
               </div>
             </div>
 
+            {!shouldHideNav ? (
             <nav className="gradient-blob-card__nav" aria-label={navAriaLabel}>
               <div className="gradient-blob-card__nav-top">
                 <div className="gradient-blob-card__page-pills" role="tablist">
@@ -185,6 +203,7 @@ export function ExecutiveBlobCarouselShell(props: ExecutiveBlobCarouselShellProp
                 </button>
               </div>
             </nav>
+            ) : null}
           </div>
         </div>
       </div>

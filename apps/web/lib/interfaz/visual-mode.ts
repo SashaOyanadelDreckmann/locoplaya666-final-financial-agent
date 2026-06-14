@@ -70,12 +70,12 @@ export function clearStoredVisualMode(): void {
 }
 
 /** Duración del reveal cinematográfico al cambiar de modo (ms). */
-export const VISUAL_MODE_TRANSITION_MS = 4000;
-const SHIMMER_LINGER_MS = 4600;
+export const VISUAL_MODE_TRANSITION_MS = 2000;
+const SHIMMER_LINGER_MS = VISUAL_MODE_TRANSITION_MS;
 const TRANSITION_ACTIVE_CLASS = 'visual-mode-transition-active';
 const SETTLING_CLASS = 'visual-mode-settling';
-/** Breve ventana tras el reveal para que el panel no re-anime fondos/filtros. */
-const PANEL_SETTLE_MS = 320;
+/** Breve ventana tras el reveal para que el layout no re-anime fondos/filtros. */
+const PANEL_SETTLE_MS = 480;
 
 let visualModeTransitionActive = false;
 
@@ -94,13 +94,24 @@ function setPanelSettling(active: boolean): void {
   document.documentElement.classList.toggle(SETTLING_CLASS, active);
 }
 
-function finishInstantModeChange(apply: () => void, onFinished?: () => void): void {
-  setPanelSettling(true);
-  apply();
-  window.setTimeout(() => {
-    setPanelSettling(false);
-    onFinished?.();
-  }, PANEL_SETTLE_MS);
+function removeTransitionShimmers(): void {
+  if (typeof document === 'undefined') return;
+  document.querySelectorAll('.visual-mode-shimmer').forEach((node) => node.remove());
+}
+
+function finishModeChangeGuards(onFinished?: () => void): void {
+  // Commit paint before lifting guards so backgrounds/filters don't re-transition.
+  void document.documentElement.offsetHeight;
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      window.setTimeout(() => {
+        removeTransitionShimmers();
+        setTransitionActive(false);
+        setPanelSettling(false);
+        onFinished?.();
+      }, PANEL_SETTLE_MS);
+    });
+  });
 }
 
 function prefersReducedMotion(): boolean {
@@ -157,7 +168,9 @@ export function runVisualModeTransition(
   const startViewTransition = docAny.startViewTransition?.bind(document);
 
   if (!startViewTransition || prefersReducedMotion()) {
-    finishInstantModeChange(apply, onFinished);
+    setPanelSettling(true);
+    apply();
+    finishModeChangeGuards(onFinished);
     return;
   }
 
@@ -172,17 +185,7 @@ export function runVisualModeTransition(
   };
 
   const finishTransition = () => {
-    // Commit paint before lifting the view-transition guard.
-    void document.documentElement.offsetHeight;
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        setTransitionActive(false);
-        window.setTimeout(() => {
-          setPanelSettling(false);
-          onFinished?.();
-        }, PANEL_SETTLE_MS);
-      });
-    });
+    finishModeChangeGuards(onFinished);
   };
 
   setTransitionActive(true);

@@ -163,6 +163,12 @@ export function KnowledgeStep({
   const GROUP_COUNT = KNOWLEDGE_GROUPS.length;
   const totalQuestions = GROUP_COUNT + 3;
   const isLast = questionIndex === totalQuestions - 1;
+  const isMultiSelectKnowledge = questionIndex < GROUP_COUNT;
+  const isRiskQuestion = questionIndex === GROUP_COUNT;
+  const showForward =
+    isMultiSelectKnowledge ||
+    questionIndex > GROUP_COUNT ||
+    (isRiskQuestion && form.riskReaction === 'never_invest');
 
   useIntakeQuestionAmbient(questionIndex, totalQuestions);
 
@@ -199,7 +205,7 @@ export function KnowledgeStep({
         onBack={onBackQuestion}
         onNext={onNextQuestion}
         showBack
-        showForward
+        showForward={showForward}
         forwardDisabled={loading}
         forwardAriaLabel={isLast ? 'Comenzar mi asesoría' : 'Siguiente'}
         loading={loading}
@@ -245,9 +251,8 @@ export function KnowledgeStep({
                 className={`intake-chip intake-chip-wide${form.riskReaction === opt.value ? ' is-selected' : ''}`}
                 onClick={() => {
                   update('riskReaction', opt.value);
-                  if (opt.value !== 'never_invest') {
-                    setTimeout(() => onNextQuestion(), 120);
-                  }
+                  if (opt.value === 'never_invest') return;
+                  setTimeout(() => onNextQuestion(), 120);
                 }}
               >
                 <span className="intake-chip-main">{opt.label}</span>

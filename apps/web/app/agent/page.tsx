@@ -121,6 +121,8 @@ import {
   repairChat1WelcomeItems,
   shouldSeedWelcomeMessage,
 } from './flujo/welcome-intro.shared';
+import { repairChatIntroItems, shouldSeedChatIntroMessage } from './flujo/chat-intro.shared';
+import { resolvePanelDiagnosisProfile } from '@/lib/diagnostico/sesion';
 import { AgentBootSequence } from './arranque/AgentBootSequence';
 import { PanelCardsIntroSequence } from './paneles/PanelCardsIntroSequence';
 import { PanelIntroGridSlot } from './paneles/PanelIntroGridSlot';
@@ -312,20 +314,6 @@ export default function AgentPage() {
   const buildChat1WelcomeItem = useCallback(() => {
     return buildWelcomeChatItem({});
   }, []);
-
-  const buildOpeningMessageByChat = useCallback((
-    chatId: string,
-    session: { name?: string | null; injectedIntake?: unknown } | null | undefined
-  ) => {
-    const firstName = String(session?.name ?? '').split(' ')[0]?.trim() || 'Hola';
-    if (chatId === 'chat-2') {
-      return `${firstName}, abrimos con una lluvia de ideas senior: cruzamos tu entrevista, presupuesto, cartolas y el mercado de hoy. En este chat convergemos hasta dejar un **plan de acción ejecutivo** completo — sin atajos ni correos automáticos. ¿Priorizamos primero caja, deuda, ahorro o inversión?`;
-    }
-    if (chatId === 'chat-3') {
-      return `*"El precio de todo y el valor de nada."* — Oscar Wilde\n\n${firstName}, este espacio no es sobre números. Es sobre lo que los números revelan de ti.\n\nCada peso que ganas, gastas o acumulas es una decisión moral —aunque nunca la hayas pensado así.\n\n**¿Tu dinero trabaja para el mundo que quieres vivir, o para el mundo que te tocó?**`;
-    }
-    return buildChat1WelcomeItem().content;
-  }, [buildChat1WelcomeItem]);
 
   function makeInitialThread(id: string, label: string, name: string): ChatThread {
     return {
@@ -552,6 +540,10 @@ export default function AgentPage() {
 
   const loadProfileIfNeeded = useProfileStore((s) => s.loadProfileIfNeeded);
   const profile = useProfileStore((s) => s.profile);
+  const resolvedDiagnosisProfile = useMemo(
+    () => resolvePanelDiagnosisProfile(sessionInfo?.injectedProfile, profile),
+    [sessionInfo?.injectedProfile, profile],
+  );
   const clearAuthenticated = useSessionStore((s) => s.clearAuthenticated);
   const panelStateBackupKey = useMemo(
     () => panelStateBackupKeyForUser(sessionInfo?.userId ?? sessionInfo?.email ?? sessionInfo?.name),
@@ -916,7 +908,9 @@ export default function AgentPage() {
                     return !isStaleSessionErrorMessage(String(it.content ?? ''));
                   }),
                 );
-                return String(s.id) === 'chat-1' ? repairChat1WelcomeItems(sanitized) : sanitized;
+                return String(s.id) === 'chat-1'
+                  ? repairChat1WelcomeItems(sanitized)
+                  : repairChatIntroItems(String(s.id), sanitized);
               })()
             : [],
           draft: String(s.draft ?? ''),
@@ -954,7 +948,10 @@ export default function AgentPage() {
           };
         });
         normalized.forEach((thread) => {
-          if (!shouldSeedWelcomeMessage(thread.id, thread.items)) {
+          if (
+            !shouldSeedWelcomeMessage(thread.id, thread.items) &&
+            !shouldSeedChatIntroMessage(thread.id, thread.items)
+          ) {
             welcomeInjectedThreadsRef.current.add(thread.id);
           }
         });
@@ -973,7 +970,10 @@ export default function AgentPage() {
       let changed = false;
       const next = prev.map((thread) => {
         if (welcomeInjectedThreadsRef.current.has(thread.id)) return thread;
-        if (!shouldSeedWelcomeMessage(thread.id, thread.items)) {
+        if (
+          !shouldSeedWelcomeMessage(thread.id, thread.items) &&
+          !shouldSeedChatIntroMessage(thread.id, thread.items)
+        ) {
           welcomeInjectedThreadsRef.current.add(thread.id);
           return thread;
         }
@@ -1000,21 +1000,9 @@ export default function AgentPage() {
         changed = true;
 
         if (thread.id !== 'chat-1') {
-          const opening = sanitizeMessageText(
-            buildOpeningMessageByChat(thread.id, sessionInfo),
-            FALLBACK_WELCOME,
-          );
           return {
             ...thread,
-            items: sanitizeChatThreadMessages([
-              {
-                type: 'message',
-                role: 'assistant',
-                content: opening,
-                mode: 'information',
-              } as ChatItem,
-              ...thread.items,
-            ]),
+            items: repairChatIntroItems(thread.id, thread.items),
           };
         }
 
@@ -1025,7 +1013,7 @@ export default function AgentPage() {
       });
       return changed ? next : prev;
     });
-  }, [buildChat1WelcomeItem, buildOpeningMessageByChat, sessionInfo, sheetsLoaded]);
+  }, [buildChat1WelcomeItem, sessionInfo, sheetsLoaded]);
 
   // Save sheets to API with debounce whenever they change
   useEffect(() => {
@@ -3786,6 +3774,7 @@ export default function AgentPage() {
             onSend={onSend}
             setDraftForActive={setDraftForActive}
             sessionInjectedIntake={sessionInfo?.injectedIntake}
+            diagnosisProfile={resolvedDiagnosisProfile}
             chatThreadRef={chatThreadRef as React.RefObject<HTMLDivElement>}
             activeChatId={activeChatId}
             actionPlanFunnelStage={activeActionPlanStage}

@@ -8,7 +8,7 @@ import { getUserById } from '../persistencia/repos';
 import { synchronizeKnowledgeFromIntake, recordKnowledgeEvent } from '../services/knowledge.service';
 import { sendSuccess } from '../http/api.responses';
 import { parseBody } from '../http/parse';
-import { getAuthenticatedUser } from '../middleware/auth';
+import { badRequest, unauthorized } from '../http/api.errors';
 
 // SECURITY: Strict validation schema - no passthrough() to prevent arbitrary field injection
 const FinancialKnowledgeChecklistSchema = z.object({
@@ -85,28 +85,32 @@ export async function submitIntake(req: Request, res: Response) {
     req.logger?.warn({ msg: 'LLM intake analysis failed', error: err });
   }
 
-  // Auto-inject intake to authenticated user
-  let wasUpdated = false;
-  try {
-    const user = await getAuthenticatedUser(req, res);
-    if (user?.id) {
-      const existing = await getUserById(user.id);
-      wasUpdated = Boolean(existing?.injectedIntake);
-
-      await attachIntakeToUser(user.id, { intake, llmSummary, intakeContext }, { replace: true });
-      await synchronizeKnowledgeFromIntake(user.id, intake);
-      await recordKnowledgeEvent(
-        user.id,
-        wasUpdated ? 'updated_intake' : 'completed_intake',
-        wasUpdated
-          ? 'User updated their financial intake questionnaire'
-          : 'User completed financial intake questionnaire',
-        { source: 'intake_submit' },
-      );
-    }
-  } catch (err) {
-    req.logger?.warn({ msg: 'Failed to auto-inject intake to user', error: err });
+  const user = req.authenticatedUser;
+  if (!user?.id) {
+    throw unauthorized('Not authenticated');
   }
+
+  const existing = await getUserById(user.id);
+  const wasUpdated = Boolean(existing?.injectedIntake);
+
+  const attached = await attachIntakeToUser(
+    user.id,
+    { intake, llmSummary, intakeContext },
+    { replace: true },
+  );
+  if (!attached) {
+    throw badRequest('Failed to persist intake');
+  }
+
+  await synchronizeKnowledgeFromIntake(user.id, intake);
+  await recordKnowledgeEvent(
+    user.id,
+    wasUpdated ? 'updated_intake' : 'completed_intake',
+    wasUpdated
+      ? 'User updated their financial intake questionnaire'
+      : 'User completed financial intake questionnaire',
+    { source: 'intake_submit' },
+  );
 
   return sendSuccess(res, {
     intake,

@@ -4,6 +4,7 @@ import { getConfig, formatConfigSummary } from './config';
 import { getLogger, logStartup, logShutdown } from './logger';
 import { bootstrapMCP } from './mcp/bootstrap';
 import { verifyDatabaseAtStartup } from './services/health.service';
+import { ensureDevTestUsers } from './services/dev-users.seed';
 
 async function startServer(): Promise<void> {
   const config = getConfig();
@@ -53,6 +54,14 @@ async function startServer(): Promise<void> {
   } catch (err) {
     logger.error({ msg: 'Database connectivity check failed at startup', error: err });
     process.exit(1);
+  }
+
+  if (config.NODE_ENV === 'development') {
+    try {
+      await ensureDevTestUsers();
+    } catch (err) {
+      logger.warn({ msg: 'Dev test user seed failed', error: err });
+    }
   }
 
   const app = createApp();

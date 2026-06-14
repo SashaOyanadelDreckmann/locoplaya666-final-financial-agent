@@ -51,8 +51,7 @@ export function ContextStep({
     setQuestionIndex((prev) => Math.max(prev - 1, 0));
   };
 
-  const showForward =
-    questionIndex >= 0;
+  const showForward = questionIndex !== 2;
   const forwardDisabled =
     (questionIndex === 0 && !canContinueAge) ||
     (questionIndex === 1 && !canContinueCity);

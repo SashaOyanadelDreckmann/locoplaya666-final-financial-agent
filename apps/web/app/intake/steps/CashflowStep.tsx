@@ -58,11 +58,7 @@ export function CashflowStep({
     setQuestionIndex((prev) => Math.max(prev - 1, 0));
   };
 
-  const showForward = true;
-  const forwardDisabled =
-    (questionIndex === 0 && !Boolean(form.incomeBand)) ||
-    (questionIndex === 1 && !Boolean(form.expensesCoverage)) ||
-    (questionIndex === 2 && !Boolean(form.tracksExpenses));
+  const showForward = false;
 
   return (
     <div className="intake-step animate-intake-in">
@@ -81,7 +77,6 @@ export function CashflowStep({
         onBack={onBackQuestion}
         onNext={questionIndex === totalQuestions - 1 ? onNext : onNextQuestion}
         showForward={showForward}
-        forwardDisabled={forwardDisabled}
         forwardAriaLabel={questionIndex === totalQuestions - 1 ? 'Siguiente sección' : 'Continuar'}
       />
 

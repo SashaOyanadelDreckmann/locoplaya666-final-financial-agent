@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import { Coins } from 'lucide-react';
 import { AgentModalCloseButton } from '../comunes/AgentModalCloseButton';
+import { FincoinIcon } from '@/components/marca/FincoinIcon';
 import { SpendingLimitCard } from '@/components/ui/spending-limit-card';
 import type { FincoinUsageState } from './use-fincoin-usage';
 
@@ -55,7 +55,7 @@ export function FincoinUsageModal(props: {
 
         <div className="fincoin-usage-head">
           <span className="fincoin-usage-icon" aria-hidden="true">
-            <Coins size={18} />
+            <FincoinIcon size="md" />
           </span>
           <p className="fincoin-usage-subtitle">Presupuesto incluido para usar el agente</p>
           <span className={`fincoin-usage-pill ${statusClass}`}>{statusLabel}</span>

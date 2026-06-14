@@ -1,5 +1,29 @@
 /* Fincoin usage modal + header control */
 
+.fincoin-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-weight: 500;
+  font-style: normal;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  user-select: none;
+}
+
+.fincoin-icon--sm {
+  font-size: 13px;
+}
+
+.fincoin-icon--md {
+  font-size: 16px;
+}
+
+.fincoin-icon--lg {
+  font-size: 20px;
+}
+
 .chat-fincoin-toggle {
   position: relative;
   display: inline-flex;
@@ -123,6 +147,10 @@
   justify-content: center;
   background: rgba(16, 185, 129, 0.14);
   color: #6ee7b7;
+}
+
+.fincoin-usage-icon .fincoin-icon {
+  transform: translateY(-0.5px);
 }
 
 .fincoin-usage-pill {

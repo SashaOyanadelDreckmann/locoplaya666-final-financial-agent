@@ -54,7 +54,10 @@ export function shouldSeedWelcomeMessage(threadId: string, items: ChatItem[]): b
   if (assistants.length === 0) return true;
 
   if (threadId === 'chat-1') {
-    const hasWelcomeShell = assistants.some((item) => isWelcomeShellMessageContent(item.content));
+    const hasWelcomeShell = assistants.some(
+      (item) =>
+        isWelcomeShellMessageContent(item.content) || isLegacyWelcomeAssistantItem(item),
+    );
     if (hasWelcomeShell) return false;
     if (assistants.every((item) => isRecoverableChatErrorMessage(String(item.content ?? '')))) {
       return true;
@@ -68,23 +71,75 @@ export function shouldSeedWelcomeMessage(threadId: string, items: ChatItem[]): b
   return false;
 }
 
+/** Plain-text welcome persisted before the empty-shell + carousel UI. */
+export function isLegacyWelcomeAssistantItem(item: ChatItem): boolean {
+  if (item.type !== 'message' || item.role !== 'assistant') return false;
+  if (isWelcomeShellMessageContent(item.content)) return false;
+  if ((item.agent_blocks ?? []).some((block) => block.type === 'executive_intro')) return true;
+
+  const text = String(item.content ?? '').trim();
+  if (!text) return false;
+
+  const lower = text.toLowerCase();
+  if (lower.includes(EXECUTIVE_INTRO_MARKER)) return true;
+  if (
+    /evidencia real primero|simulaci[oó]n normativa|ruta de decisi[oó]n|lectura seria de tu situaci[oó]n|partimos con una lectura/i.test(
+      lower,
+    )
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+function coerceWelcomeCarouselShellItem(
+  item: Extract<ChatItem, { type: 'message'; role: 'assistant' }>,
+): Extract<ChatItem, { type: 'message'; role: 'assistant' }> {
+  return {
+    ...item,
+    content: '',
+    agent_blocks: (item.agent_blocks ?? []).filter((block) => block.type !== 'executive_intro'),
+    suggested_replies: item.suggested_replies ?? [],
+  };
+}
+
+function migrateLegacyWelcomeShell(items: ChatItem[]): ChatItem[] {
+  const firstAssistantIdx = items.findIndex(
+    (item) => item.type === 'message' && item.role === 'assistant',
+  );
+  if (firstAssistantIdx < 0) return items;
+
+  const firstAssistant = items[firstAssistantIdx];
+  if (firstAssistant.type !== 'message' || firstAssistant.role !== 'assistant') return items;
+  if (!isLegacyWelcomeAssistantItem(firstAssistant)) return items;
+
+  return items.map((item, idx) =>
+    idx === firstAssistantIdx && item.type === 'message' && item.role === 'assistant'
+      ? coerceWelcomeCarouselShellItem(item)
+      : item,
+  );
+}
+
 export function repairChat1WelcomeItems(items: ChatItem[]): ChatItem[] {
   const withoutRecoverableErrors = items.filter((item) => {
     if (item.type !== 'message' || item.role !== 'assistant') return true;
     return !isRecoverableChatErrorMessage(String(item.content ?? ''));
   });
 
-  const hasWelcomeShell = withoutRecoverableErrors.some(
+  const migrated = migrateLegacyWelcomeShell(withoutRecoverableErrors);
+
+  const hasWelcomeShell = migrated.some(
     (item) =>
       item.type === 'message' &&
       item.role === 'assistant' &&
       isWelcomeShellMessageContent(item.content),
   );
-  if (hasWelcomeShell) return withoutRecoverableErrors;
+  if (hasWelcomeShell) return migrated;
 
-  if (!shouldSeedWelcomeMessage('chat-1', items)) return items;
+  if (!shouldSeedWelcomeMessage('chat-1', items)) return migrated;
 
-  return [buildWelcomeChatItem({}) as ChatItem, ...withoutRecoverableErrors];
+  return [buildWelcomeChatItem({}) as ChatItem, ...migrated];
 }
 
 export function normalizeWelcomeShellContent(content: unknown): string {

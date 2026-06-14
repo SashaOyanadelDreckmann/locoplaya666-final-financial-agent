@@ -1,7 +1,7 @@
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
-import { resolveServerBackendBase, validateBackendSession } from '@/lib/sesion/sessionAccess';
+import { resolveServerBackendBase, validateBackendSession, fetchServerSession, hasCompletedIntakeAccess } from '@/lib/sesion/sessionAccess';
 
 const PROTECTED_PATHS = ['/agent', '/interview', '/diagnosis', '/intake', '/analytics', '/admin'];
 const GUEST_ONLY_PATHS = ['/login', '/register'];
@@ -74,8 +74,17 @@ export async function middleware(request: NextRequest) {
   if (isGuestOnly && hasSessionCookieValue) {
     const session = await sessionIsValid(request);
     if (session.valid) {
+      const cookieHeader = request.headers.get('cookie')?.trim() ?? '';
+      const backendBase = resolveServerBackendBase({
+        requestOrigin: request.nextUrl.origin,
+        forwardedHost: request.headers.get('x-forwarded-host'),
+        forwardedProto: request.headers.get('x-forwarded-proto'),
+      });
+      const { session: profile } = await fetchServerSession({ cookieHeader, backendBase });
       const url = request.nextUrl.clone();
-      url.pathname = '/agent';
+      url.pathname = profile?.id && hasCompletedIntakeAccess(profile.injectedIntake)
+        ? '/agent'
+        : '/intake?status=approved';
       return NextResponse.redirect(url);
     }
   }
@@ -83,8 +92,17 @@ export async function middleware(request: NextRequest) {
   if (isApprovalWaiting && hasSessionCookieValue) {
     const session = await sessionIsValid(request);
     if (session.valid) {
+      const cookieHeader = request.headers.get('cookie')?.trim() ?? '';
+      const backendBase = resolveServerBackendBase({
+        requestOrigin: request.nextUrl.origin,
+        forwardedHost: request.headers.get('x-forwarded-host'),
+        forwardedProto: request.headers.get('x-forwarded-proto'),
+      });
+      const { session: profile } = await fetchServerSession({ cookieHeader, backendBase });
       const url = request.nextUrl.clone();
-      url.pathname = '/agent';
+      url.pathname = profile?.id && hasCompletedIntakeAccess(profile.injectedIntake)
+        ? '/agent'
+        : '/intake?status=approved';
       return NextResponse.redirect(url);
     }
   }

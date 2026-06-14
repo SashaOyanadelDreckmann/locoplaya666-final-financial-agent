@@ -1124,8 +1124,17 @@
   min-height: clamp(720px, 92vh, 980px);
 }
 
+.agent-bubble.assistant.latex-doc.is-chat-intro-shell {
+  min-height: 0;
+  height: auto;
+}
+
 .agent-bubble.assistant.latex-doc.is-empty-welcome .latex-doc-head,
 .agent-bubble.assistant.latex-doc.is-closure-welcome .latex-doc-head {
+  display: none;
+}
+
+.agent-bubble.assistant.latex-doc.is-chat-intro-shell .latex-doc-head {
   display: none;
 }
 
@@ -1135,6 +1144,14 @@
   max-height: none;
   overflow: visible;
   padding: 20px 22px 24px;
+}
+
+.agent-bubble.assistant.latex-doc.is-chat-intro-shell .latex-doc-body.is-chat-intro-body {
+  min-height: 0;
+  height: auto;
+  max-height: none;
+  overflow: visible;
+  padding: 12px 14px 14px;
 }
 
 /* Welcome flow CTA — single source (companion to GradientBlobCard) */
@@ -1181,6 +1198,103 @@
 
 .gradient-blob-card--welcome {
   min-height: clamp(680px, 88vh, 940px);
+}
+
+.gradient-blob-card--single .gradient-blob-card__nav {
+  display: none;
+}
+
+.gradient-blob-card--chat-intro {
+  min-height: 0;
+  height: auto;
+}
+
+.gradient-blob-card--chat-intro .gradient-blob-card__frame {
+  min-height: 0;
+  height: auto;
+}
+
+.gradient-blob-card--chat-intro .gradient-blob-card__editorial {
+  min-height: 0;
+  height: auto;
+}
+
+.gradient-blob-card--chat-intro .gradient-blob-card__stage {
+  min-height: 0;
+  padding-top: 10px;
+  flex: 0 1 auto;
+}
+
+.gradient-blob-card--chat-intro .gradient-blob-card__index {
+  font-size: clamp(36px, 7vw, 52px);
+  line-height: 1;
+}
+
+.gradient-blob-card--chat-intro .gradient-blob-card__copy {
+  gap: 8px;
+}
+
+.gradient-blob-card--chat-intro .gradient-blob-card__slide-body {
+  gap: 10px;
+  padding-bottom: 0;
+}
+
+.gradient-blob-card--chat-intro .gradient-blob-card__masthead {
+  padding-bottom: 0;
+}
+
+.gradient-blob-card--chat-intro .gradient-blob-card__masthead-title {
+  font-size: clamp(1.05rem, 2.2vw, 1.35rem);
+}
+
+.gradient-blob-card--chat-intro .gradient-blob-card__body-text--lead {
+  font-size: clamp(0.94rem, 1.7vw, 1.02rem);
+  line-height: 1.55;
+}
+
+.gradient-blob-card--chat-intro .gradient-blob-card__stage--compact {
+  min-height: 0;
+  padding-top: 8px;
+  gap: 0;
+}
+
+.gradient-blob-card--chat-intro .gradient-blob-card__copy--full {
+  padding-top: 0;
+  gap: 0;
+}
+
+.gradient-blob-card--chat-intro .gradient-blob-card__body-text--intro {
+  margin: 0;
+  font-size: clamp(0.94rem, 1.65vw, 1.02rem);
+  line-height: 1.58;
+}
+
+.gradient-blob-card--chat-intro .gradient-blob-card__quote--intro {
+  margin: 0 0 10px;
+  padding: 0;
+  border: none;
+  font-family: ui-serif, Georgia, 'Times New Roman', serif;
+  font-size: clamp(1rem, 1.8vw, 1.12rem);
+  line-height: 1.45;
+  color: rgba(29, 29, 31, 0.88);
+}
+
+.gradient-blob-card--chat-intro .gradient-blob-card__quote--intro footer {
+  margin-top: 6px;
+  font-family: var(--welcome-font-sans);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(29, 29, 31, 0.48);
+}
+
+.gradient-blob-card--chat-intro .gradient-blob-card__signal-strip {
+  margin-top: 4px;
+}
+
+.gradient-blob-card--chat-intro .gradient-blob-card__masthead-rule {
+  margin-top: 10px;
+  margin-bottom: 0;
 }
 
 .gradient-blob-card__frame {

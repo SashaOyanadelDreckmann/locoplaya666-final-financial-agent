@@ -18,14 +18,20 @@
 }
 
 /* Evita el segundo “tick” de filter/background al retirar la capa de transición. */
+html.visual-mode-transition-active,
 html.visual-mode-transition-active .agent-layout,
 html.visual-mode-transition-active .agent-layout * {
   transition: none !important;
 }
 
-/* Tras el reveal: el panel asienta sin re-animar fondos ni filtros. */
-html.visual-mode-settling .agent-layout .agent-panel,
-html.visual-mode-settling .agent-layout .agent-panel * {
+/* Tras el reveal: todo el layout asienta sin re-animar fondos ni filtros. */
+html.visual-mode-settling,
+html.visual-mode-settling body.agent-route-active .app-shell,
+html.visual-mode-settling body.agent-route-active .app-shell::before,
+html.visual-mode-settling body.agent-route-active .app-shell::after,
+html.visual-mode-settling body.agent-route-active .global-agent-backdrop,
+html.visual-mode-settling .agent-layout,
+html.visual-mode-settling .agent-layout * {
   transition: none !important;
 }
 
@@ -62,7 +68,7 @@ html[data-visual-mode] .agent-layout .agent-panel :is(
     rgba(160, 196, 255, 0.28) 34%,
     rgba(255, 255, 255, 0) 62%
   );
-  animation: visual-mode-shimmer-bloom var(--vm-shimmer-ms, 4600ms)
+  animation: visual-mode-shimmer-bloom var(--vm-shimmer-ms, 2000ms)
     cubic-bezier(0.12, 0.88, 0.22, 1) forwards;
 }
 

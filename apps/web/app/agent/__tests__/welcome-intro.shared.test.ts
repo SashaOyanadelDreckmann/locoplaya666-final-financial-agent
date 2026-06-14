@@ -44,4 +44,23 @@ describe('welcome intro recovery', () => {
       expect(String(repaired[0].content ?? '')).toBe('');
     }
   });
+
+  it('migrates legacy plain-text welcome back to the empty carousel shell', () => {
+    const repaired = repairChat1WelcomeItems([
+      {
+        type: 'message',
+        role: 'assistant',
+        content:
+          'Informe inicial de diagnóstico — evidencia real primero, simulación normativa y ruta de decisión.',
+        mode: 'information',
+      },
+    ]);
+
+    expect(repaired).toHaveLength(1);
+    expect(repaired[0].type).toBe('message');
+    if (repaired[0].type === 'message') {
+      expect(repaired[0].role).toBe('assistant');
+      expect(String(repaired[0].content ?? '')).toBe('');
+    }
+  });
 });

@@ -16,9 +16,21 @@ import SpotlightCard from '@/components/inicio/SpotlightCard';
 import Counter from '@/components/inicio/Counter';
 import NumbersCanvas, { type MousePos } from '@/components/inicio/NumbersCanvas';
 import BrandWordmark from '@/components/marca/BrandWordmark';
-import { useSessionStore } from '@/state/session.store';
 import { getSessionInfo } from '@/lib/api';
+import { hasCompletedIntakeAccess } from '@/lib/sesion/sessionAccess';
 import { MOBILE_SHELL_MEDIA } from '@/lib/interfaz/viewport-mode';
+
+async function resolveDiagnosisEntryRoute(): Promise<'/agent' | '/intake' | '/register'> {
+  try {
+    const session = await getSessionInfo();
+    if (session?.id) {
+      return hasCompletedIntakeAccess(session.injectedIntake) ? '/agent' : '/intake';
+    }
+  } catch {
+    // Sin sesión válida.
+  }
+  return '/register';
+}
 
 const MotionLink = motion(Link);
 
@@ -301,7 +313,6 @@ function StatsSection() {
 function StepsSection() {
   const sectionRef = useRef<HTMLElement>(null);
   const router = useRouter();
-  const isAuthenticated = useSessionStore((s) => s.isAuthenticated);
   const { scrollYProgress } = useScroll({ target: sectionRef, offset: ['start end', 'end start'] });
 
   const headY = useTransform(scrollYProgress, [0, 0.4, 1], [40, 0, -25]);
@@ -309,16 +320,7 @@ function StepsSection() {
   const lineH = useTransform(scrollYProgress, [0.15, 0.75], ['0%', '100%']);
 
   const handleStartDiagnosis = async () => {
-    if (isAuthenticated) {
-      router.push('/intake');
-      return;
-    }
-    try {
-      await getSessionInfo();
-      router.push('/intake');
-    } catch {
-      router.push('/register');
-    }
+    router.push(await resolveDiagnosisEntryRoute());
   };
 
   return (
@@ -418,22 +420,12 @@ function StepsSection() {
 function CtaSection() {
   const sectionRef = useRef<HTMLElement>(null);
   const router = useRouter();
-  const isAuthenticated = useSessionStore((s) => s.isAuthenticated);
   const { scrollYProgress } = useScroll({ target: sectionRef, offset: ['start end', 'end start'] });
   const headY = useTransform(scrollYProgress, [0, 0.5, 1], [60, 0, -40]);
   const headO = useTransform(scrollYProgress, [0, 0.2, 0.85, 1], [0, 1, 1, 0.2]);
 
   const handleStartDiagnosis = async () => {
-    if (isAuthenticated) {
-      router.push('/intake');
-      return;
-    }
-    try {
-      await getSessionInfo();
-      router.push('/intake');
-    } catch {
-      router.push('/register');
-    }
+    router.push(await resolveDiagnosisEntryRoute());
   };
 
   return (
@@ -499,7 +491,6 @@ function CtaSection() {
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function HomePage() {
   const router = useRouter();
-  const isAuthenticated = useSessionStore((s) => s.isAuthenticated);
   const scrollRangeRef = useRef<HTMLDivElement>(null);
   const heroSectionRef = useRef<HTMLElement>(null);
 
@@ -591,16 +582,7 @@ export default function HomePage() {
   }, [heroMX, heroMY, updatePointer, mobileShell]);
 
   const handleStartDiagnosis = async () => {
-    if (isAuthenticated) {
-      router.push('/intake');
-      return;
-    }
-    try {
-      await getSessionInfo();
-      router.push('/intake');
-    } catch {
-      router.push('/register');
-    }
+    router.push(await resolveDiagnosisEntryRoute());
   };
 
   return (
