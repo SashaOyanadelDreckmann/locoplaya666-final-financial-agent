@@ -136,7 +136,8 @@ body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.
 .social-modal-header,
 .transactions-modal .bcc-modal-header,
 .transactions-modal .bcc-modal-header.tx-modal-header-layer,
-.interview-modal .bcc-modal-header.interview-modal-header{
+.budget-modal .bcc-modal-header.budget-modal-header-layer,
+.interview-modal .bcc-modal-header.interview-modal-header-layer{
     position: sticky !important;
     top: 0 !important;
     z-index: 40 !important;

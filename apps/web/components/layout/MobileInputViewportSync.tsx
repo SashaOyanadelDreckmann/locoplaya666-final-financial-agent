@@ -9,9 +9,11 @@ import {
   isComposerDockElement,
   isMobileBrowserViewport,
   isMobileFormRouteViewport,
+  isPwaStandaloneViewport,
   isTransactionsModalElement,
   isTextInput,
   clearComposerTypingVisual,
+  restoreAgentShellViewport,
   scheduleComposerViewportSync,
   scheduleInputViewportSync,
   setMobileInputEngaged,
@@ -76,8 +78,14 @@ export default function MobileInputViewportSync() {
 
       activeInput = target as HTMLElement;
       if (isComposerDockElement(target)) {
-        if (!isMobileBrowserViewport()) return;
-        engageComposerTypingLayout();
+        if (isMobileBrowserViewport() || isPwaStandaloneViewport()) {
+          if (isMobileBrowserViewport()) {
+            engageComposerTypingLayout();
+          } else {
+            setMobileInputEngaged(true);
+            applyMobileViewportTokens();
+          }
+        }
         return;
       }
 
@@ -107,6 +115,9 @@ export default function MobileInputViewportSync() {
         clearComposerTypingVisual();
         setMobileInputEngaged(false);
         applyMobileViewportTokens();
+        if (document.documentElement.classList.contains('agent-route-active')) {
+          restoreAgentShellViewport();
+        }
       }, blurDelay);
     };
 

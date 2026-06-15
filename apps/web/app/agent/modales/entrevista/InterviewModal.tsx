@@ -11,25 +11,31 @@ import { getSessionInfo } from '@/lib/api/cliente';
 import { ApiHttpError } from '@/lib/api/envelope';
 import { toUserFacingError } from '@/lib/compartido/userError';
 import {
-  buildInterviewContextHighlights,
-  INTERVIEW_VOICE_OPENING_FOCUS,
   type InterviewVoiceSnapshot,
 } from './interview-modal.context';
 import {
+  buildInterviewInsightCells,
+  resolveInterviewTimeChip,
+  resolveInterviewWorkspaceStatus,
+} from './interview-modal.presentation';
+import { InterviewInsightRail } from './InterviewInsightRail';
+import {
   InterviewModalBootError,
   InterviewModalLoader,
-  InterviewVoiceSummaryBlock,
 } from './interview-modal.components';
-import { canEndInterviewCallEarly, resolveInterviewModalLoadingState } from './interview-modal.helpers';
+import { canEndInterviewCallEarly, resolveInterviewModalLoadingState, resolveInterviewStartBlockedReason } from './interview-modal.helpers';
+import { resolveMicrophonePermissionHint } from './interview-modal.voice-session';
 import { INTERVIEW_MIN_EARLY_END_SEC } from '@financial-agent/shared';
 import { AgentModalCloseButton } from '../comunes/AgentModalCloseButton';
 import { InterviewDiagnosisPanel } from './InterviewDiagnosisPanel';
 import { type InterviewIntakeWithContext } from './interview-modal.hydration';
-import { formatInterviewClock } from './interview-modal.voice-summary';
 import { useInterviewVoiceRuntime } from './useInterviewVoiceRuntime';
 import { useInterviewModalBootstrap } from './useInterviewModalBootstrap';
 import { useInterviewModalA11y } from './useInterviewModalA11y';
+import { useInterviewModalLayout } from './use-interview-modal-layout';
 import { INTERVIEW_TOTAL_LIMIT_SEC } from '@financial-agent/shared';
+import { InterviewVoiceAura } from './InterviewVoiceAura';
+import { resolveInterviewVoiceAuraPhase } from './interview-voice-aura.helpers';
 
 type Props = {
   isOpen: boolean;
@@ -40,6 +46,8 @@ type Props = {
 
 export function InterviewModal({ isOpen, fincoinSpendBlocked, onClose, onDiagnosisComplete }: Props) {
   const router = useRouter();
+  const { isMobileShell } = useInterviewModalLayout();
+  const mobileShellClass = isMobileShell ? ' is-mobile-shell' : '';
   const modalRef = useRef<HTMLDivElement | null>(null);
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
   const restoreFocusRef = useRef<HTMLElement | null>(null);
@@ -102,6 +110,12 @@ export function InterviewModal({ isOpen, fincoinSpendBlocked, onClose, onDiagnos
     syncError,
     voiceFlags,
     blockVoiceInteraction,
+    remoteAudioRef,
+    voiceCapabilityIssue,
+    callsStarted,
+    callId,
+    voiceSessionReady,
+    summaryGenerating,
     resetVoiceRuntimeState,
     applyHydratedVoiceState,
     setLatestDiagnosticProfileId,
@@ -118,6 +132,14 @@ export function InterviewModal({ isOpen, fincoinSpendBlocked, onClose, onDiagnos
   useEffect(() => {
     if (!isOpen) setConfirmEndCall(false);
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || !isMobileShell) return;
+    document.documentElement.classList.add('interview-modal-open');
+    return () => {
+      document.documentElement.classList.remove('interview-modal-open');
+    };
+  }, [isMobileShell, isOpen]);
 
   const canDismissOverlay = !blockVoiceInteraction;
   const handleOverlayDismiss = useCallback(() => {
@@ -212,89 +234,44 @@ export function InterviewModal({ isOpen, fincoinSpendBlocked, onClose, onDiagnos
                   ? 'Pausada'
                   : 'Llamada agotada'
                 : 'Lista para iniciar';
-  const callTimeLabel = `${Math.floor(callSeconds / 60).toString().padStart(2, '0')}:${(callSeconds % 60).toString().padStart(2, '0')}`;
-  const maxCallTimeLabel = `${Math.floor(maxCallDurationSec / 60).toString().padStart(2, '0')}:${(maxCallDurationSec % 60).toString().padStart(2, '0')}`;
-
-  const intakeSnapshot = [
-    intake?.profession ? String(intake.profession) : null,
-    intake?.employmentStatus ? String(intake.employmentStatus).replace(/_/g, ' / ') : null,
-    intake?.incomeBand ? String(intake.incomeBand) : null,
-    typeof intake?.moneyStressLevel === 'number' ? `Estrés ${intake.moneyStressLevel}/10` : null,
-  ].filter(Boolean) as string[];
-
-  const enrichedIntake = intake as InterviewIntakeWithContext | null;
-  const productsContext = enrichedIntake?.__productsContext;
-  const budgetContext = enrichedIntake?.__budgetContext;
   const synthesisCount = minuteSummaries.length;
-  const productCount = Math.max(0, Number(productsContext?.productsCount ?? 0));
-  const budgetBalance = Math.round(Number(budgetContext?.balance ?? 0));
-  const budgetRowsCount = Math.max(0, Number(budgetContext?.rowsCount ?? 0));
-  const callStateLabel = voiceReport
-    ? 'Diagnóstico consolidado'
-    : isFinalizingCall || isGeneratingDiagnosis
-      ? 'Cerrando entrevista'
-      : voiceConnected && voicePaused
-        ? 'Entrevista en pausa'
-        : voiceConnected
-          ? 'Entrevista en vivo'
-          : voiceFlags.voiceCallExhausted
-            ? 'Entrevista cerrada'
-            : voiceFlags.hasEverStartedVoiceCall
-              ? 'Entrevista pausada'
-              : 'Lista para iniciar';
-  const interviewBriefPoints = [
-    productCount > 0 ? `${productCount} producto${productCount === 1 ? '' : 's'} enlazado${productCount === 1 ? '' : 's'}` : null,
-    budgetRowsCount > 0 ? `${budgetRowsCount} fila${budgetRowsCount === 1 ? '' : 's'} reales de presupuesto` : null,
-    Number.isFinite(budgetBalance) && budgetRowsCount > 0
-      ? `Balance mensual ${budgetBalance >= 0 ? '+' : ''}${budgetBalance.toLocaleString('es-CL')}`
-      : null,
-  ].filter(Boolean) as string[];
-  const contextHighlights = buildInterviewContextHighlights(intake);
-  const voiceProgressLabel = voiceReport
-    ? 'Diagnóstico listo'
-    : finalSummary
-      ? 'Síntesis final lista'
-      : synthesisCount > 0
-        ? `${synthesisCount} síntesis · ${formatInterviewClock(remainingTotalSec)} restante`
-        : voiceConnected
-          ? 'Exploración en curso'
-          : 'Pendiente de llamada';
-  const sessionStatusItems = [
-    {
-      label: 'Estado',
-      value: callStateLabel,
-      tone: voiceConnected ? 'is-live' : voiceReport ? 'is-done' : '',
-    },
-    {
-      label: 'Progreso voz',
-      value: voiceProgressLabel,
-      tone: voiceConnected ? 'is-live' : finalSummary || synthesisCount > 0 ? 'is-done' : '',
-    },
-    {
-      label: 'Cierre',
-      value: voiceReport
-        ? 'Informe listo'
-        : isFinalizingCall || isGeneratingDiagnosis
-          ? 'Diagnóstico en curso'
-        : finalSummary
-          ? 'Síntesis lista'
-          : voiceFlags.isClosingWindow
-              ? 'Cierre automático'
-              : 'Exploración abierta',
-      tone: voiceFlags.isClosingWindow ? 'is-closing' : voiceReport || finalSummary ? 'is-done' : '',
-    },
-  ];
-  const workspaceCoachNote = voiceConnected && voicePaused
-      ? 'Llamada en pausa. Tu progreso y síntesis quedaron guardados; puedes cerrar el modal y retomar después.'
-    : voiceConnected && voiceFlags.isClosingWindow
-      ? 'Cierre de entrevista en curso. El diagnóstico se generará automáticamente al terminar.'
-    : voiceConnected
-      ? 'El diagnóstico se genera solo al cerrar la entrevista. Puedes pausar o cerrar el modal cuando quieras y retomar con el contexto guardado.'
-      : voiceFlags.voiceCallExhausted && (isFinalizingCall || isGeneratingDiagnosis)
-        ? 'Entrevista finalizada. Estamos consolidando tu diagnóstico automáticamente.'
-      : voiceFlags.hasEverStartedVoiceCall
-        ? 'Puedes retomar la llamada donde quedó. El progreso y las síntesis siguen guardados.'
-        : 'Inicia la llamada para una entrevista ejecutiva breve. El diagnóstico se entrega al terminar el tiempo o el cierre del entrevistador.';
+  const workspaceStatus = resolveInterviewWorkspaceStatus({
+    voiceAwaitingMic,
+    voiceConnecting,
+    voiceConnected,
+    voicePaused,
+    voiceListening,
+    voiceSpeaking,
+    voiceFlags,
+    isFinalizingCall,
+    isGeneratingDiagnosis,
+    showVoiceReport,
+    stageLabel,
+  });
+  const timeChip = resolveInterviewTimeChip(callSeconds, remainingTotalSec);
+  const latestMinuteSummary = minuteSummaries.at(-1)?.summary ?? null;
+  const insightCells = buildInterviewInsightCells({
+    intake: intake as InterviewIntakeWithContext | null,
+    intakeReady,
+    showVoiceReport,
+    isFinalizingCall,
+    isGeneratingDiagnosis,
+    voiceAwaitingMic,
+    voiceConnecting,
+    voiceConnected,
+    voicePaused,
+    voiceListening,
+    voiceSpeaking,
+    voiceSessionReady,
+    summaryGenerating,
+    syncError,
+    voiceFlags,
+    callId,
+    minuteSummariesCount: synthesisCount,
+    latestMinuteSummary,
+    hasFinalSummary: Boolean(finalSummary?.summary),
+    remainingTotalSec,
+  });
 
   const callProgressPct = Math.max(
     0,
@@ -317,7 +294,7 @@ export function InterviewModal({ isOpen, fincoinSpendBlocked, onClose, onDiagnos
       : stageLabel;
 
   const callStateDescription = voiceAwaitingMic
-    ? 'Tu navegador pedirá permiso para usar el micrófono. El tiempo de entrevista solo empieza cuando la llamada quede conectada.'
+    ? resolveMicrophonePermissionHint()
     : voiceReport
     ? 'El informe ya está consolidado y puedes revisar el diagnóstico final.'
     : isFinalizingCall || isGeneratingDiagnosis
@@ -332,24 +309,39 @@ export function InterviewModal({ isOpen, fincoinSpendBlocked, onClose, onDiagnos
               ? 'La llamada puede retomarse cuando quieras, sin reiniciar el contexto.'
               : 'Aún estamos preparando la sesión y cargando el contexto inicial.';
 
-  const diagnosisHeadline =
-    profile?.editorial?.headline ??
-    (voiceReport?.executive_report ? 'Diagnóstico consolidado' : 'Diagnóstico financiero');
-  const diagnosisDek =
-    profile?.editorial?.dek ??
-    voiceReport?.executive_report ??
-    profile?.diagnosticNarrative?.slice(0, 280) ??
-    'Tu entrevista quedó consolidada. Revisa el informe, expórtalo o profundízalo en chat.';
-
-  const modalTitle = isDiagnosisMode ? diagnosisHeadline : 'Entrevista estratégica';
-  const modalEyebrow = isDiagnosisMode ? 'Diagnóstico' : 'Financieramente';
-  const modalIntro = isDiagnosisMode
-    ? diagnosisDek
-    : 'Llamada breve con contexto integrado de presupuesto y productos. Puedes finalizarla antes si ya tienes lo necesario; el diagnóstico se ajustará al avance real.';
-  const voiceFocusHint = INTERVIEW_VOICE_OPENING_FOCUS;
+  const modalTitle = isDiagnosisMode ? 'Diagnóstico' : 'Entrevista';
+  const minimalShellClass = ' interview-modal--minimal';
 
   const showBootstrapLoader = isLoading;
   const showGeneratingLoader = isGeneratingDiagnosis;
+  const startBlockedReason = resolveInterviewStartBlockedReason({
+    intakeReady,
+    voiceSupported,
+    voiceCapabilityIssue,
+    voiceAwaitingMic,
+    voiceConnecting,
+    voiceConnected,
+    isFinalizingCall,
+    isGeneratingDiagnosis,
+    showVoiceReport,
+    callsStarted,
+    voiceFlags,
+  });
+  const startButtonDisabled =
+    voiceAwaitingMic ||
+    voiceConnecting ||
+    isFinalizingCall ||
+    isGeneratingDiagnosis ||
+    voiceConnected;
+
+  const voiceAuraPhase = resolveInterviewVoiceAuraPhase({
+    voiceAwaitingMic,
+    voiceConnecting,
+    voiceConnected,
+    voicePaused,
+    voiceListening,
+    voiceSpeaking,
+  });
 
   return (
     <div
@@ -362,7 +354,8 @@ export function InterviewModal({ isOpen, fincoinSpendBlocked, onClose, onDiagnos
     >
       {showGeneratingLoader || showBootstrapLoader ? (
         <div
-          className="agent-modal interview-modal interview-modal--generating"
+          className={`agent-modal interview-modal interview-modal--generating${minimalShellClass}${mobileShellClass}`}
+          data-interview-mobile={isMobileShell ? 'true' : undefined}
           ref={modalRef}
           tabIndex={-1}
           onClick={(e) => e.stopPropagation()}
@@ -371,31 +364,42 @@ export function InterviewModal({ isOpen, fincoinSpendBlocked, onClose, onDiagnos
         >
           {showGeneratingLoader ? (
             <InterviewModalLoader
-              title="Generando diagnóstico final"
-              subtitle="Estamos consolidando el diagnóstico profesional con toda la evidencia disponible."
+              title="Generando diagnóstico"
+              subtitle="Consolidando tu perfil con la evidencia de la llamada."
             />
           ) : (
-            <InterviewModalLoader
-              animateSteps
-              note="Si el perfil tarda unos segundos, es normal: estamos cruzando intake, productos y presupuesto."
-            />
+            <InterviewModalLoader animateSteps subtitle="Cargando contexto para la llamada." />
           )}
         </div>
       ) : (
         <div
-          className={`agent-modal interview-modal${isDiagnosisMode ? ' interview-modal--diagnosis' : ''}`}
+          className={`agent-modal interview-modal${isDiagnosisMode ? ' interview-modal--diagnosis' : ''}${minimalShellClass}${mobileShellClass}`}
+          data-interview-mobile={isMobileShell ? 'true' : undefined}
           ref={modalRef}
           tabIndex={-1}
           onClick={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
           onPointerDown={(e) => e.stopPropagation()}
         >
-          <div className="bcc-modal-header interview-modal-header">
+          <div
+            className={`bcc-modal-header interview-modal-header-layer interview-matte-panel interview-matte-panel--header${!isDiagnosisMode ? ' interview-modal-header-layer--live' : ''}`}
+          >
             <div className="bcc-modal-title-wrap">
-              <span className="bcc-modal-eyebrow">{modalEyebrow}</span>
-              <h3 id={titleId} className="bcc-modal-title">
-                {modalTitle}
-              </h3>
+              <span className="bcc-modal-eyebrow">Financieramente</span>
+              <div className={`interview-header-title-band${!isDiagnosisMode ? ' interview-header-title-band--live' : ''}`}>
+                <h3 id={titleId} className="bcc-modal-title">
+                  {modalTitle}
+                </h3>
+                {!isDiagnosisMode ? (
+                  <div className="interview-header-status-row" aria-label="Estado de la llamada">
+                    <div className="voice-call-status interview-header-status-label">
+                      <span className="voice-call-status-dot" />
+                      {workspaceStatus}
+                    </div>
+                    <span className="interview-time-chip">{timeChip}</span>
+                  </div>
+                ) : null}
+              </div>
             </div>
             <AgentModalCloseButton
               ref={closeButtonRef}
@@ -415,11 +419,8 @@ export function InterviewModal({ isOpen, fincoinSpendBlocked, onClose, onDiagnos
             />
           </div>
 
-          <p
-            id={descriptionId}
-            className={`agent-modal-intro interview-modal-intro${isDiagnosisMode ? ' interview-modal-intro--diagnosis' : ''}`}
-          >
-            {modalIntro}
+          <p id={descriptionId} className="sr-only">
+            {isDiagnosisMode ? 'Diagnóstico financiero consolidado.' : 'Entrevista estratégica con contexto integrado.'}
           </p>
 
           <p className="sr-only" aria-live="polite" aria-atomic="true">
@@ -483,347 +484,161 @@ export function InterviewModal({ isOpen, fincoinSpendBlocked, onClose, onDiagnos
               <div className="interview-modal-loading">
                 <InterviewModalLoader
                   title={profileLoading ? 'Cargando diagnóstico' : 'Preparando informe'}
-                  subtitle={
-                    profileLoading
-                      ? 'Esto suele durar unos segundos mientras traemos el perfil consolidado.'
-                      : 'Estamos ensamblando la vista ejecutiva del diagnóstico final.'
-                  }
+                  subtitle={profileLoading ? 'Un momento…' : 'Armando la vista del informe.'}
                 />
               </div>
             )
           ) : (
             <div className="interview-shell pro-interview-shell interview-modal-body">
               <div className="interview-stage-shell">
-                <aside className="interview-panel-surface interview-panel-surface--sidebar">
-                  <div className="interview-brief-card">
-                    <div className="interview-brief-top">
-                      <div>
-                        <span className="interview-surface-eyebrow">Resumen de sesión</span>
-                        <h4>Entrevista guiada</h4>
-                      </div>
-                      <span
-                        className={`interview-brief-status${voiceConnected ? ' is-live' : voiceReport ? ' is-done' : ''}`}
-                      >
-                        {voiceConnected ? 'En vivo' : voiceReport ? 'Listo' : callStateLabel}
-                      </span>
-                    </div>
-                    <p>
-                      {voiceConnected
-                        ? 'Sesión activa. Responde con ejemplos concretos de tu situación real.'
-                        : showVoiceReport
-                          ? 'Diagnóstico consolidado. Revisa el informe y continúa al detalle completo.'
-                          : 'Conversación breve con contexto de presupuesto y productos para cerrar tu diagnóstico.'}
-                    </p>
-                    <div className="interview-brief-tags">
-                      <span className="interview-brief-tag">
-                        {synthesisCount > 0
-                          ? `${synthesisCount} síntesis`
-                          : voiceConnected
-                            ? 'Explorando'
-                            : 'Sin síntesis aún'}
-                      </span>
-                      <span className="interview-brief-tag">
-                        {finalSummary ? 'Cierre listo' : voiceConnected ? 'En llamada' : 'Lista'}
-                      </span>
-                      <span className="interview-brief-tag">Tiempo {callTimeLabel}</span>
-                    </div>
-                  </div>
-
-                  <div className="interview-metrics-grid">
-                    <article className="interview-metric-card">
-                      <span>Tiempo restante</span>
-                      <strong>{formatInterviewClock(remainingTotalSec)}</strong>
-                    </article>
-                    <article className="interview-metric-card">
-                      <span>Balance base</span>
-                      <strong>
-                        {budgetRowsCount > 0
-                          ? `${budgetBalance >= 0 ? '+' : ''}${budgetBalance.toLocaleString('es-CL')}`
-                          : '—'}
-                      </strong>
-                    </article>
-                    <article className="interview-metric-card">
-                      <span>Productos</span>
-                      <strong>{productCount}</strong>
-                    </article>
-                    <article className="interview-metric-card">
-                      <span>Síntesis</span>
-                      <strong>{synthesisCount > 0 ? synthesisCount : '—'}</strong>
-                    </article>
-                  </div>
-
-                  {interviewBriefPoints.length > 0 ? (
-                    <div className="interview-notes-card">
-                      <span className="interview-surface-eyebrow">Base detectada</span>
-                      <ul>
-                        {interviewBriefPoints.map((item) => (
-                          <li key={item}>{item}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  ) : null}
-
-                  {contextHighlights.length > 0 ? (
-                    <div className="interview-notes-card">
-                      <span className="interview-surface-eyebrow">Contexto consolidado</span>
-                      <ul>
-                        {contextHighlights.map((item) => (
-                          <li key={item}>{item}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  ) : null}
-
-                  <div className="interview-status-rail">
-                    <span className="interview-surface-eyebrow">Estado</span>
-                    <div className="interview-status-list">
-                      {sessionStatusItems.map((item) => (
-                        <div key={item.label} className={`interview-status-item ${item.tone}`.trim()}>
-                          <span>{item.label}</span>
-                          <strong>{item.value}</strong>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </aside>
-
                 <div className="interview-column pro-interview-column interview-panel-surface interview-panel-surface--workspace">
-                  <section className={`voice-call-shell interview-live-shell${showVoiceReport ? ' is-hidden-by-report' : ''}`}>
-                    <div className="voice-call-topbar">
-                      <div>
-                        <span className="voice-call-label">Entrevista en tiempo real</span>
-                        <h1>Entrevista estratégica</h1>
-                        <p className="voice-call-subtitle">
-                          {voiceFlags.voiceCallExhausted && !showVoiceReport
-                            ? isFinalizingCall || isGeneratingDiagnosis
-                              ? 'Entrevista finalizada — generando diagnóstico automáticamente'
-                              : 'Tiempo agotado — preparando cierre y diagnóstico automático'
-                            : voiceConnected
-                              ? voicePaused
-                                ? 'Llamada en pausa'
-                                : voiceListening
-                                  ? 'Te escucho…'
-                                  : voiceSpeaking
-                                    ? 'Entrevistador hablando'
-                                    : 'Conversación activa'
-                              : 'Presiona iniciar llamada para comenzar'}
-                        </p>
-                      </div>
-                      <div className="voice-call-status">
-                        <span className="voice-call-status-dot" />
-                        {voiceAwaitingMic
-                          ? 'Permiso micrófono'
-                          : voiceConnecting
-                          ? 'Conectando'
-                          : voiceConnected
-                            ? voicePaused
-                              ? 'Pausada'
-                              : voiceListening
-                                ? 'Escuchando'
-                                : voiceSpeaking
-                                  ? 'Hablando'
-                                  : 'En llamada'
-                            : callStateLabel}
+                  <section className={`voice-call-shell interview-live-shell interview-live-zones${showVoiceReport ? ' is-hidden-by-report' : ''}`}>
+                    <div className="interview-live-zone interview-live-zone--head">
+                      <p className="sr-only">{callStateDescription}</p>
+
+                      {bootError ? <p className="voice-call-error interview-call-error-banner">{bootError}</p> : null}
+
+                      {(startBlockedReason || voiceError) && !showInCallControls ? (
+                        <div className="interview-call-error-panel interview-call-error-panel--prestart" role="alert">
+                          {startBlockedReason ? (
+                            <p className="voice-call-error interview-call-error-banner">{startBlockedReason}</p>
+                          ) : null}
+                          {voiceError ? (
+                            <p className="voice-call-error interview-call-error-banner">{voiceError}</p>
+                          ) : null}
+                        </div>
+                      ) : null}
+
+                      <div
+                        className="voice-call-progress"
+                        role="progressbar"
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        aria-valuenow={callProgressPct}
+                        aria-label="Progreso de la llamada"
+                      >
+                        <span style={{ width: `${callProgressPct}%` }} />
                       </div>
                     </div>
 
-                    <div className="voice-call-transcript-card interview-focus-card">
-                      <span className="voice-call-transcript-label">Estado actual</span>
-                      <p>{callStateLabel}</p>
-                      <small className="interview-inline-note">{callStateDescription}</small>
-                    </div>
-
-                    <div className="voice-call-transcript-card interview-focus-card">
-                      <span className="voice-call-transcript-label">Foco de conversación</span>
-                      <p>{voiceFocusHint}</p>
-                      <small className="interview-inline-note">{workspaceCoachNote}</small>
-                    </div>
-
-                    {bootError ? <p className="voice-call-error interview-call-error-banner">{bootError}</p> : null}
-
-                    <div
-                      className="voice-call-progress"
-                      role="progressbar"
-                      aria-valuemin={0}
-                      aria-valuemax={100}
-                      aria-valuenow={callProgressPct}
-                      aria-label="Progreso de la llamada"
-                    >
-                      <span style={{ width: `${callProgressPct}%` }} />
-                    </div>
-
-                    <div className="voice-call-context">
-                      {intakeSnapshot.map((item) => (
-                        <span key={item} className="voice-call-pill">
-                          {item}
-                        </span>
-                      ))}
-                    </div>
-
-                    <div
-                      className={`interview-call-controls${showInCallControls ? ' is-live' : ''}`}
-                      aria-label={showInCallControls ? 'Controles de llamada en curso' : 'Iniciar entrevista por voz'}
-                    >
-                      {showInCallControls ? (
-                        <div className="voice-call-actions interview-call-actions interview-call-actions--primary interview-call-actions--live">
-                          <button
-                            type="button"
-                            className={`summary-action-btn interview-call-pause-btn${voicePaused ? ' is-paused' : ''}`}
-                            onClick={toggleCallPause}
-                            disabled={blockVoiceInteraction}
-                            title={voicePaused ? 'Reanudar la llamada' : 'Pausar la llamada'}
-                          >
-                            {voicePaused ? 'Reanudar llamada' : 'Pausar llamada'}
-                          </button>
-                          {canEndCallEarly ? (
+                    <div className="interview-live-zone interview-live-zone--center">
+                      <InterviewVoiceAura phase={voiceAuraPhase} remoteAudioRef={remoteAudioRef} />
+                      <div
+                        className={`interview-call-controls interview-call-controls--centered${showInCallControls ? ' is-live' : ' is-idle'}`}
+                        aria-label={showInCallControls ? 'Controles de llamada en curso' : 'Iniciar entrevista por voz'}
+                      >
+                        {showInCallControls ? (
+                          <div className="voice-call-actions interview-call-actions interview-call-actions--primary interview-call-actions--live">
                             <button
                               type="button"
-                              className={`summary-action-btn interview-call-end-btn${confirmEndCall ? ' is-armed' : ''}`}
-                              onClick={() => setConfirmEndCall((prev) => !prev)}
+                              className={`summary-action-btn interview-call-pause-btn${voicePaused ? ' is-paused' : ''}`}
+                              onClick={toggleCallPause}
                               disabled={blockVoiceInteraction}
-                              title="Finalizar la llamada y generar diagnóstico con el avance actual"
+                              title={voicePaused ? 'Reanudar la llamada' : 'Pausar la llamada'}
                             >
-                              {confirmEndCall ? 'Cancelar cierre' : 'Finalizar llamada'}
+                              {voicePaused ? 'Reanudar llamada' : 'Pausar llamada'}
                             </button>
-                          ) : (
+                            {canEndCallEarly ? (
+                              <button
+                                type="button"
+                                className={`summary-action-btn interview-call-end-btn${confirmEndCall ? ' is-armed' : ''}`}
+                                onClick={() => setConfirmEndCall((prev) => !prev)}
+                                disabled={blockVoiceInteraction}
+                                title="Finalizar la llamada y generar diagnóstico con el avance actual"
+                              >
+                                {confirmEndCall ? 'Cancelar cierre' : 'Finalizar llamada'}
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                className="summary-action-btn interview-call-end-btn interview-call-end-btn--pending"
+                                disabled
+                                aria-disabled="true"
+                                title={`Podrás finalizar tras ${INTERVIEW_MIN_EARLY_END_SEC} segundos activos de entrevista`}
+                              >
+                                Finalizar en {earlyEndSecondsRemaining}s
+                              </button>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="voice-call-actions interview-call-actions interview-call-actions--primary interview-call-actions--idle">
                             <button
                               type="button"
-                              className="summary-action-btn interview-call-end-btn interview-call-end-btn--pending"
-                              disabled
-                              aria-disabled="true"
-                              title={`Podrás finalizar tras ${INTERVIEW_MIN_EARLY_END_SEC} segundos activos de entrevista`}
+                              className="summary-action-btn summary-action-accept interview-call-start-btn"
+                              onClick={() => void startOrResumeVoiceSession()}
+                              disabled={startButtonDisabled}
+                              aria-disabled={startButtonDisabled || Boolean(startBlockedReason)}
+                              title={startBlockedReason ?? undefined}
                             >
-                              Finalizar en {earlyEndSecondsRemaining}s
-                            </button>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="voice-call-actions interview-call-actions interview-call-actions--primary interview-call-actions--idle">
-                          <button
-                            type="button"
-                            className="summary-action-btn summary-action-accept interview-call-start-btn"
-                            onClick={() => void startOrResumeVoiceSession()}
-                            disabled={
-                              !intakeReady ||
-                              !voiceSupported ||
-                              voiceAwaitingMic ||
-                              voiceConnecting ||
-                              isFinalizingCall ||
-                              showVoiceReport ||
-                              (voiceFlags.voiceCallExhausted && !voiceFlags.hasLiveVoiceCall) ||
-                              (voiceFlags.voiceInterviewLocked && !voiceFlags.hasLiveVoiceCall)
-                            }
-                          >
-                            {voiceAwaitingMic
-                              ? 'Activa el micrófono en el navegador…'
-                              : voiceConnecting
-                                ? 'Conectando llamada…'
-                                : showVoiceReport
-                                  ? 'Diagnóstico listo'
-                                  : voiceFlags.voiceCallExhausted && !showVoiceReport
-                                    ? 'Entrevista cerrada'
-                                    : voiceFlags.hasEverStartedVoiceCall && voiceFlags.hasRemainingInterviewTime
-                                      ? 'Reanudar llamada'
-                                      : 'Iniciar llamada'}
-                          </button>
-                        </div>
-                      )}
-
-                      {confirmEndCall && canEndCallEarly ? (
-                        <div className="voice-call-transcript-card interview-flow-notice interview-end-call-confirm">
-                          <span className="voice-call-transcript-label">Cierre anticipado</span>
-                          <p>
-                            Generaremos el diagnóstico con el tiempo y las síntesis acumuladas hasta ahora. Si la
-                            llamada fue breve, el informe será más preliminar y no podrás reanudar esta entrevista.
-                          </p>
-                          <div className="interview-call-actions interview-call-actions--secondary">
-                            <button
-                              type="button"
-                              className="summary-action-btn summary-action-accept interview-call-end-confirm-btn"
-                              onClick={() => {
-                                setConfirmEndCall(false);
-                                void endCallEarly();
-                              }}
-                              disabled={blockVoiceInteraction}
-                            >
-                              Confirmar y generar diagnóstico
-                            </button>
-                            <button
-                              type="button"
-                              className="summary-action-btn"
-                              onClick={() => setConfirmEndCall(false)}
-                              disabled={blockVoiceInteraction}
-                            >
-                              Seguir en llamada
+                              {voiceAwaitingMic
+                                ? 'Activa el micrófono en el navegador…'
+                                : voiceConnecting
+                                  ? 'Conectando llamada…'
+                                  : showVoiceReport
+                                    ? 'Diagnóstico listo'
+                                    : voiceFlags.voiceCallExhausted && !showVoiceReport
+                                      ? 'Entrevista cerrada'
+                                      : voiceFlags.hasEverStartedVoiceCall && voiceFlags.hasRemainingInterviewTime
+                                        ? 'Reanudar llamada'
+                                        : 'Iniciar llamada'}
                             </button>
                           </div>
+                        )}
+
+                        {confirmEndCall && canEndCallEarly ? (
+                          <div className="voice-call-transcript-card interview-flow-notice interview-end-call-confirm">
+                            <p>
+                              ¿Generar diagnóstico con el avance actual? Si la llamada fue breve, el informe será
+                              preliminar.
+                            </p>
+                            <div className="interview-call-actions interview-call-actions--secondary">
+                              <button
+                                type="button"
+                                className="summary-action-btn summary-action-accept interview-call-end-confirm-btn"
+                                onClick={() => {
+                                  setConfirmEndCall(false);
+                                  void endCallEarly();
+                                }}
+                                disabled={blockVoiceInteraction}
+                              >
+                                Confirmar y generar diagnóstico
+                              </button>
+                              <button
+                                type="button"
+                                className="summary-action-btn"
+                                onClick={() => setConfirmEndCall(false)}
+                                disabled={blockVoiceInteraction}
+                              >
+                                Seguir en llamada
+                              </button>
+                            </div>
+                          </div>
+                        ) : null}
+                      </div>
+
+                      {voiceError && (showInCallControls || voiceConnected) ? (
+                        <div className="interview-call-error-panel interview-call-error-panel--center">
+                          <p className="voice-call-error interview-call-error-banner">{voiceError}</p>
+                          {canRetryDiagnosis ? (
+                            <button
+                              type="button"
+                              className="summary-action-btn summary-action-accept interview-diagnosis-retry-btn"
+                              onClick={() => void retryDiagnosisGeneration()}
+                              disabled={isFinalizingCall || isGeneratingDiagnosis}
+                            >
+                              {isFinalizingCall || isGeneratingDiagnosis
+                                ? 'Reintentando diagnóstico…'
+                                : 'Reintentar diagnóstico'}
+                            </button>
+                          ) : null}
                         </div>
-                      ) : showInCallControls && !canEndCallEarly && !voicePaused ? (
-                        <p className="interview-call-hint">
-                          Tras {INTERVIEW_MIN_EARLY_END_SEC} segundos activos podrás finalizar la llamada y generar el
-                          diagnóstico.
-                        </p>
                       ) : null}
                     </div>
 
-                    <div className="voice-call-context interview-call-meta">
-                      <span className="voice-call-pill">
-                        Tiempo {callTimeLabel} / {maxCallTimeLabel}
-                      </span>
-                      <span className="voice-call-pill">
-                        Pausa: {voicePaused ? 'activa' : voiceConnected ? 'disponible' : '—'}
-                      </span>
-                      <span className="voice-call-pill">
-                        Restante: {formatInterviewClock(remainingTotalSec)}
-                      </span>
-                      <span className="voice-call-pill">Hasta 3 min activos</span>
+                    <div className="interview-live-zone interview-live-zone--rail interview-matte-panel interview-matte-panel--rail">
+                      <InterviewInsightRail cells={insightCells} />
                     </div>
-
-                    {voiceError ? (
-                      <div className="interview-call-error-panel">
-                        <p className="voice-call-error interview-call-error-banner">{voiceError}</p>
-                        <p className="interview-inline-note">
-                          {voiceConnected
-                            ? 'La llamada sigue viva: este error suele ser recuperable.'
-                            : voiceFlags.voiceInterviewLocked || voiceFlags.voiceCallExhausted
-                              ? 'Este estado es terminal para la llamada actual.'
-                              : 'Puedes reintentar cuando el contexto termine de estabilizarse.'}
-                        </p>
-                        {canRetryDiagnosis ? (
-                          <button
-                            type="button"
-                            className="summary-action-btn summary-action-accept interview-diagnosis-retry-btn"
-                            onClick={() => void retryDiagnosisGeneration()}
-                            disabled={isFinalizingCall || isGeneratingDiagnosis}
-                          >
-                            {isFinalizingCall || isGeneratingDiagnosis
-                              ? 'Reintentando diagnóstico…'
-                              : 'Reintentar diagnóstico'}
-                          </button>
-                        ) : null}
-                      </div>
-                    ) : null}
-
-                    {(voiceConnected || minuteSummaries.length > 0 || finalSummary || voiceAgentTranscript) && (
-                      <div className="voice-call-transcripts">
-                        <InterviewVoiceSummaryBlock
-                          title="Síntesis por minuto"
-                          items={minuteSummaries.slice(-2)}
-                          fallbackText="La síntesis acumulada aparecerá aquí."
-                        />
-                        <div className="voice-call-transcript-card">
-                          <span className="voice-call-transcript-label">Síntesis final</span>
-                          <p>
-                            {finalSummary?.summary ||
-                              voiceUserTranscript ||
-                              voicePartialTranscript ||
-                              'Cuando cierre la entrevista, verás la síntesis ejecutiva aquí.'}
-                          </p>
-                        </div>
-                      </div>
-                    )}
                   </section>
-
                 </div>
               </div>
             </div>

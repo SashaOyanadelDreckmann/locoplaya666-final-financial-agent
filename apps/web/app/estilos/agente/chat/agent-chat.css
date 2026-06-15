@@ -360,11 +360,25 @@
     gap: 8px !important;
   }
 
-  .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-save-btn {
+  .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-head-actions .latex-doc-mode,
+  .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-head-actions .latex-doc-save-btn {
+    block-size: 34px !important;
+    min-block-size: 34px !important;
+    max-block-size: 34px !important;
+    height: 34px !important;
+    min-height: 34px !important;
+    padding-block: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    line-height: 1 !important;
+    border-radius: 999px !important;
+    box-sizing: border-box !important;
+  }
+
+  .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-head-actions .latex-doc-save-btn {
     min-inline-size: 108px !important;
-    block-size: 32px !important;
-    min-block-size: 32px !important;
-    padding: 0 14px !important;
+    padding-inline: 14px !important;
     font-size: 0.68rem !important;
     touch-action: manipulation !important;
   }
@@ -663,7 +677,37 @@
   gap: 10px;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
-  scroll-padding-bottom: 80px;
+  scroll-padding-top: 16px;
+  scroll-padding-bottom: 120px;
+}
+
+/* After the first user turn, compress welcome shell so messages below stay visible */
+.agent-thread:has(> .agent-bubble.user) > .agent-bubble.assistant.latex-doc.is-empty-welcome,
+.agent-thread:has(> .agent-bubble.user) > .agent-bubble.assistant.latex-doc.is-closure-welcome {
+  min-height: clamp(420px, 58vh, 680px);
+}
+
+.agent-thread:has(> .agent-bubble.user) > .agent-bubble.assistant.latex-doc.is-empty-welcome .latex-doc-body.is-empty-welcome-body,
+.agent-thread:has(> .agent-bubble.user) > .agent-bubble.assistant.latex-doc.is-closure-welcome .latex-doc-body.is-empty-welcome-body {
+  min-height: clamp(400px, 56vh, 660px);
+}
+
+.agent-thread:has(> .agent-bubble.user) .gradient-blob-card {
+  min-height: clamp(380px, 54vh, 640px);
+}
+
+.agent-thread:has(> .agent-bubble.user) .agent-inline-panel-action--welcome {
+  flex-shrink: 0;
+}
+
+/* Onboarding nudge — same width band as assistant bubbles */
+.agent-thread > .onboarding-flow-cta {
+  flex-shrink: 0;
+  align-self: flex-start;
+  width: 100%;
+  max-width: var(--bubble-maxw, 72%);
+  margin-top: 6px;
+  margin-bottom: 4px;
 }
 
 /* Page variant — fills the track slot, pushes content to bottom */
@@ -2626,7 +2670,7 @@ html[data-visual-mode='light-outline'] body.agent-route-active .agent-layout.is-
 
 .pt-shell {
   display: grid;
-  grid-template-columns: minmax(360px, 420px) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 18px;
   padding: 0 20px 20px;
   min-height: 0;

@@ -3,6 +3,7 @@ import {
   measureActiveCallSeconds,
   resolveInterviewActiveQuota,
   resolveInterviewModalLoadingState,
+  resolveInterviewStartBlockedReason,
   resolveInterviewVoiceStateFlags,
   resolveUsedSecondsFromSources,
 } from '../modales/entrevista/interview-modal.helpers';
@@ -41,6 +42,27 @@ describe('interview modal helpers', () => {
     expect(canEndInterviewCallEarly(29)).toBe(false);
     expect(canEndInterviewCallEarly(30)).toBe(true);
     expect(canEndInterviewCallEarly(90)).toBe(true);
+  });
+
+  it('surfaces blocked start reasons instead of silent disabled buttons', () => {
+    const flags = resolveInterviewVoiceStateFlags({
+      closeoutBufferSec: 25,
+    });
+    expect(
+      resolveInterviewStartBlockedReason({
+        intakeReady: true,
+        voiceSupported: false,
+        voiceCapabilityIssue: 'La entrevista por voz requiere HTTPS (o localhost).',
+        voiceAwaitingMic: false,
+        voiceConnecting: false,
+        voiceConnected: false,
+        isFinalizingCall: false,
+        isGeneratingDiagnosis: false,
+        showVoiceReport: false,
+        callsStarted: 0,
+        voiceFlags: flags,
+      }),
+    ).toContain('HTTPS');
   });
 
   it('derives remaining quota from active seconds only', () => {

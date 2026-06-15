@@ -862,7 +862,22 @@ button {
     max-width: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
+    overflow: hidden !important;
     overflow-x: hidden !important;
+    overflow-y: hidden !important;
+    overscroll-behavior: none !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    max-height: 100% !important;
+  }
+
+  html.agent-route-active .app-shell,
+  body.agent-route-active .app-shell {
+    overflow: hidden !important;
+    overscroll-behavior: none !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    max-height: 100% !important;
   }
 }
 

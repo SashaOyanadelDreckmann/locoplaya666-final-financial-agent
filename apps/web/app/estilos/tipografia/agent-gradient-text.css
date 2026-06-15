@@ -3,9 +3,9 @@
 .budget-modal {
   /* Main chat panel tokens (--accent / --accent-2 + welcome cards) */
   --hero-plain: rgba(228, 239, 248, 0.9);
-  --hero-keyword-blue: #88a7bc;
-  --hero-keyword-gold: #b7a66a;
-  --hero-keyword-slate: #6f8fa6;
+  --hero-keyword-blue: #52a8d9;
+  --hero-keyword-gold: #d4a428;
+  --hero-keyword-slate: #4580b0;
   --hero-keyword-mist: #dce8f2;
 }
 

@@ -41,5 +41,7 @@ describe('transactions modal integration guards', () => {
     const source = read('app/agent/modales/transacciones/TxEvidenceStep.tsx');
     expect(source).not.toContain("['video', 'Rápido', 'Video']");
     expect(source).not.toContain('video/mp4,video/quicktime,video/webm');
+    expect(source).not.toContain('tx-chat-summary-bridge');
+    expect(source).not.toContain('Resumen listo');
   });
 });

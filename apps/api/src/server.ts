@@ -1,10 +1,40 @@
 // apps/api/src/server.ts
+import os from 'os';
+
 import { createApp } from './app';
 import { getConfig, formatConfigSummary } from './config';
 import { getLogger, logStartup, logShutdown } from './logger';
 import { bootstrapMCP } from './mcp/bootstrap';
 import { verifyDatabaseAtStartup } from './services/health.service';
 import { ensureDevTestUsers } from './services/dev-users.seed';
+
+function resolveLanIPv4(): string | null {
+  const nets = os.networkInterfaces();
+  for (const entries of Object.values(nets)) {
+    for (const net of entries ?? []) {
+      if (net.family === 'IPv4' || net.family === 4) {
+        if (!net.internal) return net.address;
+      }
+    }
+  }
+  return null;
+}
+
+function logLanDevBanner(port: number): void {
+  const ip = resolveLanIPv4();
+  if (!ip) return;
+  // eslint-disable-next-line no-console
+  console.log(`
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Mobile / LAN dev
+  Web:  http://${ip}:3000
+  API:  http://${ip}:${port}
+  Use the LAN web URL on your phone (not localhost).
+  QA mobile: qa-mobile-local@financieramente.invalid
+  Password:  Financieramente123!
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+`);
+}
 
 async function startServer(): Promise<void> {
   const config = getConfig();
@@ -65,8 +95,12 @@ async function startServer(): Promise<void> {
   }
 
   const app = createApp();
-  const server = app.listen(config.PORT, () => {
-    logStartup(`API listening on http://localhost:${config.PORT}`);
+  const host = process.env.API_BIND_HOST?.trim() || '0.0.0.0';
+  const server = app.listen(config.PORT, host, () => {
+    logStartup(`API listening on http://${host}:${config.PORT}`);
+    if (config.NODE_ENV === 'development') {
+      logLanDevBanner(config.PORT);
+    }
   });
 
   const shutdown = (signal: string) => {

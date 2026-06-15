@@ -2,6 +2,8 @@ import type { BudgetRow } from '@/lib/presupuesto/filas.helpers';
 
 export type BudgetTableStyleId = 'midnight' | 'ledger' | 'atelier' | 'terminal' | 'carbon';
 
+export const DEFAULT_BUDGET_TABLE_STYLE: BudgetTableStyleId = 'carbon';
+
 export type BudgetModalAssistantContextInput = {
   budgetRows: BudgetRow[];
   chatAnswers: Array<{ q: string; a: string }>;
@@ -25,11 +27,11 @@ export type BudgetModalAssistantContextInput = {
 };
 
 export const BUDGET_TABLE_STYLES: Array<{ id: BudgetTableStyleId; label: string }> = [
+  { id: 'carbon', label: 'Carbono' },
   { id: 'midnight', label: 'Nocturno' },
   { id: 'ledger', label: 'Editorial' },
   { id: 'atelier', label: 'Atelier' },
   { id: 'terminal', label: 'Mercado' },
-  { id: 'carbon', label: 'Carbono' },
 ];
 
 /** Local fallback while the agent round-trip is in flight. */

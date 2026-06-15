@@ -1,0 +1,127 @@
+/* ===================================================
+   UNIVERSAL MINIMALIST CLOSE — vibrant opaque wine red
+   Loaded last so it wins over modal/diagnostic overrides.
+   No background, border, circle, or container — just the X.
+   =================================================== */
+
+:root {
+  --agent-close-wine: #9f1239;
+  --agent-close-wine-hover: #c41e3f;
+}
+
+.agent-close-x,
+.agent-modal-close,
+.social-close-btn,
+.panel-callout-close,
+.map-popup-close,
+.budget-modal .agent-modal-close,
+.transactions-modal .agent-modal-close,
+.interview-modal .agent-modal-close,
+.agent-modal.interview-modal .agent-modal-close,
+.agent-modal.questionnaire-modal .agent-modal-close,
+.questionnaire-modal .agent-modal-close,
+.agent-modal.account-modal .agent-modal-close,
+.social-modal .social-close-btn,
+.fincoin-usage-header .agent-modal-close,
+html:not(.home-route-active) .agent-modal-close,
+html:not(.home-route-active) .social-modal .social-close-btn,
+body.agent-route-active .agent-modal.account-modal .agent-modal-close {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+  width: auto !important;
+  height: auto !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  max-width: none !important;
+  padding: 4px !important;
+  margin: 0 !important;
+  background: none !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  color: var(--agent-close-wine) !important;
+  -webkit-text-fill-color: var(--agent-close-wine) !important;
+  font-size: 18px !important;
+  font-weight: 300 !important;
+  line-height: 1 !important;
+  cursor: pointer !important;
+  transform: none !important;
+  transition: color 0.15s ease, opacity 0.15s ease !important;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.agent-close-x:hover,
+.agent-modal-close:hover,
+.social-close-btn:hover,
+.panel-callout-close:hover,
+.map-popup-close:hover,
+.budget-modal .agent-modal-close:hover,
+.transactions-modal .agent-modal-close:hover,
+.interview-modal .agent-modal-close:hover,
+.agent-modal.interview-modal .agent-modal-close:hover:not(:disabled),
+.agent-modal.questionnaire-modal .agent-modal-close:hover,
+.questionnaire-modal .agent-modal-close:hover,
+.agent-modal.account-modal .agent-modal-close:hover,
+.social-modal .social-close-btn:hover,
+.fincoin-usage-header .agent-modal-close:hover,
+html:not(.home-route-active) .agent-modal-close:hover,
+html:not(.home-route-active) .social-modal .social-close-btn:hover,
+body.agent-route-active .agent-modal.account-modal .agent-modal-close:hover {
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  transform: none !important;
+  color: var(--agent-close-wine-hover) !important;
+  -webkit-text-fill-color: var(--agent-close-wine-hover) !important;
+}
+
+.agent-close-x:active,
+.agent-modal-close:active,
+.social-close-btn:active,
+.panel-callout-close:active,
+.map-popup-close:active,
+.budget-modal .agent-modal-close:active,
+.transactions-modal .agent-modal-close:active,
+.agent-modal.questionnaire-modal .agent-modal-close:active {
+  transform: none !important;
+}
+
+.agent-close-x:disabled,
+.agent-modal-close:disabled,
+.agent-modal.interview-modal .agent-modal-close:disabled {
+  opacity: 0.35 !important;
+  cursor: not-allowed !important;
+}
+
+.agent-close-x svg,
+.agent-modal-close svg,
+.social-close-btn svg,
+.panel-callout-close svg,
+.map-popup-close svg,
+.budget-modal .agent-modal-close svg,
+.transactions-modal .agent-modal-close svg,
+.agent-modal.questionnaire-modal .agent-modal-close svg {
+  display: block !important;
+  width: 16px !important;
+  height: 16px !important;
+  flex-shrink: 0 !important;
+}
+
+/* Light-outline visual mode — keep wine red, not neutral gray */
+html[data-visual-mode='light-outline'] body.agent-route-active .panel-callout-close,
+html[data-visual-mode='light-outline'] body.agent-route-active .agent-close-x,
+html[data-visual-mode='light-outline'] body.agent-route-active .agent-modal-close {
+  color: var(--agent-close-wine) !important;
+  -webkit-text-fill-color: var(--agent-close-wine) !important;
+}
+
+html[data-visual-mode='light-outline'] body.agent-route-active .panel-callout-close:hover,
+html[data-visual-mode='light-outline'] body.agent-route-active .agent-close-x:hover,
+html[data-visual-mode='light-outline'] body.agent-route-active .agent-modal-close:hover {
+  color: var(--agent-close-wine-hover) !important;
+  -webkit-text-fill-color: var(--agent-close-wine-hover) !important;
+}

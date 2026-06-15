@@ -221,7 +221,7 @@ export function SocialConsciousnessModal({
               <h2 className="social-header-title">Filosofía del dinero</h2>
             </div>
           </div>
-          <AgentModalCloseButton className="social-close-btn agent-modal-close" onClick={onClose} />
+          <AgentModalCloseButton onClick={onClose} />
         </header>
 
         {/* Rotating quote */}

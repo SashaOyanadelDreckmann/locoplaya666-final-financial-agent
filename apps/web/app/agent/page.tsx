@@ -8,6 +8,7 @@ import 'katex/dist/katex.min.css';
 import {
   clearComposerTypingVisual,
   focusMobileInput,
+  restoreAgentShellViewport,
 } from '@/lib/interfaz/mobile-viewport-sync';
 import {
   applyVisualModeToDocument,
@@ -112,6 +113,7 @@ import {
   sanitizeMessageText,
   resolveChat1UxState,
   resolveActiveActionPlanStage,
+  scrollChatThreadAfterUpdate,
   type ChatClosureSummary,
 } from './utilidades/page.utils';
 import {
@@ -121,7 +123,8 @@ import {
   repairChat1WelcomeItems,
   shouldSeedWelcomeMessage,
 } from './flujo/welcome-intro.shared';
-import { repairChatIntroItems, shouldSeedChatIntroMessage } from './flujo/chat-intro.shared';
+import { buildChatIntroShellItem, repairChatIntroItems, shouldSeedChatIntroMessage } from './flujo/chat-intro.shared';
+import { ensureLeadingIntroShell } from '@/lib/agente/nucleo/stream-session';
 import { resolvePanelDiagnosisProfile } from '@/lib/diagnostico/sesion';
 import { AgentBootSequence } from './arranque/AgentBootSequence';
 import { PanelCardsIntroSequence } from './paneles/PanelCardsIntroSequence';
@@ -370,9 +373,18 @@ export default function AgentPage() {
   }
 
   const [chatThreads, setChatThreads] = useState<ChatThread[]>([
-    makeInitialThread(PRIMARY_CHAT_ID, '1', 'Diagnóstico financiero'),
-    makeInitialThread('chat-2', '2', 'Plan post-diagnóstico'),
-    makeInitialThread('chat-3', '3', 'Conciencia social post-diagnóstico'),
+    {
+      ...makeInitialThread(PRIMARY_CHAT_ID, '1', 'Diagnóstico financiero'),
+      items: [buildWelcomeChatItem({}) as ChatItem],
+    },
+    {
+      ...makeInitialThread('chat-2', '2', 'Plan post-diagnóstico'),
+      items: [buildChatIntroShellItem('chat-2') as ChatItem],
+    },
+    {
+      ...makeInitialThread('chat-3', '3', 'Conciencia social post-diagnóstico'),
+      items: [buildChatIntroShellItem('chat-3') as ChatItem],
+    },
   ]);
   const [activeChatId, setActiveChatId] = useState(PRIMARY_CHAT_ID);
   const [sheetsLoaded, setSheetsLoaded] = useState(false);
@@ -557,6 +569,13 @@ export default function AgentPage() {
   );
 
   const items = activeThread?.items ?? [];
+  const threadScrollAnchor = useMemo(() => {
+    const last = items[items.length - 1];
+    if (last?.type === 'message' && last.role === 'assistant' && last.stream) {
+      return `${items.length}:${last.stream.phase ?? ''}:${last.stream.streaming ? 1 : 0}:${(last.content ?? '').length}`;
+    }
+    return String(items.length);
+  }, [items]);
   const input = activeThread?.draft ?? '';
   const hasBlockingModalOpen =
     isTransactionsModalOpen ||
@@ -565,6 +584,7 @@ export default function AgentPage() {
     isAccountModalOpen ||
     isInterviewModalOpen ||
     isSocialConsciousnessModalOpen;
+  const blockingModalWasOpenRef = useRef(hasBlockingModalOpen);
   const interviewCompleted = Boolean(sessionInfo?.latestDiagnosticCompletedAt);
   const activeThreadThemeClass =
     activeThread?.id === 'chat-2'
@@ -908,9 +928,12 @@ export default function AgentPage() {
                     return !isStaleSessionErrorMessage(String(it.content ?? ''));
                   }),
                 );
-                return String(s.id) === 'chat-1'
-                  ? repairChat1WelcomeItems(sanitized)
-                  : repairChatIntroItems(String(s.id), sanitized);
+                const threadId = String(s.id);
+                const repaired =
+                  threadId === 'chat-1'
+                    ? repairChat1WelcomeItems(sanitized)
+                    : repairChatIntroItems(threadId, sanitized);
+                return ensureLeadingIntroShell(threadId, repaired);
               })()
             : [],
           draft: String(s.draft ?? ''),
@@ -1425,15 +1448,6 @@ export default function AgentPage() {
     interviewCompleted,
   ]);
 
-  function getNextFlowPanelAction(): AgentResponse['panel_action'] | undefined {
-    const cta = buildOnboardingFlowCta(onboardingFlowStatus, sessionInfo?.name);
-    if (!cta) return undefined;
-    return {
-      section: cta.section,
-      message: `${cta.headline}. ${cta.body}`,
-    };
-  }
-
   function normalizePanelActionForCurrentFlow(
     action?: AgentResponse['panel_action']
   ): AgentResponse['panel_action'] | undefined {
@@ -1455,7 +1469,10 @@ export default function AgentPage() {
             message: 'Primero completa Productos y Transacciones; después se abre Presupuesto y luego Entrevista.',
           };
     }
-    return action ?? getNextFlowPanelAction();
+    if (activeChatId === 'chat-1' && !flow.diagnosisCompleted && action?.section === 'profile') {
+      return undefined;
+    }
+    return action;
   }
 
   const intakeData = useMemo(
@@ -1879,6 +1896,7 @@ export default function AgentPage() {
       );
     },
     clearDraft: () => setDraftForActive(''),
+    getActiveThreadId: () => activeChatId,
     buildRequestContext: buildCoreAgentRequestContext,
     getSessionId,
     onSideEffects: applyCoreAgentSideEffects,
@@ -1972,14 +1990,14 @@ export default function AgentPage() {
     } catch {}
   }, [panelStage]);
 
-  // Mantener el chat pegado abajo (flujo vertical continuo)
+  // Mantener el hilo anclado: stream rail, última respuesta, o último turno del usuario.
   useEffect(() => {
     const el = chatThreadRef.current;
     if (!el) return;
     requestAnimationFrame(() => {
-      el.scrollTop = el.scrollHeight;
+      scrollChatThreadAfterUpdate(el);
     });
-  }, [items.length, activeChatId, loading]);
+  }, [threadScrollAnchor, activeChatId, loading, onboardingFlowStatus]);
 
   useEffect(() => {
     if (!isMobileViewport || !interviewCompleted) return;
@@ -2220,6 +2238,17 @@ export default function AgentPage() {
       setTimeout(() => chatComposerRef.current?.focus(), 80);
     }
   }, [hasBlockingModalOpen, isActiveChatLocked, isMobileViewport]);
+
+  useEffect(() => {
+    if (!isMobileViewport) {
+      blockingModalWasOpenRef.current = hasBlockingModalOpen;
+      return;
+    }
+    if (blockingModalWasOpenRef.current && !hasBlockingModalOpen) {
+      restoreAgentShellViewport();
+    }
+    blockingModalWasOpenRef.current = hasBlockingModalOpen;
+  }, [hasBlockingModalOpen, isMobileViewport]);
 
   async function onSend(
     messageOverride?: string,
@@ -3405,17 +3434,29 @@ export default function AgentPage() {
     }, 80);
   }
 
-  function handleBudgetPdfSaved(payload: { title: string; fileUrl: string; createdAt: string }) {
+  function handleBudgetPdfSaved(payload: {
+    title: string;
+    fileUrl: string;
+    previewImageUrl?: string;
+    createdAt: string;
+    sourceRect?: DOMRect | null;
+  }) {
     const reportId = `budget-pdf-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     const report: SavedReport = {
       id: reportId,
       title: payload.title || 'Presupuesto mensual',
       group: 'budget',
       fileUrl: payload.fileUrl,
+      previewImageUrl: payload.previewImageUrl,
       createdAt: payload.createdAt || new Date().toISOString(),
     };
     setSavedReports((prev) => [report, ...prev].slice(0, 120));
-    launchDocToLibraryAnimation(report.title, null, undefined, report.id);
+    launchDocToLibraryAnimation(
+      report.title,
+      payload.sourceRect ?? null,
+      payload.previewImageUrl ?? payload.fileUrl,
+      report.id,
+    );
   }
 
   function handlePanelAction(action: { section?: string; message?: string }) {
@@ -3783,7 +3824,6 @@ export default function AgentPage() {
             setSavedReports={setSavedReports}
             launchDocToLibraryAnimation={launchDocToLibraryAnimation}
             onPanelAction={openPanelSectionFromChat}
-            flowPanelAction={getNextFlowPanelAction()}
             onboardingFlowStatus={onboardingFlowStatus}
             visualMode={visualMode}
             compactClosedView={isActiveChatClosed}

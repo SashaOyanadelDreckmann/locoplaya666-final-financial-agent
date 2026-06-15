@@ -302,14 +302,17 @@
   }
 
   .budget-modal .budget-style-button,
-.budget-modal .budget-pdf-button{
+.budget-modal .budget-pdf-button,
+.budget-modal .budget-chat-sync-button:not(.is-assistant-action){
     width: 100% !important;
-    min-height: 44px !important;
-    padding: 0 12px !important;
-    font-size: 0.82rem !important;
+    min-height: 36px !important;
+    height: 36px !important;
+    padding: 0 10px !important;
+    font-size: 0.72rem !important;
     white-space: normal !important;
     text-overflow: unset !important;
     box-shadow: none !important;
+    border-radius: 999px !important;
   }
 }
 
@@ -1323,15 +1326,16 @@
   }
 
   .budget-modal .budget-style-button,
-.budget-modal .budget-pdf-button{
+.budget-modal .budget-pdf-button,
+.budget-modal .budget-chat-sync-button:not(.is-assistant-action){
     width: 100% !important;
     min-width: 0 !important;
-    height: 42px !important;
-    min-height: 42px !important;
+    height: 36px !important;
+    min-height: 36px !important;
     padding: 0 10px !important;
     border-radius: 999px !important;
     font-size: 0.72rem !important;
-    font-weight: 800 !important;
+    font-weight: 500 !important;
     line-height: 1 !important;
     white-space: nowrap !important;
   }
@@ -2652,6 +2656,22 @@ body.agent-route-active .app-shell::before{
   color: rgba(239, 244, 250, 0.94);
   line-height: 1.72;
   font-size: 0.98rem;
+  max-width: 62ch;
+}
+
+.transactions-modal .tx-summary-editorial-body-stack{
+  display: grid;
+  gap: 6px;
+}
+
+.transactions-modal .tx-summary-editorial-list{
+  margin: 0;
+  padding: 0 0 0 1rem;
+  display: grid;
+  gap: 6px;
+  color: rgba(239, 244, 250, 0.94);
+  font-size: 0.96rem;
+  line-height: 1.55;
   max-width: 62ch;
 }
 
@@ -6230,11 +6250,11 @@ body.agent-route-active .app-shell::before{
 .transactions-modal .tx-consent-card .bank-sim-grid{
   animation: txStepReveal 320ms cubic-bezier(.22,.82,.2,1) 80ms both;
 }
-.transactions-modal .tx-consent-card .tx-consent-toggle,
-.transactions-modal .tx-consent-card .tx-consent-inline-actions{
+.transactions-modal .tx-consent-card .tx-consent-toggle{
   animation: txStepReveal 300ms cubic-bezier(.22,.82,.2,1) 120ms both;
 }
-.transactions-modal .tx-consent-actions-row{
+.transactions-modal .tx-consent-card > .tx-delete-product-btn,
+.transactions-modal .tx-consent-card > .tx-consent-continue-main{
   animation: txStepReveal 280ms cubic-bezier(.22,.82,.2,1) 160ms both;
 }
 
@@ -6293,8 +6313,8 @@ body.agent-route-active .app-shell::before{
 .transactions-modal .tx-summary-clean .pt-stage-header,
 .transactions-modal .tx-consent-card .bank-sim-grid,
 .transactions-modal .tx-consent-card .tx-consent-toggle,
-.transactions-modal .tx-consent-card .tx-consent-inline-actions,
-.transactions-modal .tx-consent-actions-row,
+.transactions-modal .tx-consent-card > .tx-delete-product-btn,
+.transactions-modal .tx-consent-card > .tx-consent-continue-main,
 .transactions-modal .tx-evidence-card .tx-upload-onboarding,
 .transactions-modal .tx-upload-zone-premium,
 .transactions-modal .manual-evidence-block,
@@ -7187,69 +7207,43 @@ body.agent-route-active .app-shell::before{
   margin: 0;
 }
 
-/* ── Charts section ──────────────────────────────────────────────── */
+/* ── Charts section — flat blocks on panel ───────────────────────── */
 .transactions-modal .tx-ap-charts-section{
   display: flex;
   flex-direction: column;
   gap: 14px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .transactions-modal .tx-ap-chart-grid{
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.4fr);
-  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 20px;
   align-items: start;
+  min-width: 0;
+  max-width: 100%;
 }
 
-.transactions-modal .tx-ap-chart-card{
-  padding: 20px 18px 16px;
-  border-radius: 0;
-  background:
-    linear-gradient(180deg, rgba(244,238,228,0.04), rgba(18,24,33,0.22)),
-    repeating-linear-gradient(0deg, rgba(255,255,255,0.03) 0 1px, transparent 1px 16px),
-    repeating-linear-gradient(90deg, rgba(255,255,255,0.03) 0 1px, transparent 1px 16px),
-    rgba(16,20,28,0.82);
-  border: 4px solid rgba(205,213,225,0.28);
-  box-shadow:
-    8px 8px 0 rgba(8,10,16,0.24),
-    0 1px 0 rgba(255,255,255,0.03) inset;
+.transactions-modal .tx-ap-chart-block{
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  min-height: 240px;
+  gap: 10px;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 
-.transactions-modal .tx-ap-chart-card--wide{
-  grid-column: span 1;
+.transactions-modal .tx-ap-chart-block--wide{
+  grid-column: 1 / -1;
 }
 
 .transactions-modal .tx-ap-chart-title{
-  font-family: 'SF Mono', 'IBM Plex Mono', 'JetBrains Mono', monospace;
-  font-size: 12px;
+  font-size: 0.6875rem;
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: rgba(215,223,232,0.72);
   margin: 0;
-}
-
-.transactions-modal .tx-ap-chart-note-layout{
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  flex: 1;
-}
-
-.transactions-modal .tx-ap-chart-note{
-  font-family: 'SF Mono', 'IBM Plex Mono', 'JetBrains Mono', monospace;
-  font-size: 11.5px;
-  font-weight: 400;
-  line-height: 1.6;
-  color: rgba(201,210,222,0.68);
-  padding: 10px 12px;
-  border-radius: 0;
-  background: rgba(10,14,20,0.28);
-  border: 3px solid rgba(205,213,225,0.16);
 }
 
 /* ── Intel grid (clusters + insights) ───────────────────────────── */
@@ -7335,23 +7329,6 @@ body.agent-route-active .app-shell::before{
   transition: width 600ms cubic-bezier(0.4,0,0.2,1);
 }
 
-.transactions-modal .tx-ap-cluster-tags{
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
-.transactions-modal .tx-ap-cluster-tags span{
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
-  font-size: 10.5px;
-  font-weight: 500;
-  color: rgba(156,178,202,0.6);
-  background: rgba(143,178,214,0.07);
-  border: 1px solid rgba(143,178,214,0.12);
-  border-radius: 6px;
-  padding: 1px 6px;
-}
-
 /* Insight stack */
 .transactions-modal .tx-ap-insight-stack{
   display: flex;
@@ -7405,81 +7382,6 @@ body.agent-route-active .app-shell::before{
   padding: 16px 0;
 }
 
-/* ── Ficha analítica ─────────────────────────────────────────────── */
-.transactions-modal .tx-ap-ficha{
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.transactions-modal .tx-ap-ficha-pills{
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.transactions-modal .tx-ap-ficha-summary{
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
-  font-size: 12px;
-  font-weight: 400;
-  color: rgba(156,178,202,0.5);
-  line-height: 1.6;
-}
-
-.transactions-modal .tx-ap-kpi-secondary-grid{
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.transactions-modal .tx-ap-kpi-secondary-card{
-  padding: 14px 14px 12px;
-  border-radius: 15px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(143,178,214,0.10);
-  box-shadow: 0 8px 18px rgba(0,0,0,0.26);
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  transition: transform 180ms ease, box-shadow 180ms ease;
-}
-
-.transactions-modal .tx-ap-kpi-secondary-card:hover{
-  transform: translateY(-1px);
-  box-shadow: 0 12px 24px rgba(0,0,0,0.34);
-}
-
-.transactions-modal .tx-ap-kpi-secondary-card .tx-ap-story-label{
-  font-size: 10px;
-}
-
-.transactions-modal .tx-ap-kpi-secondary-card strong{
-  font-family: Georgia, 'Times New Roman', serif;
-  font-size: 17px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  color: #f0f6ff;
-  line-height: 1.1;
-}
-
-.transactions-modal .tx-ap-kpi-secondary-card small{
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
-  font-size: 10.5px;
-  font-weight: 400;
-  color: rgba(156,178,202,0.5);
-  line-height: 1.3;
-}
-
-.transactions-modal .tx-ap-kpi--income{
-  border-color: rgba(125,232,184,0.16);
-  background: rgba(125,232,184,0.05);
-}
-
-.transactions-modal .tx-ap-kpi--expense{
-  border-color: rgba(240,128,128,0.16);
-  background: rgba(240,128,128,0.05);
-}
-
 /* ── Split tables + table card ───────────────────────────────────── */
 .transactions-modal .tx-ap-split-tables{
   display: grid;
@@ -7530,14 +7432,6 @@ body.agent-route-active .app-shell::before{
   .transactions-modal .tx-ap-chart-grid{
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-
-  .transactions-modal .tx-ap-chart-card--wide{
-    grid-column: span 2;
-  }
-
-  .transactions-modal .tx-ap-kpi-secondary-grid{
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
 }
 
 /* ── 820px: stack most grids to 2 cols ───────────────────────────── */
@@ -7574,16 +7468,12 @@ body.agent-route-active .app-shell::before{
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .transactions-modal .tx-ap-chart-card--wide{
+  .transactions-modal .tx-ap-chart-block--wide{
     grid-column: span 1;
   }
 
   .transactions-modal .tx-ap-intel-grid{
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  .transactions-modal .tx-ap-kpi-secondary-grid{
-    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .transactions-modal .tx-ap-split-tables{
@@ -7631,12 +7521,8 @@ body.agent-route-active .app-shell::before{
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .transactions-modal .tx-ap-chart-card{
-    min-height: 200px;
-  }
-
-  .transactions-modal .tx-ap-kpi-secondary-grid{
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .transactions-modal .tx-ap-chart-block{
+    min-height: 0;
   }
 
   .transactions-modal .tx-ap-executive-prose,
@@ -8040,53 +7926,6 @@ body.agent-route-active .app-shell::before{
   align-items: center;
 }
 
-.transactions-modal .tx-merchant-quality-card{
-  display: grid;
-  gap: 12px;
-  margin-top: 18px;
-  padding: 18px;
-  border-radius: 18px;
-  border: 1px solid rgba(143,178,214,0.14);
-  background: rgba(13,21,32,0.92);
-}
-
-.transactions-modal .tx-merchant-quality-head{
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.transactions-modal .tx-merchant-quality-list{
-  display: grid;
-  gap: 10px;
-}
-
-.transactions-modal .tx-merchant-quality-row{
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px 14px;
-  border-radius: 14px;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(143,178,214,0.08);
-}
-
-.transactions-modal .tx-merchant-quality-row p{
-  margin: 4px 0 0;
-  color: rgba(188,206,224,0.72);
-  font-size: 0.82rem;
-}
-
-.transactions-modal .tx-merchant-quality-metrics{
-  display: grid;
-  gap: 4px;
-  text-align: right;
-  color: rgba(231,240,249,0.9);
-  font-size: 0.82rem;
-}
-
 /* Striped rows for readability */
 .transactions-modal .tx-movements-table--pro tbody tr:nth-child(even){
   background: rgba(255,255,255,0.018);
@@ -8157,38 +7996,8 @@ body.agent-route-active .app-shell::before{
 /* END pro tables ═══════════════════════════════════════════════════ */
 
 /* ═══════════════════════════════════════════════════════════════════
-   TX-AP FIX — chart note font + executive prose brevity
+   TX-AP FIX — executive prose brevity
    ═══════════════════════════════════════════════════════════════════ */
-
-/* ── Chart note: force Apple sans on all children, kill mono ──────── */
-.transactions-modal .tx-ap-chart-note,
-.transactions-modal .tx-ap-chart-note p,
-.transactions-modal .tx-ap-chart-note strong,
-.transactions-modal .tx-ap-chart-note span{
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif !important;
-}
-
-.transactions-modal .tx-ap-chart-note strong{
-  font-size: 10px !important;
-  font-weight: 600 !important;
-  letter-spacing: 0.07em !important;
-  text-transform: uppercase !important;
-  color: rgba(143, 178, 214, 0.55) !important;
-  display: block !important;
-  margin-bottom: 2px !important;
-}
-
-.transactions-modal .tx-ap-chart-note p{
-  font-size: 11px !important;
-  font-weight: 400 !important;
-  line-height: 1.55 !important;
-  color: rgba(156, 178, 202, 0.5) !important;
-  margin: 0 0 8px !important;
-}
-
-.transactions-modal .tx-ap-chart-note p:last-child{
-  margin-bottom: 0 !important;
-}
 
 /* ── Executive prose: equally compact on desktop + mobile ───────── */
 
@@ -8236,9 +8045,7 @@ body.agent-route-active .app-shell::before{
 
 /* Everything inside executive prose: force Apple system sans */
 .transactions-modal .tx-ap-executive-prose,
-.transactions-modal .tx-ap-executive-prose *,
-.transactions-modal .tx-ap-chart-note,
-.transactions-modal .tx-ap-chart-note *{
+.transactions-modal .tx-ap-executive-prose *{
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif !important;
 }
 
@@ -8266,39 +8073,9 @@ body.agent-route-active .app-shell::before{
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif !important;
 }
 
-/* Chart note sub-elements: Apple compact labels */
-.transactions-modal .tx-ap-chart-note strong{
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif !important;
-  font-size: 9.5px !important;
-  font-weight: 600 !important;
-  letter-spacing: 0.08em !important;
-  text-transform: uppercase !important;
-  color: rgba(130, 168, 210, 0.55) !important;
-  display: block !important;
-  margin-bottom: 3px !important;
-  margin-top: 8px !important;
-}
-
-.transactions-modal .tx-ap-chart-note strong:first-child{
-  margin-top: 0 !important;
-}
-
-.transactions-modal .tx-ap-chart-note p{
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif !important;
-  font-size: 11px !important;
-  font-weight: 400 !important;
-  line-height: 1.55 !important;
-  color: rgba(148, 172, 200, 0.50) !important;
-  margin: 0 0 4px !important;
-}
-
-.transactions-modal .tx-ap-chart-note p:last-child{
-  margin-bottom: 0 !important;
-}
-
 /* END nuclear sans reset ══════════════════════════════════════════ */
 
-/* END chart note + prose fix ══════════════════════════════════════ */
+/* END executive prose fix ═════════════════════════════════════════ */
 
 /* Budget modal stabilization: final source of truth for desktop/mobile layout */
 
@@ -8512,39 +8289,10 @@ body.agent-route-active .app-shell::before{
    ═══════════════════════════════════════════════════════════════════ */
 
 /* ── Base font lock: no serif, no mono, ever ────────────────────── */
-.transactions-modal .tx-ex-card,
-.transactions-modal .tx-ex-card *{
+.transactions-modal .tx-ex-summary,
+.transactions-modal .tx-ex-summary *{
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif !important;
   box-sizing: border-box;
-}
-
-/* ── Card shell ──────────────────────────────────────────────────── */
-.transactions-modal .tx-ex-card{
-  position: relative;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.028);
-  border: 1px solid rgba(143, 178, 214, 0.10);
-  box-shadow:
-    0 1px 0 rgba(255,255,255,0.04) inset,
-    0 16px 40px rgba(0,0,0,0.32);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  overflow: hidden;
-  transition: border-color 0.25s ease;
-}
-
-.transactions-modal .tx-ex-card::before{
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: linear-gradient(
-    135deg,
-    rgba(125, 200, 230, 0.04) 0%,
-    transparent 50%,
-    rgba(100, 160, 220, 0.02) 100%
-  );
-  pointer-events: none;
 }
 
 /* ── Header ──────────────────────────────────────────────────────── */
@@ -8758,13 +8506,11 @@ body.agent-route-active .app-shell::before{
   margin: 2px 0 0 !important;
 }
 
-/* ── Footer ──────────────────────────────────────────────────────── */
-.transactions-modal .tx-ex-footer{
+/* ── Actions row (regen + revisions) ─────────────────────────────── */
+.transactions-modal .tx-ex-actions{
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 18px 14px;
-  border-top: 1px solid rgba(143, 178, 214, 0.07);
   gap: 10px;
 }
 
@@ -9864,23 +9610,31 @@ body.agent-route-active .app-shell::before{
   padding: 14px 20px !important;
 }
 .budget-modal .budget-style-button,
-.budget-modal .budget-pdf-button{
+.budget-modal .budget-pdf-button,
+.budget-modal .budget-chat-sync-button:not(.is-assistant-action){
   background: rgba(255,255,255,0.05) !important;
   border: 1px solid rgba(255,255,255,0.16) !important;
   color: rgba(230,238,252,0.86) !important;
   -webkit-text-fill-color: rgba(230,238,252,0.86) !important;
   border-radius: 999px !important;
-  font-size: 11.5px !important;
+  min-height: 36px !important;
+  height: 36px !important;
+  padding: 0 12px !important;
+  line-height: 1 !important;
+  font-size: 11px !important;
   font-weight: 500 !important;
+  box-shadow: none !important;
   transition: transform 0.2s ease, border-color 0.18s ease, background 0.18s ease !important;
 }
 .budget-modal .budget-style-button:hover,
-.budget-modal .budget-pdf-button:hover:not(:disabled){
+.budget-modal .budget-pdf-button:hover:not(:disabled),
+.budget-modal .budget-chat-sync-button:not(.is-assistant-action):hover:not(:disabled){
   background: rgba(255,255,255,0.1) !important;
   border-color: rgba(255,255,255,0.3) !important;
-  transform: translateY(-2px) !important;
+  transform: translateY(-1px) !important;
 }
-.budget-modal .budget-pdf-button:disabled{
+.budget-modal .budget-pdf-button:disabled,
+.budget-modal .budget-chat-sync-button:not(.is-assistant-action):disabled{
   opacity: 0.38 !important;
   cursor: not-allowed !important;
 }
@@ -12657,12 +12411,6 @@ body.agent-route-active .app-shell::before{
 
 /* ── 1. HIDE VERBOSE / REDUNDANT TEXT ───────────────────────────────────── */
 
-/* Modal intro subtitle — already covered by header, pure noise */
-.agent-modal.interview-modal .agent-modal-intro,
-.agent-modal.interview-modal .interview-modal-intro{
-  display: none !important;
-}
-
 /* Sidebar brief paragraph — long descriptive text, hide it */
 .agent-modal.interview-modal .interview-brief-card > p{
   display: none !important;
@@ -13456,12 +13204,7 @@ body.agent-route-active .app-shell::before{
   font-style: normal !important;
 }
 
-/* ── B. STICKY HEADER — close button always on-screen ──────────────────── */
-.agent-modal.interview-modal .bcc-modal-header.interview-modal-header{
-  position: sticky !important;
-  top: 0 !important;
-  z-index: 20 !important;
-}
+/* ── B. STICKY HEADER — close button always on-screen (layout in interview contract) */
 
 /* ── C. HIDE LIVE SHELL WHEN DIAGNOSIS IS PRESENT ───────────────────────── */
 .agent-modal.interview-modal .interview-panel-surface--workspace:has(.diagnosis-ready-shell) .interview-live-shell{
@@ -14367,14 +14110,6 @@ body.agent-route-active .app-shell::before{
    INTERVIEW MODAL — OPERATIONAL v2 (restore critical UI, pro layout)
    ═══════════════════════════════════════════════════════════════════════════ */
 
-.agent-modal.interview-modal .interview-modal-intro{
-  display: block !important;
-  margin: 0 28px 16px !important;
-  color: rgba(203, 216, 228, 0.78) !important;
-  font-size: 14px !important;
-  line-height: 1.5 !important;
-}
-
 .agent-modal.interview-modal .interview-brief-card > p{
   display: block !important;
   margin: 8px 0 0 !important;
@@ -15211,60 +14946,6 @@ body.agent-route-active{
   align-items: center !important;
   justify-content: center !important;
 }
-
-.agent-modal.interview-modal .interview-modal-header,
-.agent-modal.interview-modal .bcc-modal-header{
-  display: flex !important;
-  align-items: center !important;
-  justify-content: space-between !important;
-  padding: 16px 24px !important;
-  border-bottom: 1px solid var(--iv-border) !important;
-  background: transparent !important;
-  flex-shrink: 0 !important;
-}
-.agent-modal.interview-modal .bcc-modal-eyebrow{
-  display: block !important;
-  font-size: .6rem !important;
-  font-weight: 600 !important;
-  letter-spacing: .14em !important;
-  text-transform: uppercase !important;
-  color: var(--iv-text-muted) !important;
-  margin-bottom: 2px !important;
-}
-.agent-modal.interview-modal .bcc-modal-title,
-.agent-modal.interview-modal .agent-modal-header h3,
-.agent-modal.interview-modal h3.bcc-modal-title{
-  font-size: .93rem !important;
-  font-weight: 600 !important;
-  letter-spacing: -.01em !important;
-  color: var(--iv-text) !important;
-  margin: 0 !important;
-}
-.agent-modal.interview-modal .agent-modal-close{
-  width: 27px !important;
-  height: 27px !important;
-  border-radius: 50% !important;
-  border: 1px solid var(--iv-border-mid) !important;
-  background: transparent !important;
-  color: var(--iv-text-muted) !important;
-  font-size: 1rem !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  cursor: pointer !important;
-  transition: border-color .15s, color .15s !important;
-  flex-shrink: 0 !important;
-  line-height: 1 !important;
-}
-.agent-modal.interview-modal .agent-modal-close:hover:not(:disabled){
-  border-color: rgba(255,255,255,.3) !important;
-  color: var(--iv-white) !important;
-}
-.agent-modal.interview-modal .agent-modal-close:disabled{
-  opacity: .28 !important;
-  cursor: not-allowed !important;
-}
-.agent-modal.interview-modal .interview-modal-intro{ display: none !important; }
 
 .agent-modal.interview-modal .interview-sync-error-toast{
   margin: 0 !important;
@@ -16217,9 +15898,6 @@ body.agent-route-active{
 .agent-modal.interview-modal{
   border-radius: 6px !important;
 }
-.agent-modal.interview-modal .agent-modal-close{
-  border-radius: 50% !important;
-}
 .agent-modal.interview-modal .interview-focus-card,
 /* Kill ALL gradients & heavy backgrounds on voice-call-shell descendants */
 .agent-modal.interview-modal .voice-call-shell,
@@ -17168,11 +16846,13 @@ body.agent-route-active{
 
   /* 12 ── Action buttons: smaller */
   .budget-modal .budget-style-button,
-.budget-modal .budget-pdf-button{
-    min-height: 42px !important;
-    font-size: 0.74rem !important;
+.budget-modal .budget-pdf-button,
+.budget-modal .budget-chat-sync-button:not(.is-assistant-action){
+    min-height: 36px !important;
+    height: 36px !important;
+    font-size: 0.72rem !important;
     padding: 0 10px !important;
-    border-radius: 10px !important;
+    border-radius: 999px !important;
   }
 
   /* 13 ── Table rows: visible separators + compact */
@@ -17755,8 +17435,7 @@ body.agent-route-active .app-shell{
     margin-top: 2px !important;
   }
 
-  .agent-modal-intro,
-.interview-modal-intro{
+  .agent-modal-intro{
     display: none !important;
   }
 
@@ -19330,7 +19009,7 @@ body.agent-route-active .agent-layout.is-mobile-standalone .agent-chat-header.is
 .budget-modal .button-primary,
 .transactions-modal .button-primary,
 .diagnosis-hero-actions .button-primary,
-.transactions-modal .tx-close-confirm-actions .button-primary{
+.modal-close-confirm-actions .button-primary{
   background: #18242f !important;
   background-image: none !important;
   border: 1px solid rgba(152, 186, 212, 0.22) !important;
@@ -19347,7 +19026,7 @@ body.agent-route-active .agent-layout.is-mobile-standalone .agent-chat-header.is
 .budget-modal .button-primary:hover:not(:disabled),
 .transactions-modal .button-primary:hover:not(:disabled),
 .diagnosis-hero-actions .button-primary:hover:not(:disabled),
-.transactions-modal .tx-close-confirm-actions .button-primary:hover:not(:disabled){
+.modal-close-confirm-actions .button-primary:hover:not(:disabled){
   background: #1f2d3b !important;
   border-color: rgba(126, 176, 216, 0.5) !important;
   box-shadow: none !important;
@@ -19365,29 +19044,12 @@ body.agent-route-active .agent-layout.is-mobile-standalone .agent-chat-header.is
   overflow: auto;
 }
 
-.agent-modal.interview-modal.interview-modal--diagnosis .interview-modal-intro.interview-modal-intro--diagnosis{
-  display: block !important;
-  margin: 0 24px 14px !important;
-  padding: 0 !important;
-  font-size: 0.94rem !important;
-  line-height: 1.55 !important;
-  color: rgba(206, 220, 231, 0.82) !important;
-  max-height: none !important;
-  -webkit-line-clamp: unset !important;
-  overflow: visible !important;
-}
-
 .interview-modal.interview-modal--diagnosis .interview-diagnosis-panel{
   padding: 0 22px 12px !important;
   gap: 18px !important;
 }
 
 @media (max-width: 767px) {
-  .agent-modal.interview-modal.interview-modal--diagnosis .interview-modal-intro.interview-modal-intro--diagnosis{
-    margin: 0 16px 12px !important;
-    font-size: 0.9rem !important;
-  }
-
   .interview-modal.interview-modal--diagnosis .interview-diagnosis-panel{
     padding: 0 14px 10px !important;
     gap: 14px !important;

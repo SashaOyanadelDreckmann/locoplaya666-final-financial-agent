@@ -219,10 +219,6 @@ describe('transactions modal behavioral safeguards', () => {
       <TxEvidenceStep
         activeBankProduct={buildProduct()}
         maxEvidenceFilesPerProduct={25}
-        summaryRegenerationsLeft={3}
-        transitionPulse={0}
-        dockTransitionPhase="idle"
-        currentStage="evidence"
         scrollRef={{ current: null }}
         assistantMessages={[]}
         analysisAlreadyDone
@@ -232,9 +228,6 @@ describe('transactions modal behavioral safeguards', () => {
         txAssistantInput=""
         txAssistantLoading={false}
         documentsLoading={false}
-        summaryText="Resumen"
-        summaryGeneratedAt={null}
-        summaryModel={null}
         processingModeLabel=""
         processingMetaLabel=""
         processingPrimaryCopy=""
@@ -248,9 +241,7 @@ describe('transactions modal behavioral safeguards', () => {
         onAppendPendingEvidence={jest.fn()}
         onAssistantInputChange={jest.fn()}
         onAssistantSend={jest.fn()}
-        onRefineSummary={jest.fn()}
         onGoToAnalyst={jest.fn()}
-        onRegenerateSummary={jest.fn()}
       />,
     );
 

@@ -4,11 +4,15 @@ import React, { useEffect, useMemo, useState } from 'react';
 
 import type { AgentStreamUiState } from '@financial-agent/shared';
 
-const PHASE_ORDER = ['classify', 'execute', 'format', 'validate', 'knowledge'] as const;
+import {
+  getStreamRailAccentColor,
+  getStreamRailStepColors,
+  STREAM_PHASE_ORDER,
+} from '@/lib/agente/matte-panel-tones';
 
 function phaseIndex(phase?: string): number {
   if (!phase) return 0;
-  const idx = PHASE_ORDER.indexOf(phase as (typeof PHASE_ORDER)[number]);
+  const idx = STREAM_PHASE_ORDER.indexOf(phase as (typeof STREAM_PHASE_ORDER)[number]);
   return idx >= 0 ? idx : 0;
 }
 
@@ -29,6 +33,8 @@ export function AgentStreamRail(props: { state: AgentStreamUiState }) {
 
   const elapsed = now - state.startedAt;
   const activeIndex = phaseIndex(state.phase);
+  const stepColors = useMemo(() => getStreamRailStepColors(state.startedAt), [state.startedAt]);
+  const activeStepColor = getStreamRailAccentColor(state);
   const activeTools = useMemo(
     () => state.tools.filter((tool) => tool.status === 'start').slice(-2),
     [state.tools],
@@ -39,9 +45,18 @@ export function AgentStreamRail(props: { state: AgentStreamUiState }) {
   );
 
   return (
-    <div className="agent-stream-rail" aria-live="polite" aria-busy={state.streaming}>
+    <div
+      className="agent-stream-rail"
+      aria-live="polite"
+      aria-busy={state.streaming}
+      style={{ '--stream-accent': activeStepColor } as React.CSSProperties}
+    >
       <div className="agent-stream-rail-head">
-        <span className="agent-stream-rail-pulse" aria-hidden="true" />
+        <span
+          className="agent-stream-rail-pulse"
+          aria-hidden="true"
+          style={{ '--stream-accent': activeStepColor } as React.CSSProperties}
+        />
         <div className="agent-stream-rail-copy">
           <span className="agent-stream-rail-kicker">En proceso</span>
           <span className="agent-stream-rail-title">{state.phaseLabel ?? 'Preparando respuesta'}</span>
@@ -53,7 +68,7 @@ export function AgentStreamRail(props: { state: AgentStreamUiState }) {
       </div>
 
       <div className="agent-stream-rail-track" role="list" aria-label="Etapas del agente">
-        {PHASE_ORDER.map((phase, index) => {
+        {STREAM_PHASE_ORDER.map((phase, index) => {
           const status =
             index < activeIndex
               ? 'done'
@@ -68,6 +83,7 @@ export function AgentStreamRail(props: { state: AgentStreamUiState }) {
               className={`agent-stream-rail-step is-${status}`}
               role="listitem"
               aria-current={status === 'active' ? 'step' : undefined}
+              style={{ '--stream-step-color': stepColors[index] } as React.CSSProperties}
             >
               <span className="agent-stream-rail-step-dot" aria-hidden="true" />
             </div>

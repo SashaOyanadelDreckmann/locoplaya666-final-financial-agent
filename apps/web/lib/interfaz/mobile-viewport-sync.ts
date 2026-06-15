@@ -107,7 +107,7 @@ export function setMobileInputEngaged(
 
 export function isComposerDockElement(el: Element | null): boolean {
   if (!el || !(el instanceof HTMLElement)) return false;
-  return Boolean(el.closest('.agent-mobile-composer-dock'));
+  return Boolean(el.closest('.agent-mobile-composer-dock, .transactions-modal .tx-composer-field, .transactions-modal .tx-minimal-composer-input'));
 }
 
 export function isAuthIntakeElement(el: Element | null): boolean {
@@ -167,6 +167,39 @@ export function readMobileViewportMetrics() {
   };
 }
 
+const AGENT_SHELL_SCROLL_LOCK_SELECTORS = [
+  '.app-shell',
+  '.mobile-scale-frame',
+  'main.agent-layout',
+  'section.agent-chat',
+  '.agent-chat-body',
+] as const;
+
+export function isAgentModalOpen(root: HTMLElement = document.documentElement) {
+  if (typeof document === 'undefined') return false;
+  if (!root.classList.contains('agent-route-active')) return false;
+  return Boolean(document.querySelector('.agent-modal-overlay, .social-modal-overlay'));
+}
+
+export function isAgentKeyboardTransitionActive(root: HTMLElement = document.documentElement) {
+  if (isMobileInputEngaged(root) || isComposerTypingSnap(root)) return true;
+  if (root.classList.contains('browser-keyboard-open')) return true;
+  if (document.body?.classList.contains('browser-keyboard-open')) return true;
+  if (root.classList.contains('keyboard-opening')) return true;
+  if (document.body?.classList.contains('keyboard-opening')) return true;
+  if (isComposerFocused()) return true;
+  return resolveKeyboardLikelyOpen(readMobileViewportMetrics());
+}
+
+/** Only restore shell scroll when idle — never while the keyboard/composer is animating. */
+export function shouldRestoreAgentShellViewport(root: HTMLElement = document.documentElement) {
+  if (typeof window === 'undefined') return false;
+  if (!root.classList.contains('agent-route-active')) return false;
+  if (isAgentModalOpen(root)) return false;
+  if (isAgentKeyboardTransitionActive(root)) return false;
+  return true;
+}
+
 export function applyMobileViewportTokens(root: HTMLElement = document.documentElement) {
   const metrics = readMobileViewportMetrics();
   const { layoutH, visibleH, offsetTop, gap } = metrics;
@@ -179,11 +212,14 @@ export function applyMobileViewportTokens(root: HTMLElement = document.documentE
 
   if (isPwaStandaloneViewport(root)) {
     suppressPwaBrowserChrome(root);
-    const measuredFull = Math.max(
-      layoutH,
-      visibleH + offsetTop,
-      typeof window.screen?.availHeight === 'number' ? window.screen.availHeight : 0
-    );
+    const modalOpen = isAgentModalOpen(root);
+    const measuredFull = modalOpen
+      ? Math.max(
+          layoutH,
+          visibleH + offsetTop,
+          typeof window.screen?.availHeight === 'number' ? window.screen.availHeight : 0
+        )
+      : Math.max(layoutH, visibleH + offsetTop);
     root.style.setProperty('--pwa-measured-h', `${measuredFull}px`);
     root.style.setProperty('--visual-vh', 'var(--pwa-full-viewport-h, 100lvh)');
     root.style.setProperty('--screen-h', 'var(--pwa-full-viewport-h, 100lvh)');
@@ -228,6 +264,30 @@ export function applyMobileViewportTokens(root: HTMLElement = document.documentE
   return { keyboardLikelyOpen: false, inputEngaged };
 }
 
+/** Reset document/visual viewport drift on the agent shell (mobile PWA + browser). */
+export function restoreAgentShellViewport(root: HTMLElement = document.documentElement) {
+  if (typeof window === 'undefined') return;
+  if (!shouldRestoreAgentShellViewport(root)) return;
+
+  window.scrollTo(0, 0);
+  root.scrollTop = 0;
+  document.body.scrollTop = 0;
+
+  for (const selector of AGENT_SHELL_SCROLL_LOCK_SELECTORS) {
+    document.querySelectorAll<HTMLElement>(selector).forEach((node) => {
+      if (node.scrollTop !== 0) node.scrollTop = 0;
+      if (node.scrollLeft !== 0) node.scrollLeft = 0;
+    });
+  }
+
+  applyMobileViewportTokens(root);
+
+  window.requestAnimationFrame(() => {
+    window.scrollTo(0, 0);
+    applyMobileViewportTokens(root);
+  });
+}
+
 export function clearMobileViewportTokens(root: HTMLElement = document.documentElement) {
   root.classList.remove('browser-keyboard-open');
   root.classList.remove('mobile-input-engaged');
@@ -269,7 +329,7 @@ export function scrollInputAboveKeyboard(el: HTMLElement, padding = 14) {
 
   applyMobileViewportTokens();
 
-  if (el.closest('.agent-mobile-composer-dock')) {
+  if (el.closest('.agent-mobile-composer-dock, .transactions-modal .tx-composer-pro, .transactions-modal .tx-minimal-composer')) {
     return;
   }
 

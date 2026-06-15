@@ -33,13 +33,6 @@ export function useMovementAnalytics(
       findings: Array.isArray(doc.insight?.key_findings) ? doc.insight!.key_findings!.slice(0, 3) : [],
     }));
 
-  const qualityAverage =
-    documentQualityRows.length > 0
-      ? Math.round(
-          documentQualityRows.reduce((acc, item) => acc + item.reliabilityPct, 0) / documentQualityRows.length,
-        )
-      : 0;
-
   const totalCategoryAmount = dashboardCategories.reduce((acc, c) => acc + (Number(c.amount) || 0), 0);
   const categoryShareData = dashboardCategories.slice(0, 6).map((category) => ({
     category: category.name,
@@ -172,7 +165,6 @@ export function useMovementAnalytics(
     alertDetails: alertDetails ?? [],
     metricExplanations: metricExplanations ?? [],
     documentQualityRows,
-    qualityAverage,
     categoryShareData,
     qualityRowsChart,
     dedupedMovementRows,

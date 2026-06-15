@@ -31,10 +31,6 @@ function buildProps(overrides: Partial<Parameters<typeof TxEvidenceStep>[0]> = {
   return {
     activeBankProduct: buildProduct(),
     maxEvidenceFilesPerProduct: 25,
-    summaryRegenerationsLeft: 3,
-    transitionPulse: 0,
-    dockTransitionPhase: 'idle',
-    currentStage: 'evidence',
     scrollRef: { current: null },
     assistantMessages: [],
     analysisAlreadyDone: false,
@@ -44,9 +40,6 @@ function buildProps(overrides: Partial<Parameters<typeof TxEvidenceStep>[0]> = {
     txAssistantInput: '',
     txAssistantLoading: false,
     documentsLoading: false,
-    summaryText: null,
-    summaryGeneratedAt: null,
-    summaryModel: null,
     processingModeLabel: 'Procesando evidencia',
     processingMetaLabel: 'OCR',
     processingPrimaryCopy: 'Leyendo archivos',
@@ -59,7 +52,6 @@ function buildProps(overrides: Partial<Parameters<typeof TxEvidenceStep>[0]> = {
     onAssistantInputChange: jest.fn(),
     onAssistantSend: jest.fn(),
     onGoToAnalyst: jest.fn(),
-    onRegenerateSummary: jest.fn(),
     ...overrides,
   };
 }
@@ -152,9 +144,12 @@ describe('TxEvidenceStep', () => {
       <TxEvidenceStep
         {...buildProps({
           analysisAlreadyDone: true,
-          summaryText: 'Resumen listo para revisar.',
           activeBankProduct: {
             ...buildProduct(),
+            assistant: {
+              ...buildProduct().assistant!,
+              summaryText: 'Panorama del periodo con diez movimientos.',
+            },
             parsedDocuments: [{ name: 'cartola.pdf', text: 'mov' }],
           },
         })}
@@ -163,6 +158,8 @@ describe('TxEvidenceStep', () => {
 
     expect(screen.queryByLabelText(/adjuntar archivos/i)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/mensaje del chat de subida de evidencia/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/resumen listo/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/panorama del periodo/i)).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /continuar al resumen/i })).toBeInTheDocument();
   });
 });

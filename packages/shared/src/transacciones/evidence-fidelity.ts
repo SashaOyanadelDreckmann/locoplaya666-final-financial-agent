@@ -104,59 +104,80 @@ export function buildIndicativeExecutiveSummary(params: {
   formatAmount: (value: number) => string;
 }): string {
   if (params.movementCount === 0) {
-    return `No alcanzamos a leer movimientos claros en este antecedente. Prueba con capturas más nítidas o sube un archivo estructurado. ${INDICATIVE_EVIDENCE_DISCLAIMER}`;
+    return `Sin lectura clara\nNo alcanzamos a leer movimientos en este antecedente. Prueba capturas más nítidas o un archivo estructurado.\n\n${INDICATIVE_EVIDENCE_DISCLAIMER}`;
   }
 
   const productLabel = productTypeLabel(params.productType);
   const periodLabel =
     params.period?.from && params.period?.to
-      ? ` entre ${params.period.from} y ${params.period.to}`
-      : '';
+      ? `${params.period.from} a ${params.period.to}`
+      : null;
 
-  const lines = [
-    `Lectura orientativa de tu ${productLabel}${periodLabel}: identificamos ${params.movementCount} movimiento${params.movementCount === 1 ? '' : 's'} visibles en el antecedente.`,
+  const blocks: string[] = [
+    [
+      'Lectura orientativa',
+      [
+        `Patrón visible en tu ${productLabel}${periodLabel ? ` (${periodLabel})` : ''}.`,
+        `Identificamos ${params.movementCount} movimiento${params.movementCount === 1 ? '' : 's'} en el antecedente.`,
+      ].join(' '),
+    ].join('\n'),
   ];
 
   if (params.topExpenses.length > 0) {
-    const highlights = params.topExpenses
-      .slice(0, 5)
-      .map((item) => {
-        const dateSuffix = item.date ? ` (${item.date})` : '';
-        return `${item.label}${dateSuffix} ~${params.formatAmount(item.amount)}`;
-      })
-      .join('; ');
-    lines.push(`Principales cargos detectados: ${highlights}.`);
+    blocks.push(
+      [
+        'Cargos más visibles',
+        ...params.topExpenses.slice(0, 5).map((item) => {
+          const dateSuffix = item.date ? ` (${item.date})` : '';
+          return `• ${item.label}${dateSuffix} — ~${params.formatAmount(item.amount)}`;
+        }),
+      ].join('\n'),
+    );
   }
 
   if (params.topCategories.length > 0) {
-    const categories = params.topCategories
-      .slice(0, 4)
-      .map((category) => `${category.name} (~${params.formatAmount(category.amount)})`)
-      .join('; ');
-    lines.push(`Dónde parece concentrarse el gasto: ${categories}.`);
+    blocks.push(
+      [
+        'Concentración de gasto',
+        ...params.topCategories
+          .slice(0, 4)
+          .map((category) => `• ${category.name} — ~${params.formatAmount(category.amount)}`),
+      ].join('\n'),
+    );
   } else if (params.spendClusters && params.spendClusters.length > 0) {
     const cluster = params.spendClusters[0];
     const example = cluster.examples?.[0];
-    lines.push(
-      `Patrón dominante: ${cluster.name}${cluster.share_pct ? ` (~${cluster.share_pct.toFixed(0)}% del gasto leído)` : ''}${example ? `, por ejemplo ${example}` : ''}.`,
+    blocks.push(
+      [
+        'Patrón dominante',
+        `• ${cluster.name}${cluster.share_pct ? ` — ~${cluster.share_pct.toFixed(0)}% del gasto leído` : ''}${example ? ` · ejemplo: ${example}` : ''}`,
+      ].join('\n'),
     );
   }
 
   if (params.topMerchants.length > 0) {
-    const merchants = params.topMerchants
-      .slice(0, 3)
-      .map((merchant) => `${merchant.merchant} (~${params.formatAmount(merchant.amount)})`)
-      .join(', ');
-    lines.push(`Comercios o conceptos recurrentes: ${merchants}.`);
+    blocks.push(
+      [
+        'Comercios recurrentes',
+        ...params.topMerchants
+          .slice(0, 3)
+          .map((merchant) => `• ${merchant.merchant} — ~${params.formatAmount(merchant.amount)}`),
+      ].join('\n'),
+    );
   }
 
   const softAlerts = (params.alerts ?? []).filter((alert) => !/flujo neto|ingresos|egresos/i.test(alert));
   if (softAlerts.length > 0) {
-    lines.push(`Señales a revisar: ${softAlerts.slice(0, 2).join(' ')}`);
+    blocks.push(
+      [
+        'Señales a revisar',
+        ...softAlerts.slice(0, 2).map((alert) => `• ${alert}`),
+      ].join('\n'),
+    );
   }
 
-  lines.push(INDICATIVE_EVIDENCE_DISCLAIMER);
-  return lines.join(' ');
+  blocks.push(`Nota de fidelidad\n${INDICATIVE_EVIDENCE_DISCLAIMER}`);
+  return blocks.join('\n\n');
 }
 
 export function buildIndicativeInstantSummary(params: {

@@ -4,11 +4,12 @@
 /* ================================================= */
 
 .budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split{
-  display: flex !important;
-  flex-direction: row !important;
+  display: grid !important;
+  grid-template-columns: 280px minmax(0, 1fr) !important;
+  grid-template-rows: auto minmax(0, 1fr) !important;
   flex-wrap: nowrap !important;
-  align-items: flex-start !important;
-  gap: 20px !important;
+  align-items: start !important;
+  gap: 10px 14px !important;
   height: auto !important;
   min-height: 0 !important;
   max-height: none !important;
@@ -39,11 +40,17 @@
 }
 
 .budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent{
-  flex: 0 0 280px !important;
+  grid-column: 1 !important;
+  grid-row: 2 !important;
+  flex: none !important;
+  align-self: stretch !important;
 }
 
 .budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-table{
-  flex: 1 1 0 !important;
+  grid-column: 2 !important;
+  grid-row: 2 !important;
+  flex: none !important;
+  align-self: stretch !important;
 }
 
 .budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-table-only{
@@ -131,38 +138,17 @@
 /* BUDGET DESKTOP — compact header + tabs stack      */
 /* ================================================= */
 
-.budget-modal:not(.is-mobile-shell) .bcc-modal-header{
-  padding: 14px 28px 4px !important;
-  margin-bottom: 0 !important;
-  border-bottom: none !important;
-}
-
-.budget-modal:not(.is-mobile-shell) .bcc-modal-title-wrap{
-  gap: 2px !important;
-}
-
-.budget-modal:not(.is-mobile-shell) .bcc-modal-eyebrow{
-  margin-bottom: 2px !important;
-}
-
 .budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop{
   padding-top: 0 !important;
   gap: 0 !important;
 }
 
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop > .budget-view-nav{
+  display: none !important;
+}
+
 .budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop > .budget-mode-tabs{
-  order: 0 !important;
-  display: flex !important;
-  justify-content: center !important;
-  align-items: center !important;
-  flex-wrap: nowrap !important;
-  gap: 6px !important;
-  margin: 0 !important;
-  padding: 6px 24px 10px !important;
-  width: 100% !important;
-  box-sizing: border-box !important;
-  background: transparent !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07) !important;
+  display: none !important;
 }
 
 .budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop > .budget-main-carousel{
@@ -186,9 +172,9 @@
 
 .budget-modal:not(.is-mobile-shell){
   --hero-plain: rgba(228, 239, 248, 0.9);
-  --hero-keyword-blue: #88a7bc;
-  --hero-keyword-gold: #b7a66a;
-  --hero-keyword-slate: #6f8fa6;
+  --hero-keyword-blue: #52a8d9;
+  --hero-keyword-gold: #d4a428;
+  --hero-keyword-slate: #4580b0;
 }
 
 .budget-modal:not(.is-mobile-shell) .bcc-hero-question--gradient-demo,
@@ -308,6 +294,65 @@
   text-shadow: none !important;
 }
 
+/* Split: compact assistant copy — narrow column, more words per line */
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent .bcc-hero{
+  padding: 14px 12px !important;
+  gap: 10px !important;
+  min-height: 0 !important;
+  height: auto !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent .bcc-hero-top{
+  gap: 8px !important;
+  margin-bottom: 10px !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent .bcc-hero-question--gradient-demo,
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent .bcc-hero-question,
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent span.bcc-hero-question,
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent p.bcc-hero-question{
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif !important;
+  font-size: clamp(0.76rem, 0.82vw, 0.84rem) !important;
+  font-weight: 500 !important;
+  line-height: 1.38 !important;
+  letter-spacing: -0.012em !important;
+  text-wrap: pretty !important;
+  overflow-wrap: break-word !important;
+  word-break: normal !important;
+  hyphens: none !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent .bcc-hero-question--gradient-demo.bcc-hero-question--pending,
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent .bcc-hero-question--pending{
+  font-size: clamp(0.72rem, 0.78vw, 0.8rem) !important;
+  line-height: 1.36 !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent .bcc-hero-reply{
+  font-size: clamp(0.72rem, 0.78vw, 0.8rem) !important;
+  line-height: 1.36 !important;
+}
+
+/* Split: breathing room between assistant copy and RESPONDER compose */
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent .bcc-hero-compose{
+  margin-top: 12px !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent .bcc-hero-compose .bcc-hero-input-wrap{
+  margin-top: 24px !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent .bcc-hero-compose .bcc-hero-input-wrap::before{
+  top: -22px !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent .bcc-hero-done,
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent .bcc-hero-coach,
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent .bcc-hero-tip{
+  font-size: 0.68rem !important;
+  line-height: 1.32 !important;
+}
+
 /* ================================================= */
 /* BUDGET DESKTOP — split: tabla compacta sin recorte */
 /* ================================================= */
@@ -317,7 +362,6 @@
 }
 
 .budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-table{
-  flex: 1 1 0 !important;
   min-width: 0 !important;
   max-width: 100% !important;
   overflow: hidden !important;
@@ -328,6 +372,11 @@
   max-width: 100% !important;
   min-width: 0 !important;
   overflow: hidden !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split .budget-pdf-intel-summary{
+  margin-bottom: 8px !important;
+  padding: 10px 12px 10px !important;
 }
 
 .budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split .budget-pdf-head{
@@ -476,4 +525,2084 @@
   width: 22px !important;
   height: 22px !important;
   padding: 0 !important;
+}
+
+/* Table-only: single action row — Ingreso/Gasto left, Estilos/PDF right */
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-table-only > .budget-card-table .budget-table-head.is-table-only-toolbar{
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 10px 12px !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 0 10px !important;
+  padding-right: 0 !important;
+  border-bottom: 0 !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-table-only > .budget-card-table .budget-table-head.is-table-only-toolbar .budget-table-top-actions{
+  flex: 0 0 auto !important;
+  margin: 0 !important;
+  justify-content: flex-start !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-table-only > .budget-card-table .budget-table-head.is-table-only-toolbar .budget-table-bottom-actions{
+  display: inline-flex !important;
+  flex: 0 0 auto !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 8px !important;
+  width: fit-content !important;
+  margin: 0 0 0 auto !important;
+  grid-template-columns: none !important;
+}
+
+/* Split: toolbar lives above assistant column; table starts at summary row */
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-table.budget-table-section{
+  padding: 0 !important;
+  gap: 0 !important;
+  align-self: stretch !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent.budget-assistant-panel{
+  align-self: stretch !important;
+}
+
+/* ================================================= */
+/* BUDGET HEADER — transactions contract + yellow    */
+/* ================================================= */
+
+.budget-modal{
+  --budget-header-accent: #d9b84a;
+  --budget-header-text: #eef2f6;
+  --budget-header-text-dim: #96a3b0;
+  --budget-header-surface: #1a212a;
+  --budget-header-border: rgba(176, 186, 198, 0.1);
+  --budget-header-border-strong: rgba(176, 186, 198, 0.16);
+  --budget-header-inset: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+}
+
+.budget-modal .bcc-modal-header,
+.budget-modal .bcc-modal-header.budget-modal-header-layer{
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  text-align: center !important;
+  gap: 0 !important;
+  padding: clamp(18px, 2.2vw, 26px) clamp(16px, 2.4vw, 28px) 6px !important;
+  margin: 0 !important;
+  background: transparent !important;
+  border-bottom: none !important;
+  border-radius: 0 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
+  position: relative !important;
+  z-index: 2 !important;
+  flex-shrink: 0 !important;
+}
+
+.budget-modal .budget-modal-header-stack{
+  width: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+  gap: 0 !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-header-title-row{
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) !important;
+  align-items: center !important;
+  gap: 12px !important;
+  width: 100% !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-header-title-row .bcc-modal-title-wrap{
+  grid-column: 1 !important;
+  justify-self: start !important;
+  align-items: flex-start !important;
+  text-align: left !important;
+  width: auto !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-header-title-row .budget-view-nav{
+  grid-column: 2 !important;
+  justify-self: center !important;
+  width: auto !important;
+  padding: 0 !important;
+  gap: 18px !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-header-title-row .agent-modal-close{
+  grid-column: 3 !important;
+  justify-self: end !important;
+  margin-left: 0 !important;
+}
+
+.budget-modal .bcc-modal-title-wrap{
+  flex: 0 0 auto !important;
+  min-width: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  gap: 0 !important;
+  width: 100% !important;
+}
+
+.budget-modal .bcc-modal-eyebrow{
+  display: block !important;
+  color: var(--budget-header-accent) !important;
+  -webkit-text-fill-color: var(--budget-header-accent) !important;
+  font-family: inherit !important;
+  font-style: normal !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.28em !important;
+  text-transform: uppercase !important;
+  opacity: 0.92 !important;
+  margin: 0 0 2px !important;
+  line-height: 1 !important;
+  background: none !important;
+  animation: none !important;
+  text-align: center !important;
+  width: 100% !important;
+}
+
+.budget-modal .bcc-modal-title{
+  color: var(--budget-header-text) !important;
+  -webkit-text-fill-color: var(--budget-header-text) !important;
+  font-family: inherit !important;
+  font-size: clamp(17px, 2vw, 22px) !important;
+  font-weight: 650 !important;
+  letter-spacing: -0.025em !important;
+  line-height: 1.22 !important;
+  margin: 0 !important;
+  text-align: center !important;
+  width: 100% !important;
+}
+
+.budget-modal .agent-modal-close{
+  position: absolute !important;
+  top: clamp(18px, 2.2vw, 26px) !important;
+  right: clamp(16px, 2.4vw, 28px) !important;
+  flex: 0 0 44px !important;
+  width: 44px !important;
+  height: 44px !important;
+  min-width: 44px !important;
+  margin-top: 0 !important;
+  color: var(--budget-header-text-dim) !important;
+  -webkit-text-fill-color: var(--budget-header-text-dim) !important;
+  background: var(--budget-header-surface) !important;
+  border: 1px solid var(--budget-header-border) !important;
+  border-radius: 11px !important;
+  box-shadow: var(--budget-header-inset) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.budget-modal .bcc-modal-header .budget-view-nav{
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 22px !important;
+  width: auto !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+  background: transparent !important;
+  border: none !important;
+}
+
+.budget-modal button.budget-view-nav-arrow,
+.budget-modal .budget-view-nav-arrow{
+  width: auto !important;
+  min-width: 0 !important;
+  height: auto !important;
+  min-height: 36px !important;
+  padding: 4px 2px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  color: rgba(240, 240, 245, 0.55) !important;
+  cursor: pointer;
+  transition: color 0.18s ease, transform 0.18s ease, opacity 0.18s ease !important;
+}
+
+.budget-modal button.budget-view-nav-arrow:hover:not(:disabled),
+.budget-modal .budget-view-nav-arrow:hover:not(:disabled){
+  color: rgba(240, 240, 245, 0.95) !important;
+  transform: translateX(0);
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.budget-modal .budget-view-nav-arrow--prev:hover:not(:disabled){
+  transform: translateX(-3px);
+}
+
+.budget-modal .budget-view-nav-arrow--next:hover:not(:disabled){
+  transform: translateX(3px);
+}
+
+.budget-modal button.budget-view-nav-arrow:disabled,
+.budget-modal .budget-view-nav-arrow:disabled{
+  opacity: 0.28;
+  cursor: not-allowed;
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.budget-modal .budget-view-nav-arrow:focus-visible{
+  outline: 2px solid rgba(183, 166, 106, 0.55);
+  outline-offset: 2px;
+}
+
+.budget-modal .agent-modal-close:hover{
+  color: var(--budget-header-text) !important;
+  -webkit-text-fill-color: var(--budget-header-text) !important;
+  background: color-mix(in srgb, var(--budget-header-surface) 88%, #ffffff 12%) !important;
+  border-color: var(--budget-header-border-strong) !important;
+}
+
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+  .budget-modal .bcc-modal-header,
+  .budget-modal .bcc-modal-header.budget-modal-header-layer{
+    padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 8px !important;
+  }
+
+  .budget-modal .agent-modal-close{
+    top: calc(12px + env(safe-area-inset-top, 0px)) !important;
+    right: 16px !important;
+  }
+
+  .budget-modal .bcc-modal-eyebrow{
+    display: block !important;
+    font-size: 9px !important;
+    letter-spacing: 0.24em !important;
+  }
+
+  .budget-modal .bcc-modal-title{
+    font-size: clamp(15px, 4.4vw, 17px) !important;
+    text-wrap: balance !important;
+  }
+
+  .budget-modal .bcc-modal-header .budget-view-nav{
+    padding: 0 !important;
+    gap: 18px !important;
+  }
+
+  .budget-modal button.budget-view-nav-arrow,
+  .budget-modal .budget-view-nav-arrow{
+    min-height: 44px !important;
+    padding: 8px 4px !important;
+  }
+}
+
+/* ================================================= */
+/* BUDGET FOOTER — unified slim pill buttons         */
+/* ================================================= */
+
+.budget-modal .budget-table-bottom-actions .budget-style-button,
+.budget-modal .budget-table-bottom-actions .budget-pdf-button,
+.budget-modal .budget-table-bottom-actions .budget-chat-sync-button:not(.is-assistant-action),
+.budget-modal .budget-mobile-bottom-actions .budget-style-button,
+.budget-modal .budget-mobile-bottom-actions .budget-pdf-button,
+.budget-modal .budget-mobile-bottom-actions .budget-chat-sync-button:not(.is-assistant-action),
+.budget-modal [data-budget-mobile-footer='true'] .budget-style-button,
+.budget-modal [data-budget-mobile-footer='true'] .budget-pdf-button,
+.budget-modal [data-budget-mobile-footer='true'] .budget-chat-sync-button:not(.is-assistant-action){
+  min-height: 30px !important;
+  height: 30px !important;
+  padding: 0 12px !important;
+  border-radius: 999px !important;
+  font-weight: 500 !important;
+  font-size: 11px !important;
+  letter-spacing: 0.04em !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+  cursor: pointer !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  background-image: none !important;
+  color: rgba(230, 238, 252, 0.86) !important;
+  -webkit-text-fill-color: rgba(230, 238, 252, 0.86) !important;
+  box-shadow: none !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  transition: transform 0.2s ease, border-color 0.18s ease, background 0.18s ease !important;
+}
+
+.budget-modal .budget-table-bottom-actions .budget-style-button:hover,
+.budget-modal .budget-table-bottom-actions .budget-pdf-button:hover:not(:disabled),
+.budget-modal .budget-table-bottom-actions .budget-chat-sync-button:not(.is-assistant-action):hover:not(:disabled),
+.budget-modal .budget-mobile-bottom-actions .budget-style-button:hover,
+.budget-modal .budget-mobile-bottom-actions .budget-pdf-button:hover:not(:disabled),
+.budget-modal .budget-mobile-bottom-actions .budget-chat-sync-button:not(.is-assistant-action):hover:not(:disabled),
+.budget-modal [data-budget-mobile-footer='true'] .budget-style-button:hover,
+.budget-modal [data-budget-mobile-footer='true'] .budget-pdf-button:hover:not(:disabled),
+.budget-modal [data-budget-mobile-footer='true'] .budget-chat-sync-button:not(.is-assistant-action):hover:not(:disabled){
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+  transform: translateY(-1px) !important;
+}
+
+.budget-modal .budget-table-bottom-actions .budget-pdf-button:disabled,
+.budget-modal .budget-table-bottom-actions .budget-chat-sync-button:not(.is-assistant-action):disabled,
+.budget-modal .budget-mobile-bottom-actions .budget-pdf-button:disabled,
+.budget-modal .budget-mobile-bottom-actions .budget-chat-sync-button:not(.is-assistant-action):disabled,
+.budget-modal [data-budget-mobile-footer='true'] .budget-pdf-button:disabled,
+.budget-modal [data-budget-mobile-footer='true'] .budget-chat-sync-button:not(.is-assistant-action):disabled{
+  opacity: 0.38 !important;
+  cursor: not-allowed !important;
+}
+
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+  .budget-modal .budget-table-bottom-actions .budget-style-button,
+  .budget-modal .budget-table-bottom-actions .budget-pdf-button,
+  .budget-modal .budget-table-bottom-actions .budget-chat-sync-button:not(.is-assistant-action),
+  .budget-modal .budget-mobile-bottom-actions .budget-style-button,
+  .budget-modal .budget-mobile-bottom-actions .budget-pdf-button,
+  .budget-modal .budget-mobile-bottom-actions .budget-chat-sync-button:not(.is-assistant-action),
+  .budget-modal [data-budget-mobile-footer='true'] .budget-style-button,
+  .budget-modal [data-budget-mobile-footer='true'] .budget-pdf-button,
+  .budget-modal [data-budget-mobile-footer='true'] .budget-chat-sync-button:not(.is-assistant-action){
+    min-height: 26px !important;
+    height: 26px !important;
+    padding: 0 8px !important;
+    font-size: 0.58rem !important;
+  }
+}
+
+/* ================================================= */
+/* BUDGET DESKTOP — flat table stage                */
+/* Transparent section/surface shells; keep content. */
+/* ================================================= */
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-table-section,
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-table-section.budget-card-table{
+  background: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  overflow: visible !important;
+  transform: none !important;
+  filter: none !important;
+  animation: none !important;
+  will-change: auto !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-table-section::before,
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-table-section::after,
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-table-section.budget-card-table::before,
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-table-section.budget-card-table::after{
+  content: none !important;
+  display: none !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-table-section:hover,
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-table-section.budget-card-table:hover{
+  transform: none !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-table-scroll-host,
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-table-scroll-host--desktop{
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface:not(.is-budget-pdf-exporting){
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  overflow: visible !important;
+}
+
+/* Summary — single blurred glass card */
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface:not(.is-budget-pdf-exporting) .budget-pdf-intel-summary{
+  display: block !important;
+  margin: 0 0 14px 0 !important;
+  padding: 16px 18px 14px !important;
+  border-radius: 16px !important;
+  border: 1px solid rgba(255, 255, 255, 0.11) !important;
+  background: rgba(10, 14, 22, 0.38) !important;
+  backdrop-filter: blur(20px) saturate(150%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(150%) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    0 14px 36px rgba(0, 0, 0, 0.2) !important;
+  overflow: hidden !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface:not(.is-budget-pdf-exporting) .budget-pdf-intel-summary--terminal{
+  background: rgba(7, 17, 15, 0.52) !important;
+  border-color: rgba(132, 198, 176, 0.2) !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface:not(.is-budget-pdf-exporting) .budget-pdf-intel-summary--ledger{
+  background: rgba(244, 239, 231, 0.58) !important;
+  border-color: rgba(209, 191, 169, 0.42) !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface:not(.is-budget-pdf-exporting) .budget-pdf-intel-summary--atelier{
+  background: rgba(17, 18, 21, 0.58) !important;
+  border-color: rgba(214, 160, 124, 0.2) !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface:not(.is-budget-pdf-exporting) .budget-pdf-intel-summary--midnight{
+  background: rgba(5, 7, 11, 0.58) !important;
+  border-color: rgba(220, 232, 245, 0.12) !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface:not(.is-budget-pdf-exporting) .budget-pdf-intel-summary--carbon{
+  background: #000000 !important;
+  background-image: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-color: rgba(184, 202, 230, 0.18) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface:not(.is-budget-pdf-exporting) .budget-pdf-intel-summary .budget-pdf-head{
+  background: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  margin: 0 0 12px 0 !important;
+  padding: 0 0 12px 0 !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface:not(.is-budget-pdf-exporting) .budget-pdf-intel-summary--ledger .budget-pdf-head{
+  border-bottom-color: rgba(209, 191, 169, 0.34) !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface:not(.is-budget-pdf-exporting) .budget-pdf-intel-summary .budget-pdf-head > strong{
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 999px !important;
+  box-shadow: none !important;
+  padding: 6px 10px !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface:not(.is-budget-pdf-exporting) .budget-pdf-intel-summary--ledger .budget-pdf-head > strong{
+  background: rgba(255, 251, 244, 0.72) !important;
+  border-color: rgba(200, 182, 158, 0.42) !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface:not(.is-budget-pdf-exporting) .budget-pdf-intel-summary .budget-pdf-metrics{
+  background: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface:not(.is-budget-pdf-exporting) .budget-pdf-intel-summary .budget-pdf-metrics > div{
+  background: rgba(255, 255, 255, 0.04) !important;
+  background-image: none !important;
+  border: 1px solid rgba(255, 255, 255, 0.07) !important;
+  border-radius: 10px !important;
+  box-shadow: none !important;
+  padding: 10px 12px !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface:not(.is-budget-pdf-exporting) .budget-pdf-intel-summary--ledger .budget-pdf-metrics > div{
+  background: rgba(255, 251, 244, 0.5) !important;
+  border-color: rgba(209, 191, 169, 0.28) !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface.budget-table-style-terminal:not(.is-budget-pdf-exporting),
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface.budget-table-style-midnight:not(.is-budget-pdf-exporting),
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface.budget-table-style-ledger:not(.is-budget-pdf-exporting),
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface.budget-table-style-atelier:not(.is-budget-pdf-exporting),
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface.budget-table-style-carbon:not(.is-budget-pdf-exporting){
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  overflow: visible !important;
+}
+
+/* Table island — per-style palette on wrap/table only (not outer shells) */
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface:not(.is-budget-pdf-exporting) .budget-table-wrap,
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface:not(.is-budget-pdf-exporting) .budget-table-wrap-pro{
+  border-radius: 14px !important;
+  overflow: hidden !important;
+  box-shadow: none !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface.budget-table-style-terminal:not(.is-budget-pdf-exporting) .budget-table-wrap,
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface.budget-table-style-terminal:not(.is-budget-pdf-exporting) .budget-table-wrap-pro,
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface.budget-table-style-terminal:not(.is-budget-pdf-exporting) .budget-table,
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface.budget-table-style-terminal:not(.is-budget-pdf-exporting) .budget-table th,
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface.budget-table-style-terminal:not(.is-budget-pdf-exporting) .budget-table td{
+  background: #07110f !important;
+  color: #e9fff5 !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface.budget-table-style-terminal:not(.is-budget-pdf-exporting) .budget-table-wrap,
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface.budget-table-style-terminal:not(.is-budget-pdf-exporting) .budget-table-wrap-pro{
+  border: 1px solid rgba(132, 198, 176, 0.24) !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface.budget-table-style-ledger:not(.is-budget-pdf-exporting) .budget-table-wrap,
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface.budget-table-style-ledger:not(.is-budget-pdf-exporting) .budget-table-wrap-pro,
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface.budget-table-style-ledger:not(.is-budget-pdf-exporting) .budget-table,
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface.budget-table-style-ledger:not(.is-budget-pdf-exporting) .budget-table th,
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface.budget-table-style-ledger:not(.is-budget-pdf-exporting) .budget-table td{
+  background: #f4efe7 !important;
+  color: #141312 !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface.budget-table-style-ledger:not(.is-budget-pdf-exporting) .budget-table-wrap,
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface.budget-table-style-ledger:not(.is-budget-pdf-exporting) .budget-table-wrap-pro{
+  border: 1px solid #d1bfa9 !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface.budget-table-style-atelier:not(.is-budget-pdf-exporting) .budget-table-wrap,
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface.budget-table-style-atelier:not(.is-budget-pdf-exporting) .budget-table-wrap-pro,
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface.budget-table-style-atelier:not(.is-budget-pdf-exporting) .budget-table,
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface.budget-table-style-atelier:not(.is-budget-pdf-exporting) .budget-table th,
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface.budget-table-style-atelier:not(.is-budget-pdf-exporting) .budget-table td{
+  background: #111215 !important;
+  color: #f8efe6 !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface.budget-table-style-atelier:not(.is-budget-pdf-exporting) .budget-table-wrap,
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface.budget-table-style-atelier:not(.is-budget-pdf-exporting) .budget-table-wrap-pro{
+  border: 1px solid rgba(214, 160, 124, 0.22) !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface.budget-table-style-midnight:not(.is-budget-pdf-exporting) .budget-table-wrap,
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface.budget-table-style-midnight:not(.is-budget-pdf-exporting) .budget-table-wrap-pro,
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface.budget-table-style-midnight:not(.is-budget-pdf-exporting) .budget-table,
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface.budget-table-style-midnight:not(.is-budget-pdf-exporting) .budget-table th,
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface.budget-table-style-midnight:not(.is-budget-pdf-exporting) .budget-table td{
+  background: #05070b !important;
+  color: #f4f7fb !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface.budget-table-style-midnight:not(.is-budget-pdf-exporting) .budget-table-wrap,
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface.budget-table-style-midnight:not(.is-budget-pdf-exporting) .budget-table-wrap-pro{
+  border: 1px solid rgba(220, 232, 245, 0.12) !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface.budget-table-style-carbon:not(.is-budget-pdf-exporting) .budget-table-wrap,
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface.budget-table-style-carbon:not(.is-budget-pdf-exporting) .budget-table-wrap-pro,
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface.budget-table-style-carbon:not(.is-budget-pdf-exporting) .budget-table{
+  background: #05070b !important;
+  color: #f4f8ff !important;
+  border: 1px solid rgba(184, 202, 230, 0.2) !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface.budget-table-style-terminal:not(.is-budget-pdf-exporting){
+  color: #e9fff5 !important;
+  -webkit-text-fill-color: #e9fff5 !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface.budget-table-style-ledger:not(.is-budget-pdf-exporting){
+  color: #141312 !important;
+  -webkit-text-fill-color: #141312 !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface.budget-table-style-atelier:not(.is-budget-pdf-exporting){
+  color: #f8efe6 !important;
+  -webkit-text-fill-color: #f8efe6 !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface.budget-table-style-midnight:not(.is-budget-pdf-exporting),
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface.budget-table-style-carbon:not(.is-budget-pdf-exporting){
+  color: #f4f7fb !important;
+  -webkit-text-fill-color: #f4f7fb !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   BUDGET DESKTOP — ledger/editorial active row: black ink on light cells
+   Beats diagnostics dark-active-row + cream pill text for ledger only.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface.budget-table-style-ledger:not(.is-budget-pdf-exporting) .budget-table tr.is-active-row td{
+  background: rgba(255, 255, 255, 0.98) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    inset 0 -1px 0 rgba(223, 232, 240, 0.95) !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface.budget-table-style-ledger:not(.is-budget-pdf-exporting) .budget-table tr.is-active-row td,
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface.budget-table-style-ledger:not(.is-budget-pdf-exporting) .budget-table tr.is-active-row td *{
+  color: #141312 !important;
+  -webkit-text-fill-color: #141312 !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface.budget-table-style-ledger:not(.is-budget-pdf-exporting) .budget-table tr.is-active-row input,
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface.budget-table-style-ledger:not(.is-budget-pdf-exporting) .budget-table tr.is-active-row select,
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface.budget-table-style-ledger:not(.is-budget-pdf-exporting) .budget-table tr.is-active-row textarea{
+  background: rgba(255, 255, 255, 0.98) !important;
+  border-color: rgba(156, 182, 207, 0.86) !important;
+  color: #141312 !important;
+  -webkit-text-fill-color: #141312 !important;
+  caret-color: #141312 !important;
+  box-shadow:
+    0 0 0 3px rgba(165, 189, 211, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.98) !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface.budget-table-style-ledger:not(.is-budget-pdf-exporting) .budget-table tr.is-active-row input::placeholder,
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface.budget-table-style-ledger:not(.is-budget-pdf-exporting) .budget-table tr.is-active-row textarea::placeholder{
+  color: rgba(81, 100, 118, 0.72) !important;
+  -webkit-text-fill-color: rgba(81, 100, 118, 0.72) !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface.budget-table-style-ledger:not(.is-budget-pdf-exporting) .budget-table tr.is-active-row select option{
+  background: #fffbf6 !important;
+  color: #141312 !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface.budget-table-style-ledger:not(.is-budget-pdf-exporting) .budget-table tr.is-active-row .budget-pill-group.is-income .budget-pill-button.is-active{
+  background: var(--budget-pill-income-fill, #b5c796) !important;
+  background-image: none !important;
+  color: var(--budget-pill-income-ink, #2e3a1f) !important;
+  -webkit-text-fill-color: var(--budget-pill-income-ink, #2e3a1f) !important;
+  border-color: var(--budget-pill-income-border, #9aad7e) !important;
+  box-shadow: 0 1px 5px rgba(46, 58, 31, 0.14) !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface.budget-table-style-ledger:not(.is-budget-pdf-exporting) .budget-table tr.is-active-row .budget-pill-group.is-expense .budget-pill-button.is-active{
+  background: var(--budget-pill-expense-fill, #e2abab) !important;
+  background-image: none !important;
+  color: var(--budget-pill-expense-ink, #452626) !important;
+  -webkit-text-fill-color: var(--budget-pill-expense-ink, #452626) !important;
+  border-color: var(--budget-pill-expense-border, #cf9292) !important;
+  box-shadow: 0 1px 5px rgba(69, 38, 38, 0.14) !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface.budget-table-style-ledger:not(.is-budget-pdf-exporting) .budget-table tr.is-active-row .budget-impact-cell,
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-pdf-surface.budget-table-style-ledger:not(.is-budget-pdf-exporting) .budget-table tr.is-active-row .budget-impact-cell *{
+  color: #141312 !important;
+  -webkit-text-fill-color: #141312 !important;
+}
+
+/* ================================================= */
+/* BUDGET DESKTOP — split toolbar authority (EOF)    */
+/* Beats .budget-executive-grid + diagnostics leaks.  */
+/* ================================================= */
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-executive-grid.budget-main-carousel.is-desktop.mode-split{
+  display: grid !important;
+  grid-template-columns: 280px minmax(0, 1fr) !important;
+  grid-template-rows: auto minmax(0, 1fr) !important;
+  grid-auto-flow: row !important;
+  align-items: start !important;
+  gap: 10px 14px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-executive-grid.budget-main-carousel.is-desktop.mode-split > .budget-split-agent-toolbar{
+  grid-column: 1 / -1 !important;
+  grid-row: 1 !important;
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 0 10px !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-executive-grid.budget-main-carousel.is-desktop.mode-split > .budget-split-agent-toolbar .budget-split-toolbar-leading,
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-executive-grid.budget-main-carousel.is-desktop.mode-split > .budget-split-agent-toolbar .budget-split-toolbar-trailing{
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  gap: 8px !important;
+  min-width: 0 !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-executive-grid.budget-main-carousel.is-desktop.mode-split > .budget-split-agent-toolbar .budget-split-toolbar-leading{
+  justify-content: flex-start !important;
+  flex: 1 1 auto !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-executive-grid.budget-main-carousel.is-desktop.mode-split > .budget-split-agent-toolbar .budget-split-toolbar-trailing{
+  justify-content: flex-end !important;
+  flex: 0 0 auto !important;
+  margin-left: auto !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-executive-grid.budget-main-carousel.is-desktop.mode-split .budget-split-toolbar-btn{
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 auto !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  min-height: 30px !important;
+  height: 30px !important;
+  padding: 0 12px !important;
+  border-radius: 999px !important;
+  font-weight: 500 !important;
+  font-size: 11px !important;
+  letter-spacing: 0.04em !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+  cursor: pointer !important;
+  border: 1px solid rgba(120, 100, 72, 0.34) !important;
+  background: rgba(255, 255, 255, 0.78) !important;
+  background-image: none !important;
+  color: rgba(23, 20, 17, 0.88) !important;
+  -webkit-text-fill-color: rgba(23, 20, 17, 0.88) !important;
+  box-shadow: none !important;
+  transition: transform 0.2s ease, border-color 0.18s ease, background 0.18s ease !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-executive-grid.budget-main-carousel.is-desktop.mode-split .budget-split-toolbar-btn:hover:not(:disabled){
+  background: rgba(255, 255, 255, 0.96) !important;
+  border-color: rgba(100, 82, 56, 0.44) !important;
+  transform: translateY(-1px) !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-executive-grid.budget-main-carousel.is-desktop.mode-split .budget-split-toolbar-btn:disabled{
+  opacity: 0.38 !important;
+  cursor: not-allowed !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-executive-grid.budget-main-carousel.is-desktop.mode-split .budget-split-toolbar-btn.is-income{
+  min-width: 86px !important;
+  border-color: rgba(46, 120, 73, 0.46) !important;
+  background: rgba(224, 244, 232, 0.92) !important;
+  color: rgba(18, 78, 48, 0.96) !important;
+  -webkit-text-fill-color: rgba(18, 78, 48, 0.96) !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-executive-grid.budget-main-carousel.is-desktop.mode-split .budget-split-toolbar-btn.is-expense{
+  min-width: 86px !important;
+  border-color: rgba(176, 72, 82, 0.44) !important;
+  background: rgba(252, 228, 230, 0.94) !important;
+  color: rgba(120, 34, 44, 0.96) !important;
+  -webkit-text-fill-color: rgba(120, 34, 44, 0.96) !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-executive-grid.budget-main-carousel.is-desktop.mode-split > .budget-card-agent{
+  grid-column: 1 !important;
+  grid-row: 2 !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-executive-grid.budget-main-carousel.is-desktop.mode-split > .budget-card-table{
+  grid-column: 2 !important;
+  grid-row: 2 !important;
+}
+
+/* ================================================= */
+/* BUDGET DESKTOP — shell canvas (white/beige only)  */
+/* Cards, tables, assistant & header keep own tones. */
+/* ================================================= */
+
+.agent-modal-overlay.budget-modal-overlay > .agent-modal.budget-modal:not(.is-mobile-shell),
+.budget-modal.agent-modal:not(.is-mobile-shell){
+  background-color: #faf6ef !important;
+  background-image:
+    radial-gradient(120% 88% at 50% -6%, rgba(255, 255, 255, 0.98), rgba(252, 247, 239, 0.9) 38%, transparent 68%),
+    linear-gradient(168deg, #fffdf9 0%, #f8f2e8 46%, #efe4d4 100%) !important;
+  border: 1px solid rgba(214, 198, 176, 0.52) !important;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.92) inset,
+    0 42px 96px -34px rgba(88, 70, 48, 0.2),
+    0 14px 36px -22px rgba(88, 70, 48, 0.12) !important;
+  --budget-header-text: #171411;
+  --budget-header-text-dim: rgba(23, 20, 17, 0.62);
+  --budget-header-accent: #7a5f12;
+  --budget-header-surface: rgba(255, 255, 255, 0.82);
+  --budget-header-border: rgba(120, 100, 72, 0.28);
+  --budget-header-inset: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+/* Header + nav: dark ink on light shell */
+.budget-modal:not(.is-mobile-shell) .bcc-modal-eyebrow{
+  color: var(--budget-header-accent) !important;
+  -webkit-text-fill-color: var(--budget-header-accent) !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .bcc-modal-title{
+  color: var(--budget-header-text) !important;
+  -webkit-text-fill-color: var(--budget-header-text) !important;
+}
+
+.budget-modal:not(.is-mobile-shell) button.budget-view-nav-arrow,
+.budget-modal:not(.is-mobile-shell) .budget-view-nav-arrow{
+  color: rgba(23, 20, 17, 0.58) !important;
+  -webkit-text-fill-color: rgba(23, 20, 17, 0.58) !important;
+}
+
+.budget-modal:not(.is-mobile-shell) button.budget-view-nav-arrow svg,
+.budget-modal:not(.is-mobile-shell) .budget-view-nav-arrow svg{
+  color: inherit !important;
+  stroke: currentColor !important;
+}
+
+.budget-modal:not(.is-mobile-shell) button.budget-view-nav-arrow:hover:not(:disabled),
+.budget-modal:not(.is-mobile-shell) .budget-view-nav-arrow:hover:not(:disabled){
+  color: rgba(23, 20, 17, 0.92) !important;
+  -webkit-text-fill-color: rgba(23, 20, 17, 0.92) !important;
+}
+
+/* Split + table-only toolbar pills on light shell */
+.budget-modal:not(.is-mobile-shell) .budget-split-toolbar-btn{
+  border: 1px solid rgba(120, 100, 72, 0.34) !important;
+  background: rgba(255, 255, 255, 0.78) !important;
+  color: rgba(23, 20, 17, 0.88) !important;
+  -webkit-text-fill-color: rgba(23, 20, 17, 0.88) !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-split-toolbar-btn:hover:not(:disabled){
+  background: rgba(255, 255, 255, 0.96) !important;
+  border-color: rgba(100, 82, 56, 0.44) !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-split-toolbar-btn.is-income{
+  border-color: rgba(46, 120, 73, 0.46) !important;
+  background: rgba(224, 244, 232, 0.92) !important;
+  color: rgba(18, 78, 48, 0.96) !important;
+  -webkit-text-fill-color: rgba(18, 78, 48, 0.96) !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-split-toolbar-btn.is-expense{
+  border-color: rgba(176, 72, 82, 0.44) !important;
+  background: rgba(252, 228, 230, 0.94) !important;
+  color: rgba(120, 34, 44, 0.96) !important;
+  -webkit-text-fill-color: rgba(120, 34, 44, 0.96) !important;
+}
+
+/* Table-only desktop toolbar */
+.budget-modal:not(.is-mobile-shell) .budget-table-head .budget-style-button,
+.budget-modal:not(.is-mobile-shell) .budget-table-head .budget-pdf-button,
+.budget-modal:not(.is-mobile-shell) .budget-table-head .budget-chat-sync-button:not(.is-assistant-action),
+.budget-modal:not(.is-mobile-shell) .budget-table-head .continue-ghost{
+  border: 1px solid rgba(120, 100, 72, 0.34) !important;
+  background: rgba(255, 255, 255, 0.78) !important;
+  color: rgba(23, 20, 17, 0.88) !important;
+  -webkit-text-fill-color: rgba(23, 20, 17, 0.88) !important;
+  box-shadow: none !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-table-head .continue-ghost.is-income-action{
+  border-color: rgba(46, 120, 73, 0.46) !important;
+  background: rgba(224, 244, 232, 0.92) !important;
+  color: rgba(18, 78, 48, 0.96) !important;
+  -webkit-text-fill-color: rgba(18, 78, 48, 0.96) !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-table-head .continue-ghost.is-expense-action{
+  border-color: rgba(176, 72, 82, 0.44) !important;
+  background: rgba(252, 228, 230, 0.94) !important;
+  color: rgba(120, 34, 44, 0.96) !important;
+  -webkit-text-fill-color: rgba(120, 34, 44, 0.96) !important;
+}
+
+/* ================================================= */
+/* BUDGET MOBILE — shell canvas (white/beige only)   */
+/* Cards, assistant glass & table themes unchanged.  */
+/* ================================================= */
+
+.agent-modal-overlay.budget-modal-overlay > .agent-modal.budget-modal.is-mobile-shell,
+.budget-modal.agent-modal.is-mobile-shell,
+.budget-modal.is-mobile-shell[data-budget-mobile='true'],
+html.is-mobile-viewport .agent-modal-overlay.budget-modal-overlay > .agent-modal.budget-modal{
+  background-color: #faf6ef !important;
+  background-image:
+    radial-gradient(120% 88% at 50% -6%, rgba(255, 255, 255, 0.98), rgba(252, 247, 239, 0.9) 38%, transparent 68%),
+    linear-gradient(168deg, #fffdf9 0%, #f8f2e8 46%, #efe4d4 100%) !important;
+  --budget-header-text: #171411;
+  --budget-header-text-dim: rgba(23, 20, 17, 0.62);
+  --budget-header-accent: #7a5f12;
+  --budget-header-surface: rgba(255, 255, 255, 0.82);
+  --budget-header-border: rgba(120, 100, 72, 0.28);
+  --budget-header-inset: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.budget-modal.is-mobile-shell .bcc-modal-eyebrow,
+.budget-modal[data-budget-mobile='true'] .bcc-modal-eyebrow,
+html.is-mobile-viewport .budget-modal .bcc-modal-eyebrow{
+  color: var(--budget-header-accent) !important;
+  -webkit-text-fill-color: var(--budget-header-accent) !important;
+}
+
+.budget-modal.is-mobile-shell .bcc-modal-title,
+.budget-modal[data-budget-mobile='true'] .bcc-modal-title,
+html.is-mobile-viewport .budget-modal .bcc-modal-title{
+  color: var(--budget-header-text) !important;
+  -webkit-text-fill-color: var(--budget-header-text) !important;
+}
+
+.budget-modal.is-mobile-shell button.budget-view-nav-arrow,
+.budget-modal.is-mobile-shell .budget-view-nav-arrow,
+.budget-modal[data-budget-mobile='true'] button.budget-view-nav-arrow,
+.budget-modal[data-budget-mobile='true'] .budget-view-nav-arrow,
+html.is-mobile-viewport .budget-modal button.budget-view-nav-arrow,
+html.is-mobile-viewport .budget-modal .budget-view-nav-arrow{
+  color: rgba(23, 20, 17, 0.58) !important;
+  -webkit-text-fill-color: rgba(23, 20, 17, 0.58) !important;
+}
+
+.budget-modal.is-mobile-shell button.budget-view-nav-arrow svg,
+.budget-modal.is-mobile-shell .budget-view-nav-arrow svg,
+.budget-modal[data-budget-mobile='true'] button.budget-view-nav-arrow svg,
+.budget-modal[data-budget-mobile='true'] .budget-view-nav-arrow svg,
+html.is-mobile-viewport .budget-modal button.budget-view-nav-arrow svg,
+html.is-mobile-viewport .budget-modal .budget-view-nav-arrow svg{
+  color: inherit !important;
+  stroke: currentColor !important;
+}
+
+.budget-modal.is-mobile-shell button.budget-view-nav-arrow:hover:not(:disabled),
+.budget-modal.is-mobile-shell .budget-view-nav-arrow:hover:not(:disabled),
+.budget-modal[data-budget-mobile='true'] button.budget-view-nav-arrow:hover:not(:disabled),
+.budget-modal[data-budget-mobile='true'] .budget-view-nav-arrow:hover:not(:disabled),
+html.is-mobile-viewport .budget-modal button.budget-view-nav-arrow:hover:not(:disabled),
+html.is-mobile-viewport .budget-modal .budget-view-nav-arrow:hover:not(:disabled){
+  color: rgba(23, 20, 17, 0.92) !important;
+  -webkit-text-fill-color: rgba(23, 20, 17, 0.92) !important;
+}
+
+/* Mobile footer + table toolbar pills */
+.budget-modal.is-mobile-shell [data-budget-mobile-footer='true'] .budget-style-button,
+.budget-modal.is-mobile-shell [data-budget-mobile-footer='true'] .budget-pdf-button,
+.budget-modal.is-mobile-shell [data-budget-mobile-footer='true'] .budget-chat-sync-button:not(.is-assistant-action),
+.budget-modal.is-mobile-shell .budget-mobile-bottom-actions .budget-style-button,
+.budget-modal.is-mobile-shell .budget-mobile-bottom-actions .budget-pdf-button,
+.budget-modal.is-mobile-shell .budget-mobile-bottom-actions .budget-chat-sync-button:not(.is-assistant-action),
+.budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact .budget-table-bottom-actions .budget-style-button,
+.budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact .budget-table-bottom-actions .budget-pdf-button,
+.budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact .budget-table-bottom-actions .budget-chat-sync-button:not(.is-assistant-action),
+.budget-modal[data-budget-mobile='true'] [data-budget-mobile-footer='true'] .budget-style-button,
+.budget-modal[data-budget-mobile='true'] [data-budget-mobile-footer='true'] .budget-pdf-button,
+.budget-modal[data-budget-mobile='true'] [data-budget-mobile-footer='true'] .budget-chat-sync-button:not(.is-assistant-action),
+.budget-modal[data-budget-mobile='true'] .budget-mobile-bottom-actions .budget-style-button,
+.budget-modal[data-budget-mobile='true'] .budget-mobile-bottom-actions .budget-pdf-button,
+.budget-modal[data-budget-mobile='true'] .budget-mobile-bottom-actions .budget-chat-sync-button:not(.is-assistant-action),
+.budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-table-bottom-actions .budget-style-button,
+.budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-table-bottom-actions .budget-pdf-button,
+.budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-table-bottom-actions .budget-chat-sync-button:not(.is-assistant-action),
+html.is-mobile-viewport .budget-modal [data-budget-mobile-footer='true'] .budget-style-button,
+html.is-mobile-viewport .budget-modal [data-budget-mobile-footer='true'] .budget-pdf-button,
+html.is-mobile-viewport .budget-modal [data-budget-mobile-footer='true'] .budget-chat-sync-button:not(.is-assistant-action){
+  border: 1px solid rgba(120, 100, 72, 0.34) !important;
+  background: rgba(255, 255, 255, 0.78) !important;
+  color: rgba(23, 20, 17, 0.88) !important;
+  -webkit-text-fill-color: rgba(23, 20, 17, 0.88) !important;
+  box-shadow: none !important;
+}
+
+.budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact .budget-table-top-actions .continue-ghost,
+.budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-table-top-actions .continue-ghost,
+html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact .budget-table-top-actions .continue-ghost{
+  border: 1px solid rgba(120, 100, 72, 0.34) !important;
+  background: rgba(255, 255, 255, 0.78) !important;
+  color: rgba(23, 20, 17, 0.88) !important;
+  -webkit-text-fill-color: rgba(23, 20, 17, 0.88) !important;
+  box-shadow: none !important;
+}
+
+.budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact .budget-table-top-actions .continue-ghost.is-income-action,
+.budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-table-top-actions .continue-ghost.is-income-action,
+html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact .budget-table-top-actions .continue-ghost.is-income-action{
+  border-color: rgba(46, 120, 73, 0.46) !important;
+  background: rgba(224, 244, 232, 0.92) !important;
+  color: rgba(18, 78, 48, 0.96) !important;
+  -webkit-text-fill-color: rgba(18, 78, 48, 0.96) !important;
+}
+
+.budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact .budget-table-top-actions .continue-ghost.is-expense-action,
+.budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-table-top-actions .continue-ghost.is-expense-action,
+html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact .budget-table-top-actions .continue-ghost.is-expense-action{
+  border-color: rgba(176, 72, 82, 0.44) !important;
+  background: rgba(252, 228, 230, 0.94) !important;
+  color: rgba(120, 34, 44, 0.96) !important;
+  -webkit-text-fill-color: rgba(120, 34, 44, 0.96) !important;
+}
+
+/* ================================================= */
+/* BUDGET MOBILE — assistant overlay (desktop-like)  */
+/* Sharp table page + blur agent card on top.        */
+/* ================================================= */
+
+.budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-mobile-stage,
+.budget-modal[data-budget-view='assistant'] .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-mobile-stage,
+.budget-modal[data-budget-mobile='true'] .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-mobile-stage,
+html.is-mobile-viewport .budget-modal .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-mobile-stage{
+  position: relative !important;
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 0 !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  overflow: hidden !important;
+}
+
+.budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-mobile-stage > .budget-card-table.is-mobile-table-compact,
+.budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-mobile-stage > section[data-main-card='table'].is-mobile-table-compact,
+.budget-modal[data-budget-view='assistant'] .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-mobile-stage > .budget-card-table.is-mobile-table-compact,
+.budget-modal[data-budget-mobile='true'] .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-mobile-stage > .budget-card-table.is-mobile-table-compact,
+html.is-mobile-viewport .budget-modal .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-mobile-stage > .budget-card-table.is-mobile-table-compact{
+  position: static !important;
+  inset: auto !important;
+  z-index: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 0 !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 4px 10px 0 !important;
+  gap: 0 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: none !important;
+  overflow: hidden !important;
+  filter: none !important;
+  -webkit-filter: none !important;
+  transform: none !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-table-section.is-mobile-table-compact .budget-mobile-intel-summary,
+.budget-modal[data-budget-view='assistant'] .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-table-section.is-mobile-table-compact .budget-mobile-intel-summary,
+.budget-modal[data-budget-mobile='true'] .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-table-section.is-mobile-table-compact .budget-mobile-intel-summary,
+html.is-mobile-viewport .budget-modal .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-table-section.is-mobile-table-compact .budget-mobile-intel-summary{
+  display: block !important;
+  flex-shrink: 0 !important;
+  margin: 0 0 8px !important;
+  padding: 0 2px !important;
+  opacity: 0.96 !important;
+}
+
+/* Mobile intel summary — match desktop title, hide style badge (footer owns Estilos) */
+.budget-modal.is-mobile-shell .budget-mobile-intel-summary-head,
+.budget-modal[data-budget-mobile='true'] .budget-mobile-intel-summary-head,
+.budget-modal[data-budget-view='table'] .budget-mobile-intel-summary-head,
+.budget-modal[data-budget-view='assistant'] .budget-mobile-intel-summary-head,
+html.is-mobile-viewport .budget-modal .budget-mobile-intel-summary-head{
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 0 !important;
+  padding: 2px 4px 6px !important;
+  min-height: 0 !important;
+  border: none !important;
+  background: transparent !important;
+}
+
+.budget-modal.is-mobile-shell .budget-mobile-intel-summary-head > strong,
+.budget-modal[data-budget-mobile='true'] .budget-mobile-intel-summary-head > strong,
+.budget-modal[data-budget-view='table'] .budget-mobile-intel-summary-head > strong,
+.budget-modal[data-budget-view='assistant'] .budget-mobile-intel-summary-head > strong,
+html.is-mobile-viewport .budget-modal .budget-mobile-intel-summary-head > strong{
+  display: none !important;
+}
+
+.budget-modal.is-mobile-shell .budget-mobile-intel-summary-title,
+.budget-modal[data-budget-mobile='true'] .budget-mobile-intel-summary-title,
+.budget-modal[data-budget-view='table'] .budget-mobile-intel-summary-title,
+.budget-modal[data-budget-view='assistant'] .budget-mobile-intel-summary-title,
+html.is-mobile-viewport .budget-modal .budget-mobile-intel-summary-title{
+  min-width: 0 !important;
+  flex: 1 1 auto !important;
+}
+
+.budget-modal.is-mobile-shell .budget-mobile-intel-summary-head h2,
+.budget-modal[data-budget-mobile='true'] .budget-mobile-intel-summary-head h2,
+.budget-modal[data-budget-view='table'] .budget-mobile-intel-summary-head h2,
+.budget-modal[data-budget-view='assistant'] .budget-mobile-intel-summary-head h2,
+html.is-mobile-viewport .budget-modal .budget-mobile-intel-summary-head h2{
+  margin: 0 !important;
+  font-size: 0.94rem !important;
+  line-height: 1.12 !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.02em !important;
+}
+
+.budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-table-section.is-mobile-table-compact .budget-table-scroll-host,
+.budget-modal[data-budget-view='assistant'] .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-table-section.is-mobile-table-compact .budget-table-scroll-host,
+.budget-modal[data-budget-mobile='true'] .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-table-section.is-mobile-table-compact .budget-table-scroll-host,
+html.is-mobile-viewport .budget-modal .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-table-section.is-mobile-table-compact .budget-table-scroll-host{
+  flex: 1 1 0 !important;
+  min-height: 0 !important;
+  height: 0 !important;
+  max-height: none !important;
+  width: 100% !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+  filter: none !important;
+  -webkit-filter: none !important;
+}
+
+.budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-table-section.is-mobile-table-compact .budget-table-scroll-host .budget-pdf-surface.is-mobile-compact,
+.budget-modal[data-budget-view='assistant'] .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-table-section.is-mobile-table-compact .budget-table-scroll-host .budget-pdf-surface.is-mobile-compact,
+.budget-modal[data-budget-mobile='true'] .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-table-section.is-mobile-table-compact .budget-table-scroll-host .budget-pdf-surface.is-mobile-compact,
+html.is-mobile-viewport .budget-modal .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-table-section.is-mobile-table-compact .budget-table-scroll-host .budget-pdf-surface.is-mobile-compact{
+  flex: 1 1 0 !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  overflow: hidden !important;
+}
+
+.budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-table-section.is-mobile-table-compact .budget-table-scroll-host .budget-table-wrap,
+.budget-modal[data-budget-view='assistant'] .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-table-section.is-mobile-table-compact .budget-table-scroll-host .budget-table-wrap,
+.budget-modal[data-budget-mobile='true'] .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-table-section.is-mobile-table-compact .budget-table-scroll-host .budget-table-wrap,
+html.is-mobile-viewport .budget-modal .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-table-section.is-mobile-table-compact .budget-table-scroll-host .budget-table-wrap{
+  flex: 1 1 0 !important;
+  min-height: 0 !important;
+  height: 0 !important;
+  max-height: none !important;
+  overflow-x: hidden !important;
+  overflow-y: hidden !important;
+}
+
+.budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-table-section.is-mobile-table-compact .budget-table-pro tbody tr.is-mobile-row-card,
+.budget-modal[data-budget-view='assistant'] .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-table-section.is-mobile-table-compact .budget-table-pro tbody tr.is-mobile-row-card,
+.budget-modal[data-budget-mobile='true'] .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-table-section.is-mobile-table-compact .budget-table-pro tbody tr.is-mobile-row-card,
+html.is-mobile-viewport .budget-modal .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-table-section.is-mobile-table-compact .budget-table-pro tbody tr.is-mobile-row-card{
+  min-height: var(--budget-mobile-row-slot, 280px) !important;
+  height: var(--budget-mobile-row-slot, 280px) !important;
+  box-sizing: border-box !important;
+}
+
+.budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-table-section.is-mobile-table-compact .budget-table-bottom-actions,
+.budget-modal[data-budget-view='assistant'] .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-table-section.is-mobile-table-compact .budget-table-bottom-actions,
+.budget-modal[data-budget-mobile='true'] .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-table-section.is-mobile-table-compact .budget-table-bottom-actions,
+html.is-mobile-viewport .budget-modal .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-table-section.is-mobile-table-compact .budget-table-bottom-actions{
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 0.94 !important;
+  flex-shrink: 0 !important;
+  pointer-events: none !important;
+  margin: 22px 0 0 !important;
+  padding: 0 8px calc(env(safe-area-inset-bottom, 0px) + 10px) !important;
+}
+
+.budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) > [data-budget-mobile-footer='true'],
+.budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-mobile-bottom-actions,
+.budget-modal[data-budget-view='assistant'] .budget-main-carousel.mode-agent-front:not(.is-desktop) > [data-budget-mobile-footer='true'],
+.budget-modal[data-budget-mobile='true'] .budget-main-carousel.mode-agent-front:not(.is-desktop) > [data-budget-mobile-footer='true'],
+html.is-mobile-viewport .budget-modal .budget-main-carousel.mode-agent-front:not(.is-desktop) > [data-budget-mobile-footer='true']{
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+.budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-assistant-blur-veil,
+.budget-modal[data-budget-view='assistant'] .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-assistant-blur-veil,
+.budget-modal[data-budget-mobile='true'] .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-assistant-blur-veil,
+html.is-mobile-viewport .budget-modal .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-assistant-blur-veil{
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 2 !important;
+  pointer-events: none !important;
+  background: linear-gradient(
+    180deg,
+    rgba(250, 246, 239, 0.72) 0%,
+    rgba(248, 242, 232, 0.46) 14%,
+    rgba(248, 240, 230, 0.28) 30%,
+    rgba(248, 240, 230, 0.18) 48%,
+    rgba(255, 252, 247, 0.12) 100%
+  ) !important;
+  backdrop-filter: blur(6px) saturate(1.03) !important;
+  -webkit-backdrop-filter: blur(6px) saturate(1.03) !important;
+}
+
+/* Assistant mobile — one continuous shell canvas (header + stage share paint) */
+.budget-modal.is-mobile-shell .budget-modal-body:has(> .budget-main-carousel.mode-agent-front:not(.is-desktop)),
+.budget-modal[data-budget-view='assistant'] .budget-modal-body,
+.budget-modal[data-budget-mobile='true'] .budget-modal-body:has(> .budget-main-carousel.mode-agent-front:not(.is-desktop)),
+html.is-mobile-viewport .budget-modal .budget-modal-body:has(> .budget-main-carousel.mode-agent-front:not(.is-desktop)){
+  position: relative !important;
+  isolation: isolate !important;
+  background-color: #faf6ef !important;
+  background-image:
+    radial-gradient(120% 88% at 50% -6%, rgba(255, 255, 255, 0.98), rgba(252, 247, 239, 0.9) 38%, transparent 68%),
+    linear-gradient(168deg, #fffdf9 0%, #f8f2e8 46%, #efe4d4 100%) !important;
+}
+
+.budget-modal.is-mobile-shell .budget-modal-body > .bcc-modal-header.budget-modal-header-layer:has(+ .budget-main-carousel.mode-agent-front:not(.is-desktop)),
+.budget-modal[data-budget-view='assistant'] .budget-modal-body > .bcc-modal-header.budget-modal-header-layer,
+.budget-modal[data-budget-mobile='true'] .budget-modal-body > .bcc-modal-header.budget-modal-header-layer:has(+ .budget-main-carousel.mode-agent-front:not(.is-desktop)),
+html.is-mobile-viewport .budget-modal .budget-modal-body > .bcc-modal-header.budget-modal-header-layer:has(+ .budget-main-carousel.mode-agent-front:not(.is-desktop)){
+  background: transparent !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+}
+
+.budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop),
+.budget-modal[data-budget-view='assistant'] .budget-main-carousel.mode-agent-front:not(.is-desktop),
+.budget-modal[data-budget-mobile='true'] .budget-main-carousel.mode-agent-front:not(.is-desktop),
+html.is-mobile-viewport .budget-modal .budget-main-carousel.mode-agent-front:not(.is-desktop){
+  position: relative !important;
+  background: transparent !important;
+}
+
+.budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop)::before,
+.budget-modal[data-budget-view='assistant'] .budget-main-carousel.mode-agent-front:not(.is-desktop)::before,
+.budget-modal[data-budget-mobile='true'] .budget-main-carousel.mode-agent-front:not(.is-desktop)::before,
+html.is-mobile-viewport .budget-modal .budget-main-carousel.mode-agent-front:not(.is-desktop)::before{
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  height: 88px !important;
+  z-index: 3 !important;
+  pointer-events: none !important;
+  background: linear-gradient(
+    180deg,
+    rgba(250, 246, 239, 0.94) 0%,
+    rgba(248, 242, 232, 0.62) 42%,
+    rgba(248, 242, 232, 0.22) 72%,
+    transparent 100%
+  ) !important;
+}
+
+.budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-card-agent.is-mobile-assistant-glass,
+.budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-mobile-stage > .budget-card-agent.is-mobile-assistant-glass,
+.budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-mobile-stage > section[data-main-card='agent'].is-mobile-assistant-glass,
+.budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-assistant-panel.budget-card-agent.is-mobile-assistant-glass,
+.budget-modal[data-budget-mobile='true'] .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-card-agent.is-mobile-assistant-glass,
+.budget-modal[data-budget-view='assistant'] .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-card-agent.is-mobile-assistant-glass,
+html.is-mobile-viewport .budget-modal .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-card-agent.is-mobile-assistant-glass{
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 3 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  justify-content: flex-end !important;
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0 !important;
+  padding: 10px 12px calc(env(safe-area-inset-bottom, 0px) + 10px) !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  isolation: isolate !important;
+}
+
+.budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-card-agent.is-mobile-assistant-glass::before,
+.budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-mobile-stage > .budget-card-agent.is-mobile-assistant-glass::before,
+.budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-mobile-stage > section[data-main-card='agent'].is-mobile-assistant-glass::before,
+.budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-assistant-panel.budget-card-agent.is-mobile-assistant-glass::before,
+.budget-modal[data-budget-mobile='true'] .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-card-agent.is-mobile-assistant-glass::before,
+.budget-modal[data-budget-view='assistant'] .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-card-agent.is-mobile-assistant-glass::before,
+html.is-mobile-viewport .budget-modal .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-card-agent.is-mobile-assistant-glass::before{
+  display: none !important;
+  content: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-assistant-panel.is-mobile-assistant-glass .bcc-hero,
+.budget-modal[data-budget-view='assistant'] .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-assistant-panel.is-mobile-assistant-glass .bcc-hero,
+.budget-modal[data-budget-mobile='true'] .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-assistant-panel.is-mobile-assistant-glass .bcc-hero,
+html.is-mobile-viewport .budget-modal .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-assistant-panel.is-mobile-assistant-glass .bcc-hero{
+  position: relative !important;
+  z-index: 1 !important;
+  flex: 0 1 auto !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-height: 0 !important;
+  max-height: min(64vh, 540px) !important;
+  margin: 0 !important;
+  padding: 12px 12px 8px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-end !important;
+  overflow: hidden !important;
+  pointer-events: auto !important;
+  background: rgba(255, 253, 249, 0.44) !important;
+  border: 1px solid rgba(214, 198, 176, 0.62) !important;
+  border-radius: 20px !important;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.58) inset,
+    0 14px 36px rgba(88, 70, 48, 0.1) !important;
+  backdrop-filter: blur(20px) saturate(1.08) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(1.08) !important;
+}
+
+.budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-assistant-panel.is-mobile-assistant-glass .bcc-hero-top,
+.budget-modal[data-budget-view='assistant'] .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-assistant-panel.is-mobile-assistant-glass .bcc-hero-top,
+html.is-mobile-viewport .budget-modal .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-assistant-panel.is-mobile-assistant-glass .bcc-hero-top{
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+.budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-assistant-panel.is-mobile-assistant-glass .bcc-hero-reply,
+.budget-modal[data-budget-view='assistant'] .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-assistant-panel.is-mobile-assistant-glass .bcc-hero-reply,
+html.is-mobile-viewport .budget-modal .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-assistant-panel.is-mobile-assistant-glass .bcc-hero-reply{
+  color: rgba(23, 20, 17, 0.62) !important;
+  -webkit-text-fill-color: rgba(23, 20, 17, 0.62) !important;
+}
+
+.budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-assistant-panel.is-mobile-assistant-glass .bcc-hero-question,
+.budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-assistant-panel.is-mobile-assistant-glass span.bcc-hero-question,
+.budget-modal[data-budget-view='assistant'] .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-assistant-panel.is-mobile-assistant-glass .bcc-hero-question,
+html.is-mobile-viewport .budget-modal .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-assistant-panel.is-mobile-assistant-glass .bcc-hero-question{
+  color: rgba(23, 20, 17, 0.9) !important;
+  -webkit-text-fill-color: rgba(23, 20, 17, 0.9) !important;
+  text-shadow: none !important;
+}
+
+.budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-assistant-panel.is-mobile-assistant-glass .bcc-hero-input-wrap,
+.budget-modal[data-budget-view='assistant'] .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-assistant-panel.is-mobile-assistant-glass .bcc-hero-input-wrap,
+html.is-mobile-viewport .budget-modal .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-assistant-panel.is-mobile-assistant-glass .bcc-hero-input-wrap{
+  border: 1px solid rgba(120, 100, 72, 0.28) !important;
+  background: rgba(255, 255, 255, 0.82) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-assistant-panel.is-mobile-assistant-glass .bcc-hero-input,
+.budget-modal[data-budget-view='assistant'] .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-assistant-panel.is-mobile-assistant-glass .bcc-hero-input,
+html.is-mobile-viewport .budget-modal .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-assistant-panel.is-mobile-assistant-glass .bcc-hero-input{
+  color: rgba(23, 20, 17, 0.88) !important;
+  -webkit-text-fill-color: rgba(23, 20, 17, 0.88) !important;
+}
+
+.budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-assistant-panel.is-mobile-assistant-glass .budget-chat-sync-button.is-assistant-action,
+.budget-modal[data-budget-view='assistant'] .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-assistant-panel.is-mobile-assistant-glass .budget-chat-sync-button.is-assistant-action,
+html.is-mobile-viewport .budget-modal .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-assistant-panel.is-mobile-assistant-glass .budget-chat-sync-button.is-assistant-action{
+  border: 1px solid rgba(120, 100, 72, 0.34) !important;
+  background: rgba(255, 255, 255, 0.78) !important;
+  color: rgba(23, 20, 17, 0.88) !important;
+  -webkit-text-fill-color: rgba(23, 20, 17, 0.88) !important;
+}
+
+.budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-assistant-panel.is-mobile-assistant-glass .bcc-hero.is-budget-assistant-income,
+.budget-modal[data-budget-view='assistant'] .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-assistant-panel.is-mobile-assistant-glass .bcc-hero.is-budget-assistant-income,
+.budget-modal[data-budget-mobile='true'] .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-assistant-panel.is-mobile-assistant-glass .bcc-hero.is-budget-assistant-income,
+html.is-mobile-viewport .budget-modal .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-assistant-panel.is-mobile-assistant-glass .bcc-hero.is-budget-assistant-income{
+  background:
+    linear-gradient(165deg, rgba(92, 104, 62, 0.46) 0%, rgba(74, 88, 52, 0.4) 42%, rgba(98, 112, 70, 0.44) 100%) !important;
+  border-color: rgba(118, 132, 86, 0.58) !important;
+  box-shadow:
+    0 0 0 1px rgba(228, 236, 210, 0.42) inset,
+    0 14px 36px rgba(52, 62, 36, 0.14) !important;
+}
+
+.budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-assistant-panel.is-mobile-assistant-glass .bcc-hero.is-budget-assistant-expense,
+.budget-modal[data-budget-view='assistant'] .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-assistant-panel.is-mobile-assistant-glass .bcc-hero.is-budget-assistant-expense,
+.budget-modal[data-budget-mobile='true'] .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-assistant-panel.is-mobile-assistant-glass .bcc-hero.is-budget-assistant-expense,
+html.is-mobile-viewport .budget-modal .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-assistant-panel.is-mobile-assistant-glass .bcc-hero.is-budget-assistant-expense{
+  background:
+    linear-gradient(165deg, rgba(108, 52, 64, 0.46) 0%, rgba(88, 40, 52, 0.4) 42%, rgba(116, 56, 68, 0.44) 100%) !important;
+  border-color: rgba(148, 82, 96, 0.56) !important;
+  box-shadow:
+    0 0 0 1px rgba(244, 220, 224, 0.38) inset,
+    0 14px 36px rgba(62, 28, 36, 0.14) !important;
+}
+
+.budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-assistant-panel.is-mobile-assistant-glass .bcc-hero.is-budget-assistant-income .bcc-hero-question,
+.budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-assistant-panel.is-mobile-assistant-glass .bcc-hero.is-budget-assistant-income span.bcc-hero-question,
+.budget-modal[data-budget-view='assistant'] .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-assistant-panel.is-mobile-assistant-glass .bcc-hero.is-budget-assistant-income .bcc-hero-question,
+html.is-mobile-viewport .budget-modal .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-assistant-panel.is-mobile-assistant-glass .bcc-hero.is-budget-assistant-income .bcc-hero-question{
+  color: rgba(28, 34, 18, 0.92) !important;
+  -webkit-text-fill-color: rgba(28, 34, 18, 0.92) !important;
+}
+
+.budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-assistant-panel.is-mobile-assistant-glass .bcc-hero.is-budget-assistant-expense .bcc-hero-question,
+.budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-assistant-panel.is-mobile-assistant-glass .bcc-hero.is-budget-assistant-expense span.bcc-hero-question,
+.budget-modal[data-budget-view='assistant'] .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-assistant-panel.is-mobile-assistant-glass .bcc-hero.is-budget-assistant-expense .bcc-hero-question,
+html.is-mobile-viewport .budget-modal .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-assistant-panel.is-mobile-assistant-glass .bcc-hero.is-budget-assistant-expense .bcc-hero-question{
+  color: rgba(42, 18, 22, 0.92) !important;
+  -webkit-text-fill-color: rgba(42, 18, 22, 0.92) !important;
+}
+
+.budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-assistant-panel.is-mobile-assistant-glass .bcc-hero.is-budget-assistant-income .bcc-hero-reply,
+.budget-modal[data-budget-view='assistant'] .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-assistant-panel.is-mobile-assistant-glass .bcc-hero.is-budget-assistant-income .bcc-hero-reply,
+html.is-mobile-viewport .budget-modal .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-assistant-panel.is-mobile-assistant-glass .bcc-hero.is-budget-assistant-income .bcc-hero-reply{
+  color: rgba(34, 40, 24, 0.68) !important;
+  -webkit-text-fill-color: rgba(34, 40, 24, 0.68) !important;
+}
+
+.budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-assistant-panel.is-mobile-assistant-glass .bcc-hero.is-budget-assistant-expense .bcc-hero-reply,
+.budget-modal[data-budget-view='assistant'] .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-assistant-panel.is-mobile-assistant-glass .bcc-hero.is-budget-assistant-expense .bcc-hero-reply,
+html.is-mobile-viewport .budget-modal .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-assistant-panel.is-mobile-assistant-glass .bcc-hero.is-budget-assistant-expense .bcc-hero-reply{
+  color: rgba(48, 22, 28, 0.68) !important;
+  -webkit-text-fill-color: rgba(48, 22, 28, 0.68) !important;
+}
+
+/* ================================================= */
+/* BUDGET MOBILE — row swipe (vertical + horizontal) */
+/* ================================================= */
+
+.budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front .budget-table-scroll-host,
+.budget-modal[data-budget-mobile='true'] .budget-main-carousel.mode-table-front .budget-table-scroll-host,
+html.is-mobile-viewport .budget-modal .budget-main-carousel.mode-table-front .budget-table-scroll-host{
+  --budget-row-swipe-x: 0px;
+  touch-action: manipulation !important;
+  overflow: hidden !important;
+}
+
+.budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front .budget-table-wrap,
+.budget-modal[data-budget-mobile='true'] .budget-main-carousel.mode-table-front .budget-table-wrap,
+html.is-mobile-viewport .budget-modal .budget-main-carousel.mode-table-front .budget-table-wrap{
+  touch-action: manipulation !important;
+  overflow-x: hidden !important;
+}
+
+.budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front .budget-table-scroll-host .budget-table-wrap .budget-table-pro,
+.budget-modal[data-budget-mobile='true'] .budget-main-carousel.mode-table-front .budget-table-scroll-host .budget-table-wrap .budget-table-pro,
+html.is-mobile-viewport .budget-modal .budget-main-carousel.mode-table-front .budget-table-scroll-host .budget-table-wrap .budget-table-pro{
+  will-change: auto;
+}
+
+.budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front .budget-table-wrap.is-row-deck-dragging,
+.budget-modal[data-budget-mobile='true'] .budget-main-carousel.mode-table-front .budget-table-wrap.is-row-deck-dragging,
+html.is-mobile-viewport .budget-modal .budget-main-carousel.mode-table-front .budget-table-wrap.is-row-deck-dragging{
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front .budget-table-wrap.is-row-deck-dragging .budget-table-pro tbody,
+.budget-modal[data-budget-mobile='true'] .budget-main-carousel.mode-table-front .budget-table-wrap.is-row-deck-dragging .budget-table-pro tbody,
+html.is-mobile-viewport .budget-modal .budget-main-carousel.mode-table-front .budget-table-wrap.is-row-deck-dragging .budget-table-pro tbody{
+  position: relative !important;
+}
+
+.budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front .budget-table-wrap.is-row-deck-dragging .budget-table-pro tbody tr.is-mobile-row-card:not(.is-row-swipe-active):not(.is-row-swipe-peek):not(.is-row-swipe-exiting),
+.budget-modal[data-budget-mobile='true'] .budget-main-carousel.mode-table-front .budget-table-wrap.is-row-deck-dragging .budget-table-pro tbody tr.is-mobile-row-card:not(.is-row-swipe-active):not(.is-row-swipe-peek):not(.is-row-swipe-exiting),
+html.is-mobile-viewport .budget-modal .budget-main-carousel.mode-table-front .budget-table-wrap.is-row-deck-dragging .budget-table-pro tbody tr.is-mobile-row-card:not(.is-row-swipe-active):not(.is-row-swipe-peek):not(.is-row-swipe-exiting){
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+.budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front .budget-table-pro tbody tr.is-mobile-row-card.is-row-swipe-active,
+.budget-modal[data-budget-mobile='true'] .budget-main-carousel.mode-table-front .budget-table-pro tbody tr.is-mobile-row-card.is-row-swipe-active,
+html.is-mobile-viewport .budget-modal .budget-main-carousel.mode-table-front .budget-table-pro tbody tr.is-mobile-row-card.is-row-swipe-active{
+  position: relative !important;
+  z-index: 3 !important;
+  transform-origin: center center !important;
+  will-change: transform, opacity !important;
+  transition: none !important;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.16) !important;
+  transform: translate3d(var(--budget-row-active-x, 0px), 0, 0) scale(var(--budget-row-active-scale, 1)) !important;
+  opacity: var(--budget-row-active-opacity, 1) !important;
+}
+
+.budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front .budget-table-pro tbody tr.is-mobile-row-card.is-row-swipe-peek,
+.budget-modal[data-budget-mobile='true'] .budget-main-carousel.mode-table-front .budget-table-pro tbody tr.is-mobile-row-card.is-row-swipe-peek,
+html.is-mobile-viewport .budget-modal .budget-main-carousel.mode-table-front .budget-table-pro tbody tr.is-mobile-row-card.is-row-swipe-peek{
+  z-index: 2 !important;
+  transform-origin: center center !important;
+  pointer-events: none !important;
+  will-change: transform, opacity !important;
+  transition: none !important;
+  box-shadow: none !important;
+  transform: translate3d(var(--budget-row-peek-x, 0px), 0, 0) scale(var(--budget-row-peek-scale, 0.968)) !important;
+  opacity: var(--budget-row-peek-opacity, 1) !important;
+}
+
+.budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front .budget-table-pro tbody tr.is-mobile-row-card.is-row-swipe-active.is-row-swipe-releasing,
+.budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front .budget-table-pro tbody tr.is-mobile-row-card.is-row-swipe-peek.is-row-swipe-releasing,
+.budget-modal[data-budget-mobile='true'] .budget-main-carousel.mode-table-front .budget-table-pro tbody tr.is-mobile-row-card.is-row-swipe-active.is-row-swipe-releasing,
+.budget-modal[data-budget-mobile='true'] .budget-main-carousel.mode-table-front .budget-table-pro tbody tr.is-mobile-row-card.is-row-swipe-peek.is-row-swipe-releasing,
+html.is-mobile-viewport .budget-modal .budget-main-carousel.mode-table-front .budget-table-pro tbody tr.is-mobile-row-card.is-row-swipe-active.is-row-swipe-releasing,
+html.is-mobile-viewport .budget-modal .budget-main-carousel.mode-table-front .budget-table-pro tbody tr.is-mobile-row-card.is-row-swipe-peek.is-row-swipe-releasing{
+  transition:
+    transform 280ms cubic-bezier(0.32, 0.72, 0, 1),
+    opacity 240ms cubic-bezier(0.32, 0.72, 0, 1),
+    box-shadow 240ms ease !important;
+  box-shadow: none !important;
+}
+
+.budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front .budget-table-scroll-host[data-budget-row-slide='forward'] .budget-table-pro tbody tr.is-row-swipe-exiting,
+.budget-modal[data-budget-mobile='true'] .budget-main-carousel.mode-table-front .budget-table-scroll-host[data-budget-row-slide='forward'] .budget-table-pro tbody tr.is-row-swipe-exiting,
+html.is-mobile-viewport .budget-modal .budget-main-carousel.mode-table-front .budget-table-scroll-host[data-budget-row-slide='forward'] .budget-table-pro tbody tr.is-row-swipe-exiting{
+  animation: budgetRowCardExitForward 300ms cubic-bezier(0.32, 0.72, 0, 1) both !important;
+}
+
+.budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front .budget-table-scroll-host[data-budget-row-slide='backward'] .budget-table-pro tbody tr.is-row-swipe-exiting,
+.budget-modal[data-budget-mobile='true'] .budget-main-carousel.mode-table-front .budget-table-scroll-host[data-budget-row-slide='backward'] .budget-table-pro tbody tr.is-row-swipe-exiting,
+html.is-mobile-viewport .budget-modal .budget-main-carousel.mode-table-front .budget-table-scroll-host[data-budget-row-slide='backward'] .budget-table-pro tbody tr.is-row-swipe-exiting{
+  animation: budgetRowCardExitBackward 300ms cubic-bezier(0.32, 0.72, 0, 1) both !important;
+}
+
+.budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front .budget-table-scroll-host[data-budget-row-slide='forward'] .budget-table-pro tbody tr.is-row-swipe-peek,
+.budget-modal[data-budget-mobile='true'] .budget-main-carousel.mode-table-front .budget-table-scroll-host[data-budget-row-slide='forward'] .budget-table-pro tbody tr.is-row-swipe-peek,
+html.is-mobile-viewport .budget-modal .budget-main-carousel.mode-table-front .budget-table-scroll-host[data-budget-row-slide='forward'] .budget-table-pro tbody tr.is-row-swipe-peek{
+  transition:
+    transform 300ms cubic-bezier(0.32, 0.72, 0, 1),
+    opacity 260ms cubic-bezier(0.32, 0.72, 0, 1) !important;
+}
+
+.budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front .budget-table-scroll-host[data-budget-row-slide='backward'] .budget-table-pro tbody tr.is-row-swipe-peek,
+.budget-modal[data-budget-mobile='true'] .budget-main-carousel.mode-table-front .budget-table-scroll-host[data-budget-row-slide='backward'] .budget-table-pro tbody tr.is-row-swipe-peek,
+html.is-mobile-viewport .budget-modal .budget-main-carousel.mode-table-front .budget-table-scroll-host[data-budget-row-slide='backward'] .budget-table-pro tbody tr.is-row-swipe-peek{
+  transition:
+    transform 300ms cubic-bezier(0.32, 0.72, 0, 1),
+    opacity 260ms cubic-bezier(0.32, 0.72, 0, 1) !important;
+}
+
+@keyframes budgetRowCardExitForward{
+  0%{
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  100%{
+    opacity: 0.84;
+    transform: translate3d(-30%, 0, 0) scale(0.985);
+  }
+}
+
+@keyframes budgetRowCardExitBackward{
+  0%{
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  100%{
+    opacity: 0.84;
+    transform: translate3d(30%, 0, 0) scale(0.985);
+  }
+}
+
+.budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front .budget-table-scroll-host:not(.is-row-swipe-dragging) .budget-table-wrap .budget-table-pro,
+.budget-modal[data-budget-mobile='true'] .budget-main-carousel.mode-table-front .budget-table-scroll-host:not(.is-row-swipe-dragging) .budget-table-wrap .budget-table-pro,
+html.is-mobile-viewport .budget-modal .budget-main-carousel.mode-table-front .budget-table-scroll-host:not(.is-row-swipe-dragging) .budget-table-wrap .budget-table-pro{
+  transition: none !important;
+  transform: none !important;
+}
+
+.budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front .budget-table-scroll-host.is-row-swipe-dragging .budget-table-wrap .budget-table-pro,
+.budget-modal[data-budget-mobile='true'] .budget-main-carousel.mode-table-front .budget-table-scroll-host.is-row-swipe-dragging .budget-table-wrap .budget-table-pro,
+html.is-mobile-viewport .budget-modal .budget-main-carousel.mode-table-front .budget-table-scroll-host.is-row-swipe-dragging .budget-table-wrap .budget-table-pro{
+  transition: none !important;
+  transform: none !important;
+}
+
+.budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front .budget-table-scroll-host[data-budget-row-slide='forward'] .budget-table-wrap .budget-table-pro,
+.budget-modal[data-budget-mobile='true'] .budget-main-carousel.mode-table-front .budget-table-scroll-host[data-budget-row-slide='forward'] .budget-table-wrap .budget-table-pro,
+html.is-mobile-viewport .budget-modal .budget-main-carousel.mode-table-front .budget-table-scroll-host[data-budget-row-slide='forward'] .budget-table-wrap .budget-table-pro{
+  animation: none !important;
+}
+
+.budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front .budget-table-scroll-host[data-budget-row-slide='backward'] .budget-table-wrap .budget-table-pro,
+.budget-modal[data-budget-mobile='true'] .budget-main-carousel.mode-table-front .budget-table-scroll-host[data-budget-row-slide='backward'] .budget-table-wrap .budget-table-pro,
+html.is-mobile-viewport .budget-modal .budget-main-carousel.mode-table-front .budget-table-scroll-host[data-budget-row-slide='backward'] .budget-table-wrap .budget-table-pro{
+  animation: none !important;
+}
+
+.budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front .budget-table-scroll-host[data-budget-row-slide='enter-forward'] .budget-table-wrap .budget-table-pro,
+.budget-modal[data-budget-mobile='true'] .budget-main-carousel.mode-table-front .budget-table-scroll-host[data-budget-row-slide='enter-forward'] .budget-table-wrap .budget-table-pro,
+html.is-mobile-viewport .budget-modal .budget-main-carousel.mode-table-front .budget-table-scroll-host[data-budget-row-slide='enter-forward'] .budget-table-wrap .budget-table-pro{
+  animation: none !important;
+}
+
+.budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front .budget-table-scroll-host[data-budget-row-slide='enter-backward'] .budget-table-wrap .budget-table-pro,
+.budget-modal[data-budget-mobile='true'] .budget-main-carousel.mode-table-front .budget-table-scroll-host[data-budget-row-slide='enter-backward'] .budget-table-wrap .budget-table-pro,
+html.is-mobile-viewport .budget-modal .budget-main-carousel.mode-table-front .budget-table-scroll-host[data-budget-row-slide='enter-backward'] .budget-table-wrap .budget-table-pro{
+  animation: none !important;
+}
+
+@media (prefers-reduced-motion: reduce){
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front .budget-table-pro tbody tr.is-mobile-row-card.is-row-swipe-active,
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front .budget-table-pro tbody tr.is-mobile-row-card.is-row-swipe-peek,
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front .budget-table-pro tbody tr.is-mobile-row-card.is-row-swipe-exiting,
+  .budget-modal[data-budget-mobile='true'] .budget-main-carousel.mode-table-front .budget-table-pro tbody tr.is-mobile-row-card.is-row-swipe-active,
+  .budget-modal[data-budget-mobile='true'] .budget-main-carousel.mode-table-front .budget-table-pro tbody tr.is-mobile-row-card.is-row-swipe-peek,
+  .budget-modal[data-budget-mobile='true'] .budget-main-carousel.mode-table-front .budget-table-pro tbody tr.is-mobile-row-card.is-row-swipe-exiting,
+  html.is-mobile-viewport .budget-modal .budget-main-carousel.mode-table-front .budget-table-pro tbody tr.is-mobile-row-card.is-row-swipe-active,
+  html.is-mobile-viewport .budget-modal .budget-main-carousel.mode-table-front .budget-table-pro tbody tr.is-mobile-row-card.is-row-swipe-peek,
+  html.is-mobile-viewport .budget-modal .budget-main-carousel.mode-table-front .budget-table-pro tbody tr.is-mobile-row-card.is-row-swipe-exiting{
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+    opacity: 1 !important;
+    box-shadow: none !important;
+  }
+}
+
+/* ================================================= */
+/* BUDGET DESKTOP — split: white agent column surface */
+/* Color-only: readable ink on white assistant cell.  */
+/* ================================================= */
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent.budget-assistant-panel{
+  --hero-plain: #1a2433;
+  --budget-split-agent-ink: #171411;
+  --budget-split-agent-ink-muted: rgba(23, 20, 17, 0.64);
+  --budget-split-agent-ink-faint: rgba(23, 20, 17, 0.44);
+  /* Matte vibrant keyword gradient: blue → yellow → red */
+  --hero-keyword-blue: #2b63c4;
+  --hero-keyword-yellow: #d4a800;
+  --hero-keyword-red: #c73e3a;
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  border: 1px solid rgba(120, 100, 72, 0.22) !important;
+  border-radius: 16px !important;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.96) inset,
+    0 10px 28px -18px rgba(88, 70, 48, 0.14) !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent.budget-assistant-panel .bcc-hero{
+  background: transparent !important;
+  background-image: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent.budget-assistant-panel .bcc-hero-plain-chunk,
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent.budget-assistant-panel .bcc-hero-question--gradient-demo,
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent.budget-assistant-panel span.bcc-hero-question,
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent.budget-assistant-panel p.bcc-hero-question{
+  color: var(--hero-plain) !important;
+  -webkit-text-fill-color: var(--hero-plain) !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent.budget-assistant-panel .agent-keyword-gradient{
+  background-image: linear-gradient(
+    102deg,
+    var(--hero-keyword-blue) 0%,
+    var(--hero-keyword-yellow) 48%,
+    var(--hero-keyword-red) 100%
+  ) !important;
+  background-size: 100% auto !important;
+  background-clip: text !important;
+  -webkit-background-clip: text !important;
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+  filter: none !important;
+  text-shadow: none !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent.budget-assistant-panel .bcc-hero-question:not(.bcc-hero-question--gradient-demo),
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent.budget-assistant-panel .bcc-hero-question--pending{
+  color: var(--budget-split-agent-ink-muted) !important;
+  -webkit-text-fill-color: var(--budget-split-agent-ink-muted) !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent.budget-assistant-panel .bcc-hero-reply{
+  color: var(--budget-split-agent-ink-faint) !important;
+  -webkit-text-fill-color: var(--budget-split-agent-ink-faint) !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent.budget-assistant-panel .bcc-typewriter-cursor{
+  color: var(--budget-split-agent-ink) !important;
+  -webkit-text-fill-color: var(--budget-split-agent-ink) !important;
+  opacity: 0.55 !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent.budget-assistant-panel .bcc-dot-pulse{
+  background: rgba(23, 20, 17, 0.34) !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent.budget-assistant-panel .bcc-hero-done{
+  color: rgba(18, 78, 48, 0.96) !important;
+  -webkit-text-fill-color: rgba(18, 78, 48, 0.96) !important;
+  background: rgba(224, 244, 232, 0.92) !important;
+  border: 1px solid rgba(46, 120, 73, 0.28) !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent.budget-assistant-panel .bcc-hero-coach,
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent.budget-assistant-panel .bcc-hero-tip{
+  color: var(--budget-split-agent-ink-faint) !important;
+  -webkit-text-fill-color: var(--budget-split-agent-ink-faint) !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent.budget-assistant-panel .bcc-hero-error{
+  color: rgba(168, 52, 52, 0.92) !important;
+  -webkit-text-fill-color: rgba(168, 52, 52, 0.92) !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent.budget-assistant-panel .bcc-hero-compose .bcc-hero-input-wrap{
+  background: rgba(248, 244, 236, 0.98) !important;
+  border: 1px solid rgba(120, 100, 72, 0.28) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82) !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent.budget-assistant-panel .bcc-hero-compose .bcc-hero-input-wrap:focus-within{
+  border-color: rgba(122, 95, 18, 0.44) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    0 0 0 3px rgba(122, 95, 18, 0.1) !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent.budget-assistant-panel .bcc-hero-compose .bcc-hero-input-wrap::before{
+  color: rgba(23, 20, 17, 0.42) !important;
+  -webkit-text-fill-color: rgba(23, 20, 17, 0.42) !important;
+  background: none !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent.budget-assistant-panel .bcc-hero-input{
+  background: transparent !important;
+  color: var(--budget-split-agent-ink) !important;
+  -webkit-text-fill-color: var(--budget-split-agent-ink) !important;
+  caret-color: rgba(122, 95, 18, 0.88) !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent.budget-assistant-panel .bcc-hero-input::placeholder{
+  color: rgba(23, 20, 17, 0.38) !important;
+  -webkit-text-fill-color: rgba(23, 20, 17, 0.38) !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent.budget-assistant-panel .bcc-hero-send{
+  background: #171411 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  border: 1px solid rgba(23, 20, 17, 0.08) !important;
+  box-shadow: none !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent.budget-assistant-panel .bcc-hero-send:hover:not(:disabled){
+  background: #2a241c !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent.budget-assistant-panel .bcc-hero-send:disabled{
+  background: rgba(23, 20, 17, 0.12) !important;
+  color: rgba(23, 20, 17, 0.34) !important;
+  -webkit-text-fill-color: rgba(23, 20, 17, 0.34) !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent.budget-assistant-panel .bcc-hero-send .bcc-hero-send-icon{
+  color: currentColor !important;
+  stroke: currentColor !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent.budget-assistant-panel .budget-chat-sync-button.is-assistant-action{
+  border: 1px solid rgba(120, 100, 72, 0.34) !important;
+  background: rgba(255, 255, 255, 0.78) !important;
+  color: rgba(23, 20, 17, 0.88) !important;
+  -webkit-text-fill-color: rgba(23, 20, 17, 0.88) !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent.budget-assistant-panel .budget-chat-sync-button.is-assistant-action:hover:not(:disabled){
+  background: rgba(255, 255, 255, 0.96) !important;
+  border-color: rgba(100, 82, 56, 0.44) !important;
+  color: rgba(23, 20, 17, 0.96) !important;
+  -webkit-text-fill-color: rgba(23, 20, 17, 0.96) !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent.budget-assistant-panel .budget-pending-confirm{
+  border: 1px solid rgba(176, 132, 36, 0.34) !important;
+  background: rgba(255, 246, 220, 0.92) !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent.budget-assistant-panel .budget-pending-confirm-copy{
+  color: rgba(23, 20, 17, 0.84) !important;
+  -webkit-text-fill-color: rgba(23, 20, 17, 0.84) !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent.budget-assistant-panel .budget-pending-confirm .continue-ghost{
+  border: 1px solid rgba(120, 100, 72, 0.34) !important;
+  background: rgba(255, 255, 255, 0.82) !important;
+  color: rgba(23, 20, 17, 0.82) !important;
+  -webkit-text-fill-color: rgba(23, 20, 17, 0.82) !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent.budget-assistant-panel .budget-pending-confirm .button-primary{
+  background: #171411 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  border: 1px solid rgba(23, 20, 17, 0.08) !important;
+}
+
+/* ================================================= */
+/* BUDGET ASSISTANT — busy loader (dots only, centered) */
+/* ================================================= */
+
+.budget-modal .bcc-hero-top.is-assistant-busy{
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  width: 100% !important;
+  min-height: 96px !important;
+  margin-bottom: 28px !important;
+}
+
+.budget-modal .bcc-hero-top.is-assistant-busy .bcc-hero-thinking{
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  width: 100% !important;
+  margin: 0 !important;
+  margin-left: 0 !important;
+  min-height: 24px !important;
+}
+
+.budget-modal .bcc-hero-top.is-assistant-busy .bcc-hero-reply,
+.budget-modal .bcc-hero-top.is-assistant-busy .bcc-hero-question,
+.budget-modal .bcc-hero-top.is-assistant-busy .bcc-hero-question--pending,
+.budget-modal .bcc-hero-top.is-assistant-busy .agent-hero-text,
+.budget-modal .bcc-hero-top.is-assistant-busy .bcc-hero-question--gradient-demo{
+  display: none !important;
+}
+
+.budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-assistant-panel.is-mobile-assistant-glass .bcc-hero-top.is-assistant-busy,
+.budget-modal[data-budget-view='assistant'] .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-assistant-panel.is-mobile-assistant-glass .bcc-hero-top.is-assistant-busy,
+html.is-mobile-viewport .budget-modal .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-assistant-panel.is-mobile-assistant-glass .bcc-hero-top.is-assistant-busy{
+  flex: 1 1 auto !important;
+  min-height: 120px !important;
+  justify-content: center !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent.budget-assistant-panel .bcc-hero-top.is-assistant-busy{
+  min-height: 112px !important;
+}
+
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent.budget-assistant-panel .bcc-hero-top.is-assistant-busy .bcc-dot-pulse{
+  background: rgba(23, 20, 17, 0.38) !important;
+}
+
+/* ================================================= */
+/* BUDGET MOBILE — ledger/editorial active row       */
+/* Beats diagnostics dark td blocks (EOF ledger).    */
+/* ================================================= */
+
+@media (max-width: 1023px) {
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact:not(.is-budget-pdf-exporting) .budget-table.budget-table-pro tbody tr.is-mobile-row-card.is-active-row,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact:not(.is-budget-pdf-exporting) .budget-table.budget-table-pro tbody tr.is-mobile-row-card.is-active-row,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact:not(.is-budget-pdf-exporting) .budget-table.budget-table-pro tbody tr.is-mobile-row-card.is-active-row {
+    background: var(--mb-row-bg, rgba(255, 251, 244, 0.96)) !important;
+    background-image: none !important;
+    border: 1px solid var(--mb-row-active-border, rgba(120, 96, 68, 0.46)) !important;
+    box-shadow: var(--mb-row-active-shadow, 0 0 0 1px rgba(120, 96, 68, 0.14)) !important;
+    overflow: hidden !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact:not(.is-budget-pdf-exporting) .budget-table.budget-table-pro tbody tr.budget-row-income.is-mobile-row-card.is-active-row,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact:not(.is-budget-pdf-exporting) .budget-table.budget-table-pro tbody tr.budget-row-income.is-mobile-row-card.is-active-row,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact:not(.is-budget-pdf-exporting) .budget-table.budget-table-pro tbody tr.budget-row-income.is-mobile-row-card.is-active-row {
+    background: var(--mb-row-income-bg, rgba(255, 251, 244, 0.96)) !important;
+    background-image: none !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact:not(.is-budget-pdf-exporting) .budget-table.budget-table-pro tbody tr.budget-row-expense.is-mobile-row-card.is-active-row,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact:not(.is-budget-pdf-exporting) .budget-table.budget-table-pro tbody tr.budget-row-expense.is-mobile-row-card.is-active-row,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact:not(.is-budget-pdf-exporting) .budget-table.budget-table-pro tbody tr.budget-row-expense.is-mobile-row-card.is-active-row {
+    background: var(--mb-row-expense-bg, rgba(255, 249, 246, 0.96)) !important;
+    background-image: none !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact:not(.is-budget-pdf-exporting) .budget-table.budget-table-pro tbody tr.is-mobile-row-card.is-active-row td,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact:not(.is-budget-pdf-exporting) .budget-table.budget-table-pro tbody tr.is-mobile-row-card.is-active-row td,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact:not(.is-budget-pdf-exporting) .budget-table.budget-table-pro tbody tr.is-mobile-row-card.is-active-row td {
+    background: transparent !important;
+    background-image: none !important;
+    box-shadow: none !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact:not(.is-budget-pdf-exporting) .budget-table.budget-table-pro tbody tr.is-mobile-row-card.is-active-row td:first-child::before,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact:not(.is-budget-pdf-exporting) .budget-table.budget-table-pro tbody tr.is-mobile-row-card.is-active-row td:first-child::before,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact:not(.is-budget-pdf-exporting) .budget-table.budget-table-pro tbody tr.is-mobile-row-card.is-active-row td:first-child::before {
+    display: none !important;
+    background: none !important;
+    background-image: none !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact:not(.is-budget-pdf-exporting) .budget-table.budget-table-pro tbody tr.is-mobile-row-card.is-active-row td,
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact:not(.is-budget-pdf-exporting) .budget-table.budget-table-pro tbody tr.is-mobile-row-card.is-active-row td *:not(svg):not(path):not(line):not(circle),
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact:not(.is-budget-pdf-exporting) .budget-table.budget-table-pro tbody tr.is-mobile-row-card.is-active-row td,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact:not(.is-budget-pdf-exporting) .budget-table.budget-table-pro tbody tr.is-mobile-row-card.is-active-row td *:not(svg):not(path):not(line):not(circle),
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact:not(.is-budget-pdf-exporting) .budget-table.budget-table-pro tbody tr.is-mobile-row-card.is-active-row td,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact:not(.is-budget-pdf-exporting) .budget-table.budget-table-pro tbody tr.is-mobile-row-card.is-active-row td *:not(svg):not(path):not(line):not(circle) {
+    color: var(--mb-text, #1a1714) !important;
+    -webkit-text-fill-color: var(--mb-text, #1a1714) !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact:not(.is-budget-pdf-exporting) .budget-table.budget-table-pro tbody tr.is-mobile-row-card.is-active-row td::before,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact:not(.is-budget-pdf-exporting) .budget-table.budget-table-pro tbody tr.is-mobile-row-card.is-active-row td::before,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact:not(.is-budget-pdf-exporting) .budget-table.budget-table-pro tbody tr.is-mobile-row-card.is-active-row td::before {
+    color: var(--mb-label, rgba(88, 68, 48, 0.78)) !important;
+    -webkit-text-fill-color: var(--mb-label, rgba(88, 68, 48, 0.78)) !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact:not(.is-budget-pdf-exporting) .budget-table.budget-table-pro tbody tr.is-mobile-row-card.is-active-row input,
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact:not(.is-budget-pdf-exporting) .budget-table.budget-table-pro tbody tr.is-mobile-row-card.is-active-row select,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact:not(.is-budget-pdf-exporting) .budget-table.budget-table-pro tbody tr.is-mobile-row-card.is-active-row input,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact:not(.is-budget-pdf-exporting) .budget-table.budget-table-pro tbody tr.is-mobile-row-card.is-active-row select,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact:not(.is-budget-pdf-exporting) .budget-table.budget-table-pro tbody tr.is-mobile-row-card.is-active-row input,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact:not(.is-budget-pdf-exporting) .budget-table.budget-table-pro tbody tr.is-mobile-row-card.is-active-row select {
+    background: var(--mb-input-bg, rgba(255, 252, 246, 0.98)) !important;
+    background-image: none !important;
+    border: 1px solid var(--mb-input-border, rgba(120, 96, 68, 0.28)) !important;
+    color: var(--mb-input-text, #1a1714) !important;
+    -webkit-text-fill-color: var(--mb-input-text, #1a1714) !important;
+    caret-color: var(--mb-input-text, #1a1714) !important;
+    box-shadow: none !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact:not(.is-budget-pdf-exporting) .budget-table.budget-table-pro tbody tr.is-mobile-row-card.is-active-row input::placeholder,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact:not(.is-budget-pdf-exporting) .budget-table.budget-table-pro tbody tr.is-mobile-row-card.is-active-row input::placeholder,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact:not(.is-budget-pdf-exporting) .budget-table.budget-table-pro tbody tr.is-mobile-row-card.is-active-row input::placeholder {
+    color: var(--mb-placeholder, rgba(88, 68, 48, 0.46)) !important;
+    -webkit-text-fill-color: var(--mb-placeholder, rgba(88, 68, 48, 0.46)) !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact:not(.is-budget-pdf-exporting) .budget-table.budget-table-pro tbody tr.is-mobile-row-card.is-active-row .budget-pill-group,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact:not(.is-budget-pdf-exporting) .budget-table.budget-table-pro tbody tr.is-mobile-row-card.is-active-row .budget-pill-group,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact:not(.is-budget-pdf-exporting) .budget-table.budget-table-pro tbody tr.is-mobile-row-card.is-active-row .budget-pill-group {
+    background: var(--mb-pill-bg, rgba(120, 96, 68, 0.08)) !important;
+    background-image: none !important;
+    border: 1px solid var(--mb-pill-border, rgba(120, 96, 68, 0.2)) !important;
+    box-shadow: none !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact:not(.is-budget-pdf-exporting) .budget-table.budget-table-pro tbody tr.is-mobile-row-card.is-active-row .budget-impact-shell,
+  .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact:not(.is-budget-pdf-exporting) .budget-table.budget-table-pro tbody tr.is-mobile-row-card.is-active-row .budget-impact-cell,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact:not(.is-budget-pdf-exporting) .budget-table.budget-table-pro tbody tr.is-mobile-row-card.is-active-row .budget-impact-shell,
+  .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact:not(.is-budget-pdf-exporting) .budget-table.budget-table-pro tbody tr.is-mobile-row-card.is-active-row .budget-impact-cell,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact:not(.is-budget-pdf-exporting) .budget-table.budget-table-pro tbody tr.is-mobile-row-card.is-active-row .budget-impact-shell,
+  html.is-mobile-viewport .budget-modal .budget-table-section.is-mobile-table-compact[data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact:not(.is-budget-pdf-exporting) .budget-table.budget-table-pro tbody tr.is-mobile-row-card.is-active-row .budget-impact-cell {
+    background: rgba(120, 96, 68, 0.06) !important;
+    background-image: none !important;
+    border: 1px solid rgba(120, 96, 68, 0.14) !important;
+    box-shadow: none !important;
+  }
+}
+
+/* ================================================= */
+/* BUDGET — Fijo / Variable pills (income / expense) */
+/* Olive pastel income · pastel red expense           */
+/* Desktop + mobile · all table styles                */
+/* ================================================= */
+
+.budget-modal{
+  --budget-pill-income-fill: #b5c796;
+  --budget-pill-income-border: #9aad7e;
+  --budget-pill-income-ink: #2e3a1f;
+  --budget-pill-income-muted: rgba(181, 199, 150, 0.34);
+  --budget-pill-income-muted-ink: rgba(46, 58, 31, 0.62);
+  --budget-pill-expense-fill: #e2abab;
+  --budget-pill-expense-border: #cf9292;
+  --budget-pill-expense-ink: #452626;
+  --budget-pill-expense-muted: rgba(226, 171, 171, 0.34);
+  --budget-pill-expense-muted-ink: rgba(69, 38, 38, 0.62);
+}
+
+.budget-modal .budget-pill-group.is-income{
+  background: var(--budget-pill-income-muted) !important;
+  border-color: rgba(154, 173, 126, 0.42) !important;
+}
+
+.budget-modal .budget-pill-group.is-expense{
+  background: var(--budget-pill-expense-muted) !important;
+  border-color: rgba(207, 146, 146, 0.42) !important;
+}
+
+.budget-modal .budget-table .budget-pill-group.is-income .budget-pill-button:not(.is-active),
+.budget-modal .budget-table-pro .budget-pill-group.is-income .budget-pill-button:not(.is-active),
+.budget-modal .budget-pdf-surface[class*='budget-table-style-']:not(.is-budget-pdf-exporting) .budget-pill-group.is-income .budget-pill-button:not(.is-active){
+  background: var(--budget-pill-income-muted) !important;
+  background-image: none !important;
+  color: var(--budget-pill-income-muted-ink) !important;
+  -webkit-text-fill-color: var(--budget-pill-income-muted-ink) !important;
+  border: 1px solid rgba(154, 173, 126, 0.38) !important;
+  box-shadow: none !important;
+}
+
+.budget-modal .budget-table .budget-pill-group.is-expense .budget-pill-button:not(.is-active),
+.budget-modal .budget-table-pro .budget-pill-group.is-expense .budget-pill-button:not(.is-active),
+.budget-modal .budget-pdf-surface[class*='budget-table-style-']:not(.is-budget-pdf-exporting) .budget-pill-group.is-expense .budget-pill-button:not(.is-active){
+  background: var(--budget-pill-expense-muted) !important;
+  background-image: none !important;
+  color: var(--budget-pill-expense-muted-ink) !important;
+  -webkit-text-fill-color: var(--budget-pill-expense-muted-ink) !important;
+  border: 1px solid rgba(207, 146, 146, 0.38) !important;
+  box-shadow: none !important;
+}
+
+.budget-modal .budget-table .budget-pill-group.is-income .budget-pill-button:not(.is-active):hover,
+.budget-modal .budget-table-pro .budget-pill-group.is-income .budget-pill-button:not(.is-active):hover,
+.budget-modal .budget-pdf-surface[class*='budget-table-style-']:not(.is-budget-pdf-exporting) .budget-pill-group.is-income .budget-pill-button:not(.is-active):hover{
+  background: rgba(181, 199, 150, 0.52) !important;
+  color: var(--budget-pill-income-ink) !important;
+  -webkit-text-fill-color: var(--budget-pill-income-ink) !important;
+  border-color: var(--budget-pill-income-border) !important;
+}
+
+.budget-modal .budget-table .budget-pill-group.is-expense .budget-pill-button:not(.is-active):hover,
+.budget-modal .budget-table-pro .budget-pill-group.is-expense .budget-pill-button:not(.is-active):hover,
+.budget-modal .budget-pdf-surface[class*='budget-table-style-']:not(.is-budget-pdf-exporting) .budget-pill-group.is-expense .budget-pill-button:not(.is-active):hover{
+  background: rgba(226, 171, 171, 0.52) !important;
+  color: var(--budget-pill-expense-ink) !important;
+  -webkit-text-fill-color: var(--budget-pill-expense-ink) !important;
+  border-color: var(--budget-pill-expense-border) !important;
+}
+
+.budget-modal .budget-table .budget-pill-group.is-income .budget-pill-button.is-active,
+.budget-modal .budget-table-pro .budget-pill-group.is-income .budget-pill-button.is-active,
+.budget-modal .budget-pdf-surface[class*='budget-table-style-']:not(.is-budget-pdf-exporting) .budget-table .budget-pill-group.is-income .budget-pill-button.is-active,
+.budget-modal .budget-pdf-surface[class*='budget-table-style-']:not(.is-budget-pdf-exporting) .budget-pill-group.is-income .budget-pill-button.is-active{
+  background: var(--budget-pill-income-fill) !important;
+  background-image: none !important;
+  color: var(--budget-pill-income-ink) !important;
+  -webkit-text-fill-color: var(--budget-pill-income-ink) !important;
+  border: 1px solid var(--budget-pill-income-border) !important;
+  box-shadow: 0 1px 5px rgba(46, 58, 31, 0.14) !important;
+}
+
+.budget-modal .budget-table .budget-pill-group.is-expense .budget-pill-button.is-active,
+.budget-modal .budget-table-pro .budget-pill-group.is-expense .budget-pill-button.is-active,
+.budget-modal .budget-pdf-surface[class*='budget-table-style-']:not(.is-budget-pdf-exporting) .budget-table .budget-pill-group.is-expense .budget-pill-button.is-active,
+.budget-modal .budget-pdf-surface[class*='budget-table-style-']:not(.is-budget-pdf-exporting) .budget-pill-group.is-expense .budget-pill-button.is-active{
+  background: var(--budget-pill-expense-fill) !important;
+  background-image: none !important;
+  color: var(--budget-pill-expense-ink) !important;
+  -webkit-text-fill-color: var(--budget-pill-expense-ink) !important;
+  border: 1px solid var(--budget-pill-expense-border) !important;
+  box-shadow: 0 1px 5px rgba(69, 38, 38, 0.14) !important;
 }

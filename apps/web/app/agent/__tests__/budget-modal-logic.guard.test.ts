@@ -29,14 +29,9 @@ describe('budget modal logic guards', () => {
     expect(layoutSource).toContain("'split'");
     expect(layoutSource).toContain("'agent-front'");
     const budgetModalSource = fs.readFileSync(path.join(process.cwd(), 'app', 'agent', 'modales', 'presupuesto', 'BudgetModal.tsx'), 'utf8');
-    expect(budgetModalSource).toContain('budget-assistant-blur-veil');
-    expect(layoutSource).toContain('isBudgetAssistantOverlayMode');
-    expect(layoutSource).toContain('isBudgetSplitMode');
-    expect(budgetModalSource).toContain('isBudgetAssistantOverlayMode');
-    expect(budgetModalSource).toContain('tableViewMode');
-    expect(budgetModalSource).toContain('Asistente + Tabla');
-    expect(budgetModalSource).toContain("onClick={() => setBudgetViewMode(2)}");
-    expect(budgetModalSource).toContain('onClick={() => setBudgetViewMode(tableViewMode)}');
+    expect(budgetModalSource).toContain('BudgetViewNav');
+    expect(budgetModalSource).toContain('useBudgetMobileRowGestures');
+    expect(budgetModalSource).toContain('budget-view-nav');
     expect(budgetModalSource).toContain('BudgetCarouselStage');
     expect(budgetModalSource).toContain('budget-mobile-stage');
     expect(budgetModalSource).not.toContain('budget-desktop-stage');
@@ -78,6 +73,9 @@ describe('budget modal logic guards', () => {
     expect(source).toContain('focusRow={activeBudgetRow}');
     expect(source).toContain('lastUserAnswer');
     expect(source).toContain('bcc-hero-reply');
+    expect(source).toContain('is-assistant-busy');
+    expect(source).toContain('bcc-hero-thinking');
+    expect(source).not.toContain('Preparando asistente…');
     expect(source).not.toContain('bcc-hero-transcript');
     expect(source).not.toContain('budgetTranscript');
     expect(source).toContain('formatBudgetAssistantTurn');
@@ -148,10 +146,12 @@ describe('budget modal logic guards', () => {
   });
 
   it('keeps assistant UI minimal with only the current turn and input', () => {
-    expect(source).toContain('bcc-hero-question');
+    expect(source).toContain('AgentHeroText');
+    expect(source).toContain('is-assistant-busy');
     expect(source).toContain('bcc-hero-reply');
     expect(source).not.toContain('budget-market-strip');
     expect(source).not.toContain('bcc-hero-transcript');
+    expect(source).not.toContain('Preparando asistente…');
   });
 
   it('opens the budget modal from the panel card instead of leaving dead copy', () => {
@@ -185,13 +185,15 @@ describe('budget modal logic guards', () => {
     expect(source).toContain('resolveBudgetViewDataAttr(isDesktopLayout, budgetViewMode)');
     expect(source).toContain('{!isMobileShell && (');
     expect(source).toContain('budget-cockpit-banner');
-    expect(source).toContain('bcc-hero-question');
+    expect(source).toContain('is-assistant-busy');
+    expect(source).toContain('AgentHeroText');
     expect(source).toContain('handleSendBudgetToAgent');
     expect(source).toContain('props.sendBudgetToAgent()');
     expect(source).toContain('budget-chat-sync-button');
     expect(source).toContain('handleOverlayPointerDown');
-    expect(source).toContain('role="tablist"');
-    expect(source).toContain('aria-selected={budgetViewMode === 1}');
+    expect(source).toContain('BudgetViewNav');
+    expect(source).toContain('useBudgetMobileRowGestures');
+    expect(source).toContain('isMobileManualTable');
     expect(source).toContain('useBudgetCloseConfirm');
     expect(source).toContain('BudgetCloseConfirmDialog');
     expect(source).toContain('requestClose');
@@ -204,7 +206,18 @@ describe('budget modal logic guards', () => {
     expect(source).not.toContain('function collectBudgetSnapshotCss');
     const snapshotSource = fs.readFileSync(path.join(process.cwd(), 'app', 'agent', 'modales', 'presupuesto', 'budget-modal.snapshot.ts'), 'utf8');
     expect(snapshotSource).toContain('export function buildBudgetSnapshotHtmlAndCss');
+    expect(snapshotSource).toContain('sanitizeBudgetSnapshotClone');
+    expect(snapshotSource).toContain('css: buildBudgetPdfExportCss(tableStyle)');
+    expect(snapshotSource).toContain('data-budget-table-style');
+    expect(snapshotSource).toContain('height: auto !important');
+    expect(snapshotSource).not.toContain('size: A4');
+    const themeSource = fs.readFileSync(path.join(process.cwd(), 'app', 'agent', 'modales', 'presupuesto', 'budget-modal.pdf-themes.ts'), 'utf8');
+    expect(themeSource).toContain('BUDGET_PDF_THEMES');
+    expect(source).toContain('downloadBudgetPdf(trigger');
+    expect(source).toContain("pageLayout: 'content'");
+    expect(source).toContain('sourceRect');
     const chatThreadSource = fs.readFileSync(path.join(process.cwd(), 'app', 'agent', 'chat', 'chat-thread-view.tsx'), 'utf8');
+    expect(chatThreadSource).toContain("from './bubble-chat.snapshot'");
     expect(chatThreadSource).toContain("from './bubble-chat.snapshot'");
     const bubbleSnapshotSource = fs.readFileSync(path.join(process.cwd(), 'app', 'agent', 'chat', 'bubble-chat.snapshot.ts'), 'utf8');
     expect(bubbleSnapshotSource).toContain('export function buildBubbleSnapshotHtmlAndCss');
@@ -213,17 +226,23 @@ describe('budget modal logic guards', () => {
   it('measures mobile row slot height for one-row table viewport', () => {
     expect(source).toContain('--budget-mobile-row-slot');
     expect(source).toContain('measureMobileRowSlot');
-    expect(source).toContain('resolveDominantMobileBudgetRowScrollTop');
-    expect(source).toContain('readMobileBudgetRowSnapCandidates');
+    expect(source).toContain('useBudgetMobileRowGestures');
   });
 
-  it('shows informe action below assistant compose on assistant and split views', () => {
+  it('shows informe action below assistant compose on assistant views but not split desktop', () => {
     expect(source).toContain('showAssistantInformeAction');
     expect(source).toContain('isAssistantOverlayMode');
-    expect(source).toContain('isSplitMode');
+    expect(source).not.toContain('isSplitMode ||');
     expect(source).toContain('bcc-hero-compose');
     expect(source).toContain('Generar informe en chat');
     expect(source).toContain('Informe en chat');
+  });
+
+  it('renders transactions-style modal header with yellow Financieramente eyebrow', () => {
+    expect(source).toContain('bcc-modal-header budget-modal-header-layer');
+    expect(source).toContain('<span className="bcc-modal-eyebrow">Financieramente</span>');
+    expect(source).toContain('id="budget-modal-title" className="bcc-modal-title"');
+    expect(source).not.toContain('budget-modal-close-floating');
   });
 
   it('scopes legacy table column hiding away from budget-table-pro', () => {

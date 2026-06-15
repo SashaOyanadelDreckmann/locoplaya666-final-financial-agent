@@ -7,7 +7,7 @@
 @media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   /* ── 1. Page scroll lock; modal fills padded overlay (no double safe-area) ── */
   .agent-modal-overlay.budget-modal-overlay,
-  html:not(.pwa-standalone):not(.home-route-active) .agent-modal-overlay.budget-modal-overlay,
+  html:not(.pwa-standalone) .agent-modal-overlay.budget-modal-overlay,
   html.mobile-input-engaged .agent-modal-overlay.budget-modal-overlay {
     display: flex !important;
     flex-direction: column !important;
@@ -34,9 +34,15 @@
     max-height: 100% !important;
   }
 
-  .budget-modal.is-mobile-shell .bcc-modal-header,
-  .budget-modal.is-mobile-shell .budget-mode-tabs {
+  .budget-modal.is-mobile-shell .budget-view-nav {
     flex-shrink: 0 !important;
+    padding: 0 !important;
+    gap: 18px !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-view-nav-arrow {
+    min-height: 44px !important;
+    padding: 8px 4px !important;
   }
 
   .budget-modal.is-mobile-shell .budget-cockpit-banner {
@@ -64,7 +70,17 @@
     flex-direction: column !important;
   }
 
-  /* ── 2. Mode tabs (touch targets) ── */
+  /* ── 2. View nav (touch targets) ── */
+  .budget-modal.is-mobile-shell .budget-view-nav {
+    padding: 0 !important;
+    gap: 18px !important;
+  }
+
+  .budget-modal.is-mobile-shell .budget-view-nav-arrow {
+    min-height: 44px !important;
+    padding: 8px 4px !important;
+  }
+
   .budget-modal.is-mobile-shell .budget-mode-tab {
     min-height: 44px !important;
   }
@@ -493,21 +509,15 @@
   }
 
   .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-section .budget-style-button,
-  .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-section .budget-pdf-button {
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-section .budget-pdf-button,
+  .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-section .budget-chat-sync-button:not(.is-assistant-action) {
     min-height: 30px !important;
     height: 30px !important;
     width: 100% !important;
     padding: 0 6px !important;
-    font-size: 0.62rem !important;
+    font-size: 0.58rem !important;
     letter-spacing: 0.02em !important;
-    border-radius: 9px !important;
-  }
-
-  .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-section .budget-style-button,
-  .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-section .budget-pdf-button,
-  .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front:not(.is-desktop) .budget-table-section .budget-chat-sync-button {
-    min-height: 30px !important;
-    width: 100% !important;
+    border-radius: 999px !important;
   }
 
   .budget-modal.is-mobile-shell .budget-table-top-actions .continue-ghost {
@@ -705,5 +715,73 @@
   .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) > .budget-mobile-bottom-actions {
     margin: 18px 0 0 !important;
     padding: 0 18px calc(env(safe-area-inset-bottom, 0px) + 14px) !important;
+  }
+
+  /* Mobile swipe between Asistente ↔ Tabla */
+  .budget-modal.is-mobile-shell .budget-mobile-stage{
+    --budget-swipe-x: 0px;
+    touch-action: pan-y;
+    transition: transform 320ms cubic-bezier(0.22, 0.82, 0.2, 1);
+  }
+
+  .budget-modal.is-mobile-shell .budget-mobile-stage.is-swipe-dragging{
+    transition: none;
+  }
+
+  .budget-modal.is-mobile-shell .budget-mobile-stage.is-swipe-dragging > .budget-card-agent,
+  .budget-modal.is-mobile-shell .budget-mobile-stage.is-swipe-dragging > .budget-card-table,
+  .budget-modal.is-mobile-shell .budget-mobile-stage.is-swipe-dragging > section[data-main-card='agent'],
+  .budget-modal.is-mobile-shell .budget-mobile-stage.is-swipe-dragging > section[data-main-card='table']{
+    transition: none;
+    transform: translate3d(calc(var(--budget-swipe-x) * 0.34), 0, 0);
+  }
+
+  .budget-modal.is-mobile-shell .budget-mobile-stage[data-budget-slide='forward'] > .budget-card-agent,
+  .budget-modal.is-mobile-shell .budget-mobile-stage[data-budget-slide='forward'] > .budget-card-table,
+  .budget-modal.is-mobile-shell .budget-mobile-stage[data-budget-slide='forward'] > section[data-main-card='agent'],
+  .budget-modal.is-mobile-shell .budget-mobile-stage[data-budget-slide='forward'] > section[data-main-card='table']{
+    animation: budgetViewSlideForward 420ms cubic-bezier(0.22, 0.82, 0.2, 1) both;
+  }
+
+  .budget-modal.is-mobile-shell .budget-mobile-stage[data-budget-slide='backward'] > .budget-card-agent,
+  .budget-modal.is-mobile-shell .budget-mobile-stage[data-budget-slide='backward'] > .budget-card-table,
+  .budget-modal.is-mobile-shell .budget-mobile-stage[data-budget-slide='backward'] > section[data-main-card='agent'],
+  .budget-modal.is-mobile-shell .budget-mobile-stage[data-budget-slide='backward'] > section[data-main-card='table']{
+    animation: budgetViewSlideBackward 420ms cubic-bezier(0.22, 0.82, 0.2, 1) both;
+  }
+
+  .budget-modal.is-mobile-shell .budget-main-carousel:not(.is-desktop){
+    transition: opacity 260ms ease;
+  }
+
+}
+
+@keyframes budgetViewSlideForward{
+  0%{
+    opacity: 0.92;
+    transform: translate3d(18px, 0, 0);
+  }
+  100%{
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes budgetViewSlideBackward{
+  0%{
+    opacity: 0.92;
+    transform: translate3d(-18px, 0, 0);
+  }
+  100%{
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce){
+  .budget-modal.is-mobile-shell .budget-mobile-stage,
+  .budget-modal.is-mobile-shell .budget-mobile-stage[data-budget-slide] > *{
+    animation: none !important;
+    transition: none !important;
   }
 }

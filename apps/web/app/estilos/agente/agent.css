@@ -21,3 +21,7 @@
 @import '../modales/comunes/agent-modals-safe-area.css';
 /* Budget mobile shell — EOF wins safe-area scroll defaults */
 @import '../modales/presupuesto/agent-modals-budget-mobile.css';
+/* Interview mobile shell — same contract as budget/transactions */
+@import '../modales/entrevista/agent-modals-interview-mobile.css';
+/* Universal minimalist wine-red close — wins all modal overrides */
+@import '../modales/comunes/agent-modals-close-button.css';

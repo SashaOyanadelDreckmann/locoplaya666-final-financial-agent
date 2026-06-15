@@ -1,0 +1,267 @@
+/* ================================================= */
+/* INTERVIEW MODAL — MOBILE SHELL CONTRACT            */
+/* Phone + iPad portrait. Loaded after safe-area.     */
+/* Desktop rules live in agent-modals-budget.css.     */
+/* ================================================= */
+
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+  /* ── 1. Overlay: flex column, no page scroll, no agent-panel gutter ── */
+  .agent-modal-overlay.interview-modal-overlay,
+  html.interview-modal-open .agent-modal-overlay.interview-modal-overlay,
+  html:not(.pwa-standalone):not(.home-route-active) .agent-modal-overlay.interview-modal-overlay,
+  html.mobile-input-engaged .agent-modal-overlay.interview-modal-overlay {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    justify-content: flex-end !important;
+    overflow: hidden !important;
+    overflow-y: hidden !important;
+    overscroll-behavior: none !important;
+    padding: 0 !important;
+    padding-top: var(--modal-safe-top, env(safe-area-inset-top, 0px)) !important;
+    padding-bottom: 0 !important;
+    height: 100dvh !important;
+    min-height: 100dvh !important;
+    max-height: 100dvh !important;
+    background: rgba(5, 7, 10, 0.22) !important;
+    backdrop-filter: blur(20px) saturate(0.76) brightness(0.82) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(0.76) brightness(0.82) !important;
+  }
+
+  html.interview-modal-open body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel,
+  html.interview-modal-open body.agent-route-active main.agent-layout.is-mobile-viewport .agent-panel,
+  html.interview-modal-open body.agent-route-active .agent-layout.is-mobile-viewport .agent-panel {
+    visibility: hidden !important;
+    pointer-events: none !important;
+    opacity: 0 !important;
+    max-height: 0 !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* ── 2. Modal shell: full width sheet, flex column ── */
+  .agent-modal-overlay.interview-modal-overlay > .agent-modal.interview-modal,
+  .agent-modal.interview-modal.is-mobile-shell,
+  .interview-modal.is-mobile-shell {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 1 auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+    border: none !important;
+    border-radius: 20px 20px 0 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    overflow: hidden !important;
+  }
+
+  .interview-modal.is-mobile-shell .bcc-modal-header,
+  .interview-modal.is-mobile-shell .bcc-modal-header.interview-modal-header-layer {
+    flex-shrink: 0 !important;
+  }
+
+  /* ── 3. Body / stage: single scroll host in workspace ── */
+  .interview-modal.is-mobile-shell .interview-shell,
+  .interview-modal.is-mobile-shell .pro-interview-shell,
+  .interview-modal.is-mobile-shell .interview-modal-body {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 12px 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  .interview-modal.is-mobile-shell .interview-stage-shell {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    gap: 10px !important;
+    overflow: hidden !important;
+  }
+
+  /* Workspace first: call controls visible without scrolling past sidebar */
+  .interview-modal.is-mobile-shell .interview-panel-surface--workspace {
+    order: 1 !important;
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior: contain !important;
+    padding: 12px !important;
+    border-radius: 18px !important;
+    border: 1px solid rgba(198, 214, 230, 0.18) !important;
+    background: linear-gradient(180deg, rgba(12, 18, 28, 0.88), rgba(9, 14, 23, 0.82)) !important;
+    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.24) !important;
+  }
+
+  .interview-modal.is-mobile-shell .interview-panel-surface--sidebar {
+    order: 2 !important;
+    flex: 0 0 auto !important;
+    max-height: min(34dvh, 280px) !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding: 12px !important;
+    border-radius: 16px !important;
+    border: 1px solid rgba(198, 214, 230, 0.14) !important;
+    background: rgba(10, 14, 22, 0.72) !important;
+  }
+
+  .interview-modal.is-mobile-shell .interview-status-rail,
+  .interview-modal.is-mobile-shell .interview-notes-card {
+    display: none !important;
+  }
+
+  .interview-modal.is-mobile-shell .interview-brief-card > p {
+    display: none !important;
+  }
+
+  .interview-modal.is-mobile-shell .interview-metrics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+
+  .interview-modal.is-mobile-shell .interview-metric-card {
+    padding: 10px 12px !important;
+  }
+
+  /* ── 4. Voice call shell ── */
+  .interview-modal.is-mobile-shell .pro-interview-column,
+  .interview-modal.is-mobile-shell .pro-interview-column .voice-call-shell,
+  .interview-modal.is-mobile-shell .pro-interview-column .voice-call-shell.interview-live-shell {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .interview-modal.is-mobile-shell .voice-call-shell.interview-live-shell {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0 !important;
+  }
+
+  .interview-modal.is-mobile-shell .voice-call-topbar {
+    padding-bottom: 14px !important;
+    margin-bottom: 14px !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+  }
+
+  .interview-modal.is-mobile-shell .voice-call-topbar h1 {
+    font-size: clamp(1.25rem, 5.2vw, 1.55rem) !important;
+  }
+
+  .interview-modal.is-mobile-shell .interview-live-shell > .voice-call-transcript-card p,
+  .interview-modal.is-mobile-shell .interview-live-shell > .voice-call-transcript-card small,
+  .interview-modal.is-mobile-shell .interview-live-shell > .voice-call-transcript-card .interview-inline-note {
+    display: none !important;
+  }
+
+  .interview-modal.is-mobile-shell .interview-live-shell > .voice-call-transcript-card {
+    background: transparent !important;
+    border: none !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+    border-radius: 0 !important;
+    padding: 0 0 10px !important;
+    margin-bottom: 10px !important;
+  }
+
+  .interview-modal.is-mobile-shell .interview-call-error-panel,
+  .interview-modal.is-mobile-shell .interview-call-error-panel--prestart {
+    margin: 0 0 12px !important;
+    padding: 12px 14px !important;
+    border-radius: 14px !important;
+    border: 1px solid rgba(248, 113, 113, 0.28) !important;
+    background: rgba(69, 10, 10, 0.42) !important;
+  }
+
+  .interview-modal.is-mobile-shell .interview-call-error-panel .voice-call-error,
+  .interview-modal.is-mobile-shell .interview-call-error-panel--prestart .voice-call-error {
+    margin: 0 !important;
+    color: rgba(254, 226, 226, 0.96) !important;
+    -webkit-text-fill-color: rgba(254, 226, 226, 0.96) !important;
+  }
+
+  .interview-modal.is-mobile-shell .voice-call-actions .summary-action-btn,
+  .interview-modal.is-mobile-shell .interview-call-controls .interview-call-pause-btn,
+  .interview-modal.is-mobile-shell .interview-call-controls .interview-call-end-btn,
+  .interview-modal.is-mobile-shell .interview-call-controls .interview-call-start-btn,
+  .interview-modal.is-mobile-shell .interview-call-controls .interview-call-end-confirm-btn {
+    min-height: 44px !important;
+    width: 100% !important;
+  }
+
+  .interview-modal.is-mobile-shell .interview-call-actions--live {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+
+  .interview-modal.is-mobile-shell .interview-call-controls.is-live {
+    position: sticky !important;
+    bottom: 0 !important;
+    z-index: 6 !important;
+    margin-top: auto !important;
+    padding-top: 12px !important;
+    padding-bottom: max(8px, env(safe-area-inset-bottom, 0px)) !important;
+    background: linear-gradient(180deg, rgba(5, 7, 12, 0) 0%, rgba(5, 7, 12, 0.94) 24%, rgba(5, 7, 12, 0.98) 100%) !important;
+  }
+
+  .interview-modal.is-mobile-shell .voice-call-context,
+  .interview-modal.is-mobile-shell .voice-call-context.interview-call-meta {
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+  }
+
+  .interview-modal.is-mobile-shell .voice-call-transcripts {
+    margin-top: 12px !important;
+  }
+
+  /* ── 5. Diagnosis mode ── */
+  .interview-modal.is-mobile-shell.interview-modal--diagnosis,
+  .interview-modal.is-mobile-shell .interview-diagnosis-panel {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding: 0 12px max(12px, env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  .interview-modal.is-mobile-shell.interview-modal--generating,
+  .interview-modal.is-mobile-shell .interview-modal-loading,
+  .interview-modal.is-mobile-shell .interview-modal-completed {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    padding: 12px max(12px, env(safe-area-inset-bottom, 0px)) !important;
+  }
+}

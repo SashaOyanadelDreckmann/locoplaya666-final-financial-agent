@@ -29,6 +29,8 @@ export async function saveBubbleSnapshotPdfArtifact(payload: {
   subtitle?: string;
   html: string;
   css: string;
+  /** `content` trims the PDF page to the snapshot root height (budget table). */
+  pageLayout?: 'a4' | 'content';
 }) {
   const csrfToken = getCsrfToken();
   const res = await fetch('/api/reports/bubble-pdf-snapshot', {

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import fs from 'fs/promises';
 import path from 'path';
 import crypto from 'crypto';
+import type { Page } from 'playwright-core';
 
 import { getBubbleReportsDir, buildBubbleReportPublicUrls } from '@/lib/compartido/bubble-pdf-storage';
 import { requireBackendSession } from '@/lib/sesion/serverAuth';
@@ -16,7 +17,23 @@ type Body = {
   subtitle?: string;
   html?: string;
   css?: string;
+  pageLayout?: 'a4' | 'content';
 };
+
+const A4_VIEWPORT_WIDTH_PX = 794;
+const A4_VIEWPORT_HEIGHT_PX = 1123;
+
+async function measureSnapshotPageSize(page: Page) {
+  return page.evaluate(() => {
+    const root =
+      document.querySelector('.budget-pdf-snapshot') ??
+      document.querySelector('.bubble-pdf-snapshot') ??
+      document.body;
+    const width = Math.max(Math.ceil(root.scrollWidth), Math.ceil(root.getBoundingClientRect().width));
+    const height = Math.max(Math.ceil(root.scrollHeight), Math.ceil(root.getBoundingClientRect().height));
+    return { width, height };
+  });
+}
 
 function safeSlug(value: string) {
   return String(value || 'report')
@@ -74,9 +91,14 @@ export async function POST(req: Request) {
 
     const katexCss = await readKatexCss();
 
+    const pageLayout = body.pageLayout === 'content' ? 'content' : 'a4';
+
     try {
       const page = await browser.newPage({
-        viewport: { width: 1440, height: 2200 },
+        viewport:
+          pageLayout === 'content'
+            ? { width: A4_VIEWPORT_WIDTH_PX, height: A4_VIEWPORT_HEIGHT_PX }
+            : { width: 1440, height: 2200 },
         deviceScaleFactor: 2,
       });
 
@@ -118,17 +140,33 @@ export async function POST(req: Request) {
       const pdfPath = path.join(outDir, pdfFileName);
       const pngPath = path.join(outDir, pngFileName);
 
-      await page.pdf({
-        path: pdfPath,
-        format: 'A4',
-        printBackground: true,
-        margin: { top: '0mm', right: '0mm', bottom: '0mm', left: '0mm' },
-      });
-      await page.screenshot({
-        path: pngPath,
-        fullPage: false,
-        type: 'png',
-      });
+      if (pageLayout === 'content') {
+        const { width, height } = await measureSnapshotPageSize(page);
+        await page.pdf({
+          path: pdfPath,
+          width: `${width}px`,
+          height: `${height}px`,
+          printBackground: true,
+          margin: { top: '0px', right: '0px', bottom: '0px', left: '0px' },
+        });
+        await page.screenshot({
+          path: pngPath,
+          fullPage: true,
+          type: 'png',
+        });
+      } else {
+        await page.pdf({
+          path: pdfPath,
+          format: 'A4',
+          printBackground: true,
+          margin: { top: '0mm', right: '0mm', bottom: '0mm', left: '0mm' },
+        });
+        await page.screenshot({
+          path: pngPath,
+          fullPage: false,
+          type: 'png',
+        });
+      }
 
       const urls = buildBubbleReportPublicUrls(session.userId, pdfFileName, pngFileName);
 

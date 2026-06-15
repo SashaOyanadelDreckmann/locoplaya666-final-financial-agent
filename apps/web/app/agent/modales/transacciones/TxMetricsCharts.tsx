@@ -60,7 +60,7 @@ export function TxMetricsCharts({
         <span className="tx-ap-section-label">Gráficos clave</span>
       </div>
       <div className="tx-ap-chart-grid">
-        <article className="tx-ap-chart-card">
+        <div className="tx-ap-chart-block">
           <h5 className="tx-ap-chart-title">Flujo financiero</h5>
           <div style={{ width: '100%', height: 200 }}>
             <ResponsiveContainer width="100%" height="100%">
@@ -90,8 +90,8 @@ export function TxMetricsCharts({
               </BarChart>
             </ResponsiveContainer>
           </div>
-        </article>
-        <article className="tx-ap-chart-card">
+        </div>
+        <div className="tx-ap-chart-block">
           <h5 className="tx-ap-chart-title">Categorías por monto</h5>
           <div style={{ width: '100%', height: 200 }}>
             <ResponsiveContainer width="100%" height="100%">
@@ -138,74 +138,66 @@ export function TxMetricsCharts({
               ))}
             </div>
           ) : null}
-        </article>
-        <article className="tx-ap-chart-card tx-ap-chart-card--wide">
+        </div>
+        <div className="tx-ap-chart-block tx-ap-chart-block--wide">
           <h5 className="tx-ap-chart-title">Calidad vs filas extraídas</h5>
-          <div className="tx-ap-chart-note-layout">
-            <div style={{ width: '100%', height: 200 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={qualityRowsChart} margin={{ top: 8, right: 8, left: 0, bottom: 8 }}>
-                  <CartesianGrid strokeDasharray="8 8" stroke={RETRO_GRID} />
-                  <XAxis
-                    dataKey="document"
-                    interval={0}
-                    tick={{ ...RETRO_TICK, fontSize: 10 }}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <YAxis
-                    yAxisId="left"
-                    tickFormatter={(value) => `${Number(value)}%`}
-                    tick={RETRO_TICK}
-                    domain={[0, 100]}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <YAxis
-                    yAxisId="right"
-                    orientation="right"
-                    tickFormatter={(value) => new Intl.NumberFormat('es-CL').format(Number(value))}
-                    tick={RETRO_TICK}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <Tooltip
-                    contentStyle={RETRO_TOOLTIP_STYLE}
-                    labelStyle={{ color: '#ffffff' }}
-                    itemStyle={{ color: '#ffffff' }}
-                  />
-                  <Legend />
-                  <Line
-                    yAxisId="left"
-                    type="stepAfter"
-                    dataKey="reliability"
-                    stroke={RETRO_CHART_COLORS[3]}
-                    strokeWidth={4}
-                    dot={<RetroDot stroke={RETRO_CHART_COLORS[3]} />}
-                    activeDot={<RetroDot stroke={RETRO_CHART_COLORS[0]} />}
-                    name="Confiabilidad %"
-                  />
-                  <Line
-                    yAxisId="right"
-                    type="stepAfter"
-                    dataKey="rows"
-                    stroke={RETRO_CHART_COLORS[1]}
-                    strokeWidth={4}
-                    dot={<RetroDot stroke={RETRO_CHART_COLORS[1]} />}
-                    activeDot={<RetroDot stroke={RETRO_CHART_COLORS[2]} />}
-                    name="Filas extraídas"
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-            <aside className="tx-ap-chart-note" aria-label="Cómo leer este gráfico">
-              <strong>Qué muestra</strong>
-              <p>Confiabilidad indica la calidad de extracción por respaldo. Filas extraídas mide el volumen detectado.</p>
-              <strong>Cómo leerlo</strong>
-              <p>Ideal: confiabilidad alta y filas suficientes. Si baja confiabilidad, mejorar nitidez o formato del respaldo.</p>
-            </aside>
+          <div style={{ width: '100%', height: 200 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={qualityRowsChart} margin={{ top: 8, right: 8, left: 0, bottom: 8 }}>
+                <CartesianGrid strokeDasharray="8 8" stroke={RETRO_GRID} />
+                <XAxis
+                  dataKey="document"
+                  interval={0}
+                  tick={{ ...RETRO_TICK, fontSize: 10 }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis
+                  yAxisId="left"
+                  tickFormatter={(value) => `${Number(value)}%`}
+                  tick={RETRO_TICK}
+                  domain={[0, 100]}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis
+                  yAxisId="right"
+                  orientation="right"
+                  tickFormatter={(value) => new Intl.NumberFormat('es-CL').format(Number(value))}
+                  tick={RETRO_TICK}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <Tooltip
+                  contentStyle={RETRO_TOOLTIP_STYLE}
+                  labelStyle={{ color: '#ffffff' }}
+                  itemStyle={{ color: '#ffffff' }}
+                />
+                <Legend />
+                <Line
+                  yAxisId="left"
+                  type="stepAfter"
+                  dataKey="reliability"
+                  stroke={RETRO_CHART_COLORS[3]}
+                  strokeWidth={4}
+                  dot={<RetroDot stroke={RETRO_CHART_COLORS[3]} />}
+                  activeDot={<RetroDot stroke={RETRO_CHART_COLORS[0]} />}
+                  name="Confiabilidad %"
+                />
+                <Line
+                  yAxisId="right"
+                  type="stepAfter"
+                  dataKey="rows"
+                  stroke={RETRO_CHART_COLORS[1]}
+                  strokeWidth={4}
+                  dot={<RetroDot stroke={RETRO_CHART_COLORS[1]} />}
+                  activeDot={<RetroDot stroke={RETRO_CHART_COLORS[2]} />}
+                  name="Filas extraídas"
+                />
+              </LineChart>
+            </ResponsiveContainer>
           </div>
-        </article>
+        </div>
       </div>
     </div>
   );

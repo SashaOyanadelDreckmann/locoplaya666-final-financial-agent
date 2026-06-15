@@ -51,3 +51,4 @@ export * from './agente/agent-timeouts';
 export * from './chat/chat-history';
 export * from './chat/chat-pipelines';
 export * from './transacciones/evidence-policy';
+export * from './transacciones/transaction-chart-blocks';

@@ -7,6 +7,7 @@ import { ChatTableScrollHost } from '@/components/agente/ChatTableScrollHost';
 
 export function renderLatexDocMessage(content: string): ReactNode {
   const sanitized = content
+    .replace(/\)(?=\[)/g, ') ')
     .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}\u{200D}]/gu, '')
     .replace(/\\n/g, '\n')
     .trim();

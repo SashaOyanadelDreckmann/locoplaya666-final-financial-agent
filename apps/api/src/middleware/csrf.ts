@@ -37,6 +37,11 @@ export function getAllowedOrigins(): string[] {
 
   if (webOrigin) origins.add(webOrigin);
 
+  for (const entry of (process.env.DEV_ALLOWED_ORIGINS ?? '').split(',')) {
+    const trimmed = entry.trim();
+    if (trimmed) origins.add(trimmed);
+  }
+
   if (process.env.NODE_ENV !== 'production') {
     origins.add('http://localhost:3000');
     origins.add('http://127.0.0.1:3000');

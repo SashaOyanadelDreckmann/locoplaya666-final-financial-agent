@@ -1,10 +1,13 @@
-import React, { memo, useState, type ReactNode } from 'react';
+import React, { memo, useMemo, useState, type ReactNode } from 'react';
+
+import { createInitialAgentStreamUiState } from '@financial-agent/shared';
 
 import { DocumentBubble } from '@/components/conversacion/DocumentBubble';
 import { CitationBubble } from '@/components/conversacion/CitationBubble';
 import { AgentBlocksRenderer } from '@/components/agente/AgentBlocksRenderer';
 import { AgentStreamRail } from '@/components/agente/AgentStreamRail';
 import '@/app/estilos/agente/chat/agent-stream.css';
+import { getStreamRailAccentColor } from '@/lib/agente/matte-panel-tones';
 import { saveBubbleSnapshotPdfArtifact, savePdfArtifact, downloadArtifactFile } from '@/lib/compartido/artifacts';
 import { buildBubbleSnapshotHtmlAndCss } from './bubble-chat.snapshot';
 import type { ChatItem } from '@/lib/agente/agent.response.types';
@@ -61,22 +64,6 @@ function renderAgentPanelActionRow(action: PanelAction, onClick: () => void) {
       </button>
       {action.message ? <span className="agent-inline-panel-note">{action.message}</span> : null}
     </div>
-  );
-}
-
-function renderInlineOnboardingCta(
-  status: OnboardingFlowStatus,
-  userName: string | undefined,
-  onAction: (section: PanelAction['section']) => void,
-) {
-  const model = buildOnboardingFlowCta(status, userName);
-  if (!model) return null;
-  return (
-    <OnboardingFlowCta
-      model={model}
-      variant="inline"
-      onAction={() => onAction(model.section)}
-    />
   );
 }
 
@@ -156,9 +143,11 @@ function renderChatIntroCard(props: {
   sessionInjectedIntake?: unknown;
   diagnosisProfile?: DiagnosisProfile | null;
   className?: string;
+  preferExecutiveCarousel?: boolean;
 }) {
   const chatId = (props.activeThreadId ?? 'chat-1') as ChatIntroId;
   if (
+    props.preferExecutiveCarousel === true ||
     usesExecutiveWelcomeCarousel({
       activeThreadId: props.activeThreadId,
       diagnosisUnlocked: props.diagnosisUnlocked,
@@ -194,8 +183,11 @@ function welcomeShellBubbleClasses(params: {
   isStreaming: boolean;
   funnelStage?: 'brainstorm' | 'converge' | 'deliver' | null;
 }): string {
+  const executiveWelcomeShell =
+    params.isEmptyWelcomeShell && params.activeThreadId === 'chat-1';
   const compactIntro =
     params.isEmptyWelcomeShell &&
+    !executiveWelcomeShell &&
     isCompactChatIntroShell({
       activeThreadId: params.activeThreadId,
       diagnosisUnlocked: params.diagnosisUnlocked,
@@ -221,8 +213,11 @@ function welcomeShellBodyClasses(params: {
   diagnosisUnlocked: boolean;
   isScrollable: boolean;
 }): string {
+  const executiveWelcomeShell =
+    params.isEmptyWelcomeShell && params.activeThreadId === 'chat-1';
   const compactIntro =
     params.isEmptyWelcomeShell &&
+    !executiveWelcomeShell &&
     isCompactChatIntroShell({
       activeThreadId: params.activeThreadId,
       diagnosisUnlocked: params.diagnosisUnlocked,
@@ -274,7 +269,6 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
   setSavedReports: React.Dispatch<React.SetStateAction<SavedReport[]>>;
   launchDocToLibraryAnimation: (title: string, sourceRect: DOMRect, previewUrl: string, reportId: string) => void;
   onPanelAction: (action: NonNullable<Extract<ChatItem, { type: 'message'; role: 'assistant' }>['panel_action']>) => void;
-  flowPanelAction?: NonNullable<Extract<ChatItem, { type: 'message'; role: 'assistant' }>['panel_action']>;
   onboardingFlowStatus?: OnboardingFlowStatus;
   visualMode?: VisualMode;
   compactClosedView?: boolean;
@@ -298,18 +292,6 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
     showOnboardingFlow && props.onboardingFlowStatus
       ? buildOnboardingFlowCta(props.onboardingFlowStatus, props.sessionUserName)
       : null;
-  const hasInlineOnboardingCta =
-    showOnboardingFlow &&
-    Boolean(props.onboardingFlowStatus) &&
-    props.items.some((item, index) =>
-      isWelcomeCarouselShellItem(
-        item,
-        index,
-        props.items,
-        props.activeThreadId,
-        props.diagnosisUnlocked,
-      ),
-    );
   const itemsToRender =
     props.compactClosedView && !props.showFullChat
       ? (() => {
@@ -320,6 +302,28 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
           return props.items.slice(-2);
         })()
       : props.items;
+  const activeStreamingState = useMemo(() => {
+    for (let i = itemsToRender.length - 1; i >= 0; i -= 1) {
+      const item = itemsToRender[i];
+      if (
+        item.type === 'message' &&
+        item.role === 'assistant' &&
+        item.stream?.streaming &&
+        item.stream
+      ) {
+        return item.stream;
+      }
+    }
+    return null;
+  }, [itemsToRender]);
+  const loadingStreamState = useMemo(
+    () => (props.loading ? createInitialAgentStreamUiState() : null),
+    [props.loading],
+  );
+  const streamAccentSource = activeStreamingState ?? loadingStreamState;
+  const streamAccentStyle = streamAccentSource
+    ? ({ '--stream-accent': getStreamRailAccentColor(streamAccentSource) } as React.CSSProperties)
+    : undefined;
   const effectiveClosingSummary =
     props.closingSummary ??
     (props.compactClosedView && !props.showFullChat
@@ -345,16 +349,6 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
           turnsRemaining: 0,
         })
       : null);
-  const hasWelcomeEmptyBubble = props.items.some((entry, idx) =>
-    isWelcomeCarouselShellItem(
-      entry,
-      idx,
-      props.items,
-      props.activeThreadId,
-      props.diagnosisUnlocked,
-    ),
-  );
-
   function renderChatItem(
     it: ChatItem,
     i: number,
@@ -362,11 +356,6 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
   ) {
     const messagePanelAction =
       it.type === 'message' && it.role === 'assistant' ? it.panel_action : undefined;
-    const shouldHidePrimaryFlowAction =
-      props.activeThreadId === 'chat-1' &&
-      Boolean(onboardingFlowModel) &&
-      Boolean(messagePanelAction?.section) &&
-      onboardingFlowModel?.section === messagePanelAction?.section;
 
     if (it.type === 'upload') {
       return (
@@ -435,34 +424,49 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
         const isStreaming = Boolean(it.stream?.streaming);
         const isScrollable = shouldEnableBubbleScroll(it.content ?? '');
         const blocks = Array.isArray(it.agent_blocks) ? it.agent_blocks : [];
-        const isEmptyWelcomeShell = isWelcomeCarouselShellItem(
-          it,
-          i,
-          itemsToRender,
-          props.activeThreadId,
-          props.diagnosisUnlocked,
-        );
+        const isEmptyWelcomeShell =
+          !isStreaming &&
+          isWelcomeCarouselShellItem(
+            it,
+            i,
+            itemsToRender,
+            props.activeThreadId,
+            props.diagnosisUnlocked,
+          );
         const questionnaireBlocks = props.diagnosisUnlocked
           ? blocks.filter((b) => b.type === 'questionnaire')
           : [];
         const technicalBlocks = blocks.filter(
           (b) => b.type !== 'questionnaire' && b.type !== 'executive_intro'
         );
+        const isChatErrorBubble =
+          !isStreaming &&
+          !isEmptyWelcomeShell &&
+          isRecoverableChatErrorMessage(String(it.content ?? ''));
 
         return (
           <React.Fragment key={i}>
+            {isStreaming && !isEmptyWelcomeShell && it.stream ? (
+              <AgentStreamRail state={it.stream} />
+            ) : null}
+            <>
             <div
-              className={welcomeShellBubbleClasses({
-                isEmptyWelcomeShell,
-                activeThreadId: props.activeThreadId,
-                diagnosisUnlocked: props.diagnosisUnlocked,
-                isScrollable,
-                isFirstAssistantCard,
-                isStreaming,
-                funnelStage,
-              })}
+              className={
+                isChatErrorBubble
+                  ? 'agent-bubble assistant agent-bubble--chat-error'
+                  : welcomeShellBubbleClasses({
+                      isEmptyWelcomeShell,
+                      activeThreadId: props.activeThreadId,
+                      diagnosisUnlocked: props.diagnosisUnlocked,
+                      isScrollable,
+                      isFirstAssistantCard,
+                      isStreaming,
+                      funnelStage,
+                    })
+              }
+              {...(isEmptyWelcomeShell ? { 'data-chat-welcome-shell': 'true' } : {})}
             >
-              {!isEmptyWelcomeShell ? (
+              {!isEmptyWelcomeShell && !isChatErrorBubble ? (
                 <div className="latex-doc-head">
                   <div className="latex-doc-heading">
                     <span className="latex-doc-kicker">{docMeta.kicker}</span>
@@ -565,10 +569,14 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
                     sessionUserName: props.sessionUserName,
                     sessionInjectedIntake: props.sessionInjectedIntake,
                     diagnosisProfile: props.diagnosisProfile,
+                    preferExecutiveCarousel: props.activeThreadId === 'chat-1',
                   })
+                ) : isChatErrorBubble ? (
+                  <p className="agent-bubble--chat-error-text">
+                    {sanitizeMessageText(it.content ?? '')}
+                  </p>
                 ) : (
                   <>
-                    {it.stream?.streaming ? <AgentStreamRail state={it.stream} /> : null}
                     {(it.content ?? '').trim().length > 0 ? (
                       <div className="premium-markdown">
                         {renderLatexDocMessage(sanitizeMessageText(it.content ?? ''))}
@@ -652,25 +660,19 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
                 })()}
               </div>
             </div>
-            {isEmptyWelcomeShell && props.onboardingFlowStatus
-              ? renderInlineOnboardingCta(
-                  props.onboardingFlowStatus,
-                  props.sessionUserName,
-                  (section) => props.onPanelAction({ section, message: '' }),
-                )
-              : null}
             {messagePanelAction?.section &&
             !isEmptyWelcomeShell &&
+            !onboardingFlowModel &&
             !(
               props.diagnosisUnlocked &&
               props.activeThreadId === 'chat-1' &&
               (messagePanelAction.section === 'transactions' || messagePanelAction.section === 'products_transactions')
-            ) &&
-            !shouldHidePrimaryFlowAction && (
+            ) && (
               renderAgentPanelActionRow(messagePanelAction, () =>
                 props.onPanelAction(messagePanelAction!),
               )
             )}
+            </>
           </React.Fragment>
         );
       }
@@ -771,17 +773,19 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
   // opening flow focused and avoid visual noise before/after first turns.
 
   return (
-    <div ref={props.chatThreadRef} className="agent-thread">
+    <div ref={props.chatThreadRef} className="agent-thread" style={streamAccentStyle}>
         {rendered.length === 0 && !props.loading ? (
           <div
             className={`agent-bubble assistant latex-doc is-intro-doc${
-              isCompactChatIntroShell({
+              props.activeThreadId === 'chat-1' ||
+              !isCompactChatIntroShell({
                 activeThreadId: props.activeThreadId,
                 diagnosisUnlocked: props.diagnosisUnlocked,
               })
-                ? ' is-chat-intro-shell'
-                : ' is-empty-welcome'
+                ? ' is-empty-welcome'
+                : ' is-chat-intro-shell'
             }`}
+            data-chat-welcome-shell="true"
           >
             <div
               className={
@@ -799,11 +803,16 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
                 sessionUserName: props.sessionUserName,
                 sessionInjectedIntake: props.sessionInjectedIntake,
                 diagnosisProfile: props.diagnosisProfile,
+                preferExecutiveCarousel: props.activeThreadId === 'chat-1',
               })}
             </div>
           </div>
         ) : null}
         {rendered}
+
+        {props.loading && !activeStreamingState && loadingStreamState ? (
+          <AgentStreamRail state={loadingStreamState} />
+        ) : null}
 
         {effectiveClosingSummary && !props.showFullChat ? (
           <div className="agent-bubble assistant latex-doc is-intro-doc is-empty-welcome is-closure-welcome">
@@ -816,7 +825,7 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
           </div>
         ) : null}
 
-        {onboardingFlowModel && !hasInlineOnboardingCta ? (
+        {onboardingFlowModel ? (
           <OnboardingFlowCta
             model={onboardingFlowModel}
             variant="thread"

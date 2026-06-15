@@ -17,7 +17,11 @@ import { cn } from '@/lib/compartido/utils';
 
 const ASCII_CHARS =
   'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789(){}[]<>;:,._-+=!@#$%^&*|\\/\"\'`~?';
+const TRANSITION_CODE_CHARS = '0123456789';
+const TRANSITION_CODE_SYMBOLS = ':;.,|/+-=*#';
 const ASCII_LINE_HEIGHT = 10;
+/** Measured ratio for ui-monospace / Menlo at small sizes (1ch < 1em). */
+const QUIET_MONO_CHAR_WIDTH_RATIO = 0.6;
 
 function hashString(input: string): number {
   let hash = 2166136261;
@@ -40,6 +44,22 @@ function generateCode(width: number, height: number): string {
   return out;
 }
 
+function generateTransitionCode(width: number, height: number): string {
+  const pool = `${TRANSITION_CODE_CHARS}${TRANSITION_CODE_SYMBOLS}`;
+  let text = '';
+  for (let i = 0; i < width * height; i += 1) {
+    const useDigit = Math.random() < 0.74;
+    text += useDigit
+      ? TRANSITION_CODE_CHARS[Math.floor(Math.random() * TRANSITION_CODE_CHARS.length)]
+      : pool[Math.floor(Math.random() * pool.length)];
+  }
+  let out = '';
+  for (let i = 0; i < height; i += 1) {
+    out += `${text.substring(i * width, (i + 1) * width)}\n`;
+  }
+  return out;
+}
+
 function generateSeededCode(width: number, height: number, seed: string): string {
   const pool = `${seed}|${ASCII_CHARS}`;
   let state = hashString(seed || 'card');
@@ -53,39 +73,6 @@ function generateSeededCode(width: number, height: number, seed: string): string
     out += `${line}\n`;
   }
   return out;
-}
-
-function mutateAsciiAtSplit(element: HTMLElement, splitPercent: number, streamId: number, originalMap: Map<number, string>) {
-  const original = originalMap.get(streamId) || '';
-  const lines = original.split('\n');
-  if (lines.length === 0) return;
-
-  const colCount = lines[0]?.length ?? 0;
-  if (colCount === 0) return;
-
-  const splitCol = (splitPercent / 100) * colCount;
-  const band = Math.max(3, Math.round(colCount * 0.08));
-  let out = '';
-
-  for (let row = 0; row < lines.length; row += 1) {
-    const line = lines[row] ?? '';
-    let rowOut = '';
-    for (let col = 0; col < line.length; col += 1) {
-      const edgeDistance = Math.abs(col - splitCol);
-      if (edgeDistance <= band) {
-        const chaos = 1 - edgeDistance / band;
-        if (Math.random() < 0.35 + chaos * 0.5) {
-          rowOut += ASCII_CHARS[Math.floor(Math.random() * ASCII_CHARS.length)];
-          continue;
-        }
-      }
-      rowOut += line[col] ?? ' ';
-    }
-    out += rowOut;
-    if (row < lines.length - 1) out += '\n';
-  }
-
-  element.textContent = out;
 }
 
 export type ScannerStreamCard = {
@@ -112,6 +99,10 @@ export type ScannerCardStreamProps<T extends ScannerStreamCard> = {
   quietMode?: boolean;
   /** Fraction of container width used for card width (default 0.58) */
   cardWidthRatio?: number;
+  /** Card height as a fraction of card width (default 0.625) */
+  cardHeightRatio?: number;
+  /** Hard cap for card width in px */
+  maxCardWidth?: number;
 };
 
 type ScannerMetrics = {
@@ -132,15 +123,27 @@ function canUseWebGl(): boolean {
   }
 }
 
+function isInteractiveDragTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof Element)) return false;
+  return Boolean(
+    target.closest(
+      'button, a, input, textarea, select, label, [role="button"], [contenteditable="true"], [data-scanner-no-drag]',
+    ),
+  );
+}
+
 function deriveMetrics(
   containerWidth: number,
   cardWidthRatio = 0.58,
   compactStage = false,
+  cardHeightRatio = 0.625,
+  maxCardWidth?: number,
 ): ScannerMetrics {
   const safeWidth = Math.max(240, containerWidth);
-  const cardWidth = Math.max(168, Math.min(safeWidth - 24, Math.round(safeWidth * cardWidthRatio)));
-  const cardHeight = Math.round(cardWidth * 0.625);
-  const cardGap = Math.max(12, Math.round(cardWidth * 0.1));
+  const widthCap = maxCardWidth ?? safeWidth - 24;
+  const cardWidth = Math.max(140, Math.min(widthCap, Math.round(safeWidth * cardWidthRatio)));
+  const cardHeight = Math.round(cardWidth * cardHeightRatio);
+  const cardGap = Math.max(10, Math.round(cardWidth * 0.09));
   const stageHeight = compactStage ? cardHeight : cardHeight + 28;
   return { containerWidth: safeWidth, cardWidth, cardHeight, stageHeight, cardGap };
 }
@@ -149,6 +152,63 @@ function deriveAsciiGrid(cardWidth: number, cardHeight: number) {
   const asciiWidth = Math.max(18, Math.floor(cardWidth / 6.5));
   const asciiHeight = Math.max(10, Math.ceil(cardHeight / ASCII_LINE_HEIGHT));
   return { asciiWidth, asciiHeight };
+}
+
+function deriveQuietAsciiLayout(cardWidth: number, cardHeight: number) {
+  const asciiHeight = Math.max(10, Math.floor(cardHeight / ASCII_LINE_HEIGHT));
+  const lineHeight = cardHeight / asciiHeight;
+  const asciiWidth = Math.max(
+    32,
+    Math.min(96, Math.round(cardWidth / (5.25 * QUIET_MONO_CHAR_WIDTH_RATIO))),
+  );
+  const fontSize = cardWidth / (asciiWidth * QUIET_MONO_CHAR_WIDTH_RATIO);
+  return { asciiWidth, asciiHeight, fontSize, lineHeight };
+}
+
+function syncQuietAsciiContentSize(
+  asciiContent: HTMLElement,
+  cardWidth: number,
+  cardHeight: number,
+  regenerate = true,
+) {
+  const layout = deriveQuietAsciiLayout(cardWidth, cardHeight);
+  asciiContent.style.transform = 'none';
+  asciiContent.style.width = `${cardWidth}px`;
+  asciiContent.style.height = `${cardHeight}px`;
+  asciiContent.style.fontSize = `${layout.fontSize}px`;
+  asciiContent.style.lineHeight = `${layout.lineHeight}px`;
+  if (regenerate) {
+    asciiContent.textContent = generateTransitionCode(layout.asciiWidth, layout.asciiHeight);
+  }
+
+  const applyScale = () => {
+    const naturalWidth = asciiContent.scrollWidth;
+    const naturalHeight = asciiContent.scrollHeight;
+    const scaleX = naturalWidth > 0 ? cardWidth / naturalWidth : 1;
+    const scaleY = naturalHeight > 0 ? cardHeight / naturalHeight : 1;
+
+    if (Math.abs(scaleX - 1) > 0.015 || Math.abs(scaleY - 1) > 0.015) {
+      asciiContent.style.transform = `scale(${scaleX}, ${scaleY})`;
+      asciiContent.style.transformOrigin = 'top left';
+    } else {
+      asciiContent.style.removeProperty('transform');
+    }
+  };
+
+  if (typeof window !== 'undefined') {
+    window.requestAnimationFrame(applyScale);
+  } else {
+    applyScale();
+  }
+}
+
+function clearQuietAsciiInlineStyles(asciiContent: HTMLElement | null | undefined) {
+  if (!asciiContent) return;
+  asciiContent.style.removeProperty('transform');
+  asciiContent.style.removeProperty('width');
+  asciiContent.style.removeProperty('height');
+  asciiContent.style.removeProperty('font-size');
+  asciiContent.style.removeProperty('line-height');
 }
 
 export function ScannerCardStream<T extends ScannerStreamCard>({
@@ -167,6 +227,8 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
   navStatusLabel,
   quietMode = false,
   cardWidthRatio = 0.58,
+  cardHeightRatio = 0.625,
+  maxCardWidth,
 }: ScannerCardStreamProps<T>) {
   const rootRef = useRef<HTMLDivElement>(null);
   const cardLineRef = useRef<HTMLDivElement>(null);
@@ -176,11 +238,17 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
   const streamId = useId().replace(/:/g, '');
 
   const [metrics, setMetrics] = useState<ScannerMetrics>(() =>
-    deriveMetrics(320, cardWidthRatio, quietMode),
+    deriveMetrics(320, cardWidthRatio, quietMode, cardHeightRatio, maxCardWidth),
   );
   const [isScanning, setIsScanning] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [isSettling, setIsSettling] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState(activeIndex);
+
+  const quietAsciiLayout = useMemo(
+    () => (quietMode ? deriveQuietAsciiLayout(metrics.cardWidth, metrics.cardHeight) : null),
+    [metrics.cardHeight, metrics.cardWidth, quietMode],
+  );
 
   const itemCount = items.length;
   const loopRepeat = quietMode
@@ -190,7 +258,8 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
   const streamCards = useMemo(() => {
     if (itemCount === 0) return [];
     const totalCards = itemCount * loopRepeat;
-    const { asciiWidth, asciiHeight } = deriveAsciiGrid(metrics.cardWidth, metrics.cardHeight);
+    const asciiGrid = quietAsciiLayout ?? deriveAsciiGrid(metrics.cardWidth, metrics.cardHeight);
+    const { asciiWidth, asciiHeight } = asciiGrid;
     return Array.from({ length: totalCards }, (_, i) => {
       const item = items[i % itemCount];
       const seed = item.codeSeed ?? String(item.id);
@@ -203,7 +272,7 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
           : generateCode(asciiWidth, asciiHeight),
       };
     });
-  }, [itemCount, items, loopRepeat, metrics.cardHeight, metrics.cardWidth, quietMode]);
+  }, [itemCount, items, loopRepeat, metrics.cardHeight, metrics.cardWidth, quietAsciiLayout, quietMode]);
 
   const cardStreamState = useRef({
     position: 0,
@@ -220,6 +289,7 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
 
   const scannerState = useRef({ isScanning: false });
   const transitionRef = useRef({ isAnimating: false, snapFrameId: 0 });
+  const isSettlingRef = useRef(false);
   const animateToIndexRef = useRef<(sourceIndex: number, onComplete?: () => void) => void>(() => {});
   const updateCardEffectsRef = useRef<(() => void) | null>(null);
 
@@ -335,7 +405,7 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
     const updateMetrics = () => {
       const width = node.offsetWidth;
       if (width <= 0) return;
-      setMetrics(deriveMetrics(width, cardWidthRatio, quietMode));
+      setMetrics(deriveMetrics(width, cardWidthRatio, quietMode, cardHeightRatio, maxCardWidth));
     };
 
     updateMetrics();
@@ -348,7 +418,7 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
 
     window.addEventListener('resize', updateMetrics);
     return () => window.removeEventListener('resize', updateMetrics);
-  }, [cardWidthRatio, quietMode]);
+  }, [cardHeightRatio, cardWidthRatio, maxCardWidth, quietMode]);
 
   useLayoutEffect(() => {
     if (!quietMode || itemCount === 0) return;
@@ -368,8 +438,6 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
     const container = rootRef.current;
     if (!cardLine || !container || itemCount === 0) return undefined;
 
-    let morphFrameTick = 0;
-
     streamCards.forEach((card) => originalAscii.current.set(card.streamId, card.ascii));
 
     const metricsKey = `${metrics.cardWidth}x${metrics.cardHeight}x${metrics.cardGap}`;
@@ -378,6 +446,8 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
       cardStreamState.current.cardLineWidth = getCardStep() * streamCards.length;
       centerOnSourceIndex(activeIndex, true);
     }
+
+    let quietScrambleTimer: number | null = null;
 
     const resetCardClipsToNormal = () => {
       cardLine.querySelectorAll<HTMLElement>('.tx-scanner-card-wrapper').forEach((wrapper) => {
@@ -406,6 +476,7 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
         if (asciiContent) {
           const streamId = Number(wrapper.dataset.streamId || '0');
           asciiContent.textContent = originalAscii.current.get(streamId) || '';
+          clearQuietAsciiInlineStyles(asciiContent);
         }
         delete wrapper.dataset.scanned;
       });
@@ -413,16 +484,59 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
     };
 
     const settleQuietCarousel = () => {
+      if (quietScrambleTimer !== null) {
+        window.clearInterval(quietScrambleTimer);
+        quietScrambleTimer = null;
+      }
+      if (isSettlingRef.current) return;
+      if (quietMode && !prefersReducedMotion) {
+        isSettlingRef.current = true;
+        setIsSettling(true);
+        window.setTimeout(() => {
+          resetCardClipsToNormal();
+          rootRef.current?.removeAttribute('data-transitioning');
+          setIsSettling(false);
+          isSettlingRef.current = false;
+          setIsTransitioning(false);
+          setIsScanning(false);
+          scannerState.current.isScanning = false;
+        }, 520);
+        return;
+      }
       resetCardClipsToNormal();
+      rootRef.current?.removeAttribute('data-transitioning');
       setIsScanning(false);
       setIsTransitioning(false);
       scannerState.current.isScanning = false;
     };
 
+    const tickQuietScramble = () => {
+      if (!cardLine || prefersReducedMotion) return;
+      cardLine.querySelectorAll<HTMLElement>('.tx-scanner-card-wrapper').forEach((wrapper) => {
+        if (wrapper.dataset.morphState !== 'code') return;
+        const asciiContent = wrapper.querySelector<HTMLElement>('.tx-scanner-ascii-content');
+        if (!asciiContent) return;
+        const cardHeight = wrapper.clientHeight || metrics.cardHeight;
+        const cardWidth = wrapper.clientWidth || metrics.cardWidth;
+        syncQuietAsciiContentSize(asciiContent, cardWidth, cardHeight);
+      });
+    };
+
+    const startQuietScramble = () => {
+      if (!quietMode || prefersReducedMotion) return;
+      if (quietScrambleTimer !== null) {
+        window.clearInterval(quietScrambleTimer);
+      }
+      tickQuietScramble();
+      quietScrambleTimer = window.setInterval(tickQuietScramble, 46);
+    };
+
     const beginQuietTransition = () => {
       if (!quietMode) return;
+      rootRef.current?.setAttribute('data-transitioning', 'true');
       setIsTransitioning(true);
       setIsScanning(true);
+      startQuietScramble();
     };
 
     const runScrambleEffect = (element: HTMLElement, cardId: number) => {
@@ -452,69 +566,85 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
       cardWidth: number,
       scannerX: number,
     ) => {
+      const root = container.closest('.tx-scanner-stream-root');
+      const morphActive =
+        transitionRef.current.isAnimating ||
+        cardStreamState.current.isDragging ||
+        root?.classList.contains('is-transitioning') === true ||
+        root?.getAttribute('data-transitioning') === 'true';
+      const settling = root?.classList.contains('is-settling') === true;
+      const streamId = Number(wrapper.dataset.streamId || '0');
       const cardRight = cardLeft + cardWidth;
-      let clampedSplit: number;
-      if (cardRight <= scannerX + 0.5) {
-        clampedSplit = 100;
-      } else if (cardLeft >= scannerX - 0.5) {
-        clampedSplit = 0;
-      } else {
-        clampedSplit = ((scannerX - cardLeft) / cardWidth) * 100;
+      const containerWidth = container.offsetWidth;
+      const isVisible = cardRight > -8 && cardLeft < containerWidth + 8;
+
+      if (settling) {
+        const hit = wrapper.querySelector('.tx-scanner-card-hit');
+        const isFocusedHit = hit?.classList.contains('is-focused') ?? false;
+        if (!isFocusedHit) {
+          wrapper.dataset.morphState = 'normal';
+          wrapper.style.removeProperty('--scan-split');
+          wrapper.style.removeProperty('--card-focus-scale');
+          normalCard.style.removeProperty('opacity');
+          normalCard.style.removeProperty('visibility');
+          normalCard.style.removeProperty('--morph-blur');
+          normalCard.style.removeProperty('--scan-split');
+          asciiCard?.style.removeProperty('--scan-split');
+          asciiCard?.style.setProperty('--code-mix', '0');
+          return 0;
+        }
+        wrapper.dataset.morphState = 'settling';
+        wrapper.style.removeProperty('--scan-split');
+        wrapper.style.removeProperty('--card-focus-scale');
+        normalCard.style.removeProperty('--morph-blur');
+        normalCard.style.removeProperty('--scan-split');
+        asciiCard?.style.removeProperty('--scan-split');
+        asciiCard?.style.setProperty('--code-mix', '0.82');
+        if (asciiContent) {
+          asciiContent.textContent = originalAscii.current.get(streamId) || '';
+        }
+        return 100;
       }
-      clampedSplit = Math.max(0, Math.min(100, clampedSplit));
 
-      const morphState =
-        clampedSplit >= 99.5 ? 'code' : clampedSplit <= 0.5 ? 'normal' : 'split';
-      wrapper.dataset.morphState = morphState;
-
-      const inMorphZone = morphState === 'split';
-      const morphWave = Math.sin((clampedSplit / 100) * Math.PI);
-      const velocity = cardStreamState.current.morphVelocity ?? 0;
-      const softness = Math.min(8, 4 + velocity * 0.06);
-      const softHalf = softness * 0.42;
-      const cardCenter = cardLeft + cardWidth / 2;
-      const distNorm = Math.abs(cardCenter - scannerX) / Math.max(cardWidth, 1);
-      const focusScale = morphState === 'normal' ? Math.max(0.968, 1 - distNorm * 0.025) : morphState === 'code' ? 0.962 : Math.max(0.952, 1 - distNorm * 0.05);
-      const morphBlur = inMorphZone ? 0.22 + morphWave * 0.65 + velocity * 0.02 : 0;
-      const beamOpacity = inMorphZone ? 0.08 + morphWave * 0.36 : 0;
-      const codeMix = morphState === 'code' ? 1 : morphState === 'normal' ? 0 : 0.72 + morphWave * 0.28;
-
-      wrapper.style.setProperty('--scan-split', `${clampedSplit}%`);
-      wrapper.style.setProperty('--scan-softness', `${softness.toFixed(1)}%`);
-      wrapper.style.setProperty('--scan-soft-half', `${softHalf.toFixed(1)}%`);
-      wrapper.style.setProperty('--card-focus-scale', focusScale.toFixed(4));
-      wrapper.style.setProperty('--morph-beam-opacity', beamOpacity.toFixed(3));
-      normalCard.style.setProperty('--scan-split', `${clampedSplit}%`);
-      normalCard.style.setProperty('--morph-blur', morphBlur.toFixed(3));
-
-      if (morphState === 'code') {
+      if (morphActive && isVisible) {
+        wrapper.dataset.morphState = 'code';
+        wrapper.style.removeProperty('--card-focus-scale');
+        wrapper.style.removeProperty('--scan-split');
         normalCard.style.setProperty('opacity', '0');
         normalCard.style.setProperty('visibility', 'hidden');
-      } else {
-        normalCard.style.removeProperty('opacity');
-        normalCard.style.removeProperty('visibility');
-      }
-
-      if (asciiCard) {
-        asciiCard.style.setProperty('--scan-split', `${clampedSplit}%`);
-        asciiCard.style.setProperty('--code-mix', codeMix.toFixed(3));
-      }
-
-      if (!asciiCard || !asciiContent) return clampedSplit;
-
-      const streamId = Number(wrapper.dataset.streamId || '0');
-      if (morphState === 'code') {
-        asciiContent.textContent = originalAscii.current.get(streamId) || '';
-      } else if (inMorphZone) {
-        morphFrameTick += 1;
-        if (morphFrameTick % 2 === 0) {
-          mutateAsciiAtSplit(asciiContent, clampedSplit, streamId, originalAscii.current);
+        normalCard.style.removeProperty('--clip-right');
+        normalCard.style.removeProperty('--scan-split');
+        normalCard.style.removeProperty('--morph-blur');
+        asciiCard?.style.removeProperty('--clip-left');
+        asciiCard?.style.removeProperty('--scan-split');
+        asciiCard?.style.setProperty('--code-mix', '0.82');
+        if (asciiContent) {
+          syncQuietAsciiContentSize(
+            asciiContent,
+            cardWidth,
+            wrapper.clientHeight || metrics.cardHeight,
+          );
         }
-      } else if (morphState === 'normal') {
-        asciiContent.textContent = originalAscii.current.get(streamId) || '';
+        return 100;
       }
 
-      return clampedSplit;
+      wrapper.dataset.morphState = 'normal';
+      wrapper.style.removeProperty('--scan-split');
+      wrapper.style.removeProperty('--card-focus-scale');
+      normalCard.style.removeProperty('opacity');
+      normalCard.style.removeProperty('visibility');
+      normalCard.style.removeProperty('--morph-blur');
+      normalCard.style.removeProperty('--scan-split');
+      normalCard.style.removeProperty('--clip-right');
+      asciiCard?.style.removeProperty('--scan-split');
+      asciiCard?.style.removeProperty('--clip-left');
+      asciiCard?.style.setProperty('--code-mix', '0');
+      if (asciiContent) {
+        const streamId = Number(wrapper.dataset.streamId || '0');
+        asciiContent.textContent = originalAscii.current.get(streamId) || '';
+        clearQuietAsciiInlineStyles(asciiContent);
+      }
+      return 0;
     };
 
     const updateCardEffects = () => {
@@ -524,7 +654,7 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
       const draggingOrAnimating =
         cardStreamState.current.isDragging || transitionRef.current.isAnimating;
 
-      if (quietMode && !draggingOrAnimating) {
+      if (quietMode && !draggingOrAnimating && !isSettlingRef.current) {
         settleQuietCarousel();
         return;
       }
@@ -556,7 +686,7 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
         if (!normalCard) return;
 
         if (quietMode) {
-          const split = applyQuietMorph(
+          applyQuietMorph(
             wrapper,
             normalCard,
             asciiCard,
@@ -565,8 +695,7 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
             cardWidth,
             scannerX,
           );
-          if (split > 6 && split < 94) anyCardIsScanning = true;
-          if (wrapper.dataset.morphState === 'code' || wrapper.dataset.morphState === 'split') {
+          if (wrapper.dataset.morphState === 'code' || wrapper.dataset.morphState === 'settling') {
             anyCardIsScanning = true;
           }
           return;
@@ -620,14 +749,14 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
 
       const start = cardStreamState.current.position;
       const startTime = performance.now();
-      const duration = quietMode ? 720 : 480;
+      const duration = quietMode ? 860 : 480;
       transitionRef.current.isAnimating = true;
       beginQuietTransition();
 
       const tick = (now: number) => {
         const progress = Math.min(1, (now - startTime) / duration);
         const eased = quietMode
-          ? 1 - (1 - progress) ** 2.65
+          ? 1 - (1 - progress) ** 3.1
           : 1 - (1 - progress) ** 3;
         const prevPosition = cardStreamState.current.position;
         const nextPosition = start + (targetPosition - start) * eased;
@@ -655,6 +784,7 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
 
     const handleMouseDown = (event: MouseEvent | TouchEvent) => {
       if ('button' in event && event.button !== 0) return;
+      if (isInteractiveDragTarget(event.target)) return;
       event.preventDefault();
       cancelSnapAnimation();
       if (quietMode) beginQuietTransition();
@@ -733,6 +863,7 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
       });
       return () => {
         if (wheelSnapTimer !== null) window.clearTimeout(wheelSnapTimer);
+        if (quietScrambleTimer !== null) window.clearInterval(quietScrambleTimer);
         cancelSnapAnimation();
         updateCardEffectsRef.current = null;
         animateToIndexRef.current = () => {};
@@ -914,6 +1045,7 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
 
     return () => {
       if (wheelSnapTimer !== null) window.clearTimeout(wheelSnapTimer);
+      if (quietScrambleTimer !== null) window.clearInterval(quietScrambleTimer);
       window.cancelAnimationFrame(animationFrameId);
       cardLine.removeEventListener('mousedown', handleMouseDown);
       window.removeEventListener('mousemove', handleMouseMove);
@@ -960,6 +1092,7 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
         'tx-scanner-stream-root',
         quietMode && 'is-quiet',
         isTransitioning && 'is-transitioning',
+        isSettling && 'is-settling',
         className,
       )}
       data-scanner-id={streamId}
@@ -1007,6 +1140,7 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
           >
             {streamCards.map((card) => {
               const isFocused = card.sourceIndex === focusedIndex;
+              const asciiLayout = quietAsciiLayout ?? deriveAsciiGrid(metrics.cardWidth, metrics.cardHeight);
               return (
                 <div
                   key={`${card.item.id}-${card.streamId}`}
@@ -1017,10 +1151,16 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
                     ...(card.item.surfaceStyle ?? {}),
                     width: metrics.cardWidth,
                     height: metrics.cardHeight,
+                    ['--tx-scanner-card-width' as string]: `${metrics.cardWidth}px`,
                     ['--tx-scanner-card-height' as string]: `${metrics.cardHeight}px`,
-                    ['--tx-scanner-ascii-lines' as string]: String(
-                      deriveAsciiGrid(metrics.cardWidth, metrics.cardHeight).asciiHeight,
-                    ),
+                    ['--tx-scanner-ascii-cols' as string]: String(asciiLayout.asciiWidth),
+                    ['--tx-scanner-ascii-lines' as string]: String(asciiLayout.asciiHeight),
+                    ...(quietAsciiLayout
+                      ? {
+                          ['--tx-scanner-ascii-font-size' as string]: `${quietAsciiLayout.fontSize}px`,
+                          ['--tx-scanner-ascii-line-height' as string]: `${quietAsciiLayout.lineHeight}px`,
+                        }
+                      : {}),
                   }}
                 >
                   <div

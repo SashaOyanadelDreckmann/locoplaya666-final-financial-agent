@@ -56,9 +56,10 @@ export function useInterviewModalBootstrap(params: Params) {
       return;
     }
 
-    setIntakeReady(false);
+    const localIntake = useInterviewStore.getState().intake;
+    setIntakeReady(Boolean(localIntake));
     setBootError(null);
-  }, [isOpen, bootstrapAttempt, setBootError, setIntakeReady]);
+  }, [isOpen, bootstrapAttempt, setBootError, setIntakeReady, setSessionAlreadyCompleted]);
 
   useEffect(() => {
     if (!isOpen) return;

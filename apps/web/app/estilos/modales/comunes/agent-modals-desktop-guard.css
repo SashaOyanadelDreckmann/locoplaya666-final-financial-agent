@@ -37,3 +37,25 @@
     top: 0 !important;
   }
 }
+
+/* Desktop — safe-area is mobile-only; modal shells never reserve home-indicator band */
+@media (min-width: 1101px) {
+  .agent-modal,
+  .agent-modal.transactions-modal,
+  .transactions-modal,
+  .budget-modal,
+  .interview-modal,
+  .questionnaire-modal,
+  .account-modal,
+  .social-modal {
+    padding-bottom: 0 !important;
+  }
+
+  html.is-desktop-viewport body.agent-route-active .agent-modal-overlay,
+  html.is-desktop-viewport body.agent-route-active .social-modal-overlay {
+    padding-top: 24px !important;
+    padding-bottom: 24px !important;
+    padding-left: 24px !important;
+    padding-right: 24px !important;
+  }
+}

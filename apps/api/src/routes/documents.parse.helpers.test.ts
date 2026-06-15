@@ -95,8 +95,10 @@ describe('documents.parse.helpers', () => {
     });
 
     expect(summary).toContain('42 movimientos');
-    expect(summary).toContain('Abonos');
-    expect(summary).toContain('Supermercado');
-    expect(summary).toContain('Jumbo');
+    expect(summary).toContain('Panorama del periodo');
+    expect(summary).toContain('Balance detectado');
+    expect(summary).toContain('Categorías de gasto');
+    expect(summary).toContain('• Supermercado');
+    expect(summary).toContain('• Jumbo');
   });
 });

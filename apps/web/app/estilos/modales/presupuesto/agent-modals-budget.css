@@ -228,46 +228,6 @@
   position: relative !important;
 }
 
-.budget-modal .budget-close-confirm-layer{
-  position: absolute;
-  inset: 0;
-  z-index: 40;
-  display: grid;
-  place-items: center;
-  padding: 20px;
-  background: rgba(2, 6, 12, 0.62);
-  backdrop-filter: blur(4px);
-}
-
-.budget-modal .budget-close-confirm-dialog{
-  width: min(420px, 100%);
-  padding: 18px 18px 16px;
-  border-radius: 16px;
-  border: 1px solid rgba(148, 163, 184, 0.28);
-  background: rgba(10, 16, 24, 0.96);
-  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
-}
-
-.budget-modal .budget-close-confirm-title{
-  margin: 0 0 8px;
-  font-size: 1rem;
-  font-weight: 650;
-}
-
-.budget-modal .budget-close-confirm-body{
-  margin: 0 0 14px;
-  font-size: 0.92rem;
-  line-height: 1.45;
-  color: rgba(226, 232, 240, 0.86);
-}
-
-.budget-modal .budget-close-confirm-actions{
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
 /* Chat log */
 
 .bcc-hero-complete{
@@ -581,32 +541,6 @@
   box-shadow: none !important;
 }
 
-.interview-modal .agent-modal-header{
-  background: rgba(6, 10, 16, 0.82) !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
-  backdrop-filter: blur(18px) saturate(1.05) !important;
-  -webkit-backdrop-filter: blur(18px) saturate(1.05) !important;
-  z-index: 20 !important;
-}
-
-.interview-modal .agent-modal-header h3{
-  color: rgba(244, 248, 252, 0.98) !important;
-}
-
-.interview-modal .agent-modal-close{
-  background: rgba(255, 255, 255, 0.06) !important;
-  border: 1px solid rgba(255, 255, 255, 0.3) !important;
-  color: rgba(243, 248, 252, 0.96) !important;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.32) !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-}
-
-.interview-modal .agent-modal-close:hover{
-  background: rgba(255, 255, 255, 0.12) !important;
-  border-color: rgba(255, 255, 255, 0.42) !important;
-}
-
 .interview-modal-body{
   flex: 1 1 auto !important;
   min-height: 0 !important;
@@ -662,35 +596,7 @@
   border: 1px solid rgba(255, 255, 255, 0.07) !important;
 }
 
-@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
-  .interview-modal{
-    min-height: calc(100dvh - max(14px, calc(env(safe-area-inset-top) + 8px))) !important;
-    max-height: calc(100dvh - max(14px, calc(env(safe-area-inset-top) + 8px))) !important;
-    height: calc(100dvh - max(14px, calc(env(safe-area-inset-top) + 8px))) !important;
-    border-radius: 20px 20px 0 0 !important;
-    margin-bottom: 0 !important;
-  }
-
-  .interview-modal .agent-modal-header{
-    top: calc(10px + env(safe-area-inset-top)) !important;
-    right: 14px !important;
-  }
-
-  .interview-modal .agent-modal-close{
-    width: 38px !important;
-    height: 38px !important;
-    min-width: 38px !important;
-    border-radius: 12px !important;
-  }
-
-  .interview-modal-body{
-    padding: 16px !important;
-  }
-
-  .interview-modal .pro-interview-column .voice-call-shell{
-    padding: 24px 20px !important;
-  }
-}
+/* Interview mobile layout: agent-modals-interview-mobile.css + authoritative EOF */
 
 /* Editorial emphasis tokens for agent markdown */
 .premium-markdown .md-bold,
@@ -1633,8 +1539,8 @@
 
 .budget-modal .budget-table input,
 .budget-modal .budget-table select{
-  min-height: 30px !important;
-  height: 30px !important;
+  min-height: 36px !important;
+  height: 36px !important;
   padding: 0 8px !important;
   font-size: 0.74rem !important;
   border-radius: 10px !important;
@@ -2163,33 +2069,18 @@
   opacity: 0.25 !important;
 }
 
-/* FINAL HEADER ALIGNMENT + TOP SPACING (latest UX request) */
-.budget-modal .bcc-modal-header{
+.budget-modal{
   position: relative !important;
-  display: flex !important;
-  justify-content: center !important;
-  align-items: flex-start !important;
-  text-align: center !important;
-  margin-bottom: 26px !important;
 }
 
-.budget-modal .bcc-modal-title-wrap{
-  width: 100% !important;
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center !important;
-  justify-content: center !important;
-  text-align: center !important;
-}
-
-.budget-modal .bcc-modal-eyebrow,
-.budget-modal .bcc-modal-title{
-  width: 100% !important;
-  text-align: center !important;
+.budget-modal .bcc-modal-header,
+.budget-modal .bcc-modal-header.budget-modal-header-layer{
+  position: relative !important;
+  z-index: 2 !important;
 }
 
 .budget-modal .bcc-modal-body{
-  padding-top: 14px !important;
+  padding-top: 0 !important;
 }
 
 .budget-modal .budget-cockpit-banner{
@@ -4108,42 +3999,54 @@ body.agent-route-active{
   margin-top: 16px !important;
 }
 
-.budget-modal .budget-style-button,
-.budget-modal .budget-pdf-button,
-.budget-modal .budget-chat-sync-button{
-  min-height: 52px !important;
-  border-radius: 14px !important;
-  font-weight: 680 !important;
+.budget-modal .budget-table-bottom-actions .budget-style-button,
+.budget-modal .budget-table-bottom-actions .budget-pdf-button,
+.budget-modal .budget-table-bottom-actions .budget-chat-sync-button,
+.budget-modal .budget-mobile-bottom-actions .budget-style-button,
+.budget-modal .budget-mobile-bottom-actions .budget-pdf-button,
+.budget-modal .budget-mobile-bottom-actions .budget-chat-sync-button,
+.budget-modal [data-budget-mobile-footer='true'] .budget-style-button,
+.budget-modal [data-budget-mobile-footer='true'] .budget-pdf-button,
+.budget-modal [data-budget-mobile-footer='true'] .budget-chat-sync-button{
+  min-height: 30px !important;
+  height: 30px !important;
+  padding: 0 12px !important;
+  border-radius: 999px !important;
+  font-weight: 500 !important;
+  font-size: 11px !important;
+  letter-spacing: 0.04em !important;
+  line-height: 1 !important;
   cursor: pointer !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: rgba(230, 238, 252, 0.86) !important;
+  -webkit-text-fill-color: rgba(230, 238, 252, 0.86) !important;
+  box-shadow: none !important;
+  transition: transform 0.2s ease, border-color 0.18s ease, background 0.18s ease !important;
 }
 
-.budget-modal .budget-style-button{
-  border: 1px solid rgba(142, 167, 191, 0.34) !important;
-  background: rgba(142, 167, 191, 0.10) !important;
-  color: rgba(236, 243, 250, 0.94) !important;
+.budget-modal .budget-table-bottom-actions .budget-style-button:hover,
+.budget-modal .budget-table-bottom-actions .budget-pdf-button:hover:not(:disabled),
+.budget-modal .budget-table-bottom-actions .budget-chat-sync-button:hover:not(:disabled),
+.budget-modal .budget-mobile-bottom-actions .budget-style-button:hover,
+.budget-modal .budget-mobile-bottom-actions .budget-pdf-button:hover:not(:disabled),
+.budget-modal .budget-mobile-bottom-actions .budget-chat-sync-button:hover:not(:disabled),
+.budget-modal [data-budget-mobile-footer='true'] .budget-style-button:hover,
+.budget-modal [data-budget-mobile-footer='true'] .budget-pdf-button:hover:not(:disabled),
+.budget-modal [data-budget-mobile-footer='true'] .budget-chat-sync-button:hover:not(:disabled){
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+  transform: translateY(-1px) !important;
 }
 
-.budget-modal .budget-pdf-button{
-  border: 1px solid rgba(237, 223, 186, 0.34) !important;
-  background: linear-gradient(135deg, rgba(240, 244, 248, 0.96), rgba(210, 222, 234, 0.92)) !important;
-  color: #071018 !important;
-  box-shadow: 0 18px 36px rgba(6, 10, 15, 0.34) !important;
-}
-
-.budget-modal .budget-chat-sync-button{
-  border: 1px solid rgba(142, 167, 191, 0.34) !important;
-  background: rgba(36, 57, 79, 0.72) !important;
-  color: rgba(245, 248, 252, 0.96) !important;
-}
-
-.budget-modal .budget-chat-sync-button:disabled{
-  opacity: 0.45 !important;
+.budget-modal .budget-table-bottom-actions .budget-pdf-button:disabled,
+.budget-modal .budget-table-bottom-actions .budget-chat-sync-button:disabled,
+.budget-modal .budget-mobile-bottom-actions .budget-pdf-button:disabled,
+.budget-modal .budget-mobile-bottom-actions .budget-chat-sync-button:disabled,
+.budget-modal [data-budget-mobile-footer='true'] .budget-pdf-button:disabled,
+.budget-modal [data-budget-mobile-footer='true'] .budget-chat-sync-button:disabled{
+  opacity: 0.38 !important;
   cursor: not-allowed !important;
-}
-
-.budget-modal .budget-pdf-button:disabled{
-  opacity: 0.45 !important;
-  cursor: progress !important;
 }
 
 .budget-modal .budget-table-style-midnight{
@@ -4579,37 +4482,6 @@ body.agent-route-active{
   overflow: hidden !important;
 }
 
-.interview-modal .interview-modal-header{
-  padding: 24px 28px 10px !important;
-  border-bottom: 1px solid rgba(214, 225, 236, 0.08) !important;
-}
-
-.interview-modal .interview-modal-intro{
-  margin: 14px 28px 18px !important;
-  max-width: 760px !important;
-  color: rgba(203, 216, 228, 0.72) !important;
-}
-
-.interview-modal .agent-modal-close{
-  width: 36px !important;
-  height: 36px !important;
-  border-radius: 999px !important;
-  border: 1px solid rgba(214, 225, 236, 0.12) !important;
-  background: rgba(255,255,255,0.028) !important;
-  color: rgba(241, 246, 252, 0.9) !important;
-  transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease !important;
-}
-
-.interview-modal .agent-modal-close:hover{
-  transform: scale(1.02) !important;
-  background: rgba(255,255,255,0.05) !important;
-  border-color: rgba(214, 225, 236, 0.18) !important;
-}
-
-.interview-modal .interview-modal-body{
-  padding: 0 24px 24px !important;
-}
-
 .interview-modal .interview-stage-shell{
   display: grid !important;
   grid-template-columns: minmax(280px, 0.36fr) minmax(0, 1fr) !important;
@@ -5035,23 +4907,6 @@ body.agent-route-active{
   font-size: 12px !important;
 }
 
-@media (max-width: 980px) {
-  .interview-modal .interview-stage-shell{
-    grid-template-columns: 1fr !important;
-    max-height: none !important;
-  }
-
-  .interview-modal .interview-panel-surface--workspace{
-    order: 1 !important;
-  }
-
-  .interview-modal .interview-panel-surface--sidebar{
-    order: 2 !important;
-    max-height: none !important;
-    overflow: visible !important;
-  }
-}
-
 .transactions-modal .tx-content-card.is-main-center > .agent-modal-actions .button-primary,
 .transactions-modal .tx-content-card.is-main-center > .agent-modal-actions .continue-ghost{
   min-width: 300px;
@@ -5066,12 +4921,6 @@ body.agent-route-active{
 /* MOBILE PRO PASS — budget + transactions + diagnosis */
 /* ================================================= */
 @media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
-  .agent-modal-overlay.interview-modal-overlay{
-    align-items: flex-end !important;
-    justify-content: center !important;
-    padding: 0 !important;
-  }
-
   .transactions-modal .tx-content-card.tx-summary-clean,
 .transactions-modal .tx-content-card.tx-summary-clean *{
     max-width: 100% !important;
@@ -5272,38 +5121,6 @@ body.agent-route-active{
   .transactions-modal .pt-stack-nav .continue-ghost{
     min-width: 56px !important;
     min-height: 40px !important;
-  }
-
-  /* Llamada + Diagnóstico: same desktop language, tighter mobile rhythm */
-  .interview-modal{
-    width: 100vw !important;
-    max-width: 100vw !important;
-    min-height: 100dvh !important;
-    max-height: 100dvh !important;
-    height: 100dvh !important;
-    border-radius: 20px 20px 0 0 !important;
-    margin: 0 !important;
-  }
-
-  .interview-modal-body{
-    padding: 12px !important;
-  }
-
-  .interview-modal .pro-interview-column .voice-call-shell.interview-live-shell,
-.interview-modal .pro-interview-column .voice-call-shell.diagnosis-ready-shell,
-.interview-modal .pro-interview-column .voice-call-shell.diagnosis-loading-shell{
-    border-radius: 16px !important;
-    padding: 16px 14px !important;
-    background: linear-gradient(180deg, rgba(12, 18, 28, 0.64), rgba(9, 14, 23, 0.56)) !important;
-    border: 1px solid rgba(198, 214, 230, 0.24) !important;
-    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.24) !important;
-    backdrop-filter: blur(10px) saturate(1.02) !important;
-    -webkit-backdrop-filter: blur(10px) saturate(1.02) !important;
-  }
-
-  .interview-modal .pro-interview-column .voice-call-shell.diagnosis-ready-shell .voice-call-transcript-card{
-    border-radius: 16px !important;
-    padding: 14px !important;
   }
 
   /* Transactions — Step 3 (Resumen analítico) mobile pro sizing */
@@ -6361,9 +6178,71 @@ body:has(.transactions-modal-overlay) .chat-pages-outer{
    existing carousel CSS that uses position:absolute !important.
    =================================================== */
 
-/* Tabs hidden on mobile (no .is-desktop class) */
+/* Tabs hidden on mobile (no .is-desktop class) — replaced by arrow nav */
 .budget-mode-tabs{
   display: none;
+}
+
+.budget-view-nav{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  width: 100%;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.budget-view-nav-label{
+  display: none !important;
+}
+
+.budget-modal button.budget-view-nav-arrow,
+.budget-view-nav-arrow{
+  width: auto !important;
+  min-width: 0 !important;
+  min-height: 36px !important;
+  height: auto !important;
+  padding: 4px 2px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  color: rgba(240, 240, 245, 0.55) !important;
+  cursor: pointer;
+  transition: color 0.18s ease, transform 0.18s ease, opacity 0.18s ease !important;
+}
+
+.budget-modal button.budget-view-nav-arrow:hover:not(:disabled),
+.budget-view-nav-arrow:hover:not(:disabled){
+  color: rgba(240, 240, 245, 0.95) !important;
+  transform: translateX(0);
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.budget-view-nav-arrow--prev:hover:not(:disabled){
+  transform: translateX(-3px);
+}
+
+.budget-view-nav-arrow--next:hover:not(:disabled){
+  transform: translateX(3px);
+}
+
+.budget-view-nav-arrow:disabled{
+  opacity: 0.28;
+  cursor: not-allowed;
+}
+
+.budget-view-nav-arrow:focus-visible{
+  outline: 2px solid rgba(183, 166, 106, 0.55);
+  outline-offset: 2px;
 }
 
 @media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
@@ -6422,13 +6301,11 @@ body:has(.transactions-modal-overlay) .chat-pages-outer{
   order: 2 !important;
   margin-top: 4px !important;
 }
+.budget-modal .budget-modal-body.is-desktop > .budget-view-nav{
+  display: none !important;
+}
 .budget-modal .budget-modal-body.is-desktop > .budget-mode-tabs{
-  order: 0 !important;
-  display: flex !important;
-  gap: 6px !important;
-  justify-content: center !important;
-  padding: 14px 24px 6px !important;
-  z-index: 8 !important;
+  display: none !important;
 }
 .budget-modal .budget-modal-body.is-desktop > .budget-main-carousel{
   order: 1 !important;
@@ -6707,18 +6584,16 @@ body:has(.transactions-modal-overlay) .chat-pages-outer{
 
 /* Transactions mobile layout: see agent-modals-transactions-contract.css (loaded last). */
 
-/* Match mobile backdrop style from Transacciones for Presupuesto + Entrevista */
+/* Match mobile backdrop style from Transacciones for Presupuesto */
 @media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
-  .agent-modal-overlay.budget-modal-overlay,
-.agent-modal-overlay.interview-modal-overlay{
+  .agent-modal-overlay.budget-modal-overlay{
     background: rgba(5, 7, 10, 0.18) !important;
     background-image: none !important;
     backdrop-filter: blur(20px) saturate(0.76) brightness(0.82) !important;
     -webkit-backdrop-filter: blur(20px) saturate(0.76) brightness(0.82) !important;
   }
 
-  .agent-modal-overlay.budget-modal-overlay > .budget-modal,
-.agent-modal-overlay.interview-modal-overlay > .interview-modal{
+  .agent-modal-overlay.budget-modal-overlay > .budget-modal{
     background: transparent !important;
     background-image: none !important;
     box-shadow: none !important;
@@ -6740,11 +6615,10 @@ body:has(.transactions-modal-overlay) .chat-pages-outer{
   }
 }
 
-/* Mobile final contract: Presupuesto + Entrevista/Diagnóstico match Transacciones.
-   The page floats over the blurred main chat; internal full-size sheets stay transparent. */
+/* Mobile final contract: Presupuesto match Transacciones.
+   Interview mobile: agent-modals-interview-mobile*.css */
 @media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
-  .agent-modal-overlay.budget-modal-overlay,
-.agent-modal-overlay.interview-modal-overlay{
+  .agent-modal-overlay.budget-modal-overlay{
     position: fixed !important;
     inset: 0 !important;
     width: 100vw !important;
@@ -6763,9 +6637,7 @@ body:has(.transactions-modal-overlay) .chat-pages-outer{
   }
 
   .agent-modal-overlay.budget-modal-overlay > .agent-modal.budget-modal,
-.agent-modal-overlay.interview-modal-overlay > .agent-modal.interview-modal,
-.budget-modal,
-.interview-modal{
+.budget-modal{
     position: relative !important;
     inset: auto !important;
     width: 100vw !important;
@@ -6787,12 +6659,7 @@ body:has(.transactions-modal-overlay) .chat-pages-outer{
 
   .budget-modal .bcc-modal-header,
 .budget-modal .budget-modal-body,
-.budget-modal .budget-main-carousel,
-.interview-modal .agent-modal-header,
-.interview-modal .interview-modal-body,
-.interview-modal .interview-shell,
-.interview-modal .pro-interview-shell,
-.interview-modal .pro-interview-column{
+.budget-modal .budget-main-carousel{
     width: min(100%, 520px) !important;
     max-width: 100% !important;
     height: auto !important;
@@ -6837,12 +6704,7 @@ body:has(.transactions-modal-overlay) .chat-pages-outer{
 .budget-modal .budget-modal-body .budget-main-carousel.mode-split > .budget-card-agent,
 .budget-modal .budget-modal-body .budget-main-carousel.mode-split > .budget-card-agent .bcc-hero,
 .budget-modal .budget-modal-body .budget-main-carousel.mode-compact-side > .budget-card-agent,
-.budget-modal .budget-modal-body .budget-main-carousel.mode-compact-side > .budget-card-agent .bcc-hero,
-.interview-modal .voice-call-shell,
-.interview-modal .pro-interview-column .voice-call-shell,
-.interview-modal .pro-interview-column .voice-call-shell.interview-live-shell,
-.interview-modal .pro-interview-column .voice-call-shell.diagnosis-ready-shell,
-.interview-modal .pro-interview-column .voice-call-shell.diagnosis-loading-shell{
+.budget-modal .budget-modal-body .budget-main-carousel.mode-compact-side > .budget-card-agent .bcc-hero{
     background: transparent !important;
     background-image: none !important;
     border: none !important;
@@ -6856,10 +6718,7 @@ body:has(.transactions-modal-overlay) .chat-pages-outer{
   }
 
   .budget-modal .budget-assistant-panel,
-.budget-modal .budget-assistant-panel .bcc-hero,
-.interview-modal .pro-interview-column .voice-call-shell.interview-live-shell,
-.interview-modal .pro-interview-column .voice-call-shell.diagnosis-ready-shell,
-.interview-modal .pro-interview-column .voice-call-shell.diagnosis-loading-shell{
+.budget-modal .budget-assistant-panel .bcc-hero{
     min-height: 0 !important;
     padding-left: 4px !important;
     padding-right: 4px !important;
@@ -6915,19 +6774,9 @@ body:has(.transactions-modal-overlay) .chat-pages-outer{
     border-radius: 16px !important;
   }
 
-  /* Budget mobile: compact header; arrows float centered in modal-body padding zone. */
-  .budget-modal .bcc-modal-header{
-    position: relative !important;
-    padding-left: 16px !important;
-    padding-right: 16px !important;
-    padding-bottom: 4px !important;
-    min-height: unset !important;
-  }
-
-  /* 48px = 10px above arrows + 32px arrow height + 6px below */
   .budget-modal .budget-modal-body{
     gap: 0 !important;
-    padding-top: 48px !important;
+    padding-top: 0 !important;
   }
 
   .budget-modal .budget-main-carousel{
@@ -6967,12 +6816,14 @@ body:has(.transactions-modal-overlay) .chat-pages-outer{
   }
 
   .budget-modal .budget-style-button,
-.budget-modal .budget-pdf-button{
+.budget-modal .budget-pdf-button,
+.budget-modal .budget-chat-sync-button:not(.is-assistant-action){
     pointer-events: auto !important;
     min-width: 96px !important;
     width: auto !important;
-    height: 28px !important;
-    padding: 0 12px !important;
+    height: 26px !important;
+    min-height: 26px !important;
+    padding: 0 10px !important;
     border-radius: 999px !important;
     font-size: 10px !important;
     letter-spacing: 0.04em !important;
@@ -7169,7 +7020,8 @@ body:has(.budget-main-carousel.mode-table-only) .agent-modal-overlay.budget-moda
   height: auto !important;
   min-width: 0 !important;
   padding: 4px !important;
-  color: rgba(220, 235, 248, 0.5) !important;
+  color: var(--agent-close-wine, #9f1239) !important;
+  -webkit-text-fill-color: var(--agent-close-wine, #9f1239) !important;
   font-size: 18px !important;
   line-height: 1 !important;
   cursor: pointer !important;
@@ -7185,7 +7037,8 @@ body:has(.budget-main-carousel.mode-table-only) .agent-modal-overlay.budget-moda
   background: none !important;
   border: none !important;
   box-shadow: none !important;
-  color: rgba(220, 235, 248, 0.95) !important;
+  color: var(--agent-close-wine-hover, #c41e3f) !important;
+  -webkit-text-fill-color: var(--agent-close-wine-hover, #c41e3f) !important;
 }
 
 /* Transactions evidence card: premium minimalist override (scoped) */
@@ -7686,10 +7539,13 @@ body:has(.budget-main-carousel.mode-table-only) .agent-modal-overlay.budget-moda
   }
 
   .budget-modal .budget-style-button,
-.budget-modal .budget-pdf-button{
-    min-height: 44px !important;
-    padding: 0 8px !important;
-    font-size: 0.78rem !important;
+.budget-modal .budget-pdf-button,
+.budget-modal .budget-chat-sync-button:not(.is-assistant-action){
+    min-height: 30px !important;
+    height: 30px !important;
+    padding: 0 10px !important;
+    font-size: 0.72rem !important;
+    border-radius: 999px !important;
     white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
@@ -7697,27 +7553,43 @@ body:has(.budget-main-carousel.mode-table-only) .agent-modal-overlay.budget-moda
   }
 }
 
-/* Match INFORMATION pill size in chat bubbles */
+/* Match INFORMATION pill + Guardar PDF — same chip height in chat bubbles */
+.agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-head-actions,
+.agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-head-actions{
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-head-actions .latex-doc-mode,
+.agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-head-actions .latex-doc-mode,
+.agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-head-actions .latex-doc-save-btn,
+.agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-head-actions .latex-doc-save-btn{
+  block-size: 34px !important;
+  min-block-size: 34px !important;
+  max-block-size: 34px !important;
+  height: 34px !important;
+  min-height: 34px !important;
+  max-height: 34px !important;
+  padding-block: 0 !important;
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+  border-radius: 999px !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
 .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-head-actions .latex-doc-mode,
 .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-head-actions .latex-doc-mode{
   inline-size: 80px !important;
   min-inline-size: 80px !important;
   max-inline-size: 80px !important;
-  block-size: 22px !important;
-  min-block-size: 22px !important;
-  max-block-size: 22px !important;
-  padding: 0 9px !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  white-space: nowrap !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
+  padding-inline: 9px !important;
   font-size: 0.58rem !important;
-  line-height: 1 !important;
-  letter-spacing: 0.02em !important;
-  box-sizing: border-box !important;
-  border-radius: 999px !important;
+  letter-spacing: 0.04em !important;
 }
 
 .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-head-actions .latex-doc-save-btn,
@@ -7725,26 +7597,8 @@ body:has(.budget-main-carousel.mode-table-only) .agent-modal-overlay.budget-moda
   inline-size: auto !important;
   min-inline-size: 92px !important;
   max-inline-size: none !important;
-  block-size: 28px !important;
-  min-block-size: 28px !important;
-  max-block-size: none !important;
-  padding: 0 12px !important;
-  overflow: visible !important;
-  text-overflow: clip !important;
-  font-size: 0.62rem !important;
-  letter-spacing: 0.02em !important;
-  white-space: nowrap !important;
-}
-
-.agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-head-actions .latex-doc-mode,
-.agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-head-actions .latex-doc-mode{
-  font-size: 0.55rem !important;
-  letter-spacing: 0.04em !important;
-}
-
-.agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-head-actions .latex-doc-save-btn,
-.agent-layout .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-head-actions .latex-doc-save-btn{
-  font-size: 0.56rem !important;
+  padding-inline: 12px !important;
+  font-size: 0.58rem !important;
   letter-spacing: 0.02em !important;
 }
 

@@ -63,7 +63,6 @@ type Props = {
 
 export function BudgetMobileIntelSummary(props: {
   budgetTotals: { income: number; expenses: number; balance: number };
-  activeStyleLabel: string;
   tableStyle: string;
   formatBudgetAmount: (value: number) => string;
 }) {
@@ -73,11 +72,9 @@ export function BudgetMobileIntelSummary(props: {
       aria-label="Resumen de presupuesto"
     >
       <div className="budget-mobile-intel-summary-head">
-        <div>
-          <span>Financieramente</span>
-          <h2>Presupuesto mensual</h2>
+        <div className="budget-mobile-intel-summary-title">
+          <h2>Budget intelligence</h2>
         </div>
-        <strong>{props.activeStyleLabel}</strong>
       </div>
       <div className="budget-mobile-intel-summary-metrics">
         <div>
@@ -450,10 +447,9 @@ export function BudgetIntelligenceTable(props: Props) {
   return (
     <div ref={props.budgetPdfRef} className={surfaceClassName}>
       {!props.suppressInlineSummary ? (
-        <>
+        <div className={`budget-pdf-intel-summary budget-pdf-intel-summary--${props.budgetTableStyle}`}>
           <div className={`budget-pdf-head${props.compactMobile ? ' is-mobile-intel-head' : ''}`}>
             <div>
-              <span>Financieramente</span>
               <h2>Budget intelligence</h2>
             </div>
             <strong>{props.activeStyleLabel}</strong>
@@ -464,7 +460,7 @@ export function BudgetIntelligenceTable(props: Props) {
             <div><span>Gasto</span><strong>{props.formatBudgetAmount(props.budgetTotals.expenses)}</strong></div>
             <div><span>Balance</span><strong>{props.formatBudgetAmount(props.budgetTotals.balance)}</strong></div>
           </div>
-        </>
+        </div>
       ) : null}
 
       <div className="budget-table-wrap budget-table-wrap-pro">

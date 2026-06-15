@@ -1,4 +1,5 @@
 import {
+  normalizeApiOrigin,
   readApiOriginFromProcessEnv,
   readApiOriginFromRuntimeWindow,
 } from '@/lib/compartido/runtimePublicConfig';
@@ -85,12 +86,42 @@ export function getAgentRequestUrl(path = '/api/agent'): string {
 }
 
 /**
+ * URL base del API para proxies server-side de Next (agent stream, etc.).
+ * Siempre usa loopback en dev: el browser llega por LAN pero Next y API corren en la misma máquina.
+ */
+export function getInternalApiBaseUrl(): string {
+  const internal = normalizeApiOrigin(process.env.INTERNAL_API_ORIGIN ?? '');
+  if (internal) return internal;
+
+  const direct = readDirectApiOriginFromEnv();
+  if (direct && (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'test')) {
+    return direct;
+  }
+
+  if (direct) {
+    try {
+      const parsed = new URL(direct);
+      const port = parsed.port || '3001';
+      return `http://127.0.0.1:${port}`;
+    } catch {
+      // fall through
+    }
+  }
+
+  return 'http://127.0.0.1:3001';
+}
+
+/**
  * Base URL del API en rutas/server actions de Next (sin proxy /backend).
  */
 export function getServerApiBaseUrl(): string {
-  const direct = readDirectApiOriginFromEnv();
-  if (direct) return direct;
-  return 'http://localhost:3001';
+  if (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'test') {
+    const direct = readDirectApiOriginFromEnv();
+    if (direct) return direct;
+    return 'http://127.0.0.1:3001';
+  }
+
+  return getInternalApiBaseUrl();
 }
 
 /**

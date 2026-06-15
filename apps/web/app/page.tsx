@@ -501,9 +501,8 @@ export default function HomePage() {
   const rotX = useSpring(useTransform(heroMY, [0, 1], [4, -4]), springCfg);
   const rotY = useSpring(useTransform(heroMX, [0, 1], [-4, 4]), springCfg);
   const [heroTiltEnabled, setHeroTiltEnabled] = useState(false);
-  const [mobileShell, setMobileShell] = useState(
-    () => typeof window !== 'undefined' && window.matchMedia(MOBILE_SHELL_MEDIA).matches,
-  );
+  // SSR must match first client paint — viewport is synced in useEffect below.
+  const [mobileShell, setMobileShell] = useState(false);
 
   const featureSectionRef = useRef<HTMLElement>(null);
   const problemSectionRef = useRef<HTMLDivElement>(null);

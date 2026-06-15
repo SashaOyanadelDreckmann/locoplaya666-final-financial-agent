@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import { APPROVAL_STATUS } from '../auth/approval';
 import { getLogger } from '../logger';
-import { createUser, findUserByEmail, updateUserAuthSecurity } from './user.service';
+import { attachIntakeToUser, createUser, findUserByEmail, updateUserAuthSecurity } from './user.service';
 
 export const DEV_TEST_USER_PASSWORD = 'Financieramente123!';
 
@@ -9,15 +9,57 @@ export const DEV_TEST_USERS = [
   {
     name: 'QA Desktop Local',
     email: 'qa-desk-local@financieramente.invalid',
+    qaChannel: 'desktop' as const,
   },
   {
     name: 'QA Mobile Local',
     email: 'qa-mobile-local@financieramente.invalid',
+    qaChannel: 'mobile' as const,
   },
 ] as const;
 
 function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
+}
+
+function hasCompletedDevIntake(
+  injectedIntake: { intake?: unknown } | null | undefined,
+): boolean {
+  const intake = injectedIntake?.intake;
+  if (!intake || typeof intake !== 'object') return false;
+  const data = intake as Record<string, unknown>;
+  return (
+    typeof data.employmentStatus === 'string' &&
+    data.employmentStatus.length > 0 &&
+    typeof data.incomeBand === 'string' &&
+    data.incomeBand.length > 0
+  );
+}
+
+function buildDevTestIntake(account: (typeof DEV_TEST_USERS)[number]) {
+  return {
+    intake: {
+      employmentStatus: 'employed',
+      incomeBand: '600k-1M',
+      expensesCoverage: 'tight',
+      tracksExpenses: 'sometimes',
+      hasSavingsOrInvestments: false,
+      hasDebt: false,
+      financialKnowledge: { interest: false, CAE: false, inflation: false },
+      riskReaction: 'hold',
+      selfRatedUnderstanding: 4,
+      moneyStressLevel: 5,
+      qaChannel: account.qaChannel,
+    },
+    intakeContext: `Perfil QA local (${account.qaChannel}) precargado para desarrollo.`,
+  };
+}
+
+async function ensureDevTestUserIntake(
+  userId: string,
+  account: (typeof DEV_TEST_USERS)[number],
+): Promise<void> {
+  await attachIntakeToUser(userId, buildDevTestIntake(account), { replace: true });
 }
 
 export async function ensureDevTestUsers(): Promise<void> {
@@ -34,7 +76,7 @@ export async function ensureDevTestUsers(): Promise<void> {
     const existing = await findUserByEmail(email);
 
     if (!existing) {
-      await createUser({
+      const user = await createUser({
         name: account.name,
         email,
         passwordHash,
@@ -42,6 +84,7 @@ export async function ensureDevTestUsers(): Promise<void> {
         approvedAt,
         approvedByEmail,
       });
+      await ensureDevTestUserIntake(user.id, account);
       logger.info({
         msg: 'Dev test user seeded',
         name: account.name,
@@ -52,6 +95,8 @@ export async function ensureDevTestUsers(): Promise<void> {
 
     const needsApprovalFix = existing.approvalStatus !== APPROVAL_STATUS.APPROVED;
     const passwordOk = await bcrypt.compare(DEV_TEST_USER_PASSWORD, String(existing.passwordHash ?? ''));
+    const needsIntake = !hasCompletedDevIntake(existing.injectedIntake);
+
     if (needsApprovalFix || !passwordOk) {
       await updateUserAuthSecurity(existing.id, {
         passwordHash,
@@ -65,10 +110,19 @@ export async function ensureDevTestUsers(): Promise<void> {
         email,
       });
     }
+
+    if (needsIntake) {
+      await ensureDevTestUserIntake(existing.id, account);
+      logger.info({
+        msg: 'Dev test user intake seeded',
+        name: account.name,
+        email,
+      });
+    }
   }
 
   logger.info({
-    msg: 'Dev test accounts ready for local QA',
+    msg: 'Dev test accounts ready for local QA (login → /agent)',
     password: DEV_TEST_USER_PASSWORD,
     accounts: DEV_TEST_USERS.map((user) => user.email),
   });

@@ -1,0 +1,251 @@
+/* =============================================================================
+   MODAL CLOSE CONFIRM — universal Apple-style alert (budget canonical)
+   Loaded after close-button.css — wins tx contract / diagnostics overrides.
+   ============================================================================= */
+
+.budget-modal,
+.transactions-modal,
+.interview-modal,
+.questionnaire-modal,
+.account-modal,
+.social-modal {
+  position: relative !important;
+}
+
+.modal-close-confirm-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.38);
+  backdrop-filter: blur(10px) saturate(125%);
+  -webkit-backdrop-filter: blur(10px) saturate(125%);
+}
+
+.modal-close-confirm-dialog {
+  width: min(400px, calc(100% - 32px));
+  padding: 22px 22px 18px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(28, 28, 30, 0.78);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  box-shadow:
+    0 24px 64px rgba(0, 0, 0, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  text-align: center;
+}
+
+.modal-close-confirm-title {
+  margin: 0 0 6px;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif !important;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  letter-spacing: -0.022em;
+  line-height: 1.25;
+  color: rgba(255, 255, 255, 0.96);
+  -webkit-text-fill-color: rgba(255, 255, 255, 0.96);
+  -webkit-font-smoothing: antialiased;
+  text-wrap: balance;
+}
+
+.modal-close-confirm-body,
+.modal-close-confirm-body * {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif !important;
+  font-variant-numeric: normal !important;
+}
+
+.modal-close-confirm-body {
+  margin: 0 auto 18px;
+  padding: 0 6px;
+  max-width: 34ch;
+  font-size: 0.9375rem;
+  font-weight: 400;
+  font-style: normal;
+  line-height: 1.42;
+  letter-spacing: -0.011em;
+  color: rgba(235, 235, 245, 0.62);
+  -webkit-text-fill-color: rgba(235, 235, 245, 0.62);
+  -webkit-font-smoothing: antialiased;
+  text-align: center;
+  text-wrap: pretty;
+}
+
+.modal-close-confirm-actions {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.modal-close-confirm-actions .continue-ghost,
+.modal-close-confirm-actions .button-primary,
+.budget-modal .modal-close-confirm-actions .continue-ghost,
+.budget-modal .modal-close-confirm-actions .button-primary,
+.transactions-modal .modal-close-confirm-actions .continue-ghost,
+.transactions-modal .modal-close-confirm-actions .button-primary {
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 12px;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif !important;
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  background: #18242f !important;
+  background-image: none !important;
+  border: 1px solid rgba(152, 186, 212, 0.22) !important;
+  color: #e9f1f8 !important;
+  -webkit-text-fill-color: #e9f1f8 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  filter: none !important;
+}
+
+.modal-close-confirm-actions .continue-ghost:hover:not(:disabled),
+.modal-close-confirm-actions .button-primary:hover:not(:disabled),
+.budget-modal .modal-close-confirm-actions .continue-ghost:hover:not(:disabled),
+.budget-modal .modal-close-confirm-actions .button-primary:hover:not(:disabled),
+.transactions-modal .modal-close-confirm-actions .continue-ghost:hover:not(:disabled),
+.transactions-modal .modal-close-confirm-actions .button-primary:hover:not(:disabled) {
+  background: #1f2d3b !important;
+  border-color: rgba(126, 176, 216, 0.5) !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+
+/* Transactions — empty library matches modal white plane (mobile + desktop) */
+.transactions-modal .pt-left.tx-panel-surface--library .tx-library-empty,
+.transactions-modal .tx-library-empty,
+html:not(.home-route-active) .transactions-modal .tx-library-empty,
+body.agent-route-active .transactions-modal .tx-library-empty {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  border: 1px dashed var(--tx-contract-border, rgba(26, 31, 40, 0.1)) !important;
+  box-shadow: none !important;
+}
+
+.transactions-modal .pt-left.tx-panel-surface--library .tx-library-empty-kicker,
+html:not(.home-route-active) .transactions-modal .tx-library-empty-kicker,
+body.agent-route-active .transactions-modal .tx-library-empty-kicker {
+  color: var(--tx-panel-library-kicker, rgba(26, 31, 40, 0.58)) !important;
+  -webkit-text-fill-color: var(--tx-panel-library-kicker, rgba(26, 31, 40, 0.58)) !important;
+}
+
+.transactions-modal .pt-left.tx-panel-surface--library .tx-library-empty p,
+html:not(.home-route-active) .transactions-modal .tx-library-empty p,
+body.agent-route-active .transactions-modal .tx-library-empty p {
+  color: var(--tx-panel-library-text, #1a1f28) !important;
+  -webkit-text-fill-color: var(--tx-panel-library-text, #1a1f28) !important;
+  opacity: 0.72 !important;
+}
+
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+  /* Transactions — single white sheet plane (beats contract dark surface leftovers) */
+  .agent-modal.transactions-modal,
+  .transactions-modal,
+  body.agent-route-active .transactions-modal,
+  html:not(.home-route-active) .transactions-modal {
+    background: #ffffff !important;
+    background-image: none !important;
+  }
+
+  .transactions-modal .tx-scroll-body,
+  body.agent-route-active .transactions-modal .tx-scroll-body,
+  html:not(.home-route-active) .transactions-modal .tx-scroll-body {
+    background: #ffffff !important;
+  }
+
+  .transactions-modal .pt-left,
+  .transactions-modal .pt-right,
+  body.agent-route-active .transactions-modal .pt-left,
+  body.agent-route-active .transactions-modal .pt-right,
+  html:not(.home-route-active) .transactions-modal .pt-left,
+  html:not(.home-route-active) .transactions-modal .pt-right,
+  html:not(.home-route-active) .transactions-modal .tx-panel-surface:not(.tx-panel-surface--library) {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  .transactions-modal .pt-left.tx-panel-surface--library,
+  body.agent-route-active .transactions-modal .pt-left.tx-panel-surface--library,
+  html:not(.home-route-active) .transactions-modal .pt-left.tx-panel-surface--library {
+    background: #ffffff !important;
+    background-image: none !important;
+    border: 1px solid var(--tx-panel-library-border, rgba(210, 214, 222, 0.92)) !important;
+    box-shadow: var(--tx-panel-library-shadow, inset 0 1px 0 rgba(255, 255, 255, 0.98)) !important;
+  }
+
+  .transactions-modal .pt-right.tx-panel-surface--workspace,
+  body.agent-route-active .transactions-modal .pt-right.tx-panel-surface--workspace,
+  html:not(.home-route-active) .transactions-modal .pt-right.tx-panel-surface--workspace {
+    background: #ffffff !important;
+    background-image: none !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  /* Steps 2 (evidence) + 3 (analyst) — taller message composer cells */
+  .transactions-modal .tx-composer-field,
+  .transactions-modal textarea.tx-composer-field,
+  .transactions-modal .tx-evidence-card--premium .tx-composer-field,
+  .transactions-modal .tx-composer-pro--summary .tx-composer-field,
+  .transactions-modal .tx-ap-chat-dock .tx-composer-field,
+  .transactions-modal[data-stage='evidence'] .tx-composer-field,
+  .transactions-modal[data-stage='dashboard'] .tx-composer-field,
+  body.agent-route-active .transactions-modal .tx-composer-field,
+  html:not(.home-route-active) .transactions-modal .tx-composer-field,
+  .transactions-modal .tx-minimal-composer-input,
+  body.agent-route-active .transactions-modal .tx-minimal-composer-input {
+    min-height: 88px !important;
+    max-height: 220px !important;
+    padding: 12px 6px !important;
+    line-height: 1.45 !important;
+  }
+
+  .transactions-modal .tx-composer-pro,
+  .transactions-modal .tx-composer-pro--summary,
+  .transactions-modal .tx-ap-chat-dock .tx-composer-pro,
+  body.agent-route-active .transactions-modal .tx-composer-pro {
+    align-items: end !important;
+  }
+
+  .transactions-modal .tx-content-card.is-main-center.tx-summary-clean.tx-step-reveal:has(.tx-consent-card),
+  body.agent-route-active .transactions-modal .tx-content-card.is-main-center.tx-summary-clean.tx-step-reveal:has(.tx-consent-card) {
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: 100% !important;
+  }
+
+  .transactions-modal .tx-consent-card > .tx-delete-product-btn,
+  .transactions-modal .tx-consent-card > .tx-consent-continue-main,
+  body.agent-route-active .transactions-modal .tx-consent-card > .tx-delete-product-btn,
+  body.agent-route-active .transactions-modal .tx-consent-card > .tx-consent-continue-main {
+    width: 100% !important;
+    min-height: 48px !important;
+    justify-content: center !important;
+  }
+
+  .transactions-modal .tx-consent-card > .tx-consent-continue-main,
+  body.agent-route-active .transactions-modal .tx-consent-card > .tx-consent-continue-main {
+    margin-top: 10px !important;
+  }
+
+  .modal-close-confirm-layer {
+    padding: max(16px, env(safe-area-inset-top, 0px)) 16px max(16px, env(safe-area-inset-bottom, 0px));
+  }
+
+  .modal-close-confirm-dialog {
+    width: min(400px, 100%);
+  }
+
+  .modal-close-confirm-actions {
+    flex-direction: row;
+    justify-content: center;
+  }
+}

@@ -244,67 +244,7 @@
 }
 
 .transactions-modal .tx-limits-card-body {
-  display: grid;
-  grid-template-columns: 84px minmax(0, 1fr);
-  gap: 10px;
-  align-items: center;
-}
-
-.transactions-modal .tx-limits-ring {
-  position: relative;
-  width: 84px;
-  height: 84px;
-  border: 0;
-  padding: 0;
-  border-radius: 50%;
-  background: transparent;
-  cursor: pointer;
-  transition: transform 180ms ease;
-}
-
-.transactions-modal .tx-limits-ring:hover,
-.transactions-modal .tx-limits-ring:focus-visible {
-  transform: scale(1.04);
-  outline: none;
-}
-
-.transactions-modal .tx-limits-ring:focus-visible .tx-limits-ring-track {
-  box-shadow: 0 0 0 2px rgba(186, 214, 236, 0.45);
-}
-
-.transactions-modal .tx-limits-ring-track {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  background:
-    conic-gradient(
-      var(--tx-limits-accent-matte, var(--tx-limits-accent)) 0 var(--tx-limits-ring-pct),
-      rgba(255, 255, 255, 0.06) var(--tx-limits-ring-pct) 100%
-    );
-  mask: radial-gradient(circle, transparent 58%, #000 59%);
-  -webkit-mask: radial-gradient(circle, transparent 58%, #000 59%);
-}
-
-.transactions-modal .tx-limits-ring-core {
-  position: absolute;
-  inset: 14px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: rgba(10, 16, 24, 0.92);
-  border: 1px solid rgba(186, 214, 236, 0.16);
-  line-height: 1.05;
-}
-
-.transactions-modal .tx-limits-ring-core strong {
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: rgba(244, 249, 253, 0.98);
-}
-
-.transactions-modal .tx-limits-ring-core span {
-  font-size: 0.62rem;
-  color: rgba(186, 204, 220, 0.86);
+  display: block;
 }
 
 .transactions-modal .tx-limits-metrics {
@@ -512,20 +452,6 @@
 }
 
 @media (max-width: 980px) {
-  .transactions-modal .tx-limits-card-body {
-    grid-template-columns: 72px minmax(0, 1fr);
-    gap: 8px;
-  }
-
-  .transactions-modal .tx-limits-ring {
-    width: 72px;
-    height: 72px;
-  }
-
-  .transactions-modal .tx-limits-ring-core {
-    inset: 12px;
-  }
-
   .transactions-modal .tx-limits-expanded-grid {
     grid-template-columns: 1fr;
   }
@@ -547,7 +473,6 @@
 
   .transactions-modal .tx-limits-card,
   .transactions-modal .tx-limits-metric,
-  .transactions-modal .tx-limits-ring,
   .transactions-modal .tx-limits-metric-fill {
     transition: none;
   }

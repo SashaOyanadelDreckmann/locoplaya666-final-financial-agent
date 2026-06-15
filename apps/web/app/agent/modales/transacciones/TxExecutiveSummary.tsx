@@ -1,10 +1,7 @@
 'use client';
 
 import type { CSSProperties, KeyboardEvent } from 'react';
-import {
-  buildEditorialSummaryBlocks,
-  formatPercentCompact,
-} from './presentation';
+import { EditorialSummary, formatPercentCompact } from './presentation';
 import { TxIndicativeNotice } from './TxIndicativeNotice';
 
 type TxExecutiveSummaryProps = {
@@ -70,7 +67,6 @@ export function TxExecutiveSummary(props: TxExecutiveSummaryProps) {
     props.alignedExecutiveSummary?.trim() ||
     props.summaryFromTable?.trim() ||
     (props.hasSummary ? props.summaryText : null);
-  const execBlocks = buildEditorialSummaryBlocks(executiveText).slice(0, 2);
   const topMerchantLabel = props.derivedTopMerchants[0]?.merchant || props.enrichedCategoryData[0]?.name || props.dashboardClusters[0]?.name || '—';
   const fidelityPct = props.movementCount > 0 ? (props.verifiedTableRows / props.movementCount) * 100 : 0;
   const confPct = props.movementCount > 0 ? (props.highConfidenceMovementCount / props.movementCount) * 100 : 0;
@@ -79,9 +75,8 @@ export function TxExecutiveSummary(props: TxExecutiveSummaryProps) {
     props.isIndicativeEvidence ? `~${value.toLocaleString('es-CL')}` : value.toLocaleString('es-CL');
 
   return (
-    <div
-      className={`tx-ex-card${props.isIndicativeEvidence ? ' is-indicative-evidence' : ''}`}
-      role="region"
+    <section
+      className={`tx-ex-summary${props.isIndicativeEvidence ? ' is-indicative-evidence' : ''}`}
       aria-label="Resumen ejecutivo"
     >
       {props.isIndicativeEvidence ? (
@@ -122,23 +117,16 @@ export function TxExecutiveSummary(props: TxExecutiveSummaryProps) {
 
       {props.execTab === 'summary' && (
         <div className="tx-ex-body" role="tabpanel" id={summaryPanelId} aria-labelledby={summaryTabId}>
-          {execBlocks.length > 0 ? (
-            execBlocks.map((block, i) => (
-              <div
-                key={i}
-                className={`tx-ex-block${block.lead ? ' is-lead' : ''} tx-refinable-block`}
-                onDoubleClick={() =>
-                  props.onRefineSummary(
-                    block.kicker ? `bloque "${block.kicker}"` : 'bloque ejecutivo',
-                    block.body,
-                  )
-                }
-                title="Doble clic para reanalizar este bloque"
-              >
-                {block.kicker ? <span className="tx-ex-kicker">{block.kicker}</span> : null}
-                <p className="tx-ex-para">{block.body}</p>
-              </div>
-            ))
+          {executiveText ? (
+            <EditorialSummary
+              text={executiveText}
+              onBlockDoubleClick={({ kicker, body }) =>
+                props.onRefineSummary(
+                  kicker ? `bloque "${kicker}"` : 'bloque ejecutivo',
+                  kicker ? `${kicker}\n${body}` : body,
+                )
+              }
+            />
           ) : (
             <p className="tx-ex-para tx-ex-para--empty">Generando análisis…</p>
           )}
@@ -174,7 +162,7 @@ export function TxExecutiveSummary(props: TxExecutiveSummaryProps) {
         </div>
       )}
 
-      <div className="tx-ex-footer">
+      <div className="tx-ex-actions">
         <button
           type="button"
           className="tx-ex-regen-btn"
@@ -186,6 +174,6 @@ export function TxExecutiveSummary(props: TxExecutiveSummaryProps) {
         </button>
         <span className="tx-ex-revs">{props.summaryRegenerationsLeft} revisión(es)</span>
       </div>
-    </div>
+    </section>
   );
 }

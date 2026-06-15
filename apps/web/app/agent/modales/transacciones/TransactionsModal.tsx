@@ -62,6 +62,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
             />
           </div>
         ) : null}
+        <div className="tx-scroll-body" ref={vm.txScrollBodyRef}>
         <div className="bcc-modal-header tx-modal-header-layer">
           <div className="bcc-modal-title-wrap">
             <span className="bcc-modal-eyebrow">Financieramente</span>
@@ -74,7 +75,6 @@ export function TransactionsModal(props: TransactionsModalProps) {
             aria-label="Cerrar panel de productos y transacciones"
           />
         </div>
-        <div className="tx-scroll-body" ref={vm.txScrollBodyRef}>
           <section className="pt-shell tx-stage-shell tx-modal-header-layer">
             <aside className="pt-left tx-panel-surface tx-panel-surface--library">
               <NumericDust
@@ -134,10 +134,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
                 <div className="tx-batch-recommendation-banner" role="status" aria-live="polite">
                   <div className="tx-batch-recommendation-copy">
                     <span className="tx-batch-recommendation-kicker">Sincronización automática</span>
-                    <p>
-                      Cuando guardes productos con movimientos, el contexto validado se actualiza solo para el agente
-                      principal.
-                    </p>
+                    <p>Al guardar movimientos, el agente recibe el contexto actualizado.</p>
                   </div>
                 </div>
               </div>
@@ -163,6 +160,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
                         <li key={stage.key} className="tx-wizard-stepper-item">
                           <button
                             type="button"
+                            data-step-key={stage.key}
                             className={`tx-wizard-step ${isCurrent ? 'is-current' : ''} ${stage.disabled ? 'is-disabled' : ''}`}
                             onClick={() => vm.goToTxStage(stage.key)}
                             disabled={stage.disabled}
@@ -198,11 +196,11 @@ export function TransactionsModal(props: TransactionsModalProps) {
                       onContinueWithoutProducts={vm.onContinueWithoutProducts}
                     />
                   ) : (
-                    <div className="tx-content-carousel">
+                    <>
                       {!vm.prefersReducedMotion &&
                         (vm.activeTxStageIndex === 0 ||
                           (vm.activeTxStageIndex === 1 && vm.isDockingToLibrary)) && (
-                          <div className="tx-3d-hero-shell" aria-hidden="true">
+                          <div className="tx-3d-hero-shell tx-3d-hero-shell--workspace-pin" aria-hidden="true">
                             <div className="relative w-full flex items-center justify-center p-0">
                               <div className="relative w-full py-0">
                                 <div
@@ -246,6 +244,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
                             </div>
                           </div>
                         )}
+                      <div className="tx-content-carousel">
                       {vm.activeTxStageIndex === 1 && !vm.isDockingToLibrary && !vm.prefersReducedMotion && (
                         <div className="tx-hero-shell-spacer" aria-hidden="true" />
                       )}
@@ -302,10 +301,6 @@ export function TransactionsModal(props: TransactionsModalProps) {
                           key={`tx-evidence-${props.selectedProductId}`}
                           activeBankProduct={props.activeBankProduct}
                           maxEvidenceFilesPerProduct={props.maxEvidenceFilesPerProduct}
-                          summaryRegenerationsLeft={assistant.summaryRegenerationsLeft}
-                          transitionPulse={vm.transitionPulse}
-                          dockTransitionPhase={vm.dockTransitionPhase}
-                          currentStage={vm.currentStage}
                           scrollRef={vm.txSummaryScrollRef}
                           assistantMessages={assistant.evidenceAssistantMessages}
                           highlightedMovementKeys={assistant.highlightedMovementKeys}
@@ -317,9 +312,6 @@ export function TransactionsModal(props: TransactionsModalProps) {
                           txAssistantLoading={assistant.txAssistantLoading}
                           documentsLoading={props.documentsLoading}
                           transactionUploadError={props.transactionUploadError}
-                          summaryText={assistant.summaryText}
-                          summaryGeneratedAt={assistant.summaryGeneratedAt}
-                          summaryModel={assistant.summaryModel}
                           processingModeLabel={assistant.processingModeLabel}
                           processingMetaLabel={assistant.processingMetaLabel}
                           processingPrimaryCopy={assistant.processingPrimaryCopy}
@@ -339,12 +331,6 @@ export function TransactionsModal(props: TransactionsModalProps) {
                           analystContinueLabel={vm.analystContinueLabel}
                           analystContinueDisabled={vm.isAnalystExperiencePending}
                           onGoToAnalyst={() => vm.goToTxStage('analyst')}
-                          onRegenerateSummary={() =>
-                            void assistant.generateTransactionSummary({
-                              feedback: 'Revisar nuevamente consistencia de movimientos y resumen.',
-                              isRegeneration: true,
-                            })
-                          }
                         />
                       )}
 
@@ -437,9 +423,12 @@ export function TransactionsModal(props: TransactionsModalProps) {
                           onAssistantInputChange={assistant.setActiveTxAssistantInput}
                           onAssistantSend={() => void assistant.handleAssistantTextSend()}
                           onAskSuggestedQuestion={vm.handleAskSuggestedQuestion}
+                          movementRows={vm.analytics.dedupedMovementRows}
+                          formatCurrency={vm.analytics.formatCurrency}
                         />
                       )}
                     </div>
+                    </>
                   )}
                 </>
               )}

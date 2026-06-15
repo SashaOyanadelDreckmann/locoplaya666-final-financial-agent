@@ -127,6 +127,7 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
   const serverSessionInstructionsRef = useRef<string | null>(null);
 
   const [voiceSupported, setVoiceSupported] = useState(false);
+  const [voiceCapabilityIssue, setVoiceCapabilityIssue] = useState<string | null>(null);
   const [voiceAwaitingMic, setVoiceAwaitingMic] = useState(false);
   const [voiceConnecting, setVoiceConnecting] = useState(false);
   const [voiceConnected, setVoiceConnected] = useState(false);
@@ -524,7 +525,12 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
   }
 
   async function startVoiceSession() {
-    if (!voiceSupported || voiceConnecting || voiceConnected) return;
+    if (voiceConnecting || voiceConnected) return;
+    const capabilityIssue = resolveVoiceCapabilityIssue();
+    if (!voiceSupported || capabilityIssue) {
+      setVoiceError(capabilityIssue ?? 'Tu navegador no soporta llamada por voz en esta vista.');
+      return;
+    }
     const activeQuota = resolveInterviewActiveQuota(getMeasuredActiveSeconds());
     if (activeQuota.isExhausted) {
       void finalizeCallAndGenerateReport('timeout', { durationSecOverride: activeQuota.activeSeconds });
@@ -540,12 +546,6 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
     }
     if (!voiceFlags.hasLiveVoiceCall && callsStarted >= INTERVIEW_MAX_CALLS_PER_USER) {
       setVoiceError('Solo se permite una llamada por usuario en esta entrevista.');
-      return;
-    }
-
-    const capabilityIssue = resolveVoiceCapabilityIssue();
-    if (capabilityIssue) {
-      setVoiceError(capabilityIssue);
       return;
     }
 
@@ -1121,11 +1121,14 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
   }
 
   useEffect(() => {
+    const capabilityIssue = resolveVoiceCapabilityIssue();
+    setVoiceCapabilityIssue(capabilityIssue);
     setVoiceSupported(
       typeof window !== 'undefined' &&
         typeof window.RTCPeerConnection !== 'undefined' &&
         typeof navigator !== 'undefined' &&
-        !!navigator.mediaDevices?.getUserMedia,
+        !!navigator.mediaDevices?.getUserMedia &&
+        !capabilityIssue,
     );
   }, []);
 
@@ -1397,6 +1400,7 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
 
   return {
     voiceSupported,
+    voiceCapabilityIssue,
     voiceAwaitingMic,
     voiceConnecting,
     voiceConnected,
@@ -1424,6 +1428,7 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
     syncError,
     voiceFlags,
     blockVoiceInteraction,
+    remoteAudioRef,
     resetVoiceRuntimeState,
     applyHydratedVoiceState,
     setLatestDiagnosticProfileId,

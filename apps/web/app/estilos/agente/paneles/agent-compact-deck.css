@@ -1095,4 +1095,73 @@ html[data-visual-mode='light-outline'] .floating-card-shell {
     border-color: rgba(255, 255, 255, 0.14) !important;
     box-shadow: 0 10px 26px rgba(0, 0, 0, 0.22) !important;
   }
+
+  body.agent-route-active .agent-thread .onboarding-flow-cta {
+    background: rgba(10, 16, 26, 0.2) !important;
+    background-image: none !important;
+    backdrop-filter: blur(20px) saturate(140%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(140%) !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.04) inset,
+      0 16px 40px rgba(0, 0, 0, 0.14) !important;
+    width: 100% !important;
+    max-width: var(--bubble-maxw, 72%) !important;
+    align-self: flex-start !important;
+  }
+
+  body.agent-route-active .agent-thread > .agent-stream-rail {
+    width: 100% !important;
+    max-width: var(--bubble-maxw, 72%) !important;
+    align-self: flex-start !important;
+    display: grid !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    margin-bottom: 10px !important;
+  }
+
+  body.agent-route-active main.agent-layout.is-mobile-viewport {
+    --bubble-user-maxw: 50%;
+  }
+
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-thread > .agent-bubble.user:not(.upload-bubble) {
+    max-width: var(--bubble-user-maxw, 50%) !important;
+    width: fit-content !important;
+  }
+}
+
+/*
+ * Agent main shell — no full-page scroll; message thread keeps its own scroll host.
+ * EOF wins globals mobile-scale-frame overflow-y:auto on non-home routes.
+ */
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+  html.agent-route-active,
+  html.agent-route-active body,
+  html.agent-route-active:not(:has(.agent-modal-overlay, .social-modal-overlay)) .app-shell,
+  html.agent-route-active:not(:has(.agent-modal-overlay, .social-modal-overlay)) .mobile-scale-frame,
+  html.agent-route-active body.agent-route-active main.agent-layout.is-mobile-viewport,
+  html.agent-route-active body.agent-route-active section.agent-chat,
+  html.agent-route-active body.agent-route-active .agent-chat-body {
+    overflow: hidden !important;
+    overscroll-behavior: none !important;
+  }
+
+  html.agent-route-active body.agent-route-active main.agent-layout.is-mobile-viewport .agent-thread {
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior-y: contain !important;
+    touch-action: pan-y !important;
+  }
+
+  html.agent-route-active body.agent-route-active main.agent-layout.is-mobile-viewport.mobile-panel-expanded .agent-panel.is-mobile-expanded,
+  html.agent-route-active body.agent-route-active .agent-bubble.is-scrollable-bubble,
+  html.agent-route-active body.agent-route-active .latex-doc-body.is-scrollable-content,
+  html.agent-route-active body.agent-route-active .agent-mobile-composer-dock,
+  html.agent-route-active body.agent-route-active .agent-mobile-composer-dock textarea,
+  html.agent-route-active body.agent-route-active .agent-mobile-composer-dock input {
+    touch-action: pan-y !important;
+    overscroll-behavior: contain !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
 }

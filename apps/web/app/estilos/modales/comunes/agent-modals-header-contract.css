@@ -1,0 +1,398 @@
+/* =============================================================================
+   MODAL HEADER — UNIVERSAL LAYOUT CONTRACT
+   Title + eyebrow left-aligned; close control top-right; inset from modal top.
+   Loaded last in layout.tsx — wins diagnostics / budget-guard / interview EOF.
+   ============================================================================= */
+
+:root {
+  --modal-header-top-inset: clamp(16px, 2.4vw, 24px);
+  --modal-header-inline-inset: clamp(16px, 2.6vw, 28px);
+  --modal-header-bottom-gap: clamp(8px, 1.2vw, 12px);
+  --modal-header-row-gap: 12px;
+}
+
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+  :root {
+    --modal-header-top-inset: 16px;
+    --modal-header-inline-inset: 16px;
+    --modal-header-bottom-gap: 10px;
+  }
+}
+
+/* ── Shared header row ─────────────────────────────────────────────────────── */
+.bcc-modal-header,
+.agent-modal-header,
+.social-modal-header,
+.fincoin-usage-header.bcc-modal-header,
+html:not(.home-route-active) .bcc-modal-header,
+body.agent-route-active .bcc-modal-header,
+body.agent-route-active .agent-modal .bcc-modal-header,
+.transactions-modal .bcc-modal-header,
+.transactions-modal .bcc-modal-header.tx-modal-header-layer,
+.budget-modal .bcc-modal-header,
+.budget-modal .bcc-modal-header.budget-modal-header-layer,
+.interview-modal .bcc-modal-header,
+.interview-modal .bcc-modal-header.interview-modal-header-layer,
+.agent-modal.questionnaire-modal .bcc-modal-header,
+.agent-modal.account-modal .bcc-modal-header {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  gap: var(--modal-header-row-gap) !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding-top: var(--modal-header-top-inset) !important;
+  padding-bottom: var(--modal-header-bottom-gap) !important;
+  padding-left: max(var(--modal-header-inline-inset), env(safe-area-inset-left, 0px)) !important;
+  padding-right: max(var(--modal-header-inline-inset), env(safe-area-inset-right, 0px)) !important;
+  box-sizing: border-box !important;
+  text-align: left !important;
+}
+
+/* ── Headers scroll with modal content (never sticky / fixed) ─────────────── */
+.bcc-modal-header,
+.agent-modal-header,
+.social-modal-header,
+.fincoin-usage-header.bcc-modal-header,
+html:not(.home-route-active) .bcc-modal-header,
+html:not(.home-route-active) .agent-modal-header,
+html:not(.home-route-active) .social-modal-header,
+body.agent-route-active .bcc-modal-header,
+body.agent-route-active .agent-modal .bcc-modal-header,
+.transactions-modal .bcc-modal-header,
+.transactions-modal .bcc-modal-header.tx-modal-header-layer,
+.budget-modal .bcc-modal-header,
+.budget-modal .bcc-modal-header.budget-modal-header-layer,
+.interview-modal .bcc-modal-header,
+.interview-modal .bcc-modal-header.interview-modal-header-layer,
+.agent-modal.questionnaire-modal .bcc-modal-header,
+.agent-modal.account-modal .bcc-modal-header {
+  position: relative !important;
+  top: auto !important;
+  bottom: auto !important;
+  z-index: auto !important;
+}
+
+/* Scroll host includes the header — mobile sheet only (desktop uses content height). */
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+  .agent-modal.transactions-modal,
+  .transactions-modal,
+  .agent-modal.budget-modal,
+  .budget-modal {
+    overflow: hidden !important;
+  }
+
+  .transactions-modal .tx-scroll-body,
+  .budget-modal .budget-modal-body {
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    height: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior: contain !important;
+  }
+}
+
+.agent-modal.interview-modal,
+.interview-modal,
+.agent-modal.questionnaire-modal,
+.questionnaire-modal,
+.agent-modal.account-modal,
+.account-modal,
+.social-modal,
+.fincoin-usage-dialog {
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  overscroll-behavior: contain !important;
+}
+
+.interview-modal .interview-shell,
+.interview-modal .interview-modal-body,
+.interview-modal .interview-diagnosis-panel,
+.questionnaire-modal .questionnaire-dashboard,
+.account-modal .account-modal-dashboard {
+  overflow: visible !important;
+  flex: 0 0 auto !important;
+  min-height: auto !important;
+  height: auto !important;
+  max-height: none !important;
+}
+
+/* ── Title stack — left aligned ────────────────────────────────────────────── */
+.bcc-modal-title-wrap,
+.transactions-modal .bcc-modal-title-wrap,
+.budget-modal .bcc-modal-title-wrap,
+.interview-modal .bcc-modal-title-wrap,
+.questionnaire-modal .bcc-modal-title-wrap,
+.agent-modal.questionnaire-modal .bcc-modal-title-wrap,
+.agent-modal.account-modal .bcc-modal-title-wrap,
+.fincoin-usage-header .bcc-modal-title-wrap {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  justify-content: flex-start !important;
+  text-align: left !important;
+  width: auto !important;
+  max-width: none !important;
+  padding-right: 2px !important;
+}
+
+.bcc-modal-eyebrow,
+.bcc-modal-title,
+.transactions-modal .bcc-modal-eyebrow,
+.transactions-modal .bcc-modal-title,
+.budget-modal .bcc-modal-eyebrow,
+.budget-modal .bcc-modal-title,
+.interview-modal .bcc-modal-eyebrow,
+.interview-modal .bcc-modal-title,
+.questionnaire-modal .bcc-modal-eyebrow,
+.questionnaire-modal .bcc-modal-title,
+.questionnaire-modal .questionnaire-user-name,
+.agent-modal.questionnaire-modal .questionnaire-user-name,
+.agent-modal.account-modal .questionnaire-user-name,
+.fincoin-usage-header .bcc-modal-eyebrow,
+.fincoin-usage-header .bcc-modal-title {
+  text-align: left !important;
+  align-self: flex-start !important;
+  width: auto !important;
+  max-width: 100% !important;
+}
+
+/* ── Close — top-right in flex row (never viewport-absolute) ──────────────── */
+.agent-modal-close,
+.agent-close-x,
+.social-modal .social-close-btn,
+.social-modal-header .agent-modal-close,
+.fincoin-usage-header .agent-modal-close,
+.transactions-modal .agent-modal-close,
+.budget-modal .agent-modal-close,
+.interview-modal .agent-modal-close,
+.agent-modal.questionnaire-modal .agent-modal-close,
+.agent-modal.account-modal .agent-modal-close,
+html:not(.home-route-active) .transactions-modal .agent-modal-close,
+html:not(.home-route-active) .budget-modal .agent-modal-close,
+body.agent-route-active .agent-modal.account-modal .agent-modal-close {
+  position: relative !important;
+  top: auto !important;
+  right: auto !important;
+  left: auto !important;
+  bottom: auto !important;
+  flex: 0 0 auto !important;
+  align-self: flex-start !important;
+  margin: 0 !important;
+  margin-top: 0 !important;
+  margin-left: auto !important;
+}
+
+/* Budget — title row + view nav stack below */
+.budget-modal .bcc-modal-header,
+.budget-modal .bcc-modal-header.budget-modal-header-layer {
+  flex-direction: column !important;
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+}
+
+.budget-modal .budget-modal-header-stack {
+  width: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+  gap: 2px !important;
+  text-align: left !important;
+}
+
+.budget-modal .budget-modal-header-title-row {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  gap: var(--modal-header-row-gap) !important;
+  width: 100% !important;
+}
+
+.budget-modal .budget-modal-header-title-row .agent-modal-close {
+  margin-left: auto !important;
+}
+
+.budget-modal.is-mobile-shell .budget-modal-header-title-row {
+  flex-wrap: wrap !important;
+}
+
+.budget-modal.is-mobile-shell .budget-modal-header-title-row .budget-view-nav {
+  flex: 0 0 100% !important;
+  order: 3 !important;
+  width: 100% !important;
+  justify-content: center !important;
+  padding-top: 2px !important;
+}
+
+/* Social — keep phi + titles left, close right */
+.social-modal-header {
+  align-items: flex-start !important;
+}
+
+.social-header-left {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  text-align: left !important;
+}
+
+.social-header-eyebrow,
+.social-header-title {
+  text-align: left !important;
+}
+
+/* Strip duplicate safe-area top padding from legacy modal header rules */
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+  .transactions-modal .bcc-modal-header,
+  .transactions-modal .bcc-modal-header.tx-modal-header-layer,
+  .budget-modal .bcc-modal-header,
+  .budget-modal .bcc-modal-header.budget-modal-header-layer,
+  .interview-modal .bcc-modal-header,
+  .interview-modal .bcc-modal-header.interview-modal-header-layer {
+    padding-top: var(--modal-header-top-inset) !important;
+  }
+
+  /* Kill legacy vh caps + shell safe-area padding that leaves a white strip */
+  .agent-modal.transactions-modal,
+  .transactions-modal,
+  .agent-modal.budget-modal,
+  .budget-modal,
+  .agent-modal.interview-modal,
+  .interview-modal,
+  .agent-modal.questionnaire-modal,
+  .questionnaire-modal,
+  .agent-modal.account-modal,
+  .account-modal,
+  .social-modal,
+  body.agent-route-active .transactions-modal,
+  body.agent-route-active .budget-modal,
+  body.agent-route-active .interview-modal {
+    max-height: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
+  .agent-modal.transactions-modal,
+  .transactions-modal,
+  body.agent-route-active .transactions-modal {
+    background: var(--tx-contract-panel, #ffffff) !important;
+    background-image: none !important;
+  }
+
+  .transactions-modal .tx-scroll-body,
+  body.agent-route-active .transactions-modal .tx-scroll-body {
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    background: var(--tx-contract-panel, #ffffff) !important;
+    scroll-padding-bottom: max(16px, env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  .transactions-modal .pt-left,
+  .transactions-modal .pt-right:not(.tx-panel-surface--workspace),
+  body.agent-route-active .transactions-modal .pt-left,
+  body.agent-route-active .transactions-modal .pt-right:not(.tx-panel-surface--workspace),
+  html:not(.home-route-active) .transactions-modal .pt-left:not(.tx-panel-surface--library),
+  html:not(.home-route-active) .transactions-modal .pt-right:not(.tx-panel-surface--workspace) {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  .transactions-modal .pt-right.tx-panel-surface--workspace,
+  body.agent-route-active .transactions-modal .pt-right.tx-panel-surface--workspace,
+  html:not(.home-route-active) .transactions-modal .pt-right.tx-panel-surface--workspace {
+    background: var(--tx-contract-panel, #ffffff) !important;
+    background-image: none !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  .transactions-modal .pt-right.tx-panel-surface--workspace,
+  body.agent-route-active .transactions-modal .pt-right.tx-panel-surface--workspace {
+    flex: 0 0 auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .transactions-modal .pt-right.tx-panel-surface--workspace .tx-content-carousel,
+  body.agent-route-active .transactions-modal .pt-right.tx-panel-surface--workspace .tx-content-carousel {
+    flex: 0 0 auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    padding-bottom: 0 !important;
+  }
+
+  .budget-modal .budget-modal-body,
+  body.agent-route-active .budget-modal .budget-modal-body {
+    scroll-padding-bottom: max(16px, env(safe-area-inset-bottom, 0px)) !important;
+  }
+}
+
+/* Desktop — content-sized modal; scroll host hugs content (no flex collapse). */
+@media (min-width: 1101px) {
+  .agent-modal.transactions-modal,
+  .transactions-modal {
+    display: flex !important;
+    flex-direction: column !important;
+    height: auto !important;
+    min-height: auto !important;
+    max-height: min(94vh, 960px) !important;
+    overflow: hidden !important;
+  }
+
+  .transactions-modal .tx-scroll-body {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 0 1 auto !important;
+    flex-grow: 0 !important;
+    min-height: 0 !important;
+    max-height: calc(min(94vh, 960px) - 68px) !important;
+    height: auto !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain !important;
+    -webkit-overflow-scrolling: touch !important;
+    background: var(--tx-contract-panel, transparent) !important;
+  }
+
+  .transactions-modal .pt-right.tx-panel-surface--workspace {
+    flex: 0 0 auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .transactions-modal .pt-right.tx-panel-surface--workspace .tx-content-carousel {
+    flex: 0 0 auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .bcc-modal-header,
+  .agent-modal-header,
+  .social-modal-header,
+  .transactions-modal .bcc-modal-header,
+  .transactions-modal .bcc-modal-header.tx-modal-header-layer,
+  .budget-modal .bcc-modal-header,
+  .budget-modal .bcc-modal-header.budget-modal-header-layer,
+  .interview-modal .bcc-modal-header,
+  .interview-modal .bcc-modal-header.interview-modal-header-layer,
+  .agent-modal.questionnaire-modal .bcc-modal-header,
+  .agent-modal.account-modal .bcc-modal-header {
+    padding-left: var(--modal-header-inline-inset) !important;
+    padding-right: var(--modal-header-inline-inset) !important;
+  }
+}

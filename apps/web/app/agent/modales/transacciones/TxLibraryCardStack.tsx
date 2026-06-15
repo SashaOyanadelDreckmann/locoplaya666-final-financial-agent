@@ -82,7 +82,9 @@ export function TxLibraryCardStack({
         onActiveIndexChange={onSelectAt}
         prefersReducedMotion={prefersReducedMotion}
         quietMode
-        cardWidthRatio={0.82}
+        cardWidthRatio={0.74}
+        cardHeightRatio={0.52}
+        maxCardWidth={288}
         renderCard={(entry, stackIndex, isFocused) => {
           const { product, intel } = entry;
           const paletteIndex = paletteIndices[stackIndex] ?? stackIndex;
@@ -131,6 +133,9 @@ export function TxLibraryCardStack({
                   type="button"
                   className="pt-item-delete-mini"
                   aria-label={`Eliminar ${product.label}`}
+                  onPointerDown={(event) => {
+                    event.stopPropagation();
+                  }}
                   onClick={(event) => {
                     event.stopPropagation();
                     onDelete(product.id);

@@ -1,0 +1,86 @@
+/* =============================================================================
+   INTERVIEW MODAL — AUTHORITATIVE HEADER CONTRACT
+   Mirrors transactions header layout with wine-red secondary accent.
+   ============================================================================= */
+
+.interview-modal{
+  --iv-contract-wine: #9f1239;
+  --iv-contract-wine-soft: rgba(159, 18, 57, 0.9);
+  --iv-contract-wine-eyebrow: #be185d;
+  --iv-contract-text: #eef2f6;
+  --iv-contract-text-dim: #96a3b0;
+  --iv-contract-ease: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.interview-modal .bcc-modal-header,
+.interview-modal .bcc-modal-header.interview-modal-header-layer{
+  position: relative !important;
+  top: auto !important;
+  z-index: auto !important;
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  gap: var(--modal-header-row-gap, 12px) !important;
+  padding:
+    var(--modal-header-top-inset, clamp(16px, 2.2vw, 24px))
+    var(--modal-header-inline-inset, clamp(16px, 2.4vw, 28px))
+    var(--modal-header-bottom-gap, clamp(8px, 1.2vw, 12px)) !important;
+  margin: 0 !important;
+  background: transparent !important;
+  border-bottom: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
+  flex-shrink: 0 !important;
+}
+
+.interview-modal .bcc-modal-title-wrap{
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  justify-content: flex-start !important;
+  text-align: left !important;
+  padding-right: 2px !important;
+}
+
+.interview-modal .bcc-modal-eyebrow{
+  display: block !important;
+  color: var(--iv-contract-wine-eyebrow) !important;
+  -webkit-text-fill-color: var(--iv-contract-wine-eyebrow) !important;
+  letter-spacing: 0.28em !important;
+  font-weight: 600 !important;
+  opacity: 1 !important;
+  font-size: clamp(9px, 1.8vw, 11px) !important;
+  text-transform: uppercase !important;
+  margin-bottom: 2px !important;
+  text-align: left !important;
+  align-self: flex-start !important;
+}
+
+.interview-modal .bcc-modal-title{
+  color: var(--iv-contract-text) !important;
+  font-weight: 650 !important;
+  letter-spacing: -0.025em !important;
+  font-size: clamp(15px, 2.4vw, 22px) !important;
+  line-height: 1.22 !important;
+  margin: 0 !important;
+  text-wrap: balance !important;
+  text-align: left !important;
+  align-self: flex-start !important;
+}
+
+.interview-modal.interview-modal--minimal .bcc-modal-title,
+.interview-modal.interview-modal--minimal .interview-matte-panel--header .bcc-modal-title {
+  color: var(--iv-min-ink, #1a1612) !important;
+  -webkit-text-fill-color: var(--iv-min-ink, #1a1612) !important;
+}
+
+.interview-modal .interview-modal-body{
+  padding: clamp(10px, 1.4vw, 16px) clamp(16px, 2.4vw, 22px) clamp(18px, 2.2vw, 24px) !important;
+}
+
+.interview-modal.interview-modal--diagnosis .interview-diagnosis-panel{
+  padding-top: 0 !important;
+}

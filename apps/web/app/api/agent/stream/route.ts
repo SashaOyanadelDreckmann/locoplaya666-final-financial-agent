@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { resolveCoreAgentProxyTimeoutMs } from '@financial-agent/shared';
 
-import { getAgentApiBaseUrl } from '@/lib/api/base';
+import { getInternalApiBaseUrl } from '@/lib/api/base';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -17,7 +17,7 @@ function pickHeader(request: NextRequest, name: string): string | null {
 }
 
 export async function POST(request: NextRequest) {
-  const backendBase = getAgentApiBaseUrl();
+  const backendBase = getInternalApiBaseUrl();
   const target = `${backendBase}/api/agent?stream=1`;
   const body = await request.text();
 

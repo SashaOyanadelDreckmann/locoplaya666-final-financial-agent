@@ -131,7 +131,6 @@ export function TxAnalystDashboard({
     dashboardClusters,
     alertDetails,
     metricExplanations,
-    qualityAverage,
     qualityRowsChart,
     dedupedMovementRows,
     incomeOrAbonoRows,
@@ -142,7 +141,6 @@ export function TxAnalystDashboard({
     movementCount,
     netFlowFromTable,
     avgMovementFromTable,
-    flowRatioFromTable,
     tablePeriod,
     summaryFromTable,
     alignedExecutiveSummary,
@@ -284,23 +282,24 @@ export function TxAnalystDashboard({
       ) : null}
 
       {merchantConfidenceRows.length > 0 ? (
-        <div className="tx-merchant-quality-card">
-          <div className="tx-merchant-quality-head">
+        <div className="tx-merchant-quality">
+          <div className="tx-ap-section-header">
             <span className="tx-ap-section-label">Precisión por comercio</span>
-            <span className="tx-meta-card-kicker">Confianza promedio y aprendizaje manual</span>
           </div>
-          <div className="tx-merchant-quality-list">
+          <ul className="tx-merchant-quality-rows" role="list">
             {merchantConfidenceRows.map((row) => (
-              <article key={`${row.merchant}-${row.category}`} className="tx-merchant-quality-row">
-                <div>
+              <li key={`${row.merchant}-${row.category}`} className="tx-merchant-quality-row">
+                <div className="tx-merchant-quality-copy">
                   <strong>{row.merchant}</strong>
                   <p>
                     {row.category} · {row.count} mov.
                   </p>
                 </div>
                 <div className="tx-merchant-quality-metrics">
-                  <span>{formatPercentCompact(row.avgConfidence * 100)}</span>
-                  <span>{row.manual ? 'Manual' : confidenceBandLong(row.avgConfidence)}</span>
+                  <span className="tx-merchant-quality-pct">{formatPercentCompact(row.avgConfidence * 100)}</span>
+                  <span className={`tx-merchant-quality-band${row.manual ? ' is-manual' : ''}`}>
+                    {row.manual ? 'Manual' : confidenceBandLong(row.avgConfidence)}
+                  </span>
                   <TxAskChatButton
                     compact
                     disabled={chatBusy}
@@ -308,9 +307,9 @@ export function TxAnalystDashboard({
                     onAsk={() => onAskSuggestedQuestion(buildMerchantAskQuestion(row.merchant))}
                   />
                 </div>
-              </article>
+              </li>
             ))}
-          </div>
+          </ul>
         </div>
       ) : null}
 
@@ -379,13 +378,6 @@ export function TxAnalystDashboard({
                     {formatCurrency(cluster.amount)} · {cluster.tx_count} mov. · {formatCurrency(cluster.avg_ticket)}{' '}
                     ticket
                   </p>
-                  {cluster.examples.length > 0 ? (
-                    <div className="tx-ap-cluster-tags">
-                      {cluster.examples.slice(0, 3).map((example) => (
-                        <span key={`${cluster.name}-${example}`}>{example}</span>
-                      ))}
-                    </div>
-                  ) : null}
                 </article>
               ))
             )}
@@ -450,58 +442,6 @@ export function TxAnalystDashboard({
         </div>
       </div>
 
-      <div className="tx-ap-ficha">
-        <div className="tx-ap-section-header">
-          <span className="tx-ap-section-label">Ficha analítica del producto</span>
-          <div className="tx-ap-ficha-pills">
-            <span className="tx-ap-signal-chip">Calidad {qualityAverage > 0 ? `${qualityAverage}%` : 'N/D'}</span>
-          </div>
-        </div>
-        {summaryFromTable ? <p className="tx-ap-ficha-summary">{summaryFromTable}</p> : null}
-        <div className="tx-ap-kpi-secondary-grid">
-          <article className="tx-ap-kpi-secondary-card tx-ap-kpi--income">
-            <span>{`${inflowSectionLabel} totales`}</span>
-            <strong>{formatCurrency(tableDerivedMetrics.inflowsTotal)}</strong>
-          </article>
-          <article className="tx-ap-kpi-secondary-card tx-ap-kpi--expense">
-            <span>Egresos totales</span>
-            <strong>{formatCurrency(tableDerivedMetrics.outflowsTotal)}</strong>
-          </article>
-          <article className="tx-ap-kpi-secondary-card">
-            <span>Flujo neto</span>
-            <strong>{formatCurrency(netFlowFromTable)}</strong>
-          </article>
-          <article className="tx-ap-kpi-secondary-card">
-            <span>Movimientos</span>
-            <strong>{movementCount.toLocaleString('es-CL')}</strong>
-          </article>
-          <article className="tx-ap-kpi-secondary-card">
-            <span>Ticket promedio</span>
-            <strong>{formatCurrency(avgMovementFromTable)}</strong>
-          </article>
-          <article className="tx-ap-kpi-secondary-card">
-            <span>Ratio gasto/ingreso</span>
-            <strong>{flowRatioFromTable > 0 ? `${(flowRatioFromTable * 100).toFixed(1)}%` : 'N/D'}</strong>
-          </article>
-          <article className="tx-ap-kpi-secondary-card">
-            <span>Filas tabulares fieles</span>
-            <strong>{verifiedTableRows.toLocaleString('es-CL')}</strong>
-          </article>
-          <article className="tx-ap-kpi-secondary-card">
-            <span>Cobertura detectada</span>
-            <strong>{formatPercentCompact(movementCoverageDisplay)}</strong>
-          </article>
-          <article className="tx-ap-kpi-secondary-card">
-            <span>Alta confianza</span>
-            <strong>{highConfidenceMovementCount.toLocaleString('es-CL')}</strong>
-          </article>
-          <article className="tx-ap-kpi-secondary-card">
-            <span>Origen tabular</span>
-            <strong>{formatPercentCompact(movementCount > 0 ? (verifiedTableRows / movementCount) * 100 : 0)}</strong>
-          </article>
-        </div>
-      </div>
-
       <div className="tx-ap-chat-dock">
         <span className="tx-ap-section-label">Chat del resumen</span>
         <p className="tx-ap-chat-intro">
@@ -536,7 +476,15 @@ export function TxAnalystDashboard({
             <TxChatStarterChips chips={starterChips} disabled={chatBusy} onSelect={onAskSuggestedQuestion} />
           </div>
         ) : null}
-        <div className="tx-composer-pro tx-composer-pro--summary">
+        <div
+          className="tx-composer-pro tx-composer-pro--summary"
+          onFocusCapture={onCarouselPause}
+          onBlurCapture={(event) => {
+            const next = event.relatedTarget;
+            if (next instanceof Node && event.currentTarget.contains(next)) return;
+            onCarouselResume?.();
+          }}
+        >
           <textarea
             className="tx-composer-field"
             value={txAssistantInput}

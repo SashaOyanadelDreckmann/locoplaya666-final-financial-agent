@@ -89,9 +89,6 @@ export function TxOperationalLimitsCard({
     [activeCount, activeSlotsLeft, createdTotal, maxActive, maxCreatedTotal, totalSlotsLeft],
   );
 
-  const focused = metrics.find((metric) => metric.key === focusedMetric) ?? metrics[0];
-  const ringPercent = clampTxLimitPercent(createdTotal, maxCreatedTotal);
-
   return (
     <article
       className={`tx-limits-card ${STATUS_TONE[status]} ${expanded ? 'is-expanded' : ''}`}
@@ -111,27 +108,6 @@ export function TxOperationalLimitsCard({
       </header>
 
       <div className="tx-limits-card-body">
-        <button
-          type="button"
-          className="tx-limits-ring"
-          aria-label={`${createdTotal} de ${maxCreatedTotal} productos creados en total, ${ringPercent} por ciento`}
-          onClick={() => setFocusedMetric('created')}
-          onMouseEnter={() => setFocusedMetric('created')}
-          onFocus={() => setFocusedMetric('created')}
-        >
-          <span
-            className="tx-limits-ring-track"
-            style={{ ['--tx-limits-ring-pct' as string]: `${ringPercent}%` }}
-            aria-hidden="true"
-          >
-            <span className="tx-limits-ring-fill" />
-          </span>
-          <span className="tx-limits-ring-core">
-            <strong>{createdTotal}</strong>
-            <span>de {maxCreatedTotal}</span>
-          </span>
-        </button>
-
         <div className="tx-limits-metrics" role="list">
           {metrics.map((metric) => {
             const percent = clampTxLimitPercent(metric.current, metric.max);
@@ -142,6 +118,7 @@ export function TxOperationalLimitsCard({
                 type="button"
                 role="listitem"
                 className={`tx-limits-metric ${isFocused ? 'is-focused' : ''}`}
+                data-metric={metric.key}
                 aria-pressed={isFocused}
                 onClick={() => setFocusedMetric(metric.key)}
                 onMouseEnter={() => setFocusedMetric(metric.key)}
@@ -158,16 +135,10 @@ export function TxOperationalLimitsCard({
                     data-metric={metric.key}
                   />
                 </span>
-                <span className="tx-limits-metric-sub">{metric.sublabel}</span>
               </button>
             );
           })}
         </div>
-      </div>
-
-      <div className="tx-limits-detail-panel" aria-live="polite">
-        <p className="tx-limits-detail-kicker">{focused.label}</p>
-        <p className="tx-limits-detail-copy">{focused.detail}</p>
       </div>
 
       <footer className="tx-limits-card-foot">

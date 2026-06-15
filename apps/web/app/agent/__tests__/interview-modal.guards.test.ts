@@ -190,7 +190,7 @@ describe('interview modal safeguards', () => {
 
     expect(modal).toContain('interview-modal--diagnosis');
     expect(modal).toContain('InterviewDiagnosisPanel');
-    expect(modal).toContain("const modalTitle = isDiagnosisMode ? diagnosisHeadline : 'Entrevista estratégica'");
+    expect(modal).toContain("const modalTitle = isDiagnosisMode ? 'Diagnóstico' : 'Entrevista'");
     expect(panel).toContain('Ver informe completo');
   });
 
@@ -215,5 +215,18 @@ describe('interview modal safeguards', () => {
     expect(modal).toContain('useInterviewVoiceRuntime');
     expect(modal).not.toContain('RTCPeerConnection');
     expect(runtime).toContain('RTCPeerConnection');
+  });
+
+  it('uses the mobile shell contract on phone and tablet portrait', () => {
+    const modalPath = path.join(process.cwd(), 'app', 'agent', 'modales', 'entrevista', 'InterviewModal.tsx');
+    const layoutPath = path.join(process.cwd(), 'app', 'agent', 'modales', 'entrevista', 'use-interview-modal-layout.ts');
+    const modal = fs.readFileSync(modalPath, 'utf8');
+    const layout = fs.readFileSync(layoutPath, 'utf8');
+
+    expect(layout).toContain('shouldUseMobileShell');
+    expect(modal).toContain('useInterviewModalLayout');
+    expect(modal).toContain('is-mobile-shell');
+    expect(modal).toContain('data-interview-mobile');
+    expect(modal).toContain('interview-modal-open');
   });
 });

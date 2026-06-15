@@ -42,26 +42,110 @@ export function NumericDust({
   );
 }
 
-export function buildEditorialSummaryBlocks(text: string | null | undefined) {
-  return String(text ?? '')
+export type EditorialSummaryBlock = {
+  lead: boolean;
+  kicker: string | null;
+  body: string;
+};
+
+const LEGACY_EXECUTIVE_SECTION_MARKERS = [
+  'Principales categorías de gasto:',
+  'Comercios destacados:',
+  'Puntos a revisar:',
+  'Principales cargos detectados:',
+  'Dónde parece concentrarse el gasto:',
+  'Comercios o conceptos recurrentes:',
+  'Señales a revisar:',
+  'Patrón dominante:',
+  'Nota de fidelidad',
+] as const;
+
+export function normalizeExecutiveSummaryText(text: string): string {
+  const trimmed = text.trim();
+  if (!trimmed || trimmed.includes('\n\n')) return trimmed;
+
+  let normalized = trimmed;
+
+  normalized = normalized.replace(
+    /(desde tabla estructurada\.)\s*((?:Ingresos|Abonos)\s+[^.]+\.)/i,
+    '$1\n\nBalance detectado\n$2\n\n',
+  );
+  if (!/^Panorama del periodo/m.test(normalized) && /^Se detectaron/i.test(normalized)) {
+    normalized = normalized.replace(/^(Se detectaron[\s\S]+?desde tabla estructurada\.)/i, 'Panorama del periodo\n$1');
+  }
+
+  for (const marker of LEGACY_EXECUTIVE_SECTION_MARKERS) {
+    const pattern = new RegExp(`(?=\\s*${marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'i');
+    normalized = normalized.replace(pattern, '\n\n');
+  }
+
+  return normalized.replace(/\n{3,}/g, '\n\n').trim();
+}
+
+function parseEditorialBlock(block: string, index: number): EditorialSummaryBlock {
+  const trimmed = block.trim();
+  const colonMatch = trimmed.match(/^([^:\n]{4,56}):\s*([\s\S]+)$/);
+  if (colonMatch && !colonMatch[1].includes('.')) {
+    return {
+      lead: index === 0,
+      kicker: colonMatch[1].trim(),
+      body: colonMatch[2].trim(),
+    };
+  }
+
+  const lines = trimmed.split('\n').map((line) => line.trim()).filter(Boolean);
+  if (lines.length >= 2 && lines[0].length <= 56 && !/[.!?]$/.test(lines[0])) {
+    return {
+      lead: index === 0,
+      kicker: lines[0],
+      body: lines.slice(1).join('\n'),
+    };
+  }
+
+  return {
+    lead: index === 0,
+    kicker: null,
+    body: trimmed.replace(/\s*\n+\s*/g, ' '),
+  };
+}
+
+export function buildEditorialSummaryBlocks(text: string | null | undefined): EditorialSummaryBlock[] {
+  return normalizeExecutiveSummaryText(String(text ?? ''))
     .split(/\n\s*\n+/)
-    .map((block) => block.replace(/\s*\n+\s*/g, ' ').trim())
+    .map((block) => block.trim())
     .filter(Boolean)
-    .map((block, index) => {
-      const match = block.match(/^([^:]{12,96}):\s*(.+)$/);
-      if (match && index > 0) {
-        return {
-          lead: false,
-          kicker: match[1].trim(),
-          body: match[2].trim(),
-        };
-      }
-      return {
-        lead: index === 0,
-        kicker: null,
-        body: block,
-      };
-    });
+    .map((block, index) => parseEditorialBlock(block, index));
+}
+
+function renderEditorialBody(body: string) {
+  const lines = body
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const bulletLines = lines.filter((line) => line.startsWith('•'));
+  if (bulletLines.length > 0 && bulletLines.length === lines.length) {
+    return (
+      <ul className="tx-summary-editorial-list">
+        {bulletLines.map((line, index) => (
+          <li key={`${line}-${index}`}>{line.replace(/^•\s*/, '')}</li>
+        ))}
+      </ul>
+    );
+  }
+
+  if (lines.length > 1) {
+    return (
+      <div className="tx-summary-editorial-body-stack">
+        {lines.map((line, index) => (
+          <p key={`${line}-${index}`} className="tx-summary-editorial-body">
+            {line}
+          </p>
+        ))}
+      </div>
+    );
+  }
+
+  return <p className="tx-summary-editorial-body">{body}</p>;
 }
 
 export function EditorialSummary({
@@ -85,7 +169,7 @@ export function EditorialSummary({
           title={onBlockDoubleClick ? 'Doble clic para reanalizar este hallazgo' : undefined}
         >
           {block.kicker ? <span className="tx-summary-editorial-kicker">{block.kicker}</span> : null}
-          <p className="tx-summary-editorial-body">{block.body}</p>
+          {renderEditorialBody(block.body)}
         </article>
       ))}
     </div>

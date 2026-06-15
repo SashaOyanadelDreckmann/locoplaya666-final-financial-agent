@@ -12,6 +12,13 @@ const FOCUSABLE_SELECTOR = [
   '[tabindex]:not([tabindex="-1"])',
 ].join(', ');
 
+function getFocusableElements(root: HTMLElement | null) {
+  if (!root) return [] as HTMLElement[];
+  return Array.from(root.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(
+    (node) => !node.hasAttribute('aria-hidden'),
+  );
+}
+
 export function useTxModalA11y(params: {
   isOpen: boolean;
   modalRef: RefObject<HTMLDivElement | null>;
@@ -21,26 +28,36 @@ export function useTxModalA11y(params: {
 }) {
   const { isOpen, modalRef, closeConfirmKind, dismissCloseConfirm, requestClose } = params;
   const restoreFocusRef = useRef<HTMLElement | null>(null);
+  const initialFocusDoneRef = useRef(false);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      const elementToRestore = restoreFocusRef.current;
+      if (elementToRestore && document.contains(elementToRestore)) {
+        window.requestAnimationFrame(() => elementToRestore.focus());
+      }
+      initialFocusDoneRef.current = false;
+      return;
+    }
 
     restoreFocusRef.current =
       document.activeElement instanceof HTMLElement ? document.activeElement : null;
 
-    const getFocusableElements = () => {
-      const root = modalRef.current;
-      if (!root) return [] as HTMLElement[];
-      return Array.from(root.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(
-        (node) => !node.hasAttribute('aria-hidden'),
-      );
-    };
-
     const rafId = window.requestAnimationFrame(() => {
-      const focusables = getFocusableElements();
+      if (initialFocusDoneRef.current) return;
+      initialFocusDoneRef.current = true;
+      const focusables = getFocusableElements(modalRef.current);
       const initialFocus = focusables[0] ?? modalRef.current;
       initialFocus?.focus({ preventScroll: true });
     });
+
+    return () => {
+      window.cancelAnimationFrame(rafId);
+    };
+  }, [isOpen, modalRef]);
+
+  useEffect(() => {
+    if (!isOpen) return;
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -53,7 +70,7 @@ export function useTxModalA11y(params: {
         return;
       }
       if (event.key !== 'Tab') return;
-      const focusables = getFocusableElements();
+      const focusables = getFocusableElements(modalRef.current);
       if (focusables.length === 0) {
         event.preventDefault();
         modalRef.current?.focus({ preventScroll: true });
@@ -81,13 +98,6 @@ export function useTxModalA11y(params: {
     };
 
     window.addEventListener('keydown', onKeyDown);
-    return () => {
-      window.cancelAnimationFrame(rafId);
-      window.removeEventListener('keydown', onKeyDown);
-      const elementToRestore = restoreFocusRef.current;
-      if (elementToRestore && document.contains(elementToRestore)) {
-        window.requestAnimationFrame(() => elementToRestore.focus());
-      }
-    };
+    return () => window.removeEventListener('keydown', onKeyDown);
   }, [closeConfirmKind, dismissCloseConfirm, isOpen, modalRef, requestClose]);
 }

@@ -65,6 +65,92 @@ describe('applyCoreAgentResponse', () => {
     expect(items.some((item) => item.type === 'citation')).toBe(true);
   });
 
+  it('replaces stream session bubble even after run.complete sets streaming=false', () => {
+    const items = applyCoreAgentResponseToItems({
+      items: [
+        { type: 'message', role: 'user', content: 'hola' },
+        {
+          type: 'message',
+          role: 'assistant',
+          content: '<PANEL>{"section":"profile","message":"tu perfil"}</PANEL>',
+          stream: { tools: [], streaming: false, startedAt: 1, phaseStatus: 'done' },
+        },
+      ],
+      response: {
+        message: 'Hola, ¿qué tal? Bienvenido.',
+        mode: 'information',
+        panel_action: { section: 'profile', message: 'tu perfil' },
+      },
+    });
+
+    expect(items.filter((item) => item.type === 'message' && item.role === 'assistant')).toHaveLength(1);
+    expect(items.some((item) => item.type === 'message' && item.role === 'assistant' && item.content === 'Hola, ¿qué tal? Bienvenido.')).toBe(
+      true,
+    );
+    expect(items.some((item) => item.type === 'message' && item.role === 'assistant' && String(item.content).includes('PANEL'))).toBe(
+      false,
+    );
+  });
+
+  it('preserves streamed text when final payload message is empty', () => {
+    const items = applyCoreAgentResponseToItems({
+      items: [
+        { type: 'message', role: 'user', content: 'pregunta' },
+        {
+          type: 'message',
+          role: 'assistant',
+          content: 'Texto visible durante el stream',
+          stream: { tools: [], streaming: false, startedAt: 1, phaseStatus: 'done' },
+        },
+      ],
+      response: {
+        message: '',
+        mode: 'information',
+        panel_action: { section: 'profile', message: 'tu perfil' },
+      },
+    });
+
+    expect(
+      items.some(
+        (item) =>
+          item.type === 'message' &&
+          item.role === 'assistant' &&
+          item.content === 'Texto visible durante el stream',
+      ),
+    ).toBe(true);
+  });
+
+  it('keeps assistant bubble when generic onboarding is filtered but citations remain', () => {
+    const items = applyCoreAgentResponseToItems({
+      items: [
+        { type: 'message', role: 'assistant', content: '', mode: 'information' },
+        { type: 'message', role: 'user', content: 'hola' },
+        {
+          type: 'message',
+          role: 'assistant',
+          content: 'Respuesta concreta para el usuario',
+          stream: { tools: [], streaming: false, startedAt: 1, phaseStatus: 'done' },
+        },
+      ],
+      response: {
+        message: 'Hola, bienvenido. Soy tu agente financiero personal en Chile.',
+        mode: 'information',
+        citations: [{ doc_title: 'CMF', url: 'https://cmf.cl' }],
+      },
+    });
+
+    expect(items.filter((item) => item.type === 'message' && item.role === 'assistant')).toHaveLength(2);
+    expect(
+      items.some(
+        (item) =>
+          item.type === 'message' &&
+          item.role === 'assistant' &&
+          item.content === 'Respuesta concreta para el usuario',
+      ),
+    ).toBe(true);
+    expect(items.some((item) => item.type === 'citation')).toBe(true);
+  });
+
   it('keeps welcome shell and surfaces transient chat errors separately', () => {
     const result = applyCoreAgentErrorItems(
       [
@@ -81,9 +167,9 @@ describe('applyCoreAgentResponse', () => {
     );
 
     expect(result.transientError).toContain('No pude procesar');
-    expect(result.items).toHaveLength(2);
+    expect(result.items).toHaveLength(3);
     expect(result.items.some((item) => item.type === 'message' && item.role === 'assistant' && item.content?.includes('No pude'))).toBe(
-      false,
+      true,
     );
   });
 });

@@ -195,7 +195,9 @@ export function buildInitialAgentSuggestions(intakeLike: unknown): string[] {
 }
 
 export function sanitizeMessageText(value: unknown, fallback = ''): string {
-  const raw = typeof value === 'string' ? value : String(value ?? '');
+  const raw = stripRedundantPanelSidebarCopy(
+    (typeof value === 'string' ? value : String(value ?? '')).replace(/\)(?=\[)/g, ') '),
+  );
   const shouldHumanizeReportText =
     /\bDiagn[oó]stico corto\b/i.test(raw) ||
     /\bajustes priorizados\b/i.test(raw) ||
@@ -227,6 +229,8 @@ export function sanitizeMessageText(value: unknown, fallback = ''): string {
   const cleaned = withProtectedMathAndCode
     .replace(/(?:^|\n)\s*SUGERENCIAS\s*:\s*\[[\s\S]*?\]\s*(?=\n|$)/gi, '\n')
     .replace(/<SUGERENCIAS>[\s\S]*?<\/SUGERENCIAS>/gi, '\n')
+    .replace(/<PANEL>[\s\S]*?<\/PANEL>/gi, '\n')
+    .replace(/<BUDGET_UPDATE>[\s\S]*?<\/BUDGET_UPDATE>/gi, '\n')
     .replace(/\bundefined\b/gi, '')
     .replace(/\bnull\b/gi, '')
     .replace(/([a-záéíóúñ])([A-ZÁÉÍÓÚÑ])/g, '$1 $2')
@@ -249,8 +253,17 @@ export function sanitizeMessageText(value: unknown, fallback = ''): string {
 function stripEditorialFormatting(input: string): string {
   return input
     .replace(/\*\*([^*\n]+?)\*\*/g, '$1')
-    .replace(/\[([^\]\n]+)\]\(style[-:][^)]+\)/gi, '$1')
-    .replace(/\+\+([^+\n]+)\+\+/g, '$1');
+    .replace(/\[([^\]\n]+)\]\(style[-:][^)]+\)/gi, '$1 ')
+    .replace(/\+\+([^+\n]+)\+\+/g, '$1')
+    .replace(/[ \t]{2,}/g, ' ');
+}
+
+function stripRedundantPanelSidebarCopy(text: string): string {
+  return text
+    .replace(/^>\s*[^\n]*\bpanel\b[^\n]*(?:desbloque|herramientas)[^\n]*\.?\s*$/gim, '')
+    .replace(/^[^\n]*\bpanel\b[^\n]*(?:desbloque|herramientas)[^\n]*conocimiento financiero crece[^\n]*\.?\s*$/gim, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 }
 
 export function sanitizeChatItems(items: ChatItem[]): ChatItem[] {
@@ -345,6 +358,47 @@ export function sanitizeChatThreadMessages(items: ChatItem[]): ChatItem[] {
       dedupeConsecutiveUserMessages(sanitizeChatItems(items)),
     ),
   );
+}
+
+/** Scrolls the thread so the active turn (stream rail / latest assistant) stays visible. */
+export function scrollChatThreadAfterUpdate(threadEl: HTMLElement | null) {
+  if (!threadEl) return;
+
+  const streamRail = threadEl.querySelector('.agent-stream-rail');
+  if (streamRail instanceof HTMLElement) {
+    streamRail.scrollIntoView({ block: 'nearest', behavior: 'auto' });
+    return;
+  }
+
+  const assistantTurns = threadEl.querySelectorAll(
+    '.agent-bubble.assistant:not([data-chat-welcome-shell="true"])',
+  );
+  const lastAssistant = assistantTurns[assistantTurns.length - 1];
+  if (lastAssistant instanceof HTMLElement) {
+    lastAssistant.scrollIntoView({ block: 'nearest', behavior: 'auto' });
+    return;
+  }
+
+  const userBubbles = threadEl.querySelectorAll('.agent-bubble.user');
+  const lastUser = userBubbles[userBubbles.length - 1];
+  if (lastUser instanceof HTMLElement) {
+    lastUser.scrollIntoView({ block: 'nearest', behavior: 'auto' });
+    return;
+  }
+
+  const onboardingCta = threadEl.querySelector('[data-onboarding-flow-cta="true"]');
+  if (onboardingCta instanceof HTMLElement) {
+    onboardingCta.scrollIntoView({ block: 'nearest', behavior: 'auto' });
+    return;
+  }
+
+  const welcomeShell = threadEl.querySelector('[data-chat-welcome-shell="true"]');
+  if (welcomeShell instanceof HTMLElement) {
+    welcomeShell.scrollIntoView({ block: 'start', behavior: 'auto' });
+    return;
+  }
+
+  threadEl.scrollTop = threadEl.scrollHeight;
 }
 
 export function resolveUnlockedChatIds(params: {

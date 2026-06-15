@@ -1,0 +1,131 @@
+/* ================================================= */
+/* INTERVIEW MOBILE — AUTHORITATIVE EOF CASCADE       */
+/* Loaded last in layout.tsx. Beats diagnostics +   */
+/* budget mobile leftovers for .is-mobile-shell.    */
+/* ================================================= */
+
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+  /* Kill budget phantom agent-panel gutter on interview shell */
+  html.interview-modal-open .agent-modal-overlay.interview-modal-overlay > .agent-modal.interview-modal.is-mobile-shell,
+  html.interview-modal-open .agent-modal-overlay.interview-modal-overlay > .interview-modal.is-mobile-shell,
+  .agent-modal-overlay.interview-modal-overlay > .agent-modal.interview-modal.is-mobile-shell,
+  .interview-modal.is-mobile-shell {
+    padding-top: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 0 !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    border-radius: 20px 20px 0 0 !important;
+    overflow: hidden !important;
+  }
+
+  html:not(.home-route-active) .interview-modal.is-mobile-shell,
+  html:not(.home-route-active) .agent-modal.interview-modal.is-mobile-shell,
+  html:not(.home-route-active) .interview-modal.is-mobile-shell .interview-shell,
+  html:not(.home-route-active) .interview-modal.is-mobile-shell .pro-interview-shell,
+  html:not(.home-route-active) .interview-modal.is-mobile-shell .pro-interview-column {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    overflow: visible !important;
+    background: transparent !important;
+    background-image: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  html:not(.home-route-active) .interview-modal.is-mobile-shell:not(.interview-modal--minimal) .interview-panel-surface--workspace {
+    overflow-y: auto !important;
+    background: linear-gradient(180deg, rgba(12, 18, 28, 0.92), rgba(9, 14, 23, 0.86)) !important;
+    border: 1px solid rgba(198, 214, 230, 0.2) !important;
+    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.24) !important;
+  }
+
+  html:not(.home-route-active) .interview-modal.is-mobile-shell.interview-modal--minimal .interview-panel-surface--workspace,
+  .agent-modal.interview-modal.is-mobile-shell.interview-modal--minimal .interview-panel-surface--workspace {
+    overflow: visible !important;
+    background: transparent !important;
+    background-image: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Diagnostics reset: workspace-first + sticky controls win */
+  .agent-modal.interview-modal.is-mobile-shell .interview-stage-shell {
+    display: flex !important;
+    flex-direction: column !important;
+    grid-template-columns: none !important;
+    grid-template-rows: none !important;
+    max-height: none !important;
+  }
+
+  .agent-modal.interview-modal.is-mobile-shell:not(.interview-modal--minimal) .interview-panel-surface--workspace,
+  .agent-modal.interview-modal.is-mobile-shell:not(.interview-modal--minimal) .pro-interview-column {
+    order: 1 !important;
+    padding: 12px !important;
+  }
+
+  .agent-modal.interview-modal.is-mobile-shell.interview-modal--minimal .interview-panel-surface--workspace,
+  .agent-modal.interview-modal.is-mobile-shell.interview-modal--minimal .pro-interview-column {
+    order: 1 !important;
+    padding: 0 !important;
+  }
+
+  .agent-modal.interview-modal.is-mobile-shell .interview-panel-surface--sidebar {
+    order: 2 !important;
+    flex-direction: column !important;
+    flex-wrap: nowrap !important;
+    max-height: min(34dvh, 280px) !important;
+    overflow-y: auto !important;
+  }
+
+  .agent-modal.interview-modal.is-mobile-shell .interview-call-controls.is-live {
+    position: sticky !important;
+    bottom: 0 !important;
+  }
+
+  .agent-modal.interview-modal.is-mobile-shell .interview-call-actions--live .interview-call-pause-btn,
+  .agent-modal.interview-modal.is-mobile-shell .interview-call-actions--live .interview-call-end-btn {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+    min-height: 44px !important;
+  }
+
+  /* Browser keyboard: overlay tracks visual viewport, no double scroll */
+  html:not(.pwa-standalone).mobile-input-engaged .agent-modal-overlay.interview-modal-overlay,
+  html:not(.pwa-standalone).browser-keyboard-open .agent-modal-overlay.interview-modal-overlay {
+    height: var(--visual-vh, 100dvh) !important;
+    min-height: var(--visual-vh, 100dvh) !important;
+    max-height: var(--visual-vh, 100dvh) !important;
+  }
+
+  html.mobile-input-engaged .interview-modal.is-mobile-shell .interview-panel-surface--workspace {
+    scroll-padding-bottom: max(72px, env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  /* Header — same inset / type scale as transactions + budget mobile sheets */
+  .interview-modal.is-mobile-shell .bcc-modal-header,
+  .interview-modal.is-mobile-shell .bcc-modal-header.interview-modal-header-layer,
+  .interview-modal.is-mobile-shell.interview-modal--minimal .interview-matte-panel--header {
+    position: relative !important;
+    top: auto !important;
+    z-index: auto !important;
+    padding-top: var(--modal-header-top-inset, 16px) !important;
+    padding-bottom: var(--modal-header-bottom-gap, 10px) !important;
+    padding-left: max(var(--modal-header-inline-inset, 16px), env(safe-area-inset-left, 0px)) !important;
+    padding-right: max(var(--modal-header-inline-inset, 16px), env(safe-area-inset-right, 0px)) !important;
+    min-height: 0 !important;
+    gap: var(--modal-header-row-gap, 12px) !important;
+    border-radius: var(--modal-mobile-sheet-radius, 20px) var(--modal-mobile-sheet-radius, 20px) 0 0 !important;
+  }
+}

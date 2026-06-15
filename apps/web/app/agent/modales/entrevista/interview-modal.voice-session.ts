@@ -1,3 +1,5 @@
+import { detectPwaStandalone } from '@/lib/interfaz/viewport-mode';
+
 import {
   buildVoiceSessionInstructions,
   INTERVIEW_VOICE_OPENING_FOCUS,
@@ -51,12 +53,27 @@ export function emitVoiceSessionContext(
 export function resolveVoiceCapabilityIssue() {
   if (typeof window === 'undefined') return null;
   if (!window.isSecureContext) {
-    return 'La llamada en tiempo real requiere un contexto seguro (HTTPS o localhost).';
+    return detectPwaStandalone()
+      ? 'La entrevista por voz requiere HTTPS. Reinstala el acceso directo desde una URL segura o usa Safari con https://.'
+      : 'La entrevista por voz requiere HTTPS (o localhost). En desarrollo móvil, abre la app con https:// en tu red local.';
   }
   if (!navigator.mediaDevices?.getUserMedia) {
     return 'Tu navegador no soporta captura de micrófono para esta entrevista.';
   }
+  if (typeof window.RTCPeerConnection === 'undefined') {
+    return 'Tu navegador no soporta la conexión de voz en tiempo real para esta entrevista.';
+  }
   return null;
+}
+
+export function resolveMicrophonePermissionHint(): string {
+  if (typeof window === 'undefined') {
+    return 'El sistema pedirá permiso de micrófono al iniciar la llamada.';
+  }
+  if (detectPwaStandalone()) {
+    return 'Al iniciar, iOS/Android pedirán permiso de micrófono. Si no aparece, abre Ajustes > FinMente > Micrófono.';
+  }
+  return 'Tu navegador pedirá permiso para usar el micrófono. El tiempo de entrevista solo empieza cuando la llamada quede conectada.';
 }
 
 export async function ensureMicrophoneAccess(existingStream: MediaStream | null): Promise<MediaStream> {
@@ -147,6 +164,9 @@ export function mapMicrophoneAccessError(error: unknown): string {
     /Permission dismissed/i.test(message) ||
     /NotAllowedError/i.test(message)
   ) {
+    if (detectPwaStandalone()) {
+      return 'El micrófono está bloqueado. Ve a Ajustes > FinMente > Micrófono (o Safari > Sitios web) y actívalo, luego reintenta.';
+    }
     return 'El navegador bloqueó el micrófono. Actívalo en el banner o en los permisos del sitio y vuelve a intentar.';
   }
   if (/NotFoundError|DevicesNotFoundError/i.test(message)) {

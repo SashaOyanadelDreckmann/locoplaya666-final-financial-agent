@@ -33,9 +33,20 @@ describe('transactions modal layout contract css', () => {
 
   it('styles tx-wizard-stepper and compact mobile stepper', () => {
     expect(contractCss).toContain('.transactions-modal .tx-wizard-stepper-list');
+    expect(contractCss).toContain('align-items: stretch !important');
+    expect(contractCss).toContain('.transactions-modal .tx-wizard-stepper-item');
     expect(contractCss).toContain('.transactions-modal .tx-wizard-step-copy');
     expect(contractCss).toContain('display: none !important');
     expect(contractCss).not.toContain('.transactions-modal .tx-flow-status-card');
+  });
+
+  it('prevents workspace scroll clipping on executive actions', () => {
+    expect(contractCss).toContain('.transactions-modal .pt-right.tx-panel-surface--workspace .tx-ex-regen-btn');
+    expect(contractCss).toContain('min-height: 36px !important');
+    expect(contractCss).toContain('WORKSPACE LAYOUT');
+    expect(contractCss).toContain('min-height: auto !important');
+    expect(contractCss).toContain('overflow-y: auto !important');
+    expect(contractCss).toContain('padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px)) !important');
   });
 
   it('neutralizes phantom mobile bottom clearance', () => {
@@ -80,5 +91,32 @@ describe('transactions modal layout contract css', () => {
     expect(contractCss).toContain("font-family: 'Playfair Display', Georgia, serif !important");
     expect(contractCss).toContain('.transactions-modal .pt-left .pt-list');
     expect(contractCss).toContain('.transactions-modal .tx-format-rail-chip-label-short');
+  });
+
+  it('flattens workspace executive summary without nested card chrome', () => {
+    expect(contractCss).toContain('.tx-ex-summary');
+    expect(contractCss).toContain('Workspace executive summary — flat on panel gradient');
+    expect(contractCss).toContain('.tx-ex-actions');
+    expect(contractCss).not.toMatch(
+      /\.tx-ap-chat-dock,\s*\n\.transactions-modal[^\n]*\.tx-ex-kpi/s,
+    );
+  });
+
+  it('flattens workspace merchant quality without nested card chrome', () => {
+    expect(contractCss).toContain('Workspace merchant quality — flat on panel gradient');
+    expect(contractCss).toContain('.tx-merchant-quality-row');
+  });
+
+  it('flattens workspace charts without nested card chrome', () => {
+    expect(contractCss).toContain('Workspace charts — flat on panel gradient');
+    expect(contractCss).toContain('.tx-ap-chart-block');
+    expect(contractCss).not.toContain('.tx-ap-chart-card');
+  });
+
+  it('flattens workspace movement tables with premium light editorial styling', () => {
+    expect(contractCss).toContain('Workspace movement tables — flat premium editorial');
+    expect(contractCss).toContain('.tx-movements-table--pro thead tr');
+    expect(contractCss).toContain('.tx-movement-detail-text');
+    expect(contractCss).toContain('var(--tx-contract-eyebrow)');
   });
 });

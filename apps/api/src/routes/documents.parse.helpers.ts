@@ -108,37 +108,63 @@ export function buildExecutiveSummaryText(params: {
   formatAmount: (value: number) => string;
 }): string {
   if (params.movementCount === 0) {
-    return 'No hay movimientos suficientes para un resumen confiable. Se recomienda reforzar evidencia.';
+    return 'Sin movimientos suficientes\nNo hay base confiable para un resumen. Refuerza la evidencia subida.';
   }
 
   const periodLabel =
     params.period?.from && params.period?.to
-      ? ` (${params.period.from} a ${params.period.to})`
-      : '';
+      ? `${params.period.from} a ${params.period.to}`
+      : null;
   const inflowLabel = params.inflowLabel ?? 'Ingresos';
-  const lines = [
-    `Se detectaron ${params.movementCount} movimientos válidos${periodLabel}, con ${params.tableBasedMovements} desde tabla estructurada. ${inflowLabel} ${params.formatAmount(params.inflowsTotal)}, egresos ${params.formatAmount(params.outflowsTotal)} y flujo neto ${params.formatAmount(params.netFlow)}.`,
-  ];
+  const blocks: string[] = [];
+
+  blocks.push(
+    [
+      'Panorama del periodo',
+      [
+        `Se detectaron ${params.movementCount} movimientos válidos${periodLabel ? ` (${periodLabel})` : ''}.`,
+        `${params.tableBasedMovements} provienen de tabla estructurada.`,
+      ].join(' '),
+    ].join('\n'),
+  );
+
+  blocks.push(
+    [
+      'Balance detectado',
+      `${inflowLabel} ${params.formatAmount(params.inflowsTotal)} · Egresos ${params.formatAmount(params.outflowsTotal)} · Flujo neto ${params.formatAmount(params.netFlow)}`,
+    ].join('\n'),
+  );
 
   if (params.topCategories.length > 0) {
-    const topCategories = params.topCategories
-      .slice(0, 3)
-      .map((category) => `${category.name} ${params.formatAmount(category.amount)}`)
-      .join('; ');
-    lines.push(`Principales categorías de gasto: ${topCategories}.`);
+    blocks.push(
+      [
+        'Categorías de gasto',
+        ...params.topCategories
+          .slice(0, 3)
+          .map((category) => `• ${category.name} — ${params.formatAmount(category.amount)}`),
+      ].join('\n'),
+    );
   }
 
   if (params.topMerchants.length > 0) {
-    const topMerchants = params.topMerchants
-      .slice(0, 2)
-      .map((merchant) => `${merchant.merchant} (${params.formatAmount(merchant.amount)})`)
-      .join(', ');
-    lines.push(`Comercios destacados: ${topMerchants}.`);
+    blocks.push(
+      [
+        'Comercios destacados',
+        ...params.topMerchants
+          .slice(0, 3)
+          .map((merchant) => `• ${merchant.merchant} — ${params.formatAmount(merchant.amount)}`),
+      ].join('\n'),
+    );
   }
 
   if (params.alerts.length > 0) {
-    lines.push(`Puntos a revisar: ${params.alerts.slice(0, 2).join(' ')}`);
+    blocks.push(
+      [
+        'Puntos a revisar',
+        ...params.alerts.slice(0, 3).map((alert) => `• ${alert}`),
+      ].join('\n'),
+    );
   }
 
-  return lines.join(' ');
+  return blocks.join('\n\n');
 }

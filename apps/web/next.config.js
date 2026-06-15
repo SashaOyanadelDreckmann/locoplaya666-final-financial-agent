@@ -1,3 +1,5 @@
+const { buildLanDevOrigins, formatLanDevBanner } = require('../../scripts/dev/lan-dev-hosts.mjs');
+
 /** @type {import('next').NextConfig} */
 function normalizeOrigin(value) {
   const raw = (value || '').trim();
@@ -11,13 +13,22 @@ const apiOrigin = normalizeOrigin(
     process.env.NEXT_PUBLIC_API_URL ||
     (process.env.NODE_ENV === 'production'
       ? 'https://locoplaya666-final-financial-agent-production.up.railway.app'
-      : 'http://localhost:3001')
+      : 'http://127.0.0.1:3001')
 );
 
-const devAllowedOrigins = (process.env.DEV_ALLOWED_ORIGINS ?? '')
-  .split(',')
-  .map((value) => value.trim())
-  .filter(Boolean);
+/** Next rewrites run on the dev machine — always loopback in development. */
+const backendRewriteOrigin =
+  process.env.NODE_ENV === 'production'
+    ? apiOrigin
+    : normalizeOrigin(process.env.INTERNAL_API_ORIGIN ?? '') || 'http://127.0.0.1:3001';
+
+const devAllowedOrigins = [
+  ...(process.env.DEV_ALLOWED_ORIGINS ?? '')
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean),
+  ...buildLanDevOrigins(Number(process.env.PORT) || 3000),
+];
 
 const nextConfig = {
   reactStrictMode: true,
@@ -64,10 +75,21 @@ const nextConfig = {
     return [
       {
         source: '/backend/:path*',
-        destination: `${apiOrigin.replace(/\/+$/, '')}/:path*`,
+        destination: `${backendRewriteOrigin.replace(/\/+$/, '')}/:path*`,
       },
     ];
   },
 };
 
 module.exports = nextConfig;
+
+if (process.env.NODE_ENV !== 'production') {
+  const banner = formatLanDevBanner({
+    webPort: Number(process.env.PORT) || 3000,
+    apiPort: Number(process.env.API_PORT) || 3001,
+  });
+  if (banner) {
+    // eslint-disable-next-line no-console
+    console.log(banner);
+  }
+}

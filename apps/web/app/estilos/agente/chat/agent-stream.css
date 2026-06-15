@@ -1,14 +1,33 @@
 .agent-stream-rail {
   display: grid;
   gap: 0.85rem;
-  margin: 0 0 1rem;
+  margin: 0 0 0.75rem;
   padding: 0.95rem 1rem;
   border-radius: 16px;
-  border: 1px solid color-mix(in srgb, var(--agent-accent, #7dd3fc) 24%, transparent);
-  background:
-    linear-gradient(135deg, color-mix(in srgb, var(--agent-accent, #7dd3fc) 10%, transparent), transparent 58%),
-    color-mix(in srgb, var(--agent-surface-elevated, #111827) 88%, #000 12%);
-  box-shadow: 0 10px 30px color-mix(in srgb, #000 28%, transparent);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(10, 16, 26, 0.2);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.04) inset,
+    0 16px 40px rgba(0, 0, 0, 0.14);
+  isolation: isolate;
+}
+
+.agent-thread > .agent-stream-rail {
+  position: relative;
+  z-index: 2;
+  flex: 0 0 auto;
+  align-self: flex-start;
+  width: 100%;
+  max-width: var(--bubble-maxw, 72%);
+  margin-bottom: 14px;
+}
+
+.agent-thread > .agent-stream-rail + .agent-bubble.assistant.latex-doc {
+  position: relative;
+  z-index: 1;
+  margin-top: 0 !important;
 }
 
 .agent-stream-rail-head {
@@ -22,14 +41,15 @@
   width: 0.72rem;
   height: 0.72rem;
   border-radius: 999px;
-  background: var(--agent-accent, #7dd3fc);
-  box-shadow: 0 0 0 0 color-mix(in srgb, var(--agent-accent, #7dd3fc) 55%, transparent);
+  background: var(--stream-accent, #b89346);
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--stream-accent, #b89346) 55%, transparent);
   animation: agent-stream-pulse 1.8s ease-out infinite;
+  transition: background-color 0.35s ease, box-shadow 0.35s ease;
 }
 
 @keyframes agent-stream-pulse {
   0% {
-    box-shadow: 0 0 0 0 color-mix(in srgb, var(--agent-accent, #7dd3fc) 45%, transparent);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--stream-accent, #b89346) 45%, transparent);
   }
   70% {
     box-shadow: 0 0 0 10px transparent;
@@ -61,10 +81,27 @@
   text-overflow: ellipsis;
 }
 
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+  .agent-thread > .agent-stream-rail,
+  .agent-thread > .onboarding-flow-cta {
+    width: 100%;
+    max-width: var(--bubble-maxw, 72%);
+    align-self: flex-start;
+  }
+
+  .agent-stream-rail-title {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+    line-height: 1.25;
+  }
+}
+
 .agent-stream-rail-mode {
   font-size: 0.74rem;
-  color: color-mix(in srgb, var(--agent-accent, #7dd3fc) 72%, #fff 28%);
+  color: var(--stream-accent, #b89346);
   text-transform: capitalize;
+  transition: color 0.35s ease;
 }
 
 .agent-stream-rail-elapsed {
@@ -84,12 +121,17 @@
   position: relative;
   height: 0.28rem;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--agent-text-muted, #94a3b8) 18%, transparent);
+  background: color-mix(in srgb, var(--stream-step-color, #94a3b8) 32%, #121a24);
   overflow: hidden;
+  transition: background-color 0.35s ease;
 }
 
 .agent-stream-rail-step.is-done {
-  background: color-mix(in srgb, var(--agent-accent, #7dd3fc) 55%, transparent);
+  background: var(--stream-step-color, #b89346);
+}
+
+.agent-stream-rail-step.is-active {
+  background: var(--stream-step-color, #b89346);
 }
 
 .agent-stream-rail-step.is-active::after {
@@ -100,7 +142,7 @@
   background: linear-gradient(
     90deg,
     transparent,
-    color-mix(in srgb, var(--agent-accent, #7dd3fc) 85%, #fff 15%),
+    color-mix(in srgb, #ffffff 55%, var(--stream-step-color, #b89346)),
     transparent
   );
   animation: agent-stream-shimmer 1.4s ease-in-out infinite;
@@ -126,14 +168,15 @@
   border-radius: 999px;
   font-size: 0.72rem;
   line-height: 1.2;
-  border: 1px solid color-mix(in srgb, var(--agent-text-muted, #94a3b8) 22%, transparent);
-  color: color-mix(in srgb, var(--agent-text, #f8fafc) 88%, #fff 12%);
-  background: color-mix(in srgb, var(--agent-surface, #0f172a) 82%, #000 18%);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: rgba(248, 250, 252, 0.96);
+  background: rgba(14, 20, 30, 0.92);
 }
 
 .agent-stream-tool.is-active {
-  border-color: color-mix(in srgb, var(--agent-accent, #7dd3fc) 42%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--agent-accent, #7dd3fc) 18%, transparent);
+  border-color: var(--stream-accent, #b89346);
+  background: color-mix(in srgb, var(--stream-accent, #b89346) 22%, #141c28);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--stream-accent, #b89346) 35%, #141c28);
 }
 
 .agent-stream-tool.is-done {
@@ -152,8 +195,36 @@
   margin-left: 0.12rem;
   vertical-align: -0.12em;
   border-radius: 1px;
-  background: var(--agent-accent, #7dd3fc);
+  background: var(--stream-accent, #b89346);
   animation: agent-stream-caret 1s steps(1) infinite;
+  transition: background-color 0.35s ease;
+}
+
+.agent-bubble.assistant.agent-bubble--chat-error {
+  align-self: stretch;
+  width: 100%;
+  max-width: 100%;
+  padding: 0.85rem 1rem;
+  border-radius: 14px;
+  border: 1px solid rgba(248, 113, 113, 0.35);
+  background: rgba(127, 29, 29, 0.18);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
+}
+
+.agent-bubble--chat-error-text {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  color: rgba(254, 226, 226, 0.96);
+}
+
+html[data-visual-mode='light-outline'] .agent-bubble.assistant.agent-bubble--chat-error {
+  background: rgba(254, 242, 242, 0.96);
+  border-color: rgba(248, 113, 113, 0.45);
+}
+
+html[data-visual-mode='light-outline'] .agent-bubble--chat-error-text {
+  color: #7f1d1d;
 }
 
 @keyframes agent-stream-caret {

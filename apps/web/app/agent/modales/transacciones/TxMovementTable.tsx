@@ -74,6 +74,17 @@ export function TxMovementTable({
     />
   );
 
+  const renderMovementDetailCell = (movement: MovementRow) => {
+    const detail = movement.merchant ? `${movement.label} · ${movement.merchant}` : movement.label;
+    return (
+      <td className="tx-movement-detail-cell">
+        <span className="tx-movement-detail-text" title={detail}>
+          {detail}
+        </span>
+      </td>
+    );
+  };
+
   return (
     <>
       <div className="tx-ap-table-card tx-ap-table-card--full">
@@ -125,7 +136,7 @@ export function TxMovementTable({
                         </span>
                       </td>
                       <td>{movement.date || 'N/D'}</td>
-                      <td>{movement.merchant ? `${movement.label} · ${movement.merchant}` : movement.label}</td>
+                      {renderMovementDetailCell(movement)}
                       <td>
                         {movement.category || 'Otros'}
                         {movement.overrideApplied ? <span className="tx-override-pill">Manual</span> : null}
@@ -189,7 +200,7 @@ export function TxMovementTable({
                           <span className="tx-type-income">{movementTypeLabel(movement, isCreditCardProduct)}</span>
                         </td>
                         <td>{movement.date || 'N/D'}</td>
-                        <td>{movement.merchant ? `${movement.label} · ${movement.merchant}` : movement.label}</td>
+                        {renderMovementDetailCell(movement)}
                         <td>
                           {movement.category || 'Otros'}
                           {movement.overrideApplied ? <span className="tx-override-pill">Manual</span> : null}
@@ -249,7 +260,7 @@ export function TxMovementTable({
                           <span className="tx-type-expense">Egreso</span>
                         </td>
                         <td>{movement.date || 'N/D'}</td>
-                        <td>{movement.merchant ? `${movement.label} · ${movement.merchant}` : movement.label}</td>
+                        {renderMovementDetailCell(movement)}
                         <td>
                           {movement.category || 'Otros'}
                           {movement.overrideApplied ? <span className="tx-override-pill">Manual</span> : null}

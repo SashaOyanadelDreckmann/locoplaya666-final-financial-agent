@@ -1,4 +1,8 @@
-import { INTERVIEW_MIN_EARLY_END_SEC, INTERVIEW_TOTAL_LIMIT_SEC } from '@financial-agent/shared';
+import {
+  INTERVIEW_MAX_CALLS_PER_USER,
+  INTERVIEW_MIN_EARLY_END_SEC,
+  INTERVIEW_TOTAL_LIMIT_SEC,
+} from '@financial-agent/shared';
 
 export type InterviewActiveQuota = {
   activeSeconds: number;
@@ -106,6 +110,43 @@ export function resolveInterviewModalLoadingState(input: InterviewModalLoadingIn
   if (input.hasIntake) return false;
   if (input.sessionAlreadyCompleted || input.hasDiagnosis) return false;
   return true;
+}
+
+export type InterviewStartBlockedInput = {
+  intakeReady: boolean;
+  voiceSupported: boolean;
+  voiceCapabilityIssue: string | null;
+  voiceAwaitingMic: boolean;
+  voiceConnecting: boolean;
+  voiceConnected: boolean;
+  isFinalizingCall: boolean;
+  isGeneratingDiagnosis: boolean;
+  showVoiceReport: boolean;
+  callsStarted: number;
+  voiceFlags: InterviewVoiceStateFlags;
+};
+
+export function resolveInterviewStartBlockedReason(input: InterviewStartBlockedInput): string | null {
+  if (input.voiceAwaitingMic || input.voiceConnecting || input.voiceConnected) return null;
+  if (input.isFinalizingCall || input.isGeneratingDiagnosis) return null;
+  if (!input.intakeReady) {
+    return 'Estamos cargando tu contexto financiero. Espera unos segundos e intenta de nuevo.';
+  }
+  if (input.voiceCapabilityIssue) return input.voiceCapabilityIssue;
+  if (!input.voiceSupported) {
+    return 'Tu navegador no soporta llamada por voz en esta vista. Usa HTTPS o abre la app instalada en el inicio.';
+  }
+  if (input.showVoiceReport) return 'El diagnóstico de esta entrevista ya está listo.';
+  if (input.voiceFlags.voiceCallExhausted && !input.voiceFlags.hasLiveVoiceCall) {
+    return 'El tiempo de la entrevista se agotó. Estamos consolidando tu diagnóstico automáticamente.';
+  }
+  if (input.voiceFlags.voiceInterviewLocked && !input.voiceFlags.hasLiveVoiceCall) {
+    return 'Esta entrevista senior ya quedó cerrada para tu usuario.';
+  }
+  if (!input.voiceFlags.hasLiveVoiceCall && input.callsStarted >= INTERVIEW_MAX_CALLS_PER_USER) {
+    return 'Solo se permite una llamada por usuario en esta entrevista.';
+  }
+  return null;
 }
 
 export function resolveInterviewVoiceStateFlags(input: InterviewVoiceStateInput): InterviewVoiceStateFlags {

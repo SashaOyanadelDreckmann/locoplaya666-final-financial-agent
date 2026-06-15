@@ -53,6 +53,7 @@ export function TxConsentStep(props: TxConsentStepProps) {
                 aria-autocomplete="list"
               />
               <button
+                id="tx-institution-toggle"
                 type="button"
                 className="tx-picker-toggle"
                 onClick={props.onToggleInstitutionCatalog}
@@ -93,6 +94,7 @@ export function TxConsentStep(props: TxConsentStepProps) {
                 aria-autocomplete="list"
               />
               <button
+                id="tx-template-toggle"
                 type="button"
                 className="tx-picker-toggle"
                 onClick={props.onToggleTemplateCatalog}
@@ -136,7 +138,6 @@ export function TxConsentStep(props: TxConsentStepProps) {
               Autorizo el análisis de datos en ambiente simulado (sin credenciales reales).
             </span>
           </button>
-          <div className="tx-consent-inline-actions" />
         </div>
         {!props.canContinueAuto && props.consentGuidance ? (
           <p className="tx-consent-guidance" role="status">
@@ -148,23 +149,21 @@ export function TxConsentStep(props: TxConsentStepProps) {
             {props.transactionUploadError}
           </p>
         ) : null}
-        <div className="agent-modal-actions tx-consent-actions-row">
-          <button
-            type="button"
-            className="continue-ghost tx-delete-product-btn"
-            onClick={props.onDeleteProduct}
-          >
-            Eliminar producto
-          </button>
-          <button
-            type="button"
-            className="button-primary tx-consent-continue-main"
-            disabled={!props.canContinueAuto || props.isDockingToLibrary}
-            onClick={props.onContinue}
-          >
-            {props.isDockingToLibrary ? 'Autorizando…' : 'Autorizar y continuar'}
-          </button>
-        </div>
+        <button
+          type="button"
+          className="continue-ghost tx-delete-product-btn"
+          onClick={props.onDeleteProduct}
+        >
+          Eliminar producto
+        </button>
+        <button
+          type="button"
+          className="button-primary tx-consent-continue-main"
+          disabled={!props.canContinueAuto || props.isDockingToLibrary}
+          onClick={props.onContinue}
+        >
+          {props.isDockingToLibrary ? 'Autorizando…' : 'Autorizar y continuar'}
+        </button>
       </div>
     </section>
   );

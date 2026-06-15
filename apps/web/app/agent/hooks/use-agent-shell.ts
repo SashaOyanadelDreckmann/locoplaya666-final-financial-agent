@@ -6,7 +6,12 @@ import { useRouter } from 'next/navigation';
 import { ApiHttpError } from '@/lib/api/envelope';
 import { getSessionInfo, type FincoinUsageApiPayload } from '@/lib/api/cliente';
 import { syncViewportModeClasses } from '@/lib/interfaz/viewport-mode';
-import { applyMobileViewportTokens } from '@/lib/interfaz/mobile-viewport-sync';
+import {
+  applyMobileViewportTokens,
+  isAgentModalOpen,
+  restoreAgentShellViewport,
+  shouldRestoreAgentShellViewport,
+} from '@/lib/interfaz/mobile-viewport-sync';
 import { hasCompletedIntakeAccess, resolveAuthRedirectPath } from '../utilidades/page.utils';
 
 export type AgentSessionInfo = {
@@ -151,36 +156,28 @@ export function useAgentShell() {
     body.style.overflow = 'hidden';
     body.style.overscrollBehavior = 'none';
 
+    const allowsTouchScroll = (el: HTMLElement) => {
+      if (el.closest('.agent-modal-overlay, .social-modal-overlay')) return true;
+      if (el.closest('.mobile-panel-handle, .agent-panel.is-dragging')) return true;
+      if (el.closest('.agent-panel.is-mobile-expanded')) return true;
+      if (el.closest('.agent-mobile-composer-dock')) return true;
+      if (el.closest('.agent-thread')) return true;
+      if (el.closest('.agent-bubble.is-scrollable-bubble, .latex-doc-body.is-scrollable-content')) {
+        return true;
+      }
+      if (
+        document.documentElement.classList.contains('is-tablet-landscape') &&
+        el.closest('.agent-panel')
+      ) {
+        return true;
+      }
+      return false;
+    };
+
     const preventBounce = (e: TouchEvent) => {
       let target = e.target as HTMLElement | null;
       while (target && target !== document.body) {
-        if (
-          target.classList.contains('mobile-panel-handle') ||
-          target.closest('.mobile-panel-handle') ||
-          target.closest('.agent-panel.is-dragging')
-        ) {
-          return;
-        }
-
-        const expandedPanel = target.closest('.agent-panel.is-mobile-expanded');
-        if (expandedPanel) {
-          return;
-        }
-
-        if (target.closest('.agent-panel.is-mobile-compact')) {
-          return;
-        }
-
-        if (target.closest('.agent-mobile-composer-dock')) {
-          return;
-        }
-
-        if (
-          document.documentElement.classList.contains('is-tablet-landscape') &&
-          target.closest('.agent-panel')
-        ) {
-          return;
-        }
+        if (allowsTouchScroll(target)) return;
 
         const style = window.getComputedStyle(target);
         const overflowY = style.overflowY;
@@ -188,8 +185,10 @@ export function useAgentShell() {
         if (
           overflowY === 'auto' ||
           overflowY === 'scroll' ||
+          overflowY === 'overlay' ||
           overflowX === 'auto' ||
-          overflowX === 'scroll'
+          overflowX === 'scroll' ||
+          overflowX === 'overlay'
         ) {
           return;
         }
@@ -222,16 +221,68 @@ export function useAgentShell() {
     const update = () => {
       applyMobileViewportTokens();
     };
+    const onVisualViewportScroll = () => {
+      if (
+        shouldRestoreAgentShellViewport() &&
+        !isAgentModalOpen() &&
+        (vv?.offsetTop ?? 0) > 0
+      ) {
+        restoreAgentShellViewport();
+        return;
+      }
+      update();
+    };
+    const onPageShow = () => restoreAgentShellViewport();
     update();
+    restoreAgentShellViewport();
     window.addEventListener('resize', update);
     window.addEventListener('orientationchange', update);
+    window.addEventListener('pageshow', onPageShow);
     vv?.addEventListener('resize', update);
-    vv?.addEventListener('scroll', update);
+    vv?.addEventListener('scroll', onVisualViewportScroll);
     return () => {
       window.removeEventListener('resize', update);
       window.removeEventListener('orientationchange', update);
+      window.removeEventListener('pageshow', onPageShow);
       vv?.removeEventListener('resize', update);
-      vv?.removeEventListener('scroll', update);
+      vv?.removeEventListener('scroll', onVisualViewportScroll);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    let modalWasOpen = isAgentModalOpen();
+    let raf = 0;
+
+    const syncAfterModal = () => {
+      if (isAgentModalOpen()) {
+        modalWasOpen = true;
+        return;
+      }
+      if (modalWasOpen) {
+        modalWasOpen = false;
+        restoreAgentShellViewport();
+      }
+    };
+
+    const scheduleSync = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(syncAfterModal);
+    };
+
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') restoreAgentShellViewport();
+    };
+
+    document.addEventListener('visibilitychange', onVisible);
+    const observer = new MutationObserver(scheduleSync);
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    return () => {
+      cancelAnimationFrame(raf);
+      document.removeEventListener('visibilitychange', onVisible);
+      observer.disconnect();
     };
   }, []);
 

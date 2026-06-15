@@ -1,0 +1,221 @@
+/* =============================================================================
+   MOBILE MODAL FULLSCREEN — agent home / mobile shell
+   Modals fill the viewport below the status band; no bottom gap / vh caps.
+   Loaded last in layout.tsx — beats transactions contract 92–96dvh limits.
+   ============================================================================= */
+
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+  :root {
+    --modal-mobile-sheet-radius: 20px;
+  }
+
+  /* ── Overlay: full viewport column, sheet flush to bottom ── */
+  .agent-modal-overlay,
+  .agent-modal-overlay.transactions-modal-overlay,
+  .agent-modal-overlay.budget-modal-overlay,
+  .agent-modal-overlay.interview-modal-overlay,
+  .agent-modal-overlay.account-modal-overlay,
+  .agent-modal-overlay:has(> .agent-modal.questionnaire-modal),
+  .social-modal-overlay,
+  body.agent-route-active .agent-modal-overlay,
+  body.agent-route-active .agent-modal-overlay.transactions-modal-overlay,
+  body.agent-route-active .agent-modal-overlay.budget-modal-overlay,
+  body.agent-route-active .agent-modal-overlay.interview-modal-overlay,
+  body.agent-route-active .agent-modal-overlay.account-modal-overlay,
+  body.agent-route-active .agent-modal-overlay:has(> .agent-modal.questionnaire-modal),
+  body.agent-route-active .social-modal-overlay {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: stretch !important;
+    align-items: stretch !important;
+    padding: 0 !important;
+    padding-top: var(--modal-safe-top, env(safe-area-inset-top, 0px)) !important;
+    padding-bottom: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    position: fixed !important;
+    inset: 0 !important;
+    top: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 100dvh !important;
+    min-height: 100dvh !important;
+    max-height: 100dvh !important;
+    overflow: hidden !important;
+    overflow-y: hidden !important;
+    overscroll-behavior: none !important;
+    box-sizing: border-box !important;
+  }
+
+  /* ── Shell: fill overlay; home-indicator padding inside the sheet ── */
+  .agent-modal-overlay > .agent-modal,
+  .agent-modal-overlay > .agent-modal.transactions-modal,
+  .agent-modal-overlay > .agent-modal.budget-modal,
+  .agent-modal-overlay > .agent-modal.interview-modal,
+  .agent-modal-overlay > .agent-modal.questionnaire-modal,
+  .agent-modal-overlay > .agent-modal.account-modal,
+  .social-modal-overlay > .social-modal,
+  .agent-modal.transactions-modal,
+  .agent-modal.budget-modal,
+  .agent-modal.interview-modal,
+  .agent-modal.questionnaire-modal,
+  .agent-modal.account-modal,
+  .transactions-modal,
+  .budget-modal,
+  .interview-modal,
+  .questionnaire-modal,
+  .account-modal,
+  .social-modal,
+  body.agent-route-active .agent-modal-overlay > .agent-modal,
+  body.agent-route-active .transactions-modal,
+  body.agent-route-active .budget-modal,
+  body.agent-route-active .interview-modal,
+  body.agent-route-active .questionnaire-modal,
+  body.agent-route-active .account-modal,
+  body.agent-route-active .social-modal-overlay > .social-modal {
+    position: relative !important;
+    inset: auto !important;
+    flex: 1 1 auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    border-radius: var(--modal-mobile-sheet-radius) var(--modal-mobile-sheet-radius) 0 0 !important;
+    padding-bottom: 0 !important;
+    box-sizing: border-box !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    overflow-x: hidden !important;
+    overflow-y: hidden !important;
+  }
+
+  /* Kill legacy vh caps that leave a strip at the bottom */
+  .agent-modal.transactions-modal,
+  .transactions-modal,
+  .agent-modal.budget-modal,
+  .budget-modal,
+  .budget-modal.is-mobile-shell,
+  .budget-modal[data-budget-mobile='true'],
+  html.is-mobile-viewport .budget-modal,
+  .agent-modal.interview-modal,
+  .interview-modal,
+  .interview-modal.is-mobile-shell,
+  .agent-modal.account-modal,
+  .account-modal,
+  .agent-modal.questionnaire-modal,
+  .questionnaire-modal {
+    min-height: 0 !important;
+    max-height: 100% !important;
+    height: 100% !important;
+  }
+
+  .budget-modal .budget-modal-body,
+  .budget-modal.is-mobile-shell .budget-modal-body,
+  .budget-modal[data-budget-mobile='true'] .budget-modal-body {
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    height: auto !important;
+    max-height: none !important;
+    scroll-padding-bottom: max(16px, env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  .agent-modal.transactions-modal,
+  .transactions-modal,
+  body.agent-route-active .transactions-modal {
+    background: var(--tx-contract-panel, #ffffff) !important;
+    background-image: none !important;
+  }
+
+  .transactions-modal .tx-scroll-body {
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    height: auto !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    overscroll-behavior: contain !important;
+    -webkit-overflow-scrolling: touch !important;
+    scroll-padding-bottom: max(16px, env(safe-area-inset-bottom, 0px)) !important;
+    background: var(--tx-contract-panel, #ffffff) !important;
+  }
+
+  .interview-modal.is-mobile-shell .interview-modal-body,
+  .interview-modal.is-mobile-shell .interview-shell,
+  .interview-modal.is-mobile-shell .pro-interview-shell {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .questionnaire-modal .agent-modal-intro,
+  .questionnaire-modal .questionnaire-dashboard,
+  .account-modal .account-modal-dashboard,
+  .account-modal .agent-modal-intro {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+  }
+
+  .questionnaire-modal,
+  .agent-modal.questionnaire-modal {
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  .social-modal {
+    max-height: 100% !important;
+    min-height: 0 !important;
+  }
+
+  /* ── Transactions — full-bleed sheet + single scroll host on mobile ── */
+  .agent-modal-overlay.transactions-modal-overlay,
+  body.agent-route-active .agent-modal-overlay.transactions-modal-overlay {
+    justify-content: stretch !important;
+    align-items: stretch !important;
+    padding-top: var(--modal-safe-top, env(safe-area-inset-top, 0px)) !important;
+    padding-bottom: 0 !important;
+  }
+
+  .agent-modal-overlay.transactions-modal-overlay > .agent-modal.transactions-modal,
+  .agent-modal-overlay.transactions-modal-overlay > .transactions-modal,
+  body.agent-route-active .agent-modal-overlay.transactions-modal-overlay > .agent-modal.transactions-modal {
+    flex: 1 1 auto !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    max-height: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    padding-bottom: 0 !important;
+    border-radius: var(--modal-mobile-sheet-radius) var(--modal-mobile-sheet-radius) 0 0 !important;
+  }
+
+  .transactions-modal .pt-right.tx-panel-surface--workspace,
+  body.agent-route-active .transactions-modal .pt-right.tx-panel-surface--workspace {
+    flex: 0 0 auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  .transactions-modal .pt-right.tx-panel-surface--workspace .tx-content-carousel,
+  .transactions-modal .pt-right.tx-panel-surface--workspace .tx-carousel-gate {
+    flex: 0 0 auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    padding-bottom: 0 !important;
+  }
+
+  .transactions-modal .pt-right.tx-panel-surface--workspace .tx-ap-dashboard,
+  .transactions-modal .pt-right.tx-panel-surface--workspace .tx-ex-summary,
+  .transactions-modal .pt-right.tx-panel-surface--workspace .tx-content-card {
+    overflow: visible !important;
+    max-height: none !important;
+  }
+}

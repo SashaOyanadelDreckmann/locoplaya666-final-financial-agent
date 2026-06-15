@@ -416,6 +416,28 @@
     -webkit-overflow-scrolling: touch !important;
   }
 
+  main.agent-layout.is-mobile-viewport .agent-thread > .agent-stream-rail,
+  main.agent-layout.is-mobile-viewport .agent-thread > .onboarding-flow-cta {
+    width: 100% !important;
+    max-width: var(--bubble-maxw, 72%) !important;
+    align-self: flex-start !important;
+    flex-shrink: 0 !important;
+  }
+
+  main.agent-layout.is-mobile-viewport {
+    --bubble-user-maxw: 50%;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-thread > .agent-bubble.user:not(.upload-bubble) {
+    max-width: var(--bubble-user-maxw, 50%) !important;
+    width: fit-content !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-thread > .agent-bubble.assistant.latex-doc.is-streaming {
+    min-height: 72px !important;
+    flex-shrink: 0 !important;
+  }
+
   /* Composer docked between chat and panel — layout only; visuals below */
   main.agent-layout.is-mobile-viewport > .agent-mobile-composer-dock {
     flex: 0 0 auto !important;
@@ -423,10 +445,18 @@
     padding: 0 var(--mobile-shell-gutter-x) 4px !important;
     width: 100% !important;
     max-width: 100% !important;
+    align-self: stretch !important;
+    box-sizing: border-box !important;
     position: relative !important;
     z-index: 24 !important;
     isolation: isolate !important;
     overflow: visible !important;
+  }
+
+  main.agent-layout.is-mobile-viewport > .agent-mobile-composer-dock .terminal-composer-shell {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
   }
 
   main.agent-layout.is-mobile-viewport > aside.agent-panel,

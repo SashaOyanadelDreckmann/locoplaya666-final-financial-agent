@@ -1,8 +1,11 @@
 'use client';
 
-import { KeyboardEvent } from 'react';
+import { KeyboardEvent, useMemo } from 'react';
+import type { NormalizedMovementRow } from './compute-movement-analytics';
 import { EditorialSummary } from './presentation';
+import { TxMinimalCashflowChart } from './TxMinimalCashflowChart';
 import { TxChatMessageBubble, TxChatStarterChips } from './tx-chat-ui';
+import { buildMinimalCashflowSeries } from './tx-minimal-cashflow.helpers';
 import type { TxAssistantMessage, TxChatStarterChip } from './types';
 
 export function TxMinimalSummaryChatStep(props: {
@@ -21,6 +24,8 @@ export function TxMinimalSummaryChatStep(props: {
   onAssistantInputChange: (value: string) => void;
   onAssistantSend: () => void;
   onAskSuggestedQuestion?: (question: string) => void;
+  movementRows?: NormalizedMovementRow[];
+  formatCurrency?: (value: number) => string;
 }) {
   const latestAssistantMessageId = [...props.assistantMessages].reverse().find((message) => message.role === 'assistant')?.id;
   const sendDisabled = props.txAssistantLoading || props.documentsLoading || !props.txAssistantInput.trim();
@@ -30,6 +35,11 @@ export function TxMinimalSummaryChatStep(props: {
     props.starterChips.length > 0 &&
     (props.assistantMessages.length === 0 ||
       props.assistantMessages[props.assistantMessages.length - 1]?.role === 'user');
+
+  const cashflowSeries = useMemo(
+    () => (props.movementRows?.length ? buildMinimalCashflowSeries(props.movementRows) : null),
+    [props.movementRows],
+  );
 
   const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key !== 'Enter' || event.shiftKey) return;
@@ -63,6 +73,10 @@ export function TxMinimalSummaryChatStep(props: {
           <span>Revisiones restantes: {props.summaryRegenerationsLeft}</span>
         </div>
       </div>
+
+      {cashflowSeries && props.formatCurrency ? (
+        <TxMinimalCashflowChart series={cashflowSeries} formatCurrency={props.formatCurrency} />
+      ) : null}
 
       <div className="tx-minimal-chat-card" role="region" aria-label="Chat del resumen">
         <div className="tx-minimal-chat-head">

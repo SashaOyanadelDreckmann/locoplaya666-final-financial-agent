@@ -36,7 +36,7 @@ export function buildTxStages(params: {
   return [
     {
       key: 'consent',
-      title: '1. Autorización',
+      title: 'Autorización',
       copy: 'Conecta institución y autoriza.',
       disabled: consentLocked,
       disabledReason: consentLocked ? 'Este producto ya está autorizado.' : undefined,
@@ -44,7 +44,7 @@ export function buildTxStages(params: {
     },
     {
       key: 'evidence',
-      title: '2. Evidencias',
+      title: 'Evidencias',
       copy: 'Sube cartolas y respaldos.',
       disabled: !consentLocked,
       disabledReason: !consentLocked ? 'Autoriza el producto para subir evidencias.' : undefined,
@@ -52,7 +52,7 @@ export function buildTxStages(params: {
     },
     {
       key: 'analyst',
-      title: '3. Resumen',
+      title: 'Resumen',
       copy: 'Revisa la ficha analítica.',
       disabled: !consentLocked || !hasEvidence,
       disabledReason: !consentLocked

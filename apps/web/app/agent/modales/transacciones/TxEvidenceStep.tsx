@@ -1,13 +1,7 @@
 'use client';
 
 import { type ChangeEvent, type KeyboardEvent, type PointerEvent, type Ref } from 'react';
-import {
-  NumericDust,
-  EditorialSummary,
-  getFormatLabel,
-  renderFormatIcon,
-  buildUploadGuidance,
-} from './presentation';
+import { getFormatLabel, renderFormatIcon, buildUploadGuidance } from './presentation';
 import { TxParseProgress } from './TxParseProgress';
 import { TxIndicativeNotice } from './TxIndicativeNotice';
 import { normalizeUploadFormat } from './tx-assistant.helpers';
@@ -56,11 +50,7 @@ function AttachIcon() {
 export interface TxEvidenceStepProps {
   activeBankProduct: BankProduct;
   maxEvidenceFilesPerProduct: number;
-  summaryRegenerationsLeft: number;
-  transitionPulse: number;
-  dockTransitionPhase: string;
-  currentStage: string;
-  scrollRef: Ref<HTMLDivElement>;
+  scrollRef: Ref<HTMLElement>;
   chatThreadRef?: Ref<HTMLDivElement>;
   assistantMessages: TxAssistantMessage[];
   highlightedMovementKeys?: string[];
@@ -72,9 +62,6 @@ export interface TxEvidenceStepProps {
   txAssistantLoading: boolean;
   documentsLoading: boolean;
   transactionUploadError?: string | null;
-  summaryText: string | null;
-  summaryGeneratedAt: string | null;
-  summaryModel: string | null;
   processingModeLabel: string;
   processingMetaLabel: string;
   processingPrimaryCopy: string;
@@ -88,9 +75,7 @@ export interface TxEvidenceStepProps {
   onAppendPendingEvidence: (files: FileList | null) => void | Promise<void>;
   onAssistantInputChange: (value: string) => void;
   onAssistantSend: () => void;
-  onRefineSummary?: (source: string, body: string) => void;
   onGoToAnalyst: () => void;
-  onRegenerateSummary: () => void;
   evidenceResetsLeft?: number;
   onRequestEvidenceReset?: () => void;
   analystContinueLabel?: string;
@@ -170,7 +155,10 @@ export function TxEvidenceStep(props: TxEvidenceStepProps) {
       : 'Adjunta archivos o pregunta cómo subir tu evidencia…';
 
   return (
-    <section className="tx-content-card tx-content-card--agent is-main-center tx-step-reveal">
+    <section
+      ref={p.scrollRef}
+      className="tx-content-card tx-content-card--agent is-main-center tx-step-reveal"
+    >
       <div className="pt-stage-header tx-agent-stage-header tx-agent-stage-header--compact">
         <div className="tx-agent-stage-header-row">
           <div>
@@ -202,23 +190,12 @@ export function TxEvidenceStep(props: TxEvidenceStepProps) {
         />
       )}
 
-      <div
-        ref={p.scrollRef}
-        className="transactions-summary-card tx-evidence-card tx-evidence-card--premium tx-chat-minimal-body"
-      >
-        <NumericDust
-          scope="chat"
-          pulse={p.transitionPulse}
-          active={p.dockTransitionPhase === 'chat-reveal' || p.currentStage !== 'consent'}
-          count={28}
-        />
+      <p className="tx-chat-product-line" aria-label="Producto activo del chat">
+        <span className="tx-chat-product-context-kicker">Producto activo</span>
+        <strong>{p.activeBankProduct.label || p.activeBankProduct.bank || 'Sin nombre'}</strong>
+      </p>
 
-        <div className="tx-chat-product-context" aria-label="Producto activo del chat">
-          <span className="tx-chat-product-context-kicker">Producto activo</span>
-          <strong>{p.activeBankProduct.label || p.activeBankProduct.bank || 'Sin nombre'}</strong>
-        </div>
-
-        <div ref={p.chatThreadRef} className="tx-chat-thread" aria-live="polite" aria-relevant="additions">
+      <div ref={p.chatThreadRef} className="tx-chat-thread" aria-live="polite" aria-relevant="additions">
           {messageCount === 0 ? (
             <p className="tx-chat-thread-empty">
               Este paso es solo para subir antecedentes de <strong>{p.activeBankProduct.label || 'este producto'}</strong>.
@@ -359,44 +336,23 @@ export function TxEvidenceStep(props: TxEvidenceStepProps) {
           />
         )}
 
-        {p.summaryText && (
-          <div className="transactions-summary-card tx-doc-intel-grid tx-chat-summary-pro tx-chat-summary-bridge">
-            <div className="tx-chat-summary-bridge-head">
-              <div>
-                <span className="transactions-summary-title">Resumen listo</span>
-                <EditorialSummary text={p.summaryText} compact />
-              </div>
-              <div className="tx-chat-summary-meta">
-                <span className="tx-meta-card-kicker">
-                  {p.summaryGeneratedAt
-                    ? `Actualizado ${new Date(p.summaryGeneratedAt).toLocaleString('es-CL')}`
-                    : 'Resumen listo'}
-                </span>
-                {p.summaryModel ? <span className="tx-meta-card-kicker">Modelo: {p.summaryModel}</span> : null}
-                <span className="tx-meta-card-kicker">Revisiones restantes: {p.summaryRegenerationsLeft}</span>
-              </div>
-            </div>
+        {p.analysisAlreadyDone ? (
+          <div className="tx-evidence-ready-cta" role="status">
+            <p className="tx-evidence-ready-copy">
+              Evidencia analizada. El resumen ejecutivo, métricas y tabla de movimientos están en el paso 3.
+            </p>
             <div className="agent-modal-actions tx-flow-inline-actions">
               <button
                 type="button"
-                className="continue-ghost"
+                className="button-primary"
                 onClick={() => p.onGoToAnalyst()}
                 disabled={p.analystContinueDisabled}
               >
                 {p.analystContinueLabel ?? 'Continuar al resumen'}
               </button>
-              <button
-                type="button"
-                className="button-primary"
-                disabled={p.txAssistantLoading || p.summaryRegenerationsLeft <= 0}
-                onClick={() => p.onRegenerateSummary()}
-              >
-                {p.summaryRegenerationsLeft > 0 ? 'Revisar resumen' : 'Resumen final'}
-              </button>
             </div>
           </div>
-        )}
-      </div>
+        ) : null}
     </section>
   );
 }

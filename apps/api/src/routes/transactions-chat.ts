@@ -252,7 +252,9 @@ router.post(
       const dashboardDigest = compactDashboardForPrompt(dashboard, { maxMovements: 80, maxMerchants: 10 });
       const prompt = [
         'Eres un analista senior de movimientos bancarios del mercado chileno.',
-        'Genera un resumen ejecutivo breve, preciso y accionable (máx. 12 líneas).',
+        'Genera un resumen ejecutivo editorial, breve y accionable (máx. 5 bloques, máx. 12 líneas).',
+        'Formato obligatorio: separa bloques con una línea en blanco; cada bloque inicia con un título corto en su propia línea y debajo el contenido.',
+        'Usa viñetas • cuando listes categorías, comercios o alertas.',
         'Prioriza dashboard estructurado sobre texto libre. No inventes datos.',
         `Producto=${JSON.stringify(product)}`,
         `Dashboard=${JSON.stringify(dashboardDigest)}`,

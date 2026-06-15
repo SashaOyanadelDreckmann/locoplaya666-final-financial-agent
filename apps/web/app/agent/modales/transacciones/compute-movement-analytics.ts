@@ -276,8 +276,19 @@ export function computeMovementAnalytics(input: ComputeMovementAnalyticsInput): 
 
   const summaryFromTable =
     movementCount > 0
-      ? `Se analizaron ${movementCount.toLocaleString('es-CL')} movimientos sobre cartola de ${isCreditCardProduct ? 'tarjeta' : 'producto'}. Totales detectados desde tabla extraída: ${formatClp(tableDerivedMetrics.outflowsTotal, currency)} en egresos y ${formatClp(tableDerivedMetrics.inflowsTotal, currency)} en ${inflowLabel}; flujo neto ${formatClp(netFlowFromTable, currency)}.`
-      : 'Aún no hay suficientes filas extraídas para construir un resumen analítico confiable.';
+      ? [
+          [
+            'Lectura desde tabla',
+            `Se analizaron ${movementCount.toLocaleString('es-CL')} movimientos sobre cartola de ${isCreditCardProduct ? 'tarjeta' : 'producto'}.`,
+          ].join('\n'),
+          [
+            'Totales extraídos',
+            `• Egresos — ${formatClp(tableDerivedMetrics.outflowsTotal, currency)}`,
+            `• ${inflowLabel} — ${formatClp(tableDerivedMetrics.inflowsTotal, currency)}`,
+            `• Flujo neto — ${formatClp(netFlowFromTable, currency)}`,
+          ].join('\n'),
+        ].join('\n\n')
+      : 'Sin base tabular\nAún no hay suficientes filas extraídas para construir un resumen analítico confiable.';
 
   const verifiedTableRows =
     Number(dashboardMetrics?.table_rows_verified ?? 0) ||

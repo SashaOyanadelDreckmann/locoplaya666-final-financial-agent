@@ -575,6 +575,7 @@ export function isChatIntroShellItem(params: {
 
   if (!activeThreadId || !['chat-1', 'chat-2', 'chat-3'].includes(activeThreadId)) return false;
   if (item.type !== 'message' || item.role !== 'assistant') return false;
+  if (item.stream != null) return false;
 
   const isFirstAssistant = !items
     .slice(0, index)

@@ -10,7 +10,7 @@ type Props = {
 };
 
 export const AgentModalCloseButton = forwardRef<HTMLButtonElement, Props>(function AgentModalCloseButton(
-  { onClick, disabled, className = 'agent-modal-close', 'aria-label': ariaLabel = 'Cerrar' },
+  { onClick, disabled, className = 'agent-modal-close agent-close-x', 'aria-label': ariaLabel = 'Cerrar' },
   ref,
 ) {
   return (

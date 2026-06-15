@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 
 import { sendToAgentStream } from '@/lib/agente/agent.stream';
 import {
@@ -30,6 +31,7 @@ export type UseCoreAgentSendParams = {
   setItemsForActive: (updater: ChatItem[] | ((prevItems: ChatItem[]) => ChatItem[])) => void;
   incrementUserMessageCount: () => void;
   clearDraft: () => void;
+  getActiveThreadId: () => string;
   buildRequestContext: () => CoreAgentRequestContext;
   getSessionId: () => string;
   onSideEffects: (effects: CoreAgentResponseSideEffects, response: AgentResponse) => void;
@@ -58,15 +60,18 @@ export function useCoreAgentSend(params: UseCoreAgentSendParams) {
 
       params.clearDraft();
       sendGuardRef.current = true;
-      setLoading(true);
 
-      params.setItemsForActive((prev) =>
-        appendOptimisticCoreAgentTurn({
-          list: prev,
-          userMessage,
-          hideUserMessage,
-        }),
-      );
+      flushSync(() => {
+        setLoading(true);
+        params.setItemsForActive((prev) =>
+          appendOptimisticCoreAgentTurn({
+            list: prev,
+            userMessage,
+            hideUserMessage,
+            threadId: params.getActiveThreadId(),
+          }),
+        );
+      });
       params.incrementUserMessageCount();
 
       try {
@@ -136,6 +141,7 @@ export function useCoreAgentSend(params: UseCoreAgentSendParams) {
       params.setItemsForActive,
       params.incrementUserMessageCount,
       params.clearDraft,
+      params.getActiveThreadId,
       params.buildRequestContext,
       params.getSessionId,
       params.onSideEffects,

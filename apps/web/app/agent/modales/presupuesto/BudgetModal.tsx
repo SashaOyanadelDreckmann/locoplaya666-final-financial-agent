@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { focusMobileInput } from '@/lib/interfaz/mobile-viewport-sync';
 import { getCsrfToken } from '@/lib/sesion/csrf';
 import { downloadArtifactFile, saveBubbleSnapshotPdfArtifact } from '@/lib/compartido/artifacts';
@@ -17,6 +17,8 @@ import {
 } from '@financial-agent/shared';
 import {
   BUDGET_TABLE_STYLES,
+  DEFAULT_BUDGET_TABLE_STYLE,
+  type BudgetTableStyleId,
   buildBudgetRowSummary,
   formatBudgetAssistantTurn,
   getAssistantMessage,
@@ -51,19 +53,30 @@ import {
   type BudgetChatApiPayload,
 } from './budget-modal.chat-api';
 import { buildBudgetSnapshotHtmlAndCss } from './budget-modal.snapshot';
-import {
-  readMobileBudgetRowSnapCandidates,
-  resolveDominantMobileBudgetRowScrollTop,
-  shouldSkipMobileBudgetRowSnap,
-} from './budget-modal.mobile-table-snap';
 import { useBudgetCloseConfirm } from '../presupuesto/use-budget-close-confirm';
+import { BudgetViewNav } from './BudgetViewNav';
+import { useBudgetMobileRowGestures } from './use-budget-mobile-row-gestures';
+import { resolveBudgetAssistantHeroToneClass } from './budget-modal.assistant-tone';
+import { FINCOIN_SPEND_BLOCKED_MESSAGE } from '@/lib/compartido/fincoin-gate';
 
-function BudgetCarouselStage({ mobile, children }: { mobile: boolean; children: ReactNode }) {
-  if (mobile) return <div className="budget-mobile-stage">{children}</div>;
+function BudgetCarouselStage({
+  mobile,
+  stageRef,
+  children,
+}: {
+  mobile: boolean;
+  stageRef?: RefObject<HTMLDivElement | null>;
+  children: ReactNode;
+}) {
+  if (mobile) {
+    return (
+      <div className="budget-mobile-stage" ref={stageRef}>
+        {children}
+      </div>
+    );
+  }
   return <>{children}</>;
 }
-
-import { FINCOIN_SPEND_BLOCKED_MESSAGE } from '@/lib/compartido/fincoin-gate';
 
 export function BudgetModal(props: {
   isOpen: boolean;
@@ -103,7 +116,13 @@ export function BudgetModal(props: {
     topCategories?: Array<{ name: string; amount: number }>;
     alerts?: string[];
   }>;
-  onBudgetPdfSaved?: (payload: { title: string; fileUrl: string; createdAt: string }) => void;
+  onBudgetPdfSaved?: (payload: {
+    title: string;
+    fileUrl: string;
+    previewImageUrl?: string;
+    createdAt: string;
+    sourceRect?: DOMRect | null;
+  }) => void;
 }) {
 
   const [budgetReply, setBudgetReply] = useState('');
@@ -129,17 +148,19 @@ export function BudgetModal(props: {
   } = useBudgetModalLayout(props.isOpen);
   const isAssistantOverlayMode = isBudgetAssistantOverlayMode(isDesktopLayout, budgetViewMode);
   const isSplitMode = isBudgetSplitMode(isDesktopLayout, budgetViewMode);
+  const isTableOnlyDesktop = isDesktopLayout && budgetViewMode === tableViewMode;
   const showAssistantInformeAction =
     isAssistantOverlayMode ||
-    isSplitMode ||
     (!isDesktopLayout && budgetViewMode !== tableViewMode);
   const isMobileShell = !isDesktopLayout;
+  const isMobileAssistantOverlay = isMobileShell && budgetViewMode === 1;
   const isMobileManualTable = isMobileShell && budgetViewMode === tableViewMode;
-  const [budgetTableStyle, setBudgetTableStyle] = useState<'midnight' | 'ledger' | 'atelier' | 'terminal' | 'carbon'>('terminal');
+  const [budgetTableStyle, setBudgetTableStyle] = useState<BudgetTableStyleId>(DEFAULT_BUDGET_TABLE_STYLE);
   const [isGeneratingBudgetPdf, setIsGeneratingBudgetPdf] = useState(false);
   const budgetPdfRef = useRef<HTMLDivElement | null>(null);
   const budgetTableScrollRef = useRef<HTMLDivElement | null>(null);
   const budgetModalRef = useRef<HTMLDivElement | null>(null);
+  const budgetMobileStageRef = useRef<HTMLDivElement | null>(null);
   const budgetRestoreFocusRef = useRef<HTMLElement | null>(null);
   const flyingDotCounter = useRef(0);
   const isOpenRef = useRef(props.isOpen);
@@ -168,6 +189,14 @@ export function BudgetModal(props: {
     hasPendingConfirmation: Boolean(budgetPendingConfirmation),
     clearPendingConfirmation: () => setBudgetPendingConfirmation(null),
   });
+
+  useBudgetMobileRowGestures({
+    enabled: props.isOpen && isMobileManualTable,
+    scrollHostRef: budgetTableScrollRef,
+    suppressRef: mobileTableSnapSuppressedRef,
+    onActiveRowChange: setActiveBudgetRowId,
+  });
+
   const formatBudgetAmount = (value: number) => `$${Math.round(value).toLocaleString('es-CL')}`;
   const focusBudgetField = (target: EventTarget | null) => {
     const el = target as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | null;
@@ -184,7 +213,7 @@ export function BudgetModal(props: {
     next_question: assistantNextQuestion,
   }) || activeQuestion;
   const activeStyleIndex = BUDGET_TABLE_STYLES.findIndex((style) => style.id === budgetTableStyle);
-  const activeStyleLabel = BUDGET_TABLE_STYLES[Math.max(0, activeStyleIndex)]?.label ?? 'Nocturno';
+  const activeStyleLabel = BUDGET_TABLE_STYLES[Math.max(0, activeStyleIndex)]?.label ?? 'Carbono';
   const heroToneClass =
     props.budgetSignals.balanceTone === 'surplus'
       ? 'is-positive'
@@ -222,6 +251,7 @@ export function BudgetModal(props: {
   const focusedBudgetRowId = activeBudgetRowId ?? assistantBudgetRowId ?? inferredBudgetRowId;
   const tableDisplayFocusRowId = isMobileManualTable ? activeBudgetRowId : focusedBudgetRowId;
   const activeBudgetRow = props.budgetRows.find((row) => row.id === focusedBudgetRowId) ?? null;
+  const mobileAssistantHeroToneClass = resolveBudgetAssistantHeroToneClass(activeBudgetRow?.type);
 
   const orderedBudgetRows = props.budgetRows;
 
@@ -404,20 +434,32 @@ export function BudgetModal(props: {
     if (nextStyle) setBudgetTableStyle(nextStyle.id);
   }
 
-  async function downloadBudgetPdf() {
+  async function downloadBudgetPdf(trigger?: HTMLElement | null) {
     const element = budgetPdfRef.current;
-    if (!element || isGeneratingBudgetPdf) return;
+    if (!element) {
+      setAiError('No se encontró la tabla del presupuesto para exportar. Cambia a la vista Tabla e intenta de nuevo.');
+      return;
+    }
+    if (isGeneratingBudgetPdf) return;
 
+    const sourceRect = trigger?.getBoundingClientRect() ?? null;
     setIsGeneratingBudgetPdf(true);
     await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
 
     try {
-      const snapshot = buildBudgetSnapshotHtmlAndCss(element, activeStyleLabel);
+      const snapshot = buildBudgetSnapshotHtmlAndCss(
+        element,
+        activeStyleLabel,
+        budgetTableStyle,
+        props.budgetTotals,
+        formatBudgetAmount,
+      );
       const result = await saveBubbleSnapshotPdfArtifact({
         title: `Presupuesto mensual · ${activeStyleLabel}`,
         subtitle: 'Tabla exportada con el diseño activo del presupuesto.',
         html: snapshot.html,
         css: snapshot.css,
+        pageLayout: 'content',
       });
       const artifact = result.artifact;
       if (artifact.fileUrl) {
@@ -426,11 +468,15 @@ export function BudgetModal(props: {
       props.onBudgetPdfSaved?.({
         title: artifact.title || `Presupuesto mensual · ${activeStyleLabel}`,
         fileUrl: artifact.fileUrl ?? '',
+        previewImageUrl: artifact.previewImageUrl,
         createdAt: artifact.createdAt || new Date().toISOString(),
+        sourceRect,
       });
       setAiError(null);
-    } catch {
-      setAiError('No se pudo generar el PDF del presupuesto. Intenta nuevamente.');
+    } catch (error) {
+      const detail =
+        error instanceof Error && error.message ? error.message : 'Error desconocido';
+      setAiError(`No se pudo generar el PDF del presupuesto. ${detail}`);
     } finally {
       setIsGeneratingBudgetPdf(false);
     }
@@ -696,8 +742,7 @@ export function BudgetModal(props: {
       const bottomActions =
         root.querySelector<HTMLElement>('[data-budget-mobile-footer="true"]') ??
         tableCard?.querySelector<HTMLElement>('.budget-table-bottom-actions');
-      const tabs = root.querySelector<HTMLElement>('.budget-mode-tabs');
-      const header = root.querySelector<HTMLElement>('.bcc-modal-header');
+      const tabs = root.querySelector<HTMLElement>('.budget-view-nav');
       const mobileSummary = tableCard?.querySelector<HTMLElement>('.budget-mobile-intel-summary');
       const tableWrap = scrollHost.querySelector<HTMLElement>('.budget-table-wrap');
       const rowButtonGap = 4;
@@ -736,7 +781,7 @@ export function BudgetModal(props: {
     const tableCard = scrollHost?.closest<HTMLElement>('.budget-card-table') ?? null;
     const stage = budgetModalRef.current?.querySelector<HTMLElement>('.budget-mobile-stage') ?? null;
     const carousel = budgetModalRef.current?.querySelector<HTMLElement>('.budget-main-carousel') ?? null;
-    const modeTabs = budgetModalRef.current?.querySelector<HTMLElement>('.budget-mode-tabs') ?? null;
+    const modeTabs = budgetModalRef.current?.querySelector<HTMLElement>('.budget-view-nav') ?? null;
     const layoutObserver =
       scrollHost && typeof ResizeObserver !== 'undefined'
         ? new ResizeObserver(measureMobileRowSlot)
@@ -785,76 +830,6 @@ export function BudgetModal(props: {
       mobileTableSnapSuppressedRef.current = false;
     }, 420);
   }, [isAssistantOverlayMode, isMobileManualTable, props.isOpen, isDesktopLayout, budgetViewMode, focusedBudgetRowId, props.budgetRows.length]);
-
-  useEffect(() => {
-    if (!props.isOpen || isDesktopLayout) return;
-
-    const wrap = budgetTableScrollRef.current?.querySelector<HTMLElement>('.budget-table-wrap');
-    if (!wrap) return;
-
-    let isTouching = false;
-    let snapTimer: number | null = null;
-    let snapFrame: number | null = null;
-
-    const snapToDominantRow = () => {
-      if (mobileTableSnapSuppressedRef.current || isTouching) return;
-      if (shouldSkipMobileBudgetRowSnap(wrap)) return;
-
-      const candidates = readMobileBudgetRowSnapCandidates(wrap);
-      const targetTop = resolveDominantMobileBudgetRowScrollTop(
-        wrap.scrollTop,
-        wrap.clientHeight,
-        candidates,
-      );
-      if (targetTop === null) return;
-      if (Math.abs(wrap.scrollTop - targetTop) < 2) return;
-
-      mobileTableSnapSuppressedRef.current = true;
-      wrap.scrollTo({ top: targetTop, behavior: 'smooth' });
-      window.setTimeout(() => {
-        mobileTableSnapSuppressedRef.current = false;
-      }, 360);
-    };
-
-    const scheduleSnap = () => {
-      if (snapTimer) window.clearTimeout(snapTimer);
-      snapTimer = window.setTimeout(snapToDominantRow, 90);
-    };
-
-    const onTouchStart = () => {
-      isTouching = true;
-      if (snapTimer) window.clearTimeout(snapTimer);
-      if (snapFrame !== null) window.cancelAnimationFrame(snapFrame);
-    };
-
-    const onTouchEnd = () => {
-      isTouching = false;
-      snapFrame = window.requestAnimationFrame(() => {
-        snapFrame = window.requestAnimationFrame(scheduleSnap);
-      });
-    };
-
-    const onScroll = () => {
-      if (isTouching) return;
-      scheduleSnap();
-    };
-
-    wrap.addEventListener('touchstart', onTouchStart, { passive: true });
-    wrap.addEventListener('touchend', onTouchEnd, { passive: true });
-    wrap.addEventListener('touchcancel', onTouchEnd, { passive: true });
-    wrap.addEventListener('scroll', onScroll, { passive: true });
-    wrap.addEventListener('scrollend', snapToDominantRow, { passive: true });
-
-    return () => {
-      if (snapTimer) window.clearTimeout(snapTimer);
-      if (snapFrame !== null) window.cancelAnimationFrame(snapFrame);
-      wrap.removeEventListener('touchstart', onTouchStart);
-      wrap.removeEventListener('touchend', onTouchEnd);
-      wrap.removeEventListener('touchcancel', onTouchEnd);
-      wrap.removeEventListener('scroll', onScroll);
-      wrap.removeEventListener('scrollend', snapToDominantRow);
-    };
-  }, [props.isOpen, isDesktopLayout, budgetViewMode, props.budgetRows.length]);
 
   useEffect(() => {
     if (!props.isOpen || isDesktopLayout) {
@@ -987,25 +962,65 @@ export function BudgetModal(props: {
       <button
         type="button"
         className="budget-pdf-button"
-        onClick={() => void downloadBudgetPdf()}
+        onClick={(event) => void downloadBudgetPdf(event.currentTarget)}
         disabled={isGeneratingBudgetPdf || props.budgetRows.length === 0}
       >
         {isGeneratingBudgetPdf ? 'Preparando PDF…' : 'Guardar como PDF'}
       </button>
-      {isSplitMode ? (
+    </div>
+  );
+
+  const budgetSplitDesktopToolbar = isSplitMode ? (
+    <div className="budget-split-agent-toolbar" data-budget-split-toolbar="true">
+      <div className="budget-split-toolbar-leading">
+        <button type="button" className="budget-split-toolbar-btn" onClick={cycleBudgetTableStyle}>
+          Estilos · {activeStyleLabel}
+        </button>
         <button
           type="button"
-          className="budget-chat-sync-button"
+          className="budget-split-toolbar-btn"
+          onClick={(event) => void downloadBudgetPdf(event.currentTarget)}
+          disabled={isGeneratingBudgetPdf || props.budgetRows.length === 0}
+        >
+          {isGeneratingBudgetPdf ? 'Preparando PDF…' : 'Guardar como PDF'}
+        </button>
+        <button
+          type="button"
+          className="budget-split-toolbar-btn"
           onClick={handleSendBudgetToAgent}
           disabled={props.budgetRows.length === 0}
         >
           Informe en chat
         </button>
-      ) : null}
+      </div>
+      <div className="budget-split-toolbar-trailing">
+        <button type="button" className="budget-split-toolbar-btn is-income" onClick={() => props.addBudgetRow('income')}>
+          Ingreso
+        </button>
+        <button type="button" className="budget-split-toolbar-btn is-expense" onClick={() => props.addBudgetRow('expense')}>
+          Gasto
+        </button>
+      </div>
     </div>
-  );
+  ) : null;
+
+  const showTableBottomActionsAtFooter =
+    !isSplitMode &&
+    !isTableOnlyDesktop &&
+    (isDesktopLayout || isMobileShell);
 
   if (!isOpen) return null;
+
+  const budgetIncomeExpenseActions = (
+    <div className="budget-table-top-actions">
+      <button type="button" className="continue-ghost is-income-action" onClick={() => props.addBudgetRow('income')}>
+        Ingreso
+      </button>
+      <button type="button" className="continue-ghost is-expense-action" onClick={() => props.addBudgetRow('expense')}>
+        Gasto
+      </button>
+    </div>
+  );
 
   return (
     <div
@@ -1025,14 +1040,6 @@ export function BudgetModal(props: {
         onMouseDown={(e) => e.stopPropagation()}
         onPointerDown={(e) => e.stopPropagation()}
       >
-        <div className="bcc-modal-header">
-          <div className="bcc-modal-title-wrap">
-            <span className="bcc-modal-eyebrow">Financieramente</span>
-            <h3 id="budget-modal-title" className="bcc-modal-title">Presupuesto</h3>
-          </div>
-          <AgentModalCloseButton onClick={requestClose} />
-        </div>
-
         {/* Flying dot animations */}
         {flyingDots.map((dot) => (
           <div
@@ -1042,6 +1049,27 @@ export function BudgetModal(props: {
         ))}
 
         <div className={`budget-modal-body${isDesktopLayout ? ' is-desktop' : ''}`}>
+        <div className="bcc-modal-header budget-modal-header-layer">
+          <div className="budget-modal-header-stack">
+            <div className="budget-modal-header-title-row">
+              <div className="bcc-modal-title-wrap">
+                <span className="bcc-modal-eyebrow">Financieramente</span>
+                <h3 id="budget-modal-title" className="bcc-modal-title">
+                  Presupuesto
+                </h3>
+              </div>
+              <BudgetViewNav
+                isDesktopLayout={isDesktopLayout}
+                budgetViewMode={budgetViewMode}
+                onChange={setBudgetViewMode}
+              />
+              <AgentModalCloseButton
+                onClick={requestClose}
+                aria-label="Cerrar panel de presupuesto"
+              />
+            </div>
+          </div>
+        </div>
           {!isMobileShell && (
           <section
             className={`budget-cockpit-banner ${heroToneClass}`}
@@ -1077,68 +1105,39 @@ export function BudgetModal(props: {
           </section>
           )}
 
-          <div className="budget-mode-tabs" role="tablist" aria-label="Modo de presupuesto">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={budgetViewMode === 1}
-              className={`budget-mode-tab${budgetViewMode === 1 ? ' is-active' : ''}`}
-              onClick={() => setBudgetViewMode(1)}
-            >
-              Asistente
-            </button>
-            {isDesktopLayout ? (
-              <button
-                type="button"
-                role="tab"
-                aria-selected={budgetViewMode === 2}
-                className={`budget-mode-tab${budgetViewMode === 2 ? ' is-active' : ''}`}
-                onClick={() => setBudgetViewMode(2)}
-              >
-                Asistente + Tabla
-              </button>
-            ) : null}
-            <button
-              type="button"
-              role="tab"
-              aria-selected={budgetViewMode === tableViewMode}
-              className={`budget-mode-tab${budgetViewMode === tableViewMode ? ' is-active' : ''}`}
-              onClick={() => setBudgetViewMode(tableViewMode)}
-            >
-              Tabla
-            </button>
-          </div>
-
           <div
             className={`budget-executive-grid budget-main-carousel mode-${budgetModeClass}${isDesktopLayout ? ' is-desktop' : ' is-mobile-budget'}`}
           >
-            <BudgetCarouselStage mobile={isMobileShell}>
+            <BudgetCarouselStage mobile={isMobileShell} stageRef={budgetMobileStageRef}>
+            {budgetSplitDesktopToolbar}
+
             <section
               data-main-card="table"
               data-budget-table-style={budgetTableStyle}
               className={`budget-table-section budget-card-table${isDesktopLayout ? '' : ' is-mobile-table-compact'}${isMobileManualTable ? ' is-mobile-manual-table' : ''}`}
               style={cardStyle('table')}
             >
-              <div className="budget-table-head">
-                {isDesktopLayout && (
-                  <div>
-                    <span className="budget-section-eyebrow">Tabla</span>
-                    <h4>Presupuesto mensual</h4>
-                    <p className="budget-table-help">
-                      Completa Movimiento, Tipo, Monto, Recurrencia, Medio de pago y Tipo de movimiento. Impacto se calcula automático por fila.
-                    </p>
-                  </div>
-                )}
-                <div className="budget-table-top-actions">
-                  <button type="button" className="continue-ghost is-income-action" onClick={() => props.addBudgetRow('income')}>Ingreso</button>
-                  <button type="button" className="continue-ghost is-expense-action" onClick={() => props.addBudgetRow('expense')}>Gasto</button>
+              {isTableOnlyDesktop ? (
+                <div className="budget-table-head is-table-only-toolbar">
+                  {budgetIncomeExpenseActions}
+                  {budgetTableBottomActions}
                 </div>
-              </div>
+              ) : isSplitMode ? null : (
+                <div className="budget-table-head">
+                  {isDesktopLayout ? (
+                    <div>
+                      <p className="budget-table-help">
+                        Completa Movimiento, Tipo, Monto, Recurrencia, Medio de pago y Tipo de movimiento. Impacto se calcula automático por fila.
+                      </p>
+                    </div>
+                  ) : null}
+                  {budgetIncomeExpenseActions}
+                </div>
+              )}
 
               {!isDesktopLayout ? (
                 <BudgetMobileIntelSummary
                   budgetTotals={props.budgetTotals}
-                  activeStyleLabel={activeStyleLabel}
                   tableStyle={budgetTableStyle}
                   formatBudgetAmount={formatBudgetAmount}
                 />
@@ -1175,12 +1174,10 @@ export function BudgetModal(props: {
                 </div>
               )}
               </div>
-              {isDesktopLayout || (isMobileShell && budgetViewMode === tableViewMode)
-                ? budgetTableBottomActions
-                : null}
+              {showTableBottomActionsAtFooter ? budgetTableBottomActions : null}
             </section>
 
-            {isAssistantOverlayMode ? (
+            {isAssistantOverlayMode || isMobileAssistantOverlay ? (
               <div className="budget-assistant-blur-veil" aria-hidden="true" />
             ) : null}
 
@@ -1189,35 +1186,54 @@ export function BudgetModal(props: {
               className={`budget-assistant-panel budget-card-agent${!isDesktopLayout && budgetViewMode !== tableViewMode ? ' is-mobile-assistant-glass' : ''}`}
               style={cardStyle('agent')}
             >
-              <div className="bcc-hero">
-                <div className="bcc-hero-top" aria-live="polite" aria-relevant="additions text">
-                  {lastUserAnswer ? (
-                    <p className="bcc-hero-reply">{lastUserAnswer}</p>
-                  ) : null}
-                  {isAskingAI || isInitializing ? (
-                    <span className="bcc-hero-thinking" aria-hidden="true">
-                      <span className="bcc-dot-pulse" />
-                      <span className="bcc-dot-pulse" />
-                      <span className="bcc-dot-pulse" />
-                    </span>
-                  ) : null}
-                  {isInitializing ? (
-                    <p className="bcc-hero-question">Preparando asistente…</p>
-                  ) : isAskingAI ? (
-                    <p className="bcc-hero-question bcc-hero-question--pending">
-                      {lastUserAnswer ? 'Analizando lo que dijiste…' : 'Un momento…'}
-                    </p>
+              <div className={`bcc-hero${isMobileAssistantOverlay ? ` ${mobileAssistantHeroToneClass}` : ''}`}>
+                <div
+                  className={`bcc-hero-top${isBudgetChatBusy ? ' is-assistant-busy' : ''}`}
+                  aria-live="polite"
+                  aria-relevant="additions text"
+                  aria-busy={isBudgetChatBusy}
+                >
+                  {isBudgetChatBusy ? (
+                    <>
+                      <span
+                        className="bcc-hero-thinking"
+                        role="status"
+                        aria-label={
+                          isInitializing
+                            ? 'Preparando asistente'
+                            : lastUserAnswer
+                              ? 'Analizando lo que dijiste'
+                              : 'Un momento'
+                        }
+                      >
+                        <span className="bcc-dot-pulse" />
+                        <span className="bcc-dot-pulse" />
+                        <span className="bcc-dot-pulse" />
+                      </span>
+                      <span className="sr-only">
+                        {isInitializing
+                          ? 'Preparando asistente'
+                          : lastUserAnswer
+                            ? 'Analizando lo que dijiste'
+                            : 'Un momento'}
+                      </span>
+                    </>
                   ) : (
-                    <AgentHeroText
-                      turnKey={typewriterTurnKey}
-                      text={agentTypewriterText}
-                      speed={isDesktopLayout ? 8 : 12}
-                      focusRow={activeBudgetRow}
-                      budgetRows={props.budgetRows}
-                      question={assistantNextQuestion ?? assistantQuestion}
-                    />
+                    <>
+                      {lastUserAnswer ? (
+                        <p className="bcc-hero-reply">{lastUserAnswer}</p>
+                      ) : null}
+                      <AgentHeroText
+                        turnKey={typewriterTurnKey}
+                        text={agentTypewriterText}
+                        speed={isDesktopLayout ? 8 : 12}
+                        focusRow={activeBudgetRow}
+                        budgetRows={props.budgetRows}
+                        question={assistantNextQuestion ?? assistantQuestion}
+                      />
+                      <span className="sr-only">{agentTypewriterText}</span>
+                    </>
                   )}
-                  <span className="sr-only">{agentTypewriterText}</span>
                 </div>
                 {conversationDone && (
                   <p className="bcc-hero-done">Presupuesto completo. Puedes seguir ajustando la tabla.</p>
@@ -1276,8 +1292,6 @@ export function BudgetModal(props: {
               </div>
             </section>
             </BudgetCarouselStage>
-
-            {isMobileShell && budgetViewMode !== tableViewMode ? budgetTableBottomActions : null}
           </div>
         </div>{/* /budget-modal-body */}
 

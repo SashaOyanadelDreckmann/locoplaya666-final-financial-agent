@@ -11,7 +11,10 @@ import {
   isWelcomeShellMessageContent,
 } from '@/app/agent/flujo/welcome-intro.shared';
 import { sanitizeChatItems, sanitizeMessageText } from '@/app/agent/utilidades/page.utils';
-import { removeStreamingAssistantMessage } from '@/lib/agente/nucleo/stream-session';
+import {
+  readStreamingAssistantContent,
+  removeStreamingAssistantMessage,
+} from '@/lib/agente/nucleo/stream-session';
 
 export type ProductLifecyclePatch = {
   phase?: string;
@@ -39,6 +42,47 @@ export type ApplyCoreAgentResponseResult = {
   items: ChatItem[];
   sideEffects: CoreAgentResponseSideEffects;
 };
+
+function resolveFinalAssistantMessage(
+  response: AgentResponse,
+  streamedContent: string,
+): string {
+  const fromResponse = sanitizeMessageText(response.message, '');
+  const fromStream = sanitizeMessageText(streamedContent, '');
+
+  if (fromResponse.trim()) {
+    if (
+      isGenericOnboardingMessage(fromResponse) &&
+      fromStream.trim() &&
+      !isGenericOnboardingMessage(fromStream)
+    ) {
+      return fromStream;
+    }
+    return fromResponse;
+  }
+
+  if (fromStream.trim()) return fromStream;
+  return sanitizeMessageText(response.message, '—');
+}
+
+function buildFinalAssistantMessageItem(
+  response: AgentResponse,
+  content: string,
+): Extract<ChatItem, { type: 'message'; role: 'assistant' }> {
+  return {
+    type: 'message',
+    role: 'assistant',
+    content,
+    mode: response.mode ?? response.reasoning_mode,
+    objective: response.react?.objective,
+    agent_blocks: response.agent_blocks,
+    suggested_replies:
+      Array.isArray(response.suggested_replies) && response.suggested_replies.length > 0
+        ? response.suggested_replies
+        : undefined,
+    panel_action: response.panel_action,
+  };
+}
 
 function isGenericOnboardingMessage(text: string): boolean {
   const normalized = (text || '').toLowerCase().replace(/\s+/g, ' ').trim();
@@ -143,7 +187,13 @@ export function applyCoreAgentResponse(params: {
 }): ApplyCoreAgentResponseResult {
   const { currentItems, response, filterGenericOnboarding = true } = params;
   const sideEffects = extractCoreAgentSideEffects(response);
-  const next = sanitizeChatItems(toChatItemsFromAgentResponse(response));
+  const streamedContent = readStreamingAssistantContent(currentItems);
+  const finalMessage = resolveFinalAssistantMessage(response, streamedContent);
+  const enrichedResponse: AgentResponse = {
+    ...response,
+    message: finalMessage,
+  };
+  const next = sanitizeChatItems(toChatItemsFromAgentResponse(enrichedResponse));
 
   const hasAssistantInHistory = currentItems.some(
     (item) => item.type === 'message' && item.role === 'assistant',
@@ -158,21 +208,18 @@ export function applyCoreAgentResponse(params: {
       : next;
 
   const base = removeStreamingAssistantMessage(currentItems);
+  const hasAssistantBubble = nextFiltered.some(
+    (item) => item.type === 'message' && item.role === 'assistant',
+  );
 
-  if (nextFiltered.length === 0) {
+  if (nextFiltered.length === 0 || !hasAssistantBubble) {
+    const assistantItem = buildFinalAssistantMessageItem(enrichedResponse, finalMessage);
+    const supplemental = nextFiltered.filter(
+      (item) => !(item.type === 'message' && item.role === 'assistant'),
+    );
     return {
       sideEffects,
-      items: [
-        ...base,
-        {
-          type: 'message',
-          role: 'assistant',
-          content: sanitizeMessageText(response.message, '—'),
-          mode: response.mode ?? response.reasoning_mode,
-          objective: response.react?.objective,
-          agent_blocks: response.agent_blocks,
-        },
-      ],
+      items: [...base, assistantItem, ...supplemental],
     };
   }
 
@@ -198,10 +245,6 @@ export function applyCoreAgentErrorItems(
       isWelcomeShellMessageContent(item.content),
   );
 
-  if (hasWelcomeShell) {
-    return { items: base, transientError: errorText };
-  }
-
   return {
     items: [
       ...base,
@@ -212,5 +255,6 @@ export function applyCoreAgentErrorItems(
         mode: 'information',
       },
     ],
+    transientError: hasWelcomeShell ? errorText : undefined,
   };
 }

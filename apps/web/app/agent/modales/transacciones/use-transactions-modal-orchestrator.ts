@@ -65,7 +65,7 @@ export function useTransactionsModalOrchestrator(props: TransactionsModalProps) 
   const txChatThreadRef = useRef<HTMLDivElement | null>(null);
   const groupCarouselRef = useRef<HTMLDivElement | null>(null);
   const insightCarouselRef = useRef<HTMLDivElement | null>(null);
-  const txSummaryScrollRef = useRef<HTMLDivElement | null>(null);
+  const txSummaryScrollRef = useRef<HTMLElement | null>(null);
 
   const prefersReducedMotion = usePrefersReducedMotion();
   const analytics = useMovementAnalytics(props.activeBankProduct, props.transactionTaxonomyOverrides);

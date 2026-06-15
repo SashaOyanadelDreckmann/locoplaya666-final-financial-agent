@@ -21,7 +21,7 @@ type GeoJsonPoint = { type: "Point"; coordinates: [number, number] };
 type GeoJsonLineString = { type: "LineString"; coordinates: [number, number][] };
 type GeoJsonFeature<G, P = GeoJsonProperties> = { type: "Feature"; properties: P; geometry: G; id?: string | number };
 type GeoJsonFeatureCollection<G, P = GeoJsonProperties> = { type: "FeatureCollection"; features: Array<GeoJsonFeature<G, P>> };
-import { Loader2, Locate, Maximize, Minus, Plus, X } from "lucide-react";
+import { Loader2, Locate, Maximize, Minus, Plus } from "lucide-react";
 
 function cn(...inputs: Array<string | false | null | undefined>) {
   return inputs.filter(Boolean).join(" ");
@@ -400,9 +400,16 @@ function PopupCloseButton({ onClick }: { onClick: () => void }) {
       type="button"
       onClick={onClick}
       aria-label="Close popup"
-      className="absolute right-0.5 top-0.5 z-10 inline-flex size-5 items-center justify-center rounded-sm text-current transition-colors hover:bg-black/10"
+      className="map-popup-close agent-close-x absolute right-0.5 top-0.5 z-10"
     >
-      <X className="size-3.5" />
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <path
+          d="M2 2l12 12M14 2L2 14"
+          stroke="currentColor"
+          strokeWidth="1.75"
+          strokeLinecap="round"
+        />
+      </svg>
     </button>
   );
 }

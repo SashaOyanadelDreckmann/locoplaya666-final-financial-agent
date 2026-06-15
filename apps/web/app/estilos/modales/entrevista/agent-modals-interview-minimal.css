@@ -1,0 +1,823 @@
+/* ================================================= */
+/* INTERVIEW MODAL — MINIMAL PRESENTATION              */
+/* 33 / 33 / 33 zones · centered CTA · premium rail.  */
+/* ================================================= */
+
+.interview-modal.interview-modal--minimal {
+  --iv-min-radius-shell: 28px;
+  --iv-min-radius-surface: 22px;
+  --iv-min-radius-control: 999px;
+  --iv-min-radius-card: 18px;
+  --iv-min-wine: #9f1239;
+  --iv-min-wine-soft: rgba(159, 18, 57, 0.92);
+  --iv-min-wine-eyebrow: #be185d;
+  --iv-min-wine-glow: rgba(159, 18, 57, 0.12);
+  --iv-min-wine-glass: rgba(159, 18, 57, 0.16);
+  --iv-min-wine-border: rgba(159, 18, 57, 0.32);
+  --iv-min-wine-text: rgba(253, 232, 239, 0.9);
+  --iv-min-body-pad-inline: clamp(16px, 2.4vw, 22px);
+  --iv-min-body-pad-block-end: clamp(18px, 2.2vw, 24px);
+  --iv-min-panel-radius: 20px;
+  --iv-min-panel-bg: #ffffff;
+  --iv-min-panel-bg-soft: linear-gradient(180deg, #ffffff 0%, #faf7f1 100%);
+  --iv-min-panel-border: rgba(198, 180, 156, 0.5);
+  --iv-min-panel-shadow: none;
+  --iv-min-ink: #1a1612;
+  --iv-min-ink-secondary: rgba(26, 22, 18, 0.78);
+  --iv-min-ink-dim: rgba(26, 22, 18, 0.58);
+  --iv-min-ink-muted: rgba(26, 22, 18, 0.44);
+  --iv-min-status-live: #166534;
+  --iv-min-status-paused: #9a6700;
+  --iv-min-status-idle: rgba(26, 22, 18, 0.52);
+}
+
+.interview-modal.interview-modal--minimal.agent-modal,
+.agent-modal.interview-modal.interview-modal--minimal {
+  border-radius: var(--iv-min-radius-shell) !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  min-height: min(78vh, 640px) !important;
+}
+
+.interview-modal.interview-modal--minimal .bcc-modal-eyebrow {
+  display: block !important;
+  color: var(--iv-min-wine-eyebrow) !important;
+  -webkit-text-fill-color: var(--iv-min-wine-eyebrow) !important;
+  letter-spacing: 0.28em !important;
+  font-weight: 600 !important;
+  font-size: clamp(9px, 1.8vw, 11px) !important;
+  text-transform: uppercase !important;
+  opacity: 1 !important;
+  margin-bottom: 2px !important;
+}
+
+/* ── Matte panels: full-width header cap + insight rail ─────────────────── */
+.agent-modal.interview-modal.interview-modal--minimal .interview-matte-panel--header,
+.interview-modal.interview-modal--minimal .bcc-modal-header.interview-matte-panel--header {
+  align-self: stretch !important;
+  margin: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  padding:
+    var(--modal-header-top-inset, clamp(16px, 2.2vw, 24px))
+    var(--modal-header-inline-inset, clamp(16px, 2.4vw, 28px))
+    var(--modal-header-bottom-gap, clamp(8px, 1.2vw, 12px)) !important;
+  min-height: 0 !important;
+  gap: var(--modal-header-row-gap, 12px) !important;
+  border-radius: var(--iv-min-radius-shell) var(--iv-min-radius-shell) 0 0 !important;
+  border: none !important;
+  border-bottom: 1px solid var(--iv-min-panel-border) !important;
+  background: var(--iv-min-panel-bg) !important;
+  background-image: linear-gradient(180deg, #ffffff 0%, #fffdf9 100%) !important;
+  box-shadow: none !important;
+  box-sizing: border-box !important;
+  position: relative !important;
+  top: auto !important;
+  z-index: 2 !important;
+  flex-shrink: 0 !important;
+}
+
+.agent-modal.interview-modal.interview-modal--minimal .interview-matte-panel--header .voice-call-status,
+.interview-modal.interview-modal--minimal .interview-matte-panel--header .interview-header-status-row .voice-call-status {
+  color: var(--iv-min-status-idle) !important;
+  -webkit-text-fill-color: var(--iv-min-status-idle) !important;
+  background: none !important;
+  border: none !important;
+}
+
+.agent-modal.interview-modal.interview-modal--minimal .interview-matte-panel--header .bcc-modal-title,
+.interview-modal.interview-modal--minimal .interview-matte-panel--header .bcc-modal-title {
+  color: var(--iv-min-ink) !important;
+  -webkit-text-fill-color: var(--iv-min-ink) !important;
+}
+
+.interview-modal.interview-modal--minimal .interview-matte-panel--header .interview-time-chip {
+  color: var(--iv-min-ink-secondary) !important;
+  -webkit-text-fill-color: var(--iv-min-ink-secondary) !important;
+  border: 1px solid rgba(198, 180, 156, 0.72) !important;
+  background: rgba(255, 255, 255, 0.72) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.92) !important;
+}
+
+.interview-modal.interview-modal--minimal .interview-matte-panel--header .voice-call-status-dot {
+  background: var(--iv-min-status-idle) !important;
+  box-shadow: 0 0 0 3px rgba(26, 22, 18, 0.08) !important;
+}
+
+.agent-modal.interview-modal.interview-modal--minimal .interview-matte-panel--rail,
+.interview-modal.interview-modal--minimal .interview-live-zone--rail.interview-matte-panel--rail {
+  grid-row: 3 !important;
+  flex: 0 0 auto !important;
+  align-self: stretch !important;
+  max-height: none !important;
+  width: 100% !important;
+  margin-top: 0 !important;
+  padding: 12px !important;
+  border-radius: var(--iv-min-panel-radius) !important;
+  border: 1px solid var(--iv-min-panel-border) !important;
+  background: var(--iv-min-panel-bg) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.94) !important;
+  overflow: visible !important;
+  box-sizing: border-box !important;
+}
+
+.interview-modal.interview-modal--minimal .interview-modal-body,
+.agent-modal.interview-modal.interview-modal--minimal .interview-modal-body {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  padding:
+    clamp(8px, 1vw, 12px)
+    var(--iv-min-body-pad-inline)
+    var(--iv-min-body-pad-block-end) !important;
+}
+
+.interview-modal.interview-modal--minimal .interview-stage-shell,
+.agent-modal.interview-modal.interview-modal--minimal .interview-stage-shell {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  height: auto !important;
+  grid-template-columns: none !important;
+  max-height: none !important;
+}
+
+.interview-modal.interview-modal--minimal .interview-panel-surface--sidebar {
+  display: none !important;
+}
+
+.interview-modal.interview-modal--minimal .interview-shell,
+.interview-modal.interview-modal--minimal .pro-interview-shell {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.interview-modal.interview-modal--minimal .interview-panel-surface,
+.agent-modal.interview-modal.interview-modal--minimal .interview-panel-surface--workspace,
+.interview-modal.interview-modal--minimal .interview-panel-surface--workspace {
+  padding: 0 !important;
+  border-radius: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: visible !important;
+}
+
+.interview-modal.interview-modal--minimal .interview-panel-surface::after {
+  display: none !important;
+}
+
+/* Beat diagnostics/budget workspace padding — content sits on modal body */
+.agent-modal.interview-modal.interview-modal--minimal .interview-panel-surface--workspace,
+.agent-modal.interview-modal.interview-modal--minimal .pro-interview-column {
+  padding: 0 !important;
+  gap: 0 !important;
+}
+
+.interview-modal.interview-modal--minimal .pro-interview-column .voice-call-shell,
+.interview-modal.interview-modal--minimal .pro-interview-column .voice-call-shell.interview-live-shell {
+  padding: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.interview-modal.interview-modal--minimal .interview-live-shell {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.interview-modal.interview-modal--minimal .voice-call-topbar.interview-topbar-minimal {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+  padding-bottom: 10px !important;
+  margin-bottom: 0 !important;
+  border-bottom: none !important;
+}
+
+.agent-modal.interview-modal.interview-modal--minimal .interview-modal-header-layer--live {
+  align-items: flex-start !important;
+}
+
+.agent-modal.interview-modal.interview-modal--minimal .interview-header-title-band {
+  position: relative !important;
+  width: 100% !important;
+  min-height: 0 !important;
+}
+
+.agent-modal.interview-modal.interview-modal--minimal .interview-header-title-band--live {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  align-items: center !important;
+}
+
+.agent-modal.interview-modal.interview-modal--minimal .interview-header-title-band--live .bcc-modal-title {
+  grid-area: 1 / 1 !important;
+  justify-self: start !important;
+  align-self: center !important;
+  margin: 0 !important;
+}
+
+.agent-modal.interview-modal.interview-modal--minimal .interview-header-status-row {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: clamp(10px, 2vw, 16px) !important;
+  grid-area: 1 / 1 !important;
+  justify-self: center !important;
+  align-self: center !important;
+  width: auto !important;
+  margin: 0 !important;
+  pointer-events: none !important;
+}
+
+.agent-modal.interview-modal.interview-modal--minimal .interview-header-status-row .interview-header-status-label,
+.agent-modal.interview-modal.interview-modal--minimal .interview-header-status-row .voice-call-status {
+  display: inline-flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  flex: 0 0 auto !important;
+  gap: 6px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: none !important;
+  border: none !important;
+  white-space: nowrap !important;
+}
+
+.agent-modal.interview-modal.interview-modal--minimal .interview-header-status-row .interview-time-chip {
+  flex: 0 0 auto !important;
+}
+
+.interview-modal.interview-modal--minimal .interview-topbar-minimal .voice-call-status {
+  font-size: 12px !important;
+  letter-spacing: 0.04em !important;
+  text-transform: uppercase !important;
+}
+
+.interview-modal.interview-modal--minimal .interview-insight-cell__head {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 8px !important;
+}
+
+.interview-modal.interview-modal--minimal .interview-time-chip {
+  font-size: 12px !important;
+  font-variant-numeric: tabular-nums !important;
+  color: var(--iv-min-ink-secondary) !important;
+  -webkit-text-fill-color: var(--iv-min-ink-secondary) !important;
+  white-space: nowrap !important;
+  padding: 6px 12px !important;
+  border-radius: var(--iv-min-radius-control) !important;
+  border: 1px solid rgba(198, 180, 156, 0.72) !important;
+  background: rgba(255, 255, 255, 0.72) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.92) !important;
+}
+
+.interview-modal.interview-modal--minimal .voice-call-progress {
+  margin: 4px 0 0 !important;
+  height: 6px !important;
+  border-radius: var(--iv-min-radius-control) !important;
+  background: rgba(159, 18, 57, 0.14) !important;
+  overflow: hidden !important;
+}
+
+.interview-modal.interview-modal--minimal .voice-call-progress > span,
+.agent-modal.interview-modal.interview-modal--minimal .voice-call-progress > span {
+  border-radius: var(--iv-min-radius-control) !important;
+  background: var(--iv-min-wine) !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+.interview-modal.interview-modal--minimal .interview-call-controls--centered {
+  width: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 12px !important;
+  margin: 0 !important;
+}
+
+.interview-modal.interview-modal--minimal .interview-call-controls--centered.is-idle .interview-call-actions--idle {
+  width: auto !important;
+  justify-content: center !important;
+}
+
+.interview-modal.interview-modal--minimal .interview-call-controls--centered.is-idle .interview-call-start-btn,
+.interview-modal.interview-modal--minimal .pro-interview-column .voice-call-shell.interview-live-shell .summary-action-btn.interview-call-start-btn.summary-action-accept {
+  min-width: min(100%, 220px) !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  padding: 0 24px !important;
+  font-size: 13px !important;
+  text-transform: none !important;
+  letter-spacing: 0.01em !important;
+  font-weight: 500 !important;
+  background: var(--iv-min-wine-glass) !important;
+  background-image: none !important;
+  border: 1px solid var(--iv-min-wine-border) !important;
+  color: var(--iv-min-wine-text) !important;
+  -webkit-text-fill-color: var(--iv-min-wine-text) !important;
+  filter: none !important;
+  backdrop-filter: blur(14px) saturate(120%) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(120%) !important;
+}
+
+/* Live call — compact matte wine pills (wins budget.css celeste gradient) */
+.interview-modal.interview-modal--minimal .pro-interview-column .voice-call-shell.interview-live-shell .summary-action-btn.interview-call-pause-btn:not(.summary-action-accept):not(.summary-action-reject),
+.interview-modal.interview-modal--minimal .pro-interview-column .voice-call-shell.interview-live-shell .summary-action-btn.interview-call-end-btn:not(.summary-action-accept):not(.summary-action-reject),
+.agent-modal.interview-modal.interview-modal--minimal .pro-interview-column .voice-call-shell.interview-live-shell .summary-action-btn.interview-call-pause-btn,
+.agent-modal.interview-modal.interview-modal--minimal .pro-interview-column .voice-call-shell.interview-live-shell .summary-action-btn.interview-call-end-btn {
+  flex: 0 0 auto !important;
+  width: auto !important;
+  min-width: 0 !important;
+  height: 34px !important;
+  min-height: 34px !important;
+  padding: 0 14px !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.01em !important;
+  line-height: 1 !important;
+  text-transform: none !important;
+  border-radius: var(--iv-min-radius-control) !important;
+  background-image: none !important;
+  filter: none !important;
+  backdrop-filter: blur(14px) saturate(125%) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(125%) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    0 4px 18px rgba(159, 18, 57, 0.12) !important;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.2s ease !important;
+}
+
+.interview-modal.interview-modal--minimal .interview-call-actions--live {
+  display: inline-flex !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  width: auto !important;
+  max-width: 100% !important;
+}
+
+.interview-modal.interview-modal--minimal .pro-interview-column .voice-call-shell.interview-live-shell .summary-action-btn.interview-call-pause-btn,
+.agent-modal.interview-modal.interview-modal--minimal .pro-interview-column .voice-call-shell.interview-live-shell .summary-action-btn.interview-call-pause-btn {
+  background: rgba(159, 18, 57, 0.14) !important;
+  border: 1px solid rgba(159, 18, 57, 0.26) !important;
+  color: rgba(253, 232, 239, 0.88) !important;
+  -webkit-text-fill-color: rgba(253, 232, 239, 0.88) !important;
+}
+
+.interview-modal.interview-modal--minimal .pro-interview-column .voice-call-shell.interview-live-shell .summary-action-btn.interview-call-pause-btn:hover:not(:disabled),
+.agent-modal.interview-modal.interview-modal--minimal .pro-interview-column .voice-call-shell.interview-live-shell .summary-action-btn.interview-call-pause-btn:hover:not(:disabled) {
+  background: rgba(159, 18, 57, 0.22) !important;
+  border-color: rgba(190, 24, 93, 0.4) !important;
+  color: rgba(255, 241, 246, 0.96) !important;
+  -webkit-text-fill-color: rgba(255, 241, 246, 0.96) !important;
+  transform: none !important;
+}
+
+.interview-modal.interview-modal--minimal .pro-interview-column .voice-call-shell.interview-live-shell .summary-action-btn.interview-call-pause-btn.is-paused,
+.agent-modal.interview-modal.interview-modal--minimal .pro-interview-column .voice-call-shell.interview-live-shell .summary-action-btn.interview-call-pause-btn.is-paused {
+  background: rgba(159, 18, 57, 0.26) !important;
+  border-color: rgba(225, 29, 72, 0.44) !important;
+  color: rgba(255, 241, 246, 0.98) !important;
+  -webkit-text-fill-color: rgba(255, 241, 246, 0.98) !important;
+}
+
+.interview-modal.interview-modal--minimal .pro-interview-column .voice-call-shell.interview-live-shell .summary-action-btn.interview-call-end-btn,
+.agent-modal.interview-modal.interview-modal--minimal .pro-interview-column .voice-call-shell.interview-live-shell .summary-action-btn.interview-call-end-btn {
+  background: rgba(127, 29, 29, 0.18) !important;
+  border: 1px solid rgba(159, 18, 57, 0.34) !important;
+  color: rgba(254, 205, 211, 0.86) !important;
+  -webkit-text-fill-color: rgba(254, 205, 211, 0.86) !important;
+}
+
+.interview-modal.interview-modal--minimal .pro-interview-column .voice-call-shell.interview-live-shell .summary-action-btn.interview-call-end-btn:hover:not(:disabled),
+.agent-modal.interview-modal.interview-modal--minimal .pro-interview-column .voice-call-shell.interview-live-shell .summary-action-btn.interview-call-end-btn:hover:not(:disabled) {
+  background: rgba(159, 18, 57, 0.24) !important;
+  border-color: rgba(190, 24, 93, 0.46) !important;
+  color: rgba(255, 228, 230, 0.96) !important;
+  -webkit-text-fill-color: rgba(255, 228, 230, 0.96) !important;
+  transform: none !important;
+}
+
+.interview-modal.interview-modal--minimal .pro-interview-column .voice-call-shell.interview-live-shell .summary-action-btn.interview-call-end-btn.is-armed,
+.agent-modal.interview-modal.interview-modal--minimal .pro-interview-column .voice-call-shell.interview-live-shell .summary-action-btn.interview-call-end-btn.is-armed {
+  background: rgba(159, 18, 57, 0.3) !important;
+  border-color: rgba(225, 29, 72, 0.52) !important;
+  color: rgba(255, 241, 246, 1) !important;
+  -webkit-text-fill-color: rgba(255, 241, 246, 1) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 0 0 1px rgba(225, 29, 72, 0.18),
+    0 6px 22px rgba(159, 18, 57, 0.22) !important;
+}
+
+.interview-modal.interview-modal--minimal .pro-interview-column .voice-call-shell.interview-live-shell .summary-action-btn.interview-call-end-btn--pending,
+.agent-modal.interview-modal.interview-modal--minimal .pro-interview-column .voice-call-shell.interview-live-shell .summary-action-btn.interview-call-end-btn--pending {
+  background: rgba(159, 18, 57, 0.08) !important;
+  border: 1px solid rgba(159, 18, 57, 0.2) !important;
+  border-style: solid !important;
+  color: rgba(251, 207, 232, 0.52) !important;
+  -webkit-text-fill-color: rgba(251, 207, 232, 0.52) !important;
+  opacity: 1 !important;
+  box-shadow: none !important;
+}
+
+.interview-modal.interview-modal--minimal .pro-interview-column .voice-call-shell.interview-live-shell .summary-action-btn.interview-call-start-btn.summary-action-accept,
+.agent-modal.interview-modal.interview-modal--minimal .pro-interview-column .voice-call-shell.interview-live-shell .summary-action-btn.interview-call-start-btn.summary-action-accept {
+  background: var(--iv-min-wine-glass) !important;
+  background-image: none !important;
+  border: 1px solid var(--iv-min-wine-border) !important;
+  color: var(--iv-min-wine-text) !important;
+  -webkit-text-fill-color: var(--iv-min-wine-text) !important;
+  filter: none !important;
+}
+
+.interview-modal.interview-modal--minimal .interview-call-controls--centered.is-live .interview-call-end-confirm-btn,
+.interview-modal.interview-modal--minimal .interview-call-controls--centered.is-live .interview-call-actions--secondary .summary-action-btn {
+  height: 32px !important;
+  min-height: 32px !important;
+  padding: 0 12px !important;
+  font-size: 10.5px !important;
+  border-radius: var(--iv-min-radius-control) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+}
+
+.interview-modal.interview-modal--minimal .interview-call-controls--centered.is-live .interview-call-end-confirm-btn.summary-action-accept {
+  background: rgba(159, 18, 57, 0.28) !important;
+  border: 1px solid rgba(190, 24, 93, 0.42) !important;
+  color: rgba(255, 241, 246, 0.96) !important;
+  -webkit-text-fill-color: rgba(255, 241, 246, 0.96) !important;
+}
+
+.interview-modal.interview-modal--minimal .summary-action-btn:not(.interview-call-pause-btn):not(.interview-call-end-btn),
+.interview-modal.interview-modal--minimal .interview-call-controls .summary-action-btn:not(.interview-call-pause-btn):not(.interview-call-end-btn) {
+  border-radius: var(--iv-min-radius-control) !important;
+  min-height: 42px !important;
+  height: 42px !important;
+  padding: 0 22px !important;
+  text-transform: none !important;
+  letter-spacing: -0.01em !important;
+  font-weight: 500 !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+}
+
+.interview-modal.interview-modal--minimal .interview-end-call-confirm,
+.interview-modal.interview-modal--minimal .voice-call-transcript-card,
+.interview-modal.interview-modal--minimal .interview-call-error-panel,
+.interview-modal.interview-modal--minimal .voice-call-error,
+.interview-modal.interview-modal--minimal .interview-call-error-banner {
+  border-radius: var(--iv-min-radius-card) !important;
+}
+
+.interview-modal.interview-modal--minimal .interview-end-call-confirm {
+  max-width: min(100%, 360px) !important;
+  text-align: center !important;
+}
+
+.interview-modal.interview-modal--minimal .interview-end-call-confirm p {
+  font-size: 13px !important;
+  line-height: 1.45 !important;
+  margin: 0 0 12px !important;
+}
+
+.interview-modal.interview-modal--minimal .interview-modal-loader__note,
+.interview-modal.interview-modal--minimal .interview-modal-loader__steps {
+  display: none !important;
+}
+
+.interview-modal.interview-modal--minimal .interview-modal-loader__subtitle {
+  font-size: 13px !important;
+  line-height: 1.45 !important;
+  max-width: 28ch !important;
+  margin-inline: auto !important;
+}
+
+.interview-modal.is-mobile-shell.interview-modal--minimal .interview-panel-surface--workspace {
+  padding: 0 !important;
+  border-radius: 0 !important;
+  min-height: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Head at top · airy center · insight rail pinned to modal bottom */
+.interview-modal.interview-modal--minimal .interview-live-zones {
+  display: grid !important;
+  grid-template-rows: auto minmax(200px, 1fr) auto !important;
+  flex: 1 1 auto !important;
+  height: 100% !important;
+  min-height: min(48vh, 380px) !important;
+  gap: 0 !important;
+  align-content: stretch !important;
+}
+
+.interview-modal.interview-modal--minimal .interview-live-zone--head {
+  grid-row: 1 !important;
+  flex: 0 0 auto !important;
+  max-height: none !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-start !important;
+  padding-bottom: 0 !important;
+  overflow: hidden !important;
+}
+
+.interview-modal.interview-modal--minimal .interview-live-zone--head .interview-call-error-panel--prestart {
+  margin-top: 8px !important;
+}
+
+.interview-modal.interview-modal--minimal .interview-live-zone--center {
+  grid-row: 2 !important;
+  flex: 1 1 auto !important;
+  max-height: none !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding-inline: 4px !important;
+  overflow: visible !important;
+}
+
+.interview-modal.interview-modal--minimal .interview-live-zone--center .interview-call-controls--centered {
+  width: 100% !important;
+  flex: 0 0 auto !important;
+}
+
+.interview-modal.interview-modal--minimal .interview-live-zone--center .interview-call-error-panel--center {
+  width: min(100%, 360px) !important;
+  margin-bottom: 10px !important;
+}
+
+.interview-modal.interview-modal--minimal .interview-insight-grid {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+  height: auto !important;
+  align-content: end !important;
+}
+
+.interview-modal.interview-modal--minimal .interview-insight-rail {
+  height: auto !important;
+  width: 100% !important;
+}
+
+.interview-modal.interview-modal--minimal .interview-insight-cell {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  gap: 5px !important;
+  min-height: 88px !important;
+  padding: 11px 12px !important;
+  border-radius: 14px !important;
+  background: var(--iv-min-panel-bg-soft) !important;
+  border: 1px solid rgba(198, 180, 156, 0.46) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.92) !important;
+}
+
+.interview-modal.interview-modal--minimal .interview-insight-cell__label {
+  font-size: 9px !important;
+  letter-spacing: 0.16em !important;
+  text-transform: uppercase !important;
+  color: var(--iv-min-ink-muted) !important;
+}
+
+.interview-modal.interview-modal--minimal .interview-insight-cell__dot {
+  width: 7px !important;
+  height: 7px !important;
+  border-radius: 50% !important;
+  background: rgba(26, 22, 18, 0.28) !important;
+  box-shadow: 0 0 0 3px rgba(26, 22, 18, 0.06) !important;
+  flex-shrink: 0 !important;
+}
+
+.interview-modal.interview-modal--minimal .interview-insight-cell__value {
+  font-size: 12px !important;
+  font-weight: 560 !important;
+  line-height: 1.25 !important;
+  letter-spacing: -0.02em !important;
+  color: var(--iv-min-ink) !important;
+  -webkit-text-fill-color: var(--iv-min-ink) !important;
+  overflow: hidden !important;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+}
+
+.interview-modal.interview-modal--minimal .interview-insight-cell__detail {
+  font-size: 10px !important;
+  line-height: 1.35 !important;
+  color: var(--iv-min-ink-dim) !important;
+  overflow: hidden !important;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+}
+
+.interview-modal.interview-modal--minimal .interview-insight-cell.is-live {
+  border-color: rgba(22, 101, 52, 0.34) !important;
+  background: linear-gradient(180deg, #edf9f1 0%, #faf6ef 100%) !important;
+}
+
+.interview-modal.interview-modal--minimal .interview-insight-cell.is-live .interview-insight-cell__dot {
+  background: var(--iv-min-status-live) !important;
+  box-shadow: 0 0 0 3px rgba(22, 101, 52, 0.14) !important;
+}
+
+.interview-modal.interview-modal--minimal .interview-insight-cell.is-live .interview-insight-cell__value {
+  color: #14532d !important;
+  -webkit-text-fill-color: #14532d !important;
+}
+
+.interview-modal.interview-modal--minimal .interview-insight-cell.is-paused {
+  border-color: rgba(154, 103, 0, 0.34) !important;
+  background: linear-gradient(180deg, #fff8e8 0%, #faf4ea 100%) !important;
+}
+
+.interview-modal.interview-modal--minimal .interview-insight-cell.is-paused .interview-insight-cell__dot {
+  background: var(--iv-min-status-paused) !important;
+  box-shadow: 0 0 0 3px rgba(154, 103, 0, 0.14) !important;
+}
+
+.interview-modal.interview-modal--minimal .interview-insight-cell.is-closing {
+  border-color: rgba(37, 99, 168, 0.3) !important;
+  background: linear-gradient(180deg, #eef4fc 0%, #faf4ea 100%) !important;
+}
+
+.interview-modal.interview-modal--minimal .interview-insight-cell.is-closing .interview-insight-cell__dot {
+  background: #2563a8 !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 168, 0.14) !important;
+}
+
+.interview-modal.interview-modal--minimal .interview-insight-cell.is-done {
+  border-color: rgba(198, 180, 156, 0.52) !important;
+}
+
+.interview-modal.interview-modal--minimal .interview-insight-cell.is-muted .interview-insight-cell__value {
+  color: var(--iv-min-ink-dim) !important;
+  -webkit-text-fill-color: var(--iv-min-ink-dim) !important;
+}
+
+.interview-modal.interview-modal--minimal .interview-insight-cell.is-muted .interview-insight-cell__dot {
+  background: rgba(26, 22, 18, 0.2) !important;
+  box-shadow: none !important;
+}
+
+.interview-modal.is-mobile-shell.interview-modal--minimal .interview-modal-body,
+.agent-modal.interview-modal.is-mobile-shell.interview-modal--minimal .interview-modal-body {
+  padding:
+    12px
+    16px
+    calc(16px + env(safe-area-inset-bottom, 0px)) !important;
+}
+
+.interview-modal.is-mobile-shell.interview-modal--minimal .interview-live-zones {
+  min-height: 0 !important;
+  grid-template-rows: auto minmax(140px, 1fr) auto !important;
+}
+
+.interview-modal.is-mobile-shell.interview-modal--minimal .interview-matte-panel--header,
+.interview-modal.is-mobile-shell .bcc-modal-header.interview-modal-header-layer {
+  padding-top: var(--modal-header-top-inset, 16px) !important;
+  padding-bottom: var(--modal-header-bottom-gap, 10px) !important;
+  padding-left: max(var(--modal-header-inline-inset, 16px), env(safe-area-inset-left, 0px)) !important;
+  padding-right: max(var(--modal-header-inline-inset, 16px), env(safe-area-inset-right, 0px)) !important;
+  min-height: 0 !important;
+  gap: var(--modal-header-row-gap, 12px) !important;
+  border-radius: var(--modal-mobile-sheet-radius, 20px) var(--modal-mobile-sheet-radius, 20px) 0 0 !important;
+}
+
+.interview-modal.is-mobile-shell .bcc-modal-eyebrow,
+.interview-modal.is-mobile-shell.interview-modal--minimal .bcc-modal-eyebrow {
+  font-size: 9px !important;
+  letter-spacing: 0.24em !important;
+  margin-bottom: 2px !important;
+}
+
+.interview-modal.is-mobile-shell .bcc-modal-title,
+.interview-modal.is-mobile-shell.interview-modal--minimal .bcc-modal-title {
+  font-size: clamp(15px, 4.4vw, 17px) !important;
+  line-height: 1.22 !important;
+  font-weight: 650 !important;
+}
+
+.interview-modal.is-mobile-shell .agent-modal-close,
+.interview-modal.is-mobile-shell.interview-modal--minimal .agent-modal-close {
+  position: relative !important;
+  top: auto !important;
+  right: auto !important;
+  flex: 0 0 44px !important;
+  margin-top: 2px !important;
+}
+
+.interview-modal.is-mobile-shell.interview-modal--minimal .interview-header-title-band--live {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  gap: 6px !important;
+  min-height: 0 !important;
+}
+
+.interview-modal.is-mobile-shell.interview-modal--minimal .interview-header-title-band--live .bcc-modal-title {
+  grid-area: auto !important;
+  justify-self: auto !important;
+  align-self: auto !important;
+  width: 100% !important;
+}
+
+.interview-modal.is-mobile-shell.interview-modal--minimal .interview-header-status-row {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  grid-area: auto !important;
+  justify-self: auto !important;
+  align-self: auto !important;
+  width: 100% !important;
+  margin: 0 !important;
+  gap: 8px !important;
+}
+
+.interview-modal.is-mobile-shell.interview-modal--minimal .interview-header-status-row .interview-header-status-label {
+  font-size: 10px !important;
+  letter-spacing: 0.03em !important;
+}
+
+.interview-modal.is-mobile-shell.interview-modal--minimal .interview-header-status-row .interview-time-chip {
+  padding: 5px 10px !important;
+  font-size: 11px !important;
+}
+
+.interview-modal.is-mobile-shell.interview-modal--minimal .interview-live-zone--rail.interview-matte-panel--rail {
+  padding: 10px !important;
+}
+
+.interview-modal.is-mobile-shell.interview-modal--minimal .interview-insight-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  grid-template-rows: repeat(2, minmax(0, 1fr)) !important;
+}
+
+.interview-modal.is-mobile-shell.interview-modal--minimal .interview-insight-cell {
+  padding: 9px 10px !important;
+  border-radius: 14px !important;
+}
+
+.interview-modal.is-mobile-shell.interview-modal--minimal .interview-call-controls--centered.is-idle .interview-call-start-btn {
+  min-width: min(100%, 260px) !important;
+}
+
+.interview-modal.is-mobile-shell.interview-modal--minimal .interview-call-actions--live {
+  display: inline-flex !important;
+  grid-template-columns: unset !important;
+  width: auto !important;
+}
+
+.interview-modal.is-mobile-shell.interview-modal--minimal .interview-call-actions--live .interview-call-pause-btn,
+.interview-modal.is-mobile-shell.interview-modal--minimal .interview-call-actions--live .interview-call-end-btn {
+  width: auto !important;
+  flex: 0 0 auto !important;
+  min-height: 34px !important;
+}
+
+.interview-modal.is-mobile-shell.interview-modal--minimal .interview-call-controls.is-live {
+  position: static !important;
+  background: transparent !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}

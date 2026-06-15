@@ -74,18 +74,21 @@ describe('budget pro mobile css safeguards', () => {
     expect(deskCss).toContain('BUDGET DESKTOP — assistant hero (Apple minimal)');
     expect(deskCss).toContain('.bcc-hero-question--gradient-demo');
     expect(deskCss).toContain('.agent-keyword-gradient');
-    expect(deskCss).toContain('--hero-keyword-blue: #88a7bc');
+    expect(deskCss).toContain('--hero-keyword-blue: #52a8d9');
     expect(deskCss).toContain('.bcc-hero-compose');
     expect(deskCss).toContain('.budget-chat-sync-button.is-assistant-action');
   });
 
-  it('keeps desktop header and mode tabs compact and centered', () => {
+  it('keeps desktop header and view nav compact and centered', () => {
     const deskCssPath = path.join(process.cwd(), 'app', 'estilos', 'modales', 'presupuesto', 'agent-modals-budget-desktop-guard.css');
     const deskCss = fs.readFileSync(deskCssPath, 'utf8');
     expect(deskCss).toContain('BUDGET DESKTOP — compact header + tabs stack');
-    expect(deskCss).toContain('.budget-modal-body.is-desktop > .budget-mode-tabs');
-    expect(deskCss).toContain('justify-content: center !important');
-    expect(deskCss).toContain('padding: 14px 28px 4px !important');
+    expect(deskCss).toContain('.budget-modal-header-stack');
+    expect(deskCss).toContain('.budget-modal-header-title-row .budget-view-nav');
+    expect(deskCss).toContain('grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) !important');
+    expect(deskCss).toContain('BUDGET HEADER — transactions contract + yellow');
+    expect(deskCss).toContain('BUDGET FOOTER — unified slim pill buttons');
+    expect(deskCss).toContain('height: 30px !important');
   });
 
   it('fits split desktop table without horizontal clipping', () => {
@@ -145,12 +148,71 @@ describe('budget pro mobile css safeguards', () => {
     expect(stylesCss).toContain('background: #000000 !important');
   });
 
-  it('uses transparent frosted glass on mobile assistant overlay (blur only, no tint)', () => {
-    const authCssPath = path.join(process.cwd(), 'app', 'estilos', 'modales', 'presupuesto', 'agent-modals-budget-mobile-authoritative.css');
-    const authCss = fs.readFileSync(authCssPath, 'utf8');
-    expect(authCss).toContain('is-mobile-assistant-glass::before');
-    expect(authCss).toContain('background: transparent !important');
-    expect(authCss).toContain('backdrop-filter: blur(80px) saturate(1.05) !important');
-    expect(authCss).not.toContain('brightness(0.58)');
+  it('keeps mobile assistant overlay aligned with desktop (sharp table + blur card)', () => {
+    const guardCssPath = path.join(process.cwd(), 'app', 'estilos', 'modales', 'presupuesto', 'agent-modals-budget-desktop-guard.css');
+    const guardCss = fs.readFileSync(guardCssPath, 'utf8');
+    const source = fs.readFileSync(path.join(process.cwd(), 'app', 'agent', 'modales', 'presupuesto', 'BudgetModal.tsx'), 'utf8');
+    const intelSource = fs.readFileSync(path.join(process.cwd(), 'components', 'ui', 'budget-intelligence-table.tsx'), 'utf8');
+    expect(guardCss).toContain('BUDGET MOBILE — assistant overlay (desktop-like)');
+    expect(guardCss).toContain('filter: none !important');
+    expect(guardCss).toContain('budget-assistant-blur-veil');
+    expect(guardCss).toContain('Mobile intel summary — match desktop title');
+    expect(guardCss).toContain('is-budget-assistant-income');
+    expect(source).toContain('BudgetMobileIntelSummary');
+    expect(intelSource).toContain('Budget intelligence');
+    expect(guardCss).toContain('is-budget-assistant-expense');
+    expect(guardCss).toContain('border-radius: 20px');
+    expect(source).toContain('isMobileAssistantOverlay');
+    expect(source).toContain('mobileAssistantHeroToneClass');
+    expect(source).toContain('budget-modal.assistant-tone');
+  });
+
+  it('keeps horizontal and vertical row swipe separate from view navigation on mobile', () => {
+    const guardCssPath = path.join(process.cwd(), 'app', 'estilos', 'modales', 'presupuesto', 'agent-modals-budget-desktop-guard.css');
+    const guardCss = fs.readFileSync(guardCssPath, 'utf8');
+    const gestureSource = fs.readFileSync(
+      path.join(process.cwd(), 'app', 'agent', 'modales', 'presupuesto', 'use-budget-mobile-row-gestures.ts'),
+      'utf8',
+    );
+    expect(guardCss).toContain('BUDGET MOBILE — row swipe (vertical + horizontal)');
+    expect(guardCss).toContain('is-row-swipe-peek');
+    expect(guardCss).toContain('is-row-swipe-releasing');
+    expect(gestureSource).toContain('releaseHorizontalDrag');
+    expect(gestureSource).toContain('dataset.budgetRowSlide');
+    expect(gestureSource).toContain('is-row-swipe-dragging');
+    expect(guardCss).toContain('--budget-row-swipe-x');
+  });
+
+  it('styles split desktop agent column with white surface and dark ink', () => {
+    const guardCssPath = path.join(process.cwd(), 'app', 'estilos', 'modales', 'presupuesto', 'agent-modals-budget-desktop-guard.css');
+    const guardCss = fs.readFileSync(guardCssPath, 'utf8');
+    expect(guardCss).toContain('BUDGET DESKTOP — split: white agent column surface');
+    expect(guardCss).toContain('.mode-split > .budget-card-agent.budget-assistant-panel{');
+    expect(guardCss).toContain('background: #ffffff !important');
+    expect(guardCss).toContain('--budget-split-agent-ink: #171411');
+    expect(guardCss).toContain('--hero-keyword-blue: #2b63c4');
+    expect(guardCss).toContain('--hero-keyword-yellow: #d4a800');
+    expect(guardCss).toContain('--hero-keyword-red: #c73e3a');
+    expect(guardCss).toContain('.mode-split > .budget-card-agent.budget-assistant-panel .agent-keyword-gradient');
+    expect(guardCss).toContain('.mode-split > .budget-card-agent.budget-assistant-panel .bcc-hero-input{');
+  });
+
+  it('keeps ledger mobile active row light (beats diagnostics dark td blocks)', () => {
+    const guardCssPath = path.join(process.cwd(), 'app', 'estilos', 'modales', 'presupuesto', 'agent-modals-budget-desktop-guard.css');
+    const guardCss = fs.readFileSync(guardCssPath, 'utf8');
+    expect(guardCss).toContain('BUDGET MOBILE — ledger/editorial active row');
+    expect(guardCss).toContain("data-budget-table-style='ledger'] .budget-pdf-surface.budget-table-style-ledger.is-mobile-compact:not(.is-budget-pdf-exporting) .budget-table.budget-table-pro tbody tr.is-mobile-row-card.is-active-row td");
+    expect(guardCss).toContain('background: transparent !important');
+    expect(guardCss).toContain('--mb-input-bg, rgba(255, 252, 246, 0.98)');
+  });
+
+  it('styles Fijo/Variable pills with olive income and pastel red expense', () => {
+    const guardCssPath = path.join(process.cwd(), 'app', 'estilos', 'modales', 'presupuesto', 'agent-modals-budget-desktop-guard.css');
+    const guardCss = fs.readFileSync(guardCssPath, 'utf8');
+    expect(guardCss).toContain('BUDGET — Fijo / Variable pills (income / expense)');
+    expect(guardCss).toContain('--budget-pill-income-fill: #b5c796');
+    expect(guardCss).toContain('--budget-pill-expense-fill: #e2abab');
+    expect(guardCss).toContain('.budget-pill-group.is-income .budget-pill-button.is-active');
+    expect(guardCss).toContain('.budget-pill-group.is-expense .budget-pill-button.is-active');
   });
 });

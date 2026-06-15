@@ -1,5 +1,7 @@
 'use client';
 
+import { AgentModalCloseButton } from '../modales/comunes/AgentModalCloseButton';
+
 type PanelCalloutBannerProps = {
   callout: { section: string; message: string };
   onClose: () => void;
@@ -27,9 +29,11 @@ export function PanelCalloutBanner(props: PanelCalloutBannerProps) {
         <span className="panel-callout-tag">Agente</span>
         <p className="panel-callout-msg">{props.callout.message}</p>
       </div>
-      <button type="button" className="panel-callout-close" onClick={props.onClose} aria-label="Cerrar">
-        ×
-      </button>
+      <AgentModalCloseButton
+        className="panel-callout-close agent-modal-close agent-close-x"
+        onClick={props.onClose}
+        aria-label="Cerrar"
+      />
       <div className="panel-callout-progress" />
     </div>
   );
