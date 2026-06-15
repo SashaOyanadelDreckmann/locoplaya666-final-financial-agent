@@ -107,8 +107,11 @@ describe('POST /api/interview/realtime/token', () => {
     expect(res.body.data.server_dossier_attached).toBe(true);
     expect(typeof res.body.data.session_instructions).toBe('string');
     expect(res.body.data.session_instructions).toContain('FICHA MAESTRA DEL USUARIO');
+    expect(res.body.data.session_instructions).toContain('modismos chilenos');
+    expect(res.body.data.session_instructions).toContain('REGLA FINAL DE VOZ');
     expect(typeof requestBody?.session?.instructions).toBe('string');
     expect(String(requestBody.session.instructions)).toContain('FICHA MAESTRA DEL USUARIO');
+    expect(String(requestBody.session.instructions)).toContain('modismos chilenos');
     expect(res.body.data.interview_voice).toMatchObject({
       activeCallId: res.body.data.call_id,
       status: 'in_progress',

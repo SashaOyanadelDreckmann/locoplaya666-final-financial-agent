@@ -55,27 +55,25 @@ export function FincoinUsageModal(props: {
 
         <div className="fincoin-usage-head">
           <span className="fincoin-usage-icon" aria-hidden="true">
-            <FincoinIcon size="md" />
+            <FincoinIcon size="lg" />
           </span>
-          <p className="fincoin-usage-subtitle">Presupuesto incluido para usar el agente</p>
-          <span className={`fincoin-usage-pill ${statusClass}`}>{statusLabel}</span>
+          <div className="fincoin-usage-head-copy">
+            <p className="fincoin-usage-subtitle">Presupuesto incluido para usar el agente</p>
+            <span className={`fincoin-usage-pill ${statusClass}`}>{statusLabel}</span>
+          </div>
         </div>
 
+        <div className="fincoin-usage-body">
         <SpendingLimitCard
+          className="fincoin-usage-consumption"
           title="Consumo de sesión"
-          dateRange={`${usage.initialFincoins} Fincoins incluidos en tu cuenta`}
+          dateRange={`${usage.initialFincoins} Fincoins incluidos`}
           currentSpending={usage.spentFincoins}
           limit={usage.initialFincoins}
           currency="FC"
-          segments={10}
-          filledColorClass={
-            usage.depleted
-              ? 'bg-rose-400/90'
-              : usage.lowBalance
-                ? 'bg-amber-300/90'
-                : 'bg-emerald-400/90'
-          }
-          unfilledColorClass="bg-white/10"
+          segments={1}
+          filledColorClass={`fincoin-progress-fill ${statusClass}`}
+          unfilledColorClass="fincoin-progress-track"
           footerNote={
             usage.depleted
               ? 'Sin Fincoins el sistema queda en pausa: no se envían chats, voz, análisis ni llamadas con costo. Tus resúmenes finales siguen disponibles en cada chat desbloqueado.'
@@ -85,18 +83,20 @@ export function FincoinUsageModal(props: {
           }
         />
 
-        <div className="fincoin-usage-metrics">
-          <div>
-            <span>Disponibles</span>
-            <strong>{usage.remainingFincoins} FC</strong>
+        <div className="fincoin-usage-metrics" role="group" aria-label="Resumen de Fincoins">
+          <div className="fincoin-usage-metric">
+            <span className="fincoin-usage-metric-label">Disponibles</span>
+            <strong className="fincoin-usage-metric-value">{usage.remainingFincoins} FC</strong>
           </div>
-          <div>
-            <span>Consumidos</span>
-            <strong>{usage.spentFincoins} FC</strong>
+          <div className="fincoin-usage-metric-divider" aria-hidden="true" />
+          <div className="fincoin-usage-metric">
+            <span className="fincoin-usage-metric-label">Consumidos</span>
+            <strong className="fincoin-usage-metric-value">{usage.spentFincoins} FC</strong>
           </div>
         </div>
 
         {props.loading ? <p className="fincoin-usage-loading">Actualizando saldo…</p> : null}
+        </div>
       </div>
     </div>
   );

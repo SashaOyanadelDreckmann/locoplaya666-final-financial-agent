@@ -3,6 +3,8 @@
 import type { CSSProperties, KeyboardEvent } from 'react';
 import { EditorialSummary, formatPercentCompact } from './presentation';
 import { TxIndicativeNotice } from './TxIndicativeNotice';
+import type { NormalizedMovementRow } from './compute-movement-analytics';
+import { TxSummaryChartsPanel } from './TxSummaryChartsPanel';
 
 type TxExecutiveSummaryProps = {
   hasSummary: boolean;
@@ -34,6 +36,8 @@ type TxExecutiveSummaryProps = {
   dashboardClusters: Array<{ name: string }>;
   isIndicativeEvidence?: boolean;
   evidenceFidelityReason?: string | null;
+  movementRows?: NormalizedMovementRow[];
+  inflowLabel?: string;
 };
 
 export function TxExecutiveSummary(props: TxExecutiveSummaryProps) {
@@ -130,6 +134,7 @@ export function TxExecutiveSummary(props: TxExecutiveSummaryProps) {
           ) : (
             <p className="tx-ex-para tx-ex-para--empty">Generando análisis…</p>
           )}
+          <TxSummaryChartsPanel movementRows={props.movementRows} inflowLabel={props.inflowLabel} />
         </div>
       )}
 

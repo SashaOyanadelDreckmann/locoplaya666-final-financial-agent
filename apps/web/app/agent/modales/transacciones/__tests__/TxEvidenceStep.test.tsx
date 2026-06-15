@@ -162,4 +162,40 @@ describe('TxEvidenceStep', () => {
     expect(screen.queryByText(/panorama del periodo/i)).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /continuar al resumen/i })).toBeInTheDocument();
   });
+
+  it('shows photo format examples below guidance when photos format is selected', () => {
+    render(
+      <TxEvidenceStep
+        {...buildProps({
+          selectedUploadFormat: 'photos',
+          txUploadOnboardingStep: 'details',
+        })}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: /ver ejemplo/i })).toBeInTheDocument();
+    expect(screen.queryByRole('list', { name: /ejemplos de capturas/i })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /ver ejemplo/i }));
+
+    expect(screen.getByRole('list', { name: /ejemplos de capturas/i })).toBeInTheDocument();
+    expect(screen.getAllByRole('listitem')).toHaveLength(4);
+    expect(screen.getByRole('img', { name: /listado de movimientos agrupados por fecha/i })).toHaveAttribute(
+      'src',
+      '/transacciones/ejemplos-fotos/movimientos-ejemplo-1.png',
+    );
+  });
+
+  it('does not show photo format examples for non-photo formats', () => {
+    render(
+      <TxEvidenceStep
+        {...buildProps({
+          selectedUploadFormat: 'pdf',
+          txUploadOnboardingStep: 'details',
+        })}
+      />,
+    );
+
+    expect(screen.queryByRole('button', { name: /ver ejemplo/i })).not.toBeInTheDocument();
+  });
 });

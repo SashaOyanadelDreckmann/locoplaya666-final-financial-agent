@@ -24,23 +24,23 @@ export function ModalCloseConfirmDialog({
   return (
     <div className="modal-close-confirm-layer" role="presentation">
       <div
-        className="modal-close-confirm-dialog"
+        className="modal-close-confirm-dialog agent-confirm-surface"
         role="alertdialog"
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={bodyId}
       >
-        <h4 id={titleId} className="modal-close-confirm-title">
+        <h4 id={titleId} className="modal-close-confirm-title agent-confirm-surface__title">
           {title}
         </h4>
-        <p id={bodyId} className="modal-close-confirm-body">
+        <p id={bodyId} className="modal-close-confirm-body agent-confirm-surface__copy">
           {body}
         </p>
-        <div className="modal-close-confirm-actions">
-          <button type="button" className="continue-ghost" onClick={onDismiss}>
+        <div className="modal-close-confirm-actions agent-confirm-surface__actions">
+          <button type="button" className="continue-ghost agent-confirm-action" onClick={onDismiss}>
             {dismissLabel}
           </button>
-          <button type="button" className="button-primary" onClick={onConfirm}>
+          <button type="button" className="button-primary agent-confirm-action is-emphasis" onClick={onConfirm}>
             {confirmLabel}
           </button>
         </div>

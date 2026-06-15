@@ -26,6 +26,7 @@ import { getSessionId } from '@/lib/sesion/session';
 import type { CoreAgentResponseSideEffects } from '@/lib/agente/nucleo/applyCoreAgentResponse';
 import type { CoreAgentRequestContext } from '@/lib/agente/nucleo/buildCoreAgentContext';
 import { useCoreAgentSend } from './hooks/useCoreAgentSend';
+import { useAgentPersistence } from './hooks/use-agent-persistence';
 import { buildOnboardingFlowCta } from './flujo/onboarding-flow.helpers';
 import { useInterviewStore } from '@/state/interview.store';
 import { syncDiagnosisSession } from '@/lib/diagnostico/sesion';
@@ -38,13 +39,13 @@ import {
   removeInjectedIntake,
   removeInjectedProfile,
   loadSheets,
-  saveSheets,
   deletePdfArtifact,
   parseDocuments,
   mergeProductsContextToIntake,
 } from '@/lib/api/cliente';
 import { ApiHttpError } from '@/lib/api/envelope';
 import { toUserFacingError } from '@/lib/compartido/userError';
+import { localizeDisplayValue } from '@/lib/display/localized-display';
 import {
   isProductsStepSatisfied,
   isTransactionsEvidenceSatisfied,
@@ -56,6 +57,7 @@ import {
   buildTransactionAuthorizationBlockMessage,
 } from '@/lib/transacciones/autorizacion.helpers';
 import { MAX_BUDGET_ROWS } from '@/lib/presupuesto/filas.helpers';
+import { buildBudgetAssistantProductsFromBankSimulation } from '@/lib/presupuesto/budget-assistant-movement-feed';
 import { canOpenInterview as computeCanOpenInterview } from './flujo/interview-gate.helpers';
 import {
   aggregateCanonicalMovements,
@@ -89,6 +91,11 @@ import {
   type BankSimulation,
 } from './utilidades/agent-page.constants';
 import { alignProductDashboard } from './modales/transacciones/align-product-dashboard';
+import {
+  buildTransactionProductSavedAgentBlocks,
+  buildTransactionProductSavedAgentMessage,
+  buildTransactionProductSavedPanelMessage,
+} from './modales/transacciones/product-saved-agent.helpers';
 import type { BankProduct, TransactionTaxonomyOverride, UploadStatementResult } from './modales/transacciones/types';
 import type { TxWizardStep } from '@/lib/transacciones/flujo.helpers';
 import { normalizeTaxonomyKey, normalizeTransactionTaxonomyOverride } from './modales/transacciones/taxonomy';
@@ -106,6 +113,7 @@ import {
   dedupeConsecutiveAssistantMessages,
   sanitizeChatThreadMessages,
   getMaxChatInteractions,
+  getClosingInteractionThreshold,
   getChat1UxCopy,
   resolveUnlockedChatIds,
   hasAssistantMessage,
@@ -113,9 +121,18 @@ import {
   sanitizeMessageText,
   resolveChat1UxState,
   resolveActiveActionPlanStage,
+  resolveActiveSocialConsciousnessStage,
   scrollChatThreadAfterUpdate,
   type ChatClosureSummary,
+  type ScrollChatThreadOptions,
 } from './utilidades/page.utils';
+import {
+  CHAT_CLOSED_SEND_MESSAGE,
+  isChatOnboardingLocked,
+  listNavigableChatIds,
+  resolveChatThreadAccessState,
+  resolveChatTurnCount,
+} from './utilidades/chat-lifecycle.helpers';
 import {
   buildWelcomeChatItem,
   isWelcomeShellMessageContent,
@@ -124,6 +141,7 @@ import {
   shouldSeedWelcomeMessage,
 } from './flujo/welcome-intro.shared';
 import { buildChatIntroShellItem, repairChatIntroItems, shouldSeedChatIntroMessage } from './flujo/chat-intro.shared';
+import { readSocialReflectionSession, hydrateSocialReflectionSessionFromServer } from '@/lib/agente/nucleo/social-consciousness-reflections';
 import { ensureLeadingIntroShell } from '@/lib/agente/nucleo/stream-session';
 import { resolvePanelDiagnosisProfile } from '@/lib/diagnostico/sesion';
 import { AgentBootSequence } from './arranque/AgentBootSequence';
@@ -163,7 +181,7 @@ import {
   buildChatUploadFiles,
 } from './chat/chat-upload.helpers';
 import { buildPanelSnapshotPayload } from './page.flow';
-import { clearPanelStateBackups, hydratePanelState, persistPanelState } from './utilidades/panel-state.service';
+import { clearPanelStateBackups, hydratePanelState } from './utilidades/panel-state.service';
 
 type AgentMeta = {
   objective?: string;
@@ -224,11 +242,11 @@ type ChatThread = {
   items: ChatItem[];
   draft: string;
   status: 'active' | 'context';
-  contextScore: number;      // 0-100, agent-driven
   userMessageCount: number;  // local counter for UX telemetry
   createdAt: string;
   completedAt?: string;
   closureSummary?: ChatClosureSummary | null;
+  generalChatStarted?: boolean;
 };
 
 type ProductLifecycle = {
@@ -237,6 +255,7 @@ type ProductLifecycle = {
   closedChats?: string[];
   chatTurns?: Record<string, number>;
   actionPlanFunnelStage?: 'brainstorm' | 'converge' | 'deliver' | null;
+  socialConsciousnessFunnelStage?: 'explore' | 'tension' | 'synthesis' | null;
   closingMode?: boolean;
 };
 
@@ -327,7 +346,6 @@ export default function AgentPage() {
       items: [],
       draft: '',
       status: 'active',
-      contextScore: 0,
       userMessageCount: 0,
       createdAt: new Date().toISOString(),
     };
@@ -335,9 +353,11 @@ export default function AgentPage() {
 
   function getThreadSpecialization(threadId: string): ChatSpecialization {
     if (threadId === 'chat-1') {
+      const chat1Thread = chatThreads.find((thread) => thread.id === PRIMARY_CHAT_ID);
       const chat1Ux = resolveChat1UxState({
         chatId: threadId,
         diagnosisCompleted: interviewCompleted,
+        generalChatStarted: Boolean(chat1Thread?.generalChatStarted),
         canOpenInterview,
       });
       const copy = getChat1UxCopy(chat1Ux);
@@ -386,9 +406,13 @@ export default function AgentPage() {
       items: [buildChatIntroShellItem('chat-3') as ChatItem],
     },
   ]);
+  const [chat1IntroMode, setChat1IntroMode] = useState<'default' | 'deepen'>('default');
+  const [diagnosisDeepenVoiceFindings, setDiagnosisDeepenVoiceFindings] = useState<string[] | undefined>(
+    undefined,
+  );
   const [activeChatId, setActiveChatId] = useState(PRIMARY_CHAT_ID);
   const [sheetsLoaded, setSheetsLoaded] = useState(false);
-  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const chatThreadsRef = useRef(chatThreads);
   const welcomeInjectedThreadsRef = useRef<Set<string>>(new Set());
   const [panelStage, setPanelStage] = useState(2);
   const [mobilePanelExpanded, setMobilePanelExpanded] = useState(false);
@@ -472,7 +496,6 @@ export default function AgentPage() {
   const [bankSimulation, setBankSimulation] = useState<BankSimulation>(DEFAULT_BANK_SIMULATION);
   const [docFlight, setDocFlight] = useState<DocFlight | null>(null);
   const chatUploadInputRef = useRef<HTMLInputElement | null>(null);
-  const panelSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const panelHydrateOwnerRef = useRef<string | null>(null);
 
   const [panelStateLoaded, setPanelStateLoaded] = useState(false);
@@ -500,6 +523,7 @@ export default function AgentPage() {
   const panelCalloutTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const chatBodyRef = useRef<HTMLElement | null>(null);
   const chatThreadRef = useRef<HTMLDivElement | null>(null);
+  const prevThreadScrollTurnRef = useRef('');
   const mobilePanelHandleRef = useRef<HTMLDivElement | null>(null);
   const panelDragRef = useRef<{ startY: number; startH: number; moved: boolean } | null>(null);
   const chatComposerRef = useRef<HTMLTextAreaElement | null>(null);
@@ -586,6 +610,11 @@ export default function AgentPage() {
     isSocialConsciousnessModalOpen;
   const blockingModalWasOpenRef = useRef(hasBlockingModalOpen);
   const interviewCompleted = Boolean(sessionInfo?.latestDiagnosticCompletedAt);
+  const chat1Thread = useMemo(
+    () => chatThreads.find((thread) => thread.id === PRIMARY_CHAT_ID),
+    [chatThreads],
+  );
+  const chat1GeneralDeepened = Boolean(chat1Thread?.generalChatStarted) || chat1IntroMode === 'deepen';
   const activeThreadThemeClass =
     activeThread?.id === 'chat-2'
       ? 'chat-theme-2'
@@ -598,13 +627,28 @@ export default function AgentPage() {
     unlockedChats: productLifecycle?.unlockedChats ?? null,
     interviewCompleted,
   });
-  const closedChatIds = interviewCompleted ? [] : productLifecycle?.closedChats ?? [];
-  const activeTurnCount =
-    productLifecycle?.chatTurns?.[activeChatId] ??
-    activeThread?.userMessageCount ??
-    0;
+  const closedChatIds = productLifecycle?.closedChats ?? [];
+  const lifecycleLoaded = productLifecycle !== null;
+  const activeTurnCount = resolveChatTurnCount({
+    chatId: activeChatId,
+    chatTurns: productLifecycle?.chatTurns,
+    lifecycleLoaded,
+    fallbackUserMessageCount: activeThread?.userMessageCount,
+  });
   const activeMaxTurns = getMaxChatInteractions(activeChatId);
   const activeTurnsRemaining = Math.max(0, activeMaxTurns - activeTurnCount);
+  const activeClosingMode =
+    productLifecycle?.closingMode ??
+    activeTurnCount >= getClosingInteractionThreshold(activeChatId);
+  const lastUserMessageInThread = useMemo(() => {
+    for (let i = items.length - 1; i >= 0; i -= 1) {
+      const item = items[i];
+      if (item.type === 'message' && item.role === 'user') {
+        return String(item.content ?? '');
+      }
+    }
+    return '';
+  }, [items]);
   const isActiveChatClosed =
     closedChatIds.includes(activeChatId) || activeTurnsRemaining === 0;
   const isActiveChatCloseoutWindow = activeTurnsRemaining > 0 && activeTurnsRemaining <= 2;
@@ -629,27 +673,91 @@ export default function AgentPage() {
         })
       : null);
   const [showFullClosedChat, setShowFullClosedChat] = useState(false);
+  const [socialReflectionRevision, setSocialReflectionRevision] = useState(0);
+
+  useEffect(() => {
+    if (!sessionInfo?.id) return;
+    const before = readSocialReflectionSession(sessionInfo.id);
+    hydrateSocialReflectionSessionFromServer(
+      sessionInfo.id,
+      sessionInfo.socialConsciousnessReflections ?? null,
+    );
+    const after = readSocialReflectionSession(sessionInfo.id);
+    if (JSON.stringify(before) !== JSON.stringify(after)) {
+      setSocialReflectionRevision((value) => value + 1);
+    }
+  }, [sessionInfo?.id, sessionInfo?.socialConsciousnessReflections]);
+
+  const socialReflectionSession = useMemo(
+    () => readSocialReflectionSession(sessionInfo?.id),
+    [sessionInfo?.id, socialReflectionRevision],
+  );
+
   const activeActionPlanStage = useMemo(() => {
     if (activeChatId !== 'chat-2') return null;
+    return resolveActiveActionPlanStage({
+      chatId: activeChatId,
+      turnCount: activeTurnCount,
+      closingMode: activeClosingMode,
+      userMessage: lastUserMessageInThread,
+    });
+  }, [
+    activeChatId,
+    activeTurnCount,
+    activeClosingMode,
+    lastUserMessageInThread,
+  ]);
+  const activeSocialConsciousnessStage = useMemo(() => {
+    if (activeChatId !== 'chat-3') return null;
     return (
-      resolveActiveActionPlanStage({
+      productLifecycle?.socialConsciousnessFunnelStage ??
+      resolveActiveSocialConsciousnessStage({
         chatId: activeChatId,
         turnCount: activeTurnCount,
-        closingMode: productLifecycle?.closingMode,
-      }) ??
-      productLifecycle?.actionPlanFunnelStage ??
-      null
+        closingMode: activeClosingMode,
+        userMessage: lastUserMessageInThread,
+      })
     );
   }, [
     activeChatId,
     activeTurnCount,
-    productLifecycle?.closingMode,
-    productLifecycle?.actionPlanFunnelStage,
+    activeClosingMode,
+    lastUserMessageInThread,
+    productLifecycle?.socialConsciousnessFunnelStage,
   ]);
-  const isActiveChatLocked =
-    activeChatId === PRIMARY_CHAT_ID
-      ? false
-      : !unlockedChatIds.includes(activeChatId) || closedChatIds.includes(activeChatId);
+  const isActiveChatLocked = isChatOnboardingLocked({
+    chatId: activeChatId,
+    unlockedChatIds,
+  });
+  const resolveThreadAccessState = useCallback(
+    (chatId: string) =>
+      resolveChatThreadAccessState({
+        chatId,
+        unlockedChatIds,
+        closedChatIds,
+        chatTurns: productLifecycle?.chatTurns,
+        lifecycleLoaded,
+      }),
+    [unlockedChatIds, closedChatIds, productLifecycle?.chatTurns, lifecycleLoaded],
+  );
+
+  useEffect(() => {
+    if (!lifecycleLoaded || closedChatIds.length === 0) return;
+    setChatThreads((prev) => {
+      let changed = false;
+      const next = prev.map((thread) => {
+        if (!closedChatIds.includes(thread.id)) return thread;
+        if (thread.status === 'context') return thread;
+        changed = true;
+        return {
+          ...thread,
+          status: 'context' as const,
+          completedAt: thread.completedAt ?? new Date().toISOString(),
+        };
+      });
+      return changed ? next : prev;
+    });
+  }, [closedChatIds, lifecycleLoaded]);
 
   useEffect(() => {
     setShowFullClosedChat(false);
@@ -671,24 +779,19 @@ export default function AgentPage() {
   }
 
   function openComposerFromGesture() {
-    if (isActiveChatLocked || !isMobileViewport) return;
+    if (isActiveChatLocked || isActiveChatClosed || !isMobileViewport) return;
     collapseMobilePanelForComposer();
     focusMobileInput(chatComposerRef.current);
   }
 
   function focusComposerAfterLayout(_options?: { collapsePanelFirst?: boolean }) {
-    if (isActiveChatLocked) return;
+    if (isActiveChatLocked || isActiveChatClosed) return;
     clearComposerFocusTimer();
     if (isMobileViewport) {
       openComposerFromGesture();
       return;
     }
     chatComposerRef.current?.focus({ preventScroll: true });
-  }
-
-  function isThreadLocked(threadId: string) {
-    if (threadId === PRIMARY_CHAT_ID) return false;
-    return !unlockedChatIds.includes(threadId) || closedChatIds.includes(threadId);
   }
 
   useEffect(
@@ -906,6 +1009,10 @@ export default function AgentPage() {
     }
   }, [mobilePanelExpanded, isMobileViewport]);
 
+  useEffect(() => {
+    chatThreadsRef.current = chatThreads;
+  }, [chatThreads]);
+
   // Load sheets from API on mount
   useEffect(() => {
     if (!authBootstrapped || !isAuthenticated) return;
@@ -938,7 +1045,6 @@ export default function AgentPage() {
             : [],
           draft: String(s.draft ?? ''),
           status: (String(s.status ?? 'active') as ChatThread['status']),
-          contextScore: Number(s.contextScore ?? 0),
           userMessageCount: Number(s.userMessageCount ?? 0),
           createdAt: String(s.createdAt ?? new Date().toISOString()),
           completedAt: s.completedAt == null ? undefined : String(s.completedAt),
@@ -951,6 +1057,7 @@ export default function AgentPage() {
             'sections' in s.closureSummary
               ? (s.closureSummary as ChatClosureSummary)
               : null,
+          generalChatStarted: Boolean(s.generalChatStarted ?? false),
         }));
         const baseDefs = [
           { id: 'chat-1', label: '1', name: 'Diagnóstico financiero' },
@@ -967,7 +1074,10 @@ export default function AgentPage() {
               existing?.name && existing.name !== 'Nueva conversación'
                 ? existing.name
                 : def.name,
-            status: 'active' as const,
+            status:
+              existing?.closureSummary || existing?.status === 'context'
+                ? ('context' as const)
+                : ('active' as const),
           };
         });
         normalized.forEach((thread) => {
@@ -1038,33 +1148,6 @@ export default function AgentPage() {
     });
   }, [buildChat1WelcomeItem, sessionInfo, sheetsLoaded]);
 
-  // Save sheets to API with debounce whenever they change
-  useEffect(() => {
-    if (!sheetsLoaded) return;
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    saveTimerRef.current = setTimeout(() => {
-      // Save only serializable parts (no functions)
-      const toSave = chatThreads.map((t) => ({
-        id: t.id,
-        label: t.label,
-        name: t.name,
-        autoNamed: t.autoNamed,
-        items: sanitizeChatThreadItems(t.items),
-        draft: t.draft,
-        status: t.status,
-        contextScore: t.contextScore,
-        userMessageCount: t.userMessageCount,
-        createdAt: t.createdAt,
-        completedAt: t.completedAt,
-        closureSummary: t.closureSummary ?? null,
-      }));
-      saveSheets(toSave).catch(() => {});
-    }, 1500);
-    return () => {
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    };
-  }, [chatThreads, sheetsLoaded]);
-
   const setDraftForActive = useCallback((nextDraft: string) => {
     setChatThreads((prev) =>
       prev.map((thread) =>
@@ -1117,11 +1200,34 @@ export default function AgentPage() {
     });
   }, [bankSimulation, budgetChatAnswers, budgetRows, savedReports, txProductsCreatedTotal]);
 
+  const {
+    scheduleSheetsSave,
+    schedulePanelSave,
+    persistSheetsNow,
+    persistPanelNow,
+    flushNow,
+  } = useAgentPersistence({
+    sheetsEnabled: isAuthenticated && sheetsLoaded,
+    panelEnabled: isAuthenticated && panelStateLoaded,
+    flushEnabled: isAuthenticated,
+    panelStateBackupKey,
+    getChatThreads: () => chatThreadsRef.current,
+    getPanelSnapshot: buildPanelSnapshot,
+    getSocialReflections: () =>
+      readSocialReflectionSession(sessionInfo?.userId ?? sessionInfo?.email ?? null),
+  });
+
+  useEffect(() => {
+    if (!sheetsLoaded) return;
+    scheduleSheetsSave();
+  }, [chatThreads, scheduleSheetsSave, sheetsLoaded]);
+
   async function persistPanelSnapshotNow() {
-    await persistPanelState({
-      panelStateBackupKey,
-      snapshot: buildPanelSnapshot(),
-    });
+    await persistPanelNow();
+  }
+
+  async function persistAgentStateNow() {
+    await flushNow();
   }
 
   function closeAccountModal() {
@@ -1134,7 +1240,7 @@ export default function AgentPage() {
     try {
       setIsAccountActionLoading(true);
       setAccountActionError(null);
-      await persistPanelSnapshotNow();
+      await persistAgentStateNow();
       await logoutUser();
       clearAuthenticated();
       clearLocalAgentState();
@@ -1204,14 +1310,6 @@ export default function AgentPage() {
     setChatThreads((prev) => {
       let changed = false;
       const next = prev.map((thread) => {
-        if (thread.id === 'chat-1' && interviewCompleted && thread.name !== 'Chat general') {
-          changed = true;
-          return {
-            ...thread,
-            name: 'Chat general',
-            autoNamed: true,
-          };
-        }
         if (thread.autoNamed) return thread;
         const userTurns = thread.items.filter(
           (it) => it.type === 'message' && it.role === 'user'
@@ -1226,7 +1324,7 @@ export default function AgentPage() {
       });
       return changed ? next : prev;
     });
-  }, [chatThreads, interviewCompleted]);
+  }, [chatThreads]);
 
   const allItems = useMemo(
     () => chatThreads.flatMap((thread) => thread.items),
@@ -1451,8 +1549,11 @@ export default function AgentPage() {
   function normalizePanelActionForCurrentFlow(
     action?: AgentResponse['panel_action']
   ): AgentResponse['panel_action'] | undefined {
+    if (!action) return undefined;
+    const normalizedSection =
+      action.section === 'products_transactions' ? 'transactions' : action.section;
     const flow = getFlowStatus();
-    if (action?.section === 'budget' && !flow.budgetUnlocked) {
+    if (normalizedSection === 'budget' && !flow.budgetUnlocked) {
       return {
         section: 'transactions',
         message: 'Presupuesto está bloqueado hasta completar Productos y Transacciones.',
@@ -1469,10 +1570,10 @@ export default function AgentPage() {
             message: 'Primero completa Productos y Transacciones; después se abre Presupuesto y luego Entrevista.',
           };
     }
-    if (activeChatId === 'chat-1' && !flow.diagnosisCompleted && action?.section === 'profile') {
+    if (activeChatId === 'chat-1' && !flow.diagnosisCompleted && normalizedSection === 'profile') {
       return undefined;
     }
-    return action;
+    return { ...action, section: normalizedSection };
   }
 
   const intakeData = useMemo(
@@ -1544,33 +1645,8 @@ export default function AgentPage() {
 
   const questionnaireDashboard = useMemo(() => {
     if (!intakeData) return null;
-    const formatQuestionnaireValue = (value: unknown): string => {
-      const raw = String(value ?? '').trim();
-      const normalized = raw.toLowerCase();
-      const labels: Record<string, string> = {
-        yes: 'Sí',
-        no: 'No',
-        true: 'Sí',
-        false: 'No',
-        hold: 'Mantener',
-        reduce: 'Reducir',
-        increase: 'Aumentar',
-        conservative: 'Conservador',
-        moderate: 'Moderado',
-        aggressive: 'Agresivo',
-        employed: 'Dependiente',
-        employee: 'Dependiente',
-        freelance: 'Independiente',
-        self_employed: 'Independiente',
-        student: 'Estudiante',
-        freelance_student: 'Independiente / estudiante',
-        unemployed: 'Sin empleo',
-        retired: 'Jubilado',
-        none: 'No declarado',
-        unknown: 'No declarado',
-      };
-      return labels[normalized] ?? raw.replace(/_/g, ' ');
-    };
+    const formatQuestionnaireValue = (value: unknown, fieldKey?: string) =>
+      localizeDisplayValue(value, fieldKey);
     const stress =
       typeof intakeData.moneyStressLevel === 'number' ? intakeData.moneyStressLevel : null;
     const understanding =
@@ -1593,14 +1669,14 @@ export default function AgentPage() {
       )
     );
     const responsePairs: Array<{ label: string; value: string }> = [
-      { label: 'Profesión', value: formatQuestionnaireValue(intakeData.profession ?? 'No declarado') },
-      { label: 'Situación laboral', value: formatQuestionnaireValue(intakeData.employmentStatus ?? 'No declarado') },
-      { label: 'Ingreso mensual', value: formatQuestionnaireValue(intakeData.incomeBand ?? 'No declarado') },
-      { label: 'Cobertura de gastos', value: formatQuestionnaireValue(intakeData.expensesCoverage ?? 'No declarado') },
-      { label: 'Control de gastos', value: formatQuestionnaireValue(intakeData.tracksExpenses ?? 'No declarado') },
+      { label: 'Profesión', value: formatQuestionnaireValue(intakeData.profession ?? 'No declarado', 'profession') },
+      { label: 'Situación laboral', value: formatQuestionnaireValue(intakeData.employmentStatus ?? 'No declarado', 'employmentStatus') },
+      { label: 'Ingreso mensual', value: formatQuestionnaireValue(intakeData.incomeBand ?? 'No declarado', 'incomeBand') },
+      { label: 'Cobertura de gastos', value: formatQuestionnaireValue(intakeData.expensesCoverage ?? 'No declarado', 'expensesCoverage') },
+      { label: 'Control de gastos', value: formatQuestionnaireValue(intakeData.tracksExpenses ?? 'No declarado', 'tracksExpenses') },
       { label: 'Deuda activa', value: hasDebt ? 'Sí' : 'No' },
       { label: 'Ahorro / inversión', value: hasSavings ? 'Sí' : 'No' },
-      { label: 'Reacción al riesgo', value: formatQuestionnaireValue(intakeData.riskReaction ?? 'No declarado') },
+      { label: 'Reacción al riesgo', value: formatQuestionnaireValue(intakeData.riskReaction ?? 'No declarado', 'riskReaction') },
       {
         label: 'Comprensión financiera',
         value: understanding !== null ? `${understanding}/10` : 'No declarado',
@@ -1652,7 +1728,7 @@ export default function AgentPage() {
       reportsByGroup.diagnosis.length;
 
     if (total === 0) {
-      return 'Aún no hay documentos guardados. Cuando el agente genere PDFs o informes, aparecerán aquí listos para consulta.';
+      return 'Aún no hay documentos guardados. Usa Guardar PDF en una burbuja del chat para archivar análisis aquí.';
     }
 
     const strongestGroup = ([
@@ -1750,6 +1826,10 @@ export default function AgentPage() {
     hasProfile: Boolean(sessionInfo?.injectedProfile || profile),
     hasIntake: Boolean(sessionInfo?.injectedIntake),
     flowStatus: getFlowStatus(),
+    productTurnCount: activeTurnCount,
+    productTurnsRemaining: activeTurnsRemaining,
+    productClosingMode: activeClosingMode,
+    socialReflectionSession,
   }), [
     items,
     activeChatId,
@@ -1772,6 +1852,10 @@ export default function AgentPage() {
     sessionInfo?.injectedProfile,
     sessionInfo?.injectedIntake,
     profile,
+    socialReflectionSession,
+    activeTurnCount,
+    activeTurnsRemaining,
+    activeClosingMode,
   ]);
 
   const applyCoreAgentSideEffects = useCallback((
@@ -1800,11 +1884,16 @@ export default function AgentPage() {
         },
       }));
     }
-    if (effects.closureSummary) {
+    if (effects.closureSummary || effects.productLifecyclePatch?.closedChats?.includes(activeChatId)) {
       setChatThreads((prev) =>
         prev.map((thread) =>
           thread.id === activeChatId
-            ? { ...thread, closureSummary: effects.closureSummary ?? null }
+            ? {
+                ...thread,
+                closureSummary: effects.closureSummary ?? thread.closureSummary ?? null,
+                status: 'context' as const,
+                completedAt: thread.completedAt ?? new Date().toISOString(),
+              }
             : thread,
         ),
       );
@@ -1864,23 +1953,18 @@ export default function AgentPage() {
       });
     }
 
-    if (typeof effects.contextScore === 'number') {
-      setChatThreads((prev) =>
-        prev.map((thread) => {
-          if (thread.id !== activeChatId) return thread;
-          return {
-            ...thread,
-            contextScore: Math.max(thread.contextScore, effects.contextScore!),
-          };
-        }),
-      );
-    }
+    window.setTimeout(() => {
+      void persistSheetsNow();
+      void persistPanelNow();
+    }, 0);
 
     void res;
   }, [
     activeChatId,
     applyFincoinClosureSummaries,
     applyUsagePayload,
+    persistPanelNow,
+    persistSheetsNow,
     setBudgetRows,
   ]);
 
@@ -1899,6 +1983,11 @@ export default function AgentPage() {
     getActiveThreadId: () => activeChatId,
     buildRequestContext: buildCoreAgentRequestContext,
     getSessionId,
+    prepareSend: async () => {
+      if (activeChatId === 'chat-2') {
+        await syncFinancialContextToIntake().catch(() => {});
+      }
+    },
     onSideEffects: applyCoreAgentSideEffects,
     onTransientError: (message) => {
       setPanelCallout({ section: 'chat', message });
@@ -1990,14 +2079,34 @@ export default function AgentPage() {
     } catch {}
   }, [panelStage]);
 
-  // Mantener el hilo anclado: stream rail, última respuesta, o último turno del usuario.
+  // Mantener el hilo anclado: durante streaming seguir el final del mensaje sin bloquear scroll manual.
   useEffect(() => {
     const el = chatThreadRef.current;
     if (!el) return;
+
+    const last = items[items.length - 1];
+    const followStreamingTail =
+      loading ||
+      (last?.type === 'message' &&
+        last.role === 'assistant' &&
+        Boolean(last.stream?.streaming));
+    const turnKey = `${activeChatId}:${items.length}`;
+    const userJustSent =
+      turnKey !== prevThreadScrollTurnRef.current &&
+      last?.type === 'message' &&
+      last.role === 'user';
+    prevThreadScrollTurnRef.current = turnKey;
+
+    const scrollOptions: ScrollChatThreadOptions = {
+      followStreamingTail,
+      respectUserScroll: followStreamingTail,
+      force: userJustSent,
+    };
+
     requestAnimationFrame(() => {
-      scrollChatThreadAfterUpdate(el);
+      scrollChatThreadAfterUpdate(el, scrollOptions);
     });
-  }, [threadScrollAnchor, activeChatId, loading, onboardingFlowStatus]);
+  }, [threadScrollAnchor, activeChatId, loading, onboardingFlowStatus, items]);
 
   useEffect(() => {
     if (!isMobileViewport || !interviewCompleted) return;
@@ -2025,13 +2134,10 @@ export default function AgentPage() {
       const deltaY = touch.clientY - startY;
       if (Math.abs(deltaX) < 56 || Math.abs(deltaX) <= Math.abs(deltaY)) return;
 
-      const unlockedIds = chatThreads
-        .map((thread) => thread.id)
-        .filter(
-          (threadId) =>
-            threadId === PRIMARY_CHAT_ID ||
-            (unlockedChatIds.includes(threadId) && !closedChatIds.includes(threadId)),
-        );
+      const unlockedIds = listNavigableChatIds({
+        chatIds: chatThreads.map((thread) => thread.id),
+        unlockedChatIds,
+      });
       const currentIndex = unlockedIds.indexOf(activeChatId);
       if (currentIndex < 0) return;
 
@@ -2122,21 +2228,18 @@ export default function AgentPage() {
   }, [authBootstrapped, isAuthenticated, panelStateBackupKey]);
 
   useEffect(() => {
-    if (!isAuthenticated) return;
     if (!panelStateLoaded) return;
-    if (panelSaveTimerRef.current) clearTimeout(panelSaveTimerRef.current);
-
-    panelSaveTimerRef.current = setTimeout(() => {
-      void persistPanelState({
-        panelStateBackupKey,
-        snapshot: buildPanelSnapshot(),
-      });
-    }, 1200);
-
-    return () => {
-      if (panelSaveTimerRef.current) clearTimeout(panelSaveTimerRef.current);
-    };
-  }, [bankSimulation, budgetChatAnswers, budgetRows, buildPanelSnapshot, isAuthenticated, panelStateBackupKey, panelStateLoaded, savedReports, setBudgetRows, txProductsCreatedTotal]);
+    schedulePanelSave();
+  }, [
+    bankSimulation,
+    budgetChatAnswers,
+    budgetRows,
+    buildPanelSnapshot,
+    panelStateLoaded,
+    savedReports,
+    schedulePanelSave,
+    txProductsCreatedTotal,
+  ]);
 
   const syncFinancialContextToIntake = useCallback(async () => {
     await mergeProductsContextToIntake({
@@ -2223,21 +2326,12 @@ export default function AgentPage() {
     loadProfileIfNeeded().catch(() => {});
   }, [isAuthenticated, loadProfileIfNeeded]);
 
-  useEffect(() => {
-    try {
-      const prefill = localStorage.getItem('agent.prefill_prompt');
-      if (!prefill) return;
-      setDraftForActive(prefill);
-      localStorage.removeItem('agent.prefill_prompt');
-    } catch {}
-  }, [activeChatId, setDraftForActive]);
-
   // Re-focus composer after a blocking modal closes
   useEffect(() => {
-    if (!hasBlockingModalOpen && !isActiveChatLocked && !isMobileViewport) {
+    if (!hasBlockingModalOpen && !isActiveChatLocked && !isActiveChatClosed && !isMobileViewport) {
       setTimeout(() => chatComposerRef.current?.focus(), 80);
     }
-  }, [hasBlockingModalOpen, isActiveChatLocked, isMobileViewport]);
+  }, [hasBlockingModalOpen, isActiveChatLocked, isActiveChatClosed, isMobileViewport]);
 
   useEffect(() => {
     if (!isMobileViewport) {
@@ -2266,6 +2360,10 @@ export default function AgentPage() {
     const liveComposerText = chatComposerRef.current?.value ?? '';
     const outgoingText = String(messageOverride ?? liveComposerText ?? input ?? '').trim();
     if (!outgoingText || (loading && !options?.ignoreLoadingGuard)) return false;
+    if (activeChatId === PRIMARY_CHAT_ID && chat1IntroMode === 'deepen') {
+      setChat1IntroMode('default');
+      setDiagnosisDeepenVoiceFindings(undefined);
+    }
     if (isActiveChatLocked) {
       setItemsForActive((prev) => [
         ...prev,
@@ -2274,6 +2372,18 @@ export default function AgentPage() {
           role: 'assistant',
           content:
           'Este chat todavía está bloqueado. Terminemos primero el flujo base en el Chat 1: productos/transacciones, presupuesto y entrevista breve para construir el diagnóstico final.',
+          mode: 'information',
+        },
+      ]);
+      return false;
+    }
+    if (isActiveChatClosed) {
+      setItemsForActive((prev) => [
+        ...prev,
+        {
+          type: 'message',
+          role: 'assistant',
+          content: CHAT_CLOSED_SEND_MESSAGE,
           mode: 'information',
         },
       ]);
@@ -2321,7 +2431,7 @@ export default function AgentPage() {
       return;
     }
     if (blockFincoinSpend({ context: 'upload' })) return;
-    if (isActiveChatLocked) return;
+    if (isActiveChatLocked || isActiveChatClosed) return;
 
     let selected = Array.from(files);
     if (selected.length > MAX_CHAT_UPLOAD_FILES) {
@@ -2643,6 +2753,32 @@ export default function AgentPage() {
     setIsTransactionsModalOpen(true);
   }
 
+  const beginDiagnosisDeepenChat = useCallback((context?: { voiceFindings?: string[] }) => {
+    setIsInterviewModalOpen(false);
+    setActiveChatId(PRIMARY_CHAT_ID);
+    setChat1IntroMode('deepen');
+    setDiagnosisDeepenVoiceFindings(context?.voiceFindings?.filter(Boolean));
+    welcomeInjectedThreadsRef.current.add(PRIMARY_CHAT_ID);
+    setChatThreads((prev) =>
+      prev.map((thread) =>
+        thread.id === PRIMARY_CHAT_ID
+          ? {
+              ...thread,
+              name: 'Chat general',
+              autoNamed: true,
+              generalChatStarted: true,
+              draft: '',
+              status: 'active',
+              completedAt: undefined,
+              closureSummary: null,
+              userMessageCount: 0,
+              items: [buildChatIntroShellItem('chat-1') as ChatItem],
+            }
+          : thread,
+      ),
+    );
+  }, []);
+
   const openInterviewModal = useCallback(async () => {
     if (blockFincoinSpend({ context: 'modal' })) return;
     try {
@@ -2666,11 +2802,7 @@ export default function AgentPage() {
   }, [blockFincoinSpend, syncFinancialContextToIntake]);
 
   function openDiagnosisView() {
-    if (interviewCompleted) {
-      void openInterviewModal();
-      return;
-    }
-    router.push('/diagnosis');
+    void openInterviewModal();
   }
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -2775,10 +2907,43 @@ export default function AgentPage() {
       setTransactionUploadError('Autoriza y conecta el producto antes de guardarlo.');
       return false;
     }
+    const alreadySaved = savedProductsForBatch.includes(activeBankProduct.id);
+    const productSnapshot = activeBankProduct;
     setSavedProductsForBatch((prev) =>
-      prev.includes(activeBankProduct.id) ? prev : [...prev, activeBankProduct.id]
+      prev.includes(productSnapshot.id) ? prev : [...prev, productSnapshot.id],
     );
     setTransactionUploadError(null);
+
+    if (!alreadySaved) {
+      const chartBlocks = buildTransactionProductSavedAgentBlocks(
+        productSnapshot,
+        bankSimulation.taxonomyOverrides,
+      );
+      setItemsForActive((prev) => [
+        ...prev,
+        {
+          type: 'message',
+          role: 'assistant',
+          content: buildTransactionProductSavedAgentMessage(
+            productSnapshot,
+            bankSimulation.taxonomyOverrides,
+          ),
+          mode: 'information',
+          agent_blocks: chartBlocks.length > 0 ? chartBlocks : undefined,
+          panel_action: {
+            section: 'products_transactions',
+            message: buildTransactionProductSavedPanelMessage(productSnapshot),
+          },
+        },
+      ]);
+      void syncFinancialContextToIntake().catch(() => {});
+      handlePanelAction({
+        section: 'products_transactions',
+        message: buildTransactionProductSavedPanelMessage(productSnapshot),
+      });
+      setIsTransactionsModalOpen(false);
+    }
+
     return true;
   }
 
@@ -3584,15 +3749,15 @@ export default function AgentPage() {
       <div
         className="agent-input terminal-composer"
         onClick={() => {
-          if (isActiveChatLocked || isMobileViewport) return;
+          if (isActiveChatLocked || isActiveChatClosed || isMobileViewport) return;
           focusComposerAfterLayout({ collapsePanelFirst: true });
         }}
-        style={{ cursor: isActiveChatLocked ? 'default' : 'text' }}
+        style={{ cursor: isActiveChatLocked || isActiveChatClosed ? 'default' : 'text' }}
       >
         <div
           className="terminal-composer-head"
           onPointerDown={(e) => {
-            if (isActiveChatLocked || !isMobileViewport) return;
+            if (isActiveChatLocked || isActiveChatClosed || !isMobileViewport) return;
             if (e.pointerType !== 'touch' && e.pointerType !== 'pen') return;
             /* iOS: prevent ghost click on the label from stealing focus back. */
             e.preventDefault();
@@ -3607,12 +3772,14 @@ export default function AgentPage() {
           placeholder={
             fincoinSpendBlocked
               ? 'Fincoins agotados · agente en pausa'
+              : isActiveChatClosed
+                ? 'Chat cerrado · solo lectura'
               : isActiveChatLocked
                 ? 'Chat bloqueado hasta completar la entrevista'
                 : ''
           }
           value={input}
-          disabled={isActiveChatLocked || fincoinSpendBlocked}
+          disabled={isActiveChatLocked || isActiveChatClosed || fincoinSpendBlocked}
           autoFocus={!hasBlockingModalOpen && !isMobileViewport}
           enterKeyHint="send"
           inputMode="text"
@@ -3648,7 +3815,7 @@ export default function AgentPage() {
         <button
           type="button"
           className="continue-button composer-icon-btn"
-          disabled={isActiveChatLocked || fincoinSpendBlocked}
+          disabled={isActiveChatLocked || isActiveChatClosed || fincoinSpendBlocked}
           onClick={() => chatUploadInputRef.current?.click()}
           title={`Adjuntar archivos (máx. ${MAX_CHAT_UPLOAD_FILES}: PDF, imagen, Excel, texto y más)`}
           aria-label={`Adjuntar archivo, hasta ${MAX_CHAT_UPLOAD_FILES} por envío`}
@@ -3680,7 +3847,7 @@ export default function AgentPage() {
         <button
           type="button"
           className={`composer-send-btn${input.trim() ? ' is-send-ready' : ''}`}
-          disabled={isActiveChatLocked || fincoinSpendBlocked}
+          disabled={isActiveChatLocked || isActiveChatClosed || fincoinSpendBlocked}
           onClick={() => {
             void onSend(chatComposerRef.current?.value ?? input);
           }}
@@ -3739,12 +3906,13 @@ export default function AgentPage() {
           activeChatId={activeChatId}
           setActiveChatId={setActiveChatId}
           getThreadSpecialization={getThreadSpecialization}
-          isThreadLocked={isThreadLocked}
+          resolveThreadAccessState={resolveThreadAccessState}
           setPanelCallout={setPanelCallout}
           setKnowledgePopupOpen={setKnowledgePopupOpen}
           knowledgeScore={knowledgeScore}
           activeThread={activeThread}
           isActiveChatLocked={isActiveChatLocked}
+          isActiveChatClosed={isActiveChatClosed}
           activeTurnCount={activeTurnCount}
           diagnosisUnlocked={interviewCompleted}
           knowledgePopupOpen={knowledgePopupOpen}
@@ -3756,6 +3924,7 @@ export default function AgentPage() {
           cycleVisualMode={handleCycleVisualMode}
           isMobileViewport={isMobileViewport}
           actionPlanFunnelStage={activeActionPlanStage}
+          socialConsciousnessFunnelStage={activeSocialConsciousnessStage}
           fincoinRemaining={fincoinUsage.remainingFincoins}
           fincoinDepleted={fincoinSpendBlocked}
           fincoinLowBalance={fincoinLowBalance}
@@ -3772,7 +3941,7 @@ export default function AgentPage() {
             </div>
             <button
               type="button"
-              className="summary-action-btn summary-action-accept"
+              className="interview-resume-banner__btn"
               onClick={() => {
                 void openInterviewModal();
               }}
@@ -3819,6 +3988,7 @@ export default function AgentPage() {
             chatThreadRef={chatThreadRef as React.RefObject<HTMLDivElement>}
             activeChatId={activeChatId}
             actionPlanFunnelStage={activeActionPlanStage}
+            socialConsciousnessFunnelStage={activeSocialConsciousnessStage}
             setItemsForActive={setItemsForActive}
             classifyReportGroup={classifyReportGroup}
             setSavedReports={setSavedReports}
@@ -3828,11 +3998,15 @@ export default function AgentPage() {
             visualMode={visualMode}
             compactClosedView={isActiveChatClosed}
             showFullChat={showFullClosedChat}
+            sendDisabled={isActiveChatClosed || isActiveChatLocked || fincoinSpendBlocked}
             closingSummary={activeThreadClosureSummary}
+            chat1IntroMode={chat1IntroMode}
+            chat1GeneralDeepened={chat1GeneralDeepened}
+            diagnosisDeepenVoiceFindings={diagnosisDeepenVoiceFindings}
           />
 
-          {activeChatId === 'chat-3' && (
-            <div style={{ padding: '0 0 10px', display: 'flex' }}>
+          {activeChatId === 'chat-3' && !isActiveChatClosed && !isActiveChatLocked ? (
+            <div className="social-philosophy-trigger-wrap">
               <button
                 type="button"
                 className="social-philosophy-trigger"
@@ -3843,7 +4017,7 @@ export default function AgentPage() {
                 Reflexión interactiva
               </button>
             </div>
-          )}
+          ) : null}
 
           {!isMobileViewport && !isActiveChatClosed ? terminalComposerShell : null}
         </div>
@@ -3992,23 +4166,10 @@ export default function AgentPage() {
         sendBudgetToAgent={sendBudgetToAgent}
         chatAnswers={budgetChatAnswers}
         onChatAnswersChange={setBudgetChatAnswers}
-        sessionInfo={sessionInfo}
-        bankProducts={bankSimulation.products.map((p) => ({
-          label: p.label,
-          bank: p.bank,
-          productType: p.productType,
-          dashboardSummary: p.dashboard?.summary,
-          keyMetrics: p.dashboard?.keyMetrics
-            ? {
-                inflows_total: p.dashboard.keyMetrics.inflows_total,
-                outflows_total: p.dashboard.keyMetrics.outflows_total,
-                net_flow: p.dashboard.keyMetrics.net_flow,
-                movement_count: p.dashboard.keyMetrics.movement_count,
-              }
-            : undefined,
-          topCategories: p.dashboard?.topCategories?.slice(0, 8),
-          alerts: p.dashboard?.alerts?.slice(0, 8),
-        }))}
+        bankProducts={buildBudgetAssistantProductsFromBankSimulation(
+          bankSimulation.products,
+          bankSimulation.taxonomyOverrides,
+        )}
         onBudgetPdfSaved={handleBudgetPdfSaved}
       />
 
@@ -4016,6 +4177,8 @@ export default function AgentPage() {
         isOpen={isInterviewModalOpen}
         fincoinSpendBlocked={fincoinSpendBlocked}
         onClose={() => setIsInterviewModalOpen(false)}
+        onDeepenInChat={beginDiagnosisDeepenChat}
+        deepenInChatDisabled={chat1GeneralDeepened}
         onDiagnosisComplete={() => {
           void syncDiagnosisSession({
             onSession: (info) => setSessionInfo(info),
@@ -4030,6 +4193,8 @@ export default function AgentPage() {
           setIsSocialConsciousnessModalOpen(false);
           void onSend(message);
         }}
+        sessionUserId={sessionInfo?.id}
+        onReflectionsPersisted={() => setSocialReflectionRevision((value) => value + 1)}
         sessionUserName={sessionInfo?.name}
       />
 

@@ -481,9 +481,25 @@ html.is-tablet-landscape[data-visual-mode='light-outline'] body.agent-route-acti
     box-shadow: none !important;
   }
 
+  html.agent-route-active .agent-layout:not(.is-mobile-viewport) .agent-thread > .agent-bubble.assistant.latex-doc,
+  html.agent-route-active .agent-layout:not(.is-mobile-viewport) .agent-thread > .agent-bubble.assistant.latex-doc.is-intro-doc,
+  html.is-desktop-viewport body.agent-route-active .agent-thread > .agent-bubble.assistant.latex-doc,
+  html.is-desktop-viewport body.agent-route-active .agent-thread > .agent-bubble.assistant.latex-doc.is-intro-doc,
+  html.is-tablet-landscape body.agent-route-active .agent-thread > .agent-bubble.assistant.latex-doc,
+  html.is-tablet-landscape body.agent-route-active .agent-thread > .agent-bubble.assistant.latex-doc.is-intro-doc {
+    width: var(--assistant-thread-band-width, 100%) !important;
+    max-width: var(--assistant-thread-band-width, 100%) !important;
+    max-inline-size: var(--assistant-thread-band-width, 100%) !important;
+    align-self: stretch !important;
+  }
+
   html.agent-route-active .agent-layout:not(.is-mobile-viewport) .agent-thread .onboarding-flow-cta,
   html.is-desktop-viewport body.agent-route-active .agent-thread .onboarding-flow-cta,
   html.is-tablet-landscape body.agent-route-active .agent-thread .onboarding-flow-cta {
+    width: var(--assistant-thread-band-width, 100%) !important;
+    max-width: var(--assistant-thread-band-width, 100%) !important;
+    max-inline-size: var(--assistant-thread-band-width, 100%) !important;
+    align-self: stretch !important;
     background: rgba(10, 16, 26, 0.2) !important;
     background-image: none !important;
     backdrop-filter: blur(20px) saturate(140%) !important;
@@ -494,9 +510,31 @@ html.is-tablet-landscape[data-visual-mode='light-outline'] body.agent-route-acti
       0 16px 40px rgba(0, 0, 0, 0.14) !important;
   }
 
+  html.agent-route-active .agent-layout:not(.is-mobile-viewport) .agent-thread .onboarding-flow-cta__button,
+  html.is-desktop-viewport body.agent-route-active .agent-thread .onboarding-flow-cta__button,
+  html.is-tablet-landscape body.agent-route-active .agent-thread .onboarding-flow-cta__button {
+    background: rgba(10, 16, 26, 0.2) !important;
+    background-image: none !important;
+    backdrop-filter: blur(20px) saturate(140%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(140%) !important;
+    box-shadow: none !important;
+    color: #fff !important;
+    -webkit-text-fill-color: #fff !important;
+  }
+
+  html.agent-route-active .agent-layout:not(.is-mobile-viewport) .agent-thread .onboarding-flow-cta__button:hover,
+  html.is-desktop-viewport body.agent-route-active .agent-thread .onboarding-flow-cta__button:hover,
+  html.is-tablet-landscape body.agent-route-active .agent-thread .onboarding-flow-cta__button:hover {
+    background: rgba(10, 16, 26, 0.28) !important;
+  }
+
   html.agent-route-active .agent-layout:not(.is-mobile-viewport) .agent-thread .agent-stream-rail,
   html.is-desktop-viewport body.agent-route-active .agent-thread .agent-stream-rail,
   html.is-tablet-landscape body.agent-route-active .agent-thread .agent-stream-rail {
+    width: var(--assistant-thread-band-width, 100%) !important;
+    max-width: var(--assistant-thread-band-width, 100%) !important;
+    max-inline-size: var(--assistant-thread-band-width, 100%) !important;
+    align-self: stretch !important;
     background: rgba(10, 16, 26, 0.2) !important;
     background-image: none !important;
     backdrop-filter: blur(20px) saturate(140%) !important;

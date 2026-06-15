@@ -21,6 +21,16 @@ export const RETRO_TOOLTIP_STYLE: CSSProperties = {
   color: '#f8fafc',
 };
 
+/** Light tooltip for charts rendered inside the agent chat (mobile + desktop). */
+export const AGENT_CHAT_TOOLTIP_STYLE: CSSProperties = {
+  background: '#ffffff',
+  border: '1px solid rgba(206, 194, 176, 0.72)',
+  borderRadius: 12,
+  boxShadow: '0 10px 24px rgba(42, 36, 24, 0.08)',
+  color: '#2a2418',
+  padding: '10px 12px',
+};
+
 export const RETRO_TICK = { fill: '#8ea0b3', fontSize: 10 };
 export const RETRO_GRID = 'rgba(164, 180, 196, 0.16)';
 

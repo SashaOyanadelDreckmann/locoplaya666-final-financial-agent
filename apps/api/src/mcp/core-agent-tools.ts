@@ -1,9 +1,10 @@
 import type { MCPTool } from './tools/types';
 
 /**
- * Tools that must never be exposed to CoreAgent ReAct.
- * PDF export is handled by the UI bubble action + /api/pdfs worker, not MCP.
+ * Core Agent MCP tool policy.
+ * PDF export is UI-only; meta-tools (agent.*) are sandboxed computation pipelines.
  */
+export const CORE_AGENT_META_TOOL_PREFIX = 'agent.' as const;
 export const CORE_AGENT_EXCLUDED_TOOL_PREFIXES = ['pdf.'] as const;
 
 export function isCoreAgentExcludedTool(toolName: string): boolean {

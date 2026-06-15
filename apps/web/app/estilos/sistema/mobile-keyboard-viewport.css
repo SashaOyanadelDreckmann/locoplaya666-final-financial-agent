@@ -55,7 +55,9 @@
   html:not(.pwa-standalone).auth-route-active,
   html:not(.pwa-standalone).auth-route-active body,
   html:not(.pwa-standalone).intake-route-active,
-  html:not(.pwa-standalone).intake-route-active body {
+  html:not(.pwa-standalone).intake-route-active body,
+  html:not(.pwa-standalone).admin-route-active,
+  html:not(.pwa-standalone).admin-route-active body {
     height: var(--screen-h, 100lvh) !important;
     max-height: var(--screen-h, 100lvh) !important;
     min-height: 0 !important;
@@ -64,10 +66,10 @@
 
   /*
    * Agent + modals — outer frame tracks visible viewport (keyboard shrinks stack).
-   * Auth + intake keep a stable outer frame (PWA parity); inner scroll containers adjust.
+   * Auth + intake + admin keep a stable outer frame; inner scroll containers adjust.
    */
-  html:not(.pwa-standalone):not(.home-route-active):not(.auth-route-active):not(.intake-route-active) .app-shell,
-  html:not(.pwa-standalone):not(.home-route-active):not(.auth-route-active):not(.intake-route-active) .mobile-scale-frame {
+  html:not(.pwa-standalone):not(.home-route-active):not(.auth-route-active):not(.intake-route-active):not(.admin-route-active) .app-shell,
+  html:not(.pwa-standalone):not(.home-route-active):not(.auth-route-active):not(.intake-route-active):not(.admin-route-active) .mobile-scale-frame {
     height: var(--visual-vh, var(--screen-h, 100lvh)) !important;
     max-height: var(--visual-vh, var(--screen-h, 100lvh)) !important;
     min-height: 0 !important;
@@ -82,13 +84,26 @@
   html.auth-route-active .app-shell,
   html.auth-route-active .mobile-scale-frame,
   html.intake-route-active .app-shell,
-  html.intake-route-active .mobile-scale-frame {
+  html.intake-route-active .mobile-scale-frame,
+  html.admin-route-active .app-shell,
+  html.admin-route-active .mobile-scale-frame {
     height: var(--screen-h, var(--fa-app-height, 100dvh)) !important;
     max-height: var(--screen-h, var(--fa-app-height, 100dvh)) !important;
     min-height: 0 !important;
     overflow: hidden !important;
     transition: none !important;
     transform: none !important;
+  }
+
+  html.admin-route-active .admin-root {
+    height: 100% !important;
+    min-height: 0 !important;
+    max-height: 100% !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior-y: contain !important;
+    touch-action: pan-y pinch-zoom !important;
   }
 
   html.auth-route-active,
@@ -530,7 +545,6 @@
     height: 100% !important;
     max-height: 100% !important;
     min-height: 0 !important;
-    padding-top: var(--agent-shell-safe-top, env(safe-area-inset-top, 0px)) !important;
     box-sizing: border-box !important;
     overflow: hidden !important;
   }
@@ -555,26 +569,26 @@
 }
 
 /*
- * MOBILE AGENT FOOTER — deck above, handle above safe area (authoritative EOF).
- * Fixes clipped compact panel + handle stuck in home-indicator zone on all mobile.
+ * MOBILE AGENT FOOTER — deck sizing fallback (agent-compact-deck.css wins when loaded).
  */
 @media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   body.agent-route-active {
-    --mobile-panel-bottom-gap: 16px;
-    --mobile-panel-deck-lift: 14px;
-    --mobile-panel-shell-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--mobile-panel-bottom-gap));
-    --pwa-panel-bottom-inset: var(--mobile-panel-shell-bottom);
-    --deck-overlap: clamp(10px, 2.75vw, 16px);
-    --deck-pad-inline: 4px;
-    --deck-handle-h: 18px;
-    --deck-card-h-min: 78px;
-    --deck-card-h-max: 106px;
-    --deck-card-aspect: 0.54;
-    --deck-card-w-est: calc((100vw - (var(--deck-pad-inline) * 2) + 4 * var(--deck-overlap)) / 5);
+    --mobile-panel-bottom-gap: 0px;
+    --mobile-panel-deck-lift: 4px;
+    --deck-bg-top-extra: 8px;
+    --mobile-panel-shell-bottom: 0px;
+    --pwa-panel-bottom-inset: 0px;
+    --deck-overlap: clamp(22px, 5.8vw, 38px);
+    --deck-pad-inline: 0px;
+    --deck-handle-h: 11px;
+    --deck-card-h-min: 58px;
+    --deck-card-h-max: 74px;
+    --deck-card-aspect: 0.44;
+    --deck-card-w-est: min(176px, calc(100vw * 0.37));
     --deck-card-h-est: clamp(
-      var(--deck-card-h-min),
-      calc(var(--deck-card-w-est) * var(--deck-card-aspect)),
-      var(--deck-card-h-max)
+      58px,
+      calc(var(--deck-card-w-est) * 0.44),
+      74px
     );
   }
 
@@ -582,7 +596,6 @@
     height: 100% !important;
     max-height: 100% !important;
     min-height: 0 !important;
-    padding-top: var(--agent-shell-safe-top, env(safe-area-inset-top, 0px)) !important;
     box-sizing: border-box !important;
     overflow: hidden !important;
   }
@@ -591,7 +604,6 @@
     height: var(--visual-vh, var(--screen-h, 100dvh)) !important;
     max-height: var(--visual-vh, var(--screen-h, 100dvh)) !important;
     min-height: 0 !important;
-    padding-top: var(--agent-shell-safe-top, env(safe-area-inset-top, 0px)) !important;
     box-sizing: border-box !important;
     overflow: hidden !important;
   }

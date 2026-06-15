@@ -8,7 +8,7 @@ export const AGENT_STREAM_PHASES = [
 
 export type AgentStreamPhase = (typeof AGENT_STREAM_PHASES)[number];
 
-export type AgentStreamPhaseStatus = 'start' | 'done';
+export type AgentStreamPhaseStatus = 'start' | 'done' | 'error';
 
 export type AgentStreamEvent =
   | {
@@ -95,6 +95,8 @@ export const AGENT_STREAM_TOOL_LABELS: Record<string, string> = {
   'finance.apv_optimizer': 'Optimizando APV',
   'finance.budget_analyzer': 'Analizando presupuesto',
   'finance.goal_planner': 'Planificando objetivo financiero',
+  'finance.transactions_charts': 'Construyendo gráficos de transacciones',
+  'agent.compose_pipeline': 'Verificando cálculos encadenados',
 };
 
 export function resolveAgentStreamToolLabel(tool: string): string {

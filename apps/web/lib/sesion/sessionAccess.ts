@@ -59,6 +59,7 @@ export function resolveAuthRedirectPath(error: unknown): '/login' | '/waiting-ap
 
 export type ServerSessionInfo = {
   id?: string;
+  role?: string;
   injectedIntake?: { intake?: unknown } | null;
 };
 

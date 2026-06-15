@@ -229,6 +229,73 @@ export const QuestionnaireBlockSchema = z.object({
 
 export type QuestionnaireBlock = z.infer<typeof QuestionnaireBlockSchema>;
 
+const TransactionCashflowMovementSchema = z.object({
+  label: z.string(),
+  amount: z.number(),
+  direction: z.enum(['income', 'expense']),
+});
+
+const TransactionCashflowPointSchema = z.object({
+  day: z.number(),
+  dayLabel: z.string(),
+  dayIncome: z.number(),
+  dayExpense: z.number(),
+  cumulativeIncome: z.number(),
+  cumulativeExpense: z.number(),
+  incomeArea: z.number(),
+  movements: z.array(TransactionCashflowMovementSchema),
+});
+
+const TransactionCashflowSeriesSchema = z.object({
+  monthLabel: z.string(),
+  year: z.number(),
+  month: z.number(),
+  points: z.array(TransactionCashflowPointSchema),
+  distinctDays: z.number(),
+  datedMovementCount: z.number(),
+});
+
+export const TxChartBlockSchema = z.object({
+  type: z.literal('tx_chart'),
+  tx_chart: z.discriminatedUnion('variant', [
+    z.object({
+      variant: z.literal('cumulative_cashflow'),
+      title: z.string().optional(),
+      subtitle: z.string().optional(),
+      currency: z.string().optional(),
+      series: TransactionCashflowSeriesSchema,
+    }),
+    z.object({
+      variant: z.literal('flow_bar'),
+      title: z.string().optional(),
+      subtitle: z.string().optional(),
+      currency: z.string().optional(),
+      inflowLabel: z.string().optional(),
+      data: z.array(
+        z.object({
+          metric: z.string(),
+          value: z.number(),
+        }),
+      ),
+    }),
+    z.object({
+      variant: z.literal('category_bar'),
+      title: z.string().optional(),
+      subtitle: z.string().optional(),
+      currency: z.string().optional(),
+      data: z.array(
+        z.object({
+          category: z.string(),
+          amount: z.number(),
+          share: z.number(),
+        }),
+      ),
+    }),
+  ]),
+});
+
+export type TxChartBlock = z.infer<typeof TxChartBlockSchema>;
+
 /**
  * 🧩 Union de bloques soportados por el agente.
  * Se puede extender sin romper compatibilidad.
@@ -236,6 +303,7 @@ export type QuestionnaireBlock = z.infer<typeof QuestionnaireBlockSchema>;
 export const AgentBlockSchema = z.union([
   DocumentBlockSchema,
   ChartBlockSchema,
+  TxChartBlockSchema,
   TableBlockSchema,
   QuestionnaireBlockSchema,
 ]);
@@ -269,14 +337,22 @@ export const ChatAgentResponseSchema = z.object({
   suggested_replies: z.array(z.string()).optional(),
 
   panel_action: z.object({
-    section: z.enum(['budget', 'transactions', 'library', 'recents', 'profile', 'news', 'objective', 'mode']).optional(),
+    section: z.enum([
+      'budget',
+      'transactions',
+      'products_transactions',
+      'library',
+      'recents',
+      'profile',
+      'news',
+      'objective',
+      'mode',
+      'interview',
+    ]).optional(),
     message: z.string().optional(),
   }).optional(),
 
   meta: z.record(z.string(), z.any()).optional(),
-
-  // Puntuación 0-100 del contexto acumulado de esta hoja (generado por el agente)
-  context_score: z.number().min(0).max(100).optional(),
 
   // Actualizaciones de presupuesto inferidas por el agente de la conversación
   budget_updates: z.array(z.object({

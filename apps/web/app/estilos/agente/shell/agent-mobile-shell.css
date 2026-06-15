@@ -31,7 +31,6 @@
     flex-direction: column !important;
     gap: 0 !important;
     padding: 0 !important;
-    padding-top: var(--agent-shell-safe-top, env(safe-area-inset-top, 0px)) !important;
     padding-bottom: 0 !important;
     min-height: 0 !important;
     overflow: hidden !important;
@@ -87,7 +86,6 @@
     display: flex !important;
     flex-direction: column !important;
     align-items: stretch !important;
-    position: relative !important;
   }
 
   main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-tabs-row,
@@ -110,7 +108,7 @@
   body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-tabs-row {
     display: flex !important;
     align-items: center !important;
-    justify-content: center !important;
+    justify-content: flex-start !important;
     min-height: var(--mobile-shell-primary-h) !important;
     overflow: visible !important;
   }
@@ -119,9 +117,9 @@
   body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-tabs-row .chat-switcher {
     display: grid !important;
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-    width: calc(100% * var(--mobile-shell-tab-width-scale, 0.75)) !important;
-    max-width: calc(100% * var(--mobile-shell-tab-width-scale, 0.75)) !important;
-    margin-inline: auto !important;
+    width: auto !important;
+    max-width: none !important;
+    margin-inline: 0 !important;
     min-width: 0 !important;
     height: auto !important;
     margin: 0 !important;
@@ -375,11 +373,6 @@
     display: none !important;
   }
 
-  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .sheet-context-bar,
-  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .sheet-context-bar {
-    display: none !important;
-  }
-
   main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile > .action-plan-funnel-rail,
   body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile > .action-plan-funnel-rail {
     grid-column: unset !important;
@@ -388,6 +381,121 @@
     gap: 4px !important;
     transform: scale(0.92) !important;
     transform-origin: top center !important;
+  }
+
+  /* Chat 2 funnel rail — integrated footer band inside the mobile header shell */
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.has-action-plan-funnel,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.has-action-plan-funnel {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0 !important;
+    overflow: visible !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.has-action-plan-funnel .chat-mobile-header-stack,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.has-action-plan-funnel .chat-mobile-header-stack {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    gap: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.has-action-plan-funnel .chat-mobile-toolbar-row,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.has-action-plan-funnel .chat-mobile-toolbar-row {
+    flex: 0 0 auto !important;
+    min-height: var(--mobile-shell-mono-size) !important;
+    padding-bottom: 4px !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .action-plan-funnel-rail--header-integrated,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .action-plan-funnel-rail--header-integrated {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 5px 6px 6px !important;
+    gap: 3px !important;
+    flex-wrap: nowrap !important;
+    transform: none !important;
+    border-radius: 0 0 var(--mobile-shell-radius) var(--mobile-shell-radius) !important;
+    border: 0 !important;
+    border-top: 1px solid rgba(var(--chat-accent-rgb), 0.34) !important;
+    background: linear-gradient(
+      180deg,
+      rgba(var(--chat-accent-rgb), 0.14) 0%,
+      rgba(0, 0, 0, 0.55) 100%
+    ) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
+    box-sizing: border-box !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .action-plan-funnel-rail--header-integrated .action-plan-funnel-step,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .action-plan-funnel-rail--header-integrated .action-plan-funnel-step {
+    padding: 2px 4px !important;
+    gap: 4px !important;
+    font-size: 0.56rem !important;
+    flex: 0 1 auto !important;
+    min-width: 0 !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .action-plan-funnel-rail--header-integrated .action-plan-funnel-step:nth-child(1),
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .action-plan-funnel-rail--header-integrated .action-plan-funnel-step:nth-child(1) {
+    flex: 0 0 auto !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .action-plan-funnel-rail--header-integrated .action-plan-funnel-step:nth-child(2),
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .action-plan-funnel-rail--header-integrated .action-plan-funnel-step:nth-child(3),
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .action-plan-funnel-rail--header-integrated .action-plan-funnel-step:nth-child(2),
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .action-plan-funnel-rail--header-integrated .action-plan-funnel-step:nth-child(3) {
+    flex: 1 1 0 !important;
+    min-width: 3.6rem !important;
+    align-items: flex-start !important;
+    padding-inline: 5px !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .action-plan-funnel-rail--header-integrated .action-plan-funnel-step-label,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .action-plan-funnel-rail--header-integrated .action-plan-funnel-step-label {
+    white-space: nowrap !important;
+    overflow: visible !important;
+    text-overflow: unset !important;
+    max-width: none !important;
+    font-size: 0.56rem !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .action-plan-funnel-rail--header-integrated .action-plan-funnel-step:nth-child(2) .action-plan-funnel-step-label,
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .action-plan-funnel-rail--header-integrated .action-plan-funnel-step:nth-child(3) .action-plan-funnel-step-label,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .action-plan-funnel-rail--header-integrated .action-plan-funnel-step:nth-child(2) .action-plan-funnel-step-label,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .action-plan-funnel-rail--header-integrated .action-plan-funnel-step:nth-child(3) .action-plan-funnel-step-label {
+    white-space: normal !important;
+    line-height: 1.1 !important;
+    word-break: break-word !important;
+    hyphens: auto !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .action-plan-funnel-rail--header-integrated .action-plan-funnel-stage-pill,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .action-plan-funnel-rail--header-integrated .action-plan-funnel-stage-pill {
+    margin-left: auto !important;
+    flex: 0 1 auto !important;
+    max-width: 34% !important;
+    font-size: 0.5rem !important;
+    padding: 2px 5px !important;
+    letter-spacing: 0.02em !important;
+    line-height: 1.1 !important;
+    white-space: normal !important;
+    text-align: center !important;
+    word-break: break-word !important;
+  }
+
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .action-plan-funnel-rail--header-integrated .action-plan-funnel-step-index,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .action-plan-funnel-rail--header-integrated .action-plan-funnel-step-index {
+    width: 14px !important;
+    height: 14px !important;
+    font-size: 0.5rem !important;
+    flex-shrink: 0 !important;
   }
 
   main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile > p.muted:empty,
@@ -418,19 +526,24 @@
 
   main.agent-layout.is-mobile-viewport .agent-thread > .agent-stream-rail,
   main.agent-layout.is-mobile-viewport .agent-thread > .onboarding-flow-cta {
-    width: 100% !important;
-    max-width: var(--bubble-maxw, 72%) !important;
-    align-self: flex-start !important;
+    width: var(--assistant-thread-band-width, calc(100% - 4px)) !important;
+    max-width: var(--assistant-thread-band-width, calc(100% - 4px)) !important;
+    max-inline-size: var(--assistant-thread-band-width, calc(100% - 4px)) !important;
+    align-self: stretch !important;
     flex-shrink: 0 !important;
   }
 
   main.agent-layout.is-mobile-viewport {
-    --bubble-user-maxw: 50%;
+    --bubble-user-maxw: 92%;
+    --assistant-thread-band-width: calc(100% - 4px);
   }
 
   main.agent-layout.is-mobile-viewport .agent-thread > .agent-bubble.user:not(.upload-bubble) {
-    max-width: var(--bubble-user-maxw, 50%) !important;
+    max-width: var(--bubble-user-maxw, 92%) !important;
     width: fit-content !important;
+    align-self: flex-end !important;
+    margin-left: auto !important;
+    margin-right: 0 !important;
   }
 
   main.agent-layout.is-mobile-viewport .agent-thread > .agent-bubble.assistant.latex-doc.is-streaming {
@@ -1398,44 +1511,134 @@
   body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row,
   main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row {
     display: flex !important;
-    flex-direction: row !important;
-    align-items: center !important;
-    justify-content: stretch !important;
-    gap: 8px !important;
-    padding-top: 6px !important;
-    padding-bottom: 6px !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    justify-content: flex-start !important;
+    gap: 0 !important;
     min-height: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-mobile-header-stack,
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-mobile-header-stack {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    flex: 1 1 auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    gap: 0 !important;
+  }
+
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row.has-action-plan-funnel,
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row.has-action-plan-funnel {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0 !important;
   }
 
   body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-mobile-toolbar-row,
   main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-mobile-toolbar-row {
     display: flex !important;
-    flex: 1 1 auto !important;
     align-items: center !important;
-    justify-content: space-between !important;
-    gap: 8px !important;
+    justify-content: flex-start !important;
+    gap: 6px !important;
     width: 100% !important;
     min-width: 0 !important;
     min-height: var(--mobile-shell-mono-size) !important;
     margin: 0 !important;
     padding: 0 !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
   }
 
   body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-mobile-brand-heading--compact,
   main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-mobile-brand-heading--compact {
+    position: static !important;
+    transform: none !important;
     flex: 1 1 auto !important;
     min-width: 0 !important;
+    max-width: none !important;
+    width: auto !important;
     margin: 0 !important;
     padding: 0 !important;
     overflow: hidden !important;
+    z-index: auto !important;
+  }
+
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-mobile-brand-heading--compact,
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-mobile-brand-heading--compact,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-mobile-brand-heading--compact h1,
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-mobile-brand-heading--compact {
+    display: block !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    width: auto !important;
+    overflow: hidden !important;
+  }
+
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-mobile-brand-heading--compact .chat-brand-logo-mark,
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-mobile-brand-heading--compact .chat-brand-logo-mark {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 18px !important;
+    height: 18px !important;
+    flex: 0 0 18px !important;
+    flex-shrink: 0 !important;
+    margin: 0 !important;
+    padding: 1px !important;
+    border-radius: 5px !important;
+    overflow: hidden !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-mobile-brand-heading--compact .chat-brand-logo-frame,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-mobile-brand-heading--compact .chat-brand-logo-svg,
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-mobile-brand-heading--compact .chat-brand-logo-frame,
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-mobile-brand-heading--compact .chat-brand-logo-svg {
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
   }
 
   body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-mobile-brand-heading--compact .chat-brand-title-row,
   main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-mobile-brand-heading--compact .chat-brand-title-row {
+    display: flex !important;
+    align-items: center !important;
     justify-content: flex-start !important;
     width: 100% !important;
     min-width: 0 !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
     overflow: hidden !important;
+    gap: 5px !important;
+  }
+
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-mobile-brand-heading--compact .chat-brand-wordmark,
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-mobile-brand-heading--compact .chat-brand-wordmark {
+    display: inline-flex !important;
+    align-items: center !important;
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-mobile-brand-heading--compact .chat-brand-financiera,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-mobile-brand-heading--compact .chat-brand-mente,
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-mobile-brand-heading--compact .chat-brand-financiera,
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-mobile-brand-heading--compact .chat-brand-mente {
+    display: inline !important;
+    font-size: 12px !important;
+    line-height: 1 !important;
+    letter-spacing: -0.02em !important;
   }
 
   body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-mobile-toolbar-actions,
@@ -1443,8 +1646,17 @@
     display: inline-flex !important;
     align-items: center !important;
     justify-content: flex-end !important;
-    gap: 6px !important;
+    gap: 2px !important;
     flex: 0 0 auto !important;
+    margin: 0 0 0 auto !important;
+    padding: 0 !important;
+    min-width: 0 !important;
+    overflow: visible !important;
+  }
+
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-mobile-toolbar-actions .chat-header-toggle-group,
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-mobile-toolbar-actions .chat-header-toggle-group {
+    gap: 2px !important;
     margin: 0 !important;
     padding: 0 !important;
   }
@@ -1454,7 +1666,7 @@
     display: inline-flex !important;
     align-items: center !important;
     justify-content: flex-end !important;
-    gap: 4px !important;
+    gap: 2px !important;
     width: auto !important;
     max-width: none !important;
     min-width: 0 !important;
@@ -1485,50 +1697,47 @@
     overflow: hidden !important;
   }
 
+  /* Locked mobile index tabs — color identity + dashed cue, no pseudo stacks */
   body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-sheet-tab--mobile-index.is-locked,
   main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-sheet-tab--mobile-index.is-locked {
-    opacity: 0.46 !important;
-    filter: grayscale(0.92) saturate(0.2) brightness(0.78) !important;
+    opacity: 0.5 !important;
+    filter: none !important;
     border-style: dashed !important;
-    border-width: 1.5px !important;
-    border-color: rgba(255, 255, 255, 0.34) !important;
+    border-width: 1px !important;
     cursor: not-allowed !important;
-    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.42) !important;
+    box-shadow: none !important;
+    background-image: none !important;
   }
 
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-sheet-tab--mobile-index.is-locked::before,
   body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-sheet-tab--mobile-index.is-locked::after,
-  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-sheet-tab--mobile-index.is-locked::after {
-    content: "" !important;
-    position: absolute !important;
-    inset: 0 !important;
-    border-radius: inherit !important;
-    background: linear-gradient(135deg, rgba(0, 0, 0, 0.34), rgba(0, 0, 0, 0.12)) !important;
-    pointer-events: none !important;
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-sheet-tab--mobile-index.is-locked::before,
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-sheet-tab--mobile-index.is-locked::after,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-sheet-tab--mobile-index.is-locked .chat-sheet-tab-index::before,
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-sheet-tab--mobile-index.is-locked .chat-sheet-tab-index::before {
+    content: none !important;
+    display: none !important;
   }
 
   body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-sheet-tab--mobile-index.is-locked .chat-sheet-tab-index,
   main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-sheet-tab--mobile-index.is-locked .chat-sheet-tab-index {
-    opacity: 0.38 !important;
-    position: relative !important;
-    z-index: 0 !important;
+    opacity: 0.55 !important;
+    font-weight: 600 !important;
   }
 
-  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-sheet-tab--mobile-index.is-locked::before,
-  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-sheet-tab--mobile-index.is-locked::before {
-    content: "" !important;
-    position: absolute !important;
-    left: 50% !important;
-    top: 56% !important;
-    width: 8px !important;
-    height: 10px !important;
-    transform: translate(-50%, -50%) !important;
-    border: 1.5px solid rgba(255, 255, 255, 0.92) !important;
-    border-radius: 2px !important;
-    box-shadow: 0 -6px 0 -2px rgba(255, 255, 255, 0.92) !important;
-    background: transparent !important;
-    box-sizing: border-box !important;
-    z-index: 2 !important;
-    pointer-events: none !important;
+  /* Locked tabs 2 & 3 — wine / gold identity, flat and muted */
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-sheet-tab--mobile-index:nth-child(2).is-locked,
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-sheet-tab--mobile-index:nth-child(2).is-locked {
+    background: rgba(116, 44, 44, 0.28) !important;
+    border-color: rgba(211, 145, 145, 0.32) !important;
+    color: rgba(255, 240, 235, 0.68) !important;
+  }
+
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-sheet-tab--mobile-index:nth-child(3).is-locked,
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-sheet-tab--mobile-index:nth-child(3).is-locked {
+    background: rgba(184, 147, 70, 0.26) !important;
+    border-color: rgba(238, 216, 170, 0.34) !important;
+    color: rgba(255, 247, 232, 0.7) !important;
   }
 
   body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-sheet-tab--mobile-index .chat-sheet-tab-index,
@@ -1593,7 +1802,17 @@
     min-height: var(--mobile-shell-mono-size) !important;
     max-width: var(--mobile-shell-mono-size) !important;
     margin: 0 !important;
+    padding: 0 !important;
     border-radius: 999px !important;
+  }
+
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-mobile-toolbar-actions .chat-fincoin-toggle,
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-mobile-toolbar-actions .chat-fincoin-toggle {
+    min-width: var(--mobile-shell-mono-size) !important;
+    min-height: var(--mobile-shell-mono-size) !important;
+    max-width: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
   }
 
   body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-mobile-meta-row,
@@ -1631,20 +1850,46 @@
     --callout-color: #94a3b8;
   }
 
-  /* Welcome intro bubble — auto height, no clipping, no horizontal swipe */
-  main.agent-layout.is-mobile-viewport .agent-thread > .agent-bubble.assistant.latex-doc.is-empty-welcome,
-  main.agent-layout.is-mobile-viewport .agent-thread > .agent-bubble.assistant.latex-doc.is-intro-doc.is-empty-welcome,
-  main.agent-layout.is-mobile-viewport .agent-thread > .agent-bubble.assistant.latex-doc.is-chat-intro-shell,
-  main.agent-layout.is-mobile-viewport .agent-thread > .agent-bubble.assistant.latex-doc.is-intro-doc.is-chat-intro-shell {
+  /* Welcome intro bubble — auto height, rounded paper shell, no horizontal swipe */
+  html.agent-route-active body.agent-route-active main.agent-layout.is-mobile-viewport .agent-thread > .agent-bubble.assistant.latex-doc.is-empty-welcome,
+  html.agent-route-active body.agent-route-active main.agent-layout.is-mobile-viewport .agent-thread > .agent-bubble.assistant.latex-doc.is-intro-doc.is-empty-welcome,
+  html.agent-route-active body.agent-route-active main.agent-layout.is-mobile-viewport .agent-thread > .agent-bubble.assistant.latex-doc.is-chat-intro-shell,
+  html.agent-route-active body.agent-route-active main.agent-layout.is-mobile-viewport .agent-thread > .agent-bubble.assistant.latex-doc.is-intro-doc.is-chat-intro-shell {
     min-height: 0 !important;
     height: auto !important;
     max-height: none !important;
-    overflow: visible !important;
+    overflow: hidden !important;
     width: 100% !important;
     max-width: 100% !important;
     max-inline-size: 100% !important;
+    border-radius: 18px 18px 12px 12px !important;
+    border: 1px solid rgba(178, 146, 90, 0.36) !important;
+    background: linear-gradient(155deg, rgba(247, 243, 234, 0.98) 0%, rgba(237, 229, 214, 0.97) 100%) !important;
+    background-image: linear-gradient(155deg, rgba(247, 243, 234, 0.98) 0%, rgba(237, 229, 214, 0.97) 100%) !important;
+    box-shadow:
+      0 14px 34px rgba(0, 0, 0, 0.28),
+      0 2px 0 rgba(255, 255, 255, 0.35) inset !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
     touch-action: pan-y !important;
     overscroll-behavior-x: none !important;
+  }
+
+  html.agent-route-active body.agent-route-active main.agent-layout.is-mobile-viewport .agent-thread > .agent-bubble.assistant.latex-doc.is-empty-welcome .gradient-blob-card__frame,
+  html.agent-route-active body.agent-route-active main.agent-layout.is-mobile-viewport .agent-thread > .agent-bubble.assistant.latex-doc.is-chat-intro-shell .gradient-blob-card__frame {
+    padding: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+  }
+
+  html.agent-route-active body.agent-route-active main.agent-layout.is-mobile-viewport .agent-thread > .agent-bubble.assistant.latex-doc.is-empty-welcome .gradient-blob-card__glass,
+  html.agent-route-active body.agent-route-active main.agent-layout.is-mobile-viewport .agent-thread > .agent-bubble.assistant.latex-doc.is-chat-intro-shell .gradient-blob-card__glass {
+    background: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    outline: none !important;
+    border-radius: 0 !important;
   }
 
   main.agent-layout.is-mobile-viewport .agent-thread > .agent-bubble.assistant.latex-doc.is-empty-welcome .latex-doc-body.is-empty-welcome-body,
@@ -1830,12 +2075,55 @@
     padding: 8px 10px !important;
   }
 
-  /* HIG 44px touch targets — visual size stays compact */
+  /* HIG touch targets — compact index tabs keep visual 28px grid */
   .agent-chat-header.is-mobile button,
   .agent-chat-header.is-mobile [role='button'],
   .agent-chat-header.is-mobile .chat-thread-tab,
   .agent-chat-header.is-mobile .chat-fincoin-toggle {
     min-width: var(--mobile-shell-touch-min) !important;
     min-height: var(--mobile-shell-touch-min) !important;
+  }
+
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-sheet-tab--mobile-index,
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-sheet-tab--mobile-index,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row button.chat-sheet-tab--mobile-index,
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row button.chat-sheet-tab--mobile-index {
+    min-width: var(--mobile-shell-mono-size) !important;
+    min-height: var(--mobile-shell-mono-size) !important;
+  }
+
+  /* Fincoin toggle — icon only, no visible chrome */
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-fincoin-toggle,
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-fincoin-toggle,
+  .agent-chat-header.is-mobile .chat-fincoin-toggle {
+    width: auto !important;
+    height: auto !important;
+    max-width: none !important;
+    max-height: none !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-fincoin-toggle:hover,
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-fincoin-toggle:hover,
+  .agent-chat-header.is-mobile .chat-fincoin-toggle:hover,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-fincoin-toggle.is-low,
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-fincoin-toggle.is-low,
+  .agent-chat-header.is-mobile .chat-fincoin-toggle.is-low,
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-fincoin-toggle.is-depleted,
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-fincoin-toggle.is-depleted,
+  .agent-chat-header.is-mobile .chat-fincoin-toggle.is-depleted {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+  }
+
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-fincoin-toggle-dot,
+  main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-fincoin-toggle-dot,
+  .agent-chat-header.is-mobile .chat-fincoin-toggle-dot {
+    display: none !important;
   }
 }

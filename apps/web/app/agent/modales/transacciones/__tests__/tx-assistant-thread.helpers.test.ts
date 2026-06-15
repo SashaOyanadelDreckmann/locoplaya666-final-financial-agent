@@ -1,9 +1,11 @@
 /** @jest-environment node */
 
 import {
+  buildSummaryChatTurnAppend,
   isSummaryAnalysisChatStep,
   resolveAssistantMessageThread,
   selectAssistantMessagesForThread,
+  selectSummaryChatMessages,
 } from '../tx-assistant-thread.helpers';
 import type { TxAssistantMessage } from '../types';
 
@@ -45,5 +47,38 @@ describe('tx-assistant-thread.helpers', () => {
       'legacy-1',
       'legacy-2',
     ]);
+  });
+
+  it('shows evidence upload handshake in summary chat when summary thread is empty', () => {
+    const messages = [
+      { ...message('upload-user', 'evidence'), role: 'user' as const, attachments: ['cartola.pdf'] },
+      { ...message('upload-assistant', 'evidence'), role: 'assistant' as const },
+    ];
+
+    expect(selectSummaryChatMessages(messages).map((item) => item.id)).toEqual([
+      'upload-user',
+      'upload-assistant',
+    ]);
+  });
+
+  it('prepends evidence upload user when summary chat only has assistant welcome', () => {
+    const messages = [
+      { ...message('upload-user', 'evidence'), role: 'user' as const, attachments: ['cartola.pdf'] },
+      { ...message('welcome', 'summary'), role: 'assistant' as const },
+    ];
+
+    expect(selectSummaryChatMessages(messages).map((item) => item.id)).toEqual(['upload-user', 'welcome']);
+  });
+
+  it('seeds summary chat turn with upload user and assistant welcome', () => {
+    const prior = [{ ...message('upload-user', 'evidence'), role: 'user' as const, attachments: ['cartola.pdf'] }];
+    const appended = buildSummaryChatTurnAppend(prior, 'Listo.');
+
+    expect(appended).toHaveLength(2);
+    expect(appended[0]?.thread).toBe('summary');
+    expect(appended[0]?.role).toBe('user');
+    expect(appended[1]?.thread).toBe('summary');
+    expect(appended[1]?.role).toBe('assistant');
+    expect(appended[1]?.text).toBe('Listo.');
   });
 });

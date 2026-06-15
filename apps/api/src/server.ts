@@ -1,5 +1,5 @@
 // apps/api/src/server.ts
-import os from 'os';
+import { resolveLanIPv4 } from './dev/lan-dev-hosts';
 
 import { createApp } from './app';
 import { getConfig, formatConfigSummary } from './config';
@@ -7,18 +7,6 @@ import { getLogger, logStartup, logShutdown } from './logger';
 import { bootstrapMCP } from './mcp/bootstrap';
 import { verifyDatabaseAtStartup } from './services/health.service';
 import { ensureDevTestUsers } from './services/dev-users.seed';
-
-function resolveLanIPv4(): string | null {
-  const nets = os.networkInterfaces();
-  for (const entries of Object.values(nets)) {
-    for (const net of entries ?? []) {
-      if (net.family === 'IPv4' || net.family === 4) {
-        if (!net.internal) return net.address;
-      }
-    }
-  }
-  return null;
-}
 
 function logLanDevBanner(port: number): void {
   const ip = resolveLanIPv4();

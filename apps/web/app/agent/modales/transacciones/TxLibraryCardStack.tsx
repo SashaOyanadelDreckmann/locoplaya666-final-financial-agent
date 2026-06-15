@@ -82,7 +82,7 @@ export function TxLibraryCardStack({
         onActiveIndexChange={onSelectAt}
         prefersReducedMotion={prefersReducedMotion}
         quietMode
-        cardWidthRatio={0.74}
+        cardWidthRatio={0.68}
         cardHeightRatio={0.52}
         maxCardWidth={288}
         renderCard={(entry, stackIndex, isFocused) => {
@@ -120,14 +120,15 @@ export function TxLibraryCardStack({
                   </span>
                   <span className="pt-item-name">{product.label}</span>
                 </div>
-                <span className="pt-item-status">{product.connected ? 'Autorizado' : 'Pendiente'}</span>
               </div>
               <span className="pt-item-bank">{product.bank || 'Institución por definir'}</span>
               <div className="pt-item-meta">
                 <span>{intel.docs} respaldo(s)</span>
                 <span>{intel.amounts.length} movimiento(s)</span>
               </div>
-              <div className="tx-lib-card-chip" aria-hidden="true" />
+              <span className="pt-item-status tx-lib-card-status">
+                {product.connected ? 'Autorizado' : 'Pendiente'}
+              </span>
               {isFocused ? (
                 <button
                   type="button"

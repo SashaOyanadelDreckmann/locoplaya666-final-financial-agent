@@ -28,7 +28,20 @@ export type AgentSessionInfo = {
     closedChats?: string[];
     chatTurns?: Record<string, number>;
     actionPlanFunnelStage?: 'brainstorm' | 'converge' | 'deliver' | null;
+    socialConsciousnessFunnelStage?: 'explore' | 'tension' | 'synthesis' | null;
     closingMode?: boolean;
+  } | null;
+  socialConsciousnessReflections?: {
+    answers: Array<{
+      questionId: string;
+      question: string;
+      choiceId: string;
+      choiceLabel: string;
+      choiceSubtext?: string;
+      thinker?: string;
+    }>;
+    completedAt: string;
+    updatedAt?: string;
   } | null;
   knowledgeScore?: number;
   name?: string;

@@ -14,7 +14,7 @@ describe('interview voice aura audio', () => {
     const rising = smoothInterviewVoiceAuraLevel(0.1, 0.9);
     const falling = smoothInterviewVoiceAuraLevel(0.9, 0.1);
 
-    expect(rising).toBeGreaterThan(0.3);
+    expect(rising).toBeGreaterThan(0.55);
     expect(falling).toBeGreaterThan(0.1);
     expect(falling).toBeLessThan(0.9);
     expect(rising - 0.1).toBeGreaterThan(0.9 - falling);

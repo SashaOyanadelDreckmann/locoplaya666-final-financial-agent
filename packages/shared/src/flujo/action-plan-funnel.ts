@@ -23,7 +23,7 @@ export function resolveActionPlanFunnelStage(params: {
 
   const userMessage = String(params.userMessage ?? '').toLowerCase();
   if (
-    /\b(plan final|cerrar plan|entrega final|plan completo|plan estructurado|dame el plan|cierra el plan)\b/i.test(
+    /\b(plan final|cerrar plan|entrega final|plan completo|plan estructurado|plan ejecutivo|dame el plan|cierra el plan|entregar plan|cerrar estrategia|documento ejecutivo)\b/i.test(
       userMessage,
     )
   ) {
@@ -52,13 +52,18 @@ export function funnelStageStepIndex(stage: ActionPlanFunnelStage): number {
   return 3;
 }
 
+function sectionHeadingPresent(normalized: string, section: string): boolean {
+  const heading = section.replace('## ', '').toLowerCase();
+  return normalized.includes(heading);
+}
+
 export function enforceDeliverPlanStructure(message: string): string {
   const trimmed = String(message ?? '').trim();
   if (!trimmed) return trimmed;
 
   const normalized = trimmed.toLowerCase();
   const missing = ACTION_PLAN_DELIVER_SECTIONS.filter(
-    (section) => !normalized.includes(section.replace('## ', '').toLowerCase()),
+    (section) => !sectionHeadingPresent(normalized, section),
   );
   if (missing.length === 0) return trimmed;
 
@@ -66,10 +71,29 @@ export function enforceDeliverPlanStructure(message: string): string {
     '',
     '---',
     '',
-    ...missing.map((section) => `${section}\n_Pendiente de detalle en esta respuesta; solicita profundizar si lo necesitas._`),
+    ...missing.map(
+      (section) =>
+        `${section}\n_Seccion pendiente: pide profundizar este bloque y lo desarrollo con tu evidencia verificada (presupuesto, cartolas, diagnostico)._`,
+    ),
   ].join('\n');
 
   return `${trimmed}${appendix}`;
+}
+
+export function buildClosingModeDirective(chatId: ProductChatId): string {
+  const closingTurn = getClosingModeTurn(chatId);
+  const maxTurns = getMaxChatTurns(chatId);
+  return `MODO CIERRE: desde la interaccion ${closingTurn + 1}/${maxTurns} debes conducir la conversacion hacia una conclusion util, concreta y documentable.`;
+}
+
+export function buildActionPlanSuggestedReplies(stage: ActionPlanFunnelStage): string[] {
+  if (stage === 'brainstorm') {
+    return ['Priorizar liquidez', 'Explorar deuda', 'Simular ahorro'];
+  }
+  if (stage === 'converge') {
+    return ['Validar ruta tentativa', 'Comparar trade-offs', 'Cerrar plan ejecutivo'];
+  }
+  return ['Profundizar prioridades', 'Ajustar secuencia', 'Guardar en biblioteca'];
 }
 
 export function maxTurnsForChat(chatId: ProductChatId): number {

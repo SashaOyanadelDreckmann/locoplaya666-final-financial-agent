@@ -125,11 +125,17 @@ function canUseWebGl(): boolean {
 
 function isInteractiveDragTarget(target: EventTarget | null): boolean {
   if (!(target instanceof Element)) return false;
-  return Boolean(
+  if (
     target.closest(
-      'button, a, input, textarea, select, label, [role="button"], [contenteditable="true"], [data-scanner-no-drag]',
-    ),
-  );
+      'button, a, input, textarea, select, label, [contenteditable="true"], [data-scanner-no-drag]',
+    )
+  ) {
+    return true;
+  }
+  if (target.closest('.tx-scanner-card-hit, .tx-scanner-card-line, .tx-scanner-track')) {
+    return false;
+  }
+  return Boolean(target.closest('[role="button"]'));
 }
 
 function deriveMetrics(
@@ -143,7 +149,9 @@ function deriveMetrics(
   const widthCap = maxCardWidth ?? safeWidth - 24;
   const cardWidth = Math.max(140, Math.min(widthCap, Math.round(safeWidth * cardWidthRatio)));
   const cardHeight = Math.round(cardWidth * cardHeightRatio);
-  const cardGap = Math.max(10, Math.round(cardWidth * 0.09));
+  const cardGap = compactStage
+    ? Math.max(8, Math.round(cardWidth * 0.055))
+    : Math.max(10, Math.round(cardWidth * 0.09));
   const stageHeight = compactStage ? cardHeight : cardHeight + 28;
   return { containerWidth: safeWidth, cardWidth, cardHeight, stageHeight, cardGap };
 }
@@ -280,11 +288,14 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
     direction,
     isDragging: false,
     lastMouseX: 0,
+    dragStartX: 0,
+    dragStartIndex: 0,
     lastTime: performance.now(),
     cardLineWidth: 0,
     friction,
     metricsKey: '',
     morphVelocity: 0,
+    didDrag: false,
   });
 
   const scannerState = useRef({ isScanning: false });
@@ -292,6 +303,7 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
   const isSettlingRef = useRef(false);
   const animateToIndexRef = useRef<(sourceIndex: number, onComplete?: () => void) => void>(() => {});
   const updateCardEffectsRef = useRef<(() => void) | null>(null);
+  const suppressCardClickRef = useRef(false);
 
   const cancelSnapAnimation = useCallback(() => {
     if (transitionRef.current.snapFrameId) {
@@ -388,14 +400,29 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
     (delta: number) => {
       if (itemCount === 0) return;
       const nextIndex = (focusedIndex + delta + itemCount) % itemCount;
-      if (quietMode && !prefersReducedMotion) {
+      if (nextIndex === focusedIndex) return;
+      if (quietMode) {
+        if (prefersReducedMotion) {
+          applyCarouselPosition(nextIndex);
+          window.requestAnimationFrame(() => updateCardEffectsRef.current?.());
+          onActiveIndexChange?.(nextIndex);
+          return;
+        }
         animateToIndexRef.current(nextIndex, () => onActiveIndexChange?.(nextIndex));
         return;
       }
       centerOnSourceIndex(nextIndex, true);
       onActiveIndexChange?.(nextIndex);
     },
-    [centerOnSourceIndex, focusedIndex, itemCount, onActiveIndexChange, prefersReducedMotion, quietMode],
+    [
+      applyCarouselPosition,
+      centerOnSourceIndex,
+      focusedIndex,
+      itemCount,
+      onActiveIndexChange,
+      prefersReducedMotion,
+      quietMode,
+    ],
   );
 
   useEffect(() => {
@@ -422,6 +449,7 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
 
   useLayoutEffect(() => {
     if (!quietMode || itemCount === 0) return;
+    if (transitionRef.current.isAnimating) return;
     const container = rootRef.current;
     if (!container || container.offsetWidth <= 0) return;
     applyCarouselPosition(activeIndex);
@@ -489,25 +517,14 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
         quietScrambleTimer = null;
       }
       if (isSettlingRef.current) return;
-      if (quietMode && !prefersReducedMotion) {
-        isSettlingRef.current = true;
-        setIsSettling(true);
-        window.setTimeout(() => {
-          resetCardClipsToNormal();
-          rootRef.current?.removeAttribute('data-transitioning');
-          setIsSettling(false);
-          isSettlingRef.current = false;
-          setIsTransitioning(false);
-          setIsScanning(false);
-          scannerState.current.isScanning = false;
-        }, 520);
-        return;
-      }
       resetCardClipsToNormal();
+      rootRef.current?.classList.remove('is-transitioning');
       rootRef.current?.removeAttribute('data-transitioning');
       setIsScanning(false);
       setIsTransitioning(false);
+      setIsSettling(false);
       scannerState.current.isScanning = false;
+      isSettlingRef.current = false;
     };
 
     const tickQuietScramble = () => {
@@ -533,7 +550,12 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
 
     const beginQuietTransition = () => {
       if (!quietMode) return;
-      rootRef.current?.setAttribute('data-transitioning', 'true');
+      const root = rootRef.current;
+      root?.classList.add('is-transitioning');
+      root?.setAttribute('data-transitioning', 'true');
+      root?.querySelectorAll('.tx-scanner-card-ascii.is-dormant').forEach((node) => {
+        node.classList.remove('is-dormant');
+      });
       setIsTransitioning(true);
       setIsScanning(true);
       startQuietScramble();
@@ -562,72 +584,7 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
       normalCard: HTMLElement,
       asciiCard: HTMLElement | null,
       asciiContent: HTMLElement | null,
-      cardLeft: number,
-      cardWidth: number,
-      scannerX: number,
     ) => {
-      const root = container.closest('.tx-scanner-stream-root');
-      const morphActive =
-        transitionRef.current.isAnimating ||
-        cardStreamState.current.isDragging ||
-        root?.classList.contains('is-transitioning') === true ||
-        root?.getAttribute('data-transitioning') === 'true';
-      const settling = root?.classList.contains('is-settling') === true;
-      const streamId = Number(wrapper.dataset.streamId || '0');
-      const cardRight = cardLeft + cardWidth;
-      const containerWidth = container.offsetWidth;
-      const isVisible = cardRight > -8 && cardLeft < containerWidth + 8;
-
-      if (settling) {
-        const hit = wrapper.querySelector('.tx-scanner-card-hit');
-        const isFocusedHit = hit?.classList.contains('is-focused') ?? false;
-        if (!isFocusedHit) {
-          wrapper.dataset.morphState = 'normal';
-          wrapper.style.removeProperty('--scan-split');
-          wrapper.style.removeProperty('--card-focus-scale');
-          normalCard.style.removeProperty('opacity');
-          normalCard.style.removeProperty('visibility');
-          normalCard.style.removeProperty('--morph-blur');
-          normalCard.style.removeProperty('--scan-split');
-          asciiCard?.style.removeProperty('--scan-split');
-          asciiCard?.style.setProperty('--code-mix', '0');
-          return 0;
-        }
-        wrapper.dataset.morphState = 'settling';
-        wrapper.style.removeProperty('--scan-split');
-        wrapper.style.removeProperty('--card-focus-scale');
-        normalCard.style.removeProperty('--morph-blur');
-        normalCard.style.removeProperty('--scan-split');
-        asciiCard?.style.removeProperty('--scan-split');
-        asciiCard?.style.setProperty('--code-mix', '0.82');
-        if (asciiContent) {
-          asciiContent.textContent = originalAscii.current.get(streamId) || '';
-        }
-        return 100;
-      }
-
-      if (morphActive && isVisible) {
-        wrapper.dataset.morphState = 'code';
-        wrapper.style.removeProperty('--card-focus-scale');
-        wrapper.style.removeProperty('--scan-split');
-        normalCard.style.setProperty('opacity', '0');
-        normalCard.style.setProperty('visibility', 'hidden');
-        normalCard.style.removeProperty('--clip-right');
-        normalCard.style.removeProperty('--scan-split');
-        normalCard.style.removeProperty('--morph-blur');
-        asciiCard?.style.removeProperty('--clip-left');
-        asciiCard?.style.removeProperty('--scan-split');
-        asciiCard?.style.setProperty('--code-mix', '0.82');
-        if (asciiContent) {
-          syncQuietAsciiContentSize(
-            asciiContent,
-            cardWidth,
-            wrapper.clientHeight || metrics.cardHeight,
-          );
-        }
-        return 100;
-      }
-
       wrapper.dataset.morphState = 'normal';
       wrapper.style.removeProperty('--scan-split');
       wrapper.style.removeProperty('--card-focus-scale');
@@ -647,6 +604,59 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
       return 0;
     };
 
+    const applyQuietCodeMorph = (
+      wrapper: HTMLElement,
+      asciiCard: HTMLElement | null,
+      asciiContent: HTMLElement | null,
+    ) => {
+      wrapper.dataset.morphState = 'code';
+      asciiCard?.style.setProperty('--code-mix', '0.88');
+      if (!asciiContent) return;
+      const cardHeight = wrapper.clientHeight || metrics.cardHeight;
+      const cardWidth = wrapper.clientWidth || metrics.cardWidth;
+      syncQuietAsciiContentSize(asciiContent, cardWidth, cardHeight);
+    };
+
+    const resolveQuietSwipeTargetIndex = (dragDeltaX: number, velocityX: number, startIndex: number) => {
+      if (itemCount <= 1) return 0;
+
+      const cardStep = getCardStep();
+      const distanceThreshold = Math.max(10, cardStep * 0.045);
+      const velocityThreshold = 0.16;
+
+      if (dragDeltaX <= -distanceThreshold || velocityX <= -velocityThreshold) {
+        return Math.min(itemCount - 1, startIndex + 1);
+      }
+      if (dragDeltaX >= distanceThreshold || velocityX >= velocityThreshold) {
+        return Math.max(0, startIndex - 1);
+      }
+
+      const scannerX = container.offsetWidth / 2;
+      const position = cardStreamState.current.position;
+      const raw = (scannerX - position - metrics.cardWidth / 2) / cardStep;
+      const snapBias = dragDeltaX < 0 ? 0.3 : dragDeltaX > 0 ? 0.7 : 0.36;
+      return Math.max(0, Math.min(itemCount - 1, Math.floor(raw + snapBias)));
+    };
+
+    const finishQuietDrag = () => {
+      const dragDeltaX = cardStreamState.current.lastMouseX - cardStreamState.current.dragStartX;
+      const startIndex = cardStreamState.current.dragStartIndex;
+      const nextIndex = resolveQuietSwipeTargetIndex(
+        dragDeltaX,
+        cardStreamState.current.velocity,
+        startIndex,
+      );
+      if (nextIndex !== startIndex && !prefersReducedMotion) {
+        animateToIndexRef.current(nextIndex, () => onActiveIndexChange?.(nextIndex));
+        return;
+      }
+      applyCarouselPosition(nextIndex);
+      updateCardEffects();
+      if (nextIndex !== startIndex) {
+        onActiveIndexChange?.(nextIndex);
+      }
+    };
+
     const updateCardEffects = () => {
       const nextIndex = resolveFocusedSourceIndex();
       setFocusedIndex(nextIndex);
@@ -654,13 +664,8 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
       const draggingOrAnimating =
         cardStreamState.current.isDragging || transitionRef.current.isAnimating;
 
-      if (quietMode && !draggingOrAnimating && !isSettlingRef.current) {
+      if (quietMode && !draggingOrAnimating) {
         settleQuietCarousel();
-        return;
-      }
-
-      if (quietMode) {
-        setIsTransitioning(true);
       }
 
       const scannerX = getScannerX();
@@ -686,17 +691,10 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
         if (!normalCard) return;
 
         if (quietMode) {
-          applyQuietMorph(
-            wrapper,
-            normalCard,
-            asciiCard,
-            asciiContent ?? null,
-            cardLeft,
-            cardWidth,
-            scannerX,
-          );
-          if (wrapper.dataset.morphState === 'code' || wrapper.dataset.morphState === 'settling') {
-            anyCardIsScanning = true;
+          if (transitionRef.current.isAnimating || cardStreamState.current.didDrag) {
+            applyQuietCodeMorph(wrapper, asciiCard, asciiContent ?? null);
+          } else if (!cardStreamState.current.isDragging) {
+            applyQuietMorph(wrapper, normalCard, asciiCard, asciiContent ?? null);
           }
           return;
         }
@@ -749,7 +747,7 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
 
       const start = cardStreamState.current.position;
       const startTime = performance.now();
-      const duration = quietMode ? 860 : 480;
+      const duration = quietMode ? 520 : 480;
       transitionRef.current.isAnimating = true;
       beginQuietTransition();
 
@@ -782,16 +780,20 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
       transitionRef.current.snapFrameId = window.requestAnimationFrame(tick);
     };
 
-    const handleMouseDown = (event: MouseEvent | TouchEvent) => {
-      if ('button' in event && event.button !== 0) return;
+    const handlePointerDown = (event: PointerEvent) => {
+      if (event.button !== 0) return;
       if (isInteractiveDragTarget(event.target)) return;
-      event.preventDefault();
       cancelSnapAnimation();
-      if (quietMode) beginQuietTransition();
-      const clientX = 'touches' in event ? event.touches[0].clientX : event.clientX;
+      rootRef.current?.classList.add('is-dragging');
+      cardLine.setPointerCapture(event.pointerId);
+      const clientX = event.clientX;
       cardStreamState.current.isDragging = true;
+      cardStreamState.current.didDrag = false;
+      cardStreamState.current.dragStartX = clientX;
+      cardStreamState.current.dragStartIndex = resolveFocusedSourceIndex();
       cardStreamState.current.lastMouseX = clientX;
       cardStreamState.current.lastTime = performance.now();
+      cardStreamState.current.velocity = 0;
       const transform = window.getComputedStyle(cardLine).transform;
       if (transform !== 'none') {
         const matrix = new DOMMatrix(transform);
@@ -799,37 +801,78 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
       }
     };
 
-    const handleMouseMove = (event: MouseEvent | TouchEvent) => {
+    const handlePointerMove = (event: PointerEvent) => {
       if (!cardStreamState.current.isDragging) return;
-      event.preventDefault();
-      const clientX = 'touches' in event ? event.touches[0].clientX : event.clientX;
+      const clientX = event.clientX;
       const deltaX = clientX - cardStreamState.current.lastMouseX;
+      const totalDragX = clientX - cardStreamState.current.dragStartX;
+      if (Math.abs(totalDragX) > 8) {
+        cardStreamState.current.didDrag = true;
+        if (quietMode && !prefersReducedMotion) {
+          beginQuietTransition();
+        }
+      }
+      const now = performance.now();
+      const dt = Math.max(8, now - cardStreamState.current.lastTime);
+      cardStreamState.current.velocity = deltaX / dt;
       cardStreamState.current.morphVelocity = Math.abs(deltaX);
       cardStreamState.current.position += deltaX;
       cardStreamState.current.lastMouseX = clientX;
+      cardStreamState.current.lastTime = now;
       cardLine.style.transform = `translateX(${cardStreamState.current.position}px)`;
       updateCardEffects();
     };
 
-    const handleMouseUp = () => {
+    const handlePointerUp = (event: PointerEvent) => {
       if (!cardStreamState.current.isDragging) return;
+      if (cardLine.hasPointerCapture(event.pointerId)) {
+        cardLine.releasePointerCapture(event.pointerId);
+      }
+      const didDrag = cardStreamState.current.didDrag;
       cardStreamState.current.isDragging = false;
-      cardStreamState.current.velocity = 0;
-      const nextIndex = resolveFocusedSourceIndex();
-      if (quietMode && !prefersReducedMotion) {
-        animateToIndexRef.current(nextIndex, () => onActiveIndexChange?.(nextIndex));
+      rootRef.current?.classList.remove('is-dragging');
+      if (didDrag) {
+        suppressCardClickRef.current = true;
+        window.setTimeout(() => {
+          suppressCardClickRef.current = false;
+        }, 0);
+      }
+      if (quietMode) {
+        finishQuietDrag();
+        cardStreamState.current.velocity = 0;
+        cardStreamState.current.didDrag = false;
         return;
       }
+      cardStreamState.current.velocity = 0;
+      cardStreamState.current.didDrag = false;
+      const nextIndex = resolveFocusedSourceIndex();
       centerOnSourceIndex(nextIndex, true);
       onActiveIndexChange?.(nextIndex);
     };
 
+    const handlePointerCancel = (event: PointerEvent) => {
+      if (!cardStreamState.current.isDragging) return;
+      if (cardLine.hasPointerCapture(event.pointerId)) {
+        cardLine.releasePointerCapture(event.pointerId);
+      }
+      cardStreamState.current.isDragging = false;
+      cardStreamState.current.didDrag = false;
+      rootRef.current?.classList.remove('is-dragging');
+      if (quietMode) {
+        finishQuietDrag();
+      }
+      cardStreamState.current.velocity = 0;
+    };
+
     let wheelSnapTimer: number | null = null;
+    let wheelStartIndex: number | null = null;
 
     const handleWheel = (event: WheelEvent) => {
       event.preventDefault();
       cancelSnapAnimation();
-      if (quietMode) beginQuietTransition();
+      if (wheelStartIndex === null) {
+        wheelStartIndex = resolveFocusedSourceIndex();
+      }
       const scrollSpeed = 16;
       const delta = event.deltaY > 0 ? scrollSpeed : -scrollSpeed;
       cardStreamState.current.position += delta;
@@ -839,21 +882,27 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
       wheelSnapTimer = window.setTimeout(() => {
         wheelSnapTimer = null;
         const nextIndex = resolveFocusedSourceIndex();
-        if (quietMode && !prefersReducedMotion) {
-          animateToIndexRef.current(nextIndex, () => onActiveIndexChange?.(nextIndex));
+        const startIndex = wheelStartIndex;
+        wheelStartIndex = null;
+        if (quietMode) {
+          if (startIndex !== null && nextIndex !== startIndex && !prefersReducedMotion) {
+            animateToIndexRef.current(nextIndex, () => onActiveIndexChange?.(nextIndex));
+            return;
+          }
+          applyCarouselPosition(nextIndex);
+          updateCardEffects();
+          onActiveIndexChange?.(nextIndex);
           return;
         }
         setFocusedIndex(nextIndex);
         onActiveIndexChange?.(nextIndex);
-      }, 140);
+      }, 90);
     };
 
-    cardLine.addEventListener('mousedown', handleMouseDown);
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
-    cardLine.addEventListener('touchstart', handleMouseDown, { passive: false });
-    window.addEventListener('touchmove', handleMouseMove, { passive: false });
-    window.addEventListener('touchend', handleMouseUp);
+    cardLine.addEventListener('pointerdown', handlePointerDown);
+    cardLine.addEventListener('pointermove', handlePointerMove);
+    cardLine.addEventListener('pointerup', handlePointerUp);
+    cardLine.addEventListener('pointercancel', handlePointerCancel);
     cardLine.addEventListener('wheel', handleWheel, { passive: false });
 
     if (quietMode) {
@@ -867,12 +916,10 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
         cancelSnapAnimation();
         updateCardEffectsRef.current = null;
         animateToIndexRef.current = () => {};
-        cardLine.removeEventListener('mousedown', handleMouseDown);
-        window.removeEventListener('mousemove', handleMouseMove);
-        window.removeEventListener('mouseup', handleMouseUp);
-        cardLine.removeEventListener('touchstart', handleMouseDown);
-        window.removeEventListener('touchmove', handleMouseMove);
-        window.removeEventListener('touchend', handleMouseUp);
+        cardLine.removeEventListener('pointerdown', handlePointerDown);
+        cardLine.removeEventListener('pointermove', handlePointerMove);
+        cardLine.removeEventListener('pointerup', handlePointerUp);
+        cardLine.removeEventListener('pointercancel', handlePointerCancel);
         cardLine.removeEventListener('wheel', handleWheel);
       };
     }
@@ -1047,12 +1094,10 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
       if (wheelSnapTimer !== null) window.clearTimeout(wheelSnapTimer);
       if (quietScrambleTimer !== null) window.clearInterval(quietScrambleTimer);
       window.cancelAnimationFrame(animationFrameId);
-      cardLine.removeEventListener('mousedown', handleMouseDown);
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-      cardLine.removeEventListener('touchstart', handleMouseDown);
-      window.removeEventListener('touchmove', handleMouseMove);
-      window.removeEventListener('touchend', handleMouseUp);
+      cardLine.removeEventListener('pointerdown', handlePointerDown);
+      cardLine.removeEventListener('pointermove', handlePointerMove);
+      cardLine.removeEventListener('pointerup', handlePointerUp);
+      cardLine.removeEventListener('pointercancel', handlePointerCancel);
       cardLine.removeEventListener('wheel', handleWheel);
       geometry?.dispose();
       material?.dispose();
@@ -1060,6 +1105,7 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
       renderer?.dispose();
     };
   }, [
+    applyCarouselPosition,
     activeIndex,
     cancelSnapAnimation,
     centerOnSourceIndex,
@@ -1164,12 +1210,13 @@ export function ScannerCardStream<T extends ScannerStreamCard>({
                   }}
                 >
                   <div
-                    role="button"
-                    tabIndex={0}
+                    role="group"
+                    tabIndex={isFocused ? 0 : -1}
                     className={cn('tx-scanner-card-hit', isFocused && 'is-focused')}
                     aria-label={`Seleccionar producto ${card.sourceIndex + 1}`}
                     aria-current={isFocused ? 'true' : undefined}
                     onClick={() => {
+                      if (suppressCardClickRef.current) return;
                       if (card.sourceIndex === focusedIndex) return;
                       if (quietMode && !prefersReducedMotion) {
                         animateToIndexRef.current(card.sourceIndex, () =>

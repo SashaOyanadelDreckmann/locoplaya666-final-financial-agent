@@ -19,14 +19,22 @@ import {
   loadUserPanelState,
   saveUserPanelState,
   saveUserMemoryBlob,
+  loadUserMemoryBlob,
 } from '../services/user.service';
+import type { WelcomeIntroCache } from '@financial-agent/shared';
 import {
   listConversationTurns,
   upsertConversationTurnRecord,
 } from '../persistencia/repos';
 import type { StoredPanelState } from '../persistencia/types';
 import { complete } from '../services/llm.service';
-import type { WelcomeIntroCache } from '@financial-agent/shared';
+import {
+  buildActionPlanSuggestedReplies,
+  buildSocialConsciousnessFallbackMessage,
+  buildSocialConsciousnessSuggestedReplies,
+  resolveActionPlanFunnelStage,
+  resolveSocialConsciousnessFunnelStage,
+} from '@financial-agent/shared';
 import {
   resolveWelcomeIntroForUser,
 } from '../agents/welcome/welcome-intro';
@@ -58,7 +66,16 @@ import { sendSuccess } from '../http/api.responses';
 import { parseBody, parseQuery } from '../http/parse';
 import { hasPermission, PERMISSIONS, type UserRole } from '../auth/rbac';
 import { listAdminUsersFullDump } from '../services/admin.service';
+import {
+  repairUserSheetsFromTurns,
+} from '../services/sheet-restore.service';
 import { resolveUserDiagnosticProfile } from '../services/diagnostic-profile.service';
+import {
+  getSocialReflectionsFromMemory,
+  mergeSocialReflectionsInMemory,
+  pickSocialReflectionSession,
+  sanitizeSocialReflectionSession,
+} from '../services/social-consciousness-reflections.service';
 import { getConfig } from '../config';
 import { fetchIndicador } from '../mcp/tools/market/mindicadorClient';
 import {
@@ -71,11 +88,16 @@ import {
   INTERVIEW_REALTIME_VOICE_SPEED,
   buildVoiceSessionInstructions,
   countInterviewVoiceSourcesLoaded,
+  evaluateInterviewVoiceTokenGate,
+  mergeInterviewVoiceQuotaMonotonic,
   normalizeInterviewVoiceFinalSummary,
   normalizeInterviewVoiceMinuteSummaries,
+  resolveInterviewCallsStarted,
+  resolveInterviewUsedSeconds,
   resolveInterviewVoiceIntakeContext,
   getRemainingChatTurns,
   CORE_AGENT_HISTORY_TURN_LIMIT,
+  resolveCoreAgentHistoryLimits,
   shouldAttachLiveMarketSnapshot,
 } from '@financial-agent/shared';
 
@@ -350,20 +372,75 @@ function buildBudgetPanelGuidance() {
   ].join('\n');
 }
 
+function buildBlockedPanelAction(activeChatId: string) {
+  if (activeChatId === 'chat-2' || activeChatId === 'chat-3') {
+    return {
+      section: 'interview' as const,
+      message: 'Completa la entrevista y el diagnostico integrado para desbloquear este chat.',
+    };
+  }
+  return {
+    section: 'budget' as const,
+    message: 'Completa presupuesto y cartolas para desbloquear los chats especializados.',
+  };
+}
+
 function buildContextualSuggestedReplies(params: {
   phase?: unknown;
   activeChatId?: unknown;
   hasBudget?: boolean;
   hasTransactions?: boolean;
+  turnCount?: number;
+  closingMode?: boolean;
+  userMessage?: string;
 }) {
   const phase = String(params.phase ?? '');
   const activeChatId = String(params.activeChatId ?? 'chat-1');
-  if (activeChatId === 'chat-2') return ['Volver al plan', 'Priorizar deudas', 'Simular ahorro'];
-  if (activeChatId === 'chat-3') return ['Resumir diagnóstico', 'Revisar riesgo', 'Cerrar plan'];
+  if (activeChatId === 'chat-2') {
+    const stage =
+      resolveActionPlanFunnelStage({
+        activeChatId: 'chat-2',
+        turnCount: params.turnCount,
+        closingMode: params.closingMode,
+        userMessage: params.userMessage,
+      }) ?? 'brainstorm';
+    return buildActionPlanSuggestedReplies(stage);
+  }
+  if (activeChatId === 'chat-3') {
+    const stage =
+      resolveSocialConsciousnessFunnelStage({
+        activeChatId: 'chat-3',
+        turnCount: params.turnCount,
+        closingMode: params.closingMode,
+        userMessage: params.userMessage,
+      }) ?? 'explore';
+    return buildSocialConsciousnessSuggestedReplies(stage);
+  }
   if (params.hasBudget && params.hasTransactions) return ['Abrir entrevista breve', 'Revisar presupuesto', 'Ver cartola'];
   if (phase === 'transactions_needed') return ['Subir cartola', 'Explorar deuda', 'Simular ahorro'];
   if (phase === 'budget_needed') return ['Completar presupuesto', 'Ver balance', 'Probar escenario'];
-  return ['Revisemos mi presupuesto', 'Hazme una simulación simple', 'Genera un resumen de mi perfil'];
+  return ['Revisemos mi presupuesto', 'Hazme una simulación simple', 'Resume mi situación financiera'];
+}
+
+function buildLifecycleSuggestedReplies(params: {
+  lifecycleDecision: {
+    state: { phase: string; chatTurns: Record<string, number> };
+    activeChatId: string;
+    closingMode: boolean;
+  };
+  onboardingSignals: { hasBudget: boolean; hasTransactions: boolean };
+  userMessage?: string;
+}) {
+  const { lifecycleDecision, onboardingSignals, userMessage } = params;
+  return buildContextualSuggestedReplies({
+    phase: lifecycleDecision.state.phase,
+    activeChatId: lifecycleDecision.activeChatId,
+    hasBudget: onboardingSignals.hasBudget,
+    hasTransactions: onboardingSignals.hasTransactions,
+    turnCount: lifecycleDecision.state.chatTurns[lifecycleDecision.activeChatId] ?? 0,
+    closingMode: lifecycleDecision.closingMode,
+    userMessage,
+  });
 }
 
 function normalizeQuestionTopic(text: string) {
@@ -450,10 +527,7 @@ export function buildResilientFallbackMessage(params: {
     ].join('\n\n');
   }
   if (activeChatId === 'chat-3') {
-    return [
-      'Se produjo una intermitencia breve. Retomemos el analisis de conciencia social con foco legal y regulatorio.',
-      'Si te parece, sigo con una postura concreta y aplicable a tus decisiones financieras.',
-    ].join('\n\n');
+    return buildSocialConsciousnessFallbackMessage();
   }
   if (phase === 'budget_needed') return buildBudgetPanelGuidance();
   if (phase === 'transactions_needed') {
@@ -505,18 +579,22 @@ const MergeProductsContextSchema = z.object({
 
 const SaveSheetsSchema = z.object({
   sheets: z.array(
-    z.object({
-      id: z.string(),
-      name: z.string(),
-      autoNamed: z.boolean(),
-      items: z.array(z.unknown()),
-      draft: z.string(),
-      status: z.enum(['active', 'context']),
-      contextScore: z.number(),
-      userMessageCount: z.number(),
-      createdAt: z.string(),
-      completedAt: z.string().optional(),
-    }),
+    z
+      .object({
+        id: z.string(),
+        label: z.string().optional(),
+        name: z.string(),
+        autoNamed: z.boolean(),
+        items: z.array(z.unknown()),
+        draft: z.string(),
+        status: z.enum(['active', 'context']),
+        userMessageCount: z.number(),
+        createdAt: z.string(),
+        completedAt: z.string().optional(),
+        closureSummary: z.record(z.string(), z.unknown()).nullable().optional(),
+        generalChatStarted: z.boolean().optional(),
+      })
+      .passthrough(),
   ),
 });
 
@@ -853,8 +931,22 @@ router.get(
     const user = req.authenticatedUser;
     if (!user) throw unauthorized('Not authenticated');
 
-    const sheets = await loadUserSheets(user.id);
-    return sendSuccess(res, { sheets: sheets ?? [] });
+    const storedSheets = await loadUserSheets(user.id);
+    const turns = await listConversationTurns({ userId: user.id, limit: 200 });
+    const hasStoredSheets = Array.isArray(storedSheets) && storedSheets.length > 0;
+    const hasTurnHistory = turns.length > 0;
+
+    if (!hasStoredSheets && !hasTurnHistory) {
+      return sendSuccess(res, { sheets: [], repaired: false });
+    }
+
+    const { sheets, repaired } = repairUserSheetsFromTurns(storedSheets, turns);
+
+    if (repaired) {
+      await saveUserSheets(user.id, sheets);
+    }
+
+    return sendSuccess(res, { sheets, repaired });
   }),
 );
 
@@ -907,20 +999,34 @@ router.post(
     const user = req.authenticatedUser;
     if (!user) throw unauthorized('Not authenticated');
     if (!config.OPENAI_API_KEY) throw forbidden('Realtime voice is not configured');
-    const memoryBlob =
+    const memoryBlob = (await loadUserMemoryBlob(user.id)) ?? (
       user.memoryBlob && typeof user.memoryBlob === 'object'
         ? (user.memoryBlob as Record<string, unknown>)
-        : {};
+        : {}
+    );
     const interviewVoice =
       memoryBlob.interviewVoice && typeof memoryBlob.interviewVoice === 'object'
         ? (memoryBlob.interviewVoice as Record<string, unknown>)
         : {};
-    const callsStarted = Number(interviewVoice.callsStarted ?? 0);
+    const callsStarted = resolveInterviewCallsStarted(interviewVoice);
     const activeCallId =
       typeof interviewVoice.activeCallId === 'string' && interviewVoice.activeCallId.length > 0
         ? interviewVoice.activeCallId
         : null;
-    const isResumeToken = Boolean(activeCallId);
+    const hasCompletedVoiceInterview =
+      Boolean(user.latestDiagnosticProfileId) ||
+      interviewVoice.status === 'completed' ||
+      Boolean(interviewVoice.lastFinalizedAt) ||
+      Boolean(interviewVoice.lastReport);
+    const totalUsedSec = resolveInterviewUsedSeconds(interviewVoice);
+    const tokenGate = evaluateInterviewVoiceTokenGate({
+      callsStarted,
+      activeCallId,
+      totalUsedSec,
+      interviewCompleted: hasCompletedVoiceInterview,
+    });
+    const isResumeToken = tokenGate.isResume;
+    const remainingSec = tokenGate.remainingSec;
 
     if (!isResumeToken) {
       const usage = getFincoinUsageForUser(user);
@@ -935,22 +1041,15 @@ router.post(
         );
       }
     }
-    const hasCompletedVoiceInterview =
-      Boolean(user.latestDiagnosticProfileId) ||
-      interviewVoice.status === 'completed' ||
-      Boolean(interviewVoice.lastFinalizedAt) ||
-      Boolean(interviewVoice.lastReport);
-    const totalUsedSec = Number(interviewVoice.totalUsedSec ?? 0);
-    const remainingSec = Math.max(0, INTERVIEW_TOTAL_LIMIT_SEC - totalUsedSec);
-    if (remainingSec <= 0) {
-      throw forbidden(
-        `Límite alcanzado: la entrevista en llamada permite máximo ${INTERVIEW_TOTAL_LIMIT_MINUTES} minutos totales por usuario.`
-      );
-    }
-    if (hasCompletedVoiceInterview) {
-      throw forbidden('La entrevista senior por llamada ya fue usada para este usuario.');
-    }
-    if (!activeCallId && callsStarted >= INTERVIEW_MAX_CALLS_PER_USER) {
+    if (!tokenGate.allowed) {
+      if (tokenGate.blockReason === 'exhausted') {
+        throw forbidden(
+          `Límite alcanzado: la entrevista en llamada permite máximo ${INTERVIEW_TOTAL_LIMIT_MINUTES} minutos totales por usuario.`,
+        );
+      }
+      if (tokenGate.blockReason === 'completed') {
+        throw forbidden('La entrevista senior por llamada ya fue usada para este usuario.');
+      }
       throw forbidden('Esta entrevista permite una sola llamada por usuario.');
     }
     const callId = activeCallId ?? `call_${Date.now()}`;
@@ -1033,10 +1132,11 @@ router.post(
       ...memoryBlob,
       interviewVoice: {
         ...interviewVoice,
-        callsStarted: nextCallsStarted,
+        ...mergeInterviewVoiceQuotaMonotonic(interviewVoice, {
+          callsStarted: nextCallsStarted,
+          totalUsedSec,
+        }),
         activeCallId: callId,
-        maxDurationSec: remainingSec,
-        totalUsedSec,
         status: 'in_progress',
         updatedAt: new Date().toISOString(),
       },
@@ -1242,6 +1342,7 @@ router.get(
       knowledgeScore: user.knowledgeScore ?? 0,
       knowledgeLastUpdated: user.knowledgeLastUpdated,
       productLifecycle: lifecycleState,
+      socialConsciousnessReflections: getSocialReflectionsFromMemory(user.memoryBlob),
       fincoinUsage: fincoinUsagePayload(fincoinUsage),
     });
   }),
@@ -1286,6 +1387,53 @@ function returnAgentChatPayload(
   }
   return sendSuccess(res, payload);
 }
+
+const SocialReflectionsBodySchema = z.object({
+  answers: z
+    .array(
+      z.object({
+        questionId: z.string().min(1).max(64),
+        question: z.string().min(1).max(280),
+        choiceId: z.string().min(1).max(64),
+        choiceLabel: z.string().min(1).max(120),
+        choiceSubtext: z.string().max(160).optional(),
+        thinker: z.string().max(120).optional(),
+      }),
+    )
+    .min(1)
+    .max(12),
+  completedAt: z.string().optional(),
+});
+
+router.put(
+  '/agent/social-reflections',
+  requireAuth,
+  requirePermission(PERMISSIONS.AGENT_CHAT_SELF),
+  asyncHandler(async (req, res) => {
+    const user = req.authenticatedUser;
+    if (!user) throw unauthorized('Authentication required');
+
+    const body = parseBody(SocialReflectionsBodySchema, req.body);
+    const session = sanitizeSocialReflectionSession({
+      answers: body.answers,
+      completedAt: body.completedAt ?? new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+    if (!session) throw badRequest('INVALID_SOCIAL_REFLECTIONS');
+
+    const currentMemory =
+      user.memoryBlob && typeof user.memoryBlob === 'object'
+        ? (user.memoryBlob as Record<string, unknown>)
+        : {};
+    const nextMemory = mergeSocialReflectionsInMemory(currentMemory, session);
+    await saveUserMemoryBlob(user.id, nextMemory);
+
+    return sendSuccess(res, {
+      saved: true,
+      socialConsciousnessReflections: session,
+    });
+  }),
+);
 
 router.post(
   '/agent',
@@ -1454,6 +1602,42 @@ router.post(
       req.logger?.warn({ msg: 'Error loading persistent memory', error: memoryErr });
     }
 
+    try {
+      const memoryBlob =
+        authedUser.memoryBlob && typeof authedUser.memoryBlob === 'object'
+          ? (authedUser.memoryBlob as Record<string, unknown>)
+          : {};
+      const stored = getSocialReflectionsFromMemory(memoryBlob);
+      const contextRecord = ((normalizedInput.context as Record<string, unknown>) ?? {}) as Record<
+        string,
+        unknown
+      >;
+      const clientRaw = contextRecord.social_consciousness_reflections;
+      const clientSession = Array.isArray(clientRaw)
+        ? sanitizeSocialReflectionSession({
+            answers: clientRaw,
+            completedAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          })
+        : sanitizeSocialReflectionSession(clientRaw);
+      const merged = pickSocialReflectionSession(stored, clientSession ?? undefined);
+      if (clientSession) {
+        const storedTs = stored ? Date.parse(stored.updatedAt ?? stored.completedAt) : 0;
+        const clientTs = Date.parse(clientSession.updatedAt ?? clientSession.completedAt);
+        if (!stored || clientTs >= storedTs) {
+          const nextMemory = mergeSocialReflectionsInMemory(memoryBlob, clientSession);
+          await saveUserMemoryBlob(authedUser.id, nextMemory);
+          authedUser.memoryBlob = nextMemory;
+        }
+      }
+      normalizedInput.context = {
+        ...contextRecord,
+        social_consciousness_reflections: merged?.answers ?? [],
+      };
+    } catch (reflectionErr) {
+      req.logger?.warn({ msg: 'Error syncing social consciousness reflections', error: reflectionErr });
+    }
+
     // Auto-hydrate conversation history from DB when the client sends an empty array
     // but a session_id is present. This preserves multi-turn context without requiring
     // the client to track and resend the full history on every request.
@@ -1462,12 +1646,22 @@ router.post(
     if (!clientSentHistory) {
       const sessionIdForHistory =
         typeof normalizedInput.session_id === 'string' ? normalizedInput.session_id : undefined;
+      const activeChatIdForHistory = (() => {
+        const ui = (normalizedInput.ui_state ?? {}) as Record<string, unknown>;
+        const activeChat = ui.active_chat;
+        if (activeChat && typeof activeChat === 'object') {
+          return String((activeChat as Record<string, unknown>).id ?? 'chat-1');
+        }
+        return 'chat-1';
+      })();
+      const historyLimits = resolveCoreAgentHistoryLimits(activeChatIdForHistory);
       if (sessionIdForHistory) {
         try {
           const recentTurns = await listConversationTurns({
             userId: authedUser.id,
             sessionId: sessionIdForHistory,
-            limit: CORE_AGENT_HISTORY_TURN_LIMIT,
+            chatId: activeChatIdForHistory,
+            limit: historyLimits.turnLimit,
           });
           if (recentTurns.length > 0) {
             normalizedInput.history = recentTurns.flatMap((turn) => [
@@ -1537,16 +1731,12 @@ router.post(
         agent_blocks: [],
         artifacts: [],
         citations: [],
-        suggested_replies: buildContextualSuggestedReplies({
-          phase: lifecycleDecision.state.phase,
-          activeChatId: lifecycleDecision.activeChatId,
-          hasBudget: onboardingSignals.hasBudget,
-          hasTransactions: onboardingSignals.hasTransactions,
+        suggested_replies: buildLifecycleSuggestedReplies({
+          lifecycleDecision,
+          onboardingSignals,
+          userMessage: String(input.user_message ?? ''),
         }),
-        panel_action: {
-          section: 'budget',
-          message: 'Completa presupuesto y cartolas para desbloquear los chats especializados.',
-        },
+        panel_action: buildBlockedPanelAction(lifecycleDecision.activeChatId),
         compliance: {
           mode: 'information',
           no_auto_execution: true,
@@ -1585,20 +1775,8 @@ router.post(
     try {
       response = await runCoreAgent(input, streamReporter ? { stream: streamReporter } : undefined);
     } catch (agentErr) {
-      if (streamReporter) {
-        req.logger?.error({
-          msg: 'Core agent failed during stream',
-          error: agentErr,
-          userId: authedUser.id,
-        });
-        streamReporter.error(
-          'No pude completar la respuesta en este intento. Intenta de nuevo en unos segundos.',
-          'AGENT_FAILED',
-        );
-        return;
-      }
       req.logger?.error({
-        msg: 'Core agent failed; returning conversational fallback',
+        msg: streamReporter ? 'Core agent failed during stream; returning resilient fallback' : 'Core agent failed; returning conversational fallback',
         error: agentErr,
         userId: authedUser.id,
       });
@@ -1616,11 +1794,10 @@ router.post(
         agent_blocks: [],
         artifacts: [],
         citations: [],
-        suggested_replies: buildContextualSuggestedReplies({
-          phase: lifecycleDecision.state.phase,
-          activeChatId: lifecycleDecision.activeChatId,
-          hasBudget: onboardingSignals.hasBudget,
-          hasTransactions: onboardingSignals.hasTransactions,
+        suggested_replies: buildLifecycleSuggestedReplies({
+          lifecycleDecision,
+          onboardingSignals,
+          userMessage: String(input.user_message ?? ''),
         }),
         compliance: {
           mode: 'information',
@@ -1633,8 +1810,13 @@ router.post(
           risk_score: 0,
           blocked: { is_blocked: false },
         },
-        state_updates: {},
+        state_updates: { degraded: true, error_code: 'AGENT_FAILED' },
       };
+
+      if (streamReporter) {
+        streamReporter.complete(response);
+        return;
+      }
     }
 
     const recentAssistantMessages = (Array.isArray(input.history) ? input.history : [])
@@ -1650,11 +1832,21 @@ router.post(
         hasBudget: onboardingSignals.hasBudget,
         hasTransactions: onboardingSignals.hasTransactions,
       });
-      response.suggested_replies = buildContextualSuggestedReplies({
-        phase: lifecycleDecision.state.phase,
-        activeChatId: lifecycleDecision.activeChatId,
-        hasBudget: onboardingSignals.hasBudget,
-        hasTransactions: onboardingSignals.hasTransactions,
+      response.suggested_replies = buildLifecycleSuggestedReplies({
+        lifecycleDecision,
+        onboardingSignals,
+        userMessage: String(input.user_message ?? ''),
+      });
+    }
+
+    if (
+      lifecycleDecision.activeChatId === 'chat-2' ||
+      lifecycleDecision.activeChatId === 'chat-3'
+    ) {
+      response.suggested_replies = buildLifecycleSuggestedReplies({
+        lifecycleDecision,
+        onboardingSignals,
+        userMessage: String(input.user_message ?? ''),
       });
     }
 
@@ -1713,6 +1905,17 @@ router.post(
           inputPayload: input,
           responsePayload: response,
         });
+
+        const currentSheets = await loadUserSheets(authedUser.id);
+        const turns = await listConversationTurns({
+          userId: authedUser.id,
+          chatId: String(lifecycleDecision.activeChatId ?? 'chat-1'),
+          limit: 200,
+        });
+        const { sheets: repairedSheets, repaired } = repairUserSheetsFromTurns(currentSheets, turns);
+        if (repaired) {
+          await saveUserSheets(authedUser.id, repairedSheets);
+        }
       }
     } catch (historyErr) {
       req.logger?.warn({ msg: 'Error persisting conversation turn', error: historyErr, userId: authedUser.id });

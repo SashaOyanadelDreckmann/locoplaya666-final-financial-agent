@@ -11,6 +11,7 @@ import {
   getClosingModeTurn,
   MAX_CHAT_TURNS_BY_CHAT,
   resolveActionPlanFunnelStage,
+  resolveSocialConsciousnessFunnelStage,
   type ChatClosureSummary,
 } from '@financial-agent/shared';
 
@@ -33,11 +34,27 @@ export function resolveActiveActionPlanStage(params: {
   chatId?: string;
   turnCount?: number;
   closingMode?: boolean;
+  userMessage?: string;
 }) {
   return resolveActionPlanFunnelStage({
     activeChatId: params.chatId,
     turnCount: params.turnCount,
     closingMode: params.closingMode,
+    userMessage: params.userMessage,
+  });
+}
+
+export function resolveActiveSocialConsciousnessStage(params: {
+  chatId?: string;
+  turnCount?: number;
+  closingMode?: boolean;
+  userMessage?: string;
+}) {
+  return resolveSocialConsciousnessFunnelStage({
+    activeChatId: params.chatId,
+    turnCount: params.turnCount,
+    closingMode: params.closingMode,
+    userMessage: params.userMessage,
   });
 }
 
@@ -49,9 +66,11 @@ export type Chat1UxState = 'baseReading' | 'interviewAvailable' | 'diagnosisComp
 export function resolveChat1UxState(params: {
   chatId?: string;
   diagnosisCompleted?: boolean;
+  generalChatStarted?: boolean;
   canOpenInterview?: boolean;
 }): Chat1UxState {
-  if (params.chatId === 'chat-1' && params.diagnosisCompleted) return 'diagnosisCompleted';
+  if (params.chatId === 'chat-1' && params.generalChatStarted) return 'diagnosisCompleted';
+  if (params.chatId === 'chat-1' && params.diagnosisCompleted) return 'interviewAvailable';
   if (params.chatId === 'chat-1' && params.canOpenInterview) return 'interviewAvailable';
   return 'baseReading';
 }
@@ -290,6 +309,10 @@ export function sanitizeChatItems(items: ChatItem[]): ChatItem[] {
       }
       const content = sanitizeMessageText(item.content, item.role === 'assistant' ? '—' : '');
       if (!content && item.role !== 'assistant') return null;
+      if (item.role === 'assistant' && item.suggested_replies?.length) {
+        const { suggested_replies: _removed, ...rest } = item;
+        return { ...rest, content };
+      }
       return { ...item, content };
     })
     .filter((item): item is ChatItem => item !== null);
@@ -360,9 +383,37 @@ export function sanitizeChatThreadMessages(items: ChatItem[]): ChatItem[] {
   );
 }
 
+export function isChatThreadNearBottom(threadEl: HTMLElement, thresholdPx = 96): boolean {
+  const distance = threadEl.scrollHeight - threadEl.scrollTop - threadEl.clientHeight;
+  return distance <= thresholdPx;
+}
+
+export type ScrollChatThreadOptions = {
+  /** Skip auto-scroll when the user has scrolled up to read history. */
+  respectUserScroll?: boolean;
+  /** Scroll even if the user is not near the bottom (e.g. new user turn). */
+  force?: boolean;
+  /** Agent response is actively generating — follow the thread tail, not the stream rail. */
+  followStreamingTail?: boolean;
+};
+
 /** Scrolls the thread so the active turn (stream rail / latest assistant) stays visible. */
-export function scrollChatThreadAfterUpdate(threadEl: HTMLElement | null) {
+export function scrollChatThreadAfterUpdate(
+  threadEl: HTMLElement | null,
+  options?: ScrollChatThreadOptions,
+) {
   if (!threadEl) return;
+
+  const { respectUserScroll = false, force = false, followStreamingTail = false } = options ?? {};
+
+  if (respectUserScroll && !force && !isChatThreadNearBottom(threadEl)) {
+    return;
+  }
+
+  if (followStreamingTail) {
+    threadEl.scrollTop = threadEl.scrollHeight;
+    return;
+  }
 
   const streamRail = threadEl.querySelector('.agent-stream-rail');
   if (streamRail instanceof HTMLElement) {
@@ -428,9 +479,9 @@ export function formatRemainingInteractions(usedInteractions: number, chatId?: s
 export function getChatDisplayTitle(params: {
   chatId: string;
   fallbackTitle: string;
-  diagnosisUnlocked?: boolean;
+  generalChatStarted?: boolean;
 }): string {
-  if (params.chatId === 'chat-1' && params.diagnosisUnlocked) {
+  if (params.chatId === 'chat-1' && params.generalChatStarted) {
     return 'Chat general';
   }
   if (params.chatId === 'chat-1') {

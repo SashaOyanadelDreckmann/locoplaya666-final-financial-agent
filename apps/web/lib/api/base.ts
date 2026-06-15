@@ -76,10 +76,14 @@ export function getAgentApiBaseUrl(): string {
 
 /**
  * URL de request para llamadas del agente desde frontend.
- * En browser siempre usamos el proxy same-origin de Next para preservar sesión/cookies.
+ * JSON POST usa `/backend` (mismo proxy que sesión) — funciona en localhost y LAN móvil.
+ * El stream SSE sigue en `/api/agent/stream` (ruta API de Next con headers anti-buffer).
  */
 export function getAgentRequestUrl(path = '/api/agent'): string {
   if (typeof window !== 'undefined') {
+    if (path === '/api/agent') {
+      return `${getSessionApiBaseUrl()}${path}`;
+    }
     return path;
   }
   return `${getAgentApiBaseUrl()}${path}`;

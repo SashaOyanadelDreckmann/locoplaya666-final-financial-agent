@@ -4,6 +4,7 @@ import { type ChangeEvent, type KeyboardEvent, type PointerEvent, type Ref } fro
 import { getFormatLabel, renderFormatIcon, buildUploadGuidance } from './presentation';
 import { TxParseProgress } from './TxParseProgress';
 import { TxIndicativeNotice } from './TxIndicativeNotice';
+import { TxPhotoFormatExamplesPanel } from './TxPhotoFormatExamplesPanel';
 import { normalizeUploadFormat } from './tx-assistant.helpers';
 import { TxChatMessageBubble } from './tx-chat-ui';
 import { readProductEvidenceFidelity } from '@/lib/compartido/evidence-fidelity.helpers';
@@ -209,6 +210,7 @@ export function TxEvidenceStep(props: TxEvidenceStepProps) {
                 highlightedMovementKeys={p.highlightedMovementKeys}
                 followupsDisabled={p.txAssistantLoading || p.documentsLoading}
                 showFollowups={false}
+                showAttachments={false}
               />
             ))
           )}
@@ -237,22 +239,25 @@ export function TxEvidenceStep(props: TxEvidenceStepProps) {
         )}
 
         {!p.analysisAlreadyDone && selectedUploadFormat && p.txUploadOnboardingStep !== 'format' && (
-          <div className="tx-format-guidance" role="status">
-            <div className="tx-format-guidance-copy">
-              <span className="tx-format-guidance-kicker">{getFormatLabel(selectedUploadFormat)}</span>
-              <p>{buildUploadGuidance(selectedUploadFormat, p.activeBankProduct.productType)}</p>
+          <>
+            <div className="tx-format-guidance" role="status">
+              <div className="tx-format-guidance-copy">
+                <span className="tx-format-guidance-kicker">{getFormatLabel(selectedUploadFormat)}</span>
+                <p>{buildUploadGuidance(selectedUploadFormat, p.activeBankProduct.productType)}</p>
+              </div>
+              <button
+                type="button"
+                className="tx-format-guidance-link"
+                onClick={() => {
+                  p.onResetUploadFormat();
+                  p.onSetUploadOnboardingStep('format');
+                }}
+              >
+                Cambiar
+              </button>
             </div>
-            <button
-              type="button"
-              className="tx-format-guidance-link"
-              onClick={() => {
-                p.onResetUploadFormat();
-                p.onSetUploadOnboardingStep('format');
-              }}
-            >
-              Cambiar
-            </button>
-          </div>
+            {selectedUploadFormat === 'photos' ? <TxPhotoFormatExamplesPanel /> : null}
+          </>
         )}
 
         {(p.pendingEvidenceFiles.length > 0 || p.activeBankProduct.uploadedFiles.length > 0) && (

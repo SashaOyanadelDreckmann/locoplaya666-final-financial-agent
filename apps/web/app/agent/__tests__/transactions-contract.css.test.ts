@@ -61,6 +61,7 @@ describe('transactions modal layout contract css', () => {
     expect(contractCss).toContain('.transactions-modal .pt-left.tx-panel-surface--library');
     expect(contractCss).toContain('var(--tx-panel-library-bg)');
     expect(contractCss).toContain('.transactions-modal .tx-scanner-stream-root.is-quiet');
+    expect(contractCss).toContain('touch-action: none !important');
   });
 
   it('fits mobile wizard stepper in one row without swipe', () => {
@@ -118,5 +119,32 @@ describe('transactions modal layout contract css', () => {
     expect(contractCss).toContain('.tx-movements-table--pro thead tr');
     expect(contractCss).toContain('.tx-movement-detail-text');
     expect(contractCss).toContain('var(--tx-contract-eyebrow)');
+  });
+
+  it('keeps minimal summary charts visible on mobile scroll hosts', () => {
+    expect(contractCss).toContain('.tx-summary-charts-grid');
+    expect(contractCss).toContain(':has(.tx-minimal-summary-shell)');
+    expect(contractCss).toContain('.recharts-responsive-container');
+    expect(contractCss).toContain('min-height: 220px !important');
+  });
+
+  it('uses dark copy on empty-state white pills', () => {
+    expect(contractCss).toContain('--tx-empty-pill-text: #1a1f28');
+    expect(contractCss).toContain('.pt-empty-state .pt-empty-item strong');
+    expect(contractCss).toContain('.pt-empty-state .pt-empty-item span');
+    expect(contractCss).toMatch(
+      /\.pt-empty-state \.pt-empty-item strong[\s\S]*color: var\(--tx-empty-pill-text\)/,
+    );
+  });
+
+  it('restyles chat and analysis loading with beige workspace palette', () => {
+    expect(contractCss).toContain('Chat / analysis loading — beige workspace palette');
+    expect(contractCss).toContain('--tx-loading-surface-bg');
+    expect(contractCss).toContain('.transactions-modal .tx-analyst-pending-shell');
+    expect(contractCss).toContain('.transactions-modal .tx-minimal-chat-thread .tx-analysis-live');
+    expect(contractCss).toContain('background-color: #f7f2ea !important');
+    expect(contractCss).toMatch(
+      /\.transactions-modal \.tx-analysis-badge[\s\S]*color: var\(--tx-loading-text\)/,
+    );
   });
 });

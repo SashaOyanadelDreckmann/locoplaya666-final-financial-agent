@@ -1,7 +1,7 @@
 /**
  * format.phase.ts
  *
- * PHASE 5: Format Response
+ * PHASE 3: Format Response
  * Generate final response, parse special tags, detect knowledge events
  */
 
@@ -20,9 +20,15 @@ import {
 } from '../helpers/chart-extraction.helpers';
 import { stripEmojis } from '../helpers/format.helpers';
 import { sanitizeFormulaContent } from '../helpers/formula-sanitizer';
+import {
+  ensurePdfExportClarification,
+  sanitizeAgentCapabilityClaims,
+  sanitizeSuggestedReplies,
+} from '../helpers/capability-claims.helpers';
 import type { FormatPhaseInput, FormatPhaseOutput, FormattedResponse } from '../agent-types';
 import type { Citation } from '../chat.types';
 import { ensureEvidenceCitations } from '../helpers/evidence.helpers';
+import { buildGroundingManifest, requiresVerifiedNumbers } from '../helpers/grounding.helpers';
 import { getLogger } from '../../../logger';
 import {
   buildActionPlanFormatInstructions,
@@ -30,6 +36,12 @@ import {
   resolveActionPlanFunnelStage,
   type ActionPlanFunnelStage,
 } from '../helpers/action-plan-funnel.helpers';
+import {
+  buildSocialConsciousnessFormatInstructions,
+  enforceSocialSynthesisStructure,
+  resolveSocialConsciousnessFunnelStage,
+  type SocialConsciousnessFunnelStage,
+} from '../helpers/social-consciousness-funnel.helpers';
 
 export function shouldApplyLatexFormatting(message: string): boolean {
   if (!message || message.length < 120) return false;
@@ -115,6 +127,21 @@ function hasRecentDecisionDisclaimer(input: FormatPhaseInput): boolean {
   );
 }
 
+function resolveFormatSocialFunnelStage(input: FormatPhaseInput): SocialConsciousnessFunnelStage | null {
+  const profile = input.context_summary?.recommendation_profile as
+    | { social_consciousness_funnel_stage?: SocialConsciousnessFunnelStage | null }
+    | undefined;
+  if (profile?.social_consciousness_funnel_stage) return profile.social_consciousness_funnel_stage;
+
+  const ui = input.ui_state ?? {};
+  return resolveSocialConsciousnessFunnelStage({
+    activeChatId: (ui.active_chat as { id?: string } | undefined)?.id ?? ui.active_chat,
+    turnCount: typeof ui.product_turn_count === 'number' ? ui.product_turn_count : undefined,
+    closingMode: ui.product_closing_mode === true,
+    userMessage: input.user_message,
+  });
+}
+
 function resolveFormatFunnelStage(input: FormatPhaseInput): ActionPlanFunnelStage | null {
   const profile = input.context_summary?.recommendation_profile as
     | { action_plan_funnel_stage?: ActionPlanFunnelStage | null }
@@ -183,13 +210,61 @@ export async function runFormatPhase(input: FormatPhaseInput): Promise<FormatPha
         : null;
 
     const funnelStage = resolveFormatFunnelStage(input);
+    const socialFunnelStage = resolveFormatSocialFunnelStage(input);
     const funnelInstructions = funnelStage ? buildActionPlanFormatInstructions(funnelStage) : '';
+    const socialFunnelInstructions = socialFunnelStage
+      ? buildSocialConsciousnessFormatInstructions(socialFunnelStage)
+      : '';
+    const activeChatId = String(
+      (input.ui_state?.active_chat as { id?: string } | undefined)?.id ?? '',
+    );
     const userFinancialProfileFull = buildUserFinancialProfileBlock(
       input.injected_intake ?? input.context_summary?.intake
     );
 
+    const groundingManifest = buildGroundingManifest(input.execution_result);
+    const groundingRule = requiresVerifiedNumbers(input.mode)
+      ? 'No inventes cifras: usa solo el manifiesto de hechos verificados, intake o citas.'
+      : 'Prioriza hechos verificados; si falta evidencia, dilo explícitamente.';
+
+    const chat2PremiumRules =
+      activeChatId === 'chat-2'
+        ? [
+            'CHAT 2 — ESTANDAR PREMIUM:',
+            '- Tono wealth advisory Chile: preciso, sobrio, sin hype ni promesas de rentabilidad.',
+            '- Ancla cada hipotesis a diagnostico, presupuesto, cartolas o mercado verificable.',
+            '- Si falta evidencia numerica, declara el vacio; no completes con supuestos.',
+            funnelStage === 'deliver'
+              ? '- ENTREGA FINAL: cada seccion ## con contenido denso, plazos concretos y metricas trazables o marcadas como pendientes de validar.'
+              : funnelStage === 'converge'
+                ? '- CONVERGENCIA: sintetiza la prioridad del usuario antes de recomendar una ruta tentativa.'
+                : '- EXPLORACION: abre con hipotesis accionables; no entregues aun el plan estructurado completo.',
+          ].join('\n')
+        : '';
+
+    const chat3PremiumRules =
+      activeChatId === 'chat-3'
+        ? [
+            'CHAT 3 — ESTANDAR PREMIUM:',
+            '- Modo filosofo socratico: reflexion sobre valores, dinero y sociedad.',
+            '- NO emitas bloques CHART/TABLE ni simulaciones salvo peticion explicita del usuario.',
+            '- Integra diagnostico y presupuesto solo como espejo de valores, no como plan financiero.',
+            socialFunnelStage === 'synthesis'
+              ? '- SINTESIS REFLEXIVA: cada seccion ## con contenido denso y pregunta abierta final.'
+              : socialFunnelStage === 'tension'
+                ? '- TENSION: contraste 2 posturas y dilema etico personal antes de cerrar.'
+                : '- EXPLORACION: apertura existencial + una pregunta profunda; sin consejos financieros directos.',
+          ].join('\n')
+        : '';
+
     const formatterInput = [
+      chat2PremiumRules,
+      chat3PremiumRules,
       funnelInstructions,
+      typeof input.context_summary?.action_plan_session_brief === 'string'
+        ? input.context_summary.action_plan_session_brief
+        : '',
+      socialFunnelInstructions,
       `Modo: ${input.mode}`,
       `Directiva de producto: ${
         typeof input.context_summary?.product_directive === 'string'
@@ -205,18 +280,24 @@ export async function runFormatPhase(input: FormatPhaseInput): Promise<FormatPha
       userFinancialProfileFull ? `\n${userFinancialProfileFull}\n` : '',
       ...(snowballCtx ? [`\n${snowballCtx}\n`] : []),
       ...(recentThreadContext ? [`\n${recentThreadContext}\n`] : []),
+      groundingManifest,
+      groundingRule,
       'Mensaje del usuario:',
       input.user_message,
       '',
       'Contexto de ejecucion (tools, outputs, artifacts, citations):',
       executionSummary,
       '',
-      'Instruccion: responde en espanol, limpio, sin nombres de tools ni XML interno. Si hay datos numericos comparables, emite bloques <CHART> y/o <TABLE> JSON validos (obligatorio cuando aplique) antes de SUGERENCIAS.',
+      'Instruccion: responde en espanol, limpio, sin nombres de tools ni XML interno.',
+      activeChatId === 'chat-3'
+        ? 'En chat-3 prioriza prosa reflexiva; emite SUGERENCIAS filosoficas al final si aplica.'
+        : 'Si hay datos numericos comparables, emite bloques <CHART> y/o <TABLE> JSON validos (obligatorio cuando aplique) antes de SUGERENCIAS.',
     ].join('\n');
 
     const fullFormatOptions = {
       systemPrompt: CORE_RESPONSE_SYSTEM,
-      temperature: 0.4,
+      temperature:
+        funnelStage === 'deliver' || socialFunnelStage === 'synthesis' ? 0.25 : 0.4,
       model: resolveCoreAgentClaudeModel(),
       allowOpenAIFallback: false as const,
     };
@@ -224,7 +305,7 @@ export async function runFormatPhase(input: FormatPhaseInput): Promise<FormatPha
       ? await completeWithClaudeStream(formatterInput, fullFormatOptions, onDelta)
       : await completeWithClaude(formatterInput, fullFormatOptions);
 
-    const suggested_replies = extractSuggestedReplies(rawResponse);
+    const suggested_replies = sanitizeSuggestedReplies(extractSuggestedReplies(rawResponse));
     const panel_action = extractPanelAction(rawResponse);
     const budget_updates = extractBudgetUpdates(rawResponse);
     const responseChartBlocks = extractChartBlocksFromToolOutput(rawResponse);
@@ -232,7 +313,10 @@ export async function runFormatPhase(input: FormatPhaseInput): Promise<FormatPha
     let message = cleanSpecialTags(rawResponse);
     message = stripEmojis(message).trim();
     message = sanitizeFormulaContent(message);
+    message = sanitizeAgentCapabilityClaims(message);
+    message = ensurePdfExportClarification(message, input.user_message);
     if (funnelStage === 'deliver') message = enforceDeliverPlanStructure(message);
+    if (socialFunnelStage === 'synthesis') message = enforceSocialSynthesisStructure(message);
     message = ensureDecisionDisclaimer(message, input);
 
     if (shouldApplyLatexFormatting(message)) {
@@ -252,8 +336,6 @@ export async function runFormatPhase(input: FormatPhaseInput): Promise<FormatPha
       }
     }
 
-    const contextScoreMatch = rawResponse.match(/<CONTEXT_SCORE>(\d+)<\/CONTEXT_SCORE>/);
-    const context_score = contextScoreMatch ? parseInt(contextScoreMatch[1], 10) : undefined;
     const ensuredCitations = await ensureEvidenceCitations(input);
     message = stripInlineSourcesBlock(message);
 
@@ -278,7 +360,6 @@ export async function runFormatPhase(input: FormatPhaseInput): Promise<FormatPha
       citations: ensuredCitations,
       suggested_replies,
       panel_action,
-      context_score,
       budget_updates,
     };
 
@@ -289,7 +370,6 @@ export async function runFormatPhase(input: FormatPhaseInput): Promise<FormatPha
       latency_ms: Date.now() - startTime,
     });
 
-    input.stream?.phase('format', 'done');
     return { formatted_response };
   } catch (err) {
     logger.warn({ msg: '[Format] Phase failed, using safe fallback', error: err, latency_ms: Date.now() - startTime });
@@ -308,11 +388,12 @@ export async function runFormatPhase(input: FormatPhaseInput): Promise<FormatPha
       citations: ensuredCitations,
       suggested_replies: [],
       panel_action: undefined,
-      context_score: undefined,
       budget_updates: [],
     };
 
     return { formatted_response };
+  } finally {
+    input.stream?.phase('format', 'done');
   }
 }
 

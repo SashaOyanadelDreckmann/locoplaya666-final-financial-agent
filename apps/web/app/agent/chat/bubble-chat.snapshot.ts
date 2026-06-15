@@ -76,6 +76,16 @@ function collectBubbleSnapshotCss(rootEl: HTMLElement) {
     '.agent-chart-footnote',
     '.agent-table-block',
     '.agent-table-wrap',
+    '.agent-tx-chart-block',
+    '.agent-tx-chart-card',
+    '.latex-inline-annex-charts',
+    '.tx-minimal-cashflow-card',
+    '.tx-minimal-cashflow-chart',
+    '.tx-minimal-cashflow-head',
+    '.tx-minimal-cashflow-legend',
+    '.agent-tx-bar-chart',
+    '.chat-table-scroll-host',
+    '.chat-table-scroll-hint',
     '.agent-table',
     '.recharts-responsive-container',
     '.recharts-surface',
@@ -140,7 +150,115 @@ function collectBubbleSnapshotCss(rootEl: HTMLElement) {
   return cssParts.join('\n');
 }
 
-function prepareBubbleForPdfExport(clonedBubble: HTMLElement, meta?: BubbleSnapshotMeta) {
+const PDF_CHART_SURFACE_SELECTORS =
+  '.recharts-responsive-container, .agent-chart-canvas, .tx-minimal-cashflow-chart, .agent-tx-bar-chart';
+const PDF_TABLE_HOST_SELECTORS = '.chat-table-scroll-host, .md-table-wrap, .agent-table-wrap';
+const PDF_SCROLL_UNLOCK_SELECTORS =
+  '.latex-doc-body, .premium-markdown, .latex-inline-annex-charts, .latex-inline-annex, .agent-blocks-renderer, .agent-tx-chart-block, .agent-tx-chart-card, .tx-minimal-cashflow-card';
+const PDF_CHART_BLOCK_SELECTORS =
+  '.agent-chart-block, .agent-tx-chart-block, .agent-tx-chart-card, .tx-minimal-cashflow-card, .latex-inline-annex-charts > *';
+
+function unlockScrollableRegions(root: HTMLElement) {
+  root.querySelectorAll(PDF_SCROLL_UNLOCK_SELECTORS).forEach((node) => {
+    if (!(node instanceof HTMLElement)) return;
+    node.style.maxHeight = 'none';
+    node.style.height = 'auto';
+    node.style.overflow = 'visible';
+  });
+}
+
+function syncMeasuredBlockHeights(sourceRoot: HTMLElement, clonedRoot: HTMLElement, selector: string, minHeight = 220) {
+  const sourceNodes = sourceRoot.querySelectorAll(selector);
+  const clonedNodes = clonedRoot.querySelectorAll(selector);
+  sourceNodes.forEach((sourceNode, index) => {
+    const clonedNode = clonedNodes[index];
+    if (!(sourceNode instanceof HTMLElement) || !(clonedNode instanceof HTMLElement)) return;
+
+    const rect = sourceNode.getBoundingClientRect();
+    const height = Math.max(minHeight, Math.ceil(rect.height));
+    const width = Math.max(0, Math.ceil(rect.width));
+
+    clonedNode.style.width = width > 0 ? `${width}px` : '100%';
+    clonedNode.style.minWidth = width > 0 ? `${width}px` : '0';
+    clonedNode.style.maxWidth = '100%';
+    clonedNode.style.height = `${height}px`;
+    clonedNode.style.minHeight = `${height}px`;
+    clonedNode.style.maxHeight = 'none';
+    clonedNode.style.overflow = 'visible';
+
+    const sourceSvg = sourceNode.querySelector('svg.recharts-surface');
+    const clonedSvg = clonedNode.querySelector('svg.recharts-surface');
+    if (sourceSvg instanceof SVGSVGElement && clonedSvg instanceof SVGSVGElement) {
+      const svgRect = sourceSvg.getBoundingClientRect();
+      const svgWidth = Math.max(1, Math.ceil(svgRect.width));
+      const svgHeight = Math.max(1, Math.ceil(svgRect.height));
+      clonedSvg.setAttribute('width', String(svgWidth));
+      clonedSvg.setAttribute('height', String(svgHeight));
+      clonedSvg.style.width = `${svgWidth}px`;
+      clonedSvg.style.height = `${svgHeight}px`;
+      clonedSvg.style.overflow = 'visible';
+    }
+  });
+}
+
+function expandTablesForPdfExport(sourceRoot: HTMLElement, clonedRoot: HTMLElement) {
+  const sourceHosts = sourceRoot.querySelectorAll(PDF_TABLE_HOST_SELECTORS);
+  const clonedHosts = clonedRoot.querySelectorAll(PDF_TABLE_HOST_SELECTORS);
+
+  clonedHosts.forEach((host, index) => {
+    if (!(host instanceof HTMLElement)) return;
+    const sourceHost = sourceHosts[index];
+    host.classList.remove(
+      'is-scrollable-x',
+      'is-scrollable-y',
+      'is-at-scroll-start-x',
+      'is-at-scroll-end-x',
+      'is-at-scroll-start-y',
+      'is-at-scroll-end-y',
+      'is-hint-visible',
+      'is-hint-dismissed',
+    );
+    host.style.maxHeight = 'none';
+    host.style.height = 'auto';
+    host.style.overflow = 'visible';
+    host.style.width = '100%';
+
+    const table = host.querySelector('table');
+    const sourceTable =
+      sourceHost instanceof HTMLElement ? sourceHost.querySelector('table') : null;
+    if (!(table instanceof HTMLElement)) return;
+
+    table.style.width = '100%';
+    table.style.maxWidth = 'none';
+    table.style.tableLayout = 'auto';
+
+    if (sourceTable instanceof HTMLElement) {
+      const fullWidth = Math.max(
+        sourceTable.scrollWidth,
+        sourceTable.getBoundingClientRect().width,
+        table.scrollWidth,
+      );
+      const fullHeight = Math.max(
+        sourceTable.scrollHeight,
+        sourceTable.getBoundingClientRect().height,
+        table.scrollHeight,
+      );
+      if (fullWidth > 0) {
+        table.style.width = `${Math.ceil(fullWidth)}px`;
+        host.style.minWidth = `${Math.ceil(fullWidth)}px`;
+      }
+      if (fullHeight > 0) {
+        host.style.minHeight = `${Math.ceil(fullHeight)}px`;
+      }
+    }
+  });
+}
+
+function prepareBubbleForPdfExport(
+  clonedBubble: HTMLElement,
+  meta?: BubbleSnapshotMeta,
+  sourceBubble?: HTMLElement,
+) {
   clonedBubble.classList.add('bubble-pdf-paper');
   clonedBubble.classList.remove('is-scrollable-bubble');
 
@@ -158,20 +276,16 @@ function prepareBubbleForPdfExport(clonedBubble: HTMLElement, meta?: BubbleSnaps
 
   clonedBubble.querySelectorAll('.citation-toggle').forEach((el) => el.remove());
 
-  clonedBubble.querySelectorAll('.recharts-responsive-container').forEach((el) => {
-    if (el instanceof HTMLElement) {
-      el.style.width = '100%';
-      el.style.height = '220px';
-      el.style.minHeight = '220px';
-    }
-  });
+  const measurementRoot = sourceBubble ?? clonedBubble;
+  unlockScrollableRegions(clonedBubble);
+  expandTablesForPdfExport(measurementRoot, clonedBubble);
+  syncMeasuredBlockHeights(measurementRoot, clonedBubble, PDF_CHART_SURFACE_SELECTORS);
 
-  clonedBubble.querySelectorAll('.agent-chart-canvas').forEach((el) => {
-    if (el instanceof HTMLElement) {
-      el.style.width = '100%';
-      el.style.height = '220px';
-      el.style.minHeight = '220px';
-    }
+  clonedBubble.querySelectorAll(PDF_CHART_BLOCK_SELECTORS).forEach((node) => {
+    if (!(node instanceof HTMLElement)) return;
+    node.style.overflow = 'visible';
+    node.style.breakInside = 'avoid';
+    node.style.pageBreakInside = 'avoid';
   });
 
   const citations = (meta?.citations ?? []).filter((c) => c && (c.url || c.title || c.source));
@@ -201,13 +315,15 @@ function prepareBubbleForPdfExport(clonedBubble: HTMLElement, meta?: BubbleSnaps
 
 const BUBBLE_PDF_EXPORT_CSS = `
 @page {
-  size: A4;
   margin: 0;
 }
 
 html, body, .bubble-pdf-snapshot {
   margin: 0 !important;
   padding: 0 !important;
+  width: 100% !important;
+  min-height: 0 !important;
+  height: auto !important;
   background: #f5f1e8 !important;
 }
 
@@ -334,7 +450,9 @@ html, body, .bubble-pdf-snapshot {
 .bubble-pdf-snapshot .bubble-pdf-paper .latex-doc-body,
 .bubble-pdf-snapshot .bubble-pdf-paper .premium-markdown,
 .bubble-pdf-snapshot .bubble-pdf-paper .academic-paper,
-.bubble-pdf-snapshot .bubble-pdf-paper .latex-inline-annex {
+.bubble-pdf-snapshot .bubble-pdf-paper .latex-inline-annex,
+.bubble-pdf-snapshot .bubble-pdf-paper .latex-inline-annex-charts,
+.bubble-pdf-snapshot .bubble-pdf-paper .agent-blocks-renderer {
   max-height: none !important;
   height: auto !important;
   overflow: visible !important;
@@ -371,22 +489,34 @@ html, body, .bubble-pdf-snapshot {
 }
 
 .bubble-pdf-snapshot .agent-chart-block,
+.bubble-pdf-snapshot .agent-tx-chart-block,
+.bubble-pdf-snapshot .agent-tx-chart-card,
+.bubble-pdf-snapshot .tx-minimal-cashflow-card,
 .bubble-pdf-snapshot .agent-table-block,
+.bubble-pdf-snapshot .md-table-wrap,
 .bubble-pdf-snapshot .latex-inline-annex,
+.bubble-pdf-snapshot .latex-inline-annex-charts > *,
 .bubble-pdf-snapshot .citation-bubble {
   break-inside: avoid-page !important;
   page-break-inside: avoid !important;
   margin-bottom: 8mm !important;
+  overflow: visible !important;
 }
 
 .bubble-pdf-snapshot .recharts-responsive-container,
-.bubble-pdf-snapshot .agent-chart-canvas {
+.bubble-pdf-snapshot .agent-chart-canvas,
+.bubble-pdf-snapshot .tx-minimal-cashflow-chart,
+.bubble-pdf-snapshot .agent-tx-bar-chart {
   width: 100% !important;
-  height: 220px !important;
-  min-height: 220px !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  padding-inline: 12px !important;
+  overflow: visible !important;
 }
 
-.bubble-pdf-snapshot .recharts-surface {
+.bubble-pdf-snapshot .recharts-wrapper,
+.bubble-pdf-snapshot .recharts-surface,
+.bubble-pdf-snapshot .recharts-legend-wrapper {
   overflow: visible !important;
 }
 
@@ -410,8 +540,11 @@ html, body, .bubble-pdf-snapshot {
 }
 
 .bubble-pdf-snapshot .md-table-wrap,
-.bubble-pdf-snapshot .agent-table-wrap {
+.bubble-pdf-snapshot .agent-table-wrap,
+.bubble-pdf-snapshot .chat-table-scroll-host {
   overflow: visible !important;
+  max-height: none !important;
+  height: auto !important;
 }
 
 .bubble-pdf-snapshot .chat-table-scroll-hint,
@@ -421,15 +554,20 @@ html, body, .bubble-pdf-snapshot {
 }
 
 .bubble-pdf-snapshot .agent-table th,
-.bubble-pdf-snapshot .agent-table td {
+.bubble-pdf-snapshot .agent-table td,
+.bubble-pdf-snapshot .md-table th,
+.bubble-pdf-snapshot .md-table td {
   color: #1c3145 !important;
   border-color: rgba(28, 49, 69, 0.18) !important;
+  white-space: normal !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
 }
 `;
 
 export function buildBubbleSnapshotHtmlAndCss(bubbleEl: HTMLElement, meta?: BubbleSnapshotMeta) {
   const clonedBubble = bubbleEl.cloneNode(true) as HTMLElement;
-  prepareBubbleForPdfExport(clonedBubble, meta);
+  prepareBubbleForPdfExport(clonedBubble, meta, bubbleEl);
 
   const kickerText =
     meta?.kicker?.trim() ||

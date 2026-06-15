@@ -3,7 +3,7 @@
  * Extract charts and visual blocks from tool outputs
  */
 
-import type { AgentBlock, ChartBlock, TableBlock, QuestionnaireBlock } from '../chat.types';
+import type { AgentBlock, ChartBlock, TableBlock, QuestionnaireBlock, TxChartBlock } from '../chat.types';
 
 type JsonRecord = Record<string, unknown>;
 
@@ -14,6 +14,52 @@ function toChartKind(kind: unknown): 'line' | 'bar' | 'area' {
 
 function isObject(v: unknown): v is JsonRecord {
   return typeof v === 'object' && v !== null && !Array.isArray(v);
+}
+
+function normalizeTxChartBlock(payload: unknown): TxChartBlock | null {
+  if (!isObject(payload)) return null;
+  if (payload.type === 'tx_chart' && isObject(payload.tx_chart)) {
+    const parsed = { type: 'tx_chart', tx_chart: payload.tx_chart };
+    return parsed as TxChartBlock;
+  }
+  if (typeof payload.variant === 'string' && payload.variant in { cumulative_cashflow: 1, flow_bar: 1, category_bar: 1 }) {
+    return { type: 'tx_chart', tx_chart: payload } as TxChartBlock;
+  }
+  return null;
+}
+
+function extractAgentBlocksFromObject(source: unknown): AgentBlock[] {
+  if (!isObject(source)) return [];
+  const blocks: AgentBlock[] = [];
+
+  if (Array.isArray(source.agent_blocks)) {
+    for (const block of source.agent_blocks) {
+      if (!isObject(block)) continue;
+      if (block.type === 'tx_chart') {
+        const txBlock = normalizeTxChartBlock(block);
+        if (txBlock) blocks.push(txBlock);
+        continue;
+      }
+      const chart = normalizeChartPayload(block.type === 'chart' ? block.chart : block);
+      if (chart) {
+        blocks.push(chart);
+        continue;
+      }
+      if (block.type === 'table' && isObject(block.table)) {
+        blocks.push(block as TableBlock);
+        continue;
+      }
+      if (block.type === 'questionnaire' && isObject(block.questionnaire)) {
+        const questionnaire = normalizeQuestionnairePayload(block.questionnaire);
+        if (questionnaire) blocks.push(questionnaire);
+      }
+    }
+  }
+
+  const txChart = normalizeTxChartBlock(source);
+  if (txChart) blocks.push(txChart);
+
+  return blocks;
 }
 
 function normalizeChartPayload(payload: unknown): ChartBlock | null {
@@ -323,15 +369,27 @@ export function extractChartBlocksFromToolOutput(
   context?: any
 ): AgentBlock[] {
   const blocks: AgentBlock[] = [];
+  let match: RegExpExecArray | null;
   const pushIfUnique = (block: AgentBlock) => {
     const key = JSON.stringify(block);
     const exists = blocks.some((b) => JSON.stringify(b) === key);
     if (!exists) blocks.push(block);
   };
 
+  // Match <TX_CHART> blocks (transaction modal charts)
+  const txChartRegex = /<TX_CHART>([\s\S]*?)<\/TX_CHART>/g;
+  while ((match = txChartRegex.exec(text)) !== null) {
+    try {
+      const data = JSON.parse(match[1].trim());
+      const block = normalizeTxChartBlock(data);
+      if (block) pushIfUnique(block);
+    } catch {
+      // Invalid JSON in tag, skip
+    }
+  }
+
   // Match <CHART> blocks
   const chartRegex = /<CHART>([\s\S]*?)<\/CHART>/g;
-  let match;
   while ((match = chartRegex.exec(text)) !== null) {
     try {
       const data = JSON.parse(match[1].trim());
@@ -379,6 +437,8 @@ export function extractChartBlocksFromToolOutput(
     const parsed = JSON.parse(text);
     const extra = extractChartsFromObject(parsed);
     for (const block of extra) pushIfUnique(block);
+    const agentBlocks = extractAgentBlocksFromObject(parsed);
+    for (const block of agentBlocks) pushIfUnique(block);
   } catch {
     // Text may not be JSON; ignore
   }
@@ -410,17 +470,54 @@ export function extractSuggestedReplies(text: string): string[] {
   }
 }
 
+export const CORE_AGENT_PANEL_SECTIONS = [
+  'budget',
+  'transactions',
+  'products_transactions',
+  'library',
+  'recents',
+  'profile',
+  'news',
+  'objective',
+  'mode',
+  'interview',
+] as const;
+
+export type CoreAgentPanelSection = (typeof CORE_AGENT_PANEL_SECTIONS)[number];
+
+const PANEL_SECTION_ALIASES: Record<string, CoreAgentPanelSection> = {
+  products_transactions: 'transactions',
+  productos: 'transactions',
+  transacciones: 'transactions',
+};
+
+export function normalizeCoreAgentPanelSection(
+  section?: string | null,
+): CoreAgentPanelSection | undefined {
+  const raw = String(section ?? '').trim().toLowerCase();
+  if (!raw) return undefined;
+  if (PANEL_SECTION_ALIASES[raw]) return PANEL_SECTION_ALIASES[raw];
+  if ((CORE_AGENT_PANEL_SECTIONS as readonly string[]).includes(raw)) {
+    return raw as CoreAgentPanelSection;
+  }
+  return undefined;
+}
+
 /**
- * Parse panel action from text
+ * Parse and normalize <PANEL> actions from formatter output.
  */
 export function extractPanelAction(
-  text: string
-): { section?: string; message?: string } | undefined {
+  text: string,
+): { section?: CoreAgentPanelSection; message?: string } | undefined {
   const match = text.match(/<PANEL>\s*(\{[\s\S]*?\})\s*<\/PANEL>/);
   if (!match) return undefined;
 
   try {
-    return JSON.parse(match[1]);
+    const parsed = JSON.parse(match[1]) as { section?: string; message?: string };
+    const section = normalizeCoreAgentPanelSection(parsed.section);
+    const message = typeof parsed.message === 'string' ? parsed.message : undefined;
+    if (!section && !message) return undefined;
+    return { section, message };
   } catch {
     return undefined;
   }
@@ -464,6 +561,7 @@ export function extractBudgetUpdates(
 export function cleanSpecialTags(text: string): string {
   return text
     .replace(/<CHART>[\s\S]*?<\/CHART>/g, '\n\n')
+    .replace(/<TX_CHART>[\s\S]*?<\/TX_CHART>/g, '\n\n')
     .replace(/<TABLE>[\s\S]*?<\/TABLE>/g, '\n\n')
     .replace(/<QUESTIONNAIRE>[\s\S]*?<\/QUESTIONNAIRE>/g, '\n\n')
     .replace(/<SUGERENCIAS>[\s\S]*?<\/SUGERENCIAS>/g, '\n\n')

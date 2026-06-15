@@ -19,7 +19,6 @@ import {
 import type { TxAssistantMessage, TxChatStarterChip } from './types';
 import { TxMovementTable } from './TxMovementTable';
 import { TxMovementEditor } from './TxMovementEditor';
-import { TxMetricsCharts } from './TxMetricsCharts';
 
 type MovementAnalytics = ReturnType<typeof useMovementAnalytics>;
 
@@ -131,7 +130,6 @@ export function TxAnalystDashboard({
     dashboardClusters,
     alertDetails,
     metricExplanations,
-    qualityRowsChart,
     dedupedMovementRows,
     incomeOrAbonoRows,
     expenseRows,
@@ -150,7 +148,6 @@ export function TxAnalystDashboard({
     movementCoverageDisplay,
     enrichedCategoryData,
     txNarrative,
-    categoryChartData,
     derivedTopMerchants,
     merchantConfidenceRows,
     isIndicativeEvidence,
@@ -338,17 +335,8 @@ export function TxAnalystDashboard({
         dashboardClusters={dashboardClusters}
         isIndicativeEvidence={isIndicativeEvidence}
         evidenceFidelityReason={evidenceFidelityReason}
-      />
-
-      <TxMetricsCharts
-        formatCurrency={formatCurrency}
-        inflowSectionLabel={inflowSectionLabel}
-        tableDerivedMetrics={tableDerivedMetrics}
-        netFlowFromTable={netFlowFromTable}
-        categoryChartData={categoryChartData}
-        qualityRowsChart={qualityRowsChart}
-        chatBusy={chatBusy}
-        onAskSuggestedQuestion={onAskSuggestedQuestion}
+        movementRows={analytics.dedupedMovementRows}
+        inflowLabel={inflowLabel}
       />
 
       <div className="tx-ap-intel-grid">

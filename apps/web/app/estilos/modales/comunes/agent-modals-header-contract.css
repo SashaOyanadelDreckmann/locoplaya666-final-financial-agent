@@ -396,3 +396,56 @@ body.agent-route-active .agent-modal.account-modal .agent-modal-close {
     padding-right: var(--modal-header-inline-inset) !important;
   }
 }
+
+/* ── Fincoins — centered floating card (desktop + mobile) ─────────────────── */
+.fincoin-usage-overlay {
+  display: grid !important;
+  place-items: center !important;
+  position: fixed !important;
+  inset: 0 !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+
+.fincoin-usage-dialog {
+  position: relative !important;
+  grid-row: 1 !important;
+  grid-column: 1 !important;
+  width: min(100%, 420px) !important;
+  max-width: min(420px, calc(100% - 32px)) !important;
+  max-height: min(88dvh, 640px) !important;
+  margin: 0 !important;
+  border-radius: var(--fincoin-modal-radius, 22px) !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  overscroll-behavior: contain !important;
+  box-sizing: border-box !important;
+}
+
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+  .fincoin-usage-overlay {
+    display: grid !important;
+    place-items: center !important;
+    align-content: center !important;
+    width: 100% !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    min-height: 0 !important;
+    --fincoin-mobile-bottom-clearance: calc(
+      env(safe-area-inset-bottom, 0px) + clamp(148px, 28dvh, 232px)
+    );
+    padding: max(12px, env(safe-area-inset-top, 0px)) 16px var(--fincoin-mobile-bottom-clearance) 16px !important;
+    overflow: hidden !important;
+  }
+
+  .fincoin-usage-dialog {
+    width: min(100%, 400px) !important;
+    max-width: 100% !important;
+    max-height: min(72dvh, 520px) !important;
+    align-self: center !important;
+    justify-self: center !important;
+    margin-bottom: 0 !important;
+    transform: translateY(clamp(-12px, -2.5dvh, -28px)) !important;
+  }
+}

@@ -113,7 +113,6 @@ describe('interview modal safeguards', () => {
     expect(helpers).toContain('resolveInterviewActiveQuota');
     expect(runtime).toContain('syncActiveQuota');
     expect(runtime).not.toContain('pauseUsed');
-    expect(runtime).toContain('serverSessionInstructionsRef');
     expect(runtime).toContain("finalizeCallAndGenerateReport('timeout'");
     expect(runtime).toContain('flushInterviewVoiceStateOnPageHide');
     expect(runtime).toContain("addEventListener('pagehide'");
@@ -126,12 +125,17 @@ describe('interview modal safeguards', () => {
     expect(runtime).toMatch(/if \(status !== 'in_progress'\) \{\s*flushLiveSegment\(\);/);
   });
 
-  it('uses server session instructions from the realtime token on connect', () => {
+  it('rebuilds session instructions on the client when the realtime channel opens', () => {
     const runtimePath = path.join(process.cwd(), 'app', 'agent', 'modales', 'entrevista', 'useInterviewVoiceRuntime.ts');
+    const voiceSessionPath = path.join(process.cwd(), 'app', 'agent', 'modales', 'entrevista', 'interview-modal.voice-session.ts');
     const runtime = fs.readFileSync(runtimePath, 'utf8');
+    const voiceSession = fs.readFileSync(voiceSessionPath, 'utf8');
 
-    expect(runtime).toContain('token?.session_instructions');
-    expect(runtime).toContain('instructionsOverride: serverSessionInstructionsRef.current');
+    expect(runtime).toContain('emitVoiceSessionContext(sendVoiceEventRef.current, voiceSessionContextRef.current');
+    expect(runtime).toContain('Always rebuild instructions on the client');
+    expect(runtime).not.toContain('instructionsOverride');
+    expect(voiceSession).toContain('buildVoiceSessionInstructions');
+    expect(voiceSession).not.toContain('instructionsOverride');
   });
 
   it('applies a hard realtime pause instead of only muting the local mic', () => {
@@ -191,7 +195,10 @@ describe('interview modal safeguards', () => {
     expect(modal).toContain('interview-modal--diagnosis');
     expect(modal).toContain('InterviewDiagnosisPanel');
     expect(modal).toContain("const modalTitle = isDiagnosisMode ? 'Diagnóstico' : 'Entrevista'");
-    expect(panel).toContain('Ver informe completo');
+    expect(panel).toContain('Profundizar en chat');
+    expect(panel).toContain('deepenDisabled');
+    expect(panel).toContain('disabled={isDeepenBlocked}');
+    expect(panel).not.toContain('Ver informe completo');
   });
 
   it('uses the compact interview loader instead of the full-page ai loader', () => {

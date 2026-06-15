@@ -5416,17 +5416,18 @@ body.agent-route-active .app-shell::before{
 
 .agent-chat .terminal-composer-controls .composer-icon-btn:focus-visible,
 .agent-chat .composer-send-plain:focus-visible,
+.interview-resume-banner .interview-resume-banner__btn:focus-visible,
 .interview-resume-banner .summary-action-btn:focus-visible{
   outline: 2px solid rgba(183, 215, 239, 0.9) !important;
   outline-offset: 2px;
 }
 
 .interview-resume-banner{
-  border-color: rgba(203, 224, 240, 0.4);
+  border-color: rgba(214, 150, 150, 0.58) !important;
 }
 
 .interview-resume-copy span{
-  color: rgba(208, 222, 234, 0.98);
+  color: rgba(255, 236, 232, 0.84) !important;
 }
 
 /* Ultra-pro polish layer (desk + mobile) — neutral depth, no blue outer glow */
@@ -5720,11 +5721,17 @@ body.agent-route-active .app-shell::before{
   color: rgba(235, 242, 252, 0.72) !important;
 }
 
-.transactions-modal .tx-lib-card .pt-item-status{
-  color: var(--tx-lib-tint) !important;
-  -webkit-text-fill-color: var(--tx-lib-tint) !important;
-  border-color: rgba(255,255,255,0.14) !important;
-  background: rgba(255,255,255,0.08) !important;
+.transactions-modal .tx-lib-card .pt-item-status,
+.transactions-modal .tx-lib-card .tx-lib-card-status{
+  position: absolute;
+  right: 12px;
+  bottom: 5px;
+  z-index: 1;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.22) !important;
+  background: rgba(0, 0, 0, 0.24) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 .transactions-modal .tx-lib-card .pt-item-meta span{
@@ -5734,15 +5741,7 @@ body.agent-route-active .app-shell::before{
 }
 
 .transactions-modal .tx-lib-card-chip{
-  position: absolute;
-  right: 18px;
-  bottom: 16px;
-  width: 40px;
-  height: 30px;
-  border-radius: 9px;
-  border: 1px solid rgba(255,255,255,0.24);
-  background: linear-gradient(160deg, rgba(255,255,255,0.24), rgba(216,192,138,0.16));
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.18);
+  display: none !important;
 }
 
 .transactions-modal .tx-lib-enter{
@@ -5819,10 +5818,7 @@ body.agent-route-active .app-shell::before{
   }
 
   .transactions-modal .tx-lib-card-chip{
-    width: 32px;
-    height: 22px;
-    right: 14px;
-    bottom: 14px;
+    display: none !important;
   }
 }
 
@@ -13601,7 +13597,7 @@ body.agent-route-active .app-shell::before{
   margin-top: 36px !important;
 }
 
-.interview-modal--generating{
+.interview-modal--generating:not(.interview-modal--minimal){
   overflow: hidden !important;
   min-height: 84vh !important;
 }
@@ -13770,9 +13766,16 @@ body.agent-route-active .app-shell::before{
   color: rgba(195, 211, 223, 0.8);
 }
 
-.diagnosis-tone-strong strong{ color: rgba(178, 222, 194, 0.98); }
-.diagnosis-tone-watch strong{ color: rgba(238, 214, 164, 0.98); }
-.diagnosis-tone-critical strong{ color: rgba(232, 165, 165, 0.98); }
+.diagnosis-tone-strong strong,
+.diagnosis-tone-strong span { color: rgba(178, 222, 194, 0.98); }
+.diagnosis-tone-watch strong,
+.diagnosis-tone-watch span { color: rgba(238, 214, 164, 0.98); }
+.diagnosis-tone-critical strong,
+.diagnosis-tone-critical span { color: rgba(232, 165, 165, 0.98); }
+
+.diagnosis-scorecard.diagnosis-tone-strong { border-color: rgba(178, 222, 194, 0.72); }
+.diagnosis-scorecard.diagnosis-tone-watch { border-color: rgba(238, 214, 164, 0.72); }
+.diagnosis-scorecard.diagnosis-tone-critical { border-color: rgba(232, 165, 165, 0.72); }
 
 .diagnosis-grid--charts{
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -14945,6 +14948,7 @@ body.agent-route-active{
   min-height: 260px !important;
   align-items: center !important;
   justify-content: center !important;
+  overflow: visible !important;
 }
 
 .agent-modal.interview-modal .interview-sync-error-toast{
@@ -14985,14 +14989,31 @@ body.agent-route-active{
   align-items: center;
   gap: 18px;
   text-align: center;
+  overflow: visible;
 }
 
 .interview-modal-loader__visual{
+  --loader-ring-size: 88px;
+  --loader-ring-bleed: 24px;
   position: relative;
-  width: 88px;
-  height: 88px;
+  width: var(--loader-ring-size);
+  height: var(--loader-ring-size);
+  margin: var(--loader-ring-bleed);
+  flex-shrink: 0;
   display: grid;
   place-items: center;
+  overflow: visible;
+  isolation: isolate;
+}
+
+.interview-modal-loader__visual::after{
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  box-shadow: 0 10px 28px rgba(2, 8, 18, 0.34);
+  pointer-events: none;
+  z-index: 0;
 }
 
 .interview-modal-loader__ring{
@@ -15003,9 +15024,11 @@ body.agent-route-active{
   background:
     radial-gradient(circle at 50% 35%, rgba(118, 160, 205, 0.18), transparent 58%),
     linear-gradient(180deg, rgba(16, 24, 36, 0.92), rgba(8, 12, 18, 0.98));
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.05),
-    0 10px 28px rgba(2, 8, 18, 0.34);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  transform-origin: 50% 50%;
+  will-change: transform;
+  backface-visibility: hidden;
+  z-index: 0;
   animation: interviewModalLoaderSpin 4.8s linear infinite;
 }
 
@@ -15095,6 +15118,7 @@ body.agent-route-active{
 
 .agent-modal.interview-modal.interview-modal--generating .interview-modal-loader{
   padding: 12px 0;
+  overflow: visible;
 }
 
 .agent-modal.interview-modal.interview-modal--generating .ai-loader-shell{
@@ -16692,6 +16716,47 @@ body.agent-route-active{
 }
 
 .social-philosophy-trigger:active{ transform: translateY(0); }
+
+/* Chat-3 social consciousness funnel rail — amber accent */
+.agent-chat.active-chat-3 .action-plan-funnel-rail.is-social-consciousness-funnel{
+  --funnel-accent: rgba(205, 158, 57, 0.92);
+  --funnel-accent-soft: rgba(120, 88, 18, 0.22);
+}
+
+.agent-chat.active-chat-3 .action-plan-funnel-rail.is-social-consciousness-funnel .action-plan-funnel-step.is-active{
+  border-color: rgba(205, 158, 57, 0.45);
+  background: rgba(120, 88, 18, 0.16);
+}
+
+.agent-chat.active-chat-3 .action-plan-funnel-rail.is-social-consciousness-funnel .action-plan-funnel-stage-pill{
+  color: rgba(205, 158, 57, 0.95);
+  border-color: rgba(205, 158, 57, 0.28);
+  background: rgba(120, 88, 18, 0.14);
+}
+
+.agent-chat.active-chat-3 .agent-bubble.assistant.is-social-consciousness-synthesis .agent-bubble-content{
+  border-color: rgba(205, 158, 57, 0.22);
+}
+
+.social-philosophy-trigger-wrap{
+  display: flex;
+  padding: 0 12px 10px;
+  max-width: 100%;
+}
+
+main.agent-layout.is-mobile-viewport .social-philosophy-trigger-wrap{
+  padding: 0 10px calc(8px + env(safe-area-inset-bottom, 0px));
+}
+
+main.agent-layout.is-mobile-viewport .social-philosophy-trigger{
+  width: 100%;
+  justify-content: center;
+  min-height: 44px;
+}
+
+main.agent-layout.is-mobile-viewport .agent-chat.active-chat-3 .action-plan-funnel-rail.is-social-consciousness-funnel{
+  margin-inline: 8px;
+}
 
 .social-trigger-phi{
   font-size: 1rem;
@@ -19041,22 +19106,34 @@ body.agent-route-active .agent-layout.is-mobile-standalone .agent-chat-header.is
 .interview-modal.interview-modal--diagnosis .interview-modal-body,
 .interview-modal.interview-modal--diagnosis .interview-diagnosis-panel{
   max-height: min(78vh, 920px);
-  overflow: auto;
+  overflow: hidden;
 }
 
 .interview-modal.interview-modal--diagnosis .interview-diagnosis-panel{
+  display: flex;
+  flex-direction: column;
+  padding: 0 !important;
+  gap: 0 !important;
+}
+
+.interview-modal.interview-modal--diagnosis .interview-diagnosis-panel__body{
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  display: grid;
+  gap: 18px;
   padding: 0 22px 12px !important;
-  gap: 18px !important;
 }
 
 @media (max-width: 767px) {
-  .interview-modal.interview-modal--diagnosis .interview-diagnosis-panel{
+  .interview-modal.interview-modal--diagnosis .interview-diagnosis-panel__body{
     padding: 0 14px 10px !important;
     gap: 14px !important;
   }
 
-  .interview-diagnosis-actions{
-    padding-bottom: max(8px, env(safe-area-inset-bottom, 0px)) !important;
+  .interview-modal.interview-modal--diagnosis .interview-diagnosis-panel__footer{
+    padding-left: 14px;
+    padding-right: 14px;
   }
 }
 
@@ -19077,34 +19154,56 @@ body.agent-route-active .agent-layout.is-mobile-standalone .agent-chat-header.is
 .interview-diagnosis-bridge{
   padding: 16px 18px;
   border-radius: 18px;
-  border: 1px solid rgba(168, 198, 224, 0.14);
-  background: rgba(10, 18, 28, 0.42);
+  border: 1px solid rgba(198, 180, 156, 0.58);
+  background: #fffdf9;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.98);
+}
+
+.interview-modal.interview-modal--diagnosis .diagnosis-scorecard-grid{
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .interview-diagnosis-grid{
   display: grid;
   gap: 18px;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.interview-diagnosis-stack{
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
 }
 
 .interview-diagnosis-grid--lead{
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .interview-diagnosis-grid--secondary{
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
 }
 
-.interview-diagnosis-actions{
-  position: sticky;
-  bottom: 0;
-  padding-top: 8px;
-  background: linear-gradient(180deg, rgba(8, 13, 20, 0), rgba(8, 13, 20, 0.92) 28%);
+.interview-modal.interview-modal--diagnosis .interview-diagnosis-panel__footer{
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: center;
+  padding: 12px 22px calc(12px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid rgba(198, 180, 156, 0.42);
+  background: #fffdf9;
+  box-shadow: 0 -8px 20px rgba(255, 253, 249, 0.96);
+}
+
+.interview-diagnosis-panel > .interview-diagnosis-deepen-btn,
+.interview-diagnosis-panel__footer > .interview-diagnosis-deepen-btn{
+  flex: 0 0 auto;
+  z-index: 2;
 }
 
 @media (max-width: 960px) {
   .interview-diagnosis-grid--lead,
 .interview-diagnosis-grid--secondary{
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 

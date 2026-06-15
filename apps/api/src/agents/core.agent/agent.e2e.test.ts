@@ -101,7 +101,6 @@ describe('Core Agent E2E Scenarios', () => {
       },
       ui_state: {
         knowledge_score: 75,
-        context_score: 80,
       },
     };
 

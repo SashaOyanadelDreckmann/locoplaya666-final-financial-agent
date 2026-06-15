@@ -2,9 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  buildSummaryChatTurnAppend,
   isSummaryAnalysisChatStep,
   resolveAssistantMessageThread,
   selectAssistantMessagesForThread,
+  selectSummaryChatMessages,
 } from './tx-assistant-thread.helpers';
 import { getCsrfToken } from '@/lib/sesion/csrf';
 import { FINCOIN_SPEND_BLOCKED_MESSAGE } from '@/lib/compartido/fincoin-gate';
@@ -157,7 +159,7 @@ export function useTxAssistantChat(params: {
     [assistantMessages],
   );
   const summaryAssistantMessages = useMemo(
-    () => selectAssistantMessagesForThread(assistantMessages, 'summary'),
+    () => selectSummaryChatMessages(assistantMessages),
     [assistantMessages],
   );
   const highlightedMovementKeys = activeProductId
@@ -384,20 +386,14 @@ export function useTxAssistantChat(params: {
       const instantSummary = resolveInstantTransactionSummary(dashboard);
       if (!instantSummary) return false;
 
+      const summaryWelcomeText = options?.isRegeneration
+        ? 'Revisé el producto de nuevo y actualicé el resumen de abajo.'
+        : 'Ya recibí tus antecedentes. Preparé el resumen ejecutivo aquí abajo y puedo responder dudas sobre tus movimientos.';
+      const priorMessages = product.assistant?.messages ?? [];
+
       updateProductById(productId, {
         assistant: {
-          messages: [
-            ...(product.assistant?.messages ?? []),
-            {
-              id: `${Date.now()}-assistant-summary`,
-              role: 'assistant',
-              thread: 'evidence',
-              text: options?.isRegeneration
-                ? 'Revisé el producto de nuevo y actualicé el resumen de abajo.'
-                : 'Ya recibí tus antecedentes. Preparé el resumen ejecutivo aquí abajo y puedo responder dudas sobre tus movimientos.',
-              createdAt: new Date().toISOString(),
-            },
-          ],
+          messages: [...priorMessages, ...buildSummaryChatTurnAppend(priorMessages, summaryWelcomeText)],
           uploadFormat: product.assistant?.uploadFormat ?? null,
           summaryText: instantSummary,
           summaryModel: 'instant-heuristic',
@@ -484,20 +480,12 @@ export function useTxAssistantChat(params: {
           controller.signal,
         );
         if (isTxActionStale(sessionId, productId)) return;
+        const summaryWelcomeText = options?.isRegeneration
+          ? 'Revisé el producto de nuevo y actualicé el resumen de abajo.'
+          : 'Ya recibí tus antecedentes. Preparé el resumen ejecutivo aquí abajo y puedo responder dudas sobre tus movimientos.';
         updateProductById(productId, {
           assistant: {
-            messages: [
-              ...priorMessages,
-              {
-                id: `${Date.now()}-assistant-summary`,
-                role: 'assistant',
-                thread: 'evidence',
-                text: options?.isRegeneration
-                  ? 'Revisé el producto de nuevo y actualicé el resumen de abajo.'
-                  : 'Ya recibí tus antecedentes. Preparé el resumen ejecutivo aquí abajo y puedo responder dudas sobre tus movimientos.',
-                createdAt: new Date().toISOString(),
-              },
-            ],
+            messages: [...priorMessages, ...buildSummaryChatTurnAppend(priorMessages, summaryWelcomeText)],
             uploadFormat: priorUploadFormat,
             summaryText: String(response.summary ?? '').trim(),
             summaryModel: typeof response.model === 'string' ? response.model : null,

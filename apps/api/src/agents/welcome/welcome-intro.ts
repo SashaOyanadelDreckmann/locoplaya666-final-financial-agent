@@ -71,6 +71,7 @@ Devuelve SOLO JSON válido:
 }
 
 Reglas: español chileno, tú, sin emojis, sin corporativismo. wittyHook debe ser memorable y específico para ESTE usuario.
+NUNCA prometas que el agente genera, descarga ni guarda PDFs o informes: el agente entrega contenido en el chat; la exportación a PDF la hace el usuario con el botón Guardar PDF en la burbuja.
 `.trim();
 
 function buildDeterministicRead(intake: Record<string, unknown>): string {

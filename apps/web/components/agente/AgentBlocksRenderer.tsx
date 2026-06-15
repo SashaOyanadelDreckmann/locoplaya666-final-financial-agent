@@ -3,6 +3,12 @@
 import { useMemo, useState } from 'react';
 import type { AgentBlock } from '@/lib/tipos/chat';
 import { ChatTableScrollHost } from '@/components/agente/ChatTableScrollHost';
+import { TransactionChartBlockRenderer } from '@/components/transacciones/charts/TransactionChartBlockRenderer';
+import {
+  TX_CHART_MARGIN,
+  TX_CHART_X_AXIS_PADDING,
+  TX_CHART_Y_AXIS_WIDTH,
+} from '@/components/transacciones/charts/transaction-chart-layout';
 import {
   ResponsiveContainer,
   LineChart,
@@ -21,7 +27,7 @@ import {
   RETRO_CHART_COLORS,
   RETRO_GRID,
   RETRO_TICK,
-  RETRO_TOOLTIP_STYLE,
+  AGENT_CHAT_TOOLTIP_STYLE,
   RetroBarShape,
   RetroDot,
 } from '@/components/ui/retro-chart';
@@ -128,21 +134,29 @@ function QuestionnaireBlockView(props: {
                   {choice}
                 </button>
               ))}
+              {(q.allow_free_text ?? true) && (
+                <input
+                  className="agent-question-input-inline"
+                  placeholder={q.free_text_placeholder ?? 'Otro (escribe aquí)'}
+                  value={freeTexts[q.id] ?? ''}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setFreeTexts((prev) => ({
+                      ...prev,
+                      [q.id]: value,
+                    }));
+                    if (value.trim()) {
+                      setSelectedChoices((prev) => {
+                        const next = { ...prev };
+                        delete next[q.id];
+                        return next;
+                      });
+                    }
+                  }}
+                  disabled={submitted}
+                />
+              )}
             </div>
-            {(q.allow_free_text ?? true) && (
-              <input
-                className="agent-question-input"
-                placeholder={q.free_text_placeholder ?? 'Otro (escribe aquí)'}
-                value={freeTexts[q.id] ?? ''}
-                onChange={(e) =>
-                  setFreeTexts((prev) => ({
-                    ...prev,
-                    [q.id]: e.target.value,
-                  }))
-                }
-                disabled={submitted}
-              />
-            )}
           </div>
         ))}
       </div>
@@ -214,6 +228,14 @@ export function AgentBlocksRenderer({ blocks = [], onQuestionnaireSubmit }: Agen
           );
         }
 
+        if (block.type === 'tx_chart') {
+          return (
+            <section key={idx} className="agent-block agent-tx-chart-block" role="region" aria-label={block.tx_chart.title ?? 'Gráfico de transacciones'}>
+              <TransactionChartBlockRenderer block={block} />
+            </section>
+          );
+        }
+
         if (block.type === 'chart') {
           const { chart } = block;
           const chartDescId = `chart-desc-${idx}`;
@@ -229,13 +251,19 @@ export function AgentBlocksRenderer({ blocks = [], onQuestionnaireSubmit }: Agen
               >
                 <ResponsiveContainer width="100%" height={220}>
                   {chart.kind === 'bar' ? (
-                    <BarChart data={chart.data}>
+                    <BarChart data={chart.data} margin={TX_CHART_MARGIN}>
                       <CartesianGrid strokeDasharray="8 8" stroke={RETRO_GRID} />
-                      <XAxis dataKey={chart.xKey} tick={RETRO_TICK} axisLine={false} tickLine={false} />
-                      <YAxis tick={RETRO_TICK} axisLine={false} tickLine={false} />
+                      <XAxis
+                        dataKey={chart.xKey}
+                        tick={RETRO_TICK}
+                        axisLine={false}
+                        tickLine={false}
+                        padding={TX_CHART_X_AXIS_PADDING}
+                      />
+                      <YAxis tick={RETRO_TICK} axisLine={false} tickLine={false} width={TX_CHART_Y_AXIS_WIDTH} />
                       <Tooltip
                         formatter={(value) => formatValue(value as number | string, chart.format, chart.currency)}
-                        contentStyle={RETRO_TOOLTIP_STYLE}
+                        contentStyle={AGENT_CHAT_TOOLTIP_STYLE}
                       />
                       <Bar dataKey={chart.yKey} shape={<RetroBarShape />}>
                         {chart.data.map((_: unknown, pointIdx: number) => (
@@ -244,13 +272,19 @@ export function AgentBlocksRenderer({ blocks = [], onQuestionnaireSubmit }: Agen
                       </Bar>
                     </BarChart>
                   ) : chart.kind === 'area' ? (
-                    <AreaChart data={chart.data}>
+                    <AreaChart data={chart.data} margin={TX_CHART_MARGIN}>
                       <CartesianGrid strokeDasharray="8 8" stroke={RETRO_GRID} />
-                      <XAxis dataKey={chart.xKey} tick={RETRO_TICK} axisLine={false} tickLine={false} />
-                      <YAxis tick={RETRO_TICK} axisLine={false} tickLine={false} />
+                      <XAxis
+                        dataKey={chart.xKey}
+                        tick={RETRO_TICK}
+                        axisLine={false}
+                        tickLine={false}
+                        padding={TX_CHART_X_AXIS_PADDING}
+                      />
+                      <YAxis tick={RETRO_TICK} axisLine={false} tickLine={false} width={TX_CHART_Y_AXIS_WIDTH} />
                       <Tooltip
                         formatter={(value) => formatValue(value as number | string, chart.format, chart.currency)}
-                        contentStyle={RETRO_TOOLTIP_STYLE}
+                        contentStyle={AGENT_CHAT_TOOLTIP_STYLE}
                       />
                       <Area
                         type="stepAfter"
@@ -261,13 +295,19 @@ export function AgentBlocksRenderer({ blocks = [], onQuestionnaireSubmit }: Agen
                       />
                     </AreaChart>
                   ) : (
-                    <LineChart data={chart.data}>
+                    <LineChart data={chart.data} margin={TX_CHART_MARGIN}>
                       <CartesianGrid strokeDasharray="8 8" stroke={RETRO_GRID} />
-                      <XAxis dataKey={chart.xKey} tick={RETRO_TICK} axisLine={false} tickLine={false} />
-                      <YAxis tick={RETRO_TICK} axisLine={false} tickLine={false} />
+                      <XAxis
+                        dataKey={chart.xKey}
+                        tick={RETRO_TICK}
+                        axisLine={false}
+                        tickLine={false}
+                        padding={TX_CHART_X_AXIS_PADDING}
+                      />
+                      <YAxis tick={RETRO_TICK} axisLine={false} tickLine={false} width={TX_CHART_Y_AXIS_WIDTH} />
                       <Tooltip
                         formatter={(value) => formatValue(value as number | string, chart.format, chart.currency)}
-                        contentStyle={RETRO_TOOLTIP_STYLE}
+                        contentStyle={AGENT_CHAT_TOOLTIP_STYLE}
                       />
                       <Line
                         type="stepAfter"

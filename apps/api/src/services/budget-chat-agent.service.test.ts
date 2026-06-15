@@ -37,7 +37,7 @@ describe('budget-chat-agent.service', () => {
       ],
     });
 
-    const context = buildBudgetAssistantContext({ rows, intakeData: {}, products: [], chatAnswers: [] });
+    const context = buildBudgetAssistantContext({ rows, products: [], chatAnswers: [] });
     const result = await runBudgetChatAgent({
       rows,
       context,
@@ -64,7 +64,7 @@ describe('budget-chat-agent.service', () => {
       actions: [{ kind: 'update', id: 'expense_food', category: 'Alimentación', type: 'expense', amount: 180000 }],
     });
 
-    const context = buildBudgetAssistantContext({ rows, intakeData: {}, products: [], chatAnswers: [] });
+    const context = buildBudgetAssistantContext({ rows, products: [], chatAnswers: [] });
     const result = await runBudgetChatAgent({
       rows,
       context,
@@ -89,7 +89,7 @@ describe('budget-chat-agent.service', () => {
       actions: [{ kind: 'update', id: 'expense_food', category: 'Alimentación', type: 'expense', amount: 150000 }],
     });
 
-    const context = buildBudgetAssistantContext({ rows, intakeData: {}, products: [], chatAnswers: [] });
+    const context = buildBudgetAssistantContext({ rows, products: [], chatAnswers: [] });
     const result = await runBudgetChatAgent({
       rows,
       context,

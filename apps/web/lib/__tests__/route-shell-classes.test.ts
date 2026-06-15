@@ -19,7 +19,11 @@ describe('resolveRouteShellClass', () => {
 
   it('returns undefined for routes without a shell class', () => {
     expect(resolveRouteShellClass('/reset-password')).toBeUndefined();
-    expect(resolveRouteShellClass('/analytics')).toBeUndefined();
+  });
+
+  it('maps admin routes to admin shell class', () => {
+    expect(resolveRouteShellClass('/admin')).toBe('admin-route-active');
+    expect(resolveRouteShellClass('/analytics')).toBe('admin-route-active');
   });
 });
 
@@ -43,11 +47,17 @@ describe('syncRouteShellClasses', () => {
 
   it('clears route classes when navigating to an unclassified route', () => {
     syncRouteShellClasses('/');
-    syncRouteShellClasses('/analytics');
+    syncRouteShellClasses('/reset-password');
 
     for (const className of ROUTE_SHELL_CLASS_NAMES) {
       expect(document.documentElement.classList.contains(className)).toBe(false);
       expect(document.body.classList.contains(className)).toBe(false);
     }
+  });
+
+  it('applies admin route class', () => {
+    syncRouteShellClasses('/admin');
+    expect(document.documentElement.classList.contains('admin-route-active')).toBe(true);
+    expect(document.body.classList.contains('admin-route-active')).toBe(true);
   });
 });

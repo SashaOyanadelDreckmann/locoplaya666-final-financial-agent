@@ -1,13 +1,16 @@
 import type { InferredUserModel } from '../agent-types';
 import {
   resolveActionPlanFunnelStage,
+  resolveSocialConsciousnessFunnelStage,
   type ActionPlanFunnelStage,
+  type SocialConsciousnessFunnelStage,
 } from '@financial-agent/shared';
 
 type RecommendationProfile = {
   active_chat_id: string;
   specialization: 'general' | 'strategy' | 'social';
   action_plan_funnel_stage?: ActionPlanFunnelStage | null;
+  social_consciousness_funnel_stage?: SocialConsciousnessFunnelStage | null;
   risk_profile: 'conservative' | 'balanced' | 'aggressive';
   horizon_bucket: 'short' | 'medium' | 'long' | 'unknown';
   liquidity_status: 'fragile' | 'stable' | 'strong';
@@ -60,6 +63,12 @@ export function buildRecommendationProfile(params: {
 }): RecommendationProfile {
   const activeChatId = String(params.activeChatId ?? 'chat-1');
   const actionPlanFunnelStage = resolveActionPlanFunnelStage({
+    activeChatId,
+    turnCount: params.turnCount,
+    closingMode: params.closingMode,
+    userMessage: params.userMessage,
+  });
+  const socialConsciousnessFunnelStage = resolveSocialConsciousnessFunnelStage({
     activeChatId,
     turnCount: params.turnCount,
     closingMode: params.closingMode,
@@ -137,6 +146,7 @@ export function buildRecommendationProfile(params: {
     active_chat_id: activeChatId,
     specialization,
     action_plan_funnel_stage: actionPlanFunnelStage,
+    social_consciousness_funnel_stage: socialConsciousnessFunnelStage,
     risk_profile: inferredRisk,
     horizon_bucket,
     liquidity_status,

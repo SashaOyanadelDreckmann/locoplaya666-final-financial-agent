@@ -13,13 +13,20 @@ import {
 } from 'recharts';
 import type { TransactionCashflowMovement, TransactionCashflowPoint, TransactionCashflowSeries } from '@financial-agent/shared';
 
+import {
+  TX_CHART_MARGIN,
+  TX_CHART_VIEWPORT_HEIGHT,
+  TX_CHART_X_AXIS_PADDING,
+  TX_CHART_Y_AXIS_WIDTH,
+} from './transaction-chart-layout';
+
 const INCOME_COLOR = '#5b8cc0';
 const EXPENSE_COLOR = '#b4534b';
 
 type CashflowTooltipProps = {
   active?: boolean;
-  payload?: Array<{ payload?: TransactionCashflowPoint }>;
-  label?: string;
+  payload?: ReadonlyArray<{ payload?: TransactionCashflowPoint }>;
+  label?: string | number;
   formatCurrency: (value: number) => string;
 };
 
@@ -134,8 +141,8 @@ export function MovementCashflowChart(props: {
         </div>
       </div>
       <div className="tx-minimal-cashflow-chart">
-        <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={series.points} margin={{ top: 8, right: 8, left: 0, bottom: 4 }}>
+        <ResponsiveContainer width="100%" height={TX_CHART_VIEWPORT_HEIGHT} debounce={50}>
+          <ComposedChart data={series.points} margin={TX_CHART_MARGIN}>
             <defs>
               <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor={INCOME_COLOR} stopOpacity={0.28} />
@@ -143,12 +150,19 @@ export function MovementCashflowChart(props: {
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="4 4" stroke="rgba(206, 194, 176, 0.55)" vertical={false} />
-            <XAxis dataKey="dayLabel" axisLine={false} tickLine={false} tick={{ fill: '#6f6558', fontSize: 11 }} dy={6} />
+            <XAxis
+              dataKey="dayLabel"
+              axisLine={false}
+              tickLine={false}
+              tick={{ fill: '#6f6558', fontSize: 11 }}
+              dy={6}
+              padding={TX_CHART_X_AXIS_PADDING}
+            />
             <YAxis
               axisLine={false}
               tickLine={false}
               tick={{ fill: '#6f6558', fontSize: 11 }}
-              width={56}
+              width={TX_CHART_Y_AXIS_WIDTH}
               tickFormatter={(value) => compactAxisLabel(Number(value))}
             />
             <Tooltip

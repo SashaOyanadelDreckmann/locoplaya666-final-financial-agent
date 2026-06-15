@@ -52,6 +52,24 @@ function readAlignedMetrics(product: BankProduct) {
   };
 }
 
+function slimParsedDocumentsForAgentPayload(
+  docs: BankProduct['parsedDocuments'],
+): Array<{
+  documentId?: string;
+  name: string;
+  insight?: BankProduct['parsedDocuments'][number]['insight'];
+  textChars: number;
+  hasStructuredData: boolean;
+}> {
+  return (docs ?? []).map((doc) => ({
+    documentId: doc.documentId,
+    name: doc.name,
+    insight: doc.insight,
+    textChars: typeof doc.text === 'string' ? doc.text.length : 0,
+    hasStructuredData: Boolean(doc.structuredData),
+  }));
+}
+
 export function buildScopedTransactionsContext(
   products: BankProduct[],
   activeProductId: string | null,
@@ -91,7 +109,7 @@ export function buildScopedTransactionsContext(
   return {
     activeProduct: alignedActive,
     productsIndex,
-    scopedUploadedDocuments: (alignedActive?.parsedDocuments ?? []).slice(-3),
+    scopedUploadedDocuments: slimParsedDocumentsForAgentPayload(alignedActive?.parsedDocuments ?? []).slice(-3),
     scopedUploadedEvidenceFiles: (alignedActive?.uploadedFiles ?? []).slice(-6),
   };
 }

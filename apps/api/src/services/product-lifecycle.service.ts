@@ -1,11 +1,14 @@
 import type { ChatAgentInput, ChatAgentResponse } from '../agents/core.agent/chat.types';
-import { buildActionPlanFunnelDirective } from '../agents/core.agent/helpers/action-plan-funnel.helpers';
 import {
   buildChatClosureSummary,
+  buildSocialConsciousnessReportSummary,
   closingTurnForChat,
   maxTurnsForChat,
   resolveActionPlanFunnelStage,
+  resolveSocialConsciousnessFunnelStage,
 } from '@financial-agent/shared';
+import { buildActionPlanFunnelDirective } from '../agents/core.agent/helpers/action-plan-funnel.helpers';
+import { buildSocialConsciousnessFunnelDirective } from '../agents/core.agent/helpers/social-consciousness-funnel.helpers';
 
 export type ProductChatId = 'chat-1' | 'chat-2' | 'chat-3';
 
@@ -229,6 +232,7 @@ export function buildLifecycleDecision(params: {
     updatedState.chatTurns[activeChatId] >= maxTurns;
 
   const closingMode = updatedState.chatTurns[activeChatId] >= closingTurnForChat(activeChatId);
+  const userMessage = String(params.input.user_message ?? '');
 
   return {
     state: updatedState,
@@ -241,6 +245,7 @@ export function buildLifecycleDecision(params: {
       turnCount: updatedState.chatTurns[activeChatId],
       closingMode,
       hasIntake: params.hasIntake,
+      userMessage,
     }),
     closingMode,
   };
@@ -275,7 +280,10 @@ export function applyLifecycleAfterResponse(params: {
         chatId: params.activeChatId,
         title: buildReportTitle(params.activeChatId),
         createdAt: new Date().toISOString(),
-        summary: String(params.response.message ?? '').slice(0, 1200),
+        summary:
+          params.activeChatId === 'chat-3'
+            ? buildSocialConsciousnessReportSummary(String(params.response.message ?? ''))
+            : String(params.response.message ?? '').slice(0, 1200),
       },
       ...next.reports,
     ].slice(0, 20);
@@ -294,6 +302,26 @@ export function lifecycleMeta(
 ) {
   const turns = state.chatTurns[activeChatId] ?? 0;
   const turnsRemaining = Math.max(0, maxTurnsForChat(activeChatId) - turns);
+  const closingMode = turns >= closingTurnForChat(activeChatId);
+  const actionPlanStage =
+    activeChatId === 'chat-2'
+      ? resolveActionPlanFunnelStage({
+          activeChatId,
+          turnCount: turns,
+          closingMode,
+          userMessage: params?.userMessage,
+        }) ?? 'brainstorm'
+      : undefined;
+  const socialConsciousnessStage =
+    activeChatId === 'chat-3'
+      ? resolveSocialConsciousnessFunnelStage({
+          activeChatId,
+          turnCount: turns,
+          closingMode,
+          userMessage: params?.userMessage,
+        }) ?? 'explore'
+      : undefined;
+
   return {
     product_lifecycle: {
       phase: state.phase,
@@ -302,13 +330,10 @@ export function lifecycleMeta(
       closed_chats: state.closedChats,
       turn_count: turns,
       turns_remaining: turnsRemaining,
-      closing_mode: turns >= closingTurnForChat(activeChatId),
+      closing_mode: closingMode,
       reports_count: state.reports.length,
-      action_plan_funnel_stage: resolveActionPlanFunnelStage({
-        activeChatId,
-        turnCount: turns,
-        closingMode: turns >= closingTurnForChat(activeChatId),
-      }) ?? 'brainstorm',
+      action_plan_funnel_stage: actionPlanStage,
+      social_consciousness_funnel_stage: socialConsciousnessStage,
       closing_summary:
         turnsRemaining <= 0
           ? buildChatClosureSummary({
@@ -356,17 +381,20 @@ function buildSystemDirective(params: {
   turnCount: number;
   closingMode: boolean;
   hasIntake: boolean;
+  userMessage?: string;
 }) {
+  const maxTurns = maxTurnsForChat(params.activeChatId);
   const base = [
     'ARQUITECTURA DE PRODUCTO FINANCIERA MENTE:',
     'Opera como una aplicacion premium chilena, sobria, legalmente prudente y de alto valor.',
     'No prometas rentabilidades, no ejecutes decisiones por el usuario y respeta normativa CMF/SII cuando corresponda.',
-    `Chat activo: ${params.activeChatId}. Interaccion actual: ${params.turnCount + 1}/${maxTurnsForChat(params.activeChatId)}.`,
+    `Chat activo: ${params.activeChatId}. Interaccion actual: ${params.turnCount + 1}/${maxTurns}.`,
   ];
 
   if (params.closingMode) {
+    const closingTurn = closingTurnForChat(params.activeChatId);
     base.push(
-      'MODO CIERRE: desde la interaccion 30 debes conducir la conversacion hacia una conclusion util, concreta y documentable.'
+      `MODO CIERRE: desde la interaccion ${closingTurn + 1}/${maxTurns} debes conducir la conversacion hacia una conclusion util, concreta y documentable.`
     );
   }
 
@@ -387,18 +415,29 @@ function buildSystemDirective(params: {
         activeChatId: 'chat-2',
         turnCount: params.turnCount,
         closingMode: params.closingMode,
+        userMessage: params.userMessage,
       }) ?? 'brainstorm';
     base.push(
       'CHAT 2 PLAN DE ACCION: embudo conversacional — lluvia de ideas → convergencia → plan final estructurado.',
       'Usa diagnostico, presupuesto, cartolas, intake, mercado vivo y regulacion cuando aporte.',
+      'Ancla cada recomendacion a evidencia verificada; si falta un dato, dilo explicitamente en lugar de inferir.',
       'No ofrezcas correos, recordatorios externos ni automatizaciones fuera del chat.',
       buildActionPlanFunnelDirective(funnelStage),
     );
   }
 
   if (params.activeChatId === 'chat-3') {
+    const funnelStage =
+      resolveSocialConsciousnessFunnelStage({
+        activeChatId: 'chat-3',
+        turnCount: params.turnCount,
+        closingMode: params.closingMode,
+        userMessage: params.userMessage,
+      }) ?? 'explore';
     base.push(
-      'CHAT 3 CONCIENCIA SOCIAL: discute filosofia, conciencia social y finanzas con criterio regulatorio. Mantente apegado a ley, CMF y prudencia profesional.'
+      'CHAT 3 CONCIENCIA SOCIAL: modo filosofo socratico. Conecta finanzas con valores, sociedad y existencia.',
+      'No des recomendaciones financieras directas salvo peticion explicita de aterrizar a numeros o marco regulatorio.',
+      buildSocialConsciousnessFunnelDirective(funnelStage),
     );
   }
 
@@ -411,7 +450,7 @@ function buildBlockedReason(chatId: ProductChatId, state: ProductLifecycleState)
     return 'Este chat se desbloquea despues del diagnostico integrado con intake, presupuesto, cartolas y entrevista.';
   }
   if (state.closedChats.includes(chatId)) {
-    return 'Este chat ya fue cerrado y su informe quedo guardado en biblioteca.';
+    return 'Este chat ya fue cerrado. Puedes exportar el contenido con Guardar PDF y revisarlo en biblioteca.';
   }
   return `Este chat alcanzo el limite de ${maxTurnsForChat(chatId)} interacciones.`;
 }

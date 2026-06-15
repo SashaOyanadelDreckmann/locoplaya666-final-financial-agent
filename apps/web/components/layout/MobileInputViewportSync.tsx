@@ -6,6 +6,7 @@ import {
   applyMobileViewportTokens,
   engageComposerTypingLayout,
   isAuthIntakeElement,
+  isBudgetModalElement,
   isComposerDockElement,
   isMobileBrowserViewport,
   isMobileFormRouteViewport,
@@ -38,6 +39,12 @@ export default function MobileInputViewportSync() {
       scheduleInputViewportSync(el);
     };
 
+    const engageBudgetInput = (el: HTMLElement) => {
+      setMobileInputEngaged(true);
+      applyMobileViewportTokens();
+      scheduleInputViewportSync(el);
+    };
+
     const onPointerDown = (event: PointerEvent) => {
       if (event.pointerType !== 'touch' && event.pointerType !== 'pen') return;
       const target = event.target as Element | null;
@@ -50,6 +57,16 @@ export default function MobileInputViewportSync() {
         if (!isMobileBrowserViewport()) return;
         activeInput = el;
         engageTransactionsInput(el);
+        if (document.activeElement !== el) {
+          el.focus({ preventScroll: true });
+        }
+        return;
+      }
+
+      if (isBudgetModalElement(target)) {
+        if (!isMobileBrowserViewport()) return;
+        activeInput = el;
+        engageBudgetInput(el);
         if (document.activeElement !== el) {
           el.focus({ preventScroll: true });
         }
@@ -92,6 +109,12 @@ export default function MobileInputViewportSync() {
       if (isTransactionsModalElement(target)) {
         if (!isMobileBrowserViewport()) return;
         engageTransactionsInput(activeInput);
+        return;
+      }
+
+      if (isBudgetModalElement(target)) {
+        if (!isMobileBrowserViewport()) return;
+        engageBudgetInput(activeInput);
         return;
       }
 

@@ -66,6 +66,27 @@ export function sanitizeCoreAgentHistory(
   );
 }
 
+export function serializeCoreAgentRequestBody(body: CoreAgentRequestBody): string {
+  const seen = new WeakSet<object>();
+  try {
+    return JSON.stringify(body, (_key, value) => {
+      if (typeof value === 'bigint') return value.toString();
+      if (typeof value === 'function' || typeof value === 'symbol') return undefined;
+      if (value && typeof value === 'object') {
+        if (seen.has(value)) return undefined;
+        seen.add(value);
+      }
+      return value;
+    });
+  } catch (error: unknown) {
+    throw new Error(
+      error instanceof Error
+        ? `No se pudo preparar el mensaje: ${error.message}`
+        : 'No se pudo preparar el mensaje para el agente',
+    );
+  }
+}
+
 export function buildCoreAgentRequestBody(payload: CoreAgentRequestPayload): CoreAgentRequestBody {
   const { profile, user_info, history, context, stream, ...rest } = payload;
 

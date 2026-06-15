@@ -1,7 +1,7 @@
 /**
  * coherence-validator.ts
  *
- * PHASE 9: Coherence Validation Middleware
+ * PHASE 4: Coherence Validation Middleware
  * Validates every agent decision against user's profile/history
  * Used in ReAct loop to ensure recommendations are coherent
  */
@@ -325,18 +325,4 @@ function checkTimeHorizonAlignment(
   }
 
   return { warnings, score: Math.max(0.3, score) };
-}
-
-/**
- * Format validation result as user-friendly message.
- */
-export function formatValidationMessage(result: CoherenceValidationResult): string {
-  if (result.isCoherent) {
-    return `✓ Recommendation is coherent with your profile (confidence: ${(result.score * 100).toFixed(0)}%)`;
-  }
-
-  const warningText = result.warnings.length > 0 ? `\n⚠️ ${result.warnings.join('\n⚠️ ')}` : '';
-  const suggestText = result.suggestions.length > 0 ? `\n💡 ${result.suggestions.join('\n💡 ')}` : '';
-
-  return `⚠️ Low coherence (${(result.score * 100).toFixed(0)}%)${warningText}${suggestText}`;
 }

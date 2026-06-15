@@ -133,6 +133,7 @@ export function buildInterviewFinalizePromptLines(input: {
     `- máximo ${input.depth.maxKeyFindings} hallazgos`,
     `- confianza máxima permitida: ${input.depth.confidenceCeiling}`,
     '- integra SOLO intake, productos, presupuesto y síntesis provistas abajo',
+    '- PROHIBIDO modismos, slang o jerga coloquial (wea, weón, bacán, la raja, la zorra, po, cachai, etc.): redacción formal y sobria',
     '- PROHIBIDO inventar montos, productos, deudas, categorías o hechos no presentes en el material',
     '- las síntesis por minuto son orientativas; prioriza intake y contexto estructurado ante contradicciones',
     '- si la evidencia es insuficiente, decláralo explícitamente en executive_report y has_enough_information=false',

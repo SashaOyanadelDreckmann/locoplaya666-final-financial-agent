@@ -74,9 +74,10 @@ describe('budget pro mobile css safeguards', () => {
     expect(deskCss).toContain('BUDGET DESKTOP — assistant hero (Apple minimal)');
     expect(deskCss).toContain('.bcc-hero-question--gradient-demo');
     expect(deskCss).toContain('.agent-keyword-gradient');
-    expect(deskCss).toContain('--hero-keyword-blue: #52a8d9');
+    expect(deskCss).toContain('--hero-keyword-a: #ecd060');
     expect(deskCss).toContain('.bcc-hero-compose');
     expect(deskCss).toContain('.budget-chat-sync-button.is-assistant-action');
+    expect(deskCss).toContain('is-pending-confirm-action');
   });
 
   it('keeps desktop header and view nav compact and centered', () => {
@@ -161,17 +162,35 @@ describe('budget pro mobile css safeguards', () => {
     expect(source).toContain('BudgetMobileIntelSummary');
     expect(intelSource).toContain('Budget intelligence');
     expect(guardCss).toContain('is-budget-assistant-expense');
+    expect(guardCss).toContain('is-budget-assistant-neutral');
+    expect(guardCss).toContain('BUDGET — assistant keywords: olive / wine / mustard');
+    expect(guardCss).toContain('--hero-keyword-a: #b8d088');
+    expect(guardCss).toContain('--hero-keyword-a: #e8a8a8');
+    expect(guardCss).toContain('--hero-keyword-a: #ecd060');
+    expect(guardCss).toContain('.agent-keyword-gradient--s0');
+    expect(guardCss).toContain('.agent-keyword-gradient--s1');
+    expect(guardCss).toContain('.agent-keyword-gradient--s2');
     expect(guardCss).toContain('border-radius: 20px');
     expect(source).toContain('isMobileAssistantOverlay');
-    expect(source).toContain('mobileAssistantHeroToneClass');
+    expect(source).toContain('assistantToneClass={mobileAssistantHeroToneClass}');
     expect(source).toContain('budget-modal.assistant-tone');
   });
 
   it('keeps horizontal and vertical row swipe separate from view navigation on mobile', () => {
     const guardCssPath = path.join(process.cwd(), 'app', 'estilos', 'modales', 'presupuesto', 'agent-modals-budget-desktop-guard.css');
     const guardCss = fs.readFileSync(guardCssPath, 'utf8');
+    const mobileCssPath = path.join(process.cwd(), 'app', 'estilos', 'modales', 'presupuesto', 'agent-modals-budget-mobile.css');
+    const mobileCss = fs.readFileSync(mobileCssPath, 'utf8');
     const gestureSource = fs.readFileSync(
       path.join(process.cwd(), 'app', 'agent', 'modales', 'presupuesto', 'use-budget-mobile-row-gestures.ts'),
+      'utf8',
+    );
+    const viewSwipeSource = fs.readFileSync(
+      path.join(process.cwd(), 'app', 'agent', 'modales', 'presupuesto', 'use-budget-view-swipe.ts'),
+      'utf8',
+    );
+    const modalSource = fs.readFileSync(
+      path.join(process.cwd(), 'app', 'agent', 'modales', 'presupuesto', 'BudgetModal.tsx'),
       'utf8',
     );
     expect(guardCss).toContain('BUDGET MOBILE — row swipe (vertical + horizontal)');
@@ -181,6 +200,10 @@ describe('budget pro mobile css safeguards', () => {
     expect(gestureSource).toContain('dataset.budgetRowSlide');
     expect(gestureSource).toContain('is-row-swipe-dragging');
     expect(guardCss).toContain('--budget-row-swipe-x');
+    expect(mobileCss).toContain('Mobile swipe between Asistente ↔ Tabla');
+    expect(mobileCss).toContain('--budget-swipe-x');
+    expect(viewSwipeSource).toContain('shouldSkipBudgetViewSwipeHost');
+    expect(modalSource).toContain('useBudgetViewSwipe');
   });
 
   it('styles split desktop agent column with white surface and dark ink', () => {
@@ -190,10 +213,8 @@ describe('budget pro mobile css safeguards', () => {
     expect(guardCss).toContain('.mode-split > .budget-card-agent.budget-assistant-panel{');
     expect(guardCss).toContain('background: #ffffff !important');
     expect(guardCss).toContain('--budget-split-agent-ink: #171411');
-    expect(guardCss).toContain('--hero-keyword-blue: #2b63c4');
-    expect(guardCss).toContain('--hero-keyword-yellow: #d4a800');
-    expect(guardCss).toContain('--hero-keyword-red: #c73e3a');
-    expect(guardCss).toContain('.mode-split > .budget-card-agent.budget-assistant-panel .agent-keyword-gradient');
+    expect(guardCss).toContain('EOF — assistant keywords: single palette (no rainbow)');
+    expect(guardCss).toContain('background-image: none !important');
     expect(guardCss).toContain('.mode-split > .budget-card-agent.budget-assistant-panel .bcc-hero-input{');
   });
 

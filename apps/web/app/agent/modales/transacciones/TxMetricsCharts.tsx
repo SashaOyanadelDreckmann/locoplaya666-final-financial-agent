@@ -22,6 +22,12 @@ import {
   Tooltip,
   Legend,
 } from 'recharts';
+import {
+  TX_CHART_CATEGORY_Y_AXIS_WIDTH,
+  TX_CHART_MARGIN,
+  TX_CHART_X_AXIS_PADDING,
+  TX_CHART_Y_AXIS_WIDTH,
+} from '@/components/transacciones/charts/transaction-chart-layout';
 import { buildCategoryAskQuestion } from './tx-click-to-ask.helpers';
 import type { useMovementAnalytics } from './use-movement-analytics';
 
@@ -64,14 +70,22 @@ export function TxMetricsCharts({
           <h5 className="tx-ap-chart-title">Flujo financiero</h5>
           <div style={{ width: '100%', height: 200 }}>
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={flowChartData} margin={{ top: 8, right: 8, left: 0, bottom: 8 }}>
+              <BarChart data={flowChartData} margin={TX_CHART_MARGIN}>
                 <CartesianGrid strokeDasharray="8 8" stroke={RETRO_GRID} />
-                <XAxis dataKey="metric" interval={0} tick={RETRO_TICK} axisLine={false} tickLine={false} />
+                <XAxis
+                  dataKey="metric"
+                  interval={0}
+                  tick={RETRO_TICK}
+                  axisLine={false}
+                  tickLine={false}
+                  padding={TX_CHART_X_AXIS_PADDING}
+                />
                 <YAxis
                   tickFormatter={(value) => formatCurrency(Number(value))}
                   tick={RETRO_TICK}
                   axisLine={false}
                   tickLine={false}
+                  width={TX_CHART_Y_AXIS_WIDTH}
                 />
                 <Tooltip
                   formatter={(value) => formatCurrency(Number(value))}
@@ -95,7 +109,7 @@ export function TxMetricsCharts({
           <h5 className="tx-ap-chart-title">Categorías por monto</h5>
           <div style={{ width: '100%', height: 200 }}>
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={categoryChartData} layout="vertical" margin={{ top: 8, right: 8, left: 20, bottom: 8 }}>
+              <BarChart data={categoryChartData} layout="vertical" margin={TX_CHART_MARGIN}>
                 <CartesianGrid strokeDasharray="8 8" stroke={RETRO_GRID} />
                 <XAxis
                   type="number"
@@ -103,8 +117,16 @@ export function TxMetricsCharts({
                   tick={RETRO_TICK}
                   axisLine={false}
                   tickLine={false}
+                  padding={TX_CHART_X_AXIS_PADDING}
                 />
-                <YAxis dataKey="category" type="category" width={120} tick={RETRO_TICK} axisLine={false} tickLine={false} />
+                <YAxis
+                  dataKey="category"
+                  type="category"
+                  width={TX_CHART_CATEGORY_Y_AXIS_WIDTH}
+                  tick={RETRO_TICK}
+                  axisLine={false}
+                  tickLine={false}
+                />
                 <Tooltip
                   formatter={(value) => formatCurrency(Number(value))}
                   contentStyle={RETRO_TOOLTIP_STYLE}
@@ -143,7 +165,7 @@ export function TxMetricsCharts({
           <h5 className="tx-ap-chart-title">Calidad vs filas extraídas</h5>
           <div style={{ width: '100%', height: 200 }}>
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={qualityRowsChart} margin={{ top: 8, right: 8, left: 0, bottom: 8 }}>
+              <LineChart data={qualityRowsChart} margin={TX_CHART_MARGIN}>
                 <CartesianGrid strokeDasharray="8 8" stroke={RETRO_GRID} />
                 <XAxis
                   dataKey="document"
@@ -151,6 +173,7 @@ export function TxMetricsCharts({
                   tick={{ ...RETRO_TICK, fontSize: 10 }}
                   axisLine={false}
                   tickLine={false}
+                  padding={TX_CHART_X_AXIS_PADDING}
                 />
                 <YAxis
                   yAxisId="left"
@@ -159,6 +182,7 @@ export function TxMetricsCharts({
                   domain={[0, 100]}
                   axisLine={false}
                   tickLine={false}
+                  width={TX_CHART_Y_AXIS_WIDTH}
                 />
                 <YAxis
                   yAxisId="right"

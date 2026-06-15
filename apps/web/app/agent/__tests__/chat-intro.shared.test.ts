@@ -2,6 +2,7 @@
 
 import {
   buildChatIntroContent,
+  buildDiagnosisDeepenIntroContent,
   isLegacyChatIntroItem,
   repairChatIntroItems,
   resolveDiagnosisContext,
@@ -97,6 +98,20 @@ describe('chat intro shells', () => {
 
   it('seeds chat-2 when empty', () => {
     expect(shouldSeedChatIntroMessage('chat-2', [])).toBe(true);
+  });
+
+  it('builds a diagnosis deepen confirmation for chat general', () => {
+    const intro = buildDiagnosisDeepenIntroContent({
+      session: { name: 'María López' },
+      diagnosisProfile: sampleDiagnosis,
+      voiceFindings: ['La liquidez mensual está muy ajustada'],
+    });
+
+    expect(intro.title).toBe('Oxígeno financiero bajo presión');
+    expect(intro.message).toContain('ya integré tu diagnóstico completo');
+    expect(intro.message).toContain('Confirmo que tengo cargados');
+    expect(intro.message).toContain('síntesis de la entrevista');
+    expect(intro.message).toContain('Gasto discrecional vs. colchón de emergencia');
   });
 
   it('restores the Wilde epigraph and philosophical copy for chat-3', () => {

@@ -5,6 +5,7 @@
  * Validate response against user profile, budget, and constraints
  */
 
+import { resolveActionPlanFunnelStage } from '@financial-agent/shared';
 import { validateAgentDecision } from '../coherence-validator';
 import type {
   ValidatePhaseInput,
@@ -22,17 +23,41 @@ export async function runValidatePhase(input: ValidatePhaseInput): Promise<Valid
 
   try {
     input.stream?.phase('validate', 'start');
-    // Determine if validation is needed for this mode
+    const hasBudgetUpdates =
+      Array.isArray(input.formatted_response.budget_updates) &&
+      input.formatted_response.budget_updates.length > 0;
+    const activeChatId = String(
+      (input.ui_state?.active_chat as { id?: string } | undefined)?.id ?? '',
+    );
+    const chat3Philosophical =
+      activeChatId === 'chat-3' &&
+      !/\b(n[uú]mero|tasa|cmf|sii|simular|calcular|cu[aá]nto|rentabilidad|inversi[oó]n|marco regulatorio|normativa)\b/i.test(
+        String(input.user_message ?? ''),
+      );
+    const chat2DeliverStage =
+      activeChatId === 'chat-2' &&
+      resolveActionPlanFunnelStage({
+        activeChatId: 'chat-2',
+        turnCount:
+          typeof input.ui_state?.product_turn_count === 'number'
+            ? input.ui_state.product_turn_count
+            : undefined,
+        closingMode: input.ui_state?.product_closing_mode === true,
+        userMessage: input.user_message,
+      }) === 'deliver';
+
     const shouldValidate =
-      [
+      !chat3Philosophical &&
+      ([
         'decision_support',
         'planification',
         'simulation',
         'budgeting',
         'comparison',
+        'regulation',
       ].includes(input.mode) ||
-      (input.formatted_response.budget_updates &&
-        input.formatted_response.budget_updates.length > 0);
+        hasBudgetUpdates ||
+        chat2DeliverStage);
 
     if (!shouldValidate) {
       const coherence_check: CoherenceCheckResult = {
@@ -48,11 +73,8 @@ export async function runValidatePhase(input: ValidatePhaseInput): Promise<Valid
         mode: input.mode,
       });
 
-      input.stream?.phase('validate', 'done');
       return { coherence_check };
     }
-
-    // Run coherence validation
     const validation = validateAgentDecision(input.formatted_response.message, {
       profile: input.injected_profile,
       intake: input.injected_intake,
@@ -95,7 +117,6 @@ export async function runValidatePhase(input: ValidatePhaseInput): Promise<Valid
       latency_ms: Date.now() - startTime,
     });
 
-    input.stream?.phase('validate', 'done');
     return { coherence_check };
   } catch (err) {
     logger.warn({
@@ -103,7 +124,6 @@ export async function runValidatePhase(input: ValidatePhaseInput): Promise<Valid
       error: err,
     });
 
-    // Return passing validation if check fails
     const coherence_check: CoherenceCheckResult = {
       isCoherent: true,
       score: 0.8,
@@ -113,5 +133,7 @@ export async function runValidatePhase(input: ValidatePhaseInput): Promise<Valid
     };
 
     return { coherence_check };
+  } finally {
+    input.stream?.phase('validate', 'done');
   }
 }

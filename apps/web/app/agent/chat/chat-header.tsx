@@ -4,7 +4,11 @@ import {
   getClosingInteractionThreshold,
   getMaxChatInteractions,
 } from '../utilidades/page.utils';
-import { funnelStageLabel, funnelStageStepIndex } from '@financial-agent/shared';
+import {
+  CHAT_ONBOARDING_LOCKED_MESSAGE,
+  type ChatThreadAccessState,
+} from '../utilidades/chat-lifecycle.helpers';
+import { funnelStageLabel, funnelStageStepIndex, socialFunnelStageLabel, socialFunnelStageStepIndex } from '@financial-agent/shared';
 import BrandWordmark from '@/components/marca/BrandWordmark';
 import { FincoinIcon } from '@/components/marca/FincoinIcon';
 import {
@@ -19,7 +23,6 @@ type ChatThread = {
   label: string;
   name: string;
   status: 'active' | 'context';
-  contextScore: number;
   userMessageCount: number;
 };
 
@@ -36,12 +39,13 @@ export function ChatHeader(props: {
   activeChatId: string;
   setActiveChatId: (id: string) => void;
   getThreadSpecialization: (id: string) => ChatSpecialization;
-  isThreadLocked: (id: string) => boolean;
+  resolveThreadAccessState: (id: string) => ChatThreadAccessState;
   setPanelCallout: React.Dispatch<React.SetStateAction<{ section: string; message: string } | null>>;
   setKnowledgePopupOpen: React.Dispatch<React.SetStateAction<boolean>>;
   knowledgeScore: number;
   activeThread?: ChatThread;
   isActiveChatLocked: boolean;
+  isActiveChatClosed: boolean;
   activeTurnCount: number;
   diagnosisUnlocked?: boolean;
   knowledgePopupOpen: boolean;
@@ -53,6 +57,7 @@ export function ChatHeader(props: {
   cycleVisualMode: (origin?: { x: number; y: number }) => void;
   isMobileViewport: boolean;
   actionPlanFunnelStage?: 'brainstorm' | 'converge' | 'deliver' | null;
+  socialConsciousnessFunnelStage?: 'explore' | 'tension' | 'synthesis' | null;
   fincoinRemaining?: number;
   fincoinDepleted?: boolean;
   fincoinLowBalance?: boolean;
@@ -149,41 +154,57 @@ export function ChatHeader(props: {
     >
       {props.chatThreads.map((thread) => {
         const specialization = props.getThreadSpecialization(thread.id);
-        const locked = props.isThreadLocked(thread.id);
+        const accessState = props.resolveThreadAccessState(thread.id);
+        const locked = accessState === 'locked';
+        const closed = accessState === 'closed';
         return (
           <button
             key={thread.id}
             type="button"
-            className={`chat-sheet-tab ${specialization.accentClass}${thread.id === props.activeChatId ? ' is-active' : ''}${thread.status === 'context' ? ' is-context' : ''}${locked ? ' is-locked' : ''}${compact ? ' chat-sheet-tab--mobile-index' : ''}`}
+            className={`chat-sheet-tab ${specialization.accentClass}${thread.id === props.activeChatId ? ' is-active' : ''}${thread.status === 'context' || closed ? ' is-context' : ''}${locked ? ' is-locked' : ''}${closed ? ' is-closed' : ''}${compact ? ' chat-sheet-tab--mobile-index' : ''}`}
             onClick={() => {
               if (locked) {
                 props.setActiveChatId('chat-1');
                 props.setPanelCallout({
                   section: 'chat',
-                  message: 'Completa presupuesto, cartolas y entrevista para desbloquear este chat.',
+                  message: CHAT_ONBOARDING_LOCKED_MESSAGE,
                 });
                 return;
               }
               props.setActiveChatId(thread.id);
             }}
-            title={locked ? 'Bloqueado hasta completar la entrevista' : thread.status === 'context' ? `Contexto: ${thread.name}` : `Chat ${thread.label}: ${thread.name}`}
+            title={
+              locked
+                ? 'Bloqueado hasta completar la entrevista'
+                : closed
+                  ? `Chat ${thread.label} cerrado · solo lectura`
+                  : thread.status === 'context'
+                    ? `Contexto: ${thread.name}`
+                    : `Chat ${thread.label}: ${thread.name}`
+            }
             aria-disabled={locked ? true : undefined}
             aria-label={
               locked
                 ? `Chat ${thread.label} bloqueado`
-                : thread.id === props.activeChatId
-                  ? `Chat ${thread.label} activo`
-                  : `Ir al chat ${thread.label}`
+                : closed
+                  ? `Chat ${thread.label} cerrado`
+                  : thread.id === props.activeChatId
+                    ? `Chat ${thread.label} activo`
+                    : `Ir al chat ${thread.label}`
             }
           >
             <span className="chat-sheet-tab-index">{thread.label}</span>
             {!compact ? (
               <span className="chat-sheet-tab-copy">
                 <span className="chat-sheet-tab-title">
-                  {locked ? 'Bloqueado' : thread.status === 'context' ? 'Síntesis' : specialization.title}
+                  {locked ? 'Bloqueado' : closed || thread.status === 'context' ? 'Síntesis' : specialization.title}
                 </span>
                 <span className="chat-sheet-tab-subtitle">
-                  {locked ? 'Completa entrevista' : thread.status === 'context' ? 'Contexto consolidado' : specialization.subtitle}
+                  {locked
+                    ? 'Completa entrevista'
+                    : closed || thread.status === 'context'
+                      ? 'Resumen y historial'
+                      : specialization.subtitle}
                 </span>
               </span>
             ) : null}
@@ -230,30 +251,93 @@ export function ChatHeader(props: {
       : 'chat-subtitle-1'
   }`;
 
+  const showActionPlanFunnel =
+    props.activeChatId === 'chat-2' &&
+    !props.isActiveChatLocked &&
+    !props.isActiveChatClosed &&
+    Boolean(props.actionPlanFunnelStage);
+
+  const showSocialConsciousnessFunnel =
+    props.activeChatId === 'chat-3' &&
+    !props.isActiveChatLocked &&
+    !props.isActiveChatClosed &&
+    Boolean(props.socialConsciousnessFunnelStage);
+
+  const actionPlanFunnelRail = showActionPlanFunnel ? (
+    <div
+      className={`action-plan-funnel-rail${props.isMobileViewport ? ' action-plan-funnel-rail--header-integrated' : ''}`}
+      role="status"
+      aria-label="Progreso del plan de accion"
+    >
+      {[1, 2, 3].map((step) => {
+        const current = funnelStageStepIndex(props.actionPlanFunnelStage!);
+        const done = step < current;
+        const active = step === current;
+        const labels = ['Ideas', 'Convergencia', 'Plan ejecutivo'];
+        return (
+          <div
+            key={step}
+            className={`action-plan-funnel-step${done ? ' is-done' : ''}${active ? ' is-active' : ''}`}
+          >
+            <span className="action-plan-funnel-step-index">{step}</span>
+            <span className="action-plan-funnel-step-label">{labels[step - 1]}</span>
+          </div>
+        );
+      })}
+      <span className="action-plan-funnel-stage-pill">{funnelStageLabel(props.actionPlanFunnelStage!)}</span>
+    </div>
+  ) : null;
+
+  const socialConsciousnessFunnelRail = showSocialConsciousnessFunnel ? (
+    <div
+      className={`action-plan-funnel-rail is-social-consciousness-funnel${props.isMobileViewport ? ' action-plan-funnel-rail--header-integrated' : ''}`}
+      role="status"
+      aria-label="Progreso de conciencia social"
+    >
+      {[1, 2, 3].map((step) => {
+        const current = socialFunnelStageStepIndex(props.socialConsciousnessFunnelStage!);
+        const done = step < current;
+        const active = step === current;
+        const labels = ['Exploración', 'Tensión', 'Síntesis'];
+        return (
+          <div
+            key={step}
+            className={`action-plan-funnel-step${done ? ' is-done' : ''}${active ? ' is-active' : ''}`}
+          >
+            <span className="action-plan-funnel-step-index">{step}</span>
+            <span className="action-plan-funnel-step-label">{labels[step - 1]}</span>
+          </div>
+        );
+      })}
+      <span className="action-plan-funnel-stage-pill">
+        {socialFunnelStageLabel(props.socialConsciousnessFunnelStage!)}
+      </span>
+    </div>
+  ) : null;
+
+  const showFunnelRail = showActionPlanFunnel || showSocialConsciousnessFunnel;
+
   return (
     <header
-      className={`agent-chat-header${props.isMobileViewport ? ' is-mobile is-mobile-single-row' : ''}`}
+      className={`agent-chat-header${props.isMobileViewport ? ' is-mobile is-mobile-single-row' : ''}${showFunnelRail ? ' has-action-plan-funnel' : ''}`}
     >
       {props.isMobileViewport ? (
-        <div className="chat-mobile-toolbar-row">
-          <h1 className="chat-mobile-brand-heading chat-mobile-brand-heading--compact">{brandTitleButton}</h1>
-          <div className="chat-mobile-toolbar-actions">
-            {chatSwitcher(true)}
-            {monochromeToggle}
+        <div className="chat-mobile-header-stack">
+          <div className="chat-mobile-toolbar-row">
+            <h1 className="chat-mobile-brand-heading chat-mobile-brand-heading--compact">{brandTitleButton}</h1>
+            <div className="chat-mobile-toolbar-actions">
+              {chatSwitcher(true)}
+              {monochromeToggle}
+            </div>
           </div>
+          {actionPlanFunnelRail}
+          {socialConsciousnessFunnelRail}
         </div>
       ) : (
         <>
           <div className="agent-chat-controls-row">
             {chatSwitcher()}
             {monochromeToggle}
-            {props.activeThread && props.activeThread.contextScore > 0 && (
-              <div className="sheet-context-bar" title={`Contexto: ${props.activeThread.contextScore}%`}>
-                <div className="sheet-context-fill" style={{ width: `${props.activeThread.contextScore}%` }} />
-                <span className="sheet-context-label">{props.activeThread.contextScore}% contexto</span>
-                {props.activeThread.contextScore >= 80 && <span className="sheet-context-badge">Rico</span>}
-              </div>
-            )}
           </div>
           <div className="chat-brand-strip">
             <div className="chat-brand-action-row">
@@ -261,29 +345,11 @@ export function ChatHeader(props: {
               <p className={subtitleClassName}>{activeHandSubtitle}</p>
             </div>
           </div>
+          {actionPlanFunnelRail}
+          {socialConsciousnessFunnelRail}
         </>
       )}
       <p className="muted" />
-      {props.activeChatId === 'chat-2' && !props.isActiveChatLocked && props.actionPlanFunnelStage && (
-        <div className="action-plan-funnel-rail" role="status" aria-label="Progreso del plan de accion">
-          {[1, 2, 3].map((step) => {
-            const current = funnelStageStepIndex(props.actionPlanFunnelStage!);
-            const done = step < current;
-            const active = step === current;
-            const labels = ['Ideas', 'Convergencia', 'Plan ejecutivo'];
-            return (
-              <div
-                key={step}
-                className={`action-plan-funnel-step${done ? ' is-done' : ''}${active ? ' is-active' : ''}`}
-              >
-                <span className="action-plan-funnel-step-index">{step}</span>
-                <span className="action-plan-funnel-step-label">{labels[step - 1]}</span>
-              </div>
-            );
-          })}
-          <span className="action-plan-funnel-stage-pill">{funnelStageLabel(props.actionPlanFunnelStage)}</span>
-        </div>
-      )}
       {props.fincoinDepleted ? (
         <div className="fincoin-depleted-banner" role="status">
           Fincoins agotados: el agente quedó en pausa. Puedes revisar los resúmenes finales, pero no se procesan nuevas solicitudes con costo.
@@ -298,7 +364,13 @@ export function ChatHeader(props: {
           Este chat se desbloquea después de cerrar la entrevista. Sigue en el Chat 1 con presupuesto, cartolas y entrevista breve.
         </div>
       )}
+      {props.isActiveChatClosed && (
+        <div className="product-flow-banner" role="status">
+          Este chat cerró su ventana de interacciones. Revisa el resumen, el historial completo o exporta con Guardar PDF.
+        </div>
+      )}
       {!props.isActiveChatLocked &&
+        !props.isActiveChatClosed &&
         props.activeTurnCount >= getClosingInteractionThreshold(props.activeThread?.id) && (
         <div className="product-flow-banner" role="status">
           Modo cierre activo: te quedan {formatRemainingInteractions(props.activeTurnCount, props.activeThread?.id)} antes del tope de {getMaxChatInteractions(props.activeThread?.id)}.

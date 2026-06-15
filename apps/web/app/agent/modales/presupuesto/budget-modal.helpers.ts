@@ -7,23 +7,6 @@ export const DEFAULT_BUDGET_TABLE_STYLE: BudgetTableStyleId = 'carbon';
 export type BudgetModalAssistantContextInput = {
   budgetRows: BudgetRow[];
   chatAnswers: Array<{ q: string; a: string }>;
-  bankProducts?: Array<{
-    label: string;
-    bank: string;
-    productType: string;
-    dashboardSummary?: string;
-    keyMetrics?: {
-      inflows_total?: number;
-      outflows_total?: number;
-      net_flow?: number;
-      movement_count?: number;
-    };
-    topCategories?: Array<{ name: string; amount: number }>;
-    alerts?: string[];
-  }>;
-  sessionInfo?: {
-    injectedIntake?: { intake?: Record<string, unknown>; intakeContext?: string } | null;
-  } | null;
 };
 
 export const BUDGET_TABLE_STYLES: Array<{ id: BudgetTableStyleId; label: string }> = [

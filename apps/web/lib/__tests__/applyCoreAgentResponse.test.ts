@@ -12,7 +12,6 @@ describe('applyCoreAgentResponse', () => {
     const response: AgentResponse = {
       message: 'Listo',
       mode: 'information',
-      context_score: 42,
       budget_updates: [{ label: 'Arriendo', type: 'expense', amount: 450000 }],
       meta: {
         product_lifecycle: {
@@ -29,7 +28,6 @@ describe('applyCoreAgentResponse', () => {
     };
 
     const effects = extractCoreAgentSideEffects(response);
-    expect(effects.contextScore).toBe(42);
     expect(effects.budgetUpdates).toHaveLength(1);
     expect(effects.productLifecyclePatch?.phase).toBe('post_diagnosis');
     expect(effects.productLifecyclePatch?.chatTurns).toEqual({ 'chat-2': 3 });
@@ -92,6 +90,34 @@ describe('applyCoreAgentResponse', () => {
     );
   });
 
+  it('preserves streamed text when format phase returns safe fallback', () => {
+    const items = applyCoreAgentResponseToItems({
+      items: [
+        { type: 'message', role: 'user', content: 'hola' },
+        {
+          type: 'message',
+          role: 'assistant',
+          content: 'Respuesta real generada durante el stream',
+          stream: { tools: [], streaming: false, startedAt: 1, phaseStatus: 'done' },
+        },
+      ],
+      response: {
+        message:
+          'Preparé una respuesta base con los resultados disponibles. Si quieres, la refinamos en el siguiente mensaje.',
+        mode: 'information',
+      },
+    });
+
+    expect(
+      items.some(
+        (item) =>
+          item.type === 'message' &&
+          item.role === 'assistant' &&
+          item.content === 'Respuesta real generada durante el stream',
+      ),
+    ).toBe(true);
+  });
+
   it('preserves streamed text when final payload message is empty', () => {
     const items = applyCoreAgentResponseToItems({
       items: [
@@ -135,7 +161,7 @@ describe('applyCoreAgentResponse', () => {
       response: {
         message: 'Hola, bienvenido. Soy tu agente financiero personal en Chile.',
         mode: 'information',
-        citations: [{ doc_title: 'CMF', url: 'https://cmf.cl' }],
+        citations: [{ title: 'CMF', source: 'CMF', url: 'https://cmf.cl' }],
       },
     });
 

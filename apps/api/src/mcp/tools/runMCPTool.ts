@@ -3,6 +3,13 @@ import type { ToolCall } from './toolcall.types';
 import { getTool, listTools } from './registry';
 import { bootstrapMCP } from '../bootstrap';
 import { isCoreAgentExcludedTool } from '../core-agent-tools';
+import {
+  toSerfFromIssues,
+  toSerfFromUnknown,
+  toSerfToolError,
+  withToolTimeout,
+} from '../tool-governance';
+import { ToolError } from '../security/error';
 
 export async function runMCPTool(input: {
   tool: string;
@@ -13,7 +20,6 @@ export async function runMCPTool(input: {
 }): Promise<ToolResult> {
   const startedAt = Date.now();
 
-  // Lazy bootstrap
   bootstrapMCP();
 
   const toolName = String(input.tool || '');
@@ -51,65 +57,23 @@ export async function runMCPTool(input: {
         error_message: `Tool not found: ${toolName}`,
         latency_ms: Date.now() - startedAt,
       },
-      data: { ok: false, error: 'tool_not_found', tool: toolName },
+      data: {
+        ok: false,
+        error: 'tool_not_found',
+        tool: toolName,
+        suggested_action: 'Usa solo herramientas registradas en el catálogo MCP.',
+      },
     };
   }
 
-  // ──────────────────────────────
-  // Validación de argumentos
-  // ──────────────────────────────
-  if (tool.argsSchema) {
-    const parsed = tool.argsSchema.safeParse(input.args ?? {});
-    if (!parsed.success) {
-      return {
-        tool_call: {
-          ...baseCall,
-          status: 'error',
-          error_message: 'Invalid tool args',
-          latency_ms: Date.now() - startedAt,
-        },
-        data: { ok: false, error: 'invalid_args', issues: parsed.error.issues },
-      };
-    }
-
-    try {
-      const out = await tool.run(parsed.data, {
+  const runValidated = async (args: Record<string, unknown>): Promise<ToolResult> => {
+    const out = await withToolTimeout(toolName, () =>
+      tool.run(args, {
         ...(input.ctx ?? {}),
         user_id: input.user_id,
         turn_id: input.turn_id,
-      });
-
-      out.tool_call = {
-        ...baseCall,
-        ...out.tool_call,
-        id: out.tool_call?.id ?? baseCall.id,
-        latency_ms: Date.now() - startedAt,
-        status: out.tool_call?.status ?? 'success',
-      };
-
-      return out;
-    } catch (e: unknown) {
-      return {
-        tool_call: {
-          ...baseCall,
-          status: 'error',
-          error_message: e ? String(e) : 'Tool execution failed',
-          latency_ms: Date.now() - startedAt,
-        },
-        data: { ok: false, error: 'execution_failed' },
-      };
-    }
-  }
-
-  // ──────────────────────────────
-  // Best effort (no recomendado)
-  // ──────────────────────────────
-  try {
-    const out = await tool.run(input.args ?? {}, {
-      ...(input.ctx ?? {}),
-      user_id: input.user_id,
-      turn_id: input.turn_id,
-    });
+      }),
+    );
 
     out.tool_call = {
       ...baseCall,
@@ -120,15 +84,51 @@ export async function runMCPTool(input: {
     };
 
     return out;
+  };
+
+  if (tool.argsSchema) {
+    const parsed = tool.argsSchema.safeParse(input.args ?? {});
+    if (!parsed.success) {
+      const serf = toSerfFromIssues(toolName, parsed.error.issues);
+      return {
+        tool_call: {
+          ...baseCall,
+          status: 'error',
+          error_message: serf.error.message,
+          latency_ms: Date.now() - startedAt,
+        },
+        data: { ...serf, issues: parsed.error.issues },
+      };
+    }
+
+    try {
+      return await runValidated(parsed.data as Record<string, unknown>);
+    } catch (e: unknown) {
+      const serf = e instanceof ToolError ? toSerfToolError(toolName, e) : toSerfFromUnknown(toolName, e);
+      return {
+        tool_call: {
+          ...baseCall,
+          status: 'error',
+          error_message: serf.error.message,
+          latency_ms: Date.now() - startedAt,
+        },
+        data: serf,
+      };
+    }
+  }
+
+  try {
+    return await runValidated((input.args ?? {}) as Record<string, unknown>);
   } catch (e: unknown) {
+    const serf = e instanceof ToolError ? toSerfToolError(toolName, e) : toSerfFromUnknown(toolName, e);
     return {
       tool_call: {
         ...baseCall,
         status: 'error',
-        error_message: e ? String(e) : 'Tool execution failed',
+        error_message: serf.error.message,
         latency_ms: Date.now() - startedAt,
       },
-      data: { ok: false, error: 'execution_failed' },
+      data: serf,
     };
   }
 }

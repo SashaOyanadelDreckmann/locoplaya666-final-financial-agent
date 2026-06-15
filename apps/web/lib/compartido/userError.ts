@@ -141,6 +141,9 @@ export function toUserFacingError(error: unknown, context: ErrorContext = 'gener
       if (context === 'interview.voice' && joinedLower.includes('realtime voice is not configured')) {
         return 'La llamada en tiempo real no está configurada en este entorno.';
       }
+      if (context === 'chat.send' && joinedLower.includes('csrf')) {
+        return 'No pude procesar tu mensaje ahora. Inténtalo nuevamente en unos segundos.';
+      }
       return 'No tienes permisos para realizar esta acción.';
     }
 
@@ -191,4 +194,24 @@ export function toUserFacingError(error: unknown, context: ErrorContext = 'gener
     return 'No pudimos guardar tu formulario por ahora. Intenta nuevamente.';
   }
   return 'Ocurrió un error inesperado. Intenta nuevamente.';
+}
+
+/** Dev-only detail appended to chat.send errors for LAN/mobile debugging. */
+export function formatChatSendError(error: unknown): string {
+  const friendly = toUserFacingError(error, 'chat.send');
+  if (process.env.NODE_ENV === 'production') return friendly;
+
+  if (error instanceof ApiHttpError) {
+    const code = error.code ? ` ${error.code}` : '';
+    return `${friendly} [dev HTTP ${error.status}${code}]`;
+  }
+
+  if (error instanceof Error && error.message.trim()) {
+    const detail = error.message.trim().slice(0, 140);
+    if (detail.toLowerCase() !== friendly.toLowerCase()) {
+      return `${friendly} [dev: ${detail}]`;
+    }
+  }
+
+  return friendly;
 }

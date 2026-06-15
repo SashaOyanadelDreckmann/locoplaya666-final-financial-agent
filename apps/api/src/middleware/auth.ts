@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
-import { hasPermission, type Permission } from '../auth/rbac';
+import { hasPermission, USER_ROLES, type Permission, type UserRole } from '../auth/rbac';
 import { accountPendingApproval, accountRejected, unauthorized, forbidden } from '../http/api.errors';
 import {
   getSessionCookieName,
@@ -71,3 +71,24 @@ export function requirePermission(permission: Permission) {
     }
   };
 }
+
+export function requireRole(...roles: UserRole[]) {
+  return async (req: Request, _res: Response, next: NextFunction) => {
+    try {
+      const user = req.authenticatedUser;
+      if (!user) {
+        throw unauthorized('Not authenticated');
+      }
+
+      if (!roles.includes(user.role)) {
+        throw forbidden('Insufficient role');
+      }
+
+      next();
+    } catch (error) {
+      next(error);
+    }
+  };
+}
+
+export const requireAdminRole = requireRole(USER_ROLES.ADMIN);

@@ -77,16 +77,27 @@ describe('chat 1 UX state', () => {
     expect(getChat1UxCopy(state).threadKicker).toBe('Entrevista');
   });
 
-  it('promotes to general only when the diagnosis is completed', () => {
-    const state = resolveChat1UxState({
+  it('promotes to general only after deepen in chat', () => {
+    const completedOnly = resolveChat1UxState({
       chatId: 'chat-1',
       diagnosisCompleted: true,
+      generalChatStarted: false,
       canOpenInterview: true,
     });
 
-    expect(state).toBe('diagnosisCompleted');
-    expect(getChat1UxCopy(state).title).toBe('Chat general');
-    expect(getChat1UxCopy(state).subtitle).toBe('chat general');
+    expect(completedOnly).toBe('interviewAvailable');
+    expect(getChat1UxCopy(completedOnly).title).toBe('Diagnóstico');
+
+    const general = resolveChat1UxState({
+      chatId: 'chat-1',
+      diagnosisCompleted: true,
+      generalChatStarted: true,
+      canOpenInterview: true,
+    });
+
+    expect(general).toBe('diagnosisCompleted');
+    expect(getChat1UxCopy(general).title).toBe('Chat general');
+    expect(getChat1UxCopy(general).subtitle).toBe('chat general');
   });
 });
 

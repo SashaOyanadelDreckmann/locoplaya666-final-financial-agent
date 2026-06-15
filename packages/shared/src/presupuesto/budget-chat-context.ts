@@ -9,12 +9,24 @@ import {
 
 export type BudgetChatTurn = { q: string; a: string };
 
+import {
+  buildBudgetMovementLedgers,
+  budgetProductTypeLabel,
+  type BudgetMovementRecord,
+  type BudgetProductMovementLedger,
+} from './budget-movement-feed';
+
+export type { BudgetMovementRecord, BudgetProductMovementLedger };
+
 export type BudgetProductSnapshot = {
+  productId?: string;
   label?: string;
   bank?: string;
   productType?: string;
-  dashboardSummary?: string;
-  alerts?: string[];
+  period?: { from?: string; to?: string };
+  evidenceFidelity?: 'authoritative' | 'indicative';
+  movements?: BudgetMovementRecord[];
+  /** Legacy aggregate fallback when movements[] is empty */
   topCategories?: Array<{ name: string; amount: number }>;
   keyMetrics?: {
     inflows_total?: number;
@@ -22,16 +34,6 @@ export type BudgetProductSnapshot = {
     net_flow?: number;
     movement_count?: number;
   };
-};
-
-export type BudgetIntakeSnapshot = {
-  age?: unknown;
-  employmentStatus?: string;
-  exactMonthlyIncome?: number;
-  incomeBand?: string;
-  hasDebt?: boolean;
-  hasSavingsOrInvestments?: boolean;
-  intakeContext?: string;
 };
 
 export type RowTransactionHint = {
@@ -53,11 +55,11 @@ export type BudgetRowSuggestion = {
 };
 
 export type BudgetAssistantContext = {
-  intake: BudgetIntakeSnapshot;
   products: BudgetProductSnapshot[];
+  movementLedgers: BudgetProductMovementLedger[];
   chatAnswers: BudgetChatTurn[];
   rowHints: Map<string, RowTransactionHint>;
-  unmappedCategories: Array<{ name: string; amount: number; sourceLabel: string }>;
+  unmappedCategories: Array<{ name: string; amount: number; sourceLabel: string; productId: string }>;
   totalInflows: number;
   totalOutflows: number;
   discussedRowIds: Set<string>;
@@ -165,47 +167,27 @@ function mergeRowHint(
   existing.confidence = existing.matchedCategories.length >= 2 || existing.sourceLabels.length >= 2 ? 'high' : 'medium';
 }
 
-export function summarizeBudgetIntake(value: unknown, intakeContext?: string | null): BudgetIntakeSnapshot {
-  if (!value || typeof value !== 'object') {
-    return { intakeContext: intakeContext?.trim() || undefined };
-  }
-  const data = value as Record<string, unknown>;
-  return {
-    age: data.age,
-    employmentStatus: typeof data.employmentStatus === 'string' ? data.employmentStatus : undefined,
-    exactMonthlyIncome:
-      typeof data.exactMonthlyIncome === 'number' && Number.isFinite(data.exactMonthlyIncome)
-        ? Math.max(0, Math.round(data.exactMonthlyIncome))
-        : undefined,
-    incomeBand: typeof data.incomeBand === 'string' ? data.incomeBand : undefined,
-    hasDebt: typeof data.hasDebt === 'boolean' ? data.hasDebt : undefined,
-    hasSavingsOrInvestments:
-      typeof data.hasSavingsOrInvestments === 'boolean' ? data.hasSavingsOrInvestments : undefined,
-    intakeContext: intakeContext?.trim() || undefined,
-  };
-}
-
 export function buildBudgetAssistantContext(input: {
   rows: BudgetRow[];
-  intakeData: unknown;
-  intakeContext?: string | null;
   products: BudgetProductSnapshot[];
   chatAnswers: BudgetChatTurn[];
 }): BudgetAssistantContext {
-  const intake = summarizeBudgetIntake(input.intakeData, input.intakeContext);
-  const products = input.products.slice(0, 4);
+  const products = input.products.slice(0, 8);
+  const movementLedgers = buildBudgetMovementLedgers(products);
   const chatAnswers = input.chatAnswers.slice(-12);
   const rowHints = new Map<string, RowTransactionHint>();
-  const unmappedCategories: Array<{ name: string; amount: number; sourceLabel: string }> = [];
+  const unmappedCategories: Array<{ name: string; amount: number; sourceLabel: string; productId: string }> = [];
   let totalInflows = 0;
   let totalOutflows = 0;
 
-  for (const product of products) {
-    const sourceLabel = [product.bank, product.label].filter(Boolean).join(' · ') || 'movimientos';
-    totalInflows += Math.max(0, Math.round(Number(product.keyMetrics?.inflows_total ?? 0)));
-    totalOutflows += Math.max(0, Math.round(Number(product.keyMetrics?.outflows_total ?? 0)));
+  for (const ledger of movementLedgers) {
+    const sourceLabel = [ledger.bank, ledger.label, budgetProductTypeLabel(ledger.productType)]
+      .filter(Boolean)
+      .join(' · ');
+    totalInflows += ledger.totals.inflows;
+    totalOutflows += ledger.totals.outflows;
 
-    for (const category of product.topCategories ?? []) {
+    for (const category of ledger.categoryTotals) {
       const name = normalizeCategoryLabel(category.name);
       const amount = Math.max(0, Math.round(Number(category.amount ?? 0)));
       if (!name || amount <= 0) continue;
@@ -213,7 +195,7 @@ export function buildBudgetAssistantContext(input: {
       if (rowId) {
         mergeRowHint(rowHints, rowId, name, amount, sourceLabel);
       } else {
-        unmappedCategories.push({ name, amount, sourceLabel });
+        unmappedCategories.push({ name, amount, sourceLabel, productId: ledger.productId });
       }
     }
   }
@@ -222,9 +204,9 @@ export function buildBudgetAssistantContext(input: {
     rowHints.set('income_salary', {
       rowId: 'income_salary',
       estimatedMonthly: totalInflows,
-      matchedCategories: ['Abonos / ingresos'],
-      sourceLabels: products.map((p) => p.label).filter(Boolean) as string[],
-      confidence: totalInflows > 0 ? 'medium' : 'low',
+      matchedCategories: ['Abonos / ingresos detectados'],
+      sourceLabels: movementLedgers.map((ledger) => `${ledger.label} (${budgetProductTypeLabel(ledger.productType)})`),
+      confidence: movementLedgers.some((ledger) => ledger.movements.length > 0) ? 'high' : 'medium',
     });
   }
 
@@ -237,8 +219,8 @@ export function buildBudgetAssistantContext(input: {
   }
 
   return {
-    intake,
     products,
+    movementLedgers,
     chatAnswers,
     rowHints,
     unmappedCategories,
@@ -261,28 +243,9 @@ export function getChatMemoryForRow(context: BudgetAssistantContext, rowId: stri
   return null;
 }
 
-function incomeBandHint(band?: string): number | null {
-  if (!band) return null;
-  const normalized = band.toLowerCase();
-  if (/menos|bajo|800|600/.test(normalized)) return 650_000;
-  if (/800|1[\s.,]?2|medio/.test(normalized)) return 1_000_000;
-  if (/1[\s.,]?5|2[\s.,]?0|alto/.test(normalized)) return 1_750_000;
-  if (/2[\s.,]?5|3|premium|executive/.test(normalized)) return 2_800_000;
-  return null;
-}
 
 function rowHintFor(context: BudgetAssistantContext, rowId: string): RowTransactionHint | null {
   return context.rowHints.get(canonicalBudgetRowId(rowId)) ?? null;
-}
-
-function intakeSnippet(context: BudgetAssistantContext): string | null {
-  const parts: string[] = [];
-  if (context.intake.employmentStatus) parts.push(`trabajas como ${context.intake.employmentStatus}`);
-  if (context.intake.hasDebt) parts.push('declaraste deuda');
-  if (context.intake.hasSavingsOrInvestments) parts.push('tienes ahorro o inversiones');
-  const narrative = context.intake.intakeContext?.trim();
-  if (narrative) return narrative.slice(0, 140);
-  return parts.length > 0 ? `En tu perfil ${parts.slice(0, 2).join(' y ')}.` : null;
 }
 
 export type BudgetRowFieldGap = 'category' | 'amount' | 'cadence' | 'paymentMethod' | 'movementType';
@@ -377,17 +340,10 @@ export function buildBudgetAmountQuestion(row: BudgetRow, context: BudgetAssista
 
   switch (row.id) {
     case 'income_salary': {
-      const intakeAmount = context.intake.exactMonthlyIncome;
       const txAmount = hint?.estimatedMonthly ?? (context.totalInflows > 0 ? context.totalInflows : null);
-      const bandAmount = incomeBandHint(context.intake.incomeBand);
-      const reference = intakeAmount ?? txAmount ?? bandAmount;
+      const reference = txAmount;
       if (reference && reference > 0) {
-        const source =
-          intakeAmount != null
-            ? 'tu perfil'
-            : txAmount != null
-              ? `tus movimientos${hint?.sourceLabels[0] ? ` (${hint.sourceLabels[0]})` : ''}`
-              : 'tu banda de ingreso';
+        const source = `tus movimientos${hint?.sourceLabels[0] ? ` (${hint.sourceLabels[0]})` : ''}`;
         return `Para «${category}», según ${source} ronda $${formatBudgetClp(reference)}. ¿Cuál es el monto mensual?`;
       }
       break;
@@ -541,9 +497,6 @@ function rowPriorityScore(row: BudgetRow, context: BudgetAssistantContext): numb
   if (amount > 0) return -1;
   const hint = rowHintFor(context, row.id);
   let score = hint?.estimatedMonthly ?? 0;
-  if (context.intake.hasDebt && row.id === 'expense_debt') score += 250_000;
-  if (context.intake.hasSavingsOrInvestments && row.id === 'expense_savings') score += 120_000;
-  if (context.intake.exactMonthlyIncome && row.id === 'income_salary') score += 500_000;
   if (context.discussedRowIds.has(row.id)) score *= 0.35;
   const coreIndex = CORE_ROW_ORDER.indexOf(row.id as (typeof CORE_ROW_ORDER)[number]);
   if (coreIndex >= 0) score += (CORE_ROW_ORDER.length - coreIndex) * 1000;
@@ -667,11 +620,13 @@ export function buildContextualInitReply(
   context: BudgetAssistantContext,
 ): string {
   const introParts: string[] = [];
-  const profileLine = intakeSnippet(context);
-  if (profileLine) introParts.push(profileLine);
-  if (context.products.length > 0 && context.totalOutflows > 0) {
+  if (
+    context.movementLedgers.length > 0 &&
+    (context.totalOutflows > 0 || context.totalInflows > 0)
+  ) {
+    const productCount = context.movementLedgers.length;
     introParts.push(
-      `Tus movimientos muestran gastos por ~$${formatBudgetClp(context.totalOutflows)}${context.totalInflows > 0 ? ` e ingresos por ~$${formatBudgetClp(context.totalInflows)}` : ''}.`,
+      `Detecté ${context.movementLedgers.reduce((sum, ledger) => sum + ledger.totals.movementCount, 0)} movimientos en ${productCount} producto${productCount === 1 ? '' : 's'}: gastos ~$${formatBudgetClp(context.totalOutflows)}${context.totalInflows > 0 ? ` e ingresos ~$${formatBudgetClp(context.totalInflows)}` : ''}.`,
     );
   }
   const suggestion = buildBudgetRowSuggestions(rows, context)[0];
@@ -748,10 +703,9 @@ export function resolveBudgetAffirmativeAmount(input: {
   if (memoryAmount && memoryAmount > 0) return memoryAmount;
 
   if (canonicalId === 'income_salary') {
-    const intakeAmount = input.context.intake.exactMonthlyIncome;
-    if (intakeAmount && intakeAmount > 0) return intakeAmount;
-    const bandAmount = incomeBandHint(input.context.intake.incomeBand);
-    if (bandAmount && bandAmount > 0) return bandAmount;
+    const hint = rowHintFor(input.context, canonicalId);
+    if (hint && hint.estimatedMonthly > 0) return hint.estimatedMonthly;
+    if (input.context.totalInflows > 0) return input.context.totalInflows;
   }
 
   const hint = rowHintFor(input.context, canonicalId);
@@ -771,10 +725,7 @@ export function buildContextualAdviceReply(context: BudgetAssistantContext, rows
   if (context.totalOutflows > context.totalInflows && context.totalInflows > 0) {
     return `Tus movimientos muestran más salidas ($${formatBudgetClp(context.totalOutflows)}) que entradas ($${formatBudgetClp(context.totalInflows)}). Conviene priorizar vivienda, deuda y gastos variables.`;
   }
-  const profileLine = intakeSnippet(context);
-  return profileLine
-    ? `${profileLine} Sigamos completando rubros vacíos para cerrar un presupuesto accionable.`
-    : 'Sigamos completando rubros vacíos para cerrar un presupuesto accionable.';
+  return 'Sigamos completando rubros vacíos para cerrar un presupuesto accionable.';
 }
 
 export type BudgetWriterTurn =
@@ -1010,28 +961,39 @@ export function buildBudgetWriterDigest(
   }));
 
   return {
-    intake: {
-      employmentStatus: context.intake.employmentStatus ?? null,
-      exactMonthlyIncome: context.intake.exactMonthlyIncome ?? null,
-      incomeBand: context.intake.incomeBand ?? null,
-      hasDebt: context.intake.hasDebt ?? null,
-      hasSavingsOrInvestments: context.intake.hasSavingsOrInvestments ?? null,
-      snippet: context.intake.intakeContext?.slice(0, 180) ?? null,
-    },
-    transactions: {
-      products: context.products.length,
-      totalInflows: context.totalInflows,
-      totalOutflows: context.totalOutflows,
-      topCategories: context.products
-        .flatMap((product) => product.topCategories ?? [])
-        .sort((a, b) => b.amount - a.amount)
-        .slice(0, 4)
-        .map((item) => ({ name: item.name, amount: item.amount })),
-      unmapped: context.unmappedCategories.slice(0, 2).map((item) => ({
-        name: item.name,
-        amount: item.amount,
+    movementLedger: context.movementLedgers.map((ledger) => ({
+      productId: ledger.productId,
+      label: ledger.label,
+      bank: ledger.bank,
+      productType: ledger.productType,
+      productTypeLabel: budgetProductTypeLabel(ledger.productType),
+      period: ledger.period ?? null,
+      evidenceFidelity: ledger.evidenceFidelity ?? null,
+      totals: ledger.totals,
+      categoryTotals: ledger.categoryTotals.slice(0, 12),
+      movements: ledger.movements.slice(0, 60).map((movement) => ({
+        date: movement.date ?? null,
+        description: movement.description,
+        amount: movement.amount,
+        direction: movement.direction,
+        category: movement.category ?? null,
+        merchant: movement.merchant ?? null,
+        confidence: movement.confidence ?? null,
       })),
-    },
+    })),
+    derivedRowHints: Array.from(context.rowHints.entries()).map(([rowId, rowHint]) => ({
+      rowId,
+      estimatedMonthly: rowHint.estimatedMonthly,
+      matchedCategories: rowHint.matchedCategories.slice(0, 4),
+      sourceLabels: rowHint.sourceLabels.slice(0, 3),
+      confidence: rowHint.confidence,
+    })),
+    unmappedCategories: context.unmappedCategories.slice(0, 6).map((item) => ({
+      name: item.name,
+      amount: item.amount,
+      productId: item.productId,
+      sourceLabel: item.sourceLabel,
+    })),
     focus: focusRow
       ? {
           id: focusRow.id,

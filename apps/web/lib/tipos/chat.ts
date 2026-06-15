@@ -21,6 +21,32 @@ export type AgentBlock =
       };
     }
   | {
+      type: 'tx_chart';
+      tx_chart:
+        | {
+            variant: 'cumulative_cashflow';
+            title?: string;
+            subtitle?: string;
+            currency?: string;
+            series: import('@financial-agent/shared').TransactionCashflowSeries;
+          }
+        | {
+            variant: 'flow_bar';
+            title?: string;
+            subtitle?: string;
+            currency?: string;
+            inflowLabel?: string;
+            data: import('@financial-agent/shared').TransactionFlowBarPoint[];
+          }
+        | {
+            variant: 'category_bar';
+            title?: string;
+            subtitle?: string;
+            currency?: string;
+            data: import('@financial-agent/shared').TransactionCategoryBarPoint[];
+          };
+    }
+  | {
       type: 'table';
       table: {
         title: string;

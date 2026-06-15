@@ -98,7 +98,7 @@ describe('budget-chat-react.service', () => {
         ],
       });
 
-    const context = buildBudgetAssistantContext({ rows, intakeData: {}, products: [], chatAnswers: [] });
+    const context = buildBudgetAssistantContext({ rows, products: [], chatAnswers: [] });
     const result = await runBudgetChatAgent({
       rows,
       context,
@@ -129,7 +129,7 @@ describe('budget-chat-react.service', () => {
       actions: [{ kind: 'update', id: 'expense_food', category: 'Comida', type: 'expense', amount: 210000 }],
     });
 
-    const context = buildBudgetAssistantContext({ rows, intakeData: {}, products: [], chatAnswers: [] });
+    const context = buildBudgetAssistantContext({ rows, products: [], chatAnswers: [] });
     const result = await runBudgetChatAgent({
       rows,
       context,
@@ -160,7 +160,6 @@ describe('executeBudgetReactTool finance.budget_analyzer', () => {
   it('returns no_income_rows without calling MCP when totals.income <= 0', async () => {
     const context = buildBudgetAssistantContext({
       rows: expenseOnlyRows,
-      intakeData: {},
       products: [],
       chatAnswers: [],
     });
@@ -186,7 +185,6 @@ describe('executeBudgetReactTool finance.budget_analyzer', () => {
     ];
     const context = buildBudgetAssistantContext({
       rows: fractionalIncomeRows,
-      intakeData: {},
       products: [],
       chatAnswers: [],
     });
@@ -211,7 +209,6 @@ describe('executeBudgetReactTool finance.budget_analyzer', () => {
     ];
     const context = buildBudgetAssistantContext({
       rows: incomeRows,
-      intakeData: {},
       products: [],
       chatAnswers: [],
     });

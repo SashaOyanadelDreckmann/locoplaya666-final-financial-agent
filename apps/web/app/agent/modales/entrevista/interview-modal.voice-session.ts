@@ -14,20 +14,16 @@ export function emitVoiceSessionContext(
     callPhase?: 'exploration' | 'closeout';
     startingFocus?: string;
     triggerResponse?: boolean;
-    instructionsOverride?: string | null;
   },
 ) {
   if (!sendVoiceEvent) return;
-  const instructions =
-    typeof options?.instructionsOverride === 'string' && options.instructionsOverride.trim().length > 0
-      ? options.instructionsOverride
-      : buildVoiceSessionInstructions({
-          intake: ctx.intake,
-          minuteSummaries: ctx.minuteSummaries,
-          finalSummary: ctx.finalSummary,
-          latestUserSnippet: options?.latestUserSnippet,
-          callPhase: options?.callPhase ?? 'exploration',
-        });
+  const instructions = buildVoiceSessionInstructions({
+    intake: ctx.intake,
+    minuteSummaries: ctx.minuteSummaries,
+    finalSummary: ctx.finalSummary,
+    latestUserSnippet: options?.latestUserSnippet,
+    callPhase: options?.callPhase ?? 'exploration',
+  });
   sendVoiceEvent({
     type: 'session.update',
     session: {
@@ -41,7 +37,7 @@ export function emitVoiceSessionContext(
     response: {
       output_modalities: ['audio'],
       instructions: [
-        'Inicia con tono ejecutivo chileno, sobrio y preciso.',
+        'Inicia con tono chileno cercano y natural, con modismos frecuentes (bacán, la raja, cachai, po, la wea para referirte a cosas, weón/weona empático).',
         'Demuestra dominio del caso citando un dato concreto del presupuesto, cartola o intake.',
         'Formula una sola pregunta de alto valor para profundizar el diagnóstico.',
         `Foco: ${focus}`,

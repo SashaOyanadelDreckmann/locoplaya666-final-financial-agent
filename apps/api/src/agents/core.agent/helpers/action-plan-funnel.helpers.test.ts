@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildActionPlanSuggestedReplies,
   enforceDeliverPlanStructure,
   resolveActionPlanFunnelStage,
 } from '@financial-agent/shared';
@@ -35,6 +36,22 @@ describe('resolveActionPlanFunnelStage', () => {
         userMessage: 'listo, dame el plan final estructurado',
       }),
     ).toBe('deliver');
+  });
+
+  it('enters deliver when user asks for executive plan', () => {
+    expect(
+      resolveActionPlanFunnelStage({
+        activeChatId: 'chat-2',
+        turnCount: 1,
+        userMessage: 'quiero el plan ejecutivo completo',
+      }),
+    ).toBe('deliver');
+  });
+
+  it('builds stage-aware suggested replies', () => {
+    expect(buildActionPlanSuggestedReplies('brainstorm')).toContain('Priorizar liquidez');
+    expect(buildActionPlanSuggestedReplies('converge')).toContain('Cerrar plan ejecutivo');
+    expect(buildActionPlanSuggestedReplies('deliver')).toContain('Guardar en biblioteca');
   });
 
   it('appends missing deliver sections', () => {

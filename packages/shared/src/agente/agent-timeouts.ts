@@ -8,6 +8,7 @@
  */
 
 export const CORE_AGENT_DEFAULT_CLIENT_TIMEOUT_MS = 65_000;
+export const CORE_AGENT_MOBILE_CLIENT_TIMEOUT_MS = 45_000;
 export const CORE_AGENT_STREAM_EXTRA_TIMEOUT_MS = 30_000;
 export const CORE_AGENT_PROXY_BUFFER_MS = 20_000;
 export const CORE_AGENT_PROXY_RETRY_DELAY_MS = 450;
@@ -29,4 +30,12 @@ export function resolveCoreAgentProxyTimeoutMs(envValue?: string | number | null
 
 export function resolveCoreAgentRetryTimeoutMs(envValue?: string | number | null): number {
   return resolveCoreAgentClientTimeoutMs(envValue) + CORE_AGENT_STREAM_EXTRA_TIMEOUT_MS;
+}
+
+export function resolveCoreAgentMobileClientTimeoutMs(envValue?: string | number | null): number {
+  const parsed = Number(envValue);
+  if (Number.isFinite(parsed) && parsed > 0) {
+    return Math.min(parsed, CORE_AGENT_DEFAULT_CLIENT_TIMEOUT_MS);
+  }
+  return CORE_AGENT_MOBILE_CLIENT_TIMEOUT_MS;
 }

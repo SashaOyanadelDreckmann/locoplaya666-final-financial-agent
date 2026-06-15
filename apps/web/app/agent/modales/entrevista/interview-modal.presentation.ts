@@ -1,5 +1,6 @@
 import { formatInterviewClock } from './interview-modal.voice-summary';
 import { formatMoneyCompact } from './interview-modal.context';
+import { localizeDisplayValue } from '@/lib/display/localized-display';
 import type { InterviewVoiceStateFlags } from './interview-modal.helpers';
 import type { InterviewIntakeWithContext } from './interview-modal.hydration';
 
@@ -189,7 +190,7 @@ function resolveProfileBaseLine(intake: InterviewIntakeWithContext | null): stri
   if (!intake) return 'Sin intake';
   const parts = [
     intake.profession ? String(intake.profession) : null,
-    intake.incomeBand ? String(intake.incomeBand).replace(/_/g, ' ') : null,
+    intake.incomeBand ? localizeDisplayValue(intake.incomeBand, 'incomeBand') : null,
     typeof intake.moneyStressLevel === 'number' ? `estrés ${intake.moneyStressLevel}/10` : null,
   ].filter(Boolean);
   return parts.length > 0 ? truncateInsight(parts.join(' · '), 48) : 'Perfil base cargado';

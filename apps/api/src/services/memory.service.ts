@@ -566,7 +566,11 @@ export async function hydrateUserMemoryFromBlob(userId: string): Promise<UserMem
 
 export async function persistUserMemoryToBlob(memory: UserMemory): Promise<void> {
   try {
-    await saveUserMemoryBlob(memory.userId, memory as unknown as Record<string, unknown>);
+    const existing = await loadUserMemoryBlob(memory.userId);
+    await saveUserMemoryBlob(memory.userId, {
+      ...(existing ?? {}),
+      ...(memory as unknown as Record<string, unknown>),
+    });
   } catch (err) {
     getLogger().warn({
       msg: '[Memory] Failed to persist memory blob',
@@ -869,7 +873,7 @@ export async function appendTurnToMemoryRealtime(params: {
   return { memory, session_memory: sessionMemory };
 }
 
-export function appendMemoryTimelineNote(params: {
+export async function appendMemoryTimelineNote(params: {
   userId: string;
   chatId: string;
   sessionId?: string;
@@ -878,7 +882,8 @@ export function appendMemoryTimelineNote(params: {
   mode?: string;
   summary?: string;
   facts?: Array<{ type: MemoryFactType; key: string; value: string; confidence?: number }>;
-}): UserMemory {
+}): Promise<UserMemory> {
+  await hydrateUserMemoryFromBlob(params.userId);
   const memory = loadUserMemory(params.userId);
   const now = new Date().toISOString();
 
@@ -908,5 +913,6 @@ export function appendMemoryTimelineNote(params: {
   });
 
   saveUserMemory(memory);
+  await persistUserMemoryToBlob(memory);
   return memory;
 }

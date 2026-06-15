@@ -172,9 +172,9 @@
 
 .budget-modal:not(.is-mobile-shell){
   --hero-plain: rgba(228, 239, 248, 0.9);
-  --hero-keyword-blue: #52a8d9;
-  --hero-keyword-gold: #d4a428;
-  --hero-keyword-slate: #4580b0;
+  --hero-keyword-a: #ecd060;
+  --hero-keyword-b: #d8b030;
+  --hero-keyword-c: #b08818;
 }
 
 .budget-modal:not(.is-mobile-shell) .bcc-hero-question--gradient-demo,
@@ -230,7 +230,7 @@
   margin: 0 !important;
 }
 
-.budget-modal:not(.is-mobile-shell) .budget-assistant-panel .budget-chat-sync-button.is-assistant-action{
+.budget-modal:not(.is-mobile-shell) .budget-assistant-panel .budget-chat-sync-button.is-assistant-action:not(.is-pending-confirm-action){
   width: 100% !important;
   min-height: 0 !important;
   height: auto !important;
@@ -250,16 +250,18 @@
   transition: background 140ms ease, border-color 140ms ease, color 140ms ease !important;
 }
 
-.budget-modal:not(.is-mobile-shell) .budget-assistant-panel .budget-chat-sync-button.is-assistant-action:hover:not(:disabled){
+.budget-modal:not(.is-mobile-shell) .budget-assistant-panel .budget-chat-sync-button.is-assistant-action:not(.is-pending-confirm-action):hover:not(:disabled){
   border-color: rgba(142, 167, 191, 0.34) !important;
   background: rgba(142, 167, 191, 0.1) !important;
   color: rgba(236, 243, 250, 0.92) !important;
 }
 
-.budget-modal:not(.is-mobile-shell) .budget-assistant-panel .budget-chat-sync-button.is-assistant-action:disabled{
+.budget-modal:not(.is-mobile-shell) .budget-assistant-panel .budget-chat-sync-button.is-assistant-action:not(.is-pending-confirm-action):disabled{
   opacity: 0.42 !important;
   cursor: not-allowed !important;
 }
+
+/* Pending confirm — agent-modals-close-confirm.css (agent-confirm-surface) */
 
 .budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop .budget-intel-kpis{
   display: none !important;
@@ -278,17 +280,13 @@
   display: inline !important;
   padding: 0 !important;
   margin: 0 !important;
-  background-image: linear-gradient(
-    102deg,
-    var(--hero-keyword-blue) 0%,
-    var(--hero-keyword-gold) 46%,
-    var(--hero-keyword-slate) 100%
-  ) !important;
-  background-size: 100% auto !important;
-  background-clip: text !important;
-  -webkit-background-clip: text !important;
-  color: transparent !important;
-  -webkit-text-fill-color: transparent !important;
+  background: none !important;
+  background-image: none !important;
+  background-color: transparent !important;
+  background-clip: border-box !important;
+  -webkit-background-clip: border-box !important;
+  color: var(--hero-keyword-tone, var(--hero-keyword-a)) !important;
+  -webkit-text-fill-color: var(--hero-keyword-tone, var(--hero-keyword-a)) !important;
   animation: none !important;
   filter: none !important;
   text-shadow: none !important;
@@ -1975,6 +1973,32 @@ html.is-mobile-viewport .budget-modal .budget-main-carousel.mode-agent-front:not
 }
 
 /* ================================================= */
+/* BUDGET — assistant keywords: olive / wine / mustard */
+/* One palette only — 3 opaque shades per tone         */
+/* ================================================= */
+
+.budget-modal .bcc-hero.is-budget-assistant-income,
+.budget-modal .bcc-hero-question.is-budget-assistant-income{
+  --hero-keyword-a: #b8d088;
+  --hero-keyword-b: #98b868;
+  --hero-keyword-c: #729840;
+}
+
+.budget-modal .bcc-hero.is-budget-assistant-expense,
+.budget-modal .bcc-hero-question.is-budget-assistant-expense{
+  --hero-keyword-a: #e8a8a8;
+  --hero-keyword-b: #d07070;
+  --hero-keyword-c: #a84848;
+}
+
+.budget-modal .bcc-hero.is-budget-assistant-neutral,
+.budget-modal .bcc-hero-question.is-budget-assistant-neutral{
+  --hero-keyword-a: #ecd060;
+  --hero-keyword-b: #d8b030;
+  --hero-keyword-c: #b08818;
+}
+
+/* ================================================= */
 /* BUDGET MOBILE — row swipe (vertical + horizontal) */
 /* ================================================= */
 
@@ -2175,10 +2199,6 @@ html.is-mobile-viewport .budget-modal .budget-main-carousel.mode-table-front .bu
   --budget-split-agent-ink: #171411;
   --budget-split-agent-ink-muted: rgba(23, 20, 17, 0.64);
   --budget-split-agent-ink-faint: rgba(23, 20, 17, 0.44);
-  /* Matte vibrant keyword gradient: blue → yellow → red */
-  --hero-keyword-blue: #2b63c4;
-  --hero-keyword-yellow: #d4a800;
-  --hero-keyword-red: #c73e3a;
   background: #ffffff !important;
   background-color: #ffffff !important;
   background-image: none !important;
@@ -2206,22 +2226,6 @@ html.is-mobile-viewport .budget-modal .budget-main-carousel.mode-table-front .bu
 .budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent.budget-assistant-panel p.bcc-hero-question{
   color: var(--hero-plain) !important;
   -webkit-text-fill-color: var(--hero-plain) !important;
-}
-
-.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent.budget-assistant-panel .agent-keyword-gradient{
-  background-image: linear-gradient(
-    102deg,
-    var(--hero-keyword-blue) 0%,
-    var(--hero-keyword-yellow) 48%,
-    var(--hero-keyword-red) 100%
-  ) !important;
-  background-size: 100% auto !important;
-  background-clip: text !important;
-  -webkit-background-clip: text !important;
-  color: transparent !important;
-  -webkit-text-fill-color: transparent !important;
-  filter: none !important;
-  text-shadow: none !important;
 }
 
 .budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent.budget-assistant-panel .bcc-hero-question:not(.bcc-hero-question--gradient-demo),
@@ -2319,42 +2323,18 @@ html.is-mobile-viewport .budget-modal .budget-main-carousel.mode-table-front .bu
   stroke: currentColor !important;
 }
 
-.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent.budget-assistant-panel .budget-chat-sync-button.is-assistant-action{
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent.budget-assistant-panel .budget-chat-sync-button.is-assistant-action:not(.is-pending-confirm-action){
   border: 1px solid rgba(120, 100, 72, 0.34) !important;
   background: rgba(255, 255, 255, 0.78) !important;
   color: rgba(23, 20, 17, 0.88) !important;
   -webkit-text-fill-color: rgba(23, 20, 17, 0.88) !important;
 }
 
-.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent.budget-assistant-panel .budget-chat-sync-button.is-assistant-action:hover:not(:disabled){
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent.budget-assistant-panel .budget-chat-sync-button.is-assistant-action:not(.is-pending-confirm-action):hover:not(:disabled){
   background: rgba(255, 255, 255, 0.96) !important;
   border-color: rgba(100, 82, 56, 0.44) !important;
   color: rgba(23, 20, 17, 0.96) !important;
   -webkit-text-fill-color: rgba(23, 20, 17, 0.96) !important;
-}
-
-.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent.budget-assistant-panel .budget-pending-confirm{
-  border: 1px solid rgba(176, 132, 36, 0.34) !important;
-  background: rgba(255, 246, 220, 0.92) !important;
-}
-
-.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent.budget-assistant-panel .budget-pending-confirm-copy{
-  color: rgba(23, 20, 17, 0.84) !important;
-  -webkit-text-fill-color: rgba(23, 20, 17, 0.84) !important;
-}
-
-.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent.budget-assistant-panel .budget-pending-confirm .continue-ghost{
-  border: 1px solid rgba(120, 100, 72, 0.34) !important;
-  background: rgba(255, 255, 255, 0.82) !important;
-  color: rgba(23, 20, 17, 0.82) !important;
-  -webkit-text-fill-color: rgba(23, 20, 17, 0.82) !important;
-}
-
-.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent.budget-assistant-panel .budget-pending-confirm .button-primary{
-  background: #171411 !important;
-  color: #ffffff !important;
-  -webkit-text-fill-color: #ffffff !important;
-  border: 1px solid rgba(23, 20, 17, 0.08) !important;
 }
 
 /* ================================================= */
@@ -2605,4 +2585,33 @@ html.is-mobile-viewport .budget-modal .budget-main-carousel.mode-agent-front:not
   -webkit-text-fill-color: var(--budget-pill-expense-ink) !important;
   border: 1px solid var(--budget-pill-expense-border) !important;
   box-shadow: 0 1px 5px rgba(69, 38, 38, 0.14) !important;
+}
+
+/* ================================================= */
+/* EOF — assistant keywords: single palette (no rainbow) */
+/* Beats split desktop + legacy gradient specificity    */
+/* ================================================= */
+
+.budget-modal .bcc-hero:is(.is-budget-assistant-income, .is-budget-assistant-expense, .is-budget-assistant-neutral) .agent-keyword-gradient,
+.budget-modal .bcc-hero-question:is(.is-budget-assistant-income, .is-budget-assistant-expense, .is-budget-assistant-neutral) .agent-keyword-gradient,
+.budget-modal .bcc-hero:is(.is-budget-assistant-income, .is-budget-assistant-expense, .is-budget-assistant-neutral) .agent-keyword-gradient--s0,
+.budget-modal .bcc-hero:is(.is-budget-assistant-income, .is-budget-assistant-expense, .is-budget-assistant-neutral) .agent-keyword-gradient--s1,
+.budget-modal .bcc-hero:is(.is-budget-assistant-income, .is-budget-assistant-expense, .is-budget-assistant-neutral) .agent-keyword-gradient--s2,
+.budget-modal .bcc-hero-question:is(.is-budget-assistant-income, .is-budget-assistant-expense, .is-budget-assistant-neutral) .agent-keyword-gradient--s0,
+.budget-modal .bcc-hero-question:is(.is-budget-assistant-income, .is-budget-assistant-expense, .is-budget-assistant-neutral) .agent-keyword-gradient--s1,
+.budget-modal .bcc-hero-question:is(.is-budget-assistant-income, .is-budget-assistant-expense, .is-budget-assistant-neutral) .agent-keyword-gradient--s2,
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent.budget-assistant-panel .bcc-hero .agent-keyword-gradient,
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent.budget-assistant-panel .bcc-hero .agent-keyword-gradient--s0,
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent.budget-assistant-panel .bcc-hero .agent-keyword-gradient--s1,
+.budget-modal:not(.is-mobile-shell) .budget-modal-body.is-desktop .budget-main-carousel.is-desktop.mode-split > .budget-card-agent.budget-assistant-panel .bcc-hero .agent-keyword-gradient--s2{
+  background: none !important;
+  background-image: none !important;
+  background-color: transparent !important;
+  background-clip: border-box !important;
+  -webkit-background-clip: border-box !important;
+  color: var(--hero-keyword-tone, var(--hero-keyword-a)) !important;
+  -webkit-text-fill-color: var(--hero-keyword-tone, var(--hero-keyword-a)) !important;
+  filter: none !important;
+  text-shadow: none !important;
+  animation: none !important;
 }

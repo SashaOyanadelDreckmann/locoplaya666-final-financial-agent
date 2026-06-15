@@ -17,6 +17,9 @@ export const EVIDENCE_TOOL_NAMES = [
   'market.tpm_cl',
   'market.fx_usd_clp',
   'market.utm_cl',
+  'finance.transactions_charts',
+  'agent.compose_pipeline',
+  'math.calc',
 ] as const;
 
 export const FRESHNESS_SIGNAL_PATTERN =

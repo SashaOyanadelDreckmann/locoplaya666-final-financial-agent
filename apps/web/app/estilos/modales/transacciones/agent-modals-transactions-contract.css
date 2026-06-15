@@ -464,10 +464,31 @@
   display: flex !important;
   align-items: center !important;
   white-space: nowrap !important;
-  cursor: grab !important;
   user-select: none !important;
   will-change: transform !important;
+}
+
+.transactions-modal .tx-scanner-stream-root:not(.is-quiet) .tx-scanner-card-line{
   touch-action: pan-y !important;
+}
+
+.transactions-modal .tx-scanner-stream-root.is-quiet .tx-scanner-card-line{
+  touch-action: none !important;
+  cursor: grab !important;
+}
+
+.transactions-modal .tx-scanner-stream-root.is-quiet.is-dragging .tx-scanner-card-line,
+.transactions-modal .tx-scanner-stream-root.is-quiet.is-dragging .tx-scanner-card-hit{
+  cursor: grabbing !important;
+}
+
+.transactions-modal .tx-scanner-stream-root.is-quiet .tx-scanner-card-hit{
+  touch-action: none !important;
+}
+
+.transactions-modal:has(.tx-scanner-stream-root.is-dragging) .tx-scroll-body{
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
 }
 
 .transactions-modal .tx-scanner-card-line:active{
@@ -624,9 +645,30 @@
   flex-shrink: 0 !important;
 }
 
+.transactions-modal .tx-scanner-stream-root.is-quiet.is-dragging .tx-scanner-card-line{
+  cursor: grabbing !important;
+}
+
+.transactions-modal .tx-scanner-stream-root.is-quiet.is-dragging .tx-scanner-card-wrapper{
+  transition: none !important;
+}
+
+.transactions-modal .tx-scanner-stream-root.is-quiet.is-dragging .tx-scanner-card-normal{
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+
+.transactions-modal .tx-scanner-stream-root.is-quiet.is-dragging .tx-scanner-card-ascii{
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
 .transactions-modal .tx-scanner-stream-root.is-quiet .tx-scanner-card-line{
-  touch-action: pan-x !important;
+  touch-action: none !important;
   cursor: grab !important;
+  transition: none !important;
 }
 
 .transactions-modal .tx-scanner-stream-root.is-quiet .tx-scanner-card-line:active{
@@ -741,6 +783,11 @@
 .transactions-modal .tx-scanner-stream-root.is-quiet:not(.is-transitioning) .tx-scanner-card-ascii,
 .transactions-modal .tx-scanner-stream-root.is-quiet .tx-scanner-card-ascii.is-dormant{
   display: none !important;
+}
+
+.transactions-modal .tx-scanner-stream-root.is-quiet[data-transitioning='true'] .tx-scanner-card-ascii.is-dormant{
+  display: block !important;
+  visibility: visible !important;
 }
 
 .transactions-modal .tx-scanner-stream-root.is-quiet.is-transitioning .tx-scanner-card-wrapper[data-morph-state='code'] .tx-scanner-card-normal{
@@ -935,22 +982,29 @@
   letter-spacing: 0.14em !important;
 }
 
-.transactions-modal .tx-lib-card .pt-item-status{
-  flex-shrink: 0 !important;
-  color: var(--tx-lib-tint) !important;
-  -webkit-text-fill-color: var(--tx-lib-tint) !important;
-  text-align: right !important;
-  font-size: 8px !important;
-  padding: 3px 7px !important;
-}
-
-.transactions-modal .tx-lib-card-chip{
+.transactions-modal .tx-lib-card .pt-item-status,
+.transactions-modal .tx-lib-card .tx-lib-card-status{
   position: absolute !important;
   right: 12px !important;
   bottom: 5px !important;
-  width: 30px !important;
-  height: 22px !important;
+  z-index: 1 !important;
+  flex-shrink: 0 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  text-align: center !important;
+  font-size: 8px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.1em !important;
+  text-transform: uppercase !important;
+  padding: 3px 7px !important;
   border-radius: 7px !important;
+  border: 1px solid rgba(255, 255, 255, 0.22) !important;
+  background: rgba(0, 0, 0, 0.24) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+}
+
+.transactions-modal .tx-lib-card-chip{
+  display: none !important;
 }
 
 /* Premium palette: inline --tx-lib-inline-* vars (set per product in JSX) */
@@ -966,6 +1020,7 @@
 .transactions-modal .tx-scanner-lib-card.tx-lib-card:not(.is-top) .pt-item-name,
 .transactions-modal .tx-scanner-lib-card.tx-lib-card:not(.is-top) .pt-item-bank,
 .transactions-modal .tx-scanner-lib-card.tx-lib-card:not(.is-top) .pt-item-status,
+.transactions-modal .tx-scanner-lib-card.tx-lib-card:not(.is-top) .tx-lib-card-status,
 .transactions-modal .tx-scanner-lib-card.tx-lib-card:not(.is-top) .pt-item-meta,
 .transactions-modal .tx-scanner-lib-card.tx-lib-card:not(.is-top) .pt-item-meta span,
 .transactions-modal .tx-scanner-lib-card.tx-lib-card:not(.is-top) .pt-item-top,
@@ -1251,11 +1306,16 @@
     font-size: 9px !important;
   }
 
-  .transactions-modal .tx-lib-card-chip{
-    width: 28px !important;
-    height: 20px !important;
+  .transactions-modal .tx-lib-card .pt-item-status,
+  .transactions-modal .tx-lib-card .tx-lib-card-status{
     right: 12px !important;
     bottom: 6px !important;
+    font-size: 9px !important;
+    padding: 3px 8px !important;
+  }
+
+  .transactions-modal .tx-lib-card-chip{
+    display: none !important;
   }
 
   .transactions-modal .pt-stack-nav .continue-ghost{
@@ -1831,8 +1891,8 @@ html:not(.home-route-active) .transactions-modal .tx-meta-card{
     margin: 0 !important;
     font-size: clamp(1.35rem, 1.8vw, 1.65rem) !important;
     line-height: 1.15 !important;
-    color: var(--tx-empty-pill-text) !important;
-    -webkit-text-fill-color: var(--tx-empty-pill-text) !important;
+    color: var(--tx-empty-surface-text) !important;
+    -webkit-text-fill-color: var(--tx-empty-surface-text) !important;
   }
 
   .transactions-modal .pt-empty-grid{
@@ -2370,7 +2430,7 @@ html:not(.home-route-active) .transactions-modal .tx-numbers-canvas{
   }
 
   .transactions-modal .tx-scanner-stream-root.is-quiet .tx-scanner-card-line{
-    touch-action: pan-x !important;
+    touch-action: none !important;
     -webkit-overflow-scrolling: touch !important;
   }
 
@@ -3046,25 +3106,25 @@ body.agent-route-active .transactions-modal .tx-library-empty .tx-skip-products-
   color: var(--tx-panel-mustard-kicker) !important;
 }
 
-/* Onboarding empty state — golden pills, black copy (scoped to first-step card only) */
+/* Onboarding empty state — white pills, dark copy on blue card */
 .transactions-modal{
-  --tx-empty-pill-bg: linear-gradient(145deg, rgba(91, 140, 192, 0.96), rgba(56, 81, 111, 0.98));
-  --tx-empty-pill-border: rgba(45, 88, 130, 0.34);
-  --tx-empty-pill-text: #f3f8fc;
+  --tx-empty-pill-bg: #eef4fa;
+  --tx-empty-pill-border: rgba(91, 140, 192, 0.28);
+  --tx-empty-pill-text: #1a1f28;
 }
 
 .transactions-modal .pt-empty-state .pt-empty-item{
   background: var(--tx-empty-pill-bg) !important;
   border: 1px solid var(--tx-empty-pill-border) !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65) !important;
   transition:
     border-color 0.16s var(--tx-contract-ease),
     transform 0.16s var(--tx-contract-ease) !important;
 }
 
 .transactions-modal .pt-empty-state .pt-empty-item:hover{
-  background: linear-gradient(145deg, rgba(106, 159, 208, 0.98), rgba(74, 122, 158, 1)) !important;
-  border-color: rgba(45, 88, 130, 0.46) !important;
+  background: #ffffff !important;
+  border-color: rgba(91, 140, 192, 0.36) !important;
   transform: none !important;
 }
 
@@ -3075,15 +3135,15 @@ body.agent-route-active .transactions-modal .tx-library-empty .tx-skip-products-
 }
 
 .transactions-modal .pt-empty-state .pt-empty-item span{
-  background: rgba(18, 16, 10, 0.08) !important;
-  border: 1px solid rgba(18, 16, 10, 0.14) !important;
+  background: #ffffff !important;
+  border: 1px solid rgba(26, 31, 40, 0.14) !important;
   font-family: inherit !important;
 }
 
 .transactions-modal .pt-empty-state .transactions-summary-title,
 .transactions-modal .pt-empty-state .pt-empty-head h4{
-  color: var(--tx-empty-pill-text) !important;
-  -webkit-text-fill-color: var(--tx-empty-pill-text) !important;
+  color: var(--tx-empty-surface-text) !important;
+  -webkit-text-fill-color: var(--tx-empty-surface-text) !important;
 }
 
 .transactions-modal .pt-empty-state .pt-empty-actions .button-primary{
@@ -3599,11 +3659,15 @@ html:not(.home-route-active) .transactions-modal .pt-right.tx-panel-surface--wor
 
 .transactions-modal .pt-empty-state .transactions-summary-title,
 .transactions-modal .pt-empty-state .pt-empty-head h4,
-.transactions-modal .pt-empty-state .pt-empty-item strong,
-.transactions-modal .pt-empty-state .pt-empty-item span,
 .transactions-modal .pt-empty-state .pt-empty-actions .button-primary{
   color: var(--tx-empty-surface-text) !important;
   -webkit-text-fill-color: var(--tx-empty-surface-text) !important;
+}
+
+.transactions-modal .pt-empty-state .pt-empty-item strong,
+.transactions-modal .pt-empty-state .pt-empty-item span{
+  color: var(--tx-empty-pill-text) !important;
+  -webkit-text-fill-color: var(--tx-empty-pill-text) !important;
 }
 
 .transactions-modal .pt-empty-state .transactions-summary-title{
@@ -3623,8 +3687,10 @@ html:not(.home-route-active) .transactions-modal .pt-right.tx-panel-surface--wor
 }
 
 .transactions-modal .pt-empty-state .pt-empty-item span{
-  background: var(--tx-empty-pill-bg) !important;
-  border: 1px solid var(--tx-empty-pill-border) !important;
+  background: #ffffff !important;
+  border: 1px solid rgba(26, 31, 40, 0.14) !important;
+  color: var(--tx-empty-pill-text) !important;
+  -webkit-text-fill-color: var(--tx-empty-pill-text) !important;
 }
 
 .transactions-modal .pt-empty-state .pt-empty-actions .button-primary:not(.tx-create-product-btn){
@@ -4153,14 +4219,26 @@ html:not(.home-route-active) .transactions-modal .transactions-summary-card.pt-e
 
 html:not(.home-route-active) .transactions-modal .pt-empty-state .transactions-summary-title,
 html:not(.home-route-active) .transactions-modal .pt-empty-state .pt-empty-head h4,
-html:not(.home-route-active) .transactions-modal .pt-empty-state .pt-empty-item strong,
 .transactions-modal .pt-empty-state .transactions-summary-title,
 .transactions-modal .pt-empty-state .pt-empty-head h4,
-.transactions-modal .pt-empty-state .pt-empty-item strong,
 .transactions-modal .pt-empty-state .pt-empty-actions .button-primary,
 html:not(.home-route-active) .transactions-modal .pt-empty-state .pt-empty-actions .button-primary{
   color: var(--tx-empty-surface-text) !important;
   -webkit-text-fill-color: var(--tx-empty-surface-text) !important;
+}
+
+html:not(.home-route-active) .transactions-modal .pt-empty-state .pt-empty-item strong,
+html:not(.home-route-active) .transactions-modal .pt-empty-state .pt-empty-item span,
+.transactions-modal .pt-empty-state .pt-empty-item strong,
+.transactions-modal .pt-empty-state .pt-empty-item span{
+  color: var(--tx-empty-pill-text) !important;
+  -webkit-text-fill-color: var(--tx-empty-pill-text) !important;
+}
+
+html:not(.home-route-active) .transactions-modal .pt-empty-state .pt-empty-item span,
+.transactions-modal .pt-empty-state .pt-empty-item span{
+  background: #ffffff !important;
+  border: 1px solid rgba(26, 31, 40, 0.14) !important;
 }
 
 html:not(.home-route-active) .transactions-modal .pt-empty-state .transactions-summary-title,
@@ -4501,6 +4579,51 @@ html:not(.home-route-active) .transactions-modal .pt-right.tx-panel-surface--wor
   gap: 8px !important;
   margin: 0 0 10px !important;
   text-align: center !important;
+}
+
+.transactions-modal .pt-right.tx-panel-surface--workspace .tx-photo-format-examples,
+html:not(.home-route-active) .transactions-modal .pt-right.tx-panel-surface--workspace .tx-photo-format-examples{
+  width: 100% !important;
+  max-width: 46rem !important;
+  margin: 0 auto 10px !important;
+}
+
+.transactions-modal .pt-right.tx-panel-surface--workspace .tx-photo-format-examples-toggle,
+html:not(.home-route-active) .transactions-modal .pt-right.tx-panel-surface--workspace .tx-photo-format-examples-toggle{
+  background: #ffffff !important;
+  border: 1px solid var(--tx-workspace-border) !important;
+  color: var(--tx-workspace-text) !important;
+  -webkit-text-fill-color: var(--tx-workspace-text) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
+}
+
+.transactions-modal .pt-right.tx-panel-surface--workspace .tx-photo-format-examples-toggle:hover,
+html:not(.home-route-active) .transactions-modal .pt-right.tx-panel-surface--workspace .tx-photo-format-examples-toggle:hover{
+  background: var(--tx-workspace-bg-soft) !important;
+  border-color: rgba(91, 140, 192, 0.34) !important;
+  color: var(--tx-workspace-text) !important;
+  -webkit-text-fill-color: var(--tx-workspace-text) !important;
+}
+
+.transactions-modal .pt-right.tx-panel-surface--workspace .tx-photo-format-examples-frame,
+html:not(.home-route-active) .transactions-modal .pt-right.tx-panel-surface--workspace .tx-photo-format-examples-frame{
+  background: #ffffff !important;
+  border: 1px solid var(--tx-workspace-border) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
+}
+
+.transactions-modal .pt-right.tx-panel-surface--workspace .tx-photo-format-examples-item figcaption,
+html:not(.home-route-active) .transactions-modal .pt-right.tx-panel-surface--workspace .tx-photo-format-examples-item figcaption{
+  color: var(--tx-workspace-text-dim) !important;
+  -webkit-text-fill-color: var(--tx-workspace-text-dim) !important;
+}
+
+.transactions-modal .pt-right.tx-panel-surface--workspace .tx-photo-format-examples-index,
+html:not(.home-route-active) .transactions-modal .pt-right.tx-panel-surface--workspace .tx-photo-format-examples-index{
+  background: var(--tx-workspace-bg-soft) !important;
+  border: 1px solid var(--tx-workspace-border) !important;
+  color: var(--tx-workspace-text) !important;
+  -webkit-text-fill-color: var(--tx-workspace-text) !important;
 }
 
 .transactions-modal .pt-right.tx-panel-surface--workspace .tx-composer-sticky-host,
@@ -5870,6 +5993,74 @@ html:not(.home-route-active) .transactions-modal .pt-right.tx-panel-surface--wor
   html:not(.home-route-active) .transactions-modal .pt-right.tx-panel-surface--workspace .tx-composer-sticky-host{
     padding-bottom: 0 !important;
   }
+
+  /* Step 3 — desktop-only summary focus (hide library column) */
+  html.is-desktop-viewport .transactions-modal .tx-summary-focus-toolbar{
+    display: flex !important;
+    justify-content: flex-end !important;
+    align-items: center !important;
+    flex: 0 0 auto !important;
+    margin: -2px 0 2px !important;
+    padding: 0 !important;
+  }
+
+  html.is-desktop-viewport .transactions-modal button.tx-summary-focus-btn,
+  html.is-desktop-viewport .transactions-modal .tx-summary-focus-btn{
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    min-height: 28px !important;
+    padding: 4px 11px !important;
+    border: 1px solid rgba(28, 36, 48, 0.1) !important;
+    border-radius: 999px !important;
+    background: rgba(255, 255, 255, 0.78) !important;
+    color: rgba(28, 36, 48, 0.58) !important;
+    -webkit-text-fill-color: rgba(28, 36, 48, 0.58) !important;
+    font-size: 11px !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.03em !important;
+    line-height: 1 !important;
+    cursor: pointer !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.92) !important;
+    transition:
+      color 0.18s ease,
+      border-color 0.18s ease,
+      background 0.18s ease,
+      box-shadow 0.18s ease !important;
+  }
+
+  html.is-desktop-viewport .transactions-modal .tx-summary-focus-btn:hover{
+    color: rgba(28, 36, 48, 0.88) !important;
+    -webkit-text-fill-color: rgba(28, 36, 48, 0.88) !important;
+    border-color: rgba(91, 140, 192, 0.34) !important;
+    background: rgba(255, 255, 255, 0.96) !important;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.98),
+      0 4px 14px rgba(16, 20, 28, 0.05) !important;
+  }
+
+  html.is-desktop-viewport .transactions-modal .tx-summary-focus-btn:focus-visible{
+    outline: 2px solid rgba(91, 140, 192, 0.42) !important;
+    outline-offset: 2px !important;
+  }
+
+  html.is-desktop-viewport .transactions-modal .tx-summary-focus-btn[aria-pressed='true']{
+    color: rgba(28, 36, 48, 0.76) !important;
+    -webkit-text-fill-color: rgba(28, 36, 48, 0.76) !important;
+    border-color: rgba(91, 140, 192, 0.28) !important;
+    background: rgba(244, 248, 252, 0.96) !important;
+  }
+
+  html.is-desktop-viewport .transactions-modal[data-tx-summary-focus='true'] .pt-shell.tx-stage-shell,
+  html.is-desktop-viewport body.agent-route-active .transactions-modal[data-tx-summary-focus='true'] .pt-shell.tx-stage-shell{
+    grid-template-columns: minmax(0, 1fr) !important;
+    transition: grid-template-columns 0.22s ease !important;
+  }
+
+  html.is-desktop-viewport .transactions-modal[data-tx-summary-focus='true'] .pt-left.tx-panel-surface--library,
+  html.is-desktop-viewport body.agent-route-active .transactions-modal[data-tx-summary-focus='true'] .pt-left.tx-panel-surface--library{
+    display: none !important;
+  }
 }
 
 /* =============================================================================
@@ -5879,14 +6070,36 @@ html:not(.home-route-active) .transactions-modal .pt-right.tx-panel-surface--wor
 html:not(.home-route-active) .transactions-modal .pt-right.tx-panel-surface--workspace .tx-minimal-summary-shell{
   gap: 14px !important;
   padding: 6px 0 10px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  align-self: stretch !important;
+}
+
+.transactions-modal .pt-right.tx-panel-surface--workspace .tx-summary-charts-grid,
+html:not(.home-route-active) .transactions-modal .pt-right.tx-panel-surface--workspace .tx-summary-charts-grid{
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  align-self: stretch !important;
+}
+
+.transactions-modal .pt-right.tx-panel-surface--workspace .tx-minimal-cashflow-chart .recharts-responsive-container,
+.transactions-modal .pt-right.tx-panel-surface--workspace .agent-tx-bar-chart .recharts-responsive-container,
+html:not(.home-route-active) .transactions-modal .pt-right.tx-panel-surface--workspace .tx-minimal-cashflow-chart .recharts-responsive-container,
+html:not(.home-route-active) .transactions-modal .pt-right.tx-panel-surface--workspace .agent-tx-bar-chart .recharts-responsive-container{
+  width: 100% !important;
+  min-height: 220px !important;
 }
 
 .transactions-modal .pt-right.tx-panel-surface--workspace .tx-minimal-summary-card,
 .transactions-modal .pt-right.tx-panel-surface--workspace .tx-minimal-chat-card,
 .transactions-modal .pt-right.tx-panel-surface--workspace .tx-minimal-cashflow-card,
+.transactions-modal .pt-right.tx-panel-surface--workspace .agent-tx-chart-card,
 html:not(.home-route-active) .transactions-modal .pt-right.tx-panel-surface--workspace .tx-minimal-summary-card,
 html:not(.home-route-active) .transactions-modal .pt-right.tx-panel-surface--workspace .tx-minimal-chat-card,
-html:not(.home-route-active) .transactions-modal .pt-right.tx-panel-surface--workspace .tx-minimal-cashflow-card{
+html:not(.home-route-active) .transactions-modal .pt-right.tx-panel-surface--workspace .tx-minimal-cashflow-card,
+html:not(.home-route-active) .transactions-modal .pt-right.tx-panel-surface--workspace .agent-tx-chart-card{
   background: #ffffff !important;
   border: 1px solid var(--tx-workspace-border) !important;
   border-radius: 20px !important;
@@ -6045,6 +6258,29 @@ html:not(.home-route-active) .transactions-modal .pt-right.tx-panel-surface--wor
   box-shadow: none !important;
 }
 
+.transactions-modal .pt-right.tx-panel-surface--workspace .tx-minimal-send-btn.is-icon-only,
+html:not(.home-route-active) .transactions-modal .pt-right.tx-panel-surface--workspace .tx-minimal-send-btn.is-icon-only{
+  display: inline-grid !important;
+  place-items: center !important;
+  align-self: center !important;
+  width: 40px !important;
+  min-width: 40px !important;
+  height: 40px !important;
+  padding: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: #1a1508 !important;
+  -webkit-text-fill-color: #1a1508 !important;
+}
+
+.transactions-modal .pt-right.tx-panel-surface--workspace .tx-minimal-send-btn.is-icon-only:hover:not(:disabled),
+html:not(.home-route-active) .transactions-modal .pt-right.tx-panel-surface--workspace .tx-minimal-send-btn.is-icon-only:hover:not(:disabled){
+  background: transparent !important;
+  transform: translateX(1px);
+}
+
 .transactions-modal .pt-right.tx-panel-surface--workspace .tx-minimal-send-btn:disabled,
 html:not(.home-route-active) .transactions-modal .pt-right.tx-panel-surface--workspace .tx-minimal-send-btn:disabled{
   opacity: 0.5 !important;
@@ -6126,10 +6362,26 @@ html:not(.home-route-active) .transactions-modal .pt-right.tx-panel-surface--wor
 }
 
 .transactions-modal .pt-right.tx-panel-surface--workspace .tx-minimal-cashflow-chart,
-html:not(.home-route-active) .transactions-modal .pt-right.tx-panel-surface--workspace .tx-minimal-cashflow-chart{
+.transactions-modal .pt-right.tx-panel-surface--workspace .agent-tx-bar-chart,
+html:not(.home-route-active) .transactions-modal .pt-right.tx-panel-surface--workspace .tx-minimal-cashflow-chart,
+html:not(.home-route-active) .transactions-modal .pt-right.tx-panel-surface--workspace .agent-tx-bar-chart{
   width: 100% !important;
+  box-sizing: border-box !important;
+  padding-inline: 12px !important;
+  overflow: visible !important;
   min-height: 220px !important;
   height: clamp(220px, 34vw, 300px) !important;
+}
+
+.transactions-modal .pt-right.tx-panel-surface--workspace .tx-minimal-cashflow-chart .recharts-wrapper,
+.transactions-modal .pt-right.tx-panel-surface--workspace .tx-minimal-cashflow-chart .recharts-surface,
+.transactions-modal .pt-right.tx-panel-surface--workspace .agent-tx-bar-chart .recharts-wrapper,
+.transactions-modal .pt-right.tx-panel-surface--workspace .agent-tx-bar-chart .recharts-surface,
+html:not(.home-route-active) .transactions-modal .pt-right.tx-panel-surface--workspace .tx-minimal-cashflow-chart .recharts-wrapper,
+html:not(.home-route-active) .transactions-modal .pt-right.tx-panel-surface--workspace .tx-minimal-cashflow-chart .recharts-surface,
+html:not(.home-route-active) .transactions-modal .pt-right.tx-panel-surface--workspace .agent-tx-bar-chart .recharts-wrapper,
+html:not(.home-route-active) .transactions-modal .pt-right.tx-panel-surface--workspace .agent-tx-bar-chart .recharts-surface{
+  overflow: visible !important;
 }
 
 .transactions-modal .pt-right.tx-panel-surface--workspace .tx-minimal-cashflow-tooltip,
@@ -6254,8 +6506,479 @@ html:not(.home-route-active) .transactions-modal .pt-right.tx-panel-surface--wor
   }
 
   .transactions-modal .pt-right.tx-panel-surface--workspace .tx-minimal-cashflow-chart,
-  html:not(.home-route-active) .transactions-modal .pt-right.tx-panel-surface--workspace .tx-minimal-cashflow-chart{
-    min-height: 210px !important;
-    height: 210px !important;
+  .transactions-modal .pt-right.tx-panel-surface--workspace .agent-tx-bar-chart,
+  html:not(.home-route-active) .transactions-modal .pt-right.tx-panel-surface--workspace .tx-minimal-cashflow-chart,
+  html:not(.home-route-active) .transactions-modal .pt-right.tx-panel-surface--workspace .agent-tx-bar-chart{
+    min-height: 220px !important;
+    height: 220px !important;
   }
+}
+
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+  .transactions-modal .pt-right.tx-panel-surface--workspace:has(.tx-minimal-summary-shell),
+  html:not(.home-route-active) .transactions-modal .pt-right.tx-panel-surface--workspace:has(.tx-minimal-summary-shell){
+    flex: 0 0 auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
+  }
+
+  .transactions-modal .pt-right.tx-panel-surface--workspace .tx-content-carousel:has(.tx-minimal-summary-shell),
+  html:not(.home-route-active) .transactions-modal .pt-right.tx-panel-surface--workspace .tx-content-carousel:has(.tx-minimal-summary-shell){
+    flex: 0 0 auto !important;
+    min-height: auto !important;
+    overflow-y: visible !important;
+    overflow-x: hidden !important;
+  }
+
+  .transactions-modal .pt-right.tx-panel-surface--workspace .tx-minimal-summary-shell .tx-minimal-cashflow-card,
+  .transactions-modal .pt-right.tx-panel-surface--workspace .tx-minimal-summary-shell .agent-tx-chart-card,
+  html:not(.home-route-active) .transactions-modal .pt-right.tx-panel-surface--workspace .tx-minimal-summary-shell .tx-minimal-cashflow-card,
+  html:not(.home-route-active) .transactions-modal .pt-right.tx-panel-surface--workspace .tx-minimal-summary-shell .agent-tx-chart-card{
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    overflow: visible !important;
+  }
+}
+
+/* ── Chat / analysis loading — beige workspace palette ──────────────────── */
+.transactions-modal{
+  --tx-loading-surface-bg: linear-gradient(180deg, #ffffff 0%, #f7f2ea 100%);
+  --tx-loading-surface-border: rgba(206, 194, 176, 0.72);
+  --tx-loading-surface-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.98);
+  --tx-loading-text: var(--tx-workspace-text, #2a2418);
+  --tx-loading-text-dim: var(--tx-workspace-text-dim, #6f6558);
+  --tx-loading-accent: var(--tx-contract-eyebrow, #2d5882);
+  --tx-loading-track: rgba(42, 36, 24, 0.1);
+  --tx-loading-fill: linear-gradient(90deg, var(--tx-loading-accent), #4a7aa8);
+  --tx-loading-pill-bg: rgba(42, 36, 24, 0.06);
+  --tx-loading-pill-border: rgba(42, 36, 24, 0.14);
+}
+
+.transactions-modal .tx-analyst-pending-shell,
+.transactions-modal .tx-content-card.tx-analyst-pending-shell,
+html:not(.home-route-active) .transactions-modal .tx-analyst-pending-shell,
+html:not(.home-route-active) .transactions-modal .tx-content-card.tx-analyst-pending-shell,
+body.agent-route-active .transactions-modal .tx-content-card.tx-analyst-pending-shell{
+  display: grid !important;
+  gap: 0 !important;
+  padding: 18px !important;
+  margin: 0 !important;
+  background: #f7f2ea !important;
+  background-color: #f7f2ea !important;
+  background-image: none !important;
+  border: 1px solid var(--tx-loading-surface-border) !important;
+  border-radius: 20px !important;
+  box-shadow: var(--tx-loading-surface-shadow) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  color: var(--tx-loading-text) !important;
+}
+
+.transactions-modal .tx-analyst-pending-shell .tx-analyst-pending-card,
+html:not(.home-route-active) .transactions-modal .tx-analyst-pending-shell .tx-analyst-pending-card,
+body.agent-route-active .transactions-modal .tx-analyst-pending-shell .tx-analyst-pending-card{
+  padding: 0 0 14px !important;
+  margin: 0 !important;
+  background: transparent !important;
+  background-image: none !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+.transactions-modal .tx-analyst-pending-card,
+html:not(.home-route-active) .transactions-modal .tx-analyst-pending-card{
+  background: #f7f2ea !important;
+  background-color: #f7f2ea !important;
+  background-image: none !important;
+  border: 1px solid var(--tx-loading-surface-border) !important;
+  border-radius: 20px !important;
+  box-shadow: var(--tx-loading-surface-shadow) !important;
+  color: var(--tx-loading-text) !important;
+}
+
+.transactions-modal .tx-analyst-pending-kicker,
+html:not(.home-route-active) .transactions-modal .tx-analyst-pending-kicker{
+  color: var(--tx-loading-accent) !important;
+  -webkit-text-fill-color: var(--tx-loading-accent) !important;
+}
+
+.transactions-modal .tx-analyst-pending-copy,
+html:not(.home-route-active) .transactions-modal .tx-analyst-pending-copy{
+  color: var(--tx-loading-text) !important;
+  -webkit-text-fill-color: var(--tx-loading-text) !important;
+}
+
+.transactions-modal .tx-analyst-pending-subcopy,
+html:not(.home-route-active) .transactions-modal .tx-analyst-pending-subcopy{
+  color: var(--tx-loading-text-dim) !important;
+  -webkit-text-fill-color: var(--tx-loading-text-dim) !important;
+}
+
+.transactions-modal .tx-analyst-pending-skeleton span,
+html:not(.home-route-active) .transactions-modal .tx-analyst-pending-skeleton span{
+  background: linear-gradient(
+    90deg,
+    rgba(42, 36, 24, 0.06),
+    rgba(42, 36, 24, 0.14),
+    rgba(42, 36, 24, 0.06)
+  ) !important;
+  background-size: 200% 100% !important;
+}
+
+.transactions-modal .tx-analysis-live,
+.transactions-modal .tx-content-card--agent .tx-analysis-live,
+.transactions-modal .pt-right.tx-panel-surface--workspace .tx-analysis-live,
+.transactions-modal .tx-minimal-chat-thread .tx-analysis-live,
+.transactions-modal .tx-minimal-chat-card .tx-analysis-live,
+html:not(.home-route-active) .transactions-modal .tx-analysis-live,
+html:not(.home-route-active) .transactions-modal .pt-right.tx-panel-surface--workspace .tx-analysis-live,
+html:not(.home-route-active) .transactions-modal .tx-minimal-chat-thread .tx-analysis-live,
+html:not(.home-route-active) .transactions-modal .tx-minimal-chat-card .tx-analysis-live{
+  margin-top: 12px !important;
+  padding: 14px 16px 16px !important;
+  border-radius: 18px !important;
+  border: 1px solid var(--tx-loading-surface-border) !important;
+  background: #f7f2ea !important;
+  background-color: #f7f2ea !important;
+  background-image: none !important;
+  box-shadow: var(--tx-loading-surface-shadow) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  filter: none !important;
+  color: var(--tx-loading-text) !important;
+}
+
+.transactions-modal .tx-analyst-pending-shell .tx-analysis-live,
+.transactions-modal .tx-analyst-pending-shell .tx-analyst-pending-skeleton,
+html:not(.home-route-active) .transactions-modal .tx-analyst-pending-shell .tx-analysis-live,
+html:not(.home-route-active) .transactions-modal .tx-analyst-pending-shell .tx-analyst-pending-skeleton,
+body.agent-route-active .transactions-modal .tx-analyst-pending-shell .tx-analysis-live{
+  margin-top: 0 !important;
+  padding: 14px 0 0 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: none !important;
+  border-top: 1px solid rgba(42, 36, 24, 0.1) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  filter: none !important;
+}
+
+.transactions-modal .tx-analysis-console-dot,
+html:not(.home-route-active) .transactions-modal .tx-analysis-console-dot{
+  background: var(--tx-loading-accent) !important;
+  box-shadow: 0 0 0 6px rgba(45, 88, 130, 0.12) !important;
+}
+
+.transactions-modal .tx-analysis-badge,
+html:not(.home-route-active) .transactions-modal .tx-analysis-badge{
+  border: 1px solid var(--tx-loading-pill-border) !important;
+  background: var(--tx-loading-pill-bg) !important;
+  color: var(--tx-loading-text) !important;
+  -webkit-text-fill-color: var(--tx-loading-text) !important;
+}
+
+.transactions-modal .tx-analysis-meta,
+html:not(.home-route-active) .transactions-modal .tx-analysis-meta{
+  color: var(--tx-loading-text-dim) !important;
+  -webkit-text-fill-color: var(--tx-loading-text-dim) !important;
+}
+
+.transactions-modal .tx-analysis-copy,
+html:not(.home-route-active) .transactions-modal .tx-analysis-copy{
+  color: var(--tx-loading-text) !important;
+  -webkit-text-fill-color: var(--tx-loading-text) !important;
+}
+
+.transactions-modal .tx-analysis-percent,
+html:not(.home-route-active) .transactions-modal .tx-analysis-percent{
+  color: var(--tx-loading-text) !important;
+  -webkit-text-fill-color: var(--tx-loading-text) !important;
+}
+
+.transactions-modal .tx-analysis-step,
+html:not(.home-route-active) .transactions-modal .tx-analysis-step{
+  border: 1px solid var(--tx-loading-pill-border) !important;
+  background: var(--tx-loading-pill-bg) !important;
+  color: var(--tx-loading-text-dim) !important;
+  -webkit-text-fill-color: var(--tx-loading-text-dim) !important;
+  animation: none !important;
+}
+
+.transactions-modal .tx-analysis-step.is-done,
+html:not(.home-route-active) .transactions-modal .tx-analysis-step.is-done{
+  border-color: rgba(45, 88, 130, 0.28) !important;
+  background: rgba(45, 88, 130, 0.1) !important;
+  color: var(--tx-loading-text) !important;
+  -webkit-text-fill-color: var(--tx-loading-text) !important;
+}
+
+.transactions-modal .tx-analysis-step.is-active,
+html:not(.home-route-active) .transactions-modal .tx-analysis-step.is-active{
+  border-color: rgba(45, 88, 130, 0.42) !important;
+  background: rgba(45, 88, 130, 0.14) !important;
+  color: var(--tx-loading-text) !important;
+  -webkit-text-fill-color: var(--tx-loading-text) !important;
+  box-shadow: none !important;
+}
+
+.transactions-modal .tx-analysis-step.is-pending,
+html:not(.home-route-active) .transactions-modal .tx-analysis-step.is-pending{
+  opacity: 0.72 !important;
+}
+
+.transactions-modal .tx-analysis-track,
+html:not(.home-route-active) .transactions-modal .tx-analysis-track{
+  height: 3px !important;
+  background: var(--tx-loading-track) !important;
+}
+
+.transactions-modal .tx-analysis-fill,
+html:not(.home-route-active) .transactions-modal .tx-analysis-fill{
+  background: var(--tx-loading-fill) !important;
+}
+
+.transactions-modal .tx-analysis-fill.is-determinate,
+html:not(.home-route-active) .transactions-modal .tx-analysis-fill.is-determinate{
+  background: var(--tx-loading-fill) !important;
+}
+
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+  .transactions-modal .tx-content-card--agent .tx-analysis-live,
+  .transactions-modal .pt-right.tx-panel-surface--workspace .tx-analysis-live,
+  .transactions-modal .tx-minimal-chat-thread .tx-analysis-live,
+  .transactions-modal .tx-minimal-chat-card .tx-analysis-live,
+  html:not(.home-route-active) .transactions-modal .tx-analysis-live,
+  html:not(.home-route-active) .transactions-modal .tx-content-card--agent .tx-analysis-live,
+  html:not(.home-route-active) .transactions-modal .pt-right.tx-panel-surface--workspace .tx-analysis-live,
+  html:not(.home-route-active) .transactions-modal .tx-minimal-chat-thread .tx-analysis-live,
+  html:not(.home-route-active) .transactions-modal .tx-minimal-chat-card .tx-analysis-live,
+  body.agent-route-active .transactions-modal .tx-analysis-live,
+  body.agent-route-active .transactions-modal .tx-content-card--agent .tx-analysis-live{
+    border-radius: 18px !important;
+    border: 1px solid var(--tx-loading-surface-border) !important;
+    background: #f7f2ea !important;
+    background-color: #f7f2ea !important;
+    background-image: none !important;
+    box-shadow: var(--tx-loading-surface-shadow) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    filter: none !important;
+    color: var(--tx-loading-text) !important;
+  }
+
+  .transactions-modal .tx-analysis-live .tx-analysis-console-head,
+  .transactions-modal .tx-analysis-live .tx-analysis-console-body,
+  html:not(.home-route-active) .transactions-modal .tx-analysis-live .tx-analysis-console-head,
+  html:not(.home-route-active) .transactions-modal .tx-analysis-live .tx-analysis-console-body{
+    background: transparent !important;
+    background-image: none !important;
+    box-shadow: none !important;
+  }
+
+  html:not(.home-route-active) .transactions-modal .pt-right.tx-panel-surface--workspace,
+  body.agent-route-active .transactions-modal .pt-right.tx-panel-surface--workspace{
+    background: linear-gradient(180deg, var(--tx-workspace-bg) 0%, var(--tx-workspace-bg-soft) 100%) !important;
+    background-color: var(--tx-workspace-bg) !important;
+    background-image: linear-gradient(180deg, var(--tx-workspace-bg) 0%, var(--tx-workspace-bg-soft) 100%) !important;
+    border-color: var(--tx-workspace-border) !important;
+    color: var(--tx-workspace-text) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.92) !important;
+  }
+
+  html:not(.home-route-active) .transactions-modal .pt-right.tx-panel-surface--workspace .tx-content-carousel,
+  body.agent-route-active .transactions-modal .pt-right.tx-panel-surface--workspace .tx-content-carousel{
+    background: transparent !important;
+    background-image: none !important;
+  }
+
+  html:not(.home-route-active) .transactions-modal .tx-content-card.tx-analyst-pending-shell,
+  body.agent-route-active .transactions-modal .tx-content-card.tx-analyst-pending-shell{
+    background: #f7f2ea !important;
+    background-color: #f7f2ea !important;
+    background-image: none !important;
+    border: 1px solid var(--tx-loading-surface-border) !important;
+    box-shadow: var(--tx-loading-surface-shadow) !important;
+  }
+
+  html:not(.home-route-active) .transactions-modal .tx-analyst-pending-shell .tx-analysis-live,
+  body.agent-route-active .transactions-modal .tx-analyst-pending-shell .tx-analysis-live{
+    margin-top: 0 !important;
+    padding: 14px 0 0 !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    background-image: none !important;
+    border: none !important;
+    border-top: 1px solid rgba(42, 36, 24, 0.1) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .transactions-modal .pt-left.tx-panel-surface--library .tx-library-stack-block,
+  .transactions-modal .pt-left.tx-panel-surface--library .tx-scanner-stream-root,
+  html:not(.home-route-active) .transactions-modal .pt-left.tx-panel-surface--library .tx-scanner-stream-root,
+  body.agent-route-active .transactions-modal .pt-left.tx-panel-surface--library .tx-scanner-stream-root{
+    touch-action: none !important;
+  }
+
+  .transactions-modal .pt-left.tx-panel-surface--library .tx-scanner-card-line,
+  html:not(.home-route-active) .transactions-modal .pt-left.tx-panel-surface--library .tx-scanner-card-line{
+    touch-action: none !important;
+  }
+}
+
+/* =============================================================================
+   PANEL MODAL CARDS — authoritative palette (desk + mobile compact + expanded)
+   Productos/Transacciones: azul · Presupuesto: oro · Entrevista/Diagnóstico: rojo
+   Paleta: Azul #425d7d · Oro #c6a052 · Rojo #823232
+   ============================================================================= */
+
+body.agent-route-active{
+  --tx-panel-gold-bg: linear-gradient(145deg, rgba(184, 147, 70, 0.9), rgba(152, 119, 54, 0.92));
+  --tx-panel-gold-bg-hover: linear-gradient(145deg, rgba(198, 160, 81, 0.94), rgba(162, 128, 61, 0.95));
+  --tx-panel-gold-border: rgba(235, 218, 179, 0.58);
+  --tx-panel-gold-border-hover: rgba(245, 226, 189, 0.74);
+  --tx-panel-gold-text: #fffaf0;
+  --tx-panel-gold-shadow: 0 16px 30px rgba(67, 52, 22, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  --tx-panel-blue-bg: linear-gradient(145deg, rgba(56, 81, 111, 0.82), rgba(37, 57, 79, 0.9));
+  --tx-panel-blue-bg-hover: linear-gradient(145deg, rgba(68, 95, 129, 0.88), rgba(40, 62, 86, 0.95));
+  --tx-panel-blue-border: rgba(200, 212, 227, 0.5);
+  --tx-panel-blue-border-hover: rgba(200, 212, 227, 0.72);
+  --tx-panel-blue-text: #f3f8fc;
+  --tx-panel-blue-shadow: 0 16px 30px rgba(18, 28, 41, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  --tx-panel-burgundy-bg: linear-gradient(145deg, rgba(116, 44, 44, 0.9), rgba(82, 30, 30, 0.94));
+  --tx-panel-burgundy-bg-hover: linear-gradient(145deg, rgba(130, 50, 50, 0.94), rgba(92, 34, 34, 0.98));
+  --tx-panel-burgundy-border: rgba(204, 130, 130, 0.52);
+  --tx-panel-burgundy-border-hover: rgba(220, 150, 150, 0.68);
+  --tx-panel-burgundy-text: #fff1ed;
+  --tx-panel-burgundy-shadow: 0 16px 30px rgba(45, 14, 14, 0.38), inset 0 1px 0 rgba(255, 220, 220, 0.12);
+}
+
+body.agent-route-active .agent-panel .panel-pos-transactions.panel-feature-card,
+body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .panel-pos-transactions.panel-feature-card,
+body.agent-route-active .agent-panel.is-mobile-compact .panel-pos-transactions.panel-feature-card,
+body.agent-route-active .agent-panel.is-mobile-expanded .panel-pos-transactions.panel-feature-card,
+html.is-desktop-viewport body.agent-route-active .agent-panel .panel-pos-transactions.panel-feature-card,
+html.is-tablet-landscape body.agent-route-active .agent-panel .panel-pos-transactions.panel-feature-card{
+  background: var(--tx-panel-blue-bg) !important;
+  background-image: var(--tx-panel-blue-bg) !important;
+  border: 1px solid var(--tx-panel-blue-border) !important;
+  color: var(--tx-panel-blue-text) !important;
+  box-shadow: var(--tx-panel-blue-shadow) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+body.agent-route-active .agent-panel .panel-pos-transactions.panel-feature-card:hover:not(.is-locked),
+body.agent-route-active .agent-panel .panel-pos-transactions.panel-feature-card.is-panel-highlighted,
+body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .panel-pos-transactions.panel-feature-card:hover:not(.is-locked),
+body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .panel-pos-transactions.panel-feature-card.is-panel-highlighted,
+html.is-desktop-viewport body.agent-route-active .agent-panel .panel-pos-transactions.panel-feature-card:hover:not(.is-locked),
+html.is-desktop-viewport body.agent-route-active .agent-panel .panel-pos-transactions.panel-feature-card.is-panel-highlighted,
+html.is-tablet-landscape body.agent-route-active .agent-panel .panel-pos-transactions.panel-feature-card:hover:not(.is-locked),
+html.is-tablet-landscape body.agent-route-active .agent-panel .panel-pos-transactions.panel-feature-card.is-panel-highlighted{
+  background: var(--tx-panel-blue-bg-hover) !important;
+  background-image: var(--tx-panel-blue-bg-hover) !important;
+  border-color: var(--tx-panel-blue-border-hover) !important;
+  color: var(--tx-panel-blue-text) !important;
+}
+
+body.agent-route-active .agent-panel .panel-pos-budget.panel-feature-card,
+body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .panel-pos-budget.panel-feature-card,
+body.agent-route-active .agent-panel.is-mobile-compact .panel-pos-budget.panel-feature-card,
+body.agent-route-active .agent-panel.is-mobile-expanded .panel-pos-budget.panel-feature-card,
+html.is-desktop-viewport body.agent-route-active .agent-panel .panel-pos-budget.panel-feature-card,
+html.is-tablet-landscape body.agent-route-active .agent-panel .panel-pos-budget.panel-feature-card{
+  background: var(--tx-panel-gold-bg) !important;
+  background-image: var(--tx-panel-gold-bg) !important;
+  border: 1px solid var(--tx-panel-gold-border) !important;
+  color: var(--tx-panel-gold-text) !important;
+  box-shadow: var(--tx-panel-gold-shadow) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+body.agent-route-active .agent-panel .panel-pos-budget.panel-feature-card:hover:not(.is-locked),
+body.agent-route-active .agent-panel .panel-pos-budget.panel-feature-card.is-panel-highlighted,
+body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .panel-pos-budget.panel-feature-card:hover:not(.is-locked),
+body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .panel-pos-budget.panel-feature-card.is-panel-highlighted,
+html.is-desktop-viewport body.agent-route-active .agent-panel .panel-pos-budget.panel-feature-card:hover:not(.is-locked),
+html.is-desktop-viewport body.agent-route-active .agent-panel .panel-pos-budget.panel-feature-card.is-panel-highlighted,
+html.is-tablet-landscape body.agent-route-active .agent-panel .panel-pos-budget.panel-feature-card:hover:not(.is-locked),
+html.is-tablet-landscape body.agent-route-active .agent-panel .panel-pos-budget.panel-feature-card.is-panel-highlighted{
+  background: var(--tx-panel-gold-bg-hover) !important;
+  background-image: var(--tx-panel-gold-bg-hover) !important;
+  border-color: var(--tx-panel-gold-border-hover) !important;
+  color: var(--tx-panel-gold-text) !important;
+}
+
+body.agent-route-active .agent-panel .panel-pos-interview.interview-flow-card,
+body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .panel-pos-interview.interview-flow-card,
+body.agent-route-active .agent-panel.is-mobile-compact .panel-pos-interview.interview-flow-card,
+body.agent-route-active .agent-panel.is-mobile-expanded .panel-pos-interview.interview-flow-card{
+  background: var(--tx-panel-burgundy-bg) !important;
+  background-image: var(--tx-panel-burgundy-bg) !important;
+  border: 1px solid var(--tx-panel-burgundy-border) !important;
+  color: var(--tx-panel-burgundy-text) !important;
+  box-shadow: var(--tx-panel-burgundy-shadow) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+body.agent-route-active .agent-panel .panel-pos-interview.interview-flow-card:hover:not(.is-locked),
+body.agent-route-active .agent-panel .panel-pos-interview.interview-flow-card.is-panel-highlighted,
+body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .panel-pos-interview.interview-flow-card:hover:not(.is-locked),
+body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .panel-pos-interview.interview-flow-card.is-panel-highlighted{
+  background: var(--tx-panel-burgundy-bg-hover) !important;
+  background-image: var(--tx-panel-burgundy-bg-hover) !important;
+  border-color: var(--tx-panel-burgundy-border-hover) !important;
+  color: var(--tx-panel-burgundy-text) !important;
+}
+
+body.agent-route-active .agent-panel .panel-pos-budget.panel-feature-card .panel-feature-label,
+body.agent-route-active .agent-panel .panel-pos-budget.panel-feature-card .panel-feature-status,
+body.agent-route-active .agent-panel .panel-pos-budget.panel-feature-card .panel-feature-copy,
+body.agent-route-active .agent-panel .panel-pos-budget.panel-feature-card .panel-feature-copy-secondary,
+body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .panel-pos-budget.panel-feature-card .panel-feature-label,
+body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .panel-pos-budget.panel-feature-card .panel-feature-status,
+body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .panel-pos-budget.panel-feature-card .panel-feature-copy,
+body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .panel-pos-budget.panel-feature-card .panel-feature-copy-secondary{
+  color: inherit !important;
+  -webkit-text-fill-color: currentColor !important;
+  opacity: 1 !important;
+}
+
+body.agent-route-active .agent-panel .panel-pos-transactions.panel-feature-card .panel-feature-label,
+body.agent-route-active .agent-panel .panel-pos-transactions.panel-feature-card .panel-feature-status,
+body.agent-route-active .agent-panel .panel-pos-transactions.panel-feature-card .panel-feature-copy,
+body.agent-route-active .agent-panel .panel-pos-transactions.panel-feature-card .panel-feature-copy-secondary,
+body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .panel-pos-transactions.panel-feature-card .panel-feature-label,
+body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .panel-pos-transactions.panel-feature-card .panel-feature-status,
+body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .panel-pos-transactions.panel-feature-card .panel-feature-copy,
+body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .panel-pos-transactions.panel-feature-card .panel-feature-copy-secondary{
+  color: inherit !important;
+  -webkit-text-fill-color: currentColor !important;
+  opacity: 1 !important;
+}
+
+body.agent-route-active .agent-panel .panel-pos-interview.interview-flow-card .interview-flow-label,
+body.agent-route-active .agent-panel .panel-pos-interview.interview-flow-card .panel-feature-status,
+body.agent-route-active .agent-panel .panel-pos-interview.interview-flow-card .interview-flow-title,
+body.agent-route-active .agent-panel .panel-pos-interview.interview-flow-card .interview-flow-meta,
+body.agent-route-active .agent-panel .panel-pos-interview.interview-flow-card .interview-flow-submeta,
+body.agent-route-active .agent-panel .panel-pos-interview.interview-flow-card .panel-feature-copy,
+body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .panel-pos-interview.interview-flow-card .interview-flow-label,
+body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .panel-pos-interview.interview-flow-card .panel-feature-status,
+body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .panel-pos-interview.interview-flow-card .interview-flow-title,
+body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .panel-pos-interview.interview-flow-card .interview-flow-meta,
+body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .panel-pos-interview.interview-flow-card .interview-flow-submeta,
+body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .panel-pos-interview.interview-flow-card .panel-feature-copy{
+  color: inherit !important;
+  -webkit-text-fill-color: currentColor !important;
+  opacity: 1 !important;
 }

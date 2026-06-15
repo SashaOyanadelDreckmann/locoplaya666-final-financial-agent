@@ -1,0 +1,321 @@
+/* ================================================= */
+/* INTERVIEW MOBILE — PREMIUM MINIMAL PARITY          */
+/* Desktop visual language · full-sheet mobile layout */
+/* Loads after minimal + voice-aura in layout.tsx.    */
+/* ================================================= */
+
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+  /* ── Live interview shell — same dark glass as desktop ── */
+  .agent-modal.interview-modal.is-mobile-shell.interview-modal--minimal:not(.interview-modal--diagnosis):not(.interview-modal--generating),
+  .interview-modal.is-mobile-shell.interview-modal--minimal:not(.interview-modal--diagnosis):not(.interview-modal--generating) {
+    background:
+      radial-gradient(circle at 18% 12%, rgba(159, 18, 57, 0.14), transparent 42%),
+      radial-gradient(circle at 82% 8%, rgba(74, 111, 172, 0.1), transparent 38%),
+      linear-gradient(180deg, rgba(8, 10, 16, 0.98) 0%, rgba(5, 7, 12, 0.99) 100%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.07) !important;
+    box-shadow:
+      0 40px 88px rgba(0, 0, 0, 0.58),
+      inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
+    backdrop-filter: blur(28px) saturate(1.05) !important;
+    -webkit-backdrop-filter: blur(28px) saturate(1.05) !important;
+  }
+
+  .interview-modal.is-mobile-shell.interview-modal--minimal:not(.interview-modal--diagnosis) .interview-matte-panel--header,
+  .agent-modal.interview-modal.is-mobile-shell.interview-modal--minimal:not(.interview-modal--diagnosis) .interview-matte-panel--header {
+    border-radius: var(--modal-mobile-sheet-radius, 20px) var(--modal-mobile-sheet-radius, 20px) 0 0 !important;
+    border-bottom: 1px solid var(--iv-min-panel-border, rgba(198, 180, 156, 0.5)) !important;
+    background: var(--iv-min-panel-bg, #ffffff) !important;
+    background-image: linear-gradient(180deg, #ffffff 0%, #fffdf9 100%) !important;
+    box-shadow: inset 0 -1px 0 rgba(198, 180, 156, 0.18) !important;
+  }
+
+  .interview-modal.is-mobile-shell.interview-modal--minimal:not(.interview-modal--diagnosis) .interview-modal-body,
+  .agent-modal.interview-modal.is-mobile-shell.interview-modal--minimal:not(.interview-modal--diagnosis) .interview-modal-body {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    padding:
+      10px
+      14px
+      calc(12px + env(safe-area-inset-bottom, 0px)) !important;
+    background: transparent !important;
+  }
+
+  .interview-modal.is-mobile-shell.interview-modal--minimal:not(.interview-modal--diagnosis) .interview-live-zone--rail.interview-matte-panel--rail {
+    margin-top: auto !important;
+    border-radius: var(--iv-min-panel-radius, 20px) !important;
+    border: 1px solid var(--iv-min-panel-border, rgba(198, 180, 156, 0.5)) !important;
+    background: var(--iv-min-panel-bg, #ffffff) !important;
+    box-shadow:
+      0 -10px 28px rgba(0, 0, 0, 0.18),
+      inset 0 1px 0 rgba(255, 255, 255, 0.94) !important;
+  }
+
+  /* Flex chain: header + body must share one viewport — zones shrink instead of clipping */
+  .interview-modal.is-mobile-shell.interview-modal--minimal:not(.interview-modal--diagnosis) .interview-stage-shell,
+  .interview-modal.is-mobile-shell.interview-modal--minimal:not(.interview-modal--diagnosis) .pro-interview-column,
+  .interview-modal.is-mobile-shell.interview-modal--minimal:not(.interview-modal--diagnosis) .interview-panel-surface--workspace,
+  .interview-modal.is-mobile-shell.interview-modal--minimal:not(.interview-modal--diagnosis) .interview-live-shell {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  .interview-modal.is-mobile-shell.interview-modal--minimal:not(.interview-modal--diagnosis) .interview-live-zones {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    grid-template-rows: auto minmax(0, 1fr) auto !important;
+    overflow: visible !important;
+  }
+
+  .interview-modal.is-mobile-shell.interview-modal--minimal:not(.interview-modal--diagnosis) .interview-live-zone--head {
+    flex-shrink: 0 !important;
+  }
+
+  .interview-modal.is-mobile-shell.interview-modal--minimal:not(.interview-modal--diagnosis) .interview-live-zone--center {
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .interview-modal.is-mobile-shell.interview-modal--minimal:not(.interview-modal--diagnosis) .interview-live-shell,
+  .interview-modal.is-mobile-shell.interview-modal--minimal:not(.interview-modal--diagnosis) .interview-panel-surface--workspace {
+    overflow: visible !important;
+  }
+
+  .interview-modal.is-mobile-shell.interview-modal--minimal:not(.interview-modal--diagnosis) .interview-live-zone--rail.interview-matte-panel--rail {
+    flex-shrink: 0 !important;
+    min-height: 0 !important;
+  }
+
+  .interview-modal.is-mobile-shell.interview-modal--minimal .interview-sync-error-toast {
+    flex-shrink: 0 !important;
+    padding:
+      8px
+      max(16px, env(safe-area-inset-left, 0px))
+      8px
+      max(16px, env(safe-area-inset-right, 0px)) !important;
+    font-size: 11px !important;
+    line-height: 1.45 !important;
+  }
+
+  /* ── Diagnosis sheet — cream editorial parity with desktop ── */
+  .agent-modal.interview-modal.is-mobile-shell.interview-modal--diagnosis.interview-modal--minimal,
+  .interview-modal.is-mobile-shell.interview-modal--diagnosis.interview-modal--minimal {
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: 0 !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    border: none !important;
+    border-radius: var(--modal-mobile-sheet-radius, 20px) var(--modal-mobile-sheet-radius, 20px) 0 0 !important;
+    background: #fffdf9 !important;
+    background-image: linear-gradient(180deg, #ffffff 0%, #faf7f1 58%, #f5efe6 100%) !important;
+    box-shadow:
+      0 28px 64px rgba(26, 22, 18, 0.18),
+      inset 0 1px 0 rgba(255, 255, 255, 0.98) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    overflow: hidden !important;
+  }
+
+  .interview-modal.is-mobile-shell.interview-modal--diagnosis.interview-modal--minimal .interview-matte-panel--header {
+    flex-shrink: 0 !important;
+    border-radius: var(--modal-mobile-sheet-radius, 20px) var(--modal-mobile-sheet-radius, 20px) 0 0 !important;
+    border-bottom: 1px solid rgba(198, 180, 156, 0.42) !important;
+    background: #ffffff !important;
+    background-image: linear-gradient(180deg, #ffffff 0%, #fffdf9 100%) !important;
+  }
+
+  .interview-modal.is-mobile-shell.interview-modal--diagnosis.interview-modal--minimal .interview-diagnosis-panel {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+    gap: 0 !important;
+  }
+
+  .interview-modal.is-mobile-shell.interview-modal--diagnosis.interview-modal--minimal .interview-diagnosis-panel__body {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior: contain !important;
+    padding: 12px 16px 14px !important;
+    gap: 14px !important;
+  }
+
+  .interview-modal.is-mobile-shell.interview-modal--diagnosis.interview-modal--minimal .diagnosis-scorecard-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+
+  .interview-modal.is-mobile-shell.interview-modal--diagnosis.interview-modal--minimal .diagnosis-scorecard {
+    padding: 12px 13px !important;
+  }
+
+  .interview-modal.is-mobile-shell.interview-modal--diagnosis.interview-modal--minimal .diagnosis-scorecard strong {
+    font-size: clamp(1.35rem, 6vw, 1.75rem) !important;
+  }
+
+  .interview-modal.is-mobile-shell.interview-modal--diagnosis.interview-modal--minimal .diagnosis-definition-grid {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    gap: 8px !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    scroll-snap-type: x proximity !important;
+    padding-bottom: 2px !important;
+  }
+
+  .interview-modal.is-mobile-shell.interview-modal--diagnosis.interview-modal--minimal .diagnosis-definition-item {
+    flex: 0 0 min(72vw, 220px) !important;
+    scroll-snap-align: start !important;
+  }
+
+  .interview-modal.is-mobile-shell.interview-modal--diagnosis.interview-modal--minimal .diagnosis-signal-strip {
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+  }
+
+  .interview-modal.is-mobile-shell.interview-modal--diagnosis.interview-modal--minimal .diagnosis-signal-pill {
+    font-size: 11px !important;
+    padding: 9px 11px !important;
+    border-radius: 14px !important;
+  }
+
+  .interview-modal.is-mobile-shell.interview-modal--diagnosis.interview-modal--minimal .diagnosis-card--narrative .diagnosis-prose {
+    font-size: 0.94rem !important;
+    line-height: 1.68 !important;
+  }
+
+  .interview-modal.is-mobile-shell.interview-modal--diagnosis.interview-modal--minimal .interview-diagnosis-panel__footer {
+    flex-shrink: 0 !important;
+    position: sticky !important;
+    bottom: 0 !important;
+    z-index: 4 !important;
+    padding:
+      10px 16px
+      calc(10px + env(safe-area-inset-bottom, 0px)) !important;
+    border-top: 1px solid rgba(198, 180, 156, 0.42) !important;
+    background: rgba(255, 253, 249, 0.96) !important;
+    backdrop-filter: blur(12px) saturate(1.1) !important;
+    -webkit-backdrop-filter: blur(12px) saturate(1.1) !important;
+    box-shadow: 0 -10px 24px rgba(255, 253, 249, 0.92) !important;
+  }
+
+  .interview-modal.is-mobile-shell.interview-modal--diagnosis.interview-modal--minimal .interview-diagnosis-panel__footer > .interview-diagnosis-deepen-btn {
+    width: 100% !important;
+    min-height: 44px !important;
+    height: 44px !important;
+    font-size: 14px !important;
+  }
+
+  /* Beat diagnostics max-height cap on mobile sheets */
+  .interview-modal.is-mobile-shell.interview-modal--diagnosis .interview-diagnosis-panel,
+  .interview-modal.is-mobile-shell.interview-modal--diagnosis.interview-modal--minimal .interview-diagnosis-panel {
+    max-height: none !important;
+  }
+
+  .interview-modal.is-mobile-shell.interview-modal--diagnosis.interview-modal--minimal .interview-diagnosis-panel__body {
+    scroll-padding-bottom: calc(58px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  /* Short viewports — compact rail + aura so footer insight grid never clips */
+  @media (max-height: 720px) {
+    .interview-modal.is-mobile-shell.interview-modal--minimal:not(.interview-modal--diagnosis) .interview-modal-body {
+      padding:
+        8px
+        12px
+        calc(10px + env(safe-area-inset-bottom, 0px)) !important;
+    }
+
+    .interview-modal.is-mobile-shell.interview-modal--minimal:not(.interview-modal--diagnosis) .interview-live-zone--rail.interview-matte-panel--rail {
+      padding: 8px !important;
+    }
+
+    .interview-modal.is-mobile-shell.interview-modal--minimal .interview-insight-grid {
+      gap: 8px !important;
+    }
+
+    .interview-modal.is-mobile-shell.interview-modal--minimal .interview-insight-cell {
+      min-height: 72px !important;
+      padding: 8px 9px !important;
+    }
+
+    .interview-modal.is-mobile-shell.interview-modal--minimal .interview-insight-cell__value {
+      font-size: 11px !important;
+      -webkit-line-clamp: 2 !important;
+    }
+
+    .interview-modal.is-mobile-shell.interview-modal--minimal .interview-insight-cell__detail {
+      font-size: 9.5px !important;
+      -webkit-line-clamp: 1 !important;
+    }
+
+    .interview-modal.is-mobile-shell.interview-modal--minimal .interview-voice-aura__sphere--body {
+      width: min(70vmin, 420px) !important;
+      height: min(70vmin, 420px) !important;
+    }
+
+    .interview-modal.is-mobile-shell.interview-modal--minimal .interview-voice-aura__sphere--ambient {
+      width: min(96vmin, 580px) !important;
+      height: min(96vmin, 580px) !important;
+    }
+
+    .interview-modal.is-mobile-shell.interview-modal--minimal .interview-call-controls--centered {
+      gap: 8px !important;
+    }
+  }
+
+  @media (max-height: 620px) {
+    .interview-modal.is-mobile-shell.interview-modal--minimal:not(.interview-modal--diagnosis) .interview-modal-body {
+      padding:
+        6px
+        10px
+        calc(8px + env(safe-area-inset-bottom, 0px)) !important;
+    }
+
+    .interview-modal.is-mobile-shell.interview-modal--minimal .interview-insight-cell {
+      min-height: 64px !important;
+      padding: 7px 8px !important;
+      border-radius: 12px !important;
+    }
+
+    .interview-modal.is-mobile-shell.interview-modal--minimal .interview-insight-cell__label {
+      font-size: 8px !important;
+      letter-spacing: 0.12em !important;
+    }
+
+    .interview-modal.is-mobile-shell.interview-modal--minimal .interview-voice-aura__sphere--body {
+      width: min(64vmin, 360px) !important;
+      height: min(64vmin, 360px) !important;
+    }
+
+    .interview-modal.is-mobile-shell.interview-modal--minimal .interview-voice-aura__sphere--ambient {
+      width: min(88vmin, 500px) !important;
+      height: min(88vmin, 500px) !important;
+    }
+
+    .interview-modal.is-mobile-shell.interview-modal--minimal .interview-live-zone--center .interview-voice-aura {
+      inset: 0 !important;
+    }
+
+    .interview-modal.is-mobile-shell.interview-modal--minimal .interview-header-status-row .interview-time-chip {
+      padding: 4px 8px !important;
+      font-size: 10px !important;
+    }
+  }
+}

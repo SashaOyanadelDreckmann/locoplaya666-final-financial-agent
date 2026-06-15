@@ -3,10 +3,10 @@
 .budget-modal {
   /* Main chat panel tokens (--accent / --accent-2 + welcome cards) */
   --hero-plain: rgba(228, 239, 248, 0.9);
-  --hero-keyword-blue: #52a8d9;
-  --hero-keyword-gold: #d4a428;
-  --hero-keyword-slate: #4580b0;
-  --hero-keyword-mist: #dce8f2;
+  /* Neutral assistant keywords — opaque mustard (income/expense palettes in desktop-guard) */
+  --hero-keyword-a: #ecd060;
+  --hero-keyword-b: #d8b030;
+  --hero-keyword-c: #b08818;
 }
 
 .budget-modal .bcc-hero-question--gradient-demo {
@@ -59,26 +59,34 @@
   color: var(--hero-plain) !important;
 }
 
-/* Keywords — same blue/gold family as main chat panel cards */
+/* Keywords — one opaque palette per tone (.bcc-hero / .bcc-hero-question); no rainbow */
 .budget-modal .agent-keyword-gradient {
   display: inline !important;
   position: static !important;
   padding: 0 !important;
   margin: 0 !important;
-  background-image: linear-gradient(
-    102deg,
-    var(--hero-keyword-blue) 0%,
-    var(--hero-keyword-gold) 46%,
-    var(--hero-keyword-slate) 100%
-  ) !important;
-  background-size: 100% auto !important;
-  background-clip: text !important;
-  -webkit-background-clip: text !important;
-  color: transparent !important;
-  -webkit-text-fill-color: transparent !important;
+  background: none !important;
+  background-image: none !important;
+  background-color: transparent !important;
+  background-clip: border-box !important;
+  -webkit-background-clip: border-box !important;
+  color: var(--hero-keyword-tone, var(--hero-keyword-a)) !important;
+  -webkit-text-fill-color: var(--hero-keyword-tone, var(--hero-keyword-a)) !important;
   animation: none !important;
   filter: none !important;
   text-shadow: none !important;
+}
+
+.budget-modal .agent-keyword-gradient--s0 {
+  --hero-keyword-tone: var(--hero-keyword-a);
+}
+
+.budget-modal .agent-keyword-gradient--s1 {
+  --hero-keyword-tone: var(--hero-keyword-b);
+}
+
+.budget-modal .agent-keyword-gradient--s2 {
+  --hero-keyword-tone: var(--hero-keyword-c);
 }
 
 @media (max-width: 1023px) {

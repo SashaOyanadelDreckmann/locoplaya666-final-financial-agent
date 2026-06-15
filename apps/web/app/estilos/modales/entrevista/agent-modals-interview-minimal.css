@@ -29,6 +29,35 @@
   --iv-min-status-live: #166534;
   --iv-min-status-paused: #9a6700;
   --iv-min-status-idle: rgba(26, 22, 18, 0.52);
+  --iv-min-def-gold-bg: #b8893a;
+  --iv-min-def-gold-border: #96722f;
+  --iv-min-def-gold-label: rgba(255, 246, 228, 0.9);
+  --iv-min-def-gold-value: #fff9ef;
+  --iv-min-def-slate-bg: #3f5d7c;
+  --iv-min-def-slate-border: #334f6a;
+  --iv-min-def-slate-label: rgba(237, 244, 252, 0.9);
+  --iv-min-def-slate-value: #f2f7fc;
+  --iv-min-def-wine-bg: #923148;
+  --iv-min-def-wine-border: #7a2840;
+  --iv-min-def-wine-label: rgba(255, 236, 240, 0.9);
+  --iv-min-def-wine-value: #fff0f3;
+  --iv-min-def-gold-muted-bg: #a57d38;
+  --iv-min-def-gold-muted-border: #8a682f;
+  --iv-min-def-gold-muted-label: rgba(255, 244, 228, 0.88);
+  --iv-min-def-gold-muted-value: #fff5e8;
+  --iv-min-def-slate-muted-bg: #4a6580;
+  --iv-min-def-slate-muted-border: #3d556d;
+  --iv-min-def-slate-muted-label: rgba(241, 246, 252, 0.88);
+  --iv-min-def-slate-muted-value: #eef4fa;
+  --iv-min-def-wine-muted-bg: #7f3548;
+  --iv-min-def-wine-muted-border: #6a2d3d;
+  --iv-min-def-wine-muted-label: rgba(255, 236, 238, 0.88);
+  --iv-min-def-wine-muted-value: #ffecef;
+  --iv-min-def-matte-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 2px 10px rgba(26, 22, 18, 0.07);
+  --iv-min-def-deepen-bg: #94314a;
+  --iv-min-def-deepen-border: #7a2840;
+  --iv-min-def-deepen-text: #fff1f4;
+  --iv-min-def-deepen-hover-bg: #852c42;
 }
 
 .interview-modal.interview-modal--minimal.agent-modal,
@@ -39,6 +68,87 @@
   flex-direction: column !important;
   align-items: stretch !important;
   min-height: min(78vh, 640px) !important;
+}
+
+/* Generating / bootstrap — ghost shell; loader floats on overlay */
+.agent-modal.interview-modal.interview-modal--generating.interview-modal--minimal,
+.interview-modal.interview-modal--generating.interview-modal--minimal {
+  background: transparent !important;
+  background-image: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  height: auto !important;
+  width: auto !important;
+  max-width: none !important;
+  flex: 0 0 auto !important;
+  margin: auto !important;
+  align-items: center !important;
+  justify-content: center !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  overflow: visible !important;
+  clip-path: none !important;
+}
+
+.agent-modal.interview-modal.interview-modal--generating.interview-modal--minimal .interview-modal-loader,
+.interview-modal.interview-modal--generating.interview-modal--minimal .interview-modal-loader {
+  width: min(100%, 420px) !important;
+  max-width: 420px !important;
+  flex: 0 0 auto !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  box-sizing: border-box !important;
+  background: transparent !important;
+  overflow: visible !important;
+}
+
+.agent-modal.interview-modal.interview-modal--generating.interview-modal--minimal .interview-modal-loader__visual,
+.interview-modal.interview-modal--generating.interview-modal--minimal .interview-modal-loader__visual {
+  overflow: visible !important;
+}
+
+.agent-modal-overlay.interview-modal-overlay:has(> .interview-modal--generating),
+.agent-modal-overlay.interview-modal-overlay:has(> .agent-modal.interview-modal--generating) {
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.agent-modal.interview-modal.interview-modal--generating.interview-modal--minimal .interview-modal-loader__eyebrow,
+.interview-modal.interview-modal--generating.interview-modal--minimal .interview-modal-loader__eyebrow {
+  color: var(--iv-min-wine-eyebrow) !important;
+  -webkit-text-fill-color: var(--iv-min-wine-eyebrow) !important;
+  letter-spacing: 0.28em !important;
+  font-size: 9px !important;
+}
+
+.agent-modal.interview-modal.interview-modal--generating.interview-modal--minimal .interview-modal-loader__title,
+.interview-modal.interview-modal--generating.interview-modal--minimal .interview-modal-loader__title {
+  color: rgba(255, 241, 246, 0.98) !important;
+  -webkit-text-fill-color: rgba(255, 241, 246, 0.98) !important;
+}
+
+.agent-modal.interview-modal.interview-modal--generating.interview-modal--minimal .interview-modal-loader__subtitle,
+.interview-modal.interview-modal--generating.interview-modal--minimal .interview-modal-loader__subtitle {
+  color: rgba(253, 232, 239, 0.78) !important;
+  -webkit-text-fill-color: rgba(253, 232, 239, 0.78) !important;
+}
+
+.agent-modal.interview-modal.interview-modal--generating.interview-modal--minimal .interview-modal-loader__visual::after,
+.interview-modal.interview-modal--generating.interview-modal--minimal .interview-modal-loader__visual::after {
+  box-shadow: 0 10px 28px rgba(159, 18, 57, 0.12) !important;
+}
+
+.agent-modal.interview-modal.interview-modal--generating.interview-modal--minimal .interview-modal-loader__ring,
+.interview-modal.interview-modal--generating.interview-modal--minimal .interview-modal-loader__ring {
+  border-color: rgba(159, 18, 57, 0.28) !important;
+  background:
+    radial-gradient(circle at 50% 35%, rgba(159, 18, 57, 0.2), transparent 58%),
+    linear-gradient(180deg, rgba(18, 12, 16, 0.96), rgba(8, 6, 10, 0.98)) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+  transform-origin: 50% 50% !important;
+  backface-visibility: hidden !important;
 }
 
 .interview-modal.interview-modal--minimal .bcc-modal-eyebrow {
@@ -481,6 +591,29 @@
   -webkit-text-fill-color: rgba(255, 241, 246, 0.96) !important;
 }
 
+.interview-modal.interview-modal--minimal .pro-interview-column .voice-call-shell.interview-live-shell .interview-call-actions--secondary .summary-action-btn:not(.summary-action-accept):not(.summary-action-reject),
+.agent-modal.interview-modal.interview-modal--minimal .pro-interview-column .voice-call-shell.interview-live-shell .interview-call-actions--secondary .summary-action-btn:not(.summary-action-accept):not(.summary-action-reject) {
+  background: rgba(159, 18, 57, 0.32) !important;
+  background-image: none !important;
+  border: 1px solid rgba(190, 24, 93, 0.46) !important;
+  color: rgba(255, 241, 246, 0.98) !important;
+  -webkit-text-fill-color: rgba(255, 241, 246, 0.98) !important;
+  filter: none !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 4px 18px rgba(159, 18, 57, 0.16) !important;
+}
+
+.interview-modal.interview-modal--minimal .pro-interview-column .voice-call-shell.interview-live-shell .interview-call-actions--secondary .summary-action-btn:not(.summary-action-accept):not(.summary-action-reject):hover:not(:disabled),
+.agent-modal.interview-modal.interview-modal--minimal .pro-interview-column .voice-call-shell.interview-live-shell .interview-call-actions--secondary .summary-action-btn:not(.summary-action-accept):not(.summary-action-reject):hover:not(:disabled) {
+  background: rgba(159, 18, 57, 0.4) !important;
+  border-color: rgba(225, 29, 72, 0.54) !important;
+  color: rgba(255, 241, 246, 1) !important;
+  -webkit-text-fill-color: rgba(255, 241, 246, 1) !important;
+  transform: none !important;
+  filter: none !important;
+}
+
 .interview-modal.interview-modal--minimal .summary-action-btn:not(.interview-call-pause-btn):not(.interview-call-end-btn),
 .interview-modal.interview-modal--minimal .interview-call-controls .summary-action-btn:not(.interview-call-pause-btn):not(.interview-call-end-btn) {
   border-radius: var(--iv-min-radius-control) !important;
@@ -544,6 +677,7 @@
   min-height: min(48vh, 380px) !important;
   gap: 0 !important;
   align-content: stretch !important;
+  overflow: visible !important;
 }
 
 .interview-modal.interview-modal--minimal .interview-live-zone--head {
@@ -698,17 +832,15 @@
   box-shadow: none !important;
 }
 
-.interview-modal.is-mobile-shell.interview-modal--minimal .interview-modal-body,
-.agent-modal.interview-modal.is-mobile-shell.interview-modal--minimal .interview-modal-body {
-  padding:
-    12px
-    16px
-    calc(16px + env(safe-area-inset-bottom, 0px)) !important;
-}
+  .interview-modal.is-mobile-shell.interview-modal--minimal .interview-modal-body,
+  .agent-modal.interview-modal.is-mobile-shell.interview-modal--minimal .interview-modal-body {
+    display: flex !important;
+    flex-direction: column !important;
+  }
 
 .interview-modal.is-mobile-shell.interview-modal--minimal .interview-live-zones {
   min-height: 0 !important;
-  grid-template-rows: auto minmax(140px, 1fr) auto !important;
+  grid-template-rows: auto minmax(0, 1fr) auto !important;
 }
 
 .interview-modal.is-mobile-shell.interview-modal--minimal .interview-matte-panel--header,
@@ -820,4 +952,470 @@
   background: transparent !important;
   padding-top: 0 !important;
   padding-bottom: 0 !important;
+}
+
+/* ── Diagnosis mode — matte white / beige (matches tx + budget sheets) ─────── */
+.agent-modal.interview-modal.interview-modal--diagnosis.interview-modal--minimal,
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal {
+  background: #fffdf9 !important;
+  background-image: linear-gradient(180deg, #ffffff 0%, #faf7f1 58%, #f5efe6 100%) !important;
+  border: 1px solid var(--iv-min-panel-border) !important;
+  box-shadow:
+    0 28px 64px rgba(26, 22, 18, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.98) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.agent-modal.interview-modal.interview-modal--diagnosis.interview-modal--minimal .interview-diagnosis-panel,
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .interview-diagnosis-panel {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow: hidden !important;
+  padding: 0 !important;
+  gap: 0 !important;
+  background: transparent !important;
+}
+
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .interview-diagnosis-panel__body {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  overscroll-behavior: contain !important;
+  display: grid !important;
+  align-content: start !important;
+  gap: clamp(14px, 2.2vw, 18px) !important;
+  padding:
+    clamp(12px, 2vw, 18px)
+    var(--iv-min-body-pad-inline)
+    12px !important;
+}
+
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .interview-diagnosis-panel .app-section {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-signal-strip {
+  gap: 8px !important;
+}
+
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-signal-pill {
+  padding: 10px 13px !important;
+  border-radius: 14px !important;
+  border: 1px solid rgba(198, 180, 156, 0.58) !important;
+  background: #fffdf9 !important;
+  background-image: none !important;
+  color: var(--iv-min-ink-secondary) !important;
+  -webkit-text-fill-color: var(--iv-min-ink-secondary) !important;
+  font-size: 12px !important;
+  line-height: 1.38 !important;
+  font-weight: 500 !important;
+  box-shadow: var(--iv-min-def-matte-shadow) !important;
+}
+
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .interview-diagnosis-bridge,
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-card,
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-card--editorial,
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-card--chart,
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-scorecard {
+  border-radius: var(--iv-min-radius-card) !important;
+  border: 1px solid rgba(198, 180, 156, 0.62) !important;
+  background: #fffdf9 !important;
+  background-image: none !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.98) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  overflow: hidden !important;
+}
+
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .interview-diagnosis-bridge {
+  padding: 14px 16px !important;
+}
+
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .interview-surface-eyebrow,
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-card-eyebrow {
+  color: var(--iv-min-wine-eyebrow) !important;
+  -webkit-text-fill-color: var(--iv-min-wine-eyebrow) !important;
+  letter-spacing: 0.24em !important;
+  font-size: 9px !important;
+  opacity: 1 !important;
+}
+
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-card-head {
+  padding: 16px 16px 8px !important;
+}
+
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-card h3 {
+  color: var(--iv-min-ink) !important;
+  -webkit-text-fill-color: var(--iv-min-ink) !important;
+  font-size: 1rem !important;
+  font-weight: 650 !important;
+}
+
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-card-body {
+  padding: 0 16px 16px !important;
+}
+
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-prose,
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-empty-copy,
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-list li,
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .interview-inline-note {
+  color: var(--iv-min-ink-secondary) !important;
+  -webkit-text-fill-color: var(--iv-min-ink-secondary) !important;
+}
+
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-scorecard {
+  padding: 14px 16px !important;
+  border-radius: var(--iv-min-radius-card) !important;
+}
+
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-scorecard span {
+  color: var(--iv-min-ink-dim) !important;
+  -webkit-text-fill-color: var(--iv-min-ink-dim) !important;
+  letter-spacing: 0.14em !important;
+  font-size: 10px !important;
+}
+
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-scorecard strong {
+  color: var(--iv-min-ink) !important;
+  -webkit-text-fill-color: var(--iv-min-ink) !important;
+  font-size: clamp(1.5rem, 2.4vw, 2rem) !important;
+}
+
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-scorecard p {
+  color: var(--iv-min-ink-secondary) !important;
+  -webkit-text-fill-color: var(--iv-min-ink-secondary) !important;
+  font-size: 13px !important;
+}
+
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-tone-strong strong {
+  color: var(--iv-min-status-live) !important;
+  -webkit-text-fill-color: var(--iv-min-status-live) !important;
+}
+
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-tone-strong span {
+  color: var(--iv-min-status-live) !important;
+  -webkit-text-fill-color: var(--iv-min-status-live) !important;
+}
+
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-tone-watch strong {
+  color: var(--iv-min-status-paused) !important;
+  -webkit-text-fill-color: var(--iv-min-status-paused) !important;
+}
+
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-tone-watch span {
+  color: var(--iv-min-status-paused) !important;
+  -webkit-text-fill-color: var(--iv-min-status-paused) !important;
+}
+
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-tone-critical strong {
+  color: var(--iv-min-wine) !important;
+  -webkit-text-fill-color: var(--iv-min-wine) !important;
+}
+
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-tone-critical span {
+  color: var(--iv-min-wine) !important;
+  -webkit-text-fill-color: var(--iv-min-wine) !important;
+}
+
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-scorecard.diagnosis-tone-strong {
+  border-color: var(--iv-min-status-live) !important;
+}
+
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-scorecard.diagnosis-tone-watch {
+  border-color: var(--iv-min-status-paused) !important;
+}
+
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-scorecard.diagnosis-tone-critical {
+  border-color: var(--iv-min-wine) !important;
+}
+
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-definition-grid {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  gap: 10px !important;
+  min-width: 0 !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-definition-item {
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+  border-radius: 14px !important;
+  border: 1px solid rgba(198, 180, 156, 0.58) !important;
+  background: #fffdf9 !important;
+  background-image: none !important;
+  padding: 12px 13px !important;
+  box-shadow: var(--iv-min-def-matte-shadow) !important;
+}
+
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-definition-item:nth-child(6n + 1),
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-signal-pill:nth-child(6n + 1) {
+  background: var(--iv-min-def-gold-bg) !important;
+  background-image: none !important;
+  border-color: var(--iv-min-def-gold-border) !important;
+}
+
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-definition-item:nth-child(6n + 1) span,
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-signal-pill:nth-child(6n + 1) {
+  color: var(--iv-min-def-gold-label) !important;
+  -webkit-text-fill-color: var(--iv-min-def-gold-label) !important;
+}
+
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-definition-item:nth-child(6n + 1) strong {
+  color: var(--iv-min-def-gold-value) !important;
+  -webkit-text-fill-color: var(--iv-min-def-gold-value) !important;
+}
+
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-definition-item:nth-child(6n + 2),
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-signal-pill:nth-child(6n + 2) {
+  background: var(--iv-min-def-slate-bg) !important;
+  background-image: none !important;
+  border-color: var(--iv-min-def-slate-border) !important;
+}
+
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-definition-item:nth-child(6n + 2) span,
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-signal-pill:nth-child(6n + 2) {
+  color: var(--iv-min-def-slate-label) !important;
+  -webkit-text-fill-color: var(--iv-min-def-slate-label) !important;
+}
+
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-definition-item:nth-child(6n + 2) strong {
+  color: var(--iv-min-def-slate-value) !important;
+  -webkit-text-fill-color: var(--iv-min-def-slate-value) !important;
+}
+
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-definition-item:nth-child(6n + 3),
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-signal-pill:nth-child(6n + 3) {
+  background: var(--iv-min-def-wine-bg) !important;
+  background-image: none !important;
+  border-color: var(--iv-min-def-wine-border) !important;
+}
+
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-definition-item:nth-child(6n + 3) span,
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-signal-pill:nth-child(6n + 3) {
+  color: var(--iv-min-def-wine-label) !important;
+  -webkit-text-fill-color: var(--iv-min-def-wine-label) !important;
+}
+
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-definition-item:nth-child(6n + 3) strong {
+  color: var(--iv-min-def-wine-value) !important;
+  -webkit-text-fill-color: var(--iv-min-def-wine-value) !important;
+}
+
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-definition-item:nth-child(6n + 4),
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-signal-pill:nth-child(6n + 4) {
+  background: var(--iv-min-def-gold-muted-bg) !important;
+  background-image: none !important;
+  border-color: var(--iv-min-def-gold-muted-border) !important;
+}
+
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-definition-item:nth-child(6n + 4) span,
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-signal-pill:nth-child(6n + 4) {
+  color: var(--iv-min-def-gold-muted-label) !important;
+  -webkit-text-fill-color: var(--iv-min-def-gold-muted-label) !important;
+}
+
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-definition-item:nth-child(6n + 4) strong {
+  color: var(--iv-min-def-gold-muted-value) !important;
+  -webkit-text-fill-color: var(--iv-min-def-gold-muted-value) !important;
+}
+
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-definition-item:nth-child(6n + 5),
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-signal-pill:nth-child(6n + 5) {
+  background: var(--iv-min-def-slate-muted-bg) !important;
+  background-image: none !important;
+  border-color: var(--iv-min-def-slate-muted-border) !important;
+}
+
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-definition-item:nth-child(6n + 5) span,
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-signal-pill:nth-child(6n + 5) {
+  color: var(--iv-min-def-slate-muted-label) !important;
+  -webkit-text-fill-color: var(--iv-min-def-slate-muted-label) !important;
+}
+
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-definition-item:nth-child(6n + 5) strong {
+  color: var(--iv-min-def-slate-muted-value) !important;
+  -webkit-text-fill-color: var(--iv-min-def-slate-muted-value) !important;
+}
+
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-definition-item:nth-child(6n + 6),
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-signal-pill:nth-child(6n + 6) {
+  background: var(--iv-min-def-wine-muted-bg) !important;
+  background-image: none !important;
+  border-color: var(--iv-min-def-wine-muted-border) !important;
+}
+
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-definition-item:nth-child(6n + 6) span,
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-signal-pill:nth-child(6n + 6) {
+  color: var(--iv-min-def-wine-muted-label) !important;
+  -webkit-text-fill-color: var(--iv-min-def-wine-muted-label) !important;
+}
+
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-definition-item:nth-child(6n + 6) strong {
+  color: var(--iv-min-def-wine-muted-value) !important;
+  -webkit-text-fill-color: var(--iv-min-def-wine-muted-value) !important;
+}
+
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-definition-item span {
+  color: var(--iv-min-ink-dim) !important;
+  -webkit-text-fill-color: var(--iv-min-ink-dim) !important;
+}
+
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-definition-item strong {
+  color: var(--iv-min-ink) !important;
+  -webkit-text-fill-color: var(--iv-min-ink) !important;
+}
+
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-list li::before {
+  background: var(--iv-min-wine-eyebrow) !important;
+  box-shadow: 0 0 0 4px rgba(190, 24, 93, 0.1) !important;
+}
+
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .interview-diagnosis-grid,
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .interview-diagnosis-stack {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+  min-width: 0 !important;
+}
+
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-scorecard-grid {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 12px !important;
+  min-width: 0 !important;
+}
+
+@media (max-width: 960px) {
+  .interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-scorecard-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-card--narrative .diagnosis-card-head {
+  padding: 18px 18px 8px !important;
+}
+
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-card--narrative .diagnosis-card-body {
+  padding: 0 18px 20px !important;
+}
+
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .diagnosis-card--narrative .diagnosis-prose {
+  font-size: clamp(0.96rem, 1.6vw, 1.02rem) !important;
+  line-height: 1.74 !important;
+  letter-spacing: -0.01em !important;
+  max-width: none !important;
+  text-wrap: pretty !important;
+}
+
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .interview-diagnosis-panel__footer {
+  flex: 0 0 auto !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  padding:
+    12px var(--iv-min-body-pad-inline)
+    calc(12px + env(safe-area-inset-bottom, 0px)) !important;
+  border-top: 1px solid rgba(198, 180, 156, 0.42) !important;
+  background: #fffdf9 !important;
+  box-shadow: 0 -8px 20px rgba(255, 253, 249, 0.96) !important;
+}
+
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .interview-diagnosis-panel__footer > .interview-diagnosis-deepen-btn {
+  position: relative !important;
+  flex: 0 0 auto !important;
+  margin: 0 !important;
+  min-height: 42px !important;
+  height: 42px !important;
+  padding: 0 18px !important;
+  border-radius: var(--iv-min-radius-control) !important;
+  border: 1px solid var(--iv-min-def-deepen-border) !important;
+  background: var(--iv-min-def-deepen-bg) !important;
+  background-image: none !important;
+  color: var(--iv-min-def-deepen-text) !important;
+  -webkit-text-fill-color: var(--iv-min-def-deepen-text) !important;
+  font-weight: 500 !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 4px 14px rgba(122, 40, 64, 0.2) !important;
+}
+
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .interview-diagnosis-panel__footer > .interview-diagnosis-deepen-btn:hover:not(:disabled),
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .interview-diagnosis-panel__footer > .interview-diagnosis-deepen-btn:focus-visible:not(:disabled) {
+  color: var(--iv-min-def-deepen-text) !important;
+  -webkit-text-fill-color: var(--iv-min-def-deepen-text) !important;
+  background: var(--iv-min-def-deepen-hover-bg) !important;
+  background-image: none !important;
+  border-color: var(--iv-min-def-deepen-border) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 6px 18px rgba(122, 40, 64, 0.26) !important;
+}
+
+.interview-modal.interview-modal--diagnosis.interview-modal--minimal .interview-diagnosis-panel__footer > .interview-diagnosis-deepen-btn:disabled {
+  opacity: 0.48 !important;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
+}
+
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+  .interview-modal.is-mobile-shell.interview-modal--diagnosis.interview-modal--minimal .interview-diagnosis-panel__body {
+    padding:
+      12px 16px 12px !important;
+  }
+
+  .interview-modal.is-mobile-shell.interview-modal--diagnosis.interview-modal--minimal .interview-diagnosis-panel__footer {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+
+  .interview-modal.is-mobile-shell.interview-modal--diagnosis.interview-modal--minimal .interview-diagnosis-panel__footer > .interview-diagnosis-deepen-btn {
+    width: 100% !important;
+  }
+}
+
+/* Chat resume banner — match interview modal wine palette */
+body.agent-route-active .agent-chat .interview-resume-banner {
+  background: linear-gradient(145deg, #9f3048 0%, #742c2c 100%) !important;
+  background-image: linear-gradient(145deg, #9f3048 0%, #742c2c 100%) !important;
+  border: 1px solid rgba(214, 150, 150, 0.58) !important;
+  box-shadow:
+    0 16px 30px rgba(45, 14, 14, 0.38),
+    inset 0 1px 0 rgba(255, 220, 220, 0.12) !important;
+  color: #fff1ed !important;
+}
+
+body.agent-route-active .agent-chat .interview-resume-banner .interview-resume-copy strong {
+  color: rgba(255, 225, 218, 0.78) !important;
+  -webkit-text-fill-color: rgba(255, 225, 218, 0.78) !important;
+  letter-spacing: 0.22em !important;
+  font-size: 10px !important;
+}
+
+body.agent-route-active .agent-chat .interview-resume-banner .interview-resume-copy span {
+  color: rgba(255, 236, 232, 0.84) !important;
+  -webkit-text-fill-color: rgba(255, 236, 232, 0.84) !important;
+}
+
+body.agent-route-active .agent-chat .interview-resume-banner .interview-resume-banner__btn,
+body.agent-route-active .agent-chat .interview-resume-banner .summary-action-btn {
+  background: rgba(255, 255, 255, 0.1) !important;
+  background-image: none !important;
+  border: 1px solid rgba(255, 220, 220, 0.35) !important;
+  color: #fff1ed !important;
+  -webkit-text-fill-color: #fff1ed !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+  backdrop-filter: blur(14px) saturate(120%) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(120%) !important;
+}
+
+body.agent-route-active .agent-chat .interview-resume-banner .interview-resume-banner__btn:hover:not(:disabled),
+body.agent-route-active .agent-chat .interview-resume-banner .summary-action-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.16) !important;
+  border-color: rgba(255, 220, 220, 0.5) !important;
 }

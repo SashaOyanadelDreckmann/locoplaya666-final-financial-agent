@@ -169,6 +169,63 @@ describe('budget-chat routes (agent-first)', () => {
     expect(runBudgetChatAgent).not.toHaveBeenCalled();
   });
 
+  it('applies dependent pending batches after confirmation in one turn', async () => {
+    const { agent, csrfToken } = await createAuthedAgent();
+    const budgetRows = [{ id: 'income_salary', category: 'Sueldo', type: 'income', amount: 900000 }];
+    const res = await agent.post('/api/budget-chat').set('x-csrf-token', csrfToken).send({
+      intent: 'reply',
+      answer: 'sí',
+      question: '¿Confirmas?',
+      budgetRows,
+      pendingConfirmation: {
+        summary: 'Agregar gym con monto',
+        actions: [
+          { kind: 'add', id: 'expense-custom-gym', category: 'Gym', type: 'expense', amount: 0 },
+          { kind: 'update', id: 'expense-custom-gym', category: 'Gym', type: 'expense', amount: 30000 },
+        ],
+      },
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.source).toBe('budget_agent_confirm_apply');
+    expect(res.body.actions).toHaveLength(2);
+    expect(res.body.actions?.[1]?.amount).toBe(30000);
+    expect(runBudgetChatAgent).not.toHaveBeenCalled();
+  });
+
+  it('prefers nextQuestion over assistant reply in question field', async () => {
+    runBudgetChatAgent.mockResolvedValueOnce({
+      assistant_reply: 'Listo, actualicé alimentación.',
+      next_question: '¿Qué más quieres hacer con la tabla?',
+      focus_row_id: 'expense_food',
+      actions: [],
+      requires_confirmation: false,
+      pending_summary: null,
+      source: 'budget_agent',
+    });
+
+    const { agent, csrfToken } = await createAuthedAgent();
+    const res = await agent.post('/api/budget-chat').set('x-csrf-token', csrfToken).send({
+      intent: 'reply',
+      answer: 'en comida gasto 200 mil',
+      question: 'Listo, actualicé alimentación.',
+      nextQuestion: '¿Cuánto destinas a alimentación?',
+      budgetRows: [
+        { id: 'income_salary', category: 'Sueldo líquido', type: 'income', amount: 900000 },
+        { id: 'expense_food', category: 'Alimentación', type: 'expense', amount: 0 },
+      ],
+      assistantFocusRowId: 'expense_food',
+    });
+
+    expect(res.status).toBe(200);
+    expect(runBudgetChatAgent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        currentQuestion: '¿Cuánto destinas a alimentación?',
+        userAnswer: 'en comida gasto 200 mil',
+      }),
+    );
+  });
+
   it('falls back to deterministic amount update when the agent is unavailable', async () => {
     runBudgetChatAgent.mockResolvedValueOnce({
       assistant_reply: 'No pude procesar tu mensaje ahora. Intenta de nuevo en unos segundos.',

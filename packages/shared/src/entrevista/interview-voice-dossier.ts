@@ -4,7 +4,22 @@ import {
 } from './interview.constants';
 
 export const INTERVIEW_VOICE_OPENING_FOCUS =
-  'Abre con una observación concreta del intake, presupuesto o productos y formula una sola pregunta ejecutiva de alto valor.';
+  'Abre con una observación concreta del intake, presupuesto o productos — en tono chileno cercano con modismos naturales — y formula una sola pregunta de alto valor.';
+
+/** Reglas de modismos chilenos solo para el audio en vivo de la entrevista (no síntesis ni diagnóstico). */
+export const INTERVIEW_VOICE_SPOKEN_CHILEAN_STYLE = [
+  'LENGUAJE HABLADO (OBLIGATORIO en cada turno de AUDIO con el usuario): usa modismos chilenos naturales y frecuentes.',
+  'Ejemplos válidos: bacán, la raja, la zorra, cachai, po, al tiro, heavy, penca, fome; weón/weona solo empático y respetuoso; la wea/weá para cosas o situaciones ("esa weá significa que...", "con esa weá de gastos...").',
+  'Integra modismos en transiciones y preguntas sin perder precisión financiera ni credibilidad senior.',
+  'La prohibición de modismos aplica ÚNICAMENTE a JSON, síntesis escrita, reportes y tags <<CALL_COMPLETE>> — nunca a la conversación hablada.',
+].join('\n');
+
+export const INTERVIEW_VOICE_SPOKEN_PRIORITY_TAIL = [
+  '═══ REGLA FINAL DE VOZ ═══',
+  'En AUDIO con el usuario: modismos chilenos obligatorios y naturales en cada turno.',
+  'Las síntesis intermedias/finales del dossier son tono formal de referencia; NO copies ese registro en la voz.',
+  'Si acabas de emitir JSON de síntesis, el siguiente turno hablado vuelve al tono chileno con modismos.',
+].join('\n');
 
 export type InterviewVoiceSummaryEntry = {
   minute: number;
@@ -145,7 +160,8 @@ function formatIntakeFieldLabel(key: string) {
 function buildSeniorVoicePersonaBlock() {
   return [
     'IDENTIDAD: entrevistador financiero senior de Financieramente.',
-    'TONO: español chileno profesional, sobrio y directo.',
+    'TONO HABLADO: chileno cercano, directo y con modismos naturales en cada turno de voz.',
+    INTERVIEW_VOICE_SPOKEN_CHILEAN_STYLE,
     'Una pregunta por turno, anclada en datos reales del usuario.',
     'No expliques el sistema ni repitas lo obvio.',
     'Si detectas inconsistencias, repregunta con precisión.',
@@ -286,8 +302,8 @@ export function buildVoiceInterviewDossier(
   }
 
   if (minuteSummaries.length > 0) {
-    sections.push('\n[SÍNTESIS INTERMEDIA]');
-    sections.push('Usa estas notas solo como guía; si contradicen las fuentes verificadas, ignóralas.');
+    sections.push('\n[SÍNTESIS INTERMEDIA — referencia ejecutiva formal; NO imitar este tono en voz]');
+    sections.push('Usa estas notas solo como guía de datos; si contradicen las fuentes verificadas, ignóralas.');
     for (const summary of minuteSummaries.slice(-6)) {
       sections.push(
         `  · Minuto ${summary.minute}: ${summary.summary}${summary.keyFindings.length ? ` | hallazgos: ${summary.keyFindings.join(' | ')}` : ''}${summary.confidence ? ` | confianza: ${summary.confidence}` : ''}`,
@@ -295,7 +311,7 @@ export function buildVoiceInterviewDossier(
     }
   }
   if (finalSummary?.summary) {
-    sections.push('\n[SÍNTESIS FINAL]');
+    sections.push('\n[SÍNTESIS FINAL — referencia ejecutiva formal; NO imitar este tono en voz]');
     sections.push(`  · ${finalSummary.summary}`);
     if (Array.isArray(finalSummary.keyFindings) && finalSummary.keyFindings.length) {
       sections.push(`    Hallazgos: ${finalSummary.keyFindings.slice(0, 5).join(' | ')}`);
@@ -320,9 +336,9 @@ export function buildVoiceSessionInstructions(params: {
   const dossier = buildVoiceInterviewDossier(params.intake, params.minuteSummaries ?? [], params.finalSummary);
   const blocks = [
     buildSeniorVoicePersonaBlock(),
-    `TIEMPO DE LLAMADA: máximo ${INTERVIEW_TOTAL_LIMIT_MINUTES} minutos. En los últimos ${INTERVIEW_CLOSEOUT_BUFFER_SEC} segundos cierra con <<CALL_COMPLETE>> y síntesis ejecutiva breve.`,
+    `TIEMPO DE LLAMADA: máximo ${INTERVIEW_TOTAL_LIMIT_MINUTES} minutos. En los últimos ${INTERVIEW_CLOSEOUT_BUFFER_SEC} segundos cierra en voz (modismos chilenos permitidos), resume hallazgos y termina con <<CALL_COMPLETE>>.`,
     'CONCIENCIA DEL SISTEMA: El usuario puede haber completado hasta 3 fuentes en Financieramente (intake, productos/cartolas, presupuesto). Solo las secciones con datos reales están abajo — revisa el contador de fuentes y no pidas ni inventes lo ausente.',
-    'SÍNTESIS OBJETIVO: Si se solicita una síntesis, responde solo con texto estructurado y conciso. No uses transcripción literal ni repitas audio.',
+    'SÍNTESIS ESCRITA (solo cuando pidan JSON o texto estructurado): español chileno profesional, sin modismos ni slang. Esa regla NO aplica a turnos de voz con el usuario.',
     `FOCO INICIAL DE LA LLAMADA: ${INTERVIEW_VOICE_OPENING_FOCUS}`,
     dossier,
   ];
@@ -331,12 +347,13 @@ export function buildVoiceSessionInstructions(params: {
   }
   if (params.callPhase === 'closeout') {
     blocks.push(
-      'FASE CIERRE: No abras temas nuevos. Sintetiza hallazgos principales en tono ejecutivo. Cierra con <<CALL_COMPLETE>>.',
+      'FASE CIERRE: No abras temas nuevos. Resume hallazgos en voz con modismos chilenos si encaja, mantén claridad y evidencia, y cierra con <<CALL_COMPLETE>>.',
     );
   } else {
     blocks.push(
-      'MANDATO: Cada pregunta debe cruzar al menos dos fuentes (intake + presupuesto, presupuesto + cartola, etc.). Mantén estándar senior en todo momento.',
+      'MANDATO: Cada pregunta debe cruzar al menos dos fuentes (intake + presupuesto, presupuesto + cartola, etc.). Mantén rigor senior y tono chileno con modismos en la voz.',
     );
   }
+  blocks.push(INTERVIEW_VOICE_SPOKEN_PRIORITY_TAIL);
   return blocks.join('\n\n');
 }

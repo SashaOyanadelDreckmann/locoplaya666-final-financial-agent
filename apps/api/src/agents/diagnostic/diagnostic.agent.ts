@@ -10,6 +10,7 @@ import {
 
 import { InterviewBlockId } from '../../orquestador/interview.flow';
 
+import { compactDiagnosisList } from '@financial-agent/shared';
 import { IntakeQuestionnaire } from '@financial-agent/shared/src/intake/intake-questionnaire.types';
 
 import { completeStructured } from '../../services/llm.service';
@@ -109,11 +110,11 @@ export async function runDiagnosticAgent(
 
       profile: parsed.profile,
 
-      tensions: parsed.tensions,
+      tensions: compactDiagnosisList(parsed.tensions, 'tension'),
 
-      hypotheses: parsed.hypotheses,
+      hypotheses: compactDiagnosisList(parsed.hypotheses, 'hypothesis'),
 
-      openQuestions: parsed.openQuestions,
+      openQuestions: compactDiagnosisList(parsed.openQuestions, 'question'),
 
       editorial: mergeEditorialLayer(
         buildFallbackEditorial(intake, parsed, blocks),
@@ -155,6 +156,8 @@ Hablas con tono:
 - sobrio
 - no moralizante
 - no prescriptivo
+
+Nunca uses modismos, slang ni jerga coloquial chilena (wea, weón, bacán, la raja, la zorra, po, cachai, etc.).
 
 Nunca usas imperativos.
 Nunca sugieres qué debería hacer el usuario.
@@ -220,6 +223,14 @@ Con base EXCLUSIVA en esta información:
    - Ambigüedades
    - Vacíos
    - Información insuficiente
+
+6. **BREVEDAD obligatoria** en \`tensions\`, \`hypotheses\` y \`openQuestions\`:
+   - Máximo 4 ítems por arreglo
+   - Cada ítem: UNA sola frase, máximo 120 caracteres
+   - Sin preámbulos ("El usuario experimenta", "La ausencia de", "Existe una")
+   - Tensiones: contraste directo entre dos fuerzas
+   - Hipótesis: lectura interpretativa en una línea, sin recomendaciones
+   - Preguntas: UNA pregunta por ítem, sin encadenar dos preguntas
 
 ---
 

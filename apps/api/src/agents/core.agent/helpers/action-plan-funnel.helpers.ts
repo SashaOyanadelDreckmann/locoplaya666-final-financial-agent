@@ -5,6 +5,8 @@ import {
 
 export {
   ACTION_PLAN_DELIVER_SECTIONS,
+  buildActionPlanSuggestedReplies,
+  buildClosingModeDirective,
   closingTurnForChat,
   enforceDeliverPlanStructure,
   funnelStageLabel,
@@ -22,7 +24,7 @@ export function buildActionPlanFunnelDirective(stage: ActionPlanFunnelStage): st
       '- Abre con 4-7 hipotesis accionables (bullets), cada una con "por que importa" en una linea.',
       '- Cruza señal de mercado solo como contexto verificable, sin especular.',
       '- Cierra con 1-2 preguntas de alto impacto (prioridad, horizonte, riesgo).',
-      '- No entregues aun el plan final estructurado.',
+      '- No entregues aun el plan final estructurado ni prometas rentabilidades.',
     ].join('\n');
   }
   if (stage === 'converge') {
@@ -42,6 +44,7 @@ export function buildActionPlanFunnelDirective(stage: ActionPlanFunnelStage): st
     ...ACTION_PLAN_DELIVER_SECTIONS.map((s) => `  ${s}`),
     '- En Prioridades y Secuencia usa numeracion, plazos (semana/mes/trimestre) y responsable (usuario).',
     '- En Trade-offs explicita que NO se recomienda si aplica (suitability).',
+    '- Si falta un dato verificado, declara el vacio; no inventes cifras ni escenarios.',
     '- Tono: analista senior de wealth advisory en Chile; preciso, sobrio, sin hype.',
     '- La decision final ejecutable depende 100% del usuario.',
   ].join('\n');

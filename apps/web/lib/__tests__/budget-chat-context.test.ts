@@ -27,7 +27,6 @@ describe('budget-chat-context', () => {
   it('asks movement type (categoría) validation before name and amount for unfilled rows', () => {
     const context = buildBudgetAssistantContext({
       rows,
-      intakeData: {},
       products: [],
       chatAnswers: [],
     });
@@ -43,7 +42,6 @@ describe('budget-chat-context', () => {
       'En la tabla, «Sueldo líquido» tiene categoría «Ingreso principal» (tipo de movimiento). ¿Confirmas o cuál corresponde?';
     const context = buildBudgetAssistantContext({
       rows,
-      intakeData: { exactMonthlyIncome: 950000 },
       products: [],
       chatAnswers: [{ q: movementTypeQuestion, a: 'sí' }],
     });
@@ -64,8 +62,15 @@ describe('budget-chat-context', () => {
       '¿Cómo quieres llamar este movimiento? En la tabla aparece «Sueldo líquido» como ingreso.';
     const context = buildBudgetAssistantContext({
       rows,
-      intakeData: { exactMonthlyIncome: 950000 },
-      products: [],
+      products: [
+        {
+          productId: 'income-acct',
+          label: 'Cuenta sueldo',
+          bank: 'BCI',
+          productType: 'checking_account',
+          movements: [{ description: 'Abono sueldo', amount: 950_000, direction: 'income', category: 'Sueldo' }],
+        },
+      ],
       chatAnswers: [
         { q: movementTypeQuestion, a: 'sí' },
         { q: nameQuestion, a: 'sí' },
@@ -80,20 +85,23 @@ describe('budget-chat-context', () => {
     expect(question).toMatch(/950\.000/);
   });
 
-  it('builds contextual income question from intake and transaction inflows', () => {
+  it('builds contextual income question from detected movement inflows', () => {
     const movementTypeQuestion =
       'En la tabla, «Sueldo líquido» tiene categoría «Ingreso principal» (tipo de movimiento). ¿Confirmas o cuál corresponde?';
     const nameQuestion =
       '¿Cómo quieres llamar este movimiento? En la tabla aparece «Sueldo líquido» como ingreso.';
     const context = buildBudgetAssistantContext({
       rows,
-      intakeData: { exactMonthlyIncome: 950000, hasDebt: true },
       products: [
         {
+          productId: 'acct-1',
           label: 'Cuenta corriente',
           bank: 'Banco X',
-          keyMetrics: { inflows_total: 980000, outflows_total: 620000 },
-          topCategories: [{ name: 'Supermercado Lider', amount: 180000 }],
+          productType: 'checking_account',
+          movements: [
+            { description: 'Abono sueldo', amount: 980_000, direction: 'income', category: 'Sueldo' },
+            { description: 'Supermercado Lider', amount: 180_000, direction: 'expense', category: 'Supermercado Lider' },
+          ],
         },
       ],
       chatAnswers: [
@@ -103,20 +111,22 @@ describe('budget-chat-context', () => {
     });
 
     const question = buildContextualQuestion(rows[0], context);
-    expect(question).toMatch(/950\.000|980\.000/);
+    expect(question).toMatch(/980\.000/);
     expect(question).toMatch(/monto mensual/i);
   });
 
-  it('prioritizes expense rows with stronger transaction signals', () => {
+  it('prioritizes expense rows with stronger movement signals', () => {
     const context = buildBudgetAssistantContext({
       rows,
-      intakeData: {},
       products: [
         {
+          productId: 'card-1',
           label: 'Tarjeta',
-          topCategories: [
-            { name: 'Supermercado Jumbo', amount: 240000 },
-            { name: 'Arriendo', amount: 120000 },
+          bank: 'Banco X',
+          productType: 'credit_card',
+          movements: [
+            { description: 'Jumbo', amount: 240_000, direction: 'expense', category: 'Supermercado Jumbo' },
+            { description: 'Arriendo', amount: 120_000, direction: 'expense', category: 'Arriendo' },
           ],
         },
       ],
@@ -134,7 +144,6 @@ describe('budget-chat-context', () => {
       '¿Cómo quieres llamar este movimiento? En la tabla aparece «Arriendo / vivienda» como gasto.';
     const context = buildBudgetAssistantContext({
       rows,
-      intakeData: {},
       products: [],
       chatAnswers: [
         { q: movementTypeQuestion, a: 'sí' },
@@ -167,15 +176,16 @@ describe('budget-chat-context', () => {
     expect(foodClarify.followUp).toMatch(/\?/);
   });
 
-  it('resolves affirmative confirmation from question amount before small transaction hints', () => {
+  it('resolves affirmative confirmation from question amount before small movement hints', () => {
     const context = buildBudgetAssistantContext({
       rows,
-      intakeData: { exactMonthlyIncome: 1_450_000 },
       products: [
         {
+          productId: 'demo',
           label: 'Cuenta demo',
           bank: 'Banco Demo',
-          keyMetrics: { inflows_total: 1000, outflows_total: 0 },
+          productType: 'checking_account',
+          movements: [{ description: 'Cargo menor', amount: 1_000, direction: 'expense' }],
         },
       ],
       chatAnswers: [],
@@ -191,15 +201,16 @@ describe('budget-chat-context', () => {
     expect(amount).toBe(1_450_000);
   });
 
-  it('falls back to intake income when affirmative answer has no explicit amount in question', () => {
+  it('falls back to movement inflows when affirmative answer has no explicit amount in question', () => {
     const context = buildBudgetAssistantContext({
       rows,
-      intakeData: { exactMonthlyIncome: 1_450_000 },
       products: [
         {
+          productId: 'demo',
           label: 'Cuenta demo',
           bank: 'Banco Demo',
-          keyMetrics: { inflows_total: 1000, outflows_total: 0 },
+          productType: 'checking_account',
+          movements: [{ description: 'Abono sueldo', amount: 1_450_000, direction: 'income', category: 'Sueldo' }],
         },
       ],
       chatAnswers: [],
@@ -214,14 +225,16 @@ describe('budget-chat-context', () => {
     expect(amount).toBe(1_450_000);
   });
 
-  it('suggests adding unmapped transaction categories as new rows', () => {
+  it('suggests adding unmapped movement categories as new rows', () => {
     const context = buildBudgetAssistantContext({
       rows,
-      intakeData: {},
       products: [
         {
+          productId: 'card-1',
           label: 'Tarjeta',
-          topCategories: [{ name: 'Colegio San Patricio', amount: 210000 }],
+          bank: 'Banco X',
+          productType: 'credit_card',
+          movements: [{ description: 'Colegio', amount: 210_000, direction: 'expense', category: 'Colegio San Patricio' }],
         },
       ],
       chatAnswers: [],
@@ -243,7 +256,7 @@ describe('budget-chat-context', () => {
   });
 
   it('builds a brief off-topic answer and pivots back to the active row', () => {
-    const context = buildBudgetAssistantContext({ rows, intakeData: {}, products: [], chatAnswers: [] });
+    const context = buildBudgetAssistantContext({ rows, products: [], chatAnswers: [] });
     const brief = resolveOffTopicBriefAnswer('cuantos satelites tiene la nasa?');
     expect(brief).toMatch(/nasa|satelite/i);
 

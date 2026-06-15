@@ -17,6 +17,7 @@ import internalRouter from './routes/internal.routes';
 import transactionsChatRouter from './routes/transactions-chat';
 import transcribeRouter from './routes/transcribe';
 import analyticsRouter from './routes/analytics';
+import adminRouter from './routes/admin.routes';
 import { healthRouter } from './routes/health.routes';
 import { requestLoggerMiddleware } from './middleware/requestLogger';
 import { asyncHandler, errorHandlerMiddleware } from './middleware/errorHandler';
@@ -109,6 +110,7 @@ export function createApp() {
   app.use('/api/transactions-chat', chatRateLimiter, transactionsChatRouter);
   app.use('/api/transcribe', chatRateLimiter, transcribeRouter);
   app.use('/api/analytics', analyticsRouter);
+  app.use('/api/admin', adminRouter);
   app.use('/api', agentRouter);
   app.use('/api/documents', documentsRateLimiter, documentsRouter);
   app.use('/api/pdfs', pdfsRouter);

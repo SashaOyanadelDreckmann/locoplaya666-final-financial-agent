@@ -1,7 +1,7 @@
 import type { BankProduct, TransactionTaxonomyOverride } from '../modales/transacciones/types';
 
 export const CHAT_GAME_INSTRUCTION =
-  'Para aprovechar al maximo este juego: 1) define un objetivo financiero concreto, 2) usa los 3 chats en paralelo para explorar escenarios, 3) pide primero grafico o simulacion y luego informe PDF, 4) guarda documentos clave para compararlos, 5) ajusta riesgo, plazo y aporte en cada iteracion para subir tu nivel de conocimiento.';
+  'Para aprovechar al maximo este juego: 1) define un objetivo financiero concreto, 2) usa los 3 chats en paralelo para explorar escenarios, 3) pide primero grafico o simulacion y luego exporta con Guardar PDF si quieres archivo, 4) guarda documentos clave para compararlos, 5) ajusta riesgo, plazo y aporte en cada iteracion para subir tu nivel de conocimiento.';
 
 export const FALLBACK_WELCOME =
   'Ya tengo una lectura inicial de tu situación. Podemos partir por ordenar el flujo, revisar riesgos y definir el primer movimiento útil.';

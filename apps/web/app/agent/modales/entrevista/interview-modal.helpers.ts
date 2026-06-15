@@ -2,6 +2,7 @@ import {
   INTERVIEW_MAX_CALLS_PER_USER,
   INTERVIEW_MIN_EARLY_END_SEC,
   INTERVIEW_TOTAL_LIMIT_SEC,
+  resolveInterviewUsedSeconds,
 } from '@financial-agent/shared';
 
 export type InterviewActiveQuota = {
@@ -11,32 +12,7 @@ export type InterviewActiveQuota = {
 };
 
 export function resolveUsedSecondsFromSources(...sources: Array<unknown>): number {
-  const values = sources
-    .map((source) => {
-      if (typeof source === 'number' && Number.isFinite(source)) return Math.floor(source);
-      if (source && typeof source === 'object') {
-        const record = source as Record<string, unknown>;
-        const candidates = [record.totalUsedSec, record.total_used_sec, record.callSeconds, record.call_seconds];
-        for (const candidate of candidates) {
-          if (typeof candidate === 'number' && Number.isFinite(candidate)) {
-            return Math.floor(candidate);
-          }
-        }
-        if (typeof record.remaining_total_sec === 'number' && Number.isFinite(record.remaining_total_sec)) {
-          return Math.max(0, INTERVIEW_TOTAL_LIMIT_SEC - Math.floor(record.remaining_total_sec));
-        }
-        if (typeof record.remainingTotalSec === 'number' && Number.isFinite(record.remainingTotalSec)) {
-          return Math.max(0, INTERVIEW_TOTAL_LIMIT_SEC - Math.floor(record.remainingTotalSec));
-        }
-      }
-      return 0;
-    })
-    .filter((value) => value >= 0);
-
-  return Math.min(
-    INTERVIEW_TOTAL_LIMIT_SEC,
-    Math.max(0, ...values, 0),
-  );
+  return resolveInterviewUsedSeconds(...sources);
 }
 
 export function measureActiveCallSeconds(input: {

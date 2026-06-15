@@ -1,5 +1,10 @@
 import type { ReactNode } from 'react';
 import {
+  compactDiagnosisListItem,
+  type DiagnosisListKind,
+} from '@financial-agent/shared';
+import { localizeDisplayValue, localizeFieldKey } from '@/lib/display/localized-display';
+import {
   Bar,
   BarChart,
   CartesianGrid,
@@ -83,7 +88,7 @@ export function ScorecardGrid({ items }: { items?: EditorialScore[] }) {
 
 export function DiagnosticNarrative({ narrative }: { narrative?: string }) {
   return (
-    <Card title="Narrativa diagnóstica" eyebrow="Lectura">
+    <Card title="Narrativa diagnóstica" eyebrow="Lectura" className="diagnosis-card--narrative">
       <p className="diagnosis-prose">{narrative ?? 'Sin narrativa disponible.'}</p>
     </Card>
   );
@@ -99,8 +104,8 @@ export function FinancialProfileCard({ profile }: { profile?: Record<string, unk
         <div className="diagnosis-definition-grid">
           {entries.map(([key, value]) => (
             <div key={key} className="diagnosis-definition-item">
-              <span>{humanizeKey(key)}</span>
-              <strong>{formatValue(value)}</strong>
+              <span>{localizeFieldKey(key)}</span>
+              <strong>{localizeDisplayValue(value, key)}</strong>
             </div>
           ))}
         </div>
@@ -188,21 +193,61 @@ export function DiagnosticCharts({
   );
 }
 
-export function TensionsList({ tensions }: { tensions?: string[] }) {
-  return <ListCard title="Tensiones" eyebrow="Fricciones" items={tensions} />;
-}
-
-export function HypothesesList({ hypotheses }: { hypotheses?: string[] }) {
-  return <ListCard title="Hipótesis" eyebrow="Lectura" items={hypotheses} />;
-}
-
-export function OpenQuestionsCard({ questions }: { questions?: string[] }) {
-  return <ListCard title="Preguntas abiertas" eyebrow="Siguiente paso" items={questions} />;
-}
-
-function Card({ title, eyebrow, children }: { title: string; eyebrow?: string; children: ReactNode }) {
+export function TensionsList({
+  tensions,
+  concise,
+}: {
+  tensions?: string[];
+  concise?: boolean;
+}) {
   return (
-    <article className="diagnosis-card diagnosis-card--editorial">
+    <ListCard title="Tensiones" eyebrow="Fricciones" items={tensions} kind="tension" concise={concise} />
+  );
+}
+
+export function HypothesesList({
+  hypotheses,
+  concise,
+}: {
+  hypotheses?: string[];
+  concise?: boolean;
+}) {
+  return (
+    <ListCard title="Hipótesis" eyebrow="Lectura" items={hypotheses} kind="hypothesis" concise={concise} />
+  );
+}
+
+export function OpenQuestionsCard({
+  questions,
+  concise,
+}: {
+  questions?: string[];
+  concise?: boolean;
+}) {
+  return (
+    <ListCard
+      title="Preguntas abiertas"
+      eyebrow="Siguiente paso"
+      items={questions}
+      kind="question"
+      concise={concise}
+    />
+  );
+}
+
+function Card({
+  title,
+  eyebrow,
+  children,
+  className,
+}: {
+  title: string;
+  eyebrow?: string;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <article className={`diagnosis-card diagnosis-card--editorial${className ? ` ${className}` : ''}`}>
       <div className="diagnosis-card-head">
         {eyebrow ? <span className="diagnosis-card-eyebrow">{eyebrow}</span> : null}
         <h3>{title}</h3>
@@ -224,13 +269,28 @@ function ChartCard({ title, eyebrow, children }: { title: string; eyebrow?: stri
   );
 }
 
-function ListCard({ title, eyebrow, items }: { title: string; eyebrow?: string; items?: string[] }) {
+function ListCard({
+  title,
+  eyebrow,
+  items,
+  kind = 'tension',
+  concise,
+}: {
+  title: string;
+  eyebrow?: string;
+  items?: string[];
+  kind?: DiagnosisListKind;
+  concise?: boolean;
+}) {
   const safe = (items ?? []).filter(Boolean);
+  const displayItems = concise
+    ? safe.map((it) => compactDiagnosisListItem(it, kind))
+    : safe;
   return (
     <Card title={title} eyebrow={eyebrow}>
-      {safe.length > 0 ? (
+      {displayItems.length > 0 ? (
         <ul className="diagnosis-list">
-          {safe.map((it, idx) => (
+          {displayItems.map((it, idx) => (
             <li key={`${it}-${idx}`}>{it}</li>
           ))}
         </ul>
@@ -241,17 +301,3 @@ function ListCard({ title, eyebrow, items }: { title: string; eyebrow?: string; 
   );
 }
 
-function humanizeKey(value: string) {
-  return value
-    .replace(/([a-z])([A-Z])/g, '$1 $2')
-    .replace(/[_-]+/g, ' ')
-    .trim()
-    .replace(/^./, (letter) => letter.toUpperCase());
-}
-
-function formatValue(value: unknown): string {
-  if (Array.isArray(value)) return value.map((item) => formatValue(item)).join(' · ');
-  if (typeof value === 'boolean') return value ? 'Sí' : 'No';
-  if (typeof value === 'number') return Number.isInteger(value) ? value.toLocaleString('es-CL') : value.toFixed(2);
-  return String(value);
-}

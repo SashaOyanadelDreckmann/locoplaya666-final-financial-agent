@@ -430,7 +430,7 @@ export function buildChatIntroContent(params: {
     'chat-3': {
       kicker: 'Financieramente · Conciencia social',
       fallback: 'Criterio financiero con propósito',
-      tone: 'navy',
+      tone: 'gold',
     },
   };
 
@@ -445,6 +445,45 @@ export function buildChatIntroContent(params: {
     signals,
     epigraph: params.chatId === 'chat-3' ? CHAT3_WILDE_EPIGRAPH : undefined,
     tone: meta.tone,
+  };
+}
+
+export function buildDiagnosisDeepenIntroContent(params: {
+  session?: { name?: string | null; injectedIntake?: unknown } | null;
+  diagnosisProfile?: DiagnosisProfile | null;
+  voiceFindings?: string[];
+}): ChatIntroContent {
+  const firstName = readFirstName(params.session);
+  const diagnosis = resolveDiagnosisContext(params.diagnosisProfile, params.session);
+  const openQuestion = params.diagnosisProfile?.openQuestions?.find((item) => item.trim())?.trim() ?? null;
+  const loadedBlocks = [
+    'narrativa diagnóstica',
+    'perfil financiero',
+    params.diagnosisProfile?.tensions?.some((item) => item.trim()) ? 'tensiones' : null,
+    params.diagnosisProfile?.hypotheses?.some((item) => item.trim()) ? 'hipótesis' : null,
+    openQuestion ? 'preguntas abiertas' : null,
+    params.voiceFindings?.length ? 'síntesis de la entrevista' : null,
+  ].filter(Boolean);
+
+  const message = joinSentences([
+    `${firstName}, ya integré tu diagnóstico completo en este chat`,
+    loadedBlocks.length
+      ? `Confirmo que tengo cargados ${loadedBlocks.join(', ')} y el contexto de tu entrevista`
+      : 'Confirmo que tengo cargado el contexto completo de tu entrevista y diagnóstico',
+    diagnosisLeadLine(diagnosis, (headline) => `La lectura central cierra en «${headline}»`),
+    diagnosis.topTension ? `La tensión principal es ${normalizePhrase(diagnosis.topTension)}` : null,
+    diagnosis.topHypothesis ? `Una hipótesis a revisar: ${normalizePhrase(diagnosis.topHypothesis)}` : null,
+    openQuestion ? `Dejamos abierta esta pregunta: ${normalizePhrase(openQuestion)}` : null,
+    'Dime por dónde quieres profundizar y avanzamos con pasos concretos',
+  ]);
+
+  return {
+    chatId: 'chat-1',
+    kicker: 'Financieramente · Chat general',
+    title: diagnosis.headline ?? 'Diagnóstico integrado',
+    message,
+    signals: buildIntroSignals(diagnosis, params.session),
+    tone: 'gold',
   };
 }
 
@@ -478,7 +517,7 @@ function coerceChatIntroShellItem(
     ...item,
     content: '',
     agent_blocks: [],
-    suggested_replies: item.suggested_replies ?? [],
+    suggested_replies: [],
   };
 }
 
@@ -567,10 +606,10 @@ export function isChatIntroShellItem(params: {
   index: number;
   items: ChatItem[];
   activeThreadId?: string;
-  diagnosisUnlocked: boolean;
+  chat1GeneralDeepened?: boolean;
   isLegacyWelcomeAssistantItem: (item: ChatItem) => boolean;
 }): boolean {
-  const { item, index, items, activeThreadId, diagnosisUnlocked, isLegacyWelcomeAssistantItem } =
+  const { item, index, items, activeThreadId, chat1GeneralDeepened, isLegacyWelcomeAssistantItem } =
     params;
 
   if (!activeThreadId || !['chat-1', 'chat-2', 'chat-3'].includes(activeThreadId)) return false;
@@ -582,7 +621,7 @@ export function isChatIntroShellItem(params: {
     .some((prior) => prior.type === 'message' && prior.role === 'assistant');
   if (!isFirstAssistant) return false;
 
-  if (activeThreadId === 'chat-1' && !diagnosisUnlocked) {
+  if (activeThreadId === 'chat-1' && !chat1GeneralDeepened) {
     if (isWelcomeShellMessageContent(item.content)) return true;
     if (isLegacyWelcomeAssistantItem(item)) return true;
     return isRecoverableChatErrorMessage(String(item.content ?? ''));
@@ -595,14 +634,14 @@ export function isChatIntroShellItem(params: {
 
 export function usesExecutiveWelcomeCarousel(params: {
   activeThreadId?: string;
-  diagnosisUnlocked: boolean;
+  chat1GeneralDeepened?: boolean;
 }): boolean {
-  return params.activeThreadId === 'chat-1' && !params.diagnosisUnlocked;
+  return params.activeThreadId === 'chat-1' && !params.chat1GeneralDeepened;
 }
 
 export function isCompactChatIntroShell(params: {
   activeThreadId?: string;
-  diagnosisUnlocked: boolean;
+  chat1GeneralDeepened?: boolean;
 }): boolean {
   if (usesExecutiveWelcomeCarousel(params)) return false;
   return params.activeThreadId === 'chat-1' || params.activeThreadId === 'chat-2' || params.activeThreadId === 'chat-3';

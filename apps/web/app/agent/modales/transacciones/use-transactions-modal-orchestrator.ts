@@ -37,8 +37,10 @@ import { resolveAnalystExperienceState } from './analyst-experience.helpers';
 import { readProductEvidenceFidelity } from '@/lib/compartido/evidence-fidelity.helpers';
 import { productVisualPalette } from './visuals';
 import { normalizeUploadFormat } from './tx-assistant.helpers';
+import { useTxDesktopLayout } from './use-tx-desktop-layout';
 
 export function useTransactionsModalOrchestrator(props: TransactionsModalProps) {
+  const { isDesktopLayout } = useTxDesktopLayout();
   const onContinueWithoutProducts = props.productsModuleSkipped
     ? undefined
     : props.onContinueWithoutProducts;
@@ -59,6 +61,7 @@ export function useTransactionsModalOrchestrator(props: TransactionsModalProps) 
   const [productCarouselIndex, setProductCarouselIndex] = useState(0);
   const [carouselPaused, setCarouselPaused] = useState(false);
   const [evidenceResetConfirmOpen, setEvidenceResetConfirmOpen] = useState(false);
+  const [summaryLibraryFocused, setSummaryLibraryFocused] = useState(false);
 
   const transactionsModalRef = useRef<HTMLDivElement | null>(null);
   const txScrollBodyRef = useRef<HTMLDivElement | null>(null);
@@ -381,6 +384,34 @@ export function useTransactionsModalOrchestrator(props: TransactionsModalProps) 
     [consentLocked, hasEvidence, props.setTxWizardStep],
   );
   const activeTxStageIndex = deriveActiveTxStageIndex(props.txWizardStep);
+  const showSummaryLibraryFocusToggle =
+    isDesktopLayout &&
+    Boolean(props.activeBankProduct) &&
+    showTxCarousel &&
+    activeTxStageIndex === 2;
+  const summaryLibraryFocusActive = showSummaryLibraryFocusToggle && summaryLibraryFocused;
+
+  const toggleSummaryLibraryFocus = useCallback(() => {
+    setSummaryLibraryFocused((prev) => !prev);
+  }, []);
+
+  useEffect(() => {
+    if (!props.isOpen) {
+      setSummaryLibraryFocused(false);
+    }
+  }, [props.isOpen]);
+
+  useEffect(() => {
+    if (activeTxStageIndex !== 2) {
+      setSummaryLibraryFocused(false);
+    }
+  }, [activeTxStageIndex]);
+
+  useEffect(() => {
+    if (!isDesktopLayout) {
+      setSummaryLibraryFocused(false);
+    }
+  }, [isDesktopLayout]);
 
   const goToTxStage = useCallback(
     (stageKey: 'consent' | 'evidence' | 'analyst') => {
@@ -628,6 +659,20 @@ export function useTransactionsModalOrchestrator(props: TransactionsModalProps) 
     thread.scrollTop = thread.scrollHeight;
   }, [props.isOpen, props.activeBankProduct?.id, props.txWizardStep, evidenceAssistantMessages.length, summaryAssistantMessages.length]);
 
+  const wasAnalystPendingRef = useRef(isAnalystExperiencePending);
+  useEffect(() => {
+    const wasPending = wasAnalystPendingRef.current;
+    wasAnalystPendingRef.current = isAnalystExperiencePending;
+    if (!props.isOpen || wasPending === isAnalystExperiencePending) return;
+    if (wasPending && !isAnalystExperiencePending && props.txWizardStep === 'dashboard') {
+      window.requestAnimationFrame(() => {
+        const scrollHost = txScrollBodyRef.current;
+        const chatAnchor = scrollHost?.querySelector<HTMLElement>('.tx-minimal-chat-card, .tx-ap-chat-dock');
+        chatAnchor?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      });
+    }
+  }, [isAnalystExperiencePending, props.isOpen, props.txWizardStep]);
+
   useEffect(() => {
     if (!highlightedMovementKeys.length) return;
     const match = dedupedMovementRows.find((row) => highlightedMovementKeys.includes(row.promptKey));
@@ -699,6 +744,11 @@ export function useTransactionsModalOrchestrator(props: TransactionsModalProps) 
     activeLibraryTheme,
     txStages,
     activeTxStageIndex,
+    isDesktopLayout,
+    showSummaryLibraryFocusToggle,
+    summaryLibraryFocusActive,
+    summaryLibraryFocused,
+    toggleSummaryLibraryFocus,
     filteredInstitutions,
     filteredTemplates,
     closeConfirmKind,

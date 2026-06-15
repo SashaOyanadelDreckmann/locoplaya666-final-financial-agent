@@ -6,6 +6,7 @@
 @import './nucleo/agent-bootstrap.css';
 /* Chat module */
 @import './chat/agent-chat.css';
+@import './chat/agent-tx-charts.css';
 @import './fincoins/agent-fincoin-usage.css';
 /* Knowledge rail module */
 @import './conocimiento/agent-knowledge.css';

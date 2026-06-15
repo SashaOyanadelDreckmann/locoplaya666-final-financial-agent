@@ -3,7 +3,7 @@ import type { AgentStreamEvent, AgentStreamPhase } from './agent-stream';
 export type AgentStreamUiTool = {
   tool: string;
   label: string;
-  status: 'start' | 'done';
+  status: 'start' | 'done' | 'error';
   iteration?: number;
 };
 
@@ -11,7 +11,7 @@ export type AgentStreamUiState = {
   turnId?: string;
   phase?: AgentStreamPhase | string;
   phaseLabel?: string;
-  phaseStatus?: 'start' | 'done';
+  phaseStatus?: 'start' | 'done' | 'error';
   mode?: string;
   tools: AgentStreamUiTool[];
   streaming: boolean;
@@ -25,6 +25,16 @@ export function createInitialAgentStreamUiState(): AgentStreamUiState {
     startedAt: Date.now(),
     phase: 'classify',
     phaseLabel: 'Interpretando tu consulta',
+    phaseStatus: 'start',
+  };
+}
+
+/** UI state while waiting for a non-streaming (JSON) agent response — typical on mobile Safari. */
+export function createJsonTransportStreamUiState(): AgentStreamUiState {
+  return {
+    ...createInitialAgentStreamUiState(),
+    phase: 'format',
+    phaseLabel: 'Redactando respuesta',
     phaseStatus: 'start',
   };
 }

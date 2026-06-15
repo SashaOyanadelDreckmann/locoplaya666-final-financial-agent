@@ -103,7 +103,11 @@ export function validateWriterOutput(
   }
   allowedAmounts.add(input.context.totalInflows);
   allowedAmounts.add(input.context.totalOutflows);
-  if (input.context.intake.exactMonthlyIncome) allowedAmounts.add(input.context.intake.exactMonthlyIncome);
+  for (const ledger of input.context.movementLedgers) {
+    for (const movement of ledger.movements) {
+      allowedAmounts.add(movement.amount);
+    }
+  }
 
   const polishedAmounts = [...extractNumericTokens(reply), ...extractNumericTokens(question)];
   for (const amount of polishedAmounts) {

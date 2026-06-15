@@ -47,7 +47,7 @@ describe('interview voice aura', () => {
     expect(speaking.scale).toBeGreaterThan(idle.scale + 0.35);
     expect(speaking.bloom).toBeGreaterThan(idle.bloom + 0.5);
     expect(speaking.coreGlow).toBeGreaterThan(idle.coreGlow + 0.4);
-    expect(Math.abs(speaking.orbAX)).toBeGreaterThan(Math.abs(idle.orbAX) + 10);
+    expect(Math.abs(speaking.shiftX)).toBeGreaterThan(Math.abs(idle.shiftX) + 10);
   });
 
   it('settles motion when agent audio level is silent', () => {
@@ -71,11 +71,11 @@ describe('interview voice aura', () => {
 
   it('eases presence envelope over multiple frames', () => {
     let presence = 0;
-    for (let i = 0; i < 8; i += 1) {
+    for (let i = 0; i < 6; i += 1) {
       presence = smoothInterviewVoiceAuraPresence(presence, 1);
     }
 
-    expect(presence).toBeGreaterThan(0.2);
-    expect(presence).toBeLessThan(0.55);
+    expect(presence).toBeGreaterThan(0.45);
+    expect(presence).toBeLessThan(0.98);
   });
 });

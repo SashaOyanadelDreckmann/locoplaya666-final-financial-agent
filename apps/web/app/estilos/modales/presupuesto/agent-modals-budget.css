@@ -202,25 +202,12 @@
   margin: 12px 0 0 !important;
 }
 
-.budget-pending-confirm{
-  margin-top: 14px !important;
-  padding: 12px 14px !important;
-  border-radius: 12px !important;
-  border: 1px solid rgba(255, 196, 120, 0.35) !important;
-  background: rgba(255, 196, 120, 0.1) !important;
-}
-
-.budget-pending-confirm-copy{
-  margin: 0 0 10px !important;
-  font-size: 13px !important;
-  line-height: 1.45 !important;
-  color: rgba(255, 255, 255, 0.88) !important;
-}
-
 .budget-pending-confirm-actions{
   display: flex !important;
   gap: 8px !important;
-  justify-content: flex-end !important;
+  justify-content: center !important;
+  align-items: center !important;
+  width: 100% !important;
   flex-wrap: wrap !important;
 }
 
@@ -720,33 +707,6 @@
   }
 }
 
-/* Final override: budget card must stay white with black text */
-.agent-panel .panel-pos-budget.panel-feature-card,
-.agent-layout.mobile-panel-expanded .agent-panel .panel-pos-budget.panel-feature-card{
-  background: rgba(255, 255, 255, 0.98) !important;
-  border: 1px solid rgba(15, 23, 32, 0.12) !important;
-  color: #0f1720 !important;
-  box-shadow:
-    0 14px 28px rgba(15, 23, 32, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
-}
-
-.agent-panel .panel-pos-budget.panel-feature-card .panel-feature-label,
-.agent-panel .panel-pos-budget.panel-feature-card .panel-feature-status,
-.agent-panel .panel-pos-budget.panel-feature-card .panel-feature-copy,
-.agent-panel .panel-pos-budget.panel-feature-card .panel-feature-copy-secondary,
-.agent-panel .panel-pos-budget.panel-feature-card:hover:not(.is-locked) .panel-feature-label,
-.agent-panel .panel-pos-budget.panel-feature-card:hover:not(.is-locked) .panel-feature-status,
-.agent-panel .panel-pos-budget.panel-feature-card:hover:not(.is-locked) .panel-feature-copy,
-.agent-panel .panel-pos-budget.panel-feature-card:hover:not(.is-locked) .panel-feature-copy-secondary,
-.agent-panel .panel-pos-budget.panel-feature-card.is-panel-highlighted .panel-feature-label,
-.agent-panel .panel-pos-budget.panel-feature-card.is-panel-highlighted .panel-feature-status,
-.agent-panel .panel-pos-budget.panel-feature-card.is-panel-highlighted .panel-feature-copy,
-.agent-panel .panel-pos-budget.panel-feature-card.is-panel-highlighted .panel-feature-copy-secondary{
-  color: #0f1720 !important;
-  opacity: 1 !important;
-}
-
 /* ── Citation toggle: always white text regardless of bubble type ── */
 .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-body .citation-toggle,
 .agent-thread > .agent-bubble.assistant.latex-doc .latex-doc-body .citation-toggle *,
@@ -771,51 +731,51 @@
 
 /* ================================================= */
 /* Panel cards by section: 3 colores distintos       */
-/* Presupuesto NO amarillo                           */
+/* Transacciones azul · Presupuesto oro · Entrevista rojo */
 /* ================================================= */
 
-/* 1) Presupuesto -> azul profundo (sin amarillo) */
-.agent-panel .panel-pos-budget.panel-feature-card,
-.agent-layout.mobile-panel-expanded .agent-panel .panel-pos-budget.panel-feature-card{
+/* 1) Productos y transacciones -> azul profundo */
+.agent-panel .panel-pos-transactions.panel-feature-card,
+.agent-layout.mobile-panel-expanded .agent-panel .panel-pos-transactions.panel-feature-card{
   background: linear-gradient(145deg, rgba(56, 81, 111, 0.82), rgba(37, 57, 79, 0.9)) !important;
   border: 1px solid rgba(200, 212, 227, 0.5) !important;
   color: #f3f8fc !important;
   box-shadow: 0 16px 30px rgba(18, 28, 41, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
 }
 
-.agent-panel .panel-pos-budget.panel-feature-card:hover:not(.is-locked),
-.agent-panel .panel-pos-budget.panel-feature-card.is-panel-highlighted{
+.agent-panel .panel-pos-transactions.panel-feature-card:hover:not(.is-locked),
+.agent-panel .panel-pos-transactions.panel-feature-card.is-panel-highlighted{
   background: linear-gradient(145deg, rgba(68, 95, 129, 0.88), rgba(40, 62, 86, 0.95)) !important;
   border-color: rgba(200, 212, 227, 0.72) !important;
 }
 
-/* 2) Productos y transacciones -> mostaza mate */
-.agent-panel .panel-pos-transactions.panel-feature-card,
-.agent-layout.mobile-panel-expanded .agent-panel .panel-pos-transactions.panel-feature-card{
+/* 2) Presupuesto -> mostaza mate */
+.agent-panel .panel-pos-budget.panel-feature-card,
+.agent-layout.mobile-panel-expanded .agent-panel .panel-pos-budget.panel-feature-card{
   background: linear-gradient(145deg, rgba(184, 147, 70, 0.9), rgba(152, 119, 54, 0.92)) !important;
   border: 1px solid rgba(235, 218, 179, 0.58) !important;
   color: #fffaf0 !important;
   box-shadow: 0 16px 30px rgba(67, 52, 22, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.16) !important;
 }
 
-.agent-panel .panel-pos-transactions.panel-feature-card:hover:not(.is-locked),
-.agent-panel .panel-pos-transactions.panel-feature-card.is-panel-highlighted{
+.agent-panel .panel-pos-budget.panel-feature-card:hover:not(.is-locked),
+.agent-panel .panel-pos-budget.panel-feature-card.is-panel-highlighted{
   background: linear-gradient(145deg, rgba(198, 160, 81, 0.94), rgba(162, 128, 61, 0.95)) !important;
   border-color: rgba(245, 226, 189, 0.74) !important;
 }
 
-/* 3) Diagnóstico final -> celeste hielo */
+/* 3) Entrevista y diagnóstico -> rojo burdeos */
 .agent-panel .panel-pos-interview.interview-flow-card{
-  background: linear-gradient(145deg, rgba(200, 212, 227, 0.92), rgba(173, 191, 212, 0.92)) !important;
-  border: 1px solid rgba(222, 232, 242, 0.8) !important;
-  color: #102131 !important;
-  box-shadow: 0 14px 26px rgba(33, 50, 70, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.72) !important;
+  background: linear-gradient(145deg, rgba(116, 44, 44, 0.9), rgba(82, 30, 30, 0.94)) !important;
+  border: 1px solid rgba(204, 130, 130, 0.52) !important;
+  color: #fff1ed !important;
+  box-shadow: 0 16px 30px rgba(45, 14, 14, 0.38), inset 0 1px 0 rgba(255, 220, 220, 0.12) !important;
 }
 
 .agent-panel .panel-pos-interview.interview-flow-card:hover:not(.is-locked),
 .agent-panel .panel-pos-interview.interview-flow-card.is-panel-highlighted{
-  background: linear-gradient(145deg, rgba(213, 223, 234, 0.96), rgba(182, 199, 218, 0.96)) !important;
-  border-color: rgba(235, 242, 248, 0.9) !important;
+  background: linear-gradient(145deg, rgba(130, 50, 50, 0.94), rgba(92, 34, 34, 0.98)) !important;
+  border-color: rgba(220, 150, 150, 0.68) !important;
 }
 
 /* Mantener legibilidad por card */
@@ -837,8 +797,8 @@
 .agent-panel .panel-pos-interview.interview-flow-card .interview-flow-meta,
 .agent-panel .panel-pos-interview.interview-flow-card .interview-flow-submeta,
 .agent-panel .panel-pos-interview.interview-flow-card .panel-feature-copy{
-  color: #102131 !important;
-  -webkit-text-fill-color: #102131 !important;
+  color: inherit !important;
+  -webkit-text-fill-color: currentColor !important;
 }
 
 .budget-modal .budget-assistant-panel{
@@ -2638,17 +2598,6 @@
   box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.28) inset, 0 8px 16px rgba(0, 0, 0, 0.24) !important;
 }
 
-.agent-thread .agent-question-input{
-  border: 1px solid rgba(142, 167, 191, 0.48) !important;
-  background: rgba(18, 24, 34, 0.62) !important;
-  color: #eaf2f8 !important;
-}
-
-.agent-thread .agent-question-input:focus{
-  border-color: rgba(184, 147, 70, 0.72) !important;
-  box-shadow: 0 0 0 3px rgba(184, 147, 70, 0.2) !important;
-}
-
 .agent-thread .agent-questionnaire-submit,
 .agent-thread .agent-inline-panel-button,
 .agent-thread .latex-doc-save-btn{
@@ -2867,57 +2816,41 @@
   -webkit-text-fill-color: #fff8ea !important;
 }
 
-.agent-layout .agent-thread .agent-bubble.assistant .agent-question-input{
-  background: #06080d !important; /* negro real */
-  border: 1px solid rgba(255, 255, 255, 0.22) !important;
-  color: rgba(214, 178, 92, 0.98) !important;
-  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
-  font-size: 16px !important;
-  font-weight: 500 !important;
-  line-height: 1.28 !important;
-  letter-spacing: 0.01em !important;
-  width: 92% !important;
-  max-width: 360px !important;
-  margin-inline: auto !important;
-  border-radius: 16px !important;
-  padding: 10px 14px !important;
-}
-
-.agent-layout .agent-thread .agent-bubble.assistant .agent-question-input::placeholder{
-  color: rgba(214, 178, 92, 0.74) !important;
-  -webkit-text-fill-color: rgba(214, 178, 92, 0.74) !important;
-  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
-  font-size: 16px !important;
-  font-weight: 500 !important;
-  letter-spacing: 0.01em !important;
-}
-
-.agent-layout .agent-thread .agent-bubble.assistant .agent-question-input:focus{
-  border-color: rgba(184, 147, 70, 0.82) !important;
-  box-shadow: 0 0 0 3px rgba(184, 147, 70, 0.24) !important;
-}
-
 .agent-layout .agent-thread .agent-bubble.assistant .agent-question-choices .agent-question-input-inline{
   display: inline-flex !important;
   align-items: center !important;
-  flex: 0 1 320px !important;
-  width: min(320px, 96%) !important;
-  min-width: 220px !important;
-  height: 48px !important;
+  flex: 1 1 auto !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: min(280px, 100%) !important;
+  height: auto !important;
+  min-height: 0 !important;
   margin: 0 !important;
   border-radius: 999px !important;
-  padding: 0 16px !important;
+  padding: 6px 10px !important;
   text-align: left !important;
-  color: #ffffff !important;
-  font-size: 12px !important;
+  background: linear-gradient(145deg, rgba(56, 81, 111, 0.92), rgba(36, 57, 79, 0.98)) !important;
+  border: 1px solid rgba(200, 212, 227, 0.74) !important;
+  color: #edf4fb !important;
+  -webkit-text-fill-color: #edf4fb !important;
+  font-family: inherit !important;
+  font-size: 11px !important;
   font-weight: 500 !important;
   line-height: 1.15 !important;
+  box-sizing: border-box !important;
 }
 
 .agent-layout .agent-thread .agent-bubble.assistant .agent-question-choices .agent-question-input-inline::placeholder{
-  color: rgba(255, 255, 255, 0.72) !important;
-  -webkit-text-fill-color: rgba(255, 255, 255, 0.72) !important;
-  font-size: 12px !important;
+  color: rgba(237, 244, 251, 0.72) !important;
+  -webkit-text-fill-color: rgba(237, 244, 251, 0.72) !important;
+  font-family: inherit !important;
+  font-size: 11px !important;
+}
+
+.agent-layout .agent-thread .agent-bubble.assistant .agent-question-choices .agent-question-input-inline:focus{
+  outline: none !important;
+  border-color: rgba(214, 225, 236, 0.9) !important;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.18) inset !important;
 }
 
 .agent-layout .agent-thread .agent-bubble.assistant .agent-inline-panel-button,
@@ -4171,19 +4104,19 @@ body.agent-route-active{
   }
 }
 
-/* FINAL OVERRIDE: entrevista + diagnostico guardado con paleta premium 4 secundarios */
+/* FINAL OVERRIDE: entrevista + diagnostico guardado con paleta roja del panel */
 .agent-panel .panel-pos-interview.interview-flow-card,
 .agent-layout.mobile-panel-expanded .agent-panel .panel-pos-interview.interview-flow-card{
-  background: linear-gradient(145deg, rgba(142, 167, 191, 0.88), rgba(96, 122, 147, 0.92)) !important;
-  border: 1px solid rgba(214, 225, 236, 0.76) !important;
-  color: #f2f7fc !important;
-  box-shadow: 0 16px 30px rgba(24, 39, 56, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.22) !important;
+  background: linear-gradient(145deg, rgba(116, 44, 44, 0.9), rgba(82, 30, 30, 0.94)) !important;
+  border: 1px solid rgba(204, 130, 130, 0.52) !important;
+  color: #fff1ed !important;
+  box-shadow: 0 16px 30px rgba(45, 14, 14, 0.38), inset 0 1px 0 rgba(255, 220, 220, 0.12) !important;
 }
 
 .agent-panel .panel-pos-interview.interview-flow-card:hover:not(.is-locked),
 .agent-panel .panel-pos-interview.interview-flow-card.is-panel-highlighted{
-  background: linear-gradient(145deg, rgba(154, 178, 201, 0.92), rgba(106, 133, 158, 0.96)) !important;
-  border-color: rgba(226, 235, 244, 0.88) !important;
+  background: linear-gradient(145deg, rgba(130, 50, 50, 0.94), rgba(92, 34, 34, 0.98)) !important;
+  border-color: rgba(220, 150, 150, 0.68) !important;
 }
 
 .agent-panel .panel-pos-interview.interview-flow-card .interview-flow-label,
@@ -4192,8 +4125,8 @@ body.agent-route-active{
 .agent-panel .panel-pos-interview.interview-flow-card .interview-flow-meta,
 .agent-panel .panel-pos-interview.interview-flow-card .interview-flow-submeta,
 .agent-panel .panel-pos-interview.interview-flow-card .panel-feature-copy{
-  color: #f3f8fd !important;
-  -webkit-text-fill-color: #f3f8fd !important;
+  color: inherit !important;
+  -webkit-text-fill-color: currentColor !important;
 }
 
 .interview-modal .pro-interview-column .voice-call-shell.interview-live-shell,

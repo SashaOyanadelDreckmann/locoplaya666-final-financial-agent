@@ -75,19 +75,26 @@ describe('runFormatPhase', () => {
     expect(result.formatted_response.suggested_replies).toBeInstanceOf(Array);
   });
 
-  it('should parse context score from response', async () => {
-    const mockResponse = `Response text
-<CONTEXT_SCORE>87</CONTEXT_SCORE>`;
+  it('should strip false PDF capability claims from welcome-style responses', async () => {
+    const mockResponse = `Hola Juan, podemos hacer tres cosas juntos:
+Simular escenarios
+Generar informes: PDFs personalizados que se guardan en tu panel
+<SUGERENCIAS>
+["Simular ahorro", "Generar informe PDF", "Ver presupuesto", "Comparar APV"]
+</SUGERENCIAS>`;
     (completeWithClaude as any).mockResolvedValueOnce(mockResponse);
 
     const result = await runFormatPhase({
-      mode: 'decision_support',
+      mode: 'information',
       execution_result: mockExecutionResult,
-      user_message: 'Test',
+      user_message: 'Hola',
       context_summary: {},
     });
 
-    expect(result.formatted_response.context_score).toBe(87);
+    expect(result.formatted_response.message.toLowerCase()).not.toContain('generar informes');
+    expect(result.formatted_response.suggested_replies).not.toEqual(
+      expect.arrayContaining([expect.stringMatching(/pdf|informe/i)]),
+    );
   });
 
   it('should extract panel action from response', async () => {

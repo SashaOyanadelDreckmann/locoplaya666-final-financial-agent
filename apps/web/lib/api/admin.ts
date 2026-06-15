@@ -38,6 +38,9 @@ export type AdminUserSnapshot = {
   name: string;
   email: string;
   role: 'USER' | 'ANALYST' | 'ADMIN';
+  approvalStatus?: 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED';
+  approvedAt?: string | null;
+  approvedByEmail?: string | null;
   passwordHash: string;
   createdAt: string;
   updatedAt: string;
@@ -60,6 +63,9 @@ export type AdminUserSnapshot = {
   sessions: AdminSessionSnapshot[];
   profiles: AdminProfileSnapshot[];
   documents: AdminDocumentSnapshot[];
+  usdSpentTotal?: number;
+  fincoinDepletedAt?: string | null;
+  fincoinDepletionHandled?: boolean;
 };
 
 export type AdminUsersFullDump = {
@@ -147,4 +153,101 @@ export async function fetchResearchAnalyticsReport(): Promise<ResearchAnalyticsR
   });
 
   return parseApiResponse<ResearchAnalyticsReport>(res);
+}
+
+export type AdminCockpitSnapshot = {
+  generatedAt: string;
+  platform: {
+    totalUsers: number;
+    byApproval: Record<'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED', number>;
+    byRole: Record<'USER' | 'ANALYST' | 'ADMIN', number>;
+    pendingApprovals: Array<{
+      id: string;
+      name: string;
+      email: string;
+      role: 'USER' | 'ANALYST' | 'ADMIN';
+      createdAt: string;
+    }>;
+    recentSignups: Array<{
+      id: string;
+      name: string;
+      email: string;
+      role: 'USER' | 'ANALYST' | 'ADMIN';
+      createdAt: string;
+      approvalStatus: 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED';
+    }>;
+    fincoin: {
+      totalUsdSpent: number;
+      depletedUsers: number;
+      activeWallets: number;
+      avgUsdPerUser: number;
+    };
+    totals: {
+      sessions: number;
+      documents: number;
+      profiles: number;
+      conversationTurns: number;
+    };
+  };
+  research: ResearchAnalyticsSummary;
+  observability: {
+    http: {
+      totalEndpoints: number;
+      totalRequests: number;
+      totalClientErrors: number;
+      totalServerErrors: number;
+      avgLatencyMs: number;
+    };
+    topEndpoints: Array<{ route: string; count: number; avgMs: number }>;
+    topTools: Array<{ tool: string; count: number; avgMs: number }>;
+  };
+};
+
+export type AdminUserDossier = {
+  generatedAt: string;
+  user: AdminUserSnapshot;
+  fincoin: {
+    usdSpent: number;
+    usdRemaining: number;
+    maxUsdSpend: number;
+    depleted: boolean;
+    percentUsed: number;
+    remainingFincoins: number;
+    spentFincoins: number;
+    initialFincoins: number;
+  };
+  conversationTurnsCount: number;
+  recentTurns: Array<{
+    id: string;
+    chatId: string;
+    sessionId: string | null;
+    createdAt: string;
+    userMessage: string;
+    assistantMessage: string;
+  }>;
+  memoryHighlights: {
+    timelineCount: number;
+    factsCount: number;
+    productLifecycle: unknown;
+    interviewVoice: unknown;
+    socialReflections: unknown;
+  };
+};
+
+export async function fetchAdminCockpitSnapshot(): Promise<AdminCockpitSnapshot> {
+  const API_URL = getApiBaseUrl();
+  const res = await fetch(`${API_URL}/api/admin/cockpit`, {
+    method: 'GET',
+    credentials: 'include',
+  });
+  return parseApiResponse<AdminCockpitSnapshot>(res);
+}
+
+export async function fetchAdminUserDossier(userId: string): Promise<AdminUserDossier> {
+  const API_URL = getApiBaseUrl();
+  const res = await fetch(`${API_URL}/api/admin/users/${encodeURIComponent(userId)}/dossier`, {
+    method: 'GET',
+    credentials: 'include',
+  });
+  return parseApiResponse<AdminUserDossier>(res);
 }

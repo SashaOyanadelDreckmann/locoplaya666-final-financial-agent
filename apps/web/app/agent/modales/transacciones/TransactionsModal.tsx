@@ -18,6 +18,7 @@ import type { TransactionsModalProps } from './types';
 import { TxLibraryCardStack } from './TxLibraryCardStack';
 import { TxMinimalSummaryChatStep } from './TxMinimalSummaryChatStep';
 import { TxAnalystExperiencePending } from './TxAnalystExperiencePending';
+import { TxSummaryLibraryFocusToggle } from './TxSummaryLibraryFocusToggle';
 import { useTransactionsModalOrchestrator } from './use-transactions-modal-orchestrator';
 
 export function TransactionsModal(props: TransactionsModalProps) {
@@ -39,6 +40,7 @@ export function TransactionsModal(props: TransactionsModalProps) {
         data-ui-version="v2"
         data-dock-phase={vm.dockTransitionPhase}
         data-stage={vm.currentStage}
+        data-tx-summary-focus={vm.summaryLibraryFocusActive ? 'true' : 'false'}
         data-reduced-motion={vm.prefersReducedMotion ? 'true' : 'false'}
         style={{
           ['--tx-active-card-accent' as string]: vm.activeLibraryTheme.color,
@@ -143,6 +145,12 @@ export function TransactionsModal(props: TransactionsModalProps) {
             <div
               className={`pt-right tx-panel-surface tx-panel-surface--workspace ${!props.activeBankProduct || vm.showTxCarousel ? '' : 'tx-only-cta'}`}
             >
+              {vm.showSummaryLibraryFocusToggle ? (
+                <TxSummaryLibraryFocusToggle
+                  libraryHidden={vm.summaryLibraryFocused}
+                  onToggle={vm.toggleSummaryLibraryFocus}
+                />
+              ) : null}
               <NumericDust
                 scope="workspace"
                 pulse={vm.transitionPulse}
@@ -420,11 +428,26 @@ export function TransactionsModal(props: TransactionsModalProps) {
                           txAssistantInput={assistant.txAssistantInput}
                           txAssistantLoading={assistant.txAssistantLoading}
                           documentsLoading={props.documentsLoading}
+                          processingModeLabel={assistant.processingModeLabel}
+                          processingMetaLabel={assistant.processingMetaLabel}
+                          processingPrimaryCopy={assistant.processingPrimaryCopy}
+                          documentsParseProgress={props.documentsParseProgress}
                           onAssistantInputChange={assistant.setActiveTxAssistantInput}
                           onAssistantSend={() => void assistant.handleAssistantTextSend()}
                           onAskSuggestedQuestion={vm.handleAskSuggestedQuestion}
                           movementRows={vm.analytics.dedupedMovementRows}
+                          inflowLabel={vm.analytics.inflowLabel}
                           formatCurrency={vm.analytics.formatCurrency}
+                          isSavedForBatch={vm.isSavedForBatch}
+                          onDeleteProduct={() => props.deleteTransactionProduct(props.activeBankProduct!.id)}
+                          onGoToEvidence={() => vm.goToTxStage('evidence')}
+                          onSaveProductForBatch={() => {
+                            const saved = props.saveTransactionProductForBatch();
+                            if (saved) {
+                              props.setTxWizardStep('products');
+                              vm.setShowTxCarousel(false);
+                            }
+                          }}
                         />
                       )}
                     </div>

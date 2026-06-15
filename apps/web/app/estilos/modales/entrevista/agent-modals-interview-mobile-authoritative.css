@@ -23,11 +23,11 @@
     overflow: hidden !important;
   }
 
-  html:not(.home-route-active) .interview-modal.is-mobile-shell,
-  html:not(.home-route-active) .agent-modal.interview-modal.is-mobile-shell,
-  html:not(.home-route-active) .interview-modal.is-mobile-shell .interview-shell,
-  html:not(.home-route-active) .interview-modal.is-mobile-shell .pro-interview-shell,
-  html:not(.home-route-active) .interview-modal.is-mobile-shell .pro-interview-column {
+  html:not(.home-route-active) .interview-modal.is-mobile-shell:not(.interview-modal--minimal),
+  html:not(.home-route-active) .agent-modal.interview-modal.is-mobile-shell:not(.interview-modal--minimal),
+  html:not(.home-route-active) .interview-modal.is-mobile-shell:not(.interview-modal--minimal) .interview-shell,
+  html:not(.home-route-active) .interview-modal.is-mobile-shell:not(.interview-modal--minimal) .pro-interview-shell,
+  html:not(.home-route-active) .interview-modal.is-mobile-shell:not(.interview-modal--minimal) .pro-interview-column {
     width: 100% !important;
     max-width: 100% !important;
     min-width: 0 !important;
@@ -40,6 +40,15 @@
     box-shadow: none !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
+  }
+
+  html:not(.home-route-active) .interview-modal.is-mobile-shell.interview-modal--minimal,
+  html:not(.home-route-active) .agent-modal.interview-modal.is-mobile-shell.interview-modal--minimal {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
   }
 
   html:not(.home-route-active) .interview-modal.is-mobile-shell:not(.interview-modal--minimal) .interview-panel-surface--workspace {
@@ -94,8 +103,8 @@
     bottom: 0 !important;
   }
 
-  .agent-modal.interview-modal.is-mobile-shell .interview-call-actions--live .interview-call-pause-btn,
-  .agent-modal.interview-modal.is-mobile-shell .interview-call-actions--live .interview-call-end-btn {
+  .agent-modal.interview-modal.is-mobile-shell:not(.interview-modal--minimal) .interview-call-actions--live .interview-call-pause-btn,
+  .agent-modal.interview-modal.is-mobile-shell:not(.interview-modal--minimal) .interview-call-actions--live .interview-call-end-btn {
     flex: 1 1 100% !important;
     width: 100% !important;
     min-height: 44px !important;
@@ -127,5 +136,36 @@
     min-height: 0 !important;
     gap: var(--modal-header-row-gap, 12px) !important;
     border-radius: var(--modal-mobile-sheet-radius, 20px) var(--modal-mobile-sheet-radius, 20px) 0 0 !important;
+  }
+
+  .interview-modal.is-mobile-shell.interview-modal--generating.interview-modal--minimal,
+  .agent-modal.interview-modal.is-mobile-shell.interview-modal--generating.interview-modal--minimal {
+    background: transparent !important;
+    background-image: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    flex: 0 0 auto !important;
+    margin: auto !important;
+  }
+
+  .agent-modal-overlay.interview-modal-overlay:has(> .interview-modal--generating),
+  html.interview-modal-open .agent-modal-overlay.interview-modal-overlay:has(> .interview-modal--generating) {
+    justify-content: center !important;
+    align-items: center !important;
+  }
+
+  .interview-modal.is-mobile-shell.interview-modal--diagnosis.interview-modal--minimal,
+  .agent-modal.interview-modal.is-mobile-shell.interview-modal--diagnosis.interview-modal--minimal {
+    background: #fffdf9 !important;
+    background-image: linear-gradient(180deg, #ffffff 0%, #faf7f1 58%, #f5efe6 100%) !important;
+    border: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
   }
 }

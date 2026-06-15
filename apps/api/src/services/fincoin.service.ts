@@ -156,7 +156,6 @@ export async function ensureFincoinDepletionHandled(
       items: [],
       draft: '',
       status: 'context',
-      contextScore: 0,
       userMessageCount: 0,
       createdAt: new Date().toISOString(),
       completedAt: new Date().toISOString(),

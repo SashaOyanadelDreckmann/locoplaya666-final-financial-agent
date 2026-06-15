@@ -39,6 +39,13 @@ describe('budget modal logic guards', () => {
     expect(budgetModalSource).toContain('tableStyle={budgetTableStyle}');
   });
 
+  it('routes mobile field focus through the shared keyboard viewport sync', () => {
+    expect(source).toContain('focusMobileInput');
+    expect(source).not.toContain("el.focus({ preventScroll: true })");
+    expect(source).toContain('setMobileInputEngaged(false)');
+    expect(source).toContain('isBudgetModalElement');
+  });
+
   it('auto-applies budget template when modal opens with empty rows', () => {
     expect(source).toContain('const templateAppliedRef = useRef(false);');
     expect(source).toContain('if (props.budgetRows.length > 0 || templateAppliedRef.current) return;');
@@ -81,6 +88,14 @@ describe('budget modal logic guards', () => {
     expect(source).toContain('formatBudgetAssistantTurn');
   });
 
+  it('guards table and assistant inputs from disruptive scroll and layout remeasure', () => {
+    expect(source).toContain('function isBudgetInteractiveFieldFocused()');
+    expect(source).toContain('.bcc-hero-input');
+    expect(source).toContain('if (isBudgetInteractiveFieldFocused()) return;');
+    expect(source).toContain('question: questionForTurn');
+    expect(source).toContain('const [assistantReply, setAssistantReply]');
+  });
+
   it('prevents duplicate reply submissions while a request is in flight', () => {
     expect(source).toContain('const replySubmitLockRef = useRef(false);');
     expect(source).toContain('!props.isOpen || isAskingAI || isInitializing || replySubmitLockRef.current');
@@ -97,21 +112,30 @@ describe('budget modal logic guards', () => {
 
   it('guards client-side AI actions against unknown row deletes and blind updates', () => {
     expect(source).toContain('function parseBudgetTableAction(');
+    expect(source).toContain('validateBudgetTableActions');
     expect(source).toContain('mergeBudgetActionIntoRow');
     expect(source).toContain("if (kind === 'delete') {");
     expect(source).toContain('if (!rowExists) return null;');
     expect(source).toContain("if (kind === 'update' && !rowExists) return null;");
     expect(source).toContain("kind: kind === 'add' && rowExists ? 'update'");
-    expect(source).toContain('const parsed = parseBudgetTableAction(action, existingRow, Boolean(existingRow));');
-    expect(source).toContain('if (!parsed) continue;');
+    expect(source).toContain('const tableActions = validateBudgetTableActions(');
+    expect(source).toContain('if (tableActions.length === 0) return null;');
   });
 
   it('defers table mutations until the user confirms pending assistant actions', () => {
+    const bannerSource = fs.readFileSync(
+      path.join(process.cwd(), 'app', 'agent', 'modales', 'presupuesto', 'BudgetPendingConfirmBanner.tsx'),
+      'utf8',
+    );
     expect(source).toContain('budgetPendingConfirmation');
-    expect(source).toContain('pendingConfirmation: budgetPendingConfirmation');
+    expect(source).toContain('budgetPendingConfirmationRef');
+    expect(source).toContain('pendingConfirmation: pendingForTurn');
     expect(source).toContain('requires_confirmation');
     expect(source).toContain('setBudgetPendingConfirmation(null);');
     expect(source).toContain('BudgetPendingConfirmBanner');
+    expect(bannerSource).toContain('is-pending-confirm-action');
+    expect(bannerSource).toContain('agent-confirm-surface');
+    expect(bannerSource).toContain('agent-confirm-action');
     expect(source).toContain("handleBudgetAgentReplySubmit('sí')");
     expect(source).toContain("handleBudgetAgentReplySubmit('no')");
   });
@@ -218,9 +242,12 @@ describe('budget modal logic guards', () => {
     expect(source).toContain('sourceRect');
     const chatThreadSource = fs.readFileSync(path.join(process.cwd(), 'app', 'agent', 'chat', 'chat-thread-view.tsx'), 'utf8');
     expect(chatThreadSource).toContain("from './bubble-chat.snapshot'");
-    expect(chatThreadSource).toContain("from './bubble-chat.snapshot'");
+    expect(chatThreadSource).toContain("pageLayout: 'content'");
     const bubbleSnapshotSource = fs.readFileSync(path.join(process.cwd(), 'app', 'agent', 'chat', 'bubble-chat.snapshot.ts'), 'utf8');
     expect(bubbleSnapshotSource).toContain('export function buildBubbleSnapshotHtmlAndCss');
+    expect(bubbleSnapshotSource).toContain('expandTablesForPdfExport');
+    expect(bubbleSnapshotSource).toContain('syncMeasuredBlockHeights');
+    expect(bubbleSnapshotSource).not.toContain('size: A4');
   });
 
   it('measures mobile row slot height for one-row table viewport', () => {

@@ -11,7 +11,7 @@ import {
   resolveInterviewFinalizeDepth,
 } from '../orquestador/interview-voice-finalize';
 import { IntakeQuestionnaire } from '@financial-agent/shared/src/intake/intake-questionnaire.types';
-import { INTERVIEW_MIN_EARLY_END_SEC, INTERVIEW_TOTAL_LIMIT_SEC } from '@financial-agent/shared';
+import { INTERVIEW_MIN_EARLY_END_SEC, INTERVIEW_TOTAL_LIMIT_SEC, mergeInterviewVoiceQuotaMonotonic } from '@financial-agent/shared';
 import { InterviewBlockEvidence } from '../schemas/profile.schema';
 import type { FinancialDiagnosticProfile } from '../schemas/profile.schema';
 import { saveProfile } from '../services/storage.service';
@@ -246,23 +246,16 @@ export const saveInterviewVoiceState = asyncHandler(async function saveInterview
       ? (memoryBlob.interviewVoice as Record<string, unknown>)
       : {};
 
-  const persistedCallSeconds = Math.max(
-    0,
-    Number(interviewVoice.totalUsedSec ?? 0),
-    Number(interviewVoice.callSeconds ?? 0),
-    Number(parsed.totalUsedSec ?? 0),
-    Number(parsed.callSeconds ?? 0),
-  );
-  const totalUsedSec = Math.min(INTERVIEW_TOTAL_LIMIT_SEC, persistedCallSeconds);
-  const remainingTotalSec = Math.max(0, INTERVIEW_TOTAL_LIMIT_SEC - totalUsedSec);
+  const mergedQuota = mergeInterviewVoiceQuotaMonotonic(interviewVoice, parsed);
 
   const merged: Record<string, unknown> = {
     ...interviewVoice,
     ...parsed,
-    callSeconds: persistedCallSeconds,
-    totalUsedSec,
-    remainingTotalSec,
-    maxDurationSec: INTERVIEW_TOTAL_LIMIT_SEC,
+    callSeconds: mergedQuota.callSeconds,
+    totalUsedSec: mergedQuota.totalUsedSec,
+    remainingTotalSec: mergedQuota.remainingTotalSec,
+    maxDurationSec: mergedQuota.maxDurationSec,
+    callsStarted: mergedQuota.callsStarted,
     activeCallId:
       parsed.activeCallId === null
         ? null
@@ -566,7 +559,7 @@ export const finalizeInterviewVoice = asyncHandler(async function finalizeInterv
     interviewVoice: mergedInterviewVoice,
   });
 
-  appendMemoryTimelineNote({
+  await appendMemoryTimelineNote({
     userId: user.id,
     chatId: interviewChatId,
     userMessage: finalSummaryText || condensedSummaries.slice(0, 500) || 'Síntesis de llamada',

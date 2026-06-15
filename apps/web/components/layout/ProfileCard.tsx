@@ -1,3 +1,5 @@
+import { localizeDisplayValue } from '@/lib/display/localized-display';
+
 type ProfileCardProps = {
   className?: string;
   userName?: string;
@@ -9,30 +11,6 @@ type ProfileCardProps = {
   onOpenQuestionnaire?: () => void;
   onCardClick?: () => void;
   [key: string]: unknown;
-};
-
-const incomeBandLabel: Record<string, string> = {
-  no_income: 'Sin ingresos',
-  '<300k': 'Menos de $300k',
-  '300k-600k': '$300k–$600k',
-  '600k-1M': '$600k–$1M',
-  '1M-2M': '$1M–$2M',
-  '2M-4M': '$2M–$4M',
-  '>4M': 'Más de $4M',
-  variable: 'Ingresos variables',
-};
-
-const coverageLabel: Record<string, string> = {
-  surplus: 'Con holgura',
-  tight: 'Mes ajustado',
-  sometimes: 'A veces no alcanza',
-  no: 'No alcanza',
-};
-
-const trackingLabel: Record<string, string> = {
-  yes: 'Controla gastos',
-  sometimes: 'Control parcial',
-  no: 'Sin tracking',
 };
 
 export default function ProfileCard({
@@ -50,17 +28,17 @@ export default function ProfileCard({
   const intakeData = intake?.intake ?? intake ?? {};
   const tags: string[] = [];
 
-  const pushTag = (label: string, value: unknown) => {
+  const pushTag = (label: string, value: unknown, fieldKey?: string) => {
     if (typeof value === 'string' && value.trim()) {
-      tags.push(`${label}: ${value}`);
+      tags.push(`${label}: ${localizeDisplayValue(value, fieldKey)}`);
     }
   };
 
-  pushTag('Claridad', profileData.financialClarity);
-  pushTag('Decision', profileData.decisionStyle);
-  pushTag('Horizonte', profileData.timeHorizon);
-  pushTag('Presion', profileData.financialPressure);
-  pushTag('Patron', profileData.emotionalPattern);
+  pushTag('Claridad', profileData.financialClarity, 'financialClarity');
+  pushTag('Decisión', profileData.decisionStyle, 'decisionStyle');
+  pushTag('Horizonte', profileData.timeHorizon, 'timeHorizon');
+  pushTag('Presión', profileData.financialPressure, 'financialPressure');
+  pushTag('Patrón', profileData.emotionalPattern, 'emotionalPattern');
 
   const diagnostics = profile?.diagnosticNarrative || profileData?.diagnosticNarrative;
   const shortDiagnostic =
@@ -75,12 +53,14 @@ export default function ProfileCard({
     typeof intakeData.profession === 'string' && intakeData.profession.trim()
       ? intakeData.profession.trim()
       : null,
-    typeof intakeData.incomeBand === 'string' ? incomeBandLabel[intakeData.incomeBand] ?? null : null,
+    typeof intakeData.incomeBand === 'string'
+      ? localizeDisplayValue(intakeData.incomeBand, 'incomeBand')
+      : null,
     typeof intakeData.expensesCoverage === 'string'
-      ? coverageLabel[intakeData.expensesCoverage] ?? null
+      ? localizeDisplayValue(intakeData.expensesCoverage, 'expensesCoverage')
       : null,
     typeof intakeData.tracksExpenses === 'string'
-      ? trackingLabel[intakeData.tracksExpenses] ?? null
+      ? localizeDisplayValue(intakeData.tracksExpenses, 'tracksExpenses')
       : null,
     intakeData.hasDebt === true ? 'Con deuda activa' : 'Sin deuda declarada',
     intakeData.hasSavingsOrInvestments === true ? 'Con ahorro/inversión' : 'Sin ahorro declarado',

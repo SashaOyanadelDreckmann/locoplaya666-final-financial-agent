@@ -124,7 +124,6 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
   const voicePausedRef = useRef(false);
   const agentSpeechDraftRef = useRef('');
   const summariesSyncedCountRef = useRef(0);
-  const serverSessionInstructionsRef = useRef<string | null>(null);
 
   const [voiceSupported, setVoiceSupported] = useState(false);
   const [voiceCapabilityIssue, setVoiceCapabilityIssue] = useState<string | null>(null);
@@ -168,7 +167,10 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
     const syncCount = minuteSummaries.length + (finalSummary?.summary ? 1 : 0);
     if (syncCount <= summariesSyncedCountRef.current) return;
     summariesSyncedCountRef.current = syncCount;
-    emitVoiceSessionContext(sendVoiceEventRef.current, voiceSessionContextRef.current, { triggerResponse: false });
+    emitVoiceSessionContext(sendVoiceEventRef.current, voiceSessionContextRef.current, {
+      triggerResponse: false,
+      callPhase: closeoutPromptSentRef.current ? 'closeout' : 'exploration',
+    });
   }, [minuteSummaries, finalSummary, voiceConnected, voiceSessionReady, voicePaused]);
 
   const voiceFlags = resolveInterviewVoiceStateFlags({
@@ -321,7 +323,6 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
     setVoiceError(null);
     setVoicePaused(false);
     voicePausedRef.current = false;
-    serverSessionInstructionsRef.current = null;
     if (!preserveDiagnosisSignals) {
       setCallSeconds(0);
       setMaxCallDurationSec(DEFAULT_MAX_CALL_DURATION_SEC);
@@ -590,12 +591,8 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
       } else if (!hasPersistedCall) {
         setCallsStarted(1);
       }
-      serverSessionInstructionsRef.current =
-        typeof token?.session_instructions === 'string' && token.session_instructions.trim().length > 0
-          ? token.session_instructions
-          : null;
       if (!hasPersistedCall) {
-        syncActiveQuota(0);
+        syncActiveQuota(resolveUsedSecondsFromSources(token, token?.interview_voice));
         setVoiceReport(null);
         setMinuteSummaries([]);
         setFinalSummary(null);
@@ -650,10 +647,11 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
         pendingInitialResponseRef.current = {
           resetTranscript: !hasPersistedCall,
         };
+        // Always rebuild instructions on the client: fresher intake + Chilean spoken persona.
+        // Server copy from /realtime/token can lag behind shared prompt updates.
         emitVoiceSessionContext(sendVoiceEventRef.current, voiceSessionContextRef.current, {
           startingFocus: INTERVIEW_VOICE_OPENING_FOCUS,
           triggerResponse: false,
-          instructionsOverride: serverSessionInstructionsRef.current,
         });
         startQuotaClock();
       });
@@ -744,6 +742,10 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
               );
               if (responseStatus === 'completed' && parsed) {
                 commitVoiceSummary(parsed, activeRequest.kind);
+                emitVoiceSessionContext(sendVoiceEventRef.current, voiceSessionContextRef.current, {
+                  triggerResponse: false,
+                  callPhase: closeoutPromptSentRef.current ? 'closeout' : 'exploration',
+                });
               } else if (responseStatus && responseStatus !== 'completed') {
                 setVoiceError(
                   `No se pudo consolidar la síntesis (${responseStatus}). La llamada sigue activa y se reintentará en el siguiente ciclo.`,
@@ -1331,7 +1333,8 @@ export function useInterviewVoiceRuntime(params: InterviewVoiceRuntimeParams) {
     emitVoiceSessionContext(sendVoiceEventRef.current, voiceSessionContextRef.current, {
       callPhase: 'closeout',
       triggerResponse: true,
-      startingFocus: 'Cierra la entrevista con síntesis ejecutiva clara. Empieza con <<CALL_COMPLETE>>.',
+      startingFocus:
+        'Cierra la entrevista en voz con modismos chilenos naturales, resume hallazgos con claridad y termina con <<CALL_COMPLETE>>.',
     });
   }, [isOpen, voiceFlags.isClosingWindow]);
 

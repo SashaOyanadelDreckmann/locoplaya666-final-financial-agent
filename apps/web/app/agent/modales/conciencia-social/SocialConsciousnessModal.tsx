@@ -2,6 +2,11 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { AgentModalCloseButton } from '../comunes/AgentModalCloseButton';
+import {
+  writeSocialReflectionSession,
+  persistSocialReflectionSession,
+  type SocialReflectionAnswer,
+} from '@/lib/agente/nucleo/social-consciousness-reflections';
 
 type PhilosophicalQuestion = {
   id: string;
@@ -71,6 +76,8 @@ type SocialConsciousnessModalProps = {
   onClose: () => void;
   onSendToChat: (message: string) => void;
   sessionUserName?: string | null;
+  sessionUserId?: string | null;
+  onReflectionsPersisted?: () => void;
 };
 
 export function SocialConsciousnessModal({
@@ -78,6 +85,8 @@ export function SocialConsciousnessModal({
   onClose,
   onSendToChat,
   sessionUserName,
+  sessionUserId,
+  onReflectionsPersisted,
 }: SocialConsciousnessModalProps) {
   const [currentStep, setCurrentStep] = useState<'intro' | 'questions' | 'reflection'>('intro');
   const [currentQuestionIdx, setCurrentQuestionIdx] = useState(0);
@@ -149,6 +158,31 @@ export function SocialConsciousnessModal({
     setSelectedChoice(choiceId);
   }
 
+  function persistReflections(answers: Record<string, string>) {
+    const payload: SocialReflectionAnswer[] = EXISTENTIAL_QUESTIONS.flatMap((question) => {
+      const answerId = answers[question.id];
+      const choice = question.choices.find((item) => item.id === answerId);
+      if (!choice) return [];
+      return [
+        {
+          questionId: question.id,
+          question: question.question,
+          choiceId: choice.id,
+          choiceLabel: choice.label,
+          choiceSubtext: choice.subtext,
+          thinker: question.thinker,
+        },
+      ];
+    });
+    if (payload.length === 0) return;
+    void persistSocialReflectionSession(sessionUserId, {
+      answers: payload,
+      completedAt: new Date().toISOString(),
+    }).then(() => {
+      onReflectionsPersisted?.();
+    });
+  }
+
   function advanceQuestion() {
     if (!selectedChoice || !currentQuestion) return;
 
@@ -161,6 +195,7 @@ export function SocialConsciousnessModal({
         setCurrentQuestionIdx((prev) => prev + 1);
         setSelectedChoice(null);
       } else {
+        persistReflections(newAnswers);
         setCurrentStep('reflection');
       }
       setIsAnimating(false);

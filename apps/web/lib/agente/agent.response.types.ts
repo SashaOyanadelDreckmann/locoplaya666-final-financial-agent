@@ -47,9 +47,6 @@ export type AgentResponse = {
   // sugerencias de respuesta rápida (chips interactivos)
   suggested_replies?: string[];
 
-  // puntuación de contexto acumulado de la hoja (0-100), emitida por el agente
-  context_score?: number;
-
   // acción de panel: el agente puede controlar qué sección destacar
   panel_action?: {
     section?:
@@ -90,6 +87,7 @@ export type AgentResponse = {
       closing_mode?: boolean;
       reports_count?: number;
       action_plan_funnel_stage?: 'brainstorm' | 'converge' | 'deliver' | null;
+      social_consciousness_funnel_stage?: 'explore' | 'tension' | 'synthesis' | null;
     };
     [key: string]: unknown;
   };
@@ -160,9 +158,6 @@ export function toChatItemsFromAgentResponse(res: AgentResponse): ChatItem[] {
       mode: res.mode ?? res.reasoning_mode,
       objective: res.react?.objective,
       agent_blocks: res.agent_blocks,
-      suggested_replies: Array.isArray(res.suggested_replies) && res.suggested_replies.length > 0
-        ? res.suggested_replies
-        : undefined,
     });
   }
 

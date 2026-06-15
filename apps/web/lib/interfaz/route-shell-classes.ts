@@ -3,6 +3,7 @@ export const ROUTE_SHELL_CLASS_NAMES = [
   'agent-route-active',
   'intake-route-active',
   'auth-route-active',
+  'admin-route-active',
 ] as const;
 
 export type RouteShellClassName = (typeof ROUTE_SHELL_CLASS_NAMES)[number];
@@ -14,6 +15,9 @@ export function resolveRouteShellClass(pathname: string): RouteShellClassName | 
   if (/^\/intake(\/|$)/.test(pathname)) return 'intake-route-active';
   if (/^\/(login|register|forgot-password|waiting-approval)(\/|$)/.test(pathname)) {
     return 'auth-route-active';
+  }
+  if (/^\/(admin|analytics)(\/|$)/.test(pathname)) {
+    return 'admin-route-active';
   }
   return undefined;
 }

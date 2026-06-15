@@ -65,7 +65,7 @@ export const PANEL_INTRO_CARD_ORDER: PanelIntroCardMeta[] = [
     key: 'library',
     tag: 'Archivo',
     label: 'Biblioteca',
-    caption: 'PDFs organizados por tipo de entrega.',
+    caption: 'PDFs que guardas desde el chat, por tipo.',
   },
   {
     key: 'recents',

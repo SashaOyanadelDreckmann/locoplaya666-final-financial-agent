@@ -18,9 +18,6 @@
   position: relative;
   z-index: 2;
   flex: 0 0 auto;
-  align-self: flex-start;
-  width: 100%;
-  max-width: var(--bubble-maxw, 72%);
   margin-bottom: 14px;
 }
 
@@ -82,13 +79,6 @@
 }
 
 @media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
-  .agent-thread > .agent-stream-rail,
-  .agent-thread > .onboarding-flow-cta {
-    width: 100%;
-    max-width: var(--bubble-maxw, 72%);
-    align-self: flex-start;
-  }
-
   .agent-stream-rail-title {
     white-space: normal;
     overflow: visible;
@@ -185,6 +175,13 @@
 
 .agent-bubble.assistant.is-streaming .latex-doc-body {
   position: relative;
+  max-height: none;
+  overflow: visible;
+}
+
+.agent-bubble.assistant.is-streaming.is-scrollable-bubble {
+  max-height: none;
+  overflow: visible;
 }
 
 .agent-bubble.assistant.is-streaming .latex-doc-body::after {
@@ -230,5 +227,16 @@ html[data-visual-mode='light-outline'] .agent-bubble--chat-error-text {
 @keyframes agent-stream-caret {
   50% {
     opacity: 0;
+  }
+}
+
+/* Desktop — lock stream rail + onboarding CTA to assistant bubble band */
+@media (min-width: 821px) {
+  .agent-layout:not(.is-mobile-viewport) .agent-thread > .agent-stream-rail,
+  .agent-layout:not(.is-mobile-viewport) .agent-thread > .onboarding-flow-cta {
+    width: var(--assistant-thread-band-width, 100%) !important;
+    max-width: var(--assistant-thread-band-width, 100%) !important;
+    max-inline-size: var(--assistant-thread-band-width, 100%) !important;
+    align-self: stretch !important;
   }
 }

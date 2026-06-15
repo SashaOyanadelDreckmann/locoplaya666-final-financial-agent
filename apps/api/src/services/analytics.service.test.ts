@@ -90,4 +90,40 @@ describe('listResearchAnalytics', () => {
     expect(report.summary.stageCounts.onboarding + report.summary.stageCounts.diagnosis + report.summary.stageCounts.active + report.summary.stageCounts.advanced).toBeGreaterThan(0);
     expect(report.cohorts[0]?.month).toBe('2026-05');
   });
+
+  it('marks inactive users as stale after 90 days', async () => {
+    const userId = 'user_stale';
+    memoryStore.users.set(userId, {
+      id: userId,
+      name: 'Stale User',
+      email: 'stale@example.com',
+      passwordHash: 'hash',
+      role: 'USER',
+      approvalStatus: 'APPROVED',
+      knowledgeBaseScore: 10,
+      knowledgeScore: 10,
+      knowledgeHistory: [],
+      knowledgeLastUpdated: new Date().toISOString(),
+      createdAt: '2025-01-01T10:00:00.000Z',
+      updatedAt: '2025-01-01T10:00:00.000Z',
+      injectedIntake: { intake: { age: 30 } },
+      injectedProfile: { score: 50 },
+      memoryBlob: {
+        timeline: [
+          {
+            id: 'old-turn',
+            chat_id: 'chat-1',
+            timestamp: '2025-01-05T10:00:00.000Z',
+            user_message: 'Hola',
+            agent_message: 'Hola',
+            summary: 'Old',
+          },
+        ],
+      },
+    } as any);
+
+    const report = await listResearchAnalytics();
+    expect(report.users[0]?.stage).toBe('stale');
+    expect(report.summary.stageCounts.stale).toBe(1);
+  });
 });

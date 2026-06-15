@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { requireAuth, requirePermission } from '../middleware/auth';
+import { requireAuth, requirePermission, requireAdminRole } from '../middleware/auth';
 import { PERMISSIONS, USER_ROLES } from '../auth/rbac';
 import { parseParams, parseQuery } from '../http/parse';
 import { sendSuccess } from '../http/api.responses';
@@ -148,7 +148,7 @@ router.get(
 router.get(
   '/research',
   requireAuth,
-  requirePermission(PERMISSIONS.OBSERVABILITY_READ),
+  requireAdminRole,
   asyncHandler(async (req, res) => {
     const query = parseQuery(ResearchQuerySchema, req.query);
     const payload = await listResearchAnalytics({

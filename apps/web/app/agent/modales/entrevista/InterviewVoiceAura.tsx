@@ -21,8 +21,8 @@ type Props = {
   className?: string;
 };
 
-const PRESENCE_ACTIVE_ON = 0.14;
-const PRESENCE_ACTIVE_OFF = 0.05;
+const PRESENCE_ACTIVE_ON = 0.05;
+const PRESENCE_ACTIVE_OFF = 0.02;
 
 function applyAuraMotion(
   root: HTMLDivElement,
@@ -33,19 +33,18 @@ function applyAuraMotion(
   auraActive: boolean,
 ) {
   const motion = sampleInterviewVoiceAuraMotion(phase, elapsedSec, audioLevel, presence);
+  const voiceDrive = Math.max(presence, audioLevel * 0.92);
 
   root.dataset.phase = phase;
   root.dataset.auraActive = auraActive ? 'true' : 'false';
 
   root.style.setProperty('--iv-aura-presence', presence.toFixed(4));
+  root.style.setProperty('--iv-aura-voice', voiceDrive.toFixed(4));
   root.style.setProperty('--iv-aura-scale', motion.scale.toFixed(4));
   root.style.setProperty('--iv-aura-bloom', motion.bloom.toFixed(4));
-  root.style.setProperty('--iv-aura-rotate', `${motion.rotate.toFixed(2)}deg`);
-  root.style.setProperty('--iv-aura-skew', `${motion.skewX.toFixed(2)}deg`);
-  root.style.setProperty('--iv-aura-orb-a-x', `${motion.orbAX.toFixed(1)}px`);
-  root.style.setProperty('--iv-aura-orb-a-y', `${motion.orbAY.toFixed(1)}px`);
-  root.style.setProperty('--iv-aura-orb-b-x', `${motion.orbBX.toFixed(1)}px`);
-  root.style.setProperty('--iv-aura-orb-b-y', `${motion.orbBY.toFixed(1)}px`);
+  root.style.setProperty('--iv-aura-core-scale', motion.coreScale.toFixed(4));
+  root.style.setProperty('--iv-aura-shift-x', `${motion.shiftX.toFixed(1)}px`);
+  root.style.setProperty('--iv-aura-shift-y', `${motion.shiftY.toFixed(1)}px`);
   root.style.setProperty('--iv-aura-core-glow', motion.coreGlow.toFixed(4));
 }
 
@@ -136,29 +135,9 @@ export function InterviewVoiceAura({ phase, remoteAudioRef, className }: Props) 
       data-aura-active="false"
       aria-hidden="true"
     >
-      <svg className="interview-voice-aura__defs" aria-hidden="true" focusable="false">
-        <defs>
-          <filter id="interview-voice-aura-goo" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur in="SourceGraphic" stdDeviation="18" result="blur" />
-            <feColorMatrix
-              in="blur"
-              mode="matrix"
-              values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 20 -10"
-              result="goo"
-            />
-            <feBlend in="SourceGraphic" in2="goo" />
-          </filter>
-        </defs>
-      </svg>
-
-      <div className="interview-voice-aura__vignette" />
-      <div className="interview-voice-aura__field">
-        <div className="interview-voice-aura__orb interview-voice-aura__orb--satellite-a" />
-        <div className="interview-voice-aura__orb interview-voice-aura__orb--satellite-b" />
-        <div className="interview-voice-aura__orb interview-voice-aura__orb--halo" />
-        <div className="interview-voice-aura__orb interview-voice-aura__orb--core" />
-        <div className="interview-voice-aura__ring" />
-      </div>
+      <div className="interview-voice-aura__sphere interview-voice-aura__sphere--ambient" />
+      <div className="interview-voice-aura__sphere interview-voice-aura__sphere--body" />
+      <div className="interview-voice-aura__sphere interview-voice-aura__sphere--core" />
     </div>
   );
 }

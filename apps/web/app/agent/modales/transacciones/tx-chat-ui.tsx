@@ -153,6 +153,7 @@ export function TxChatMessageBubble(props: {
   onFollowupSelect?: (question: string) => void;
   followupsDisabled?: boolean;
   showFollowups?: boolean;
+  showAttachments?: boolean;
 }) {
   const highlighted =
     props.message.role === 'assistant' &&
@@ -172,7 +173,9 @@ export function TxChatMessageBubble(props: {
           <TxChatSourceBadge message={props.message} />
         </div>
         <div className="tx-chat-bubble-text">{props.message.text}</div>
-        {props.message.attachments && props.message.attachments.length > 0 ? (
+        {props.showAttachments !== false &&
+        props.message.attachments &&
+        props.message.attachments.length > 0 ? (
           <div className="tx-chat-bubble-attachments">
             {props.message.attachments.map((attachment) => (
               <span key={attachment} className="upload-file-pill" title={attachment}>

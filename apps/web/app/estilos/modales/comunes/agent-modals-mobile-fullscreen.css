@@ -153,6 +153,17 @@
     overflow: hidden !important;
   }
 
+  .interview-modal.is-mobile-shell.interview-modal--diagnosis.interview-modal--minimal .interview-diagnosis-panel__body {
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior: contain !important;
+    scroll-padding-bottom: calc(58px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
   .questionnaire-modal .agent-modal-intro,
   .questionnaire-modal .questionnaire-dashboard,
   .account-modal .account-modal-dashboard,
@@ -217,5 +228,23 @@
   .transactions-modal .pt-right.tx-panel-surface--workspace .tx-content-card {
     overflow: visible !important;
     max-height: none !important;
+  }
+
+  /*
+   * Keyboard open — shrink overlay to visual viewport (beats 100dvh block above).
+   * Keeps modal inputs above the on-screen keyboard without page scroll jumps.
+   */
+  html:not(.pwa-standalone).mobile-input-engaged .agent-modal-overlay,
+  html:not(.pwa-standalone).mobile-input-engaged .agent-modal-overlay.transactions-modal-overlay,
+  html:not(.pwa-standalone).mobile-input-engaged .agent-modal-overlay.budget-modal-overlay,
+  html:not(.pwa-standalone).mobile-input-engaged .agent-modal-overlay.interview-modal-overlay,
+  html:not(.pwa-standalone).browser-keyboard-open .agent-modal-overlay,
+  html:not(.pwa-standalone).browser-keyboard-open .agent-modal-overlay.transactions-modal-overlay,
+  html:not(.pwa-standalone).browser-keyboard-open .agent-modal-overlay.budget-modal-overlay,
+  html:not(.pwa-standalone).browser-keyboard-open .agent-modal-overlay.interview-modal-overlay {
+    height: var(--visual-vh, var(--screen-h, 100dvh)) !important;
+    min-height: var(--visual-vh, var(--screen-h, 100dvh)) !important;
+    max-height: var(--visual-vh, var(--screen-h, 100dvh)) !important;
+    transition: none !important;
   }
 }

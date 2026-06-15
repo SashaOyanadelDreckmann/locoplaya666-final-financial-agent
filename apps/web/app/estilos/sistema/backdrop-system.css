@@ -460,7 +460,7 @@ body.agent-route-active main.agent-layout.is-mobile-viewport{
     height: var(--fa-app-height) !important;
     max-height: var(--fa-app-height) !important;
     min-height: 0 !important;
-    padding-top: env(safe-area-inset-top, 0px) !important;
+  /* Top safe band owned by agent-compact-deck fixed header — no duplicate padding-top */
     padding-bottom: 0 !important;
     margin-bottom: 0 !important;
     box-sizing: border-box !important;

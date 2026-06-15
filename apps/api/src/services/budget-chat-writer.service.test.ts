@@ -12,8 +12,15 @@ describe('budget-chat-writer.service', () => {
   it('accepts polished copy when amounts stay within the brief', () => {
     const context = buildBudgetAssistantContext({
       rows,
-      intakeData: { exactMonthlyIncome: 950000 },
-      products: [],
+      products: [
+        {
+          productId: 'acct-1',
+          label: 'Cuenta sueldo',
+          bank: 'Banco Test',
+          productType: 'checking_account',
+          movements: [{ description: 'Abono sueldo', amount: 950_000, direction: 'income', category: 'Sueldo' }],
+        },
+      ],
       chatAnswers: [],
     });
     const validated = validateWriterOutput(
@@ -37,8 +44,15 @@ describe('budget-chat-writer.service', () => {
   it('rejects polished copy that introduces unknown amounts', () => {
     const context = buildBudgetAssistantContext({
       rows,
-      intakeData: { exactMonthlyIncome: 950000 },
-      products: [],
+      products: [
+        {
+          productId: 'acct-1',
+          label: 'Cuenta sueldo',
+          bank: 'Banco Test',
+          productType: 'checking_account',
+          movements: [{ description: 'Abono sueldo', amount: 950_000, direction: 'income', category: 'Sueldo' }],
+        },
+      ],
       chatAnswers: [],
     });
     const validated = validateWriterOutput(
@@ -61,7 +75,6 @@ describe('budget-chat-writer.service', () => {
   it('rejects polished copy that opens with generic affirmations', () => {
     const context = buildBudgetAssistantContext({
       rows,
-      intakeData: {},
       products: [],
       chatAnswers: [{ q: '¿Cuánto es tu ingreso?', a: '850 mil líquidos' }],
     });

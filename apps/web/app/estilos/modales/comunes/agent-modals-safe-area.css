@@ -24,22 +24,10 @@
     --agent-shell-safe-top: calc(env(safe-area-inset-top, 0px) + var(--agent-shell-safe-top-gap));
   }
 
-  body.agent-route-active main.agent-layout.is-mobile-viewport{
-    padding-top: var(--agent-shell-safe-top) !important;
-    box-sizing: border-box !important;
-  }
-
   /*
-   * Safe band is on the layout — header must not duplicate inset (avoids double gap
-   * or, worse, zero inset when diagnostics zeroes header padding).
+   * Agent shell top band + fixed chat header: agent-compact-deck.css (EOF in layout.tsx).
+   * Keep --agent-shell-safe-top tokens here for modals / legacy references only.
    */
-  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile{
-    margin-top: 0 !important;
-    padding-top: 2px !important;
-    padding-bottom: 2px !important;
-    padding-left: var(--mobile-shell-pad-x, 10px) !important;
-    padding-right: var(--mobile-shell-pad-x, 10px) !important;
-  }
 
   /* Mobile brand h1 must stay visible (transactions.css hides all header h1 on mobile) */
   body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-brand-heading,
@@ -59,9 +47,8 @@ body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.
 .agent-modal-overlay.interview-modal-overlay,
 .agent-modal-overlay:has(> .agent-modal.questionnaire-modal),
 .agent-modal-overlay:has(> .agent-modal.account-modal),
-.agent-modal-overlay.account-modal-overlay,
-.social-modal-overlay,
-.fincoin-usage-overlay{
+  .agent-modal-overlay.account-modal-overlay,
+  .social-modal-overlay{
     position: fixed !important;
     inset: 0 !important;
     width: 100% !important;

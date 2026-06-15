@@ -138,6 +138,39 @@ describe('conversation voice routes', () => {
     expect(res.body.data.interview_voice.remainingTotalSec).toBe(INTERVIEW_TOTAL_LIMIT_SEC - 37);
   }, 15000);
 
+  it('never decreases quota or callsStarted when client sync sends stale zeros', async () => {
+    const { agent, csrfToken } = await createAuthedAgent();
+
+    const seed = await agent
+      .post('/conversation/voice/state')
+      .set('x-csrf-token', csrfToken)
+      .send({
+        callId: 'call-voice-monotonic',
+        activeCallId: 'call-voice-monotonic',
+        status: 'paused',
+        callsStarted: 1,
+        callSeconds: 88,
+        totalUsedSec: 88,
+        remainingTotalSec: INTERVIEW_TOTAL_LIMIT_SEC - 88,
+      });
+    expect(seed.status).toBe(200);
+
+    const stale = await agent
+      .post('/conversation/voice/state')
+      .set('x-csrf-token', csrfToken)
+      .send({
+        callId: 'call-voice-monotonic',
+        status: 'paused',
+        callsStarted: 0,
+        callSeconds: 12,
+        totalUsedSec: 0,
+      });
+    expect(stale.status).toBe(200);
+    expect(stale.body.data.interview_voice.totalUsedSec).toBe(88);
+    expect(stale.body.data.interview_voice.callsStarted).toBe(1);
+    expect(stale.body.data.interview_voice.remainingTotalSec).toBe(INTERVIEW_TOTAL_LIMIT_SEC - 88);
+  }, 15000);
+
   it('accepts durationSec=0 when finalizing voice call', async () => {
     const { agent, csrfToken } = await createAuthedAgent();
 

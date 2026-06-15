@@ -1,3 +1,5 @@
+import { setCsrfToken } from '@/lib/sesion/csrf';
+
 export type ApiErrorPayload = {
   ok?: false;
   error?: {
@@ -65,7 +67,15 @@ export async function parseApiResponse<T>(res: Response): Promise<T> {
 
   if (isApiEnvelope<T>(raw)) {
     if ((raw as ApiSuccessPayload<T>).ok === true) {
-      return (raw as ApiSuccessPayload<T>).data;
+      const data = (raw as ApiSuccessPayload<T>).data;
+      if (data === null || data === undefined) {
+        throw new ApiHttpError({
+          status: res.status,
+          message: 'Respuesta vacía del servidor',
+          code: 'EMPTY_RESPONSE',
+        });
+      }
+      return data;
     }
     const err = raw as ApiErrorPayload;
     throw new ApiHttpError({
@@ -80,6 +90,13 @@ export async function parseApiResponse<T>(res: Response): Promise<T> {
     });
   }
 
+  if (raw === null || raw === undefined) {
+    throw new ApiHttpError({
+      status: res.status,
+      message: 'Respuesta inválida del servidor',
+      code: 'INVALID_RESPONSE',
+    });
+  }
+
   return raw as T;
 }
-import { setCsrfToken } from '@/lib/sesion/csrf';

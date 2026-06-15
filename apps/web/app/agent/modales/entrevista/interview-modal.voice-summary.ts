@@ -27,6 +27,8 @@ export function buildSummaryInstructions(
     '- summary: 2 a 4 frases cortas, chileno profesional, foco ejecutivo.',
     '- keyFindings: 2 a 5 bullets en formato string.',
     '- nextFocus: la mejor próxima línea de profundización.',
+    '- PROHIBIDO modismos en ESTE JSON únicamente (wea, weón, bacán, la raja, la zorra, po, cachai, etc.): texto formal y sobrio.',
+    '- Tras entregar el JSON, la conversación por voz sigue con modismos chilenos naturales.',
     kind === 'minute'
       ? `Objeto para síntesis intermedia del minuto ${targetMinute}.`
       : 'Objeto para síntesis final de la llamada completa.',

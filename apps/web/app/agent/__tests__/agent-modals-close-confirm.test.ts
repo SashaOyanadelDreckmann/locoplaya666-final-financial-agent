@@ -27,14 +27,17 @@ describe('modal close confirm css', () => {
   it('defines universal modal-close-confirm classes (budget canonical)', () => {
     expect(confirmCss).toContain('.modal-close-confirm-layer');
     expect(confirmCss).toContain('.modal-close-confirm-dialog');
-    expect(confirmCss).toContain('rgba(28, 28, 30, 0.78)');
+    expect(confirmCss).toContain('agent-confirm-surface');
+    expect(confirmCss).toContain('#0f0f0f');
+    expect(confirmCss).toContain('background: transparent !important');
     expect(confirmCss).toContain('justify-content: center');
     expect(confirmCss).toContain('text-align: center');
   });
 
   it('wires budget and transactions dialogs through the shared component', () => {
     expect(modalSource).toContain('modal-close-confirm-layer');
-    expect(modalSource).toContain('modal-close-confirm-actions');
+    expect(modalSource).toContain('agent-confirm-surface');
+    expect(modalSource).toContain('agent-confirm-action');
 
     const budgetSource = fs.readFileSync(
       path.join(process.cwd(), 'app', 'agent', 'modales', 'comunes', 'BudgetCloseConfirmDialog.tsx'),

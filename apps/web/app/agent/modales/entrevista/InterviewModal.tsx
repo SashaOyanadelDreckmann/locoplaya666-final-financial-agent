@@ -42,9 +42,18 @@ type Props = {
   fincoinSpendBlocked?: boolean;
   onClose: () => void;
   onDiagnosisComplete?: () => void;
+  onDeepenInChat?: (context?: { voiceFindings?: string[] }) => void;
+  deepenInChatDisabled?: boolean;
 };
 
-export function InterviewModal({ isOpen, fincoinSpendBlocked, onClose, onDiagnosisComplete }: Props) {
+export function InterviewModal({
+  isOpen,
+  fincoinSpendBlocked,
+  onClose,
+  onDiagnosisComplete,
+  onDeepenInChat,
+  deepenInChatDisabled = false,
+}: Props) {
   const router = useRouter();
   const { isMobileShell } = useInterviewModalLayout();
   const mobileShellClass = isMobileShell ? ' is-mobile-shell' : '';
@@ -446,6 +455,8 @@ export function InterviewModal({ isOpen, fincoinSpendBlocked, onClose, onDiagnos
                 profile={profile}
                 voiceReport={voiceReport}
                 onClose={handleOverlayDismiss}
+                onDeepenInChat={onDeepenInChat}
+                deepenDisabled={deepenInChatDisabled}
               />
             ) : profileError ? (
               <div className="interview-modal-completed">
@@ -464,16 +475,6 @@ export function InterviewModal({ isOpen, fincoinSpendBlocked, onClose, onDiagnos
                     disabled={profileLoading}
                   >
                     {profileLoading ? 'Reintentando…' : 'Reintentar carga'}
-                  </button>
-                  <button
-                    type="button"
-                    className="summary-action-btn"
-                    onClick={() => {
-                      handleOverlayDismiss();
-                      router.push('/diagnosis');
-                    }}
-                  >
-                    Abrir informe completo
                   </button>
                   <button type="button" className="summary-action-btn" onClick={handleOverlayDismiss}>
                     Cerrar

@@ -382,7 +382,7 @@
     margin: 0 !important;
   }
 
-  .budget-modal.is-mobile-shell .budget-chat-sync-button.is-assistant-action {
+  .budget-modal.is-mobile-shell .budget-chat-sync-button.is-assistant-action:not(.is-pending-confirm-action) {
     width: 100% !important;
     min-height: 0 !important;
     height: auto !important;
@@ -783,5 +783,47 @@
   .budget-modal.is-mobile-shell .budget-mobile-stage[data-budget-slide] > *{
     animation: none !important;
     transition: none !important;
+  }
+
+  /* Keyboard: keep assistant composer pinned above the keyboard band */
+  html.mobile-input-engaged .budget-modal.is-mobile-shell .budget-assistant-panel .bcc-hero,
+  html.browser-keyboard-open .budget-modal.is-mobile-shell .budget-assistant-panel .bcc-hero {
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: 0 !important;
+    flex: 1 1 auto !important;
+    overflow: hidden !important;
+  }
+
+  html.mobile-input-engaged .budget-modal.is-mobile-shell .budget-assistant-panel .bcc-hero-top,
+  html.browser-keyboard-open .budget-modal.is-mobile-shell .budget-assistant-panel .bcc-hero-top {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior: contain !important;
+  }
+
+  html.mobile-input-engaged .budget-modal.is-mobile-shell .budget-assistant-panel .bcc-hero-compose,
+  html.browser-keyboard-open .budget-modal.is-mobile-shell .budget-assistant-panel .bcc-hero-compose {
+    flex-shrink: 0 !important;
+    margin-top: auto !important;
+  }
+
+  html.mobile-input-engaged .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front .budget-table-scroll-host,
+  html.browser-keyboard-open .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front .budget-table-scroll-host {
+    min-height: 0 !important;
+    flex: 1 1 auto !important;
+    overflow: hidden !important;
+  }
+
+  html.mobile-input-engaged .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front .budget-table-wrap,
+  html.browser-keyboard-open .budget-modal.is-mobile-shell .budget-main-carousel.mode-table-front .budget-table-wrap {
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior: contain !important;
+    scroll-padding-bottom: max(20px, env(safe-area-inset-bottom, 0px)) !important;
   }
 }

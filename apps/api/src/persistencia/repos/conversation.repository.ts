@@ -137,3 +137,99 @@ export async function listConversationTurns(params: {
   });
   return rows.map((row: unknown) => toRecord(row as Record<string, unknown>));
 }
+
+const MAX_TURNS_PER_USER_ANALYTICS = 200;
+const MAX_TURNS_GLOBAL_ANALYTICS = 8000;
+
+function turnToTimelineEntry(turn: ConversationTurnRecord): {
+  id: string;
+  chatId: string;
+  sessionId: string | null;
+  turnId: string | null;
+  timestamp: string;
+  mode: string | null;
+  toolNames: string[];
+  artifactTitles: string[];
+  userMessage: string;
+  agentMessage: string;
+  summary: string;
+} {
+  const response =
+    turn.responsePayload && typeof turn.responsePayload === 'object'
+      ? (turn.responsePayload as Record<string, unknown>)
+      : null;
+  const toolNames = Array.isArray(response?.tool_calls)
+    ? response.tool_calls
+        .map((item) => {
+          if (!item || typeof item !== 'object') return '';
+          return String((item as Record<string, unknown>).tool ?? '').trim();
+        })
+        .filter((name) => name.length > 0)
+    : [];
+  const artifactTitles = Array.isArray(response?.artifacts)
+    ? response.artifacts
+        .map((item) => {
+          if (!item || typeof item !== 'object') return '';
+          return String((item as Record<string, unknown>).title ?? '').trim();
+        })
+        .filter((title) => title.length > 0)
+    : [];
+
+  return {
+    id: turn.id,
+    chatId: turn.chatId,
+    sessionId: turn.sessionId ?? null,
+    turnId: turn.clientMessageId,
+    timestamp: turn.createdAt,
+    mode: typeof response?.mode === 'string' ? response.mode : null,
+    toolNames,
+    artifactTitles,
+    userMessage: turn.userMessage,
+    agentMessage: turn.assistantMessage,
+    summary: '',
+  };
+}
+
+export async function countConversationTurnsForUser(userId: string): Promise<number> {
+  if (getPersistenceMode() === 'memory') {
+    return Array.from(memoryStore.conversationTurns.values()).filter((turn) => turn.userId === userId).length;
+  }
+
+  const prisma = await getPrismaClient();
+  return prisma.conversationTurn.count({ where: { userId } });
+}
+
+export async function listConversationTurnTimelinesByUser(): Promise<
+  Map<string, ReturnType<typeof turnToTimelineEntry>[]>
+> {
+  const grouped = new Map<string, ReturnType<typeof turnToTimelineEntry>[]>();
+
+  const pushTurn = (userId: string, turn: ConversationTurnRecord) => {
+    const list = grouped.get(userId) ?? [];
+    if (list.length >= MAX_TURNS_PER_USER_ANALYTICS) return;
+    list.push(turnToTimelineEntry(turn));
+    grouped.set(userId, list);
+  };
+
+  if (getPersistenceMode() === 'memory') {
+    const turns = Array.from(memoryStore.conversationTurns.values()).sort((a, b) =>
+      b.createdAt.localeCompare(a.createdAt),
+    );
+    for (const turn of turns) {
+      pushTurn(turn.userId, turn);
+    }
+    return grouped;
+  }
+
+  const prisma = await getPrismaClient();
+  const rows = await prisma.conversationTurn.findMany({
+    orderBy: { createdAt: 'desc' },
+    take: MAX_TURNS_GLOBAL_ANALYTICS,
+  });
+
+  for (const row of rows) {
+    pushTurn(row.userId, toRecord(row as Record<string, unknown>));
+  }
+
+  return grouped;
+}

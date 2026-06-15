@@ -2,6 +2,8 @@ import crypto from 'crypto';
 import type { UserRole } from '../auth/rbac';
 import { getConfig } from '../config';
 import { getPersistenceMode, getPrismaClient, memoryStore } from '../persistencia/provider';
+import { listConversationTurnTimelinesByUser } from '../persistencia/repos/conversation.repository';
+import { getFincoinUsageForUser } from './fincoin.service';
 
 type SortOrder = 'asc' | 'desc';
 type UserSortBy = 'createdAt' | 'interactions' | 'lastInteractionAt' | 'knowledgeScore' | 'documents';
@@ -61,11 +63,14 @@ export type AnalyticsInteraction = {
   summary: string;
 };
 
+type ResearchStage = 'new' | 'onboarding' | 'diagnosis' | 'building' | 'active' | 'advanced' | 'stale';
+
 export type AnalyticsUser = {
   id: string;
   name: string;
   email: string;
   role: UserRole;
+  approvalStatus: 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED';
   createdAt: string;
   updatedAt: string;
   lastSessionSeenAt: string | null;
@@ -85,6 +90,12 @@ export type AnalyticsUser = {
   artifactsGeneratedCount: number;
   hasIntake: boolean;
   hasProfile: boolean;
+  hasDocuments: boolean;
+  stage: ResearchStage;
+  usdSpentTotal: number;
+  fincoinDepleted: boolean;
+  fincoinRemainingUsd: number;
+  latestDiagnosticCompletedAt: string | null;
 };
 
 type AnalyticsSummary = {
@@ -115,8 +126,6 @@ type AnalyticsInteractionsResult = {
     total: number;
   };
 };
-
-type ResearchStage = 'new' | 'onboarding' | 'diagnosis' | 'building' | 'active' | 'advanced' | 'stale';
 
 export type ResearchAnalyticsUser = {
   pseudonymId: string;
@@ -206,6 +215,7 @@ type RawUserAnalytics = {
   name: string;
   email: string;
   role: UserRole;
+  approvalStatus: 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED';
   createdAt: string;
   updatedAt: string;
   knowledgeScore: number;
@@ -219,6 +229,10 @@ type RawUserAnalytics = {
   sheetsCount: number;
   budgetRowsCount: number;
   savedReportsCount: number;
+  usdSpentTotal: number;
+  fincoinDepleted: boolean;
+  fincoinRemainingUsd: number;
+  latestDiagnosticCompletedAt: string | null;
   timeline: RawTimelineEntry[];
 };
 
@@ -271,7 +285,11 @@ function countDaysBetween(now: number, value: string): number | null {
   return Math.max(0, Math.floor((now - ts) / (24 * 60 * 60 * 1000)));
 }
 
-function deriveResearchStage(user: RawUserAnalytics): ResearchStage {
+function deriveResearchStage(user: RawUserAnalytics, now: number): ResearchStage {
+  const daysSinceLastActivity = resolveDaysSinceLastActivity(user, now);
+  if (daysSinceLastActivity !== null && daysSinceLastActivity > 90) {
+    return 'stale';
+  }
   if (!user.hasIntake) return 'new';
   if (!user.hasProfile) return 'onboarding';
   if (user.documentsCount === 0 && user.timeline.length < 3) return 'diagnosis';
@@ -421,6 +439,7 @@ function buildUserAnalytics(user: RawUserAnalytics, from?: string, to?: string):
   const filteredTimeline = applyDateWindow(user.timeline, from, to);
   const lastInteractionAt = filteredTimeline[0]?.timestamp ?? null;
   const lastSessionSeenAt = user.lastSessionSeenAt;
+  const now = Date.now();
 
   const toolSet = new Set<string>();
   let artifactsGeneratedCount = 0;
@@ -441,6 +460,7 @@ function buildUserAnalytics(user: RawUserAnalytics, from?: string, to?: string):
     name: user.name,
     email: user.email,
     role: user.role,
+    approvalStatus: user.approvalStatus,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
     lastSessionSeenAt,
@@ -460,16 +480,48 @@ function buildUserAnalytics(user: RawUserAnalytics, from?: string, to?: string):
     artifactsGeneratedCount,
     hasIntake: user.hasIntake,
     hasProfile: user.hasProfile,
+    hasDocuments: user.documentsCount > 0,
+    stage: deriveResearchStage(user, now),
+    usdSpentTotal: user.usdSpentTotal,
+    fincoinDepleted: user.fincoinDepleted,
+    fincoinRemainingUsd: user.fincoinRemainingUsd,
+    latestDiagnosticCompletedAt: user.latestDiagnosticCompletedAt,
   };
+}
+
+function resolveDaysSinceLastActivity(user: RawUserAnalytics, now: number): number | null {
+  if (user.timeline[0]?.timestamp) {
+    return countDaysBetween(now, user.timeline[0].timestamp);
+  }
+  if (user.lastSessionSeenAt) {
+    return countDaysBetween(now, user.lastSessionSeenAt);
+  }
+  return null;
+}
+
+function mergeTimelines(
+  memoryEntries: RawTimelineEntry[],
+  turnEntries: RawTimelineEntry[],
+): RawTimelineEntry[] {
+  const seen = new Set<string>();
+  const merged: RawTimelineEntry[] = [];
+
+  for (const entry of [...memoryEntries, ...turnEntries]) {
+    const key =
+      entry.turnId ||
+      entry.id ||
+      `${entry.timestamp}|${entry.userMessage.slice(0, 48)}|${entry.agentMessage.slice(0, 48)}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    merged.push(entry);
+  }
+
+  return merged.sort((a, b) => normalizeDate(b.timestamp) - normalizeDate(a.timestamp));
 }
 
 function buildResearchUser(user: RawUserAnalytics, now: number): ResearchAnalyticsUser {
   const daysSinceCreated = countDaysBetween(now, user.createdAt) ?? 0;
-  const daysSinceLastActivity = user.timeline[0]?.timestamp
-    ? countDaysBetween(now, user.timeline[0].timestamp)
-    : user.lastSessionSeenAt
-      ? countDaysBetween(now, user.lastSessionSeenAt)
-      : null;
+  const daysSinceLastActivity = resolveDaysSinceLastActivity(user, now);
 
   return {
     pseudonymId: `P-${hashResearchIdentifier(user.id)}`,
@@ -479,7 +531,7 @@ function buildResearchUser(user: RawUserAnalytics, now: number): ResearchAnalyti
     lastActivityBucket: activityBucket(daysSinceLastActivity),
     daysSinceCreated,
     daysSinceLastActivity,
-    stage: deriveResearchStage(user),
+    stage: deriveResearchStage(user, now),
     progressScore: calculateProgressScore(user),
     interactionsCount: user.timeline.length,
     sessionsCount: user.sessionsCount,
@@ -670,6 +722,7 @@ function buildCsv(columns: string[], rows: Array<Array<unknown>>): string {
 
 async function loadRawUsers(): Promise<RawUserAnalytics[]> {
   const mode = getPersistenceMode();
+  const turnsByUser = await listConversationTurnTimelinesByUser();
 
   if (mode === 'memory') {
     const sessionStats = new Map<string, { count: number; lastSeenAt: string | null }>();
@@ -700,13 +753,18 @@ async function loadRawUsers(): Promise<RawUserAnalytics[]> {
 
     return Array.from(memoryStore.users.values()).map((user) => {
       const panelMetrics = parsePanelMetrics(user.panelState);
-      const timeline = parseTimeline(user.memoryBlob);
+      const timeline = mergeTimelines(
+        parseTimeline(user.memoryBlob),
+        turnsByUser.get(user.id) ?? [],
+      );
+      const fincoin = getFincoinUsageForUser(user);
 
       return {
         id: user.id,
         name: user.name,
         email: user.email,
         role: user.role,
+        approvalStatus: user.approvalStatus,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
         knowledgeScore: user.knowledgeScore,
@@ -720,6 +778,10 @@ async function loadRawUsers(): Promise<RawUserAnalytics[]> {
         sheetsCount: parseSheetsCount(user.sheets),
         budgetRowsCount: panelMetrics.budgetRowsCount,
         savedReportsCount: panelMetrics.savedReportsCount,
+        usdSpentTotal: Number(user.usdSpentTotal ?? 0),
+        fincoinDepleted: fincoin.depleted,
+        fincoinRemainingUsd: fincoin.usdRemaining,
+        latestDiagnosticCompletedAt: user.latestDiagnosticCompletedAt ?? null,
         timeline,
       } satisfies RawUserAnalytics;
     });
@@ -732,6 +794,7 @@ async function loadRawUsers(): Promise<RawUserAnalytics[]> {
       name: true,
       email: true,
       role: true,
+      approvalStatus: true,
       createdAt: true,
       updatedAt: true,
       knowledgeScore: true,
@@ -741,6 +804,9 @@ async function loadRawUsers(): Promise<RawUserAnalytics[]> {
       injectedProfile: true,
       panelState: true,
       sheets: true,
+      usdSpentTotal: true,
+      fincoinDepletedAt: true,
+      latestDiagnosticCompletedAt: true,
       _count: {
         select: {
           sessions: true,
@@ -762,13 +828,18 @@ async function loadRawUsers(): Promise<RawUserAnalytics[]> {
 
   return rows.map((row) => {
     const panelMetrics = parsePanelMetrics(row.panelState);
-    const timeline = parseTimeline(row.memoryBlob);
+    const timeline = mergeTimelines(
+      parseTimeline(row.memoryBlob),
+      turnsByUser.get(row.id) ?? [],
+    );
+    const fincoin = getFincoinUsageForUser({ usdSpentTotal: Number(row.usdSpentTotal ?? 0) });
 
     return {
       id: row.id,
       name: row.name,
       email: row.email,
       role: row.role as UserRole,
+      approvalStatus: row.approvalStatus,
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),
       knowledgeScore: Number(row.knowledgeScore ?? 0),
@@ -782,6 +853,10 @@ async function loadRawUsers(): Promise<RawUserAnalytics[]> {
       sheetsCount: parseSheetsCount(row.sheets),
       budgetRowsCount: panelMetrics.budgetRowsCount,
       savedReportsCount: panelMetrics.savedReportsCount,
+      usdSpentTotal: Number(row.usdSpentTotal ?? 0),
+      fincoinDepleted: Boolean(row.fincoinDepletedAt) || fincoin.depleted,
+      fincoinRemainingUsd: fincoin.usdRemaining,
+      latestDiagnosticCompletedAt: row.latestDiagnosticCompletedAt?.toISOString() ?? null,
       timeline,
     } satisfies RawUserAnalytics;
   });

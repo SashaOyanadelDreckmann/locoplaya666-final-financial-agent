@@ -1,4 +1,4 @@
-import { useEffect, type RefObject } from 'react';
+import { useEffect, type MutableRefObject, type RefObject } from 'react';
 
 import {
   computeBudgetMobileRowDeckTransforms,
@@ -25,7 +25,7 @@ import {
 type UseBudgetMobileRowGesturesOptions = {
   enabled: boolean;
   scrollHostRef: RefObject<HTMLElement | null>;
-  suppressRef: RefObject<boolean>;
+  suppressRef: MutableRefObject<boolean>;
   onActiveRowChange: (rowId: string | null) => void;
 };
 
@@ -193,6 +193,11 @@ export function useBudgetMobileRowGestures({
       }
       if (!deckSession) return;
 
+      const transforms = computeBudgetMobileRowDeckTransforms({
+        deltaX: value,
+        hostWidth: scrollHost.clientWidth,
+        peekDirection: deckSession.peekDirection ?? null,
+      });
       applyDeckTransforms(deckSession.activeRow, deckSession.peekRow, transforms);
     };
 

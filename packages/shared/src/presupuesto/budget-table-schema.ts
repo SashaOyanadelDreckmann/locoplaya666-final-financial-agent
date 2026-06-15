@@ -165,6 +165,38 @@ export function mergeBudgetActionIntoRow(existing: BudgetRow | null, action: Bud
   };
 }
 
+export function applyValidatedBudgetTableAction(rows: BudgetRow[], action: BudgetTableAction): BudgetRow[] {
+  const rowId = canonicalBudgetRowId(action.id);
+  if (!rowId) return rows;
+
+  if (action.kind === 'delete') {
+    const deleteSet = new Set([rowId]);
+    let changed = true;
+    while (changed) {
+      changed = false;
+      rows.forEach((row) => {
+        const id = canonicalBudgetRowId(row.id);
+        const parentId = row.parentId ? canonicalBudgetRowId(row.parentId) : null;
+        if (parentId && deleteSet.has(parentId) && !deleteSet.has(id)) {
+          deleteSet.add(id);
+          changed = true;
+        }
+      });
+    }
+    return rows.filter((row) => !deleteSet.has(canonicalBudgetRowId(row.id)));
+  }
+
+  const existing = rows.find((row) => canonicalBudgetRowId(row.id) === rowId) ?? null;
+  const merged = mergeBudgetActionIntoRow(existing, action);
+  if (!merged) return rows;
+
+  const idx = rows.findIndex((row) => canonicalBudgetRowId(row.id) === rowId);
+  if (idx >= 0) {
+    return rows.map((row, index) => (index === idx ? { ...row, ...merged } : row));
+  }
+  return [...rows, merged];
+}
+
 export function validateBudgetTableAction(
   action: BudgetTableAction,
   rows: BudgetRow[],
@@ -204,9 +236,12 @@ export const MAX_BUDGET_TABLE_ACTIONS = 30;
 
 export function validateBudgetTableActions(actions: BudgetTableAction[], rows: BudgetRow[]): BudgetTableAction[] {
   const validated: BudgetTableAction[] = [];
+  let simulated = [...rows];
   for (const action of actions.slice(0, MAX_BUDGET_TABLE_ACTIONS)) {
-    const result = validateBudgetTableAction(action, rows);
-    if (result.ok) validated.push(result.action);
+    const result = validateBudgetTableAction(action, simulated);
+    if (!result.ok) continue;
+    validated.push(result.action);
+    simulated = applyValidatedBudgetTableAction(simulated, result.action);
   }
   return validated;
 }

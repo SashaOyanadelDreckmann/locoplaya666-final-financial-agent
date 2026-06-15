@@ -29,21 +29,18 @@ export function resolveInterviewVoiceAuraPhase(
 export type InterviewVoiceAuraMotion = {
   scale: number;
   bloom: number;
-  rotate: number;
-  skewX: number;
-  orbAX: number;
-  orbAY: number;
-  orbBX: number;
-  orbBY: number;
+  coreScale: number;
+  shiftX: number;
+  shiftY: number;
   coreGlow: number;
 };
 
 const PHASE_BASE: Record<InterviewVoiceAuraPhase, { scale: number; bloom: number }> = {
-  idle: { scale: 0.72, bloom: 0.14 },
-  connecting: { scale: 0.78, bloom: 0.2 },
-  'awaiting-mic': { scale: 0.76, bloom: 0.18 },
-  speaking: { scale: 1.22, bloom: 0.92 },
-  paused: { scale: 0.68, bloom: 0.1 },
+  idle: { scale: 0.78, bloom: 0.16 },
+  connecting: { scale: 0.84, bloom: 0.22 },
+  'awaiting-mic': { scale: 0.82, bloom: 0.2 },
+  speaking: { scale: 1.28, bloom: 1 },
+  paused: { scale: 0.72, bloom: 0.1 },
 };
 
 export function resolveInterviewVoiceAuraPresenceTarget(
@@ -52,12 +49,12 @@ export function resolveInterviewVoiceAuraPresenceTarget(
 ): number {
   if (phase === 'paused' || phase === 'connecting' || phase === 'awaiting-mic') return 0;
   const clamped = Math.max(0, Math.min(1, audioLevel));
-  return Math.pow(clamped, 0.82);
+  return Math.pow(clamped, 0.58);
 }
 
-/** Slow envelope for entering/exiting the speaking visual state. */
+/** Envelope for entering/exiting the speaking visual state — fast attack, quicker release. */
 export function smoothInterviewVoiceAuraPresence(prev: number, target: number): number {
-  const rate = target > prev ? 0.045 : 0.026;
+  const rate = target > prev ? 0.24 : 0.16;
   return prev + (target - prev) * rate;
 }
 
@@ -75,12 +72,9 @@ function blendInterviewVoiceAuraMotion(
   return {
     scale: idle.scale + (speaking.scale - idle.scale) * t,
     bloom: idle.bloom + (speaking.bloom - idle.bloom) * t,
-    rotate: idle.rotate + (speaking.rotate - idle.rotate) * t,
-    skewX: idle.skewX + (speaking.skewX - idle.skewX) * t,
-    orbAX: idle.orbAX + (speaking.orbAX - idle.orbAX) * t,
-    orbAY: idle.orbAY + (speaking.orbAY - idle.orbAY) * t,
-    orbBX: idle.orbBX + (speaking.orbBX - idle.orbBX) * t,
-    orbBY: idle.orbBY + (speaking.orbBY - idle.orbBY) * t,
+    coreScale: idle.coreScale + (speaking.coreScale - idle.coreScale) * t,
+    shiftX: idle.shiftX + (speaking.shiftX - idle.shiftX) * t,
+    shiftY: idle.shiftY + (speaking.shiftY - idle.shiftY) * t,
     coreGlow: idle.coreGlow + (speaking.coreGlow - idle.coreGlow) * t,
   };
 }
@@ -93,15 +87,12 @@ function sampleIdleMotion(elapsedSec: number): InterviewVoiceAuraMotion {
   const driftB = Math.cos(t * 0.42);
 
   return {
-    scale: base.scale + breath * 0.03,
+    scale: base.scale + breath * 0.04,
     bloom: base.bloom + breath * 0.05,
-    rotate: driftA * 2,
-    skewX: driftB * 1.5,
-    orbAX: driftA * 8,
-    orbAY: driftB * 6,
-    orbBX: driftB * 7,
-    orbBY: driftA * 5,
-    coreGlow: 0.2 + breath * 0.06,
+    coreScale: 0.92 + breath * 0.04,
+    shiftX: driftA * 6,
+    shiftY: driftB * 5,
+    coreGlow: 0.18 + breath * 0.05,
   };
 }
 
@@ -110,19 +101,16 @@ function sampleSpeakingMotion(elapsedSec: number, audioLevel: number): Interview
   const driftA = Math.sin(t * 0.55);
   const driftB = Math.cos(t * 0.42);
   const level = Math.max(0, Math.min(1, audioLevel));
-  const syllable = level;
-  const deform = (level - 0.38) * 0.52 + driftA * 0.08;
+  const syllable = 0.5 + 0.5 * Math.sin(t * 15.5 + level * 6.2);
+  const voice = level * (0.72 + syllable * 0.28);
 
   return {
-    scale: 0.86 + syllable * 0.58,
-    bloom: Math.min(1.18, 0.22 + syllable * 0.92),
-    rotate: deform * 22,
-    skewX: deform * 14,
-    orbAX: driftA * (10 + syllable * 48) + syllable * 18,
-    orbAY: driftB * (8 + syllable * 40) - syllable * 32,
-    orbBX: driftB * (8 + syllable * 44) - syllable * 28,
-    orbBY: driftA * (8 + syllable * 36) + syllable * 24,
-    coreGlow: 0.34 + syllable * 0.66,
+    scale: 0.84 + voice * 0.62 + syllable * level * 0.14,
+    bloom: Math.min(1.22, 0.22 + voice * 0.96),
+    coreScale: 0.86 + voice * 0.52 + syllable * level * 0.2,
+    shiftX: driftA * (8 + voice * 42) + syllable * level * 22,
+    shiftY: driftB * (8 + voice * 36) - syllable * level * 20,
+    coreGlow: 0.32 + voice * 0.68,
   };
 }
 
@@ -137,13 +125,10 @@ function sampleUtilityPhaseMotion(phase: InterviewVoiceAuraPhase, elapsedSec: nu
     return {
       scale: base.scale + pulse * 0.04,
       bloom: base.bloom + pulse * 0.06,
-      rotate: driftA * 3,
-      skewX: 0,
-      orbAX: driftA * 6,
-      orbAY: driftB * 5,
-      orbBX: driftB * 5,
-      orbBY: driftA * 4,
-      coreGlow: 0.22 + pulse * 0.08,
+      coreScale: 0.9 + pulse * 0.05,
+      shiftX: driftA * 5,
+      shiftY: driftB * 4,
+      coreGlow: 0.2 + pulse * 0.08,
     };
   }
 
@@ -151,13 +136,10 @@ function sampleUtilityPhaseMotion(phase: InterviewVoiceAuraPhase, elapsedSec: nu
   return {
     scale: base.scale + breath * 0.02,
     bloom: base.bloom + breath * 0.03,
-    rotate: 0,
-    skewX: 0,
-    orbAX: driftA * 4,
-    orbAY: driftB * 3,
-    orbBX: driftB * 3,
-    orbBY: driftA * 3,
-    coreGlow: 0.16,
+    coreScale: 0.88 + breath * 0.02,
+    shiftX: driftA * 3,
+    shiftY: driftB * 3,
+    coreGlow: 0.14,
   };
 }
 

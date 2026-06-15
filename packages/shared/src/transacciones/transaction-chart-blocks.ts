@@ -372,31 +372,31 @@ export function shouldBuildCumulativeCashflowChart(movements: TransactionMovemen
 export function mapDashboardMovementsToTransactionInputs(
   movements: Array<Record<string, unknown>>,
 ): TransactionMovementInput[] {
-  return movements
-    .map((movement) => {
-      const amount = Math.abs(Number(movement.amount) || 0);
-      const directionRaw = String(movement.direction ?? movement.type ?? '').toLowerCase();
-      const direction: 'income' | 'expense' =
-        directionRaw.includes('income') ||
-        directionRaw.includes('ingreso') ||
-        directionRaw.includes('abono') ||
-        directionRaw.includes('credit')
-          ? 'income'
-          : 'expense';
-      if (!Number.isFinite(amount) || amount <= 0) return null;
-      return {
-        label: typeof movement.description === 'string' ? movement.description : undefined,
-        merchant:
-          typeof movement.merchant === 'string'
-            ? movement.merchant
-            : typeof movement.description === 'string'
-              ? movement.description
-              : undefined,
-        amount,
-        direction,
-        date: typeof movement.date === 'string' ? movement.date : undefined,
-        category: typeof movement.category === 'string' ? movement.category : undefined,
-      } satisfies TransactionMovementInput;
-    })
-    .filter((movement): movement is TransactionMovementInput => movement !== null);
+  const mapped: TransactionMovementInput[] = [];
+
+  for (const movement of movements) {
+    const amount = Math.abs(Number(movement.amount) || 0);
+    const directionRaw = String(movement.direction ?? movement.type ?? '').toLowerCase();
+    const direction: 'income' | 'expense' =
+      directionRaw.includes('income') ||
+      directionRaw.includes('ingreso') ||
+      directionRaw.includes('abono') ||
+      directionRaw.includes('credit')
+        ? 'income'
+        : 'expense';
+    if (!Number.isFinite(amount) || amount <= 0) continue;
+
+    const entry: TransactionMovementInput = { amount, direction };
+    if (typeof movement.description === 'string') entry.label = movement.description;
+    if (typeof movement.merchant === 'string') {
+      entry.merchant = movement.merchant;
+    } else if (typeof movement.description === 'string') {
+      entry.merchant = movement.description;
+    }
+    if (typeof movement.date === 'string') entry.date = movement.date;
+    if (typeof movement.category === 'string') entry.category = movement.category;
+    mapped.push(entry);
+  }
+
+  return mapped;
 }

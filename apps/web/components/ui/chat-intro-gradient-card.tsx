@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 
 import {
   buildChatIntroContent,
+  buildDiagnosisDeepenIntroContent,
   type ChatIntroId,
 } from '@/app/agent/flujo/chat-intro.shared';
 import type { DiagnosisProfile } from '@/state/profile.store';
@@ -16,6 +17,8 @@ type ChatIntroGradientCardProps = {
   sessionInjectedIntake?: unknown;
   diagnosisProfile?: DiagnosisProfile | null;
   diagnosisUnlocked?: boolean;
+  introMode?: 'default' | 'deepen';
+  voiceFindings?: string[];
 };
 
 export function ChatIntroGradientCard({
@@ -25,6 +28,8 @@ export function ChatIntroGradientCard({
   sessionInjectedIntake,
   diagnosisProfile,
   diagnosisUnlocked = false,
+  introMode = 'default',
+  voiceFindings,
 }: ChatIntroGradientCardProps) {
   const session = useMemo(
     () => ({
@@ -36,13 +41,19 @@ export function ChatIntroGradientCard({
 
   const intro = useMemo(
     () =>
-      buildChatIntroContent({
-        chatId,
-        session,
-        diagnosisProfile,
-        diagnosisUnlocked: chatId === 'chat-1' ? diagnosisUnlocked : undefined,
-      }),
-    [chatId, diagnosisProfile, diagnosisUnlocked, session],
+      introMode === 'deepen' && chatId === 'chat-1'
+        ? buildDiagnosisDeepenIntroContent({
+            session,
+            diagnosisProfile,
+            voiceFindings,
+          })
+        : buildChatIntroContent({
+            chatId,
+            session,
+            diagnosisProfile,
+            diagnosisUnlocked: chatId === 'chat-1' ? diagnosisUnlocked : undefined,
+          }),
+    [chatId, diagnosisProfile, diagnosisUnlocked, introMode, session, voiceFindings],
   );
 
   const pages = useMemo(

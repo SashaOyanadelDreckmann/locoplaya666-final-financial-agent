@@ -19,6 +19,7 @@ import './estilos/modales/entrevista/agent-modals-interview-contract.css';
 import './estilos/modales/entrevista/agent-modals-interview-mobile-authoritative.css';
 import './estilos/modales/entrevista/agent-modals-interview-minimal.css';
 import './estilos/modales/entrevista/agent-modals-interview-voice-aura.css';
+import './estilos/modales/entrevista/agent-modals-interview-mobile-styles.css';
 import './estilos/modales/comunes/agent-modals-mobile-fullscreen.css';
 import './estilos/modales/comunes/agent-modals-header-contract.css';
 import './estilos/modales/comunes/agent-modals-close-confirm.css';
@@ -102,6 +103,9 @@ export default async function RootLayout({
         <meta name="apple-mobile-web-app-title" content="FinMente" />
         <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        {routeShellClass === 'home-route-active' ? (
+          <link rel="preload" href="/images/bg-door.jpg" as="image" fetchPriority="high" />
+        ) : null}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital@1&family=Caveat:wght@600&display=swap" rel="stylesheet" />

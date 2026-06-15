@@ -57,6 +57,8 @@ import { debtAnalyzerTool }   from './tools/finance/debtAnalyzer.tool';
 import { apvOptimizerTool }   from './tools/finance/apvOptimizer.tool';
 import { budgetAnalyzerTool } from './tools/finance/budgetAnalyzer.tool';
 import { goalPlannerTool }    from './tools/finance/goalPlanner.tool';
+import { transactionsChartsTool } from './tools/finance/transactionsCharts.tool';
+import { composePipelineTool } from './tools/agent/composePipeline.tool';
 
 /* ────────────────────────────── */
 /* RAG                            */
@@ -87,6 +89,7 @@ export function bootstrapMCP() {
   /* CORE */
   registerTool(calculatorTool);
   registerTool(formatLatexTool);
+  registerTool(composePipelineTool);
 
   /* SIMULATIONS */
   registerTool(simulatorTool);
@@ -103,6 +106,7 @@ export function bootstrapMCP() {
   registerTool(apvOptimizerTool);
   registerTool(budgetAnalyzerTool);
   registerTool(goalPlannerTool);
+  registerTool(transactionsChartsTool);
 
   /* RAG */
   registerTool(ragLookupTool);

@@ -43,7 +43,6 @@ describe('Core Agent Contract', () => {
         section: 'budget',
         message: 'Revisa tu flujo mensual antes de invertir más.',
       },
-      context_score: 55,
       budget_updates: [
         {
           label: 'Ahorro mensual',

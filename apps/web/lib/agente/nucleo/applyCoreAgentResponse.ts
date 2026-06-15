@@ -22,6 +22,7 @@ export type ProductLifecyclePatch = {
   closedChats?: string[];
   chatTurns?: Record<string, number>;
   actionPlanFunnelStage?: 'brainstorm' | 'converge' | 'deliver' | null;
+  socialConsciousnessFunnelStage?: 'explore' | 'tension' | 'synthesis' | null;
   closingMode?: boolean;
 };
 
@@ -35,7 +36,6 @@ export type CoreAgentResponseSideEffects = {
   closureSummaries?: Record<string, unknown>;
   panelAction?: AgentResponse['panel_action'];
   budgetUpdates?: NonNullable<AgentResponse['budget_updates']>;
-  contextScore?: number;
 };
 
 export type ApplyCoreAgentResponseResult = {
@@ -51,11 +51,11 @@ function resolveFinalAssistantMessage(
   const fromStream = sanitizeMessageText(streamedContent, '');
 
   if (fromResponse.trim()) {
-    if (
-      isGenericOnboardingMessage(fromResponse) &&
+    const shouldPreferStream =
       fromStream.trim() &&
-      !isGenericOnboardingMessage(fromStream)
-    ) {
+      !isGenericOnboardingMessage(fromStream) &&
+      (isGenericOnboardingMessage(fromResponse) || isFormatPhaseFallbackMessage(fromResponse));
+    if (shouldPreferStream) {
       return fromStream;
     }
     return fromResponse;
@@ -76,12 +76,16 @@ function buildFinalAssistantMessageItem(
     mode: response.mode ?? response.reasoning_mode,
     objective: response.react?.objective,
     agent_blocks: response.agent_blocks,
-    suggested_replies:
-      Array.isArray(response.suggested_replies) && response.suggested_replies.length > 0
-        ? response.suggested_replies
-        : undefined,
     panel_action: response.panel_action,
   };
+}
+
+const FORMAT_PHASE_FALLBACK_SNIPPET =
+  'preparé una respuesta base con los resultados disponibles';
+
+function isFormatPhaseFallbackMessage(text: string): boolean {
+  const normalized = (text || '').toLowerCase().replace(/\s+/g, ' ').trim();
+  return normalized.includes(FORMAT_PHASE_FALLBACK_SNIPPET);
 }
 
 function isGenericOnboardingMessage(text: string): boolean {
@@ -94,6 +98,9 @@ function isGenericOnboardingMessage(text: string): boolean {
     normalized.includes('en el panel lateral vas a ver herramientas') ||
     normalized.includes('se van desbloqueando a medida que avanzamos') ||
     normalized.includes('generar informes') ||
+    normalized.includes('pdfs personalizados') ||
+    normalized.includes('informes que puedas descargar') ||
+    normalized.includes('optimizar ahorros y generar informes') ||
     normalized.includes('partamos con una acción simple') ||
     normalized.includes('para empezar, cuéntame en una frase') ||
     normalized.includes('bienvenido a financieramente')
@@ -137,6 +144,12 @@ function extractProductLifecyclePatch(
         metaLifecycle.action_plan_funnel_stage === 'deliver'
           ? metaLifecycle.action_plan_funnel_stage
           : undefined,
+      socialConsciousnessFunnelStage:
+        metaLifecycle.social_consciousness_funnel_stage === 'explore' ||
+        metaLifecycle.social_consciousness_funnel_stage === 'tension' ||
+        metaLifecycle.social_consciousness_funnel_stage === 'synthesis'
+          ? metaLifecycle.social_consciousness_funnel_stage
+          : undefined,
       closingMode:
         typeof metaLifecycle.closing_mode === 'boolean' ? metaLifecycle.closing_mode : undefined,
     },
@@ -161,7 +174,6 @@ export function extractCoreAgentSideEffects(res: AgentResponse): CoreAgentRespon
     milestoneUnlocked: res.milestone_unlocked?.feature,
     panelAction: res.panel_action,
     budgetUpdates: Array.isArray(res.budget_updates) ? res.budget_updates : undefined,
-    contextScore: typeof res.context_score === 'number' ? res.context_score : undefined,
     fincoinUsage: fincoinMeta?.fincoin_usage,
     closureSummaries: fincoinMeta?.closure_summaries,
     ...lifecycle,

@@ -1,12 +1,27 @@
 'use client';
 
-import { KeyboardEvent, useMemo } from 'react';
+import { KeyboardEvent, useEffect, useRef } from 'react';
 import type { NormalizedMovementRow } from './compute-movement-analytics';
 import { EditorialSummary } from './presentation';
-import { TxMinimalCashflowChart } from './TxMinimalCashflowChart';
+import { TxSummaryChartsPanel } from './TxSummaryChartsPanel';
+import { TxParseProgress } from './TxParseProgress';
 import { TxChatMessageBubble, TxChatStarterChips } from './tx-chat-ui';
-import { buildMinimalCashflowSeries } from './tx-minimal-cashflow.helpers';
+import type { DocumentsParseProgress } from '@/lib/transacciones/progreso-parse.helpers';
 import type { TxAssistantMessage, TxChatStarterChip } from './types';
+
+function MinimalSendIcon() {
+  return (
+    <svg className="tx-minimal-send-icon" width="20" height="20" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path
+        d="M2 8h10M9 4l5 4-5 4"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
 
 export function TxMinimalSummaryChatStep(props: {
   summaryText: string | null;
@@ -21,12 +36,22 @@ export function TxMinimalSummaryChatStep(props: {
   txAssistantInput: string;
   txAssistantLoading: boolean;
   documentsLoading: boolean;
+  processingModeLabel: string;
+  processingMetaLabel: string;
+  processingPrimaryCopy: string;
+  documentsParseProgress?: DocumentsParseProgress | null;
   onAssistantInputChange: (value: string) => void;
   onAssistantSend: () => void;
   onAskSuggestedQuestion?: (question: string) => void;
   movementRows?: NormalizedMovementRow[];
   formatCurrency?: (value: number) => string;
+  isSavedForBatch: boolean;
+  onDeleteProduct: () => void;
+  onGoToEvidence: () => void;
+  onSaveProductForBatch: () => void;
+  inflowLabel?: string;
 }) {
+  const chatThreadRef = useRef<HTMLDivElement>(null);
   const latestAssistantMessageId = [...props.assistantMessages].reverse().find((message) => message.role === 'assistant')?.id;
   const sendDisabled = props.txAssistantLoading || props.documentsLoading || !props.txAssistantInput.trim();
   const chatBusy = props.txAssistantLoading || props.documentsLoading;
@@ -36,19 +61,32 @@ export function TxMinimalSummaryChatStep(props: {
     (props.assistantMessages.length === 0 ||
       props.assistantMessages[props.assistantMessages.length - 1]?.role === 'user');
 
-  const cashflowSeries = useMemo(
-    () => (props.movementRows?.length ? buildMinimalCashflowSeries(props.movementRows) : null),
-    [props.movementRows],
-  );
-
   const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key !== 'Enter' || event.shiftKey) return;
     event.preventDefault();
     if (!sendDisabled) props.onAssistantSend();
   };
 
+  useEffect(() => {
+    const thread = chatThreadRef.current;
+    if (!thread) return;
+    thread.scrollTop = thread.scrollHeight;
+  }, [props.assistantMessages.length, chatBusy]);
+
+  useEffect(() => {
+    if (chatBusy) return;
+    const chatCard = chatThreadRef.current?.closest('.tx-minimal-chat-card');
+    chatCard?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, [chatBusy, props.assistantMessages.length]);
+
   return (
     <section className="tx-minimal-summary-shell">
+      <TxSummaryChartsPanel
+        movementRows={props.movementRows}
+        inflowLabel={props.inflowLabel}
+        compact
+      />
+
       <div className="tx-minimal-summary-card" role="region" aria-label="Resumen ejecutivo mínimo">
         <div className="tx-minimal-summary-head">
           <span className="tx-minimal-summary-kicker">Resumen ejecutivo</span>
@@ -74,10 +112,6 @@ export function TxMinimalSummaryChatStep(props: {
         </div>
       </div>
 
-      {cashflowSeries && props.formatCurrency ? (
-        <TxMinimalCashflowChart series={cashflowSeries} formatCurrency={props.formatCurrency} />
-      ) : null}
-
       <div className="tx-minimal-chat-card" role="region" aria-label="Chat del resumen">
         <div className="tx-minimal-chat-head">
           <span className="tx-minimal-chat-kicker">Chat del resumen</span>
@@ -85,7 +119,12 @@ export function TxMinimalSummaryChatStep(props: {
             Pregunta sobre movimientos, montos o el análisis. El paso 2 quedó solo para subir archivos.
           </p>
         </div>
-        <div className="tx-minimal-chat-thread" aria-live="polite" aria-relevant="additions">
+        <div
+          ref={chatThreadRef}
+          className="tx-minimal-chat-thread"
+          aria-live="polite"
+          aria-relevant="additions"
+        >
           {props.assistantMessages.length === 0 ? (
             <p className="tx-minimal-chat-empty">Haz tu primera pregunta sobre los movimientos o el análisis.</p>
           ) : (
@@ -100,6 +139,15 @@ export function TxMinimalSummaryChatStep(props: {
               />
             ))
           )}
+          {chatBusy ? (
+            <TxParseProgress
+              progress={props.documentsParseProgress}
+              fallbackModeLabel={props.processingModeLabel}
+              fallbackMetaLabel={props.processingMetaLabel}
+              fallbackPrimaryCopy={props.processingPrimaryCopy}
+              chatMode={!props.documentsLoading && props.txAssistantLoading}
+            />
+          ) : null}
         </div>
 
         {showStarterShortcuts ? (
@@ -125,11 +173,32 @@ export function TxMinimalSummaryChatStep(props: {
           />
           <button
             type="button"
-            className="tx-minimal-send-btn"
+            className="tx-minimal-send-btn is-icon-only"
             onClick={() => props.onAssistantSend()}
             disabled={sendDisabled}
+            aria-label="Enviar"
+            title="Enviar"
           >
-            Enviar
+            <MinimalSendIcon />
+          </button>
+        </div>
+      </div>
+
+      <div className="tx-ap-footer-actions">
+        <button type="button" className="continue-ghost tx-delete-product-btn" onClick={props.onDeleteProduct}>
+          Eliminar producto
+        </button>
+        <div className="tx-ap-footer-actions-right">
+          <button type="button" className="continue-ghost" onClick={props.onGoToEvidence}>
+            Volver a evidencia
+          </button>
+          <button
+            type="button"
+            className={`button-primary ${props.isSavedForBatch ? 'is-saved-product' : ''}`}
+            onClick={props.onSaveProductForBatch}
+            disabled={props.documentsLoading}
+          >
+            {props.isSavedForBatch ? 'Producto guardado' : 'Guardar producto'}
           </button>
         </div>
       </div>

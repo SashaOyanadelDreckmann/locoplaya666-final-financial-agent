@@ -89,6 +89,11 @@ function resolveKeyboardLikelyOpen(
     return gap > 20 || visibleH < layoutH * 0.94;
   }
 
+  /* Budget modal chat + table cells — same soft threshold while the keyboard animates. */
+  if (isBudgetModalFocused()) {
+    return gap > 20 || visibleH < layoutH * 0.94;
+  }
+
   return false;
 }
 
@@ -120,13 +125,34 @@ export function isTransactionsModalElement(el: Element | null): boolean {
   return Boolean(el.closest('.transactions-modal'));
 }
 
+export function isBudgetModalElement(el: Element | null): boolean {
+  if (!el || !(el instanceof HTMLElement)) return false;
+  return Boolean(el.closest('.budget-modal'));
+}
+
+export function isBudgetAssistantComposerElement(el: Element | null): boolean {
+  if (!el || !(el instanceof HTMLElement)) return false;
+  return Boolean(el.closest('.budget-modal .bcc-hero-compose'));
+}
+
 export function findTransactionsScrollHost(el: HTMLElement): HTMLElement | null {
   return el.closest('.transactions-modal .tx-scroll-body') as HTMLElement | null;
+}
+
+export function findBudgetScrollHost(el: HTMLElement): HTMLElement | null {
+  const wrap = el.closest('.budget-modal .budget-table-wrap') as HTMLElement | null;
+  if (wrap) return wrap;
+  return el.closest('.budget-modal .budget-table-scroll-host') as HTMLElement | null;
 }
 
 function isAuthIntakeFocused() {
   const active = document.activeElement;
   return isTextInput(active) && isAuthIntakeElement(active);
+}
+
+function isBudgetModalFocused() {
+  const active = document.activeElement;
+  return isTextInput(active) && isBudgetModalElement(active);
 }
 
 export function isAuthIntakeRoute(root: HTMLElement = document.documentElement) {
@@ -329,7 +355,11 @@ export function scrollInputAboveKeyboard(el: HTMLElement, padding = 14) {
 
   applyMobileViewportTokens();
 
-  if (el.closest('.agent-mobile-composer-dock, .transactions-modal .tx-composer-pro, .transactions-modal .tx-minimal-composer')) {
+  if (
+    el.closest(
+      '.agent-mobile-composer-dock, .transactions-modal .tx-composer-pro, .transactions-modal .tx-minimal-composer, .budget-modal .bcc-hero-compose',
+    )
+  ) {
     return;
   }
 
@@ -356,6 +386,7 @@ export function scrollInputAboveKeyboard(el: HTMLElement, padding = 14) {
 
   const scrollParent =
     findTransactionsScrollHost(el) ??
+    findBudgetScrollHost(el) ??
     findScrollableParent(el) ??
     (el.closest('.auth-shell') as HTMLElement | null) ??
     (el.closest('.intake-main') as HTMLElement | null);
@@ -437,7 +468,7 @@ export function focusMobileInput(el: HTMLElement | null) {
 
   el.focus({ preventScroll: true });
 
-  if (isTransactionsModalElement(el)) {
+  if (isTransactionsModalElement(el) || isBudgetModalElement(el)) {
     setMobileInputEngaged(true);
     applyMobileViewportTokens();
     scheduleInputViewportSync(el);

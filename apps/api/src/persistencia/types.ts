@@ -4,16 +4,17 @@ import type { WelcomeIntroCache } from '@financial-agent/shared';
 
 export type StoredSheet = {
   id: string;
+  label?: string;
   name: string;
   autoNamed: boolean;
   items: unknown[];
   draft: string;
   status: 'active' | 'context';
-  contextScore: number;
   userMessageCount: number;
   createdAt: string;
   completedAt?: string;
   closureSummary?: Record<string, unknown> | null;
+  generalChatStarted?: boolean;
 };
 
 export type StoredReport = {

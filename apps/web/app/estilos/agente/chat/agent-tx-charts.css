@@ -1,0 +1,277 @@
+/* Transaction charts inside core agent chat — rendered under Anexos técnicos / charts */
+.agent-chat .agent-tx-chart-block,
+.agent-chat .latex-inline-annex-charts {
+  margin-top: 14px;
+}
+
+.agent-chat .latex-inline-annex-charts {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.agent-chat .latex-inline-annex-charts .agent-blocks-renderer,
+.agent-chat .latex-inline-annex-charts .agent-tx-chart-block,
+.agent-chat .latex-inline-annex-charts .tx-minimal-cashflow-card,
+.agent-chat .latex-inline-annex-charts .agent-tx-chart-card {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.agent-chat .latex-inline-annex-charts .agent-tx-chart-block {
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+
+.agent-chat .tx-minimal-cashflow-card,
+.agent-chat .agent-tx-chart-card {
+  background: #ffffff;
+  border: 1px solid rgba(206, 194, 176, 0.72);
+  border-radius: 18px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  color: #2a2418;
+  padding: 14px 14px 12px;
+  display: grid;
+  gap: 12px;
+}
+
+.agent-chat .tx-minimal-cashflow-kicker {
+  color: #5b8cc0;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.agent-chat .tx-minimal-cashflow-title {
+  margin: 4px 0 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #2a2418;
+}
+
+.agent-chat .tx-minimal-cashflow-meta {
+  margin: 0;
+  color: #6f6558;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.agent-chat .tx-minimal-cashflow-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.agent-chat .tx-minimal-cashflow-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 12px;
+  color: #2a2418;
+}
+
+.agent-chat .tx-minimal-cashflow-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.agent-chat .tx-minimal-cashflow-legend-swatch {
+  display: inline-block;
+  width: 22px;
+  height: 3px;
+  border-radius: 999px;
+}
+
+.agent-chat .tx-minimal-cashflow-legend-swatch.is-income {
+  background: #5b8cc0;
+}
+
+.agent-chat .tx-minimal-cashflow-legend-swatch.is-expense {
+  height: 0;
+  border-top: 3px dashed #b4534b;
+}
+
+.agent-chat .tx-minimal-cashflow-chart,
+.agent-chat .agent-tx-bar-chart {
+  width: 100%;
+  box-sizing: border-box;
+  padding-inline: 12px;
+  overflow: visible;
+  min-height: 165px;
+  height: clamp(165px, 25.5vw, 210px);
+}
+
+.tx-minimal-cashflow-chart,
+.agent-tx-bar-chart,
+.agent-chart-canvas {
+  box-sizing: border-box;
+  padding-inline: 12px;
+  overflow: visible;
+}
+
+.tx-minimal-cashflow-chart .recharts-responsive-container,
+.tx-minimal-cashflow-chart .recharts-wrapper,
+.tx-minimal-cashflow-chart .recharts-surface,
+.agent-tx-bar-chart .recharts-responsive-container,
+.agent-tx-bar-chart .recharts-wrapper,
+.agent-tx-bar-chart .recharts-surface,
+.agent-chart-canvas .recharts-responsive-container,
+.agent-chart-canvas .recharts-wrapper,
+.agent-chart-canvas .recharts-surface {
+  overflow: visible !important;
+}
+
+.agent-chat .recharts-tooltip-wrapper .recharts-default-tooltip,
+.agent-chat .agent-thread > .agent-bubble.assistant.latex-doc .recharts-tooltip-wrapper .recharts-default-tooltip,
+html[data-visual-mode='dark-outline'] body.agent-route-active .agent-layout.is-visual-mode-dark-outline .agent-chat .recharts-tooltip-wrapper .recharts-default-tooltip,
+html[data-visual-mode='light-outline'] body.agent-route-active .agent-layout.is-visual-mode-light-outline .agent-chat .recharts-tooltip-wrapper .recharts-default-tooltip {
+  background: #ffffff !important;
+  border: 1px solid rgba(206, 194, 176, 0.72) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 10px 24px rgba(42, 36, 24, 0.08) !important;
+  padding: 10px 12px !important;
+  color: #2a2418 !important;
+}
+
+.agent-chat .recharts-tooltip-wrapper .recharts-default-tooltip,
+.agent-chat .recharts-tooltip-wrapper .recharts-default-tooltip *,
+.agent-chat .recharts-tooltip-wrapper .recharts-tooltip-label,
+.agent-chat .recharts-tooltip-wrapper .recharts-tooltip-item,
+.agent-chat .recharts-tooltip-wrapper .recharts-tooltip-item-name,
+.agent-chat .recharts-tooltip-wrapper .recharts-tooltip-item-value,
+.agent-chat .agent-thread > .agent-bubble.assistant.latex-doc .recharts-tooltip-wrapper .recharts-default-tooltip *,
+html[data-visual-mode='dark-outline'] body.agent-route-active .agent-layout.is-visual-mode-dark-outline .agent-chat .recharts-tooltip-wrapper .recharts-default-tooltip *,
+html[data-visual-mode='light-outline'] body.agent-route-active .agent-layout.is-visual-mode-light-outline .agent-chat .recharts-tooltip-wrapper .recharts-default-tooltip * {
+  color: #2a2418 !important;
+  -webkit-text-fill-color: #2a2418 !important;
+}
+
+.agent-chat .recharts-tooltip-wrapper .tx-minimal-cashflow-tooltip,
+.agent-chat .recharts-tooltip-wrapper .tx-minimal-cashflow-tooltip *,
+.agent-chat .agent-thread > .agent-bubble.assistant.latex-doc .recharts-tooltip-wrapper .tx-minimal-cashflow-tooltip,
+.agent-chat .agent-thread > .agent-bubble.assistant.latex-doc .recharts-tooltip-wrapper .tx-minimal-cashflow-tooltip *,
+html[data-visual-mode='dark-outline'] body.agent-route-active .agent-layout.is-visual-mode-dark-outline .agent-chat .recharts-tooltip-wrapper .tx-minimal-cashflow-tooltip,
+html[data-visual-mode='dark-outline'] body.agent-route-active .agent-layout.is-visual-mode-dark-outline .agent-chat .recharts-tooltip-wrapper .tx-minimal-cashflow-tooltip *,
+html[data-visual-mode='light-outline'] body.agent-route-active .agent-layout.is-visual-mode-light-outline .agent-chat .recharts-tooltip-wrapper .tx-minimal-cashflow-tooltip,
+html[data-visual-mode='light-outline'] body.agent-route-active .agent-layout.is-visual-mode-light-outline .agent-chat .recharts-tooltip-wrapper .tx-minimal-cashflow-tooltip * {
+  color: #2a2418 !important;
+  -webkit-text-fill-color: #2a2418 !important;
+}
+
+.agent-chat .tx-minimal-cashflow-tooltip {
+  min-width: 220px;
+  max-width: min(320px, 88vw);
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(206, 194, 176, 0.72);
+  background: #ffffff;
+  box-shadow: 0 10px 24px rgba(42, 36, 24, 0.08);
+}
+
+.agent-chat .tx-minimal-cashflow-tooltip-label {
+  margin-bottom: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #6f6558;
+}
+
+.agent-chat .tx-minimal-cashflow-tooltip-totals {
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(206, 194, 176, 0.72);
+}
+
+.agent-chat .tx-minimal-cashflow-tooltip-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+}
+
+.agent-chat .tx-minimal-cashflow-tooltip-movements {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+  max-height: 180px;
+  overflow: auto;
+}
+
+.agent-chat .tx-minimal-cashflow-tooltip-movement {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.agent-chat .tx-minimal-cashflow-tooltip-movement.is-income .tx-minimal-cashflow-tooltip-movement-amount {
+  color: #4a7aa8;
+}
+
+.agent-chat .tx-minimal-cashflow-tooltip-movement.is-expense .tx-minimal-cashflow-tooltip-movement-amount {
+  color: #b4534b;
+}
+
+@media (max-width: 767px) {
+  .agent-chat .latex-inline-annex-charts {
+    padding-inline: 0;
+  }
+
+  .agent-chat .tx-minimal-cashflow-chart,
+  .agent-chat .agent-tx-bar-chart {
+    min-height: 158px;
+    height: 158px;
+  }
+}
+
+.tx-summary-charts-grid,
+.latex-inline-annex-charts {
+  display: grid;
+  gap: 14px;
+  width: 100%;
+}
+
+.tx-summary-charts-grid.is-compact {
+  gap: 12px;
+}
+
+.tx-summary-charts-grid .tx-minimal-cashflow-card,
+.tx-summary-charts-grid .agent-tx-chart-card {
+  min-width: 0;
+}
+
+.tx-ex-body .tx-summary-charts-grid {
+  margin-top: 14px;
+}
+
+@media (min-width: 960px) {
+  .tx-summary-charts-grid:not(.is-compact) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .tx-summary-charts-grid > .tx-minimal-cashflow-card {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 959px) {
+  .tx-summary-charts-grid .tx-minimal-cashflow-chart,
+  .tx-summary-charts-grid .agent-tx-bar-chart {
+    min-height: 210px;
+    height: clamp(210px, 42vw, 280px);
+  }
+}

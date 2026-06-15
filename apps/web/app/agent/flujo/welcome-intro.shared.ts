@@ -100,7 +100,7 @@ function coerceWelcomeCarouselShellItem(
     ...item,
     content: '',
     agent_blocks: (item.agent_blocks ?? []).filter((block) => block.type !== 'executive_intro'),
-    suggested_replies: item.suggested_replies ?? [],
+    suggested_replies: [],
   };
 }
 

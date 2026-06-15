@@ -232,18 +232,58 @@ function sanitizeBudgetRows(value: unknown, maxRows = 30): BudgetRow[] {
 
 function sanitizeProducts(value: unknown): BudgetProduct[] {
   if (!Array.isArray(value)) return [];
-  return value.slice(0, 4).map((product: unknown) => {
+  return value.slice(0, 8).map((product: unknown) => {
     const raw = (product ?? {}) as Record<string, unknown>;
     const keyMetricsRaw =
       raw.keyMetrics && typeof raw.keyMetrics === 'object'
         ? (raw.keyMetrics as Record<string, unknown>)
         : null;
+    const movements = Array.isArray(raw.movements)
+      ? raw.movements
+          .map((item: unknown) => {
+            if (!item || typeof item !== 'object') return null;
+            const movement = item as Record<string, unknown>;
+            const description = compactText(movement.description, 120);
+            const amount = Math.max(0, Math.round(Math.abs(Number(movement.amount ?? movement.amount_signed ?? 0))));
+            if (!description || amount <= 0) return null;
+            const directionRaw = String(movement.direction ?? movement.movement_kind ?? 'expense').toLowerCase();
+            const direction: 'income' | 'expense' =
+              directionRaw === 'income' || directionRaw === 'abono' ? 'income' : 'expense';
+            return {
+              date: compactText(movement.date, 20) || undefined,
+              description,
+              amount,
+              direction,
+              category: compactText(movement.category, 60) || undefined,
+              merchant: compactText(movement.merchant, 60) || undefined,
+              confidence:
+                typeof movement.category_confidence === 'number'
+                  ? movement.category_confidence
+                  : typeof movement.confidence === 'number'
+                    ? movement.confidence
+                    : undefined,
+            };
+          })
+          .filter((item): item is NonNullable<typeof item> => Boolean(item))
+          .slice(0, 120)
+      : [];
+    const periodRaw = raw.period && typeof raw.period === 'object' ? (raw.period as Record<string, unknown>) : null;
     return {
+      productId: compactText(raw.productId ?? raw.id, 80),
       label: compactText(raw.label, 80),
       bank: compactText(raw.bank, 60),
       productType: compactText(raw.productType, 40),
-      dashboardSummary: compactText(raw.dashboardSummary, 180),
-      alerts: Array.isArray(raw.alerts) ? raw.alerts.map((item) => compactText(item, 80)).filter(Boolean).slice(0, 3) : [],
+      period: periodRaw
+        ? {
+            from: compactText(periodRaw.from, 20) || undefined,
+            to: compactText(periodRaw.to, 20) || undefined,
+          }
+        : undefined,
+      evidenceFidelity:
+        raw.evidenceFidelity === 'authoritative' || raw.evidenceFidelity === 'indicative'
+          ? raw.evidenceFidelity
+          : undefined,
+      movements,
       topCategories: Array.isArray(raw.topCategories)
         ? raw.topCategories
             .map((item: unknown) => {
@@ -337,15 +377,11 @@ function formatClp(value: number): string {
 
 function createAssistantContext(params: {
   rows: BudgetRow[];
-  intakeData: unknown;
-  intakeContext?: string | null;
   products: BudgetProduct[];
   chatAnswers: BudgetChatTurn[];
 }): BudgetAssistantContext {
   return buildBudgetAssistantContext({
     rows: params.rows,
-    intakeData: params.intakeData,
-    intakeContext: params.intakeContext ?? null,
     products: params.products,
     chatAnswers: params.chatAnswers,
   });
@@ -565,6 +601,19 @@ function actionsToRecords(actions: BudgetTableAction[]): Array<Record<string, un
 }
 
 const BUDGET_AGENT_FOLLOW_UP = '¿Qué más quieres hacer con la tabla?';
+
+function buildConfirmationApplyFailedReply(): BudgetChatResponse {
+  return buildBudgetReply({
+    reply: 'No pude aplicar esos cambios en la tabla. Pídemelo de nuevo y lo revisamos.',
+    followUp: BUDGET_AGENT_FOLLOW_UP,
+    focus_row_id: null,
+    source: 'budget_agent_confirm_apply_failed',
+    provider: 'deterministic',
+    market_snapshot: emptyMarketSnapshot(),
+    requires_confirmation: false,
+    pending_confirmation: null,
+  });
+}
 
 function buildConfirmationApplyReply(params: {
   actions: BudgetTableAction[];
@@ -814,8 +863,6 @@ function buildDeterministicUpdate(params: {
   );
   const projectedContext = createAssistantContext({
     rows: projectedRows,
-    intakeData: params.context.intake,
-    intakeContext: params.context.intake.intakeContext ?? null,
     products: params.context.products,
     chatAnswers: params.context.chatAnswers,
   });
@@ -897,8 +944,6 @@ function buildDeterministicMovementTypeUpdate(params: {
   );
   const projectedContext = createAssistantContext({
     rows: projectedRows,
-    intakeData: params.context.intake,
-    intakeContext: params.context.intake.intakeContext ?? null,
     products: params.context.products,
     chatAnswers: [
       ...params.context.chatAnswers,
@@ -989,8 +1034,6 @@ function buildDeterministicCategoryUpdate(params: {
   );
   const projectedContext = createAssistantContext({
     rows: projectedRows,
-    intakeData: params.context.intake,
-    intakeContext: params.context.intake.intakeContext ?? null,
     products: params.context.products,
     chatAnswers: [
       ...params.context.chatAnswers,
@@ -1079,8 +1122,6 @@ function buildDeterministicFieldUpdate(params: {
   );
   const projectedContext = createAssistantContext({
     rows: projectedRows,
-    intakeData: params.context.intake,
-    intakeContext: params.context.intake.intakeContext ?? null,
     products: params.context.products,
     chatAnswers: params.context.chatAnswers,
   });
@@ -1350,7 +1391,7 @@ function buildDeterministicAddFromAnswer(params: {
   });
 }
 
-function buildConversationalFallback(params: {
+type ConversationalFallbackParams = {
   answer: string;
   rows: BudgetRow[];
   activeRow: BudgetRow | null;
@@ -1358,7 +1399,23 @@ function buildConversationalFallback(params: {
   question: string;
   assistantFocusRowId?: string | null;
   manualFocusRowId?: string | null;
-}) {
+};
+
+function tryDeterministicWizardMutations(
+  params: ConversationalFallbackParams,
+): BudgetChatResponse | null {
+  return (
+    buildDeterministicMovementTypeUpdate(params) ??
+    buildDeterministicCategoryUpdate(params) ??
+    buildDeterministicFieldUpdate(params) ??
+    null
+  );
+}
+
+function buildConversationalFallback(params: ConversationalFallbackParams) {
+  const wizardMutation = tryDeterministicWizardMutations(params);
+  if (wizardMutation) return wizardMutation;
+
   const detectedIntent = detectBudgetIntent(params.answer);
   const snapshot = buildBudgetSnapshot(params.rows);
 
@@ -1546,6 +1603,21 @@ function resolveHybridBudgetChatDraft(params: {
   manualFocusRowId?: string | null;
 }): BudgetChatResponse {
   const agentDraft = buildAgentChatReply({ agent: params.agent, rows: params.rows });
+  if (params.agent.requires_confirmation || params.agent.actions.length > 0) {
+    return agentDraft;
+  }
+
+  const wizardMutation = tryDeterministicWizardMutations({
+    answer: params.answer,
+    rows: params.rows,
+    activeRow: params.activeRow,
+    context: params.context,
+    question: params.question,
+    assistantFocusRowId: params.assistantFocusRowId,
+    manualFocusRowId: params.manualFocusRowId,
+  });
+  if (wizardMutation) return wizardMutation;
+
   if (!shouldUseDeterministicTableFallback({ agent: params.agent, answer: params.answer })) {
     return agentDraft;
   }
@@ -1581,8 +1653,10 @@ router.post(
     const answer = compactText(body.answer, 1200);
     const displayQuestion = compactText(body.question, 500);
     const explicitNextQuestion = compactText(body.nextQuestion ?? body.next_question, 500);
-    const inferenceQuestion = explicitNextQuestion || extractInferenceQuestionText(displayQuestion) || displayQuestion;
-    const question = displayQuestion || inferenceQuestion;
+    const question =
+      explicitNextQuestion ||
+      extractInferenceQuestionText(displayQuestion) ||
+      displayQuestion;
     const rows = sanitizeBudgetRows(body.budgetRows, 30);
     const activeRow = body.activeRow ? sanitizeBudgetRow(body.activeRow) : null;
     const activeRowFromId =
@@ -1590,13 +1664,10 @@ router.post(
         ? rows.find((row) => canonicalBudgetRowId(row.id) === canonicalBudgetRowId(body.activeRowId as string)) ?? null
         : null;
     const resolvedActiveRow = activeRow ?? activeRowFromId;
-    const intakeContext = compactText(body.intakeContext, 500) || null;
     const products = sanitizeProducts(body.products);
     const chatAnswers = (body.chatAnswers ?? []).slice(-20);
     const context = createAssistantContext({
       rows,
-      intakeData: body.intakeData,
-      intakeContext,
       products,
       chatAnswers,
     });
@@ -1604,6 +1675,7 @@ router.post(
     const manualFocusRowId = compactText(body.manualFocusRowId, 80) || null;
     const snapshot = buildBudgetSnapshot(rows);
     const pendingRaw = body.pendingConfirmation ?? null;
+    const pendingActionCount = pendingRaw?.actions?.length ?? 0;
     const pendingActions = pendingRaw
       ? validateBudgetTableActions((pendingRaw.actions ?? []) as BudgetTableAction[], rows)
       : [];
@@ -1632,8 +1704,17 @@ router.post(
       );
     }
 
-    if (intent === 'reply' && pendingActions.length > 0) {
+    if (intent === 'reply' && pendingActionCount > 0) {
       if (isBudgetConfirmationAnswer(answer)) {
+        if (pendingActions.length === 0) {
+          const failedDraft = buildConfirmationApplyFailedReply();
+          return sendBudgetChatResponse(
+            res,
+            failedDraft,
+            buildWriterPolishInput({ draft: failedDraft, context, rows, userAnswer: answer }),
+            { market_snapshot: emptyMarketSnapshot() },
+          );
+        }
         const draft = buildConfirmationApplyReply({
           actions: pendingActions,
           summary: pendingRaw?.summary ?? summarizeBudgetActionBatch(pendingActions, rows),

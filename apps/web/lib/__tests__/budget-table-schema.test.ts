@@ -39,6 +39,31 @@ describe('budget-table-schema', () => {
     });
   });
 
+  it('validates dependent action batches against simulated row state', () => {
+    const validated = validateBudgetTableActions(
+      [
+        {
+          kind: 'add',
+          id: 'expense-custom-gym',
+          category: 'Gym',
+          type: 'expense',
+          amount: 0,
+        },
+        {
+          kind: 'update',
+          id: 'expense-custom-gym',
+          category: 'Gym',
+          type: 'expense',
+          amount: 30000,
+        },
+      ],
+      baseRows,
+    );
+
+    expect(validated).toHaveLength(2);
+    expect(validated[1]).toMatchObject({ kind: 'update', id: 'expense-custom-gym', amount: 30000 });
+  });
+
   it('normalizes add into update when the row already exists', () => {
     const validated = validateBudgetTableActions(
       [{ kind: 'add', id: 'expense_rent', category: 'Arriendo / vivienda', type: 'expense', amount: 420000 }],

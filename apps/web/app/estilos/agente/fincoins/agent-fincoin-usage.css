@@ -4,12 +4,16 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-family: Georgia, 'Times New Roman', serif;
-  font-weight: 500;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-weight: 200;
   font-style: normal;
   line-height: 1;
   letter-spacing: -0.04em;
+  color: rgba(212, 176, 90, 0.68);
   user-select: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'tnum' 1;
 }
 
 .fincoin-icon--sm {
@@ -21,7 +25,7 @@
 }
 
 .fincoin-icon--lg {
-  font-size: 20px;
+  font-size: 19px;
 }
 
 .chat-fincoin-toggle {
@@ -29,48 +33,38 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: auto;
+  height: auto;
   min-width: 44px;
   min-height: 44px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(0, 0, 0, 0.38);
-  color: rgba(255, 255, 255, 0.88);
-  transition: background 160ms ease, border-color 160ms ease, transform 120ms ease;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: rgba(212, 176, 90, 0.66);
+  transition: color 160ms ease, opacity 120ms ease;
+}
+
+.chat-fincoin-toggle .fincoin-icon {
+  color: inherit;
+  transform: translateY(-0.5px);
 }
 
 .chat-fincoin-toggle:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.24);
+  background: transparent;
+  color: rgba(232, 201, 122, 0.88);
 }
 
 .chat-fincoin-toggle.is-low {
-  border-color: rgba(251, 191, 36, 0.45);
-  color: #fde68a;
+  color: rgba(253, 230, 138, 0.84);
 }
 
 .chat-fincoin-toggle.is-depleted {
-  border-color: rgba(251, 113, 133, 0.5);
-  color: #fecdd3;
+  color: rgba(254, 205, 211, 0.84);
 }
 
 .chat-fincoin-toggle-dot {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 6px;
-  height: 6px;
-  border-radius: 999px;
-  background: #34d399;
-}
-
-.chat-fincoin-toggle.is-low .chat-fincoin-toggle-dot {
-  background: #fbbf24;
-}
-
-.chat-fincoin-toggle.is-depleted .chat-fincoin-toggle-dot {
-  background: #fb7185;
+  display: none;
 }
 
 .chat-header-toggle-group {
@@ -91,125 +85,237 @@
   position: fixed;
   inset: 0;
   z-index: 120;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
+  display: grid;
+  place-items: center;
+  padding: max(20px, env(safe-area-inset-top, 0px)) max(20px, env(safe-area-inset-right, 0px)) max(20px, env(safe-area-inset-bottom, 0px)) max(20px, env(safe-area-inset-left, 0px));
   background: rgba(3, 7, 18, 0.62);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .fincoin-usage-dialog {
   position: relative;
   width: min(100%, 420px);
-  border-radius: 20px;
+  max-width: min(420px, calc(100% - 32px));
+  margin: auto;
+  border-radius: var(--fincoin-modal-radius, 22px);
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: linear-gradient(180deg, rgba(17, 24, 39, 0.96), rgba(8, 12, 22, 0.98));
   box-shadow: 0 28px 80px rgba(0, 0, 0, 0.45);
-  padding: 0 18px 18px;
+  padding: 0;
   color: #f8fafc;
-  overflow: hidden;
+  max-height: min(88dvh, 640px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  --fincoin-modal-radius: 22px;
+  --fincoin-gold: #d4b05a;
+  --fincoin-gold-soft: rgba(212, 176, 90, 0.16);
+  --fincoin-gold-muted: rgba(212, 176, 90, 0.55);
+  --fincoin-surface: rgba(255, 255, 255, 0.03);
+  --fincoin-line: rgba(255, 255, 255, 0.08);
 }
 
 .fincoin-usage-header.bcc-modal-header {
-  margin: 0 -18px 12px;
-  padding: 16px 18px 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.02);
+  margin: 0;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: transparent;
 }
 
 .fincoin-usage-header .bcc-modal-title {
   font-size: 1.05rem;
 }
 
+.fincoin-usage-body {
+  padding: 0 18px 18px;
+}
+
 .fincoin-usage-head {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
+  display: flex;
+  align-items: baseline;
   gap: 10px;
-  align-items: center;
-  margin-bottom: 14px;
+  margin: 0 18px 14px;
+  padding: 0;
+}
+
+.fincoin-usage-head-copy {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
 }
 
 .fincoin-usage-subtitle {
   margin: 0;
+  flex: 1 1 auto;
+  min-width: 0;
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.55);
+  color: rgba(255, 255, 255, 0.5);
   line-height: 1.35;
+  letter-spacing: -0.015em;
 }
 
 .fincoin-usage-icon {
-  width: 34px;
-  height: 34px;
-  border-radius: 12px;
+  flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: rgba(16, 185, 129, 0.14);
-  color: #6ee7b7;
+  width: auto;
+  height: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: rgba(212, 176, 90, 0.62);
 }
 
 .fincoin-usage-icon .fincoin-icon {
-  transform: translateY(-0.5px);
+  transform: translateY(-1px);
+  color: inherit;
 }
 
 .fincoin-usage-pill {
+  flex-shrink: 0;
   font-size: 10px;
+  font-weight: 400;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  padding: 4px 8px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 0;
+  border-radius: 0;
+  border: 0;
+  background: transparent;
 }
 
 .fincoin-usage-pill.is-healthy {
-  color: #6ee7b7;
-  border-color: rgba(16, 185, 129, 0.35);
+  color: rgba(212, 176, 90, 0.78);
 }
 
 .fincoin-usage-pill.is-warning {
-  color: #fde68a;
-  border-color: rgba(251, 191, 36, 0.35);
+  color: rgba(253, 230, 138, 0.82);
 }
 
 .fincoin-usage-pill.is-depleted {
-  color: #fecdd3;
-  border-color: rgba(251, 113, 133, 0.35);
+  color: rgba(254, 205, 211, 0.82);
+}
+
+/* Consumption card — shared base; mobile overrides below */
+.fincoin-usage-consumption {
+  border-color: var(--fincoin-line) !important;
+  background: var(--fincoin-surface) !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.fincoin-usage-consumption header h2 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.fincoin-usage-consumption header p {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.48) !important;
+}
+
+.fincoin-usage-consumption > div:nth-child(2) p {
+  font-size: 1.65rem;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+
+.fincoin-usage-consumption > div:nth-child(2) span {
+  font-size: 13px !important;
+  color: rgba(255, 255, 255, 0.42) !important;
+}
+
+.fincoin-progress-track {
+  background: rgba(255, 255, 255, 0.08) !important;
+  height: 3px !important;
+  border-radius: 999px !important;
+}
+
+.fincoin-progress-fill {
+  height: 3px !important;
+  border-radius: 999px !important;
+}
+
+.fincoin-progress-fill.is-healthy {
+  background: linear-gradient(90deg, #b8893a, #d4b05a) !important;
+}
+
+.fincoin-progress-fill.is-warning {
+  background: linear-gradient(90deg, #c9a227, #f0c85a) !important;
+}
+
+.fincoin-progress-fill.is-depleted {
+  background: linear-gradient(90deg, #be123c, #fb7185) !important;
+}
+
+.fincoin-usage-consumption > p {
+  font-size: 11px !important;
+  line-height: 1.5 !important;
+  color: rgba(255, 255, 255, 0.42) !important;
 }
 
 .fincoin-usage-metrics {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-  margin-top: 12px;
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  margin-top: 14px;
+  border-radius: 14px;
+  border: 1px solid var(--fincoin-line);
+  background: var(--fincoin-surface);
+  overflow: hidden;
 }
 
-.fincoin-usage-metrics div {
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.03);
-  padding: 10px;
+.fincoin-usage-metric {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 12px 14px;
+  text-align: center;
 }
 
-.fincoin-usage-metrics span {
+.fincoin-usage-metric-divider {
+  width: 1px;
+  flex-shrink: 0;
+  background: var(--fincoin-line);
+  align-self: stretch;
+}
+
+.fincoin-usage-metric-label {
   display: block;
   font-size: 10px;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.44);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
+  font-weight: 500;
 }
 
-.fincoin-usage-metrics strong {
+.fincoin-usage-metric-value {
   display: block;
   margin-top: 4px;
-  font-size: 14px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.fincoin-usage-metric:first-child .fincoin-usage-metric-value {
+  color: var(--fincoin-gold);
 }
 
 .fincoin-usage-loading {
-  margin: 10px 0 0;
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.45);
+  margin: 12px 0 0;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.38);
   text-align: center;
+  letter-spacing: -0.01em;
 }
 
 .fincoin-low-balance-banner,
@@ -237,24 +343,211 @@
   .agent-chat-header.is-mobile .chat-header-toggle-group {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: 2px;
   }
 
   .agent-chat-header.is-mobile .chat-fincoin-toggle,
   .agent-chat-header.is-mobile .chat-monochrome-toggle--inline {
-    width: 24px;
-    height: 24px;
+    width: auto;
+    height: auto;
+    min-width: 44px;
+    min-height: 44px;
   }
 
+  /* ── Mobile: centered floating card (rounded on all corners) ── */
   .fincoin-usage-overlay {
-    padding: 14px;
-    align-items: flex-end;
+    display: grid !important;
+    place-items: center !important;
+    align-content: center !important;
+    --fincoin-mobile-bottom-clearance: calc(
+      env(safe-area-inset-bottom, 0px) + clamp(148px, 28dvh, 232px)
+    );
+    padding: max(12px, env(safe-area-inset-top, 0px)) 16px var(--fincoin-mobile-bottom-clearance) 16px !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    overflow: hidden !important;
+    background: rgba(2, 6, 14, 0.72) !important;
+    backdrop-filter: blur(14px) saturate(120%) !important;
+    -webkit-backdrop-filter: blur(14px) saturate(120%) !important;
   }
 
   .fincoin-usage-dialog {
-    width: 100%;
-    border-bottom-left-radius: 0;
-    border-bottom-right-radius: 0;
+    width: min(100%, 400px);
+    max-width: 100%;
+    margin: 0;
+    border: 1px solid rgba(212, 176, 90, 0.14);
+    border-radius: var(--fincoin-modal-radius, 22px);
+    background:
+      radial-gradient(120% 80% at 50% -20%, rgba(212, 176, 90, 0.08), transparent 55%),
+      linear-gradient(180deg, rgba(12, 16, 26, 0.98), rgba(6, 9, 16, 0.99));
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.42);
+    padding-bottom: 18px;
+    max-height: min(72dvh, 520px);
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    transform: translateY(clamp(-12px, -2.5dvh, -28px));
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  .fincoin-usage-header.bcc-modal-header {
+    padding-bottom: 8px;
+    border-bottom: none;
+  }
+
+  .fincoin-usage-header .bcc-modal-eyebrow {
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    color: var(--fincoin-gold-muted);
+  }
+
+  .fincoin-usage-header .bcc-modal-title {
+    font-size: 1.12rem;
+    font-weight: 600;
+    letter-spacing: -0.03em;
+  }
+
+  .fincoin-usage-head {
+    margin: 4px 20px 18px;
+    gap: 12px;
+  }
+
+  .fincoin-usage-icon .fincoin-icon--md {
+    font-size: 18px;
+    font-weight: 200;
+  }
+
+  .fincoin-usage-head-copy {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 8px;
+  }
+
+  .fincoin-usage-subtitle {
+    font-size: 13px;
+    line-height: 1.4;
+    color: rgba(255, 255, 255, 0.56);
+    letter-spacing: -0.02em;
+  }
+
+  .fincoin-usage-pill {
+    font-size: 9px;
+    padding: 0;
+    letter-spacing: 0.06em;
+  }
+
+  .fincoin-usage-body {
+    padding: 0 20px 4px;
+  }
+
+  .fincoin-usage-consumption {
+    padding: 18px 0 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+  }
+
+  .fincoin-usage-consumption header h2 {
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: rgba(255, 255, 255, 0.44);
+  }
+
+  .fincoin-usage-consumption header p {
+    margin-top: 6px !important;
+    font-size: 13px !important;
+    color: rgba(255, 255, 255, 0.52) !important;
+  }
+
+  .fincoin-usage-consumption > div:nth-child(2) {
+    margin-top: 14px !important;
+  }
+
+  .fincoin-usage-consumption > div:nth-child(2) p {
+    font-size: 2rem;
+    font-weight: 600;
+    letter-spacing: -0.04em;
+    line-height: 1.1;
+  }
+
+  .fincoin-usage-consumption > div:nth-child(2) span {
+    display: block;
+    margin-top: 4px;
+    margin-left: 0 !important;
+    font-size: 14px !important;
+    font-weight: 400 !important;
+    color: rgba(255, 255, 255, 0.38) !important;
+  }
+
+  .fincoin-usage-consumption [role='progressbar'] {
+    margin-top: 18px !important;
+  }
+
+  .fincoin-progress-track,
+  .fincoin-progress-fill {
+    height: 2px !important;
+  }
+
+  .fincoin-usage-consumption > p {
+    margin-top: 16px !important;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    font-size: 12px !important;
+    line-height: 1.55 !important;
+    color: rgba(255, 255, 255, 0.4) !important;
+  }
+
+  .fincoin-usage-metrics {
+    margin-top: 20px;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    padding-top: 16px;
+  }
+
+  .fincoin-usage-metric {
+    padding: 0 8px;
+    text-align: left;
+  }
+
+  .fincoin-usage-metric:first-child {
+    padding-left: 0;
+  }
+
+  .fincoin-usage-metric:last-child {
+    padding-right: 0;
+  }
+
+  .fincoin-usage-metric-divider {
+    background: rgba(255, 255, 255, 0.06);
+    margin: 2px 0;
+  }
+
+  .fincoin-usage-metric-label {
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    color: rgba(255, 255, 255, 0.38);
+  }
+
+  .fincoin-usage-metric-value {
+    margin-top: 3px;
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -0.03em;
+  }
+
+  .fincoin-usage-metric:first-child .fincoin-usage-metric-value {
+    color: #e8c97a;
+  }
+
+  .fincoin-usage-loading {
+    margin-top: 16px;
+    font-size: 11px;
   }
 
   .fincoin-low-balance-banner,

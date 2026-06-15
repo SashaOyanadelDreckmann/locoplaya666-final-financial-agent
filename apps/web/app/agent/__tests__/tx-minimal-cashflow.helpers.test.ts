@@ -1,9 +1,9 @@
 import type { NormalizedMovementRow } from '../modales/transacciones/compute-movement-analytics';
 import {
-  buildMinimalCashflowSeries,
-  parseMovementDateToken,
-  shouldShowMinimalCashflowChart,
-} from '../modales/transacciones/tx-minimal-cashflow.helpers';
+  buildCumulativeCashflowSeries,
+  parseTransactionMovementDate,
+  shouldBuildCumulativeCashflowChart,
+} from '@financial-agent/shared';
 
 function row(partial: Partial<NormalizedMovementRow> & Pick<NormalizedMovementRow, 'date' | 'amount' | 'directionForTotals'>): NormalizedMovementRow {
   return {
@@ -28,9 +28,9 @@ function row(partial: Partial<NormalizedMovementRow> & Pick<NormalizedMovementRo
 
 describe('tx-minimal-cashflow.helpers', () => {
   it('parses ISO and CL date tokens', () => {
-    expect(parseMovementDateToken('2026-06-03')).toEqual({ year: 2026, month: 6, day: 3 });
-    expect(parseMovementDateToken('03/06/2026')).toEqual({ year: 2026, month: 6, day: 3 });
-    expect(parseMovementDateToken('03/06', 2026)).toEqual({ year: 2026, month: 6, day: 3 });
+    expect(parseTransactionMovementDate('2026-06-03')).toEqual({ year: 2026, month: 6, day: 3 });
+    expect(parseTransactionMovementDate('03/06/2026')).toEqual({ year: 2026, month: 6, day: 3 });
+    expect(parseTransactionMovementDate('03/06', 2026)).toEqual({ year: 2026, month: 6, day: 3 });
   });
 
   it('builds a monthly series when enough dated movements exist', () => {
@@ -41,7 +41,14 @@ describe('tx-minimal-cashflow.helpers', () => {
       row({ date: '2026-06-12', amount: 80_000, directionForTotals: 'income', uiKey: 'd', promptKey: 'd' }),
     ];
 
-    const series = buildMinimalCashflowSeries(rows);
+    const series = buildCumulativeCashflowSeries(rows.map((row) => ({
+      label: row.label,
+      merchant: row.merchant,
+      amount: row.amount,
+      direction: row.directionForTotals,
+      date: row.date,
+      category: row.category,
+    })));
     expect(series).not.toBeNull();
     expect(series?.points).toHaveLength(4);
     expect(series?.points[0]).toMatchObject({
@@ -61,7 +68,12 @@ describe('tx-minimal-cashflow.helpers', () => {
       cumulativeExpense: 65_000,
     });
     expect(series?.distinctDays).toBe(4);
-    expect(shouldShowMinimalCashflowChart(rows)).toBe(true);
+    expect(shouldBuildCumulativeCashflowChart(rows.map((row) => ({
+      label: row.label,
+      amount: row.amount,
+      direction: row.directionForTotals,
+      date: row.date,
+    })))).toBe(true);
   });
 
   it('hides chart when dates are insufficient', () => {
@@ -70,7 +82,15 @@ describe('tx-minimal-cashflow.helpers', () => {
       row({ date: '2026-06-03', amount: 25_000, directionForTotals: 'expense', uiKey: 'b', promptKey: 'b' }),
     ];
 
-    expect(buildMinimalCashflowSeries(rows)).toBeNull();
-    expect(shouldShowMinimalCashflowChart(rows)).toBe(false);
+    expect(buildCumulativeCashflowSeries(rows.map((row) => ({
+      amount: row.amount,
+      direction: row.directionForTotals,
+      date: row.date,
+    })))).toBeNull();
+    expect(shouldBuildCumulativeCashflowChart(rows.map((row) => ({
+      amount: row.amount,
+      direction: row.directionForTotals,
+      date: row.date,
+    })))).toBe(false);
   });
 });

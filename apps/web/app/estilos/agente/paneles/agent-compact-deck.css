@@ -10,27 +10,23 @@
     display: flex !important;
     flex-direction: column !important;
     min-height: 0 !important;
+    padding: 0 !important;
     padding-bottom: 0 !important;
     overflow: hidden !important;
     box-sizing: border-box !important;
     --agent-mobile-stack-gap: 6px;
-    --agent-mobile-layout-top-gap: 0px;
-    --agent-mobile-layout-top: calc(var(--agent-shell-safe-top, env(safe-area-inset-top, 0px)) + var(--agent-mobile-layout-top-gap));
-    padding-top: var(--agent-mobile-layout-top) !important;
     height: var(--visual-vh, var(--fa-app-height, 100dvh)) !important;
     max-height: var(--visual-vh, var(--fa-app-height, 100dvh)) !important;
   }
 
   html.pwa-standalone body.agent-route-active main.agent-layout.is-mobile-viewport {
-    --agent-mobile-layout-top: calc(env(safe-area-inset-top, 0px) + var(--agent-mobile-layout-top-gap));
-    padding-top: var(--agent-mobile-layout-top) !important;
     height: 100% !important;
     max-height: 100% !important;
   }
 
   html:not(.pwa-standalone) body.agent-route-active main.agent-layout.is-mobile-viewport {
-    --agent-mobile-layout-top: calc(max(env(safe-area-inset-top, 0px), 16px) + 1px + var(--agent-mobile-layout-top-gap));
-    padding-top: var(--agent-mobile-layout-top) !important;
+    height: var(--visual-vh, var(--fa-app-height, 100dvh)) !important;
+    max-height: var(--visual-vh, var(--fa-app-height, 100dvh)) !important;
   }
 
   body.agent-route-active main.agent-layout.is-mobile-viewport > section.agent-chat {
@@ -52,17 +48,17 @@
 
   body.agent-route-active {
     --mobile-panel-bottom-gap: 0px;
-    --mobile-panel-deck-lift: 6px;
-    --deck-bg-top-extra: 14px;
+    --mobile-panel-deck-lift: 4px;
+    --deck-bg-top-extra: 8px;
     --mobile-panel-shell-bottom: 0px;
     --pwa-panel-bottom-inset: 0px;
-    --deck-handle-h: 14px;
+    --deck-handle-h: 11px;
     --deck-overlap: clamp(22px, 5.8vw, 38px);
-    --deck-card-w-est: min(180px, calc(100vw * 0.39));
+    --deck-card-w-est: min(176px, calc(100vw * 0.37));
     --deck-card-h-est: clamp(
-      64px,
+      58px,
       calc(var(--deck-card-w-est) * 0.44),
-      83px
+      74px
     );
     --agent-mobile-notify-bottom: calc(
       env(safe-area-inset-bottom, 0px) + var(--deck-handle-h) + var(--deck-card-h-est) + var(--mobile-panel-deck-lift) + 76px + 10px
@@ -123,9 +119,9 @@
     touch-action: pan-y pinch-zoom !important;
     --deck-overlap: clamp(22px, 5.8vw, 38px) !important;
     --deck-usable-w: calc(100vw + 48px) !important;
-    --deck-card-w: min(180px, calc(100vw * 0.39)) !important;
-    --deck-card-h-min: 64px !important;
-    --deck-card-h-max: 83px !important;
+    --deck-card-w: min(176px, calc(100vw * 0.37)) !important;
+    --deck-card-h-min: 58px !important;
+    --deck-card-h-max: 74px !important;
     --deck-card-aspect: 0.44 !important;
     --deck-card-h: clamp(
       var(--deck-card-h-min),
@@ -226,21 +222,12 @@
 }
 
 /*
- * Mobile header — tight safe band + fixed large effects toggle (all visual modes).
+ * Mobile header chrome — fixed below safe band (visual sizing only).
+ * Position / top offset: EOF block at end of this file.
  */
 @media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   body.agent-route-active {
-    --mobile-chat-header-top-offset: 8px;
     --mobile-shell-tab-width-scale: 0.75;
-  }
-
-  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile {
-    margin: var(--mobile-chat-header-top-offset) var(--mobile-shell-gutter-x, 8px) 0 !important;
-    padding-top: 6px !important;
-    padding-bottom: 7px !important;
-    padding-left: 12px !important;
-    padding-right: 12px !important;
-    gap: 5px !important;
   }
 
   body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-tabs-row {
@@ -249,9 +236,9 @@
   }
 
   body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-tabs-row .chat-switcher {
-    width: calc(100% * var(--mobile-shell-tab-width-scale, 0.75)) !important;
-    max-width: calc(100% * var(--mobile-shell-tab-width-scale, 0.75)) !important;
-    margin-inline: auto !important;
+    width: auto !important;
+    max-width: none !important;
+    margin-inline: 0 !important;
   }
 
   body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-meta-row {
@@ -307,41 +294,6 @@
     --deck-card-w: min(180px, calc(100vw * 0.39)) !important;
     overflow: visible !important;
     overflow-x: visible !important;
-  }
-}
-
-/*
- * Safe band + header position — EOF after visual-modes (wins diagnostics padding-top: env() only).
- */
-@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
-  html[data-visual-mode='dark-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport,
-  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport,
-  html:not([data-visual-mode]) body.agent-route-active main.agent-layout.is-mobile-viewport,
-  body.agent-route-active main.agent-layout.is-mobile-viewport {
-    box-sizing: border-box !important;
-    --agent-mobile-layout-top-gap: 0px;
-    padding-top: var(--agent-mobile-layout-top) !important;
-  }
-
-  html.pwa-standalone[data-visual-mode='dark-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport,
-  html.pwa-standalone[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport,
-  html.pwa-standalone:not([data-visual-mode]) body.agent-route-active main.agent-layout.is-mobile-viewport,
-  html.pwa-standalone body.agent-route-active main.agent-layout.is-mobile-viewport {
-    --agent-mobile-layout-top: calc(env(safe-area-inset-top, 0px) + var(--agent-mobile-layout-top-gap));
-    padding-top: var(--agent-mobile-layout-top) !important;
-  }
-
-  html:not(.pwa-standalone)[data-visual-mode='dark-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport,
-  html:not(.pwa-standalone)[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport,
-  html:not(.pwa-standalone):not([data-visual-mode]) body.agent-route-active main.agent-layout.is-mobile-viewport,
-  html:not(.pwa-standalone) body.agent-route-active main.agent-layout.is-mobile-viewport {
-    --agent-mobile-layout-top: calc(max(env(safe-area-inset-top, 0px), 16px) + 1px + var(--agent-mobile-layout-top-gap));
-    padding-top: var(--agent-mobile-layout-top) !important;
-  }
-
-  html[data-visual-mode='dark-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile,
-  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile {
-    margin: 0 var(--mobile-shell-gutter-x, 8px) 0 !important;
   }
 }
 
@@ -759,6 +711,28 @@
     ) !important;
     z-index: 2 !important;
   }
+
+  /*
+   * Expanded panel grid — presupuesto + noticias share row 1.
+   * DOM has interview between them; explicit order pairs budget|news before interview.
+   */
+  body.agent-route-active main.agent-layout.is-mobile-viewport.mobile-panel-expanded .agent-panel.is-mobile-expanded .panel-grid .panel-pos-budget,
+  body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel.is-mobile-expanded .panel-grid .panel-pos-budget {
+    order: 5 !important;
+    grid-column: 1 !important;
+  }
+
+  body.agent-route-active main.agent-layout.is-mobile-viewport.mobile-panel-expanded .agent-panel.is-mobile-expanded .panel-grid .panel-pos-news,
+  body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel.is-mobile-expanded .panel-grid .panel-pos-news {
+    order: 5 !important;
+    grid-column: 2 !important;
+  }
+
+  body.agent-route-active main.agent-layout.is-mobile-viewport.mobile-panel-expanded .agent-panel.is-mobile-expanded .panel-grid .panel-pos-interview,
+  body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel.is-mobile-expanded .panel-grid .panel-pos-interview {
+    order: 6 !important;
+    grid-column: 1 / -1 !important;
+  }
 }
 
 /*
@@ -1096,6 +1070,20 @@ html[data-visual-mode='light-outline'] .floating-card-shell {
     box-shadow: 0 10px 26px rgba(0, 0, 0, 0.22) !important;
   }
 
+  body.agent-route-active .agent-thread .onboarding-flow-cta__button {
+    background: rgba(10, 16, 26, 0.2) !important;
+    background-image: none !important;
+    backdrop-filter: blur(20px) saturate(140%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(140%) !important;
+    box-shadow: none !important;
+    color: #fff !important;
+    -webkit-text-fill-color: #fff !important;
+  }
+
+  body.agent-route-active .agent-thread .onboarding-flow-cta__button:hover {
+    background: rgba(10, 16, 26, 0.28) !important;
+  }
+
   body.agent-route-active .agent-thread .onboarding-flow-cta {
     background: rgba(10, 16, 26, 0.2) !important;
     background-image: none !important;
@@ -1105,15 +1093,17 @@ html[data-visual-mode='light-outline'] .floating-card-shell {
     box-shadow:
       0 1px 0 rgba(255, 255, 255, 0.04) inset,
       0 16px 40px rgba(0, 0, 0, 0.14) !important;
-    width: 100% !important;
-    max-width: var(--bubble-maxw, 72%) !important;
-    align-self: flex-start !important;
+    width: var(--assistant-thread-band-width, calc(100% - 4px)) !important;
+    max-width: var(--assistant-thread-band-width, calc(100% - 4px)) !important;
+    max-inline-size: var(--assistant-thread-band-width, calc(100% - 4px)) !important;
+    align-self: stretch !important;
   }
 
   body.agent-route-active .agent-thread > .agent-stream-rail {
-    width: 100% !important;
-    max-width: var(--bubble-maxw, 72%) !important;
-    align-self: flex-start !important;
+    width: var(--assistant-thread-band-width, calc(100% - 4px)) !important;
+    max-width: var(--assistant-thread-band-width, calc(100% - 4px)) !important;
+    max-inline-size: var(--assistant-thread-band-width, calc(100% - 4px)) !important;
+    align-self: stretch !important;
     display: grid !important;
     visibility: visible !important;
     opacity: 1 !important;
@@ -1121,12 +1111,15 @@ html[data-visual-mode='light-outline'] .floating-card-shell {
   }
 
   body.agent-route-active main.agent-layout.is-mobile-viewport {
-    --bubble-user-maxw: 50%;
+    --bubble-user-maxw: 92%;
   }
 
   body.agent-route-active main.agent-layout.is-mobile-viewport .agent-thread > .agent-bubble.user:not(.upload-bubble) {
-    max-width: var(--bubble-user-maxw, 50%) !important;
+    max-width: var(--bubble-user-maxw, 92%) !important;
     width: fit-content !important;
+    align-self: flex-end !important;
+    margin-left: auto !important;
+    margin-right: 0 !important;
   }
 }
 
@@ -1152,6 +1145,9 @@ html[data-visual-mode='light-outline'] .floating-card-shell {
     -webkit-overflow-scrolling: touch !important;
     overscroll-behavior-y: contain !important;
     touch-action: pan-y !important;
+    /* Composer dock + panel deck are flex siblings outside the thread — drop legacy overlay reserve */
+    scroll-padding-bottom: max(8px, env(safe-area-inset-bottom, 0px)) !important;
+    scroll-padding-top: var(--agent-mobile-header-chat-gap, 12px) !important;
   }
 
   html.agent-route-active body.agent-route-active main.agent-layout.is-mobile-viewport.mobile-panel-expanded .agent-panel.is-mobile-expanded,
@@ -1163,5 +1159,108 @@ html[data-visual-mode='light-outline'] .floating-card-shell {
     touch-action: pan-y !important;
     overscroll-behavior: contain !important;
     -webkit-overflow-scrolling: touch !important;
+  }
+}
+
+/*
+ * Agent mobile chat header — fixed below safe band (authoritative EOF).
+ * Loaded late via layout.tsx; wins diagnostics / backdrop / safe-area shell rules.
+ * Layout has no padding-top — header owns the top inset so nothing double-counts.
+ */
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+  body.agent-route-active {
+    --agent-mobile-header-safe-gap: 10px;
+    --agent-mobile-header-safe-min: 16px;
+    --agent-mobile-header-bar-h: 54px;
+    --agent-mobile-header-chat-gap: 12px;
+    --agent-mobile-header-top: calc(
+      max(env(safe-area-inset-top, 0px), var(--agent-mobile-header-safe-min)) + var(--agent-mobile-header-safe-gap)
+    );
+    --agent-mobile-header-occupy: calc(
+      var(--agent-mobile-header-top) + var(--agent-mobile-header-bar-h) + var(--agent-mobile-header-chat-gap)
+    );
+  }
+
+  html.pwa-standalone body.agent-route-active {
+    --agent-mobile-header-safe-gap: 8px;
+    --agent-mobile-header-safe-min: 0px;
+  }
+
+  html[data-visual-mode='dark-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport,
+  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport,
+  html:not([data-visual-mode]) body.agent-route-active main.agent-layout.is-mobile-viewport,
+  body.agent-route-active main.agent-layout.is-mobile-viewport {
+    padding-top: 0 !important;
+    margin-top: 0 !important;
+  }
+
+  body.agent-route-active main.agent-layout.is-mobile-viewport > section.agent-chat {
+    padding-top: var(--agent-mobile-header-occupy) !important;
+    box-sizing: border-box !important;
+  }
+
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile,
+  html[data-visual-mode='dark-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile,
+  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile {
+    position: fixed !important;
+    top: var(--agent-mobile-header-top) !important;
+    left: max(var(--mobile-shell-gutter-x, 8px), env(safe-area-inset-left, 0px)) !important;
+    right: max(var(--mobile-shell-gutter-x, 8px), env(safe-area-inset-right, 0px)) !important;
+    width: auto !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 6px 12px 7px !important;
+    gap: 5px !important;
+    z-index: 28 !important;
+    transform: none !important;
+    translate: none !important;
+    flex: none !important;
+    box-sizing: border-box !important;
+  }
+
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row {
+    min-height: var(--agent-mobile-header-bar-h) !important;
+    max-height: var(--agent-mobile-header-bar-h) !important;
+    padding-top: 5px !important;
+    padding-bottom: 5px !important;
+    padding-left: max(8px, env(safe-area-inset-left, 0px)) !important;
+    padding-right: 0 !important;
+    overflow: hidden !important;
+  }
+
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-mobile-toolbar-row,
+  html.agent-route-active body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-mobile-toolbar-row {
+    width: 100% !important;
+    padding-right: 0 !important;
+  }
+
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-mobile-toolbar-actions,
+  html.agent-route-active body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-mobile-toolbar-actions {
+    margin-right: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row.has-action-plan-funnel {
+    min-height: 0 !important;
+    max-height: none !important;
+    padding-top: 5px !important;
+    padding-bottom: 0 !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0 !important;
+  }
+
+  body.agent-route-active main.agent-layout.is-mobile-viewport > section.agent-chat.active-chat-2:has(.agent-chat-header.has-action-plan-funnel) {
+    --agent-mobile-header-occupy: calc(var(--agent-mobile-header-top) + 98px + var(--agent-mobile-header-chat-gap, 12px));
+    padding-top: var(--agent-mobile-header-occupy) !important;
+  }
+
+  html:not(.pwa-standalone) body.agent-route-active.browser-keyboard-open main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile,
+  html:not(.pwa-standalone) body.agent-route-active.composer-typing-snap main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile,
+  html:not(.pwa-standalone) body.agent-route-active.keyboard-opening main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile,
+  html:not(.pwa-standalone) body.agent-route-active.mobile-input-engaged main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile {
+    top: var(--agent-mobile-header-top) !important;
+    transform: none !important;
+    translate: none !important;
   }
 }

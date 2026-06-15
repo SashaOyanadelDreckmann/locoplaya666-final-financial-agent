@@ -2,6 +2,44 @@ export const CORE_AGENT_HISTORY_TURN_LIMIT = 12;
 export const CORE_AGENT_HISTORY_MESSAGE_LIMIT = CORE_AGENT_HISTORY_TURN_LIMIT * 2;
 export const CORE_AGENT_HISTORY_MESSAGE_CHAR_LIMIT = 360;
 
+/** Chat 2 allows the full product turn budget with richer message retention. */
+export const CHAT_2_AGENT_HISTORY_TURN_LIMIT = 20;
+export const CHAT_2_AGENT_HISTORY_MESSAGE_LIMIT = CHAT_2_AGENT_HISTORY_TURN_LIMIT * 2;
+export const CHAT_2_AGENT_HISTORY_MESSAGE_CHAR_LIMIT = 1600;
+
+export const CHAT_3_AGENT_HISTORY_TURN_LIMIT = 10;
+export const CHAT_3_AGENT_HISTORY_MESSAGE_LIMIT = CHAT_3_AGENT_HISTORY_TURN_LIMIT * 2;
+export const CHAT_3_AGENT_HISTORY_MESSAGE_CHAR_LIMIT = 900;
+
+export type CoreAgentHistoryLimits = {
+  turnLimit: number;
+  maxMessages: number;
+  maxCharsPerMessage: number;
+};
+
+export function resolveCoreAgentHistoryLimits(activeChatId?: unknown): CoreAgentHistoryLimits {
+  const chatId = String(activeChatId ?? 'chat-1');
+  if (chatId === 'chat-2') {
+    return {
+      turnLimit: CHAT_2_AGENT_HISTORY_TURN_LIMIT,
+      maxMessages: CHAT_2_AGENT_HISTORY_MESSAGE_LIMIT,
+      maxCharsPerMessage: CHAT_2_AGENT_HISTORY_MESSAGE_CHAR_LIMIT,
+    };
+  }
+  if (chatId === 'chat-3') {
+    return {
+      turnLimit: CHAT_3_AGENT_HISTORY_TURN_LIMIT,
+      maxMessages: CHAT_3_AGENT_HISTORY_MESSAGE_LIMIT,
+      maxCharsPerMessage: CHAT_3_AGENT_HISTORY_MESSAGE_CHAR_LIMIT,
+    };
+  }
+  return {
+    turnLimit: CORE_AGENT_HISTORY_TURN_LIMIT,
+    maxMessages: CORE_AGENT_HISTORY_MESSAGE_LIMIT,
+    maxCharsPerMessage: CORE_AGENT_HISTORY_MESSAGE_CHAR_LIMIT,
+  };
+}
+
 export const BUDGET_CHAT_QA_TURN_LIMIT = 12;
 export const BUDGET_CHAT_QA_CHAR_LIMIT = 320;
 

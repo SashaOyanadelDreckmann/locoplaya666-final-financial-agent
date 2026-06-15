@@ -1,7 +1,16 @@
 /* =============================================================================
-   MODAL CLOSE CONFIRM — universal Apple-style alert (budget canonical)
+   MODAL CONFIRM SURFACES — universal Apple-minimal black matte (budget canonical)
    Loaded after close-button.css — wins tx contract / diagnostics overrides.
    ============================================================================= */
+
+:root {
+  --agent-confirm-font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --agent-confirm-ink: rgba(255, 255, 255, 0.94);
+  --agent-confirm-ink-muted: rgba(235, 235, 245, 0.62);
+  --agent-confirm-surface: #0f0f0f;
+  --agent-confirm-border: rgba(255, 255, 255, 0.1);
+  --agent-confirm-action-border: rgba(255, 255, 255, 0.18);
+}
 
 .budget-modal,
 .transactions-modal,
@@ -10,6 +19,164 @@
 .account-modal,
 .social-modal {
   position: relative !important;
+}
+
+/* ── Shared surface (overlay dialog + inline banner) ── */
+.agent-confirm-surface,
+.modal-close-confirm-dialog,
+.budget-pending-confirm {
+  border: 1px solid var(--agent-confirm-border) !important;
+  background: var(--agent-confirm-surface) !important;
+  background-image: none !important;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.32) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  text-align: center !important;
+  font-family: var(--agent-confirm-font) !important;
+  font-variant-numeric: normal !important;
+  -webkit-font-smoothing: antialiased !important;
+}
+
+.agent-confirm-surface *,
+.modal-close-confirm-dialog *,
+.budget-pending-confirm *,
+.budget-modal .agent-confirm-surface,
+.budget-modal .agent-confirm-surface *,
+.budget-modal .modal-close-confirm-dialog,
+.budget-modal .modal-close-confirm-dialog *,
+.budget-modal .budget-pending-confirm,
+.budget-modal .budget-pending-confirm *,
+.transactions-modal .agent-confirm-surface,
+.transactions-modal .agent-confirm-surface *,
+.transactions-modal .modal-close-confirm-dialog,
+.transactions-modal .modal-close-confirm-dialog * {
+  font-family: var(--agent-confirm-font) !important;
+  font-variant-numeric: normal !important;
+  font-feature-settings: normal !important;
+}
+
+.agent-confirm-surface__title,
+.modal-close-confirm-title {
+  margin: 0 0 6px !important;
+  font-size: 1.0625rem !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.022em !important;
+  line-height: 1.25 !important;
+  color: var(--agent-confirm-ink) !important;
+  -webkit-text-fill-color: var(--agent-confirm-ink) !important;
+  text-wrap: balance !important;
+}
+
+.agent-confirm-surface__copy,
+.modal-close-confirm-body,
+.budget-pending-confirm-copy {
+  margin: 0 auto 18px !important;
+  padding: 0 6px !important;
+  max-width: 38ch !important;
+  font-size: 0.9375rem !important;
+  font-weight: 400 !important;
+  font-style: normal !important;
+  line-height: 1.42 !important;
+  letter-spacing: -0.011em !important;
+  color: var(--agent-confirm-ink-muted) !important;
+  -webkit-text-fill-color: var(--agent-confirm-ink-muted) !important;
+  text-wrap: pretty !important;
+}
+
+.agent-confirm-surface--inline.budget-pending-confirm {
+  margin-top: 14px !important;
+  padding: 12px 14px !important;
+  border-radius: 12px !important;
+}
+
+.agent-confirm-surface--inline .agent-confirm-surface__copy,
+.budget-pending-confirm.agent-confirm-surface--inline .budget-pending-confirm-copy {
+  margin-bottom: 10px !important;
+  max-width: none !important;
+  font-size: 13px !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+  -webkit-text-fill-color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.agent-confirm-surface__actions,
+.modal-close-confirm-actions,
+.budget-pending-confirm-actions {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  gap: 8px !important;
+  flex-wrap: wrap !important;
+  width: 100% !important;
+}
+
+/* Transparent ghost actions — no interior fill */
+.agent-confirm-action,
+.modal-close-confirm-actions .agent-confirm-action,
+.modal-close-confirm-actions .continue-ghost,
+.modal-close-confirm-actions .button-primary,
+.budget-modal .modal-close-confirm-actions .continue-ghost,
+.budget-modal .modal-close-confirm-actions .button-primary,
+.transactions-modal .modal-close-confirm-actions .continue-ghost,
+.transactions-modal .modal-close-confirm-actions .button-primary,
+.budget-pending-confirm-actions .agent-confirm-action,
+.budget-pending-confirm-actions .budget-chat-sync-button.is-pending-confirm-action,
+.budget-modal .budget-pending-confirm-actions .budget-chat-sync-button.is-pending-confirm-action {
+  min-height: 40px !important;
+  height: auto !important;
+  width: auto !important;
+  flex: 1 1 0 !important;
+  max-width: 148px !important;
+  margin: 0 !important;
+  padding: 8px 12px !important;
+  border-radius: 12px !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.01em !important;
+  line-height: 1.2 !important;
+  text-align: center !important;
+  background: transparent !important;
+  background-image: none !important;
+  border: 1px solid var(--agent-confirm-action-border) !important;
+  color: rgba(255, 255, 255, 0.86) !important;
+  -webkit-text-fill-color: rgba(255, 255, 255, 0.86) !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  filter: none !important;
+}
+
+.agent-confirm-action.is-emphasis,
+.modal-close-confirm-actions .agent-confirm-action.is-emphasis,
+.modal-close-confirm-actions .button-primary.agent-confirm-action,
+.budget-pending-confirm-actions .agent-confirm-action.is-emphasis,
+.budget-pending-confirm-actions .budget-chat-sync-button.is-pending-confirm-emphasis {
+  border-color: rgba(255, 255, 255, 0.34) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+.agent-confirm-action:hover:not(:disabled),
+.modal-close-confirm-actions .agent-confirm-action:hover:not(:disabled),
+.modal-close-confirm-actions .continue-ghost:hover:not(:disabled),
+.modal-close-confirm-actions .button-primary:hover:not(:disabled),
+.budget-modal .modal-close-confirm-actions .continue-ghost:hover:not(:disabled),
+.budget-modal .modal-close-confirm-actions .button-primary:hover:not(:disabled),
+.transactions-modal .modal-close-confirm-actions .continue-ghost:hover:not(:disabled),
+.transactions-modal .modal-close-confirm-actions .button-primary:hover:not(:disabled),
+.budget-pending-confirm-actions .agent-confirm-action:hover:not(:disabled),
+.budget-pending-confirm-actions .budget-chat-sync-button.is-pending-confirm-action:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border-color: rgba(255, 255, 255, 0.28) !important;
+  color: rgba(255, 255, 255, 0.98) !important;
+  -webkit-text-fill-color: rgba(255, 255, 255, 0.98) !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+
+.agent-confirm-action:disabled,
+.budget-pending-confirm-actions .agent-confirm-action:disabled {
+  opacity: 0.42 !important;
+  cursor: not-allowed !important;
 }
 
 .modal-close-confirm-layer {
@@ -28,56 +195,13 @@
   width: min(400px, calc(100% - 32px));
   padding: 22px 22px 18px;
   border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(28, 28, 30, 0.78);
-  backdrop-filter: blur(28px) saturate(180%);
-  -webkit-backdrop-filter: blur(28px) saturate(180%);
-  box-shadow:
-    0 24px 64px rgba(0, 0, 0, 0.42),
-    inset 0 1px 0 rgba(255, 255, 255, 0.07);
-  text-align: center;
 }
 
-.modal-close-confirm-title {
-  margin: 0 0 6px;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif !important;
-  font-size: 1.0625rem;
-  font-weight: 600;
-  letter-spacing: -0.022em;
-  line-height: 1.25;
-  color: rgba(255, 255, 255, 0.96);
-  -webkit-text-fill-color: rgba(255, 255, 255, 0.96);
-  -webkit-font-smoothing: antialiased;
-  text-wrap: balance;
-}
-
+/* Legacy aliases — keep for grep/tests */
 .modal-close-confirm-body,
 .modal-close-confirm-body * {
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif !important;
+  font-family: var(--agent-confirm-font) !important;
   font-variant-numeric: normal !important;
-}
-
-.modal-close-confirm-body {
-  margin: 0 auto 18px;
-  padding: 0 6px;
-  max-width: 34ch;
-  font-size: 0.9375rem;
-  font-weight: 400;
-  font-style: normal;
-  line-height: 1.42;
-  letter-spacing: -0.011em;
-  color: rgba(235, 235, 245, 0.62);
-  -webkit-text-fill-color: rgba(235, 235, 245, 0.62);
-  -webkit-font-smoothing: antialiased;
-  text-align: center;
-  text-wrap: pretty;
-}
-
-.modal-close-confirm-actions {
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-  flex-wrap: wrap;
 }
 
 .modal-close-confirm-actions .continue-ghost,
@@ -89,32 +213,11 @@
   min-height: 40px;
   padding: 0 14px;
   border-radius: 12px;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif !important;
+  font-family: var(--agent-confirm-font) !important;
   font-size: 0.875rem;
   font-weight: 500;
   letter-spacing: -0.01em;
   line-height: 1.2;
-  background: #18242f !important;
-  background-image: none !important;
-  border: 1px solid rgba(152, 186, 212, 0.22) !important;
-  color: #e9f1f8 !important;
-  -webkit-text-fill-color: #e9f1f8 !important;
-  box-shadow: none !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  filter: none !important;
-}
-
-.modal-close-confirm-actions .continue-ghost:hover:not(:disabled),
-.modal-close-confirm-actions .button-primary:hover:not(:disabled),
-.budget-modal .modal-close-confirm-actions .continue-ghost:hover:not(:disabled),
-.budget-modal .modal-close-confirm-actions .button-primary:hover:not(:disabled),
-.transactions-modal .modal-close-confirm-actions .continue-ghost:hover:not(:disabled),
-.transactions-modal .modal-close-confirm-actions .button-primary:hover:not(:disabled) {
-  background: #1f2d3b !important;
-  border-color: rgba(126, 176, 216, 0.5) !important;
-  box-shadow: none !important;
-  filter: none !important;
 }
 
 /* Transactions — empty library matches modal white plane (mobile + desktop) */
@@ -248,4 +351,30 @@ body.agent-route-active .transactions-modal .tx-library-empty p {
     flex-direction: row;
     justify-content: center;
   }
+}
+
+/* EOF — beat diagnostics / modal monospace overrides */
+.budget-modal .agent-confirm-surface .agent-confirm-action,
+.budget-modal .modal-close-confirm-dialog .agent-confirm-action,
+.transactions-modal .agent-confirm-surface .agent-confirm-action,
+.transactions-modal .modal-close-confirm-dialog .agent-confirm-action,
+.budget-modal .budget-pending-confirm .agent-confirm-action,
+.modal-close-confirm-actions .button-primary.agent-confirm-action,
+.modal-close-confirm-actions .continue-ghost.agent-confirm-action {
+  background: transparent !important;
+  background-image: none !important;
+}
+
+.budget-modal .budget-assistant-panel .budget-pending-confirm-actions .budget-chat-sync-button.is-pending-confirm-emphasis,
+.budget-modal .budget-assistant-panel .budget-pending-confirm-actions .agent-confirm-action.is-emphasis,
+.budget-modal .budget-pending-confirm .budget-chat-sync-button.is-pending-confirm-emphasis,
+.budget-modal .budget-pending-confirm .agent-confirm-action.is-emphasis {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+.budget-modal .budget-assistant-panel .budget-pending-confirm-actions .budget-chat-sync-button.is-pending-confirm-emphasis:hover:not(:disabled),
+.budget-modal .budget-assistant-panel .budget-pending-confirm-actions .agent-confirm-action.is-emphasis:hover:not(:disabled) {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
 }

@@ -20,6 +20,7 @@ type AgentHeroTextProps = {
   focusRow?: BudgetRow | null;
   budgetRows?: BudgetRow[];
   question?: string | null;
+  assistantToneClass?: string | null;
 };
 
 function renderStableTypewriterNodes(
@@ -27,6 +28,7 @@ function renderStableTypewriterNodes(
   visibleLength: number,
 ): ReactNode[] {
   let offset = 0;
+  let highlightIndex = 0;
   const nodes: React.ReactNode[] = [];
 
   for (let index = 0; index < segments.length; index += 1) {
@@ -40,7 +42,10 @@ function renderStableTypewriterNodes(
 
     nodes.push(
       segment.highlight ? (
-        <span key={`kw-${index}`} className="agent-keyword-gradient">
+        <span
+          key={`kw-${index}`}
+          className={`agent-keyword-gradient agent-keyword-gradient--s${highlightIndex % 3}`}
+        >
           {visibleSlice}
         </span>
       ) : (
@@ -49,6 +54,8 @@ function renderStableTypewriterNodes(
         </span>
       ),
     );
+
+    if (segment.highlight) highlightIndex += 1;
   }
 
   return nodes;
@@ -97,6 +104,7 @@ export function AgentHeroText({
   focusRow = null,
   budgetRows = [],
   question = null,
+  assistantToneClass = null,
 }: AgentHeroTextProps) {
   const highlightTerms = useMemo(
     () =>
@@ -114,6 +122,7 @@ export function AgentHeroText({
       className={cn(
         'bcc-hero-question bcc-hero-question--gradient-demo text-center',
         pending && 'bcc-hero-question--pending',
+        assistantToneClass,
         className,
       )}
     >

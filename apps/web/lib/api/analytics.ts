@@ -8,6 +8,7 @@ export type AnalyticsUser = {
   name: string;
   email: string;
   role: AnalyticsRole;
+  approvalStatus: 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED';
   createdAt: string;
   updatedAt: string;
   lastSessionSeenAt: string | null;
@@ -27,6 +28,12 @@ export type AnalyticsUser = {
   artifactsGeneratedCount: number;
   hasIntake: boolean;
   hasProfile: boolean;
+  hasDocuments: boolean;
+  stage: 'new' | 'onboarding' | 'diagnosis' | 'building' | 'active' | 'advanced' | 'stale';
+  usdSpentTotal: number;
+  fincoinDepleted: boolean;
+  fincoinRemainingUsd: number;
+  latestDiagnosticCompletedAt: string | null;
 };
 
 export type AnalyticsInteraction = {

@@ -1,4 +1,4 @@
-import { INTERVIEW_TOTAL_LIMIT_SEC } from '@financial-agent/shared';
+import { INTERVIEW_TOTAL_LIMIT_SEC, resolveInterviewCallsStarted, resolveInterviewUsedSeconds } from '@financial-agent/shared';
 import type { InterviewVoiceReport, InterviewVoiceSnapshot, InterviewVoiceSummaryEntry } from './interview-modal.context';
 import { resolveInterviewActiveQuota, resolveUsedSecondsFromSources } from './interview-modal.helpers';
 
@@ -35,7 +35,7 @@ export function mergeInterviewVoiceSnapshots(
     ...(localSaved ?? {}),
     ...(sessionVoice
       ? {
-          callsStarted: sessionVoice.callsStarted,
+          callsStarted: resolveInterviewCallsStarted(localSaved, sessionVoice),
           remainingTotalSec: sessionVoice.remainingTotalSec,
           maxDurationSec: sessionVoice.maxDurationSec ?? localSaved?.maxDurationSec,
           status: sessionVoice.status ?? localSaved?.status,
@@ -44,8 +44,8 @@ export function mergeInterviewVoiceSnapshots(
           minuteSummaries: sessionVoice.minuteSummaries ?? localSaved?.minuteSummaries,
           finalSummary: sessionVoice.finalSummary ?? localSaved?.finalSummary ?? null,
           callId: sessionVoice.activeCallId ?? sessionVoice.callId ?? localSaved?.callId,
-          callSeconds: resolveUsedSecondsFromSources(sessionVoice, localSaved),
-          totalUsedSec: resolveUsedSecondsFromSources(sessionVoice, localSaved),
+          callSeconds: resolveInterviewUsedSeconds(sessionVoice, localSaved),
+          totalUsedSec: resolveInterviewUsedSeconds(sessionVoice, localSaved),
         }
       : {}),
   } as InterviewVoiceSnapshot;

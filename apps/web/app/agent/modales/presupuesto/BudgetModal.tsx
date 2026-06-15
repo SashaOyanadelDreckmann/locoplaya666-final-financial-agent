@@ -1,7 +1,12 @@
 'use client';
 
-import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
-import { focusMobileInput } from '@/lib/interfaz/mobile-viewport-sync';
+import { useEffect, useRef, useState, type LegacyRef, type ReactNode, type RefObject } from 'react';
+import {
+  applyMobileViewportTokens,
+  focusMobileInput,
+  isBudgetModalElement,
+  setMobileInputEngaged,
+} from '@/lib/interfaz/mobile-viewport-sync';
 import { getCsrfToken } from '@/lib/sesion/csrf';
 import { downloadArtifactFile, saveBubbleSnapshotPdfArtifact } from '@/lib/compartido/artifacts';
 import { BudgetIntelligenceTable, BudgetMobileIntelSummary } from '@/components/ui/budget-intelligence-table';
@@ -12,8 +17,10 @@ import { inferBudgetFocusRowId, extractInferenceQuestionText, resolveBudgetChatT
 import {
   compactBudgetChatAnswers,
   mergeBudgetActionIntoRow,
+  validateBudgetTableActions,
   type BudgetPendingConfirmation,
   type BudgetTableAction,
+  type BudgetProductSnapshot,
 } from '@financial-agent/shared';
 import {
   BUDGET_TABLE_STYLES,
@@ -56,6 +63,7 @@ import { buildBudgetSnapshotHtmlAndCss } from './budget-modal.snapshot';
 import { useBudgetCloseConfirm } from '../presupuesto/use-budget-close-confirm';
 import { BudgetViewNav } from './BudgetViewNav';
 import { useBudgetMobileRowGestures } from './use-budget-mobile-row-gestures';
+import { useBudgetViewSwipe } from './use-budget-view-swipe';
 import { resolveBudgetAssistantHeroToneClass } from './budget-modal.assistant-tone';
 import { FINCOIN_SPEND_BLOCKED_MESSAGE } from '@/lib/compartido/fincoin-gate';
 
@@ -65,7 +73,7 @@ function BudgetCarouselStage({
   children,
 }: {
   mobile: boolean;
-  stageRef?: RefObject<HTMLDivElement | null>;
+  stageRef?: LegacyRef<HTMLDivElement>;
   children: ReactNode;
 }) {
   if (mobile) {
@@ -98,24 +106,7 @@ export function BudgetModal(props: {
   sendBudgetToAgent: () => void;
   chatAnswers: Array<{ q: string; a: string }>;
   onChatAnswersChange: (answers: Array<{ q: string; a: string }>) => void;
-  sessionInfo?: {
-    injectedIntake?: { intake?: Record<string, unknown>; intakeContext?: string } | null;
-    name?: string | null;
-  } | null;
-  bankProducts?: Array<{
-    label: string;
-    bank: string;
-    productType: string;
-    dashboardSummary?: string;
-    keyMetrics?: {
-      inflows_total?: number;
-      outflows_total?: number;
-      net_flow?: number;
-      movement_count?: number;
-    };
-    topCategories?: Array<{ name: string; amount: number }>;
-    alerts?: string[];
-  }>;
+  bankProducts?: BudgetProductSnapshot[];
   onBudgetPdfSaved?: (payload: {
     title: string;
     fileUrl: string;
@@ -126,9 +117,10 @@ export function BudgetModal(props: {
 }) {
 
   const [budgetReply, setBudgetReply] = useState('');
-  const [assistantQuestion, setAssistantQuestion] = useState<string | null>(null);
+  const [assistantReply, setAssistantReply] = useState<string | null>(null);
   const [conversationDone, setConversationDone] = useState(false);
   const [budgetPendingConfirmation, setBudgetPendingConfirmation] = useState<BudgetPendingConfirmation | null>(null);
+  const budgetPendingConfirmationRef = useRef<BudgetPendingConfirmation | null>(null);
   const [isAskingAI, setIsAskingAI] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
@@ -197,21 +189,35 @@ export function BudgetModal(props: {
     onActiveRowChange: setActiveBudgetRowId,
   });
 
+  useBudgetViewSwipe({
+    enabled: props.isOpen && isMobileShell,
+    stageRef: budgetMobileStageRef,
+    budgetViewMode,
+    isDesktopLayout,
+    onViewModeChange: setBudgetViewMode,
+  });
+
   const formatBudgetAmount = (value: number) => `$${Math.round(value).toLocaleString('es-CL')}`;
   const focusBudgetField = (target: EventTarget | null) => {
     const el = target as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | null;
     if (!el || typeof el.focus !== 'function') return;
-    if (isMobileShell) {
-      el.focus({ preventScroll: true });
-      return;
-    }
     focusMobileInput(el);
   };
-  const activeQuestion = assistantNextQuestion ?? assistantQuestion ?? '…';
+  const activeQuestion = assistantNextQuestion ?? '¿Qué quieres cambiar en tu presupuesto?';
   const agentTypewriterText = formatBudgetAssistantTurn({
-    assistant_reply: assistantQuestion ?? undefined,
+    assistant_reply: assistantReply ?? undefined,
     next_question: assistantNextQuestion,
   }) || activeQuestion;
+
+  function isBudgetInteractiveFieldFocused(): boolean {
+    const active = document.activeElement;
+    if (!(active instanceof HTMLElement)) return false;
+    return Boolean(
+      active.closest(
+        '.budget-table input, .budget-table select, .budget-table textarea, .budget-table .budget-pill-button, .bcc-hero-input',
+      ),
+    );
+  }
   const activeStyleIndex = BUDGET_TABLE_STYLES.findIndex((style) => style.id === budgetTableStyle);
   const activeStyleLabel = BUDGET_TABLE_STYLES[Math.max(0, activeStyleIndex)]?.label ?? 'Carbono';
   const heroToneClass =
@@ -226,8 +232,6 @@ export function BudgetModal(props: {
   const budgetAssistantContextInput = {
     budgetRows: props.budgetRows,
     chatAnswers: props.chatAnswers,
-    bankProducts: props.bankProducts,
-    sessionInfo: props.sessionInfo,
   };
 
   function resolveLocalBudgetQuestion(rowId: string | null) {
@@ -236,8 +240,17 @@ export function BudgetModal(props: {
   }
 
   useEffect(() => {
+    if (props.isOpen) return;
+    if (isBudgetModalElement(document.activeElement)) {
+      (document.activeElement as HTMLElement | null)?.blur();
+      setMobileInputEngaged(false);
+      applyMobileViewportTokens();
+    }
+    templateAppliedRef.current = false;
+  }, [props.isOpen]);
+
+  useEffect(() => {
     if (!props.isOpen) {
-      templateAppliedRef.current = false;
       return;
     }
     if (props.budgetRows.length > 0 || templateAppliedRef.current) return;
@@ -251,13 +264,24 @@ export function BudgetModal(props: {
   const focusedBudgetRowId = activeBudgetRowId ?? assistantBudgetRowId ?? inferredBudgetRowId;
   const tableDisplayFocusRowId = isMobileManualTable ? activeBudgetRowId : focusedBudgetRowId;
   const activeBudgetRow = props.budgetRows.find((row) => row.id === focusedBudgetRowId) ?? null;
-  const mobileAssistantHeroToneClass = resolveBudgetAssistantHeroToneClass(activeBudgetRow?.type);
+  const assistantHeroContextText = [
+    agentTypewriterText,
+    assistantNextQuestion,
+    assistantReply,
+    lastUserAnswer,
+  ]
+    .filter((value): value is string => Boolean(value?.trim()))
+    .join(' ');
+  const mobileAssistantHeroToneClass = resolveBudgetAssistantHeroToneClass(
+    activeBudgetRow?.type,
+    assistantHeroContextText,
+  );
 
   const orderedBudgetRows = props.budgetRows;
 
-  function applyAssistantTurn(payload: BudgetChatApiPayload, previousQuestion: string) {
+  function applyAssistantTurn(payload: BudgetChatApiPayload) {
     const reply = getAssistantMessage(payload);
-    setAssistantQuestion(reply || previousQuestion);
+    setAssistantReply(reply || null);
     const nextQuestion = sanitizeBudgetQuestion(getNextQuestion(payload, ''));
     setAssistantNextQuestion(nextQuestion || null);
     setLastUserAnswer(null);
@@ -271,18 +295,23 @@ export function BudgetModal(props: {
   }, [activeBudgetRowId, props.budgetRows]);
 
   useEffect(() => {
+    budgetPendingConfirmationRef.current = budgetPendingConfirmation;
+  }, [budgetPendingConfirmation]);
+
+  useEffect(() => {
     budgetViewModeRef.current = budgetViewMode;
   }, [budgetViewMode]);
 
   useEffect(() => {
     if (!assistantBudgetRowId || isMobileManualTable) return;
+    if (isBudgetInteractiveFieldFocused()) return;
     const active = document.activeElement;
     if (
       active instanceof HTMLInputElement ||
       active instanceof HTMLSelectElement ||
       active instanceof HTMLTextAreaElement
     ) {
-      if (active.closest('.budget-table')) return;
+      if (active.closest('.budget-table, .bcc-hero-compose')) return;
     }
     setActiveBudgetRowId(assistantBudgetRowId);
     const row = document.getElementById(`budget-row-${assistantBudgetRowId}`);
@@ -377,33 +406,34 @@ export function BudgetModal(props: {
   }
 
   function applyBudgetActions(actions: Array<Record<string, unknown>>): string | null {
-    if (!isOpenRef.current || !Array.isArray(actions)) return null;
+    if (!isOpenRef.current || !Array.isArray(actions) || actions.length === 0) return null;
 
-    const tableActions: BudgetTableAction[] = [];
+    const tableActions = validateBudgetTableActions(
+      actions as BudgetTableAction[],
+      props.budgetRows,
+    );
+    if (tableActions.length === 0) return null;
+
     let lastMergedRow: BudgetRow | null = null;
-
-    for (const action of actions) {
-      const rowId = normalizeActionRowId(action?.id);
-      if (!rowId) continue;
-      const existingRow =
-        props.budgetRows.find((row) => normalizeActionRowId(row.id) === rowId) ?? null;
-      const parsed = parseBudgetTableAction(action, existingRow, Boolean(existingRow));
-      if (!parsed) continue;
-      tableActions.push(parsed);
+    for (const parsed of tableActions) {
       if (parsed.kind === 'delete') {
-        if (activeBudgetRowId === rowId) setActiveBudgetRowId(null);
+        if (activeBudgetRowId === parsed.id) setActiveBudgetRowId(null);
         continue;
       }
+      const existingRow =
+        props.budgetRows.find((row) => normalizeActionRowId(row.id) === normalizeActionRowId(parsed.id)) ??
+        null;
       const merged = mergeBudgetActionIntoRow(existingRow, parsed);
       if (merged) lastMergedRow = merged;
     }
 
-    if (tableActions.length === 0) return null;
     props.applyBudgetTableActions(tableActions);
 
     const lastAction = tableActions[tableActions.length - 1];
     const lastTouchedRowId = lastMergedRow?.id ?? normalizeActionRowId(lastAction?.id) ?? null;
-    const skipAssistantTableFx = !isDesktopLayout && budgetViewModeRef.current === tableViewMode;
+    const skipAssistantTableFx =
+      isBudgetInteractiveFieldFocused() ||
+      (!isDesktopLayout && budgetViewModeRef.current === tableViewMode);
     if (lastMergedRow && !skipAssistantTableFx) {
       budgetActionTimersRef.current.push(
         window.setTimeout(() => {
@@ -482,7 +512,7 @@ export function BudgetModal(props: {
     }
   }
 
-  function consumeBudgetChatPayload(payload: BudgetChatApiPayload, questionForTurn: string) {
+  function consumeBudgetChatPayload(payload: BudgetChatApiPayload) {
     if (!isOpenRef.current) return;
 
     const requiresConfirmation = Boolean(payload.requires_confirmation);
@@ -498,7 +528,7 @@ export function BudgetModal(props: {
       lastTouchedRowId = applyBudgetActions(rawActions);
     }
     setConversationDone(Boolean(payload.done));
-    applyAssistantTurn(payload, questionForTurn);
+    applyAssistantTurn(payload);
     const explicitFocus = normalizeActionRowId(payload.focus_row_id);
     const nextQuestion = sanitizeBudgetQuestion(getNextQuestion(payload, ''));
     setAssistantNextQuestion(nextQuestion || null);
@@ -522,11 +552,10 @@ export function BudgetModal(props: {
     replySubmitLockRef.current = true;
 
     const manualFocusRowId = activeBudgetRowId;
+    const pendingForTurn = budgetPendingConfirmationRef.current;
     const questionForTurn =
       assistantNextQuestion ??
       (manualFocusRowId ? resolveLocalBudgetQuestion(manualFocusRowId) : null) ??
-      extractInferenceQuestionText(assistantQuestion ?? '') ??
-      assistantQuestion ??
       activeQuestion;
     const newChatAnswers = [...props.chatAnswers, { q: questionForTurn, a: answer }];
     if (!forcedAnswer) setBudgetReply('');
@@ -562,7 +591,7 @@ export function BudgetModal(props: {
         credentials: 'include',
         body: JSON.stringify({
           intent: 'reply',
-          question: assistantQuestion ?? activeQuestion,
+          question: questionForTurn,
           nextQuestion: questionForTurn,
           answer,
           budgetRows: props.budgetRows.slice(0, 30),
@@ -572,9 +601,7 @@ export function BudgetModal(props: {
           assistantFocusRowId: assistantBudgetRowId,
           activeRowId: chatTargetRow?.id ?? null,
           activeRow: chatTargetRow ? buildBudgetRowSummary(chatTargetRow) : null,
-          pendingConfirmation: budgetPendingConfirmation,
-          intakeContext: props.sessionInfo?.injectedIntake?.intakeContext ?? null,
-          intakeData: props.sessionInfo?.injectedIntake?.intake ?? null,
+          pendingConfirmation: pendingForTurn,
         }),
       });
       const raw = await res.json();
@@ -584,9 +611,9 @@ export function BudgetModal(props: {
       const payload = normalizeBudgetChatPayload(unwrapApiData<BudgetChatApiPayload>(raw));
       if (payload) {
         props.onChatAnswersChange(newChatAnswers);
-        consumeBudgetChatPayload(payload, questionForTurn);
+        consumeBudgetChatPayload(payload);
       } else if (isOpenRef.current) {
-        setAssistantQuestion('No recibí respuesta. Reformula con monto o categoría.');
+        setAssistantReply('No recibí respuesta. Reformula con monto o categoría.');
         setAssistantNextQuestion(null);
       }
     } catch (error) {
@@ -657,7 +684,7 @@ export function BudgetModal(props: {
     setConversationDone(false);
     setAiError(null);
     setBudgetPendingConfirmation(null);
-    setAssistantQuestion(null);
+    setAssistantReply(null);
     setAssistantNextQuestion(null);
     setLastUserAnswer(null);
     setTypewriterTurnKey(0);
@@ -685,12 +712,10 @@ export function BudgetModal(props: {
             intent: 'init',
             budgetRows: budgetRowsForInit,
             chatAnswers: compactBudgetChatAnswers(props.chatAnswers, { maxTurns: 20 }),
-            products: props.bankProducts ?? [],
-            activeRowId: null,
-            activeRow: null,
-            intakeContext: props.sessionInfo?.injectedIntake?.intakeContext ?? null,
-            intakeData: props.sessionInfo?.injectedIntake?.intake ?? null,
-          }),
+          products: props.bankProducts ?? [],
+          activeRowId: null,
+          activeRow: null,
+        }),
         });
         const raw = await res.json();
         if (!res.ok) throw createBudgetChatHttpError(res.status, normalizeBudgetChatPayload(raw));
@@ -698,20 +723,20 @@ export function BudgetModal(props: {
 
         const payload = normalizeBudgetChatPayload(unwrapApiData<BudgetChatApiPayload>(raw));
         if (payload) {
-          applyAssistantTurn(payload, resolveLocalBudgetQuestion('income_salary'));
+          applyAssistantTurn(payload);
           const nextQuestion = sanitizeBudgetQuestion(getNextQuestion(payload, ''));
           setAssistantNextQuestion(nextQuestion || null);
           setAssistantBudgetRowId(payload.focus_row_id ?? inferBudgetFocusRowId(nextQuestion));
         } else {
           const fallbackQuestion = resolveLocalBudgetQuestion('income_salary');
-          setAssistantQuestion(fallbackQuestion);
+          setAssistantReply(null);
           setAssistantNextQuestion(fallbackQuestion);
           setAssistantBudgetRowId('income_salary');
         }
       } catch (err) {
         if (isBudgetChatAbortError(err) || !isOpenRef.current) return;
         const fallbackQuestion = resolveLocalBudgetQuestion('income_salary');
-        setAssistantQuestion(fallbackQuestion);
+        setAssistantReply(null);
         setAssistantNextQuestion(fallbackQuestion);
         setAssistantBudgetRowId('income_salary');
         setAiError(budgetChatErrorMessage(err));
@@ -729,6 +754,7 @@ export function BudgetModal(props: {
     if (!props.isOpen || isDesktopLayout) return;
 
     const measureMobileRowSlot = () => {
+      if (isBudgetInteractiveFieldFocused()) return;
       const root = budgetModalRef.current;
       const scrollHost = budgetTableScrollRef.current;
       if (!root || !scrollHost) return;
@@ -812,10 +838,11 @@ export function BudgetModal(props: {
       window.removeEventListener('resize', measureMobileRowSlot);
       window.removeEventListener('orientationchange', measureMobileRowSlot);
     };
-  }, [props.isOpen, isDesktopLayout, budgetViewMode, props.budgetRows.length, budgetTableStyle, focusedBudgetRowId]);
+  }, [props.isOpen, isDesktopLayout, budgetViewMode, props.budgetRows.length, budgetTableStyle]);
 
   useEffect(() => {
     if (!props.isOpen || isDesktopLayout || isMobileManualTable || !focusedBudgetRowId) return;
+    if (isBudgetInteractiveFieldFocused()) return;
     const row = budgetModalRef.current?.querySelector<HTMLElement>(`#budget-row-${focusedBudgetRowId}`);
     const wrap = budgetTableScrollRef.current?.querySelector<HTMLElement>('.budget-table-wrap');
     if (!row || !wrap) return;
@@ -856,7 +883,6 @@ export function BudgetModal(props: {
         setAssistantBudgetRowId(focusId);
         const localQuestion = resolveLocalBudgetQuestion(focusId);
         setAssistantNextQuestion(localQuestion);
-        if (!assistantQuestion) setAssistantQuestion(localQuestion);
       }
     }
   }, [budgetViewMode, props.isOpen, isDesktopLayout, tableViewMode, props.fincoinSpendBlocked]);
@@ -1186,7 +1212,7 @@ export function BudgetModal(props: {
               className={`budget-assistant-panel budget-card-agent${!isDesktopLayout && budgetViewMode !== tableViewMode ? ' is-mobile-assistant-glass' : ''}`}
               style={cardStyle('agent')}
             >
-              <div className={`bcc-hero${isMobileAssistantOverlay ? ` ${mobileAssistantHeroToneClass}` : ''}`}>
+              <div className={`bcc-hero ${mobileAssistantHeroToneClass}`}>
                 <div
                   className={`bcc-hero-top${isBudgetChatBusy ? ' is-assistant-busy' : ''}`}
                   aria-live="polite"
@@ -1229,7 +1255,8 @@ export function BudgetModal(props: {
                         speed={isDesktopLayout ? 8 : 12}
                         focusRow={activeBudgetRow}
                         budgetRows={props.budgetRows}
-                        question={assistantNextQuestion ?? assistantQuestion}
+                        question={assistantNextQuestion}
+                        assistantToneClass={mobileAssistantHeroToneClass}
                       />
                       <span className="sr-only">{agentTypewriterText}</span>
                     </>

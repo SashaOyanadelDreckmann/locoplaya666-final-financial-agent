@@ -37,7 +37,7 @@ export interface Classification {
 
 /**
  * PHASE 2: Execution Result (ReAct Loop)
- * Output of plan.phase.ts (note: includes execution)
+ * Output of plan-execute.phase.ts
  */
 export interface ExecutionResult {
   tool_calls: ToolCall[];
@@ -50,7 +50,7 @@ export interface ExecutionResult {
 }
 
 /**
- * PHASE 5: Formatted Response (before validation)
+ * PHASE 3: Formatted Response (before validation)
  * Output of format.phase.ts
  */
 export interface FormattedResponse {
@@ -61,7 +61,6 @@ export interface FormattedResponse {
   citations: Citation[];
   suggested_replies: string[];
   panel_action?: { section?: string; message?: string };
-  context_score?: number;
   budget_updates?: Array<{ label: string; type: string; amount: number; category?: string }>;
   knowledge_event_detected?: boolean;
   knowledge_score?: number;
@@ -113,7 +112,6 @@ export interface CoreAgentContext {
   };
   injected_ui_state?: {
     knowledge_score?: number;
-    context_score?: number;
   };
 
   // PHASE 1: CLASSIFY → outputs
@@ -141,6 +139,7 @@ export interface CoreAgentContext {
 export interface ClassifyPhaseInput {
   user_message: string;
   history?: Array<{ role: string; content: string }>;
+  activeChatId?: unknown;
   stream?: AgentProgressReporter;
 }
 
@@ -199,6 +198,8 @@ export interface ValidatePhaseInput {
   injected_intake: IntakeQuestionnaire | null;
   injected_budget: BudgetSummary;
   history?: Array<{ role: string; content: string }>;
+  ui_state?: Record<string, unknown>;
+  user_message?: string;
   stream?: AgentProgressReporter;
 }
 

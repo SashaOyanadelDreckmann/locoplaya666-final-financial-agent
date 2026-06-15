@@ -94,10 +94,8 @@
   pointer-events: none;
 }
 
-.transactions-modal .tx-scanner-lib-card .tx-lib-card-chip {
-  background: color-mix(in srgb, var(--pt-stack-accent) 24%, rgba(255, 255, 255, 0.08)) !important;
-  border-color: color-mix(in srgb, var(--pt-stack-accent) 36%, rgba(255, 255, 255, 0.16)) !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+.transactions-modal .tx-lib-card-chip {
+  display: none !important;
 }
 
 .transactions-modal .tx-scanner-lib-card.is-top:hover,
@@ -108,12 +106,14 @@
 .transactions-modal .tx-scanner-lib-card.is-top:hover .pt-item-name,
 .transactions-modal .tx-scanner-lib-card.is-top:hover .pt-item-bank,
 .transactions-modal .tx-scanner-lib-card.is-top:hover .pt-item-status,
+.transactions-modal .tx-scanner-lib-card.is-top:hover .tx-lib-card-status,
 .transactions-modal .tx-scanner-lib-card.is-top:hover .pt-item-meta,
 .transactions-modal .tx-scanner-lib-card.is-top:hover .pt-item-meta span,
 .transactions-modal .tx-scanner-lib-card.is-top:hover .tx-lib-card-eyebrow,
 .transactions-modal .tx-scanner-lib-card.is-top:focus-within .pt-item-name,
 .transactions-modal .tx-scanner-lib-card.is-top:focus-within .pt-item-bank,
 .transactions-modal .tx-scanner-lib-card.is-top:focus-within .pt-item-status,
+.transactions-modal .tx-scanner-lib-card.is-top:focus-within .tx-lib-card-status,
 .transactions-modal .tx-scanner-lib-card.is-top:focus-within .pt-item-meta,
 .transactions-modal .tx-scanner-lib-card.is-top:focus-within .pt-item-meta span,
 .transactions-modal .tx-scanner-lib-card.is-top:focus-within .tx-lib-card-eyebrow {
@@ -554,9 +554,14 @@
 
 /* Mobile executive report polish: assistant response bubble */
 @media (max-width: 820px) {
+  .agent-layout {
+    --assistant-thread-band-width: 100%;
+  }
+
   .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc,
   .agent-layout .agent-thread > .agent-bubble.assistant.latex-doc.is-intro-doc {
-    max-width: 100% !important;
+    max-width: var(--assistant-thread-band-width) !important;
+    max-inline-size: var(--assistant-thread-band-width) !important;
     border-radius: 18px 18px 12px 12px !important;
     border: 1px solid rgba(178, 146, 90, 0.36) !important;
     background: linear-gradient(155deg, rgba(247, 243, 234, 0.98) 0%, rgba(237, 229, 214, 0.97) 100%) !important;
@@ -673,6 +678,7 @@
   --rail-bg:        var(--bg-secondary);
   --bubble-maxw:    72%;
   --bubble-user-maxw: 68%;
+  --assistant-thread-band-width: min(var(--bubble-maxw, 72%), 760px);
   --artifact-maxw:  80%;
   --doc-maxw:       600px;
   --chart-height:   clamp(240px, 40vh, 480px);
@@ -692,6 +698,18 @@
   overscroll-behavior: none;
   touch-action: manipulation; /* bloquea double-tap zoom, permite tap y scroll internos */
   transition: grid-template-columns 0.32s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+  .agent-layout {
+    --assistant-thread-band-width: calc(100% - 4px);
+  }
+}
+
+@media (min-width: 821px) {
+  .agent-layout:not(.is-mobile-viewport) {
+    --assistant-thread-band-width: 100%;
+  }
 }
 
 /* ================================================= */

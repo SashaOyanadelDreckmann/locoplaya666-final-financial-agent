@@ -21,16 +21,14 @@ import { runClassifyPhase } from './phases/classify.phase';
 import { runPlanExecutePhase } from './phases/plan-execute.phase';
 import { runFormatPhase, detectAndRecordKnowledge } from './phases/format.phase';
 import { runValidatePhase } from './phases/validate.phase';
+import {
+  buildActionPlanSessionBrief,
+  buildRecentThreadContextBlock,
+} from '@financial-agent/shared';
 import { buildRecommendationProfile } from './helpers/recommendation-profile.helpers';
 import { buildReferenceDateContext } from './helpers/evidence.helpers';
+import { normalizeCoreAgentPanelSection } from './helpers/chart-extraction.helpers';
 import { getLogger } from '../../logger';
-
-function clamp01(value: unknown, fallback = 0): number {
-  const raw = typeof value === 'number' ? value : Number(value);
-  if (!Number.isFinite(raw)) return fallback;
-  if (raw > 1) return Math.max(0, Math.min(1, raw / 100));
-  return Math.max(0, Math.min(1, raw));
-}
 
 // Maps each reasoning mode to its inherent regulatory/financial risk level.
 // Lower = safe educational content; higher = direct advice or complex operations.
@@ -79,7 +77,6 @@ export async function runCoreAgent(
     } : undefined,
     injected_ui_state: {
       knowledge_score: inputUiState.knowledge_score,
-      context_score: inputUiState.context_score,
     },
   };
 
@@ -96,9 +93,12 @@ export async function runCoreAgent(
     // ────────────────────────────────────────────────
     // PHASE 1: CLASSIFY
     // ────────────────────────────────────────────────
+    const activeChatId = String(inputUiState.active_chat?.id ?? 'chat-1');
+
     const classifyOutput = await runClassifyPhase({
       user_message: input.user_message,
       history: input.history,
+      activeChatId,
       stream,
     });
 
@@ -145,6 +145,7 @@ export async function runCoreAgent(
       consolidated_context: inputContext.consolidated_context || {},
       product_lifecycle: inputContext.product_lifecycle || {},
       product_directive: inputContext.product_directive || '',
+      social_consciousness_reflections: inputContext.social_consciousness_reflections || [],
       market_snapshot: inputContext.market_snapshot || null,
       ui_state_snapshot: {
         active_chat: inputUiState.active_chat || null,
@@ -155,6 +156,28 @@ export async function runCoreAgent(
         product_closing_mode: inputUiState.product_closing_mode === true,
       },
       recommendation_profile: recommendationProfile,
+      recent_thread_context:
+        activeChatId === 'chat-2'
+          ? buildRecentThreadContextBlock(input.history ?? [], activeChatId)
+          : undefined,
+      action_plan_session_brief:
+        activeChatId === 'chat-2'
+          ? buildActionPlanSessionBrief({
+              profile: (ctx.injected_profile ?? null) as Record<string, unknown> | null,
+              intake: (ctx.injected_intake ?? null) as Record<string, unknown> | null,
+              budget: ctx.injected_budget,
+              funnelStage: recommendationProfile.action_plan_funnel_stage ?? null,
+              turnCount:
+                typeof inputUiState.product_turn_count === 'number'
+                  ? inputUiState.product_turn_count
+                  : undefined,
+              turnsRemaining:
+                typeof inputUiState.product_turns_remaining === 'number'
+                  ? inputUiState.product_turns_remaining
+                  : undefined,
+              history: input.history ?? [],
+            })
+          : undefined,
     };
 
     // ────────────────────────────────────────────────
@@ -207,6 +230,8 @@ export async function runCoreAgent(
       injected_intake: ctx.injected_intake,
       injected_budget: ctx.injected_budget,
       history: input.history,
+      ui_state: input.ui_state,
+      user_message: input.user_message,
       stream,
     });
 
@@ -282,7 +307,7 @@ export async function runCoreAgent(
       },
       suggested_replies: ctx.formatted_response.suggested_replies ?? [],
       panel_action: ctx.formatted_response.panel_action ? {
-        section: ctx.formatted_response.panel_action.section as 'budget' | 'transactions' | 'library' | 'recents' | 'profile' | 'news' | 'objective' | 'mode' | undefined,
+        section: normalizeCoreAgentPanelSection(ctx.formatted_response.panel_action.section),
         message: ctx.formatted_response.panel_action.message,
       } : undefined,
       budget_updates: ctx.formatted_response.budget_updates?.map((update) => ({

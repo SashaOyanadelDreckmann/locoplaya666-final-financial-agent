@@ -1,9 +1,15 @@
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
-import { resolveServerBackendBase, validateBackendSession, fetchServerSession, hasCompletedIntakeAccess } from '@/lib/sesion/sessionAccess';
+import { resolveLoginFallbackRoute } from '@/lib/sesion/auth-redirect';
+import {
+  fetchServerSession,
+  resolveServerBackendBase,
+  type ServerSessionInfo,
+  validateBackendSession,
+} from '@/lib/sesion/sessionAccess';
 
-const PROTECTED_PATHS = ['/agent', '/interview', '/diagnosis', '/intake', '/analytics', '/admin'];
+const PROTECTED_PATHS = ['/agent', '/interview', '/intake', '/analytics', '/admin'];
 const GUEST_ONLY_PATHS = ['/login', '/register'];
 const APPROVAL_WAITING_PATH = '/waiting-approval';
 const SESSION_COOKIE_NAME = process.env.SESSION_COOKIE_NAME?.trim()
@@ -20,6 +26,24 @@ function nextWithPathname(request: NextRequest) {
 
 function hasSessionCookie(request: NextRequest): boolean {
   return Boolean(request.cookies.get(SESSION_COOKIE_NAME)?.value?.trim());
+}
+
+function applyRedirectTarget(url: URL, target: string) {
+  const parsed = new URL(target, url.origin);
+  url.pathname = parsed.pathname;
+  url.search = parsed.search;
+}
+
+function redirectAuthenticatedLanding(request: NextRequest, profile: ServerSessionInfo) {
+  const url = request.nextUrl.clone();
+  applyRedirectTarget(
+    url,
+    resolveLoginFallbackRoute({
+      role: profile.role,
+      session: profile,
+    }),
+  );
+  return NextResponse.redirect(url);
 }
 
 async function sessionIsValid(request: NextRequest): Promise<{
@@ -81,11 +105,9 @@ export async function middleware(request: NextRequest) {
         forwardedProto: request.headers.get('x-forwarded-proto'),
       });
       const { session: profile } = await fetchServerSession({ cookieHeader, backendBase });
-      const url = request.nextUrl.clone();
-      url.pathname = profile?.id && hasCompletedIntakeAccess(profile.injectedIntake)
-        ? '/agent'
-        : '/intake?status=approved';
-      return NextResponse.redirect(url);
+      if (profile?.id) {
+        return redirectAuthenticatedLanding(request, profile);
+      }
     }
   }
 
@@ -99,11 +121,9 @@ export async function middleware(request: NextRequest) {
         forwardedProto: request.headers.get('x-forwarded-proto'),
       });
       const { session: profile } = await fetchServerSession({ cookieHeader, backendBase });
-      const url = request.nextUrl.clone();
-      url.pathname = profile?.id && hasCompletedIntakeAccess(profile.injectedIntake)
-        ? '/agent'
-        : '/intake?status=approved';
-      return NextResponse.redirect(url);
+      if (profile?.id) {
+        return redirectAuthenticatedLanding(request, profile);
+      }
     }
   }
 
@@ -114,9 +134,9 @@ export const config = {
   matcher: [
     '/agent/:path*',
     '/interview/:path*',
-    '/diagnosis/:path*',
     '/intake/:path*',
     '/analytics/:path*',
+    '/admin',
     '/admin/:path*',
     '/login',
     '/register',

@@ -1,6 +1,11 @@
 import React, { memo, useMemo, useState, type ReactNode } from 'react';
 
-import { createInitialAgentStreamUiState } from '@financial-agent/shared';
+import {
+  createInitialAgentStreamUiState,
+  createJsonTransportStreamUiState,
+  readBrowserAgentTransportHint,
+  shouldPreferAgentJsonTransport,
+} from '@financial-agent/shared';
 
 import { DocumentBubble } from '@/components/conversacion/DocumentBubble';
 import { CitationBubble } from '@/components/conversacion/CitationBubble';
@@ -124,33 +129,35 @@ function isWelcomeCarouselShellItem(
   index: number,
   items: ChatItem[],
   activeThreadId: string | undefined,
-  diagnosisUnlocked: boolean,
+  chat1GeneralDeepened: boolean,
 ): boolean {
   return isChatIntroShellItem({
     item,
     index,
     items,
     activeThreadId,
-    diagnosisUnlocked,
+    chat1GeneralDeepened,
     isLegacyWelcomeAssistantItem,
   });
 }
 
 function renderChatIntroCard(props: {
   activeThreadId?: string;
-  diagnosisUnlocked: boolean;
+  chat1GeneralDeepened: boolean;
   sessionUserName?: string;
   sessionInjectedIntake?: unknown;
   diagnosisProfile?: DiagnosisProfile | null;
   className?: string;
   preferExecutiveCarousel?: boolean;
+  chat1IntroMode?: 'default' | 'deepen';
+  voiceFindings?: string[];
 }) {
   const chatId = (props.activeThreadId ?? 'chat-1') as ChatIntroId;
   if (
     props.preferExecutiveCarousel === true ||
     usesExecutiveWelcomeCarousel({
       activeThreadId: props.activeThreadId,
-      diagnosisUnlocked: props.diagnosisUnlocked,
+      chat1GeneralDeepened: props.chat1GeneralDeepened,
     })
   ) {
     return (
@@ -169,7 +176,9 @@ function renderChatIntroCard(props: {
       sessionUserName={props.sessionUserName}
       sessionInjectedIntake={props.sessionInjectedIntake}
       diagnosisProfile={props.diagnosisProfile}
-      diagnosisUnlocked={props.diagnosisUnlocked}
+      diagnosisUnlocked={props.chat1GeneralDeepened}
+      introMode={props.chat1IntroMode}
+      voiceFindings={props.voiceFindings}
     />
   );
 }
@@ -177,20 +186,24 @@ function renderChatIntroCard(props: {
 function welcomeShellBubbleClasses(params: {
   isEmptyWelcomeShell: boolean;
   activeThreadId?: string;
-  diagnosisUnlocked: boolean;
+  chat1GeneralDeepened: boolean;
   isScrollable: boolean;
   isFirstAssistantCard: boolean;
   isStreaming: boolean;
   funnelStage?: 'brainstorm' | 'converge' | 'deliver' | null;
+  socialFunnelStage?: 'explore' | 'tension' | 'synthesis' | null;
+  chat1IntroMode?: 'default' | 'deepen';
 }): string {
   const executiveWelcomeShell =
-    params.isEmptyWelcomeShell && params.activeThreadId === 'chat-1';
+    params.isEmptyWelcomeShell &&
+    params.activeThreadId === 'chat-1' &&
+    params.chat1IntroMode !== 'deepen';
   const compactIntro =
     params.isEmptyWelcomeShell &&
     !executiveWelcomeShell &&
     isCompactChatIntroShell({
       activeThreadId: params.activeThreadId,
-      diagnosisUnlocked: params.diagnosisUnlocked,
+      chat1GeneralDeepened: params.chat1GeneralDeepened || params.chat1IntroMode === 'deepen',
     });
 
   return [
@@ -202,6 +215,8 @@ function welcomeShellBubbleClasses(params: {
     params.isStreaming ? 'is-streaming' : '',
     params.funnelStage === 'deliver' ? 'is-action-plan-deliver' : '',
     params.funnelStage ? `is-action-plan-${params.funnelStage}` : '',
+    params.socialFunnelStage === 'synthesis' ? 'is-social-consciousness-synthesis' : '',
+    params.socialFunnelStage ? `is-social-consciousness-${params.socialFunnelStage}` : '',
   ]
     .filter(Boolean)
     .join(' ');
@@ -210,17 +225,20 @@ function welcomeShellBubbleClasses(params: {
 function welcomeShellBodyClasses(params: {
   isEmptyWelcomeShell: boolean;
   activeThreadId?: string;
-  diagnosisUnlocked: boolean;
+  chat1GeneralDeepened: boolean;
   isScrollable: boolean;
+  chat1IntroMode?: 'default' | 'deepen';
 }): string {
   const executiveWelcomeShell =
-    params.isEmptyWelcomeShell && params.activeThreadId === 'chat-1';
+    params.isEmptyWelcomeShell &&
+    params.activeThreadId === 'chat-1' &&
+    params.chat1IntroMode !== 'deepen';
   const compactIntro =
     params.isEmptyWelcomeShell &&
     !executiveWelcomeShell &&
     isCompactChatIntroShell({
       activeThreadId: params.activeThreadId,
-      diagnosisUnlocked: params.diagnosisUnlocked,
+      chat1GeneralDeepened: params.chat1GeneralDeepened || params.chat1IntroMode === 'deepen',
     });
 
   return [
@@ -233,17 +251,23 @@ function welcomeShellBodyClasses(params: {
     .join(' ');
 }
 
-function isExternalCitation(citation: Extract<ChatItem, { type: 'citation' }>['citation']) {
+function isRenderableCitation(citation: Extract<ChatItem, { type: 'citation' }>['citation']) {
   const raw = citation?.url;
-  if (!raw || typeof raw !== 'string') return false;
-  try {
-    const parsed = new URL(raw);
-    if (!['http:', 'https:'].includes(parsed.protocol)) return false;
-    const host = parsed.hostname.toLowerCase();
-    return host !== 'localhost' && host !== '127.0.0.1' && host !== '::1';
-  } catch {
-    return false;
+  if (raw && typeof raw === 'string') {
+    try {
+      const parsed = new URL(raw);
+      if (['http:', 'https:'].includes(parsed.protocol)) {
+        const host = parsed.hostname.toLowerCase();
+        if (host !== 'localhost' && host !== '127.0.0.1' && host !== '::1') {
+          return true;
+        }
+      }
+    } catch {
+      // fall through to title-based citations
+    }
   }
+  const title = String(citation?.title ?? citation?.source ?? '').trim();
+  return title.length > 0;
 }
 
 export const ChatThreadView = memo(function ChatThreadView(props: {
@@ -264,6 +288,7 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
   chatThreadRef: React.RefObject<HTMLDivElement>;
   activeChatId: string;
   actionPlanFunnelStage?: 'brainstorm' | 'converge' | 'deliver' | null;
+  socialConsciousnessFunnelStage?: 'explore' | 'tension' | 'synthesis' | null;
   setItemsForActive: React.Dispatch<React.SetStateAction<ChatItem[]>>;
   classifyReportGroup: (title: string, source?: string) => SavedReport['group'];
   setSavedReports: React.Dispatch<React.SetStateAction<SavedReport[]>>;
@@ -274,6 +299,10 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
   compactClosedView?: boolean;
   showFullChat?: boolean;
   closingSummary?: ChatClosureSummary | null;
+  sendDisabled?: boolean;
+  chat1IntroMode?: 'default' | 'deepen';
+  chat1GeneralDeepened: boolean;
+  diagnosisDeepenVoiceFindings?: string[];
 }) {
   const docModePillStyle = getDocModePillStyle(props.visualMode);
   const [savingBubblePdf, setSavingBubblePdf] = useState<Record<number, boolean>>({});
@@ -281,6 +310,7 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
   const chat1Ux = resolveChat1UxState({
     chatId: props.activeThreadId,
     diagnosisCompleted: props.diagnosisUnlocked,
+    generalChatStarted: props.chat1GeneralDeepened,
     canOpenInterview: props.canOpenInterview,
   });
   const chat1Copy = getChat1UxCopy(chat1Ux);
@@ -316,10 +346,13 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
     }
     return null;
   }, [itemsToRender]);
-  const loadingStreamState = useMemo(
-    () => (props.loading ? createInitialAgentStreamUiState() : null),
-    [props.loading],
-  );
+  const loadingStreamState = useMemo(() => {
+    if (!props.loading) return null;
+    const preferJson =
+      typeof window !== 'undefined' &&
+      shouldPreferAgentJsonTransport(readBrowserAgentTransportHint());
+    return preferJson ? createJsonTransportStreamUiState() : createInitialAgentStreamUiState();
+  }, [props.loading]);
   const streamAccentSource = activeStreamingState ?? loadingStreamState;
   const streamAccentStyle = streamAccentSource
     ? ({ '--stream-accent': getStreamRailAccentColor(streamAccentSource) } as React.CSSProperties)
@@ -381,6 +414,8 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
           (entry) => entry.type === 'message' && entry.role === 'assistant'
         );
         const funnelStage = props.activeThreadId === 'chat-2' ? props.actionPlanFunnelStage : null;
+        const socialFunnelStage =
+          props.activeThreadId === 'chat-3' ? props.socialConsciousnessFunnelStage : null;
         const docMeta =
           props.activeThreadId === 'chat-2'
             ? {
@@ -404,18 +439,27 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
             : props.activeThreadId === 'chat-3'
             ? {
                 kicker: 'Conciencia social',
-                title: 'Informe de criterio financiero',
+                title:
+                  socialFunnelStage === 'synthesis'
+                    ? 'Lectura social consolidada'
+                    : socialFunnelStage === 'tension'
+                      ? 'Tensión entre valores y dinero'
+                      : 'Filosofía del dinero',
                 subtitle:
-                  'Lectura filosófica, responsabilidad social y prudencia normativa aplicada.',
+                  socialFunnelStage === 'synthesis'
+                    ? 'Síntesis reflexiva de tu recorrido — pregunta abierta al final.'
+                    : socialFunnelStage === 'tension'
+                      ? 'Contraste de posturas y dilemas éticos en tu situación concreta.'
+                      : 'Exploración socrática sobre propósito, sociedad y existencia.',
               }
             : {
                 kicker: isFirstAssistantCard ? 'Punto de partida' : chat1Copy.threadKicker,
-                title: props.diagnosisUnlocked
+                title: props.chat1GeneralDeepened
                   ? 'Chat general'
                   : isFirstAssistantCard
                   ? 'Informe inicial de diagnóstico'
                   : chat1Copy.threadTitle,
-                subtitle: props.diagnosisUnlocked
+                subtitle: props.chat1GeneralDeepened
                   ? 'Síntesis profesional del contexto, evidencia disponible y próximos pasos.'
                   : isFirstAssistantCard
                   ? 'Introducción ejecutiva personalizada — evidencia real, simulación normativa y ruta de decisión.'
@@ -431,14 +475,16 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
             i,
             itemsToRender,
             props.activeThreadId,
-            props.diagnosisUnlocked,
+            props.chat1GeneralDeepened,
           );
         const questionnaireBlocks = props.diagnosisUnlocked
           ? blocks.filter((b) => b.type === 'questionnaire')
           : [];
+        const transactionChartBlocks = blocks.filter((b) => b.type === 'tx_chart');
         const technicalBlocks = blocks.filter(
-          (b) => b.type !== 'questionnaire' && b.type !== 'executive_intro'
+          (b) => b.type !== 'questionnaire' && b.type !== 'executive_intro' && b.type !== 'tx_chart',
         );
+        const hasTechnicalAnnex = transactionChartBlocks.length > 0 || technicalBlocks.length > 0;
         const isChatErrorBubble =
           !isStreaming &&
           !isEmptyWelcomeShell &&
@@ -457,11 +503,13 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
                   : welcomeShellBubbleClasses({
                       isEmptyWelcomeShell,
                       activeThreadId: props.activeThreadId,
-                      diagnosisUnlocked: props.diagnosisUnlocked,
+                      chat1GeneralDeepened: props.chat1GeneralDeepened,
                       isScrollable,
                       isFirstAssistantCard,
                       isStreaming,
                       funnelStage,
+                      socialFunnelStage,
+                      chat1IntroMode: props.chat1IntroMode,
                     })
               }
               {...(isEmptyWelcomeShell ? { 'data-chat-welcome-shell': 'true' } : {})}
@@ -488,7 +536,7 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
                         void (async () => {
                           try {
                             if (!bubbleEl) throw new Error('Bubble not found');
-                            const externalCitations = attachedCitations.filter(isExternalCitation);
+                            const externalCitations = attachedCitations.filter(isRenderableCitation);
                             const snapshot = buildBubbleSnapshotHtmlAndCss(bubbleEl, {
                               kicker: docMeta.kicker,
                               title: docMeta.title,
@@ -505,6 +553,7 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
                               subtitle: docMeta.subtitle,
                               html: snapshot.html,
                               css: snapshot.css,
+                              pageLayout: 'content',
                             });
                             const artifact = result.artifact;
                             const pdfFilename = `${docMeta.title.replace(/\s+/g, '-').slice(0, 48)}.pdf`;
@@ -558,18 +607,24 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
                 className={welcomeShellBodyClasses({
                   isEmptyWelcomeShell,
                   activeThreadId: props.activeThreadId,
-                  diagnosisUnlocked: props.diagnosisUnlocked,
+                  chat1GeneralDeepened: props.chat1GeneralDeepened,
                   isScrollable,
+                  chat1IntroMode: props.chat1IntroMode,
                 })}
               >
                 {isEmptyWelcomeShell ? (
                   renderChatIntroCard({
                     activeThreadId: props.activeThreadId,
-                    diagnosisUnlocked: props.diagnosisUnlocked,
+                    chat1GeneralDeepened: props.chat1GeneralDeepened,
                     sessionUserName: props.sessionUserName,
                     sessionInjectedIntake: props.sessionInjectedIntake,
                     diagnosisProfile: props.diagnosisProfile,
-                    preferExecutiveCarousel: props.activeThreadId === 'chat-1',
+                    preferExecutiveCarousel:
+                      props.activeThreadId === 'chat-1' &&
+                      !props.chat1GeneralDeepened &&
+                      props.chat1IntroMode !== 'deepen',
+                    chat1IntroMode: props.chat1IntroMode,
+                    voiceFindings: props.diagnosisDeepenVoiceFindings,
                   })
                 ) : isChatErrorBubble ? (
                   <p className="agent-bubble--chat-error-text">
@@ -589,27 +644,36 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
                     <AgentBlocksRenderer
                       blocks={questionnaireBlocks}
                       onQuestionnaireSubmit={({ message }) => {
+                        if (props.sendDisabled) return;
                         void props.onSend(message);
                       }}
                     />
                   </div>
                 )}
-                {technicalBlocks.length > 0 && (
+                {hasTechnicalAnnex && (
                   <div className="latex-inline-annex">
                     <div className="latex-inline-annex-head">
                       <span>Anexos técnicos</span>
                       <span>evidencia viva</span>
                     </div>
-                    <AgentBlocksRenderer
-                      blocks={technicalBlocks}
-                      onQuestionnaireSubmit={({ message }) => {
-                        void props.onSend(message);
-                      }}
-                    />
+                    {transactionChartBlocks.length > 0 && (
+                      <div className="latex-inline-annex-charts">
+                        <AgentBlocksRenderer blocks={transactionChartBlocks} />
+                      </div>
+                    )}
+                    {technicalBlocks.length > 0 && (
+                      <AgentBlocksRenderer
+                        blocks={technicalBlocks}
+                        onQuestionnaireSubmit={({ message }) => {
+                          if (props.sendDisabled) return;
+                          void props.onSend(message);
+                        }}
+                      />
+                    )}
                   </div>
                 )}
                 {(() => {
-                  const externalCitations = attachedCitations.filter(isExternalCitation);
+                  const externalCitations = attachedCitations.filter(isRenderableCitation);
                   if (externalCitations.length === 0) return null;
                   const expanded = Boolean(props.expandedCitationsByMessage[i]);
                   const visibleCitations = expanded ? externalCitations : externalCitations.slice(0, 3);
@@ -737,7 +801,7 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
       );
     }
     if (it.type === 'citation') {
-      if (!isExternalCitation(it.citation)) return null;
+      if (!isRenderableCitation(it.citation)) return null;
       return (
         <div key={i} className="agent-bubble assistant citation">
           <CitationBubble citation={it.citation} />
@@ -769,29 +833,31 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
     rendered.push(renderChatItem(it, idx));
   }
 
-  // UX decision: hide suggested-reply chips from thread top area to keep the
-  // opening flow focused and avoid visual noise before/after first turns.
+  const isChat1DeepenIntro =
+    props.chat1IntroMode === 'deepen' || props.chat1GeneralDeepened === true;
 
   return (
     <div ref={props.chatThreadRef} className="agent-thread" style={streamAccentStyle}>
         {rendered.length === 0 && !props.loading ? (
           <div
             className={`agent-bubble assistant latex-doc is-intro-doc${
-              props.activeThreadId === 'chat-1' ||
-              !isCompactChatIntroShell({
-                activeThreadId: props.activeThreadId,
-                diagnosisUnlocked: props.diagnosisUnlocked,
-              })
-                ? ' is-empty-welcome'
-                : ' is-chat-intro-shell'
+              isChat1DeepenIntro ||
+              (props.activeThreadId !== 'chat-1' &&
+                isCompactChatIntroShell({
+                  activeThreadId: props.activeThreadId,
+                  chat1GeneralDeepened: props.chat1GeneralDeepened,
+                }))
+                ? ' is-chat-intro-shell'
+                : ' is-empty-welcome'
             }`}
             data-chat-welcome-shell="true"
           >
             <div
               className={
+                isChat1DeepenIntro ||
                 isCompactChatIntroShell({
                   activeThreadId: props.activeThreadId,
-                  diagnosisUnlocked: props.diagnosisUnlocked,
+                  chat1GeneralDeepened: isChat1DeepenIntro || props.chat1GeneralDeepened,
                 })
                   ? 'latex-doc-body is-chat-intro-body'
                   : 'latex-doc-body is-empty-welcome-body'
@@ -799,11 +865,16 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
             >
               {renderChatIntroCard({
                 activeThreadId: props.activeThreadId,
-                diagnosisUnlocked: props.diagnosisUnlocked,
+                chat1GeneralDeepened: isChat1DeepenIntro || props.chat1GeneralDeepened,
                 sessionUserName: props.sessionUserName,
                 sessionInjectedIntake: props.sessionInjectedIntake,
                 diagnosisProfile: props.diagnosisProfile,
-                preferExecutiveCarousel: props.activeThreadId === 'chat-1',
+                preferExecutiveCarousel:
+                  props.activeThreadId === 'chat-1' &&
+                  !props.chat1GeneralDeepened &&
+                  props.chat1IntroMode !== 'deepen',
+                chat1IntroMode: props.chat1IntroMode,
+                voiceFindings: props.diagnosisDeepenVoiceFindings,
               })}
             </div>
           </div>

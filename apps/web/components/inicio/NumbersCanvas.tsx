@@ -65,7 +65,17 @@ export default function NumbersCanvas({
     let lastPaintP = -1;
 
     const img = new Image();
+    img.decoding = 'async';
+    if ('fetchPriority' in img) {
+      (img as HTMLImageElement & { fetchPriority: string }).fetchPriority = 'high';
+    }
+    const onImageReady = () => {
+      sample();
+      paint(progress.get(), 0);
+    };
+    img.onload = onImageReady;
     img.src = '/images/bg-door.jpg';
+    if (img.complete && img.naturalWidth > 0) onImageReady();
 
     function sample() {
       if (!img.complete || !img.naturalWidth) return;
@@ -322,10 +332,6 @@ export default function NumbersCanvas({
 
     resize();
     window.addEventListener('resize', resize);
-    img.onload = () => {
-      sample();
-      paint(progress.get(), 0);
-    };
 
     const onProgress = () => {
       paint(progress.get(), 0);

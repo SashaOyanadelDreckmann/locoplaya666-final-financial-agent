@@ -98,11 +98,20 @@ describe('interview gate invariants', () => {
     });
   });
 
-  it('keeps chat 1 in diagnosisCompleted after interview finishes', () => {
+  it('keeps chat 1 in interviewAvailable until general chat deepen starts', () => {
     expect(
       resolveChat1UxState({
         chatId: 'chat-1',
         diagnosisCompleted: true,
+        generalChatStarted: false,
+        canOpenInterview: true,
+      }),
+    ).toBe('interviewAvailable');
+    expect(
+      resolveChat1UxState({
+        chatId: 'chat-1',
+        diagnosisCompleted: true,
+        generalChatStarted: true,
         canOpenInterview: true,
       }),
     ).toBe('diagnosisCompleted');

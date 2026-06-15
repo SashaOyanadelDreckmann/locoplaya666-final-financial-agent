@@ -47,6 +47,7 @@ describe('health routes', () => {
       expect(res.body.data.ready).toBe(true);
       expect(res.body.data.checks.mcp.status).toBe('ok');
       expect(res.body.data.checks.database.status).toBe('skipped');
+      expect(res.body.data.checks.artifactStorage.status).toBe('ok');
     } finally {
       if (previousDatabaseUrl) {
         process.env.DATABASE_URL = previousDatabaseUrl;

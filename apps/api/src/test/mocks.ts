@@ -140,7 +140,6 @@ export function createMockFormattedResponse(
     artifacts: [],
     citations: [],
     suggested_replies: ['¿Cuáles son los fondos que recomiendas?', 'Muéstrame la proyección'],
-    context_score: 85,
     budget_updates: [],
     ...overrides,
   };
@@ -178,9 +177,7 @@ export function createMockFormatterResponse(): string {
 
 <SUGERENCIAS>
 ["¿Cuáles son los fondos que recomiendas?", "Muéstrame la proyección"]
-</SUGERENCIAS>
-
-<CONTEXT_SCORE>85</CONTEXT_SCORE>`;
+</SUGERENCIAS>`;
 }
 
 // ─────────────────────────────────────────

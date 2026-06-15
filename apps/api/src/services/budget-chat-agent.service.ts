@@ -87,7 +87,7 @@ function buildAgentToolInstructions(): string {
     '- Si pide renombrar, reordenar conceptualmente, vaciar, duplicar rubros o rearmar la tabla → tradúcelo a actions concretas.',
     '- NO sigas un guion fijo de campos: interpreta lenguaje natural y mapea a la tabla.',
     '- Usa ids existentes de TABLE_ROWS para update/delete; ids nuevos solo en add.',
-    '- Montos solo si el usuario los dio, están en RECENT_CHAT o hay evidencia en CONTEXT.',
+    '- Montos solo si el usuario los dio, están en RECENT_CHAT o hay evidencia verificable en movementLedger (movimientos por producto).',
     '- requires_confirmation=true si hay delete, si son ≥4 actions, o si el cambio es masivo/ambiguo.',
     '- requires_confirmation=false si el pedido es explícito y acotado (ej. un monto, un rename, 1-3 adds claros).',
     '- pending_summary: qué harás (1-2 frases, cita detalle del usuario). Sin muletillas Perfecto/Claro/Listo.',

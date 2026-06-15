@@ -1,7 +1,7 @@
 /**
  * plan-execute.phase.ts
  *
- * PHASE 2-3: Planning + Execution (ReAct Loop)
+ * PHASE 2: Planning + Execution (ReAct Loop)
  * Decides which tools to call and executes them in a loop
  */
 
@@ -17,6 +17,8 @@ import { retrieveRAGContext } from '../../../services/rag.service';
 import { CORE_TOOL_AGENT_SYSTEM } from '../system.prompts';
 import {
   buildTrustedWebQuery,
+  chat3RequestsNumericGrounding,
+  isChat3BlockedTool,
   isFactualInfoMode,
   shouldBypassWebEvidenceCache,
   shouldPrefetchTrustedWeb,
@@ -24,6 +26,7 @@ import {
 import { extractChartBlocksFromToolOutput } from '../helpers/chart-extraction.helpers';
 import { resolvePlanExecuteModel } from '../helpers/model-policy.helpers';
 import { isArtifactLike } from '../helpers/validation.helpers';
+import { enrichWebSearchWithTrustedRead } from '../../../mcp/tools/web/trustedWebRead';
 import type { ExecutionResult, PlanPhaseInput, PlanPhaseOutput } from '../agent-types';
 import type { ToolCall, Citation, Artifact, AgentBlock } from '../chat.types';
 import { getLogger } from '../../../logger';
@@ -35,7 +38,7 @@ const AUTO_WEB_VERIFY_ENABLED =
   process.env.NODE_ENV !== 'test' &&
   (process.env.AGENT_ALWAYS_VERIFY_WEB ?? 'true').toLowerCase() !== 'false';
 const WEB_VERIFY_CACHE_TTL_MS = Number(
-  process.env.AGENT_WEB_VERIFY_CACHE_TTL_MS ?? 20 * 60 * 1000
+  process.env.AGENT_WEB_VERIFY_CACHE_TTL_MS ?? 10 * 60 * 1000
 );
 const REGULATORY_KEYWORDS =
   /\b(cmf|fintec|fintech|ley\s*21\.?521|normativa|regulator|sfa|finanzas abiertas|comision para el mercado financiero)\b/i;
@@ -143,10 +146,16 @@ export async function runPlanExecutePhase(input: PlanPhaseInput): Promise<PlanPh
     const artifacts: Artifact[] = [];
     const agent_blocks: AgentBlock[] = [];
     const react_trace: Array<{ iteration: number; decision: string; result: string }> = [];
+    const activeChatId = String(
+      (input.context_summary?.ui_state_snapshot as { active_chat?: { id?: string } } | undefined)
+        ?.active_chat?.id ?? '',
+    );
+    const chat3Mode = activeChatId === 'chat-3';
     const shouldRunTools =
       input.classification.requires_tools === true || input.classification.requires_rag === true;
     const shouldGroundWithWeb =
       AUTO_WEB_VERIFY_ENABLED &&
+      (!chat3Mode || chat3RequestsNumericGrounding(input.user_message)) &&
       shouldAutoWebVerify(input.user_message) &&
       shouldPrefetchTrustedWeb({
         userMessage: input.user_message,
@@ -200,6 +209,51 @@ export async function runPlanExecutePhase(input: PlanPhaseInput): Promise<PlanPh
       }
     }
 
+    if (isRegulatoryRequest) {
+      try {
+        const regulatoryQuery = String(input.user_message ?? input.classification.intent);
+        input.stream?.tool('regulatory.lookup_cl', 'start', { iteration: 0 });
+        const regulatoryResult = await runMCPTool({
+          tool: 'regulatory.lookup_cl',
+          args: { query: regulatoryQuery, limit: 3 },
+          turn_id: input.turn_id || 'unknown',
+          user_id: input.user_id || 'unknown',
+        });
+
+        if (regulatoryResult.tool_call?.status === 'success' || !regulatoryResult.tool_call?.status) {
+          const regulatoryCitations = [
+            ...(Array.isArray(regulatoryResult.citations) ? regulatoryResult.citations : []),
+            ...(Array.isArray(regulatoryResult.data?.citations) ? regulatoryResult.data.citations : []),
+          ];
+          if (regulatoryCitations.length > 0) {
+            citations.push(...regulatoryCitations);
+          }
+          tool_outputs.push({
+            tool: 'regulatory.lookup_cl',
+            data: regulatoryResult.data,
+          });
+          tool_calls.push({
+            id: `prefetch-regulatory-${Date.now()}`,
+            tool: 'regulatory.lookup_cl',
+            args: { query: regulatoryQuery, limit: 3 },
+            status: 'success',
+          });
+          react_trace.push({
+            iteration: 0,
+            decision: 'Prefetch regulatorio CMF/Ley Chile',
+            result: 'success',
+          });
+        }
+        input.stream?.tool('regulatory.lookup_cl', 'done', { iteration: 0 });
+      } catch (err) {
+        logger.warn({
+          msg: '[Execute] Regulatory lookup prefetch failed (non-blocking)',
+          error: err,
+        });
+        input.stream?.tool('regulatory.lookup_cl', 'error', { iteration: 0 });
+      }
+    }
+
     // Cheap-by-design web grounding: one trusted search per meaningful turn.
     if (shouldGroundWithWeb) {
       try {
@@ -236,14 +290,26 @@ export async function runPlanExecutePhase(input: PlanPhaseInput): Promise<PlanPh
           });
 
           if (webResult.tool_call?.status === 'success' || !webResult.tool_call?.status) {
+            const searchResults = Array.isArray(webResult.data?.results)
+              ? (webResult.data.results as Array<{ url?: string; title?: string; snippet?: string }>)
+              : undefined;
+            const trustedRead = await enrichWebSearchWithTrustedRead({
+              query: webQuery,
+              results: searchResults,
+            });
+            const webData =
+              trustedRead.trusted_page_read && webResult.data && typeof webResult.data === 'object'
+                ? { ...webResult.data, trusted_page_read: trustedRead.trusted_page_read }
+                : webResult.data;
             const gatheredCitations = [
               ...(Array.isArray(webResult.citations) ? webResult.citations : []),
               ...(Array.isArray(webResult.data?.citations) ? webResult.data.citations : []),
+              ...(trustedRead.citation ? [trustedRead.citation] : []),
             ];
             citations.push(...gatheredCitations);
             tool_outputs.push({
               tool: 'web.search',
-              data: webResult.data,
+              data: webData,
             });
             tool_calls.push({
               id: `prefetch-web-${Date.now()}`,
@@ -254,12 +320,12 @@ export async function runPlanExecutePhase(input: PlanPhaseInput): Promise<PlanPh
             react_trace.push({
               iteration: 0,
               decision: 'Prefetch web confiable',
-              result: 'success',
+              result: trustedRead.trusted_page_read ? 'success_with_page_read' : 'success',
             });
             storeCachedWebEvidence(cacheUserId, {
               ts: Date.now(),
               query: webQuery,
-              results: webResult.data,
+              results: webData,
               citations: gatheredCitations,
             });
             input.stream?.tool('web.search', 'done', { iteration: 0 });
@@ -270,8 +336,20 @@ export async function runPlanExecutePhase(input: PlanPhaseInput): Promise<PlanPh
           msg: '[Execute] Trusted web prefetch failed (non-blocking)',
           error: err,
         });
+        input.stream?.tool('web.search', 'error', { iteration: 0 });
+        tool_calls.push({
+          id: `prefetch-web-error-${Date.now()}`,
+          tool: 'web.search',
+          args: { prefetch: true },
+          status: 'error',
+          error_message: String(err),
+        });
       }
     }
+
+    const uniquePrefetchArtifacts = Array.from(
+      new Map(artifacts.map((a) => [a.id, a])).values(),
+    );
 
     if (!shouldRunTools) {
       react_trace.push({
@@ -288,8 +366,8 @@ export async function runPlanExecutePhase(input: PlanPhaseInput): Promise<PlanPh
         execution_result: {
           tool_calls,
           tool_outputs,
-          artifacts: [],
-          agent_blocks: [],
+          artifacts: uniquePrefetchArtifacts,
+          agent_blocks,
           citations,
           react_trace,
           iterations_count: 0,
@@ -409,6 +487,27 @@ export async function runPlanExecutePhase(input: PlanPhaseInput): Promise<PlanPh
           continue;
         }
 
+        if (chat3Mode && isChat3BlockedTool(originalName, input.user_message)) {
+          tool_calls.push({
+            id: toolUse.id,
+            tool: originalName,
+            args: parsedArgs,
+            status: 'error',
+          });
+          loopMessages.push({
+            role: 'tool',
+            tool_call_id: toolUse.id,
+            content: JSON.stringify({
+              ok: false,
+              error: 'chat3_philosophical_mode',
+              message:
+                'Chat 3 prioriza reflexion socratica. Evita herramientas financieras salvo que el usuario pida explicitamente numeros, simulacion o marco regulatorio.',
+            }),
+          });
+          react_trace[react_trace.length - 1].result = 'blocked_chat3_tool';
+          continue;
+        }
+
         input.stream?.tool(originalName, 'start', { iteration: iterations });
 
         try {
@@ -422,7 +521,9 @@ export async function runPlanExecutePhase(input: PlanPhaseInput): Promise<PlanPh
             user_id: input.user_id || 'unknown',
           });
 
-          if (toolResult.tool_call?.status === 'success' || !toolResult.tool_call?.status) {
+          const toolStatus = toolResult.tool_call?.status === 'success' ? 'success' : 'error';
+
+          if (toolStatus === 'success') {
             // Extract charts if present
             const charts = extractChartBlocksFromToolOutput(
               JSON.stringify(toolResult.data)
@@ -453,14 +554,15 @@ export async function runPlanExecutePhase(input: PlanPhaseInput): Promise<PlanPh
 
             result = toolResult.data;
           } else {
-            result = { error: toolResult.data?.error || 'Tool execution failed' };
+            result = toolResult.data ?? { error: toolResult.tool_call?.error_message || 'Tool execution failed' };
           }
 
           tool_calls.push({
             id: toolUse.id,
             tool: originalName,
             args: parsedArgs,
-            status: 'success',
+            status: toolStatus,
+            error_message: toolStatus === 'error' ? toolResult.tool_call?.error_message : undefined,
           });
 
           tool_outputs.push({
@@ -474,15 +576,17 @@ export async function runPlanExecutePhase(input: PlanPhaseInput): Promise<PlanPh
             content: JSON.stringify(result),
           });
 
-          react_trace[react_trace.length - 1].result = 'success';
-          input.stream?.tool(originalName, 'done', { iteration: iterations });
+          react_trace[react_trace.length - 1].result = toolStatus === 'success' ? 'success' : 'failed';
+          input.stream?.tool(originalName, toolStatus === 'success' ? 'done' : 'error', {
+            iteration: iterations,
+          });
         } catch (err) {
           logger.warn({
             msg: '[Execute] Tool failed',
             tool: originalName,
             error: err,
           });
-          input.stream?.tool(originalName, 'done', { iteration: iterations });
+          input.stream?.tool(originalName, 'error', { iteration: iterations });
 
           tool_calls.push({
             id: toolUse.id,
@@ -501,6 +605,10 @@ export async function runPlanExecutePhase(input: PlanPhaseInput): Promise<PlanPh
         }
       }
 
+    }
+
+    for (const step of react_trace) {
+      if (step.result === 'pending') step.result = 'interrupted';
     }
 
     const uniqueArtifacts = Array.from(
@@ -560,6 +668,25 @@ function buildExecutionPrompt(input: PlanPhaseInput): string {
     typeof input.context_summary?.product_directive === 'string'
       ? input.context_summary.product_directive
       : '';
+  const actionPlanBrief =
+    typeof input.context_summary?.action_plan_session_brief === 'string'
+      ? input.context_summary.action_plan_session_brief
+      : '';
+  const recentThreadContext =
+    typeof input.context_summary?.recent_thread_context === 'string'
+      ? input.context_summary.recent_thread_context
+      : '';
+  const activeChatId = String(
+    (input.context_summary?.ui_state_snapshot as { active_chat?: { id?: string } } | undefined)
+      ?.active_chat?.id ?? '',
+  );
+  const chat3Mode = activeChatId === 'chat-3';
+  const socialReflections = Array.isArray(
+    (input.context_summary as { social_consciousness_reflections?: unknown })?.social_consciousness_reflections,
+  )
+    ? (input.context_summary as { social_consciousness_reflections: unknown[] })
+        .social_consciousness_reflections
+    : [];
   const uploadedDocuments = Array.isArray(input.context_summary?.uploaded_documents)
     ? input.context_summary.uploaded_documents
     : [];
@@ -576,12 +703,31 @@ Mode: ${input.classification.mode}
 Product directive:
 ${productDirective || 'No product-specific directive.'}
 
+${actionPlanBrief ? `Action plan session brief:\n${actionPlanBrief}\n` : ''}${recentThreadContext ? `${recentThreadContext}\n` : ''}
 User context:
 ${JSON.stringify(input.context_summary, null, 2)}
 
 Uploaded documents present: ${uploadedDocuments.length > 0 ? 'yes' : 'no'}
 Rule: if uploaded_documents or consolidated_context.transactions exist, treat them as primary evidence.
 Never tell the user to upload transacciones again if the context already contains their files or parsed cartolas.
+
+${
+  chat3Mode
+    ? `CHAT 3 — Politica de herramientas (conciencia social):
+- Prioriza reflexion socratica sobre calculo financiero.
+- NO invoques finance.*, math.* ni agent.compose_pipeline salvo que el usuario pida explicitamente numeros, simulacion o marco regulatorio (CMF/SII).
+- Usa rag.lookup o web.search solo como contexto filosofico/social verificable, no como meta principal.
+- Si hay reflexiones del modal phi en social_consciousness_reflections, integralas con tacto.
+- Detente cuando la reflexion este suficientemente anclada; la fase format escribe la respuesta final.`
+    : `Grounding policy:
+- Use agent.compose_pipeline for multi-step arithmetic instead of inventing numbers.
+- Use finance.transactions_charts when consolidated_context.transactions.movements exist.
+- Prefer market.* / web.search / rag.lookup for factual claims about Chile.
+- When a tool returns ok:false, read suggested_action and retry with corrected args or another tool.
+- Stop when evidence is sufficient; the format phase writes the final user-facing answer.`
+}
+
+Social reflections present: ${socialReflections.length > 0 ? 'yes' : 'no'}
 
 Please use available tools to fulfill the user's request.
 `;

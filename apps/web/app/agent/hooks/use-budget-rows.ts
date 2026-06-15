@@ -16,6 +16,7 @@ import {
 import {
   mergeBudgetActionIntoRow,
   normalizeBudgetActionRowId,
+  validateBudgetTableActions,
   type BudgetTableAction,
 } from '@financial-agent/shared';
 
@@ -126,8 +127,9 @@ export function useBudgetRows(initialRows: BudgetRow[] = []) {
   const applyBudgetTableActions = useCallback((actions: BudgetTableAction[]) => {
     if (!Array.isArray(actions) || actions.length === 0) return;
     setBudgetRows((rows) => {
+      const validated = validateBudgetTableActions(actions, rows);
       let next = [...rows];
-      for (const action of actions) {
+      for (const action of validated) {
         const rowId = normalizeBudgetActionRowId(action.id);
         if (!rowId) continue;
         if (action.kind === 'delete') {

@@ -69,6 +69,24 @@ export function extractCitationsFromToolOutputs(
           url,
         });
       }
+
+      const trustedRead = record.trusted_page_read;
+      if (trustedRead && typeof trustedRead === 'object') {
+        const read = trustedRead as Record<string, unknown>;
+        const url = typeof read.url === 'string' ? read.url : undefined;
+        const title = typeof read.title === 'string' ? read.title : 'Fuente Chile';
+        const excerpt = typeof read.excerpt === 'string' ? read.excerpt : undefined;
+        if (url && excerpt) {
+          citations.push({
+            doc_id: url,
+            doc_title: title,
+            supporting_span: excerpt,
+            supports: 'claim',
+            confidence: 0.82,
+            url,
+          });
+        }
+      }
       continue;
     }
 

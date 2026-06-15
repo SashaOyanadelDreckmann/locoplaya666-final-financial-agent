@@ -115,11 +115,66 @@ describe('interview pro mobile css safeguards', () => {
     expect(modalSource).toContain('interview-live-zone--center');
     expect(minimalCss).toContain('grid-template-columns: repeat(4, minmax(0, 1fr))');
     expect(minimalCss).toContain('grid-template-rows: auto minmax(200px, 1fr) auto');
+    expect(minimalCss).toContain('grid-template-rows: auto minmax(0, 1fr) auto');
+    expect(minimalCss).toContain('--iv-min-def-matte-shadow');
+    expect(minimalCss).toContain('--iv-min-def-deepen-bg');
+    expect(minimalCss).toContain('.diagnosis-signal-pill:nth-child(6n + 1)');
     expect(minimalCss).toContain('background-image: none');
     expect(minimalCss).toContain('var(--modal-header-top-inset');
     expect(minimalCss).toContain('var(--modal-mobile-sheet-radius');
     expect(minimalCss).toContain('font-size: clamp(15px, 4.4vw, 17px)');
-    expect(minimalCss).toContain('.interview-modal.is-mobile-shell.interview-modal--minimal .interview-header-title-band--live');
+    expect(minimalCss).toContain('interview-modal--diagnosis.interview-modal--minimal');
+    expect(minimalCss).toContain('--iv-min-panel-bg-soft');
+    expect(minimalCss).toContain('interview-modal--generating.interview-modal--minimal');
+    expect(minimalCss).toContain('background: transparent !important');
     expect(minimalCss).toContain('flex-direction: column !important');
+  });
+
+  it('loads interview mobile premium styles after minimal in layout', () => {
+    const layoutSource = fs.readFileSync(path.join(process.cwd(), 'app', 'layout.tsx'), 'utf8');
+    expect(layoutSource).toContain("import './estilos/modales/entrevista/agent-modals-interview-mobile-styles.css';");
+
+    const layoutImports = [...layoutSource.matchAll(/import\s+'\.\/([^']+\.css)'/g)].map((match) => match[1]);
+    const minimalIdx = layoutImports.indexOf('estilos/modales/entrevista/agent-modals-interview-minimal.css');
+    const stylesIdx = layoutImports.indexOf('estilos/modales/entrevista/agent-modals-interview-mobile-styles.css');
+    expect(minimalIdx).toBeGreaterThanOrEqual(0);
+    expect(stylesIdx).toBeGreaterThan(minimalIdx);
+  });
+
+  it('locks interview mobile premium minimal parity for live + diagnosis', () => {
+    const premiumCssPath = path.join(
+      process.cwd(),
+      'app',
+      'estilos',
+      'modales',
+      'entrevista',
+      'agent-modals-interview-mobile-styles.css',
+    );
+    const premiumCss = fs.readFileSync(premiumCssPath, 'utf8');
+
+    expect(premiumCss).toContain('INTERVIEW MOBILE — PREMIUM MINIMAL PARITY');
+    expect(premiumCss).toContain('.is-mobile-shell.interview-modal--minimal:not(.interview-modal--diagnosis)');
+    expect(premiumCss).toContain('linear-gradient(180deg, rgba(8, 10, 16, 0.98)');
+    expect(premiumCss).toContain('.is-mobile-shell.interview-modal--diagnosis.interview-modal--minimal');
+    expect(premiumCss).toContain('linear-gradient(180deg, #ffffff 0%, #faf7f1 58%, #f5efe6 100%)');
+    expect(premiumCss).toContain('.interview-diagnosis-panel__footer');
+    expect(premiumCss).toContain('grid-template-columns: repeat(2, minmax(0, 1fr))');
+    expect(premiumCss).toContain('grid-template-rows: auto minmax(0, 1fr) auto');
+    expect(premiumCss).toContain('@media (max-height: 720px)');
+    expect(premiumCss).toContain('min-height: 72px');
+  });
+
+  it('keeps interview voice aura luminous on mobile shell', () => {
+    const auraCss = fs.readFileSync(
+      path.join(process.cwd(), 'app', 'estilos', 'modales', 'entrevista', 'agent-modals-interview-voice-aura.css'),
+      'utf8',
+    );
+
+    expect(auraCss).toContain('.is-mobile-shell.interview-modal--minimal .interview-live-zone--center');
+    expect(auraCss).toContain('overflow: visible !important');
+    expect(auraCss).toContain('border-radius: 50%');
+    expect(auraCss).toContain('.interview-voice-aura__sphere--ambient');
+    expect(auraCss).toContain('--iv-aura-voice');
+    expect(auraCss).toContain('inset: 0 !important');
   });
 });

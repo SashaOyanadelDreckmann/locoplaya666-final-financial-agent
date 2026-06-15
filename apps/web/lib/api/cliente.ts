@@ -132,6 +132,27 @@ export type FincoinUsageApiPayload = {
   warning_threshold?: number;
 };
 
+export async function saveSocialReflectionsToServer(session: {
+  answers: Array<{
+    questionId: string;
+    question: string;
+    choiceId: string;
+    choiceLabel: string;
+    choiceSubtext?: string;
+    thinker?: string;
+  }>;
+  completedAt: string;
+}) {
+  const API_URL = getSessionApiBaseUrl();
+  const res = await fetch(`${API_URL}/api/agent/social-reflections`, {
+    method: 'PUT',
+    headers: withCsrf({ 'Content-Type': 'application/json' }),
+    credentials: 'include',
+    body: JSON.stringify(session),
+  });
+  return parseApiResponse<{ saved: boolean; socialConsciousnessReflections?: unknown }>(res);
+}
+
 export async function getSessionInfo() {
   const API_URL = getSessionApiBaseUrl();
   const res = await fetch(`${API_URL}/api/session`, {

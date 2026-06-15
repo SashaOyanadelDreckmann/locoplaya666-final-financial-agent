@@ -133,6 +133,7 @@ export function readMobileBudgetRowSnapCandidates(
 export function shouldSkipMobileBudgetRowSnap(wrap: HTMLElement): boolean {
   const active = document.activeElement;
   if (!active || !wrap.contains(active)) return false;
+  if (active instanceof HTMLElement && active.closest('.bcc-hero-compose')) return true;
   const tag = active.tagName;
-  return tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA';
+  return tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA' || tag === 'BUTTON';
 }

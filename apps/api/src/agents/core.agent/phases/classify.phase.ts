@@ -10,7 +10,7 @@ import { CORE_CLASSIFIER_SYSTEM } from '../system.prompts';
 import { ReasoningModeSchema } from '../chat.types';
 import { inferUserModel, shouldAskPdfFormat } from '../helpers/user-model.helpers';
 import { resolveCoreAgentClaudeModel } from '../helpers/model-policy.helpers';
-import { compactCoreAgentHistory, shouldBoostFreshEvidenceTools } from '@financial-agent/shared';
+import { compactCoreAgentHistory, resolveCoreAgentHistoryLimits, shouldBoostFreshEvidenceTools } from '@financial-agent/shared';
 import type {
   Classification,
   ClassifyPhaseInput,
@@ -48,9 +48,14 @@ function looksLikeBudgetPressure(text: string): boolean {
 function buildClassifierUserInput(params: {
   userMessage: string;
   history?: Array<{ role: string; content: string }>;
+  activeChatId?: unknown;
 }): string {
   const trimmedMessage = String(params.userMessage ?? '').trim();
-  const compactHistory = compactCoreAgentHistory(params.history);
+  const limits = resolveCoreAgentHistoryLimits(params.activeChatId);
+  const compactHistory = compactCoreAgentHistory(params.history, {
+    maxMessages: limits.maxMessages,
+    maxCharsPerMessage: limits.maxCharsPerMessage,
+  });
 
   if (compactHistory.length === 0) return trimmedMessage;
 
@@ -84,7 +89,11 @@ export async function runClassifyPhase(input: ClassifyPhaseInput): Promise<Class
       confidence?: number;
     }>({
       system: CORE_CLASSIFIER_SYSTEM,
-      user: buildClassifierUserInput({ userMessage: user_message, history }),
+      user: buildClassifierUserInput({
+        userMessage: user_message,
+        history,
+        activeChatId: input.activeChatId,
+      }),
       temperature: 0,
       model: resolveCoreAgentClaudeModel(),
     });

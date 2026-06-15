@@ -7,6 +7,14 @@
 
 const CSRF_TOKEN_KEY = '__csrf_token';
 const CSRF_TOKEN_HEADER = 'X-CSRF-Token';
+const CSRF_COOKIE_NAME = process.env.NEXT_PUBLIC_CSRF_COOKIE_NAME?.trim() || 'csrf-token';
+
+function readCsrfTokenFromDocumentCookie(): string | null {
+  if (typeof document === 'undefined') return null;
+  const pattern = new RegExp(`(?:^|;\\s*)${CSRF_COOKIE_NAME.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}=([^;]+)`);
+  const match = document.cookie.match(pattern);
+  return match?.[1] ? decodeURIComponent(match[1]) : null;
+}
 
 /**
  * Obtiene el token CSRF del servidor (debe ser obtenido en una petición GET inicial)
@@ -14,10 +22,23 @@ const CSRF_TOKEN_HEADER = 'X-CSRF-Token';
 export const getCsrfToken = (): string | null => {
   try {
     if (typeof window === 'undefined') return null;
-    return sessionStorage.getItem(CSRF_TOKEN_KEY);
+    const stored = sessionStorage.getItem(CSRF_TOKEN_KEY);
+    if (stored) return stored;
   } catch {
-    return null;
+    // sessionStorage puede fallar en iOS privado / WebViews
   }
+
+  const fromCookie = readCsrfTokenFromDocumentCookie();
+  if (fromCookie) {
+    try {
+      sessionStorage.setItem(CSRF_TOKEN_KEY, fromCookie);
+    } catch {
+      // keep in-memory cookie fallback only
+    }
+    return fromCookie;
+  }
+
+  return null;
 };
 
 /**
