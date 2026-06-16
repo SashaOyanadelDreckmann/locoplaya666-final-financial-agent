@@ -449,3 +449,47 @@ body.agent-route-active .agent-modal.account-modal .agent-modal-close {
     transform: translateY(clamp(-12px, -2.5dvh, -28px)) !important;
   }
 }
+
+/*
+ * Budget mobile browser — mode arrows inline in header (PWA keeps stacked nav row).
+ */
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+  html:not(.pwa-standalone) .budget-modal.is-mobile-shell .budget-modal-header-title-row {
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    gap: 10px !important;
+  }
+
+  html:not(.pwa-standalone) .budget-modal.is-mobile-shell .budget-modal-header-title-row .bcc-modal-title-wrap {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+  }
+
+  html:not(.pwa-standalone) .budget-modal.is-mobile-shell .budget-modal-header-title-row .budget-view-nav {
+    flex: 0 0 auto !important;
+    order: 0 !important;
+    width: auto !important;
+    padding-top: 0 !important;
+    gap: 8px !important;
+    margin: 0 !important;
+    justify-content: center !important;
+  }
+
+  html:not(.pwa-standalone) .budget-modal.is-mobile-shell .budget-modal-header-title-row .agent-modal-close {
+    flex: 0 0 auto !important;
+    margin-left: 0 !important;
+  }
+
+  html:not(.pwa-standalone) .budget-modal.is-mobile-shell .budget-view-nav-label {
+    display: none !important;
+  }
+
+  html:not(.pwa-standalone) .budget-modal.is-mobile-shell .budget-view-nav-arrow {
+    min-height: 36px !important;
+    padding: 4px !important;
+  }
+
+  html:not(.pwa-standalone) .budget-modal.is-mobile-shell .bcc-modal-header {
+    padding-bottom: 6px !important;
+  }
+}

@@ -18,7 +18,7 @@ describe('preemptiveMobileTypingEngage', () => {
     document.documentElement.classList.remove('composer-typing-snap', 'mobile-input-engaged');
   });
 
-  it('snaps composer layout on dock touch before focus', () => {
+  it('prepares composer snap on dock touch before focus', () => {
     const dock = document.createElement('div');
     dock.className = 'agent-mobile-composer-dock';
     const head = document.createElement('div');
@@ -29,7 +29,7 @@ describe('preemptiveMobileTypingEngage', () => {
     preemptiveMobileTypingEngage(head);
 
     expect(document.documentElement.classList.contains('composer-typing-snap')).toBe(true);
-    expect(isMobileInputEngaged()).toBe(true);
+    expect(isMobileInputEngaged()).toBe(false);
   });
 
   it('engages budget table inputs on first touch', () => {

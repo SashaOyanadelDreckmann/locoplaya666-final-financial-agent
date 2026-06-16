@@ -31,7 +31,7 @@ export function getContextFabricFlags(): ContextFabricFlags {
     transactionsContextPublishEnabled: readBool('TRANSACTIONS_CONTEXT_PUBLISH_ENABLED', isDevelopment),
     diagnosticContextPackEnabled: readBool('DIAGNOSTIC_CONTEXT_PACK_ENABLED', isDevelopment),
     consistencyEnabled: readBool('CONTEXT_CONSISTENCY_ENABLED', isDevelopment),
-    conflictUiEnabled: readBool('CONTEXT_CONFLICT_UI_ENABLED', false),
+    conflictUiEnabled: readBool('CONTEXT_CONFLICT_UI_ENABLED', isDevelopment),
   };
 }
 

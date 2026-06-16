@@ -45,7 +45,7 @@ Los agentes **no** se invocan entre sí. Cada pipeline sigue siendo independient
 - `CONTEXT_CONSISTENCY_ENABLED`
 - `CONTEXT_CONFLICT_UI_ENABLED`
 
-Con todas en `false` en **producción**, comportamiento legacy idéntico. En **development**, por defecto están activos: MCP, shadow, core pack, budget pack, transactions publish, diagnostic pack y consistencia. `CONTEXT_CONFLICT_UI_ENABLED` permanece en `false` hasta que el frontend consuma `session.contextFabric.conflicts`.
+Con todas en `false` en **producción**, comportamiento legacy idéntico. En **development**, por defecto están activos: MCP, shadow, core pack, budget pack, transactions publish, diagnostic pack, consistencia y **conflict UI**.
 
 ## Consecuencias
 

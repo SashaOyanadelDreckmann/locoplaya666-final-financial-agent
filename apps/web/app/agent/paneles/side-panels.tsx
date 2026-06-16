@@ -71,7 +71,6 @@ export function SidePanels(props: {
           aria-expanded={props.mobilePanelExpanded}
         >
           <span className="mobile-panel-handle-pill" aria-hidden="true" />
-          <span className="mobile-panel-handle-title">Panel</span>
         </div>
 
         <div className="mobile-panel-close">
@@ -83,7 +82,6 @@ export function SidePanels(props: {
           >
             ← Chat
           </button>
-          <span className="mobile-panel-close-title">Panel</span>
         </div>
 
         {props.panelCallout && (props.mobilePanelExpanded || !props.isMobileViewport) ? (

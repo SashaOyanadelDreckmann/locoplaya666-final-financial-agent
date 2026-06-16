@@ -262,7 +262,10 @@ export function applyMobileViewportTokens(root: HTMLElement = document.documentE
     return { keyboardLikelyOpen: false, inputEngaged };
   }
 
-  root.style.setProperty('--visual-vh', `${visibleH}px`);
+  const composerFocused = isComposerFocused();
+  const visualVh =
+    composerFocused && !keyboardLikelyOpen ? layoutH : visibleH;
+  root.style.setProperty('--visual-vh', `${visualVh}px`);
   root.style.setProperty('--keyboard-inset-bottom', `${keyboardInset}px`);
 
   if (!isMobileBrowserViewport(root)) {
@@ -460,7 +463,7 @@ export function preemptiveMobileTypingEngage(
 
   if (composerDock) {
     if (isMobileBrowserViewport(root)) {
-      engageComposerTypingLayout(root);
+      prepareComposerTypingVisual(root);
       return;
     }
     if (isPwaStandaloneViewport(root)) {

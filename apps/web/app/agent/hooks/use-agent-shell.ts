@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 
 import { ApiHttpError } from '@/lib/api/envelope';
 import { getSessionInfo, type FincoinUsageApiPayload } from '@/lib/api/cliente';
+import type { ContextFabricSessionView } from '@/lib/context/context-conflict-ui';
 import { syncViewportModeClasses } from '@/lib/interfaz/viewport-mode';
 import {
   applyMobileViewportTokens,
@@ -50,6 +51,7 @@ export type AgentSessionInfo = {
   latestDiagnosticCompletedAt?: string | null;
   interviewVoice?: Record<string, unknown> | null;
   fincoinUsage?: FincoinUsageApiPayload | null;
+  contextFabric?: ContextFabricSessionView | null;
 } | null;
 
 export function useAgentShell() {

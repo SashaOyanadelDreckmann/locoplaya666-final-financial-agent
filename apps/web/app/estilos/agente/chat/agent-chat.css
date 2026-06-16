@@ -3505,8 +3505,98 @@ html[data-visual-mode='light-outline'] body.agent-route-active .agent-layout.is-
 
 .interview-resume-banner .summary-action-btn:active:not(:disabled),
 .interview-resume-banner .interview-resume-banner__btn:active:not(:disabled) {
-  transform: translateY(0);
+  transform: translateY(1px);
+}
+
+.context-conflict-banner {
+  margin: 10px 16px 12px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  font-family: "SF Pro Text", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.context-conflict-banner.is-warning {
+  border: 1px solid rgba(251, 191, 36, 0.34);
+  background: linear-gradient(145deg, rgba(120, 53, 15, 0.92) 0%, rgba(69, 26, 3, 0.94) 100%);
+  color: #fde68a;
+  box-shadow: 0 14px 28px rgba(45, 20, 0, 0.28), inset 0 1px 0 rgba(255, 236, 200, 0.08);
+}
+
+.context-conflict-banner.is-info {
+  border: 1px solid rgba(125, 211, 252, 0.28);
+  background: linear-gradient(145deg, rgba(12, 74, 110, 0.9) 0%, rgba(15, 23, 42, 0.94) 100%);
+  color: #e0f2fe;
+  box-shadow: 0 14px 28px rgba(8, 24, 48, 0.28), inset 0 1px 0 rgba(224, 242, 254, 0.08);
+}
+
+.context-conflict-banner__copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.context-conflict-banner__copy strong {
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 600;
+  opacity: 0.82;
+}
+
+.context-conflict-banner__title {
+  font-size: 0.92rem;
+  line-height: 1.35;
+  font-weight: 600;
+}
+
+.context-conflict-banner__body,
+.context-conflict-banner__meta {
+  font-size: 0.84rem;
+  line-height: 1.45;
+  opacity: 0.9;
+}
+
+.context-conflict-banner__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.context-conflict-banner__cta {
+  border: 1px solid currentColor;
   background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.context-conflict-banner__cta:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.context-conflict-banner__dismiss {
+  position: static;
+  flex-shrink: 0;
+}
+
+@media (max-width: 767px) {
+  .context-conflict-banner {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .context-conflict-banner__actions {
+    justify-content: space-between;
+  }
 }
 
 .question-card-meta {

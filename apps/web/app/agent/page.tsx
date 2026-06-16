@@ -7,7 +7,6 @@ import 'katex/dist/katex.min.css';
 
 import {
   clearComposerTypingVisual,
-  engageComposerTypingLayout,
   focusMobileInput,
   restoreAgentShellViewport,
 } from '@/lib/interfaz/mobile-viewport-sync';
@@ -164,6 +163,9 @@ import type { FincoinUsageApiPayload } from '@/lib/api/cliente';
 import { SocialConsciousnessModal } from './modales/conciencia-social/SocialConsciousnessModal';
 import { SidePanels } from './paneles/side-panels';
 import { PanelCalloutBanner } from './paneles/panel-callout-banner';
+import { ContextConflictBanner } from './paneles/context-conflict-banner';
+import { useContextConflictBanner } from './hooks/use-context-conflict-banner';
+import type { ContextConflictUiAction } from '@/lib/context/context-conflict-ui';
 import type { MobilePanelDeckHandle } from './paneles/mobile-panel-compact-carousel';
 import { ChatThreadView } from './chat/chat-thread-view';
 import { ChatHeader } from './chat/chat-header';
@@ -428,6 +430,10 @@ export default function AgentPage() {
     isMobileViewport,
     isStandaloneDisplayMode,
   } = useAgentShell();
+  const contextConflictBanner = useContextConflictBanner({
+    contextFabric: sessionInfo?.contextFabric,
+    userId: sessionInfo?.id ?? sessionInfo?.userId ?? null,
+  });
   const [visualMode, setVisualMode] = useState<VisualMode>('off');
   const visualModeRef = useRef<VisualMode>('off');
   useEffect(() => {
@@ -793,7 +799,6 @@ export default function AgentPage() {
   function openComposerFromGesture() {
     if (isActiveChatLocked || isActiveChatClosed || !isMobileViewport) return;
     collapseMobilePanelForComposer();
-    engageComposerTypingLayout();
     focusMobileInput(chatComposerRef.current);
   }
 
@@ -2232,7 +2237,19 @@ export default function AgentPage() {
       ),
       budgetContext: buildPersistableBudgetContext(),
     });
-  }, [bankSimulation.activeProductId, bankSimulation.products, bankSimulation.taxonomyOverrides, buildPersistableBudgetContext]);
+    try {
+      const info = await getSessionInfo();
+      setSessionInfo(info);
+    } catch {
+      // Session refresh is best-effort after context merge.
+    }
+  }, [
+    bankSimulation.activeProductId,
+    bankSimulation.products,
+    bankSimulation.taxonomyOverrides,
+    buildPersistableBudgetContext,
+    setSessionInfo,
+  ]);
 
   useEffect(() => {
     if (!isAuthenticated || !panelStateLoaded) return;
@@ -2788,6 +2805,28 @@ export default function AgentPage() {
     void syncFinancialContextToIntake().catch(() => {});
     setIsBudgetModalOpen(true);
   }, [blockFincoinSpend, syncFinancialContextToIntake]);
+
+  const handleContextConflictAction = useCallback(
+    (action: ContextConflictUiAction) => {
+      if (!action) return;
+      if (action === 'budget') {
+        openBudgetModal();
+        return;
+      }
+      if (action === 'transactions') {
+        openTransactionsPanel();
+        return;
+      }
+      if (action === 'questionnaire') {
+        setIsQuestionnaireModalOpen(true);
+        return;
+      }
+      if (action === 'interview') {
+        void openInterviewModal();
+      }
+    },
+    [openBudgetModal, openInterviewModal, openTransactionsPanel],
+  );
 
   function openDiagnosisView() {
     void openInterviewModal();
@@ -3945,6 +3984,15 @@ export default function AgentPage() {
               Retomar
             </button>
           </div>
+        ) : null}
+
+        {contextConflictBanner.shouldRender ? (
+          <ContextConflictBanner
+            conflicts={contextConflictBanner.primaryConflicts}
+            hiddenCount={contextConflictBanner.hiddenCount}
+            onDismiss={contextConflictBanner.dismissConflict}
+            onAction={handleContextConflictAction}
+          />
         ) : null}
 
         {isActiveChatClosed ? (

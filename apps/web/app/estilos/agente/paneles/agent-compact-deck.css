@@ -1299,4 +1299,11 @@ html[data-visual-mode='light-outline'] .floating-card-shell {
     transform: none !important;
     translate: none !important;
   }
+
+  html:not(.pwa-standalone) body.agent-route-active.composer-typing-snap main.agent-layout.is-mobile-viewport > aside.agent-panel,
+  html:not(.pwa-standalone) body.agent-route-active.mobile-input-engaged main.agent-layout.is-mobile-viewport > aside.agent-panel,
+  html:not(.pwa-standalone) body.agent-route-active.composer-typing-snap main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact,
+  html:not(.pwa-standalone) body.agent-route-active.mobile-input-engaged main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact {
+    transition: none !important;
+  }
 }
