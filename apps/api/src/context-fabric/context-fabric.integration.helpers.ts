@@ -389,3 +389,44 @@ export async function buildDiagnosticFabricSupplement(userId: string): Promise<s
     .filter(Boolean)
     .join('\n');
 }
+
+export async function buildInterviewFabricSupplement(userId: string): Promise<string | null> {
+  const flags = getContextFabricFlags();
+  if (process.env.NODE_ENV === 'test' && process.env.DIAGNOSTIC_CONTEXT_PACK_ENABLED !== 'true') {
+    return null;
+  }
+  if (!flags.diagnosticContextPackEnabled && !flags.enabled) return null;
+
+  const user = await loadUserById(userId);
+  if (!user) return null;
+
+  const bundle = await loadContextSourceBundle(user);
+  const pack = buildContextPackFromBundle(bundle, {
+    consumer: 'interview-agent',
+    purpose: 'diagnosis',
+    maxInputTokens: 3072,
+  });
+
+  const lines = [
+    'CONTEXTO CANÓNICO ENTREVISTA (Context Fabric — cruzar con intake/presupuesto/cartolas; no inventar):',
+    `version=${pack.contextVersion}`,
+  ];
+  if (pack.deterministicSummaries.intake) {
+    lines.push(`intake=${JSON.stringify(pack.deterministicSummaries.intake)}`);
+  }
+  if (pack.deterministicSummaries.budget) {
+    lines.push(`budget=${JSON.stringify(pack.deterministicSummaries.budget)}`);
+  }
+  if (pack.deterministicSummaries.transactions) {
+    lines.push(`transactions=${JSON.stringify(pack.deterministicSummaries.transactions)}`);
+  }
+  if (pack.activeConflicts.length > 0) {
+    lines.push(
+      `tensiones_detectadas=${pack.activeConflicts
+        .slice(0, 4)
+        .map((conflict) => conflict.deterministicReason)
+        .join(' | ')}`,
+    );
+  }
+  return lines.join('\n');
+}

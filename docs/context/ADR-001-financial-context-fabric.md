@@ -2,7 +2,7 @@
 
 ## Estado
 
-Aceptado — Fase 1 (contratos read-only + shadow mode)
+Aceptado — Fase 4 (Core, Budget, Transactions, Diagnostic/Interview, publish hooks)
 
 ## Contexto
 
@@ -17,6 +17,9 @@ Introducir **Financial Context Fabric**: capa de dominio read-only con:
 - Tools MCP `context.get_manifest` y `context.get_pack` (con `FINANCIAL_CONTEXT_MCP_ENABLED` o packs activos)
 - Shadow mode en orchestrator con `FINANCIAL_CONTEXT_SHADOW_MODE` (no altera respuestas si solo shadow)
 - Core pack aplicado en orchestrator con `CORE_CONTEXT_PACK_ENABLED` (default **on** en development)
+- Budget, Transactions y Diagnostic/Interview reciben bloques canónicos compactos cuando sus flags están activos
+- Publish hooks post-parse (`/api/documents/parse`) y post-merge panel (`/api/merge-products-context`) invalidan cache y auditan `context_fabric.source_published`
+- `/api/session` expone `contextFabric` (versionado + conflictos si `CONTEXT_CONFLICT_UI_ENABLED=true`)
 
 Los agentes **no** se invocan entre sí. Cada pipeline sigue siendo independiente; el fabric es datos estructurados + MCP, no conversación agente-a-agente.
 
@@ -42,7 +45,7 @@ Los agentes **no** se invocan entre sí. Cada pipeline sigue siendo independient
 - `CONTEXT_CONSISTENCY_ENABLED`
 - `CONTEXT_CONFLICT_UI_ENABLED`
 
-Con todas en `false` en **producción**, comportamiento legacy idéntico. En **development**, por defecto están activos: MCP, shadow, core pack, budget pack y consistencia.
+Con todas en `false` en **producción**, comportamiento legacy idéntico. En **development**, por defecto están activos: MCP, shadow, core pack, budget pack, transactions publish, diagnostic pack y consistencia. `CONTEXT_CONFLICT_UI_ENABLED` permanece en `false` hasta que el frontend consuma `session.contextFabric.conflicts`.
 
 ## Consecuencias
 

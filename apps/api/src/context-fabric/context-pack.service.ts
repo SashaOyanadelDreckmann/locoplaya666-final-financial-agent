@@ -13,7 +13,7 @@ import {
   buildSectionSummaries,
 } from './context-provenance.service';
 import { detectContextConflicts } from './context-consistency.service';
-import { getContextFabricFlags } from './context-fabric.policy';
+import { getContextFabricFlags, isConsistencyPipelineActive } from './context-fabric.policy';
 
 type CacheEntry = {
   contextVersion: string;
@@ -46,8 +46,7 @@ export function buildContextPackFromBundle(
   const flags = getContextFabricFlags();
   const { facts, artifacts, sourceVersions } = buildFactsFromBundle(bundle);
   const manifest = buildManifestFromBundle(bundle, 0);
-  const conflicts =
-    flags.consistencyEnabled || flags.shadowMode || flags.enabled || flags.coreContextPackEnabled
+  const conflicts = isConsistencyPipelineActive(flags)
       ? detectContextConflicts({
           facts,
           contextVersion: manifest.contextVersion,

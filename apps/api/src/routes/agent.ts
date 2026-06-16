@@ -23,6 +23,8 @@ import {
   loadUserMemoryBlob,
 } from '../services/user.service';
 import { publishFinancialContextMergeObservation } from '../context-fabric/context-fabric.publish.service';
+import { getContextFabricSessionSnapshot } from '../context-fabric/context-fabric.service';
+import { buildInterviewFabricSupplement } from '../context-fabric/context-fabric.integration.helpers';
 import type { WelcomeIntroCache } from '@financial-agent/shared';
 import {
   listConversationTurns,
@@ -1053,12 +1055,17 @@ router.post(
     const serverIntake = resolveInterviewVoiceIntakeContext(user.injectedIntake);
     const persistedMinuteSummaries = normalizeInterviewVoiceMinuteSummaries(interviewVoice.minuteSummaries);
     const persistedFinalSummary = normalizeInterviewVoiceFinalSummary(interviewVoice.finalSummary);
-    const sessionInstructions = buildVoiceSessionInstructions({
-      intake: serverIntake,
-      minuteSummaries: persistedMinuteSummaries,
-      finalSummary: persistedFinalSummary,
-      callPhase: 'exploration',
-    });
+    const sessionInstructions = [
+      buildVoiceSessionInstructions({
+        intake: serverIntake,
+        minuteSummaries: persistedMinuteSummaries,
+        finalSummary: persistedFinalSummary,
+        callPhase: 'exploration',
+      }),
+      await buildInterviewFabricSupplement(user.id),
+    ]
+      .filter(Boolean)
+      .join('\n\n');
     const sourcesLoaded = countInterviewVoiceSourcesLoaded(serverIntake);
 
     let voiceCharge: Awaited<ReturnType<typeof chargeFincoinOperation>> | null = null;
@@ -1334,6 +1341,7 @@ router.get(
     const resolvedDiagnosticProfile = await resolveUserDiagnosticProfile(user);
 
     const fincoinUsage = getFincoinUsageForUser(user);
+    const contextFabric = await getContextFabricSessionSnapshot(user);
 
     return sendSuccess(res, {
       id: user.id,
@@ -1351,6 +1359,7 @@ router.get(
       productLifecycle: lifecycleState,
       socialConsciousnessReflections: getSocialReflectionsFromMemory(user.memoryBlob),
       fincoinUsage: fincoinUsagePayload(fincoinUsage),
+      contextFabric,
     });
   }),
 );

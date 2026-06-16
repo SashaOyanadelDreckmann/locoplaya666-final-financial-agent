@@ -72,6 +72,31 @@ describe('context-fabric regression scenarios', () => {
     expect((optimized.uploaded_documents as Array<{ text?: string }>)[0]?.text).toBeUndefined();
   });
 
+  it('budget analysis turn includes budget and transactions sections', () => {
+    const { included } = selectContextSections({
+      consumer: 'budget-agent',
+      purpose: 'budget_analysis',
+      userMessage: '¿Cómo va mi presupuesto este mes?',
+      maxInputTokens: 4096,
+    });
+    expect(included).toContain('budget');
+    expect(included).toContain('transactions');
+  });
+
+  it('cartola analysis purpose prioritizes transactions and documents', () => {
+    const { included, omitted } = selectContextSections({
+      consumer: 'transactions-agent',
+      purpose: 'transaction_analysis',
+      userMessage: 'analiza mi cartola de enero',
+      maxInputTokens: 4096,
+    });
+    expect(included).toContain('transactions');
+    expect(included).toContain('documents');
+    expect(omitted).not.toContain('transactions');
+  });
+});
+
+describe('context-fabric publish with flags enabled', () => {
   it('publish after document parse returns null when flag disabled', async () => {
     vi.stubEnv('TRANSACTIONS_CONTEXT_PUBLISH_ENABLED', 'false');
     vi.stubEnv('FINANCIAL_CONTEXT_MCP_ENABLED', 'false');
@@ -82,9 +107,7 @@ describe('context-fabric regression scenarios', () => {
     });
     expect(result).toBeNull();
   });
-});
 
-describe('context-fabric publish with flags enabled', () => {
   it('publishFinancialContextMergeObservation is a no-op without user', async () => {
     vi.stubEnv('NODE_ENV', 'test');
     vi.stubEnv('TRANSACTIONS_CONTEXT_PUBLISH_ENABLED', 'true');

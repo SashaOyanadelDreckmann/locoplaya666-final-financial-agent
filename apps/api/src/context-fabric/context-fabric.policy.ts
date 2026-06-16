@@ -43,6 +43,22 @@ export function isContextFabricActive(flags: ContextFabricFlags = getContextFabr
     flags.budgetContextPackEnabled ||
     flags.transactionsContextPublishEnabled ||
     flags.diagnosticContextPackEnabled ||
-    flags.consistencyEnabled
+    flags.consistencyEnabled ||
+    flags.conflictUiEnabled
+  );
+}
+
+export function isConsistencyPipelineActive(
+  flags: ContextFabricFlags = getContextFabricFlags(),
+): boolean {
+  return (
+    flags.consistencyEnabled ||
+    flags.shadowMode ||
+    flags.enabled ||
+    flags.coreContextPackEnabled ||
+    flags.budgetContextPackEnabled ||
+    flags.transactionsContextPublishEnabled ||
+    flags.diagnosticContextPackEnabled ||
+    flags.conflictUiEnabled
   );
 }

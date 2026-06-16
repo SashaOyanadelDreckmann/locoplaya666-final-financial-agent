@@ -1,5 +1,14 @@
-import type { BuildContextPackInput, ContextManifest, ContextPack } from '@financial-agent/shared';
-import { getContextFabricFlags, isContextFabricActive } from './context-fabric.policy';
+import type {
+  BuildContextPackInput,
+  ContextConflict,
+  ContextManifest,
+  ContextPack,
+} from '@financial-agent/shared';
+import {
+  getContextFabricFlags,
+  isConsistencyPipelineActive,
+  isContextFabricActive,
+} from './context-fabric.policy';
 import { loadContextSourceBundle } from './context-source.loader';
 import { buildManifestFromBundle } from './context-provenance.service';
 import { buildContextPackFromBundle } from './context-pack.service';
@@ -19,7 +28,7 @@ export async function getContextManifestForUser(user: {
   const flags = getContextFabricFlags();
   const { facts } = buildFactsFromBundle(bundle);
   const baseManifest = buildManifestFromBundle(bundle, 0);
-  if (!flags.consistencyEnabled && !flags.shadowMode && !flags.enabled && !flags.coreContextPackEnabled) {
+  if (!isConsistencyPipelineActive(flags)) {
     return baseManifest;
   }
   const conflicts = detectContextConflicts({
@@ -55,4 +64,43 @@ export async function getContextPackForUser(
     flags: getContextFabricFlags(),
   });
   return pack;
+}
+
+export type ContextFabricSessionSnapshot = {
+  contextVersion: string;
+  activeConflictCount: number;
+  lifecycle: ContextManifest['lifecycle'];
+  conflicts?: ContextConflict[];
+};
+
+export async function getContextFabricSessionSnapshot(user: {
+  id: string;
+  injectedIntake?: unknown;
+  injectedProfile?: unknown;
+  latestDiagnosticProfileId?: string | null;
+  memoryBlob?: unknown;
+  panelState?: unknown;
+}): Promise<ContextFabricSessionSnapshot | null> {
+  const flags = getContextFabricFlags();
+  if (!isContextFabricActive(flags)) return null;
+
+  const bundle = await loadContextSourceBundle(user);
+  const manifest = await getContextManifestForUser(user);
+  let conflicts: ContextConflict[] = [];
+  if (isConsistencyPipelineActive(flags)) {
+    const { facts } = buildFactsFromBundle(bundle);
+    conflicts = detectContextConflicts({
+      facts,
+      contextVersion: manifest.contextVersion,
+      diagnosticCompletedAt: bundle.diagnosticProfile?.meta?.completedAt ?? null,
+      budgetLastModified: manifest.sections.find((section) => section.name === 'budget')?.lastModified,
+    });
+  }
+
+  return {
+    contextVersion: manifest.contextVersion,
+    activeConflictCount: conflicts.length || manifest.activeConflicts,
+    lifecycle: manifest.lifecycle,
+    conflicts: flags.conflictUiEnabled ? conflicts : undefined,
+  };
 }
