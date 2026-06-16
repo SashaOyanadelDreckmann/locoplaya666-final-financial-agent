@@ -124,3 +124,22 @@ export async function publishFinancialContextMergeObservation(params: {
     },
   });
 }
+
+export async function publishIntakeUpdateObservation(params: {
+  userId: string;
+  correlationId?: string;
+}): Promise<PublishContextSourceResult | null> {
+  const contentHash = hashContent({
+    source: 'intake_update',
+    userId: params.userId,
+    ts: Date.now(),
+  });
+  return publishContextSourceVersion({
+    userId: params.userId,
+    sourceKind: 'intake',
+    sourceId: 'questionnaire:update',
+    contentHash,
+    correlationId: params.correlationId,
+    metadata: { reason: 'user_correction' },
+  });
+}

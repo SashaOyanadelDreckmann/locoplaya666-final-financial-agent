@@ -475,6 +475,7 @@ export default function AgentPage() {
   const [isTransactionsModalOpen, setIsTransactionsModalOpen] = useState(false);
   const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
   const [isQuestionnaireModalOpen, setIsQuestionnaireModalOpen] = useState(false);
+  const [questionnaireModalMode, setQuestionnaireModalMode] = useState<'view' | 'edit'>('view');
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
   const [isInterviewModalOpen, setIsInterviewModalOpen] = useState(false);
   const [isSocialConsciousnessModalOpen, setIsSocialConsciousnessModalOpen] = useState(false);
@@ -2818,6 +2819,7 @@ export default function AgentPage() {
         return;
       }
       if (action === 'questionnaire') {
+        setQuestionnaireModalMode('edit');
         setIsQuestionnaireModalOpen(true);
         return;
       }
@@ -3697,7 +3699,12 @@ export default function AgentPage() {
     highlightedSection,
     sessionInfo,
     profile,
-    setIsQuestionnaireModalOpen,
+    openQuestionnaireModal: intakeData
+      ? () => {
+          setQuestionnaireModalMode('view');
+          setIsQuestionnaireModalOpen(true);
+        }
+      : undefined,
     setIsAccountModalOpen,
     agentMetaRef,
     interviewCard,
@@ -4144,9 +4151,18 @@ export default function AgentPage() {
 
       <QuestionnaireModal
         isOpen={isQuestionnaireModalOpen}
+        mode={questionnaireModalMode}
         questionnaireDashboard={questionnaireDashboard}
+        intakeData={intakeData}
         sessionUserName={sessionInfo?.name}
-        onClose={() => setIsQuestionnaireModalOpen(false)}
+        onClose={() => {
+          setIsQuestionnaireModalOpen(false);
+          setQuestionnaireModalMode('view');
+        }}
+        onUpdated={async () => {
+          const info = await getSessionInfo();
+          setSessionInfo(info);
+        }}
       />
 
       <TransactionsModal

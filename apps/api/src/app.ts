@@ -7,7 +7,7 @@ import helmet from 'helmet';
 import { simulationsRouter } from './routes/simulations.routes';
 import diagnosisRouter from './routes/diagnosis';
 import { finalizeInterviewVoice, saveInterviewVoiceState } from './routes/conversation';
-import { submitIntake } from './routes/intake';
+import { submitIntake, updateIntake } from './routes/intake';
 import { authRouter } from './routes/auth';
 import agentRouter from './routes/agent';
 import budgetChatRouter from './routes/budget-chat.routes';
@@ -103,6 +103,12 @@ export function createApp() {
     requireAuth,
     requirePermission(PERMISSIONS.AGENT_CHAT_SELF),
     asyncHandler(submitIntake),
+  );
+  app.patch(
+    '/intake/update',
+    requireAuth,
+    requirePermission(PERMISSIONS.AGENT_CHAT_SELF),
+    asyncHandler(updateIntake),
   );
 
   // AGENT CORE

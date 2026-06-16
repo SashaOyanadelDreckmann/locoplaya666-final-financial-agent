@@ -37,7 +37,7 @@ export type ContextConflictUiCopy = {
 const CONFLICT_COPY: Record<string, Omit<ContextConflictUiCopy, 'body'> & { body?: string }> = {
   INTAKE_BUDGET_INCOME_MISMATCH: {
     title: 'Ingreso distinto entre cuestionario y presupuesto',
-    ctaLabel: 'Revisar presupuesto',
+    ctaLabel: 'Actualizar presupuesto',
     action: 'budget',
   },
   BUDGET_TRANSACTION_INFLOW_MISMATCH: {
@@ -47,7 +47,7 @@ const CONFLICT_COPY: Record<string, Omit<ContextConflictUiCopy, 'body'> & { body
   },
   DECLARED_NO_DEBT_HIGH_OUTFLOWS: {
     title: 'Declaraste sin deuda, pero hay gastos elevados',
-    ctaLabel: 'Revisar cuestionario',
+    ctaLabel: 'Actualizar cuestionario',
     action: 'questionnaire',
   },
   DIAGNOSTIC_BUDGET_STALE: {

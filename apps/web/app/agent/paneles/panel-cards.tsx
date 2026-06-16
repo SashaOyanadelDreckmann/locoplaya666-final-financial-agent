@@ -19,7 +19,7 @@ type PanelCardsProps = {
   highlightedSection: string | null;
   sessionInfo: any;
   profile: any;
-  setIsQuestionnaireModalOpen: (open: boolean) => void;
+  openQuestionnaireModal?: () => void;
   setIsAccountModalOpen: (open: boolean) => void;
   agentMetaRef: React.MutableRefObject<{ objective?: string; mode?: string }>;
   interviewCard: { badge: string; title: string; meta: string; detail: string };
@@ -96,7 +96,7 @@ export function buildPanelBaseCards(props: PanelCardsProps): PanelCard[] {
             profile={resolvedDiagnosisProfile ?? props.profile}
             injected={Boolean(resolvedDiagnosisProfile)}
             compactQuestionnaireCta
-            onOpenQuestionnaire={props.sessionInfo?.injectedIntake ? () => props.setIsQuestionnaireModalOpen(true) : undefined}
+            onOpenQuestionnaire={props.openQuestionnaireModal}
             onCardClick={() => props.setIsAccountModalOpen(true)}
           />
         </div>

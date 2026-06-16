@@ -13839,6 +13839,137 @@ body.agent-route-active aside.agent-panel{
   color: #ffffff !important;
 }
 
+.questionnaire-edit-form {
+  padding: 0 20px 20px;
+}
+
+.questionnaire-edit-note {
+  margin: 0 0 14px;
+  font-size: 0.84rem;
+  line-height: 1.45;
+  color: rgba(214, 221, 230, 0.9);
+}
+
+.questionnaire-edit-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.questionnaire-edit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.78rem;
+  color: rgba(214, 221, 230, 0.88);
+}
+
+.questionnaire-edit-field span {
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 0.68rem;
+  color: #c6a052;
+}
+
+.questionnaire-edit-field input,
+.questionnaire-edit-field select {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.72);
+  color: rgba(244, 244, 248, 0.96);
+  padding: 10px 12px;
+  font-size: 0.84rem;
+}
+
+.questionnaire-edit-field--inline {
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.questionnaire-edit-toggle-row {
+  display: flex;
+  gap: 8px;
+}
+
+.questionnaire-edit-toggle {
+  flex: 1;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(0, 0, 0, 0.55);
+  color: rgba(244, 244, 248, 0.9);
+  padding: 8px 12px;
+  font-size: 0.8rem;
+}
+
+.questionnaire-edit-toggle.is-active {
+  border-color: rgba(198, 160, 82, 0.55);
+  background: rgba(198, 160, 82, 0.18);
+  color: #f8f4ea;
+}
+
+.questionnaire-edit-preview {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.questionnaire-edit-preview p {
+  margin: 6px 0 0;
+  font-size: 0.84rem;
+  color: rgba(238, 240, 248, 0.92);
+}
+
+.questionnaire-edit-error {
+  margin: 12px 0 0;
+  color: #fecdd3;
+  font-size: 0.82rem;
+}
+
+.questionnaire-edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.questionnaire-edit-actions--footer {
+  padding: 0 20px 20px;
+}
+
+.questionnaire-edit-btn {
+  border-radius: 999px;
+  padding: 10px 16px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.questionnaire-edit-btn.is-secondary {
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: transparent;
+  color: rgba(244, 244, 248, 0.9);
+}
+
+.questionnaire-edit-btn.is-primary {
+  border: 1px solid rgba(198, 160, 82, 0.45);
+  background: #c6a052;
+  color: #111;
+}
+
+.questionnaire-edit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 767px) {
+  .questionnaire-edit-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ================================================= */
 /* BUDGET MODAL — INTAKE STYLE (BLACK/YELLOW)        */
 /* ================================================= */

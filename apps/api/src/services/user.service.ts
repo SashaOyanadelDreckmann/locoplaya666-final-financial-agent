@@ -168,7 +168,36 @@ export async function submitQuestionnaireIntakeOnce(
   const updated = await patchUserRecord(userId, {
     injectedIntake: nextEnvelope as StoredUser['injectedIntake'],
   });
+  if (updated) invalidateContextPackCache(userId);
   return updated ? 'created' : false;
+}
+
+/** Post-onboarding questionnaire corrections — free, preserves panel context layers. */
+export async function updateQuestionnaireIntake(
+  userId: string,
+  payload: QuestionnaireIntakePayload,
+): Promise<boolean> {
+  const user = await getUserById(userId);
+  if (!hasCompletedIntakeAccess(user?.injectedIntake)) {
+    return false;
+  }
+
+  const existing = readSessionIntakeEnvelope(user?.injectedIntake);
+  const nextEnvelope: SessionIntakeEnvelope = {
+    ...existing,
+    intake: payload.intake as Record<string, unknown>,
+    intakeContext: payload.intakeContext,
+    llmSummary: existing.llmSummary,
+    welcomeIntroCache: existing.welcomeIntroCache,
+    productsContext: existing.productsContext,
+    budgetContext: existing.budgetContext,
+  };
+
+  const updated = await patchUserRecord(userId, {
+    injectedIntake: nextEnvelope as StoredUser['injectedIntake'],
+  });
+  if (updated) invalidateContextPackCache(userId);
+  return Boolean(updated);
 }
 
 /** Panel path: merge cartolas/presupuesto without touching questionnaire answers. */

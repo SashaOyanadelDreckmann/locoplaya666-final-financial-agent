@@ -40,8 +40,16 @@ describe('context-conflict-ui', () => {
   it('maps known explanation codes to review actions', () => {
     const copy = resolveContextConflictCopy(sampleConflict());
     expect(copy.title).toContain('cuestionario');
-    expect(copy.ctaLabel).toBe('Revisar presupuesto');
+    expect(copy.ctaLabel).toBe('Actualizar presupuesto');
     expect(copy.action).toBe('budget');
+  });
+
+  it('routes debt declaration conflicts to questionnaire edit', () => {
+    const copy = resolveContextConflictCopy(
+      sampleConflict({ explanationCode: 'DECLARED_NO_DEBT_HIGH_OUTFLOWS' }),
+    );
+    expect(copy.ctaLabel).toBe('Actualizar cuestionario');
+    expect(copy.action).toBe('questionnaire');
   });
 
   it('sorts conflicts by severity', () => {

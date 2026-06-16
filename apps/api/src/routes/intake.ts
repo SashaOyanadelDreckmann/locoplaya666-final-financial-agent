@@ -3,8 +3,9 @@ import { z } from 'zod';
 import { IntakeQuestionnaire } from '@financial-agent/shared/src/intake/intake-questionnaire.types';
 import { analyzeIntake } from '../agents/intake/intake-analyzer';
 import { buildIntakeContext } from '../services/intake-context.service';
-import { submitQuestionnaireIntakeOnce } from '../services/user.service';
+import { submitQuestionnaireIntakeOnce, updateQuestionnaireIntake } from '../services/user.service';
 import { synchronizeKnowledgeFromIntake, recordKnowledgeEvent } from '../services/knowledge.service';
+import { publishIntakeUpdateObservation } from '../context-fabric/context-fabric.publish.service';
 import { sendSuccess } from '../http/api.responses';
 import { parseBody } from '../http/parse';
 import { badRequest, conflict, unauthorized } from '../http/api.errors';
@@ -68,6 +69,8 @@ const IntakeRequestSchema = z.object({
   moneyStressLevel: z.number().min(0).max(10),
 });
 
+export { IntakeRequestSchema };
+
 export async function submitIntake(req: Request, res: Response) {
   const intake = parseBody(IntakeRequestSchema, req.body) as IntakeQuestionnaire;
 
@@ -106,5 +109,39 @@ export async function submitIntake(req: Request, res: Response) {
     intakeContext,
     readyForInterview: true,
     llmSummary: null,
+  });
+}
+
+export async function updateIntake(req: Request, res: Response) {
+  const intake = parseBody(IntakeRequestSchema, req.body) as IntakeQuestionnaire;
+
+  const user = req.authenticatedUser;
+  if (!user?.id) {
+    throw unauthorized('Not authenticated');
+  }
+
+  const intakeContext = buildIntakeContext(intake);
+  const updated = await updateQuestionnaireIntake(user.id, {
+    intake,
+    intakeContext,
+  });
+
+  if (!updated) {
+    throw badRequest('No hay cuestionario completado para actualizar.');
+  }
+
+  await synchronizeKnowledgeFromIntake(user.id, intake);
+
+  try {
+    await publishIntakeUpdateObservation({ userId: user.id });
+  } catch (fabricErr) {
+    req.logger?.warn({ msg: 'context_fabric.intake_update_publish_failed', error: fabricErr });
+  }
+
+  return sendSuccess(res, {
+    intake,
+    intakeContext,
+    updated: true,
+    fincoinCharge: false,
   });
 }

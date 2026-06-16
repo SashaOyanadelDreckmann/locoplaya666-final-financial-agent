@@ -2,7 +2,7 @@ import type { WelcomeIntroCache } from '../welcome/welcome-intro.types';
 
 /** Persisted session blob: immutable questionnaire + mutable financial context layers. */
 export type SessionIntakeEnvelope = {
-  /** Questionnaire answers — written once via POST /intake/submit. */
+  /** Questionnaire answers — initial submit + user corrections via PATCH /intake/update. */
   intake?: Record<string, unknown>;
   intakeContext?: unknown;
   llmSummary?: unknown;
