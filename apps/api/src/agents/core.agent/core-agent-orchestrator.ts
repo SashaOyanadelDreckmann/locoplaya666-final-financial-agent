@@ -42,7 +42,7 @@ import {
   logContextFabricPackMetrics,
   resolveCoreContextPackForTurn,
 } from '../../context-fabric/context-fabric.integration.helpers';
-import { getContextFabricFlags } from '../../context-fabric/context-fabric.policy';
+import { getContextFabricFlags, shouldApplyCoreContextPack } from '../../context-fabric/context-fabric.policy';
 
 // Maps each reasoning mode to its inherent regulatory/financial risk level.
 // Lower = safe educational content; higher = direct advice or complex operations.
@@ -262,7 +262,7 @@ export async function runCoreAgent(
           budgetRows,
           financialEvidence,
         });
-        const shouldApply = fabricFlags.coreContextPackEnabled || fabricFlags.enabled;
+        const shouldApply = shouldApplyCoreContextPack(fabricFlags);
         if (shouldApply) {
           context_summary = optimized as typeof context_summary;
         }

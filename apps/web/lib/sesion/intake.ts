@@ -7,7 +7,7 @@ import { getCsrfToken } from './csrf';
 export async function submitIntake(data: IntakeQuestionnaire) {
   const API_URL = getSessionApiBaseUrl();
   const csrfToken = getCsrfToken();
-  const payload = { ...data };
+  const payload = normalizeIntakeQuestionnaire(data);
 
   const res = await fetch(`${API_URL}/intake/submit`, {
     method: 'POST',

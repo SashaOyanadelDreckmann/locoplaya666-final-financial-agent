@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 
 import { ApiHttpError } from '@/lib/api/envelope';
 import { getSessionInfo, type FincoinUsageApiPayload } from '@/lib/api/cliente';
-import type { ContextFabricSessionView } from '@/lib/context/context-conflict-ui';
+import type { SessionApiPayload } from '@/lib/tipos/session';
 import { syncViewportModeClasses } from '@/lib/interfaz/viewport-mode';
 import {
   applyMobileViewportTokens,
@@ -15,44 +15,9 @@ import {
 } from '@/lib/interfaz/mobile-viewport-sync';
 import { hasCompletedIntakeAccess, resolveAuthRedirectPath } from '../utilidades/page.utils';
 
-export type AgentSessionInfo = {
-  id?: string;
-  injectedIntake?: {
-    intake?: Record<string, unknown>;
-    intakeContext?: string;
-    [key: string]: unknown;
-  } | null;
-  injectedProfile?: unknown;
-  productLifecycle?: {
-    phase?: string;
-    unlockedChats?: string[];
-    closedChats?: string[];
-    chatTurns?: Record<string, number>;
-    actionPlanFunnelStage?: 'brainstorm' | 'converge' | 'deliver' | null;
-    socialConsciousnessFunnelStage?: 'explore' | 'tension' | 'synthesis' | null;
-    closingMode?: boolean;
-  } | null;
-  socialConsciousnessReflections?: {
-    answers: Array<{
-      questionId: string;
-      question: string;
-      choiceId: string;
-      choiceLabel: string;
-      choiceSubtext?: string;
-      thinker?: string;
-    }>;
-    completedAt: string;
-    updatedAt?: string;
-  } | null;
-  knowledgeScore?: number;
-  name?: string;
-  userId?: string;
-  email?: string;
-  latestDiagnosticCompletedAt?: string | null;
-  interviewVoice?: Record<string, unknown> | null;
+export type AgentSessionInfo = (SessionApiPayload & {
   fincoinUsage?: FincoinUsageApiPayload | null;
-  contextFabric?: ContextFabricSessionView | null;
-} | null;
+}) | null;
 
 export function useAgentShell() {
   const router = useRouter();

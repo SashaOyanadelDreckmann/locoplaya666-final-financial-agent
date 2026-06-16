@@ -1,5 +1,5 @@
 import type { ContextConflict, ContextSourceKind } from '@financial-agent/shared';
-import { getContextFabricFlags } from './context-fabric.policy';
+import { getContextFabricFlags, isContextPublishEnabled } from './context-fabric.policy';
 import { invalidateContextPackCache } from './context-pack.service';
 import { loadUserById } from '../services/user.service';
 import { loadContextSourceBundle } from './context-source.loader';
@@ -24,18 +24,22 @@ export type PublishContextSourceResult = {
   publishedAt: string;
 };
 
-function isPublishEnabled(): boolean {
-  const flags = getContextFabricFlags();
-  if (process.env.NODE_ENV === 'test' && process.env.TRANSACTIONS_CONTEXT_PUBLISH_ENABLED !== 'true') {
-    return false;
-  }
-  return flags.transactionsContextPublishEnabled || flags.enabled;
+function isPublishEnabled(sourceKind: ContextSourceKind): boolean {
+  const normalized =
+    sourceKind === 'intake'
+      ? 'intake'
+      : sourceKind === 'document'
+        ? 'document'
+        : sourceKind === 'transaction'
+          ? 'transaction'
+          : 'other';
+  return isContextPublishEnabled(normalized, getContextFabricFlags());
 }
 
 export async function publishContextSourceVersion(
   input: PublishContextSourceInput,
 ): Promise<PublishContextSourceResult | null> {
-  if (!isPublishEnabled()) return null;
+  if (!isPublishEnabled(input.sourceKind)) return null;
 
   invalidateContextPackCache(input.userId);
 

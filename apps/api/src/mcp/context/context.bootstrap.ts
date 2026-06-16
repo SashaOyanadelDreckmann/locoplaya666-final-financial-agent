@@ -1,5 +1,5 @@
 import { registerTool } from '../tools/registry';
-import { getContextFabricFlags, isContextFabricActive } from '../../context-fabric/context-fabric.policy';
+import { getContextFabricFlags, isContextFabricMcpToolsEnabled } from '../../context-fabric/context-fabric.policy';
 import { CONTEXT_FABRIC_TOOLS } from './context.tools';
 
 let contextToolsRegistered = false;
@@ -7,7 +7,7 @@ let contextToolsRegistered = false;
 export function bootstrapContextMCP(): void {
   if (contextToolsRegistered) return;
   const flags = getContextFabricFlags();
-  if (!isContextFabricActive(flags)) return;
+  if (!isContextFabricMcpToolsEnabled(flags)) return;
   for (const tool of CONTEXT_FABRIC_TOOLS) {
     registerTool(tool);
   }

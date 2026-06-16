@@ -4,6 +4,7 @@ import {
   publishContextSourceVersion,
   publishDocumentParseObservation,
   publishFinancialContextMergeObservation,
+  publishIntakeUpdateObservation,
 } from './context-fabric.publish.service';
 
 describe('context-fabric.publish.service', () => {
@@ -48,6 +49,15 @@ describe('context-fabric.publish.service', () => {
       productsCount: 2,
       budgetRowsCount: 5,
     });
+    expect(result).toBeNull();
+  });
+
+  it('publishIntakeUpdateObservation is enabled with conflict UI only', async () => {
+    vi.stubEnv('CONTEXT_CONFLICT_UI_ENABLED', 'true');
+    vi.stubEnv('TRANSACTIONS_CONTEXT_PUBLISH_ENABLED', 'false');
+    vi.stubEnv('FINANCIAL_CONTEXT_MCP_ENABLED', 'false');
+
+    const result = await publishIntakeUpdateObservation({ userId: 'user-does-not-exist-xyz' });
     expect(result).toBeNull();
   });
 });

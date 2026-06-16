@@ -4,7 +4,10 @@ import type { Classification } from '../agents/core.agent/agent-types';
 import type { ReasoningMode } from '../agents/core.agent/chat.types';
 import type { AgentBudgetRow } from '../agents/core.agent/helpers/agent-financial-evidence.helpers';
 import type { FinancialEvidenceSnapshot } from '../agents/core.agent/helpers/agent-financial-evidence.helpers';
-import { getContextFabricFlags } from './context-fabric.policy';
+import {
+  getContextFabricFlags,
+  isCoreContextPackResolutionEnabled,
+} from './context-fabric.policy';
 import { loadContextSourceBundle } from './context-source.loader';
 import { buildContextPackFromBundle } from './context-pack.service';
 import { loadUserById } from '../services/user.service';
@@ -210,10 +213,7 @@ export async function resolveCoreContextPackForTurn(params: {
   userMessage: string;
 }): Promise<ContextPack | null> {
   const flags = getContextFabricFlags();
-  if (!flags.coreContextPackEnabled && !flags.enabled) return null;
-  if (process.env.NODE_ENV === 'test' && process.env.CORE_CONTEXT_PACK_ENABLED !== 'true') {
-    return null;
-  }
+  if (!isCoreContextPackResolutionEnabled(flags)) return null;
 
   const user = await loadUserById(params.userId);
   if (!user) return null;

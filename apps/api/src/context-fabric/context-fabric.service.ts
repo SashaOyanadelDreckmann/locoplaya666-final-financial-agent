@@ -1,13 +1,15 @@
 import type {
   BuildContextPackInput,
   ContextConflict,
+  ContextFabricSessionSnapshot,
   ContextManifest,
   ContextPack,
 } from '@financial-agent/shared';
 import {
   getContextFabricFlags,
   isConsistencyPipelineActive,
-  isContextFabricActive,
+  isContextFabricMcpToolsEnabled,
+  isContextFabricSessionEnabled,
 } from './context-fabric.policy';
 import { loadContextSourceBundle } from './context-source.loader';
 import { buildManifestFromBundle } from './context-provenance.service';
@@ -45,7 +47,7 @@ export async function getContextPackForUser(
   input: BuildContextPackInput,
   audit?: { correlationId?: string; pipeline?: string },
 ): Promise<ContextPack | null> {
-  if (!isContextFabricActive()) return null;
+  if (!isContextFabricMcpToolsEnabled()) return null;
   const started = Date.now();
   const bundle = await loadContextSourceBundle(user);
   const pack = buildContextPackFromBundle(bundle, input);
@@ -66,12 +68,7 @@ export async function getContextPackForUser(
   return pack;
 }
 
-export type ContextFabricSessionSnapshot = {
-  contextVersion: string;
-  activeConflictCount: number;
-  lifecycle: ContextManifest['lifecycle'];
-  conflicts?: ContextConflict[];
-};
+export type { ContextFabricSessionSnapshot };
 
 export async function getContextFabricSessionSnapshot(user: {
   id: string;
@@ -82,7 +79,7 @@ export async function getContextFabricSessionSnapshot(user: {
   panelState?: unknown;
 }): Promise<ContextFabricSessionSnapshot | null> {
   const flags = getContextFabricFlags();
-  if (!isContextFabricActive(flags)) return null;
+  if (!isContextFabricSessionEnabled(flags)) return null;
 
   const bundle = await loadContextSourceBundle(user);
   const manifest = await getContextManifestForUser(user);

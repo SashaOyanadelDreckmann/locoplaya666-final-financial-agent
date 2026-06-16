@@ -48,4 +48,18 @@ describe('getContextFabricSessionSnapshot', () => {
     expect(snapshot?.conflicts).toBeDefined();
     expect(Array.isArray(snapshot?.conflicts)).toBe(true);
   });
+
+  it('returns snapshot when only conflict UI is enabled', async () => {
+    vi.stubEnv('CONTEXT_CONFLICT_UI_ENABLED', 'true');
+    vi.stubEnv('FINANCIAL_CONTEXT_MCP_ENABLED', 'false');
+    const snapshot = await getContextFabricSessionSnapshot({
+      id: 'user-1',
+      injectedIntake: {
+        intake: { profession: 'Dev', hasDebt: false },
+        budgetContext: { income: 1_500_000, expenses: 1_000_000, balance: 500_000 },
+      },
+    });
+    expect(snapshot).toBeTruthy();
+    expect(snapshot?.contextVersion).toBeTruthy();
+  });
 });

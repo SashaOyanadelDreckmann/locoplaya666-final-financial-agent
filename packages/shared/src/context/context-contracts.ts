@@ -189,3 +189,11 @@ export interface ContextDelta {
   newConflicts: string[];
   resolvedConflictIds: string[];
 }
+
+/** Session API payload: `GET /api/session` → `contextFabric`. */
+export interface ContextFabricSessionSnapshot {
+  contextVersion: string;
+  activeConflictCount: number;
+  lifecycle: ContextManifest['lifecycle'];
+  conflicts?: ContextConflict[];
+}

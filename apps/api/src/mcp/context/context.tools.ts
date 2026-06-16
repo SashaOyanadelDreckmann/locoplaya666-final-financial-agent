@@ -2,7 +2,7 @@ import { z } from 'zod';
 import type { MCPTool } from '../tools/types';
 import { getContextManifestForUser, getContextPackForUser } from '../../context-fabric/context-fabric.service';
 import { loadUserById } from '../../services/user.service';
-import { getContextFabricFlags, isContextFabricActive } from '../../context-fabric/context-fabric.policy';
+import { getContextFabricFlags, isContextFabricMcpToolsEnabled } from '../../context-fabric/context-fabric.policy';
 
 const GetManifestSchema = z.object({
   consumer: z
@@ -45,7 +45,7 @@ export const contextGetManifestTool: MCPTool = {
   argsSchema: GetManifestSchema,
   run: async (args, ctx) => {
     const flags = getContextFabricFlags();
-    if (!isContextFabricActive(flags)) {
+    if (!isContextFabricMcpToolsEnabled(flags)) {
       return {
         tool_call: { id: `${ctx?.turn_id ?? 'ctx'}:context.get_manifest`, tool: 'context.get_manifest', args, status: 'error' as const, error_message: 'context_fabric_disabled' },
         data: { ok: false, error: 'context_fabric_disabled' },
@@ -67,7 +67,7 @@ export const contextGetPackTool: MCPTool = {
   argsSchema: GetPackSchema,
   run: async (args, ctx) => {
     const flags = getContextFabricFlags();
-    if (!isContextFabricActive(flags)) {
+    if (!isContextFabricMcpToolsEnabled(flags)) {
       return {
         tool_call: { id: `${ctx?.turn_id ?? 'ctx'}:context.get_pack`, tool: 'context.get_pack', args, status: 'error' as const, error_message: 'context_fabric_disabled' },
         data: { ok: false, error: 'context_fabric_disabled' },

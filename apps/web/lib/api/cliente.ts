@@ -1,6 +1,7 @@
 import { getApiBaseUrl, getDocumentParseRequestUrl, getSessionApiBaseUrl } from './base';
 import { parseApiResponse } from './envelope';
 import { getCsrfToken } from '@/lib/sesion/csrf';
+import type { SessionApiPayload } from '@/lib/tipos/session';
 
 function withCsrf(headers: Record<string, string> = {}): Record<string, string> {
   const token = getCsrfToken();
@@ -125,7 +126,7 @@ export async function getSessionInfo() {
     credentials: 'include',
   });
 
-  return parseApiResponse<any>(res);
+  return parseApiResponse<SessionApiPayload>(res);
 }
 
 export async function fetchFincoinUsage() {

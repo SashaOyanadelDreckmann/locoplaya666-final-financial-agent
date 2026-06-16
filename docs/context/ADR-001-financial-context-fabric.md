@@ -14,11 +14,11 @@ Introducir **Financial Context Fabric**: capa de dominio read-only con:
 
 - Contratos compartidos (`packages/shared/src/context/`)
 - Servicios de manifest, facts, packs, consistencia y versionado (`apps/api/src/context-fabric/`)
-- Tools MCP `context.get_manifest` y `context.get_pack` (con `FINANCIAL_CONTEXT_MCP_ENABLED` o packs activos)
-- Shadow mode en orchestrator con `FINANCIAL_CONTEXT_SHADOW_MODE` (no altera respuestas si solo shadow)
-- Core pack aplicado en orchestrator con `CORE_CONTEXT_PACK_ENABLED` (default **on** en development)
+- Tools MCP `context.get_manifest` y `context.get_pack` (con `FINANCIAL_CONTEXT_MCP_ENABLED`, shadow o cualquier pack activo)
+- Shadow mode en orchestrator con `FINANCIAL_CONTEXT_SHADOW_MODE` (construye pack y compara tokens; no altera `context_summary` salvo que `CORE_CONTEXT_PACK_ENABLED` también esté activo)
+- Core pack aplicado en orchestrator **solo** con `CORE_CONTEXT_PACK_ENABLED` (default **on** en development)
 - Budget, Transactions y Diagnostic/Interview reciben bloques canónicos compactos cuando sus flags están activos
-- Publish hooks post-parse (`/api/documents/parse`) y post-merge panel (`/api/merge-products-context`) invalidan cache y auditan `context_fabric.source_published`
+- Publish hooks post-parse (`/api/documents/parse`), post-merge panel (`/api/merge-products-context`) y actualización de cuestionario (`PATCH /intake/update`) invalidan cache y auditan `context_fabric.source_published`
 - `/api/session` expone `contextFabric` (versionado + conflictos si `CONTEXT_CONFLICT_UI_ENABLED=true`)
 
 Los agentes **no** se invocan entre sí. Cada pipeline sigue siendo independiente; el fabric es datos estructurados + MCP, no conversación agente-a-agente.
@@ -46,6 +46,18 @@ Los agentes **no** se invocan entre sí. Cada pipeline sigue siendo independient
 - `CONTEXT_CONFLICT_UI_ENABLED`
 
 Con todas en `false` en **producción**, comportamiento legacy idéntico. En **development**, por defecto están activos: MCP, shadow, core pack, budget pack, transactions publish, diagnostic pack, consistencia y **conflict UI**.
+
+### Matriz de flags (comportamiento real)
+
+| Flag | MCP tools | Session `contextFabric` | Core pack apply | Shadow compare |
+|------|-----------|-------------------------|-----------------|----------------|
+| `FINANCIAL_CONTEXT_MCP_ENABLED` | sí | sí | no | no |
+| `FINANCIAL_CONTEXT_SHADOW_MODE` | sí | sí | no | sí |
+| `CORE_CONTEXT_PACK_ENABLED` | sí | sí | sí | sí |
+| `CONTEXT_CONFLICT_UI_ENABLED` | no | sí | no | no |
+| `TRANSACTIONS_CONTEXT_PUBLISH_ENABLED` | sí | sí | no | no |
+
+`CONTEXT_CONSISTENCY_ENABLED` activa detección de conflictos en manifest/session sin registrar MCP tools por sí solo.
 
 ## Consecuencias
 

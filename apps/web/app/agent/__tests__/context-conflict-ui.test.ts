@@ -52,6 +52,14 @@ describe('context-conflict-ui', () => {
     expect(copy.action).toBe('questionnaire');
   });
 
+  it('routes stale diagnostic conflicts to interview refresh', () => {
+    const copy = resolveContextConflictCopy(
+      sampleConflict({ explanationCode: 'DIAGNOSTIC_BUDGET_STALE' }),
+    );
+    expect(copy.ctaLabel).toBe('Actualizar diagnóstico');
+    expect(copy.action).toBe('interview');
+  });
+
   it('sorts conflicts by severity', () => {
     const sorted = sortContextConflicts([
       sampleConflict({ conflictId: 'a', severity: 'low' }),
@@ -76,6 +84,11 @@ describe('context-conflict-ui', () => {
       contextFabric: {
         contextVersion: 'ctx-1',
         activeConflictCount: 2,
+        lifecycle: {
+          activeChat: 'chat-1',
+          diagnosisCompleted: false,
+          interviewStatus: 'pending',
+        },
         conflicts: [
           sampleConflict({ conflictId: 'conflict-1' }),
           sampleConflict({

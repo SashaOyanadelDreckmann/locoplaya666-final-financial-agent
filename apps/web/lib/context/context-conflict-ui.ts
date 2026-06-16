@@ -1,15 +1,10 @@
-import type { ContextConflict, ContextConflictSeverity } from '@financial-agent/shared';
+import type {
+  ContextConflict,
+  ContextConflictSeverity,
+  ContextFabricSessionSnapshot,
+} from '@financial-agent/shared';
 
-export type ContextFabricSessionView = {
-  contextVersion: string;
-  activeConflictCount: number;
-  lifecycle?: {
-    activeChat?: string;
-    diagnosisCompleted?: boolean;
-    interviewStatus?: string;
-  };
-  conflicts?: ContextConflict[];
-};
+export type ContextFabricSessionView = ContextFabricSessionSnapshot;
 
 const DISMISS_STORAGE_PREFIX = 'fa:context-conflict-dismissed:v1:';
 
@@ -52,8 +47,8 @@ const CONFLICT_COPY: Record<string, Omit<ContextConflictUiCopy, 'body'> & { body
   },
   DIAGNOSTIC_BUDGET_STALE: {
     title: 'Tu presupuesto cambió después del último diagnóstico',
-    ctaLabel: 'Revisar presupuesto',
-    action: 'budget',
+    ctaLabel: 'Actualizar diagnóstico',
+    action: 'interview',
   },
 };
 
