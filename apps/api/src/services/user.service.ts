@@ -21,6 +21,7 @@ import {
   getUserById,
   patchUserRecord,
 } from '../persistencia/repos';
+import { invalidateContextPackCache } from '../context-fabric/context-pack.service';
 
 function toUser(record: Awaited<ReturnType<typeof getUserById>>): User | null {
   if (!record) return null;
@@ -194,6 +195,7 @@ export async function mergeFinancialContextIntoIntake(
   const updated = await patchUserRecord(userId, {
     injectedIntake: nextEnvelope as StoredUser['injectedIntake'],
   });
+  if (updated) invalidateContextPackCache(userId);
   return Boolean(updated);
 }
 
@@ -284,6 +286,7 @@ export async function saveUserPanelState(
   panelState: StoredPanelState,
 ): Promise<boolean> {
   const updated = await patchUserRecord(userId, { panelState });
+  if (updated) invalidateContextPackCache(userId);
   return Boolean(updated);
 }
 

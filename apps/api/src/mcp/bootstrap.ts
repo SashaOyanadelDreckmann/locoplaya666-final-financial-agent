@@ -64,6 +64,7 @@ import { composePipelineTool } from './tools/agent/composePipeline.tool';
 /* RAG                            */
 /* ────────────────────────────── */
 import { ragLookupTool } from './tools/rag/ragLookup.tool';
+import { bootstrapContextMCP } from './context/context.bootstrap';
 
 /* ────────────────────────────── */
 /* Bootstrap                      */
@@ -110,6 +111,8 @@ export function bootstrapMCP() {
 
   /* RAG */
   registerTool(ragLookupTool);
+
+  bootstrapContextMCP();
 
   markBootstrapped();
 }

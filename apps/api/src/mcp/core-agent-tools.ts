@@ -5,7 +5,7 @@ import type { MCPTool } from './tools/types';
  * PDF export is UI-only; meta-tools (agent.*) are sandboxed computation pipelines.
  */
 export const CORE_AGENT_META_TOOL_PREFIX = 'agent.' as const;
-export const CORE_AGENT_EXCLUDED_TOOL_PREFIXES = ['pdf.'] as const;
+export const CORE_AGENT_EXCLUDED_TOOL_PREFIXES = ['pdf.', 'context.'] as const;
 
 export function isCoreAgentExcludedTool(toolName: string): boolean {
   const normalized = String(toolName ?? '').trim().toLowerCase();

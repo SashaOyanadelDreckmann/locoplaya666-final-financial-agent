@@ -37,6 +37,12 @@ import {
   buildFinancialEvidenceSnapshot,
   resolveAgentBudgetRows,
 } from './helpers/agent-financial-evidence.helpers';
+import {
+  applyContextPackToSummary,
+  logContextFabricPackMetrics,
+  resolveCoreContextPackForTurn,
+} from '../../context-fabric/context-fabric.integration.helpers';
+import { getContextFabricFlags } from '../../context-fabric/context-fabric.policy';
 
 // Maps each reasoning mode to its inherent regulatory/financial risk level.
 // Lower = safe educational content; higher = direct advice or complex operations.
@@ -188,7 +194,7 @@ export async function runCoreAgent(
     });
 
     // Build context summary
-    const context_summary = {
+    let context_summary = {
       ...buildReferenceDateContext(),
       profile: ctx.injected_profile,
       intake: ctx.injected_intake,
@@ -241,6 +247,40 @@ export async function runCoreAgent(
             })
           : undefined,
     };
+
+    const fabricFlags = getContextFabricFlags();
+    try {
+      const pack = await resolveCoreContextPackForTurn({
+        userId: input.user_id,
+        classification: classifyOutput.classification,
+        activeChatId,
+        userMessage: input.user_message,
+      });
+      if (pack) {
+        const optimized = applyContextPackToSummary(context_summary, pack, {
+          activeChatId,
+          budgetRows,
+          financialEvidence,
+        });
+        const shouldApply = fabricFlags.coreContextPackEnabled || fabricFlags.enabled;
+        if (shouldApply) {
+          context_summary = optimized as typeof context_summary;
+        }
+        if (fabricFlags.shadowMode || shouldApply) {
+          logContextFabricPackMetrics({
+            turnId: turn_id,
+            userId: input.user_id,
+            legacyContext: (input.context as Record<string, unknown>) ?? {},
+            legacyUiState: inputUiState,
+            pack,
+            optimizedSummary: optimized,
+            applied: shouldApply,
+          });
+        }
+      }
+    } catch (fabricErr) {
+      logger.warn({ msg: 'context_fabric.integration_failed', error: fabricErr, turn_id });
+    }
 
     // ────────────────────────────────────────────────
     // PHASE 2: EXECUTE (ReAct Loop)

@@ -68,3 +68,4 @@ export * from './chat/chat-pipelines';
 export * from './transacciones/evidence-policy';
 export * from './transacciones/transaction-chart-blocks';
 export * from './diagnostico/compact-diagnosis-list';
+export * from './context';

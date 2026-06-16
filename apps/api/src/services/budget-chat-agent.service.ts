@@ -16,6 +16,7 @@ import {
 } from '@financial-agent/shared';
 import { completeStructuredWithSchema } from './llm.service';
 import { isBudgetReactEnabled, runBudgetChatReactLoop, type BudgetReactTraceStep } from './budget-chat-react.service';
+import { buildBudgetFabricPromptBlock } from '../context-fabric/context-fabric.integration.helpers';
 
 const AGENT_TIMEOUT_MS = Number(process.env.BUDGET_CHAT_AGENT_TIMEOUT_MS ?? 12_000);
 const AGENT_DEFAULT_FOLLOW_UP = '¿Qué más quieres hacer con la tabla?';
@@ -174,9 +175,11 @@ async function callBudgetAgentModel(input: BudgetAgentInput): Promise<AgentModel
 
   const totals = computeBudgetTotals(input.rows);
   const digest = buildBudgetWriterDigest(input.context, input.focusRow, input.userAnswer);
+  const fabricBlock = input.userId ? await buildBudgetFabricPromptBlock(input.userId) : null;
   const prompt = [
     `MODE=${input.mode}`,
     `CURRENT_QUESTION=${JSON.stringify(input.currentQuestion)}`,
+    fabricBlock ? `\n${fabricBlock}\n` : '',
     `USER_ANSWER=${JSON.stringify(input.userAnswer)}`,
     `TABLE_ROWS=${JSON.stringify(buildBudgetTableSnapshot(input.rows))}`,
     `TABLE_TOTALS=${JSON.stringify(totals)}`,
