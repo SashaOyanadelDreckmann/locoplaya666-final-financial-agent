@@ -28,8 +28,8 @@ export function getContextFabricFlags(): ContextFabricFlags {
     shadowMode: readBool('FINANCIAL_CONTEXT_SHADOW_MODE', isDevelopment),
     coreContextPackEnabled: readBool('CORE_CONTEXT_PACK_ENABLED', isDevelopment),
     budgetContextPackEnabled: readBool('BUDGET_CONTEXT_PACK_ENABLED', isDevelopment),
-    transactionsContextPublishEnabled: readBool('TRANSACTIONS_CONTEXT_PUBLISH_ENABLED', false),
-    diagnosticContextPackEnabled: readBool('DIAGNOSTIC_CONTEXT_PACK_ENABLED', false),
+    transactionsContextPublishEnabled: readBool('TRANSACTIONS_CONTEXT_PUBLISH_ENABLED', isDevelopment),
+    diagnosticContextPackEnabled: readBool('DIAGNOSTIC_CONTEXT_PACK_ENABLED', isDevelopment),
     consistencyEnabled: readBool('CONTEXT_CONSISTENCY_ENABLED', isDevelopment),
     conflictUiEnabled: readBool('CONTEXT_CONFLICT_UI_ENABLED', false),
   };

@@ -22,6 +22,7 @@ import {
   saveUserMemoryBlob,
   loadUserMemoryBlob,
 } from '../services/user.service';
+import { publishFinancialContextMergeObservation } from '../context-fabric/context-fabric.publish.service';
 import type { WelcomeIntroCache } from '@financial-agent/shared';
 import {
   listConversationTurns,
@@ -861,6 +862,25 @@ router.post(
       budgetContext,
     });
     if (!ok) throw badRequest('Failed to merge financial context into intake');
+
+    try {
+      const products =
+        productsContext && typeof productsContext === 'object'
+          ? (productsContext as Record<string, unknown>)
+          : {};
+      const budget =
+        budgetContext && typeof budgetContext === 'object'
+          ? (budgetContext as Record<string, unknown>)
+          : {};
+      await publishFinancialContextMergeObservation({
+        userId: user.id,
+        reason: 'panel_merge',
+        productsCount: Number(products.productsCount ?? 0) || undefined,
+        budgetRowsCount: Array.isArray(budget.rows) ? budget.rows.length : undefined,
+      });
+    } catch (fabricErr) {
+      req.logger?.warn({ msg: 'context_fabric.merge_publish_failed', error: fabricErr });
+    }
 
     return sendSuccess(res, { updated: true });
   }),

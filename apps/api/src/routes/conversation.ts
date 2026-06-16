@@ -460,6 +460,7 @@ export const finalizeInterviewVoice = asyncHandler(async function finalizeInterv
     diagnosticProfile = await runDiagnosticAgent({
       intake: diagnosticIntake,
       blocks: syntheticBlocks,
+      userId: user.id,
     });
   } catch (error) {
     diagnosticFallbackUsed = true;

@@ -313,3 +313,79 @@ export async function buildBudgetFabricPromptBlock(userId: string): Promise<stri
   }
   return lines.join('\n');
 }
+
+export async function buildTransactionsFabricPromptBlock(userId: string): Promise<string | null> {
+  const flags = getContextFabricFlags();
+  if (process.env.NODE_ENV === 'test' && process.env.TRANSACTIONS_CONTEXT_PUBLISH_ENABLED !== 'true') {
+    return null;
+  }
+  if (!flags.transactionsContextPublishEnabled && !flags.enabled) {
+    return null;
+  }
+
+  const user = await loadUserById(userId);
+  if (!user) return null;
+
+  const bundle = await loadContextSourceBundle(user);
+  const pack = buildContextPackFromBundle(bundle, {
+    consumer: 'transactions-agent',
+    purpose: 'transaction_analysis',
+    maxInputTokens: 3072,
+  });
+
+  const lines = [
+    'CONTEXTO CANÓNICO TRANSACCIONAL (Context Fabric — lectura; no mutar presupuesto):',
+    `version=${pack.contextVersion}`,
+  ];
+  if (pack.deterministicSummaries.transactions) {
+    lines.push(`transactions=${JSON.stringify(pack.deterministicSummaries.transactions)}`);
+  }
+  if (pack.deterministicSummaries.budget) {
+    lines.push(`budget_crosscheck=${JSON.stringify(pack.deterministicSummaries.budget)}`);
+  }
+  if (pack.activeConflicts.length > 0) {
+    lines.push(
+      `conflicts=${pack.activeConflicts
+        .slice(0, 4)
+        .map((conflict) => `${conflict.explanationCode}:${conflict.severity}`)
+        .join('|')}`,
+    );
+  }
+  if (pack.resourceUris.length > 0) {
+    lines.push(`recover_via=${pack.resourceUris.slice(0, 4).join(',')}`);
+  }
+  return lines.join('\n');
+}
+
+export async function buildDiagnosticFabricSupplement(userId: string): Promise<string | null> {
+  const flags = getContextFabricFlags();
+  if (process.env.NODE_ENV === 'test' && process.env.DIAGNOSTIC_CONTEXT_PACK_ENABLED !== 'true') {
+    return null;
+  }
+  if (!flags.diagnosticContextPackEnabled && !flags.enabled) return null;
+
+  const user = await loadUserById(userId);
+  if (!user) return null;
+
+  const bundle = await loadContextSourceBundle(user);
+  const pack = buildContextPackFromBundle(bundle, {
+    consumer: 'diagnostic-agent',
+    purpose: 'diagnosis',
+    maxInputTokens: 4096,
+  });
+
+  return [
+    'DOSSIER CONTEXT FABRIC (referencia estructurada; datos completos en URIs):',
+    `context_version=${pack.contextVersion}`,
+    `sections=${pack.includedSections.join(',')}`,
+    `summaries=${JSON.stringify(pack.deterministicSummaries)}`,
+    pack.activeConflicts.length > 0
+      ? `conflicts=${pack.activeConflicts
+          .slice(0, 5)
+          .map((c) => c.deterministicReason)
+          .join(' | ')}`
+      : '',
+  ]
+    .filter(Boolean)
+    .join('\n');
+}

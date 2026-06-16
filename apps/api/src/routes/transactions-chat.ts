@@ -9,6 +9,7 @@ import { getConfig } from '../config';
 import { parseBody } from '../http/parse';
 import { getUserDocumentsByIds } from '../persistencia/repos';
 import { CHAT_PIPELINES } from '@financial-agent/shared';
+import { buildTransactionsFabricPromptBlock } from '../context-fabric/context-fabric.integration.helpers';
 
 // Pipeline: see CHAT_PIPELINES.transactions — product-scoped movement analyst (not CoreAgent).
 void CHAT_PIPELINES.transactions.id;
@@ -379,7 +380,9 @@ router.post(
       canonicalDocuments,
       expandDocumentContext ? { maxDocs: 8, maxText: 2400 } : { maxDocs: 4, maxText: 600 },
     );
+    const fabricBlock = await buildTransactionsFabricPromptBlock(user.id);
     const contextBlock = [
+      fabricBlock ? `${fabricBlock}\n` : '',
       `Producto=${JSON.stringify(product)}`,
       `Pregunta=${JSON.stringify(retrievalQuestion)}`,
       `Resumen=${JSON.stringify(currentSummary)}`,

@@ -12,6 +12,7 @@ import { InterviewBlockId } from '../../orquestador/interview.flow';
 
 import { compactDiagnosisList } from '@financial-agent/shared';
 import { IntakeQuestionnaire } from '@financial-agent/shared/src/intake/intake-questionnaire.types';
+import { buildDiagnosticFabricSupplement } from '../../context-fabric/context-fabric.integration.helpers';
 
 import { completeStructured } from '../../services/llm.service';
 import { resolveInterviewStructuredModel } from '../core.agent/helpers/model-policy.helpers';
@@ -23,6 +24,7 @@ import { getLogger } from '../../logger';
 
 export interface DiagnosticAgentInput {
   intake: IntakeQuestionnaire;
+  userId?: string;
 
   blocks: Partial<
     Record<InterviewBlockId, InterviewBlockEvidence>
@@ -80,9 +82,10 @@ type DiagnosticLLMResponse = z.infer<
 export async function runDiagnosticAgent(
   input: DiagnosticAgentInput
 ): Promise<FinancialDiagnosticProfile> {
-  const { intake, blocks } = input;
+  const { intake, blocks, userId } = input;
 
-  const prompt = buildDiagnosticPrompt(intake, blocks);
+  const fabricSupplement = userId ? await buildDiagnosticFabricSupplement(userId) : null;
+  const prompt = [fabricSupplement, buildDiagnosticPrompt(intake, blocks)].filter(Boolean).join('\n\n');
 
   try {
     const parsed = DiagnosticLLMResponseSchema.parse(

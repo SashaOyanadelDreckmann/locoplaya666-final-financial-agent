@@ -27,6 +27,7 @@ import {
   buildExecutiveSummaryText,
   shouldReconcileMovements,
 } from './documents.parse.helpers';
+import { publishDocumentParseObservation } from '../context-fabric/context-fabric.publish.service';
 
 const router = Router();
 
@@ -1655,6 +1656,39 @@ router.post(
           productTypeForAnalysis,
         )
       : heuristicAnalysis;
+
+    const parserSignals = collectParserSignals(documents);
+    const movementCountForFidelity = Array.isArray(transactionAnalysis.movements)
+      ? transactionAnalysis.movements.length
+      : 0;
+    const tableBasedMovementsForFidelity = Array.isArray(transactionAnalysis.movements)
+      ? transactionAnalysis.movements.filter(
+          (movement) =>
+            movement &&
+            typeof movement === 'object' &&
+            (movement as { source_kind?: string }).source_kind === 'table',
+        ).length
+      : 0;
+    const tableMovementRatioForFidelity =
+      movementCountForFidelity > 0 ? tableBasedMovementsForFidelity / movementCountForFidelity : 0;
+    try {
+      await publishDocumentParseObservation({
+        userId: user.id,
+        documentIds: documents.map((doc) => doc.documentId).filter(Boolean),
+        movementCount: movementCountForFidelity,
+        evidenceFidelity: resolveEvidenceFidelity({
+          sourceHint: body.evidenceSourceHint,
+          looseTextEvidence: body.looseTextEvidence === true,
+          fileNames: parserSignals.map((signal) => signal.name),
+          parserModes: parserSignals.map((signal) => signal.mode),
+          parserConfidences: parserSignals.map((signal) => signal.confidence),
+          tableMovementRatio: tableMovementRatioForFidelity,
+          movementCount: movementCountForFidelity,
+        }),
+      });
+    } catch (fabricErr) {
+      console.warn('[parse] context fabric publish failed (non-blocking):', fabricErr);
+    }
 
     return sendSuccess(res, {
       documents,
