@@ -1,6 +1,9 @@
 /**
- * Strips or reframes claims the core agent cannot fulfill (e.g. auto PDF generation).
+ * Strips false capability claims the core agent cannot fulfill (e.g. auto PDF generation).
  */
+
+export const REGULATORY_FOOTER =
+  'Aviso legal: este asistente no está respaldado ni supervisado por la CMF para emitir recomendaciones de inversión o asesoría financiera regulada. La información es orientativa: corrobora montos, tasas y condiciones con fuentes oficiales y con tu institución antes de tomar cualquier decisión.';
 
 const PDF_AGENT_VERB =
   /\b(genero|generar|generamos|creo|crear|crea|descargo|descargar|exporto|exportar|guardo|guardar)\b/i;
@@ -61,12 +64,39 @@ export function sanitizeAgentCapabilityClaims(message: string): string {
   return out.replace(/\n{3,}/g, '\n\n').trim();
 }
 
-export function ensurePdfExportClarification(message: string, userMessage?: string): string {
-  const asksPdf = /\b(pdf|reporte|informe|descargar|exportar)\b/i.test(String(userMessage ?? ''));
-  const mentionsExportButton = /\b(guardar pdf|bot[oó]n)\b/i.test(message);
-  if (!asksPdf || mentionsExportButton) return message;
+function messageAlreadyHasRegulatoryFooter(message: string): boolean {
+  const normalized = String(message ?? '').toLowerCase();
+  return (
+    (normalized.includes('cmf') && normalized.includes('no está respaldado')) ||
+    (normalized.includes('cmf') && normalized.includes('no esta respaldado')) ||
+    (normalized.includes('corrobora') && normalized.includes('antes de tomar'))
+  );
+}
 
-  return `${message}\n\nNota: yo no genero archivos PDF automáticamente. Te entrego el contenido aquí; si quieres exportarlo, usa el botón **Guardar PDF** en esta burbuja.`;
+export function shouldAppendRegulatoryFooter(params: {
+  message: string;
+  mode?: string;
+  activeChatId?: string;
+}): boolean {
+  const message = String(params.message ?? '').trim();
+  if (message.length < 60) return false;
+  if (params.mode === 'containment') return false;
+
+  const chatId = String(params.activeChatId ?? '');
+  if (chatId === 'chat-3' && params.mode !== 'simulation' && params.mode !== 'regulation') {
+    return /\b(cmf|tasa|simul|presupuesto|%\s*\d|\$[\d.]+)/i.test(message);
+  }
+
+  return true;
+}
+
+export function ensureRegulatoryFooter(
+  message: string,
+  params?: { mode?: string; activeChatId?: string },
+): string {
+  if (!shouldAppendRegulatoryFooter({ message, ...params })) return message;
+  if (messageAlreadyHasRegulatoryFooter(message)) return message;
+  return `${message.trim()}\n\n${REGULATORY_FOOTER}`;
 }
 
 const PDF_SUGGESTION_CHIP =

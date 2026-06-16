@@ -21,8 +21,6 @@ type PanelCardsProps = {
   profile: any;
   setIsQuestionnaireModalOpen: (open: boolean) => void;
   setIsAccountModalOpen: (open: boolean) => void;
-  removeInjectedIntake: () => Promise<unknown>;
-  removeInjectedProfile: () => Promise<unknown>;
   agentMetaRef: React.MutableRefObject<{ objective?: string; mode?: string }>;
   interviewCard: { badge: string; title: string; meta: string; detail: string };
   interviewCompleted: boolean;
@@ -100,34 +98,6 @@ export function buildPanelBaseCards(props: PanelCardsProps): PanelCard[] {
             compactQuestionnaireCta
             onOpenQuestionnaire={props.sessionInfo?.injectedIntake ? () => props.setIsQuestionnaireModalOpen(true) : undefined}
             onCardClick={() => props.setIsAccountModalOpen(true)}
-            actions={
-              resolvedDiagnosisProfile || props.sessionInfo?.injectedIntake ? (
-                <>
-                  {props.sessionInfo?.injectedIntake ? (
-                    <button
-                      className="continue-ghost profile-inline-action"
-                      onClick={async () => {
-                        await props.removeInjectedIntake();
-                        window.location.reload();
-                      }}
-                    >
-                      Remover intake inyectado
-                    </button>
-                  ) : null}
-                  {resolvedDiagnosisProfile ? (
-                    <button
-                      className="continue-ghost profile-inline-action"
-                      onClick={async () => {
-                        await props.removeInjectedProfile();
-                        window.location.reload();
-                      }}
-                    >
-                      Remover perfil inyectado
-                    </button>
-                  ) : null}
-                </>
-              ) : null
-            }
           />
         </div>
       ),

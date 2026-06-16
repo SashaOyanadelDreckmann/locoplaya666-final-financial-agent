@@ -31,10 +31,12 @@ describe('budget-rows helpers', () => {
     expect(row.amount).toBe(100);
   });
 
-  it('provides eight starter rows with expected income/expense mix', () => {
+  it('provides three generic starter rows (one income, two expenses)', () => {
     const rows = createBudgetStarterRows();
-    expect(rows).toHaveLength(8);
+    expect(rows).toHaveLength(3);
     expect(rows.filter((r) => r.type === 'income')).toHaveLength(1);
+    expect(rows.filter((r) => r.type === 'expense')).toHaveLength(2);
+    expect(rows[0]?.category).toBe('Ingreso principal');
     expect(DEFAULT_BUDGET_ROWS[0]?.id).toBe('income_salary');
   });
 

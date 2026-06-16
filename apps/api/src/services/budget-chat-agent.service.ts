@@ -9,6 +9,8 @@ import {
   buildBudgetWriterDigest,
   compactBudgetChatAnswers,
   computeBudgetTotals,
+  inferBudgetTableConfirmationRequired,
+  isBudgetMetaOrHelpQuestion,
   type BudgetTableAction,
   validateBudgetTableActions,
 } from '@financial-agent/shared';
@@ -93,18 +95,13 @@ function buildAgentToolInstructions(): string {
     '- pending_summary: qué harás (1-2 frases, cita detalle del usuario). Sin muletillas Perfecto/Claro/Listo.',
     '- assistant_reply: respuesta conversacional breve (puede ser vacía si pending_summary basta).',
     '- next_question: UNA pregunta útil o propuesta siguiente; puede ser abierta ("¿Qué más ajustamos?").',
-    '- En init: saluda breve, resume estado de la tabla si hay datos, invita a pedir cambios libremente.',
+    '- En init: la tabla trae 3 filas genéricas (ingreso + 2 gastos). Si hay movimientos en CONTEXT, propón sumar 1-2 filas concretas con montos estimados; si no hay datos, sugiere rubros típicos sin inventar montos. Tono conversacional, no robot.',
     '- JSON estricto.',
   ].join('\n');
 }
 
 function inferRequiresConfirmation(actions: BudgetTableAction[], modelFlag: boolean): boolean {
-  if (actions.length === 0) return false;
-  if (modelFlag) return true;
-  if (actions.some((action) => action.kind === 'delete')) return true;
-  if (actions.length >= 4) return true;
-  if (actions.filter((action) => action.kind === 'add').length >= 3) return true;
-  return false;
+  return inferBudgetTableConfirmationRequired(actions, modelFlag);
 }
 
 function buildDefaultReply(input: BudgetAgentInput, actions: BudgetTableAction[]): string {
@@ -214,7 +211,11 @@ function normalizeAgentResult(
   raw: AgentModelOutput,
   options?: { source?: string; react_trace?: BudgetReactTraceStep[] },
 ): BudgetAgentResult | null {
-  const actions = validateBudgetTableActions(raw.actions ?? [], input.rows);
+  const actions = validateBudgetTableActions(raw.actions ?? [], input.rows).filter((action) => {
+    if (isBudgetMetaOrHelpQuestion(input.userAnswer)) return false;
+    if (action.category && isBudgetMetaOrHelpQuestion(action.category)) return false;
+    return true;
+  });
   const requiresConfirmation = inferRequiresConfirmation(actions, Boolean(raw.requires_confirmation));
   const assistantReply = String(raw.assistant_reply ?? '').trim() || buildDefaultReply(input, actions);
   const pendingSummary = String(raw.pending_summary ?? '').trim() || null;

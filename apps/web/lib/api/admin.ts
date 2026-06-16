@@ -1,5 +1,24 @@
 import { getApiBaseUrl } from './base';
 import { parseApiResponse } from './envelope';
+import { getCsrfToken } from '@/lib/sesion/csrf';
+
+function withCsrf(headers: Record<string, string> = {}): Record<string, string> {
+  const token = getCsrfToken();
+  if (!token) return headers;
+  return { ...headers, 'X-CSRF-Token': token };
+}
+
+async function adminFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  const API_URL = getApiBaseUrl();
+  const res = await fetch(`${API_URL}${path}`, {
+    ...init,
+    credentials: 'include',
+    headers: withCsrf({
+      ...(init?.headers as Record<string, string> | undefined),
+    }),
+  });
+  return parseApiResponse<T>(res);
+}
 
 export type AdminSessionSnapshot = {
   createdAt: string;
@@ -74,6 +93,39 @@ export type AdminUsersFullDump = {
   users: AdminUserSnapshot[];
 };
 
+export type AdminArchiveUserListItem = {
+  id: string;
+  name: string;
+  email: string;
+  role: 'USER' | 'ANALYST' | 'ADMIN';
+  approvalStatus: 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED';
+  createdAt: string;
+  updatedAt: string;
+  documentsCount: number;
+  profilesCount: number;
+};
+
+export type AdminArchiveUsersPage = {
+  generatedAt: string;
+  total: number;
+  users: AdminArchiveUserListItem[];
+};
+
+export type AdminAuditEntry = {
+  id: string;
+  at: string;
+  actorId: string;
+  actorEmail: string;
+  action: string;
+  targetUserId?: string;
+  meta?: Record<string, unknown>;
+};
+
+export type AdminAuditPage = {
+  entries: AdminAuditEntry[];
+  total: number;
+};
+
 export type ResearchAnalyticsStage = 'new' | 'onboarding' | 'diagnosis' | 'building' | 'active' | 'advanced' | 'stale';
 
 export type ResearchAnalyticsUser = {
@@ -135,24 +187,29 @@ export type ResearchAnalyticsReport = {
   users: ResearchAnalyticsUser[];
 };
 
-export async function fetchAdminUsersFullDump(): Promise<AdminUsersFullDump> {
-  const API_URL = getApiBaseUrl();
-  const res = await fetch(`${API_URL}/api/admin/users/full`, {
-    method: 'GET',
-    credentials: 'include',
-  });
+export async function fetchAdminArchiveUsers(params: {
+  search?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<AdminArchiveUsersPage> {
+  const query = new URLSearchParams();
+  if (params.search) query.set('search', params.search);
+  if (params.limit != null) query.set('limit', String(params.limit));
+  if (params.offset != null) query.set('offset', String(params.offset));
+  const suffix = query.toString() ? `?${query.toString()}` : '';
+  return adminFetch<AdminArchiveUsersPage>(`/api/admin/users${suffix}`);
+}
 
-  return parseApiResponse<AdminUsersFullDump>(res);
+export async function fetchAdminUserSnapshot(userId: string): Promise<AdminUserSnapshot> {
+  return adminFetch<AdminUserSnapshot>(`/api/admin/users/${encodeURIComponent(userId)}/snapshot`);
+}
+
+export async function fetchAdminUsersFullDump(): Promise<AdminUsersFullDump> {
+  return adminFetch<AdminUsersFullDump>('/api/admin/users/full');
 }
 
 export async function fetchResearchAnalyticsReport(): Promise<ResearchAnalyticsReport> {
-  const API_URL = getApiBaseUrl();
-  const res = await fetch(`${API_URL}/api/analytics/research`, {
-    method: 'GET',
-    credentials: 'include',
-  });
-
-  return parseApiResponse<ResearchAnalyticsReport>(res);
+  return adminFetch<ResearchAnalyticsReport>('/api/analytics/research');
 }
 
 export type AdminCockpitSnapshot = {
@@ -235,19 +292,39 @@ export type AdminUserDossier = {
 };
 
 export async function fetchAdminCockpitSnapshot(): Promise<AdminCockpitSnapshot> {
-  const API_URL = getApiBaseUrl();
-  const res = await fetch(`${API_URL}/api/admin/cockpit`, {
-    method: 'GET',
-    credentials: 'include',
-  });
-  return parseApiResponse<AdminCockpitSnapshot>(res);
+  return adminFetch<AdminCockpitSnapshot>('/api/admin/cockpit');
 }
 
 export async function fetchAdminUserDossier(userId: string): Promise<AdminUserDossier> {
-  const API_URL = getApiBaseUrl();
-  const res = await fetch(`${API_URL}/api/admin/users/${encodeURIComponent(userId)}/dossier`, {
-    method: 'GET',
-    credentials: 'include',
+  return adminFetch<AdminUserDossier>(`/api/admin/users/${encodeURIComponent(userId)}/dossier`);
+}
+
+export async function approveAdminUser(userId: string): Promise<{ alreadyApproved: boolean }> {
+  return adminFetch(`/api/admin/users/${encodeURIComponent(userId)}/approve`, { method: 'POST' });
+}
+
+export async function rejectAdminUser(userId: string): Promise<{ alreadyRejected: boolean }> {
+  return adminFetch(`/api/admin/users/${encodeURIComponent(userId)}/reject`, { method: 'POST' });
+}
+
+export async function updateAdminUserRole(
+  userId: string,
+  role: 'USER' | 'ANALYST' | 'ADMIN',
+): Promise<{ user: { id: string; name: string; email: string; role: string } }> {
+  return adminFetch(`/api/admin/users/${encodeURIComponent(userId)}/role`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ role }),
   });
-  return parseApiResponse<AdminUserDossier>(res);
+}
+
+export async function fetchAdminAuditLog(params?: {
+  limit?: number;
+  offset?: number;
+}): Promise<AdminAuditPage> {
+  const query = new URLSearchParams();
+  if (params?.limit != null) query.set('limit', String(params.limit));
+  if (params?.offset != null) query.set('offset', String(params.offset));
+  const suffix = query.toString() ? `?${query.toString()}` : '';
+  return adminFetch<AdminAuditPage>(`/api/admin/audit-log${suffix}`);
 }

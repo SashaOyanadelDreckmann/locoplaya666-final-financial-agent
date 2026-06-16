@@ -61,6 +61,7 @@ function IntakeContent() {
   const [form, setForm] = useState<IntakeQuestionnaire>(structuredClone(INITIAL_FORM));
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [handoffExiting, setHandoffExiting] = useState(false);
   const [bootstrapping, setBootstrapping] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -119,9 +120,16 @@ function IntakeContent() {
       setIntake(res.intake);
       markAgentBootFromIntake();
       markPanelIntroPendingFromIntake();
+
+      const reducedMotion =
+        typeof window !== 'undefined' &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      setHandoffExiting(true);
+      await new Promise((resolve) => window.setTimeout(resolve, reducedMotion ? 72 : 480));
       router.push('/agent');
     } catch (e: any) {
       setError(toUserFacingError(e, 'intake.submit'));
+      setHandoffExiting(false);
     } finally {
       setLoading(false);
     }
@@ -132,9 +140,14 @@ function IntakeContent() {
   const stepMeta = INTAKE_STEPS[step];
   const cssVars = { '--c-step': stepMeta.rgb } as React.CSSProperties;
   return (
-    <div className="intake-shell" data-step={stepMeta.key} style={cssVars}>
+    <div
+      className={`intake-shell${handoffExiting ? ' is-handoff-exit' : ''}`}
+      data-step={stepMeta.key}
+      style={cssVars}
+    >
       <div className="intake-photo-bg" aria-hidden />
       <div className="intake-bg-orb" aria-hidden />
+      <div className="intake-handoff-veil" aria-hidden />
 
       <header className="intake-topbar">
         <button

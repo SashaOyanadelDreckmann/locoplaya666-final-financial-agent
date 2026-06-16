@@ -40,8 +40,8 @@ export type MobileSpotlightLayoutInput = {
 /** Centered spotlight card on mobile — independent of deck offset */
 export function getMobileSpotlightLayout(input: MobileSpotlightLayoutInput) {
   const padX = 20;
-  const headerReserve = 128;
-  const footerReserve = 88;
+  const headerReserve = input.viewportHeight < 700 ? 112 : 128;
+  const footerReserve = 96;
   const availW = input.viewportWidth - padX * 2;
   const availH = input.viewportHeight - headerReserve - footerReserve;
   const aspect = input.naturalWidth / Math.max(input.naturalHeight, 1);
@@ -51,9 +51,9 @@ export function getMobileSpotlightLayout(input: MobileSpotlightLayoutInput) {
 
   if (input.phase === 'spotlight') {
     const boost = Math.min(
-      2.35,
-      (availW * 0.9) / Math.max(input.naturalWidth, 1),
-      (availH * 0.72) / Math.max(input.naturalHeight, 1),
+      2.5,
+      (availW * 0.92) / Math.max(input.naturalWidth, 1),
+      (availH * 0.76) / Math.max(input.naturalHeight, 1),
     );
     cardW = Math.round(input.naturalWidth * boost);
     cardH = Math.round(input.naturalHeight * boost);

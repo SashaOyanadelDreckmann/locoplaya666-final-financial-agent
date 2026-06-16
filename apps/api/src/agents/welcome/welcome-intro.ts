@@ -377,6 +377,41 @@ export async function resolveWelcomeIntroForUser(params: {
       };
     }
 
+    if (!userRecord) {
+      const intro = finalizeIntro(
+        buildFallbackWelcomeIntro({
+          firstName: params.firstName,
+          intake: envelope.intake,
+          intakeContext: envelope.intakeContext,
+          llmSummary: envelope.llmSummary,
+        }),
+      );
+      return {
+        intro,
+        message: welcomeIntroToMarkdown(intro),
+        cached: false,
+      };
+    }
+
+    const welcomeCharge = await chargeFincoinOperation(params.userId, 'welcome.llm');
+    if (!welcomeCharge.charged) {
+      const intro = finalizeIntro(
+        cached?.intro
+          ? cached.intro
+          : buildFallbackWelcomeIntro({
+              firstName: params.firstName,
+              intake: envelope.intake,
+              intakeContext: envelope.intakeContext,
+              llmSummary: envelope.llmSummary,
+            }),
+      );
+      return {
+        intro,
+        message: welcomeIntroToMarkdown(intro),
+        cached: Boolean(cached?.intro),
+      };
+    }
+
     const intro = finalizeIntro(
       await buildWelcomeIntroWithLLM({
         firstName: params.firstName,
@@ -385,9 +420,6 @@ export async function resolveWelcomeIntroForUser(params: {
         llmSummary: envelope.llmSummary,
       }),
     );
-    if (userRecord) {
-      await chargeFincoinOperation(params.userId, 'welcome.llm');
-    }
 
     const cacheEntry: WelcomeIntroCache = {
       fingerprint,

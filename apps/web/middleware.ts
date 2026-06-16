@@ -93,6 +93,23 @@ export async function middleware(request: NextRequest) {
       }
       return response;
     }
+
+    const isAdminRoute = pathname === '/admin' || pathname.startsWith('/admin/');
+    const isAnalyticsRoute = pathname === '/analytics' || pathname.startsWith('/analytics/');
+    if (isAdminRoute || isAnalyticsRoute) {
+      const cookieHeader = request.headers.get('cookie')?.trim() ?? '';
+      const backendBase = resolveServerBackendBase({
+        requestOrigin: request.nextUrl.origin,
+        forwardedHost: request.headers.get('x-forwarded-host'),
+        forwardedProto: request.headers.get('x-forwarded-proto'),
+      });
+      const { session: profile } = await fetchServerSession({ cookieHeader, backendBase });
+      if (String(profile?.role ?? '').toUpperCase() !== 'ADMIN') {
+        const url = request.nextUrl.clone();
+        url.pathname = '/agent';
+        return NextResponse.redirect(url);
+      }
+    }
   }
 
   if (isGuestOnly && hasSessionCookieValue) {

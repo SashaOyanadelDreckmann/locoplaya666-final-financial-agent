@@ -4,6 +4,17 @@
  */
 
 import type { AgentBlock, ChartBlock, TableBlock, QuestionnaireBlock, TxChartBlock } from '../chat.types';
+import type { BudgetTablePatch } from '@financial-agent/shared';
+import {
+  budgetRowsFromUiSnapshot,
+  buildBudgetTablePatch,
+  extractBudgetTableActionsFromTag,
+  extractBudgetTablePatchFromToolOutputs,
+  findAgentTableTagSpans,
+  legacyBudgetUpdatesToActions,
+  parseBudgetTableActionsJson,
+  stripAgentTableTags,
+} from '@financial-agent/shared';
 
 type JsonRecord = Record<string, unknown>;
 
@@ -291,7 +302,17 @@ function inferChoicesFromQuestion(question: string, context?: { intake?: JsonRec
     );
   }
 
-  if (/\btiempo\b|\bfrecuencia\b|\bcada mes\b|\bcada semana\b|\bcada quincena\b/i.test(q)) {
+  if (
+    /\b(dónde|donde|a dónde|adonde)\b/i.test(q) ||
+    /\bobjetivo\b.*\b(concreto|inversión|inversion)\b/i.test(q)
+  ) {
+    return ['Opción más segura', 'Opción equilibrada', 'Opción agresiva', 'Prefiero explicarlo yo'];
+  }
+
+  if (
+    /\b(tiempo|frecuencia|con qué frecuencia|que frecuencia|qué tan seguido|que tan seguido)\b/i.test(q) ||
+    /\b(cada mes|cada semana|cada quincena)\b/i.test(q)
+  ) {
     return withFallback(
       ['Mensual', 'Quincenal', 'Semanal', 'Depende de mi flujo'],
       ['Corto plazo', 'Mediano plazo', 'Largo plazo', 'Prefiero explicar']
@@ -400,24 +421,23 @@ export function extractChartBlocksFromToolOutput(
     }
   }
 
-  // Match <TABLE> blocks
-  const tableRegex = /<TABLE>(\{[\s\S]*?\})<\/TABLE>/g;
-  while ((match = tableRegex.exec(text)) !== null) {
-    try {
-      const data = JSON.parse(match[1]);
-      const block: TableBlock = {
-        type: 'table',
-        table: {
-          title: data.title || 'Tabla',
-          headers: data.headers || data.columns || [],
-          rows: data.rows || [],
-          note: data.note,
-        },
-      };
-      pushIfUnique(block);
-    } catch {
-      // Invalid JSON in tag, skip
-    }
+  // Match <TABLE> blocks (closed or missing </TABLE>)
+  for (const span of findAgentTableTagSpans(text)) {
+    const data = span.data;
+    const block: TableBlock = {
+      type: 'table',
+      table: {
+        title: data.title || 'Tabla',
+        headers: data.headers || data.columns || [],
+        rows: (data.rows || []).map((row: unknown) =>
+          Array.isArray(row)
+            ? row.map((cell) => String(cell ?? ''))
+            : [],
+        ),
+        note: data.note,
+      },
+    };
+    pushIfUnique(block);
   }
 
   // Match <QUESTIONNAIRE> blocks
@@ -524,12 +544,10 @@ export function extractPanelAction(
 }
 
 /**
- * Extract budget updates from the <BUDGET_UPDATE> tag.
- * Tag payload is a JSON array of { label, type, amount, category? } objects.
- * Returns [] when the tag is absent or malformed.
+ * Extract budget table patch from execution outputs, structured tag, or legacy BUDGET_UPDATE.
  */
-export function extractBudgetUpdates(
-  text: string
+export function extractLegacyBudgetUpdates(
+  text: string,
 ): Array<{ label: string; type: 'income' | 'expense'; amount: number; category?: string }> {
   const match = text.match(/<BUDGET_UPDATE>\s*(\[[\s\S]*?\])\s*<\/BUDGET_UPDATE>/i);
   if (!match) return [];
@@ -548,32 +566,88 @@ export function extractBudgetUpdates(
       })
       .filter(
         (x): x is { label: string; type: 'income' | 'expense'; amount: number; category?: string } =>
-          x !== null
+          x !== null,
       );
   } catch {
     return [];
   }
 }
 
+export function extractBudgetTablePatch(params: {
+  text: string;
+  tool_outputs?: Array<{ tool: string; data: unknown }>;
+  ui_state?: Record<string, unknown>;
+}): BudgetTablePatch | undefined {
+  const rows = budgetRowsFromUiSnapshot(params.ui_state?.budget_rows);
+
+  const fromTools = extractBudgetTablePatchFromToolOutputs(params.tool_outputs, rows);
+  if (fromTools && (fromTools.actions.length > 0 || fromTools.pending_confirmation)) {
+    return fromTools;
+  }
+
+  const tagActions = extractBudgetTableActionsFromTag(params.text);
+  if (tagActions.length > 0) {
+    return buildBudgetTablePatch(rows, tagActions);
+  }
+
+  const legacyTagMatch = params.text.match(
+    /<BUDGET_TABLE_ACTIONS>\s*(\{[\s\S]*?\})\s*<\/BUDGET_TABLE_ACTIONS>/i,
+  );
+  if (legacyTagMatch) {
+    try {
+      const parsed = JSON.parse(legacyTagMatch[1]) as { actions?: unknown };
+      const actions = parseBudgetTableActionsJson(parsed.actions);
+      if (actions.length > 0) {
+        return buildBudgetTablePatch(rows, actions, {
+          modelRequiresConfirmation: Boolean(
+            (parsed as { requires_confirmation?: boolean }).requires_confirmation,
+          ),
+        });
+      }
+    } catch {
+      // ignore malformed object tag
+    }
+  }
+
+  const legacyUpdates = extractLegacyBudgetUpdates(params.text);
+  if (legacyUpdates.length > 0) {
+    const actions = legacyBudgetUpdatesToActions(rows, legacyUpdates);
+    if (actions.length > 0) {
+      return buildBudgetTablePatch(rows, actions);
+    }
+  }
+
+  return undefined;
+}
+
+/** @deprecated Use extractBudgetTablePatch */
+export function extractBudgetUpdates(
+  text: string,
+): Array<{ label: string; type: 'income' | 'expense'; amount: number; category?: string }> {
+  return extractLegacyBudgetUpdates(text);
+}
+
 /**
  * Remove all special tags from text
  */
 export function cleanSpecialTags(text: string): string {
-  return text
-    .replace(/<CHART>[\s\S]*?<\/CHART>/g, '\n\n')
-    .replace(/<TX_CHART>[\s\S]*?<\/TX_CHART>/g, '\n\n')
-    .replace(/<TABLE>[\s\S]*?<\/TABLE>/g, '\n\n')
-    .replace(/<QUESTIONNAIRE>[\s\S]*?<\/QUESTIONNAIRE>/g, '\n\n')
-    .replace(/<SUGERENCIAS>[\s\S]*?<\/SUGERENCIAS>/g, '\n\n')
-    .replace(/<PANEL>[\s\S]*?<\/PANEL>/g, '\n\n')
-    .replace(/<BUDGET_UPDATE>[\s\S]*?<\/BUDGET_UPDATE>/gi, '\n\n')
-    .replace(/(?:^|\n)\s*SUGERENCIAS\s*:\s*\[[\s\S]*?\]\s*(?=\n|$)/gi, '\n\n')
-    .replace(/<function_calls>[\s\S]*?<\/function_calls>/gi, '\n\n')
-    .replace(/<invoke[\s\S]*?<\/invoke>/gi, '\n\n')
-    .replace(/<parameter[\s\S]*?<\/parameter>/gi, '\n\n')
-    .replace(/<\/?(function_calls|invoke|parameter)[^>]*>/gi, '\n')
-    .replace(/<CONTEXT_SCORE>\d+<\/CONTEXT_SCORE>/g, '\n')
-    .replace(/[ \t]+\n/g, '\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
+  return stripAgentTableTags(
+    text
+      .replace(/<CHART>[\s\S]*?<\/CHART>/g, '\n\n')
+      .replace(/<TX_CHART>[\s\S]*?<\/TX_CHART>/g, '\n\n')
+      .replace(/<QUESTIONNAIRE>[\s\S]*?<\/QUESTIONNAIRE>/g, '\n\n')
+      .replace(/<SUGERENCIAS>[\s\S]*?<\/SUGERENCIAS>/g, '\n\n')
+      .replace(/<PANEL>[\s\S]*?<\/PANEL>/g, '\n\n')
+      .replace(/<BUDGET_UPDATE>[\s\S]*?<\/BUDGET_UPDATE>/gi, '\n\n')
+      .replace(/<BUDGET_TABLE_ACTIONS>[\s\S]*?<\/BUDGET_TABLE_ACTIONS>/gi, '\n\n')
+      .replace(/(?:^|\n)\s*SUGERENCIAS\s*:\s*\[[\s\S]*?\]\s*(?=\n|$)/gi, '\n\n')
+      .replace(/<function_calls>[\s\S]*?<\/function_calls>/gi, '\n\n')
+      .replace(/<invoke[\s\S]*?<\/invoke>/gi, '\n\n')
+      .replace(/<parameter[\s\S]*?<\/parameter>/gi, '\n\n')
+      .replace(/<\/?(function_calls|invoke|parameter)[^>]*>/gi, '\n')
+      .replace(/<CONTEXT_SCORE>\d+<\/CONTEXT_SCORE>/g, '\n')
+      .replace(/[ \t]+\n/g, '\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim(),
+  );
 }

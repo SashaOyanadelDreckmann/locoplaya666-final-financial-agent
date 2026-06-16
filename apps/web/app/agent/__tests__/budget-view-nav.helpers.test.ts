@@ -1,5 +1,6 @@
 import {
   canStepBudgetViewMode,
+  getBudgetViewModeDisplayLabel,
   getBudgetViewModeLabel,
   getBudgetViewModes,
   stepBudgetViewMode,
@@ -23,6 +24,8 @@ describe('budget view nav helpers', () => {
   it('labels desktop split mode distinctly', () => {
     expect(getBudgetViewModeLabel(true, 2)).toBe('asistente + tabla');
     expect(getBudgetViewModeLabel(false, 2)).toBe('tabla');
+    expect(getBudgetViewModeDisplayLabel(true, 2)).toBe('Asistente + tabla');
+    expect(getBudgetViewModeDisplayLabel(false, 1)).toBe('Asistente');
   });
 
   it('reports edge availability for arrows', () => {

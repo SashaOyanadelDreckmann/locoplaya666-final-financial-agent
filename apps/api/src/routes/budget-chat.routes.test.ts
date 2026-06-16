@@ -66,7 +66,7 @@ describe('budget-chat routes (agent-first)', () => {
     vi.mocked(runBudgetChatAgent).mockReset();
   });
 
-  it('returns agent init payload', async () => {
+  it('returns deterministic init when agent has no table actions', async () => {
     runBudgetChatAgent.mockResolvedValueOnce({
       assistant_reply: 'Hola, tu tabla tiene 2 filas.',
       next_question: '¿Qué quieres cambiar primero?',
@@ -80,12 +80,17 @@ describe('budget-chat routes (agent-first)', () => {
     const { agent, csrfToken } = await createAuthedAgent();
     const res = await agent.post('/api/budget-chat').set('x-csrf-token', csrfToken).send({
       intent: 'init',
-      budgetRows: [{ id: 'income_salary', category: 'Sueldo líquido', type: 'income', amount: 850000 }],
+      budgetRows: [
+        { id: 'income_salary', category: 'Ingreso principal', type: 'income', amount: 0 },
+        { id: 'expense_rent', category: 'Gasto principal', type: 'expense', amount: 0 },
+        { id: 'expense_other', category: 'Otro gasto', type: 'expense', amount: 0 },
+      ],
       chatAnswers: [],
     });
 
     expect(res.status).toBe(200);
-    expect(res.body.source).toBe('budget_agent_init');
+    expect(res.body.source).toBe('deterministic_init');
+    expect(String(res.body.assistant_reply)).toMatch(/tres filas base/i);
     expect(String(res.body.next_question)).toMatch(/\?/);
     expect(runBudgetChatAgent).toHaveBeenCalledWith(expect.objectContaining({ mode: 'init' }));
   });

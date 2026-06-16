@@ -11,7 +11,8 @@ import { ChatAgentInputSchema } from '../agents/core.agent/chat.types';
 import {
   attachProfileToUser,
   removeInjectedProfileFromUser,
-  attachIntakeToUser,
+  mergeFinancialContextIntoIntake,
+  replaceIntakeEnvelopeForDev,
   persistWelcomeIntroCache,
   removeInjectedIntakeFromUser,
   saveUserSheets,
@@ -65,7 +66,6 @@ import {
 import { sendSuccess } from '../http/api.responses';
 import { parseBody, parseQuery } from '../http/parse';
 import { hasPermission, PERMISSIONS, type UserRole } from '../auth/rbac';
-import { listAdminUsersFullDump } from '../services/admin.service';
 import {
   repairUserSheetsFromTurns,
 } from '../services/sheet-restore.service';
@@ -830,16 +830,15 @@ router.post(
     const user = req.authenticatedUser;
     if (!user) throw unauthorized('Invalid session');
 
-    const ok = await attachIntakeToUser(
+    const ok = await replaceIntakeEnvelopeForDev(
       user.id,
       {
-        intake,
+        intake: intake as Record<string, unknown>,
         llmSummary,
         intakeContext,
         productsContext,
         budgetContext,
       },
-      { replace: true },
     );
     if (!ok) throw badRequest('Failed to attach intake');
 
@@ -856,34 +855,10 @@ router.post(
     if (!user) throw unauthorized('Invalid session');
 
     const { productsContext, budgetContext } = parseBody(MergeProductsContextSchema, req.body);
-    const currentEnvelope =
-      user.injectedIntake && typeof user.injectedIntake === 'object'
-        ? (user.injectedIntake as IntakeEnvelope)
-        : {};
-    const nextEnvelope: IntakeEnvelope = {
-      ...currentEnvelope,
-      intake:
-        currentEnvelope.intake && typeof currentEnvelope.intake === 'object'
-          ? currentEnvelope.intake
-          : {},
-      intakeContext:
-        currentEnvelope.intakeContext && typeof currentEnvelope.intakeContext === 'object'
-          ? currentEnvelope.intakeContext
-          : {},
-      productsContext,
-      budgetContext:
-        budgetContext && typeof budgetContext === 'object'
-          ? budgetContext
-          : currentEnvelope.budgetContext,
-    };
 
-    const ok = await attachIntakeToUser(user.id, {
-      intake: nextEnvelope.intake ?? {},
-      llmSummary: nextEnvelope.llmSummary,
-      intakeContext: nextEnvelope.intakeContext,
-      productsContext: nextEnvelope.productsContext,
-      budgetContext: nextEnvelope.budgetContext,
-      welcomeIntroCache: nextEnvelope.welcomeIntroCache as WelcomeIntroCache | undefined,
+    const ok = await mergeFinancialContextIntoIntake(user.id, {
+      productsContext,
+      budgetContext,
     });
     if (!ok) throw badRequest('Failed to merge financial context into intake');
 
@@ -1066,6 +1041,22 @@ router.post(
     });
     const sourcesLoaded = countInterviewVoiceSourcesLoaded(serverIntake);
 
+    let voiceCharge: Awaited<ReturnType<typeof chargeFincoinOperation>> | null = null;
+    if (!isResumeToken) {
+      voiceCharge = await chargeFincoinOperation(user.id, 'voice.realtime');
+      if (!voiceCharge.charged) {
+        const summaries =
+          voiceCharge.closureSummaries ?? (await ensureFincoinDepletionHandled(user.id));
+        throw fincoinsDepleted(
+          'Tus Fincoins se agotaron. El agente queda en pausa y ya no se realizan llamadas con costo.',
+          {
+            usage: fincoinUsagePayload(voiceCharge.usage),
+            closure_summaries: summaries,
+          },
+        );
+      }
+    }
+
     const response = await fetch('https://api.openai.com/v1/realtime/client_secrets', {
       method: 'POST',
       headers: {
@@ -1141,10 +1132,6 @@ router.post(
         updatedAt: new Date().toISOString(),
       },
     });
-
-    const voiceCharge = isResumeToken
-      ? null
-      : await chargeFincoinOperation(user.id, 'voice.realtime');
 
     return sendSuccess(res, {
       value,
@@ -1363,16 +1350,6 @@ router.get(
       limit: query.limit ?? 100,
     });
     return sendSuccess(res, { turns });
-  }),
-);
-
-router.get(
-  '/admin/users/full',
-  requireAuth,
-  requirePermission(PERMISSIONS.DEV_INJECT),
-  asyncHandler(async (_req, res) => {
-    const payload = await listAdminUsersFullDump();
-    return sendSuccess(res, payload);
   }),
 );
 
@@ -1771,6 +1748,49 @@ router.post(
         product_closing_mode: lifecycleDecision.closingMode,
       },
     };
+
+    const charge = await chargeFincoinOperation(authedUser.id, 'agent.chat');
+    if (!charge.charged) {
+      const closureSummaries =
+        charge.closureSummaries ?? (await ensureFincoinDepletionHandled(authedUser.id));
+      const lifecycleState = getLifecycleFromMemory(authedUser.memoryBlob);
+      return returnAgentChatPayload(
+        res,
+        {
+          message:
+            'Tus Fincoins se agotaron. El agente queda en pausa: puedes revisar los resúmenes finales de cada chat desbloqueado, pero no se procesan nuevas solicitudes con costo.',
+          mode: 'information',
+          tool_calls: [],
+          agent_blocks: [],
+          artifacts: [],
+          citations: [],
+          suggested_replies: [],
+          compliance: {
+            mode: 'information',
+            no_auto_execution: true,
+            includes_recommendation: false,
+            includes_simulation: false,
+            includes_regulation: false,
+            missing_information: [],
+            disclaimers_shown: [],
+            risk_score: 0,
+            blocked: { is_blocked: true, reason: 'FINCOINS_DEPLETED' },
+          },
+          state_updates: {},
+          meta: {
+            fincoin_usage: fincoinUsagePayload(charge.usage),
+            closure_summaries: closureSummaries,
+            product_lifecycle: {
+              phase: lifecycleState.phase,
+              unlocked_chats: lifecycleState.unlockedChats,
+              closed_chats: lifecycleState.closedChats,
+            },
+          },
+        },
+        streamReporter,
+      );
+    }
+
     let response: any;
     try {
       response = await runCoreAgent(input, streamReporter ? { stream: streamReporter } : undefined);
@@ -1811,6 +1831,10 @@ router.post(
           blocked: { is_blocked: false },
         },
         state_updates: { degraded: true, error_code: 'AGENT_FAILED' },
+        meta: {
+          fincoin_usage: fincoinUsagePayload(charge.usage),
+          ...(charge.closureSummaries ? { closure_summaries: charge.closureSummaries } : {}),
+        },
       };
 
       if (streamReporter) {
@@ -1921,91 +1945,15 @@ router.post(
       req.logger?.warn({ msg: 'Error persisting conversation turn', error: historyErr, userId: authedUser.id });
     }
 
-    if (response.budget_updates && response.budget_updates.length > 0 && input.user_id) {
-      try {
-        const currentSheets = (await loadUserSheets(authedUser.id)) ?? [];
-        const uiState = (input.ui_state ?? {}) as Record<string, unknown>;
-        const activeChat = (uiState.active_chat ?? null) as Record<string, unknown> | null;
-        const activeSheetId =
-          activeChat && typeof activeChat.id === 'string' ? activeChat.id : undefined;
 
-        const activeSheet =
-          (activeSheetId
-            ? currentSheets.find((sheet) => sheet.id === activeSheetId)
-            : undefined) ??
-          currentSheets.find((sheet) => sheet.status === 'active') ??
-          currentSheets[0];
-
-        if (activeSheet) {
-          const updatedItems =
-            activeSheet.items?.map((item) => {
-              if (!item || typeof item !== 'object') return item;
-              const itemRecord = item as Record<string, unknown>;
-              const label = typeof itemRecord.label === 'string' ? itemRecord.label : undefined;
-              const update = response.budget_updates?.find(
-                (entry: { label: string }) => entry.label === label,
-              );
-              return update ? { ...itemRecord, amount: update.amount } : item;
-            }) ?? [];
-
-          const newItems = response.budget_updates?.filter((entry: { label: string }) => {
-            return !activeSheet.items?.some((item) => {
-              const label =
-                item &&
-                typeof item === 'object' &&
-                typeof (item as Record<string, unknown>).label === 'string'
-                  ? ((item as Record<string, unknown>).label as string)
-                  : undefined;
-              return label === entry.label;
-            });
-          }) ?? [];
-
-          const nextItems = [...updatedItems, ...newItems];
-          const updatedSheet = {
-            ...activeSheet,
-            items: nextItems,
-            draft: response.message ?? activeSheet.draft,
-            updatedAt: new Date().toISOString(),
-          };
-
-          const nextSheets = currentSheets.map((sheet) =>
-            sheet.id === updatedSheet.id ? updatedSheet : sheet,
-          );
-
-          await saveUserSheets(authedUser.id, nextSheets);
-
-          (response as Record<string, unknown>).persistence_status = {
-            persisted: true,
-            timestamp: new Date().toISOString(),
-            affected_sheet_id: activeSheet.id,
-            items_modified: nextItems.length,
-          };
-        }
-      } catch (persistErr) {
-        req.logger?.warn({
-          msg: 'Budget persistence failed (non-blocking)',
-          error: persistErr,
-        });
-      }
-    }
-
-    try {
-      const charge = await chargeFincoinOperation(authedUser.id, 'agent.chat');
-      response.meta = {
-        ...((response.meta as Record<string, unknown>) ?? {}),
-        fincoin_usage: fincoinUsagePayload(charge.usage),
-        ...(charge.closureSummaries ? { closure_summaries: charge.closureSummaries } : {}),
-      };
-      if (charge.justDepleted) {
-        response.message =
-          `${String(response.message ?? '').trim()}\n\n—\nTus Fincoins se agotaron. El agente queda en pausa; revisa los resúmenes finales en cada chat.`.trim();
-      }
-    } catch (fincoinErr) {
-      req.logger?.warn({ msg: 'Error charging fincoins for agent chat', error: fincoinErr, userId: authedUser.id });
-      response.meta = {
-        ...((response.meta as Record<string, unknown>) ?? {}),
-        fincoin_usage: fincoinUsagePayload(fincoinBefore),
-      };
+    response.meta = {
+      ...((response.meta as Record<string, unknown>) ?? {}),
+      fincoin_usage: fincoinUsagePayload(charge.usage),
+      ...(charge.closureSummaries ? { closure_summaries: charge.closureSummaries } : {}),
+    };
+    if (charge.justDepleted) {
+      response.message =
+        `${String(response.message ?? '').trim()}\n\n—\nTus Fincoins se agotaron. El agente queda en pausa; revisa los resúmenes finales en cada chat.`.trim();
     }
 
     return returnAgentChatPayload(res, response as Record<string, unknown>, streamReporter);

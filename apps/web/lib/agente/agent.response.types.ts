@@ -63,7 +63,27 @@ export type AgentResponse = {
     message?: string;
   };
 
-  // actualizaciones de presupuesto inferidas de la conversación
+  // Mutaciones validadas de la tabla de presupuesto (Core Agent → cliente)
+  budget_table_patch?: {
+    actions: Array<{
+      kind: 'add' | 'update' | 'delete';
+      id: string;
+      category?: string;
+      type?: 'income' | 'expense';
+      amount?: number;
+      cadence?: 'fixed' | 'variable';
+      payment_method?: string;
+      movement_type?: string;
+    }>;
+    requires_confirmation: boolean;
+    summary: string;
+    pending_confirmation?: {
+      actions: Array<Record<string, unknown>>;
+      summary: string;
+    } | null;
+  };
+
+  /** @deprecated Usar budget_table_patch */
   budget_updates?: Array<{
     label: string;
     type: 'income' | 'expense';

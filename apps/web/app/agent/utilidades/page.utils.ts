@@ -250,6 +250,7 @@ export function sanitizeMessageText(value: unknown, fallback = ''): string {
     .replace(/<SUGERENCIAS>[\s\S]*?<\/SUGERENCIAS>/gi, '\n')
     .replace(/<PANEL>[\s\S]*?<\/PANEL>/gi, '\n')
     .replace(/<BUDGET_UPDATE>[\s\S]*?<\/BUDGET_UPDATE>/gi, '\n')
+    .replace(/<BUDGET_TABLE_ACTIONS>[\s\S]*?<\/BUDGET_TABLE_ACTIONS>/gi, '\n')
     .replace(/\bundefined\b/gi, '')
     .replace(/\bnull\b/gi, '')
     .replace(/([a-záéíóúñ])([A-ZÁÉÍÓÚÑ])/g, '$1 $2')

@@ -236,7 +236,7 @@ export function buildBootScriptLines(session: {
   lines.push({
     id: 'run1',
     tone: 'system',
-    text: 'await attachIntakeToUser(session.id, profile);',
+    text: 'await submitQuestionnaireIntakeOnce(session.id, profile);',
     pauseMs: 160,
   });
   lines.push({

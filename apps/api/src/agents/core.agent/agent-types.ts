@@ -18,6 +18,7 @@ import type {
   Artifact,
 } from './chat.types';
 
+import type { BudgetTablePatch } from '@financial-agent/shared';
 import type { FinancialDiagnosticProfile } from '../../schemas/profile.schema';
 import type { IntakeQuestionnaire } from '@financial-agent/shared/src/intake/intake-questionnaire.types';
 import type { BudgetSummary } from '../../services/panel-state.service';
@@ -47,6 +48,8 @@ export interface ExecutionResult {
   citations: Citation[];
   react_trace: Array<{ iteration: number; decision: string; result: string }>;
   iterations_count: number;
+  /** Natural-language draft from ReAct when the planner finishes without tool calls. */
+  assistant_draft?: string;
 }
 
 /**
@@ -61,7 +64,7 @@ export interface FormattedResponse {
   citations: Citation[];
   suggested_replies: string[];
   panel_action?: { section?: string; message?: string };
-  budget_updates?: Array<{ label: string; type: string; amount: number; category?: string }>;
+  budget_table_patch?: BudgetTablePatch;
   knowledge_event_detected?: boolean;
   knowledge_score?: number;
   milestone_unlocked?: { threshold: number; feature: string };

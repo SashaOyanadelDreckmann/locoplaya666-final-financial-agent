@@ -57,7 +57,10 @@ function normalizeEmail(email: string): string {
 }
 
 function canBootstrapAdminFromLogin(): boolean {
-  return process.env.NODE_ENV !== 'production';
+  if (process.env.NODE_ENV === 'production') return false;
+  const flag = process.env.ENABLE_BOOTSTRAP_ADMIN_LOGIN?.trim().toLowerCase();
+  if (flag === 'false' || flag === '0' || flag === 'no') return false;
+  return true;
 }
 
 function getBootstrapAdminCredentials() {

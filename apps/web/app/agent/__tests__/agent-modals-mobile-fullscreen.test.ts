@@ -37,7 +37,6 @@ describe('modal mobile fullscreen css', () => {
     expect(fullscreenCss).toContain('.transactions-modal .tx-scroll-body');
     expect(fullscreenCss).toContain('max-height: none !important');
     expect(fullscreenCss).toContain('overflow-y: auto !important');
-    expect(fullscreenCss).toContain('--visual-vh');
-    expect(fullscreenCss).toContain('browser-keyboard-open .agent-modal-overlay.budget-modal-overlay');
+    expect(fullscreenCss).not.toContain('browser-keyboard-open .agent-modal-overlay.budget-modal-overlay');
   });
 });

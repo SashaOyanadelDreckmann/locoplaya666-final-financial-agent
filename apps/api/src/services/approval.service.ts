@@ -305,7 +305,25 @@ export async function sendPasswordResetEmail(params: {
 
 export async function approveUserFromSignedToken(token: string) {
   const payload = verifyApprovalToken(token, 'approve');
-  const user = await loadUserById(payload.userId);
+  return approveUserByAdmin({
+    userId: payload.userId,
+    adminEmail: payload.adminEmail,
+  });
+}
+
+export async function rejectUserFromSignedToken(token: string) {
+  const payload = verifyApprovalToken(token, 'reject');
+  return rejectUserByAdmin({
+    userId: payload.userId,
+    adminEmail: payload.adminEmail,
+  });
+}
+
+export async function approveUserByAdmin(params: {
+  userId: string;
+  adminEmail: string;
+}) {
+  const user = await loadUserById(params.userId);
   if (!user) {
     throw badRequest('User not found');
   }
@@ -317,7 +335,7 @@ export async function approveUserFromSignedToken(token: string) {
   const updated = await updateUserAuthSecurity(user.id, {
     approvalStatus: APPROVAL_STATUS.APPROVED,
     approvedAt: new Date().toISOString(),
-    approvedByEmail: payload.adminEmail,
+    approvedByEmail: normalizeEmail(params.adminEmail),
   });
   if (!updated) {
     throw badRequest('Failed to approve user');
@@ -331,9 +349,11 @@ export async function approveUserFromSignedToken(token: string) {
   return { alreadyApproved: false, user: updated };
 }
 
-export async function rejectUserFromSignedToken(token: string) {
-  const payload = verifyApprovalToken(token, 'reject');
-  const user = await loadUserById(payload.userId);
+export async function rejectUserByAdmin(params: {
+  userId: string;
+  adminEmail: string;
+}) {
+  const user = await loadUserById(params.userId);
   if (!user) {
     throw badRequest('User not found');
   }
@@ -345,7 +365,7 @@ export async function rejectUserFromSignedToken(token: string) {
   const updated = await updateUserAuthSecurity(user.id, {
     approvalStatus: APPROVAL_STATUS.REJECTED,
     approvedAt: new Date().toISOString(),
-    approvedByEmail: payload.adminEmail,
+    approvedByEmail: normalizeEmail(params.adminEmail),
   });
   if (!updated) {
     throw badRequest('Failed to reject user');

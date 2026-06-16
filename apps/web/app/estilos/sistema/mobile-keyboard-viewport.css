@@ -65,17 +65,22 @@
   }
 
   /*
-   * Agent + modals — outer frame tracks visible viewport (keyboard shrinks stack).
-   * Auth + intake + admin keep a stable outer frame; inner scroll containers adjust.
+   * Agent + modals — stable outer frame in browser (PWA parity).
+   * Inner scroll hosts adjust while the keyboard animates; avoids white gaps.
    */
   html:not(.pwa-standalone):not(.home-route-active):not(.auth-route-active):not(.intake-route-active):not(.admin-route-active) .app-shell,
   html:not(.pwa-standalone):not(.home-route-active):not(.auth-route-active):not(.intake-route-active):not(.admin-route-active) .mobile-scale-frame {
-    height: var(--visual-vh, var(--screen-h, 100lvh)) !important;
-    max-height: var(--visual-vh, var(--screen-h, 100lvh)) !important;
+    height: var(--screen-h, var(--fa-app-height, 100dvh)) !important;
+    max-height: var(--screen-h, var(--fa-app-height, 100dvh)) !important;
     min-height: 0 !important;
     overflow: hidden !important;
     transition: none !important;
     transform: none !important;
+  }
+
+  html:not(.pwa-standalone).agent-route-active,
+  html:not(.pwa-standalone).agent-route-active body {
+    background-color: #050810 !important;
   }
 
   /*
@@ -164,28 +169,13 @@
   }
 
   /*
-   * Agent mobile stack — fit visible viewport; panel eases away while typing.
+   * Agent mobile stack — stable height in browser (PWA parity); chat scrolls inside.
    */
   html:not(.pwa-standalone).agent-route-active main.agent-layout.is-mobile-viewport,
   html:not(.pwa-standalone) body.agent-route-active main.agent-layout.is-mobile-viewport {
-    height: var(--visual-vh, var(--screen-h, 100lvh)) !important;
-    max-height: var(--visual-vh, var(--screen-h, 100lvh)) !important;
+    height: 100% !important;
+    max-height: 100% !important;
     min-height: 0 !important;
-    transition: none !important;
-  }
-
-  html:not(.pwa-standalone) body.agent-route-active.browser-keyboard-open main.agent-layout.is-mobile-viewport .agent-panel,
-  html:not(.pwa-standalone) body.agent-route-active.composer-typing-snap main.agent-layout.is-mobile-viewport .agent-panel,
-  html:not(.pwa-standalone) body.agent-route-active.keyboard-opening main.agent-layout.is-mobile-viewport .agent-panel {
-    flex: 0 0 0 !important;
-    max-height: 0 !important;
-    min-height: 0 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    opacity: 0 !important;
-    overflow: hidden !important;
-    pointer-events: none !important;
-    visibility: hidden !important;
     transition: none !important;
   }
 
@@ -210,7 +200,7 @@
   }
 
   /*
-   * Modals — scrim lets fixed backdrop show; overlay scroll area tracks keyboard.
+   * Modals — stable overlay height in browser; inner scroll hosts track the keyboard.
    */
   html:not(.pwa-standalone):not(.home-route-active) .agent-modal-overlay,
   html:not(.pwa-standalone):not(.home-route-active) .agent-modal-overlay.transactions-modal-overlay,
@@ -222,9 +212,9 @@
     background-color: rgba(5, 8, 16, 0.42) !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
-    height: var(--visual-vh, var(--screen-h, 100lvh)) !important;
-    min-height: var(--visual-vh, var(--screen-h, 100lvh)) !important;
-    max-height: var(--visual-vh, var(--screen-h, 100lvh)) !important;
+    height: var(--screen-h, var(--fa-app-height, 100dvh)) !important;
+    min-height: var(--screen-h, var(--fa-app-height, 100dvh)) !important;
+    max-height: var(--screen-h, var(--fa-app-height, 100dvh)) !important;
     transition: none !important;
   }
 

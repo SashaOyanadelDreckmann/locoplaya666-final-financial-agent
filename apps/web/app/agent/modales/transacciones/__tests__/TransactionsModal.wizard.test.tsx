@@ -99,7 +99,7 @@ describe('TransactionsModal wizard', () => {
 
     const stepper = screen.getByRole('navigation', { name: /pasos del flujo de transacciones/i });
     expect(stepper).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /2\. evidencias/i })).toHaveAttribute('aria-current', 'step');
+    expect(screen.getByRole('button', { name: /^evidencias\b/i })).toHaveAttribute('aria-current', 'step');
     expect(screen.getByTestId('tx-evidence-step')).toBeInTheDocument();
   });
 
@@ -107,13 +107,13 @@ describe('TransactionsModal wizard', () => {
     render(<WizardHarness initialStep="upload" />);
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /3\. resumen/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^resumen\b/i }));
     });
 
     await waitFor(() => {
       expect(screen.getByTestId('tx-analyst-step')).toBeInTheDocument();
     });
-    expect(screen.getByRole('button', { name: /3\. resumen/i })).toHaveAttribute('aria-current', 'step');
+    expect(screen.getByRole('button', { name: /^resumen\b/i })).toHaveAttribute('aria-current', 'step');
   });
 
   it('shows in-modal close confirmation instead of window.confirm while busy', () => {

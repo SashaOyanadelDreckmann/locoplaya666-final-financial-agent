@@ -27,6 +27,7 @@ import { requireAuth, requirePermission } from './middleware/auth';
 import { PERMISSIONS } from './auth/rbac';
 import {
   authRateLimiter,
+  adminRateLimiter,
   chatRateLimiter,
   documentsRateLimiter,
   globalRateLimiter,
@@ -109,8 +110,8 @@ export function createApp() {
   app.use('/api/budget-chat', chatRateLimiter, budgetChatRouter);
   app.use('/api/transactions-chat', chatRateLimiter, transactionsChatRouter);
   app.use('/api/transcribe', chatRateLimiter, transcribeRouter);
-  app.use('/api/analytics', analyticsRouter);
-  app.use('/api/admin', adminRouter);
+  app.use('/api/analytics', adminRateLimiter, analyticsRouter);
+  app.use('/api/admin', adminRateLimiter, adminRouter);
   app.use('/api', agentRouter);
   app.use('/api/documents', documentsRateLimiter, documentsRouter);
   app.use('/api/pdfs', pdfsRouter);

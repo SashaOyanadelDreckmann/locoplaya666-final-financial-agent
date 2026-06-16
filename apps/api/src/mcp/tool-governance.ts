@@ -46,7 +46,7 @@ export function resolveToolCategory(toolName: string): ToolCategory {
   if (name.startsWith('market.')) return 'market';
   if (name.startsWith('rag.')) return 'rag';
   if (name.startsWith('finance.')) return 'finance';
-  if (name.startsWith('finance.simulate') || name.startsWith('finance.project')) return 'simulation';
+  if (name.startsWith('finance.simulate')) return 'simulation';
   if (name.includes('simulate') || name.includes('montecarlo') || name.includes('scenario')) {
     return 'simulation';
   }

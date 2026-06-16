@@ -9,9 +9,15 @@ describe('transactions modal layout contract css', () => {
   const contractCss = fs.readFileSync(contractPath, 'utf8');
   const layoutSource = fs.readFileSync(layoutPath, 'utf8');
 
-  it('loads contract css last in layout.tsx styles', () => {
+  it('loads transactions contract css in layout.tsx after shared modal guards', () => {
     const imports = [...layoutSource.matchAll(/import\s+'\.\/([^']+\.css)'/g)].map((match) => match[1]);
-    expect(imports[imports.length - 1]).toBe('estilos/modales/transacciones/agent-modals-transactions-contract.css');
+    const txContractIndex = imports.indexOf('estilos/modales/transacciones/agent-modals-transactions-contract.css');
+    const desktopGuardIndex = imports.indexOf('estilos/modales/comunes/agent-modals-desktop-guard.css');
+    const closeConfirmIndex = imports.indexOf('estilos/modales/comunes/agent-modals-close-confirm.css');
+
+    expect(txContractIndex).toBeGreaterThan(-1);
+    expect(txContractIndex).toBeGreaterThan(desktopGuardIndex);
+    expect(closeConfirmIndex).toBe(imports.length - 1);
   });
 
   it('defines authoritative opaque panel and single scroll host', () => {
@@ -49,9 +55,9 @@ describe('transactions modal layout contract css', () => {
     expect(contractCss).toContain('padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px)) !important');
   });
 
-  it('neutralizes phantom mobile bottom clearance', () => {
+  it('defines workspace footer clearance for analyst actions', () => {
     expect(contractCss).toContain('padding-bottom: 0 !important');
-    expect(contractCss).not.toContain('132px');
+    expect(contractCss).toContain('min-height: 132px !important');
   });
 
   it('locks mobile library card layout and premium palette', () => {
@@ -59,7 +65,8 @@ describe('transactions modal layout contract css', () => {
     expect(contractCss).toContain('var(--tx-lib-inline-bg)');
     expect(contractCss).toContain('-webkit-line-clamp: 2 !important');
     expect(contractCss).toContain('.transactions-modal .pt-left.tx-panel-surface--library');
-    expect(contractCss).toContain('var(--tx-panel-library-bg)');
+    expect(contractCss).toContain('--tx-panel-library-border');
+    expect(contractCss).toContain('background: #ffffff !important');
     expect(contractCss).toContain('.transactions-modal .tx-scanner-stream-root.is-quiet');
     expect(contractCss).toContain('touch-action: none !important');
   });

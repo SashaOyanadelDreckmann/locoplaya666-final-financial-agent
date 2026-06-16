@@ -28,6 +28,25 @@ vi.mock('../../services/llm.service', () => ({
   completeStructured: vi.fn(),
 }));
 
+vi.mock('../../persistencia/repos', () => ({
+  getUserById: vi.fn(async (userId: string) => ({
+    id: userId,
+    usdSpentTotal: 0,
+  })),
+}));
+
+vi.mock('../../services/fincoin.service', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../services/fincoin.service')>();
+  return {
+    ...actual,
+    chargeFincoinOperation: vi.fn(async (userId: string, operation: string) => ({
+      usage: actual.getFincoinUsageForUser({ usdSpentTotal: 0 }),
+      justDepleted: false,
+      charged: true,
+    })),
+  };
+});
+
 describe('resolveWelcomeIntroForUser', () => {
   it('returns cached intro without calling persist when fingerprint matches', async () => {
     const intake = { incomeBand: '300k-600k', city: 'Santiago' };

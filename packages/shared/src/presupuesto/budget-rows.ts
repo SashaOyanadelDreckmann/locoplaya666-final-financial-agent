@@ -45,14 +45,33 @@ export function canonicalBudgetRowId(id: string): string {
 
 export function createBudgetStarterRows(): BudgetRow[] {
   return [
-    { id: 'income_salary', category: 'Sueldo líquido', type: 'income', amount: 0, product: 'Ingresos principales', institution: '' },
-    { id: 'expense_rent', category: 'Arriendo / vivienda', type: 'expense', amount: 0, product: 'Vivienda', institution: '' },
-    { id: 'expense_food', category: 'Alimentación', type: 'expense', amount: 0, product: 'Gasto recurrente', institution: '' },
-    { id: 'expense_transport', category: 'Transporte', type: 'expense', amount: 0, product: 'Movilidad', institution: '' },
-    { id: 'expense_services', category: 'Servicios básicos', type: 'expense', amount: 0, product: 'Hogar', institution: '' },
-    { id: 'expense_debt', category: 'Deuda / cuotas', type: 'expense', amount: 0, product: 'Crédito', institution: '' },
-    { id: 'expense_savings', category: 'Ahorro / inversión', type: 'expense', amount: 0, product: 'Ahorro', institution: '' },
-    { id: 'expense_other', category: 'Otros gastos', type: 'expense', amount: 0, product: 'Variables', institution: '' },
+    {
+      id: 'income_salary',
+      category: 'Ingreso principal',
+      type: 'income',
+      amount: 0,
+      product: 'Ingresos',
+      institution: '',
+      movementType: 'income_main',
+    },
+    {
+      id: 'expense_rent',
+      category: 'Gasto principal',
+      type: 'expense',
+      amount: 0,
+      product: 'Gastos',
+      institution: '',
+      movementType: 'housing',
+    },
+    {
+      id: 'expense_other',
+      category: 'Otro gasto',
+      type: 'expense',
+      amount: 0,
+      product: 'Gastos',
+      institution: '',
+      movementType: 'leisure_other',
+    },
   ];
 }
 

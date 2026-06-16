@@ -88,41 +88,6 @@ export async function resetPassword(payload: { token: string; password: string }
   return parseApiResponse<{ reset: boolean }>(res);
 }
 
-export async function injectProfileToAgent(profile: unknown) {
-  const API_URL = getSessionApiBaseUrl();
-  const res = await fetch(`${API_URL}/api/inject-profile`, {
-    method: 'POST',
-    headers: withCsrf({ 'Content-Type': 'application/json' }),
-    credentials: 'include',
-    body: JSON.stringify({ profile }),
-  });
-
-  return parseApiResponse<{ updated: boolean }>(res);
-}
-
-export async function injectIntakeToAgent(payload: { intake: unknown; llmSummary?: unknown }) {
-  const API_URL = getSessionApiBaseUrl();
-  const res = await fetch(`${API_URL}/api/inject-intake`, {
-    method: 'POST',
-    headers: withCsrf({ 'Content-Type': 'application/json' }),
-    credentials: 'include',
-    body: JSON.stringify(payload),
-  });
-
-  return parseApiResponse<{ updated: boolean }>(res);
-}
-
-export async function removeInjectedIntake() {
-  const API_URL = getSessionApiBaseUrl();
-  const res = await fetch(`${API_URL}/api/remove-injected-intake`, {
-    method: 'POST',
-    headers: withCsrf(),
-    credentials: 'include',
-  });
-
-  return parseApiResponse<{ updated: boolean }>(res);
-}
-
 export type FincoinUsageApiPayload = {
   initial_fincoins?: number;
   remaining_fincoins?: number;
@@ -326,17 +291,6 @@ export async function getWelcomeMessage() {
       closingQuestion: string;
     };
   }>(res);
-}
-
-export async function removeInjectedProfile() {
-  const API_URL = getSessionApiBaseUrl();
-  const res = await fetch(`${API_URL}/api/remove-injected-profile`, {
-    method: 'POST',
-    headers: withCsrf(),
-    credentials: 'include',
-  });
-
-  return parseApiResponse<{ updated: boolean }>(res);
 }
 
 export async function getInterviewRealtimeToken() {

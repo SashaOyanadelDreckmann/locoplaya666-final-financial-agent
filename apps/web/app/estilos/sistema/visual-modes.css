@@ -934,9 +934,10 @@ html[data-visual-mode='light-outline'] .agent-mobile-composer-dock .terminal-com
 
 html[data-visual-mode='light-outline'] .agent-chat .composer-icon-btn,
 html[data-visual-mode='light-outline'] .agent-mobile-composer-dock .composer-icon-btn {
-  border-color: var(--chat-border-strong) !important;
+  border: 0 !important;
   color: var(--chat-toggle-fg) !important;
-  background: #ffffff !important;
+  background: transparent !important;
+  background-color: transparent !important;
   background-image: none !important;
   box-shadow: none !important;
 }
@@ -1656,7 +1657,7 @@ html[data-visual-mode='light-outline'] body.agent-route-active .agent-layout.is-
     background-color: #000000 !important;
     background-image: none !important;
     border-top-color: rgba(255, 255, 255, 0.1) !important;
-    filter: grayscale(1) saturate(0) contrast(1.16) brightness(0.84) !important;
+    filter: none !important;
   }
 
   html[data-visual-mode='dark-outline'] body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel.is-mobile-expanded .panel-grid,
@@ -1725,43 +1726,8 @@ html[data-visual-mode='light-outline'] body.agent-route-active .panel-callout-cl
   color: rgba(0, 0, 0, 0.38) !important;
 }
 
-/* Blanco full — deck: flat 2D (no black corner bleed from 3D + dark shell) */
+/* Blanco full — mobile chat chrome only (panel deck keeps mode-1 layout) */
 @media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
-  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel:is(.is-mobile-compact, .is-mobile-expanded):not(.is-mobile-expanded) .panel-grid.is-card-stack > .mobile-deck-track {
-    perspective: none !important;
-    transform-style: flat !important;
-    background: #ffffff !important;
-    background-color: #ffffff !important;
-  }
-
-  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel:is(.is-mobile-compact, .is-mobile-expanded):not(.is-mobile-expanded) .panel-grid.is-card-stack .mobile-deck-slot {
-    transform-style: flat !important;
-    overflow: hidden !important;
-    border-radius: 20px !important;
-    background: #ffffff !important;
-    background-color: #ffffff !important;
-  }
-
-  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel:is(.is-mobile-compact, .is-mobile-expanded):not(.is-mobile-expanded) .panel-grid.is-card-stack .mobile-deck-slot.is-deck-far-left {
-    transform: translateX(calc(-50% - var(--deck-shift-far))) scale(0.94) !important;
-  }
-
-  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel:is(.is-mobile-compact, .is-mobile-expanded):not(.is-mobile-expanded) .panel-grid.is-card-stack .mobile-deck-slot.is-deck-far-right {
-    transform: translateX(calc(-50% + var(--deck-shift-far))) scale(0.94) !important;
-  }
-
-  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel:is(.is-mobile-compact, .is-mobile-expanded):not(.is-mobile-expanded) .panel-grid.is-card-stack .mobile-deck-slot.is-deck-near-left {
-    transform: translateX(calc(-50% - var(--deck-shift-near))) scale(0.99) !important;
-  }
-
-  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel:is(.is-mobile-compact, .is-mobile-expanded):not(.is-mobile-expanded) .panel-grid.is-card-stack .mobile-deck-slot.is-deck-near-right {
-    transform: translateX(calc(-50% + var(--deck-shift-near))) scale(0.99) !important;
-  }
-
-  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel:is(.is-mobile-compact, .is-mobile-expanded):not(.is-mobile-expanded) .panel-grid.is-card-stack .mobile-deck-slot.is-mobile-front {
-    transform: translateX(-50%) scale(1) !important;
-  }
-
   html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-monochrome-toggle,
   html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-monochrome-toggle--inline,
   html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-monochrome-toggle.is-active {
@@ -1786,166 +1752,6 @@ html[data-visual-mode='light-outline'] body.agent-route-active .panel-callout-cl
     background-image: none !important;
     border-color: rgba(0, 0, 0, 0.12) !important;
   }
-}
-
-/* Blanco full — panel cards: clean monochrome (beats colored budget/deck layers) */
-html[data-visual-mode='light-outline'] body.agent-route-active .agent-panel:is(.is-mobile-compact, .is-mobile-expanded) :is(
-  .panel-card,
-  .panel-feature-card,
-  .interview-flow-card,
-  .recent-library-card,
-  .profile-card,
-  .news-card,
-  .panel-pos-budget,
-  .panel-pos-transactions,
-  .panel-pos-interview,
-  .panel-pos-news,
-  .panel-pos-library,
-  .panel-pos-recent
-),
-html[data-visual-mode='light-outline'] body.agent-route-active .agent-panel:is(.is-mobile-compact, .is-mobile-expanded) :is(
-  .panel-card,
-  .panel-feature-card,
-  .interview-flow-card,
-  .recent-library-card,
-  .profile-card,
-  .news-card,
-  .panel-pos-budget,
-  .panel-pos-transactions,
-  .panel-pos-interview,
-  .panel-pos-news,
-  .panel-pos-library,
-  .panel-pos-recent
-):is(:hover, .is-panel-highlighted) {
-  background: #f4f4f5 !important;
-  background-color: #f4f4f5 !important;
-  background-image: none !important;
-  border: 1px solid rgba(0, 0, 0, 0.1) !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  overflow: hidden !important;
-  isolation: isolate !important;
-  color: rgba(20, 20, 20, 0.92) !important;
-}
-
-html[data-visual-mode='light-outline'] body.agent-route-active .agent-layout .agent-panel [data-panel-section='library'].panel-pos-library,
-html[data-visual-mode='light-outline'] body.agent-route-active .agent-layout .agent-panel .mob-col .panel-pos-library[data-panel-section='library'],
-html[data-visual-mode='light-outline'] body.agent-route-active .agent-layout .agent-panel [data-panel-section='library'].panel-pos-library:hover,
-html[data-visual-mode='light-outline'] body.agent-route-active .agent-layout .agent-panel [data-panel-section='library'].panel-pos-library.is-panel-highlighted {
-  background: #f4f4f5 !important;
-  background-color: #f4f4f5 !important;
-  background-image: none !important;
-  border: 1px solid rgba(0, 0, 0, 0.1) !important;
-  color: rgba(20, 20, 20, 0.92) !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
-}
-
-html[data-visual-mode='light-outline'] body.agent-route-active .agent-panel:is(.is-mobile-compact, .is-mobile-expanded) .panel-card::before,
-html[data-visual-mode='light-outline'] body.agent-route-active .agent-panel:is(.is-mobile-compact, .is-mobile-expanded) .panel-feature-card::before,
-html[data-visual-mode='light-outline'] body.agent-route-active .agent-panel:is(.is-mobile-compact, .is-mobile-expanded) .interview-flow-card::before,
-html[data-visual-mode='light-outline'] body.agent-route-active .agent-panel:is(.is-mobile-compact, .is-mobile-expanded) .recent-library-card::before,
-html[data-visual-mode='light-outline'] body.agent-route-active .agent-panel:is(.is-mobile-compact, .is-mobile-expanded) .profile-card::before {
-  display: none !important;
-  content: none !important;
-  background: none !important;
-  background-image: none !important;
-}
-
-html[data-visual-mode='light-outline'] body.agent-route-active .agent-panel:is(.is-mobile-compact, .is-mobile-expanded) .panel-card[style*='--card-bg']::before {
-  display: block !important;
-  content: '' !important;
-  background-image: var(--card-bg) !important;
-  background-size: cover !important;
-  background-position: center !important;
-  filter: grayscale(1) saturate(0) contrast(1.04) brightness(1.06) !important;
-  opacity: 0.28 !important;
-}
-
-html[data-visual-mode='light-outline'] body.agent-route-active .agent-panel .panel-card::after,
-html[data-visual-mode='light-outline'] body.agent-route-active .agent-panel .profile-card::after,
-html[data-visual-mode='light-outline'] body.agent-route-active .agent-panel .panel-feature-card::after,
-html[data-visual-mode='light-outline'] body.agent-route-active .agent-panel .interview-flow-card::after,
-html[data-visual-mode='light-outline'] body.agent-route-active .agent-panel .recent-library-card::after {
-  display: none !important;
-  content: none !important;
-  background: none !important;
-}
-
-html[data-visual-mode='light-outline'] body.agent-route-active .agent-panel [data-panel-section].is-panel-highlighted,
-html[data-visual-mode='light-outline'] body.agent-route-active .agent-panel .is-panel-highlighted,
-html[data-visual-mode='light-outline'] body.agent-route-active .agent-panel .panel-feature-card.is-panel-highlighted {
-  --highlight-color: rgba(0, 0, 0, 0.22) !important;
-}
-
-html[data-visual-mode='light-outline'] body.agent-route-active .agent-panel .is-panel-highlighted::after {
-  inset: 0 !important;
-  background: none !important;
-  border: 1.5px solid rgba(0, 0, 0, 0.2) !important;
-  animation: none !important;
-}
-
-html[data-visual-mode='light-outline'] body.agent-route-active .agent-panel:is(.is-mobile-compact, .is-mobile-expanded) :is(
-  .panel-label,
-  .panel-feature-label,
-  .interview-flow-label,
-  .recent-library-title,
-  .profile-badge,
-  .panel-card-note,
-  .panel-card-note-library,
-  .report-empty
-) {
-  color: rgba(0, 0, 0, 0.55) !important;
-  -webkit-text-fill-color: rgba(0, 0, 0, 0.55) !important;
-}
-
-html[data-visual-mode='light-outline'] body.agent-route-active .agent-panel:is(.is-mobile-compact, .is-mobile-expanded) :is(
-  .panel-value,
-  .panel-text,
-  .panel-feature-status,
-  .panel-feature-copy,
-  .panel-feature-copy-secondary,
-  .interview-flow-title,
-  .interview-flow-meta,
-  .profile-name,
-  .profile-subtitle,
-  .recent-library-count,
-  .recent-item-name,
-  .recent-item-meta,
-  .report-group-title,
-  .report-group-count,
-  .report-item span:first-child,
-  .report-item-link,
-  .report-tag,
-  .mobile-panel-close-btn,
-  .mobile-panel-close-title
-) {
-  color: rgba(20, 20, 20, 0.9) !important;
-  -webkit-text-fill-color: rgba(20, 20, 20, 0.9) !important;
-}
-
-html[data-visual-mode='light-outline'] body.agent-route-active .agent-layout .agent-panel [data-panel-section='library'].panel-pos-library .report-group {
-  background: #ffffff !important;
-  background-color: #ffffff !important;
-  border: 1px solid rgba(0, 0, 0, 0.1) !important;
-  box-shadow: none !important;
-}
-
-html[data-visual-mode='light-outline'] body.agent-route-active .agent-panel:is(.is-mobile-compact, .is-mobile-expanded) .panel-pos-news .news-overlay {
-  background: linear-gradient(to top, rgba(255, 255, 255, 0.94) 0%, rgba(255, 255, 255, 0.42) 56%, rgba(255, 255, 255, 0.08) 100%) !important;
-}
-
-html[data-visual-mode='light-outline'] body.agent-route-active .agent-panel:is(.is-mobile-compact, .is-mobile-expanded) .panel-pos-news .news-title,
-html[data-visual-mode='light-outline'] body.agent-route-active .agent-panel:is(.is-mobile-compact, .is-mobile-expanded) .panel-pos-news .news-kicker,
-html[data-visual-mode='light-outline'] body.agent-route-active .agent-panel:is(.is-mobile-compact, .is-mobile-expanded) .panel-pos-news .news-subtitle {
-  color: rgba(20, 20, 20, 0.9) !important;
-  -webkit-text-fill-color: rgba(20, 20, 20, 0.9) !important;
-  text-shadow: none !important;
-}
-
-html[data-visual-mode='light-outline'] body.agent-route-active .agent-panel .panel-feature-status,
-html[data-visual-mode='light-outline'] body.agent-route-active .agent-panel .panel-feature-status.is-active {
-  filter: none !important;
 }
 
 html[data-visual-mode='light-outline'] body.agent-route-active .agent-thread .agent-inline-panel-button:hover:not(:disabled),
@@ -1980,7 +1786,15 @@ html[data-visual-mode='light-outline'] body.agent-route-active .agent-layout.is-
 html[data-visual-mode='light-outline'] body.agent-route-active .agent-layout .agent-thread .agent-flow-cta-button,
 html[data-visual-mode='light-outline'] body.agent-route-active .agent-layout .agent-thread button.agent-flow-cta-button,
 html[data-visual-mode='light-outline'] body.agent-route-active .agent-thread button.agent-flow-cta-button,
-html[data-visual-mode='light-outline'] body.agent-route-active .agent-thread .agent-flow-cta-button {
+html[data-visual-mode='light-outline'] body.agent-route-active .agent-thread .agent-flow-cta-button,
+html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-visual-mode-light-outline .agent-chat .agent-thread .onboarding-flow-cta__button,
+html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-visual-mode-light-outline .agent-chat .agent-thread button.onboarding-flow-cta__button,
+html[data-visual-mode='light-outline'] body.agent-route-active .agent-layout.is-visual-mode-light-outline .agent-thread .onboarding-flow-cta__button,
+html[data-visual-mode='light-outline'] body.agent-route-active .agent-layout.is-visual-mode-light-outline .agent-thread button.onboarding-flow-cta__button,
+html[data-visual-mode='light-outline'] body.agent-route-active .agent-layout .agent-thread .onboarding-flow-cta__button,
+html[data-visual-mode='light-outline'] body.agent-route-active .agent-layout .agent-thread button.onboarding-flow-cta__button,
+html[data-visual-mode='light-outline'] body.agent-route-active .agent-thread button.onboarding-flow-cta__button,
+html[data-visual-mode='light-outline'] body.agent-route-active .agent-thread .onboarding-flow-cta__button {
   background: #ffffff !important;
   background-color: #ffffff !important;
   background-image: none !important;
@@ -1996,7 +1810,11 @@ html[data-visual-mode='light-outline'] body.agent-route-active .agent-thread .ag
 html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-visual-mode-light-outline .agent-chat .agent-thread .agent-flow-cta-button:hover:not(:disabled),
 html[data-visual-mode='light-outline'] body.agent-route-active .agent-layout.is-visual-mode-light-outline .agent-thread button.agent-flow-cta-button:hover:not(:disabled),
 html[data-visual-mode='light-outline'] body.agent-route-active .agent-thread button.agent-flow-cta-button:hover:not(:disabled),
-html[data-visual-mode='light-outline'] body.agent-route-active .agent-thread .agent-flow-cta-button:hover:not(:disabled) {
+html[data-visual-mode='light-outline'] body.agent-route-active .agent-thread .agent-flow-cta-button:hover:not(:disabled),
+html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-visual-mode-light-outline .agent-chat .agent-thread .onboarding-flow-cta__button:hover:not(:disabled),
+html[data-visual-mode='light-outline'] body.agent-route-active .agent-layout.is-visual-mode-light-outline .agent-thread button.onboarding-flow-cta__button:hover:not(:disabled),
+html[data-visual-mode='light-outline'] body.agent-route-active .agent-thread button.onboarding-flow-cta__button:hover:not(:disabled),
+html[data-visual-mode='light-outline'] body.agent-route-active .agent-thread .onboarding-flow-cta__button:hover:not(:disabled) {
   background: #ffffff !important;
   background-color: #ffffff !important;
   background-image: none !important;

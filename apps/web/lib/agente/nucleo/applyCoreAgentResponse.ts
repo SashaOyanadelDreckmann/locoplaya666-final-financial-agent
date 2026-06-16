@@ -1,4 +1,4 @@
-import type { ChatClosureSummary } from '@financial-agent/shared';
+import type { ChatClosureSummary, BudgetTablePatch } from '@financial-agent/shared';
 
 import type { FincoinUsageApiPayload } from '@/lib/api/cliente';
 import {
@@ -35,6 +35,8 @@ export type CoreAgentResponseSideEffects = {
   fincoinUsage?: FincoinUsageApiPayload;
   closureSummaries?: Record<string, unknown>;
   panelAction?: AgentResponse['panel_action'];
+  budgetTablePatch?: BudgetTablePatch;
+  /** @deprecated */
   budgetUpdates?: NonNullable<AgentResponse['budget_updates']>;
 };
 
@@ -173,6 +175,7 @@ export function extractCoreAgentSideEffects(res: AgentResponse): CoreAgentRespon
     knowledgeScore: typeof res.knowledge_score === 'number' ? res.knowledge_score : undefined,
     milestoneUnlocked: res.milestone_unlocked?.feature,
     panelAction: res.panel_action,
+    budgetTablePatch: res.budget_table_patch as BudgetTablePatch | undefined,
     budgetUpdates: Array.isArray(res.budget_updates) ? res.budget_updates : undefined,
     fincoinUsage: fincoinMeta?.fincoin_usage,
     closureSummaries: fincoinMeta?.closure_summaries,

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import bcrypt from 'bcryptjs';
 import {
   computeFincoinUsage,
   FINCOIN_INITIAL_BALANCE,
@@ -6,6 +7,7 @@ import {
   FINCOIN_OPERATION_COST_USD,
   FINCOIN_WARNING_THRESHOLD,
 } from '@financial-agent/shared';
+import { chargeUsdSpentTotalAtomic, createUserRecord } from '../persistencia/repos/user.repository';
 import { canAffordOperation, getFincoinUsageForUser } from './fincoin.service';
 
 describe('fincoin usage', () => {
@@ -34,5 +36,39 @@ describe('fincoin usage', () => {
     expect(canAffordOperation(usage, 'agent.chat')).toBe(false);
     expect(canAffordOperation(computeFincoinUsage(0), 'agent.chat')).toBe(true);
     expect(FINCOIN_OPERATION_COST_USD['agent.chat']).toBeGreaterThan(0);
+  });
+
+  it('atomically rejects a charge when the wallet cannot afford it', async () => {
+    const passwordHash = await bcrypt.hash('Secret123', 4);
+    const user = await createUserRecord({
+      name: 'Atomic Fincoin',
+      email: `atomic-${Date.now()}@test.com`,
+      passwordHash,
+    });
+
+    const { patchUserRecord } = await import('../persistencia/repos');
+    await patchUserRecord(user.id, {
+      usdSpentTotal: FINCOIN_MAX_USD_SPEND - FINCOIN_OPERATION_COST_USD['agent.chat'] + 0.001,
+    });
+
+    const rejected = await chargeUsdSpentTotalAtomic(
+      user.id,
+      FINCOIN_OPERATION_COST_USD['agent.chat'],
+      FINCOIN_MAX_USD_SPEND,
+    );
+    expect(rejected.charged).toBe(false);
+    expect(rejected.reason).toBe('insufficient');
+
+    await patchUserRecord(user.id, {
+      usdSpentTotal: FINCOIN_MAX_USD_SPEND - FINCOIN_OPERATION_COST_USD['agent.chat'],
+    });
+
+    const accepted = await chargeUsdSpentTotalAtomic(
+      user.id,
+      FINCOIN_OPERATION_COST_USD['agent.chat'],
+      FINCOIN_MAX_USD_SPEND,
+    );
+    expect(accepted.charged).toBe(true);
+    expect(accepted.justDepleted).toBe(true);
   });
 });

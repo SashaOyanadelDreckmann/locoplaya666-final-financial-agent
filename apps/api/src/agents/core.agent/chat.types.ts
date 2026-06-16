@@ -354,13 +354,45 @@ export const ChatAgentResponseSchema = z.object({
 
   meta: z.record(z.string(), z.any()).optional(),
 
-  // Actualizaciones de presupuesto inferidas por el agente de la conversación
-  budget_updates: z.array(z.object({
-    label: z.string(),
-    type: z.enum(['income', 'expense']),
-    amount: z.number(),
-    category: z.string().optional(),
-  })).optional(),
+  // Mutaciones validadas de la tabla de presupuesto (Core Agent → cliente)
+  budget_table_patch: z
+    .object({
+      actions: z.array(
+        z.object({
+          kind: z.enum(['add', 'update', 'delete']),
+          id: z.string(),
+          category: z.string().optional(),
+          type: z.enum(['income', 'expense']).optional(),
+          amount: z.number().optional(),
+          cadence: z.enum(['fixed', 'variable']).optional(),
+          payment_method: z
+            .enum(['transfer', 'debit', 'credit', 'cash', 'prepaid', 'other'])
+            .optional(),
+          movement_type: z.string().optional(),
+        }),
+      ),
+      requires_confirmation: z.boolean(),
+      summary: z.string(),
+      pending_confirmation: z
+        .object({
+          actions: z.array(z.record(z.string(), z.unknown())),
+          summary: z.string(),
+        })
+        .nullable(),
+    })
+    .optional(),
+
+  // @deprecated legacy — solo lectura en clientes antiguos
+  budget_updates: z
+    .array(
+      z.object({
+        label: z.string(),
+        type: z.enum(['income', 'expense']),
+        amount: z.number(),
+        category: z.string().optional(),
+      }),
+    )
+    .optional(),
 
   // PHASE 9.2: Knowledge tracking fields
   knowledge_score: z.number().min(0).max(100).optional(),

@@ -442,4 +442,18 @@ describe('runCoreAgent - Full E2E Flow', () => {
       'Classification failed',
     );
   });
+
+  it('should bypass LLM phases for trivial greetings', async () => {
+    const input = {
+      ...testUtils.createMockChatAgentInput(),
+      user_message: 'hola',
+    };
+    const response = await runCoreAgent(input);
+
+    expect(response.mode).toBe('information');
+    expect(response.tool_calls).toEqual([]);
+    expect(runClassifyPhase).not.toHaveBeenCalled();
+    expect(runPlanExecutePhase).not.toHaveBeenCalled();
+    expect(runFormatPhase).not.toHaveBeenCalled();
+  });
 });

@@ -39,9 +39,9 @@ export type PanelIntroCardLayout = {
 type CardLayout = PanelIntroCardLayout;
 
 const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
-const SPOTLIGHT_SPRING = { type: "spring" as const, stiffness: 54, damping: 20, mass: 0.86 };
-const ASSEMBLE_SPRING = { type: "spring" as const, stiffness: 470, damping: 34, mass: 0.74 };
-const SETTLE_SPRING = { type: "spring" as const, stiffness: 58, damping: 19, mass: 0.9 };
+const SPOTLIGHT_SPRING = { type: "spring" as const, stiffness: 62, damping: 21, mass: 0.82 };
+const ASSEMBLE_SPRING = { type: "spring" as const, stiffness: 520, damping: 36, mass: 0.7 };
+const SETTLE_SPRING = { type: "spring" as const, stiffness: 64, damping: 20, mass: 0.86 };
 
 function extractPanelCardLeaf(node: ReactElement): ReactElement {
   const props = node.props as { children?: React.ReactNode; className?: string };
@@ -157,19 +157,31 @@ export function computeSpotlightLayoutForCard(input: {
     };
   }
 
-  const scale = input.phase === "enter" ? 0.9 : 1.1;
-  const cardW = Math.min(natural.width * scale, Math.min(input.viewport.width * 0.44, 400));
-  const cardH = Math.round(cardW / aspect);
-  const centerY = input.viewport.y + 28;
+  const scale = input.phase === "enter" ? 0.92 : 1.22;
+  const headerReserve = 196;
+  const footerReserve = input.phase === "spotlight" ? 118 : 88;
+  const availHeight = Math.max(input.viewport.height - headerReserve - footerReserve, 220);
+  const availCenterY = headerReserve + availHeight / 2;
+  const maxW = Math.min(input.viewport.width * 0.52, 480);
+  let cardW = Math.min(natural.width * scale, maxW);
+  let cardH = Math.round(cardW / aspect);
+  const maxH = availHeight * 0.82;
+  if (cardH > maxH) {
+    cardH = Math.round(maxH);
+    cardW = Math.round(cardH * aspect);
+  }
+  const centerY = input.viewport.y - input.viewport.height / 2 + availCenterY;
 
   if (input.phase === "enter" && input.handoffOrigin) {
+    const enterW = cardW * 0.94;
+    const enterH = Math.round(enterW / aspect);
     return {
-      left: input.handoffOrigin.x - cardW / 2,
-      top: input.handoffOrigin.y - cardH / 2,
-      width: cardW,
-      height: cardH,
+      left: input.handoffOrigin.x - enterW / 2,
+      top: input.handoffOrigin.y - enterH / 2,
+      width: enterW,
+      height: enterH,
       rotation: 0,
-      opacity: 0.76,
+      opacity: 0.82,
     };
   }
 
@@ -207,6 +219,16 @@ function IntroSpotlightCard({
     layout.width / Math.max(renderNatural.width, 1),
     layout.height / Math.max(renderNatural.height, 1),
   );
+  const scaledW = renderNatural.width * fitScale;
+  const scaledH = renderNatural.height * fitScale;
+  const offsetX = (layout.width - scaledW) / 2;
+  const offsetY = (layout.height - scaledH) / 2;
+  const contentTransform =
+    fitScale < 0.999
+      ? `translate(${offsetX}px, ${offsetY}px) scale(${fitScale})`
+      : offsetX > 0.5 || offsetY > 0.5
+        ? `translate(${offsetX}px, ${offsetY}px)`
+        : undefined;
   const exiting = phase === "shell";
 
   return (
@@ -244,13 +266,13 @@ function IntroSpotlightCard({
           style={{
             width: renderNatural.width,
             height: renderNatural.height,
-            transform: fitScale < 0.999 ? `scale(${fitScale})` : undefined,
+            transform: contentTransform,
           }}
         >
           {isMobile ? (
             wrapMobileDeckIntroCard(cardNode, cardKey)
           ) : (
-            <div className="agent-panel panel-morph-card__skin" aria-hidden="true">
+            <div className="panel-morph-card__skin" aria-hidden="true">
               {React.cloneElement(showcaseNode!, {
                 className: cn(
                   (showcaseNode!.props as { className?: string }).className,
@@ -345,7 +367,7 @@ function IntroAssembleCard({
           {isMobile ? (
             wrapMobileDeckIntroCard(cardNode, cardKey)
           ) : (
-            <div className="agent-panel panel-morph-card__skin" aria-hidden="true">
+            <div className="panel-morph-card__skin" aria-hidden="true">
               {React.cloneElement(showcaseNode!, {
                 className: cn(
                   (showcaseNode!.props as { className?: string }).className,
@@ -374,7 +396,6 @@ export function PanelCardsMorphIntro(props: {
   reducedMotion?: boolean;
   spotlightDurationMs?: number;
   revealedCount?: number;
-  autoPlay?: boolean;
   onAdvance?: () => void;
   className?: string;
 }) {
@@ -385,11 +406,18 @@ export function PanelCardsMorphIntro(props: {
   const activeMeta = cards[props.activeIndex] ?? cards[0];
   const spotlightMs = props.spotlightDurationMs ?? 2000;
   const isLastSpotlight = props.phase === "spotlight" && props.activeIndex >= total - 1;
-  const autoPlay = props.autoPlay ?? false;
   const revealedCount = props.revealedCount ?? 0;
   const isSpotlightStage = props.phase === "spotlight" || props.phase === "enter";
   const isShellStage = props.phase === "shell";
   const isAssembleStage = props.phase === "assemble" || props.phase === "settle";
+  const canAdvance = props.phase === "enter" || props.phase === "spotlight";
+
+  const handleStagePointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!canAdvance || !props.onAdvance) return;
+    const target = event.target as HTMLElement | null;
+    if (target?.closest(".panel-intro-skip, button, a, input, textarea")) return;
+    props.onAdvance();
+  };
 
   const cardNodeByKey = useMemo(() => {
     const map = new Map<string, ReactElement>();
@@ -507,7 +535,10 @@ export function PanelCardsMorphIntro(props: {
         </AnimatePresence>
       </header>
 
-      <div className="panel-morph-intro__stage">
+      <div
+        className={cn("panel-morph-intro__stage", canAdvance && "is-advanceable")}
+        onPointerUp={canAdvance ? handleStagePointerUp : undefined}
+      >
         <AnimatePresence mode="wait">
           {(isSpotlightStage || isShellStage) && spotlightLayout ? (
             (() => {
@@ -565,15 +596,11 @@ export function PanelCardsMorphIntro(props: {
           </div>
           {!isLastSpotlight ? (
             <p className="panel-morph-intro__tap-hint" aria-hidden="true">
-              {autoPlay
-                ? "Reproducción automática"
-                : isMobile
-                  ? "Toca para continuar"
-                  : "Clic o → para continuar"}
+              {isMobile ? "Toca para avanzar" : "Clic o → para avanzar"}
             </p>
           ) : (
             <p className="panel-morph-intro__tap-hint is-finale" aria-hidden="true">
-              Transición al panel
+              Montando tu panel…
             </p>
           )}
         </footer>

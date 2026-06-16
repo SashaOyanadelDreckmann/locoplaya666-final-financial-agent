@@ -110,6 +110,24 @@ export type AdminUsersFullDump = {
   users: AdminUserSnapshot[];
 };
 
+export type AdminArchiveUserListItem = {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  approvalStatus: ApprovalStatus;
+  createdAt: string;
+  updatedAt: string;
+  documentsCount: number;
+  profilesCount: number;
+};
+
+export type AdminArchiveUsersPage = {
+  generatedAt: string;
+  total: number;
+  users: AdminArchiveUserListItem[];
+};
+
 function redactSecret(): string {
   return '[REDACTED]';
 }
@@ -507,4 +525,135 @@ async function getAdminUserSnapshotById(userId: string): Promise<AdminUserSnapsh
     fincoinDepletedAt: toIso(user.fincoinDepletedAt),
     fincoinDepletionHandled: Boolean(user.fincoinDepletionHandled ?? false),
   };
+}
+
+function matchesArchiveSearch(user: { name: string; email: string; id: string }, search?: string): boolean {
+  const query = String(search ?? '').trim().toLowerCase();
+  if (!query) return true;
+  return `${user.name} ${user.email} ${user.id}`.toLowerCase().includes(query);
+}
+
+function toArchiveListItem(input: {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  approvalStatus: ApprovalStatus;
+  createdAt: string;
+  updatedAt: string;
+  documentsCount: number;
+  profilesCount: number;
+}): AdminArchiveUserListItem {
+  return {
+    id: input.id,
+    name: input.name,
+    email: input.email,
+    role: input.role,
+    approvalStatus: input.approvalStatus,
+    createdAt: input.createdAt,
+    updatedAt: input.updatedAt,
+    documentsCount: input.documentsCount,
+    profilesCount: input.profilesCount,
+  };
+}
+
+export async function listAdminArchiveUsers(params: {
+  search?: string;
+  limit: number;
+  offset: number;
+}): Promise<AdminArchiveUsersPage> {
+  const limit = Math.max(1, Math.min(params.limit, 100));
+  const offset = Math.max(0, params.offset);
+
+  if (getPersistenceMode() === 'memory') {
+    const all = sortByDateDesc(
+      Array.from(memoryStore.users.values())
+        .filter((user) => matchesArchiveSearch(user, params.search))
+        .map((user) => {
+          const documentsCount = Array.from(memoryStore.documents.values()).filter(
+            (document) => document.userId === user.id,
+          ).length;
+          const profilesCount = Array.from(memoryStore.profiles.values()).filter(
+            (profile) => profile.userId === user.id,
+          ).length;
+          return toArchiveListItem({
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            approvalStatus: user.approvalStatus,
+            createdAt: user.createdAt,
+            updatedAt: user.updatedAt,
+            documentsCount,
+            profilesCount,
+          });
+        }),
+      (user) => user.createdAt,
+    );
+
+    return {
+      generatedAt: new Date().toISOString(),
+      total: all.length,
+      users: all.slice(offset, offset + limit),
+    };
+  }
+
+  const prisma = await getPrismaClient();
+  const search = String(params.search ?? '').trim();
+  const where = search
+    ? {
+        OR: [
+          { name: { contains: search, mode: 'insensitive' as const } },
+          { email: { contains: search, mode: 'insensitive' as const } },
+          { id: { contains: search, mode: 'insensitive' as const } },
+        ],
+      }
+    : undefined;
+
+  const [total, rows] = await Promise.all([
+    prisma.user.count({ where }),
+    prisma.user.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      skip: offset,
+      take: limit,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        approvalStatus: true,
+        createdAt: true,
+        updatedAt: true,
+        _count: {
+          select: {
+            documents: true,
+            profiles: true,
+          },
+        },
+      },
+    }),
+  ]);
+
+  return {
+    generatedAt: new Date().toISOString(),
+    total,
+    users: rows.map((user) =>
+      toArchiveListItem({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role as UserRole,
+        approvalStatus: user.approvalStatus,
+        createdAt: user.createdAt.toISOString(),
+        updatedAt: user.updatedAt.toISOString(),
+        documentsCount: user._count.documents,
+        profilesCount: user._count.profiles,
+      }),
+    ),
+  };
+}
+
+export async function getAdminUserSnapshot(userId: string): Promise<AdminUserSnapshot | null> {
+  return getAdminUserSnapshotById(userId);
 }

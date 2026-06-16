@@ -2,7 +2,12 @@ import type { FinancialDiagnosticProfile } from '../schemas/profile.schema';
 import { USER_ROLES, type UserRole } from '../auth/rbac';
 import { APPROVAL_STATUS, type ApprovalStatus } from '../auth/approval';
 import type { User } from '../schemas/user.schema';
-import type { WelcomeIntroCache } from '@financial-agent/shared';
+import {
+  hasCompletedIntakeAccess,
+  readSessionIntakeEnvelope,
+  type SessionIntakeEnvelope,
+  type WelcomeIntroCache,
+} from '@financial-agent/shared';
 import type {
   StoredPanelState,
   StoredSheet,
@@ -134,39 +139,75 @@ export async function attachProfileToUser(
   return Boolean(updated);
 }
 
-export async function attachIntakeToUser(
-  userId: string,
-  intakePayload: {
-    intake: unknown;
-    llmSummary?: unknown;
-    intakeContext?: unknown;
-    productsContext?: unknown;
-    budgetContext?: unknown;
-    welcomeIntroCache?: WelcomeIntroCache;
-  },
-  options?: { replace?: boolean },
-): Promise<boolean> {
-  let nextEnvelope: Record<string, unknown> = intakePayload as Record<string, unknown>;
+export type QuestionnaireIntakePayload = {
+  intake: unknown;
+  llmSummary?: unknown;
+  intakeContext?: unknown;
+};
 
-  if (options?.replace) {
-    const user = await getUserById(userId);
-    const existing =
-      user?.injectedIntake && typeof user.injectedIntake === 'object'
-        ? (user.injectedIntake as Record<string, unknown>)
-        : {};
-    nextEnvelope = {
-      ...intakePayload,
-      welcomeIntroCache:
-        intakePayload.welcomeIntroCache ?? existing.welcomeIntroCache,
-    };
-  } else {
-    const user = await getUserById(userId);
-    const existing =
-      user?.injectedIntake && typeof user.injectedIntake === 'object'
-        ? (user.injectedIntake as Record<string, unknown>)
-        : {};
-    nextEnvelope = { ...existing, ...intakePayload };
+/** Product path: questionnaire is immutable after first successful submit. */
+export async function submitQuestionnaireIntakeOnce(
+  userId: string,
+  payload: QuestionnaireIntakePayload,
+): Promise<'created' | 'already_completed' | false> {
+  const user = await getUserById(userId);
+  if (hasCompletedIntakeAccess(user?.injectedIntake)) {
+    return 'already_completed';
   }
+
+  const existing = readSessionIntakeEnvelope(user?.injectedIntake);
+  const nextEnvelope: SessionIntakeEnvelope = {
+    ...existing,
+    intake: payload.intake as Record<string, unknown>,
+    llmSummary: payload.llmSummary,
+    intakeContext: payload.intakeContext,
+    welcomeIntroCache: existing.welcomeIntroCache,
+  };
+
+  const updated = await patchUserRecord(userId, {
+    injectedIntake: nextEnvelope as StoredUser['injectedIntake'],
+  });
+  return updated ? 'created' : false;
+}
+
+/** Panel path: merge cartolas/presupuesto without touching questionnaire answers. */
+export async function mergeFinancialContextIntoIntake(
+  userId: string,
+  payload: {
+    productsContext: unknown;
+    budgetContext?: unknown;
+  },
+): Promise<boolean> {
+  const user = await getUserById(userId);
+  const existing = readSessionIntakeEnvelope(user?.injectedIntake);
+  const nextEnvelope: SessionIntakeEnvelope = {
+    ...existing,
+    intake: existing.intake ?? {},
+    intakeContext: existing.intakeContext ?? {},
+    productsContext: payload.productsContext,
+    budgetContext:
+      payload.budgetContext && typeof payload.budgetContext === 'object'
+        ? payload.budgetContext
+        : existing.budgetContext,
+  };
+
+  const updated = await patchUserRecord(userId, {
+    injectedIntake: nextEnvelope as StoredUser['injectedIntake'],
+  });
+  return Boolean(updated);
+}
+
+/** Dev/QA only — full envelope replace (ENABLE_DEV_INJECTION). */
+export async function replaceIntakeEnvelopeForDev(
+  userId: string,
+  envelope: SessionIntakeEnvelope,
+): Promise<boolean> {
+  const user = await getUserById(userId);
+  const existing = readSessionIntakeEnvelope(user?.injectedIntake);
+  const nextEnvelope: SessionIntakeEnvelope = {
+    ...envelope,
+    welcomeIntroCache: envelope.welcomeIntroCache ?? existing.welcomeIntroCache,
+  };
 
   const updated = await patchUserRecord(userId, {
     injectedIntake: nextEnvelope as StoredUser['injectedIntake'],
@@ -181,10 +222,7 @@ export async function persistWelcomeIntroCache(
   const user = await getUserById(userId);
   if (!user) return false;
 
-  const existing =
-    user.injectedIntake && typeof user.injectedIntake === 'object'
-      ? (user.injectedIntake as Record<string, unknown>)
-      : {};
+  const existing = readSessionIntakeEnvelope(user.injectedIntake);
 
   const updated = await patchUserRecord(userId, {
     injectedIntake: {

@@ -21,6 +21,7 @@ export type BudgetReactToolName =
   | 'budget.table_snapshot'
   | 'budget.analyze_health'
   | 'finance.budget_analyzer'
+  | 'finance.budget_table_actions'
   | 'budget.complete_turn';
 
 export const BUDGET_REACT_OPENAI_TOOLS = [
@@ -48,6 +49,43 @@ export const BUDGET_REACT_OPENAI_TOOLS = [
       description:
         'Análisis 50/30/20, score de salud, fondo de emergencia y recomendaciones (MCP). Usar cuando el usuario pide diagnóstico o consejo analítico.',
       parameters: { type: 'object', properties: {}, additionalProperties: false },
+    },
+  },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'finance__budget_table_actions',
+      description:
+        'Valida y propone mutaciones de tabla (MCP compartido). Usar antes de complete_turn cuando haya cambios en filas.',
+      parameters: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          proposed_actions: {
+            type: 'array',
+            items: {
+              type: 'object',
+              additionalProperties: false,
+              properties: {
+                kind: { type: 'string', enum: ['add', 'update', 'delete'] },
+                id: { type: 'string' },
+                category: { type: 'string' },
+                type: { type: 'string', enum: ['income', 'expense'] },
+                amount: { type: 'number' },
+                cadence: { type: 'string', enum: ['fixed', 'variable'] },
+                payment_method: {
+                  type: 'string',
+                  enum: ['transfer', 'debit', 'credit', 'cash', 'prepaid', 'other'],
+                },
+                movement_type: { type: 'string' },
+              },
+              required: ['kind', 'id'],
+            },
+          },
+          model_requires_confirmation: { type: 'boolean' },
+        },
+        required: ['proposed_actions'],
+      },
     },
   },
   {
@@ -108,6 +146,8 @@ export function budgetReactToolFromSanitized(name: string): BudgetReactToolName 
       return 'budget.analyze_health';
     case 'finance__budget_analyzer':
       return 'finance.budget_analyzer';
+    case 'finance__budget_table_actions':
+      return 'finance.budget_table_actions';
     case 'budget__complete_turn':
       return 'budget.complete_turn';
     default:
@@ -134,12 +174,13 @@ function buildMcpExpenses(rows: BudgetRow[]) {
 
 export async function executeBudgetReactTool(params: {
   tool: BudgetReactToolName;
+  toolArgs?: Record<string, unknown>;
   rows: BudgetRow[];
   context: BudgetAssistantContext;
   userId: string;
   turnId: string;
 }): Promise<{ ok: boolean; data: unknown; error?: string }> {
-  const { tool, rows, context } = params;
+  const { tool, toolArgs, rows, context } = params;
   const totals = computeBudgetTotals(rows);
 
   if (tool === 'budget.table_snapshot') {
@@ -196,6 +237,37 @@ export async function executeBudgetReactTool(params: {
       user_id: params.userId,
     });
 
+    const success = result.tool_call?.status !== 'error';
+    return {
+      ok: success,
+      data: result.data ?? null,
+      error: success ? undefined : String(result.tool_call?.error_message ?? 'mcp_error'),
+    };
+  }
+
+  if (tool === 'finance.budget_table_actions') {
+    const proposed = Array.isArray(toolArgs?.proposed_actions)
+      ? (toolArgs?.proposed_actions as BudgetTableAction[])
+      : [];
+    const result = await runMCPTool({
+      tool: 'finance.budget_table_actions',
+      args: {
+        rows: buildBudgetTableSnapshot(rows).map((row) => ({
+          id: row.id,
+          category: row.category,
+          type: row.type,
+          amount: row.amount,
+          cadence: row.cadence ?? undefined,
+          paymentMethod: row.paymentMethod ?? undefined,
+          movementType: row.movementType ?? undefined,
+        })),
+        proposed_actions: proposed,
+        model_requires_confirmation: Boolean(toolArgs?.model_requires_confirmation),
+        include_preview: true,
+      },
+      turn_id: params.turnId,
+      user_id: params.userId,
+    });
     const success = result.tool_call?.status !== 'error';
     return {
       ok: success,

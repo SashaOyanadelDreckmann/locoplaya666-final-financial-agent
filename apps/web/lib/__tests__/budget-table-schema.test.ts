@@ -1,6 +1,9 @@
 import {
+  applyValidatedBudgetTableAction,
   hasBudgetFieldSignals,
+  isBudgetMetaOrHelpQuestion,
   mergeBudgetActionIntoRow,
+  parseBudgetCategoryFromAnswer,
   parseBudgetFieldPatchFromAnswer,
   summarizeBudgetActionBatch,
   validateBudgetTableAction,
@@ -94,5 +97,32 @@ describe('budget-table-schema', () => {
     ]);
     expect(summary.toLowerCase()).toContain('actualizar');
     expect(summary.toLowerCase()).toContain('eliminar');
+  });
+
+  it('does not treat help questions as category names', () => {
+    expect(isBudgetMetaOrHelpQuestion('¿cómo cuál podría agregar?')).toBe(true);
+    expect(parseBudgetCategoryFromAnswer('si, como cual podria agregar')).toBeNull();
+    expect(parseBudgetCategoryFromAnswer('supermercado')).toBe('Supermercado');
+  });
+
+  it('applies delete actions using canonical row ids even when rows use aliases', () => {
+    const rows: BudgetRow[] = [
+      { id: 'income-salary', category: 'Sueldo líquido', type: 'income', amount: 0 },
+      { id: 'expense-rent', category: 'Arriendo / vivienda', type: 'expense', amount: 0 },
+    ];
+    const validated = validateBudgetTableActions(
+      [
+        { kind: 'delete', id: 'income_salary' },
+        { kind: 'delete', id: 'expense_rent' },
+      ],
+      rows,
+    );
+    expect(validated).toHaveLength(2);
+
+    let next = rows;
+    for (const action of validated) {
+      next = applyValidatedBudgetTableAction(next, action);
+    }
+    expect(next).toHaveLength(0);
   });
 });

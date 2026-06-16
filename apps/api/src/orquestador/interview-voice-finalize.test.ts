@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildDeterministicVoiceFinalizeSnapshot,
   buildInterviewFinalizePromptLines,
   buildVoiceInterviewSyntheticBlocks,
   clampInterviewConfidence,
@@ -74,6 +75,28 @@ describe('interview voice finalize depth', () => {
 
     expect(lines.join('\n')).toContain('finalizó la llamada antes de tiempo');
     expect(lines.join('\n')).toContain('cobertura parcial');
+  });
+
+  it('builds deterministic finalize snapshot from minute summaries', () => {
+    const depth = resolveInterviewFinalizeDepth({
+      endedBy: 'user',
+      durationSec: 110,
+      minuteSummariesCount: 2,
+      hasFinalSummary: true,
+    });
+    const snapshot = buildDeterministicVoiceFinalizeSnapshot({
+      minuteSummaries: [
+        { minute: 1, summary: 'Avance inicial', keyFindings: ['Deuda activa'] },
+        { minute: 2, summary: 'Cierre parcial', keyFindings: ['Estrés moderado'] },
+      ],
+      finalSummaryText: 'Síntesis final de prueba',
+      finalizeDepth: depth,
+      endedBy: 'user',
+    });
+
+    expect(snapshot.executiveReport).toContain('Síntesis final de prueba');
+    expect(snapshot.keyFindings).toEqual(['Deuda activa', 'Estrés moderado']);
+    expect(snapshot.hasEnoughInformation).toBe(true);
   });
 
   it('marks synthetic interview blocks as not user-validated', () => {

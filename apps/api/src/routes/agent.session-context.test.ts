@@ -4,7 +4,7 @@ import path from 'path';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { attachIntakeToUser, saveUserMemoryBlob } from '../services/user.service';
+import { replaceIntakeEnvelopeForDev, saveUserMemoryBlob } from '../services/user.service';
 import { createApprovalToken } from '../services/approval.service';
 
 let dataDir: string;
@@ -64,7 +64,7 @@ describe('session context hydration', () => {
   it('returns merged interview products/budget context and voice snapshot', async () => {
     const { agent, userId, csrfToken } = await createAuthedAgent();
 
-    const intakeOk = await attachIntakeToUser(userId, {
+    const intakeOk = await replaceIntakeEnvelopeForDev(userId, {
       intake: { profession: 'Ingeniera', hasDebt: true, hasSavingsOrInvestments: true },
       intakeContext: { financialLiteracy: 'high' },
       productsContext: {

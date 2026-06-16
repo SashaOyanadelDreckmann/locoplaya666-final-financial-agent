@@ -12,7 +12,12 @@ describe('applyCoreAgentResponse', () => {
     const response: AgentResponse = {
       message: 'Listo',
       mode: 'information',
-      budget_updates: [{ label: 'Arriendo', type: 'expense', amount: 450000 }],
+      budget_table_patch: {
+        actions: [{ kind: 'update', id: 'expense_rent', type: 'expense', category: 'Arriendo', amount: 450000 }],
+        requires_confirmation: false,
+        summary: 'Actualizar Arriendo · $450.000',
+        pending_confirmation: null,
+      },
       meta: {
         product_lifecycle: {
           phase: 'post_diagnosis',
@@ -28,7 +33,7 @@ describe('applyCoreAgentResponse', () => {
     };
 
     const effects = extractCoreAgentSideEffects(response);
-    expect(effects.budgetUpdates).toHaveLength(1);
+    expect(effects.budgetTablePatch?.actions).toHaveLength(1);
     expect(effects.productLifecyclePatch?.phase).toBe('post_diagnosis');
     expect(effects.productLifecyclePatch?.chatTurns).toEqual({ 'chat-2': 3 });
     expect(effects.fincoinUsage?.remaining_fincoins).toBe(10);

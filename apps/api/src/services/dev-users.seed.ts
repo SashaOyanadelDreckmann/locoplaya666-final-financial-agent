@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import { APPROVAL_STATUS } from '../auth/approval';
 import { getLogger } from '../logger';
-import { attachIntakeToUser, createUser, findUserByEmail, updateUserAuthSecurity } from './user.service';
+import { replaceIntakeEnvelopeForDev, createUser, findUserByEmail, updateUserAuthSecurity } from './user.service';
 
 export const DEV_TEST_USER_PASSWORD = 'Financieramente123!';
 
@@ -59,7 +59,7 @@ async function ensureDevTestUserIntake(
   userId: string,
   account: (typeof DEV_TEST_USERS)[number],
 ): Promise<void> {
-  await attachIntakeToUser(userId, buildDevTestIntake(account), { replace: true });
+  await replaceIntakeEnvelopeForDev(userId, buildDevTestIntake(account));
 }
 
 export async function ensureDevTestUsers(): Promise<void> {

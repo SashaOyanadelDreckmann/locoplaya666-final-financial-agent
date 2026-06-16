@@ -72,6 +72,13 @@ export function formatAdminDateTime(value?: string | null): string {
   }).format(date);
 }
 
+export function formatAdminAnonymousId(id: string, max = 20): string {
+  const clean = String(id ?? '').trim();
+  if (!clean) return '—';
+  if (clean.length <= max) return clean;
+  return `${clean.slice(0, max)}…`;
+}
+
 export function compactAdminText(value: string, max = 140): string {
   const clean = String(value ?? '').trim();
   if (clean.length <= max) return clean;
@@ -106,8 +113,8 @@ export function progressTone(score: number): 'lime' | 'amber' | 'cyan' {
 
 export function roleBadgeClass(role: string): string {
   const normalized = role.toUpperCase();
-  if (normalized === 'ADMIN') return 'admin-badge admin-badge--gold';
-  if (normalized === 'ANALYST') return 'admin-badge admin-badge--violet';
+  if (normalized === 'ADMIN') return 'admin-badge admin-badge--accent';
+  if (normalized === 'ANALYST') return 'admin-badge admin-badge--muted';
   return 'admin-badge admin-badge--slate';
 }
 

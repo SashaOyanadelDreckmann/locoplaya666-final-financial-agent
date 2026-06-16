@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 import {
   canStepBudgetViewMode,
+  getBudgetViewModeDisplayLabel,
   getBudgetViewModeLabel,
   stepBudgetViewMode,
 } from './budget-modal.view-nav.helpers';
@@ -19,6 +20,7 @@ export function BudgetViewNav({ isDesktopLayout, budgetViewMode, onChange }: Bud
   const canPrev = canStepBudgetViewMode(budgetViewMode, 'prev', isDesktopLayout);
   const canNext = canStepBudgetViewMode(budgetViewMode, 'next', isDesktopLayout);
   const label = getBudgetViewModeLabel(isDesktopLayout, budgetViewMode);
+  const displayLabel = getBudgetViewModeDisplayLabel(isDesktopLayout, budgetViewMode);
 
   return (
     <div className="budget-view-nav" role="toolbar" aria-label="Modo de presupuesto">
@@ -37,6 +39,9 @@ export function BudgetViewNav({ isDesktopLayout, budgetViewMode, onChange }: Bud
       >
         <ChevronLeft size={28} strokeWidth={2.6} aria-hidden />
       </button>
+      <span className="budget-view-nav-label" aria-hidden="true">
+        {displayLabel}
+      </span>
       <button
         type="button"
         className="budget-view-nav-arrow budget-view-nav-arrow--next focus-ring"

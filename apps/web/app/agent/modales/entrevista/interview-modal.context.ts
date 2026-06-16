@@ -16,6 +16,18 @@ export type InterviewVoiceReport = {
   coverage_tier?: 'minimal' | 'partial' | 'substantial' | 'complete';
 };
 
+/** Persisted by voice finalize on the server (`memoryBlob.interviewVoice.lastReport`). */
+export type InterviewVoiceLastReport = {
+  executive_report: string;
+  key_findings?: string[];
+  ended_by?: string;
+  stop_reason?: string;
+  duration_sec?: number | null;
+  has_enough_information?: boolean;
+  confidence?: InterviewVoiceReport['confidence'];
+  coverage_tier?: InterviewVoiceReport['coverage_tier'];
+};
+
 export type { InterviewVoiceSummaryEntry };
 
 export type InterviewVoiceSnapshot = {
@@ -29,6 +41,9 @@ export type InterviewVoiceSnapshot = {
   minuteSummaries?: InterviewVoiceSummaryEntry[];
   finalSummary?: InterviewVoiceFinalSummary;
   voiceReport?: InterviewVoiceReport | null;
+  /** Server finalize metadata; normalized to `voiceReport` during hydration. */
+  lastReport?: InterviewVoiceLastReport | null;
+  coverageTier?: InterviewVoiceReport['coverage_tier'];
   callsStarted?: number;
   completedAt?: string | null;
   startedAt?: string | null;

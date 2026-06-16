@@ -110,14 +110,6 @@
     min-height: 44px !important;
   }
 
-  /* Browser keyboard: overlay tracks visual viewport, no double scroll */
-  html:not(.pwa-standalone).mobile-input-engaged .agent-modal-overlay.interview-modal-overlay,
-  html:not(.pwa-standalone).browser-keyboard-open .agent-modal-overlay.interview-modal-overlay {
-    height: var(--visual-vh, 100dvh) !important;
-    min-height: var(--visual-vh, 100dvh) !important;
-    max-height: var(--visual-vh, 100dvh) !important;
-  }
-
   html.mobile-input-engaged .interview-modal.is-mobile-shell .interview-panel-surface--workspace {
     scroll-padding-bottom: max(72px, env(safe-area-inset-bottom, 0px)) !important;
   }

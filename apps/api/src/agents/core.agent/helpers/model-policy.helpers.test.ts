@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
   needsChartsOrTablesMcp,
   resolveCoreAgentClaudeModel,
+  resolveInterviewStructuredModel,
   resolvePlanExecuteModel,
 } from './model-policy.helpers';
 
@@ -59,5 +60,11 @@ describe('model-policy.helpers', () => {
 
   it('always uses Haiku for core agent Claude calls', () => {
     expect(resolveCoreAgentClaudeModel()).toBe('claude-haiku-4-5');
+  });
+
+  it('routes interview finalize and diagnostic to the core lite OpenAI model', () => {
+    expect(resolveInterviewStructuredModel()).toBe('gpt-4.1-mini');
+    process.env.OPENAI_MODEL_FAST = 'gpt-4.1';
+    expect(resolveInterviewStructuredModel()).toBe('gpt-4.1');
   });
 });

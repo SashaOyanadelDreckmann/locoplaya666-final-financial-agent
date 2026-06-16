@@ -32,9 +32,11 @@ describe('transactions modal integration guards', () => {
   });
 
   it('keeps analyst dashboard split into focused subcomponents', () => {
-    expect(read('app/agent/modales/transacciones/TxAnalystDashboard.tsx')).toContain('TxMovementTable');
-    expect(read('app/agent/modales/transacciones/TxAnalystDashboard.tsx')).toContain('TxMovementEditor');
-    expect(read('app/agent/modales/transacciones/TxAnalystDashboard.tsx')).toContain('TxMetricsCharts');
+    const dashboard = read('app/agent/modales/transacciones/TxAnalystDashboard.tsx');
+    expect(dashboard).toContain('TxMovementTable');
+    expect(dashboard).toContain('TxMovementEditor');
+    expect(dashboard).toContain('TxExecutiveSummary');
+    expect(dashboard).toContain('tx-ap-hero-numbers');
   });
 
   it('does not expose rapid video upload in the evidence step', () => {

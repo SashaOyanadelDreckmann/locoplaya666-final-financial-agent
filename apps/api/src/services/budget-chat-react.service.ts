@@ -1,5 +1,6 @@
 import type OpenAI from 'openai';
 import { getOpenAIClient, withCompatibleTemperature } from './llm.service';
+import { buildBudgetTablePatch, type BudgetTableAction } from '@financial-agent/shared';
 import {
   BUDGET_TABLE_COLUMN_HELP,
   buildBudgetTableSnapshot,
@@ -47,6 +48,7 @@ function buildReactSystemPrompt(): string {
     '- budget__table_snapshot: filas y totales actuales',
     '- budget__analyze_health: score y completion local',
     '- finance__budget_analyzer: análisis 50/30/20 vía MCP (solo si el usuario pide diagnóstico/consejo)',
+    '- finance__budget_table_actions: valida mutaciones vía MCP compartido (usar si hay cambios de filas)',
     '- budget__complete_turn: respuesta final + actions de tabla (add/update/delete)',
     '',
     BUDGET_TABLE_COLUMN_HELP,
@@ -153,13 +155,20 @@ export async function runBudgetChatReactLoop(
       const args = safeJsonParse(toolCall.function.arguments ?? '{}');
 
       if (canonical === 'budget.complete_turn') {
+        const rawActions = Array.isArray(args.actions) ? (args.actions as BudgetTableAction[]) : [];
+        const patch = buildBudgetTablePatch(input.rows, rawActions, {
+          modelRequiresConfirmation: Boolean(args.requires_confirmation),
+        });
+        const validatedActions =
+          patch.pending_confirmation?.actions ?? patch.actions;
         completed = {
           assistant_reply: String(args.assistant_reply ?? ''),
           next_question: String(args.next_question ?? ''),
-          focus_row_id: (args.focus_row_id as string | null) ?? null,
-          actions: Array.isArray(args.actions) ? (args.actions as BudgetReactCompleteTurn['actions']) : [],
-          requires_confirmation: Boolean(args.requires_confirmation),
-          pending_summary: (args.pending_summary as string | null) ?? null,
+          focus_row_id: (args.focus_row_id as string | null) ?? validatedActions[0]?.id ?? null,
+          actions: validatedActions,
+          requires_confirmation: patch.requires_confirmation,
+          pending_summary:
+            ((args.pending_summary as string | null) ?? patch.summary) || null,
         };
         trace.push({ iteration, tool: sanitized, result: 'complete_turn' });
         continue;
@@ -177,6 +186,7 @@ export async function runBudgetChatReactLoop(
 
       const executed = await executeBudgetReactTool({
         tool: canonical,
+        toolArgs: args,
         rows: input.rows,
         context: input.context,
         userId,

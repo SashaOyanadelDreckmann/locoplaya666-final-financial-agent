@@ -5,6 +5,7 @@ import { useInterviewStore } from '@/state/interview.store';
 import {
   buildBootScriptLines,
   clearAgentBootFromIntake,
+  shouldShowAgentBootSequence,
   type BootScriptLine,
 } from './agent-boot-sequence.helpers';
 
@@ -31,6 +32,7 @@ export function AgentBootSequence(props: {
   onComplete: () => void;
 }) {
   const reducedMotion = useMemo(() => prefersReducedMotion(), []);
+  const fromIntakeHandoff = useMemo(() => shouldShowAgentBootSequence(), []);
   const storeIntake = useInterviewStore((s) => s.intake);
   const scriptSession = useMemo(() => {
     if (props.session?.injectedIntake) return props.session;
@@ -165,14 +167,14 @@ export function AgentBootSequence(props: {
       };
     }
 
-    const tVoid = window.setTimeout(() => setPhase('terminal'), 680);
-    const tRun = window.setTimeout(() => setPhase('running'), 1180);
+    const tVoid = window.setTimeout(() => setPhase('terminal'), fromIntakeHandoff ? 100 : 680);
+    const tRun = window.setTimeout(() => setPhase('running'), fromIntakeHandoff ? 460 : 1180);
 
     return () => {
       window.clearTimeout(tVoid);
       window.clearTimeout(tRun);
     };
-  }, [lines.length, reducedMotion, runExit]);
+  }, [fromIntakeHandoff, lines.length, reducedMotion, runExit]);
 
   useEffect(() => {
     if (phase !== 'running' || reducedMotion) return;
@@ -214,25 +216,17 @@ export function AgentBootSequence(props: {
   return (
     <div
       ref={overlayRef}
-      className={`agent-boot-overlay${phase === 'void' ? ' is-void' : ''}${
-        phase === 'terminal' ? ' is-terminal-enter' : ''
-      }${phase === 'running' ? ' is-running' : ''}${phase === 'exit' ? ' is-exit' : ''}`}
+      className={`agent-boot-overlay${fromIntakeHandoff ? ' is-intake-handoff' : ''}${
+        phase === 'void' ? ' is-void' : ''
+      }${phase === 'terminal' ? ' is-terminal-enter' : ''}${
+        phase === 'running' ? ' is-running' : ''
+      }${phase === 'exit' ? ' is-exit' : ''}`}
       role="dialog"
       aria-modal="true"
       aria-label="Inicializando agente financiero"
       aria-busy={phase !== 'exit'}
     >
-      {phase !== 'exit' ? (
-        <button
-          type="button"
-          className="agent-boot-skip"
-          onClick={skipToAgent}
-          aria-label="Entrar al agente sin esperar la sincronización completa"
-        >
-          <span className="agent-boot-skip__label">Entrar</span>
-          <span className="agent-boot-skip__hint">Esc</span>
-        </button>
-      ) : null}
+      <div className="agent-boot-overlay__backdrop" aria-hidden="true" />
 
       <div className="agent-boot-void" aria-hidden="true">
         <div className="agent-boot-void-vignette" />
@@ -250,11 +244,51 @@ export function AgentBootSequence(props: {
         <div ref={terminalRef} className="agent-boot-terminal-shell terminal-composer-shell">
           <div className="agent-boot-terminal-glow" aria-hidden="true" />
           <div className="agent-input terminal-composer agent-boot-terminal">
-            <div className="terminal-composer-head agent-boot-terminal-head">
-              <span className="agent-boot-terminal-prompt">$</span>
-              <span className="agent-boot-terminal-cmd">financieramente — hydrate_profile</span>
-              <span className="agent-boot-terminal-badge">v2</span>
-            </div>
+            <header className="agent-boot-terminal-header">
+              <div className="agent-boot-terminal-header__chrome">
+                <div className="controls terminal-composer-controls agent-boot-controls" aria-hidden="true">
+                  <span className="agent-boot-control-dot" />
+                  <span className="agent-boot-control-dot is-amber" />
+                  <span className="agent-boot-control-dot is-green" />
+                  <span className="agent-boot-control-caption">intake → knowledge → agent</span>
+                </div>
+
+                {phase !== 'exit' ? (
+                  <button
+                    type="button"
+                    className="agent-boot-skip agent-boot-skip--inline"
+                    onClick={skipToAgent}
+                    aria-label="Entrar al agente sin esperar la sincronización completa"
+                  >
+                    <span className="agent-boot-skip__label">Entrar</span>
+                    <span className="agent-boot-skip__hint">Esc</span>
+                  </button>
+                ) : null}
+              </div>
+
+              <div className="terminal-composer-head agent-boot-terminal-head">
+                <span className="agent-boot-terminal-prompt">$</span>
+                <span className="agent-boot-terminal-cmd">financieramente — hydrate_profile</span>
+                <span className="agent-boot-terminal-badge">v2</span>
+              </div>
+
+              <div className="agent-boot-status-row">
+                <span className="agent-boot-status-label">
+                  {phase === 'running' && visibleCount < lines.length
+                    ? 'procesando intake…'
+                    : phase === 'exit'
+                      ? 'desplegando agente…'
+                      : `sincronizando perfil de ${firstName}`}
+                </span>
+                <span className="agent-boot-status-pct">{progress}%</span>
+              </div>
+
+              <div className="agent-boot-progress" aria-hidden="true">
+                <span className="agent-boot-progress-fill" style={{ width: `${progress}%` }}>
+                  <span className="agent-boot-progress-shimmer" />
+                </span>
+              </div>
+            </header>
 
             <pre
               ref={codeRef}
@@ -278,30 +312,6 @@ export function AgentBootSequence(props: {
                 <span className="agent-boot-cursor" aria-hidden="true" />
               ) : null}
             </pre>
-
-            <div className="agent-boot-status-row">
-              <span className="agent-boot-status-label">
-                {phase === 'running' && visibleCount < lines.length
-                  ? 'procesando intake…'
-                  : phase === 'exit'
-                    ? 'desplegando agente…'
-                    : `sincronizando perfil de ${firstName}`}
-              </span>
-              <span className="agent-boot-status-pct">{progress}%</span>
-            </div>
-
-            <div className="agent-boot-progress" aria-hidden="true">
-              <span className="agent-boot-progress-fill" style={{ width: `${progress}%` }}>
-                <span className="agent-boot-progress-shimmer" />
-              </span>
-            </div>
-          </div>
-
-          <div className="controls terminal-composer-controls agent-boot-controls" aria-hidden="true">
-            <span className="agent-boot-control-dot" />
-            <span className="agent-boot-control-dot is-amber" />
-            <span className="agent-boot-control-dot is-green" />
-            <span className="agent-boot-control-caption">intake → knowledge → agent</span>
           </div>
         </div>
       </div>

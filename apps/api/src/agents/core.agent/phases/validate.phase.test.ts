@@ -116,14 +116,12 @@ describe('runValidatePhase', () => {
     });
 
     const response = testUtils.createMockFormattedResponse({
-      budget_updates: [
-        {
-          label: 'Stock allocation',
-          type: 'investment',
-          amount: 50000,
-          category: 'aggressive',
-        },
-      ],
+      budget_table_patch: {
+        actions: [{ kind: 'update', id: 'expense_rent', type: 'expense', amount: 50000 }],
+        requires_confirmation: false,
+        summary: 'test',
+        pending_confirmation: null,
+      },
     });
 
     const result = await runValidatePhase({
@@ -167,7 +165,7 @@ describe('runValidatePhase', () => {
     expect(result.coherence_check.message_updated).toContain('coherencia');
   });
 
-  it('should clear budget_updates when incoherent', async () => {
+  it('should clear budget_table_patch when incoherent', async () => {
     (validateAgentDecision as any).mockReturnValueOnce({
       isCoherent: false,
       score: 0.3,
@@ -176,14 +174,12 @@ describe('runValidatePhase', () => {
     });
 
     const response = testUtils.createMockFormattedResponse({
-      budget_updates: [
-        {
-          label: 'Test update',
-          type: 'budget',
-          amount: 1000,
-          category: 'test',
-        },
-      ],
+      budget_table_patch: {
+        actions: [{ kind: 'update', id: 'income_salary', type: 'income', amount: 1000 }],
+        requires_confirmation: false,
+        summary: 'test',
+        pending_confirmation: null,
+      },
     });
 
     await runValidatePhase({
@@ -194,7 +190,7 @@ describe('runValidatePhase', () => {
       injected_budget: testUtils.createMockBudget(),
     });
 
-    expect(response.budget_updates).toEqual([]);
+    expect(response.budget_table_patch).toBeUndefined();
   });
 
   it('should validate against user history', async () => {
@@ -295,10 +291,10 @@ describe('runValidatePhase', () => {
     expect(result.coherence_check).toBeDefined();
   });
 
-  it('should skip validation if response has no budget_updates and mode not in required list', async () => {
+  it('should skip validation if response has no budget_table_patch and mode not in required list', async () => {
     const result = await runValidatePhase({
       formatted_response: testUtils.createMockFormattedResponse({
-        budget_updates: [],
+        budget_table_patch: undefined,
       }),
       mode: 'education',
       injected_profile: null,
@@ -310,7 +306,7 @@ describe('runValidatePhase', () => {
     expect(validateAgentDecision).not.toHaveBeenCalled();
   });
 
-  it('should validate if response has budget_updates regardless of mode', async () => {
+  it('should validate if response has budget_table_patch regardless of mode', async () => {
     (validateAgentDecision as any).mockReturnValueOnce({
       isCoherent: true,
       score: 0.9,
@@ -320,14 +316,12 @@ describe('runValidatePhase', () => {
 
     const result = await runValidatePhase({
       formatted_response: testUtils.createMockFormattedResponse({
-        budget_updates: [
-          {
-            label: 'Test',
-            type: 'budget',
-            amount: 1000,
-            category: 'savings',
-          },
-        ],
+        budget_table_patch: {
+          actions: [{ kind: 'update', id: 'income_salary', type: 'income', amount: 1000 }],
+          requires_confirmation: false,
+          summary: 'test',
+          pending_confirmation: null,
+        },
       }),
       mode: 'information',
       injected_profile: null,

@@ -47,6 +47,11 @@ export function resolveLiteToolsModel(): string {
   );
 }
 
+/** Interview finalize + diagnostic profile — same OpenAI tier as core agent lite loop. */
+export function resolveInterviewStructuredModel(): string {
+  return resolveLiteToolsModel();
+}
+
 export function resolvePlanExecuteModel(params: {
   userMessage: string;
   mode?: string;

@@ -46,7 +46,6 @@ import { simulatorTool } from './tools/simulate/simulator.tool';
 /* SIMULATIONS — Pro (SIMPRO)     */
 /* ────────────────────────────── */
 import { monteCarloTool } from './tools/simpro/montecarlo.tool';
-import { portfolioProjectionTool } from './tools/simpro/portfolioProjection.tool';
 import { scenarioProjectionTool } from './tools/simpro/scenarioProjection.tool';
 import { riskDrawdownTool } from './tools/simpro/riskDrawdown.tool';
 
@@ -56,6 +55,7 @@ import { riskDrawdownTool } from './tools/simpro/riskDrawdown.tool';
 import { debtAnalyzerTool }   from './tools/finance/debtAnalyzer.tool';
 import { apvOptimizerTool }   from './tools/finance/apvOptimizer.tool';
 import { budgetAnalyzerTool } from './tools/finance/budgetAnalyzer.tool';
+import { budgetTableActionsTool } from './tools/finance/budgetTableActions.tool';
 import { goalPlannerTool }    from './tools/finance/goalPlanner.tool';
 import { transactionsChartsTool } from './tools/finance/transactionsCharts.tool';
 import { composePipelineTool } from './tools/agent/composePipeline.tool';
@@ -97,7 +97,6 @@ export function bootstrapMCP() {
 
   /* SIMULATIONS — PRO */
   registerTool(monteCarloTool);
-  registerTool(portfolioProjectionTool);
   registerTool(scenarioProjectionTool);
   registerTool(riskDrawdownTool);
 
@@ -105,6 +104,7 @@ export function bootstrapMCP() {
   registerTool(debtAnalyzerTool);
   registerTool(apvOptimizerTool);
   registerTool(budgetAnalyzerTool);
+  registerTool(budgetTableActionsTool);
   registerTool(goalPlannerTool);
   registerTool(transactionsChartsTool);
 

@@ -4,7 +4,7 @@ import path from 'path';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
-import { attachIntakeToUser } from '../services/user.service';
+import { replaceIntakeEnvelopeForDev } from '../services/user.service';
 import { createApprovalToken } from '../services/approval.service';
 
 const runCoreAgentMock = vi.fn();
@@ -96,7 +96,7 @@ describe('/api/agent budget_summary → injected_budget', () => {
     });
 
     const { agent, userId, csrfToken } = await createAuthedAgent();
-    const intakeOk = await attachIntakeToUser(userId, {
+    const intakeOk = await replaceIntakeEnvelopeForDev(userId, {
       intake: { profession: 'Ingeniera' },
       intakeContext: { financialLiteracy: 'high' },
     });
@@ -163,7 +163,7 @@ describe('/api/agent budget_summary → injected_budget', () => {
     });
 
     const { agent, userId, csrfToken } = await createAuthedAgent();
-    const intakeOk = await attachIntakeToUser(userId, {
+    const intakeOk = await replaceIntakeEnvelopeForDev(userId, {
       intake: { profession: 'Ingeniera' },
       intakeContext: { financialLiteracy: 'high' },
       productsContext: {
@@ -227,7 +227,7 @@ describe('/api/agent budget_summary → injected_budget', () => {
     runCoreAgentMock.mockRejectedValueOnce(new Error('LLM down'));
 
     const { agent, userId, csrfToken } = await createAuthedAgent();
-    const intakeOk = await attachIntakeToUser(userId, {
+    const intakeOk = await replaceIntakeEnvelopeForDev(userId, {
       intake: { profession: 'Ingeniera' },
       intakeContext: { financialLiteracy: 'high' },
       productsContext: {
@@ -302,7 +302,7 @@ describe('/api/agent budget_summary → injected_budget', () => {
     });
 
     const { agent, userId, csrfToken } = await createAuthedAgent();
-    const intakeOk = await attachIntakeToUser(userId, {
+    const intakeOk = await replaceIntakeEnvelopeForDev(userId, {
       intake: { profession: 'Ingeniera' },
       intakeContext: { financialLiteracy: 'high' },
     });

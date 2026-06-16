@@ -1,51 +1,8 @@
+import { hasCompletedIntakeAccess, hasMeaningfulIntake } from '@financial-agent/shared';
 import { ApiHttpError } from '@/lib/api/envelope';
 import { readApiOriginFromProcessEnv } from '@/lib/compartido/runtimePublicConfig';
 
-export function hasCompletedIntakeAccess(
-  injectedIntake: { intake?: unknown } | null | undefined,
-): boolean {
-  if (hasMeaningfulIntake(injectedIntake)) return true;
-  const intake = injectedIntake?.intake;
-  if (!intake || typeof intake !== 'object') return false;
-  const data = intake as Record<string, unknown>;
-  return (
-    typeof data.employmentStatus === 'string' &&
-    data.employmentStatus.length > 0 &&
-    typeof data.incomeBand === 'string' &&
-    data.incomeBand.length > 0
-  );
-}
-
-export function hasMeaningfulIntake(
-  injectedIntake: { intake?: unknown } | null | undefined,
-): boolean {
-  const intake = injectedIntake?.intake;
-  if (!intake || typeof intake !== 'object') return false;
-
-  const data = intake as Record<string, unknown>;
-  const knowledge = data.financialKnowledge;
-  const hasKnowledge =
-    knowledge !== null &&
-    typeof knowledge === 'object' &&
-    !Array.isArray(knowledge);
-
-  return (
-    typeof data.employmentStatus === 'string' &&
-    data.employmentStatus.length > 0 &&
-    typeof data.incomeBand === 'string' &&
-    data.incomeBand.length > 0 &&
-    typeof data.expensesCoverage === 'string' &&
-    typeof data.tracksExpenses === 'string' &&
-    typeof data.hasSavingsOrInvestments === 'boolean' &&
-    typeof data.hasDebt === 'boolean' &&
-    typeof data.riskReaction === 'string' &&
-    typeof data.selfRatedUnderstanding === 'number' &&
-    Number.isFinite(data.selfRatedUnderstanding) &&
-    typeof data.moneyStressLevel === 'number' &&
-    Number.isFinite(data.moneyStressLevel) &&
-    hasKnowledge
-  );
-}
+export { hasCompletedIntakeAccess, hasMeaningfulIntake };
 
 export function resolveAuthRedirectPath(error: unknown): '/login' | '/waiting-approval' {
   if (error instanceof ApiHttpError) {

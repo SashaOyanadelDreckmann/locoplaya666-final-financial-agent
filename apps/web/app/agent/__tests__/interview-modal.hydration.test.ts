@@ -3,9 +3,29 @@ import {
   interviewIntakeContextsEqual,
   mergeInterviewIntake,
   mergeInterviewVoiceSnapshots,
+  resolvePersistedVoiceReport,
 } from '../modales/entrevista/interview-modal.hydration';
 
 describe('interview modal hydration', () => {
+  it('merges server lastReport into voiceReport during snapshot hydration', () => {
+    const merged = mergeInterviewVoiceSnapshots(null, {
+      status: 'completed',
+      coverageTier: 'substantial',
+      lastReport: {
+        executive_report: 'Informe mergeado',
+        key_findings: ['Hallazgo merge'],
+        ended_by: 'user',
+      },
+    });
+
+    expect(merged?.voiceReport).toEqual({
+      executive_report: 'Informe mergeado',
+      key_findings: ['Hallazgo merge'],
+      stop_reason: 'user',
+      coverage_tier: 'substantial',
+    });
+  });
+
   it('prefers server quota fields while keeping the highest callSeconds progress', () => {
     const merged = mergeInterviewVoiceSnapshots(
       {
@@ -27,6 +47,68 @@ describe('interview modal hydration', () => {
     expect(merged?.callSeconds).toBe(95);
     expect(merged?.remainingTotalSec).toBe(108);
     expect(merged?.callsStarted).toBe(1);
+  });
+
+  it('normalizes server lastReport into a client voiceReport', () => {
+    const report = resolvePersistedVoiceReport({
+      status: 'completed',
+      coverageTier: 'partial',
+      lastReport: {
+        executive_report: 'Informe desde servidor',
+        key_findings: ['Hallazgo A', 'Hallazgo B'],
+        ended_by: 'user',
+      },
+    });
+
+    expect(report).toEqual({
+      executive_report: 'Informe desde servidor',
+      key_findings: ['Hallazgo A', 'Hallazgo B'],
+      stop_reason: 'user',
+      coverage_tier: 'partial',
+    });
+  });
+
+  it('prefers voiceReport over lastReport when both are present', () => {
+    const report = resolvePersistedVoiceReport({
+      voiceReport: {
+        executive_report: 'Informe cliente',
+        key_findings: ['Cliente'],
+        stop_reason: 'agent',
+        coverage_tier: 'complete',
+      },
+      lastReport: {
+        executive_report: 'Informe servidor',
+        key_findings: ['Servidor'],
+      },
+    });
+
+    expect(report?.executive_report).toBe('Informe cliente');
+    expect(report?.key_findings).toEqual(['Cliente']);
+    expect(report?.stop_reason).toBe('agent');
+    expect(report?.coverage_tier).toBe('complete');
+  });
+
+  it('hydrates diagnosis mode from persisted lastReport after refresh', () => {
+    const hydrated = deriveHydratedVoiceState({
+      snapshot: {
+        status: 'completed',
+        coverageTier: 'minimal',
+        lastReport: {
+          executive_report: 'Informe persistido',
+          key_findings: ['Señal 1'],
+          ended_by: 'timeout',
+        },
+      },
+      sessionDiagnosticProfileId: 'profile-refresh-1',
+    });
+
+    expect(hydrated.sessionAlreadyCompleted).toBe(true);
+    expect(hydrated.voiceReport).toEqual({
+      executive_report: 'Informe persistido',
+      key_findings: ['Señal 1'],
+      stop_reason: 'timeout',
+      coverage_tier: 'minimal',
+    });
   });
 
   it('marks completed sessions and preserves report data', () => {

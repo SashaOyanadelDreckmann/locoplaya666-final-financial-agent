@@ -13,6 +13,11 @@ export function getBudgetViewModeLabel(isDesktopLayout: boolean, mode: BudgetVie
   return mode === 1 ? 'asistente' : 'tabla';
 }
 
+export function getBudgetViewModeDisplayLabel(isDesktopLayout: boolean, mode: BudgetViewMode): string {
+  const label = getBudgetViewModeLabel(isDesktopLayout, mode);
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
 export function canStepBudgetViewMode(
   current: BudgetViewMode,
   direction: 'prev' | 'next',

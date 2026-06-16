@@ -140,7 +140,7 @@ export function createMockFormattedResponse(
     artifacts: [],
     citations: [],
     suggested_replies: ['¿Cuáles son los fondos que recomiendas?', 'Muéstrame la proyección'],
-    budget_updates: [],
+    budget_table_patch: undefined,
     ...overrides,
   };
 }

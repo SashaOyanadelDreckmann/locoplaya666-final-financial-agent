@@ -661,8 +661,6 @@ Cada chat al llegar a `maxTurns`:
 | `document.parse` | 0.06 |
 | `voice.realtime` | 0.12 |
 | `conversation.voice` | 0.08 |
-| `simulation` | 0.05 |
-| `pdf.generate` | 0.05 |
 | `welcome.llm` | 0.02 |
 
 Warning UI cuando `remainingFincoins ≤ 50`.

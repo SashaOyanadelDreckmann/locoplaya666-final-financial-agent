@@ -3,6 +3,7 @@ import { canonicalBudgetRowId, getEffectiveBudgetRows } from './budget-rows';
 import { extractInferenceQuestionText, inferBudgetFocusRowId } from './budget-chat-focus';
 import {
   BUDGET_MOVEMENT_TYPE_OPTIONS,
+  isBudgetMetaOrHelpQuestion,
   normalizeBudgetMovementType,
   type BudgetMovementType,
 } from './budget-table-schema';
@@ -65,16 +66,7 @@ export type BudgetAssistantContext = {
   discussedRowIds: Set<string>;
 };
 
-const CORE_ROW_ORDER = [
-  'income_salary',
-  'expense_rent',
-  'expense_food',
-  'expense_transport',
-  'expense_services',
-  'expense_debt',
-  'expense_savings',
-  'expense_other',
-] as const;
+const CORE_ROW_ORDER = ['income_salary', 'expense_rent', 'expense_other'] as const;
 
 const ROW_MOVEMENT_TYPES: Record<string, BudgetRow['movementType']> = {
   income_salary: 'income_main',
@@ -619,23 +611,138 @@ export function buildContextualInitReply(
   question: string,
   context: BudgetAssistantContext,
 ): string {
-  const introParts: string[] = [];
-  if (
-    context.movementLedgers.length > 0 &&
-    (context.totalOutflows > 0 || context.totalInflows > 0)
-  ) {
-    const productCount = context.movementLedgers.length;
-    introParts.push(
-      `Detecté ${context.movementLedgers.reduce((sum, ledger) => sum + ledger.totals.movementCount, 0)} movimientos en ${productCount} producto${productCount === 1 ? '' : 's'}: gastos ~$${formatBudgetClp(context.totalOutflows)}${context.totalInflows > 0 ? ` e ingresos ~$${formatBudgetClp(context.totalInflows)}` : ''}.`,
-    );
+  return buildBudgetInitTurn(rows, context).reply;
+}
+
+function buildGenericStarterAddProposals(rows: BudgetRow[]): BudgetRowSuggestion[] {
+  const existingIds = new Set(rows.map((row) => canonicalBudgetRowId(row.id)));
+  const templates: Array<{
+    category: string;
+    movementType: BudgetRow['movementType'];
+  }> = [
+    { category: 'Arriendo / vivienda', movementType: 'housing' },
+    { category: 'Alimentación', movementType: 'food' },
+  ];
+  const proposals: BudgetRowSuggestion[] = [];
+  for (const template of templates) {
+    const slug = slugifyCategory(template.category);
+    const rowId = slug ? `expense-custom-${slug}` : `expense-custom-${Date.now()}`;
+    if (existingIds.has(canonicalBudgetRowId(rowId))) continue;
+    proposals.push({
+      kind: 'add',
+      rowId,
+      category: template.category,
+      type: 'expense',
+      suggestedAmount: 0,
+      reason: 'rubro habitual para empezar a detallar gastos',
+      movementType: template.movementType,
+    });
+    if (proposals.length >= 2) break;
   }
-  const suggestion = buildBudgetRowSuggestions(rows, context)[0];
-  if (introParts.length === 0) return question;
-  const intro = introParts.slice(0, 2).join(' ');
-  if (focusRow && suggestion && suggestion.rowId === focusRow.id) {
-    return `${intro} ${question}`.trim();
+  return proposals;
+}
+
+function summarizeMovementIntro(context: BudgetAssistantContext): string {
+  if (context.movementLedgers.length === 0) return '';
+  if (context.totalOutflows <= 0 && context.totalInflows <= 0) return '';
+  const movementCount = context.movementLedgers.reduce(
+    (sum, ledger) => sum + ledger.totals.movementCount,
+    0,
+  );
+  const productCount = context.movementLedgers.length;
+  const outflows =
+    context.totalOutflows > 0 ? `gastos ~$${formatBudgetClp(context.totalOutflows)}` : '';
+  const inflows =
+    context.totalInflows > 0 ? `ingresos ~$${formatBudgetClp(context.totalInflows)}` : '';
+  const totals = [inflows, outflows].filter(Boolean).join(' y ');
+  return `Revisé ${movementCount} movimiento${movementCount === 1 ? '' : 's'} en ${productCount} producto${productCount === 1 ? '' : 's'}${totals ? ` (${totals})` : ''}.`;
+}
+
+export function buildBudgetInitTurn(
+  rows: BudgetRow[],
+  context: BudgetAssistantContext,
+): { reply: string; followUp: string; focusRowId: string | null } {
+  const movementIntro = summarizeMovementIntro(context);
+  const baseTableIntro =
+    'Dejé tres filas base en la tabla: un ingreso y dos gastos genéricos para arrancar sin ruido.';
+  const suggestions = buildBudgetRowSuggestions(rows, context);
+  const addSuggestions = suggestions.filter((item) => item.kind === 'add').slice(0, 2);
+
+  if (addSuggestions.length > 0) {
+    const labels = addSuggestions
+      .map((item) =>
+        item.suggestedAmount > 0
+          ? `«${item.category}» (~$${formatBudgetClp(item.suggestedAmount)})`
+          : `«${item.category}»`,
+      )
+      .join(' y ');
+    const reply = [baseTableIntro, movementIntro, `Con eso en mente, sumaría ${labels}.`]
+      .filter(Boolean)
+      .join(' ')
+      .trim();
+    const followUp =
+      addSuggestions.length === 1
+        ? `¿Te agrego «${addSuggestions[0].category}» a la tabla? Puedes decir sí, otro nombre o un monto distinto.`
+        : `¿Sumamos esas dos filas? Di sí, elige una, o dime cómo quieres llamarlas.`;
+    return {
+      reply,
+      followUp,
+      focusRowId: addSuggestions[0]?.rowId ?? null,
+    };
   }
-  return `${intro} Empecemos por lo esencial: ${question}`.trim();
+
+  const updateSuggestions = suggestions.filter((item) => item.kind === 'update').slice(0, 2);
+  if (updateSuggestions.length > 0 && movementIntro) {
+    const top = updateSuggestions[0];
+    const reply = [baseTableIntro, movementIntro, top.reason].filter(Boolean).join(' ').trim();
+    return {
+      reply,
+      followUp: `¿Partimos completando «${top.category}» con ~$${formatBudgetClp(top.suggestedAmount)}? Si prefieres, también puedo sumar filas nuevas.`,
+      focusRowId: top.rowId,
+    };
+  }
+
+  if (!movementIntro) {
+    const genericAdds = buildGenericStarterAddProposals(rows);
+    if (genericAdds.length > 0) {
+      const names = genericAdds.map((item) => item.category).join(' y ');
+      return {
+        reply: `${baseTableIntro} Si te acomoda, podemos ir sumando rubros típicos como ${names}.`,
+        followUp: `¿Quieres que agregue alguna de esas filas, o empezamos por tu ingreso principal?`,
+        focusRowId: 'income_salary',
+      };
+    }
+  }
+
+  const focus = pickContextualFocusRow(rows, context, 'income_salary');
+  const question = buildContextualQuestion(focus, context);
+  const reply = [baseTableIntro, movementIntro].filter(Boolean).join(' ').trim();
+  return {
+    reply: reply || baseTableIntro,
+    followUp: question,
+    focusRowId: focus?.id ?? 'income_salary',
+  };
+}
+
+export function buildBudgetHelpAddReply(
+  rows: BudgetRow[],
+  context: BudgetAssistantContext,
+): { reply: string; followUp: string; focusRowId: string | null } {
+  const suggestions = buildBudgetRowSuggestions(rows, context).filter((item) => item.kind === 'add').slice(0, 2);
+  const packaged = buildSuggestionFollowUp(suggestions, context, rows);
+  if (packaged) {
+    return {
+      reply: `Para sumar filas, dime categoría y monto (ej. «arriendo 450 mil») o confirma una propuesta. ${packaged.reply}`,
+      followUp: packaged.followUp,
+      focusRowId: packaged.focusRowId,
+    };
+  }
+  return {
+    reply:
+      'Para agregar una fila, dime el rubro y el monto mensual. Por ejemplo: «supermercado 180 mil» o «sueldo 900 mil».',
+    followUp: '¿Qué rubro quieres agregar primero?',
+    focusRowId: rows.find((row) => row.type === 'income')?.id ?? rows[0]?.id ?? null,
+  };
 }
 
 export function buildSuggestionFollowUp(
@@ -647,9 +754,14 @@ export function buildSuggestionFollowUp(
   if (!top) return null;
 
   if (top.kind === 'add') {
+    const amountHint =
+      top.suggestedAmount > 0 ? ` por ~$${formatBudgetClp(top.suggestedAmount)}` : '';
     return {
-      reply: `Idea: sumar "${top.category}" por ~$${formatBudgetClp(top.suggestedAmount)} (${top.reason})`,
-      followUp: `¿Quieres que dejemos "${top.category}" en ~$${formatBudgetClp(top.suggestedAmount)}? Responde sí o indica otro monto.`,
+      reply: `Con lo que vi en tus movimientos, tendría sentido sumar «${top.category}»${amountHint}.`,
+      followUp:
+        top.suggestedAmount > 0
+          ? `¿Te agrego «${top.category}» con ~$${formatBudgetClp(top.suggestedAmount)}? Di sí o indica otro monto.`
+          : `¿Te agrego la fila «${top.category}»? Di sí, otro nombre o cuánto estimas al mes.`,
       focusRowId: top.rowId,
       actions: [top],
     };
@@ -658,8 +770,8 @@ export function buildSuggestionFollowUp(
   const row = rows.find((item) => canonicalBudgetRowId(item.id) === top.rowId);
   if (!row) return null;
   return {
-    reply: `Idea: ajustar ${row.category} de $${formatBudgetClp(Number(row.amount ?? 0))} a ~$${formatBudgetClp(top.suggestedAmount)} según movimientos.`,
-    followUp: `¿Ajustamos ${row.category} a ~$${formatBudgetClp(top.suggestedAmount)}? Responde sí o indica otro monto.`,
+    reply: `Con tus movimientos, ajustaría «${row.category}» hacia ~$${formatBudgetClp(top.suggestedAmount)}.`,
+    followUp: `¿Lo dejamos en ~$${formatBudgetClp(top.suggestedAmount)}? Di sí o indica otro monto.`,
     focusRowId: top.rowId,
     actions: [top],
   };
@@ -863,6 +975,7 @@ function normalizeAnswerEcho(answer: string): string {
 
 /** Fragmento semántico del mensaje del usuario, sin montos ni muletillas. */
 export function extractUserAnswerCue(answer: string): string | null {
+  if (isBudgetMetaOrHelpQuestion(answer)) return null;
   let text = normalizeAnswerEcho(answer)
     .toLowerCase()
     .normalize('NFD')

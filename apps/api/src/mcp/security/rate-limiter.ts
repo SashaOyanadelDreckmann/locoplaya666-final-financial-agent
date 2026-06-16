@@ -23,7 +23,6 @@ export const DEFAULT_RATE_LIMITS: Record<string, RateLimitConfig> = {
   'finance.simulate': { requests_per_minute: 120, burst_size: 10 },
   'finance.simulate_montecarlo': { requests_per_minute: 50, burst_size: 5 },
   'finance.scenario_projection': { requests_per_minute: 80, burst_size: 8 },
-  'finance.project_portfolio': { requests_per_minute: 80, burst_size: 8 },
   'finance.risk_drawdown': { requests_per_minute: 80, burst_size: 8 },
   'market.fx_usd_clp': { requests_per_minute: 100, burst_size: 10 },
   'market.tpm_cl': { requests_per_minute: 100, burst_size: 10 },

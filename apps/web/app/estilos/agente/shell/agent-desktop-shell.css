@@ -882,3 +882,220 @@ html body.agent-route-active .agent-layout .agent-thread .agent-bubble.assistant
 html body.agent-route-active .agent-layout .agent-thread .agent-bubble.assistant.latex-doc.is-empty-welcome .gradient-blob-card__line--navy {
   background-color: #4a6078 !important;
 }
+
+/*
+ * Mobile outline modes (4 Negro / 5 Blanco) — chat bubble parity with desktop.
+ * Beats agent-mobile-shell welcome paper + compact-deck glass chrome.
+ * Panel layout stays mode-1; only shell colors change in visual-modes.css.
+ */
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+  html[data-visual-mode='dark-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-thread > .agent-bubble.user:not(.upload-bubble) {
+    background: var(--chat-fill-accent) !important;
+    background-image: none !important;
+    border-color: var(--chat-border-strong) !important;
+    color: var(--chat-ink-strong) !important;
+    -webkit-text-fill-color: var(--chat-ink-strong) !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  html[data-visual-mode='dark-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-thread > .agent-bubble.assistant:not(.latex-doc),
+  html[data-visual-mode='dark-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-thread > .agent-bubble.muted {
+    background: var(--chat-fill-muted) !important;
+    background-image: none !important;
+    border-color: var(--chat-border) !important;
+    color: var(--chat-text-primary) !important;
+    -webkit-text-fill-color: var(--chat-text-primary) !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  html[data-visual-mode='dark-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-thread .citation-bubble {
+    background: var(--chat-fill-subtle) !important;
+    background-image: none !important;
+    border-color: var(--chat-border) !important;
+    border-left-color: var(--chat-border-strong) !important;
+    color: var(--chat-text-primary) !important;
+    -webkit-text-fill-color: var(--chat-text-primary) !important;
+    box-shadow: none !important;
+  }
+
+  html[data-visual-mode='dark-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-thread > .agent-bubble.assistant.latex-doc,
+  html[data-visual-mode='dark-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-thread > .agent-bubble.assistant.latex-doc.is-intro-doc {
+    background: var(--chat-fill-muted) !important;
+    background-image: none !important;
+    border-color: var(--chat-border) !important;
+    color: var(--chat-text-primary) !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  html[data-visual-mode='dark-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-thread > .agent-bubble.assistant.latex-doc.is-empty-welcome,
+  html[data-visual-mode='dark-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-thread > .agent-bubble.assistant.latex-doc.is-intro-doc.is-empty-welcome,
+  html[data-visual-mode='dark-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-thread > .agent-bubble.assistant.latex-doc.is-chat-intro-shell,
+  html[data-visual-mode='dark-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-thread > .agent-bubble.assistant.latex-doc.is-intro-doc.is-chat-intro-shell {
+    background: rgba(255, 255, 255, 0.08) !important;
+    background-image: none !important;
+    border-color: rgba(255, 255, 255, 0.32) !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  html[data-visual-mode='dark-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-thread .onboarding-flow-cta,
+  html[data-visual-mode='dark-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-thread .agent-inline-panel-action,
+  html[data-visual-mode='dark-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-thread .agent-inline-panel-action--intro,
+  html[data-visual-mode='dark-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-thread .agent-flow-cta {
+    background: var(--chat-fill-muted) !important;
+    background-image: none !important;
+    border-color: var(--chat-border-strong) !important;
+    color: var(--chat-text-primary) !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-thread > .agent-bubble.user:not(.upload-bubble),
+  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-thread > .agent-bubble.assistant,
+  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-thread > .agent-bubble.muted,
+  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-thread .citation-bubble {
+    background: #ffffff !important;
+    background-image: none !important;
+    border-color: var(--chat-border) !important;
+    color: var(--chat-text-primary) !important;
+    -webkit-text-fill-color: var(--chat-text-primary) !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-thread > .agent-bubble.assistant.latex-doc,
+  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-thread > .agent-bubble.assistant.latex-doc.is-intro-doc {
+    background: #ffffff !important;
+    background-image: none !important;
+    border-color: var(--chat-border) !important;
+    color: var(--chat-text-primary) !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-thread > .agent-bubble.assistant.latex-doc.is-empty-welcome,
+  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-thread > .agent-bubble.assistant.latex-doc.is-intro-doc.is-empty-welcome,
+  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-thread > .agent-bubble.assistant.latex-doc.is-chat-intro-shell,
+  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-thread > .agent-bubble.assistant.latex-doc.is-intro-doc.is-chat-intro-shell {
+    background: rgba(255, 255, 255, 0.1) !important;
+    background-image: none !important;
+    border-color: rgba(0, 0, 0, 0.08) !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-thread .onboarding-flow-cta,
+  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-thread .agent-inline-panel-action,
+  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-thread .agent-inline-panel-action--intro,
+  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-thread .agent-flow-cta {
+    background: #ffffff !important;
+    background-image: none !important;
+    border: 1px solid rgba(0, 0, 0, 0.12) !important;
+    color: var(--chat-text-primary) !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  /*
+   * Blanco full — mobile chrome EOF: beats compact-deck blacks + transactions matte buttons.
+   * Panel deck keeps mode-1 layout; only contrast/stacking fixes here.
+   */
+  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-sheet-tab--mobile-index,
+  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-toolbar-actions .chat-sheet-tab {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    background-image: none !important;
+    border: 1px solid rgba(0, 0, 0, 0.18) !important;
+    color: rgba(0, 0, 0, 0.72) !important;
+    -webkit-text-fill-color: rgba(0, 0, 0, 0.72) !important;
+    box-shadow: none !important;
+    opacity: 1 !important;
+    filter: none !important;
+  }
+
+  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-sheet-tab--mobile-index.is-active,
+  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-toolbar-actions .chat-sheet-tab.is-active {
+    background: rgba(0, 0, 0, 0.06) !important;
+    background-color: rgba(0, 0, 0, 0.06) !important;
+    border-color: rgba(0, 0, 0, 0.28) !important;
+    color: #000000 !important;
+    -webkit-text-fill-color: #000000 !important;
+  }
+
+  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-sheet-tab--mobile-index.is-locked,
+  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-toolbar-actions .chat-sheet-tab.is-locked {
+    opacity: 0.42 !important;
+    border-style: dashed !important;
+  }
+
+  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-sheet-tab--mobile-index .chat-sheet-tab-index,
+  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-toolbar-actions .chat-sheet-tab .chat-sheet-tab-index {
+    background: transparent !important;
+    color: inherit !important;
+    -webkit-text-fill-color: inherit !important;
+  }
+
+  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-monochrome-toggle,
+  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-monochrome-toggle--inline,
+  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-toolbar-actions .chat-monochrome-toggle,
+  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-toolbar-actions .chat-monochrome-toggle--inline {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    border-color: rgba(0, 0, 0, 0.16) !important;
+    box-shadow: none !important;
+  }
+
+  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport > .agent-mobile-composer-dock .terminal-composer-controls .composer-icon-btn,
+  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport > .agent-mobile-composer-dock .composer-icon-btn {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+  }
+
+  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-thread .onboarding-flow-cta__button,
+  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-thread button.onboarding-flow-cta__button,
+  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-thread .agent-inline-panel-action .agent-inline-panel-button,
+  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-thread button.agent-inline-panel-button,
+  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-thread .agent-flow-cta-button,
+  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-thread button.agent-flow-cta-button {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    background-image: none !important;
+    border: 1px solid rgba(0, 0, 0, 0.22) !important;
+    color: #000000 !important;
+    -webkit-text-fill-color: #000000 !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    opacity: 1 !important;
+  }
+
+  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-thread .onboarding-flow-cta__button:hover:not(:disabled),
+  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-thread button.agent-inline-panel-button:hover:not(:disabled),
+  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport .agent-thread button.agent-flow-cta-button:hover:not(:disabled) {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    border-color: rgba(0, 0, 0, 0.3) !important;
+    color: #000000 !important;
+    -webkit-text-fill-color: #000000 !important;
+  }
+
+  html[data-visual-mode='light-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded),
+  html[data-visual-mode='dark-outline'] body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) {
+    z-index: 26 !important;
+  }
+}

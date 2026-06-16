@@ -1,9 +1,25 @@
 import React, { type ReactElement, type ReactNode } from 'react';
+import { motion } from 'framer-motion';
 
 import { cn } from '@/lib/compartido/utils';
 
 function stripLockedClass(className?: string): string {
   return (className ?? '').replace(/\bis-locked\b/g, '').replace(/\s+/g, ' ').trim();
+}
+
+/** Classes that add matte/glass overlays on top of real card chrome in the portal. */
+function stripIntroConflictClasses(className?: string): string {
+  return (className ?? '')
+    .replace(/\bglass-card\b/g, '')
+    .replace(/\bpanel-minimal-soft\b/g, '')
+    .replace(/\bis-panel-highlighted\b/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function isMotionIntroNode(node: ReactElement): boolean {
+  const type = node.type;
+  return type === motion.article || type === motion.div || type === motion.button;
 }
 
 function presentStatusCopy(text: string): string {
@@ -52,12 +68,50 @@ export function presentPanelCardForIntro(node: ReactElement): ReactElement {
     }
   }
 
-  const nextClassName = cn(stripLockedClass(props.className), 'panel-intro-showcase');
+  const nextClassName = cn(
+    stripIntroConflictClasses(stripLockedClass(props.className)),
+    'panel-intro-showcase',
+  );
+  const children = presentIntroChildren(props.children);
 
-  return React.cloneElement(node, {
-    className: nextClassName,
-    children: presentIntroChildren(props.children),
-  } as Record<string, unknown>);
+  if (typeof node.type === 'string' || !isMotionIntroNode(node)) {
+    return React.cloneElement(node, {
+      className: nextClassName,
+      children,
+    } as Record<string, unknown>);
+  }
+
+  const {
+    initial: _initial,
+    animate: _animate,
+    transition: _transition,
+    whileHover: _whileHover,
+    whileTap: _whileTap,
+    layout: _layout,
+    layoutId: _layoutId,
+    delay: _delay,
+    hoverable: _hoverable,
+    label: _label,
+    value: _value,
+    bgImage: _bgImage,
+    overlayColor: _overlayColor,
+    overlayOpacity: _overlayOpacity,
+    bgScale: _bgScale,
+    bgPosition: _bgPosition,
+    dataMode: _dataMode,
+    style,
+    ...rest
+  } = props as Record<string, unknown>;
+
+  return React.createElement(
+    'article',
+    {
+      ...rest,
+      className: nextClassName,
+      style,
+    },
+    children,
+  );
 }
 
 /** Same DOM + classes as MobilePanelCircularDeck.renderStackCard */

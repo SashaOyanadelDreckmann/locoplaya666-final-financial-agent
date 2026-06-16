@@ -53,8 +53,12 @@ describe('budget modal logic guards', () => {
   });
 
   it('waits for budget rows before starting chat init', () => {
-    expect(source).toContain('if (props.budgetRows.length === 0) return;');
-    expect(source).toContain('budgetInitStartedRef');
+    const hookSource = fs.readFileSync(
+      path.join(process.cwd(), 'app', 'agent', 'modales', 'presupuesto', 'use-budget-chat.ts'),
+      'utf8',
+    );
+    expect(hookSource).toContain('if (budgetRows.length === 0) return;');
+    expect(hookSource).toContain('budgetInitStartedRef');
   });
 
   it('avoids duplicate budget init when switching back from mobile table mode', () => {
@@ -85,22 +89,34 @@ describe('budget modal logic guards', () => {
     expect(source).not.toContain('Preparando asistente…');
     expect(source).not.toContain('bcc-hero-transcript');
     expect(source).not.toContain('budgetTranscript');
-    expect(source).toContain('formatBudgetAssistantTurn');
+    const hookSource = fs.readFileSync(
+      path.join(process.cwd(), 'app', 'agent', 'modales', 'presupuesto', 'use-budget-chat.ts'),
+      'utf8',
+    );
+    expect(hookSource).toContain('formatBudgetAssistantTurn');
   });
 
   it('guards table and assistant inputs from disruptive scroll and layout remeasure', () => {
+    const hookSource = fs.readFileSync(
+      path.join(process.cwd(), 'app', 'agent', 'modales', 'presupuesto', 'use-budget-chat.ts'),
+      'utf8',
+    );
     expect(source).toContain('function isBudgetInteractiveFieldFocused()');
     expect(source).toContain('.bcc-hero-input');
     expect(source).toContain('if (isBudgetInteractiveFieldFocused()) return;');
-    expect(source).toContain('question: questionForTurn');
-    expect(source).toContain('const [assistantReply, setAssistantReply]');
+    expect(hookSource).toContain('question: questionForTurn');
+    expect(hookSource).toContain('const [assistantReply, setAssistantReply]');
   });
 
   it('prevents duplicate reply submissions while a request is in flight', () => {
-    expect(source).toContain('const replySubmitLockRef = useRef(false);');
-    expect(source).toContain('!props.isOpen || isAskingAI || isInitializing || replySubmitLockRef.current');
-    expect(source).toContain('replySubmitLockRef.current = true;');
-    expect(source).toContain('replySubmitLockRef.current = false;');
+    const hookSource = fs.readFileSync(
+      path.join(process.cwd(), 'app', 'agent', 'modales', 'presupuesto', 'use-budget-chat.ts'),
+      'utf8',
+    );
+    expect(hookSource).toContain('const replySubmitLockRef = useRef(false);');
+    expect(hookSource).toContain('isAskingAI || isInitializing || replySubmitLockRef.current');
+    expect(hookSource).toContain('replySubmitLockRef.current = true;');
+    expect(hookSource).toContain('replySubmitLockRef.current = false;');
   });
 
   it('cleans up async budget timers on unmount', () => {
@@ -111,47 +127,65 @@ describe('budget modal logic guards', () => {
   });
 
   it('guards client-side AI actions against unknown row deletes and blind updates', () => {
-    expect(source).toContain('function parseBudgetTableAction(');
     expect(source).toContain('validateBudgetTableActions');
     expect(source).toContain('mergeBudgetActionIntoRow');
-    expect(source).toContain("if (kind === 'delete') {");
-    expect(source).toContain('if (!rowExists) return null;');
-    expect(source).toContain("if (kind === 'update' && !rowExists) return null;");
-    expect(source).toContain("kind: kind === 'add' && rowExists ? 'update'");
     expect(source).toContain('const tableActions = validateBudgetTableActions(');
     expect(source).toContain('if (tableActions.length === 0) return null;');
+    expect(source).not.toContain('function parseBudgetTableAction(');
+  });
+
+  it('applies pending table actions when user confirms destructive changes', () => {
+    expect(source).toContain('handleBudgetPendingConfirm');
+    const hookSource = fs.readFileSync(
+      path.join(process.cwd(), 'app', 'agent', 'modales', 'presupuesto', 'use-budget-chat.ts'),
+      'utf8',
+    );
+    expect(hookSource).toContain('applyPendingTableActions');
+    expect(hookSource).toContain('handleBudgetPendingConfirm');
   });
 
   it('defers table mutations until the user confirms pending assistant actions', () => {
+    const hookSource = fs.readFileSync(
+      path.join(process.cwd(), 'app', 'agent', 'modales', 'presupuesto', 'use-budget-chat.ts'),
+      'utf8',
+    );
     const bannerSource = fs.readFileSync(
       path.join(process.cwd(), 'app', 'agent', 'modales', 'presupuesto', 'BudgetPendingConfirmBanner.tsx'),
       'utf8',
     );
     expect(source).toContain('budgetPendingConfirmation');
-    expect(source).toContain('budgetPendingConfirmationRef');
-    expect(source).toContain('pendingConfirmation: pendingForTurn');
-    expect(source).toContain('requires_confirmation');
-    expect(source).toContain('setBudgetPendingConfirmation(null);');
+    expect(hookSource).toContain('pendingConfirmation: pendingForTurn');
+    expect(hookSource).toContain('requires_confirmation');
+    expect(hookSource).toContain('setBudgetPendingConfirmation(null);');
     expect(source).toContain('BudgetPendingConfirmBanner');
     expect(bannerSource).toContain('is-pending-confirm-action');
     expect(bannerSource).toContain('agent-confirm-surface');
     expect(bannerSource).toContain('agent-confirm-action');
-    expect(source).toContain("handleBudgetAgentReplySubmit('sí')");
-    expect(source).toContain("handleBudgetAgentReplySubmit('no')");
+    expect(source).toContain('handleBudgetPendingConfirm');
+    expect(source).toContain('handleBudgetPendingReject');
+    expect(hookSource).toContain('applyPendingTableActions');
   });
 
   it('aborts in-flight budget chat when the modal closes', () => {
+    const hookSource = fs.readFileSync(
+      path.join(process.cwd(), 'app', 'agent', 'modales', 'presupuesto', 'use-budget-chat.ts'),
+      'utf8',
+    );
     expect(source).toContain('isOpenRef');
-    expect(source).toContain('initAbortRef.current?.abort()');
-    expect(source).toContain('replyAbortRef.current?.abort()');
-    expect(source).toContain('if (!isOpenRef.current');
+    expect(hookSource).toContain('initAbortRef.current?.abort()');
+    expect(hookSource).toContain('replyAbortRef.current?.abort()');
+    expect(hookSource).toContain('if (!isOpenRef.current');
     expect(source).not.toContain('autoSendTimerRef');
   });
 
   it('commits chat answers only after a successful assistant reply', () => {
-    expect(source).toContain('props.onChatAnswersChange(newChatAnswers)');
-    expect(source).not.toMatch(
-      /props\.onChatAnswersChange\(newChatAnswers\);\s*\n\s*setBudgetReply\(''\)/,
+    const hookSource = fs.readFileSync(
+      path.join(process.cwd(), 'app', 'agent', 'modales', 'presupuesto', 'use-budget-chat.ts'),
+      'utf8',
+    );
+    expect(hookSource).toContain('onChatAnswersChange(newChatAnswers)');
+    expect(hookSource).not.toMatch(
+      /onChatAnswersChange\(newChatAnswers\);\s*\n\s*setBudgetReply\(''\)/,
     );
   });
 
@@ -201,7 +235,52 @@ describe('budget modal logic guards', () => {
     expect(apiSource).toContain('Demasiadas solicitudes al asistente. Espera un momento e intenta otra vez.');
     expect(apiSource).toContain("if (message.includes('HTTP 5'))");
     expect(apiSource).toContain('El servicio del asistente no está disponible ahora. Intenta nuevamente en unos segundos.');
-    expect(source).toContain('BUDGET_CHAT_ABORT_MESSAGE');
+    const hookSource = fs.readFileSync(
+      path.join(process.cwd(), 'app', 'agent', 'modales', 'presupuesto', 'use-budget-chat.ts'),
+      'utf8',
+    );
+    expect(hookSource).toContain('BUDGET_CHAT_ABORT_MESSAGE');
+  });
+
+  it('extracts budget chat orchestration into useBudgetChat', () => {
+    expect(source).toContain("from './use-budget-chat'");
+    expect(source).toContain('useBudgetChat(');
+    const hookSource = fs.readFileSync(
+      path.join(process.cwd(), 'app', 'agent', 'modales', 'presupuesto', 'use-budget-chat.ts'),
+      'utf8',
+    );
+    expect(hookSource).toContain('export function useBudgetChat');
+  });
+
+  it('shows visible view mode label and localized mobile summary copy', () => {
+    const navSource = fs.readFileSync(
+      path.join(process.cwd(), 'app', 'agent', 'modales', 'presupuesto', 'BudgetViewNav.tsx'),
+      'utf8',
+    );
+    const tableSource = fs.readFileSync(
+      path.join(process.cwd(), 'components', 'ui', 'budget-intelligence-table.tsx'),
+      'utf8',
+    );
+    expect(navSource).toContain('budget-view-nav-label');
+    expect(navSource).toContain('getBudgetViewModeDisplayLabel');
+    expect(tableSource).toContain('Resumen del presupuesto');
+    expect(source).toContain('fillRate={props.budgetCompletion.fillRate}');
+  });
+
+  it('links assistant input to the current question for screen readers', () => {
+    expect(source).toContain('aria-describedby="budget-assistant-question"');
+    expect(source).toContain('questionId="budget-assistant-question"');
+    expect(source).not.toMatch(/sr-only">\{agentTypewriterText\}/);
+  });
+
+  it('does not accept dead budget modal props removed from page wiring', () => {
+    expect(source).not.toContain('budgetInsights:');
+    expect(source).not.toContain('budgetProductOptions:');
+    expect(source).not.toContain('upsertBudgetRow:');
+    expect(source).not.toContain('addBudgetSubcategory');
+    const pageSource = fs.readFileSync(path.join(process.cwd(), 'app', 'agent', 'page.tsx'), 'utf8');
+    expect(pageSource).not.toMatch(/<BudgetModal[\s\S]*budgetInsights=/);
+    expect(pageSource).not.toMatch(/<BudgetModal[\s\S]*budgetProductOptions=/);
   });
 
   it('wires mobile shell class, hidden cockpit, chat sync, and safe overlay dismiss', () => {

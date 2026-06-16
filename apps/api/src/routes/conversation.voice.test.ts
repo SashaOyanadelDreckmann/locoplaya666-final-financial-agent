@@ -7,15 +7,7 @@ import { INTERVIEW_TOTAL_LIMIT_SEC } from '@financial-agent/shared';
 import { createApprovalToken } from '../services/approval.service';
 
 vi.mock('../services/llm.service', () => ({
-  completeStructured: vi.fn(async () =>
-    ({
-      executive_report: 'Resumen ejecutivo de prueba',
-      key_findings: ['Hallazgo 1'],
-      confidence: 'high',
-      stop_reason: 'user',
-      has_enough_information: true,
-    }),
-  ),
+  completeStructured: vi.fn(async () => ({})),
 }));
 
 vi.mock('../agents/diagnostic/diagnostic.agent', () => ({
@@ -217,7 +209,7 @@ describe('conversation voice routes', () => {
     expect(res.status).toBe(200);
     expect(res.body.ok).toBe(true);
     expect(res.body.data.type).toBe('interview_complete');
-    expect(res.body.data.voice_summary.executive_report).toBe('Resumen ejecutivo de prueba');
+    expect(res.body.data.voice_summary.executive_report).toBe('Síntesis final consolidada sin transcripción.');
     expect(res.body.data.interview_voice.total_used_sec).toBe(44);
     expect(res.body.data.interview_voice.remaining_total_sec).toBe(
       INTERVIEW_TOTAL_LIMIT_SEC - 44,
@@ -266,7 +258,7 @@ describe('conversation voice routes', () => {
       .send(payload);
     expect(second.status).toBe(200);
     expect(second.body.data.idempotent).toBe(true);
-    expect(second.body.data.voice_summary.executive_report).toBe('Resumen ejecutivo de prueba');
+    expect(second.body.data.voice_summary.executive_report).toBe('Síntesis final consolidada.');
     expect(runDiagnosticAgent).toHaveBeenCalledTimes(1);
   }, 15000);
 
@@ -307,7 +299,7 @@ describe('conversation voice routes', () => {
     expect(res.status).toBe(200);
     expect(res.body.ok).toBe(true);
     expect(res.body.data.type).toBe('interview_complete');
-    expect(res.body.data.profile.diagnosticNarrative).toContain('Resumen ejecutivo de prueba');
+    expect(res.body.data.profile.diagnosticNarrative).toContain('Síntesis final con tensión');
     expect(res.body.data.voice_summary.diagnostic_fallback_used).toBe(true);
   }, 15000);
 
@@ -333,7 +325,7 @@ describe('conversation voice routes', () => {
   }, 15000);
 
   it('finalizes user closures after the minimum active-call threshold', async () => {
-    const { completeStructured } = await import('../services/llm.service');
+    const { runDiagnosticAgent } = await import('../agents/diagnostic/diagnostic.agent');
     const { agent, csrfToken } = await createAuthedAgent();
 
     const res = await agent
@@ -355,10 +347,6 @@ describe('conversation voice routes', () => {
     expect(res.body.data.voice_summary.coverage_tier).toBe('partial');
     expect(res.body.data.voice_summary.has_enough_information).toBe(false);
     expect(res.body.data.interview_voice.total_used_sec).toBe(42);
-    expect(completeStructured).toHaveBeenCalledWith(
-      expect.objectContaining({
-        maxCompletionTokens: 280,
-      }),
-    );
+    expect(runDiagnosticAgent).toHaveBeenCalledTimes(1);
   }, 15000);
 });

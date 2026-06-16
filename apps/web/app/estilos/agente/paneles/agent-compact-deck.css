@@ -247,14 +247,14 @@
   }
 
   body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-meta-row .chat-monochrome-toggle,
-  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-meta-row .chat-monochrome-toggle--inline,
-  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-monochrome-toggle,
-  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-monochrome-toggle--inline,
-  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-monochrome-toggle.is-active,
-  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-monochrome-toggle.is-visual-mode-grayscale,
-  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-monochrome-toggle.is-visual-mode-palette-shuffle,
-  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-monochrome-toggle.is-visual-mode-dark-outline,
-  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-monochrome-toggle.is-visual-mode-light-outline {
+  html:not([data-visual-mode='dark-outline']):not([data-visual-mode='light-outline']) body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-meta-row .chat-monochrome-toggle--inline,
+  html:not([data-visual-mode='dark-outline']):not([data-visual-mode='light-outline']) body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-monochrome-toggle,
+  html:not([data-visual-mode='dark-outline']):not([data-visual-mode='light-outline']) body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-monochrome-toggle--inline,
+  html:not([data-visual-mode='dark-outline']):not([data-visual-mode='light-outline']) body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-monochrome-toggle.is-active,
+  html:not([data-visual-mode='dark-outline']):not([data-visual-mode='light-outline']) body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-monochrome-toggle.is-visual-mode-grayscale,
+  html:not([data-visual-mode='dark-outline']):not([data-visual-mode='light-outline']) body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-monochrome-toggle.is-visual-mode-palette-shuffle,
+  html:not([data-visual-mode='dark-outline']):not([data-visual-mode='light-outline']) body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-monochrome-toggle.is-visual-mode-dark-outline,
+  html:not([data-visual-mode='dark-outline']):not([data-visual-mode='light-outline']) body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-monochrome-toggle.is-visual-mode-light-outline {
     position: static !important;
     flex: 0 0 28px !important;
     width: 28px !important;
@@ -360,15 +360,19 @@
     top: 0 !important;
     z-index: 40 !important;
     width: 100% !important;
+    max-width: 100% !important;
     margin: 0 !important;
     padding: 8px max(12px, env(safe-area-inset-right, 0px)) 6px max(12px, env(safe-area-inset-left, 0px)) !important;
     min-height: 0 !important;
+    min-width: 0 !important;
     background: #000000 !important;
     border: none !important;
     border-bottom: 1px solid rgba(255, 255, 255, 0.12) !important;
     border-radius: 0 !important;
     box-shadow: none !important;
     flex-shrink: 0 !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
   }
 
   body.agent-route-active .agent-modal.account-modal .bcc-modal-eyebrow {
@@ -389,6 +393,16 @@
     margin: 4px 0 0 !important;
     font-size: 0.78rem !important;
     color: rgba(255, 255, 255, 0.62) !important;
+    max-width: 100% !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+  }
+
+  body.agent-route-active .agent-modal.account-modal .bcc-modal-title-wrap {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
   }
 
   body.agent-route-active .agent-modal.account-modal .agent-modal-close {
@@ -408,13 +422,16 @@
   body.agent-route-active .agent-modal.account-modal .account-modal-intro,
   body.agent-route-active .agent-modal.account-modal .agent-modal-intro {
     display: block !important;
-    width: min(100%, 520px) !important;
-    margin: 8px auto 12px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 8px 0 12px !important;
     padding: 0 14px !important;
     font-size: 0.78rem !important;
     line-height: 1.45 !important;
     color: rgba(228, 236, 244, 0.82) !important;
     box-sizing: border-box !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
   }
 
   body.agent-route-active .agent-modal.account-modal .account-modal-dashboard,
@@ -422,12 +439,18 @@
     flex: 1 1 auto !important;
     display: flex !important;
     flex-direction: column !important;
-    width: min(100%, 520px) !important;
-    margin: 0 auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
     padding: 0 14px !important;
     gap: 12px !important;
     box-sizing: border-box !important;
     background: #000000 !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
   }
 
   body.agent-route-active .agent-modal.account-modal .account-modal-alert {
@@ -455,25 +478,34 @@
 
   body.agent-route-active .agent-modal.account-modal .account-modal-info-grid,
   body.agent-route-active .agent-modal.account-modal .questionnaire-response-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    grid-template-columns: 1fr !important;
     gap: 8px !important;
     padding: 0 !important;
     margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    overflow-x: hidden !important;
+    box-sizing: border-box !important;
   }
 
   body.agent-route-active .agent-modal.account-modal .questionnaire-response-item {
-    min-height: 88px !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    min-height: 0 !important;
     height: auto !important;
     padding: 10px 12px !important;
     border-radius: 12px !important;
     gap: 6px !important;
     display: grid !important;
-    align-content: center !important;
+    align-content: start !important;
     background: rgba(13, 19, 30, 0.72) !important;
     border: 1px solid rgba(200, 212, 227, 0.24) !important;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
   }
 
   body.agent-route-active .agent-modal.account-modal .questionnaire-response-item.is-blue {
@@ -497,16 +529,19 @@
     line-height: 1.3 !important;
     color: rgba(245, 249, 253, 0.98) !important;
     display: block !important;
+    max-width: 100% !important;
     overflow-wrap: anywhere !important;
+    word-break: break-word !important;
     white-space: normal !important;
   }
 
   body.agent-route-active .agent-modal.account-modal .account-modal-actions {
     margin-top: auto !important;
+    flex-shrink: 0 !important;
     display: grid !important;
     grid-template-columns: 1fr !important;
     gap: 10px !important;
-    padding: 12px 14px calc(12px + env(safe-area-inset-bottom, 0px)) !important;
+    padding: 12px 0 calc(12px + env(safe-area-inset-bottom, 0px)) !important;
     background: #000000 !important;
     border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
     box-sizing: border-box !important;
@@ -514,6 +549,7 @@
     max-width: 100% !important;
     margin-left: 0 !important;
     margin-right: 0 !important;
+    overflow: hidden !important;
   }
 
   body.agent-route-active .agent-modal.account-modal .account-modal-actions .continue-button {
@@ -1037,8 +1073,8 @@ html[data-visual-mode='light-outline'] .floating-card-shell {
  * Neutral container chrome — no blue outer glow on agent shells (mobile/tablet portrait).
  */
 @media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
-  body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-tabs-row .chat-sheet-tab.is-active,
-  body.agent-route-active .agent-chat .chat-switcher .chat-sheet-tab.is-active {
+  html:not([data-visual-mode='dark-outline']):not([data-visual-mode='light-outline']) body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile .chat-mobile-tabs-row .chat-sheet-tab.is-active,
+  html:not([data-visual-mode='dark-outline']):not([data-visual-mode='light-outline']) body.agent-route-active .agent-chat .chat-switcher .chat-sheet-tab.is-active {
     border-color: rgba(255, 255, 255, 0.34) !important;
     background: rgba(0, 0, 0, 0.94) !important;
     background-image: none !important;
@@ -1053,24 +1089,24 @@ html[data-visual-mode='light-outline'] .floating-card-shell {
       0 16px 32px rgba(0, 0, 0, 0.4) !important;
   }
 
-  body.agent-route-active .agent-thread > .agent-bubble.assistant.latex-doc,
-  body.agent-route-active .agent-thread > .agent-bubble.assistant.latex-doc.is-intro-doc,
-  body.agent-route-active .latex-doc {
+  html:not([data-visual-mode='dark-outline']):not([data-visual-mode='light-outline']) body.agent-route-active .agent-thread > .agent-bubble.assistant.latex-doc,
+  html:not([data-visual-mode='dark-outline']):not([data-visual-mode='light-outline']) body.agent-route-active .agent-thread > .agent-bubble.assistant.latex-doc.is-intro-doc,
+  html:not([data-visual-mode='dark-outline']):not([data-visual-mode='light-outline']) body.agent-route-active .latex-doc {
     box-shadow:
       0 30px 72px rgba(0, 0, 0, 0.38),
       inset 0 1px 0 rgba(255, 255, 255, 0.88) !important;
   }
 
-  body.agent-route-active .agent-thread .agent-inline-panel-action,
-  body.agent-route-active .agent-thread .agent-inline-panel-action--intro,
-  body.agent-route-active .agent-thread .agent-flow-cta {
+  html:not([data-visual-mode='dark-outline']):not([data-visual-mode='light-outline']) body.agent-route-active .agent-thread .agent-inline-panel-action,
+  html:not([data-visual-mode='dark-outline']):not([data-visual-mode='light-outline']) body.agent-route-active .agent-thread .agent-inline-panel-action--intro,
+  html:not([data-visual-mode='dark-outline']):not([data-visual-mode='light-outline']) body.agent-route-active .agent-thread .agent-flow-cta {
     background: rgba(0, 0, 0, 0.48) !important;
     background-image: none !important;
     border-color: rgba(255, 255, 255, 0.14) !important;
     box-shadow: 0 10px 26px rgba(0, 0, 0, 0.22) !important;
   }
 
-  body.agent-route-active .agent-thread .onboarding-flow-cta__button {
+  html:not([data-visual-mode='dark-outline']):not([data-visual-mode='light-outline']) body.agent-route-active .agent-thread .onboarding-flow-cta__button {
     background: rgba(10, 16, 26, 0.2) !important;
     background-image: none !important;
     backdrop-filter: blur(20px) saturate(140%) !important;
@@ -1080,11 +1116,11 @@ html[data-visual-mode='light-outline'] .floating-card-shell {
     -webkit-text-fill-color: #fff !important;
   }
 
-  body.agent-route-active .agent-thread .onboarding-flow-cta__button:hover {
+  html:not([data-visual-mode='dark-outline']):not([data-visual-mode='light-outline']) body.agent-route-active .agent-thread .onboarding-flow-cta__button:hover {
     background: rgba(10, 16, 26, 0.28) !important;
   }
 
-  body.agent-route-active .agent-thread .onboarding-flow-cta {
+  html:not([data-visual-mode='dark-outline']):not([data-visual-mode='light-outline']) body.agent-route-active .agent-thread .onboarding-flow-cta {
     background: rgba(10, 16, 26, 0.2) !important;
     background-image: none !important;
     backdrop-filter: blur(20px) saturate(140%) !important;

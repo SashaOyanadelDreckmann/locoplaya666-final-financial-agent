@@ -27,6 +27,10 @@ function getBudgetViewSlideToken(direction: 'prev' | 'next'): 'forward' | 'backw
   return direction === 'next' ? 'forward' : 'backward';
 }
 
+/**
+ * Horizontal swipe between budget views (assistant ↔ table on mobile; 3 modes on desktop).
+ * Disabled while the user interacts with inputs or while row-deck drag is active.
+ */
 export function useBudgetViewSwipe({
   enabled,
   stageRef,

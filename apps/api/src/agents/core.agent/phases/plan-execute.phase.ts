@@ -623,6 +623,7 @@ export async function runPlanExecutePhase(input: PlanPhaseInput): Promise<PlanPh
       citations,
       react_trace,
       iterations_count: iterations,
+      assistant_draft: extractReusableAssistantDraft(loopMessages, iterations),
     };
 
     logger.info({
@@ -646,6 +647,20 @@ export async function runPlanExecutePhase(input: PlanPhaseInput): Promise<PlanPh
     });
     throw err;
   }
+}
+
+function extractReusableAssistantDraft(
+  loopMessages: OpenAI.Chat.Completions.ChatCompletionMessageParam[],
+  iterations: number,
+): string | undefined {
+  if (iterations <= 0) return undefined;
+  for (let i = loopMessages.length - 1; i >= 0; i -= 1) {
+    const message = loopMessages[i];
+    if (message.role !== 'assistant') continue;
+    const content = typeof message.content === 'string' ? message.content.trim() : '';
+    if (content.length >= 24) return content;
+  }
+  return undefined;
 }
 
 function safeJsonParse(raw: string): Record<string, any> {

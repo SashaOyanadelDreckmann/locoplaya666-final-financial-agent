@@ -3,6 +3,8 @@
 import {
   buildBudgetAcknowledgmentReply,
   buildBudgetAssistantContext,
+  buildBudgetHelpAddReply,
+  buildBudgetInitTurn,
   buildBudgetRowSuggestions,
   buildCategoryClarificationReply,
   buildContextualQuestion,
@@ -269,5 +271,57 @@ describe('budget-chat-context', () => {
     expect(packaged.reply).toMatch(/presupuesto/i);
     expect(packaged.followUp).toMatch(/\?/);
     expect(packaged.focusRowId).toBe('income_salary');
+  });
+
+  it('opens with three generic rows and proposes product-based adds on init', () => {
+    const starterRows = [
+      { id: 'income_salary', category: 'Ingreso principal', type: 'income' as const, amount: 0 },
+      { id: 'expense_rent', category: 'Gasto principal', type: 'expense' as const, amount: 0 },
+      { id: 'expense_other', category: 'Otro gasto', type: 'expense' as const, amount: 0 },
+    ];
+    const context = buildBudgetAssistantContext({
+      rows: starterRows,
+      products: [
+        {
+          productId: 'card-1',
+          label: 'Tarjeta',
+          bank: 'Banco X',
+          productType: 'credit_card',
+          movements: [
+            { description: 'Colegio', amount: 210_000, direction: 'expense', category: 'Colegio San Patricio' },
+          ],
+        },
+      ],
+      chatAnswers: [],
+    });
+    const init = buildBudgetInitTurn(starterRows, context);
+    expect(init.reply).toMatch(/tres filas base/i);
+    expect(init.reply).toMatch(/movimiento/i);
+    expect(init.followUp).toMatch(/agrego|sumamos/i);
+    expect(init.focusRowId).toContain('expense-custom');
+  });
+
+  it('opens with generic add hints when there are no product movements', () => {
+    const starterRows = [
+      { id: 'income_salary', category: 'Ingreso principal', type: 'income' as const, amount: 0 },
+      { id: 'expense_rent', category: 'Gasto principal', type: 'expense' as const, amount: 0 },
+      { id: 'expense_other', category: 'Otro gasto', type: 'expense' as const, amount: 0 },
+    ];
+    const context = buildBudgetAssistantContext({ rows: starterRows, products: [], chatAnswers: [] });
+    const init = buildBudgetInitTurn(starterRows, context);
+    expect(init.reply).toMatch(/tres filas base/i);
+    expect(init.followUp).toMatch(/ingreso principal|agregue/i);
+  });
+
+  it('answers help-add questions without mutating rows', () => {
+    const starterRows = [
+      { id: 'income_salary', category: 'Ingreso principal', type: 'income' as const, amount: 0 },
+      { id: 'expense_rent', category: 'Gasto principal', type: 'expense' as const, amount: 0 },
+      { id: 'expense_other', category: 'Otro gasto', type: 'expense' as const, amount: 0 },
+    ];
+    const context = buildBudgetAssistantContext({ rows: starterRows, products: [], chatAnswers: [] });
+    const help = buildBudgetHelpAddReply(starterRows, context);
+    expect(help.reply).toMatch(/agregar/i);
+    expect(help.followUp).toMatch(/\?/);
   });
 });

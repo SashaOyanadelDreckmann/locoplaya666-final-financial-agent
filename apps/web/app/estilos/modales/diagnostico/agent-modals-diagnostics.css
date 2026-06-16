@@ -16738,6 +16738,119 @@ body.agent-route-active{
   border-color: rgba(205, 158, 57, 0.22);
 }
 
+/* Chat-3 questionnaire — single matte yellow open-text pill per question */
+.agent-layout .agent-chat.active-chat-1 .agent-thread .agent-question-item.is-open-text-question .agent-question-choices,
+.agent-layout .agent-chat.active-chat-2 .agent-thread .agent-question-item.is-open-text-question .agent-question-choices,
+.agent-layout .agent-chat.active-chat-3 .agent-thread .agent-question-item.is-open-text-question .agent-question-choices{
+  display: flex;
+  width: 100%;
+}
+
+.agent-layout .agent-chat.active-chat-1 .agent-thread .agent-question-item.is-open-text-question .agent-question-input-pill{
+  display: block;
+  flex: 1 1 100%;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  border-radius: 999px;
+  padding: 9px 14px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
+  box-sizing: border-box;
+  background: #6f8faa !important;
+  border: 1px solid rgba(36, 57, 79, 0.48) !important;
+  color: #0f1720 !important;
+  -webkit-text-fill-color: #0f1720 !important;
+  box-shadow: none !important;
+}
+
+.agent-layout .agent-chat.active-chat-2 .agent-thread .agent-question-item.is-open-text-question .agent-question-input-pill{
+  display: block;
+  flex: 1 1 100%;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  border-radius: 999px;
+  padding: 9px 14px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
+  box-sizing: border-box;
+  background: #b86b6f !important;
+  border: 1px solid rgba(82, 30, 30, 0.42) !important;
+  color: #1a1010 !important;
+  -webkit-text-fill-color: #1a1010 !important;
+  box-shadow: none !important;
+}
+
+.agent-layout .agent-chat.active-chat-3 .agent-thread .agent-question-item.is-open-text-question .agent-question-input-pill{
+  display: block;
+  flex: 1 1 100%;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  border-radius: 999px;
+  padding: 9px 14px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
+  box-sizing: border-box;
+  background: #d4bc78 !important;
+  border: 1px solid rgba(154, 122, 58, 0.42) !important;
+  color: #111111 !important;
+  -webkit-text-fill-color: #111111 !important;
+  box-shadow: none !important;
+}
+
+.agent-layout .agent-chat.active-chat-1 .agent-thread .agent-question-item.is-open-text-question .agent-question-input-pill::placeholder,
+.agent-layout .agent-chat.active-chat-2 .agent-thread .agent-question-item.is-open-text-question .agent-question-input-pill::placeholder,
+.agent-layout .agent-chat.active-chat-3 .agent-thread .agent-question-item.is-open-text-question .agent-question-input-pill::placeholder{
+  color: #111111 !important;
+  -webkit-text-fill-color: #111111 !important;
+  opacity: 0.78;
+}
+
+.agent-layout .agent-chat.active-chat-1 .agent-thread .agent-question-item.is-open-text-question .agent-question-input-pill:focus,
+.agent-layout .agent-chat.active-chat-2 .agent-thread .agent-question-item.is-open-text-question .agent-question-input-pill:focus,
+.agent-layout .agent-chat.active-chat-3 .agent-thread .agent-question-item.is-open-text-question .agent-question-input-pill:focus{
+  outline: none;
+}
+
+.agent-layout .agent-chat.active-chat-1 .agent-thread .agent-question-item.is-open-text-question .agent-question-input-pill:focus{
+  border-color: rgba(36, 57, 79, 0.72) !important;
+  box-shadow: 0 0 0 2px rgba(56, 81, 111, 0.24) !important;
+}
+
+.agent-layout .agent-chat.active-chat-2 .agent-thread .agent-question-item.is-open-text-question .agent-question-input-pill:focus{
+  border-color: rgba(82, 30, 30, 0.62) !important;
+  box-shadow: 0 0 0 2px rgba(116, 44, 44, 0.22) !important;
+}
+
+.agent-layout .agent-chat.active-chat-3 .agent-thread .agent-question-item.is-open-text-question .agent-question-input-pill:focus{
+  border-color: rgba(120, 88, 18, 0.62) !important;
+  box-shadow: 0 0 0 2px rgba(184, 136, 14, 0.22) !important;
+}
+
+.agent-layout .agent-chat.active-chat-1 .agent-thread .agent-question-item.is-open-text-question .agent-question-input-pill:disabled,
+.agent-layout .agent-chat.active-chat-2 .agent-thread .agent-question-item.is-open-text-question .agent-question-input-pill:disabled,
+.agent-layout .agent-chat.active-chat-3 .agent-thread .agent-question-item.is-open-text-question .agent-question-input-pill:disabled{
+  opacity: 0.62;
+}
+
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+  .agent-layout .agent-chat.active-chat-1 .agent-thread .agent-question-item.is-open-text-question .agent-question-input-pill,
+  .agent-layout .agent-chat.active-chat-2 .agent-thread .agent-question-item.is-open-text-question .agent-question-input-pill,
+  .agent-layout .agent-chat.active-chat-3 .agent-thread .agent-question-item.is-open-text-question .agent-question-input-pill{
+    min-height: 38px;
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+}
+
 .social-philosophy-trigger-wrap{
   display: flex;
   padding: 0 12px 10px;

@@ -26,3 +26,8 @@ export const useInterviewStore = create<InterviewState>()(
     },
   ),
 );
+
+/** Clears cached interview intake for the current browser tab (e.g. logout). */
+export function clearPersistedInterviewState(): void {
+  useInterviewStore.getState().resetInterviewState();
+}

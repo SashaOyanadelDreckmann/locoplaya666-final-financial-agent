@@ -270,6 +270,6 @@ describe('TransactionsModal consent with orchestrator', () => {
       />,
     );
 
-    expect(screen.getByRole('button', { name: /1\. autorización/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /^autorización\b/i })).toBeDisabled();
   });
 });

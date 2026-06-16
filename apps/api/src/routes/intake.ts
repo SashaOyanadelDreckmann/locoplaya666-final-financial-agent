@@ -3,12 +3,11 @@ import { z } from 'zod';
 import { IntakeQuestionnaire } from '@financial-agent/shared/src/intake/intake-questionnaire.types';
 import { analyzeIntake } from '../agents/intake/intake-analyzer';
 import { buildIntakeContext } from '../services/intake-context.service';
-import { attachIntakeToUser } from '../services/user.service';
-import { getUserById } from '../persistencia/repos';
+import { submitQuestionnaireIntakeOnce } from '../services/user.service';
 import { synchronizeKnowledgeFromIntake, recordKnowledgeEvent } from '../services/knowledge.service';
 import { sendSuccess } from '../http/api.responses';
 import { parseBody } from '../http/parse';
-import { badRequest, unauthorized } from '../http/api.errors';
+import { badRequest, conflict, unauthorized } from '../http/api.errors';
 
 // SECURITY: Strict validation schema - no passthrough() to prevent arbitrary field injection
 const FinancialKnowledgeChecklistSchema = z.object({
@@ -72,43 +71,32 @@ const IntakeRequestSchema = z.object({
 export async function submitIntake(req: Request, res: Response) {
   const intake = parseBody(IntakeRequestSchema, req.body) as IntakeQuestionnaire;
 
-  // Análisis determinista
-  const signals = analyzeIntake(intake);
-  const intakeContext = buildIntakeContext(intake);
-
-  // Análisis LLM (opcional)
-  let llmSummary: unknown = null;
-  try {
-    const { analyzeIntakeWithLLM } = await import('../agents/intake/intake-llm');
-    llmSummary = await analyzeIntakeWithLLM(intake);
-  } catch (err) {
-    req.logger?.warn({ msg: 'LLM intake analysis failed', error: err });
-  }
-
   const user = req.authenticatedUser;
   if (!user?.id) {
     throw unauthorized('Not authenticated');
   }
 
-  const existing = await getUserById(user.id);
-  const wasUpdated = Boolean(existing?.injectedIntake);
+  const signals = analyzeIntake(intake);
+  const intakeContext = buildIntakeContext(intake);
 
-  const attached = await attachIntakeToUser(
-    user.id,
-    { intake, llmSummary, intakeContext },
-    { replace: true },
-  );
-  if (!attached) {
+  const persisted = await submitQuestionnaireIntakeOnce(user.id, {
+    intake,
+    llmSummary: null,
+    intakeContext,
+  });
+
+  if (persisted === 'already_completed') {
+    throw conflict('El cuestionario ya fue completado y no puede modificarse.');
+  }
+  if (!persisted) {
     throw badRequest('Failed to persist intake');
   }
 
   await synchronizeKnowledgeFromIntake(user.id, intake);
   await recordKnowledgeEvent(
     user.id,
-    wasUpdated ? 'updated_intake' : 'completed_intake',
-    wasUpdated
-      ? 'User updated their financial intake questionnaire'
-      : 'User completed financial intake questionnaire',
+    'completed_intake',
+    'User completed financial intake questionnaire',
     { source: 'intake_submit' },
   );
 
@@ -117,7 +105,6 @@ export async function submitIntake(req: Request, res: Response) {
     signals,
     intakeContext,
     readyForInterview: true,
-    llmSummary,
-    wasUpdated,
+    llmSummary: null,
   });
 }

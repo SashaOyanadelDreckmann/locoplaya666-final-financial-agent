@@ -102,7 +102,7 @@ describe('budget-chat-react.service', () => {
     const result = await runBudgetChatAgent({
       rows,
       context,
-      userAnswer: '¿cómo voy con mi presupuesto?',
+      userAnswer: 'sube comida a 220 mil',
       currentQuestion: '¿Qué más quieres hacer con la tabla?',
       focusRow: null,
       chatAnswers: [],
@@ -237,6 +237,13 @@ describe('isBudgetReactEnabled', () => {
     process.env.BUDGET_CHAT_AGENT_ENABLED = 'true';
     process.env.BUDGET_CHAT_REACT_ENABLED = 'false';
     expect(isBudgetReactEnabled()).toBe(false);
+  });
+
+  it('returns true in development by default', () => {
+    process.env.NODE_ENV = 'development';
+    process.env.BUDGET_CHAT_AGENT_ENABLED = 'true';
+    delete process.env.BUDGET_CHAT_REACT_ENABLED;
+    expect(isBudgetReactEnabled()).toBe(true);
   });
 
   it('returns false in test env unless BUDGET_CHAT_REACT_ENABLED=true', () => {

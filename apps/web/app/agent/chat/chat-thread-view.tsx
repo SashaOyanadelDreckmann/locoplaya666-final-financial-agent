@@ -643,6 +643,13 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
                   <div className="latex-inline-questionnaire">
                     <AgentBlocksRenderer
                       blocks={questionnaireBlocks}
+                      questionnaireChatTheme={
+                        props.activeThreadId === 'chat-1' ||
+                        props.activeThreadId === 'chat-2' ||
+                        props.activeThreadId === 'chat-3'
+                          ? props.activeThreadId
+                          : null
+                      }
                       onQuestionnaireSubmit={({ message }) => {
                         if (props.sendDisabled) return;
                         void props.onSend(message);

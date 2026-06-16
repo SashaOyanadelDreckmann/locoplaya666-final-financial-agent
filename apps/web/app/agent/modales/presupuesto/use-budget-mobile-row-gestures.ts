@@ -101,6 +101,10 @@ function pinPeekRowBehindActive(
   peekRow.style.pointerEvents = 'none';
 }
 
+/**
+ * Row deck gestures in mobile manual-table mode: vertical snap + horizontal row step.
+ * Only enabled when `enabled` is true (mobile table view); view swipe handles other modes.
+ */
 export function useBudgetMobileRowGestures({
   enabled,
   scrollHostRef,

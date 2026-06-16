@@ -16,9 +16,14 @@ import {
   clearComposerTypingVisual,
   restoreAgentShellViewport,
   scheduleComposerViewportSync,
+  preemptiveMobileTypingEngage,
   scheduleInputViewportSync,
   setMobileInputEngaged,
 } from '@/lib/interfaz/mobile-viewport-sync';
+import {
+  handleMobileKeyboardOutsideTap,
+  isMobileTypingContext,
+} from '@/lib/interfaz/mobile-keyboard-focus';
 
 const COMPOSER_BLUR_SETTLE_MS = 320;
 
@@ -45,16 +50,30 @@ export default function MobileInputViewportSync() {
       scheduleInputViewportSync(el);
     };
 
+    const isMobileKeyboardSurface = () =>
+      isMobileBrowserViewport() || (isMobileTypingContext() && isPwaStandaloneViewport());
+
     const onPointerDown = (event: PointerEvent) => {
       if (event.pointerType !== 'touch' && event.pointerType !== 'pen') return;
       const target = event.target as Element | null;
+
+      handleMobileKeyboardOutsideTap(target);
+
+      if (target?.closest('.agent-mobile-composer-dock')) {
+        preemptiveMobileTypingEngage(target);
+        if (isTextInput(target)) {
+          activeInput = target as HTMLElement;
+        }
+        return;
+      }
+
       if (!isTextInput(target)) return;
-      if (isComposerDockElement(target)) return;
 
       const el = target as HTMLElement;
+      preemptiveMobileTypingEngage(el);
 
       if (isTransactionsModalElement(target)) {
-        if (!isMobileBrowserViewport()) return;
+        if (!isMobileKeyboardSurface()) return;
         activeInput = el;
         engageTransactionsInput(el);
         if (document.activeElement !== el) {
@@ -64,7 +83,7 @@ export default function MobileInputViewportSync() {
       }
 
       if (isBudgetModalElement(target)) {
-        if (!isMobileBrowserViewport()) return;
+        if (!isMobileKeyboardSurface()) return;
         activeInput = el;
         engageBudgetInput(el);
         if (document.activeElement !== el) {
@@ -107,13 +126,13 @@ export default function MobileInputViewportSync() {
       }
 
       if (isTransactionsModalElement(target)) {
-        if (!isMobileBrowserViewport()) return;
+        if (!isMobileKeyboardSurface()) return;
         engageTransactionsInput(activeInput);
         return;
       }
 
       if (isBudgetModalElement(target)) {
-        if (!isMobileBrowserViewport()) return;
+        if (!isMobileKeyboardSurface()) return;
         engageBudgetInput(activeInput);
         return;
       }

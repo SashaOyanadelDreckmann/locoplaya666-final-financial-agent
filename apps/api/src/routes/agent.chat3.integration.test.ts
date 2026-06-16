@@ -4,7 +4,7 @@ import path from 'path';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
-import { attachIntakeToUser, saveUserMemoryBlob } from '../services/user.service';
+import { replaceIntakeEnvelopeForDev, saveUserMemoryBlob } from '../services/user.service';
 import { createApprovalToken } from '../services/approval.service';
 import { defaultProductLifecycleState } from '../services/product-lifecycle.service';
 
@@ -80,7 +80,7 @@ async function unlockChat3(userId: string) {
 describe('chat-3 integration', () => {
   it('persists social reflections and hydrates them into agent context', async () => {
     const { agent, userId, csrfToken } = await createAuthedAgent();
-    const intakeOk = await attachIntakeToUser(userId, {
+    const intakeOk = await replaceIntakeEnvelopeForDev(userId, {
       intake: { profession: 'Filósofa' },
       intakeContext: { financialLiteracy: 'high' },
     });

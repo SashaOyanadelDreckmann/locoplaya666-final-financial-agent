@@ -298,6 +298,19 @@ function normalizeBudgetParseText(answer: string): string {
     .replace(/[\u0300-\u036f]/g, '');
 }
 
+export function isBudgetMetaOrHelpQuestion(answer: string): boolean {
+  const text = normalizeBudgetParseText(answer);
+  if (!text) return false;
+  const trimmed = String(answer ?? '').trim();
+  const asksHow = /\b(como|cual|que|donde|puedo|podria|deberia)\b/.test(text);
+  const mentionsAdd =
+    /\b(agregar|agrega|anadir|anade|sumar|suma|incluir|incorporar|filas?|rubros?)\b/.test(text);
+  if (asksHow && mentionsAdd) return true;
+  if (/\b(como puedo|como hago|que puedo)\b/.test(text)) return true;
+  if (/\?\s*$/.test(trimmed) && asksHow) return true;
+  return false;
+}
+
 export function parseBudgetCadenceFromAnswer(answer: string): BudgetCadence | null {
   const text = normalizeBudgetParseText(answer);
   if (/\b(fijo|fija|fijos|siempre igual|mismo monto|recurrente|dejalo fijo|dejala fija|ponlo fijo|ponla fija)\b/.test(text)) {
@@ -390,6 +403,8 @@ export function parseBudgetCategoryFromAnswer(
   answer: string,
   options?: { currentCategory?: string; allowAffirmative?: boolean },
 ): string | null {
+  if (isBudgetMetaOrHelpQuestion(answer)) return null;
+
   const renamed = parseBudgetCategoryRenameFromAnswer(answer);
   if (renamed) return renamed;
 
@@ -413,6 +428,9 @@ export function parseBudgetCategoryFromAnswer(
   }
 
   const raw = String(answer ?? '').trim();
+  const wordCount = text.split(/\s+/).filter(Boolean).length;
+  if (wordCount > 4) return null;
+  if (/\b(como|cual|que|podria|puedo|deberia|agregar|agrega|sumar|filas?)\b/.test(text)) return null;
   if (raw.length >= 2 && raw.length <= 48 && !/^\d/.test(raw)) {
     return raw.charAt(0).toUpperCase() + raw.slice(1);
   }

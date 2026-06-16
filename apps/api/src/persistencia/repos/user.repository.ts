@@ -161,6 +161,91 @@ type UserPatch = Partial<Omit<StoredUser, 'id' | 'email' | 'createdAt' | 'update
   approvedByEmail?: string | null;
 };
 
+const FINCOIN_SPEND_EPSILON = 1e-9;
+
+export type AtomicUsdSpendResult =
+  | { charged: true; usdSpentTotal: number; justDepleted: boolean }
+  | { charged: false; reason: 'user_not_found' | 'depleted' | 'insufficient' };
+
+export async function chargeUsdSpentTotalAtomic(
+  userId: string,
+  costUsd: number,
+  maxUsdSpend: number,
+): Promise<AtomicUsdSpendResult> {
+  if (!Number.isFinite(costUsd) || costUsd <= 0) {
+    const user = await getUserById(userId);
+    if (!user) return { charged: false, reason: 'user_not_found' };
+    const spent = Math.max(0, Number(user.usdSpentTotal ?? 0));
+    return {
+      charged: true,
+      usdSpentTotal: spent,
+      justDepleted: spent >= maxUsdSpend - FINCOIN_SPEND_EPSILON,
+    };
+  }
+
+  const mode = getPersistenceMode();
+
+  if (mode === 'memory') {
+    const currentUser = memoryStore.users.get(userId);
+    if (!currentUser) return { charged: false, reason: 'user_not_found' };
+
+    const current = Math.max(0, Number(currentUser.usdSpentTotal ?? 0));
+    if (current >= maxUsdSpend - FINCOIN_SPEND_EPSILON) {
+      return { charged: false, reason: 'depleted' };
+    }
+    if (current + costUsd > maxUsdSpend + FINCOIN_SPEND_EPSILON) {
+      return { charged: false, reason: 'insufficient' };
+    }
+
+    const next = Math.min(current + costUsd, maxUsdSpend);
+    const justDepleted = next >= maxUsdSpend - FINCOIN_SPEND_EPSILON;
+    memoryStore.users.set(userId, {
+      ...currentUser,
+      usdSpentTotal: next,
+      ...(justDepleted && !currentUser.fincoinDepletedAt
+        ? { fincoinDepletedAt: nowIso() }
+        : {}),
+      updatedAt: nowIso(),
+    });
+
+    return { charged: true, usdSpentTotal: next, justDepleted };
+  }
+
+  const prisma = await getPrismaClient();
+  const rows = await prisma.$queryRaw<Array<{ usdSpentTotal: number }>>`
+    UPDATE "User"
+    SET
+      "usdSpentTotal" = LEAST("usdSpentTotal" + ${costUsd}::double precision, ${maxUsdSpend}::double precision),
+      "fincoinDepletedAt" = CASE
+        WHEN LEAST("usdSpentTotal" + ${costUsd}::double precision, ${maxUsdSpend}::double precision)
+          >= (${maxUsdSpend}::double precision - ${FINCOIN_SPEND_EPSILON})
+        THEN COALESCE("fincoinDepletedAt", NOW())
+        ELSE "fincoinDepletedAt"
+      END,
+      "updatedAt" = NOW()
+    WHERE "id" = ${userId}
+      AND "usdSpentTotal" + ${costUsd}::double precision <= ${maxUsdSpend}::double precision + ${FINCOIN_SPEND_EPSILON}
+    RETURNING "usdSpentTotal"
+  `;
+
+  if (rows.length === 0) {
+    const user = await getUserById(userId);
+    if (!user) return { charged: false, reason: 'user_not_found' };
+    const current = Math.max(0, Number(user.usdSpentTotal ?? 0));
+    if (current >= maxUsdSpend - FINCOIN_SPEND_EPSILON) {
+      return { charged: false, reason: 'depleted' };
+    }
+    return { charged: false, reason: 'insufficient' };
+  }
+
+  const usdSpentTotal = Number(rows[0]?.usdSpentTotal ?? 0);
+  return {
+    charged: true,
+    usdSpentTotal,
+    justDepleted: usdSpentTotal >= maxUsdSpend - FINCOIN_SPEND_EPSILON,
+  };
+}
+
 export async function patchUserRecord(
   userId: string,
   patch: UserPatch,

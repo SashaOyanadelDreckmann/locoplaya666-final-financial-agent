@@ -77,6 +77,13 @@ function buildPolicyLimiter(policy: HttpRateLimitPolicy, options: LimiterOptions
 
 export const HTTP_RATE_LIMIT_POLICIES: HttpRateLimitPolicy[] = [
   {
+    name: 'admin_sensitive',
+    windowMs: 15 * 60 * 1000,
+    max: Number(process.env.ADMIN_RATE_LIMIT_MAX || (isProductionRuntime() ? 120 : 800)),
+    scope: 'global',
+    criticality: 'high',
+  },
+  {
     name: 'global_default',
     windowMs: 15 * 60 * 1000,
     max: Number(
@@ -115,11 +122,12 @@ export const HTTP_RATE_LIMIT_POLICIES: HttpRateLimitPolicy[] = [
   },
 ];
 
-export const globalRateLimiter = buildPolicyLimiter(HTTP_RATE_LIMIT_POLICIES[0]);
-export const authRateLimiter = buildPolicyLimiter(HTTP_RATE_LIMIT_POLICIES[1], {
+export const adminRateLimiter = buildPolicyLimiter(HTTP_RATE_LIMIT_POLICIES[0]);
+export const globalRateLimiter = buildPolicyLimiter(HTTP_RATE_LIMIT_POLICIES[1]);
+export const authRateLimiter = buildPolicyLimiter(HTTP_RATE_LIMIT_POLICIES[2], {
   keyGenerator: authKeyFromRequest,
   skip: shouldSkipAuthRateLimit,
 });
-export const chatRateLimiter = buildPolicyLimiter(HTTP_RATE_LIMIT_POLICIES[2]);
-export const documentsRateLimiter = buildPolicyLimiter(HTTP_RATE_LIMIT_POLICIES[3]);
-export const simulationsRateLimiter = buildPolicyLimiter(HTTP_RATE_LIMIT_POLICIES[4]);
+export const chatRateLimiter = buildPolicyLimiter(HTTP_RATE_LIMIT_POLICIES[3]);
+export const documentsRateLimiter = buildPolicyLimiter(HTTP_RATE_LIMIT_POLICIES[4]);
+export const simulationsRateLimiter = buildPolicyLimiter(HTTP_RATE_LIMIT_POLICIES[5]);

@@ -41,7 +41,7 @@ describe('budget-chat-agent.service', () => {
     const result = await runBudgetChatAgent({
       rows,
       context,
-      userAnswer: 'agrega gym, streaming y mascotas como gastos',
+      userAnswer: 'agrega gym, streaming y mascotas en gastos',
       currentQuestion: '¿Qué más quieres hacer con la tabla?',
       focusRow: null,
       chatAnswers: [],

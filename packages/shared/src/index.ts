@@ -13,6 +13,7 @@ export * from './presupuesto/budget-chat-focus';
 export * from './presupuesto/budget-chat-context';
 export * from './presupuesto/budget-movement-feed';
 export * from './presupuesto/budget-table-schema';
+export * from './presupuesto/budget-table-mutate';
 export * from './presupuesto/budget-chat-session';
 export * from './transacciones/transactions-chat';
 export * from './transacciones/transactions-chat-planner';
@@ -21,6 +22,12 @@ export type {
     IntakeQuestionnaire,
     FinancialKnowledgeChecklist,
   } from './intake/intake-questionnaire.types';
+export type { SessionIntakeEnvelope } from './intake/intake-access';
+export {
+  hasCompletedIntakeAccess,
+  hasMeaningfulIntake,
+  readSessionIntakeEnvelope,
+} from './intake/intake-access';
 export * from './welcome/welcome-intro.types';
 export {
   WELCOME_FINTECH_DEFAULT_BENEFIT,
@@ -49,8 +56,10 @@ export {
 } from './welcome/welcome-intro.cache';
 export * from './interfaz/ui-events';
 export * from './fincoins/fincoin.constants';
+export * from './agente/questionnaire-response-mode';
 export * from './agente/agent-stream';
 export * from './agente/agent-stream-sanitize';
+export * from './agente/structured-agent-tags';
 export * from './agente/agent-stream-ui';
 export * from './agente/agent-timeouts';
 export * from './agente/agent-transport';

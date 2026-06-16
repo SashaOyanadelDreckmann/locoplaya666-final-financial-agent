@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { requireAuth, requirePermission, requireAdminRole } from '../middleware/auth';
-import { PERMISSIONS, USER_ROLES } from '../auth/rbac';
+import { requireAuth, requireAdminRole } from '../middleware/auth';
+import { USER_ROLES } from '../auth/rbac';
 import { parseParams, parseQuery } from '../http/parse';
 import { sendSuccess } from '../http/api.responses';
 import { notFound } from '../http/api.errors';
@@ -83,7 +83,7 @@ const ResearchQuerySchema = z.object({
 router.get(
   '/users',
   requireAuth,
-  requirePermission(PERMISSIONS.OBSERVABILITY_READ),
+  requireAdminRole,
   asyncHandler(async (req, res) => {
     const query = parseQuery(UsersQuerySchema, req.query);
     const payload = await listAnalyticsUsers({
@@ -103,7 +103,7 @@ router.get(
 router.get(
   '/interactions',
   requireAuth,
-  requirePermission(PERMISSIONS.OBSERVABILITY_READ),
+  requireAdminRole,
   asyncHandler(async (req, res) => {
     const query = parseQuery(InteractionsQuerySchema, req.query);
     const payload = await listAnalyticsInteractions({
@@ -122,7 +122,7 @@ router.get(
 router.get(
   '/users/:userId/activity',
   requireAuth,
-  requirePermission(PERMISSIONS.OBSERVABILITY_READ),
+  requireAdminRole,
   asyncHandler(async (req, res) => {
     const { userId } = parseParams(UserParamsSchema, req.params);
     const query = parseQuery(UserActivityQuerySchema, req.query);
@@ -164,7 +164,7 @@ router.get(
 router.get(
   '/export/users.csv',
   requireAuth,
-  requirePermission(PERMISSIONS.OBSERVABILITY_READ),
+  requireAdminRole,
   asyncHandler(async (req, res) => {
     const query = parseQuery(ExportUsersQuerySchema, req.query);
     const csv = await exportAnalyticsUsersCsv({
@@ -186,7 +186,7 @@ router.get(
 router.get(
   '/export/interactions.csv',
   requireAuth,
-  requirePermission(PERMISSIONS.OBSERVABILITY_READ),
+  requireAdminRole,
   asyncHandler(async (req, res) => {
     const query = parseQuery(ExportInteractionsQuerySchema, req.query);
     const csv = await exportAnalyticsInteractionsCsv({

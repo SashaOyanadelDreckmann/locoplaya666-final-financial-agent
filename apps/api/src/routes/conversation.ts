@@ -5,9 +5,8 @@ import { runDiagnosticAgent } from '../agents/diagnostic/diagnostic.agent';
 import { buildVoiceInterviewFallbackProfile } from '../agents/diagnostic/diagnostic.fallback';
 import { buildInterviewPlan, InterviewBlockId } from '../orquestador/interview.flow';
 import {
-  buildInterviewFinalizePromptLines,
+  buildDeterministicVoiceFinalizeSnapshot,
   buildVoiceInterviewSyntheticBlocks,
-  clampInterviewConfidence,
   resolveInterviewFinalizeDepth,
 } from '../orquestador/interview-voice-finalize';
 import { IntakeQuestionnaire } from '@financial-agent/shared/src/intake/intake-questionnaire.types';
@@ -17,7 +16,6 @@ import type { FinancialDiagnosticProfile } from '../schemas/profile.schema';
 import { saveProfile } from '../services/storage.service';
 import { appendMemoryTimelineNote } from '../services/memory.service';
 import { recordKnowledgeEvent } from '../services/knowledge.service';
-import { completeStructured } from '../services/llm.service';
 import { loadUserMemoryBlob, saveUserMemoryBlob } from '../services/user.service';
 import { resolveUserDiagnosticProfile } from '../services/diagnostic-profile.service';
 import { sendSuccess } from '../http/api.responses';
@@ -402,51 +400,50 @@ export const finalizeInterviewVoice = asyncHandler(async function finalizeInterv
       ? parsed.transcript.trim().slice(0, 1200)
       : undefined;
 
-  let parsedReport: any = null;
+  const finalizeCharge = await chargeFincoinOperation(user.id, 'conversation.voice');
+  if (!finalizeCharge.charged) {
+    const summaries =
+      finalizeCharge.closureSummaries ?? (await ensureFincoinDepletionHandled(user.id));
+    throw fincoinsDepleted(
+      'Tus Fincoins se agotaron. No se puede finalizar la entrevista con síntesis LLM.',
+      {
+        usage: fincoinUsagePayload(finalizeCharge.usage),
+        closure_summaries: summaries,
+      },
+    );
+  }
+
+  let parsedReport: {
+    executiveReport: string;
+    keyFindings: string[];
+    hasEnoughInformation: boolean;
+    confidence: 'high' | 'medium' | 'low';
+  } | null = null;
   try {
-    parsedReport = await completeStructured({
-      system:
-        'Eres una directora de diagnóstico financiero ejecutivo. Sintetizas llamadas en hallazgos claros, honestos y priorizados.',
-      user: buildInterviewFinalizePromptLines({
-        depth: finalizeDepth,
-        endedBy: parsed.endedBy ?? 'user',
-        durationSec: safeDurationSec,
-        diagnosticIntakeJson: JSON.stringify(diagnosticIntake),
-        condensedSummaries,
-        finalSummaryText,
-        transcriptSnippet,
-      }).join('\n'),
-      temperature: 0.2,
-      model: process.env.OPENAI_MODEL_INTERVIEW_FINALIZER ?? 'gpt-5-mini',
-      maxCompletionTokens: finalizeDepth.maxCompletionTokens,
+    parsedReport = buildDeterministicVoiceFinalizeSnapshot({
+      minuteSummaries,
+      finalSummaryText,
+      transcriptSnippet,
+      finalizeDepth,
+      endedBy: parsed.endedBy ?? 'user',
     });
-    await chargeFincoinOperation(user.id, 'conversation.voice');
   } catch {
     parsedReport = null;
   }
 
   const executiveReport =
-    typeof parsedReport?.executive_report === 'string' && parsedReport.executive_report.trim().length > 0
-      ? parsedReport.executive_report.trim()
-      : finalizeDepth.tier === 'minimal'
-        ? 'Entrevista finalizada de forma anticipada. El diagnóstico quedó preliminar con la evidencia disponible hasta ese momento.'
-        : 'Entrevista finalizada. Se obtuvo un diagnóstico proporcional al avance de la llamada.';
-  const keyFindings = Array.isArray(parsedReport?.key_findings)
-    ? parsedReport.key_findings
-        .map((item: unknown) => String(item ?? '').trim())
-        .filter((item: string) => item.length > 0)
-        .slice(0, finalizeDepth.maxKeyFindings)
-    : [];
+    parsedReport?.executiveReport?.trim() ||
+    (finalizeDepth.tier === 'minimal'
+      ? 'Entrevista finalizada de forma anticipada. El diagnóstico quedó preliminar con la evidencia disponible hasta ese momento.'
+      : 'Entrevista finalizada. Se obtuvo un diagnóstico proporcional al avance de la llamada.');
+  const keyFindings = parsedReport?.keyFindings ?? [];
   let hasEnoughInformation = Boolean(
-    parsedReport?.has_enough_information ?? finalizeDepth.defaultHasEnoughInformation,
+    parsedReport?.hasEnoughInformation ?? finalizeDepth.defaultHasEnoughInformation,
   );
   if (!finalizeDepth.defaultHasEnoughInformation && parsed.endedBy === 'user') {
     hasEnoughInformation = false;
   }
-  const resolvedConfidence = clampInterviewConfidence(
-    parsedReport?.confidence,
-    finalizeDepth.confidenceCeiling,
-  );
+  const resolvedConfidence = parsedReport?.confidence ?? finalizeDepth.confidenceCeiling;
 
   const plan = buildInterviewPlan(diagnosticIntake);
   const syntheticBlocks = buildVoiceInterviewSyntheticBlocks({
@@ -594,7 +591,7 @@ export const finalizeInterviewVoice = asyncHandler(async function finalizeInterv
       executiveReport,
       keyFindings,
       hasEnoughInformation,
-      stopReason: typeof parsedReport?.stop_reason === 'string' ? parsedReport.stop_reason : parsed.endedBy,
+      stopReason: parsed.endedBy ?? 'user',
       confidence: diagnosticFallbackUsed ? 'medium' : resolvedConfidence,
       diagnosticFallbackUsed,
       finalSummaryText,

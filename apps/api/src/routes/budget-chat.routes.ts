@@ -22,15 +22,16 @@ import {
   BUDGET_MOVEMENT_TYPE_OPTIONS,
   DEFAULT_BUDGET_ROWS,
   buildBudgetAssistantContext,
+  buildBudgetHelpAddReply,
+  buildBudgetInitTurn,
   buildBudgetRowSuggestions,
   buildBudgetAcknowledgmentReply,
   buildCategoryClarificationReply,
   extractUserAnswerCue,
+  isBudgetMetaOrHelpQuestion,
   buildContextualAdviceReply,
-  buildContextualInitReply,
   buildContextualQuestion,
   buildReflectiveFallbackReply,
-  buildOffTopicBriefReply,
   isBudgetEducationalQuestion,
   isBudgetOffTopicAnswer,
   buildSuggestionFollowUp,
@@ -420,9 +421,8 @@ function buildBudgetSnapshot(rows: BudgetRow[]) {
 
   const missingCoreRows = [
     !effectiveRows.some((row) => row.id === 'income_salary' && row.amount > 0) ? 'ingreso principal' : '',
-    !effectiveRows.some((row) => row.id === 'expense_rent' && row.amount > 0) ? 'vivienda' : '',
-    !effectiveRows.some((row) => row.id === 'expense_food' && row.amount > 0) ? 'alimentación' : '',
-    !effectiveRows.some((row) => row.id === 'expense_transport' && row.amount > 0) ? 'transporte' : '',
+    !effectiveRows.some((row) => row.id === 'expense_rent' && row.amount > 0) ? 'gasto principal' : '',
+    !effectiveRows.some((row) => row.id === 'expense_other' && row.amount > 0) ? 'otro gasto' : '',
   ].filter(Boolean);
 
   return {
@@ -441,6 +441,7 @@ function buildBudgetSnapshot(rows: BudgetRow[]) {
 function detectBudgetIntent(answer: string) {
   const text = normalizeLooseText(answer);
   if (!text) return 'unclear';
+  if (isBudgetMetaOrHelpQuestion(answer)) return 'help_add';
   if (/\b(fijo|fija|variable|ingreso|gasto|balance|presupuesto|monto|sueldo|salario)\b/.test(text)) {
     if (/\b(que es|que significa|explica|explicame|diferencia|como funciona)\b/.test(text)) return 'education';
   }
@@ -809,10 +810,13 @@ function buildDeterministicUpdate(params: {
       suggestionAmount: suggestion?.suggestedAmount ?? null,
     });
   }
+  const rowExists = params.rows.some((row) => row.id === targetRow!.id);
+  if (amount === null && isAffirmativeSuggestionAnswer(params.answer) && !rowExists) {
+    amount = 0;
+  }
   if (amount === null) return null;
 
   const fieldPatch = parseBudgetFieldPatchFromAnswer(params.answer, { currentCategory: targetRow.category });
-  const rowExists = params.rows.some((row) => row.id === targetRow!.id);
   const category = fieldPatch.category ?? targetRow.category;
   const action: BudgetTableAction = {
     kind: rowExists ? 'update' : 'add',
@@ -904,6 +908,7 @@ function buildDeterministicMovementTypeUpdate(params: {
   if (isBudgetOffTopicAnswer(params.answer) || isBudgetEducationalQuestion(params.answer) || isBudgetSkipAnswer(params.answer)) {
     return null;
   }
+  if (isBudgetMetaOrHelpQuestion(params.answer)) return null;
   if (/\?\s*$/.test(String(params.answer ?? '').trim())) return null;
 
   const isAffirmative = isAffirmativeSuggestionAnswer(params.answer);
@@ -994,6 +999,7 @@ function buildDeterministicCategoryUpdate(params: {
   if (isBudgetOffTopicAnswer(params.answer) || isBudgetEducationalQuestion(params.answer) || isBudgetSkipAnswer(params.answer)) {
     return null;
   }
+  if (isBudgetMetaOrHelpQuestion(params.answer)) return null;
   if (/\?\s*$/.test(String(params.answer ?? '').trim())) return null;
 
   const renamed = parseBudgetCategoryRenameFromAnswer(params.answer);
@@ -1290,12 +1296,11 @@ function buildStatusReply(params: { rows: BudgetRow[]; context: BudgetAssistantC
 }
 
 function buildFallbackInit(params: { rows: BudgetRow[]; context: BudgetAssistantContext }) {
-  const { focus, question } = buildBudgetFocusQuestion(params.rows, null, params.context, 'income_salary');
-  const reply = buildContextualInitReply(params.rows, focus, question, params.context);
+  const init = buildBudgetInitTurn(params.rows, params.context);
   return buildBudgetReply({
-    reply,
-    followUp: question,
-    focus_row_id: focus?.id ?? 'income_salary',
+    reply: init.reply,
+    followUp: init.followUp,
+    focus_row_id: init.focusRowId,
     source: 'deterministic_init',
     market_snapshot: emptyMarketSnapshot(),
   });
@@ -1331,6 +1336,8 @@ function slugifyBudgetCategory(value: string): string {
 }
 
 function extractAddRowCategoryFromAnswer(answer: string): string | null {
+  if (isBudgetMetaOrHelpQuestion(answer)) return null;
+
   const renamed = parseBudgetCategoryRenameFromAnswer(answer);
   if (renamed) return renamed;
 
@@ -1404,6 +1411,7 @@ type ConversationalFallbackParams = {
 function tryDeterministicWizardMutations(
   params: ConversationalFallbackParams,
 ): BudgetChatResponse | null {
+  if (isBudgetMetaOrHelpQuestion(params.answer)) return null;
   return (
     buildDeterministicMovementTypeUpdate(params) ??
     buildDeterministicCategoryUpdate(params) ??
@@ -1427,6 +1435,17 @@ function buildConversationalFallback(params: ConversationalFallbackParams) {
   if (detectedIntent === 'delete_row') {
     const single = buildSingleDeleteConfirmReply(params);
     if (single) return single;
+  }
+
+  if (detectedIntent === 'help_add') {
+    const help = buildBudgetHelpAddReply(params.rows, params.context);
+    return buildBudgetReply({
+      reply: help.reply,
+      followUp: help.followUp,
+      focus_row_id: help.focusRowId,
+      source: 'deterministic_help_add',
+      market_snapshot: emptyMarketSnapshot(),
+    });
   }
 
   if (detectedIntent === 'add_row') {
@@ -1576,6 +1595,7 @@ function shouldUseDeterministicTableFallback(params: {
   if (params.agent.actions.length > 0) return false;
   const intent = detectBudgetIntent(params.answer);
   return (
+    intent === 'help_add' ||
     intent === 'update_amount' ||
     intent === 'update_field' ||
     intent === 'update_combined' ||
@@ -1602,6 +1622,17 @@ function resolveHybridBudgetChatDraft(params: {
   assistantFocusRowId?: string | null;
   manualFocusRowId?: string | null;
 }): BudgetChatResponse {
+  if (isBudgetMetaOrHelpQuestion(params.answer)) {
+    const help = buildBudgetHelpAddReply(params.rows, params.context);
+    return buildBudgetReply({
+      reply: help.reply,
+      followUp: help.followUp,
+      focus_row_id: help.focusRowId,
+      source: 'deterministic_help_add',
+      market_snapshot: emptyMarketSnapshot(),
+    });
+  }
+
   const agentDraft = buildAgentChatReply({ agent: params.agent, rows: params.rows });
   if (params.agent.requires_confirmation || params.agent.actions.length > 0) {
     return agentDraft;
@@ -1682,6 +1713,7 @@ router.post(
 
     if (intent === 'init') {
       const marketSnapshot = await getMarketSnapshotOptional();
+      const deterministicInit = buildFallbackInit({ rows, context });
       const focusRow =
         rows.find((row) => canonicalBudgetRowId(row.id) === canonicalBudgetRowId('income_salary')) ?? rows[0] ?? null;
       const agentResult = await runBudgetChatAgent({
@@ -1694,9 +1726,11 @@ router.post(
         mode: 'init',
         userId: user?.id,
       });
-      const draft = isBudgetAgentUnavailableResult(agentResult)
-        ? buildFallbackInit({ rows, context })
-        : buildAgentChatReply({ agent: agentResult, rows });
+      const draft =
+        !isBudgetAgentUnavailableResult(agentResult) &&
+        (agentResult.actions.length > 0 || agentResult.requires_confirmation)
+          ? buildAgentChatReply({ agent: agentResult, rows })
+          : deterministicInit;
       return sendBudgetChatResponse(
         res,
         { ...draft, market_snapshot: marketSnapshot },

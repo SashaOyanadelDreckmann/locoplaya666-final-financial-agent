@@ -1,6 +1,10 @@
 /** Shared visual/layout viewport tokens for mobile browser keyboard handling. */
 
-import { MOBILE_SHELL_MEDIA, syncPwaStandaloneClass } from '@/lib/interfaz/viewport-mode';
+import {
+  MOBILE_SHELL_MEDIA,
+  shouldUseMobileShell,
+  syncPwaStandaloneClass,
+} from '@/lib/interfaz/viewport-mode';
 
 const PWA_BROWSER_CLASS_BLOCKLIST = [
   'browser-keyboard-open',
@@ -30,7 +34,8 @@ export function isPwaStandaloneViewport(root: HTMLElement = document.documentEle
 
 export function isMobileBrowserViewport(root: HTMLElement = document.documentElement) {
   if (typeof window === 'undefined') return false;
-  return !isPwaStandaloneViewport(root) && window.matchMedia(MOBILE_SHELL_MEDIA).matches;
+  if (isPwaStandaloneViewport(root)) return false;
+  return shouldUseMobileShell();
 }
 
 export function suppressPwaBrowserChrome(root: HTMLElement = document.documentElement) {
@@ -437,8 +442,46 @@ export function prepareComposerTypingVisual(root: HTMLElement = document.documen
 export function engageComposerTypingLayout(root: HTMLElement = document.documentElement) {
   if (!isMobileBrowserViewport()) return;
   prepareComposerTypingVisual(root);
+  setMobileInputEngaged(true, root);
   applyMobileViewportTokens(root);
   scheduleComposerViewportSync();
+}
+
+/** Preemptive typing session — snap layout on first touch, before the keyboard animates. */
+export function preemptiveMobileTypingEngage(
+  target: Element | null,
+  root: HTMLElement = document.documentElement,
+) {
+  if (typeof window === 'undefined' || !target) return;
+  if (!shouldUseMobileShell()) return;
+
+  const el = target instanceof HTMLElement ? target : null;
+  const composerDock = target.closest('.agent-mobile-composer-dock');
+
+  if (composerDock) {
+    if (isMobileBrowserViewport(root)) {
+      engageComposerTypingLayout(root);
+      return;
+    }
+    if (isPwaStandaloneViewport(root)) {
+      setMobileInputEngaged(true, root);
+      applyMobileViewportTokens(root);
+    }
+    return;
+  }
+
+  if (!el || !isTextInput(el)) return;
+
+  if (isComposerDockElement(el)) {
+    if (isMobileBrowserViewport(root)) engageComposerTypingLayout(root);
+    return;
+  }
+
+  if (isTransactionsModalElement(el) || isBudgetModalElement(el) || isAuthIntakeElement(el)) {
+    setMobileInputEngaged(true, root);
+    applyMobileViewportTokens(root);
+    scheduleInputViewportSync(el);
+  }
 }
 
 export function clearComposerTypingVisual(root: HTMLElement = document.documentElement) {
@@ -453,24 +496,30 @@ export function snapAgentComposerTypingLayout() {
 export function focusMobileInput(el: HTMLElement | null) {
   if (!el || typeof el.focus !== 'function') return;
 
-  if (!isMobileBrowserViewport()) {
+  if (isComposerDockElement(el)) {
+    if (isMobileBrowserViewport()) {
+      engageComposerTypingLayout();
+    } else if (shouldUseMobileShell() && isPwaStandaloneViewport()) {
+      setMobileInputEngaged(true);
+      applyMobileViewportTokens();
+    }
+    el.focus({ preventScroll: true });
+    if (isMobileBrowserViewport()) scheduleComposerViewportSync();
+    return;
+  }
+
+  if (!shouldUseMobileShell()) {
     el.focus();
     return;
   }
 
-  if (isComposerDockElement(el)) {
+  if (isTransactionsModalElement(el) || isBudgetModalElement(el)) {
+    setMobileInputEngaged(true);
+    applyMobileViewportTokens();
     el.focus({ preventScroll: true });
-    if (document.activeElement === el) {
-      engageComposerTypingLayout();
-    }
+    scheduleInputViewportSync(el);
     return;
   }
 
   el.focus({ preventScroll: true });
-
-  if (isTransactionsModalElement(el) || isBudgetModalElement(el)) {
-    setMobileInputEngaged(true);
-    applyMobileViewportTokens();
-    scheduleInputViewportSync(el);
-  }
 }

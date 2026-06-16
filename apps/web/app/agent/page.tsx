@@ -7,9 +7,11 @@ import 'katex/dist/katex.min.css';
 
 import {
   clearComposerTypingVisual,
+  engageComposerTypingLayout,
   focusMobileInput,
   restoreAgentShellViewport,
 } from '@/lib/interfaz/mobile-viewport-sync';
+import { dismissMobileKeyboard } from '@/lib/interfaz/mobile-keyboard-focus';
 import {
   applyVisualModeToDocument,
   clearStoredVisualMode,
@@ -28,7 +30,7 @@ import type { CoreAgentRequestContext } from '@/lib/agente/nucleo/buildCoreAgent
 import { useCoreAgentSend } from './hooks/useCoreAgentSend';
 import { useAgentPersistence } from './hooks/use-agent-persistence';
 import { buildOnboardingFlowCta } from './flujo/onboarding-flow.helpers';
-import { useInterviewStore } from '@/state/interview.store';
+import { clearPersistedInterviewState, useInterviewStore } from '@/state/interview.store';
 import { syncDiagnosisSession } from '@/lib/diagnostico/sesion';
 import { useProfileStore } from '@/state/profile.store';
 import { useSessionStore } from '@/state/session.store';
@@ -36,8 +38,6 @@ import {
   getSessionInfo,
   logoutUser,
   deleteAccount,
-  removeInjectedIntake,
-  removeInjectedProfile,
   loadSheets,
   deletePdfArtifact,
   parseDocuments,
@@ -169,6 +169,9 @@ import { ChatThreadView } from './chat/chat-thread-view';
 import { ChatHeader } from './chat/chat-header';
 import { buildPanelBaseCards } from './paneles/panel-cards';
 import { useBudgetRows } from './hooks/use-budget-rows';
+import { useBudgetTablePending } from './hooks/use-budget-table-pending';
+import { BudgetPendingConfirmBanner } from './modales/presupuesto/BudgetPendingConfirmBanner';
+import { buildBudgetTablePatch, legacyBudgetUpdatesToActions } from '@financial-agent/shared';
 import { useAgentShell } from './hooks/use-agent-shell';
 import { buildEvidenceResetPatch, mergeBankProductPatch } from './modales/transacciones/state.helpers';
 import { TX_MAX_TOTAL_FILE_BYTES } from './modales/transacciones/constants';
@@ -492,6 +495,15 @@ export default function AgentPage() {
     applyBudgetTableActions,
     buildPersistableBudgetContext,
   } = useBudgetRows();
+  const {
+    pending: budgetTablePending,
+    setPending: setBudgetTablePending,
+    consumeBudgetTablePatch,
+    confirmPending: confirmBudgetTablePending,
+    rejectPending: rejectBudgetTablePending,
+    tryResolvePendingFromAnswer: tryResolveBudgetPendingFromAnswer,
+    hasPending: hasBudgetTablePending,
+  } = useBudgetTablePending(applyBudgetTableActions);
   const [budgetChatAnswers, setBudgetChatAnswers] = useState<Array<{ q: string; a: string }>>([]);
   const [bankSimulation, setBankSimulation] = useState<BankSimulation>(DEFAULT_BANK_SIMULATION);
   const [docFlight, setDocFlight] = useState<DocFlight | null>(null);
@@ -555,7 +567,7 @@ export default function AgentPage() {
     if (!shouldPresentPanelIntro()) return;
     if (panelIntroStartRef.current) return;
 
-    const delay = panelIntroHandoffOrigin ? 120 : 280;
+    const delay = panelIntroHandoffOrigin ? 72 : 200;
     const timer = window.setTimeout(() => {
       if (!shouldPresentPanelIntro() || panelIntroStartRef.current) return;
       panelIntroStartRef.current = true;
@@ -781,6 +793,7 @@ export default function AgentPage() {
   function openComposerFromGesture() {
     if (isActiveChatLocked || isActiveChatClosed || !isMobileViewport) return;
     collapseMobilePanelForComposer();
+    engageComposerTypingLayout();
     focusMobileInput(chatComposerRef.current);
   }
 
@@ -1181,6 +1194,7 @@ export default function AgentPage() {
     clearStoredVisualMode();
     localStorage.removeItem('agent.prefill_prompt');
     clearInterviewVoiceState();
+    clearPersistedInterviewState();
     clearCsrfToken();
     secureStorage.clear();
   }
@@ -1910,47 +1924,15 @@ export default function AgentPage() {
       handlePanelAction(effects.panelAction);
     }
 
-    if (effects.budgetUpdates && effects.budgetUpdates.length > 0) {
-      setBudgetRows((prev) => {
-        const updated = [...prev];
-        const normalizeBudgetKey = (value: string) =>
-          String(value ?? '')
-            .toLowerCase()
-            .normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, '')
-            .replace(/[^\w\s]/g, ' ')
-            .replace(/\s+/g, ' ')
-            .trim();
-        for (const upd of effects.budgetUpdates!) {
-          const normalizedLabel = normalizeBudgetKey(upd.label);
-          const normalizedCategory = normalizeBudgetKey(
-            upd.category ?? (upd.type === 'income' ? 'Ingresos' : 'Gastos'),
-          );
-          const existingIdx = updated.findIndex((row) => {
-            if (row.type !== upd.type) return false;
-            const rowCategory = normalizeBudgetKey(row.category);
-            const rowNote = normalizeBudgetKey(row.note ?? '');
-            return (
-              rowCategory === normalizedCategory ||
-              rowCategory === normalizedLabel ||
-              rowNote === normalizedLabel ||
-              rowNote.includes(normalizedLabel)
-            );
-          });
-          if (existingIdx >= 0) {
-            updated[existingIdx] = { ...updated[existingIdx], amount: upd.amount };
-          } else if (updated.length < MAX_BUDGET_ROWS) {
-            updated.push({
-              id: `agent-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-              category: upd.category ?? (upd.type === 'income' ? 'Ingresos' : 'Gastos'),
-              type: upd.type,
-              amount: upd.amount,
-              note: upd.label,
-            });
-          }
-        }
-        return updated.slice(0, MAX_BUDGET_ROWS);
-      });
+    if (effects.budgetTablePatch) {
+      consumeBudgetTablePatch(effects.budgetTablePatch);
+      if (effects.budgetTablePatch.requires_confirmation) {
+        setIsBudgetModalOpen(true);
+      }
+    } else if (effects.budgetUpdates && effects.budgetUpdates.length > 0) {
+      consumeBudgetTablePatch(
+        buildBudgetTablePatch(budgetRows, legacyBudgetUpdatesToActions(budgetRows, effects.budgetUpdates)),
+      );
     }
 
     window.setTimeout(() => {
@@ -1963,9 +1945,11 @@ export default function AgentPage() {
     activeChatId,
     applyFincoinClosureSummaries,
     applyUsagePayload,
+    budgetRows,
+    consumeBudgetTablePatch,
+    handlePanelAction,
     persistPanelNow,
     persistSheetsNow,
-    setBudgetRows,
   ]);
 
   const { loading, sendCoreAgentMessage } = useCoreAgentSend({
@@ -1984,9 +1968,7 @@ export default function AgentPage() {
     buildRequestContext: buildCoreAgentRequestContext,
     getSessionId,
     prepareSend: async () => {
-      if (activeChatId === 'chat-2') {
-        await syncFinancialContextToIntake().catch(() => {});
-      }
+      await syncFinancialContextToIntake().catch(() => {});
     },
     onSideEffects: applyCoreAgentSideEffects,
     onTransientError: (message) => {
@@ -2360,6 +2342,10 @@ export default function AgentPage() {
     const liveComposerText = chatComposerRef.current?.value ?? '';
     const outgoingText = String(messageOverride ?? liveComposerText ?? input ?? '').trim();
     if (!outgoingText || (loading && !options?.ignoreLoadingGuard)) return false;
+    if (tryResolveBudgetPendingFromAnswer(outgoingText)) {
+      if (!messageOverride) setDraftForActive('');
+      return true;
+    }
     if (activeChatId === PRIMARY_CHAT_ID && chat1IntroMode === 'deepen') {
       setChat1IntroMode('default');
       setDiagnosisDeepenVoiceFindings(undefined);
@@ -2404,6 +2390,7 @@ export default function AgentPage() {
       return false;
     }
     haptic(8);
+    if (isMobileViewport) dismissMobileKeyboard();
 
     const result = await sendCoreAgentMessage(outgoingText, {
       agentPayload: options?.agentPayload,
@@ -2759,6 +2746,7 @@ export default function AgentPage() {
     setChat1IntroMode('deepen');
     setDiagnosisDeepenVoiceFindings(context?.voiceFindings?.filter(Boolean));
     welcomeInjectedThreadsRef.current.add(PRIMARY_CHAT_ID);
+    void syncFinancialContextToIntake().catch(() => {});
     setChatThreads((prev) =>
       prev.map((thread) =>
         thread.id === PRIMARY_CHAT_ID
@@ -2777,7 +2765,7 @@ export default function AgentPage() {
           : thread,
       ),
     );
-  }, []);
+  }, [syncFinancialContextToIntake]);
 
   const openInterviewModal = useCallback(async () => {
     if (blockFincoinSpend({ context: 'modal' })) return;
@@ -3672,8 +3660,6 @@ export default function AgentPage() {
     profile,
     setIsQuestionnaireModalOpen,
     setIsAccountModalOpen,
-    removeInjectedIntake,
-    removeInjectedProfile,
     agentMetaRef,
     interviewCard,
     interviewCompleted,
@@ -3741,7 +3727,16 @@ export default function AgentPage() {
   }
 
   const terminalComposerShell = (
-    <div
+    <div className="agent-composer-stack">
+      {hasBudgetTablePending && budgetTablePending && !isBudgetModalOpen ? (
+        <BudgetPendingConfirmBanner
+          summary={budgetTablePending.summary}
+          disabled={loading}
+          onConfirm={confirmBudgetTablePending}
+          onReject={rejectBudgetTablePending}
+        />
+      ) : null}
+      <div
       className={`agent-input-shell terminal-composer-shell${
         input.trim() ? ' has-composer-text' : ''
       }${isComposerFocused ? ' composer-focused' : ''}`}
@@ -3856,6 +3851,7 @@ export default function AgentPage() {
           <Send size={18} strokeWidth={1.8} aria-hidden="true" />
         </button>
       </div>
+    </div>
     </div>
   );
 
@@ -4145,23 +4141,13 @@ export default function AgentPage() {
         fincoinSpendBlocked={fincoinSpendBlocked}
         onClose={() => setIsBudgetModalOpen(false)}
         budgetTotals={budgetTotals}
-        budgetInsights={budgetInsights}
         budgetRows={budgetRows}
-        budgetProductOptions={Array.from(
-          new Set(
-            bankSimulation.products
-              .map((product) => String(product.label ?? '').trim())
-              .filter((label) => label.length > 0),
-          ),
-        )}
         budgetCompletion={budgetCompletion}
         budgetSignals={budgetSignals}
         updateBudgetRow={updateBudgetRow}
-        upsertBudgetRow={upsertBudgetRow}
         applyBudgetTableActions={applyBudgetTableActions}
         applyBudgetTemplate={applyBudgetTemplate}
         addBudgetRow={addBudgetRow}
-        addBudgetSubcategory={addBudgetSubcategory}
         deleteBudgetRow={deleteBudgetRow}
         sendBudgetToAgent={sendBudgetToAgent}
         chatAnswers={budgetChatAnswers}
@@ -4171,6 +4157,8 @@ export default function AgentPage() {
           bankSimulation.taxonomyOverrides,
         )}
         onBudgetPdfSaved={handleBudgetPdfSaved}
+        budgetPendingConfirmation={budgetTablePending}
+        onBudgetPendingConfirmationChange={setBudgetTablePending}
       />
 
       <InterviewModal

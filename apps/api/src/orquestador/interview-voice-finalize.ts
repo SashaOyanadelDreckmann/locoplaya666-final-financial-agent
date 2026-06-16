@@ -196,3 +196,62 @@ export function clampInterviewConfidence(
   if (ceiling === 'medium') return parsed === 'high' ? 'medium' : parsed;
   return parsed;
 }
+
+type VoiceMinuteSummary = {
+  minute?: number;
+  summary?: string;
+  keyFindings?: string[];
+  confidence?: string;
+};
+
+export function buildDeterministicVoiceFinalizeSnapshot(input: {
+  minuteSummaries: VoiceMinuteSummary[];
+  finalSummaryText: string;
+  transcriptSnippet?: string;
+  finalizeDepth: InterviewFinalizeDepth;
+  endedBy?: InterviewFinalizeEndedBy;
+}): {
+  executiveReport: string;
+  keyFindings: string[];
+  hasEnoughInformation: boolean;
+  confidence: 'high' | 'medium' | 'low';
+} {
+  const keyFindings = input.minuteSummaries
+    .flatMap((item) =>
+      Array.isArray(item.keyFindings)
+        ? item.keyFindings.map((finding) => String(finding ?? '').trim()).filter(Boolean)
+        : [],
+    )
+    .slice(0, input.finalizeDepth.maxKeyFindings);
+
+  const minuteLines = input.minuteSummaries
+    .map((item, index) => {
+      const label = typeof item.minute === 'number' ? `Minuto ${item.minute}` : `Minuto ${index + 1}`;
+      const summary = String(item.summary ?? '').trim();
+      return summary ? `${label}: ${summary}` : '';
+    })
+    .filter(Boolean);
+
+  const executiveReport =
+    input.finalSummaryText.trim() ||
+    minuteLines.join('\n') ||
+    String(input.transcriptSnippet ?? '').trim() ||
+    (input.finalizeDepth.tier === 'minimal'
+      ? 'Entrevista finalizada de forma anticipada. El diagnóstico quedó preliminar con la evidencia disponible hasta ese momento.'
+      : 'Entrevista finalizada. Se obtuvo un diagnóstico proporcional al avance de la llamada.');
+
+  let hasEnoughInformation = input.finalizeDepth.defaultHasEnoughInformation;
+  if (!input.finalizeDepth.defaultHasEnoughInformation && input.endedBy === 'user') {
+    hasEnoughInformation = false;
+  }
+  if (keyFindings.length > 0 || input.finalSummaryText.trim().length > 0) {
+    hasEnoughInformation = hasEnoughInformation || input.finalizeDepth.tier !== 'minimal';
+  }
+
+  return {
+    executiveReport,
+    keyFindings,
+    hasEnoughInformation,
+    confidence: clampInterviewConfidence(undefined, input.finalizeDepth.confidenceCeiling),
+  };
+}

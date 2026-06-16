@@ -18,9 +18,11 @@ type Props = {
   dossier: AdminUserDossier | null;
   loading: boolean;
   stage?: string;
+  pendingActionId?: string;
+  onRoleChange?: (userId: string, role: 'USER' | 'ANALYST' | 'ADMIN') => void | Promise<void>;
 };
 
-export function AdminUserDossierPanel({ dossier, loading, stage }: Props) {
+export function AdminUserDossierPanel({ dossier, loading, stage, pendingActionId, onRoleChange }: Props) {
   if (loading) {
     return <p className="admin-muted">Cargando expediente operativo…</p>;
   }
@@ -39,7 +41,22 @@ export function AdminUserDossierPanel({ dossier, loading, stage }: Props) {
           <p className="admin-card-sub">{user.email}</p>
         </div>
         <div className="admin-tags">
-          <span className={roleBadgeClass(user.role)}>{user.role}</span>
+          {onRoleChange ? (
+            <select
+              className="admin-select admin-select--compact"
+              value={user.role}
+              disabled={pendingActionId === user.id}
+              onChange={(event) =>
+                void onRoleChange(user.id, event.target.value as 'USER' | 'ANALYST' | 'ADMIN')
+              }
+            >
+              <option value="USER">USER</option>
+              <option value="ANALYST">ANALYST</option>
+              <option value="ADMIN">ADMIN</option>
+            </select>
+          ) : (
+            <span className={roleBadgeClass(user.role)}>{user.role}</span>
+          )}
           <span className={approvalBadgeClass(user.approvalStatus ?? 'APPROVED')}>
             {approvalLabel(user.approvalStatus ?? 'APPROVED')}
           </span>

@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import {
   buildPersistableBudgetContext,
+  canonicalBudgetRowId,
   computeBudgetCompletion,
   computeBudgetInsights,
   computeBudgetSignals,
@@ -14,11 +15,14 @@ import {
   type BudgetRow,
 } from '@/lib/presupuesto/filas.helpers';
 import {
-  mergeBudgetActionIntoRow,
-  normalizeBudgetActionRowId,
+  applyValidatedBudgetTableAction,
   validateBudgetTableActions,
   type BudgetTableAction,
 } from '@financial-agent/shared';
+
+function sameBudgetRowId(left: string, right: string): boolean {
+  return canonicalBudgetRowId(left) === canonicalBudgetRowId(right);
+}
 
 export function useBudgetRows(initialRows: BudgetRow[] = []) {
   const [budgetRows, setBudgetRows] = useState<BudgetRow[]>(initialRows);
@@ -37,7 +41,7 @@ export function useBudgetRows(initialRows: BudgetRow[] = []) {
   const updateBudgetRow = useCallback((id: string, field: keyof BudgetRow, value: string | number) => {
     setBudgetRows((rows) => {
       const updated = rows.map((row) =>
-        row.id === id
+        sameBudgetRowId(row.id, id)
           ? {
               ...row,
               [field]: field === 'amount' ? Number(value) || 0 : value,
@@ -47,7 +51,9 @@ export function useBudgetRows(initialRows: BudgetRow[] = []) {
       const propagated =
         field === 'type'
           ? updated.map((row) => {
-              const parent = updated.find((candidate) => candidate.id === row.parentId);
+              const parent = updated.find(
+                (candidate) => row.parentId && sameBudgetRowId(candidate.id, row.parentId),
+              );
               if (!parent) return row;
               if (row.type === parent.type) return row;
               return { ...row, type: parent.type };
@@ -82,9 +88,9 @@ export function useBudgetRows(initialRows: BudgetRow[] = []) {
   const addBudgetSubcategory = useCallback((parentId: string) => {
     setBudgetRows((rows) => {
       if (rows.length >= MAX_BUDGET_ROWS) return rows;
-      const parent = rows.find((row) => row.id === parentId);
+      const parent = rows.find((row) => sameBudgetRowId(row.id, parentId));
       if (!parent) return rows;
-      const siblings = rows.filter((row) => row.parentId === parentId);
+      const siblings = rows.filter((row) => row.parentId && sameBudgetRowId(row.parentId, parentId));
       const subRow: BudgetRow = {
         id: `${parentId}-sub-${Date.now()}`,
         parentId,
@@ -98,26 +104,23 @@ export function useBudgetRows(initialRows: BudgetRow[] = []) {
 
   const deleteBudgetRow = useCallback((id: string) => {
     setBudgetRows((rows) => {
-      const deleteSet = new Set([id]);
-      let changed = true;
-      while (changed) {
-        changed = false;
-        rows.forEach((row) => {
-          if (row.parentId && deleteSet.has(row.parentId) && !deleteSet.has(row.id)) {
-            deleteSet.add(row.id);
-            changed = true;
-          }
-        });
+      const validated = validateBudgetTableActions([{ kind: 'delete', id }], rows);
+      if (validated.length === 0) return rows;
+      let next = rows;
+      for (const action of validated) {
+        next = applyValidatedBudgetTableAction(next, action);
       }
-      return reconcileBudgetRows(rows.filter((row) => !deleteSet.has(row.id)));
+      return reconcileBudgetRows(next);
     });
   }, []);
 
   const upsertBudgetRow = useCallback((row: BudgetRow) => {
     setBudgetRows((rows) => {
-      const idx = rows.findIndex((item) => item.id === row.id);
+      const idx = rows.findIndex((item) => sameBudgetRowId(item.id, row.id));
       if (idx >= 0) {
-        return reconcileBudgetRows(rows.map((item) => (item.id === row.id ? { ...item, ...row } : item)));
+        return reconcileBudgetRows(
+          rows.map((item) => (sameBudgetRowId(item.id, row.id) ? { ...item, ...row } : item)),
+        );
       }
       if (rows.length >= MAX_BUDGET_ROWS) return rows;
       return reconcileBudgetRows([...rows, row]);
@@ -128,35 +131,10 @@ export function useBudgetRows(initialRows: BudgetRow[] = []) {
     if (!Array.isArray(actions) || actions.length === 0) return;
     setBudgetRows((rows) => {
       const validated = validateBudgetTableActions(actions, rows);
-      let next = [...rows];
+      if (validated.length === 0) return rows;
+      let next = rows;
       for (const action of validated) {
-        const rowId = normalizeBudgetActionRowId(action.id);
-        if (!rowId) continue;
-        if (action.kind === 'delete') {
-          const deleteSet = new Set([rowId]);
-          let changed = true;
-          while (changed) {
-            changed = false;
-            next.forEach((row) => {
-              if (row.parentId && deleteSet.has(row.parentId) && !deleteSet.has(row.id)) {
-                deleteSet.add(row.id);
-                changed = true;
-              }
-            });
-          }
-          next = next.filter((row) => !deleteSet.has(row.id));
-          continue;
-        }
-        const existing =
-          next.find((row) => normalizeBudgetActionRowId(row.id) === rowId) ?? null;
-        const merged = mergeBudgetActionIntoRow(existing, { ...action, id: rowId });
-        if (!merged) continue;
-        const idx = next.findIndex((row) => normalizeBudgetActionRowId(row.id) === rowId);
-        if (idx >= 0) {
-          next[idx] = { ...next[idx], ...merged };
-        } else if (next.length < MAX_BUDGET_ROWS) {
-          next.push(merged);
-        }
+        next = applyValidatedBudgetTableAction(next, action);
       }
       return reconcileBudgetRows(next);
     });

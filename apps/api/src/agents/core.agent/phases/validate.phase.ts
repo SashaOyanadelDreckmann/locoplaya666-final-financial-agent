@@ -23,9 +23,11 @@ export async function runValidatePhase(input: ValidatePhaseInput): Promise<Valid
 
   try {
     input.stream?.phase('validate', 'start');
-    const hasBudgetUpdates =
-      Array.isArray(input.formatted_response.budget_updates) &&
-      input.formatted_response.budget_updates.length > 0;
+    const hasBudgetPatch = Boolean(
+      input.formatted_response.budget_table_patch &&
+        (input.formatted_response.budget_table_patch.actions.length > 0 ||
+          input.formatted_response.budget_table_patch.pending_confirmation),
+    );
     const activeChatId = String(
       (input.ui_state?.active_chat as { id?: string } | undefined)?.id ?? '',
     );
@@ -56,7 +58,7 @@ export async function runValidatePhase(input: ValidatePhaseInput): Promise<Valid
         'comparison',
         'regulation',
       ].includes(input.mode) ||
-        hasBudgetUpdates ||
+        hasBudgetPatch ||
         chat2DeliverStage);
 
     if (!shouldValidate) {
@@ -92,8 +94,8 @@ export async function runValidatePhase(input: ValidatePhaseInput): Promise<Valid
 
       message_updated = `${warningText}\n\n${input.formatted_response.message}`;
 
-      // Don't auto-execute budget updates if incoherent
-      input.formatted_response.budget_updates = [];
+      // Don't auto-execute budget patch if incoherent
+      input.formatted_response.budget_table_patch = undefined;
 
       logger.warn({
         msg: '[Validate] Incoherent response detected',

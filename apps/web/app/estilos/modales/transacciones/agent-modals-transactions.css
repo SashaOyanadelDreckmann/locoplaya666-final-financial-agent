@@ -448,7 +448,7 @@
 }
 
 .account-modal{
-  max-width: 420px;
+  max-width: 560px;
 }
 
 .account-modal-actions{
@@ -533,6 +533,57 @@
   font-size: 13px;
   color: var(--fg);
   line-height: 1.35;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.account-modal .questionnaire-response-item{
+  min-width: 0;
+}
+
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+  .account-modal{
+    max-width: 100% !important;
+  }
+
+  .account-modal-actions{
+    padding: 12px 14px calc(12px + env(safe-area-inset-bottom, 0px)) !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .account-modal .account-modal-info-grid,
+  .account-modal .questionnaire-response-grid{
+    grid-template-columns: 1fr !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    overflow-x: hidden !important;
+    box-sizing: border-box !important;
+  }
+
+  .account-modal .questionnaire-response-item{
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+  }
+
+  .account-modal .questionnaire-response-item strong{
+    max-width: 100% !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+    white-space: normal !important;
+  }
+
+  .account-modal .agent-modal-intro,
+  .account-modal .account-modal-intro{
+    max-width: 100% !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+    box-sizing: border-box !important;
+  }
 }
 
 .questionnaire-insights{
@@ -9235,18 +9286,39 @@ input[type="radio"]:checked{
 }
 
 .citation-stack{
-  padding: 12px !important;
-  gap: 10px !important;
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: wrap !important;
+  align-items: flex-start !important;
+  padding: 6px !important;
+  gap: 4px !important;
 }
 
 .citation-bubble{
-  max-width: 100% !important;
-  border-radius: 11px !important;
+  display: inline-flex !important;
+  width: auto !important;
+  max-width: min(24vw, 140px) !important;
+  flex: 0 1 auto !important;
+  padding: 3px 6px !important;
+  border-radius: 6px !important;
   border: 1px solid rgba(var(--chat-accent-rgb), 0.22) !important;
-  border-left: 4px solid rgba(var(--chat-accent-rgb), 0.86) !important;
+  border-left: 2px solid rgba(var(--chat-accent-rgb), 0.86) !important;
   background:
     linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0.28)) !important;
   box-shadow: none !important;
+  font-size: 9px !important;
+  line-height: 1.2 !important;
+}
+
+.citation-bubble strong{
+  font-size: 9px !important;
+  font-weight: 600 !important;
+  line-height: 1.2 !important;
+}
+
+.citation-bubble a{
+  font-size: 8px !important;
+  line-height: 1.15 !important;
 }
 
 .citation-pill{

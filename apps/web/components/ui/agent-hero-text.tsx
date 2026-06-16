@@ -21,6 +21,7 @@ type AgentHeroTextProps = {
   budgetRows?: BudgetRow[];
   question?: string | null;
   assistantToneClass?: string | null;
+  questionId?: string;
 };
 
 function renderStableTypewriterNodes(
@@ -105,6 +106,7 @@ export function AgentHeroText({
   budgetRows = [],
   question = null,
   assistantToneClass = null,
+  questionId,
 }: AgentHeroTextProps) {
   const highlightTerms = useMemo(
     () =>
@@ -119,6 +121,7 @@ export function AgentHeroText({
 
   return (
     <h1
+      id={questionId}
       className={cn(
         'bcc-hero-question bcc-hero-question--gradient-demo text-center',
         pending && 'bcc-hero-question--pending',

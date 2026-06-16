@@ -29,6 +29,14 @@ import { buildRecommendationProfile } from './helpers/recommendation-profile.hel
 import { buildReferenceDateContext } from './helpers/evidence.helpers';
 import { normalizeCoreAgentPanelSection } from './helpers/chart-extraction.helpers';
 import { getLogger } from '../../logger';
+import {
+  buildCoreAgentTrivialResponse,
+  isCoreAgentTrivialTurn,
+} from './helpers/core-agent-fast-path.helpers';
+import {
+  buildFinancialEvidenceSnapshot,
+  resolveAgentBudgetRows,
+} from './helpers/agent-financial-evidence.helpers';
 
 // Maps each reasoning mode to its inherent regulatory/financial risk level.
 // Lower = safe educational content; higher = direct advice or complex operations.
@@ -90,6 +98,25 @@ export async function runCoreAgent(
 
     stream?.emit({ type: 'run.start', turn_id, ts: Date.now() });
 
+    if (isCoreAgentTrivialTurn(input.user_message)) {
+      stream?.phase('classify', 'done', { mode: 'information', detail: 'trivial_turn' });
+      stream?.phase('execute', 'done');
+      stream?.phase('format', 'done');
+      stream?.phase('knowledge', 'start');
+      stream?.phase('knowledge', 'done');
+      const trivial = buildCoreAgentTrivialResponse(input);
+      const validatedTrivial = ChatAgentResponseSchema.safeParse(trivial);
+      if (!validatedTrivial.success) {
+        throw new Error(`Trivial response validation failed: ${JSON.stringify(validatedTrivial.error.issues)}`);
+      }
+      logger.info({
+        msg: '[Agent] Trivial fast-path complete',
+        turn_id,
+        latency_ms: Date.now() - started_at,
+      });
+      return validatedTrivial.data;
+    }
+
     // ────────────────────────────────────────────────
     // PHASE 1: CLASSIFY
     // ────────────────────────────────────────────────
@@ -128,12 +155,46 @@ export async function runCoreAgent(
       closingMode: inputUiState.product_closing_mode === true,
     });
 
+    const persistedBudgetContext =
+      inputContext.persisted_budget_context &&
+      typeof inputContext.persisted_budget_context === 'object'
+        ? (inputContext.persisted_budget_context as Record<string, unknown>)
+        : {};
+    const budgetRows = resolveAgentBudgetRows({
+      uiState: inputUiState,
+      persistedBudgetContext,
+    });
+    const productLifecycle =
+      inputContext.product_lifecycle && typeof inputContext.product_lifecycle === 'object'
+        ? (inputContext.product_lifecycle as Record<string, unknown>)
+        : {};
+    const unlockedModules =
+      inputUiState.unlocked_modules && typeof inputUiState.unlocked_modules === 'object'
+        ? (inputUiState.unlocked_modules as Record<string, unknown>)
+        : {};
+    const financialEvidence = buildFinancialEvidenceSnapshot({
+      injectedBudget: ctx.injected_budget,
+      budgetRows,
+      consolidatedContext:
+        inputContext.consolidated_context && typeof inputContext.consolidated_context === 'object'
+          ? (inputContext.consolidated_context as Record<string, unknown>)
+          : {},
+      injectedProfile: ctx.injected_profile,
+      injectedIntake: ctx.injected_intake,
+      productPhase: inputUiState.product_phase ?? productLifecycle.phase,
+      interviewCompleted:
+        unlockedModules.post_diagnosis_chats === true ||
+        productLifecycle.interviewCompleted === true,
+    });
+
     // Build context summary
     const context_summary = {
       ...buildReferenceDateContext(),
       profile: ctx.injected_profile,
       intake: ctx.injected_intake,
       budget: ctx.injected_budget,
+      budget_rows: budgetRows,
+      financial_evidence: financialEvidence,
       persistent_memory: ctx.injected_memory?.persistent || [],
       session_memory: inputContext.session_memory || null,
       realtime_memory: inputContext.realtime_memory || null,
@@ -150,6 +211,7 @@ export async function runCoreAgent(
       ui_state_snapshot: {
         active_chat: inputUiState.active_chat || null,
         budget_summary: inputUiState.budget_summary || null,
+        budget_rows: budgetRows,
         milestone_details: inputUiState.milestone_details || [],
         flow_status: inputUiState.flow_status || null,
         product_turns_remaining: inputUiState.product_turns_remaining ?? null,
@@ -310,12 +372,7 @@ export async function runCoreAgent(
         section: normalizeCoreAgentPanelSection(ctx.formatted_response.panel_action.section),
         message: ctx.formatted_response.panel_action.message,
       } : undefined,
-      budget_updates: ctx.formatted_response.budget_updates?.map((update) => ({
-        label: update.label,
-        type: update.type as 'income' | 'expense',
-        amount: update.amount,
-        category: update.category,
-      })),
+      budget_table_patch: ctx.formatted_response.budget_table_patch,
       knowledge_score: knowledge.knowledge_score,
       knowledge_event_detected: knowledge.knowledge_event_detected,
       milestone_unlocked: knowledge.milestone_unlocked,

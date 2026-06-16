@@ -11,6 +11,7 @@ import {
   detectAndRecordKnowledge,
   ensureDecisionDisclaimer,
   shouldApplyLatexFormatting,
+  shouldReuseExecuteDraft,
 } from './format.phase';
 import * as testUtils from '../../../test/mocks';
 import type { ExecutionResult } from '../agent-types';
@@ -189,7 +190,7 @@ Generar informes: PDFs personalizados que se guardan en tu panel
       context_summary: {},
     });
 
-    expect(result.formatted_response.budget_updates).toEqual([]);
+    expect(result.formatted_response.budget_table_patch).toBeUndefined();
   });
 
   it('should handle malformed tag gracefully', async () => {
@@ -224,12 +225,13 @@ invalid json
     expect(result.formatted_response.suggested_replies).toEqual([]);
   });
 
-  it('should not duplicate decision disclaimer when recent context already contains it', () => {
+  it('should not duplicate regulatory disclaimer when recent context already contains it', () => {
     const input = {
       mode: 'decision_support',
       user_message: '¿Me conviene APV?',
       context_summary: {
-        recent_thread_context: 'Decision final: debe tomarla el usuario de forma 100% informada.',
+        recent_thread_context:
+          'Aviso legal: este asistente no está respaldado ni supervisado por la CMF para emitir recomendaciones.',
       },
       ui_state: {
         active_chat: { id: 'chat-2' },
@@ -237,7 +239,7 @@ invalid json
     } as any;
 
     const result = ensureDecisionDisclaimer('Te conviene revisar liquidez antes de invertir.', input);
-    expect(result).not.toMatch(/decision final/i);
+    expect(result).not.toMatch(/aviso legal/i);
   });
 
   it('should always use Claude for formatting, even for low-complexity turns', async () => {
@@ -360,5 +362,33 @@ describe('detectAndRecordKnowledge', () => {
       'APV: con $100.000 mensuales y un retorno esperado de 8% anual, el foco es comparar beneficio fiscal y liquidez.';
 
     expect(shouldApplyLatexFormatting(text)).toBe(false);
+  });
+
+  it('should reuse execute draft for simple informational turns', () => {
+    const input = {
+      mode: 'information' as const,
+      user_message: '¿Qué es la inflación?',
+      execution_result: {
+        tool_calls: [
+          {
+            id: 'prefetch-web-1',
+            tool: 'web.search',
+            args: {},
+            status: 'success' as const,
+          },
+        ],
+        tool_outputs: [],
+        artifacts: [],
+        agent_blocks: [],
+        citations: [],
+        react_trace: [],
+        iterations_count: 1,
+        assistant_draft: 'Esta es una respuesta directa del planner sin herramientas adicionales.',
+      },
+      context_summary: {},
+      ui_state: {},
+    };
+
+    expect(shouldReuseExecuteDraft(input as any)).toBe(true);
   });
 });

@@ -9,8 +9,11 @@ describe('interview storage safeguards', () => {
     const storeSource = fs.readFileSync(storePath, 'utf8');
     const voiceStatePath = path.join(process.cwd(), 'lib', 'sesion', 'interviewVoiceState.ts');
     const voiceStateSource = fs.readFileSync(voiceStatePath, 'utf8');
+    const pagePath = path.join(process.cwd(), 'app', 'agent', 'page.tsx');
+    const pageSource = fs.readFileSync(pagePath, 'utf8');
 
     expect(storeSource).toContain('storage: createJSONStorage(() => sessionStorage)');
+    expect(storeSource).toContain('clearPersistedInterviewState');
     expect(storeSource).not.toContain('answersByBlock: state.answersByBlock');
     expect(storeSource).not.toContain('transcriptEntries: state.transcriptEntries');
     expect(storeSource).not.toContain('lastResponse: state.lastResponse');
@@ -18,5 +21,7 @@ describe('interview storage safeguards', () => {
     expect(voiceStateSource).toContain('window.sessionStorage.getItem(INTERVIEW_UI_STATE_KEY)');
     expect(voiceStateSource).toContain('window.sessionStorage.setItem(INTERVIEW_UI_STATE_KEY, raw);');
     expect(voiceStateSource).not.toContain('window.localStorage');
+
+    expect(pageSource).toContain('clearPersistedInterviewState()');
   });
 });

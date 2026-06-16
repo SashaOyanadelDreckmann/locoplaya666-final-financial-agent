@@ -90,7 +90,7 @@ describe('budget-chat assistant flow smoke', () => {
       products: [],
     });
     expect(init.status).toBe(200);
-    expect(init.body.source).toBe('budget_agent_init');
+    expect(init.body.source).toBe('deterministic_init');
 
     vi.mocked(runBudgetChatAgent).mockResolvedValueOnce({
       assistant_reply: 'Actualizo sueldo.',

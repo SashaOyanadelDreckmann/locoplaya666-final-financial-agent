@@ -108,6 +108,40 @@ describe('product lifecycle ordering', () => {
     expect(decision.blocked).toBe(true);
   });
 
+  it('uses post-diagnosis chat-1 directive when budget and transactions are loaded', () => {
+    const decision = buildLifecycleDecision({
+      input: makeInput({
+        context: {
+          uploaded_documents: [{ name: 'cartola.csv', text: 'Fecha;Detalle;Cargo;Abono;Saldo' }],
+          injected_budget: { income: 1800000, expenses: 1200000, balance: 600000 },
+          injected_profile: { diagnosticNarrative: 'Perfil estable' },
+          product_lifecycle: { interviewCompleted: true },
+        },
+        ui_state: {
+          active_chat: { id: 'chat-1', label: 'Core', name: 'Chat general' },
+          unlocked_modules: { interview: true, post_diagnosis_chats: true, budget: true, transactions: true },
+          budget_summary: { income: 1800000, expenses: 1200000, balance: 600000, rows_count: 6 },
+          budget_rows: [{ id: 'expense_rent', category: 'Arriendo', type: 'expense', amount: 450000 }],
+        },
+      }),
+      memoryBlob: {
+        productLifecycle: {
+          phase: 'diagnosis_ready',
+          unlockedChats: ['chat-1', 'chat-2', 'chat-3'],
+          chatTurns: { 'chat-1': 1, 'chat-2': 0, 'chat-3': 0 },
+          closedChats: [],
+          reports: [],
+        },
+      },
+      hasIntake: true,
+    });
+
+    expect(decision.systemDirective).toContain('CHAT 1 POST-DIAGNOSTICO');
+    expect(decision.systemDirective).toContain('NUNCA pidas re-subir presupuesto ni cartolas');
+    expect(decision.systemDirective).toContain('PRESUPUESTO VERIFICADO EN CONTEXTO');
+    expect(decision.systemDirective).not.toContain('recomienda subir transacciones del mes');
+  });
+
   it('unlocks chats 2 and 3 when diagnosis is ready', () => {
     const decision = buildLifecycleDecision({
       input: makeInput({
@@ -123,6 +157,33 @@ describe('product lifecycle ordering', () => {
         },
       }),
       memoryBlob: null,
+      hasIntake: true,
+    });
+
+    expect(decision.state.phase).toBe('diagnosis_ready');
+    expect(decision.state.unlockedChats).toEqual(['chat-1', 'chat-2', 'chat-3']);
+    expect(decision.blocked).toBe(false);
+  });
+
+  it('keeps chats 2 and 3 unlocked after diagnosis even if panel data is cleared', () => {
+    const decision = buildLifecycleDecision({
+      input: makeInput({
+        context: {},
+        ui_state: {
+          active_chat: { id: 'chat-2', label: 'Plan', name: 'Plan' },
+          unlocked_modules: { post_diagnosis_chats: true },
+          budget_summary: { income: 0, expenses: 0, balance: 0 },
+        },
+      }),
+      memoryBlob: {
+        productLifecycle: {
+          phase: 'diagnosis_ready',
+          unlockedChats: ['chat-1', 'chat-2', 'chat-3'],
+          chatTurns: { 'chat-1': 0, 'chat-2': 0, 'chat-3': 0 },
+          closedChats: [],
+          reports: [],
+        },
+      },
       hasIntake: true,
     });
 

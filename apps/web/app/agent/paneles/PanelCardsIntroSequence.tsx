@@ -18,17 +18,18 @@ import {
   computeMobileDeckDockTargets,
   getMobileDeckCardNaturalSize,
 } from './panel-cards-intro.mobile-dock';
-import { markPanelIntroCompleted, clearPendingPanelIntroFromIntake } from './panel-intro.prefs';
+import { markPanelIntroCompleted } from './panel-intro.prefs';
 import type { PanelIntroHandoffOrigin, PanelIntroPhase } from './panel-intro.types';
 
-const ENTER_MS = 360;
-const SPOTLIGHT_MS = 2000;
-const SHELL_MS = 440;
-const CARD_ASSEMBLE_STAGGER_MS = 128;
-const ASSEMBLE_FIRST_CARD_MS = 72;
-const ASSEMBLE_TAIL_MS = 500;
-const SETTLE_MS = 360;
-const FADE_OUT_MS = 380;
+const ENTER_MS = 420;
+const SPOTLIGHT_MS = 1480;
+const SPOTLIGHT_FINALE_MS = 1080;
+const SHELL_MS = 360;
+const CARD_ASSEMBLE_STAGGER_MS = 96;
+const ASSEMBLE_FIRST_CARD_MS = 56;
+const ASSEMBLE_TAIL_MS = 420;
+const SETTLE_MS = 320;
+const FADE_OUT_MS = 340;
 
 export type { PanelIntroPhase };
 
@@ -216,6 +217,25 @@ export function PanelCardsIntroSequence(props: {
     });
   }, []);
 
+  const advanceIntro = useCallback(() => {
+    if (exitStartedRef.current || skipStartedRef.current || exiting) return;
+
+    if (phase === 'enter') {
+      propsRef.current.onHaptic?.(4);
+      setPhase('spotlight');
+      return;
+    }
+
+    if (phase !== 'spotlight') return;
+
+    propsRef.current.onHaptic?.(3);
+    if (activeIndexRef.current >= totalCards - 1) {
+      beginShellReveal();
+      return;
+    }
+    setActiveIndex((index) => Math.min(index + 1, totalCards - 1));
+  }, [beginShellReveal, exiting, phase, totalCards]);
+
   const finish = useCallback(() => {
     if (exitStartedRef.current) return;
     exitStartedRef.current = true;
@@ -242,7 +262,6 @@ export function PanelCardsIntroSequence(props: {
 
   useEffect(() => {
     if (!portalReady) setPortalReady(true);
-    clearPendingPanelIntroFromIntake();
     propsRef.current.onPhaseChange?.('morph');
   }, [portalReady]);
 
@@ -278,6 +297,7 @@ export function PanelCardsIntroSequence(props: {
   useEffect(() => {
     if (phase !== 'spotlight' || exiting) return;
 
+    const dwellMs = activeIndex >= totalCards - 1 ? SPOTLIGHT_FINALE_MS : SPOTLIGHT_MS;
     const timer = window.setTimeout(() => {
       if (activeIndex >= totalCards - 1) {
         beginShellReveal();
@@ -285,7 +305,7 @@ export function PanelCardsIntroSequence(props: {
       }
       setActiveIndex((index) => Math.min(index + 1, totalCards - 1));
       propsRef.current.onHaptic?.(5);
-    }, SPOTLIGHT_MS);
+    }, dwellMs);
 
     return () => window.clearTimeout(timer);
   }, [phase, activeIndex, exiting, totalCards, beginShellReveal]);
@@ -333,12 +353,20 @@ export function PanelCardsIntroSequence(props: {
       if (event.key === 'Escape') {
         event.preventDefault();
         skipToPanel();
+        return;
+      }
+      if (
+        (event.key === 'ArrowRight' || event.key === ' ') &&
+        (phase === 'enter' || phase === 'spotlight')
+      ) {
+        event.preventDefault();
+        advanceIntro();
       }
     };
 
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [exiting, skipToPanel]);
+  }, [exiting, skipToPanel, advanceIntro, phase]);
 
   if (!portalReady) return null;
 
@@ -388,9 +416,11 @@ export function PanelCardsIntroSequence(props: {
         isMobileViewport={props.isMobileViewport}
         panelGridRef={props.panelGridRef}
         reducedMotion={reducedMotion}
-        spotlightDurationMs={SPOTLIGHT_MS}
+        spotlightDurationMs={
+          activeIndex >= totalCards - 1 ? SPOTLIGHT_FINALE_MS : SPOTLIGHT_MS
+        }
         revealedCount={revealedCount}
-        autoPlay
+        onAdvance={advanceIntro}
       />
     </motion.div>,
     document.body,

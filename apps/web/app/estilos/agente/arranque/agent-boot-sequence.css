@@ -16,31 +16,74 @@ body.agent-boot-active {
   z-index: 2147483000;
   display: grid;
   place-items: center;
-  background: #030508;
+  background: #020408;
   color: rgba(238, 245, 252, 0.98);
   pointer-events: auto;
   isolation: isolate;
+  touch-action: none;
+  padding:
+    max(0px, env(safe-area-inset-top, 0px))
+    max(0px, env(safe-area-inset-right, 0px))
+    max(0px, env(safe-area-inset-bottom, 0px))
+    max(0px, env(safe-area-inset-left, 0px));
+}
+
+.agent-boot-overlay__backdrop {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 58% 48% at 50% 36%, rgba(183, 166, 106, 0.1), transparent 64%),
+    radial-gradient(ellipse 72% 52% at 50% 108%, rgba(56, 189, 248, 0.05), transparent 70%),
+    radial-gradient(circle at 50% 50%, rgba(8, 12, 20, 0.4), transparent 72%),
+    #020408;
+}
+
+.agent-boot-overlay__backdrop::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0.32;
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.035) 1px, transparent 0);
+  background-size: 28px 28px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 42%, #000 20%, transparent 78%);
+  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 42%, #000 20%, transparent 78%);
+}
+
+.agent-boot-overlay.is-intake-handoff .agent-boot-void {
+  opacity: 0;
+}
+
+.agent-boot-overlay.is-intake-handoff.is-void .agent-boot-stage {
+  opacity: 0;
+  transform: translateY(10px) scale(0.98);
+  filter: blur(4px);
 }
 
 .agent-boot-skip {
-  position: fixed;
-  top: max(14px, env(safe-area-inset-top, 0px));
-  right: max(14px, env(safe-area-inset-right, 0px));
-  z-index: 2147483010;
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 14px;
+  padding: 6px 12px;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(6, 10, 16, 0.72);
   color: rgba(236, 244, 252, 0.88);
-  font-size: 11px;
+  font-size: 10px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   cursor: pointer;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
+  transition:
+    border-color 200ms ease,
+    background 200ms ease;
+}
+
+.agent-boot-skip--inline {
+  flex-shrink: 0;
+  margin: 0;
 }
 
 .agent-boot-skip:hover {
@@ -266,7 +309,48 @@ body.agent-boot-active {
   position: relative;
   z-index: 1;
   width: 100%;
-  gap: 10px !important;
+  gap: 0 !important;
+}
+
+.agent-boot-terminal.agent-input.terminal-composer {
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: clamp(280px, 52vh, 460px) !important;
+  padding: 0 !important;
+  border-radius: 18px !important;
+  border: 1px solid rgba(183, 166, 106, 0.14) !important;
+  background: linear-gradient(
+    180deg,
+    rgba(2, 8, 14, 0.94),
+    rgba(2, 8, 14, 0.98)
+  ) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 24px 56px rgba(0, 0, 0, 0.55),
+    0 0 48px rgba(183, 166, 106, 0.06) !important;
+  overflow: hidden;
+}
+
+.agent-boot-terminal-header {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 10px 14px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(
+    180deg,
+    rgba(8, 14, 22, 0.92),
+    rgba(4, 10, 16, 0.88)
+  );
+}
+
+.agent-boot-terminal-header__chrome {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
 }
 
 .agent-boot-terminal-glow {
@@ -285,29 +369,13 @@ body.agent-boot-active {
   filter: blur(8px);
 }
 
-.agent-boot-terminal.agent-input.terminal-composer {
-  min-height: clamp(280px, 52vh, 460px) !important;
-  padding: 12px 14px 10px !important;
-  border-radius: 18px !important;
-  border: 1px solid rgba(255, 255, 255, 0.16) !important;
-  background: linear-gradient(
-    180deg,
-    rgba(2, 8, 14, 0.94),
-    rgba(2, 8, 14, 0.98)
-  ) !important;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.1),
-    0 24px 56px rgba(0, 0, 0, 0.55),
-    0 0 0 1px rgba(255, 255, 255, 0.04) !important;
-}
-
 .agent-boot-terminal-head.terminal-composer-head {
   display: flex !important;
   align-items: center;
   gap: 10px;
-  padding: 0 2px 6px !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  margin-bottom: 4px;
+  padding: 0 2px 8px !important;
+  border-bottom: none;
+  margin-bottom: 0;
 }
 
 .agent-boot-terminal-prompt {
@@ -336,10 +404,10 @@ body.agent-boot-active {
 
 .agent-boot-code {
   flex: 1 1 auto;
-  min-height: clamp(180px, 36vh, 320px);
-  max-height: clamp(220px, 40vh, 360px);
+  min-height: 0;
+  max-height: none;
   margin: 0;
-  padding: 4px 2px 2px;
+  padding: 12px 14px 14px;
   overflow: auto;
   overflow-x: hidden;
   scrollbar-width: thin;
@@ -435,9 +503,9 @@ body.agent-boot-active {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
   font-family: "JetBrains Mono", ui-monospace, monospace;
   font-size: 11px;
   letter-spacing: 0.06em;
@@ -462,7 +530,7 @@ body.agent-boot-active {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, #38bdf8 0%, #a78bfa 52%, #f472b6 100%);
+  background: linear-gradient(90deg, #b7a66a, rgba(183, 166, 106, 0.72) 52%, #38bdf8 100%);
   transition: width 260ms cubic-bezier(0.16, 1, 0.3, 1);
   overflow: hidden;
 }
@@ -493,10 +561,14 @@ body.agent-boot-active {
   display: flex !important;
   align-items: center !important;
   gap: 8px !important;
-  padding: 0 4px !important;
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0 !important;
 }
 
-.agent-boot-controls.terminal-composer-controls > div {
+.agent-boot-controls.terminal-composer-controls > div,
+.agent-boot-controls.terminal-composer-controls .composer-icon-btn,
+.agent-boot-controls.terminal-composer-controls button:not(.agent-boot-skip--inline) {
   display: none !important;
 }
 
@@ -532,14 +604,29 @@ body.agent-boot-active {
     width: calc(100vw - 20px);
   }
 
+  .agent-boot-terminal-header {
+    padding: 8px 10px 10px;
+  }
+
+  .agent-boot-terminal-header__chrome {
+    margin-bottom: 8px;
+  }
+
+  .agent-boot-skip--inline .agent-boot-skip__hint {
+    display: none;
+  }
+
+  .agent-boot-control-caption {
+    display: none;
+  }
+
   .agent-boot-terminal.agent-input.terminal-composer {
     min-height: clamp(300px, 58vh, 420px) !important;
     border-radius: 16px !important;
   }
 
   .agent-boot-code {
-    min-height: clamp(200px, 42vh, 300px);
-    max-height: clamp(240px, 46vh, 340px);
+    padding: 10px 12px 12px;
     font-size: 11px;
   }
 

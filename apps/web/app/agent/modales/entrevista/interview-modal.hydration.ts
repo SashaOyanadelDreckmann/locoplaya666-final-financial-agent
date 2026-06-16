@@ -4,6 +4,79 @@ import { resolveInterviewActiveQuota, resolveUsedSecondsFromSources } from './in
 
 export const DEFAULT_MAX_CALL_DURATION_SEC = INTERVIEW_TOTAL_LIMIT_SEC;
 
+const COVERAGE_TIERS = new Set<InterviewVoiceReport['coverage_tier']>([
+  'minimal',
+  'partial',
+  'substantial',
+  'complete',
+]);
+
+function normalizeVoiceReportKeyFindings(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => String(item ?? '').trim()).filter(Boolean);
+}
+
+function normalizeVoiceReportConfidence(value: unknown): InterviewVoiceReport['confidence'] | undefined {
+  return value === 'high' || value === 'medium' || value === 'low' ? value : undefined;
+}
+
+function normalizeVoiceReportCoverageTier(value: unknown): InterviewVoiceReport['coverage_tier'] | undefined {
+  return typeof value === 'string' && COVERAGE_TIERS.has(value as InterviewVoiceReport['coverage_tier'])
+    ? (value as InterviewVoiceReport['coverage_tier'])
+    : undefined;
+}
+
+/** Server finalize persists `lastReport`; client snapshots use `voiceReport`. */
+export function resolvePersistedVoiceReport(
+  snapshot: InterviewVoiceSnapshot | Record<string, unknown> | null | undefined,
+): InterviewVoiceReport | null {
+  if (!snapshot || typeof snapshot !== 'object') return null;
+
+  const source = snapshot as Record<string, unknown>;
+  const coverageTier = normalizeVoiceReportCoverageTier(source.coverageTier);
+
+  const direct = source.voiceReport;
+  if (direct && typeof direct === 'object') {
+    const report = direct as Record<string, unknown>;
+    const executiveReport = String(report.executive_report ?? '').trim();
+    if (executiveReport) {
+      return {
+        executive_report: executiveReport,
+        key_findings: normalizeVoiceReportKeyFindings(report.key_findings),
+        stop_reason: typeof report.stop_reason === 'string' ? report.stop_reason : undefined,
+        has_enough_information:
+          typeof report.has_enough_information === 'boolean' ? report.has_enough_information : undefined,
+        confidence: normalizeVoiceReportConfidence(report.confidence),
+        coverage_tier: normalizeVoiceReportCoverageTier(report.coverage_tier) ?? coverageTier,
+      };
+    }
+  }
+
+  const lastReport = source.lastReport;
+  if (lastReport && typeof lastReport === 'object') {
+    const report = lastReport as Record<string, unknown>;
+    const executiveReport = String(report.executive_report ?? '').trim();
+    if (executiveReport) {
+      return {
+        executive_report: executiveReport,
+        key_findings: normalizeVoiceReportKeyFindings(report.key_findings),
+        stop_reason:
+          typeof report.ended_by === 'string'
+            ? report.ended_by
+            : typeof report.stop_reason === 'string'
+              ? report.stop_reason
+              : undefined,
+        has_enough_information:
+          typeof report.has_enough_information === 'boolean' ? report.has_enough_information : undefined,
+        confidence: normalizeVoiceReportConfidence(report.confidence),
+        coverage_tier: normalizeVoiceReportCoverageTier(report.coverage_tier) ?? coverageTier,
+      };
+    }
+  }
+
+  return null;
+}
+
 export type HydratedInterviewVoiceState = {
   callsStarted: number;
   callSeconds: number;
@@ -31,7 +104,7 @@ export function mergeInterviewVoiceSnapshots(
 ): InterviewVoiceSnapshot | null {
   if (!localSaved && !sessionVoice) return null;
 
-  return {
+  const merged = {
     ...(localSaved ?? {}),
     ...(sessionVoice
       ? {
@@ -40,15 +113,23 @@ export function mergeInterviewVoiceSnapshots(
           maxDurationSec: sessionVoice.maxDurationSec ?? localSaved?.maxDurationSec,
           status: sessionVoice.status ?? localSaved?.status,
           completedAt: sessionVoice.completedAt ?? localSaved?.completedAt,
-          voiceReport: sessionVoice.voiceReport ?? localSaved?.voiceReport,
           minuteSummaries: sessionVoice.minuteSummaries ?? localSaved?.minuteSummaries,
           finalSummary: sessionVoice.finalSummary ?? localSaved?.finalSummary ?? null,
           callId: sessionVoice.activeCallId ?? sessionVoice.callId ?? localSaved?.callId,
           callSeconds: resolveInterviewUsedSeconds(sessionVoice, localSaved),
           totalUsedSec: resolveInterviewUsedSeconds(sessionVoice, localSaved),
+          coverageTier: sessionVoice.coverageTier ?? localSaved?.coverageTier,
+          lastReport: sessionVoice.lastReport ?? localSaved?.lastReport,
         }
       : {}),
   } as InterviewVoiceSnapshot;
+
+  const voiceReport =
+    resolvePersistedVoiceReport(merged) ??
+    resolvePersistedVoiceReport(sessionVoice) ??
+    resolvePersistedVoiceReport(localSaved);
+
+  return voiceReport ? { ...merged, voiceReport } : merged;
 }
 
 export function deriveHydratedVoiceState(input: {
@@ -85,16 +166,13 @@ export function deriveHydratedVoiceState(input: {
     ? Math.max(...minuteSummaries.map((item) => Number(item.minute ?? 0)))
     : 0;
   const voiceUserTranscript = minuteSummaries.map((item) => `Minuto ${item.minute}: ${item.summary}`).join('\n\n');
-  const voiceReport =
-    snapshot.voiceReport && typeof snapshot.voiceReport === 'object'
-      ? (snapshot.voiceReport as InterviewVoiceReport)
-      : null;
+  const voiceReport = resolvePersistedVoiceReport(snapshot);
 
   const sessionAlreadyCompleted = Boolean(
     sessionDiagnosticProfileId ||
       snapshot.status === 'completed' ||
       Boolean(snapshot.completedAt) ||
-      Boolean(snapshot.voiceReport),
+      voiceReport,
   );
 
   const activeCallSeconds = resolveUsedSecondsFromSources(snapshot);

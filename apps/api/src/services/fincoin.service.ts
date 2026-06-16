@@ -1,12 +1,13 @@
 import {
   buildChatClosureSummary,
   computeFincoinUsage,
+  FINCOIN_MAX_USD_SPEND,
   FINCOIN_OPERATION_COST_USD,
   type FincoinOperation,
   type FincoinUsageStatus,
   type ProductChatId,
 } from '@financial-agent/shared';
-import { getUserById, patchUserRecord } from '../persistencia/repos';
+import { chargeUsdSpentTotalAtomic, getUserById, patchUserRecord } from '../persistencia/repos';
 import { listConversationTurns } from '../persistencia/repos/conversation.repository';
 import { loadUserSheets, saveUserSheets } from './user.service';
 import {
@@ -18,6 +19,7 @@ import {
 export type FincoinChargeResult = {
   usage: FincoinUsageStatus;
   justDepleted: boolean;
+  charged: boolean;
   closureSummaries?: Partial<Record<ProductChatId, ReturnType<typeof buildChatClosureSummary>>>;
 };
 
@@ -49,41 +51,36 @@ export async function chargeFincoinOperation(
     throw new Error(`User not found: ${userId}`);
   }
 
-  const before = getFincoinUsageForUser(user);
-  if (before.depleted) {
-    const summaries = user.fincoinDepletionHandled
-      ? undefined
-      : await ensureFincoinDepletionHandled(userId);
-    return { usage: before, justDepleted: false, closureSummaries: summaries };
-  }
-
   const costUsd = FINCOIN_OPERATION_COST_USD[operation] ?? 0;
-  if (!canAffordOperation(before, operation)) {
-    const depletedUsage = computeFincoinUsage(before.usdSpent);
-    const summaries = await ensureFincoinDepletionHandled(userId);
-    return { usage: depletedUsage, justDepleted: true, closureSummaries: summaries };
+  const atomic = await chargeUsdSpentTotalAtomic(userId, costUsd, FINCOIN_MAX_USD_SPEND);
+
+  if (!atomic.charged) {
+    const latestUser = (await getUserById(userId)) ?? user;
+    const usage = getFincoinUsageForUser(latestUser);
+    const summaries =
+      atomic.reason === 'user_not_found'
+        ? undefined
+        : user.fincoinDepletionHandled
+          ? undefined
+          : await ensureFincoinDepletionHandled(userId);
+    return {
+      usage,
+      justDepleted: usage.depleted,
+      charged: false,
+      closureSummaries: summaries,
+    };
   }
 
-  const nextUsdSpent = Math.min(before.usdSpent + costUsd, before.maxUsdSpend);
-  const after = computeFincoinUsage(nextUsdSpent);
-  const patch: Parameters<typeof patchUserRecord>[1] = {
-    usdSpentTotal: nextUsdSpent,
-  };
-
-  if (after.depleted) {
-    patch.fincoinDepletedAt = new Date().toISOString();
-  }
-
-  await patchUserRecord(userId, patch);
-
+  const after = computeFincoinUsage(atomic.usdSpentTotal);
   let closureSummaries: FincoinChargeResult['closureSummaries'];
-  if (after.depleted) {
+  if (atomic.justDepleted) {
     closureSummaries = await ensureFincoinDepletionHandled(userId);
   }
 
   return {
     usage: after,
-    justDepleted: after.depleted,
+    justDepleted: atomic.justDepleted,
+    charged: true,
     closureSummaries,
   };
 }

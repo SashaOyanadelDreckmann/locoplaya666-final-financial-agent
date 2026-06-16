@@ -14,14 +14,14 @@ import {
   extractChartBlocksFromToolOutput,
   extractSuggestedReplies,
   extractPanelAction,
-  extractBudgetUpdates,
+  extractBudgetTablePatch,
   cleanSpecialTags,
   inferQuestionnaireFromText,
 } from '../helpers/chart-extraction.helpers';
 import { stripEmojis } from '../helpers/format.helpers';
 import { sanitizeFormulaContent } from '../helpers/formula-sanitizer';
 import {
-  ensurePdfExportClarification,
+  ensureRegulatoryFooter,
   sanitizeAgentCapabilityClaims,
   sanitizeSuggestedReplies,
 } from '../helpers/capability-claims.helpers';
@@ -42,6 +42,29 @@ import {
   resolveSocialConsciousnessFunnelStage,
   type SocialConsciousnessFunnelStage,
 } from '../helpers/social-consciousness-funnel.helpers';
+import {
+  buildLoadedFinancialEvidenceBlock,
+  type AgentBudgetRow,
+  type FinancialEvidenceSnapshot,
+} from '../helpers/agent-financial-evidence.helpers';
+
+export function shouldReuseExecuteDraft(input: FormatPhaseInput): boolean {
+  const draft = String(input.execution_result?.assistant_draft ?? '').trim();
+  if (draft.length < 24) return false;
+  if (!['information', 'education', 'containment'].includes(input.mode)) return false;
+  if (resolveFormatFunnelStage(input) === 'deliver') return false;
+  if (resolveFormatSocialFunnelStage(input) === 'synthesis') return false;
+  if ((input.execution_result?.artifacts?.length ?? 0) > 0) return false;
+  if ((input.execution_result?.agent_blocks?.length ?? 0) > 0) return false;
+
+  const substantiveTools = (input.execution_result?.tool_calls ?? []).filter(
+    (toolCall) =>
+      toolCall.status === 'success' &&
+      !String(toolCall.id).startsWith('prefetch-') &&
+      !['rag.lookup', 'regulatory.lookup_cl', 'web.search'].includes(toolCall.tool),
+  );
+  return substantiveTools.length === 0;
+}
 
 export function shouldApplyLatexFormatting(message: string): boolean {
   if (!message || message.length < 120) return false;
@@ -103,27 +126,16 @@ function buildUserFinancialProfileBlock(intake: unknown): string {
   );
 }
 
-function shouldEnforceDecisionDisclaimer(input: FormatPhaseInput): boolean {
-  const activeChatId = String(input.ui_state?.active_chat?.id ?? '');
-  return (
-    activeChatId === 'chat-2' ||
-    input.mode === 'decision_support' ||
-    input.mode === 'comparison' ||
-    input.mode === 'planification'
-  );
-}
-
-function hasRecentDecisionDisclaimer(input: FormatPhaseInput): boolean {
+function hasRecentRegulatoryFooter(input: FormatPhaseInput): boolean {
   const recentThreadContext =
     typeof input.context_summary?.recent_thread_context === 'string'
       ? input.context_summary.recent_thread_context.toLowerCase()
       : '';
 
-  return [recentThreadContext].some(
-    (message) =>
-      message.includes('decision final') ||
-      message.includes('depende 100% del usuario') ||
-      message.includes('debe tomarla el usuario'),
+  return (
+    recentThreadContext.includes('cmf') &&
+    (recentThreadContext.includes('no está respaldado') ||
+      recentThreadContext.includes('no esta respaldado'))
   );
 }
 
@@ -158,17 +170,9 @@ function resolveFormatFunnelStage(input: FormatPhaseInput): ActionPlanFunnelStag
 }
 
 export function ensureDecisionDisclaimer(message: string, input: FormatPhaseInput): string {
-  if (!shouldEnforceDecisionDisclaimer(input)) return message;
-  if (hasRecentDecisionDisclaimer(input)) return message;
-  const normalized = message.toLowerCase();
-  if (
-    normalized.includes('decision final') ||
-    normalized.includes('depende 100% del usuario') ||
-    normalized.includes('debe tomarla el usuario')
-  ) {
-    return message;
-  }
-  return `${message}\n\nDecision final: debe tomarla el usuario de forma 100% informada. Esta recomendacion orienta, no sustituye su criterio ni su validacion final.`;
+  if (hasRecentRegulatoryFooter(input)) return message;
+  const activeChatId = String(input.ui_state?.active_chat?.id ?? '');
+  return ensureRegulatoryFooter(message, { mode: input.mode, activeChatId });
 }
 
 export async function runFormatPhase(input: FormatPhaseInput): Promise<FormatPhaseOutput> {
@@ -221,6 +225,16 @@ export async function runFormatPhase(input: FormatPhaseInput): Promise<FormatPha
     const userFinancialProfileFull = buildUserFinancialProfileBlock(
       input.injected_intake ?? input.context_summary?.intake
     );
+    const financialEvidence = input.context_summary?.financial_evidence as
+      | FinancialEvidenceSnapshot
+      | undefined;
+    const budgetRows = Array.isArray(input.context_summary?.budget_rows)
+      ? (input.context_summary.budget_rows as AgentBudgetRow[])
+      : [];
+    const loadedEvidenceBlock =
+      financialEvidence && (financialEvidence.has_budget_totals || financialEvidence.has_transactions || financialEvidence.has_diagnostic_profile)
+        ? buildLoadedFinancialEvidenceBlock(financialEvidence, budgetRows)
+        : '';
 
     const groundingManifest = buildGroundingManifest(input.execution_result);
     const groundingRule = requiresVerifiedNumbers(input.mode)
@@ -278,6 +292,7 @@ export async function runFormatPhase(input: FormatPhaseInput): Promise<FormatPha
         ? `Suitability: ${JSON.stringify(input.context_summary.recommendation_profile)}`
         : '',
       userFinancialProfileFull ? `\n${userFinancialProfileFull}\n` : '',
+      loadedEvidenceBlock ? `\n${loadedEvidenceBlock}\n` : '',
       ...(snowballCtx ? [`\n${snowballCtx}\n`] : []),
       ...(recentThreadContext ? [`\n${recentThreadContext}\n`] : []),
       groundingManifest,
@@ -294,6 +309,7 @@ export async function runFormatPhase(input: FormatPhaseInput): Promise<FormatPha
         : 'Si hay datos numericos comparables, emite bloques <CHART> y/o <TABLE> JSON validos (obligatorio cuando aplique) antes de SUGERENCIAS.',
     ].join('\n');
 
+    const reuseExecuteDraft = shouldReuseExecuteDraft(input);
     const fullFormatOptions = {
       systemPrompt: CORE_RESPONSE_SYSTEM,
       temperature:
@@ -301,20 +317,25 @@ export async function runFormatPhase(input: FormatPhaseInput): Promise<FormatPha
       model: resolveCoreAgentClaudeModel(),
       allowOpenAIFallback: false as const,
     };
-    const rawResponse = onDelta
-      ? await completeWithClaudeStream(formatterInput, fullFormatOptions, onDelta)
-      : await completeWithClaude(formatterInput, fullFormatOptions);
+    const rawResponse = reuseExecuteDraft
+      ? String(input.execution_result?.assistant_draft ?? '').trim()
+      : onDelta
+        ? await completeWithClaudeStream(formatterInput, fullFormatOptions, onDelta)
+        : await completeWithClaude(formatterInput, fullFormatOptions);
 
     const suggested_replies = sanitizeSuggestedReplies(extractSuggestedReplies(rawResponse));
     const panel_action = extractPanelAction(rawResponse);
-    const budget_updates = extractBudgetUpdates(rawResponse);
+    const budget_table_patch = extractBudgetTablePatch({
+      text: rawResponse,
+      tool_outputs: input.execution_result?.tool_outputs,
+      ui_state: input.ui_state,
+    });
     const responseChartBlocks = extractChartBlocksFromToolOutput(rawResponse);
 
     let message = cleanSpecialTags(rawResponse);
     message = stripEmojis(message).trim();
     message = sanitizeFormulaContent(message);
     message = sanitizeAgentCapabilityClaims(message);
-    message = ensurePdfExportClarification(message, input.user_message);
     if (funnelStage === 'deliver') message = enforceDeliverPlanStructure(message);
     if (socialFunnelStage === 'synthesis') message = enforceSocialSynthesisStructure(message);
     message = ensureDecisionDisclaimer(message, input);
@@ -360,13 +381,14 @@ export async function runFormatPhase(input: FormatPhaseInput): Promise<FormatPha
       citations: ensuredCitations,
       suggested_replies,
       panel_action,
-      budget_updates,
+      budget_table_patch,
     };
 
     logger.info({
       msg: '[Format] Phase complete',
       has_suggestions: suggested_replies.length > 0,
       has_artifacts: formatted_response.artifacts.length > 0,
+      reused_execute_draft: reuseExecuteDraft,
       latency_ms: Date.now() - startTime,
     });
 
@@ -388,7 +410,7 @@ export async function runFormatPhase(input: FormatPhaseInput): Promise<FormatPha
       citations: ensuredCitations,
       suggested_replies: [],
       panel_action: undefined,
-      budget_updates: [],
+      budget_table_patch: undefined,
     };
 
     return { formatted_response };

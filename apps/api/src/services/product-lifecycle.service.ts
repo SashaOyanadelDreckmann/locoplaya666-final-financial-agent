@@ -129,6 +129,10 @@ export function detectOnboardingSignals(input: ChatAgentInput): OnboardingSignal
     injectedIntake.budgetContext && typeof injectedIntake.budgetContext === 'object'
       ? (injectedIntake.budgetContext as Record<string, unknown>)
       : {};
+  const persistedBudgetContext =
+    context.persisted_budget_context && typeof context.persisted_budget_context === 'object'
+      ? (context.persisted_budget_context as Record<string, unknown>)
+      : {};
   const uploadedDocuments = Array.isArray(context.uploaded_documents) ? context.uploaded_documents : [];
   const consolidatedTransactions =
     context.consolidated_context &&
@@ -138,11 +142,26 @@ export function detectOnboardingSignals(input: ChatAgentInput): OnboardingSignal
       ? ((context.consolidated_context as Record<string, unknown>).transactions as Record<string, unknown>)
       : {};
 
+  const hasBudgetRows =
+    Number(budgetSummary.rows_count ?? 0) > 0 ||
+    Number(budgetContext.rowsCount ?? 0) > 0 ||
+    Number(persistedBudgetContext.rowsCount ?? 0) > 0 ||
+    (Array.isArray(ui.budget_rows) ? ui.budget_rows : []).some(
+      (row) => Number((row as Record<string, unknown>).amount ?? 0) > 0,
+    ) ||
+    (Array.isArray(budgetContext.rows) ? budgetContext.rows : []).some(
+      (row) => Number((row as Record<string, unknown>).amount ?? 0) > 0,
+    ) ||
+    (Array.isArray(persistedBudgetContext.rows) ? persistedBudgetContext.rows : []).some(
+      (row) => Number((row as Record<string, unknown>).amount ?? 0) > 0,
+    );
+
   const hasBudget =
-    Number(budgetSummary.income ?? budgetContext.income ?? 0) > 0 ||
-    Number(budgetSummary.expenses ?? budgetContext.expenses ?? 0) > 0 ||
+    Number(budgetSummary.income ?? budgetContext.income ?? persistedBudgetContext.income ?? 0) > 0 ||
+    Number(budgetSummary.expenses ?? budgetContext.expenses ?? persistedBudgetContext.expenses ?? 0) > 0 ||
     Number(injectedBudget.income ?? 0) > 0 ||
     Number(injectedBudget.expenses ?? 0) > 0 ||
+    hasBudgetRows ||
     unlocked.budget === true;
   const hasTransactions =
     unlocked.transactions === true ||
@@ -234,6 +253,8 @@ export function buildLifecycleDecision(params: {
   const closingMode = updatedState.chatTurns[activeChatId] >= closingTurnForChat(activeChatId);
   const userMessage = String(params.input.user_message ?? '');
 
+  const onboardingSignals = detectOnboardingSignals(params.input);
+
   return {
     state: updatedState,
     activeChatId,
@@ -246,6 +267,7 @@ export function buildLifecycleDecision(params: {
       closingMode,
       hasIntake: params.hasIntake,
       userMessage,
+      onboardingSignals,
     }),
     closingMode,
   };
@@ -353,19 +375,23 @@ function derivePhase(
   hasIntake: boolean
 ): OnboardingPhase {
   const { hasBudget, hasTransactions, interviewCompleted } = detectOnboardingSignals(input);
-  const interviewSignal =
+  const diagnosisCompleted =
     interviewCompleted ||
     state.phase === 'diagnosis_ready' ||
     state.phase === 'advisory_unlocked';
 
   if (!hasIntake) return 'intake_review';
+
+  // One interview + one diagnosis per user: never regress phase or re-lock chats
+  // when panel data (budget rows, products) is cleared after completion.
+  if (diagnosisCompleted) {
+    if (state.phase === 'advisory_unlocked') return 'advisory_unlocked';
+    return 'diagnosis_ready';
+  }
+
   if (!hasTransactions) return 'transactions_needed';
   if (!hasBudget) return 'budget_needed';
-  if (!interviewSignal && state.phase !== 'diagnosis_ready' && state.phase !== 'advisory_unlocked') {
-    return 'interview_needed';
-  }
-  if (state.phase === 'advisory_unlocked') return 'advisory_unlocked';
-  return 'diagnosis_ready';
+  return 'interview_needed';
 }
 
 function deriveUnlockedChats(phase: OnboardingPhase): ProductChatId[] {
@@ -382,6 +408,7 @@ function buildSystemDirective(params: {
   closingMode: boolean;
   hasIntake: boolean;
   userMessage?: string;
+  onboardingSignals?: OnboardingSignals;
 }) {
   const maxTurns = maxTurnsForChat(params.activeChatId);
   const base = [
@@ -399,14 +426,46 @@ function buildSystemDirective(params: {
   }
 
   if (params.activeChatId === 'chat-1') {
+    const signals = params.onboardingSignals;
+    const diagnosisPhase =
+      params.phase === 'diagnosis_ready' || params.phase === 'advisory_unlocked';
+    const postDiagnosis = diagnosisPhase || signals?.interviewCompleted === true;
+
     base.push(
       'CHAT 1 GENERAL: responde primero la pregunta del usuario con naturalidad y tono humano.',
-      'Onboarding (intake -> cartolas -> presupuesto -> entrevista -> diagnostico) solo si la pregunta es financiera o el usuario pide orientacion sobre su plan.',
       'No empujes entrevista, presupuesto ni cartolas en preguntas off-topic (politica, cultura general, saludos, meta-preguntas sobre el chat).',
-      'Si faltan cartolas o movimientos reales y el usuario pregunta por su situacion, recomienda subir transacciones del mes.',
-      'Si ya existen cartolas pero falta presupuesto, invita a completar presupuesto antes de entrevista.',
-      'Cuando exista presupuesto y cartola, puedes ofrecer entrevista breve y consciente del tiempo.'
     );
+
+    if (postDiagnosis) {
+      base.push(
+        'CHAT 1 POST-DIAGNOSTICO: el usuario ya cerro entrevista y diagnostico integrado.',
+        'Usa context.profile, context.budget_rows, context.financial_evidence y consolidated_context.transactions como evidencia primaria.',
+        'NUNCA pidas re-subir presupuesto ni cartolas si financial_evidence indica que ya estan cargados.',
+        'Personaliza con cifras reales del presupuesto y movimientos; no inventes vacios de datos ya presentes.',
+        'Solo declara "dato faltante" para huecos reales (ej. meta de ahorro especifica si no esta en intake y la pregunta lo exige).',
+      );
+      if (signals?.hasBudget) {
+        base.push('PRESUPUESTO VERIFICADO EN CONTEXTO: no listes gastos reales como faltantes.');
+      }
+      if (signals?.hasTransactions) {
+        base.push('CARTOLAS/PRODUCTOS VERIFICADOS EN CONTEXTO: no pidas volver a subir movimientos del mes.');
+      }
+    } else {
+      base.push(
+        'Onboarding (intake -> cartolas -> presupuesto -> entrevista -> diagnostico) solo si la pregunta es financiera o el usuario pide orientacion sobre su plan.',
+      );
+      if (!signals?.hasTransactions) {
+        base.push(
+          'Si faltan cartolas o movimientos reales y el usuario pregunta por su situacion, recomienda subir transacciones del mes.',
+        );
+      }
+      if (signals?.hasTransactions && !signals?.hasBudget) {
+        base.push('Si ya existen cartolas pero falta presupuesto, invita a completar presupuesto antes de entrevista.');
+      }
+      if (signals?.hasBudget && signals?.hasTransactions && !signals?.interviewCompleted) {
+        base.push('Cuando exista presupuesto y cartola, puedes ofrecer entrevista breve y consciente del tiempo.');
+      }
+    }
   }
 
   if (params.activeChatId === 'chat-2') {

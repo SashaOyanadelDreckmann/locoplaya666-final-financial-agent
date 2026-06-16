@@ -1,11 +1,22 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import request from 'supertest';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { createApprovalToken } from '../services/approval.service';
-import { patchUserRecord } from '../persistencia/repos';
-import { FINCOIN_MAX_USD_SPEND } from '@financial-agent/shared';
+import { getUserById, patchUserRecord } from '../persistencia/repos';
+import {
+  FINCOIN_MAX_USD_SPEND,
+  FINCOIN_OPERATION_COST_USD,
+} from '@financial-agent/shared';
+import { chargeFincoinOperation } from '../services/fincoin.service';
+import { replaceIntakeEnvelopeForDev } from '../services/user.service';
+
+const runCoreAgentMock = vi.fn();
+
+vi.mock('../agents/core.agent/core-agent-orchestrator', () => ({
+  runCoreAgent: (...args: unknown[]) => runCoreAgentMock(...args),
+}));
 
 let dataDir: string;
 
@@ -70,6 +81,105 @@ describe('fincoin spend guards', () => {
 
     expect(res.status).toBe(403);
     expect(String(res.body?.code ?? res.body?.error?.code ?? '')).toMatch(/fincoins_depleted/i);
+  }, 15000);
+
+  it('blocks budget-chat when fincoins are depleted', async () => {
+    const { agent, csrfToken, userId } = await createAuthedAgent();
+    await patchUserRecord(userId, {
+      usdSpentTotal: FINCOIN_MAX_USD_SPEND,
+      fincoinDepletedAt: new Date().toISOString(),
+      fincoinDepletionHandled: true,
+    });
+
+    const res = await agent.post('/api/budget-chat').set('x-csrf-token', csrfToken).send({
+      intent: 'init',
+      budgetRows: [{ id: 'income_salary', category: 'Sueldo', type: 'income', amount: 850000 }],
+      chatAnswers: [],
+    });
+
+    expect(res.status).toBe(403);
+    expect(String(res.body?.code ?? res.body?.error?.code ?? '')).toMatch(/fincoins_depleted/i);
+  }, 15000);
+
+  it('blocks agent chat when fincoins are depleted without invoking the core agent', async () => {
+    runCoreAgentMock.mockReset();
+    const { agent, csrfToken, userId } = await createAuthedAgent();
+    await replaceIntakeEnvelopeForDev(userId, {
+      intake: { profession: 'Analista' },
+      intakeContext: 'test',
+    });
+    await patchUserRecord(userId, {
+      usdSpentTotal: FINCOIN_MAX_USD_SPEND,
+      fincoinDepletedAt: new Date().toISOString(),
+      fincoinDepletionHandled: true,
+    });
+
+    const res = await agent
+      .post('/api/agent')
+      .set('x-csrf-token', csrfToken)
+      .send({
+        user_message: 'Hola',
+        history: [],
+        ui_state: { active_chat: { id: 'chat-1' } },
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body?.data?.compliance?.blocked?.reason).toBe('FINCOINS_DEPLETED');
+    expect(runCoreAgentMock).not.toHaveBeenCalled();
+  }, 15000);
+
+  it('charges agent chat before invoking the core agent', async () => {
+    runCoreAgentMock.mockReset();
+    runCoreAgentMock.mockImplementation(async () => {
+      throw new Error('agent should not run without charge');
+    });
+
+    const { agent, csrfToken, userId } = await createAuthedAgent();
+    await replaceIntakeEnvelopeForDev(userId, {
+      intake: { profession: 'Analista' },
+      intakeContext: 'test',
+    });
+    await patchUserRecord(userId, {
+      usdSpentTotal: FINCOIN_MAX_USD_SPEND - FINCOIN_OPERATION_COST_USD['agent.chat'],
+      fincoinDepletedAt: undefined,
+      fincoinDepletionHandled: false,
+    });
+
+    const res = await agent
+      .post('/api/agent')
+      .set('x-csrf-token', csrfToken)
+      .send({
+        user_message: 'Hola',
+        history: [],
+        ui_state: { active_chat: { id: 'chat-1' } },
+      });
+
+    expect(res.status).toBe(200);
+    expect(runCoreAgentMock).toHaveBeenCalledTimes(1);
+    const user = await getUserById(userId);
+    expect(Number(user?.usdSpentTotal ?? 0)).toBeGreaterThanOrEqual(FINCOIN_MAX_USD_SPEND - 1e-6);
+    expect(res.body?.data?.meta?.fincoin_usage?.depleted).toBe(true);
+  }, 15000);
+
+  it('allows only one concurrent charge when the remaining budget fits a single operation', async () => {
+    const { userId } = await createAuthedAgent();
+    const headroom = FINCOIN_OPERATION_COST_USD['agent.chat'] + 0.001;
+    await patchUserRecord(userId, {
+      usdSpentTotal: FINCOIN_MAX_USD_SPEND - headroom,
+      fincoinDepletedAt: undefined,
+      fincoinDepletionHandled: false,
+    });
+
+    const [first, second] = await Promise.all([
+      chargeFincoinOperation(userId, 'agent.chat'),
+      chargeFincoinOperation(userId, 'agent.chat'),
+    ]);
+
+    const chargedCount = [first, second].filter((result) => result.charged).length;
+    expect(chargedCount).toBe(1);
+
+    const user = await getUserById(userId);
+    expect(Number(user?.usdSpentTotal ?? 0)).toBeLessThanOrEqual(FINCOIN_MAX_USD_SPEND + 1e-6);
   }, 15000);
 
   it('exposes fincoin usage in session payload', async () => {

@@ -7,12 +7,12 @@ import type { ChatItem } from '@/lib/agente/agent.response.types';
 import { buildScopedTransactionsContext } from '@/lib/compartido/products-context.helpers';
 import type { BankProduct, TransactionTaxonomyOverride } from '@/app/agent/modales/transacciones/types';
 
-export type CoreAgentBudgetRow = {
-  category: string;
-  type: 'income' | 'expense';
-  amount: number;
-  note?: string;
-};
+import type { BudgetRow } from '@/lib/presupuesto/filas.helpers';
+
+export type CoreAgentBudgetRow = Pick<
+  BudgetRow,
+  'id' | 'category' | 'type' | 'amount' | 'note' | 'cadence' | 'paymentMethod' | 'movementType'
+>;
 
 export type CoreAgentRequestContext = {
   items: ChatItem[];
@@ -191,6 +191,7 @@ export function buildSlimCoreAgentSendPayload(
         income: context.budgetTotals.income,
         expenses: context.budgetTotals.expenses,
         balance: context.budgetTotals.balance,
+        rows_count: context.budgetRows.filter((row) => row.amount > 0).length,
       },
       product_turn_count: context.productTurnCount,
       product_turns_remaining: context.productTurnsRemaining,
@@ -296,12 +297,16 @@ export function buildCoreAgentSendPayload(
       },
       budget_rows: context.budgetRows
         .filter((row) => row.amount > 0 || row.category.trim().length > 0)
-        .slice(0, 20)
+        .slice(0, 30)
         .map((row) => ({
+          id: row.id,
           category: row.category,
           type: row.type,
           amount: row.amount,
           note: row.note,
+          cadence: row.cadence === 'fixed' || row.cadence === 'variable' ? row.cadence : undefined,
+          paymentMethod: row.paymentMethod,
+          movementType: row.movementType,
         })),
       product_turn_count:
         typeof context.productTurnCount === 'number' ? context.productTurnCount : undefined,

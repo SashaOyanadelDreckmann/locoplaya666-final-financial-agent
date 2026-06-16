@@ -1197,6 +1197,24 @@
   border: 1px solid rgba(100, 190, 120, 0.22) !important;
 }
 
+.budget-modal .budget-assistant-panel .bcc-hero-resume-hint{
+  width: min(100%, 620px) !important;
+  margin: 0 auto 6px !important;
+  color: rgba(186, 206, 224, 0.78) !important;
+  font-size: 0.82rem !important;
+  line-height: 1.35 !important;
+  text-align: center !important;
+}
+
+.budget-mobile-intel-fill-rate{
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.58);
+  white-space: nowrap;
+}
+
 @media (max-width: 780px) {
   .budget-modal .budget-assistant-panel .bcc-hero-question{
     font-size: clamp(0.84rem, 3.6vw, 0.96rem) !important;
@@ -2203,6 +2221,15 @@
   border-left-color: rgba(184, 147, 70, 0.9) !important;
 }
 
+.latex-inline-annex .citation-stack{
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: wrap !important;
+  align-items: flex-start !important;
+  gap: 4px !important;
+  padding: 6px !important;
+}
+
 .citation-pill{
   background: rgba(184, 147, 70, 0.34) !important;
   border-color: rgba(184, 147, 70, 0.58) !important;
@@ -2965,6 +2992,9 @@
 
 .agent-modal.account-modal .questionnaire-response-item strong{
   color: #f5f9fd !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
+  white-space: normal !important;
 }
 
 .agent-modal.account-modal .questionnaire-response-grid{
@@ -6127,7 +6157,16 @@ body:has(.transactions-modal-overlay) .chat-pages-outer{
 }
 
 .budget-view-nav-label{
-  display: none !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  min-width: 7.5rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.62);
+  user-select: none;
 }
 
 .budget-modal button.budget-view-nav-arrow,

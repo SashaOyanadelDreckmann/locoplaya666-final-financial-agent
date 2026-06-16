@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   containsFalsePdfAgentClaims,
+  ensureRegulatoryFooter,
   sanitizeAgentCapabilityClaims,
   sanitizeSuggestedReplies,
 } from './capability-claims.helpers';
@@ -34,5 +35,14 @@ Generar informes: PDFs personalizados que se guardan en tu panel`;
     ]);
 
     expect(replies).toEqual(['Simular ahorro 5 años', 'Ver mi presupuesto']);
+  });
+
+  it('appends CMF regulatory footer for substantive financial replies', () => {
+    const out = ensureRegulatoryFooter(
+      'Tu presupuesto muestra un déficit de $350.000. Prioriza arriendo y deuda de consumo.',
+      { mode: 'budgeting', activeChatId: 'chat-1' },
+    );
+    expect(out).toContain('CMF');
+    expect(out).toContain('corrobora');
   });
 });

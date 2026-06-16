@@ -1,14 +1,21 @@
 'use client';
 
 import {
+  approveAdminUser,
+  fetchAdminArchiveUsers,
+  fetchAdminAuditLog,
   fetchAdminCockpitSnapshot,
   fetchAdminUserDossier,
+  fetchAdminUserSnapshot,
   fetchAdminUsersFullDump,
   fetchResearchAnalyticsReport,
+  rejectAdminUser,
+  updateAdminUserRole,
+  type AdminAuditEntry,
   type AdminCockpitSnapshot,
+  type AdminArchiveUserListItem,
   type AdminUserDossier,
   type AdminUserSnapshot,
-  type AdminUsersFullDump,
   type ResearchAnalyticsReport,
   type ResearchAnalyticsStage,
 } from '@/lib/api/admin';
@@ -22,8 +29,9 @@ import {
   type AnalyticsRole,
   type AnalyticsUser,
 } from '@/lib/api/analytics';
-import { getSessionInfo } from '@/lib/api/cliente';
 import { toUserFacingError } from '@/lib/compartido/userError';
+import { useAdminSession } from '../hooks/use-admin-session';
+import { useDebouncedValue } from '../hooks/use-debounced-value';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -33,6 +41,7 @@ import {
   approvalLabel,
   compactAdminText,
   downloadJson,
+  formatAdminAnonymousId,
   formatAdminDateTime,
   formatAdminNumber,
   formatAdminPercent,
@@ -51,7 +60,7 @@ import { AdminSplitPane } from './AdminSplitPane';
 import { AdminUserDossierPanel } from './AdminUserDossierPanel';
 import { useAdminTabSwipe } from '../hooks/use-admin-tab-swipe';
 
-type SessionInfo = { role?: string; name?: string; email?: string };
+const ARCHIVE_PAGE_SIZE = 40;
 
 const TAB_META: Record<AdminTabId, { label: string; icon: string; title: string; subtitle: string }> = {
   overview: {
@@ -106,11 +115,10 @@ export default function AdminCommandCenter() {
   const [isMobileLayout, setIsMobileLayout] = useState(false);
   const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
 
-  const [sessionInfo, setSessionInfo] = useState<SessionInfo | null>(null);
-  const [isSessionLoading, setIsSessionLoading] = useState(true);
-  const [isAllowed, setIsAllowed] = useState(false);
+  const { sessionInfo, isSessionLoading, isAllowed } = useAdminSession();
 
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search, 360);
   const [stageFilter, setStageFilter] = useState<ResearchAnalyticsStage | 'all'>('all');
   const [roleFilter, setRoleFilter] = useState<'' | AnalyticsRole>('');
   const [fromDate, setFromDate] = useState('');
@@ -137,7 +145,12 @@ export default function AdminCommandCenter() {
   const [userDossier, setUserDossier] = useState<AdminUserDossier | null>(null);
   const [loadingDossier, setLoadingDossier] = useState(false);
 
-  const [fullDump, setFullDump] = useState<AdminUsersFullDump | null>(null);
+  const [archiveUsers, setArchiveUsers] = useState<AdminArchiveUserListItem[]>([]);
+  const [archiveTotal, setArchiveTotal] = useState(0);
+  const [archiveOffset, setArchiveOffset] = useState(0);
+  const [archiveUser, setArchiveUser] = useState<AdminUserSnapshot | null>(null);
+  const [auditEntries, setAuditEntries] = useState<AdminAuditEntry[]>([]);
+  const [pendingActionId, setPendingActionId] = useState('');
   const [archiveUserId, setArchiveUserId] = useState('');
 
   const [loading, setLoading] = useState(false);
@@ -181,26 +194,6 @@ export default function AdminCommandCenter() {
     onTabChange: setTab,
   });
 
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        const info = await getSessionInfo();
-        if (!mounted) return;
-        const role = String((info as SessionInfo)?.role ?? '').toUpperCase();
-        setSessionInfo(info as SessionInfo);
-        setIsAllowed(role === 'ADMIN');
-      } catch {
-        if (!mounted) return;
-        setIsAllowed(false);
-      } finally {
-        if (mounted) setIsSessionLoading(false);
-      }
-    })();
-    return () => {
-      mounted = false;
-    };
-  }, []);
 
   useEffect(() => {
     if (!isAllowed || cockpit) return;
@@ -220,13 +213,17 @@ export default function AdminCommandCenter() {
   }, []);
 
   const loadOps = useCallback(async () => {
-    const payload = await fetchAdminCockpitSnapshot();
-    setCockpit(payload);
+    const [cockpitPayload, auditPayload] = await Promise.all([
+      fetchAdminCockpitSnapshot(),
+      fetchAdminAuditLog({ limit: 40, offset: 0 }),
+    ]);
+    setCockpit(cockpitPayload);
+    setAuditEntries(auditPayload.entries);
   }, []);
 
   const loadUsers = useCallback(async () => {
     const payload = await fetchAnalyticsUsers({
-      search: search.trim() || undefined,
+      search: debouncedSearch.trim() || undefined,
       role: roleFilter || undefined,
       ...apiDateFilters,
       limit: 200,
@@ -238,11 +235,11 @@ export default function AdminCommandCenter() {
     setUsersTotal(payload.pagination.total);
     setUsersSummary(payload.summary);
     setSelectedUserId((prev) => prev || payload.users[0]?.id || '');
-  }, [apiDateFilters, roleFilter, search]);
+  }, [apiDateFilters, debouncedSearch, roleFilter]);
 
   const loadInteractions = useCallback(async () => {
     const payload = await fetchAnalyticsInteractions({
-      search: search.trim() || undefined,
+      search: debouncedSearch.trim() || undefined,
       role: roleFilter || undefined,
       ...apiDateFilters,
       limit: 160,
@@ -250,19 +247,24 @@ export default function AdminCommandCenter() {
     });
     setInteractions(payload.interactions);
     setInteractionsTotal(payload.pagination.total);
-  }, [apiDateFilters, roleFilter, search]);
+  }, [apiDateFilters, debouncedSearch, roleFilter]);
 
-  const loadArchive = useCallback(async () => {
-    if (fullDump) return;
+  const loadArchive = useCallback(async (offset = archiveOffset) => {
     setLoadingArchive(true);
     try {
-      const payload = await fetchAdminUsersFullDump();
-      setFullDump(payload);
+      const payload = await fetchAdminArchiveUsers({
+        search: debouncedSearch.trim() || undefined,
+        limit: ARCHIVE_PAGE_SIZE,
+        offset,
+      });
+      setArchiveUsers(payload.users);
+      setArchiveTotal(payload.total);
+      setArchiveOffset(offset);
       setArchiveUserId((prev) => prev || payload.users[0]?.id || '');
     } finally {
       setLoadingArchive(false);
     }
-  }, [fullDump]);
+  }, [archiveOffset, debouncedSearch]);
 
   const refreshActiveTab = useCallback(async () => {
     if (!isAllowed) return;
@@ -278,18 +280,14 @@ export default function AdminCommandCenter() {
       } else if (activeTab === 'ops') {
         await loadOps();
       } else if (activeTab === 'archive') {
-        await loadArchive();
-        if (fullDump) {
-          const payload = await fetchAdminUsersFullDump();
-          setFullDump(payload);
-        }
+        await loadArchive(archiveOffset);
       }
     } catch (err) {
       setError(toUserFacingError(err));
     } finally {
       setLoading(false);
     }
-  }, [activeTab, fullDump, isAllowed, loadArchive, loadInteractions, loadOps, loadOverview, loadUsers]);
+  }, [activeTab, archiveOffset, isAllowed, loadArchive, loadInteractions, loadOps, loadOverview, loadUsers]);
 
   useEffect(() => {
     if (!isAllowed) return;
@@ -298,9 +296,30 @@ export default function AdminCommandCenter() {
   }, [isAllowed, activeTab]);
 
   useEffect(() => {
-    if (!isAllowed || activeTab !== 'archive') return;
-    loadArchive();
-  }, [activeTab, isAllowed, loadArchive]);
+    if (!isAllowed) return;
+    if (activeTab === 'users' || activeTab === 'activity' || activeTab === 'archive') {
+      void refreshActiveTab();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- debounced search refresh
+  }, [debouncedSearch, roleFilter, fromDate, toDate, stageFilter]);
+
+  useEffect(() => {
+    if (!isAllowed || activeTab !== 'archive' || !archiveUserId) return;
+    let mounted = true;
+    (async () => {
+      try {
+        const snapshot = await fetchAdminUserSnapshot(archiveUserId);
+        if (!mounted) return;
+        setArchiveUser(snapshot);
+      } catch {
+        if (!mounted) return;
+        setArchiveUser(null);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [activeTab, archiveUserId, isAllowed]);
 
   useEffect(() => {
     if (!selectedUserId || activeTab !== 'users') return;
@@ -340,7 +359,7 @@ export default function AdminCommandCenter() {
 
   const researchUsers = useMemo(() => {
     const list = research?.users ?? [];
-    const query = search.trim().toLowerCase();
+    const query = debouncedSearch.trim().toLowerCase();
     return list.filter((user) => {
       if (stageFilter !== 'all' && user.stage !== stageFilter) return false;
       if (!query) return true;
@@ -348,20 +367,64 @@ export default function AdminCommandCenter() {
         .toLowerCase()
         .includes(query);
     });
-  }, [research, search, stageFilter]);
+  }, [debouncedSearch, research, stageFilter]);
 
   const selectedResearchUser = useMemo(
     () => researchUsers.find((user) => user.pseudonymId === researchSelectedId) ?? researchUsers[0] ?? null,
     [researchUsers, researchSelectedId],
   );
 
-  const archiveUser: AdminUserSnapshot | null = useMemo(() => {
-    if (!fullDump || !archiveUserId) return null;
-    return fullDump.users.find((user) => user.id === archiveUserId) ?? null;
-  }, [archiveUserId, fullDump]);
-
   const tabMeta = TAB_META[activeTab];
   const researchSummary = research?.summary;
+
+  const handleApproveUser = useCallback(async (userId: string) => {
+    setPendingActionId(userId);
+    setError(null);
+    try {
+      await approveAdminUser(userId);
+      await loadOps();
+    } catch (err) {
+      setError(toUserFacingError(err));
+    } finally {
+      setPendingActionId('');
+    }
+  }, [loadOps]);
+
+  const handleRejectUser = useCallback(async (userId: string) => {
+    setPendingActionId(userId);
+    setError(null);
+    try {
+      await rejectAdminUser(userId);
+      await loadOps();
+    } catch (err) {
+      setError(toUserFacingError(err));
+    } finally {
+      setPendingActionId('');
+    }
+  }, [loadOps]);
+
+  const handleRoleChange = useCallback(async (userId: string, role: 'USER' | 'ANALYST' | 'ADMIN') => {
+    setPendingActionId(userId);
+    setError(null);
+    try {
+      await updateAdminUserRole(userId, role);
+      await loadOps();
+    } catch (err) {
+      setError(toUserFacingError(err));
+    } finally {
+      setPendingActionId('');
+    }
+  }, [loadOps]);
+
+  const handleExportArchiveJson = useCallback(async () => {
+    setError(null);
+    try {
+      const payload = await fetchAdminUsersFullDump();
+      downloadJson(`admin_users_${new Date().toISOString().slice(0, 10)}.json`, payload);
+    } catch (err) {
+      setError(toUserFacingError(err));
+    }
+  }, []);
 
   if (isSessionLoading) {
     return <div className="admin-loading">Cargando centro de comando…</div>;
@@ -387,8 +450,8 @@ export default function AdminCommandCenter() {
         <aside className="admin-sidebar" aria-label="Navegación admin">
           <div className="admin-brand">
             <span className="admin-brand-eyebrow">Financieramente</span>
-            <h2 className="admin-brand-title">Command Center</h2>
-            <p className="admin-brand-sub">Observabilidad total, lectura editorial y control operativo.</p>
+            <h2 className="admin-brand-title">Admin</h2>
+            <p className="admin-brand-sub">Observabilidad y operaciones de plataforma.</p>
           </div>
 
           <nav className="admin-nav">
@@ -429,7 +492,7 @@ export default function AdminCommandCenter() {
             <div className="admin-topbar-actions">
               <input
                 className="admin-search"
-                placeholder="Buscar usuario, email, pseudónimo, stage…"
+                placeholder="Buscar por ID, stage, pseudónimo…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 aria-label="Buscar"
@@ -645,7 +708,7 @@ export default function AdminCommandCenter() {
                       className="admin-btn admin-btn--compact"
                       onClick={() =>
                         downloadAnalyticsUsersCsv({
-                          search: search.trim() || undefined,
+                          search: debouncedSearch.trim() || undefined,
                           role: roleFilter || undefined,
                           ...apiDateFilters,
                         })
@@ -658,7 +721,7 @@ export default function AdminCommandCenter() {
                     <table className="admin-table admin-table--comfortable">
                       <thead>
                         <tr>
-                          <th>Nombre</th>
+                          <th>ID</th>
                           <th>Estado</th>
                           <th>Stage</th>
                           <th>Interacc.</th>
@@ -677,8 +740,7 @@ export default function AdminCommandCenter() {
                             }}
                           >
                             <td className="admin-table-cell-wrap">
-                              <div>{user.name}</div>
-                              <div className="admin-muted admin-table-sub">{user.email}</div>
+                              <code className="admin-id-ref">{formatAdminAnonymousId(user.id)}</code>
                             </td>
                             <td><span className={approvalBadgeClass(user.approvalStatus)}>{approvalLabel(user.approvalStatus)}</span></td>
                             <td>{stageLabels[user.stage]}</td>
@@ -698,6 +760,8 @@ export default function AdminCommandCenter() {
                     dossier={userDossier}
                     loading={loadingDossier || loadingUserDetail}
                     stage={selectedUserDetail?.stage}
+                    pendingActionId={pendingActionId}
+                    onRoleChange={handleRoleChange}
                   />
                   {selectedUserInteractions.length > 0 ? (
                     <section className="admin-dossier-section">
@@ -722,7 +786,16 @@ export default function AdminCommandCenter() {
             />
           )}
 
-          {activeTab === 'ops' && <AdminOpsPanel cockpit={cockpit} />}
+          {activeTab === 'ops' && (
+            <AdminOpsPanel
+              cockpit={cockpit}
+              auditEntries={auditEntries}
+              pendingActionId={pendingActionId}
+              onApprove={handleApproveUser}
+              onReject={handleRejectUser}
+              onRoleChange={handleRoleChange}
+            />
+          )}
 
           {activeTab === 'activity' && (
             <article className="admin-card">
@@ -736,7 +809,7 @@ export default function AdminCommandCenter() {
                   className="admin-btn"
                   onClick={() =>
                     downloadAnalyticsInteractionsCsv({
-                      search: search.trim() || undefined,
+                      search: debouncedSearch.trim() || undefined,
                       role: roleFilter || undefined,
                       ...apiDateFilters,
                     })
@@ -749,8 +822,7 @@ export default function AdminCommandCenter() {
                 {interactions.map((item) => (
                   <div key={item.interactionId} className="admin-interaction">
                     <div className="admin-interaction-meta">
-                      <strong>{item.userName}</strong>
-                      <span>{item.email}</span>
+                      <strong>{formatAdminAnonymousId(item.userId)}</strong>
                       <span>{formatAdminDateTime(item.timestamp)}</span>
                       <span>{item.mode ?? 'sin modo'}</span>
                     </div>
@@ -778,24 +850,22 @@ export default function AdminCommandCenter() {
                 <article className="admin-card admin-card--flush">
                   <div className="admin-card-head">
                     <div>
-                      <h2 className="admin-card-title">Expedientes ({formatAdminNumber(fullDump?.totalUsers ?? 0)})</h2>
-                      <p className="admin-card-sub">Dump completo del backend (panel, memoria, documentos).</p>
+                      <h2 className="admin-card-title">Expedientes ({formatAdminNumber(archiveTotal)})</h2>
+                      <p className="admin-card-sub">Carga paginada por usuario. Export completo bajo demanda.</p>
                     </div>
-                    {fullDump ? (
-                      <button
-                        type="button"
-                        className="admin-btn admin-btn--compact"
-                        onClick={() => downloadJson(`admin_users_${new Date().toISOString().slice(0, 10)}.json`, fullDump)}
-                      >
-                        Export JSON
-                      </button>
-                    ) : null}
+                    <button
+                      type="button"
+                      className="admin-btn admin-btn--compact"
+                      onClick={() => void handleExportArchiveJson()}
+                    >
+                      Export JSON
+                    </button>
                   </div>
                   {loadingArchive ? (
-                    <p className="admin-muted">Cargando archivo completo…</p>
+                    <p className="admin-muted">Cargando expedientes…</p>
                   ) : (
                     <div className="admin-list admin-list--relaxed">
-                      {(fullDump?.users ?? []).map((user) => (
+                      {archiveUsers.map((user) => (
                         <button
                           key={user.id}
                           type="button"
@@ -807,19 +877,39 @@ export default function AdminCommandCenter() {
                         >
                           <div className="admin-list-item-head">
                             <div>
-                              <strong>{user.name}</strong>
-                              <div className="admin-muted admin-table-sub">{user.email}</div>
+                              <strong>{formatAdminAnonymousId(user.id)}</strong>
                             </div>
                             <span className={roleBadgeClass(user.role)}>{user.role}</span>
                           </div>
                           <div className="admin-muted admin-table-sub">
-                            {formatAdminNumber(user.documents.length)} docs • {formatAdminNumber(user.profiles.length)} perfiles •{' '}
+                            {formatAdminNumber(user.documentsCount)} docs • {formatAdminNumber(user.profilesCount)} perfiles •{' '}
                             {formatAdminDateTime(user.updatedAt)}
                           </div>
                         </button>
                       ))}
                     </div>
                   )}
+                  <div className="admin-pagination">
+                    <button
+                      type="button"
+                      className="admin-btn admin-btn--compact"
+                      disabled={archiveOffset <= 0 || loadingArchive}
+                      onClick={() => void loadArchive(Math.max(0, archiveOffset - ARCHIVE_PAGE_SIZE))}
+                    >
+                      Anterior
+                    </button>
+                    <span className="admin-muted">
+                      {formatAdminNumber(archiveOffset + 1)}–{formatAdminNumber(Math.min(archiveOffset + ARCHIVE_PAGE_SIZE, archiveTotal))} de {formatAdminNumber(archiveTotal)}
+                    </span>
+                    <button
+                      type="button"
+                      className="admin-btn admin-btn--compact"
+                      disabled={archiveOffset + ARCHIVE_PAGE_SIZE >= archiveTotal || loadingArchive}
+                      onClick={() => void loadArchive(archiveOffset + ARCHIVE_PAGE_SIZE)}
+                    >
+                      Siguiente
+                    </button>
+                  </div>
                 </article>
               )}
               detail={(

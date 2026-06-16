@@ -14,6 +14,7 @@ import { compactDiagnosisList } from '@financial-agent/shared';
 import { IntakeQuestionnaire } from '@financial-agent/shared/src/intake/intake-questionnaire.types';
 
 import { completeStructured } from '../../services/llm.service';
+import { resolveInterviewStructuredModel } from '../core.agent/helpers/model-policy.helpers';
 import { getLogger } from '../../logger';
 
 /* ────────────────────────────── */
@@ -89,7 +90,7 @@ export async function runDiagnosticAgent(
         system: SYSTEM_PROMPT,
         user: prompt,
         temperature: 0.2,
-        model: process.env.OPENAI_MODEL_DIAGNOSTIC ?? 'gpt-5-mini',
+        model: resolveInterviewStructuredModel(),
         maxCompletionTokens: 1400,
       })
     );

@@ -170,6 +170,14 @@
   .account-modal .agent-modal-intro {
     flex: 1 1 auto !important;
     min-height: 0 !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+  }
+
+  .account-modal .account-modal-dashboard {
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
   }
 
   .questionnaire-modal,
@@ -228,23 +236,5 @@
   .transactions-modal .pt-right.tx-panel-surface--workspace .tx-content-card {
     overflow: visible !important;
     max-height: none !important;
-  }
-
-  /*
-   * Keyboard open — shrink overlay to visual viewport (beats 100dvh block above).
-   * Keeps modal inputs above the on-screen keyboard without page scroll jumps.
-   */
-  html:not(.pwa-standalone).mobile-input-engaged .agent-modal-overlay,
-  html:not(.pwa-standalone).mobile-input-engaged .agent-modal-overlay.transactions-modal-overlay,
-  html:not(.pwa-standalone).mobile-input-engaged .agent-modal-overlay.budget-modal-overlay,
-  html:not(.pwa-standalone).mobile-input-engaged .agent-modal-overlay.interview-modal-overlay,
-  html:not(.pwa-standalone).browser-keyboard-open .agent-modal-overlay,
-  html:not(.pwa-standalone).browser-keyboard-open .agent-modal-overlay.transactions-modal-overlay,
-  html:not(.pwa-standalone).browser-keyboard-open .agent-modal-overlay.budget-modal-overlay,
-  html:not(.pwa-standalone).browser-keyboard-open .agent-modal-overlay.interview-modal-overlay {
-    height: var(--visual-vh, var(--screen-h, 100dvh)) !important;
-    min-height: var(--visual-vh, var(--screen-h, 100dvh)) !important;
-    max-height: var(--visual-vh, var(--screen-h, 100dvh)) !important;
-    transition: none !important;
   }
 }

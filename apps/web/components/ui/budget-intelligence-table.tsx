@@ -65,6 +65,7 @@ export function BudgetMobileIntelSummary(props: {
   budgetTotals: { income: number; expenses: number; balance: number };
   tableStyle: string;
   formatBudgetAmount: (value: number) => string;
+  fillRate?: number;
 }) {
   return (
     <div
@@ -73,8 +74,11 @@ export function BudgetMobileIntelSummary(props: {
     >
       <div className="budget-mobile-intel-summary-head">
         <div className="budget-mobile-intel-summary-title">
-          <h2>Budget intelligence</h2>
+          <h2>Resumen del presupuesto</h2>
         </div>
+        {typeof props.fillRate === 'number' ? (
+          <span className="budget-mobile-intel-fill-rate">{props.fillRate}% completo</span>
+        ) : null}
       </div>
       <div className="budget-mobile-intel-summary-metrics">
         <div>

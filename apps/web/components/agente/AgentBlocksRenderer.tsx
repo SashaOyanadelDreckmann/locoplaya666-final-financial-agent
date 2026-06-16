@@ -1,6 +1,10 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import {
+  resolveQuestionnaireResponseMode,
+  type QuestionnaireChatTheme,
+} from '@financial-agent/shared';
 import type { AgentBlock } from '@/lib/tipos/chat';
 import { ChatTableScrollHost } from '@/components/agente/ChatTableScrollHost';
 import { TransactionChartBlockRenderer } from '@/components/transacciones/charts/TransactionChartBlockRenderer';
@@ -34,6 +38,7 @@ import {
 
 type AgentBlocksRendererProps = {
   blocks?: AgentBlock[];
+  questionnaireChatTheme?: QuestionnaireChatTheme | null;
   onQuestionnaireSubmit?: (payload: {
     questionnaireId: string;
     message: string;
@@ -57,21 +62,31 @@ function QuestionnaireBlockView(props: {
     submit_label?: string;
     questions: QuestionnaireQuestion[];
   };
+  chatTheme?: QuestionnaireChatTheme | null;
   onSubmit?: AgentBlocksRendererProps['onQuestionnaireSubmit'];
 }) {
-  const { questionnaire, onSubmit } = props;
+  const { questionnaire, onSubmit, chatTheme = null } = props;
   const [selectedChoices, setSelectedChoices] = useState<Record<string, string>>({});
   const [freeTexts, setFreeTexts] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
 
+  const questionModes = useMemo(
+    () =>
+      questionnaire.questions.map((q) =>
+        resolveQuestionnaireResponseMode(q.question, q.choices, chatTheme),
+      ),
+    [chatTheme, questionnaire.questions],
+  );
+
   const answers = useMemo(() => {
-    return questionnaire.questions.map((q) => {
-      const choice = selectedChoices[q.id]?.trim() ?? '';
+    return questionnaire.questions.map((q, index) => {
+      const openText = questionModes[index] === 'open-text';
+      const choice = openText ? '' : (selectedChoices[q.id]?.trim() ?? '');
       const custom = freeTexts[q.id]?.trim() ?? '';
       const answer = choice || custom;
       return { questionId: q.id, question: q.question, answer, required: q.required !== false };
     });
-  }, [questionnaire.questions, selectedChoices, freeTexts]);
+  }, [questionnaire.questions, questionModes, selectedChoices, freeTexts]);
 
   const readyToSubmit = answers.every((a) => (a.required ? a.answer.length > 0 : true));
 
@@ -107,37 +122,28 @@ function QuestionnaireBlockView(props: {
   };
 
   return (
-    <section className="agent-block agent-questionnaire-block">
+    <section
+      className={`agent-block agent-questionnaire-block${
+        chatTheme ? ` is-chat-${chatTheme}` : ''
+      }`}
+    >
       <h4>{questionnaire.title ?? 'Responde para continuar'}</h4>
       <div className="agent-questionnaire-list">
-        {questionnaire.questions.map((q, idx) => (
-          <div key={q.id} className="agent-question-item">
+        {questionnaire.questions.map((q, idx) => {
+          const openText = questionModes[idx] === 'open-text';
+          return (
+          <div
+            key={q.id}
+            className={`agent-question-item${openText ? ' is-open-text-question' : ''}`}
+          >
             <p className="agent-question-text">
               {idx + 1}. {q.question}
             </p>
             <div className="agent-question-choices">
-              {q.choices.slice(0, 4).map((choice) => (
-                <button
-                  key={choice}
-                  type="button"
-                  className={`agent-question-choice${
-                    selectedChoices[q.id] === choice ? ' is-selected' : ''
-                  }`}
-                  onClick={() =>
-                    setSelectedChoices((prev) => ({
-                      ...prev,
-                      [q.id]: choice,
-                    }))
-                  }
-                  disabled={submitted}
-                >
-                  {choice}
-                </button>
-              ))}
-              {(q.allow_free_text ?? true) && (
+              {openText ? (
                 <input
-                  className="agent-question-input-inline"
-                  placeholder={q.free_text_placeholder ?? 'Otro (escribe aquí)'}
+                  className="agent-question-input-pill"
+                  placeholder="(escribir respuesta...)"
                   value={freeTexts[q.id] ?? ''}
                   onChange={(e) => {
                     const value = e.target.value;
@@ -145,20 +151,58 @@ function QuestionnaireBlockView(props: {
                       ...prev,
                       [q.id]: value,
                     }));
-                    if (value.trim()) {
-                      setSelectedChoices((prev) => {
-                        const next = { ...prev };
-                        delete next[q.id];
-                        return next;
-                      });
-                    }
                   }}
                   disabled={submitted}
+                  aria-label={`Respuesta para: ${q.question}`}
                 />
+              ) : (
+                <>
+                  {q.choices.slice(0, 4).map((choice) => (
+                    <button
+                      key={choice}
+                      type="button"
+                      className={`agent-question-choice${
+                        selectedChoices[q.id] === choice ? ' is-selected' : ''
+                      }`}
+                      onClick={() =>
+                        setSelectedChoices((prev) => ({
+                          ...prev,
+                          [q.id]: choice,
+                        }))
+                      }
+                      disabled={submitted}
+                    >
+                      {choice}
+                    </button>
+                  ))}
+                  {(q.allow_free_text ?? true) && (
+                    <input
+                      className="agent-question-input-inline"
+                      placeholder={q.free_text_placeholder ?? 'Otro (escribe aquí)'}
+                      value={freeTexts[q.id] ?? ''}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setFreeTexts((prev) => ({
+                          ...prev,
+                          [q.id]: value,
+                        }));
+                        if (value.trim()) {
+                          setSelectedChoices((prev) => {
+                            const next = { ...prev };
+                            delete next[q.id];
+                            return next;
+                          });
+                        }
+                      }}
+                      disabled={submitted}
+                    />
+                  )}
+                </>
               )}
             </div>
           </div>
-        ))}
+        );
+        })}
       </div>
       <div className="agent-questionnaire-actions">
         <button
@@ -176,7 +220,11 @@ function QuestionnaireBlockView(props: {
   );
 }
 
-export function AgentBlocksRenderer({ blocks = [], onQuestionnaireSubmit }: AgentBlocksRendererProps) {
+export function AgentBlocksRenderer({
+  blocks = [],
+  questionnaireChatTheme = null,
+  onQuestionnaireSubmit,
+}: AgentBlocksRendererProps) {
   if (!blocks.length) return null;
 
   const formatValue = (value: number | string, format?: 'currency' | 'percentage' | 'number', currency?: string) => {
@@ -366,6 +414,7 @@ export function AgentBlocksRenderer({ blocks = [], onQuestionnaireSubmit }: Agen
             <QuestionnaireBlockView
               key={idx}
               questionnaire={block.questionnaire}
+              chatTheme={questionnaireChatTheme}
               onSubmit={onQuestionnaireSubmit}
             />
           );

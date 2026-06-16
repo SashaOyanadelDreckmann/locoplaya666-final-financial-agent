@@ -9,6 +9,7 @@ import {
   selectSummaryChatMessages,
 } from './tx-assistant-thread.helpers';
 import { getCsrfToken } from '@/lib/sesion/csrf';
+import { dismissMobileKeyboard } from '@/lib/interfaz/mobile-keyboard-focus';
 import { FINCOIN_SPEND_BLOCKED_MESSAGE } from '@/lib/compartido/fincoin-gate';
 import {
   buildChatDashboardForQuestion,
@@ -805,6 +806,7 @@ export function useTxAssistantChat(params: {
     if (!activeBankProduct || txAssistantLoading || txSendLockRef.current) return;
     const text = txAssistantInput.trim();
     if (!text && pendingEvidenceFiles.length === 0) return;
+    dismissMobileKeyboard();
     await submitAssistantQuestion(text);
   }, [activeBankProduct, pendingEvidenceFiles.length, submitAssistantQuestion, txAssistantInput, txAssistantLoading, txSendLockRef]);
 

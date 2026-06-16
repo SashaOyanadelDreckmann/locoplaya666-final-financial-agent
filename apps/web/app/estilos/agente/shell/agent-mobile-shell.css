@@ -46,8 +46,9 @@
   }
 
   html:not(.pwa-standalone) main.agent-layout.is-mobile-viewport {
-    height: var(--visual-vh, var(--fa-app-height, 100lvh)) !important;
-    max-height: var(--visual-vh, var(--fa-app-height, 100lvh)) !important;
+    flex: 1 1 auto !important;
+    height: 100% !important;
+    max-height: 100% !important;
   }
 
   main.agent-layout.is-mobile-viewport > section.agent-chat {
