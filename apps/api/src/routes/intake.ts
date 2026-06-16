@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
 import { IntakeQuestionnaire } from '@financial-agent/shared/src/intake/intake-questionnaire.types';
+import { normalizeIntakeBodyForValidation } from '@financial-agent/shared';
 import { analyzeIntake } from '../agents/intake/intake-analyzer';
 import { buildIntakeContext } from '../services/intake-context.service';
 import { submitQuestionnaireIntakeOnce, updateQuestionnaireIntake } from '../services/user.service';
@@ -72,7 +73,10 @@ const IntakeRequestSchema = z.object({
 export { IntakeRequestSchema };
 
 export async function submitIntake(req: Request, res: Response) {
-  const intake = parseBody(IntakeRequestSchema, req.body) as IntakeQuestionnaire;
+  const intake = parseBody(
+    IntakeRequestSchema,
+    normalizeIntakeBodyForValidation(req.body),
+  ) as IntakeQuestionnaire;
 
   const user = req.authenticatedUser;
   if (!user?.id) {
@@ -113,7 +117,10 @@ export async function submitIntake(req: Request, res: Response) {
 }
 
 export async function updateIntake(req: Request, res: Response) {
-  const intake = parseBody(IntakeRequestSchema, req.body) as IntakeQuestionnaire;
+  const intake = parseBody(
+    IntakeRequestSchema,
+    normalizeIntakeBodyForValidation(req.body),
+  ) as IntakeQuestionnaire;
 
   const user = req.authenticatedUser;
   if (!user?.id) {

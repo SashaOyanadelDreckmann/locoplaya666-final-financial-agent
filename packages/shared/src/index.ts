@@ -28,6 +28,13 @@ export {
   hasMeaningfulIntake,
   readSessionIntakeEnvelope,
 } from './intake/intake-access';
+export {
+  EMPTY_FINANCIAL_KNOWLEDGE,
+  normalizeFinancialKnowledge,
+  normalizeIntakeQuestionnaire,
+  normalizeIntakeQuestionnaireFromRecord,
+  normalizeIntakeBodyForValidation,
+} from './intake/intake-normalize';
 export * from './welcome/welcome-intro.types';
 export {
   WELCOME_FINTECH_DEFAULT_BENEFIT,

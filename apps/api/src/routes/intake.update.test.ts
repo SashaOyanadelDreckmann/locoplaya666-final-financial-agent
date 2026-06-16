@@ -136,4 +136,30 @@ describe('PATCH /intake/update', () => {
 
     expect(response.status).toBe(400);
   });
+
+  it('accepts legacy QA intake with partial financial knowledge and empty city', async () => {
+    const { agent, userId, csrfToken } = await createAuthedAgent();
+
+    await replaceIntakeEnvelopeForDev(userId, {
+      intake: {
+        ...COMPLETE_INTAKE,
+        city: '',
+        financialKnowledge: { interest: false, CAE: false, inflation: false },
+      },
+      intakeContext: 'baseline',
+    });
+
+    const response = await agent
+      .patch('/intake/update')
+      .set('X-CSRF-Token', csrfToken)
+      .send({
+        ...COMPLETE_INTAKE,
+        city: '',
+        hasDebt: true,
+        financialKnowledge: { interest: false, CAE: false, inflation: false },
+      });
+
+    expect(response.status).toBe(200);
+    expect(response.body?.data?.intake?.hasDebt).toBe(true);
+  });
 });

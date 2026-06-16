@@ -1,4 +1,5 @@
 import type { IntakeQuestionnaire } from '@financial-agent/shared/src/intake/intake-questionnaire.types';
+import { normalizeIntakeQuestionnaire } from '@financial-agent/shared';
 import { getSessionApiBaseUrl } from '../api/base';
 import { parseApiResponse } from '../api/envelope';
 import { getCsrfToken } from './csrf';
@@ -32,7 +33,7 @@ export async function updateIntakeQuestionnaire(data: IntakeQuestionnaire) {
       ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}),
     },
     credentials: 'include',
-    body: JSON.stringify(data),
+    body: JSON.stringify(normalizeIntakeQuestionnaire(data)),
   });
 
   return parseApiResponse<{

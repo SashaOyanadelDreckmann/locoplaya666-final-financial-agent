@@ -60,7 +60,7 @@ export function QuestionnaireModal(props: {
       await props.onUpdated?.();
       setMode('view');
     } catch (saveError) {
-      setError(toUserFacingError(saveError));
+      setError(toUserFacingError(saveError, 'intake.update'));
     } finally {
       setSaving(false);
     }

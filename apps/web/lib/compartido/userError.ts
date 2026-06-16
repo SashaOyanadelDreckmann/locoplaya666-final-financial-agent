@@ -7,6 +7,7 @@ type ErrorContext =
   | 'auth.resetPassword'
   | 'chat.send'
   | 'intake.submit'
+  | 'intake.update'
   | 'interview.voice'
   | 'generic';
 
@@ -124,7 +125,7 @@ export function toUserFacingError(error: unknown, context: ErrorContext = 'gener
     }
 
     if (error.status === 422 || code === 'validation_error') {
-      if (context === 'intake.submit') {
+      if (context === 'intake.submit' || context === 'intake.update') {
         const explicit = toIntakeValidationMessage(error.detail);
         if (explicit) return explicit;
       }
@@ -156,6 +157,9 @@ export function toUserFacingError(error: unknown, context: ErrorContext = 'gener
     }
     if (context === 'intake.submit') {
       return 'No pudimos guardar tu formulario por ahora. Intenta nuevamente.';
+    }
+    if (context === 'intake.update') {
+      return 'No pudimos actualizar tu cuestionario por ahora. Intenta nuevamente.';
     }
     return 'No se pudo completar la solicitud. Intenta nuevamente.';
   }
