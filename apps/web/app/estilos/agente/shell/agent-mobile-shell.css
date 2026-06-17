@@ -679,7 +679,7 @@
     position: sticky !important;
     top: 0 !important;
     z-index: 4 !important;
-    background: #000000 !important;
+    background: transparent !important;
   }
 
   main.agent-layout.is-mobile-viewport .agent-divider-rail {
@@ -888,7 +888,7 @@
     margin-bottom: 0 !important;
     box-sizing: border-box !important;
     overflow: hidden !important;
-    background: #000000 !important;
+    background: transparent !important;
   }
 
   html.pwa-standalone .agent-layout.is-mobile-standalone.mobile-panel-expanded .agent-panel,

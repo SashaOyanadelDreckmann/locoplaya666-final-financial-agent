@@ -1,11 +1,14 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { motion, useScroll, useTransform } from 'framer-motion';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { motion, useTransform, useInView } from 'framer-motion';
+import { useHomeScroll } from '@/lib/interfaz/home-scroll-context';
 import SpotlightCard from '@/components/inicio/SpotlightCard';
 
 const SILK: [number, number, number, number] = [0.22, 1, 0.36, 1];
 const WINE_GLOW = 'rgba(176,52,72,0.2)';
+const ASCII_TYPING_DURATION_MS = 10000;
+const ASCII_SCALE_CAP = 1.85;
 
 function Label({ text }: { text: string }) {
   return (
@@ -13,11 +16,29 @@ function Label({ text }: { text: string }) {
   );
 }
 
+function usePrefersReducedMotion() {
+  const [reduced, setReduced] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const sync = () => setReduced(mq.matches);
+    sync();
+    mq.addEventListener('change', sync);
+    return () => mq.removeEventListener('change', sync);
+  }, []);
+
+  return reduced;
+}
+
 function ThesisAsciiPortrait() {
   const [ascii, setAscii] = useState('');
-  const containerRef = useRef<HTMLDivElement>(null);
-  const preRef = useRef<HTMLPreElement>(null);
+  const [visibleChars, setVisibleChars] = useState(0);
+  const [stageSize, setStageSize] = useState({ width: 0, height: 0 });
   const [scale, setScale] = useState(1);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const measureRef = useRef<HTMLPreElement>(null);
+  const isInView = useInView(containerRef, { once: true, amount: 0.15 });
+  const reducedMotion = usePrefersReducedMotion();
 
   useEffect(() => {
     let cancelled = false;
@@ -34,9 +55,10 @@ function ThesisAsciiPortrait() {
     };
   }, []);
 
-  useEffect(() => {
+  // Scale once from the full artwork — never tied to visible character count.
+  useLayoutEffect(() => {
     const container = containerRef.current;
-    const pre = preRef.current;
+    const pre = measureRef.current;
     if (!container || !pre || !ascii) return;
 
     const fit = () => {
@@ -44,10 +66,17 @@ function ThesisAsciiPortrait() {
       const naturalWidth = pre.scrollWidth;
       const naturalHeight = pre.scrollHeight;
       if (!naturalWidth || !naturalHeight) return;
-      const availableWidth = container.clientWidth;
-      const availableHeight = container.clientHeight;
-      const next = Math.min(availableWidth / naturalWidth, availableHeight / naturalHeight, 1.35);
-      setScale(next);
+
+      const nextScale = Math.min(
+        container.clientWidth / naturalWidth,
+        container.clientHeight / naturalHeight,
+        ASCII_SCALE_CAP,
+      );
+      setScale(nextScale);
+      setStageSize({
+        width: naturalWidth * nextScale,
+        height: naturalHeight * nextScale,
+      });
     };
 
     fit();
@@ -56,16 +85,65 @@ function ThesisAsciiPortrait() {
     return () => observer.disconnect();
   }, [ascii]);
 
+  useEffect(() => {
+    if (!ascii || !isInView) {
+      setVisibleChars(0);
+      return;
+    }
+    if (reducedMotion) {
+      setVisibleChars(ascii.length);
+      return;
+    }
+
+    setVisibleChars(0);
+    const startedAt = performance.now();
+    let raf = 0;
+
+    const tick = (now: number) => {
+      const progress = Math.min(1, (now - startedAt) / ASCII_TYPING_DURATION_MS);
+      setVisibleChars(Math.min(ascii.length, Math.floor(progress * ascii.length)));
+      if (progress < 1) {
+        raf = requestAnimationFrame(tick);
+      } else {
+        setVisibleChars(ascii.length);
+      }
+    };
+
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [ascii, isInView, reducedMotion]);
+
+  const visibleAscii = ascii.slice(0, visibleChars);
+  const isTyping = ascii.length > 0 && visibleChars < ascii.length;
+
   return (
     <div ref={containerRef} className="home-thesis-spotlight__art" aria-hidden>
       {ascii ? (
-        <pre
-          ref={preRef}
-          className="home-thesis-spotlight__ascii"
-          style={{ transform: `scale(${scale})` }}
+        <div
+          className="home-thesis-spotlight__ascii-stage"
+          style={{
+            width: stageSize.width > 0 ? stageSize.width : undefined,
+            height: stageSize.height > 0 ? stageSize.height : undefined,
+          }}
         >
-          {ascii}
-        </pre>
+          <pre
+            ref={measureRef}
+            className="home-thesis-spotlight__ascii"
+            aria-hidden
+            style={{ visibility: 'hidden', pointerEvents: 'none' }}
+          >
+            {ascii}
+          </pre>
+          <pre
+            className="home-thesis-spotlight__ascii"
+            style={{ transform: `scale(${scale})` }}
+          >
+            {visibleAscii}
+            {isTyping ? (
+              <span className="home-thesis-typewriter-cursor home-thesis-typewriter-cursor--ascii" />
+            ) : null}
+          </pre>
+        </div>
       ) : (
         <div className="home-thesis-spotlight__art-placeholder" />
       )}
@@ -75,7 +153,7 @@ function ThesisAsciiPortrait() {
 
 export default function ThesisAuthorSpotlight() {
   const ref = useRef<HTMLElement>(null);
-  const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end start'] });
+  const { scrollYProgress } = useHomeScroll({ target: ref, offset: ['start end', 'end start'] });
   const headY = useTransform(scrollYProgress, [0, 0.4, 1], [24, 0, -16]);
   const headO = useTransform(scrollYProgress, [0, 0.2, 0.8, 1], [0, 1, 1, 0.45]);
 

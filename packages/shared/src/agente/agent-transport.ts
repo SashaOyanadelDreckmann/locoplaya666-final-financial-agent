@@ -1,9 +1,8 @@
 /**
  * Transport policy for Core Agent client calls.
  *
- * Mobile Safari often buffers fetch+ReadableStream SSE until the connection closes,
- * which leaves the chat stuck on the first phase with an empty bubble. JSON POST
- * avoids that and still uses the same Next.js session proxy.
+ * SSE streaming is used on all clients (including mobile). JSON POST remains the
+ * fallback when streaming is disabled or the stream transport fails.
  */
 
 export const CORE_AGENT_STREAM_STALL_FALLBACK_MS = 12_000;
@@ -15,16 +14,22 @@ export type AgentTransportHint = {
   streamEnvDisabled?: boolean;
 };
 
+/** JSON-only when streaming is explicitly disabled via env. */
 export function shouldPreferAgentJsonTransport(hint: AgentTransportHint = {}): boolean {
-  if (hint.streamEnvDisabled === true) return true;
+  return hint.streamEnvDisabled === true;
+}
 
+/** Mobile / touch clients — longer timeouts and immediate UI flush during stream. */
+export function isMobileAgentClient(hint: AgentTransportHint = {}): boolean {
   const ua = String(hint.userAgent ?? '').trim();
   if (/iPhone|iPad|iPod|Android/i.test(ua)) return true;
-
   if (hint.pointerCoarse === true) return true;
   if (hint.mobileViewport === true) return true;
-
   return false;
+}
+
+export function shouldFlushAgentStreamPatches(hint: AgentTransportHint = {}): boolean {
+  return isMobileAgentClient(hint);
 }
 
 export function readBrowserAgentTransportHint(): AgentTransportHint {

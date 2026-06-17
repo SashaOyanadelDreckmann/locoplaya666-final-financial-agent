@@ -1027,9 +1027,8 @@ html.home-route-active .home-grain-layer {
 }
 
 @media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
-  /* Home: window is the scroll container — useScroll + sticky need window.scrollY.
-     height:auto lets html/body grow; overflow-x:clip avoids horizontal bleed without
-     forcing overflow-y:auto on html (which would break position:sticky). */
+  /* Home mobile: document scroll — sticky sections need window.scrollY.
+     overflow-x on the frame must stay visible or iOS Safari breaks position:sticky. */
   html.home-route-active,
   html.home-route-active body {
     height: auto;
@@ -1038,6 +1037,34 @@ html.home-route-active .home-grain-layer {
     overscroll-behavior-y: auto;
     touch-action: pan-y pinch-zoom;
     -webkit-overflow-scrolling: touch;
+  }
+
+  /* Tablet landscape home keeps frame as scroll root (see tablet-system.css). */
+  html.home-route-active.home-scroll-active,
+  html.home-route-active.home-scroll-active body {
+    height: 100% !important;
+    max-height: 100% !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    overscroll-behavior: none;
+  }
+
+  html.home-route-active.home-scroll-active .app-shell {
+    height: 100% !important;
+    max-height: 100% !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  html.home-route-active .mobile-scale-frame.home-scroll-root {
+    height: var(--fa-app-height, 100dvh) !important;
+    max-height: var(--fa-app-height, 100dvh) !important;
+    min-height: 0 !important;
+    overflow-x: clip !important;
+    overflow-y: auto !important;
+    overscroll-behavior-y: contain !important;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y pinch-zoom;
   }
 
   html.home-route-active .home-canvas-layer {
@@ -1087,17 +1114,13 @@ html.home-route-active .home-grain-layer {
     padding-top: 6px;
   }
 
-  .home-hero-actions__primary {
+  .home-wine-cta.home-hero-actions__primary {
     width: 100%;
     justify-content: center;
     min-height: 50px;
     padding: 14px 24px;
     font-size: 15px;
     letter-spacing: -0.012em;
-    box-shadow:
-      0 0 0 1px rgba(255, 255, 255, 0.12),
-      0 8px 28px rgba(0, 0, 0, 0.28),
-      inset 0 1px 0 rgba(255, 255, 255, 0.9);
   }
 
   .home-hero-actions__secondary {
@@ -1154,7 +1177,15 @@ html.home-route-active .home-grain-layer {
     height: auto;
     min-height: 100dvh;
     max-height: none;
-    overflow-x: clip;
+    overflow-x: visible;
+    overflow-y: visible;
+  }
+
+  html.home-route-active .mobile-scale-frame:not(.home-scroll-root) {
+    height: auto;
+    min-height: 100dvh;
+    max-height: none;
+    overflow-x: visible;
     overflow-y: visible;
   }
 
@@ -1227,7 +1258,12 @@ html.home-route-active .home-grain-layer {
 }
 @media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .home-problem-wrapper {
-    height: 260vh;
+    height: 168dvh;
+    min-height: 168vh;
+  }
+
+  .home-problem-copy {
+    padding-top: max(12px, env(safe-area-inset-top, 0px));
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -1516,6 +1552,37 @@ html.home-route-active .home-grain-layer {
   }
 }
 
+.home-wine-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 44px;
+  padding: 11px 22px;
+  border-radius: 999px;
+  border: 1px solid rgba(208, 64, 84, 0.42);
+  background: var(--home-wine-accent);
+  color: rgba(255, 244, 246, 0.96);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 10px 24px rgba(0, 0, 0, 0.32);
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.home-wine-cta:hover {
+  background: var(--home-ink-red-soft);
+  border-color: rgba(224, 80, 100, 0.58);
+}
+
+.home-page-header__enter {
+  padding: 7px 18px;
+}
+
 .home-page-hero {
   position: relative;
   isolation: isolate;
@@ -1671,24 +1738,6 @@ html.home-route-active .home-grain-layer {
   padding-top: 4px;
 }
 
-.home-hero-actions__primary {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  min-height: 44px;
-  padding: 11px 22px;
-  border: none;
-  border-radius: 999px;
-  background: #ffffff;
-  color: #050810;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  text-decoration: none;
-  cursor: pointer;
-}
-
 .home-hero-actions__secondary {
   display: inline-flex;
   align-items: center;
@@ -1775,8 +1824,8 @@ html.home-route-active .home-grain-layer {
 .home-thesis-spotlight__art {
   position: relative;
   width: 100%;
-  min-height: clamp(220px, 42vh, 560px);
-  max-height: min(72vh, 640px);
+  min-height: clamp(300px, 56vh, 780px);
+  max-height: min(88vh, 840px);
   overflow: hidden;
   display: flex;
   align-items: flex-start;
@@ -1791,6 +1840,17 @@ html.home-route-active .home-grain-layer {
   min-height: inherit;
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01));
   border-radius: 8px;
+}
+
+.home-thesis-spotlight__ascii-stage {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.home-thesis-spotlight__ascii-stage > .home-thesis-spotlight__ascii {
+  position: absolute;
+  top: 0;
+  left: 0;
 }
 
 .home-thesis-spotlight__ascii {
@@ -1933,8 +1993,8 @@ html.home-route-active .home-grain-layer {
   }
 
   .home-thesis-spotlight__art {
-    min-height: clamp(180px, 34vh, 320px);
-    max-height: 42vh;
+    min-height: clamp(220px, 44vh, 420px);
+    max-height: 52vh;
     -webkit-mask-image: linear-gradient(to bottom, #000 88%, transparent 100%);
     mask-image: linear-gradient(to bottom, #000 88%, transparent 100%);
   }

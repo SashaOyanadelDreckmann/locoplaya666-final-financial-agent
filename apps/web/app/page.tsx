@@ -2,16 +2,17 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type RefObject } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowRight } from 'lucide-react';
 import {
   motion,
   useMotionValue,
-  useScroll,
   useSpring,
   useTransform,
 } from 'framer-motion';
+import { HomeScrollRoot, useHomeScroll } from '@/lib/interfaz/home-scroll-context';
+import { useSectionScrollProgress, usePinnedScrollSection, useNarrowViewport } from '@/lib/interfaz/use-section-scroll-progress';
 import SpotlightCard from '@/components/inicio/SpotlightCard';
 import ThesisAuthorSpotlight from '@/components/inicio/ThesisAuthorSpotlight';
 import NumbersCanvas, { type MousePos } from '@/components/inicio/NumbersCanvas';
@@ -84,34 +85,67 @@ const PROBLEM_LINES = [
 // ── Problem Section — sticky scroll con 3 fases ────────────────────────────────
 function ProblemSection({
   sectionRef,
-  mobileShell,
 }: {
   sectionRef: RefObject<HTMLDivElement | null>;
-  mobileShell: boolean;
 }) {
-  const { scrollYProgress } = useScroll({ target: sectionRef, offset: ['start start', 'end end'] });
+  const narrowViewport = useNarrowViewport();
+  const { scrollYProgress: framerProgress } = useHomeScroll({ target: sectionRef, offset: ['start start', 'end end'] });
+  const manualProgress = useSectionScrollProgress(sectionRef, narrowViewport);
+  const pinMode = usePinnedScrollSection(sectionRef, narrowViewport);
+  const sp = narrowViewport ? manualProgress : framerProgress;
 
-  const sp = scrollYProgress;
+  const c0 = useTransform(
+    sp,
+    narrowViewport ? [0, 0.05, 0.30, 0.36] : [0, 0.08, 0.30, 0.42],
+    [0.08, 1, 1, 0.08],
+  );
+  const c1 = useTransform(
+    sp,
+    narrowViewport ? [0.32, 0.38, 0.62, 0.68] : [0.33, 0.42, 0.62, 0.72],
+    [0.08, 1, 1, 0.08],
+  );
+  const c2 = useTransform(
+    sp,
+    narrowViewport ? [0.64, 0.70, 0.96, 1.0] : [0.65, 0.74, 0.98, 1.0],
+    [0.08, 1, 1, 0.90],
+  );
 
-  const c0 = useTransform(sp, [0, 0.08, 0.30, 0.42], [0.08, 1, 1, 0.08]);
-  const c1 = useTransform(sp, [0.33, 0.42, 0.62, 0.72], [0.08, 1, 1, 0.08]);
-  const c2 = useTransform(sp, [0.65, 0.74, 0.98, 1.0], [0.08, 1, 1, 0.90]);
-
-  const y0 = useTransform(sp, [0, 0.4], mobileShell ? ['0px', '0px'] : ['6px', '-6px']);
-  const y1 = useTransform(sp, [0.1, 0.6], mobileShell ? ['0px', '0px'] : ['10px', '-10px']);
-  const y2 = useTransform(sp, [0.3, 1.0], mobileShell ? ['0px', '0px'] : ['14px', '-6px']);
+  const y0 = useTransform(sp, [0, 0.4], narrowViewport ? ['0px', '0px'] : ['6px', '-6px']);
+  const y1 = useTransform(sp, [0.1, 0.6], narrowViewport ? ['0px', '0px'] : ['10px', '-10px']);
+  const y2 = useTransform(sp, [0.3, 1.0], narrowViewport ? ['0px', '0px'] : ['14px', '-6px']);
 
   const barH = useTransform(sp, [0, 1], ['0%', '100%']);
-  const overlayOpacity = useTransform(sp, [0, 0.5, 1], mobileShell ? [0, 0.12, 0] : [0, 0.22, 0]);
+  const overlayOpacity = useTransform(sp, [0, 0.5, 1], narrowViewport ? [0, 0.12, 0] : [0, 0.22, 0]);
+  const scrollHintOpacity = useTransform(sp, [0.04, 0.12, 0.28], [0, 1, 0]);
+  const scrollHintDesktop = useTransform(sp, [0.05, 0.15], [0, 1]);
+  const scrollHint = narrowViewport ? scrollHintOpacity : scrollHintDesktop;
 
   const colors = [c0, c1, c2];
   const ys = [y0, y1, y2];
 
-  return (
-    <div ref={sectionRef as React.RefObject<HTMLDivElement>} className="home-problem-wrapper" style={{ position: 'relative' }}>
-      <div
-        className="home-problem-sticky"
-        style={{
+  const panelPosition = narrowViewport
+    ? pinMode === 'fixed'
+      ? ('fixed' as const)
+      : pinMode === 'after'
+        ? ('absolute' as const)
+        : ('relative' as const)
+    : ('sticky' as const);
+
+  const panelStyle: CSSProperties = narrowViewport
+    ? {
+        position: panelPosition,
+        top: pinMode === 'after' ? undefined : 0,
+        bottom: pinMode === 'after' ? 0 : undefined,
+        left: 0,
+        right: 0,
+        zIndex: pinMode === 'fixed' ? 3 : 1,
+        height: '100dvh',
+        display: 'flex',
+        alignItems: 'center',
+        overflow: 'visible',
+        background: 'transparent',
+      }
+    : {
         position: 'sticky',
         top: 0,
         height: '100dvh',
@@ -121,7 +155,11 @@ function ProblemSection({
         background: 'transparent',
         WebkitMaskImage: 'linear-gradient(to bottom, black 72%, transparent 100%)',
         maskImage: 'linear-gradient(to bottom, black 72%, transparent 100%)',
-      }}>
+      };
+
+  return (
+    <div ref={sectionRef as React.RefObject<HTMLDivElement>} className="home-problem-wrapper" style={{ position: 'relative' }}>
+      <div className="home-problem-sticky" style={panelStyle}>
 
         {/* Color overlay vibrante */}
         <motion.div style={{
@@ -139,20 +177,35 @@ function ProblemSection({
           }} />
         </div>
 
-        <div style={{ padding: 'clamp(24px,8vw,120px)', width: '100%', maxWidth: 900 }}>
+        <div
+          className="home-problem-copy"
+          style={{
+            padding: narrowViewport ? '0 clamp(20px,6vw,32px)' : 'clamp(24px,8vw,120px)',
+            width: '100%',
+            maxWidth: 900,
+          }}
+        >
           <Label text="El problema" color={BLUE_DIM} />
 
+          <div
+            className="home-problem-lines"
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: narrowViewport ? 'clamp(40px, 12vh, 96px)' : undefined,
+            }}
+          >
           {PROBLEM_LINES.map((line, i) => (
             <div key={i}>
               <motion.p
                 style={{
-                  fontSize: 'clamp(30px,5vw,50px)',
+                  fontSize: narrowViewport ? 'clamp(26px,7.2vw,34px)' : 'clamp(30px,5vw,50px)',
                   fontFamily: 'Georgia, "Times New Roman", serif',
                   fontWeight: 700,
                   lineHeight: 1.12,
                   letterSpacing: '-0.028em',
                   margin: 0,
-                  padding: 'clamp(16px,3vw,36px) 0',
+                  padding: narrowViewport ? 0 : 'clamp(16px,3vw,36px) 0',
                   opacity: colors[i],
                   y: ys[i],
                   color: PROBLEM_COLORS[i],
@@ -161,20 +214,22 @@ function ProblemSection({
               >
                 {line}
               </motion.p>
-              {i < PROBLEM_LINES.length - 1 && (
+              {!narrowViewport && i < PROBLEM_LINES.length - 1 && (
                 <div style={{ height: 1, background: 'rgba(111,143,166,0.08)' }} />
               )}
             </div>
           ))}
+          </div>
 
-          {/* Número de línea activa */}
-          <motion.p style={{
-            marginTop: 40,
+          <motion.p
+            className="home-problem-scroll-hint"
+            style={{
+            marginTop: narrowViewport ? 'clamp(32px, 8vh, 56px)' : 40,
             fontSize: 10,
             letterSpacing: '0.22em',
             color: GOLD_DIM,
             textTransform: 'uppercase',
-            opacity: useTransform(sp, [0.05, 0.15], [0, 1]),
+            opacity: scrollHint,
           }}>
             Scroll para avanzar
           </motion.p>
@@ -186,7 +241,7 @@ function ProblemSection({
 
 // ── Features Section ───────────────────────────────────────────────────────────
 function FeaturesSection({ sectionRef }: { sectionRef: RefObject<HTMLElement | null> }) {
-  const { scrollYProgress } = useScroll({ target: sectionRef, offset: ['start end', 'end start'] });
+  const { scrollYProgress } = useHomeScroll({ target: sectionRef, offset: ['start end', 'end start'] });
 
   const headY = useTransform(scrollYProgress, [0, 0.5, 1], [40, 0, -30]);
   const headO = useTransform(scrollYProgress, [0, 0.15, 0.75, 1], [0, 1, 1, 0.3]);
@@ -257,7 +312,7 @@ function FeaturesSection({ sectionRef }: { sectionRef: RefObject<HTMLElement | n
 function StepsSection() {
   const sectionRef = useRef<HTMLElement>(null);
   const router = useRouter();
-  const { scrollYProgress } = useScroll({ target: sectionRef, offset: ['start end', 'end start'] });
+  const { scrollYProgress } = useHomeScroll({ target: sectionRef, offset: ['start end', 'end start'] });
 
   const headY = useTransform(scrollYProgress, [0, 0.4, 1], [40, 0, -25]);
   const headO = useTransform(scrollYProgress, [0, 0.2, 0.85, 1], [0, 1, 1, 0.3]);
@@ -364,7 +419,7 @@ function StepsSection() {
 function CtaSection() {
   const sectionRef = useRef<HTMLElement>(null);
   const router = useRouter();
-  const { scrollYProgress } = useScroll({ target: sectionRef, offset: ['start end', 'end start'] });
+  const { scrollYProgress } = useHomeScroll({ target: sectionRef, offset: ['start end', 'end start'] });
   const headY = useTransform(scrollYProgress, [0, 0.5, 1], [60, 0, -40]);
   const headO = useTransform(scrollYProgress, [0, 0.2, 0.85, 1], [0, 1, 1, 0.2]);
 
@@ -407,11 +462,12 @@ function CtaSection() {
 
         <div className="home-cta-row">
           <motion.button
+            type="button"
+            className="home-wine-cta"
             onClick={() => void handleStartDiagnosis()}
-            whileHover={{ scale: 1.02, opacity: 0.88 }}
+            whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.97 }}
             transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'white', border: 'none', borderRadius: 999, padding: '12px 26px', fontSize: 13, fontWeight: 600, color: '#050810', cursor: 'pointer', letterSpacing: '-0.01em', minHeight: 44 }}
           >
             Comenzar diagnóstico <ArrowRight size={13} />
           </motion.button>
@@ -425,7 +481,7 @@ function CtaSection() {
         </div>
 
         <p style={{ marginTop: 56, fontSize: 10, letterSpacing: '0.16em', color: BLUE_DIM, textTransform: 'uppercase' }}>
-          Proyecto de tesis — Ingeniería / Economía
+          Proyecto de tesis — Ingeniería / Finanzas
         </p>
       </motion.div>
     </section>
@@ -448,18 +504,24 @@ export default function HomePage() {
   // SSR must match first client paint — viewport is synced in useEffect below.
   const [mobileShell, setMobileShell] = useState(false);
 
+  const narrowViewport = useNarrowViewport();
   const featureSectionRef = useRef<HTMLElement>(null);
   const problemSectionRef = useRef<HTMLDivElement>(null);
 
-  const { scrollYProgress: canvasProgress } = useScroll({
+  const { scrollYProgress: framerCanvasProgress } = useHomeScroll({
     target: scrollRangeRef,
     offset: ['start start', 'end end'],
   });
-  const { scrollYProgress: heroProgress } = useScroll({
+  const manualCanvasProgress = useSectionScrollProgress(scrollRangeRef, narrowViewport);
+  const canvasProgress = narrowViewport ? manualCanvasProgress : framerCanvasProgress;
+
+  const { scrollYProgress: framerHeroProgress } = useHomeScroll({
     target: heroSectionRef,
     offset: ['start start', 'end end'],
   });
-  const { scrollYProgress: featureRawP } = useScroll({
+  const manualHeroProgress = useSectionScrollProgress(heroSectionRef, narrowViewport);
+  const heroProgress = narrowViewport ? manualHeroProgress : framerHeroProgress;
+  const { scrollYProgress: featureRawP } = useHomeScroll({
     target: featureSectionRef,
     offset: ['start end', 'end start'],
   });
@@ -529,6 +591,7 @@ export default function HomePage() {
   };
 
   return (
+    <HomeScrollRoot>
     <main style={{ background: 'var(--browser-chrome-color, #050810)', color: 'white', position: 'relative' }}>
 
       <div className="home-canvas-layer">
@@ -634,11 +697,12 @@ export default function HomePage() {
 
                 <MotionLink
                   href="/agent"
+                  className="home-wine-cta home-page-header__enter"
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.08, ease: SILK }}
-                  whileHover={{ opacity: 0.72 }}
-                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.14)', borderRadius: 999, padding: '7px 18px', fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.78)', cursor: 'pointer', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', minHeight: 44, boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08)' }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                 >
                   Entrar
                 </MotionLink>
@@ -702,8 +766,8 @@ export default function HomePage() {
                 >
                   <MotionLink
                     href="/agent"
-                    className="home-hero-actions__primary"
-                    whileHover={{ scale: 1.03, opacity: 0.88 }}
+                    className="home-wine-cta home-hero-actions__primary"
+                    whileHover={{ scale: 1.03 }}
                     whileTap={{ scale: 0.97 }}
                     transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                   >
@@ -754,7 +818,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        <ProblemSection sectionRef={problemSectionRef} mobileShell={mobileShell} />
+        <ProblemSection sectionRef={problemSectionRef} />
         <FeaturesSection sectionRef={featureSectionRef} />
         <ThesisAuthorSpotlight />
         <StepsSection />
@@ -763,5 +827,6 @@ export default function HomePage() {
       </div>
 
     </main>
+    </HomeScrollRoot>
   );
 }

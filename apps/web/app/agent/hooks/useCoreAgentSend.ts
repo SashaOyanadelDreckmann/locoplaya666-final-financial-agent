@@ -5,7 +5,8 @@ import { flushSync } from 'react-dom';
 
 import {
   readBrowserAgentTransportHint,
-  shouldPreferAgentJsonTransport,
+  isMobileAgentClient,
+  shouldFlushAgentStreamPatches,
 } from '@financial-agent/shared';
 
 import { getSessionIdForChat } from '@/lib/sesion/session';
@@ -131,7 +132,9 @@ export function useCoreAgentSend(params: UseCoreAgentSendParams) {
       try {
         await params.prepareSend?.();
         const requestContext = params.buildRequestContext();
-        const preferJsonTransport = shouldPreferAgentJsonTransport(readBrowserAgentTransportHint());
+        const transportHint = readBrowserAgentTransportHint();
+        const mobileClient = isMobileAgentClient(transportHint);
+        const flushStreamPatches = shouldFlushAgentStreamPatches(transportHint);
         const activeThreadId = params.getActiveThreadId();
         const sendParams = {
           userMessage,
@@ -140,10 +143,10 @@ export function useCoreAgentSend(params: UseCoreAgentSendParams) {
           clientMessageId,
         };
 
-        await primeAgentCsrfToken(preferJsonTransport);
+        await primeAgentCsrfToken(mobileClient);
 
         const payloadCandidates = [
-          preferJsonTransport
+          mobileClient
             ? buildSlimCoreAgentSendPayload(requestContext, sendParams)
             : buildCoreAgentSendPayload(requestContext, sendParams),
           buildSlimCoreAgentSendPayload(requestContext, sendParams),
@@ -165,19 +168,27 @@ export function useCoreAgentSend(params: UseCoreAgentSendParams) {
 
         const res = (await sendToAgentStream(finalRequestPayload, {
           onUiState: (streamState) => {
-            params.setItemsForActive((prev) =>
-              patchStreamingAssistantMessage(prev, {
-                stream: streamState,
-                mode: streamState.mode ?? 'information',
-              }),
-            );
+            const apply = () => {
+              params.setItemsForActive((prev) =>
+                patchStreamingAssistantMessage(prev, {
+                  stream: streamState,
+                  mode: streamState.mode ?? 'information',
+                }),
+              );
+            };
+            if (flushStreamPatches) flushSync(apply);
+            else apply();
           },
           onDelta: (_delta, fullText) => {
-            params.setItemsForActive((prev) =>
-              patchStreamingAssistantMessage(prev, {
-                content: fullText,
-              }),
-            );
+            const apply = () => {
+              params.setItemsForActive((prev) =>
+                patchStreamingAssistantMessage(prev, {
+                  content: fullText,
+                }),
+              );
+            };
+            if (flushStreamPatches) flushSync(apply);
+            else apply();
           },
         })) as AgentResponse;
 

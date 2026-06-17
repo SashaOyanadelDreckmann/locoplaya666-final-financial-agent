@@ -130,11 +130,26 @@
     overflow-y: visible !important;
   }
 
+  html.is-tablet-portrait.home-route-active.home-scroll-active,
+  html.is-tablet-portrait.home-route-active.home-scroll-active body {
+    height: 100% !important;
+    max-height: 100% !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+
   html.is-tablet-portrait.home-route-active .app-shell {
     height: auto !important;
     min-height: 100dvh !important;
     max-height: none !important;
     overflow: visible !important;
+  }
+
+  html.is-tablet-portrait.home-route-active.home-scroll-active .app-shell {
+    height: 100% !important;
+    max-height: 100% !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
   }
 
   html.is-tablet-portrait.home-route-active .mobile-scale-frame.home-scroll-root {

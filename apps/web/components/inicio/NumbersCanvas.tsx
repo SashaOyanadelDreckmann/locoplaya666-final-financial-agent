@@ -25,6 +25,14 @@ const PHASE = {
   outEnd:   0.99,
 } as const;
 
+/** Mobile: reveal + morph across the full page scroll, not just the hero. */
+const MOBILE_PHASE = {
+  inStart: 0.00,
+  inEnd:   0.40,
+  outStart: 0.84,
+  outEnd:   0.99,
+} as const;
+
 function drawImageCover(
   ctx: CanvasRenderingContext2D,
   img: HTMLImageElement,
@@ -146,14 +154,16 @@ export default function NumbersCanvas({
 
     function paint(rawP: number, t: number) {
       const p = isMobile ? quantizeProgress(rawP) : rawP;
+      const scrollT = isMobile ? p * 120 : t;
       if (isMobile && p === lastPaintP) return;
       lastPaintP = p;
 
-      const inP  = ease(remap(p, PHASE.inStart, PHASE.inEnd));
-      const outP = ease(remap(p, PHASE.outStart, PHASE.outEnd));
+      const phase = isMobile ? MOBILE_PHASE : PHASE;
+      const inP  = ease(remap(p, phase.inStart, phase.inEnd));
+      const outP = ease(remap(p, phase.outStart, phase.outEnd));
       const midP = clamp(inP - outP);
-      const chaosIn  = isMobile ? 0 : ease(remap(p, 0.24, 0.44));
-      const chaosOut = isMobile ? 0 : ease(remap(p, 0.60, 0.80));
+      const chaosIn  = isMobile ? ease(remap(p, 0.06, 0.48)) : ease(remap(p, 0.24, 0.44));
+      const chaosOut = isMobile ? ease(remap(p, 0.72, 0.92)) : ease(remap(p, 0.60, 0.80));
       const chaosP   = clamp(chaosIn - chaosOut);
 
       const fd = isMobile ? 0 : (featureDip?.get() ?? 0);
@@ -260,11 +270,19 @@ export default function NumbersCanvas({
           }
 
           const targetDigit = Math.round(p_.lum * 9);
-          const wave = isMobile ? 0 : Math.sin(col*.27 + row*.38 + t*2.1) * 3;
-          const cycleDigit = Math.abs(Math.floor(t*c.spd + c.phi*4 + i*3.71 + wave)) % 10;
-          const digit = (!isMobile && eChaos > .08)
-            ? (Math.random() < eChaos*.9 ? cycleDigit : targetDigit)
-            : targetDigit;
+          const wave = isMobile
+            ? Math.sin(col * 0.31 + row * 0.47 + scrollT * 2.2 + c.phi) * 2.2
+            : Math.sin(col * .27 + row * .38 + t * 2.1) * 3;
+          const cycleDigit = Math.abs(Math.floor(scrollT * c.spd + c.phi * 4 + i * 3.71 + wave)) % 10;
+
+          let digit = targetDigit;
+          if (!isMobile && eChaos > .08) {
+            digit = Math.random() < eChaos * .9 ? cycleDigit : targetDigit;
+          } else if (isMobile) {
+            const settle = ease(remap(inP, c.revIn, c.revIn + 0.50));
+            const morph = clamp(chaosP * 0.92 + p * 0.38 + (1 - settle) * 0.62);
+            digit = morph > 0.20 ? cycleDigit : targetDigit;
+          }
           const str = String(digit);
 
           let rv = p_.r, gv = p_.g, bv = p_.b;
@@ -292,8 +310,9 @@ export default function NumbersCanvas({
             }
           }
 
-          const shimmerAmp = isMobile ? 0 : 0.30;
-          const shimmer = (1 - shimmerAmp) + shimmerAmp * Math.sin(t*3.3 + c.phi + col*.52 + row*.87);
+          const shimmerAmp = isMobile ? 0.14 : 0.30;
+          const shimmerT = isMobile ? scrollT : t;
+          const shimmer = (1 - shimmerAmp) + shimmerAmp * Math.sin(shimmerT * 3.3 + c.phi + col * .52 + row * .87);
           const finalA  = alpha * shimmer * depthAlpha;
 
           if (!isMobile && eChaos > .10) {
@@ -338,7 +357,8 @@ export default function NumbersCanvas({
     window.addEventListener('resize', resize);
 
     const onProgress = () => {
-      paint(progress.get(), 0);
+      const latest = progress.get();
+      paint(latest, isMobile ? latest * 120 : 0);
     };
 
     const unsubProgress = progress.on('change', onProgress);

@@ -1,10 +1,4 @@
-import {
-  createInitialAgentStreamUiState,
-  createJsonTransportStreamUiState,
-  readBrowserAgentTransportHint,
-  shouldPreferAgentJsonTransport,
-  type AgentStreamUiState,
-} from '@financial-agent/shared';
+import { createInitialAgentStreamUiState, type AgentStreamUiState } from '@financial-agent/shared';
 
 import {
   buildChatIntroShellItem,
@@ -34,16 +28,12 @@ function findStreamingAssistantIndex(list: ChatItem[]): number {
 }
 
 export function createStreamingAssistantPlaceholder(): AssistantMessageItem {
-  const preferJson =
-    typeof window !== 'undefined' &&
-    shouldPreferAgentJsonTransport(readBrowserAgentTransportHint());
-
   return {
     type: 'message',
     role: 'assistant',
     content: '',
     mode: 'information',
-    stream: preferJson ? createJsonTransportStreamUiState() : createInitialAgentStreamUiState(),
+    stream: createInitialAgentStreamUiState(),
   };
 }
 

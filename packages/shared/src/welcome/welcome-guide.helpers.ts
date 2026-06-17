@@ -8,6 +8,7 @@ type GuideContext = {
   firstName?: string;
   intake?: Record<string, unknown>;
   diagnosisUnlocked?: boolean;
+  budgetUnlocked?: boolean;
   hasDiagnosis?: boolean;
   topTension?: string | null;
   topHypothesis?: string | null;
@@ -134,25 +135,35 @@ export function buildChat1WelcomeGuideActions(ctx: GuideContext): WelcomeGuideAc
     ];
   }
 
-  return [
+  const actions: WelcomeGuideAction[] = [
     panelAction(
       'upload-statement',
       'Subir cartola',
       'transactions',
       'Quiero subir mi cartola o movimientos del mes para iniciar el diagnóstico.',
     ),
-    panelAction(
-      'open-budget',
-      'Armar presupuesto',
-      'budget',
-      'Quiero completar mi presupuesto mensual con ingresos y gastos reales.',
-    ),
+  ];
+
+  if (ctx.budgetUnlocked) {
+    actions.push(
+      panelAction(
+        'open-budget',
+        'Armar presupuesto',
+        'budget',
+        'Quiero completar mi presupuesto mensual con ingresos y gastos reales.',
+      ),
+    );
+  }
+
+  actions.push(
     messageAction(
       'priority-now',
       'Mi prioridad ahora',
       'Según mi intake, ¿cuál debería ser mi prioridad financiera número 1 y por qué? Respuesta breve y accionable.',
     ),
-  ];
+  );
+
+  return actions;
 }
 
 export function buildChat2WelcomeGuideActions(ctx: GuideContext): WelcomeGuideAction[] {
@@ -283,6 +294,7 @@ export function buildWelcomeGuideEnrichment(params: {
   firstName?: string;
   intake?: Record<string, unknown>;
   diagnosisUnlocked?: boolean;
+  budgetUnlocked?: boolean;
   hasDiagnosis?: boolean;
   topTension?: string | null;
   topHypothesis?: string | null;
@@ -292,6 +304,7 @@ export function buildWelcomeGuideEnrichment(params: {
     firstName: params.firstName,
     intake: params.intake,
     diagnosisUnlocked: params.diagnosisUnlocked,
+    budgetUnlocked: params.budgetUnlocked,
     hasDiagnosis: params.hasDiagnosis,
     topTension: params.topTension,
     topHypothesis: params.topHypothesis,

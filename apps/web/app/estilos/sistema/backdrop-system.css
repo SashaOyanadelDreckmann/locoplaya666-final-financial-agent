@@ -301,9 +301,18 @@ html:not(.pwa-standalone) body.agent-route-active .mobile-scale-frame{
     height: auto !important;
     min-height: 100dvh !important;
     max-height: none !important;
-    overflow-x: clip !important;
+    overflow-x: visible !important;
     overflow-y: visible !important;
     overscroll-behavior: auto !important;
+  }
+
+  html.home-route-active .mobile-scale-frame.home-scroll-root {
+    height: var(--fa-app-height, 100dvh) !important;
+    max-height: var(--fa-app-height, 100dvh) !important;
+    min-height: 0 !important;
+    overflow-x: clip !important;
+    overflow-y: auto !important;
+    overscroll-behavior-y: contain !important;
   }
 
   html.home-route-active .home-canvas-layer{
@@ -584,7 +593,7 @@ body.agent-route-active .agent-layout.mobile-panel-expanded .agent-panel .mobile
     position: sticky !important;
     top: 0 !important;
     z-index: 4 !important;
-    background: #000000 !important;
+    background: transparent !important;
   }
 
   /* Modals — full-bleed backdrop; content starts below status bar */

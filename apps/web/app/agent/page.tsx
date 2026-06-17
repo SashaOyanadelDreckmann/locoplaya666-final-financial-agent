@@ -2766,8 +2766,10 @@ export default function AgentPage() {
   }, [openInterviewModal, router, searchParams]);
 
   function openPanelSectionFromChat(action: NonNullable<AgentResponse['panel_action']>) {
-    handlePanelAction(action);
-    const section = action.section;
+    const normalizedAction = normalizePanelActionForCurrentFlow(action);
+    if (!normalizedAction) return;
+    handlePanelAction(normalizedAction);
+    const section = normalizedAction.section;
     if (section === 'transactions' || section === 'products_transactions') {
       openTransactionsPanel();
       return;

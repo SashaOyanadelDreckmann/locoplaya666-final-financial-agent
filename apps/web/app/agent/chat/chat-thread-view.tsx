@@ -1,11 +1,6 @@
 import React, { memo, useMemo, useState, type ReactNode } from 'react';
 
-import {
-  createInitialAgentStreamUiState,
-  createJsonTransportStreamUiState,
-  readBrowserAgentTransportHint,
-  shouldPreferAgentJsonTransport,
-} from '@financial-agent/shared';
+import { createInitialAgentStreamUiState } from '@financial-agent/shared';
 
 import { DocumentBubble } from '@/components/conversacion/DocumentBubble';
 import { CitationBubble, getCitationLabel } from '@/components/conversacion/CitationBubble';
@@ -418,6 +413,7 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
     },
     diagnosisProfile: props.diagnosisProfile,
     diagnosisUnlocked: props.diagnosisUnlocked || props.chat1GeneralDeepened,
+    budgetUnlocked: props.onboardingFlowStatus?.budgetUnlocked ?? false,
     enabled: showWelcomeGuide,
   });
   const itemsToRender =
@@ -446,10 +442,7 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
   }, [itemsToRender]);
   const loadingStreamState = useMemo(() => {
     if (!props.loading) return null;
-    const preferJson =
-      typeof window !== 'undefined' &&
-      shouldPreferAgentJsonTransport(readBrowserAgentTransportHint());
-    return preferJson ? createJsonTransportStreamUiState() : createInitialAgentStreamUiState();
+    return createInitialAgentStreamUiState();
   }, [props.loading]);
   const streamAccentSource = activeStreamingState ?? loadingStreamState;
   const streamAccentStyle = streamAccentSource

@@ -4,7 +4,7 @@ import {
   resolveCoreAgentClientTimeoutMs,
   resolveCoreAgentMobileClientTimeoutMs,
   resolveCoreAgentRetryTimeoutMs,
-  shouldPreferAgentJsonTransport,
+  isMobileAgentClient,
 } from '@financial-agent/shared';
 
 import { getAgentRequestUrl, getSessionApiBaseUrl } from '@/lib/api/base';
@@ -80,8 +80,8 @@ async function postAgentRequest(params: {
 export async function sendToAgent(payload: CoreAgentRequestPayload) {
   const AGENT_URL = resolveBrowserAgentPostUrl(CHAT_PIPELINES.core.route);
   const transportHint = readBrowserAgentTransportHint();
-  const isMobileJson = shouldPreferAgentJsonTransport(transportHint);
-  const timeoutMs = isMobileJson
+  const mobileClient = isMobileAgentClient(transportHint);
+  const timeoutMs = mobileClient
     ? resolveCoreAgentMobileClientTimeoutMs(process.env.NEXT_PUBLIC_AGENT_TIMEOUT_MS)
     : resolveCoreAgentClientTimeoutMs(process.env.NEXT_PUBLIC_AGENT_TIMEOUT_MS);
   const body = buildCoreAgentRequestBody(payload);
@@ -98,7 +98,7 @@ export async function sendToAgent(payload: CoreAgentRequestPayload) {
     if (attempt > 0) {
       clearCsrfToken();
     }
-    const csrfToken = await ensureAgentCsrfToken(isMobileJson || attempt > 0);
+    const csrfToken = await ensureAgentCsrfToken(mobileClient || attempt > 0);
     const requestHeaders: Record<string, string> = {
       'Content-Type': 'application/json',
       ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}),
@@ -114,7 +114,7 @@ export async function sendToAgent(payload: CoreAgentRequestPayload) {
   let res: Response;
   try {
     res = await fetchWithCsrf(0);
-    if (res.status === 403 && isMobileJson) {
+    if (res.status === 403 && mobileClient) {
       res = await fetchWithCsrf(1);
     }
   } catch (error: unknown) {
@@ -124,7 +124,7 @@ export async function sendToAgent(payload: CoreAgentRequestPayload) {
           process.env.NEXT_PUBLIC_AGENT_TIMEOUT_MS,
         );
         res = await fetchWithCsrf(0, retryTimeoutMs);
-        if (res.status === 403 && isMobileJson) {
+        if (res.status === 403 && mobileClient) {
           res = await fetchWithCsrf(1, retryTimeoutMs);
         }
       } catch (retryError: unknown) {

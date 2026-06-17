@@ -25,6 +25,22 @@ describe('welcome guide helpers', () => {
     expect(actions.some((action) => action.kind === 'panel')).toBe(true);
     expect(actions.some((action) => action.id === 'real-products')).toBe(false);
     expect(actions.some((action) => action.id === 'priority-now')).toBe(true);
+    expect(actions.some((action) => action.id === 'open-budget')).toBe(false);
+  });
+
+  it('adds budget action on chat-1 only after transactions unlock', () => {
+    const locked = buildChat1WelcomeGuideActions({
+      firstName: 'Ana',
+      intake: { hasDebt: true },
+      budgetUnlocked: false,
+    });
+    const unlocked = buildChat1WelcomeGuideActions({
+      firstName: 'Ana',
+      intake: { hasDebt: true },
+      budgetUnlocked: true,
+    });
+    expect(locked.some((action) => action.id === 'open-budget')).toBe(false);
+    expect(unlocked.some((action) => action.id === 'open-budget')).toBe(true);
   });
 
   it('keeps product actions for chat-1 after diagnosis unlock', () => {

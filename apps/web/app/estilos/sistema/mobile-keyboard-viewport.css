@@ -414,13 +414,13 @@
     box-sizing: border-box !important;
   }
 
-  html.pwa-standalone.home-route-active .mobile-scale-frame {
+  html.pwa-standalone.home-route-active .mobile-scale-frame:not(.home-scroll-root) {
     display: block !important;
     width: 100% !important;
     height: auto !important;
     min-height: var(--pwa-full-viewport-h) !important;
     max-height: none !important;
-    overflow-x: clip !important;
+    overflow-x: visible !important;
     overflow-y: visible !important;
     box-sizing: border-box !important;
   }
@@ -611,8 +611,8 @@
     padding-bottom: var(--mobile-panel-shell-bottom) !important;
     box-sizing: border-box !important;
     overflow: hidden !important;
-    background: #000000 !important;
-    border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+    background: transparent !important;
+    border-top: none !important;
     display: flex !important;
     flex-direction: column !important;
   }
@@ -727,9 +727,9 @@
     margin: 0 !important;
     padding: 2px 10px 4px !important;
     min-height: 0 !important;
-    border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-top: none !important;
     border-bottom: none !important;
-    background: #000000 !important;
+    background: transparent !important;
     touch-action: none !important;
   }
 

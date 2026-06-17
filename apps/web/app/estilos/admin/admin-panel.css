@@ -793,6 +793,10 @@ html.admin-route-active .mobile-scale-frame {
 }
 
 @media (max-width: 900px) {
+  .admin-root {
+    --admin-sticky-top: env(safe-area-inset-top, 0px);
+  }
+
   .admin-layout {
     grid-template-columns: 1fr;
   }
@@ -802,7 +806,7 @@ html.admin-route-active .mobile-scale-frame {
   }
 
   .admin-main {
-    padding: 14px 14px calc(18px + var(--admin-mobile-nav-h));
+    padding: calc(14px + env(safe-area-inset-top, 0px)) 14px calc(18px + var(--admin-mobile-nav-h));
   }
 
   .admin-split-pane {

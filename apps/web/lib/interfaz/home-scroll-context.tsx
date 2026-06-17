@@ -10,9 +10,15 @@ import {
 } from 'react';
 import { useScroll, type UseScrollOptions } from 'framer-motion';
 
-import { shouldUseHomeScrollRoot } from '@/lib/interfaz/viewport-mode';
+import { isTabletDevice, TABLET_LANDSCAPE_MEDIA, shouldUseHomeScrollRoot } from '@/lib/interfaz/viewport-mode';
 
-const HomeScrollContext = createContext<RefObject<HTMLElement | null> | null>(null);
+type HomeScrollContextValue = {
+  containerRef: RefObject<HTMLElement | null>;
+  /** True once the scroll container ref is wired — triggers child re-renders. */
+  ready: boolean;
+};
+
+const HomeScrollContext = createContext<HomeScrollContextValue | null>(null);
 
 function isScrollable(el: HTMLElement): boolean {
   if (el.scrollHeight <= el.clientHeight + 1) return false;
@@ -22,11 +28,13 @@ function isScrollable(el: HTMLElement): boolean {
 
 function syncHomeScrollRoot(): HTMLElement | null {
   const frame = document.querySelector<HTMLElement>('.mobile-scale-frame');
-  const mobileShell = shouldUseHomeScrollRoot();
+  // Phones + tablet portrait: document scroll (sticky + Framer offsets). Frame root only on tablet landscape.
+  const tabletLandscape =
+    isTabletDevice() && window.matchMedia(TABLET_LANDSCAPE_MEDIA).matches;
   const frameScrolls = Boolean(frame && isScrollable(frame));
-  const useRoot = Boolean(frame && (mobileShell || frameScrolls));
+  const useRoot = Boolean(frame && (tabletLandscape || (frameScrolls && !shouldUseHomeScrollRoot())));
 
-  document.documentElement.classList.toggle('home-scroll-active', mobileShell);
+  document.documentElement.classList.toggle('home-scroll-active', useRoot);
 
   if (useRoot && frame) {
     frame.classList.add('home-scroll-root');
@@ -40,15 +48,13 @@ function syncHomeScrollRoot(): HTMLElement | null {
 /** Home scroll container — phone, iPad, and any viewport where .mobile-scale-frame scrolls. */
 export function HomeScrollRoot({ children }: { children: React.ReactNode }) {
   const containerRef = useRef<HTMLElement | null>(null);
-  const [scrollKey, setScrollKey] = useState(0);
+  const [ready, setReady] = useState(false);
 
   useLayoutEffect(() => {
     const apply = () => {
       const next = syncHomeScrollRoot();
-      if (containerRef.current !== next) {
-        containerRef.current = next;
-        setScrollKey((k) => k + 1);
-      }
+      containerRef.current = next;
+      setReady(Boolean(next));
     };
 
     apply();
@@ -71,21 +77,19 @@ export function HomeScrollRoot({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <HomeScrollContext.Provider value={containerRef}>
-      <div key={scrollKey} style={{ display: 'contents' }}>
-        {children}
-      </div>
+    <HomeScrollContext.Provider value={{ containerRef, ready }}>
+      {children}
     </HomeScrollContext.Provider>
   );
 }
 
 export function useHomeScroll(options: UseScrollOptions = {}) {
-  const containerRef = useContext(HomeScrollContext);
-  const usesContainer = Boolean(containerRef?.current);
+  const ctx = useContext(HomeScrollContext);
+  const useContainer = Boolean(ctx?.ready && ctx.containerRef);
 
   return useScroll({
     ...options,
-    container: usesContainer ? containerRef ?? undefined : undefined,
-    layoutEffect: usesContainer,
+    container: useContainer ? ctx!.containerRef : undefined,
+    layoutEffect: useContainer,
   });
 }

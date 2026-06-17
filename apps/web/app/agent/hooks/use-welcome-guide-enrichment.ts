@@ -16,6 +16,7 @@ type UseWelcomeGuideParams = {
   session?: { name?: string | null; injectedIntake?: unknown } | null;
   diagnosisProfile?: DiagnosisProfile | null;
   diagnosisUnlocked?: boolean;
+  budgetUnlocked?: boolean;
   enabled?: boolean;
 };
 
@@ -75,6 +76,7 @@ export function useWelcomeGuideEnrichment(params: UseWelcomeGuideParams) {
         firstName: String(params.session?.name ?? '').split(' ')[0]?.trim() || 'Hola',
         intake,
         diagnosisUnlocked: params.diagnosisUnlocked,
+        budgetUnlocked: params.budgetUnlocked,
         hasDiagnosis: diagnosis.hasDiagnosis,
         topTension: diagnosis.topTension,
         topHypothesis: diagnosis.topHypothesis,
@@ -85,6 +87,7 @@ export function useWelcomeGuideEnrichment(params: UseWelcomeGuideParams) {
       params.session?.name,
       intake,
       params.diagnosisUnlocked,
+      params.budgetUnlocked,
       diagnosis.hasDiagnosis,
       diagnosis.topTension,
       diagnosis.topHypothesis,

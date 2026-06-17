@@ -18161,11 +18161,11 @@ html.is-mobile-viewport body.agent-route-active .agent-panel.is-mobile-compact{
     max-width: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
-    background: #000000 !important;
+    background: transparent !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
     box-shadow: none !important;
-    border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-top: none !important;
     border-radius: 0 !important;
     flex: 0 0 var(--mobile-panel-h, 162px) !important;
     max-height: var(--mobile-panel-h, 162px) !important;
@@ -18180,13 +18180,13 @@ html.is-mobile-viewport body.agent-route-active .agent-layout.mobile-panel-expan
     max-width: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
-    background: #000000 !important;
+    background: transparent !important;
     border-radius: 0 !important;
   }
 
   html.is-mobile-viewport body.agent-route-active .agent-panel .mobile-panel-handle{
-    background: #000000 !important;
-    border-color: rgba(255, 255, 255, 0.08) !important;
+    background: transparent !important;
+    border-color: transparent !important;
   }
 
   html.is-mobile-viewport body.agent-route-active .agent-panel.is-mobile-compact .panel-grid:not(.is-card-stack),
@@ -18196,7 +18196,7 @@ html.is-mobile-viewport body.agent-route-active .agent-panel:not(.is-mobile-expa
     flex-wrap: nowrap !important;
     align-items: flex-start !important;
     align-content: flex-start !important;
-    background: #000000 !important;
+    background: transparent !important;
     min-height: 0 !important;
     flex: 1 1 auto !important;
     overflow-x: auto !important;
@@ -18235,7 +18235,7 @@ html.is-mobile-viewport body.agent-route-active .agent-panel.is-mobile-expanded 
     grid-auto-flow: row !important;
     align-items: stretch !important;
     align-content: start !important;
-    background: #000000 !important;
+    background: transparent !important;
     min-height: 0 !important;
     flex: 1 1 auto !important;
     overflow-x: hidden !important;
