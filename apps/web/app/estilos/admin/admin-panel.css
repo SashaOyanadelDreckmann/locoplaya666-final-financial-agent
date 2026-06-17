@@ -945,6 +945,10 @@ html.admin-route-active .mobile-scale-frame {
   align-items: flex-start;
 }
 
+.admin-identity-target {
+  min-width: 0;
+}
+
 .admin-dossier-card {
   overflow: visible;
 }

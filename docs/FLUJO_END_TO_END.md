@@ -531,7 +531,7 @@ sessionInfo.latestDiagnosticCompletedAt !== null
 | ID | Nombre UX | Propósito | Max turnos | Closing mode desde turno |
 |----|-----------|-----------|------------|--------------------------|
 | `chat-1` | Chat general (post-diagnóstico) | Educación, lectura integrada, preguntas generales | 30 | 24 |
-| `chat-2` | Plan de acción | Embudo: brainstorm → convergencia → plan estructurado | 20 | 14 |
+| `chat-2` | Plan de acción | Embudo: brainstorm → convergencia → plan estructurado | 15 | 9 |
 | `chat-3` | Conciencia social | Filosofía, finanzas y regulación (CMF/SII) | 10 | 4 |
 
 ### 5.2 Unlock de chats
@@ -739,7 +739,7 @@ Eventos: +20 intake, +25 profile, +15 budget, penalizaciones por errores/ignorar
 | Interview blocks | `apps/api/src/orchestrator/interview.flow.ts` |
 | Perfil diagnóstico | `apps/api/src/schemas/profile.schema.ts` |
 | Fincoins | `packages/shared/src/fincoin.constants.ts` |
-| Turnos chat | `packages/shared/src/chat-lifecycle.constants.ts` |
+| Turnos chat | `packages/shared/src/chat/chat-lifecycle.constants.ts` |
 | Intake types | `packages/shared/src/intake/intake-questionnaire.types.ts` |
 
 ---

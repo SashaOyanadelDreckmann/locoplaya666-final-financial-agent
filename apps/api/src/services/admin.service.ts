@@ -427,7 +427,7 @@ export async function getAdminUserDossier(userId: string): Promise<AdminUserDoss
       spentFincoins: fincoin.spentFincoins,
       initialFincoins: fincoin.initialFincoins,
     },
-    conversationTurnsCount: turns.length,
+    conversationTurnsCount,
     recentTurns: [...turns]
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
       .slice(0, 12)

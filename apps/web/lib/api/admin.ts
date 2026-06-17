@@ -57,10 +57,9 @@ export type AdminUserSnapshot = {
   name: string;
   email: string;
   role: 'USER' | 'ANALYST' | 'ADMIN';
-  approvalStatus?: 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED';
-  approvedAt?: string | null;
-  approvedByEmail?: string | null;
-  passwordHash: string;
+  approvalStatus: 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED';
+  approvedAt: string | null;
+  approvedByEmail: string | null;
   createdAt: string;
   updatedAt: string;
   latestDiagnosticProfileId: string | null;
@@ -82,9 +81,9 @@ export type AdminUserSnapshot = {
   sessions: AdminSessionSnapshot[];
   profiles: AdminProfileSnapshot[];
   documents: AdminDocumentSnapshot[];
-  usdSpentTotal?: number;
-  fincoinDepletedAt?: string | null;
-  fincoinDepletionHandled?: boolean;
+  usdSpentTotal: number;
+  fincoinDepletedAt: string | null;
+  fincoinDepletionHandled: boolean;
 };
 
 export type AdminUsersFullDump = {

@@ -12,7 +12,9 @@ import {
   roleBadgeClass,
   stageLabels,
 } from '../helpers/admin-format';
+import { useAdminIdentityReveal } from '../hooks/use-admin-identity-reveal';
 import { AdminJsonExplorer } from './AdminJsonExplorer';
+import { AdminUserIdentityHeader } from './AdminUserIdentityHeader';
 
 type Props = {
   dossier: AdminUserDossier | null;
@@ -23,6 +25,8 @@ type Props = {
 };
 
 export function AdminUserDossierPanel({ dossier, loading, stage, pendingActionId, onRoleChange }: Props) {
+  const { revealed: identityRevealed, onIdentityTargetClick } = useAdminIdentityReveal(dossier?.user.id);
+
   if (loading) {
     return <p className="admin-muted">Cargando expediente operativo…</p>;
   }
@@ -35,44 +39,56 @@ export function AdminUserDossierPanel({ dossier, loading, stage, pendingActionId
 
   return (
     <div className="admin-dossier">
-      <header className="admin-dossier-head">
-        <div>
-          <h2 className="admin-card-title">{user.name}</h2>
-          <p className="admin-card-sub">{user.email}</p>
-        </div>
-        <div className="admin-tags">
-          {onRoleChange ? (
-            <select
-              className="admin-select admin-select--compact"
-              value={user.role}
-              disabled={pendingActionId === user.id}
-              onChange={(event) =>
-                void onRoleChange(user.id, event.target.value as 'USER' | 'ANALYST' | 'ADMIN')
-              }
-            >
-              <option value="USER">USER</option>
-              <option value="ANALYST">ANALYST</option>
-              <option value="ADMIN">ADMIN</option>
-            </select>
-          ) : (
-            <span className={roleBadgeClass(user.role)}>{user.role}</span>
-          )}
-          <span className={approvalBadgeClass(user.approvalStatus ?? 'APPROVED')}>
-            {approvalLabel(user.approvalStatus ?? 'APPROVED')}
-          </span>
-          {stage ? <span className="admin-tag">{stageLabels[stage as keyof typeof stageLabels] ?? stage}</span> : null}
-        </div>
-      </header>
+      <AdminUserIdentityHeader
+        userId={user.id}
+        name={user.name}
+        email={user.email}
+        revealed={identityRevealed}
+        onIdentityTargetClick={onIdentityTargetClick}
+        tags={(
+          <div className="admin-tags">
+            {onRoleChange ? (
+              <select
+                className="admin-select admin-select--compact"
+                value={user.role}
+                disabled={pendingActionId === user.id}
+                onChange={(event) =>
+                  void onRoleChange(user.id, event.target.value as 'USER' | 'ANALYST' | 'ADMIN')
+                }
+              >
+                <option value="USER">USER</option>
+                <option value="ANALYST">ANALYST</option>
+                <option value="ADMIN">ADMIN</option>
+              </select>
+            ) : (
+              <span className={roleBadgeClass(user.role)}>{user.role}</span>
+            )}
+            <span className={approvalBadgeClass(user.approvalStatus)}>
+              {approvalLabel(user.approvalStatus)}
+            </span>
+            {stage ? <span className="admin-tag">{stageLabels[stage as keyof typeof stageLabels] ?? stage}</span> : null}
+          </div>
+        )}
+      />
 
       <section className="admin-dossier-section">
         <h3 className="admin-section-title">Identidad & journey</h3>
         <div className="admin-stat-grid">
-          <div className="admin-stat"><span>ID</span><strong>{compactAdminText(user.id, 24)}</strong></div>
+          <div className="admin-stat admin-identity-target" onClick={onIdentityTargetClick}>
+            <span>ID</span>
+            <strong>
+              <code className="admin-id-ref">{compactAdminText(user.id, 24)}</code>
+            </strong>
+          </div>
           <div className="admin-stat"><span>Alta</span><strong>{formatAdminDateTime(user.createdAt)}</strong></div>
           <div className="admin-stat"><span>Última actividad</span><strong>{formatAdminDateTime(user.updatedAt)}</strong></div>
           <div className="admin-stat"><span>Diagnóstico</span><strong>{formatAdminDateTime(user.latestDiagnosticCompletedAt)}</strong></div>
           <div className="admin-stat"><span>Knowledge</span><strong>{formatAdminNumber(user.knowledgeScore)}</strong></div>
           <div className="admin-stat"><span>Base score</span><strong>{formatAdminNumber(user.knowledgeBaseScore)}</strong></div>
+          <div className="admin-stat"><span>Knowledge actualizado</span><strong>{formatAdminDateTime(user.knowledgeLastUpdated)}</strong></div>
+          {user.approvedByEmail ? (
+            <div className="admin-stat"><span>Aprobado por</span><strong>{user.approvedByEmail}</strong></div>
+          ) : null}
         </div>
       </section>
 
@@ -84,6 +100,7 @@ export function AdminUserDossierPanel({ dossier, loading, stage, pendingActionId
           <div className="admin-stat"><span>Fincoins</span><strong>{formatAdminNumber(fincoin.remainingFincoins)} / {formatAdminNumber(fincoin.initialFincoins)}</strong></div>
           <div className="admin-stat"><span>Uso</span><strong>{formatAdminPercent(fincoin.percentUsed)}</strong></div>
           <div className="admin-stat"><span>Estado</span><strong>{fincoin.depleted ? 'Agotado' : 'Activo'}</strong></div>
+          <div className="admin-stat"><span>Depleción gestionada</span><strong>{user.fincoinDepletionHandled ? 'Sí' : 'No'}</strong></div>
           <div className="admin-stat"><span>Turns DB</span><strong>{formatAdminNumber(conversationTurnsCount)}</strong></div>
         </div>
       </section>

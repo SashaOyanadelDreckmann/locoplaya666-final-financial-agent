@@ -58,6 +58,7 @@ import { AdminFilterBar } from './AdminFilterBar';
 import { AdminOpsPanel } from './AdminOpsPanel';
 import { AdminSplitPane } from './AdminSplitPane';
 import { AdminUserDossierPanel } from './AdminUserDossierPanel';
+import { AdminUserIdentityHeader } from './AdminUserIdentityHeader';
 import { useAdminTabSwipe } from '../hooks/use-admin-tab-swipe';
 
 const ARCHIVE_PAGE_SIZE = 40;
@@ -918,18 +919,20 @@ export default function AdminCommandCenter() {
                     <p className="admin-muted">Selecciona un expediente.</p>
                   ) : (
                     <>
-                      <div className="admin-dossier-head" style={{ marginBottom: 12 }}>
-                        <div>
-                          <h2 className="admin-card-title">{archiveUser.name}</h2>
-                          <p className="admin-card-sub">{archiveUser.email}</p>
-                        </div>
-                        <div className="admin-tags">
-                          <span className={roleBadgeClass(archiveUser.role)}>{archiveUser.role}</span>
-                          <span className={approvalBadgeClass(archiveUser.approvalStatus ?? 'APPROVED')}>
-                            {approvalLabel(archiveUser.approvalStatus ?? 'APPROVED')}
-                          </span>
-                        </div>
-                      </div>
+                      <AdminUserIdentityHeader
+                        userId={archiveUser.id}
+                        name={archiveUser.name}
+                        email={archiveUser.email}
+                        style={{ marginBottom: 12 }}
+                        tags={(
+                          <div className="admin-tags">
+                            <span className={roleBadgeClass(archiveUser.role)}>{archiveUser.role}</span>
+                            <span className={approvalBadgeClass(archiveUser.approvalStatus)}>
+                              {approvalLabel(archiveUser.approvalStatus)}
+                            </span>
+                          </div>
+                        )}
+                      />
                       <AdminJsonExplorer
                         sections={[
                           { id: 'meta', label: 'Meta', value: {
