@@ -93,9 +93,9 @@ function ProblemSection({
 
   const sp = scrollYProgress;
 
-  const c0 = useTransform(sp, mobileShell ? [0, 0.12, 0.34, 0.48] : [0, 0.08, 0.30, 0.42], mobileShell ? [0.35, 1, 1, 0.35] : [0.12, 1, 1, 0.15]);
-  const c1 = useTransform(sp, mobileShell ? [0.30, 0.40, 0.64, 0.76] : [0.33, 0.42, 0.62, 0.72], mobileShell ? [0.35, 1, 1, 0.35] : [0.12, 1, 1, 0.15]);
-  const c2 = useTransform(sp, mobileShell ? [0.58, 0.68, 0.96, 1.0] : [0.65, 0.74, 0.98, 1.0], mobileShell ? [0.35, 1, 1, 0.85] : [0.12, 1, 1, 0.90]);
+  const c0 = useTransform(sp, mobileShell ? [0, 0.12, 0.34, 0.48] : [0, 0.08, 0.30, 0.42], mobileShell ? [0.08, 1, 1, 0.08] : [0.12, 1, 1, 0.15]);
+  const c1 = useTransform(sp, mobileShell ? [0.30, 0.40, 0.64, 0.76] : [0.33, 0.42, 0.62, 0.72], mobileShell ? [0.08, 1, 1, 0.08] : [0.12, 1, 1, 0.15]);
+  const c2 = useTransform(sp, mobileShell ? [0.58, 0.68, 0.96, 1.0] : [0.65, 0.74, 0.98, 1.0], mobileShell ? [0.08, 1, 1, 0.82] : [0.12, 1, 1, 0.90]);
 
   const y0 = useTransform(sp, [0, 0.4], mobileShell ? ['0px', '0px'] : ['6px', '-6px']);
   const y1 = useTransform(sp, [0.1, 0.6], mobileShell ? ['0px', '0px'] : ['10px', '-10px']);

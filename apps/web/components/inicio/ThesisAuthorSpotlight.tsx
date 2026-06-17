@@ -105,6 +105,7 @@ export default function ThesisAuthorSpotlight() {
           whileInView={{ opacity: 1, x: 0 }}
           viewport={{ once: true, amount: 0.25 }}
           transition={{ duration: 0.7, ease: SILK }}
+          style={{ minWidth: 0 }}
         >
           <ThesisAsciiPortrait />
         </motion.div>
@@ -114,7 +115,7 @@ export default function ThesisAuthorSpotlight() {
           whileInView={{ opacity: 1, x: 0 }}
           viewport={{ once: true, amount: 0.25 }}
           transition={{ duration: 0.7, ease: SILK, delay: 0.08 }}
-          style={{ y: headY, opacity: headO }}
+          style={{ y: headY, opacity: headO, minWidth: 0 }}
         >
           <SpotlightCard glow={WINE_GLOW} className="home-thesis-spotlight__card p-6 md:p-8 lg:p-9">
             <div className="home-thesis-spotlight__copy">
