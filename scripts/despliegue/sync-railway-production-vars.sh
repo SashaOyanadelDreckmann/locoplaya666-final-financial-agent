@@ -12,6 +12,8 @@ PROJECT="${RAILWAY_PROJECT_ID:-6a535ffc-9224-4db3-b385-adf8f2bf0218}"
 ENVIRONMENT="${RAILWAY_ENVIRONMENT_ID:-240cefd8-f924-4b76-a890-771db0a45a91}"
 API_SERVICE="${RAILWAY_API_SERVICE_ID:-203d29a0-15ce-4cad-8014-2ea06d3008ed}"
 WEB_SERVICE="${RAILWAY_WEB_SERVICE_ID:-304ec087-4411-4ced-a42c-e00d451fcf4e}"
+API_SERVICE_NAME="${RAILWAY_API_SERVICE_NAME:-locoplaya666-final-financial-agent}"
+WEB_SERVICE_NAME="${RAILWAY_WEB_SERVICE_NAME:-keen-magic}"
 
 if [ -z "$TOKEN" ]; then
   echo "Skip sync-railway-production-vars: no Railway token"
@@ -19,52 +21,58 @@ if [ -z "$TOKEN" ]; then
 fi
 
 export RAILWAY_TOKEN="$TOKEN"
+export RAILWAY_API_TOKEN="$TOKEN"
+
+link_service() {
+  local service_name="$1"
+  "$RAILWAY_BIN" link --project "$PROJECT" --environment "$ENVIRONMENT" --service "$service_name" >/dev/null
+}
 
 upsert() {
-  local service="$1"
+  local _service_name="$1"
   local key="$2"
   local value="$3"
-  "$RAILWAY_BIN" variables --service "$service" --set "${key}=${value}" >/dev/null
+  "$RAILWAY_BIN" variables --set "${key}=${value}" >/dev/null
   echo "  ✓ ${key}"
 }
 
 echo "==> Sync API variables"
-"$RAILWAY_BIN" link --project "$PROJECT" --environment "$ENVIRONMENT" --service "$API_SERVICE" >/dev/null
+link_service "$API_SERVICE_NAME"
 
-upsert "$API_SERVICE" WEB_ORIGIN "https://financieramente.up.railway.app"
-upsert "$API_SERVICE" APPROVAL_LINK_BASE_URL "https://locoplaya666-final-financial-agent-production.up.railway.app"
-upsert "$API_SERVICE" SESSION_COOKIE_SAME_SITE "none"
-upsert "$API_SERVICE" DATA_DIR "/app/data"
-upsert "$API_SERVICE" LOG_LEVEL "info"
-upsert "$API_SERVICE" ENABLE_DEV_INJECTION "false"
-upsert "$API_SERVICE" OPENAI_MODEL "gpt-5.2"
-upsert "$API_SERVICE" ANTHROPIC_MODEL_FAST "claude-haiku-4-5"
-upsert "$API_SERVICE" BUDGET_CHAT_REACT_ENABLED "true"
-upsert "$API_SERVICE" TRANSACTIONS_VISION_MODEL "gpt-5.4-nano"
-upsert "$API_SERVICE" TRANSACTIONS_CHAT_MODEL "gpt-4o-mini"
-upsert "$API_SERVICE" TRANSACTIONS_SUMMARY_MODEL "gpt-5.4-mini"
-upsert "$API_SERVICE" TRANSACTIONS_RECONCILE_MODEL "gpt-5.4-mini"
-upsert "$API_SERVICE" FINANCIAL_CONTEXT_MCP_ENABLED "true"
-upsert "$API_SERVICE" CORE_CONTEXT_PACK_ENABLED "true"
-upsert "$API_SERVICE" BUDGET_CONTEXT_PACK_ENABLED "true"
-upsert "$API_SERVICE" TRANSACTIONS_CONTEXT_PUBLISH_ENABLED "true"
-upsert "$API_SERVICE" DIAGNOSTIC_CONTEXT_PACK_ENABLED "true"
-upsert "$API_SERVICE" CONTEXT_CONSISTENCY_ENABLED "true"
-upsert "$API_SERVICE" CONTEXT_CONFLICT_UI_ENABLED "true"
-upsert "$API_SERVICE" FINANCIAL_CONTEXT_SHADOW_MODE "false"
-upsert "$API_SERVICE" APPROVAL_ADMIN_EMAIL "sasha.oyanadel@ug.uchile.cl"
-upsert "$API_SERVICE" ENABLE_BOOTSTRAP_ADMIN_LOGIN "true"
-upsert "$API_SERVICE" BOOTSTRAP_ADMIN_EMAIL "admin@financieramente.local"
-upsert "$API_SERVICE" BOOTSTRAP_ADMIN_PASSWORD "Financieramente123!"
-upsert "$API_SERVICE" BOOTSTRAP_ADMIN_NAME "Administrador"
+upsert "$API_SERVICE_NAME" WEB_ORIGIN "https://financieramente.up.railway.app"
+upsert "$API_SERVICE_NAME" APPROVAL_LINK_BASE_URL "https://locoplaya666-final-financial-agent-production.up.railway.app"
+upsert "$API_SERVICE_NAME" SESSION_COOKIE_SAME_SITE "none"
+upsert "$API_SERVICE_NAME" DATA_DIR "/app/data"
+upsert "$API_SERVICE_NAME" LOG_LEVEL "info"
+upsert "$API_SERVICE_NAME" ENABLE_DEV_INJECTION "false"
+upsert "$API_SERVICE_NAME" OPENAI_MODEL "gpt-5.2"
+upsert "$API_SERVICE_NAME" ANTHROPIC_MODEL_FAST "claude-haiku-4-5"
+upsert "$API_SERVICE_NAME" BUDGET_CHAT_REACT_ENABLED "true"
+upsert "$API_SERVICE_NAME" TRANSACTIONS_VISION_MODEL "gpt-5.4-nano"
+upsert "$API_SERVICE_NAME" TRANSACTIONS_CHAT_MODEL "gpt-4o-mini"
+upsert "$API_SERVICE_NAME" TRANSACTIONS_SUMMARY_MODEL "gpt-5.4-mini"
+upsert "$API_SERVICE_NAME" TRANSACTIONS_RECONCILE_MODEL "gpt-5.4-mini"
+upsert "$API_SERVICE_NAME" FINANCIAL_CONTEXT_MCP_ENABLED "true"
+upsert "$API_SERVICE_NAME" CORE_CONTEXT_PACK_ENABLED "true"
+upsert "$API_SERVICE_NAME" BUDGET_CONTEXT_PACK_ENABLED "true"
+upsert "$API_SERVICE_NAME" TRANSACTIONS_CONTEXT_PUBLISH_ENABLED "true"
+upsert "$API_SERVICE_NAME" DIAGNOSTIC_CONTEXT_PACK_ENABLED "true"
+upsert "$API_SERVICE_NAME" CONTEXT_CONSISTENCY_ENABLED "true"
+upsert "$API_SERVICE_NAME" CONTEXT_CONFLICT_UI_ENABLED "true"
+upsert "$API_SERVICE_NAME" FINANCIAL_CONTEXT_SHADOW_MODE "false"
+upsert "$API_SERVICE_NAME" APPROVAL_ADMIN_EMAIL "sasha.oyanadel@ug.uchile.cl"
+upsert "$API_SERVICE_NAME" ENABLE_BOOTSTRAP_ADMIN_LOGIN "true"
+upsert "$API_SERVICE_NAME" BOOTSTRAP_ADMIN_EMAIL "admin@financieramente.local"
+upsert "$API_SERVICE_NAME" BOOTSTRAP_ADMIN_PASSWORD "Financieramente123!"
+upsert "$API_SERVICE_NAME" BOOTSTRAP_ADMIN_NAME "Administrador"
 
 echo "==> Sync WEB variables"
-"$RAILWAY_BIN" link --project "$PROJECT" --environment "$ENVIRONMENT" --service "$WEB_SERVICE" >/dev/null
+link_service "$WEB_SERVICE_NAME"
 
-upsert "$WEB_SERVICE" NEXT_PUBLIC_API_URL "https://locoplaya666-final-financial-agent-production.up.railway.app"
-upsert "$WEB_SERVICE" NEXT_PUBLIC_API_ORIGIN "https://locoplaya666-final-financial-agent-production.up.railway.app"
-upsert "$WEB_SERVICE" NEXT_PUBLIC_APP_ORIGIN "https://financieramente.up.railway.app"
-upsert "$WEB_SERVICE" TRANSACTIONS_CHAT_MODEL "gpt-4o-mini"
-upsert "$WEB_SERVICE" DATA_DIR "/app/data"
+upsert "$WEB_SERVICE_NAME" NEXT_PUBLIC_API_URL "https://locoplaya666-final-financial-agent-production.up.railway.app"
+upsert "$WEB_SERVICE_NAME" NEXT_PUBLIC_API_ORIGIN "https://locoplaya666-final-financial-agent-production.up.railway.app"
+upsert "$WEB_SERVICE_NAME" NEXT_PUBLIC_APP_ORIGIN "https://financieramente.up.railway.app"
+upsert "$WEB_SERVICE_NAME" TRANSACTIONS_CHAT_MODEL "gpt-4o-mini"
+upsert "$WEB_SERVICE_NAME" DATA_DIR "/app/data"
 
 echo "==> Railway production vars synced"
