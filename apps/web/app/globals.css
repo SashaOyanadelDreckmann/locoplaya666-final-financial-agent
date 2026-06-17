@@ -1057,7 +1057,90 @@ html.home-route-active .home-grain-layer {
   }
 
   .home-hero-orbs {
+    display: none; /* Desktop orbs stay hidden on mobile — mobile variant renders separately */
+  }
+
+  /* Mobile ambient orbs — pure CSS show (no SSR flash) */
+  .home-hero-orbs-mobile {
+    display: block;
+  }
+
+  /* Grain sutil en mobile — más ligero que desktop */
+  html.home-route-active .home-grain-layer {
+    display: block;
+    opacity: 0.18;
+  }
+
+  /* Hero deck: ligeramente más grande en mobile para mejor lectura */
+  .home-hero-deck {
+    font-size: 16px;
+    line-height: 1.56;
+    max-width: 22em;
+    color: rgba(255, 255, 255, 0.76);
+  }
+
+  /* CTAs hero — full-width premium pill en mobile */
+  .home-hero-actions {
+    flex-direction: column;
+    width: 100%;
+    gap: 0;
+    padding-top: 6px;
+  }
+
+  .home-hero-actions__primary {
+    width: 100%;
+    justify-content: center;
+    min-height: 50px;
+    padding: 14px 24px;
+    font-size: 15px;
+    letter-spacing: -0.012em;
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.12),
+      0 8px 28px rgba(0, 0, 0, 0.28),
+      inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  }
+
+  .home-hero-actions__secondary {
+    width: 100%;
+    justify-content: center;
+    padding: 13px 4px;
+    font-size: 14px;
+    color: var(--home-label-gold);
+    opacity: 0.88;
+  }
+
+  /* Eyebrow: más pequeño y más respiro */
+  .home-hero-eyebrow-min {
+    font-size: 10px;
+    margin-bottom: 14px;
+    letter-spacing: 0.20em;
+  }
+
+  /* Rule: un toque más larga en mobile para equilibrio visual */
+  .home-hero-rule {
+    width: 36px;
+    margin-bottom: 22px;
+  }
+
+  /* Secciones de contenido: separador sutil entre secciones */
+  .home-content-section {
+    border-top: 1px solid rgba(111, 143, 166, 0.07);
+  }
+
+  /* Caption inferior: safe-area y mejor separación */
+  .home-page-caption {
+    padding-bottom: max(28px, env(safe-area-inset-bottom, 0px));
+    gap: 8px;
+    font-size: 9px;
+    letter-spacing: 0.18em;
+  }
+
+  /* Scroll cue mobile: chevrons visibles, línea oculta */
+  .home-scroll-cue-line {
     display: none;
+  }
+  .home-scroll-cue-mobile {
+    display: flex;
   }
 
   html.home-route-active .app-shell {
@@ -1092,6 +1175,16 @@ html.home-route-active .home-grain-layer {
 }
 
 /* 100vh fallback for browsers without dvh support (iOS ≤ 15.3, old Android WebView) */
+/* Mobile orbs container — hidden on desktop, shown via mobile media query above */
+.home-hero-orbs-mobile {
+  display: none;
+}
+
+/* Scroll cue: line on desktop, chevrons on mobile */
+.home-scroll-cue-mobile {
+  display: none;
+}
+
 .home-hero-full {
   height: 100vh;
   height: 100dvh;
@@ -1153,8 +1246,30 @@ html.home-route-active .home-grain-layer {
 @media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .home-cta-row {
     flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
+    align-items: stretch;
+    gap: 0;
+    width: 100%;
+  }
+
+  /* CTA section — botón principal full-width en mobile */
+  .home-cta-row > button:first-child,
+  .home-cta-row > a:first-child {
+    width: 100%;
+    justify-content: center;
+    min-height: 52px;
+    font-size: 15px;
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.12),
+      0 10px 32px rgba(0, 0, 0, 0.32),
+      inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  }
+
+  /* Enlace secundario centrado */
+  .home-cta-row > a:last-child,
+  .home-cta-row > *:last-child {
+    justify-content: center;
+    padding: 14px 4px;
+    font-size: 14px;
   }
 }
 

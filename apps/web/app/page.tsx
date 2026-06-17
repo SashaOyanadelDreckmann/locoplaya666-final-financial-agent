@@ -560,7 +560,7 @@ export default function HomePage() {
             if (touch) updatePointer(touch.clientX, touch.clientY);
           }}
         >
-          {/* Ambient orbs */}
+          {/* Ambient orbs — desktop */}
           <div className="home-hero-orbs" style={{ position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none', overflow: 'hidden' }}>
             <motion.div
               style={{ position: 'absolute', left: '6%', top: '15%', width: 560, height: 560, borderRadius: '50%', background: 'radial-gradient(circle, rgba(111,143,166,0.16) 0%, transparent 68%)', filter: 'blur(80px)' }}
@@ -580,6 +580,30 @@ export default function HomePage() {
             <motion.div
               style={{ position: 'absolute', left: '28%', bottom: '28%', width: 260, height: 260, borderRadius: '50%', background: 'radial-gradient(circle, rgba(126,26,50,0.44) 0%, transparent 70%)', filter: 'blur(52px)' }}
               animate={{ scale: [1, 1.45, 1] }}
+              transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut', delay: 1.5 }}
+            />
+          </div>
+
+          {/* Ambient orbs — mobile (tamaño optimizado, posiciones para viewport estrecho) */}
+          <div className="home-hero-orbs-mobile" style={{ position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none', overflow: 'hidden' }}>
+            <motion.div
+              style={{ position: 'absolute', left: '-10%', top: '-4%', width: 340, height: 340, borderRadius: '50%', background: 'radial-gradient(circle, rgba(111,143,166,0.17) 0%, transparent 68%)', filter: 'blur(62px)' }}
+              animate={{ scale: [1, 1.18, 1], x: [0, 14, 0] }}
+              transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
+            />
+            <motion.div
+              style={{ position: 'absolute', right: '-8%', bottom: '6%', width: 280, height: 280, borderRadius: '50%', background: 'radial-gradient(circle, rgba(164,143,79,0.14) 0%, transparent 68%)', filter: 'blur(56px)' }}
+              animate={{ scale: [1, 1.22, 1], y: [0, -20, 0] }}
+              transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
+            />
+            <motion.div
+              style={{ position: 'absolute', left: '12%', top: '42%', width: 200, height: 200, borderRadius: '50%', background: 'radial-gradient(circle, rgba(31,60,100,0.20) 0%, transparent 70%)', filter: 'blur(44px)' }}
+              animate={{ scale: [1, 1.38, 1], x: [0, -10, 0] }}
+              transition={{ duration: 14, repeat: Infinity, ease: 'easeInOut', delay: 5 }}
+            />
+            <motion.div
+              style={{ position: 'absolute', left: '30%', bottom: '14%', width: 240, height: 240, borderRadius: '50%', background: 'radial-gradient(circle, rgba(126,26,50,0.38) 0%, transparent 70%)', filter: 'blur(50px)' }}
+              animate={{ scale: [1, 1.44, 1] }}
               transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut', delay: 1.5 }}
             />
           </div>
@@ -698,12 +722,28 @@ export default function HomePage() {
 
               {/* Scroll cue */}
               <motion.div style={{ opacity: lineOpacity, padding: '0 clamp(24px,8vw,120px) 30px' }}>
+                {/* Desktop: línea vertical */}
                 <motion.div
+                  className="home-scroll-cue-line"
                   initial={{ scaleY: 0, opacity: 0 }}
                   animate={{ scaleY: 1, opacity: 1 }}
                   transition={{ duration: 0.6, delay: 0.7, ease: SILK }}
                   style={{ transformOrigin: 'top', width: 1, height: 32, background: 'rgba(255,255,255,0.22)', borderRadius: 1 }}
                 />
+                {/* Mobile: chevron animado tipo "desliza" */}
+                <motion.div
+                  className="home-scroll-cue-mobile"
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: [0, 0.55, 0], y: [0, 8, 0] }}
+                  transition={{ duration: 1.8, delay: 1.0, repeat: Infinity, ease: 'easeInOut' }}
+                  style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 3 }}
+                >
+                  {[0, 1].map((i) => (
+                    <svg key={i} width="14" height="8" viewBox="0 0 14 8" fill="none" style={{ opacity: i === 0 ? 0.5 : 1 }}>
+                      <path d="M1 1L7 7L13 1" stroke="rgba(255,255,255,0.6)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  ))}
+                </motion.div>
               </motion.div>
 
               <div className="home-page-caption">
