@@ -29,7 +29,13 @@ function containsStaleSessionError(item: ChatItem): boolean {
 }
 
 export function sanitizeChatThreadItems(items: ChatItem[]): ChatItem[] {
-  return sanitizeChatThreadMessages(items).filter((item) => !containsStaleSessionError(item));
+  return sanitizeChatThreadMessages(items)
+    .map((item) => {
+      if (item.type !== 'message' || item.role !== 'assistant' || !item.stream) return item;
+      const { stream: _stream, ...rest } = item;
+      return rest as ChatItem;
+    })
+    .filter((item) => !containsStaleSessionError(item));
 }
 
 export function serializeChatThreadsForSave(threads: PersistableChatThread[]): Record<string, unknown>[] {

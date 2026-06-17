@@ -52,6 +52,7 @@ export type UseCoreAgentSendParams = {
   prepareSend?: () => Promise<void>;
   onSideEffects: (effects: CoreAgentResponseSideEffects, response: AgentResponse) => void;
   onTransientError?: (message: string) => void;
+  onTurnSettled?: () => void;
   normalizePanelAction?: (
     action: AgentResponse['panel_action'],
   ) => AgentResponse['panel_action'];
@@ -228,6 +229,7 @@ export function useCoreAgentSend(params: UseCoreAgentSendParams) {
       } finally {
         sendGuardRef.current = false;
         setLoading(false);
+        params.onTurnSettled?.();
       }
     },
     [
@@ -241,6 +243,7 @@ export function useCoreAgentSend(params: UseCoreAgentSendParams) {
       params.prepareSend,
       params.onSideEffects,
       params.onTransientError,
+      params.onTurnSettled,
       params.normalizePanelAction,
     ],
   );

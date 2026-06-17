@@ -412,6 +412,7 @@ export default function AgentPage() {
   );
   const [activeChatId, setActiveChatId] = useState(PRIMARY_CHAT_ID);
   const [sheetsLoaded, setSheetsLoaded] = useState(false);
+  const [sheetsHydratedOk, setSheetsHydratedOk] = useState(false);
   const chatThreadsRef = useRef(chatThreads);
   const welcomeInjectedThreadsRef = useRef<Set<string>>(new Set());
   const [panelStage, setPanelStage] = useState(2);
@@ -997,7 +998,9 @@ export default function AgentPage() {
   // Load sheets from API on mount
   useEffect(() => {
     if (!authBootstrapped || !isAuthenticated) return;
+    let cancelled = false;
     loadSheets().then((data) => {
+      if (cancelled) return;
       if (data?.sheets && Array.isArray(data.sheets) && data.sheets.length > 0) {
         // Migrate saved sheets to current type
         const sheets = data.sheets as Array<Record<string, unknown>>;
@@ -1072,8 +1075,17 @@ export default function AgentPage() {
         setChatThreads(normalized);
         setActiveChatId(PRIMARY_CHAT_ID);
       }
+      setSheetsHydratedOk(true);
       setSheetsLoaded(true);
-    }).catch(() => setSheetsLoaded(true));
+    }).catch(() => {
+      if (cancelled) return;
+      // Do not enable saves: default welcome threads would overwrite server history.
+      setSheetsHydratedOk(false);
+      setSheetsLoaded(true);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [authBootstrapped, isAuthenticated]);
 
   // Seed welcome openings for every thread that still has no assistant message.
@@ -1189,7 +1201,7 @@ export default function AgentPage() {
     persistPanelNow,
     flushNow,
   } = useAgentPersistence({
-    sheetsEnabled: isAuthenticated && sheetsLoaded,
+    sheetsEnabled: isAuthenticated && sheetsLoaded && sheetsHydratedOk,
     panelEnabled: isAuthenticated && panelStateLoaded,
     flushEnabled: isAuthenticated,
     panelStateBackupKey,
@@ -1200,9 +1212,9 @@ export default function AgentPage() {
   });
 
   useEffect(() => {
-    if (!sheetsLoaded) return;
+    if (!sheetsLoaded || !sheetsHydratedOk) return;
     scheduleSheetsSave();
-  }, [chatThreads, scheduleSheetsSave, sheetsLoaded]);
+  }, [chatThreads, scheduleSheetsSave, sheetsHydratedOk, sheetsLoaded]);
 
   async function persistPanelSnapshotNow() {
     await persistPanelNow();
@@ -1941,6 +1953,9 @@ export default function AgentPage() {
     onSideEffects: applyCoreAgentSideEffects,
     onTransientError: (message) => {
       setPanelCallout({ section: 'chat', message });
+    },
+    onTurnSettled: () => {
+      void persistSheetsNow();
     },
     normalizePanelAction: normalizePanelActionForCurrentFlow,
   });

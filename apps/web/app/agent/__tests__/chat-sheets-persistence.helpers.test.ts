@@ -40,4 +40,19 @@ describe('chat-sheets-persistence.helpers', () => {
       { type: 'message', role: 'user', content: 'Hola' },
     ]);
   });
+
+  it('strips in-flight stream metadata before save', () => {
+    const items: ChatItem[] = [
+      {
+        type: 'message',
+        role: 'assistant',
+        content: 'Respuesta final',
+        stream: { streaming: true, phase: 'writing' } as never,
+      },
+    ];
+
+    expect(sanitizeChatThreadItems(items)).toEqual([
+      { type: 'message', role: 'assistant', content: 'Respuesta final' },
+    ]);
+  });
 });

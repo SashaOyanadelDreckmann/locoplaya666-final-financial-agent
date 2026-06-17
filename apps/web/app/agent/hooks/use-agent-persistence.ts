@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useRef } from 'react';
 
-import { savePanelState, saveSheets } from '@/lib/api/cliente';
+import { getCsrfToken } from '@/lib/sesion/csrf';
+import { getSessionInfo, savePanelState, saveSheets } from '@/lib/api/cliente';
 import { sanitizePanelSnapshotForSave } from '@/lib/compartido/panel-state.helpers';
 import {
   bindAgentPersistenceFlush,
@@ -46,6 +47,10 @@ export function useAgentPersistence(params: UseAgentPersistenceParams) {
     if (sheetsTimerRef.current) {
       clearTimeout(sheetsTimerRef.current);
       sheetsTimerRef.current = null;
+    }
+
+    if (!getCsrfToken()) {
+      await getSessionInfo().catch(() => {});
     }
 
     const payload = serializeChatThreadsForSave(params.getChatThreads());
