@@ -664,6 +664,7 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
                               title: artifact.title,
                               group: props.classifyReportGroup(artifact.title, artifact.source),
                               fileUrl: artifact.fileUrl ?? '',
+                              previewImageUrl: artifact.previewImageUrl || undefined,
                               createdAt: artifact.createdAt,
                             };
                             props.setSavedReports((prev) =>
