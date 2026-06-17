@@ -1,4 +1,9 @@
-const { buildLanDevOrigins, formatLanDevBanner } = require('../../scripts/dev/lan-dev-hosts.mjs');
+const lanDevHosts =
+  process.env.NODE_ENV === 'production'
+    ? { buildLanDevOrigins: () => [], formatLanDevBanner: () => '' }
+    : require('../../scripts/dev/lan-dev-hosts.mjs');
+
+const { buildLanDevOrigins, formatLanDevBanner } = lanDevHosts;
 
 /** @type {import('next').NextConfig} */
 function normalizeOrigin(value) {

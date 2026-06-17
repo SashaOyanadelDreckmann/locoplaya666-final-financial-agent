@@ -18,6 +18,12 @@ if [ -z "$PROJECT" ] || [ -z "$ENVIRONMENT" ]; then
   exit 1
 fi
 
+if [ -f "$ROOT_DIR/scripts/despliegue/sync-railway-production-vars.sh" ]; then
+  bash "$ROOT_DIR/scripts/despliegue/sync-railway-production-vars.sh" || {
+    echo "WARN: sync-railway-production-vars falló; continúo deploy"
+  }
+fi
+
 echo "==> Generate Prisma client"
 pnpm --filter @financial-agent/api db:generate
 

@@ -8,7 +8,7 @@ on:
     paths:
       - "apps/api/**"
       - "packages/shared/**"
-      - "scripts/despliegue/deploy-api.sh"
+      - "scripts/despliegue/sync-railway-production-vars.sh"
       - "scripts/despliegue/lib/**"
       - "scripts/qa/prod-smoke.mjs"
       - "Dockerfile.api"
