@@ -458,7 +458,7 @@ export function BudgetIntelligenceTable(props: Props) {
         <div className={`budget-pdf-intel-summary budget-pdf-intel-summary--${props.budgetTableStyle}`}>
           <div className={`budget-pdf-head${props.compactMobile ? ' is-mobile-intel-head' : ''}`}>
             <div>
-              <h2>Budget intelligence</h2>
+              <h2>Inteligencia de presupuesto</h2>
             </div>
             <strong>{props.activeStyleLabel}</strong>
           </div>

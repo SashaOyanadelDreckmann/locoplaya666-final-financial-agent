@@ -42,6 +42,44 @@ export function canAffordOperation(
   return usage.usdRemaining >= costUsd - 1e-9;
 }
 
+/**
+ * Charge the user the exact USD cost tracked from actual LLM token usage.
+ * Returns the same shape as chargeFincoinOperation for drop-in use at call sites.
+ */
+export async function chargeActualUsdSpent(
+  userId: string,
+  costUsd: number,
+): Promise<FincoinChargeResult> {
+  const clampedCost = Math.max(0, costUsd);
+  if (clampedCost < 1e-9) {
+    const user = await getUserById(userId);
+    const usage = getFincoinUsageForUser(user);
+    return { usage, justDepleted: false, charged: true };
+  }
+
+  const atomic = await chargeUsdSpentTotalAtomic(userId, clampedCost, FINCOIN_MAX_USD_SPEND);
+
+  if (!atomic.charged) {
+    const latestUser = await getUserById(userId);
+    const usage = getFincoinUsageForUser(latestUser);
+    const summaries =
+      atomic.reason === 'user_not_found'
+        ? undefined
+        : latestUser?.fincoinDepletionHandled
+          ? undefined
+          : await ensureFincoinDepletionHandled(userId);
+    return { usage, justDepleted: usage.depleted, charged: false, closureSummaries: summaries };
+  }
+
+  const after = computeFincoinUsage(atomic.usdSpentTotal);
+  let closureSummaries: FincoinChargeResult['closureSummaries'];
+  if (atomic.justDepleted) {
+    closureSummaries = await ensureFincoinDepletionHandled(userId);
+  }
+
+  return { usage: after, justDepleted: atomic.justDepleted, charged: true, closureSummaries };
+}
+
 export async function chargeFincoinOperation(
   userId: string,
   operation: FincoinOperation,

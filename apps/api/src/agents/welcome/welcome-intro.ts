@@ -1,8 +1,8 @@
-import { completeStructured } from '../../services/llm.service';
+import { completeStructured, runWithLLMCostTracking } from '../../services/llm.service';
 import { getUserById } from '../../persistencia/repos';
 import {
   canAffordOperation,
-  chargeFincoinOperation,
+  chargeActualUsdSpent,
   getFincoinUsageForUser,
 } from '../../services/fincoin.service';
 import type { IntakeQuestionnaire } from '@financial-agent/shared/src/intake/intake-questionnaire.types';
@@ -10,6 +10,7 @@ import {
   WELCOME_FINTECH_DEFAULT_BENEFIT,
   WELCOME_FINTECH_DEFAULT_BODY,
   WELCOME_FINTECH_DEFAULT_TITLE,
+  WELCOME_MARCO_DEFAULT_BODY,
   buildWelcomeIntroFingerprint,
   buildWelcomeGuideEnrichment,
   canGenerateWelcomeIntroWithLlm,
@@ -23,9 +24,7 @@ import {
   type WelcomeIntroCache,
   type WelcomeIntroPayload,
   type WelcomeIntroSection,
-  type WelcomeProductHint,
 } from '@financial-agent/shared';
-import { researchWelcomeProductHints } from '../../services/welcome-product-research.service';
 
 export type {
   WelcomeIntroCache,
@@ -50,7 +49,6 @@ type WelcomeIntroLLM = {
   wittyHook?: string;
   personalRead?: string;
   signals?: string[];
-  marcoInsight?: string;
   fintechInsight?: string;
   fintechBenefit?: string;
   resultNote?: string;
@@ -66,14 +64,13 @@ Devuelve SOLO JSON válido:
   "wittyHook": "1 línea ingeniosa citando UN dato del intake (ciudad, ingreso, deuda, estrés). Breve y memorable.",
   "personalRead": "1-2 oraciones. Diagnóstico inicial conciso, cálido y sin repetir el formulario.",
   "signals": ["3 señales cortas del intake"],
-  "marcoInsight": "1 oración: evidencia real primero, diagnóstico verificable",
   "fintechInsight": "1 oración: simulación inspirada en Ley Fintech 21.521, sin Open Finance oficial",
   "fintechBenefit": "1 oración: estudio de utilidad, no conexión bancaria regulada",
   "resultNote": "1 oración sobre diagnóstico personal con prioridades concretas",
-  "closingQuestion": "pregunta corta para iniciar por productos y transacciones"
+  "closingQuestion": "pregunta corta para iniciar por cartola, presupuesto o entrevista"
 }
 
-Reglas: español chileno, tú, sin emojis. Si recibes "productHints", integra 1 dato real en personalRead sin inventar cifras.
+Reglas: español chileno, tú, sin emojis. No recomiendes productos financieros ni instituciones en esta introducción inicial.
 NUNCA prometas PDFs: la exportación la hace el usuario con Guardar PDF.
 `.trim();
 
@@ -135,9 +132,7 @@ function defaultSections(llm?: WelcomeIntroLLM): WelcomeIntroSection {
   return {
     marco: {
       title: 'Marco de trabajo',
-      body:
-        llm?.marcoInsight?.trim() ||
-        'Convertimos información financiera dispersa en un diagnóstico claro, verificable y accionable. Evidencia real primero; recomendaciones después.',
+      body: WELCOME_MARCO_DEFAULT_BODY,
     },
     fintech: {
       title: WELCOME_FINTECH_DEFAULT_TITLE,
@@ -175,7 +170,6 @@ export function buildFallbackWelcomeIntro(params: {
   intake?: Record<string, unknown>;
   intakeContext?: Record<string, unknown>;
   llmSummary?: { summary?: string; highlights?: string[] } | null;
-  productHints?: WelcomeProductHint[];
   diagnosisUnlocked?: boolean;
 }): WelcomeIntroPayload {
   const intake = params.intake ?? {};
@@ -210,14 +204,12 @@ export function buildFallbackWelcomeIntro(params: {
       personalRead,
       signals,
       sections: defaultSections(),
-      closingQuestion: '¿Partimos por Productos y transacciones?',
-      productHints: params.productHints,
+      closingQuestion: '¿Partimos por tu cartola o el presupuesto?',
     }),
     {
       firstName,
       intake,
       diagnosisUnlocked: params.diagnosisUnlocked,
-      productHints: params.productHints,
     },
   );
 }
@@ -228,7 +220,6 @@ function attachWelcomeGuideEnrichment(
     firstName: string;
     intake?: Record<string, unknown>;
     diagnosisUnlocked?: boolean;
-    productHints?: WelcomeProductHint[];
   },
 ): WelcomeIntroPayload {
   const enrichment = buildWelcomeGuideEnrichment({
@@ -236,7 +227,7 @@ function attachWelcomeGuideEnrichment(
     firstName: params.firstName,
     intake: params.intake,
     diagnosisUnlocked: params.diagnosisUnlocked,
-    productHints: params.productHints ?? intro.productHints,
+    productHints: [],
   });
 
   return normalizeWelcomeIntroPayload({
@@ -281,7 +272,6 @@ export async function buildWelcomeIntroWithLLM(params: {
   intake: IntakeQuestionnaire | Record<string, unknown>;
   intakeContext?: Record<string, unknown>;
   llmSummary?: { summary?: string; highlights?: string[] } | null;
-  productHints?: WelcomeProductHint[];
   diagnosisUnlocked?: boolean;
 }): Promise<WelcomeIntroPayload> {
   const intakeRecord = params.intake as Record<string, unknown>;
@@ -290,7 +280,6 @@ export async function buildWelcomeIntroWithLLM(params: {
     intake: intakeRecord,
     intakeContext: params.intakeContext,
     llmSummary: params.llmSummary,
-    productHints: params.productHints,
     diagnosisUnlocked: params.diagnosisUnlocked,
   });
 
@@ -302,10 +291,9 @@ export async function buildWelcomeIntroWithLLM(params: {
       params.llmSummary
         ? `Análisis previo del intake: ${JSON.stringify(params.llmSummary, null, 2)}`
         : '',
-      params.productHints?.length
-        ? `productHints verificados en web: ${JSON.stringify(params.productHints, null, 2)}`
-        : '',
-    ].join('\n\n');
+    ]
+      .filter(Boolean)
+      .join('\n\n');
 
     const parsed = await completeStructured<WelcomeIntroLLM>({
       system: WELCOME_INTRO_SYSTEM,
@@ -331,13 +319,11 @@ export async function buildWelcomeIntroWithLLM(params: {
         signals: signals.length > 0 ? signals : fallback.signals,
         sections,
         closingQuestion: parsed.closingQuestion?.trim() || fallback.closingQuestion,
-        productHints: params.productHints,
       }),
       {
         firstName: params.firstName,
         intake: intakeRecord,
         diagnosisUnlocked: params.diagnosisUnlocked,
-        productHints: params.productHints,
       },
     );
   } catch {
@@ -367,14 +353,13 @@ export async function resolveWelcomeIntroForUser(params: {
   const fingerprint = buildWelcomeIntroFingerprint(envelope.intake, envelope.llmSummary);
   const cached = readWelcomeIntroCache(params.injectedIntake);
   const generationCount = readWelcomeIntroGenerationCount(cached);
-  const finalizeIntro = (intro: WelcomeIntroPayload, hints: WelcomeProductHint[] = []) =>
+  const finalizeIntro = (intro: WelcomeIntroPayload) =>
     attachWelcomeGuideEnrichment(
       normalizeWelcomeIntroPayload(withWelcomeIntroFirstName(intro, params.firstName)),
       {
         firstName: params.firstName,
         intake: envelope.intake,
         diagnosisUnlocked: false,
-        productHints: hints,
       },
     );
 
@@ -415,13 +400,6 @@ export async function resolveWelcomeIntroForUser(params: {
     };
   }
 
-  // Fetch product hints only for non-cached generation paths to avoid unnecessary web searches.
-  const productHints = await researchWelcomeProductHints({
-    userId: params.userId,
-    intake: envelope.intake,
-    chatId: 'chat-1',
-  });
-
   if (canGenerateWelcomeIntroWithLlm(cached)) {
     const userRecord = await getUserById(params.userId);
     const fincoinUsage = userRecord ? getFincoinUsageForUser(userRecord) : null;
@@ -437,9 +415,7 @@ export async function resolveWelcomeIntroForUser(params: {
               intake: envelope.intake,
               intakeContext: envelope.intakeContext,
               llmSummary: envelope.llmSummary,
-              productHints,
             }),
-        productHints,
       );
       return {
         intro,
@@ -455,9 +431,7 @@ export async function resolveWelcomeIntroForUser(params: {
           intake: envelope.intake,
           intakeContext: envelope.intakeContext,
           llmSummary: envelope.llmSummary,
-          productHints,
         }),
-        productHints,
       );
       return {
         intro,
@@ -466,8 +440,8 @@ export async function resolveWelcomeIntroForUser(params: {
       };
     }
 
-    const welcomeCharge = await chargeFincoinOperation(params.userId, 'welcome.llm');
-    if (!welcomeCharge.charged) {
+    const welcomeUsage = getFincoinUsageForUser(userRecord);
+    if (!canAffordOperation(welcomeUsage, 'welcome.llm')) {
       const intro = finalizeIntro(
         cached?.intro
           ? cached.intro
@@ -476,9 +450,7 @@ export async function resolveWelcomeIntroForUser(params: {
               intake: envelope.intake,
               intakeContext: envelope.intakeContext,
               llmSummary: envelope.llmSummary,
-              productHints,
             }),
-        productHints,
       );
       return {
         intro,
@@ -487,16 +459,18 @@ export async function resolveWelcomeIntroForUser(params: {
       };
     }
 
-    const intro = finalizeIntro(
-      await buildWelcomeIntroWithLLM({
-        firstName: params.firstName,
-        intake: envelope.intake,
-        intakeContext: envelope.intakeContext,
-        llmSummary: envelope.llmSummary,
-        productHints,
-      }),
-      productHints,
+    const { result: intro, costUsd } = await runWithLLMCostTracking(async () =>
+      finalizeIntro(
+        await buildWelcomeIntroWithLLM({
+          firstName: params.firstName,
+          intake: envelope.intake,
+          intakeContext: envelope.intakeContext,
+          llmSummary: envelope.llmSummary,
+        }),
+      ),
     );
+
+    await chargeActualUsdSpent(params.userId, costUsd);
 
     const cacheEntry: WelcomeIntroCache = {
       fingerprint,
@@ -515,13 +489,14 @@ export async function resolveWelcomeIntroForUser(params: {
     };
   }
 
-  const intro = buildFallbackWelcomeIntro({
-    firstName: params.firstName,
-    intake: envelope.intake,
-    intakeContext: envelope.intakeContext,
-    llmSummary: envelope.llmSummary,
-    productHints,
-  });
+  const intro = finalizeIntro(
+    buildFallbackWelcomeIntro({
+      firstName: params.firstName,
+      intake: envelope.intake,
+      intakeContext: envelope.intakeContext,
+      llmSummary: envelope.llmSummary,
+    }),
+  );
 
   return {
     intro,

@@ -81,7 +81,6 @@ describe('resolveWelcomeIntroForUser', () => {
       wittyHook: 'Hook nuevo.',
       personalRead: 'Lectura generada.',
       signals: ['Señal A'],
-      marcoInsight: 'Marco generado.',
       fintechInsight: 'Fintech generado.',
       fintechBenefit: 'Beneficio generado.',
       resultNote: 'Resultado generado.',

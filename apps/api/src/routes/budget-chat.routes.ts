@@ -4,7 +4,8 @@ import { z } from 'zod';
 import { asyncHandler } from '../middleware/errorHandler';
 import { requireAuth } from '../middleware/auth';
 import { requireSpendableFincoins } from '../middleware/fincoin-guard';
-import { chargeFincoinOperation } from '../services/fincoin.service';
+import { chargeActualUsdSpent } from '../services/fincoin.service';
+import { runWithLLMCostTracking } from '../services/llm.service';
 import { fetchIndicador } from '../mcp/tools/market/mindicadorClient';
 import { getConfig } from '../config';
 import {
@@ -552,14 +553,12 @@ async function finalizeBudgetResponse(
   };
 }
 
-async function sendBudgetChatResponse(
-  res: { json: (body: unknown) => unknown },
+async function buildBudgetChatPayload(
   draft: BudgetChatResponse,
   polishInput: BudgetWriterPolishInput | null,
   extras?: Partial<BudgetChatResponse>,
-) {
-  const payload = await finalizeBudgetResponse({ ...draft, ...extras }, polishInput);
-  return res.json(payload);
+): Promise<BudgetChatResponse> {
+  return finalizeBudgetResponse({ ...draft, ...extras }, polishInput);
 }
 
 function buildBudgetReply(input: {
@@ -1696,9 +1695,6 @@ router.post(
   asyncHandler(async (req, res) => {
     const _config = getConfig();
     const user = req.authenticatedUser;
-    if (user) {
-      await chargeFincoinOperation(user.id, 'budget.chat');
-    }
     const body = BudgetChatRequestSchema.parse(req.body) as BudgetChatRequest;
 
     const intent = body.intent;
@@ -1731,117 +1727,116 @@ router.post(
       ? validateBudgetTableActions((pendingRaw.actions ?? []) as BudgetTableAction[], rows)
       : [];
 
-    if (intent === 'init') {
-      const marketSnapshot = await getMarketSnapshotOptional();
-      const deterministicInit = buildFallbackInit({ rows, context });
-      const focusRow =
-        rows.find((row) => canonicalBudgetRowId(row.id) === canonicalBudgetRowId('income_salary')) ?? rows[0] ?? null;
-      const agentResult = await runBudgetChatAgent({
-        rows,
-        context,
-        userAnswer: '',
-        currentQuestion: '',
-        focusRow,
-        chatAnswers: [],
-        mode: 'init',
-        userId: user?.id,
-      });
-      const draft = isBudgetAgentUnavailableResult(agentResult)
-        ? deterministicInit
-        : buildAgentChatReply({ agent: agentResult, rows });
-      return sendBudgetChatResponse(
-        res,
-        { ...draft, market_snapshot: marketSnapshot },
-        buildWriterPolishInput({ draft, context, rows, userAnswer: '' }),
-      );
-    }
+    const { result: payload, costUsd } = await runWithLLMCostTracking(async () => {
+      if (intent === 'init') {
+        const marketSnapshot = await getMarketSnapshotOptional();
+        const deterministicInit = buildFallbackInit({ rows, context });
+        const focusRow =
+          rows.find((row) => canonicalBudgetRowId(row.id) === canonicalBudgetRowId('income_salary')) ?? rows[0] ?? null;
+        const agentResult = await runBudgetChatAgent({
+          rows,
+          context,
+          userAnswer: '',
+          currentQuestion: '',
+          focusRow,
+          chatAnswers: [],
+          mode: 'init',
+          userId: user?.id,
+        });
+        const draft = isBudgetAgentUnavailableResult(agentResult)
+          ? deterministicInit
+          : buildAgentChatReply({ agent: agentResult, rows });
+        return buildBudgetChatPayload(
+          { ...draft, market_snapshot: marketSnapshot },
+          buildWriterPolishInput({ draft, context, rows, userAnswer: '' }),
+        );
+      }
 
-    if (intent === 'reply' && pendingRaw && (isBudgetConfirmationAnswer(answer) || isBudgetRejectionAnswer(answer))) {
-      if (isBudgetConfirmationAnswer(answer)) {
-        if (pendingActions.length === 0) {
-          const failedDraft = buildConfirmationApplyFailedReply();
-          return sendBudgetChatResponse(
-            res,
-            failedDraft,
-            buildWriterPolishInput({ draft: failedDraft, context, rows, userAnswer: answer }),
+      if (intent === 'reply' && pendingRaw && (isBudgetConfirmationAnswer(answer) || isBudgetRejectionAnswer(answer))) {
+        if (isBudgetConfirmationAnswer(answer)) {
+          if (pendingActions.length === 0) {
+            const failedDraft = buildConfirmationApplyFailedReply();
+            return buildBudgetChatPayload(
+              failedDraft,
+              buildWriterPolishInput({ draft: failedDraft, context, rows, userAnswer: answer }),
+              { market_snapshot: emptyMarketSnapshot() },
+            );
+          }
+          const draft = buildConfirmationApplyReply({
+            actions: pendingActions,
+            summary: pendingRaw?.summary ?? summarizeBudgetActionBatch(pendingActions, rows),
+          });
+          return buildBudgetChatPayload(
+            draft,
+            buildWriterPolishInput({ draft, context, rows, userAnswer: answer }),
             { market_snapshot: emptyMarketSnapshot() },
           );
         }
-        const draft = buildConfirmationApplyReply({
-          actions: pendingActions,
-          summary: pendingRaw?.summary ?? summarizeBudgetActionBatch(pendingActions, rows),
+        if (isBudgetRejectionAnswer(answer)) {
+          const draft = buildConfirmationRejectedReply();
+          return buildBudgetChatPayload(
+            draft,
+            buildWriterPolishInput({ draft, context, rows, userAnswer: answer }),
+            { market_snapshot: emptyMarketSnapshot() },
+          );
+        }
+      }
+
+      if (intent === 'reply' && answer) {
+        const focusRow =
+          resolvedActiveRow ??
+          (assistantFocusRowId
+            ? rows.find((row) => canonicalBudgetRowId(row.id) === canonicalBudgetRowId(assistantFocusRowId)) ?? null
+            : null);
+
+        const agentResult = await runBudgetChatAgent({
+          rows,
+          context,
+          userAnswer: answer,
+          currentQuestion: question,
+          focusRow,
+          chatAnswers,
+          mode: 'reply',
+          userId: user?.id,
         });
-        return sendBudgetChatResponse(
-          res,
-          draft,
+        const draft = finalizeBudgetMutationDraft(
+          isBudgetAgentUnavailableResult(agentResult)
+            ? resolveHybridBudgetChatDraft({
+                agent: agentResult,
+                rows,
+                answer,
+                question,
+                context,
+                activeRow: focusRow,
+                assistantFocusRowId,
+                manualFocusRowId,
+              })
+            : buildAgentChatReply({ agent: agentResult, rows }),
+          rows,
+        );
+        const marketSnapshot = await getMarketSnapshotOptional();
+        return buildBudgetChatPayload(
+          { ...draft, market_snapshot: marketSnapshot },
           buildWriterPolishInput({ draft, context, rows, userAnswer: answer }),
-          { market_snapshot: emptyMarketSnapshot() },
         );
       }
-      if (isBudgetRejectionAnswer(answer)) {
-        const draft = buildConfirmationRejectedReply();
-        return sendBudgetChatResponse(
-          res,
-          draft,
-          buildWriterPolishInput({ draft, context, rows, userAnswer: answer }),
-          { market_snapshot: emptyMarketSnapshot() },
-        );
-      }
-    }
 
-    if (intent === 'reply' && answer) {
-      const focusRow =
-        resolvedActiveRow ??
-        (assistantFocusRowId
-          ? rows.find((row) => canonicalBudgetRowId(row.id) === canonicalBudgetRowId(assistantFocusRowId)) ?? null
-          : null);
-
-      const agentResult = await runBudgetChatAgent({
-        rows,
-        context,
-        userAnswer: answer,
-        currentQuestion: question,
-        focusRow,
-        chatAnswers,
-        mode: 'reply',
-        userId: user?.id,
+      const draft = buildBudgetReply({
+        reply: 'Cuéntame qué quieres cambiar en la tabla.',
+        followUp: BUDGET_AGENT_FOLLOW_UP,
+        focus_row_id: null,
+        source: 'budget_agent_empty',
+        provider: 'agent',
+        market_snapshot: emptyMarketSnapshot(),
       });
-      const draft = finalizeBudgetMutationDraft(
-        isBudgetAgentUnavailableResult(agentResult)
-          ? resolveHybridBudgetChatDraft({
-              agent: agentResult,
-              rows,
-              answer,
-              question,
-              context,
-              activeRow: focusRow,
-              assistantFocusRowId,
-              manualFocusRowId,
-            })
-          : buildAgentChatReply({ agent: agentResult, rows }),
-        rows,
-      );
-      const marketSnapshot = await getMarketSnapshotOptional();
-      return sendBudgetChatResponse(
-        res,
-        { ...draft, market_snapshot: marketSnapshot },
+      return buildBudgetChatPayload(
+        draft,
         buildWriterPolishInput({ draft, context, rows, userAnswer: answer }),
       );
-    }
-
-    const draft = buildBudgetReply({
-      reply: 'Cuéntame qué quieres cambiar en la tabla.',
-      followUp: BUDGET_AGENT_FOLLOW_UP,
-      focus_row_id: null,
-      source: 'budget_agent_empty',
-      provider: 'agent',
-      market_snapshot: emptyMarketSnapshot(),
     });
-    return sendBudgetChatResponse(
-      res,
-      draft,
-      buildWriterPolishInput({ draft, context, rows, userAnswer: answer }),
-    );
+
+    if (user) await chargeActualUsdSpent(user.id, costUsd);
+    return res.json(payload);
   }),
 );
 

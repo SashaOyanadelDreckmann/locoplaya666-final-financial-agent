@@ -104,6 +104,7 @@ export function useBudgetChat(params: UseBudgetChatParams) {
   const initAbortRef = useRef<AbortController | null>(null);
   const replyAbortRef = useRef<AbortController | null>(null);
   const budgetInitStartedRef = useRef(false);
+  const budgetChatRequestGenRef = useRef(0);
   const chatAnswersRef = useRef(chatAnswers);
   const bankProductsRef = useRef(bankProducts);
   const resolveLocalBudgetQuestionRef = useRef(resolveLocalBudgetQuestion);
@@ -175,6 +176,7 @@ export function useBudgetChat(params: UseBudgetChatParams) {
     (payload: BudgetChatApiPayload) => {
       if (!isOpenRef.current) return;
 
+      setAiError(null);
       const requiresConfirmation = Boolean(payload.requires_confirmation);
       let lastTouchedRowId: string | null = null;
       if (requiresConfirmation && payload.pending_confirmation) {
@@ -221,6 +223,7 @@ export function useBudgetChat(params: UseBudgetChatParams) {
       if (rejectFincoinSpend()) return;
       if (!answer || !isOpen || isAskingAI || isInitializing || replySubmitLockRef.current) return;
       replySubmitLockRef.current = true;
+      const requestId = ++budgetChatRequestGenRef.current;
 
       const manualFocusRowId = activeBudgetRowId;
       const pendingForTurn = pendingOverride ?? budgetPendingConfirmationRef.current;
@@ -294,6 +297,7 @@ export function useBudgetChat(params: UseBudgetChatParams) {
           setAssistantNextQuestion(null);
         }
       } catch (error) {
+        if (requestId !== budgetChatRequestGenRef.current) return;
         if (isBudgetChatAbortError(error)) {
           if (isOpenRef.current) {
             if (!forcedAnswer) setBudgetReply(answer);
@@ -304,6 +308,7 @@ export function useBudgetChat(params: UseBudgetChatParams) {
           setAiError(budgetChatErrorMessage(error));
         }
       } finally {
+        if (requestId !== budgetChatRequestGenRef.current) return;
         if (askingWatchdogRef.current) {
           clearTimeout(askingWatchdogRef.current);
           askingWatchdogRef.current = null;
@@ -406,6 +411,7 @@ export function useBudgetChat(params: UseBudgetChatParams) {
     const initController = new AbortController();
     initAbortRef.current = initController;
     const initSignal = initController.signal;
+    const requestId = ++budgetChatRequestGenRef.current;
 
     void (async () => {
       try {
@@ -433,6 +439,7 @@ export function useBudgetChat(params: UseBudgetChatParams) {
 
         const payload = normalizeBudgetChatPayload(unwrapApiData<BudgetChatApiPayload>(raw));
         if (payload) {
+          setAiError(null);
           applyAssistantTurn(payload);
           const nextQuestion = sanitizeBudgetQuestion(getNextQuestion(payload, ''));
           setAssistantNextQuestion(nextQuestion || null);
@@ -444,6 +451,7 @@ export function useBudgetChat(params: UseBudgetChatParams) {
           setAssistantBudgetRowId('income_salary');
         }
       } catch (err) {
+        if (requestId !== budgetChatRequestGenRef.current) return;
         if (isBudgetChatAbortError(err) || !isOpenRef.current) return;
         const fallbackQuestion = resolveLocalBudgetQuestionRef.current('income_salary');
         setAssistantReply(null);
@@ -451,6 +459,7 @@ export function useBudgetChat(params: UseBudgetChatParams) {
         setAssistantBudgetRowId('income_salary');
         setAiError(budgetChatErrorMessage(err));
       } finally {
+        if (requestId !== budgetChatRequestGenRef.current) return;
         if (isOpenRef.current) setIsInitializing(false);
       }
     })();

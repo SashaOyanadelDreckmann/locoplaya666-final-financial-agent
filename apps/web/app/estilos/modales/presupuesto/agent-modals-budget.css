@@ -6165,7 +6165,8 @@ body:has(.transactions-modal-overlay) .chat-pages-outer{
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.62);
+  color: var(--budget-header-text-dim, rgba(255, 255, 255, 0.62));
+  -webkit-text-fill-color: var(--budget-header-text-dim, rgba(255, 255, 255, 0.62));
   user-select: none;
 }
 

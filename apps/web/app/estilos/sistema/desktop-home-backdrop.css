@@ -1,0 +1,158 @@
+/* ================================================= */
+/* DESKTOP — unified home backdrop (all non-home)    */
+/* Same photo, filter, vignette + grain as home hero */
+/* Loaded last — wins route-specific backdrop rules  */
+/* ================================================= */
+
+html.is-desktop-viewport {
+  /* Richer color under the same vignette / matte / grain stack */
+  --fa-home-bg-photo-filter: saturate(1.28) contrast(1.08) brightness(0.97) sepia(0.02);
+}
+
+html.is-desktop-viewport:not(.home-route-active) {
+  --vp-bg-bleed-top: 0px;
+  --vp-bg-bleed-bottom: 0px;
+  --vp-bg-bleed-x: 0px;
+  --vp-bg-bleed-extra-bottom: 0px;
+  --vp-bg-inset-top: 0px;
+  --vp-bg-inset-bottom: 0px;
+  --vp-bg-inset-x: 0px;
+  background-color: #050810 !important;
+  background-image: none !important;
+}
+
+html.is-desktop-viewport:not(.home-route-active) body {
+  background-color: #050810 !important;
+  background-image: none !important;
+}
+
+html.is-desktop-viewport:not(.home-route-active) .global-agent-backdrop {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  position: fixed !important;
+  inset: 0 !important;
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  width: auto !important;
+  height: auto !important;
+  min-height: auto !important;
+  max-height: none !important;
+  z-index: 0 !important;
+  pointer-events: none !important;
+  overflow: hidden !important;
+  background-color: #050810 !important;
+  background-image: none !important;
+  filter: none !important;
+  box-shadow: none !important;
+  transform: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html.is-desktop-viewport:not(.home-route-active) .global-agent-backdrop::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--fa-home-bg-photo) center / cover no-repeat;
+  filter: var(--fa-home-bg-photo-filter);
+  pointer-events: none;
+  z-index: 0;
+}
+
+html.is-desktop-viewport:not(.home-route-active) .global-agent-backdrop::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: var(--fa-home-bg-overlay);
+  background-size: var(--fa-home-bg-overlay-size);
+  background-position: var(--fa-home-bg-overlay-position);
+  background-repeat: no-repeat;
+  pointer-events: none;
+  z-index: 1;
+}
+
+html.is-desktop-viewport:not(.home-route-active) .app-shell::before {
+  display: none !important;
+  content: none !important;
+  background-image: none !important;
+  background-color: transparent !important;
+  filter: none !important;
+  box-shadow: none !important;
+}
+
+/* Grain — same fixed layer as home (above photo, below UI) */
+html.is-desktop-viewport:not(.home-route-active) .app-grain-layer {
+  display: block !important;
+  visibility: visible !important;
+  opacity: var(--fa-home-grain-opacity) !important;
+  z-index: 1 !important;
+}
+
+html.is-desktop-viewport:not(.home-route-active) .app-shell {
+  position: relative !important;
+  z-index: 2 !important;
+}
+
+html.is-desktop-viewport:not(.home-route-active) .app-shell::after {
+  display: none !important;
+  content: none !important;
+}
+
+html.is-desktop-viewport:not(.home-route-active) .intake-photo-bg,
+html.is-desktop-viewport:not(.home-route-active) .intake-photo-bg::before,
+html.is-desktop-viewport:not(.home-route-active) .intake-photo-bg::after {
+  display: none !important;
+  content: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+html.is-desktop-viewport.intake-route-active .intake-shell::before,
+html.is-desktop-viewport.intake-route-active .intake-shell::after {
+  display: none !important;
+  content: none !important;
+}
+
+html.is-desktop-viewport.intake-route-active .intake-bg-orb,
+html.is-desktop-viewport.intake-route-active .intake-bg-orb::before,
+html.is-desktop-viewport.intake-route-active .intake-bg-orb::after {
+  display: none !important;
+  content: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+html.is-desktop-viewport.home-route-active .home-canvas-layer {
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  left: 0 !important;
+}
+
+/* Route-specific — beat tablet-system / intake.css load order */
+html.is-desktop-viewport.agent-route-active:not(.home-route-active) .global-agent-backdrop,
+html.is-desktop-viewport.intake-route-active:not(.home-route-active) .global-agent-backdrop,
+html.is-desktop-viewport:not(.home-route-active) body.agent-route-active .global-agent-backdrop,
+html.is-desktop-viewport:not(.home-route-active) body.intake-route-active .global-agent-backdrop {
+  display: block !important;
+}
+
+html.is-desktop-viewport.intake-route-active .intake-photo-bg,
+html.is-desktop-viewport.intake-route-active .intake-bg-orb,
+html.is-desktop-viewport.intake-route-active .intake-bg-orb::before,
+html.is-desktop-viewport.intake-route-active .intake-bg-orb::after {
+  display: none !important;
+  content: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+html.is-desktop-viewport.intake-route-active .intake-shell::before,
+html.is-desktop-viewport.intake-route-active .intake-shell::after {
+  display: none !important;
+  content: none !important;
+}

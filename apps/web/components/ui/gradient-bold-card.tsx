@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  WELCOME_MARCO_DEFAULT_BODY,
   WELCOME_FINTECH_SIMULATION_BADGE,
   WELCOME_FINTECH_SIMULATION_CONTEXT,
   WELCOME_FINTECH_SIMULATION_DISCLAIMER,
@@ -18,11 +19,11 @@ import {
   useExecutiveBlobCarousel,
 } from "@/components/ui/executive-blob-carousel";
 import { CornerFrameScrambleText } from "@/components/ui/corner-frame-scramble-text";
-import { WelcomeProductHintsStrip } from "@/components/ui/welcome-product-hints-strip";
 import {
   buildFallbackWelcomeIntro,
   readHydratedWelcomeIntro,
   resolveWelcomeIntro,
+  sanitizeInitialWelcomeIntro,
   type WelcomeIntroPayload,
 } from "@/app/agent/flujo/welcome-intro.shared";
 import { buildIntakeScrambleLines } from "@/app/agent/flujo/welcome-intake-scramble.helpers";
@@ -107,19 +108,16 @@ function SlideDiagnosis(props: { intro: WelcomeIntroPayload; visible: boolean })
           ))}
         </div>
       ) : null}
-      {intro.productHints && intro.productHints.length > 0 ? (
-        <WelcomeProductHintsStrip hints={intro.productHints} />
-      ) : null}
     </div>
   );
 }
 
-function SlideMarco({ intro, transition }: { intro: WelcomeIntroPayload; transition: string }) {
+function SlideMarco({ transition }: { transition: string }) {
   return (
     <>
       <p className={`gradient-blob-card__slide-label${transition}`}>Marco de trabajo</p>
       <blockquote className={`gradient-blob-card__body-text gradient-blob-card__body-text--lead${transition}`}>
-        {intro.sections.marco.body}
+        {WELCOME_MARCO_DEFAULT_BODY}
       </blockquote>
       <p className={`gradient-blob-card__dek-text${transition}`}>
         Evidencia real primero. Recomendaciones después.
@@ -220,7 +218,7 @@ export function GradientBlobCard({
   const hydratedIntro = useMemo(() => readHydratedWelcomeIntro(session), [session]);
 
   const [intro, setIntro] = useState<WelcomeIntroPayload>(
-    () => hydratedIntro ?? buildFallbackWelcomeIntro(session),
+    () => hydratedIntro ?? sanitizeInitialWelcomeIntro(buildFallbackWelcomeIntro(session), session),
   );
   const [introLoading, setIntroLoading] = useState(() => !hydratedIntro);
   const [scrambleDone, setScrambleDone] = useState(() => Boolean(hydratedIntro));
@@ -249,7 +247,10 @@ export function GradientBlobCard({
       })
       .catch(() => {
         if (cancelled) return;
-        setIntro(readHydratedWelcomeIntro(session) ?? buildFallbackWelcomeIntro(session));
+        setIntro(
+          readHydratedWelcomeIntro(session) ??
+            sanitizeInitialWelcomeIntro(buildFallbackWelcomeIntro(session), session),
+        );
         setScrambleDone(true);
       })
       .finally(() => {
@@ -290,7 +291,7 @@ export function GradientBlobCard({
     }
 
     if (active === 1) {
-      return <SlideMarco intro={intro} transition={transition} />;
+      return <SlideMarco transition={transition} />;
     }
 
     if (active === 2) {

@@ -1380,6 +1380,11 @@
   -webkit-text-fill-color: rgba(23, 20, 17, 0.92) !important;
 }
 
+.budget-modal:not(.is-mobile-shell) .budget-view-nav-label{
+  color: rgba(23, 20, 17, 0.72) !important;
+  -webkit-text-fill-color: rgba(23, 20, 17, 0.72) !important;
+}
+
 /* Split + table-only toolbar pills on light shell */
 .budget-modal:not(.is-mobile-shell) .budget-split-toolbar-btn{
   border: 1px solid rgba(120, 100, 72, 0.34) !important;
@@ -1496,6 +1501,13 @@ html.is-mobile-viewport .budget-modal button.budget-view-nav-arrow:hover:not(:di
 html.is-mobile-viewport .budget-modal .budget-view-nav-arrow:hover:not(:disabled){
   color: rgba(23, 20, 17, 0.92) !important;
   -webkit-text-fill-color: rgba(23, 20, 17, 0.92) !important;
+}
+
+.budget-modal.is-mobile-shell .budget-view-nav-label,
+.budget-modal[data-budget-mobile='true'] .budget-view-nav-label,
+html.is-mobile-viewport .budget-modal .budget-view-nav-label{
+  color: rgba(23, 20, 17, 0.72) !important;
+  -webkit-text-fill-color: rgba(23, 20, 17, 0.72) !important;
 }
 
 /* Mobile footer + table toolbar pills */

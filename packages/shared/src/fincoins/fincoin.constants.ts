@@ -1,3 +1,40 @@
+/** Per-model pricing in USD per 1 million tokens (input / output). */
+export const LLM_MODEL_PRICING_PER_1M: Record<string, { input: number; output: number }> = {
+  // OpenAI GPT-5 family
+  'gpt-5': { input: 15.0, output: 60.0 },
+  'gpt-5.2': { input: 15.0, output: 60.0 },
+  // OpenAI GPT-4.1 family
+  'gpt-4.1': { input: 2.0, output: 8.0 },
+  'gpt-4.1-mini': { input: 0.4, output: 1.6 },
+  'gpt-4.1-nano': { input: 0.1, output: 0.4 },
+  // OpenAI GPT-4o family
+  'gpt-4o': { input: 2.5, output: 10.0 },
+  'gpt-4o-mini': { input: 0.15, output: 0.6 },
+  // Anthropic Claude 4 family
+  'claude-opus-4-8': { input: 15.0, output: 75.0 },
+  'claude-sonnet-4-6': { input: 3.0, output: 15.0 },
+  'claude-haiku-4-5': { input: 0.8, output: 4.0 },
+  'claude-haiku-4-5-20251001': { input: 0.8, output: 4.0 },
+};
+
+/** Conservative fallback when the model is not in the pricing table. */
+export const LLM_PRICING_FALLBACK_PER_1M = { input: 5.0, output: 20.0 };
+
+/** Returns the USD cost for a specific model and token counts. */
+export function computeLLMTokenCostUsd(
+  model: string,
+  inputTokens: number,
+  outputTokens: number,
+): number {
+  const normalizedModel = model.trim().toLowerCase();
+  const pricing =
+    LLM_MODEL_PRICING_PER_1M[normalizedModel] ??
+    // prefix match: e.g. "gpt-4o-mini-2024-07-18" → "gpt-4o-mini"
+    Object.entries(LLM_MODEL_PRICING_PER_1M).find(([k]) => normalizedModel.startsWith(k))?.[1] ??
+    LLM_PRICING_FALLBACK_PER_1M;
+  return (inputTokens * pricing.input + outputTokens * pricing.output) / 1_000_000;
+}
+
 export const FINCOIN_INITIAL_BALANCE = 250;
 export const FINCOIN_WARNING_THRESHOLD = 50;
 /** Display budget: 250 fincoins represent this USD value. */

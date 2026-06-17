@@ -4,7 +4,8 @@ import { z } from 'zod';
 import { requireAuth } from '../middleware/auth';
 import { requireSpendableFincoins } from '../middleware/fincoin-guard';
 import { asyncHandler } from '../middleware/errorHandler';
-import { chargeFincoinOperation } from '../services/fincoin.service';
+import { chargeActualUsdSpent } from '../services/fincoin.service';
+import { runWithLLMCostTracking } from '../services/llm.service';
 import { getConfig } from '../config';
 import { parseBody } from '../http/parse';
 import { getUserDocumentsByIds } from '../persistencia/repos';
@@ -217,7 +218,6 @@ router.post(
     if (!user) {
       return res.status(401).json({ ok: false, error: 'Not authenticated' });
     }
-    await chargeFincoinOperation(user.id, 'transactions.chat');
     const config = getConfig();
     assertCsrf(req);
 
@@ -248,209 +248,214 @@ router.post(
     const summaryModel = process.env.TRANSACTIONS_SUMMARY_MODEL || 'gpt-5.4-mini';
     const chatModel = process.env.TRANSACTIONS_CHAT_MODEL || 'gpt-5.4-mini';
 
-    if (mode === 'summary') {
-      const docsDigest = compactDocumentsForPrompt(canonicalDocuments, { maxDocs: 6, maxText: 1200 });
-      const dashboardDigest = compactDashboardForPrompt(dashboard, { maxMovements: 80, maxMerchants: 10 });
-      const prompt = [
-        'Eres un analista senior de movimientos bancarios del mercado chileno.',
-        'Genera un resumen ejecutivo editorial, breve y accionable (máx. 5 bloques, máx. 12 líneas).',
-        'Formato obligatorio: separa bloques con una línea en blanco; cada bloque inicia con un título corto en su propia línea y debajo el contenido.',
-        'Usa viñetas • cuando listes categorías, comercios o alertas.',
-        'Prioriza dashboard estructurado sobre texto libre. No inventes datos.',
+    const { result: payload, costUsd } = await runWithLLMCostTracking(async () => {
+      if (mode === 'summary') {
+        const docsDigest = compactDocumentsForPrompt(canonicalDocuments, { maxDocs: 6, maxText: 1200 });
+        const dashboardDigest = compactDashboardForPrompt(dashboard, { maxMovements: 80, maxMerchants: 10 });
+        const prompt = [
+          'Eres un analista senior de movimientos bancarios del mercado chileno.',
+          'Genera un resumen ejecutivo editorial, breve y accionable (máx. 5 bloques, máx. 12 líneas).',
+          'Formato obligatorio: separa bloques con una línea en blanco; cada bloque inicia con un título corto en su propia línea y debajo el contenido.',
+          'Usa viñetas • cuando listes categorías, comercios o alertas.',
+          'Prioriza dashboard estructurado sobre texto libre. No inventes datos.',
+          `Producto=${JSON.stringify(product)}`,
+          `Dashboard=${JSON.stringify(dashboardDigest)}`,
+          `Resumen actual=${JSON.stringify(currentSummary)}`,
+          `Feedback usuario=${JSON.stringify(feedback)}`,
+          `Documentos=${JSON.stringify(docsDigest)}`,
+        ].join('\n');
+        const summarySchema = {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            summary: { type: 'string' },
+          },
+          required: ['summary'],
+        } as const;
+        const response = await completeStructuredWithSchema<{ summary?: string }>({
+          name: 'transactions_summary',
+          description: 'Resume el estado analítico de transacciones.',
+          model: summaryModel,
+          temperature: 0.2,
+          maxOutputTokens: 650,
+          instructions: 'Responde en español y devuelve solo JSON estricto.',
+          input: [
+            {
+              role: 'user',
+              content: prompt,
+            },
+          ],
+          schema: summarySchema,
+        });
+
+        return {
+          ok: true,
+          summary: compactTxText(response.summary ?? '', 8000),
+          model: summaryModel,
+        };
+      }
+
+      const lastUserMessage = [...messages].reverse().find((message) => message.role === 'user');
+      const retrievalQuestion = question || compactTxText(lastUserMessage?.text ?? '', 600);
+
+      if (chatContext === 'evidence_upload' && mode === 'chat' && retrievalQuestion && !isUploadAssistanceQuestion(retrievalQuestion)) {
+        return {
+          ok: true,
+          assistant_text: EVIDENCE_UPLOAD_CHAT_REDIRECT,
+          suggested_followups: [
+            '¿Qué formatos puedo subir?',
+            '¿Cuántos archivos admite este producto?',
+          ],
+          referenced_movement_keys: [],
+          signals_used: [],
+          retrieval_mode: 'overview',
+          matched_count: 0,
+          source: 'context-guard',
+          model: 'deterministic',
+        };
+      }
+      const dashboardDigest =
+        buildChatDashboardForQuestion(dashboard, retrievalQuestion) ??
+        compactDashboardForPrompt(dashboard, { maxMovements: 24, maxMerchants: 8 });
+
+      const compactHistory = compactChatHistory(messages, 8, 500);
+      const retrievalMeta =
+        dashboardDigest &&
+        typeof dashboardDigest === 'object' &&
+        dashboardDigest !== null &&
+        'retrieval' in dashboardDigest
+          ? (dashboardDigest as {
+              retrieval?: {
+                mode?: 'targeted' | 'overview';
+                matchedCount?: number;
+                signals?: ReturnType<typeof extractQuestionSignals>;
+              };
+            }).retrieval
+          : null;
+      const retrievalMode = retrievalMeta?.mode ?? 'overview';
+      const matchedCount = retrievalMeta?.matchedCount ?? 0;
+      const retrievalSignals = retrievalMeta?.signals ?? extractQuestionSignals(retrievalQuestion);
+      const signalsUsed = collectRetrievalSignalsUsed(retrievalSignals);
+      const allMovements = Array.isArray((dashboard as { movements?: MovementRow[] } | null)?.movements)
+        ? ((dashboard as { movements: MovementRow[] }).movements ?? [])
+        : [];
+
+      const deterministicPlan = planTransactionsAssistantTurn({
+        question: retrievalQuestion,
+        dashboard,
+      });
+
+      if (deterministicPlan) {
+        const polished = await polishTransactionsAssistantCopy({
+          deterministicReply: deterministicPlan.assistant_text,
+          question: retrievalQuestion,
+          retrievalMode: deterministicPlan.retrieval_mode,
+          signals: retrievalSignals,
+          matchedCount: deterministicPlan.matched_count,
+        });
+        return {
+          ok: true,
+          assistant_text: compactTxText(polished?.reply ?? deterministicPlan.assistant_text, 1200),
+          suggested_followups: deterministicPlan.suggested_followups.slice(0, 3),
+          referenced_movement_keys: deterministicPlan.referenced_movement_keys.slice(0, 12),
+          signals_used: deterministicPlan.signals_used,
+          retrieval_mode: deterministicPlan.retrieval_mode,
+          matched_count: deterministicPlan.matched_count,
+          source: polished ? 'deterministic+writer' : 'deterministic',
+          model: polished?.model ?? 'deterministic',
+        };
+      }
+
+      const systemPrompt = [
+        'Eres un asistente de transacciones financiero para Chile.',
+        'Responde en español, tono profesional, máximo 5 oraciones.',
+        'Usa el resumen, métricas agregadas y los movimientos recuperados.',
+        retrievalMode === 'targeted'
+          ? `Los movimientos incluidos fueron recuperados por relevancia a la pregunta (${matchedCount} coincidencias). Priorízalos.`
+          : 'Los movimientos incluidos son una muestra representativa para preguntas generales.',
+        'Si falta un dato puntual, dilo y pide el detalle exacto.',
+        'Incluye hasta 3 preguntas de seguimiento útiles en suggested_followups.',
+      ].join(' ');
+
+      const docsDigest = compactDocumentsForPrompt(
+        canonicalDocuments,
+        expandDocumentContext ? { maxDocs: 8, maxText: 2400 } : { maxDocs: 4, maxText: 600 },
+      );
+      const fabricBlock = await buildTransactionsFabricPromptBlock(user.id);
+      const contextBlock = [
+        fabricBlock ? `${fabricBlock}\n` : '',
         `Producto=${JSON.stringify(product)}`,
+        `Pregunta=${JSON.stringify(retrievalQuestion)}`,
+        `Resumen=${JSON.stringify(currentSummary)}`,
         `Dashboard=${JSON.stringify(dashboardDigest)}`,
-        `Resumen actual=${JSON.stringify(currentSummary)}`,
-        `Feedback usuario=${JSON.stringify(feedback)}`,
         `Documentos=${JSON.stringify(docsDigest)}`,
       ].join('\n');
-      const summarySchema = {
+
+      const chatSchema = {
         type: 'object',
         additionalProperties: false,
         properties: {
-          summary: { type: 'string' },
+          assistant_text: { type: 'string' },
+          suggested_followups: {
+            type: 'array',
+            items: { type: 'string' },
+          },
+          referenced_movement_keys: {
+            type: 'array',
+            items: { type: 'string' },
+          },
         },
-        required: ['summary'],
+        required: ['assistant_text', 'suggested_followups', 'referenced_movement_keys'],
       } as const;
-      const response = await completeStructuredWithSchema<{ summary?: string }>({
-        name: 'transactions_summary',
-        description: 'Resume el estado analítico de transacciones.',
-        model: summaryModel,
-        temperature: 0.2,
-        maxOutputTokens: 650,
-        instructions: 'Responde en español y devuelve solo JSON estricto.',
+      const response = await completeStructuredWithSchema<{
+        assistant_text?: string;
+        suggested_followups?: string[];
+        referenced_movement_keys?: string[];
+      }>({
+        name: 'transactions_chat_reply',
+        description: 'Respuesta conversacional para el modal de transacciones.',
+        model: chatModel,
+        maxOutputTokens: 360,
+        temperature: 0.3,
+        instructions: systemPrompt,
         input: [
           {
             role: 'user',
-            content: prompt,
+            content: contextBlock,
           },
+          ...compactHistory.map((message) => ({
+            role: message.role as 'assistant' | 'user',
+            content: message.text,
+          })),
         ],
-        schema: summarySchema,
+        schema: chatSchema,
       });
 
-      return res.json({
+      const llmFollowups = Array.isArray(response.suggested_followups)
+        ? response.suggested_followups.map((item) => compactTxText(item, 120)).filter(Boolean)
+        : [];
+      const fallbackFollowups = buildTransactionSuggestedFollowups(retrievalQuestion, dashboard, {
+        retrievalMode,
+      });
+      const referencedKeys = Array.isArray(response.referenced_movement_keys)
+        ? response.referenced_movement_keys.map((item) => compactTxText(item, 180)).filter(Boolean)
+        : movementKeysFromRetrieval(retrievalQuestion, allMovements);
+
+      return {
         ok: true,
-        summary: compactTxText(response.summary ?? '', 8000),
-        model: summaryModel,
-      });
-    }
-
-    const lastUserMessage = [...messages].reverse().find((message) => message.role === 'user');
-    const retrievalQuestion = question || compactTxText(lastUserMessage?.text ?? '', 600);
-
-    if (chatContext === 'evidence_upload' && mode === 'chat' && retrievalQuestion && !isUploadAssistanceQuestion(retrievalQuestion)) {
-      return res.json({
-        ok: true,
-        assistant_text: EVIDENCE_UPLOAD_CHAT_REDIRECT,
-        suggested_followups: [
-          '¿Qué formatos puedo subir?',
-          '¿Cuántos archivos admite este producto?',
-        ],
-        referenced_movement_keys: [],
-        signals_used: [],
-        retrieval_mode: 'overview',
-        matched_count: 0,
-        source: 'context-guard',
-        model: 'deterministic',
-      });
-    }
-    const dashboardDigest =
-      buildChatDashboardForQuestion(dashboard, retrievalQuestion) ??
-      compactDashboardForPrompt(dashboard, { maxMovements: 24, maxMerchants: 8 });
-
-    const compactHistory = compactChatHistory(messages, 8, 500);
-    const retrievalMeta =
-      dashboardDigest &&
-      typeof dashboardDigest === 'object' &&
-      dashboardDigest !== null &&
-      'retrieval' in dashboardDigest
-        ? (dashboardDigest as {
-            retrieval?: {
-              mode?: 'targeted' | 'overview';
-              matchedCount?: number;
-              signals?: ReturnType<typeof extractQuestionSignals>;
-            };
-          }).retrieval
-        : null;
-    const retrievalMode = retrievalMeta?.mode ?? 'overview';
-    const matchedCount = retrievalMeta?.matchedCount ?? 0;
-    const retrievalSignals = retrievalMeta?.signals ?? extractQuestionSignals(retrievalQuestion);
-    const signalsUsed = collectRetrievalSignalsUsed(retrievalSignals);
-    const allMovements = Array.isArray((dashboard as { movements?: MovementRow[] } | null)?.movements)
-      ? ((dashboard as { movements: MovementRow[] }).movements ?? [])
-      : [];
-
-    const deterministicPlan = planTransactionsAssistantTurn({
-      question: retrievalQuestion,
-      dashboard,
+        assistant_text: compactTxText(response.assistant_text ?? '', 1200) || 'Listo.',
+        suggested_followups: (llmFollowups.length > 0 ? llmFollowups : fallbackFollowups).slice(0, 3),
+        referenced_movement_keys: referencedKeys.slice(0, 12),
+        signals_used: signalsUsed,
+        retrieval_mode: retrievalMode,
+        matched_count: matchedCount,
+        source: 'llm',
+        model: chatModel,
+      };
     });
 
-    if (deterministicPlan) {
-      const polished = await polishTransactionsAssistantCopy({
-        deterministicReply: deterministicPlan.assistant_text,
-        question: retrievalQuestion,
-        retrievalMode: deterministicPlan.retrieval_mode,
-        signals: retrievalSignals,
-        matchedCount: deterministicPlan.matched_count,
-      });
-      return res.json({
-        ok: true,
-        assistant_text: compactTxText(polished?.reply ?? deterministicPlan.assistant_text, 1200),
-        suggested_followups: deterministicPlan.suggested_followups.slice(0, 3),
-        referenced_movement_keys: deterministicPlan.referenced_movement_keys.slice(0, 12),
-        signals_used: deterministicPlan.signals_used,
-        retrieval_mode: deterministicPlan.retrieval_mode,
-        matched_count: deterministicPlan.matched_count,
-        source: polished ? 'deterministic+writer' : 'deterministic',
-        model: polished?.model ?? 'deterministic',
-      });
-    }
-
-    const systemPrompt = [
-      'Eres un asistente de transacciones financiero para Chile.',
-      'Responde en español, tono profesional, máximo 5 oraciones.',
-      'Usa el resumen, métricas agregadas y los movimientos recuperados.',
-      retrievalMode === 'targeted'
-        ? `Los movimientos incluidos fueron recuperados por relevancia a la pregunta (${matchedCount} coincidencias). Priorízalos.`
-        : 'Los movimientos incluidos son una muestra representativa para preguntas generales.',
-      'Si falta un dato puntual, dilo y pide el detalle exacto.',
-      'Incluye hasta 3 preguntas de seguimiento útiles en suggested_followups.',
-    ].join(' ');
-
-    const docsDigest = compactDocumentsForPrompt(
-      canonicalDocuments,
-      expandDocumentContext ? { maxDocs: 8, maxText: 2400 } : { maxDocs: 4, maxText: 600 },
-    );
-    const fabricBlock = await buildTransactionsFabricPromptBlock(user.id);
-    const contextBlock = [
-      fabricBlock ? `${fabricBlock}\n` : '',
-      `Producto=${JSON.stringify(product)}`,
-      `Pregunta=${JSON.stringify(retrievalQuestion)}`,
-      `Resumen=${JSON.stringify(currentSummary)}`,
-      `Dashboard=${JSON.stringify(dashboardDigest)}`,
-      `Documentos=${JSON.stringify(docsDigest)}`,
-    ].join('\n');
-
-    const chatSchema = {
-      type: 'object',
-      additionalProperties: false,
-      properties: {
-        assistant_text: { type: 'string' },
-        suggested_followups: {
-          type: 'array',
-          items: { type: 'string' },
-        },
-        referenced_movement_keys: {
-          type: 'array',
-          items: { type: 'string' },
-        },
-      },
-      required: ['assistant_text', 'suggested_followups', 'referenced_movement_keys'],
-    } as const;
-    const response = await completeStructuredWithSchema<{
-      assistant_text?: string;
-      suggested_followups?: string[];
-      referenced_movement_keys?: string[];
-    }>({
-      name: 'transactions_chat_reply',
-      description: 'Respuesta conversacional para el modal de transacciones.',
-      model: chatModel,
-      maxOutputTokens: 360,
-      temperature: 0.3,
-      instructions: systemPrompt,
-      input: [
-        {
-          role: 'user',
-          content: contextBlock,
-        },
-        ...compactHistory.map((message) => ({
-          role: message.role as 'assistant' | 'user',
-          content: message.text,
-        })),
-      ],
-      schema: chatSchema,
-    });
-
-    const llmFollowups = Array.isArray(response.suggested_followups)
-      ? response.suggested_followups.map((item) => compactTxText(item, 120)).filter(Boolean)
-      : [];
-    const fallbackFollowups = buildTransactionSuggestedFollowups(retrievalQuestion, dashboard, {
-      retrievalMode,
-    });
-    const referencedKeys = Array.isArray(response.referenced_movement_keys)
-      ? response.referenced_movement_keys.map((item) => compactTxText(item, 180)).filter(Boolean)
-      : movementKeysFromRetrieval(retrievalQuestion, allMovements);
-
-    return res.json({
-      ok: true,
-      assistant_text: compactTxText(response.assistant_text ?? '', 1200) || 'Listo.',
-      suggested_followups: (llmFollowups.length > 0 ? llmFollowups : fallbackFollowups).slice(0, 3),
-      referenced_movement_keys: referencedKeys.slice(0, 12),
-      signals_used: signalsUsed,
-      retrieval_mode: retrievalMode,
-      matched_count: matchedCount,
-      source: 'llm',
-      model: chatModel,
-    });
+    await chargeActualUsdSpent(user.id, costUsd);
+    return res.json(payload);
   }),
 );
 

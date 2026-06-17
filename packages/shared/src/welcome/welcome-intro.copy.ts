@@ -1,3 +1,7 @@
+/** Slide II — marco de trabajo (texto fijo de tesis). */
+export const WELCOME_MARCO_DEFAULT_BODY =
+  'Este es el proyecto de Tesis de Sasha Oyanadel Dreckmann para el doble grado de Ingeniería Civil Industrial y Magíster en Ciencia de los Datos, el agente convierte información financiera dispersa en un diagnóstico claro, verificable y accionable. Evidencia real primero; recomendaciones después.';
+
 /** Slide III — simulación / estudio (no Open Finance oficial). */
 export const WELCOME_FINTECH_SLIDE_LABEL = 'Simulación · estudio de utilidad';
 

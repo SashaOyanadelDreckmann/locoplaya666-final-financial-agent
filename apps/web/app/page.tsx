@@ -13,7 +13,7 @@ import {
   useTransform,
 } from 'framer-motion';
 import SpotlightCard from '@/components/inicio/SpotlightCard';
-import Counter from '@/components/inicio/Counter';
+import ThesisAuthorSpotlight from '@/components/inicio/ThesisAuthorSpotlight';
 import NumbersCanvas, { type MousePos } from '@/components/inicio/NumbersCanvas';
 import BrandWordmark from '@/components/marca/BrandWordmark';
 import { getSessionInfo } from '@/lib/api';
@@ -40,11 +40,18 @@ const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
 const SILK: [number, number, number, number] = [0.22, 1, 0.36, 1];
 const SNAP: [number, number, number, number] = [0.4, 0, 0.2, 1];
 
-// ── Colors ─────────────────────────────────────────────────────────────────────
+// ── Colors (panel palette: blue, gold, terra red) ─────────────────────────────
 const BLUE  = 'rgba(111,143,166,1)';
 const GOLD  = 'rgba(164,143,79,1)';
-const BLUE_DIM  = 'rgba(111,143,166,0.45)';
-const GOLD_DIM  = 'rgba(164,143,79,0.40)';
+const RED   = 'rgba(176,52,72,1)';
+const BLUE_BODY  = 'var(--home-ink-blue-soft)';
+const GOLD_BODY  = 'var(--home-ink-gold)';
+const RED_BODY   = 'var(--home-ink-red)';
+const BLUE_DIM   = 'var(--home-label-blue)';
+const GOLD_DIM   = 'var(--home-label-gold)';
+const RED_DIM    = 'var(--home-label-red)';
+
+const PROBLEM_COLORS = ['var(--home-ink-blue)', 'var(--home-ink-red)', 'var(--home-ink-gold)'];
 
 // ── Label ──────────────────────────────────────────────────────────────────────
 function Label({ text, color = BLUE_DIM }: { text: string; color?: string }) {
@@ -58,20 +65,14 @@ function Label({ text, color = BLUE_DIM }: { text: string; color?: string }) {
 // ── Data ──────────────────────────────────────────────────────────────────────
 const FEATURES = [
   { n: '01', title: 'Diagnóstico completo', body: 'Analiza ingresos, gastos, deudas y metas. En minutos tienes una radiografía honesta de tu situación.', accent: BLUE },
-  { n: '02', title: 'Conversación natural', body: 'Pregunta como si hablaras con un asesor real. Sin formularios, sin hojas de cálculo, sin tecnicismos.', accent: 'rgba(180,160,90,0.7)' },
+  { n: '02', title: 'Conversación natural', body: 'Pregunta como si hablaras con un asesor real. Sin formularios, sin hojas de cálculo, sin tecnicismos.', accent: RED },
   { n: '03', title: 'Plan de acción', body: 'Recibes recomendaciones concretas y un informe descargable adaptado a tu perfil y objetivos.', accent: GOLD },
 ];
 
 const STEPS = [
   { n: '01', title: 'Cuéntanos tu situación', body: 'Respondes un cuestionario breve sobre ingresos, deudas, gastos y metas. 10 minutos.', dot: BLUE },
-  { n: '02', title: 'La IA analiza todo', body: 'El agente genera un diagnóstico detallado con tensiones, oportunidades y prioridades.', dot: 'rgba(255,255,255,0.30)' },
+  { n: '02', title: 'La IA analiza todo', body: 'El agente genera un diagnóstico detallado con tensiones, oportunidades y prioridades.', dot: RED },
   { n: '03', title: 'Recibes claridad', body: 'Conversas con el agente, simulas escenarios y descargas tu plan de acción en PDF.', dot: GOLD },
-];
-
-const STATS = [
-  { to: 18, suffix: '%', label: 'ahorro mensual potencial identificado', color: BLUE },
-  { to: 10, suffix: ' min', label: 'para un diagnóstico financiero completo', color: 'rgba(255,255,255,0.8)' },
-  { to: 23, suffix: '%', label: 'menos carga de deuda priorizando bien', color: GOLD },
 ];
 
 const PROBLEM_LINES = [
@@ -133,7 +134,7 @@ function ProblemSection({
         <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: 'rgba(111,143,166,0.08)' }}>
           <motion.div style={{
             position: 'absolute', top: 0, left: 0, right: 0,
-            background: `linear-gradient(to bottom, ${BLUE}, ${GOLD})`,
+            background: `linear-gradient(to bottom, ${BLUE}, ${RED}, ${GOLD})`,
             height: barH,
           }} />
         </div>
@@ -154,7 +155,7 @@ function ProblemSection({
                   padding: 'clamp(16px,3vw,36px) 0',
                   opacity: colors[i],
                   y: ys[i],
-                  color: 'white',
+                  color: PROBLEM_COLORS[i],
                   textShadow: '0 2px 14px rgba(0,0,0,0.98), 0 0 40px rgba(0,0,0,0.90)',
                 }}
               >
@@ -217,7 +218,7 @@ function FeaturesSection({ sectionRef }: { sectionRef: RefObject<HTMLElement | n
           maxWidth: 540,
         }}>
           Lo que el agente<br />
-          <em style={{ fontStyle: 'italic', color: 'rgba(255,255,255,0.55)' }}>hace por ti.</em>
+          <em style={{ fontStyle: 'italic', color: GOLD_BODY }}>hace por ti.</em>
         </h2>
       </motion.div>
 
@@ -242,65 +243,8 @@ function FeaturesSection({ sectionRef }: { sectionRef: RefObject<HTMLElement | n
                 <h3 style={{ fontSize: 17, fontWeight: 600, lineHeight: 1.28, letterSpacing: '-0.015em', color: 'rgba(255,255,255,0.92)', margin: '0 0 10px' }}>
                   {title}
                 </h3>
-                <p style={{ fontSize: 13.5, lineHeight: 1.68, color: 'rgba(255,255,255,0.40)', margin: 0 }}>{body}</p>
+                <p style={{ fontSize: 13.5, lineHeight: 1.68, color: n === '01' ? BLUE_BODY : n === '02' ? RED_BODY : GOLD_BODY, margin: 0 }}>{body}</p>
               </SpotlightCard>
-            </motion.div>
-          );
-        })}
-      </div>
-    </section>
-  );
-}
-
-// ── Stats Section ──────────────────────────────────────────────────────────────
-function StatsSection() {
-  const ref = useRef<HTMLElement>(null);
-  const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end start'] });
-
-  const headY = useTransform(scrollYProgress, [0, 0.4, 1], [30, 0, -20]);
-  const headO = useTransform(scrollYProgress, [0, 0.2, 0.8, 1], [0, 1, 1, 0.4]);
-
-  return (
-    <section ref={ref} className="home-content-section" style={{
-      background: 'transparent',
-      padding: 'clamp(44px,10vw,130px) clamp(24px,8vw,120px)',
-      position: 'relative',
-      overflow: 'hidden',
-    }}>
-      {/* Ambient azul profundo */}
-      <div style={{
-        position: 'absolute', inset: 0, pointerEvents: 'none',
-        background: 'radial-gradient(ellipse 60% 80% at 10% 60%, rgba(20,50,100,0.10) 0%, transparent 65%)',
-      }} />
-
-      <motion.div style={{ y: headY, opacity: headO, position: 'relative', zIndex: 1 }}>
-        <Label text="En números" color={BLUE_DIM} />
-      </motion.div>
-
-      <div className="grid grid-cols-1 gap-x-8 gap-y-10 sm:gap-y-14 sm:grid-cols-3" style={{ position: 'relative', zIndex: 1 }}>
-        {STATS.map(({ to, suffix, label, color }) => {
-          return (
-            <motion.div
-              key={`${to}-${suffix}-${label}`}
-              initial={{ opacity: 0, y: 32 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.35 }}
-              transition={{ duration: 0.6, ease: SILK }}
-            >
-              <div style={{ width: 32, height: 3, background: color, borderRadius: 2, marginBottom: 16, opacity: 0.7 }} />
-              <div style={{
-                fontFamily: 'Georgia, "Times New Roman", serif',
-                fontSize: 'clamp(48px,7vw,88px)',
-                fontWeight: 700,
-                lineHeight: 1,
-                letterSpacing: '-0.04em',
-                color,
-              }}>
-                <Counter to={to} suffix={suffix} />
-              </div>
-              <p style={{ marginTop: 14, maxWidth: 220, fontSize: 13.5, lineHeight: 1.68, color: 'rgba(255,255,255,0.32)' }}>
-                {label}
-              </p>
             </motion.div>
           );
         })}
@@ -337,7 +281,7 @@ function StepsSection() {
       }} />
 
       <motion.div style={{ y: headY, opacity: headO, position: 'relative', zIndex: 1 }}>
-        <Label text="Proceso" color={GOLD_DIM} />
+        <Label text="Proceso" color={BLUE_DIM} />
         <h2 style={{
           fontSize: 'clamp(30px,5vw,68px)',
           fontFamily: 'Georgia, "Times New Roman", serif',
@@ -349,7 +293,7 @@ function StepsSection() {
           maxWidth: 440,
         }}>
           Tres pasos<br />
-          <em style={{ fontStyle: 'italic', color: 'rgba(255,255,255,0.50)' }}>hacia la claridad.</em>
+          <em style={{ fontStyle: 'italic', color: 'var(--home-ink-blue)' }}>hacia la claridad.</em>
         </h2>
       </motion.div>
 
@@ -358,7 +302,7 @@ function StepsSection() {
         <div style={{ position: 'absolute', left: 19, top: 28, bottom: 28, width: 1, background: 'rgba(111,143,166,0.08)' }}>
           <motion.div style={{
             position: 'absolute', top: 0, left: 0, right: 0,
-            background: `linear-gradient(to bottom, ${BLUE}, ${GOLD})`,
+            background: `linear-gradient(to bottom, ${BLUE}, ${RED}, ${GOLD})`,
             height: lineH,
           }} />
         </div>
@@ -390,10 +334,10 @@ function StepsSection() {
               </div>
               <div>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 8 }}>
-                  <span style={{ fontSize: 10, fontWeight: 700, color: GOLD_DIM, letterSpacing: '0.10em', flexShrink: 0 }}>{n}</span>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: n === '02' ? RED_DIM : n === '03' ? GOLD_DIM : BLUE_DIM, letterSpacing: '0.10em', flexShrink: 0 }}>{n}</span>
                   <h3 style={{ fontSize: 'clamp(15px,1.8vw,19px)', fontWeight: 600, color: 'rgba(255,255,255,0.88)', margin: 0, lineHeight: 1.28, letterSpacing: '-0.015em' }}>{title}</h3>
                 </div>
-                <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.35)', lineHeight: 1.68, margin: 0, paddingLeft: 22 }}>{body}</p>
+                <p style={{ fontSize: 14, color: n === '02' ? RED_BODY : n === '03' ? GOLD_BODY : BLUE_BODY, lineHeight: 1.68, margin: 0, paddingLeft: 22 }}>{body}</p>
               </div>
             </motion.div>
           );
@@ -457,7 +401,7 @@ function CtaSection() {
           Empieza<br />con claridad.
         </motion.h2>
 
-        <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.35)', margin: '0 0 44px', lineHeight: 1.62, maxWidth: 360, letterSpacing: '-0.005em' }}>
+        <p style={{ fontSize: 15, color: BLUE_BODY, margin: '0 0 44px', lineHeight: 1.62, maxWidth: 360, letterSpacing: '-0.005em' }}>
           Crea tu cuenta, completa tu perfil y conversa con el agente sobre tu situación real.
         </p>
 
@@ -480,7 +424,7 @@ function CtaSection() {
           </MotionLink>
         </div>
 
-        <p style={{ marginTop: 56, fontSize: 10, letterSpacing: '0.16em', color: 'rgba(255,255,255,0.11)', textTransform: 'uppercase' }}>
+        <p style={{ marginTop: 56, fontSize: 10, letterSpacing: '0.16em', color: BLUE_DIM, textTransform: 'uppercase' }}>
           Proyecto de tesis — Ingeniería / Economía
         </p>
       </motion.div>
@@ -634,7 +578,7 @@ export default function HomePage() {
               transition={{ duration: 14, repeat: Infinity, ease: 'easeInOut', delay: 5 }}
             />
             <motion.div
-              style={{ position: 'absolute', left: '28%', bottom: '28%', width: 240, height: 240, borderRadius: '50%', background: 'radial-gradient(circle, rgba(90,68,15,0.12) 0%, transparent 70%)', filter: 'blur(50px)' }}
+              style={{ position: 'absolute', left: '28%', bottom: '28%', width: 260, height: 260, borderRadius: '50%', background: 'radial-gradient(circle, rgba(126,26,50,0.44) 0%, transparent 70%)', filter: 'blur(52px)' }}
               animate={{ scale: [1, 1.45, 1] }}
               transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut', delay: 1.5 }}
             />
@@ -679,81 +623,73 @@ export default function HomePage() {
               <div className="home-hero-spacer" />
 
               {/* Hero copy — visible INMEDIATAMENTE en desktop */}
-              <motion.div className="home-page-hero" style={{ y: heroY }}>
+              <motion.div className="home-page-hero home-hero-editorial" style={{ y: heroY }}>
 
-                <motion.div
-                  className="home-thesis-kicker"
+                <motion.p
+                  className="home-hero-eyebrow-min"
                   initial={{ opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.55, delay: 0.0, ease: SILK }}
+                  transition={{ duration: 0.5, delay: 0.0, ease: SILK }}
                 >
-                  <span className="home-thesis-kicker__line home-thesis-kicker__line--sub">
-                    Tesis para el doble grado de Ingeniería Civil Industrial y Magíster en Ciencia de los Datos
-                  </span>
-                  <span className="home-thesis-kicker__line">
-                    <strong>Sasha Oyanadel Dreckmann</strong>
-                  </span>
-                  <span className="home-thesis-kicker__line home-thesis-kicker__line--sub">
-                    Agente conversacional en finanzas personales · Chile
-                  </span>
-                </motion.div>
+                  Finanzas personales · Chile
+                </motion.p>
 
-                {/* Línea de acento arriba del título */}
                 <motion.div
+                  className="home-hero-rule"
+                  aria-hidden
                   initial={{ scaleX: 0, opacity: 0 }}
-                  animate={{ scaleX: 1, opacity: 0.7 }}
-                  transition={{ duration: 0.6, delay: 0.04, ease: SNAP }}
-                  style={{ width: 36, height: 2, background: BLUE, borderRadius: 1, marginBottom: 22, transformOrigin: 'left' }}
+                  animate={{ scaleX: 1, opacity: 1 }}
+                  transition={{ duration: 0.55, delay: 0.06, ease: SNAP }}
                 />
 
-                {/* Título — sin blur initial, visible desde el primer frame */}
-                <h1 style={{ fontSize: 'clamp(52px,8vw,110px)', fontWeight: 700, lineHeight: 0.86, letterSpacing: '-0.048em', color: 'white', margin: '0 0 22px' }}>
+                <h1 className="home-hero-title">
                   <motion.span
-                    initial={{ opacity: 0, y: 28 }}
+                    className="home-hero-title__line"
+                    initial={{ opacity: 0, y: 24 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.70, delay: 0.0, ease: SILK }}
-                    style={{ display: 'block' }}
+                    transition={{ duration: 0.70, delay: 0.04, ease: SILK }}
                   >
                     Tu dinero,
                   </motion.span>
                   <motion.em
-                    initial={{ opacity: 0, y: 22 }}
+                    className="home-hero-title__em"
+                    initial={{ opacity: 0, y: 18 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.70, delay: 0.12, ease: SILK }}
-                    style={{ display: 'block', fontFamily: 'Georgia, "Times New Roman", serif', fontWeight: 400, fontStyle: 'italic', color: 'rgba(255,255,255,0.55)' }}
+                    transition={{ duration: 0.70, delay: 0.14, ease: SILK }}
                   >
                     más claro.
                   </motion.em>
                 </h1>
 
                 <motion.p
-                  initial={{ opacity: 0, y: 12 }}
+                  className="home-hero-deck"
+                  initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.60, delay: 0.22, ease: SILK }}
-                  style={{ fontSize: 15, color: 'rgba(255,255,255,0.42)', lineHeight: 1.58, maxWidth: 320, margin: '0 0 34px', letterSpacing: '-0.01em' }}
                 >
                   Una conversación honesta sobre tus finanzas.
                 </motion.p>
 
                 <motion.div
+                  className="home-hero-actions"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.55, delay: 0.30, ease: SILK }}
-                  style={{ display: 'flex', gap: 22, alignItems: 'center', flexWrap: 'wrap' }}
                 >
                   <MotionLink
                     href="/agent"
+                    className="home-hero-actions__primary"
                     whileHover={{ scale: 1.03, opacity: 0.88 }}
                     whileTap={{ scale: 0.97 }}
                     transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: 'white', border: 'none', borderRadius: 999, padding: '11px 22px', fontSize: 13, fontWeight: 600, color: '#050810', cursor: 'pointer', textDecoration: 'none', minHeight: 44 }}
                   >
                     Comenzar <ArrowRight size={13} />
                   </MotionLink>
                   <motion.button
+                    type="button"
+                    className="home-hero-actions__secondary"
                     onClick={() => void handleStartDiagnosis()}
                     whileHover={{ opacity: 0.65 }}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'rgba(255,255,255,0.38)', padding: '11px 4px', letterSpacing: '-0.01em', display: 'inline-flex', alignItems: 'center', minHeight: 44 }}
                   >
                     Ver diagnóstico →
                   </motion.button>
@@ -780,7 +716,7 @@ export default function HomePage() {
 
         <ProblemSection sectionRef={problemSectionRef} mobileShell={mobileShell} />
         <FeaturesSection sectionRef={featureSectionRef} />
-        <StatsSection />
+        <ThesisAuthorSpotlight />
         <StepsSection />
         <CtaSection />
 

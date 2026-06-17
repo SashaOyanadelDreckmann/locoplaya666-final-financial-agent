@@ -3722,7 +3722,7 @@ html[data-visual-mode='light-outline'] body.agent-route-active .agent-layout.is-
 }
 
 .agent-thread > .agent-bubble.context-conflict-notice {
-  margin-top: 0;
+  margin-top: 6px;
   margin-bottom: 2px;
   padding: 12px 14px;
   display: flex;

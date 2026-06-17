@@ -2,6 +2,7 @@ import {
   WELCOME_FINTECH_DEFAULT_BENEFIT,
   WELCOME_FINTECH_DEFAULT_BODY,
   WELCOME_FINTECH_DEFAULT_TITLE,
+  WELCOME_MARCO_DEFAULT_BODY,
 } from './welcome-intro.copy';
 import {
   EXECUTIVE_INTRO_UI_VERSION,
@@ -183,9 +184,7 @@ function normalizeSections(sections: WelcomeIntroSection | undefined): WelcomeIn
   return {
     marco: {
       title: sections?.marco?.title?.trim() || 'Marco de trabajo',
-      body:
-        sections?.marco?.body?.trim() ||
-        'Convertimos información financiera dispersa en un diagnóstico claro, verificable y accionable.',
+      body: WELCOME_MARCO_DEFAULT_BODY,
     },
     fintech: {
       title: sections?.fintech?.title?.trim() || WELCOME_FINTECH_DEFAULT_TITLE,

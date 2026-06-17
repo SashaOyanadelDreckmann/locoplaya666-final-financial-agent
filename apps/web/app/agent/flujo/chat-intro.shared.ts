@@ -408,9 +408,13 @@ export function buildChatIntroContent(params: {
           city,
         });
 
-  const message = params.productBlurb
-    ? joinSentences([messageBase, `Mercado verificable: ${params.productBlurb}`])
-    : messageBase;
+  const includeProducts = !(
+    params.chatId === 'chat-1' && !params.diagnosisUnlocked
+  );
+  const message =
+    includeProducts && params.productBlurb
+      ? joinSentences([messageBase, `Mercado verificable: ${params.productBlurb}`])
+      : messageBase;
 
   const titles: Record<ChatIntroId, { kicker: string; fallback: string; tone: ExecutiveCarouselTone }> = {
     'chat-1': {
@@ -444,8 +448,8 @@ export function buildChatIntroContent(params: {
     epigraph: params.chatId === 'chat-3' ? CHAT3_WILDE_EPIGRAPH : undefined,
     tone: meta.tone,
     guideActions: params.guideActions,
-    productHints: params.productHints,
-    productBlurb: params.productBlurb,
+    productHints: includeProducts ? params.productHints : undefined,
+    productBlurb: includeProducts ? params.productBlurb : undefined,
   };
 }
 

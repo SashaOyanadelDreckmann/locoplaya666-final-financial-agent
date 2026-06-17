@@ -117,9 +117,11 @@ describe('budget modal logic guards', () => {
       'utf8',
     );
     expect(hookSource).toContain('const replySubmitLockRef = useRef(false);');
+    expect(hookSource).toContain('const budgetChatRequestGenRef = useRef(0);');
     expect(hookSource).toContain('isAskingAI || isInitializing || replySubmitLockRef.current');
     expect(hookSource).toContain('replySubmitLockRef.current = true;');
     expect(hookSource).toContain('replySubmitLockRef.current = false;');
+    expect(hookSource).toContain('requestId !== budgetChatRequestGenRef.current');
   });
 
   it('cleans up async budget timers on unmount', () => {

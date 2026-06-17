@@ -160,7 +160,7 @@ describe('budget pro mobile css safeguards', () => {
     expect(guardCss).toContain('Mobile intel summary — match desktop title');
     expect(guardCss).toContain('is-budget-assistant-income');
     expect(source).toContain('BudgetMobileIntelSummary');
-    expect(intelSource).toContain('Budget intelligence');
+    expect(intelSource).toContain('Inteligencia de presupuesto');
     expect(guardCss).toContain('is-budget-assistant-expense');
     expect(guardCss).toContain('is-budget-assistant-neutral');
     expect(guardCss).toContain('BUDGET — assistant keywords: olive / wine / mustard');

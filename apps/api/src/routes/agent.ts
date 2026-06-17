@@ -34,7 +34,7 @@ import {
   upsertConversationTurnRecord,
 } from '../persistencia/repos';
 import type { StoredPanelState } from '../persistencia/types';
-import { complete } from '../services/llm.service';
+import { complete, runWithLLMCostTracking } from '../services/llm.service';
 import {
   buildActionPlanSuggestedReplies,
   buildSocialConsciousnessFallbackMessage,
@@ -65,6 +65,7 @@ import { requireAuth, requirePermission } from '../middleware/auth';
 import { badRequest, fincoinsDepleted, forbidden, unauthorized } from '../http/api.errors';
 import {
   canAffordOperation,
+  chargeActualUsdSpent,
   chargeFincoinOperation,
   ensureFincoinDepletionHandled,
   fincoinUsagePayload,
@@ -1309,13 +1310,16 @@ router.get(
     }
 
     const envelope = extractIntakeEnvelope(user.injectedIntake);
-    const productHints = user.injectedIntake
-      ? await researchWelcomeProductHints({
-          userId: user.id,
-          intake: envelope.intake,
-          chatId,
-        })
-      : [];
+    const productHints =
+      chatId === 'chat-1'
+        ? []
+        : user.injectedIntake
+          ? await researchWelcomeProductHints({
+              userId: user.id,
+              intake: envelope.intake,
+              chatId,
+            })
+          : [];
 
     const productBlurb = productHints
       .map((hint) => `${hint.label}: ${hint.fact}`)
@@ -1817,10 +1821,10 @@ router.post(
       },
     };
 
-    const charge = await chargeFincoinOperation(authedUser.id, 'agent.chat');
-    if (!charge.charged) {
-      const closureSummaries =
-        charge.closureSummaries ?? (await ensureFincoinDepletionHandled(authedUser.id));
+    // Pre-flight: block depleted users before running the agent
+    const preFlightUsage = getFincoinUsageForUser(authedUser);
+    if (preFlightUsage.depleted) {
+      const closureSummaries = await ensureFincoinDepletionHandled(authedUser.id);
       const lifecycleState = getLifecycleFromMemory(authedUser.memoryBlob);
       return returnAgentChatPayload(
         res,
@@ -1846,7 +1850,7 @@ router.post(
           },
           state_updates: {},
           meta: {
-            fincoin_usage: fincoinUsagePayload(charge.usage),
+            fincoin_usage: fincoinUsagePayload(preFlightUsage),
             closure_summaries: closureSummaries,
             product_lifecycle: {
               phase: lifecycleState.phase,
@@ -1860,8 +1864,13 @@ router.post(
     }
 
     let response: any;
+    let agentCostUsd = 0;
     try {
-      response = await runCoreAgent(input, streamReporter ? { stream: streamReporter } : undefined);
+      const tracked = await runWithLLMCostTracking(() =>
+        runCoreAgent(input, streamReporter ? { stream: streamReporter } : undefined),
+      );
+      response = tracked.result;
+      agentCostUsd = tracked.costUsd;
     } catch (agentErr) {
       req.logger?.error({
         msg: streamReporter ? 'Core agent failed during stream; returning resilient fallback' : 'Core agent failed; returning conversational fallback',
@@ -1900,8 +1909,7 @@ router.post(
         },
         state_updates: { degraded: true, error_code: 'AGENT_FAILED' },
         meta: {
-          fincoin_usage: fincoinUsagePayload(charge.usage),
-          ...(charge.closureSummaries ? { closure_summaries: charge.closureSummaries } : {}),
+          fincoin_usage: fincoinUsagePayload(preFlightUsage),
         },
       };
 
@@ -1910,6 +1918,9 @@ router.post(
         return;
       }
     }
+
+    // Charge actual token cost accumulated during agent execution
+    const charge = await chargeActualUsdSpent(authedUser.id, agentCostUsd);
 
     const recentAssistantMessages = (Array.isArray(input.history) ? input.history : [])
       .filter((h) => h && typeof h === 'object' && (h as Record<string, unknown>).role === 'assistant')

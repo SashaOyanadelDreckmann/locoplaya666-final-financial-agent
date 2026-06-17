@@ -44,8 +44,10 @@ export {
   buildProductSearchQueries,
   buildWelcomeGuideEnrichment,
   formatProductHintsBlurb,
+  shouldIncludeWelcomeProductRecommendations,
 } from './welcome/welcome-guide.helpers';
 export {
+  WELCOME_MARCO_DEFAULT_BODY,
   WELCOME_FINTECH_DEFAULT_BENEFIT,
   WELCOME_FINTECH_DEFAULT_BODY,
   WELCOME_FINTECH_DEFAULT_TITLE,

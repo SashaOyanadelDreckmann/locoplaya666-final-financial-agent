@@ -7,11 +7,11 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { ingestUserDocument, searchUserDocumentContext } from '../services/document-intelligence.service';
 import { getUserDocumentsByIds } from '../persistencia/repos';
-import { completeStructuredWithSchema } from '../services/llm.service';
+import { completeStructuredWithSchema, runWithLLMCostTracking } from '../services/llm.service';
 import { inferTransactionTaxonomy } from '../services/transactionTaxonomy.service';
 import { requireAuth, requirePermission } from '../middleware/auth';
 import { requireSpendableFincoins } from '../middleware/fincoin-guard';
-import { chargeFincoinOperation } from '../services/fincoin.service';
+import { chargeActualUsdSpent } from '../services/fincoin.service';
 import { asyncHandler } from '../middleware/errorHandler';
 import { badRequest, unauthorized } from '../http/api.errors';
 import { sendSuccess } from '../http/api.responses';
@@ -1562,7 +1562,6 @@ router.post(
   asyncHandler(async (req, res) => {
     const user = req.authenticatedUser;
     if (!user) throw unauthorized('Authentication required');
-    await chargeFincoinOperation(user.id, 'document.parse');
 
     const body = parseBody(ParseRequestSchema, req.body);
 
@@ -1572,6 +1571,7 @@ router.post(
 
     const decodedFiles = validateAndPrepareDocumentFiles(body.files);
 
+    const { result: parseResult, costUsd } = await runWithLLMCostTracking(async () => {
     const documents: ParsedDocumentResponse[] = await mapWithConcurrency(
       decodedFiles,
       Number(process.env.DOCUMENT_PARSE_CONCURRENCY || '2') || 2,
@@ -1690,11 +1690,15 @@ router.post(
       console.warn('[parse] context fabric publish failed (non-blocking):', fabricErr);
     }
 
-    return sendSuccess(res, {
+    return {
       documents,
       indexed: documents.filter((doc) => doc.indexed).length,
       transactionAnalysis,
-    });
+    };
+    }); // end runWithLLMCostTracking
+
+    await chargeActualUsdSpent(user.id, costUsd);
+    return sendSuccess(res, parseResult);
   }),
 );
 

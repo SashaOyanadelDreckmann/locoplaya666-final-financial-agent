@@ -5,7 +5,7 @@
  * Decides which tools to call and executes them in a loop
  */
 
-import { getOpenAIClient, withCompatibleTemperature } from '../../../services/llm.service';
+import { getOpenAIClient, withCompatibleTemperature, accumulateLLMCost } from '../../../services/llm.service';
 import {
   buildCoreAgentOpenAITools,
   getOriginalToolName,
@@ -421,6 +421,9 @@ export async function runPlanExecutePhase(input: PlanPhaseInput): Promise<PlanPh
         ) as any,
       );
 
+      if (response.usage) {
+        accumulateLLMCost(model, response.usage.prompt_tokens ?? 0, response.usage.completion_tokens ?? 0);
+      }
       const assistantMessage = response.choices?.[0]?.message;
       if (!assistantMessage) {
         if (react_trace.length > 0) {

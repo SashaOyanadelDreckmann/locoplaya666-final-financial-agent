@@ -907,14 +907,6 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
 
   return (
     <div ref={props.chatThreadRef} className="agent-thread" style={streamAccentStyle}>
-        {props.contextConflictNotice ? (
-          <ContextConflictBanner
-            conflicts={props.contextConflictNotice.conflicts}
-            hiddenCount={props.contextConflictNotice.hiddenCount}
-            onDismiss={props.contextConflictNotice.onDismiss}
-            onAction={props.contextConflictNotice.onAction}
-          />
-        ) : null}
         {rendered.length === 0 && !props.loading ? (
           <div
             className={`agent-bubble assistant latex-doc is-intro-doc${
@@ -1000,6 +992,15 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
             onPanelAction={(section, message) =>
               props.onPanelAction({ section, message })
             }
+          />
+        ) : null}
+
+        {props.contextConflictNotice ? (
+          <ContextConflictBanner
+            conflicts={props.contextConflictNotice.conflicts}
+            hiddenCount={props.contextConflictNotice.hiddenCount}
+            onDismiss={props.contextConflictNotice.onDismiss}
+            onAction={props.contextConflictNotice.onAction}
           />
         ) : null}
 

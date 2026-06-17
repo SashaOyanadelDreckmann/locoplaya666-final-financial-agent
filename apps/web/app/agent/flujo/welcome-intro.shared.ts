@@ -2,6 +2,7 @@ import type { AgentBlock } from '@/lib/tipos/chat';
 import type { ChatItem } from '@/lib/agente/agent.response.types';
 import {
   EXECUTIVE_INTRO_UI_VERSION,
+  buildWelcomeGuideEnrichment,
   buildWelcomeIntroFingerprint,
   extractIntakeEnvelope,
   normalizeWelcomeIntroPayload,
@@ -9,6 +10,7 @@ import {
   WELCOME_FINTECH_DEFAULT_BENEFIT,
   WELCOME_FINTECH_DEFAULT_BODY,
   WELCOME_FINTECH_DEFAULT_TITLE,
+  WELCOME_MARCO_DEFAULT_BODY,
   type WelcomeIntroPayload,
   type WelcomeIntroSection,
 } from '@financial-agent/shared';
@@ -251,7 +253,7 @@ export function buildFallbackWelcomeIntro(session: {
     sections: {
       marco: {
         title: 'Marco de trabajo',
-        body: 'Convertimos información financiera dispersa en un diagnóstico claro, verificable y accionable. Evidencia real primero; recomendaciones después.',
+        body: WELCOME_MARCO_DEFAULT_BODY,
       },
       fintech: {
         title: WELCOME_FINTECH_DEFAULT_TITLE,
@@ -280,7 +282,7 @@ export function buildFallbackWelcomeIntro(session: {
         body: 'Un diagnóstico financiero personal con prioridades concretas y una ruta de decisión verificable.',
       },
     },
-    closingQuestion: '¿Partimos por Productos y transacciones?',
+    closingQuestion: '¿Partimos por tu cartola o el presupuesto?',
   });
 }
 
@@ -349,15 +351,41 @@ export function buildWelcomeChatItem(params: {
   };
 }
 
+export function sanitizeInitialWelcomeIntro(
+  intro: WelcomeIntroPayload,
+  session?: { name?: string | null; injectedIntake?: unknown } | null,
+): WelcomeIntroPayload {
+  const firstName = String(session?.name ?? intro.firstName ?? '').split(' ')[0]?.trim() || 'Hola';
+  const { intake } = extractIntakeEnvelope(session?.injectedIntake);
+  const enrichment = buildWelcomeGuideEnrichment({
+    chatId: 'chat-1',
+    firstName,
+    intake,
+    diagnosisUnlocked: false,
+    productHints: [],
+  });
+
+  return normalizeWelcomeIntroPayload({
+    ...intro,
+    firstName,
+    productHints: [],
+    productBlurb: undefined,
+    guideActions: enrichment.guideActions,
+  });
+}
+
 export function resolveWelcomeIntro(
   api: WelcomeApiResponse | null | undefined,
   session: { name?: string | null; injectedIntake?: unknown } | null | undefined,
 ): WelcomeIntroPayload {
   if (api?.intro?.version === 2) {
-    const intro = normalizeWelcomeIntroPayload({
-      ...api.intro,
-      uiVersion: api.intro.uiVersion ?? EXECUTIVE_INTRO_UI_VERSION,
-    });
+    const intro = sanitizeInitialWelcomeIntro(
+      normalizeWelcomeIntroPayload({
+        ...api.intro,
+        uiVersion: api.intro.uiVersion ?? EXECUTIVE_INTRO_UI_VERSION,
+      }),
+      session,
+    );
     rememberHydratedWelcomeIntro(session, intro);
     return intro;
   }
@@ -365,7 +393,7 @@ export function resolveWelcomeIntro(
   const cached = readHydratedWelcomeIntro(session);
   if (cached) return cached;
 
-  return buildFallbackWelcomeIntro(session ?? {});
+  return sanitizeInitialWelcomeIntro(buildFallbackWelcomeIntro(session ?? {}), session);
 }
 
 let clientWelcomeIntro: { fingerprint: string; intro: WelcomeIntroPayload } | null = null;
@@ -383,16 +411,17 @@ export function readHydratedWelcomeIntro(
 ): WelcomeIntroPayload | null {
   const fromSession = readCachedWelcomeIntro(session);
   if (fromSession) {
+    const intro = sanitizeInitialWelcomeIntro(fromSession, session);
     const fingerprint = resolveWelcomeIntroFingerprint(session);
     if (fingerprint) {
-      clientWelcomeIntro = { fingerprint, intro: fromSession };
+      clientWelcomeIntro = { fingerprint, intro };
     }
-    return fromSession;
+    return intro;
   }
 
   const fingerprint = resolveWelcomeIntroFingerprint(session);
   if (fingerprint && clientWelcomeIntro?.fingerprint === fingerprint) {
-    return clientWelcomeIntro.intro;
+    return sanitizeInitialWelcomeIntro(clientWelcomeIntro.intro, session);
   }
 
   return null;

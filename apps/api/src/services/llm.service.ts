@@ -1,6 +1,31 @@
 // apps/api/src/services/llm.service.ts
 import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
+import { AsyncLocalStorage } from 'async_hooks';
+import { computeLLMTokenCostUsd } from '@financial-agent/shared';
+
+// ── Cost tracking via AsyncLocalStorage ────────────────────────────────────
+type CostStore = { totalCostUsd: number };
+const _costStorage = new AsyncLocalStorage<CostStore>();
+
+/** Run `fn` inside a cost-tracking context; returns both the result and total LLM spend. */
+export async function runWithLLMCostTracking<T>(
+  fn: () => Promise<T>,
+): Promise<{ result: T; costUsd: number }> {
+  const store: CostStore = { totalCostUsd: 0 };
+  return _costStorage.run(store, async () => {
+    const result = await fn();
+    return { result, costUsd: store.totalCostUsd };
+  });
+}
+
+/** Accumulate cost in the current tracking context (no-op if none). */
+export function accumulateLLMCost(model: string, inputTokens: number, outputTokens: number): void {
+  const store = _costStorage.getStore();
+  if (!store) return;
+  store.totalCostUsd += computeLLMTokenCostUsd(model, inputTokens, outputTokens);
+}
+// ──────────────────────────────────────────────────────────────────────────
 
 export type LLMMessage = {
   role: 'system' | 'user' | 'assistant';
@@ -151,6 +176,9 @@ export async function complete(
     ) as OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming,
   );
 
+  if (response.usage) {
+    accumulateLLMCost(model, response.usage.prompt_tokens ?? 0, response.usage.completion_tokens ?? 0);
+  }
   return response.choices[0]?.message?.content?.trim() ?? '';
 }
 
@@ -190,6 +218,9 @@ export async function completeStructured<T>(params: {
     ) as OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming,
   );
 
+  if (response.usage) {
+    accumulateLLMCost(model, response.usage.prompt_tokens ?? 0, response.usage.completion_tokens ?? 0);
+  }
   const raw = response.choices[0]?.message?.content?.trim();
   if (!raw) throw new Error('Respuesta LLM vacía en completeStructured');
 
@@ -270,6 +301,14 @@ export async function completeStructuredWithSchema<T>(params: {
     ) as OpenAI.Responses.ResponseCreateParamsNonStreaming,
   );
 
+  const responseUsage = (response as any).usage;
+  if (responseUsage) {
+    accumulateLLMCost(
+      model,
+      responseUsage.input_tokens ?? responseUsage.prompt_tokens ?? 0,
+      responseUsage.output_tokens ?? responseUsage.completion_tokens ?? 0,
+    );
+  }
   const jsonStr = parseStructuredResponsePayload(response);
   return JSON.parse(jsonStr) as T;
 }
@@ -347,6 +386,9 @@ export async function completeWithClaude(
     messages: [{ role: 'user', content: input }],
   });
 
+  if (response.usage) {
+    accumulateLLMCost(model, response.usage.input_tokens ?? 0, response.usage.output_tokens ?? 0);
+  }
   const textBlock = response.content.find((b): b is Anthropic.TextBlock => b.type === 'text');
   return textBlock?.text?.trim() ?? '';
 }
@@ -378,6 +420,7 @@ export async function completeStream(
         model,
         max_completion_tokens: maxCompletionTokens,
         stream: true,
+        stream_options: { include_usage: true },
         messages: [
           {
             role: 'system',
@@ -393,6 +436,9 @@ export async function completeStream(
 
   let full = '';
   for await (const chunk of stream) {
+    if (chunk.usage) {
+      accumulateLLMCost(model, chunk.usage.prompt_tokens ?? 0, chunk.usage.completion_tokens ?? 0);
+    }
     const delta = chunk.choices[0]?.delta?.content ?? '';
     if (!delta) continue;
     full += delta;
@@ -437,13 +483,24 @@ export async function completeWithClaudeStream(
   });
 
   let full = '';
+  let inputTokens = 0;
+  let outputTokens = 0;
   for await (const event of stream) {
+    if (event.type === 'message_start' && event.message?.usage) {
+      inputTokens = event.message.usage.input_tokens ?? 0;
+    }
+    if (event.type === 'message_delta' && (event as any).usage) {
+      outputTokens = (event as any).usage.output_tokens ?? 0;
+    }
     if (event.type !== 'content_block_delta') continue;
     if (event.delta.type !== 'text_delta') continue;
     const delta = event.delta.text ?? '';
     if (!delta) continue;
     full += delta;
     onDelta(delta);
+  }
+  if (inputTokens > 0 || outputTokens > 0) {
+    accumulateLLMCost(model, inputTokens, outputTokens);
   }
   return full.trim();
 }

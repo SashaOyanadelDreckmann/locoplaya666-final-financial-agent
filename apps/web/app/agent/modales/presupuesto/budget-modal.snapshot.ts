@@ -441,7 +441,7 @@ export function buildBudgetSnapshotHtmlAndCss(
       <header class="budget-pdf-running-header">
         <div class="budget-pdf-running-header-copy">
           <p class="budget-pdf-running-kicker">PRESUPUESTO</p>
-          <h1 class="budget-pdf-running-title">Budget intelligence</h1>
+          <h1 class="budget-pdf-running-title">Inteligencia de presupuesto</h1>
           <p class="budget-pdf-running-subtitle">Tabla exportada con el estilo visual activo y los valores actuales del presupuesto.</p>
         </div>
         <div class="budget-pdf-running-badge">${escapeHtml(styleLabel)}</div>
