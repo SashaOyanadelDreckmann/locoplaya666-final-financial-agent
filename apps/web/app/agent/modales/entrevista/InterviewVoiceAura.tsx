@@ -81,7 +81,7 @@ export function InterviewVoiceAura({ phase, remoteAudioRef, className }: Props) 
     }
 
     let frame = 0;
-    let startedAt = performance.now();
+    const startedAt = performance.now();
 
     const ensureSampler = () => {
       const stream = resolveRemoteStream(remoteAudioRef);
