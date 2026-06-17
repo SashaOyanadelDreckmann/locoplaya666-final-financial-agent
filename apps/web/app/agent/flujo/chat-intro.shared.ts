@@ -1,4 +1,4 @@
-import { extractIntakeEnvelope } from '@financial-agent/shared';
+import { extractIntakeEnvelope, type WelcomeGuideAction, type WelcomeProductHint } from '@financial-agent/shared';
 import type { ChatItem } from '@/lib/agente/agent.response.types';
 import type { ExecutiveCarouselTone } from '@/components/ui/executive-blob-carousel';
 import type { DiagnosisProfile, FinancialProfileTraits } from '@/state/profile.store';
@@ -17,6 +17,9 @@ export type ChatIntroContent = {
   signals: string[];
   epigraph?: { quote: string; attribution: string };
   tone: ExecutiveCarouselTone;
+  guideActions?: WelcomeGuideAction[];
+  productHints?: WelcomeProductHint[];
+  productBlurb?: string;
 };
 
 export const CHAT3_WILDE_EPIGRAPH = {
@@ -233,15 +236,15 @@ function joinSentences(parts: Array<string | null | undefined>): string {
 
 function chatObjective(chatId: ChatIntroId, diagnosisUnlocked?: boolean): string {
   if (chatId === 'chat-2') {
-    return 'este chat convierte tu diagnóstico en un plan de acción ejecutivo';
+    return 'convertimos tu diagnóstico en un plan de acción ejecutivo';
   }
   if (chatId === 'chat-3') {
-    return 'este espacio conecta tus decisiones financieras con propósito, valores e impacto social';
+    return 'conectamos tus decisiones financieras con propósito e impacto social';
   }
   if (diagnosisUnlocked) {
-    return 'aquí sintetizamos tu caso, profundizamos evidencia y definimos el siguiente movimiento';
+    return 'sintetizamos tu caso y definimos el siguiente movimiento';
   }
-  return 'este chat ordena tu situación con cartolas, presupuesto y entrevista antes de cerrar el diagnóstico';
+  return 'ordenamos tu situación con cartolas, presupuesto y entrevista';
 }
 
 function buildChat3Message(params: {
@@ -254,30 +257,23 @@ function buildChat3Message(params: {
 }): string {
   const { firstName, city, diagnosis, diagnosisProfile, session, hasDiagnosis } = params;
   const placeHint = city ? ` desde ${city}` : '';
-  const traitLine = diagnosis.traitHints.map((hint) => hint.toLowerCase()).join(' y ');
   const budgetLine = readBudgetSnapshot(session);
 
-  const diagnosisBridge = hasDiagnosis
-    ? joinSentences([
-        diagnosisLeadLine(diagnosis, (headline) => `Tu diagnóstico «${headline}»`),
-        traitLine ? `Tu perfil sugiere ${traitLine}` : null,
-        diagnosis.topTension
-          ? `Para reflexionar: ${normalizePhrase(diagnosis.topTension)}`
-          : null,
-        budgetLine,
-      ])
-    : joinSentences([
-        'Usaremos tu diagnóstico para leer propósito e impacto detrás de tus decisiones, no solo el balance',
-        budgetLine,
-      ]);
-
   return joinSentences([
-    `${firstName}${placeHint}, este espacio no es sobre números: es sobre lo que los números revelan de ti`,
-    'Cada peso que ganas, gastas o acumulas es una decisión moral — aunque nunca la hayas pensado así',
-    diagnosisBridge || null,
+    `${firstName}${placeHint}, ${chatObjective('chat-3')}.`,
+    'Aquí el dinero es espejo: lo que gastas, ahorras o evitas dice quién eres.',
+    hasDiagnosis
+      ? joinSentences([
+          diagnosisLeadLine(diagnosis, (headline) => `Diagnóstico: «${headline}»`),
+          diagnosis.topTension
+            ? `Tensión a explorar: ${normalizePhrase(diagnosis.topTension)}`
+            : null,
+          budgetLine,
+        ])
+      : joinSentences(['Partimos de tu diagnóstico para leer propósito e impacto', budgetLine]),
     diagnosisProfile?.openQuestions?.[0]
       ? normalizePhrase(diagnosisProfile.openQuestions[0])
-      : '¿Tu dinero trabaja para el mundo que quieres vivir, o para el mundo que te tocó',
+      : '¿Tu plata construye el mundo que quieres vivir?',
   ]);
 }
 
@@ -301,19 +297,17 @@ function buildDiagnosisBackedMessage(params: {
   } = params;
 
   const budgetLine = readBudgetSnapshot(session);
-  const openQuestion = diagnosisProfile?.openQuestions?.find((item) => item.trim())?.trim() ?? null;
 
   if (chatId === 'chat-2') {
     return joinSentences([
-      `${firstName}, ${chatObjective('chat-2')}`,
-      diagnosisLeadLine(diagnosis, (headline) => `Partimos de «${headline}»`),
+      `${firstName}, ${chatObjective('chat-2')}.`,
+      diagnosisLeadLine(diagnosis, (headline) => `Base: «${headline}»`),
       diagnosis.topTension
-        ? `La prioridad tentativa es ${normalizePhrase(diagnosis.topTension)}`
+        ? `Foco tentativo: ${normalizePhrase(diagnosis.topTension)}`
         : diagnosis.topHypothesis
-          ? `Una hipótesis a validar: ${normalizePhrase(diagnosis.topHypothesis)}`
+          ? `Hipótesis: ${normalizePhrase(diagnosis.topHypothesis)}`
           : null,
       budgetLine,
-      'Cuéntame si abrimos por liquidez, deuda, ahorro o inversión',
     ]);
   }
 
@@ -330,20 +324,18 @@ function buildDiagnosisBackedMessage(params: {
 
   if (diagnosisUnlocked) {
     return joinSentences([
-      `${firstName}, ${chatObjective('chat-1', true)}`,
-      diagnosisLeadLine(diagnosis, (headline) => `Tu diagnóstico cierra en «${headline}»`),
-      diagnosis.topTension ? `Hoy pesa ${normalizePhrase(diagnosis.topTension)}` : null,
+      `${firstName}, ${chatObjective('chat-1', true)}.`,
+      diagnosisLeadLine(diagnosis, (headline) => `Diagnóstico: «${headline}»`),
+      diagnosis.topTension ? `Pesa ${normalizePhrase(diagnosis.topTension)}` : null,
       budgetLine,
-      openQuestion ? normalizePhrase(openQuestion) : '¿Por dónde quieres continuar',
     ]);
   }
 
   const lead = diagnosis.intakeSummary ?? diagnosis.narrativeLead;
   return joinSentences([
-    `${firstName}, ${chatObjective('chat-1', false)}`,
-    lead ? `Por ahora leemos: ${normalizePhrase(lead)}` : null,
+    `${firstName}, ${chatObjective('chat-1', false)}.`,
+    lead ? `Lectura inicial: ${normalizePhrase(lead)}` : null,
     budgetLine,
-    'Cuéntame tu objetivo principal para avanzar al primer paso concreto',
   ]);
 }
 
@@ -357,9 +349,8 @@ function buildFallbackMessage(params: {
 
   if (chatId === 'chat-2') {
     return joinSentences([
-      `${firstName}, ${chatObjective('chat-2')}`,
-      'Cuando tengamos tu diagnóstico cerrado, cruzaremos presupuesto, cartolas y señal de mercado para priorizar acciones concretas',
-      '¿Con qué frente quieres abrir',
+      `${firstName}, ${chatObjective('chat-2')}.`,
+      'Cruzaremos presupuesto, cartolas y mercado para priorizar acciones concretas.',
     ]);
   }
 
@@ -386,6 +377,9 @@ export function buildChatIntroContent(params: {
   session?: { name?: string | null; injectedIntake?: unknown } | null;
   diagnosisProfile?: DiagnosisProfile | null;
   diagnosisUnlocked?: boolean;
+  productHints?: WelcomeProductHint[];
+  guideActions?: WelcomeGuideAction[];
+  productBlurb?: string;
 }): ChatIntroContent {
   const firstName = readFirstName(params.session);
   const diagnosis = resolveDiagnosisContext(params.diagnosisProfile, params.session);
@@ -396,7 +390,7 @@ export function buildChatIntroContent(params: {
       params.diagnosisProfile?.editorial?.headline?.trim(),
   );
 
-  const message =
+  const messageBase =
     hasDiagnosisProfile || diagnosis.hasDiagnosis
       ? buildDiagnosisBackedMessage({
           chatId: params.chatId,
@@ -413,6 +407,10 @@ export function buildChatIntroContent(params: {
           diagnosisUnlocked: params.diagnosisUnlocked,
           city,
         });
+
+  const message = params.productBlurb
+    ? joinSentences([messageBase, `Mercado verificable: ${params.productBlurb}`])
+    : messageBase;
 
   const titles: Record<ChatIntroId, { kicker: string; fallback: string; tone: ExecutiveCarouselTone }> = {
     'chat-1': {
@@ -445,6 +443,9 @@ export function buildChatIntroContent(params: {
     signals,
     epigraph: params.chatId === 'chat-3' ? CHAT3_WILDE_EPIGRAPH : undefined,
     tone: meta.tone,
+    guideActions: params.guideActions,
+    productHints: params.productHints,
+    productBlurb: params.productBlurb,
   };
 }
 

@@ -27,6 +27,9 @@ import { getContextFabricSessionSnapshot } from '../context-fabric/context-fabri
 import { buildInterviewFabricSupplement } from '../context-fabric/context-fabric.integration.helpers';
 import type { WelcomeIntroCache } from '@financial-agent/shared';
 import {
+  extractIntakeEnvelope,
+} from '@financial-agent/shared';
+import {
   listConversationTurns,
   upsertConversationTurnRecord,
 } from '../persistencia/repos';
@@ -42,6 +45,7 @@ import {
 import {
   resolveWelcomeIntroForUser,
 } from '../agents/welcome/welcome-intro';
+import { researchWelcomeProductHints } from '../services/welcome-product-research.service';
 import {
   appendTurnToMemoryRealtime,
   buildAgentMemoryContextRealtime,
@@ -1287,6 +1291,41 @@ router.get(
       message: resolved.message,
       intro: resolved.intro,
       cached: resolved.cached,
+    });
+  }),
+);
+
+router.get(
+  '/chat-intro',
+  requireAuth,
+  requirePermission(PERMISSIONS.AUTH_READ_SELF),
+  asyncHandler(async (req, res) => {
+    const user = req.authenticatedUser;
+    if (!user) throw unauthorized('Not authenticated');
+
+    const chatId = String(req.query.chatId ?? 'chat-1');
+    if (chatId !== 'chat-1' && chatId !== 'chat-2' && chatId !== 'chat-3') {
+      return res.status(400).json({ success: false, error: 'chatId invalido' });
+    }
+
+    const envelope = extractIntakeEnvelope(user.injectedIntake);
+    const productHints = user.injectedIntake
+      ? await researchWelcomeProductHints({
+          userId: user.id,
+          intake: envelope.intake,
+          chatId,
+        })
+      : [];
+
+    const productBlurb = productHints
+      .map((hint) => `${hint.label}: ${hint.fact}`)
+      .slice(0, 2)
+      .join(' · ');
+
+    return sendSuccess(res, {
+      chatId,
+      productHints,
+      productBlurb: productBlurb || undefined,
     });
   }),
 );

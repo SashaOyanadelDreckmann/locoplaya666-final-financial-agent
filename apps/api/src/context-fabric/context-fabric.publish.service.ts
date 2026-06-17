@@ -52,8 +52,6 @@ export async function publishContextSourceVersion(
   const conflicts = detectContextConflicts({
     facts,
     contextVersion: manifest.contextVersion,
-    diagnosticCompletedAt: bundle.diagnosticProfile?.meta?.completedAt ?? null,
-    budgetLastModified: manifest.sections.find((section) => section.name === 'budget')?.lastModified,
   });
   const manifestWithConflicts = buildManifestFromBundle(bundle, conflicts.length);
   const publishedAt = new Date().toISOString();

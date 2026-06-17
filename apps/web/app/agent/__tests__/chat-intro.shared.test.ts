@@ -122,8 +122,8 @@ describe('chat intro shells', () => {
     });
 
     expect(chat3.epigraph?.quote).toContain('precio de todo');
-    expect(chat3.message).toContain('no es sobre números');
-    expect(chat3.message).toContain('decisión moral');
+    expect(chat3.message).toContain('propósito e impacto social');
+    expect(chat3.message).toContain('espejo');
     expect(chat3.message).toMatch(/mundo que quieres vivir|naturaleza, monto y condiciones/i);
   });
 });

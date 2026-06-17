@@ -6,7 +6,7 @@ import path from 'path';
 
 import { createApprovalToken } from '../services/approval.service';
 
-import { runBudgetChatAgent } from '../services/budget-chat-agent.service';
+import { runBudgetChatAgent, buildBudgetAgentUnavailableResult } from '../services/budget-chat-agent.service';
 
 vi.mock('../services/budget-chat-agent.service', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../services/budget-chat-agent.service')>();
@@ -66,22 +66,16 @@ describe('budget-chat assistant flow smoke', () => {
   ];
 
   beforeEach(() => {
+    process.env.BUDGET_CHAT_AGENT_TEST_MOCKS = 'true';
     vi.mocked(runBudgetChatAgent).mockReset();
+    vi.mocked(runBudgetChatAgent).mockImplementation((input) =>
+      Promise.resolve(buildBudgetAgentUnavailableResult(input.mode)),
+    );
   });
 
   it('runs init → agent update → delete confirm → reject → confirm apply', async () => {
     const { agent, csrfToken } = await createAuthedAgent();
     const headers = { 'x-csrf-token': csrfToken };
-
-    vi.mocked(runBudgetChatAgent).mockResolvedValueOnce({
-      assistant_reply: 'Partamos.',
-      next_question: '¿Qué quieres cambiar?',
-      focus_row_id: 'income_salary',
-      actions: [],
-      requires_confirmation: false,
-      pending_summary: null,
-      source: 'budget_agent_init',
-    });
 
     const init = await agent.post('/api/budget-chat').set(headers).send({
       intent: 'init',
@@ -111,7 +105,8 @@ describe('budget-chat assistant flow smoke', () => {
       chatAnswers: [],
     });
     expect(income.status).toBe(200);
-    expect(income.body.action?.amount).toBe(850000);
+    expect(income.body.requires_confirmation).toBe(true);
+    expect(income.body.pending_confirmation?.actions?.[0]?.amount).toBe(850000);
 
     vi.mocked(runBudgetChatAgent).mockResolvedValueOnce({
       assistant_reply: 'Puedo borrar otros gastos.',
@@ -130,6 +125,8 @@ describe('budget-chat assistant flow smoke', () => {
       budgetRows: baseRows(),
     });
     expect(deleteAsk.body.requires_confirmation).toBe(true);
+    expect(deleteAsk.body.source).toBe('budget_agent');
+    expect(deleteAsk.body.pending_confirmation?.actions?.[0]?.kind).toBe('delete');
 
     const reject = await agent.post('/api/budget-chat').set(headers).send({
       intent: 'reply',

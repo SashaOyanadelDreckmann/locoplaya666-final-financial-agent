@@ -1,17 +1,11 @@
 'use client';
 
-export type BubblePdfCitation = {
-  title?: string;
-  source?: string;
-  url?: string;
-};
-
 export type BubbleSnapshotMeta = {
   kicker?: string;
   title?: string;
   subtitle?: string;
   badge?: string;
-  citations?: BubblePdfCitation[];
+  citations?: Array<{ title?: string; source?: string; url?: string }>;
 };
 
 function escapeHtml(value: string) {
@@ -21,15 +15,6 @@ function escapeHtml(value: string) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
-}
-
-function renderCitationHtml(citation: BubblePdfCitation) {
-  const label = citation.title ?? citation.source ?? 'Fuente';
-  const url = citation.url?.trim();
-  return `<div class="citation-bubble">
-    <strong>${escapeHtml(label)}</strong>
-    ${url ? `<div><span class="citation-url">${escapeHtml(url)}</span></div>` : ''}
-  </div>`;
 }
 
 function collectBubbleSnapshotCss(rootEl: HTMLElement) {
@@ -274,7 +259,15 @@ function prepareBubbleForPdfExport(
     .querySelectorAll('.is-scrollable-bubble, .is-scrollable-content')
     .forEach((el) => el.classList.remove('is-scrollable-bubble', 'is-scrollable-content'));
 
+  clonedBubble.querySelectorAll('[data-chat-export-skip]').forEach((el) => el.remove());
   clonedBubble.querySelectorAll('.citation-toggle').forEach((el) => el.remove());
+
+  clonedBubble.querySelectorAll('.latex-inline-annex').forEach((annex) => {
+    const label = annex.querySelector('.latex-inline-annex-head span:first-child')?.textContent?.trim() ?? '';
+    if (label === 'Fuentes verificables') {
+      annex.remove();
+    }
+  });
 
   const measurementRoot = sourceBubble ?? clonedBubble;
   unlockScrollableRegions(clonedBubble);
@@ -287,30 +280,6 @@ function prepareBubbleForPdfExport(
     node.style.breakInside = 'avoid';
     node.style.pageBreakInside = 'avoid';
   });
-
-  const citations = (meta?.citations ?? []).filter((c) => c && (c.url || c.title || c.source));
-  if (citations.length > 0) {
-    const stack = clonedBubble.querySelector('.citation-stack');
-    if (stack) {
-      stack.innerHTML = citations.map(renderCitationHtml).join('');
-      const annexHead = stack.closest('.latex-inline-annex')?.querySelector('.latex-inline-annex-head span:last-child');
-      if (annexHead) annexHead.textContent = `${citations.length} referencias`;
-    } else {
-      const body = clonedBubble.querySelector('.latex-doc-body');
-      if (body) {
-        body.insertAdjacentHTML(
-          'beforeend',
-          `<div class="latex-inline-annex">
-            <div class="latex-inline-annex-head">
-              <span>Fuentes verificables</span>
-              <span>${citations.length} referencias</span>
-            </div>
-            <div class="citation-stack">${citations.map(renderCitationHtml).join('')}</div>
-          </div>`,
-        );
-      }
-    }
-  }
 }
 
 const BUBBLE_PDF_EXPORT_CSS = `
@@ -553,6 +522,40 @@ html, body, .bubble-pdf-snapshot {
   display: none !important;
 }
 
+.bubble-pdf-citations {
+  margin-top: 8mm;
+  padding-top: 4mm;
+  border-top: 1px solid rgba(28, 49, 69, 0.1);
+}
+
+.bubble-pdf-citations-label {
+  margin: 0 0 3mm 0;
+  font-size: 9px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: #46698f !important;
+  font-weight: 700;
+}
+
+.bubble-pdf-citation-item {
+  margin-bottom: 2mm;
+}
+
+.bubble-pdf-citation-title {
+  display: block;
+  font-size: 10px;
+  color: #1c3145 !important;
+  font-weight: 600;
+}
+
+.bubble-pdf-citation-url {
+  display: block;
+  font-size: 8px;
+  color: #46698f !important;
+  word-break: break-all;
+  text-decoration: none;
+}
+
 .bubble-pdf-snapshot .agent-table th,
 .bubble-pdf-snapshot .agent-table td,
 .bubble-pdf-snapshot .md-table th,
@@ -586,6 +589,23 @@ export function buildBubbleSnapshotHtmlAndCss(bubbleEl: HTMLElement, meta?: Bubb
     clonedBubble.querySelector('.latex-doc-mode')?.textContent?.trim() ||
     'ANÁLISIS';
 
+  const renderableCitations = (meta?.citations ?? []).filter((c) => c.title ?? c.source ?? c.url);
+  const citationsHtml =
+    renderableCitations.length > 0
+      ? `<section class="bubble-pdf-citations">
+          <p class="bubble-pdf-citations-label">Fuentes</p>
+          ${renderableCitations
+            .map(
+              (c) =>
+                `<div class="bubble-pdf-citation-item">
+                  <strong class="bubble-pdf-citation-title">${escapeHtml(c.title ?? c.source ?? '')}</strong>
+                  ${c.url ? `<a class="bubble-pdf-citation-url" href="${escapeHtml(c.url)}">${escapeHtml(c.url)}</a>` : ''}
+                </div>`,
+            )
+            .join('')}
+        </section>`
+      : '';
+
   return {
     html: `<div class="bubble-pdf-snapshot">
       <div class="bubble-pdf-running-brand">Financieramente</div>
@@ -598,6 +618,7 @@ export function buildBubbleSnapshotHtmlAndCss(bubbleEl: HTMLElement, meta?: Bubb
         <div class="bubble-pdf-running-badge">${escapeHtml(badgeText)}</div>
       </header>
       ${clonedBubble.outerHTML}
+      ${citationsHtml}
     </div>`,
     css: `${collectBubbleSnapshotCss(bubbleEl)}\n${BUBBLE_PDF_EXPORT_CSS}`,
   };

@@ -290,6 +290,7 @@ export const MobilePanelCircularDeck = forwardRef<
   );
 
   const centerKey = stackItems[activeIndex]?.id ?? 'profile';
+  const centerLabel = PANEL_CARD_LABELS[String(centerKey)] ?? String(centerKey);
 
   return (
     <>
@@ -297,7 +298,7 @@ export const MobilePanelCircularDeck = forwardRef<
         ref={setGridRef}
         className="panel-grid is-card-stack"
         aria-roledescription="carrusel"
-        aria-label={`Panel compacto, ${centerKey}`}
+        aria-label={`Panel compacto, ${centerLabel}`}
       >
         <CardStack
           items={stackItems}
@@ -335,9 +336,6 @@ export const MobilePanelCircularDeck = forwardRef<
             return renderStackCard(card, state.active);
           }}
         />
-        <span className="mobile-deck-sr-only" aria-live="polite">
-          {centerKey}
-        </span>
       </div>
 
       <FloatingCardPortal floating={floatingCard} onClose={closeFloating} />

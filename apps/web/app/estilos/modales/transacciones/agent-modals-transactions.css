@@ -1218,6 +1218,10 @@ body.keyboard-opening .app-shell::after{
   .agent-panel{
     transition: flex-basis 0.32s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   }
+  /* Panel — no flex-basis animation while the mobile keyboard is opening (browser agent). */
+  html:not(.pwa-standalone) body.agent-route-active.browser-keyboard-open main.agent-layout .agent-panel,
+  html:not(.pwa-standalone) body.agent-route-active.composer-typing-snap main.agent-layout .agent-panel,
+  html:not(.pwa-standalone) body.agent-route-active.mobile-input-engaged main.agent-layout .agent-panel,
   .agent-layout.keyboard-opening .agent-panel,
 .agent-layout.keyboard-opening .agent-chat,
 .agent-layout.keyboard-opening .agent-chat-body,

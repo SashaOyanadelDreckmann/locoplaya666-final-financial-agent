@@ -32,7 +32,7 @@
   html:not(.pwa-standalone).home-route-active main > .browser-chrome-vignette-bottom {
     height: auto !important;
     min-height: 0 !important;
-    transition: opacity 0.28s ease !important;
+    transition: none !important;
   }
 
   /* Keep chrome fades visible while typing — no flash to flat black */
@@ -591,11 +591,12 @@
   }
 
   html:not(.pwa-standalone) body.agent-route-active main.agent-layout.is-mobile-viewport {
-    height: var(--visual-vh, var(--screen-h, 100dvh)) !important;
-    max-height: var(--visual-vh, var(--screen-h, 100dvh)) !important;
+    height: var(--screen-h, var(--fa-app-height, 100dvh)) !important;
+    max-height: var(--screen-h, var(--fa-app-height, 100dvh)) !important;
     min-height: 0 !important;
     box-sizing: border-box !important;
     overflow: hidden !important;
+    transition: none !important;
   }
 
   body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel,

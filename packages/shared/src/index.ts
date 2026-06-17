@@ -36,6 +36,15 @@ export {
   normalizeIntakeBodyForValidation,
 } from './intake/intake-normalize';
 export * from './welcome/welcome-intro.types';
+export * from './welcome/welcome-guide.types';
+export {
+  buildChat1WelcomeGuideActions,
+  buildChat2WelcomeGuideActions,
+  buildChat3WelcomeGuideActions,
+  buildProductSearchQueries,
+  buildWelcomeGuideEnrichment,
+  formatProductHintsBlurb,
+} from './welcome/welcome-guide.helpers';
 export {
   WELCOME_FINTECH_DEFAULT_BENEFIT,
   WELCOME_FINTECH_DEFAULT_BODY,

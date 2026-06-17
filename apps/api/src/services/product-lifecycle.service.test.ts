@@ -265,7 +265,7 @@ describe('product lifecycle ordering', () => {
     });
 
     expect(decision.closingMode).toBe(true);
-    expect(decision.systemDirective).toContain('15/20');
+    expect(decision.systemDirective).toContain('10/15');
   });
 
   it('aligns chat-3 directive to social consciousness funnel', () => {
@@ -290,7 +290,7 @@ describe('product lifecycle ordering', () => {
     expect(decision.blocked).toBe(false);
     expect(decision.systemDirective).toContain('EXPLORACION');
     expect(decision.systemDirective).toContain('filosofo socratico');
-    expect(decision.systemDirective).toContain('1/15');
+    expect(decision.systemDirective).toContain('1/10');
   });
 
   it('blocks chat when interaction limit is already exhausted', () => {
@@ -311,7 +311,7 @@ describe('product lifecycle ordering', () => {
         productLifecycle: {
           phase: 'diagnosis_ready',
           unlockedChats: ['chat-1', 'chat-2', 'chat-3'],
-          chatTurns: { 'chat-1': 0, 'chat-2': 20, 'chat-3': 0 },
+          chatTurns: { 'chat-1': 0, 'chat-2': 15, 'chat-3': 0 },
           closedChats: [],
           reports: [],
         },
@@ -320,14 +320,14 @@ describe('product lifecycle ordering', () => {
     });
 
     expect(decision.blocked).toBe(true);
-    expect(decision.reason).toContain('20');
+    expect(decision.reason).toContain('15');
   });
 
   it('closes chat and appends report after the final interaction response', () => {
     const state = {
       phase: 'diagnosis_ready' as const,
       unlockedChats: ['chat-1', 'chat-2', 'chat-3'] as const,
-      chatTurns: { 'chat-1': 0, 'chat-2': 0, 'chat-3': 14 },
+      chatTurns: { 'chat-1': 0, 'chat-2': 0, 'chat-3': 9 },
       closedChats: [] as Array<'chat-1' | 'chat-2' | 'chat-3'>,
       reports: [] as Array<{
         id: string;
@@ -358,7 +358,7 @@ describe('product lifecycle ordering', () => {
       },
     });
 
-    expect(next.chatTurns['chat-3']).toBe(15);
+    expect(next.chatTurns['chat-3']).toBe(10);
     expect(next.closedChats).toContain('chat-3');
     expect(next.reports).toHaveLength(1);
     expect(next.reports[0]?.chatId).toBe('chat-3');

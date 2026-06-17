@@ -1365,3 +1365,63 @@
     padding: 0 8px calc(env(safe-area-inset-bottom, 0px) + 10px) !important;
   }
 }
+
+/*
+ * Mobile browser — trim assistant + table stacks so Estilos/PDF footer stays visible.
+ * PWA / add-to-home keeps existing heights.
+ */
+@media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+  html:not(.pwa-standalone) .agent-modal-overlay.budget-modal-overlay,
+  html:not(.pwa-standalone) .agent-modal-overlay.budget-modal-overlay > .agent-modal.budget-modal,
+  html:not(.pwa-standalone) .budget-modal.is-mobile-shell,
+  html:not(.pwa-standalone) .budget-modal[data-budget-mobile='true'] {
+    height: var(--screen-h, 100dvh) !important;
+    max-height: var(--screen-h, 100dvh) !important;
+    --budget-mobile-browser-footer-reserve: 58px;
+    --budget-mobile-browser-stage-trim: 10px;
+  }
+
+  html:not(.pwa-standalone) .budget-modal.is-mobile-shell .budget-main-carousel:not(.is-desktop) .budget-mobile-stage,
+  html:not(.pwa-standalone) .budget-modal[data-budget-mobile='true'] .budget-main-carousel:not(.is-desktop) .budget-mobile-stage {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    height: auto !important;
+    max-height: calc(100% - var(--budget-mobile-browser-footer-reserve, 58px) - var(--budget-mobile-browser-stage-trim, 10px)) !important;
+  }
+
+  html:not(.pwa-standalone) .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact,
+  html:not(.pwa-standalone) .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact {
+    max-height: 100% !important;
+    min-height: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  html:not(.pwa-standalone) .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-mobile-stage > .budget-card-agent.is-mobile-assistant-glass,
+  html:not(.pwa-standalone) .budget-modal.is-mobile-shell .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-mobile-stage > .budget-card-table.is-mobile-table-compact,
+  html:not(.pwa-standalone) .budget-modal[data-budget-mobile='true'] .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-mobile-stage > .budget-card-agent.is-mobile-assistant-glass,
+  html:not(.pwa-standalone) .budget-modal[data-budget-mobile='true'] .budget-main-carousel.mode-agent-front:not(.is-desktop) .budget-mobile-stage > .budget-card-table.is-mobile-table-compact {
+    max-height: 100% !important;
+    height: 100% !important;
+  }
+
+  html:not(.pwa-standalone) .budget-modal.is-mobile-shell .budget-assistant-panel.is-mobile-assistant-glass .bcc-hero,
+  html:not(.pwa-standalone) .budget-modal[data-budget-mobile='true'] .budget-assistant-panel.is-mobile-assistant-glass .bcc-hero {
+    max-height: 100% !important;
+    min-height: 0 !important;
+  }
+
+  html:not(.pwa-standalone) .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact .budget-table-scroll-host,
+  html:not(.pwa-standalone) .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-table-scroll-host {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    height: auto !important;
+    max-height: calc(100% - var(--budget-mobile-browser-footer-reserve, 58px)) !important;
+  }
+
+  html:not(.pwa-standalone) .budget-modal.is-mobile-shell .budget-table-section.is-mobile-table-compact .budget-table-bottom-actions,
+  html:not(.pwa-standalone) .budget-modal[data-budget-mobile='true'] .budget-table-section.is-mobile-table-compact .budget-table-bottom-actions {
+    flex-shrink: 0 !important;
+    margin-top: 12px !important;
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 12px) !important;
+  }
+}

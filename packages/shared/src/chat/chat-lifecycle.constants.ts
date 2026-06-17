@@ -4,8 +4,8 @@ export type ProductChatId = (typeof PRODUCT_CHAT_IDS)[number];
 
 export const MAX_CHAT_TURNS_BY_CHAT: Record<ProductChatId, number> = {
   'chat-1': 30,
-  'chat-2': 20,
-  'chat-3': 15,
+  'chat-2': 15,
+  'chat-3': 10,
 };
 
 export function getMaxChatTurns(chatId: ProductChatId): number {

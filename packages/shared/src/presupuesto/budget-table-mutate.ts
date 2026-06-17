@@ -107,14 +107,11 @@ export function legacyBudgetUpdatesToActions(
 
 export function inferBudgetTableConfirmationRequired(
   actions: BudgetTableAction[],
-  modelFlag = false,
+  _modelFlag = false,
 ): boolean {
   if (actions.length === 0) return false;
-  if (modelFlag) return true;
-  if (actions.some((action) => action.kind === 'delete')) return true;
-  if (actions.length >= 4) return true;
-  if (actions.filter((action) => action.kind === 'add').length >= 3) return true;
-  return false;
+  // Every table mutation is proposed first; the user confirms in the assistant UI.
+  return true;
 }
 
 export function buildBudgetTablePatch(

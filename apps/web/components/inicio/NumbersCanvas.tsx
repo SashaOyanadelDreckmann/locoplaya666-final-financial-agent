@@ -168,7 +168,11 @@ export default function NumbersCanvas({
         const photoAlpha = clamp(1 - eMid * 0.88);
         ctx.globalAlpha = photoAlpha;
         if (!isMobile) {
-          ctx.filter = `saturate(${0.84 + 0.38*stylize}) contrast(${1.04 - 0.34*stylize}) brightness(${0.92 - 0.20*stylize}) sepia(${0.04 + 0.04*stylize})`;
+          const satBase = 1.28;
+          const conBase = 1.08;
+          const briBase = 0.97;
+          const sepBase = 0.02;
+          ctx.filter = `saturate(${satBase + 0.38 * stylize}) contrast(${conBase - 0.34 * stylize}) brightness(${briBase - 0.20 * stylize}) sepia(${sepBase + 0.04 * stylize})`;
         }
         drawImageCover(ctx, img, W, H);
         ctx.filter = 'none';

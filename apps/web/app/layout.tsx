@@ -6,7 +6,6 @@ import './estilos/sistema/tablet-system.css';
 import './estilos/sistema/mobile-keyboard-viewport.css';
 import './estilos/sistema/visual-modes.css';
 import './estilos/agente/arranque/agent-boot-sequence.css';
-import './estilos/agente/paneles/agent-panel-intro.css';
 import './estilos/agente/paneles/agent-compact-deck.css';
 import './estilos/modales/presupuesto/agent-modals-budget-mobile-authoritative.css';
 import './estilos/modales/presupuesto/agent-modals-budget-mobile-styles.css';
@@ -20,6 +19,7 @@ import './estilos/modales/entrevista/agent-modals-interview-mobile-authoritative
 import './estilos/modales/entrevista/agent-modals-interview-minimal.css';
 import './estilos/modales/entrevista/agent-modals-interview-voice-aura.css';
 import './estilos/modales/entrevista/agent-modals-interview-mobile-styles.css';
+import './estilos/sistema/desktop-home-backdrop.css';
 import './estilos/modales/comunes/agent-modals-mobile-fullscreen.css';
 import './estilos/modales/comunes/agent-modals-header-contract.css';
 import './estilos/modales/comunes/agent-modals-close-confirm.css';
@@ -66,15 +66,6 @@ export default async function RootLayout({
         window.navigator?.standalone === true;
       document.documentElement.classList.toggle('pwa-standalone', isStandalone);
       document.body?.classList.toggle('pwa-standalone', isStandalone);
-      if (!isStandalone) return;
-      document.querySelectorAll('.browser-chrome-vignette-top, .browser-chrome-vignette-bottom').forEach((node) => {
-        node.style.display = 'none';
-        node.style.visibility = 'hidden';
-        node.style.opacity = '0';
-        node.style.height = '0';
-        node.style.maxHeight = '0';
-        node.style.pointerEvents = 'none';
-      });
     };
     syncStandalone();
     window.addEventListener('pageshow', syncStandalone);
@@ -103,9 +94,7 @@ export default async function RootLayout({
         <meta name="apple-mobile-web-app-title" content="FinMente" />
         <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-        {routeShellClass === 'home-route-active' ? (
-          <link rel="preload" href="/images/bg-door.jpg" as="image" fetchPriority="high" />
-        ) : null}
+        <link rel="preload" href="/images/bg-door.jpg" as="image" fetchPriority="high" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital@1&family=Caveat:wght@600&display=swap" rel="stylesheet" />
@@ -117,6 +106,7 @@ export default async function RootLayout({
         <MobileInputViewportSync />
         <ViewportModeSync />
         <div className="global-agent-backdrop" aria-hidden="true" />
+        <div className="app-grain-layer" aria-hidden="true" />
         <div className="viewport-backdrop-seam-top" aria-hidden="true" />
         <div className="browser-chrome-vignette-top" aria-hidden="true" />
         <div className="browser-chrome-vignette-bottom" aria-hidden="true" />

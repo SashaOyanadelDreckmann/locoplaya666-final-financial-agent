@@ -19,7 +19,7 @@ export const MAX_CHROME_BOTTOM = 72;
 export const MAX_CHROME_TOP = 88;
 
 const INPUT_VIEWPORT_SYNC_DELAYS_MS = [0, 16, 64, 160, 280, 400, 520] as const;
-const COMPOSER_VV_SYNC_DELAYS_MS = [0, 8, 16, 24, 32, 48, 64, 96, 128, 160, 200, 280, 400, 520] as const;
+const COMPOSER_VV_SYNC_DELAYS_MS = [0, 16, 48, 96, 200, 400] as const;
 
 export function isTextInput(el: Element | null): boolean {
   if (!el || !(el instanceof HTMLElement)) return false;
@@ -45,17 +45,6 @@ export function suppressPwaBrowserChrome(root: HTMLElement = document.documentEl
     root.classList.remove(className);
     document.body?.classList.remove(className);
   }
-
-  document
-    .querySelectorAll<HTMLElement>('.browser-chrome-vignette-top, .browser-chrome-vignette-bottom')
-    .forEach((node) => {
-      node.style.display = 'none';
-      node.style.visibility = 'hidden';
-      node.style.opacity = '0';
-      node.style.height = '0';
-      node.style.maxHeight = '0';
-      node.style.pointerEvents = 'none';
-    });
 }
 
 export function isMobileInputEngaged(root: HTMLElement = document.documentElement) {
@@ -263,8 +252,16 @@ export function applyMobileViewportTokens(root: HTMLElement = document.documentE
   }
 
   const composerFocused = isComposerFocused();
-  const visualVh =
-    composerFocused && !keyboardLikelyOpen ? layoutH : visibleH;
+  const agentBrowserMobile =
+    isMobileBrowserViewport(root) &&
+    (root.classList.contains('agent-route-active') ||
+      Boolean(document.body?.classList.contains('agent-route-active')));
+  /* Browser agent: stable shell height; keyboard lift uses --keyboard-inset-bottom padding. */
+  const visualVh = agentBrowserMobile
+    ? layoutH
+    : composerFocused && !keyboardLikelyOpen
+      ? layoutH
+      : visibleH;
   root.style.setProperty('--visual-vh', `${visualVh}px`);
   root.style.setProperty('--keyboard-inset-bottom', `${keyboardInset}px`);
 
@@ -422,11 +419,9 @@ export function scheduleInputViewportSync(el: HTMLElement) {
 
 export function scheduleComposerViewportSync() {
   const run = () => {
-    if (!isComposerTypingSnap() && !isComposerFocused()) return;
+    if (!isComposerFocused()) return;
     applyMobileViewportTokens();
-    if (isComposerFocused()) {
-      setMobileInputEngaged(true);
-    }
+    syncAgentComposerBrowserKeyboardState();
   };
 
   run();
@@ -436,17 +431,45 @@ export function scheduleComposerViewportSync() {
   }
 }
 
+/** Browser agent composer — engage layout classes only once the keyboard is actually open. */
+export function syncAgentComposerBrowserKeyboardState(
+  root: HTMLElement = document.documentElement,
+) {
+  if (!isMobileBrowserViewport(root)) return;
+  if (!root.classList.contains('agent-route-active')) return;
+  if (!isComposerFocused()) return;
+
+  const keyboardLikelyOpen = resolveKeyboardLikelyOpen(readMobileViewportMetrics());
+  if (keyboardLikelyOpen) {
+    prepareComposerTypingVisual(root);
+    setMobileInputEngaged(true, root);
+    return;
+  }
+
+  clearComposerTypingVisual(root);
+  root.classList.remove('mobile-input-engaged');
+  document.body?.classList.remove('mobile-input-engaged');
+  applyMobileViewportTokens(root);
+}
+
 export function prepareComposerTypingVisual(root: HTMLElement = document.documentElement) {
   if (!isMobileBrowserViewport()) return;
   root.classList.add('composer-typing-snap');
   document.body?.classList.add('composer-typing-snap');
 }
 
+export function pinComposerDocumentScroll() {
+  if (typeof window === 'undefined') return;
+  window.scrollTo(0, 0);
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
+}
+
 export function engageComposerTypingLayout(root: HTMLElement = document.documentElement) {
   if (!isMobileBrowserViewport()) return;
-  prepareComposerTypingVisual(root);
-  setMobileInputEngaged(true, root);
+  pinComposerDocumentScroll();
   applyMobileViewportTokens(root);
+  syncAgentComposerBrowserKeyboardState(root);
   scheduleComposerViewportSync();
 }
 
@@ -462,8 +485,8 @@ export function preemptiveMobileTypingEngage(
   const composerDock = target.closest('.agent-mobile-composer-dock');
 
   if (composerDock) {
+    /* Browser: wait for focusin — preemptive snap caused Safari document scroll + black frame. */
     if (isMobileBrowserViewport(root)) {
-      prepareComposerTypingVisual(root);
       return;
     }
     if (isPwaStandaloneViewport(root)) {
@@ -500,14 +523,14 @@ export function focusMobileInput(el: HTMLElement | null) {
   if (!el || typeof el.focus !== 'function') return;
 
   if (isComposerDockElement(el)) {
+    el.focus({ preventScroll: true });
     if (isMobileBrowserViewport()) {
-      engageComposerTypingLayout();
+      pinComposerDocumentScroll();
+      /* Layout snap runs on focusin to avoid a frame of drift before the textarea is focused. */
     } else if (shouldUseMobileShell() && isPwaStandaloneViewport()) {
       setMobileInputEngaged(true);
       applyMobileViewportTokens();
     }
-    el.focus({ preventScroll: true });
-    if (isMobileBrowserViewport()) scheduleComposerViewportSync();
     return;
   }
 

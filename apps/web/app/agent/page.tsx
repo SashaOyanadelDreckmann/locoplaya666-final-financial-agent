@@ -128,7 +128,6 @@ import {
 import {
   CHAT_CLOSED_SEND_MESSAGE,
   isChatOnboardingLocked,
-  listNavigableChatIds,
   resolveChatThreadAccessState,
   resolveChatTurnCount,
 } from './utilidades/chat-lifecycle.helpers';
@@ -144,11 +143,7 @@ import { readSocialReflectionSession, hydrateSocialReflectionSessionFromServer }
 import { ensureLeadingIntroShell } from '@/lib/agente/nucleo/stream-session';
 import { resolvePanelDiagnosisProfile } from '@/lib/diagnostico/sesion';
 import { AgentBootSequence } from './arranque/AgentBootSequence';
-import { PanelCardsIntroSequence } from './paneles/PanelCardsIntroSequence';
-import { PanelIntroGridSlot } from './paneles/PanelIntroGridSlot';
-import { PanelIntroLayoutGroup } from './paneles/PanelIntroLayoutGroup';
 import { shouldShowAgentBootSequence } from './arranque/agent-boot-sequence.helpers';
-import { shouldPresentPanelIntro } from './paneles/panel-intro.prefs';
 
 import type {
   AgentResponse,
@@ -163,8 +158,8 @@ import type { FincoinUsageApiPayload } from '@/lib/api/cliente';
 import { SocialConsciousnessModal } from './modales/conciencia-social/SocialConsciousnessModal';
 import { SidePanels } from './paneles/side-panels';
 import { PanelCalloutBanner } from './paneles/panel-callout-banner';
-import { ContextConflictBanner } from './paneles/context-conflict-banner';
 import { useContextConflictBanner } from './hooks/use-context-conflict-banner';
+import { usePwaInstallNotice } from './hooks/use-pwa-install-notice';
 import type { ContextConflictUiAction } from '@/lib/context/context-conflict-ui';
 import type { MobilePanelDeckHandle } from './paneles/mobile-panel-compact-carousel';
 import { ChatThreadView } from './chat/chat-thread-view';
@@ -474,6 +469,7 @@ export default function AgentPage() {
   });
   const [isTransactionsModalOpen, setIsTransactionsModalOpen] = useState(false);
   const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
+  const [budgetModalSession, setBudgetModalSession] = useState(0);
   const [isQuestionnaireModalOpen, setIsQuestionnaireModalOpen] = useState(false);
   const [questionnaireModalMode, setQuestionnaireModalMode] = useState<'view' | 'edit'>('view');
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
@@ -526,7 +522,6 @@ export default function AgentPage() {
   const [productLifecycle, setProductLifecycle] = useState<ProductLifecycle | null>(null);
   const agentMetaRef = useRef<AgentMeta>({});
   const [, forceRender] = useState(0);
-  const [chatSlideDir, setChatSlideDir] = useState<'left' | 'right' | null>(null);
   const previousKnowledgeScoreRef = useRef(0);
   const previousMilestoneDoneIdsRef = useRef<Set<string>>(new Set());
   const recentLibraryRef = useRef<HTMLDivElement | null>(null);
@@ -548,18 +543,10 @@ export default function AgentPage() {
   const chatComposerRef = useRef<HTMLTextAreaElement | null>(null);
   const composerFocusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const interviewAutoOpenHandledRef = useRef(false);
-  const [bootSequenceActive, setBootSequenceActive] = useState(false);
-  const [panelIntroActive, setPanelIntroActive] = useState(false);
-  const [panelIntroPhase, setPanelIntroPhase] = useState<
-    'morph' | 'shell' | 'assemble' | 'settle'
-  >('morph');
-  const [panelIntroRevealedCount, setPanelIntroRevealedCount] = useState(0);
-  const [panelIntroSettled, setPanelIntroSettled] = useState(false);
-  const [panelIntroHandoffOrigin, setPanelIntroHandoffOrigin] = useState<{
-    x: number;
-    y: number;
-  } | null>(null);
-  const panelIntroStartRef = useRef(false);
+  const [bootSequenceActive, setBootSequenceActive] = useState(
+    () => typeof window !== 'undefined' && shouldShowAgentBootSequence(),
+  );
+  const [bootShellReveal, setBootShellReveal] = useState(false);
 
   useEffect(() => {
     if (!authBootstrapped || !isAuthenticated) return;
@@ -567,31 +554,6 @@ export default function AgentPage() {
       setBootSequenceActive(true);
     }
   }, [authBootstrapped, isAuthenticated]);
-
-  useEffect(() => {
-    if (!authBootstrapped || !isAuthenticated) return;
-    if (bootSequenceActive || panelIntroActive) return;
-    if (!shouldPresentPanelIntro()) return;
-    if (panelIntroStartRef.current) return;
-
-    const delay = panelIntroHandoffOrigin ? 72 : 200;
-    const timer = window.setTimeout(() => {
-      if (!shouldPresentPanelIntro() || panelIntroStartRef.current) return;
-      panelIntroStartRef.current = true;
-      setPanelIntroPhase('morph');
-      setPanelIntroRevealedCount(0);
-      setPanelIntroSettled(false);
-      setPanelIntroActive(true);
-    }, delay);
-
-    return () => window.clearTimeout(timer);
-  }, [
-    authBootstrapped,
-    isAuthenticated,
-    bootSequenceActive,
-    panelIntroActive,
-    panelIntroHandoffOrigin,
-  ]);
 
   const loadProfileIfNeeded = useProfileStore((s) => s.loadProfileIfNeeded);
   const profile = useProfileStore((s) => s.profile);
@@ -1983,6 +1945,18 @@ export default function AgentPage() {
     normalizePanelAction: normalizePanelActionForCurrentFlow,
   });
 
+  const pwaInstallNotice = usePwaInstallNotice({
+    userId: sessionInfo?.id ?? sessionInfo?.userId ?? null,
+    authBootstrapped,
+    isAuthenticated,
+    isStandalone: isStandaloneDisplayMode,
+    activeChatId,
+    chatClosed: isActiveChatClosed,
+    compactClosedView: isActiveChatClosed && !showFullClosedChat,
+    loading,
+    bootSequenceActive,
+  });
+
   useEffect(() => {
     try {
       const rawStage = localStorage.getItem('agent.panel.stage.v3');
@@ -2095,66 +2069,6 @@ export default function AgentPage() {
       scrollChatThreadAfterUpdate(el, scrollOptions);
     });
   }, [threadScrollAnchor, activeChatId, loading, onboardingFlowStatus, items]);
-
-  useEffect(() => {
-    if (!isMobileViewport || !interviewCompleted) return;
-    const el = chatBodyRef.current;
-    if (!el) return;
-
-    let startX = 0;
-    let startY = 0;
-    let tracking = false;
-
-    const onTouchStart = (event: TouchEvent) => {
-      if (event.touches.length !== 1) return;
-      startX = event.touches[0].clientX;
-      startY = event.touches[0].clientY;
-      tracking = true;
-    };
-
-    const onTouchEnd = (event: TouchEvent) => {
-      if (!tracking) return;
-      tracking = false;
-      const touch = event.changedTouches[0];
-      if (!touch) return;
-
-      const deltaX = touch.clientX - startX;
-      const deltaY = touch.clientY - startY;
-      if (Math.abs(deltaX) < 56 || Math.abs(deltaX) <= Math.abs(deltaY)) return;
-
-      const unlockedIds = listNavigableChatIds({
-        chatIds: chatThreads.map((thread) => thread.id),
-        unlockedChatIds,
-      });
-      const currentIndex = unlockedIds.indexOf(activeChatId);
-      if (currentIndex < 0) return;
-
-      if (deltaX < 0 && currentIndex < unlockedIds.length - 1) {
-        setChatSlideDir('left');
-        setActiveChatId(unlockedIds[currentIndex + 1]);
-        return;
-      }
-      if (deltaX > 0 && currentIndex > 0) {
-        setChatSlideDir('right');
-        setActiveChatId(unlockedIds[currentIndex - 1]);
-      }
-    };
-
-    el.addEventListener('touchstart', onTouchStart, { passive: true });
-    el.addEventListener('touchend', onTouchEnd, { passive: true });
-    el.addEventListener('touchcancel', onTouchEnd, { passive: true });
-    return () => {
-      el.removeEventListener('touchstart', onTouchStart);
-      el.removeEventListener('touchend', onTouchEnd);
-      el.removeEventListener('touchcancel', onTouchEnd);
-    };
-  }, [activeChatId, chatThreads, closedChatIds, interviewCompleted, isMobileViewport, unlockedChatIds]);
-
-  useEffect(() => {
-    if (!chatSlideDir) return;
-    const timer = window.setTimeout(() => setChatSlideDir(null), 320);
-    return () => window.clearTimeout(timer);
-  }, [activeChatId, chatSlideDir]);
 
   useEffect(() => {
     storeVisualMode(visualMode);
@@ -2317,6 +2231,8 @@ export default function AgentPage() {
   useEffect(() => {
     if (!fincoinSpendBlocked) return;
     setIsBudgetModalOpen(false);
+    setBudgetChatAnswers([]);
+    setBudgetModalSession((value) => value + 1);
     setIsTransactionsModalOpen(false);
     setIsInterviewModalOpen(false);
   }, [fincoinSpendBlocked]);
@@ -2806,6 +2722,12 @@ export default function AgentPage() {
     void syncFinancialContextToIntake().catch(() => {});
     setIsBudgetModalOpen(true);
   }, [blockFincoinSpend, syncFinancialContextToIntake]);
+
+  const closeBudgetModal = useCallback(() => {
+    setIsBudgetModalOpen(false);
+    setBudgetChatAnswers([]);
+    setBudgetModalSession((value) => value + 1);
+  }, []);
 
   const handleContextConflictAction = useCallback(
     (action: ContextConflictUiAction) => {
@@ -3739,34 +3661,14 @@ export default function AgentPage() {
   const compactPanelCards = panelBaseCards;
   const compactPanelLoopResetKey =
     (isMobileViewport ? 1 : 0) * 10000 + panelStage * 1000 + savedReports.length;
-  const panelIntroLayoutSync =
-    panelIntroActive &&
-    (panelIntroPhase === 'assemble' || panelIntroPhase === 'settle' || panelIntroSettled);
-
-  const panelRenderedCards = compactPanelCards.map((card, index) => {
-    const cloned = React.cloneElement(card.node as ReactElement<Record<string, unknown>>, {
+  const panelRenderedCards = compactPanelCards.map((card, index) =>
+    React.cloneElement(card.node as ReactElement<Record<string, unknown>>, {
+      key: `real-${card.key}-${index}`,
       'data-loop-segment': 'real',
       'data-loop-origin': String(index),
-      ...(panelIntroActive ? {} : { 'data-panel-intro-slot': card.key }),
-    });
-
-    if (!panelIntroActive) {
-      return React.cloneElement(cloned, { key: `real-${card.key}-${index}` });
-    }
-
-    return (
-      <PanelIntroGridSlot
-        key={`real-${card.key}-${index}`}
-        cardKey={card.key}
-        cardIndex={index}
-        introPhase={panelIntroPhase}
-        revealedCount={panelIntroRevealedCount}
-        syncLayout={panelIntroLayoutSync}
-      >
-        {cloned}
-      </PanelIntroGridSlot>
-    );
-  });
+      'data-panel-section': card.key,
+    }),
+  );
 
   if (!authBootstrapped || !isAuthenticated) {
     return null;
@@ -3776,8 +3678,15 @@ export default function AgentPage() {
     <div className="agent-composer-stack">
       {hasBudgetTablePending && budgetTablePending && !isBudgetModalOpen ? (
         <BudgetPendingConfirmBanner
-          summary={budgetTablePending.summary}
+          pending={budgetTablePending}
+          budgetRows={budgetRows}
+          budgetTotals={budgetTotals}
           disabled={loading}
+          onPendingChange={setBudgetTablePending}
+          focusBudgetField={(target) => {
+            const el = target as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | null;
+            if (el && typeof el.focus === 'function') focusMobileInput(el);
+          }}
           onConfirm={confirmBudgetTablePending}
           onReject={rejectBudgetTablePending}
         />
@@ -3800,9 +3709,12 @@ export default function AgentPage() {
           onPointerDown={(e) => {
             if (isActiveChatLocked || isActiveChatClosed || !isMobileViewport) return;
             if (e.pointerType !== 'touch' && e.pointerType !== 'pen') return;
-            /* iOS: prevent ghost click on the label from stealing focus back. */
+            if ((e.target as HTMLElement).closest('textarea')) return;
+            collapseMobilePanelForComposer();
             e.preventDefault();
-            openComposerFromGesture();
+            window.requestAnimationFrame(() => {
+              focusMobileInput(chatComposerRef.current);
+            });
           }}
         >
           $ escribir_mensaje
@@ -3902,21 +3814,12 @@ export default function AgentPage() {
   );
 
   return (
-    <PanelIntroLayoutGroup>
     <>
       <main
       className={`agent-layout ${activeThreadThemeClass} ${
         bootSequenceActive ? 'is-boot-sequence-active' : ''
       } ${
-        panelIntroActive ? 'is-panel-intro-active' : ''
-      } ${
-        panelIntroPhase === 'shell' ? 'is-panel-intro-shell' : ''
-      } ${
-        panelIntroPhase === 'assemble' || panelIntroPhase === 'settle'
-          ? 'is-panel-intro-assemble'
-          : ''
-      } ${
-        panelIntroSettled ? 'is-panel-intro-settled' : ''
+        bootShellReveal ? 'is-boot-shell-reveal' : ''
       } ${
         isRailMorphing ? 'is-mode-12-morphing' : ''
       } ${
@@ -3941,7 +3844,7 @@ export default function AgentPage() {
     >
       <section
         ref={chatBodyRef as React.RefObject<HTMLElement>}
-        className={`agent-chat active-chat-${activeThread?.label ?? '1'}${chatSlideDir ? ` chat-slide-${chatSlideDir}` : ''}${isMobileViewport && !interviewCompleted ? ' is-chat-swipe-locked' : ''}`}
+        className={`agent-chat active-chat-${activeThread?.label ?? '1'}${isMobileViewport ? ' is-chat-swipe-locked' : ''}`}
       >
         <ChatHeader
           chatThreads={chatThreads}
@@ -3991,15 +3894,6 @@ export default function AgentPage() {
               Retomar
             </button>
           </div>
-        ) : null}
-
-        {contextConflictBanner.shouldRender ? (
-          <ContextConflictBanner
-            conflicts={contextConflictBanner.primaryConflicts}
-            hiddenCount={contextConflictBanner.hiddenCount}
-            onDismiss={contextConflictBanner.dismissConflict}
-            onAction={handleContextConflictAction}
-          />
         ) : null}
 
         {isActiveChatClosed ? (
@@ -4054,6 +3948,29 @@ export default function AgentPage() {
             chat1IntroMode={chat1IntroMode}
             chat1GeneralDeepened={chat1GeneralDeepened}
             diagnosisDeepenVoiceFindings={diagnosisDeepenVoiceFindings}
+            pwaInstallNotice={
+              pwaInstallNotice.shouldRender
+                ? {
+                    guide: pwaInstallNotice.guide,
+                    platformLabel: pwaInstallNotice.guide.title,
+                    showPrimaryAction: pwaInstallNotice.showPrimaryAction,
+                    primaryLabel: pwaInstallNotice.primaryLabel,
+                    statusMessage: pwaInstallNotice.statusMessage,
+                    onPrimaryAction: () => void pwaInstallNotice.runPrimaryAction(),
+                    onDismiss: pwaInstallNotice.dismissNotice,
+                  }
+                : null
+            }
+            contextConflictNotice={
+              contextConflictBanner.shouldRender
+                ? {
+                    conflicts: contextConflictBanner.primaryConflicts,
+                    hiddenCount: contextConflictBanner.hiddenCount,
+                    onDismiss: contextConflictBanner.dismissConflict,
+                    onAction: handleContextConflictAction,
+                  }
+                : null
+            }
           />
 
           {activeChatId === 'chat-3' && !isActiveChatClosed && !isActiveChatLocked ? (
@@ -4118,9 +4035,6 @@ export default function AgentPage() {
         compactPanelLoopResetKey={compactPanelLoopResetKey}
         compactPanelDeckRef={compactPanelDeckRef}
         panelRenderedCards={panelRenderedCards}
-        panelIntroActive={panelIntroActive}
-        panelIntroPhase={panelIntroPhase}
-        panelIntroSettled={panelIntroSettled}
       />
 
       {docFlight && (
@@ -4201,9 +4115,10 @@ export default function AgentPage() {
       />
 
       <BudgetModal
+        key={budgetModalSession}
         isOpen={isBudgetModalOpen}
         fincoinSpendBlocked={fincoinSpendBlocked}
-        onClose={() => setIsBudgetModalOpen(false)}
+        onClose={closeBudgetModal}
         budgetTotals={budgetTotals}
         budgetRows={budgetRows}
         budgetCompletion={budgetCompletion}
@@ -4272,46 +4187,16 @@ export default function AgentPage() {
       {bootSequenceActive && sessionInfo ? (
         <AgentBootSequence
           session={sessionInfo}
-          onHandoff={(origin) => {
-            setPanelIntroHandoffOrigin(origin);
+          revealTargetRef={chatBodyRef}
+          onHandoff={() => {
+            setBootShellReveal(true);
           }}
           onComplete={() => {
             setBootSequenceActive(false);
-          }}
-        />
-      ) : null}
-
-      {panelIntroActive ? (
-        <PanelCardsIntroSequence
-          panelGridRef={panelGridRef}
-          panelCards={compactPanelCards}
-          isMobileViewport={isMobileViewport}
-          handoffOrigin={panelIntroHandoffOrigin}
-          onPhaseChange={setPanelIntroPhase}
-          onRevealCountChange={setPanelIntroRevealedCount}
-          onSettled={() => setPanelIntroSettled(true)}
-          onPanelReveal={() => {
-            if (isMobileViewport) {
-              compactPanelDeckRef.current?.resetHome();
-            } else {
-              panelScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-            }
-          }}
-          onHaptic={haptic}
-          onComplete={() => {
-            panelIntroStartRef.current = false;
-            setPanelIntroActive(false);
-            setPanelIntroPhase('morph');
-            setPanelIntroRevealedCount(0);
-            setPanelIntroSettled(false);
-            setPanelIntroHandoffOrigin(null);
-            if (isMobileViewport) {
-              compactPanelDeckRef.current?.resetHome();
-            }
+            window.setTimeout(() => setBootShellReveal(false), 1120);
           }}
         />
       ) : null}
     </>
-    </PanelIntroLayoutGroup>
   );
 }

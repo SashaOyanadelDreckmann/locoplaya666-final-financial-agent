@@ -13,6 +13,7 @@ import {
   isBudgetMetaOrHelpQuestion,
   type BudgetTableAction,
   validateBudgetTableActions,
+  isBudgetInvalidActionCategory,
 } from '@financial-agent/shared';
 import { completeStructuredWithSchema } from './llm.service';
 import { isBudgetReactEnabled, runBudgetChatReactLoop, type BudgetReactTraceStep } from './budget-chat-react.service';
@@ -54,7 +55,9 @@ type AgentModelOutput = {
 
 function isAgentEnabled(): boolean {
   if (process.env.BUDGET_CHAT_AGENT_ENABLED === 'false') return false;
-  if (process.env.NODE_ENV === 'test') return false;
+  if (process.env.NODE_ENV === 'test') {
+    return process.env.BUDGET_CHAT_AGENT_TEST_MOCKS === 'true';
+  }
   const key = process.env.OPENAI_API_KEY?.trim();
   if (!key || key === 'test-key' || key === 'test-openai-key') return false;
   return true;
@@ -65,7 +68,7 @@ function resolveAgentModel(): string {
     process.env.BUDGET_CHAT_AGENT_MODEL?.trim() ||
     process.env.BUDGET_CHAT_PLANNER_MODEL?.trim() ||
     process.env.OPENAI_MODEL_FAST?.trim() ||
-    'gpt-4o-mini'
+    'gpt-4.1-mini'
   );
 }
 
@@ -91,9 +94,8 @@ function buildAgentToolInstructions(): string {
     '- NO sigas un guion fijo de campos: interpreta lenguaje natural y mapea a la tabla.',
     '- Usa ids existentes de TABLE_ROWS para update/delete; ids nuevos solo en add.',
     '- Montos solo si el usuario los dio, están en RECENT_CHAT o hay evidencia verificable en movementLedger (movimientos por producto).',
-    '- requires_confirmation=true si hay delete, si son ≥4 actions, o si el cambio es masivo/ambiguo.',
-    '- requires_confirmation=false si el pedido es explícito y acotado (ej. un monto, un rename, 1-3 adds claros).',
-    '- pending_summary: qué harás (1-2 frases, cita detalle del usuario). Sin muletillas Perfecto/Claro/Listo.',
+    '- requires_confirmation=true SIEMPRE que propongas add, update o delete (el usuario confirma en la UI).',
+    '- pending_summary: qué propones (1-2 frases, cita detalle del usuario). Sin muletillas Perfecto/Claro/Listo.',
     '- assistant_reply: respuesta conversacional breve (puede ser vacía si pending_summary basta).',
     '- next_question: UNA pregunta útil o propuesta siguiente; puede ser abierta ("¿Qué más ajustamos?").',
     '- En init: la tabla trae 3 filas genéricas (ingreso + 2 gastos). Si hay movimientos en CONTEXT, propón sumar 1-2 filas concretas con montos estimados; si no hay datos, sugiere rubros típicos sin inventar montos. Tono conversacional, no robot.',
@@ -205,8 +207,8 @@ function normalizeAgentFollowUp(raw: AgentModelOutput): string {
   return AGENT_DEFAULT_FOLLOW_UP;
 }
 
-export function isBudgetAgentUnavailableResult(result: Pick<BudgetAgentResult, 'source'>): boolean {
-  return result.source === 'budget_agent_unavailable';
+export function isBudgetAgentUnavailableResult(result: Pick<BudgetAgentResult, 'source'> | null | undefined): boolean {
+  return !result || result.source === 'budget_agent_unavailable';
 }
 
 function normalizeAgentResult(
@@ -216,7 +218,7 @@ function normalizeAgentResult(
 ): BudgetAgentResult | null {
   const actions = validateBudgetTableActions(raw.actions ?? [], input.rows).filter((action) => {
     if (isBudgetMetaOrHelpQuestion(input.userAnswer)) return false;
-    if (action.category && isBudgetMetaOrHelpQuestion(action.category)) return false;
+    if (action.category && isBudgetInvalidActionCategory(action.category)) return false;
     return true;
   });
   const requiresConfirmation = inferRequiresConfirmation(actions, Boolean(raw.requires_confirmation));

@@ -1,5 +1,6 @@
 'use client';
 import './intake.css';
+import '../estilos/sistema/desktop-home-backdrop.css';
 
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -10,7 +11,6 @@ import { getSessionInfo } from '@/lib/api/cliente';
 import { toUserFacingError } from '@/lib/compartido/userError';
 import { hasCompletedIntakeAccess, resolveAuthRedirectPath } from '@/lib/sesion/sessionAccess';
 import { markAgentBootFromIntake } from '../agent/arranque/agent-boot-sequence.helpers';
-import { markPanelIntroPendingFromIntake } from '../agent/paneles/panel-intro.prefs';
 
 import type { IntakeQuestionnaire } from '@financial-agent/shared/src/intake/intake-questionnaire.types';
 
@@ -119,7 +119,6 @@ function IntakeContent() {
       const res = await submitIntake(form);
       setIntake(res.intake);
       markAgentBootFromIntake();
-      markPanelIntroPendingFromIntake();
 
       const reducedMotion =
         typeof window !== 'undefined' &&

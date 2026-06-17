@@ -11,6 +11,7 @@ import {
   type WelcomeIntroPayload,
   type WelcomeIntroSection,
 } from './welcome-intro.types';
+import { formatProductHintsBlurb } from './welcome-guide.helpers';
 
 export { WELCOME_INTRO_MAX_LLM_GENERATIONS };
 
@@ -203,6 +204,24 @@ function normalizeSections(sections: WelcomeIntroSection | undefined): WelcomeIn
 
 export function normalizeWelcomeIntroPayload(intro: WelcomeIntroPayload): WelcomeIntroPayload {
   const firstName = intro.firstName?.trim() || 'Hola';
+  const productHints = Array.isArray(intro.productHints)
+    ? intro.productHints
+        .filter(
+          (hint) =>
+            hint &&
+            typeof hint === 'object' &&
+            typeof hint.label === 'string' &&
+            typeof hint.fact === 'string',
+        )
+        .slice(0, 3)
+        .map((hint) => ({
+          label: hint.label.trim(),
+          fact: hint.fact.trim(),
+          source: String(hint.source ?? 'Web').trim() || 'Web',
+          url: typeof hint.url === 'string' ? hint.url.trim() : undefined,
+        }))
+    : undefined;
+
   return {
     version: 2,
     uiVersion: intro.uiVersion ?? EXECUTIVE_INTRO_UI_VERSION,
@@ -217,6 +236,9 @@ export function normalizeWelcomeIntroPayload(intro: WelcomeIntroPayload): Welcom
       : [],
     sections: normalizeSections(intro.sections),
     closingQuestion: intro.closingQuestion?.trim() || '¿Partimos por Productos y transacciones?',
+    guideActions: Array.isArray(intro.guideActions) ? intro.guideActions.slice(0, 4) : undefined,
+    productHints,
+    productBlurb: intro.productBlurb?.trim() || formatProductHintsBlurb(productHints ?? []),
   };
 }
 

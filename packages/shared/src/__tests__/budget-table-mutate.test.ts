@@ -28,13 +28,14 @@ describe('budget-table-mutate', () => {
     expect(patch.actions).toHaveLength(0);
   });
 
-  it('applies small updates without confirmation', () => {
+  it('requires confirmation for single updates', () => {
     const rows = createBudgetStarterRows();
     const patch = buildBudgetTablePatch(rows, [
       { kind: 'update', id: 'income_salary', type: 'income', category: 'Ingreso principal', amount: 900_000 },
     ]);
-    expect(patch.requires_confirmation).toBe(false);
-    expect(patch.actions).toHaveLength(1);
+    expect(patch.requires_confirmation).toBe(true);
+    expect(patch.actions).toHaveLength(0);
+    expect(patch.pending_confirmation?.actions).toHaveLength(1);
   });
 
   it('resolves row ids from labels', () => {

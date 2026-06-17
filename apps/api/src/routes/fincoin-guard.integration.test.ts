@@ -189,4 +189,43 @@ describe('fincoin spend guards', () => {
     expect(sessionRes.body?.data?.fincoinUsage?.initial_fincoins).toBe(250);
     expect(sessionRes.body?.data?.fincoinUsage?.depleted).toBe(false);
   }, 15000);
+
+  it('keeps fincoin wallets isolated between users', async () => {
+    const userA = await createAuthedAgent();
+    const userB = await createAuthedAgent();
+
+    await patchUserRecord(userA.userId, {
+      usdSpentTotal: FINCOIN_MAX_USD_SPEND,
+      fincoinDepletedAt: new Date().toISOString(),
+      fincoinDepletionHandled: true,
+    });
+
+    const [sessionA, sessionB, usageA, usageB] = await Promise.all([
+      userA.agent.get('/api/session'),
+      userB.agent.get('/api/session'),
+      userA.agent.get('/api/usage'),
+      userB.agent.get('/api/usage'),
+    ]);
+
+    expect(sessionA.body?.data?.fincoinUsage?.depleted).toBe(true);
+    expect(sessionA.body?.data?.fincoinUsage?.remaining_fincoins).toBe(0);
+    expect(sessionB.body?.data?.fincoinUsage?.depleted).toBe(false);
+    expect(sessionB.body?.data?.fincoinUsage?.remaining_fincoins).toBe(250);
+
+    expect(usageA.body?.data?.usage?.depleted).toBe(true);
+    expect(usageB.body?.data?.usage?.depleted).toBe(false);
+    expect(usageB.body?.data?.usage?.remaining_fincoins).toBe(250);
+
+    const chargeB = await chargeFincoinOperation(userB.userId, 'agent.chat');
+    expect(chargeB.charged).toBe(true);
+    expect(chargeB.usage.usdSpent).toBeCloseTo(FINCOIN_OPERATION_COST_USD['agent.chat'], 5);
+
+    const recordA = await getUserById(userA.userId);
+    const recordB = await getUserById(userB.userId);
+    expect(Number(recordA?.usdSpentTotal ?? 0)).toBeGreaterThanOrEqual(FINCOIN_MAX_USD_SPEND - 1e-6);
+    expect(Number(recordB?.usdSpentTotal ?? 0)).toBeCloseTo(
+      FINCOIN_OPERATION_COST_USD['agent.chat'],
+      5,
+    );
+  }, 20000);
 });

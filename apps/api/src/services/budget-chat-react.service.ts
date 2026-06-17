@@ -57,7 +57,7 @@ function buildReactSystemPrompt(): string {
     '- Máximo 1 herramienta de análisis por turno si hace falta; luego complete_turn.',
     '- Mutaciones solo en budget__complete_turn.actions.',
     '- Montos solo con evidencia del usuario o contexto.',
-    '- requires_confirmation=true si delete, ≥4 actions o cambio masivo.',
+    '- requires_confirmation=true en TODA mutación de tabla (add, update, delete).',
     '- next_question: una pregunta con signo de interrogación.',
     '- Español Chile, breve.',
   ].join('\n');

@@ -5,9 +5,11 @@ export type WelcomeIntroSection = {
   resultado: { title: string; body: string };
 };
 
-export const EXECUTIVE_INTRO_UI_VERSION = 8;
+export const EXECUTIVE_INTRO_UI_VERSION = 9;
 /** Hard cap: welcome intro LLM calls per user (lifetime). */
 export const WELCOME_INTRO_MAX_LLM_GENERATIONS = 2;
+
+import type { WelcomeGuideAction, WelcomeProductHint } from './welcome-guide.types';
 
 export type WelcomeIntroPayload = {
   version: 2;
@@ -19,6 +21,9 @@ export type WelcomeIntroPayload = {
   signals: string[];
   sections: WelcomeIntroSection;
   closingQuestion: string;
+  guideActions?: WelcomeGuideAction[];
+  productHints?: WelcomeProductHint[];
+  productBlurb?: string;
 };
 
 export type WelcomeIntroCache = {

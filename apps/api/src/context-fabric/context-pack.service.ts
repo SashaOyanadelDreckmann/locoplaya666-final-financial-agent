@@ -50,8 +50,6 @@ export function buildContextPackFromBundle(
       ? detectContextConflicts({
           facts,
           contextVersion: manifest.contextVersion,
-          diagnosticCompletedAt: bundle.diagnosticProfile?.meta?.completedAt ?? null,
-          budgetLastModified: manifest.sections.find((s) => s.name === 'budget')?.lastModified,
         })
       : [];
 

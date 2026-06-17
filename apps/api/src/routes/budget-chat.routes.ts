@@ -71,6 +71,7 @@ import {
   isBudgetConfirmationAnswer,
   isBudgetRejectionAnswer,
   buildPendingConfirmation,
+  buildBudgetTablePatch,
   type BudgetTableAction,
   type BudgetAssistantContext,
   type BudgetChatTurn,
@@ -1408,10 +1409,31 @@ type ConversationalFallbackParams = {
   manualFocusRowId?: string | null;
 };
 
+function tryDeterministicDeleteReplies(params: ConversationalFallbackParams): BudgetChatResponse | null {
+  const detectedIntent = detectBudgetIntent(params.answer);
+  if (detectedIntent === 'delete_all') {
+    return buildBulkDeleteConfirmReply({ rows: params.rows, answer: params.answer });
+  }
+  if (detectedIntent === 'delete_row') {
+    return buildSingleDeleteConfirmReply({
+      rows: params.rows,
+      answer: params.answer,
+      question: params.question,
+      context: params.context,
+      assistantFocusRowId: params.assistantFocusRowId,
+      manualFocusRowId: params.manualFocusRowId,
+      activeRow: params.activeRow,
+    });
+  }
+  return null;
+}
+
 function tryDeterministicWizardMutations(
   params: ConversationalFallbackParams,
 ): BudgetChatResponse | null {
   if (isBudgetMetaOrHelpQuestion(params.answer)) return null;
+  const intent = detectBudgetIntent(params.answer);
+  if (intent === 'delete_row' || intent === 'delete_all') return null;
   return (
     buildDeterministicMovementTypeUpdate(params) ??
     buildDeterministicCategoryUpdate(params) ??
@@ -1421,21 +1443,14 @@ function tryDeterministicWizardMutations(
 }
 
 function buildConversationalFallback(params: ConversationalFallbackParams) {
+  const deleteReply = tryDeterministicDeleteReplies(params);
+  if (deleteReply) return deleteReply;
+
   const wizardMutation = tryDeterministicWizardMutations(params);
   if (wizardMutation) return wizardMutation;
 
   const detectedIntent = detectBudgetIntent(params.answer);
   const snapshot = buildBudgetSnapshot(params.rows);
-
-  if (detectedIntent === 'delete_all') {
-    const bulk = buildBulkDeleteConfirmReply({ rows: params.rows, answer: params.answer });
-    if (bulk) return bulk;
-  }
-
-  if (detectedIntent === 'delete_row') {
-    const single = buildSingleDeleteConfirmReply(params);
-    if (single) return single;
-  }
 
   if (detectedIntent === 'help_add') {
     const help = buildBudgetHelpAddReply(params.rows, params.context);
@@ -1582,6 +1597,42 @@ function buildConversationalFallback(params: ConversationalFallbackParams) {
   });
 }
 
+function finalizeBudgetMutationDraft(draft: BudgetChatResponse, rows: BudgetRow[]): BudgetChatResponse {
+  if (draft.requires_confirmation && draft.pending_confirmation) return draft;
+
+  const rawActions: BudgetTableAction[] = [];
+  for (const record of draft.actions ?? []) {
+    rawActions.push(record as BudgetTableAction);
+  }
+  if (draft.action) {
+    const candidate = draft.action as BudgetTableAction;
+    const alreadyIncluded = rawActions.some(
+      (action) =>
+        action.kind === candidate.kind &&
+        canonicalBudgetRowId(action.id) === canonicalBudgetRowId(candidate.id),
+    );
+    if (!alreadyIncluded) rawActions.push(candidate);
+  }
+  if (rawActions.length === 0) return draft;
+
+  const patch = buildBudgetTablePatch(rows, rawActions);
+  if (!patch.requires_confirmation || !patch.pending_confirmation) return draft;
+
+  return buildBudgetReply({
+    reply: draft.assistant_reply || patch.summary,
+    followUp: draft.next_question,
+    focus_row_id: draft.focus_row_id,
+    source: draft.source,
+    provider: draft.provider,
+    market_snapshot: draft.market_snapshot,
+    requires_confirmation: true,
+    pending_confirmation: {
+      actions: patch.pending_confirmation.actions.map((action) => ({ ...action })),
+      summary: patch.pending_confirmation.summary,
+    },
+  });
+}
+
 function shouldUseDeterministicTableFallback(params: {
   agent: {
     source: string;
@@ -1622,23 +1673,12 @@ function resolveHybridBudgetChatDraft(params: {
   assistantFocusRowId?: string | null;
   manualFocusRowId?: string | null;
 }): BudgetChatResponse {
-  if (isBudgetMetaOrHelpQuestion(params.answer)) {
-    const help = buildBudgetHelpAddReply(params.rows, params.context);
-    return buildBudgetReply({
-      reply: help.reply,
-      followUp: help.followUp,
-      focus_row_id: help.focusRowId,
-      source: 'deterministic_help_add',
-      market_snapshot: emptyMarketSnapshot(),
-    });
+  if (!isBudgetAgentUnavailableResult(params.agent) &&
+    (params.agent.requires_confirmation || params.agent.actions.length > 0)) {
+    return buildAgentChatReply({ agent: params.agent, rows: params.rows });
   }
 
-  const agentDraft = buildAgentChatReply({ agent: params.agent, rows: params.rows });
-  if (params.agent.requires_confirmation || params.agent.actions.length > 0) {
-    return agentDraft;
-  }
-
-  const wizardMutation = tryDeterministicWizardMutations({
+  return buildConversationalFallback({
     answer: params.answer,
     rows: params.rows,
     activeRow: params.activeRow,
@@ -1647,25 +1687,6 @@ function resolveHybridBudgetChatDraft(params: {
     assistantFocusRowId: params.assistantFocusRowId,
     manualFocusRowId: params.manualFocusRowId,
   });
-  if (wizardMutation) return wizardMutation;
-
-  if (!shouldUseDeterministicTableFallback({ agent: params.agent, answer: params.answer })) {
-    return agentDraft;
-  }
-
-  const deterministicDraft = buildConversationalFallback({
-    answer: params.answer,
-    rows: params.rows,
-    activeRow: params.activeRow,
-    context: params.context,
-    question: params.question,
-    assistantFocusRowId: params.assistantFocusRowId,
-    manualFocusRowId: params.manualFocusRowId,
-  });
-
-  const deterministicHasActions = (deterministicDraft.actions?.length ?? 0) > 0;
-  if (deterministicHasActions) return deterministicDraft;
-  return agentDraft;
 }
 
 router.post(
@@ -1706,7 +1727,6 @@ router.post(
     const manualFocusRowId = compactText(body.manualFocusRowId, 80) || null;
     const snapshot = buildBudgetSnapshot(rows);
     const pendingRaw = body.pendingConfirmation ?? null;
-    const pendingActionCount = pendingRaw?.actions?.length ?? 0;
     const pendingActions = pendingRaw
       ? validateBudgetTableActions((pendingRaw.actions ?? []) as BudgetTableAction[], rows)
       : [];
@@ -1726,11 +1746,9 @@ router.post(
         mode: 'init',
         userId: user?.id,
       });
-      const draft =
-        !isBudgetAgentUnavailableResult(agentResult) &&
-        (agentResult.actions.length > 0 || agentResult.requires_confirmation)
-          ? buildAgentChatReply({ agent: agentResult, rows })
-          : deterministicInit;
+      const draft = isBudgetAgentUnavailableResult(agentResult)
+        ? deterministicInit
+        : buildAgentChatReply({ agent: agentResult, rows });
       return sendBudgetChatResponse(
         res,
         { ...draft, market_snapshot: marketSnapshot },
@@ -1738,7 +1756,7 @@ router.post(
       );
     }
 
-    if (intent === 'reply' && pendingActionCount > 0) {
+    if (intent === 'reply' && pendingRaw && (isBudgetConfirmationAnswer(answer) || isBudgetRejectionAnswer(answer))) {
       if (isBudgetConfirmationAnswer(answer)) {
         if (pendingActions.length === 0) {
           const failedDraft = buildConfirmationApplyFailedReply();
@@ -1777,6 +1795,7 @@ router.post(
         (assistantFocusRowId
           ? rows.find((row) => canonicalBudgetRowId(row.id) === canonicalBudgetRowId(assistantFocusRowId)) ?? null
           : null);
+
       const agentResult = await runBudgetChatAgent({
         rows,
         context,
@@ -1787,16 +1806,21 @@ router.post(
         mode: 'reply',
         userId: user?.id,
       });
-      const draft = resolveHybridBudgetChatDraft({
-        agent: agentResult,
+      const draft = finalizeBudgetMutationDraft(
+        isBudgetAgentUnavailableResult(agentResult)
+          ? resolveHybridBudgetChatDraft({
+              agent: agentResult,
+              rows,
+              answer,
+              question,
+              context,
+              activeRow: focusRow,
+              assistantFocusRowId,
+              manualFocusRowId,
+            })
+          : buildAgentChatReply({ agent: agentResult, rows }),
         rows,
-        answer,
-        question,
-        context,
-        activeRow: focusRow,
-        assistantFocusRowId,
-        manualFocusRowId,
-      });
+      );
       const marketSnapshot = await getMarketSnapshotOptional();
       return sendBudgetChatResponse(
         res,

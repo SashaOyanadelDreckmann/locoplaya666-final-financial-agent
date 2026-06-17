@@ -681,11 +681,28 @@ export default function HomePage() {
               {/* Hero copy — visible INMEDIATAMENTE en desktop */}
               <motion.div className="home-page-hero" style={{ y: heroY }}>
 
+                <motion.div
+                  className="home-thesis-kicker"
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.55, delay: 0.0, ease: SILK }}
+                >
+                  <span className="home-thesis-kicker__line home-thesis-kicker__line--sub">
+                    Tesis para el doble grado de Ingeniería Civil Industrial y Magíster en Ciencia de los Datos
+                  </span>
+                  <span className="home-thesis-kicker__line">
+                    <strong>Sasha Oyanadel Dreckmann</strong>
+                  </span>
+                  <span className="home-thesis-kicker__line home-thesis-kicker__line--sub">
+                    Agente conversacional en finanzas personales · Chile
+                  </span>
+                </motion.div>
+
                 {/* Línea de acento arriba del título */}
                 <motion.div
                   initial={{ scaleX: 0, opacity: 0 }}
                   animate={{ scaleX: 1, opacity: 0.7 }}
-                  transition={{ duration: 0.6, delay: 0.0, ease: SNAP }}
+                  transition={{ duration: 0.6, delay: 0.04, ease: SNAP }}
                   style={{ width: 36, height: 2, background: BLUE, borderRadius: 1, marginBottom: 22, transformOrigin: 'left' }}
                 />
 

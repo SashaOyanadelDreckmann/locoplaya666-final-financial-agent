@@ -216,6 +216,7 @@ export function validateBudgetTableAction(
   const existing = rows.find((row) => canonicalBudgetRowId(row.id) === canonical) ?? null;
   const merged = mergeBudgetActionIntoRow(existing, { ...action, id: canonical });
   if (!merged) return { ok: false, reason: 'invalid_merge' };
+  if (isBudgetInvalidActionCategory(merged.category)) return { ok: false, reason: 'invalid_category' };
 
   return {
     ok: true,
@@ -308,6 +309,22 @@ export function isBudgetMetaOrHelpQuestion(answer: string): boolean {
   if (asksHow && mentionsAdd) return true;
   if (/\b(como puedo|como hago|que puedo)\b/.test(text)) return true;
   if (/\?\s*$/.test(trimmed) && asksHow) return true;
+  return false;
+}
+
+/** Rejects chatty / question-shaped text masquerading as a budget category. */
+export function isBudgetInvalidActionCategory(category: string): boolean {
+  const trimmed = String(category ?? '').trim();
+  if (!trimmed || trimmed.length < 2) return true;
+  if (trimmed.length > 72) return true;
+  if (isBudgetMetaOrHelpQuestion(trimmed)) return true;
+  if (/\?\s*$/.test(trimmed)) return true;
+  const text = normalizeBudgetParseText(trimmed);
+  if (/^(si|sip|ok|dale|claro|bueno|ya)[,\s]/i.test(trimmed)) return true;
+  if (/\b(como|cual|que puedo|podria|podría|deberia|debería)\b/.test(text)) return true;
+  if (/\b(agregar|anadir|añadir|sumar)\b/.test(text) && /\b(como|que|cual)\b/.test(text)) return true;
+  const wordCount = trimmed.split(/\s+/).filter(Boolean).length;
+  if (wordCount > 8) return true;
   return false;
 }
 

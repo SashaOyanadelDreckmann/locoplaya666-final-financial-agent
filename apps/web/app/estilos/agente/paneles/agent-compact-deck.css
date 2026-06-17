@@ -25,8 +25,26 @@
   }
 
   html:not(.pwa-standalone) body.agent-route-active main.agent-layout.is-mobile-viewport {
-    height: var(--visual-vh, var(--fa-app-height, 100dvh)) !important;
-    max-height: var(--visual-vh, var(--fa-app-height, 100dvh)) !important;
+    height: var(--screen-h, var(--fa-app-height, 100dvh)) !important;
+    max-height: var(--screen-h, var(--fa-app-height, 100dvh)) !important;
+    transition: none !important;
+  }
+
+  html:not(.pwa-standalone) body.agent-route-active.browser-keyboard-open main.agent-layout.is-mobile-viewport,
+  html:not(.pwa-standalone) body.agent-route-active.composer-typing-snap main.agent-layout.is-mobile-viewport {
+    height: var(--screen-h, var(--fa-app-height, 100dvh)) !important;
+    max-height: var(--screen-h, var(--fa-app-height, 100dvh)) !important;
+    padding-bottom: var(--keyboard-inset-bottom, 0px) !important;
+    transition: none !important;
+  }
+
+  html:not(.pwa-standalone) body.agent-route-active.browser-keyboard-open main.agent-layout.is-mobile-viewport > aside.agent-panel,
+  html:not(.pwa-standalone) body.agent-route-active.browser-keyboard-open main.agent-layout.is-mobile-viewport > section.agent-chat,
+  html:not(.pwa-standalone) body.agent-route-active.browser-keyboard-open main.agent-layout.is-mobile-viewport > .agent-mobile-composer-dock,
+  html:not(.pwa-standalone) body.agent-route-active.composer-typing-snap main.agent-layout.is-mobile-viewport > aside.agent-panel,
+  html:not(.pwa-standalone) body.agent-route-active.composer-typing-snap main.agent-layout.is-mobile-viewport > section.agent-chat,
+  html:not(.pwa-standalone) body.agent-route-active.composer-typing-snap main.agent-layout.is-mobile-viewport > .agent-mobile-composer-dock {
+    transition: none !important;
   }
 
   body.agent-route-active main.agent-layout.is-mobile-viewport > section.agent-chat {
@@ -202,6 +220,20 @@
     border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
     border-bottom: none !important;
     background: #000000 !important;
+  }
+
+  body.agent-route-active main.agent-layout.is-mobile-viewport > aside.agent-panel.is-mobile-compact:not(.is-mobile-expanded) .panel-grid.is-card-stack .mobile-deck-sr-only {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
   }
 
   body.agent-route-active main.agent-layout.is-mobile-viewport .mobile-panel-chevron {
@@ -1184,6 +1216,11 @@ html[data-visual-mode='light-outline'] .floating-card-shell {
     /* Composer dock + panel deck are flex siblings outside the thread — drop legacy overlay reserve */
     scroll-padding-bottom: max(8px, env(safe-area-inset-bottom, 0px)) !important;
     scroll-padding-top: var(--agent-mobile-header-chat-gap, 12px) !important;
+    padding-top: max(8px, var(--agent-mobile-header-chat-gap, 12px)) !important;
+  }
+
+  html.agent-route-active body.agent-route-active main.agent-layout.is-mobile-viewport .agent-thread > * {
+    scroll-margin-top: var(--agent-mobile-header-chat-gap, 12px) !important;
   }
 
   html.agent-route-active body.agent-route-active main.agent-layout.is-mobile-viewport.mobile-panel-expanded .agent-panel.is-mobile-expanded,
@@ -1213,7 +1250,9 @@ html[data-visual-mode='light-outline'] .floating-card-shell {
       max(env(safe-area-inset-top, 0px), var(--agent-mobile-header-safe-min)) + var(--agent-mobile-header-safe-gap)
     );
     --agent-mobile-header-occupy: calc(
-      var(--agent-mobile-header-top) + var(--agent-mobile-header-bar-h) + var(--agent-mobile-header-chat-gap)
+      var(--agent-mobile-header-top)
+      + var(--agent-mobile-header-measured-h, var(--agent-mobile-header-bar-h))
+      + var(--agent-mobile-header-chat-gap)
     );
   }
 
@@ -1256,12 +1295,12 @@ html[data-visual-mode='light-outline'] .floating-card-shell {
 
   body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row {
     min-height: var(--agent-mobile-header-bar-h) !important;
-    max-height: var(--agent-mobile-header-bar-h) !important;
+    max-height: none !important;
     padding-top: 5px !important;
     padding-bottom: 5px !important;
     padding-left: max(8px, env(safe-area-inset-left, 0px)) !important;
     padding-right: 0 !important;
-    overflow: hidden !important;
+    overflow: visible !important;
   }
 
   body.agent-route-active main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile.is-mobile-single-row .chat-mobile-toolbar-row,
@@ -1284,11 +1323,6 @@ html[data-visual-mode='light-outline'] .floating-card-shell {
     flex-direction: column !important;
     align-items: stretch !important;
     gap: 0 !important;
-  }
-
-  body.agent-route-active main.agent-layout.is-mobile-viewport > section.agent-chat.active-chat-2:has(.agent-chat-header.has-action-plan-funnel) {
-    --agent-mobile-header-occupy: calc(var(--agent-mobile-header-top) + 98px + var(--agent-mobile-header-chat-gap, 12px));
-    padding-top: var(--agent-mobile-header-occupy) !important;
   }
 
   html:not(.pwa-standalone) body.agent-route-active.browser-keyboard-open main.agent-layout.is-mobile-viewport .agent-chat-header.is-mobile,

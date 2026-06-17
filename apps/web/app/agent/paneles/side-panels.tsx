@@ -34,9 +34,6 @@ export function SidePanels(props: {
   compactPanelLoopResetKey?: number;
   compactPanelDeckRef?: React.Ref<MobilePanelDeckHandle>;
   panelRenderedCards: ReactNode;
-  panelIntroActive?: boolean;
-  panelIntroPhase?: 'morph' | 'shell' | 'assemble' | 'settle';
-  panelIntroSettled?: boolean;
 }) {
   const useMobileDeck =
     props.isMobileViewport &&
@@ -60,7 +57,7 @@ export function SidePanels(props: {
               ? ' is-mobile-expanded'
               : ' is-mobile-compact'
             : ''
-        }${props.panelIntroActive ? ' is-panel-intro-measure' : ''}`}
+        }`}
         ref={props.panelScrollRef}
       >
         <div
@@ -99,7 +96,7 @@ export function SidePanels(props: {
         ) : (
           <div
             ref={props.panelGridRef}
-            className={`panel-grid${props.panelIntroActive ? ' is-panel-intro-measure' : ''}`}
+            className="panel-grid"
           >
             {props.panelRenderedCards}
           </div>

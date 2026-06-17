@@ -8,7 +8,9 @@ import {
   type ChatIntroId,
 } from '@/app/agent/flujo/chat-intro.shared';
 import type { DiagnosisProfile } from '@/state/profile.store';
+import type { WelcomeGuideAction, WelcomeProductHint } from '@financial-agent/shared';
 import { ExecutiveBlobCarouselShell } from '@/components/ui/executive-blob-carousel';
+import { WelcomeProductHintsStrip } from '@/components/ui/welcome-product-hints-strip';
 
 type ChatIntroGradientCardProps = {
   className?: string;
@@ -19,6 +21,9 @@ type ChatIntroGradientCardProps = {
   diagnosisUnlocked?: boolean;
   introMode?: 'default' | 'deepen';
   voiceFindings?: string[];
+  productHints?: WelcomeProductHint[];
+  productBlurb?: string;
+  guideActions?: WelcomeGuideAction[];
 };
 
 export function ChatIntroGradientCard({
@@ -30,6 +35,8 @@ export function ChatIntroGradientCard({
   diagnosisUnlocked = false,
   introMode = 'default',
   voiceFindings,
+  productHints,
+  productBlurb,
 }: ChatIntroGradientCardProps) {
   const session = useMemo(
     () => ({
@@ -52,8 +59,10 @@ export function ChatIntroGradientCard({
             session,
             diagnosisProfile,
             diagnosisUnlocked: chatId === 'chat-1' ? diagnosisUnlocked : undefined,
+            productHints,
+            productBlurb,
           }),
-    [chatId, diagnosisProfile, diagnosisUnlocked, introMode, session, voiceFindings],
+    [chatId, diagnosisProfile, diagnosisUnlocked, introMode, session, voiceFindings, productHints, productBlurb],
   );
 
   const pages = useMemo(
@@ -91,6 +100,9 @@ export function ChatIntroGradientCard({
       <p className="gradient-blob-card__body-text gradient-blob-card__body-text--lead gradient-blob-card__body-text--intro">
         {intro.message}
       </p>
+      {intro.productHints && intro.productHints.length > 0 ? (
+        <WelcomeProductHintsStrip hints={intro.productHints} />
+      ) : null}
       {intro.signals.length > 0 ? (
         <div className="gradient-blob-card__signal-strip">
           {intro.signals.map((signal) => (

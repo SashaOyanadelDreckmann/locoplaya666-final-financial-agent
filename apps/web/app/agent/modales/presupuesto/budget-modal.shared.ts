@@ -1,4 +1,5 @@
 import type { BudgetRow } from '@/lib/presupuesto/filas.helpers';
+import type { CSSProperties } from 'react';
 
 export const MATTE_GRAY_PALETTE = [
   '#8b949d',
@@ -51,4 +52,25 @@ export function colorForBudgetRow(rowId: string) {
   }
   const idx = Math.abs(hash) % MATTE_GRAY_PALETTE.length;
   return MATTE_GRAY_PALETTE[idx];
+}
+
+export function rowStyleForBudgetRow(
+  row: BudgetRow,
+  rows: BudgetRow[],
+): CSSProperties {
+  const maxExpense = Math.max(
+    1,
+    ...rows.filter((item) => item.type === 'expense').map((item) => item.amount),
+  );
+  const maxIncome = Math.max(
+    1,
+    ...rows.filter((item) => item.type === 'income').map((item) => item.amount),
+  );
+  const t = Math.max(0, Math.min(1, row.amount / (row.type === 'expense' ? maxExpense : maxIncome)));
+  const alpha = row.type === 'expense' ? 0.16 + t * 0.6 : 0.14 + t * 0.56;
+  const bg =
+    row.type === 'expense'
+      ? `rgba(118, 26, 36, ${alpha.toFixed(2)})`
+      : `rgba(62, 84, 22, ${alpha.toFixed(2)})`;
+  return { '--row-bg': bg } as CSSProperties;
 }

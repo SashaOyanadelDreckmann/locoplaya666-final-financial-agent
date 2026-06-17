@@ -533,6 +533,22 @@ html[data-visual-mode='dark-outline'] body.agent-route-active .agent-layout.is-v
   -webkit-text-fill-color: rgba(255, 255, 255, 0.62) !important;
 }
 
+html[data-visual-mode='dark-outline'] body.agent-route-active .agent-layout.is-visual-mode-dark-outline .agent-thread .agent-message-chrome__action,
+html[data-visual-mode='dark-outline'] body.agent-route-active .agent-layout.is-visual-mode-dark-outline .agent-thread .agent-message-chrome__citations-toggle {
+  color: rgba(255, 255, 255, 0.62) !important;
+  -webkit-text-fill-color: rgba(255, 255, 255, 0.62) !important;
+}
+
+html[data-visual-mode='dark-outline'] body.agent-route-active .agent-layout.is-visual-mode-dark-outline .agent-thread .agent-message-chrome__note {
+  color: rgba(255, 255, 255, 0.45) !important;
+  -webkit-text-fill-color: rgba(255, 255, 255, 0.45) !important;
+}
+
+html[data-visual-mode='dark-outline'] body.agent-route-active .agent-layout.is-visual-mode-dark-outline .agent-thread .agent-message-chrome__citation-list {
+  color: rgba(255, 255, 255, 0.45) !important;
+  -webkit-text-fill-color: rgba(255, 255, 255, 0.45) !important;
+}
+
 html[data-visual-mode='dark-outline'] body.agent-route-active .agent-layout.is-visual-mode-dark-outline .agent-thread .agent-inline-panel-button {
   background: rgba(0, 0, 0, 0.92) !important;
   background-color: rgba(0, 0, 0, 0.92) !important;
@@ -1147,6 +1163,23 @@ html[data-visual-mode='light-outline'] body.agent-route-active .agent-layout.is-
 html[data-visual-mode='light-outline'] body.agent-route-active .agent-layout.is-visual-mode-light-outline .agent-thread .agent-inline-panel-note {
   color: rgba(0, 0, 0, 0.58) !important;
   -webkit-text-fill-color: rgba(0, 0, 0, 0.58) !important;
+}
+
+html[data-visual-mode='light-outline'] body.agent-route-active .agent-layout.is-visual-mode-light-outline .agent-thread .agent-message-chrome__action,
+html[data-visual-mode='light-outline'] body.agent-route-active .agent-layout.is-visual-mode-light-outline .agent-thread .agent-message-chrome__citations-toggle {
+  color: rgba(0, 0, 0, 0.58) !important;
+  -webkit-text-fill-color: rgba(0, 0, 0, 0.58) !important;
+  text-decoration-color: rgba(0, 0, 0, 0.28) !important;
+}
+
+html[data-visual-mode='light-outline'] body.agent-route-active .agent-layout.is-visual-mode-light-outline .agent-thread .agent-message-chrome__note {
+  color: rgba(0, 0, 0, 0.45) !important;
+  -webkit-text-fill-color: rgba(0, 0, 0, 0.45) !important;
+}
+
+html[data-visual-mode='light-outline'] body.agent-route-active .agent-layout.is-visual-mode-light-outline .agent-thread .agent-message-chrome__citation-list {
+  color: rgba(0, 0, 0, 0.45) !important;
+  -webkit-text-fill-color: rgba(0, 0, 0, 0.45) !important;
 }
 
 html[data-visual-mode='light-outline'] body.agent-route-active .agent-layout.is-visual-mode-light-outline .agent-thread .agent-inline-panel-button {

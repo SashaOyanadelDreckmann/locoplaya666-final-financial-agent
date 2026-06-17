@@ -4,6 +4,7 @@ import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import { BlockMath } from 'react-katex';
 import { ChatTableScrollHost } from '@/components/agente/ChatTableScrollHost';
+import { shouldPromoteLineToBlockMath } from './message-renderer.helpers';
 
 export function renderLatexDocMessage(content: string): ReactNode {
   const sanitized = content
@@ -181,14 +182,7 @@ export function renderLatexDocMessage(content: string): ReactNode {
       if (!trimmed || inFence || trimmed.includes('$$')) return raw;
       const bulletPrefix = raw.match(/^(\s*(?:[-*]|\d+\.)\s+)/)?.[1] ?? '';
       const body = bulletPrefix ? raw.slice(bulletPrefix.length).trim() : trimmed;
-      const looksFormulaLike =
-        /[=Σπμσ√∞∑]/u.test(body) ||
-        /\b(?:VAN|VPN|TIR|IRR|WACC|CAPM|ROI|ROE|EBITDA|NPV|beta|alpha|ln|cov|var)\b/i.test(body) ||
-        /[A-Za-z][A-Za-z0-9_]*\s*=\s*.+/.test(body) ||
-        /\([^)]+\)\^[^\s]+/.test(body) ||
-        /\bCF_t\b|\br_f\b|\br_m\b|\bP_final\b|\bP_inicial\b/.test(body);
-      const proseHeavy = body.split(/\s+/).length > 18 && !/[=Σ∑]/u.test(body);
-      if (!looksFormulaLike || proseHeavy) return raw;
+      if (!shouldPromoteLineToBlockMath(body)) return raw;
       const formulaBody = body.replace(/\*\*/g, '').replace(/\bSigma\b/gi, '\\sum').replace(/Σ/g, '\\sum ').replace(/\bln\s*\(/g, '\\ln(').replace(/\bpi\b/gi, '\\pi ').replace(/\bmu\b/gi, '\\mu ').replace(/\bsigma\b/gi, '\\sigma ').trim();
       if (!formulaBody) return raw;
       return `${bulletPrefix}$$${normalizeDivisionsToFractions(formulaBody)}$$`;

@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useLayoutEffect, useRef } from 'react';
+import { observeAgentMobileHeaderOccupy } from '@/lib/interfaz/agent-mobile-header-sync';
 import {
   formatRemainingInteractions,
   getClosingInteractionThreshold,
@@ -316,9 +317,16 @@ export function ChatHeader(props: {
   ) : null;
 
   const showFunnelRail = showActionPlanFunnel || showSocialConsciousnessFunnel;
+  const headerRef = useRef<HTMLElement>(null);
+
+  useLayoutEffect(() => {
+    if (!props.isMobileViewport || !headerRef.current) return;
+    return observeAgentMobileHeaderOccupy(headerRef.current);
+  }, [props.isMobileViewport]);
 
   return (
     <header
+      ref={headerRef}
       className={`agent-chat-header${props.isMobileViewport ? ' is-mobile is-mobile-single-row' : ''}${showFunnelRail ? ' has-action-plan-funnel' : ''}`}
     >
       {props.isMobileViewport ? (

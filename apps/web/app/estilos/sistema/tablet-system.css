@@ -210,10 +210,10 @@
 }
 
 /*
- * Intake — iPad / tablet portrait + landscape: same matte backdrop (match vertical).
- * Phone keeps the mobile-shell block in backdrop-system.css; landscape tablet was missing it.
+ * Intake tablet portrait (mobile shell) — fondo4 via global-agent-backdrop.
+ * Desktop browser + tablet landscape use desktop-home-backdrop.css (bg-door / home).
  */
-html.is-tablet-device.intake-route-active .global-agent-backdrop {
+html.is-mobile-viewport.is-tablet-device.intake-route-active .global-agent-backdrop {
   box-shadow: none !important;
   filter: brightness(0.26) contrast(0.92) saturate(0.78) grayscale(0.06) !important;
   background-size: cover !important;
@@ -223,14 +223,14 @@ html.is-tablet-device.intake-route-active .global-agent-backdrop {
     url('/fondo4.jpg') !important;
 }
 
-html.is-tablet-device.intake-route-active,
-html.is-tablet-device.intake-route-active body {
+html.is-mobile-viewport.is-tablet-device.intake-route-active,
+html.is-mobile-viewport.is-tablet-device.intake-route-active body {
   background-color: #0a0e14 !important;
   background-image: none !important;
 }
 
-html.is-tablet-device.intake-route-active .app-shell::before,
-html.is-tablet-device.intake-route-active .app-shell::after {
+html.is-mobile-viewport.is-tablet-device.intake-route-active .app-shell::before,
+html.is-mobile-viewport.is-tablet-device.intake-route-active .app-shell::after {
   display: none !important;
   content: none !important;
   background-image: none !important;
@@ -238,7 +238,7 @@ html.is-tablet-device.intake-route-active .app-shell::after {
   box-shadow: none !important;
 }
 
-html.is-tablet-device.intake-route-active .intake-shell {
+html.is-mobile-viewport.is-tablet-device.intake-route-active .intake-shell {
   height: var(--fa-app-height, 100dvh) !important;
   max-height: var(--fa-app-height, 100dvh) !important;
   min-height: var(--fa-app-height, 100dvh) !important;
@@ -246,7 +246,7 @@ html.is-tablet-device.intake-route-active .intake-shell {
   overscroll-behavior: none !important;
 }
 
-html.is-tablet-device.intake-route-active .intake-main.intake-main-immersive {
+html.is-mobile-viewport.is-tablet-device.intake-route-active .intake-main.intake-main-immersive {
   height: var(--fa-app-height, 100dvh) !important;
   max-height: var(--fa-app-height, 100dvh) !important;
   min-height: 0 !important;
@@ -264,7 +264,7 @@ html.is-tablet-device.intake-route-active .intake-main.intake-main-immersive {
     max(28px, env(safe-area-inset-bottom, 0px)) !important;
 }
 
-html.is-tablet-device.intake-route-active .intake-shell::before {
+html.is-mobile-viewport.is-tablet-device.intake-route-active .intake-shell::before {
   background:
     linear-gradient(
       180deg,
@@ -274,118 +274,30 @@ html.is-tablet-device.intake-route-active .intake-shell::before {
     ) !important;
 }
 
-html.is-tablet-device.intake-route-active .intake-shell::after {
+html.is-mobile-viewport.is-tablet-device.intake-route-active .intake-shell::after {
   display: none !important;
   content: none !important;
 }
 
-html.is-tablet-device.intake-route-active .intake-bg-orb::before,
-html.is-tablet-device.intake-route-active .intake-bg-orb::after {
+html.is-mobile-viewport.is-tablet-device.intake-route-active .intake-bg-orb::before,
+html.is-mobile-viewport.is-tablet-device.intake-route-active .intake-bg-orb::after {
   display: none !important;
   content: none !important;
 }
 
-html.is-tablet-device.intake-route-active .intake-photo-bg {
+html.is-mobile-viewport.is-tablet-device.intake-route-active .intake-photo-bg {
   background-image: none !important;
   filter: none !important;
   opacity: 0 !important;
   visibility: hidden !important;
 }
 
-html.is-tablet-device.intake-route-active .intake-warp-stage {
+html.is-mobile-viewport.is-tablet-device.intake-route-active .intake-warp-stage {
   width: 100% !important;
   margin-left: 0 !important;
 }
 
-/*
- * Intake — desktop browser: fondo4 visible with a light matte scrim (no stacked black layers).
- */
-html.is-desktop-viewport.intake-route-active:not(.is-tablet-device) .global-agent-backdrop {
-  display: none !important;
-}
-
-html.is-desktop-viewport.intake-route-active:not(.is-tablet-device),
-html.is-desktop-viewport.intake-route-active:not(.is-tablet-device) body {
-  background-color: #0a0e14 !important;
-  background-image: none !important;
-}
-
-html.is-desktop-viewport.intake-route-active:not(.is-tablet-device) .app-shell::before,
-html.is-desktop-viewport.intake-route-active:not(.is-tablet-device) .app-shell::after {
-  display: none !important;
-  content: none !important;
-  background-image: none !important;
-  background-color: transparent !important;
-  box-shadow: none !important;
-}
-
-html.is-desktop-viewport.intake-route-active:not(.is-tablet-device) .intake-photo-bg {
-  opacity: 1 !important;
-  visibility: visible !important;
-  background-image:
-    linear-gradient(180deg, rgba(6, 10, 16, 0.44) 0%, rgba(6, 10, 16, 0.60) 100%),
-    url('/fondo4.jpg') !important;
-  background-size: cover, cover !important;
-  background-position: center bottom, center bottom !important;
-  background-repeat: no-repeat, no-repeat !important;
-  filter: brightness(0.24) contrast(0.90) saturate(0.66) grayscale(0.07) !important;
-}
-
-html.is-desktop-viewport.intake-route-active:not(.is-tablet-device) .intake-shell::before {
-  background:
-    linear-gradient(
-      180deg,
-      rgba(0, 0, 0, 0.14) 0%,
-      rgba(0, 0, 0, 0.28) 42%,
-      rgba(0, 0, 0, 0.34) 100%
-    ) !important;
-}
-
-html.is-desktop-viewport.intake-route-active:not(.is-tablet-device) .intake-shell::after {
-  display: none !important;
-  content: none !important;
-}
-
-html.is-desktop-viewport.intake-route-active:not(.is-tablet-device) .intake-bg-orb::before,
-html.is-desktop-viewport.intake-route-active:not(.is-tablet-device) .intake-bg-orb::after {
-  display: block !important;
-  content: '' !important;
-}
-
-html.is-desktop-viewport.intake-route-active:not(.is-tablet-device) .intake-bg-orb {
-  opacity: 0.94;
-  filter: blur(28px) saturate(1.14);
-  transition:
-    background 1.2s cubic-bezier(0.4, 0, 0.2, 1),
-    transform 1s cubic-bezier(0.22, 0.68, 0, 1.2),
-    opacity 0.6s ease,
-    filter 0.6s ease;
-}
-
-html.is-desktop-viewport.intake-route-active:not(.is-tablet-device) .intake-shell[data-step="context"] .intake-bg-orb {
-  transform: translate3d(calc(-50% + var(--intake-q-shift-x, 0px)), var(--intake-q-shift-y, 0%), 0) scale(1.02) rotate(-1deg);
-}
-
-html.is-desktop-viewport.intake-route-active:not(.is-tablet-device) .intake-shell[data-step="cashflow"] .intake-bg-orb {
-  transform: translate3d(calc(-42% + var(--intake-q-shift-x, 0px)), calc(4% + var(--intake-q-shift-y, 0%)), 0) scale(1.12) rotate(2deg);
-}
-
-html.is-desktop-viewport.intake-route-active:not(.is-tablet-device) .intake-shell[data-step="savings"] .intake-bg-orb {
-  transform: translate3d(calc(-58% + var(--intake-q-shift-x, 0px)), calc(7% + var(--intake-q-shift-y, 0%)), 0) scale(0.95) rotate(-2deg);
-}
-
-html.is-desktop-viewport.intake-route-active:not(.is-tablet-device) .intake-shell[data-step="knowledge"] .intake-bg-orb {
-  transform: translate3d(calc(-47% + var(--intake-q-shift-x, 0px)), calc(-3% + var(--intake-q-shift-y, 0%)), 0) scale(1.18) rotate(1.5deg);
-}
-
-html.is-desktop-viewport.intake-route-active:not(.is-tablet-device) .intake-bg-orb::before {
-  opacity: 0.58 !important;
-  animation: intakeOrbMorph 12s ease-in-out infinite alternate !important;
-}
-
-html.is-desktop-viewport.intake-route-active:not(.is-tablet-device) .intake-bg-orb::after {
-  opacity: 1 !important;
-}
+/* Intake desktop backdrop — desktop-home-backdrop.css (home-standard bg-door) */
 
 html.is-desktop-viewport.intake-route-active .intake-stage-seg.active .intake-stage-seg-pill {
   box-shadow: 0 0 14px rgba(var(--c-step, var(--c-blue)), 0.42) !important;

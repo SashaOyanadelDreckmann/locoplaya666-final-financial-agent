@@ -18,6 +18,7 @@ import {
   useExecutiveBlobCarousel,
 } from "@/components/ui/executive-blob-carousel";
 import { CornerFrameScrambleText } from "@/components/ui/corner-frame-scramble-text";
+import { WelcomeProductHintsStrip } from "@/components/ui/welcome-product-hints-strip";
 import {
   buildFallbackWelcomeIntro,
   readHydratedWelcomeIntro,
@@ -105,6 +106,9 @@ function SlideDiagnosis(props: { intro: WelcomeIntroPayload; visible: boolean })
             </span>
           ))}
         </div>
+      ) : null}
+      {intro.productHints && intro.productHints.length > 0 ? (
+        <WelcomeProductHintsStrip hints={intro.productHints} />
       ) : null}
     </div>
   );

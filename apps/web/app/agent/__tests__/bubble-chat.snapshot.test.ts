@@ -93,4 +93,26 @@ describe('buildBubbleSnapshotHtmlAndCss', () => {
     expect(snapshot.html).not.toContain('is-scrollable-x');
     expect(snapshot.html).not.toContain('max-height: 180px');
   });
+
+  it('omits citation annexes from PDF export', () => {
+    const bubble = buildBubbleFixture();
+    bubble.querySelector('.latex-doc-body')?.insertAdjacentHTML(
+      'beforeend',
+      `<div class="latex-inline-annex">
+        <div class="latex-inline-annex-head">
+          <span>Fuentes verificables</span>
+          <span>2 referencias</span>
+        </div>
+        <div class="citation-stack">
+          <div class="citation-bubble"><strong>Banco Central</strong></div>
+        </div>
+      </div>`,
+    );
+
+    const snapshot = buildBubbleSnapshotHtmlAndCss(bubble);
+
+    expect(snapshot.html).not.toContain('Fuentes verificables');
+    expect(snapshot.html).not.toContain('citation-stack');
+    expect(snapshot.html).not.toContain('Banco Central');
+  });
 });

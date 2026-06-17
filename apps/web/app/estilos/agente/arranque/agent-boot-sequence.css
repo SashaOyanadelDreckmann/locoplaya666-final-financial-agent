@@ -1,4 +1,10 @@
-/* Post-intake agent boot — black void → terminal hydrate → circular reveal */
+/* Post-intake agent boot — black void → terminal hydrate → circular reveal → chat */
+
+@property --reveal-r {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0vmax;
+}
 
 html.agent-boot-active,
 body.agent-boot-active {
@@ -8,6 +14,15 @@ body.agent-boot-active {
 
 .agent-layout.is-boot-sequence-active {
   pointer-events: none;
+}
+
+.agent-layout.is-boot-sequence-active:not(.is-boot-shell-reveal) > .agent-chat,
+.agent-layout.is-boot-sequence-active:not(.is-boot-shell-reveal) > aside.agent-panel,
+.agent-layout.is-boot-sequence-active:not(.is-boot-shell-reveal) > aside.agent-divider-rail,
+.agent-layout.is-boot-sequence-active:not(.is-boot-shell-reveal) > .agent-mobile-composer-dock {
+  opacity: 0;
+  transform: translateY(10px) scale(0.992);
+  filter: blur(6px);
 }
 
 .agent-boot-overlay {
@@ -149,7 +164,78 @@ body.agent-boot-active {
 
 .agent-boot-overlay.is-exit {
   pointer-events: none;
-  background: #000;
+}
+
+.agent-boot-overlay.is-reveal-exit {
+  --reveal-x: 50%;
+  --reveal-y: 38%;
+  --reveal-r: 0vmax;
+  -webkit-mask-image: radial-gradient(
+    circle at var(--reveal-x) var(--reveal-y),
+    transparent var(--reveal-r),
+    black calc(var(--reveal-r) + 28px)
+  );
+  mask-image: radial-gradient(
+    circle at var(--reveal-x) var(--reveal-y),
+    transparent var(--reveal-r),
+    black calc(var(--reveal-r) + 28px)
+  );
+  animation: agent-boot-reveal-punch 1040ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.agent-boot-overlay.is-reveal-exit .agent-boot-reveal-ring {
+  opacity: 1;
+  animation: agent-boot-reveal-ring 1040ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.agent-boot-reveal-ring {
+  position: absolute;
+  left: var(--reveal-x, 50%);
+  top: var(--reveal-y, 38%);
+  width: min(420px, 72vw);
+  height: min(420px, 72vw);
+  margin: calc(min(420px, 72vw) / -2) 0 0 calc(min(420px, 72vw) / -2);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0;
+  background: radial-gradient(
+    circle,
+    rgba(183, 166, 106, 0.22) 0%,
+    rgba(56, 189, 248, 0.12) 34%,
+    transparent 72%
+  );
+  filter: blur(10px);
+}
+
+@keyframes agent-boot-reveal-punch {
+  0% {
+    --reveal-r: 0vmax;
+    opacity: 1;
+  }
+  18% {
+    --reveal-r: 2.4vmax;
+    opacity: 1;
+  }
+  100% {
+    --reveal-r: 148vmax;
+    opacity: 0;
+  }
+}
+
+@keyframes agent-boot-reveal-ring {
+  0% {
+    opacity: 0.9;
+    transform: scale(0.12);
+  }
+  42% {
+    opacity: 0.55;
+    transform: scale(1.05);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.4);
+  }
 }
 
 .agent-boot-overlay.is-exit .agent-boot-stage {
@@ -160,6 +246,10 @@ body.agent-boot-active {
     opacity 420ms cubic-bezier(0.42, 0, 0.58, 1),
     transform 520ms cubic-bezier(0.42, 0, 0.58, 1),
     filter 520ms cubic-bezier(0.42, 0, 0.58, 1);
+}
+
+.agent-boot-overlay.is-reveal-exit .agent-boot-stage {
+  transition: none;
 }
 
 .agent-boot-void {
@@ -637,7 +727,178 @@ body.agent-boot-active {
   }
 }
 
+/* Boot exit → agent shell reveal (chat-first) */
+.agent-layout.is-boot-shell-reveal {
+  pointer-events: auto;
+}
+
+.agent-layout.is-boot-shell-reveal > .agent-chat {
+  animation: agent-boot-chat-in 1020ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.agent-layout.is-boot-shell-reveal .agent-chat-header {
+  animation: agent-boot-chat-header-in 760ms cubic-bezier(0.16, 1, 0.3, 1) 90ms both;
+}
+
+.agent-layout.is-boot-shell-reveal .agent-chat-body {
+  animation: agent-boot-chat-body-in 860ms cubic-bezier(0.16, 1, 0.3, 1) 150ms both;
+}
+
+.agent-layout.is-boot-shell-reveal [data-chat-welcome-shell='true'] {
+  animation: agent-boot-welcome-in 920ms cubic-bezier(0.22, 1, 0.36, 1) 280ms both;
+}
+
+.agent-layout.is-boot-shell-reveal .agent-chat .terminal-composer-shell {
+  animation: agent-boot-composer-in 860ms cubic-bezier(0.16, 1, 0.3, 1) 390ms both;
+}
+
+.agent-layout.is-boot-shell-reveal > .agent-mobile-composer-dock {
+  animation: agent-boot-composer-in 860ms cubic-bezier(0.16, 1, 0.3, 1) 360ms both;
+}
+
+.agent-layout.is-boot-shell-reveal > aside.agent-panel {
+  animation: agent-boot-panel-in 900ms cubic-bezier(0.16, 1, 0.3, 1) 240ms both;
+}
+
+.agent-layout.is-boot-shell-reveal > aside.agent-divider-rail {
+  animation: agent-boot-rail-in 760ms cubic-bezier(0.16, 1, 0.3, 1) 280ms both;
+}
+
+.agent-layout.is-boot-shell-reveal.is-mobile-viewport .mobile-panel-card-stack {
+  animation: agent-boot-deck-in 840ms cubic-bezier(0.16, 1, 0.3, 1) 300ms both;
+}
+
+@keyframes agent-boot-chat-in {
+  0% {
+    opacity: 0;
+    transform: translateY(16px) scale(0.986);
+    filter: blur(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes agent-boot-chat-header-in {
+  0% {
+    opacity: 0;
+    transform: translateY(-10px);
+    filter: blur(6px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes agent-boot-chat-body-in {
+  0% {
+    opacity: 0;
+    transform: translateY(12px) scale(0.992);
+    filter: blur(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes agent-boot-welcome-in {
+  0% {
+    opacity: 0;
+    transform: translateY(18px) scale(0.94);
+    filter: blur(10px);
+  }
+  58% {
+    opacity: 1;
+    filter: blur(2px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes agent-boot-composer-in {
+  0% {
+    opacity: 0;
+    transform: translateY(18px) scale(0.97);
+    filter: blur(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes agent-boot-panel-in {
+  0% {
+    opacity: 0;
+    transform: translateX(16px) translateY(8px) scale(0.978);
+    filter: blur(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes agent-boot-rail-in {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes agent-boot-deck-in {
+  0% {
+    opacity: 0;
+    transform: translateY(14px) scale(0.96);
+    filter: blur(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .agent-layout.is-boot-sequence-active:not(.is-boot-shell-reveal) > .agent-chat,
+  .agent-layout.is-boot-sequence-active:not(.is-boot-shell-reveal) > aside.agent-panel,
+  .agent-layout.is-boot-sequence-active:not(.is-boot-shell-reveal) > aside.agent-divider-rail,
+  .agent-layout.is-boot-sequence-active:not(.is-boot-shell-reveal) > .agent-mobile-composer-dock {
+    opacity: 0;
+    transform: none;
+    filter: none;
+  }
+
+  .agent-layout.is-boot-shell-reveal > .agent-chat,
+  .agent-layout.is-boot-shell-reveal .agent-chat-header,
+  .agent-layout.is-boot-shell-reveal .agent-chat-body,
+  .agent-layout.is-boot-shell-reveal [data-chat-welcome-shell='true'],
+  .agent-layout.is-boot-shell-reveal .agent-chat .terminal-composer-shell,
+  .agent-layout.is-boot-shell-reveal > .agent-mobile-composer-dock,
+  .agent-layout.is-boot-shell-reveal > aside.agent-panel,
+  .agent-layout.is-boot-shell-reveal > aside.agent-divider-rail,
+  .agent-layout.is-boot-shell-reveal .mobile-panel-card-stack {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+  }
+
   .agent-boot-blob {
     animation: none;
     opacity: 0.34;
@@ -654,6 +915,14 @@ body.agent-boot-active {
   .agent-boot-overlay.is-terminal-enter .agent-boot-terminal-shell,
   .agent-boot-line {
     animation: none !important;
+  }
+
+  .agent-boot-overlay.is-reveal-exit,
+  .agent-boot-overlay.is-reveal-exit .agent-boot-reveal-ring {
+    animation: none !important;
+    -webkit-mask-image: none !important;
+    mask-image: none !important;
+    opacity: 0 !important;
   }
 
   .agent-boot-overlay.is-terminal-enter .agent-boot-stage,

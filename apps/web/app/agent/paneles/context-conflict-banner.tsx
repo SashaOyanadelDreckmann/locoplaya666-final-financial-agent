@@ -2,7 +2,6 @@
 
 import type { ContextConflict } from '@financial-agent/shared';
 
-import { AgentModalCloseButton } from '../modales/comunes/AgentModalCloseButton';
 import {
   resolveContextConflictCopy,
   type ContextConflictUiAction,
@@ -29,37 +28,42 @@ export function ContextConflictBanner(props: ContextConflictBannerProps) {
 
   return (
     <div
-      className={`context-conflict-banner ${severityClassName(primary.severity)}`}
-      role="alert"
+      className={`agent-bubble assistant context-conflict-notice ${severityClassName(primary.severity)}`}
+      role="status"
       aria-live="polite"
       data-conflict-code={primary.explanationCode}
+      data-chat-export-skip="true"
     >
-      <div className="context-conflict-banner__copy">
-        <strong>Inconsistencia detectada</strong>
-        <span className="context-conflict-banner__title">{copy.title}</span>
-        <span className="context-conflict-banner__body">{copy.body}</span>
+      <div className="context-conflict-notice__copy">
+        <p className="context-conflict-notice__kicker">Inconsistencia detectada</p>
+        <p className="context-conflict-notice__title">{copy.title}</p>
+        <p className="context-conflict-notice__body">{copy.body}</p>
         {extraCount > 0 ? (
-          <span className="context-conflict-banner__meta">
+          <p className="context-conflict-notice__meta">
             Hay {extraCount} inconsistencia{extraCount === 1 ? '' : 's'} adicional
             {extraCount === 1 ? '' : 'es'} por revisar.
-          </span>
+          </p>
         ) : null}
       </div>
-      <div className="context-conflict-banner__actions">
-        {copy.action && copy.ctaLabel ? (
+      <div className="context-conflict-notice__actions">
+        <div className="context-conflict-notice__buttons">
+          {copy.action && copy.ctaLabel ? (
+            <button
+              type="button"
+              className="context-conflict-notice__cta"
+              onClick={() => props.onAction(copy.action)}
+            >
+              {copy.ctaLabel}
+            </button>
+          ) : null}
           <button
             type="button"
-            className="context-conflict-banner__cta"
-            onClick={() => props.onAction(copy.action)}
+            className="context-conflict-notice__dismiss"
+            onClick={() => props.onDismiss(primary.conflictId)}
           >
-            {copy.ctaLabel}
+            Ocultar
           </button>
-        ) : null}
-        <AgentModalCloseButton
-          className="context-conflict-banner__dismiss agent-modal-close agent-close-x"
-          onClick={() => props.onDismiss(primary.conflictId)}
-          aria-label="Ocultar aviso"
-        />
+        </div>
       </div>
     </div>
   );

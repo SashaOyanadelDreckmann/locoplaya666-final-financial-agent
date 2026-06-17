@@ -36,8 +36,6 @@ export async function getContextManifestForUser(user: {
   const conflicts = detectContextConflicts({
     facts,
     contextVersion: baseManifest.contextVersion,
-    diagnosticCompletedAt: bundle.diagnosticProfile?.meta?.completedAt ?? null,
-    budgetLastModified: baseManifest.sections.find((s) => s.name === 'budget')?.lastModified,
   });
   return buildManifestFromBundle(bundle, conflicts.length);
 }
@@ -89,8 +87,6 @@ export async function getContextFabricSessionSnapshot(user: {
     conflicts = detectContextConflicts({
       facts,
       contextVersion: manifest.contextVersion,
-      diagnosticCompletedAt: bundle.diagnosticProfile?.meta?.completedAt ?? null,
-      budgetLastModified: manifest.sections.find((section) => section.name === 'budget')?.lastModified,
     });
   }
 

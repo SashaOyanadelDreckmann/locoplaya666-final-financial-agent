@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { useInterviewStore } from '@/state/interview.store';
 import {
   buildBootScriptLines,
@@ -24,11 +24,34 @@ function toneClass(tone: BootScriptLine['tone']): string {
   return `agent-boot-line--${tone}`;
 }
 
-export type AgentBootHandoffOrigin = { x: number; y: number };
+const REVEAL_MS = 1040;
+
+function resolveRevealOrigin(
+  revealTargetRef: RefObject<HTMLElement | null> | undefined,
+  terminalRect: DOMRect | null,
+): { x: number; y: number } {
+  const targetRect = revealTargetRef?.current?.getBoundingClientRect();
+  if (targetRect && targetRect.width > 0 && targetRect.height > 0) {
+    return {
+      x: targetRect.left + targetRect.width * 0.5,
+      y: targetRect.top + Math.min(targetRect.height * 0.42, targetRect.height - 120),
+    };
+  }
+
+  if (terminalRect) {
+    return {
+      x: terminalRect.left + terminalRect.width / 2,
+      y: terminalRect.top + terminalRect.height * 0.42,
+    };
+  }
+
+  return { x: window.innerWidth / 2, y: window.innerHeight * 0.38 };
+}
 
 export function AgentBootSequence(props: {
   session: { name?: string | null; injectedIntake?: unknown };
-  onHandoff?: (origin: AgentBootHandoffOrigin) => void;
+  revealTargetRef?: RefObject<HTMLElement | null>;
+  onHandoff?: () => void;
   onComplete: () => void;
 }) {
   const reducedMotion = useMemo(() => prefersReducedMotion(), []);
@@ -61,28 +84,34 @@ export function AgentBootSequence(props: {
     exitStartedRef.current = true;
     setPhase('exit');
 
-    const rect = terminalRef.current?.getBoundingClientRect();
-    const origin = rect
-      ? { x: rect.left + rect.width / 2, y: rect.top + rect.height * 0.42 }
-      : { x: window.innerWidth / 2, y: window.innerHeight * 0.38 };
+    const terminalRect = terminalRef.current?.getBoundingClientRect() ?? null;
+    const origin = resolveRevealOrigin(props.revealTargetRef, terminalRect);
 
-    props.onHandoff?.(origin);
+    props.onHandoff?.();
 
     const finish = () => {
       clearAgentBootFromIntake();
       props.onComplete();
     };
 
-    if (reducedMotion) {
+    const overlay = overlayRef.current;
+    if (!overlay) {
       finish();
       return;
     }
 
-    const overlay = overlayRef.current;
-    const stage = overlay?.querySelector<HTMLElement>('.agent-boot-stage');
-    const handoffMs = 560;
-    const easing = 'cubic-bezier(0.22, 1, 0.36, 1)';
+    const xPct = `${(origin.x / Math.max(window.innerWidth, 1)) * 100}%`;
+    const yPct = `${(origin.y / Math.max(window.innerHeight, 1)) * 100}%`;
+    overlay.style.setProperty('--reveal-x', xPct);
+    overlay.style.setProperty('--reveal-y', yPct);
 
+    if (reducedMotion) {
+      window.setTimeout(finish, 120);
+      return;
+    }
+
+    const stage = overlay.querySelector<HTMLElement>('.agent-boot-stage');
+    const easing = 'cubic-bezier(0.16, 1, 0.3, 1)';
     const animations: Promise<unknown>[] = [];
 
     if (stage && typeof stage.animate === 'function') {
@@ -90,35 +119,24 @@ export function AgentBootSequence(props: {
         stage
           .animate(
             {
-              opacity: [1, 0],
-              transform: ['translateY(0px) scale(1)', 'translateY(-6px) scale(0.96)'],
+              opacity: [1, 0.72, 0],
+              transform: [
+                'translateY(0px) scale(1)',
+                'translateY(-10px) scale(0.94)',
+                'translateY(-22px) scale(0.86)',
+              ],
+              filter: ['blur(0px)', 'blur(6px)', 'blur(14px)'],
             },
-            { duration: handoffMs, easing, fill: 'forwards' },
+            { duration: 680, easing, fill: 'forwards' },
           )
           .finished,
       );
     }
 
-    if (overlay && typeof overlay.animate === 'function') {
-      animations.push(
-        overlay
-          .animate(
-            {
-              opacity: [1, 0],
-              backgroundColor: ['rgba(0,0,0,1)', 'rgba(0,0,0,0)'],
-            },
-            { duration: handoffMs + 180, easing, fill: 'forwards' },
-          )
-          .finished,
-      );
-    }
-
+    window.setTimeout(finish, REVEAL_MS);
     if (animations.length > 0) {
-      Promise.all(animations).then(finish).catch(finish);
-      return;
+      Promise.all(animations).catch(() => {});
     }
-
-    window.setTimeout(finish, handoffMs + 180);
   }, [props, reducedMotion]);
 
   const skipToAgent = useCallback(() => {
@@ -220,7 +238,7 @@ export function AgentBootSequence(props: {
         phase === 'void' ? ' is-void' : ''
       }${phase === 'terminal' ? ' is-terminal-enter' : ''}${
         phase === 'running' ? ' is-running' : ''
-      }${phase === 'exit' ? ' is-exit' : ''}`}
+      }${phase === 'exit' ? ' is-exit is-reveal-exit' : ''}`}
       role="dialog"
       aria-modal="true"
       aria-label="Inicializando agente financiero"
@@ -234,6 +252,8 @@ export function AgentBootSequence(props: {
       </div>
 
       <div className="agent-boot-scanline" aria-hidden="true" />
+
+      <div className="agent-boot-reveal-ring" aria-hidden="true" />
 
       <div className="agent-boot-stage">
         <div className="agent-boot-blob-frame" aria-hidden="true">

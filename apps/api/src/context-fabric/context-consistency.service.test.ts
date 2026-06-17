@@ -40,6 +40,14 @@ describe('context-consistency.service', () => {
     expect(conflicts.every((c) => c.autoResolvable === false)).toBe(true);
   });
 
+  it('does not flag budget edits after diagnosis as a conflict', () => {
+    const conflicts = detectContextConflicts({
+      facts: [],
+      contextVersion: 'ctx-test',
+    });
+    expect(conflicts.some((c) => c.explanationCode === 'DIAGNOSTIC_BUDGET_STALE')).toBe(false);
+  });
+
   it('dedupes facts by id keeping newest observation', () => {
     const older = buildFinancialFact({
       subject: 'budget.totals',

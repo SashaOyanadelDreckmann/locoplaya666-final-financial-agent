@@ -2,6 +2,7 @@ import {
   applyValidatedBudgetTableAction,
   hasBudgetFieldSignals,
   isBudgetMetaOrHelpQuestion,
+  isBudgetInvalidActionCategory,
   mergeBudgetActionIntoRow,
   parseBudgetCategoryFromAnswer,
   parseBudgetFieldPatchFromAnswer,
@@ -124,5 +125,15 @@ describe('budget-table-schema', () => {
       next = applyValidatedBudgetTableAction(next, action);
     }
     expect(next).toHaveLength(0);
+  });
+
+  it('rejects question-shaped categories in table actions', () => {
+    expect(isBudgetInvalidActionCategory('si, como cual podria agregar?')).toBe(true);
+    expect(isBudgetInvalidActionCategory('Gimnasio')).toBe(false);
+    const result = validateBudgetTableAction(
+      { kind: 'add', id: 'expense-custom-x', category: 'como puedo agregar filas', type: 'expense', amount: 1 },
+      baseRows,
+    );
+    expect(result.ok).toBe(false);
   });
 });

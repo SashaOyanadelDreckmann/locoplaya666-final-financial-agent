@@ -11,6 +11,7 @@ import {
   WELCOME_FINTECH_DEFAULT_BODY,
   WELCOME_FINTECH_DEFAULT_TITLE,
   buildWelcomeIntroFingerprint,
+  buildWelcomeGuideEnrichment,
   canGenerateWelcomeIntroWithLlm,
   extractIntakeEnvelope,
   normalizeWelcomeIntroPayload,
@@ -22,7 +23,9 @@ import {
   type WelcomeIntroCache,
   type WelcomeIntroPayload,
   type WelcomeIntroSection,
+  type WelcomeProductHint,
 } from '@financial-agent/shared';
+import { researchWelcomeProductHints } from '../../services/welcome-product-research.service';
 
 export type {
   WelcomeIntroCache,
@@ -55,23 +58,23 @@ type WelcomeIntroLLM = {
 };
 
 const WELCOME_INTRO_SYSTEM = `
-Eres un director de diagnóstico financiero chileno con carisma desbordante. Redactas la introducción de Financieramente para enamorar al usuario desde la primera línea: cercano, cálido, euforico, preciso y premium.
+Eres un director de diagnóstico financiero chileno. Redactas la introducción de Financieramente: cercano, preciso y premium.
 
 Devuelve SOLO JSON válido:
 {
-  "headline": "frase ejecutiva personalizada con su nombre, máx 14 palabras",
-  "wittyHook": "1 línea euforica y cómica que cite UN dato concreto del intake (ciudad, ingreso, deuda, estrés, etc.). Tono maníaco-cariñoso, ingenioso, breve. Debe hacer sonreír.",
-  "personalRead": "2-3 oraciones máximo. Diagnóstico inicial breve, muy buena onda y cálido, tono editorial ejecutivo pero humano. Reconoce la situación real sin repetir el intake literal ni sonar a formulario.",
-  "signals": ["3 señales cortas y personalizadas del intake"],
-  "marcoInsight": "2 oraciones sobre el marco: evidencia real primero, información dispersa convertida en diagnóstico verificable",
-  "fintechInsight": "2 oraciones: explicar que Financieramente SIMULA (no aplica oficialmente) un sistema integrado inspirado en la Ley Fintech 21.521 y finanzas abiertas, con consentimiento del usuario, para estudiar utilidad",
-  "fintechBenefit": "2 oraciones: aclarar que es un estudio de utilidad/experiencia — no Open Finance oficial ni conexión bancaria regulada — y qué se busca aprender integrando datos",
+  "headline": "frase ejecutiva con su nombre, máx 12 palabras",
+  "wittyHook": "1 línea ingeniosa citando UN dato del intake (ciudad, ingreso, deuda, estrés). Breve y memorable.",
+  "personalRead": "1-2 oraciones. Diagnóstico inicial conciso, cálido y sin repetir el formulario.",
+  "signals": ["3 señales cortas del intake"],
+  "marcoInsight": "1 oración: evidencia real primero, diagnóstico verificable",
+  "fintechInsight": "1 oración: simulación inspirada en Ley Fintech 21.521, sin Open Finance oficial",
+  "fintechBenefit": "1 oración: estudio de utilidad, no conexión bancaria regulada",
   "resultNote": "1 oración sobre diagnóstico personal con prioridades concretas",
-  "closingQuestion": "pregunta corta y directa para iniciar por productos y transacciones"
+  "closingQuestion": "pregunta corta para iniciar por productos y transacciones"
 }
 
-Reglas: español chileno, tú, sin emojis, sin corporativismo. wittyHook debe ser memorable y específico para ESTE usuario.
-NUNCA prometas que el agente genera, descarga ni guarda PDFs o informes: el agente entrega contenido en el chat; la exportación a PDF la hace el usuario con el botón Guardar PDF en la burbuja.
+Reglas: español chileno, tú, sin emojis. Si recibes "productHints", integra 1 dato real en personalRead sin inventar cifras.
+NUNCA prometas PDFs: la exportación la hace el usuario con Guardar PDF.
 `.trim();
 
 function buildDeterministicRead(intake: Record<string, unknown>): string {
@@ -172,6 +175,8 @@ export function buildFallbackWelcomeIntro(params: {
   intake?: Record<string, unknown>;
   intakeContext?: Record<string, unknown>;
   llmSummary?: { summary?: string; highlights?: string[] } | null;
+  productHints?: WelcomeProductHint[];
+  diagnosisUnlocked?: boolean;
 }): WelcomeIntroPayload {
   const intake = params.intake ?? {};
   const ctx = params.intakeContext ?? {};
@@ -195,16 +200,50 @@ export function buildFallbackWelcomeIntro(params: {
       ? params.llmSummary.summary.trim()
       : `${read}${hints}`.trim();
 
+  return attachWelcomeGuideEnrichment(
+    normalizeWelcomeIntroPayload({
+      version: 2,
+      uiVersion: EXECUTIVE_INTRO_UI_VERSION,
+      firstName,
+      headline: `${firstName}, partimos con una lectura seria de tu situación.`,
+      wittyHook: buildFallbackWittyHook(firstName, intake),
+      personalRead,
+      signals,
+      sections: defaultSections(),
+      closingQuestion: '¿Partimos por Productos y transacciones?',
+      productHints: params.productHints,
+    }),
+    {
+      firstName,
+      intake,
+      diagnosisUnlocked: params.diagnosisUnlocked,
+      productHints: params.productHints,
+    },
+  );
+}
+
+function attachWelcomeGuideEnrichment(
+  intro: WelcomeIntroPayload,
+  params: {
+    firstName: string;
+    intake?: Record<string, unknown>;
+    diagnosisUnlocked?: boolean;
+    productHints?: WelcomeProductHint[];
+  },
+): WelcomeIntroPayload {
+  const enrichment = buildWelcomeGuideEnrichment({
+    chatId: 'chat-1',
+    firstName: params.firstName,
+    intake: params.intake,
+    diagnosisUnlocked: params.diagnosisUnlocked,
+    productHints: params.productHints ?? intro.productHints,
+  });
+
   return normalizeWelcomeIntroPayload({
-    version: 2,
-    uiVersion: EXECUTIVE_INTRO_UI_VERSION,
-    firstName,
-    headline: `${firstName}, partimos con una lectura seria de tu situación.`,
-    wittyHook: buildFallbackWittyHook(firstName, intake),
-    personalRead,
-    signals,
-    sections: defaultSections(),
-    closingQuestion: '¿Partimos por Productos y transacciones?',
+    ...intro,
+    guideActions: enrichment.guideActions,
+    productHints: enrichment.productHints,
+    productBlurb: enrichment.productBlurb,
   });
 }
 
@@ -242,6 +281,8 @@ export async function buildWelcomeIntroWithLLM(params: {
   intake: IntakeQuestionnaire | Record<string, unknown>;
   intakeContext?: Record<string, unknown>;
   llmSummary?: { summary?: string; highlights?: string[] } | null;
+  productHints?: WelcomeProductHint[];
+  diagnosisUnlocked?: boolean;
 }): Promise<WelcomeIntroPayload> {
   const intakeRecord = params.intake as Record<string, unknown>;
   const fallback = buildFallbackWelcomeIntro({
@@ -249,6 +290,8 @@ export async function buildWelcomeIntroWithLLM(params: {
     intake: intakeRecord,
     intakeContext: params.intakeContext,
     llmSummary: params.llmSummary,
+    productHints: params.productHints,
+    diagnosisUnlocked: params.diagnosisUnlocked,
   });
 
   try {
@@ -258,6 +301,9 @@ export async function buildWelcomeIntroWithLLM(params: {
       `Contexto derivado: ${JSON.stringify(params.intakeContext ?? {}, null, 2)}`,
       params.llmSummary
         ? `Análisis previo del intake: ${JSON.stringify(params.llmSummary, null, 2)}`
+        : '',
+      params.productHints?.length
+        ? `productHints verificados en web: ${JSON.stringify(params.productHints, null, 2)}`
         : '',
     ].join('\n\n');
 
@@ -274,17 +320,26 @@ export async function buildWelcomeIntroWithLLM(params: {
 
     const sections = defaultSections(parsed);
 
-    return normalizeWelcomeIntroPayload({
-      version: 2,
-      uiVersion: EXECUTIVE_INTRO_UI_VERSION,
-      firstName: params.firstName,
-      headline: parsed.headline?.trim() || fallback.headline,
-      wittyHook: parsed.wittyHook?.trim() || fallback.wittyHook,
-      personalRead: parsed.personalRead?.trim() || fallback.personalRead,
-      signals: signals.length > 0 ? signals : fallback.signals,
-      sections,
-      closingQuestion: parsed.closingQuestion?.trim() || fallback.closingQuestion,
-    });
+    return attachWelcomeGuideEnrichment(
+      normalizeWelcomeIntroPayload({
+        version: 2,
+        uiVersion: EXECUTIVE_INTRO_UI_VERSION,
+        firstName: params.firstName,
+        headline: parsed.headline?.trim() || fallback.headline,
+        wittyHook: parsed.wittyHook?.trim() || fallback.wittyHook,
+        personalRead: parsed.personalRead?.trim() || fallback.personalRead,
+        signals: signals.length > 0 ? signals : fallback.signals,
+        sections,
+        closingQuestion: parsed.closingQuestion?.trim() || fallback.closingQuestion,
+        productHints: params.productHints,
+      }),
+      {
+        firstName: params.firstName,
+        intake: intakeRecord,
+        diagnosisUnlocked: params.diagnosisUnlocked,
+        productHints: params.productHints,
+      },
+    );
   } catch {
     return fallback;
   }
@@ -312,9 +367,16 @@ export async function resolveWelcomeIntroForUser(params: {
   const fingerprint = buildWelcomeIntroFingerprint(envelope.intake, envelope.llmSummary);
   const cached = readWelcomeIntroCache(params.injectedIntake);
   const generationCount = readWelcomeIntroGenerationCount(cached);
-
-  const finalizeIntro = (intro: WelcomeIntroPayload) =>
-    normalizeWelcomeIntroPayload(withWelcomeIntroFirstName(intro, params.firstName));
+  const finalizeIntro = (intro: WelcomeIntroPayload, hints: WelcomeProductHint[] = []) =>
+    attachWelcomeGuideEnrichment(
+      normalizeWelcomeIntroPayload(withWelcomeIntroFirstName(intro, params.firstName)),
+      {
+        firstName: params.firstName,
+        intake: envelope.intake,
+        diagnosisUnlocked: false,
+        productHints: hints,
+      },
+    );
 
   const persistResolvedCache = async (entry: WelcomeIntroCache) => {
     await params.persistWelcomeIntroCache(params.userId, entry);
@@ -353,6 +415,13 @@ export async function resolveWelcomeIntroForUser(params: {
     };
   }
 
+  // Fetch product hints only for non-cached generation paths to avoid unnecessary web searches.
+  const productHints = await researchWelcomeProductHints({
+    userId: params.userId,
+    intake: envelope.intake,
+    chatId: 'chat-1',
+  });
+
   if (canGenerateWelcomeIntroWithLlm(cached)) {
     const userRecord = await getUserById(params.userId);
     const fincoinUsage = userRecord ? getFincoinUsageForUser(userRecord) : null;
@@ -368,7 +437,9 @@ export async function resolveWelcomeIntroForUser(params: {
               intake: envelope.intake,
               intakeContext: envelope.intakeContext,
               llmSummary: envelope.llmSummary,
+              productHints,
             }),
+        productHints,
       );
       return {
         intro,
@@ -384,7 +455,9 @@ export async function resolveWelcomeIntroForUser(params: {
           intake: envelope.intake,
           intakeContext: envelope.intakeContext,
           llmSummary: envelope.llmSummary,
+          productHints,
         }),
+        productHints,
       );
       return {
         intro,
@@ -403,7 +476,9 @@ export async function resolveWelcomeIntroForUser(params: {
               intake: envelope.intake,
               intakeContext: envelope.intakeContext,
               llmSummary: envelope.llmSummary,
+              productHints,
             }),
+        productHints,
       );
       return {
         intro,
@@ -418,7 +493,9 @@ export async function resolveWelcomeIntroForUser(params: {
         intake: envelope.intake,
         intakeContext: envelope.intakeContext,
         llmSummary: envelope.llmSummary,
+        productHints,
       }),
+      productHints,
     );
 
     const cacheEntry: WelcomeIntroCache = {
@@ -443,6 +520,7 @@ export async function resolveWelcomeIntroForUser(params: {
     intake: envelope.intake,
     intakeContext: envelope.intakeContext,
     llmSummary: envelope.llmSummary,
+    productHints,
   });
 
   return {

@@ -6,7 +6,7 @@ import path from 'path';
 
 import { createApprovalToken } from '../services/approval.service';
 
-import { runBudgetChatAgent } from '../services/budget-chat-agent.service';
+import { runBudgetChatAgent, buildBudgetAgentUnavailableResult } from '../services/budget-chat-agent.service';
 
 vi.mock('../services/budget-chat-agent.service', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../services/budget-chat-agent.service')>();
@@ -63,10 +63,14 @@ describe('budget-chat routes (agent-first)', () => {
   }
 
   beforeEach(() => {
+    process.env.BUDGET_CHAT_AGENT_TEST_MOCKS = 'true';
     vi.mocked(runBudgetChatAgent).mockReset();
+    vi.mocked(runBudgetChatAgent).mockImplementation((input) =>
+      Promise.resolve(buildBudgetAgentUnavailableResult(input.mode)),
+    );
   });
 
-  it('returns deterministic init when agent has no table actions', async () => {
+  it('returns agent init when LLM responds', async () => {
     runBudgetChatAgent.mockResolvedValueOnce({
       assistant_reply: 'Hola, tu tabla tiene 2 filas.',
       next_question: '¿Qué quieres cambiar primero?',
@@ -89,20 +93,20 @@ describe('budget-chat routes (agent-first)', () => {
     });
 
     expect(res.status).toBe(200);
-    expect(res.body.source).toBe('deterministic_init');
-    expect(String(res.body.assistant_reply)).toMatch(/tres filas base/i);
+    expect(res.body.source).toBe('budget_agent_init');
+    expect(String(res.body.assistant_reply)).toMatch(/Hola, tu tabla tiene 2 filas/i);
     expect(String(res.body.next_question)).toMatch(/\?/);
     expect(runBudgetChatAgent).toHaveBeenCalledWith(expect.objectContaining({ mode: 'init' }));
   });
 
-  it('applies agent table actions on explicit reply', async () => {
+  it('requests confirmation for an agent amount update on explicit reply', async () => {
     runBudgetChatAgent.mockResolvedValueOnce({
-      assistant_reply: 'Dejo comida en $200.000.',
-      next_question: '¿Qué más quieres hacer con la tabla?',
+      assistant_reply: 'Actualizo alimentación.',
+      next_question: '¿Confirmas el cambio?',
       focus_row_id: 'expense_food',
       actions: [{ kind: 'update', id: 'expense_food', category: 'Alimentación', type: 'expense', amount: 200000 }],
-      requires_confirmation: false,
-      pending_summary: null,
+      requires_confirmation: true,
+      pending_summary: 'Actualizar Alimentación a $200.000.',
       source: 'budget_agent',
     });
 
@@ -119,7 +123,10 @@ describe('budget-chat routes (agent-first)', () => {
 
     expect(res.status).toBe(200);
     expect(res.body.source).toBe('budget_agent');
-    expect(res.body.action?.amount).toBe(200000);
+    expect(res.body.requires_confirmation).toBe(true);
+    expect(res.body.pending_confirmation?.actions?.[0]?.amount).toBe(200000);
+    expect(res.body.action).toBeNull();
+    expect(runBudgetChatAgent).toHaveBeenCalled();
   });
 
   it('requests confirmation for bulk agent actions', async () => {
@@ -200,19 +207,22 @@ describe('budget-chat routes (agent-first)', () => {
 
   it('prefers nextQuestion over assistant reply in question field', async () => {
     runBudgetChatAgent.mockResolvedValueOnce({
-      assistant_reply: 'Listo, actualicé alimentación.',
+      assistant_reply: 'Puedo agregar esas filas.',
       next_question: '¿Qué más quieres hacer con la tabla?',
-      focus_row_id: 'expense_food',
-      actions: [],
-      requires_confirmation: false,
-      pending_summary: null,
+      focus_row_id: 'expense-custom-gym',
+      actions: [
+        { kind: 'add', id: 'expense-custom-gym', category: 'Gym', type: 'expense', amount: 30000 },
+        { kind: 'add', id: 'expense-custom-streaming', category: 'Streaming', type: 'expense', amount: 15000 },
+      ],
+      requires_confirmation: true,
+      pending_summary: 'Agregar gym y streaming.',
       source: 'budget_agent',
     });
 
     const { agent, csrfToken } = await createAuthedAgent();
     const res = await agent.post('/api/budget-chat').set('x-csrf-token', csrfToken).send({
       intent: 'reply',
-      answer: 'en comida gasto 200 mil',
+      answer: 'agrega gym 30k y streaming 15k',
       question: 'Listo, actualicé alimentación.',
       nextQuestion: '¿Cuánto destinas a alimentación?',
       budgetRows: [
@@ -226,12 +236,12 @@ describe('budget-chat routes (agent-first)', () => {
     expect(runBudgetChatAgent).toHaveBeenCalledWith(
       expect.objectContaining({
         currentQuestion: '¿Cuánto destinas a alimentación?',
-        userAnswer: 'en comida gasto 200 mil',
+        userAnswer: 'agrega gym 30k y streaming 15k',
       }),
     );
   });
 
-  it('falls back to deterministic amount update when the agent is unavailable', async () => {
+  it('falls back to deterministic amount update only when the agent is unavailable', async () => {
     runBudgetChatAgent.mockResolvedValueOnce({
       assistant_reply: 'No pude procesar tu mensaje ahora. Intenta de nuevo en unos segundos.',
       next_question: '¿Quieres reintentar con tu pedido sobre la tabla?',
@@ -257,6 +267,8 @@ describe('budget-chat routes (agent-first)', () => {
 
     expect(res.status).toBe(200);
     expect(res.body.source).toBe('deterministic_update');
-    expect(res.body.action?.amount).toBe(200000);
+    expect(res.body.requires_confirmation).toBe(true);
+    expect(res.body.pending_confirmation?.actions?.[0]?.amount).toBe(200000);
+    expect(res.body.action).toBeNull();
   });
 });

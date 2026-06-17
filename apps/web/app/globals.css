@@ -147,6 +147,26 @@
       rgba(0, 0, 0, 0.22) 88%,
       rgba(0, 0, 0, 0.12) 100%
     );
+
+  /* Home hero backdrop — shared contract for home canvas + desktop shell */
+  --fa-home-bg-photo: url('/images/bg-door.jpg');
+  --fa-home-bg-photo-filter: saturate(0.84) contrast(1.04) brightness(0.92) sepia(0.04);
+  --fa-home-bg-overlay:
+    radial-gradient(ellipse 90% 90% at 50% 50%, rgba(5, 8, 16, 0) 22%, rgba(5, 8, 16, 0.18) 55%, rgba(5, 8, 16, 0.8) 100%),
+    linear-gradient(to bottom, rgba(5, 8, 16, 0.55) 0%, rgba(5, 8, 16, 0) 22%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.62), rgba(0, 0, 0, 0.62));
+  --fa-home-bg-size: auto, auto, cover, cover;
+  --fa-home-bg-overlay-size: auto, auto, cover;
+  --fa-home-bg-position: center, center top, center, center;
+  --fa-home-bg-overlay-position: center, center top, center;
+
+  /* Film grain — home + desktop shell (same layer contract) */
+  --fa-home-grain-image:
+    radial-gradient(rgba(255, 255, 255, 0.2) 0.8px, transparent 1.15px),
+    radial-gradient(rgba(0, 0, 0, 0.38) 0.9px, transparent 1.3px);
+  --fa-home-grain-size: 3px 3px, 7px 7px;
+  --fa-home-grain-position: 0 0, 2px 3px;
+  --fa-home-grain-opacity: 0.4;
 }
 
 /* Dark mode overrides */
@@ -213,7 +233,7 @@ body {
 
 /* html background propagates to the document canvas (status bar / notch band). */
 html {
-  background: var(--vp-bg-matte), var(--vp-bg-photo-url) center top / cover no-repeat;
+  background: var(--vp-bg-matte), var(--vp-bg-photo-url) center / cover no-repeat;
   background-color: var(--browser-chrome-color, #050810);
 }
 
@@ -233,7 +253,7 @@ html.pwa-standalone body {
     linear-gradient(180deg, rgba(6, 10, 16, 0.10), rgba(6, 10, 16, 0.24)),
     url('/fondo4.jpg');
   background-size: cover;
-  background-position: center top;
+  background-position: center;
   background-repeat: no-repeat;
 }
 
@@ -251,7 +271,7 @@ body.agent-route-active .global-agent-backdrop {
     linear-gradient(180deg, rgba(6, 10, 16, 0.08), rgba(6, 10, 16, 0.16)),
     url('/fondo4.jpg');
   background-size: cover;
-  background-position: center top;
+  background-position: center;
   background-repeat: no-repeat;
   filter: saturate(1.14) contrast(1.04) brightness(0.91);
   box-shadow: inset 0 0 0 9999px rgba(0, 0, 0, 0.46);
@@ -776,8 +796,8 @@ button {
   isolation: isolate;
 }
 
-/* Background image + matte overlay: fixed + slight overextend prevents
-   sub-pixel gaps and covers safe-area-inset regions (top + bottom) in PWA mode */
+/* Background image + matte overlay — desktop uses minimum cover (home-style);
+   mobile shell hides this layer and uses global-agent-backdrop instead. */
 .app-shell::before {
   content: '';
   position: fixed;
@@ -788,8 +808,6 @@ button {
   background: var(--vp-bg-matte), var(--vp-bg-photo-url) center/cover no-repeat;
   pointer-events: none;
   z-index: 0;
-  transform: scale(1.03) translateY(-1%);
-  transform-origin: center top;
   animation: appShellBackdropEntrance 850ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
@@ -884,11 +902,9 @@ button {
 @keyframes appShellBackdropEntrance {
   from {
     opacity: 0;
-    transform: scale(1.08) translateY(-3%);
   }
   to {
     opacity: 1;
-    transform: scale(1.03) translateY(-1%);
   }
 }
 
@@ -978,34 +994,35 @@ html.home-route-active .app-shell {
 /* Instant paint while NumbersCanvas hydrates — matches canvas frame at scroll 0 */
 html.home-route-active .home-canvas-layer {
   background-color: #050810;
-  background-image:
-    radial-gradient(ellipse 90% 90% at 50% 50%, rgba(5, 8, 16, 0) 22%, rgba(5, 8, 16, 0.18) 55%, rgba(5, 8, 16, 0.8) 100%),
-    linear-gradient(to bottom, rgba(5, 8, 16, 0.55) 0%, rgba(5, 8, 16, 0) 22%),
-    linear-gradient(180deg, rgba(0, 0, 0, 0.62), rgba(0, 0, 0, 0.62)),
-    url('/images/bg-door.jpg');
-  background-size: auto, auto, cover, cover;
-  background-position: center, center top, center, center;
+  background-image: var(--fa-home-bg-overlay), var(--fa-home-bg-photo);
+  background-size: var(--fa-home-bg-size);
+  background-position: var(--fa-home-bg-position);
   background-repeat: no-repeat;
 }
 
-.home-grain-layer {
+.home-grain-layer,
+.app-grain-layer {
+  display: none;
   position: fixed;
   inset: -40%;
   z-index: 1;
   pointer-events: none;
-  background-image:
-    radial-gradient(rgba(255, 255, 255, 0.2) 0.8px, transparent 1.15px),
-    radial-gradient(rgba(0, 0, 0, 0.38) 0.9px, transparent 1.3px);
-  background-size: 3px 3px, 7px 7px;
-  background-position: 0 0, 2px 3px;
-  opacity: 0.4;
+  background-image: var(--fa-home-grain-image);
+  background-size: var(--fa-home-grain-size);
+  background-position: var(--fa-home-grain-position);
+  opacity: var(--fa-home-grain-opacity);
   mix-blend-mode: normal;
 }
 
+html.home-route-active .home-grain-layer {
+  display: block;
+}
+
 @media (max-width: 1024px) {
-  .home-grain-layer {
-    opacity: 0.4;
-    background-size: 3px 3px, 7px 7px;
+  .home-grain-layer,
+  .app-grain-layer {
+    opacity: var(--fa-home-grain-opacity);
+    background-size: var(--fa-home-grain-size);
   }
 }
 
@@ -1354,6 +1371,38 @@ html.home-route-active .home-canvas-layer {
   padding: 0 24px clamp(20px, 5vh, 52px);
 }
 
+.home-thesis-kicker {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin: 0 0 16px;
+  max-width: 32em;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", system-ui, sans-serif;
+  font-feature-settings: "kern" 1, "liga" 1;
+  -webkit-font-smoothing: antialiased;
+}
+
+.home-thesis-kicker__line {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: -0.015em;
+  color: rgba(255, 255, 255, 0.58);
+}
+
+.home-thesis-kicker__line strong {
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.home-thesis-kicker__line--sub {
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.005em;
+  color: rgba(255, 255, 255, 0.44);
+}
+
 .home-page-caption {
   display: flex;
   justify-content: space-between;
@@ -1386,6 +1435,23 @@ html.home-route-active .home-canvas-layer {
   }
   .home-page-hero {
     padding: 0 56px 64px;
+  }
+  .home-thesis-kicker {
+    gap: 6px;
+    margin-bottom: 18px;
+    max-width: 38em;
+  }
+  .home-thesis-kicker__line {
+    font-size: 14px;
+    letter-spacing: -0.018em;
+    color: rgba(255, 255, 255, 0.62);
+  }
+  .home-thesis-kicker__line strong {
+    color: rgba(255, 255, 255, 0.84);
+  }
+  .home-thesis-kicker__line--sub {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.48);
   }
   .home-page-caption {
     padding: 0 56px 28px;
@@ -1656,254 +1722,6 @@ html.home-route-active .home-canvas-layer {
   color: rgba(233, 239, 248, 0.38);
   text-align: center;
   letter-spacing: 0.02em;
-}
-
-/* ---- Waiting approval — install block ---- */
-.waiting-install-block {
-  border: 1px solid rgba(209, 223, 243, 0.12);
-  border-radius: 12px;
-  padding: 14px 16px;
-  background: rgba(255, 255, 255, 0.03);
-  margin-bottom: 14px;
-}
-
-.waiting-install-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 10px;
-}
-
-.waiting-install-title-group {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.waiting-install-label {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: rgba(246, 250, 255, 0.55);
-}
-
-.waiting-install-kicker {
-  font-size: 16px;
-  line-height: 1.15;
-  letter-spacing: -0.03em;
-  color: rgba(247, 250, 255, 0.96);
-}
-
-.waiting-platform-badge {
-  font-size: 10px;
-  font-weight: 600;
-  color: rgba(190, 210, 240, 0.6);
-  background: rgba(160, 195, 240, 0.08);
-  border: 1px solid rgba(160, 195, 240, 0.15);
-  border-radius: 6px;
-  padding: 2px 7px;
-  letter-spacing: 0.02em;
-}
-
-.waiting-install-helper {
-  margin: 0 0 14px;
-  font-size: 12px;
-  line-height: 1.5;
-  color: rgba(226, 234, 244, 0.62);
-}
-
-.waiting-platform-art {
-  display: grid;
-  gap: 8px;
-  grid-template-columns: repeat(auto-fit, minmax(94px, 1fr));
-  margin-bottom: 14px;
-}
-
-.waiting-platform-art-step {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 7px;
-  padding: 10px 8px 11px;
-  border-radius: 14px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.025));
-  border: 1px solid rgba(175, 198, 236, 0.14);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
-}
-
-.waiting-platform-art-icon {
-  width: 30px;
-  height: 30px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: rgba(236, 244, 255, 0.95);
-  background: linear-gradient(180deg, rgba(127, 164, 224, 0.24), rgba(87, 113, 167, 0.18));
-  border: 1px solid rgba(177, 203, 243, 0.2);
-}
-
-.waiting-platform-art-label {
-  font-size: 11px;
-  line-height: 1.2;
-  font-weight: 700;
-  color: rgba(235, 242, 251, 0.82);
-  text-align: center;
-}
-
-.waiting-platform-art-arrow {
-  display: none;
-}
-
-.waiting-steps {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.waiting-step {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-}
-
-.waiting-step-num {
-  flex-shrink: 0;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: rgba(160, 195, 240, 0.12);
-  border: 1px solid rgba(160, 195, 240, 0.22);
-  color: rgba(190, 215, 250, 0.75);
-  font-size: 11px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-top: 1px;
-}
-
-.waiting-step-text {
-  font-size: 13px;
-  line-height: 1.5;
-  color: rgba(235, 240, 248, 0.72);
-}
-
-.waiting-install-btn {
-  width: 100%;
-  margin-top: 14px;
-  padding: 0 16px;
-  height: 48px;
-  border-radius: 14px;
-  background:
-    linear-gradient(180deg, rgba(229, 236, 250, 0.18), rgba(166, 187, 232, 0.18)),
-    linear-gradient(135deg, rgba(97, 127, 187, 0.38), rgba(118, 82, 154, 0.22));
-  border: 1px solid rgba(171, 194, 238, 0.42);
-  color: rgba(240, 246, 255, 0.98);
-  font-size: 14px;
-  font-weight: 700;
-  font-family: inherit;
-  letter-spacing: -0.02em;
-  cursor: pointer;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  box-shadow:
-    0 16px 32px rgba(12, 20, 36, 0.28),
-    inset 0 1px 0 rgba(255, 255, 255, 0.16);
-  transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
-}
-
-.waiting-install-btn:hover {
-  background:
-    linear-gradient(180deg, rgba(236, 242, 255, 0.24), rgba(175, 196, 240, 0.24)),
-    linear-gradient(135deg, rgba(111, 143, 206, 0.44), rgba(131, 94, 170, 0.28));
-  border-color: rgba(193, 211, 245, 0.58);
-  transform: translateY(-1px);
-  box-shadow:
-    0 20px 38px rgba(12, 20, 36, 0.34),
-    inset 0 1px 0 rgba(255, 255, 255, 0.18);
-}
-
-.waiting-install-btn:active {
-  transform: translateY(0);
-  background:
-    linear-gradient(180deg, rgba(236, 242, 255, 0.2), rgba(175, 196, 240, 0.2)),
-    linear-gradient(135deg, rgba(111, 143, 206, 0.38), rgba(131, 94, 170, 0.24));
-}
-
-.waiting-install-status {
-  margin-top: 12px;
-  font-size: 12px;
-  font-weight: 600;
-  color: rgba(190, 220, 255, 0.55);
-  text-align: center;
-}
-
-@media (max-width: 480px) {
-  .waiting-install-block {
-    padding: 14px;
-    border-radius: 18px;
-    margin-bottom: 12px;
-  }
-  .waiting-install-label {
-    font-size: 10px;
-  }
-  .waiting-platform-badge {
-    font-size: 9px;
-    padding: 2px 6px;
-  }
-  .waiting-install-kicker {
-    font-size: 14px;
-  }
-  .waiting-install-helper {
-    font-size: 11px;
-    margin-bottom: 12px;
-  }
-  .waiting-platform-art {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    margin-bottom: 12px;
-  }
-  .waiting-platform-art-step {
-    padding: 9px 8px 10px;
-    border-radius: 12px;
-  }
-  .waiting-platform-art-icon {
-    width: 28px;
-    height: 28px;
-  }
-  .waiting-platform-art-label {
-    font-size: 10px;
-  }
-  .waiting-step-text {
-    font-size: 12px;
-  }
-  .waiting-step-num {
-    width: 18px;
-    height: 18px;
-    font-size: 10px;
-  }
-  .waiting-install-btn {
-    height: 44px;
-    font-size: 16px;
-    border-radius: 12px;
-    margin-top: 12px;
-  }
-
-  .waiting-install-status {
-    font-size: 11px;
-    margin-top: 10px;
-  }
-
-  .waiting-platform-art {
-    grid-template-columns: 1fr;
-  }
 }
 
 @keyframes authCardPulse {

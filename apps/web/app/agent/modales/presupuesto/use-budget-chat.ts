@@ -152,6 +152,25 @@ export function useBudgetChat(params: UseBudgetChatParams) {
     onInitFocusResetRef.current?.();
   }, [setAssistantBudgetRowId, setBudgetPendingConfirmation]);
 
+  const resetBudgetChatSession = useCallback(() => {
+    setBudgetReply('');
+    setAssistantReply(null);
+    setConversationDone(false);
+    setIsAskingAI(false);
+    setIsInitializing(false);
+    setAiError(null);
+    setAssistantNextQuestion(null);
+    setLastUserAnswer(null);
+    setTypewriterTurnKey(0);
+    setResumedSession(false);
+    replySubmitLockRef.current = false;
+    budgetInitStartedRef.current = false;
+    if (!onPendingConfirmationChange) {
+      setBudgetPendingConfirmation(null);
+    }
+    onInitFocusResetRef.current?.();
+  }, [onPendingConfirmationChange, setBudgetPendingConfirmation]);
+
   const consumeBudgetChatPayload = useCallback(
     (payload: BudgetChatApiPayload) => {
       if (!isOpenRef.current) return;
@@ -197,14 +216,14 @@ export function useBudgetChat(params: UseBudgetChatParams) {
   }, [onApplyTableActions]);
 
   const handleBudgetAgentReplySubmit = useCallback(
-    async (forcedAnswer?: string) => {
+    async (forcedAnswer?: string, pendingOverride?: BudgetPendingConfirmation | null) => {
       const answer = (forcedAnswer ?? budgetReply).trim();
       if (rejectFincoinSpend()) return;
       if (!answer || !isOpen || isAskingAI || isInitializing || replySubmitLockRef.current) return;
       replySubmitLockRef.current = true;
 
       const manualFocusRowId = activeBudgetRowId;
-      const pendingForTurn = budgetPendingConfirmationRef.current;
+      const pendingForTurn = pendingOverride ?? budgetPendingConfirmationRef.current;
       const questionForTurn =
         assistantNextQuestion ??
         (manualFocusRowId ? resolveLocalBudgetQuestion(manualFocusRowId) : null) ??
@@ -313,13 +332,19 @@ export function useBudgetChat(params: UseBudgetChatParams) {
   );
 
   const handleBudgetPendingConfirm = useCallback(() => {
+    const pending = budgetPendingConfirmationRef.current;
+    if (!pending?.actions?.length) return;
     applyPendingTableActions();
-    void handleBudgetAgentReplySubmit('sí');
-  }, [applyPendingTableActions, handleBudgetAgentReplySubmit]);
+    setBudgetPendingConfirmation(null);
+    void handleBudgetAgentReplySubmit('sí', pending);
+  }, [applyPendingTableActions, handleBudgetAgentReplySubmit, setBudgetPendingConfirmation]);
 
   const handleBudgetPendingReject = useCallback(() => {
-    void handleBudgetAgentReplySubmit('no');
-  }, [handleBudgetAgentReplySubmit]);
+    const pending = budgetPendingConfirmationRef.current;
+    if (!pending) return;
+    setBudgetPendingConfirmation(null);
+    void handleBudgetAgentReplySubmit('no', pending);
+  }, [handleBudgetAgentReplySubmit, setBudgetPendingConfirmation]);
 
   useEffect(() => {
     budgetPendingConfirmationRef.current = budgetPendingConfirmation;
@@ -332,9 +357,9 @@ export function useBudgetChat(params: UseBudgetChatParams) {
       replyAbortRef.current?.abort();
       initAbortRef.current = null;
       replyAbortRef.current = null;
-      setResumedSession(false);
+      resetBudgetChatSession();
     }
-  }, [isOpen]);
+  }, [isOpen, resetBudgetChatSession]);
 
   useEffect(
     () => () => {
@@ -348,8 +373,6 @@ export function useBudgetChat(params: UseBudgetChatParams) {
   useEffect(() => {
     if (!isOpen) {
       budgetInitStartedRef.current = false;
-      setIsInitializing(false);
-      setIsAskingAI(false);
       return;
     }
     if (fincoinSpendBlocked) {

@@ -45,11 +45,6 @@ const CONFLICT_COPY: Record<string, Omit<ContextConflictUiCopy, 'body'> & { body
     ctaLabel: 'Actualizar cuestionario',
     action: 'questionnaire',
   },
-  DIAGNOSTIC_BUDGET_STALE: {
-    title: 'Tu presupuesto cambió después del último diagnóstico',
-    ctaLabel: 'Actualizar diagnóstico',
-    action: 'interview',
-  },
 };
 
 export function resolveContextConflictCopy(conflict: ContextConflict): ContextConflictUiCopy {

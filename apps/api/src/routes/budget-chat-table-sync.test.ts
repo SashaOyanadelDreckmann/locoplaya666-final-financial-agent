@@ -15,7 +15,7 @@ import {
   type BudgetTableAction,
 } from '@financial-agent/shared';
 
-import { runBudgetChatAgent } from '../services/budget-chat-agent.service';
+import { runBudgetChatAgent, buildBudgetAgentUnavailableResult } from '../services/budget-chat-agent.service';
 
 vi.mock('../services/budget-chat-agent.service', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../services/budget-chat-agent.service')>();
@@ -85,80 +85,86 @@ describe('budget-chat table sync', () => {
   ];
 
   beforeEach(() => {
+    process.env.BUDGET_CHAT_AGENT_TEST_MOCKS = 'true';
     runBudgetChatAgent.mockReset();
+    runBudgetChatAgent.mockImplementation((input) =>
+      Promise.resolve(buildBudgetAgentUnavailableResult(input.mode)),
+    );
   });
 
-  it('syncs agent actions into movementType, name, amount and metadata columns', async () => {
+  it('syncs deterministic wizard actions into movementType, name, amount and metadata columns', async () => {
     const { agent, csrfToken } = await createAuthedAgent();
     const headers = { 'x-csrf-token': csrfToken };
     let rows = foodRow();
+    let chatAnswers: Array<{ q: string; a: string }> = [];
 
-    runBudgetChatAgent
-      .mockResolvedValueOnce({
-        assistant_reply: 'Hola.',
-        next_question: '¿Qué cambiamos?',
-        focus_row_id: 'expense_food',
-        actions: [],
-        requires_confirmation: false,
-        pending_summary: null,
-        source: 'budget_agent_init',
-      })
-      .mockResolvedValueOnce({
-        assistant_reply: 'Tipo transporte.',
-        next_question: '¿Nombre y monto?',
-        focus_row_id: 'expense_food',
-        actions: [{ kind: 'update', id: 'expense_food', category: 'Alimentación', type: 'expense', amount: 0, movement_type: 'transport' }],
-        requires_confirmation: false,
-        pending_summary: null,
-        source: 'budget_agent',
-      })
-      .mockResolvedValueOnce({
-        assistant_reply: 'Renombro y monto.',
-        next_question: '¿Recurrencia?',
-        focus_row_id: 'expense_food',
-        actions: [{ kind: 'update', id: 'expense_food', category: 'Supermercado', type: 'expense', amount: 180000, movement_type: 'transport' }],
-        requires_confirmation: false,
-        pending_summary: null,
-        source: 'budget_agent',
-      })
-      .mockResolvedValueOnce({
-        assistant_reply: 'Metadatos listos.',
-        next_question: '¿Qué más?',
-        focus_row_id: 'expense_food',
-        actions: [{ kind: 'update', id: 'expense_food', category: 'Supermercado', type: 'expense', amount: 180000, movement_type: 'transport', cadence: 'fixed', payment_method: 'debit' }],
-        requires_confirmation: false,
-        pending_summary: null,
-        source: 'budget_agent',
-      });
+    await agent.post('/api/budget-chat').set(headers).send({ intent: 'init', budgetRows: rows, chatAnswers });
 
-    await agent.post('/api/budget-chat').set(headers).send({ intent: 'init', budgetRows: rows, chatAnswers: [] });
+    async function applyTurn(
+      replyRes: { body: Record<string, unknown> },
+      question: string,
+      answer: string,
+      currentRows: BudgetRow[],
+    ): Promise<BudgetRow[]> {
+      chatAnswers = [...chatAnswers, { q: question, a: answer }];
+      const body = replyRes.body;
+      if (body.requires_confirmation && body.pending_confirmation) {
+        const confirmed = await agent.post('/api/budget-chat').set(headers).send({
+          intent: 'reply',
+          answer: 'sí',
+          question: body.next_question ?? question,
+          budgetRows: currentRows,
+          chatAnswers,
+          pendingConfirmation: body.pending_confirmation,
+        });
+        chatAnswers = [...chatAnswers, { q: String(body.next_question ?? question), a: 'sí' }];
+        return applyAction(currentRows, confirmed.body.action as BudgetTableAction);
+      }
+      return applyAction(currentRows, body.action as BudgetTableAction);
+    }
 
     const r1 = await agent.post('/api/budget-chat').set(headers).send({
       intent: 'reply',
       answer: 'es transporte',
       question: '¿Qué cambiamos?',
       budgetRows: rows,
+      chatAnswers,
+      assistantFocusRowId: 'expense_food',
     });
-    rows = applyAction(rows, r1.body.action as BudgetTableAction);
+    rows = await applyTurn(r1, '¿Qué cambiamos?', 'es transporte', rows);
     expect(rows[0]?.movementType).toBe('transport');
 
     const r2 = await agent.post('/api/budget-chat').set(headers).send({
       intent: 'reply',
-      answer: 'supermercado 180 mil',
+      answer: 'supermercado',
       question: r1.body.next_question,
       budgetRows: rows,
+      chatAnswers,
+      assistantFocusRowId: 'expense_food',
     });
-    rows = applyAction(rows, r2.body.action as BudgetTableAction);
+    rows = await applyTurn(r2, String(r1.body.next_question ?? ''), 'supermercado', rows);
     expect(rows[0]?.category).toBe('Supermercado');
-    expect(rows[0]?.amount).toBe(180000);
 
     const r3 = await agent.post('/api/budget-chat').set(headers).send({
       intent: 'reply',
-      answer: 'fijo con débito',
+      answer: '180 mil',
       question: r2.body.next_question,
       budgetRows: rows,
+      chatAnswers,
+      assistantFocusRowId: 'expense_food',
     });
-    rows = applyAction(rows, r3.body.action as BudgetTableAction);
+    rows = await applyTurn(r3, String(r2.body.next_question ?? ''), '180 mil', rows);
+    expect(rows[0]?.amount).toBe(180000);
+
+    const r4 = await agent.post('/api/budget-chat').set(headers).send({
+      intent: 'reply',
+      answer: 'fijo con débito',
+      question: r3.body.next_question,
+      budgetRows: rows,
+      chatAnswers,
+      assistantFocusRowId: 'expense_food',
+    });
+    rows = await applyTurn(r4, String(r3.body.next_question ?? ''), 'fijo con débito', rows);
     expect(rows[0]?.cadence).toBe('fixed');
     expect(rows[0]?.paymentMethod).toBe('debit');
   });
@@ -189,9 +195,19 @@ describe('budget-chat table sync', () => {
       budgetRows: rows,
     });
 
-    expect(res.body.actions?.length).toBe(3);
+    expect(res.body.requires_confirmation).toBe(true);
+    expect(res.body.pending_confirmation?.actions?.length).toBe(3);
+
+    const confirmed = await agent.post('/api/budget-chat').set(headers).send({
+      intent: 'reply',
+      answer: 'sí',
+      question: res.body.next_question,
+      budgetRows: rows,
+      pendingConfirmation: res.body.pending_confirmation,
+    });
+    expect(confirmed.body.actions?.length).toBe(3);
     let nextRows = rows;
-    for (const action of res.body.actions as BudgetTableAction[]) {
+    for (const action of confirmed.body.actions as BudgetTableAction[]) {
       nextRows = applyAction(nextRows, action);
     }
     expect(nextRows).toHaveLength(4);

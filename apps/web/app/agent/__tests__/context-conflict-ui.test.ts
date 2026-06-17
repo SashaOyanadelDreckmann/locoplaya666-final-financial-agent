@@ -52,14 +52,6 @@ describe('context-conflict-ui', () => {
     expect(copy.action).toBe('questionnaire');
   });
 
-  it('routes stale diagnostic conflicts to interview refresh', () => {
-    const copy = resolveContextConflictCopy(
-      sampleConflict({ explanationCode: 'DIAGNOSTIC_BUDGET_STALE' }),
-    );
-    expect(copy.ctaLabel).toBe('Actualizar diagnóstico');
-    expect(copy.action).toBe('interview');
-  });
-
   it('sorts conflicts by severity', () => {
     const sorted = sortContextConflicts([
       sampleConflict({ conflictId: 'a', severity: 'low' }),

@@ -54,7 +54,7 @@ describe('budget-chat-agent.service', () => {
     expect(result.actions[0]?.category).toBe('Gym');
   });
 
-  it('applies explicit single-row update without confirmation', async () => {
+  it('requires confirmation for explicit single-row update', async () => {
     completeStructuredWithSchema.mockResolvedValueOnce({
       assistant_reply: 'Actualizo alimentación.',
       next_question: '¿Qué más quieres hacer con la tabla?',
@@ -75,7 +75,7 @@ describe('budget-chat-agent.service', () => {
       mode: 'reply',
     });
 
-    expect(result.requires_confirmation).toBe(false);
+    expect(result.requires_confirmation).toBe(true);
     expect(result.actions[0]?.amount).toBe(180000);
   });
 
@@ -101,6 +101,7 @@ describe('budget-chat-agent.service', () => {
     });
 
     expect(result.source).toBe('budget_agent');
+    expect(result.requires_confirmation).toBe(true);
     expect(result.actions[0]?.amount).toBe(150000);
     expect(result.next_question).toMatch(/\?/);
   });

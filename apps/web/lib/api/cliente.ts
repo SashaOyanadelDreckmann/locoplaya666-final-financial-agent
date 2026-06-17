@@ -290,7 +290,40 @@ export async function getWelcomeMessage() {
         resultado: { title: string; body: string };
       };
       closingQuestion: string;
+      guideActions?: Array<{
+        id: string;
+        label: string;
+        kind: 'message' | 'panel';
+        message?: string;
+        panelSection?: 'transactions' | 'products_transactions' | 'budget' | 'interview';
+      }>;
+      productHints?: Array<{
+        label: string;
+        fact: string;
+        source: string;
+        url?: string;
+      }>;
+      productBlurb?: string;
     };
+  }>(res);
+}
+
+export async function getChatIntroEnrichment(chatId: 'chat-1' | 'chat-2' | 'chat-3') {
+  const API_URL = getSessionApiBaseUrl();
+  const res = await fetch(`${API_URL}/api/chat-intro?chatId=${encodeURIComponent(chatId)}`, {
+    method: 'GET',
+    credentials: 'include',
+  });
+
+  return parseApiResponse<{
+    chatId: 'chat-1' | 'chat-2' | 'chat-3';
+    productHints: Array<{
+      label: string;
+      fact: string;
+      source: string;
+      url?: string;
+    }>;
+    productBlurb?: string;
   }>(res);
 }
 

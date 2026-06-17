@@ -124,16 +124,8 @@ MOVES: list[tuple[str, str]] = [
     # --- agent: paneles ---
     ('apps/web/app/agent/panel-cards.tsx', 'apps/web/app/agent/paneles/panel-cards.tsx'),
     ('apps/web/app/agent/side-panels.tsx', 'apps/web/app/agent/paneles/side-panels.tsx'),
-    ('apps/web/app/agent/PanelCardsIntroSequence.tsx', 'apps/web/app/agent/paneles/PanelCardsIntroSequence.tsx'),
-    ('apps/web/app/agent/PanelIntroGridSlot.tsx', 'apps/web/app/agent/paneles/PanelIntroGridSlot.tsx'),
-    ('apps/web/app/agent/PanelIntroLayoutGroup.tsx', 'apps/web/app/agent/paneles/PanelIntroLayoutGroup.tsx'),
     ('apps/web/app/agent/mobile-panel-compact-carousel.tsx', 'apps/web/app/agent/paneles/mobile-panel-compact-carousel.tsx'),
     ('apps/web/app/agent/panel-callout-banner.tsx', 'apps/web/app/agent/paneles/panel-callout-banner.tsx'),
-    ('apps/web/app/agent/panel-cards-intro.copy.ts', 'apps/web/app/agent/paneles/panel-cards-intro.copy.ts'),
-    ('apps/web/app/agent/panel-cards-intro.mobile-dock.ts', 'apps/web/app/agent/paneles/panel-cards-intro.mobile-dock.ts'),
-    ('apps/web/app/agent/panel-cards-intro.present.tsx', 'apps/web/app/agent/paneles/panel-cards-intro.present.tsx'),
-    ('apps/web/app/agent/panel-intro.prefs.ts', 'apps/web/app/agent/paneles/panel-intro.prefs.ts'),
-    ('apps/web/app/agent/panel-intro.types.ts', 'apps/web/app/agent/paneles/panel-intro.types.ts'),
     # --- agent: chat ---
     ('apps/web/app/agent/chat-header.tsx', 'apps/web/app/agent/chat/chat-header.tsx'),
     ('apps/web/app/agent/chat-thread-view.tsx', 'apps/web/app/agent/chat/chat-thread-view.tsx'),
@@ -247,11 +239,7 @@ REPLACEMENTS: list[tuple[str, str]] = [
     ("from './page.utils'", "from './utilidades/page.utils'"),
     ("from './welcome-intro.shared'", "from './flujo/welcome-intro.shared'"),
     ("from './AgentBootSequence'", "from './arranque/AgentBootSequence'"),
-    ("from './PanelCardsIntroSequence'", "from './paneles/PanelCardsIntroSequence'"),
-    ("from './PanelIntroGridSlot'", "from './paneles/PanelIntroGridSlot'"),
-    ("from './PanelIntroLayoutGroup'", "from './paneles/PanelIntroLayoutGroup'"),
     ("from './agent-boot-sequence.helpers'", "from './arranque/agent-boot-sequence.helpers'"),
-    ("from './panel-intro.prefs'", "from './paneles/panel-intro.prefs'"),
     ("from './modals'", "from './modales/index'"),
     ("from './AccountModal'", "from './modales/cuenta/AccountModal'"),
     ("from './BudgetModal'", "from './modales/presupuesto/BudgetModal'"),
@@ -274,7 +262,6 @@ REPLACEMENTS: list[tuple[str, str]] = [
     ("from '../AgentModalCloseButton'", "from '../comunes/AgentModalCloseButton'"),
     ("from '../agent-page.constants'", "from '../../utilidades/agent-page.constants'"),
     ("from './budget-modal.", "from './budget-modal."),
-    ("@/app/agent/panel-cards-intro.present", "@/app/agent/paneles/panel-cards-intro.present"),
     # guard test paths
     ("'app', 'agent', 'BudgetModal.tsx'", "'app', 'agent', 'modales', 'presupuesto', 'BudgetModal.tsx'"),
     ("'app', 'agent', 'use-budget-modal-layout.ts'", "'app', 'agent', 'modales', 'presupuesto', 'use-budget-modal-layout.ts'"),
@@ -343,9 +330,6 @@ REPLACEMENTS: list[tuple[str, str]] = [
     ("export { AccountModal } from './AccountModal'", "export { AccountModal } from './cuenta/AccountModal'"),
     ("jest.mock('@/components/agent/ModalNumbersCanvas'", "jest.mock('@/components/agente/ModalNumbersCanvas'"),
     ("from '@/components/agent/ModalNumbersCanvas'", "from '@/components/agente/ModalNumbersCanvas'"),
-    ("from '@/app/agent/panel-cards-intro.mobile-dock'", "from '@/app/agent/paneles/panel-cards-intro.mobile-dock'"),
-    ("from '../panel-cards-intro.present'", "from '../paneles/panel-cards-intro.present'"),
-    ("from '../panel-cards-intro.mobile-dock'", "from '../paneles/panel-cards-intro.mobile-dock'"),
     ("from '../../components/AnimatedPanelCard'", "from '../../components/layout/AnimatedPanelCard'"),
     ("from '../../components/ProfileCard'", "from '../../components/layout/ProfileCard'"),
     ("from '../transactions/TransactionsModal'", "from '../modales/transacciones/TransactionsModal'"),
@@ -374,7 +358,6 @@ REPLACEMENTS: list[tuple[str, str]] = [
     ("from '../user-upload-bubble'", "from '../chat/user-upload-bubble'"),
     ("from '../agent-hero-highlight.helpers'", "from '../utilidades/agent-hero-highlight.helpers'"),
     ("from '../welcome-intake-scramble.helpers'", "from '../flujo/welcome-intake-scramble.helpers'"),
-    ("from '../panel-cards-intro.copy'", "from '../paneles/panel-cards-intro.copy'"),
     ("from '@/lib/compartido/utils'", "from '@/lib/compartido/utils'"),
     ("from '@/lib/compartido/markdown'", "from '@/lib/compartido/markdown'"),
     ("from '@/lib/compartido/validation'", "from '@/lib/compartido/validation'"),
@@ -444,9 +427,6 @@ def patch_internal_relative_imports(content: str, file_path: Path) -> str:
         content = content.replace("from './AccountModal'", "from './cuenta/AccountModal'")
     if 'app/agent/paneles' in str(rel):
         content = content.replace("from '../../components/", "from '../../../components/")
-        content = content.replace("from '@/app/agent/panel-cards-intro.present'", "@/app/agent/paneles/panel-cards-intro.present")
-        content = content.replace("from './panel-cards-intro.present'", "from './panel-cards-intro.present'")
-        content = content.replace("from '../panel-cards-intro.present'", "from './panel-cards-intro.present'")
     if 'app/agent/modales/index.ts' in str(rel):
         pass
     return content

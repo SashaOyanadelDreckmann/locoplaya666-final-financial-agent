@@ -40,6 +40,13 @@ describe('useBudgetChat hook guards', () => {
     );
   });
 
+  it('resets chat session state when the modal closes', () => {
+    expect(source).toContain('resetBudgetChatSession');
+    expect(source).toContain('if (!isOpen) {');
+    expect(source).toContain('resetBudgetChatSession()');
+    expect(source).toContain('budgetInitStartedRef.current = false');
+  });
+
   it('resumes local session when chat answers already exist', () => {
     expect(source).toContain('chatAnswersRef.current.length > 0');
     expect(source).toContain('restoreLocalSession');

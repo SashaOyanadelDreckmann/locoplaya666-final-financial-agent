@@ -7,8 +7,6 @@ const INCOME_MISMATCH_RATIO = 0.15;
 export function detectContextConflicts(params: {
   facts: FinancialContextFact[];
   contextVersion: string;
-  diagnosticCompletedAt?: string | null;
-  budgetLastModified?: string | null;
 }): ContextConflict[] {
   const conflicts: ContextConflict[] = [];
   const detectedAt = new Date().toISOString();
@@ -82,27 +80,6 @@ export function detectContextConflicts(params: {
         }),
       );
     }
-  }
-
-  if (
-    params.diagnosticCompletedAt &&
-    params.budgetLastModified &&
-    Date.parse(params.budgetLastModified) > Date.parse(params.diagnosticCompletedAt)
-  ) {
-    conflicts.push(
-      buildConflict({
-        type: 'stale_source',
-        severity: 'medium',
-        predicate: 'diagnostic_budget_stale',
-        factIds: [],
-        sourceIds: ['diagnostic', 'budget'],
-        explanationCode: 'DIAGNOSTIC_BUDGET_STALE',
-        deterministicReason: 'El presupuesto cambió después del último diagnóstico.',
-        contextVersion: params.contextVersion,
-        detectedAt,
-        suggestedResolution: 'refresh_source',
-      }),
-    );
   }
 
   return conflicts;

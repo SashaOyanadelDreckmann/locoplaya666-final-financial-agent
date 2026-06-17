@@ -316,6 +316,7 @@ function BudgetTextInput(props: {
   rowId: string;
   value: string;
   placeholder: string;
+  className?: string;
   style?: CSSProperties;
   onFocus: () => void;
   onFocusField: (target: EventTarget | null) => void;
@@ -332,6 +333,7 @@ function BudgetTextInput(props: {
 
   return (
     <input
+      className={props.className}
       value={draft}
       placeholder={props.placeholder}
       style={props.style}
@@ -361,6 +363,7 @@ function BudgetTextInput(props: {
 function BudgetAmountInput(props: {
   rowId: string;
   amount: number;
+  className?: string;
   onFocus: () => void;
   onFocusField: (target: EventTarget | null) => void;
   onCommit: (value: number) => void;
@@ -386,6 +389,7 @@ function BudgetAmountInput(props: {
       type="text"
       inputMode="numeric"
       pattern="[0-9]*"
+      className={props.className}
       value={draft}
       placeholder="0"
       onFocus={(event) => {
@@ -649,6 +653,208 @@ export function BudgetIntelligenceTable(props: Props) {
             })}
           </tbody>
         </table>
+      </div>
+    </div>
+  );
+}
+
+function PendingKindTag(props: { kind: 'add' | 'update' | 'delete' }) {
+  const label =
+    props.kind === 'add' ? 'Nuevo' : props.kind === 'update' ? 'Cambio' : 'Baja';
+  return (
+    <span
+      className={[
+        'budget-pending-card__tag',
+        props.kind === 'add' ? 'is-add' : '',
+        props.kind === 'update' ? 'is-update' : '',
+        props.kind === 'delete' ? 'is-delete' : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
+      aria-hidden="true"
+    >
+      {label}
+    </span>
+  );
+}
+
+function PendingCompactPills<T extends string>(props: {
+  options: Array<{ value: T; label: string }>;
+  value: T;
+  tone: 'income' | 'expense';
+  onChange?: (value: T) => void;
+  readonly?: boolean;
+}) {
+  if (props.readonly) {
+    const active = props.options.find((option) => option.value === props.value);
+    return (
+      <span className={`budget-pending-card__pill is-readonly is-${props.tone}`}>{active?.label ?? props.value}</span>
+    );
+  }
+
+  return (
+    <div className={`budget-pending-card__pills is-${props.tone}`} role="group">
+      {props.options.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          className={`budget-pending-card__pill${props.value === option.value ? ' is-active' : ''}`}
+          aria-pressed={props.value === option.value}
+          onMouseDown={stopRowCapture}
+          onPointerDown={stopRowCapture}
+          onClick={() => props.onChange?.(option.value)}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+const PENDING_TYPE_OPTIONS = [
+  { value: 'income' as const, label: 'Ing.' },
+  { value: 'expense' as const, label: 'Gasto' },
+];
+
+const PENDING_CADENCE_OPTIONS = [
+  { value: 'fixed' as const, label: 'Fijo' },
+  { value: 'variable' as const, label: 'Var.' },
+];
+
+export function BudgetPendingProposalPreview(props: {
+  items: Array<{ kind: 'add' | 'update' | 'delete'; row: BudgetRow }>;
+  budgetTableStyle: string;
+  formatBudgetAmount: (value: number) => string;
+  colorForBudgetRow: (rowId: string) => string;
+  rowStyle: (row: BudgetRow) => CSSProperties;
+  editable?: boolean;
+  onUpdateRow?: (rowId: string, field: EditableBudgetField, value: string | number) => void;
+  focusBudgetField?: (target: EventTarget | null) => void;
+}) {
+  if (props.items.length === 0) return null;
+
+  const surfaceClassName = [
+    'budget-pending-card-list',
+    'budget-pdf-surface',
+    `budget-table-style-${props.budgetTableStyle}`,
+    props.editable ? 'is-editable' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  const focusBudgetField = props.focusBudgetField ?? (() => undefined);
+
+  return (
+    <div className="budget-pending-proposal-preview" aria-label="Propuesta de fila del asistente">
+      <div className={surfaceClassName}>
+        {props.items.map((item) => {
+          const row = item.row;
+          const cadence = normalizeCadence(row.cadence, row.type);
+          const cadenceLabel = CADENCE_OPTIONS.find((option) => option.value === cadence)?.label ?? 'Fijo';
+          const typeLabel = row.type === 'income' ? 'Ingreso' : 'Gasto';
+          const accentColor = props.colorForBudgetRow(row.id);
+          const amountLabel = row.amount > 0 ? props.formatBudgetAmount(row.amount) : '—';
+          const isEditableRow = Boolean(props.editable && props.onUpdateRow && item.kind !== 'delete');
+          const isDelete = item.kind === 'delete';
+
+          return (
+            <article
+              key={`${item.kind}-${row.id}`}
+              id={`budget-pending-row-${row.id}`}
+              className={[
+                'budget-pending-card',
+                row.type === 'expense' ? 'budget-row-expense' : 'budget-row-income',
+                item.kind === 'delete' ? 'is-delete' : '',
+                item.kind === 'add' ? 'is-add' : '',
+                item.kind === 'update' ? 'is-update' : '',
+                isEditableRow ? 'is-editable' : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
+              style={props.rowStyle(row)}
+            >
+              <div className="budget-pending-card__head">
+                <PendingKindTag kind={item.kind} />
+                {isEditableRow ? (
+                  <BudgetAmountInput
+                    rowId={row.id}
+                    amount={row.amount}
+                    className="budget-pending-card__amount-input"
+                    onFocus={() => undefined}
+                    onFocusField={focusBudgetField}
+                    onCommit={(value) => props.onUpdateRow?.(row.id, 'amount', value)}
+                  />
+                ) : (
+                  <span className="budget-pending-card__amount" aria-label="Monto mensual">
+                    {amountLabel}
+                  </span>
+                )}
+              </div>
+
+              <div className="budget-pending-card__title">
+                {isEditableRow ? (
+                  <BudgetTextInput
+                    rowId={row.id}
+                    value={row.category}
+                    placeholder="Movimiento"
+                    className="budget-pending-card__category-input"
+                    style={{
+                      borderColor: `${accentColor}55`,
+                      boxShadow: `inset 3px 0 0 ${accentColor}88`,
+                    }}
+                    onFocus={() => undefined}
+                    onFocusField={focusBudgetField}
+                    onCommit={(value) => props.onUpdateRow?.(row.id, 'category', value)}
+                  />
+                ) : (
+                  <span
+                    className="budget-pending-card__category"
+                    style={{ boxShadow: `inset 3px 0 0 ${accentColor}88` }}
+                    title={row.category}
+                  >
+                    {row.category}
+                  </span>
+                )}
+              </div>
+
+              {!isDelete ? (
+                <div className="budget-pending-card__meta">
+                  {isEditableRow ? (
+                    <>
+                      <PendingCompactPills
+                        options={PENDING_TYPE_OPTIONS}
+                        value={row.type}
+                        tone={row.type}
+                        onChange={(value) => props.onUpdateRow?.(row.id, 'type', value)}
+                      />
+                      <PendingCompactPills
+                        options={PENDING_CADENCE_OPTIONS}
+                        value={cadence}
+                        tone={row.type}
+                        onChange={(value) => props.onUpdateRow?.(row.id, 'cadence', value)}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <PendingCompactPills
+                        options={[{ value: row.type, label: typeLabel }]}
+                        value={row.type}
+                        tone={row.type}
+                        readonly
+                      />
+                      <PendingCompactPills
+                        options={[{ value: cadence, label: cadenceLabel }]}
+                        value={cadence}
+                        tone={row.type}
+                        readonly
+                      />
+                    </>
+                  )}
+                </div>
+              ) : null}
+            </article>
+          );
+        })}
       </div>
     </div>
   );

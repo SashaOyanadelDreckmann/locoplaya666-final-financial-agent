@@ -8,7 +8,7 @@ import {
 } from '@financial-agent/shared';
 
 import { DocumentBubble } from '@/components/conversacion/DocumentBubble';
-import { CitationBubble } from '@/components/conversacion/CitationBubble';
+import { CitationBubble, getCitationLabel } from '@/components/conversacion/CitationBubble';
 import { AgentBlocksRenderer } from '@/components/agente/AgentBlocksRenderer';
 import { AgentStreamRail } from '@/components/agente/AgentStreamRail';
 import '@/app/estilos/agente/chat/agent-stream.css';
@@ -28,6 +28,8 @@ import { renderLatexDocMessage } from './message-renderer';
 import { GradientBlobCard } from '@/components/ui/gradient-bold-card';
 import { ChatIntroGradientCard } from '@/components/ui/chat-intro-gradient-card';
 import { ClosureGradientBlobCard } from '@/components/ui/closure-gradient-card';
+import { WelcomeGuideActions } from '@/components/ui/welcome-guide-actions';
+import { useWelcomeGuideEnrichment } from '../hooks/use-welcome-guide-enrichment';
 import { UserUploadBubble } from './user-upload-bubble';
 import { MAX_CHAT_UPLOAD_FILES } from '../utilidades/agent-page.constants';
 import {
@@ -43,10 +45,15 @@ import {
 } from '../flujo/chat-intro.shared';
 import type { DiagnosisProfile } from '@/state/profile.store';
 import { OnboardingFlowCta } from '../flujo/OnboardingFlowCta';
+import { PwaInstallNotice } from './pwa-install-notice';
+import { ContextConflictBanner } from '../paneles/context-conflict-banner';
+import type { ContextConflictUiAction } from '@/lib/context/context-conflict-ui';
+import type { ContextConflict } from '@financial-agent/shared';
 import {
   buildOnboardingFlowCta,
   type OnboardingFlowStatus,
 } from '../flujo/onboarding-flow.helpers';
+import type { PwaInstallGuide } from '@/lib/interfaz/pwa-install.helpers';
 
 type PanelAction = NonNullable<
   Extract<ChatItem, { type: 'message'; role: 'assistant' }>['panel_action']
@@ -63,11 +70,56 @@ function getFlowPanelActionLabel(section: PanelAction['section']): string {
 
 function renderAgentPanelActionRow(action: PanelAction, onClick: () => void) {
   return (
-    <div className="agent-inline-panel-action agent-inline-panel-action--intro">
-      <button type="button" className="agent-inline-panel-button" onClick={onClick}>
+    <div className="agent-message-chrome agent-message-chrome--panel" data-chat-export-skip="true">
+      <button type="button" className="agent-message-chrome__action" onClick={onClick}>
         {getFlowPanelActionLabel(action.section)}
       </button>
-      {action.message ? <span className="agent-inline-panel-note">{action.message}</span> : null}
+      {action.message ? <span className="agent-message-chrome__note">{action.message}</span> : null}
+    </div>
+  );
+}
+
+function renderMessageCitationsChrome(
+  messageIndex: number,
+  citations: Array<Extract<ChatItem, { type: 'citation' }>['citation']>,
+  expanded: boolean,
+  onToggle: () => void,
+) {
+  const externalCitations = citations.filter(isRenderableCitation);
+  if (externalCitations.length === 0) return null;
+
+  return (
+    <div className="agent-message-chrome agent-message-chrome--citations" data-chat-export-skip="true">
+      <button
+        type="button"
+        className="agent-message-chrome__citations-toggle"
+        onClick={onToggle}
+        aria-expanded={expanded}
+      >
+        {externalCitations.length === 1 ? '1 fuente' : `${externalCitations.length} fuentes`}
+        {expanded ? ' · ocultar' : ''}
+      </button>
+      {expanded ? (
+        <p className="agent-message-chrome__citation-list">
+          {externalCitations.map((citation, idx) => (
+            <React.Fragment key={`${messageIndex}-citation-${idx}`}>
+              {idx > 0 ? <span className="agent-message-chrome__citation-sep"> · </span> : null}
+              {citation.url ? (
+                <a
+                  className="agent-message-chrome__citation-link"
+                  href={citation.url}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {getCitationLabel(citation)}
+                </a>
+              ) : (
+                <span className="agent-message-chrome__citation-text">{getCitationLabel(citation)}</span>
+              )}
+            </React.Fragment>
+          ))}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -151,6 +203,9 @@ function renderChatIntroCard(props: {
   preferExecutiveCarousel?: boolean;
   chat1IntroMode?: 'default' | 'deepen';
   voiceFindings?: string[];
+  productHints?: import('@financial-agent/shared').WelcomeProductHint[];
+  productBlurb?: string;
+  guideActions?: import('@financial-agent/shared').WelcomeGuideAction[];
 }) {
   const chatId = (props.activeThreadId ?? 'chat-1') as ChatIntroId;
   if (
@@ -179,6 +234,9 @@ function renderChatIntroCard(props: {
       diagnosisUnlocked={props.chat1GeneralDeepened}
       introMode={props.chat1IntroMode}
       voiceFindings={props.voiceFindings}
+      productHints={props.productHints}
+      productBlurb={props.productBlurb}
+      guideActions={props.guideActions}
     />
   );
 }
@@ -303,6 +361,21 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
   chat1IntroMode?: 'default' | 'deepen';
   chat1GeneralDeepened: boolean;
   diagnosisDeepenVoiceFindings?: string[];
+  pwaInstallNotice?: {
+    guide: PwaInstallGuide;
+    platformLabel: string;
+    showPrimaryAction: boolean;
+    primaryLabel: string;
+    statusMessage: string | null;
+    onPrimaryAction: () => void;
+    onDismiss: () => void;
+  } | null;
+  contextConflictNotice?: {
+    conflicts: ContextConflict[];
+    hiddenCount: number;
+    onDismiss: (conflictId: string) => void;
+    onAction: (action: ContextConflictUiAction) => void;
+  } | null;
 }) {
   const docModePillStyle = getDocModePillStyle(props.visualMode);
   const [savingBubblePdf, setSavingBubblePdf] = useState<Record<number, boolean>>({});
@@ -322,6 +395,31 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
     showOnboardingFlow && props.onboardingFlowStatus
       ? buildOnboardingFlowCta(props.onboardingFlowStatus, props.sessionUserName)
       : null;
+  const hasUserMessages = props.items.some(
+    (item) => item.type === 'message' && item.role === 'user',
+  );
+  const showWelcomeGuide =
+    !hasUserMessages &&
+    !props.loading &&
+    (props.activeThreadId === 'chat-1' ||
+      props.activeThreadId === 'chat-2' ||
+      props.activeThreadId === 'chat-3');
+  const welcomeGuideChatId =
+    props.activeThreadId === 'chat-3'
+      ? 'chat-3'
+      : props.activeThreadId === 'chat-2'
+        ? 'chat-2'
+        : 'chat-1';
+  const welcomeGuide = useWelcomeGuideEnrichment({
+    chatId: welcomeGuideChatId,
+    session: {
+      name: props.sessionUserName,
+      injectedIntake: props.sessionInjectedIntake,
+    },
+    diagnosisProfile: props.diagnosisProfile,
+    diagnosisUnlocked: props.diagnosisUnlocked || props.chat1GeneralDeepened,
+    enabled: showWelcomeGuide,
+  });
   const itemsToRender =
     props.compactClosedView && !props.showFullChat
       ? (() => {
@@ -542,10 +640,10 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
                               title: docMeta.title,
                               subtitle: docMeta.subtitle,
                               badge: (it.mode ?? 'analysis').toString().replaceAll('_', ' '),
-                              citations: externalCitations.map((citation) => ({
-                                title: citation.title,
-                                source: citation.source,
-                                url: citation.url,
+                              citations: externalCitations.map((c) => ({
+                                title: c.title,
+                                source: c.source,
+                                url: c.url,
                               })),
                             });
                             const result = await saveBubbleSnapshotPdfArtifact({
@@ -625,6 +723,9 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
                       props.chat1IntroMode !== 'deepen',
                     chat1IntroMode: props.chat1IntroMode,
                     voiceFindings: props.diagnosisDeepenVoiceFindings,
+                    productHints: welcomeGuide.productHints,
+                    productBlurb: welcomeGuide.productBlurb,
+                    guideActions: welcomeGuide.guideActions,
                   })
                 ) : isChatErrorBubble ? (
                   <p className="agent-bubble--chat-error-text">
@@ -679,58 +780,18 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
                     )}
                   </div>
                 )}
-                {(() => {
-                  const externalCitations = attachedCitations.filter(isRenderableCitation);
-                  if (externalCitations.length === 0) return null;
-                  const expanded = Boolean(props.expandedCitationsByMessage[i]);
-                  const visibleCitations = expanded ? externalCitations : externalCitations.slice(0, 3);
-                  const remaining = Math.max(0, externalCitations.length - visibleCitations.length);
-                  return (
-                  <div className="latex-inline-annex">
-                    <div className="latex-inline-annex-head">
-                      <span>Fuentes verificables</span>
-                      <span>{externalCitations.length} referencias</span>
-                    </div>
-                    <div className="citation-stack">
-                      {visibleCitations.map((citation, idx) => (
-                        <CitationBubble key={`${i}-citation-${idx}`} citation={citation} />
-                      ))}
-                    </div>
-                    {externalCitations.length > 3 && (
-                      <button
-                        type="button"
-                        className="citation-toggle"
-                        style={{
-                          color: '#ffffff',
-                          WebkitTextFillColor: '#ffffff',
-                          opacity: 1,
-                          filter: 'none',
-                        }}
-                        onClick={() =>
-                          props.setExpandedCitationsByMessage((prev) => ({
-                            ...prev,
-                            [i]: !expanded,
-                          }))
-                        }
-                      >
-                        <span
-                          className="citation-toggle-label"
-                          style={{
-                            color: '#ffffff',
-                            WebkitTextFillColor: '#ffffff',
-                            opacity: 1,
-                            filter: 'none',
-                          }}
-                        >
-                          {expanded ? 'Ver menos' : `Ver todas${remaining > 0 ? ` (+${remaining})` : ''}`}
-                        </span>
-                      </button>
-                    )}
-                  </div>
-                  );
-                })()}
               </div>
             </div>
+            {renderMessageCitationsChrome(
+              i,
+              attachedCitations,
+              Boolean(props.expandedCitationsByMessage[i]),
+              () =>
+                props.setExpandedCitationsByMessage((prev) => ({
+                  ...prev,
+                  [i]: !prev[i],
+                })),
+            )}
             {messagePanelAction?.section &&
             !isEmptyWelcomeShell &&
             !onboardingFlowModel &&
@@ -845,6 +906,14 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
 
   return (
     <div ref={props.chatThreadRef} className="agent-thread" style={streamAccentStyle}>
+        {props.contextConflictNotice ? (
+          <ContextConflictBanner
+            conflicts={props.contextConflictNotice.conflicts}
+            hiddenCount={props.contextConflictNotice.hiddenCount}
+            onDismiss={props.contextConflictNotice.onDismiss}
+            onAction={props.contextConflictNotice.onAction}
+          />
+        ) : null}
         {rendered.length === 0 && !props.loading ? (
           <div
             className={`agent-bubble assistant latex-doc is-intro-doc${
@@ -882,6 +951,9 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
                   props.chat1IntroMode !== 'deepen',
                 chat1IntroMode: props.chat1IntroMode,
                 voiceFindings: props.diagnosisDeepenVoiceFindings,
+                productHints: welcomeGuide.productHints,
+                productBlurb: welcomeGuide.productBlurb,
+                guideActions: welcomeGuide.guideActions,
               })}
             </div>
           </div>
@@ -913,6 +985,32 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
                 message: onboardingFlowModel.body,
               })
             }
+          />
+        ) : null}
+
+        {showWelcomeGuide && welcomeGuide.guideActions.length > 0 ? (
+          <WelcomeGuideActions
+            actions={welcomeGuide.guideActions}
+            disabled={Boolean(props.sendDisabled)}
+            onMessage={(message) => {
+              props.setDraftForActive(message);
+              void props.onSend(message);
+            }}
+            onPanelAction={(section, message) =>
+              props.onPanelAction({ section, message })
+            }
+          />
+        ) : null}
+
+        {props.pwaInstallNotice ? (
+          <PwaInstallNotice
+            guide={props.pwaInstallNotice.guide}
+            platformLabel={props.pwaInstallNotice.platformLabel}
+            showPrimaryAction={props.pwaInstallNotice.showPrimaryAction}
+            primaryLabel={props.pwaInstallNotice.primaryLabel}
+            statusMessage={props.pwaInstallNotice.statusMessage}
+            onPrimaryAction={props.pwaInstallNotice.onPrimaryAction}
+            onDismiss={props.pwaInstallNotice.onDismiss}
           />
         ) : null}
     </div>

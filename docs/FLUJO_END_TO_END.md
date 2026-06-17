@@ -48,7 +48,7 @@ flowchart TB
   end
 
   subgraph lectura [2. Lectura base — /agent]
-    AG[Boot + panel intro] --> LB[Chat 1: Lectura base]
+    AG[Boot terminal] --> LB[Chat 1: Lectura base]
     LB --> TX[Cartolas]
     TX -->|evidencia o skip| BUD[Presupuesto]
     BUD -->|solo con 3 filas amount>0| GATE{¿3 filas OK?}
@@ -153,7 +153,7 @@ Admin: `GET /auth/approve?token=` o `GET /auth/reject?token=` (TTL configurable,
 | 3 | — | Persiste en `User.injectedIntake` | Si autenticado: knowledge event `completed_intake` (+20 pts, una vez) |
 | 4 | — | Respuesta incluye `readyForInterview: true` | Señal técnica post-intake; **no** desbloquea entrevista (falta cerrar Lectura base: cartolas + 3 filas presupuesto) |
 | 5 | Cliente | `setIntake` en `interview.store` (sessionStorage) | Payload local para modal de entrevista |
-| 6 | Cliente | `markAgentBootFromIntake()` + `markPanelIntroPendingFromIntake()` | Flags localStorage para boot e intro |
+| 6 | Cliente | `markAgentBootFromIntake()` | Flag sessionStorage para boot terminal post-intake |
 | 7 | Redirect | `router.push('/agent')` | Entrada al hub principal |
 
 **Bootstrap de `/intake`:** si ya tiene intake mínimo → redirect a `/agent` sin repetir wizard.
@@ -183,7 +183,6 @@ sequenceDiagram
   W->>API: loadSheets (chats)
   alt Primera vez post-intake
     W->>W: Boot terminal (agent-boot-sequence)
-    W->>W: Panel intro carousel (opcional, 1ª visita)
   end
   W->>U: Panel + Chat 1 visible
 ```

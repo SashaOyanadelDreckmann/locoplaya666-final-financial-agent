@@ -14,8 +14,10 @@ import {
   isTransactionsModalElement,
   isTextInput,
   clearComposerTypingVisual,
+  pinComposerDocumentScroll,
   restoreAgentShellViewport,
   scheduleComposerViewportSync,
+  syncAgentComposerBrowserKeyboardState,
   preemptiveMobileTypingEngage,
   scheduleInputViewportSync,
   setMobileInputEngaged,
@@ -116,6 +118,7 @@ export default function MobileInputViewportSync() {
       if (isComposerDockElement(target)) {
         if (isMobileBrowserViewport() || isPwaStandaloneViewport()) {
           if (isMobileBrowserViewport()) {
+            pinComposerDocumentScroll();
             engageComposerTypingLayout();
           } else {
             setMobileInputEngaged(true);
@@ -166,6 +169,11 @@ export default function MobileInputViewportSync() {
     const vv = window.visualViewport;
     const onViewportChange = () => {
       applyMobileViewportTokens();
+
+      if (activeInput && isComposerDockElement(activeInput) && isMobileBrowserViewport()) {
+        pinComposerDocumentScroll();
+        syncAgentComposerBrowserKeyboardState();
+      }
 
       if (!activeInput || document.activeElement !== activeInput) return;
 

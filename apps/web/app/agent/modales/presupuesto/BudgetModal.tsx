@@ -5,6 +5,7 @@ import {
   applyMobileViewportTokens,
   focusMobileInput,
   isBudgetModalElement,
+  isMobileBrowserViewport,
   setMobileInputEngaged,
 } from '@/lib/interfaz/mobile-viewport-sync';
 import { downloadArtifactFile, saveBubbleSnapshotPdfArtifact } from '@/lib/compartido/artifacts';
@@ -494,12 +495,13 @@ export function BudgetModal(props: {
       const footerGap = 12;
       const footerChrome = footerInsideTable ? footerHeight + footerGap : 0;
       const tableChromeWithFooter = tableChrome + footerChrome;
+      const browserLayoutTrim = isMobileBrowserViewport() ? 16 : 0;
       const stageHeight = stage?.clientHeight ?? 0;
       const carouselHeight = carousel?.clientHeight ?? 0;
       const stageScrollBudget = stageHeight > 0
-        ? stageHeight - tableChromeWithFooter
+        ? stageHeight - tableChromeWithFooter - browserLayoutTrim
         : carouselHeight > 0
-          ? carouselHeight - (footerInsideTable ? 0 : footerHeight) - tableChromeWithFooter
+          ? carouselHeight - (footerInsideTable ? 0 : footerHeight) - tableChromeWithFooter - browserLayoutTrim
           : 0;
       const scrollAreaHeight = Math.max(200, stageScrollBudget);
       const slotHeight = Math.max(240, scrollAreaHeight - 2);
@@ -1026,8 +1028,14 @@ export function BudgetModal(props: {
 
                 {budgetPendingConfirmation ? (
                   <BudgetPendingConfirmBanner
-                    summary={budgetPendingConfirmation.summary}
+                    pending={budgetPendingConfirmation}
+                    budgetRows={props.budgetRows}
+                    budgetTotals={props.budgetTotals}
+                    budgetTableStyle={budgetTableStyle}
+                    formatBudgetAmount={formatBudgetAmount}
                     disabled={isAskingAI || isInitializing}
+                    onPendingChange={setBudgetPendingConfirmation}
+                    focusBudgetField={focusBudgetField}
                     onConfirm={handleBudgetPendingConfirm}
                     onReject={handleBudgetPendingReject}
                   />

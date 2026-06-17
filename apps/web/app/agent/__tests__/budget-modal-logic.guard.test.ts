@@ -18,6 +18,9 @@ describe('budget modal logic guards', () => {
     expect(pageSource).toContain('<BudgetModal');
     expect(pageSource).toContain('isBudgetModalOpen');
     expect(pageSource).toContain('setIsBudgetModalOpen(true);');
+    expect(pageSource).toContain('closeBudgetModal');
+    expect(pageSource).toContain('key={budgetModalSession}');
+    expect(pageSource).toContain('setBudgetChatAnswers([])');
     expect(pageSource).toMatch(/hasBlockingModalOpen[\s\S]*isBudgetModalOpen/);
   });
 
