@@ -1227,7 +1227,7 @@ html.home-route-active .home-grain-layer {
 }
 @media (max-width: 767px), (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .home-problem-wrapper {
-    height: 230vh;
+    height: 260vh;
   }
 }
 @media (prefers-reduced-motion: reduce) {
