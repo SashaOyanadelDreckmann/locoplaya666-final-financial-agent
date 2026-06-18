@@ -5,6 +5,7 @@ import {
   buildMarketPanelCitations,
   EVIDENCE_TOOL_NAMES,
   isFactualInfoMode,
+  sanitizePublicCitations,
   type FactualInfoMode,
 } from '@financial-agent/shared';
 
@@ -52,8 +53,14 @@ export function extractCitationsFromToolOutputs(
     if (!data || typeof data !== 'object') continue;
     const record = data as Record<string, unknown>;
 
-    if (tool === 'web.search' && Array.isArray(record.results)) {
-      for (const hit of record.results.slice(0, 4)) {
+    if (tool === 'web.search') {
+      const resultRows = Array.isArray(record.results)
+        ? record.results
+        : Array.isArray((record as { data?: { results?: unknown[] } }).data?.results)
+          ? ((record as { data?: { results?: unknown[] } }).data?.results ?? [])
+          : [];
+
+      for (const hit of resultRows.slice(0, 4)) {
         if (!hit || typeof hit !== 'object') continue;
         const row = hit as Record<string, unknown>;
         const url = typeof row.url === 'string' ? row.url : undefined;
@@ -133,7 +140,7 @@ export async function ensureEvidenceCitations(input: FormatPhaseInput): Promise<
     }
   }
 
-  if (merged.length === 0 && isFactualInfoMode(input.mode)) {
+  if (merged.length === 0 && isFactualInfoMode(input.mode) && !usedSuccessfulEvidenceTools(input)) {
     const referenceDate =
       typeof input.context_summary?.reference_date === 'string'
         ? input.context_summary.reference_date
@@ -149,7 +156,7 @@ export async function ensureEvidenceCitations(input: FormatPhaseInput): Promise<
     ];
   }
 
-  return merged.slice(0, 8);
+  return sanitizePublicCitations(merged).slice(0, 8);
 }
 
 export function buildReferenceDateContext(): {

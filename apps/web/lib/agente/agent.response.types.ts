@@ -12,6 +12,7 @@ export type Artifact = {
 };
 export type { AgentBlock } from '@/lib/tipos/chat';
 import type { AgentBlock, UIEvent } from '@/lib/tipos/chat';
+import { getPublicCitationTitle, isPublicCitationRenderable } from '@financial-agent/shared';
 import type { AgentStreamUiState } from '@financial-agent/shared';
 
 export type ToolCall = {
@@ -190,26 +191,26 @@ export function toChatItemsFromAgentResponse(res: AgentResponse): ChatItem[] {
 
   if (Array.isArray(res?.citations)) {
     for (const c of res.citations as Array<Record<string, unknown>>) {
-      const url = typeof c.url === 'string' ? c.url : undefined;
-      const source =
-        typeof c.doc_title === 'string'
-          ? c.doc_title
-          : typeof c.doc_id === 'string'
-          ? c.doc_id
-          : 'Fuente';
+      const mapped = {
+        doc_id: typeof c.doc_id === 'string' ? c.doc_id : undefined,
+        doc_title: typeof c.doc_title === 'string' ? c.doc_title : undefined,
+        source: typeof c.source === 'string' ? c.source : undefined,
+        title: typeof c.title === 'string' ? c.title : undefined,
+        url: typeof c.url === 'string' ? c.url : undefined,
+        supporting_span: typeof c.supporting_span === 'string' ? c.supporting_span : undefined,
+      };
+      if (!isPublicCitationRenderable(mapped)) continue;
+
+      const url = mapped.url;
+      const title = getPublicCitationTitle(mapped);
       items.push({
         type: 'citation',
         role: 'assistant',
         citation: {
           id: typeof c.chunk_id === 'string' ? c.chunk_id : undefined,
-          title:
-            typeof c.doc_title === 'string'
-              ? c.doc_title
-              : typeof c.supporting_span === 'string'
-              ? c.supporting_span
-              : undefined,
+          title: title || undefined,
           url,
-          source,
+          source: title || (url ? String(url) : 'Fuente'),
         },
       });
     }

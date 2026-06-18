@@ -1,6 +1,6 @@
 import React, { memo, useMemo, useState, type ReactNode } from 'react';
 
-import { createInitialAgentStreamUiState } from '@financial-agent/shared';
+import { createInitialAgentStreamUiState, isPublicCitationRenderable } from '@financial-agent/shared';
 
 import { DocumentBubble } from '@/components/conversacion/DocumentBubble';
 import { CitationBubble, getCitationLabel } from '@/components/conversacion/CitationBubble';
@@ -305,22 +305,11 @@ function welcomeShellBodyClasses(params: {
 }
 
 function isRenderableCitation(citation: Extract<ChatItem, { type: 'citation' }>['citation']) {
-  const raw = citation?.url;
-  if (raw && typeof raw === 'string') {
-    try {
-      const parsed = new URL(raw);
-      if (['http:', 'https:'].includes(parsed.protocol)) {
-        const host = parsed.hostname.toLowerCase();
-        if (host !== 'localhost' && host !== '127.0.0.1' && host !== '::1') {
-          return true;
-        }
-      }
-    } catch {
-      // fall through to title-based citations
-    }
-  }
-  const title = String(citation?.title ?? citation?.source ?? '').trim();
-  return title.length > 0;
+  return isPublicCitationRenderable({
+    title: citation?.title,
+    source: citation?.source,
+    url: citation?.url,
+  });
 }
 
 export const ChatThreadView = memo(function ChatThreadView(props: {

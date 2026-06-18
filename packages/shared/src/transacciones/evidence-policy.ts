@@ -116,12 +116,16 @@ export function buildMarketPanelCitations(marketSnapshot: unknown): PanelSourceC
     if (!entry || typeof entry !== 'object') continue;
     const record = entry as Record<string, unknown>;
     if (record.value == null) continue;
-    const source = typeof record.source === 'string' ? record.source : 'mindicador.cl';
+    const sourceUrl = typeof record.source === 'string' ? record.source.trim() : '';
+    const publicUrl =
+      sourceUrl.startsWith('http://') || sourceUrl.startsWith('https://')
+        ? sourceUrl.replace(/\/api\/[^/]+$/i, '')
+        : `https://mindicador.cl`;
     const date = typeof record.date === 'string' ? record.date : 'fecha referencial';
     citations.push({
       title: `${label} · mercado Chile`,
-      url: source,
-      source,
+      url: publicUrl,
+      source: 'mindicador.cl',
       supporting_span: `Valor ${record.value} (${date})`,
     });
   }

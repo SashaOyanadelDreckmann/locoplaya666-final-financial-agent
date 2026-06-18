@@ -81,6 +81,7 @@ export * from './agente/structured-agent-tags';
 export * from './agente/agent-stream-ui';
 export * from './agente/agent-timeouts';
 export * from './agente/agent-transport';
+export * from './agente/citation-display';
 export * from './chat/chat-history';
 export * from './chat/chat-pipelines';
 export * from './transacciones/evidence-policy';

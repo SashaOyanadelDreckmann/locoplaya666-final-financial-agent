@@ -12,6 +12,7 @@ import {
   completeWithClaudeStream,
 } from '../../../services/llm.service';
 import { CORE_RESPONSE_SYSTEM } from '../system.prompts';
+import { stripInternalToolSourceLines } from '@financial-agent/shared';
 import {
   resolveCoreAgentClaudeModel,
   resolveLiteToolsModel,
@@ -142,9 +143,11 @@ async function completeFormatWithFallback(
 }
 
 function stripInlineSourcesBlock(message: string): string {
-  return message
-    .replace(/\n{0,2}#{0,3}\s*fuentes\s*:?[ \t]*\n[\s\S]*$/i, '')
-    .trim();
+  return stripInternalToolSourceLines(
+    message
+      .replace(/\n{0,2}#{0,3}\s*fuentes\s*:?[ \t]*\n[\s\S]*$/i, '')
+      .trim(),
+  );
 }
 
 /**

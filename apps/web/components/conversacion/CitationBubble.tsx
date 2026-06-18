@@ -1,27 +1,18 @@
 import type { Citation } from '@/lib/agente/agent.response.types';
+import { getPublicCitationTitle, isPublicCitationRenderable } from '@financial-agent/shared';
 
 type CitationBubbleProps = {
   citation: Citation;
 };
 
 export function getCitationLabel(citation: Citation): string {
-  const title = citation.title?.trim();
-  if (title) return title;
-
-  const source = citation.source?.trim();
-  if (source && !/^web$/i.test(source)) return source;
-
-  const url = citation.url?.trim();
-  if (url) {
-    try {
-      const host = new URL(url).hostname.replace(/^www\./i, '');
-      if (host) return host;
-    } catch {
-      // ignore invalid URLs
-    }
-  }
-
-  return source || 'Fuente';
+  const label = getPublicCitationTitle({
+    title: citation.title,
+    source: citation.source,
+    url: citation.url,
+  });
+  if (label) return label;
+  return 'Fuente';
 }
 
 export function CitationBubble({ citation }: CitationBubbleProps) {

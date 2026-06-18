@@ -39,7 +39,7 @@ describe('evidence.helpers', () => {
     expect(citations[0]?.url).toContain('mindicador');
   });
 
-  it('ensures citations for factual information mode', async () => {
+  it('ensures citations for factual information mode with market snapshot', async () => {
     const input = {
       mode: 'information',
       user_message: '¿Cómo está la UF hoy?',
@@ -62,5 +62,34 @@ describe('evidence.helpers', () => {
 
     const citations = await ensureEvidenceCitations(input);
     expect(citations.length).toBeGreaterThan(0);
+    expect(citations.every((entry) => entry.url || entry.doc_title)).toBe(true);
+  });
+
+  it('drops internal tool labels from public citations', async () => {
+    const input = {
+      mode: 'information',
+      user_message: '¿Quién es Boric?',
+      execution_result: {
+        tool_calls: [{ tool: 'web.search', status: 'success' }],
+        tool_outputs: [
+          {
+            tool: 'web.search',
+            data: {
+              results: [{ title: 'Biografía', url: 'https://www.bcn.cl/boric', snippet: 'Presidente' }],
+            },
+          },
+        ],
+        citations: [{ doc_title: 'web.search', doc_id: 'web.search' }],
+        artifacts: [],
+        agent_blocks: [],
+        react_trace: [],
+        iterations_count: 0,
+      },
+      context_summary: {},
+    } as FormatPhaseInput;
+
+    const citations = await ensureEvidenceCitations(input);
+    expect(citations.some((entry) => entry.url === 'https://www.bcn.cl/boric')).toBe(true);
+    expect(citations.some((entry) => String(entry.doc_title).includes('web.search'))).toBe(false);
   });
 });
