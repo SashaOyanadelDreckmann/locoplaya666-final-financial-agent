@@ -87,11 +87,9 @@ export async function sendToAgentStream(
   let fullText = '';
   let finalResponse: AgentResponse | null = null;
   let lastEventAt = Date.now();
-  let abortedForStall = false;
   const stallTimer = setInterval(() => {
     if (finalResponse || fullText.trim().length > 0) return;
     if (Date.now() - lastEventAt < CORE_AGENT_STREAM_STALL_FALLBACK_MS) return;
-    abortedForStall = true;
     controller.abort();
   }, 2_000);
 
@@ -165,11 +163,8 @@ export async function sendToAgentStream(
   } catch (error: unknown) {
     if (error instanceof DOMException && error.name === 'AbortError') {
       if (finalResponse) return finalResponse;
-      if (abortedForStall || fullText.trim().length > 0) {
-        emitJsonTransportUiState(callbacks);
-        return sendToAgent(payload) as Promise<AgentResponse>;
-      }
-      throw new Error('Agent timeout: la respuesta tardó demasiado');
+      emitJsonTransportUiState(callbacks);
+      return sendToAgent(payload) as Promise<AgentResponse>;
     }
     if (finalResponse) return finalResponse;
     if (!isRecoverableStreamTransportError(error)) {

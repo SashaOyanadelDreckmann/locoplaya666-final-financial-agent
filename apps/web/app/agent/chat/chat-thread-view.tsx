@@ -323,7 +323,7 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
   canOpenInterview: boolean;
   expandedCitationsByMessage: Record<number, boolean>;
   setExpandedCitationsByMessage: React.Dispatch<React.SetStateAction<Record<number, boolean>>>;
-  onSend: (messageOverride?: string) => void;
+  onSend: (messageOverride?: string, options?: import('../hooks/useCoreAgentSend').CoreAgentSendOptions) => void | Promise<boolean>;
   setDraftForActive: (value: string) => void;
   sessionInjectedIntake?: unknown;
   diagnosisProfile?: DiagnosisProfile | null;
@@ -579,7 +579,7 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
             <div
               className={
                 isChatErrorBubble
-                  ? 'agent-bubble assistant agent-bubble--chat-error'
+                  ? 'agent-bubble assistant latex-doc agent-bubble--chat-error'
                   : welcomeShellBubbleClasses({
                       isEmptyWelcomeShell,
                       activeThreadId: props.activeThreadId,
@@ -594,6 +594,17 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
               }
               {...(isEmptyWelcomeShell ? { 'data-chat-welcome-shell': 'true' } : {})}
             >
+              {!isEmptyWelcomeShell && isChatErrorBubble ? (
+                <div className="latex-doc-head">
+                  <div className="latex-doc-heading">
+                    <span className="latex-doc-kicker">Aviso</span>
+                    <span className="latex-doc-title">No se pudo completar el envío</span>
+                    <span className="latex-doc-subtitle">
+                      Puedes reintentar en unos segundos sin perder el hilo.
+                    </span>
+                  </div>
+                </div>
+              ) : null}
               {!isEmptyWelcomeShell && !isChatErrorBubble ? (
                 <div className="latex-doc-head">
                   <div className="latex-doc-heading">
@@ -711,9 +722,11 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
                     guideActions: welcomeGuide.guideActions,
                   })
                 ) : isChatErrorBubble ? (
-                  <p className="agent-bubble--chat-error-text">
-                    {sanitizeMessageText(it.content ?? '')}
-                  </p>
+                  <div className="latex-doc-body">
+                    <p className="agent-bubble--chat-error-text">
+                      {sanitizeMessageText(it.content ?? '')}
+                    </p>
+                  </div>
                 ) : (
                   <>
                     {(it.content ?? '').trim().length > 0 ? (
@@ -736,7 +749,10 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
                       }
                       onQuestionnaireSubmit={({ message }) => {
                         if (props.sendDisabled) return;
-                        void props.onSend(message);
+                        void props.onSend('Completé el formulario', {
+                          agentPayload: message,
+                          ignoreLoadingGuard: true,
+                        });
                       }}
                     />
                   </div>
@@ -757,7 +773,10 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
                         blocks={technicalBlocks}
                         onQuestionnaireSubmit={({ message }) => {
                           if (props.sendDisabled) return;
-                          void props.onSend(message);
+                          void props.onSend('Completé el formulario', {
+                            agentPayload: message,
+                            ignoreLoadingGuard: true,
+                          });
                         }}
                       />
                     )}
