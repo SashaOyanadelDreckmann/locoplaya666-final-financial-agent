@@ -224,10 +224,7 @@ export async function runCoreAgent(
         product_closing_mode: inputUiState.product_closing_mode === true,
       },
       recommendation_profile: recommendationProfile,
-      recent_thread_context:
-        activeChatId === 'chat-2'
-          ? buildRecentThreadContextBlock(input.history ?? [], activeChatId)
-          : undefined,
+      recent_thread_context: buildRecentThreadContextBlock(input.history ?? [], activeChatId),
       action_plan_session_brief:
         activeChatId === 'chat-2'
           ? buildActionPlanSessionBrief({

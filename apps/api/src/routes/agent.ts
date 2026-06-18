@@ -35,6 +35,7 @@ import {
   upsertConversationTurnRecord,
 } from '../persistencia/repos';
 import type { StoredPanelState } from '../persistencia/types';
+import { resolveAgentConversationHistory } from '../agents/core.agent/helpers/conversation-history.helpers';
 import { complete, runWithLLMCostTracking } from '../services/llm.service';
 import {
   buildActionPlanSuggestedReplies,
@@ -1688,41 +1689,26 @@ router.post(
       req.logger?.warn({ msg: 'Error syncing social consciousness reflections', error: reflectionErr });
     }
 
-    // Auto-hydrate conversation history from DB when the client sends an empty array
-    // but a session_id is present. This preserves multi-turn context without requiring
-    // the client to track and resend the full history on every request.
-    const clientSentHistory =
-      Array.isArray(body.history) && (body.history as unknown[]).length > 0;
-    if (!clientSentHistory) {
-      const sessionIdForHistory =
-        typeof normalizedInput.session_id === 'string' ? normalizedInput.session_id : undefined;
-      const activeChatIdForHistory = (() => {
-        const ui = (normalizedInput.ui_state ?? {}) as Record<string, unknown>;
-        const activeChat = ui.active_chat;
-        if (activeChat && typeof activeChat === 'object') {
-          return String((activeChat as Record<string, unknown>).id ?? 'chat-1');
-        }
-        return 'chat-1';
-      })();
-      const historyLimits = resolveCoreAgentHistoryLimits(activeChatIdForHistory);
-      if (sessionIdForHistory) {
-        try {
-          const recentTurns = await listConversationTurns({
-            userId: authedUser.id,
-            sessionId: sessionIdForHistory,
-            chatId: activeChatIdForHistory,
-            limit: historyLimits.turnLimit,
-          });
-          if (recentTurns.length > 0) {
-            normalizedInput.history = recentTurns.flatMap((turn) => [
-              { role: 'user' as const, content: turn.userMessage },
-              { role: 'assistant' as const, content: turn.assistantMessage },
-            ]);
-          }
-        } catch (historyErr) {
-          req.logger?.warn({ msg: 'Error auto-hydrating conversation history', error: historyErr });
-        }
+    const activeChatIdForHistory = (() => {
+      const ui = (normalizedInput.ui_state ?? {}) as Record<string, unknown>;
+      const activeChat = ui.active_chat;
+      if (activeChat && typeof activeChat === 'object') {
+        return String((activeChat as Record<string, unknown>).id ?? 'chat-1');
       }
+      return 'chat-1';
+    })();
+    const sessionIdForHistory =
+      typeof normalizedInput.session_id === 'string' ? normalizedInput.session_id : undefined;
+
+    try {
+      normalizedInput.history = await resolveAgentConversationHistory({
+        userId: authedUser.id,
+        chatId: activeChatIdForHistory,
+        sessionId: sessionIdForHistory,
+        clientHistory: body.history,
+      });
+    } catch (historyErr) {
+      req.logger?.warn({ msg: 'Error resolving conversation history', error: historyErr });
     }
 
     try {

@@ -1154,16 +1154,18 @@ export default function AgentPage() {
   function setItemsForActive(
     updater: ChatItem[] | ((prevItems: ChatItem[]) => ChatItem[])
   ) {
-    setChatThreads((prev) =>
-      prev.map((thread) => {
+    setChatThreads((prev) => {
+      const next = prev.map((thread) => {
         if (thread.id !== activeChatId) return thread;
         const nextItems =
           typeof updater === 'function'
             ? (updater as (prevItems: ChatItem[]) => ChatItem[])(thread.items)
             : updater;
         return { ...thread, items: nextItems };
-      })
-    );
+      });
+      chatThreadsRef.current = next;
+      return next;
+    });
   }
 
   function clearLocalAgentState() {
@@ -1796,10 +1798,19 @@ export default function AgentPage() {
     [],
   );
 
-  const buildCoreAgentRequestContext = useCallback((): CoreAgentRequestContext => ({
-    items,
+  const buildCoreAgentRequestContext = useCallback((): CoreAgentRequestContext => {
+    const latestThread =
+      chatThreadsRef.current.find((thread) => thread.id === activeChatId) ??
+      chatThreadsRef.current[0] ??
+      activeThread;
+    const latestItems = latestThread?.items ?? items;
+
+    return {
+    items: latestItems,
     activeChatId,
-    activeThread: activeThread
+    activeThread: latestThread
+      ? { id: latestThread.id, label: latestThread.label, name: latestThread.name }
+      : activeThread
       ? { id: activeThread.id, label: activeThread.label, name: activeThread.name }
       : undefined,
     panelStage,
@@ -1824,7 +1835,8 @@ export default function AgentPage() {
     productTurnsRemaining: activeTurnsRemaining,
     productClosingMode: activeClosingMode,
     socialReflectionSession,
-  }), [
+  };
+  }, [
     items,
     activeChatId,
     activeThread,

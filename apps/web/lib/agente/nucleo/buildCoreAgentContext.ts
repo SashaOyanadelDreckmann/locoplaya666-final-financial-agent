@@ -4,6 +4,7 @@ import type { SocialReflectionSession } from '@/lib/agente/nucleo/social-conscio
 
 import type { AgentBlock } from '@/lib/tipos/chat';
 import type { ChatItem } from '@/lib/agente/agent.response.types';
+import { isWelcomeShellMessageContent } from '@/app/agent/flujo/welcome-intro.shared';
 import { buildScopedTransactionsContext } from '@/lib/compartido/products-context.helpers';
 import type { BankProduct, TransactionTaxonomyOverride } from '@/app/agent/modales/transacciones/types';
 
@@ -49,7 +50,15 @@ export function buildCoreAgentHistorySnapshot(items: ChatItem[], activeChatId?: 
   const limits = resolveCoreAgentHistoryLimits(activeChatId);
   return compactCoreAgentHistory(
     items
-      .filter((item) => item.type === 'message')
+      .filter((item) => {
+        if (item.type !== 'message') return false;
+        const message = item as Extract<ChatItem, { type: 'message' }>;
+        const content = String(message.content ?? '').trim();
+        if (!content) return false;
+        if (message.role === 'assistant' && message.stream?.streaming) return false;
+        if (message.role === 'assistant' && isWelcomeShellMessageContent(content)) return false;
+        return true;
+      })
       .map((item) => ({
         role: (item as Extract<ChatItem, { type: 'message' }>).role,
         content: (item as Extract<ChatItem, { type: 'message' }>).content,
