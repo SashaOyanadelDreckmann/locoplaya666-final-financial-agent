@@ -20,6 +20,8 @@ import type { ExecutionResult } from '../agent-types';
 vi.mock('../../../services/llm.service', () => ({
   completeWithClaude: vi.fn(),
   completeWithClaudeStream: vi.fn(),
+  complete: vi.fn(),
+  completeStream: vi.fn(),
 }));
 
 vi.mock('../../../services/knowledge.service', () => ({
@@ -212,7 +214,9 @@ invalid json
   });
 
   it('should return safe fallback on LLM error', async () => {
+    const { complete, completeWithClaude } = await import('../../../services/llm.service');
     (completeWithClaude as any).mockRejectedValueOnce(new Error('LLM service error'));
+    (complete as any).mockRejectedValueOnce(new Error('OpenAI fallback error'));
 
     const result = await runFormatPhase({
       mode: 'decision_support',
@@ -223,6 +227,24 @@ invalid json
 
     expect(result.formatted_response.message).toContain('respuesta base');
     expect(result.formatted_response.suggested_replies).toEqual([]);
+  });
+
+  it('should prefer execute draft over generic fallback when formatting fails', async () => {
+    const { complete, completeWithClaude } = await import('../../../services/llm.service');
+    (completeWithClaude as any).mockRejectedValueOnce(new Error('LLM service error'));
+    (complete as any).mockRejectedValueOnce(new Error('OpenAI fallback error'));
+
+    const result = await runFormatPhase({
+      mode: 'information',
+      execution_result: {
+        ...mockExecutionResult,
+        assistant_draft: 'Gabriel Boric es el presidente de Chile desde 2022.',
+      },
+      user_message: 'Quién es Boric?',
+      context_summary: {},
+    });
+
+    expect(result.formatted_response.message).toContain('Gabriel Boric');
   });
 
   it('should not duplicate regulatory disclaimer when recent context already contains it', () => {

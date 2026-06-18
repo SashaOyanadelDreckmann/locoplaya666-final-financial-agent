@@ -42,8 +42,8 @@ export function useAgentPersistence(params: UseAgentPersistenceParams) {
     };
   }, [params]);
 
-  const persistSheetsNow = useCallback(async () => {
-    if (!params.sheetsEnabled) return;
+  const persistSheetsNow = useCallback(async (options?: { force?: boolean }) => {
+    if (!params.sheetsEnabled && !options?.force) return;
     if (sheetsTimerRef.current) {
       clearTimeout(sheetsTimerRef.current);
       sheetsTimerRef.current = null;

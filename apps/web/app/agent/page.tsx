@@ -1955,7 +1955,7 @@ export default function AgentPage() {
       setPanelCallout({ section: 'chat', message });
     },
     onTurnSettled: () => {
-      void persistSheetsNow();
+      void persistSheetsNow({ force: true });
     },
     normalizePanelAction: normalizePanelActionForCurrentFlow,
   });

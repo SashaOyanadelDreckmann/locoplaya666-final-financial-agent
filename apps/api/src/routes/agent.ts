@@ -31,6 +31,7 @@ import {
 } from '@financial-agent/shared';
 import {
   listConversationTurns,
+  listConversationTurnsSafe,
   upsertConversationTurnRecord,
 } from '../persistencia/repos';
 import type { StoredPanelState } from '../persistencia/types';
@@ -934,7 +935,7 @@ router.get(
     if (!user) throw unauthorized('Not authenticated');
 
     const storedSheets = await loadUserSheets(user.id);
-    const turns = await listConversationTurns({ userId: user.id, limit: 200 });
+    const turns = await listConversationTurnsSafe({ userId: user.id, limit: 200 });
     const hasStoredSheets = Array.isArray(storedSheets) && storedSheets.length > 0;
     const hasTurnHistory = turns.length > 0;
 
@@ -2010,7 +2011,7 @@ router.post(
         });
 
         const currentSheets = await loadUserSheets(authedUser.id);
-        const turns = await listConversationTurns({
+        const turns = await listConversationTurnsSafe({
           userId: authedUser.id,
           chatId: String(lifecycleDecision.activeChatId ?? 'chat-1'),
           limit: 200,

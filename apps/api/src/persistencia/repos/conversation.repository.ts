@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { getLogger } from '../../logger';
 import { getPersistenceMode, getPrismaClient, memoryStore } from '../provider';
 
 export type ConversationTurnRecord = {
@@ -136,6 +137,22 @@ export async function listConversationTurns(params: {
     take: Math.max(1, Math.min(params.limit ?? 50, 200)),
   });
   return rows.map((row: unknown) => toRecord(row as Record<string, unknown>));
+}
+
+/** Returns [] when ConversationTurn storage is unavailable (e.g. pending migration). */
+export async function listConversationTurnsSafe(
+  params: Parameters<typeof listConversationTurns>[0],
+): Promise<ConversationTurnRecord[]> {
+  try {
+    return await listConversationTurns(params);
+  } catch (error) {
+    getLogger().warn({
+      msg: 'ConversationTurn lookup failed; continuing without turn repair',
+      userId: params.userId,
+      error,
+    });
+    return [];
+  }
 }
 
 const MAX_TURNS_PER_USER_ANALYTICS = 200;

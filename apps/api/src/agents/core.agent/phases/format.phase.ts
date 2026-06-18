@@ -5,9 +5,17 @@
  * Generate final response, parse special tags, detect knowledge events
  */
 
-import { completeWithClaude, completeWithClaudeStream } from '../../../services/llm.service';
+import {
+  complete,
+  completeStream,
+  completeWithClaude,
+  completeWithClaudeStream,
+} from '../../../services/llm.service';
 import { CORE_RESPONSE_SYSTEM } from '../system.prompts';
-import { resolveCoreAgentClaudeModel } from '../helpers/model-policy.helpers';
+import {
+  resolveCoreAgentClaudeModel,
+  resolveLiteToolsModel,
+} from '../helpers/model-policy.helpers';
 import { detectKnowledgeEvent } from '../knowledge-detector';
 import { recordKnowledgeEvent, getMilestones, KNOWLEDGE_MILESTONES } from '../../../services/knowledge.service';
 import {
@@ -75,6 +83,62 @@ export function shouldApplyLatexFormatting(message: string): boolean {
   const hasEquation = /\b[A-Za-zÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑ0-9_]{1,}\s*=\s*[^=\n]+/.test(message);
 
   return hasDisplayMath || hasInlineMath || hasLatexEscape || hasEquation;
+}
+
+export function buildFormatSafeFallbackMessage(input: FormatPhaseInput): string {
+  const draft = String(input.execution_result?.assistant_draft ?? '').trim();
+  if (draft.length >= 12) return draft;
+
+  const toolOutputs = input.execution_result?.tool_outputs ?? [];
+  const toolSummary = toolOutputs
+    .slice(-2)
+    .map((output) => {
+      if (typeof output === 'string') return output.trim();
+      if (output && typeof output === 'object' && 'summary' in output) {
+        return String((output as { summary?: unknown }).summary ?? '').trim();
+      }
+      return '';
+    })
+    .filter((chunk) => chunk.length > 0)
+    .join('\n\n')
+    .trim();
+  if (toolSummary.length >= 24) return toolSummary.slice(0, 1600);
+
+  return 'Preparé una respuesta base con los resultados disponibles. Si quieres, la refinamos en el siguiente mensaje.';
+}
+
+async function completeFormatWithFallback(
+  formatterInput: string,
+  fullFormatOptions: {
+    systemPrompt: string;
+    temperature: number;
+    model: string;
+    allowOpenAIFallback: false;
+  },
+  onDelta: ((delta: string) => void) | undefined,
+  reuseExecuteDraft: boolean,
+  assistantDraft: string,
+): Promise<string> {
+  if (reuseExecuteDraft) return assistantDraft;
+
+  try {
+    return onDelta
+      ? await completeWithClaudeStream(formatterInput, fullFormatOptions, onDelta)
+      : await completeWithClaude(formatterInput, fullFormatOptions);
+  } catch (claudeErr) {
+    getLogger().warn({
+      msg: '[Format] Claude failed, trying OpenAI fallback',
+      error: claudeErr,
+    });
+    const openAiOptions = {
+      systemPrompt: fullFormatOptions.systemPrompt,
+      temperature: fullFormatOptions.temperature,
+      model: resolveLiteToolsModel(),
+    };
+    return onDelta
+      ? await completeStream(formatterInput, openAiOptions, onDelta)
+      : await complete(formatterInput, openAiOptions);
+  }
 }
 
 function stripInlineSourcesBlock(message: string): string {
@@ -317,11 +381,13 @@ export async function runFormatPhase(input: FormatPhaseInput): Promise<FormatPha
       model: resolveCoreAgentClaudeModel(),
       allowOpenAIFallback: false as const,
     };
-    const rawResponse = reuseExecuteDraft
-      ? String(input.execution_result?.assistant_draft ?? '').trim()
-      : onDelta
-        ? await completeWithClaudeStream(formatterInput, fullFormatOptions, onDelta)
-        : await completeWithClaude(formatterInput, fullFormatOptions);
+    const rawResponse = await completeFormatWithFallback(
+      formatterInput,
+      fullFormatOptions,
+      onDelta,
+      reuseExecuteDraft,
+      String(input.execution_result?.assistant_draft ?? '').trim(),
+    );
 
     const suggested_replies = sanitizeSuggestedReplies(extractSuggestedReplies(rawResponse));
     const panel_action = extractPanelAction(rawResponse);
@@ -396,8 +462,7 @@ export async function runFormatPhase(input: FormatPhaseInput): Promise<FormatPha
   } catch (err) {
     logger.warn({ msg: '[Format] Phase failed, using safe fallback', error: err, latency_ms: Date.now() - startTime });
 
-    let fallbackMessage =
-      'Preparé una respuesta base con los resultados disponibles. Si quieres, la refinamos en el siguiente mensaje.';
+    let fallbackMessage = buildFormatSafeFallbackMessage(input);
     fallbackMessage = sanitizeFormulaContent(fallbackMessage);
     fallbackMessage = ensureDecisionDisclaimer(fallbackMessage, input);
     const ensuredCitations = await ensureEvidenceCitations(input);
