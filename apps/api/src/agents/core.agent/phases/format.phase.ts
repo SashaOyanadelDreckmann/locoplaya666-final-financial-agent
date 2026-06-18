@@ -92,7 +92,7 @@ export function buildFormatSafeFallbackMessage(input: FormatPhaseInput): string 
   const toolOutputs = input.execution_result?.tool_outputs ?? [];
   const toolSummary = toolOutputs
     .slice(-2)
-    .map((output) => {
+    .map((output: unknown) => {
       if (typeof output === 'string') return output.trim();
       if (output && typeof output === 'object' && 'summary' in output) {
         return String((output as { summary?: unknown }).summary ?? '').trim();
