@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-import { getApiBaseUrl } from '@/lib/api/base';
+import { getServerApiBaseUrl } from '@/lib/api/base';
 import { requireBackendSession } from '@/lib/sesion/serverAuth';
 
 export async function POST(req: Request) {
@@ -15,7 +15,7 @@ export async function POST(req: Request) {
   const body = await req.text();
 
   try {
-    const apiRes = await fetch(`${getApiBaseUrl()}/api/budget-chat`, {
+    const apiRes = await fetch(`${getServerApiBaseUrl()}/api/budget-chat`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

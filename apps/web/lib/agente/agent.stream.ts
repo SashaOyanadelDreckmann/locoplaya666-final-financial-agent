@@ -5,6 +5,7 @@ import {
   createInitialAgentStreamUiState,
   createJsonTransportStreamUiState,
   parseAgentStreamSseChunk,
+  isMobileAgentClient,
   readBrowserAgentTransportHint,
   resolveCoreAgentStreamClientTimeoutMs,
   shouldPreferAgentJsonTransport,
@@ -13,9 +14,9 @@ import {
   type AgentStreamUiState,
 } from '@financial-agent/shared';
 
-import { sendToAgent } from './agent';
+import { primeAgentCsrfToken, sendToAgent } from './agent';
 import { getAgentRequestUrl, getSessionApiBaseUrl } from '@/lib/api/base';
-import { ApiHttpError, parseApiResponse } from '@/lib/api/envelope';
+import { ApiHttpError } from '@/lib/api/envelope';
 import { getCsrfToken, setCsrfToken } from '@/lib/sesion/csrf';
 import type { AgentResponse } from './agent.response.types';
 import {
@@ -67,6 +68,7 @@ export async function sendToAgentStream(
 
   const body = buildCoreAgentRequestBody({ ...payload, stream: true });
   const AGENT_STREAM_URL = getAgentRequestUrl(CHAT_PIPELINES.core.streamRoute);
+  await primeAgentCsrfToken(isMobileAgentClient(transportHint));
   const csrfToken = getCsrfToken() ?? (await fetch(`${getSessionApiBaseUrl()}/api/session`, {
     method: 'GET',
     credentials: 'include',
@@ -109,10 +111,7 @@ export async function sendToAgentStream(
     captureCsrfFromResponse(res);
 
     if (!res.ok) {
-      const contentType = res.headers.get('content-type') ?? '';
-      if (contentType.includes('application/json')) {
-        return parseApiResponse<AgentResponse>(res);
-      }
+      emitJsonTransportUiState(callbacks);
       return sendToAgent(payload) as Promise<AgentResponse>;
     }
 

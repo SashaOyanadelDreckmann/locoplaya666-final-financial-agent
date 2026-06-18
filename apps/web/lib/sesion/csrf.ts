@@ -20,22 +20,27 @@ function readCsrfTokenFromDocumentCookie(): string | null {
  * Obtiene el token CSRF del servidor (debe ser obtenido en una petición GET inicial)
  */
 export const getCsrfToken = (): string | null => {
-  try {
-    if (typeof window === 'undefined') return null;
-    const stored = sessionStorage.getItem(CSRF_TOKEN_KEY);
-    if (stored) return stored;
-  } catch {
-    // sessionStorage puede fallar en iOS privado / WebViews
-  }
-
+  // Cookie wins over sessionStorage: the server rotates the double-submit cookie on GET
+  // and a stale sessionStorage entry (common on iOS PWA reloads) causes 403 on POST.
   const fromCookie = readCsrfTokenFromDocumentCookie();
   if (fromCookie) {
     try {
-      sessionStorage.setItem(CSRF_TOKEN_KEY, fromCookie);
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem(CSRF_TOKEN_KEY, fromCookie);
+      }
     } catch {
-      // keep in-memory cookie fallback only
+      // sessionStorage puede fallar en iOS privado / WebViews
     }
     return fromCookie;
+  }
+
+  try {
+    if (typeof window !== 'undefined') {
+      const stored = sessionStorage.getItem(CSRF_TOKEN_KEY);
+      if (stored) return stored;
+    }
+  } catch {
+    // sessionStorage puede fallar en iOS privado / WebViews
   }
 
   return null;

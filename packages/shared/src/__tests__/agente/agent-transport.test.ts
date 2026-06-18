@@ -7,13 +7,19 @@ import {
 } from '../../agente/agent-transport';
 
 describe('agent-transport', () => {
-  it('prefers JSON only when stream env is disabled', () => {
+  it('prefers JSON on mobile clients and when stream env is disabled', () => {
     expect(
       shouldPreferAgentJsonTransport({
         userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)',
       }),
+    ).toBe(true);
+    expect(shouldPreferAgentJsonTransport({ pointerCoarse: true })).toBe(true);
+    expect(
+      shouldPreferAgentJsonTransport({
+        userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0)',
+        pointerCoarse: false,
+      }),
     ).toBe(false);
-    expect(shouldPreferAgentJsonTransport({ pointerCoarse: true })).toBe(false);
     expect(shouldPreferAgentJsonTransport({ streamEnvDisabled: true })).toBe(true);
   });
 

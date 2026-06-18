@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { getCsrfToken } from '@/lib/sesion/csrf';
+import { primeAgentCsrfToken } from '@/lib/agente/agent';
 import { dismissMobileKeyboard } from '@/lib/interfaz/mobile-keyboard-focus';
 import { FINCOIN_SPEND_BLOCKED_MESSAGE } from '@/lib/compartido/fincoin-gate';
 import type { BudgetRow } from '@/lib/presupuesto/filas.helpers';
@@ -37,6 +38,11 @@ import {
   unwrapApiData,
   type BudgetChatApiPayload,
 } from './budget-modal.chat-api';
+
+async function resolveBudgetChatCsrfToken(): Promise<string | null> {
+  await primeAgentCsrfToken(true);
+  return getCsrfToken();
+}
 
 export type UseBudgetChatParams = {
   isOpen: boolean;
@@ -260,7 +266,7 @@ export function useBudgetChat(params: UseBudgetChatParams) {
           replyAbortRef.current?.abort();
         }, BUDGET_CHAT_WATCHDOG_MS);
 
-        const csrfToken = getCsrfToken();
+        const csrfToken = await resolveBudgetChatCsrfToken();
         const res = await fetch('/api/budget-chat', {
           method: 'POST',
           signal: replySignal,
@@ -415,7 +421,7 @@ export function useBudgetChat(params: UseBudgetChatParams) {
 
     void (async () => {
       try {
-        const csrfToken = getCsrfToken();
+        const csrfToken = await resolveBudgetChatCsrfToken();
         const res = await fetch('/api/budget-chat', {
           method: 'POST',
           signal: initSignal,

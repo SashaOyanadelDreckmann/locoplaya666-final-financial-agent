@@ -1,8 +1,8 @@
 /**
  * Transport policy for Core Agent client calls.
  *
- * SSE streaming is used on all clients (including mobile). JSON POST remains the
- * fallback when streaming is disabled or the stream transport fails.
+ * Desktop uses SSE streaming; mobile/PWA uses JSON POST (more reliable on iOS Safari).
+ * JSON is also used when streaming is disabled or the stream transport fails.
  */
 
 export const CORE_AGENT_STREAM_STALL_FALLBACK_MS = 12_000;
@@ -14,9 +14,10 @@ export type AgentTransportHint = {
   streamEnvDisabled?: boolean;
 };
 
-/** JSON-only when streaming is explicitly disabled via env. */
+/** JSON when streaming is disabled via env or on mobile/touch clients. */
 export function shouldPreferAgentJsonTransport(hint: AgentTransportHint = {}): boolean {
-  return hint.streamEnvDisabled === true;
+  if (hint.streamEnvDisabled === true) return true;
+  return isMobileAgentClient(hint);
 }
 
 /** Mobile / touch clients — longer timeouts and immediate UI flush during stream. */
