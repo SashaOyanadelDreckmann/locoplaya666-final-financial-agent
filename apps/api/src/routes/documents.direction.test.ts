@@ -60,6 +60,58 @@ describe('documents movement direction', () => {
     expect(inferMovementKind('Pago Pesos TEF PAGO NORMAL', -40000, '-40000', 'credit_card')).toBe('abono');
   });
 
+  it('classifies BICE mobile app screenshots by +/- sign convention', () => {
+    expect(inferMovementDirection('Pago pesos tef', 186446, '+$186.446', 'credit_card')).toBe('income');
+    expect(inferMovementKind('Pago pesos tef', 186446, '+$186.446', 'credit_card')).toBe('abono');
+    expect(inferMovementDirection('Pago pesos tar', 40000, '+$40.000', 'credit_card')).toBe('income');
+    expect(inferMovementDirection('Copec nunoa santiago compras', -8480, '-$8.480', 'credit_card')).toBe('expense');
+    expect(inferMovementKind('Copec nunoa santiago compras', -8480, '-$8.480', 'credit_card')).toBe('expense');
+    expect(inferMovementDirection('Sumup * botilleria compras', -2300, '-$2.300', 'credit_card')).toBe('expense');
+    expect(inferMovementDirection('Hip lider nunoa compras', -20470, '-$20.470', 'credit_card')).toBe('expense');
+    expect(inferMovementDirection('Comision mensual por mantencion', -4851, '-$4.851', 'credit_card')).toBe('expense');
+    expect(inferMovementDirection('Monto Cancelado', -10000, '$-10.000', 'credit_card')).toBe('income');
+    expect(inferMovementKind('Monto Cancelado', -10000, '$-10.000', 'credit_card')).toBe('abono');
+  });
+
+  it('extracts BICE mobile app table rows with explicit +/- amounts', () => {
+    const movements = extractMovements(
+      [
+        {
+          name: 'movimientos-tarjeta.png',
+          text: [
+            'Movimientos de Tarjeta Nacional',
+            '06 de mayo del 2026',
+            '26 de abril del 2026',
+          ].join('\n'),
+          summary: null,
+          structuredData: {
+            tables: [
+              {
+                headers: ['Descripción', 'Monto'],
+                rows: [
+                  ['Pago pesos tef', '+$186.446'],
+                  ['Copec nunoa santiago compras', '-$8.480'],
+                  ['Sumup * botilleria compras', '-$2.300'],
+                ],
+              },
+            ],
+            parserMeta: { mode: 'vision_structured', confidence: 0.9 },
+          },
+        },
+      ],
+      'credit_card',
+    );
+
+    expect(movements).toHaveLength(3);
+    const pago = movements.find((m) => m.description.includes('Pago pesos'));
+    const copec = movements.find((m) => m.description.includes('Copec'));
+    const sumup = movements.find((m) => m.description.includes('Sumup'));
+    expect(pago?.direction).toBe('income');
+    expect(pago?.movement_kind).toBe('abono');
+    expect(copec?.direction).toBe('expense');
+    expect(sumup?.direction).toBe('expense');
+  });
+
   it('forces cargo column semantics for checking transfers even when keywords look like income', () => {
     const movements = extractMovements(
       [

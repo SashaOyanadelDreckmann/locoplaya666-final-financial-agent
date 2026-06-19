@@ -28,7 +28,8 @@ const CARTOLA_VISION_TABLE_INSTRUCTIONS =
   'Devuelve JSON con summary, text y tables.\n' +
   'Cada table debe incluir name, headers y rows.\n' +
   'Si la cartola muestra columnas Cargo/Abono, Débito/Crédito o Haber/Debe, repórtalas como columnas separadas — no colapses todo en una sola columna Monto.\n' +
-  'Preserva el signo de cada monto y en qué columna apareció.\n' +
+  'En capturas de app móvil (BICE, Santander, etc.), los montos suelen llevar prefijo + (pago/abono) o - (compra/gasto): preserva ese signo exactamente en rows.\n' +
+  'Incluye la fecha de cada movimiento (ej. "06 de mayo del 2026") en text o como columna Fecha.\n' +
   'Las filas deben ser solo movimientos reales; excluye saldos, subtotales, resúmenes y encabezados repetidos.\n' +
   'Si una fila no permite lectura confiable, omítela.';
 

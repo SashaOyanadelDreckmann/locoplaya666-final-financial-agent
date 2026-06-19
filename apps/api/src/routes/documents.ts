@@ -414,12 +414,17 @@ function parseAmountToken(token: string): number | null {
 
 function hasExplicitNegativeAmount(token: string): boolean {
   const raw = String(token ?? '').trim();
-  return /^\(.*\)$/.test(raw) || /^\s*-/.test(raw) || /-\s*$/.test(raw);
+  return (
+    /^\(.*\)$/.test(raw) ||
+    /^\s*-/.test(raw) ||
+    /-\s*$/.test(raw) ||
+    /\$\s*-/.test(raw)
+  );
 }
 
 function hasExplicitPositiveAmount(token: string): boolean {
   const raw = String(token ?? '').trim();
-  return /^\s*\+/.test(raw);
+  return /^\s*\+/.test(raw) || /\+\s*\$/.test(raw) || /\$\s*\+/.test(raw);
 }
 
 function normalizeMovementProductType(value?: string): string | undefined {
@@ -464,6 +469,38 @@ function resolveTypeColumnDirection(
   return null;
 }
 
+function usesMobileAppSignPrefix(amountToken: string): boolean {
+  return hasExplicitPositiveAmount(amountToken) || hasExplicitNegativeAmount(amountToken);
+}
+
+const MOBILE_APP_PURCHASE_HINT =
+  /\b(compras?|comision|impuesto|travel|duty|tcomp|tasa|hip|lider|copec|sumup|mercado|sodimac|easy|pedidosya|ekono|arcos|parking|botilleria|restaurant|uber|webpay|falabella|ripley|jumbo|unimarc|ticket|botilleria)\b/;
+
+const MOBILE_APP_ABONO_HINT =
+  /\b(pago\s+pesos|monto\s+cancelado|dev\s+intereses|reembolso|reintegro|devoluci[oó]n|nota de credito|nota credito)\b/;
+
+/** BICE/ bank app screenshots: + = abono/pago TC, - = compra. Cartola PDF: - = abono. */
+function resolveMobileAppUiDirection(
+  line: string,
+  amountToken: string,
+): { direction: 'income' | 'expense'; kind: 'abono' | 'expense'; basis: string } | null {
+  if (!usesMobileAppSignPrefix(amountToken)) return null;
+  const normalized = normalizeTextToken(line);
+
+  if (hasExplicitPositiveAmount(amountToken)) {
+    return { direction: 'income', kind: 'abono', basis: 'mobile_app_sign_plus' };
+  }
+
+  if (MOBILE_APP_PURCHASE_HINT.test(normalized)) {
+    return { direction: 'expense', kind: 'expense', basis: 'mobile_app_sign_minus' };
+  }
+  if (MOBILE_APP_ABONO_HINT.test(normalized) || /\babonos\b/.test(normalized)) {
+    return { direction: 'income', kind: 'abono', basis: 'mobile_app_sign_minus_abono' };
+  }
+  // Legacy cartola PDF: negative amounts without purchase hints are credits.
+  return { direction: 'income', kind: 'abono', basis: 'cartola_sign_minus_credit' };
+}
+
 function resolveDefaultMovementProductType(
   hints: TransactionAnalysisHints,
   primaryProfile: TransactionDocumentProfile | null,
@@ -488,11 +525,20 @@ function isCreditCardAbonoSignal(input: {
     [input.categoryToken, input.description, input.line].filter(Boolean).join(' '),
   );
   if (/\babonos?\b/.test(normalized)) return true;
-  if (/\b(monto cancelado|dev intereses|reembolso|reintegro|devolucion|nota de credito|nota credito)\b/.test(normalized)) {
+  if (MOBILE_APP_ABONO_HINT.test(normalized)) return true;
+  if (typeof input.signedAmount === 'number' && input.signedAmount < 0) {
+    if (usesMobileAppSignPrefix(input.amountToken ?? '') && MOBILE_APP_PURCHASE_HINT.test(normalized)) {
+      return false;
+    }
     return true;
   }
-  if (typeof input.signedAmount === 'number' && input.signedAmount < 0) return true;
-  return hasExplicitNegativeAmount(input.amountToken ?? '');
+  if (hasExplicitNegativeAmount(input.amountToken ?? '')) {
+    if (MOBILE_APP_PURCHASE_HINT.test(normalized) && !MOBILE_APP_ABONO_HINT.test(normalized)) {
+      return false;
+    }
+    return true;
+  }
+  return false;
 }
 
 function isCreditCardCargoSignal(input: {
@@ -508,8 +554,12 @@ function isCreditCardCargoSignal(input: {
     [input.categoryToken, input.description, input.line].filter(Boolean).join(' '),
   );
   if (/\bcargos?\b/.test(normalized) && !/\babonos?\b/.test(normalized)) return true;
+  if (hasExplicitPositiveAmount(input.amountToken ?? '')) {
+    if (MOBILE_APP_ABONO_HINT.test(normalized) || /\bpago\s+pesos\b/.test(normalized)) return false;
+    return false;
+  }
   if (typeof input.signedAmount === 'number' && input.signedAmount > 0) return true;
-  return hasExplicitPositiveAmount(input.amountToken ?? '');
+  return false;
 }
 
 function finalizeCreditCardMovement(
@@ -594,6 +644,11 @@ function inferMovementSemantics(
   const normalizedProductType = normalizeMovementProductType(productType);
   const isCreditCard = normalizedProductType === 'credit_card';
 
+  if (isCreditCard && usesMobileAppSignPrefix(amountToken)) {
+    const appDirection = resolveMobileAppUiDirection(line, amountToken);
+    if (appDirection) return appDirection;
+  }
+
   const incomeHits = (
     normalized.match(
       /\b(ingreso|sueldo|remuner|n[oó]mina|payroll|pensi[oó]n|honorari)\b/g,
@@ -622,13 +677,20 @@ function inferMovementSemantics(
     return { direction: 'income', kind: 'abono' };
   }
   if (hasExplicitNegativeAmount(amountToken) && incomeHits === 0) {
+    if (isCreditCard && !usesMobileAppSignPrefix(amountToken)) {
+      return { direction: 'income', kind: 'abono' };
+    }
+    if (!isCreditCard) {
+      return { direction: 'expense', kind: 'expense' };
+    }
+  }
+  if (hasExplicitPositiveAmount(amountToken)) {
     if (isCreditCard) {
       return { direction: 'income', kind: 'abono' };
     }
-    return { direction: 'expense', kind: 'expense' };
-  }
-  if (hasExplicitPositiveAmount(amountToken) && incomeHits > expenseHits) {
-    return { direction: 'income', kind: 'income' };
+    if (incomeHits > expenseHits) {
+      return { direction: 'income', kind: 'income' };
+    }
   }
   if (incomeHits > expenseHits && incomeHits > 0) {
     return { direction: 'income', kind: 'income' };
@@ -637,6 +699,10 @@ function inferMovementSemantics(
     return { direction: 'expense', kind: 'expense' };
   }
   if (isCreditCard) {
+    if (usesMobileAppSignPrefix(amountToken)) {
+      const appDirection = resolveMobileAppUiDirection(line, amountToken);
+      if (appDirection) return appDirection;
+    }
     return signedAmount < 0 || hasExplicitNegativeAmount(amountToken)
       ? { direction: 'income', kind: 'abono' }
       : { direction: 'expense', kind: 'expense' };
