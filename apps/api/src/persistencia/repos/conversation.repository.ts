@@ -216,6 +216,38 @@ export async function countConversationTurnsForUser(userId: string): Promise<num
   return prisma.conversationTurn.count({ where: { userId } });
 }
 
+/** Returns 0 when ConversationTurn storage is unavailable (e.g. pending migration). */
+export async function countConversationTurnsForUserSafe(userId: string): Promise<number> {
+  try {
+    return await countConversationTurnsForUser(userId);
+  } catch (error) {
+    getLogger().warn({
+      msg: 'ConversationTurn count failed; continuing with zero turns',
+      userId,
+      error,
+    });
+    return 0;
+  }
+}
+
+/** Returns 0 when ConversationTurn storage is unavailable (e.g. pending migration). */
+export async function countConversationTurnsGlobalSafe(): Promise<number> {
+  if (getPersistenceMode() === 'memory') {
+    return memoryStore.conversationTurns.size;
+  }
+
+  try {
+    const prisma = await getPrismaClient();
+    return await prisma.conversationTurn.count();
+  } catch (error) {
+    getLogger().warn({
+      msg: 'ConversationTurn global count failed; continuing with zero turns',
+      error,
+    });
+    return 0;
+  }
+}
+
 export async function listConversationTurnTimelinesByUser(): Promise<
   Map<string, ReturnType<typeof turnToTimelineEntry>[]>
 > {
@@ -249,4 +281,19 @@ export async function listConversationTurnTimelinesByUser(): Promise<
   }
 
   return grouped;
+}
+
+/** Returns empty map when ConversationTurn storage is unavailable (e.g. pending migration). */
+export async function listConversationTurnTimelinesByUserSafe(): Promise<
+  Map<string, ReturnType<typeof turnToTimelineEntry>[]>
+> {
+  try {
+    return await listConversationTurnTimelinesByUser();
+  } catch (error) {
+    getLogger().warn({
+      msg: 'ConversationTurn timeline lookup failed; continuing without turn analytics',
+      error,
+    });
+    return new Map();
+  }
 }

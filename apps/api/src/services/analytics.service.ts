@@ -2,7 +2,7 @@ import crypto from 'crypto';
 import type { UserRole } from '../auth/rbac';
 import { getConfig } from '../config';
 import { getPersistenceMode, getPrismaClient, memoryStore } from '../persistencia/provider';
-import { listConversationTurnTimelinesByUser } from '../persistencia/repos/conversation.repository';
+import { listConversationTurnTimelinesByUserSafe } from '../persistencia/repos/conversation.repository';
 import { getFincoinUsageForUser } from './fincoin.service';
 
 type SortOrder = 'asc' | 'desc';
@@ -722,7 +722,7 @@ function buildCsv(columns: string[], rows: Array<Array<unknown>>): string {
 
 async function loadRawUsers(): Promise<RawUserAnalytics[]> {
   const mode = getPersistenceMode();
-  const turnsByUser = await listConversationTurnTimelinesByUser();
+  const turnsByUser = await listConversationTurnTimelinesByUserSafe();
 
   if (mode === 'memory') {
     const sessionStats = new Map<string, { count: number; lastSeenAt: string | null }>();

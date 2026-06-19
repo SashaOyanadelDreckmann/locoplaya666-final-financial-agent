@@ -1,7 +1,7 @@
 import type { UserRole } from '../auth/rbac';
 import type { ApprovalStatus } from '../auth/approval';
 import { getPersistenceMode, getPrismaClient, memoryStore } from '../persistencia/provider';
-import { listConversationTurns, countConversationTurnsForUser } from '../persistencia/repos/conversation.repository';
+import { listConversationTurnsSafe, countConversationTurnsForUserSafe } from '../persistencia/repos/conversation.repository';
 import { getFincoinUsageForUser } from './fincoin.service';
 
 type AdminSessionSnapshot = {
@@ -407,8 +407,8 @@ export async function getAdminUserDossier(userId: string): Promise<AdminUserDoss
   if (!user) return null;
 
   const [turns, conversationTurnsCount] = await Promise.all([
-    listConversationTurns({ userId, limit: 24 }),
-    countConversationTurnsForUser(userId),
+    listConversationTurnsSafe({ userId, limit: 24 }),
+    countConversationTurnsForUserSafe(userId),
   ]);
   const fincoin = getFincoinUsageForUser(user);
 

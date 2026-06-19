@@ -4,6 +4,7 @@ import { APPROVAL_STATUS } from '../auth/approval';
 import { USER_ROLES } from '../auth/rbac';
 import { getAllHttpStats, getHttpGlobalStats } from '../observability/http-metrics';
 import { getAllToolStats } from '../mcp/tools/telemetry';
+import { countConversationTurnsGlobalSafe } from '../persistencia/repos/conversation.repository';
 import { getPersistenceMode, getPrismaClient, memoryStore } from '../persistencia/provider';
 import { fincoinUsagePayload, getFincoinUsageForUser } from './fincoin.service';
 import { listResearchAnalytics, type ResearchAnalyticsSummary } from './analytics.service';
@@ -164,7 +165,7 @@ async function buildFromPostgres(): Promise<AdminCockpitPlatform> {
       prisma.session.count(),
       prisma.userDocument.count(),
       prisma.financialProfile.count(),
-      prisma.conversationTurn.count(),
+      countConversationTurnsGlobalSafe(),
     ]),
   ]);
 
