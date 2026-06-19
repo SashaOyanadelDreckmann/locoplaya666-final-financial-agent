@@ -76,6 +76,33 @@ describe('documents.parse.helpers', () => {
     expect(shouldReconcileMovements(documents, movements)).toBe(false);
   });
 
+  it('triggers reconcile when vision OCR yields one-sided directions', () => {
+    const documents = [
+      {
+        structuredData: {
+          rowCount: 6,
+          parserMeta: { mode: 'vision_structured', confidence: 0.88 },
+          tables: [
+            {
+              headers: ['Fecha', 'Descripción', 'Cargo', 'Abono'],
+              rows: [
+                ['01/06/2026', 'COMPRA', '1000', ''],
+                ['02/06/2026', 'OTRA', '2000', ''],
+              ],
+            },
+          ],
+        },
+      },
+    ];
+    const movements = [
+      { source_kind: 'table' as const, direction: 'expense' as const },
+      { source_kind: 'table' as const, direction: 'expense' as const },
+      { source_kind: 'table' as const, direction: 'expense' as const },
+    ];
+
+    expect(shouldReconcileMovements(documents, movements)).toBe(true);
+  });
+
   it('builds a richer executive summary without LLM', () => {
     const summary = buildExecutiveSummaryText({
       movementCount: 42,

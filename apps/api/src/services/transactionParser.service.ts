@@ -24,6 +24,14 @@ const VIDEO_EXTENSIONS = new Set(['.mp4', '.mov', '.webm', '.m4v', '.avi']);
 const MAX_VIDEO_FRAMES = 16;
 const VISION_PRIMARY_MODEL = process.env.TRANSACTIONS_VISION_MODEL?.trim() || 'gpt-4.1-mini';
 const VISION_FALLBACK_MODEL = process.env.TRANSACTIONS_VISION_FALLBACK_MODEL?.trim() || 'gpt-4.1';
+const CARTOLA_VISION_TABLE_INSTRUCTIONS =
+  'Devuelve JSON con summary, text y tables.\n' +
+  'Cada table debe incluir name, headers y rows.\n' +
+  'Si la cartola muestra columnas Cargo/Abono, Débito/Crédito o Haber/Debe, repórtalas como columnas separadas — no colapses todo en una sola columna Monto.\n' +
+  'Preserva el signo de cada monto y en qué columna apareció.\n' +
+  'Las filas deben ser solo movimientos reales; excluye saldos, subtotales, resúmenes y encabezados repetidos.\n' +
+  'Si una fila no permite lectura confiable, omítela.';
+
 const VISION_OUTPUT_SCHEMA = {
   type: 'object',
   additionalProperties: false,
@@ -598,10 +606,7 @@ async function parsePdfWithVisionDetailed(
         `Archivo: ${filename}\n` +
         `Motivo del fallback: ${reason}\n` +
         'El PDF puede estar escaneado. Usa OCR visual si hace falta.\n' +
-        'Devuelve JSON con summary, text y tables.\n' +
-        'Cada table debe incluir name, headers y rows.\n' +
-        'Las filas deben ser solo movimientos reales; excluye saldos, subtotales, resúmenes y encabezados repetidos.\n' +
-        'Si una fila no permite lectura confiable, omítela.',
+        CARTOLA_VISION_TABLE_INSTRUCTIONS,
       contents: [
         {
           type: 'input_file',
@@ -880,9 +885,7 @@ export async function parseImageBufferDetailed(buffer: Buffer, filename: string)
       sourceType: 'image',
       userPrompt:
         `Archivo: ${filename}\n` +
-        'Devuelve JSON con summary, text y tables.\n' +
-        'Cada table debe incluir name, headers y rows.\n' +
-        'Si una fila no es movimiento real y parece saldo/resumen, déjala fuera de rows.',
+        CARTOLA_VISION_TABLE_INSTRUCTIONS,
       contents: [
         {
           type: 'input_image',

@@ -430,7 +430,7 @@ function isCreditCardProduct(productType?: string): boolean {
   return normalizeMovementProductType(productType) === 'credit_card';
 }
 
-function resolveCreditCardCategoryDirection(
+function resolveSectionCategoryDirection(
   categoryToken: string,
 ): { direction: 'income' | 'expense'; kind: 'abono' | 'expense'; basis: string } | null {
   if (isSectionSummaryCategory(categoryToken)) return null;
@@ -443,6 +443,38 @@ function resolveCreditCardCategoryDirection(
     return { direction: 'expense', kind: 'expense', basis: 'category_cargos' };
   }
   return null;
+}
+
+/** @deprecated alias — section categories apply to checking and credit products */
+function resolveCreditCardCategoryDirection(categoryToken: string) {
+  return resolveSectionCategoryDirection(categoryToken);
+}
+
+function resolveTypeColumnDirection(
+  typeToken: string,
+): { direction: 'income' | 'expense'; kind: 'abono' | 'expense' | 'income'; basis: string } | null {
+  const normalized = normalizeTextToken(typeToken);
+  if (!normalized) return null;
+  if (/\b(abonos?|creditos?|haber|depositos?|ingresos?)\b/.test(normalized)) {
+    return { direction: 'income', kind: /\babonos?\b/.test(normalized) ? 'abono' : 'income', basis: 'column_tipo_abono' };
+  }
+  if (/\b(cargos?|debitos?|debe|egresos?|giros?|retiros?)\b/.test(normalized)) {
+    return { direction: 'expense', kind: 'expense', basis: 'column_tipo_cargo' };
+  }
+  return null;
+}
+
+function resolveDefaultMovementProductType(
+  hints: TransactionAnalysisHints,
+  primaryProfile: TransactionDocumentProfile | null,
+): string {
+  return (
+    normalizeMovementProductType(hints.productTypeHint) ||
+    normalizeMovementProductType(hints.serviceHint) ||
+    normalizeMovementProductType(hints.productLabelHint) ||
+    normalizeMovementProductType(primaryProfile?.product_type) ||
+    'checking_account'
+  );
 }
 
 function isCreditCardAbonoSignal(input: {
@@ -477,7 +509,7 @@ function isCreditCardCargoSignal(input: {
   );
   if (/\bcargos?\b/.test(normalized) && !/\babonos?\b/.test(normalized)) return true;
   if (typeof input.signedAmount === 'number' && input.signedAmount > 0) return true;
-  return hasExplicitPositiveAmount(input.amountToken ?? '') || !hasExplicitNegativeAmount(input.amountToken ?? '');
+  return hasExplicitPositiveAmount(input.amountToken ?? '');
 }
 
 function finalizeCreditCardMovement(
@@ -609,9 +641,27 @@ function inferMovementSemantics(
       ? { direction: 'income', kind: 'abono' }
       : { direction: 'expense', kind: 'expense' };
   }
-  return signedAmount < 0
-    ? { direction: 'expense', kind: 'expense' }
-    : { direction: 'income', kind: 'income' };
+
+  const retailExpenseHits = (
+    normalized.match(
+      /\b(compras?|supermercad|restaurant|uber|copec|shell|petrobras|local|market|tienda|farmacia|pedidosya|rappi|mercadopago|webpay|pos|delivery|burger|sushi|cafeter|starbucks|jumbo|lider|unimarc|entel|movistar|wom|vtr|netflix|spotify|amazon|falabella|ripley|easy|sodimac)\b/g,
+    ) ?? []
+  ).length;
+  const totalExpenseHits = expenseHits + retailExpenseHits;
+
+  if (signedAmount < 0 || hasExplicitNegativeAmount(amountToken)) {
+    return { direction: 'expense', kind: 'expense' };
+  }
+  if (totalExpenseHits > incomeHits + abonoHits && totalExpenseHits > 0) {
+    return { direction: 'expense', kind: 'expense' };
+  }
+  if (incomeHits + abonoHits > totalExpenseHits && incomeHits + abonoHits > 0) {
+    return { direction: 'income', kind: abonoHits > 0 ? 'abono' : 'income' };
+  }
+  if (retailExpenseHits > 0) {
+    return { direction: 'expense', kind: 'expense' };
+  }
+  return { direction: 'income', kind: 'income' };
 }
 
 function isNonMovementDescription(value: string): boolean {
@@ -722,9 +772,7 @@ function parseMovementFromTableRow(params: {
   const date = toIsoDate(dateSource) ?? parseDateFromLine(dateSource) ?? fallbackDate;
   const rawCategoryToken = categoryIndex >= 0 ? row[categoryIndex] ?? '' : '';
   const categoryToken = isSectionSummaryCategory(rawCategoryToken) ? '' : rawCategoryToken;
-  const categoryDirection = isCreditCardProduct(productType)
-    ? resolveCreditCardCategoryDirection(categoryToken)
-    : null;
+  const categoryDirection = resolveSectionCategoryDirection(categoryToken);
   const expense = expenseIndex >= 0 && !isBlankLikeCell(row[expenseIndex]) ? parseAmountToken(row[expenseIndex]) : null;
   const income = incomeIndex >= 0 && !isBlankLikeCell(row[incomeIndex]) ? parseAmountToken(row[incomeIndex]) : null;
 
@@ -771,6 +819,7 @@ function parseMovementFromTableRow(params: {
     if (picked.amount === null) return null;
     if (picked.index === balanceIndex) return null;
     const typeToken = typeIndex >= 0 ? row[typeIndex] ?? '' : '';
+    const typeDirection = resolveTypeColumnDirection(typeToken);
     const semanticsSource = isSectionSummaryCategory(rawCategoryToken)
       ? row.filter((_, index) => index !== categoryIndex).join(' ')
       : [row.join(' '), typeToken, categoryToken].filter(Boolean).join(' ');
@@ -782,6 +831,11 @@ function parseMovementFromTableRow(params: {
     );
     direction = semantics.direction;
     movementKind = semantics.kind;
+    if (typeDirection) {
+      direction = typeDirection.direction;
+      movementKind = typeDirection.kind;
+      directionBasis = typeDirection.basis;
+    }
     signedAmount = picked.amount;
     amount = Math.abs(picked.amount);
     amountToken = picked.token;
@@ -1059,11 +1113,7 @@ function buildTransactionAnalysis(
     .filter((profile): profile is TransactionDocumentProfile => Boolean(profile));
   const primaryProfile = documentProfiles[0] ?? null;
   const normalizedProductType =
-    normalizeMovementProductType(hints.productTypeHint) ||
-    normalizeMovementProductType(hints.serviceHint) ||
-    normalizeMovementProductType(hints.productLabelHint) ||
-    primaryProfile?.product_type ||
-    'credit_card';
+    resolveDefaultMovementProductType(hints, primaryProfile);
   const documentInsights = documents.map((doc) => {
     const structured = (doc.structuredData as {
       rowCount?: unknown;
@@ -1528,17 +1578,32 @@ async function reconcileMovementsWithLLM(
       .map((movement) => {
         const description = cleanMovementDescription(movement.description ?? '');
         const taxonomy = inferTransactionTaxonomy(description);
-        const signedAmount = inferMovementDirection(description, Number(movement.amount) || 0, '', productType) === 'expense'
-          ? -Math.abs(Number(movement.amount) || 0)
-          : Math.abs(Number(movement.amount) || 0);
-        const direction: ParsedMovement['direction'] = signedAmount < 0 ? 'expense' : 'income';
+        const llmDirection =
+          movement.direction === 'income' || movement.direction === 'expense'
+            ? movement.direction
+            : null;
+        const heuristicDirection = inferMovementDirection(
+          description,
+          Number(movement.amount) || 0,
+          '',
+          productType,
+        );
+        const direction: ParsedMovement['direction'] = llmDirection ?? heuristicDirection;
+        const signedAmount =
+          direction === 'expense'
+            ? -Math.abs(Number(movement.amount) || 0)
+            : Math.abs(Number(movement.amount) || 0);
+        const movementKind =
+          direction === 'income' && /\babonos?\b/i.test(description)
+            ? 'abono'
+            : inferMovementKind(description, signedAmount, '', productType);
         return {
           date: movement.date ? toIsoDate(movement.date) : undefined,
           description,
           amount: Math.abs(Number(movement.amount) || 0),
           amount_signed: signedAmount,
           direction,
-          movement_kind: inferMovementKind(description, Number(movement.amount) || 0, '', productType),
+          movement_kind: movementKind,
           direction_basis: 'llm_reconcile',
           source_line: '',
           category: movement.category ? String(movement.category) : taxonomy.category,
@@ -1621,7 +1686,7 @@ router.post(
       normalizeMovementProductType(body.productTypeHint) ||
       normalizeMovementProductType(body.serviceHint) ||
       normalizeMovementProductType(body.productLabelHint) ||
-      'credit_card';
+      'checking_account';
     const shouldReconcile = shouldReconcileMovements(documents, heuristicAnalysis.movements ?? []);
     const reconciledMovements = shouldReconcile
       ? await reconcileMovementsWithLLM(documents, heuristicAnalysis.movements ?? [], productTypeForAnalysis)

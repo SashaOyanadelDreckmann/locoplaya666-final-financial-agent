@@ -145,4 +145,121 @@ describe('documents movement direction', () => {
     expect(movements.some((movement) => movement.description.includes('Copec'))).toBe(true);
     expect(movements.every((movement) => Boolean(movement.date))).toBe(true);
   });
+
+  it('classifies mixed cargo and abono columns for checking accounts', () => {
+    const movements = extractMovements(
+      [
+        {
+          name: 'cartola.png',
+          text: '',
+          summary: null,
+          structuredData: {
+            tables: [
+              {
+                headers: ['Fecha', 'Descripción', 'Cargo', 'Abono'],
+                rows: [
+                  ['01/06/2026', 'COMPRA SUPERMERCADO', '45000', ''],
+                  ['02/06/2026', 'TRANSFERENCIA RECIBIDA', '', '120000'],
+                ],
+              },
+            ],
+            parserMeta: { mode: 'vision_structured', confidence: 0.84 },
+          },
+        },
+      ],
+      'checking_account',
+    );
+
+    expect(movements).toHaveLength(2);
+    expect(movements.find((m) => m.description.includes('SUPERMERCADO'))?.direction).toBe('expense');
+    expect(movements.find((m) => m.description.includes('TRANSFERENCIA'))?.direction).toBe('income');
+  });
+
+  it('uses section category for single Monto column checking cartolas', () => {
+    const movements = extractMovements(
+      [
+        {
+          name: 'bice.png',
+          text: '',
+          summary: null,
+          structuredData: {
+            tables: [
+              {
+                headers: ['Fecha', 'Categoría', 'Descripción', 'Monto'],
+                rows: [
+                  ['01/06/2026', 'Cargos', 'PAGO SERVIPAG', '25000'],
+                  ['02/06/2026', 'Abonos', 'TRANSFERENCIA DESDE CUENTA', '80000'],
+                ],
+              },
+            ],
+            parserMeta: { mode: 'vision_structured', confidence: 0.82 },
+          },
+        },
+      ],
+      'checking_account',
+    );
+
+    expect(movements).toHaveLength(2);
+    expect(movements.find((m) => m.description.includes('SERVIPAG'))?.direction).toBe('expense');
+    expect(movements.find((m) => m.description.includes('TRANSFERENCIA'))?.direction).toBe('income');
+  });
+
+  it('maps wallet Tipo column to direction for photo OCR tables', () => {
+    const movements = extractMovements(
+      [
+        {
+          name: 'mach.png',
+          text: '',
+          summary: null,
+          structuredData: {
+            tables: [
+              {
+                headers: ['Fecha', 'Descripción', 'Monto', 'Tipo'],
+                rows: [
+                  ['03/04/2026', 'Compra local', '15000', 'Cargo'],
+                  ['04/04/2026', 'Transferencia recibida', '50000', 'Abono'],
+                ],
+              },
+            ],
+          },
+        },
+      ],
+      'debit_account',
+    );
+
+    expect(movements).toHaveLength(2);
+    expect(movements[0]?.direction).toBe('expense');
+    expect(movements[1]?.direction).toBe('income');
+    expect(movements[0]?.direction_basis).toBe('column_tipo_cargo');
+    expect(movements[1]?.direction_basis).toBe('column_tipo_abono');
+  });
+
+  it('classifies unsigned retail descriptions as expense on checking photos', () => {
+    const movements = extractMovements(
+      [
+        {
+          name: 'foto-cartola.png',
+          text: '',
+          summary: null,
+          structuredData: {
+            tables: [
+              {
+                headers: ['Fecha', 'Descripción', 'Monto'],
+                rows: [
+                  ['01/06/2026', 'Copec Nunoa Compras', '5500'],
+                  ['02/06/2026', 'Transferencia recibida', '120000'],
+                ],
+              },
+            ],
+            parserMeta: { mode: 'vision_structured', confidence: 0.8 },
+          },
+        },
+      ],
+      'checking_account',
+    );
+
+    expect(movements.length).toBeGreaterThanOrEqual(2);
+    expect(movements.find((m) => m.description.includes('Copec'))?.direction).toBe('expense');
+    expect(movements.find((m) => m.description.includes('Transferencia'))?.direction).toBe('income');
+  });
 });

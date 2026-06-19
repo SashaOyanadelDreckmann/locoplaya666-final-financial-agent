@@ -23,7 +23,38 @@ type DocumentInsight = {
 
 type ParsedMovementLike = {
   source_kind?: 'table' | 'line';
+  direction?: 'income' | 'expense';
 };
+
+function tableHeadersSuggestDualAmountColumns(documents: Array<{ structuredData?: unknown }>): boolean {
+  for (const doc of documents) {
+    const structured = (doc.structuredData as StructuredDoc | null | undefined) ?? {};
+    const tables = Array.isArray(structured.tables) ? structured.tables : [];
+    for (const table of tables) {
+      const headers = Array.isArray((table as { headers?: unknown }).headers)
+        ? (table as { headers: unknown[] }).headers.map((cell) => String(cell ?? '').toLowerCase())
+        : [];
+      const joined = headers.join(' ');
+      if (/cargo|debito|debe|egreso/.test(joined) && /abono|credito|haber|ingreso|deposito/.test(joined)) {
+        return true;
+      }
+      if (/categoria/.test(joined) && /monto|importe|valor/.test(joined)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+function movementsLookOneSided(movements: ParsedMovementLike[]): boolean {
+  if (movements.length < 3) return false;
+  const directions = new Set(
+    movements
+      .map((movement) => movement.direction)
+      .filter((direction): direction is 'income' | 'expense' => direction === 'income' || direction === 'expense'),
+  );
+  return directions.size === 1;
+}
 
 export function shouldReconcileMovements(
   documents: Array<{ structuredData?: unknown }>,
@@ -52,6 +83,20 @@ export function shouldReconcileMovements(
       if (visionTableRows >= 3 && parserMode.includes('vision')) return true;
       return rowCount >= 8;
     });
+  }
+
+  if (
+    movementsLookOneSided(heuristicMovements) &&
+    tableHeadersSuggestDualAmountColumns(documents)
+  ) {
+    return true;
+  }
+
+  if (movementsLookOneSided(heuristicMovements)) {
+    const parserMode = documents
+      .map((doc) => String(((doc.structuredData as StructuredDoc | null | undefined)?.parserMeta?.mode ?? '')).toLowerCase())
+      .join(' ');
+    if (parserMode.includes('vision')) return true;
   }
 
   let needsReconcile = false;
