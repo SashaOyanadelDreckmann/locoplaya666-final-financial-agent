@@ -1496,11 +1496,14 @@ async function reconcileMovementsWithLLM(
     }>({
       name: 'transaction_reconcile_movements',
       description: 'Reconcilia movimientos desde tablas de cartolas bancarias chilenas.',
-      model: process.env.TRANSACTIONS_RECONCILE_MODEL || 'gpt-5.4-mini',
+      model: process.env.TRANSACTIONS_RECONCILE_MODEL || 'gpt-4.1-mini',
       temperature: 0,
-      maxOutputTokens: 1200,
+      maxOutputTokens: 2400,
       instructions:
-        'Reconcilia tablas de cartolas bancarias chilenas. Devuelve solo movimientos reales. Excluye saldos, subtotales, resúmenes, cupos, pagos mínimos y encabezados repetidos. Respeta signo, columnas cargo/abono y contexto contable.',
+        'Reconcilia tablas de cartolas bancarias chilenas. Devuelve solo movimientos reales. Excluye saldos, subtotales, resúmenes, cupos, pagos mínimos y encabezados repetidos. ' +
+        'Respeta signo, columnas cargo/abono, débito/crédito, haber/debe y contexto contable. ' +
+        'Si una fila tiene monto en columna cargo/débito, direction=expense. Si está en abono/crédito/haber, direction=income. ' +
+        'Ante duda, usa la columna y el signo visible; no adivines.',
       input: [
         {
           role: 'user',

@@ -563,7 +563,7 @@ async function refineWithLlm(input: ProfileInput, profile: TransactionDocumentPr
     const refined = await completeStructuredWithSchema<Partial<TransactionDocumentProfile>>({
       name: 'transaction_document_profile',
       description: 'Clasifica el perfil de un documento financiero chileno.',
-      model: process.env.TRANSACTIONS_PROFILE_MODEL || 'gpt-5.4-nano',
+      model: process.env.TRANSACTIONS_PROFILE_MODEL || 'gpt-4.1-mini',
       temperature: 0,
       maxOutputTokens: 600,
       instructions:

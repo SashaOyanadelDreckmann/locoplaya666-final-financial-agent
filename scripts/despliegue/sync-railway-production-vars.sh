@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Sync production behavior variables to Railway (API + Web).
+# Source of truth: .env.example (local dev profile).
 # Requires: RAILWAY_API_TOKEN or RAILWAY_TOKEN, RAILWAY_PROJECT_ID, RAILWAY_ENVIRONMENT_ID
 set -euo pipefail
 
@@ -36,7 +37,7 @@ upsert() {
   echo "  ✓ ${key}"
 }
 
-echo "==> Sync API variables"
+echo "==> Sync API variables (local dev profile → Railway prod)"
 link_service "$API_SERVICE_NAME"
 
 upsert "$API_SERVICE_NAME" WEB_ORIGIN "https://financieramente.up.railway.app"
@@ -45,13 +46,22 @@ upsert "$API_SERVICE_NAME" SESSION_COOKIE_SAME_SITE "none"
 upsert "$API_SERVICE_NAME" DATA_DIR "/app/data"
 upsert "$API_SERVICE_NAME" LOG_LEVEL "info"
 upsert "$API_SERVICE_NAME" ENABLE_DEV_INJECTION "false"
+
+# LLM — cartolas: mini primero, gpt-4.1 solo en retry OCR
 upsert "$API_SERVICE_NAME" OPENAI_MODEL "gpt-5.2"
+upsert "$API_SERVICE_NAME" OPENAI_MODEL_FAST "gpt-4.1-mini"
+upsert "$API_SERVICE_NAME" ANTHROPIC_MODEL "claude-sonnet-4-6"
 upsert "$API_SERVICE_NAME" ANTHROPIC_MODEL_FAST "claude-haiku-4-5"
+upsert "$API_SERVICE_NAME" TRANSACTIONS_VISION_MODEL "gpt-4.1-mini"
+upsert "$API_SERVICE_NAME" TRANSACTIONS_VISION_FALLBACK_MODEL "gpt-4.1"
+upsert "$API_SERVICE_NAME" TRANSACTIONS_PROFILE_MODEL "gpt-4.1-mini"
+upsert "$API_SERVICE_NAME" TRANSACTIONS_RECONCILE_MODEL "gpt-4.1-mini"
+upsert "$API_SERVICE_NAME" TRANSACTIONS_VISION_DETAIL "high"
+upsert "$API_SERVICE_NAME" TRANSACTIONS_SUMMARY_MODEL "gpt-4.1-mini"
+upsert "$API_SERVICE_NAME" TRANSACTIONS_CHAT_MODEL "gpt-4.1-mini"
 upsert "$API_SERVICE_NAME" BUDGET_CHAT_REACT_ENABLED "true"
-upsert "$API_SERVICE_NAME" TRANSACTIONS_VISION_MODEL "gpt-5.4-nano"
-upsert "$API_SERVICE_NAME" TRANSACTIONS_CHAT_MODEL "gpt-4o-mini"
-upsert "$API_SERVICE_NAME" TRANSACTIONS_SUMMARY_MODEL "gpt-5.4-mini"
-upsert "$API_SERVICE_NAME" TRANSACTIONS_RECONCILE_MODEL "gpt-5.4-mini"
+
+# Context fabric — same as NODE_ENV=development defaults
 upsert "$API_SERVICE_NAME" FINANCIAL_CONTEXT_MCP_ENABLED "true"
 upsert "$API_SERVICE_NAME" CORE_CONTEXT_PACK_ENABLED "true"
 upsert "$API_SERVICE_NAME" BUDGET_CONTEXT_PACK_ENABLED "true"
@@ -60,6 +70,7 @@ upsert "$API_SERVICE_NAME" DIAGNOSTIC_CONTEXT_PACK_ENABLED "true"
 upsert "$API_SERVICE_NAME" CONTEXT_CONSISTENCY_ENABLED "true"
 upsert "$API_SERVICE_NAME" CONTEXT_CONFLICT_UI_ENABLED "true"
 upsert "$API_SERVICE_NAME" FINANCIAL_CONTEXT_SHADOW_MODE "false"
+
 upsert "$API_SERVICE_NAME" APPROVAL_ADMIN_EMAIL "sasha.oyanadel@ug.uchile.cl"
 upsert "$API_SERVICE_NAME" ENABLE_BOOTSTRAP_ADMIN_LOGIN "true"
 upsert "$API_SERVICE_NAME" BOOTSTRAP_ADMIN_EMAIL "admin@financieramente.local"
@@ -72,7 +83,7 @@ link_service "$WEB_SERVICE_NAME"
 upsert "$WEB_SERVICE_NAME" NEXT_PUBLIC_API_URL "https://locoplaya666-final-financial-agent-production.up.railway.app"
 upsert "$WEB_SERVICE_NAME" NEXT_PUBLIC_API_ORIGIN "https://locoplaya666-final-financial-agent-production.up.railway.app"
 upsert "$WEB_SERVICE_NAME" NEXT_PUBLIC_APP_ORIGIN "https://financieramente.up.railway.app"
-upsert "$WEB_SERVICE_NAME" TRANSACTIONS_CHAT_MODEL "gpt-4o-mini"
+upsert "$WEB_SERVICE_NAME" TRANSACTIONS_CHAT_MODEL "gpt-4.1-mini"
 upsert "$WEB_SERVICE_NAME" DATA_DIR "/app/data"
 
-echo "==> Railway production vars synced"
+echo "==> Railway production vars synced from local profile"

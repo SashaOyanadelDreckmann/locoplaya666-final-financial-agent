@@ -53,12 +53,18 @@ Root directory: repo root. Dockerfile: `Dockerfile.api`.
 | `WEB_ORIGIN` | `https://TU-WEB.up.railway.app` |
 | `OPENAI_API_KEY` | `<secret>` |
 | `OPENAI_MODEL` | `gpt-5.2` |
-| `OPENAI_VISION_MODEL` | `gpt-5.2` |
-| `TRANSACTIONS_RECONCILE_MODEL` | `gpt-5.2` |
-| `TRANSACTIONS_SUMMARY_MODEL` | `gpt-4.1-mini` |
-| `TRANSACTIONS_VISION_DETAIL` | `auto` |
-| `ANTHROPIC_API_KEY` | `<secret>` |
+| `OPENAI_MODEL_FAST` | `gpt-4.1-mini` |
+| `ANTHROPIC_MODEL_FAST` | `claude-haiku-4-5` (core agent: classify + format) |
 | `ANTHROPIC_MODEL` | `claude-sonnet-4-6` |
+| `TRANSACTIONS_VISION_MODEL` | `gpt-4.1-mini` (OCR cartolas, 1ª pasada) |
+| `TRANSACTIONS_VISION_FALLBACK_MODEL` | `gpt-4.1` (retry si OCR incompleto) |
+| `TRANSACTIONS_PROFILE_MODEL` | `gpt-4.1-mini` (cargo/abono, banco) |
+| `TRANSACTIONS_RECONCILE_MODEL` | `gpt-4.1-mini` (income/expense por fila) |
+| `TRANSACTIONS_VISION_DETAIL` | `high` |
+| `TRANSACTIONS_SUMMARY_MODEL` | `gpt-4.1-mini` |
+| `TRANSACTIONS_CHAT_MODEL` | `gpt-4.1-mini` |
+| `BUDGET_CHAT_REACT_ENABLED` | `true` |
+| `ANTHROPIC_API_KEY` | `<secret>` |
 | `SESSION_TOKEN_SECRET` | secret de 32+ caracteres |
 | `SESSION_COOKIE_SAME_SITE` | `none` (web y API en dominios distintos) |
 | `LOG_LEVEL` | `info` |
@@ -113,7 +119,7 @@ Root directory: repo root. Dockerfile: `Dockerfile.web`.
 | `NEXT_PUBLIC_API_ORIGIN` | `https://TU-API.up.railway.app` |
 | `NEXT_PUBLIC_APP_ORIGIN` | `https://TU-WEB.up.railway.app` |
 | `OPENAI_API_KEY` | `<secret>` |
-| `TRANSACTIONS_CHAT_MODEL` | `gpt-4o-mini` |
+| `TRANSACTIONS_CHAT_MODEL` | `gpt-4.1-mini` |
 | `DATA_DIR` | `/app/data` |
 
 ## 4. Volúmenes persistentes

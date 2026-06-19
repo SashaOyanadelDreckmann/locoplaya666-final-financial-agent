@@ -22,8 +22,8 @@ const IMAGE_MIME_BY_EXT: Record<string, string> = {
 };
 const VIDEO_EXTENSIONS = new Set(['.mp4', '.mov', '.webm', '.m4v', '.avi']);
 const MAX_VIDEO_FRAMES = 16;
-const VISION_PRIMARY_MODEL = process.env.TRANSACTIONS_VISION_MODEL?.trim() || 'gpt-5.4-nano';
-const VISION_FALLBACK_MODEL = process.env.TRANSACTIONS_VISION_FALLBACK_MODEL?.trim() || 'gpt-5.4-mini';
+const VISION_PRIMARY_MODEL = process.env.TRANSACTIONS_VISION_MODEL?.trim() || 'gpt-4.1-mini';
+const VISION_FALLBACK_MODEL = process.env.TRANSACTIONS_VISION_FALLBACK_MODEL?.trim() || 'gpt-4.1';
 const VISION_OUTPUT_SCHEMA = {
   type: 'object',
   additionalProperties: false,
@@ -223,7 +223,9 @@ async function runVisionExtractionWithRetry(params: {
     source: params.source,
     sourceType: params.sourceType,
     instructions:
-      'Eres un OCR financiero experto. Extrae solo movimientos reales y tablas útiles. No inventes datos. Devuelve JSON estricto.',
+      'Eres un OCR financiero experto. Extrae solo movimientos reales y tablas útiles. ' +
+      'Preserva columnas cargo/abono, débito/crédito, haber/debe y el signo de cada monto. ' +
+      'No inventes datos. Devuelve JSON estricto.',
     userPrompt: params.userPrompt,
     contents: params.contents,
     model: VISION_PRIMARY_MODEL,
@@ -240,7 +242,8 @@ async function runVisionExtractionWithRetry(params: {
     source: params.source,
     sourceType: params.sourceType,
     instructions:
-      'Eres un OCR financiero senior. Relee con máximo cuidado y completa filas que faltaron. Prioriza fidelidad sobre cobertura. Devuelve JSON estricto.',
+      'Eres un OCR financiero senior. Relee con máximo cuidado y completa filas que faltaron. ' +
+      'Preserva columnas cargo/abono, débito/crédito y signos. Prioriza fidelidad sobre cobertura. Devuelve JSON estricto.',
     userPrompt: `${params.userPrompt}\n\nPrimera pasada insuficiente. Relee con cuidado y recupera filas visibles omitidas.`,
     contents: params.contents.map((item) =>
       item.type === 'input_image' ? { ...item, detail: 'high' as const } : item,
