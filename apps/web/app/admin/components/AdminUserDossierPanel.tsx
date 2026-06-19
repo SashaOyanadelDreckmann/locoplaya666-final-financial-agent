@@ -5,7 +5,6 @@ import {
   approvalBadgeClass,
   approvalLabel,
   compactAdminText,
-  formatAdminDateTime,
   formatAdminNumber,
   formatAdminPercent,
   formatAdminUsd,
@@ -80,12 +79,8 @@ export function AdminUserDossierPanel({ dossier, loading, stage, pendingActionId
               <code className="admin-id-ref">{compactAdminText(user.id, 24)}</code>
             </strong>
           </div>
-          <div className="admin-stat"><span>Alta</span><strong>{formatAdminDateTime(user.createdAt)}</strong></div>
-          <div className="admin-stat"><span>Última actividad</span><strong>{formatAdminDateTime(user.updatedAt)}</strong></div>
-          <div className="admin-stat"><span>Diagnóstico</span><strong>{formatAdminDateTime(user.latestDiagnosticCompletedAt)}</strong></div>
           <div className="admin-stat"><span>Knowledge</span><strong>{formatAdminNumber(user.knowledgeScore)}</strong></div>
           <div className="admin-stat"><span>Base score</span><strong>{formatAdminNumber(user.knowledgeBaseScore)}</strong></div>
-          <div className="admin-stat"><span>Knowledge actualizado</span><strong>{formatAdminDateTime(user.knowledgeLastUpdated)}</strong></div>
           {user.approvedByEmail ? (
             <div className="admin-stat"><span>Aprobado por</span><strong>{user.approvedByEmail}</strong></div>
           ) : null}
@@ -124,7 +119,6 @@ export function AdminUserDossierPanel({ dossier, loading, stage, pendingActionId
             {recentTurns.map((turn) => (
               <div key={turn.id} className="admin-interaction">
                 <div className="admin-interaction-meta">
-                  <span>{formatAdminDateTime(turn.createdAt)}</span>
                   <span>{turn.chatId}</span>
                 </div>
                 <blockquote>{compactAdminText(turn.userMessage, 160)}</blockquote>

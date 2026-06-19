@@ -4,7 +4,6 @@ import type { AdminAuditEntry, AdminCockpitSnapshot } from '@/lib/api/admin';
 import {
   approvalBadgeClass,
   approvalLabel,
-  formatAdminDateTime,
   formatAdminNumber,
   formatAdminPercent,
   formatAdminUsd,
@@ -72,7 +71,6 @@ export function AdminOpsPanel({
                   </div>
                   <span className={approvalBadgeClass('PENDING_APPROVAL')}>{approvalLabel('PENDING_APPROVAL')}</span>
                 </div>
-                <div className="admin-muted admin-table-sub">{formatAdminDateTime(user.createdAt)}</div>
                 <div className="admin-inline-actions">
                   <button
                     type="button"
@@ -137,7 +135,6 @@ export function AdminOpsPanel({
                 <th>Email</th>
                 <th>Rol</th>
                 <th>Estado</th>
-                <th>Alta</th>
               </tr>
             </thead>
             <tbody>
@@ -160,7 +157,6 @@ export function AdminOpsPanel({
                     </select>
                   </td>
                   <td><span className={approvalBadgeClass(user.approvalStatus)}>{approvalLabel(user.approvalStatus)}</span></td>
-                  <td>{formatAdminDateTime(user.createdAt)}</td>
                 </tr>
               ))}
             </tbody>
@@ -178,7 +174,6 @@ export function AdminOpsPanel({
           <table className="admin-table">
             <thead>
               <tr>
-                <th>Cuándo</th>
                 <th>Actor</th>
                 <th>Acción</th>
                 <th>Objetivo</th>
@@ -187,12 +182,11 @@ export function AdminOpsPanel({
             <tbody>
               {auditEntries.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="admin-muted">Sin eventos registrados.</td>
+                  <td colSpan={3} className="admin-muted">Sin eventos registrados.</td>
                 </tr>
               ) : (
                 auditEntries.map((entry) => (
                   <tr key={entry.id}>
-                    <td>{formatAdminDateTime(entry.at)}</td>
                     <td>{entry.actorEmail}</td>
                     <td>{auditActionLabel(entry.action)}</td>
                     <td>{entry.targetUserId ?? '—'}</td>

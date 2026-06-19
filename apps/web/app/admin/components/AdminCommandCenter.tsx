@@ -42,7 +42,6 @@ import {
   compactAdminText,
   downloadJson,
   formatAdminAnonymousId,
-  formatAdminDateTime,
   formatAdminNumber,
   formatAdminPercent,
   formatAdminUsd,
@@ -68,7 +67,7 @@ const TAB_META: Record<AdminTabId, { label: string; icon: string; title: string;
     label: 'Resumen',
     icon: '◆',
     title: 'Radar ejecutivo',
-    subtitle: 'Cohortes, funnel y señales agregadas sin perder el contexto editorial.',
+    subtitle: 'Funnel y señales agregadas de adopción.',
   },
   users: {
     label: 'Usuarios',
@@ -80,7 +79,7 @@ const TAB_META: Record<AdminTabId, { label: string; icon: string; title: string;
     label: 'Actividad',
     icon: '↺',
     title: 'Línea de tiempo operativa',
-    subtitle: 'Interacciones reales con mensajes, herramientas y artefactos generados.',
+    subtitle: 'Interacciones con mensajes, herramientas y artefactos generados.',
   },
   ops: {
     label: 'Ops',
@@ -95,16 +94,6 @@ const TAB_META: Record<AdminTabId, { label: string; icon: string; title: string;
     subtitle: 'Dump completo por usuario: panel, sheets, documentos, perfiles y memoria.',
   },
 };
-
-function toIsoStart(dateInput: string): string | undefined {
-  if (!dateInput) return undefined;
-  return new Date(`${dateInput}T00:00:00.000Z`).toISOString();
-}
-
-function toIsoEnd(dateInput: string): string | undefined {
-  if (!dateInput) return undefined;
-  return new Date(`${dateInput}T23:59:59.999Z`).toISOString();
-}
 
 
 export default function AdminCommandCenter() {
@@ -122,19 +111,11 @@ export default function AdminCommandCenter() {
   const debouncedSearch = useDebouncedValue(search, 360);
   const [stageFilter, setStageFilter] = useState<ResearchAnalyticsStage | 'all'>('all');
   const [roleFilter, setRoleFilter] = useState<'' | AnalyticsRole>('');
-  const [fromDate, setFromDate] = useState('');
-  const [toDate, setToDate] = useState('');
 
   const [research, setResearch] = useState<ResearchAnalyticsReport | null>(null);
   const [cockpit, setCockpit] = useState<AdminCockpitSnapshot | null>(null);
   const [users, setUsers] = useState<AnalyticsUser[]>([]);
   const [usersTotal, setUsersTotal] = useState(0);
-  const [usersSummary, setUsersSummary] = useState<{
-    totalUsers: number;
-    totalInteractions: number;
-    activeUsers7d: number;
-    activeUsers30d: number;
-  } | null>(null);
 
   const [interactions, setInteractions] = useState<AnalyticsInteraction[]>([]);
   const [interactionsTotal, setInteractionsTotal] = useState(0);
@@ -158,14 +139,6 @@ export default function AdminCommandCenter() {
   const [loadingArchive, setLoadingArchive] = useState(false);
   const [loadingUserDetail, setLoadingUserDetail] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const apiDateFilters = useMemo(
-    () => ({
-      from: toIsoStart(fromDate),
-      to: toIsoEnd(toDate),
-    }),
-    [fromDate, toDate],
-  );
 
   const setTab = useCallback(
     (tab: AdminTabId) => {
@@ -226,7 +199,6 @@ export default function AdminCommandCenter() {
     const payload = await fetchAnalyticsUsers({
       search: debouncedSearch.trim() || undefined,
       role: roleFilter || undefined,
-      ...apiDateFilters,
       limit: 200,
       offset: 0,
       sortBy: 'interactions',
@@ -234,21 +206,19 @@ export default function AdminCommandCenter() {
     });
     setUsers(payload.users);
     setUsersTotal(payload.pagination.total);
-    setUsersSummary(payload.summary);
     setSelectedUserId((prev) => prev || payload.users[0]?.id || '');
-  }, [apiDateFilters, debouncedSearch, roleFilter]);
+  }, [debouncedSearch, roleFilter]);
 
   const loadInteractions = useCallback(async () => {
     const payload = await fetchAnalyticsInteractions({
       search: debouncedSearch.trim() || undefined,
       role: roleFilter || undefined,
-      ...apiDateFilters,
       limit: 160,
       offset: 0,
     });
     setInteractions(payload.interactions);
     setInteractionsTotal(payload.pagination.total);
-  }, [apiDateFilters, debouncedSearch, roleFilter]);
+  }, [debouncedSearch, roleFilter]);
 
   const loadArchive = useCallback(async (offset = archiveOffset) => {
     setLoadingArchive(true);
@@ -302,7 +272,7 @@ export default function AdminCommandCenter() {
       void refreshActiveTab();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- debounced search refresh
-  }, [debouncedSearch, roleFilter, fromDate, toDate, stageFilter]);
+  }, [debouncedSearch, roleFilter, stageFilter]);
 
   useEffect(() => {
     if (!isAllowed || activeTab !== 'archive' || !archiveUserId) return;
@@ -331,7 +301,6 @@ export default function AdminCommandCenter() {
       try {
         const [activityPayload, dossierPayload] = await Promise.all([
           fetchAnalyticsUserActivity(selectedUserId, {
-            ...apiDateFilters,
             limit: 80,
             offset: 0,
           }),
@@ -356,7 +325,7 @@ export default function AdminCommandCenter() {
     return () => {
       mounted = false;
     };
-  }, [activeTab, apiDateFilters, selectedUserId]);
+  }, [activeTab, selectedUserId]);
 
   const researchUsers = useMemo(() => {
     const list = research?.users ?? [];
@@ -364,7 +333,7 @@ export default function AdminCommandCenter() {
     return list.filter((user) => {
       if (stageFilter !== 'all' && user.stage !== stageFilter) return false;
       if (!query) return true;
-      return `${user.pseudonymId} ${user.stage} ${user.role} ${user.createdAtMonth}`
+      return `${user.pseudonymId} ${user.stage} ${user.role}`
         .toLowerCase()
         .includes(query);
     });
@@ -475,7 +444,6 @@ export default function AdminCommandCenter() {
             <div className="admin-meta-card">
               <strong>{sessionInfo?.name ?? 'Administrador'}</strong>
               <span>{sessionInfo?.email ?? 'ADMIN'}</span>
-              <span>Actualizado: {research?.generatedAt ? formatAdminDateTime(research.generatedAt) : '—'}</span>
             </div>
             <Link href="/agent" className="admin-btn admin-btn--ghost">
               Ir al agente
@@ -505,17 +473,12 @@ export default function AdminCommandCenter() {
           </header>
 
           <AdminFilterBar
-            showRoleDates={activeTab === 'users' || activeTab === 'activity'}
+            showRole={activeTab === 'users' || activeTab === 'activity'}
             showStage={activeTab === 'overview'}
             roleFilter={roleFilter}
             stageFilter={stageFilter}
-            fromDate={fromDate}
-            toDate={toDate}
             onRoleChange={setRoleFilter}
             onStageChange={setStageFilter}
-            onFromDateChange={setFromDate}
-            onToDateChange={setToDate}
-            onApply={refreshActiveTab}
           />
 
           {error ? <p className="admin-error">{error}</p> : null}
@@ -535,8 +498,6 @@ export default function AdminCommandCenter() {
             <>
               <section className="admin-kpi-grid">
                 <article className="admin-kpi"><span>Usuarios</span><strong>{formatAdminNumber(researchSummary?.totalUsers ?? 0)}</strong></article>
-                <article className="admin-kpi"><span>Activos 7d</span><strong>{formatAdminNumber(researchSummary?.activeUsers7d ?? 0)}</strong></article>
-                <article className="admin-kpi"><span>Activos 30d</span><strong>{formatAdminNumber(researchSummary?.activeUsers30d ?? 0)}</strong></article>
                 <article className="admin-kpi"><span>Progreso medio</span><strong>{formatAdminPercent(researchSummary?.avgProgressScore ?? 0)}</strong></article>
                 <article className="admin-kpi"><span>Intake</span><strong>{formatAdminPercent(researchSummary?.intakeCompletionRate ?? 0)}</strong></article>
                 <article className="admin-kpi"><span>Documentos</span><strong>{formatAdminPercent(researchSummary?.documentAdoptionRate ?? 0)}</strong></article>
@@ -566,62 +527,31 @@ export default function AdminCommandCenter() {
                 </article>
               ) : null}
 
-              <div className="admin-grid-2">
-                <article className="admin-card">
-                  <div className="admin-card-head">
-                    <div>
-                      <h2 className="admin-card-title">Funnel de journey</h2>
-                      <p className="admin-card-sub">Distribución por stage con lectura rápida.</p>
-                    </div>
+              <article className="admin-card">
+                <div className="admin-card-head">
+                  <div>
+                    <h2 className="admin-card-title">Funnel de journey</h2>
+                    <p className="admin-card-sub">Distribución por stage con lectura rápida.</p>
                   </div>
-                  <div className="admin-list admin-list--relaxed">
-                    {stageOrder.map((stage) => {
-                      const count = researchSummary?.stageCounts?.[stage] ?? 0;
-                      const max = Math.max(1, researchSummary?.totalUsers ?? 1);
-                      return (
-                        <div key={stage} className="admin-funnel-row">
-                          <div className="admin-funnel-head">
-                            <span>{stageLabels[stage]}</span>
-                            <strong>{formatAdminNumber(count)}</strong>
-                          </div>
-                          <div className="admin-funnel-track">
-                            <div className="admin-funnel-fill" style={{ width: `${Math.max(4, Math.round((count / max) * 100))}%` }} />
-                          </div>
+                </div>
+                <div className="admin-list admin-list--relaxed">
+                  {stageOrder.map((stage) => {
+                    const count = researchSummary?.stageCounts?.[stage] ?? 0;
+                    const max = Math.max(1, researchSummary?.totalUsers ?? 1);
+                    return (
+                      <div key={stage} className="admin-funnel-row">
+                        <div className="admin-funnel-head">
+                          <span>{stageLabels[stage]}</span>
+                          <strong>{formatAdminNumber(count)}</strong>
                         </div>
-                      );
-                    })}
-                  </div>
-                </article>
-
-                <article className="admin-card">
-                  <h2 className="admin-card-title">Cohortes mensuales</h2>
-                  <p className="admin-card-sub">Alta, actividad y progreso por mes.</p>
-                  <div className="admin-table-wrap">
-                    <table className="admin-table">
-                      <thead>
-                        <tr>
-                          <th>Mes</th>
-                          <th>Usuarios</th>
-                          <th>7d</th>
-                          <th>30d</th>
-                          <th>Progreso</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {(research?.cohorts ?? []).map((cohort) => (
-                          <tr key={cohort.month}>
-                            <td>{cohort.month}</td>
-                            <td>{formatAdminNumber(cohort.users)}</td>
-                            <td>{formatAdminNumber(cohort.active7d)}</td>
-                            <td>{formatAdminNumber(cohort.active30d)}</td>
-                            <td>{formatAdminPercent(cohort.avgProgressScore)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </article>
-              </div>
+                        <div className="admin-funnel-track">
+                          <div className="admin-funnel-fill" style={{ width: `${Math.max(4, Math.round((count / max) * 100))}%` }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </article>
 
               <div style={{ marginTop: 16 }}>
                 <AdminSplitPane
@@ -649,7 +579,7 @@ export default function AdminCommandCenter() {
                                 <div>
                                   <strong>{user.pseudonymId}</strong>
                                   <div className="admin-muted" style={{ fontSize: 12 }}>
-                                    {stageLabels[user.stage]} • {user.createdAtMonth}
+                                    {stageLabels[user.stage]}
                                   </div>
                                 </div>
                                 <span className={`admin-score admin-score--${tone}`}>{formatAdminPercent(user.progressScore)}</span>
@@ -673,7 +603,6 @@ export default function AdminCommandCenter() {
                           <div className="admin-stat"><span>Docs</span><strong>{formatAdminNumber(selectedResearchUser.documentsCount)}</strong></div>
                           <div className="admin-stat"><span>Tools</span><strong>{formatAdminNumber(selectedResearchUser.toolsUsedCount)}</strong></div>
                           <div className="admin-stat"><span>Knowledge</span><strong>{formatAdminNumber(selectedResearchUser.knowledgeScore)}</strong></div>
-                          <div className="admin-stat"><span>Última actividad</span><strong>{selectedResearchUser.lastActivityBucket}</strong></div>
                           <div className="admin-tags" style={{ gridColumn: '1 / -1' }}>
                             {selectedResearchUser.modesUsed.map((mode) => (
                               <span key={mode} className="admin-tag">{mode}</span>
@@ -699,10 +628,6 @@ export default function AdminCommandCenter() {
                   <div className="admin-card-head">
                     <div>
                       <h2 className="admin-card-title">Usuarios ({formatAdminNumber(usersTotal)})</h2>
-                      <p className="admin-card-sub">
-                        Activos 7d: {formatAdminNumber(usersSummary?.activeUsers7d ?? 0)} • 30d:{' '}
-                        {formatAdminNumber(usersSummary?.activeUsers30d ?? 0)}
-                      </p>
                     </div>
                     <button
                       type="button"
@@ -711,7 +636,6 @@ export default function AdminCommandCenter() {
                         downloadAnalyticsUsersCsv({
                           search: debouncedSearch.trim() || undefined,
                           role: roleFilter || undefined,
-                          ...apiDateFilters,
                         })
                       }
                     >
@@ -727,7 +651,6 @@ export default function AdminCommandCenter() {
                           <th>Stage</th>
                           <th>Interacc.</th>
                           <th>Fincoin</th>
-                          <th>Actividad</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -747,7 +670,6 @@ export default function AdminCommandCenter() {
                             <td>{stageLabels[user.stage]}</td>
                             <td>{formatAdminNumber(user.interactionsCount)}</td>
                             <td>{user.fincoinDepleted ? 'Agotado' : formatAdminUsd(user.fincoinRemainingUsd)}</td>
-                            <td>{formatAdminDateTime(user.lastActivityAt)}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -771,7 +693,6 @@ export default function AdminCommandCenter() {
                         {selectedUserInteractions.map((item) => (
                           <div key={item.interactionId} className="admin-interaction">
                             <div className="admin-interaction-meta">
-                              <span>{formatAdminDateTime(item.timestamp)}</span>
                               <span>{item.mode ?? 'sin modo'}</span>
                               <span>{item.chatId}</span>
                             </div>
@@ -812,7 +733,6 @@ export default function AdminCommandCenter() {
                     downloadAnalyticsInteractionsCsv({
                       search: debouncedSearch.trim() || undefined,
                       role: roleFilter || undefined,
-                      ...apiDateFilters,
                     })
                   }
                 >
@@ -824,7 +744,6 @@ export default function AdminCommandCenter() {
                   <div key={item.interactionId} className="admin-interaction">
                     <div className="admin-interaction-meta">
                       <strong>{formatAdminAnonymousId(item.userId)}</strong>
-                      <span>{formatAdminDateTime(item.timestamp)}</span>
                       <span>{item.mode ?? 'sin modo'}</span>
                     </div>
                     <div className="admin-tags">
@@ -883,8 +802,7 @@ export default function AdminCommandCenter() {
                             <span className={roleBadgeClass(user.role)}>{user.role}</span>
                           </div>
                           <div className="admin-muted admin-table-sub">
-                            {formatAdminNumber(user.documentsCount)} docs • {formatAdminNumber(user.profilesCount)} perfiles •{' '}
-                            {formatAdminDateTime(user.updatedAt)}
+                            {formatAdminNumber(user.documentsCount)} docs • {formatAdminNumber(user.profilesCount)} perfiles
                           </div>
                         </button>
                       ))}
@@ -937,13 +855,9 @@ export default function AdminCommandCenter() {
                         sections={[
                           { id: 'meta', label: 'Meta', value: {
                             id: archiveUser.id,
-                            createdAt: archiveUser.createdAt,
-                            updatedAt: archiveUser.updatedAt,
                             latestDiagnosticProfileId: archiveUser.latestDiagnosticProfileId,
-                            latestDiagnosticCompletedAt: archiveUser.latestDiagnosticCompletedAt,
                             knowledgeScore: archiveUser.knowledgeScore,
                             usdSpentTotal: archiveUser.usdSpentTotal,
-                            fincoinDepletedAt: archiveUser.fincoinDepletedAt,
                           }},
                           { id: 'intake', label: 'Intake', value: archiveUser.injectedIntake },
                           { id: 'profile', label: 'Perfil', value: archiveUser.injectedProfile },
