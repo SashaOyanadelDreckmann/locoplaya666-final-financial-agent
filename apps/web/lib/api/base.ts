@@ -140,6 +140,14 @@ export function getDocumentParseRequestUrl(): string {
   return `${getServerApiBaseUrl()}/api/documents/parse`;
 }
 
+/** URL para análisis de adjuntos del chat principal (independiente del modal de transacciones). */
+export function getChatAttachmentAnalyzeUrl(): string {
+  if (typeof window !== 'undefined') {
+    return '/api/chat-attachments/analyze';
+  }
+  return `${getServerApiBaseUrl()}/api/chat-attachments/analyze`;
+}
+
 /**
  * Base URL para llamadas con sesión (cookies httpOnly).
  * En producción usa el proxy same-origin `/backend` para que la cookie

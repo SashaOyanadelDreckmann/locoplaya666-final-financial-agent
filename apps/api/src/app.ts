@@ -12,6 +12,7 @@ import { authRouter } from './routes/auth';
 import agentRouter from './routes/agent';
 import budgetChatRouter from './routes/budget-chat.routes';
 import documentsRouter from './routes/documents';
+import chatAttachmentsRouter from './routes/chat-attachments';
 import { pdfsRouter } from './routes/pdfs.routes';
 import internalRouter from './routes/internal.routes';
 import transactionsChatRouter from './routes/transactions-chat';
@@ -120,6 +121,7 @@ export function createApp() {
   app.use('/api/admin', adminRateLimiter, adminRouter);
   app.use('/api', agentRouter);
   app.use('/api/documents', documentsRateLimiter, documentsRouter);
+  app.use('/api/chat-attachments', documentsRateLimiter, chatAttachmentsRouter);
   app.use('/api/pdfs', pdfsRouter);
   app.use('/internal', internalRouter);
 

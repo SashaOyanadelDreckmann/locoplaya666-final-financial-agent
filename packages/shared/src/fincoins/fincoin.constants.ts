@@ -51,6 +51,7 @@ export type FincoinOperation =
   | 'transcribe'
   | 'voice.realtime'
   | 'document.parse'
+  | 'chat.attach'
   | 'intake.llm'
   | 'welcome.llm'
   | 'conversation.voice';
@@ -62,6 +63,7 @@ export const FINCOIN_OPERATION_COST_USD: Record<FincoinOperation, number> = {
   transcribe: 0.04,
   'voice.realtime': 0.12,
   'document.parse': 0.06,
+  'chat.attach': 0.05,
   'intake.llm': 0.02,
   'welcome.llm': 0.02,
   'conversation.voice': 0.08,

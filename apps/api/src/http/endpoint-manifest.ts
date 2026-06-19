@@ -31,6 +31,7 @@ export const ENDPOINT_MANIFEST: EndpointDefinition[] = [
   { method: 'GET', path: '/api/panel-state', hasSchemaValidation: true, hasTests: false, hasDocs: true, hasObservability: true },
   { method: 'POST', path: '/api/panel-state', hasSchemaValidation: true, hasTests: true, hasDocs: true, hasObservability: true },
   { method: 'POST', path: '/api/documents/parse', hasSchemaValidation: true, hasTests: true, hasDocs: true, hasObservability: true },
+  { method: 'POST', path: '/api/chat-attachments/analyze', hasSchemaValidation: true, hasTests: true, hasDocs: false, hasObservability: true },
   { method: 'POST', path: '/api/documents/resolve', hasSchemaValidation: true, hasTests: true, hasDocs: false, hasObservability: true },
   { method: 'GET', path: '/api/pdfs/serve', hasSchemaValidation: true, hasTests: false, hasDocs: true, hasObservability: true },
   { method: 'DELETE', path: '/api/pdfs/delete', hasSchemaValidation: true, hasTests: true, hasDocs: true, hasObservability: true },

@@ -40,6 +40,7 @@ import {
   loadSheets,
   deletePdfArtifact,
   parseDocuments,
+  analyzeChatAttachments,
   mergeProductsContextToIntake,
 } from '@/lib/api/cliente';
 import { ApiHttpError } from '@/lib/api/envelope';
@@ -179,6 +180,7 @@ import { normalizeUploadFormat } from './modales/transacciones/tx-assistant.help
 import {
   buildChatUploadAgentPrompt,
   buildChatUploadFiles,
+  mapChatAttachmentAnalysisToSummary,
 } from './chat/chat-upload.helpers';
 import { buildPanelSnapshotPayload } from './page.flow';
 import { clearPanelStateBackups, hydratePanelState } from './utilidades/panel-state.service';
@@ -2456,25 +2458,6 @@ export default function AgentPage() {
       ]);
     }
 
-    const evidenceSourceHint = resolveUploadEvidenceSourceHint({
-      uploadFormat: activeBankProduct?.assistant?.uploadFormat ?? null,
-      files: accepted,
-    });
-    const looseTextEvidence =
-      evidenceSourceHint === 'text' ||
-      accepted.every((file) => /\.(txt|md|log)$/i.test(file.name));
-    const topNameHints = {
-      ...(activeBankProduct
-        ? {
-            institutionHint: activeBankProduct.bank,
-            serviceHint: activeBankProduct.label,
-            productTypeHint: activeBankProduct.productType,
-            productLabelHint: activeBankProduct.label,
-          }
-        : {}),
-      evidenceSourceHint,
-      looseTextEvidence,
-    };
     const uploadId = `upload-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const uploadFiles = buildChatUploadFiles(accepted);
     setItemsForActive((prev) => [
@@ -2512,10 +2495,10 @@ export default function AgentPage() {
       return;
     }
 
-    let parsed: { documents?: ParsedUploadDocument[]; transactionAnalysis?: unknown } | null = null;
+    let parsed: { attachments?: Array<Record<string, unknown>> } | null = null;
     try {
       setDocumentsLoading(true);
-      parsed = await parseDocuments(encodedFiles, topNameHints);
+      parsed = await analyzeChatAttachments(encodedFiles);
     } catch {
       parsed = null;
     } finally {
@@ -2523,8 +2506,8 @@ export default function AgentPage() {
     }
 
     const names = accepted.map((f) => f.name);
-    const parsedDocs = Array.isArray(parsed?.documents) ? parsed.documents : [];
-    if (parsedDocs.length === 0) {
+    const parsedAttachments = Array.isArray(parsed?.attachments) ? parsed.attachments : [];
+    if (parsedAttachments.length === 0) {
       patchUploadItem(uploadId, { status: 'error' });
       setItemsForActive((prev) => [
         ...prev,
@@ -2532,7 +2515,7 @@ export default function AgentPage() {
           type: 'message',
           role: 'assistant',
           content:
-            'No pude procesar esos archivos todavía. Vuelve a intentar y, si persiste, prueba con PDF/Excel/imagen más liviano.',
+            'No pude analizar esos archivos todavía. Vuelve a intentar y, si persiste, prueba con una imagen o PDF más liviano.',
         },
       ]);
       return;
@@ -2540,28 +2523,12 @@ export default function AgentPage() {
 
     patchUploadItem(uploadId, { status: 'ready' });
 
-    const docsSummary = parsedDocs.map((doc) => {
-      const format = String(doc.insight?.format ?? '').toLowerCase() || (doc.name.split('.').pop()?.toLowerCase() ?? 'unknown');
-      const reliability = Number(doc.insight?.reliability ?? 0);
-      const extractedRows = Number(doc.insight?.extracted_rows ?? 0);
-      const keyFindings = Array.isArray(doc.insight?.key_findings) ? doc.insight!.key_findings!.slice(0, 4) : [];
-      return {
-        name: doc.name,
-        format,
-        reliability: Number.isFinite(reliability) ? Number(reliability.toFixed(3)) : undefined,
-        extractedRows: Number.isFinite(extractedRows) ? extractedRows : 0,
-        keyFindings,
-        preview: String(doc.text || '').slice(0, 450),
-      };
-    });
-    const analysisEnvelope =
-      parsed?.transactionAnalysis && typeof parsed.transactionAnalysis === 'object'
-        ? parsed.transactionAnalysis
-        : undefined;
+    const attachmentSummaries = parsedAttachments.map((attachment) =>
+      mapChatAttachmentAnalysisToSummary(attachment),
+    );
     const agentPayload = buildChatUploadAgentPrompt({
       fileNames: names,
-      docsSummary,
-      analysisEnvelope,
+      attachments: attachmentSummaries,
     });
     const dispatched = await onSend(`Analiza los archivos adjuntos (${names.join(', ')})`, {
       agentPayload,

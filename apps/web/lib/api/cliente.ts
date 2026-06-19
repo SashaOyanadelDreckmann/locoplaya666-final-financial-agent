@@ -1,4 +1,4 @@
-import { getApiBaseUrl, getDocumentParseRequestUrl, getSessionApiBaseUrl } from './base';
+import { getApiBaseUrl, getChatAttachmentAnalyzeUrl, getDocumentParseRequestUrl, getSessionApiBaseUrl } from './base';
 import { parseApiResponse } from './envelope';
 import { getCsrfToken } from '@/lib/sesion/csrf';
 import type { SessionApiPayload } from '@/lib/tipos/session';
@@ -165,6 +165,19 @@ export async function fetchLatestDiagnosis() {
   });
 
   return parseApiResponse<Record<string, unknown>>(res);
+}
+
+export async function analyzeChatAttachments(
+  files: Array<{ name: string; base64: string; mimeType?: string }>,
+) {
+  const res = await fetch(getChatAttachmentAnalyzeUrl(), {
+    method: 'POST',
+    headers: withCsrf({ 'Content-Type': 'application/json' }),
+    credentials: 'include',
+    body: JSON.stringify({ files }),
+  });
+
+  return parseApiResponse<any>(res);
 }
 
 export async function parseDocuments(
