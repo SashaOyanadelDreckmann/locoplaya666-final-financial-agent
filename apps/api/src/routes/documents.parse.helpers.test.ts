@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { buildExecutiveSummaryText, shouldReconcileMovements } from './documents.parse.helpers';
+import {
+  buildExecutiveSummaryText,
+  shouldClassifyDirectionsWithVision,
+  shouldReconcileMovements,
+} from './documents.parse.helpers';
 
 describe('documents.parse.helpers', () => {
   it('skips reconcile for high-confidence structured parsers', () => {
@@ -101,6 +105,34 @@ describe('documents.parse.helpers', () => {
     ];
 
     expect(shouldReconcileMovements(documents, movements)).toBe(true);
+  });
+
+  it('requests vision direction classification for photo OCR documents', () => {
+    const documents = [
+      {
+        name: 'movimientos-tarjeta.png',
+        structuredData: {
+          parserMeta: { mode: 'vision_structured', confidence: 0.86 },
+        },
+      },
+    ];
+    const files = [{ name: 'movimientos-tarjeta.png' }];
+
+    expect(shouldClassifyDirectionsWithVision(documents, files)).toBe(true);
+  });
+
+  it('skips vision direction classification for csv exact parsers', () => {
+    const documents = [
+      {
+        name: 'cartola.csv',
+        structuredData: {
+          parserMeta: { mode: 'csv_exact', confidence: 0.99 },
+        },
+      },
+    ];
+    const files = [{ name: 'cartola.csv' }];
+
+    expect(shouldClassifyDirectionsWithVision(documents, files)).toBe(false);
   });
 
   it('builds a richer executive summary without LLM', () => {

@@ -25,8 +25,14 @@ import {
 } from '@financial-agent/shared';
 import {
   buildExecutiveSummaryText,
+  isVisionPhotoDocument,
+  shouldClassifyDirectionsWithVision,
   shouldReconcileMovements,
 } from './documents.parse.helpers';
+import {
+  applyVisionDirectionClassifications,
+  classifyMovementsWithVisionContext,
+} from '../services/movementDirectionVision.service';
 import { publishDocumentParseObservation } from '../context-fabric/context-fabric.publish.service';
 
 const router = Router();
@@ -807,6 +813,90 @@ function buildMovementKey(movement: ParsedMovement): string {
   ].join('|');
 }
 
+function buildMovementMatchKey(movement: ParsedMovement): string {
+  return [
+    movement.date || 'nd',
+    Math.round(movement.amount),
+    normalizeTextToken(movement.description),
+  ].join('|');
+}
+
+function movementsHaveVisionDirectionCoverage(movements: ParsedMovement[]): boolean {
+  if (movements.length === 0) return false;
+  const visionCount = movements.filter((movement) => movement.direction_basis === 'vision_ui_context').length;
+  return visionCount >= Math.min(3, movements.length) && visionCount / movements.length >= 0.55;
+}
+
+async function enrichMovementsWithVisionDirections(
+  documents: ParsedDocumentResponse[],
+  decodedFiles: Array<{ name: string; buffer: Buffer; mimeType?: string }>,
+  movements: ParsedMovement[],
+  productType?: string,
+  institutionHint?: string,
+): Promise<ParsedMovement[]> {
+  if (!shouldClassifyDirectionsWithVision(documents, decodedFiles) || movements.length === 0) {
+    return movements;
+  }
+
+  const filesByName = new Map(decodedFiles.map((file) => [file.name, file]));
+  const overrides = new Map<string, ParsedMovement>();
+
+  for (const doc of documents) {
+    if (!isVisionPhotoDocument(doc)) continue;
+    const file = filesByName.get(doc.name);
+    if (!file) continue;
+
+    const docMovements = extractMovements([doc], productType);
+    if (docMovements.length === 0) continue;
+
+    const structured = (doc.structuredData as {
+      documentProfile?: TransactionDocumentProfile;
+    } | null | undefined) ?? {};
+
+    const visionResult = await classifyMovementsWithVisionContext({
+      filename: doc.name,
+      buffer: file.buffer,
+      mimeType: file.mimeType,
+      productType,
+      institutionHint,
+      ocrText: doc.text,
+      documentProfile: structured.documentProfile,
+      candidates: docMovements.map((movement) => ({
+        date: movement.date,
+        description: movement.description,
+        amount: movement.amount,
+        heuristic_direction: movement.direction,
+        heuristic_kind: movement.movement_kind,
+        amount_token:
+          movement.amount_signed !== undefined ? String(movement.amount_signed) : undefined,
+      })),
+    });
+    if (!visionResult) continue;
+
+    const classified = applyVisionDirectionClassifications(docMovements, visionResult.movements);
+    for (const movement of classified) {
+      if (movement.direction_basis === 'vision_ui_context') {
+        overrides.set(buildMovementMatchKey(movement), movement);
+      }
+    }
+  }
+
+  if (overrides.size === 0) return movements;
+
+  return movements.map((movement) => {
+    const override = overrides.get(buildMovementMatchKey(movement));
+    if (!override) return movement;
+    return {
+      ...movement,
+      direction: override.direction,
+      movement_kind: override.movement_kind,
+      amount_signed: override.amount_signed,
+      direction_basis: override.direction_basis,
+      confidence: override.confidence,
+    };
+  });
+}
+
 function parseMovementFromTableRow(params: {
   headers: string[];
   row: string[];
@@ -1155,6 +1245,34 @@ type TransactionAnalysisHints = {
   evidenceSourceHint?: EvidenceSourceHint;
   looseTextEvidence?: boolean;
 };
+
+function buildDocumentInsights(documents: ParsedDocumentResponse[]) {
+  return documents.map((doc) => {
+    const structured = (doc.structuredData as {
+      rowCount?: unknown;
+      possibleTransactionCount?: unknown;
+      parserMeta?: { confidence?: unknown; mode?: unknown };
+    } | null | undefined) ?? {};
+    const summary = (doc.summary as { detectedSignals?: unknown } | null | undefined) ?? {};
+    const extractedRows = Math.max(0, Number(structured.possibleTransactionCount ?? 0) || 0);
+    const rowCount = Math.max(extractedRows, Number(structured.rowCount ?? 0) || 0);
+    const parserConfidence = Number(structured.parserMeta?.confidence ?? 0) || 0;
+    const baseReliability = rowCount > 0 ? Math.min(0.99, Math.max(0.28, extractedRows / rowCount + 0.25)) : 0.35;
+    const reliability = parserConfidence > 0
+      ? Math.min(0.99, Math.max(baseReliability, parserConfidence))
+      : baseReliability;
+    return {
+      name: doc.name,
+      format: doc.name.split('.').pop()?.toLowerCase() || undefined,
+      reliability: Number(reliability.toFixed(4)),
+      extracted_rows: extractedRows,
+      key_findings: Array.isArray(summary.detectedSignals)
+        ? summary.detectedSignals.slice(0, 3).map((signal) => String(signal))
+        : [],
+      row_count: rowCount,
+    };
+  });
+}
 
 function collectParserSignals(documents: ParsedDocumentResponse[]) {
   return documents.map((doc) => {
@@ -1753,40 +1871,31 @@ router.post(
       normalizeMovementProductType(body.serviceHint) ||
       normalizeMovementProductType(body.productLabelHint) ||
       'checking_account';
-    const shouldReconcile = shouldReconcileMovements(documents, heuristicAnalysis.movements ?? []);
+    const heuristicMovements = heuristicAnalysis.movements ?? [];
+    const visionEnrichedMovements = await enrichMovementsWithVisionDirections(
+      documents,
+      decodedFiles,
+      heuristicMovements,
+      productTypeForAnalysis,
+      body.institutionHint,
+    );
+    const visionDirectionApplied = movementsHaveVisionDirectionCoverage(visionEnrichedMovements);
+    const shouldReconcile =
+      !visionDirectionApplied &&
+      shouldReconcileMovements(documents, visionEnrichedMovements);
     const reconciledMovements = shouldReconcile
-      ? await reconcileMovementsWithLLM(documents, heuristicAnalysis.movements ?? [], productTypeForAnalysis)
+      ? await reconcileMovementsWithLLM(documents, visionEnrichedMovements, productTypeForAnalysis)
       : null;
-    const transactionAnalysis = reconciledMovements
+    const resolvedMovements = reconciledMovements ?? visionEnrichedMovements;
+    const hasEnhancedMovements =
+      Boolean(reconciledMovements) ||
+      visionEnrichedMovements.some((movement) => movement.direction_basis === 'vision_ui_context');
+    const transactionAnalysis = hasEnhancedMovements
       ? buildTransactionAnalysisFromMovements(
           documents,
           analysisHints,
-          documents.map((doc) => {
-            const structured = (doc.structuredData as {
-              rowCount?: unknown;
-              possibleTransactionCount?: unknown;
-              parserMeta?: { confidence?: unknown; mode?: unknown };
-            } | null | undefined) ?? {};
-            const summary = (doc.summary as { detectedSignals?: unknown } | null | undefined) ?? {};
-            const extractedRows = Math.max(0, Number(structured.possibleTransactionCount ?? 0) || 0);
-            const rowCount = Math.max(extractedRows, Number(structured.rowCount ?? 0) || 0);
-            const parserConfidence = Number(structured.parserMeta?.confidence ?? 0) || 0;
-            const baseReliability = rowCount > 0 ? Math.min(0.99, Math.max(0.28, extractedRows / rowCount + 0.25)) : 0.35;
-            const reliability = parserConfidence > 0
-              ? Math.min(0.99, Math.max(baseReliability, parserConfidence))
-              : baseReliability;
-            return {
-              name: doc.name,
-              format: doc.name.split('.').pop()?.toLowerCase() || undefined,
-              reliability: Number(reliability.toFixed(4)),
-              extracted_rows: extractedRows,
-              key_findings: Array.isArray(summary.detectedSignals)
-                ? summary.detectedSignals.slice(0, 3).map((signal) => String(signal))
-                : [],
-              row_count: rowCount,
-            };
-          }),
-          reconciledMovements,
+          buildDocumentInsights(documents),
+          resolvedMovements,
           productTypeForAnalysis,
         )
       : heuristicAnalysis;

@@ -56,6 +56,35 @@ function movementsLookOneSided(movements: ParsedMovementLike[]): boolean {
   return directions.size === 1;
 }
 
+const IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif']);
+
+export function isVisionPhotoDocument(doc: { name?: string; structuredData?: unknown }): boolean {
+  const name = String(doc.name ?? '').toLowerCase();
+  const ext = name.includes('.') ? name.slice(name.lastIndexOf('.')) : '';
+  if (!IMAGE_EXTENSIONS.has(ext)) return false;
+  const mode = String(
+    (doc.structuredData as StructuredDoc | null | undefined)?.parserMeta?.mode ?? '',
+  ).toLowerCase();
+  return mode.includes('vision');
+}
+
+export function shouldClassifyDirectionsWithVision(
+  documents: Array<{ name?: string; structuredData?: unknown }>,
+  files: Array<{ name: string }>,
+): boolean {
+  const imageNames = new Set(
+    files
+      .filter((file) => {
+        const ext = file.name.toLowerCase().slice(file.name.lastIndexOf('.'));
+        return IMAGE_EXTENSIONS.has(ext);
+      })
+      .map((file) => file.name),
+  );
+  if (imageNames.size === 0) return false;
+
+  return documents.some((doc) => isVisionPhotoDocument(doc) && imageNames.has(String(doc.name ?? '')));
+}
+
 export function shouldReconcileMovements(
   documents: Array<{ structuredData?: unknown }>,
   heuristicMovements: ParsedMovementLike[],
