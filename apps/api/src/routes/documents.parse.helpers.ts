@@ -13,6 +13,12 @@ type StructuredDoc = {
     format_family?: string;
     bank?: string;
     needs_rag?: boolean;
+    product_type?: string;
+  };
+  evidenceKind?: {
+    evidence_kind?: string;
+    confidence?: number;
+    uses_movement_pipeline?: boolean;
   };
 };
 
@@ -71,6 +77,7 @@ export function isVisionPhotoDocument(doc: { name?: string; structuredData?: unk
 export function shouldClassifyDirectionsWithVision(
   documents: Array<{ name?: string; structuredData?: unknown }>,
   files: Array<{ name: string }>,
+  evidenceKindByDoc?: Map<string, { evidence_kind?: string; uses_movement_pipeline?: boolean; confidence?: number }>,
 ): boolean {
   const imageNames = new Set(
     files
@@ -82,13 +89,37 @@ export function shouldClassifyDirectionsWithVision(
   );
   if (imageNames.size === 0) return false;
 
-  return documents.some((doc) => isVisionPhotoDocument(doc) && imageNames.has(String(doc.name ?? '')));
+  return documents.some((doc) => {
+    if (!isVisionPhotoDocument(doc) || !imageNames.has(String(doc.name ?? ''))) return false;
+    const evidence = evidenceKindByDoc?.get(String(doc.name ?? ''));
+    if (!evidence) return true;
+    if (evidence.uses_movement_pipeline === false && Number(evidence.confidence ?? 0) >= 0.68) {
+      return false;
+    }
+    return evidence.evidence_kind === 'banking_movements' || evidence.uses_movement_pipeline !== false;
+  });
+}
+
+function documentsUseBankingMovementPipeline(
+  documents: Array<{ name?: string; structuredData?: unknown }>,
+  evidenceKindByDoc?: Map<string, { uses_movement_pipeline?: boolean; confidence?: number }>,
+): boolean {
+  if (!evidenceKindByDoc || evidenceKindByDoc.size === 0) return true;
+  return documents.some((doc) => {
+    const evidence = evidenceKindByDoc.get(String(doc.name ?? ''));
+    if (!evidence) return true;
+    return evidence.uses_movement_pipeline !== false || Number(evidence.confidence ?? 0) < 0.68;
+  });
 }
 
 export function shouldReconcileMovements(
-  documents: Array<{ structuredData?: unknown }>,
+  documents: Array<{ name?: string; structuredData?: unknown }>,
   heuristicMovements: ParsedMovementLike[],
+  evidenceKindByDoc?: Map<string, { uses_movement_pipeline?: boolean; confidence?: number }>,
 ): boolean {
+  if (!documentsUseBankingMovementPipeline(documents, evidenceKindByDoc)) {
+    return false;
+  }
   if (heuristicMovements.length > 400) return false;
 
   const tableMovements = heuristicMovements.filter((movement) => movement.source_kind === 'table').length;

@@ -135,6 +135,43 @@ describe('documents.parse.helpers', () => {
     expect(shouldClassifyDirectionsWithVision(documents, files)).toBe(false);
   });
 
+  it('skips vision direction when evidence kind is insurance', () => {
+    const documents = [
+      {
+        name: 'poliza.png',
+        structuredData: {
+          parserMeta: { mode: 'vision_structured', confidence: 0.84 },
+        },
+      },
+    ];
+    const files = [{ name: 'poliza.png' }];
+    const evidenceKindByDoc = new Map([
+      [
+        'poliza.png',
+        {
+          evidence_kind: 'insurance',
+          uses_movement_pipeline: false,
+          confidence: 0.9,
+        },
+      ],
+    ]);
+
+    expect(shouldClassifyDirectionsWithVision(documents, files, evidenceKindByDoc)).toBe(false);
+  });
+
+  it('skips reconcile for non-banking evidence documents', () => {
+    const documents = [{ name: 'poliza.png', structuredData: { parserMeta: { mode: 'vision_structured' } } }];
+    const evidenceKindByDoc = new Map([
+      ['poliza.png', { uses_movement_pipeline: false, confidence: 0.88 }],
+    ]);
+    const movements = Array.from({ length: 4 }, () => ({
+      source_kind: 'table' as const,
+      direction: 'expense' as const,
+    }));
+
+    expect(shouldReconcileMovements(documents, movements, evidenceKindByDoc)).toBe(false);
+  });
+
   it('builds a richer executive summary without LLM', () => {
     const summary = buildExecutiveSummaryText({
       movementCount: 42,

@@ -33,6 +33,14 @@ import {
   applyVisionDirectionClassifications,
   classifyMovementsWithVisionContext,
 } from '../services/movementDirectionVision.service';
+import {
+  buildQualitativeExecutiveSummary,
+  resolveAggregateEvidenceKind,
+  resolveDocumentEvidenceKind,
+  shouldSuppressMovementLedger,
+  usesBankingMovementPipeline,
+  type EvidenceKindResult,
+} from '../services/documentEvidenceKind.service';
 import { publishDocumentParseObservation } from '../context-fabric/context-fabric.publish.service';
 
 const router = Router();
@@ -833,8 +841,12 @@ async function enrichMovementsWithVisionDirections(
   movements: ParsedMovement[],
   productType?: string,
   institutionHint?: string,
+  evidenceKindByDoc?: Map<string, EvidenceKindResult>,
 ): Promise<ParsedMovement[]> {
-  if (!shouldClassifyDirectionsWithVision(documents, decodedFiles) || movements.length === 0) {
+  if (
+    !shouldClassifyDirectionsWithVision(documents, decodedFiles, evidenceKindByDoc) ||
+    movements.length === 0
+  ) {
     return movements;
   }
 
@@ -843,6 +855,14 @@ async function enrichMovementsWithVisionDirections(
 
   for (const doc of documents) {
     if (!isVisionPhotoDocument(doc)) continue;
+    const evidence = evidenceKindByDoc?.get(doc.name);
+    if (
+      evidence &&
+      !usesBankingMovementPipeline(evidence.evidence_kind) &&
+      evidence.confidence >= 0.68
+    ) {
+      continue;
+    }
     const file = filesByName.get(doc.name);
     if (!file) continue;
 
@@ -895,6 +915,155 @@ async function enrichMovementsWithVisionDirections(
       confidence: override.confidence,
     };
   });
+}
+
+async function resolveEvidenceKindsForParseBatch(
+  documents: ParsedDocumentResponse[],
+  decodedFiles: Array<{ name: string; buffer: Buffer; mimeType?: string }>,
+  hints: TransactionAnalysisHints,
+): Promise<Map<string, EvidenceKindResult>> {
+  const filesByName = new Map(decodedFiles.map((file) => [file.name, file]));
+  const entries = await mapWithConcurrency(
+    documents,
+    Number(process.env.DOCUMENT_EVIDENCE_KIND_CONCURRENCY || '2') || 2,
+    async (doc) => {
+      const structured = (doc.structuredData as {
+        documentProfile?: TransactionDocumentProfile;
+      } | null | undefined) ?? {};
+      const file = filesByName.get(doc.name);
+      const result = await resolveDocumentEvidenceKind({
+        filename: doc.name,
+        text: doc.text,
+        buffer: file?.buffer,
+        mimeType: file?.mimeType,
+        isVisionPhoto: isVisionPhotoDocument(doc),
+        productTypeHint: hints.productTypeHint,
+        productLabelHint: hints.productLabelHint,
+        institutionHint: hints.institutionHint,
+        documentProfile: structured.documentProfile,
+      });
+      return [doc.name, result] as const;
+    },
+  );
+  return new Map(entries);
+}
+
+function applyEvidenceKindToMovements(
+  movements: ParsedMovement[],
+  documents: ParsedDocumentResponse[],
+  evidenceKindByDoc: Map<string, EvidenceKindResult>,
+): ParsedMovement[] {
+  if (evidenceKindByDoc.size === 0) return movements;
+
+  if (documents.length === 1) {
+    const onlyDoc = documents[0];
+    const evidence = evidenceKindByDoc.get(onlyDoc.name);
+    if (evidence && shouldSuppressMovementLedger(evidence.evidence_kind, evidence.confidence)) {
+      return [];
+    }
+  }
+
+  const allLedgerSuppressed = Array.from(evidenceKindByDoc.values()).every((evidence) =>
+    shouldSuppressMovementLedger(evidence.evidence_kind, evidence.confidence),
+  );
+  if (allLedgerSuppressed) return [];
+
+  return movements;
+}
+
+function batchUsesBankingMovementPipeline(
+  documents: ParsedDocumentResponse[],
+  evidenceKindByDoc: Map<string, EvidenceKindResult>,
+): boolean {
+  if (evidenceKindByDoc.size === 0) return true;
+  return documents.some((doc) => {
+    const evidence = evidenceKindByDoc.get(doc.name);
+    if (!evidence) return true;
+    return usesBankingMovementPipeline(evidence.evidence_kind) && evidence.confidence >= 0.68;
+  });
+}
+
+function applyEvidenceKindToAnalysis(
+  analysis: ReturnType<typeof buildTransactionAnalysisFromMovements>,
+  documents: ParsedDocumentResponse[],
+  evidenceKindByDoc: Map<string, EvidenceKindResult>,
+  hints: TransactionAnalysisHints,
+) {
+  if (evidenceKindByDoc.size === 0) return analysis;
+
+  const evidenceResults = Array.from(evidenceKindByDoc.values());
+  const aggregateKind = resolveAggregateEvidenceKind(evidenceKindByDoc);
+  const usesBankingPipeline = batchUsesBankingMovementPipeline(documents, evidenceKindByDoc);
+  const filteredMovements = applyEvidenceKindToMovements(
+    (analysis.movements ?? []) as ParsedMovement[],
+    documents,
+    evidenceKindByDoc,
+  );
+  const qualitativeCandidates = evidenceResults.filter(
+    (result) =>
+      result.evidence_kind !== 'banking_movements' ||
+      result.summary_blocks.length > 0 ||
+      result.highlights.length > 0,
+  );
+  const maxConfidence = Math.max(...evidenceResults.map((result) => result.confidence));
+  const highlights = evidenceResults.flatMap((result) => result.highlights).slice(0, 8);
+  const productLabelHint = hints.productLabelHint?.trim() || analysis.product_profile?.product_label;
+
+  const profile = analysis.product_profile ?? {};
+  const nextProfile = {
+    ...profile,
+    evidence_document_kind: aggregateKind,
+    evidence_kind_confidence: Number(maxConfidence.toFixed(4)),
+    evidence_highlights: highlights,
+  };
+
+  if (!usesBankingPipeline && qualitativeCandidates.length > 0) {
+    nextProfile.executive_summary = buildQualitativeExecutiveSummary(
+      qualitativeCandidates,
+      productLabelHint,
+    );
+    nextProfile.evidence_fidelity = 'indicative';
+    nextProfile.evidence_fidelity_reason =
+      'Antecedente no bancario: resumen cualitativo; no usar totales de ingresos/egresos como balance contable.';
+    nextProfile.key_metrics = {
+      ...(profile.key_metrics ?? {}),
+      inflows_total: 0,
+      abonos_total: 0,
+      outflows_total: 0,
+      net_flow: 0,
+      movement_count: filteredMovements.length,
+      expense_to_income_ratio: undefined,
+    };
+    nextProfile.alerts = [
+      'Este antecedente no es una cartola: los montos visibles son contexto, no un flujo contable cerrado.',
+      ...(Array.isArray(profile.alerts) ? profile.alerts : []),
+    ].slice(0, 4);
+  } else if (qualitativeCandidates.some((result) => result.summary_blocks.length > 0)) {
+    const qualitativeSummary = buildQualitativeExecutiveSummary(qualitativeCandidates, productLabelHint);
+    if (qualitativeSummary.trim().length > 0) {
+      nextProfile.executive_summary = [profile.executive_summary, qualitativeSummary]
+        .filter(Boolean)
+        .join('\n\n');
+    }
+  }
+
+  return {
+    ...analysis,
+    product_profile: nextProfile,
+    movements: filteredMovements.map((movement) => ({
+      date: movement.date,
+      description: movement.description,
+      amount: Math.round(movement.amount),
+      direction: movement.direction,
+      movement_kind: movement.movement_kind,
+      source_line: movement.source_line,
+      category: movement.category,
+      merchant: movement.merchant,
+      category_confidence: movement.category_confidence,
+      confidence: movement.confidence,
+      source_kind: movement.source_kind,
+    })),
+  };
 }
 
 function parseMovementFromTableRow(params: {
@@ -1865,6 +2034,11 @@ router.post(
       looseTextEvidence: body.looseTextEvidence,
     };
     const heuristicAnalysis = buildTransactionAnalysis(documents, analysisHints);
+    const evidenceKindByDoc = await resolveEvidenceKindsForParseBatch(
+      documents,
+      decodedFiles,
+      analysisHints,
+    );
     const productTypeForAnalysis =
       normalizeMovementProductType(heuristicAnalysis.product_profile?.product_type) ||
       normalizeMovementProductType(body.productTypeHint) ||
@@ -1878,19 +2052,29 @@ router.post(
       heuristicMovements,
       productTypeForAnalysis,
       body.institutionHint,
+      evidenceKindByDoc,
     );
-    const visionDirectionApplied = movementsHaveVisionDirectionCoverage(visionEnrichedMovements);
+    const ledgerFilteredMovements = applyEvidenceKindToMovements(
+      visionEnrichedMovements,
+      documents,
+      evidenceKindByDoc,
+    );
+    const visionDirectionApplied = movementsHaveVisionDirectionCoverage(ledgerFilteredMovements);
     const shouldReconcile =
       !visionDirectionApplied &&
-      shouldReconcileMovements(documents, visionEnrichedMovements);
+      shouldReconcileMovements(documents, ledgerFilteredMovements, evidenceKindByDoc);
     const reconciledMovements = shouldReconcile
-      ? await reconcileMovementsWithLLM(documents, visionEnrichedMovements, productTypeForAnalysis)
+      ? await reconcileMovementsWithLLM(documents, ledgerFilteredMovements, productTypeForAnalysis)
       : null;
-    const resolvedMovements = reconciledMovements ?? visionEnrichedMovements;
-    const hasEnhancedMovements =
+    const resolvedMovements = reconciledMovements ?? ledgerFilteredMovements;
+    const needsLedgerRebuild =
+      ledgerFilteredMovements.length !== heuristicMovements.length ||
+      !batchUsesBankingMovementPipeline(documents, evidenceKindByDoc);
+    const shouldRebuildAnalysis =
       Boolean(reconciledMovements) ||
-      visionEnrichedMovements.some((movement) => movement.direction_basis === 'vision_ui_context');
-    const transactionAnalysis = hasEnhancedMovements
+      ledgerFilteredMovements.some((movement) => movement.direction_basis === 'vision_ui_context') ||
+      needsLedgerRebuild;
+    const coreAnalysis = shouldRebuildAnalysis
       ? buildTransactionAnalysisFromMovements(
           documents,
           analysisHints,
@@ -1899,6 +2083,12 @@ router.post(
           productTypeForAnalysis,
         )
       : heuristicAnalysis;
+    const transactionAnalysis = applyEvidenceKindToAnalysis(
+      coreAnalysis,
+      documents,
+      evidenceKindByDoc,
+      analysisHints,
+    );
 
     const parserSignals = collectParserSignals(documents);
     const movementCountForFidelity = Array.isArray(transactionAnalysis.movements)
