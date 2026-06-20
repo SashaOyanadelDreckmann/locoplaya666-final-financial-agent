@@ -47,6 +47,11 @@ upsert "$API_SERVICE_NAME" DATA_DIR "/app/data"
 upsert "$API_SERVICE_NAME" LOG_LEVEL "info"
 upsert "$API_SERVICE_NAME" ENABLE_DEV_INJECTION "false"
 
+# Upload limits — 120 MB raw files; Express JSON headroom for base64
+upsert "$API_SERVICE_NAME" EXPRESS_JSON_LIMIT "170mb"
+upsert "$API_SERVICE_NAME" DOCUMENT_PARSE_MAX_FILE_BYTES "125829120"
+upsert "$API_SERVICE_NAME" DOCUMENT_PARSE_MAX_TOTAL_BYTES "125829120"
+
 # LLM — cartolas: mini primero, gpt-4.1 solo en retry OCR
 upsert "$API_SERVICE_NAME" OPENAI_MODEL "gpt-5.2"
 upsert "$API_SERVICE_NAME" OPENAI_MODEL_FAST "gpt-4.1-mini"

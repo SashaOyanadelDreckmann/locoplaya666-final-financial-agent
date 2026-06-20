@@ -74,9 +74,9 @@ export const TX_CATEGORY_OPTIONS = [
   'Servicios Financieros',
   'Consumo general',
 ] as const;
-export const TX_MAX_SINGLE_FILE_BYTES = 10 * 1024 * 1024;
-/** Must stay aligned with API DOCUMENT_PARSE_MAX_TOTAL_BYTES and Express JSON limit (~70 MB). */
-export const TX_MAX_TOTAL_FILE_BYTES = 50 * 1024 * 1024;
+export const TX_MAX_SINGLE_FILE_BYTES = 120 * 1024 * 1024;
+/** Must stay aligned with API DOCUMENT_PARSE_MAX_TOTAL_BYTES and Express JSON limit (~170 MB). */
+export const TX_MAX_TOTAL_FILE_BYTES = 120 * 1024 * 1024;
 export const PRODUCT_STACK_PALETTE = [
   '#3b5068',
   '#6e2929',

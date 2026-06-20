@@ -69,6 +69,9 @@ Root directory: repo root. Dockerfile: `Dockerfile.api`.
 | `SESSION_COOKIE_SAME_SITE` | `none` (web y API en dominios distintos) |
 | `LOG_LEVEL` | `info` |
 | `DATA_DIR` | `/app/data` |
+| `EXPRESS_JSON_LIMIT` | `170mb` (120 MB raw + base64 en JSON) |
+| `DOCUMENT_PARSE_MAX_FILE_BYTES` | `125829120` (120 MB por archivo) |
+| `DOCUMENT_PARSE_MAX_TOTAL_BYTES` | `125829120` (120 MB por lote) |
 
 **Producción:** no habilitar `ENABLE_DEV_INJECTION`.
 

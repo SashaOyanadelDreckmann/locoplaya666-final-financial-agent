@@ -84,6 +84,7 @@ import {
   KNOWLEDGE_MILESTONE_DEFS,
   MAX_EVIDENCE_FILES_PER_PRODUCT,
   MAX_CHAT_UPLOAD_FILES,
+  CHAT_MAX_TOTAL_FILE_BYTES,
   MAX_TRANSACTION_PRODUCTS,
   MAX_TRANSACTION_PRODUCTS_CREATED_TOTAL,
   MAX_TRANSACTION_EVIDENCE_RESETS,
@@ -2432,13 +2433,13 @@ export default function AgentPage() {
       ]);
       return;
     }
-    if (totalBytes > 35 * 1024 * 1024) {
+    if (totalBytes > CHAT_MAX_TOTAL_FILE_BYTES) {
       setItemsForActive((prev) => [
         ...prev,
         {
           type: 'message',
           role: 'assistant',
-          content: 'La carga supera 35 MB. Divide los archivos y vuelve a intentar.',
+          content: `La carga supera ${Math.round(CHAT_MAX_TOTAL_FILE_BYTES / (1024 * 1024))} MB. Divide los archivos y vuelve a intentar.`,
         },
       ]);
       return;
@@ -3264,6 +3265,17 @@ export default function AgentPage() {
               executive_summary?: string;
               evidence_fidelity?: 'authoritative' | 'indicative';
               evidence_fidelity_reason?: string | null;
+              document_context?: {
+                billing_view?: 'facturado' | 'no_facturado' | 'unknown';
+                card_scope?: 'nacional' | 'internacional' | 'unknown';
+                payment_due_date?: string;
+                billing_cycle_date?: string;
+                minimum_payment?: number;
+                available_credit?: number;
+                notices?: string[];
+                confidence?: number;
+                source?: string;
+              };
             };
             document_insights?: Array<{
               name: string;
@@ -3382,6 +3394,7 @@ export default function AgentPage() {
               summary: profile.executive_summary,
               evidenceFidelity: profile.evidence_fidelity,
               evidenceFidelityReason: profile.evidence_fidelity_reason ?? null,
+              documentContext: profile.document_context,
             }
           : undefined;
 

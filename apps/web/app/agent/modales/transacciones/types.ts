@@ -104,10 +104,23 @@ export type BankProduct = {
       category_confidence?: number;
       confidence?: number;
       source_kind?: 'table' | 'line';
+      billing_status?: 'facturado' | 'no_facturado' | 'unknown';
+      card_scope?: 'nacional' | 'internacional' | 'unknown';
     }>;
     summary?: string;
     evidenceFidelity?: 'authoritative' | 'indicative';
     evidenceFidelityReason?: string | null;
+    documentContext?: {
+      billing_view?: 'facturado' | 'no_facturado' | 'unknown';
+      card_scope?: 'nacional' | 'internacional' | 'unknown';
+      payment_due_date?: string;
+      billing_cycle_date?: string;
+      minimum_payment?: number;
+      available_credit?: number;
+      notices?: string[];
+      confidence?: number;
+      source?: string;
+    };
   };
 };
 

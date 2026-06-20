@@ -41,8 +41,8 @@ dotenv.config();
 export function createApp() {
   const config = getConfig();
   const app = express();
-  // Videos sent as base64 inflate ~1.37x, so 50 MB raw → ~70 MB JSON.
-  const jsonBodyLimit = process.env.EXPRESS_JSON_LIMIT || '70mb';
+  // Base64 inflates ~1.37x, so 120 MB raw → ~170 MB JSON.
+  const jsonBodyLimit = process.env.EXPRESS_JSON_LIMIT || '170mb';
 
   if (config.NODE_ENV === 'production') {
     // Required for secure cookies behind proxies (Heroku/Render/Nginx, etc.)

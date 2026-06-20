@@ -16,7 +16,7 @@ import {
 import { completeStructuredWithSchema } from './llm.service';
 
 export const CHAT_ATTACH_MAX_FILES = 5;
-export const CHAT_ATTACH_MAX_TOTAL_BYTES = 35 * 1024 * 1024;
+export const CHAT_ATTACH_MAX_TOTAL_BYTES = 120 * 1024 * 1024;
 
 export type ChatAttachmentContentKind =
   | 'financial_statement'

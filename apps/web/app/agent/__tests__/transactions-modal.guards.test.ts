@@ -15,7 +15,7 @@ function read(relativePath: string): string {
 
 describe('transactions modal integration guards', () => {
   it('keeps upload limits and evidence reset constants aligned', () => {
-    expect(read('app/agent/modales/transacciones/constants.ts')).toContain('TX_MAX_SINGLE_FILE_BYTES = 10 * 1024 * 1024');
+    expect(read('app/agent/modales/transacciones/constants.ts')).toContain('TX_MAX_SINGLE_FILE_BYTES = 120 * 1024 * 1024');
     expect(read('app/agent/utilidades/agent-page.constants.ts')).toContain('MAX_TRANSACTION_EVIDENCE_RESETS = 3');
     expect(read('app/agent/page.tsx')).toContain('resetTransactionProductEvidence');
     expect(read('app/agent/page.tsx')).toContain('buildEvidenceResetPatch');

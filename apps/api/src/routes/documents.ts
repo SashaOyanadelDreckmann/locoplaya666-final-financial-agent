@@ -41,6 +41,13 @@ import {
   usesBankingMovementPipeline,
   type EvidenceKindResult,
 } from '../services/documentEvidenceKind.service';
+import {
+  applyBillingContextToMovements,
+  buildDocumentContextAlert,
+  mergeDocumentContext,
+  resolveDocumentContext,
+  type TransactionDocumentContext,
+} from '../services/documentContext.service';
 import { publishDocumentParseObservation } from '../context-fabric/context-fabric.publish.service';
 
 const router = Router();
@@ -48,11 +55,11 @@ const router = Router();
 const MAX_PARSE_FILES = Math.max(1, Number.parseInt(process.env.DOCUMENT_PARSE_MAX_FILES || '25', 10) || 25);
 const MAX_FILE_BYTES = Math.max(
   1024,
-  Number.parseInt(process.env.DOCUMENT_PARSE_MAX_FILE_BYTES || `${50 * 1024 * 1024}`, 10) || 50 * 1024 * 1024,
+  Number.parseInt(process.env.DOCUMENT_PARSE_MAX_FILE_BYTES || `${120 * 1024 * 1024}`, 10) || 120 * 1024 * 1024,
 );
 const MAX_TOTAL_BYTES = Math.max(
   MAX_FILE_BYTES,
-  Number.parseInt(process.env.DOCUMENT_PARSE_MAX_TOTAL_BYTES || `${50 * 1024 * 1024}`, 10) || 50 * 1024 * 1024,
+  Number.parseInt(process.env.DOCUMENT_PARSE_MAX_TOTAL_BYTES || `${120 * 1024 * 1024}`, 10) || 120 * 1024 * 1024,
 );
 
 const ParseRequestSchema = z.object({
@@ -107,6 +114,8 @@ type ParsedMovement = {
   category_confidence?: number;
   confidence?: number;
   source_kind?: 'table' | 'line';
+  billing_status?: 'facturado' | 'no_facturado' | 'unknown';
+  card_scope?: 'nacional' | 'internacional' | 'unknown';
 };
 
 type StructuredTableForReconciliation = {
@@ -917,6 +926,46 @@ async function enrichMovementsWithVisionDirections(
   });
 }
 
+function collectMergedDocumentContext(documents: ParsedDocumentResponse[]): TransactionDocumentContext | null {
+  let merged: TransactionDocumentContext | null = null;
+  for (const doc of documents) {
+    const structured = (doc.structuredData as {
+      documentContext?: TransactionDocumentContext;
+      documentProfile?: TransactionDocumentProfile;
+    } | null | undefined) ?? {};
+    const context = resolveDocumentContext({
+      text: doc.text,
+      filename: doc.name,
+      visionContext: structured.documentContext,
+      formatFamily: structured.documentProfile?.format_family,
+    });
+    if (!context) continue;
+    merged = merged ? mergeDocumentContext(merged, context) : context;
+  }
+  return merged;
+}
+
+function applyDocumentContextToMovements(
+  movements: ParsedMovement[],
+  documents: ParsedDocumentResponse[],
+): ParsedMovement[] {
+  if (documents.length === 1) {
+    const structured = (documents[0].structuredData as {
+      documentContext?: TransactionDocumentContext;
+      documentProfile?: TransactionDocumentProfile;
+    } | null | undefined) ?? {};
+    const context = resolveDocumentContext({
+      text: documents[0].text,
+      filename: documents[0].name,
+      visionContext: structured.documentContext,
+      formatFamily: structured.documentProfile?.format_family,
+    });
+    return applyBillingContextToMovements(movements, context);
+  }
+  const merged = collectMergedDocumentContext(documents);
+  return applyBillingContextToMovements(movements, merged);
+}
+
 async function resolveEvidenceKindsForParseBatch(
   documents: ParsedDocumentResponse[],
   decodedFiles: Array<{ name: string; buffer: Buffer; mimeType?: string }>,
@@ -1062,6 +1111,8 @@ function applyEvidenceKindToAnalysis(
       category_confidence: movement.category_confidence,
       confidence: movement.confidence,
       source_kind: movement.source_kind,
+      billing_status: movement.billing_status,
+      card_scope: movement.card_scope,
     })),
   };
 }
@@ -1636,6 +1687,16 @@ function buildTransactionAnalysisFromMovements(
 
   const alerts: string[] = [];
   const alertDetails: Array<{ title: string; severity: 'high' | 'medium' | 'low'; reason: string }> = [];
+  const mergedDocumentContext = collectMergedDocumentContext(documents);
+  const documentContextAlert = buildDocumentContextAlert(mergedDocumentContext);
+  if (documentContextAlert) {
+    alerts.push(documentContextAlert);
+    alertDetails.push({
+      title: 'Contexto de la tarjeta',
+      severity: 'low',
+      reason: documentContextAlert,
+    });
+  }
   if (movementCount === 0) {
     alerts.push('No se detectaron movimientos suficientes en los respaldos cargados.');
     alertDetails.push({
@@ -1821,6 +1882,7 @@ function buildTransactionAnalysisFromMovements(
         evidenceFidelity === 'indicative'
           ? 'Antecedente visual o texto libre: se prioriza lectura cualitativa sobre totales exactos.'
           : undefined,
+      document_context: mergedDocumentContext ?? undefined,
       executive_summary: executiveSummary,
       alerts: profileAlerts,
     },
@@ -1838,6 +1900,8 @@ function buildTransactionAnalysisFromMovements(
       category_confidence: movement.category_confidence,
       confidence: movement.confidence,
       source_kind: movement.source_kind,
+      billing_status: movement.billing_status,
+      card_scope: movement.card_scope,
     })),
   };
 }
@@ -2066,7 +2130,10 @@ router.post(
     const reconciledMovements = shouldReconcile
       ? await reconcileMovementsWithLLM(documents, ledgerFilteredMovements, productTypeForAnalysis)
       : null;
-    const resolvedMovements = reconciledMovements ?? ledgerFilteredMovements;
+    const resolvedMovements = applyDocumentContextToMovements(
+      reconciledMovements ?? ledgerFilteredMovements,
+      documents,
+    );
     const needsLedgerRebuild =
       ledgerFilteredMovements.length !== heuristicMovements.length ||
       !batchUsesBankingMovementPipeline(documents, evidenceKindByDoc);

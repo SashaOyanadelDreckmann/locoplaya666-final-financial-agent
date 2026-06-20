@@ -9,7 +9,8 @@ import {
   searchUserDocumentsLocal,
   upsertUserVectorStoreRecord,
 } from '../persistencia/repos';
-import { parseTransactionFileDetailed, type ParsedTable } from './transactionParser.service';
+import { parseTransactionFileDetailed, type ParsedTable, type ParsedTransactionArtifact } from './transactionParser.service';
+import { resolveDocumentContext } from './documentContext.service';
 import { getOpenAIClient } from './llm.service';
 import { buildTransactionDocumentProfile } from './transactionDocumentProfile.service';
 
@@ -206,6 +207,8 @@ function extractStructuredFinancialData(
   text: string,
   parserTables: ParsedTable[] = [],
   parserMeta?: { mode?: string; confidence?: number } | null,
+  documentContext?: ParsedTransactionArtifact['documentContext'],
+  formatFamily?: string,
 ): Record<string, unknown> {
   const rows = text
     .split('\n')
@@ -229,6 +232,11 @@ function extractStructuredFinancialData(
     .filter((line) => /-?\d{1,3}(?:[.\s]\d{3})+(?:,\d+)?|-?\d+(?:,\d{2})/.test(line))
     .slice(0, 120);
   const tableRowCount = tables.reduce((acc, table) => acc + (Array.isArray(table.rows) ? table.rows.length : 0), 0);
+  const resolvedDocumentContext = resolveDocumentContext({
+    text,
+    visionContext: documentContext,
+    formatFamily,
+  });
 
   return {
     rowCount: rows.length,
@@ -238,6 +246,7 @@ function extractStructuredFinancialData(
     ).slice(0, 120),
     tables,
     parserMeta: parserMeta ?? undefined,
+    documentContext: resolvedDocumentContext ?? undefined,
   };
 }
 
@@ -321,7 +330,13 @@ export async function ingestUserDocument(input: IngestUserDocumentInput) {
   });
   const summary = inferDocumentSummary(extractedText, input.name);
   const structuredData = {
-    ...extractStructuredFinancialData(extractedText, parsed.tables, parsed.parserMeta),
+    ...extractStructuredFinancialData(
+      extractedText,
+      parsed.tables,
+      parsed.parserMeta,
+      parsed.documentContext,
+      documentProfile.format_family,
+    ),
     documentProfile,
     documentResolution: {
       resolved_bank: documentProfile.resolved_bank ?? documentProfile.bank,

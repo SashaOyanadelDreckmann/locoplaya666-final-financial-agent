@@ -11,6 +11,7 @@ import PDFParse from 'pdf-parse';
 import ffmpegStatic from 'ffmpeg-static';
 import XLSX from 'xlsx';
 import { completeStructuredWithSchema } from './llm.service';
+import type { TransactionDocumentContext } from './documentContext.service';
 
 const DATA_ROOT = path.join(process.cwd(), 'data', 'transactions');
 const IMAGE_MIME_BY_EXT: Record<string, string> = {
@@ -30,6 +31,7 @@ const CARTOLA_VISION_TABLE_INSTRUCTIONS =
   'Si la cartola muestra columnas Cargo/Abono, Débito/Crédito o Haber/Debe, repórtalas como columnas separadas — no colapses todo en una sola columna Monto.\n' +
   'En capturas de app móvil (BICE, Santander, etc.), los montos suelen llevar prefijo + (pago/abono) o - (compra/gasto): preserva ese signo exactamente en rows.\n' +
   'Incluye la fecha de cada movimiento (ej. "06 de mayo del 2026") en text o como columna Fecha.\n' +
+  'Si la captura muestra pestañas Facturados/No facturados, Nacional/Internacional, avisos de vencimiento o facturación, repórtalos en document_context.\n' +
   'Las filas deben ser solo movimientos reales; excluye saldos, subtotales, resúmenes y encabezados repetidos.\n' +
   'Si una fila no permite lectura confiable, omítela.';
 
@@ -55,8 +57,32 @@ const VISION_OUTPUT_SCHEMA = {
         required: ['name', 'headers', 'rows'],
       },
     },
+    document_context: {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        billing_view: { type: 'string', enum: ['facturado', 'no_facturado', 'unknown'] },
+        card_scope: { type: 'string', enum: ['nacional', 'internacional', 'unknown'] },
+        payment_due_date: { type: 'string' },
+        billing_cycle_date: { type: 'string' },
+        minimum_payment: { type: 'number' },
+        available_credit: { type: 'number' },
+        notices: { type: 'array', items: { type: 'string' } },
+        confidence: { type: 'number' },
+      },
+      required: [
+        'billing_view',
+        'card_scope',
+        'payment_due_date',
+        'billing_cycle_date',
+        'minimum_payment',
+        'available_credit',
+        'notices',
+        'confidence',
+      ],
+    },
   },
-  required: ['summary', 'text', 'tables'],
+  required: ['summary', 'text', 'tables', 'document_context'],
 } as const;
 
 type VisionExtractionOutput = {
@@ -67,6 +93,7 @@ type VisionExtractionOutput = {
     headers?: string[];
     rows?: string[][];
   }>;
+  document_context?: Partial<TransactionDocumentContext>;
 };
 
 function visionImageDetail(): 'auto' | 'high' | 'low' {
@@ -177,6 +204,7 @@ function buildVisionArtifact(
     source,
     text,
     tables,
+    documentContext: result.document_context,
     parserMeta: {
       mode: 'vision_structured',
       confidence,
@@ -398,6 +426,7 @@ export type ParsedTransactionArtifact = {
   source: string;
   text: string;
   tables: ParsedTable[];
+  documentContext?: Partial<TransactionDocumentContext>;
   parserMeta?: {
     mode: 'exact_sheet' | 'csv_exact' | 'pdf_coordinates' | 'pdf_text' | 'pdf_vision' | 'vision_structured' | 'video_vision';
     confidence: number;

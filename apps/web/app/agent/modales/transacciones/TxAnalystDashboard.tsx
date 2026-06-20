@@ -9,6 +9,7 @@ import {
 import type { useMovementAnalytics } from './use-movement-analytics';
 import type { BankProduct } from './types';
 import { TxExecutiveSummary } from './TxExecutiveSummary';
+import { TxDocumentContextChips } from './TxDocumentContextChips';
 import { TxIndicativeNotice } from './TxIndicativeNotice';
 import { TxAskChatButton, TxChatMessageBubble, TxChatStarterChips } from './tx-chat-ui';
 import {
@@ -166,6 +167,7 @@ export function TxAnalystDashboard({
       className={`tx-content-card is-main-center tx-summary-stage tx-step-reveal tx-ap-dashboard${isIndicativeEvidence ? ' is-indicative-evidence' : ''}`}
     >
       {isIndicativeEvidence ? <TxIndicativeNotice reason={evidenceFidelityReason} /> : null}
+      <TxDocumentContextChips context={activeBankProduct.dashboard?.documentContext} />
       <div className="tx-ap-masthead">
         <div className="tx-ap-masthead-top">
           <div className="tx-ap-masthead-meta">

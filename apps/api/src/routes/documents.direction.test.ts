@@ -79,12 +79,21 @@ describe('documents movement direction', () => {
         {
           name: 'movimientos-tarjeta.png',
           text: [
-            'Movimientos de Tarjeta Nacional',
+            'Movimientos de Tarjeta Nacional No facturados',
+            'Recuerda pagar hasta el 08 de junio',
             '06 de mayo del 2026',
             '26 de abril del 2026',
           ].join('\n'),
           summary: null,
           structuredData: {
+            documentContext: {
+              billing_view: 'no_facturado',
+              card_scope: 'nacional',
+              payment_due_date: '2026-06-08',
+              notices: [],
+              confidence: 0.9,
+              source: 'heuristic',
+            },
             tables: [
               {
                 headers: ['Descripción', 'Monto'],

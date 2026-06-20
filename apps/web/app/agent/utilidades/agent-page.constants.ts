@@ -15,6 +15,8 @@ export const MAX_EVIDENCE_FILES_PER_PRODUCT = 25;
 /** Max evidence resets (re-analysis) allowed per product lifetime. */
 export const MAX_TRANSACTION_EVIDENCE_RESETS = 3;
 export const MAX_CHAT_UPLOAD_FILES = 5;
+/** Must stay aligned with API CHAT_ATTACH_MAX_TOTAL_BYTES and Express JSON limit (~170 MB). */
+export const CHAT_MAX_TOTAL_FILE_BYTES = 120 * 1024 * 1024;
 
 export const KNOWLEDGE_MILESTONE_DEFS = [
   { id: 'intake', label: 'Cuestionario y perfil base', threshold: 20 },

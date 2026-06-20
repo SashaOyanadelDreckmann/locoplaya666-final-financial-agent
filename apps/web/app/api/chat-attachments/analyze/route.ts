@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 120;
 
 const FORWARD_TIMEOUT_MS = 115_000;
-const MAX_BODY_BYTES = 70 * 1024 * 1024;
+const MAX_BODY_BYTES = 170 * 1024 * 1024; // 170 MB — matches Express backend limit (120 MB raw + base64)
 const RETRYABLE_STATUS = new Set([502, 503, 504]);
 const RETRY_DELAY_MS = 700;
 

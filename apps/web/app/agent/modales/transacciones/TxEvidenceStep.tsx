@@ -12,6 +12,9 @@ import { getEvidenceFileAccept } from '@/lib/compartido/evidence-format.helpers'
 import { shouldSurfaceTxFeedback } from './tx-feedback.helpers';
 import type { DocumentsParseProgress } from '@/lib/transacciones/progreso-parse.helpers';
 import type { BankProduct, TxAssistantMessage, TxUploadFormat } from './types';
+import { TX_MAX_TOTAL_FILE_BYTES } from './constants';
+
+const TX_MAX_TOTAL_FILE_MB = Math.round(TX_MAX_TOTAL_FILE_BYTES / (1024 * 1024));
 
 const FORMAT_OPTIONS = [
   ['photos', 'Fotos', 'Img'],
@@ -310,8 +313,8 @@ export function TxEvidenceStep(props: TxEvidenceStepProps) {
               </div>
               <p className="tx-composer-hint">
                 {selectedUploadFormat
-                  ? `Solo archivos de ${getFormatLabel(selectedUploadFormat).toLowerCase()} · hasta ${p.maxEvidenceFilesPerProduct} · 50 MB por envío`
-                  : `Elige un formato arriba o adjunta y lo detectamos automáticamente · hasta ${p.maxEvidenceFilesPerProduct} · 50 MB`}
+                  ? `Solo archivos de ${getFormatLabel(selectedUploadFormat).toLowerCase()} · hasta ${p.maxEvidenceFilesPerProduct} · ${TX_MAX_TOTAL_FILE_MB} MB por envío`
+                  : `Elige un formato arriba o adjunta y lo detectamos automáticamente · hasta ${p.maxEvidenceFilesPerProduct} · ${TX_MAX_TOTAL_FILE_MB} MB`}
               </p>
             </>
           ) : null}
