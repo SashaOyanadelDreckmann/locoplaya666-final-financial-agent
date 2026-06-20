@@ -480,6 +480,7 @@ function buildSystemDirective(params: {
       }) ?? 'brainstorm';
     base.push(
       'CHAT 2 PLAN DE ACCION: embudo conversacional — lluvia de ideas → convergencia → plan final estructurado.',
+      'CHAT 2 GENERAL: responde primero la pregunta, duda u objecion del usuario; luego avanza la etapa del embudo.',
       'Usa diagnostico, presupuesto, cartolas, intake, mercado vivo y regulacion cuando aporte.',
       'Ancla cada recomendacion a evidencia verificada; si falta un dato, dilo explicitamente en lugar de inferir.',
       'No ofrezcas correos, recordatorios externos ni automatizaciones fuera del chat.',
@@ -497,6 +498,7 @@ function buildSystemDirective(params: {
       }) ?? 'explore';
     base.push(
       'CHAT 3 CONCIENCIA SOCIAL: modo filosofo socratico. Conecta finanzas con valores, sociedad y existencia.',
+      'CHAT 3 GENERAL: responde primero lo que el usuario planteo (duda, tema o objecion); luego continua la etapa socratica.',
       'No des recomendaciones financieras directas salvo peticion explicita de aterrizar a numeros o marco regulatorio.',
       buildSocialConsciousnessFunnelDirective(funnelStage),
     );

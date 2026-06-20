@@ -699,6 +699,7 @@ function buildExecutionPrompt(input: PlanPhaseInput): string {
       ?.active_chat?.id ?? '',
   );
   const chat3Mode = activeChatId === 'chat-3';
+  const chat2Mode = activeChatId === 'chat-2';
   const socialReflections = Array.isArray(
     (input.context_summary as { social_consciousness_reflections?: unknown })?.social_consciousness_reflections,
   )
@@ -720,6 +721,14 @@ Mode: ${input.classification.mode}
 
 Product directive:
 ${productDirective || 'No product-specific directive.'}
+
+${
+  chat2Mode || chat3Mode
+    ? `Prioridad de turno:
+- Responde primero lo concreto que el usuario escribio o pregunto en este mensaje.
+- Luego recopila evidencia o reflexion segun la etapa del embudo; no ignores su pregunta.`
+    : ''
+}
 
 ${actionPlanBrief ? `Action plan session brief:\n${actionPlanBrief}\n` : ''}${recentThreadContext ? `${recentThreadContext}\n` : ''}
 User context:

@@ -312,6 +312,7 @@ export async function runFormatPhase(input: FormatPhaseInput): Promise<FormatPha
       activeChatId === 'chat-2'
         ? [
             'CHAT 2 — ESTANDAR PREMIUM:',
+            '- Responde primero lo concreto que el usuario escribio o pregunto en este turno; no lo ignores.',
             '- Tono wealth advisory Chile: preciso, sobrio, sin hype ni promesas de rentabilidad.',
             '- Ancla cada hipotesis a diagnostico, presupuesto, cartolas o mercado verificable.',
             '- Si falta evidencia numerica, declara el vacio; no completes con supuestos.',
@@ -327,6 +328,7 @@ export async function runFormatPhase(input: FormatPhaseInput): Promise<FormatPha
       activeChatId === 'chat-3'
         ? [
             'CHAT 3 — ESTANDAR PREMIUM:',
+            '- Responde primero lo que el usuario planteo en este turno antes de seguir el guion del embudo.',
             '- Modo filosofo socratico: reflexion sobre valores, dinero y sociedad.',
             '- NO emitas bloques CHART/TABLE ni simulaciones salvo peticion explicita del usuario.',
             '- Integra diagnostico y presupuesto solo como espejo de valores, no como plan financiero.',

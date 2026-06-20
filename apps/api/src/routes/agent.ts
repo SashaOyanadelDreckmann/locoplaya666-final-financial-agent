@@ -38,11 +38,8 @@ import type { StoredPanelState } from '../persistencia/types';
 import { resolveAgentConversationHistory } from '../agents/core.agent/helpers/conversation-history.helpers';
 import { complete, runWithLLMCostTracking } from '../services/llm.service';
 import {
-  buildActionPlanSuggestedReplies,
   buildSocialConsciousnessFallbackMessage,
-  buildSocialConsciousnessSuggestedReplies,
-  resolveActionPlanFunnelStage,
-  resolveSocialConsciousnessFunnelStage,
+  mergeFunnelSuggestedReplies,
 } from '@financial-agent/shared';
 import {
   resolveWelcomeIntroForUser,
@@ -403,28 +400,30 @@ function buildContextualSuggestedReplies(params: {
   turnCount?: number;
   closingMode?: boolean;
   userMessage?: string;
+  assistantMessage?: string;
+  modelSuggestedReplies?: string[];
 }) {
   const phase = String(params.phase ?? '');
   const activeChatId = String(params.activeChatId ?? 'chat-1');
   if (activeChatId === 'chat-2') {
-    const stage =
-      resolveActionPlanFunnelStage({
-        activeChatId: 'chat-2',
-        turnCount: params.turnCount,
-        closingMode: params.closingMode,
-        userMessage: params.userMessage,
-      }) ?? 'brainstorm';
-    return buildActionPlanSuggestedReplies(stage);
+    return mergeFunnelSuggestedReplies({
+      activeChatId: 'chat-2',
+      turnCount: params.turnCount,
+      closingMode: params.closingMode,
+      userMessage: params.userMessage,
+      assistantMessage: params.assistantMessage,
+      modelSuggestedReplies: params.modelSuggestedReplies,
+    });
   }
   if (activeChatId === 'chat-3') {
-    const stage =
-      resolveSocialConsciousnessFunnelStage({
-        activeChatId: 'chat-3',
-        turnCount: params.turnCount,
-        closingMode: params.closingMode,
-        userMessage: params.userMessage,
-      }) ?? 'explore';
-    return buildSocialConsciousnessSuggestedReplies(stage);
+    return mergeFunnelSuggestedReplies({
+      activeChatId: 'chat-3',
+      turnCount: params.turnCount,
+      closingMode: params.closingMode,
+      userMessage: params.userMessage,
+      assistantMessage: params.assistantMessage,
+      modelSuggestedReplies: params.modelSuggestedReplies,
+    });
   }
   if (params.hasBudget && params.hasTransactions) return ['Abrir entrevista breve', 'Revisar presupuesto', 'Ver cartola'];
   if (phase === 'transactions_needed') return ['Subir cartola', 'Explorar deuda', 'Simular ahorro'];
@@ -440,8 +439,11 @@ function buildLifecycleSuggestedReplies(params: {
   };
   onboardingSignals: { hasBudget: boolean; hasTransactions: boolean };
   userMessage?: string;
+  assistantMessage?: string;
+  modelSuggestedReplies?: string[];
 }) {
-  const { lifecycleDecision, onboardingSignals, userMessage } = params;
+  const { lifecycleDecision, onboardingSignals, userMessage, assistantMessage, modelSuggestedReplies } =
+    params;
   return buildContextualSuggestedReplies({
     phase: lifecycleDecision.state.phase,
     activeChatId: lifecycleDecision.activeChatId,
@@ -450,6 +452,8 @@ function buildLifecycleSuggestedReplies(params: {
     turnCount: lifecycleDecision.state.chatTurns[lifecycleDecision.activeChatId] ?? 0,
     closingMode: lifecycleDecision.closingMode,
     userMessage,
+    assistantMessage,
+    modelSuggestedReplies,
   });
 }
 
@@ -1937,6 +1941,10 @@ router.post(
         lifecycleDecision,
         onboardingSignals,
         userMessage: String(input.user_message ?? ''),
+        assistantMessage: String(response.message ?? ''),
+        modelSuggestedReplies: Array.isArray(response.suggested_replies)
+          ? response.suggested_replies
+          : [],
       });
     }
 

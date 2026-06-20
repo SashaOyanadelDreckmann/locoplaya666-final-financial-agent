@@ -1483,6 +1483,61 @@
   }
 }
 
+/* ─── Main chat composer pending attachments ─────────────────────────────────── */
+
+.agent-composer-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.15rem 0.15rem;
+}
+
+.agent-composer-attachment-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  max-width: min(100%, 16rem);
+  padding: 0.28rem 0.45rem 0.28rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--agent-accent, #7dd3fc) 28%, transparent);
+  background: color-mix(in srgb, var(--agent-surface-elevated, #111827) 88%, transparent);
+  font-size: 0.72rem;
+  line-height: 1.2;
+}
+
+.agent-composer-attachment-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.agent-composer-attachment-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.1rem;
+  height: 1.1rem;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  opacity: 0.72;
+  cursor: pointer;
+}
+
+.agent-composer-attachment-remove:hover {
+  opacity: 1;
+  background: color-mix(in srgb, currentColor 12%, transparent);
+}
+
+.agent-composer-attachments-count {
+  margin-left: auto;
+  font-size: 0.68rem;
+  opacity: 0.72;
+}
+
 /* ─── Send button — no animated focus glow ─────────────────────────────────── */
 
 .composer-send-btn {

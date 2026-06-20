@@ -235,6 +235,8 @@ describe('product lifecycle ordering', () => {
 
     expect(decision.blocked).toBe(false);
     expect(decision.systemDirective).toContain('ENTREGA FINAL');
+    expect(decision.systemDirective).toContain('REGLA TRANSVERSAL DEL EMBUDO');
+    expect(decision.systemDirective).toContain('CHAT 2 GENERAL');
     expect(decision.systemDirective).not.toContain('interaccion 30');
   });
 
@@ -290,6 +292,8 @@ describe('product lifecycle ordering', () => {
     expect(decision.blocked).toBe(false);
     expect(decision.systemDirective).toContain('EXPLORACION');
     expect(decision.systemDirective).toContain('filosofo socratico');
+    expect(decision.systemDirective).toContain('CHAT 3 GENERAL');
+    expect(decision.systemDirective).toContain('REGLA TRANSVERSAL DEL EMBUDO');
     expect(decision.systemDirective).toContain('1/10');
   });
 

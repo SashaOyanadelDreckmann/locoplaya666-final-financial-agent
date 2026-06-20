@@ -1,9 +1,12 @@
 import {
   buildChatUploadAgentPrompt,
   buildChatUploadFiles,
+  buildChatUploadUserMessage,
+  filterChatUploadFiles,
   formatUploadFileSize,
   inferChatUploadFileKind,
   mapChatAttachmentAnalysisToSummary,
+  mergeChatUploadFiles,
 } from '../chat/chat-upload.helpers';
 
 describe('chat-upload.helpers', () => {
@@ -72,6 +75,47 @@ describe('chat-upload.helpers', () => {
     expect(prompt).toContain('ADJUNTOS_CHAT_JSON=');
     expect(prompt).toContain('no es evidencia financiera');
     expect(prompt).not.toContain('ANALISIS_TRANSACCIONAL_JSON');
+  });
+
+  it('merges pending chat uploads with slot and byte limits', () => {
+    const first = new File(['a'], 'a.png', { type: 'image/png' });
+    const second = new File(['b'], 'b.pdf', { type: 'application/pdf' });
+    const merged = mergeChatUploadFiles([first], [second], { maxFiles: 2, maxTotalBytes: 1024 * 1024 });
+    expect(merged.files).toHaveLength(2);
+    expect(merged.addedCount).toBe(1);
+  });
+
+  it('filters unsupported chat upload formats', () => {
+    const accepted = new File(['x'], 'scan.png', { type: 'image/png' });
+    const rejected = new File(['x'], 'video.mp4', { type: 'video/mp4' });
+    const result = filterChatUploadFiles([accepted, rejected]);
+    expect(result.accepted).toEqual([accepted]);
+    expect(result.rejected).toEqual([rejected]);
+  });
+
+  it('uses user message when present and falls back otherwise', () => {
+    expect(
+      buildChatUploadUserMessage({ userMessage: '¿Cuánto gasté?', fileNames: ['cartola.pdf'] }),
+    ).toBe('¿Cuánto gasté?');
+    expect(buildChatUploadUserMessage({ fileNames: ['cartola.pdf'] })).toContain('cartola.pdf');
+  });
+
+  it('includes user context in agent prompt', () => {
+    const prompt = buildChatUploadAgentPrompt({
+      fileNames: ['foto.jpg'],
+      userMessage: '¿Es un gasto deducible?',
+      attachments: [
+        {
+          name: 'foto.jpg',
+          format: 'jpg',
+          contentKind: 'general_image',
+          relevanceToFinance: 'low',
+          description: 'Boleta',
+          keyFindings: [],
+        },
+      ],
+    });
+    expect(prompt).toContain('¿Es un gasto deducible?');
   });
 
   it('builds finance-first prompt when evidence is financial', () => {

@@ -8,6 +8,8 @@ export * from './chat/chat-closure-carousel';
 export * from './flujo/action-plan-funnel';
 export * from './flujo/action-plan-session';
 export * from './flujo/social-consciousness-funnel';
+export * from './flujo/funnel-user-turn';
+export * from './flujo/funnel-suggested-replies';
 export * from './presupuesto/budget-rows';
 export * from './presupuesto/budget-chat-focus';
 export * from './presupuesto/budget-chat-context';
