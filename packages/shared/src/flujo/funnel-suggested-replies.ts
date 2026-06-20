@@ -52,7 +52,7 @@ function mergeUniqueSuggestions(candidates: string[], max: number): string[] {
 }
 
 export function buildTurnContextActionPlanReplies(userMessage?: string): string[] {
-  const text = normalizeTopic(userMessage);
+  const text = normalizeTopic(userMessage ?? '');
   const raw = String(userMessage ?? '');
   const out: string[] = [];
 
@@ -95,7 +95,7 @@ export function buildTurnContextActionPlanReplies(userMessage?: string): string[
 }
 
 export function buildTurnContextSocialConsciousnessReplies(userMessage?: string): string[] {
-  const text = normalizeTopic(userMessage);
+  const text = normalizeTopic(userMessage ?? '');
   const out: string[] = [];
 
   const push = (suggestion: string) => {
