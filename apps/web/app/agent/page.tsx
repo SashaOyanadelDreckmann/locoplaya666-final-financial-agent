@@ -638,27 +638,37 @@ export default function AgentPage() {
   const isActiveChatClosed =
     closedChatIds.includes(activeChatId) || activeTurnsRemaining === 0;
   const isActiveChatCloseoutWindow = activeTurnsRemaining > 0 && activeTurnsRemaining <= 2;
-  const activeThreadClosureSummary =
-    activeThread?.closureSummary ??
-    (isActiveChatClosed
-      ? buildChatClosureSummary({
-          chatId: activeChatId as 'chat-1' | 'chat-2' | 'chat-3',
-          messages: extractClosureMessages(items),
-          userMessage:
-            [...items]
-              .reverse()
-              .find((item): item is Extract<ChatItem, { type: 'message'; role: 'user' }> =>
-                item.type === 'message' && item.role === 'user',
-              )?.content,
-          assistantMessage:
-            [...items]
-              .reverse()
-              .find((item): item is Extract<ChatItem, { type: 'message'; role: 'assistant' }> =>
-                item.type === 'message' && item.role === 'assistant',
-              )?.content,
-          turnsRemaining: activeTurnsRemaining,
-        })
-      : null);
+  const activeThreadClosureSummary = useMemo(() => {
+    if (!isActiveChatClosed) return null;
+
+    const messages = extractClosureMessages(items);
+    const built = buildChatClosureSummary({
+      chatId: activeChatId as 'chat-1' | 'chat-2' | 'chat-3',
+      messages,
+      userMessage:
+        [...items]
+          .reverse()
+          .find((item): item is Extract<ChatItem, { type: 'message'; role: 'user' }> =>
+            item.type === 'message' && item.role === 'user',
+          )?.content,
+      assistantMessage:
+        [...items]
+          .reverse()
+          .find((item): item is Extract<ChatItem, { type: 'message'; role: 'assistant' }> =>
+            item.type === 'message' && item.role === 'assistant',
+          )?.content,
+      turnsRemaining: activeTurnsRemaining,
+    });
+
+    if (messages.length > 0) return built;
+    return activeThread?.closureSummary ?? built;
+  }, [
+    isActiveChatClosed,
+    items,
+    activeChatId,
+    activeTurnsRemaining,
+    activeThread?.closureSummary,
+  ]);
   const [showFullClosedChat, setShowFullClosedChat] = useState(false);
   const [socialReflectionRevision, setSocialReflectionRevision] = useState(0);
 
@@ -1043,7 +1053,7 @@ export default function AgentPage() {
             'kicker' in s.closureSummary &&
             'title' in s.closureSummary &&
             'subtitle' in s.closureSummary &&
-            ('body' in s.closureSummary || 'sections' in s.closureSummary)
+            ('body' in s.closureSummary || 'sections' in s.closureSummary || 'nextStep' in s.closureSummary)
               ? (s.closureSummary as ChatClosureSummary)
               : null,
           generalChatStarted: Boolean(s.generalChatStarted ?? false),
@@ -1791,7 +1801,7 @@ export default function AgentPage() {
         prev.map((thread) => {
           const candidate = summaries[thread.id];
           if (!candidate || typeof candidate !== 'object') return thread;
-          if (!('title' in candidate) || (!('body' in candidate) && !('sections' in candidate))) return thread;
+          if (!('title' in candidate) || (!('body' in candidate) && !('sections' in candidate) && !('nextStep' in candidate))) return thread;
           return {
             ...thread,
             closureSummary: candidate as ChatClosureSummary,

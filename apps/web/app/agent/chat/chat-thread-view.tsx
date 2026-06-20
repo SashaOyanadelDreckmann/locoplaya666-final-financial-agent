@@ -446,32 +446,42 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
     () => extractClosureMessages(props.items),
     [props.items],
   );
-  const effectiveClosingSummary =
-    props.closingSummary ??
-    (props.compactClosedView && !props.showFullChat
-      ? buildChatClosureSummary({
-          chatId:
-            props.activeThreadId === 'chat-2'
-              ? 'chat-2'
-              : props.activeThreadId === 'chat-3'
-                ? 'chat-3'
-                : 'chat-1',
-          messages: closureMessages,
-          userMessage:
-            [...props.items]
-              .reverse()
-              .find((item): item is Extract<ChatItem, { type: 'message'; role: 'user' }> =>
-                item.type === 'message' && item.role === 'user',
-              )?.content ?? '',
-          assistantMessage:
-            [...props.items]
-              .reverse()
-              .find((item): item is Extract<ChatItem, { type: 'message'; role: 'assistant' }> =>
-                item.type === 'message' && item.role === 'assistant',
-              )?.content ?? '',
-          turnsRemaining: 0,
-        })
-      : null);
+  const effectiveClosingSummary = useMemo(() => {
+    if (!props.compactClosedView || props.showFullChat) return props.closingSummary ?? null;
+
+    const built = buildChatClosureSummary({
+      chatId:
+        props.activeThreadId === 'chat-2'
+          ? 'chat-2'
+          : props.activeThreadId === 'chat-3'
+            ? 'chat-3'
+            : 'chat-1',
+      messages: closureMessages,
+      userMessage:
+        [...props.items]
+          .reverse()
+          .find((item): item is Extract<ChatItem, { type: 'message'; role: 'user' }> =>
+            item.type === 'message' && item.role === 'user',
+          )?.content ?? '',
+      assistantMessage:
+        [...props.items]
+          .reverse()
+          .find((item): item is Extract<ChatItem, { type: 'message'; role: 'assistant' }> =>
+            item.type === 'message' && item.role === 'assistant',
+          )?.content ?? '',
+      turnsRemaining: 0,
+    });
+
+    if (closureMessages.length > 0) return built;
+    return props.closingSummary ?? built;
+  }, [
+    props.closingSummary,
+    props.compactClosedView,
+    props.showFullChat,
+    props.activeThreadId,
+    closureMessages,
+    props.items,
+  ]);
   function renderChatItem(
     it: ChatItem,
     i: number,
@@ -970,93 +980,80 @@ export const ChatThreadView = memo(function ChatThreadView(props: {
 
         {effectiveClosingSummary && !props.showFullChat ? (
           <div className="agent-bubble assistant latex-doc is-closure-welcome">
-            <div className="latex-doc-head">
-              <div className="latex-doc-heading">
-                <span className="latex-doc-kicker">{effectiveClosingSummary.kicker}</span>
-                <span className="latex-doc-title">{effectiveClosingSummary.title}</span>
-                <span className="latex-doc-subtitle">{effectiveClosingSummary.subtitle}</span>
-              </div>
-              <div className="latex-doc-head-actions">
-                <span className="latex-doc-mode" style={docModePillStyle}>
-                  cierre
-                </span>
-                <button
-                  type="button"
-                  className="latex-doc-save-btn"
-                  disabled={savingClosurePdf}
-                  onClick={(e) => {
-                    const btn = e.currentTarget as HTMLButtonElement;
-                    const bubbleEl = btn.closest('.agent-bubble.assistant.latex-doc') as HTMLElement | null;
-                    setSavingClosurePdf(true);
-                    void (async () => {
-                      try {
-                        if (!bubbleEl) throw new Error('Bubble not found');
-                        const snapshot = buildBubbleSnapshotHtmlAndCss(bubbleEl, {
-                          kicker: effectiveClosingSummary.kicker,
-                          title: effectiveClosingSummary.title,
-                          subtitle: effectiveClosingSummary.subtitle,
-                          badge: 'cierre',
-                        });
-                        const result = await saveBubbleSnapshotPdfArtifact({
-                          title: effectiveClosingSummary.title,
-                          subtitle: effectiveClosingSummary.subtitle,
-                          html: snapshot.html,
-                          css: snapshot.css,
-                          pageLayout: 'content',
-                        });
-                        const artifact = result.artifact;
-                        const pdfFilename = `${effectiveClosingSummary.title.replace(/\s+/g, '-').slice(0, 48)}.pdf`;
-                        if (artifact.fileUrl) {
-                          await downloadArtifactFile(artifact.fileUrl, pdfFilename);
-                        }
-                        const reportId = `${artifact.id}-${Date.now()}`;
-                        const report: SavedReport = {
-                          id: reportId,
-                          title: artifact.title,
-                          group: props.classifyReportGroup(artifact.title, artifact.source),
-                          fileUrl: artifact.fileUrl ?? '',
-                          previewImageUrl: artifact.previewImageUrl || undefined,
-                          createdAt: artifact.createdAt,
-                        };
-                        props.setSavedReports((prev) =>
-                          [report, ...prev.filter((r) => r.fileUrl !== report.fileUrl)],
-                        );
-                        const sourceRect = btn.getBoundingClientRect();
-                        props.launchDocToLibraryAnimation(
-                          artifact.title,
-                          sourceRect,
-                          artifact.previewImageUrl ?? artifact.fileUrl ?? '',
-                          reportId,
-                        );
-                      } catch (error) {
-                        const detail =
-                          error instanceof Error && error.message
-                            ? error.message
-                            : 'Error desconocido';
-                        props.setItemsForActive((prev) => [
-                          ...prev,
-                          {
-                            type: 'message',
-                            role: 'assistant',
-                            content: `No pude guardar el PDF de esta burbuja. ${detail}`,
-                            mode: 'information',
-                          } as ChatItem,
-                        ]);
-                      } finally {
-                        setSavingClosurePdf(false);
-                      }
-                    })();
-                  }}
-                >
-                  {savingClosurePdf ? 'Guardando…' : 'Guardar PDF'}
-                </button>
-              </div>
-            </div>
             <div className="latex-doc-body is-closure-summary-body">
               <ClosureGradientBlobCard
                 className="gradient-blob-card--welcome gradient-blob-card--closure"
                 summary={effectiveClosingSummary}
-                hideMasthead
+                saveAction={
+                  <button
+                    type="button"
+                    className="latex-doc-save-btn closure-gradient-card__save-btn"
+                    disabled={savingClosurePdf}
+                    onClick={(e) => {
+                      const btn = e.currentTarget as HTMLButtonElement;
+                      const bubbleEl = btn.closest('.agent-bubble.assistant.latex-doc') as HTMLElement | null;
+                      setSavingClosurePdf(true);
+                      void (async () => {
+                        try {
+                          if (!bubbleEl) throw new Error('Bubble not found');
+                          const snapshot = buildBubbleSnapshotHtmlAndCss(bubbleEl, {
+                            title: effectiveClosingSummary.title,
+                            subtitle: effectiveClosingSummary.subtitle,
+                          });
+                          const result = await saveBubbleSnapshotPdfArtifact({
+                            title: effectiveClosingSummary.title,
+                            subtitle: effectiveClosingSummary.subtitle,
+                            html: snapshot.html,
+                            css: snapshot.css,
+                            pageLayout: 'content',
+                          });
+                          const artifact = result.artifact;
+                          const pdfFilename = `${effectiveClosingSummary.title.replace(/\s+/g, '-').slice(0, 48)}.pdf`;
+                          if (artifact.fileUrl) {
+                            await downloadArtifactFile(artifact.fileUrl, pdfFilename);
+                          }
+                          const reportId = `${artifact.id}-${Date.now()}`;
+                          const report: SavedReport = {
+                            id: reportId,
+                            title: artifact.title,
+                            group: props.classifyReportGroup(artifact.title, artifact.source),
+                            fileUrl: artifact.fileUrl ?? '',
+                            previewImageUrl: artifact.previewImageUrl || undefined,
+                            createdAt: artifact.createdAt,
+                          };
+                          props.setSavedReports((prev) =>
+                            [report, ...prev.filter((r) => r.fileUrl !== report.fileUrl)],
+                          );
+                          const sourceRect = btn.getBoundingClientRect();
+                          props.launchDocToLibraryAnimation(
+                            artifact.title,
+                            sourceRect,
+                            artifact.previewImageUrl ?? artifact.fileUrl ?? '',
+                            reportId,
+                          );
+                        } catch (error) {
+                          const detail =
+                            error instanceof Error && error.message
+                              ? error.message
+                              : 'Error desconocido';
+                          props.setItemsForActive((prev) => [
+                            ...prev,
+                            {
+                              type: 'message',
+                              role: 'assistant',
+                              content: `No pude guardar el PDF de esta burbuja. ${detail}`,
+                              mode: 'information',
+                            } as ChatItem,
+                          ]);
+                        } finally {
+                          setSavingClosurePdf(false);
+                        }
+                      })();
+                    }}
+                  >
+                    {savingClosurePdf ? 'Guardando…' : 'Guardar PDF'}
+                  </button>
+                }
               />
             </div>
           </div>

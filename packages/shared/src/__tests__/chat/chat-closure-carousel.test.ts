@@ -17,7 +17,7 @@ describe('buildClosureCarouselPages', () => {
     const pages = buildClosureCarouselPages(summary);
     expect(pages).toHaveLength(1);
     expect(pages[0]).toMatchObject({ roman: 'I', tone: 'gold', label: 'Resumen' });
-    expect(pages[0].footer).toBe(summary.footer);
+    expect(pages[0].footer).toContain('no admite nuevas interacciones');
     expect(pages[0].body).toContain('Prioriza liquidez');
     expect(pages[0].body).toContain('Plan con tres frentes');
   });
@@ -39,6 +39,9 @@ describe('buildChatClosureSummary', () => {
     expect(summary.body).toContain('Recorrido');
     expect(summary.body).toContain('Sintesis de cierre');
     expect(summary.body).toContain('Primero colchon de emergencia');
+    expect(summary.body).not.toContain('retoma');
+    expect(summary.nextStep).toMatch(/^Fuera de la app,/);
+    expect(summary.footer).toContain('no admite nuevas interacciones');
     expect(summary.body.length).toBeGreaterThan(200);
   });
 });
